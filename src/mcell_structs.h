@@ -20,15 +20,19 @@
    /* Surface and grid molecules have ON_SURFACE set */
    /* Grid molecules have ON_GRID set */
    /* IS_ACTIVE is set if this molecule can do anything on its own */
-#define ON_SURFACE  0x01
-#define ON_GRID     0x02
-#define IS_SURFACE  0x04
-#define NOT_FREE    0x07
-#define IS_ACTIVE   0x08
-#define CAN_MOLMOL  0x10
-#define CAN_MOLGRID 0x20
-#define CAN_MOLSURF 0x40
-#define CAN_MOLWALL 0x80
+#define ON_SURFACE       0x01
+#define ON_GRID          0x02
+#define IS_SURFACE       0x04
+#define NOT_FREE         0x07
+#define IS_ACTIVE        0x08
+#define CAN_MOLMOL       0x10
+#define CAN_MOLGRID      0x20
+#define CAN_MOLSURF      0x40
+#define CAN_MOLWALL      0x80
+#define COUNT_CONTENTS   0x1000
+#define COUNT_CROSSINGS  0x2000
+#define COUNT_HITS       0x4000
+#define COUNT_RXNS       0x8000
 
 
 /* Reaction flags */
@@ -299,21 +303,16 @@
 #define INTER_EVENTS 2
 
 
-/* Count list value types.  Probably okay. */
+/* Count list value types. */
 #define UNKNOWN 0
 #define TIME_STAMP_VAL 1
 #define INDEX_VAL 2
 
 
-/* Reaction data output type */
-#define FRAME_DATA 0
-#define FREQ_DATA 1
-   /* Use either frame data or frequency to control when to output */
-
-
-/* Output list type */
-#define FRAME_NUMBER 0
-#define REAL_TIME 1
+/* Reaction and Viz data output timing */
+#define STEP_TIME 0
+#define IT_TIME 1
+#define REAL_TIME 2
 
 
 /* Region counter type.  INIT probably broken. */
@@ -336,6 +335,7 @@
 #define MCELL_MODE 7
 #define RK_MODE 8
 
+
 /* Visualization frame data types. */
 #define ALL_FRAME_DATA 0
 #define EFF_POS 1
@@ -351,6 +351,7 @@
 #define TRAIN_LOW_EVENT 1
 #define RELEASE_EVENT 2
                                                                                 
+
 /* release number methods */
 #define CONSTNUM 0
 #define GAUSSNUM 1
@@ -760,6 +761,8 @@ struct volume
   double speed_limit;           /* How far can the fastest particle get in one timestep? */
   double diffusion_number;
   double diffusion_cumsteps;
+
+  struct schedule_helper *count_scheduler;
   
   /* Simulation initialization parameters  */
   struct sym_table **main_sym_table;
@@ -767,9 +770,8 @@ struct volume
   struct object *root_instance;
   struct release_pattern *default_release_pattern;
   struct release_event_queue *release_event_queue_head;
-  struct count_list *count_list;
-  struct count_list *count_zero;
-  struct output_list *output_list;
+  struct counter_list *count_zero;
+  struct output_list *output_list_head;
   struct viz_obj *viz_obj_head;
   struct frame_data_list *frame_data_head;
   struct species *g_mol;
@@ -794,7 +796,6 @@ struct volume
   double ray_polygon_tests;
   double ray_polygon_colls;
   double diffusion_steps;
-  double sim_elapse_time;
   struct vector3 bb_min;
   struct vector3 bb_max;
   u_int tot_mols;
@@ -930,82 +931,94 @@ struct node_dat {
 	int right_node;
 };
 
+
 /**
- * Linked list for all counter data being output.
- * Modified by Lin-Wei 5/21/02
+ * Linked list of all reaction data output blocks
  */
 struct output_list {
-	struct output_list *next;   /**< next item in output list*/
-	byte out_type;
-	unsigned int id;		/**<unique id number for each REACTION_OUTPUT_DATA command*/
-	int counter;
-	int freq;
-	int n_output;
-	int index;
-	struct counter_info *counter_info;
-	struct reaction_list *reaction_list;
+	struct output_list *next;   /**< next reaction data output block*/
+        double t;                   /**< scheduled time to update counters
+                                         associated with this output block*/
+	byte timer_type;    /**< output timer type: STEP_TIME,
+                                     IT_TIME,
+                                     REAL_TIME*/
+	double step_time;                     /**< output frequency (secs)*/
+        struct num_expr_list *time_list_head; /**< list of output times (secs)
+                                                   or list of iterations*/
+        struct num_expr_list *curr_time_ptr; /**< ptr to current position in
+                                                   output time list*/
+        u_int buffersize;                     /**< output chunk size*/
+        u_int curr_buf_index;              /**< index to current position
+                                                   in output buffers*/
+        double *time_array;                 /**< array of output times
+                                                 for current output chunk */
+        u_int chunk_count;                  /**< number of chunks processed*/
+	struct counter_info *counter_info_head; /**< list of count output
+                                                     statements associated with
+                                                     this output block*/
 };
 
+
+/**
+ * Linked list of count output statements associated with a given output block 
+ */
 struct counter_info {
 	struct counter_info *next;  
-	char outfile_name[1024];              /**< name of variable being tracked*/
-	struct count_list *count_list;
+	char *outfile_name;               /**< name of file to contain output*/
+	struct counter_list *counter_list_head;  /**< list of counters 
+                                                  associated with this
+                                                  count output statement*/
+	struct counter_list *count_expr;  /**< root of count expression tree
+                                               to be evaluated for this
+                                               count output statement*/
 };
 
-/**
- * Reaction output data list
- *
- */
-struct reaction_list {
-  struct reaction_list *next;
-  byte list_type;
-  int n_reac_iterations;
-  int reac_iteration;
-  int *array;
-  struct num_expr_list *iteration_list;
-  struct num_expr_list *curr_reac_iteration;
-};
 
 /**
- * Linked list of counters.
+ * Linked list of counters to be evaluated at update time
  */
-struct count_list {
-	struct count_list *next;    /**< next item in count list*/
-	int n_output;			/**< total output time steps.*/
-	int freq;
-	unsigned int frame_index;
-	byte reset_flag;            /**< reset temp_data to 0 on each iteration?*/
+struct counter_list {
+	struct counter_list *next;    /**< next item in count list*/
 	byte update_flag;           /**< counter update necessary?*/
-	byte data_type;             /**< type of data to track:
-	                              MOL RX CMP EXPR INT DBL*/
+	byte reset_flag;            /**< reset temp_data to 0 on each iteration?*/
 	byte index_type;            /**< flag indicating final_data is to be
 	                              indexed by either
 	                              TIME_STAMP_VAL or INDEX_VAL*/
-	int n_data;
-	void *temp_data;            /**< ptr to data specified by type*/
-	void *final_data;           /**< ptr to data specified by type*/
-	struct count_list *operand1;
-	struct count_list *operand2;
+	byte data_type;             /**< type of data to track:
+	                              SURF_MOL_CNT VOL_MOL_CNT
+                                      SURF_RX_CNT VOl_RX_CNT
+                                      EXPR INT DBL*/
+	u_int n_data;
+	void *temp_data;            /**< ptr to intermediate data
+                                         specified by type*/
+	void *final_data;           /**< ptr to final outputable data
+                                         specified by type*/
+	struct counter_list *operand1;
+	struct counter_list *operand2;
 	char oper;
 };
 
-struct lig_count_list {
-	struct lig_count_list *next;
-        struct count_list *count_list;
+
+struct lig_counter_list {
+	struct lig_counter_list *next;
+        struct counter_list *counter_list;
 };
+
 
 struct lig_count_ref {
 	struct lig_count_ref *next;
 	unsigned short type;
         char *full_name;
-        struct count_list *count_list;
+        struct counter_list *counter_list;
 };
+
 
 struct viz_state_ref {
 	struct viz_state_ref *next;
 	int viz_state;
         char *full_name;
 };
+
 
 /**
  * Compartment. [\todo need more info]
@@ -1119,7 +1132,7 @@ struct cmprt {
 	struct sym_table *sym;
         unsigned short type;
 	int inst_count;
-	struct lig_count_list **lig_count_list;  /**< array of ptrs to lig_count_list
+	struct lig_counter_list **lig_counter_list;  /**< array of ptrs to lig_counter_list
 	                                        structures: one for each
 	                                        ligand type */
         byte a_zone_lig;
@@ -1155,8 +1168,8 @@ struct element_list {
 };
 
 /**
- * A region.
- * [\todo what is this?]
+ * Surface region of an object
+ * 
  */
 struct region {
 	struct sym_table *sym;
@@ -1226,6 +1239,7 @@ struct object {
 					      this object */
 	struct counter_hash_table **counter_hash_table;	/**<hash table for region counter in object*/
         int n_walls;                  /**< Total number of walls in object */
+        int n_walls_actual;           /**< number of non-null walls in object */
         struct wall *walls;           /**< array of walls in object */
         struct wall **wall_p;         /**< array of ptrs to walls in object */
         int n_verts;                  /**< Total number of vertices in object */

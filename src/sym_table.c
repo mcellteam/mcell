@@ -239,6 +239,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       objp->regions=NULL;
       objp->counter_hash_table=NULL;
       objp->n_walls=0;
+      objp->n_walls_actual=0;
       objp->walls=NULL;
       objp->wall_p=NULL;
       objp->n_verts=0;

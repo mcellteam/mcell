@@ -1,0 +1,328 @@
+/* Normal/DFP/BTx Lizard Intercostal Neuromuscular Junction */
+
+INCLUDE_FILE = "nmj_parameters.mdl"
+btx_factor=norm_btx_factor
+ache_d_factor=norm_ache_d_factor
+
+TIME_STEP = dt
+TIME_STEP_MAX = 10000*dt
+ITERATIONS = it
+EFFECTOR_GRID_DENSITY = grid_density
+RADIAL_SUBDIVISIONS = rad_sub
+RADIAL_DIRECTIONS = rad_dir
+
+delta=0.51*cleft
+sv1=(-14*inter_fold)-delta
+sv2=(-14*inter_fold)+delta
+sv3=(-13*inter_fold)-delta
+sv4=(-13*inter_fold)+delta
+sv5=(-12*inter_fold)-delta
+sv6=(-12*inter_fold)+delta
+sv7=(-11*inter_fold)-delta
+sv8=(-11*inter_fold)+delta
+sv9=(-10*inter_fold)-delta
+sv10=(-10*inter_fold)+delta
+sv11=(-9*inter_fold)-delta
+sv12=(-9*inter_fold)+delta
+sv13=(-8*inter_fold)-delta
+sv14=(-8*inter_fold)+delta
+sv15=(-7*inter_fold)-delta
+sv16=(-7*inter_fold)+delta
+sv17=(-6*inter_fold)-delta
+sv18=(-6*inter_fold)+delta
+sv19=(-5*inter_fold)-delta
+sv20=(-5*inter_fold)+delta
+sv21=(-4*inter_fold)-delta
+sv22=(-4*inter_fold)+delta
+sv23=(-3*inter_fold)-delta
+sv24=(-3*inter_fold)+delta 
+sv25=(-2*inter_fold)-delta
+sv26=(-2*inter_fold)+delta
+sv27=(-1*inter_fold)-delta
+sv28=(-1*inter_fold)+delta
+sv29=-delta
+sv30=delta
+sv31=(1*inter_fold)-delta
+sv32=(1*inter_fold)+delta
+sv33=(2*inter_fold)-delta
+sv34=(2*inter_fold)+delta
+sv35=(3*inter_fold)-delta
+sv36=(3*inter_fold)+delta
+sv37=(4*inter_fold)-delta  
+sv38=(4*inter_fold)+delta
+sv39=(5*inter_fold)-delta
+sv40=(5*inter_fold)+delta
+sv41=(6*inter_fold)-delta 
+sv42=(6*inter_fold)+delta
+sv43=(7*inter_fold)-delta
+sv44=(7*inter_fold)+delta
+sv45=(8*inter_fold)-delta
+sv46=(8*inter_fold)+delta
+sv47=(9*inter_fold)-delta
+sv48=(9*inter_fold)+delta
+sv49=(10*inter_fold)-delta
+sv50=(10*inter_fold)+delta
+sv51=(11*inter_fold)-delta
+sv52=(11*inter_fold)+delta
+sv53=(12*inter_fold)-delta
+sv54=(12*inter_fold)+delta
+sv55=(13*inter_fold)-delta
+sv56=(13*inter_fold)+delta
+sv57=(14*inter_fold)-delta
+sv58=(14*inter_fold)+delta
+
+PARTITION_X = [sv1,sv2,sv3,sv4,sv5,sv6,sv7,sv8,sv9,sv10,
+          sv11,sv12,sv13,sv14,sv15,sv16,sv17,sv18,sv19,sv20,
+          sv21,sv22,sv23,sv24,sv25,sv26,sv27,sv28,sv28,sv30,
+          sv31,sv32,sv33,sv34,sv35,sv36,sv37,sv38,sv39,sv40,
+          sv41,sv42,sv43,sv44,sv45,sv46,sv47,sv48,sv49,sv50,
+          sv51,sv52,sv53,sv54,sv55,sv56,sv57,sv58]
+PARTITION_Y = [-50, 50]
+PARTITION_Z = [-50, 50]
+
+DEFINE_MOLECULES {
+  ACh { DIFFUSION_CONSTANT_3D = D }
+  AChR.R { DIFFUSION_CONSTANT_2D = 0 }
+  AChR.ARs { DIFFUSION_CONSTANT_2D = 0 }
+  AChR.ARt { DIFFUSION_CONSTANT_2D = 0 }
+  AChR.A2Rc { DIFFUSION_CONSTANT_2D = 0 }
+  AChR.A2Ro { DIFFUSION_CONSTANT_2D = 0 }
+  BTxAChR.R { DIFFUSION_CONSTANT_2D = 0 }
+  BTxAChR.AR { DIFFUSION_CONSTANT_2D = 0 }
+  AChE.E { DIFFUSION_CONSTANT_2D = 0 }
+  AChE.AE { DIFFUSION_CONSTANT_2D = 0 }
+}
+
+DEFINE_REACTIONS {
+  ACh + AChR.R -> AChR.ARs [Kp1]
+  ACh + AChR.R -> AChR.ARt [Kp1]
+
+  AChR.ARs -> ACh + AChR.R [Km1]
+  AChR.ARt -> ACh + AChR.R [Km1]
+
+  ACh + AChR.ARs -> AChR.A2Rc [Kp2]
+  ACh + AChR.ARt -> AChR.A2Rc [Kp2]
+
+  AChR.A2Rc -> ACh + AChR.ARs [Km2]
+  AChR.A2Rc -> ACh + AChR.ARt [Km2]
+
+  AChR.A2Rc -> AChR.A2Ro [beta]
+  AChR.A2Ro -> AChR.A2Rc [alpha]
+
+
+  ACh + BTxAChR.R -> BTxAChR.AR [Kp1]
+  BTxAChR.AR -> ACh + BTxAChR.R [Km1]
+
+
+  ACh + AChE.E' -> AChE.AE' [Kpe]
+  AChE.AE -> AChE.E         [Kme]
+}
+
+
+DEFINE_RELEASE_PATTERN release_pattern_1 {
+  DELAY = r_delay_1
+  RELEASE_INTERVAL = r_interval_1
+  TRAIN_INTERVAL = t_interval_1
+  TRAIN_DURATION = t_duration_1
+  NUMBER_OF_TRAINS = n_trains_1
+}
+
+all_release_sites OBJECT {
+  release_site_1 SPHERICAL_RELEASE_SITE {
+    LOCATION = r_location_1
+    LIGAND = ACh
+    NUMBER_TO_RELEASE = n_release_1
+/*
+    SITE_DIAMETER = r_diameter_1
+*/
+    SITE_DIAMETER = 0
+    RELEASE_PATTERN = release_pattern_1
+  }
+}
+
+DEFINE_SURFACE_CLASSES {
+  absorb {
+    ABSORPTIVE = ACh
+  }
+  basal_lamina {
+    TRANSPARENT = ACh
+  }
+}
+
+enclosure OBJECT {
+
+  top_piece BOX {
+    CORNERS = [-Rex,-Rex,0],[Rex,Rex,cleft]
+    REMOVE_ELEMENT = BOTTOM
+    DEFINE_SURFACE_REGIONS {
+      boundary {
+        ELEMENT_LIST = [LEFT,RIGHT,FRONT,BACK]
+        SURFACE_CLASS = absorb
+      }
+    }
+  }
+
+  bottom_piece BOX {
+    CORNERS = [-Rex,-Rex,-depth3],[Rex,Rex,0]
+    REMOVE_ELEMENT = TOP
+  }
+}
+
+fold_template OBJECT {
+  upper BOX {
+    CORNERS = [-cleft/2,-Rex,-depth1],[cleft/2,Rex,0]
+    REMOVE_ELEMENT = FRONT
+    REMOVE_ELEMENT = BACK
+    REMOVE_ELEMENT = TOP
+    REMOVE_ELEMENT = BOTTOM
+    DEFINE_SURFACE_REGIONS {
+      sides {
+        ELEMENT_LIST = [LEFT,RIGHT]
+        MOLECULE_DENSITY {
+          AChR.R, = achr_d*btx_factor*btx_factor
+          BTxAChR.R, = achr_d*2*btx_factor*(1-btx_factor)
+        }
+      }
+    }
+  }
+  middle BOX {
+    CORNERS = [-cleft/2,-Rex,-depth2],[cleft/2,Rex,-depth1]
+    REMOVE_ELEMENT = FRONT
+    REMOVE_ELEMENT = BACK
+    REMOVE_ELEMENT = TOP
+    REMOVE_ELEMENT = BOTTOM
+    DEFINE_SURFACE_REGIONS {
+      sides {
+        ELEMENT_LIST = [LEFT,RIGHT]
+        MOLECULE_DENSITY {
+          AChR.R, = achr_d_mid*btx_factor*btx_factor
+          BTxAChR.R, = achr_d_mid*2*btx_factor*(1-btx_factor)
+        }
+      }
+    }
+  }
+  bottom BOX {
+    CORNERS = [-cleft/2,-Rex,-depth3],[cleft/2,Rex,-depth2]
+    REMOVE_ELEMENT = FRONT
+    REMOVE_ELEMENT = BACK
+    REMOVE_ELEMENT = TOP
+    REMOVE_ELEMENT = BOTTOM
+  }
+  ache_fold_sheet BOX {
+    CORNERS = [0,-Rex,-depth3],[cleft,Rex,cleft/2]
+    REMOVE_ELEMENT = FRONT
+    REMOVE_ELEMENT = BACK
+    REMOVE_ELEMENT = TOP
+    REMOVE_ELEMENT = BOTTOM
+    REMOVE_ELEMENT = RIGHT
+    DEFINE_SURFACE_REGIONS {
+      fold {
+        ELEMENT_LIST = [LEFT]
+        SURFACE_CLASS = basal_lamina
+        MOLECULE_DENSITY {
+          AChE.E = ache_d_fold*ache_d_factor
+        }
+      }
+    }
+  }
+}
+
+top_of_fold BOX {
+  CORNERS = [cleft/2,-Rex,0],[inter_fold-(cleft/2),Rex,cleft]
+  REMOVE_ELEMENT = TOP
+  REMOVE_ELEMENT = LEFT
+  REMOVE_ELEMENT = RIGHT
+  REMOVE_ELEMENT = FRONT
+  REMOVE_ELEMENT = BACK
+  DEFINE_SURFACE_REGIONS {
+    sides {
+      ELEMENT_LIST = [BOTTOM]
+      MOLECULE_DENSITY {
+        AChR.R, = achr_d*btx_factor*btx_factor
+        BTxAChR.R, = achr_d*2*btx_factor*(1-btx_factor)
+      }
+    }
+  }
+}
+
+ache_primary_sheet BOX {
+  CORNERS = [-Rex,-Rex,cleft/2],[Rex,Rex,cleft]
+  REMOVE_ELEMENT = FRONT
+  REMOVE_ELEMENT = BACK
+  REMOVE_ELEMENT = LEFT
+  REMOVE_ELEMENT = RIGHT
+  REMOVE_ELEMENT = TOP
+  DEFINE_SURFACE_REGIONS {
+    primary {
+      ELEMENT_LIST = [BOTTOM]
+      SURFACE_CLASS = basal_lamina
+      MOLECULE_DENSITY {
+        AChE.E = ache_d*ache_d_factor
+      }
+    }
+  }
+}
+
+fold_assembly OBJECT {
+  fold_top OBJECT top_of_fold { }
+  fold_bottom OBJECT fold_template { TRANSLATE = [inter_fold,0,0] }
+}
+
+right_folds OBJECT {
+  fold_1 OBJECT fold_assembly { }
+  fold_2 OBJECT fold_assembly { TRANSLATE = [1*inter_fold,0,0] }
+  fold_3 OBJECT fold_assembly { TRANSLATE = [2*inter_fold,0,0] }
+  fold_4 OBJECT fold_assembly { TRANSLATE = [3*inter_fold,0,0] }
+  fold_5 OBJECT fold_assembly { TRANSLATE = [4*inter_fold,0,0] }
+  fold_6 OBJECT fold_assembly { TRANSLATE = [5*inter_fold,0,0] }
+  fold_7 OBJECT fold_assembly { TRANSLATE = [6*inter_fold,0,0] }
+  fold_8 OBJECT fold_assembly { TRANSLATE = [7*inter_fold,0,0] }
+  fold_9 OBJECT fold_assembly { TRANSLATE = [8*inter_fold,0,0] }
+  fold_10 OBJECT fold_assembly { TRANSLATE = [9*inter_fold,0,0] }
+  fold_11 OBJECT fold_assembly { TRANSLATE = [10*inter_fold,0,0] }
+  fold_12 OBJECT fold_assembly { TRANSLATE = [11*inter_fold,0,0] }
+  fold_13 OBJECT fold_assembly { TRANSLATE = [12*inter_fold,0,0] }
+  fold_14 OBJECT fold_assembly { TRANSLATE = [13*inter_fold,0,0] }
+}
+
+INSTANTIATE nmj OBJECT {
+  nmj_enclosure OBJECT enclosure { }
+  primary_ache OBJECT ache_primary_sheet { }
+  middle_fold OBJECT fold_template { }
+  post_synaptic_right OBJECT right_folds { }
+  post_synaptic_left OBJECT right_folds { ROTATE = [0,0,1],180 }
+  nmj_release_sites OBJECT all_release_sites { }
+}
+
+VIZ_DATA_OUTPUT {
+  MODE = DX
+  MOLECULE_FILE_PREFIX = "./viz/nmj"
+  OBJECT_FILE_PREFIXES {
+    nmj = "./viz/nmj"
+  }
+  STATE_VALUES {
+    nmj = 1
+    ACh = 1
+    AChR.R = 2
+    AChR.ARs = 3
+    AChR.ARt = 3
+    AChR.A2Rc = 4
+    AChR.A2Ro = 5
+    AChE.E = 6
+    AChE.AE = 7
+  }
+  ITERATION_LIST = [0,50,100,250]
+}
+
+
+REACTION_DATA_OUTPUT {
+  STEP = freq
+  { COUNT[ACh,WORLD] } => "./dat/ACh.dat"
+  { COUNT[AChR.R,WORLD] } => "./dat/AChR.R.dat"
+  { COUNT[AChR.ARs,WORLD] + COUNT[AChR.ARt,WORLD] } => "./dat/AChR.AR.dat"
+  { COUNT[AChR.A2Rc,WORLD] } => "./dat/AChR.A2Rc.dat"
+  { COUNT[AChR.A2Ro,WORLD] } => "./dat/AChR.A2Ro.dat"
+  { COUNT[AChE.E,WORLD] } => "./dat/AChE.E.dat"
+  { COUNT[AChE.AE,WORLD] } => "./dat/AChE.AE.dat"
+}
+

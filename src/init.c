@@ -110,6 +110,7 @@ int init_sim(void)
 {
   FILE *log_file;
   struct sym_table *gp;
+  struct output_list *olp,*olpn;
   double fact;
   int i;
   int *intp;
@@ -137,7 +138,7 @@ int init_sim(void)
 
   world->chkpt_outfile=NULL;
   world->chkpt_iterations=0;
-  world->chkpt_seq_num=0;
+  world->chkpt_seq_num=1;
 
   world->chkpt_init=1;
   world->chkpt_flag=0;
@@ -235,16 +236,15 @@ int init_sim(void)
   world->g_surf=(struct species *)gp->value;
   world->g_surf->flags=IS_SURFACE;
 
-  world->count_list=NULL;
-  world->output_list=NULL;
+  world->output_list_head=NULL;
   world->release_event_queue_head=NULL;
   world->tot_mols=0;
   world->viz_obj_head=NULL;
   world->viz_mode=0;
   world->frame_data_head=NULL;
 
-  if ((world->count_zero=(struct count_list *)malloc
-       (sizeof(struct count_list)))==NULL) {
+  if ((world->count_zero=(struct counter_list *)malloc
+       (sizeof(struct counter_list)))==NULL) {
     fprintf(log_file,"MCell: cannot store counter data\n");
     return(1); 
   }
@@ -253,11 +253,9 @@ int init_sim(void)
     return(1);
   }
   *intp=0;
-  world->count_zero->freq=1;
-  world->count_zero->frame_index=1;
-  world->count_zero->n_output=0;
-  world->count_zero->reset_flag=0;
+  world->count_zero->next=NULL;
   world->count_zero->update_flag=0;
+  world->count_zero->reset_flag=0;
   world->count_zero->index_type=TIME_STAMP_VAL;
   world->count_zero->n_data=1;
   world->count_zero->data_type=INT;
@@ -266,10 +264,10 @@ int init_sim(void)
   world->count_zero->operand1=NULL;
   world->count_zero->operand2=NULL;
   world->count_zero->oper='\0';
-  world->count_zero->next=world->count_list;
-  world->count_list=world->count_zero;
   
   world->releaser = create_scheduler(1.0,100.0,100,0.0);
+
+  world->count_scheduler = create_scheduler(1.0,100.0,100,0.0);
 
   /* Parse the MDL file: */
   no_printf("Node %d parsing MDL file %s\n",world->procnum,world->mdl_infile_name);
@@ -362,13 +360,22 @@ int init_sim(void)
 */
 
   /**
-   *Initialize the frame date list for the visualization 
+   *Initialize the frame data list for the visualization 
    *and reaction output.
    **/
   init_frame_data_list(world->frame_data_head);
 /*
   init_reaction_list(reaction_data_head);
 */
+
+/* Schedule the reaction data output events */
+  olp = world->output_list_head;
+  while(olp != NULL)
+  {
+    olpn = olp->next;
+    schedule_add(world->count_scheduler , olp);
+    olp = olpn;
+  }
 
   no_printf("Done initializing simulation\n");
   fflush(log_file);

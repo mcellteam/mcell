@@ -24,6 +24,7 @@
 #endif
 
 
+
 void mdl_warning(struct mdlparse_vars *mpvp)
 {
 
@@ -248,6 +249,7 @@ int copy_object(struct volume *volp,struct object *curr_objp,
   objp->parent=curr_objp;
   objp->num_regions=objp2->num_regions;
   objp->n_walls=objp2->n_walls;
+  objp->n_walls_actual=objp2->n_walls_actual;
   objp->walls=objp2->walls;
   objp->wall_p=objp2->wall_p;
   objp->n_verts=objp2->n_verts;
@@ -1978,60 +1980,37 @@ int partition_volume(struct volume *volp)
 }
 
 
-/* Lin-Wei Wu 10/30/02 
- * Find the minimum value from three number 
- */
-int min_count_buffer(int i1, int i2, int i3) {
-  if ((i1<i2) || (i1==i2)) {
-    if ((i1<i3)||(i1==i3)) {
-      return(i1);
-    }
-    else {
-      return(i3);
-    }
-  }
-  else {
-    if ((i2<i3) || (i2==i3)) {
-      return(i2);
-    }
-    else {
-      return(i3);
-    }
-  }
-  return;
-}
 
-
-struct count_list *init_lig_counter(int n_output)
+struct counter_list *init_mol_counter(struct counter_info *cip,
+                                      u_int buffersize)
 {
-  struct count_list *clp;
-  int i,i1,*intp;
+  struct counter_list *clp;
+  int i,*intp;
   
-  if ((clp=(struct count_list *)malloc(sizeof(struct count_list)))==NULL) {
+  if ((clp=(struct counter_list *)malloc(sizeof(struct counter_list)))==NULL) {
     mdlerror("Cannot store count data");
     return(NULL);
   }
-  clp->n_output=n_output;
-  clp->freq=output_freq;
-  clp->frame_index=n_reac_frames;
-  clp->reset_flag=0;
+  clp->next=cip->counter_list_head;
+  cip->counter_list_head=clp;
+
   clp->update_flag=1;
+  clp->reset_flag=0;
   clp->index_type=TIME_STAMP_VAL;
 
-  /* i1=(int) (1+((double)iterations/clp->freq)); */
-  i1=clp->n_output;
-  if ((intp=(int *)malloc(i1*sizeof(int)))==NULL) {
+  if ((intp=(int *)malloc(buffersize*sizeof(int)))==NULL) {
     mdlerror("Cannot store count data");
     return(NULL);
   }
-  for (i=0;i<i1;i++) {
+  for (i=0;i<buffersize;i++) {
     intp[i]=0;
   }
-  clp->final_data=(void *)intp;
-  clp->data_type=INT;
-  clp->n_data=i1;
 
-  /* NOTE: clp->temp_data is set to
+  clp->data_type=INT;
+  clp->n_data=buffersize;
+  clp->final_data=(void *)intp;
+
+  /* NOTE: clp->temp_data must be set to
   (void *)&cdp->lig_count[ligip->type]
   at time of instancing */
   clp->temp_data=NULL;
@@ -2039,15 +2018,18 @@ struct count_list *init_lig_counter(int n_output)
   clp->operand1=NULL;
   clp->operand2=NULL;
   clp->oper='\0';
-  clp->next=count_list;
-  count_list=clp;
 
   return(clp);
 }
 
-struct count_list *get_next_operand(struct count_list *clp,int n_output)
+
+
+struct counter_list *get_next_operand(struct volume *volp,
+                                      struct counter_info *cip,
+                                      struct counter_list *clp,
+                                      u_int buffersize)
 {
-  struct count_list *operand,*o1,*o2,*tclp;
+  struct counter_list *operand,*o1,*o2,*tclp;
 
   operand = clp;
   while (operand!=NULL) {
@@ -2055,12 +2037,12 @@ struct count_list *get_next_operand(struct count_list *clp,int n_output)
       o1=operand->operand1;
       o2=operand->operand2;
       if (o1==NULL) {
-        /* malloc space for operand and set operand2 to point to count_zero */
-        operand->operand2=count_zero;
-        if ((tclp=init_lig_counter(n_output))==NULL) {
+        /* init operand1 and set operand2 to point to count_zero */
+        if ((tclp=init_mol_counter(cip,buffersize))==NULL) {
           return(NULL);
         }
         operand->operand1=tclp;
+        operand->operand2=volp->count_zero;
         operand=tclp;
         return(operand);
       }
@@ -2073,9 +2055,9 @@ struct count_list *get_next_operand(struct count_list *clp,int n_output)
           operand=o2;
         }
         else {
-	  if (o2==count_zero) {
-            /* malloc space for operand and point operand2 at it */
-            if ((tclp=init_lig_counter(n_output))==NULL) {
+	  if (o2==volp->count_zero) {
+            /* init operand and point operand2 at it */
+            if ((tclp=init_mol_counter(cip,buffersize))==NULL) {
               return(NULL);
             }
             operand->operand2=tclp;
@@ -2085,28 +2067,25 @@ struct count_list *get_next_operand(struct count_list *clp,int n_output)
 	  else {
             /* malloc space for new EXPR node in count tree at o2*/
             tclp=o2;
-            if ((o2=(struct count_list *)malloc(sizeof(struct count_list)))==NULL) {
+            if ((o2=(struct counter_list *)malloc(sizeof(struct counter_list)))==NULL) {
               return(NULL);
             }
             operand->operand2=o2;
-            if ((operand=init_lig_counter(buffersize))==NULL) {
+            if ((operand=init_mol_counter(cip,buffersize))==NULL) {
               return(NULL);
             }
-            o2->freq=output_freq;
-	    o2->frame_index=n_reac_frames;
-	    o2->n_output=buffersize;
-            o2->reset_flag=0;
             o2->update_flag=0;
-            o2->data_type=EXPR;
+            o2->reset_flag=0;
             o2->index_type=UNKNOWN;
+            o2->data_type=EXPR;
             o2->n_data=0;
             o2->temp_data=NULL;
             o2->final_data=NULL;
             o2->operand1=tclp;
             o2->operand2=operand;
             o2->oper='+';
-            o2->next=count_list;
-            count_list=o2;
+            o2->next=cip->counter_list_head;
+            cip->counter_list_head=o2;
             return(operand);
           }
         }
@@ -2121,14 +2100,21 @@ struct count_list *get_next_operand(struct count_list *clp,int n_output)
   return(operand);
 }
 
-int build_lig_count_tree(struct object *objp,struct object *root_objp,
-                         struct count_list *clp, byte lig_type,int n_output,
-						 char *sub_name)
+
+
+int build_mol_count_tree(struct volume *volp,
+                         struct object *objp,
+                         struct object *root_objp,
+                         struct counter_info *cip,
+                         struct counter_list *clp,
+                         byte lig_type,
+                         u_int buffersize,
+                         char *sub_name)
 {
   struct polygon_object *pop,*found_pop;
   struct meta_object *mop;
   struct object_list *objlp;
-  struct count_list *next_operand;
+  struct counter_list *next_operand;
   struct lig_count_ref *lcrp1,*lcrp2;
   char *tmp_name;
 
@@ -2152,7 +2138,7 @@ int build_lig_count_tree(struct object *objp,struct object *root_objp,
     mop=(struct meta_object *)objp->obj;
     objlp=mop->first_child;
     while (objlp!=NULL) {
-      if (build_lig_count_tree(objlp->object,root_objp,clp,lig_type,n_output,sub_name)) {
+      if (build_mol_count_tree(volp,objlp->object,root_objp,cip,clp,lig_type,buffersize,sub_name)) {
         return(1);
       }
       objlp=objlp->next;
@@ -2173,7 +2159,7 @@ int build_lig_count_tree(struct object *objp,struct object *root_objp,
   }
 
   if (found_pop) {
-    if ((next_operand=get_next_operand(clp,n_output))==NULL) {
+    if ((next_operand=get_next_operand(volp,cip,clp,buffersize))==NULL) {
       return(1);
     }
     if ((lcrp1=(struct lig_count_ref *)malloc
@@ -2188,13 +2174,13 @@ int build_lig_count_tree(struct object *objp,struct object *root_objp,
     }
     lcrp1->type=lig_type;
     lcrp1->full_name=my_strdup(sub_name);
-    lcrp1->count_list=next_operand;
+    lcrp1->counter_list=next_operand;
     lcrp1->next=root_objp->lig_count_ref;
     root_objp->lig_count_ref=lcrp1;
 
     lcrp2->type=lig_type;
     lcrp2->full_name=lcrp1->full_name;
-    lcrp2->count_list=next_operand;
+    lcrp2->counter_list=next_operand;
     lcrp2->next=found_pop->lig_count_ref;
     found_pop->lig_count_ref=lcrp2;
   }

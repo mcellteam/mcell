@@ -76,6 +76,13 @@ struct mdlparse_vars {
   struct state_list *mol_state_head;
   struct state_list *slp;
 
+  struct output_list *olp;
+  int n_output;
+  int output_freq;
+  struct counter_info *cip;
+  struct counter_list *clp;
+  struct counter_list *clp2;
+
   struct polygon_object *pop;
   struct ordered_poly *opp;
   struct box_poly *bpp;
@@ -89,6 +96,7 @@ struct mdlparse_vars {
   struct vertex_list *vlp;
   struct vertex_list *vlp_temp;
   int n_walls;
+  int n_walls_actual;
   int n_verts;
 
   struct region *rp;

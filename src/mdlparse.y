@@ -33,6 +33,17 @@
   #define no_printf printf
   #endif
 
+
+  #define min(x,y) ((x)<(y)) ? (x): (y)
+
+
+  int imin3(int f1, int f2, int f3)
+  {
+    return (min(f1,min(f2,f3)));
+  }
+
+
+
 %}
 
 
@@ -46,7 +57,7 @@ struct vector3 *vec3;
 struct num_expr_list *nel;
 struct object *obj;
 struct object_list *objl;
-struct count_list *cnt;
+struct counter_list *cnt;
 } 
 
 
@@ -271,6 +282,7 @@ struct count_list *cnt;
 %type <tok> radial_directions_def
 %type <tok> radial_subdivisions_def
 %type <tok> assignment_stmt
+%type <tok> partition_def
 %type <tok> molecules_def
 %type <tok> define_one_molecule
 %type <tok> define_multiple_molecules
@@ -287,6 +299,7 @@ struct count_list *cnt;
 %type <tok> instance_def
 %type <tok> include_stmt
 %type <tok> viz_output_def
+%type <tok> output_def
 %type <tok> end_of_mdl_file
 
 %type <tok> rx_net_def
@@ -353,16 +366,20 @@ struct count_list *cnt;
 
 %type <vec3> point
 
+%type <cnt> count_expr
+%type <cnt> count_value
+%type <cnt> count_value_init
+
 
 /**********************
 
+%type <tok> r_spec
+%type <tok> event_spec
 %type <tok> orientation_cmd
 %type <tok> wall_prop
 %type <tok> orientation
-%type <tok> r_spec
 %type <tok> lig_spec
 %type <tok> t_spec
-%type <tok> event_spec
 %type <tok> io_stmt
 %type <tok> viz_mode_def
 %type <tok> viz_output_def
@@ -378,11 +395,9 @@ struct count_list *cnt;
 %type <tok> viz_state_values_def
 %type <tok> list_viz_state_values
 %type <tok> viz_state_value
-%type <tok> partition_def
 %type <tok> voxel_image_mode_def
 %type <tok> voxel_volume_mode_def
 %type <tok> effector_site_def
-%type <tok> output_def
 %type <tok> add_effector
 %type <tok> wall_prop_cmd
 %type <tok> fopen_stmt
@@ -413,9 +428,6 @@ struct count_list *cnt;
 %type <str> file_mode
 %type <str> format_string
 
-%type <cnt> count_expr
-%type <cnt> count_value
-%type <cnt> count_value_init
 
 %type <evnt> event 
 
@@ -451,6 +463,7 @@ mdl_stmt: time_def
         | interact_radius_def
 	| radial_directions_def
 	| radial_subdivisions_def
+	| partition_def
 	| assignment_stmt
 	| molecules_def
 	| surface_classes_def
@@ -462,11 +475,10 @@ mdl_stmt: time_def
 	| existing_obj_define_surface_regions
 	| mod_surface_regions
 	| viz_output_def
-	| partition_def
+	| output_def
 
 /*	| parallel_partition_def
 	| add_molecules_def
-	| output_def
 	| io_stmt
 */
 	| include_stmt
@@ -2028,6 +2040,7 @@ meta_object_def:
         '}'
 {
         mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
+        mdlpvp->curr_obj->parent->n_walls_actual+=mdlpvp->curr_obj->n_walls_actual;
         mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
         mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
         if (mdlpvp->object_name_list_end->prev!=NULL) {
@@ -2254,6 +2267,7 @@ existing_object_ref:
         '}'
 {
   mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
+  mdlpvp->curr_obj->parent->n_walls_actual+=mdlpvp->curr_obj->n_walls_actual;
   mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
   mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
   if (mdlpvp->object_name_list_end->prev!=NULL) {
@@ -2580,8 +2594,10 @@ polygon_list_def: new_object POLYGON_LIST '{'
   no_printf(" n_verts = %d\n",mdlpvp->pop->n_verts);
   no_printf(" n_walls = %d\n",mdlpvp->pop->n_walls);
   mdlpvp->curr_obj->n_walls=mdlpvp->pop->n_walls;
+  mdlpvp->curr_obj->n_walls_actual=mdlpvp->n_walls_actual;
   mdlpvp->curr_obj->n_verts=mdlpvp->pop->n_verts;
   mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
+  mdlpvp->curr_obj->parent->n_walls_actual+=mdlpvp->curr_obj->n_walls_actual;
   mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
   mdlpvp->curr_obj->regions=mdlpvp->region_list_head;
   mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
@@ -2693,12 +2709,15 @@ list_points: point
 element_connection_cmd: ELEMENT_CONNECTIONS '{'
 {
   mdlpvp->n_walls=0;
+  mdlpvp->n_walls_actual=0;
   mdlpvp->connection_head=NULL;
   mdlpvp->connection_tail=NULL;
 }
         list_arrays
         '}'
-;
+{
+  mdlpvp->n_walls_actual=mdlpvp->n_walls;
+};
 
 
 list_arrays: array_value
@@ -2799,6 +2818,7 @@ box_def: new_object BOX '{'
   mdlpvp->urb=NULL;
 
   mdlpvp->pop->n_walls=12;
+  mdlpvp->n_walls_actual=12;
   mdlpvp->pop->n_verts=8;
   if ((mdlpvp->pop->side_stat=(unsigned short *)malloc
               (mdlpvp->pop->n_walls*sizeof(unsigned short)))==NULL) {
@@ -2846,8 +2866,10 @@ box_def: new_object BOX '{'
   free(mdlpvp->llf);
   free(mdlpvp->urb);
   mdlpvp->curr_obj->n_walls=mdlpvp->pop->n_walls;
+  mdlpvp->curr_obj->n_walls_actual=mdlpvp->n_walls_actual;
   mdlpvp->curr_obj->n_verts=mdlpvp->pop->n_verts;
   mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
+  mdlpvp->curr_obj->parent->n_walls_actual+=mdlpvp->curr_obj->n_walls_actual;
   mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
   mdlpvp->curr_obj->regions=mdlpvp->region_list_head;
   mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
@@ -2881,6 +2903,7 @@ remove_side: REMOVE_ELEMENT '=' side_name
     for (i=0;i<mdlpvp->pop->n_walls;i++) {
       mdlpvp->pop->side_stat[i]=0;
     }
+    mdlpvp->n_walls_actual=0;
     no_printf("Element removed: ALL\n");
   }
   else if (mdlpvp->objp->object_type==POLY_OBJ) {
@@ -2890,6 +2913,7 @@ remove_side: REMOVE_ELEMENT '=' side_name
   else {
     mdlpvp->pop->side_stat[$<tok>3]=0;
     mdlpvp->pop->side_stat[1+$<tok>3]=0;
+    mdlpvp->n_walls_actual-=2;
     no_printf("Elements removed: %d & %d\n",$<tok>3,1+$<tok>3);
   }
   fflush(stderr);
@@ -2902,6 +2926,7 @@ remove_side: REMOVE_ELEMENT '=' side_name
   }
   else {
     mdlpvp->pop->side_stat[(int)$<dbl>3]=0;
+    mdlpvp->n_walls_actual--;
     no_printf("Element removed: %d\n",(int)$<dbl>3);
   }
 };
@@ -3218,6 +3243,7 @@ instance_def: INSTANTIATE new_object OBJECT '{'
         '}'
 {
   mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
+  mdlpvp->curr_obj->parent->n_walls_actual+=mdlpvp->curr_obj->n_walls_actual;
   mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
   mdlpvp->curr_obj=volp->root_object;
   if (mdlpvp->object_name_list_end->prev!=NULL) {
@@ -3614,7 +3640,7 @@ viz_iteration_def: ITERATION_LIST '='
     mdlerror("Cannot store iteration list data");
     return(1);
   }
-  mdlpvp->fdlp->list_type=FRAME_NUMBER;
+  mdlpvp->fdlp->list_type=IT_TIME;
   mdlpvp->fdlp->type=ALL_FRAME_DATA;
   mdlpvp->fdlp->viz_iteration=-1;
   mdlpvp->fdlp->n_viz_iterations=0;
@@ -3748,7 +3774,7 @@ frame_data_spec: frame_data_item '='
     mdlerror("Cannot store iteration frame data");
     return(1);
   }
-  mdlpvp->fdlp->list_type=FRAME_NUMBER;
+  mdlpvp->fdlp->list_type=IT_TIME;
   mdlpvp->fdlp->type=$<tok>1;
   mdlpvp->fdlp->viz_iteration=-1;
   mdlpvp->fdlp->n_viz_iterations=0;
@@ -4071,6 +4097,459 @@ existing_logicalOrPhysical: VAR
 };
 
 
+output_def: REACTION_DATA_OUTPUT '{'
+{
+  if ((mdlpvp->olp=(struct output_list *)
+       malloc(sizeof(struct output_list)))==NULL) {
+    mdlerror("Cannot store output list data");
+    return(1);
+  }
+  mdlpvp->olp->next=volp->output_list_head;
+  volp->output_list_head=mdlpvp->olp;
+
+  mdlpvp->olp->t=0;
+  mdlpvp->olp->timer_type=STEP_TIME;
+  mdlpvp->olp->step_time=volp->time_unit;
+  mdlpvp->olp->time_list_head=NULL;
+  mdlpvp->olp->curr_time_ptr=NULL;
+  mdlpvp->olp->buffersize=COUNTBUFFERSIZE;
+  mdlpvp->olp->curr_buf_index=0;
+  mdlpvp->olp->chunk_count=0;
+  mdlpvp->olp->counter_info_head=NULL;
+}
+       output_timer_def
+       list_count_cmds
+       '}'
+{ 
+  if ((mdlpvp->olp->time_array=(double *)
+       malloc(mdlpvp->olp->buffersize*sizeof(double)))==NULL) {
+    mdlerror("Cannot store output list data");
+    return(1);
+  }
+};
+
+
+output_timer_def:  step_time_def 
+                | iteration_time_def 
+                | real_time_def 
+;
+
+
+step_time_def: STEP '=' num_expr
+{
+  mdlpvp->olp->step_time=$<dbl>3;
+  mdlpvp->olp->timer_type=STEP_TIME;
+
+  mdlpvp->output_freq=mdlpvp->olp->step_time/volp->time_unit;
+  
+  if (mdlpvp->output_freq>volp->iterations) {
+    sprintf(mdlpvp->mdl_err_msg,"Output step time too large\n\tSetting output step time to %g microseconds\n",volp->iterations*volp->time_unit/1.0e-6);
+    mdl_warning(mdlpvp);
+    mdlpvp->olp->step_time=volp->iterations*volp->time_unit;
+    mdlpvp->output_freq=volp->iterations;
+  }
+  if (mdlpvp->output_freq<1) {
+    sprintf(mdlpvp->mdl_err_msg,"Output frequency too low\n\tSetting output frequency to %g microseconds\n",volp->time_unit/1.0e-6);
+    mdl_warning(mdlpvp);
+    mdlpvp->olp->step_time=volp->time_unit;
+    mdlpvp->output_freq=1;
+  }
+
+  /**
+   * Compute the output buffersize.
+   **/
+  if (volp->chkpt_iterations) {
+    mdlpvp->n_output=(int)(volp->chkpt_iterations/mdlpvp->output_freq+1);
+    mdlpvp->olp->buffersize=imin3(volp->chkpt_iterations-volp->start_time,mdlpvp->n_output,COUNTBUFFERSIZE);
+  }
+  else {
+    mdlpvp->n_output=(int)(volp->iterations/mdlpvp->output_freq+1);
+    mdlpvp->olp->buffersize=imin3(volp->iterations-volp->start_time,mdlpvp->n_output,COUNTBUFFERSIZE);
+  }
+
+  no_printf("Output step time definition:\n");
+  no_printf("  output step time = %g\n",mdlpvp->olp->step_time);
+  no_printf("  output buffersize = %u\n",mdlpvp->olp->buffersize);
+}
+        | /* empty */
+{
+  mdlpvp->olp->step_time=volp->time_unit;
+  mdlpvp->olp->timer_type=STEP_TIME;
+
+  mdlpvp->output_freq=1;
+
+  if (mdlpvp->output_freq>volp->iterations) {
+    sprintf(mdlpvp->mdl_err_msg,"Output frequency too high\n\tSetting output frequency to %g microseconds\n",volp->iterations*volp->time_unit/1.0e-6);
+    mdl_warning(mdlpvp);
+    mdlpvp->olp->step_time=volp->iterations*volp->time_unit;
+    mdlpvp->output_freq=volp->iterations;
+  }
+  if (mdlpvp->output_freq<1) {
+    sprintf(mdlpvp->mdl_err_msg,"Output frequency too low\n\tSetting output frequency to %g microseconds\n",volp->time_unit/1.0e-6);
+    mdl_warning(mdlpvp);
+    mdlpvp->olp->step_time=volp->time_unit;
+    mdlpvp->output_freq=1;
+  }
+
+  /**
+   * Compute the output buffersize.
+   **/
+  if (volp->chkpt_iterations) {
+    mdlpvp->n_output=(int)(volp->chkpt_iterations/mdlpvp->output_freq+1);
+    mdlpvp->olp->buffersize=imin3(volp->chkpt_iterations-volp->start_time,mdlpvp->n_output,COUNTBUFFERSIZE);
+  }
+  else {
+    mdlpvp->n_output=(int)(volp->iterations/mdlpvp->output_freq+1);
+    mdlpvp->olp->buffersize=imin3(volp->iterations-volp->start_time,mdlpvp->n_output,COUNTBUFFERSIZE);
+  }
+
+  no_printf("Default output step time definition:\n");
+  no_printf("  output step time = %g\n",mdlpvp->olp->step_time);
+  no_printf("  output buffersize = %u\n",mdlpvp->olp->buffersize);
+};
+
+
+iteration_time_def: ITERATION_LIST '='
+{
+  mdlpvp->num_pos=0;
+  mdlpvp->el_head=NULL;
+  mdlpvp->el_tail=NULL;
+}
+	'[' list_range_specs ']'
+{
+  mdlpvp->n_output=mdlpvp->num_pos;
+  mdlpvp->olp->timer_type=IT_TIME;
+
+  /**
+   * Compute the output buffersize.
+   **/
+  if (volp->chkpt_iterations) {
+    mdlpvp->olp->buffersize=imin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,COUNTBUFFERSIZE);
+  }
+  else {
+    mdlpvp->olp->buffersize=imin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,COUNTBUFFERSIZE);
+  }
+
+  sort_num_expr_list(mdlpvp->el_head);
+  mdlpvp->olp->time_list_head=mdlpvp->el_head;
+  mdlpvp->olp->curr_time_ptr=NULL;
+};
+
+
+real_time_def: TIME_LIST '='
+{
+  mdlpvp->num_pos=0;
+  mdlpvp->el_head=NULL;
+  mdlpvp->el_tail=NULL;
+}
+	'[' list_range_specs ']'
+{
+  mdlpvp->n_output=mdlpvp->num_pos;
+  mdlpvp->olp->timer_type=REAL_TIME;
+
+  /**
+   * Compute the output buffersize.
+   **/
+  if (volp->chkpt_iterations) {
+    mdlpvp->olp->buffersize=imin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,COUNTBUFFERSIZE);
+  }
+  else {
+    mdlpvp->olp->buffersize=imin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,COUNTBUFFERSIZE);
+  }
+
+  sort_num_expr_list(mdlpvp->el_head);
+  mdlpvp->olp->time_list_head=mdlpvp->el_head;
+  mdlpvp->olp->curr_time_ptr=NULL;
+};
+
+
+list_count_cmds: count_cmd | list_count_cmds count_cmd;
+
+count_cmd: '{'
+{
+  if ((mdlpvp->cip=(struct counter_info *)malloc
+       (sizeof(struct counter_info)))==NULL) {
+    mdlerror("Cannot store output list data");
+    return(1);
+  }
+  mdlpvp->cip->next=mdlpvp->olp->counter_info_head;
+  mdlpvp->olp->counter_info_head=mdlpvp->cip;
+  mdlpvp->cip->outfile_name=NULL;
+  mdlpvp->cip->counter_list_head=NULL;
+  mdlpvp->cip->count_expr=NULL;
+}
+	count_expr '}' '=' '>' outfile_syntax
+{
+  mdlpvp->cip->count_expr=$<cnt>3;
+};
+
+
+count_expr: count_value
+{
+	$$=$<cnt>1;
+}
+	| '(' count_expr ')' 
+{
+  $$=$<cnt>2;
+}
+	| count_expr '+' count_expr
+{
+  if ((mdlpvp->clp=(struct counter_list *)malloc
+       (sizeof(struct counter_list)))==NULL) {
+    mdlerror("Cannot store counter data");
+    return(1);
+  }
+  mdlpvp->clp->next=mdlpvp->cip->counter_list_head;
+  mdlpvp->cip->counter_list_head=mdlpvp->clp;
+
+  mdlpvp->clp->update_flag=0;
+  mdlpvp->clp->reset_flag=0;
+  mdlpvp->clp->index_type=UNKNOWN;
+  mdlpvp->clp->data_type=EXPR;
+  mdlpvp->clp->n_data=0;
+  mdlpvp->clp->temp_data=NULL;
+  mdlpvp->clp->final_data=NULL;
+  mdlpvp->clp->operand1=$<cnt>1;
+  mdlpvp->clp->operand2=$<cnt>3;
+  mdlpvp->clp->oper='+';
+
+  $$=mdlpvp->clp;
+}
+        | count_expr '-' count_expr
+{
+  if ((mdlpvp->clp=(struct counter_list *)malloc
+       (sizeof(struct counter_list)))==NULL) {
+    mdlerror("Cannot store counter data");
+    return(1);
+  }
+  mdlpvp->clp->next=mdlpvp->cip->counter_list_head;
+  mdlpvp->cip->counter_list_head=mdlpvp->clp;
+
+  mdlpvp->clp->update_flag=0;
+  mdlpvp->clp->reset_flag=0;
+  mdlpvp->clp->index_type=UNKNOWN;
+  mdlpvp->clp->data_type=EXPR;
+  mdlpvp->clp->n_data=0;
+  mdlpvp->clp->temp_data=NULL;
+  mdlpvp->clp->final_data=NULL;
+  mdlpvp->clp->operand1=$<cnt>1;
+  mdlpvp->clp->operand2=$<cnt>3;
+  mdlpvp->clp->oper='-';
+
+  $$=mdlpvp->clp;
+}
+        | count_expr '*' count_expr
+{
+  if ((mdlpvp->clp=(struct counter_list *)malloc
+       (sizeof(struct counter_list)))==NULL) {
+    mdlerror("Cannot store counter data");
+    return(1);
+  }
+  mdlpvp->clp->next=mdlpvp->cip->counter_list_head;
+  mdlpvp->cip->counter_list_head=mdlpvp->clp;
+
+  mdlpvp->clp->update_flag=0;
+  mdlpvp->clp->reset_flag=0;
+  mdlpvp->clp->index_type=UNKNOWN;
+  mdlpvp->clp->data_type=EXPR;
+  mdlpvp->clp->n_data=0;
+  mdlpvp->clp->temp_data=NULL;
+  mdlpvp->clp->final_data=NULL;
+  mdlpvp->clp->operand1=$<cnt>1;
+  mdlpvp->clp->operand2=$<cnt>3;
+  mdlpvp->clp->oper='*';
+
+  $$=mdlpvp->clp;
+}
+        | count_expr '/' count_expr
+{
+  if ((mdlpvp->clp=(struct counter_list *)malloc
+       (sizeof(struct counter_list)))==NULL) {
+    mdlerror("Cannot store counter data");
+    return(1);
+  }
+  mdlpvp->clp->next=mdlpvp->cip->counter_list_head;
+  mdlpvp->cip->counter_list_head=mdlpvp->clp;
+
+  mdlpvp->clp->update_flag=0;
+  mdlpvp->clp->reset_flag=0;
+  mdlpvp->clp->index_type=UNKNOWN;
+  mdlpvp->clp->data_type=EXPR;
+  mdlpvp->clp->n_data=0;
+  mdlpvp->clp->temp_data=NULL;
+  mdlpvp->clp->final_data=NULL;
+  mdlpvp->clp->operand1=$<cnt>1;
+  mdlpvp->clp->operand2=$<cnt>3;
+  mdlpvp->clp->oper='/';
+
+  $$=mdlpvp->clp;
+}
+        | '-' count_expr %prec UNARYMINUS
+{
+  if ((mdlpvp->clp=(struct counter_list *)malloc
+       (sizeof(struct counter_list)))==NULL) {
+    mdlerror("Cannot store counter data");
+    return(1);
+  }
+  mdlpvp->clp->next=mdlpvp->cip->counter_list_head;
+  mdlpvp->cip->counter_list_head=mdlpvp->clp;
+
+  if ((mdlpvp->clp2=(struct counter_list *)malloc
+       (sizeof(struct counter_list)))==NULL) {
+    mdlerror("Cannot store counter data");
+    return(1);
+  }
+  mdlpvp->clp2->next=mdlpvp->cip->counter_list_head;
+  mdlpvp->cip->counter_list_head=mdlpvp->clp2;
+
+  if (!(mdlpvp->dblp=(double *)malloc
+	(sizeof(double)))) {
+    mdlerror("Cannot store counter data");
+    return(1);
+  }
+
+  *mdlpvp->dblp=-1;
+  mdlpvp->clp2->update_flag=0;
+  mdlpvp->clp2->reset_flag=0;
+  mdlpvp->clp2->index_type=UNKNOWN;
+  mdlpvp->clp2->data_type=DBL;
+  mdlpvp->clp2->n_data=1;
+  mdlpvp->clp2->temp_data=(void *)mdlpvp->dblp;
+  mdlpvp->clp2->final_data=(void *)mdlpvp->dblp;
+  mdlpvp->clp2->operand1=NULL;
+  mdlpvp->clp2->operand2=NULL;
+  mdlpvp->clp2->oper='\0';
+  
+  mdlpvp->clp->update_flag=0;
+  mdlpvp->clp->reset_flag=0;
+  mdlpvp->clp->index_type=UNKNOWN;
+  mdlpvp->clp->data_type=EXPR;
+  mdlpvp->clp->n_data=0;
+  mdlpvp->clp->temp_data=NULL;
+  mdlpvp->clp->final_data=NULL;
+  mdlpvp->clp->operand1=mdlpvp->clp2;
+  mdlpvp->clp->operand2=$<cnt>2;
+  mdlpvp->clp->oper='*';
+
+  $$=mdlpvp->clp;
+};
+
+
+count_value: COUNT '[' count_value_init count_syntax ']'
+{
+        $$=$<cnt>3;
+}
+        | EXPRESSION '[' num_expr ']'
+{
+  if ((mdlpvp->clp=(struct counter_list *)malloc
+       (sizeof(struct counter_list)))==NULL) {
+    mdlerror("Cannot store counter data");
+    return(1);
+  }
+  mdlpvp->clp->next=mdlpvp->cip->counter_list_head;
+  mdlpvp->cip->counter_list_head=mdlpvp->clp;
+
+  if (!(mdlpvp->dblp=(double *)malloc
+	(sizeof(double)))) {
+    mdlerror("Cannot store counter data");
+    return(1);
+  }
+
+  *mdlpvp->dblp=$<dbl>3;
+  mdlpvp->clp->update_flag=0;
+  mdlpvp->clp->reset_flag=0;
+  mdlpvp->clp->index_type=TIME_STAMP_VAL;
+  mdlpvp->clp->data_type=DBL;
+  mdlpvp->clp->n_data=1;
+  mdlpvp->clp->temp_data=(void *)mdlpvp->dblp;
+  mdlpvp->clp->final_data=(void *)mdlpvp->dblp;
+  mdlpvp->clp->operand1=NULL;
+  mdlpvp->clp->operand2=NULL;
+  mdlpvp->clp->oper='\0';
+
+  $$=mdlpvp->clp;
+}; 
+
+
+count_value_init: /* empty */
+{
+  if ((mdlpvp->clp=(struct counter_list *)malloc
+       (sizeof(struct counter_list)))==NULL) {
+    mdlerror("Cannot store counter data");
+    return(1);
+  }
+  mdlpvp->clp->next=mdlpvp->cip->counter_list_head;
+  mdlpvp->cip->counter_list_head=mdlpvp->clp;
+
+  mdlpvp->clp->update_flag=1;
+  mdlpvp->clp->reset_flag=0;
+  mdlpvp->clp->index_type=TIME_STAMP_VAL;
+
+  mdlpvp->clp->data_type=UNKNOWN;
+  mdlpvp->clp->n_data=0;
+  mdlpvp->clp->temp_data=NULL;
+  mdlpvp->clp->final_data=NULL;
+  mdlpvp->clp->operand1=NULL;
+  mdlpvp->clp->operand2=NULL;
+  mdlpvp->clp->oper='\0';
+
+  $$=mdlpvp->clp;
+};
+
+
+outfile_syntax: file_name
+{
+  mdlpvp->cip->outfile_name=$<str>1;
+  no_printf("Counter output file set to %s\n",mdlpvp->cip->outfile_name); 
+};
+
+
+count_syntax: mol_count_syntax
+/*
+	| mol_hit_count_syntax
+	| rxn_count_syntax
+*/
+;
+
+
+mol_count_syntax: existing_molecule ',' WORLD 
+{
+	u_int i,i1;
+
+        no_printf("\nWorld molecule count syntax:\n");
+        fflush(stderr);
+  
+	mdlpvp->stp1=$<sym>1;
+        mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
+
+        if (volp->iterations<0) {
+          sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
+	  mdl_warning(mdlpvp);
+          volp->iterations=0;
+        }
+
+	i1=mdlpvp->olp->buffersize;
+	if ((mdlpvp->intp=(int *)malloc(i1*sizeof(int)))==NULL) {
+	  mdlerror("Cannot store count data");
+	  return(1);
+        }
+
+	for (i=0;i<i1;i++) {
+	  mdlpvp->intp[i]=0;
+	}
+
+        mdlpvp->clp->data_type=INT;
+        mdlpvp->clp->n_data=i1;
+	mdlpvp->clp->temp_data=(void *)&mdlpvp->specp->population;
+        mdlpvp->clp->final_data=(void *)mdlpvp->intp;
+  
+	no_printf("Counting molecule %s in WORLD\n",mdlpvp->specp->sym->name);
+	fflush(stderr);
+};
+/* *********** NOTE *********** */
+/* Remainder of mol_count_syntax can be found below in "if 0" block */
+/* To be implemented soon and plugged in here */
+
 
 
 
@@ -4081,9 +4560,10 @@ existing_logicalOrPhysical: VAR
 
 
 
+
 /* **************************************************************** */
 
-#if 0
+#if 0  /* Begin "if 0" block */
 
 
 
@@ -4130,1121 +4610,203 @@ partition_plane: X_TOK
 
 
 
-
-
-effector_site_def: ADD_MOLECULES '{'
-	list_region_ref
-	'}'
-{
-};
-
-list_region_ref: region_ref
-	| list_region_ref region_ref
-;
-
-region_ref: existing_region '{'
-{
-  mdlpvp->gp=$<sym>1;
-  rp=(struct region *)mdlpvp->gp->value;
-}
-	list_add_effector_state
-	'}'
-;
-
-list_add_effector_state: add_effector_state
-	| list_add_effector_state add_effector_state
-;
-
-add_effector_state: EFFECTOR_STATE existing_reaction_state '{'
-	effector_quantity_cmd
-	orientation_cmd
-	'}'
-{
-  mdlpvp->tp=$<sym>2;
-  rxp=(struct rx *)mdlpvp->tp->value;
-  if ((effdp=(struct eff_dat *)malloc(sizeof(struct eff_dat)))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot store object name:",mdlpvp->sym_name);
-    return(1);
-  }
-  effdp->next=rp->eff_dat;
-  rp->eff_dat=effdp;
-  effdp->rx=rxp;
-  effdp->quantity_type=effector_quantity_type;
-  effdp->quantity=$<dbl>4;
-  effdp->orient=(signed char) $<tok>5;
-};
-
-effector_quantity_cmd: DENSITY '=' num_expr
-{
-  $$=$<dbl>3;
-  effector_quantity_type=EFFDENS;
-}
-	| NUMBER '=' num_expr
-{
-  $$=$<dbl>3;
-  effector_quantity_type=EFFNUM;
-};
-
-
-
-
-
-
-wall_prop_cmd: wall_prop '{'
-	MOLECULE '=' existing_molecule
-	side
-{
-  mdlpvp->gp=$<sym>5;
-  ligip=(struct ligand_info *)mdlpvp->gp->value;
-  if ($<tok>6==ALL_SIDES) {
-    for (i=0;i<pop->n_walls;i++) {
-      pop->lig_prop[i][ligip->type]=$<tok>1;
-    }
-  }
-  else {
-    if ($<tok>6 > (pop->n_walls)-1) {
-      mdlerror("Reference to non-existent element");
-      return(1);
-    }
-    else {
-      pop->lig_prop[$<tok>6][ligip->type]=$<tok>1;
-    }
-  }
-  no_printf("Property of element %d for molecule %s = %d\n",
-          $<tok>6,mdlpvp->gp->name,$<tok>1);
-  fflush(stderr);
-}
-	'}'
-; 
-
-wall_prop: REFLECTIVE {$$=RFLCT;}
-	| TRANSPARENT {$$=TRANSP;}
-	| ABSORPTIVE {$$=SINK;}
-;
-
-add_effector: ADD_EFFECTOR '{'
-	req_add_effector_cmds
-	'}'
-;
-
-req_add_effector_cmds:  STATE '=' existing_reaction_state
-        DENSITY '=' num_expr
-        side
-	orientation_cmd
-{
-        mdlpvp->tp=$<sym>3;
-        rxp=(struct rx *)mdlpvp->tp->value;
-	effdp=NULL;
-
-        /* create automatic region to hold effector data*/
-        sprintf(mdlpvp->str_buf,"%d",mdlpvp->curr_obj->num_regions++);
-        mdlpvp->sym_name=my_strdup(mdlpvp->str_buf);
-        if ((rp=make_new_region(volp,obj_name,mdlpvp->sym_name,mdlpvp->mdl_err_msg))==NULL) {
-          mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-          return(1);
-        }
-        if ((rlp=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
-          sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot store region name:",rp->sym->name);
-          mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-          return(1);
-        }
-        rp->region_last_name=mdlpvp->sym_name;
-        rp->parent=mdlpvp->curr_obj;
-	rp->reg_counter_ref_list=NULL;
-	rp->lig_hit_counter=NULL;
-        rlp->reg=rp;
-        rlp->next=mdlpvp->curr_obj->regions;
-        mdlpvp->curr_obj->regions=rlp;
-        no_printf("Creating new region: %s\n",rp->sym->name);
-        fflush(stderr);
-
-        if ((elmlp=(struct element_list *)malloc
-                   (sizeof(struct element_list)))==NULL) {
-        }
-        elmlp->begin=0;
-        elmlp->end=0;
-        elmlp->next=NULL;
-        rp->element_list_head=elmlp;
-
-        if ($<tok>7==ALL_SIDES) {
-          if ((effdp=(struct eff_dat *)malloc
-	     (sizeof(struct eff_dat)))==NULL) {
-            mdlerror("Cannot store effector data for object");
-            return(1);
-          }
-          effdp->rx=rxp;
-          effdp->quantity_type=EFFDENS;
-          effdp->quantity=$<dbl>6;
-	  effdp->orient = (signed char) $<tok>8;
-          effdp->next=NULL;
-          rp->eff_dat=effdp;
-          elmlp->begin=0;
-          elmlp->end=pop->n_walls-1;
-        }
-        else {
-          if ($<tok>7 > (pop->n_walls)-1) {
-            mdlerror("Reference to non-existent element");
-            return(1);
-          }
-          else {
-	    if (pop->side_stat[$<tok>7]) {
-              if ((effdp=(struct eff_dat *)malloc
-	         (sizeof(struct eff_dat)))==NULL) {
-                mdlerror("Cannot store effector data for object");
-                return(1);
-              }
-              effdp->rx=rxp;
-              effdp->quantity_type=EFFDENS;
-              effdp->quantity=$<dbl>6;
-	      effdp->orient = (signed char) $<tok>8;
-              effdp->next=NULL;
-              rp->eff_dat=effdp;
-              elmlp->begin=$<tok>7;
-              elmlp->end=elmlp->begin;
-            }
-            else {
-              mdlerror("Cannot add effectors to removed element");
-              return(1);
-            }
-	  }
-        }
-        no_printf("Add effector %s, density %f, side %d\n",
-                mdlpvp->tp->name,$<dbl>6,$<tok>7);
-        fflush(stderr);
-};
-
-orientation_cmd: /* empty */
-{
-	$$ = OUTWRD;
-}
-	| POLE_ORIENTATION '=' orientation
-{
-	$$ = $<tok>3;
-};
-
-orientation: POSITIVE_FRONT
-{
-	$$ = OUTWRD;
-}
-	| POSITIVE_BACK
-{
-	$$ = INWRD;
-};
-
-existing_reaction_state: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }       
-  else {  
-    mdlpvp->sym_name=mdlpvp->cval;  
-  }       
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,RX,volp->main_sym_table))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined reaction state:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free((void *)mdlpvp->sym_name);
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-  $$=mdlpvp->gp;
-};
-
-
-req_rx_cmds: list_sub_rxs
-	reference_state_cmd
-{
-  rxp=ref_state;
-  no_printf("Counting bound molecules for rx %s with %d states\n",rxp->sym->name,n_state);
-  fflush(stderr);
-  if ((prxp->rx_states=(struct rx **)malloc
-       (n_state*sizeof(struct rx *)))==NULL) {
-    mdlerror("Cannot store rx state data");
-    return(1);
-  }
-  prxp->num_states=n_state;
-  prxp->num_transitions=count_rx(ref_state,0);
-  if (procnum == 0) fprintf(log_file,"\nMCell: Transition probabilities for reaction %s with %d states and %d transitions:\n\n",prxp->reaction_name,prxp->num_states,prxp->num_transitions);
-  set_rx_rates(ref_state);
-  if (procnum == 0) fprintf(log_file,"\n");
-  no_printf("Total number of rx transitions = %d\n",prxp->num_transitions);
-  no_printf("Done counting bound molecules\n");
-  prxp->prev_state_flag=0;
-};
-
-reaction_state: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=my_strcat(reaction_name,mdlpvp->cval_2);
-    free(mdlpvp->cval_2);
-    mdlpvp->cval_2=NULL;
-  }
-  else {
-    mdlpvp->sym_name=my_strcat(reaction_name,mdlpvp->cval);
-    free(mdlpvp->cval);
-    mdlpvp->cval=NULL;
-  }
-  if ((mdlpvp->gp=store_sym(mdlpvp->sym_name,RX,volp->main_sym_table))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot store reaction in table:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-  rxp=(struct rx *)mdlpvp->gp->value;
-  if (rxp->parent_rx==NULL) {
-    rxp->parent_rx=prxp;
-    rxp->hashval=hash(rxp->sym->name)&0x0000000f;
-    rxp->state_index=n_state++;
-  }
-  $$=mdlpvp->gp;
-};
-
-reference_state_cmd: REFERENCE_STATE reaction_state '{'
-{
-  mdlpvp->gp=$<sym>2;
-  rxp=(struct rx *)mdlpvp->gp->value;
-  ref_state=rxp;
-  no_printf("Setting bound molecules for reference state %s\n",rxp->sym->name);
-}
-        list_number_bound_cmds
-	'}'
-;
-
-list_number_bound_cmds: number_bound_cmd
-	| list_number_bound_cmds number_bound_cmd;
-
-number_bound_cmd: existing_molecule NUMBER_BOUND '=' num_expr
-{
-  mdlpvp->gp=$<sym>1;
-  ligip=(struct ligand_info *)mdlpvp->gp->value;
-  ref_state->bound_ligands[ligip->type]=(unsigned char) $<dbl>4;
-  no_printf("Number of molecules of type %s bound to reference state %s set to: %d\n",ligip->sym->name,ref_state->sym->name,ref_state->bound_ligands[ligip->type]);
-};
-
-list_sub_rxs: sub_rx | list_sub_rxs sub_rx;
-
-sub_rx: reaction_state list_rx
-{
-	mdlpvp->gp=$<sym>1;
-	rxp=(struct rx *)mdlpvp->gp->value;
-	rxp->sym=mdlpvp->gp;
-	rxp->hashval=hash(rxp->sym->name)&0x0000000f;
-	rxp->parent_rx=prxp;
-        no_printf("parser processing sub-rx: %s\n",rxp->sym->name);
-        fflush(stderr);
-
-	temp1=n_rxn;
-        total_rate=0;
-	for (i=0;i<temp1;i++) {
-	  n=rxn[i].n_pathways;
-	  for (j=0;j<n;j++) {
-	    if ((rxn[i].event_type!=BIND)
-                 && (rxn[i].event_type!=TRANSPORT)
-                 && (rxn[i].event_type!=PRODUCE_POISSON)) {
-	      total_rate+=rxn[i].pathway[j].rate;
-            }
-          }
-        }
-        pe=1.0-exp(-volp->time_unit*total_rate);
-	for (i=0;i<temp1;i++) {
-	  n=rxn[i].n_pathways;
-	  for (j=0;j<n;j++) {
-	    if ((rxn[i].event_type!=BIND)
-                 && (rxn[i].event_type!=TRANSPORT)
-                 && (rxn[i].event_type!=PRODUCE_POISSON)) {
-              if (total_rate>0.0) {
-	        pt=pe*(rxn[i].pathway[j].rate/total_rate);
-              }
-              else {
-                pt=0;
-              }
-            }
-          }
-        }
-
-	for (i=0;i<temp1;i++) {
-	  n=rxn[i].n_pathways;
-	  if ((rx_dat=(struct rx_info *)malloc
-               (sizeof(struct rx_info)))==NULL) {
-	    mdlerror("Cannot store rx_info");
-	    return(1);
-	  }
-	  if ((rx_dat->rate=(double *)malloc
-               (n*sizeof(double)))==NULL) {
-	    mdlerror("Cannot store rate data");
-	    return(1);
-	  }
-	  if ((rx_dat->rate_t=(struct t_func **)malloc
-               (n*sizeof(struct t_func *)))==NULL) {
-	    mdlerror("Cannot store rate data");
-	    return(1);
-	  }
-	  if ((rx_dat->n_rate_t=(int *)malloc
-	       (n*sizeof(int)))==NULL) {
-	    mdlerror("Cannot store rate data");
-	    return(1);
-	  }
-	  if ((rx_dat->rate_t_index=(int *)malloc
-	       (n*sizeof(int)))==NULL) {
-	    mdlerror("Cannot store rate data");
-	    return(1);
-	  }
-	  if ((rx_dat->polarity=(signed char *)malloc
-	       (n*sizeof(signed char)))==NULL) {
-	    mdlerror("Cannot store polarity data");
-	    return(1);
-	  }
-	  if ((rx_dat->transition_index=(int *)malloc
-	       (n*sizeof(int)))==NULL) {
-	    mdlerror("Cannot store transition index data");
-	    return(1);
-	  }
-	  if ((rx_dat->next_state_index=(unsigned short *)malloc
-	       (n*sizeof(unsigned short)))==NULL) {
-	    mdlerror("Cannot store next state index data");
-	    return(1);
-	  }
-	  if ((rx_dat->init_transition_count_dt=(int *)malloc
-	       (n*sizeof(int)))==NULL) {
-	    mdlerror("Cannot store transition count data");
-	    return(1);
-	  }
-	  if ((rx_dat->init_transition_count_cum=(int *)malloc
-	       (n*sizeof(int)))==NULL) {
-	    mdlerror("Cannot store transition count data");
-	    return(1);
-	  }
-	  if ((rx_dat->transition_count_dt=(int *)malloc
-               (n*sizeof(int)))==NULL) {
-	    mdlerror("Cannot store transition count data");
-	    return(1);
-	  }
-	  if ((rx_dat->transition_count_cum=(int *)malloc
-	       (n*sizeof(int)))==NULL) {
-	    mdlerror("Cannot store transition count data");
-	    return(1);
-	  }
-	  if ((rx_dat->next_rx=(struct rx **)malloc
-               (n*sizeof(struct rx *)))==NULL) {
-	    mdlerror("Cannot store next_rx data");
-	    return(1);
-	  }
-	  switch (rxn[i].event_type) {
-	    case BIND:
-	      rx_type=&rxp->bind_rx[rxn[i].l_type];
-	      rx_proc=bind_proc;
-	      break;
-	    case TRANSPORT:
-	      rx_type=&rxp->transport_rx[rxn[i].l_type];
-	      rx_proc=transport_proc;
-	      break;
-	    case DISSOC:
-	      rx_type=&rxp->dissoc_rx[rxn[i].l_type];
-	      rx_proc=dissoc_proc;
-	      break;
-	    case PRODUCE:
-	      rx_type=&rxp->product_rx[rxn[i].l_type];
-	      rx_proc=product_proc;
-	      break;
-	    case PRODUCE_POISSON:
-	      rx_type=&rxp->product_poisson_rx[rxn[i].l_type];
-	      rx_proc=product_poisson_proc;
-	      break;
-	    case DEGRADE:
-	      rx_type=&rxp->degrade_rx[rxn[i].l_type];
-	      rx_proc=degrade_proc;
-	      break;
-	    case ISOM:
-	      rx_type=&(rxp->isom_rx);
-	      rx_proc=isom_proc;
-	      break;
-	  }
-	  *rx_type=rx_dat;
-	  rx_dat->n_rates=n;
-	  rx_dat->rx_proc=rx_proc;
-	  for (j=0;j<n;j++) {
-	    mdlpvp->gp=rxn[i].pathway[j].sym;
-	    rx_dat->next_rx[j]=(struct rx *)mdlpvp->gp->value;
-	    rx_dat->rate[j]=rxn[i].pathway[j].rate;
-	    rx_dat->rate_t[j]=NULL;
-	    rx_dat->n_rate_t[j]=0;
-	    rx_dat->rate_t_index[j]=0;
-            rate_file=rxn[i].pathway[j].rate_file;
-            if (rate_file!=NULL) {
-              if ((file=fopen(rate_file,"r"))==NULL) {
-                sprintf(mdlpvp->mdl_err_msg,"error opening rate file: %s\n",rate_file);
-                mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-                return(1);
-              }   
-              count=0;
-              while (fscanf(file,"%lf %lf",&mdlpvp->val_1,&mdlpvp->val_2)!=EOF) {
-                count++;
-              }
-	      rx_dat->n_rate_t[j]=count;
-              if ((rx_dat->rate_t[j]=(struct t_func *)malloc
-                   (count*sizeof(struct t_func)))==NULL) {
-                mdlerror("Cannot store subvolume partition data");
-                return(1);
-              }
-              rewind(file);
-              count=0;
-              while (fscanf(file,"%lf %lf",&mdlpvp->val_1,&mdlpvp->val_2)!=EOF) {
-	        (rx_dat->rate_t[j])[count].time=mdlpvp->val_1;
-	        if (rxn[i].event_type==BIND || rxn[i].event_type==TRANSPORT) {
-	          (rx_dat->rate_t[j])[count].value=mdlpvp->val_2*rxn[i].pathway[j].rate_file_scale_factor;
-                }
-                else {
-	          (rx_dat->rate_t[j])[count].value=mdlpvp->val_2;
-                }
-                count++;
-              }
-              fclose(file);
-            }
-	    rx_dat->polarity[j]=rxn[i].pathway[j].polarity;
-	    rx_dat->transition_index[j]=0;
-	    rx_dat->next_state_index[j]=0;
-	    rx_dat->init_transition_count_dt[j]=0;
-	    rx_dat->init_transition_count_cum[j]=0;
-	    rx_dat->transition_count_dt[j]=0;
-	    rx_dat->transition_count_cum[j]=0;
-	  }
-	}
-        no_printf("parser done processing sub-rx: %s\n",rxp->sym->name);
-        fflush(stderr);
-	n_rxn=0;
-};
-
-list_rx: rx | list_rx rx;
-
-rx: '[' transition '{' rate ':' event polarity '}' ']'
-{
-
-	mdlpvp->gp=$<sym>2;
-        rx_match=0;
-        for (i=0;i<n_rxn;i++) {
-          if (rxn[i].l_type==ep.l_type && rxn[i].event_type==ep.event_type) {
-            rx_match=1;
-            rx_num=i;
-          }
-        }
-        if (!rx_match) {
-          rx_num=n_rxn;
-          rxn[rx_num].n_pathways=0;
-	  n_rxn++;
-        }
-	rxn[rx_num].l_type=ep.l_type;
-	rxn[rx_num].event_type=ep.event_type;
-        path_index=rxn[rx_num].n_pathways;
-	rxn[rx_num].pathway[path_index].sym=mdlpvp->gp;
-	rxn[rx_num].pathway[path_index].polarity=$<tok>7;
-	if (ep.event_type==BIND) {
-          if (rxn[rx_num].pathway[path_index].polarity==BOTH_P) {
-	    rxn[rx_num].pathway[path_index].rate=0.5*mdlpvp->mc_factor*$<dbl>4/sqrt(ep.d_const);
-	    rxn[rx_num].pathway[path_index].rate_file_scale_factor=0.5*mdlpvp->mc_factor/sqrt(ep.d_const);
-	    rxn[rx_num].pathway[path_index].rate_file=rate_file;
-          }
-          else {
-	    rxn[rx_num].pathway[path_index].rate=mdlpvp->mc_factor*$<dbl>4/sqrt(ep.d_const);
-	    rxn[rx_num].pathway[path_index].rate_file_scale_factor=mdlpvp->mc_factor/sqrt(ep.d_const);
-	    rxn[rx_num].pathway[path_index].rate_file=rate_file;
-          }
-	}
-	else if (ep.event_type==TRANSPORT) {
-	  rxn[rx_num].pathway[path_index].rate=mdlpvp->transport_mc_factor*$<dbl>4/(ep.charge*sqrt(ep.d_const));
-	  rxn[rx_num].pathway[path_index].rate_file_scale_factor=mdlpvp->transport_mc_factor/(ep.charge*sqrt(ep.d_const));
-	  rxn[rx_num].pathway[path_index].rate_file=rate_file;
-          printf("Transport probability = %.16g\n",rxn[rx_num].pathway[path_index].rate);
-	}
-	else {
-	  rxn[rx_num].pathway[path_index].rate=$<dbl>4;
-	  rxn[rx_num].pathway[path_index].rate_file=rate_file;
-	}
-	rxn[rx_num].n_pathways++;
-	no_printf("event: %d %d",ep.l_type,ep.event_type);
-	no_printf(" transition: %s",mdlpvp->gp->name);
-	no_printf(" rate: %f = %22.19f\n",
-	            $<dbl>4,rxn[rx_num].pathway[path_index].rate);
-        no_printf(" polarity: %d = %d\n",
-                    $<tok>7,rxn[rx_num].pathway[path_index].polarity);
+/* Continuation of mol_count_syntax begins here */
+/* To be implemented soon and plugged in above */ 
+	| existing_molecule ',' existing_region
+{	  
+	no_printf("Region molecule count syntax: \n");
 	fflush(stderr);
 
-}
-	| '[' transition '{' rate '}' ']'
-{
+	mdlpvp->stp1=$<sym>1;
+        mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
+	mdlpvp->stp2=$<sym>3;
+	mdlpvp->rp=(struct region *)mdlpvp->stp2->value;
 
-	mdlpvp->gp=$<sym>2;
-	ep.l_type=0;
-	ep.event_type=ISOM;
-        rx_match=0;
-        for (i=0;i<n_rxn;i++) {
-          if (rxn[i].l_type==ep.l_type && rxn[i].event_type==ep.event_type) {
-            rx_match=1;
-            rx_num=i;
+          if (volp->iterations<0) {
+            sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
+	    mdl_warning(mdlpvp);
+            volp->iterations=0;
           }
+
+	  defined_counter_flag=0;
+	  i1=buffersize;
+	  if ((intp=(int *)malloc(buffersize*sizeof(int)))==NULL) {
+	    mdlerror("Cannot store count data");
+	    return(1);
+          }
+	  for (i=0;i<i1;i++) {
+	    intp[i]=0;
+	  }
+
+	  /* Check if this counter already defined,
+	   * if it is true, point the counter_list to the
+	   * defined rcrp2->counter
+	   */
+	  rcrlp2=rp->reg_counter_ref_list;
+	  if (rcrlp2!=NULL) {
+	    while (rcrlp2!=NULL) {
+	      rcrp2=rcrlp2->reg_counter_ref;
+	      if (rcrp2->state==rxp1&&rcrp2->count_type==RX_STATE) {
+		clp->final_data=(void *)intp;
+		clp->data_type=INT;
+		clp->n_data=i1;
+		clp->temp_data=(void *)&(rcrp2->counter);
+		defined_counter_flag=1;
+	      }
+	      rcrlp2=rcrlp2->next;
+	    }
+	  }
+	  /* If this region counter is not defined before, 
+	   * allocate memory for this region counter and
+	   * assign it to the region.
+	   */
+	  rcrlp2=rp->reg_counter_ref_list;
+	  if (rcrlp2==NULL || defined_counter_flag==0){
+	    if ((rcrp=(struct reg_counter_ref *)malloc
+	  	(sizeof(struct reg_counter_ref)))==NULL) {
+	      mdlerror("Can not save data for region counter");
+	      return(1);
+	    }
+	    if ((rcrlp=(struct reg_counter_ref_list *)malloc
+	  	(sizeof(struct reg_counter_ref_list)))==NULL) {
+	      mdlerror("Can not save data for region counter");
+	      return(1);
+	    }
+	    reg_counter_ref_head=NULL;
+	    rcrp->counter=0;
+	    rcrp->state=rxp1;
+	    rcrp->parent=rp;
+	    rcrp->next_state=NULL;
+	    rcrp->count_type=RX_STATE;
+	    rcrp->count_method=DT;
+	    rcrp->transition_count_each=NULL;
+	    rcrp->next=reg_counter_ref_head;
+	    reg_counter_ref_head=rcrp;
+	    
+	    rcrlp->reg_counter_ref=rcrp;
+	    rcrlp->next=rp->reg_counter_ref_list;
+	    rp->reg_counter_ref_list=rcrlp;
+	    
+	    clp->final_data=(void *)intp;
+	    clp->data_type=INT;
+	    clp->n_data=i1;
+	    clp->temp_data=(void *)&(rcrp->counter);
+	  }
+
+	  no_printf("Counting molecule %s in region %s\n",p1->name,mdlpvp->gp->name);
+	  fflush(stderr);
+}
+	| existing_molecule ',' existing_object 
+{
+	no_printf("\nObject molecule count syntax:\n");
+	fflush(stderr);
+
+	mdlpvp->stp1=$<sym>1;
+        mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
+
+	mdlpvp->stp2=$<sym>3;
+	mdlpvp->objp=(struct object *)mdlpvp->stp2->value;
+        mdlpvp->objp2=mdlpvp->top_objp;
+  
+        if (volp->iterations<0) {
+          sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
+	  mdl_warning(mdlpvp);
+          volp->iterations=0;
         }
-        if (!rx_match) {
-          rx_num=n_rxn;
-          rxn[rx_num].n_pathways=0;
-	  n_rxn++;
-        }
-	rxn[rx_num].l_type=ep.l_type;
-	rxn[rx_num].event_type=ep.event_type;
-        path_index=rxn[rx_num].n_pathways;
-	rxn[rx_num].pathway[path_index].sym=mdlpvp->gp;
-	rxn[rx_num].pathway[path_index].rate=$<dbl>4;
-	rxn[rx_num].pathway[path_index].rate_file=rate_file;
-	rxn[rx_num].pathway[path_index].polarity=DEFAULT_P;
-	rxn[rx_num].n_pathways++;
-	no_printf("event: %d %d",ep.l_type,ep.event_type);
-	no_printf(" transition: %s",mdlpvp->gp->name);
-	no_printf(" rate: %f = %22.19f\n",
-	            $<dbl>4,rxn[rx_num].pathway[path_index].rate);
-        no_printf(" polarity: %d\n",rxn[rx_num].pathway[path_index].polarity);
+
+	mdlpvp->clp->update_flag=0;
+        mdlpvp->clp->reset_flag=0;
+	mdlpvp->clp->data_type=EXPR;
+	mdlpvp->clp->index_type=UNKNOWN;
+	mdlpvp->clp->n_data=0;
+	mdlpvp->clp->temp_data=NULL;
+	mdlpvp->clp->final_data=NULL;
+	mdlpvp->clp->operand1=NULL;
+	mdlpvp->clp->operand2=NULL;
+	mdlpvp->clp->oper='+';
+	if (build_mol_count_tree(volp,mdlpvp->objp,mdlpvp->objp2,mdlpvp->cip,mdlpvp->clp,mdlpvp->specp,mdlpvp->olp->buffersize,mdlpvp->prefix_name)) {
+	  mdlerror("Cannot store molecule counter_list data");
+	  return(1);
+	}
+
+	no_printf("Counting molecule %s in object %s\n",mdlpvp->stp1->name,mdlpvp->stp2->name);
 	fflush(stderr);
 };
 
-polarity: ',' polarity_spec { $$=$<tok>2; }
-	| /* empty */ { $$=DEFAULT_P; }
-;
 
-polarity_spec: POSITIVE_POLE { $$=POS_P; }
-	| NEGATIVE_POLE { $$=NEG_P; }
-	| BOTH_POLES { $$=BOTH_P; }
-	| BINDING_POLE { $$=BINDING_P; }
-	| EITHER_POLE { $$=EITHER_P; }
-;
+mol_hit_count_syntax: existing_molecule ',' existing_region ',' 
+	  FOR_EACH_TIME_STEP ',' ALL_HITS
+{
+	p1=$<sym>1;
+	mdlpvp->gp=$<sym>3;
 
-event: '+' existing_molecule
-{
-	mdlpvp->gp=$<sym>2;
-	ep.l_type=((struct ligand_info *)mdlpvp->gp->value)->type;
-	ep.d_const=((struct ligand_info *)mdlpvp->gp->value)->ref_d_const;
-	ep.event_type=BIND;
-}
-	| '~' existing_molecule
-{
-	mdlpvp->gp=$<sym>2;
-	ep.l_type=((struct ligand_info *)mdlpvp->gp->value)->type;
-	ep.d_const=((struct ligand_info *)mdlpvp->gp->value)->ref_d_const;
-	ep.charge=((struct ligand_info *)mdlpvp->gp->value)->charge;
-	ep.event_type=TRANSPORT;
-}
-	| '-' existing_molecule
-{
-	mdlpvp->gp=$<sym>2;
-	ep.l_type=((struct ligand_info *)mdlpvp->gp->value)->type;
-	ep.event_type=DISSOC;
-}
-	| '*' existing_molecule
-{
-	mdlpvp->gp=$<sym>2;
-	ep.l_type=((struct ligand_info *)mdlpvp->gp->value)->type;
-	ep.event_type=PRODUCE;
-}
-	| '#' existing_molecule
-{
-	mdlpvp->gp=$<sym>2;
-	ep.l_type=((struct ligand_info *)mdlpvp->gp->value)->type;
-	ep.event_type=DEGRADE;
-}
-	| '@' existing_molecule
-{
-	mdlpvp->gp=$<sym>2;
-	ep.l_type=((struct ligand_info *)mdlpvp->gp->value)->type;
-	ep.event_type=PRODUCE_POISSON;
-};
+	switch(p1->sym_type) {
+	case RX:
+	  sprintf(mdlpvp->mdl_err_msg,"This case doesn't exist!\n");
+	  mdl_warning(mdlpvp);
+	  return(1);
+ 	  break;
+	case MOL:
+	  ligip=(struct ligand_info *)p1->value;
+	  rp=(struct region*)mdlpvp->gp->value;
+	  
+          if (volp->iterations<0) {
+            sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
+	    mdl_warning(mdlpvp);
+            volp->iterations=0;
+          }
+	  i1=buffersize;
+	  if ((intp=(int *)malloc(buffersize*sizeof(int)))==NULL) {
+	    mdlerror("Cannot store count data");
+	    return(1);
+          }
+	  for (i=0;i<i1;i++) {
+	    intp[i]=0;
+	  }
 
-transition: '>' reaction_state 
-{
-	$$=$<sym>2;
-};
+	  if (rp->lig_hit_counter==NULL) {
+	    if ((rp->lig_hit_counter=(struct lig_hit_counter **)malloc((1+n_ligand_types)*sizeof(struct lig_hit_counter *)))==NULL) {
+	        mdlerror("Cannot store ligand hit count data");
+	        return(1);
+	    }
+	    for(i1=0;i1<1+n_ligand_types;i1++) {
+	      rp->lig_hit_counter[i1]=NULL;
+	    }
+	  }
+	  lig_hit=rp->lig_hit_counter[ligip->type];
+	  if (rp->lig_hit_counter[ligip->type]==NULL) {
+	    if ((rp->lig_hit_counter[ligip->type]=
+	                  (struct lig_hit_counter *)malloc
+	                  (sizeof(struct lig_hit_counter)))==NULL) {
+	      mdlerror("Cannot store transition count data");
+	      return(1);
+	    }
+	    rp->lig_hit_counter[ligip->type]->ligand=ligip;
+	    rp->lig_hit_counter[ligip->type]->counter=0;
 
-rate: num_expr_only 
-{
-  $$=$<dbl>1;
-  rate_file=NULL;
-}
-	| str_expr_only
-{
-  $$=0;
-  rate_file=$<str>1;
-}
-	| existing_var_only
-{
-  mdlpvp->gp=$<sym>1;
-  rate_file=NULL;
-  switch (mdlpvp->gp->sym_type) {
-  case DBL:
-    $$=*(double *)mdlpvp->gp->value;
-    break;
-  case STR:
-    $$=0;
-    rate_file=my_strdup((char *)mdlpvp->gp->value);
-    break;
-  default:
-    mdlerror("Invalid variable type referenced");
-    return(1);
-    break;
-  }
-};  
+	    clp->data_type=INT;
+	    clp->update_flag=1;
+	    clp->reset_flag=1;
+	    clp->index_type=TIME_STAMP_VAL;
 
+	    clp->final_data=(void *)intp;
+	    clp->data_type=INT;
+	    clp->n_data=i1;
+	    clp->temp_data=(void *)&(rp->lig_hit_counter[ligip->type]->counter);
+	  }
+	  else  {
+	    sprintf(mdlpvp->mdl_err_msg,"Duplicated request for ligand hit counting!\n");
+	    mdl_warning(mdlpvp);
+	  }
 
-output_def: REACTION_DATA_OUTPUT '{'
-{
-  build_ligand_table();
-}
-       output_step_def
-       list_count_cmds
-{  if ((olp=(struct output_list *)
-       malloc(sizeof(struct output_list)))==NULL) {
-    mdlerror("Cannot store output list data");
-    return(1);
-  }
-  n_reac_frames++;
-  olp->freq=(int) (output_freq+ROUND_UP);
-  olp->reaction_list=rolp;
-  olp->counter_info=cilp;
-  olp->n_output=buffersize;
-  olp->id=n_reac_frames-1;
-  olp->counter=0;
-  olp->index=0;
-  olp->out_type=reac_out_type;
-  olp->next=output_list;
-  output_list=olp;
-}
-       
-'}'
-       ;
-
-
-output_step_def:  step_def 
-                | reac_iteration_def 
-                | reac_time_def 
-                ;
-
-step_def: STEP '=' num_expr
-{
-  output_freq=$<dbl>3;
-  output_freq=output_freq/volp->time_unit;
-  if (chkpt_iterations) {
-    n_output=(int)(chkpt_iterations/output_freq+1);
-    buffersize=min_count_buffer(chkpt_iterations-start_time,n_output,COUNTBUFFERSIZE);
-  }
-  else {
-    n_output=(int)(volp->iterations/output_freq+1);
-    buffersize=min_count_buffer(volp->iterations-start_time,n_output,COUNTBUFFERSIZE);
-  }
-  
-  reac_out_type=FREQ_DATA;
-  if (output_freq>volp->iterations) {
-    sprintf(mdlpvp->mdl_err_msg,"Output frequency too high\n\tSetting output frequency to %f microseconds\n",volp->iterations*volp->time_unit/1.0e-6);
-    mdl_warning(mdlpvp);
-    output_freq=volp->iterations;
-  }
-  if (output_freq<1) {
-    sprintf(mdlpvp->mdl_err_msg,"Output frequency too low\n\tSetting output frequency to %f microseconds\n",volp->time_unit/1.0e-6);
-    mdl_warning(mdlpvp);
-    output_freq=1;
-  }
-  no_printf("Output definition:\n");
-  no_printf("Output frequency = %f\n",output_freq);
-}
-        | /* empty */
-{
-  output_freq=1;
-  if (output_freq>volp->iterations) {
-    sprintf(mdlpvp->mdl_err_msg,"Output frequency too high\n\tSetting output frequency to %f microseconds\n",volp->iterations*volp->time_unit/1.0e-6);
-    mdl_warning(mdlpvp);
-    output_freq=volp->iterations;
-  }
-  if (output_freq<1) {
-    sprintf(mdlpvp->mdl_err_msg,"Output frequency too low\n\tSetting output frequency to %f microseconds\n",volp->time_unit/1.0e-6);
-    mdl_warning(mdlpvp);
-    output_freq=1;
-  }
-  no_printf("Output definition:\n");
-  no_printf("Output frequency = %f\n",output_freq);
+	  no_printf("Counting ligand %s hits with  region %s\n",p1->name,mdlpvp->gp->name);
+	  fflush(stderr);
+	  break;
+	}
 };
 
 
-reac_iteration_def: ITERATION_LIST '='
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-}
-	'[' list_range_specs ']'
-{
-  n_output=mdlpvp->num_pos;
-  reac_out_type=FRAME_DATA;
-
-  /**
-   * Compute the output buffersize.
-   **/
-  if (chkpt_iterations) {
-    buffersize=min_count_buffer(chkpt_iterations-start_time+1,n_output,COUNTBUFFERSIZE);
-  }
-  else {
-    buffersize=min_count_buffer(volp->iterations-start_time+1,n_output,COUNTBUFFERSIZE);
-  }
-
-  sort_num_expr_list(mdlpvp->el_head);
-  
-  /**
-   * Construct the reaction list. 
-   **/
-  if ((rolp=(struct reaction_list *)
-       malloc(sizeof(struct reaction_list)))==NULL) {
-    mdlerror("Cannot store output list data");
-    return(1);
-  }
-  
-  if ((intp=(int *)malloc(buffersize*sizeof(int)))==NULL) {
-    mdlerror("Cannot store integer data");
-    return(1);
-  }
-
-  i=0;
-  /*
-  mdlpvp->elp=mdlpvp->el_head;
-  while(mdlpvp->elp!=NULL) {
-     if (mdlpvp->elp->value>volp->iterations) {
-      mdlerror("Reaction output iteration number is too big!");
-      return(1);
-    }
-    intp[i++]=mdlpvp->elp->value;
-    mdlpvp->elp=mdlpvp->elp->next;
-  }
-  */
-  for (i=0;i<=buffersize;i++) {
-    intp[i]=0;
-  }
-
-  
-  rolp->list_type=FRAME_NUMBER;
-  rolp->n_reac_iterations=0;
-  rolp->reac_iteration=-1;
-  rolp->array=intp;
-  rolp->iteration_list=mdlpvp->el_head;
-  rolp->curr_reac_iteration=mdlpvp->el_head;
-  rolp->next=reaction_data_head;
-  reaction_data_head=rolp;
-}
-;
-
-reac_time_def: TIME_LIST '='
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-}
-	'[' list_range_specs ']'
-{
-  n_output=mdlpvp->num_pos;
-  reac_out_type=FRAME_DATA;
-
-  /**
-   * Compute the output buffersize.
-   **/
-  if (chkpt_iterations) {
-    buffersize=min_count_buffer(chkpt_iterations-start_time+1,n_output,COUNTBUFFERSIZE);
-  }
-  else {
-    buffersize=min_count_buffer(volp->iterations-start_time+1,n_output,COUNTBUFFERSIZE);
-  }
-
-  sort_num_expr_list(mdlpvp->el_head);
-  
-  /**
-   * Construct the reaction list. 
-   **/
-  if ((rolp=(struct reaction_list *)
-       malloc(sizeof(struct reaction_list)))==NULL) {
-    mdlerror("Cannot store output list data");
-    return(1);
-  }
-  
-  if ((intp=(int *)malloc(buffersize*sizeof(int)))==NULL) {
-    mdlerror("Cannot store integer data");
-    return(1);
-  }
-
-  i=0;
-
-  for (i=0;i<=buffersize;i++) {
-    intp[i]=0;
-  }
-  rolp->list_type=REAL_TIME;
-  rolp->n_reac_iterations=0;
-  rolp->reac_iteration=-1;
-  rolp->array=intp;
-  rolp->iteration_list=mdlpvp->el_head;
-  rolp->curr_reac_iteration=mdlpvp->el_head;
-  rolp->next=reaction_data_head;
-  reaction_data_head=rolp;
-};
-
-
-
-list_count_cmds: count_cmd | list_count_cmds count_cmd;
-
-count_cmd: '{' count_expr '}' '=' '>' outfile_syntax
-{
-  clp=$<cnt>2;
-  cilp->count_list=clp;
-  cilp->next=counter_info;
-  counter_info=cilp;
-  }
-;
-
-count_expr: count_value
-{
-	$$=$<cnt>1;
-}
-| '(' count_expr ')' 
-{
-  $$=$<cnt>2;
-}
-| count_expr '+' count_expr
-{
-  if ((clp=(struct count_list *)malloc
-       (sizeof(struct count_list)))==NULL) {
-    mdlerror("Cannot store counter data");
-    return(1);
-  }
-  clp->freq=(int) (output_freq+ROUND_UP);
-  clp->frame_index=n_reac_frames;
-  clp->n_output=buffersize;
-  clp->reset_flag=0;
-  clp->update_flag=0;
-  clp->data_type=EXPR;
-  clp->index_type=UNKNOWN;
-  clp->n_data=0;
-  clp->temp_data=NULL;
-  clp->final_data=NULL;
-  clp->operand1=$<cnt>1;
-  clp->operand2=$<cnt>3;
-  clp->oper='+';
-  clp->next=count_list;
-  count_list=clp;
-  $$=clp;
-}
-        | count_expr '-' count_expr
-{
-  if ((clp=(struct count_list *)malloc
-       (sizeof(struct count_list)))==NULL) {
-    mdlerror("Cannot store counter data");
-    return(1);
-  }
-  clp->freq=(int) (output_freq+ROUND_UP);
-  clp->frame_index=n_reac_frames;
-  clp->n_output=buffersize;
-  clp->reset_flag=0;
-  clp->data_type=EXPR;
-  clp->update_flag=0;
-  clp->index_type=UNKNOWN;
-  clp->n_data=0;
-  clp->temp_data=NULL;
-  clp->final_data=NULL;
-  clp->operand1=$<cnt>1;
-  clp->operand2=$<cnt>3;
-  clp->oper='-';
-  clp->next=count_list;
-  count_list=clp;
-  $$=clp;
-}
-        | count_expr '*' count_expr
-{
-  if ((clp=(struct count_list *)malloc
-       (sizeof(struct count_list)))==NULL) {
-    mdlerror("Cannot store counter data");
-    return(1);
-  }
-  clp->freq=(int) (output_freq+ROUND_UP);
-  clp->frame_index=n_reac_frames;
-  clp->n_output=buffersize;
-  clp->reset_flag=0;
-  clp->data_type=EXPR;
-  clp->update_flag=0;
-  clp->index_type=UNKNOWN;
-  clp->n_data=0;
-  clp->temp_data=NULL;
-  clp->final_data=NULL;
-  clp->operand1=$<cnt>1;
-  clp->operand2=$<cnt>3;
-  clp->oper='*';
-  clp->next=count_list;
-  count_list=clp;
-  $$=clp;
-}
-        | count_expr '/' count_expr
-{
-  if ((clp=(struct count_list *)malloc
-       (sizeof(struct count_list)))==NULL) {
-    mdlerror("Cannot store counter data");
-    return(1);
-  }
-  clp->freq=(int) (output_freq+ROUND_UP);
-  clp->frame_index=n_reac_frames;
-  clp->n_output=buffersize;
-  clp->reset_flag=0;
-  clp->data_type=EXPR;
-  clp->update_flag=0;
-  clp->index_type=UNKNOWN;
-  clp->n_data=0;
-  clp->temp_data=NULL;
-  clp->final_data=NULL;
-  clp->operand1=$<cnt>1;
-  clp->operand2=$<cnt>3;
-  clp->oper='/';
-  clp->next=count_list;
-  count_list=clp;
-  $$=clp;
-}
-        | '-' count_expr %prec UNARYMINUS
-{
-  if ((clp=(struct count_list *)malloc
-       (sizeof(struct count_list)))==NULL) {
-    mdlerror("Cannot store counter data");
-    return(1);
-  }
-  if ((clp2=(struct count_list *)malloc
-       (sizeof(struct count_list)))==NULL) {
-    mdlerror("Cannot store counter data");
-    return(1);
-  }
-  if (!(mdlpvp->dblp=(double *)malloc
-	(sizeof(double)))) {
-    mdlerror("Cannot store counter data");
-    return(1);
-  }
-  *mdlpvp->dblp=-1;
-  clp2->freq=(int) (output_freq+ROUND_UP);
-  clp2->frame_index=n_reac_frames;
-  clp2->n_output=buffersize;
-  clp2->reset_flag=0;
-  clp2->update_flag=0;
-  clp2->index_type=UNKNOWN;
-  clp2->n_data=1;
-  clp2->data_type=DBL;
-  clp2->temp_data=(void *)mdlpvp->dblp;
-  clp2->final_data=(void *)mdlpvp->dblp;
-  clp2->operand1=NULL;
-  clp2->operand2=NULL;
-  clp2->oper='\0';
-  clp2->next=count_list;
-  count_list=clp2;
-  
-  clp->freq=(int) (output_freq+ROUND_UP);
-  clp->frame_index=n_reac_frames;
-  clp->n_output=buffersize;
-  clp->reset_flag=0;
-  clp->update_flag=0;
-  clp->index_type=UNKNOWN;
-  clp->data_type=EXPR;
-  clp->n_data=0;
-  clp->temp_data=NULL;
-  clp->final_data=NULL;
-  clp->operand1=clp2;
-  clp->operand2=$<cnt>2;
-  clp->oper='*';
-  clp->next=count_list;
-  count_list=clp;
-  $$=clp;
-}
-;
-
-count_value: COUNT '[' count_value_init count_syntax ']'
-{
-        $$=$<cnt>3;
-}
-        | EXPRESSION '[' num_expr ']'
-{
-  if ((clp=(struct count_list *)malloc
-       (sizeof(struct count_list)))==NULL) {
-    mdlerror("Cannot store counter data");
-    return(1);
-  }
-  if (!(mdlpvp->dblp=(double *)malloc
-	(sizeof(double)))) {
-    mdlerror("Cannot store counter data");
-    return(1);
-  }
-  *mdlpvp->dblp=$<dbl>3;
-  clp->freq=(int) (output_freq+ROUND_UP);
-  clp->frame_index=n_reac_frames;
-  clp->n_output=buffersize;
-  clp->reset_flag=0;
-  clp->update_flag=0;
-  clp->index_type=TIME_STAMP_VAL;
-  clp->n_data=1;
-  clp->data_type=DBL;
-  clp->temp_data=(void *)mdlpvp->dblp;
-  clp->final_data=(void *)mdlpvp->dblp;
-  clp->operand1=NULL;
-  clp->operand2=NULL;
-  clp->oper='\0';
-  clp->next=count_list;
-  count_list=clp;
-  $$=clp;
-}
-; 
-
-count_value_init: /* empty */
-{
-  if ((clp=(struct count_list *)malloc
-       (sizeof(struct count_list)))==NULL) {
-    mdlerror("Cannot store counter data");
-    return(1);
-  }
-  clp->freq=(int) (output_freq+ROUND_UP);
-  clp->frame_index=n_reac_frames;
-  clp->n_output=buffersize;
-  clp->reset_flag=0;
-  clp->update_flag=1;
-  clp->index_type=TIME_STAMP_VAL;
-  clp->next=count_list;
-  count_list=clp;
-  $$=clp;
-}
-	;
-
-outfile_syntax: file_name
-{
-  if ((cilp=(struct counter_info *)malloc
-       (sizeof(struct counter_info)))==NULL) {
-    mdlerror("Cannot store output list data");
-    return(1);
-  }
-
-  sprintf(cilp->outfile_name,"%s",$<str>1);
-  no_printf("Output file set to %s\n",cilp->outfile_name); 
-};
-
-count_syntax: r_transition_syntax
-        | r_state_or_ligand_diffusion_syntax
-	| lig_hit_syntax
-	| lig_transition_syntax
-;
-
-r_transition_syntax: existing_reaction_state
-        '[' '>' existing_reaction_state ']'
-	',' WORLD ',' r_spec ',' t_spec ',' event_spec
+rxn_count_syntax: existing_rxn ',' WORLD ',' r_spec ',' t_spec ',' event_spec
 {
 	no_printf("\nReaction transition syntax:\n");
 	p1=$<sym>1;
@@ -5353,8 +4915,7 @@ r_transition_syntax: existing_reaction_state
 	    break;
 	}
 }
-	| existing_reaction_state '[' '>' existing_reaction_state ']'
-	',' existing_region ',' r_spec ',' t_spec ',' event_spec
+	| existing_rxn ',' existing_region ',' r_spec ',' t_spec ',' event_spec
 {
 	no_printf("\nReaction transition on region syntax:\n");
 	fflush(stderr);
@@ -5391,7 +4952,7 @@ r_transition_syntax: existing_reaction_state
 	          }
 		  
 		  /* Check if this counter already defined,
-		   * if it is true, point the count_list to the
+		   * if it is true, point the counter_list to the
 		   * defined rcrp2->counter
 		   */
 		  rcrlp2=rp->reg_counter_ref_list;
@@ -5465,7 +5026,7 @@ r_transition_syntax: existing_reaction_state
 	          }
 		  
 		  /* Check if this counter already defined,
-		   * if it is true, point the count_list to the
+		   * if it is true, point the counter_list to the
 		   * defined rcrp2->counter
 		   */
 		  rcrlp2=rp->reg_counter_ref_list;
@@ -5544,7 +5105,7 @@ r_transition_syntax: existing_reaction_state
 	          }
 		  
 		  /* Check if this counter already defined,
-		   * if it is true, point the count_list to the
+		   * if it is true, point the counter_list to the
 		   * defined rcrp2->counter
 		   */
 		  rcrlp2=rp->reg_counter_ref_list;
@@ -5618,7 +5179,7 @@ r_transition_syntax: existing_reaction_state
 	          }
 
 		  /* Check if this counter already defined,
-		   * if it is true, point the count_list to the
+		   * if it is true, point the counter_list to the
 		   * defined rcrp2->counter
 		   */
 		  rcrlp2=rp->reg_counter_ref_list;
@@ -5679,956 +5240,29 @@ r_transition_syntax: existing_reaction_state
 	      }
 	    break;
 	}
-}
-	;
-
-r_state_or_ligand_diffusion_syntax: existing_molecule_or_reaction_state
-	',' WORLD ',' FOR_EACH_TIME_STEP
-{
-	p1=$<sym>1;
-        switch (p1->sym_type) {
-        case RX:
-	  no_printf("\nReaction state syntax:\n");
-	  fflush(stderr);
-	  rxp1=(struct rx *)p1->value;
-          if (volp->iterations<0) {
-            sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
-	    mdl_warning(mdlpvp);
-            volp->iterations=0;
-          }
-	  i1=buffersize;
-	  if ((intp=(int *)malloc(i1*sizeof(int)))==NULL) {
-	    mdlerror("Cannot store count data");
-	    return(1);
-          }
-	  for (i=0;i<i1;i++) {
-	    intp[i]=0;
-	  }
-          clp->final_data=(void *)intp;
-          clp->data_type=INT;
-          clp->n_data=i1;
-	  clp->temp_data=(void *)&(rxp1->count);
-	  no_printf("Counting reaction state %s\n",p1->name);
-	  fflush(stderr);
-          break;
-        case MOL:
-          no_printf("\nWorld molecule diffusion syntax:\n");
-          fflush(stderr);
-          ligip=(struct ligand_info *)p1->value;
-  
-          if (world_lig_count==NULL) {
-            if ((world_lig_count=(int *)malloc
-                 ((1+n_ligand_types)*sizeof(int)))==NULL) {
-              mdlerror("Cannot store world molecule count data");
-              return(1); 
-            }
-	    for (i=0;i<(1+n_ligand_types);i++) {
-              world_lig_count[i]=0;
-            }
-          }
-  
-          if (volp->iterations<0) {
-            sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
-	    mdl_warning(mdlpvp);
-            volp->iterations=0;
-          }
-
-	  i1=buffersize;
-	  if ((intp=(int *)malloc(i1*sizeof(int)))==NULL) {
-	    mdlerror("Cannot store count data");
-	    return(1);
-          }
-	  for (i=0;i<i1;i++) {
-	    intp[i]=0;
-	  }
-          clp->final_data=(void *)intp;
-          clp->data_type=INT;
-          clp->n_data=i1;
-	  clp->temp_data=(void *)&world_lig_count[ligip->type];
-  
-	  no_printf("Counting molecule %s in WORLD\n",mdlpvp->gp->name);
-	  fflush(stderr);
-          break;
-        }
-}
-	| existing_molecule_or_reaction_state
-	  ',' existing_object ',' FOR_EACH_TIME_STEP
-{
-	p1=$<sym>1;
-        switch (p1->sym_type) {
-        case RX:
-  
-	  mdlerror("Counting of effector states within objects not yet implemented");
-	  return(1);
-	  break;
-        case MOL:
-	  no_printf("\nLigand diffusion syntax:\n");
-	  fflush(stderr);
-	  ligip=(struct ligand_info *)p1->value;
-	  mdlpvp->tp=$<sym>3;
-	  mdlpvp->objp=(struct object *)mdlpvp->tp->value;
-          mdlpvp->objp2=mdlpvp->top_objp;
-  
-          if (volp->iterations<0) {
-            sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
-	    mdl_warning(mdlpvp);
-            volp->iterations=0;
-          }
-
-          freq=(int) (output_freq+ROUND_UP);
-	  clp->freq=freq;
-	  clp->n_output=buffersize;
-          clp->reset_flag=0;
-	  clp->update_flag=0;
-	  clp->data_type=EXPR;
-	  clp->index_type=UNKNOWN;
-	  clp->n_data=0;
-	  clp->temp_data=NULL;
-	  clp->final_data=NULL;
-	  clp->operand1=NULL;
-	  clp->operand2=NULL;
-	  clp->oper='+';
-	  if (build_lig_count_tree(mdlpvp->objp,mdlpvp->objp2,clp,ligip->type,buffersize,prefix_name)) {
-	    mdlerror("Cannot store molecule count_list data");
-	    return(1);
-	  }
-
-	  no_printf("Counting molecule %s in compartment %s\n",mdlpvp->gp->name,mdlpvp->tp->name);
-	  fflush(stderr);
-	  break;
-	}
-}
-	| existing_molecule_or_reaction_state
-	  ',' existing_region ',' FOR_EACH_TIME_STEP
-{	  
-	p1=$<sym>1;
-	mdlpvp->gp=$<sym>3;
-	switch(p1->sym_type) {
-	case RX:
-	  no_printf("Counting rx state on region syntax: \n");
-	  fflush(stderr);
-	  rxp1=(struct rx *)p1->value;
-	  rp=(struct region*)mdlpvp->gp->value;
-	  
-          if (volp->iterations<0) {
-            sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
-	    mdl_warning(mdlpvp);
-            volp->iterations=0;
-          }
-	  defined_counter_flag=0;
-	  i1=buffersize;
-	  if ((intp=(int *)malloc(buffersize*sizeof(int)))==NULL) {
-	    mdlerror("Cannot store count data");
-	    return(1);
-          }
-	  for (i=0;i<i1;i++) {
-	    intp[i]=0;
-	  }
-
-	  /* Check if this counter already defined,
-	   * if it is true, point the count_list to the
-	   * defined rcrp2->counter
-	   */
-	  rcrlp2=rp->reg_counter_ref_list;
-	  if (rcrlp2!=NULL) {
-	    while (rcrlp2!=NULL) {
-	      rcrp2=rcrlp2->reg_counter_ref;
-	      if (rcrp2->state==rxp1&&rcrp2->count_type==RX_STATE) {
-		clp->final_data=(void *)intp;
-		clp->data_type=INT;
-		clp->n_data=i1;
-		clp->temp_data=(void *)&(rcrp2->counter);
-		defined_counter_flag=1;
-	      }
-	      rcrlp2=rcrlp2->next;
-	    }
-	  }
-	  /* If this region counter is not defined before, 
-	   * allocate memory for this region counter and
-	   * assign it to the region.
-	   */
-	  rcrlp2=rp->reg_counter_ref_list;
-	  if (rcrlp2==NULL || defined_counter_flag==0){
-	    if ((rcrp=(struct reg_counter_ref *)malloc
-	  	(sizeof(struct reg_counter_ref)))==NULL) {
-	      mdlerror("Can not save data for region counter");
-	      return(1);
-	    }
-	    if ((rcrlp=(struct reg_counter_ref_list *)malloc
-	  	(sizeof(struct reg_counter_ref_list)))==NULL) {
-	      mdlerror("Can not save data for region counter");
-	      return(1);
-	    }
-	    reg_counter_ref_head=NULL;
-	    rcrp->counter=0;
-	    rcrp->state=rxp1;
-	    rcrp->parent=rp;
-	    rcrp->next_state=NULL;
-	    rcrp->count_type=RX_STATE;
-	    rcrp->count_method=DT;
-	    rcrp->transition_count_each=NULL;
-	    rcrp->next=reg_counter_ref_head;
-	    reg_counter_ref_head=rcrp;
-	    
-	    rcrlp->reg_counter_ref=rcrp;
-	    rcrlp->next=rp->reg_counter_ref_list;
-	    rp->reg_counter_ref_list=rcrlp;
-	    
-	    clp->final_data=(void *)intp;
-	    clp->data_type=INT;
-	    clp->n_data=i1;
-	    clp->temp_data=(void *)&(rcrp->counter);
-	  }
-
-	  no_printf("Counting state %s in region %s\n",p1->name,mdlpvp->gp->name);
-	  fflush(stderr);
-	  
-	  break;
-	case MOL:
-	  sprintf(mdlpvp->mdl_err_msg,"Count ligand on object surface region is not possible\n");
-	  mdl_warning(mdlpvp);
-
-	  return(1);
-	  break;
-	}
 };
 
-lig_hit_syntax:existing_molecule_or_reaction_state ',' existing_region ',' 
-	  FOR_EACH_TIME_STEP ',' ALL_HITS
-{
-	p1=$<sym>1;
-	mdlpvp->gp=$<sym>3;
-
-	switch(p1->sym_type) {
-	case RX:
-	  sprintf(mdlpvp->mdl_err_msg,"This case doesn't exist!\n");
-	  mdl_warning(mdlpvp);
-	  return(1);
- 	  break;
-	case MOL:
-	  ligip=(struct ligand_info *)p1->value;
-	  rp=(struct region*)mdlpvp->gp->value;
-	  
-          if (volp->iterations<0) {
-            sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
-	    mdl_warning(mdlpvp);
-            volp->iterations=0;
-          }
-	  i1=buffersize;
-	  if ((intp=(int *)malloc(buffersize*sizeof(int)))==NULL) {
-	    mdlerror("Cannot store count data");
-	    return(1);
-          }
-	  for (i=0;i<i1;i++) {
-	    intp[i]=0;
-	  }
-
-	  if (rp->lig_hit_counter==NULL) {
-	    if ((rp->lig_hit_counter=(struct lig_hit_counter **)malloc((1+n_ligand_types)*sizeof(struct lig_hit_counter *)))==NULL) {
-	        mdlerror("Cannot store ligand hit count data");
-	        return(1);
-	    }
-	    for(i1=0;i1<1+n_ligand_types;i1++) {
-	      rp->lig_hit_counter[i1]=NULL;
-	    }
-	  }
-	  lig_hit=rp->lig_hit_counter[ligip->type];
-	  if (rp->lig_hit_counter[ligip->type]==NULL) {
-	    if ((rp->lig_hit_counter[ligip->type]=
-	                  (struct lig_hit_counter *)malloc
-	                  (sizeof(struct lig_hit_counter)))==NULL) {
-	      mdlerror("Cannot store transition count data");
-	      return(1);
-	    }
-	    rp->lig_hit_counter[ligip->type]->ligand=ligip;
-	    rp->lig_hit_counter[ligip->type]->counter=0;
-
-	    clp->data_type=INT;
-	    clp->update_flag=1;
-	    clp->reset_flag=1;
-	    clp->index_type=TIME_STAMP_VAL;
-
-	    clp->final_data=(void *)intp;
-	    clp->data_type=INT;
-	    clp->n_data=i1;
-	    clp->temp_data=(void *)&(rp->lig_hit_counter[ligip->type]->counter);
-	  }
-	  else  {
-	    sprintf(mdlpvp->mdl_err_msg,"Duplicated request for ligand hit counting!\n");
-	    mdl_warning(mdlpvp);
-	  }
-
-	  no_printf("Counting ligand %s hits with  region %s\n",p1->name,mdlpvp->gp->name);
-	  fflush(stderr);
-	  break;
-	}
-}
-;
-
-existing_molecule_or_reaction_state: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }       
-  else {  
-    mdlpvp->sym_name=mdlpvp->cval;  
-  }       
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,RX,volp->main_sym_table))==NULL) {
-    if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined molecule or reaction state:",mdlpvp->sym_name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-      if (mdlpvp->sym_name==mdlpvp->cval) {
-        mdlpvp->cval=NULL;
-      }
-      else {
-        mdlpvp->cval_2=NULL;
-      }
-      free((void *)mdlpvp->sym_name);
-      return(1);
-    }
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free((void *)mdlpvp->sym_name);
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-  $$=mdlpvp->gp;
-};
-
-lig_transition_syntax: existing_reaction_state
-	'[' '>' existing_reaction_state ']'
-        ',' WORLD ',' lig_spec ',' t_spec
-{
-	no_printf("\nLigand transition syntax:\n");
-	fflush(stderr);
-	p1=$<sym>1;
-	p2=$<sym>4;
-	rxp1=(struct rx *)p1->value;
-	rxp2=(struct rx *)p2->value;
-	prxp=rxp1->parent_rx;
-	transition_index=-1;
-	found_rxip=NULL;
-        for (i=0;i<1+n_ligand_types;i++) {
-          mrxip[0]=rxp1->bind_rx[i];
-          mrxip[1]=rxp1->transport_rx[i];
-          mrxip[2]=rxp1->product_poisson_rx[i];
-          mrxip[3]=rxp1->dissoc_rx[i];
-          mrxip[4]=rxp1->product_rx[i];
-          mrxip[5]=rxp1->degrade_rx[i];
-          for (j=0;j<6;j++) {
-            if (mrxip[j]!=NULL) {
-              nrx=mrxip[j]->n_rates;
-              for (k=0;k<nrx;k++) {
-                if(rxp2==mrxip[j]->next_rx[k]) {
-	          transition_index=mrxip[j]->transition_index[k];
-		  found_transition=k;
-		  found_rxip=mrxip[j];
-                  ligip=ligand_table[i];
-                }
-              }
-            }
-          }
-        }
-	if (transition_index==-1) {
-	  mdlerror("Invalid state transition specified");
-	  return(1);
-	}
-	no_printf("transition index = %d\n",transition_index);
-	fflush(stderr);
-	switch ($<tok>9) {
-	case EACH_L:
-	  switch ($<tok>11) {
-	  case SUM:
-	    if (ligip->transition_count_each==NULL) {
-	      i1=n_rx_types;
-	      if ((ligip->transition_count_each=
-	                  (struct lig_transition_count **)malloc
-	                  (i1*sizeof(struct lig_transition_count *)))==NULL) {
-	        mdlerror("Cannot store transition count data");
-	        return(1);
-	      }
-	      for(i1=0;i1<n_rx_types;i1++) {
-	        ligip->transition_count_each[i1]=NULL;
-	      }
-	    }
-	    if (ligip->transition_count_each[prxp->rx_index]==NULL) {
-	      if ((ligip->transition_count_each[prxp->rx_index]=
-	                  (struct lig_transition_count *)malloc
-	                  (sizeof(struct lig_transition_count)))==NULL) {
-	        mdlerror("Cannot store transition count data");
-	        return(1);
-	      }
-	      ligip->transition_count_each[prxp->rx_index]->sum=NULL;
-	      ligip->transition_count_each[prxp->rx_index]->dt=NULL;
-	      ligip->transition_count_each[prxp->rx_index]->cum=NULL;
-	    }
-	    if (ligip->transition_count_each[prxp->rx_index]->sum==NULL) {
-	      i1=prxp->num_transitions;
-	      if ((ligip->transition_count_each[prxp->rx_index]->sum=
-	                  (struct count_list **)malloc
-	                  (i1*sizeof(struct count_list *)))==NULL) {
-	        mdlerror("Cannot store transition count data");
-	        return(1);
-	      }
-	      for(i1=0;i1<prxp->num_transitions;i1++) {
-	        ligip->transition_count_each[prxp->rx_index]->sum[i1]=NULL;
-	      }
-	    }
-	    if (ligip->transition_count_each[prxp->rx_index]->sum[transition_index]
-	        !=NULL) {
-	      sprintf(mdlpvp->mdl_err_msg,"Duplicated request to count a type of molecule transition\n");
-	      mdl_warning(mdlpvp);
-	    }
-	    ligip->transition_count_each[prxp->rx_index]->sum[transition_index]=clp;
-	    clp->data_type=INT;
-	    clp->update_flag=0;
-	    clp->index_type=INDEX_VAL;
-	    clp->temp_data=NULL; /*temp_data not required in this case*/ 
-	    clp->final_data=NULL; /*final_data is allocated at 
-	                            time of vesicle release only*/ 
-	    clp->n_data=0; /*n_data is known at time of vesicle release only*/
-	    break;
-	  case DT:
-	    sprintf(mdlpvp->mdl_err_msg,"Count molecule FOR_EACH_MOLECULE,FOR_EACH_TIME_STEP not yet implemented\n");
-	    mdl_warning(mdlpvp);
-	    break;
-	  case CUM:
-	    sprintf(mdlpvp->mdl_err_msg,"Count molecule FOR_EACH_MOLECULE,CUMULATE_FOR_EACH_TIME_STEP not yet implemented\n");
-	    mdl_warning(mdlpvp);
-	    break;
-	  } 
-	  break;
-	case OVER_L:
-	  switch ($<tok>11) {
-	  case SUM:
-	    sprintf(mdlpvp->mdl_err_msg,"Count ligand transitions SUM_OVER_ALL_MOLECULES,SUM_OVER_ALL_TIME_STEPS not yet implemented\n");
-	    mdl_warning(mdlpvp);
-	    break;
-	  case DT:
-	    if (ligip->transition_count_all==NULL) {
-	      i1=n_rx_types;
-	      if ((ligip->transition_count_all=
-	                  (struct lig_transition_count **)malloc
-	                  (i1*sizeof(struct lig_transition_count *)))==NULL) {
-	        mdlerror("Cannot store transition count data");
-	        return(1);
-	      }
-	      for(i1=0;i1<n_rx_types;i1++) {
-	        ligip->transition_count_all[i1]=NULL;
-	      }
-	    }
-	    if (ligip->transition_count_all[prxp->rx_index]==NULL) {
-	      if ((ligip->transition_count_all[prxp->rx_index]=
-	                  (struct lig_transition_count *)malloc
-	                  (sizeof(struct lig_transition_count)))==NULL) {
-	        mdlerror("Cannot store transition count data");
-	        return(1);
-	      }
-	      ligip->transition_count_all[prxp->rx_index]->sum=NULL;
-	      ligip->transition_count_all[prxp->rx_index]->dt=NULL;
-	      ligip->transition_count_all[prxp->rx_index]->cum=NULL;
-	    }
-	    if (ligip->transition_count_all[prxp->rx_index]->dt==NULL) {
-	      i1=prxp->num_transitions;
-	      if ((ligip->transition_count_all[prxp->rx_index]->dt=
-	                  (struct count_list **)malloc
-	                  (i1*sizeof(struct count_list *)))==NULL) {
-	        mdlerror("Cannot store transition count data");
-	        return(1);
-	      }
-	      for(i1=0;i1<prxp->num_transitions;i1++) {
-	        ligip->transition_count_all[prxp->rx_index]->dt[i1]=NULL;
-	      }
-	    }
-	    if (ligip->transition_count_all[prxp->rx_index]->dt[transition_index]
-	        !=NULL) {
-	      sprintf(mdlpvp->mdl_err_msg,"Duplicated request to count this type of molecule transition\n");
-	      mdl_warning(mdlpvp);
-	    }
-	    ligip->transition_count_all[prxp->rx_index]->dt[transition_index]=clp;
-	    clp->data_type=INT;
-	    clp->update_flag=1;
-	    clp->reset_flag=1;
-	    clp->index_type=TIME_STAMP_VAL;
-
-            if (volp->iterations<0) {
-              sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
-	      mdl_warning(mdlpvp);
-              volp->iterations=0;
-            }
-
-	    i1=buffersize;
-	    if ((intp=(int *)malloc(i1*sizeof(int)))==NULL) {
-	      mdlerror("Cannot store count data");
-	      return(1);
-            }
-	    for (i=0;i<i1;i++) {
-	      intp[i]=0;
-	    }
-            clp->final_data=(void *)intp;
-            clp->n_data=i1;
-    
-	    if ((intp=(int *)malloc(sizeof(int)))==NULL) {
-	      mdlerror("Cannot store count data");
-	      return(1);
-            }
-	    clp->temp_data=(void *)intp;
-	    *(int *)clp->temp_data=0;
-	    break;
-	  case CUM:
-	    if (ligip->transition_count_all==NULL) {
-	      i1=n_rx_types;
-	      if ((ligip->transition_count_all=
-	                  (struct lig_transition_count **)malloc
-	                  (i1*sizeof(struct lig_transition_count *)))==NULL) {
-	        mdlerror("Cannot store transition count data");
-	        return(1);
-	      }
-	      for(i1=0;i1<n_rx_types;i1++) {
-	        ligip->transition_count_all[i1]=NULL;
-	      }
-	    }
-	    if (ligip->transition_count_all[prxp->rx_index]==NULL) {
-	      if ((ligip->transition_count_all[prxp->rx_index]=
-	                  (struct lig_transition_count *)malloc
-	                  (sizeof(struct lig_transition_count)))==NULL) {
-	        mdlerror("Cannot store transition count data");
-	        return(1);
-	      }
-	      ligip->transition_count_all[prxp->rx_index]->sum=NULL;
-	      ligip->transition_count_all[prxp->rx_index]->dt=NULL;
-	      ligip->transition_count_all[prxp->rx_index]->cum=NULL;
-	    }
-	    if (ligip->transition_count_all[prxp->rx_index]->cum==NULL) {
-	      i1=prxp->num_transitions;
-	      if ((ligip->transition_count_all[prxp->rx_index]->cum=
-	                  (struct count_list **)malloc
-	                  (i1*sizeof(struct count_list *)))==NULL) {
-	        mdlerror("Cannot store transition count data");
-	        return(1);
-	      }
-	      for(i1=0;i1<prxp->num_transitions;i1++) {
-	        ligip->transition_count_all[prxp->rx_index]->cum[i1]=NULL;
-	      }
-	    }
-	    if (ligip->transition_count_all[prxp->rx_index]->cum[transition_index]
-	        !=NULL) {
-	      sprintf(mdlpvp->mdl_err_msg,"Duplicated request to count this type of molecule transition\n");
-	      mdl_warning(mdlpvp);
-	    }
-	    ligip->transition_count_all[prxp->rx_index]->cum[transition_index]=clp;
-	    clp->data_type=INT;
-	    clp->update_flag=1;
-	    clp->reset_flag=0;
-	    clp->index_type=TIME_STAMP_VAL;
-
-            if (volp->iterations<0) {
-              sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
-	      mdl_warning(mdlpvp);
-              volp->iterations=0;
-            }
-
-	    i1=buffersize;
-	    if ((intp=(int *)malloc(i1*sizeof(int)))==NULL) {
-	      mdlerror("Cannot store count data");
-	      return(1);
-            }
-	    for (i=0;i<i1;i++) {
-	      intp[i]=0;
-	    }
-            clp->final_data=(void *)intp;
-            clp->n_data=i1;
-    
-	    if ((intp=(int *)malloc(sizeof(int)))==NULL) {
-	      mdlerror("Cannot store count data");
-	      return(1);
-            }
-	    clp->temp_data=(void *)intp;
-	    *(int *)clp->temp_data=0;
-	    break;
-	  }
-	  break;
-	}
-}
-	| existing_reaction_state
-	'[' '>' existing_reaction_state ']'
-        ',' existing_region ',' lig_spec ',' t_spec
-{
-	no_printf("\nLigand transition over surface region syntax:\n");
-	fflush(stderr);
-	p1=$<sym>1;
-	p2=$<sym>4;
-	mdlpvp->gp=$<sym>7;
-	rxp1=(struct rx *)p1->value;
-	rxp2=(struct rx *)p2->value;
-	rp=(struct region *)mdlpvp->gp->value;
-	prxp=rxp1->parent_rx;
-	transition_index=-1;
-	found_rxip=NULL;
-        for (i=0;i<1+n_ligand_types;i++) {
-          mrxip[0]=rxp1->bind_rx[i];
-          mrxip[1]=rxp1->transport_rx[i];
-          mrxip[2]=rxp1->product_poisson_rx[i];
-          mrxip[3]=rxp1->dissoc_rx[i];
-          mrxip[4]=rxp1->product_rx[i];
-          mrxip[5]=rxp1->degrade_rx[i];
-          for (j=0;j<6;j++) {
-            if (mrxip[j]!=NULL) {
-              nrx=mrxip[j]->n_rates;
-              for (k=0;k<nrx;k++) {
-                if(rxp2==mrxip[j]->next_rx[k]) {
-	          transition_index=mrxip[j]->transition_index[k];
-		  found_transition=k;
-		  found_rxip=mrxip[j];
-                  ligip=ligand_table[i];
-                }
-              }
-            }
-          }
-        }
-	if (transition_index==-1) {
-	  mdlerror("Invalid state transition specified");
-	  return(1);
-	}
-	no_printf("transition index = %d\n",transition_index);
-	fflush(stderr);
-	switch ($<tok>9) {
-	case EACH_L:
-	  switch ($<tok>11) {
-	  case SUM:
-	  /* Check if this counter already defined,
-	   * if it is true, point the count_list to the
-	   * defined rcrp2->counter
-	   */
-	  defined_counter_flag=0;  
-	  rcrlp2=rp->reg_counter_ref_list;
-	  if (rcrlp2!=NULL) {
-	    while (rcrlp2!=NULL) {
-	      rcrp2=rcrlp2->reg_counter_ref;
-	      if (rcrp2->state==rxp1&&rcrp2->next_state==rxp2&&rcrp2->count_type==MOL_TRANS_EACH&&rcrp2->count_method==SUM) {
-		rcrp2->transition_count_each[prxp->rx_index]->sum[transition_index]=clp;
-
-		clp->reset_flag=1;
-		clp->update_flag=0;
-		clp->index_type=INDEX_VAL;
-		clp->data_type=INT;
-		clp->n_data=0;
-		clp->temp_data=NULL;
-		clp->final_data=NULL;		
-		defined_counter_flag=1;
-	      }
-	      rcrlp2=rcrlp2->next;
-	    }
-	  }
-	  /* If this region counter is not defined before, 
-	   * allocate memory for this region counter and
-	   * assign it to the region.
-	   */
-	  rcrlp2=rp->reg_counter_ref_list;
-	  if (rcrlp2==NULL || defined_counter_flag==0){
-	    if ((rcrp=(struct reg_counter_ref *)malloc
-		(sizeof(struct reg_counter_ref)))==NULL) {
-	      mdlerror("Can not save data for region counter");
-	      return(1);
-	    }
-	    if ((rcrlp=(struct reg_counter_ref_list *)malloc
-		(sizeof(struct reg_counter_ref_list)))==NULL) {
-	      mdlerror("Can not save data for region counter");
-	      return(1);
-	    }
-
-	    reg_counter_ref_head=NULL;
-	    rcrp->counter=0;
-	    rcrp->state=rxp1;
-	    rcrp->parent=rp;
-	    rcrp->next_state=rxp2;
-	    rcrp->count_type=MOL_TRANS_EACH;
-	    rcrp->count_method=SUM;
-	    rcrp->transition_count_each=NULL;
-	    rcrp->next=reg_counter_ref_head;
-	    reg_counter_ref_head=rcrp;
-
-
-  	    
-	    rcrlp->reg_counter_ref=rcrp;
-	    rcrlp->next=rp->reg_counter_ref_list;
-	    rp->reg_counter_ref_list=rcrlp;
-  
-	    /* Save reg_counter_ref_list for ligand transition 
-	     * FOR_EACH_MOLECULE, SUM_OVER_ALL_TIME_STEPS to 
-	     * ligip->region_transition_count_each
-	     */  
-	    if ((ligrcrlp=(struct reg_counter_ref_list *)malloc
-		(sizeof(struct reg_counter_ref_list)))==NULL) {
-		mdlerror("Can not save data for region counter");
-		return(1);
-	    }	      
-	    ligrcrlp->reg_counter_ref=rcrp;
-	    ligrcrlp->next=ligip->region_transition_count_each;
-	    ligip->region_transition_count_each=ligrcrlp;
-	    
-	    if (rcrp->transition_count_each==NULL) {
-	      i1=n_rx_types;
-	      if ((rcrp->transition_count_each=
-	                  (struct lig_transition_count **)malloc
-	                  (i1*sizeof(struct lig_transition_count)))==NULL) {
-	        mdlerror("Cannot store transition count data");
-	        return(1);
-
-	       }
-
-	       for (i1=0;i1<n_rx_types;i1++) {
-		 rcrp->transition_count_each[i1]=NULL;
-	       }
-	    }
-	    if (rcrp->transition_count_each[prxp->rx_index]==NULL) {
-	      if ((rcrp->transition_count_each[prxp->rx_index]=
-	                  (struct lig_transition_count *)malloc
-	                  (sizeof(struct lig_transition_count)))==NULL) {
-	        mdlerror("Cannot store transition count data");
-	        return(1);
-	      }
-	      rcrp->transition_count_each[prxp->rx_index]->sum=NULL;
-	      rcrp->transition_count_each[prxp->rx_index]->dt=NULL;
-	      rcrp->transition_count_each[prxp->rx_index]->cum=NULL;
-	    }
-	    if (rcrp->transition_count_each[prxp->rx_index]->sum==NULL) {
-	      i1=prxp->num_transitions;
-	      if ((rcrp->transition_count_each[prxp->rx_index]->sum=
-	                  (struct count_list **)malloc
-	                  (i1*sizeof(struct count_list *)))==NULL) {
-	        mdlerror("Cannot store transition count data");
-	        return(1);
-	      }
-	      for(i1=0;i1<prxp->num_transitions;i1++) {
-	        rcrp->transition_count_each[prxp->rx_index]->sum[i1]=NULL;
-	      }
-	    }
-	    if (rcrp->transition_count_each[prxp->rx_index]->sum[transition_index]
-	        !=NULL) {
-	      sprintf(mdlpvp->mdl_err_msg,"Duplicated request to count a type of molecule transition\n");
-	      mdl_warning(mdlpvp);
-	    }
-	    rcrp->transition_count_each[prxp->rx_index]->sum[transition_index]=clp;
-
-	    clp->reset_flag=1;
-	    clp->update_flag=0;
-	    clp->index_type=INDEX_VAL;
-	    clp->data_type=INT;
-	    clp->n_data=0;
-	    clp->temp_data=NULL;
-	    clp->final_data=NULL;
-	  }
-	    break;
-	  case DT:
-	    sprintf(mdlpvp->mdl_err_msg,"Count transition FOR_EACH_MOLECULE,FOR_EACH_TIME_STEP on region not yet implemented\n");
-	    mdl_warning(mdlpvp);
-	    break;
-	  case CUM:
-	    sprintf(mdlpvp->mdl_err_msg,"Count transition FOR_EACH_MOLECULE,CUMULATE_FOR_EACH_TIME_STEP on region not yet implemented\n");
-	    mdl_warning(mdlpvp);
-	    break;
-	  } 
-	  break;
-	case OVER_L:
-	  switch ($<tok>11) {
-	  case SUM:
-	    sprintf(mdlpvp->mdl_err_msg,"Count transitions SUM_OVER_ALL_MOLECULES,SUM_OVER_ALL_TIME_STEPS not yet implemented\n");
-	    mdl_warning(mdlpvp);
-	    break;
-	  case DT:
-	    if (volp->iterations<0) {
-              sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
-	      mdl_warning(mdlpvp);
-              volp->iterations=0;
-            }
-
-	    i1=buffersize;
-	    defined_counter_flag=0;
-	    if ((intp=(int *)malloc(i1*sizeof(int)))==NULL) {
-	      mdlerror("Cannot store count data");
-	      return(1);
-            }
-	    for (i=0;i<i1;i++) {
-	      intp[i]=0;
-	    }
-
-	  /* Check if this counter already defined,
-	   * if it is true, point the count_list to the
-	   * defined rcrp2->counter
-	   */
-	  rcrlp2=rp->reg_counter_ref_list;
-	  if (rcrlp2!=NULL) {
-	    while (rcrlp2!=NULL) {
-	      rcrp2=rcrlp2->reg_counter_ref;
-	      if (rcrp2->state==rxp1&&rcrp2->next_state==rxp2&&rcrp2->count_type==MOL_TRANS_ALL&&rcrp2->count_method==DT) {
-		clp->data_type=INT;
-		clp->update_flag=1;
-		clp->reset_flag=1;
-		clp->index_type=TIME_STAMP_VAL;	
-		clp->final_data=(void *)intp;
-		clp->n_data=i1;
-		clp->temp_data=(void *)&(rcrp2->counter);
-		defined_counter_flag=1;
-	      }
-	      rcrlp2=rcrlp2->next;
-	    }
-	  }
-	  /* If this region counter is not defined before, 
-	   * allocate memory for this region counter and
-	   * assign it to the region.
-	   */
-	  rcrlp2=rp->reg_counter_ref_list;
-	  if (rcrlp2==NULL || defined_counter_flag==0){
-	    if ((rcrp=(struct reg_counter_ref *)malloc
-		(sizeof(struct reg_counter_ref)))==NULL) {
-	      mdlerror("Can not save data for region counter");
-	      return(1);
-	    }
-	    if ((rcrlp=(struct reg_counter_ref_list *)malloc
-		(sizeof(struct reg_counter_ref_list)))==NULL) {
-	      mdlerror("Can not save data for region counter");
-	      return(1);
-	    }
-	    reg_counter_ref_head=NULL;
-	    rcrp->counter=0;
-	    rcrp->state=rxp1;
-	    rcrp->parent=rp;
-	    rcrp->next_state=rxp2;
-	    rcrp->count_type=MOL_TRANS_ALL;
-	    rcrp->count_method=DT;
-	    rcrp->transition_count_each=NULL;
-	    rcrp->next=reg_counter_ref_head;
-	    reg_counter_ref_head=rcrp;
-
-	  
-	    rcrlp->reg_counter_ref=rcrp;
-	    rcrlp->next=rp->reg_counter_ref_list;
-	    rp->reg_counter_ref_list=rcrlp;
-  
-	    
-	    clp->data_type=INT;
-	    clp->update_flag=1;
-	    clp->reset_flag=1;
-	    clp->index_type=TIME_STAMP_VAL;
-            clp->final_data=(void *)intp;
-            clp->n_data=i1;
-	    clp->temp_data=(void *)&(rcrp->counter);
-	  }
-	    break;
-	  case CUM:
-            if (volp->iterations<0) {
-              sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
-	      mdl_warning(mdlpvp);
-              volp->iterations=0;
-            }
-
-	    i1=buffersize;
-	    defined_counter_flag=0;
-	    if ((intp=(int *)malloc(i1*sizeof(int)))==NULL) {
-	      mdlerror("Cannot store count data");
-	      return(1);
-            }
-	    for (i=0;i<i1;i++) {
-	      intp[i]=0;
-	    }
-	    
-	    /* Check if this counter already defined,
-	     * if it is true, point the count_list to the
-	     * defined rcrp2->counter
-	     */
-	    rcrlp2=rp->reg_counter_ref_list;
-	    if (rcrlp2!=NULL) {
-	      while (rcrlp2!=NULL) {
-		rcrp2=rcrlp2->reg_counter_ref;
-		if (rcrp2->state==rxp1&&rcrp2->next_state==rxp2&&rcrp2->count_type==MOL_TRANS_ALL&&rcrp2->count_method==CUM) {
-		  clp->final_data=(void *)intp;
-		  clp->n_data=i1;
-		  clp->temp_data=(void *)&(rcrp2->counter);
-	    
-		  clp->data_type=INT;
-		  clp->update_flag=1;
-		  clp->reset_flag=0;
-		  clp->index_type=TIME_STAMP_VAL;
-		  defined_counter_flag=1;
-		}
-		rcrlp2=rcrlp2->next;
-	      }
-	    }
-	    /* If this region counter is not defined before, 
-	     * allocate memory for this region counter and
-	     * assign it to the region.
-	     */
-	    rcrlp2=rp->reg_counter_ref_list;
-	    if (rcrlp2==NULL || defined_counter_flag==0){
-	      if ((rcrp=(struct reg_counter_ref *)malloc
-		(sizeof(struct reg_counter_ref)))==NULL) {
-		mdlerror("Can not save data for region counter");
-		return(1);
-	      }
-	      if ((rcrlp=(struct reg_counter_ref_list *)malloc
-		(sizeof(struct reg_counter_ref_list)))==NULL) {
-		mdlerror("Can not save data for region counter");
-		return(1);
-	      }
-	      reg_counter_ref_head=NULL;
-	      rcrp->counter=0;
-	      rcrp->state=rxp1;
-	      rcrp->parent=rp;
-	      rcrp->next_state=rxp2;
-	      rcrp->count_type=MOL_TRANS_ALL;
-	      rcrp->count_method=CUM;
-	      rcrp->transition_count_each=NULL;
-	      rcrp->next=reg_counter_ref_head;
-	      reg_counter_ref_head=rcrp;
-
-	  
-	      rcrlp->reg_counter_ref=rcrp;
-	      rcrlp->next=rp->reg_counter_ref_list;
-	      rp->reg_counter_ref_list=rcrlp;
-
-	      clp->final_data=(void *)intp;
-	      clp->n_data=i1;
-	      clp->temp_data=(void *)&(rcrp->counter);
-	    
-	      clp->data_type=INT;
-	      clp->update_flag=1;
-	      clp->reset_flag=0;
-	      clp->index_type=TIME_STAMP_VAL;
-	    }
-	    break;
-	  }
-	  break;
-	}
-}
-	  
-        ;
 
 lig_spec: SUM_OVER_ALL_MOLECULES {$$=OVER_L;}
 	| FOR_EACH_MOLECULE {$$=EACH_L;}
 	| SPECIFIED_MOLECULES {$$=SPEC_L;}
-	;
+;
 
 r_spec: SUM_OVER_ALL_EFFECTORS {$$=OVER_E;}
 	| FOR_EACH_EFFECTOR {$$=EACH_E;}
 	| SPECIFIED_EFFECTORS {$$=SPEC_E;}
-	;
+;
 
 t_spec: SUM_OVER_ALL_TIME_STEPS {$$=SUM;}
 	| FOR_EACH_TIME_STEP {$$=DT;}
 	| CUMULATE_FOR_EACH_TIME_STEP {$$=CUM;}
-	;
+;
 
 event_spec: ALL_EVENTS {$$=A_EVENTS;}
 	| INITIAL_EVENTS {$$=INIT_EVENTS;}
 	| INTERIM_EVENTS {$$=INTER_EVENTS;}
-	;
+;
+
 
 io_stmt: fopen_stmt
 	| fclose_stmt
@@ -6637,21 +5271,22 @@ io_stmt: fopen_stmt
 	| sprintf_stmt
 	| print_time_stmt
 	| fprint_time_stmt
-	;
+;
+
 
 fopen_stmt: new_file_stream FOPEN '(' file_name ',' file_mode ')'
 {
-mdlpvp->gp=$<sym>1;
-filep=(struct file_stream *)mdlpvp->gp->value;
-filep->name=$<str>4;
-a_str=$<str>6;
-if ((filep->stream=fopen(filep->name,a_str))==NULL) {
-  sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot open file:",filep->name);
-  mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-  return(1);
-}
-}
-	;
+  mdlpvp->gp=$<sym>1;
+  filep=(struct file_stream *)mdlpvp->gp->value;
+  filep->name=$<str>4;
+  a_str=$<str>6;
+  if ((filep->stream=fopen(filep->name,a_str))==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot open file:",filep->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+};
+
 
 new_file_stream: VAR
 {
@@ -6683,8 +5318,8 @@ new_file_stream: VAR
   }
 
   $$=mdlpvp->gp;
-}
-	;
+};
+
 
 file_mode: str_expr
 {
@@ -6700,20 +5335,20 @@ if (c!='r'
   return(1);
 }
 $$=a_str;
-}
-	;
+};
+
 
 fclose_stmt: FCLOSE '(' existing_file_stream ')'
 {
-mdlpvp->gp=$<sym>3;
-filep=(struct file_stream *)mdlpvp->gp->value;
-if (fclose(filep->stream)!=0) {
-  sprintf(mdlpvp->mdl_err_msg,"%s %s","Error closing file:",filep->name);
-  mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-  return(1);
-}
-}
-	;
+  mdlpvp->gp=$<sym>3;
+  filep=(struct file_stream *)mdlpvp->gp->value;
+  if (fclose(filep->stream)!=0) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Error closing file:",filep->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+};
+
 
 existing_file_stream: VAR
 {
@@ -6751,67 +5386,69 @@ existing_file_stream: VAR
 #endif
 
   $$=mdlpvp->gp;
-}
-	;
+};
+
 
 printf_stmt: PRINTF arg_list_init '(' format_string ',' list_args ')'
 {
-a_str=$<str>4;
-if (my_fprintf(stderr,a_str,arg_list)) {
-  sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to stderr:",a_str);
-  mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-  return(1);
-}
+  a_str=$<str>4;
+  if (my_fprintf(stderr,a_str,arg_list)) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to stderr:",a_str);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
 }
 	| PRINTF arg_list_init '(' format_string ')'
 {
-a_str=$<str>4;
-if (my_fprintf(stderr,a_str,NULL)) {
-  sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to stderr:",a_str);
-  mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-  return(1);
-}
+  a_str=$<str>4;
+  if (my_fprintf(stderr,a_str,NULL)) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to stderr:",a_str);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
 };
+
 
 arg_list_init: /* empty */
 {
 	num_args=0;
 };
 
+
 format_string: str_expr
 {
-a_str=$<str>1;
-rem_str=a_str;
-strcpy(fmt_str,"");
-while(rem_str!=NULL) {
-  pos1=strcspn(rem_str,"\\");
-  if(pos1==strlen(rem_str)) {  /* no \ found */
-    strcat(fmt_str,rem_str);
-    rem_str=NULL;
-  }
-  else {  /* found a \ */
-    strncat(fmt_str,rem_str,pos1);
-    c=rem_str[pos1+1];
-    switch(c) {
-    case 'n':
-      strcat(fmt_str,"\n");
-      break;
-    case 't':
-      strcat(fmt_str,"\t");
-      break;
-    case '\\':
-      strcat(fmt_str,"\\");
-      break;
-    case '\"':
-      strcat(fmt_str,"\"");
-      break;
+  a_str=$<str>1;
+  rem_str=a_str;
+  strcpy(fmt_str,"");
+  while(rem_str!=NULL) {
+    pos1=strcspn(rem_str,"\\");
+    if(pos1==strlen(rem_str)) {  /* no \ found */
+      strcat(fmt_str,rem_str);
+      rem_str=NULL;
     }
-    rem_str=rem_str+pos1+2;
+    else {  /* found a \ */
+      strncat(fmt_str,rem_str,pos1);
+      c=rem_str[pos1+1];
+      switch(c) {
+      case 'n':
+        strcat(fmt_str,"\n");
+        break;
+      case 't':
+        strcat(fmt_str,"\t");
+        break;
+      case '\\':
+        strcat(fmt_str,"\\");
+        break;
+      case '\"':
+        strcat(fmt_str,"\"");
+        break;
+      }
+      rem_str=rem_str+pos1+2;
+    }
   }
-}
-$$=fmt_str;
-}
-	;
+  $$=fmt_str;
+};
+
 
 list_args: num_expr_only
 {
@@ -6876,8 +5513,8 @@ list_args: num_expr_only
     return(1);
     break;
   }
-}
-	;
+};
+
 
 fprintf_stmt: FPRINTF arg_list_init '(' existing_file_stream ',' format_string ',' list_args ')' 
 {
@@ -6900,8 +5537,8 @@ fprintf_stmt: FPRINTF arg_list_init '(' existing_file_stream ',' format_string '
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
     return(1);
   }
-}
-	;
+};
+
 
 sprintf_stmt: SPRINTF arg_list_init '(' assign_var ',' format_string ',' list_args ')'
 { 
@@ -6955,7 +5592,7 @@ fprint_time_stmt: FPRINT_TIME '(' existing_file_stream ',' format_string ')'
 
 
 
-#endif
+#endif /* End "if 0" block */
 
 /* ***************************************************************** */
 

@@ -56,7 +56,7 @@ void update_frame_data_list(struct frame_data_list *fdlp)
       fdlp->curr_viz_iteration=fdlp->curr_viz_iteration->next;
       if (fdlp->curr_viz_iteration!=NULL) {
 	switch (fdlp->list_type) {
-	case FRAME_NUMBER:
+	case IT_TIME:
 	  fdlp->viz_iteration=(int)fdlp->curr_viz_iteration->value; 
 	  break;
 	case REAL_TIME:
@@ -82,7 +82,7 @@ void init_frame_data_list(struct frame_data_list *fdlp)
     nelp=fdlp->iteration_list;
     done=0;
     switch (fdlp->list_type) {
-    case FRAME_NUMBER:
+    case IT_TIME:
       while (nelp!=NULL) {
 	fdlp->n_viz_iterations++;
 	if (!done) {
@@ -274,7 +274,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
       if (objp->object_type==BOX_OBJ) {
         if (viz_surf_pos || viz_surf_states)
         {
-          element_data_count=0.5*objp->n_walls;
+          element_data_count=0.5*objp->n_walls_actual;
         
           if (viz_surf_pos && !viz_surf_states) {
             fprintf(wall_verts_header,
@@ -506,7 +506,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
         {
           opp=(struct ordered_poly *)pop->polygon_data;
           edp=opp->element_data;
-          element_data_count=objp->n_walls;
+          element_data_count=objp->n_walls_actual;
 
           if (viz_surf_pos && !viz_surf_states) {
 
@@ -632,18 +632,20 @@ int output_dx_objects(struct frame_data_list *fdlp)
         n_eff=0;
         for (ii=0;ii<objp->n_walls;ii++) {
           w = wp[ii];
-	  sg = w->effectors;
-          if (sg!=NULL) {
-            for (index=0;index<sg->n_tiles;index++) {
-	      gmol=sg->mol[index];
-	      if (gmol!=NULL) {
-	        state=sg->mol[index]->properties->viz_state;
-	      }
-	      else {
-	        state=EXCLUDE_OBJ;
-	      }
-              if (state!=EXCLUDE_OBJ) {
-                n_eff++;
+          if (w!=NULL) {
+	    sg = w->effectors;
+            if (sg!=NULL) {
+              for (index=0;index<sg->n_tiles;index++) {
+	        gmol=sg->mol[index];
+	        if (gmol!=NULL) {
+	          state=sg->mol[index]->properties->viz_state;
+	        }
+	        else {
+	          state=EXCLUDE_OBJ;
+	        }
+                if (state!=EXCLUDE_OBJ) {
+                  n_eff++;
+                }
               }
             }
           }
@@ -689,39 +691,41 @@ int output_dx_objects(struct frame_data_list *fdlp)
       wp = objp->wall_p;
       for (ii=0;ii<objp->n_walls;ii++) {
         w = wp[ii];
-	sg = w->effectors;
+        if (w!=NULL) {
+	  sg = w->effectors;
 
-        /* dump the effectors */
-        if (viz_eff) {
-          if (sg!=NULL) {
-            n_tiles=sg->n_tiles;
-            for (index=0;index<n_tiles;index++) {
-              grid2xyz(sg,index,&p0);
-	      gmol=sg->mol[index];
-	      if (gmol!=NULL) {
-	        state=sg->mol[index]->properties->viz_state;
-	      }
-	      else {
-	        state=EXCLUDE_OBJ;
-	      }
+          /* dump the effectors */
+          if (viz_eff) {
+            if (sg!=NULL) {
+              n_tiles=sg->n_tiles;
+              for (index=0;index<n_tiles;index++) {
+                grid2xyz(sg,index,&p0);
+	        gmol=sg->mol[index];
+	        if (gmol!=NULL) {
+	          state=sg->mol[index]->properties->viz_state;
+	        }
+	        else {
+	          state=EXCLUDE_OBJ;
+	        }
       
-              if (state!=EXCLUDE_OBJ) {
-                if (viz_eff_states) {
-                 fprintf(eff_states_header,"%d\n",state);
-                }
-                if (viz_eff_pos) {
-	         v1=world->length_unit*p0.x;
-	         v2=world->length_unit*p0.y;
-	         v3=world->length_unit*p0.z;
-	         fwrite(&v1,sizeof v1,1,eff_pos_header);
-	         fwrite(&v2,sizeof v2,1,eff_pos_header);
-	         fwrite(&v3,sizeof v3,1,eff_pos_header);
-                 v1=w->normal.x;
-                 v2=w->normal.y;
-                 v3=w->normal.z;
-                 fwrite(&v1,sizeof v1,1,eff_pos_header);
-                 fwrite(&v2,sizeof v2,1,eff_pos_header);
-                 fwrite(&v3,sizeof v3,1,eff_pos_header);
+                if (state!=EXCLUDE_OBJ) {
+                  if (viz_eff_states) {
+                   fprintf(eff_states_header,"%d\n",state);
+                  }
+                  if (viz_eff_pos) {
+	           v1=world->length_unit*p0.x;
+	           v2=world->length_unit*p0.y;
+	           v3=world->length_unit*p0.z;
+	           fwrite(&v1,sizeof v1,1,eff_pos_header);
+	           fwrite(&v2,sizeof v2,1,eff_pos_header);
+	           fwrite(&v3,sizeof v3,1,eff_pos_header);
+                   v1=w->normal.x;
+                   v2=w->normal.y;
+                   v3=w->normal.z;
+                   fwrite(&v1,sizeof v1,1,eff_pos_header);
+                   fwrite(&v2,sizeof v2,1,eff_pos_header);
+                   fwrite(&v3,sizeof v3,1,eff_pos_header);
+                  }
                 }
               }
             }
