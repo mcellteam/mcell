@@ -391,14 +391,14 @@ release_molecules:
 
 void release_molecules(struct release_event_queue *req)
 {
-  static int global_index = 0;
   struct release_site_obj *rso;
   struct release_pattern *rpat;
   struct molecule m;
   struct molecule *guess;
   int i,number;
+  struct vector3 *dia;
+  struct vector3 pos;
   double diam,vol;
-  double xyz[3];
   double t,k;
   double num;
   
@@ -488,22 +488,22 @@ void release_molecules(struct release_event_queue *req)
      break;
   }
   
-  diam = rso->diameter;
-  if (diam > 0)
+  dia = rso->diameter;
+  if (diam != NULL)
   {
     for (i=0;i<number;i++)
     {
       do /* Pick values in unit square, toss if not in unit circle */
       {
-        ran4(&(world->seed),xyz,3,diam);
-        xyz[0] -= 0.5*diam;
-        xyz[1] -= 0.5*diam;
-        xyz[1] -= 0.5*diam;
-      } while ( xyz[0]*xyz[0] + xyz[1]*xyz[1] + xyz[2]*xyz[2] >= 0.25*diam*diam );
+        pos.x = (rng_double(world->seed++)-0.5);
+        pos.y = (rng_double(world->seed++)-0.5);
+        pos.z = (rng_double(world->seed++)-0.5);
+      } while ( (rso->release_shape == SHAPE_SPHERICAL || rso->release_shape == SHAPE_ELLIPTIC)
+                && pos.x*pos.x + pos.y*pos.y + pos.z*pos.z >= 0.25 );
       
-      m.pos.x = xyz[0] + req->location.x;
-      m.pos.y = xyz[1] + req->location.y;
-      m.pos.z = xyz[2] + req->location.z;
+      m.pos.x = pos.x*dia->x + req->location.x;
+      m.pos.y = pos.y*dia->y + req->location.y;
+      m.pos.z = pos.z*dia->z + req->location.z;
       
       guess = insert_molecule(&m,guess);  /* Insert copy of m into world */
     }

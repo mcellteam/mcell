@@ -802,7 +802,7 @@ int instance_release_site(struct object *objp, double (*im)[4])
 	  reqp->location.x=location[0][0]/world->length_unit;
 	  reqp->location.y=location[0][1]/world->length_unit;
 	  reqp->location.z=location[0][2]/world->length_unit;
-
+	  
 	  reqp->release_site=rsop;
 	  reqp->event_type=TRAIN_HIGH_EVENT;
 	  reqp->event_time=rsop->pattern->delay;

@@ -90,6 +90,7 @@ struct count_list *cnt;
 %token <tok> CORNERS
 %token <tok> COS
 %token <tok> COUNT
+%token <tok> CUBIC_RELEASE_SITE
 %token <tok> CUMULATE_FOR_EACH_TIME_STEP
 %token <tok> DBL_ARROW
 %token <tok> DIFFUSION_CONSTANT
@@ -114,6 +115,7 @@ struct count_list *cnt;
 %token <tok> ELEMENT
 %token <tok> ELEMENT_CONNECTIONS
 %token <tok> ELEMENT_LIST
+%token <tok> ELLIPTIC_RELEASE_SITE
 %token <tok> EOF_TOK
 %token <tok> EXP
 %token <tok> EXPRESSION
@@ -191,6 +193,7 @@ struct count_list *cnt;
 %token <tok> REACTION_DATA_OUTPUT
 %token <tok> REACTION_GROUP
 %token <tok> REAL
+%token <tok> RECTANGULAR_RELEASE_SITE
 %token <tok> REFERENCE_STATE
 %token <tok> REFLECTIVE
 %token <tok> REFERENCE_DIFFUSION_CONSTANT
@@ -294,6 +297,7 @@ struct count_list *cnt;
 %type <tok> list_products
 
 %type <tok> boolean
+%type <tok> release_site_geom
 %type <tok> side
 %type <tok> side_name
 %type <tok> remove_side
@@ -2117,7 +2121,7 @@ existing_object_ref:
 };
 
 
-release_site_def: new_object SPHERICAL_RELEASE_SITE '{'
+release_site_def: new_object release_site_geom '{'
 {
   mdlpvp->gp=$<sym>1;
   mdlpvp->objp=(struct object *)mdlpvp->gp->value;
@@ -2129,6 +2133,7 @@ release_site_def: new_object SPHERICAL_RELEASE_SITE '{'
   mdlpvp->rsop->location=NULL;
   mdlpvp->rsop->mol_type=NULL;
   mdlpvp->rsop->release_number_method=CONSTNUM;
+  mdlpvp->rsop->release_shape = $<tok>2;
   mdlpvp->rsop->release_number=0;
   mdlpvp->rsop->mean_number=0;
   mdlpvp->rsop->mean_diameter=0;
@@ -2159,6 +2164,24 @@ release_site_def: new_object SPHERICAL_RELEASE_SITE '{'
 };
 
 
+release_site_geom: SPHERICAL_RELEASE_SITE
+{
+  $$=SHAPE_SPHERICAL;
+}
+	| CUBIC_RELEASE_SITE
+{
+  $$=SHAPE_CUBIC;
+}
+	| ELLIPTIC_RELEASE_SITE
+{
+  $$=SHAPE_ELLIPTIC;
+}
+	| RECTANGULAR_RELEASE_SITE
+{
+  $$=SHAPE_RECTANGULAR;
+};
+
+
 list_release_site_cmds: release_site_cmd
 	| list_release_site_cmds release_site_cmd
 ;
@@ -2177,7 +2200,21 @@ release_site_cmd:
 	| release_number_cmd
 	| SITE_DIAMETER '=' num_expr
 {
-  mdlpvp->rsop->diameter=$<dbl>3/volp->length_unit;
+  if ((mdlpvp->rsop->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL)
+  {
+    mdlerror("Cannot store release diameter data");
+    return(1);
+  }
+  mdlpvp->rsop->diameter->x = $<dbl>3 / volp->length_unit;
+  mdlpvp->rsop->diameter->y = $<dbl>3 / volp->length_unit;
+  mdlpvp->rsop->diameter->z = $<dbl>3 / volp->length_unit;
+}
+	| SITE_DIAMETER '=' point
+{
+  mdlpvp->rsop->diameter=$<vec3>3;
+  mdlpvp->rsop->diameter->x /= volp->length_unit;
+  mdlpvp->rsop->diameter->y /= volp->length_unit;
+  mdlpvp->rsop->diameter->z /= volp->length_unit;
 }
 	| RELEASE_PROBABILITY '=' num_expr
 {

@@ -1,7 +1,7 @@
 
 dt = 0.4e-6
 it = 2000
-efg = 1000
+efg = 10000
 
 n=100
 
@@ -55,19 +55,19 @@ DEFINE_RELEASE_PATTERN pat2 {
   NUMBER_OF_TRAINS = 1
 }
 
-ACh_release_site SPHERICAL_RELEASE_SITE {
-  LOCATION = [0.09,0.09,0.01]
+ACh_release_site ELLIPTIC_RELEASE_SITE {
+  LOCATION = [0,0,0]
   MOLECULE = ACh
   NUMBER_TO_RELEASE = n
-  SITE_DIAMETER = 0.000000001
+  SITE_DIAMETER = [0.1999,0.1999,0.1]
   RELEASE_PATTERN = pat1
 }
 
-Glu_release_site SPHERICAL_RELEASE_SITE {
-  LOCATION = [0.01,0.01,0.2]
+Glu_release_site CUBIC_RELEASE_SITE {
+  LOCATION = [0,0,0]
   MOLECULE = Glu
   NUMBER_TO_RELEASE = n
-  SITE_DIAMETER = 0.00001
+  SITE_DIAMETER = [0.1,0.1,0.1999]
   RELEASE_PATTERN = pat1
 }
 
@@ -103,8 +103,8 @@ poly POLYGON_LIST {
 INSTANTIATE foo OBJECT {
   ACh_release_site OBJECT ACh_release_site {}
   Glu_release_site OBJECT Glu_release_site {}
-/*  box OBJECT box {} */
-  poly OBJECT poly {}
+  box OBJECT box {} 
+/*  poly OBJECT poly {} */ 
 }
 
 INCLUDE_FILE = "test_include.mdl"

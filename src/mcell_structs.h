@@ -151,6 +151,13 @@
 #define MAX_TARGET_TIMESTEP 1.0e6
 #define MIN_TARGET_TIMESTEP 10.0
 
+
+/* Shapes for release sites */
+#define SHAPE_SPHERICAL 0
+#define SHAPE_CUBIC 1
+#define SHAPE_ELLIPTIC 2
+#define SHAPE_RECTANGULAR 3
+
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
 /*********************************************************/
@@ -868,13 +875,14 @@ struct release_site_obj {
 	struct vector3 *location;	/**< location of release site */
 	struct species *mol_type;	/**< species to be released */
 	byte release_number_method;
+	byte release_shape;
 	int release_number;
 	int mean_number;
 	double mean_diameter;
 	double concentration;
         double standard_deviation;
-	double diameter;	/**< diameter of release site [\todo can release sites
-						  only be spherical? */
+	struct vector3 *diameter;	
+
 	double release_prob;
 	struct release_pattern *pattern;
 };
