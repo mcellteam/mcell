@@ -22,6 +22,7 @@ struct schedule_helper
   struct schedule_helper *next_scale;
 };
 
+struct abstract_element* ae_list_sort(struct abstract_element *ae);
 
 struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,double start_time);
 
@@ -29,6 +30,7 @@ void schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_curren
 void schedule_excert(struct schedule_helper *sh,void *data,void *blank,int size);
 int schedule_advance(struct schedule_helper *sh, void** head, void** tail);
 
+void schedule_sort(struct schedule_helper *sh);
 void* schedule_next(struct schedule_helper *sh);
 #define schedule_add(x,y) schedule_insert((x),(y),1)
 

@@ -14,6 +14,129 @@ int depth;
 
 
 /*************************************************************************
+ae_list_sort:
+  In: head of a linked list of abstract_elements
+  Out: head of the newly sorted list
+  Note: uses mergesort
+*************************************************************************/
+
+struct abstract_element* ae_list_sort(struct abstract_element *ae)
+{
+  int i,j,k;
+  struct abstract_element *stack[64];
+  int stack_n[64];
+  struct abstract_element *left,*right,*merge,*tail;
+  int si = 0;
+  
+  while (ae != NULL)
+  {
+    if (ae->next == NULL)
+    {
+      stack[si] = ae;
+      stack_n[si] = 1;
+      ae = NULL;
+      si++;
+    }
+    else if (ae->t <= ae->next->t)
+    {
+      stack[si] = ae;
+      stack_n[si] = 2;
+      ae = ae->next->next;
+      stack[si]->next->next = NULL;
+      si++;
+    }
+    else
+    {
+      stack[si] = ae->next;
+      stack_n[si] = 2;
+      left = ae;
+      ae = ae->next->next;
+      stack[si]->next = left;
+      left->next = NULL;
+      si++;
+    }
+    while (si > 1 && stack_n[si-1]*2 >= stack_n[si-2])
+    {
+      stack_n[si-2] += stack_n[si-1];
+
+      left = stack[si-2];
+      right = stack[si-1];
+      if (left->t <= right->t) { merge = left; left = left->next; }
+      else { merge = right; right = right->next; }
+      merge->next = NULL;
+      tail = merge;
+
+      while (1)
+      {
+        if (left==NULL)
+        {
+          tail->next = right; tail = right;
+          break;
+        }
+        if (right==NULL)
+        {
+          tail->next = left; tail = left;
+          break;
+        }
+
+        if (left->t <= right->t)
+        { 
+          tail->next = left; tail = left; left = left->next;
+        }
+        else
+        { 
+          tail->next = right; tail = right; right = right->next; 
+        }
+      }
+      
+      stack[si-2] = merge;
+      si--;   
+    }
+  }
+  
+  while (si > 1)  /* Exact duplicate of code in loop--keep it this way! */
+  {
+    stack_n[si-2] += stack_n[si-1];
+
+    left = stack[si-2];
+    right = stack[si-1];
+    if (left->t <= right->t) { merge = left; left = left->next; }
+    else { merge = right; right = right->next; }
+    merge->next = NULL;
+    tail = merge;
+
+    while (1)
+    {
+      if (left==NULL)
+      {
+        tail->next = right; tail = right;
+        break;
+      }
+      if (right==NULL)
+      {
+        tail->next = left; tail = left;
+        break;
+      }
+
+      if (left->t <= right->t)
+      { 
+        tail->next = left; tail = left; left = left->next;
+      }
+      else
+      { 
+        tail->next = right; tail = right; right = right->next; 
+      }
+    }
+    
+    stack[si-2] = merge;
+    si--;   
+  }
+  
+  return stack[0];
+}
+
+
+/*************************************************************************
 create_scheduler:
   In: timestep per slot in this scheduler
       time for all slots in this scheduler
@@ -63,9 +186,9 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
     sh->next_scale = create_scheduler(dt_min*len,dt_max,maxlen,sh->now+dt_min*len);
   }
   
-  if (depth==10)
+  if (depth==20)
   {
-    printf("BLOODY MURDER!\n");
+    printf("BLOODY MURDER!  Scale = %f\n",sh->dt);
     exit(1);
   }
 
@@ -206,6 +329,19 @@ int schedule_advance(struct schedule_helper *sh,void **head,void **tail)
   }
   
   return n;
+}
+
+
+/*************************************************************************
+schedule_sort:
+  In: scheduler that we are using
+  Out: the current list of items is sorted
+  Note: use after schedule_next returns NULL (end of current timestep)
+*************************************************************************/
+
+void schedule_sort(struct schedule_helper *sh)
+{
+  if (sh->current != NULL) sh->current = ae_list_sort(sh->current);
 }
 
 
