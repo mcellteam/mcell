@@ -151,7 +151,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
   int i,j,k;
   
   shead = NULL;
-  smash = (struct collision*) mem_get(sv->mem->coll);
+  smash = (struct collision*) mem_get(sv->local_storage->coll);
   if(smash == NULL) return NULL;
 
   fake_wlp.next = sv->wall_head;
@@ -162,7 +162,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
 
     if (i==COLLIDE_REDO)
     {
-      if (shead != NULL) mem_put_list(sv->mem->coll,shead);
+      if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
       shead = NULL;
       wlp = &fake_wlp;
       continue;
@@ -173,10 +173,10 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
       smash->target = (void*) wlp->this_wall;
       smash->next = shead;
       shead = smash;
-      smash = (struct collision*) mem_get(sv->mem->coll);
+      smash = (struct collision*) mem_get(sv->local_storage->coll);
       if (smash==NULL)
       {
-	if (shead!=NULL) mem_put_list(sv->mem->coll,shead);
+	if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead);
 	return NULL;
       }
     }
@@ -265,10 +265,10 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
     i = collide_mol(&(m->pos),v,a,&(c->t),&(c->loc));
     if (i != COLLIDE_MISS)
     {
-      smash = (struct collision*) mem_get(sv->mem->coll);
+      smash = (struct collision*) mem_get(sv->local_storage->coll);
       if (smash==NULL)
       {
-	mem_put_list(sv->mem->coll,shead);
+	mem_put_list(sv->local_storage->coll,shead);
 	return NULL;
       }
       memcpy(smash,c,sizeof(struct collision));
@@ -1062,7 +1062,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       
       if (rx != NULL)
       {
-        smash = mem_get(sv->mem->coll);
+        smash = mem_get(sv->local_storage->coll);
         if (smash == NULL)
 	{
 	  fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
@@ -1163,7 +1163,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   d2 = displacement.x*displacement.x + displacement.y*displacement.y +
        displacement.z*displacement.z;
   
-#define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->mem->coll,shead2); if (shead!=NULL) mem_put_list(sv->mem->coll,shead); return (x)
+#define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
 #define ERROR_AND_QUIT fprintf(world->err_file,"Out of memory: trying to save intermediate results.\n"); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
   do
   {
@@ -1260,10 +1260,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                   if (rx!=NULL)
                   {
                     if (rx->rate_t != NULL) check_rates(rx,m->t);
-                    c = (struct collision*)mem_get(sv->mem->coll);
+                    c = (struct collision*)mem_get(sv->local_storage->coll);
 		    if (c==NULL)
 		    {
-		      if (g_head!=NULL) mem_put_list(sv->mem->coll,g_head);
+		      if (g_head!=NULL) mem_put_list(sv->local_storage->coll,g_head);
 		      ERROR_AND_QUIT;
 		    }
 
@@ -1298,11 +1298,11 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
               if (rx!=NULL && rx->n_pathways==RX_WINDOW) is_window++;
               else if (rx==NULL || rx->n_pathways!=RX_GHOST)
               {
-                c = (struct collision*)mem_get(sv->mem->coll);
+                c = (struct collision*)mem_get(sv->local_storage->coll);
 		if (c==NULL)
 		{
-		  if (w_head!=NULL) mem_put_list(sv->mem->coll,w_head);
-		  if (g_head!=NULL) mem_put_list(sv->mem->coll,g_head);
+		  if (w_head!=NULL) mem_put_list(sv->local_storage->coll,w_head);
+		  if (g_head!=NULL) mem_put_list(sv->local_storage->coll,g_head);
 		  ERROR_AND_QUIT;
 		}
                 c->intermediate = rx;
@@ -1343,8 +1343,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                 update_collision_count(sm,w->regions,k,1);
             }
                 
-            if (g_head!=NULL) mem_put_list(sv->mem->coll,g_head);
-            if (w_head!=NULL) mem_put_list(sv->mem->coll,w_head);
+            if (g_head!=NULL) mem_put_list(sv->local_storage->coll,g_head);
+            if (w_head!=NULL) mem_put_list(sv->local_storage->coll,w_head);
             
             smash=smish;
             continue;
@@ -1376,14 +1376,14 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     
 		    if (l==RX_NO_MEM)
 		    {
-		      if (w_head!=NULL) mem_put_list(sv->mem->coll,w_head);
-		      mem_put_list(sv->mem->coll,g_head);
+		      if (w_head!=NULL) mem_put_list(sv->local_storage->coll,w_head);
+		      mem_put_list(sv->local_storage->coll,g_head);
 		      ERROR_AND_QUIT;
 		    }
 		    
                     if (l==RX_FLIP)
                     {
-                      if (w_head!=NULL) mem_put_list(sv->mem->coll,w_head);
+                      if (w_head!=NULL) mem_put_list(sv->local_storage->coll,w_head);
                       count_type = RX_FLIP;  /* pass through */
                       break;
                     }
@@ -1396,7 +1396,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                 }
               }
             }
-            mem_put_list(sv->mem->coll,g_head);
+            mem_put_list(sv->local_storage->coll,g_head);
           }
           
           if (count_type==RX_A_OK) /* Possibility of a reaction with a wall */
@@ -1429,7 +1429,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
 			    if (j==RX_NO_MEM)
 		      {
-			mem_put_list(sv->mem->coll,w_head);
+			mem_put_list(sv->local_storage->coll,w_head);
 			ERROR_AND_QUIT;
 		      }
 
@@ -1439,7 +1439,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                 }
               }
             }
-            mem_put_list(sv->mem->coll,w_head);
+            mem_put_list(sv->local_storage->coll,w_head);
           }
           
           for (c=smash;c!=smish->next;c=c->next)
@@ -1626,8 +1626,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         }
         else m = migrate_molecule(m,nsv);
 
-        if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
-        if (shead != NULL) mem_put_list(sv->mem->coll,shead);
+        if (shead2 != NULL) mem_put_list(sv->local_storage->coll,shead2);
+        if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
         
         calculate_displacement = 0;
         if (m->properties==NULL) fprintf(world->err_file,"This molecule shouldn't be jumping.\n");
@@ -1635,13 +1635,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       }
     }
     
-    if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
+    if (shead2 != NULL) mem_put_list(sv->local_storage->coll,shead2);
   }
   while (smash != NULL);
 #undef ERROR_AND_QUIT
 #undef CLEAN_AND_RETURN
   
-  if (shead != NULL) mem_put_list(sv->mem->coll,shead);
+  if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
   m->pos.x += displacement.x;
   m->pos.y += displacement.y;
   m->pos.z += displacement.z;
@@ -1789,7 +1789,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 
     a->flags += IN_SCHEDULE;
     if (a->flags & TYPE_GRID) err = schedule_add(local->timer,a);
-    else err = schedule_add(((struct molecule*)a)->subvol->mem->timer,a);
+    else err = schedule_add(((struct molecule*)a)->subvol->local_storage->timer,a);
     
     if (err)
     {

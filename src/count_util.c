@@ -414,27 +414,27 @@ int place_waypoints()
         {
 	  if (world->waypoints[h-1].regions != NULL)
 	  {
-            wp->regions = dup_region_list(world->waypoints[h-1].regions,sv->mem->regl);
+            wp->regions = dup_region_list(world->waypoints[h-1].regions,sv->local_storage->regl);
 	    if (wp->regions == NULL) return 1;
 	  }
 	  else wp->regions = NULL;
 	  
 	  if (world->waypoints[h-1].antiregions != NULL)
 	  {
-            wp->antiregions = dup_region_list(world->waypoints[h-1].antiregions,sv->mem->regl);
+            wp->antiregions = dup_region_list(world->waypoints[h-1].antiregions,sv->local_storage->regl);
 	    if (wp->antiregions == NULL) return 1;
 	  }
 	  else wp->antiregions = NULL;
           
           g = find_enclosing_regions(&(wp->loc),&(world->waypoints[h-1].loc),
-                                     &(wp->regions),&(wp->antiregions),sv->mem->regl);
+                                     &(wp->regions),&(wp->antiregions),sv->local_storage->regl);
         }
         else
         {
           wp->regions = NULL;
           wp->antiregions = NULL;
           g = find_enclosing_regions(&(wp->loc),NULL,&(wp->regions),
-                                 &(wp->antiregions),sv->mem->regl);	  
+                                 &(wp->antiregions),sv->local_storage->regl);	  
         }
 	if (g) return 1;
       }

@@ -437,21 +437,20 @@ int outcome_unimolecular(struct rxn *rx,int path,
   if ((reac->properties->flags & (ON_GRID | ON_SURFACE)) == 0)
   {
     struct molecule *m = (struct molecule*)reac;
-    result = outcome_products(NULL,m,NULL,NULL,rx,path,m->subvol->mem,
+    result = outcome_products(NULL,m,NULL,NULL,rx,path,m->subvol->local_storage,
                               0,0,t,NULL,reac,NULL,NULL);
   }
   else if ((reac->properties->flags & ON_GRID) != 0)
   {
     struct grid_molecule *g = (struct grid_molecule*) reac;
     result = outcome_products(g->grid->surface,NULL,NULL,g,rx,path,
-                              g->grid->subvol->mem,
+                              g->grid->subvol->local_storage,
                               g->orient,0,t,NULL,reac,NULL,NULL);
   }
   else if ((reac->properties->flags & ON_SURFACE) != 0)
   {
     struct surface_molecule *s = (struct surface_molecule*)reac;
-    result = outcome_products(s->curr_wall,NULL,s,NULL,rx,path,s->subvol->mem,
-                              s->orient,0,t,NULL,reac,NULL,NULL);
+    result = outcome_products(s->curr_wall,NULL,s,NULL,rx,path,s->subvol->local_storage,s->orient,0,t,NULL,reac,NULL,NULL);
   }
   
   if (result==RX_NO_MEM) return RX_NO_MEM;
@@ -517,7 +516,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
   if ((reacA->properties->flags & (ON_GRID | ON_SURFACE)) == 0)
   {
     m = (struct molecule*) reacA;
-    x = m->subvol->mem;
+    x = m->subvol->local_storage;
     if ((reacB->properties->flags & ON_SURFACE) != 0)
     {
       s = (struct surface_molecule*)reacB;
@@ -531,13 +530,13 @@ int outcome_bimolecular(struct rxn *rx,int path,
     else /* Prefer to use target */
     {
       m = (struct molecule*) reacB;
-      x = m->subvol->mem;
+      x = m->subvol->local_storage;
     }
   }
   else if ( (reacA->properties->flags & ON_GRID) == 0 )
   {
     s = (struct surface_molecule*)reacA;
-    x = s->subvol->mem;
+    x = s->subvol->local_storage;
     w = s->curr_wall;
     
     if ((reacB->properties->flags & ON_GRID) != 0)
@@ -699,7 +698,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   {
     struct molecule *m = (struct molecule*) reac;
     
-    result = outcome_products(surface,m,NULL,NULL,rx,path,m->subvol->mem,orient,0,t,hitpt,reac,NULL,reac);
+    result = outcome_products(surface,m,NULL,NULL,rx,path,m->subvol->local_storage,orient,0,t,hitpt,reac,NULL,reac);
 
     if (result==RX_NO_MEM) return RX_NO_MEM;
     else if (result == RX_BLOCKED) return RX_A_OK;
@@ -729,7 +728,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     }
     else
     {
-      result = outcome_products(surface,NULL,s,NULL,rx,path,s->subvol->mem,orient,0,t,hitpt,reac,NULL,reac);
+      result = outcome_products(surface,NULL,s,NULL,rx,path,s->subvol->local_storage,orient,0,t,hitpt,reac,NULL,reac);
       
       if (result==RX_NO_MEM) return RX_NO_MEM;
       if (result==RX_BLOCKED) return RX_A_OK;

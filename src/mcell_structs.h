@@ -721,7 +721,7 @@ struct subvolume
 
   void *neighbor[6];           /* Subvolume or bsp_tree across each face */
   
-  struct storage *mem;         /* Local storage */
+  struct storage *local_storage;         /* Local storage */
 };
 
 
@@ -800,7 +800,7 @@ struct volume
   
   struct schedule_helper *releaser;
   
-  struct mem_helper *storage_mem;      /* Storage for storage list */
+  struct mem_helper *storage_allocator;      /* Storage for storage list */
   struct storage_list *storage_head;   /* Linked list of all storage */
   
   double speed_limit;           /* How far can the fastest particle get in one timestep? */

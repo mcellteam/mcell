@@ -353,7 +353,7 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
   else if ( inside_subvolume(&(m->pos),guess->subvol) ) sv = guess->subvol;
   else sv = find_subvolume(&(m->pos),guess->subvol);
   
-  new_m = mem_get(sv->mem->mol);
+  new_m = mem_get(sv->local_storage->mol);
   if(new_m == NULL) {
 	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");        int i = emergency_output();
         fprintf(stderr, "Fatal error: out of memory during inserting %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
@@ -362,7 +362,7 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
 
   memcpy(new_m,m,sizeof(struct molecule));
 
-  new_m->birthplace = sv->mem->mol;
+  new_m->birthplace = sv->local_storage->mol;
   new_m->next = NULL;
   new_m->subvol = sv;
   new_m->next_v = sv->mol_head;
@@ -375,7 +375,7 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
     count_me_by_region( (struct abstract_molecule*)new_m , 1 );
   }
   
-  if ( schedule_add(sv->mem->timer,new_m) ) {
+  if ( schedule_add(sv->local_storage->timer,new_m) ) {
 	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
         int i = emergency_output();
         fprintf(stderr, "Fatal error: out of memory during inserting %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
@@ -446,7 +446,7 @@ struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv)
 {
   struct molecule *new_m;
 
-  new_m = mem_get(new_sv->mem->mol);
+  new_m = mem_get(new_sv->local_storage->mol);
   if (new_m==NULL){ 
 	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");        int i = emergency_output();
         fprintf(stderr, "Fatal error: out of memory during migrating  %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
@@ -454,7 +454,7 @@ struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv)
   }
   
   memcpy(new_m,m,sizeof(struct molecule));
-  new_m->birthplace = new_sv->mem->mol;
+  new_m->birthplace = new_sv->local_storage->mol;
   
   new_m->next = NULL;
   new_m->subvol = new_sv;

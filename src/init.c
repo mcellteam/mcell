@@ -179,7 +179,7 @@ int init_sim(void)
   world->place_waypoints=0;
   world->count_scheduler = NULL;
   world->storage_head = NULL;
-  world->storage_mem = NULL;
+  world->storage_allocator = NULL;
 
   if (world->seed_seq < 1 || world->seed_seq > 3000) {
     fprintf(log_file,"MCell: error, random sequence number not in range 1 to 3000\n");
@@ -672,14 +672,14 @@ int init_partitions(void)
     else shared_mem->max_timestep = world->time_step_max/world->time_unit;
   }
   
-  if((world->storage_mem = create_mem(sizeof(struct storage_list),10)) == NULL)
+  if((world->storage_allocator = create_mem(sizeof(struct storage_list),10)) == NULL)
   {
 	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
         int i = emergency_output();
 	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
         exit(EXIT_FAILURE);
   }
-  if((world->storage_head = (struct storage_list*)mem_get(world->storage_mem)) == NULL) {
+  if((world->storage_head = (struct storage_list*)mem_get(world->storage_allocator)) == NULL) {
 	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
         int i = emergency_output();
 	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
@@ -737,7 +737,7 @@ int init_partitions(void)
     if (k==world->nz_parts-2) sv->neighbor[Z_POS] = NULL;
     else sv->neighbor[Z_POS] = &(world->subvol[ h + 1 ]);
     
-    sv->mem = shared_mem;
+    sv->local_storage = shared_mem;
   }
   
   world->binning = 0;

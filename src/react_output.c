@@ -48,7 +48,7 @@ int emergency_output()
     delete_mem( mem->store->coll );
     delete_mem( mem->store->regl );
   }
-  delete_mem( world->storage_mem );
+  delete_mem( world->storage_allocator );
   
   /* We now might have some free memory, dump to disk! */
   for (sh = world->count_scheduler ; sh != NULL ; sh = sh->next_scale)

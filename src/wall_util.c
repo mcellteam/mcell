@@ -1407,7 +1407,7 @@ wall_to_vol:
 
 struct wall_list* wall_to_vol(struct wall *w, struct subvolume *sv)
 {
-  struct wall_list *wl = mem_get(sv->mem->list);
+  struct wall_list *wl = mem_get(sv->local_storage->list);
   if(wl == NULL) return NULL;
   
   wl->this_wall = w;
@@ -1547,7 +1547,7 @@ struct wall* distribute_wall(struct wall *w)
   if ( (z_max-z_min)*(y_max-y_min)*(x_max-x_min) == 1 )
   {
     h = z_min + (world->nz_parts - 1)*(y_min + (world->ny_parts - 1)*x_min);
-    where_am_i = localize_wall( w , world->subvol[h].mem );
+    where_am_i = localize_wall( w , world->subvol[h].local_storage );
     if(where_am_i == NULL) return NULL;
      
     if (wall_to_vol( where_am_i , &(world->subvol[h]) ) == NULL) return NULL;
@@ -1561,7 +1561,7 @@ struct wall* distribute_wall(struct wall *w)
   for (k=z_min;k<z_max;k++) { if (cent.z < world->z_partitions[k]) break; }
   
   h = (k-1) + (world->nz_parts - 1)*((j-1) + (world->ny_parts - 1)*(i-1));
-  where_am_i = localize_wall( w , world->subvol[h].mem );
+  where_am_i = localize_wall( w , world->subvol[h].local_storage );
   if(where_am_i == NULL) return NULL;
   
   for (k=z_min;k<z_max;k++)
