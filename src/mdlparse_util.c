@@ -82,6 +82,10 @@ struct name_list *concat_obj_name(struct name_list *name_list_end,char *name)
     strncpy(temp,name_list_end->name,1022);
     strcat(temp,".");
     np->name=my_strcat(temp,name);
+    if(np->name == NULL){
+	mdlerror("Memory allocation error\n");
+        return (NULL);
+    }
     np->next=NULL;
     np->prev=name_list_end;
     name_list_end->next=np;
@@ -93,6 +97,10 @@ struct name_list *concat_obj_name(struct name_list *name_list_end,char *name)
     strncpy(temp,name_list_end->name,1022);
     strcat(temp,".");
     np->name=my_strcat(temp,name);
+    if(np->name == NULL){
+	mdlerror("Memory allocation error\n");
+        return (NULL);
+    }
     return(np);
   }
 }
@@ -105,8 +113,16 @@ char *get_first_name(char *obj_name)
   char *first_name,*tmp_name;
 
   tmp_name=my_strdup(obj_name);
+  if(tmp_name == NULL){
+	mdlerror("Memory allocation error\n");
+	return (NULL);
+  } 
   first_name=strtok(tmp_name,"."); 
   first_name=my_strdup(tmp_name);
+  if(first_name == NULL){
+	mdlerror("Memory allocation error\n");
+	return (NULL);
+  } 
   free((void *)tmp_name);
 
   return(first_name);
@@ -121,7 +137,15 @@ char *get_prefix_name(char *obj_name)
   char *prefix_name,*prev_name,*next_name,*tmp_name,*tmp_name2;
 
   prefix_name=my_strdup("");
+  if(prefix_name == NULL){
+	mdlerror("Memory allocation error\n");
+	return (NULL);
+  } 
   tmp_name=my_strdup(obj_name);
+  if(tmp_name == NULL){
+	mdlerror("Memory allocation error\n");
+	return (NULL);
+  } 
   tmp_name2=strtok(tmp_name,"."); 
   prev_name=tmp_name2;
   while (tmp_name2!=NULL) {
@@ -130,11 +154,23 @@ char *get_prefix_name(char *obj_name)
       if (strcmp(prefix_name,"")==0) {
         free((void *)prefix_name);
         next_name=my_strdup("");
+        if(next_name == NULL){
+		mdlerror("Memory allocation error\n");
+		return (NULL);
+  	} 
       }
       else {
         next_name=my_strcat(prefix_name,".");
+        if(next_name == NULL){
+		mdlerror("Memory allocation error\n");
+		return (NULL);
+  	} 
       }
       prefix_name=my_strcat(next_name,prev_name);
+      if(prefix_name == NULL){
+	  mdlerror("Memory allocation error\n");
+	  return (NULL);
+      } 
       prev_name=tmp_name2;
       free((void *)next_name);
     }
@@ -155,15 +191,31 @@ struct object *find_full_name(struct object *objp,char *full_name,
   if (sub_name!=NULL) {
     if (strcmp(sub_name,"")==0) {
       tmp_name=my_strdup("");
+      if(tmp_name == NULL){
+	  mdlerror("Memory allocation error\n");
+	  return (NULL);
+      } 
     }
     else {
       tmp_name=my_strcat(sub_name,".");
+      if(tmp_name == NULL){
+	  mdlerror("Memory allocation error\n");
+	  return (NULL);
+      } 
     }
     sub_name=my_strcat(tmp_name,objp->last_name);
+    if(sub_name == NULL){
+	  mdlerror("Memory allocation error\n");
+	  return (NULL);
+    } 
     free((void *)tmp_name);
   }
   else {
     sub_name=my_strdup(objp->last_name);
+    if(sub_name == NULL){
+	  mdlerror("Memory allocation error\n");
+	  return (NULL);
+    } 
   }
   if (strcmp(sub_name,full_name)==0) {
     free((void *)sub_name);
@@ -218,6 +270,10 @@ struct region *make_new_region(struct volume *volp,char *obj_name,
   strncpy(temp,obj_name,1022);
   strcat(temp,",");   
   region_name=my_strcat(temp,region_last_name);
+  if(region_name == NULL) {
+	mdlerror("Memory allocation error\n");
+	return (NULL);
+  }
   if ((gp=retrieve_sym(region_name,REG,volp->main_sym_table))==NULL) {
     if ((gp=store_sym(region_name,REG,volp->main_sym_table))==NULL) {
       sprintf(err_msg,"%s %s","Cannot store region in table:",region_name);
@@ -275,6 +331,10 @@ int copy_object(struct volume *volp,struct object *curr_objp,
     }
     rlp->reg=rp;
     rp->region_last_name=my_strdup(rp2->region_last_name);
+    if(rp->region_last_name == NULL){
+	  mdlerror("Memory allocation error\n");
+	  return (1);
+    } 
     rp->parent=objp;
     rp->reg_counter_ref_list=NULL;
     rp->surf_class=rp2->surf_class;
@@ -317,10 +377,18 @@ int copy_object(struct volume *volp,struct object *curr_objp,
         strncpy(temp,sym_name,1022);
         strcat(temp,".");   
         child_obj_name=my_strcat(temp,child_objp2->last_name);
+        if(child_obj_name == NULL){
+	     mdlerror("Memory allocation error\n");
+	     return (1);
+        } 
         if ((child_objp=make_new_object(volp,child_obj_name,err_msg))==NULL) {
           return(1);
         }
         child_objp->last_name=my_strdup(child_objp2->last_name);
+        if(child_objp->last_name == NULL){
+	  mdlerror("Memory allocation error\n");
+	  return (1);
+        } 
 
         if (objp->first_child==NULL) {
           objp->first_child=child_objp;
@@ -364,11 +432,27 @@ char *concat_rx_name(char *name1, char *name2)
 
   if (strcmp(name1,name2)<=0) {
     tmp_name=my_strcat(name1,"+");
+    if(tmp_name == NULL){
+	mdlerror("Memory allocation error.\n");
+        return (NULL);
+    }
     rx_name=my_strcat(tmp_name,name2);
+    if(rx_name == NULL){
+	mdlerror("Memory allocation error.\n");
+        return (NULL);
+    }
   }
   else {
     tmp_name=my_strcat(name2,"+");
+    if(tmp_name == NULL){
+	mdlerror("Memory allocation error.\n");
+        return (NULL);
+    }
     rx_name=my_strcat(tmp_name,name1);
+    if(rx_name == NULL){
+	mdlerror("Memory allocation error.\n");
+        return (NULL);
+    }
   }
   free(tmp_name);
   return(rx_name);
@@ -483,6 +567,10 @@ int load_rate_file(struct rxn *rx , char *fname , int path, struct mdlparse_vars
         if (cp == (buf+i)) continue;  /* Conversion error */
         
         tp = mem_get(mpvp->vol->rxn_mem);
+        if(tp == NULL){
+		mdlerror("Memory allocation error.\n");
+		return (1);
+        }
         tp->next = NULL;
         tp->path = path;
         tp->time = t / mpvp->vol->time_unit;
@@ -574,6 +662,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     mpvp->vol->rx_radius_3d = 1.0/sqrt( MY_PI*mpvp->vol->effector_grid_density );
   }
   mpvp->vol->rxn_mem = create_mem( sizeof(struct t_func) , 100 );
+  if(mpvp->vol->rxn_mem == NULL){
+	mdlerror("Memory allocation error.\n");
+        return (1);
+  }
   
   for (i=0;i<HASHSIZE;i++)
   {
@@ -1695,16 +1787,32 @@ int build_mol_count_tree(byte counter_type,
 
   if (sub_name!=NULL) { 
     if (strcmp(sub_name,"")==0) {
-      tmp_name=my_strdup("");              
+      tmp_name=my_strdup("");
+      if(tmp_name == NULL){
+	mdlerror("Memory allocation error\n");
+	return (1);
+      }              
     }
     else {
       tmp_name=my_strcat(sub_name,".");              
+      if(tmp_name == NULL){
+	mdlerror("Memory allocation error\n");
+	return (1);
+      }              
     }
     sub_name=my_strcat(tmp_name,objp->last_name);    
+    if(sub_name == NULL){
+	mdlerror("Memory allocation error\n");
+	return (1);
+    }              
     free((void *)tmp_name);
   }
   else {
     sub_name=my_strdup(objp->last_name);    
+    if(sub_name == NULL){
+	mdlerror("Memory allocation error\n");
+	return (1);
+    }              
   }
 
   found_pop=NULL;
@@ -1734,6 +1842,10 @@ int build_mol_count_tree(byte counter_type,
     strncpy(temp_str,sub_name,1022);
     strcat(temp_str,",");
     region_name=my_strcat(temp_str,"ALL");
+    if(region_name == NULL){
+       mdlerror("Memory allocation error.\n");
+       return (1);
+    }
     if ((stp=retrieve_sym(region_name,REG,volp->main_sym_table))==NULL) {
       mdlerror("Unexpected error.  Cannot find default object region\n");
       return(1);

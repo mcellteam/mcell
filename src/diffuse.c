@@ -1054,6 +1054,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   do
   {
     shead2 = ray_trace(m,shead,sv,&displacement);
+    if(shead2 == NULL){
+	printf("Memory allocation error.\n");
+        return NULL;
+    }
     
     if (shead2!=NULL && shead2->next!=NULL)  /* Could be sped up/combined */
     {

@@ -135,6 +135,8 @@ struct sym_table *retrieve_sym(char *sym, unsigned short sym_type,
   struct sym_table **hashtab)
 {
   struct sym_table *sp;
+  
+  if(sym == NULL) return (NULL);
 
   for (sp=hashtab[hash(sym)&HASHMASK]; sp!=NULL; sp=sp->next) {
     if (strcmp(sym,sp->name)==0 && sp->sym_type==sym_type) {

@@ -568,6 +568,11 @@ include_stmt: INCLUDE_FILE
   mdlpvp->cval_2=NULL;
   mdlpvp->include_filename[mdlpvp->include_stack_ptr++]=volp->curr_file;
   volp->curr_file=my_strdup(mdlpvp->a_str);
+  if(volp->curr_file == NULL){
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",mdlpvp->a_str);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
   yyless(0);
   yyclearin;
   mdl_switch_to_buffer(mdl_create_buffer(mdlin,YY_BUF_SIZE));
@@ -596,6 +601,11 @@ assignment_stmt: assign_var '=' num_expr_only
   mdlpvp->gp=$<sym>1;
   mdlpvp->gp->sym_type=STR;
   mdlpvp->gp->value=(void *)my_strdup($<str>3);
+  if(mdlpvp->gp->value == NULL){
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",($<str>3));
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
   no_printf("\n%s is equal to: %s\n",mdlpvp->gp->name,(char *)mdlpvp->gp->value);
   fflush(stderr);
 }
@@ -619,6 +629,12 @@ assignment_stmt: assign_var '=' num_expr_only
   case STR:
     mdlpvp->gp->sym_type=STR;
     mdlpvp->gp->value=(void *)my_strdup((char *)mdlpvp->tp->value);
+    if(mdlpvp->gp->value == NULL){
+    	sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
+          (char *)mdlpvp->tp->value);
+    	mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    	return(1);
+    }
     no_printf("\n%s is equal to: %s\n",mdlpvp->gp->name,(char *)mdlpvp->gp->value);
     fflush(stderr);
     break;
@@ -1251,13 +1267,25 @@ str_expr: str_value
 }
 	| str_expr '&' str_expr
 {
-  $$=my_strcat($<str>1,$<str>3);
+  if(my_strcat($<str>1,$<str>3) != NULL){
+      $$=my_strcat($<str>1,$<str>3);
+  }else{
+    sprintf(mdlpvp->mdl_err_msg,"%s ","Memory allocation error\n");
+    mdlerror(mdlpvp->mdl_err_msg);
+    return (1);
+  }
 };
 
 
 str_value: STR_VALUE
 {
-  $$=strip_quotes(mdlpvp->strval);
+  if(strip_quotes(mdlpvp->strval) != NULL){
+  	$$=strip_quotes(mdlpvp->strval);
+  }else{
+    sprintf(mdlpvp->mdl_err_msg,"%s ","Memory allocation error\n");
+    mdlerror(mdlpvp->mdl_err_msg);
+    return (1);
+  }
   free(mdlpvp->strval);
 }
 	| INPUT_FILE
@@ -1308,7 +1336,13 @@ existing_str_var: VAR
 
 str_expr_only: STR_VALUE
 {
-  $$=strip_quotes(mdlpvp->strval);
+  if(strip_quotes(mdlpvp->strval) != NULL){
+      $$=strip_quotes(mdlpvp->strval);
+  }else{
+    sprintf(mdlpvp->mdl_err_msg,"%s ","Memory allocation error.\n");
+    mdlerror(mdlpvp->mdl_err_msg);
+    return (1);
+  }
   free(mdlpvp->strval);
 }
 	| INPUT_FILE
@@ -1317,7 +1351,14 @@ str_expr_only: STR_VALUE
 }
 	| str_expr '&' str_expr
 {
-  $$=my_strcat($<str>1,$<str>3);
+      $$=my_strcat($<str>1,$<str>3);
+  if(my_strcat($<str>1,$<str>3) != NULL){
+      $$=my_strcat($<str>1,$<str>3);
+  }else{
+    sprintf(mdlpvp->mdl_err_msg,"%s ","Memory allocation error\n");
+    mdlerror(mdlpvp->mdl_err_msg);
+    return (1);
+  }
 };
 
 
@@ -1860,6 +1901,12 @@ surface_rxn_stmt: surface_rxn_type '=' existing_molecule
     return(1);
   }
   mdlpvp->sym_name=concat_rx_name(mdlpvp->stp1->name,mdlpvp->stp2->name);
+  if(mdlpvp->sym_name == NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
+      "Memory allocation error:",mdlpvp->stp1->name,mdlpvp->stp2->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
   if ((mdlpvp->stp3=retrieve_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
       !=NULL) {
   }
@@ -2345,6 +2392,11 @@ existing_object: VAR
   }
   sprintf(mdlpvp->full_name,"%s",mdlpvp->sym_name);
   mdlpvp->prefix_name=get_prefix_name(mdlpvp->sym_name);
+  if(mdlpvp->prefix_name == NULL){
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",mdlpvp->sym_name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return (1);
+  }
   no_printf("found existing object %s\n",mdlpvp->objp->sym->name);
   no_printf("first name of existing object %s is %s\n",mdlpvp->sym_name,get_first_name(mdlpvp->sym_name));
   no_printf("prefix name of existing object %s is %s\n",mdlpvp->sym_name,mdlpvp->prefix_name);
@@ -3532,6 +3584,11 @@ existing_region: existing_object '[' VAR ']'
   strncpy(mdlpvp->temp_str,mdlpvp->obj_name,1022);
   strcat(mdlpvp->temp_str,",");   
   mdlpvp->region_name=my_strcat(mdlpvp->temp_str,mdlpvp->sym_name);
+  if(mdlpvp->region_name == NULL){
+    sprintf(mdlpvp->mdl_err_msg,"%s ","Memory allocation error.\n");
+    mdlerror(mdlpvp->mdl_err_msg);
+    return(1);
+  }
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->region_name,REG,volp->main_sym_table))==NULL) {
     sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined region:",mdlpvp->region_name);
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
@@ -3747,6 +3804,12 @@ bimolecular_rxn: reactant '+'
   mdlpvp->stp2=$<sym>4;
   mdlpvp->orient_class2=mdlpvp->orient_class;
   mdlpvp->sym_name=concat_rx_name(mdlpvp->stp1->name,mdlpvp->stp2->name);
+  if(mdlpvp->sym_name == NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
+      "Memory allocation error:",mdlpvp->stp1->name,mdlpvp->stp2->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
   if ((mdlpvp->stp3=retrieve_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
       !=NULL) {
     no_printf("Retrieved previous reaction.\n");
@@ -3953,6 +4016,12 @@ atomic_rate: num_expr_only
     case STR:
       $$ = 0;
       mdlpvp->rate_filename = my_strdup((char*)gp->value);
+      if(mdlpvp->rate_filename == NULL){
+    	sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
+          (char *)gp->value);
+    	mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    	return(1);
+      }
       break;
     default:
       mdlerror("Invalid variable used for rates: must be number or filename");
@@ -4258,6 +4327,12 @@ viz_object_prefix: existing_object '=' str_expr
   mdlpvp->objp->viz_obj = mdlpvp->vizp;
   mdlpvp->vizp->name = $<str>3;
   mdlpvp->vizp->full_name = my_strdup(mdlpvp->full_name);
+  if(mdlpvp->vizp->full_name == NULL){
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
+          (char *)mdlpvp->full_name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
   mdlpvp->vizp->obj = mdlpvp->objp;
   mdlpvp->vizp->viz_child_head = NULL;
   mdlpvp->vizp->next = volp->viz_obj_head;
@@ -5527,6 +5602,12 @@ sprintf_stmt: SPRINTF arg_list_init '(' assign_var ',' format_string ',' list_ar
   }
   mdlpvp->gp->sym_type=STR;
   mdlpvp->gp->value=(void *)my_strdup(mdlpvp->str_buf2);
+  if(mdlpvp->gp->value == NULL){
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
+          (char *)mdlpvp->str_buf2);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
 }
         | SPRINTF arg_list_init '(' assign_var ',' format_string ')'
 {
@@ -5539,6 +5620,12 @@ sprintf_stmt: SPRINTF arg_list_init '(' assign_var ',' format_string ',' list_ar
   }
   mdlpvp->gp->sym_type=STR;
   mdlpvp->gp->value=(void *)my_strdup(mdlpvp->str_buf);
+  if(mdlpvp->gp->value == NULL){
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
+          mdlpvp->str_buf);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
 };
 
 print_time_stmt: PRINT_TIME '(' format_string ')'

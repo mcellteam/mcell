@@ -101,6 +101,11 @@ mdl_infile_cmd: FILE_NAME
     return(1);
   }
   volp->mdl_infile_name=my_strdup(argpvp->cval);
+  if (volp->mdl_infile_name == NULL) {
+    sprintf(argpvp->arg_err_msg,"Memory allocation error: %s",argpvp->cval);
+    argerror(argpvp->arg_err_msg,argpvp);
+    return(1);
+  }
   free((void *)argpvp->cval);
 };
 
@@ -131,6 +136,11 @@ iterations_cmd: ITERATIONS_OPT int_arg
 checkpoint_cmd: CHECKPOINT_OPT FILE_NAME
 {
   volp->chkpt_infile = my_strdup(argpvp->cval);
+  if (volp->chkpt_infile == NULL) {
+    sprintf(argpvp->arg_err_msg,"Memory allocation error: %s",argpvp->cval);
+    argerror(argpvp->arg_err_msg,argpvp);
+    return(1);
+  }
   free((void *)argpvp->cval);
   if ((volp->chkpt_signal_file_tmp=fopen(volp->chkpt_infile,"rb"))==NULL) {
     sprintf(argpvp->arg_err_msg,"Cannot open input checkpoint file (Resume from USR Signal) : %s",volp->chkpt_infile);
@@ -147,6 +157,11 @@ checkpoint_cmd: CHECKPOINT_OPT FILE_NAME
 log_file_cmd: LOG_FILE_OPT FILE_NAME
 {
   volp->log_file_name=my_strdup(argpvp->cval);
+  if (volp->log_file_name == NULL) {
+    sprintf(argpvp->arg_err_msg,"Memory allocation error: %s",argpvp->cval);
+    argerror(argpvp->arg_err_msg,argpvp);
+    return(1);
+  }
   free((void *)argpvp->cval);
   if ((volp->log_file=fopen(volp->log_file_name,"w"))==NULL) {
     sprintf(argpvp->arg_err_msg,"Cannot open output log file: %s",

@@ -44,6 +44,11 @@ I ([0-9]+)
 "-checkpoint_infile"	{return(CHECKPOINT_OPT);}
 {R}			{sscanf((const char *)argtext,"%lf",&apvp->rval); return(REAL);}
 {I}			{sscanf((const char *)argtext,"%d",&apvp->ival); return(INTEGER);}
-[[:alnum:][:punct:]]+	 {apvp->cval=my_strdup(argtext); return(FILE_NAME);}
+[[:alnum:][:punct:]]+	 {apvp->cval=my_strdup(argtext); 
+			  if(apvp->cval == NULL){
+                            printf("Memory allocation error.\n");
+                            exit(1);
+                          }
+			  return(FILE_NAME);}
 .			;
 <<EOF>>			{return(EOF_TOK);}

@@ -285,7 +285,14 @@ I ([0-9]+)
 "=fopen"		{return(FOPEN);}
 "= fopen"		{return(FOPEN);}
 "fclose"		{return(FCLOSE);}
-\"(([^\"]*)|((\\\")*))*\"  {mpvp->strval=my_strdup(mdltext); return(STR_VALUE);}
+\"(([^\"]*)|((\\\")*))*\"  {
+                             mpvp->strval=my_strdup(mdltext); 
+			     if(mpvp->strval == NULL){
+                                printf("Memory allocation error.\n");
+                                exit(1);
+                             }
+                             return(STR_VALUE);
+                           }
 {R}		       {sscanf((const char *)mdltext,"%lf",&mpvp->rval); return(REAL);}
 {I}			{sscanf((const char *)mdltext,"%d",&mpvp->ival); return(INTEGER);}
 [A-Za-z][A-Za-z0-9\_\.]* {
@@ -297,6 +304,11 @@ I ([0-9]+)
 			     mpvp->cval_2=mpvp->cval;
 			     mpvp->cval=my_strdup(mdltext);
 			   }
+                           if(mpvp->cval == NULL){
+                                printf("Memory allocation error.\n");
+                                exit(1);
+                           }
+
 			   return(VAR);
 			 }
 "<"[-]+">"		{return(DBL_ARROW);}
