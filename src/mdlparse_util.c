@@ -1264,8 +1264,6 @@ int set_viz_state_value(struct object *objp, int viz_state)
       }
       break;
     default:
-       printf("Error: Wrong object type %d\n", objp->object_type);
-       return (1);
        break;
   }
   return(0);

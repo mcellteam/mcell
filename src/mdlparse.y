@@ -4296,7 +4296,8 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
       switch (mdlpvp->objp->object_type) {
         case META_OBJ:
           if (set_viz_state_value(mdlpvp->objp,mdlpvp->viz_state)) {
-            mdlerror("Cannot store viz state value for object");
+	    sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for meta object %s",mdlpvp->gp->name);
+            mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
             return(1);
           }
           break;
@@ -4305,7 +4306,8 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
           if (mdlpvp->objp->viz_state==NULL) {
             if ((mdlpvp->objp->viz_state=(int *)malloc
                  (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-              mdlerror("Cannot store viz state value for object");
+	      sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for box object %s",mdlpvp->gp->name);
+              mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
               return(1);
             }
           }
@@ -4318,7 +4320,8 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
           if (mdlpvp->objp->viz_state==NULL) {
             if ((mdlpvp->objp->viz_state=(int *)malloc
                  (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-              mdlerror("Cannot store viz state value for object");
+	      sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for polygon list object %s",mdlpvp->gp->name);
+              mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
               return(1);
             }
           }
@@ -4395,7 +4398,8 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
           if (mdlpvp->objp->viz_state==NULL) {
             if ((mdlpvp->objp->viz_state=(int *)malloc
                  (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-              mdlerror("Cannot store viz state value for object");
+	      sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for elements of box object %s",mdlpvp->gp->name);
+              mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
               return(1);
             }
             for (i=0;i<mdlpvp->pop->n_walls;i++) {
@@ -4419,7 +4423,8 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
           if (mdlpvp->objp->viz_state==NULL) {
             if ((mdlpvp->objp->viz_state=(int *)malloc
                  (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-              mdlerror("Cannot store viz state value for object");
+	      sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for elements of polygon list object %s",mdlpvp->gp->name);
+              mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
               return(1);
             }
             for (i=0;i<mdlpvp->pop->n_walls;i++) {
