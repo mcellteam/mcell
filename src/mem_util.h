@@ -24,6 +24,7 @@ struct stack_helper
   int length;
   unsigned char *data;
   struct stack_helper *next;
+  struct stack_helper *defunct;
 };
 
 
@@ -60,6 +61,7 @@ void counter_add(struct counter_helper *ch,void *data);
 void counter_reset(struct counter_helper *ch);
 struct counter_header* counter_iterator(struct counter_helper *ch);
 struct counter_header* counter_next_entry(struct counter_header *c);
+int counter_howmany(struct counter_header *c);
 void counter_read(struct counter_helper *ch,struct counter_header *c,void *data);
 void delete_counter(struct counter_helper *ch);
 
@@ -68,12 +70,13 @@ struct stack_helper* create_stack(int size,int length);
 void stack_push(struct stack_helper *sh,void *d);
 void stack_pop(struct stack_helper *sh, void *d);
 void stack_dump(struct stack_helper *sh);
-inline int stack_size(struct stack_helper *sh);
+int stack_size(struct stack_helper *sh);
 void* stack_access(struct stack_helper *sh,int n);
 void delete_stack(struct stack_helper *sh);
+#define stack_nonempty(sh) ((sh)->index > 0 || (sh)->next != NULL)
 
 
-struct temp_mem* setup_temp_mem(int length);
+struct temp_mem* create_temp(int length);
 void* temp_malloc(size_t size,struct temp_mem *list);
 void free_temp(struct temp_mem *list);
 
