@@ -7,6 +7,7 @@
 
 void mdl_warning(struct mdlparse_vars *mpvp);
 void swap_double(double *x, double *y);
+void swap_int(int *x, int *y);
 double *double_dup(double value);
 struct name_list *concat_obj_name(struct name_list *name_list_end,char *name);
 char *get_first_name(char *obj_name);

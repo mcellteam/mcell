@@ -51,7 +51,17 @@ void swap_double(double *x, double *y)
   *y=temp;
 }
 
-
+/**
+ * Swaps two integers.
+*/
+void swap_int(int *x, int *y)
+{
+  int temp;
+   
+  temp=*x;
+  *x=*y;
+  *y=temp;
+}
 
 double *double_dup(double value)
 {

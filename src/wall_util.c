@@ -20,6 +20,7 @@
 #include "vol_util.h"
 #include "mcell_structs.h"
 #include "react_output.h"
+#include "mdlparse_util.h"
 
 #ifdef DEBUG
 #define no_printf printf
@@ -59,8 +60,17 @@ inline double min3(double f1, double f2, double f3)
   return (min(f1,min(f2,f3)));
 }
 
-
-
+inline double min_n(double *array, int n)
+{
+	if(n == 1) {
+		return array[0];
+        }else if(n == 2){
+		return min(array[0], array[1]);
+        }else{
+		return min(array[0], min_n((array+1), n-1));
+        }
+	return INT_MAX;
+}
 /**************************************************************************\
  ** Edge hash table section--finds common edges in polygons              **
 \**************************************************************************/
@@ -334,7 +344,7 @@ refine_edge_pairs:
        is traversed in different directions by each face, and that the
        normals of the two faces are as divergent as possible.
 ***************************************************************************/
-
+#if 0
 void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
 {
 #define TSWAP(x,y) temp=(x); (x)=(y); (y)=temp
@@ -343,7 +353,7 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
   double align,best_align;
   int wA,wB,eA,eB;
   int temp;
-  
+
   best_align = 2;
   best_p1 = best_p2 = p;
   best_n1 = 1;
@@ -361,7 +371,7 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
     else
     {
       wA = p1->face2;
-      eA = p1->face2;
+      eA = p1->face2;  /* possibly wrong ?? */
     }
     
     if (n1==1) { n2 = n1+1; p2 = p1; }
@@ -369,14 +379,14 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
     while (p2->n >= n1 && p2 != NULL)
     {
       if (n2==1)
-      { 
+      {
         wB = p2->face1;
         eB = p2->edge1; 
       }
       else
       {
-        wB = p2->face2;
-        eB = p2->face2;
+        wB = p2->face2;         
+        eB = p2->face2;       /* possibly wrong ?? */		
       }
 
       if (compatible_edges(faces,wA,eA,wB,eB))
@@ -384,7 +394,7 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
         align = faces[wA]->normal.x * faces[wB]->normal.x +
                 faces[wA]->normal.y * faces[wB]->normal.y +
                 faces[wA]->normal.z * faces[wB]->normal.z;
-        
+
         if (align < best_align)
         {
           best_p1 = p1;
@@ -396,13 +406,13 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
       }
       
       if (n1==1) n1++;
-      else { p1=p1->next; n1=1; }
+      else { p1=p1->next; n1=1; } /* possibly wrong ?? */
     }
     
     if (n1==1) n1++;
     else { p1=p1->next; n1=1; }
   }
-  
+ 			
   /* Now lots of boring logic to swap the values into the right spots.  Yawn. */
   
   if (best_align > 1.0) return;  /* No good pairs. */
@@ -502,7 +512,138 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
   }
 #undef TSWAP
 }
+#endif
 
+void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
+{
+  FILE *log_file;
+  log_file = world->log_file;
+  int count = 0; /* length of the linked_list of edges */
+  int ii = 0;
+  struct poly_edge *pe_curr = NULL, *pe_ptr_index_0 = NULL, *pe_ptr_index_1=NULL;
+
+  double min_value_0, min_value_1;
+
+  /* find out the number of nodes inthe linked_list. */
+  pe_curr = p;
+  while(pe_curr != NULL) {
+	count++;
+	pe_curr = pe_curr->next;
+  }
+
+ /* create an array that will store the angle 
+    between the faces of the edge in the linked_list. */
+ double *aligns;
+ if((aligns = (double *)malloc(count*sizeof(double))) == NULL){
+	fprintf(log_file, "Memory allocation error\n");
+	return;
+ }
+
+   pe_curr = p;
+   // put values into an angles array
+  while(pe_curr != NULL) {
+        if(compatible_edges(faces,pe_curr->face1, pe_curr->edge1, pe_curr->face2, pe_curr->edge2)){
+                     aligns[ii] = faces[pe_curr->face1]->normal.x * faces[pe_curr->face2]->normal.x + faces[pe_curr->face1]->normal.y * faces[pe_curr->face2]->normal.y + faces[pe_curr->face1]->normal.z * faces[pe_curr->face2]->normal.z;
+        }else{
+		     aligns[ii] = INT_MAX;
+        }       
+	pe_curr = pe_curr->next;
+        ii++;
+  }
+
+  /* find pointers to the nodes in the linked_list corresponding to 
+  *  the nodes with smallest "angle" parameter similar to the smallest value
+  *  in the "aligns" array.  Here we step in paralelel through the linked_list
+  *  and the "aligns" array.
+  */
+  min_value_0 = min_n(aligns, count);
+  pe_curr = p;
+  ii = 0;
+  while(pe_curr != NULL)
+  {
+        if(aligns[ii] == min_value_0){
+                pe_ptr_index_0 = pe_curr;
+               /* in order to find the next smallest value 
+                  let's put here INT_MAX */
+                aligns[ii] = INT_MAX;
+		break;
+	}
+        ii++;
+        pe_curr = pe_curr->next;
+  }
+
+
+  // find the node with the second smallest value of the 'angle' parameter
+  min_value_1 = min_n(aligns, count);
+  ii = 0;
+  pe_curr = p;
+  while(pe_curr != NULL)
+  {
+        if(aligns[ii] == min_value_1){
+                pe_ptr_index_1 = pe_curr;
+		break;
+	}
+        ii++;
+        pe_curr = pe_curr->next;
+  }
+
+	
+   /* exchange data of the node pointed to by pe_ptr_index_0
+       with the head of the list data */
+   pe_curr = p;
+   if(pe_curr != pe_ptr_index_0)
+   {
+   	while(pe_curr != NULL)
+   	{
+		if(pe_curr == pe_ptr_index_0){
+			swap_double(&(p->v1x),&(pe_curr->v1x));
+			swap_double(&(p->v1y),&(pe_curr->v1y));
+			swap_double(&(p->v1y),&(pe_curr->v1y));
+			swap_double(&(p->v2x),&(pe_curr->v2x));
+			swap_double(&(p->v2y),&(pe_curr->v2y));
+			swap_double(&(p->v2z),&(pe_curr->v2z));
+
+			swap_int(&(p->face1), &(pe_curr->face1));
+			swap_int(&(p->face2), &(pe_curr->face2));
+			swap_int(&(p->edge1), &(pe_curr->edge1));
+			swap_int(&(p->edge2), &(pe_curr->edge2));
+			swap_int(&(p->n), &(pe_curr->n));
+                        break;
+        	}
+                pe_curr = pe_curr->next;
+   	}
+   }
+
+
+   /* exchange data of the node pointed to by 'pe_ptr_index_1' 
+       with the next after head of the list node data. */
+   pe_curr = p;
+   if(pe_curr->next != pe_ptr_index_1)
+   {
+   	while(pe_curr != NULL)
+   	{
+		if(pe_curr == pe_ptr_index_1){
+			swap_double(&(p->next->v1x),&(pe_curr->v1x));
+			swap_double(&(p->next->v1y),&(pe_curr->v1y));
+			swap_double(&(p->next->v1y),&(pe_curr->v1y));
+			swap_double(&(p->next->v2x),&(pe_curr->v2x));
+			swap_double(&(p->next->v2y),&(pe_curr->v2y));
+			swap_double(&(p->next->v2z),&(pe_curr->v2z));
+
+			swap_int(&(p->next->face1), &(pe_curr->face1));
+			swap_int(&(p->next->face2), &(pe_curr->face2));
+			swap_int(&(p->next->edge1), &(pe_curr->edge1));
+			swap_int(&(p->next->edge2), &(pe_curr->edge2));
+			swap_int(&(p->next->n), &(pe_curr->n));
+			break;
+        	}
+                pe_curr = pe_curr->next;
+   	}
+   }
+
+  free (aligns);
+
+}
 
 /***************************************************************************
 surface_net:
@@ -531,11 +672,10 @@ int surface_net( struct wall **facelist, int nfaces )
   int nedge;
   int nkeys;
   int is_closed = 1;
-  
   nkeys = (3*nfaces)/2;
 
   if ( ehtable_init(&eht,nkeys) ) return 1;
-  
+ 			 
   for (i=0;i<nfaces;i++)
   {
     nedge = 3;
@@ -708,7 +848,7 @@ int sharpen_object(struct object *parent)
 {
   struct object *o;
   int i;
-  
+ 
   if (parent->object_type == POLY_OBJ || parent->object_type == BOX_OBJ)
   {
     i = surface_net(parent->wall_p , parent->n_walls);
@@ -1288,7 +1428,7 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   struct wall *w;            /* The wall we're working with */
   double f,fx,fy,fz;
   struct vector3 vA,vB,vX;
-  
+ 
   w=&objp->walls[side];
   w->next = NULL;
   w->surf_class = world->g_surf;
@@ -1303,7 +1443,7 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   w->nb_walls[0] = NULL;
   w->nb_walls[1] = NULL;
   w->nb_walls[2] = NULL;
-  
+  		
   vectorize(v0, v1, &vA);
   vectorize(v0, v2, &vB);
   cross_prod(&vA , &vB , &vX);
