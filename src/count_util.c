@@ -133,6 +133,7 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
   double t,t_hit_sv;
   int traveling;
   int i;
+  struct wall_list dummy;
   
   rl = *rlp;
   arl = *arlp;
@@ -180,6 +181,9 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
           mem_put(rmem,tarl);
           tarl = xrl;
         }
+        dummy.next = sv->wall_head;
+        wl = &dummy;
+        continue;  /* Trick to restart for loop */
       }
       else if (i==COLLIDE_MISS || !(t >= 0 && t < 1.0) || t > t_hit_sv || (wl->this_wall->flags & COUNT_CONTENTS) == 0 ||
 	       (hit.x-outside.x)*delta.x + (hit.y-outside.y)*delta.y + (hit.z-outside.z)*delta.z < 0) continue;
@@ -374,6 +378,15 @@ int place_waypoints()
   struct subvolume *sv;
   double d;
   
+/* Being exactly in the center of a subdivision can be bad. */
+/* Define "almost center" positions for X, Y, Z */
+#define W_Xa (0.5 + 0.0005*MY_PI)
+#define W_Ya (0.5 + 0.0002*MY_PI*MY_PI)
+#define W_Za (0.5 - 0.00007*MY_PI*MY_PI*MY_PI)
+#define W_Xb (1.0 - W_Xa)
+#define W_Yb (1.0 - W_Ya)
+#define W_Zb (1.0 - W_Za)
+  
   for (i=0;i<world->n_species;i++)
   {
     if ((world->species_list[i]->flags & (NOT_FREE | COUNT_CONTENTS)) == COUNT_CONTENTS)
@@ -401,9 +414,11 @@ int place_waypoints()
         wp = &(world->waypoints[h]);
         
         sv = &(world->subvol[h]);
-        wp->loc.x = 0.5*( world->x_fineparts[ sv->llf.x ] + world->x_fineparts[ sv->urb.x ] );
-        wp->loc.y = 0.5*( world->y_fineparts[ sv->llf.y ] + world->y_fineparts[ sv->urb.y ] );
-        wp->loc.z = 0.5*( world->z_fineparts[ sv->llf.z ] + world->z_fineparts[ sv->urb.z ] );
+        
+        /* Place waypoint near center of subvolume (W_#a=W_#b=0.5 gives center) */
+        wp->loc.x = W_Xa*world->x_fineparts[ sv->llf.x ] + W_Xb*world->x_fineparts[ sv->urb.x ];
+        wp->loc.y = W_Ya*world->y_fineparts[ sv->llf.y ] + W_Yb*world->y_fineparts[ sv->urb.y ];
+        wp->loc.z = W_Za*world->z_fineparts[ sv->llf.z ] + W_Zb*world->z_fineparts[ sv->urb.z ];
         
         do
         {
@@ -456,6 +471,12 @@ int place_waypoints()
   }
   
   return 0;
+#undef W_Zb
+#undef W_Yb
+#undef W_Xb
+#undef W_Za
+#undef W_Ya
+#undef W_Xa  
 }
 
 
