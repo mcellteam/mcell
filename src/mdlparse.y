@@ -1487,6 +1487,7 @@ molecule_stmt: new_molecule '{'
     fprintf(volp->log_file,"\tl_perp_bar = %.9g microns\n",mdlpvp->l_perp_bar);
     fprintf(volp->log_file,"\tl_perp_rms = %.9g microns\n\n",mdlpvp->l_perp_rms);
   }
+  mdlpvp->specp->hashval = hash(mdlpvp->specp->sym->name);
   no_printf("Molecule %s defined with D = %g\n",mdlpvp->specp->sym->name,mdlpvp->specp->D);
 };
 
