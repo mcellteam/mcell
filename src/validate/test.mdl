@@ -1,9 +1,9 @@
 
 dt = 1e-6
-it = 1000
+it = 500
 efg = 10000
 
-n=5000
+n=2500
 
 TIME_STEP = dt
 TIME_STEP_MAX = dt*200
@@ -24,6 +24,7 @@ DEFINE_REACTIONS {
   ACh -> ACh + Glu [2000]
   Glu' -> Glu, + ACh' [1000]
   ACh + Glu' -> Glu, + ACh' [3000]
+  ACh + Glu -> NULL [4000]
 }
 
 DEFINE_RELEASE_PATTERN pat1 {
@@ -46,7 +47,7 @@ ACh_release_site SPHERICAL_RELEASE_SITE {
   LOCATION = [-0.5,0,0]
   MOLECULE = ACh
   NUMBER_TO_RELEASE = n
-  SITE_DIAMETER = 0
+  SITE_DIAMETER = 0.01
   RELEASE_PATTERN = pat1
 }
 

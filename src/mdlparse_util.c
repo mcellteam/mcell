@@ -404,22 +404,20 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   struct pathway *path,*last_path;
   struct product *prod;
   struct rxn *rx;
+  struct rxn **rx_tbl;
   double pb_factor,D_tot;
   int i,j,k;
   int recycled1,recycled2;
   int num_rx,num_players;
   int true_paths;
+  int rx_hash;
   
   num_rx = 0;
-  for (i=0;i<HASHSIZE;i++)
-  {
-    sym = mpvp->vol->main_sym_table[i];
-    if (sym->sym_type == RX) num_rx++;
-  }
   
   for (i=0;i<HASHSIZE;i++)
   {
     sym = mpvp->vol->main_sym_table[i];
+    if (sym==NULL) continue;
     if (sym->sym_type != RX) continue;
     
     rx = (struct rxn*)sym->value;
@@ -428,6 +426,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     
     while (rx != NULL)
     {
+      num_rx++;
     
       true_paths=1;
       for (path=rx->pathway_head->next ; path != NULL ; path = path->next)
@@ -511,6 +510,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         if (!recycled2 && rx->n_reactants>1) rx->fates[j] += RX_2DESTROY;
       }
       
+      path = rx->pathway_head;
+      
       num_players = rx->n_reactants;
       for (j=0;j<rx->n_pathways;j++)
       {
@@ -584,7 +585,38 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       rx = rx->next;
     }
   }
+
+  for (rx_hash=2 ; rx_hash<num_rx ; rx_hash <<= 1) {}
+  if (rx_hash > MAX_RX_HASH) rx_hash = MAX_RX_HASH;
   
+  mpvp->vol->hashsize = rx_hash;
+  rx_hash -= 1;
+  
+  rx_tbl = (struct rxn**)malloc(sizeof(struct rxn*) * mpvp->vol->hashsize);
+  if (rx_tbl==NULL) return 1;
+  mpvp->vol->reaction_hash = rx_tbl;
+  
+  for (i=0;i<=rx_hash;i++) rx_tbl[i] = NULL;
+  
+  for (i=0;i<HASHSIZE;i++)
+  {
+    sym = mpvp->vol->main_sym_table[i];
+    if (sym==NULL) continue;
+    if (sym->sym_type != RX) continue;
+    
+    rx = (struct rxn*)sym->value;
+    
+    if (rx->n_reactants==1) j = rx->players[0]->hashval;
+    else if (rx->players[0]->hashval==rx->players[1]->hashval) j = rx->players[0]->hashval;
+    else j = rx->players[0]->hashval ^ rx->players[1]->hashval;
+    
+    j &= rx_hash;
+    
+    while (rx->next != NULL) rx = rx->next;
+    rx->next = rx_tbl[j];
+    rx_tbl[j] = (struct rxn*)sym->value;
+  }
+
   return 0;
 }
 

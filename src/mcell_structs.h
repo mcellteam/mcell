@@ -140,6 +140,11 @@
 #define IN_MASK     0x700
 
 
+/* How big will we let the reaction table get? */
+/* 0x100000 = 2 million */
+#define MAX_RX_HASH 0x100000
+
+
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
 /*********************************************************/

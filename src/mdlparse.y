@@ -454,6 +454,7 @@ end_of_mdl_file: EOF_TOK
           no_printf("include_flag = %d\n",mdlpvp->include_flag); 
           fflush(stderr);
           if (!mdlpvp->include_flag) {
+            prepare_reactions(mdlpvp);
 /*
             partition_volume(volume);
             build_ligand_table();

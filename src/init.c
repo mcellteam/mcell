@@ -350,30 +350,6 @@ int init_species(void)
   int count = 0;
   struct sym_table *gp;
   
-/* FIX ME WHEN WE HAVE REACTIONS */
-  world->n_reactions = 0;
-  world->reaction_hash = (struct rxn**)malloc(sizeof(struct rxn*));
-  world->hashsize = 1;
-  world->reaction_hash[0] = (struct rxn*)malloc(sizeof(struct rxn));
-  world->reaction_hash[0]->next = NULL;
-  world->reaction_hash[0]->n_reactants = 1;
-  world->reaction_hash[0]->n_pathways = 1;
-  world->reaction_hash[0]->product_idx = (u_int*)malloc(sizeof(int));
-  world->reaction_hash[0]->product_idx[0] = 1;
-  world->reaction_hash[0]->cum_rates = (double*)malloc(sizeof(double));
-  world->reaction_hash[0]->cum_rates[0] = 1e-100;
-  world->reaction_hash[0]->cat_rates = world->reaction_hash[0]->cum_rates;
-  world->reaction_hash[0]->players = (struct species**)malloc(2*sizeof(struct species*));
-  world->reaction_hash[0]->players[0] = NULL;
-  world->reaction_hash[0]->players[1] = NULL;
-  world->reaction_hash[0]->geometries = (short*)malloc(2*sizeof(short));
-  world->reaction_hash[0]->geometries[0] = 0;
-  world->reaction_hash[0]->geometries[1] = 0;
-  world->reaction_hash[0]->geometries = (short*)malloc(2*sizeof(short));
-  world->reaction_hash[0]->fates = (byte*)malloc(sizeof(byte));
-  world->reaction_hash[0]->fates[0] = 0;
-/* END FIX ME*/
-  
   for (i=0;i<HASHSIZE;i++)
   {
     for (gp = world->main_sym_table[i] ; gp != NULL ; gp = gp->next)
@@ -394,6 +370,7 @@ int init_species(void)
       {
         world->species_list[count] = (struct species*) gp->value;
         world->species_list[count]->hashval &= world->hashsize-1;
+        world->species_list[count]->radius = sqrt(1.0/MY_PI);
       }
     }
   }

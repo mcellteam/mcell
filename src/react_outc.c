@@ -312,9 +312,6 @@ outcome_unimolecular:
 int outcome_unimolecular(struct rxn *rx,int path,
   struct abstract_molecule *reac,double t)
 {
-  struct abstract_molecule *r = reac;
-  if ((rx->fates[path] & (RX_PROD|RX_DESTROY))==0) reac = NULL;
-  
   if ((reac->properties->flags & (ON_GRID | ON_SURFACE)) == 0)
   {
     struct molecule *m = (struct molecule*)reac;
@@ -339,7 +336,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
       g->grid->mol[ g->grid_index ] = NULL;
       g->grid->n_occupied--;
     }
-    r->properties = NULL;
+    reac->properties = NULL;
     return 0;
   }
   else if ((rx->fates[path] & RX_PROD) != 0) return 0;
