@@ -143,14 +143,12 @@ int test_intersect(struct rxn *rx,double time_mult)
   
   if (rx->cum_rates[0] >= 1.0) return 0;  /* Shortcut for reflections */
   
-  p = rng_double( world->seed++ ) * time_mult;
+  p = rng_double( world->seed++ ) / time_mult;
   
   if ( p > rx->cum_rates[ rx->n_pathways-1 ] ) return -1;
 
   m = 0;
   M = rx->n_pathways-1;
-  
-/*if (time_mult != 1.0) p = p / (1.0 - pow(1.0-rx->cum_rates[M],time_mult));*/
   
   if ( p > rx->cum_rates[M] ) return -1;
   
