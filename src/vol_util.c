@@ -404,6 +404,7 @@ struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv)
         fprintf(stderr, "Fatal error: out of memory during migrating  %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
         exit(EXIT_FAILURE);
   }
+  if (new_m==m) printf("Unsane!\n");
   
   memcpy(new_m,m,sizeof(struct molecule));
   new_m->birthplace = new_sv->local_storage->mol;

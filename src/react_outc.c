@@ -587,6 +587,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
 
         if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
         g->grid->n_occupied--;
+	if (g->flags&IN_SURFACE) g->flags -= IN_SURFACE;
       }
       else if ((reacB->properties->flags & NOT_FREE) == 0)
       {
@@ -599,6 +600,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
     
       reacB->properties->population--;
       reacB->properties = NULL;
+      if ((reacB->flags&IN_MASK)==0) mem_put(reacB->birthplace,reacB);
     }
     if (rx->players[ rx->product_idx[path] ] == NULL)
     {
@@ -633,6 +635,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
 
         if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
         g->grid->n_occupied--;
+	if (g->flags&IN_SURFACE) g->flags -= IN_SURFACE;
       }
       else if ((reacB->properties->flags & NOT_FREE) == 0)
       {
@@ -645,6 +648,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
     
       reacB->properties->population--;
       reacB->properties = NULL;
+      if ((reacB->flags&IN_MASK)==0) mem_put(reacB->birthplace,reacB);
     }
     if (rx->players[ rx->product_idx[path]+1 ] == NULL)
     {

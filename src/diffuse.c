@@ -1765,7 +1765,11 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	    }
           }
         }
-        else continue;
+        else /* We don't exist.  Try to recover memory. */
+	{
+	  if (!(a->flags&IN_VOLUME)) mem_put(a->birthplace,a);
+	  continue;
+	}
       }
     }
 
