@@ -1557,6 +1557,9 @@ void wall_bounding_box(struct wall *w , struct vector3 *llf, struct vector3 *urb
 struct wall_list* wall_to_vol(struct wall *w, struct subvolume *sv)
 {
   struct wall_list *wl = mem_get(sv->mem->list);
+  if(wl == NULL){
+	return (NULL);
+  }
   wl->this_wall = w;
   if (sv->wall_tail==NULL)
   {
@@ -1626,7 +1629,12 @@ struct wall* localize_wall(struct wall *w, struct storage *stor)
   ww->vert[0] = localize_vertex(ww->vert[0],stor);
   ww->vert[1] = localize_vertex(ww->vert[1],stor);
   ww->vert[2] = localize_vertex(ww->vert[2],stor);
-  
+  if((ww->vert[0] == NULL) || (ww->vert[1] == NULL) ||
+		(ww->vert[2] == NULL)) {
+        printf("Memory allocation error.\n");
+	return (NULL);
+  } 
+ 
   ww->birthplace = stor;
   
   return ww;
@@ -1636,10 +1644,12 @@ struct wall* localize_wall(struct wall *w, struct storage *stor)
 struct wall* distribute_wall(struct wall *w)
 {
   struct wall *where_am_i;
+  struct wall_list *wl;
   struct vector3 llf,urb,cent;
   int x_max,x_min,y_max,y_min,z_max,z_min;
   int h,i,j,k;
   
+
   wall_bounding_box(w,&llf,&urb);
   llf.x -= EPS_C * ((llf.x < 0) ? -llf.x : llf.x);
   llf.y -= EPS_C * ((llf.y < 0) ? -llf.y : llf.y);
@@ -1667,7 +1677,16 @@ struct wall* distribute_wall(struct wall *w)
   {
     h = z_min + (world->nz_parts - 1)*(y_min + (world->ny_parts - 1)*x_min);
     where_am_i = localize_wall( w , world->subvol[h].mem );
-    wall_to_vol( where_am_i , &(world->subvol[h]) );
+    if(where_am_i == NULL) {
+	printf("Memory allocation error.\n");
+        return (NULL);
+    }
+     
+    wl = wall_to_vol( where_am_i , &(world->subvol[h]) );
+    if(wl == NULL){
+	printf("Memory allocation error.\n");
+        return (NULL);
+    }
 /*    if (!clip_polygon(&llf,&urb,w->vert,3)) printf("This wall doesn't belong in the only box it intersects?!\n"); */
     if (!wall_in_box(w->vert,&(w->normal),w->d,&llf,&urb)) printf("This wall doesn't belong in the only box it intersects?!\n");
     return where_am_i;
@@ -1686,6 +1705,10 @@ struct wall* distribute_wall(struct wall *w)
   
   h = (k-1) + (world->nz_parts - 1)*((j-1) + (world->ny_parts - 1)*(i-1));
   where_am_i = localize_wall( w , world->subvol[h].mem );
+  if(where_am_i == NULL) {
+	printf("Memory allocation error.\n");
+        return (NULL);
+  }
   
 /*
   printf("Bounded by (%d %d %d) (%d %d %d) [i.e. (%.2e %.2e %.2e) (%.2e %.2e %.2e)]\n",
@@ -1716,7 +1739,13 @@ struct wall* distribute_wall(struct wall *w)
         urb.z = world->z_fineparts[ world->subvol[h].urb.z ] - 100*EPS_C;
 /*        if (intersect_box(&llf,&urb,w)) wall_to_vol( where_am_i , &(world->subvol[h]) ); */
 /*        if (clip_polygon(&llf,&urb,w->vert,3)) wall_to_vol( where_am_i , &(world->subvol[h]) ); */
-        if (wall_in_box(w->vert,&(w->normal),w->d,&llf,&urb)) wall_to_vol( where_am_i , &(world->subvol[h]) );
+        if (wall_in_box(w->vert,&(w->normal),w->d,&llf,&urb)) {
+           wl = wall_to_vol( where_am_i , &(world->subvol[h]) );
+           if(wl == NULL){
+		printf("Memory allocation error.\n");
+		return (NULL);
+           }
+        }
       }
     }
   }

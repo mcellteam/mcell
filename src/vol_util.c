@@ -585,6 +585,10 @@ void release_molecules(struct release_event_queue *req)
       m.pos.z = pos.z*diam_xyz->z + req->location.z;
       
       guess = insert_molecule(&m,guess);  /* Insert copy of m into world */
+      if (guess == NULL){
+	printf("Memory allocation error.\n");
+	return;
+      }
     }
   }
   else
@@ -593,7 +597,14 @@ void release_molecules(struct release_event_queue *req)
     m.pos.y = req->location.y;
     m.pos.z = req->location.z;
     
-    for (i=0;i<number;i++) guess = insert_molecule(&m,guess);
+    for (i=0;i<number;i++) {
+       guess = insert_molecule(&m,guess);
+       if (guess == NULL){
+		printf("Memory allocation error.\n");
+		return;
+       }
+        
+    }
   }
   
 }

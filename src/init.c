@@ -81,6 +81,12 @@ void init_credits(void)
     author[0]=my_strdup("Joel R. Stiles");
     author[1]=my_strdup("& Thomas M. Bartol Jr.");
   }
+  if((institute[0] == NULL) || (institute[1] == NULL) ||
+     (author[0] == NULL) || (author[1] == NULL))
+  {
+     fprintf(log_file, " Memory allocation error\n");
+     return;
+  }	
   
     fprintf(log_file,"  Copyright (C) 1997,1998,1999 by %s %s\n",institute[0],institute[1]);
     fprintf(log_file,"  Co-authored by %s %s\n",author[0],author[1]);
@@ -191,7 +197,11 @@ int init_sim(void)
   }
   for (i=0;i<=world->count_hashmask;i++) world->count_hash[i] = NULL;
 
-  world->main_sym_table=init_symtab(HASHSIZE);
+  if((world->main_sym_table=init_symtab(HASHSIZE)) == NULL){
+    fprintf(log_file,"MCell: initialization of symbol table failed\n");
+    return(1);
+  }
+	
 
   if ((gp=store_sym("WORLD_OBJ",OBJ,world->main_sym_table))==NULL) {
     fprintf(log_file,"MCell: could not store world root object\n");
@@ -266,8 +276,16 @@ int init_sim(void)
   world->count_zero->oper='\0';
   
   world->releaser = create_scheduler(1.0,100.0,100,0.0);
+  if(world->releaser == NULL){
+	fprintf(log_file, "Memory allocation error\n");
+	return (1);
+  }
 
   world->count_scheduler = create_scheduler(1.0,100.0,100,0.0);
+  if(world->count_scheduler == NULL){
+	fprintf(log_file, "Memory allocation error\n");
+	return (1);
+  }
 
   /* Parse the MDL file: */
   no_printf("Node %d parsing MDL file %s\n",world->procnum,world->mdl_infile_name);
@@ -394,9 +412,11 @@ int init_sim(void)
 }
 
 
-/** Initializes array of molecules to the default properties values.
+/********************************************************************
+init_species: 
+   Initializes array of molecules to the default properties values.
 
-*/
+*********************************************************************/
 int init_species(void)
 {
   int i;
@@ -546,26 +566,52 @@ int init_partitions(void)
   set_partitions();
   
   world->n_waypoints = 1;
-  world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint*)*world->n_waypoints);
+  if((world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint*)*world->n_waypoints)) == NULL){
+     return (1);
+  }
   
-  shared_mem = (struct storage*)malloc(sizeof(struct storage));    
-  shared_mem->list = create_mem(sizeof(struct wall_list),128);
-  shared_mem->mol  = create_mem(sizeof(struct molecule),128);
-  shared_mem->smol  = create_mem(sizeof(struct surface_molecule),128);
-  shared_mem->gmol  = create_mem(sizeof(struct grid_molecule),128);
-  shared_mem->face = create_mem(sizeof(struct wall),128);
-  shared_mem->join = create_mem(sizeof(struct edge),128);
-  shared_mem->tree = create_mem(sizeof(struct vertex_tree),128);
-  shared_mem->effs = create_mem(sizeof(struct surface_grid),128);
-  shared_mem->coll = create_mem(sizeof(struct collision),128);
-  shared_mem->regl = create_mem(sizeof(struct region_list),128);
+  if((shared_mem = (struct storage*)malloc(sizeof(struct storage))) == NULL){
+	return (1);
+  }    
+  if((shared_mem->list = create_mem(sizeof(struct wall_list),128)) == NULL){
+	return (1);
+  }
+  if((shared_mem->mol  = create_mem(sizeof(struct molecule),128)) == NULL){
+        return (1);
+  }
+  if((shared_mem->smol  = create_mem(sizeof(struct surface_molecule),128)) == NULL) {
+        return (1);
+  }
+  if((shared_mem->gmol  = create_mem(sizeof(struct grid_molecule),128)) == NULL)  {
+	return (1);
+  }
+  if((shared_mem->face = create_mem(sizeof(struct wall),128)) == NULL){
+        return (1);
+  }
+  if((shared_mem->join = create_mem(sizeof(struct edge),128)) == NULL){
+        return (1);
+  }
+  if((shared_mem->tree = create_mem(sizeof(struct vertex_tree),128)) == NULL){
+	return (1);
+  }
+  if((shared_mem->effs = create_mem(sizeof(struct surface_grid),128)) == NULL){
+	return (1);
+  }
+  if((shared_mem->coll = create_mem(sizeof(struct collision),128)) == NULL){
+	return (1);
+  }
+  if((shared_mem->regl = create_mem(sizeof(struct region_list),128)) == NULL){
+        return (1);
+  }
   
   shared_mem->wall_head = NULL;
   shared_mem->wall_count = 0;
   shared_mem->vert_head = NULL;
   shared_mem->vert_count = 0;
   
-  shared_mem->timer = create_scheduler(1.0,100.0,100,0.0);
+  if((shared_mem->timer = create_scheduler(1.0,100.0,100,0.0)) == NULL){
+	return (1);
+  }
   shared_mem->current_time = 0.0;
   
   if (world->time_step_max==0.0) shared_mem->max_timestep = MICROSEC_PER_YEAR;
@@ -575,14 +621,19 @@ int init_partitions(void)
     else shared_mem->max_timestep = world->time_step_max/world->time_unit;
   }
   
-  world->storage_mem = create_mem(sizeof(struct storage_list),10);
-  world->storage_head = (struct storage_list*)mem_get(world->storage_mem);
+  if((world->storage_mem = create_mem(sizeof(struct storage_list),10)) == NULL){	return (1);
+  }
+  if((world->storage_head = (struct storage_list*)mem_get(world->storage_mem)) == NULL) {
+	return (1);
+  }
   world->storage_head->next = NULL;
   world->storage_head->store = shared_mem;
   
   world->n_subvols = (world->nz_parts-1) * (world->ny_parts-1) * (world->nx_parts-1);
   printf("Creating %d subvolumes (%d,%d,%d per axis)\n",world->n_subvols,world->nx_parts-1,world->ny_parts-1,world->nz_parts-1);
-  world->subvol = (struct subvolume*)malloc(sizeof(struct subvolume)*world->n_subvols);
+  if((world->subvol = (struct subvolume*)malloc(sizeof(struct subvolume)*world->n_subvols)) == NULL){
+	return (1);
+  }
   for (i=0;i<world->nx_parts-1;i++)
   for (j=0;j<world->ny_parts-1;j++)
   for (k=0;k<world->nz_parts-1;k++)
@@ -735,15 +786,32 @@ int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp, str
   if (sub_name!=NULL) { 
     if (strcmp(sub_name,"")==0) {
       tmp_name=my_strdup("");
+      if(tmp_name == NULL){
+	printf("Memory allocation error\n");
+        return (1);
+      }else{}
     }
     else {
-      tmp_name=my_strcat(sub_name,".");              
+      tmp_name=my_strcat(sub_name,"."); 
+      if(tmp_name == NULL){
+	printf("Memory allocation error\n");
+        return (1);
+      }else{}
+                  
     }
     sub_name=my_strcat(tmp_name,objp->last_name);    
+    if(sub_name == NULL){
+	printf("Memory allocation error\n");
+        return (1);
+    }else{}
     free((void *)tmp_name);
   }
   else {
     sub_name=my_strdup(objp->last_name);    
+    if(sub_name == NULL){
+	printf("Memory allocation error\n");
+        return (1);
+    }else{}
   }
 
   switch (objp->object_type) {
@@ -883,15 +951,31 @@ int compute_bb(struct object *objp, double (*im)[4], char *sub_name)
   if (sub_name!=NULL) { 
     if (strcmp(sub_name,"")==0) {
       tmp_name=my_strdup("");
+      if(tmp_name == NULL){
+	printf("Memory allocation error\n");
+        return (1);
+      }else{}
     }
     else {
       tmp_name=my_strcat(sub_name,".");              
+      if(tmp_name == NULL){
+	printf("Memory allocation error\n");
+        return (1);
+      }else{}
     }
     sub_name=my_strcat(tmp_name,objp->last_name);    
+    if(sub_name == NULL){
+	printf("Memory allocation error\n");
+        return (1);
+    }else{}
     free((void *)tmp_name);
   }
   else {
     sub_name=my_strdup(objp->last_name);    
+    if(sub_name == NULL){
+	printf("Memory allocation error\n");
+        return (1);
+    }else{}
   }
 
   switch (objp->object_type) {
@@ -1069,7 +1153,11 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
   n=4;
   total_area=0;
   obj_name=my_strdup(full_name);
-
+  if(obj_name == NULL)
+  {
+	printf("Memory allocation error.\n");
+        return (1);
+  }
 
 /* Allocate and initialize walls and vertices */
     if ((w=(struct wall *)malloc(n_walls*sizeof(struct wall)))==NULL) {
@@ -1195,15 +1283,31 @@ int instance_obj_regions(struct object *objp,char *sub_name)
   if (sub_name!=NULL) { 
     if (strcmp(sub_name,"")==0) {
       tmp_name=my_strdup("");
+      if (tmp_name == NULL) {
+        printf("Memory allocation error\n");
+	return (1);
+      }else{}
     }
     else {
       tmp_name=my_strcat(sub_name,".");              
+      if (tmp_name == NULL) {
+	printf("Memory allocation error\n");
+	return (1);
+      }else{}
     }
     sub_name=my_strcat(tmp_name,objp->last_name);    
+    if (sub_name == NULL) {
+	printf("Memory allocation error\n");
+	return (1);
+    }else{}
     free((void *)tmp_name);
   }
   else {
     sub_name=my_strdup(objp->last_name);    
+    if (sub_name == NULL) {
+        printf("Memory allocation error\n");
+	return (1);
+    }else{}
   }
 
   switch (objp->object_type) {
@@ -1607,6 +1711,10 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
         n_occupied++;
         eff[p_index]->population++;
         mol=(struct grid_molecule *)mem_get(w->birthplace->gmol);
+        if(mol == NULL){
+		printf("Memory allocation error.\n");
+		return (1);
+        }
         sg->mol[i]=mol;
         mol->t=0;
         mol->t2=0;
@@ -1802,6 +1910,10 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                 if (*tiles[j]==bread_crumb) {
                   mol=(struct grid_molecule *)
                     mem_get(walls[j]->birthplace->gmol);
+                  if (mol == NULL){
+                     printf("Memory allocation error.\n");
+		     return (1);
+                  }
                   *tiles[j]=mol;
                   mol->t=0;
                   mol->t2=0;
@@ -1835,6 +1947,10 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   if (*tiles[k]==NULL) {
                     mol=(struct grid_molecule *)mem_get
                       (walls[k]->birthplace->gmol);
+                    if (mol == NULL){
+                     	printf("Memory allocation error.\n");
+		     	return (1);
+                    }
                     *tiles[k]=mol;
                     mol->t=0;
                     mol->t2=0;
