@@ -800,10 +800,11 @@ int init_geom(void)
     world->bb_max.z=0;
   }
   if (world->procnum == 0) {
-    fprintf(log_file,"MCell: world bounding box =\n");
+    fprintf(log_file,"MCell: world bounding box in microns =\n");
     fprintf(log_file,"         [ %.9g %.9g %.9g ] [ %.9g %.9g %.9g ]\n",
-      world->bb_min.x,world->bb_min.y,world->bb_min.z,world->bb_max.x,
-      world->bb_max.y,world->bb_max.z);
+      world->bb_min.x*world->length_unit,world->bb_min.y*world->length_unit,
+      world->bb_min.z*world->length_unit,world->bb_max.x*world->length_unit,
+      world->bb_max.y*world->length_unit,world->bb_max.z*world->length_unit);
   }
 
   world->n_walls=world->root_instance->n_walls;
