@@ -49,7 +49,8 @@ struct mdlparse_vars {
   struct species *specp;
   double mc_factor;
   double transport_mc_factor;
-  double l_perp_bar;
+  /* Theoretical average diffusion distances for the molecule */
+  double l_perp_bar;                 
   double l_perp_rms;
   double l_r_bar;
   double l_r_rms;

@@ -112,7 +112,6 @@ int init_sim(void)
   FILE *log_file;
   struct sym_table *gp;
   struct output_list *olp,*olpn;
-  double fact;
   int i;
   int *intp;
 #include "seed_array.h"
@@ -172,17 +171,6 @@ int init_sim(void)
   world->d_step=NULL;
   world->place_waypoints=0;
 
-  if ((world->factorial_r=(double *)malloc(101*sizeof(double)))==NULL) {
-    fprintf(log_file,"MCell: could not store factorial array\n");
-    return(1);
-  }
-  world->factorial_r[0]=1;
-  world->factorial_r[1]=1;
-  fact=1;
-  for (i=2;i<101;i++) {
-    fact=fact*i;
-    world->factorial_r[i]=1.0/fact;
-  }
   if (world->seed_seq < 1 || world->seed_seq > 3000) {
     fprintf(log_file,"MCell: error, random sequence number not in range 1 to 3000\n");
     return(1);

@@ -144,7 +144,11 @@ struct sym_table *retrieve_sym(char *sym, unsigned short sym_type,
   return(NULL);
 }
 
-
+/** Stores symbol in the symbol table. 
+    Initializes value field of the symbol structure to the default value.
+    Returns: entry in the symbol table if successfully stored, 
+             NULL - otherwise.
+*/
 struct sym_table *store_sym(char *sym, unsigned short sym_type,
   struct sym_table **hashtab)
 {

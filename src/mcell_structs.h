@@ -773,8 +773,8 @@ struct volume
   int count_hashmask;         /* Mask for looking up count hash table */
   struct counter **count_hash;/* count hash table */
   
-  int n_species;                /* How many different species? */
-  struct species **species_list; /* Array of all species. */
+  int n_species;                /* How many different species (molecules)? */
+  struct species **species_list; /* Array of all species (molecules). */
   
   struct schedule_helper *releaser;
   
@@ -807,7 +807,6 @@ struct volume
   double rx_radius_3d;
   double *r_step;
   double *d_step;
-  double *factorial_r;
   double r_num_directions;
   double sim_elapsed_time;
   double chkpt_elapsed_time;
@@ -821,8 +820,8 @@ struct volume
   double ray_polygon_colls;
   double mol_mol_colls;
   double diffusion_steps;
-  struct vector3 bb_min;
-  struct vector3 bb_max;
+  struct vector3 bb_min;	/**< bounding box minimum size */
+  struct vector3 bb_max;	/**< bounding box maximum size */
   u_int tot_mols;
   u_int seed;
   u_int init_seed;
@@ -833,7 +832,7 @@ struct volume
   u_int num_directions;
   int directions_mask;
   int fully_random;
-  int procnum;
+  int procnum;			/**< procedure number */
   int viz_mode;
   byte voxel_image_mode;
   byte voxel_volume_mode;

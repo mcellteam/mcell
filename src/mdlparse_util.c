@@ -97,7 +97,9 @@ struct name_list *concat_obj_name(struct name_list *name_list_end,char *name)
   }
 }
 
-
+/** Returns the first name in the object naming hierarchy.
+    E.g. for the object named "A.B.C" and last_name "C" returns "A". 
+*/
 char *get_first_name(char *obj_name)
 {
   char *first_name,*tmp_name;
@@ -111,6 +113,9 @@ char *get_first_name(char *obj_name)
 }
 
 
+/** Returns the prefix name in the object naming hierarchy.
+    E.g. for the object named "A.B.C" and last_name "C" returns "A.B". 
+*/
 char *get_prefix_name(char *obj_name)
 {
   char *prefix_name,*prev_name,*next_name,*tmp_name,*tmp_name2;
@@ -344,7 +349,6 @@ int copy_object(struct volume *volp,struct object *curr_objp,
       break;
     default:
       sprintf(err_msg,"%s %d","Error: Wrong object name:",objp->object_type);
-      return (1);
       break;
 
   }
