@@ -472,6 +472,9 @@ int init_species(void)
 /*        world->species_list[count]->hashval &= world->rx_hashsize-1; */
         world->species_list[count]->radius = EPS_C;
         world->species_list[count]->population = 0;
+        if(world->species_list[count]->viz_state < 0){
+        	world->species_list[count]->viz_state = EXCLUDE_OBJ;
+        }
         if ( (s->flags & (ON_SURFACE | ON_GRID)) == 0 )
         {
           speed = 6.0*s->space_step/sqrt(MY_PI);
@@ -481,7 +484,8 @@ int init_species(void)
       }
     }
   }
-  
+ 
+   
   return 0;
 }
 
@@ -896,7 +900,7 @@ int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp, str
         exit(EXIT_FAILURE);
     }else{}
   }
-
+  
   switch (objp->object_type) {
   case META_OBJ:
     no_printf("Meta object %s instanced\n",sub_name);
@@ -1247,6 +1251,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
   m=4;
   n=4;
   total_area=0;
+
   obj_name=my_strdup(full_name);
   if(obj_name == NULL)
   {
@@ -1269,14 +1274,14 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
 		fprintf(stderr,"Fatal error: out of memory while instantion of polygon object.\nAttempt to write intermediate results had %d errors.\n", i);
         	exit(EXIT_FAILURE);
     }
-    if ((v=(struct vector3 *)malloc(n_walls*sizeof(struct vector3)))==NULL) {
+    if ((v=(struct vector3 *)malloc(n_verts*sizeof(struct vector3)))==NULL) {
 		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
         	int i = emergency_output();
 		fprintf(stderr,"Fatal error: out of memory while instantion of polygon object.\nAttempt to write intermediate results had %d errors.\n", i);
         	exit(EXIT_FAILURE);
     }
     if ((vp=(struct vector3 **)malloc
-        (n_walls*sizeof(struct vector3 *)))==NULL) {
+        (n_verts*sizeof(struct vector3 *)))==NULL) {
 		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
         	int i = emergency_output();
 		fprintf(stderr,"Fatal error: out of memory while instantion of polygon object.\nAttempt to write intermediate results had %d errors.\n", i);
@@ -1313,7 +1318,6 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
       vcp->next = vizp->viz_child_head;
       vizp->viz_child_head = vcp;
     }
-
  
     for (i=0;i<n_verts;i++) {
       vp[i]=&v[i];
@@ -1344,14 +1348,13 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
       }
     }
 
-
     for (i=0;i<n_walls;i++) {
       if (pop->side_stat[i]) {
         wp[i]=&w[i];
         index_0=opp->element_data[i].vertex_index[0];
         index_1=opp->element_data[i].vertex_index[1];
         index_2=opp->element_data[i].vertex_index[2];
-
+ 
         init_tri_wall(objp,i,vp[index_0],vp[index_1],vp[index_2]);
         total_area+=wp[i]->area;
 
