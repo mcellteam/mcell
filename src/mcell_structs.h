@@ -201,6 +201,9 @@
 #define IN_VOLUME   0x400
 #define IN_MASK     0x700
 
+/* Flags telling us what our counting status is */
+#define COUNT_ME    0x800
+
 /* End of abstract molecule flags. */
 
 

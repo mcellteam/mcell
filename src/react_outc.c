@@ -615,8 +615,8 @@ int outcome_bimolecular(struct rxn *rx,int path,
         m->subvol->mol_count--;
       }
 
-      if ((reacA->properties->flags & COUNT_CONTENTS) != 0)
-        count_me_by_region(reacA,-1,NULL);
+      if ((reacA->properties->flags&COUNT_CONTENTS)!=0 && (reacA->flags&COUNT_ME)!=0)
+	count_me_by_region(reacA,-1,NULL);
     
       reacA->properties->population--;
       reacA->properties = NULL;
@@ -661,8 +661,8 @@ int outcome_bimolecular(struct rxn *rx,int path,
         m->subvol->mol_count--;
       }
 
-      if ((reacA->properties->flags & COUNT_CONTENTS) != 0)
-        count_me_by_region(reacA,-1,NULL);
+      if ((reacA->properties->flags&COUNT_CONTENTS)!=0 && (reacA->flags&COUNT_ME)!=0)
+	count_me_by_region(reacA,-1,NULL);
     
       reacA->properties->population--;
       reacA->properties = NULL;
@@ -714,7 +714,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     if (rx->players[ index ] == NULL)
     {
       m->subvol->mol_count--;
-      if ( (reac->properties->flags & COUNT_CONTENTS) != 0 )
+      if ((reac->properties->flags&COUNT_CONTENTS)!=0 && (reac->flags&COUNT_ME)!=0)
 	count_me_by_region(reac,-1,NULL);
       reac->properties->population--;
       reac->properties = NULL;

@@ -71,6 +71,7 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
       {
         if (hit_count->reg_type == rl->reg && hit_count->data.move.mol_type == sp)
         {
+#if 0
           if (crossed)
           {
             hit_count->data.move.n_enclosed += direction;
@@ -82,6 +83,7 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
 */
 
           }
+#endif  
           if (rl->reg->flags & sp->flags & COUNT_HITS)
           {
             if (crossed)
