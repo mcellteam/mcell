@@ -176,7 +176,7 @@ int init_sim(void)
   world->r_num_directions=1.0/world->num_directions;
   world->r_step=NULL;
   world->d_step=NULL;
-  world->place_waypoints=0;
+  world->place_waypoints_flag=0;
   world->count_scheduler = NULL;
   world->storage_head = NULL;
   world->storage_allocator = NULL;
@@ -351,7 +351,7 @@ int init_sim(void)
     return(1);
   }
 
-  if (world->place_waypoints) {
+  if (world->place_waypoints_flag) {
     if (place_waypoints()) {
       fprintf(log_file,"MCell: error storing waypoints\n");
       return(1);

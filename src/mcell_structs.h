@@ -342,9 +342,9 @@
 
 
 /* Reaction and Viz data output timing */
-#define STEP_TIME 0
-#define IT_TIME 1
-#define REAL_TIME 2
+#define OUTPUT_BY_STEP 0 
+#define OUTPUT_BY_TIME_LIST 1
+#define OUTPUT_BY_ITERATION_LIST 2
 
 
 /* Region counter type.  INIT probably broken. */
@@ -767,7 +767,7 @@ struct volume
   
   int n_waypoints;              /* How many of these = (n_axis_p-3)^3 */
   struct waypoint *waypoints;   /* Contains compartment information */
-  byte place_waypoints;         /* We need to place waypoints
+  byte place_waypoints_flag;         /* We need to place waypoints
                                    if we count 3D diffusing molecules
                                    in regions */
   
@@ -965,9 +965,9 @@ struct output_block {
 	struct output_block *next;   /**< next reaction data output block*/
         double t;                   /**< scheduled time to update counters
                                          associated with this output block*/
-	byte timer_type;    /**< output timer type: STEP_TIME,
-                                     IT_TIME,
-                                     REAL_TIME*/
+	byte timer_type;    /**< output timer type: OUTPUT_BY_STEP,
+                                     OUTPUT_BY_TIME_LIST,
+                                     OUTPUT_BY_ITERATION_LIST */
 	double step_time;                     /**< output frequency (secs)*/
         struct num_expr_list *time_list_head; /**< list of output times (secs)
                                                    or list of iterations*/
@@ -1313,7 +1313,7 @@ struct transformation {
  */
 struct frame_data_list {
 	struct frame_data_list *next;
-        byte list_type;		/* data output timing type (IT_TIME, etc) */
+        byte list_type;		/* data output timing type (OUTPUT_BY_TIME_LIST, etc) */
 	int type;               /* visualization frame data type 
 					(ALL_FRAME_DATA, etc.) */ 
 	int viz_iteration;	/* value of the current iteration step. */

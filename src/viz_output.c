@@ -40,10 +40,10 @@ void update_frame_data_list(struct frame_data_list *fdlp)
       fdlp->curr_viz_iteration=fdlp->curr_viz_iteration->next;
       if (fdlp->curr_viz_iteration!=NULL) {
 	switch (fdlp->list_type) {
-	case IT_TIME:
+	case OUTPUT_BY_TIME_LIST:
 	  fdlp->viz_iteration=(int)fdlp->curr_viz_iteration->value; 
 	  break;
-	case REAL_TIME:
+	case OUTPUT_BY_ITERATION_LIST:
 	  fdlp->viz_iteration=(int)(fdlp->curr_viz_iteration->value/world->time_unit + ROUND_UP);
 	  break;
 	}
@@ -72,7 +72,7 @@ void init_frame_data_list(struct frame_data_list *fdlp)
     nelp=fdlp->iteration_list;
     done=0;
     switch (fdlp->list_type) {
-    case IT_TIME:
+    case OUTPUT_BY_TIME_LIST:
       while (nelp!=NULL) {
 	fdlp->n_viz_iterations++;
 	if (!done) {
@@ -85,7 +85,7 @@ void init_frame_data_list(struct frame_data_list *fdlp)
 	nelp=nelp->next;
       }
       break;
-    case REAL_TIME:
+    case OUTPUT_BY_ITERATION_LIST:
       while (nelp!=NULL) {
 	fdlp->n_viz_iterations++;
 	if (!done) {

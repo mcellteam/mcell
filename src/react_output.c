@@ -97,11 +97,11 @@ int update_reaction_output(struct output_block *obp)
   no_printf("Updating reaction output at time %u of %u\n",world->it_time,world->iterations);
   fflush(log_file);
 
-  /* Initialize IT_TIME or REAL_TIME output event if necessary */
-  if (obp->timer_type!=STEP_TIME && obp->curr_time_ptr==NULL) {
+  /* Initialize OUTPUT_BY_TIME_LIST or OUTPUT_BY_ITERATION_LIST output event if necessary */
+  if (obp->timer_type!=OUTPUT_BY_STEP && obp->curr_time_ptr==NULL) {
     obp->curr_time_ptr=obp->time_list_head;
     if (obp->curr_time_ptr->value!=0.0) {
-      if (obp->timer_type==IT_TIME) {
+      if (obp->timer_type==OUTPUT_BY_TIME_LIST) {
         obp->t=obp->curr_time_ptr->value; 
       }
       else {
@@ -147,7 +147,7 @@ int update_reaction_output(struct output_block *obp)
   /* Schedule next output event */
 
   final_chunk_flag=0;
-  if (obp->timer_type==STEP_TIME) {
+  if (obp->timer_type==OUTPUT_BY_STEP) {
     if (world->it_time>=(world->iterations-(obp->step_time/world->time_unit))) {
       final_chunk_flag=1;
     }
@@ -167,7 +167,7 @@ int update_reaction_output(struct output_block *obp)
       final_chunk_flag=1;
     }
     else {
-      if (obp->timer_type==IT_TIME) {
+      if (obp->timer_type==OUTPUT_BY_TIME_LIST) {
         obp->t=obp->curr_time_ptr->value;
       }
       else {
@@ -301,8 +301,8 @@ int eval_count_expr_tree(struct output_evaluator *oep)
 {
 
   if (oep->data_type==EXPR) {
-    eval_count_expr_tree(oep->operand1);
-    eval_count_expr_tree(oep->operand2);
+    if(eval_count_expr_tree(oep->operand1)) return (1);
+    if(eval_count_expr_tree(oep->operand2)) return (1);
     if(eval_count_expr(oep->operand1,oep->operand2,oep->oper,oep)){
 	return (1);
     }

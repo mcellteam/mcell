@@ -4100,7 +4100,7 @@ viz_iteration_def: ITERATION_LIST '='
     mdlerror("Cannot store iteration list data");
     return(1);
   }
-  mdlpvp->fdlp->list_type=IT_TIME;
+  mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
   mdlpvp->fdlp->type=ALL_FRAME_DATA;
   mdlpvp->fdlp->viz_iteration=-1;
   mdlpvp->fdlp->n_viz_iterations=0;
@@ -4198,7 +4198,7 @@ viz_time_def: TIME_LIST '='
     mdlerror("Cannot store iteration list data");
     return(1);
   }
-  mdlpvp->fdlp->list_type=REAL_TIME;
+  mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
   mdlpvp->fdlp->type=ALL_FRAME_DATA;
   mdlpvp->fdlp->viz_iteration=-1;
   mdlpvp->fdlp->n_viz_iterations=0;
@@ -4234,7 +4234,7 @@ frame_data_spec: frame_data_item '='
     mdlerror("Cannot store iteration frame data");
     return(1);
   }
-  mdlpvp->fdlp->list_type=IT_TIME;
+  mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
   mdlpvp->fdlp->type=$<tok>1;
   mdlpvp->fdlp->viz_iteration=-1;
   mdlpvp->fdlp->n_viz_iterations=0;
@@ -4579,7 +4579,7 @@ output_def: REACTION_DATA_OUTPUT '{'
   volp->output_block_head=mdlpvp->obp;
 
   mdlpvp->obp->t=0;
-  mdlpvp->obp->timer_type=STEP_TIME;
+  mdlpvp->obp->timer_type=OUTPUT_BY_STEP;
   mdlpvp->obp->step_time=volp->time_unit;
   mdlpvp->obp->time_list_head=NULL;
   mdlpvp->obp->curr_time_ptr=NULL;
@@ -4609,7 +4609,7 @@ output_timer_def:  step_time_def
 step_time_def: STEP '=' num_expr
 {
   mdlpvp->obp->step_time=$<dbl>3;
-  mdlpvp->obp->timer_type=STEP_TIME;
+  mdlpvp->obp->timer_type=OUTPUT_BY_STEP;
 
   mdlpvp->output_freq=mdlpvp->obp->step_time/volp->time_unit;
   
@@ -4645,7 +4645,7 @@ step_time_def: STEP '=' num_expr
         | /* empty */
 {
   mdlpvp->obp->step_time=volp->time_unit;
-  mdlpvp->obp->timer_type=STEP_TIME;
+  mdlpvp->obp->timer_type=OUTPUT_BY_STEP;
 
   mdlpvp->output_freq=1;
 
@@ -4689,7 +4689,7 @@ iteration_time_def: ITERATION_LIST '='
 	'[' list_range_specs ']'
 {
   mdlpvp->n_output=mdlpvp->num_pos;
-  mdlpvp->obp->timer_type=IT_TIME;
+  mdlpvp->obp->timer_type=OUTPUT_BY_TIME_LIST;
 
   /**
    * Compute the output buffersize.
@@ -4716,7 +4716,7 @@ real_time_def: TIME_LIST '='
 	'[' list_range_specs ']'
 {
   mdlpvp->n_output=mdlpvp->num_pos;
-  mdlpvp->obp->timer_type=REAL_TIME;
+  mdlpvp->obp->timer_type=OUTPUT_BY_ITERATION_LIST;
 
   /**
    * Compute the output buffersize.
@@ -5034,7 +5034,7 @@ mol_count_syntax: existing_molecule ',' WORLD
         mdlpvp->rp->flags|=COUNT_CONTENTS;
         mdlpvp->specp->flags|=COUNT_CONTENTS;
         if ((mdlpvp->specp->flags & NOT_FREE)==0) {
-          volp->place_waypoints=1;
+          volp->place_waypoints_flag=1;
         }
 
         if ((mdlpvp->cp=store_reg_counter(volp,mdlpvp->specp,mdlpvp->rp))==NULL) {
@@ -5075,7 +5075,7 @@ mol_count_syntax: existing_molecule ',' WORLD
         mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
         mdlpvp->specp->flags|=COUNT_CONTENTS;
         if ((mdlpvp->specp->flags & NOT_FREE)==0) {
-          volp->place_waypoints=1;
+          volp->place_waypoints_flag=1;
         }
 
 	mdlpvp->stp2=$<sym>3;
