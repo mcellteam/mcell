@@ -1358,6 +1358,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
         if (wp[i]->area==0) {
           fprintf(log_file,"\nMCell: Warning -- Degenerate polygon found and automatically removed: %s %d\n\n",objp->sym->name,i);
           pop->side_stat[i]=0;
+          objp->n_walls_actual--;
           wp[i]=NULL;
         }
       }
