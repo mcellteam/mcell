@@ -188,6 +188,8 @@ int init_sim(void)
   world->y_fineparts = NULL;
   world->z_fineparts = NULL;
   world->n_fineparts = 0;
+  world->num_potential_colls = 0;
+  world->num_potential_colls_exp = 0;
 
   if (world->seed_seq < 1 || world->seed_seq > 3000) {
     fprintf(log_file,"MCell: error, random sequence number not in range 1 to 3000\n");
@@ -238,12 +240,11 @@ int init_sim(void)
   }
   world->default_release_pattern=(struct release_pattern *)gp->value;
   world->default_release_pattern->delay=0;
-  /*world->default_release_pattern->release_interval=2;*/
   world->default_release_pattern->release_interval=0;
   world->default_release_pattern->train_interval=1;
   world->default_release_pattern->train_duration=1;
   world->default_release_pattern->number_of_trains=1;
-  
+   
   if ((gp=store_sym("GENERIC_MOLECULE",MOL,world->main_sym_table))
       ==NULL) {
     fprintf(log_file,"MCell: cannot store generic molecule");
@@ -996,7 +997,6 @@ int instance_release_site(struct object *objp, double (*im)[4])
 	  reqp->location.z=location[0][2]/world->length_unit;
 	  
 	  reqp->release_site=rsop;
-	  reqp->event_type=TRAIN_HIGH_EVENT;
 	  reqp->event_time=rsop->pattern->delay;
 	  reqp->train_counter=0;
 	  reqp->train_high_time=rsop->pattern->delay;

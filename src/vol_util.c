@@ -427,7 +427,6 @@ release_molecules:
   Out: 0 on success, 1 on failure; next event is scheduled and molecule(s)
        are released into the world as specified.
 *************************************************************************/
-
 int release_molecules(struct release_event_queue *req)
 {
   struct release_site_obj *rso;
@@ -442,55 +441,18 @@ int release_molecules(struct release_event_queue *req)
   double t,k;
   double num;
   
+  if(req == NULL) return 0;
   rso = req->release_site;
   rpat = rso->pattern;
-  
-  if (req->event_type == TRAIN_HIGH_EVENT)
+ 
+  if(req->train_counter == 0)
   {
-    if (rso->release_prob < 1.0)
-    {
-      k = -log( 1.0 - rso->release_prob );
-      t = -log( rng_double(world->seed++) ) / k;  /* Poisson dist. */
-      req->event_time += rpat->release_interval * (ceil(t)-1.0); /* Rounded to integers */
-    }
-    
-    if (req->event_time > req->train_high_time + rpat->train_duration)
-    {
-      req->train_high_time += rpat->train_interval;
-      req->event_time = req->train_high_time;
-      req->train_counter++;
-    }
-    else req->event_type = RELEASE_EVENT;
-
-    if (req->train_counter < rpat->number_of_trains)
-    {
-      if ( schedule_add(world->releaser,req) ){
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory during release molecule event.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-      } 
-    }
-    return 0;
+	req->train_counter++;
   }
-
-  /* Fall through if it's a release event */
-
+ 
+  /* Set molecule characteristics. */
   m.t = req->event_time;
 
-  req->event_type = TRAIN_HIGH_EVENT;
-  if(rpat->release_interval > 0)
-  {
-  	req->event_time += rpat->release_interval;
-
-  	if ( schedule_add(world->releaser,req) ) {
-		fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
-        	int i = emergency_output();
-        	fprintf(stderr, "Fatal error: out of memory during release molecule event.\nAttempt to write intermediate results had %d errors.\n", i);
-        	exit(EXIT_FAILURE);
-
-  	}
-  }
   guess = NULL;
   
   m.properties = rso->mol_type;
@@ -587,10 +549,51 @@ int release_molecules(struct release_event_queue *req)
     }
     fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
   }
+ 
+  /* Exit if no more releases should be scheduled. */
+  if(req->train_counter == rpat->number_of_trains)
+  {
+      if((rpat->release_interval == 0) ||
+         (req->event_time + EPSILON > req->train_high_time + rpat->train_duration))
+      {
+            return 0;
+      }
+  }
   
+
+  /* Otherwise schedule next release event. */
+  if(rpat->release_interval > 0)
+  {
+    if (rso->release_prob < 1.0)
+    {
+      k = -log( 1.0 - rso->release_prob );
+      t = -log( rng_double(world->seed++) ) / k;  /* Poisson dist. */
+      req->event_time += rpat->release_interval * (ceil(t)-1.0); /* Rounded to integers */
+    }else{
+  	req->event_time += rpat->release_interval;
+    }
+  }
+    /* we may need to move to the next train. */
+  if (req->event_time > req->train_high_time + rpat->train_duration)
+  {
+      req->train_high_time += rpat->train_interval;
+      req->event_time = req->train_high_time;
+      req->train_counter++;
+  }
+    
+  if (req->train_counter <= rpat->number_of_trains)
+  {
+      if ( schedule_add(world->releaser,req) ){
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory during release molecule event.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
+      } 
+  }
+
+ 
   return 0;
 }
-
 
 /*************************************************************************
 find_exponential_params:
