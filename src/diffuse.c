@@ -132,6 +132,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
                             struct subvolume *sv, struct vector3 *v)
 {
   struct collision *smash,*shead;
+  struct abstract_molecule *a;
   struct wall_list *wlp;
   struct wall_list fake_wlp;
   double dx,dy,dz,tx,ty,tz;
@@ -240,8 +241,10 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
 
   for ( ; c!=NULL ; c = c->next)
   {
-    i = collide_mol(&(m->pos),v,(struct abstract_molecule*)c->target,
-                    &(c->t),&(c->loc));
+    a = (struct abstract_molecule*)c->target;
+    if (a->properties==NULL) continue;
+    
+    i = collide_mol(&(m->pos),v,a,&(c->t),&(c->loc));
     if (i != COLLIDE_MISS)
     {
       smash = (struct collision*) mem_get(sv->mem->coll);
