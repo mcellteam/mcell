@@ -180,6 +180,13 @@ int init_sim(void)
   world->count_scheduler = NULL;
   world->storage_head = NULL;
   world->storage_allocator = NULL;
+  world->x_partitions = NULL;
+  world->y_partitions = NULL;
+  world->z_partitions = NULL;
+  world->x_fineparts = NULL;
+  world->y_fineparts = NULL;
+  world->z_fineparts = NULL;
+  world->n_fineparts = 0;
 
   if (world->seed_seq < 1 || world->seed_seq > 3000) {
     fprintf(log_file,"MCell: error, random sequence number not in range 1 to 3000\n");
