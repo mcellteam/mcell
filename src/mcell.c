@@ -65,18 +65,35 @@ void run_sim(void)
 	printf("Out of memory while releasing molecules of type %s\n",req->release_site->mol_type->sym->name);
 	return;
       }
-      printf("Releasing type = %s! \n",req->release_site->mol_type->sym->name);
+      fprintf(world->log_file,"Releasing type = %s! \n",req->release_site->mol_type->sym->name);
       req = schedule_next( world->releaser );
+    }
+    if (world->releaser->error)
+    {
+      fprintf(world->err_file,"Out of memory while scheduling molecule release. Trying to save intermediate results.\n");
+      i = emergency_output();
+      fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
+      exit( EXIT_FAILURE );
     }
 
     obp = schedule_next( world->count_scheduler );
     while (obp != NULL)
     {
-      if(update_reaction_output(obp)){
-	printf("Error while updating reaction output.\n");
-	return;
+      if (update_reaction_output(obp))
+      {
+	fprintf(world->err_file,"Error while updating reaction output. Trying to save intermediate results\n");
+	i = emergency_output();
+	fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
+	exit( EXIT_FAILURE );
       }
       obp = schedule_next( world->count_scheduler );
+    }
+    if (world->count_scheduler->error)
+    {
+      fprintf(world->err_file,"Out of memory while scheduling molecule release. Trying to save intermediate results.\n");
+      i = emergency_output();
+      fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
+      exit( EXIT_FAILURE );
     }
 
     update_frame_data_list(world->frame_data_head);
@@ -164,20 +181,20 @@ void run_sim(void)
     {
       for (j=0;j<rxp->n_reactants;j++)
       {
-        if (j==0) printf("Reaction %s[%d]",rxp->players[0]->sym->name,rxp->geometries[0]);
-        else printf(" + %s[%d]",rxp->players[j]->sym->name,rxp->geometries[j]);
+        if (j==0) fprintf(world->log_file,"Reaction %s[%d]",rxp->players[0]->sym->name,rxp->geometries[0]);
+        else fprintf(world->log_file," + %s[%d]",rxp->players[j]->sym->name,rxp->geometries[j]);
       }
-      if (rxp->n_pathways==RX_WINDOW) printf(" WINDOW");
-      else if (rxp->n_pathways==RX_GHOST) printf(" GHOST");
-      printf("\n");
+      if (rxp->n_pathways==RX_WINDOW) fprintf(world->log_file," WINDOW");
+      else if (rxp->n_pathways==RX_GHOST) fprintf(world->log_file," GHOST");
+      fprintf(world->log_file,"\n");
       for (j=0;j<rxp->n_pathways;j++)
       {
-        printf("  Count %g: ->",rxp->counter[j]);
+        fprintf(world->log_file,"  Count %g: ->",rxp->counter[j]);
         for (k=rxp->product_idx[j] ; k<rxp->product_idx[j+1] ; k++)
         {
-          if (rxp->players[k]!=NULL) printf(" %s{%d}",rxp->players[k]->sym->name,rxp->geometries[k]);
+          if (rxp->players[k]!=NULL) fprintf(world->log_file," %s{%d}",rxp->players[k]->sym->name,rxp->geometries[k]);
         }
-        printf("\n");
+        fprintf(world->log_file,"\n");
       }
     }
   }

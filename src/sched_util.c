@@ -11,10 +11,6 @@
 #include <stdlib.h>
 
 #include "sched_util.h"
-#include "mcell_structs.h"
-#include "react_output.h"
-
-int depth;
 
 
 /*************************************************************************
@@ -158,10 +154,11 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
   int i;
   
   n_slots = dt_max / dt_min;
-  depth++;
   
   if (n_slots < (double)(maxlen-1)) len = (int)n_slots + 1;
   else len = maxlen;
+  
+  if (len<2) len=2;
   
   sh = (struct schedule_helper*) malloc( sizeof( struct schedule_helper ) );
   if(sh == NULL) return NULL;
@@ -173,6 +170,7 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
   sh->buf_len = len;
   sh->index = 0;
   sh->count = 0;
+  sh->error = 0;
 
   sh->circ_buf_count = (int*) malloc( sizeof(int) * len );
   if (sh->circ_buf_count == NULL) return NULL;
@@ -196,7 +194,7 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
 //    printf("dt_min=%f dt_max=%f maxlen=%d start_time=%f\n",dt_min,dt_max,maxlen,start_time);
 //    printf("len=%d n_slots=%f\n",len,n_slots);
 
-  if (sh->dt * sh->buf_len < dt_max && depth<10)
+  if (sh->dt * sh->buf_len < dt_max)
   {
     sh->next_scale = create_scheduler(dt_min*len,dt_max,maxlen,sh->now+dt_min*len);
     if (sh->next_scale == NULL) return NULL;
@@ -363,7 +361,8 @@ schedule_next:
   In: scheduler that we are using
   Out: Next item to deal with.  If we are out of items for the current
        timestep, NULL is returned and the time is advanced to the next
-       timestep.
+       timestep.  If there is a memory error, NULL is returned and
+       sh->error is set to 1.
 *************************************************************************/
 
 void* schedule_next(struct schedule_helper *sh)
@@ -372,13 +371,8 @@ void* schedule_next(struct schedule_helper *sh)
   if (sh->current==NULL)
   {
     sh->current_count = schedule_advance(sh,&sh->current,&sh->current_tail);
-    if(sh->current_count == -1){
-	fprintf(stderr, "Out of memory: trying to save intermediate results\n");        int i = emergency_output();
-	fprintf(stderr, "Fatal error: out of memory during advancing of the scheduler.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);	
-    }else{
-    	return NULL;
-    }
+    if (sh->current_count == -1) sh->error = 1;
+    return NULL;
   }
   else
   {
@@ -441,6 +435,6 @@ void delete_scheduler(struct schedule_helper *sh)
   free(sh->circ_buf_tail);
   free(sh->circ_buf_head);
   free(sh->circ_buf_count);
-  if (sh->next_scale != NULL) free(sh->next_scale);
+  free(sh);
 }
 

@@ -44,9 +44,9 @@ extern struct volume *world;
 
 inline double abs_max_2vec(struct vector3 *v1,struct vector3 *v2)
 {
-    return max( max( abs(v1->x) , abs(v1->y) ) ,
-                max( max( abs(v1->z) , abs(v2->z) ) ,
-                     max( abs(v2->y) , abs(v2->x) ) ) );
+    return max( max( fabs(v1->x) , fabs(v1->y) ) ,
+                max( max( fabs(v1->z) , fabs(v2->z) ) ,
+                     max( fabs(v2->y) , fabs(v2->x) ) ) );
 }
 
 inline double max3(double f1, double f2, double f3)
@@ -666,7 +666,7 @@ void init_edge_transform(struct edge *e,int edgenum)
   e->sin_theta = ehatf.v*ehatb.u - ehatf.u*ehatb.v;
 
 /*  
-  if (abs(e->cos_theta*e->cos_theta + e->sin_theta*e->sin_theta - 1.0) > EPS_C)
+  if (fabs(e->cos_theta*e->cos_theta + e->sin_theta*e->sin_theta - 1.0) > EPS_C)
   {
     printf("Linear transformation error.\n");
     exit(1);
@@ -826,7 +826,7 @@ void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
   f.y = n->z*e.x - n->x*e.z;
   f.z = n->x*e.y - n->y*e.x;
   
-  tiny = EPS_C * (abs_max_2vec(p,v) + 1.0) / (k * max3(abs(f.x),abs(f.y),abs(f.z)));
+  tiny = EPS_C * (abs_max_2vec(p,v) + 1.0) / (k * max3(fabs(f.x),fabs(f.y),fabs(f.z)));
   if ( (rng_uint(world->seed) & 1) == 0 ) tiny = -tiny;
   
   v->x -= tiny*f.x;

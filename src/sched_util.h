@@ -20,6 +20,7 @@ struct schedule_helper
   struct abstract_element *current_tail;
   int current_count;
   struct schedule_helper *next_scale;
+  int error;
 };
 
 struct abstract_element* ae_list_sort(struct abstract_element *ae);

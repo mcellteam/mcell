@@ -181,7 +181,7 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
           tarl = xrl;
         }
       }
-      else if (i==COLLIDE_MISS || t > 1.0 || t > t_hit_sv || (wl->this_wall->flags & COUNT_CONTENTS) == 0 ||
+      else if (i==COLLIDE_MISS || !(t >= 0 && t < 1.0) || t > t_hit_sv || (wl->this_wall->flags & COUNT_CONTENTS) == 0 ||
 	       (hit.x-outside.x)*delta.x + (hit.y-outside.y)*delta.y + (hit.z-outside.z)*delta.z < 0) continue;
       else
       {
@@ -190,11 +190,12 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
           if ((xrl->reg->flags & COUNT_CONTENTS) != 0)
           {
             nrl = (struct region_list*) mem_get(rmem);
-	    if (nrl==NULL) {
-		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
-		int i = emergency_output();
-		fprintf(stderr, "Fatal error: out of memory while finding enclosing regions.\nAttempt to write intermediate results had %d errors\n", i);
-		exit(EXIT_FAILURE);
+	    if (nrl==NULL)
+	    {
+	      fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+	      i = emergency_output();
+	      fprintf(stderr, "Fatal error: out of memory while finding enclosing regions.\nAttempt to write intermediate results had %d errors\n", i);
+	      exit(EXIT_FAILURE);
             }
 
             nrl->reg = xrl->reg;
@@ -326,13 +327,7 @@ struct region_list* dup_region_list(struct region_list *r,struct mem_helper *mh)
   while (r!=NULL)
   {
     nr = (struct region_list*) mem_get(mh);
-    if(nr == NULL)
-    {
-		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
-		int i = emergency_output();
-		fprintf(stderr, "Fatal error: out of memory while finding duplicating region list.\nAttempt to write intermediate results had %d errors\n", i);
-		exit(EXIT_FAILURE);
-    }
+    if(nr == NULL) return NULL;
 
     nr->next = NULL;
     nr->reg = r->reg;
@@ -380,13 +375,8 @@ int place_waypoints()
   
   world->n_waypoints = world->n_subvols;
   world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint)*world->n_waypoints);
-  
-  if (!world->waypoints){
-		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
-		int i = emergency_output();
-		fprintf(stderr, "Fatal error: out of memory while placing waypoints.\nAttempt to write intermediate results had %d errors\n", i);
-		exit(EXIT_FAILURE);
-  }
+  if (!world->waypoints) return 1;
+
   for (i=0;i<world->nx_parts-1;i++)
   {
     for (j=0;j<world->ny_parts-1;j++)
@@ -422,8 +412,19 @@ int place_waypoints()
         
         if (k>0)
         {
-          wp->regions = dup_region_list(world->waypoints[h-1].regions,sv->mem->regl);
-          wp->antiregions = dup_region_list(world->waypoints[h-1].antiregions,sv->mem->regl);
+	  if (world->waypoints[h-1].regions != NULL)
+	  {
+            wp->regions = dup_region_list(world->waypoints[h-1].regions,sv->mem->regl);
+	    if (wp->regions == NULL) return 1;
+	  }
+	  else wp->regions = NULL;
+	  
+	  if (world->waypoints[h-1].antiregions != NULL)
+	  {
+            wp->antiregions = dup_region_list(world->waypoints[h-1].antiregions,sv->mem->regl);
+	    if (wp->antiregions == NULL) return 1;
+	  }
+	  else wp->antiregions = NULL;
           
           g = find_enclosing_regions(&(wp->loc),&(world->waypoints[h-1].loc),
                                      &(wp->regions),&(wp->antiregions),sv->mem->regl);

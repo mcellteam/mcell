@@ -154,10 +154,10 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
   smash = (struct collision*) mem_get(sv->mem->coll);
   if(smash == NULL)
   {
-    fprintf(stderr,"Out of memory.  Trying to save intermediate results.\n");
+    fprintf(world->err_file,"Out of memory.  Trying to save intermediate results.\n");
     i = emergency_output();
-    fprintf(stderr,"Out of memory while updating position of molecule of type %s\n",m->properties->sym->name);
-    fprintf(stderr,"%d errors while trying to save intermediate results.\n",i);
+    fprintf(world->err_file,"Out of memory while updating position of molecule of type %s\n",m->properties->sym->name);
+    fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",i);
     exit( EXIT_FAILURE );
   }
 
@@ -184,10 +184,10 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
       if (smash==NULL)
       {
 	if (shead!=NULL) mem_put_list(sv->mem->coll,shead);
-	fprintf(stderr,"Out of memory.  Trying to save intermediate results.\n");
+	fprintf(world->err_file,"Out of memory.  Trying to save intermediate results.\n");
 	i = emergency_output();
-	fprintf(stderr,"Out of memory while updating position of molecule of type %s\n",m->properties->sym->name);
-	fprintf(stderr,"%d errors while trying to save intermediate results.\n",i);
+	fprintf(world->err_file,"Out of memory while updating position of molecule of type %s\n",m->properties->sym->name);
+	fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",i);
 	exit( EXIT_FAILURE );
       }
     }
@@ -280,10 +280,10 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
       if (smash==NULL)
       {
 	mem_put_list(sv->mem->coll,shead);
-	fprintf(stderr,"Out of memory.  Trying to save intermediate results.\n");
+	fprintf(world->err_file,"Out of memory.  Trying to save intermediate results.\n");
 	i = emergency_output();
-	fprintf(stderr,"Out of memory while updating position of molecule of type %s\n",m->properties->sym->name);
-	fprintf(stderr,"%d errors while trying to save intermediate results.\n",i);
+	fprintf(world->err_file,"Out of memory while updating position of molecule of type %s\n",m->properties->sym->name);
+	fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",i);
 	exit( EXIT_FAILURE );
       }
       memcpy(smash,c,sizeof(struct collision));
@@ -299,14 +299,10 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
 }
 
 
-void tell_loc(struct molecule *m,char *s)
-{
-  if (0 || s[0] == '\0')
-  printf("%sMy name is %x and I live at %.3f,%.3f,%.3f\n",
-         s,(int)m,m->pos.x*world->length_unit,m->pos.y*world->length_unit,m->pos.z*world->length_unit);
-}
 
-
+#if 0
+/* This function will do what estimate_disk does but do an exact computation.*/
+/* This function is currently under construction, and may not be used. */
 double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv,
                   struct molecule *moving,struct molecule *target)
 {
@@ -559,7 +555,20 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
  
   return 1.0;
 }
+#endif
 
+/*************************************************************************
+estimate_disk:
+  In: location of moving molecule at time of collision
+      movement vector for moving molecule
+      interaction radius
+      subvolume the moving molecule is in
+      the moving molecule
+      the target molecule at time of collision
+  Out: The fraction of a full interaction disk that is actually
+       accessible to the moving molecule, estimated using Monte Carlo
+       integration.
+*************************************************************************/
 
 double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv,struct molecule *moving,struct molecule *target)
 {
@@ -762,6 +771,17 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
 }
 
 
+
+#ifdef DEBUG
+/* Debugging function: print a string and some details about a molecule. */
+void tell_loc(struct molecule *m,char *s)
+{
+  if (0 || s[0] == '\0')
+  printf("%sMy name is %x and I live at %.3f,%.3f,%.3f\n",
+         s,(int)m,m->pos.x*world->length_unit,m->pos.y*world->length_unit,m->pos.z*world->length_unit);
+}
+
+/* Debugging function: search a schedule for a specific item */
 int search_schedule_for_me(struct schedule_helper *sch,struct abstract_element *ae)
 {
   struct abstract_element *aep;
@@ -783,7 +803,7 @@ int search_schedule_for_me(struct schedule_helper *sch,struct abstract_element *
   else return search_schedule_for_me(sch->next_scale , ae);
 }
 
-
+/* Debugging function: see if an object was allocated by a given mem_helper */
 int search_memory_for_me(struct mem_helper *mh,struct abstract_list *al)
 {
   int i;
@@ -797,6 +817,7 @@ int search_memory_for_me(struct mem_helper *mh,struct abstract_list *al)
   else return search_memory_for_me(mh->next_helper,al);
 }
 
+/* Debugging function: see if we got a circular molecule list inside a SV */
 int test_subvol_for_circular(struct subvolume *sv)
 {
   struct molecule *mp,*smp,*psmp;
@@ -820,10 +841,21 @@ int test_subvol_for_circular(struct subvolume *sv)
   if (mp != NULL) return 1;
   return 0;
 }
+#endif
 
 
-/* This isn't very efficient for lots of coincident objects; it uses
-a bubble-sort-like algorithm (albeit on a nearly sorted list). */
+
+/*************************************************************************
+gather_walls_first:
+  In: A list of collisions
+      Tolerance below which two collisions are considered simultaneous
+  Out: The same list of collisions with simultaneous ones sorted to put
+       walls first among equals.
+  Note: This isn't very efficient for lots of coincident objects since
+        it uses a bubble-sort-like algorithm.  The list that is passed
+	in should have already been quicksorted, though, so it shouldn't
+	be too bad.
+*************************************************************************/
 
 struct collision* gather_walls_first(struct collision *shead,double tol)
 {
@@ -912,7 +944,7 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   int calculate_displacement = 1;
 
   sm = m->properties;
-  if (sm==NULL) printf("BROKEN!!!!!\n");
+  if (sm==NULL) fprintf(world->err_file,"BROKEN!!!!!\n");
   if (sm->space_step <= 0.0)
   {
     m->t += max_time;
@@ -956,8 +988,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       if (mp==m) continue;
       if (m->properties!=sm)
       {
-        if (calculate_displacement) printf("WHAAA????\n");
-        else printf("HWAAAAA????\n");
+        if (calculate_displacement) fprintf(world->err_file,"WHAAA????\n");
+        else fprintf(world->err_file,"HWAAAAA????\n");
       }
       
       if (mp->properties == NULL)  /* Reclaim storage */
@@ -982,9 +1014,12 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       if (rx != NULL)
       {
         smash = mem_get(sv->mem->coll);
-        if(smash == NULL){
-	   printf("Memory allocation error!\n");
-	   return NULL;
+        if (smash == NULL)
+	{
+	  fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  i = emergency_output();
+	  fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+	  exit( EXIT_FAILURE );
         }
         smash->target = (void*) mp;
         smash->intermediate = rx;
@@ -1080,7 +1115,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
        displacement.z*displacement.z;
   
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->mem->coll,shead2); if (shead!=NULL) mem_put_list(sv->mem->coll,shead); return (x)
-#define ERROR_AND_QUIT fprintf(stderr,"Out of memory: trying to save intermediate results.\n"); i=emergency_output(); fprintf(stderr,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
+#define ERROR_AND_QUIT fprintf(world->err_file,"Out of memory: trying to save intermediate results.\n"); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
   do
   {
     shead2 = ray_trace(m,shead,sv,&displacement);
@@ -1495,7 +1530,6 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         m->pos.x += displacement.x * smash->t;
         m->pos.y += displacement.y * smash->t;
         m->pos.z += displacement.z * smash->t;
-        tell_loc(m,"Boing!!  ");
         m->t += t_steps*smash->t;
         m->path_length += t_steps*smash->t*sqrt(( displacement.x * displacement.x +
                                                   displacement.y * displacement.y +
@@ -1547,7 +1581,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         if (shead != NULL) mem_put_list(sv->mem->coll,shead);
         
         calculate_displacement = 0;
-        if (m->properties==NULL) printf("This molecule shouldn't be jumping.\n");
+        if (m->properties==NULL) fprintf(world->err_file,"This molecule shouldn't be jumping.\n");
         goto pretend_to_call_diffuse_3D;  /* Jump to beginning of function */        
       }
     }
@@ -1562,7 +1596,6 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   m->pos.x += displacement.x;
   m->pos.y += displacement.y;
   m->pos.z += displacement.z;
-  tell_loc(m,"Whew...  ");
   m->t += t_steps;
   m->path_length += sqrt( displacement.x*displacement.x +
                           displacement.y*displacement.y +
@@ -1639,10 +1672,10 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         j = outcome_unimolecular(r,i,a,a->t);
 	if (j==RX_NO_MEM)
 	{
-	  fprintf(stderr,"Out of memory.  Trying to save intermediate results.\n");
+	  fprintf(world->err_file,"Out of memory.  Trying to save intermediate results.\n");
 	  i = emergency_output();
-	  fprintf(stderr,"Out of memory during unimolecular reaction %s...\n",r->sym->name);
-	  fprintf(stderr,"%d errors while trying to save intermediate results.\n",i);
+	  fprintf(world->err_file,"Out of memory during unimolecular reaction %s...\n",r->sym->name);
+	  fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",i);
 	  exit( EXIT_FAILURE );
 	}
         if (j!=RX_DESTROY) /* We still exist */
@@ -1711,12 +1744,20 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     
     if (err)
     {
-      fprintf(stderr,"Out of memory.  Trying to save intermediate results.\n");
+      fprintf(world->err_file,"Out of memory.  Trying to save intermediate results.\n");
       i = emergency_output();
-      fprintf(stderr,"Out of memory while scheduling molecule of type %s\n",a->properties->sym->name);
-      fprintf(stderr,"%d errors while trying to save intermediate results.\n",i);
+      fprintf(world->err_file,"Out of memory while scheduling molecule of type %s\n",a->properties->sym->name);
+      fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",i);
       exit( EXIT_FAILURE );
     }
+  }
+  if (local->timer->error)
+  {
+    fprintf(world->err_file,"Out of memory.  Trying to save intermediate results.\n");
+    i = emergency_output();
+    fprintf(world->err_file,"Out of memory while retrieving molecules to move.\n");
+    fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",i);
+    exit( EXIT_FAILURE );
   }
   
   local->current_time += 1.0;
