@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include "mcell_structs.h"
 #include "sym_table.h"
+#include "react_output.h"
 
 #define hashsize(n) ((ub4)1<<(n))
 #define hashmask(n) (hashsize(n)-1)
@@ -168,14 +169,17 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
   struct vector3 *tp;
   struct cmprt *cp;
   char *strp;
-  int i;
 */
+  int i;
 
   vp=NULL;
   /* try to find sym in table */
   if ((sp=retrieve_sym(sym,sym_type,hashtab))==NULL) {  /* sym not found */
-    if ((sp=(struct sym_table *)malloc(sizeof(struct sym_table)))==NULL) {
-      return(NULL);
+   if ((sp=(struct sym_table *)malloc(sizeof(struct sym_table)))==NULL) {
+  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+	i = emergency_output();
+  	fprintf(stderr, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
+	exit(EXIT_FAILURE);
     }
 #ifdef KELP
 	sp->ref_count=1;
@@ -190,7 +194,10 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
     switch (sym_type) {
     case DBL:
       if ((vp=(void *)malloc(sizeof(double)))==NULL) {
-        return(NULL);
+  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+	i = emergency_output();
+  	fprintf(stderr, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
+	exit(EXIT_FAILURE);
       }
       fp=(double *)vp;
       *fp=0.0;
@@ -205,7 +212,10 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       break;
     case MOL:
       if ((vp=(void *)malloc(sizeof(struct species)))==NULL) {
-        return(NULL);
+  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+	i = emergency_output();
+  	fprintf(stderr, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
+	exit(EXIT_FAILURE);
       }
       specp=(struct species *)vp;
       specp->sym=sp;
@@ -229,7 +239,10 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       break;
     case OBJ:
       if ((vp=(void *)malloc(sizeof(struct object)))==NULL) {
-        return(NULL);
+  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+	i = emergency_output();
+  	fprintf(stderr, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
+	exit(EXIT_FAILURE);
       }
       objp=(struct object *)vp;
       objp->sym=sp; 
@@ -261,7 +274,10 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       break;
     case RPAT:
       if ((vp=(void *)malloc(sizeof(struct release_pattern)))==NULL) {
-        return(NULL);
+  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+	i = emergency_output();
+  	fprintf(stderr, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
+	exit(EXIT_FAILURE);
       }
       rpatp=(struct release_pattern *)vp;
       rpatp->sym=sp;
@@ -273,7 +289,10 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       break;
     case RX:
       if ((vp=(void *)malloc(sizeof(struct rxn)))==NULL) {
-        return(NULL);
+  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+	i = emergency_output();
+  	fprintf(stderr, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
+	exit(EXIT_FAILURE);
       }
       rxnp=(struct rxn *)vp;
       rxnp->sym=sp;
@@ -291,7 +310,10 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       break;
     case REG:
       if ((vp=(void *)malloc(sizeof(struct region)))==NULL) {
-        return(NULL);
+  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+	i = emergency_output();
+  	fprintf(stderr, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
+	exit(EXIT_FAILURE);
       }
       rp=(struct region *)vp;
       rp->sym=sp;
@@ -307,7 +329,10 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       break;
     case FSTRM:
       if ((vp=(void *)malloc(sizeof(struct file_stream)))==NULL) {
-        return(NULL);
+  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+	i = emergency_output();
+  	fprintf(stderr, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
+	exit(EXIT_FAILURE);
       }
       filep=(struct file_stream *)vp;
       filep->name=NULL;
@@ -371,7 +396,10 @@ struct sym_table **init_symtab(int size)
   int i;
   if ((symtab=(struct sym_table **)malloc(size*sizeof(struct sym_table *))) == NULL)
   {
-	return NULL;
+  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+	i = emergency_output();
+  	fprintf(stderr, "Fatal error:out of memory during symbol table initialization.\nAttempt to write intermediate results had %d errors\n", i);
+	exit(EXIT_FAILURE);
   }
   for (i=0;i<size;symtab[i++]=NULL);
   return(symtab);

@@ -16,7 +16,7 @@
 #include "wall_util.h"
 #include "vol_util.h"
 #include "count_util.h"
-
+#include "react_output.h"
 
 extern struct volume *world;
 
@@ -190,7 +190,12 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
           if ((xrl->reg->flags & COUNT_CONTENTS) != 0)
           {
             nrl = (struct region_list*) mem_get(rmem);
-	    if (nrl==NULL) return 1;
+	    if (nrl==NULL) {
+		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+		int i = emergency_output();
+		fprintf(stderr, "Fatal error: out of memory while finding enclosing regions.\nAttempt to write intermediate results had %d errors\n", i);
+		exit(EXIT_FAILURE);
+            }
 
             nrl->reg = xrl->reg;
             
@@ -321,7 +326,13 @@ struct region_list* dup_region_list(struct region_list *r,struct mem_helper *mh)
   while (r!=NULL)
   {
     nr = (struct region_list*) mem_get(mh);
-    if(nr == NULL) return NULL;
+    if(nr == NULL)
+    {
+		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+		int i = emergency_output();
+		fprintf(stderr, "Fatal error: out of memory while finding duplicating region list.\nAttempt to write intermediate results had %d errors\n", i);
+		exit(EXIT_FAILURE);
+    }
 
     nr->next = NULL;
     nr->reg = r->reg;
@@ -370,8 +381,12 @@ int place_waypoints()
   world->n_waypoints = world->n_subvols;
   world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint)*world->n_waypoints);
   
-  if (!world->waypoints) return 1;  /* Malloc failure */
-  
+  if (!world->waypoints){
+		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+		int i = emergency_output();
+		fprintf(stderr, "Fatal error: out of memory while placing waypoints.\nAttempt to write intermediate results had %d errors\n", i);
+		exit(EXIT_FAILURE);
+  }
   for (i=0;i<world->nx_parts-1;i++)
   {
     for (j=0;j<world->ny_parts-1;j++)

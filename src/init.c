@@ -28,6 +28,7 @@
 #include "viz_output.h"
 #include "react.h"
 #include "init.h"
+#include "react_output.h"
 
 #ifdef DEBUG
 #define no_printf printf
@@ -84,7 +85,7 @@ void init_credits(void)
   if((institute[0] == NULL) || (institute[1] == NULL) ||
      (author[0] == NULL) || (author[1] == NULL))
   {
-     fprintf(log_file, " Memory allocation error\n");
+     fprintf(stderr, "Out of memory.\n");
      return;
   }	
   
@@ -176,6 +177,9 @@ int init_sim(void)
   world->r_step=NULL;
   world->d_step=NULL;
   world->place_waypoints=0;
+  world->count_scheduler = NULL;
+  world->storage_head = NULL;
+  world->storage_mem = NULL;
 
   if (world->seed_seq < 1 || world->seed_seq > 3000) {
     fprintf(log_file,"MCell: error, random sequence number not in range 1 to 3000\n");
@@ -192,8 +196,8 @@ int init_sim(void)
   world->count_hash = (struct counter**)malloc(sizeof(struct counter*)*(world->count_hashmask+1));
   if (world->count_hash == NULL)
   {
-    fprintf(log_file,"MCell: could not store counter hash table\n");
-    return(1);
+    fprintf(log_file,"Out of memory: could not store counter hash table\n");
+    exit(EXIT_FAILURE);
   }
   for (i=0;i<=world->count_hashmask;i++) world->count_hash[i] = NULL;
 
@@ -255,12 +259,12 @@ int init_sim(void)
 
   if ((world->count_zero=(struct output_evaluator *)malloc
        (sizeof(struct output_evaluator)))==NULL) {
-    fprintf(log_file,"MCell: cannot store counter data\n");
-    return(1); 
+    fprintf(log_file,"Out of memory: cannot store counter data\n");
+    exit(EXIT_FAILURE);
   }
   if (!(intp=(int *)malloc(sizeof(int)))) {
-    fprintf(log_file,"MCell: cannot store counter data\n");
-    return(1);
+    fprintf(log_file,"Out of memory: cannot store counter data\n");
+    exit(EXIT_FAILURE);
   }
   *intp=0;
   world->count_zero->next=NULL;
@@ -277,14 +281,14 @@ int init_sim(void)
   
   world->releaser = create_scheduler(1.0,100.0,100,0.0);
   if(world->releaser == NULL){
-	fprintf(log_file, "Memory allocation error\n");
-	return (1);
+	fprintf(stderr, "MCell: error while creating releaser.\n");
+        return (1);
   }
 
   world->count_scheduler = create_scheduler(1.0,100.0,100,0.0);
   if(world->count_scheduler == NULL){
-	fprintf(log_file, "Memory allocation error\n");
-	return (1);
+	fprintf(stderr,"MCell: error while creating count_scheduler.\n");
+        return (1);
   }
 
   /* Parse the MDL file: */
@@ -442,7 +446,8 @@ int init_species(void)
   world->n_species = count;  printf("Found %d species!\n",world->n_species);
   if((world->species_list = (struct species**)malloc(sizeof(struct species*)*world->n_species)) == NULL)
   {
-	return (1);
+	fprintf(stderr, "Out of memory during species initialization.\n");
+        exit(EXIT_FAILURE);
   }
   count = 0;
   for (i=0;i<HASHSIZE;i++)
@@ -571,41 +576,77 @@ int init_partitions(void)
   
   world->n_waypoints = 1;
   if((world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint*)*world->n_waypoints)) == NULL){
-     return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
   }
   
   if((shared_mem = (struct storage*)malloc(sizeof(struct storage))) == NULL){
-	return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
   }    
   if((shared_mem->list = create_mem(sizeof(struct wall_list),128)) == NULL){
-	return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
   }
   if((shared_mem->mol  = create_mem(sizeof(struct molecule),128)) == NULL){
-        return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
   }
   if((shared_mem->smol  = create_mem(sizeof(struct surface_molecule),128)) == NULL) {
-        return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
   }
   if((shared_mem->gmol  = create_mem(sizeof(struct grid_molecule),128)) == NULL)  {
-	return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
   }
   if((shared_mem->face = create_mem(sizeof(struct wall),128)) == NULL){
-        return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
   }
   if((shared_mem->join = create_mem(sizeof(struct edge),128)) == NULL){
-        return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
   }
   if((shared_mem->tree = create_mem(sizeof(struct vertex_tree),128)) == NULL){
-	return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
   }
   if((shared_mem->effs = create_mem(sizeof(struct surface_grid),128)) == NULL){
-	return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
   }
   if((shared_mem->coll = create_mem(sizeof(struct collision),128)) == NULL){
-	return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
   }
   if((shared_mem->regl = create_mem(sizeof(struct region_list),128)) == NULL){
-        return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
   }
   
   shared_mem->wall_head = NULL;
@@ -614,7 +655,10 @@ int init_partitions(void)
   shared_mem->vert_count = 0;
   
   if((shared_mem->timer = create_scheduler(1.0,100.0,100,0.0)) == NULL){
-	return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
   }
   shared_mem->current_time = 0.0;
   
@@ -625,10 +669,18 @@ int init_partitions(void)
     else shared_mem->max_timestep = world->time_step_max/world->time_unit;
   }
   
-  if((world->storage_mem = create_mem(sizeof(struct storage_list),10)) == NULL){	return (1);
+  if((world->storage_mem = create_mem(sizeof(struct storage_list),10)) == NULL)
+  {
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
   }
   if((world->storage_head = (struct storage_list*)mem_get(world->storage_mem)) == NULL) {
-	return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
   }
   world->storage_head->next = NULL;
   world->storage_head->store = shared_mem;
@@ -636,7 +688,10 @@ int init_partitions(void)
   world->n_subvols = (world->nz_parts-1) * (world->ny_parts-1) * (world->nx_parts-1);
   printf("Creating %d subvolumes (%d,%d,%d per axis)\n",world->n_subvols,world->nx_parts-1,world->ny_parts-1,world->nz_parts-1);
   if((world->subvol = (struct subvolume*)malloc(sizeof(struct subvolume)*world->n_subvols)) == NULL){
-	return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
   }
   for (i=0;i<world->nx_parts-1;i++)
   for (j=0;j<world->ny_parts-1;j++)
@@ -774,6 +829,7 @@ int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp, str
   double tm[4][4];
   unsigned short l,m,n;
   char *tmp_name;
+  int i;
 
   log_file=world->log_file;
   l=4;
@@ -791,30 +847,38 @@ int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp, str
     if (strcmp(sub_name,"")==0) {
       tmp_name=my_strdup("");
       if(tmp_name == NULL){
-	printf("Memory allocation error\n");
-        return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while object instantiation.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
       }else{}
     }
     else {
       tmp_name=my_strcat(sub_name,"."); 
       if(tmp_name == NULL){
-	printf("Memory allocation error\n");
-        return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while object instantiation.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
       }else{}
                   
     }
     sub_name=my_strcat(tmp_name,objp->last_name);    
     if(sub_name == NULL){
-	printf("Memory allocation error\n");
-        return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while object instantiation.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
     }else{}
     free((void *)tmp_name);
   }
   else {
     sub_name=my_strdup(objp->last_name);    
     if(sub_name == NULL){
-	printf("Memory allocation error\n");
-        return (1);
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while object instantiation.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
     }else{}
   }
 
@@ -873,6 +937,7 @@ int instance_release_site(struct object *objp, double (*im)[4])
   struct release_event_queue *reqp;
   double location[1][4];
   unsigned short l,m,n;
+  int i;
 
   log_file=world->log_file;
   rsop=(struct release_site_obj *)objp->contents;
@@ -898,8 +963,10 @@ int instance_release_site(struct object *objp, double (*im)[4])
 	  fflush(log_file);
 	  if ((reqp=(struct release_event_queue *)malloc
 				  (sizeof(struct release_event_queue)))==NULL) {
-		printf ("MCell: cannot store release event queue\n");
-		return(1);
+		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        	i = emergency_output();
+		fprintf(stderr,"Fatal error: out of memory while release site instantiation.\nAttempt to write intermediate results had %d errors.\n", i);
+        	exit(EXIT_FAILURE);
 	  }
 
 	  reqp->location.x=location[0][0]/world->length_unit;
@@ -945,6 +1012,7 @@ int compute_bb(struct object *objp, double (*im)[4], char *sub_name)
   double tm[4][4];
   unsigned short l,m,n;
   char *tmp_name;
+  int i;
 
   log_file=world->log_file;
   l=4;
@@ -956,29 +1024,37 @@ int compute_bb(struct object *objp, double (*im)[4], char *sub_name)
     if (strcmp(sub_name,"")==0) {
       tmp_name=my_strdup("");
       if(tmp_name == NULL){
-	printf("Memory allocation error\n");
-        return (1);
+		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        	i = emergency_output();
+		fprintf(stderr,"Fatal error: out of memory during bounding box computation.\nAttempt to write intermediate results had %d errors.\n", i);
+        	exit(EXIT_FAILURE);
       }else{}
     }
     else {
       tmp_name=my_strcat(sub_name,".");              
       if(tmp_name == NULL){
-	printf("Memory allocation error\n");
-        return (1);
+		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        	i = emergency_output();
+		fprintf(stderr,"Fatal error: out of memory while bounding box computation.\nAttempt to write intermediate results had %d errors.\n", i);
+        	exit(EXIT_FAILURE);
       }else{}
     }
     sub_name=my_strcat(tmp_name,objp->last_name);    
     if(sub_name == NULL){
-	printf("Memory allocation error\n");
-        return (1);
+		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        	i = emergency_output();
+		fprintf(stderr,"Fatal error: out of memory while bounding box computation.\nAttempt to write intermediate results had %d errors.\n", i);
+        	exit(EXIT_FAILURE);
     }else{}
     free((void *)tmp_name);
   }
   else {
     sub_name=my_strdup(objp->last_name);    
     if(sub_name == NULL){
-	printf("Memory allocation error\n");
-        return (1);
+		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        	i = emergency_output();
+		fprintf(stderr,"Fatal error: out of memory while bounding box computation.\nAttempt to write intermediate results had %d errors.\n", i);
+        	exit(EXIT_FAILURE);
     }else{}
   }
 
@@ -1159,23 +1235,37 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
   obj_name=my_strdup(full_name);
   if(obj_name == NULL)
   {
-	printf("Memory allocation error.\n");
-        return (1);
+		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        	int i = emergency_output();
+		fprintf(stderr,"Fatal error: out of memory while instantion of polygon object.\nAttempt to write intermediate results had %d errors.\n", i);
+        	exit(EXIT_FAILURE);
   }
 
 /* Allocate and initialize walls and vertices */
     if ((w=(struct wall *)malloc(n_walls*sizeof(struct wall)))==NULL) {
-      return(1);
+		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        	int i = emergency_output();
+		fprintf(stderr,"Fatal error: out of memory while instantion of polygon object.\nAttempt to write intermediate results had %d errors.\n", i);
+        	exit(EXIT_FAILURE);
     }
     if ((wp=(struct wall **)malloc(n_walls*sizeof(struct wall *)))==NULL) {
-      return(1);
+		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        	int i = emergency_output();
+		fprintf(stderr,"Fatal error: out of memory while instantion of polygon object.\nAttempt to write intermediate results had %d errors.\n", i);
+        	exit(EXIT_FAILURE);
     }
     if ((v=(struct vector3 *)malloc(n_walls*sizeof(struct vector3)))==NULL) {
-      return(1);
+		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        	int i = emergency_output();
+		fprintf(stderr,"Fatal error: out of memory while instantion of polygon object.\nAttempt to write intermediate results had %d errors.\n", i);
+        	exit(EXIT_FAILURE);
     }
     if ((vp=(struct vector3 **)malloc
         (n_walls*sizeof(struct vector3 *)))==NULL) {
-      return(1);
+		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        	int i = emergency_output();
+		fprintf(stderr,"Fatal error: out of memory while instantion of polygon object.\nAttempt to write intermediate results had %d errors.\n", i);
+        	exit(EXIT_FAILURE);
     }
     objp->walls=w;
     objp->wall_p=wp;
@@ -1199,7 +1289,10 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
     if (vizp!=NULL && objp->viz_state!=NULL) {
       if ((vcp=(struct viz_child *)malloc
            (sizeof(struct viz_child)))==NULL) {
-        return(1);
+		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        	int i = emergency_output();
+		fprintf(stderr,"Fatal error: out of memory while instantiation of polygon object.\nAttempt to write intermediate results had %d errors.\n", i);
+        	exit(EXIT_FAILURE);
       }
       vcp->obj = objp;
       vcp->next = vizp->viz_child_head;
@@ -1288,29 +1381,37 @@ int instance_obj_regions(struct object *objp,char *sub_name)
     if (strcmp(sub_name,"")==0) {
       tmp_name=my_strdup("");
       if (tmp_name == NULL) {
-        printf("Memory allocation error\n");
-	return (1);
+		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        	int i = emergency_output();
+		fprintf(stderr,"Fatal error: out of memory while instantiation of object regions.\nAttempt to write intermediate results had %d errors.\n", i);
+        	exit(EXIT_FAILURE);
       }else{}
     }
     else {
       tmp_name=my_strcat(sub_name,".");              
       if (tmp_name == NULL) {
-	printf("Memory allocation error\n");
-	return (1);
+		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        	int i = emergency_output();
+		fprintf(stderr,"Fatal error: out of memory while instantiation of object regions.\nAttempt to write intermediate results had %d errors.\n", i);
+        	exit(EXIT_FAILURE);
       }else{}
     }
     sub_name=my_strcat(tmp_name,objp->last_name);    
     if (sub_name == NULL) {
-	printf("Memory allocation error\n");
-	return (1);
+		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        	int i = emergency_output();
+		fprintf(stderr,"Fatal error: out of memory while instantiation of object regions.\nAttempt to write intermediate results had %d errors.\n", i);
+        	exit(EXIT_FAILURE);
     }else{}
     free((void *)tmp_name);
   }
   else {
     sub_name=my_strdup(objp->last_name);    
     if (sub_name == NULL) {
-        printf("Memory allocation error\n");
-	return (1);
+		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        	int i = emergency_output();
+		fprintf(stderr,"Fatal error: out of memory while instantiation of object regions.\nAttempt to write intermediate results had %d errors.\n", i);
+        	exit(EXIT_FAILURE);
     }else{}
   }
 
@@ -1391,7 +1492,10 @@ int init_wall_regions(struct object *objp, char *full_name)
   /* allocate scratch storage to hold effector info for each wall */
     if ((eff_prop=(struct eff_dat **)malloc
        (n_walls*sizeof(struct eff_dat *)))==NULL) {
-      return(1);
+		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        	int i = emergency_output();
+		fprintf(stderr,"Fatal error: out of memory while wall regions initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        	exit(EXIT_FAILURE);
     }
 
     for (i=0;i<n_walls;i++) {
@@ -1434,7 +1538,10 @@ int init_wall_regions(struct object *objp, char *full_name)
             if ((rp->flags & COUNT_SOME) !=0) {
               if ((wrlp=(struct region_list *)mem_get
                 (w->birthplace->regl))==NULL) {
-                return(1);
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while wall regions initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
               }
               wrlp->reg=rp;
               wrlp->next=w->regions;
@@ -1450,7 +1557,10 @@ int init_wall_regions(struct object *objp, char *full_name)
               if (effdp->quantity_type==EFFDENS) {
                 if ((dup_effdp=(struct eff_dat *)malloc
                      (sizeof(struct eff_dat)))==NULL){
-                  return(1);
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while wall regions initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
                 }
                 dup_effdp->eff=effdp->eff;
                 dup_effdp->quantity_type=effdp->quantity_type;
@@ -1474,7 +1584,10 @@ int init_wall_regions(struct object *objp, char *full_name)
                 if (effdp->quantity_type==EFFDENS) {
                   if ((dup_effdp=(struct eff_dat *)malloc
                        (sizeof(struct eff_dat)))==NULL){
-                    return(1);
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while wall regions initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
                   }
                   dup_effdp->eff=effdp->eff;
                   dup_effdp->quantity_type=effdp->quantity_type;
@@ -1497,7 +1610,10 @@ int init_wall_regions(struct object *objp, char *full_name)
       if (reg_eff_num) {
         if ((rlp2=(struct region_list *)malloc
              (sizeof(struct region_list)))==NULL){
-          return(1);
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while wall regions initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
         }
         rlp2->reg=rp;
         rlp2->next=reg_eff_num_head;
@@ -1515,7 +1631,10 @@ int init_wall_regions(struct object *objp, char *full_name)
       if (lig_hit_flag) {
         if ((rlp4=(struct region_list *)malloc
              (sizeof(struct region_list)))==NULL){
-          return(1);
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while wall regions initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
         }
         rlp4->reg=rp;
         rlp4->next=lig_hit_count;
@@ -1651,13 +1770,22 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
   }
 
   if ((eff=(struct species **)malloc(nr*sizeof(struct species *)))==NULL) {
-    return(1);
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while effectors by density intialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
   }
   if ((prob=(double *)malloc(nr*sizeof(double)))==NULL) {
-    return(1);
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while effectors by density intialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
   }
   if ((orientation=(short*)malloc(nr*sizeof(short)))==NULL) {
-    return(1);
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while effectors by density intialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
   }
 
   for (i=0;i<nr;i++) {
@@ -1716,8 +1844,10 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
         eff[p_index]->population++;
         mol=(struct grid_molecule *)mem_get(w->birthplace->gmol);
         if(mol == NULL){
-		printf("Memory allocation error.\n");
-		return (1);
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while effectors by density intialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
         }
         sg->mol[i]=mol;
         mol->t=0;
@@ -1824,15 +1954,24 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
         /* allocate memory to hold array of pointers to all free tiles */
         if ((tiles=(struct grid_molecule ***)malloc
            (n_free_eff*sizeof(struct grid_molecule **)))==NULL) {
-          return(1);
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while effectors by number intialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
         }
         if ((index=(unsigned int *)malloc
            (n_free_eff*sizeof(unsigned int)))==NULL) {
-          return(1);
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while effectors by number intialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
         }
         if ((walls=(struct wall **)malloc
            (n_free_eff*sizeof(struct wall *)))==NULL) {
-          return(1);
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while effectors by number intialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
         }
         /* initialize array of pointers to all free tiles */
         k=0;
@@ -1915,8 +2054,10 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   mol=(struct grid_molecule *)
                     mem_get(walls[j]->birthplace->gmol);
                   if (mol == NULL){
-                     printf("Memory allocation error.\n");
-		     return (1);
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while effectors by number initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
                   }
                   *tiles[j]=mol;
                   mol->t=0;
@@ -1952,8 +2093,10 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     mol=(struct grid_molecule *)mem_get
                       (walls[k]->birthplace->gmol);
                     if (mol == NULL){
-                     	printf("Memory allocation error.\n");
-		     	return (1);
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while effectors by number initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
                     }
                     *tiles[k]=mol;
                     mol->t=0;
@@ -1981,15 +2124,24 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
         /* allocate memory to hold array of pointers to remaining free tiles */
             if ((tiles_tmp=(struct grid_molecule ***)malloc
                  (n_clear*sizeof(struct grid_molecule **)))==NULL) {
-              return(1);
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while effectors by number initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
             }
             if ((index_tmp=(unsigned int *)malloc
                (n_clear*sizeof(unsigned int)))==NULL) {
-              return(1);
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while effectors by number initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
             }
             if ((walls_tmp=(struct wall **)malloc
                (n_clear*sizeof(struct wall *)))==NULL) {
-              return(1);
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while effectors by number initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
             }
             k=0;
             for (i=0;i<n_free_eff;i++) {

@@ -947,22 +947,6 @@ struct release_pattern {
 /**  Everything below this line has been copied from MCell 2.69  **/
 /******************************************************************/
 
-
-/**
- * Node data structure. 
- * \todo why only left and right walls?
- */
-struct node_dat {
-	struct vector3 corner[8];
-	struct wall *right_wall;
-	struct wall *left_wall;
-	byte left_subvol;
-	byte right_subvol;
-	int left_node;
-	int right_node;
-};
-
-
 /**
  * Linked list of all reaction data output blocks
  */

@@ -885,6 +885,7 @@ delete_mem:
 
 void delete_mem(struct mem_helper *mh)
 {
+  if(mh == NULL) return;
   if (mh->next_helper) delete_mem(mh->next_helper);
   free(mh->storage);
   free(mh);
