@@ -484,7 +484,7 @@ diffuse_3D:
        Position and time are updated, but molecule is not rescheduled.
 *************************************************************************/
 
-struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
+struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert,double newbie_time)
 {
   struct vector3 displacement;
   struct collision *smash,*shead,*shead2;
@@ -790,7 +790,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
         else k = -1;
         
-        if (w->effectors != NULL &&(m->properties->flags&CAN_MOLGRID) != 0)
+        if ( w->effectors != NULL && (m->properties->flags&CAN_MOLGRID) != 0 &&
+             (newbie_time<=0 || m->t + steps*smash->t) )
         {
           j = xyz2grid( &(smash->loc) , w->effectors );
           if (w->effectors->mol[j] != NULL)
@@ -822,6 +823,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             }
           }
         }
+        newbie_time = 0.0;
         
         if ( (m->properties->flags&CAN_MOLWALL) != 0 )
         {
@@ -998,6 +1000,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
   double t;
   double stop_time,max_time;
   int i,j;
+  double newbie_time = 0;
   
   while ( (a = (struct abstract_molecule*)schedule_next(local->timer)) != NULL )
   {
@@ -1028,6 +1031,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         {
           r = trigger_unimolecular(a->properties->hashval,a);
           a->t2 = timeof_unimolecular(r);
+          newbie_time = a->t + 0.5;
         }
       }
       else if ((a->flags & ACT_REACT) != 0)
@@ -1053,7 +1057,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       {
         if (max_time > release_time - local->current_time) max_time = release_time - local->current_time;
         t = a->t;
-        a = (struct abstract_molecule*)diffuse_3D((struct molecule*)a , max_time , a->flags & ACT_INERT);
+        a = (struct abstract_molecule*)diffuse_3D((struct molecule*)a , max_time , a->flags & ACT_INERT,newbie_time);
         if (a!=NULL) /* We still exist */
         {
           a->t2 -= a->t - t;
