@@ -28,7 +28,6 @@
 #define MULTISTEP_WORTHWHILE 2.0
 #define MULTISTEP_PERCENTILE 0.99
 #define MULTISTEP_FRACTION 0.98
-#define SET_ME_PROPERLY 1.0
 
 
 
@@ -48,7 +47,8 @@ void pick_displacement(struct vector3 *v,double scale)
 {
   double r;
   
-  if (1)
+#if 0
+  if (world->fully_random)
   {
     double x,y,z;
     do
@@ -63,6 +63,7 @@ void pick_displacement(struct vector3 *v,double scale)
     v->z = r*z;
     return;
   }
+#endif
     
   
   if (world->fully_random)
@@ -88,11 +89,11 @@ void pick_displacement(struct vector3 *v,double scale)
     
     bits = rng_uint(world->seed++);
     
-    x_bit =        (bits & 0x8000000);
-    y_bit =        (bits & 0x4000000);
-    z_bit =        (bits & 0x2000000);
+    x_bit =        (bits & 0x80000000);
+    y_bit =        (bits & 0x40000000);
+    z_bit =        (bits & 0x20000000);
     thetaphi_bit = (bits & 0x1FFFF000) >> 12;
-    r_bit =        (bits & 0x0000FFF);
+    r_bit =        (bits & 0x00000FFF);
     
     r = scale * world->r_step[ r_bit & (world->radial_subdivisions - 1) ];
     
@@ -427,6 +428,7 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   struct vector3 displacement;
   struct collision *smash,*shead,*shead2;
   struct subvolume *sv;
+  struct wall_list *wl;
   struct wall *w;
   struct rxn *r;
   struct molecule *mp,*old_mp;
@@ -471,44 +473,47 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   
   shead = NULL;
   old_mp = NULL;
-  for (mp = sv->mol_head ; mp != NULL ; old_mp = mp , mp = mp->next_v)
+  if ( (m->properties->flags & CAN_MOLMOL) != 0 )
   {
+    for (mp = sv->mol_head ; mp != NULL ; old_mp = mp , mp = mp->next_v)
+    {
 continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp already set */
 
-    if (mp==m) continue;
-    if (m->properties!=sm)
-    {
-      if (calculate_displacement) printf("WHAAA????\n");
-      else printf("HWAAAAA????\n");
-    }
-    
-    if (mp->properties == NULL)  /* Reclaim storage */
-    {
-      if (old_mp != NULL) old_mp->next_v = mp->next_v;
-      else sv->mol_head = mp->next_v;
+      if (mp==m) continue;
+      if (m->properties!=sm)
+      {
+        if (calculate_displacement) printf("WHAAA????\n");
+        else printf("HWAAAAA????\n");
+      }
       
-      if ((mp->flags & IN_MASK)==IN_VOLUME) mem_put(mp->birthplace,mp);
-      else if ((mp->flags & IN_VOLUME) != 0) mp->flags -= IN_VOLUME;
-      
-      mp = mp->next_v;
+      if (mp->properties == NULL)  /* Reclaim storage */
+      {
+        if (old_mp != NULL) old_mp->next_v = mp->next_v;
+        else sv->mol_head = mp->next_v;
+        
+        if ((mp->flags & IN_MASK)==IN_VOLUME) mem_put(mp->birthplace,mp);
+        else if ((mp->flags & IN_VOLUME) != 0) mp->flags -= IN_VOLUME;
+        
+        mp = mp->next_v;
 
-      if (mp==NULL) break;
-      else goto continue_special_diffuse_3D;  /*continue without incrementing pointer*/
-    }
-    
-    r = trigger_bimolecular(
-            m->properties->hashval,mp->properties->hashval,
-            (struct abstract_molecule*)m,(struct abstract_molecule*)mp,0,0
-          );
-    
-    if (r != NULL)
-    {
-      smash = mem_get(sv->mem->coll);
-      smash->target = (void*) mp;
-      smash->intermediate = r;
-      smash->next = shead;
-      smash->what = COLLIDE_MOL;
-      shead = smash;
+        if (mp==NULL) break;
+        else goto continue_special_diffuse_3D;  /*continue without incrementing pointer*/
+      }
+      
+      r = trigger_bimolecular(
+              m->properties->hashval,mp->properties->hashval,
+              (struct abstract_molecule*)m,(struct abstract_molecule*)mp,0,0
+            );
+      
+      if (r != NULL)
+      {
+        smash = mem_get(sv->mem->coll);
+        smash->target = (void*) mp;
+        smash->intermediate = r;
+        smash->next = shead;
+        smash->what = COLLIDE_MOL;
+        shead = smash;
+      }
     }
   }
   
@@ -519,12 +524,22 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       d2_nearmax = sm->space_step * world->r_step[ (int)(world->radial_subdivisions * MULTISTEP_PERCENTILE) ];
       d2_nearmax *= d2_nearmax;
     
-      for (smash = shead ; smash != NULL ; smash = smash->next)
+      if ( (m->properties->flags & CAN_MOLMOL) != 0 )
       {
-        mp = (struct molecule*)smash->target;
-        d2 = (m->pos.x - mp->pos.x)*(m->pos.x - mp->pos.x) +
-             (m->pos.y - mp->pos.y)*(m->pos.x - mp->pos.y) +
-             (m->pos.z - mp->pos.z)*(m->pos.x - mp->pos.z);
+        for (smash = shead ; smash != NULL ; smash = smash->next)
+        {
+          mp = (struct molecule*)smash->target;
+          d2 = (m->pos.x - mp->pos.x)*(m->pos.x - mp->pos.x) +
+               (m->pos.y - mp->pos.y)*(m->pos.x - mp->pos.y) +
+               (m->pos.z - mp->pos.z)*(m->pos.x - mp->pos.z);
+          if (d2 < d2min) d2min = d2;
+        }
+      }
+      for (wl = sv->wall_head ; wl!=NULL ; wl = wl->next)
+      {
+        w = wl->this_wall;
+        d2 = w->normal.x*m->pos.x + w->normal.y*m->pos.y + w->normal.z*m->pos.z;
+        d2 *= d2;
         if (d2 < d2min) d2min = d2;
       }
     
@@ -572,6 +587,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       pick_displacement(&displacement,rate_factor*sm->space_step);
     }
     
+    world->diffusion_number += 1.0;
+    world->diffusion_cumsteps += steps;
   }
   
   d2 = displacement.x*displacement.x + displacement.y*displacement.y +
@@ -624,11 +641,11 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           if (smash->t < am->t + am->t2) continue;
         }
 
-        factor = rate_factor * estimate_disk(
+        factor = rate_factor / estimate_disk(
           &(smash->loc),&displacement,world->rx_radius_3d,m->subvol
         );
         
-        i = test_bimolecular(smash->intermediate,1.0/factor);
+        i = test_bimolecular(smash->intermediate,factor);
         if (i<0) continue;
         
         j = outcome_bimolecular(
@@ -651,7 +668,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
         else k = -1;
         
-        if (w->effectors != NULL)
+        if (w->effectors != NULL &&(m->properties->flags&CAN_MOLGRID) != 0)
         {
           j = xyz2grid( &(smash->loc) , w->effectors );
           if (w->effectors->mol[j] != NULL)
@@ -666,7 +683,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             if (g->orient != 1) printf("Bizarre[2]!  Orientation of %x is %d\n",(int)g,g->orient);
             if (r!=NULL)
             {
-              i = test_bimolecular(r,w->effectors->binding_factor);
+              i = test_bimolecular(r,rate_factor * w->effectors->binding_factor);
               if (i >= 0)
               {
                 l = outcome_bimolecular(
@@ -688,49 +705,33 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           }
         }
         
-        r = trigger_intersect(
-                m->properties->hashval,(struct abstract_molecule*)m,k,w
-              );
-        
-        if (r != NULL)
+        if ( (m->properties->flags&CAN_MOLWALL) != 0 )
         {
-          i = test_intersect(r,rate_factor);
-          if (i>=0)
+          r = trigger_intersect(
+                  m->properties->hashval,(struct abstract_molecule*)m,k,w
+                );
+          
+          if (r != NULL)
           {
-            j = outcome_intersect(
-                    r,i,w,(struct abstract_molecule*)m,
-                    k,m->t + steps*smash->t,&(smash->loc)
-                  );
-            if (j==1) continue; /* pass through -- set counters! */
-            else if (j==0)
+            i = test_intersect(r,rate_factor);
+            if (i>=0)
             {
-              if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
-              if (shead != NULL) mem_put_list(sv->mem->coll,shead);
-              return NULL;
+              j = outcome_intersect(
+                      r,i,w,(struct abstract_molecule*)m,
+                      k,m->t + steps*smash->t,&(smash->loc)
+                    );
+              if (j==1) continue; /* pass through -- set counters! */
+              else if (j==0)
+              {
+                if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
+                if (shead != NULL) mem_put_list(sv->mem->coll,shead);
+                return NULL;
+              }
             }
           }
         }
         /* default is to reflect */
-#if 0
-        if (m->pos.x > 0) factor = m->pos.x;
-        else factor = -m->pos.x;
-        if (m->pos.y > 0)
-        {
-          if (factor < m->pos.y) factor = m->pos.y;
-        }
-        else
-        {
-          if (factor < -m->pos.y) factor = -m->pos.y;
-        }
-        if (m->pos.z > 0)
-        {
-          if (factor < m->pos.z) factor = m->pos.z;
-        }
-        else
-        {
-          if (factor < -m->pos.z) factor = -m->pos.z;
-        }
-#endif
+
         m->pos.x += displacement.x * smash->t;
         m->pos.y += displacement.y * smash->t;
         m->pos.z += displacement.z * smash->t;

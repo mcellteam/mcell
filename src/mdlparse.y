@@ -1285,6 +1285,16 @@ radial_directions_def: RADIAL_DIRECTIONS '=' num_expr
     return(1);
   }
   volp->r_num_directions=1.0/volp->num_directions;
+
+  /* Mask must contain at least every direction */
+  for (volp->directions_mask = 1 ; volp->directions_mask < volp->num_directions ; volp->directions_mask <<= 1) {}
+  if (volp->directions_mask > (1<<18))
+  {
+    mdlerror("Too many RADIAL_DIRECTIONS requested (max 131072).\n");
+    return(1);
+  }
+  volp->directions_mask -= 1;
+
   no_printf("desired radial directions = %d\n",volp->radial_directions);
   no_printf("actual radial directions = %d\n",volp->num_directions);
 }
@@ -1383,6 +1393,14 @@ molecule_stmt: new_molecule '{'
       mdlerror("Cannot store d_step data for molecule");
       return(1);
     }
+    for (volp->directions_mask = 1 ; volp->directions_mask < volp->num_directions ; volp->directions_mask <<= 1) {}
+    if (volp->directions_mask > (1<<18))
+    {
+      mdlerror("Internal error: bad number of default RADIAL_DIRECTIONS (max 131072).\n");
+      return(1);
+    }
+    volp->directions_mask -= 1;
+    
   }
 /*
   if (mdlpvp->specp->space_step*r_step[volp->radial_subdivisions-1]>max_diffusion_step) {

@@ -24,7 +24,6 @@ void run_sim(void)
   long long total_coll_1,total_coll_2;
   double total_len;
   
-  world->fully_random = 1;
 /*
   for (i=0;i<10000;i++)
   {
@@ -34,6 +33,8 @@ void run_sim(void)
   }
   return;
 */  
+  
+  world->diffusion_number = world->diffusion_cumsteps = 0.0;
   
   while (world->it_time < world->iterations
 /*         && world->it_time < world->chkpt_iterations */
@@ -70,8 +71,16 @@ void run_sim(void)
     }
     printf("\n");
   }
+  
+  fprintf(stderr,"Average diffusion jump was %.2f timesteps\n",world->diffusion_cumsteps/world->diffusion_number);
 
-#if 1
+  fprintf(stderr,"We have %d directions with a mask of %d\n",world->num_directions,world->directions_mask);
+  for (i=0;i<world->num_directions;i++)
+  {
+    printf("xyz = %.4f %.4f %.4f\n",world->d_step[3*i],world->d_step[3*i+1],world->d_step[3*i+2]);
+  }
+
+#if 0
   count = 0;
   total_coll_1 = 0;
   total_coll_2 = 0;

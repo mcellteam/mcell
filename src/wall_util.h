@@ -54,6 +54,8 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
 int collide_mol(struct vector3 *point,struct vector3 *move,
                 struct abstract_molecule *a,double *t,struct vector3 *hitpt);
 
+int intersect_box(struct vector3 *llf,struct vector3 *urb,struct wall *w);
+
 void init_tri_wall(struct object *objp,int side,
                    struct vector3 *v0,struct vector3 *v1,struct vector3 *v2);
 

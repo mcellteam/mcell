@@ -24,6 +24,10 @@
 #define ON_GRID     0x02
 #define IS_SURFACE  0x04
 #define IS_ACTIVE   0x08
+#define CAN_MOLMOL  0x10
+#define CAN_MOLGRID 0x20
+#define CAN_MOLSURF 0x40
+#define CAN_MOLWALL 0x80
 
 
 /* Reaction flags */
@@ -744,6 +748,8 @@ struct volume
   struct storage_list *storage_head;   /* Linked list of all storage */
   
   double speed_limit;           /* How far can the fastest particle get in one timestep? */
+  double diffusion_number;
+  double diffusion_cumsteps;
   
   /* Simulation initialization parameters  */
   struct sym_table **main_sym_table;
