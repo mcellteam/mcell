@@ -12,6 +12,7 @@
 
 #include "grid_util.h"
 #include "vol_util.h"
+#include "mcell_structs.h"
 
 
 /*************************************************************************

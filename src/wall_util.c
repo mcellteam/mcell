@@ -15,6 +15,7 @@
 
 #include "rng.h"
 #include "vector.h"
+#include "mem_util.h"
 #include "wall_util.h"
 #include "vol_util.h"
 #include "mcell_structs.h"

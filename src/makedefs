@@ -6,6 +6,6 @@ CFLAGS = -Wall -O3 -march=pentium4
 LIBS =  -lm
 LD = $(CC)
 LDFLAGS = 
-INSTALL_DIR = $(HOME)/bin
-MCELL_EXEC = mcell
+# INSTALL_DIR = $(HOME)/bin
+MCELL_EXEC = mcell3
 EXTRAS = 

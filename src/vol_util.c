@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "rng.h"
+#include "mem_util.h"
 #include "mcell_structs.h"
 #include "vol_util.h"
 #include "react.h"

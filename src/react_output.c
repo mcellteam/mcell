@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "sched_util.h"
 #include "mcell_structs.h"
 #include "react_output.h"
 
