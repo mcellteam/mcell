@@ -11,6 +11,7 @@
   #include "vector.h"
   #include "strfunc.h"
   #include "mcell_structs.h"
+  #include "mem_util.h"
   #include "sym_table.h"
   #include "diffuse_util.h"
   #include "mdlparse_util.h"
@@ -89,11 +90,12 @@ struct count_list *cnt;
 %token <tok> COS
 %token <tok> COUNT
 %token <tok> CUMULATE_FOR_EACH_TIME_STEP
+%token <tok> DBL_ARROW
 %token <tok> DIFFUSION_CONSTANT
 %token <tok> DEFINE
 %token <tok> DEFINE_EFFECTOR_SITE_POSITIONS
 %token <tok> DEFINE_MOLECULE
-%token <tok> DEFINE_REACTION
+%token <tok> DEFINE_REACTIONS
 %token <tok> DEFINE_RELEASE_PATTERN
 %token <tok> DEFINE_SURFACE_REGIONS
 %token <tok> DELAY
@@ -134,6 +136,7 @@ struct count_list *cnt;
 %token <tok> ITERATION_LIST
 %token <tok> ITERATIONS
 %token <tok> FULLY_RANDOM
+%token <tok> LFT_ARROW
 %token <tok> LEFT
 %token <tok> MOLECULE
 %token <tok> MOLECULE_POSITIONS
@@ -154,6 +157,7 @@ struct count_list *cnt;
 %token <tok> NO
 %token <tok> NONE
 %token <tok> NORMAL
+%token <tok> NO_SPECIES
 %token <tok> NUMBER
 %token <tok> NUMBER_BOUND
 %token <tok> NUMBER_OF_TRAINS
@@ -181,6 +185,7 @@ struct count_list *cnt;
 %token <tok> RADIANCE
 %token <tok> RAYSHADE
 %token <tok> REACTION_DATA_OUTPUT
+%token <tok> REACTION_GROUP
 %token <tok> REAL
 %token <tok> REFERENCE_STATE
 %token <tok> REFLECTIVE
@@ -194,6 +199,7 @@ struct count_list *cnt;
 %token <tok> RIGHT
 %token <tok> ROTATE
 %token <tok> ROUND_OFF
+%token <tok> RT_ARROW
 %token <tok> SCALE
 %token <tok> SEED
 %token <tok> SIN
@@ -262,6 +268,16 @@ struct count_list *cnt;
 %type <tok> include_stmt
 %type <tok> end_of_mdl_file
 
+%type <tok> rx_net_def
+%type <tok> rx_stmt
+%type <tok> list_rx_stmts
+%type <tok> rxn
+%type <tok> list_rxns
+%type <tok> rx_group_def
+%type <tok> unimolecular_rxn
+%type <tok> product
+%type <tok> list_products
+
 %type <sym> assign_var
 %type <sym> existing_var_only
 %type <sym> existing_str_var
@@ -292,6 +308,8 @@ struct count_list *cnt;
 %type <sym> existing_object_ref
 %type <sym> meta_object_def
 %type <sym> release_site_def
+
+%type <sym> reactant
 
 %type <nel> array_value
 
@@ -331,7 +349,6 @@ struct count_list *cnt;
 %type <tok> voxel_volume_mode_def
 %type <tok> surface_region_def
 %type <tok> effector_site_def
-%type <tok> rx_def
 %type <tok> output_def
 %type <tok> add_effector
 %type <tok> remove_side
@@ -410,12 +427,12 @@ mdl_stmt: time_def
 	| radial_subdivisions_def
 	| assignment_stmt
 	| molecule_def
+	| rx_net_def
 	| chkpt_stmt
 	| release_pattern_def
 	| physical_object_def
 	| instance_def
 /*
-	| rx_def
 	| partition_def
 	| parallel_partition_def
 	| surface_region_def
@@ -2057,9 +2074,213 @@ existing_object: VAR
 };
 
 
+rx_net_def: DEFINE_REACTIONS '{'
+	list_rx_stmts
+	'}'
+;
+
+
+list_rx_stmts: rx_stmt
+	| list_rx_stmts rx_stmt
+;
+
+
+rx_stmt: rx_group_def
+	| rxn
+;
+
+
+rx_group_def: REACTION_GROUP reaction_group_name '{'
+	list_rxns
+        '}'
+;
+
+
+reaction_group_name: VAR
+{
+};
+
+
+list_rxns: rxn
+	| list_rxns rxn
+;
+
+
+rxn: unimolecular_rxn
+;
+
+
+unimolecular_rxn: reactant RT_ARROW 
+{
+  mdlpvp->gp=$<sym>1;
+  if ((mdlpvp->tp=retrieve_sym(mdlpvp->gp->name,RX,volp->main_sym_table))
+      !=NULL) {
+  }
+  else if ((mdlpvp->tp=store_sym(mdlpvp->gp->name,RX,volp->main_sym_table))
+      ==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s %s","Cannot store reaction:",
+      mdlpvp->gp->name," -> ... ");
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  /* fill in reactant parts of struct rxn here */
+  if (mdlpvp->path_mem==NULL) {
+    if ((mdlpvp->path_mem=create_mem(sizeof(struct pathway),16384))==NULL) {
+      sprintf(mdlpvp->mdl_err_msg,"%s %s %s","Cannot store reaction:",
+        mdlpvp->gp->name," -> ... ");
+      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      return(1);
+    } 
+  }
+  if (mdlpvp->prod_mem==NULL) {
+    if ((mdlpvp->prod_mem=create_mem(sizeof(struct product),16384))==NULL) {
+      sprintf(mdlpvp->mdl_err_msg,"%s %s %s","Cannot store reaction:",
+        mdlpvp->gp->name," -> ... ");
+      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      return(1);
+    } 
+  }
+  if ((mdlpvp->pathp=(struct pathway *)mem_get(mdlpvp->path_mem))==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s %s","Cannot store reaction:",
+      mdlpvp->gp->name," -> ... ");
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  mdlpvp->rxnp=(struct rxn *)mdlpvp->tp->value;
+  mdlpvp->rxnp->n_reactants=1;
+  mdlpvp->rxnp->n_pathways++;
+  mdlpvp->pathp->reactant1=(struct species *)mdlpvp->gp->value;
+  mdlpvp->pathp->reactant2=NULL;
+  mdlpvp->pathp->reactant3=NULL;
+  mdlpvp->pathp->km=0;
+  mdlpvp->pathp->kcat=0;
+  mdlpvp->pathp->orientation1=mdlpvp->orient_class;
+  mdlpvp->pathp->orientation2=0;
+  mdlpvp->pathp->orientation3=0;
+  mdlpvp->pathp->product_head=NULL;
+
+  mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
+  mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
+  
+}
+	list_products fwd_rx_rate1
+{
+  mdlpvp->pathp->km=mdlpvp->fwd_km;
+#ifdef DEBUG
+  no_printf("unimolecular reaction defined:\n");
+  no_printf("  %s[%d] ->",mdlpvp->rxnp->pathway_head->reactant1->sym->name,
+    mdlpvp->rxnp->pathway_head->orientation1);
+  for (mdlpvp->prodp=mdlpvp->rxnp->pathway_head->product_head;
+      mdlpvp->prodp!=NULL;mdlpvp->prodp=mdlpvp->prodp->next) {
+    if (mdlpvp->prodp!=mdlpvp->rxnp->pathway_head->product_head) {
+      no_printf(" +");
+    }
+    no_printf(" %s[%d]",mdlpvp->prodp->prod->sym->name,mdlpvp->prodp->orientation);
+  }
+  no_printf(" [%.9g]\n",mdlpvp->rxnp->pathway_head->km);
+#endif
+};
+
+
+reactant: existing_molecule
+{
+  mdlpvp->orient_class=1;
+}
+	orientation_class
+{
+  $$=$<sym>1;
+};
+
+
+list_products: product
+	| list_products '+' product
+;
+
+
+product: existing_molecule
+{
+  mdlpvp->orient_class=1;
+}
+	orientation_class
+{
+  mdlpvp->gp=$<sym>1;
+  if ((mdlpvp->prodp=(struct product *)mem_get(mdlpvp->prod_mem))==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s %s","Cannot store reaction:",
+      mdlpvp->rxnp->sym->name," -> ... ");
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  mdlpvp->prodp->prod=(struct species *)mdlpvp->gp->value;
+  mdlpvp->prodp->orientation=mdlpvp->orient_class;
+
+  mdlpvp->prodp->next=mdlpvp->pathp->product_head;
+  mdlpvp->pathp->product_head=mdlpvp->prodp;
+}
+	| NO_SPECIES
+{
+};
+
+
+orientation_class: /* empty */
+	| list_orient_marks
+;
+
+list_orient_marks: list_head_marks
+	| list_tail_marks
+{
+  mdlpvp->orient_class*=-1;
+};
+
+
+list_head_marks: head_mark
+	| list_head_marks head_mark
+;
+
+
+head_mark: '\''
+{
+  mdlpvp->orient_class+=1;
+};
+
+
+list_tail_marks: tail_mark
+	| list_tail_marks tail_mark
+;
+
+
+tail_mark: ','
+{
+  mdlpvp->orient_class+=1;
+};
+
+
+fwd_rx_rate1: '[' num_expr ']'
+{
+  mdlpvp->fwd_km=$<dbl>2;
+}
+	| '[' '>' num_expr ']'
+{
+  mdlpvp->fwd_km=$<dbl>3;
+};
+
+
+fwd_rx_rate2: '[' num_expr ',' num_expr ']'
+{
+  mdlpvp->fwd_km=$<dbl>2;
+  mdlpvp->fwd_kcat=$<dbl>4;
+}
+	| '[' '>' num_expr ',' num_expr ']'
+{
+  mdlpvp->fwd_km=$<dbl>3;
+  mdlpvp->fwd_kcat=$<dbl>5;
+};
+
+
+
 
 
 %%
+
 
 
 
@@ -3563,39 +3784,6 @@ existing_reaction_state: VAR
 };
 
 
-rx_def: DEFINE_REACTION reaction_name '{'
-        req_rx_cmds
-        '}'
-;
-
-
-reaction_name: VAR
-{
-  if ((prxp=(struct parent_rx *)malloc
-       (sizeof(struct parent_rx)))==NULL) {
-    mdlerror("Cannot store parent rx");
-    return(1);
-  }
-  if (mdlpvp->cval_2!=NULL) {
-    prxp->reaction_name=my_strdup(mdlpvp->cval_2);
-    reaction_name=my_strcat(mdlpvp->cval_2,".");
-    free(mdlpvp->cval_2);
-    mdlpvp->cval_2=NULL;
-  }
-  else {
-    prxp->reaction_name=my_strdup(mdlpvp->cval);
-    reaction_name=my_strcat(mdlpvp->cval,".");
-    free(mdlpvp->cval);
-    mdlpvp->cval=NULL;
-  }
-  prxp->next=rx_head;
-  rx_head=prxp;
-  prxp->rx_index=n_rx_types++;
-  n_state=0;
-  ref_state=NULL;
-  no_printf("Defining reaction: %s\n",reaction_name);
-};
-
 req_rx_cmds: list_sub_rxs
 	reference_state_cmd
 {
@@ -4060,6 +4248,8 @@ output_def: REACTION_DATA_OUTPUT '{'
        
 '}'
        ;
+
+
 output_step_def:  step_def 
                 | reac_iteration_def 
                 | reac_time_def 
@@ -6255,6 +6445,8 @@ int mdlparse_init(struct volume *vol)
   mpvp->include_stack_ptr=0;
   mpvp->include_flag=0;
   mpvp->curr_obj=vol->root_object;
+  mpvp->path_mem=NULL;
+  mpvp->prod_mem=NULL;
 
   for(i=0;i<MAX_INCLUDE_DEPTH;i++) {
     mpvp->line_num[i]=1;

@@ -156,8 +156,8 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
   struct species *specp;
   struct release_pattern *rpatp;
   struct object *objp;
+  struct rxn *rxnp;
 /*
-  struct rx *rxp;
   struct vector3 *tp;
   struct cmprt *cp;
   struct region *rp;
@@ -255,63 +255,30 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       rpatp->train_duration=-1;
       rpatp->number_of_trains=-1;
       break;
-/*
     case RX:
-      if ((vp=(void *)malloc(sizeof(struct rx)))==NULL) {
+      if ((vp=(void *)malloc(sizeof(struct rxn)))==NULL) {
         return(NULL);
       }
-      rxp=(struct rx *)vp;
-      rxp->sym=sp;
-      rxp->parent_rx=NULL;
-      rxp->state_index=0;
-      rxp->checked=0;
-      rxp->viz_state=EXCLUDE_OBJ;
-      rxp->count=0;
-      if ((rxp->bind_rx=(struct rx_info **)malloc((1+n_ligand_types)* 
-          sizeof(struct rx_info *)))==NULL)
-      {
-        return(NULL); 
-      }
-      if ((rxp->transport_rx=(struct rx_info **)malloc((1+n_ligand_types)* 
-          sizeof(struct rx_info *)))==NULL)
-      {
-        return(NULL); 
-      }
-      if ((rxp->product_poisson_rx=(struct rx_info **)malloc((1+n_ligand_types)*
-          sizeof(struct rx_info *)))==NULL)
-      {
-        return(NULL); 
-      }
-      if ((rxp->dissoc_rx=(struct rx_info **)malloc((1+n_ligand_types)*
-          sizeof(struct rx_info *)))==NULL)
-      {
-        return(NULL);
-      }
-      if ((rxp->product_rx=(struct rx_info **)malloc((1+n_ligand_types)*
-          sizeof(struct rx_info *)))==NULL)
-      {
-        return(NULL); 
-      }
-      if ((rxp->degrade_rx=(struct rx_info **)malloc((1+n_ligand_types)*
-          sizeof(struct rx_info *)))==NULL)
-      {
-        return(NULL);
-      }
-      if ((rxp->bound_ligands=(byte *)malloc((1+n_ligand_types)*
-          sizeof(byte)))==NULL) {
-        return(NULL);
-      }
-      for (i=0;i<1+n_ligand_types;i++) {
-        rxp->bind_rx[i]=NULL;
-        rxp->transport_rx[i]=NULL;
-        rxp->product_poisson_rx[i]=NULL;
-        rxp->dissoc_rx[i]=NULL;
-        rxp->product_rx[i]=NULL;
-        rxp->degrade_rx[i]=NULL;
-        rxp->bound_ligands[i]=0;
-      }
-      rxp->isom_rx=NULL;
+      rxnp=(struct rxn *)vp;
+      rxnp->sym=sp;
+      rxnp->next=NULL;
+      rxnp->n_reactants=0;
+      rxnp->n_pathways=0;
+      rxnp->product_idx=NULL;
+      rxnp->cum_rates=NULL;
+      rxnp->cat_rates=NULL;
+      rxnp->players=NULL;
+      rxnp->geometries=NULL;
+      rxnp->fates=NULL;
+      rxnp->n_rate_t_rxns=0;
+      rxnp->rate_t_rxn_map=NULL;
+      rxnp->rate_t=NULL;
+      rxnp->jump_t=NULL;
+      rxnp->last_update=0;
+      rxnp->rxn_count_dt=NULL;
+      rxnp->rxn_count_cum=NULL;
       break;
+/*
     case PNT:
       if ((vp=(void *)malloc(sizeof(struct vector3)))==NULL) {
         return(NULL);

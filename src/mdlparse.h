@@ -49,7 +49,7 @@ struct mdlparse_vars {
   double tm[4][4];
   char *obj_name;
   char *prefix_name;
-  char *full_name;
+  char full_name[1024];
 
   struct release_site_obj *rsop;
   struct release_pattern *rpatp;
@@ -57,6 +57,17 @@ struct mdlparse_vars {
   struct viz_obj *vizp;
   int viz_state;
   int existing_state;
+
+  struct rxn *rxnp;
+  struct mem_helper *path_mem;
+  struct mem_helper *prod_mem;
+  struct pathway *pathp;
+  struct product *prodp;
+  double fwd_km;
+  double fwd_kcat;
+  double back_km;
+  double back_kcat;
+  short orient_class;
 
   FILE *file;
 

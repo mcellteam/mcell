@@ -108,7 +108,7 @@ I ([0-9]+)
 "DEFINE_EFFECTOR_SITE_POSITIONS"	{return(DEFINE_EFFECTOR_SITE_POSITIONS);}
 "DEFINE_MOLECULE" |
 "DEFINE_LIGAND" 	{return(DEFINE_MOLECULE);}
-"DEFINE_REACTION"	{return(DEFINE_REACTION);}
+"DEFINE_REACTIONS"	{return(DEFINE_REACTIONS);}
 "DEFINE_RELEASE_PATTERN"	{return(DEFINE_RELEASE_PATTERN);}
 "DEFINE_SURFACE_REGIONS"	{return(DEFINE_SURFACE_REGIONS);}
 "DELAY"			{return(DELAY);}
@@ -168,6 +168,7 @@ I ([0-9]+)
 "NORMAL"		{return(NORMAL);}
 "NO"			{return(NO);}
 "NONE"			{return(NONE);}
+"NULL"			{return(NO_SPECIES);}
 "NUMBER"		{return(NUMBER);}
 "NUMBER_BOUND"		{return(NUMBER_BOUND);}
 "NUMBER_OF_TRAINS"	{return(NUMBER_OF_TRAINS);}
@@ -194,6 +195,7 @@ I ([0-9]+)
 "RADIANCE"		{return(RADIANCE);}
 "RAYSHADE"		{return(RAYSHADE);}
 "REACTION_DATA_OUTPUT"	{return(REACTION_DATA_OUTPUT);}
+"REACTION_GROUP"	{return(REACTION_GROUP);}
 "REFERENCE_DIFFUSION_CONSTANT"	{return(REFERENCE_DIFFUSION_CONSTANT);}
 "REFERENCE_STATE"	{return(REFERENCE_STATE);}
 "REFLECTIVE"		{return(REFLECTIVE);}
@@ -263,7 +265,7 @@ I ([0-9]+)
 \"(([^\"]*)|((\\\")*))*\"  {mpvp->strval=my_strdup(mdltext); return(STR_VALUE);}
 {R}		       {sscanf((const char *)mdltext,"%lf",&mpvp->rval); return(REAL);}
 {I}			{sscanf((const char *)mdltext,"%d",&mpvp->ival); return(INTEGER);}
-[A-Za-z][A-Za-z0-9\_\.\']* {
+[A-Za-z][A-Za-z0-9\_\.]* {
 			   if (mpvp->cval==NULL) {
 			     mpvp->cval_2=NULL;
 			     mpvp->cval=my_strdup(mdltext);
@@ -274,7 +276,10 @@ I ([0-9]+)
 			   }
 			   return(VAR);
 			 }
-[\,\(\)\/\-\+\=\^\[\]\{\}\|\>\*\#\~\@\:\&\;]	{return(mdltext[0]);}
+"<"[-]+">"		{return(DBL_ARROW);}
+"<"[-]+			{return(LFT_ARROW);}
+[-]+">"			{return(RT_ARROW);}
+[\'\,\(\)\/\-\+\=\^\[\]\{\}\|\>\*\#\~\@\:\&\;]	{return(mdltext[0]);}
 .			;
 \n			{mpvp->line_num[mpvp->include_stack_ptr]++;}
 <<EOF>>			{return(EOF_TOK);}

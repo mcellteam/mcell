@@ -1,7 +1,7 @@
 #ifndef MCELL_STRUCTS
 #define MCELL_STRUCTS
 
-#include <machine/limits.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <stdio.h>
 
@@ -372,6 +372,7 @@ struct species
 struct rxn
 {
   struct rxn *next;          /* Next reaction with these reactants */
+  struct sym_table *sym;     /* ptr to symbol table entry for this rxn */
   
   u_int n_reactants;         /* How many reactants? (At least 1.) */
   u_int n_pathways;          /* How many pathways lead away? */
@@ -393,6 +394,7 @@ struct rxn
   
   u_int *rxn_count_dt;       /* How many times this timestep? */
   u_int *rxn_count_cum;      /* How many times ever? */
+  struct pathway *pathway_head; /* list of pathways built at parse-time */
 };
 
 
@@ -400,6 +402,28 @@ struct rxn
 struct rxn_group
 {
 /* Someone else gets to fill this in. */
+};
+
+/* Parse-time structure for reaction pathways */
+struct pathway {
+  struct pathway *next;
+  struct species *reactant1;
+  struct species *reactant2;
+  struct species *reactant3;
+  double km;
+  double kcat;
+  short orientation1;
+  short orientation2;
+  short orientation3;
+  struct product *product_head;
+};
+
+
+/* Parse-time structure for products of reaction pathways */
+struct product {
+  struct product *next;
+  struct species *prod;
+  short orientation;
 };
 
 
