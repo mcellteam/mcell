@@ -1,10 +1,12 @@
 #ifndef MDLPARSE_UTIL_H
 #define MDLPARSE_UTIL_H
 
+#include "vector.h"
 #include "mcell_structs.h"
 #include "mdlparse.h"
 
 void mdl_warning(struct mdlparse_vars *mpvp);
+void swap_double(double *x, double *y);
 double *double_dup(double value);
 struct name_list *concat_obj_name(struct name_list *name_list_end,char *name);
 char *get_first_name(char *obj_name);
@@ -22,6 +24,8 @@ char *concat_rx_name(char *name1, char *name2);
 int equivalent_geometry(struct pathway *p1,struct pathway *p2,int n);
 int prepare_reactions(struct mdlparse_vars *mpvp);
 
-
+int make_cuboid(struct vector3 *p1,
+                struct vector3 *p2,
+                struct ordered_poly *opp);
 
 #endif

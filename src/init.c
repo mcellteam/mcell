@@ -20,10 +20,8 @@
 #include "strfunc.h"
 #include "vector.h"
 #include "rng.h"
-/*
-#include "geom_util.h"
-*/
 #include "sym_table.h"
+#include "wall_util.h"
 #include "init.h"
 
 #ifdef DEBUG
@@ -219,6 +217,21 @@ int init_sim(void)
   world->default_release_pattern->train_interval=1;
   world->default_release_pattern->train_duration=1;
   world->default_release_pattern->number_of_trains=1;
+  
+  if ((gp=store_sym("GENERIC_MOLECULE",MOL,world->main_sym_table))
+      ==NULL) {
+    fprintf(log_file,"MCell: cannot store generic molecule");
+    return(1);
+  }
+  world->g_mol=(struct species *)gp->value;
+
+  if ((gp=store_sym("GENERIC_SURFACE",MOL,world->main_sym_table))
+      ==NULL) {
+    fprintf(log_file,"MCell: cannot store generic surface");
+    return(1);
+  }
+  world->g_surf=(struct species *)gp->value;
+  world->g_surf->flags=IS_SURFACE;
 
   world->count_list=NULL;
   world->output_list=NULL;
@@ -576,12 +589,30 @@ int init_geom(void)
   init_matrix(tm);
   
   compute_bb(world->root_instance,tm,NULL);
+  if (world->bb_min.x==vol_infinity 
+      && world->bb_min.y==vol_infinity
+      && world->bb_min.z==vol_infinity
+      && world->bb_max.x==-vol_infinity
+      && world->bb_max.y==-vol_infinity
+      && world->bb_max.z==-vol_infinity) {
+    world->bb_min.x=0;
+    world->bb_min.y=0;
+    world->bb_min.z=0;
+    world->bb_max.x=0;
+    world->bb_max.y=0;
+    world->bb_max.z=0;
+  }
   if (world->procnum == 0) {
     fprintf(log_file,"MCell: world bounding box =\n");
     fprintf(log_file,"         [ %.9g %.9g %.9g ] [ %.9g %.9g %.9g ]\n",
       world->bb_min.x,world->bb_min.y,world->bb_min.z,world->bb_max.x,
       world->bb_max.y,world->bb_max.z);
   }
+
+  world->n_walls=world->root_instance->n_walls;
+  world->n_verts=world->root_instance->n_verts;
+  no_printf("World object contains %d walls and %d vertices\n",
+    world->n_walls,world->n_verts);
   
   if (instance_obj(world->root_instance,tm,NULL,NULL,NULL)) {
     return(1);
@@ -662,7 +693,6 @@ int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp, str
       return(1);
     }
     break;
-/*
   case BOX_OBJ:
     no_printf("Box object %s instanced\n",sub_name);
     fflush(log_file);
@@ -677,12 +707,13 @@ int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp, str
       return(1);
     }
     break;
-*/
   }
 
   free((void *)sub_name);
   return(0);
 }
+
+
 
 /**
  * Instantiates a release site.
@@ -803,7 +834,6 @@ int compute_bb(struct object *objp, double (*im)[4], char *sub_name)
       return(1);
     }
     break;
-/*
   case BOX_OBJ:
     no_printf("Bounding box of Box object %s is computed\n",sub_name);
     fflush(log_file);
@@ -818,12 +848,13 @@ int compute_bb(struct object *objp, double (*im)[4], char *sub_name)
       return(1);
     }
     break;
-*/
   }
 
   free((void *)sub_name);
   return(0);
 }
+
+
 
 /**
  * Updates the bounding box of the world based on the size
@@ -870,21 +901,70 @@ int compute_bb_release_site(struct object *objp, double (*im)[4])
 
 
 
+/**
+ * Updates the bounding box of the world based on the size
+ * and location of a polygon_object (box_poly or polygon_object).
+ * Used by compute_bb().
+ */
+int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_name)
+{
+  struct polygon_object *pop;
+  struct ordered_poly *opp;
+  double p[1][4];
+  int i,n_verts,n_walls;
+  unsigned short l,m,n;
 
+  pop=(struct polygon_object *)objp->contents;
+  n_walls=pop->n_walls;
+  l=1;
+  m=4;
+  n=4;
 
+  switch (pop->list_type) {
+  case ORDERED_POLY:
+    opp=(struct ordered_poly *)pop->polygon_data;
+    n_verts=opp->n_verts;
+ 
+    for (i=0;i<n_verts;i++) {
+      p[0][0]=opp->vertex[i].x;
+      p[0][1]=opp->vertex[i].y;
+      p[0][2]=opp->vertex[i].z;
+      p[0][3]=1.0;
+      mult_matrix(p,im,p,l,m,n);
+      if (p[0][0]<world->bb_min.x) {
+        world->bb_min.x=p[0][0];
+      }
+      if (p[0][1]<world->bb_min.y) {
+        world->bb_min.y=p[0][1];
+      }
+      if (p[0][2]<world->bb_min.z) {
+        world->bb_min.z=p[0][2];
+      }
+      if (p[0][0]>world->bb_max.x) {
+        world->bb_max.x=p[0][0];
+      }
+      if (p[0][1]>world->bb_max.y) {
+        world->bb_max.y=p[0][1];
+      }
+      if (p[0][2]>world->bb_max.z) {
+        world->bb_max.z=p[0][2];
+      }
+    }
 
-/* **************************************************************** */
+/*
+    fprintf(log_file,"MCell: Total area of physical object %s = %.9g microns^2\n",objp->sym->name,total_area*world->length_unit*world->length_unit);
+*/
+    break;
+  }
 
-# if 0
-
-
-
+  return(0);
+}
 
 
 
 /**
  * Instantiates a polygon_object.
- * Creates a new polygon object from a template polygon_object or box object
+ * Creates walls from a template polygon_object or box object
  * as defined in the MDL file after applying the necessary geometric
  * transformations (scaling, rotation and translation).
  * <br>
@@ -893,16 +973,144 @@ int compute_bb_release_site(struct object *objp, double (*im)[4])
  */
 int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj *vizp, struct lig_count_ref *obj_lcrp, char *full_name)
 {
+  FILE *log_file;
+  struct polygon_object *pop;
+  struct ordered_poly *opp;
+  struct vector3 *v,**vp;
+  struct vector3 *vertex_normal;
+  struct wall *w,**wp;
+  double p[1][4],origin[1][4];
+  double total_area;
+  int i,n_verts,n_walls,index_0,index_1,index_2;
+  unsigned short l,m,n;
+  char *obj_name;
+  byte compute_vertex_normals;
+
+  log_file=world->log_file;
+  pop=(struct polygon_object *)objp->contents;
+  n_walls=pop->n_walls;
+  n_verts=pop->n_verts;
+  l=1;
+  m=4;
+  n=4;
+  total_area=0;
+  obj_name=my_strdup(full_name);
+
+
+  switch (pop->list_type) {
+
+  case ORDERED_POLY:
+
+/* Allocate and initialize memory */
+    if ((w=(struct wall *)malloc
+        (n_walls*sizeof(struct wall)))==NULL){
+      return(1);
+    }
+    if ((wp=(struct wall **)malloc
+        (n_walls*sizeof(struct wall *)))==NULL){
+      return(1);
+    }
+    if ((v=(struct vector3 *)malloc
+        (n_walls*sizeof(struct vector3)))==NULL){
+      return(1);
+    }
+    if ((vp=(struct vector3 **)malloc
+        (n_walls*sizeof(struct vector3 *)))==NULL){
+      return(1);
+    }
+    objp->walls=w;
+    objp->wall_p=wp;
+    objp->verts=v;
+    objp->vert_p=vp;
+
+    compute_vertex_normals=0;
+    opp=(struct ordered_poly *)pop->polygon_data;
+
+/* This is commented out to deactivate computation of vertex normals */
+/* If we want vertex normals we'll have to add a place to store them
+   in struct object */
+/*
+    if (opp->normal!=NULL) {
+      compute_vertex_normals=1;
+    }
+*/
+ 
+    for (i=0;i<n_verts;i++) {
+      vp[i]=&v[i];
+      p[0][0]=opp->vertex[i].x;
+      p[0][1]=opp->vertex[i].y;
+      p[0][2]=opp->vertex[i].z;
+      p[0][3]=1.0;
+      mult_matrix(p,im,p,l,m,n);
+      v[i].x=p[0][0]/world->length_unit;
+      v[i].y=p[0][1]/world->length_unit;
+      v[i].z=p[0][2]/world->length_unit;
+
+      if (compute_vertex_normals) {
+        p[0][0]=opp->normal[i].x;
+        p[0][1]=opp->normal[i].y;
+        p[0][2]=opp->normal[i].z;
+        p[0][3]=1.0;
+        origin[0][0]=0;
+        origin[0][1]=0;
+        origin[0][2]=0;
+        origin[0][3]=1.0;
+        mult_matrix(p,im,p,l,m,n);
+        mult_matrix(origin,im,origin,l,m,n);
+        vertex_normal[i].x=p[0][0]-origin[0][0];
+        vertex_normal[i].y=p[0][1]-origin[0][1];
+        vertex_normal[i].z=p[0][2]-origin[0][2];
+        normalize(&vertex_normal[i]);
+      }
+    }
+
+
+    for (i=0;i<n_walls;i++) {
+      wp[i]=&w[i];
+      index_0=opp->element_data[i].vertex_index[0];
+      index_1=opp->element_data[i].vertex_index[1];
+      index_2=opp->element_data[i].vertex_index[2];
+
+      init_tri_wall(objp,i,vp[index_0],vp[index_1],vp[index_2]);
+
+      if (wp[i]->area==0) {
+        fprintf(log_file,"\nMCell: Warning -- Degenerate polygon found and automatically removed: %s %d\n\n",objp->sym->name,i);
+        pop->side_stat[i]=0;
+      }
+    }
+  }
+
+  return(0);
+}
+
+
+
+/* This function not ready yet */
+
+#if 0
+
+/**
+ * Initialize data associated with wall regions.
+ * This function is called during wall instantiation Pass #3
+ * after walls have been copied to sub-volume local memory.
+ * Sets wall surf_class by region.
+ * Creates surface grids.
+ * Populates effector tiles by region.
+ */
+int init_wall_regions(struct object *objp)
+{
+  FILE *log_file;
   struct polygon_object *pop;
   struct ordered_poly *opp;
   struct box_poly *bpp;
   struct vertex_list *vlp;
-  struct vector3 *corner,**face,*rect_vert[4],**vert,*vp1,*vp2,v1,v2,vx,vy,vz;
+  struct vector3 *v,**vp;
+  struct vector3 corner[8],**face,*rect_vert[4],**vert,*vp1,*vp2,v1,v2,vx,vy,vz;
   struct vector3 *vertex_normal,**face_vertex_normal;
   struct vector3 ab,bc,ac;
   struct cmprt_data *cdp;
   struct cmprt_data_list *cdlp;
-  struct wall *wp;
+  struct wall *w,**wp;
   struct wall_list *wlp;
   struct effector *ep;
   struct rx *rx;
@@ -919,162 +1127,24 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
   double dx,dy,dz;
   double p[1][4],origin[1][4];
   double area,total_area;
-  int i,j,k,cnt,n_verts,n_polys,n_element_verts,index_0,index_1,index_n;
+  int i,j,k,cnt,n_verts,n_walls,n_element_verts,index_0,index_1,index_2;
   int done;
   unsigned short l,m,n;
-  char *obj_name;
+  char *obj_name,*full_name;
   byte compute_vertex_normals,reg_eff_num,reg_count_num;
   byte lig_hit_flag;
   byte throw_away = 0;
   byte wall_on_region_flag;
 
-  pop=(struct polygon_object *)objp->contents;
-  n_polys=pop->n_polys;
-  l=1;
-  m=4;
-  n=4;
-  total_area=0;
-  obj_name=my_strdup(full_name);
 
-
-   /* There's two cases here --
-   * 	POLY_OBJ - an object comprised of triangular polygons.
-   * 	BOX_OBJ - object that's a cuboid box; it's got 8 corners.
-   */
-  switch (objp->object_type) {
-
-  case POLY_OBJ:
-
-	/* Allocate and initialize memory */
-    compute_vertex_normals=0;
-    if (pop->list_type==ORDERED_POLY) {
-      opp=(struct ordered_poly *)pop->polygon_data;
-      if (opp->normal!=NULL) {
-        compute_vertex_normals=1;
-      }
-      n_verts=opp->n_verts;
-    }
-    if ((cdp=(struct cmprt_data *)malloc
-	 (sizeof(struct cmprt_data)))==NULL) {
-      return(1);
-    }
-    if ((cdp->lig_count=(int *)malloc
-	 ((1+n_ligand_types)*sizeof(int)))==NULL){
-      return(1);
-    }
-    if ((cdp->conc=(double *)malloc
-	 ((1+n_ligand_types)*sizeof(double)))==NULL){
-      return(1);
-    }
-    for (i=0;i<1+n_ligand_types;i++) {
-      cdp->lig_count[i]=0;
-      cdp->conc[i]=0;
-    }
-    if ((cdp->corner=(struct vector3 *)malloc
-	 (n_verts*sizeof(struct vector3)))==NULL){
-      return(1);
-    }
-    cdp->vertex_normal=NULL;
-    if (compute_vertex_normals) {
-      if ((cdp->vertex_normal=(struct vector3 *)malloc
-	   (n_verts*sizeof(struct vector3)))==NULL){
-        return(1);
-      }
-    }
-    if ((cdp->normal=(struct vector3 *)malloc
-	 (n_polys*sizeof(struct vector3)))==NULL){
-      return(1);
-    }
-    if ((cdp->wall=(struct wall **)malloc
-	 (n_polys*sizeof(struct wall *)))==NULL){
-      return(1);
-    }
-    if ((cdp->neighbor=(struct cmprt_data **)malloc
-	 (n_polys*sizeof(struct cmprt_data *)))==NULL){
-      return(1);
-    }
-    for (i=0;i<n_polys;i++) {
-      cdp->wall[i]=NULL;
-      cdp->neighbor[i]=NULL;
-    }
-    cdp->sym=objp->sym;
-    cdp->full_name=obj_name;
-    cdp->cmprt_type=pop->list_type;
-    cdp->fully_closed=pop->fully_closed;
-    cdp->vm=0;
-    cdp->n_corners=n_verts;
-    cdp->n_walls=n_polys;
-    cdp->wall_list=NULL;
-    cdp->next=cmprt_head;
-    cmprt_head=cdp;
-    if (vizp!=NULL) {
-      if ((cdlp=(struct cmprt_data_list *)malloc
-	   (sizeof(struct cmprt_data_list)))==NULL) {
-        return(1);
-      }
-      cdlp->cmprt_data = cdp;
-      cdlp->next = vizp->cmprt_data_list;
-      vizp->cmprt_data_list = cdlp;
-    }
-    corner=cdp->corner;
-    vertex_normal=cdp->vertex_normal;
- 
-    for (i=0;i<n_verts;i++) {
-      if (pop->list_type==ORDERED_POLY) {
-        p[0][0]=opp->vertex[i]->x;
-        p[0][1]=opp->vertex[i]->y;
-        p[0][2]=opp->vertex[i]->z;
-        p[0][3]=1.0;
-      }
-      mult_matrix(p,im,p,l,m,n);
-      corner[i].x=p[0][0]/length_unit;
-      corner[i].y=p[0][1]/length_unit;
-      corner[i].z=p[0][2]/length_unit;
-
-      if (compute_vertex_normals) {
-        if (pop->list_type==ORDERED_POLY) {
-          p[0][0]=opp->normal[i]->x;
-          p[0][1]=opp->normal[i]->y;
-          p[0][2]=opp->normal[i]->z;
-          p[0][3]=1.0;
-        }
-        origin[0][0]=0;
-        origin[0][1]=0;
-        origin[0][2]=0;
-        origin[0][3]=1.0;
-        mult_matrix(p,im,p,l,m,n);
-        mult_matrix(origin,im,origin,l,m,n);
-        vertex_normal[i].x=p[0][0]-origin[0][0];
-        vertex_normal[i].y=p[0][1]-origin[0][1];
-        vertex_normal[i].z=p[0][2]-origin[0][2];
-        normalize(&vertex_normal[i]);
-      }
-    }
+/* Things to be done during wall instantiation Pass 3: */
 
     if ((eff_prop=(struct eff_dat **)malloc
-       (n_polys*sizeof(struct eff_dat *)))==NULL) {
+       (n_walls*sizeof(struct eff_dat *)))==NULL) {
       return(1);
     }
 
-    for (i=0;i<n_polys;i++) {
-      if (pop->list_type==ORDERED_POLY) {
-        n_element_verts=opp->element_data[i].n_verts;
-        index_0=opp->element_data[i].vertex_index[0];
-        index_1=opp->element_data[i].vertex_index[1];
-        index_n=opp->element_data[i].vertex_index[n_element_verts-1];
-      }
-      vectorize(&corner[index_0],&corner[index_1],&v1);
-      vectorize(&corner[index_0],&corner[index_n],&v2);
-      cross_prod(&v1,&v2,&cdp->normal[i]);
-      if (vect_length(&v1)==0
-          || vect_length(&v2)==0
-          || vect_length(&cdp->normal[i])==0) {
-        fprintf(log_file,"\nMCell: Warning -- Degenerate polygon found and automatically removed: %s %d\n\n",objp->sym->name,i);
-        pop->side_stat[i]=0;
-      }
-      else {
-        normalize(&cdp->normal[i]);
-      }
+    for (i=0;i<n_walls;i++) {
       eff_prop[i]=NULL;
     }
 
@@ -1164,50 +1234,48 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
       rlp=rlp->next;
     }
     k=0;
-    for (i=0;i<n_polys;i++) {
+    for (i=0;i<n_walls;i++) {
       if (pop->side_stat[i]) {
           face_vertex_normal=NULL;
-          if (pop->list_type==ORDERED_POLY) {
-            n_element_verts=opp->element_data[i].n_verts;
-            if ((face=(struct vector3 **)malloc
+          n_element_verts=opp->element_data[i].n_verts;
+          if ((face=(struct vector3 **)malloc
+	       (n_element_verts*sizeof(struct vector3 *)))==NULL) {
+            return(1);
+          }
+          if (compute_vertex_normals) {
+            if ((face_vertex_normal=(struct vector3 **)malloc
 	         (n_element_verts*sizeof(struct vector3 *)))==NULL) {
               return(1);
             }
-            if (compute_vertex_normals) {
-              if ((face_vertex_normal=(struct vector3 **)malloc
-	           (n_element_verts*sizeof(struct vector3 *)))==NULL) {
-                return(1);
-              }
-            }
-			throw_away = 0;
-            for (j=0;j<n_element_verts;j++) {
-              index_0=opp->element_data[i].vertex_index[j];
-              face[j]=&corner[index_0];
-              if (compute_vertex_normals) {
-                face_vertex_normal[j]=&vertex_normal[index_0];
-              }
-			  
-			  /* Check if any of the vertices is in the region for
-			   * for this node */
-              if ( ((face[j][0].x <= volume->x_partitions[0])
-                   || (face[j][0].x >= volume->x_partitions[volume->n_x_subvol]))
-               || ((face[j][0].y <= volume->y_partitions[0])
-                   || (face[j][0].y >= volume->y_partitions[volume->n_y_subvol]))
-               || ((face[j][0].z <= volume->z_partitions[0])
-                   || (face[j][0].z >= volume->z_partitions[volume->n_z_subvol])) ){
-                throw_away++;
-			  }
-            }
-
-			/* If the entire wall is outside the region for this node, skip it */
-            if (throw_away == n_element_verts) {
-			  cdp->n_walls--;
-			  free(face);
-			  free(face_vertex_normal);
-			  continue;
-			}
-
           }
+	  throw_away = 0;
+          for (j=0;j<n_element_verts;j++) {
+            index_0=opp->element_data[i].vertex_index[j];
+            face[j]=&corner[index_0];
+            if (compute_vertex_normals) {
+              face_vertex_normal[j]=&vertex_normal[index_0];
+            }
+			  
+            /* Check if any of the vertices is in the region for
+             * for this node */
+            if ( ((face[j][0].x <= volume->x_partitions[0])
+                 || (face[j][0].x >= volume->x_partitions[volume->n_x_subvol]))
+             || ((face[j][0].y <= volume->y_partitions[0])
+                 || (face[j][0].y >= volume->y_partitions[volume->n_y_subvol]))
+             || ((face[j][0].z <= volume->z_partitions[0])
+                 || (face[j][0].z >= volume->z_partitions[volume->n_z_subvol])) ){
+              throw_away++;
+            }
+          }
+
+          /* If the entire wall is outside the region for this node, skip it */
+          if (throw_away == n_element_verts) {
+            cdp->n_walls--;
+            free(face);
+            free(face_vertex_normal);
+            continue;
+          }
+
 	  if ((wp=init_wall(face,face_vertex_normal,n_element_verts))==NULL) {
 	    return(1);
 	  }
@@ -1324,339 +1392,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
 
    
     /* free eff_prop array and contents */
-    for (i=0;i<n_polys;i++) {
-      if (eff_prop[i]!=NULL) {
-        effdp=eff_prop[i];
-        while(effdp!=NULL) {
-          dup_effdp=effdp;
-          effdp=effdp->next;
-          free(dup_effdp);
-        }
-      }
-    }
-    free(eff_prop);
-
-    break;
-  case BOX_OBJ:
-
-	/* Allocate memory and initialize */
-    if ((cdp=(struct cmprt_data *)malloc
-	 (sizeof(struct cmprt_data)))==NULL) {
-      return(1);
-    }
-    if ((cdp->lig_count=(int *)malloc
-	 ((1+n_ligand_types)*sizeof(int)))==NULL){
-      return(1);
-    }
-    if ((cdp->conc=(double *)malloc
-	 ((1+n_ligand_types)*sizeof(double)))==NULL){
-      return(1);
-    }
-    for (i=0;i<1+n_ligand_types;i++) {
-      cdp->lig_count[i]=0;
-      cdp->conc[i]=0;
-    }
-    if ((cdp->corner=(struct vector3 *)malloc
-	 (8*sizeof(struct vector3)))==NULL){
-      return(1);
-    }
-    if ((cdp->normal=(struct vector3 *)malloc
-	 (n_polys*sizeof(struct vector3)))==NULL){
-      return(1);
-    }
-    if ((cdp->wall=(struct wall **)malloc
-	 (n_polys*sizeof(struct wall *)))==NULL){
-      return(1);
-    }
-    if ((cdp->neighbor=(struct cmprt_data **)malloc
-	 (n_polys*sizeof(struct cmprt_data *)))==NULL){
-      return(1);
-    }
-    for (i=0;i<n_polys;i++) {
-      cdp->wall[i]=NULL;
-      cdp->neighbor[i]=NULL;
-    }
-
-	/* Setup the metadata */
-    cdp->sym=objp->sym;
-    cdp->full_name=obj_name;
-    cdp->cmprt_type=pop->list_type;
-    cdp->fully_closed=pop->fully_closed;
-    cdp->vm=0;
-    cdp->n_corners=8;
-    cdp->n_walls=n_polys;
-    cdp->wall_list=NULL;
-    cdp->next=cmprt_head;
-    cmprt_head=cdp;
-    if (vizp!=NULL) {
-      if ((cdlp=(struct cmprt_data_list *)malloc
-	   (sizeof(struct cmprt_data_list)))==NULL) {
-        return(1);
-      }
-      cdlp->cmprt_data = cdp;
-      cdlp->next = vizp->cmprt_data_list;
-      vizp->cmprt_data_list = cdlp;
-    }
-    corner=cdp->corner;
-
-    bpp=(struct box_poly *)pop->polygon_data;
-    vp1=bpp->llf;
-    vp2=bpp->urb;
-    cube_corners(vp1,vp2,corner);
-
-    for (i=0;i<8;i++) {
-      p[0][0]=corner[i].x;
-      p[0][1]=corner[i].y;
-      p[0][2]=corner[i].z;
-      p[0][3]=1.0;
-      mult_matrix(p,im,p,l,m,n);
-      corner[i].x=p[0][0]/length_unit;
-      corner[i].y=p[0][1]/length_unit;
-      corner[i].z=p[0][2]/length_unit;
-
-	  if ( ((corner[i].x <= volume->x_partitions[0])
-             || (corner[i].x >= volume->x_partitions[volume->n_x_subvol]))
-        || ((corner[i].y <= volume->y_partitions[0])
-             || (corner[i].y >= volume->y_partitions[volume->n_y_subvol]))
-        || ((corner[i].z <= volume->z_partitions[0])
-             || (corner[i].z >= volume->z_partitions[volume->n_z_subvol])) ){
-		throw_away++;
-	  }
-		
-    }
-
-	/* Completely outside this node... throw away */
-	if (throw_away == 8) {
-	  free(cdp->lig_count);
-	  free(cdp->conc);
-	  free(cdp->corner);
-	  free(cdp->normal);
-	  free(cdp->wall);
-	  free(cdp->neighbor);
-	  cmprt_head=cdp->next;
-	  free(cdp);
-	  return(0);
-	}
-
-    if ((eff_prop=(struct eff_dat **)malloc
-       (n_polys*sizeof(struct eff_dat *)))==NULL) {
-      return(1);
-    }
-
-    vectorize(&corner[0],&corner[4],&vx);
-    vectorize(&corner[0],&corner[2],&vy);
-    vectorize(&corner[0],&corner[1],&vz);
-    cdp->volume=vect_length(&vx)*vect_length(&vy)*vect_length(&vz);
-	
-    for (i=0;i<6;i++) {
-      cube_face(corner,rect_vert,i);
-      vectorize(rect_vert[0],rect_vert[1],&v1);
-      vectorize(rect_vert[0],rect_vert[3],&v2);
-      cross_prod(&v1,&v2,&cdp->normal[i]);
-      normalize(&cdp->normal[i]);
-      eff_prop[i]=NULL;
-    }
-
-    poly_lcrp=pop->lig_count_ref;
-    while (poly_lcrp!=NULL) {
-      if (strcmp(full_name,poly_lcrp->full_name)==0) {
-        poly_lcrp->count_list->temp_data=(void *)&cdp->lig_count[poly_lcrp->type];
-      }
-      poly_lcrp=poly_lcrp->next;
-    }
-
-    /* prepend a copy of eff_dat for each element referenced in each region
-       of this object to the eff_prop list for the referenced element */
-    reg_eff_num_head=NULL;
-    reg_count_head=NULL;
-    lig_hit_count=NULL;
-    rlp=objp->region_list;
-    no_printf("Traversing regions on object %s:\n",objp->sym->name);
-    while (rlp!=NULL) {
-      rp=rlp->region;
-      rcrlp=rp->reg_counter_ref_list;
-      no_printf("  checking region %s\n",rp->sym->name);
-      reg_eff_num=0;
-      reg_count_num=0;
-      lig_hit_flag=0;
-      if (rcrlp!=NULL) {
-	reg_count_num=1;
-      }
-      lig_hit=rp->lig_hit_counter;
-      if (lig_hit!=NULL) {
-	lig_hit_flag=1;
-      }	
-      elp=rp->element_list;
-      while (elp!=NULL) {
-        for (i=elp->begin;i<=elp->end;i++) {
-          if (pop->side_stat[i]) {
-            effdp=rp->eff_dat;
-            while (effdp!=NULL) {
-              if (effdp->quantity_type==EFFDENS) {
-                if ((dup_effdp=(struct eff_dat *)malloc
-                     (sizeof(struct eff_dat)))==NULL){
-                  return(1);
-                }
-                dup_effdp->rx=effdp->rx;
-                dup_effdp->quantity_type=effdp->quantity_type;
-                dup_effdp->quantity=effdp->quantity;
-                dup_effdp->orient=effdp->orient;
-                no_printf("    will add effector state %s to side %d at density = %.9g\n",dup_effdp->rx->sym->name,i,dup_effdp->quantity);
-                no_printf("    this effdp = %p\n",(void *)dup_effdp);
-                no_printf("    next effdp = %p\n",(void *)eff_prop[i]);
-                dup_effdp->next=eff_prop[i];
-                eff_prop[i]=dup_effdp;
-              }
-              else {
-                reg_eff_num=1;
-                no_printf("    add effector state %s to side %d by number = %.9g\n",effdp->rx->sym->name,i,effdp->quantity);
-              }
-              effdp=effdp->next;
-            }
-          }
-        }
-        elp=elp->next;
-      }
-      if (reg_eff_num) {
-        if ((rlp2=(struct region_list *)malloc
-             (sizeof(struct region_list)))==NULL){
-          return(1);
-        }
-        rlp2->region=rp;
-        rlp2->next=reg_eff_num_head;
-        reg_eff_num_head=rlp2;
-      }
-      if (reg_count_num) {
-        if ((rlp3=(struct region_list *)malloc
-             (sizeof(struct region_list)))==NULL){
-          return(1);
-        }
-        rlp3->region=rp;
-        rlp3->next=reg_count_head;
-        reg_count_head=rlp3;
-      }
-      if (lig_hit_flag) {
-        if ((rlp4=(struct region_list *)malloc
-             (sizeof(struct region_list)))==NULL){
-          return(1);
-        }
-        rlp4->region=rp;
-        rlp4->next=lig_hit_count;
-        lig_hit_count=rlp4;
-      }
-
-      rlp=rlp->next;
-    }
-
-    for (i=0;i<6;i++) {
-      if (pop->side_stat[i]) {
-          if ((face=(struct vector3 **)malloc
-	       (4*sizeof(struct vector3 *)))==NULL) {
-            return(1);
-          }
-          cube_face(corner,face,i);
-	  if ((wp=init_wall(face,NULL,4))==NULL) {
-	    return(1);
-	  }
-	  if ((wlp=(struct wall_list *)malloc
-	       (sizeof(struct wall_list)))==NULL) {
-	    return(1);
-	  }
-	  wlp->wall=wp;
-	  wlp->next=cdp->wall_list;
-	  cdp->wall_list=wlp;
-	  cdp->wall[i]=wp;
-          pop->cmprt_side_map[i]=i;
-	  wp->next_wall=wall_head;
-	  wall_head=wp;
-          wp->wall_shape=RECT_POLY;
-
-          area=wp->length_first*wp->length_last;
-          wp->area=area;
-          total_area=total_area+wp->area;
-	  
-	  wp->parent_object=objp;   
-	  wp->side=i;
-	  wp->parent=cdp;
-	  wp->wall_type=pop->lig_prop[i];
-	  wp->effectors=NULL;
-          if (objp->viz_state!=NULL) {
-	    wp->viz_state=objp->viz_state[i];
-          }
-          else {
-	    wp->viz_state=EXCLUDE_OBJ;
-          }
-
-	  /* Try to find out which region contains this wall
-	   * Only when there are regions defined in this object 
-	   * AND region counters exist for this object.
-	   * ELSE we set it NULL. Lin-Wei Wu 6/26/03*/
-	  rlp=objp->region_list;
-	  if ((rlp!=NULL)&&((reg_count_head!=NULL)||(lig_hit_count!=NULL))) {
-	    wp->region_list=init_region_list_for_wall(rlp,i);
-	  }
-	  else {
-	    wp->region_list=NULL;
-	  }
-	  if ((effdp=eff_prop[i])!=NULL) {
-	    if (init_effectors_by_density(wp,effdp)) {
-	      return(1);
-	    }
-	  }
-        }
-    }
-    	  if (lig_hit_count!=NULL) {
-	    rlp=lig_hit_count;
-	    while (rlp!=NULL) {
-	      rlp4=rlp;
-	      rlp=rlp->next;
-	      free(rlp4);
-	    }
-	  }
-
-    if (reg_eff_num_head!=NULL) {
-      if (init_effectors_by_number(pop,cdp,reg_eff_num_head)) {
-        return(1);
-      }
-      /* free region list created to hold regions populated by number */
-      rlp=reg_eff_num_head;
-      while(rlp!=NULL) {
-        rlp2=rlp;
-        rlp=rlp->next;
-        free(rlp2);
-      }
-    }
-
-
-    /*Initialize reg_counter after all the effectors in the object 
-     *had been placed with concern of the region overlapping
-    */
-    
-    if (reg_count_head!=NULL) {
-      if (!chkpt_infile) {
-        if (init_region_counter(pop,cdp,reg_count_head)) {
-          return(1);
-        }
-      }
-      /* allocate memory for counter_hash_table, and 
-       * save the reg_counter_ref_list to the table
-       */       
-      if (init_counter_hash_table(objp,reg_count_head)) {
-	return(1);
-      }
-      /* free region_list created for region counter purpose */
-      rlp=reg_count_head;
-      while(rlp!=NULL) {
-        rlp3=rlp;
-        rlp=rlp->next;
-        free(rlp3);
-      }
-    }
-    
-    
-    
-    /* free eff_prop array and contents */
-    for (i=0;i<n_polys;i++) {
+    for (i=0;i<n_walls;i++) {
       if (eff_prop[i]!=NULL) {
         effdp=eff_prop[i];
         while(effdp!=NULL) {
@@ -1680,6 +1416,20 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
 
   return(0);
 }
+
+#endif
+
+
+
+
+
+
+/* **************************************************************** */
+
+# if 0
+
+
+
 
 
 
@@ -1867,276 +1617,6 @@ int init_counter_hash_table (struct object *objp, struct region_list *reg_count_
 }
 
 
-/**
- * Updates the bounding box of the world based on the size
- * and location of a polygon_object (box_poly or polygon_object).
- * Used by compute_bb().
- */
-int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_name)
-{
-  struct polygon_object *pop;
-  struct ordered_poly *opp;
-  struct box_poly *bpp;
-  struct vector3 corner[8],*vp1,*vp2;
-  double p[1][4];
-  int i,j,cnt,n_verts,n_polys,n_element_verts,index_0,index_1,index_n;
-  unsigned short l,m,n;
-
-  pop=(struct polygon_object *)objp->contents;
-  n_polys=pop->n_polys;
-  l=1;
-  m=4;
-  n=4;
-
-  switch (objp->object_type) {
-  case POLY_OBJ:
-    if (pop->list_type==ORDERED_POLY) {
-      opp=(struct ordered_poly *)pop->polygon_data;
-      n_verts=opp->n_verts;
-    }
- 
-    for (i=0;i<n_verts;i++) {
-      if (pop->list_type==ORDERED_POLY) {
-        p[0][0]=opp->vertex[i]->x;
-        p[0][1]=opp->vertex[i]->y;
-        p[0][2]=opp->vertex[i]->z;
-        p[0][3]=1.0;
-      }
-      mult_matrix(p,im,p,l,m,n);
-      if (p[0][0]<bb_min.x) {
-        bb_min.x=p[0][0];
-      }
-      if (p[0][1]<bb_min.y) {
-        bb_min.y=p[0][1];
-      }
-      if (p[0][2]<bb_min.z) {
-        bb_min.z=p[0][2];
-      }
-      if (p[0][0]>bb_max.x) {
-        bb_max.x=p[0][0];
-      }
-      if (p[0][1]>bb_max.y) {
-        bb_max.y=p[0][1];
-      }
-      if (p[0][2]>bb_max.z) {
-        bb_max.z=p[0][2];
-      }
-    }
-
-/*
-    fprintf(log_file,"MCell: Total area of physical object %s = %.9g microns^2\n",objp->sym->name,total_area*length_unit*length_unit);
-*/
-    break;
-  case BOX_OBJ:
-    bpp=(struct box_poly *)pop->polygon_data;
-    vp1=bpp->llf;
-    vp2=bpp->urb;
-    cube_corners(vp1,vp2,corner);
-
-    for (i=0;i<8;i++) {
-      p[0][0]=corner[i].x;
-      p[0][1]=corner[i].y;
-      p[0][2]=corner[i].z;
-      p[0][3]=1.0;
-      mult_matrix(p,im,p,l,m,n);
-      if (p[0][0]<bb_min.x) {
-        bb_min.x=p[0][0];
-      }
-      if (p[0][1]<bb_min.y) {
-        bb_min.y=p[0][1];
-      }
-      if (p[0][2]<bb_min.z) {
-        bb_min.z=p[0][2];
-      }
-      if (p[0][0]>bb_max.x) {
-        bb_max.x=p[0][0];
-      }
-      if (p[0][1]>bb_max.y) {
-        bb_max.y=p[0][1];
-      }
-      if (p[0][2]>bb_max.z) {
-        bb_max.z=p[0][2];
-      }
-    }
-
-/*
-    fprintf(log_file,"MCell: Total area of physical object %s = %.9g microns^2\n",objp->sym->name,total_area*length_unit*length_unit);
-*/
-    break;
-  }
-
-  return(0);
-}
-
-/**
- * Computes the corners of the cuboid whose bounding box is
- * specified by the two points p1 and p2.
- * @param p1 a vector3 specifying one corner of the cuboid.
- * @param p2 a vector3 specifying the other diagonal corner of the cuboid.
- * @param corner an array of 8 vector3s which consitute the 8 corners
- *               of the cuboid.
- */
-void cube_corners(struct vector3 *p1, struct vector3 *p2, struct vector3 *corner)
-{
-  double dx,dy,dz;
-
-  dx=p2->x-p1->x;
-  dy=p2->y-p1->y;
-  dz=p2->z-p1->z;
-  if (dx<0) {
-    swap_double(&p1->x,&p2->x);
-  }
-  if (dy<0) {
-    swap_double(&p1->y,&p2->y);
-  }
-  if (dz<0) {
-    swap_double(&p1->z,&p2->z);
-  }
-  corner[0].x=p1->x;
-  corner[0].y=p1->y;
-  corner[0].z=p1->z;
-  corner[1].x=p1->x;
-  corner[1].y=p1->y;
-  corner[1].z=p2->z;
-  corner[2].x=p1->x;
-  corner[2].y=p2->y;
-  corner[2].z=p1->z;
-  corner[3].x=p1->x;
-  corner[3].y=p2->y;
-  corner[3].z=p2->z;
-  corner[4].x=p2->x;
-  corner[4].y=p1->y;
-  corner[4].z=p1->z;
-  corner[5].x=p2->x;
-  corner[5].y=p1->y;
-  corner[5].z=p2->z;
-  corner[6].x=p2->x;
-  corner[6].y=p2->y;
-  corner[6].z=p1->z;
-  corner[7].x=p2->x;
-  corner[7].y=p2->y;
-  corner[7].z=p2->z;
-}
-
-
-/**
- * Sets up the corners of one face of a cuboid.
- * Assigns vector3's corresponding to the corners of a cuboid
- * from 'corner' to the corresponding faces of the cuboid.
- * <br>
- * Builds the faces using the right hand rule.
- * @param corner an array of 8 vector3s which consitute the 8 corners
- *               of the cuboid.
- * @param face an array 4 vector3's that get assigned pointers to the
- *             corresponding 4 corner vector3s
- * @param i an integer that controls which face is computed.
- *          i == TP (top)
- *          i == BOT (bottom)
- *          i == FRNT (front)
- *          i == BCK (back)
- *          i == LFT (left)
- *          i == RT (right)
- */
-void cube_face(struct vector3 *corner, struct vector3 **face, int i)
-{
-      /* Build each face using right-hand rule */
-      if (i==TP) {
-        /* top face */
-        face[0]=&corner[1];
-        face[1]=&corner[5];
-        face[2]=&corner[7];
-        face[3]=&corner[3];
-      }
-      else if (i==BOT) {
-        /* bottom face */
-        face[0]=&corner[0];
-        face[1]=&corner[2];
-        face[2]=&corner[6];
-        face[3]=&corner[4];
-      }
-      else if (i==FRNT) {
-        /* front face */
-        face[0]=&corner[0];
-        face[1]=&corner[4];
-        face[2]=&corner[5];
-        face[3]=&corner[1];
-      }
-      else if (i==BCK) {
-        /* back face */
-        face[0]=&corner[2];
-        face[1]=&corner[3];
-        face[2]=&corner[7];
-        face[3]=&corner[6];
-      }
-      else if (i==LFT) {
-        /* left face */
-        face[0]=&corner[0];
-        face[1]=&corner[1];
-        face[2]=&corner[3];
-        face[3]=&corner[2];
-      }
-      else if (i==RT) {
-        /* right face */
-        face[0]=&corner[4];
-        face[1]=&corner[6];
-        face[2]=&corner[7];
-        face[3]=&corner[5];
-      }
-      return;
-}
-
-
-/**
- * Sets up the corners of all the faces of a cuboid.
- * Assigns vector3's corresponding to the corners of a cuboid
- * from 'corner' to the corresponding faces of the cuboid.
- * <br>
- * Builds the faces using the right hand rule.
- * <br>
- * Similar to cube_face(). [Note difference in spelling]
- */
-void cube_faces(struct vector3 *corner, struct vector3 *(*face)[4])
-{
-
-  /* Build each face using right-hand rule */
-  /* top face */
-  face[0][0]=&corner[1];
-  face[0][1]=&corner[5];
-  face[0][2]=&corner[7];
-  face[0][3]=&corner[3];
- 
-  /* bottom face */
-  face[1][0]=&corner[0];
-  face[1][1]=&corner[2];
-  face[1][2]=&corner[6];
-  face[1][3]=&corner[4];
- 
-  /* front face */
-  face[2][0]=&corner[0];
-  face[2][1]=&corner[4];
-  face[2][2]=&corner[5];
-  face[2][3]=&corner[1];
- 
-  /* back face */
-  face[3][0]=&corner[2];
-  face[3][1]=&corner[3];
-  face[3][2]=&corner[7];
-  face[3][3]=&corner[6];
- 
-  /* left face */
-  face[4][0]=&corner[0];
-  face[4][1]=&corner[1];
-  face[4][2]=&corner[3];
-  face[4][3]=&corner[2];
- 
-  /* right face */
-  face[5][0]=&corner[4];
-  face[5][1]=&corner[6];
-  face[5][2]=&corner[7];
-  face[5][3]=&corner[5];
-
-  return;
-}
 
 int init_effector_grid(struct wall *wp)
 {

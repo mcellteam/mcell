@@ -246,11 +246,11 @@
 
 /* Box sides.  This is a weird way to do it.  Why not bitmasks? */
 #define TP 0
-#define BOT 1
-#define FRNT 2
-#define BCK 3
-#define LFT 4
-#define RT 5
+#define BOT 2
+#define FRNT 4
+#define BCK 6
+#define LFT 8
+#define RT 10
 #define ALL_SIDES INT_MAX
                    
                                                              
@@ -535,10 +535,15 @@ struct wall
 {
   struct wall *next;              /* Next wall in the universe */
   
-  struct species *wall_type;      /* Parameters for this type of wall */
+  struct species *surf_class;      /* Surface class for this wall */
+
+  int side;                       /* index of this wall in its parent object */
+
+/*
+  int projection;
+*/
 
   struct vector3 *vert[3];        /* Array of pointers to vertices */
-  struct vector3 *vert_normal[3]; /* Array of pointers to vertex normals */
   
   double uv_vert1_u;              /* Surface u-coord of 2nd corner (v=0) */
   struct vector2 uv_vert2;        /* Surface coords of third corner */
@@ -561,9 +566,6 @@ struct wall
   int viz_state;                  /* For display purposes */
 
   struct object *parent_object;   /* The object we are a part of */
-
-  struct cmprt_data *parent;      /* Compartment data of parent */
-  struct cmprt_data *neighbor;    /* Compartment data of neighbor */
   
   struct region_list *regions;    /* Regions that contain this wall */
 };
@@ -681,8 +683,8 @@ struct volume
   int binning;                  /* How many real partitions per one in lookup? */
   struct subvolume **lookup;     /* 3D lookup array pointing at subvolumes */
   
-  int n_surfaces;               /* Count of how many walls we have */
-  struct wall *walls;           /* Head of a linked list of all walls */
+  int n_walls;                  /* Total number of walls */
+  int n_verts;
   
   int hashsize;                 /* How many entries in our hash table? */
   int n_reactions;              /* How many reactions are there, total? */
@@ -709,6 +711,8 @@ struct volume
   struct output_list *output_list;
   struct viz_obj *viz_obj_head;
   struct frame_data_list *frame_data_head;
+  struct species *g_mol;
+  struct species *g_surf;
   double time_unit;
   double time_step_max;
   double length_unit;
@@ -868,6 +872,7 @@ struct node_dat {
  * Modified by Lin-Wei 5/21/02
  */
 struct output_list {
+	struct output_list *next;   /**< next item in output list*/
 	byte out_type;
 	unsigned int id;		/**<unique id number for each REACTION_OUTPUT_DATA command*/
 	int counter;
@@ -876,13 +881,12 @@ struct output_list {
 	int index;
 	struct counter_info *counter_info;
 	struct reaction_list *reaction_list;
-	struct output_list *next;   /**< next item in output list*/
 };
 
 struct counter_info {
+	struct counter_info *next;  
 	char outfile_name[1024];              /**< name of variable being tracked*/
 	struct count_list *count_list;
-	struct counter_info *next;  
 };
 
 /**
@@ -890,19 +894,20 @@ struct counter_info {
  *
  */
 struct reaction_list {
+  struct reaction_list *next;
   byte list_type;
   int n_reac_iterations;
   int reac_iteration;
   int *array;
   struct num_expr_list *iteration_list;
   struct num_expr_list *curr_reac_iteration;
-  struct reaction_list *next;
 };
 
 /**
  * Linked list of counters.
  */
 struct count_list {
+	struct count_list *next;    /**< next item in count list*/
 	int n_output;			/**< total output time steps.*/
 	int freq;
 	unsigned int frame_index;
@@ -919,31 +924,31 @@ struct count_list {
 	struct count_list *operand1;
 	struct count_list *operand2;
 	char oper;
-	struct count_list *next;    /**< next item in count list*/
 };
 
 struct lig_count_list {
-        struct count_list *count_list;
 	struct lig_count_list *next;
+        struct count_list *count_list;
 };
 
 struct lig_count_ref {
+	struct lig_count_ref *next;
 	unsigned short type;
         char *full_name;
         struct count_list *count_list;
-	struct lig_count_ref *next;
 };
 
 struct viz_state_ref {
+	struct viz_state_ref *next;
 	int viz_state;
         char *full_name;
-	struct viz_state_ref *next;
 };
 
 /**
  * Compartment. [\todo need more info]
  */
 struct cmprt_data {
+	struct cmprt_data *next;
 	struct sym_table *sym;
         char *full_name;
         byte cmprt_type;            /**< type of compartment:
@@ -962,16 +967,15 @@ struct cmprt_data {
 	struct wall_list *wall_list;
 	struct wall **wall;
 	struct cmprt_data **neighbor;
-	struct cmprt_data *next;
 };
 
 struct cmprt_data_list {
-	struct cmprt_data *cmprt_data;
 	struct cmprt_data_list *next;
+	struct cmprt_data *cmprt_data;
 };
 
 /**
- * A Polygon object, part of a surface.
+ * A polygon list object, part of a surface.
  */
 struct polygon_object {
 	struct lig_count_ref *lig_count_ref;
@@ -989,71 +993,55 @@ struct polygon_object {
         void *polygon_data;             /**< pointer to appropriate data structure
                                            holding polygon vertices etc...
                                            either:
-                                           struct box_poly
+                                           struct box_poly 
+                                             for list_type BOX_POLY
                                            -or-
-                                           struct ordered_poly
+                                           struct ordered_poly 
+                                             for list_type ORDERED_POLY
                                            -or-
                                            struct unordered_poly
-                                           as specified by list_type. */
-	struct polygon_list *polygon_list;  /**< For UNORDERED_LISTs of polygons.
-				 	       pointer to list of polygon_list
-					       data structures.  The list will
-					       store the vertices for each
-					       polygon in the object.
-					       The box object is a special case
-					       in that we only need to know the
-					       LLF and URB vertices to construct
-				               all 6 faces of the box.  These
-					       vertices will be stored as the
-					       first two vertices in the first
-					       polygon_list structure. */
-	int n_polys;			/**< Number of polygons in polygon
-					   object*/
+                                             for list_type UNORDERED_POLY */
+	int n_walls;			/**< Number of polygons in
+                                             polygon object */
+        int n_verts;                    /**< Number of vertices in
+                                             polygon object */
 	byte fully_closed;		/**< flag indicating closure of object */
+        struct species **surf_class;    /** array of pointers to surface class, 
+                                            one for each polygon */
         unsigned short *side_stat;	/**< array of side status values:
 	                                   one for each polygon in object.
 					   0 indicates removed
 					   1 indicates exists. */
-        byte **lig_prop;		/**< array of ligand/wall property arrays:
-					   one array for each polygon in object.
-					   each array contains n_ligand_types
-					   entries indicating ligand
-					   permeability. */
-        unsigned int *cmprt_side_map;   /**< Array of index mappings from
-                                           polygon sides to cmprt_data sides
-                                           necessary because polygon sides
-                                           might be outside the parallel
-                                           partition and therefore not
-                                           created as a cmprt side */
 /*        struct eff_dat **eff_prop;*/	/**< array of ptrs to eff_dat data
 					   structures, one for each polygon. */
 };
 
 /**
- * A polygon that is a box.
+ * A polyhedron that is a box.
  */
 struct box_poly {
-        struct vector3 *llf;             /**< LLF corner of box polyhedron */
-        struct vector3 *urb;             /**< URB corner of box polyhedron */
+        struct vector3 *llf;             /**< ptr to LLF of box polyhedron */
+        struct vector3 *urb;             /**< prt to URB of box polyhedron */
 };
 
 /**
- * An ordered polygon.
- * That is, the vertices of the polygon are ordered according to
+ * A general ordered polyhedron. 
+ * That is, the vertices of each polygonal face are ordered according to
  * the right hand rule.
  */
 struct ordered_poly {
-	struct vector3 **vertex;         /**< Array of polygon vertices. */
-	struct vector3 **normal;         /**< Array of polygon normals. */
+	struct vector3 *vertex;         /**< Array of polygon vertices */
+	struct vector3 *normal;         /**< Array of polygon normals */
 	struct element_data *element_data; /**< Array element_data
                                               data structures */
-	int n_verts;                    /**< Number of vertices in polyhedron. */
+	int n_verts;                    /**< Number of vertices in polyhedron */
+	int n_walls;                    /**< Number of polygons in polyhedron */
 };
 
 /**
- * Polygon data structure used to build polygon.
+ * Data structure used to build one polygon.
  * This data structure is used to store the data from the MDL file
- * and to contruct a polygon object from it.
+ * and to contruct each polygon of a polygon object.
  */
 struct element_data {
         int *vertex_index;              /**< Array of vertex indices forming a
@@ -1061,26 +1049,6 @@ struct element_data {
 	int n_verts;                    /**< Number of vertices in polygon. */
 };
 
-/**
- * Polygon object where the vertices of the polygon are not ordered
- * according to the right hand rule.
- */
-struct unordered_poly {
-        struct vertex_list *vertex_list;  /**< pointer to linked list of
-                                             vertex_list data structures */
-	struct unordered_poly *next;      /**< pointer to next unordered_poly */
-};
-
-/**
- * A linked list used to store the coordinates of a vertex and the
- * corresponding normal vector at that point.
- */
-struct vertex_list {
-        struct vector3 *vertex;           /**< pointer to one polygon vertex */
-        struct vector3 *normal;           /**< pointer to one polygon normal */
-        struct vertex_list *next;         /**< pointer to next vertex_list */
-};
- 
 /**
  * A compartment.
  */
@@ -1103,14 +1071,14 @@ struct cmprt {
 };
 
 /**
- * Linked list of effector type data.
+ * Linked list of surface effector placement data.
  */
 struct eff_dat {
-        struct rx *rx;
-        byte quantity_type;  /* type is either EFFDENS or EFFNUM */
-        double quantity; /* amount of effectors to place, density or number */
-	signed char orient;
         struct eff_dat *next;
+        struct species *eff; /* effector species to place on surface */
+        byte quantity_type;  /* type is either EFFDENS or EFFNUM */
+        double quantity; /* amount of effectors to place: density or number */
+	signed char orient;
 };
 
 /**
@@ -1118,9 +1086,9 @@ struct eff_dat {
  * [\todo what is this?]
  */
 struct element_list {
+        struct element_list *next;
         unsigned int begin;
         unsigned int end;   
-        struct element_list *next;
 };
 
 /**
@@ -1135,6 +1103,7 @@ struct region {
 	struct element_list *element_list;
 	struct reg_counter_ref_list *reg_counter_ref_list;
 	struct eff_dat *eff_dat;
+        struct species *surf_class;
 };
 
 /**
@@ -1142,14 +1111,15 @@ struct region {
  * [\todo what is this?]
  */
 struct region_list {
-	struct region *reg;
 	struct region_list *next;
+	struct region *reg;
 };
 
 /*
  *region counter reference, store all the info for counting reaction on regions
  */
 struct reg_counter_ref {
+	struct reg_counter_ref *next;  
 	unsigned int counter;
 	byte count_type; 	/*Three possible types:RX_STATE, TRANSITION, INIT_TRANS, MOL_TRANS*/
 	byte count_method;	/* Three types:DT, SUM, CUM */
@@ -1157,34 +1127,33 @@ struct reg_counter_ref {
 	struct rx *state;
 	struct rx *next_state;
 	struct lig_transition_count **transition_count_each; /**< array of pointers to transition counter structures on region. One array element per rx mechanism in simulation. Indexed by parent_rx.rx_index */
-	struct reg_counter_ref *next;  
 };
 
 struct reg_counter_ref_list {
-	struct reg_counter_ref *reg_counter_ref;
 	struct reg_counter_ref_list *next;
+	struct reg_counter_ref *reg_counter_ref;
 };
 /*
  *counter hash table for counting on regions in each object
  */
 struct counter_hash_table {
+	struct counter_hash_table *next;
 	char *name;
 	void *value;
-	struct counter_hash_table *next;
 };
 
 /**
  * Container data structure for all physical objects.
  */
 struct object {
+        struct object *next;		/**< ptr to next sibling object */
+        struct object *parent;		/**< ptr to parent meta object */
+        struct object *first_child;	/**< ptr to first child object */
+        struct object *last_child;	/**< ptr to last child object */
         struct sym_table *sym;
         char *last_name;
         byte object_type;
         void *contents;			/**< ptr to actual physical object */
-        struct object *parent;		/**< ptr to parent meta object */
-        struct object *next;		/**< ptr to next child object */
-        struct object *first_child;	/**< ptr to first child object */
-        struct object *last_child;	/**< ptr to last child object */
 	struct lig_count_ref *lig_count_ref;
 					/**< ptr to list of lig_count_ref
 	                                   structures: one for each time meta-
@@ -1201,6 +1170,12 @@ struct object {
 					   BOX_OBJ or POLY_OBJ this will
 					   point to the cmprt_data struct
 					   containing the instantiated object */
+        int n_walls;                  /**< Total number of walls in object */
+        struct wall *walls;           /**< array of walls in object */
+        struct wall **wall_p;         /**< array of ptrs to walls in object */
+        int n_verts;                  /**< Total number of vertices in object */
+        struct vector3 *verts;        /**< array of vertices in object */
+        struct vector3 **vert_p;      /**< array of ptrs to verts in object */
         struct viz_obj *viz_obj;
         int *viz_state;			/**< array of viz state values.
 					   One for each element of object. */
@@ -1211,34 +1186,19 @@ struct object {
  * Doubly linked list of names.
  */
 struct name_list {
+        struct name_list *next;
         char *name;
         struct name_list *prev;
-        struct name_list *next;
 };
 
 /**
  * Visualization objects.
  */
 struct viz_obj {
+	struct viz_obj *next;
 	char *name;
         char *full_name;
 	struct object *obj;
-	struct cmprt_data_list *cmprt_data_list;
-	struct viz_obj *next;
-};
-
-/**
- * Linked list of instances.
- * [\todo what is this?]
- */
-struct instance {
-        struct object *obj;
-        struct vector3 translate;
-        struct vector3 axis;
-	double angle;
-	struct dspl_flag *dspl_flag;
-	struct conn_list *conn_list;
-        struct instance *next_instance;
 };
 
 /**
@@ -1262,13 +1222,13 @@ struct transformation {
  * [\todo better description.]
  */
 struct frame_data_list {
-  byte list_type;
+	struct frame_data_list *next;
+        byte list_type;
 	int type;
 	int viz_iteration;
 	int n_viz_iterations;
 	struct num_expr_list *iteration_list;
 	struct num_expr_list *curr_viz_iteration;
-	struct frame_data_list *next;
 };
 
 
@@ -1286,11 +1246,11 @@ struct file_stream {
  * Used to parse and store user defined symbols from the MDL input file.
  */
 struct sym_table {
+        struct sym_table *next;  /**< next symbol in symbol table*/
         unsigned short sym_type; /**< type of symbol stored -
                                    OBJ, RX, MOL, DBL, PNT ...*/
         char *name;              /**< name of symbol*/
         void *value;             /**< ptr to stored value*/
-        struct sym_table *next;  /**< next symbol in symbol table*/
 #ifdef KELP
 		byte keep_alive;	/**< flag to indicate continued use of
 							  this symbol table entry during computation */
@@ -1303,8 +1263,8 @@ struct sym_table {
  * Used for parsing MDL input file arithmetic expressions.
  */
 struct num_expr_list {
-  double value;
   struct num_expr_list *next;
+  double value;
 };
 
 #ifdef DEBUG

@@ -24,12 +24,14 @@ struct mdlparse_vars {
   char *a_str;
   char str_buf[1024];
   char str_buf2[1024];
+  char temp_str[1024];
   char format_str[256];
 
   double val_1;
   double val_2;
   double tmp_dbl;
   double *dblp;
+  int *intp;
 
   struct species *specp;
   double mc_factor;
@@ -41,6 +43,7 @@ struct mdlparse_vars {
 
   int num_pos;
   struct num_expr_list *elp;
+  struct num_expr_list *elp_temp;
   struct num_expr_list *el_head;
   struct num_expr_list *el_tail;
 
@@ -52,7 +55,10 @@ struct mdlparse_vars {
   struct name_list *object_name_list_end;
   struct name_list *instance_name_list;
   struct name_list *instance_name_list_end;
-  struct vector3 *pntp1,*pntp2;
+  struct vector3 *llf;
+  struct vector3 *urb;
+  struct vector3 *pntp1;
+  struct vector3 *pntp2;
   double tm[4][4];
   char *obj_name;
   char *prefix_name;
@@ -60,10 +66,33 @@ struct mdlparse_vars {
 
   struct release_site_obj *rsop;
   struct release_pattern *rpatp;
-  struct frame_data_list *fdlp;
+
   struct viz_obj *vizp;
+  struct frame_data_list *fdlp;
   int viz_state;
   int existing_state;
+
+  struct polygon_object *pop;
+  struct ordered_poly *opp;
+  struct box_poly *bpp;
+  struct element_data *edp;
+  struct element_connection_list *connection_head;
+  struct element_connection_list *connection_tail;
+  struct element_connection_list *eclp;
+  struct element_connection_list *eclp_temp;
+  struct vertex_list *vertex_head;
+  struct vertex_list *vertex_tail;
+  struct vertex_list *vlp;
+  struct vertex_list *vlp_temp;
+  int n_walls;
+  int n_verts;
+
+  struct region *rp;
+  struct region_list *region_list_head;
+  struct region_list *rlp;
+  struct element_list *element_head;
+  struct element_list *elmlp;
+  char *region_name;
 
   struct rxn *rxnp;
   struct mem_helper *path_mem;
@@ -90,6 +119,22 @@ struct mdlparse_vars {
   u_int include_stack_ptr;
   byte include_flag;
   struct volume *vol;
+};
+
+struct element_connection_list {
+  struct num_expr_list *connection_list;
+  int n_verts;
+  struct element_connection_list *next;
+};
+
+/**
+ * A linked list used to store the coordinates of vertices and the   
+ * corresponding normal vectors.
+ */
+struct vertex_list {
+        struct vector3 *vertex;           /**< pointer to one polygon vertex */
+        struct vector3 *normal;           /**< pointer to one polygon normal */
+        struct vertex_list *next;         /**< pointer to next vertex_list */
 };
 
 int mdlparse(void *p);

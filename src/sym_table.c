@@ -157,10 +157,10 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
   struct release_pattern *rpatp;
   struct object *objp;
   struct rxn *rxnp;
+  struct region *rp;
 /*
   struct vector3 *tp;
   struct cmprt *cp;
-  struct region *rp;
   struct file_stream *filep;
   char *strp;
   int i;
@@ -239,6 +239,12 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       objp->region_list=NULL;
       objp->counter_hash_table=NULL;
       objp->cmprt_data=NULL;
+      objp->n_walls=0;
+      objp->walls=NULL;
+      objp->wall_p=NULL;
+      objp->n_verts=0;
+      objp->verts=NULL;
+      objp->vert_p=NULL;
       objp->viz_obj=NULL;
       objp->viz_state=NULL;
       init_matrix(objp->t_matrix);
@@ -277,6 +283,20 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       rxnp->last_update=0;
       rxnp->rxn_count_dt=NULL;
       rxnp->rxn_count_cum=NULL;
+      rxnp->pathway_head=NULL;
+      break;
+    case REG:
+      if ((vp=(void *)malloc(sizeof(struct region)))==NULL) {
+        return(NULL);
+      }
+      rp=(struct region *)vp;
+      rp->sym=sp;
+      rp->region_last_name=NULL;
+      rp->parent=NULL;
+      rp->element_list=NULL;
+      rp->eff_dat=NULL;
+      rp->surf_class=NULL;
+      rp->reg_counter_ref_list=NULL;
       break;
 /*
     case PNT:
@@ -311,18 +331,6 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       cp->vert1=NULL;
       cp->vert2=NULL;
       cp->a_zone_loc=NULL;
-      break;
-    case REG:
-      if ((vp=(void *)malloc(sizeof(struct region)))==NULL) {
-        return(NULL);
-      }
-      rp=(struct region *)vp;
-      rp->sym=sp;
-      rp->region_last_name=NULL;
-      rp->parent=NULL;
-      rp->element_list=NULL;
-      rp->eff_dat=NULL;
-      rp->reg_counter_ref_list=NULL;
       break;
     case FSTRM:
       if ((vp=(void *)malloc(sizeof(struct file_stream)))==NULL) {

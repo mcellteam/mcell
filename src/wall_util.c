@@ -16,6 +16,10 @@
 #include "wall_util.h"
 #include "mcell_structs.h"
 
+#ifdef DEBUG
+#define no_printf printf
+#endif
+
 
 extern struct volume *world;
 
@@ -26,6 +30,7 @@ extern struct volume *world;
 \**************************************************************************/
 
 #define max(x,y) ((x)>(y)) ? (x): (y)
+#define min(x,y) ((x)<(y)) ? (x): (y)
 
 inline double abs_max_2vec(struct vector3 *v1,struct vector3 *v2)
 {
@@ -35,6 +40,16 @@ inline double abs_max_2vec(struct vector3 *v1,struct vector3 *v2)
 }
 
 
+inline double max3(double f1, double f2, double f3)
+{
+  return (max(f1,max(f2,f3)));
+}
+
+
+inline double min3(double f1, double f2, double f3)
+{
+  return (min(f1,min(f2,f3)));
+}
 
 
 /**************************************************************************\
@@ -808,3 +823,85 @@ int intersect_box(struct vector3 *llf,struct vector3 *urb,struct wall *w)
   return 0;  /* Near miss! */
 }
 #endif
+
+
+void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vector3 *v1, struct vector3 *v2)
+{
+  struct wall *w;
+  double f,fx,fy,fz;
+  
+  w=&objp->walls[side];
+  w->next = NULL;
+  w->surf_class = world->g_surf;
+  w->side = side;
+  
+/*
+  fx = max3( abs(v0->x - v1->x) , abs(v0->x - v2->x) , abs(v1->x - v2->x) );
+  fy = max3( abs(v0->y - v1->y) , abs(v0->y - v2->y) , abs(v1->y - v2->y) );
+  fz = max3( abs(v0->z - v1->z) , abs(v0->z - v2->z) , abs(v1->z - v2->z) );
+  
+  if (fx == min3(fx,fy,fz)) w->projection = 0;
+  else if (fy == min3(fx,fy,fz)) w->projection = 1;
+  else w->projection = 2;
+*/
+  
+  w->vert[0] = v0;
+  w->vert[1] = v1;
+  w->vert[2] = v2;
+  w->edges[0] = NULL;
+  w->edges[1] = NULL;
+  w->edges[2] = NULL;
+  w->nb_walls[0] = NULL;
+  w->nb_walls[1] = NULL;
+  w->nb_walls[2] = NULL;
+  
+  w->area = sqrt(0.5 * ( ((v1->x - v0->x)*(v1->x - v0->x)+
+                          (v1->y - v0->y)*(v1->y - v0->y)+
+                          (v1->z - v0->z)*(v1->z - v0->z)) *
+                         ((v2->x - v0->x)*(v2->x - v0->x)+
+                          (v2->y - v0->y)*(v2->y - v0->y)+
+                          (v2->z - v0->z)*(v2->z - v0->z)) +
+                         ((v1->x - v0->x)*(v2->x - v0->x)+
+                          (v1->y - v0->y)*(v2->y - v0->y)+
+                          (v1->z - v0->z)*(v2->z - v0->z)) *
+                         ((v1->x - v0->x)*(v2->x - v0->x)+
+                          (v1->y - v0->y)*(v2->y - v0->y)+
+                          (v1->z - v0->z)*(v2->z - v0->z)) ) );
+
+  fx = (v1->x - v0->x);
+  fy = (v1->y - v0->y);
+  fz = (v1->z - v0->z);
+  f = 1 / sqrt( fx*fx + fy*fy + fz*fz );
+  
+  w->unit_u.x = fx * f;
+  w->unit_u.y = fy * f;
+  w->unit_u.z = fz * f;
+  
+  fx = (v2->x - v0->x);
+  fy = (v2->y - v0->y);
+  fz = (v2->z - v0->z);
+
+  w->normal.x = w->unit_u.y * fz - w->unit_u.z * fy;
+  w->normal.y = w->unit_u.z * fx - w->unit_u.x * fz;
+  w->normal.z = w->unit_u.x * fy - w->unit_u.y * fx;
+  f = 1 / sqrt( w->normal.x*w->normal.x + w->normal.y*w->normal.y + w->normal.z*w->normal.z );
+  w->normal.x *= f;
+  w->normal.y *= f;
+  w->normal.z *= f;
+  w->unit_v.x = w->normal.y * w->unit_u.z - w->normal.z * w->unit_u.y;
+  w->unit_v.y = w->normal.z * w->unit_u.x - w->normal.x * w->unit_u.z;
+  w->unit_v.z = w->normal.x * w->unit_u.y - w->normal.y * w->unit_u.x;
+  w->d = v0->x * w->normal.x + v0->y * w->normal.y + v0->z * w->normal.z;
+  
+  w->mol = NULL;
+  w->mol_count = 0;
+  w->effectors = NULL;
+  w->viz_state = EXCLUDE_OBJ; 
+  w->parent_object = objp;
+  w->regions = NULL;
+  no_printf("Created wall %d on object %s at:\n",w->side,w->parent_object->sym->name);
+  no_printf("  vertex 0: %.9g, %.9g, %.9g\n",w->vert[0]->x,w->vert[0]->y,w->vert[0]->z);
+  no_printf("  vertex 1: %.9g, %.9g, %.9g\n",w->vert[1]->x,w->vert[1]->y,w->vert[1]->z);
+  no_printf("  vertex 2: %.9g, %.9g, %.9g\n",w->vert[2]->x,w->vert[2]->y,w->vert[2]->z);
+}
+

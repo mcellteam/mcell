@@ -38,6 +38,20 @@ void mdl_warning(struct mdlparse_vars *mpvp)
 }
 
 
+/**
+ * Swaps two doubles.  
+ */
+void swap_double(double *x, double *y)
+{
+  double temp;
+   
+  temp=*x;
+  *x=*y;
+  *y=temp;
+}
+
+
+
 double *double_dup(double value)
 {
   double *dup_value;
@@ -232,6 +246,12 @@ int copy_object(struct volume *volp,struct object *curr_objp,
 
   objp->object_type=objp2->object_type;
   objp->parent=curr_objp;
+  objp->n_walls=objp2->n_walls;
+  objp->walls=objp2->walls;
+  objp->wall_p=objp2->wall_p;
+  objp->n_verts=objp2->n_verts;
+  objp->verts=objp2->verts;
+  objp->vert_p=objp2->vert_p;
   rlp2=objp2->region_list;
   while (rlp2!=NULL) {
     if ((rlp=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
@@ -248,6 +268,7 @@ int copy_object(struct volume *volp,struct object *curr_objp,
     rp->region_last_name=my_strdup(rp2->region_last_name);
     rp->parent=objp;
     rp->reg_counter_ref_list=NULL;
+    rp->surf_class=rp2->surf_class;
     elp2=rp2->element_list;
     while (elp2!=NULL) {
       if ((elp=(struct element_list *)malloc
@@ -269,7 +290,7 @@ int copy_object(struct volume *volp,struct object *curr_objp,
       }
       effdp->next=rp->eff_dat;
       rp->eff_dat=effdp;
-      effdp->rx=effdp2->rx;
+      effdp->eff=effdp2->eff;
       effdp->quantity_type=effdp2->quantity_type;
       effdp->quantity=effdp2->quantity;
       effdp->orient=effdp2->orient;
@@ -622,8 +643,130 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
 
 
+/**
+ * Constructs the corners of the cuboid whose bounding box is
+ * specified by the two points p1 and p2.
+ * @param p1 ptr to a vector3 specifying one corner of a cuboid.
+ * @param p2 ptr to a vector3 specifying the other diagonal corner of a cuboid.
+ * @param opp ptr to ordered_poly structure that will hold the cuboid.
+ */
+int make_cuboid(struct vector3 *p1, struct vector3 *p2, struct ordered_poly *opp)
+{
+  struct vector3 *corner;
+  struct element_data *edp;
+  double dx,dy,dz;
+  int i,*intp;
+
+  if ((corner=(struct vector3 *)malloc
+      (opp->n_verts*sizeof(struct vector3)))==NULL) {
+    return(1);
+  }
+  opp->vertex=corner;
+
+  if ((edp=(struct element_data *)malloc
+      (opp->n_walls*sizeof(struct element_data)))==NULL) {
+    return(1);
+  }
+  opp->element_data=edp;
+  
+  for(i=0;i<opp->n_walls;i++){
+    if ((intp=(int *)malloc(3*sizeof(int)))==NULL) {
+      return(1);
+    }
+    edp[i].vertex_index=intp;
+    edp[i].n_verts=3;
+  }
+
+  dx=p2->x-p1->x;
+  dy=p2->y-p1->y;
+  dz=p2->z-p1->z;
+  if (dx<0) {
+    swap_double(&p1->x,&p2->x);
+  }
+  if (dy<0) {
+    swap_double(&p1->y,&p2->y);
+  }
+  if (dz<0) {
+    swap_double(&p1->z,&p2->z);
+  }
+  corner[0].x=p1->x;
+  corner[0].y=p1->y;
+  corner[0].z=p1->z;
+  corner[1].x=p1->x;
+  corner[1].y=p1->y;
+  corner[1].z=p2->z;
+  corner[2].x=p1->x;
+  corner[2].y=p2->y;
+  corner[2].z=p1->z;
+  corner[3].x=p1->x;
+  corner[3].y=p2->y;
+  corner[3].z=p2->z;
+  corner[4].x=p2->x;
+  corner[4].y=p1->y;
+  corner[4].z=p1->z;
+  corner[5].x=p2->x;
+  corner[5].y=p1->y;
+  corner[5].z=p2->z;
+  corner[6].x=p2->x;
+  corner[6].y=p2->y;
+  corner[6].z=p1->z;
+  corner[7].x=p2->x;
+  corner[7].y=p2->y;
+  corner[7].z=p2->z;
+
+  edp[0].vertex_index[0]=1;
+  edp[0].vertex_index[1]=5;
+  edp[0].vertex_index[2]=7;
+  edp[1].vertex_index[0]=1;
+  edp[1].vertex_index[1]=7;
+  edp[1].vertex_index[2]=3;
+
+  edp[2].vertex_index[0]=0;
+  edp[2].vertex_index[1]=2;
+  edp[2].vertex_index[2]=6;
+  edp[3].vertex_index[0]=0;
+  edp[3].vertex_index[1]=6;
+  edp[3].vertex_index[2]=4;
+  
+  edp[4].vertex_index[0]=0;
+  edp[4].vertex_index[1]=4;
+  edp[4].vertex_index[2]=5;
+  edp[5].vertex_index[0]=0;
+  edp[5].vertex_index[1]=5;
+  edp[5].vertex_index[2]=1;
+  
+  edp[6].vertex_index[0]=2;
+  edp[6].vertex_index[1]=3;
+  edp[6].vertex_index[2]=7;
+  edp[7].vertex_index[0]=2;
+  edp[7].vertex_index[1]=7;
+  edp[7].vertex_index[2]=6;
+  
+  edp[8].vertex_index[0]=0;
+  edp[8].vertex_index[1]=1;
+  edp[8].vertex_index[2]=3;
+  edp[9].vertex_index[0]=0;
+  edp[9].vertex_index[1]=3;
+  edp[9].vertex_index[2]=2;
+  
+  edp[10].vertex_index[0]=4;
+  edp[10].vertex_index[1]=6;
+  edp[10].vertex_index[2]=7;
+  edp[11].vertex_index[0]=4;
+  edp[11].vertex_index[1]=7;
+  edp[11].vertex_index[2]=5;
+
+  return(0);
+}
+
+
+
+
+
 
 #if 0
+
+
 
 
 
@@ -649,22 +792,22 @@ int set_viz_state_value(struct object *objp,int viz_state)
     case BOX_OBJ:
       pop=(struct polygon_object *)objp->obj;
       if (objp->viz_state==NULL) {
-        if ((objp->viz_state=(int *)malloc(pop->n_polys*sizeof(int)))==NULL) {
+        if ((objp->viz_state=(int *)malloc(pop->n_walls*sizeof(int)))==NULL) {
           return(1);
         }
       }
-      for (i=0;i<pop->n_polys;i++) {
+      for (i=0;i<pop->n_walls;i++) {
         objp->viz_state[i]=viz_state;
       }
       break;
     case POLY_OBJ:
       pop=(struct polygon_object *)objp->obj;
       if (objp->viz_state==NULL) {
-        if ((objp->viz_state=(int *)malloc(pop->n_polys*sizeof(int)))==NULL) {
+        if ((objp->viz_state=(int *)malloc(pop->n_walls*sizeof(int)))==NULL) {
           return(1);
         }
       }
-      for (i=0;i<pop->n_polys;i++) {
+      for (i=0;i<pop->n_walls;i++) {
         objp->viz_state[i]=viz_state;
       }
       break;

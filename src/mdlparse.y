@@ -64,7 +64,7 @@ struct count_list *cnt;
 %token <tok> ABS
 %token <tok> ABSORPTIVE
 %token <tok> ACOS
-%token <tok> ADD_EFFECTOR
+%token <tok> ADD_MOLECULES
 %token <tok> ALL
 %token <tok> ALL_ELEMENTS
 %token <tok> ALL_EVENTS
@@ -82,6 +82,7 @@ struct count_list *cnt;
 %token <tok> CHECKPOINT_OUTFILE
 %token <tok> CHECKPOINT_ITERATIONS
 %token <tok> CONCENTRATION
+%token <tok> CLASS
 %token <tok> COLOR
 %token <tok> COLOR_SIDE
 %token <tok> COLOR_EFFECTOR
@@ -99,8 +100,8 @@ struct count_list *cnt;
 %token <tok> DEFINE_REACTIONS
 %token <tok> DEFINE_RELEASE_PATTERN
 %token <tok> DEFINE_SURFACE_REGIONS
-%token <tok> DEFINE_SURFACE_TYPE
-%token <tok> DEFINE_SURFACE_TYPES
+%token <tok> DEFINE_SURFACE_CLASS
+%token <tok> DEFINE_SURFACE_CLASSES
 %token <tok> DELAY
 %token <tok> DENSITY
 %token <tok> DX
@@ -126,7 +127,6 @@ struct count_list *cnt;
 %token <tok> FPRINT_TIME
 %token <tok> FPRINTF
 %token <tok> FRONT
-%token <tok> FULLY_CLOSED
 %token <tok> GAUSSIAN_RELEASE_NUMBER
 %token <tok> INCLUDE_FILE
 %token <tok> INITIAL_EVENTS
@@ -205,6 +205,7 @@ struct count_list *cnt;
 %token <tok> RT_ARROW
 %token <tok> SCALE
 %token <tok> SEED
+%token <tok> SET_SURFACE_CLASSES
 %token <tok> SIN
 %token <tok> SITE_DIAMETER
 %token <tok> SPECIFIED_EFFECTORS
@@ -266,13 +267,15 @@ struct count_list *cnt;
 %type <tok> molecules_def
 %type <tok> define_one_molecule
 %type <tok> define_multiple_molecules
-%type <tok> surface_types_def
-%type <tok> define_one_surface_type
-%type <tok> define_multiple_surface_types
+%type <tok> surface_classes_def
+%type <tok> define_one_surface_class
+%type <tok> define_multiple_surface_classes
 %type <tok> surface_prop
 %type <tok> chkpt_stmt
 %type <tok> release_pattern_def
 %type <tok> physical_object_def
+%type <tok> surface_regions_def
+%type <tok> set_surface_classes
 %type <tok> instance_def
 %type <tok> include_stmt
 %type <tok> end_of_mdl_file
@@ -287,6 +290,17 @@ struct count_list *cnt;
 %type <tok> bimolecular_rxn
 %type <tok> product
 %type <tok> list_products
+
+%type <tok> boolean
+%type <tok> side
+%type <tok> side_name
+%type <tok> remove_side
+%type <tok> in_obj_set_surface_classes
+%type <tok> in_obj_surface_regions_def
+%type <tok> list_in_obj_surface_class_region_refs
+%type <tok> in_obj_surface_class_region_ref
+%type <tok> list_surface_class_region_refs
+%type <tok> surface_class_region_ref
 
 %type <sym> assign_var
 %type <sym> existing_var_only
@@ -309,7 +323,8 @@ struct count_list *cnt;
 
 %type <sym> new_molecule
 %type <sym> existing_molecule
-%type <sym> new_surface_type
+%type <sym> new_surface_class
+%type <sym> existing_surface_class
 %type <sym> new_release_pattern
 %type <sym> existing_release_pattern
 %type <sym> object_def
@@ -319,6 +334,11 @@ struct count_list *cnt;
 %type <sym> existing_object_ref
 %type <sym> meta_object_def
 %type <sym> release_site_def
+%type <sym> box_def
+%type <sym> polygon_list_def
+%type <sym> new_region
+%type <sym> existing_region
+%type <sym> in_obj_existing_region
 
 %type <sym> reactant
 
@@ -329,11 +349,8 @@ struct count_list *cnt;
 
 /**********************
 
-%type <tok> boolean
 %type <tok> orientation_cmd
 %type <tok> wall_prop
-%type <tok> side
-%type <tok> side_name
 %type <tok> partition_dimension
 %type <tok> orientation
 %type <tok> r_spec
@@ -358,11 +375,9 @@ struct count_list *cnt;
 %type <tok> partition_def
 %type <tok> voxel_image_mode_def
 %type <tok> voxel_volume_mode_def
-%type <tok> surface_region_def
 %type <tok> effector_site_def
 %type <tok> output_def
 %type <tok> add_effector
-%type <tok> remove_side
 %type <tok> wall_prop_cmd
 %type <tok> fopen_stmt
 %type <tok> fclose_stmt
@@ -371,8 +386,6 @@ struct count_list *cnt;
 %type <tok> print_time_stmt
 %type <tok> fprint_time_stmt
 %type <tok> sprintf_stmt
-%type <tok> polygon_object_cmd
-%type <tok> list_polygon_object_cmds
 %type <tok> polarity
 %type <tok> polarity_spec
 %type <tok> viz_frame_data_def
@@ -388,10 +401,6 @@ struct count_list *cnt;
 %type <sym> transition
 %type <sym> existing_molecule_or_reaction_state
 %type <sym> existing_logicalOrPhysical
-%type <sym> new_region
-%type <sym> existing_region
-%type <sym> box_def
-%type <sym> polygon_def
 %type <sym> reaction_state
 %type <sym> existing_reaction_state
 %type <sym> new_file_stream
@@ -439,17 +448,18 @@ mdl_stmt: time_def
 	| radial_subdivisions_def
 	| assignment_stmt
 	| molecules_def
-	| surface_types_def
+	| surface_classes_def
 	| rx_net_def
 	| chkpt_stmt
 	| release_pattern_def
 	| physical_object_def
 	| instance_def
+	| surface_regions_def
+	| set_surface_classes
 /*
 	| partition_def
 	| parallel_partition_def
-	| surface_region_def
-	| effector_site_def
+	| add_molecules_def
 	| viz_output_def
 	| output_def
 	| io_stmt
@@ -626,7 +636,7 @@ array_value: '['
   mdlpvp->el_head=NULL;
   mdlpvp->el_tail=NULL;
 }
-array_expr ']'
+	array_expr ']'
 {
 #ifdef DEBUG
   mdlpvp->elp=mdlpvp->el_head;
@@ -1431,6 +1441,42 @@ new_molecule: VAR
 };
 
 
+existing_molecule: VAR
+{
+  if (mdlpvp->cval_2!=NULL) {  
+    mdlpvp->sym_name=mdlpvp->cval_2;
+  }   
+  else {
+    mdlpvp->sym_name=mdlpvp->cval;
+  } 
+
+  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined molecule:",mdlpvp->sym_name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    if (mdlpvp->sym_name==mdlpvp->cval) {
+      mdlpvp->cval=NULL;
+    }
+    else {
+      mdlpvp->cval_2=NULL;
+    }
+    free((void *)mdlpvp->sym_name);
+    return(1);
+  }
+  if (mdlpvp->sym_name==mdlpvp->cval) {
+    mdlpvp->cval=NULL;
+  }
+  else {
+    mdlpvp->cval_2=NULL;
+  }
+  free((void *)mdlpvp->sym_name);
+#ifdef KELP
+  mdlpvp->gp->ref_count++;
+  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
+#endif
+  $$=mdlpvp->gp;
+};
+
+
 diffusion_def: DIFFUSION_CONSTANT '=' num_expr
 {
   $$=$<dbl>3;
@@ -1457,27 +1503,27 @@ charge_def: /* empty */
 };
 
 
-surface_types_def: define_one_surface_type
-	| define_multiple_surface_types
+surface_classes_def: define_one_surface_class
+	| define_multiple_surface_classes
 ;
 
 
-define_one_surface_type: DEFINE_SURFACE_TYPE surface_type_stmt
+define_one_surface_class: DEFINE_SURFACE_CLASS surface_class_stmt
 ;
 
 
-define_multiple_surface_types: DEFINE_SURFACE_TYPES '{'
-	list_surface_type_stmts
+define_multiple_surface_classes: DEFINE_SURFACE_CLASSES '{'
+	list_surface_class_stmts
 	'}'
 ;
 
 
-list_surface_type_stmts: surface_type_stmt
-	| list_surface_type_stmts surface_type_stmt
+list_surface_class_stmts: surface_class_stmt
+	| list_surface_class_stmts surface_class_stmt
 ;
 
 
-surface_type_stmt: new_surface_type '{'
+surface_class_stmt: new_surface_class '{'
 {
   mdlpvp->stp1=$<sym>1;
   mdlpvp->specp=(struct species *)mdlpvp->gp->value;
@@ -1487,12 +1533,26 @@ surface_type_stmt: new_surface_type '{'
 ;
 
 
-new_surface_type: new_molecule
+new_surface_class: new_molecule
 {
   mdlpvp->gp=$<sym>1;
   mdlpvp->specp=(struct species *)mdlpvp->gp->value;
   mdlpvp->specp->sym=mdlpvp->gp;
   mdlpvp->specp->flags=IS_SURFACE;
+  $$=mdlpvp->gp;
+};
+
+
+existing_surface_class: existing_molecule
+{
+  mdlpvp->gp=$<sym>1;
+  mdlpvp->specp=(struct species *)mdlpvp->gp->value;
+  mdlpvp->sym_name=mdlpvp->gp->name;
+  if (mdlpvp->specp->flags!=IS_SURFACE) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined surface type:",mdlpvp->sym_name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
   $$=mdlpvp->gp;
 };
 
@@ -1524,23 +1584,6 @@ surface_prop_stmt: surface_prop '=' existing_molecule
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
     return(1);
   }
-  /* fill in reactant parts of struct rxn here */
-  if (mdlpvp->path_mem==NULL) {
-    if ((mdlpvp->path_mem=create_mem(sizeof(struct pathway),16384))==NULL) {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
-        "Cannot store surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-      return(1);
-    } 
-  }
-  if (mdlpvp->prod_mem==NULL) {
-    if ((mdlpvp->prod_mem=create_mem(sizeof(struct product),16384))==NULL) {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
-        "Cannot store surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-      return(1);
-    } 
-  }
   if ((mdlpvp->pathp=(struct pathway *)mem_get(mdlpvp->path_mem))==NULL) {
     sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
       "Cannot store surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
@@ -1569,7 +1612,7 @@ surface_prop_stmt: surface_prop '=' existing_molecule
       }
       mdlpvp->prodp->prod=mdlpvp->pathp->reactant2;
       mdlpvp->prodp->orientation=1;
-      mdlpvp->prodp->next=mdlpvp->pathp->product_head;
+      mdlpvp->prodp->next=NULL;
       mdlpvp->pathp->product_head=mdlpvp->prodp;
       break;
     case TRANSP:
@@ -1584,7 +1627,7 @@ surface_prop_stmt: surface_prop '=' existing_molecule
       }
       mdlpvp->prodp->prod=mdlpvp->pathp->reactant2;
       mdlpvp->prodp->orientation=-1;
-      mdlpvp->prodp->next=mdlpvp->pathp->product_head;
+      mdlpvp->prodp->next=NULL;
       mdlpvp->pathp->product_head=mdlpvp->prodp;
       break;
     case SINK:
@@ -1708,6 +1751,7 @@ new_release_pattern: VAR
   $$=mdlpvp->gp;
 };
 
+
 existing_release_pattern: VAR
 {
   if (mdlpvp->cval_2!=NULL) {
@@ -1742,9 +1786,11 @@ existing_release_pattern: VAR
   $$=mdlpvp->gp;
 };
 
+
 list_req_release_pattern_cmds: req_release_pattern_cmd
 	| list_req_release_pattern_cmds req_release_pattern_cmd
 ;
+
 
 req_release_pattern_cmd:
 	DELAY '=' num_expr
@@ -1789,6 +1835,7 @@ physical_object_def: object_def
   mdlpvp->objp->next=NULL;
 };
 
+
 object_def:
         meta_object_def
 {
@@ -1798,35 +1845,31 @@ object_def:
 {
         $$=$<sym>1;
 }
-/*
         | box_def
 {
         $$=$<sym>1;
 }
-        | polygon_def
+        | polygon_list_def
 {
         $$=$<sym>1;
-}
-*/
-;
+};
+
 
 meta_object_def:
         new_object OBJECT '{'
 {
-        no_printf("Here 1\n");
-        fflush(stderr);
 	mdlpvp->gp=$<sym>1;
         mdlpvp->objp=(struct object *)mdlpvp->gp->value;
         mdlpvp->objp->object_type=META_OBJ;
         mdlpvp->objp->parent=mdlpvp->curr_obj;
         mdlpvp->curr_obj=mdlpvp->objp;
-        no_printf("Here 2\n");
-        fflush(stderr);
 }
         list_objects
         list_opt_object_cmds
         '}'
 {
+        mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
+        mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
         mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
         if (mdlpvp->object_name_list_end->prev!=NULL) {
           mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
@@ -1836,6 +1879,7 @@ meta_object_def:
         }
         $$=$<sym>1;
 };
+
 
 new_object: VAR
 {
@@ -1901,325 +1945,6 @@ new_object: VAR
   $$=mdlpvp->gp;
 };
 
-list_opt_object_cmds: 
-	| list_opt_object_cmds opt_object_cmd
-;
-
-opt_object_cmd: transformation
-{
-};
-
-transformation:
-        TRANSLATE '=' point
-{
-        mdlpvp->pntp1=$<vec3>3;
-        init_matrix(mdlpvp->tm);
-        translate_matrix(mdlpvp->tm,mdlpvp->tm,mdlpvp->pntp1);
-        mult_matrix(mdlpvp->curr_obj->t_matrix,mdlpvp->tm,mdlpvp->curr_obj->t_matrix,4,4,4);
-}
-        | SCALE '=' point
-{
-        mdlpvp->pntp1=$<vec3>3;
-        init_matrix(mdlpvp->tm);
-        scale_matrix(mdlpvp->tm,mdlpvp->tm,mdlpvp->pntp1);
-        mult_matrix(mdlpvp->curr_obj->t_matrix,mdlpvp->tm,mdlpvp->curr_obj->t_matrix,4,4,4);
-}
-        | ROTATE '=' point ',' num_expr
-{
-        mdlpvp->pntp1=$<vec3>3;
-        init_matrix(mdlpvp->tm);
-        rotate_matrix(mdlpvp->tm,mdlpvp->tm,mdlpvp->pntp1,$<dbl>5);
-        mult_matrix(mdlpvp->curr_obj->t_matrix,mdlpvp->tm,mdlpvp->curr_obj->t_matrix,4,4,4);
-};
-
-list_objects:
-        object_ref
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  if (mdlpvp->curr_obj->first_child==NULL) {
-    mdlpvp->curr_obj->first_child=mdlpvp->objp;
-  }
-  if (mdlpvp->curr_obj->last_child!=NULL) {
-    mdlpvp->curr_obj->last_child->next=mdlpvp->objp;
-  }
-  mdlpvp->curr_obj->last_child=mdlpvp->objp;
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-  mdlpvp->objp->next=NULL;
-}
-        | list_objects object_ref
-{
-  mdlpvp->gp=$<sym>2;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  if (mdlpvp->curr_obj->first_child==NULL) {
-    mdlpvp->curr_obj->first_child=mdlpvp->objp;
-  }
-  if (mdlpvp->curr_obj->last_child!=NULL) {
-    mdlpvp->curr_obj->last_child->next=mdlpvp->objp;
-  }
-  mdlpvp->curr_obj->last_child=mdlpvp->objp;
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-  mdlpvp->objp->next=NULL;
-};
-
-object_ref:
-        existing_object_ref
-{
-  $$=$<sym>1;
-}
-        | object_def
-{
-  $$=$<sym>1;
-};
-
-existing_object_ref:
-        new_object OBJECT existing_object '{'
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->tp=$<sym>3;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  mdlpvp->objp2=(struct object *)mdlpvp->tp->value;
-  mdlpvp->objp->object_type=mdlpvp->objp2->object_type;
-  /* replicate all of object tree rooted at mdlpvp->objp2 */
-  if (copy_object(volp,mdlpvp->curr_obj,mdlpvp->objp,mdlpvp->objp2,mdlpvp->mdl_err_msg)) {
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-  mdlpvp->curr_obj=mdlpvp->objp;
-}
-          list_opt_object_cmds
-        '}'
-{
-  mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
-  if (mdlpvp->object_name_list_end->prev!=NULL) {
-    mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
-  }
-  else {
-    mdlpvp->object_name_list_end->name=NULL;
-  }
-  $$=$<sym>1;
-};
-
-release_site_def: new_object SPHERICAL_RELEASE_SITE '{'
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  if ((mdlpvp->rsop=(struct release_site_obj *)malloc
-              (sizeof(struct release_site_obj)))==NULL) {
-    mdlerror("Cannot store release site data");
-    return(1);
-  }
-  mdlpvp->rsop->location=NULL;
-  mdlpvp->rsop->mol_type=NULL;
-  mdlpvp->rsop->release_number_method=CONSTNUM;
-  mdlpvp->rsop->release_number=0;
-  mdlpvp->rsop->mean_number=0;
-  mdlpvp->rsop->mean_diameter=0;
-  mdlpvp->rsop->concentration=0;
-  mdlpvp->rsop->standard_deviation=0;
-  mdlpvp->rsop->diameter=0;
-  mdlpvp->rsop->release_prob=1.0;
-  mdlpvp->rsop->pattern=volp->default_release_pattern;
-  mdlpvp->objp->object_type=REL_SITE_OBJ;
-  mdlpvp->objp->contents=mdlpvp->rsop;
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-  mdlpvp->curr_obj=mdlpvp->objp;
-}
-	list_release_site_cmds
-	list_opt_object_cmds
-	'}'
-{
-  no_printf("Release site %s defined:\n",mdlpvp->curr_obj->sym->name);
-  no_printf("\tLocation = [%f,%f,%f]\n",mdlpvp->rsop->location->x,mdlpvp->rsop->location->y,mdlpvp->rsop->location->z);
-  mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
-  if (mdlpvp->object_name_list_end->prev!=NULL) {
-    mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
-  }
-  else {
-    mdlpvp->object_name_list_end->name=NULL;
-  }
-  $$=$<sym>1;
-};
-
-list_release_site_cmds: release_site_cmd
-	| list_release_site_cmds release_site_cmd
-;
-
-release_site_cmd:
-	LOCATION '=' point
-{
-  mdlpvp->rsop->location=$<vec3>3;
-}
-	| MOLECULE '=' existing_molecule
-{
-  mdlpvp->gp=$<sym>3;
-  mdlpvp->rsop->mol_type=(struct species *)mdlpvp->gp->value;
-}
-	| release_number_cmd
-	| SITE_DIAMETER '=' num_expr
-{
-  mdlpvp->rsop->diameter=$<dbl>3/volp->length_unit;
-}
-	| RELEASE_PROBABILITY '=' num_expr
-{
-  mdlpvp->rsop->release_prob=$<dbl>3;
-}
-	| RELEASE_PATTERN '=' existing_release_pattern
-{
-  mdlpvp->gp=$<sym>3;
-  mdlpvp->rsop->pattern=(struct release_pattern *)mdlpvp->gp->value;
-};
-
-release_number_cmd: constant_release_number_cmd
-	| gaussian_release_number_cmd
-	| volume_dependent_number_cmd
-;
-
-constant_release_number_cmd: NUMBER_TO_RELEASE '=' num_expr
-{
-  mdlpvp->rsop->release_number_method=CONSTNUM;
-  mdlpvp->rsop->release_number=(int) $<dbl>3;
-}
-	| GAUSSIAN_RELEASE_NUMBER '{'
-	MEAN_NUMBER '=' num_expr
-	'}'
-{
-  mdlpvp->rsop->release_number_method=CONSTNUM;
-  mdlpvp->rsop->release_number=(int) $<dbl>5;
-};
-
-gaussian_release_number_cmd: GAUSSIAN_RELEASE_NUMBER '{'
-	MEAN_NUMBER '=' num_expr
-        STANDARD_DEVIATION '=' num_expr
-	'}'
-{
-  mdlpvp->rsop->release_number_method=GAUSSNUM;
-  mdlpvp->rsop->mean_number=(int) $<dbl>5;
-  mdlpvp->rsop->standard_deviation=$<dbl>8;
-};
-
-volume_dependent_number_cmd: VOLUME_DEPENDENT_RELEASE_NUMBER '{'
-	MEAN_DIAMETER '=' num_expr
-	STANDARD_DEVIATION '=' num_expr
-	CONCENTRATION '=' num_expr
-	'}'
-{
-  mdlpvp->rsop->release_number_method=VOLNUM;
-  mdlpvp->rsop->mean_diameter=$<dbl>5;
-  mdlpvp->rsop->standard_deviation=$<dbl>8;
-  mdlpvp->rsop->concentration=$<dbl>11;
-};
-
-
-point: array_value
-{
-  mdlpvp->el_head=$<nel>1;
-  if ((mdlpvp->pntp1=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
-    mdlerror("Cannot store point data");
-    return(1);
-  }
-  mdlpvp->pntp1->x=0;
-  mdlpvp->pntp1->y=0;
-  mdlpvp->pntp1->z=0;
-  mdlpvp->elp=mdlpvp->el_head;
-  if (mdlpvp->elp!=NULL) {
-    mdlpvp->pntp1->x=mdlpvp->elp->value;
-    mdlpvp->elp=mdlpvp->elp->next;
-  }
-  else {
-    mdlerror("Three dimensional value required");
-    return(1);
-  }
-  if (mdlpvp->elp!=NULL) {
-    mdlpvp->pntp1->y=mdlpvp->elp->value;
-    mdlpvp->elp=mdlpvp->elp->next;
-  }
-  else {
-    mdlerror("Three dimensional value required");
-    return(1);
-  }
-  if (mdlpvp->elp!=NULL) {
-    mdlpvp->pntp1->z=mdlpvp->elp->value;
-    mdlpvp->elp=mdlpvp->elp->next;
-  }
-  else {
-    mdlerror("Three dimensional value required");
-    return(1);
-  }
-  $$=mdlpvp->pntp1;
-};
-
-
-existing_molecule: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {  
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }   
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  } 
-
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined molecule:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free((void *)mdlpvp->sym_name);
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-  $$=mdlpvp->gp;
-};
-
-
-instance_def: INSTANTIATE new_object OBJECT '{'
-{
-  mdlpvp->gp=$<sym>2;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-
-  mdlpvp->curr_obj=volp->root_instance;
-  if (mdlpvp->curr_obj->first_child==NULL) { 
-    mdlpvp->curr_obj->first_child=mdlpvp->objp;
-  }
-  if (mdlpvp->curr_obj->last_child!=NULL) {
-    mdlpvp->curr_obj->last_child->next=mdlpvp->objp;
-  } 
-  mdlpvp->curr_obj->last_child=mdlpvp->objp;
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-  mdlpvp->objp->next=NULL;
-
-  mdlpvp->objp->object_type=META_OBJ;
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-  mdlpvp->curr_obj=mdlpvp->objp;
-}
-        list_objects
-        list_opt_object_cmds
-        '}'
-{
-  mdlpvp->curr_obj=volp->root_object;
-  if (mdlpvp->object_name_list_end->prev!=NULL) {
-    mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
-  }
-  else {
-    mdlpvp->object_name_list_end->name=NULL;
-  }
-};
-
 
 existing_object: VAR
 {
@@ -2274,6 +1999,1068 @@ existing_object: VAR
 };
 
 
+list_opt_object_cmds: /* empty */
+	| list_opt_object_cmds opt_object_cmd
+;
+
+
+opt_object_cmd: transformation
+{
+};
+
+
+transformation:
+        TRANSLATE '=' point
+{
+        mdlpvp->pntp1=$<vec3>3;
+        init_matrix(mdlpvp->tm);
+        translate_matrix(mdlpvp->tm,mdlpvp->tm,mdlpvp->pntp1);
+        mult_matrix(mdlpvp->curr_obj->t_matrix,mdlpvp->tm,mdlpvp->curr_obj->t_matrix,4,4,4);
+}
+        | SCALE '=' point
+{
+        mdlpvp->pntp1=$<vec3>3;
+        init_matrix(mdlpvp->tm);
+        scale_matrix(mdlpvp->tm,mdlpvp->tm,mdlpvp->pntp1);
+        mult_matrix(mdlpvp->curr_obj->t_matrix,mdlpvp->tm,mdlpvp->curr_obj->t_matrix,4,4,4);
+}
+        | ROTATE '=' point ',' num_expr
+{
+        mdlpvp->pntp1=$<vec3>3;
+        init_matrix(mdlpvp->tm);
+        rotate_matrix(mdlpvp->tm,mdlpvp->tm,mdlpvp->pntp1,$<dbl>5);
+        mult_matrix(mdlpvp->curr_obj->t_matrix,mdlpvp->tm,mdlpvp->curr_obj->t_matrix,4,4,4);
+};
+
+
+list_objects:
+        object_ref
+{
+  mdlpvp->gp=$<sym>1;
+  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
+  if (mdlpvp->curr_obj->first_child==NULL) {
+    mdlpvp->curr_obj->first_child=mdlpvp->objp;
+  }
+  if (mdlpvp->curr_obj->last_child!=NULL) {
+    mdlpvp->curr_obj->last_child->next=mdlpvp->objp;
+  }
+  mdlpvp->curr_obj->last_child=mdlpvp->objp;
+  mdlpvp->objp->parent=mdlpvp->curr_obj;
+  mdlpvp->objp->next=NULL;
+}
+        | list_objects object_ref
+{
+  mdlpvp->gp=$<sym>2;
+  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
+  if (mdlpvp->curr_obj->first_child==NULL) {
+    mdlpvp->curr_obj->first_child=mdlpvp->objp;
+  }
+  if (mdlpvp->curr_obj->last_child!=NULL) {
+    mdlpvp->curr_obj->last_child->next=mdlpvp->objp;
+  }
+  mdlpvp->curr_obj->last_child=mdlpvp->objp;
+  mdlpvp->objp->parent=mdlpvp->curr_obj;
+  mdlpvp->objp->next=NULL;
+};
+
+
+object_ref:
+        existing_object_ref
+{
+  $$=$<sym>1;
+}
+        | object_def
+{
+  $$=$<sym>1;
+};
+
+
+existing_object_ref:
+        new_object OBJECT existing_object '{'
+{
+  mdlpvp->gp=$<sym>1;
+  mdlpvp->tp=$<sym>3;
+  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
+  mdlpvp->objp2=(struct object *)mdlpvp->tp->value;
+  mdlpvp->objp->object_type=mdlpvp->objp2->object_type;
+  /* replicate all of object tree rooted at mdlpvp->objp2 */
+  if (copy_object(volp,mdlpvp->curr_obj,mdlpvp->objp,mdlpvp->objp2,mdlpvp->mdl_err_msg)) {
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  mdlpvp->objp->parent=mdlpvp->curr_obj;
+  mdlpvp->curr_obj=mdlpvp->objp;
+}
+          list_opt_object_cmds
+        '}'
+{
+  mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
+  mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
+  mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
+  if (mdlpvp->object_name_list_end->prev!=NULL) {
+    mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
+  }
+  else {
+    mdlpvp->object_name_list_end->name=NULL;
+  }
+  $$=$<sym>1;
+};
+
+
+release_site_def: new_object SPHERICAL_RELEASE_SITE '{'
+{
+  mdlpvp->gp=$<sym>1;
+  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
+  if ((mdlpvp->rsop=(struct release_site_obj *)malloc
+              (sizeof(struct release_site_obj)))==NULL) {
+    mdlerror("Cannot store release site data");
+    return(1);
+  }
+  mdlpvp->rsop->location=NULL;
+  mdlpvp->rsop->mol_type=NULL;
+  mdlpvp->rsop->release_number_method=CONSTNUM;
+  mdlpvp->rsop->release_number=0;
+  mdlpvp->rsop->mean_number=0;
+  mdlpvp->rsop->mean_diameter=0;
+  mdlpvp->rsop->concentration=0;
+  mdlpvp->rsop->standard_deviation=0;
+  mdlpvp->rsop->diameter=0;
+  mdlpvp->rsop->release_prob=1.0;
+  mdlpvp->rsop->pattern=volp->default_release_pattern;
+  mdlpvp->objp->object_type=REL_SITE_OBJ;
+  mdlpvp->objp->contents=mdlpvp->rsop;
+  mdlpvp->objp->parent=mdlpvp->curr_obj;
+  mdlpvp->curr_obj=mdlpvp->objp;
+}
+	list_release_site_cmds
+	list_opt_object_cmds
+	'}'
+{
+  no_printf("Release site %s defined:\n",mdlpvp->curr_obj->sym->name);
+  no_printf("\tLocation = [%f,%f,%f]\n",mdlpvp->rsop->location->x,mdlpvp->rsop->location->y,mdlpvp->rsop->location->z);
+  mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
+  if (mdlpvp->object_name_list_end->prev!=NULL) {
+    mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
+  }
+  else {
+    mdlpvp->object_name_list_end->name=NULL;
+  }
+  $$=$<sym>1;
+};
+
+
+list_release_site_cmds: release_site_cmd
+	| list_release_site_cmds release_site_cmd
+;
+
+
+release_site_cmd:
+	LOCATION '=' point
+{
+  mdlpvp->rsop->location=$<vec3>3;
+}
+	| MOLECULE '=' existing_molecule
+{
+  mdlpvp->gp=$<sym>3;
+  mdlpvp->rsop->mol_type=(struct species *)mdlpvp->gp->value;
+}
+	| release_number_cmd
+	| SITE_DIAMETER '=' num_expr
+{
+  mdlpvp->rsop->diameter=$<dbl>3/volp->length_unit;
+}
+	| RELEASE_PROBABILITY '=' num_expr
+{
+  mdlpvp->rsop->release_prob=$<dbl>3;
+}
+	| RELEASE_PATTERN '=' existing_release_pattern
+{
+  mdlpvp->gp=$<sym>3;
+  mdlpvp->rsop->pattern=(struct release_pattern *)mdlpvp->gp->value;
+};
+
+
+release_number_cmd: constant_release_number_cmd
+	| gaussian_release_number_cmd
+	| volume_dependent_number_cmd
+;
+
+
+constant_release_number_cmd: NUMBER_TO_RELEASE '=' num_expr
+{
+  mdlpvp->rsop->release_number_method=CONSTNUM;
+  mdlpvp->rsop->release_number=(int) $<dbl>3;
+}
+	| GAUSSIAN_RELEASE_NUMBER '{'
+	MEAN_NUMBER '=' num_expr
+	'}'
+{
+  mdlpvp->rsop->release_number_method=CONSTNUM;
+  mdlpvp->rsop->release_number=(int) $<dbl>5;
+};
+
+
+gaussian_release_number_cmd: GAUSSIAN_RELEASE_NUMBER '{'
+	MEAN_NUMBER '=' num_expr
+        STANDARD_DEVIATION '=' num_expr
+	'}'
+{
+  mdlpvp->rsop->release_number_method=GAUSSNUM;
+  mdlpvp->rsop->mean_number=(int) $<dbl>5;
+  mdlpvp->rsop->standard_deviation=$<dbl>8;
+};
+
+
+volume_dependent_number_cmd: VOLUME_DEPENDENT_RELEASE_NUMBER '{'
+	MEAN_DIAMETER '=' num_expr
+	STANDARD_DEVIATION '=' num_expr
+	CONCENTRATION '=' num_expr
+	'}'
+{
+  mdlpvp->rsop->release_number_method=VOLNUM;
+  mdlpvp->rsop->mean_diameter=$<dbl>5;
+  mdlpvp->rsop->standard_deviation=$<dbl>8;
+  mdlpvp->rsop->concentration=$<dbl>11;
+};
+
+
+point: array_value
+{
+  mdlpvp->el_head=$<nel>1;
+  if ((mdlpvp->pntp1=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
+    mdlerror("Cannot store point data");
+    return(1);
+  }
+  mdlpvp->pntp1->x=0;
+  mdlpvp->pntp1->y=0;
+  mdlpvp->pntp1->z=0;
+  mdlpvp->elp=mdlpvp->el_head;
+  if (mdlpvp->elp!=NULL) {
+    mdlpvp->pntp1->x=mdlpvp->elp->value;
+    mdlpvp->elp=mdlpvp->elp->next;
+  }
+  else {
+    mdlerror("Three dimensional value required");
+    return(1);
+  }
+  if (mdlpvp->elp!=NULL) {
+    mdlpvp->pntp1->y=mdlpvp->elp->value;
+    mdlpvp->elp=mdlpvp->elp->next;
+  }
+  else {
+    mdlerror("Three dimensional value required");
+    return(1);
+  }
+  if (mdlpvp->elp!=NULL) {
+    mdlpvp->pntp1->z=mdlpvp->elp->value;
+    mdlpvp->elp=mdlpvp->elp->next;
+  }
+  else {
+    mdlerror("Three dimensional value required");
+    return(1);
+  }
+  $$=mdlpvp->pntp1;
+};
+
+
+polygon_list_def: new_object POLYGON_LIST '{'
+{
+  mdlpvp->gp=$<sym>1;
+  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
+  if ((mdlpvp->pop=(struct polygon_object *)malloc
+              (sizeof(struct polygon_object)))==NULL) {
+    mdlerror("Cannot store polygon list object data");
+    return(1);
+  }
+  mdlpvp->pop->lig_count_ref=NULL;
+  mdlpvp->pop->viz_state_ref=NULL;
+  mdlpvp->pop->list_type=ORDERED_POLY;
+  mdlpvp->pop->polygon_data=NULL;
+  mdlpvp->pop->n_walls=0;
+  mdlpvp->pop->n_verts=0;
+  mdlpvp->pop->fully_closed=0;
+  mdlpvp->pop->surf_class=NULL;
+  mdlpvp->pop->side_stat=NULL;
+
+  if ((mdlpvp->opp=(struct ordered_poly *)malloc
+              (sizeof(struct ordered_poly)))==NULL) {
+    mdlerror("Cannot store polygon object data");
+    return(1);
+  }
+  mdlpvp->opp->vertex=NULL;
+  mdlpvp->opp->normal=NULL;
+  mdlpvp->opp->element_data=NULL;
+  mdlpvp->opp->n_verts=0;
+  mdlpvp->opp->n_walls=0;
+  mdlpvp->pop->polygon_data=(void *)mdlpvp->opp;
+
+  mdlpvp->objp->object_type=POLY_OBJ;
+  mdlpvp->objp->contents=mdlpvp->pop;
+  mdlpvp->objp->parent=mdlpvp->curr_obj;
+  mdlpvp->obj_name=mdlpvp->objp->sym->name;
+  mdlpvp->curr_obj=mdlpvp->objp;
+}
+	vertex_list_cmd
+        element_connection_cmd
+{
+  u_int i,j;
+  mdlpvp->pop->n_walls=mdlpvp->n_walls;
+  mdlpvp->pop->n_verts=mdlpvp->n_verts;
+  mdlpvp->opp->n_walls=mdlpvp->n_walls;
+  mdlpvp->opp->n_verts=mdlpvp->n_verts;
+  if ((mdlpvp->pop->surf_class=(struct species **)malloc
+              (mdlpvp->pop->n_walls*sizeof(struct species *)))==NULL) {
+    mdlerror("Cannot store polygon object data");
+    return(1);
+  }
+  if ((mdlpvp->pop->side_stat=(unsigned short *)malloc
+              (mdlpvp->pop->n_walls*sizeof(unsigned short)))==NULL) {
+    mdlerror("Cannot store polygon object data");
+    return(1);
+  }
+  for (i=0;i<mdlpvp->pop->n_walls;i++) {
+    mdlpvp->pop->surf_class[i]=volp->g_surf;
+    mdlpvp->pop->side_stat[i]=1;
+  }
+
+  if ((mdlpvp->opp->vertex=(struct vector3 *)malloc
+              (mdlpvp->opp->n_verts*sizeof(struct vector3)))==NULL) {
+    mdlerror("Cannot store polygon object data");
+    return(1);
+  }
+
+  mdlpvp->vlp=mdlpvp->vertex_head;
+  if (mdlpvp->vlp->normal!=NULL) {
+    if ((mdlpvp->opp->normal=(struct vector3 *)malloc
+                (mdlpvp->opp->n_verts*sizeof(struct vector3)))==NULL) {
+      mdlerror("Cannot store polygon object data");
+      return(1);
+    }
+  }
+  for (i=0;i<mdlpvp->opp->n_verts;i++) {
+    mdlpvp->opp->vertex[i].x=mdlpvp->vlp->vertex->x;
+    mdlpvp->opp->vertex[i].y=mdlpvp->vlp->vertex->y;
+    mdlpvp->opp->vertex[i].z=mdlpvp->vlp->vertex->z;
+    mdlpvp->vlp_temp=mdlpvp->vlp;
+    free(mdlpvp->vlp_temp->vertex);
+    if (mdlpvp->opp->normal!=NULL) {
+      mdlpvp->opp->normal[i].x=mdlpvp->vlp->normal->x;
+      mdlpvp->opp->normal[i].y=mdlpvp->vlp->normal->y;
+      mdlpvp->opp->normal[i].z=mdlpvp->vlp->normal->z;
+      free(mdlpvp->vlp_temp->normal);
+    }
+    mdlpvp->vlp=mdlpvp->vlp->next;
+    free(mdlpvp->vlp_temp);
+  }
+  if ((mdlpvp->edp=(struct element_data *)malloc
+              (mdlpvp->opp->n_walls*sizeof(struct element_data)))==NULL) {
+    mdlerror("Cannot store polygon object data");
+    return(1);
+  }
+  mdlpvp->opp->element_data=mdlpvp->edp;
+  mdlpvp->eclp=mdlpvp->connection_head;
+  for (i=0;i<mdlpvp->opp->n_walls;i++) {
+    mdlpvp->edp[i].n_verts=mdlpvp->eclp->n_verts;
+    if ((mdlpvp->intp=(int *)malloc(mdlpvp->eclp->n_verts*sizeof(int)))==NULL) {
+      mdlerror("Cannot store polygon object data");
+      return(1);
+    }
+    mdlpvp->edp[i].vertex_index=mdlpvp->intp;
+    mdlpvp->elp=mdlpvp->eclp->connection_list;
+    for (j=0;j<mdlpvp->eclp->n_verts;j++) {
+      mdlpvp->edp[i].vertex_index[j]=(int)mdlpvp->elp->value;
+      mdlpvp->elp_temp=mdlpvp->elp;
+      mdlpvp->elp=mdlpvp->elp->next;
+      free(mdlpvp->elp_temp);
+    }
+    mdlpvp->eclp_temp=mdlpvp->eclp;
+    mdlpvp->eclp=mdlpvp->eclp->next;
+    free(mdlpvp->eclp_temp);
+  }
+}
+	list_opt_polygon_object_cmds
+	list_opt_object_cmds
+	'}'
+{
+  no_printf("Polygon list %s defined:\n",mdlpvp->curr_obj->sym->name);
+  no_printf(" n_verts = %d\n",mdlpvp->pop->n_verts);
+  no_printf(" n_walls = %d\n",mdlpvp->pop->n_walls);
+  mdlpvp->curr_obj->n_walls=mdlpvp->pop->n_walls;
+  mdlpvp->curr_obj->n_verts=mdlpvp->pop->n_verts;
+  mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
+  mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
+  mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
+  if (mdlpvp->object_name_list_end->prev!=NULL) {
+    mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
+  }
+  else {
+    mdlpvp->object_name_list_end->name=NULL;
+  }
+  $$=$<sym>1;
+};
+
+
+vertex_list_cmd: VERTEX_LIST '{' 
+{
+  mdlpvp->n_verts=0;
+  mdlpvp->vertex_head=NULL;
+  mdlpvp->vertex_tail=NULL;
+}
+	list_points 
+        '}'
+;
+
+
+list_points: point
+{
+  mdlpvp->pntp1=$<vec3>1;
+  if ((mdlpvp->vlp=(struct vertex_list *)malloc(sizeof(struct vertex_list)))==NULL) {
+    mdlerror("Cannot store vertex data");
+    return(1);
+  }
+  mdlpvp->n_verts++;
+  mdlpvp->vlp->vertex=mdlpvp->pntp1;
+  mdlpvp->vlp->normal=NULL;
+  if (mdlpvp->vertex_tail==NULL) {
+    mdlpvp->vertex_tail=mdlpvp->vlp;
+  }
+  mdlpvp->vertex_tail->next=mdlpvp->vlp;
+  mdlpvp->vlp->next=NULL;
+  mdlpvp->vertex_tail=mdlpvp->vlp;
+  if (mdlpvp->vertex_head==NULL) {
+    mdlpvp->vertex_head=mdlpvp->vlp;
+  }
+}
+        | point NORMAL point
+{
+  mdlpvp->pntp1=$<vec3>1;
+  mdlpvp->pntp2=$<vec3>3;
+  if ((mdlpvp->vlp=(struct vertex_list *)malloc(sizeof(struct vertex_list)))==NULL) {
+    mdlerror("Cannot store vertex data");
+    return(1);
+  }
+  mdlpvp->n_verts++;
+  mdlpvp->vlp->vertex=mdlpvp->pntp1;
+  mdlpvp->vlp->normal=mdlpvp->pntp2;
+  if (mdlpvp->vertex_tail==NULL) {
+    mdlpvp->vertex_tail=mdlpvp->vlp;
+  }
+  mdlpvp->vertex_tail->next=mdlpvp->vlp;
+  mdlpvp->vlp->next=NULL;
+  mdlpvp->vertex_tail=mdlpvp->vlp;
+  if (mdlpvp->vertex_head==NULL) {
+    mdlpvp->vertex_head=mdlpvp->vlp;
+  }
+}
+	| list_points point
+{
+  mdlpvp->pntp1=$<vec3>2;
+  if ((mdlpvp->vlp=(struct vertex_list *)malloc(sizeof(struct vertex_list)))==NULL) {
+    mdlerror("Cannot store vertex data");
+    return(1);
+  }
+  mdlpvp->n_verts++;
+  mdlpvp->vlp->vertex=mdlpvp->pntp1;
+  mdlpvp->vlp->normal=NULL;
+  if (mdlpvp->vertex_tail==NULL) {
+    mdlpvp->vertex_tail=mdlpvp->vlp;
+  }
+  mdlpvp->vertex_tail->next=mdlpvp->vlp;
+  mdlpvp->vlp->next=NULL;
+  mdlpvp->vertex_tail=mdlpvp->vlp;
+  if (mdlpvp->vertex_head==NULL) {
+    mdlpvp->vertex_head=mdlpvp->vlp;
+  }
+}
+	| list_points point NORMAL point
+{
+  mdlpvp->pntp1=$<vec3>2;
+  mdlpvp->pntp2=$<vec3>4;
+  if ((mdlpvp->vlp=(struct vertex_list *)malloc(sizeof(struct vertex_list)))==NULL) {
+    mdlerror("Cannot store vertex data");
+    return(1);
+  }
+  mdlpvp->n_verts++;
+  mdlpvp->vlp->vertex=mdlpvp->pntp1;
+  mdlpvp->vlp->normal=mdlpvp->pntp2;
+  if (mdlpvp->vertex_tail==NULL) {
+    mdlpvp->vertex_tail=mdlpvp->vlp;
+  }
+  mdlpvp->vertex_tail->next=mdlpvp->vlp;
+  mdlpvp->vlp->next=NULL;
+  mdlpvp->vertex_tail=mdlpvp->vlp;
+  if (mdlpvp->vertex_head==NULL) {
+    mdlpvp->vertex_head=mdlpvp->vlp;
+  }
+};
+
+
+element_connection_cmd: ELEMENT_CONNECTIONS '{'
+{
+  mdlpvp->n_walls=0;
+  mdlpvp->connection_head=NULL;
+  mdlpvp->connection_tail=NULL;
+}
+        list_arrays
+        '}'
+;
+
+
+list_arrays: array_value
+{
+  mdlpvp->elp=$<nel>1;
+  if ((mdlpvp->eclp=(struct element_connection_list *)malloc
+              (sizeof(struct element_connection_list)))==NULL) {
+    mdlerror("Cannot store element connection data");
+    return(1);
+  }
+  mdlpvp->n_walls++;
+  mdlpvp->eclp->connection_list=mdlpvp->elp;
+  mdlpvp->eclp->n_verts=0;
+  while (mdlpvp->elp!=NULL) {
+    mdlpvp->eclp->n_verts++;
+    mdlpvp->elp=mdlpvp->elp->next;
+  }
+  if (mdlpvp->eclp->n_verts!=3) {
+    mdlerror("Non-triangular element found in polygon list object");
+    return(1);
+  }
+  if (mdlpvp->connection_tail==NULL) {
+    mdlpvp->connection_tail=mdlpvp->eclp;
+  }
+  mdlpvp->connection_tail->next=mdlpvp->eclp;
+  mdlpvp->eclp->next=NULL;
+  mdlpvp->connection_tail=mdlpvp->eclp;
+  if (mdlpvp->connection_head==NULL) {
+    mdlpvp->connection_head=mdlpvp->eclp;
+  }
+}
+        | list_arrays array_value
+{
+  mdlpvp->elp=$<nel>2;
+  if ((mdlpvp->eclp=(struct element_connection_list *)malloc
+              (sizeof(struct element_connection_list)))==NULL) {
+    mdlerror("Cannot store element connection data");
+    return(1);
+  }
+  mdlpvp->n_walls++;
+  mdlpvp->eclp->connection_list=mdlpvp->elp;
+  mdlpvp->eclp->n_verts=0;
+  while (mdlpvp->elp!=NULL) {
+    mdlpvp->eclp->n_verts++;
+    mdlpvp->elp=mdlpvp->elp->next;
+  }
+  if (mdlpvp->connection_tail==NULL) {
+    mdlpvp->connection_tail=mdlpvp->eclp;
+  }
+  mdlpvp->connection_tail->next=mdlpvp->eclp;
+  mdlpvp->eclp->next=NULL;
+  mdlpvp->connection_tail=mdlpvp->eclp;
+  if (mdlpvp->connection_head==NULL) {
+    mdlpvp->connection_head=mdlpvp->eclp;
+  }
+};
+
+
+boolean: TRUE { $$=1; }
+	| FALSE { $$=0; }
+	| YES { $$=1; }
+	| NO { $$=0; }
+;
+
+
+box_def: new_object BOX '{'
+{
+  int i;
+  mdlpvp->gp=$<sym>1;
+  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
+  if ((mdlpvp->pop=(struct polygon_object *)malloc
+              (sizeof(struct polygon_object)))==NULL) {
+    mdlerror("Cannot store box object data");
+    return(1);
+  }
+  mdlpvp->pop->lig_count_ref=NULL;
+  mdlpvp->pop->viz_state_ref=NULL;
+  mdlpvp->pop->list_type=ORDERED_POLY;
+  mdlpvp->pop->polygon_data=NULL;
+  mdlpvp->pop->n_walls=0;
+  mdlpvp->pop->fully_closed=1;
+  mdlpvp->pop->surf_class=NULL;
+  mdlpvp->pop->side_stat=NULL;
+
+  if ((mdlpvp->opp=(struct ordered_poly *)malloc
+              (sizeof(struct ordered_poly)))==NULL) {
+    mdlerror("Cannot store box object data");
+    return(1);
+  }
+  mdlpvp->opp->vertex=NULL;
+  mdlpvp->opp->normal=NULL;
+  mdlpvp->opp->element_data=NULL;
+  mdlpvp->opp->n_verts=0;
+  mdlpvp->opp->n_walls=0;
+  mdlpvp->pop->polygon_data=(void *)mdlpvp->opp;
+
+  mdlpvp->llf=NULL;
+  mdlpvp->urb=NULL;
+
+  mdlpvp->pop->n_walls=12;
+  mdlpvp->pop->n_verts=8;
+  if ((mdlpvp->pop->side_stat=(unsigned short *)malloc
+              (mdlpvp->pop->n_walls*sizeof(unsigned short)))==NULL) {
+    mdlerror("Cannot store box object data");
+    return(1);
+  }
+  if ((mdlpvp->pop->surf_class=(struct species **)malloc
+              (mdlpvp->pop->n_walls*sizeof(struct species *)))==NULL) {
+    mdlerror("Cannot store box object data");
+    return(1);
+  }
+  for (i=0;i<mdlpvp->pop->n_walls;i++) {
+    mdlpvp->pop->surf_class[i]=volp->g_surf;
+    mdlpvp->pop->side_stat[i]=1;
+  }
+
+  mdlpvp->objp->object_type=BOX_OBJ;
+  mdlpvp->objp->contents=mdlpvp->pop;
+  mdlpvp->objp->parent=mdlpvp->curr_obj;
+  mdlpvp->obj_name=mdlpvp->objp->sym->name;
+  mdlpvp->curr_obj=mdlpvp->objp;
+}
+	CORNERS '=' point ',' point
+	list_opt_polygon_object_cmds
+	list_opt_object_cmds
+	'}'
+{
+  mdlpvp->llf=$<vec3>7;
+  mdlpvp->urb=$<vec3>9;
+
+  mdlpvp->opp->n_walls=mdlpvp->pop->n_walls;
+  mdlpvp->opp->n_verts=mdlpvp->pop->n_verts;
+
+  if (make_cuboid(mdlpvp->llf,mdlpvp->urb,mdlpvp->opp)) {
+    mdlerror("Cannot store box object data");
+    return(1);
+  }
+
+#ifdef DEBUG
+  no_printf("Box %s defined:\n",mdlpvp->curr_obj->sym->name);
+  no_printf("    LLF Corner = [ %f, %f, %f ]\n",mdlpvp->llf->x,mdlpvp->llf->y,mdlpvp->llf->z);
+  no_printf("    URB Corner = [ %f, %f, %f ]\n",mdlpvp->urb->x,mdlpvp->urb->y,mdlpvp->urb->z);
+#endif
+  free(mdlpvp->llf);
+  free(mdlpvp->urb);
+  mdlpvp->curr_obj->n_walls=mdlpvp->pop->n_walls;
+  mdlpvp->curr_obj->n_verts=mdlpvp->pop->n_verts;
+  mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
+  mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
+  mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
+  if (mdlpvp->object_name_list_end->prev!=NULL) {
+    mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
+  }
+  else {
+    mdlpvp->object_name_list_end->name=NULL;
+  }
+  $$=$<sym>1;
+};
+
+
+
+list_opt_polygon_object_cmds: /* empty */
+	| list_opt_polygon_object_cmds opt_polygon_object_cmd
+;
+
+
+opt_polygon_object_cmd:
+	remove_side
+	| in_obj_surface_regions_def
+	| in_obj_set_surface_classes
+/*
+	| in_obj_add_molecules
+*/
+;
+
+
+remove_side: REMOVE_ELEMENT '=' side_name
+{
+  u_int i;
+
+  if ($<tok>3==ALL_SIDES) {
+    for (i=0;i<mdlpvp->pop->n_walls;i++) {
+      mdlpvp->pop->side_stat[i]=0;
+    }
+    no_printf("Element removed: ALL\n");
+  }
+  else if (mdlpvp->objp->object_type==POLY_OBJ) {
+    mdlerror("Illegal reference to polygon list element by side-name");
+    return(1);
+  }
+  else {
+    mdlpvp->pop->side_stat[$<tok>3]=0;
+    mdlpvp->pop->side_stat[1+$<tok>3]=0;
+    no_printf("Elements removed: %d & %d\n",$<tok>3,1+$<tok>3);
+  }
+  fflush(stderr);
+}
+	| REMOVE_ELEMENT '=' num_expr
+{
+  if ($<dbl>3 > (mdlpvp->pop->n_walls)-1) {
+    mdlerror("Reference to non-existent element");
+    return(1);
+  }
+  else {
+    mdlpvp->pop->side_stat[(int)$<dbl>3]=0;
+    no_printf("Element removed: %d\n",(int)$<dbl>3);
+  }
+};
+
+
+side: ELEMENT '=' side_name
+{
+	$$=$<tok>3;
+}
+	| ELEMENT '=' num_expr
+{
+  $$=(int) $<dbl>3;
+};
+
+
+side_name: TOP {$$=TP;}
+	| BOTTOM {$$=BOT;}
+	| FRONT {$$=FRNT;}
+	| BACK {$$=BCK;}
+	| LEFT {$$=LFT;}
+	| RIGHT {$$=RT;}
+	| ALL_ELEMENTS {$$=ALL_SIDES;}
+;
+
+
+element_list_stmt: ELEMENT_LIST 
+{
+  mdlpvp->element_head=NULL;
+}
+	'=' '[' list_element_specs ']'
+;
+
+
+list_element_specs: element_spec
+	| list_element_specs ',' element_spec
+;
+
+
+element_spec: num_expr
+{
+  if ((mdlpvp->elmlp=(struct element_list *)malloc
+             (sizeof(struct element_list)))==NULL) {
+  }
+  mdlpvp->elmlp->begin=(unsigned int) ($<dbl>1);
+  mdlpvp->elmlp->end=mdlpvp->elmlp->begin;
+  mdlpvp->elmlp->next=mdlpvp->element_head;
+  mdlpvp->element_head=mdlpvp->elmlp;
+}
+	| num_expr TO num_expr
+{
+  if ((mdlpvp->elmlp=(struct element_list *)malloc
+             (sizeof(struct element_list)))==NULL) {
+  }
+  mdlpvp->elmlp->begin=(unsigned int) ($<dbl>1);
+  mdlpvp->elmlp->end=(unsigned int) ($<dbl>3);
+  mdlpvp->elmlp->next=mdlpvp->element_head;
+  mdlpvp->element_head=mdlpvp->elmlp;
+}
+	| side_name
+{
+  int i;
+
+  if ((mdlpvp->elmlp=(struct element_list *)malloc
+             (sizeof(struct element_list)))==NULL) {
+  }
+  mdlpvp->elmlp->next=mdlpvp->element_head;
+  mdlpvp->element_head=mdlpvp->elmlp;
+
+  if ($<tok>1==ALL_SIDES) {
+    for (i=0;i<mdlpvp->pop->n_walls;i++) {
+      mdlpvp->pop->side_stat[i]=0;
+    }
+  }
+  else if (mdlpvp->objp->object_type==POLY_OBJ) {
+    mdlerror("Illegal reference to polygon list element by side-name");
+    return(1);
+  }
+  else {
+    mdlpvp->elmlp->begin=$<tok>1;
+    mdlpvp->elmlp->end=1+$<tok>1;
+  }
+
+};
+
+
+in_obj_surface_regions_def: DEFINE_SURFACE_REGIONS '{'
+	list_surface_region_stmts
+	'}'
+;
+
+
+surface_regions_def: DEFINE_SURFACE_REGIONS '{'
+	list_surface_region_object_refs
+	'}'
+;
+
+
+list_surface_region_object_refs: surface_region_object_ref
+	| list_surface_region_object_refs surface_region_object_ref
+;
+
+
+surface_region_object_ref: OBJECT existing_object '{'
+{
+  mdlpvp->gp=$<sym>2;
+  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
+  mdlpvp->obj_name=mdlpvp->objp->sym->name;
+  if (mdlpvp->objp->object_type!=BOX_OBJ && mdlpvp->objp->object_type!=POLY_OBJ) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot define region on non-surface object:",mdlpvp->objp->sym->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  mdlpvp->region_list_head=mdlpvp->objp->region_list;
+}
+	list_surface_region_stmts
+	'}'
+{
+  mdlpvp->objp->region_list=mdlpvp->region_list_head;
+};
+
+
+list_surface_region_stmts: surface_region_stmt
+	| list_surface_region_stmts surface_region_stmt
+;
+
+
+surface_region_stmt: REGION new_region '{'
+	element_list_stmt
+	'}'
+{
+  mdlpvp->gp=$<sym>2;
+  mdlpvp->rp=(struct region *)mdlpvp->gp->value;
+  mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
+  mdlpvp->elmlp=mdlpvp->element_head;
+  while (mdlpvp->elmlp!=NULL) {
+    if (mdlpvp->elmlp->begin==ALL_SIDES) {
+      mdlpvp->elmlp->begin=0;
+      mdlpvp->elmlp->end=mdlpvp->pop->n_walls-1;
+    }
+    if (mdlpvp->elmlp->begin < 0 || mdlpvp->elmlp->end > mdlpvp->pop->n_walls-1) {
+    sprintf(mdlpvp->mdl_err_msg,"Cannot create region: %s -- element out of rangs",mdlpvp->rp->sym->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+    }
+    mdlpvp->elmlp=mdlpvp->elmlp->next;
+  }
+  mdlpvp->objp->num_regions++;
+  mdlpvp->rp->element_list=mdlpvp->element_head;
+};
+
+
+new_region: VAR
+{
+  if (mdlpvp->cval_2!=NULL) {
+    mdlpvp->sym_name=mdlpvp->cval_2;
+  }
+  else {
+    mdlpvp->sym_name=mdlpvp->cval;
+  }
+  if ((mdlpvp->rp=make_new_region(volp,mdlpvp->obj_name,mdlpvp->sym_name,mdlpvp->mdl_err_msg))==NULL) {
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  if ((mdlpvp->rlp=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot store region name:",mdlpvp->rp->sym->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  if (mdlpvp->sym_name==mdlpvp->cval) {
+    mdlpvp->cval=NULL;
+  }
+  else {
+    mdlpvp->cval_2=NULL;
+  }
+  mdlpvp->rp->region_last_name=mdlpvp->sym_name;
+  mdlpvp->rp->parent=mdlpvp->curr_obj;
+  mdlpvp->rp->reg_counter_ref_list=NULL;
+  mdlpvp->rlp->reg=mdlpvp->rp;
+  mdlpvp->rlp->next=mdlpvp->region_list_head;
+  mdlpvp->region_list_head=mdlpvp->rlp;
+  no_printf("Creating new region: %s\n",mdlpvp->rp->sym->name);
+  fflush(stderr);
+  $$=mdlpvp->rp->sym;
+};
+
+
+existing_region: existing_object '[' VAR ']'
+{
+  if (mdlpvp->cval_2!=NULL) {
+    mdlpvp->sym_name=mdlpvp->cval_2;
+  }
+  else {
+    mdlpvp->sym_name=mdlpvp->cval;
+  }
+  mdlpvp->tp=$<sym>1;
+  mdlpvp->objp=(struct object *)mdlpvp->tp->value;
+  mdlpvp->obj_name=mdlpvp->objp->sym->name;
+  strncpy(mdlpvp->temp_str,"",1024);
+  strncpy(mdlpvp->temp_str,mdlpvp->obj_name,1022);
+  strcat(mdlpvp->temp_str,",");   
+  mdlpvp->region_name=my_strcat(mdlpvp->temp_str,mdlpvp->sym_name);
+  if ((mdlpvp->gp=retrieve_sym(mdlpvp->region_name,REG,volp->main_sym_table))==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined region:",mdlpvp->region_name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    if (mdlpvp->sym_name==mdlpvp->cval) {
+      mdlpvp->cval=NULL;
+    }
+    else {
+      mdlpvp->cval_2=NULL;
+    }
+    free((void *)mdlpvp->sym_name);
+    return(1);
+  }
+  free((void *)mdlpvp->region_name);
+  if (mdlpvp->sym_name==mdlpvp->cval) {
+    mdlpvp->cval=NULL;
+  }
+  else {
+    mdlpvp->cval_2=NULL;
+  }
+  free((void *)mdlpvp->sym_name);
+#ifdef KELP
+  mdlpvp->gp->ref_count++;
+  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
+#endif
+  $$=mdlpvp->gp;
+};
+
+
+in_obj_existing_region: VAR
+{
+  if (mdlpvp->cval_2!=NULL) {
+    mdlpvp->sym_name=mdlpvp->cval_2;
+  }
+  else {
+    mdlpvp->sym_name=mdlpvp->cval;
+  }
+  mdlpvp->obj_name=mdlpvp->curr_obj->sym->name;
+  strncpy(mdlpvp->temp_str,"",1024);
+  strncpy(mdlpvp->temp_str,mdlpvp->obj_name,1022);
+  strcat(mdlpvp->temp_str,",");   
+  mdlpvp->region_name=my_strcat(mdlpvp->temp_str,mdlpvp->sym_name);
+  if ((mdlpvp->gp=retrieve_sym(mdlpvp->region_name,REG,volp->main_sym_table))==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined region:",mdlpvp->region_name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    if (mdlpvp->sym_name==mdlpvp->cval) {
+      mdlpvp->cval=NULL;
+    }
+    else {
+      mdlpvp->cval_2=NULL;
+    }
+    free((void *)mdlpvp->sym_name);
+    return(1);
+  }
+  free((void *)mdlpvp->region_name);
+  if (mdlpvp->sym_name==mdlpvp->cval) {
+    mdlpvp->cval=NULL;
+  }
+  else {
+    mdlpvp->cval_2=NULL;
+  }
+  free((void *)mdlpvp->sym_name);
+#ifdef KELP
+  mdlpvp->gp->ref_count++;
+  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
+#endif
+  $$=mdlpvp->gp;
+};
+
+
+in_obj_set_surface_classes: SET_SURFACE_CLASSES '{'
+	list_in_obj_surface_class_region_refs
+	'}'
+;
+
+
+list_in_obj_surface_class_region_refs: in_obj_surface_class_region_ref
+      | list_in_obj_surface_class_region_refs in_obj_surface_class_region_ref
+;
+
+
+in_obj_surface_class_region_ref: REGION in_obj_existing_region '{'
+	CLASS '=' existing_surface_class
+{
+  mdlpvp->gp=$<sym>2;
+  mdlpvp->tp=$<sym>6;
+  mdlpvp->rp=(struct region *)mdlpvp->gp->value;
+  mdlpvp->rp->surf_class=(struct species *)mdlpvp->tp->value;
+}
+	'}'
+;
+
+
+set_surface_classes: SET_SURFACE_CLASSES '{'
+	list_surface_class_region_refs
+	'}'
+;
+
+
+list_surface_class_region_refs: surface_class_region_ref
+	| list_surface_class_region_refs surface_class_region_ref
+;
+
+
+surface_class_region_ref: REGION existing_region '{'
+	CLASS '=' existing_surface_class 
+{
+  mdlpvp->gp=$<sym>2;
+  mdlpvp->tp=$<sym>6;
+  mdlpvp->rp=(struct region *)mdlpvp->gp->value;
+  mdlpvp->rp->surf_class=(struct species *)mdlpvp->tp->value;
+}
+	'}'
+;
+ 
+
+instance_def: INSTANTIATE new_object OBJECT '{'
+{
+  mdlpvp->gp=$<sym>2;
+  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
+
+  mdlpvp->curr_obj=volp->root_instance;
+  if (mdlpvp->curr_obj->first_child==NULL) { 
+    mdlpvp->curr_obj->first_child=mdlpvp->objp;
+  }
+  if (mdlpvp->curr_obj->last_child!=NULL) {
+    mdlpvp->curr_obj->last_child->next=mdlpvp->objp;
+  } 
+  mdlpvp->curr_obj->last_child=mdlpvp->objp;
+  mdlpvp->objp->parent=mdlpvp->curr_obj;
+  mdlpvp->objp->next=NULL;
+
+  mdlpvp->objp->object_type=META_OBJ;
+  mdlpvp->objp->parent=mdlpvp->curr_obj;
+  mdlpvp->curr_obj=mdlpvp->objp;
+}
+        list_objects
+        list_opt_object_cmds
+        '}'
+{
+  mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
+  mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
+  mdlpvp->curr_obj=volp->root_object;
+  if (mdlpvp->object_name_list_end->prev!=NULL) {
+    mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
+  }
+  else {
+    mdlpvp->object_name_list_end->name=NULL;
+  }
+};
+
+
 rx_net_def: DEFINE_REACTIONS '{'
 	list_rx_stmts
 	'}'
@@ -2323,23 +3110,6 @@ unimolecular_rxn: reactant RT_ARROW
       mdlpvp->gp->name," -> ... ");
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
     return(1);
-  }
-  /* fill in reactant parts of struct rxn here */
-  if (mdlpvp->path_mem==NULL) {
-    if ((mdlpvp->path_mem=create_mem(sizeof(struct pathway),16384))==NULL) {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s %s","Cannot store reaction:",
-        mdlpvp->gp->name," -> ... ");
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-      return(1);
-    } 
-  }
-  if (mdlpvp->prod_mem==NULL) {
-    if ((mdlpvp->prod_mem=create_mem(sizeof(struct product),16384))==NULL) {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s %s","Cannot store reaction:",
-        mdlpvp->gp->name," -> ... ");
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-      return(1);
-    } 
   }
   if ((mdlpvp->pathp=(struct pathway *)mem_get(mdlpvp->path_mem))==NULL) {
     sprintf(mdlpvp->mdl_err_msg,"%s %s %s","Cannot store reaction:",
@@ -2418,23 +3188,6 @@ bimolecular_rxn: reactant '+'
       mdlpvp->stp1->name,mdlpvp->stp2->name);
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
     return(1);
-  }
-  /* fill in reactant parts of struct rxn here */
-  if (mdlpvp->path_mem==NULL) {
-    if ((mdlpvp->path_mem=create_mem(sizeof(struct pathway),16384))==NULL) {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s + %s -> ...","Cannot store reaction:",
-        mdlpvp->stp1->name,mdlpvp->stp2->name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-      return(1);
-    } 
-  }
-  if (mdlpvp->prod_mem==NULL) {
-    if ((mdlpvp->prod_mem=create_mem(sizeof(struct product),16384))==NULL) {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s + %s -> ...","Cannot store reaction:",
-        mdlpvp->stp1->name,mdlpvp->stp2->name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-      return(1);
-    } 
   }
   if ((mdlpvp->pathp=(struct pathway *)mem_get(mdlpvp->path_mem))==NULL) {
     sprintf(mdlpvp->mdl_err_msg,"%s %s + %s -> ...","Cannot store reaction:",
@@ -2940,12 +3693,12 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
           pop=(struct polygon_object *)mdlpvp->objp->obj;
           if (mdlpvp->objp->viz_state==NULL) {
             if ((mdlpvp->objp->viz_state=(int *)malloc
-                 (pop->n_polys*sizeof(int)))==NULL) {
+                 (pop->n_walls*sizeof(int)))==NULL) {
               mdlerror("Cannot store viz state value for object");
               return(1);
             }
           }
-          for (i=0;i<pop->n_polys;i++) {
+          for (i=0;i<pop->n_walls;i++) {
             mdlpvp->objp->viz_state[i]=viz_state;
           }
           break;
@@ -2953,12 +3706,12 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
           pop=(struct polygon_object *)mdlpvp->objp->obj;
           if (mdlpvp->objp->viz_state==NULL) {
             if ((mdlpvp->objp->viz_state=(int *)malloc
-                 (pop->n_polys*sizeof(int)))==NULL) {
+                 (pop->n_walls*sizeof(int)))==NULL) {
               mdlerror("Cannot store viz state value for object");
               return(1);
             }
           }
-          for (i=0;i<pop->n_polys;i++) {
+          for (i=0;i<pop->n_walls;i++) {
             mdlpvp->objp->viz_state[i]=viz_state;
           }
           break;
@@ -3049,11 +3802,11 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
           pop=(struct polygon_object *)mdlpvp->objp->obj;
           if (mdlpvp->objp->viz_state==NULL) {
             if ((mdlpvp->objp->viz_state=(int *)malloc
-                 (pop->n_polys*sizeof(int)))==NULL) {
+                 (pop->n_walls*sizeof(int)))==NULL) {
               mdlerror("Cannot store viz state value for object");
               return(1);
             }
-            for (i=0;i<pop->n_polys;i++) {
+            for (i=0;i<pop->n_walls;i++) {
               mdlpvp->objp->viz_state[i]=EXCLUDE_OBJ;
             }
           }
@@ -3061,9 +3814,9 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
           while (elmlp!=NULL) {
             if (elmlp->begin==ALL_SIDES) {
               elmlp->begin=0;
-              elmlp->end=pop->n_polys-1;
+              elmlp->end=pop->n_walls-1;
             }
-            if (elmlp->begin < 0 || elmlp->end > pop->n_polys-1) {
+            if (elmlp->begin < 0 || elmlp->end > pop->n_walls-1) {
               mdlerror("Cannot set viz state value -- element out of range");
               return(1);
             }
@@ -3077,11 +3830,11 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
           pop=(struct polygon_object *)mdlpvp->objp->obj;
           if (mdlpvp->objp->viz_state==NULL) {
             if ((mdlpvp->objp->viz_state=(int *)malloc
-                 (pop->n_polys*sizeof(int)))==NULL) {
+                 (pop->n_walls*sizeof(int)))==NULL) {
               mdlerror("Cannot store viz state value for object");
               return(1);
             }
-            for (i=0;i<pop->n_polys;i++) {
+            for (i=0;i<pop->n_walls;i++) {
               mdlpvp->objp->viz_state[i]=EXCLUDE_OBJ;
             }
           }
@@ -3089,9 +3842,9 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
           while (elmlp!=NULL) {
             if (elmlp->begin==ALL_SIDES) {
               elmlp->begin=0;
-              elmlp->end=pop->n_polys-1;
+              elmlp->end=pop->n_walls-1;
             }
-            if (elmlp->begin < 0 || elmlp->end > pop->n_polys-1) {
+            if (elmlp->begin < 0 || elmlp->end > pop->n_walls-1) {
               mdlerror("Cannot set viz state value -- element out of range");
               return(1);
             }
@@ -3164,41 +3917,6 @@ existing_logicalOrPhysical: VAR
   no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
 #endif
   $$=mdlpvp->gp;
-};
-
-list_element_specs: element_spec
-	| list_element_specs ',' element_spec
-;
-
-element_spec: num_expr
-{
-  if ((elmlp=(struct element_list *)malloc
-             (sizeof(struct element_list)))==NULL) {
-  }
-  elmlp->begin=(unsigned int) ($<dbl>1);
-  elmlp->end=elmlp->begin;
-  elmlp->next=element_head;
-  element_head=elmlp;
-}
-	| num_expr TO num_expr
-{
-  if ((elmlp=(struct element_list *)malloc
-             (sizeof(struct element_list)))==NULL) {
-  }
-  elmlp->begin=(unsigned int) ($<dbl>1);
-  elmlp->end=(unsigned int) ($<dbl>3);
-  elmlp->next=element_head;
-  element_head=elmlp;
-}
-	| side_name
-{
-  if ((elmlp=(struct element_list *)malloc
-             (sizeof(struct element_list)))==NULL) {
-  }
-  elmlp->begin=$<tok>1;
-  elmlp->end=elmlp->begin;
-  elmlp->next=element_head;
-  element_head=elmlp;
 };
 
 parallel_partition_def: PARALLEL_PARTITION '=' partition_plane
@@ -3293,101 +4011,7 @@ partition_dimension: PARTITION_X {$$=X_PART;}
 
 
 
-surface_region_def: DEFINE_SURFACE_REGIONS '{'
-	list_object_region_def
-	'}'
-{
-};
-
-list_object_region_def: object_region_def
-	| list_object_region_def object_region_def
-;
-
-object_region_def: OBJECT existing_object '{'
-{
-  mdlpvp->gp=$<sym>2;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  obj_name=mdlpvp->objp->sym->name;
-  if (mdlpvp->objp->object_type!=BOX_OBJ && mdlpvp->objp->object_type!=POLY_OBJ) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot define region on non-surface object:",mdlpvp->objp->sym->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-  region_list_head=mdlpvp->objp->region_list;
-}
-	list_region_def
-	'}'
-{
-  mdlpvp->objp->region_list=region_list_head;
-};
-
-list_region_def: region_def
-	| list_region_def region_def
-;
-
-region_def: REGION new_region '{'
-{
-  element_head=NULL;
-}
-	ELEMENT_LIST '=' '[' list_element_specs ']'
-	'}'
-{
-  mdlpvp->gp=$<sym>2;
-  rp=(struct region *)mdlpvp->gp->value;
-  pop=(struct polygon_object *)mdlpvp->objp->obj;
-  elmlp=element_head;
-  while (elmlp!=NULL) {
-    if (elmlp->begin==ALL_SIDES) {
-      elmlp->begin=0;
-      elmlp->end=pop->n_polys-1;
-    }
-    if (elmlp->begin < 0 || elmlp->end > pop->n_polys-1) {
-    mdlerror("Cannot create region -- element out of range");
-    return(1);
-    }
-    elmlp=elmlp->next;
-  }
-  mdlpvp->objp->num_regions++;
-  rp->element_list=element_head;
-};
-
-new_region: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-  if ((rp=make_new_region(obj_name,mdlpvp->sym_name,mdlpvp->mdl_err_msg))==NULL) {
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-  if ((rlp=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot store region name:",rp->sym->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  rp->region_last_name=mdlpvp->sym_name;
-  rp->parent=mdlpvp->curr_obj;
-  rp->reg_counter_ref_list=NULL;
-  rp->lig_hit_counter=NULL;
-  rlp->region=rp;
-  rlp->next=region_list_head;
-  region_list_head=rlp;
-  no_printf("Creating new region: %s\n",rp->sym->name);
-  fflush(stderr);
-  $$=rp->sym;
-};
-
-
-effector_site_def: DEFINE_EFFECTOR_SITE_POSITIONS '{'
+effector_site_def: ADD_MOLECULES '{'
 	list_region_ref
 	'}'
 {
@@ -3440,494 +4064,10 @@ effector_quantity_cmd: DENSITY '=' num_expr
   effector_quantity_type=EFFNUM;
 };
 
-existing_region: existing_object '[' VAR ']'
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-  mdlpvp->tp=$<sym>1;
-  mdlpvp->objp=(struct object *)mdlpvp->tp->value;
-  obj_name=mdlpvp->objp->sym->name;
-  strncpy(temp,"",256);
-  strncpy(temp,obj_name,254);
-  strcat(temp,",");   
-  region_name=my_strcat(temp,mdlpvp->sym_name);
-  if ((mdlpvp->gp=retrieve_sym(region_name,REG,volp->main_sym_table))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined region:",region_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-  free((void *)region_name);
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free((void *)mdlpvp->sym_name);
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-  $$=mdlpvp->gp;
-};
 
 
 
 
-
-
-
-
-polygon_def: new_object POLYGON_LIST '{'
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  if ((pop=(struct polygon_object *)malloc
-              (sizeof(struct polygon_object)))==NULL) {
-    mdlerror("Cannot store box object data");
-    return(1);
-  }
-  pop->lig_count_ref=NULL;
-  pop->viz_state_ref=NULL;
-  pop->list_type=ORDERED_POLY;
-  pop->polygon_data=NULL;
-  pop->n_polys=0;
-  pop->fully_closed=0;
-  pop->side_stat=NULL;
-  pop->cmprt_side_map=NULL;
-  pop->lig_prop=NULL;
-
-  if ((opp=(struct ordered_poly *)malloc
-              (sizeof(struct ordered_poly)))==NULL) {
-    mdlerror("Cannot store polygon object data");
-    return(1);
-  }
-  opp->vertex=NULL;
-  opp->normal=NULL;
-  opp->element_data=NULL;
-  opp->n_verts=0;
-  pop->polygon_data=(void *)opp;
-
-  mdlpvp->objp->object_type=POLY_OBJ;
-  mdlpvp->objp->contents=pop;
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-  mdlpvp->curr_obj=mdlpvp->objp;
-}
-	vertex_list_cmd
-        element_connection_cmd
-{
-  pop->n_polys=n_polys;
-  if ((pop->side_stat=(unsigned short *)malloc
-              (pop->n_polys*sizeof(unsigned short)))==NULL) {
-    mdlerror("Cannot store polygon object data");
-    return(1);
-  }
-  if ((pop->cmprt_side_map=(unsigned int *)malloc
-              (pop->n_polys*sizeof(unsigned int)))==NULL) {
-    mdlerror("Cannot store polygon object data");
-    return(1);
-  }
-  if ((pop->lig_prop=(byte **)malloc
-              (pop->n_polys*sizeof(byte *)))==NULL) {
-    mdlerror("Cannot store polygon object data");
-    return(1);
-  }
-  for (i=0;i<pop->n_polys;i++) {
-    if ((pop->lig_prop[i]=(byte *)malloc
-         ((1+n_ligand_types)*sizeof(byte)))==NULL) {
-      mdlerror("Cannot store polygon object data");
-      return(1);
-    }
-    for (j=0;j<1+n_ligand_types;j++) {
-      *(pop->lig_prop[i]+j)=RFLCT;
-    }
-    pop->side_stat[i]=1;
-    pop->cmprt_side_map[i]=0;
-  }
-
-  opp->n_verts=n_verts;
-  if ((opp->vertex=(struct vector3 **)malloc
-              (opp->n_verts*sizeof(struct vector3 *)))==NULL) {
-    mdlerror("Cannot store polygon object data");
-    return(1);
-  }
-
-  vlp=vertex_head;
-  if (vlp->normal!=NULL) {
-    if ((opp->normal=(struct vector3 **)malloc
-                (opp->n_verts*sizeof(struct vector3 *)))==NULL) {
-      mdlerror("Cannot store polygon object data");
-      return(1);
-    }
-  }
-  for (i=0;i<n_verts;i++) {
-    opp->vertex[i]=vlp->vertex;
-    if (opp->normal!=NULL) {
-      opp->normal[i]=vlp->normal;
-    }
-    vlp=vlp->next;
-  }
-  if ((edp=(struct element_data *)malloc
-              (pop->n_polys*sizeof(struct element_data)))==NULL) {
-    mdlerror("Cannot store polygon object data");
-    return(1);
-  }
-  opp->element_data=edp;
-  eclp=connection_head;
-  for (i=0;i<pop->n_polys;i++) {
-    edp[i].n_verts=eclp->n_verts;
-    if ((intp=(int *)malloc(eclp->n_verts*sizeof(int)))==NULL) {
-      mdlerror("Cannot store polygon object data");
-      return(1);
-    }
-    edp[i].vertex_index=intp;
-    mdlpvp->elp=eclp->connection_list;
-    for (j=0;j<eclp->n_verts;j++) {
-      edp[i].vertex_index[j]=(int)mdlpvp->elp->value;
-      mdlpvp->elp=mdlpvp->elp->next;
-    }
-    eclp=eclp->next;
-  }
-}
-        FULLY_CLOSED '=' boolean
-	list_polygon_object_cmds
-	list_opt_object_cmds
-	'}'
-{
-  no_printf("Polygon list %s defined:\n",mdlpvp->curr_obj->sym->name);
-  pop->fully_closed=0;
-  mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
-  if (object_name_list_end->prev!=NULL) {
-    object_name_list_end=object_name_list_end->prev;
-  }
-  else {
-    object_name_list_end->name=NULL;
-  }
-  $$=$<sym>1;
-};
-
-vertex_list_cmd: VERTEX_LIST '{' 
-{
-  n_verts=0;
-  vertex_head=NULL;
-  vertex_tail=NULL;
-}
-	list_points 
-        '}'
-;
-
-list_points: point
-{
-  pntp1=$<vec3>1;
-  if ((vlp=(struct vertex_list *)malloc(sizeof(struct vertex_list)))==NULL) {
-    mdlerror("Cannot store vertex data");
-    return(1);
-  }
-  n_verts++;
-  vlp->vertex=pntp1;
-  vlp->normal=NULL;
-  if (vertex_tail==NULL) {
-    vertex_tail=vlp;
-  }
-  vertex_tail->next=vlp;
-  vlp->next=NULL;
-  vertex_tail=vlp;
-  if (vertex_head==NULL) {
-    vertex_head=vlp;
-  }
-}
-        | point NORMAL point
-{
-  pntp1=$<vec3>1;
-  pntp2=$<vec3>3;
-  if ((vlp=(struct vertex_list *)malloc(sizeof(struct vertex_list)))==NULL) {
-    mdlerror("Cannot store vertex data");
-    return(1);
-  }
-  n_verts++;
-  vlp->vertex=pntp1;
-  vlp->normal=pntp2;
-  if (vertex_tail==NULL) {
-    vertex_tail=vlp;
-  }
-  vertex_tail->next=vlp;
-  vlp->next=NULL;
-  vertex_tail=vlp;
-  if (vertex_head==NULL) {
-    vertex_head=vlp;
-  }
-}
-	| list_points point
-{
-  pntp1=$<vec3>2;
-  if ((vlp=(struct vertex_list *)malloc(sizeof(struct vertex_list)))==NULL) {
-    mdlerror("Cannot store vertex data");
-    return(1);
-  }
-  n_verts++;
-  vlp->vertex=pntp1;
-  vlp->normal=NULL;
-  if (vertex_tail==NULL) {
-    vertex_tail=vlp;
-  }
-  vertex_tail->next=vlp;
-  vlp->next=NULL;
-  vertex_tail=vlp;
-  if (vertex_head==NULL) {
-    vertex_head=vlp;
-  }
-}
-	| list_points point NORMAL point
-{
-  pntp1=$<vec3>2;
-  pntp2=$<vec3>4;
-  if ((vlp=(struct vertex_list *)malloc(sizeof(struct vertex_list)))==NULL) {
-    mdlerror("Cannot store vertex data");
-    return(1);
-  }
-  n_verts++;
-  vlp->vertex=pntp1;
-  vlp->normal=pntp2;
-  if (vertex_tail==NULL) {
-    vertex_tail=vlp;
-  }
-  vertex_tail->next=vlp;
-  vlp->next=NULL;
-  vertex_tail=vlp;
-  if (vertex_head==NULL) {
-    vertex_head=vlp;
-  }
-};
-
-element_connection_cmd: ELEMENT_CONNECTIONS '{'
-{
-  n_polys=0;
-  connection_head=NULL;
-  connection_tail=NULL;
-}
-        list_arrays
-        '}'
-;
-
-list_arrays: array_value
-{
-  mdlpvp->elp=$<nel>1;
-  if ((eclp=(struct element_connection_list *)malloc
-              (sizeof(struct element_connection_list)))==NULL) {
-    mdlerror("Cannot store element connection data");
-    return(1);
-  }
-  n_polys++;
-  eclp->connection_list=mdlpvp->elp;
-  eclp->n_verts=0;
-  while (mdlpvp->elp!=NULL) {
-    eclp->n_verts++;
-    mdlpvp->elp=mdlpvp->elp->next;
-  }
-  if (connection_tail==NULL) {
-    connection_tail=eclp;
-  }
-  connection_tail->next=eclp;
-  eclp->next=NULL;
-  connection_tail=eclp;
-  if (connection_head==NULL) {
-    connection_head=eclp;
-  }
-}
-        | list_arrays array_value
-{
-  mdlpvp->elp=$<nel>2;
-  if ((eclp=(struct element_connection_list *)malloc
-              (sizeof(struct element_connection_list)))==NULL) {
-    mdlerror("Cannot store element connection data");
-    return(1);
-  }
-  n_polys++;
-  eclp->connection_list=mdlpvp->elp;
-  eclp->n_verts=0;
-  while (mdlpvp->elp!=NULL) {
-    eclp->n_verts++;
-    mdlpvp->elp=mdlpvp->elp->next;
-  }
-  if (connection_tail==NULL) {
-    connection_tail=eclp;
-  }
-  connection_tail->next=eclp;
-  eclp->next=NULL;
-  connection_tail=eclp;
-  if (connection_head==NULL) {
-    connection_head=eclp;
-  }
-};
-
-boolean: TRUE { $$=1; }
-	| FALSE { $$=0; }
-	| YES { $$=1; }
-	| NO { $$=0; }
-;
-
-box_def: new_object BOX '{'
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  if ((pop=(struct polygon_object *)malloc
-              (sizeof(struct polygon_object)))==NULL) {
-    mdlerror("Cannot store box object data");
-    return(1);
-  }
-  pop->lig_count_ref=NULL;
-  pop->viz_state_ref=NULL;
-  pop->list_type=BOX_POLY;
-  pop->polygon_data=NULL;
-  pop->n_polys=0;
-  pop->fully_closed=0;
-  pop->side_stat=NULL;
-  pop->cmprt_side_map=NULL;
-  pop->lig_prop=NULL;
-
-  if ((bpp=(struct box_poly *)malloc
-              (sizeof(struct box_poly)))==NULL) {
-    mdlerror("Cannot store box object data");
-    return(1);
-  }
-  bpp->llf=NULL;
-  bpp->urb=NULL;
-  pop->polygon_data=(void *)bpp;
-
-  pop->n_polys=6;
-  if ((pop->side_stat=(unsigned short *)malloc
-              (pop->n_polys*sizeof(unsigned short)))==NULL) {
-    mdlerror("Cannot store box object data");
-    return(1);
-  }
-  if ((pop->cmprt_side_map=(unsigned int *)malloc
-              (pop->n_polys*sizeof(unsigned int)))==NULL) {
-    mdlerror("Cannot store box object data");
-    return(1);
-  }
-  if ((pop->lig_prop=(byte **)malloc
-              (pop->n_polys*sizeof(byte *)))==NULL) {
-    mdlerror("Cannot store box object data");
-    return(1);
-  }
-  for (i=0;i<pop->n_polys;i++) {
-    if ((pop->lig_prop[i]=(byte *)malloc
-         ((1+n_ligand_types)*sizeof(byte)))==NULL) {
-      mdlerror("Cannot store box object data");
-      return(1);
-    }
-    for (j=0;j<1+n_ligand_types;j++) {
-      *(pop->lig_prop[i]+j)=RFLCT;
-    }
-    pop->side_stat[i]=1;
-    pop->cmprt_side_map[i]=0;
-  }
-
-  mdlpvp->objp->object_type=BOX_OBJ;
-  mdlpvp->objp->contents=pop;
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-  mdlpvp->curr_obj=mdlpvp->objp;
-}
-	CORNERS '=' point ',' point
-        FULLY_CLOSED '=' boolean
-	list_polygon_object_cmds
-	list_opt_object_cmds
-	'}'
-{
-  bpp->llf=$<vec3>7;
-  bpp->urb=$<vec3>9;
-
-  pop->fully_closed=$<tok>12;
-
-#ifdef DEBUG
-  no_printf("Box %s defined:\n",mdlpvp->curr_obj->sym->name);
-  pntp1=bpp->llf;
-  no_printf("    LLF Corner = [ %f, %f, %f ]\n",pntp1->x,pntp1->y,pntp1->z);
-  pntp1=bpp->urb;
-  no_printf("    URB Corner = [ %f, %f, %f ]\n",pntp1->x,pntp1->y,pntp1->z);
-#endif
-  mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
-  if (object_name_list_end->prev!=NULL) {
-    object_name_list_end=object_name_list_end->prev;
-  }
-  else {
-    object_name_list_end->name=NULL;
-  }
-  $$=$<sym>1;
-};
-
-list_polygon_object_cmds: polygon_object_cmd
-	| list_polygon_object_cmds polygon_object_cmd
-	| /* empty */
-{
-};
-
-polygon_object_cmd:
-	remove_side
-	| wall_prop_cmd
-	| add_effector
-;
-
-remove_side: REMOVE_ELEMENT '=' side_name
-{
-  if ($<tok>3==ALL_SIDES) {
-    for (i=0;i<pop->n_polys;i++) {
-      pop->side_stat[i]=0;
-    }
-    no_printf("Element removed: ALL\n");
-  }
-  else {
-    if ($<tok>3 > (pop->n_polys)-1) {
-      mdlerror("Reference to non-existant element");
-      return(1);
-    }
-    else {
-      pop->side_stat[$<tok>3]=0;
-      no_printf("Element removed: %d\n",$<tok>3);
-    }
-  }
-  fflush(stderr);
-}
-	| REMOVE_ELEMENT '=' num_expr
-{
-  if ($<dbl>3 > (pop->n_polys)-1) {
-    mdlerror("Reference to non-existant element");
-    return(1);
-  }
-  else {
-    pop->side_stat[(int)$<dbl>3]=0;
-    no_printf("Element removed: %d\n",$<dbl>3);
-  }
-};
-
-side: ELEMENT '=' side_name
-{
-	$$=$<tok>3;
-}
-	| ELEMENT '=' num_expr
-{
-  $$=(int) $<dbl>3;
-};
-
-side_name: TOP {$$=TP;}
-	| BOTTOM {$$=BOT;}
-	| FRONT {$$=FRNT;}
-	| BACK {$$=BCK;}
-	| LEFT {$$=LFT;}
-	| RIGHT {$$=RT;}
-	| ALL_ELEMENTS {$$=ALL_SIDES;}
-;
 
 wall_prop_cmd: wall_prop '{'
 	MOLECULE '=' existing_molecule
@@ -3936,13 +4076,13 @@ wall_prop_cmd: wall_prop '{'
   mdlpvp->gp=$<sym>5;
   ligip=(struct ligand_info *)mdlpvp->gp->value;
   if ($<tok>6==ALL_SIDES) {
-    for (i=0;i<pop->n_polys;i++) {
+    for (i=0;i<pop->n_walls;i++) {
       pop->lig_prop[i][ligip->type]=$<tok>1;
     }
   }
   else {
-    if ($<tok>6 > (pop->n_polys)-1) {
-      mdlerror("Reference to non-existant element");
+    if ($<tok>6 > (pop->n_walls)-1) {
+      mdlerror("Reference to non-existent element");
       return(1);
     }
     else {
@@ -3978,7 +4118,7 @@ req_add_effector_cmds:  STATE '=' existing_reaction_state
         /* create automatic region to hold effector data*/
         sprintf(mdlpvp->str_buf,"%d",mdlpvp->curr_obj->num_regions++);
         mdlpvp->sym_name=my_strdup(mdlpvp->str_buf);
-        if ((rp=make_new_region(obj_name,mdlpvp->sym_name,mdlpvp->mdl_err_msg))==NULL) {
+        if ((rp=make_new_region(volp,obj_name,mdlpvp->sym_name,mdlpvp->mdl_err_msg))==NULL) {
           mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
           return(1);
         }
@@ -3991,7 +4131,7 @@ req_add_effector_cmds:  STATE '=' existing_reaction_state
         rp->parent=mdlpvp->curr_obj;
 	rp->reg_counter_ref_list=NULL;
 	rp->lig_hit_counter=NULL;
-        rlp->region=rp;
+        rlp->reg=rp;
         rlp->next=mdlpvp->curr_obj->region_list;
         mdlpvp->curr_obj->region_list=rlp;
         no_printf("Creating new region: %s\n",rp->sym->name);
@@ -4018,11 +4158,11 @@ req_add_effector_cmds:  STATE '=' existing_reaction_state
           effdp->next=NULL;
           rp->eff_dat=effdp;
           elmlp->begin=0;
-          elmlp->end=pop->n_polys-1;
+          elmlp->end=pop->n_walls-1;
         }
         else {
-          if ($<tok>7 > (pop->n_polys)-1) {
-            mdlerror("Reference to non-existant element");
+          if ($<tok>7 > (pop->n_walls)-1) {
+            mdlerror("Reference to non-existent element");
             return(1);
           }
           else {
@@ -6752,8 +6892,6 @@ int mdlparse_init(struct volume *vol)
   mpvp->strval=NULL;
   mpvp->ival=0;
   mpvp->rval=0;
-  mpvp->gp=NULL;
-  mpvp->tp=NULL;
   mpvp->sym_name=NULL;
   mpvp->val_1=0;
   mpvp->val_2=0;
@@ -6768,6 +6906,65 @@ int mdlparse_init(struct volume *vol)
   mpvp->curr_obj=vol->root_object;
   mpvp->path_mem=NULL;
   mpvp->prod_mem=NULL;
+
+  /* create default reflective surface reaction */
+  mpvp->sym_name=concat_rx_name(vol->g_surf->sym->name,vol->g_mol->sym->name);
+  if ((mpvp->gp=retrieve_sym(mpvp->sym_name,RX,vol->main_sym_table))
+      !=NULL) {
+  }
+  else if ((mpvp->gp=store_sym(mpvp->sym_name,RX,vol->main_sym_table))
+      ==NULL) {
+    sprintf(mpvp->mdl_err_msg,"%s %s -%s-> ...",
+      "Cannot store surface reaction:",vol->g_mol->sym->name,vol->g_surf->sym->name);
+    fprintf(vol->log_file,mpvp->mdl_err_msg);
+    return(1);
+  }
+  if ((mpvp->path_mem=create_mem(sizeof(struct pathway),16384))==NULL) {
+    sprintf(mpvp->mdl_err_msg,"%s %s -%s-> ...",
+      "Cannot store surface reaction:",vol->g_mol->sym->name,vol->g_surf->sym->name);
+    fprintf(vol->log_file,mpvp->mdl_err_msg);
+    return(1);
+  } 
+  if ((mpvp->prod_mem=create_mem(sizeof(struct product),16384))==NULL) {
+    sprintf(mpvp->mdl_err_msg,"%s %s -%s-> ...",
+      "Cannot store surface reaction:",vol->g_mol->sym->name,vol->g_surf->sym->name);
+    fprintf(vol->log_file,mpvp->mdl_err_msg);
+      return(1);
+  } 
+  if ((mpvp->pathp=(struct pathway *)mem_get(mpvp->path_mem))==NULL) {
+    sprintf(mpvp->mdl_err_msg,"%s %s -%s-> ...",
+      "Cannot store surface reaction:",vol->g_mol->sym->name,vol->g_surf->sym->name);
+    fprintf(vol->log_file,mpvp->mdl_err_msg);
+    return(1);
+  }
+  mpvp->rxnp=(struct rxn *)mpvp->gp->value;
+  mpvp->rxnp->n_reactants=2;
+  mpvp->rxnp->n_pathways++;
+  mpvp->pathp->reactant1=vol->g_surf;
+  mpvp->pathp->reactant2=vol->g_mol;
+  mpvp->pathp->reactant3=NULL;
+  mpvp->pathp->km=DBL_MAX;
+  mpvp->pathp->kcat=0;
+
+  mpvp->pathp->orientation1=0;
+  mpvp->pathp->orientation2=1;
+  mpvp->pathp->orientation3=0;
+  if ((mpvp->prodp=(struct product *)mem_get(mpvp->prod_mem))==NULL) {
+    sprintf(mpvp->mdl_err_msg,"%s %s -%s-> ...",
+      "Cannot store surface reaction:",vol->g_mol->sym->name,vol->g_surf->sym->name);
+    fprintf(vol->log_file,mpvp->mdl_err_msg);
+    return(1);
+  }
+  mpvp->prodp->prod=mpvp->pathp->reactant2;
+  mpvp->prodp->orientation=1;
+  mpvp->prodp->next=NULL;
+  mpvp->pathp->product_head=mpvp->prodp;
+  mpvp->pathp->next=mpvp->rxnp->pathway_head;
+  mpvp->rxnp->pathway_head=mpvp->pathp;
+
+  mpvp->gp=NULL;
+  mpvp->tp=NULL;
+  mpvp->sym_name=NULL;
 
   for(i=0;i<MAX_INCLUDE_DEPTH;i++) {
     mpvp->line_num[i]=1;

@@ -119,7 +119,7 @@ struct rxn* trigger_bimolecular(int hashA,int hashB,
           if (w != NULL)
           {
             /* Right wall type--either this type or generic type? */
-            if (inter->players[2] == w->wall_type ||
+            if (inter->players[2] == w->surf_class ||
                 inter->players[2] == world->species_list[GENERIC_SURFACE])
             {
               geomW = inter->geometries[2];
@@ -178,7 +178,7 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
   short geomA,geomW;
   struct rxn *inter;
 
-  hashW = w->wall_type->hashval;
+  hashW = w->surf_class->hashval;
   if (hashA == hashW) hash = hashA;
   else hash = hashA ^ hashW;
   
@@ -189,7 +189,7 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
     if (inter->n_reactants==2)
     {
       if (reacA->properties==inter->players[0] &&
-          w->wall_type==inter->players[1])
+          w->surf_class==inter->players[1])
       {
         geomA = inter->geometries[0];
         if (geomA == 0) return inter;
@@ -240,7 +240,7 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
     if (inter->n_reactants==2)
     {
       if (world->species_list[GENERIC_MOLECULE]==inter->players[0] &&
-          w->wall_type==inter->players[1])
+          w->surf_class==inter->players[1])
       {
         geomA = inter->geometries[0];
         if (geomA == 0) return inter;

@@ -1,7 +1,7 @@
 
 dt = 1e-6
 it = 150
-efg = 10000
+efg = 1
 
 n=2000
 
@@ -21,7 +21,7 @@ DEFINE_MOLECULES {
   }
 }
 
-DEFINE_SURFACE_TYPES {
+DEFINE_SURFACE_CLASSES {
   surf_a {
     TRANSPARENT = ACh
   }
@@ -70,9 +70,37 @@ Glu_release_site SPHERICAL_RELEASE_SITE {
   RELEASE_PATTERN = pat1
 }
 
+box BOX {
+  CORNERS = [-1, -1, -1] , [1,1,1]
+  DEFINE_SURFACE_REGIONS {
+    REGION reg1 {
+      ELEMENT_LIST = [TOP,BOTTOM]
+    }
+  }
+  SET_SURFACE_CLASSES {
+    REGION reg1 {
+      CLASS = surf_a
+    }
+  }
+}
+
+poly POLYGON_LIST {
+  VERTEX_LIST {
+    [0,0,0]
+    [1,0,0]
+    [1,1,0]
+  }
+  ELEMENT_CONNECTIONS {
+    [0,1,2]
+    [0,2,1]
+  }
+}
+
 INSTANTIATE foo OBJECT {
   ACh_release_site OBJECT ACh_release_site {}
   Glu_release_site OBJECT Glu_release_site {}
+  box OBJECT box {}
+  poly OBJECT poly {}
 }
 
 INCLUDE_FILE = "test_include.mdl"

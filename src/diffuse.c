@@ -10,6 +10,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "rng.h"
 #include "mem_util.h"
