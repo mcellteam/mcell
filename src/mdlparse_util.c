@@ -1547,21 +1547,42 @@ int my_sprintf(char *strp,char *format,struct arg *argp,u_int num_args)
 
 
 struct counter *retrieve_reg_counter(struct volume *volp,
-                                     struct species *sp,
-                                     struct region *rp)
+                                     void *vp,
+                                     struct region *rp,
+                                     byte counter_type)
 {
   struct counter *cp;
-  u_int j;
+  struct species *sp;
+  struct rxn_pathname *rxpnp;
+  u_int j,hashval;
 
-  j = (rp->hashval ^ sp->hashval)&volp->count_hashmask;
+  sp=NULL;
+  rxpnp=NULL;
+  if (counter_type == MOL_COUNTER) {
+    sp=(struct species *)vp;
+    hashval=sp->hashval;
+  }
+  else {
+    rxpnp=(struct rxn_pathname *)vp;
+    hashval=rxpnp->hashval;
+  }
+
+  j = (rp->hashval ^ hashval)&volp->count_hashmask;
   if (j==0) {
-    j = sp->hashval & volp->count_hashmask;
+    j = hashval & volp->count_hashmask;
   }
   
   cp=volp->count_hash[j];
   while(cp!=NULL) {
-    if (cp->reg_type==rp && cp->mol_type==sp) {
-      return(cp);
+    if (counter_type == MOL_COUNTER) {
+      if (cp->reg_type==rp && cp->data.move.mol_type==sp) {
+        return(cp);
+      }
+    }
+    else {
+      if (cp->reg_type==rp && cp->data.rx.rxn_type==rxpnp) {
+        return(cp);
+      }
     }
     cp=cp->next;
   }
@@ -1571,43 +1592,66 @@ struct counter *retrieve_reg_counter(struct volume *volp,
 
 
 struct counter *store_reg_counter(struct volume *volp,
-                                  struct species *sp,
-                                  struct region *rp)
+                                  void *vp,
+                                  struct region *rp,
+                                  byte counter_type)
 {
   struct counter *cp;
-  u_int j;
+  struct species *sp;
+  struct rxn_pathname *rxpnp;
+  u_int j,hashval;
 
   /* create new counter if not already in counter table */
-  if ((cp=retrieve_reg_counter(volp,sp,rp))==NULL) {
-    j = (rp->hashval ^ sp->hashval)&volp->count_hashmask;
+  if ((cp=retrieve_reg_counter(volp,vp,rp,counter_type))==NULL) {
+    sp=NULL;
+    rxpnp=NULL;
+    if (counter_type == MOL_COUNTER) {
+      sp=(struct species *)vp;
+      hashval=sp->hashval;
+    }
+    else {
+      rxpnp=(struct rxn_pathname *)vp;
+      hashval=rxpnp->hashval;
+    }
+
+    j = (rp->hashval ^ hashval)&volp->count_hashmask;
     if (j==0) {
-      j = sp->hashval & volp->count_hashmask;
+      j = hashval & volp->count_hashmask;
     }
 
     if ((cp=(struct counter *)malloc(sizeof(struct counter)))==NULL) {
       return(NULL);
     }
-    
-    printf("Will count %s (%x) on %s (%x) at hashval %x\n",
-           sp->sym->name,sp->hashval,rp->sym->name,rp->hashval,j);
-  
+
     cp->next=volp->count_hash[j];
     volp->count_hash[j]=cp;
-
+    cp->counter_type=counter_type;
     cp->reg_type=rp;
-    cp->mol_type=sp;
-    cp->front_hits=0;
-    cp->back_hits=0;
-    cp->front_to_back=0;
-    cp->back_to_front=0;
-    cp->n_inside=0;
+    
+    if (counter_type == MOL_COUNTER) {
+      printf("Will count mol %s (%x) within %s (%x) at hashval %x\n",
+             sp->sym->name,sp->hashval,rp->sym->name,rp->hashval,j);
+      cp->data.move.mol_type=sp;
+      cp->data.move.front_hits=0;
+      cp->data.move.back_hits=0;
+      cp->data.move.front_to_back=0;
+      cp->data.move.back_to_front=0;
+      cp->data.move.n_inside=0;
+    }
+    else {
+      printf("Will count rxn %s (%x) within %s (%x) at hashval %x\n",
+             rxpnp->sym->name,rxpnp->hashval,rp->sym->name,rp->hashval,j);
+      cp->data.rx.rxn_type=rxpnp;
+      cp->data.rx.n_rxn=0;
+    }
+  
   }
 
   return(cp);
 }
 
 
-struct output_evaluator *init_mol_counter(byte counter_type,
+struct output_evaluator *init_counter(byte report_type,
                                       struct output_item *oip,
                                       struct counter *cp,
                                       u_int buffersize)
@@ -1627,7 +1671,7 @@ struct output_evaluator *init_mol_counter(byte counter_type,
   oep->index_type=TIME_STAMP_VAL;
   oep->n_data=buffersize;
 
-  switch(counter_type) {
+  switch(report_type) {
   case REPORT_CONTENTS:
     if ((intp=(int *)malloc(buffersize*sizeof(int)))==NULL) {
       return(NULL);
@@ -1637,7 +1681,7 @@ struct output_evaluator *init_mol_counter(byte counter_type,
     }
     oep->data_type=INT;
     oep->final_data=(void *)intp;
-    oep->temp_data=(void *)&cp->n_inside;
+    oep->temp_data=(void *)&cp->data.move.n_inside;
     cp->reg_type->flags|=COUNT_CONTENTS;
     break;
   case REPORT_FRONT_HITS:
@@ -1649,7 +1693,7 @@ struct output_evaluator *init_mol_counter(byte counter_type,
     }
     oep->data_type=DBL;
     oep->final_data=(void *)dblp;
-    oep->temp_data=(void *)&cp->front_hits;
+    oep->temp_data=(void *)&cp->data.move.front_hits;
     cp->reg_type->flags|=COUNT_HITS;
     break;
   case REPORT_BACK_HITS:
@@ -1661,7 +1705,7 @@ struct output_evaluator *init_mol_counter(byte counter_type,
     }
     oep->data_type=DBL;
     oep->final_data=(void *)dblp;
-    oep->temp_data=(void *)&cp->back_hits;
+    oep->temp_data=(void *)&cp->data.move.back_hits;
     cp->reg_type->flags|=COUNT_HITS;
     break;
   case REPORT_FRONT_CROSSINGS:
@@ -1673,7 +1717,7 @@ struct output_evaluator *init_mol_counter(byte counter_type,
     }
     oep->data_type=DBL;
     oep->final_data=(void *)dblp;
-    oep->temp_data=(void *)&cp->front_to_back;
+    oep->temp_data=(void *)&cp->data.move.front_to_back;
     cp->reg_type->flags|=COUNT_HITS;
     break;
   case REPORT_BACK_CROSSINGS:
@@ -1685,11 +1729,23 @@ struct output_evaluator *init_mol_counter(byte counter_type,
     }
     oep->data_type=DBL;
     oep->final_data=(void *)dblp;
-    oep->temp_data=(void *)&cp->back_to_front;
+    oep->temp_data=(void *)&cp->data.move.back_to_front;
     cp->reg_type->flags|=COUNT_HITS;
     break;
+  case REPORT_RXNS:
+    if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
+      return(NULL);
+    }
+    for (i=0;i<buffersize;i++) {
+      dblp[i]=0;
+    }
+    oep->data_type=DBL;
+    oep->final_data=(void *)dblp;
+    oep->temp_data=(void *)&cp->data.rx.n_rxn;
+    cp->reg_type->flags|=COUNT_RXNS;
+    break;
   default:
-    printf("Error: Unknown counter type %d\n", counter_type);
+    printf("Error: Unknown counter report type %d\n", report_type);
     break;
   }
 
@@ -1702,7 +1758,7 @@ struct output_evaluator *init_mol_counter(byte counter_type,
 
 
 
-int insert_mol_counter(byte counter_type,
+int insert_counter(byte report_type,
                        struct volume *volp,
                        struct output_item *oip,
                        struct output_evaluator *oep,
@@ -1718,7 +1774,7 @@ int insert_mol_counter(byte counter_type,
       o2=operand->operand2;
       if (o1==NULL) {
         /* init operand1 and set operand2 to point to count_zero */
-        if ((toep=init_mol_counter(counter_type,oip,cp,buffersize))==NULL) {
+        if ((toep=init_counter(report_type,oip,cp,buffersize))==NULL) {
           return(1);
         }
         operand->operand1=toep;
@@ -1736,7 +1792,7 @@ int insert_mol_counter(byte counter_type,
         else {
 	  if (o2==volp->count_zero) {
             /* init operand and point operand2 at it */
-            if ((toep=init_mol_counter(counter_type,oip,cp,buffersize))==NULL) {
+            if ((toep=init_counter(report_type,oip,cp,buffersize))==NULL) {
               return(1);
             }
             operand->operand2=toep;
@@ -1749,7 +1805,7 @@ int insert_mol_counter(byte counter_type,
               return(1);
             }
             operand->operand2=o2;
-            if ((operand=init_mol_counter(counter_type,oip,cp,buffersize))==NULL) {
+            if ((operand=init_counter(report_type,oip,cp,buffersize))==NULL) {
               return(1);
             }
             o2->next=oip->output_evaluator_head;
@@ -1780,12 +1836,12 @@ int insert_mol_counter(byte counter_type,
 
 
 
-int build_mol_count_tree(byte counter_type,
+int build_count_tree(byte report_type,
                          struct volume *volp,
                          struct object *objp,
                          struct output_item *oip,
                          struct output_evaluator *oep,
-                         struct species *sp,
+                         void *vp,
                          u_int buffersize,
                          char *sub_name)
 {
@@ -1794,6 +1850,7 @@ int build_mol_count_tree(byte counter_type,
   struct sym_table *stp;
   struct counter *cp;
   struct region *rp;
+  byte counter_type;
   char temp_str[1024];
   char *tmp_name,*region_name;
 
@@ -1833,7 +1890,7 @@ int build_mol_count_tree(byte counter_type,
   case META_OBJ:
     child_objp=objp->first_child;
     while (child_objp!=NULL) {
-      if (build_mol_count_tree(counter_type,volp,child_objp,oip,oep,sp,buffersize,sub_name)) {
+      if (build_count_tree(report_type,volp,child_objp,oip,oep,vp,buffersize,sub_name)) {
         return(1);
       }
       child_objp=child_objp->next;
@@ -1865,29 +1922,36 @@ int build_mol_count_tree(byte counter_type,
     free((void *)region_name);
     rp=(struct region *)stp->value;
 
-    if ((cp=store_reg_counter(volp,sp,rp))==NULL) {
+    if (report_type == REPORT_RXNS) {
+      counter_type = RXN_COUNTER;
+    }
+    else {
+      counter_type = MOL_COUNTER;
+    }
+
+    if ((cp=store_reg_counter(volp,vp,rp,counter_type))==NULL) {
       return(1);
     }
 
-    switch(counter_type) {
+    switch(report_type) {
     case REPORT_ALL_HITS:
-      if (insert_mol_counter(REPORT_FRONT_HITS,volp,oip,oep,cp,buffersize)) {
+      if (insert_counter(REPORT_FRONT_HITS,volp,oip,oep,cp,buffersize)) {
         return(1);
       }
-      if (insert_mol_counter(REPORT_BACK_HITS,volp,oip,oep,cp,buffersize)) {
+      if (insert_counter(REPORT_BACK_HITS,volp,oip,oep,cp,buffersize)) {
         return(1);
       }
       break;
     case REPORT_ALL_CROSSINGS:
-      if (insert_mol_counter(REPORT_FRONT_CROSSINGS,volp,oip,oep,cp,buffersize)) {
+      if (insert_counter(REPORT_FRONT_CROSSINGS,volp,oip,oep,cp,buffersize)) {
         return(1);
       }
-      if (insert_mol_counter(REPORT_BACK_CROSSINGS,volp,oip,oep,cp,buffersize)) {
+      if (insert_counter(REPORT_BACK_CROSSINGS,volp,oip,oep,cp,buffersize)) {
         return(1);
       }
       break;
     default:
-      if (insert_mol_counter(counter_type,volp,oip,oep,cp,buffersize)) {
+      if (insert_counter(report_type,volp,oip,oep,cp,buffersize)) {
         return(1);
       }
       break;

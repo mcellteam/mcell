@@ -139,7 +139,7 @@ struct sym_table *retrieve_sym(char *sym, unsigned short sym_type,
   
   if(sym == NULL) return (NULL);
 
-  for (sp=hashtab[hash(sym)&HASHMASK]; sp!=NULL; sp=sp->next) {
+  for (sp=hashtab[hash(sym)&SYM_HASHMASK]; sp!=NULL; sp=sp->next) {
     if (strcmp(sym,sp->name)==0 && sp->sym_type==sym_type) {
       return(sp);
     }
@@ -163,6 +163,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
   struct release_pattern *rpatp;
   struct object *objp;
   struct rxn *rxnp;
+  struct rxn_pathname *rxpnp;
   struct region *rp;
   struct file_stream *filep;
 /*
@@ -187,7 +188,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
 #endif
     sp->name=sym;
     sp->sym_type=sym_type;
-    hashval=hash(sym)&HASHMASK;
+    hashval=hash(sym)&SYM_HASHMASK;
 
     sp->next=hashtab[hashval];
     hashtab[hashval]=sp;
@@ -308,6 +309,18 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       rxnp->counter=NULL;
       rxnp->pathway_head=NULL;
       break;
+    case RXPN:
+      if ((vp=(void *)malloc(sizeof(struct rxn_pathname)))==NULL) {
+  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+	i = emergency_output();
+  	fprintf(stderr, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
+	exit(EXIT_FAILURE);
+      }
+      rxpnp=(struct rxn_pathname *)vp;
+      rxpnp->sym=sp;
+      rxpnp->hashval=hash(sym);
+      rxpnp->path=NULL;
+      break;
     case REG:
       if ((vp=(void *)malloc(sizeof(struct region)))==NULL) {
   	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
@@ -338,47 +351,12 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       filep->name=NULL;
       filep->stream=NULL;
       break;
-/*
-    case PNT:
-      if ((vp=(void *)malloc(sizeof(struct vector3)))==NULL) {
-        return(NULL);
-      }
-      tp=(struct vector3 *)vp;
-      tp->x=0.0;
-      tp->y=0.0;
-      tp->z=0.0;
-      break;
-    case CMP:
-      if ((vp=(void *)malloc(sizeof(struct cmprt)))==NULL) {
-        return(NULL);
-      }
-      cp=(struct cmprt *)vp;
-      if ((cp->lig_count_list=(struct lig_count_list **)malloc
-	   ((1+n_ligand_types)*sizeof(struct lig_count_list *)))==NULL) {
-        return(NULL);
-      }
-      for (i=0;i<1+n_ligand_types;i++) {
-        cp->lig_count_list[i]=NULL;
-      }
-      cp->type=0;
-      cp->a_zone_lig=0;
-      for (i=0;i<6;i++) {
-	cp->side_stat[i]=0;
-	cp->lig_prop[i]=NULL;	
-	cp->eff_prop[i]=NULL;
-	cp->color[i]=0;
-      }
-      cp->vert1=NULL;
-      cp->vert2=NULL;
-      cp->a_zone_loc=NULL;
-      break;
-*/
     case TMP:
       sp->value=NULL;
       return(sp);
       break;
     default:
-       printf("Error: Wrong symbol type %d\n",sym_type);
+       fprintf(stderr,"MCell symbol table error: unknown symbol type %d\n",sym_type);
        break;
     }
     sp->value=vp;

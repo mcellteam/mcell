@@ -108,7 +108,6 @@ struct output_evaluator *cnt;
 %token <tok> CUSTOM_TIME_STEP
 %token <tok> CUBIC_RELEASE_SITE
 %token <tok> CUMULATE_FOR_EACH_TIME_STEP
-%token <tok> DBL_ARROW
 %token <tok> DIFFUSION_CONSTANT_2D
 %token <tok> DIFFUSION_CONSTANT_3D
 %token <tok> DEFINE
@@ -161,7 +160,6 @@ struct output_evaluator *cnt;
 %token <tok> ITERATION_LIST
 %token <tok> ITERATIONS
 %token <tok> FULLY_RANDOM
-%token <tok> LFT_ARROW
 %token <tok> LEFT
 %token <tok> MODIFY_SURFACE_REGIONS
 %token <tok> MOLECULE
@@ -229,7 +227,6 @@ struct output_evaluator *cnt;
 %token <tok> RIGHT
 %token <tok> ROTATE
 %token <tok> ROUND_OFF
-%token <tok> RT_ARROW
 %token <tok> SCALE
 %token <tok> SEED
 %token <tok> SIN
@@ -386,6 +383,8 @@ struct output_evaluator *cnt;
 %type <sym> new_region
 %type <sym> existing_region
 %type <sym> existing_logicalOrPhysical
+%type <sym> new_rxn_pathname
+%type <sym> existing_rxpn_or_molecule
 
 %type <sym> reactant
 
@@ -1708,8 +1707,25 @@ new_molecule: VAR
     mdlpvp->sym_name=mdlpvp->cval;
   }
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
-    if ((mdlpvp->gp=store_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot store molecule in table:",mdlpvp->sym_name);
+    if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,RXPN,volp->main_sym_table))==NULL) {
+      if ((mdlpvp->gp=store_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
+        sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot store molecule in table:",mdlpvp->sym_name);
+        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+        if (mdlpvp->sym_name==mdlpvp->cval) {
+          mdlpvp->cval=NULL;
+        }
+        else {
+          mdlpvp->cval_2=NULL;
+        }
+        free((void *)mdlpvp->sym_name);
+        return(1);
+      }
+      else {
+        mdlpvp->specp=(struct species *)mdlpvp->gp->value;
+      }
+    }
+    else {
+      sprintf(mdlpvp->mdl_err_msg,"%s %s","Molecule already defined as a named reaction pathway:",mdlpvp->sym_name);
       mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
       if (mdlpvp->sym_name==mdlpvp->cval) {
         mdlpvp->cval=NULL;
@@ -1719,9 +1735,6 @@ new_molecule: VAR
       }
       free((void *)mdlpvp->sym_name);
       return(1);
-    }
-    else {
-      mdlpvp->specp=(struct species *)mdlpvp->gp->value;
     }
   }
   else {
@@ -1736,6 +1749,7 @@ new_molecule: VAR
     free((void *)mdlpvp->sym_name);
     return(1);
   }
+
   if (mdlpvp->sym_name==mdlpvp->cval) {
     mdlpvp->cval=NULL;
   }
@@ -1926,6 +1940,7 @@ surface_rxn_stmt: surface_rxn_type '=' existing_molecule
   mdlpvp->rxnp=(struct rxn *)mdlpvp->stp3->value;
   mdlpvp->rxnp->n_reactants=2;
   mdlpvp->rxnp->n_pathways++;
+  mdlpvp->pathp->pathname=NULL;
   mdlpvp->pathp->reactant1=(struct species *)mdlpvp->stp1->value;
   mdlpvp->pathp->reactant2=(struct species *)mdlpvp->stp2->value;
   mdlpvp->pathp->reactant3=NULL;
@@ -3691,7 +3706,123 @@ rxn: unimolecular_rxn
 ;
 
 
-unimolecular_rxn: reactant RT_ARROW 
+list_dashes: '-'
+	| list_dashes '-'
+;
+
+
+right_arrow: list_dashes '>'
+;
+
+
+double_arrow: '<' list_dashes '>'
+;
+
+
+new_rxn_pathname: /* empty */
+{
+  $$ = NULL;
+}
+	| ':' VAR
+{
+  if (mdlpvp->cval_2!=NULL) {
+    mdlpvp->sym_name=mdlpvp->cval_2;
+  }
+  else {
+    mdlpvp->sym_name=mdlpvp->cval;
+  }
+  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,RXPN,volp->main_sym_table))==NULL) {
+    if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
+      if ((mdlpvp->gp=store_sym(mdlpvp->sym_name,RXPN,volp->main_sym_table))==NULL) {
+        sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot store reaction name in table:",mdlpvp->sym_name);
+        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+        if (mdlpvp->sym_name==mdlpvp->cval) {
+          mdlpvp->cval=NULL;
+        }
+        else {
+          mdlpvp->cval_2=NULL;
+        }
+        free((void *)mdlpvp->sym_name);
+        return(1);
+      }
+      else {
+        mdlpvp->specp=(struct species *)mdlpvp->gp->value;
+      }
+    }
+    else {
+      sprintf(mdlpvp->mdl_err_msg,"%s %s","Named reaction pathway already defined as a molecule:",mdlpvp->sym_name);
+      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      if (mdlpvp->sym_name==mdlpvp->cval) {
+        mdlpvp->cval=NULL;
+      }
+      else {
+        mdlpvp->cval_2=NULL;
+      }
+      free((void *)mdlpvp->sym_name);
+      return(1);
+    }
+  }
+  else {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Named reaction pathway already defined:",mdlpvp->sym_name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    if (mdlpvp->sym_name==mdlpvp->cval) {
+      mdlpvp->cval=NULL;
+    }
+    else {
+      mdlpvp->cval_2=NULL;
+    }
+    free((void *)mdlpvp->sym_name);
+    return(1);
+  }
+  if (mdlpvp->sym_name==mdlpvp->cval) {
+    mdlpvp->cval=NULL;
+  }
+  else {
+    mdlpvp->cval_2=NULL;
+  }
+  $$=mdlpvp->gp;
+};
+
+
+existing_rxpn_or_molecule: VAR
+{
+  if (mdlpvp->cval_2!=NULL) {  
+    mdlpvp->sym_name=mdlpvp->cval_2;
+  }   
+  else {
+    mdlpvp->sym_name=mdlpvp->cval;
+  } 
+
+  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,RXPN,volp->main_sym_table))==NULL) {
+    if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
+      sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined reaction or molecule name:",mdlpvp->sym_name);
+      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      if (mdlpvp->sym_name==mdlpvp->cval) {
+        mdlpvp->cval=NULL;
+      }
+      else {
+        mdlpvp->cval_2=NULL;
+      }
+      free((void *)mdlpvp->sym_name);
+      return(1);
+    }
+  }
+  if (mdlpvp->sym_name==mdlpvp->cval) {
+    mdlpvp->cval=NULL;
+  }
+  else {
+    mdlpvp->cval_2=NULL;
+  }
+  free((void *)mdlpvp->sym_name);
+#ifdef KELP
+  mdlpvp->gp->ref_count++;
+  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
+#endif
+  $$=mdlpvp->gp;
+};
+
+
+unimolecular_rxn: reactant right_arrow
 {
   mdlpvp->gp=$<sym>1;
   if ((mdlpvp->tp=retrieve_sym(mdlpvp->gp->name,RX,volp->main_sym_table))
@@ -3713,6 +3844,7 @@ unimolecular_rxn: reactant RT_ARROW
   mdlpvp->rxnp=(struct rxn *)mdlpvp->tp->value;
   mdlpvp->rxnp->n_reactants=1;
   mdlpvp->rxnp->n_pathways++;
+  mdlpvp->pathp->pathname=NULL;
   mdlpvp->pathp->reactant1=(struct species *)mdlpvp->gp->value;
   mdlpvp->pathp->reactant2=NULL;
   mdlpvp->pathp->reactant3=NULL;
@@ -3733,8 +3865,14 @@ unimolecular_rxn: reactant RT_ARROW
   mdlpvp->fwd_kcat=0;
   mdlpvp->prod_all_3d=1;
 }
-	list_products fwd_rx_rate1or2
+	list_products fwd_rx_rate1or2 new_rxn_pathname
 {
+  mdlpvp->gp=$<sym>6;
+  if (mdlpvp->gp!=NULL) {
+    mdlpvp->rxpnp=(struct rxn_pathname *)mdlpvp->gp->value;
+    mdlpvp->rxpnp->path=mdlpvp->pathp;
+    mdlpvp->pathp->pathname=mdlpvp->rxpnp;
+  }
   mdlpvp->pathp->km=mdlpvp->fwd_km;
   mdlpvp->pathp->kcat=mdlpvp->fwd_kcat;
   if (mdlpvp->rate_filename != NULL)
@@ -3798,7 +3936,7 @@ bimolecular_rxn: reactant '+'
 {
   mdlpvp->orient_class1=mdlpvp->orient_class;
 }
-	reactant RT_ARROW 
+	reactant right_arrow
 {
   mdlpvp->stp1=$<sym>1;
   mdlpvp->stp2=$<sym>4;
@@ -3830,6 +3968,7 @@ bimolecular_rxn: reactant '+'
   mdlpvp->rxnp=(struct rxn *)mdlpvp->stp3->value;
   mdlpvp->rxnp->n_reactants=2;
   mdlpvp->rxnp->n_pathways++;
+  mdlpvp->pathp->pathname=NULL;
   mdlpvp->pathp->reactant1=(struct species *)mdlpvp->stp1->value;
   mdlpvp->pathp->reactant2=(struct species *)mdlpvp->stp2->value;
   mdlpvp->pathp->reactant3=NULL;
@@ -3852,8 +3991,14 @@ bimolecular_rxn: reactant '+'
   mdlpvp->fwd_kcat=0;
   mdlpvp->prod_all_3d=1;
 }
-	list_products fwd_rx_rate1or2
+	list_products fwd_rx_rate1or2 new_rxn_pathname
 {
+  mdlpvp->gp=$<sym>9;
+  if (mdlpvp->gp!=NULL) {
+    mdlpvp->rxpnp=(struct rxn_pathname *)mdlpvp->gp->value;
+    mdlpvp->rxpnp->path=mdlpvp->pathp;
+    mdlpvp->pathp->pathname=mdlpvp->rxpnp;
+  }
   mdlpvp->pathp->km=mdlpvp->fwd_km;
   mdlpvp->pathp->kcat=mdlpvp->fwd_kcat;
   if (mdlpvp->rate_filename != NULL)
@@ -4975,23 +5120,19 @@ outfile_syntax: file_name
 };
 
 
-count_syntax: mol_count_syntax
+count_syntax: rxpn_or_mol_count_syntax
 	| mol_hit_count_syntax
-/*
-	| rxn_count_syntax
-*/
 ;
 
 
-mol_count_syntax: existing_molecule ',' WORLD 
+rxpn_or_mol_count_syntax: existing_rxpn_or_molecule ',' WORLD 
 {
 	u_int i,i1;
 
-        no_printf("\nWorld molecule count syntax:\n");
+        no_printf("\nWorld reaction or molecule count syntax:\n");
         fflush(stderr);
   
 	mdlpvp->stp1=$<sym>1;
-        mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
 
         if (volp->iterations<0) {
           sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
@@ -5011,15 +5152,26 @@ mol_count_syntax: existing_molecule ',' WORLD
 
         mdlpvp->oep->data_type=INT;
         mdlpvp->oep->n_data=i1;
-	mdlpvp->oep->temp_data=(void *)&mdlpvp->specp->population;
         mdlpvp->oep->final_data=(void *)mdlpvp->intp;
+
+        if (mdlpvp->stp1->sym_type==MOL) {
+          mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
+	  mdlpvp->oep->temp_data=(void *)&mdlpvp->specp->population;
+	  no_printf("Counting number of molecule %s in WORLD\n",
+            mdlpvp->specp->sym->name);
+	  fflush(stderr);
+        }
+        else {
+          mdlpvp->rxpnp=(struct rxn_pathname *)mdlpvp->stp1->value;
+          mdlpvp->oep->temp_data=(void *)&mdlpvp->rxpnp->path->count;
+          no_printf("Counting number of reaction %s in WORLD\n",
+            mdlpvp->rxpnp->sym->name);
+          fflush(stderr);
+        }
   
-	no_printf("Counting number of molecule %s in WORLD\n",
-          mdlpvp->specp->sym->name);
-	fflush(stderr);
 }
 
-	| existing_molecule ',' existing_region
+	| existing_rxpn_or_molecule ',' existing_region
 
 {	  
 	u_int i,i1;
@@ -5028,18 +5180,34 @@ mol_count_syntax: existing_molecule ',' WORLD
 	fflush(stderr);
 
 	mdlpvp->stp1=$<sym>1;
-        mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
 	mdlpvp->stp2=$<sym>3;
 	mdlpvp->rp=(struct region *)mdlpvp->stp2->value;
-        mdlpvp->rp->flags|=COUNT_CONTENTS;
-        mdlpvp->specp->flags|=COUNT_CONTENTS;
-        if ((mdlpvp->specp->flags & NOT_FREE)==0) {
-          volp->place_waypoints_flag=1;
-        }
 
-        if ((mdlpvp->cp=store_reg_counter(volp,mdlpvp->specp,mdlpvp->rp))==NULL) {
-	  mdlerror("Cannot store region counter data");
-	  return(1);
+        if (mdlpvp->stp1->sym_type==MOL) {
+          mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
+          mdlpvp->rp->flags|=COUNT_CONTENTS;
+          mdlpvp->specp->flags|=COUNT_CONTENTS;
+          if ((mdlpvp->specp->flags & NOT_FREE)==0) {
+            volp->place_waypoints_flag=1;
+          }
+
+          if ((mdlpvp->cp=store_reg_counter(volp,(void *)mdlpvp->specp,mdlpvp->rp,MOL_COUNTER))==NULL) {
+	    mdlerror("Cannot store region counter data");
+	    return(1);
+          }
+        }
+        else {
+          mdlpvp->rxpnp=(struct rxn_pathname *)mdlpvp->stp1->value;
+          mdlpvp->rp->flags|=COUNT_RXNS;
+          mdlpvp->rxpnp->path->reactant1->flags|=COUNT_RXNS;
+          if (mdlpvp->rxpnp->path->reactant2!=NULL) {
+            mdlpvp->rxpnp->path->reactant2->flags|=COUNT_RXNS;
+          }
+
+          if ((mdlpvp->cp=store_reg_counter(volp,(void *)mdlpvp->rxpnp,mdlpvp->rp,RXN_COUNTER))==NULL) {
+	    mdlerror("Cannot store region counter data");
+	    return(1);
+          }
         }
 
         if (volp->iterations<0) {
@@ -5060,27 +5228,44 @@ mol_count_syntax: existing_molecule ',' WORLD
 
         mdlpvp->oep->data_type=INT;
         mdlpvp->oep->n_data=i1;
-	mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->n_inside;
         mdlpvp->oep->final_data=(void *)mdlpvp->intp;
-	no_printf("Counting number of molecule %s in region %s\n",
-          mdlpvp->stp1->name,mdlpvp->stp2->name);
-	fflush(stderr);
+        if (mdlpvp->stp1->sym_type==MOL) {
+	  mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->data.move.n_inside;
+	  no_printf("Counting number of molecule %s in region %s\n",
+            mdlpvp->stp1->name,mdlpvp->stp2->name);
+	  fflush(stderr);
+        }
+        else {
+	  mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->data.rx.n_rxn;
+	  no_printf("Counting number of reaction %s in region %s\n",
+            mdlpvp->stp1->name,mdlpvp->stp2->name);
+	  fflush(stderr);
+        }
 }
-	| existing_molecule ',' existing_object 
+	| existing_rxpn_or_molecule ',' existing_object 
 {
 	no_printf("\nObject molecule count syntax:\n");
 	fflush(stderr);
 
 	mdlpvp->stp1=$<sym>1;
-        mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
-        mdlpvp->specp->flags|=COUNT_CONTENTS;
-        if ((mdlpvp->specp->flags & NOT_FREE)==0) {
-          volp->place_waypoints_flag=1;
-        }
-
 	mdlpvp->stp2=$<sym>3;
 	mdlpvp->objp=(struct object *)mdlpvp->stp2->value;
         mdlpvp->objp2=mdlpvp->top_objp;
+
+        if (mdlpvp->stp1->sym_type==MOL) {
+          mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
+          mdlpvp->specp->flags|=COUNT_CONTENTS;
+          if ((mdlpvp->specp->flags & NOT_FREE)==0) {
+            volp->place_waypoints_flag=1;
+          }
+        }
+        else {
+          mdlpvp->rxpnp=(struct rxn_pathname *)mdlpvp->stp1->value;
+          mdlpvp->rxpnp->path->reactant1->flags|=COUNT_RXNS;
+          if (mdlpvp->rxpnp->path->reactant2!=NULL) {
+            mdlpvp->rxpnp->path->reactant2->flags|=COUNT_RXNS;
+          }
+        }
   
         if (volp->iterations<0) {
           sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
@@ -5098,18 +5283,29 @@ mol_count_syntax: existing_molecule ',' WORLD
 	mdlpvp->oep->operand1=NULL;
 	mdlpvp->oep->operand2=NULL;
 	mdlpvp->oep->oper='+';
-	if (build_mol_count_tree(REPORT_CONTENTS,volp,mdlpvp->objp,mdlpvp->oip,mdlpvp->oep,mdlpvp->specp,mdlpvp->obp->buffersize,mdlpvp->prefix_name)) {
-	  mdlerror("Cannot store molecule output_evaluator data");
-	  return(1);
-	}
 
-	no_printf("Counting number of molecule %s in object %s\n",
-          mdlpvp->stp1->name,mdlpvp->stp2->name);
-	fflush(stderr);
+        if (mdlpvp->stp1->sym_type==MOL) {
+	  if (build_count_tree(REPORT_CONTENTS,volp,mdlpvp->objp,mdlpvp->oip,mdlpvp->oep,(void *)mdlpvp->specp,mdlpvp->obp->buffersize,mdlpvp->prefix_name)) {
+	    mdlerror("Cannot store molecule output_evaluator data");
+	    return(1);
+	  }
+	  no_printf("Counting number of molecule %s in object %s\n",
+            mdlpvp->stp1->name,mdlpvp->stp2->name);
+	  fflush(stderr);
+        }
+        else {
+	  if (build_count_tree(REPORT_RXNS,volp,mdlpvp->objp,mdlpvp->oip,mdlpvp->oep,(void *)mdlpvp->rxpnp,mdlpvp->obp->buffersize,mdlpvp->prefix_name)) {
+	    mdlerror("Cannot store named reaction output_evaluator data");
+	    return(1);
+	  }
+	  no_printf("Counting number of reaction %s in object %s\n",
+            mdlpvp->stp1->name,mdlpvp->stp2->name);
+	  fflush(stderr);
+        }
 };
  
 
-mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
+mol_hit_count_syntax: existing_rxpn_or_molecule ',' existing_region ',' hit_spec
 {
 	u_int i,i1;
 
@@ -5117,13 +5313,18 @@ mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
 	fflush(stderr);
 
 	mdlpvp->stp1=$<sym>1;
+	if (mdlpvp->stp1->sym_type!=MOL) {
+          sprintf(mdlpvp->mdl_err_msg,"%s %s","Count item must be a molecule, not a named reaction pathway:",mdlpvp->stp1->name);
+          mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+	  return(1);
+        }
         mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
 	mdlpvp->stp2=$<sym>3;
 	mdlpvp->rp=(struct region *)mdlpvp->stp2->value;
         mdlpvp->rp->flags|=COUNT_HITS;
         mdlpvp->specp->flags|=COUNT_HITS;
 
-        if ((mdlpvp->cp=store_reg_counter(volp,mdlpvp->specp,mdlpvp->rp))==NULL) {
+        if ((mdlpvp->cp=store_reg_counter(volp,(void *)mdlpvp->specp,mdlpvp->rp,MOL_COUNTER))==NULL) {
 	  mdlerror("Cannot store region counter data");
 	  return(1);
         }
@@ -5147,7 +5348,7 @@ mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
           mdlpvp->oep->data_type=DBL;
           mdlpvp->oep->n_data=i1;
           mdlpvp->oep->final_data=(void *)mdlpvp->dblp;
-          mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->front_hits;
+          mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->data.move.front_hits;
           break;
         case REPORT_BACK_HITS:   
 	  i1=mdlpvp->obp->buffersize;
@@ -5161,7 +5362,7 @@ mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
           mdlpvp->oep->data_type=DBL;
           mdlpvp->oep->n_data=i1;
           mdlpvp->oep->final_data=(void *)mdlpvp->dblp;
-          mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->back_hits;
+          mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->data.move.back_hits;
           break;
         case REPORT_ALL_HITS:   
 	  mdlpvp->oep->update_flag=0;
@@ -5174,11 +5375,11 @@ mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
 	  mdlpvp->oep->operand1=NULL;
 	  mdlpvp->oep->operand2=NULL;
 	  mdlpvp->oep->oper='+';
-          if (insert_mol_counter(REPORT_FRONT_HITS,volp,mdlpvp->oip,mdlpvp->oep,mdlpvp->cp,mdlpvp->obp->buffersize)) {
+          if (insert_counter(REPORT_FRONT_HITS,volp,mdlpvp->oip,mdlpvp->oep,mdlpvp->cp,mdlpvp->obp->buffersize)) {
 	    mdlerror("Cannot store molecule output_evaluator data");
             return(1);
           }
-          if (insert_mol_counter(REPORT_BACK_HITS,volp,mdlpvp->oip,mdlpvp->oep,mdlpvp->cp,mdlpvp->obp->buffersize)) {
+          if (insert_counter(REPORT_BACK_HITS,volp,mdlpvp->oip,mdlpvp->oep,mdlpvp->cp,mdlpvp->obp->buffersize)) {
 	    mdlerror("Cannot store molecule output_evaluator data");
             return(1);
           }
@@ -5195,7 +5396,7 @@ mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
           mdlpvp->oep->data_type=DBL;
           mdlpvp->oep->n_data=i1;
           mdlpvp->oep->final_data=(void *)mdlpvp->dblp;
-          mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->front_to_back;
+          mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->data.move.front_to_back;
           break;
         case REPORT_BACK_CROSSINGS:
 	  i1=mdlpvp->obp->buffersize;
@@ -5209,7 +5410,7 @@ mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
           mdlpvp->oep->data_type=DBL;
           mdlpvp->oep->n_data=i1;
           mdlpvp->oep->final_data=(void *)mdlpvp->dblp;
-          mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->back_to_front;
+          mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->data.move.back_to_front;
           break;
         case REPORT_ALL_CROSSINGS:
 	  mdlpvp->oep->update_flag=0;
@@ -5222,11 +5423,11 @@ mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
 	  mdlpvp->oep->operand1=NULL;
 	  mdlpvp->oep->operand2=NULL;
 	  mdlpvp->oep->oper='+';
-          if (insert_mol_counter(REPORT_FRONT_CROSSINGS,volp,mdlpvp->oip,mdlpvp->oep,mdlpvp->cp,mdlpvp->obp->buffersize)) {
+          if (insert_counter(REPORT_FRONT_CROSSINGS,volp,mdlpvp->oip,mdlpvp->oep,mdlpvp->cp,mdlpvp->obp->buffersize)) {
 	    mdlerror("Cannot store molecule output_evaluator data");
             return(1);
           }
-          if (insert_mol_counter(REPORT_BACK_CROSSINGS,volp,mdlpvp->oip,mdlpvp->oep,mdlpvp->cp,mdlpvp->obp->buffersize)) {
+          if (insert_counter(REPORT_BACK_CROSSINGS,volp,mdlpvp->oip,mdlpvp->oep,mdlpvp->cp,mdlpvp->obp->buffersize)) {
 	    mdlerror("Cannot store molecule output_evaluator data");
             return(1);
           }
@@ -5237,12 +5438,17 @@ mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
           mdlpvp->stp1->name,mdlpvp->stp2->name);
 	fflush(stderr);
 }
-	| existing_molecule ',' existing_object ',' hit_spec
+	| existing_rxpn_or_molecule ',' existing_object ',' hit_spec
 {
 	no_printf("\nObject molecule hit count syntax:\n");
 	fflush(stderr);
 
 	mdlpvp->stp1=$<sym>1;
+	if (mdlpvp->stp1->sym_type!=MOL) {
+          sprintf(mdlpvp->mdl_err_msg,"%s %s","Count item must be a molecule not a name reaction pathway:",mdlpvp->stp1->name);
+          mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+	  return(1);
+        }
         mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
         mdlpvp->specp->flags|=COUNT_HITS;
 
@@ -5267,7 +5473,7 @@ mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
 	mdlpvp->oep->operand2=NULL;
 	mdlpvp->oep->oper='+';
 
-	if (build_mol_count_tree((byte)$<tok>5,volp,mdlpvp->objp,mdlpvp->oip,mdlpvp->oep,mdlpvp->specp,mdlpvp->obp->buffersize,mdlpvp->prefix_name)) {
+	if (build_count_tree((byte)$<tok>5,volp,mdlpvp->objp,mdlpvp->oip,mdlpvp->oep,(void *)mdlpvp->specp,mdlpvp->obp->buffersize,mdlpvp->prefix_name)) {
 	  mdlerror("Cannot store molecule output_evaluator data");
 	  return(1);
 	}
@@ -6264,6 +6470,7 @@ int mdlparse_init(struct volume *vol)
   mpvp->rxnp=(struct rxn *)mpvp->gp->value;
   mpvp->rxnp->n_reactants=2;
   mpvp->rxnp->n_pathways++;
+  mpvp->pathp->pathname=NULL;
   mpvp->pathp->reactant1=vol->g_surf;
   mpvp->pathp->reactant2=vol->g_mol;
   mpvp->pathp->reactant3=NULL;

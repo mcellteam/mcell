@@ -35,7 +35,7 @@
 #define COUNT_SOME       0x3000
 #define COUNT_RXNS       0x4000
 
-/* mol/region counter types */
+/* rxn/mol/region counter report types */
 #define REPORT_CONTENTS        0
 #define REPORT_FRONT_HITS      1
 #define REPORT_BACK_HITS       2
@@ -43,6 +43,11 @@
 #define REPORT_FRONT_CROSSINGS 4
 #define REPORT_BACK_CROSSINGS  5
 #define REPORT_ALL_CROSSINGS   6
+#define REPORT_RXNS            7
+
+/* rxn/mol/region counter types */
+#define MOL_COUNTER 0
+#define RXN_COUNTER 1
 
 #define MANIFOLD_UNCHECKED 0
 #define NOT_MANIFOLD       1
@@ -192,7 +197,10 @@
 
 /* How big will we let the count-by-region table get? */
 /* 0x10000 = 128K */
-#define MAX_COUNT_HASH 0x10000
+#define MAX_COUNT_HASH 0x10000 
+
+/* mask for count-by-region hash */
+#define COUNT_HASHMASK 0xffff
 
 /* What's the upper bound on the number of coarse partitions? */
 #define MAX_COARSE_PER_AXIS 16
@@ -224,7 +232,7 @@
 /* Generic numerical constants */
 #define EPSILON 1e-14
                                                                                 
-#define R_UINT_MAX 2.3283064365386963e-10
+#define R_UINT_MAX 2.3283064365386962890625e-10
 #define MY_PI 3.14159265358979323846
 #define N_AV 6.0221415e23
 #define ROUND_UP 0.5
@@ -255,9 +263,9 @@
                                                                                 
 
 /* Grid molecule site placement types */
+/* Place either a certain density or an exact number of effectors */
 #define EFFDENS 0
 #define EFFNUM 1
-   /* Place either a certain density or an exact number of effectors */
 
 
 /*******************************************************/
@@ -265,45 +273,78 @@
 /*******************************************************/
 
 /* Parser parameters.  Probably need to be revisited. */
+/* size of symbol hash table */
 #define SYM_HASHSIZE 0x20000
-#define HASHMASK 0x1ffff
-#define COUNT_HASHMASK 0xffff
 
-#define PATHWAYSIZE 64
-#define RXSIZE 2048
+/* mask for symbol table hash */
+#define SYM_HASHMASK 0x1ffff
+
+/* maximum number of args allowed in MDL "C"-style print statements */
 #define ARGSIZE 255
-#define NUM_ADD_EFFECTORS 1024
+
+/* maximum allowed nesting level of INCLUDE_FILE statements in MDL */
 #define MAX_INCLUDE_DEPTH 16
+
+/* default size of output count buffers */
 #define COUNTBUFFERSIZE 10000
                                                                                 
 
-/* Data types to be stored in sym_table, probably broken! */
+/* Data types to be stored in MDL parser symbol table: */
+
+/* chemical reaction: */
 #define RX 1
-#define MOL 2
-#define PNT 3
-#define CMP 4
-#define POLY 5
-#define RSITE 6
-#define OBJ 7
-#define RPAT 8
-#define REG 9
-#define INT 10
-#define DBL 11
-#define STR 12
-#define ARRAY 13
-#define FSTRM 14
-#define EXPR 15
-#define TMP 16
+
+/* name of chemical reaction: */
+#define RXPN 2
+
+/* molecule type (i.e. species): */
+#define MOL 3
+
+/* polygon or box object: */
+#define POLY 4
+
+/* release site object: */
+#define RSITE 5
+
+/* meta-object: */
+#define OBJ 6
+
+/* release pattern: */
+#define RPAT 7
+
+/* object region: */
+#define REG 8
+
+/* integer type (used only for COUNT statements): */
+#define INT 9
+
+/* double: */
+#define DBL 10
+
+/* string: */
+#define STR 11
+
+/* array of doubles: */ 
+#define ARRAY 12
+
+/* file stream type for "C"-style file-io: */
+#define FSTRM 13
+
+/* expression type (used only in COUNT statements): */
+#define EXPR 14
+
+/* temporary place-holder type for assignment statements: */
+#define TMP 15
 
                                                                                 
-/* Object types, probably okay. */
+/* Object types */
 #define META_OBJ 0
 #define BOX_OBJ 1
 #define POLY_OBJ 2
 #define REL_SITE_OBJ 3
                                                                                 
 
-/* Box sides.  This is a weird way to do it.  Why not bitmasks? */
+/* Box sides */
 #define TP 0
 #define BOT 2
 #define FRNT 4
@@ -317,7 +358,7 @@
 #define EXCLUDE_OBJ INT_MIN
 
 
-/* Count list specifications.  INIT stuff is probably broken. */
+/* output evaluator specifications. Broken until we finish rxn counting */
 #define OVER_E 0
 #define EACH_E 1
 #define SPEC_E 2
@@ -363,6 +404,8 @@
 
 
 /* Visualization frame data types. */
+/* Used to select type of data to include in viz output files */
+/* Will probably change significantly when we redesign DReAMM output format */
 #define ALL_FRAME_DATA 0
 #define EFF_POS 1
 #define EFF_STATES 2
@@ -429,7 +472,8 @@ struct species
 /* All pathways leading away from a given intermediate */
 struct rxn
 {
-  struct rxn *next;          /* Next reaction with these reactants */
+  struct rxn *next;          /* Next reaction with these reactants
+                                but differing geometry */
   struct sym_table *sym;     /* ptr to symbol table entry for this rxn */
   
   u_int n_reactants;         /* How many reactants? (At least 1.) */
@@ -444,7 +488,7 @@ struct rxn
 
   struct t_func *rate_t;     /* List of rates changing over time */
   
-  struct pathway *pathway_head; /* list of pathways built at parse-time */
+  struct pathway *pathway_head; /* list/array of pathways built at parse-time */
 };
 
 
@@ -454,9 +498,19 @@ struct rxn_group
 /* Someone else gets to fill this in. */
 };
 
+
+struct rxn_pathname {
+  struct sym_table *sym;
+  u_int hashval;
+  struct pathway *path;
+};
+
+
 /* Parse-time structure for reaction pathways */
 struct pathway {
   struct pathway *next;
+  struct rxn_pathname *pathname; /* data for named reaction pathway or NULL */
+  double count;                  /* How many times have we taken this path? */
   struct species *reactant1;     /* First reactant in reaction pathway */
   struct species *reactant2;     /* Second reactant (NULL if none) */
   struct species *reactant3;     /* Third reactant--surface type or NULL */
@@ -729,18 +783,41 @@ struct bsp_tree
 };
 
 
-/* Struct to count molecules within regions (where "within" includes */
-/* on the inside of a fully closed surface, for 3D molecules) */
-struct counter
+struct rxn_counter_data
 {
-  struct counter *next;
-  struct region *reg_type;         /* Region we are counting on */
-  struct species *mol_type;        /* Species we are counting */
+  struct rxn_pathname *rxn_type;    /* named rxn we are counting */
+  double n_rxn;                     /* # rxn occurrance */
+};
+
+
+struct move_counter_data
+{
+  struct species *mol_type;         /* species we are counting */
   double front_hits;               /* # hits on front of region (normal up) */
   double back_hits;                /* # hits on back of region */
   double front_to_back;            /* # crossings from front to back */
   double back_to_front;            /* # crossings from back to front */
   int n_inside;                    /* # molecules within the region */
+};
+
+
+union counter_data
+{
+  struct rxn_counter_data rx;
+  struct move_counter_data move;
+};
+
+
+/* Struct to count rxns or molecules within regions (where "within" includes */
+/* on the inside of a fully closed surface, for 3D molecules) */
+struct counter
+{
+  struct counter *next;
+  byte counter_type;               /* MOL_COUNTER or RXN_COUNTER */
+  struct region *reg_type;         /* Region we are counting on */
+  union counter_data data;         /* data we are counting:
+                                      reference data.move for move counter
+                                      reference data.rx for rxn counter */
 };
 
 
@@ -1171,8 +1248,9 @@ struct element_list {
 };
 
 /**
- * Surface region of an object
- * 
+ * Region of an object
+ * If region is a manifold then it can be used as a volume and surface region.
+ * Otherwise it can only be used as a surface region.
  */
 struct region {
 	struct sym_table *sym;
@@ -1188,8 +1266,7 @@ struct region {
 };
 
 /**
- * Linked list of regions.
- * [\todo what is this?]
+ * A list of regions
  */
 struct region_list {
 	struct region_list *next;
@@ -1214,6 +1291,7 @@ struct reg_counter_ref_list {
 	struct reg_counter_ref_list *next;
 	struct reg_counter_ref *reg_counter_ref;
 };
+
 /*
  *counter hash table for counting on regions in each object
  */

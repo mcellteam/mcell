@@ -311,10 +311,7 @@ I ([0-9]+)
 
 			   return(VAR);
 			 }
-"<"[-]+">"		{return(DBL_ARROW);}
-"<"[-]+			{return(LFT_ARROW);}
-[-]+">"			{return(RT_ARROW);}
-[\'\,\(\)\/\-\+\=\^\[\]\{\}\|\>\*\#\~\@\:\&\;]	{return(mdltext[0]);}
+[\'\,\(\)\/\-\+\=\^\[\]\{\}\|\<\>\*\#\~\@\:\&\;] {return(mdltext[0]);}
 .			;
 \n			{mpvp->line_num[mpvp->include_stack_ptr]++;}
 <<EOF>>			{return(EOF_TOK);}

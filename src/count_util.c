@@ -68,16 +68,16 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
       
       for (hit_count=world->count_hash[j] ; hit_count!=NULL ; hit_count=hit_count->next)
       {
-        if (hit_count->reg_type == rl->reg && hit_count->mol_type == sp)
+        if (hit_count->reg_type == rl->reg && hit_count->data.move.mol_type == sp)
         {
           if (crossed)
           {
-            hit_count->n_inside += direction;
+            hit_count->data.move.n_inside += direction;
 
 /*
             printf("Counted %s (%x) on %s (%x); %x has n_inside = %.1f (up by %d).\n",
                    sp->sym->name,sp->hashval,rl->reg->sym->name,rl->reg->hashval,
-                   (int)hit_count,hit_count->n_inside,direction);
+                   (int)hit_count,hit_count->data.move.n_inside,direction);
 */
 
           }
@@ -87,19 +87,19 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
             {
               if (direction==1)
               {
-                hit_count->front_hits++;
-                hit_count->front_to_back++;
+                hit_count->data.move.front_hits++;
+                hit_count->data.move.front_to_back++;
               }
               else
               {
-                hit_count->back_hits++;
-                hit_count->back_to_front++;
+                hit_count->data.move.back_hits++;
+                hit_count->data.move.back_to_front++;
               }
             }
             else
             {
-              if (direction==1) hit_count->front_hits++;
-              else hit_count->back_hits++;
+              if (direction==1) hit_count->data.move.front_hits++;
+              else hit_count->data.move.back_hits++;
             }
           }
         }
@@ -513,7 +513,7 @@ void count_me_by_region(struct abstract_molecule *me,int n)
         
         for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
         {
-          if (c->reg_type == rl->reg && c->mol_type == sp) c->n_inside += n;
+          if (c->reg_type == rl->reg && c->data.move.mol_type == sp) c->data.move.n_inside += n;
         }
       }
     } 
@@ -547,7 +547,7 @@ void count_me_by_region(struct abstract_molecule *me,int n)
         
         for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
         {
-          if (c->reg_type==rl->reg && c->mol_type==sp) c->n_inside += n;
+          if (c->reg_type==rl->reg && c->data.move.mol_type==sp) c->data.move.n_inside += n;
         }
       }
     }
@@ -560,7 +560,7 @@ void count_me_by_region(struct abstract_molecule *me,int n)
         
         for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
         {
-          if (c->reg_type==rl->reg && c->mol_type==sp) c->n_inside -= n;
+          if (c->reg_type==rl->reg && c->data.move.mol_type==sp) c->data.move.n_inside -= n;
         }
       }
     }
@@ -596,10 +596,10 @@ void count_me_by_region(struct abstract_molecule *me,int n)
                 
                 for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
                 {
-                  if (c->reg_type==rl->reg && c->mol_type==sp)
+                  if (c->reg_type==rl->reg && c->data.move.mol_type==sp)
                   {
-                    if (j==COLLIDE_FRONT) c->n_inside += n;
-		    else if (j==COLLIDE_BACK) c->n_inside -= n;
+                    if (j==COLLIDE_FRONT) c->data.move.n_inside += n;
+		    else if (j==COLLIDE_BACK) c->data.move.n_inside -= n;
                   }
                 }
               }
@@ -631,23 +631,25 @@ int check_region_counters()
   
   for (i=0;i<world->count_hashmask+1;i++) {
     for (cp=world->count_hash[i];cp!=NULL;cp=cp->next) {
-      sp=cp->mol_type;
-      rp=cp->reg_type;
-      /* if species is freely diffusing
-         make sure region is a closed manifold */
-      if ((sp->flags & NOT_FREE)==0) {
-        if (rp->manifold_flag==MANIFOLD_UNCHECKED) {
-          if (is_manifold(rp)) {
-            rp->manifold_flag=IS_MANIFOLD;
+      if (cp->counter_type==MOL_COUNTER) {
+        sp=cp->data.move.mol_type;
+        rp=cp->reg_type;
+        /* if species is freely diffusing
+           make sure region is a closed manifold */
+        if ((sp->flags & NOT_FREE)==0) {
+          if (rp->manifold_flag==MANIFOLD_UNCHECKED) {
+            if (is_manifold(rp)) {
+              rp->manifold_flag=IS_MANIFOLD;
+            }
+            else {
+              rp->manifold_flag=NOT_MANIFOLD;
+            }
           }
           else {
-            rp->manifold_flag=NOT_MANIFOLD;
-          }
-        }
-        else {
-          if (rp->manifold_flag==NOT_MANIFOLD) {
-            fprintf(log_file,"MCell: error, cannot count diffusing molecules inside non-manifold object region: %s\n",rp->sym->name); 
-	    return (1);
+            if (rp->manifold_flag==NOT_MANIFOLD) {
+              fprintf(log_file,"MCell: error, cannot count diffusing molecules inside non-manifold object region: %s\n",rp->sym->name); 
+	      return (1);
+            }
           }
         }
       }

@@ -37,28 +37,31 @@ int my_sprintf(char *strp,char *format,struct arg *argp,u_int num_args);
 int my_fprintf(FILE *outfile,char *format,struct arg *argp,u_int num_args);
 
 struct counter *retrieve_reg_counter(struct volume *volp,
-                                     struct species *sp,
-                                     struct region *rp);
-struct counter *store_reg_counter(struct volume *volp,
-                                  struct species *sp,
-                                  struct region *rp);
+                                     void *vp,
+                                     struct region *rp,
+                                     byte counter_type);
 
-struct output_evaluator *init_mol_counter(byte counter_type,
+struct counter *store_reg_counter(struct volume *volp,
+                                  void *vp,
+                                  struct region *rp,
+                                  byte counter_type);
+
+struct output_evaluator *init_counter(byte report_type,
                                       struct output_item *oip,
                                       struct counter *cp,
                                       u_int buffersize);
-int insert_mol_counter(byte counter_type,
+int insert_counter(byte report_type,
                        struct volume *volp,
                        struct output_item *oip,
                        struct output_evaluator *oep,
                        struct counter *cp,
                        u_int buffersize);
-int build_mol_count_tree(byte counter_type,
+int build_count_tree(byte report_type,
                          struct volume *volp,
                          struct object *objp,
                          struct output_item *oip,
                          struct output_evaluator *oep,
-                         struct species *sp,
+                         void *vp,
                          u_int buffersize,
                          char *sub_name);
 

@@ -128,6 +128,7 @@ struct mdlparse_vars {
   struct mem_helper *path_mem;
   struct mem_helper *prod_mem;
   struct pathway *pathp;
+  struct rxn_pathname *rxpnp;
   struct product *prodp;
   double fwd_km;
   double fwd_kcat;
