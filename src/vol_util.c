@@ -411,7 +411,7 @@ void release_molecules(struct release_event_queue *req)
   guess = NULL;
   
   m.properties = rso->mol_type;
-  m.flags = TYPE_3D + IN_VOLUME + IN_SCHEDULE;
+  m.flags = TYPE_3D + IN_VOLUME + IN_SCHEDULE + ACT_NEWBIE;
   if (trigger_unimolecular(rso->mol_type->hashval , (struct abstract_molecule*)&m) != NULL) 
     m.flags += ACT_REACT;
   if (rso->mol_type->space_step > 0.0) m.flags += ACT_DIFFUSE;

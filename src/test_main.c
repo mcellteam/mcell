@@ -77,7 +77,7 @@ void run_sim(void)
       printf("location = %7.3f %7.3f %7.3f %d\n",mol->pos.x,mol->pos.y,mol->pos.z,world->it_time);
     }
   }
-  
+
   printf("Exiting run loop.\n");
 
 }

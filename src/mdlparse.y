@@ -402,6 +402,7 @@ struct count_list *cnt;
 
 
 %right '='
+%left '&'
 %left '+' '-'
 %left '*' '/'
 %left '^'
@@ -1703,11 +1704,11 @@ new_object: VAR
   $$=mdlpvp->gp;
 };
 
-list_opt_object_cmds: opt_object_cmd | list_opt_object_cmds opt_object_cmd;
+list_opt_object_cmds: 
+	| list_opt_object_cmds opt_object_cmd
+;
 
-opt_object_cmd:
-        transformation
-        | /* empty */
+opt_object_cmd: transformation
 {
 };
 

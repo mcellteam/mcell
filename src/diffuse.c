@@ -550,27 +550,19 @@ void run_timestep(struct subvolume *sv,double release_time,double checkpt_time)
     }
 
     if ((a->flags & (ACT_INERT+ACT_REACT)) == 0) max_time = stop_time;
-    else if (a->t2 < stop_time)
-    {
-      max_time = a->t2;
-      a->t2 = 0.0;
-    }
-    else
-    {
-      max_time = stop_time;
-      a->t2 -= stop_time;
-    }
+    else if (a->t2 < stop_time) max_time = a->t2;
+    else max_time = stop_time;
           
     if ((a->flags & ACT_DIFFUSE) != 0)
     {
       if ((a->flags & TYPE_3D) != 0)
       {
         if (max_time > release_time - sv->mem->current_time) max_time = release_time - sv->mem->current_time;
-        t = a->t + max_time;
+        t = a->t;
         a = (struct abstract_molecule*)diffuse_3D((struct molecule*)a , max_time , a->flags & ACT_INERT);
         if (a!=NULL) /* We still exist */
         {
-          if (a->t < t) a->t2 = t - a->t;
+          a->t2 -= a->t - t;
         }
         else continue;
       }

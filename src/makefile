@@ -24,7 +24,7 @@ mdllex.flex.c: mdllex.l
 	flex -Cfra mdllex.l
 
 mdlparse.bison.c: mdlparse.y mdlparse.h mcell_structs.h vector.h
-	bison mdlparse.y
+	bison -v mdlparse.y
 
 mdlparse.bison.o: mdlparse.bison.c mdllex.flex.c
 	$(CC) $(CFLAGS) -c mdlparse.bison.c
