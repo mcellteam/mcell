@@ -94,13 +94,13 @@ find_course_subvolume:
 struct subvolume* find_course_subvol(struct vector3 *loc)
 {
   int i,j,k;
-  i = bisect(world->x_partitions,world->n_parts,loc->x);
-  j = bisect(world->y_partitions,world->n_parts,loc->y);
-  k = bisect(world->z_partitions,world->n_parts,loc->z);
+  i = bisect(world->x_partitions,world->nx_parts,loc->x);
+  j = bisect(world->y_partitions,world->ny_parts,loc->y);
+  k = bisect(world->z_partitions,world->nz_parts,loc->z);
   return 
     &( world->subvol
       [
-        k + (world->n_parts-1)*(j + (world->n_parts-1)*i)
+        k + (world->nz_parts-1)*(j + (world->ny_parts-1)*i)
       ]
     );
 }
@@ -366,9 +366,10 @@ struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv)
   struct molecule *new_m;
 
   new_m = mem_get(new_sv->mem->mol);
+  
   memcpy(new_m,m,sizeof(struct molecule));
   new_m->birthplace = new_sv->mem->mol;
-
+  
   new_m->next = NULL;
   new_m->subvol = new_sv;
   new_m->next_v = new_sv->mol_head;
@@ -394,6 +395,7 @@ void release_molecules(struct release_event_queue *req)
   struct release_site_obj *rso;
   struct release_pattern *rpat;
   struct molecule m;
+  struct molecule *mp;
   struct molecule *guess;
   int i,number;
   struct vector3 *diam_xyz;
@@ -442,7 +444,8 @@ void release_molecules(struct release_event_queue *req)
   
   m.properties = rso->mol_type;
   m.flags = TYPE_3D + IN_VOLUME + IN_SCHEDULE + ACT_NEWBIE;
-  if (trigger_unimolecular(rso->mol_type->hashval , (struct abstract_molecule*)&m) != NULL) 
+  mp = &m;
+  if (trigger_unimolecular(rso->mol_type->hashval , (struct abstract_molecule*)mp) != NULL) 
     m.flags += ACT_REACT;
   if (rso->mol_type->space_step > 0.0) m.flags += ACT_DIFFUSE;
   
@@ -669,105 +672,154 @@ void set_partitions()
     steps_max = f_max / world->speed_limit;
   }
   
-  if (steps_max / MAX_TARGET_TIMESTEP > MAX_COARSE_PER_AXIS)
+  if (world->x_partitions == NULL ||
+      world->y_partitions == NULL ||
+      world->z_partitions == NULL)
   {
-    world->n_parts = MAX_COARSE_PER_AXIS;
-  }
-  else if (steps_min / MIN_TARGET_TIMESTEP < MIN_COARSE_PER_AXIS)
-  {
-    world->n_parts = MIN_COARSE_PER_AXIS;
+    if (steps_max / MAX_TARGET_TIMESTEP > MAX_COARSE_PER_AXIS)
+    {
+      world->nx_parts = world->ny_parts = world->nz_parts = MAX_COARSE_PER_AXIS;
+    }
+    else if (steps_min / MIN_TARGET_TIMESTEP < MIN_COARSE_PER_AXIS)
+    {
+      world->nx_parts = world->ny_parts = world->nz_parts = MIN_COARSE_PER_AXIS;
+    }
+    else
+    {
+      world->nx_parts = steps_min / MIN_TARGET_TIMESTEP;
+      if (world->nx_parts > MAX_COARSE_PER_AXIS)
+        world->nx_parts = MAX_COARSE_PER_AXIS;
+      if ((world->nx_parts & 1) != 0) world->nx_parts += 1;
+      
+      world->ny_parts = world->nz_parts = world->nx_parts;
+    }
+    
+    world->x_partitions = (double*) malloc( sizeof(double) * world->nx_parts );
+    world->y_partitions = (double*) malloc( sizeof(double) * world->ny_parts );
+    world->z_partitions = (double*) malloc( sizeof(double) * world->nz_parts );
+  
+    x_aspect = (part_max.x - part_min.x) / f_max;
+    y_aspect = (part_max.y - part_min.y) / f_max;
+    z_aspect = (part_max.z - part_min.z) / f_max;
+    
+    x_in = floor( (world->nx_parts - 2) * x_aspect + 0.5 );
+    y_in = floor( (world->ny_parts - 2) * y_aspect + 0.5 );
+    z_in = floor( (world->nz_parts - 2) * z_aspect + 0.5 );
+    
+    if (x_in < 2) x_in = 2;
+    if (y_in < 2) y_in = 2;
+    if (z_in < 2) z_in = 2;
+    x_start = (world->nx_parts - x_in)/2;
+    y_start = (world->ny_parts - y_in)/2;
+    z_start = (world->nz_parts - z_in)/2;
+    if (x_start < 1) x_start = 1;
+    if (y_start < 1) y_start = 1;
+    if (z_start < 1) z_start = 1;
+
+    f = (part_max.x - part_min.x) / (x_in - 1);
+    world->x_partitions[0] = world->x_fineparts[0];
+    for (i=x_start-1;i>0;i--)
+    {
+      for (j=0 ; world->x_partitions[i+1]-world->x_fineparts[4095-j] < f ; j++) {}
+      world->x_partitions[i] = world->x_fineparts[4095-j];
+    }
+    for (i=x_start;i<x_start+x_in;i++)
+    {
+      world->x_partitions[i] = world->x_fineparts[4096 + (i-x_start)*16384/(x_in-1)];
+    }
+    for (i=x_start+x_in;i<world->nx_parts-1;i++)
+    {
+      for (j=0 ; world->x_fineparts[4096+16384+j]-world->x_partitions[i-1] < f ; j++) {}
+      world->x_partitions[i] = world->x_fineparts[4096+16384+j];
+    }
+    world->x_partitions[world->nx_parts-1] = world->x_fineparts[4096+16384+4096-1];
+    
+    f = (part_max.y - part_min.y) / (y_in - 1);
+    world->y_partitions[0] = world->y_fineparts[0];
+    for (i=y_start-1;i>0;i--)
+    {
+      for (j=0 ; world->y_partitions[i+1]-world->y_fineparts[4095-j] < f ; j++) {}
+      world->y_partitions[i] = world->y_fineparts[4095-j];
+    }
+    for (i=y_start;i<y_start+y_in;i++)
+    {
+      world->y_partitions[i] = world->y_fineparts[4096 + (i-y_start)*16384/(y_in-1)];
+    }
+    for (i=y_start+y_in;i<world->ny_parts-1;i++)
+    {
+      for (j=0 ; world->y_fineparts[4096+16384+j]-world->y_partitions[i-1] < f ; j++) {}
+      world->y_partitions[i] = world->y_fineparts[4096+16384+j];
+    }
+    world->y_partitions[world->ny_parts-1] = world->y_fineparts[4096+16384+4096-1];
+    
+    f = (part_max.z - part_min.z) / (z_in - 1);
+    world->z_partitions[0] = world->z_fineparts[0];
+    for (i=z_start-1;i>0;i--)
+    {
+      for (j=0 ; world->z_partitions[i+1]-world->z_fineparts[4095-j] < f ; j++) {}
+      world->z_partitions[i] = world->z_fineparts[4095-j];
+    }
+    for (i=z_start;i<z_start+z_in;i++)
+    {
+      world->z_partitions[i] = world->z_fineparts[4096 + (i-z_start)*16384/(z_in-1)];
+    }
+    for (i=z_start+z_in;i<world->nz_parts-1;i++)
+    {
+      for (j=0 ; world->z_fineparts[4096+16384+j]-world->z_partitions[i-1] < f ; j++) {}
+      world->z_partitions[i] = world->z_fineparts[4096+16384+j];
+    }
+    world->z_partitions[world->nz_parts-1] = world->z_fineparts[4096+16384+4096-1];
+
   }
   else
   {
-    world->n_parts = steps_min / MIN_TARGET_TIMESTEP;
-    if (world->n_parts > MAX_COARSE_PER_AXIS)
-      world->n_parts = MAX_COARSE_PER_AXIS;
-    if ((world->n_parts & 1) != 0) world->n_parts += 1;
-  }
-  
-  world->x_partitions = (double*) malloc( sizeof(double) * world->n_parts );
-  world->y_partitions = (double*) malloc( sizeof(double) * world->n_parts );
-  world->z_partitions = (double*) malloc( sizeof(double) * world->n_parts );
-  
-  x_aspect = (part_max.x - part_min.x) / f_max;
-  y_aspect = (part_max.y - part_min.y) / f_max;
-  z_aspect = (part_max.z - part_min.z) / f_max;
-  
-  x_in = floor( (world->n_parts - 2) * x_aspect + 0.5 );
-  y_in = floor( (world->n_parts - 2) * y_aspect + 0.5 );
-  z_in = floor( (world->n_parts - 2) * z_aspect + 0.5 );
-  
-  if (x_in < 2) x_in = 2;
-  if (y_in < 2) y_in = 2;
-  if (z_in < 2) z_in = 2;
-  x_start = (world->n_parts - x_in)/2;
-  y_start = (world->n_parts - y_in)/2;
-  z_start = (world->n_parts - z_in)/2;
-  if (x_start < 1) x_start = 1;
-  if (y_start < 1) y_start = 1;
-  if (z_start < 1) z_start = 1;
+    world->x_partitions[0] = world->x_fineparts[0];
+    for (i=1;i<world->nx_parts-1;i++)
+    {
+      world->x_partitions[i] = 
+        world->x_fineparts[ 
+          bisect_near( 
+            world->x_fineparts , world->n_fineparts ,
+            world->x_partitions[i]
+          )
+        ];
+    }
+    world->x_partitions[world->nx_parts-1] = world->x_fineparts[4096+16384+4096-1];
 
-  f = (part_max.x - part_min.x) / (x_in - 1);
-  world->x_partitions[0] = world->x_fineparts[0];
-  for (i=x_start-1;i>0;i--)
-  {
-    for (j=0 ; world->x_partitions[i+1]-world->x_fineparts[4095-j] < f ; j++) {}
-    world->x_partitions[i] = world->x_fineparts[4095-j];
-  }
-  for (i=x_start;i<x_start+x_in;i++)
-  {
-    world->x_partitions[i] = world->x_fineparts[4096 + (i-x_start)*16384/(x_in-1)];
-  }
-  for (i=x_start+x_in;i<world->n_parts-1;i++)
-  {
-    for (j=0 ; world->x_fineparts[4096+16384+j]-world->x_partitions[i-1] < f ; j++) {}
-    world->x_partitions[i] = world->x_fineparts[4096+16384+j];
-  }
-  world->x_partitions[world->n_parts-1] = world->x_fineparts[4096+16384+4096-1];
-  
-  f = (part_max.y - part_min.y) / (y_in - 1);
-  world->y_partitions[0] = world->y_fineparts[0];
-  for (i=y_start-1;i>0;i--)
-  {
-    for (j=0 ; world->y_partitions[i+1]-world->y_fineparts[4095-j] < f ; j++) {}
-    world->y_partitions[i] = world->y_fineparts[4095-j];
-  }
-  for (i=y_start;i<y_start+y_in;i++)
-  {
-    world->y_partitions[i] = world->y_fineparts[4096 + (i-y_start)*16384/(y_in-1)];
-  }
-  for (i=y_start+y_in;i<world->n_parts-1;i++)
-  {
-    for (j=0 ; world->y_fineparts[4096+16384+j]-world->y_partitions[i-1] < f ; j++) {}
-    world->y_partitions[i] = world->y_fineparts[4096+16384+j];
-  }
-  world->y_partitions[world->n_parts-1] = world->y_fineparts[4096+16384+4096-1];
-  
-  f = (part_max.z - part_min.z) / (z_in - 1);
-  world->z_partitions[0] = world->z_fineparts[0];
-  for (i=z_start-1;i>0;i--)
-  {
-    for (j=0 ; world->z_partitions[i+1]-world->z_fineparts[4095-j] < f ; j++) {}
-    world->z_partitions[i] = world->z_fineparts[4095-j];
-  }
-  for (i=z_start;i<z_start+z_in;i++)
-  {
-    world->z_partitions[i] = world->z_fineparts[4096 + (i-z_start)*16384/(z_in-1)];
-  }
-  for (i=z_start+z_in;i<world->n_parts-1;i++)
-  {
-    for (j=0 ; world->z_fineparts[4096+16384+j]-world->z_partitions[i-1] < f ; j++) {}
-    world->z_partitions[i] = world->z_fineparts[4096+16384+j];
-  }
-  world->z_partitions[world->n_parts-1] = world->z_fineparts[4096+16384+4096-1];
+    world->y_partitions[0] = world->y_fineparts[0];
+    for (i=1;i<world->ny_parts-1;i++)
+    {
+      world->y_partitions[i] = 
+        world->y_fineparts[ 
+          bisect_near( 
+            world->y_fineparts , world->n_fineparts ,
+            world->y_partitions[i]
+          )
+        ];
+    }
+    world->y_partitions[world->ny_parts-1] = world->y_fineparts[4096+16384+4096-1];
 
+    world->z_partitions[0] = world->z_fineparts[0];
+    for (i=1;i<world->nz_parts-1;i++)
+    {
+      world->z_partitions[i] = 
+        world->z_fineparts[ 
+          bisect_near( 
+            world->z_fineparts , world->n_fineparts ,
+            world->z_partitions[i]
+          )
+        ];
+    }
+    world->z_partitions[world->nz_parts-1] = world->z_fineparts[4096+16384+4096-1];
+  }
+  
   printf("X partitions: ");
-  for (i=0;i<world->n_parts;i++) printf("%.3f ",world->x_partitions[i]);
+  for (i=0;i<world->nx_parts;i++) printf("%.5f ",world->x_partitions[i]);
   printf("\n");
   printf("Y partitions: ");
-  for (i=0;i<world->n_parts;i++) printf("%.3f ",world->y_partitions[i]);
+  for (i=0;i<world->ny_parts;i++) printf("%.5f ",world->y_partitions[i]);
   printf("\n");
   printf("Z partitions: ");
-  for (i=0;i<world->n_parts;i++) printf("%.3f ",world->z_partitions[i]);
+  for (i=0;i<world->nz_parts;i++) printf("%.5f ",world->z_partitions[i]);
   printf("\n");
 }

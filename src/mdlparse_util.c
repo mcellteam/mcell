@@ -497,6 +497,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         rx->next->product_idx = NULL;
         rx->next->cum_rates = NULL;
         rx->next->cat_rates = NULL;
+        rx->next->counter = NULL;
         rx->next->players = NULL;
         rx->next->geometries = NULL;
         rx->next->n_rate_t_rxns = 0;
@@ -504,8 +505,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         rx->next->rate_t = NULL;
         rx->next->jump_t = NULL;
         rx->next->last_update = 0;
-        rx->next->rxn_count_dt = NULL;
-        rx->next->rxn_count_cum = NULL;
         
         rx->next->pathway_head = NULL;
         
@@ -528,14 +527,17 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       rx->product_idx = (u_int*)malloc(sizeof(u_int)*(rx->n_pathways+1));
       rx->cum_rates = (double*)malloc(sizeof(double)*rx->n_pathways);
       rx->cat_rates = (double*)malloc(sizeof(double)*rx->n_pathways);
+      rx->counter = (double*)malloc(sizeof(double)*rx->n_pathways);
       
-      if (rx->product_idx==NULL || rx->cum_rates==NULL || rx->cat_rates==NULL) return 1;
+      if (rx->product_idx==NULL || rx->cum_rates==NULL ||
+          rx->cat_rates==NULL || rx->counter==NULL) return 1;
       
       for (j=0 , path=rx->pathway_head ; path!=NULL ; j++ , path = path->next)
       {
         rx->product_idx[j] = 0;
         rx->cat_rates[j] = path->kcat;
         rx->cum_rates[j] = path->km;
+        rx->counter[j] = 0;
         recycled1 = 0;
         recycled2 = 0;
         recycled3 = 0;
@@ -713,6 +715,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         }
         else
         {
+          D_tot = 1.0; /* Placeholder */
           /* TODO: handle surface/grid collisions */
         }
         

@@ -429,11 +429,9 @@ int init_species(void)
 int init_partitions(void)
 {
   int i,j,k,h;
-  int sv_axis;
   struct vector3 part_lo,part_hi;
   struct subvolume *sv;
   struct storage *shared_mem;
-  double frac;
   
   if (world->bb_min.x >= world->bb_max.x)
   {
@@ -482,28 +480,31 @@ int init_partitions(void)
   part_hi.z *= (1.0+EPS_C)/world->length_unit;
   
   
-  world->n_parts = 11;
+#if 0
+  world->nx_parts = 11;
 
-  if (world->n_parts < 4) world->n_parts = 4;
+  if (world->nx_parts < 4) world->nx_parts = 4;
   
-  world->x_partitions = (double*)malloc(sizeof(double)*world->n_parts);
-  world->y_partitions = (double*)malloc(sizeof(double)*world->n_parts);
-  world->z_partitions = (double*)malloc(sizeof(double)*world->n_parts);
+  world->ny_parts = world->nz_parts = world->nx_parts;
+  
+  world->x_partitions = (double*)malloc(sizeof(double)*world->nx_parts);
+  world->y_partitions = (double*)malloc(sizeof(double)*world->ny_parts);
+  world->z_partitions = (double*)malloc(sizeof(double)*world->nz_parts);
 
   world->x_partitions[0] = - GIGANTIC;
   world->x_partitions[1] = part_lo.x;
-  world->x_partitions[world->n_parts-2] = part_hi.x;
-  world->x_partitions[world->n_parts-1] = GIGANTIC;
+  world->x_partitions[world->nx_parts-2] = part_hi.x;
+  world->x_partitions[world->nx_parts-1] = GIGANTIC;
 
   world->y_partitions[0] = - GIGANTIC;
   world->y_partitions[1] = part_lo.y;
-  world->y_partitions[world->n_parts-2] = part_hi.y;
-  world->y_partitions[world->n_parts-1] = GIGANTIC;
+  world->y_partitions[world->ny_parts-2] = part_hi.y;
+  world->y_partitions[world->ny_parts-1] = GIGANTIC;
 
   world->z_partitions[0] = - GIGANTIC;
   world->z_partitions[1] = part_lo.z;
-  world->z_partitions[world->n_parts-2] = part_hi.z;
-  world->z_partitions[world->n_parts-1] = GIGANTIC;
+  world->z_partitions[world->nz_parts-2] = part_hi.z;
+  world->z_partitions[world->nz_parts-1] = GIGANTIC;
 
   for (i=2;i<world->n_parts-2;i++)
   {
@@ -517,9 +518,9 @@ int init_partitions(void)
   world->x_fineparts = world->x_partitions;
   world->y_fineparts = world->y_partitions;
   world->z_fineparts = world->z_partitions;
-  
+#endif
+
   set_partitions();
-  sv_axis = world->n_parts-1;
   
   world->n_waypoints = 1;
   world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint*)*world->n_waypoints);
@@ -555,14 +556,14 @@ int init_partitions(void)
   world->storage_head->next = NULL;
   world->storage_head->store = shared_mem;
   
-  world->n_subvols = sv_axis * sv_axis * sv_axis;
-  printf("Creating %d subvolumes (%d per axis)\n",world->n_subvols,sv_axis);
+  world->n_subvols = (world->nz_parts-1) * (world->ny_parts-1) * (world->nx_parts-1);
+  printf("Creating %d subvolumes (%d,%d,%d per axis)\n",world->n_subvols,world->nx_parts-1,world->ny_parts-1,world->nz_parts-1);
   world->subvol = (struct subvolume*)malloc(sizeof(struct subvolume)*world->n_subvols);
-  for (i=0;i<sv_axis;i++)
-  for (j=0;j<sv_axis;j++)
-  for (k=0;k<sv_axis;k++)
+  for (i=0;i<world->nx_parts-1;i++)
+  for (j=0;j<world->ny_parts-1;j++)
+  for (k=0;k<world->nz_parts-1;k++)
   {
-    h = k + sv_axis*(j + sv_axis*i);
+    h = k + (world->nz_parts-1)*(j + (world->ny_parts-1)*i);
     sv = & (world->subvol[ h ]);
     sv->wall_head = NULL;
     sv->wall_tail = NULL;
@@ -582,21 +583,21 @@ int init_partitions(void)
     sv->is_bsp = 0;
 
     if (i==0) sv->neighbor[X_NEG] = NULL;
-    else sv->neighbor[X_NEG] = &(world->subvol[ h - sv_axis*sv_axis ]);
+    else sv->neighbor[X_NEG] = &(world->subvol[ h - (world->nz_parts-1)*(world->ny_parts-1) ]);
     
-    if (i==sv_axis-1) sv->neighbor[X_POS] = NULL;
-    else sv->neighbor[X_POS] = &(world->subvol[ h + sv_axis*sv_axis ]);
+    if (i==world->nx_parts-2) sv->neighbor[X_POS] = NULL;
+    else sv->neighbor[X_POS] = &(world->subvol[ h + (world->nz_parts-1)*(world->ny_parts-1) ]);
     
     if (j==0) sv->neighbor[Y_NEG] = NULL;
-    else sv->neighbor[Y_NEG] = &(world->subvol[ h - sv_axis ]);
+    else sv->neighbor[Y_NEG] = &(world->subvol[ h - (world->nz_parts-1) ]);
     
-    if (j==sv_axis-1) sv->neighbor[Y_POS] = NULL;
-    else sv->neighbor[Y_POS] = &(world->subvol[ h + sv_axis ]);
+    if (j==world->ny_parts-2) sv->neighbor[Y_POS] = NULL;
+    else sv->neighbor[Y_POS] = &(world->subvol[ h + (world->nz_parts-1) ]);
     
     if (k==0) sv->neighbor[Z_NEG] = NULL;
     else sv->neighbor[Z_NEG] = &(world->subvol[ h - 1 ]);
     
-    if (k==sv_axis-1) sv->neighbor[Z_POS] = NULL;
+    if (k==world->nz_parts-2) sv->neighbor[Z_POS] = NULL;
     else sv->neighbor[Z_POS] = &(world->subvol[ h + 1 ]);
     
     sv->mem = shared_mem;
@@ -1325,6 +1326,7 @@ int init_wall_regions(struct object *objp, char *full_name)
             wrlp->reg=rp;
             wrlp->next=w->regions;
             w->regions=wrlp;
+            w->surf_class = rp->surf_class;  /* (Re?)set surface class */
  
             /* prepend region eff data for this region
               to eff_prop for i_th wall */

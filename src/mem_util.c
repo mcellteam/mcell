@@ -759,6 +759,7 @@ void* mem_get(struct mem_helper *mh)
     mhnext->storage = mh->storage;
     mh->storage = temp;
     mhnext->buf_index = mh->buf_index;
+    mh->next_helper = mhnext;
     
     mh->buf_index = 0;
     return mem_get(mh);

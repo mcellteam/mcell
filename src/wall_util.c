@@ -317,6 +317,7 @@ int surface_net( struct wall **facelist, int nfaces )
   for (i=0;i<nkeys;i++)
   {
     pep = (eht.data + i);
+    same = 0;
     while (pep!=NULL)
     {
       if (pep->n > 2)
@@ -1200,34 +1201,36 @@ struct wall* distribute_wall(struct wall *w)
   cent.y = 0.33333333333*(w->vert[0]->y + w->vert[1]->y + w->vert[2]->y);
   cent.z = 0.33333333333*(w->vert[0]->z + w->vert[1]->z + w->vert[2]->z);
   
-  x_min = bisect( world->x_partitions , world->n_parts , llf.x );
+  x_min = bisect( world->x_partitions , world->nx_parts , llf.x );
   if (urb.x < world->x_partitions[x_min+1]) x_max = x_min+1;
-  else x_max = bisect( world->x_partitions , world->n_parts , urb.x ) + 1;
+  else x_max = bisect( world->x_partitions , world->nx_parts , urb.x ) + 1;
 
-  y_min = bisect( world->y_partitions , world->n_parts , llf.y );
+  y_min = bisect( world->y_partitions , world->ny_parts , llf.y );
   if (urb.y < world->y_partitions[y_min+1]) y_max = y_min+1;
-  else y_max = bisect( world->y_partitions , world->n_parts , urb.y ) + 1;
+  else y_max = bisect( world->y_partitions , world->ny_parts , urb.y ) + 1;
 
-  z_min = bisect( world->z_partitions , world->n_parts , llf.z );
+  z_min = bisect( world->z_partitions , world->nz_parts , llf.z );
   if (urb.z < world->z_partitions[z_min+1]) z_max = z_min+1;
-  else z_max = bisect( world->z_partitions , world->n_parts , urb.z ) + 1;
+  else z_max = bisect( world->z_partitions , world->nz_parts , urb.z ) + 1;
   
   if ( (z_max-z_min)*(y_max-y_min)*(x_max-x_min) == 1 )
   {
-    h = z_min + (world->n_parts - 1)*(y_min + (world->n_parts - 1)*x_min);
+    h = z_min + (world->nz_parts - 1)*(y_min + (world->ny_parts - 1)*x_min);
     where_am_i = localize_wall( w , world->subvol[h].mem );
     wall_to_vol( where_am_i , &(world->subvol[h]) );
     return where_am_i;
   }
   
   x_min = y_min = z_min = 0;
-  x_max = y_max = z_max = world->n_parts - 1;
+  x_max = world->nx_parts -1;
+  y_max = world->ny_parts -1;
+  z_max = world->nz_parts -1;
   
   for (i=x_min;i<x_max;i++) { if (cent.x < world->x_partitions[i]) break; }
   for (j=y_min;j<y_max;j++) { if (cent.y < world->y_partitions[j]) break; }
   for (k=z_min;k<z_max;k++) { if (cent.z < world->z_partitions[k]) break; }
   
-  h = (k-1) + (world->n_parts - 1)*((j-1) + (world->n_parts - 1)*(i-1));
+  h = (k-1) + (world->nz_parts - 1)*((j-1) + (world->ny_parts - 1)*(i-1));
   where_am_i = localize_wall( w , world->subvol[h].mem );
   
   for (k=z_min;k<z_max;k++)
@@ -1236,7 +1239,7 @@ struct wall* distribute_wall(struct wall *w)
     {
       for (i=x_min;i<x_max;i++)
       {
-        h = k + (world->n_parts - 1)*(j + (world->n_parts - 1)*i);
+        h = k + (world->nz_parts - 1)*(j + (world->ny_parts - 1)*i);
         llf.x = world->x_fineparts[ world->subvol[h].llf.x ] - 100*EPS_C;
         llf.y = world->y_fineparts[ world->subvol[h].llf.y ] - 100*EPS_C;
         llf.z = world->z_fineparts[ world->subvol[h].llf.z ] - 100*EPS_C;

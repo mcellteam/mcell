@@ -77,13 +77,15 @@ void run_sim(void)
   
   fprintf(stderr,"Average diffusion jump was %.2f timesteps\n",world->diffusion_cumsteps/world->diffusion_number);
 
+#if 0
   fprintf(stderr,"We have %d directions with a mask of %d\n",world->num_directions,world->directions_mask);
   for (i=0;i<world->num_directions;i++)
   {
     printf("xyz = %.4f %.4f %.4f\n",world->d_step[3*i],world->d_step[3*i+1],world->d_step[3*i+2]);
   }
+#endif
 
-#if 0
+#if 1
   count = 0;
   total_coll_1 = 0;
   total_coll_2 = 0;
@@ -112,7 +114,33 @@ void run_sim(void)
     }
   }
   printf("%d %.2f %lld %lld\n",count,total_len*world->length_unit,total_coll_1,total_coll_2);
-#endif    
+#endif
+#if 1
+  for (i=0;i<world->hashsize;i++)
+  {
+    struct rxn *rxp;
+    int j,k;
+    
+    for (rxp = world->reaction_hash[i] ; rxp != NULL ; rxp = rxp->next)
+    {
+      for (j=0;j<rxp->n_reactants;j++)
+      {
+        if (j==0) printf("Reaction %s[%d]",rxp->players[0]->sym->name,rxp->geometries[0]);
+        else printf(" + %s[%d]",rxp->players[j]->sym->name,rxp->geometries[j]);
+      }
+      printf("\n");
+      for (j=0;j<rxp->n_pathways;j++)
+      {
+        printf("  Count %g: ->",rxp->counter[j]);
+        for (k=rxp->product_idx[j] ; k<rxp->product_idx[j+1] ; k++)
+        {
+          if (rxp->players[k]!=NULL) printf(" %s{%d}",rxp->players[k]->sym->name,rxp->geometries[k]);
+        }
+        printf("\n");
+      }
+    }
+  }
+#endif
 #if 0
   for (i=0;i<world->n_subvols;i++)
   {

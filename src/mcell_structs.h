@@ -160,6 +160,14 @@
 #define SHAPE_ELLIPTIC 2
 #define SHAPE_RECTANGULAR 3
 
+
+/* Flags for parser to indicate which axis we are partitioning */
+
+#define X_PARTS 0
+#define Y_PARTS 1
+#define Z_PARTS 2
+
+
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
 /*********************************************************/
@@ -402,6 +410,7 @@ struct rxn
   u_int *product_idx;        /* Index of 1st player for products of pathway */
   double *cum_rates;         /* Cumulative rates for (entering) all pathways */
   double *cat_rates;         /* Rate of leaving all pathways (<=0.0 is instant) */
+  double *counter;            /* How many times have we taken each path? */
   
   struct species **players;  /* Identities of reactants/products */
   short *geometries;         /* Geometries of reactants/products */
@@ -409,12 +418,9 @@ struct rxn
   int n_rate_t_rxns;         /* How many pathways have varying rates? */
   int *rate_t_rxn_map;       /* Indices of pathways with varying rates */
   struct t_func *rate_t;     /* Rate over time for each varying pathway */
-  struct t_func *jump_t;     /* Summary of transition times */
-   
-  u_int last_update;         /* When did we last update rates/counts? */
+  struct t_func *jump_t;     /* Summary of transition times */   
+  u_int last_update;         /* When did we last update rates? */
   
-  u_int *rxn_count_dt;       /* How many times this timestep? */
-  u_int *rxn_count_cum;      /* How many times ever? */
   struct pathway *pathway_head; /* list of pathways built at parse-time */
 };
 
@@ -711,7 +717,9 @@ struct volume
   struct vector3 urb;           /* upper right back corner of world */
 #endif
   
-  int n_parts;                  /* Number of coarse partition boundaries */
+  int nx_parts;                 /* Number of coarse X partition boundaries */
+  int ny_parts;                 /* Number of coarse Y partition boundaries */
+  int nz_parts;                 /* Number of coarse Z partition boundaries */
   double *x_partitions;         /* Coarse X partition boundaries */
   double *y_partitions;         /* Coarse Y partition boundaries */
   double *z_partitions;         /* Coarse Z partition boundaries */

@@ -63,9 +63,13 @@ count_react:
 
 void count_react(struct rxn *rx,int path,double timestep)
 {
+  rx->counter[path]++;
+  
+#if 0
   rx->rxn_count_cum[path]++;
   if ( floor(timestep) > rx->last_update ) rx->rxn_count_dt[path] = 1;
   else rx->rxn_count_dt[path]++;
+#endif
 }
 
 

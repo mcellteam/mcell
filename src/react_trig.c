@@ -175,7 +175,7 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
   short orientA,struct wall *w)
 {
   int hash,hashW,hashGW,hashGM;
-  short geomA,geomW;
+  short geom1,geom2;
   struct rxn *inter;
 
   hashW = w->surf_class->hashval;
@@ -188,20 +188,22 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
   {
     if (inter->n_reactants==2)
     {
-      if (reacA->properties==inter->players[0] &&
-          w->surf_class==inter->players[1])
+      if ((reacA->properties==inter->players[0] &&
+           w->surf_class==inter->players[1]) ||
+          (reacA->properties==inter->players[1] &&
+           w->surf_class==inter->players[0]))
       {
-        geomA = inter->geometries[0];
-        if (geomA == 0) return inter;
-        geomW = inter->geometries[1];
-        if (geomW == 0 || (geomA+geomW)*(geomA-geomW) != 0) return inter;
-        if (orientA*geomA*geomW > 0) return inter;
+        geom1 = inter->geometries[0];
+        if (geom1 == 0) return inter;
+        geom2 = inter->geometries[1];
+        if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0) return inter;
+        if (orientA*geom1*geom2 > 0) return inter;
       }
     }
     inter = inter->next;
   }
 
-  
+/* TODO: fix generics to allow wall to come first */  
   hashGW = world->g_surf->hashval;
   
   if (hashW != hashGW)
@@ -242,11 +244,11 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
       if (world->g_mol==inter->players[0] &&
           w->surf_class==inter->players[1])
       {
-        geomA = inter->geometries[0];
-        if (geomA == 0) return inter;
-        geomW = inter->geometries[1];
-        if (geomW == 0 || (geomA+geomW)*(geomA-geomW) != 0) return inter;
-        if (orientA*geomA*geomW > 0) return inter;
+        geom1 = inter->geometries[0];
+        if (geom1 == 0) return inter;
+        geom2 = inter->geometries[1];
+        if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0) return inter;
+        if (orientA*geom1*geom2 > 0) return inter;
       }
     }
     inter = inter->next;

@@ -108,7 +108,8 @@ dgcf:
 double dgcf(double aa, double xx)
 {
   FILE *log_file;
-  double y,gold,a0,a1,b0,b1,fac,an,ana,anf,g,itmax,eps,gln;
+  double y,gold,a0,a1,b0,b1,fac,an,ana,anf,itmax,eps,gln;
+  double g = 0.0;
 
   log_file=world->log_file;
   itmax=100;
@@ -279,7 +280,6 @@ init_d_step:
 double* init_d_step(int radial_directions,int *actual_directions)
 {   
   FILE *log_file;
-  FILE *fp;
   double z;
   double d_phi,phi_mid,phi_edge_prev,phi_edge_approx,phi_factor,theta_mid;
   double *phi_edge;
@@ -361,6 +361,8 @@ double* init_d_step(int radial_directions,int *actual_directions)
     phi_edge_prev=phi_edge[i];
   }
 #ifdef DEBUG
+  {
+  FILE *fp;
   fprintf(log_file,"x_bias = %.17g\n",x_bias);
   fprintf(log_file,"y_bias = %.17g\n",y_bias);
   fprintf(log_file,"z_bias = %.17g\n",z_bias);
@@ -377,6 +379,7 @@ double* init_d_step(int radial_directions,int *actual_directions)
     fprintf(fp,"AttributeEnd\n");
   }
   fclose(fp);
+  }
 #endif
 
   return d_step;

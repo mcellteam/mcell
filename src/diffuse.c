@@ -411,6 +411,67 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
 */
   return a;
 }
+
+
+int search_schedule_for_me(struct schedule_helper *sch,struct abstract_element *ae)
+{
+  struct abstract_element *aep;
+  int i;
+  
+  for ( aep = sch->current ; aep != NULL ; aep = aep->next )
+  {
+    if (aep == ae) return 1;
+  }
+  for (i=0;i<sch->buf_len;i++)
+  {
+    for ( aep = sch->circ_buf_head[i] ; aep!=NULL ; aep = aep->next )
+    {
+      if (aep == ae) return 1;
+    }
+  }
+  
+  if (sch->next_scale == NULL) return 0;
+  else return search_schedule_for_me(sch->next_scale , ae);
+}
+
+
+int search_memory_for_me(struct mem_helper *mh,struct abstract_list *al)
+{
+  int i;
+  
+  for (i=0;i<mh->buf_len;i++)
+  {
+    if (al == (struct abstract_list*)(mh->storage + mh->record_size*i)) return 1;
+  }
+  
+  if (mh->next_helper == NULL) return 0;
+  else return search_memory_for_me(mh->next_helper,al);
+}
+
+int test_subvol_for_circular(struct subvolume *sv)
+{
+  struct molecule *mp,*smp,*psmp;
+  int warned = 0;
+  
+  psmp = NULL;
+  mp = smp = sv->mol_head;
+  do
+  {
+    if (!warned && smp->subvol != sv)
+    {
+      printf("Occupancy leak from %x to %x through %x to %x\n",(int)sv,(int)smp->subvol,(int)psmp,(int)smp);
+      warned = 1;
+    }
+    psmp = smp;
+    smp = smp->next_v;
+    mp = mp->next_v;
+    if (mp!=NULL) mp = mp->next_v;
+  } while (mp != NULL && smp != NULL && mp != smp);
+  
+  if (mp != NULL) return 1;
+  return 0;
+}
+  
   
 
 /*************************************************************************
@@ -438,15 +499,18 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   double d2;
   double d2_nearmax;
   double d2min = GIGANTIC;
-  double steps;
-  double factor,rate_factor;
+  double steps=1.0;
+  double factor;
+  double rate_factor=1.0;
   
   int i,j,k,l;
   
   int calculate_displacement = 1;
-  
+
+#if 0  
   double lo = 1.0/world->length_unit;
   double hi = 2.0/world->length_unit;
+#endif
   
   sm = m->properties;
   if (sm==NULL) printf("BROKEN!!!!!\n");
@@ -456,10 +520,26 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
     return m;
   }
   
+#if 0
   if (m->subvol != find_subvolume(&(m->pos),m->subvol))
   {
     printf("U POSITION: LOST (%x at t=%.3e)\n",(int)m,m->subvol->mem->current_time);
-  }  
+  }
+  if (test_subvol_for_circular(m->subvol))
+  {
+    printf("U MOLECULES: RINGED [%x by %x]\n",(int)m->subvol,(int)m);
+    printf("  [%d]",m->subvol->mol_count); mp = m->subvol->mol_head;
+    for (i=0;i<100;i++)
+    {
+      printf(" %x",(int)mp);
+      mp = mp->next_v;
+      if (mp==NULL) break;
+    }
+    printf("\n");
+  }
+#endif
+
+#if 0
   if (m->pos.x < lo || m->pos.x > hi || m->pos.y < lo || m->pos.y > hi ||
       m->pos.z < lo || m->pos.z > hi)
   {
@@ -468,10 +548,50 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
            m->pos.x,m->pos.y,m->pos.z,lo,hi);
 */
   }
+#endif
+
+
+#if 1
+  while (m->next_v != NULL && m->next_v->properties == NULL)
+  {
+    mp = m->next_v;
+    if ((mp->flags & TYPE_GRID)!=0) printf("Huh?!\n");
+    m->next_v = mp->next_v;
+    
+    if ((mp->flags & IN_MASK)==IN_VOLUME)
+    {
+#if 0
+      if (search_schedule_for_me(mp->subvol->mem->timer,(struct abstract_element*)mp))
+      {
+        printf("ERRORROROROROR!!\n");
+        printf("Flags are %x\n",mp->flags);
+      }
+      if (!search_memory_for_me(mp->subvol->mem->mol,(struct abstract_list*)mp))
+      {
+        printf("Idiotocracy!\n");
+      }
+#endif
+      mem_put(mp->birthplace,mp);
+    }
+    else if ((mp->flags & IN_VOLUME) != 0)
+    {
+      mp->flags -=IN_VOLUME;
+      mp->next_v = NULL;
+    }
+  }
+#endif
   
 pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
   sv = m->subvol;
+  
+  
+/* Even if we can't react, let's do a little bit of clean up. */
+/* We'll just clear out anyone after us who is defunct and */
+/* not worry about the whole list.  (Tom's idea, impl. by Rex) */
+
+
+/* Done housekeeping, now let's do something fun! */    
   
   shead = NULL;
   old_mp = NULL;
@@ -825,8 +945,14 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                  (int)m,(int)sv,(int)nsv);*/
           mms = m->properties;
           mm = m;
+          if (m->subvol == NULL) printf("WE DO NOT EXIST!!\n");
+          if (m->subvol == nsv) printf("CRAZY!  Moving from a volume into itself!\n");
           m = migrate_molecule(m,nsv);
-          if (m->properties==NULL) printf("We nulled, used to be %x with %x, now %x with NULL!\n",(int)mm,(int)mms,(int)m);
+          if (m->properties==NULL)
+          {
+            printf("We nulled, used to be %x with %x, now %x with NULL!\n",(int)mm,(int)mms,(int)m);
+            if (calculate_displacement) printf("(First pass.)\n");
+          }
           
 /*          printf("and identity is now %x.\n",(int)m);*/
         }

@@ -113,87 +113,89 @@ void init_frame_data_list(struct frame_data_list *fdlp)
 
 int output_dx_objects(struct frame_data_list *fdlp)
 {
-FILE *log_file;
-FILE *wall_verts_header;
-FILE *wall_states_header;
-FILE *eff_pos_header;
-FILE *eff_states_header;
-FILE *mol_pos_header;
-FILE *mol_states_header;
-struct viz_obj *vizp;
-struct viz_child *vcp;
-struct wall *w,**wp;
-struct surface_grid *sg;
-struct grid_molecule *gmol;
-struct species **species_list;
-struct object *objp;
-struct polygon_object *pop;
-struct ordered_poly *opp;
-struct element_data *edp;
-struct vector3 p0;
-struct storage_list *slp;
-struct storage *sp;
-struct schedule_helper *shp;
-struct abstract_molecule *amp;
-struct molecule *molp,***viz_molp;
-float v1,v2,v3;
-u_int n_tiles,n_species,spec_id,*viz_mol_count;
-u_int mol_pos_index,mol_pos_field_index,mol_pos_group_index;
-u_int mol_states_index,mol_states_group_index;
-int ii,jj;
-int vi1,vi2,vi3,vi4;
-int num;
-int viz_iteration,n_viz_iterations;
-int first_viz_iteration;
-int pos_count,state_count,element_data_count;
-int effector_state_pos_count;
-int state;
-int viz_type;
-unsigned int index,n_eff;
-int word;
-byte *word_p;
-byte viz_eff,viz_mol,viz_surf;
-byte viz_surf_or_eff;
-byte viz_eff_pos,viz_eff_states;
-byte viz_mol_pos,viz_mol_states;
-byte viz_surf_pos,viz_surf_states;
-char file_name[1024];
-char my_byte_order[8];
+  FILE *log_file;
+  FILE *wall_verts_header;
+  FILE *wall_states_header;
+  FILE *eff_pos_header;
+  FILE *eff_states_header;
+  FILE *mol_pos_header;
+  FILE *mol_states_header;
+  struct viz_obj *vizp;
+  struct viz_child *vcp;
+  struct wall *w,**wp;
+  struct surface_grid *sg;
+  struct grid_molecule *gmol;
+  struct species **species_list;
+  struct object *objp;
+  struct polygon_object *pop;
+  struct ordered_poly *opp;
+  struct element_data *edp;
+  struct vector3 p0;
+  struct storage_list *slp;
+  struct storage *sp;
+  struct schedule_helper *shp;
+  struct abstract_molecule *amp;
+  struct molecule *molp,***viz_molp = NULL;
+  float v1,v2,v3;
+  u_int n_tiles,spec_id,*viz_mol_count;
+  u_int mol_pos_index,mol_pos_field_index,mol_pos_group_index;
+  u_int mol_states_index,mol_states_group_index;
+  int ii,jj;
+  int vi1,vi2,vi3,vi4;
+  int num;
+  int viz_iteration,n_viz_iterations;
+  int first_viz_iteration;
+  int pos_count,state_count,element_data_count;
+  int effector_state_pos_count;
+  int state;
+  int viz_type;
+  unsigned int index,n_eff;
+  int word;
+  byte *word_p;
+  byte viz_eff,viz_mol,viz_surf;
+  byte viz_surf_or_eff;
+  byte viz_eff_pos,viz_eff_states;
+  byte viz_mol_pos,viz_mol_states;
+  byte viz_surf_pos,viz_surf_states;
+  char file_name[1024];
+  char my_byte_order[8];
+
+  u_int n_species = world->n_species;
 
 
-log_file=world->log_file;
-no_printf("Viz output in DX mode...\n");
+  log_file=world->log_file;
+  no_printf("Viz output in DX mode...\n");
 
-word_p=(unsigned char *)&word;
-word=0x04030201;
+  word_p=(unsigned char *)&word;
+  word=0x04030201;
 
-if (word_p[0]==1) {
-  sprintf(my_byte_order,"lsb");
-}
-else {
-  sprintf(my_byte_order,"msb");
-}
+  if (word_p[0]==1) {
+    sprintf(my_byte_order,"lsb");
+  }
+  else {
+    sprintf(my_byte_order,"msb");
+  }
 
-viz_iteration=fdlp->viz_iteration;
-n_viz_iterations=fdlp->n_viz_iterations;
-first_viz_iteration=(viz_iteration==fdlp->iteration_list->value);
+  viz_iteration=fdlp->viz_iteration;
+  n_viz_iterations=fdlp->n_viz_iterations;
+  first_viz_iteration=(viz_iteration==fdlp->iteration_list->value);
 
-viz_type=fdlp->type;
-viz_eff=((viz_type==ALL_FRAME_DATA) || (viz_type==EFF_POS)
-             || (viz_type==EFF_STATES));
-viz_mol=((viz_type==ALL_FRAME_DATA) || (viz_type==MOL_POS)
-             || (viz_type==MOL_STATES));
-viz_surf=((viz_type==ALL_FRAME_DATA) || (viz_type==SURF_POS)
-             || (viz_type==SURF_STATES));
-viz_surf_or_eff=(viz_surf || viz_eff);
+  viz_type=fdlp->type;
+  viz_eff=((viz_type==ALL_FRAME_DATA) || (viz_type==EFF_POS)
+               || (viz_type==EFF_STATES));
+  viz_mol=((viz_type==ALL_FRAME_DATA) || (viz_type==MOL_POS)
+               || (viz_type==MOL_STATES));
+  viz_surf=((viz_type==ALL_FRAME_DATA) || (viz_type==SURF_POS)
+               || (viz_type==SURF_STATES));
+  viz_surf_or_eff=(viz_surf || viz_eff);
 
 
-viz_eff_pos=((viz_type==ALL_FRAME_DATA) || (viz_type==EFF_POS));
-viz_eff_states=((viz_type==ALL_FRAME_DATA) || (viz_type==EFF_STATES));
-viz_mol_pos=((viz_type==ALL_FRAME_DATA) || (viz_type==MOL_POS));
-viz_mol_states=((viz_type==ALL_FRAME_DATA) || (viz_type==MOL_STATES));
-viz_surf_pos=((viz_type==ALL_FRAME_DATA) || (viz_type==SURF_POS));
-viz_surf_states=((viz_type==ALL_FRAME_DATA) || (viz_type==SURF_STATES));
+  viz_eff_pos=((viz_type==ALL_FRAME_DATA) || (viz_type==EFF_POS));
+  viz_eff_states=((viz_type==ALL_FRAME_DATA) || (viz_type==EFF_STATES));
+  viz_mol_pos=((viz_type==ALL_FRAME_DATA) || (viz_type==MOL_POS));
+  viz_mol_states=((viz_type==ALL_FRAME_DATA) || (viz_type==MOL_STATES));
+  viz_surf_pos=((viz_type==ALL_FRAME_DATA) || (viz_type==SURF_POS));
+  viz_surf_states=((viz_type==ALL_FRAME_DATA) || (viz_type==SURF_STATES));
 
 /* dump walls and effectors: */
   if (viz_surf_or_eff) {
@@ -266,224 +268,227 @@ viz_surf_states=((viz_type==ALL_FRAME_DATA) || (viz_type==SURF_STATES));
       objp = vcp->obj;
       pop=(struct polygon_object *)objp->contents;
       if (objp->object_type==BOX_OBJ) {
-        if (viz_surf_pos || viz_surf_states) {
+        if (viz_surf_pos || viz_surf_states)
+        {
           element_data_count=0.5*objp->n_walls;
-        }
-        if (viz_surf_pos && !viz_surf_states) {
-          fprintf(wall_verts_header,
-            "object \"%s.positions\" class array type float rank 1 shape 3 items %d %s binary data follows\n",
-            objp->sym->name,objp->n_verts,my_byte_order);
-          /* output box vertices */
-          for (ii=0;ii<objp->n_verts;ii++) {
-            v1 = world->length_unit*objp->verts[ii].x;
-            v2 = world->length_unit*objp->verts[ii].y;
-            v3 = world->length_unit*objp->verts[ii].z;
-            fwrite(&v1,sizeof v1,1,wall_verts_header);
-            fwrite(&v2,sizeof v2,1,wall_verts_header);
-            fwrite(&v3,sizeof v3,1,wall_verts_header);
-          }
-          fprintf(wall_verts_header,
-            "\nattribute \"dep\" string \"positions\"\n#\n");
+        
+          if (viz_surf_pos && !viz_surf_states) {
+            fprintf(wall_verts_header,
+              "object \"%s.positions\" class array type float rank 1 shape 3 items %d %s binary data follows\n",
+              objp->sym->name,objp->n_verts,my_byte_order);
+            /* output box vertices */
+            for (ii=0;ii<objp->n_verts;ii++) {
+              v1 = world->length_unit*objp->verts[ii].x;
+              v2 = world->length_unit*objp->verts[ii].y;
+              v3 = world->length_unit*objp->verts[ii].z;
+              fwrite(&v1,sizeof v1,1,wall_verts_header);
+              fwrite(&v2,sizeof v2,1,wall_verts_header);
+              fwrite(&v3,sizeof v3,1,wall_verts_header);
+            }
+            fprintf(wall_verts_header,
+              "\nattribute \"dep\" string \"positions\"\n#\n");
 /*
-          wall_verts_index++;
+            wall_verts_index++;
 */
-  
-          /* output box wall connections */
-          fprintf(wall_verts_header,
-            "object \"%s.connections\" class array type int rank 1 shape 4 items %d %s binary data follows\n",
-            objp->sym->name,element_data_count,my_byte_order);
-          for (ii=0;ii<objp->n_walls;ii+=2) {
-            if (pop->side_stat[ii]) {
-              switch (ii) {
-                case TP:
-                  vi1=3;
-                  vi2=7;
-                  vi3=1;
-                  vi4=5;
-                  fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                  fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                  fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                  fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                break;
-                case BOT:
-                  vi1=0;
-                  vi2=4;
-                  vi3=2;
-                  vi4=6;
-                  fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                  fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                  fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                  fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                break;
-                case FRNT:
-                  vi1=4;
-                  vi2=0;
-                  vi3=5;
-                  vi4=1;
-                  fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                  fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                  fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                  fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                break;
-                case BCK:
-                  vi1=2;
-                  vi2=6;
-                  vi3=3;
-                  vi4=7;
-                  fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                  fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                  fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                  fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                break;
-                case LFT:
-                  vi1=0;
-                  vi2=2;
-                  vi3=1;
-                  vi4=3;
-                  fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                  fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                  fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                  fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                break;
-                case RT:
-                  vi1=6;
-                  vi2=4;
-                  vi3=7;
-                  vi4=5;
-                  fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                  fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                  fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                  fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                break;
+    
+            /* output box wall connections */
+            fprintf(wall_verts_header,
+              "object \"%s.connections\" class array type int rank 1 shape 4 items %d %s binary data follows\n",
+              objp->sym->name,element_data_count,my_byte_order);
+            for (ii=0;ii<objp->n_walls;ii+=2) {
+              if (pop->side_stat[ii]) {
+                switch (ii) {
+                  case TP:
+                    vi1=3;
+                    vi2=7;
+                    vi3=1;
+                    vi4=5;
+                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
+                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
+                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
+                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
+                  break;
+                  case BOT:
+                    vi1=0;
+                    vi2=4;
+                    vi3=2;
+                    vi4=6;
+                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
+                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
+                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
+                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
+                  break;
+                  case FRNT:
+                    vi1=4;
+                    vi2=0;
+                    vi3=5;
+                    vi4=1;
+                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
+                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
+                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
+                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
+                  break;
+                  case BCK:
+                    vi1=2;
+                    vi2=6;
+                    vi3=3;
+                    vi4=7;
+                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
+                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
+                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
+                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
+                  break;
+                  case LFT:
+                    vi1=0;
+                    vi2=2;
+                    vi3=1;
+                    vi4=3;
+                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
+                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
+                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
+                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
+                  break;
+                  case RT:
+                    vi1=6;
+                    vi2=4;
+                    vi3=7;
+                    vi4=5;
+                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
+                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
+                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
+                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
+                  break;
+                }
               }
             }
-          }
-          fprintf(wall_verts_header,
-            "\nattribute \"ref\" string \"positions\"\n");
-          fprintf(wall_verts_header,
-            "attribute \"element type\" string \"quads\"\n#\n");
+            fprintf(wall_verts_header,
+              "\nattribute \"ref\" string \"positions\"\n");
+            fprintf(wall_verts_header,
+              "attribute \"element type\" string \"quads\"\n#\n");
 /*
-          wall_verts_index++;
+            wall_verts_index++;
 */
-        }
+          }
 
-        if (viz_surf_pos && viz_surf_states) {
-          fprintf(wall_verts_header,
-            "object \"%s.positions\" class array type float rank 1 shape 3 items %d %s binary data follows\n",
-            objp->sym->name,objp->n_verts,my_byte_order);
-          /* output box vertices */
-          for (ii=0;ii<objp->n_verts;ii++) {
-            v1 = world->length_unit*objp->verts[ii].x;
-            v2 = world->length_unit*objp->verts[ii].y;
-            v3 = world->length_unit*objp->verts[ii].z;
-            fwrite(&v1,sizeof v1,1,wall_verts_header);
-            fwrite(&v2,sizeof v2,1,wall_verts_header);
-            fwrite(&v3,sizeof v3,1,wall_verts_header);
-          }
-          fprintf(wall_verts_header,
-            "\nattribute \"dep\" string \"positions\"\n#\n");
+          if (viz_surf_pos && viz_surf_states) {
+            fprintf(wall_verts_header,
+              "object \"%s.positions\" class array type float rank 1 shape 3 items %d %s binary data follows\n",
+              objp->sym->name,objp->n_verts,my_byte_order);
+            /* output box vertices */
+            for (ii=0;ii<objp->n_verts;ii++) {
+              v1 = world->length_unit*objp->verts[ii].x;
+              v2 = world->length_unit*objp->verts[ii].y;
+              v3 = world->length_unit*objp->verts[ii].z;
+              fwrite(&v1,sizeof v1,1,wall_verts_header);
+              fwrite(&v2,sizeof v2,1,wall_verts_header);
+              fwrite(&v3,sizeof v3,1,wall_verts_header);
+            }
+            fprintf(wall_verts_header,
+              "\nattribute \"dep\" string \"positions\"\n#\n");
 /*
-          wall_verts_index++;
+            wall_verts_index++;
 */
-  
-          /* output box wall connections */
-          fprintf(wall_verts_header,
-            "object \"%s.connections\" class array type int rank 1 shape 4 items %d %s binary data follows\n",
-            objp->sym->name,element_data_count,my_byte_order);
-          fprintf(wall_states_header,
-            "object \"%s.states\" class array type int rank 0 items %d ascii data follows\n",
-            objp->sym->name,element_data_count);
-          for (ii=0;ii<objp->n_walls;ii+=2) {
-            if (pop->side_stat[ii]) {
-              switch (ii) {
-                case TP:
-                  vi1=3;
-                  vi2=7;
-                  vi3=1;
-                  vi4=5;
-                  fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                  fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                  fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                  fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                break;
-                case BOT:
-                  vi1=0;
-                  vi2=4;
-                  vi3=2;
-                  vi4=6;
-                  fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                  fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                  fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                  fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                break;
-                case FRNT:
-                  vi1=4;
-                  vi2=0;
-                  vi3=5;
-                  vi4=1;
-                  fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                  fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                  fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                  fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                break;
-                case BCK:
-                  vi1=2;
-                  vi2=6;
-                  vi3=3;
-                  vi4=7;
-                  fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                  fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                  fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                  fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                break;
-                case LFT:
-                  vi1=0;
-                  vi2=2;
-                  vi3=1;
-                  vi4=3;
-                  fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                  fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                  fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                  fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                break;
-                case RT:
-                  vi1=6;
-                  vi2=4;
-                  vi3=7;
-                  vi4=5;
-                  fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                  fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                  fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                  fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                break;
+    
+            /* output box wall connections */
+            fprintf(wall_verts_header,
+              "object \"%s.connections\" class array type int rank 1 shape 4 items %d %s binary data follows\n",
+              objp->sym->name,element_data_count,my_byte_order);
+            fprintf(wall_states_header,
+              "object \"%s.states\" class array type int rank 0 items %d ascii data follows\n",
+              objp->sym->name,element_data_count);
+            for (ii=0;ii<objp->n_walls;ii+=2) {
+              if (pop->side_stat[ii]) {
+                switch (ii) {
+                  case TP:
+                    vi1=3;
+                    vi2=7;
+                    vi3=1;
+                    vi4=5;
+                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
+                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
+                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
+                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
+                  break;
+                  case BOT:
+                    vi1=0;
+                    vi2=4;
+                    vi3=2;
+                    vi4=6;
+                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
+                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
+                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
+                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
+                  break;
+                  case FRNT:
+                    vi1=4;
+                    vi2=0;
+                    vi3=5;
+                    vi4=1;
+                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
+                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
+                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
+                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
+                  break;
+                  case BCK:
+                    vi1=2;
+                    vi2=6;
+                    vi3=3;
+                    vi4=7;
+                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
+                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
+                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
+                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
+                  break;
+                  case LFT:
+                    vi1=0;
+                    vi2=2;
+                    vi3=1;
+                    vi4=3;
+                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
+                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
+                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
+                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
+                  break;
+                  case RT:
+                    vi1=6;
+                    vi2=4;
+                    vi3=7;
+                    vi4=5;
+                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
+                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
+                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
+                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
+                  break;
+                }
+                state=objp->viz_state[ii];
+                fprintf(wall_states_header,"%d\n",state);
               }
-              state=objp->viz_state[ii];
-              fprintf(wall_states_header,"%d\n",state);
             }
+            fprintf(wall_verts_header,
+              "\nattribute \"ref\" string \"positions\"\n");
+            fprintf(wall_verts_header,
+              "attribute \"element type\" string \"quads\"\n#\n");
+/*
+            wall_verts_index++;
+*/
+            fprintf(wall_states_header,"\nattribute \"dep\" string \"connections\"\n#\n");
+/*
+            wall_states_index++;
+*/
+
           }
-          fprintf(wall_verts_header,
-            "\nattribute \"ref\" string \"positions\"\n");
-          fprintf(wall_verts_header,
-            "attribute \"element type\" string \"quads\"\n#\n");
-/*
-          wall_verts_index++;
-*/
-          fprintf(wall_states_header,"\nattribute \"dep\" string \"connections\"\n#\n");
-/*
-          wall_states_index++;
-*/
 
-        }
-
-        if (viz_surf_states && !viz_surf_pos) {
-          fprintf(wall_states_header,
-            "object \"%s.states\" class array type int rank 0 items %d ascii data follows\n",
-            objp->sym->name,element_data_count);
-          for (ii=0;ii<objp->n_walls;ii+=2) {
-            if (pop->side_stat[ii]) {
-              state=objp->viz_state[ii];
-              fprintf(wall_states_header,"%d\n",state);
+          if (viz_surf_states && !viz_surf_pos) {
+            fprintf(wall_states_header,
+              "object \"%s.states\" class array type int rank 0 items %d ascii data follows\n",
+              objp->sym->name,element_data_count);
+            for (ii=0;ii<objp->n_walls;ii+=2) {
+              if (pop->side_stat[ii]) {
+                state=objp->viz_state[ii];
+                fprintf(wall_states_header,"%d\n",state);
+              }
             }
+          
           }
           fprintf(wall_states_header,"\nattribute \"dep\" string \"connections\"\n#\n");
 /*
@@ -493,12 +498,12 @@ viz_surf_states=((viz_type==ALL_FRAME_DATA) || (viz_type==SURF_STATES));
       }
 
       if (objp->object_type==POLY_OBJ) {
-        if (viz_surf) {
-          if (viz_surf_pos || viz_surf_states) {
-            opp=(struct ordered_poly *)pop->polygon_data;
-            edp=opp->element_data;
-            element_data_count=objp->n_walls;
-          }
+        if (viz_surf && (viz_surf_pos || viz_surf_states))
+        {
+          opp=(struct ordered_poly *)pop->polygon_data;
+          edp=opp->element_data;
+          element_data_count=objp->n_walls;
+
           if (viz_surf_pos && !viz_surf_states) {
 
 	    fprintf(wall_verts_header,
@@ -1097,13 +1102,13 @@ viz_surf_states=((viz_type==ALL_FRAME_DATA) || (viz_type==SURF_STATES));
 
   }
 
-  for (ii=0;ii<n_species;ii++) {
-    if (viz_molp[ii]!=NULL) {
-      free(viz_molp[ii]);
+  if (viz_molp != NULL) {
+    for (ii=0;ii<n_species;ii++) {
+      if (viz_molp[ii]!=NULL) {
+        free(viz_molp[ii]);
+      }
     }
-  }
-
-  if (viz_molp!=NULL) {
+    
     free(viz_molp);
   }
 

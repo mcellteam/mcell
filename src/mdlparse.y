@@ -282,6 +282,7 @@ struct count_list *cnt;
 %type <tok> physical_object_def
 %type <tok> existing_obj_define_surface_regions
 %type <tok> mod_surface_regions
+%type <tok> partition_dimension
 %type <tok> instance_def
 %type <tok> include_stmt
 %type <tok> viz_output_def
@@ -356,7 +357,6 @@ struct count_list *cnt;
 
 %type <tok> orientation_cmd
 %type <tok> wall_prop
-%type <tok> partition_dimension
 %type <tok> orientation
 %type <tok> r_spec
 %type <tok> lig_spec
@@ -461,9 +461,9 @@ mdl_stmt: time_def
 	| existing_obj_define_surface_regions
 	| mod_surface_regions
 	| viz_output_def
-/*
 	| partition_def
-	| parallel_partition_def
+
+/*	| parallel_partition_def
 	| add_molecules_def
 	| output_def
 	| io_stmt
@@ -1338,6 +1338,58 @@ interact_radius_def: INTERACTION_RADIUS '=' num_expr
   no_printf("Molecule-molecule interaction radius = %f\n",volp->rx_radius_3d);
 };
 
+
+partition_def: partition_dimension '='
+{
+  mdlpvp->num_pos=0;
+  mdlpvp->el_head=NULL;
+  mdlpvp->el_tail=NULL;
+}
+        '[' list_range_specs ']' 
+{
+  int i;
+  if ((mdlpvp->dblp=(double *)malloc((mdlpvp->num_pos+2)*sizeof(double)))==NULL) {
+    mdlerror("Cannot store volume partition data");
+    return(1);
+  }
+  sort_num_expr_list(mdlpvp->el_head);
+  i=1;
+  mdlpvp->elp=mdlpvp->el_head;
+  while(mdlpvp->elp!=NULL) {
+    mdlpvp->dblp[i++]=mdlpvp->elp->value/volp->length_unit;
+    mdlpvp->elp=mdlpvp->elp->next;
+  }
+  mdlpvp->dblp[0]=-GIGANTIC;
+  mdlpvp->dblp[mdlpvp->num_pos+1]=GIGANTIC;
+  switch ($<tok>1) {
+  case X_PARTS:
+    if (volp->x_partitions!=NULL) {
+      free(volp->x_partitions);
+    }
+    volp->nx_parts=mdlpvp->num_pos+2;
+    volp->x_partitions=mdlpvp->dblp;
+    break;
+  case Y_PARTS:
+    if (volp->y_partitions!=NULL) {
+      free(volp->y_partitions);
+    }
+    volp->ny_parts=mdlpvp->num_pos+2;
+    volp->y_partitions=mdlpvp->dblp;
+    break;
+  case Z_PARTS:
+    if (volp->z_partitions!=NULL) {
+      free(volp->z_partitions);
+    }
+    volp->nz_parts=mdlpvp->num_pos+2;
+    volp->z_partitions=mdlpvp->dblp;
+    break;
+  }
+};
+
+partition_dimension: PARTITION_X {$$=X_PARTS;} 
+	| PARTITION_Y {$$=Y_PARTS;}
+	| PARTITION_Z {$$=Z_PARTS;}
+;
 
 molecules_def: define_one_molecule
 	| define_multiple_molecules
@@ -3262,7 +3314,8 @@ unimolecular_rxn: reactant RT_ARROW
 {
   mdlpvp->pathp->km=mdlpvp->fwd_km;
   mdlpvp->pathp->kcat=mdlpvp->fwd_kcat;
-  if (mdlpvp->prod_all_3d) {
+  if (mdlpvp->prod_all_3d && 
+      (mdlpvp->rxnp->pathway_head->reactant1->flags&NOT_FREE)==0) {
     for (mdlpvp->prodp=mdlpvp->rxnp->pathway_head->product_head;
         mdlpvp->prodp!=NULL;mdlpvp->prodp=mdlpvp->prodp->next) {
       mdlpvp->prodp->orientation=0;
@@ -3339,7 +3392,9 @@ bimolecular_rxn: reactant '+'
 {
   mdlpvp->pathp->km=mdlpvp->fwd_km;
   mdlpvp->pathp->kcat=mdlpvp->fwd_kcat;
-  if (mdlpvp->prod_all_3d) {
+  if (mdlpvp->prod_all_3d &&
+      (mdlpvp->rxnp->pathway_head->reactant1->flags&NOT_FREE)==0 &&
+      (mdlpvp->rxnp->pathway_head->reactant2->flags&NOT_FREE)==0) {
     for (mdlpvp->prodp=mdlpvp->rxnp->pathway_head->product_head;
         mdlpvp->prodp!=NULL;mdlpvp->prodp=mdlpvp->prodp->next) {
       mdlpvp->prodp->orientation=0;
@@ -4066,56 +4121,6 @@ partition_plane: X_TOK
   parallel_z = 1;
 };
 
-partition_def: partition_dimension '='
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-}
-        '[' list_range_specs ']' 
-{
-  if ((mdlpvp->dblp=(double *)malloc((mdlpvp->num_pos+2)*sizeof(double)))==NULL) {
-    mdlerror("Cannot store volume partition data");
-    return(1);
-  }
-  sort_num_expr_list(mdlpvp->el_head);
-  i=1;
-  mdlpvp->elp=mdlpvp->el_head;
-  while(mdlpvp->elp!=NULL) {
-    mdlpvp->dblp[i++]=mdlpvp->elp->value/volp->length_unit;
-    mdlpvp->elp=mdlpvp->elp->next;
-  }
-  mdlpvp->dblp[0]=-vol_infinity;
-  mdlpvp->dblp[mdlpvp->num_pos+1]=vol_infinity;
-  switch ($<tok>1) {
-  case X_PART:
-    if (volume->x_partitions!=NULL) {
-      free(volume->x_partitions);
-    }
-    volume->n_x_partitions=mdlpvp->num_pos;
-    volume->x_partitions=mdlpvp->dblp;
-    break;
-  case Y_PART:
-    if (volume->y_partitions!=NULL) {
-      free(volume->y_partitions);
-    }
-    volume->n_y_partitions=mdlpvp->num_pos;
-    volume->y_partitions=mdlpvp->dblp;
-    break;
-  case Z_PART:
-    if (volume->z_partitions!=NULL) {
-      free(volume->z_partitions);
-    }
-    volume->n_z_partitions=mdlpvp->num_pos;
-    volume->z_partitions=mdlpvp->dblp;
-    break;
-  }
-};
-
-partition_dimension: PARTITION_X {$$=X_PART;} 
-	| PARTITION_Y {$$=Y_PART;}
-	| PARTITION_Z {$$=Z_PART;}
-;
 
 
 

@@ -280,8 +280,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       rxnp->rate_t=NULL;
       rxnp->jump_t=NULL;
       rxnp->last_update=0;
-      rxnp->rxn_count_dt=NULL;
-      rxnp->rxn_count_cum=NULL;
+      rxnp->counter=NULL;
       rxnp->pathway_head=NULL;
       break;
     case REG:

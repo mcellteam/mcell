@@ -301,8 +301,9 @@ schedule_advance:
       with *head, and end with *tail.
 *************************************************************************/
 
-int schedule_advance(struct schedule_helper *sh,void **head,void **tail)
-{
+int schedule_advance(struct schedule_helper *sh,struct abstract_element **head,
+                     struct abstract_element **tail)
+{                     
   int n;
   struct abstract_element *p,*nextp;
   
@@ -322,7 +323,7 @@ int schedule_advance(struct schedule_helper *sh,void **head,void **tail)
     if (sh->next_scale != NULL)
     {
       int conservecount = sh->count;
-      schedule_advance(sh->next_scale,(void**)&p,NULL);
+      schedule_advance(sh->next_scale,&p,NULL);
       while (p != NULL)
       {
         nextp = p->next;
@@ -363,7 +364,7 @@ void* schedule_next(struct schedule_helper *sh)
   void *data;
   if (sh->current==NULL)
   {
-    sh->current_count = schedule_advance(sh,(void**)&sh->current,(void**)&sh->current_tail);
+    sh->current_count = schedule_advance(sh,&sh->current,&sh->current_tail);
     return NULL;
   }
   else
