@@ -268,17 +268,42 @@ void tell_loc(struct molecule *m,char *s)
 
 double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv)
 {
+  int rpt,idx,bits;
+  double area;
   struct vector3 u,v;
   double d2_mv_i,a,b,t;
-  double upperU = 1.0;
-  double upperV = 1.0;
-  double lowerU = 1.0;
-  double lowerV = 1.0;
+  double upperU;
+  double upperV;
+  double lowerU;
+  double lowerV;
   struct wall_list *wl;
   
-  pick_displacement(&u,1.0);
+  area = 0;
   d2_mv_i = 1.0/(mv->x*mv->x + mv->y*mv->y + mv->z*mv->z);
-  a = d2_mv_i*(u.x*mv->x + u.y*mv->y + u.z*mv->z);
+
+  for (rpt = 0; rpt < 1 ; rpt++)
+  {
+  
+  upperU = lowerU = upperV = lowerV = 1.0;
+  
+  idx = world->num_directions;
+  while (idx >= world->num_directions)
+  {
+    bits = rng_uint(world->seed++);
+    idx = bits & world->directions_mask;
+  }
+  if (bits&0x80000000) u.x = world->d_step[idx]; else u.x = -world->d_step[idx];
+  if (bits&0x40000000) u.y = world->d_step[idx+1]; else u.y = -world->d_step[idx+1];
+  if (bits&0x20000000) u.z = world->d_step[idx+2]; else u.z = -world->d_step[idx+2];
+  
+  a = (u.x*mv->x + u.y*mv->y + u.z*mv->z);
+  
+  if (a*a*d2_mv_i < 0.9)  /* Vectors too closely aligned */
+  {
+    rpt--;
+    continue;
+  }
+  
   u.x = u.x - a*mv->x;
   u.y = u.y - a*mv->y;
   u.z = u.z - a*mv->z;
@@ -291,8 +316,6 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
   v.y = a*(-mv->x*u.z + mv->z*u.x);
   v.z = a*(mv->x*u.y - mv->y*u.x);
   
-/* FIXME--this is horribly inefficient; should create modified collide_wall */
-
   for (wl = sv->wall_head ; wl!=NULL ; wl = wl->next)
   {
     t = touch_wall(loc,&u,wl->this_wall);
@@ -313,7 +336,7 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
     t = (loc->x - world->x_fineparts[sv->llf.x])*u.x;
     if (t < lowerU) lowerU = t;
   }
-  else if (u.x < EPS_C)
+  else if (u.x < -EPS_C)
   {
     u.x = 1/u.x;
     t = (world->x_fineparts[sv->llf.x] - loc->x)*u.x;
@@ -329,7 +352,7 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
     t = (loc->y - world->y_fineparts[sv->llf.y])*u.y;
     if (t < lowerU) lowerU = t;
   }
-  else if (u.y < EPS_C)
+  else if (u.y < -EPS_C)
   {
     u.y = 1/u.y;
     t = (world->y_fineparts[sv->llf.y] - loc->y)*u.y;
@@ -345,7 +368,7 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
     t = (loc->z - world->z_fineparts[sv->llf.z])*u.z;
     if (t < lowerU) lowerU = t;
   }
-  else if (u.z < EPS_C)
+  else if (u.z < -EPS_C)
   {
     u.z = 1/u.z;
     t = (world->z_fineparts[sv->llf.z] - loc->z)*u.z;
@@ -362,7 +385,7 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
     t = (loc->x - world->x_fineparts[sv->llf.x])*v.x;
     if (t < lowerV) lowerV = t;
   }
-  else if (v.x < EPS_C)
+  else if (v.x < -EPS_C)
   {
     v.x = 1/v.x;
     t = (world->x_fineparts[sv->llf.x] - loc->x)*v.x;
@@ -378,7 +401,7 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
     t = (loc->y - world->y_fineparts[sv->llf.y])*v.y;
     if (t < lowerV) lowerV = t;
   }
-  else if (v.y < EPS_C)
+  else if (v.y < -EPS_C)
   {
     v.y = 1/v.y;
     t = (world->y_fineparts[sv->llf.y] - loc->y)*v.y;
@@ -394,7 +417,7 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
     t = (loc->z - world->z_fineparts[sv->llf.z])*v.z;
     if (t < lowerV) lowerV = t;
   }
-  else if (v.z < EPS_C)
+  else if (v.z < -EPS_C)
   {
     v.z = 1/v.z;
     t = (world->z_fineparts[sv->llf.z] - loc->z)*v.z;
@@ -402,14 +425,25 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
     t = (loc->z - world->z_fineparts[sv->urb.z])*v.z;
     if (t < lowerV) lowerV = t;
   }
+  
+  if (upperU < 0 || upperU > 1.0 ||
+      lowerU < 0 || lowerU > 1.0 ||
+      upperV < 0 || upperV > 1.0 ||
+      lowerV < 0 || lowerV > 1.0)
+  {
+    printf("Crazy!\n");
+  }
 
-  a = 4.0/(upperU*upperU + lowerU*lowerU + upperV*upperV + lowerV*lowerV);
+  area += upperU*upperU + lowerU*lowerU + upperV*upperV + lowerV*lowerV;
 /*
   if (a > 1.1) printf("Correction factor %.2f\n",a);
   if (a < 1.0-EPS_C) printf("MUDDY BLURDER! a=%.2f R=%.2f u=[%.2f %.2f %.2f] %.2f %.2f %.2f %.2f\n",
                             a,R,u.x,u.y,u.z,upperU,lowerU,upperV,lowerV);
 */
-  return a;
+  }
+  
+  if (rpt==0) return 1.0;
+  return area/(4.0*rpt);
 }
 
 
@@ -746,7 +780,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
       if ( (smash->what & COLLIDE_MOL) != 0 && !inert )
       {
+	if (smash->t < EPS_C) continue;
+	
         m->collisions++;
+	world->mol_mol_colls++;
 
         am = (struct abstract_molecule*)smash->target;
         if ((am->flags & ACT_INERT) != 0)  /* FIXME */

@@ -818,6 +818,7 @@ struct volume
   double ray_voxel_tests;
   double ray_polygon_tests;
   double ray_polygon_colls;
+  double mol_mol_colls;
   double diffusion_steps;
   struct vector3 bb_min;
   struct vector3 bb_max;

@@ -147,6 +147,8 @@ int init_sim(void)
   world->random_number_use=0;
   world->ray_voxel_tests=0;
   world->ray_polygon_tests=0;
+  world->ray_polygon_colls=0;
+  world->mol_mol_colls=0;
   world->diffusion_steps=0;
   world->sim_elapsed_time=0;
   world->chkpt_elapsed_time=0;
