@@ -1456,6 +1456,7 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   fx = (v1->x - v0->x);
   fy = (v1->y - v0->y);
   fz = (v1->z - v0->z);
+  if((fx == 0) && (fy == 0) && (fz == 0)) return;
   f = 1 / sqrt( fx*fx + fy*fy + fz*fz );
   
   w->unit_u.x = fx * f;
@@ -1465,6 +1466,7 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   fx = (v2->x - v0->x);
   fy = (v2->y - v0->y);
   fz = (v2->z - v0->z);
+  if((fx == 0) && (fy == 0) && (fz == 0)) return;
 
   w->normal.x = w->unit_u.y * fz - w->unit_u.z * fy;
   w->normal.y = w->unit_u.z * fx - w->unit_u.x * fz;
