@@ -95,9 +95,12 @@ struct count_list *cnt;
 %token <tok> DEFINE
 %token <tok> DEFINE_EFFECTOR_SITE_POSITIONS
 %token <tok> DEFINE_MOLECULE
+%token <tok> DEFINE_MOLECULES
 %token <tok> DEFINE_REACTIONS
 %token <tok> DEFINE_RELEASE_PATTERN
 %token <tok> DEFINE_SURFACE_REGIONS
+%token <tok> DEFINE_SURFACE_TYPE
+%token <tok> DEFINE_SURFACE_TYPES
 %token <tok> DELAY
 %token <tok> DENSITY
 %token <tok> DX
@@ -260,7 +263,13 @@ struct count_list *cnt;
 %type <tok> radial_directions_def
 %type <tok> radial_subdivisions_def
 %type <tok> assignment_stmt
-%type <tok> molecule_def
+%type <tok> molecules_def
+%type <tok> define_one_molecule
+%type <tok> define_multiple_molecules
+%type <tok> surface_types_def
+%type <tok> define_one_surface_type
+%type <tok> define_multiple_surface_types
+%type <tok> surface_prop
 %type <tok> chkpt_stmt
 %type <tok> release_pattern_def
 %type <tok> physical_object_def
@@ -284,7 +293,6 @@ struct count_list *cnt;
 %type <sym> existing_str_var
 %type <sym> existing_num_var
 %type <sym> existing_array
-%type <sym> new_molecule
 
 %type <dbl> num_value
 %type <dbl> num_expr
@@ -299,7 +307,9 @@ struct count_list *cnt;
 %type <str> str_expr_only
 %type <str> file_name
 
+%type <sym> new_molecule
 %type <sym> existing_molecule
+%type <sym> new_surface_type
 %type <sym> new_release_pattern
 %type <sym> existing_release_pattern
 %type <sym> object_def
@@ -428,7 +438,8 @@ mdl_stmt: time_def
 	| radial_directions_def
 	| radial_subdivisions_def
 	| assignment_stmt
-	| molecule_def
+	| molecules_def
+	| surface_types_def
 	| rx_net_def
 	| chkpt_stmt
 	| release_pattern_def
@@ -1297,19 +1308,39 @@ grid_density_def: EFFECTOR_GRID_DENSITY '=' num_expr
 };
 
 
-molecule_def: DEFINE_MOLECULE new_molecule '{'
+molecules_def: define_one_molecule
+	| define_multiple_molecules
+;
+
+
+define_one_molecule: DEFINE_MOLECULE molecule_stmt
+;
+
+
+define_multiple_molecules: DEFINE_MOLECULES '{'
+	list_molecule_stmts
+	'}'
+;
+
+
+list_molecule_stmts: molecule_stmt
+	| list_molecule_stmts molecule_stmt
+;
+
+
+molecule_stmt: new_molecule '{'
 	reference_diffusion_def
 	diffusion_def
         charge_def
-'}'
+	'}'
 {
-  mdlpvp->gp=$<sym>2;
+  mdlpvp->gp=$<sym>1;
   mdlpvp->specp=(struct species *)mdlpvp->gp->value;
   mdlpvp->specp->sym=mdlpvp->gp;
   /* points to the head of region counter list of the transition count for each ligand */
-  mdlpvp->specp->D_ref=$<dbl>4;
-  mdlpvp->specp->D=$<dbl>5;
-  mdlpvp->specp->charge=(int) $<dbl>6;
+  mdlpvp->specp->D_ref=$<dbl>3;
+  mdlpvp->specp->D=$<dbl>4;
+  mdlpvp->specp->charge=(int) $<dbl>5;
   if (volp->time_unit==0) {
     sprintf(mdlpvp->mdl_err_msg,"%s %s","TIME_STEP not yet specified.  Cannot define molecule:",mdlpvp->specp->sym->name);
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
@@ -1424,6 +1455,172 @@ charge_def: /* empty */
 {
   $$=$<dbl>3;
 };
+
+
+surface_types_def: define_one_surface_type
+	| define_multiple_surface_types
+;
+
+
+define_one_surface_type: DEFINE_SURFACE_TYPE surface_type_stmt
+;
+
+
+define_multiple_surface_types: DEFINE_SURFACE_TYPES '{'
+	list_surface_type_stmts
+	'}'
+;
+
+
+list_surface_type_stmts: surface_type_stmt
+	| list_surface_type_stmts surface_type_stmt
+;
+
+
+surface_type_stmt: new_surface_type '{'
+{
+  mdlpvp->stp1=$<sym>1;
+  mdlpvp->specp=(struct species *)mdlpvp->gp->value;
+}
+	list_surface_prop_stmts
+	'}'
+;
+
+
+new_surface_type: new_molecule
+{
+  mdlpvp->gp=$<sym>1;
+  mdlpvp->specp=(struct species *)mdlpvp->gp->value;
+  mdlpvp->specp->sym=mdlpvp->gp;
+  mdlpvp->specp->flags=IS_SURFACE;
+  $$=mdlpvp->gp;
+};
+
+
+list_surface_prop_stmts: surface_prop_stmt
+	| list_surface_prop_stmts surface_prop_stmt
+;
+
+
+surface_prop_stmt: surface_prop '=' existing_molecule
+{
+  mdlpvp->stp2=$<sym>3;
+  mdlpvp->specp=(struct species *)mdlpvp->stp2->value;
+  if (mdlpvp->specp->flags==IS_SURFACE) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
+      "Illegal reaction between two surfaces in surface reaction:",
+      mdlpvp->stp2->name,mdlpvp->stp1->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  mdlpvp->sym_name=concat_rx_name(mdlpvp->stp1->name,mdlpvp->stp2->name);
+  if ((mdlpvp->stp3=retrieve_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
+      !=NULL) {
+  }
+  else if ((mdlpvp->stp3=store_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
+      ==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
+      "Cannot store surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  /* fill in reactant parts of struct rxn here */
+  if (mdlpvp->path_mem==NULL) {
+    if ((mdlpvp->path_mem=create_mem(sizeof(struct pathway),16384))==NULL) {
+      sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
+        "Cannot store surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
+      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      return(1);
+    } 
+  }
+  if (mdlpvp->prod_mem==NULL) {
+    if ((mdlpvp->prod_mem=create_mem(sizeof(struct product),16384))==NULL) {
+      sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
+        "Cannot store surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
+      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      return(1);
+    } 
+  }
+  if ((mdlpvp->pathp=(struct pathway *)mem_get(mdlpvp->path_mem))==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
+      "Cannot store surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  mdlpvp->rxnp=(struct rxn *)mdlpvp->stp3->value;
+  mdlpvp->rxnp->n_reactants=2;
+  mdlpvp->rxnp->n_pathways++;
+  mdlpvp->pathp->reactant1=(struct species *)mdlpvp->stp1->value;
+  mdlpvp->pathp->reactant2=(struct species *)mdlpvp->stp2->value;
+  mdlpvp->pathp->reactant3=NULL;
+  mdlpvp->pathp->km=DBL_MAX;
+  mdlpvp->pathp->kcat=0;
+
+  switch ($<tok>1) {
+    case RFLCT:
+      mdlpvp->pathp->orientation1=0;
+      mdlpvp->pathp->orientation2=1;
+      mdlpvp->pathp->orientation3=0;
+      if ((mdlpvp->prodp=(struct product *)mem_get(mdlpvp->prod_mem))==NULL) {
+        sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
+          "Cannot store surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
+        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+        return(1);
+      }
+      mdlpvp->prodp->prod=mdlpvp->pathp->reactant2;
+      mdlpvp->prodp->orientation=1;
+      mdlpvp->prodp->next=mdlpvp->pathp->product_head;
+      mdlpvp->pathp->product_head=mdlpvp->prodp;
+      break;
+    case TRANSP:
+      mdlpvp->pathp->orientation1=0;
+      mdlpvp->pathp->orientation2=1;
+      mdlpvp->pathp->orientation3=0;
+      if ((mdlpvp->prodp=(struct product *)mem_get(mdlpvp->prod_mem))==NULL) {
+        sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
+          "Cannot store surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
+        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+        return(1);
+      }
+      mdlpvp->prodp->prod=mdlpvp->pathp->reactant2;
+      mdlpvp->prodp->orientation=-1;
+      mdlpvp->prodp->next=mdlpvp->pathp->product_head;
+      mdlpvp->pathp->product_head=mdlpvp->prodp;
+      break;
+    case SINK:
+      mdlpvp->pathp->orientation1=0;
+      mdlpvp->pathp->orientation2=1;
+      mdlpvp->pathp->orientation3=0;
+      mdlpvp->pathp->product_head=NULL;
+      break;
+  }
+
+  mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
+  mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
+
+#ifdef DEBUG
+  no_printf("Surface reaction defined:\n");
+  no_printf("  %s[%d] -%s[%d]->",
+    mdlpvp->rxnp->pathway_head->reactant2->sym->name,
+    mdlpvp->rxnp->pathway_head->orientation2,
+    mdlpvp->rxnp->pathway_head->reactant1->sym->name,
+    mdlpvp->rxnp->pathway_head->orientation1);
+  for (mdlpvp->prodp=mdlpvp->rxnp->pathway_head->product_head;
+      mdlpvp->prodp!=NULL;mdlpvp->prodp=mdlpvp->prodp->next) {
+    if (mdlpvp->prodp!=mdlpvp->rxnp->pathway_head->product_head) {
+      no_printf(" +");
+    }
+    no_printf(" %s[%d]",mdlpvp->prodp->prod->sym->name,mdlpvp->prodp->orientation);
+  }
+  no_printf(" [%.9g,%.9g]\n",mdlpvp->rxnp->pathway_head->km,mdlpvp->rxnp->pathway_head->kcat);
+#endif
+};
+
+
+surface_prop: REFLECTIVE {$$=RFLCT;}
+	| TRANSPARENT {$$=TRANSP;}
+	| ABSORPTIVE {$$=SINK;}
+;
 
 
 chkpt_stmt: CHECKPOINT_INFILE '=' file_name

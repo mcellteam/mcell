@@ -3,6 +3,10 @@
 
 #include "mcell_structs.h"
 
+#define RFLCT 0
+#define TRANSP 1
+#define SINK 2
+
 struct mdlparse_vars {
   char *cval;
   char *cval_2;
