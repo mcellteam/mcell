@@ -13,6 +13,32 @@
 #include "mem_util.h"
 
 
+#define INSERTION_MAX 16
+#define INSERTION_MIN 4
+
+void nullprintf(char *whatever,...) {}
+
+#define noprintf nullprintf
+#define Malloc malloc
+
+int howmany_count_malloc = 0;
+
+void catch_me()
+{
+  exit(1);
+}
+
+void* count_malloc(int n)
+{
+  howmany_count_malloc++;
+  
+  if (howmany_count_malloc > 200000) { printf("Nuts!\n"); catch_me(); }
+  
+  else return malloc(n);
+}
+
+
+
 /**************************************************************************\
  ** counter section: make lists of unique items (different data in each) **
 \**************************************************************************/
@@ -29,7 +55,7 @@ struct counter_helper* create_counter(int size,int length)
 {
   struct counter_helper *ch;
   
-  ch = (struct counter_helper*) malloc( sizeof(struct counter_helper) );
+  ch = (struct counter_helper*) Malloc( sizeof(struct counter_helper) );
   ch->mem = create_mem(size + sizeof(struct counter_header),length);
   ch->data_size = size;
   ch->n_unique = 0;
@@ -212,11 +238,11 @@ struct stack_helper* create_stack(int size,int length)
 {
   struct stack_helper *sh;
   
-  sh = (struct stack_helper*) malloc( sizeof(struct stack_helper) );
+  sh = (struct stack_helper*) Malloc( sizeof(struct stack_helper) );
   sh->index = 0;
   sh->length = length;
   sh->record_size = size;
-  sh->data = (unsigned char*) malloc( size * length );
+  sh->data = (unsigned char*) Malloc( size * length );
   sh->next = NULL;
   sh->defunct = NULL;
 }
@@ -238,15 +264,16 @@ void stack_push(struct stack_helper *sh,void *d)
   {
     struct stack_helper *old_sh;
     unsigned char *new_data;
+
     if (sh->defunct==NULL)
     {
-      old_sh = (struct stack_helper*) malloc( sizeof(struct stack_helper) );
-      new_data = (unsigned char*) malloc( sh->record_size * sh->length );
+      old_sh = (struct stack_helper*) Malloc( sizeof(struct stack_helper) );
+      new_data = (unsigned char*) Malloc( sh->record_size * sh->length );
     }
     else
     {
       old_sh = sh->defunct;
-      sh->defunct = old_sh->next;
+      sh->defunct = old_sh->defunct;
       new_data = old_sh->data;
     }
     memcpy(old_sh,sh,sizeof(struct stack_helper));
@@ -374,6 +401,252 @@ void* stack_access(struct stack_helper *sh,int n)
 
 
 /*************************************************************************
+stack_semisort_pdouble:
+   In: A stack_helper with elements that are pointers to doubles
+       Time before which we care about ordering (don't sort after)
+   Out: Number of items actually sorted.  Lowest time is on top.
+   Note: Uses a combination of insertion sort and in-place iterative
+         mergesort.  Not fast for stacks made up of many pieces.
+*************************************************************************/
+
+int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
+{
+  struct stack_helper *shp,*shq;
+  double *temp;
+  double **data,**data2,**space,**temp2;
+  int tail,head,span,good;
+  int j,i,iL,iR,iLmin,iRmin;
+  int nsorted = 0;
+
+  if (sh->defunct == NULL) 
+    sh->defunct = create_stack(sh->record_size,sh->length);
+  space = (double**)sh->defunct->data;
+
+  for (shp = sh; shp != NULL; shp = shp->next)
+  {
+    noprintf("SHP %x using %x\n",(unsigned long)shp,(unsigned long)shp->data);
+    
+    head = 0;
+    tail = shp->index-1;
+    data = (double**)shp->data;
+    
+    while (head<tail)
+    {
+      noprintf("head %d / %.1f,%.1f  ;  tail %d / %.1f\n",head,*data[head],*data[head+1],tail,*data[tail]);
+      if (*(data[tail]) > t_care)
+      {
+        while (*(data[head]) > t_care && tail > head) head++;
+        if (head < tail)
+        {
+          noprintf("tSWAP %d/%.1f %d/%.1f\n",tail,*data[tail],head,*data[head]);
+          temp = data[tail];
+          data[tail] = data[head];
+          data[head] = temp;
+          head++;
+        }
+        else
+        {
+          noprintf("OUCH!\n");
+          break;
+        }
+      }
+      else noprintf("tNOSW %d = %.1f\n",tail,*data[tail]);
+      
+      if (*(data[tail-1]) > t_care)
+      {
+        while(*(data[head]) > t_care && tail > head) head++;
+        if (head < tail-1)
+        {
+          noprintf("tSWAP %d/%.1f %d/%.1f\n",tail-1,*data[tail-1],head,*data[head]);
+          temp = data[tail-1];
+          data[tail-1] = data[head];
+          data[head] = temp;
+          head++;
+        }
+        else
+        {
+          noprintf("OUCH!\n");
+          break;
+        }
+      }
+      else noprintf("tNOSW %d = %.1f\n",tail-1,*data[tail-1]);
+      
+      if (*(data[tail-1]) < *(data[tail]))
+      {
+        temp = data[tail];
+        data[tail] = data[tail-1];
+        data[tail-1] = temp;
+        noprintf("SWAP %d/%.1f %d/%.1f\n",tail,*data[tail],tail-1,*data[tail-1]);
+      }
+      else noprintf("NOSW %d/%.1f %d/%.1f\n",tail,*data[tail],tail-1,*data[tail-1]);
+
+      tail -= 2;
+    }
+
+    good = shp->index - head;
+    
+    for (span=2;span<good;span*=2)
+    {
+      noprintf("SPAN %d good %d using %x\n",span,good,(unsigned int)space);
+      j = shp->index-1;
+
+      for (i=good;i-span>0;i-=2*span)
+      {
+        iL = head+i-1;;
+        iR = iL-span;
+        iLmin = iR;
+        if (iR-span >= head) iRmin = iR-span;
+        else iRmin = head-1;
+        
+        while (iL>iLmin && iR>iRmin)
+        {
+          if (*(data[iL]) <= *(data[iR])) space[j--] = data[iL--];
+          else space[j--] = data[iR--];
+          noprintf("Set: %d = %.1f\n",j+1,*space[j+1]);
+        }
+        while (iL>iLmin)
+        {
+          space[j--] = data[iL--];
+          noprintf("SetL:%d = %.1f\n",j+1,*space[j+1]);
+        }
+        while (iR>iRmin)
+        {
+          space[j--] = data[iR--];
+          noprintf("SetR:%d = %.1f\n",j+1,*space[j+1]);
+        }
+      }
+      while (j>=0)
+      {
+        space[j] = data[j--];
+        noprintf("SetX:%d = %.1f\n",j+1,*space[j+1]);
+      }
+
+      temp2 = space;
+      space = data;
+      data = temp2;
+    }
+    
+    if ((unsigned char*)data != shp->data)
+    {
+      noprintf("SHP gets %x, leaves %x\n",(unsigned int)data,(unsigned int)shp->data);
+      space = (double**)shp->data;
+      shp->data = (unsigned char*)data;
+    }
+    else
+    {
+      noprintf("SHP has %x, left %x\n",(unsigned int)data,(unsigned int)space);
+    }
+    
+    nsorted += good;
+  }
+  
+  if (sh->next != NULL)
+  {
+    if (sh->defunct->defunct == NULL)
+      sh->defunct->defunct = create_stack(sh->record_size,sh->length);
+    temp2 = (double**)sh->defunct->defunct->data;
+        
+    for (shp = sh->next; shp != NULL; shp = shp->next)
+    {
+      noprintf("sh @ %x ; shp @ %x\n",(unsigned int)sh,(unsigned int)shp);
+      shq = sh;
+      data = (double**)shp->data;
+      data2 = (double**)shq->data;
+
+      iL = shp->index-1;
+      iR = shq->index-1;
+      j = sh->index-1;
+      data2 = (double**)shq->data;
+
+      noprintf("Left @ %x, right @ %x\n",(unsigned int)data,(unsigned int)data2);
+      for (i=0;i<iL;i++) if (*data[i] < *data[i+1]) noprintf("Boggled L [%d] %.1f %.1f!\n",i,*data[i],*data[i+1]);
+      for (i=0;i<iR;i++) if (*data2[i] < *data2[i+1]) noprintf("Boggled R [%d] %.1f %.1f!\n",i,*data2[i],*data2[i+1]);
+
+      while (shq != shp)
+      {
+        if (*data[iL] < *data2[iR])
+        {
+          space[j--] = data[iL--];
+          noprintf("Left %d -> %d = %.1f\n",iL+1,j+1,*space[j+1]);
+        }
+        else
+        {
+          space[j--] = data2[iR--];
+          noprintf("Right %d -> %d = %.1f\n",iR+1,j+1,*space[j+1]);
+        }
+          
+        
+        if (iL < 0)
+        {
+          noprintf("iL<0\n",(unsigned int)data);
+          break;
+        }
+        
+        if (j < 0)
+        {
+          noprintf("j<0, putting %x into shq, using %x\n",(unsigned int)space,(unsigned int)temp2);
+          shq->data = (unsigned char*) space;
+          space = temp2;
+          temp2 = NULL;
+          j=shq->next->index-1;
+        }
+        
+        if (iR < 0)
+        {
+          noprintf("iR<0, keeping %x as temp2, shq @ %x\n",(unsigned int)data2,(unsigned int)shq->next);
+          temp2 = data2;
+          shq = shq->next;
+          data2 = (double**)shq->data;
+          iR = shq->index-1;
+        }
+        
+      }
+      if (iL < 0)
+      {
+        if (j >= 0)  /* already swapped shq */
+        {
+          while (iR >= 0)
+          {
+            space[j--] = data2[iR--];
+            noprintf("Finishing: Right %d -> %d = %.1f\n",iR+1,j+1,*space[j+1]);
+          }
+          temp2 = data2;
+          shq = shq->next;
+          noprintf("shq @ %x, keeping %x as temp2\n",(unsigned int)shq,(unsigned int)temp2);
+        }
+        
+        while (shq != shp->next)
+        {
+          noprintf("shq gets %x, %x kept, shq @ %x\n",(unsigned int)space,(unsigned int)shq->data,(unsigned int)shq->next);
+          data2 = (double**)shq->data;
+          shq->data = (unsigned char*) space;
+          space = data2;
+          shq = shq->next;
+        }
+      }
+      else
+      {
+        while (iL >= 0)
+        {
+          space[j--] = data[iL--];
+          noprintf("Finishing: Left %d -> %d = %.1f\n",iL+1,j+1,*space[j+1]);
+        }
+        noprintf("shp gets %x, %x kept\n",(unsigned int)space,(unsigned int)data);
+        shp->data = (unsigned char*) space;
+        space = data;
+      }
+    }
+    
+    sh->defunct->defunct->data = (unsigned char*) temp2;
+  }
+
+  sh->defunct->data = (unsigned char*) space;
+  
+  return nsorted;
+}
+
+
+/*************************************************************************
 delete_stack:
    In: A stack_helper
    Out: No return value.  The stack helper and all data in the stack is
@@ -382,7 +655,26 @@ delete_stack:
 
 void delete_stack(struct stack_helper *sh)
 {
-  if (sh->next != NULL) delete_stack(sh->next);
+  struct stack_helper *shp,*shpn;
+
+  shp = sh->next;
+  while (shp != NULL)
+  {
+    shpn = shp->next;
+    free(shp->data);
+    free(shp);
+    shp = shpn;
+  }
+
+  shp = sh->defunct;
+  while (shp != NULL)
+  {
+    shpn = shp->next;
+    free(shp->data);
+    free(shp);
+    shp = shpn;
+  }
+  
   free(sh->data);
   free(sh);
 }
@@ -406,7 +698,7 @@ create_mem:
 struct mem_helper* create_mem(int size,int length)
 {
   struct mem_helper *mh;
-  mh = (struct mem_helper*)malloc( sizeof(struct mem_helper) );
+  mh = (struct mem_helper*)Malloc( sizeof(struct mem_helper) );
   
   if (mh==NULL) return mh;
   
@@ -416,13 +708,15 @@ struct mem_helper* create_mem(int size,int length)
   mh->defunct = NULL;
   mh->next_helper = NULL;
   
-  mh->storage = (unsigned char*) malloc( mh->buf_len * mh->record_size );
+  mh->storage = (unsigned char*) Malloc( mh->buf_len * mh->record_size );
   
   if (mh->storage==NULL)
   {
     free (mh);
     return NULL;
   }
+  
+  return mh;
 }
 
 
@@ -430,7 +724,7 @@ struct mem_helper* create_mem(int size,int length)
 mem_get:
    In: A mem_helper
    Out: A pointer to new storage of the appropriate size.
-   Note: Use this instead of "malloc".
+   Note: Use this instead of "Malloc".
 *************************************************************************/
 
 void* mem_get(struct mem_helper *mh)
@@ -524,20 +818,20 @@ void delete_mem(struct mem_helper *mh)
 
 
 /**************************************************************************\
- ** temp section: malloc a bunch of things, then free them all at once   **
+ ** temp section: Malloc a bunch of things, then free them all at once   **
 \**************************************************************************/
 
 
 /*************************************************************************
 create_temp:
-   In: A block size for the number of malloced items to store at once.
+   In: A block size for the number of Malloced items to store at once.
    Out: A pointer to a new temporary memory handler.
    Note: temp_mem uses stack_helper.
 *************************************************************************/
 
 struct temp_mem* create_temp(int length)
 {
-  struct temp_mem *new_mem = malloc(sizeof(struct temp_mem));
+  struct temp_mem *new_mem = Malloc(sizeof(struct temp_mem));
   new_mem->pointers = create_stack(sizeof(void*),length);
   return new_mem;
 }
@@ -548,12 +842,12 @@ temp_malloc:
    In: Number of bytes to allocate
        A temp_mem handler to keep track of this allocation
    Out: A pointer to the new storage.
-   Note: Use instead of "malloc" for temporary storage.
+   Note: Use instead of "Malloc" for temporary storage.
 *************************************************************************/
 
 void *temp_malloc(size_t size, struct temp_mem *list)
 {
-  void *data = malloc(size);
+  void *data = Malloc(size);
   stack_push(list->pointers,&data);
   return data;
 }
