@@ -718,6 +718,7 @@ struct counter
   double back_hits;
   double front_to_back;
   double back_to_front;
+  double n_inside;
 };
 
 

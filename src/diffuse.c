@@ -484,7 +484,7 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
     if (rl->reg->flags & COUNT_HITS)
     {
       j = (rl->reg->hashval ^ sp->hashval)&world->collide_hashmask;
-      if (j==0) j = rl->reg->hashval & world->collide_hashmask;
+      if (j==0) j = sp->hashval & world->collide_hashmask;
       
       for (hit_count=world->collide_hash[j] ; hit_count!=NULL ; hit_count=hit_count->next)
       {
