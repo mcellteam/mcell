@@ -338,6 +338,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       rp->eff_dat_head=NULL;
       rp->surf_class=NULL;
       rp->reg_counter_ref_list=NULL;
+      rp->area=0.0;
       rp->flags=0;
       rp->manifold_flag=MANIFOLD_UNCHECKED;
       break;

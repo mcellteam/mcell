@@ -161,6 +161,7 @@ int init_sim(void)
   world->chkpt_elapsed_time=0;
   world->chkpt_elapsed_time_start=0;
   world->it_time=0;
+  world->elapsed_time=0;
   world->time_unit=0;
   world->time_step_max=0;
   world->start_time=0;
@@ -1565,6 +1566,7 @@ int init_wall_regions(struct object *objp, char *full_name)
 	  /* prepend this region to wall region list of i_th wall
 	     only if the region is used in counting */
 	  w=objp->wall_p[i];
+	  rp->area += w->area;
 	  if ((rp->flags & COUNT_SOME) !=0) {
 	    if ((wrlp=(struct region_list *)mem_get
 	      (w->birthplace->regl))==NULL) {

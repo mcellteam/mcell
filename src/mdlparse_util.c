@@ -1632,12 +1632,6 @@ int divide_cuboid(struct subdivided_box *b,int axis,int idx,int ndiv)
   for (k=1;k<ndiv;k++) new_list[j++] = (((double)k/(double)ndiv))*(old_list[i]-old_list[i-1]) + old_list[i-1];
   for ( ; i<old_n ; i++,j++) new_list[j] = old_list[i];
   
-  printf("Split axis %d at %d by %d:",axis,idx,ndiv);
-  for (i=0;i<old_n;i++) printf(" %.3e",old_list[i]);
-  printf("\nInto");
-  for (j=0;j<new_n;j++) printf(" %.3e",new_list[j]);
-  printf("\n");
-  
   switch(axis)
   {
     case BRANCH_X:
@@ -2589,6 +2583,7 @@ struct counter *store_reg_counter(struct volume *volp,
       cp->data.move.back_hits=0;
       cp->data.move.front_to_back=0;
       cp->data.move.back_to_front=0;
+      cp->data.move.scaled_hits=0;
       cp->data.move.n_enclosed=0;
       cp->data.move.n_at=0;
     }
@@ -2629,6 +2624,9 @@ struct output_evaluator *init_counter(byte report_type,
   }
   oep->next=oip->output_evaluator_head;
   oip->output_evaluator_head=oep;
+  oep->operand1 = NULL;
+  oep->operand2 = NULL;
+  
 
   oep->update_flag=1;
   oep->reset_flag=0;
@@ -2636,85 +2634,108 @@ struct output_evaluator *init_counter(byte report_type,
   oep->n_data=buffersize;
 
   switch(report_type) {
-  case REPORT_CONTENTS:
-    if ((intp=(int *)malloc(buffersize*sizeof(int)))==NULL) {
-      return(NULL);
-    }
-    for (i=0;i<buffersize;i++) {
-      intp[i]=0;
-    }
-    oep->data_type=INT;
-    oep->final_data=(void *)intp;
-    if (enclosed_flag) oep->temp_data=(void *)&cp->data.move.n_enclosed;
-    else oep->temp_data=(void *)&cp->data.move.n_at;
-    cp->reg_type->flags|=COUNT_CONTENTS+enclosed_flag;
-    break;
-  case REPORT_FRONT_HITS:
-    if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
-      return(NULL);
-    }
-    for (i=0;i<buffersize;i++) {
-      dblp[i]=0;
-    }
-    oep->data_type=DBL;
-    oep->final_data=(void *)dblp;
-    oep->temp_data=(void *)&cp->data.move.front_hits;
-    cp->reg_type->flags|=COUNT_HITS+enclosed_flag;
-    break;
-  case REPORT_BACK_HITS:
-    if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
-      return(NULL);
-    }
-    for (i=0;i<buffersize;i++) {
-      dblp[i]=0;
-    }
-    oep->data_type=DBL;
-    oep->final_data=(void *)dblp;
-    oep->temp_data=(void *)&cp->data.move.back_hits;
-    cp->reg_type->flags|=COUNT_HITS+enclosed_flag;
-    break;
-  case REPORT_FRONT_CROSSINGS:
-    if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
-      return(NULL);
-    }
-    for (i=0;i<buffersize;i++) {
-      dblp[i]=0;
-    }
-    oep->data_type=DBL;
-    oep->final_data=(void *)dblp;
-    oep->temp_data=(void *)&cp->data.move.front_to_back;
-    cp->reg_type->flags|=COUNT_HITS+enclosed_flag;
-    break;
-  case REPORT_BACK_CROSSINGS:
-    if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
-      return(NULL);
-    }
-    for (i=0;i<buffersize;i++) {
-      dblp[i]=0;
-    }
-    oep->data_type=DBL;
-    oep->final_data=(void *)dblp;
-    oep->temp_data=(void *)&cp->data.move.back_to_front;
-    cp->reg_type->flags|=COUNT_HITS+enclosed_flag;
-    break;
-  case REPORT_RXNS:
-    if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
-      return(NULL);
-    }
-    for (i=0;i<buffersize;i++) {
-      dblp[i]=0;
-    }
-    oep->data_type=DBL;
-    oep->final_data=(void *)dblp;
-    if (enclosed_flag)
-      oep->temp_data=(void *)&cp->data.rx.n_rxn_enclosed;
-    else
-      oep->temp_data=(void *)&cp->data.rx.n_rxn_at;
-    cp->reg_type->flags|=COUNT_RXNS+enclosed_flag;
-    break;
-  default:
-    printf("Error: Unknown counter report type %d\n", report_type);
-    break;
+    case REPORT_CONTENTS:
+      if ((intp=(int *)malloc(buffersize*sizeof(int)))==NULL) {
+	return(NULL);
+      }
+      for (i=0;i<buffersize;i++) {
+	intp[i]=0;
+      }
+      oep->data_type=INT;
+      oep->final_data=(void *)intp;
+      if (enclosed_flag) oep->temp_data=(void *)&cp->data.move.n_enclosed;
+      else oep->temp_data=(void *)&cp->data.move.n_at;
+      cp->reg_type->flags|=COUNT_CONTENTS+enclosed_flag;
+      break;
+    case REPORT_FRONT_HITS:
+      if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
+	return(NULL);
+      }
+      for (i=0;i<buffersize;i++) {
+	dblp[i]=0;
+      }
+      oep->data_type=DBL;
+      oep->final_data=(void *)dblp;
+      oep->temp_data=(void *)&cp->data.move.front_hits;
+      cp->reg_type->flags|=COUNT_HITS+enclosed_flag;
+      break;
+    case REPORT_BACK_HITS:
+      if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
+	return(NULL);
+      }
+      for (i=0;i<buffersize;i++) {
+	dblp[i]=0;
+      }
+      oep->data_type=DBL;
+      oep->final_data=(void *)dblp;
+      oep->temp_data=(void *)&cp->data.move.back_hits;
+      cp->reg_type->flags|=COUNT_HITS+enclosed_flag;
+      break;
+    case REPORT_FRONT_CROSSINGS:
+      if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
+	return(NULL);
+      }
+      for (i=0;i<buffersize;i++) {
+	dblp[i]=0;
+      }
+      oep->data_type=DBL;
+      oep->final_data=(void *)dblp;
+      oep->temp_data=(void *)&cp->data.move.front_to_back;
+      cp->reg_type->flags|=COUNT_HITS+enclosed_flag;
+      break;
+    case REPORT_BACK_CROSSINGS:
+      if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
+	return(NULL);
+      }
+      for (i=0;i<buffersize;i++) {
+	dblp[i]=0;
+      }
+      oep->data_type=DBL;
+      oep->final_data=(void *)dblp;
+      oep->temp_data=(void *)&cp->data.move.back_to_front;
+      cp->reg_type->flags|=COUNT_HITS+enclosed_flag;
+      break;
+    case REPORT_RXNS:
+      if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
+	return(NULL);
+      }
+      for (i=0;i<buffersize;i++) {
+	dblp[i]=0;
+      }
+      oep->data_type=DBL;
+      oep->final_data=(void *)dblp;
+      if (enclosed_flag)
+	oep->temp_data=(void *)&cp->data.rx.n_rxn_enclosed;
+      else
+	oep->temp_data=(void *)&cp->data.rx.n_rxn_at;
+      cp->reg_type->flags|=COUNT_RXNS+enclosed_flag;
+      break;
+    case REPORT_CONCENTRATION:
+      if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
+	return(NULL);
+      }
+      for (i=0;i<buffersize;i++) {
+	dblp[i]=0;
+      }
+      oep->data_type=DBL;
+      oep->final_data=(void *)dblp;
+      oep->temp_data=(void *)&cp->data.move.scaled_hits;
+      cp->reg_type->flags|=COUNT_HITS;
+      break;
+    case REPORT_ELAPSED_TIME:
+      if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
+	return(NULL);
+      }
+      for (i=0;i<buffersize;i++) {
+	dblp[i]=0;
+      }
+      oep->data_type=DBL;
+      oep->final_data=(void *)dblp;
+      oep->temp_data=(void*)cp;  /* Horribly ugly way to pass in world->elapsed_time */
+      break;
+    default:
+      printf("Error: Unknown counter report type %d\n", report_type);
+      break;
   }
 
   oep->operand1=NULL;
@@ -2827,7 +2848,6 @@ int build_count_tree(byte report_type,
   {
      report_type -= REPORT_ENCLOSED;
      enclosed_count = REPORT_ENCLOSED;
-     printf("Report ON\n");
   }
   else enclosed_count = 0;
 
@@ -2929,6 +2949,9 @@ int build_count_tree(byte report_type,
         return(1);
       }
       break;
+    case REPORT_CONCENTRATION:
+      return 1;
+      break;
     default:
       if (insert_counter(report_type+enclosed_count,volp,oip,oep,cp,buffersize)) {
         return(1);
@@ -2969,7 +2992,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
     sp = (struct species *)value;
     
     if (base_report_type == REPORT_RXNS) return 1;
-    if ( (sp->flags & NOT_FREE) == 0 )
+    if ( (sp->flags & NOT_FREE) == 0 && base_report_type==REPORT_CONTENTS)
     {
       count_flag |= COUNT_ENCLOSED;
     }
@@ -3024,7 +3047,11 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
     mdlpvp->oep->operand1=NULL;
     mdlpvp->oep->operand2=NULL;
     mdlpvp->oep->oper='+';
-
+    
+    if (base_report_type==REPORT_CONCENTRATION)
+    {
+      fprintf(mdlpvp->vol->err_file,"Cannot measure concentration on an arbitrary object.\n  Use objectname[ALL] to count all of a polygon or box object.\n");
+    }
     if (build_count_tree(report_type,mdlpvp->vol,obj,mdlpvp->oip,mdlpvp->oep,value,mdlpvp->obp->buffersize,mdlpvp->prefix_name))
     {
       fprintf(mdlpvp->vol->err_file,"Cannot store count evaluator data for object %s\n",obj->sym->name);
@@ -3166,6 +3193,18 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
 	    return 1;
 	  }
 	  break;
+	case REPORT_CONCENTRATION:
+	  mdlpvp->oep->oper='/';
+	  if (insert_counter(REPORT_CONCENTRATION,mdlpvp->vol,mdlpvp->oip,mdlpvp->oep,c,mdlpvp->obp->buffersize))
+	  {
+	    fprintf(mdlpvp->vol->err_file,"Cannot store molecule output_evaluator data");
+	    return 1;
+	  }
+	  if (insert_counter(REPORT_ELAPSED_TIME,mdlpvp->vol,mdlpvp->oip,mdlpvp->oep,(struct counter*)&mdlpvp->vol->elapsed_time,mdlpvp->obp->buffersize)) {
+	    fprintf(mdlpvp->vol->err_file,"Cannot store molecule output_evaluator data");
+	    return 1;
+	  }
+	  break;	  
 	default:
 	  return 1;
 	  break;

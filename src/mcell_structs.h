@@ -50,6 +50,9 @@
 #define REPORT_MULTIPLE        6 
 #define REPORT_ALL_HITS        7
 #define REPORT_ALL_CROSSINGS   8
+/* Concentration is kind of special. */
+#define REPORT_CONCENTRATION   9
+#define REPORT_ELAPSED_TIME    10
 /* All basic report types can be masked with this value */
 #define REPORT_TYPE_MASK       0x0F
 /* And finally we have some flags to say whether we're to count over */
@@ -812,6 +815,7 @@ struct move_counter_data
   double back_hits;                /* # hits on back of region */
   double front_to_back;            /* # crossings from front to back */
   double back_to_front;            /* # crossings from back to front */
+  double scaled_hits;              /* To determine integrated concentration */
   int n_at;                        /* # molecules on region surface */
   int n_enclosed;                  /* # molecules inside closed region */
 };
@@ -937,6 +941,7 @@ struct volume
   u_int seed;
   u_int init_seed;
   u_int it_time;
+  double elapsed_time;
   u_int start_time;
   u_int radial_directions;
   u_int radial_subdivisions;
@@ -1298,6 +1303,7 @@ struct region {
 	struct reg_counter_ref_list *reg_counter_ref_list;
 	struct eff_dat *eff_dat_head;
         struct species *surf_class;
+	double area;
         u_short flags;
         byte manifold_flag;
 };

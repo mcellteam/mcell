@@ -31,14 +31,14 @@ void run_sim(void)
   long t_initial,t_final;
 
   struct storage_list *local;
-  struct release_event_queue *req, *first_req;
-  struct output_block *obp, *first_obp;
+  struct release_event_queue *req;
+  struct output_block *obp;
   double next_release_time;
   int i;
   int count;
-  double not_yet;
   long long total_coll_1,total_coll_2;
   double total_len;
+  double not_yet;
   int frequency;
   
 /*
@@ -64,8 +64,10 @@ void run_sim(void)
   {
     not_yet = world->it_time + 1.0;
     
-    first_req = schedule_next(world->releaser);
-    for ( req=first_req ;
+    if (world->it_time!=0) world->elapsed_time=world->it_time;
+    else world->elapsed_time=1.0;
+    
+    for ( req= schedule_next(world->releaser) ;
           req!=NULL || not_yet>=world->releaser->now ;
 	  req=schedule_next(world->releaser)) 
     {
@@ -84,8 +86,7 @@ void run_sim(void)
       exit( EXIT_FAILURE );
     }
 
-    first_obp = schedule_next(world->count_scheduler);
-    for ( obp=first_obp ;
+    for ( obp=schedule_next(world->count_scheduler) ;
           obp!=NULL || not_yet>=world->count_scheduler->now ;
 	  obp=schedule_next(world->count_scheduler) )
     {

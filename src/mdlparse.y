@@ -98,12 +98,11 @@ struct output_evaluator *cnt;
 %token <tok> CHECKPOINT_INFILE
 %token <tok> CHECKPOINT_OUTFILE
 %token <tok> CHECKPOINT_ITERATIONS
-%token <tok> CONCENTRATION
-%token <tok> SURFACE_CLASS
 %token <tok> COLOR
 %token <tok> COLOR_SIDE
 %token <tok> COLOR_EFFECTOR
 %token <tok> COMPARTMENT
+%token <tok> CONCENTRATION
 %token <tok> CORNERS
 %token <tok> COS
 %token <tok> COUNT
@@ -257,6 +256,7 @@ struct output_evaluator *cnt;
 %token <tok> SUM_OVER_ALL_EFFECTORS
 %token <tok> SUM_OVER_ALL_MOLECULES
 %token <tok> SUM_OVER_ALL_TIME_STEPS
+%token <tok> SURFACE_CLASS
 %token <tok> SURFACE_POSITIONS
 %token <tok> SURFACE_STATES
 %token <tok> TAN
@@ -3263,7 +3263,7 @@ box_def: new_object BOX '{'
 {
   int i;
 
-  i = reaspect_cuboid(mdlpvp->pop->sb,2.0);
+  i = reaspect_cuboid(mdlpvp->pop->sb,2000.0);
   if (i)
   {
     mdlerror("Error setting up box geometry");
@@ -5434,7 +5434,7 @@ mol_hit_count_syntax: existing_rxpn_or_molecule ',' existing_region ',' hit_spec
   mdlpvp->stp1=$<sym>1;
   mdlpvp->stp2=$<sym>3;
   mdlpvp->rp=(struct region*)mdlpvp->stp2->value;
-  report_type = (byte)$<dbl>5;
+  report_type = (byte)$<tok>5;
   
   if (report_type==REPORT_ENCLOSED)
   {
@@ -5463,7 +5463,7 @@ mol_hit_count_syntax: existing_rxpn_or_molecule ',' existing_region ',' hit_spec
   mdlpvp->stp2=$<sym>3;
   mdlpvp->objp=(struct object*)mdlpvp->stp2->value;
   mdlpvp->objp2=mdlpvp->top_objp;
-  report_type = (byte)$<dbl>5;
+  report_type = (byte)$<tok>5;
   
   if (report_type==REPORT_ENCLOSED)
   {
@@ -5491,6 +5491,7 @@ hit_spec: FRONT_HITS { $$ = REPORT_FRONT_HITS; }
 	| FRONT_CROSSINGS { $$ = REPORT_FRONT_CROSSINGS; }
 	| BACK_CROSSINGS { $$ = REPORT_BACK_CROSSINGS; }
 	| ALL_CROSSINGS { $$ = REPORT_ALL_CROSSINGS; }
+	| CONCENTRATION { $$ = REPORT_CONCENTRATION; }
 	| ALL_ENCLOSED { $$ = REPORT_ENCLOSED; }
 ;
 

@@ -130,11 +130,21 @@ int update_reaction_output(struct output_block *obp)
     oep=oip->output_evaluator_head;
     while (oep!=NULL) {
       if (oep->update_flag) {
-        ((int*)oep->final_data)[curr_buf_index]=*(int *)oep->temp_data;
-        /* reset temp_data if necessary */
-        if (oep->reset_flag) {
-          *(int *)oep->temp_data=0;
-        }
+	switch (oep->data_type)
+	{
+	  case INT:
+	    ((int*)oep->final_data)[curr_buf_index]=*(int *)oep->temp_data;
+	    /* reset temp_data if necessary */
+	    if (oep->reset_flag) *(int *)oep->temp_data=0;
+	    break;
+	  case DBL:
+	    ((double*)oep->final_data)[curr_buf_index]=*(double*)oep->temp_data;
+	    if (oep->reset_flag) *(double*)oep->temp_data=0;
+	    break;
+	  default:
+	    printf("OMGWTFPWNED!\n");
+	    break;
+	}
       }
       oep=oep->next;
     }

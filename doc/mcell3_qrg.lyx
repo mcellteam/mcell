@@ -5,9 +5,9 @@
 \inputencoding auto
 \fontscheme pslatex
 \graphics default
-\paperfontsize 11
+\paperfontsize 10
 \spacing single 
-\papersize Default
+\papersize letterpaper
 \paperpackage a4
 \use_geometry 1
 \use_amsmath 1
@@ -1478,7 +1478,7 @@ A
 B
 \family default 
  at a rate of 
-\begin_inset Formula $10^{6}\,\mathrm{{molar}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\begin_inset Formula $10^{6}\,\mathrm{{M}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -1514,7 +1514,7 @@ B
 C
 \family default 
  at a rate of 
-\begin_inset Formula $10^{6}\,\mathrm{{molar}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\begin_inset Formula $10^{6}\,\mathrm{{M}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -1550,7 +1550,7 @@ B
 C
 \family default 
  at a rate of 
-\begin_inset Formula $10^{6}\,\mathrm{{molar}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\begin_inset Formula $10^{6}\,\mathrm{{M}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -1824,7 +1824,7 @@ C
 B
 \family default 
 , at a rate of 
-\begin_inset Formula $10^{5}\,\mathrm{{molar}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\begin_inset Formula $10^{5}\,\mathrm{{M}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -1864,7 +1864,7 @@ C
 B
 \family default 
 , at a rate of 
-\begin_inset Formula $10^{5}\,\mathrm{{molar}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\begin_inset Formula $10^{5}\,\mathrm{{M}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -1971,7 +1971,7 @@ C
 B
 \family default 
 , at a rate of 
-\begin_inset Formula $10^{5}\,\mathrm{{molar}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\begin_inset Formula $10^{5}\,\mathrm{{M}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -2011,7 +2011,7 @@ C
 B
 \family default 
 , at a rate of 
-\begin_inset Formula $10^{5}\,\mathrm{{molar}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\begin_inset Formula $10^{5}\,\mathrm{{M}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -2052,7 +2052,7 @@ B
 C
 \family default 
  that is equally likely to point either way, at a rate of 
-\begin_inset Formula $10^{5}\,\mathrm{{molar}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\begin_inset Formula $10^{5}\,\mathrm{{M}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -2159,7 +2159,7 @@ A
 B
 \family default 
  to tumble to a random orientation, at a rate of 
-\begin_inset Formula $10^{5}\,\mathrm{{molar}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\begin_inset Formula $10^{5}\,\mathrm{{M}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -4858,7 +4858,7 @@ The values specified in braces are count statements, or mathematical operations
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="6" columns="2">
+<lyxtabular version="3" rows="7" columns="2">
 <features islongtable="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -4892,7 +4892,7 @@ Explanation
 
 
 \family typewriter 
-COUNT [
+COUNT[
 \family sans 
 \shape italic 
 name
@@ -4927,7 +4927,7 @@ name
 
 
 \family typewriter 
-COUNT [
+COUNT[
 \family sans 
 \shape italic 
 name
@@ -4973,7 +4973,7 @@ object
 \family typewriter 
 my_world.my_box
 \family default 
-c.
+.
  If you are counting surface molecules or reactions at a surface, only the
  ones that actually occur on 
 \family sans 
@@ -4995,7 +4995,7 @@ object
 
 
 \family typewriter 
-COUNT [
+COUNT[
 \family sans 
 \shape italic 
 name
@@ -5028,7 +5028,7 @@ my_region
 \family default 
 , the name would be 
 \family typewriter 
-my_world.my_box.my_region
+my_world.my_box[my_region]
 \end_inset 
 </cell>
 </row>
@@ -5040,7 +5040,7 @@ my_world.my_box.my_region
 
 
 \family typewriter 
-COUNT [
+COUNT[
 \family sans 
 \shape italic 
 name
@@ -5068,6 +5068,67 @@ Count all reactions that occur inside this region (not counting those that
 \end_inset 
 </cell>
 </row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+COUNT[
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+region
+\family typewriter 
+\shape default 
+,CONCENTRATION]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Estimate the concentration of the molecule at that region, averaged since
+ the beginning of the simulation (output has units of 
+\begin_inset Formula $\mu\mathrm{{M}}$
+\end_inset 
+
+).
+ A single object can be used instead of a region, but multiple objects cannot
+ be used.
+ The region/object does not need to be closed.
+ To find the average concentration during one count interval, let 
+\begin_inset Formula $t_{i}$
+\end_inset 
+
+ be the time of the current output (the 
+\begin_inset Formula $i$
+\end_inset 
+
+th one), let 
+\begin_inset Formula $\bar{c}\left(t_{i}\right)$
+\end_inset 
+
+ be the concentration averaged up to the time of the current output, and
+ use the formula 
+\begin_inset Formula $\bar{c}\left(t_{i-1}\rightarrow t_{i}\right)=\frac{t_{i}\bar{c}\left(t_{i}\right)-t_{i-1}\bar{c}\left(t_{i-1}\right)}{t_{i}-t_{i-1}}$
+\end_inset 
+
+.
+ Note that this is the concentration all around the surface, so if the molecule
+ can only reach one side, the concentration on that side will be twice what
+ is reported here.
+\end_inset 
+</cell>
+</row>
 <row topline="true" bottomline="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -5076,7 +5137,7 @@ Count all reactions that occur inside this region (not counting those that
 
 
 \family typewriter 
-COUNT [
+COUNT[
 \family sans 
 \shape italic 
 name

@@ -52,13 +52,21 @@ update_collision_count:
        region list for the wall we hit
        direction of impact relative to surface normal
        whether we crossed or not
+       scaling factor for reaction probabilities (for estimating ccn)
    Out: No return value.  Appropriate counters are updated.
 *************************************************************************/
 
-void update_collision_count(struct species *sp,struct region_list *rl,int direction,int crossed)
+void update_collision_count(struct species *sp,struct region_list *rl,int direction,int crossed, double factor)
 {
   int j;
   struct counter *hit_count;
+  double hits_to_ccn=0;
+  
+  if (sp->flags&COUNT_HITS)
+  {
+    hits_to_ccn = sp->time_step * 2.9432976599069717358e-3 /  /* 1e6*sqrt(MY_PI)/(1e-15*N_AV) */ 
+                  (sp->space_step*factor*world->length_unit*world->length_unit*world->length_unit);
+  }
   
   hit_count = NULL;  
   for ( ; rl != NULL ; rl = rl->next)
@@ -105,6 +113,10 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
               if (direction==1) hit_count->data.move.front_hits++;
               else hit_count->data.move.back_hits++;
             }
+	    if (rl->reg->area != 0.0)
+	    {
+	      hit_count->data.move.scaled_hits += factor*hits_to_ccn/rl->reg->area;
+	    }
           }
         }
       }
