@@ -1,6 +1,7 @@
 #ifndef MCELL_STRUCTS
 #define MCELL_STRUCTS
 
+#include <machine/limits.h>
 #include <sys/types.h>
 #include <stdio.h>
 
@@ -119,7 +120,7 @@
 #define ORDERED_POLY 1  
 #define UNORDERED_POLY 2  
    /* BOX_POLY is a right parallelepiped polyhedron */
-   /* ORDERED_POLY is a SGI Inventor-style polyhedron with shared vertices *
+   /* ORDERED_POLY is a SGI Inventor-style polyhedron with shared vertices */
    /* UNORDERED_POLY is a free-form collection of distinct polygons */
 
 
@@ -160,7 +161,9 @@
 
 /* Parser parameters.  Probably need to be revisited. */
 #define HASHSIZE 128
+#define HASHMASK 0x7f
 #define COUNTER_HASH 16 
+#define COUNTER_HASHMASK 0xf
    /*LWW 6/13/03 Hashtable size for region counters in each OBJECT*/
 
 #define PATHWAYSIZE 64
@@ -173,7 +176,7 @@
 
 /* Data types to be stored in sym_table, probably broken! */
 #define RX 1
-#define LIG 2
+#define MOL 2
 #define PNT 3
 #define CMP 4
 #define POLY 5
@@ -250,8 +253,8 @@
 #define RX_STATE 0
 #define INIT_TRANS 1
 #define TRANSITIONS 2
-#define LIG_TRANS_EACH 3
-#define LIG_TRANS_ALL 4
+#define MOL_TRANS_EACH 3
+#define MOL_TRANS_ALL 4
 
 
 /* Visualization stuff. */
@@ -269,8 +272,8 @@
 #define ALL_FRAME_DATA 0
 #define EFF_POS 1
 #define EFF_STATES 2
-#define LIG_POS 3
-#define LIG_STATES 4
+#define MOL_POS 3
+#define MOL_STATES 4
 #define SURF_POS 5
 #define SURF_STATES 6
 
@@ -604,6 +607,66 @@ struct volume
   struct counter_helper *collision_counter;
   
   u_int rng_idx;
+
+  /* Simulation initialization parameters  */
+  struct sym_table **main_sym_table;
+  struct object *root_object;
+  struct object *root_instance;
+  struct release_pattern *default_release_pattern;
+  struct release_event_queue *release_event_queue_head;
+  struct count_list *count_list;
+  struct count_list *count_zero;
+  struct output_list *output_list;
+  struct viz_obj *viz_obj_head;
+  struct frame_data_list *frame_data_head;
+  double time_unit;
+  double length_unit;
+  double effector_grid_density;
+  double *r_step;
+  double *d_step;
+  double *factorial_r;
+  double r_num_directions;
+  double current_time;
+  double current_start_time;
+  double effector_grid_density;
+  double max_diffusion_step;
+  double random_number_use;
+  double ray_voxel_tests;
+  double ray_polygon_tests;
+  double diffusion_steps;
+  double sim_elapse_time;
+  u_int tot_mols;
+  u_int init_seed;
+  u_int it_time;
+  u_int start_time;
+  u_int n_release_events;
+  u_int radial_directions;
+  u_int radial_subdivisions;
+  u_int num_directions;
+  int fully_random;
+  int procnum;
+  int viz_mode;
+  char *molecule_prefix_name;
+
+  /* MCell startup command line arguments */
+  byte info_opt;
+  u_int seed_seq;
+  u_int iterations;
+  char *log_file_name;
+  FILE *log_file;
+  u_int log_freq;
+  u_int chkpt_init;
+  u_int chkpt_flag;
+  u_int chkpt_iterations;
+  u_int chkpt_seq_num;
+  char *chkpt_infile;
+  char *chkpt_outfile;
+  FILE *chkpt_infs;
+  FILE *chkpt_outfs;
+  FILE *chkpt_signal_file_tmp;
+  char *mdl_infile_name;
+  char *curr_file;
+
 };
 
 
@@ -706,7 +769,7 @@ struct count_list {
 	byte reset_flag;            /**< reset temp_data to 0 on each iteration?*/
 	byte update_flag;           /**< counter update necessary?*/
 	byte data_type;             /**< type of data to track:
-	                              LIG RX CMP EXPR INT DBL*/
+	                              MOL RX CMP EXPR INT DBL*/
 	byte index_type;            /**< flag indicating final_data is to be
 	                              indexed by either
 	                              TIME_STAMP_VAL or INDEX_VAL*/
@@ -947,7 +1010,7 @@ struct region_list {
  */
 struct reg_counter_ref {
 	unsigned int counter;
-	byte count_type; 	/*Three possible types:RX_STATE, TRANSITION, INIT_TRANS, LIG_TRANS*/
+	byte count_type; 	/*Three possible types:RX_STATE, TRANSITION, INIT_TRANS, MOL_TRANS*/
 	byte count_method;	/* Three types:DT, SUM, CUM */
 	struct region *parent;
 	struct rx *state;
@@ -968,54 +1031,39 @@ struct counter_hash_table {
 	void *value;
 	struct counter_hash_table *next;
 };
+
 /**
- * Container data structure for all other physical objects.
+ * Container data structure for all physical objects.
  */
 struct object {
         struct sym_table *sym;
         char *last_name;
         byte object_type;
-        void *obj;
-        struct object *parent;
+        void *contents;			/**< ptr to actual physical object */
+        struct object *parent;		/**< ptr to parent meta object */
+        struct object *next;		/**< ptr to next child object */
+        struct object *first_child;	/**< ptr to first child object */
+        struct object *last_child;	/**< ptr to last child object */
 	struct lig_count_ref *lig_count_ref;
 					/**< ptr to list of lig_count_ref
 	                                   structures: one for each time meta-
 	                                   object is referenced in count stmt */
-        unsigned int num_regions;       /**< number of regions defined */
+        unsigned int num_regions;	/**< number of regions defined */
 	struct region_list *region_list; /**< ptr to list of regions for 
+	struct counter_hash_table **counter_hash_table;	/**<hash table for region counter in object*/
                                             this object */
 /*        struct eff_dat **eff_prop;*/	/**<  if this object is a
 					   BOX_OBJ or POLY_OBJ this will be an
 					   array of ptrs to eff_dat data
 					   structures, one for each polygon. */
-	struct cmprt_data *cmprt_data;  /**< if this object is a 
+	struct cmprt_data *cmprt_data;	/**< if this object is a 
 					   BOX_OBJ or POLY_OBJ this will
 					   point to the cmprt_data struct
 					   containing the instantiated object */
         struct viz_obj *viz_obj;
         int *viz_state;			/**< array of viz state values.
 					   One for each element of object. */
-        double t_matrix[4][4];
-	struct counter_hash_table **counter_hash_table;	/**<hash table for region counter in object*/
-};
-
-/**
- * An object composed of other objects.
- */
-struct meta_object {
-        struct sym_table *sym;
-        struct object_list *first_child;
-        struct object_list *last_child;
-};
-
-/**
- * Linked list of object's.
- * Could be subsumed by object.
- */
-struct object_list {
-        struct meta_object *parent;
-        struct object *object;
-        struct object_list *next;
+        double t_matrix[4][4];		/**< transformation matrix for object */
 };
 
 /**
@@ -1137,7 +1185,7 @@ struct file_stream {
  */
 struct sym_table {
         unsigned short sym_type; /**< type of symbol stored -
-                                   OBJ, RX, LIG, DBL, PNT ...*/
+                                   OBJ, RX, MOL, DBL, PNT ...*/
         char *name;              /**< name of symbol*/
         void *value;             /**< ptr to stored value*/
         struct sym_table *next;  /**< next symbol in symbol table*/
@@ -1156,6 +1204,12 @@ struct num_expr_list {
   double value;
   struct num_expr_list *next;
 };
+
+#ifdef DEBUG
+#define no_printf printf
+#else
+void no_printf(const char *,...);
+#endif
 
 
 #endif
