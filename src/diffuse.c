@@ -1068,6 +1068,7 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   double t_already = 0.0;
   
   int i,j,k,l;
+  int need_pos_update;   /* If we count # inside a transparent surface, set this when passing through so we don't count twice */
   
   int calculate_displacement = 1;
 
@@ -1101,7 +1102,7 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
       mp->next_v = NULL;
     }
   }
-
+  
 /* Done housekeeping, now let's do something fun! */    
   
 pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
@@ -1192,7 +1193,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
 #define ERROR_AND_QUIT fprintf(world->err_file,"Out of memory: trying to save intermediate results.\n"); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
-#define UPDATE_LOCATION(w) m->pos.x=(w)->loc.x+EPS_C*displacement.x; m->pos.y=(w)->loc.y+EPS_C*displacement.y; m->pos.z=(w)->loc.z+EPS_C*displacement.z; t_already=(w)->t
+#define UPDATE_LOCATION(w) m->pos.x+=displacement.x*((w)->t-t_already); m->pos.y+=displacement.y*((w)->t-t_already); m->pos.z=displacement.z*((w)->t-t_already); t_already=(w)->t; need_pos_update=0
   do
   {
     shead2 = ray_trace(m,shead,sv,&displacement);
@@ -1204,6 +1205,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       shead2 = gather_walls_first(shead2,TOL);
     }
     
+    need_pos_update = 0;
     for (smash = shead2; smash != NULL; smash = smash->next)
     {
       
@@ -1240,6 +1242,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
         i = test_bimolecular(rx,factor);
         if (i<=RX_NO_RX) continue;
+	
+	if (need_pos_update) { UPDATE_LOCATION(smash); }
         
         j = outcome_bimolecular(
                 rx,i,(struct abstract_molecule*)m,
@@ -1280,6 +1284,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 		i = test_bimolecular(rx,rate_factor * w->effectors->binding_factor);
 		if (i > RX_NO_RX)
 		{
+		  if (need_pos_update) { UPDATE_LOCATION(smash); }
+		  
 		  l = outcome_bimolecular(
 		    rx,i,(struct abstract_molecule*)m,
 		    (struct abstract_molecule*)g,
@@ -1292,7 +1298,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 		    if ( (sm->flags & w->flags & COUNT_SOME) )
 		    {
 		      update_collision_count(sm,w->regions,k,1);
-		      UPDATE_LOCATION(smash);
+		      need_pos_update = 1;
 		    }
 		    
 		    continue; /* pass through */
@@ -1325,15 +1331,17 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	      if ( (sm->flags & COUNT_SOME) )
 	      {
 		update_collision_count(sm,w->regions,k,1);
-		UPDATE_LOCATION(smash);
+		need_pos_update = 1;
 	      }
 
-	      continue;
+	      continue; /* Ignore this wall and keep going */
 	    }
 	    if (rx->rate_t != NULL) check_rates(rx,m->t);
 	    i = test_intersect(rx,rate_factor);
 	    if (i > RX_NO_RX)
 	    {
+	      if (need_pos_update) { UPDATE_LOCATION(smash); }
+	      
 	      j = outcome_intersect(
 		      rx,i,w,(struct abstract_molecule*)m,
 		      k,m->t + t_steps*smash->t,&(smash->loc)
@@ -1345,7 +1353,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 		if ( (sm->flags & COUNT_SOME) )
 		{
 		  update_collision_count(sm,w->regions,k,1);
-		  UPDATE_LOCATION(smash);
+		  need_pos_update = 1;
 		}
 
 		continue; /* pass through */
@@ -1375,6 +1383,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                                  displacement.z * displacement.z ) );
         t_steps *= (1.0-smash->t);
         t_already = 0.0;
+	need_pos_update = 0;
         
         factor = -2.0 * (displacement.x*w->normal.x + displacement.y*w->normal.y + displacement.z*w->normal.z);
         displacement.x = (displacement.x + factor*w->normal.x) * (1.0-smash->t);
@@ -1401,6 +1410,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         m->t += t_steps*smash->t;
         t_steps *= (1.0-smash->t);
         t_already = 0.0;
+	need_pos_update = 0;
         if (t_steps < EPS_C) t_steps = EPS_C;
 
         nsv = traverse_subvol(sv,&(m->pos),smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL);
@@ -1443,6 +1453,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                           displacement.y*displacement.y +
                           displacement.z*displacement.z );
   m->index = -1;
+  
   return m;
 #undef TOL
 }
