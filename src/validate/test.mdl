@@ -58,9 +58,13 @@ DEFINE_SURFACE_CLASSES {
 
 DEFINE_REACTIONS {
 /*  ACh + Glu -> ACh + Glu + Glw [1e8] */
-  ACh' + GENERIC_SURFACE, -> ACf, [1e8]
+/*  ACh' + GENERIC_SURFACE, -> ACf, [1e8]
   Glu + ACf -> ACf + Glw [1e8]
-  Glw' + GENERIC_SURFACE, -> ACg [1e7]
+  Glw' + GENERIC_SURFACE, -> ACg [1e7] */
+/*  Glu' + AChR.R, -> Glu' + AChR.AR, [1e8] */
+  AChR.R -> ACf [1e4] 
+  Glu -> Glw [1e4] 
+/*  Glw + AChR.AR -> Glw + AChR.R [1e8] */
 /*  ACg -> ACe [1e4] */
 }
 
@@ -105,7 +109,7 @@ box BOX {
       SURFACE_CLASS = surf_a
 */
       MOLECULE_DENSITY {
-        ACf' = 1000
+        AChR.R' = 5000
       }
     }
   }

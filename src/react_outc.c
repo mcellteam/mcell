@@ -13,6 +13,7 @@
 #include "grid_util.h"
 #include "mcell_structs.h"
 #include "react.h"
+#include "vol_util.h"
 
 extern struct volume *world;
 
@@ -116,9 +117,9 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
             g->t2 = 0.0;
             g->grid_index = j;
             g->grid = sg;
-
+            
+            if (reac_g==NULL || sg->mol[j]!=reac_g) sg->n_occupied++;
             sg->mol[j] = g;
-            sg->n_occupied++;
             
             plist[i-i0] = (struct abstract_molecule*)g;
             ptype[i-i0] = 'g';
@@ -235,11 +236,15 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
           m->pos.y = reac_s->pos.y;
           m->pos.z = reac_s->pos.z;
           m->subvol = reac_s->subvol;
+          m->next_v = m->subvol->mol_head;
+          m->subvol->mol_head = m;
         }
         else if (reac_g != NULL)
         {
           grid2xyz(reac_g->grid , reac_g->grid_index , &(m->pos));
-          /* TODO: Look up subvolume. */
+          m->subvol = find_subvolume(&(m->pos),reac_g->grid->subvol);
+          m->next_v = m->subvol->mol_head;
+          m->subvol->mol_head = m;
         }
         plist[i-i0] = (struct abstract_molecule*)m;
         ptype[i-i0] = 'm';

@@ -1589,16 +1589,19 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
         sg->mol[i]=mol;
         mol->t=0;
         mol->t2=0;
+
         mol->properties=eff[p_index];
         mol->birthplace=w->birthplace->gmol;
         mol->grid_index=i;
         mol->orient=orientation[p_index];
         mol->grid=sg;
+
         mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
         if (trigger_unimolecular(eff[p_index]->hashval,
           (struct abstract_molecule *)mol)!=NULL) {
           mol->flags|=ACT_REACT;
         }
+
         schedule_add(w->birthplace->timer,mol);
       }
     }

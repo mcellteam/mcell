@@ -443,9 +443,8 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   
   int calculate_displacement = 1;
   
-  int listed = 0;
-  
   sm = m->properties;
+  if (sm==NULL) printf("BROKEN!!!!!\n");
   if (sm->space_step <= 0.0)
   {
     m->t += max_time;
@@ -460,7 +459,14 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   old_mp = NULL;
   for (mp = sv->mol_head ; mp != NULL ; old_mp = mp , mp = mp->next_v)
   {
-    if (mp==m) listed++;
+continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp already set */
+
+    if (mp==m) continue;
+    if (m->properties!=sm)
+    {
+      if (calculate_displacement) printf("WHAAA????\n");
+      else printf("HWAAAAA????\n");
+    }
     
     if (mp->properties == NULL)  /* Reclaim storage */
     {
@@ -470,7 +476,10 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       if ((mp->flags & IN_MASK)==IN_VOLUME) mem_put(mp->birthplace,mp);
       else if ((mp->flags & IN_VOLUME) != 0) mp->flags -= IN_VOLUME;
       
-      continue;
+      mp = mp->next_v;
+
+      if (mp==NULL) break;
+      else goto continue_special_diffuse_3D;  /*continue without incrementing pointer*/
     }
     
     r = trigger_bimolecular(
@@ -789,9 +798,15 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         }
         else
         {
+          struct molecule *mm;
+          struct species *mms;
 /*          printf("Moving molecule %x from subvolume %x to %x ",
                  (int)m,(int)sv,(int)nsv);*/
+          mms = m->properties;
+          mm = m;
           m = migrate_molecule(m,nsv);
+          if (m->properties==NULL) printf("We nulled, used to be %x with %x, now %x with NULL!\n",(int)mm,(int)mms,(int)m);
+          
 /*          printf("and identity is now %x.\n",(int)m);*/
         }
 
@@ -799,6 +814,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         if (shead != NULL) mem_put_list(sv->mem->coll,shead);
         
         calculate_displacement = 0;
+        if (m->properties==NULL) printf("This molecule shouldn't be jumping.\n");
         goto pretend_to_call_diffuse_3D;  /* Jump to beginning of function */        
       }
     }
@@ -843,15 +859,19 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
   while ( (a = (struct abstract_molecule*)schedule_next(local->timer)) != NULL )
   {
 
-    if (a->properties == NULL)  /* Defunct!  Remove. */
+    if (a->properties == NULL)  /* Defunct!  Remove molecule. */
     {
-      if ((a->flags & IN_MASK) == IN_SCHEDULE) mem_put(a->birthplace,a);
+      if ((a->flags & IN_MASK) == IN_SCHEDULE)
+      {
+        a->next = NULL; 
+        mem_put(a->birthplace,a);
+      }
       else a->flags -= IN_SCHEDULE;
       
       continue;
     }
 
-    a->flags -=IN_SCHEDULE;
+    a->flags -= IN_SCHEDULE;
     
     if (local->current_time + local->max_timestep < checkpt_time) stop_time = local->max_timestep;
     else stop_time = checkpt_time - local->current_time;
@@ -883,7 +903,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     if ((a->flags & (ACT_INERT+ACT_REACT)) == 0) max_time = stop_time;
     else if (a->t2 < stop_time) max_time = a->t2;
     else max_time = stop_time;
-          
+    
     if ((a->flags & ACT_DIFFUSE) != 0)
     {
       if ((a->flags & TYPE_3D) != 0)
@@ -900,9 +920,14 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       else  /* Surface diffusion not yet implemented */
       {
         a->t += max_time;
+        a->t2 -= max_time;
       }
     }
-    else a->t += max_time;
+    else
+    {
+      a->t += max_time;
+      a->t2 -=max_time;
+    }
 
     a->flags += IN_SCHEDULE;
     if (a->flags & TYPE_GRID) schedule_add(local->timer,a);
