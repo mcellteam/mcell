@@ -266,21 +266,280 @@ void tell_loc(struct molecule *m,char *s)
 }
 
 
-double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv)
+double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv,
+                  struct molecule *moving,struct molecule *target)
+{
+  int relevant_walls = 0;
+  struct wall_list *wl;
+  
+  /* How many things we might intersect with? */
+  
+  for ( wl = sv->wall_head ; wl!=NULL ; wl = wl->next ) relevant_walls++;
+  if ( world->x_fineparts[ sv->urb.x ] - loc->x < R ) relevant_walls++;
+  if ( world->y_fineparts[ sv->urb.y ] - loc->y < R ) relevant_walls++;
+  if ( world->z_fineparts[ sv->urb.z ] - loc->z < R ) relevant_walls++;
+  if ( loc->x - world->x_fineparts[ sv->llf.x ] < R ) relevant_walls++;
+  if ( loc->y - world->y_fineparts[ sv->llf.y ] < R ) relevant_walls++;
+  if ( loc->z - world->z_fineparts[ sv->llf.z ] < R ) relevant_walls++;
+  
+  if (relevant_walls==0) return 1.0;
+  else
+  {
+    struct vector3 n,u,v,hit;
+    double a,b,c,d,f,g,h;
+    struct vector2 startpoints[relevant_walls];
+    struct vector2 endpoints[ relevant_walls ];
+    struct vector2 fix_loc;
+    int max_intersecting = 0;
+    int idx = 0;
+    int direct_hit = 0;
+    int added_line;
+    struct rxn *rx;
+    struct wall *w;
+    
+    /* Set up an orthogonal coordinate system */
+    /* first axis = direction of motion */
+    /* second axis = direction from collision location to target particle */
+    /* third axis = cross product of first two */
+    
+    a = 1.0/sqrt(mv->x*mv->x + mv->y*mv->y + mv->z*mv->z);
+    n.x = a * mv->x;
+    n.y = a * mv->y;
+    n.z = a * mv->z;
+    
+    u.x = target->pos.x - loc->x;
+    u.y = target->pos.y - loc->y;
+    u.z = target->pos.z - loc->z;
+    a = sqrt(u.x*u.x + u.y*u.y + u.z*u.z);
+    if (a < 0.5*EPS_C)
+    {
+      direct_hit = 1;
+      if (n.x * n.x < EPS_C) { u.x = 0; u.y = -n.z; u.z = n.y; }
+      else if (n.y*n.y<EPS_C) { u.x = -n.z; u.y = 0; u.z = n.x; }
+      else { u.x = -n.y; u.y = n.x; u.z = 0; }
+      a = 1.0/sqrt(u.x*u.x + u.y*u.y + u.z*u.z);
+    }
+    else a = 1.0/a;
+    u.x *= a;
+    u.y *= a;
+    u.z *= a;
+    
+    v.x = n.y*u.z - n.z*u.y;
+    v.y = n.z*u.x - n.x*u.z;
+    v.z = n.x*u.y - n.y*u.x;
+    
+    d = loc->x*mv->x + loc->y*mv->y + loc->z*mv->z;
+    
+    /* First we check all the partitions */
+    /* We touch partition z if R*u.z*cos(t) + R*v.z*sin(t) == distance to partition */
+    /* Solve quadratically--define in a macro to save space */
+    
+    /*
+    Macro does the equivalent of the following (except for setting the once-used b and c)
+	  a = u.z*u.z + v.z*v.z;
+	  b = f * v.z;              This is actually -b in the QF            
+	  c = f*f - u.z*u.z;
+	  g = b/a;                  Leading term for R*sin(t)
+	  h = (g*g - c/a);          Square of plus/minus term                   
+    */  
+    #define SOLVE_QF( uw , vw ) a = (uw)*(uw) + (vw)*(vw); g = f*(vw)/a; h = g*g - (f*f - (uw)*(uw))
+	
+    /*
+    And we want to add the intersection points of the  partition neatly, so we macro
+    the equivalent of
+	  f = world->z_fineparts[ sv->urb.z ] - loc->z;
+	  if (f<R)         Might touch
+	  {
+	    SOLVE_QF( u.z , v.z );
+	    if (h>0)       Root exists
+	    {
+	      h = sqrt(h);
+	      if (g-h > -1.0 && g+h < 1.0)     In range
+	      {
+		startpoints[ idx ].v = g-h;
+		startpoints[ idx ].u = sqrt( 1.0 - (g-h)*(g-h) );
+		endpoints[ idx ].v = g+h;
+		endpoints[ idx ].u = sqrt( 1.0 - (g+h)*(g+h) );
+		idx++;
+	      }
+	    }
+	  }
+    */
+    #define REGISTER_PARTITION startpoints[idx].v=g-h; startpoints[idx].u=sqrt(1-(g-h)*(g-h)); endpoints[idx].v=g+h; endpoints[idx].u=sqrt(1-(g+h)*(g+h)); idx++
+    #define CHECK_PARTITION( uw , vw , fw , Rw ) f = (fw); if (f<(Rw)) { SOLVE_QF((uw),(vw)); if (h>0) { h=sqrt(h); if (g-h>-R&&g+h<R) { REGISTER_PARTITION; } } }
+
+    CHECK_PARTITION( u.x , v.x , world->x_fineparts[ sv->urb.x ] - loc->x , R )
+    CHECK_PARTITION( u.x , v.x , world->x_fineparts[ sv->llf.x ] - loc->x , -R)
+    CHECK_PARTITION( u.y , v.y , world->y_fineparts[ sv->urb.y ] - loc->y , R )
+    CHECK_PARTITION( u.y , v.y , world->y_fineparts[ sv->llf.y ] - loc->y , -R)
+    CHECK_PARTITION( u.z , v.z , world->z_fineparts[ sv->urb.z ] - loc->z , R )
+    CHECK_PARTITION( u.z , v.z , world->z_fineparts[ sv->llf.z ] - loc->z , -R)
+    
+    #undef CHECK_PARTITION
+    #undef REGISTER_PARTITON
+    #undef SOLVE_QF
+    
+    /* Blech, okay, I'm glad that's done with. */
+    
+    /* Now we check all the walls and return -1 if we can't reach our target */
+    /* Ignoring very rare cases of parallel wall and vertices stuck in */
+    /* the interaction disk--that makes the code much bulkier */
+    
+    if (sv->wall_head != NULL)
+    {
+      fix_loc.u = u.x*target->pos.x + u.y*target->pos.y + u.z*target->pos.z;
+      fix_loc.v = v.x*target->pos.x + v.y*target->pos.y + v.z*target->pos.z;
+    }
+    
+    for (wl = sv->wall_head ; wl!=NULL ; wl = wl->next)
+    {
+      w = wl->this_wall;
+      added_line = 0;
+      
+      if ( (moving->properties->flags & CAN_MOLWALL) != 0 )
+      {
+	a = w->normal.x * loc->x + w->normal.y * loc->y + w->normal.z * loc->z;
+	rx = trigger_intersect(moving->properties->hashval,(struct abstract_molecule*)moving,(a>w->d)?1:-1,w);
+	if (rx != NULL && (rx->n_pathways==RX_WINDOW || rx->n_pathways==RX_GHOST) )
+	{
+	  continue; /* Ghost/window, we can see through it! */
+	}
+      }
+      
+      /* Point normal locations */
+      a = w->vert[0]->x * n.x + w->vert[0]->y * n.y + w->vert[0]->z * n.z;
+      b = w->vert[1]->x * n.x + w->vert[1]->y * n.y + w->vert[1]->z * n.z;
+      c = w->vert[2]->x * n.x + w->vert[2]->y * n.y + w->vert[2]->z * n.z;
+      
+      /* Intersection time of edges */
+      if ( a != b ) f = (d - a)/(b - a); else f = -1;
+      if ( b != c ) g = (d - b)/(c - b); else g = -1;
+      if ( c != a ) h = (d - c)/(a - c); else h = -1;
+      
+      if (f>0 && f<1)
+      {
+	if (g>0 && g<1)
+	{
+	  hit.x = (1-f) * w->vert[0]->x + f * w->vert[1]->x;
+	  hit.y = (1-f) * w->vert[0]->y + f * w->vert[1]->y;
+	  hit.z = (1-f) * w->vert[0]->z + f * w->vert[1]->z;
+	  startpoints[idx].u = hit.x*u.x + hit.y*u.y + hit.z*u.z;
+	  startpoints[idx].v = hit.x*v.x + hit.y*v.y + hit.z*v.z;
+	  
+	  hit.x = (1-g) * w->vert[0]->x + g * w->vert[1]->x;
+	  hit.y = (1-g) * w->vert[0]->y + g * w->vert[1]->y;
+	  hit.z = (1-g) * w->vert[0]->z + g * w->vert[1]->z;
+	  endpoints[idx].u = hit.x*u.x + hit.y*u.y + hit.z*u.z;
+	  endpoints[idx].v = hit.x*v.x + hit.y*v.y + hit.z*v.z;
+	  
+	  added_line = 1;
+	}
+	else if (h>0 && h<1)
+	{
+	  hit.x = (1-f) * w->vert[0]->x + f * w->vert[1]->x;
+	  hit.y = (1-f) * w->vert[0]->y + f * w->vert[1]->y;
+	  hit.z = (1-f) * w->vert[0]->z + f * w->vert[1]->z;
+	  startpoints[idx].u = hit.x*u.x + hit.y*u.y + hit.z*u.z;
+	  startpoints[idx].v = hit.x*v.x + hit.y*v.y + hit.z*v.z;
+	  
+	  hit.x = (1-h) * w->vert[0]->x + h * w->vert[1]->x;
+	  hit.y = (1-h) * w->vert[0]->y + h * w->vert[1]->y;
+	  hit.z = (1-h) * w->vert[0]->z + h * w->vert[1]->z;
+	  endpoints[idx].u = hit.x*u.x + hit.y*u.y + hit.z*u.z;
+	  endpoints[idx].v = hit.x*v.x + hit.y*v.y + hit.z*v.z;
+	  
+	  added_line = 1;
+	}
+      }
+      else if (g>0 && g<1 && h>0 && h<1)
+      {
+	hit.x = (1-g) * w->vert[0]->x + g * w->vert[1]->x;
+	hit.y = (1-g) * w->vert[0]->y + g * w->vert[1]->y;
+	hit.z = (1-g) * w->vert[0]->z + g * w->vert[1]->z;
+	startpoints[idx].u = hit.x*u.x + hit.y*u.y + hit.z*u.z;
+	startpoints[idx].v = hit.x*v.x + hit.y*v.y + hit.z*v.z;
+	
+	hit.x = (1-h) * w->vert[0]->x + h * w->vert[1]->x;
+	hit.y = (1-h) * w->vert[0]->y + h * w->vert[1]->y;
+	hit.z = (1-h) * w->vert[0]->z + h * w->vert[1]->z;
+	endpoints[idx].u = hit.x*u.x + hit.y*u.y + hit.z*u.z;
+	endpoints[idx].v = hit.x*v.x + hit.y*v.y + hit.z*v.z;
+	
+	added_line = 1;
+      }
+	
+      if (added_line && !direct_hit) /* Check if this blocked us from target */
+      {
+	if (fix_loc.u == 0)
+	{
+	  if ( startpoints[idx].u != endpoints[idx].u )
+	  {
+	    a = -startpoints[idx].u / (endpoints[idx].u - startpoints[idx].u);
+	    if (a>0 && a<1)
+	    {
+	      b = ((1-a)*startpoints[idx].v + a*endpoints[idx].v) / fix_loc.v;
+	      if (b>0 && b<1) return -1;
+	    }
+	  }
+	}
+	else if (fix_loc.v == 0)
+	{
+	  if ( startpoints[idx].v != endpoints[idx].v )
+	  {
+	    a = -startpoints[idx].v / (endpoints[idx].v - startpoints[idx].v);
+	    if (a>0 && a<1)
+	    {
+	      b = ((1-a)*startpoints[idx].u + a*endpoints[idx].u) / fix_loc.u;
+	      if (b>0 && b<1) return -1;
+	    }
+	  }
+	}
+	else
+	{
+	  c = endpoints[idx].v - startpoints[idx].v + startpoints[idx].u - endpoints[idx].u;
+	  if (c != 0)
+	  {
+	    a = (fix_loc.v * startpoints[idx].u - fix_loc.u * startpoints[idx].v)/c;
+	    if (a>0 && a<1)
+	    {
+	      b = ((1-b)*startpoints[idx].v + a*endpoints[idx].v) / fix_loc.v;
+	      if (b>0 && b<1) return -1;
+	    }
+	  }
+	}
+      }
+      
+      idx += added_line;
+    }
+    
+    /* Now we have to compute the area given all the line segments */
+    max_intersecting = idx;
+  }
+ 
+  return 1.0;
+}
+
+
+double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv,struct molecule *moving,struct molecule *target)
 {
   int rpt,idx,bits;
   double area;
-  struct vector3 u,v;
+  struct vector3 u,v,loc_to_targ;
   double d2_mv_i,a,b,t;
   double upperU;
   double upperV;
   double lowerU;
   double lowerV;
   struct wall_list *wl;
+  struct rxn *rx;
   
   area = 0;
   d2_mv_i = 1.0/(mv->x*mv->x + mv->y*mv->y + mv->z*mv->z);
-
+  
+  loc_to_targ.x = target->pos.x - loc->x;
+  loc_to_targ.y = target->pos.y - loc->y;
+  loc_to_targ.z = target->pos.z - loc->z;
+  
   for (rpt = 0; rpt < 1 ; rpt++)
   {
   
@@ -318,6 +577,15 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
   
   for (wl = sv->wall_head ; wl!=NULL ; wl = wl->next)
   {
+    if ( (moving->properties->flags && CAN_MOLWALL) != 0 )
+    {
+      rx = trigger_intersect(moving->properties->hashval,(struct abstract_molecule*)moving,0,wl->this_wall);
+      if (rx != NULL && (rx->n_pathways==RX_GHOST || rx->n_pathways==RX_WINDOW))
+      {
+	continue; /* We can move through this wall! */
+      }
+    }
+    
     t = touch_wall(loc,&u,wl->this_wall);
     if (t>0.0 && t<upperU) upperU = t;
     if (t<0.0 && -t<lowerU) lowerU = -t;
@@ -325,6 +593,12 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
     t = touch_wall(loc,&v,wl->this_wall);
     if (t>0.0 && t<upperV) upperV = t;
     if (t<0.0 && -t<lowerV) lowerV = -t;
+    
+    if (rpt==0)
+    {
+      t = touch_wall(loc,&loc_to_targ,wl->this_wall);
+      if (t>0 && t<1) return -1;  /* This wall blocked us! */
+    }
   }
 
 
@@ -791,9 +1065,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           if (smash->t < am->t + am->t2) continue;
         }
 
-        factor = rate_factor / estimate_disk(
-          &(smash->loc),&displacement,world->rx_radius_3d,m->subvol
+        factor = estimate_disk(
+          &(smash->loc),&displacement,world->rx_radius_3d,m->subvol,m,
+	  (struct molecule*)am
         );
+	if (factor<0) continue; /* Reaction blocked by a wall */
+	
+	factor = rate_factor / factor;
         
         if (rx->rate_t != NULL) check_rates(rx,m->t);
 
