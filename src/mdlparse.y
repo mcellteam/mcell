@@ -5607,15 +5607,19 @@ fprint_time_stmt: FPRINT_TIME '(' existing_file_stream ',' format_string ')'
 /* Begin Bison Epilogue: */
 
 
+struct mdlparse_vars *clunky_mpvp_for_errors;
+
 void mdlerror(char *s,...)
 {
   va_list ap;
   FILE *log_file;
-  struct mdlparse_vars *mpvp;
+  struct mdlparse_vars *mpvp = clunky_mpvp_for_errors;
 
+/*
   va_start(ap,s);
   mpvp=va_arg(ap,struct mdlparse_vars *);  
   va_end(ap);
+*/
 
   log_file=stderr;
   if (mpvp->vol->log_file!=NULL) {
@@ -5630,7 +5634,6 @@ void mdlerror(char *s,...)
 	return;
 }
 
-
 int mdlparse_init(struct volume *vol)
 {
   struct mdlparse_vars *mpvp;
@@ -5642,6 +5645,7 @@ int mdlparse_init(struct volume *vol)
     fprintf(vol->log_file,"MCell: out of memory storing mdlparse vars\n");
     return(1);
   }
+  clunky_mpvp_for_errors = mpvp;
 
   mpvp->vol=vol;
   

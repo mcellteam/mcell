@@ -1,4 +1,6 @@
 
+#include <time.h>
+#include <sys/resource.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -18,6 +20,9 @@ struct volume *world;
 
 void run_sim(void)
 {
+  struct rusage run_time;
+  long t_initial,t_final;
+
   struct storage_list *local;
   struct release_event_queue *req;
   struct output_list *olp;
@@ -38,6 +43,8 @@ void run_sim(void)
   return;
 */  
 
+  t_initial = time(NULL);
+  
   if (world->iterations < 1000) frequency = 10;
   else if (world->iterations < 100000) frequency = 100;
   else if (world->iterations < 10000000) frequency = 1000;
@@ -181,6 +188,15 @@ void run_sim(void)
              j,mol->path_length*world->length_unit,mol->collisions);
     }
   }
+#endif
+#if 1
+  t_final = time(NULL);
+  getrusage(RUSAGE_SELF,&run_time);
+  fprintf( world->log_file,"Total CPU time = %f (user) and %f (system)\n",
+           run_time.ru_utime.tv_sec + (run_time.ru_utime.tv_usec/1.0e6),
+           run_time.ru_stime.tv_sec + (run_time.ru_stime.tv_usec/1.0e6) );
+  fprintf( world->log_file,"Total wall clock time = %d seconds\n",
+           (int)(t_final - t_initial) );
 #endif
 
   printf("Exiting run loop.\n");
