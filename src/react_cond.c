@@ -29,17 +29,17 @@ int test_unimolecular(struct rxn *rx)
   
   m = 0;
   M = rx->n_pathways-1;
-  if (p > rx->cum_rates[ rx->n_pathways-1 ]) return RX_NO_RX;
+  if (p > rx->cum_probs[ rx->n_pathways-1 ]) return RX_NO_RX;
 
   while (M-m > 1)
   {
     avg = (M+m)/2;
-    if (p > rx->cum_rates[avg]) m = avg;
+    if (p > rx->cum_probs[avg]) m = avg;
     else M = avg;
   }
   
   if (m==M) return m;
-  if (p > rx->cum_rates[m]) return M;
+  if (p > rx->cum_probs[m]) return M;
   else return m;
 }
 
@@ -53,7 +53,7 @@ timeof_unimolecular:
 double timeof_unimolecular(struct rxn *rx)
 {
   double p = rng_double( world->seed++ );
-  double k_tot = rx->cum_rates[ rx->n_pathways - 1 ];
+  double k_tot = rx->cum_probs[ rx->n_pathways - 1 ];
   
   if (k_tot<=0) return GIGANTIC;
   return -log( p )/k_tot;
@@ -74,17 +74,17 @@ int which_unimolecular(struct rxn *rx)
   m = 0;
   M = rx->n_pathways-1;
   
-  p = p * rx->cum_rates[ rx->n_pathways-1 ];
+  p = p * rx->cum_probs[ rx->n_pathways-1 ];
   
   while (M-m > 1)
   {
     avg = (M+m)/2;
-    if (p > rx->cum_rates[avg]) m = avg;
+    if (p > rx->cum_probs[avg]) m = avg;
     else M = avg;
   }
   
   if (m==M) return m;
-  if (p > rx->cum_rates[m]) return M;
+  if (p > rx->cum_probs[m]) return M;
   else return m;
 }
 
@@ -103,12 +103,12 @@ int test_bimolecular(struct rxn *rx,double time_mult)
   int m,M,avg;
   double p = rng_double( world->seed++ ) / time_mult;  /* FIXME: convert to use multiples */
   
-  if ( p > rx->cum_rates[ rx->n_pathways-1 ] ) return RX_NO_RX;
+  if ( p > rx->cum_probs[ rx->n_pathways-1 ] ) return RX_NO_RX;
   
   m = 0;
   M = rx->n_pathways-1;
   
-  if ( p > rx->cum_rates[M] )
+  if ( p > rx->cum_probs[M] )
   {
     printf("BROKEN!!!\n");
     return -1;
@@ -117,12 +117,12 @@ int test_bimolecular(struct rxn *rx,double time_mult)
   while (M-m > 1)
   {
     avg = (M+m)/2;
-    if (p > rx->cum_rates[avg]) m = avg;
+    if (p > rx->cum_probs[avg]) m = avg;
     else M = avg;
   }
   
   if (m==M) return m;
-  if (p > rx->cum_rates[m]) return M;
+  if (p > rx->cum_probs[m]) return M;
   else return m;
 }
 
@@ -146,31 +146,31 @@ int test_intersect(struct rxn *rx,double time_mult)
   
   p = rng_double( world->seed++ ) / time_mult;
   
-  if ( p > rx->cum_rates[ rx->n_pathways-1 ] ) return RX_NO_RX;
+  if ( p > rx->cum_probs[ rx->n_pathways-1 ] ) return RX_NO_RX;
 
   m = 0;
   M = rx->n_pathways-1;
   
-  if ( p > rx->cum_rates[M] ) return RX_NO_RX;
+  if ( p > rx->cum_probs[M] ) return RX_NO_RX;
   
   while (M-m > 1)
   {
     avg = (M+m)/2;
-    if (p > rx->cum_rates[avg]) m = avg;
+    if (p > rx->cum_probs[avg]) m = avg;
     else M = avg;
   }
 
   if (m==M) return m;
-  if (p > rx->cum_rates[m]) return M;
+  if (p > rx->cum_probs[m]) return M;
   else return m;
 }
 
 
 /*************************************************************************
-check_rates:
+check_probs:
   In: A reaction struct
       The current time
-  Out: No return value.  Rates are updated if necessary.
+  Out: No return value.  Probabilities are updated if necessary.
        Memory isn't reclaimed.
   Note: This isn't meant for really heavy-duty use (multiple pathways
         with rapidly changing rates)--if you want that, the code should
@@ -178,30 +178,30 @@ check_rates:
         list as it goes (and the list should be sorted by pathway, too).
 *************************************************************************/
 
-void check_rates(struct rxn *rx,double t)
+void check_probs(struct rxn *rx,double t)
 {
   int j,k;
   double dprob;
   struct t_func *tv;
   int did_something = 0;
   
-  for ( tv = rx->rate_t ; tv!= NULL && tv->time < t ; tv = tv->next )
+  for ( tv = rx->prob_t ; tv!= NULL && tv->time < t ; tv = tv->next )
   {
     j = tv->path;
-    if (j == 0) dprob = tv->value - rx->cum_rates[0];
-    else dprob = tv->value - (rx->cum_rates[j]-rx->cum_rates[j-1]);
+    if (j == 0) dprob = tv->value - rx->cum_probs[0];
+    else dprob = tv->value - (rx->cum_probs[j]-rx->cum_probs[j-1]);
 
-    for (k = tv->path ; k < rx->n_pathways ; k++) rx->cum_rates[k] += dprob;
+    for (k = tv->path ; k < rx->n_pathways ; k++) rx->cum_probs[k] += dprob;
     did_something++;
   }
   
-  rx->rate_t = tv;
+  rx->prob_t = tv;
   
   if (!did_something) return;
   
   if (rx->n_reactants==1)
   {
-    printf("Rate %.4e set for %s[%d] -> ",rx->cum_rates[0],
+    printf("Probability %.4e set for %s[%d] -> ",rx->cum_probs[0],
            rx->players[0]->sym->name,rx->geometries[0]);
 
     for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
@@ -213,7 +213,7 @@ void check_rates(struct rxn *rx,double t)
   }
   else
   {
-    printf("Rate %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_rates[0],
+    printf("Probability %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_probs[0],
            rx->players[0]->sym->name,rx->geometries[0],
            rx->players[1]->sym->name,rx->geometries[1]);
     for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)

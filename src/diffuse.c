@@ -27,7 +27,6 @@
 #include "react_output.h"
 
 
-
 #define MULTISTEP_WORTHWHILE 2
 #define MULTISTEP_PERCENTILE 0.99
 #define MULTISTEP_FRACTION 0.9
@@ -43,7 +42,6 @@
 
 
 extern struct volume *world;
-
 
 /*************************************************************************
 pick_displacement:
@@ -1041,7 +1039,214 @@ double safe_time_step(struct molecule *m,struct collision *shead)
   return steps;
 }
 
+#if 0
+/* Under development */
+/****************************************************************************
+expand_collision_list:
+  In: molecule that is moving
+      linked list of potential collisions with molecules from the 
+                starting subvolume
+      subvolume that we start in
+      displacement vector from current to new location
+  Out: To the current collision list of molecules we may react with in our 
+       subvolume added molecules from the 3 neighboring subvolumes in the 
+       direction of movement. Returns new list of collisions.
+	
+****************************************************************************/
+static struct collision* expand_collision_list(struct molecule *m, struct collision *c, struct subvolume *sv, struct vector3 *v)
+{
+  struct collision *smash,*shead1;
+  struct molecule *mp;
+  struct subvolume *nsv1, *nsv2, *nsv3;
+  struct rxn *rx;
+  /* distance from the molecule to the closest subvolume wall. */
+  double distance = 0;
+  int i;
 
+  shead1 = c;
+
+  if((v == NULL) || (vect_length(v) == 0)) return shead1;
+
+  /* find out in what subvolume direction the molecule is moving. */
+  if (v->x < 0.0)
+  {
+    nsv1 = traverse_subvol(sv,&(m->pos),X_NEG);
+  }
+  else
+  {
+    nsv1 = traverse_subvol(sv,&(m->pos),X_POS);
+  }
+
+  if (v->y < 0.0)
+  {
+    nsv2 = traverse_subvol(sv,&(m->pos),Y_NEG);
+  }
+  else
+  {
+    nsv2 = traverse_subvol(sv,&(m->pos),Y_POS);
+  }
+
+  if (v->z < 0.0)
+  {
+    nsv3 = traverse_subvol(sv,&(m->pos),Z_NEG);
+  }
+  else
+  {
+    nsv3 = traverse_subvol(sv,&(m->pos),Z_POS);
+  }
+     
+    /* find the molecules from the neighboring subvolumes that may react with
+       the starting molecule. */
+    if(nsv1 != NULL)
+    {
+    	for (mp = nsv1->mol_head ; mp != NULL ; mp = mp->next_v)
+    	{
+      		if (mp->properties == NULL) continue;  
+      
+      		/* if the molecule is farther from the subvolume wall than 
+         (2*world->rx_radius_3d) do not account for the interaction with it.	
+      		*/
+                if(v->x < 0.0) {
+    		     distance = world->x_fineparts[ nsv1->urb.x ] - mp->pos.x;
+	        }else if(v->x > 0.0){
+    		     distance = mp->pos.x - world->x_fineparts[ nsv1->llf.x ];
+                }
+
+      		if(distance < 0){
+			distance = -distance;
+      		}      
+
+      		if(distance > 2 * world->rx_radius_3d){
+			continue;
+      		}
+
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	}
+    }
+    
+    if(nsv2 != NULL)
+    {
+    	for (mp = nsv2->mol_head ; mp != NULL ; mp = mp->next_v)
+    	{
+      		if (mp->properties == NULL) continue;  
+      
+      		/* if the molecule is farther from the subvolume wall than 
+         (2*world->rx_radius_3d) do not account for the interaction with it.	
+      		*/
+                if(v->y < 0.0) {
+    		     distance = world->y_fineparts[ nsv2->urb.y ] - mp->pos.y;
+	        }else if(v->y > 0.0){
+    		     distance = mp->pos.y - world->y_fineparts[ nsv2->llf.y ];
+                }
+
+      		if(distance < 0){
+			distance = -distance;
+      		}      
+
+      		if(distance > 2 * world->rx_radius_3d){
+			continue;
+      		}
+
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	}
+   }
+    
+
+    if(nsv3 != NULL)
+    {
+    	for (mp = nsv3->mol_head ; mp != NULL ; mp = mp->next_v)
+    	{
+      		if (mp->properties == NULL) continue;  
+      
+      		/* if the molecule is farther from the subvolume wall than 
+         (2*world->rx_radius_3d) do not account for the interaction with it.	
+      		*/
+                if(v->z < 0.0) {
+    		     distance = world->z_fineparts[ nsv3->urb.z ] - mp->pos.z;
+	        }else if(v->y > 0.0){
+    		     distance = mp->pos.z - world->z_fineparts[ nsv3->llf.z ];
+                }
+
+      		if(distance < 0){
+			distance = -distance;
+      		}      
+
+      		if(distance > 2 * world->rx_radius_3d){
+			continue;
+      		}
+
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	}
+   }
+
+
+    return shead1;
+
+}
+#endif
 
 /*************************************************************************
 diffuse_3D:
@@ -1055,7 +1260,7 @@ diffuse_3D:
 
 struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
 {
-  const double TOL = 10.0*EPS_C;   /* Two walls are coincident if this close */
+  /*const double TOL = 10.0*EPS_C;*//* Two walls are coincident if this close */
   struct vector3 displacement;           /* Molecule moves along this vector */
   struct collision *smash;     /* Thing we've hit that's under consideration */
   struct collision *shead;        /* Things we might hit (can interact with) */
@@ -1072,7 +1277,7 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   double t_steps=1.0;
   double factor;
   double rate_factor=1.0;
-  
+
   int i,j,k,l;
   
   int calculate_displacement = 1;
@@ -1197,17 +1402,20 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
     world->diffusion_number += 1.0;
     world->diffusion_cumsteps += steps;
   }
+
   
-  
-  reflectee = NULL;
-  
+   reflectee = NULL;
+
+ 
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
 #define ERROR_AND_QUIT fprintf(world->err_file,"Out of memory: trying to save intermediate results.\n"); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
   do
   {
+
     shead2 = ray_trace(m,shead,sv,&displacement,reflectee);
+
     if (shead2==NULL) { ERROR_AND_QUIT; }
-    
+
     if (shead2->next!=NULL)  /* Could be sped up/combined */
     {
       shead2 = (struct collision*)ae_list_sort((struct abstract_element*)shead2);
@@ -1235,7 +1443,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         am = (struct abstract_molecule*)smash->target;
         if ((am->flags & ACT_INERT) != 0)  /* FIXME */
         {
-          if (smash->t < am->t + am->t2) continue;
+          /*if (smash->t < am->t + am->t2) continue;*/
         }
 
         factor = estimate_disk(
@@ -1246,7 +1454,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	
 	factor = rate_factor / factor;
         
-        if (rx->rate_t != NULL) check_rates(rx,m->t);
+        if (rx->prob_t != NULL) check_probs(rx,m->t);
 
         i = test_bimolecular(rx,factor);
         if (i<=RX_NO_RX) continue;
@@ -1285,7 +1493,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	      );
 	      if (rx!=NULL)
 	      {
-		if (rx->rate_t != NULL) check_rates(rx,m->t);
+		if (rx->prob_t != NULL) check_probs(rx,m->t);
 		i = test_bimolecular(rx,rate_factor * w->effectors->binding_factor);
 		if (i > RX_NO_RX)
 		{
@@ -1347,7 +1555,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
 	      continue; /* Ignore this wall and keep going */
 	    }
-	    if (rx->rate_t != NULL) check_rates(rx,m->t);
+	    if (rx->prob_t != NULL) check_probs(rx,m->t);
 	    i = test_intersect(rx,rate_factor);
 	    if (i > RX_NO_RX)
 	    {
@@ -1469,7 +1677,6 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   if ((sm->flags&COUNT_ENCLOSED)!=0 && (m->flags&COUNT_ME)==0) count_me_by_region((struct abstract_molecule*)m,1,NULL);
   
   return m;
-#undef TOL
 }
     
 
@@ -1516,13 +1723,13 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         if ((a->flags & ACT_REACT) != 0)
         {
           r = trigger_unimolecular(a->properties->hashval,a);
-          if (r->rate_t != NULL) check_rates(r,(a->t + a->t2)*(1.0+EPS_C));
+          if (r->prob_t != NULL) check_probs(r,(a->t + a->t2)*(1.0+EPS_C));
           a->t2 = timeof_unimolecular(r);
-	  if (r->rate_t != NULL)
+	  if (r->prob_t != NULL)
 	  {
-	    if (a->t + a->t2 > r->rate_t->time)
+	    if (a->t + a->t2 > r->prob_t->time)
 	    {
-	      a->t2 = r->rate_t->time - a->t;
+	      a->t2 = r->prob_t->time - a->t;
 	      a->flags |= ACT_CHANGE;
 	    }
 	  }
@@ -1544,11 +1751,11 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         if (j!=RX_DESTROY) /* We still exist */
         {
           a->t2 = timeof_unimolecular(r);
-          if ( r->rate_t != NULL )
+          if ( r->prob_t != NULL )
           {
-            if (a->t + a->t2 > r->rate_t->time)
+            if (a->t + a->t2 > r->prob_t->time)
 	    {
-              a->t2 = r->rate_t->time - a->t;
+              a->t2 = r->prob_t->time - a->t;
               a->flags |= ACT_CHANGE;
 	    }
           }
@@ -1629,4 +1836,3 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
   
   local->current_time += 1.0;
 }
-

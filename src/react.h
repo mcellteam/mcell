@@ -16,7 +16,7 @@ double timeof_unimolecular(struct rxn *rx);
 int which_unimolecular(struct rxn *rx);
 int test_bimolecular(struct rxn *rx,double time_mult);
 int test_intersect(struct rxn *rx,double time_mult);
-void check_rates(struct rxn *rx,double t);
+void check_probs(struct rxn *rx,double t);
 
 
 int outcome_products(struct wall *w,struct molecule *reac_m,

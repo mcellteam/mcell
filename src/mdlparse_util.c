@@ -579,10 +579,10 @@ In: Reaction structure that we'll load the rates into.
     Index of the pathway that these rates apply to.
     mdlparse_vars struct (for access to global data)
 Out: Returns 1 on error, 0 on success.
-     Rates are added to the rate_t linked list.  If there is a rate
-     given for time <= 0, then this rate is stuck into cum_rates and
+     Rates are added to the prob_t linked list.  If there is a rate
+     given for time <= 0, then this rate is stuck into cum_probs and
      the (time <= 0) entries are not added to the list.  If no initial
-     rate is given in the file, it is assumed to be zero.
+     rate is given in the file, it is assumed to be zero. 
 Note: The file format is assumed to be two columns of numbers; the first
       column is time (in seconds) and the other is rate (in appropriate
       units) that starts at that time.  Lines that are not numbers are
@@ -635,9 +635,9 @@ int load_rate_file(struct rxn *rx , char *fname , int path, struct mdlparse_vars
         valid_linecount++;
 #endif
         
-        if (rx->rate_t == NULL)
+        if (rx->prob_t == NULL)
         {
-          rx->rate_t = tp;
+          rx->prob_t = tp;
           tp2 = tp;
         }
         else
@@ -645,8 +645,8 @@ int load_rate_file(struct rxn *rx , char *fname , int path, struct mdlparse_vars
           if (tp2==NULL)
           {
             tp2 = tp;
-            tp->next = rx->rate_t;
-            rx->rate_t = tp;
+            tp->next = rx->prob_t;
+            rx->prob_t = tp;
           }
           else
           {
@@ -711,7 +711,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   int true_paths;
   int rx_hash;
   struct species *temp_sp;
-  int n_rate_t_rxns;
+  int n_prob_t_rxns;
   
   num_rx = 0;
   
@@ -781,13 +781,13 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           rx->n_pathways = true_paths;
           
           rx->next->product_idx = NULL;
-          rx->next->cum_rates = NULL;
-          rx->next->cat_rates = NULL;
+          rx->next->cum_probs = NULL;
+          rx->next->cat_probs = NULL;
           rx->next->counter = NULL;
           rx->next->players = NULL;
           rx->next->geometries = NULL;
 
-          rx->next->rate_t = NULL;
+          rx->next->prob_t = NULL;
           
           rx->next->pathway_head = NULL;
           
@@ -808,19 +808,19 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	/* Search for reactants that appear as products--they aren't listed twice. */
 	/* Any reactants that don't appear are set to be destroyed. */
         rx->product_idx = (u_int*)malloc(sizeof(u_int)*(rx->n_pathways+1));
-        rx->cum_rates = (double*)malloc(sizeof(double)*rx->n_pathways);
-        rx->cat_rates = (double*)malloc(sizeof(double)*rx->n_pathways);
+        rx->cum_probs = (double*)malloc(sizeof(double)*rx->n_pathways);
+        rx->cat_probs = (double*)malloc(sizeof(double)*rx->n_pathways);
         rx->counter = (double*)malloc(sizeof(double)*rx->n_pathways);
         
-        if (rx->product_idx==NULL || rx->cum_rates==NULL ||
-            rx->cat_rates==NULL || rx->counter==NULL) return 1;
+        if (rx->product_idx==NULL || rx->cum_probs==NULL ||
+            rx->cat_probs==NULL || rx->counter==NULL) return 1;
         
         
-        n_rate_t_rxns = 0;
+        n_prob_t_rxns = 0;
         for (j=0 , path=rx->pathway_head ; path!=NULL ; j++ , path = path->next)
         {
           rx->product_idx[j] = 0;
-          if (path->kcat >= 0.0) rx->cat_rates[j] = path->kcat;
+          if (path->kcat >= 0.0) rx->cat_probs[j] = path->kcat;
           else
           {
 	    if (path->kcat==KCAT_RATE_TRANSPARENT) rx->n_pathways = RX_TRANSP;
@@ -830,8 +830,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
           }
 
-          if (path->km_filename == NULL) rx->cum_rates[j] = path->km;
-          else n_rate_t_rxns++;
+          if (path->km_filename == NULL) rx->cum_probs[j] = path->km;
+          else n_prob_t_rxns++;
           
           rx->counter[j] = 0;
           recycled1 = 0;
@@ -869,7 +869,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
 	/* Load all the time-varying rates from disk (if any), merge them into */
 	/* a single sorted list, and pull off any updates for time zero. */
-        if (n_rate_t_rxns > 0)
+        if (n_prob_t_rxns > 0)
         {
           k = 0;
           for (j=0, path=rx->pathway_head ; path!=NULL ; j++, path=path->next)
@@ -884,12 +884,12 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               }
             }
           }
-          rx->rate_t = (struct t_func*) ae_list_sort( (struct abstract_element*)rx->rate_t );
+          rx->prob_t = (struct t_func*) ae_list_sort( (struct abstract_element*)rx->prob_t );
             
-          while (rx->rate_t != NULL && rx->rate_t->time <= 0.0)
+          while (rx->prob_t != NULL && rx->prob_t->time <= 0.0)
           {
-            rx->cum_rates[ rx->rate_t->path ] = rx->rate_t->value;
-            rx->rate_t = rx->rate_t->next;
+            rx->cum_probs[ rx->prob_t->path ] = rx->prob_t->value;
+            rx->prob_t = rx->prob_t->next;
           }
         }
         
@@ -1021,8 +1021,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	/* reaction rates based on the type of reaction. */
         if (rx->n_reactants==1) {
           pb_factor=1;
-          rx->cum_rates[0]=1.0-exp(-mpvp->vol->time_unit*rx->cum_rates[0]);
-          printf("Rate %.4e set for %s[%d] -> ",rx->cum_rates[0],
+          rx->cum_probs[0]=1.0-exp(-mpvp->vol->time_unit*rx->cum_probs[0]);
+          printf("Probability %.4e set for %s[%d] -> ",rx->cum_probs[0],
                  rx->players[0]->sym->name,rx->geometries[0]);
 
           for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
@@ -1058,9 +1058,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  
           if ( (rx->geometries[0]+rx->geometries[1])*(rx->geometries[0]-rx->geometries[1]) == 0 ) pb_factor *= 2.0;
 
-          rx->cum_rates[0] = pb_factor * rx->cum_rates[0];
+          rx->cum_probs[0] = pb_factor * rx->cum_probs[0];
 
-          printf("Rate %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_rates[0],
+          printf("Probability %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_probs[0],
                  rx->players[0]->sym->name,rx->geometries[0],
                  rx->players[1]->sym->name,rx->geometries[1]);
           if (rx->n_pathways <= RX_SPECIAL)
@@ -1118,8 +1118,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           }
 #endif
 	  
-          rx->cum_rates[0]=pb_factor*rx->cum_rates[0];
-          printf("Rate %.4e (l) set for %s[%d] + %s[%d] -> ",rx->cum_rates[0],
+          rx->cum_probs[0]=pb_factor*rx->cum_probs[0];
+          printf("Probability %.4e (l) set for %s[%d] + %s[%d] -> ",
+                 rx->cum_probs[0],
                  rx->players[0]->sym->name,rx->geometries[0],
                  rx->players[1]->sym->name,rx->geometries[1]);
           for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
@@ -1132,10 +1133,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
         for (j=1;j<rx->n_pathways;j++)
         {
-          if (rx->n_reactants==1) rate = 1.0-exp(-mpvp->vol->time_unit*rx->cum_rates[j]);
-          else rate = pb_factor*rx->cum_rates[j];
+          if (rx->n_reactants==1) rate = 1.0-exp(-mpvp->vol->time_unit*rx->cum_probs[j]);
+          else rate = pb_factor*rx->cum_probs[j];
 
-          printf("Rate %.3e set for ",rate);
+          printf("Probability %.3e set for ",rate);
           if (rx->n_reactants==1) printf("%s[%d] -> ",rx->players[0]->sym->name,rx->geometries[0]);
           else printf("%s[%d] + %s[%d] -> ",
                       rx->players[0]->sym->name,rx->geometries[0],
@@ -1146,19 +1147,19 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
           }
           printf("\n");
-          rx->cum_rates[j] = rate + rx->cum_rates[j-1];
+          rx->cum_probs[j] = rate + rx->cum_probs[j-1];
         }
         
-        if (n_rate_t_rxns > 0)
+        if (n_prob_t_rxns > 0)
         {
           if (rx->n_reactants==1)
           {
-            for (tp = rx->rate_t ; tp != NULL ; tp = tp->next)
+            for (tp = rx->prob_t ; tp != NULL ; tp = tp->next)
                tp->value = 1.0 - exp(-mpvp->vol->time_unit*tp->value);
           }
           else
           {
-            for (tp = rx->rate_t ; tp != NULL ; tp = tp->next)
+            for (tp = rx->prob_t ; tp != NULL ; tp = tp->next)
                tp->value *= pb_factor;
           }
         }

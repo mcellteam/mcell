@@ -301,11 +301,11 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       rxnp->n_reactants=0;
       rxnp->n_pathways=0;
       rxnp->product_idx=NULL;
-      rxnp->cum_rates=NULL;
-      rxnp->cat_rates=NULL;
+      rxnp->cum_probs=NULL;
+      rxnp->cat_probs=NULL;
       rxnp->players=NULL;
       rxnp->geometries=NULL;
-      rxnp->rate_t=NULL;
+      rxnp->prob_t=NULL;
       rxnp->counter=NULL;
       rxnp->pathway_head=NULL;
       break;

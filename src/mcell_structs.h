@@ -9,7 +9,6 @@
 #include "mem_util.h"
 #include "sched_util.h"
 
-
 /*****************************************************/
 /**  Brand new constants created for use in MCell3  **/
 /*****************************************************/
@@ -496,14 +495,14 @@ struct rxn
   u_int n_reactants;         /* How many reactants? (At least 1.) */
   int n_pathways;            /* How many pathways lead away? (Negative = special reaction)*/
   u_int *product_idx;        /* Index of 1st player for products of pathway */
-  double *cum_rates;         /* Cumulative rates for (entering) all pathways */
-  double *cat_rates;         /* Rate of leaving all pathways (<=0.0 is instant) */
+  double *cum_probs;         /* Cumulative probabilities for (entering) all pathways */
+  double *cat_probs;         /* Probabilities of leaving all pathways (<=0.0 is instant) */
   double *counter;            /* How many times have we taken each path? */
   
   struct species **players;  /* Identities of reactants/products */
   short *geometries;         /* Geometries of reactants/products */
 
-  struct t_func *rate_t;     /* List of rates changing over time */
+  struct t_func *prob_t;     /* List of probabilities changing over time */
   
   struct pathway *pathway_head; /* list/array of pathways built at parse-time */
 };
