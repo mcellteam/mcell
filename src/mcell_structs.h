@@ -49,19 +49,14 @@
 #define IS_MANIFOLD        2
 
 /* Reaction flags */
-#define RX_GHOST   -3
-#define RX_WINDOW  -2
-#define RX_SPECIAL -2
-#define RX_BOUNCE  -1
-#if 0
-#define RX_DESTROY   0x001
-#define RX_FLIP      0x002
-#define RX_PROD      0x004
-#define RX_REFL      0x008
-#define RX_2DESTROY  0x010
-#define RX_2FLIP     0x020
-#define RX_2PROD     0x040
-#endif
+#define RX_GHOST   -4
+#define RX_WINDOW  -3
+#define RX_SPECIAL -3
+#define RX_BLOCKED -2
+#define RX_FLIP    -1
+#define RX_DESTROY  0
+#define RX_A_OK     1
+#define RX_NO_MEM   3
 
 
 /* Flags for BSP trees to determine whether something is a node or a branch */

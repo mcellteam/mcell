@@ -33,10 +33,10 @@ outcome_products:
        orientations of the molecules in the reaction
        time that the reaction is occurring
    Out: Value depending on how orientations changed--
-          -2 reaction blocked by full grid
-          -1 moving molecule reflected
-          0 everything went fine, nothing extra to do
-          1 moving molecule needs to flip
+          RX_BLOCKED reaction blocked by full grid
+          RX_FLIP moving molecule passed through membrane
+          RX_A_OK everything went fine, nothing extra to do
+	  RX_NO_MEM out of memory error
         Products are created as necessary and scheduled.
 *************************************************************************/
 
@@ -47,7 +47,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,
   struct abstract_molecule *moving)
 {
-  int blocked = 0;
+  int bounce = RX_A_OK;
 
   int i;
   struct molecule *m;
@@ -117,7 +117,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
           sg = reac_s->curr_wall->effectors;
           if (sg==NULL)
           {
-            create_grid(reac_s->curr_wall,reac_s->subvol);
+            if ( create_grid(reac_s->curr_wall,reac_s->subvol) ) return RX_NO_MEM;
             sg = reac_s->curr_wall->effectors;
           }
           if (sg!=NULL)
@@ -126,7 +126,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
             if (sg->mol[j]!=NULL)
             {
               j = -1; /* Slot full, no rxn */
-              return -2;
+              return RX_BLOCKED;
             }
           }
         }
@@ -135,7 +135,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
           sg = w->effectors;
           if (sg == NULL)
           {
-            create_grid(w,reac_m->subvol);
+            if ( create_grid(w,reac_m->subvol) ) return RX_NO_MEM;
             sg = w->effectors;
           }
           if (sg != NULL)
@@ -144,13 +144,14 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
             if (sg->mol[j]!=NULL)
             {
               j = -1; /* Slot full, no rxn */
-              return -2;
+              return RX_BLOCKED;
             }
           }
         }
         if (j>-1)
         {
           g = mem_get(local->gmol);
+	  if (g==NULL) return RX_NO_MEM;
           g->birthplace = local->gmol;
           g->properties = p;
           p->population++;
@@ -172,7 +173,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
           if (p->flags & COUNT_CONTENTS)
             count_me_by_region((struct abstract_molecule*)g,1);
 
-          schedule_add(local->timer,g);
+          if ( schedule_add(local->timer,g) ) return RX_NO_MEM;
           
         }
         else
@@ -195,6 +196,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       if ( reac_s != NULL || reac_g!=NULL || (reac_m!=NULL && w!=NULL))
       {
         s = mem_get(local->smol);
+	if (s==NULL) return RX_NO_MEM;
         s->birthplace = local->smol;
         s->properties = p;
         p->population++;
@@ -248,7 +250,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
         ptype[i-i0] = 's';
         s->t2 = 0.0;
         s->t = t;
-        schedule_add( local->timer , s );
+        if ( schedule_add( local->timer , s ) ) return RX_NO_MEM;
         
       }
       else
@@ -261,6 +263,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
     else
     {
       m = mem_get(local->mol);
+      if (m==NULL) return RX_NO_MEM;
       m->birthplace = local->mol;
       m->properties = p;
       p->population++;
@@ -329,7 +332,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       if (p->flags & COUNT_CONTENTS)
         count_me_by_region((struct abstract_molecule*)m,1);
 
-      schedule_add( local->timer , m );
+      if ( schedule_add( local->timer , m ) ) return RX_NO_MEM;
       
     }
   }
@@ -380,13 +383,13 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       {
         if (moving==reacA)
         {
-          if (orientA==porient[i-i0]) blocked = -1;
-          else blocked = 1;
+          if (orientA==porient[i-i0]) bounce = RX_A_OK;
+          else bounce = RX_FLIP;
         }
         else
         {
-          if (orientB==porient[i-i0]) blocked = -1;
-          else blocked = 1;
+          if (orientB==porient[i-i0]) bounce = RX_A_OK;
+          else bounce = RX_FLIP;
         }
       }
       else if (ptype[i-i0]=='m')
@@ -394,20 +397,11 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
         m = (struct molecule*)plist[i-i0];
         if (porient[i-i0]>0) f = EPS_C;
         else f = -EPS_C;
-/*        f *= m->properties->space_step*10.0/EPS_C; */
         	
         m->pos.x += f*w->normal.x;
         m->pos.y += f*w->normal.y;
         m->pos.z += f*w->normal.z;
 
-#if 0
-        if (strcmp(m->properties->sym->name,"MinX")==0)
-        {
-          printf("Just created a MinX at %.3e %.3e %.3e\n",m->pos.x * world->length_unit,m->pos.y * world->length_unit, m->pos.z*world->length_unit);
-          printf("Hit by a particle at %.3e %.3e %.3e\n",reac_m->pos.x * world->length_unit,reac_m->pos.y*world->length_unit,reac_m->pos.z*world->length_unit);
-        }
-#endif
-        
         m->subvol = find_subvolume(&(m->pos),m->subvol);
         m->next_v = m->subvol->mol_head;
         m->subvol->mol_head = m;
@@ -416,7 +410,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
     }
   }
 
-  return blocked;
+  return bounce;
 }
 
 
@@ -426,7 +420,10 @@ outcome_unimolecular:
       the path that the reaction is taking
       the molecule that is taking that path
       time that the reaction is occurring
-  Out: 0 if molecule no longer exists. 1 if it does. 
+  Out: Value based on outcome:
+	 RX_DESTROY if molecule no longer exists.
+	 RX_A_OK if it does.
+	 RX_NO_MEM on an out-of-memory error.
        Products are created as needed.
 *************************************************************************/
 
@@ -435,30 +432,31 @@ int outcome_unimolecular(struct rxn *rx,int path,
 {
   struct species *who_am_i;
   struct species *who_was_i = reac->properties;
-  int blocked = 0;
+  int result = RX_A_OK;
   
   if ((reac->properties->flags & (ON_GRID | ON_SURFACE)) == 0)
   {
     struct molecule *m = (struct molecule*)reac;
-    blocked = outcome_products(NULL,m,NULL,NULL,rx,path,m->subvol->mem,
-                               0,0,t,NULL,reac,NULL,NULL);
+    result = outcome_products(NULL,m,NULL,NULL,rx,path,m->subvol->mem,
+                              0,0,t,NULL,reac,NULL,NULL);
   }
   else if ((reac->properties->flags & ON_GRID) != 0)
   {
     struct grid_molecule *g = (struct grid_molecule*) reac;
-    blocked = outcome_products(g->grid->surface,NULL,NULL,g,rx,path,
-                               g->grid->subvol->mem,
-                               g->orient,0,t,NULL,reac,NULL,NULL);
+    result = outcome_products(g->grid->surface,NULL,NULL,g,rx,path,
+                              g->grid->subvol->mem,
+                              g->orient,0,t,NULL,reac,NULL,NULL);
   }
   else if ((reac->properties->flags & ON_SURFACE) != 0)
   {
     struct surface_molecule *s = (struct surface_molecule*)reac;
-    blocked = outcome_products(s->curr_wall,NULL,s,NULL,rx,path,s->subvol->mem,
-                               s->orient,0,t,NULL,reac,NULL,NULL);
+    result = outcome_products(s->curr_wall,NULL,s,NULL,rx,path,s->subvol->mem,
+                              s->orient,0,t,NULL,reac,NULL,NULL);
   }
   
-  if (blocked != -2) rx->counter[path]++;
-  else printf("Huh?  Blocked in unimolecular?!\n");
+  if (result==RX_NO_MEM) return RX_NO_MEM;
+  
+  if (result != RX_BLOCKED) rx->counter[path]++;
 
   who_am_i = rx->players[rx->product_idx[path]];
   
@@ -482,10 +480,10 @@ int outcome_unimolecular(struct rxn *rx,int path,
     
     reac->properties->population--;
     reac->properties = NULL;
-    return 0;
+    return RX_DESTROY;
   }
-  else if (who_am_i != who_was_i) return 0;
-  else return 1;
+  else if (who_am_i != who_was_i) return RX_DESTROY;
+  else return result;
 }
 
 
@@ -496,9 +494,12 @@ outcome_bimolecular:
       two molecules that are reacting (first is moving one)
       orientations of the two molecules
       time that the reaction is occurring
-  Out: 0 of moving molecule no longer exists, 1 if it does,
-       -1 if it's been transported across a membrane, and
-       -2 if reaction failed due to lack of space for products.
+  Out: Value based on outcome:
+	 RX_BLOCKED if there was no room to put products on grid
+	 RX_FLIP if the molecule goes across the membrane
+	 RX_DESTROY if the molecule no longer exists
+	 RX_A_OK if everything proceeded smoothly
+	 RX_NO_MEM on an out-of-memory error
        Products are created as needed.
 *************************************************************************/
 
@@ -511,7 +512,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
   struct molecule *m = NULL;
   struct wall *w = NULL;
   struct storage *x;
-  int blocked;
+  int result;
   
   if ((reacA->properties->flags & (ON_GRID | ON_SURFACE)) == 0)
   {
@@ -564,10 +565,11 @@ int outcome_bimolecular(struct rxn *rx,int path,
     }
   }
   
-  blocked = outcome_products(w,m,s,g,rx,path,x,orientA,orientB,t,hitpt,reacA,reacB,reacA);
+  result = outcome_products(w,m,s,g,rx,path,x,orientA,orientB,t,hitpt,reacA,reacB,reacA);
   
-  if (blocked==-2) return blocked;
-
+  if (result==RX_NO_MEM) return RX_NO_MEM;
+  else if (result==RX_BLOCKED) return RX_BLOCKED;
+  
   rx->counter[path]++;
   
   if (rx->players[0]==reacA->properties)
@@ -613,7 +615,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
     
       reacA->properties->population--;
       reacA->properties = NULL;
-      return 0;
+      return RX_DESTROY;
     }
   }
   else
@@ -659,11 +661,11 @@ int outcome_bimolecular(struct rxn *rx,int path,
     
       reacA->properties->population--;
       reacA->properties = NULL;
-      return 0;
+      return RX_DESTROY;
     }
   }
   
-  return 1;
+  return result;
 }
 
 
@@ -675,9 +677,11 @@ outcome_intersect:
       molecule that is hitting the wall
       orientation of the molecule
       time that the reaction is occurring
-  Out: -1 if the molecule reflects
-       1 if the molecule passes through
-       0 if the molecule stops, is destroyed, changes identity, etc..
+  Out: Value depending on outcome:
+	 RX_A_OK if the molecule reflects
+	 RX_FLIP if the molecule passes through
+	 RX_DESTROY if the molecule stops, is destroyed, etc.
+	 RX_NO_MEM on an out of memory error
        Additionally, products are created as needed.
   Note: Can assume molecule is always first in the reaction.
 *************************************************************************/
@@ -685,7 +689,7 @@ outcome_intersect:
 int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   struct abstract_molecule *reac,short orient,double t,struct vector3 *hitpt)
 {
-  int blocked,index;
+  int result,index;
   
   if (rx->n_pathways <= RX_SPECIAL) return 1;
 
@@ -695,9 +699,10 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   {
     struct molecule *m = (struct molecule*) reac;
     
-    blocked = outcome_products(surface,m,NULL,NULL,rx,path,m->subvol->mem,orient,0,t,hitpt,reac,NULL,reac);
+    result = outcome_products(surface,m,NULL,NULL,rx,path,m->subvol->mem,orient,0,t,hitpt,reac,NULL,reac);
 
-    if (blocked == -2) return -1;
+    if (result==RX_NO_MEM) return RX_NO_MEM;
+    else if (result == RX_BLOCKED) return RX_A_OK;
 
     rx->counter[path]++;
     
@@ -708,11 +713,9 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
 	count_me_by_region(reac,-1);
       reac->properties->population--;
       reac->properties = NULL;
-      return 0;
+      return RX_DESTROY;
     }
-    else if (blocked==0) return -1;
-    else return blocked;
-
+    else return result;
   }
   else /* Grid can't intersect, so this must be a surface molecule */
   {
@@ -722,13 +725,14 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     if (index+2==rx->product_idx[path+1] &&
         rx->geometries[ rx->product_idx[path] ] == 1)
     {
-      return -1;
+      return RX_A_OK;
     }
     else
     {
-      blocked = outcome_products(surface,NULL,s,NULL,rx,path,s->subvol->mem,orient,0,t,hitpt,reac,NULL,reac);
-
-      if (blocked == -2) return -1;
+      result = outcome_products(surface,NULL,s,NULL,rx,path,s->subvol->mem,orient,0,t,hitpt,reac,NULL,reac);
+      
+      if (result==RX_NO_MEM) return RX_NO_MEM;
+      if (result==RX_BLOCKED) return RX_A_OK;
 
       rx->counter[path]++;
 
@@ -736,9 +740,9 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
       {
         reac->properties->population--;
         reac->properties = NULL;
-        return 0;
+        return RX_DESTROY;
       }
-      else return blocked;
+      else return result;
     }
   }
 }

@@ -125,7 +125,9 @@ ray_trace:
       subvolume that we start in
       displacement vector from current to new location
   Out: collision list of walls and molecules we intersected along our ray
-         (current subvolume only)
+       (current subvolume only), plus the subvolume wall.  Will always
+       return at least the subvolume wall--NULL indicates an out of
+       memory error.
 *************************************************************************/
 
 struct collision* ray_trace(struct molecule *m, struct collision *c,
@@ -140,11 +142,8 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
   
   shead = NULL;
   smash = (struct collision*) mem_get(sv->mem->coll);
-  if(smash == NULL){
-	printf("Memory allocation error!\n");
-	return NULL;
-  }
-  
+  if(smash == NULL) return NULL;
+
   fake_wlp.next = sv->wall_head;
     
   for (wlp = sv->wall_head ; wlp != NULL; wlp = wlp->next)
@@ -165,8 +164,9 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
       smash->next = shead;
       shead = smash;
       smash = (struct collision*) mem_get(sv->mem->coll);
-      if(smash == NULL){
-	printf("Memory allocation error!\n");
+      if (smash==NULL)
+      {
+	if (shead!=NULL) mem_put_list(sv->mem->coll,shead);
 	return NULL;
       }
     }
@@ -256,8 +256,9 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
     if (i != COLLIDE_MISS)
     {
       smash = (struct collision*) mem_get(sv->mem->coll);
-      if(smash == NULL){
-	printf("Memory allocation error!\n");
+      if (smash==NULL)
+      {
+	mem_put_list(sv->mem->coll,shead);
 	return NULL;
       }
       memcpy(smash,c,sizeof(struct collision));
@@ -1050,16 +1051,15 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   
   d2 = displacement.x*displacement.x + displacement.y*displacement.y +
        displacement.z*displacement.z;
-       
+  
+#define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->mem->coll,shead2); if (shead!=NULL) mem_put_list(sv->mem->coll,shead); return (x)
+#define ERROR_AND_RETURN(x) printf("Out of memory during diffusion of a %s molecule\n",sm->sym->name); CLEAN_AND_RETURN((x))
   do
   {
     shead2 = ray_trace(m,shead,sv,&displacement);
-    if(shead2 == NULL){
-	printf("Memory allocation error.\n");
-        return NULL;
-    }
+    if (shead2==NULL) { ERROR_AND_RETURN(NULL); }
     
-    if (shead2!=NULL && shead2->next!=NULL)  /* Could be sped up/combined */
+    if (shead2->next!=NULL)  /* Could be sped up/combined */
     {
       shead2 = (struct collision*)ae_list_sort((struct abstract_element*)shead2);
       shead2 = gather_walls_first(shead2,TOL);
@@ -1107,14 +1107,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                 am,0,0,m->t+t_steps*smash->t,&(smash->loc)
               );
 	      
-
-	if (j) continue;
-        else
-        {
-          if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
-          if (shead != NULL) mem_put_list(sv->mem->coll,shead);
-          return NULL;
-        }
+        if (j==RX_NO_MEM) return NULL;
+	if (j!=RX_DESTROY) continue;
+        else { CLEAN_AND_RETURN( NULL ); }
       }
 
       else if ( (smash->what & COLLIDE_WALL) != 0 )
@@ -1127,7 +1122,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           struct collision *smish,*g_head,*gp,*w_head,*wp,*c;
           int is_window = 0;
           int is_ghost = 0;
-          int count_type = 0;
+          int count_type = RX_A_OK;
           
           g_head = gp = w_head = wp = NULL;
           
@@ -1155,10 +1150,12 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                   {
                     if (rx->rate_t != NULL) check_rates(rx,m->t);
                     c = (struct collision*)mem_get(sv->mem->coll);
-                    if(c == NULL){
-	                printf("Memory allocation error!\n");
-	                return NULL;
-                    }
+		    if (c==NULL)
+		    {
+		      if (g_head!=NULL) mem_put_list(sv->mem->coll,g_head);
+		      ERROR_AND_RETURN(NULL);
+		    }
+
                     c->intermediate = rx;
                     c->target = g;
                     c->t = rx->cum_rates[ rx->n_pathways - 1 ] * w->effectors->binding_factor * rate_factor;
@@ -1191,10 +1188,12 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
               else if (rx==NULL || rx->n_pathways!=RX_GHOST)
               {
                 c = (struct collision*)mem_get(sv->mem->coll);
-               if(c == NULL){
-	           printf("Memory allocation error!\n");
-	           return NULL;
-               }
+		if (c==NULL)
+		{
+		  if (w_head!=NULL) mem_put_list(sv->mem->coll,w_head);
+		  if (g_head!=NULL) mem_put_list(sv->mem->coll,g_head);
+		  ERROR_AND_RETURN(NULL);
+		}
                 c->intermediate = rx;
                 c->target = w;
                 if (rx!=NULL)
@@ -1264,15 +1263,22 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                       k,g->orient,m->t+t_steps*smash->t,&(smash->loc)
                     );
                     
-                    if (l==1)
+		    if (l==RX_NO_MEM)
+		    {
+		      if (w_head!=NULL) mem_put_list(sv->mem->coll,w_head);
+		      mem_put_list(sv->mem->coll,g_head);
+		      ERROR_AND_RETURN( NULL );
+		    }
+		    
+                    if (l==RX_FLIP)
                     {
                       if (w_head!=NULL) mem_put_list(sv->mem->coll,w_head);
-                      count_type = 1;  /* pass through */
+                      count_type = RX_FLIP;  /* pass through */
                       break;
                     }
                     else if (l==0)
                     {
-                      count_type = -1;  /* destroyed */
+                      count_type = RX_DESTROY;  /* destroyed */
                       break;
                     }
                   }
@@ -1282,7 +1288,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             mem_put_list(sv->mem->coll,g_head);
           }
           
-          if (count_type==0) /* Possibility of a reaction with a wall */
+          if (count_type==RX_A_OK) /* Possibility of a reaction with a wall */
           {
             if (wp->loc.x==0.0) count_type = 0; /* All reflective */
             else
@@ -1309,16 +1315,14 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                               rx,i,w,(struct abstract_molecule*)m,
                               k,m->t + t_steps*smash->t,&(smash->loc)
                             );
-                      if (j==1)
-                      {
-                        count_type = 1; /* pass through */
-                        break;
-                      }
-                      else if (j==0)
-                      {
-                        count_type = -1; /* destroyed */
-                        break;
-                      }
+
+			    if (j==RX_NO_MEM)
+		      {
+			mem_put_list(sv->mem->coll,w_head);
+			ERROR_AND_RETURN(NULL);
+		      }
+
+		      count_type = j;
                     }
                   }
                 }
@@ -1335,19 +1339,14 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             
             if ( (sm->flags & w->flags & COUNT_SOME) )
             {
-              if (count_type==1) update_collision_count(sm,w->regions,k,1);
+              if (count_type==RX_FLIP) update_collision_count(sm,w->regions,k,1);
               else update_collision_count(sm,w->regions,k,0);
             }
           }
                 
           smash = smish;
-          if (count_type==-1)
-          {
-            if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
-            if (shead != NULL) mem_put_list(sv->mem->coll,shead);
-            return NULL;
-          }
-          else if (count_type==1 || is_ghost) continue;
+          if (count_type==RX_DESTROY) { CLEAN_AND_RETURN(NULL); }
+          else if (count_type==RX_FLIP || is_ghost) continue;
         }
         else /* Simple case, no coincident walls */
         {
@@ -1395,31 +1394,25 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                       k,g->orient,m->t+t_steps*smash->t,&(smash->loc)
                     );
                     
-                    if (l==1)
+		    if (l==RX_NO_MEM) { ERROR_AND_RETURN(NULL); }
+                    if (l==RX_FLIP)
                     {
                       if ( (sm->flags & w->flags & COUNT_SOME) )
                         update_collision_count(sm,w->regions,k,1);
                       
                       continue; /* pass through */
                     }
-                    else if (l==0)
+                    else if (l==RX_DESTROY)
                     {
                       if ( (sm->flags & w->flags & COUNT_SOME) )
                         update_collision_count(sm,w->regions,k,0);
-                                        
-                      if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
-                      if (shead != NULL) mem_put_list(sv->mem->coll,shead);
-
-                      return NULL;
+		      
+		      CLEAN_AND_RETURN(NULL);
                     }
                   }
                 }
               }
-              else
-              {
-  /*              printf("Nope!  I'm not rebinding.\n");  */
-                m->index = -1;
-              }
+              else m->index = -1; /* Avoided rebinding, but next time it's OK */
             }
           }
           
@@ -1447,6 +1440,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                         rx,i,w,(struct abstract_molecule*)m,
                         k,m->t + t_steps*smash->t,&(smash->loc)
                       );
+		      
+		if (j==RX_NO_MEM) { ERROR_AND_RETURN(NULL); } 
                 if (j==1)
                 {
                   if ( (sm->flags & w->flags & COUNT_SOME) )
@@ -1459,10 +1454,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                   if ( (sm->flags & w->flags & COUNT_SOME) )
                     update_collision_count(sm,w->regions,k,0);
 
-                  if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
-                  if (shead != NULL) mem_put_list(sv->mem->coll,shead);
-
-                  return NULL;
+		  CLEAN_AND_RETURN(NULL);
                 }
               }
             }
@@ -1519,10 +1511,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	    count_me_by_region((struct abstract_molecule*)m,-1);
           sm->population--;
           m->properties = NULL;
-          if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
-          if (shead != NULL) mem_put_list(sv->mem->coll,shead);
-          
-          return NULL;
+	  
+	  CLEAN_AND_RETURN(NULL);
         }
         else m = migrate_molecule(m,nsv);
 
@@ -1538,6 +1528,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
     if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
   }
   while (smash != NULL);
+#undef ERROR_AND_RETURN
+#undef CLEAN_AND_RETURN
   
   if (shead != NULL) mem_put_list(sv->mem->coll,shead);
   m->pos.x += displacement.x;
@@ -1618,7 +1610,12 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         r = trigger_unimolecular(a->properties->hashval,a);
         i = which_unimolecular(r);
         j = outcome_unimolecular(r,i,a,a->t);
-        if (j) /* We still exist */
+	if (j==RX_NO_MEM)
+	{
+	  printf("Out of memory during unimolecular reaction %s...\n",r->sym->name);
+	  return;
+	}
+        if (j!=RX_DESTROY) /* We still exist */
         {
           a->t2 = timeof_unimolecular(r);
           if ( r->rate_t != NULL )
