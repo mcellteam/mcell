@@ -116,6 +116,7 @@ void run_sim(void)
   printf("%d %.2f %lld %lld\n",count,total_len*world->length_unit,total_coll_1,total_coll_2);
 #endif
 #if 1
+  printf("Reaction counters:\n");
   for (i=0;i<world->hashsize;i++)
   {
     struct rxn *rxp;
