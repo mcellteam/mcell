@@ -105,8 +105,8 @@ struct subvolume* traverse_subvol(struct subvolume *here,struct vector3 *point,i
         }
         else /* Must be Z_AXIS */
         {
-        if ( point->z <= world->z_partitions[ branch->partition ] ) left_path = 1;
-        else left_path = 0;
+          if ( point->z <= world->z_partitions[ branch->partition ] ) left_path = 1;
+          else left_path = 0;
         }
       }
       if (left_path)
@@ -122,6 +122,71 @@ struct subvolume* traverse_subvol(struct subvolume *here,struct vector3 *point,i
     }
   }
 }
+
+
+/*************************************************************************
+next_subvol:
+  In: pointer to a vector3 of where we are (*here)
+      pointer to a vector3 of where we want to be
+      our current subvolume
+  Out: next subvolume along that vector or NULL if the endpoint is 
+         in the current subvolume.  *here is updated to just inside
+         the next subvolume.
+*************************************************************************/
+
+struct subvolume* next_subvol(struct vector3 *here,struct vector3 *move,struct subvolume *sv)
+{
+  double dx,dy,dz,tx,ty,tz,t;
+  int which = 1;
+  
+  if (move->x > 0) dx = world->x_fineparts[ sv->urb.x ] - here->x;
+  else { dx = world->x_fineparts[ sv->llf.x ] - here->x; which = 0; }
+  
+  if (move->y > 0) dy = world->y_fineparts[ sv->urb.y ] - here->y;
+  else { dy = world->y_fineparts[ sv->llf.y ] - here->y; which = 0; }
+  
+  if (move->z > 0) dz = world->z_fineparts[ sv->urb.z ] - here->z;
+  else { dz = world->z_fineparts[ sv->llf.z ] - here->z; which = 0; }
+  
+  tx = dx * move->y * move->z; if (tx<0) tx = -tx;
+  ty = move->x * dy * move->z; if (ty<0) ty = -ty;
+  tz = move->x * move->y * dz; if (tz<0) tz = -tz;
+  
+  if (tx<ty)
+  {
+    if (tx<tz) { t = dx / move->x; which += X_NEG; }
+    else { t = dz / move->z; which += Z_NEG; }
+  }
+  else /* ty<tx */
+  {
+    if (ty<tz) { t = dy / move->y; which += Y_NEG; }
+    else { t = dz / move->z; which += Z_NEG; }
+  }
+      
+  if (t>=1.0)
+  {
+    here->x += move->x;
+    here->y += move->y;
+    here->z += move->z;
+    
+    return NULL;
+  }
+  else
+  {
+    here->x += t*move->x;
+    here->y += t*move->y;
+    here->z += t*move->z;
+    
+    t = 1.0-t;
+    
+    move->x *= t;
+    move->y *= t;
+    move->z *= t;
+    
+    return traverse_subvol(sv,here,which);
+  }
+}
+  
 
 
 /*************************************************************************
