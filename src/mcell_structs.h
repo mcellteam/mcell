@@ -969,8 +969,6 @@ struct volume
   FILE *chkpt_signal_file_tmp;
   char *mdl_infile_name;
   char *curr_file;
-  double num_potential_colls;
-  double num_potential_colls_exp;
 };
 
 

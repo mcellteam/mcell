@@ -188,8 +188,6 @@ int init_sim(void)
   world->y_fineparts = NULL;
   world->z_fineparts = NULL;
   world->n_fineparts = 0;
-  world->num_potential_colls = 0;
-  world->num_potential_colls_exp = 0;
 
   if (world->seed_seq < 1 || world->seed_seq > 3000) {
     fprintf(log_file,"MCell: error, random sequence number not in range 1 to 3000\n");
