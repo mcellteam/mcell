@@ -1606,10 +1606,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           }
           
           if ( (sm->flags & w->flags & COUNT_SOME) )
-          {
             update_collision_count(sm,w->regions,k,0);
-            UPDATE_LOCATION(smash);
-          }
         }
         /* default is to reflect */
         
