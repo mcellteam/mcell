@@ -404,9 +404,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   struct pathway *path,*last_path;
   struct product *prod;
   struct rxn *rx;
+  double pb_factor,D_tot;
   int i,j,k;
   int recycled1,recycled2;
-  int num_rx,num_prods;
+  int num_rx,num_players;
   int true_paths;
   
   num_rx = 0;
@@ -428,6 +429,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     while (rx != NULL)
     {
     
+      true_paths=1;
       for (path=rx->pathway_head->next ; path != NULL ; path = path->next)
       {
         if (equivalent_geometry(rx->pathway_head,path,rx->n_reactants)) true_paths++;
@@ -505,18 +507,18 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           else rx->product_idx[j]++;
         }
         
-        if (!recycled1) rx->fates += RX_DESTROY;
+        if (!recycled1) rx->fates[j] += RX_DESTROY;
         if (!recycled2 && rx->n_reactants>1) rx->fates[j] += RX_2DESTROY;
       }
       
-      num_prods = rx->n_reactants;
+      num_players = rx->n_reactants;
       for (j=0;j<rx->n_pathways;j++)
       {
         k = rx->product_idx[j];
-        rx->product_idx[j] = num_prods;
-        num_prods += k;
+        rx->product_idx[j] = num_players;
+        num_players += k;
       }
-      rx->product_idx[rx->n_pathways] = num_prods;
+      rx->product_idx[rx->n_pathways] = num_players;
       
       rx->players = (struct species**)malloc(sizeof(struct species*)*rx->product_idx[rx->n_pathways]);
       rx->geometries = (short*)malloc(sizeof(short)*rx->product_idx[rx->n_pathways]);
@@ -552,9 +554,31 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         }
       }
       
+
+      if (rx->n_reactants==1) {
+        pb_factor=1;
+        rx->cum_rates[0]=1.0-exp(-mpvp->vol->time_unit*rx->cum_rates[0]);
+      }
+      else {
+        pb_factor=0;
+        D_tot=rx->players[0]->D_ref+rx->players[1]->D_ref+2.0*sqrt(rx->players[0]->D_ref*rx->players[1]->D_ref);
+        if (D_tot>0) {
+          if (rx->geometries[0]==0) {
+            pb_factor=(1.0e11*mpvp->vol->effector_grid_density/(3.0*N_AV))*sqrt(MY_PI*mpvp->vol->time_unit/D_tot);
+          }
+          else {
+            pb_factor=(1.0e11*mpvp->vol->effector_grid_density/(2.0*N_AV))*sqrt(MY_PI*mpvp->vol->time_unit/D_tot);
+            if (rx->geometries[0]==0
+                || abs(rx->geometries[0])!=abs(rx->geometries[1])) {
+              pb_factor*=2.0;
+            }
+          }
+        }
+        rx->cum_rates[0]=pb_factor*rx->cum_rates[0];
+      }
       for (j=1;j<rx->n_pathways;j++)
       {
-        rx->cum_rates[j] += rx->cum_rates[j-1];
+        rx->cum_rates[j] = pb_factor*rx->cum_rates[j] + rx->cum_rates[j-1];
       }
       
       rx = rx->next;
