@@ -261,11 +261,22 @@ int init_sim(void)
   }
   no_printf("Done parsing MDL file: %s\n",world->mdl_infile_name);
   fflush(stderr);
-
+  
+  /* Set up the array of species */
+  if (init_species())
+  {
+    fprintf(log_file,"MCell: error initializing species\n");
+    return(1);
+  }
 
   /* Initialize the geometry */
   if (init_geom()) {
     fprintf(log_file,"MCell: error initializing geometry\n");
+    return(1);
+  }
+  
+  if (init_partitions()) {
+    fprintf(log_file,"MCell: error initializing partitions.\n");
     return(1);
   }
 
@@ -322,6 +333,108 @@ int init_sim(void)
   no_printf("Done initializing simulation\n");
   fflush(log_file);
   return(0);
+}
+
+
+int init_species(void)
+{
+  int i;
+  int count;
+  struct sym_table *gp;
+  
+  for (i=0;i<HASHSIZE;i++)
+  {
+    for (gp = world->main_sym_table[i] ; gp != NULL ; gp = gp->next)
+    {    
+      if (gp->sym_type==MOL) count++;
+    }
+  }
+  
+  world->n_species = count;
+  world->species_list = (struct species**)malloc(sizeof(struct species*)*world->n_species);
+
+  count = 0;
+  for (i=0;i<HASHSIZE;i++)
+  {
+    for (gp = world->main_sym_table[i] ; gp != NULL ; gp = gp->next)
+    {    
+      if (gp->sym_type==MOL)
+      {
+        world->species_list[count] = (struct species*) gp->value;
+      }
+    }
+  }
+}
+
+
+
+/* This is just a placeholder for now--make one giant partition.
+int init_partitions(void)
+{
+  int i,j,k;
+  struct subvolume *sv;
+  
+  world->n_axis_partitions = 2;
+  world->x_axis_partitions = (double*)malloc(sizeof(double)*world->n_axis_partitions);
+  world->y_axis_partitions = (double*)malloc(sizeof(double)*world->n_axis_partitions);
+  world->z_axis_partitions = (double*)malloc(sizeof(double)*world->n_axis_partitions);
+  
+  world->n_fine_partitions = world->n_axis_partitions;
+  world->x_fineparts = world->x_axis_partitions;
+  world->y_fineparts = world->y_axis_partitions;
+  world->z_fineparts = world->z_axis_partitions;
+  
+  world->n_waypoints = 1;
+  world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint*)*world->n_waypoints);
+  
+  world->n_subvols = world->n_waypoints;
+  world->subvol = (struct subvolume*)malloc(sizeof(struct subvolume*)*world->n_subvols);
+  for (i=0;i<world->n_axis_partitons-1;i++)
+  for (j=0;j<world->n_axis_partitons-1;j++)
+  for (k=0;k<world->n_axis_partitons-1;k++)
+  {
+    sv = world->subvol[k + world->n_axis_partitions*(j + k*world->n_axis_partitions)];
+    sv->wall_head = NULL;
+    sv->wall_tail = NULL;
+    sv->wall_count = 0;
+    sv->mol_head = NULL;
+    sv->mol_count = 0;
+    
+    sv->index = -1;
+    
+    sv->llf.x = world->x_axis_partitions[i];
+    sv->llf.y = world->y_axis_partitions[j];
+    sv->llf.z = world->z_axis_partitions[k];
+    sv->urb.x = world->x_axis_partitions[i+1];
+    sv->urb.y = world->y_axis_partitions[j+1];
+    sv->urb.z = world->z_axis_partitions[k+1];
+    
+    sv->is_bsp = 0;
+    
+    neighbor[0] = neighbor[1] = neighbor[2] = neighbor[3] =\
+      neighbor[4] = neighbor[5] = NULL;
+    
+    sv->mem = (struct storage*)malloc(sizeof(struct storage));
+    
+    sv->mem->list = create_mem(sizeof(struct wall_list),50);
+    sv->mem->mol  = create_mem(sizeof(struct molecule),50);
+    sv->mem->smol  = create_mem(sizeof(struct surface_molecule),50);
+    sv->mem->gmol  = create_mem(sizeof(struct grid_molecule),50);
+    sv->mem->wall = create_mem(sizeof(struct wall),50);
+    sv->mem->coll = create_mem(sizeof(struct collision),50);
+    
+    sv->mem->timer = create_scheduler(1.0,100.0,100,0.0);
+    sv->mem->current_time = 0.0;
+    sv->mem->max_timestep = 100.0;
+  }
+  }
+  }
+  
+  world->binning = 0;
+  world->lookup = NULL;
+  
+  world->counter_hashmask = 0xFFFF;
+  world->counter_hash = (struct counter**)malloc(sizeof(struct counter*)*(world->counter_hashmask+1));
 }
 
 

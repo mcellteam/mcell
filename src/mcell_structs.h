@@ -630,15 +630,10 @@ struct volume
   struct rxn **reaction_hash;   /* A hash table of all reactions. */
   
   int counter_hashmask;         /* Mask for looking up collision hash table */
-  struct counter **collide_hash;/* Collision hash table */
+  struct counter **counter_hash;/* Collision hash table */
   
   int n_species;                /* How many different species? */
   struct species **species_list; /* Array of all species. */
-  
-  struct stack_helper *collision_stack;
-  struct counter_helper *collision_counter;
-  
-  struct counter **counter_hash;
   
   u_int rng_idx;
 
