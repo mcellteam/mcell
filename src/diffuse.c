@@ -94,9 +94,9 @@ void pick_displacement(struct vector3 *v,double scale)
   else
   {
     u_int x_bit,y_bit,z_bit;
-    uint r_bit,thetaphi_bit;
-    uint bits;
-    uint idx;
+    u_int r_bit,thetaphi_bit;
+    u_int bits;
+    u_int idx;
     
     bits = rng_uint(world->seed++);
     
@@ -1010,7 +1010,10 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   int calculate_displacement = 1;
 
   sm = m->properties;
-  if (sm==NULL) fprintf(world->err_file,"BROKEN!!!!!\n");
+  if (sm==NULL) {
+	fprintf(world->err_file,"BROKEN!!!!!\n");
+	return NULL;
+  }
   if (sm->space_step <= 0.0)
   {
     m->t += max_time;
