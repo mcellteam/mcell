@@ -12,6 +12,7 @@
 #include "rng.h"
 #include "grid_util.h"
 #include "mcell_structs.h"
+#include "react.h"
 
 extern struct volume *world;
 
@@ -95,14 +96,21 @@ void outcome_products(struct wall *w,struct molecule *reac_m,
           if (j>-1)
           {
             g = mem_get(local->gmol);
+            g->birthplace = local->gmol;
             g->properties = p;
+            g->flags = TYPE_GRID + ACT_NEWBIE + IN_SCHEDULE;
+            if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)g)!= NULL)
+              g->flags += ACT_REACT;
+            
             g->t = t;
-            g->t_inert = 0.0;
+            g->t2 = 0.0;
             g->grid_index = j;
             g->grid = sg;
 
             sg->mol[j] = g;
             sg->n_occupied++;
+            
+            schedule_add(local->timer,g);
           }
         }
         else
@@ -117,7 +125,12 @@ void outcome_products(struct wall *w,struct molecule *reac_m,
         if ( reac_s != NULL || reac_g!=NULL || (reac_m!=NULL && w!=NULL))
         {
           s = mem_get(local->smol);
+          s->birthplace = local->smol;
           s->properties = p;
+          s->flags = TYPE_SURF + ACT_NEWBIE + IN_SURFACE + IN_VOLUME + IN_SCHEDULE;
+          if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)s) != NULL)
+            s->flags += ACT_REACT;
+          
           p->population++;
           if (reac_s != NULL)
           {
@@ -130,7 +143,7 @@ void outcome_products(struct wall *w,struct molecule *reac_m,
             s->next_s = reac_s->next_s;
             reac_s->next_s = s;
             s->next_v = reac_s->next_v;
-            reac_s->next_v = s;
+            reac_s->next_v = (struct molecule*)s;
           }
           else
           {
@@ -140,6 +153,8 @@ void outcome_products(struct wall *w,struct molecule *reac_m,
               s->pos.y = reac_m->pos.y;
               s->pos.z = reac_m->pos.z;
               s->subvol = reac_m->subvol;
+              s->next_v = s->subvol->mol_head;
+              s->subvol->mol_head = (struct molecule*)s;
             }
             else
             {
@@ -175,7 +190,13 @@ void outcome_products(struct wall *w,struct molecule *reac_m,
       else
       {
         m = mem_get(local->mol);
+        m->birthplace = local->mol;
         m->properties = p;
+        m->flags = TYPE_3D + ACT_NEWBIE + IN_VOLUME + IN_SCHEDULE;
+        if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)m) != NULL)
+          m->flags += ACT_REACT;
+        if (p->space_step > 0.0) m->flags += ACT_DIFFUSE;
+        
         p->population++;
         if (reac_m != NULL)
         {

@@ -117,6 +117,29 @@
 #define EPS_C 1e-12
 #define GIGANTIC 1e140
 
+
+/* Abstract molecule flags */
+/* RULES: only one of TYPE_GRID, TYPE_3D, TYPE_SURF set. */
+/*   Only TYPE_3D and TYPE_SURF can ACT_DIFFUSE */
+/*   ACT_NEWBIE beats ACT_INERT beats ACT_REACT beats ACT_BORED */
+/*   Can free up memory when nothing in IN_MASK */
+
+#define TYPE_GRID 0x001
+#define TYPE_3D   0x002
+#define TYPE_SURF 0x004
+#define TYPE_MASK 0x007
+
+#define ACT_DIFFUSE 0x008
+#define ACT_INERT   0x010
+#define ACT_REACT   0x020
+#define ACT_NEWBIE  0x040
+
+#define IN_SCHEDULE 0x100
+#define IN_SURFACE  0x200
+#define IN_VOLUME   0x400
+#define IN_MASK     0x700
+
+
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
 /*********************************************************/
@@ -395,8 +418,10 @@ struct abstract_molecule
 {
   struct abstract_molecule *next;  /* Next molecule in scheduling queue */
   double t;                        /* Scheduling time. */
-  double t_inert;                  /* Dead time for catalysts. */
+  double t2;                       /* Dead time for catalysis & such. */
+  short flags;                     /* Who am I, what am I doing, etc. */
   struct species *properties;      /* What type of molecule are we? */
+  struct mem_helper *birthplace;   /* What was I allocated from? */
 };
 
 
@@ -405,10 +430,10 @@ struct molecule
 {
   struct abstract_molecule *next;
   double t;
-  double t_inert;
+  double t2;
+  short flags;
   struct species *properties;
-  
-  double t2;                      /* Time of move or -time of unimol. rxn */
+  struct mem_helper *birthplace;
   
   struct vector3 pos;             /* Position in space */
   struct subvolume *subvol;       /* Partition we are in */
@@ -420,25 +445,28 @@ struct molecule
 
 
 /* Freely diffusing or fixed molecules on a surface */
+/* Same as struct molecule with extra stuff tacked on end */
 struct surface_molecule
 {
   struct abstract_molecule *next;
   double t;
-  double t_inert;
+  double t2;
+  short flags;
   struct species *properties;
+  struct mem_helper *birthplace;
   
-  double t2;                        /* Time of move or -time of unimol. rxn */
-  
-  struct vector3 pos;              /* Position in the world */
-  struct vector2 s_pos;            /* Position in surface coordinates */
-  struct wall *curr_wall;           /* The surface element we are on */
+  struct vector3 pos;               /* Position in the world */
   struct subvolume *subvol;         /* Partition we're in */
-  short orient;                     /* Facing up or down? */
-  
+
   struct region_data *curr_region;  /* Region we are in (for counting) */
+
+  struct molecule *next_v;          /* Next molecule in this volume */
+
+  short orient;                     /* Facing up or down? */
+  struct vector2 s_pos;             /* Position in surface coordinates */
+  struct wall *curr_wall;           /* The surface element we are on */
   
   struct surface_molecule *next_s;  /* Next molecule on this surface */
-  struct surface_molecule *next_v;  /* Next molecule in this volume */
 };
 
 
@@ -447,8 +475,10 @@ struct grid_molecule
 {
   struct abstract_molecule *next;
   double t;
-  double t_inert;
+  double t2;
+  short flags;
   struct species *properties;
+  struct mem_helper *birthplace;
   
   int grid_index;              /* Which gridpoint do we occupy? */
   short orient;                /* Which way do we point? */

@@ -10,6 +10,7 @@
 #include "rng.h"
 #include "mcell_structs.h"
 #include "vol_util.h"
+#include "react.h"
 
 extern struct volume *world;
 
@@ -275,6 +276,7 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
   new_m = mem_get(sv->mem->mol);
   memcpy(new_m,m,sizeof(struct molecule));
 
+  new_m->birthplace = sv->mem->mol;
   new_m->next = NULL;
   new_m->subvol = sv;
   new_m->next_v = sv->mol_head;
@@ -377,8 +379,11 @@ void release_molecules(struct release_event_queue *req)
   guess = NULL;
   
   m.properties = rso->mol_type;
+  m.flags = TYPE_3D + IN_VOLUME + IN_SCHEDULE;
+  if (trigger_unimolecular(rso->mol_type->hashval , (struct abstract_molecule*)&m) != NULL) 
+    m.flags += ACT_REACT;
+  if (rso->mol_type->space_step > 0.0) m.flags += ACT_DIFFUSE;
   
-  m.t_inert = -1;  /* Schedule me! */
   m.t2 = 0.0;
   m.curr_cmprt = NULL;
   

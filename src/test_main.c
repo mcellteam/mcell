@@ -44,7 +44,7 @@ void run_sim(void)
     
     for (i=0;i<world->n_subvols;i++)
     {
-      run_timestep( &(world->subvol[i]) );
+      run_timestep( &(world->subvol[i]) , world->it_time + 10.0 , (double)world->iterations );
     }
     
     world->it_time++;

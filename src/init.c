@@ -470,7 +470,7 @@ int init_partitions(void)
     
     sv->mem->timer = create_scheduler(1.0,100.0,100,0.0);
     sv->mem->current_time = 0.0;
-    sv->mem->max_timestep = 1000.0;
+    sv->mem->max_timestep = 3000.0;
   }
   
   world->binning = 0;

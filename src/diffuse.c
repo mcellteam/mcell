@@ -22,7 +22,9 @@
 
 
 
-#define MULTISTEP_WORTHWHILE 1.414
+#define MULTISTEP_WORTHWHILE 2.0
+#define MULTISTEP_PERCENTILE 0.99
+#define MULTISTEP_FRACTION 0.98
 #define SET_ME_PROPERLY 1.0
 
 
@@ -235,14 +237,13 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
 /*************************************************************************
 diffuse_3D:
   In: molecule that is moving
-      linked list of potential collisions with molecules (we could react)
-      subvolume that we start in
-      displacement vector from current to new location
-  Out: collision list of walls and molecules we intersected along our ray
-         (current subvolume only)
+      maximum time we can spend diffusing
+      are we inert (nonzero) or can we react (zero)?
+  Out: 1 if the molecule still exists, 0 otherwise.
+       Position and time are updated, but molecule is not rescheduled.
 *************************************************************************/
 
-int diffuse_3D(struct molecule *m,double target_time)
+int diffuse_3D(struct molecule *m,double max_time,int inert)
 {
   struct vector3 displacement;
   struct collision *smash,*shead,*shead2;
@@ -252,6 +253,7 @@ int diffuse_3D(struct molecule *m,double target_time)
   struct molecule *mp;
   struct species *sm;
   double d2;
+  double d2_nearmax;
   double d2min = GIGANTIC;
   double steps;
   double factor;
@@ -259,9 +261,9 @@ int diffuse_3D(struct molecule *m,double target_time)
   int i,j,k;
   
   sm = m->properties;
-  if (sm->space_step <= 0)
+  if (sm->space_step <= 0.0)
   {
-    m->t += m->subvol->mem->max_timestep;
+    m->t += max_time;
     return 1;
   }
   
@@ -288,8 +290,11 @@ int diffuse_3D(struct molecule *m,double target_time)
     }
   }
   
-  if (target_time - m->t > MULTISTEP_WORTHWHILE)
+  if (max_time > MULTISTEP_WORTHWHILE)
   {
+    d2_nearmax = sm->space_step * world->r_step[ (int)(world->radial_subdivisions * MULTISTEP_PERCENTILE) ];
+    d2_nearmax *= d2_nearmax;
+  
     for (smash = shead ; smash != NULL ; smash = smash->next)
     {
       mp = (struct molecule*)smash->target;
@@ -323,19 +328,19 @@ int diffuse_3D(struct molecule *m,double target_time)
     d2 *= d2;
     if (d2 < d2min) d2min = d2;
     
-    if (d2 < sm->space_step * sm->space_step) steps = 1.0;
-    else steps = d2 / (sm->space_step * sm->space_step);
-    
-    if (steps > target_time - m->t) steps = (1.0+EPS_C)*(target_time - m->t);
+    if (d2 < d2_nearmax) steps = 1.0;
+    else if ( d2_nearmax*max_time < d2 ) steps = (1.0+EPS_C)*max_time;
+    else steps = d2 / d2_nearmax;
+
+    if (steps < MULTISTEP_WORTHWHILE) steps = 1.0;
   }
+  else if (max_time < MULTISTEP_FRACTION) steps = max_time;
   else steps = 1.0;
   
-  if (steps > sqrt(10.0)) steps = sqrt(10.0);
-
-  pick_displacement(&displacement,steps*m->properties->space_step);
-  sv = m->subvol;
+  if (steps == 1.0) pick_displacement(&displacement,sm->space_step);
+  else pick_displacement(&displacement,sqrt(steps)*sm->space_step);
   
-  steps *= steps;  /* Convert distance steps to time steps */
+  sv = m->subvol;
   
   do
   {
@@ -351,7 +356,7 @@ int diffuse_3D(struct molecule *m,double target_time)
         break;
       }
 
-      if ( (smash->what & COLLIDE_MOL) != 0 )
+      if ( (smash->what & COLLIDE_MOL) != 0 && !inert )
       {
         i = test_bimolecular(smash->intermediate,SET_ME_PROPERLY);
         if (i<0) continue;
@@ -428,253 +433,105 @@ int diffuse_3D(struct molecule *m,double target_time)
   m->pos.y += displacement.y;
   m->pos.z += displacement.z;
   m->t += steps;
+
   return 1;
 }
     
 
 
-/*
+/*************************************************************************
+run_timestep:
+  In: subvolume to use
+      time of the next release event
+      time of the next checkpoint
+  Out: No return value.  Every molecule in the subvolume is updated in
+       position and rescheduled at least one timestep ahead.  The
+       current_time of the subvolume is also incremented.
+*************************************************************************/
 
-Note: t_inert>0 means advance reaction times by t_inert and reschedule
-      t_inert<0 means reschedule unimolecular from scratch
-      t_inert==0 means a reaction happened or we're ready to move again
-      t2>0 means a displacement will happen then
-      t2<0 means a reaction will happen at -then
-      t2==0 means that the particle only reacts and doesn't move
-
-      Consult the following table for what is supposed to happen
-                   t2>0            t2<0            t2==0
-t_inert>0       rxn,resched.     inert-move       rxn,resched.
-t_inert==0          rxn            move             rxn
-t_inert<0         rxn+move        rxn+move        rxn+move
-*/
-
-void run_timestep(struct subvolume *sv)
+void run_timestep(struct subvolume *sv,double release_time,double checkpt_time)
 {
   struct abstract_molecule *a;
-  struct molecule *m;
-  struct surface_molecule *s;
   struct rxn *r;
   double t;
+  double stop_time,max_time;
   int i,j;
   
   while ( (a = (struct abstract_molecule*)schedule_next(sv->mem->timer)) != NULL )
   {
-    if (a->properties == NULL)
+
+    if (a->properties == NULL)  /* Defunct!  Remove. */
     {
-      a = a->next;
+      if ((a->flags & IN_MASK) == IN_SCHEDULE) mem_put(a->birthplace,a);
+      else a->flags -= IN_SCHEDULE;
+      
       continue;
     }
-    
-    if ((a->properties->flags & ON_GRID) != 0)  /* Grid mol, can't move */
-    {
-      if (a->t_inert > 0.0)
-      {
-        a->t += a->t_inert;
-        a->t_inert = 0.0;
-        schedule_add(sv->mem->timer,a);
-      }
-      else if (a->t_inert < 0.0)
-      {
-        r = trigger_unimolecular(a->properties->hashval,a);
-        if (r != NULL)
-        {
-          a->t += timeof_unimolecular(r);
-          a->t_inert = 0.0;
-        }
-        else a->t += sv->mem->max_timestep;
-        schedule_add(sv->mem->timer,a);
-      }
-      else
-      {
-        r = trigger_unimolecular(a->properties->hashval,a);
-        if (r != NULL)
-        {
-          i = which_unimolecular(r);
-          j = outcome_unimolecular(r,i,a,a->t);
-          if (j)  /* mol. still exists */
-          {
-            a->t += timeof_unimolecular(r);
-            schedule_add(sv->mem->timer,a);
-          }
-        }
-        else
-        {
-          a->t += sv->mem->max_timestep;
-          schedule_add(sv->mem->timer,a);
-        }
-      }
-    }
-    
-    else if ((a->properties->flags & ON_SURFACE) != 0)
-    {
-      s = (struct surface_molecule*) a;
 
-      if (s->t_inert > 0.0)
+    a->flags -=IN_SCHEDULE;
+    
+    if (sv->mem->current_time + sv->mem->max_timestep < checkpt_time) stop_time = sv->mem->max_timestep;
+    else stop_time = checkpt_time - sv->mem->current_time;
+    
+    if (a->t2 == 0.0)
+    {
+      if ((a->flags & (ACT_INERT+ACT_NEWBIE)) != 0)
       {
-        if (s->t2 >= 0.0)
-        {
-          t += s->t + s->t_inert;
-          if (s->t2 > 0.0 && s->t2 < t)
-          {
-            s->t = s->t2;
-            s->t2 = - s->t * (1.0 + EPS_C);
-            s->t_inert = t + s->t2;
-          }
-          else
-          {
-            s->t = t;
-            s->t_inert = 0;
-          }
-          schedule_add(sv->mem->timer,a);
-        }
-        else
-        {
-          /* 2D moving not implemented. */
-          s->t = -(s->t2 + s->t_inert);
-          s->t2 = 0.0;
-          schedule_add(sv->mem->timer,a);
-        }
-      }
-      else if (s->t_inert < 0.0)
-      {
-        r = trigger_unimolecular(a->properties->hashval,a);
-        if (r != NULL)
-        {
-          a->t += timeof_unimolecular(r);
-          a->t_inert = 0.0;
-        }
-        else a->t += sv->mem->max_timestep;
-        /* Add 2D movement code here! */
-        
-        schedule_add(sv->mem->timer,a);
-      }
-      else
-      {
-        if (s->t2 >= 0)
+        a->flags -= (a->flags & (ACT_INERT + ACT_NEWBIE));
+        if ((a->flags & ACT_REACT) != 0)
         {
           r = trigger_unimolecular(a->properties->hashval,a);
-          if (r != NULL)
-          {
-            i = which_unimolecular(r);
-            j = outcome_unimolecular(r,i,a,a->t);
-            if (j) /* still exists */
-            {
-              a->t += timeof_unimolecular(r);
-              schedule_add(sv->mem->timer,a);
-            }
-          }
-          else
-          {
-            a->t += sv->mem->max_timestep;
-            schedule_add(sv->mem->timer,a);
-          }
-        }
-        else
-        {
-          /* 2D moving not implemented. */
-          s->t = -(s->t2 + s->t_inert);
-          s->t2 = 0.0;
-          schedule_add(sv->mem->timer,a);
+          a->t2 = timeof_unimolecular(r);
         }
       }
-    }
-    
-    else /* freely diffusing molecule */
-    {
-
-      m = (struct molecule*) a;
-      
-      if (m->t_inert > 0.0) /* inert */
+      else if ((a->flags & ACT_REACT) != 0)
       {
-
-        if (m->t2 >= 0.0)  /* react */
-        {
-          t = m->t + m->t_inert;
-          if (m->t2 > 0.0 && m->t2 < t)
-          {
-            m->t = m->t2;
-            m->t2 = - m->t * (1.0 + EPS_C);
-            m->t_inert = t + m->t2;
-          }
-          else
-          {
-            m->t = t;
-            m->t_inert = 0;
-          }
-          schedule_add(sv->mem->timer,a);
-        }
-        else /* diffuse */
-        {
-          t = m->t;
-          j = diffuse_3D(m,m->t_inert);
-          if (j) /* still exists */
-          {
-            if (m->t - t > m->t_inert)
-            {
-              m->t2 -= m->t_inert;
-              m->t_inert = 0.0;
-            }
-            else
-            {
-              m->t2 -= m->t - t;
-              m->t_inert -= m->t - t;
-            }
-            
-            if (m->t < -m->t2) schedule_add(sv->mem->timer,a);
-            else
-            {
-              t = m->t;
-              m->t = -m->t2;
-              m->t2 = t;
-              schedule_add(sv->mem->timer,a);
-            }
-          }
-        }
-      
-      }
-      else if (m->t_inert < 0.0) /* schedule */
-      {
-
         r = trigger_unimolecular(a->properties->hashval,a);
-        if (r != NULL) t = m->t + timeof_unimolecular(r);
-        else t = m->t + sv->mem->max_timestep;
-        m->t_inert = 0.0;
-        
-        j = diffuse_3D(m,t);
-        
-        if (j) /* still exists */
+        i = which_unimolecular(r);
+        j = outcome_unimolecular(r,i,a,a->t);
+        if (j) /* We still exist */
         {
-          if (m->t < t) m->t2 = -t;
-          else
-          {
-            m->t2 = m->t;
-            m->t = t;
-          }
-          
-          schedule_add(sv->mem->timer,a);
+          a->t2 = timeof_unimolecular(r);
         }
-        
+        else continue;
       }
-      else /* diffuse */
-      {
-        j = diffuse_3D(m,-m->t2);
-        if (j) /* still exists */
-        {
-          if (m->t > -m->t2)
-          {
-            t = m->t;
-            m->t = -m->t2;
-            m->t2 = t;
-          }
-          
-          schedule_add(sv->mem->timer,a);
-        }
-        
-      }
-
     }
-    
-    a = a->next;
+
+    if ((a->flags & (ACT_INERT+ACT_REACT)) == 0) max_time = stop_time;
+    else if (a->t2 < stop_time)
+    {
+      max_time = a->t2;
+      a->t2 = 0.0;
+    }
+    else
+    {
+      max_time = stop_time;
+      a->t2 -= stop_time;
+    }
+          
+    if ((a->flags & ACT_DIFFUSE) != 0)
+    {
+      if ((a->flags & TYPE_3D) != 0)
+      {
+        if (max_time > release_time - sv->mem->current_time) max_time = release_time - sv->mem->current_time;
+        t = a->t + max_time;
+        j = diffuse_3D((struct molecule*)a , max_time , a->flags & ACT_INERT);
+        if (j) /* We still exist */
+        {
+          if (a->t < t) a->t2 = t - a->t;
+        }
+        else continue;
+      }
+      else  /* Surface diffusion not yet implemented */
+      {
+        a->t += max_time;
+      }
+    }
+    else a->t += max_time;
+
+    a->flags += IN_SCHEDULE;
+    schedule_add(sv->mem->timer,a);
   }
+  
+  sv->mem->current_time += 1.0;
 }
