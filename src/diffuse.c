@@ -1003,6 +1003,7 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   double factor;
   double rate_factor=1.0;
   double x,xx;
+  double t_already = 0.0;
   
   int i,j,k,l;
   
@@ -1181,6 +1182,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
 #define ERROR_AND_QUIT fprintf(world->err_file,"Out of memory: trying to save intermediate results.\n"); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
+#define UPDATE_LOCATION(w) m->pos.x=(w)->loc.x+EPS_C*displacement.x; m->pos.y=(w)->loc.y+EPS_C*displacement.y; m->pos.z=(w)->loc.z+EPS_C*displacement.z; t_already=(w)->t
   do
   {
     shead2 = ray_trace(m,shead,sv,&displacement);
@@ -1356,7 +1358,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
               else k = -1;
               
               if ( (sm->flags & w->flags & COUNT_SOME) )
+              {
                 update_collision_count(sm,w->regions,k,1);
+                UPDATE_LOCATION(c);
+              }
             }
                 
             if (g_head!=NULL) mem_put_list(sv->local_storage->coll,g_head);
@@ -1468,6 +1473,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             {
               if (rx_result==RX_FLIP) update_collision_count(sm,w->regions,k,1);
               else update_collision_count(sm,w->regions,k,0);
+              UPDATE_LOCATION(c);
             }
           }
                 
@@ -1490,7 +1496,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             if (rx!=NULL && rx->n_pathways == RX_WINDOW)
             {
               if ( (sm->flags & w->flags & COUNT_SOME) )
+              {
                 update_collision_count(sm,w->regions,k,1);
+                UPDATE_LOCATION(smash);
+              }
 
               continue; /* pass through */
             }
@@ -1525,7 +1534,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     if (l==RX_FLIP)
                     {
                       if ( (sm->flags & w->flags & COUNT_SOME) )
+                      {
                         update_collision_count(sm,w->regions,k,1);
+                        UPDATE_LOCATION(smash);
+                      }
                       
                       continue; /* pass through */
                     }
@@ -1555,7 +1567,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
               if (rx->n_pathways == RX_GHOST)
               {
                 if ( (sm->flags & w->flags & COUNT_SOME) )
+                {
                   update_collision_count(sm,w->regions,k,1);
+                  UPDATE_LOCATION(smash);
+                }
 
                 continue;
               }
@@ -1572,7 +1587,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                 if (j==RX_FLIP)
                 {
                   if ( (sm->flags & w->flags & COUNT_SOME) )
+                  {
                     update_collision_count(sm,w->regions,k,1);
+                    UPDATE_LOCATION(smash);
+                  }
 
                   continue; /* pass through */
                 }
@@ -1588,18 +1606,22 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           }
           
           if ( (sm->flags & w->flags & COUNT_SOME) )
+          {
             update_collision_count(sm,w->regions,k,0);
+            UPDATE_LOCATION(smash);
+          }
         }
         /* default is to reflect */
         
-        m->pos.x += displacement.x * smash->t;
-        m->pos.y += displacement.y * smash->t;
-        m->pos.z += displacement.z * smash->t;
+        m->pos.x += displacement.x * (smash->t - t_already);
+        m->pos.y += displacement.y * (smash->t - t_already);
+        m->pos.z += displacement.z * (smash->t - t_already);
         m->t += t_steps*smash->t;
-        m->path_length += t_steps*smash->t*sqrt(( displacement.x * displacement.x +
-                                                  displacement.y * displacement.y +
-                                                  displacement.z * displacement.z ) );
+        m->path_length += t_steps*(smash->t-t_already)*sqrt(( displacement.x * displacement.x +
+                                                              displacement.y * displacement.y +
+                                                              displacement.z * displacement.z ) );
         t_steps *= (1.0-smash->t);
+        t_already = 0.0;
         
         factor = -2.0 * (displacement.x*w->normal.x + displacement.y*w->normal.y + displacement.z*w->normal.z);
         displacement.x = (displacement.x + factor*w->normal.x) * (1.0-smash->t);
@@ -1625,6 +1647,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         
         m->t += t_steps*smash->t;
         t_steps *= (1.0-smash->t);
+        t_already = 0.0;
         if (t_steps < EPS_C) t_steps = EPS_C;
 
         nsv = traverse_subvol(sv,&(m->pos),smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL);
@@ -1658,9 +1681,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 #undef CLEAN_AND_RETURN
   
   if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
-  m->pos.x += displacement.x;
-  m->pos.y += displacement.y;
-  m->pos.z += displacement.z;
+  m->pos.x += displacement.x*(1.0-t_already);
+  m->pos.y += displacement.y*(1.0-t_already);
+  m->pos.z += displacement.z*(1.0-t_already);
   m->t += t_steps;
   m->path_length += sqrt( displacement.x*displacement.x +
                           displacement.y*displacement.y +
