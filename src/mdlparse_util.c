@@ -240,11 +240,11 @@ int copy_object(struct volume *volp,struct object *curr_objp,
     }
     rlp->next=objp->region_list;
     objp->region_list=rlp;
-    rp2=rlp2->region;
+    rp2=rlp2->reg;
     if ((rp=make_new_region(volp,sym_name,rp2->region_last_name,err_msg))==NULL) { 
       return(1);
     }
-    rlp->region=rp;
+    rlp->reg=rp;
     rp->region_last_name=my_strdup(rp2->region_last_name);
     rp->parent=objp;
     rp->reg_counter_ref_list=NULL;
