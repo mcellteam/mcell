@@ -87,7 +87,10 @@ int update_reaction_output(struct output_block *obp)
   struct output_item *oip;
   struct output_evaluator *oep;
   u_int curr_buf_index;
-  int final_chunk;
+  int final_chunk_flag;		// flag signaling an end to the scheduled
+                                // reaction outputs. Takes values {0,1}.
+                                // 0 - end not reached yet,
+                                // 1 - end reached. 
 
   log_file=world->log_file;
 
@@ -143,10 +146,10 @@ int update_reaction_output(struct output_block *obp)
 
   /* Schedule next output event */
 
-  final_chunk=0;
+  final_chunk_flag=0;
   if (obp->timer_type==STEP_TIME) {
     if (world->it_time>=(world->iterations-(obp->step_time/world->time_unit))) {
-      final_chunk=1;
+      final_chunk_flag=1;
     }
     else {
       obp->t+=obp->step_time/world->time_unit;
@@ -161,7 +164,7 @@ int update_reaction_output(struct output_block *obp)
   else {
     obp->curr_time_ptr=obp->curr_time_ptr->next;
     if (obp->curr_time_ptr==NULL) {
-      final_chunk=1;
+      final_chunk_flag=1;
     }
     else {
       if (obp->timer_type==IT_TIME) {
@@ -182,9 +185,9 @@ int update_reaction_output(struct output_block *obp)
 
   /* write data to outfile */
 
-  if (obp->curr_buf_index==obp->buffersize || final_chunk)
+  if (obp->curr_buf_index==obp->buffersize || final_chunk_flag)
   {
-    if ( write_reaction_output(obp,final_chunk) )
+    if ( write_reaction_output(obp,final_chunk_flag) )
     {
       return 1;  /* Note that there has been an error. */
     }
@@ -199,11 +202,12 @@ int update_reaction_output(struct output_block *obp)
 /**************************************************************************
 write_reaction_output:
   In: the output_block we want to write to disk
+      the flag that signals an end to the scheduled reaction outputs
   Out: 0 on success, 1 on failure.
        The reaction output buffer is flushed and written to disk.
 **************************************************************************/  
   
-int write_reaction_output(struct output_block *obp,int final_chunk)
+int write_reaction_output(struct output_block *obp,int final_chunk_flag)
 {
   FILE *log_file,*fp;
   struct output_item *oip;
@@ -261,7 +265,7 @@ int write_reaction_output(struct output_block *obp,int final_chunk)
 	  fprintf(fp,"%.9g %.9g\n",obp->time_array[i],
 		  ((double *)oep->final_data)[i]);
 	}
-	else if (oep->index_type==INDEX_VAL && final_chunk) {
+	else if (oep->index_type==INDEX_VAL && final_chunk_flag) {
 	  fprintf(fp,"%d %.9g\n",i,((double *)oep->final_data)[i]);
 	}
       }
@@ -272,7 +276,7 @@ int write_reaction_output(struct output_block *obp,int final_chunk)
 	  fprintf(fp,"%.9g %d\n",obp->time_array[i],
 		  ((int *)oep->final_data)[i]);
 	}
-	else if (oep->index_type==INDEX_VAL && final_chunk) {
+	else if (oep->index_type==INDEX_VAL && final_chunk_flag) {
 	  fprintf(fp,"%d %d\n",i,((int *)oep->final_data)[i]);
 	}
       }
