@@ -281,14 +281,14 @@ int init_sim(void)
   
   world->releaser = create_scheduler(1.0,100.0,100,0.0);
   if(world->releaser == NULL){
-	fprintf(stderr, "MCell: error while creating releaser.\n");
-        return (1);
+	fprintf(stderr, "Out of memory while creating releaser.\n");
+        exit(EXIT_FAILURE);
   }
 
   world->count_scheduler = create_scheduler(1.0,100.0,100,0.0);
   if(world->count_scheduler == NULL){
-	fprintf(stderr,"MCell: error while creating count_scheduler.\n");
-        return (1);
+	fprintf(stderr,"Out of memory while creating count_scheduler.\n");
+        exit(EXIT_FAILURE);
   }
 
   /* Parse the MDL file: */
@@ -408,8 +408,11 @@ int init_sim(void)
     obpn = obp->next;
     if (schedule_add(world->count_scheduler , obp))
     {
-      fprintf(log_file,"MCell: error scheduling output for count statements\n");
-      return 1;
+      fprintf(stderr,"Out of memory: trying to save intermediate results\n");
+      int i = emergency_output();
+      fprintf(stderr,"Fatal error: out of memory while scheduling output for count statements.\nAttempt to write intermediate results had %d errors\n", i);
+      exit(EXIT_FAILURE);
+
     }
     obp = obpn;
   }
@@ -804,7 +807,12 @@ int init_geom(void)
   while(req != NULL)
   {
     rqn = req->next;
-    if (schedule_add(world->releaser , req)) return 1;
+    if (schedule_add(world->releaser , req)){ 
+	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+	fprintf(stderr,"Fatal error: out of memory while geometry initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
+    }
     req = rqn;
   }
 
@@ -1868,7 +1876,12 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
         if ((mol->properties->flags & COUNT_CONTENTS) != 0)
           count_me_by_region((struct abstract_molecule*)mol,1);
       
-        if (schedule_add(w->birthplace->timer,mol)) return 1;
+        if (schedule_add(w->birthplace->timer,mol)){ 
+		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        	int i = emergency_output();
+		fprintf(stderr,"Fatal error: out of memory while effectors by density intialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        	exit(EXIT_FAILURE);
+         }
       }
     }
   }
@@ -2076,7 +2089,12 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   if ((mol->properties->flags & COUNT_CONTENTS) != 0)
                     count_me_by_region((struct abstract_molecule*)mol,1);
       
-                  if ( schedule_add(walls[j]->birthplace->timer,mol) ) return 1;
+                  if ( schedule_add(walls[j]->birthplace->timer,mol) ){ 
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while effectors by number initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
+		   }
                 }
               }
             }
@@ -2115,7 +2133,12 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     if ((mol->properties->flags & COUNT_CONTENTS) != 0)
                       count_me_by_region((struct abstract_molecule*)mol,1);
       
-                    if ( schedule_add(walls[k]->birthplace->timer,mol) ) return 1;
+                    if ( schedule_add(walls[k]->birthplace->timer,mol) ){ 
+			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+			fprintf(stderr,"Fatal error: out of memory while effectors by number initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
+                     }
                     done=1;
                   }
                 }

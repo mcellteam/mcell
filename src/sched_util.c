@@ -11,6 +11,8 @@
 #include <stdlib.h>
 
 #include "sched_util.h"
+#include "mcell_structs.h"
+#include "react_output.h"
 
 int depth;
 
@@ -370,7 +372,13 @@ void* schedule_next(struct schedule_helper *sh)
   if (sh->current==NULL)
   {
     sh->current_count = schedule_advance(sh,&sh->current,&sh->current_tail);
-    return NULL;
+    if(sh->current_count == -1){
+	fprintf(stderr, "Out of memory: trying to save intermediate results\n");        int i = emergency_output();
+	fprintf(stderr, "Fatal error: out of memory during advancing of the scheduler.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);	
+    }else{
+    	return NULL;
+    }
   }
   else
   {

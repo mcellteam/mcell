@@ -105,7 +105,12 @@ int update_reaction_output(struct output_block *obp)
       else {
         obp->t=obp->curr_time_ptr->value/world->time_unit; 
       }
-      schedule_add(world->count_scheduler,obp);
+      if(schedule_add(world->count_scheduler,obp) == 1){
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory while updating reaction outputs.\nAttempt to write intermediate results had %d errors.\n", i);
+	exit(EXIT_FAILURE); 
+      }	
       return (0);
     }
   }
@@ -146,7 +151,12 @@ int update_reaction_output(struct output_block *obp)
     }
     else {
       obp->t+=obp->step_time/world->time_unit;
-      schedule_add(world->count_scheduler,obp);
+      if(schedule_add(world->count_scheduler,obp) == 1){
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory while updating reaction outputs.\nAttempt to write intermediate results had %d errors.\n", i);
+	exit(EXIT_FAILURE); 
+      }
     }
   }
   else {
@@ -161,7 +171,12 @@ int update_reaction_output(struct output_block *obp)
       else {
         obp->t=obp->curr_time_ptr->value/world->time_unit; 
       }
-      schedule_add(world->count_scheduler,obp);
+      if(schedule_add(world->count_scheduler,obp) == 1){
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory while updating reaction outputs.\nAttempt to write intermediate results had %d errors.\n", i);
+	exit(EXIT_FAILURE); 
+      }
     }
   }
 
@@ -363,15 +378,19 @@ int eval_count_expr(struct output_evaluator *operand1,
   if (result->final_data==NULL) {
     if (double_result_flag) {
       if (!(result->final_data=(void *)malloc(result->n_data*sizeof(double)))) {
-        fprintf(log_file,"MCell: could not store count expression data\n");
-        return(1);
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory while evaluating counter expressions.\nAttempt to write intermediate results had %d errors.\n", i);
+	exit(EXIT_FAILURE); 
       }
       result->data_type=DBL;
     }
     else {
       if (!(result->final_data=(void *)malloc(result->n_data*sizeof(int)))) {
-        fprintf(log_file,"MCell: could not store count expression data\n");
-        return(1);
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory while evaluating counter expressions.\nAttempt to write intermediate results had %d errors.\n", i);
+	exit(EXIT_FAILURE); 
       }
       result->data_type=INT;
     }
