@@ -668,13 +668,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         if (r != NULL)
         {
           i = test_intersect(r,rate_factor);
-          i = 0; /* Cheat--always take first reaction. */
-          if (i < 0)
-          {
-            tell_loc(m,"(Pass)  ");
-            continue; /* pass through--set counters here! */
-          }
-          else
+          if (i>=0)
           {
             j = outcome_intersect(
                     r,i,w,(struct abstract_molecule*)m,
@@ -710,8 +704,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
           if (factor < -m->pos.z) factor = -m->pos.z;
         }
 #endif
-        smash->t *= (1.0 - EPS_C);
-        
         m->pos.x += displacement.x * smash->t;
         m->pos.y += displacement.y * smash->t;
         m->pos.z += displacement.z * smash->t;

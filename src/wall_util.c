@@ -614,7 +614,9 @@ collide_wall:
   Note: t and/or hitpt may be modified even if there is no collision
         Not highly optimized yet.  May want to project to Cartesian
         coordinates for speed (as MCell2 did, and Rex implemented
-        in pre-40308 backups in vol_utils.c).
+        in pre-40308 backups in vol_utils.c).  When reflecting, use
+        the value of t returned, not hitpt (reflections happen slightly
+        early to avoid rounding errors with superimposed planes).
 ***************************************************************************/
 
 int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
@@ -647,7 +649,7 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
   }
   
   
-  if ( (dd*dv>0.0) ||
+  if ( (dd*dv>0.0) ||              /* Traveling away from plane */
        (dd>0.0 && dd+dv>d_eps) ||  /* Start & end above plane */
        (dd<0.0 && dd+dv<d_eps) ||  /* Start & end below plane */
        (dd==0.0 && dv!=0.0) )    /* Start beside plane, end above or below */
@@ -674,7 +676,9 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
     return COLLIDE_REDO;
   }
   
-  *t = a = (-dd+d_eps)/dv;
+  a = 1.0/dv;
+  *t = (-dd+d_eps)*a; /* Time of reflection */
+  a *= -dd;         /* Time we actually hit */
   
   hitpt->x = point->x + a*move->x;
   hitpt->y = point->y + a*move->y;

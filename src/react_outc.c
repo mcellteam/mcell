@@ -97,6 +97,8 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
             if (sg != NULL)
             {
               j = xyz2grid(hitpt,sg);
+              printf("Hit @ [%.2f %.2f %.2f] and got %x:%d\n",
+                     hitpt->x,hitpt->y,hitpt->z,(int)sg,j);
               if (sg->mol[j]!=NULL) j = -1; /* Slot full, no rxn */
             }
           }
@@ -409,7 +411,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
       w = g->grid->surface;
     }
   }
-  else /* reacA must be surface, grid can't move! */
+  else if ( (reacA->properties->flags & ON_GRID) == 0 )
   {
     s = (struct surface_molecule*)reacA;
     x = s->subvol->mem;
@@ -424,6 +426,23 @@ int outcome_bimolecular(struct rxn *rx,int path,
     {
       m = (struct molecule*)reacB;
       hitpt = &(m->pos);
+    }
+  }
+  else /* Grid molecule */
+  {
+    g = (struct grid_molecule*)reacA;
+    x = g->grid->surface->birthplace;
+    w = g->grid->surface;
+    
+    if ((reacB->properties->flags & ON_SURFACE) == 0)
+    {
+      m = (struct molecule*)reacB;
+      hitpt = &(m->pos);
+    }
+    else /* Must be surface */
+    {
+      s = (struct surface_molecule*)reacA;
+      hitpt = &(s->pos);
     }
   }
   

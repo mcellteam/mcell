@@ -605,7 +605,19 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         }
         pb_factor = 1.0e11*mpvp->vol->effector_grid_density/(2.0*N_AV)*sqrt( MY_PI * mpvp->vol->time_unit / D_tot );
         rx->cum_rates[0] = pb_factor * rx->cum_rates[0];
-        printf("Rate %.3f set (surface reaction).\n",rx->cum_rates[0]);
+#define ORCH(x) (x==0) ? "" : ( (x*x==1) ? ( (x<0) ? "," : "'" ) : ( (x<0) ? ",," : "''" ) )
+#define FLG1(x) ((x&RX_DESTROY)!=0) ? "*" : ""
+#define FLG2(x) ((x&RX_2DESTROY)!=0) ? "*" : ""
+        printf("Rate %.3f (s) set for ",rx->cum_rates[0]);
+        if (rx->n_reactants==1) printf("%s%s%s -> ",rx->players[0]->sym->name,ORCH(rx->geometries[0]),FLG1(rx->fates[0]));
+        else printf("%s%s%s + %s%s%s -> ",
+                    rx->players[0]->sym->name,ORCH(rx->geometries[0]),FLG1(rx->fates[0]),
+                    rx->players[1]->sym->name,ORCH(rx->geometries[1]),FLG2(rx->fates[0]));
+        for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
+        {
+          printf("%s%s ",rx->players[k]->sym->name,ORCH(rx->geometries[k]));
+        }
+        printf("\n");
       }
       else
       {
@@ -624,11 +636,33 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           }
         }
         rx->cum_rates[0]=pb_factor*rx->cum_rates[0];
+        printf("Rate %.3f (l) set ",rx->cum_rates[0]);
+        if (rx->n_reactants==1) printf("%s%s%s -> ",rx->players[0]->sym->name,ORCH(rx->geometries[0]),FLG1(rx->fates[0]));
+        else printf("%s%s%s + %s%s%s -> ",
+                    rx->players[0]->sym->name,ORCH(rx->geometries[0]),FLG1(rx->fates[0]),
+                    rx->players[1]->sym->name,ORCH(rx->geometries[1]),FLG2(rx->fates[0]));
+        for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
+        {
+          printf("%s%s ",rx->players[k]->sym->name,ORCH(rx->geometries[k]));
+        }
+        printf("\n");
         printf("Rate %.3f set.\n",rx->cum_rates[0]);
       }
       for (j=1;j<rx->n_pathways;j++)
       {
-        printf("Rate %.3f set.\n",pb_factor*rx->cum_rates[j]);
+        printf("Rate %.3f set for ",pb_factor*rx->cum_rates[j]);
+        if (rx->n_reactants==1) printf("%s%s%s -> ",rx->players[0]->sym->name,ORCH(rx->geometries[0]),FLG1(rx->fates[j]));
+        else printf("%s%s%s + %s%s%s -> ",
+                    rx->players[0]->sym->name,ORCH(rx->geometries[0]),FLG1(rx->fates[j]),
+                    rx->players[1]->sym->name,ORCH(rx->geometries[1]),FLG2(rx->fates[j]));
+        for (k = rx->product_idx[j] ; k < rx->product_idx[j+1] ; k++)
+        {
+          printf("%s%s ",rx->players[k]->sym->name,ORCH(rx->geometries[k]));
+        }
+        printf("\n");
+#undef FLG1
+#undef FLG2        
+#undef ORCH        
         rx->cum_rates[j] = pb_factor*rx->cum_rates[j] + rx->cum_rates[j-1];
       }
       
