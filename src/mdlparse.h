@@ -73,6 +73,7 @@ struct mdlparse_vars {
   short orient_class;
   short orient_class1;
   short orient_class2;
+  byte prod_all_3d;
 
   FILE *file;
 

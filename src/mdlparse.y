@@ -2157,18 +2157,31 @@ unimolecular_rxn: reactant RT_ARROW
   mdlpvp->pathp->reactant3=NULL;
   mdlpvp->pathp->km=0;
   mdlpvp->pathp->kcat=0;
-  mdlpvp->pathp->orientation1=mdlpvp->orient_class;
+  if (mdlpvp->pathp->reactant1->flags==0) {
+    mdlpvp->pathp->orientation1=mdlpvp->orient_class;
+  }
+  mdlpvp->pathp->orientation1=0;
   mdlpvp->pathp->orientation2=0;
   mdlpvp->pathp->orientation3=0;
+  if (mdlpvp->pathp->reactant1->flags!=0) {
+    mdlpvp->pathp->orientation1=mdlpvp->orient_class;
+  }
   mdlpvp->pathp->product_head=NULL;
 
   mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
   mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
-  
+
+  mdlpvp->prod_all_3d=1;
 }
 	list_products fwd_rx_rate1
 {
   mdlpvp->pathp->km=mdlpvp->fwd_km;
+  if (mdlpvp->prod_all_3d) {
+    for (mdlpvp->prodp=mdlpvp->rxnp->pathway_head->product_head;
+        mdlpvp->prodp!=NULL;mdlpvp->prodp=mdlpvp->prodp->next) {
+      mdlpvp->prodp->orientation=0;
+    }
+  }
 #ifdef DEBUG
   no_printf("Unimolecular reaction defined:\n");
   no_printf("  %s[%d] ->",mdlpvp->rxnp->pathway_head->reactant1->sym->name,
@@ -2236,18 +2249,30 @@ bimolecular_rxn: reactant '+'
   mdlpvp->pathp->reactant3=NULL;
   mdlpvp->pathp->km=0;
   mdlpvp->pathp->kcat=0;
-  mdlpvp->pathp->orientation1=mdlpvp->orient_class1;
-  mdlpvp->pathp->orientation2=mdlpvp->orient_class2;
+  mdlpvp->pathp->orientation1=0;
+  mdlpvp->pathp->orientation2=0;
   mdlpvp->pathp->orientation3=0;
+  if (mdlpvp->pathp->reactant1->flags!=0
+      || mdlpvp->pathp->reactant2->flags!=0) {
+    mdlpvp->pathp->orientation1=mdlpvp->orient_class1;
+    mdlpvp->pathp->orientation2=mdlpvp->orient_class2;
+  }
   mdlpvp->pathp->product_head=NULL;
 
   mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
   mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
   
+  mdlpvp->prod_all_3d=1;
 }
 	list_products fwd_rx_rate1
 {
   mdlpvp->pathp->km=mdlpvp->fwd_km;
+  if (mdlpvp->prod_all_3d) {
+    for (mdlpvp->prodp=mdlpvp->rxnp->pathway_head->product_head;
+        mdlpvp->prodp!=NULL;mdlpvp->prodp=mdlpvp->prodp->next) {
+      mdlpvp->prodp->orientation=0;
+    }
+  }
 #ifdef DEBUG
   no_printf("Bimolecular reaction defined:\n");
   no_printf("  %s[%d] + %s[%d] ->",
@@ -2297,6 +2322,8 @@ product: existing_molecule
   }
   mdlpvp->prodp->prod=(struct species *)mdlpvp->gp->value;
   mdlpvp->prodp->orientation=mdlpvp->orient_class;
+
+  mdlpvp->prod_all_3d=(mdlpvp->prod_all_3d && (mdlpvp->prodp->prod->flags==0));
 
   mdlpvp->prodp->next=mdlpvp->pathp->product_head;
   mdlpvp->pathp->product_head=mdlpvp->prodp;

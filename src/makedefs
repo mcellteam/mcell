@@ -1,5 +1,5 @@
 CC = gcc
-# CFLAGS = -Wall -O2 -march=athlon -fomit-frame-pointer
+# CFLAGS = -Wall -O3 -march=pentium4
 CFLAGS = -Wall -g -DDEBUG
 LIBS =  -lm
 LD = $(CC)

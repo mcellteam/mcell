@@ -21,10 +21,10 @@ DEFINE_MOLECULE Glu {
 }
 
 DEFINE_REACTIONS {
-  ACh -> ACh + Glu [2000]
+  ACh -> ACh + Glu [1000]
   Glu' -> Glu, + ACh' [1000]
-  ACh + Glu' -> Glu, + ACh' [3000]
-  ACh + Glu -> NULL [4000]
+  ACh + Glu' -> Glu, + ACh' [1e7]
+  ACh + Glu -> NULL [1e7]
 }
 
 DEFINE_RELEASE_PATTERN pat1 {
@@ -56,7 +56,7 @@ Glu_release_site SPHERICAL_RELEASE_SITE {
   MOLECULE = Glu
   NUMBER_TO_RELEASE = n
   SITE_DIAMETER = 0
-  RELEASE_PATTERN = pat2
+  RELEASE_PATTERN = pat1
 }
 
 INSTANTIATE foo OBJECT {
