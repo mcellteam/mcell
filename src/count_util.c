@@ -392,7 +392,7 @@ count_me_by_region:
 
 void count_me_by_region(struct abstract_molecule *me,int n)
 {
-  int i;
+  int i,j,k,h;
   struct region_list *rl;
   struct species *sp = me->properties;
   struct counter *c;
@@ -414,5 +414,93 @@ void count_me_by_region(struct abstract_molecule *me,int n)
         }
       }
     } 
+  }
+  else if ((sp->flags & ON_SURFACE) != 0)
+  {
+    /* Not implemented */
+  }
+  else /* Free molecule */
+  {
+    struct molecule *m = (struct molecule*)me;
+    struct subvolume *sv;
+    struct vector3 here,delta,hit;
+    struct waypoint *wp;
+    struct wall_list *wl;
+    struct region_list *rl;
+    double t;
+    
+    i = bisect(world->x_partitions,world->nx_parts,m->pos.x);
+    j = bisect(world->y_partitions,world->ny_parts,m->pos.y);
+    k = bisect(world->z_partitions,world->nz_parts,m->pos.z);
+    h = k + (world->nz_parts-1)*( j + (world->ny_parts-1)*i );
+    
+    wp = &(world->waypoints[h]);
+    
+    for (rl=wp->regions ; rl!=NULL ; rl=rl->next)
+    {
+      if ( (rl->reg->flags & COUNT_CONTENTS) != 0 )
+      {
+        i = (rl->reg->hashval & sp->hashval) & world->collide_hashmask;
+        if (i==0) i = sp->hashval & world->collide_hashmask;
+        
+        for ( c = world->collide_hash[i] ; c != NULL ; c = c->next )
+        {
+          if (c->reg_type==rl->reg && c->mol_type==sp) c->n_inside += n;
+        }
+      }
+    }
+    for (rl=wp->antiregions ; rl!=NULL ; rl=rl->next)
+    {
+      if ( (rl->reg->flags & COUNT_CONTENTS) != 0 )
+      {
+        i = (rl->reg->hashval & sp->hashval) & world->collide_hashmask;
+        if (i==0) i = sp->hashval & world->collide_hashmask;
+        
+        for ( c = world->collide_hash[i] ; c != NULL ; c = c->next )
+        {
+          if (c->reg_type==rl->reg && c->mol_type==sp) c->n_inside -= n;
+        }
+      }
+    }
+    
+    here.x = wp->loc.x;
+    here.y = wp->loc.y;
+    here.z = wp->loc.z;
+    
+    for ( sv = &(world->subvol[h]) ; sv != NULL ; sv = next_subvol(&here,&delta,sv) )
+    {
+      delta.x = m->pos.x - here.x;
+      delta.y = m->pos.y - here.y;
+      delta.z = m->pos.z - here.z;
+
+      for (wl = sv->wall_head ; wl != NULL ; wl = wl->next)
+      {
+        if (wl->this_wall->flags & COUNT_CONTENTS)
+        {
+          j = collide_wall(&here,&delta,wl->this_wall,&t,&hit);
+          
+          if (j!=COLLIDE_MISS)
+          {
+            for (rl=wl->this_wall->regions ; rl!=NULL ; rl=rl->next)
+            {
+              if ( (rl->reg->flags & m->flags & COUNT_CONTENTS) != 0 )
+              {
+                i = (rl->reg->hashval & sp->hashval) & world->collide_hashmask;
+                if (i==0) i = sp->hashval & world->collide_hashmask;
+                
+                for ( c = world->collide_hash[i] ; c != NULL ; c = c->next )
+                {
+                  if (c->reg_type==rl->reg && c->mol_type==sp)
+                  {
+                    if (j==COLLIDE_FRONT) c->n_inside += n;
+                    else if (j==COLLIDE_BACK) c->n_inside -= n;
+                  }
+                }
+              }
+            }            
+          }
+        }
+      }
+    }
   }
 }

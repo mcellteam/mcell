@@ -85,7 +85,7 @@ count_util.o: makedefs count_util.c count_util.h wall_util.h vol_util.h mcell_st
 wall_util.o: makedefs wall_util.c wall_util.h rng.h vector.h vol_util.h mcell_structs.h mem_util.h
 	$(CC) $(CFLAGS) -c wall_util.c
 
-vol_util.o: makedefs vol_util.c vol_util.h rng.h react.h mcell_structs.h mem_util.h
+vol_util.o: makedefs vol_util.c vol_util.h count_util.h rng.h react.h mcell_structs.h mem_util.h
 	$(CC) $(CFLAGS) -c vol_util.c
 
 react_trig.o: makedefs react_trig.c react.h

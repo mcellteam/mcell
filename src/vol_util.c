@@ -12,6 +12,7 @@
 
 #include "rng.h"
 #include "mem_util.h"
+#include "count_util.h"
 #include "mcell_structs.h"
 #include "vol_util.h"
 #include "react.h"
@@ -314,6 +315,11 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
   sv->mol_count++;
   new_m->properties->population++;
   
+  if (new_m->properties->flags & COUNT_CONTENTS)
+  {
+    count_me_by_region( (struct abstract_molecule*)new_m , 1 );
+  }
+  
   schedule_add(sv->mem->timer,new_m);
   
   return new_m;
@@ -328,6 +334,10 @@ excert_molecule:
 
 void excert_molecule(struct molecule *m)
 {
+  if (m->properties->flags & COUNT_CONTENTS)
+  {
+    count_me_by_region( (struct abstract_molecule*)m , -1 );
+  }
   m->subvol->mol_count--;
   m->properties->population--;
   m->properties = NULL;
