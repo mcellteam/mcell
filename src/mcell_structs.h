@@ -630,37 +630,6 @@ struct surface_grid
 };
 
 
-/* Edge of a polygon */
-struct poly_edge
-{
-  struct poly_edge *next; /* Next edge in a hash table. */
-  
-  double v1x;             /* X coord of starting point */
-  double v1y;             /* Y coord of starting point */
-  double v1z;             /* Z coord of starting point */
-  double v2x;             /* X coord of ending point */
-  double v2y;             /* Y coord of ending point */
-  double v2z;             /* Z coord of ending point */
-  
-  int face1;              /* Index of wall on one side of edge */
-  int face2;              /* Index of wall on other side of edge */
-  int edge1;              /* Which edge of wall1 are we? */
-  int edge2;              /* Which edge of wall2 are we? */
-  int n;                  /* How many walls share this edge? */
-};
-
-
-/* Hash table for rapid order-invariant lookup of edges. */
-struct edge_hashtable
-{
-  struct poly_edge *data; /* Array of polygon edges */
-  
-  int nkeys;              /* Length of array */
-  int stored;            /* How many things do we have in the table? */
-  int distinct;           /* How many of those are distinct? */
-};
-
-
 /* Temporary data structure to store information about collisions. */
 struct collision
 {
@@ -1187,7 +1156,6 @@ struct num_expr_list {
   double value;
   struct num_expr_list *next;
 };
-                                                                                
+
 
 #endif
-
