@@ -152,14 +152,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
   
   shead = NULL;
   smash = (struct collision*) mem_get(sv->mem->coll);
-  if(smash == NULL)
-  {
-    fprintf(world->err_file,"Out of memory.  Trying to save intermediate results.\n");
-    i = emergency_output();
-    fprintf(world->err_file,"Out of memory while updating position of molecule of type %s\n",m->properties->sym->name);
-    fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",i);
-    exit( EXIT_FAILURE );
-  }
+  if(smash == NULL) return NULL;
 
   fake_wlp.next = sv->wall_head;
     
@@ -184,11 +177,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
       if (smash==NULL)
       {
 	if (shead!=NULL) mem_put_list(sv->mem->coll,shead);
-	fprintf(world->err_file,"Out of memory.  Trying to save intermediate results.\n");
-	i = emergency_output();
-	fprintf(world->err_file,"Out of memory while updating position of molecule of type %s\n",m->properties->sym->name);
-	fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",i);
-	exit( EXIT_FAILURE );
+	return NULL;
       }
     }
   }
@@ -280,11 +269,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
       if (smash==NULL)
       {
 	mem_put_list(sv->mem->coll,shead);
-	fprintf(world->err_file,"Out of memory.  Trying to save intermediate results.\n");
-	i = emergency_output();
-	fprintf(world->err_file,"Out of memory while updating position of molecule of type %s\n",m->properties->sym->name);
-	fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",i);
-	exit( EXIT_FAILURE );
+	return NULL;
       }
       memcpy(smash,c,sizeof(struct collision));
       
@@ -902,6 +887,70 @@ struct collision* gather_walls_first(struct collision *shead,double tol)
   }
   return shead;
 }
+
+
+#if 0
+/* Under development. */
+int can_hit_target(struct molecule *m,struct molecule *targ,struct subvolume *sv)
+{
+  const double TOL = 10.0*EPS_C;   /* Two walls are coincident if this close */
+  struct vector3 to_target;                /* Vector from molecule to target */
+  struct collision *list;         /* List of collisions between mol & target */
+  struct *cp;                         /* Primary iterator for collision list */
+  struct *x;                        /* Iterator for coincident walls in list */
+  struct rxn *rx;
+  int k;
+  
+  to_target.x = targ->pos.x - m->pos.x;
+  to_target.y = targ->pos.y - m->pos.y;
+  to_target.z = targ->pos.z - m->pos.z;
+  
+  list = ray_trace(m,NULL,sv,&to_target);
+  if (list == NULL) return RX_NO_MEM;
+
+  if (list->next == NULL) return RX_A_OK;
+  
+  list = (struct collision*)ae_list_sort((struct abstract_element*)list);
+  
+  for (cp = list ; cp != NULL ; cp = cp->next)
+  {
+    if ((cp->what & COLLIDE_WALL) == 0) return RX_A_OK;
+    
+    if (cp->next != NULL && (cp->next->what&COLLIDE_WALL)!=0 && (cp->next->t - cp->t) < TOL)
+    {
+      if ( (m->properties->flags&CAN_MOLWALL) == 0 ) rx = NULL;
+      else
+      {
+	if ((cp->what & COLLIDE_MASK) == COLLIDE_FRONT) k = 1;
+	else k = -1;
+      
+	rx = trigger_intersect(
+                       m->properties->hashval,(struct abstract_molecule*)m,k,
+                       (struct *wall)cp->target
+                     );
+      }
+    }
+    else
+    {
+      if ( (m->properties->flags&CAN_MOLWALL) == 0 ) rx = NULL;
+      else
+      {
+	if ((cp->what & COLLIDE_MASK) == COLLIDE_FRONT) k = 1;
+	else k = -1;
+      
+	rx = trigger_intersect(
+                       m->properties->hashval,(struct abstract_molecule*)m,k,
+                       (struct *wall)cp->target
+                     );
+      }
+      
+      if (rx==NULL) return RX_BLOCKED;
+      if (rx->n_pathways <= RX_SPECIAL) continue;
+      else return RX_BLOCKED;
+    }
+  }
+}
+#endif
 
 
 

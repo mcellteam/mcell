@@ -1408,12 +1408,8 @@ wall_to_vol:
 struct wall_list* wall_to_vol(struct wall *w, struct subvolume *sv)
 {
   struct wall_list *wl = mem_get(sv->mem->list);
-  if(wl == NULL) { 
-		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
-		int i = emergency_output();
-		fprintf(stderr, "Fatal error: out of memory during wall_to_vol event.\nAttempt to write intermediate results had %d errors.\n", i);
-                exit(EXIT_FAILURE);
-  }
+  if(wl == NULL) return NULL;
+  
   wl->this_wall = w;
   if (sv->wall_tail==NULL)
   {
@@ -1458,12 +1454,7 @@ struct vector3* localize_vertex(struct vector3 *p, struct storage *stor)
   }
   
   vl = mem_get( stor->tree );
-  if (vl==NULL){ 
-		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
-		int i = emergency_output();
-		fprintf(stderr, "Fatal error: out of memory during localize_vertex event.\nAttempt to write intermediate results had %d errors.\n", i);
-                exit(EXIT_FAILURE);
-  }
+  if (vl==NULL) return NULL;
   memcpy(&(vl->loc) , p , sizeof(struct vector3));
   vl->above = NULL;
   vl->below = NULL;
@@ -1493,12 +1484,7 @@ struct wall* localize_wall(struct wall *w, struct storage *stor)
 {
   struct wall *ww;
   ww = mem_get(stor->face);
-  if (ww==NULL){ 
-		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
-		int i = emergency_output();
-		fprintf(stderr, "Fatal error: out of memory during localize_wall event.\nAttempt to write intermediate results had %d errors.\n", i);
-                exit(EXIT_FAILURE);
-  }
+  if (ww==NULL) return NULL;
   
   memcpy(ww , w , sizeof(struct wall));
   ww->next = stor->wall_head;
@@ -1508,10 +1494,9 @@ struct wall* localize_wall(struct wall *w, struct storage *stor)
   ww->vert[0] = localize_vertex(ww->vert[0],stor);
   ww->vert[1] = localize_vertex(ww->vert[1],stor);
   ww->vert[2] = localize_vertex(ww->vert[2],stor);
-  if((ww->vert[0] == NULL) || (ww->vert[1] == NULL) ||
-		(ww->vert[2] == NULL)) {
-        printf("Memory allocation error.\n");
-	return (NULL);
+  if ((ww->vert[0] == NULL) || (ww->vert[1] == NULL) || (ww->vert[2] == NULL))
+  {
+    return NULL;
   } 
  
   ww->birthplace = stor;
@@ -1631,7 +1616,7 @@ int distribute_object(struct object *parent)
 
       if (parent->wall_p[i]==NULL)
       {
-	printf("Out of memory while initializing object %s\n",parent->sym->name);
+	fprintf(world->err_file,"Out of memory while initializing object %s\n",parent->sym->name);
 	return 1;
       }
     }
@@ -1671,3 +1656,4 @@ int distribute_world()
   
   return 0;
 }
+

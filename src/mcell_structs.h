@@ -71,6 +71,7 @@
 
 /* Flags for BSP trees to determine whether something is a node or a branch */
 /* Will either have BRANCH_XN through _ZP, or _L, _R, _X, _Y, _Z. */
+/* P is positive, N is negative. */
 #define BRANCH_XN  0x01
 #define BRANCH_XP  0x02
 #define BRANCH_YN  0x04
@@ -135,6 +136,10 @@
 
 
 /* Flags for edges. */
+/* BARE edges do not connect to anything. */
+/* SHARED edges have walls with the same coordinate frame */
+/* ROTONLY edges have walls whose coordinate frames are related by rotation */
+/* TRANSROT edges require translation and rotation to move between walls */
 #define EDGE_BARE     0
 #define EDGE_SHARED   1
 #define EDGE_ROTONLY  2
@@ -153,24 +158,32 @@
 /* Abstract molecule flags */
 /* RULES: only one of TYPE_GRID, TYPE_3D, TYPE_SURF set. */
 /*   Only TYPE_3D and TYPE_SURF can ACT_DIFFUSE */
-/*   ACT_NEWBIE beats ACT_INERT beats ACT_REACT beats ACT_BORED */
+/*   ACT_NEWBIE beats ACT_INERT beats ACT_REACT */
 /*   Can free up memory when nothing in IN_MASK */
 
+/* Molecule type--grid molecule, 3D molecule, or surface molecule */
 #define TYPE_GRID 0x001
 #define TYPE_3D   0x002
 #define TYPE_SURF 0x004
 #define TYPE_MASK 0x007
 
+/* NEWBIE molecules get scheduled before anything else happens to them. */
+/* INERT molecules don't react, REACT molecules do */
+/* CHANGE molecules have had their rate constant changed */
+/* DIFFUSE molecules diffuse (duh!) */
 #define ACT_DIFFUSE 0x008
 #define ACT_INERT   0x010
 #define ACT_REACT   0x020
 #define ACT_NEWBIE  0x040
 #define ACT_CHANGE  0x080
 
+/* Flags telling us which linked lists the molecule appears in. */
 #define IN_SCHEDULE 0x100
 #define IN_SURFACE  0x200
 #define IN_VOLUME   0x400
 #define IN_MASK     0x700
+
+/* End of abstract molecule flags. */
 
 
 /* How big will we let the reaction table get? */
@@ -377,10 +390,6 @@
 #define VOLNUM 2
 
 
-/* Stimulus motion types.  What is this? */
-#define FXD 0
-
-
 
 /**********************************************/
 /**  New/reworked structures used in MCell3  **/
@@ -388,7 +397,10 @@
 
 typedef unsigned char byte;
 
-#ifdef NOINCLUDE_SYS_TYPES
+
+/* If you don't include sys/types.h, #define SYS_TYPES_NOT_LOADED so */
+/* you get the u_short/int/long set of types */
+#ifdef SYS_TYPES_NOT_LOADED
 typedef unsigned short u_short;
 typedef unsigned int u_int;
 typedef unsigned long u_long;
@@ -451,24 +463,24 @@ struct rxn_group
 /* Parse-time structure for reaction pathways */
 struct pathway {
   struct pathway *next;
-  struct species *reactant1;
-  struct species *reactant2;
-  struct species *reactant3;
-  double km;
-  double kcat;
-  char* km_filename;
-  short orientation1;
-  short orientation2;
-  short orientation3;
-  struct product *product_head;
+  struct species *reactant1;     /* First reactant in reaction pathway */
+  struct species *reactant2;     /* Second reactant (NULL if none) */
+  struct species *reactant3;     /* Third reactant--surface type or NULL */
+  double km;                     /* Rate constant */
+  double kcat;                   /* Catalytic dead time */
+  char* km_filename;             /* Filename for time-varying rates */
+  short orientation1;            /* Orientation of first reactant */
+  short orientation2;            /* Orientation of second reactant */
+  short orientation3;            /* Orientation of third reactant */
+  struct product *product_head;  /* Linked lists of species created */
 };
 
 
 /* Parse-time structure for products of reaction pathways */
 struct product {
   struct product *next;
-  struct species *prod;
-  short orientation;
+  struct species *prod;          /* Molecule type to be created */
+  short orientation;             /* Orientation to place molecule */
 };
 
 
@@ -508,11 +520,11 @@ struct molecule
   struct subvolume *subvol;       /* Partition we are in */
   
   struct cmprt_data *curr_cmprt;  /* Compartment we are in (for counting) */
-  double path_length;
-  int collisions;
+  double path_length;             /* Distance traveled since birth */
+  int collisions;                 /* How many things have we hit? */
   
-  struct surface_grid *previous_grid;
-  int index;
+  struct surface_grid *previous_grid;   /* Wall we were released from */
+  int index;                            /* Index on that wall (don't rebind) */
   
   struct molecule *next_v;        /* Next molecule in this subvolume */
 };
@@ -646,13 +658,15 @@ struct waypoint
 };
 
 
+/* Vertices are stored in unbalanced ternary trees ordered by z-coord */
+/* Why do we need to bother?  Also, this is a weird tree structure. */
 struct vertex_tree
 {
-  struct vertex_tree *next;
-  struct vertex_tree *above;
-  struct vertex_tree *below;
+  struct vertex_tree *next;         /* Vertices with same z (this is weird) */
+  struct vertex_tree *above;        /* Vertices with z larger than ours */
+  struct vertex_tree *below;        /* Vertices with z smaller than ours */
   
-  struct vector3 loc;
+  struct vector3 loc;               /* Vertex coordinate itself */
 };
 
 
@@ -670,14 +684,14 @@ struct storage
   struct mem_helper *coll;  /* Collision list */
   struct mem_helper *regl;  /* Region lists */
   
-  struct wall *wall_head;
-  int wall_count;
-  struct vertex_tree *vert_head;
-  int vert_count;
+  struct wall *wall_head;              /* Locally stored walls */
+  int wall_count;                      /* How many local walls? */
+  struct vertex_tree *vert_head;       /* Locally stored vertices */
+  int vert_count;                      /* How many vertices? */
   
-  struct schedule_helper *timer;
-  double current_time;
-  double max_timestep;
+  struct schedule_helper *timer;       /* Local scheduler */
+  double current_time;                 /* Local time */
+  double max_timestep;                 /* Local maximum timestep */
 };
 
 /* Linked list of storage areas. */
@@ -721,16 +735,18 @@ struct bsp_tree
 };
 
 
+/* Struct to count molecules within regions (where "within" includes */
+/* on the inside of a fully closed surface, for 3D molecules) */
 struct counter
 {
   struct counter *next;
-  struct region *reg_type;
-  struct species *mol_type;
-  double front_hits;
-  double back_hits;
-  double front_to_back;
-  double back_to_front;
-  int n_inside;
+  struct region *reg_type;         /* Region we are counting on */
+  struct species *mol_type;        /* Species we are counting */
+  double front_hits;               /* # hits on front of region (normal up) */
+  double back_hits;                /* # hits on back of region */
+  double front_to_back;            /* # crossings from front to back */
+  double back_to_front;            /* # crossings from back to front */
+  int n_inside;                    /* # molecules within the region */
 };
 
 
@@ -889,16 +905,16 @@ struct surface_grid
 };
 
 
-/* Temporary data structure to store information about collisions. */
+/* Data structure to store information about collisions. */
 struct collision
 {
   struct collision *next;
-  double t;
+  double t;                     /* Time of collision (may be slightly early) */
   
-  void *target;
-  struct rxn *intermediate;
-  struct vector3 loc;
-  int what;
+  void *target;                 /* Thing that we hit */
+  struct rxn *intermediate;     /* Reaction that told us we could hit it */
+  struct vector3 loc;           /* Location of impact */
+  int what;                     /* What kind of thing did we hit? */
 };
 
 

@@ -276,6 +276,7 @@ int schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_current
 }
 
 
+#if 0
 /*************************************************************************
 schedule_excert:
   In: scheduler that we are using
@@ -285,6 +286,7 @@ schedule_excert:
   Out: No return value.  Descheduled item will come off with a time of
       -1.0.  Data that used to be in that item will be in blank, but
       the next pointer will be set to NULL.
+  Note: This doesn't work cleanly, so it shouldn't be here at all.
 *************************************************************************/
 
 void schedule_excert(struct schedule_helper *sh,void *data,void *blank,int size)
@@ -295,6 +297,7 @@ void schedule_excert(struct schedule_helper *sh,void *data,void *blank,int size)
   current->t = -1.0;
   excerted->next = NULL;
 }
+#endif
 
 
 /*************************************************************************
