@@ -510,7 +510,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
               "object \"%s.positions\" class array type float rank 1 shape 3 items %d %s binary data follows\n",
               objp->sym->name,objp->n_verts,my_byte_order);
             /* output polyhedron vertices */
-            for (ii=0;ii<objp->n_walls;ii++) {
+            for (ii=0;ii<objp->n_verts;ii++) {
               v1 = world->length_unit*objp->verts[ii].x;
               v2 = world->length_unit*objp->verts[ii].y;
               v3 = world->length_unit*objp->verts[ii].z;
