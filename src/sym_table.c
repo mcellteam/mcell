@@ -346,6 +346,9 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       return(sp);
       break;
 */
+    default:
+       printf("Error: Wrong symbol type %d\n",sym_type);
+       break;
     }
     sp->value=vp;
   } 

@@ -342,6 +342,11 @@ int copy_object(struct volume *volp,struct object *curr_objp,
     case POLY_OBJ:
       objp->contents=objp2->contents;
       break;
+    default:
+      sprintf(err_msg,"%s %d","Error: Wrong object name:",objp->object_type);
+      return (1);
+      break;
+
   }
 
   return(0);
@@ -1258,6 +1263,10 @@ int set_viz_state_value(struct object *objp, int viz_state)
         objp->viz_state[i]=viz_state;
       }
       break;
+    default:
+       printf("Error: Wrong object type %d\n", objp->object_type);
+       return (1);
+       break;
   }
   return(0);
 }
@@ -1571,6 +1580,9 @@ struct counter_list *init_mol_counter(byte counter_type,
     clp->final_data=(void *)dblp;
     clp->temp_data=(void *)&cp->back_to_front;
     cp->reg_type->flags|=COUNT_HITS;
+    break;
+  default:
+    printf("Error: Unknown counter type %d\n", counter_type);
     break;
   }
 
