@@ -50,7 +50,7 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
 {
   int j;
   struct counter *hit_count;
-
+  
   hit_count = NULL;  
   for ( ; rl != NULL ; rl = rl->next)
   {
@@ -63,7 +63,14 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
       {
         if (hit_count->reg_type == rl->reg && hit_count->mol_type == sp)
         {
-          if (crossed) hit_count->n_inside += direction;
+          if (crossed)
+          {
+            hit_count->n_inside += direction;
+
+/*            printf("Counted %s (%x) on %s (%x); %x has n_inside = %.1f (up by %d).\n",
+                   sp->sym->name,sp->hashval,rl->reg->sym->name,rl->reg->hashval,
+                   (int)hit_count,hit_count->n_inside,direction); */
+          }
           if (rl->reg->flags & sp->flags & COUNT_HITS)
           {
             if (crossed)
@@ -161,7 +168,7 @@ void find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
             nrl = (struct region_list*) mem_get(rmem);
             nrl->reg = xrl->reg;
             
-            if (i==COLLIDE_FRONT) { nrl->next = tarl; tarl = nrl; }
+            if (i==COLLIDE_BACK) { nrl->next = tarl; tarl = nrl; }
             else { nrl->next = trl; trl = nrl; }
           }
         }
@@ -192,6 +199,7 @@ void find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
           trl = trl->next;
           mem_put(rmem,xrl);
           xrl = NULL;
+          break;
         }
         else
         {
@@ -233,6 +241,7 @@ void find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
           tarl = tarl->next;
           mem_put(rmem,xrl);
           xrl = NULL;
+          break;
         }
         else
         {
@@ -333,6 +342,7 @@ int place_waypoints()
       {
         h = k + (world->nz_parts-1)*(j + (world->ny_parts-1)*i);
         wp = &(world->waypoints[h]);
+        
         sv = &(world->subvol[h]);
         wp->loc.x = 0.5*( world->x_fineparts[ sv->llf.x ] + world->x_fineparts[ sv->urb.x ] );
         wp->loc.y = 0.5*( world->y_fineparts[ sv->llf.y ] + world->y_fineparts[ sv->urb.y ] );
@@ -373,7 +383,9 @@ int place_waypoints()
                                  &(wp->antiregions),sv->mem->regl);
         }
         
-        if (wp->regions!=NULL || wp->antiregions!=NULL) printf("Woo!\n");
+/*        if (wp->regions != NULL) printf("We have a region on waypoint %d\n",h);
+        if (wp->antiregions != NULL) printf("We have an antiregion on waypoint %d\n",h); */
+        
       }
     }
   }
@@ -440,17 +452,22 @@ void count_me_by_region(struct abstract_molecule *me,int n)
     h = k + (world->nz_parts-1)*( j + (world->ny_parts-1)*i );
     
     wp = &(world->waypoints[h]);
-  
     for (rl=wp->regions ; rl!=NULL ; rl=rl->next)
     {
       if ( (rl->reg->flags & COUNT_CONTENTS) != 0 )
       {
         i = (rl->reg->hashval ^ sp->hashval) & world->count_hashmask;
         if (i==0) i = sp->hashval & world->count_hashmask;
+/*        printf("Trying to count %s (%x) on %s (%x) with hashval %x\n",
+               sp->sym->name,sp->hashval,rl->reg->sym->name,rl->reg->hashval,i); */
         
         for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
         {
-          if (c->reg_type==rl->reg && c->mol_type==sp) c->n_inside += n;
+          if (c->reg_type==rl->reg && c->mol_type==sp)
+          {
+            c->n_inside += n;
+/*            printf("Actually counted; %x has n_inside = %.1f (up by %d).\n",(int)c,c->n_inside,n); */
+          }
         }
       }
     }

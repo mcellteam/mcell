@@ -437,7 +437,7 @@ int init_species(void)
         s = (struct species*) gp->value;
         world->species_list[count] = s;
         world->species_list[count]->species_id = count;
-        world->species_list[count]->hashval &= world->hashsize-1;
+/*        world->species_list[count]->hashval &= world->hashsize-1; */
         world->species_list[count]->radius = EPS_C;
         world->species_list[count]->population = 0;
         if ( (s->flags & (ON_SURFACE | ON_GRID)) == 0 )

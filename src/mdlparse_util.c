@@ -1444,6 +1444,9 @@ struct counter *store_reg_counter(struct volume *volp,
     if ((cp=(struct counter *)malloc(sizeof(struct counter)))==NULL) {
       return(NULL);
     }
+    
+    printf("Will count %s (%x) on %s (%x) at hashval %x\n",
+           sp->sym->name,sp->hashval,rp->sym->name,rp->hashval,j);
   
     cp->next=volp->count_hash[j];
     volp->count_hash[j]=cp;

@@ -874,7 +874,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
               if ( (c->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
               else k = -1;
               
-              if ( (sm->flags & w->flags & COUNT_HITS) )
+              if ( (sm->flags & w->flags & COUNT_SOME) )
                 update_collision_count(m->properties,w->regions,k,1);
             }
                 
@@ -978,7 +978,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             if ( (c->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
             else k = -1;
             
-            if ( (sm->flags & w->flags & COUNT_HITS) )
+            if ( (sm->flags & w->flags & COUNT_SOME) )
             {
               if (count_type==1) update_collision_count(sm,w->regions,k,1);
               else update_collision_count(sm,w->regions,k,0);
@@ -1008,7 +1008,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             rx = trigger_intersect(sm->hashval,(struct abstract_molecule*)m,k,w);
             if (rx!=NULL && rx->n_pathways == RX_WINDOW)
             {
-              if ( (sm->flags & w->flags & COUNT_HITS) )
+              if ( (sm->flags & w->flags & COUNT_SOME) )
                 update_collision_count(sm,w->regions,k,1);
 
               continue; /* pass through */
@@ -1042,14 +1042,14 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     
                     if (l==1)
                     {
-                      if ( (m->properties->flags & w->flags & COUNT_HITS) )
+                      if ( (m->properties->flags & w->flags & COUNT_SOME) )
                         update_collision_count(m->properties,w->regions,k,1);
                       
                       continue; /* pass through */
                     }
                     else if (l==0)
                     {
-                      if ( (sm->flags & w->flags & COUNT_HITS) )
+                      if ( (sm->flags & w->flags & COUNT_SOME) )
                         update_collision_count(m->properties,w->regions,k,0);
                                         
                       if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
@@ -1079,7 +1079,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             {
               if (rx->n_pathways == RX_GHOST)
               {
-                if ( (sm->flags & w->flags & COUNT_HITS) )
+                if ( (sm->flags & w->flags & COUNT_SOME) )
                   update_collision_count(sm,w->regions,k,1);
 
                 continue;
@@ -1094,14 +1094,14 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                       );
                 if (j==1)
                 {
-                  if ( (m->properties->flags & w->flags & COUNT_HITS) )
+                  if ( (m->properties->flags & w->flags & COUNT_SOME) )
                     update_collision_count(m->properties,w->regions,k,1);
 
                   continue; /* pass through */
                 }
                 else if (j==0)
                 {
-                  if ( (sm->flags & w->flags & COUNT_HITS) )
+                  if ( (sm->flags & w->flags & COUNT_SOME) )
                     update_collision_count(m->properties,w->regions,k,0);
 
                   if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
@@ -1113,7 +1113,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             }
           }
           
-          if ( (m->properties->flags & w->flags & COUNT_HITS) )
+          if ( (m->properties->flags & w->flags & COUNT_SOME) )
             update_collision_count(m->properties,w->regions,k,0);
         }
         /* default is to reflect */
