@@ -1773,7 +1773,6 @@ int insert_mol_counter(byte counter_type,
 int build_mol_count_tree(byte counter_type,
                          struct volume *volp,
                          struct object *objp,
-                         struct object *root_objp,
                          struct output_item *oip,
                          struct output_evaluator *oep,
                          struct species *sp,
@@ -1824,7 +1823,7 @@ int build_mol_count_tree(byte counter_type,
   case META_OBJ:
     child_objp=objp->first_child;
     while (child_objp!=NULL) {
-      if (build_mol_count_tree(counter_type,volp,child_objp,root_objp,oip,oep,sp,buffersize,sub_name)) {
+      if (build_mol_count_tree(counter_type,volp,child_objp,oip,oep,sp,buffersize,sub_name)) {
         return(1);
       }
       child_objp=child_objp->next;

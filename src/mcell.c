@@ -63,6 +63,7 @@ void run_sim(void)
       if ( release_molecules(req) )
       {
 	printf("Out of memory while releasing molecules of type %s\n",req->release_site->mol_type->sym->name);
+	return;
       }
       printf("Releasing type = %s! \n",req->release_site->mol_type->sym->name);
       req = schedule_next( world->releaser );

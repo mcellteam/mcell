@@ -5122,7 +5122,7 @@ mol_count_syntax: existing_molecule ',' WORLD
 	mdlpvp->oep->operand1=NULL;
 	mdlpvp->oep->operand2=NULL;
 	mdlpvp->oep->oper='+';
-	if (build_mol_count_tree(REPORT_CONTENTS,volp,mdlpvp->objp,mdlpvp->objp2,mdlpvp->oip,mdlpvp->oep,mdlpvp->specp,mdlpvp->obp->buffersize,mdlpvp->prefix_name)) {
+	if (build_mol_count_tree(REPORT_CONTENTS,volp,mdlpvp->objp,mdlpvp->oip,mdlpvp->oep,mdlpvp->specp,mdlpvp->obp->buffersize,mdlpvp->prefix_name)) {
 	  mdlerror("Cannot store molecule output_evaluator data");
 	  return(1);
 	}
@@ -5291,7 +5291,7 @@ mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
 	mdlpvp->oep->operand2=NULL;
 	mdlpvp->oep->oper='+';
 
-	if (build_mol_count_tree((byte)$<tok>5,volp,mdlpvp->objp,mdlpvp->objp2,mdlpvp->oip,mdlpvp->oep,mdlpvp->specp,mdlpvp->obp->buffersize,mdlpvp->prefix_name)) {
+	if (build_mol_count_tree((byte)$<tok>5,volp,mdlpvp->objp,mdlpvp->oip,mdlpvp->oep,mdlpvp->specp,mdlpvp->obp->buffersize,mdlpvp->prefix_name)) {
 	  mdlerror("Cannot store molecule output_evaluator data");
 	  return(1);
 	}
