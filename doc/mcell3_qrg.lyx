@@ -1478,7 +1478,7 @@ A
 B
 \family default 
  at a rate of 
-\begin_inset Formula $10^{5}\,\mathrm{{mol}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\begin_inset Formula $10^{6}\,\mathrm{{molar}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -1514,7 +1514,7 @@ B
 C
 \family default 
  at a rate of 
-\begin_inset Formula $10^{5}\,\mathrm{{mol}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\begin_inset Formula $10^{6}\,\mathrm{{molar}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -1550,7 +1550,7 @@ B
 C
 \family default 
  at a rate of 
-\begin_inset Formula $10^{5}\,\mathrm{{mol}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\begin_inset Formula $10^{6}\,\mathrm{{molar}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -1824,7 +1824,7 @@ C
 B
 \family default 
 , at a rate of 
-\begin_inset Formula $10^{5}\,\mathrm{{mol}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\begin_inset Formula $10^{5}\,\mathrm{{molar}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -1864,7 +1864,7 @@ C
 B
 \family default 
 , at a rate of 
-\begin_inset Formula $10^{5}\,\mathrm{{mol}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\begin_inset Formula $10^{5}\,\mathrm{{molar}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -1971,7 +1971,7 @@ C
 B
 \family default 
 , at a rate of 
-\begin_inset Formula $10^{5}\,\mathrm{{mol}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\begin_inset Formula $10^{5}\,\mathrm{{molar}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -2011,7 +2011,7 @@ C
 B
 \family default 
 , at a rate of 
-\begin_inset Formula $10^{5}\,\mathrm{{mol}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\begin_inset Formula $10^{5}\,\mathrm{{molar}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -2052,7 +2052,7 @@ B
 C
 \family default 
  that is equally likely to point either way, at a rate of 
-\begin_inset Formula $10^{5}\,\mathrm{{mol}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\begin_inset Formula $10^{5}\,\mathrm{{molar}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -2159,7 +2159,7 @@ A
 B
 \family default 
  to tumble to a random orientation, at a rate of 
-\begin_inset Formula $10^{5}\,\mathrm{{mol}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\begin_inset Formula $10^{5}\,\mathrm{{molar}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -2488,7 +2488,11 @@ MOLECULE_DENSITY {
 
 \layout Standard
 
-Add molecules at the specified density (units???) using the format 
+Add molecules at the specified density (units = 
+\begin_inset Formula $\mu m^{-2}$
+\end_inset 
+
+) using the format 
 \family sans 
 \shape italic 
 name
@@ -3380,7 +3384,11 @@ MOLECULE_DENSITY {
 
 \layout Standard
 
-Add molecules at the specified density (units???) using the format 
+Add molecules at the specified density (units = 
+\begin_inset Formula $\mu m^{-2}$
+\end_inset 
+
+) using the format 
 \family sans 
 \shape italic 
 name
