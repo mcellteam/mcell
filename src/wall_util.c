@@ -1128,8 +1128,8 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
   }
   
   a = 1.0/dv;
-  *t = (-dd+d_eps)*a; /* Time of reflection */
   a *= -dd;         /* Time we actually hit */
+  *t = a;
   
   hitpt->x = point->x + a*move->x;
   hitpt->y = point->y + a*move->y;

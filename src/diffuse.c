@@ -134,6 +134,7 @@ ray_trace:
       linked list of potential collisions with molecules (we could react)
       subvolume that we start in
       displacement vector from current to new location
+      wall we have reflected off of and should not hit again
   Out: collision list of walls and molecules we intersected along our ray
        (current subvolume only), plus the subvolume wall.  Will always
        return at least the subvolume wall--NULL indicates an out of
@@ -141,7 +142,8 @@ ray_trace:
 *************************************************************************/
 
 struct collision* ray_trace(struct molecule *m, struct collision *c,
-                            struct subvolume *sv, struct vector3 *v)
+                            struct subvolume *sv, struct vector3 *v,
+			    struct wall *reflectee)
 {
   struct collision *smash,*shead;
   struct abstract_molecule *a;
@@ -158,6 +160,8 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
     
   for (wlp = sv->wall_head ; wlp != NULL; wlp = wlp->next)
   {
+    if (wlp->this_wall==reflectee) continue;
+    
     i = collide_wall(&(m->pos),v,wlp->this_wall,&(smash->t),&(smash->loc));
 
     if (i==COLLIDE_REDO)
@@ -273,7 +277,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
       }
       memcpy(smash,c,sizeof(struct collision));
       
-      smash->what = i + COLLIDE_MOL;
+      smash->what = COLLIDE_MOL + i;
 
       smash->next = shead;
       shead = smash;
@@ -892,6 +896,8 @@ struct collision* gather_walls_first(struct collision *shead,double tol)
           }
           
           if (co==NULL) shead = ci;
+	  else co->next=ci;
+	  
           ct->next = cf->next;
           cf->next = cp;
           co = cf;
@@ -1056,6 +1062,7 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   struct collision *shead2;     /* Things that we will hit, given our motion */ 
   struct subvolume *sv;
   struct wall *w;
+  struct wall *reflectee;        /* Bounced off this one, don't hit it again */
   struct rxn *rx;
   struct molecule *mp,*old_mp;
   struct grid_molecule *g;
@@ -1119,11 +1126,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp already set */
 
       if (mp==m) continue;
-      if (m->properties!=sm)
-      {
-        if (calculate_displacement) fprintf(world->err_file,"WHAAA????\n");
-        else fprintf(world->err_file,"HWAAAAA????\n");
-      }
       
       if (mp->properties == NULL)  /* Reclaim storage */
       {
@@ -1155,9 +1157,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	  exit( EXIT_FAILURE );
         }
         smash->target = (void*) mp;
+        smash->what = COLLIDE_MOL;
         smash->intermediate = rx;
         smash->next = shead;
-        smash->what = COLLIDE_MOL;
         shead = smash;
       }
 /*      else printf("Rx between %s and %s is NULL\n",sm->sym->name,mp->properties->sym->name); */
@@ -1191,18 +1193,19 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
     world->diffusion_cumsteps += steps;
   }
   
+  reflectee = NULL;
   
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
 #define ERROR_AND_QUIT fprintf(world->err_file,"Out of memory: trying to save intermediate results.\n"); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
   do
   {
-    shead2 = ray_trace(m,shead,sv,&displacement);
+    shead2 = ray_trace(m,shead,sv,&displacement,reflectee);
     if (shead2==NULL) { ERROR_AND_QUIT; }
     
     if (shead2->next!=NULL)  /* Could be sped up/combined */
     {
       shead2 = (struct collision*)ae_list_sort((struct abstract_element*)shead2);
-      shead2 = gather_walls_first(shead2,TOL);
+/*      shead2 = gather_walls_first(shead2,TOL); */
     }
     
     for (smash = shead2; smash != NULL; smash = smash->next)
@@ -1247,13 +1250,12 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                 am,0,0,m->t+t_steps*smash->t,&(smash->loc)
               );
 	      
-        if (j==RX_NO_MEM) return NULL;
+	if (j==RX_NO_MEM) { ERROR_AND_QUIT; }
 	if (j!=RX_DESTROY) continue;
         else { CLEAN_AND_RETURN( NULL ); }
       }
 
       else if ( (smash->what & COLLIDE_WALL) != 0 )
-
       {
 	w = (struct wall*) smash->target;
 	
@@ -1376,16 +1378,19 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	
         /* default is to reflect */
         
-	if ( (sm->flags & COUNT_SOME) ) update_collision_count(sm,w->regions,k,0);
+	if ( (sm->flags & COUNT_HITS) ) update_collision_count(sm,w->regions,k,0);
 
-        m->pos.x += displacement.x * smash->t;
-        m->pos.y += displacement.y * smash->t;
-        m->pos.z += displacement.z * smash->t;
+	m->pos.x = smash->loc.x;
+	m->pos.y = smash->loc.y;
+	m->pos.z = smash->loc.z;
         m->t += t_steps*smash->t;
+	reflectee = w;
+/*
         m->path_length += t_steps * smash->t *
 	                  sqrt(( displacement.x * displacement.x +
                                  displacement.y * displacement.y +
                                  displacement.z * displacement.z ) );
+*/
         t_steps *= (1.0-smash->t);
         
         factor = -2.0 * (displacement.x*w->normal.x + displacement.y*w->normal.y + displacement.z*w->normal.z);
@@ -1398,11 +1403,11 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       else if ((smash->what & COLLIDE_SUBVOL) != 0)
       {
         struct subvolume *nsv;
-        
+/*        
         m->path_length += sqrt( (m->pos.x - smash->loc.x)*(m->pos.x - smash->loc.x)
                                +(m->pos.y - smash->loc.y)*(m->pos.y - smash->loc.y)
                                +(m->pos.z - smash->loc.z)*(m->pos.z - smash->loc.z));
-
+*/
         m->pos.x = smash->loc.x;
         m->pos.y = smash->loc.y;
         m->pos.z = smash->loc.z;
@@ -1449,9 +1454,11 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   m->pos.y += displacement.y;
   m->pos.z += displacement.z;
   m->t += t_steps;
+/*
   m->path_length += sqrt( displacement.x*displacement.x +
                           displacement.y*displacement.y +
                           displacement.z*displacement.z );
+*/
   m->index = -1;
   if ((sm->flags&COUNT_ENCLOSED)!=0 && (m->flags&COUNT_ME)==0) count_me_by_region((struct abstract_molecule*)m,1,NULL);
   

@@ -126,10 +126,10 @@
 
 
 /* Collision types for rays striking surfaces */
+#define COLLIDE_REDO    -1
 #define COLLIDE_MISS    0
 #define COLLIDE_FRONT   1
 #define COLLIDE_BACK    2
-#define COLLIDE_REDO    -1
 
 #define COLLIDE_MOL_M   3
 #define COLLIDE_MOL_SP  4
@@ -142,10 +142,11 @@
 #define COLLIDE_SV_NZ   10
 #define COLLIDE_SV_PZ   11
 
+#define COLLIDE_MASK    0x0F
+
 #define COLLIDE_WALL    0x10
 #define COLLIDE_MOL     0x20
 #define COLLIDE_SUBVOL  0x40
-#define COLLIDE_MASK    0x0F
 
 
 /* Types for things we can hit */
@@ -1007,9 +1008,9 @@ struct collision
   double t;                     /* Time of collision (may be slightly early) */
   
   void *target;                 /* Thing that we hit */
+  int what;                     /* What kind of thing did we hit? */
   struct rxn *intermediate;     /* Reaction that told us we could hit it */
   struct vector3 loc;           /* Location of impact */
-  int what;                     /* What kind of thing did we hit? */
 };
 
 

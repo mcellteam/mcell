@@ -2963,6 +2963,9 @@ polygon_list_def: new_object POLYGON_LIST '{'
   mdlpvp->elmlp->special=NULL;
   mdlpvp->elmlp->next=mdlpvp->rp->element_list_head;
   mdlpvp->rp->element_list_head=mdlpvp->elmlp;
+  mdlpvp->curr_obj->n_walls=mdlpvp->pop->n_walls;
+  mdlpvp->curr_obj->n_verts=mdlpvp->pop->n_verts;
+  mdlpvp->n_walls_actual = mdlpvp->pop->n_walls;
   normalize_elements(mdlpvp->rp,0);
 
   mdlpvp->rp->reg_counter_ref_list=NULL;
@@ -2970,9 +2973,6 @@ polygon_list_def: new_object POLYGON_LIST '{'
   mdlpvp->rlp->reg=mdlpvp->rp;
   mdlpvp->rlp->next=mdlpvp->region_list_head;
   mdlpvp->region_list_head=mdlpvp->rlp;
-  mdlpvp->curr_obj->n_walls=mdlpvp->pop->n_walls;
-  mdlpvp->curr_obj->n_verts=mdlpvp->pop->n_verts;
-  mdlpvp->n_walls_actual = mdlpvp->pop->n_walls;
   no_printf("Creating object default region: %s\n",mdlpvp->rp->sym->name);
 }
 	list_opt_polygon_object_cmds
