@@ -564,6 +564,7 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
   double nx,ny,nz;
   double a,b,c;
   double f,g,h;
+  double d_eps;
   struct vector3 local;
   
   nx = face->normal.x;
@@ -573,15 +574,28 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
   dp = nx*point->x + ny*point->y + nz*point->z;
   dv = nx*move->x + ny*move->y + nz*move->z;
   dd = dp - face->d;
+
+  if (dd >= 0.0)
+  {
+    d_eps = EPS_C;
+    if (dd < d_eps) d_eps = 0.5*dd;
+  }
+  else
+  {
+    d_eps = -EPS_C;
+    if (dd > d_eps) d_eps = 0.5*dd;
+  }
   
-  if ( (dd>0.0 && dd+dv>0.0) ||  /* Start & end above plane */
-       (dd<0.0 && dd+dv<0.0) ||  /* Start & end below plane */
+  
+  if ( (dd*dv>0.0) ||
+       (dd>0.0 && dd+dv>d_eps) ||  /* Start & end above plane */
+       (dd<0.0 && dd+dv<d_eps) ||  /* Start & end below plane */
        (dd==0.0 && dv!=0.0) )    /* Start beside plane, end above or below */
   {
     return COLLIDE_MISS;
   }
   
-  if (dd+dv == 0.0)
+  if (dd==0.0 && dv!=0.0)
   {
     a = (abs_max_2vec( point , move ) + 1.0) * EPS_C;
     if ((rng_uint(world->seed++)&1)==0) a = -a;
@@ -600,7 +614,7 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
     return COLLIDE_REDO;
   }
   
-  *t = a = -dd/dv;
+  *t = a = (-dd+d_eps)/dv;
   
   hitpt->x = point->x + a*move->x;
   hitpt->y = point->y + a*move->y;
@@ -681,8 +695,14 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
   if ((a->properties->flags & ON_SURFACE)==0) pos = &( ((struct molecule*)a)->pos );
   else pos = &( ((struct surface_molecule*)a)->pos );
   
-  sigma2 = a->properties->radius * a->properties->radius;
-  
+  sigma2 = a->properties->radius * a->properties->radius; 
+/*  sigma2 = 1.0; */
+
+/*
+  printf("At [%21g %21g %21g] heading [%21g %21g %21g] checking [%21g %21g %21g]\n",
+    point->x,point->y,point->z,move->x,move->y,move->z,pos->x,pos->y,pos->z);
+*/
+
   dir.x = pos->x - point->x;
   dir.y = pos->y - point->y;
   dir.z = pos->z - point->z;
@@ -698,7 +718,11 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
   dirlen2 = dir.x*dir.x + dir.y*dir.y + dir.z*dir.z;
   
   if (movelen2*dirlen2 - d*d > movelen2*sigma2) return COLLIDE_MISS;
-  
+
+  *t = d/movelen2;
+  hitpt->x = point->x + *t*move->x;  
+  hitpt->y = point->y + *t*move->y;  
+  hitpt->z = point->z + *t*move->z;  
   return COLLIDE_MOL_M;
 }
 

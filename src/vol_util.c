@@ -496,7 +496,10 @@ void release_molecules(struct release_event_queue *req)
       do /* Pick values in unit square, toss if not in unit circle */
       {
         ran4(&(world->seed),xyz,3,diam);
-      } while ( xyz[0]*xyz[0] + xyz[1]*xyz[1] + xyz[2]*xyz[2] >= 2.0*diam*diam );
+        xyz[0] -= 0.5*diam;
+        xyz[1] -= 0.5*diam;
+        xyz[1] -= 0.5*diam;
+      } while ( xyz[0]*xyz[0] + xyz[1]*xyz[1] + xyz[2]*xyz[2] >= 0.25*diam*diam );
       
       m.pos.x = xyz[0] + req->location.x;
       m.pos.y = xyz[1] + req->location.y;

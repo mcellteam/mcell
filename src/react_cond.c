@@ -106,9 +106,14 @@ int test_bimolecular(struct rxn *rx,double time_mult)
   m = 0;
   M = rx->n_pathways-1;
   
-  if (time_mult != 1.0) p = p / (1.0 - pow(1.0-rx->cum_rates[M],time_mult));
+/*  if (time_mult != 1.0) p = p / (1.0 - pow(1.0-rx->cum_rates[M],time_mult)); */
+  p /= time_mult;
   
-  if ( p > rx->cum_rates[M] ) return -1;
+  if ( p > rx->cum_rates[M] )
+  {
+    printf("BROKEN!!!\n");
+    return -1;
+  }
   
   while (M-m > 1)
   {

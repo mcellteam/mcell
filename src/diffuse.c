@@ -47,6 +47,23 @@ void pick_displacement(struct vector3 *v,double scale)
 {
   double r;
   
+  if (1)
+  {
+    double x,y,z;
+    do
+    {
+      x = 2.0*rng_double(world->seed++)-1.0;
+      y = 2.0*rng_double(world->seed++)-1.0;
+      z = 2.0*rng_double(world->seed++)-1.0;
+    } while (x*x + y*y + z*z >= 1.0 || x*x + y*y + z*z < 0.001);
+    r = scale * world->r_step[ rng_uint(world->seed++) & (world->radial_subdivisions-1) ] / sqrt(x*x + y*y + z*z);
+    v->x = r*x;
+    v->y = r*y;
+    v->z = r*z;
+    return;
+  }
+    
+  
   if (world->fully_random)
   {
     double h,r_sin_phi,theta;
@@ -241,9 +258,172 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
 
 void tell_loc(struct molecule *m,char *s)
 {
-  if (0)
+  if (0 || s[0] == '\0')
   printf("%sMy name is %x and I live at %.3f,%.3f,%.3f\n",
          s,(int)m,m->pos.x*world->length_unit,m->pos.y*world->length_unit,m->pos.z*world->length_unit);
+}
+
+
+double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv)
+{
+  struct vector3 u,v,nu,nv,hit;
+  double d2_mv_i,a,b,t;
+  double upperU = 1.0;
+  double upperV = 1.0;
+  double lowerU = 1.0;
+  double lowerV = 1.0;
+  struct wall_list *wl;
+  
+  pick_displacement(&u,1.0);
+  d2_mv_i = 1.0/(mv->x*mv->x + mv->y*mv->y + mv->z*mv->z);
+  a = d2_mv_i*(u.x*mv->x + u.y*mv->y + u.z*mv->z);
+  u.x = u.x - a*mv->x;
+  u.y = u.y - a*mv->y;
+  u.z = u.z - a*mv->z;
+  b = R/sqrt(u.x*u.x + u.y*u.y + u.z*u.z);
+  u.x *= b;
+  u.y *= b;
+  u.z *= b;
+  a = sqrt(d2_mv_i);
+  v.x = a*(mv->y*u.z - mv->z*u.y);
+  v.y = a*(-mv->x*u.z + mv->z*u.x);
+  v.z = a*(mv->x*u.y - mv->y*u.x);
+  
+/* FIXME--this is horribly inefficient; should create modified collide_wall */
+
+  nu.x = -u.x;
+  nu.y = -u.y;
+  nu.z = -u.z;
+  nv.x = -v.x;
+  nv.y = -v.y;
+  nv.z = -v.z;
+  
+  for (wl = sv->wall_head ; wl!=NULL ; wl = wl->next)
+  {
+    if (collide_wall(loc,&u,wl->this_wall,&t,&hit)!=COLLIDE_MISS)
+    {
+      if (t>0 && t<upperU) upperU = t;
+    }
+    else if (collide_wall(loc,&nu,wl->this_wall,&t,&hit)!=COLLIDE_MISS)
+    {
+      if (t>0 && t<lowerU) lowerU = t;
+    }
+    if (collide_wall(loc,&v,wl->this_wall,&t,&hit)!=COLLIDE_MISS)
+    {
+      if (t>0 && t<upperV) upperV = t;
+    }
+    else if (collide_wall(loc,&nv,wl->this_wall,&t,&hit)!=COLLIDE_MISS)
+    {
+      if (t>0 && t<lowerV) lowerV = t;
+    }
+  }
+
+
+  if (u.x > EPS_C)
+  {
+    u.x = 1/u.x;
+    t = (world->x_fineparts[sv->urb.x] - loc->x)*u.x;
+    if (t < upperU) upperU = t;
+    t = (loc->x - world->x_fineparts[sv->llf.x])*u.x;
+    if (t < lowerU) lowerU = t;
+  }
+  else if (u.x < EPS_C)
+  {
+    u.x = 1/u.x;
+    t = (world->x_fineparts[sv->llf.x] - loc->x)*u.x;
+    if (t < upperU) upperU = t;
+    t = (loc->x - world->x_fineparts[sv->urb.x])*u.x;
+    if (t < lowerU) lowerU = t;
+  }
+  if (u.y > EPS_C)
+  {
+    u.y = 1/u.y;
+    t = (world->y_fineparts[sv->urb.y] - loc->y)*u.y;
+    if (t < upperU) upperU = t;
+    t = (loc->y - world->y_fineparts[sv->llf.y])*u.y;
+    if (t < lowerU) lowerU = t;
+  }
+  else if (u.y < EPS_C)
+  {
+    u.y = 1/u.y;
+    t = (world->y_fineparts[sv->llf.y] - loc->y)*u.y;
+    if (t < upperU) upperU = t;
+    t = (loc->y - world->y_fineparts[sv->urb.y])*u.y;
+    if (t < lowerU) lowerU = t;
+  }
+  if (u.z > EPS_C)
+  {
+    u.z = 1/u.z;
+    t = (world->z_fineparts[sv->urb.z] - loc->z)*u.z;
+    if (t < upperU) upperU = t;
+    t = (loc->z - world->z_fineparts[sv->llf.z])*u.z;
+    if (t < lowerU) lowerU = t;
+  }
+  else if (u.z < EPS_C)
+  {
+    u.z = 1/u.z;
+    t = (world->z_fineparts[sv->llf.z] - loc->z)*u.z;
+    if (t < upperU) upperU = t;
+    t = (loc->z - world->z_fineparts[sv->urb.z])*u.z;
+    if (t < lowerU) lowerU = t;
+  }
+
+  if (v.x > EPS_C)
+  {
+    v.x = 1/v.x;
+    t = (world->x_fineparts[sv->urb.x] - loc->x)*v.x;
+    if (t < upperV) upperV = t;
+    t = (loc->x - world->x_fineparts[sv->llf.x])*v.x;
+    if (t < lowerV) lowerV = t;
+  }
+  else if (v.x < EPS_C)
+  {
+    v.x = 1/v.x;
+    t = (world->x_fineparts[sv->llf.x] - loc->x)*v.x;
+    if (t < upperV) upperV = t;
+    t = (loc->x - world->x_fineparts[sv->urb.x])*v.x;
+    if (t < lowerV) lowerV = t;
+  }
+  if (v.y > EPS_C)
+  {
+    v.y = 1/v.y;
+    t = (world->y_fineparts[sv->urb.y] - loc->y)*v.y;
+    if (t < upperV) upperV = t;
+    t = (loc->y - world->y_fineparts[sv->llf.y])*v.y;
+    if (t < lowerV) lowerV = t;
+  }
+  else if (v.y < EPS_C)
+  {
+    v.y = 1/v.y;
+    t = (world->y_fineparts[sv->llf.y] - loc->y)*v.y;
+    if (t < upperV) upperV = t;
+    t = (loc->y - world->y_fineparts[sv->urb.y])*v.y;
+    if (t < lowerV) lowerV = t;
+  }
+  if (v.z > EPS_C)
+  {
+    v.z = 1/v.z;
+    t = (world->z_fineparts[sv->urb.z] - loc->z)*v.z;
+    if (t < upperV) upperV = t;
+    t = (loc->z - world->z_fineparts[sv->llf.z])*v.z;
+    if (t < lowerV) lowerV = t;
+  }
+  else if (v.z < EPS_C)
+  {
+    v.z = 1/v.z;
+    t = (world->z_fineparts[sv->llf.z] - loc->z)*v.z;
+    if (t < upperV) upperV = t;
+    t = (loc->z - world->z_fineparts[sv->urb.z])*v.z;
+    if (t < lowerV) lowerV = t;
+  }
+
+  a = 4.0/(upperU*upperU + lowerU*lowerU + upperV*upperV + lowerV*lowerV);
+/*
+  if (a > 1.1) printf("Correction factor %.2f\n",a);
+  if (a < 1.0-EPS_C) printf("MUDDY BLURDER! a=%.2f R=%.2f u=[%.2f %.2f %.2f] %.2f %.2f %.2f %.2f\n",
+                            a,R,u.x,u.y,u.z,upperU,lowerU,upperV,lowerV);
+*/
+  return a;
 }
   
 
@@ -270,7 +450,7 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   double d2_nearmax;
   double d2min = GIGANTIC;
   double steps;
-  double factor;
+  double factor,rate_factor;
   
   int i,j,k;
   
@@ -371,8 +551,16 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
     else if (max_time < MULTISTEP_FRACTION) steps = max_time;
     else steps = 1.0;
     
-    if (steps == 1.0) pick_displacement(&displacement,sm->space_step);
-    else pick_displacement(&displacement,sqrt(steps)*sm->space_step);
+    if (steps == 1.0)
+    {
+      pick_displacement(&displacement,sm->space_step);
+      rate_factor = 1.0;
+    }
+    else
+    {
+      rate_factor = sqrt(steps);
+      pick_displacement(&displacement,rate_factor*sm->space_step);
+    }
     
   }
   
@@ -399,6 +587,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
     
     for (smash = shead2; smash != NULL; smash = smash->next)
     {
+      
       if (smash->t >= 1.0 || smash->t < 0.0)
       {
         smash = NULL;
@@ -406,7 +595,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       }
       
       if (smash->next != NULL && smash->next->t - smash->t < 10*EPS_C &&
-          (smash->what & COLLIDE_SUBVOL)!= 0)
+          (smash->what & COLLIDE_WALL)==0 && (smash->next->what & COLLIDE_WALL)!=0)
       {
         struct collision *temp;
         temp = smash->next;
@@ -417,8 +606,15 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
       if ( (smash->what & COLLIDE_MOL) != 0 && !inert )
       {
-        m->collisions++; 
-        i = test_bimolecular(smash->intermediate,SET_ME_PROPERLY);
+        m->collisions++;
+
+        factor = rate_factor * estimate_disk(
+          &(smash->loc),&displacement,
+          ((struct abstract_molecule*)smash->target)->properties->radius,
+          m->subvol
+        );
+        
+        i = test_bimolecular(smash->intermediate,factor);
         if (i<0) continue;
         
         j = outcome_bimolecular(
@@ -437,6 +633,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       }
       else if ( (smash->what & COLLIDE_WALL) != 0 )
       {
+/*        if (smash->t < 10*EPS_C) continue; */
+        
         w = (struct wall*) smash->target;
         
         if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
@@ -447,7 +645,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         
         if (r != NULL)
         {
-          i = test_intersect(r,SET_ME_PROPERLY);
+          i = test_intersect(r,rate_factor);
           if (i < 0)
           {
             tell_loc(m,"(Pass)  ");
@@ -468,6 +666,26 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
           }
         }
         /* default is to reflect */
+#if 0
+        if (m->pos.x > 0) factor = m->pos.x;
+        else factor = -m->pos.x;
+        if (m->pos.y > 0)
+        {
+          if (factor < m->pos.y) factor = m->pos.y;
+        }
+        else
+        {
+          if (factor < -m->pos.y) factor = -m->pos.y;
+        }
+        if (m->pos.z > 0)
+        {
+          if (factor < m->pos.z) factor = m->pos.z;
+        }
+        else
+        {
+          if (factor < -m->pos.z) factor = -m->pos.z;
+        }
+#endif
         smash->t *= (1.0 - EPS_C);
         
         m->pos.x += displacement.x * smash->t;
