@@ -27,7 +27,7 @@ DEFINE_MOLECULES {
     DIFFUSION_CONSTANT_2D = 0
   }
   ACe {
-    DIFFUSION_CONSTANT_2D = 0.1
+    DIFFUSION_CONSTANT_2D = 0
   }
   ACg {
     DIFFUSION_CONSTANT_2D = 0
@@ -49,6 +49,7 @@ DEFINE_REACTIONS {
   ACh' + GENERIC_SURFACE, -> ACf, [1e8]
   Glu + ACf -> ACf + Glw [1e8]
   Glw' + GENERIC_SURFACE, -> ACg [1e7]
+/*  ACg -> ACe [1e4] */
 }
 
 DEFINE_RELEASE_PATTERN pat1 {

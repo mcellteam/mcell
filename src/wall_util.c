@@ -978,6 +978,7 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
 {
   struct wall *w;
   double f,fx,fy,fz;
+  struct vector3 vA,vB,vX;
   
   w=&objp->walls[side];
   w->next = NULL;
@@ -1004,6 +1005,16 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   w->nb_walls[1] = NULL;
   w->nb_walls[2] = NULL;
   
+  vA.x = v1->x - v0->x;
+  vA.y = v1->y - v0->y;
+  vA.z = v1->z - v0->z;
+  vB.x = v2->x - v0->x;
+  vB.y = v2->y - v0->y;
+  vB.z = v2->z - v0->z;
+  cross_prod(&vA , &vB , &vX);
+  w->area = 0.5 * (vX.x*vX.x + vX.y*vX.y + vX.z*vX.z);
+
+/*  
   w->area = sqrt(0.5 * ( ((v1->x - v0->x)*(v1->x - v0->x)+
                           (v1->y - v0->y)*(v1->y - v0->y)+
                           (v1->z - v0->z)*(v1->z - v0->z)) *
@@ -1016,6 +1027,7 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
                          ((v1->x - v0->x)*(v2->x - v0->x)+
                           (v1->y - v0->y)*(v2->y - v0->y)+
                           (v1->z - v0->z)*(v2->z - v0->z)) ) );
+*/
 
   fx = (v1->x - v0->x);
   fy = (v1->y - v0->y);
