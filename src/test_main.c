@@ -49,7 +49,10 @@ void run_sim(void)
     
     for (i=0;i<world->n_subvols;i++)
     {
-      run_timestep( &(world->subvol[i]) , next_release_time , (double)world->iterations );
+      if (world->subvol[i].mem->current_time <= world->it_time)
+      {
+        run_timestep( &(world->subvol[i]) , next_release_time , (double)world->iterations );
+      }
     }
     
     world->it_time++;
@@ -58,16 +61,24 @@ void run_sim(void)
 
   for (i=0;i<world->n_subvols;i++)
   {
-    struct molecule *mol = world->subvol[i].mol_head;
+    struct molecule *mol;
     int j;
-    while (mol != NULL)
+/*    printf("Subvolume %d (%d molecules):\n",i,world->subvol[i].mol_count);*/
+    
+    for (mol = world->subvol[i].mol_head ; mol != NULL ; mol = mol->next_v)
     {
+      if (mol->properties == NULL)
+      {
+/*        printf("Defunct molecule.\n"); */
+        continue;
+      }
       if (mol->properties == world->species_list[0]) j = 0;
       else j = 1;
-      printf("location = %7.3f %7.3f %7.3f %d\n",mol->pos.x,mol->pos.y,mol->pos.z,j);
-      mol = mol->next_v;
+      printf("location = %7.3f %7.3f %7.3f %d\n",mol->pos.x,mol->pos.y,mol->pos.z,world->it_time);
     }
   }
+  
+  printf("Exiting run loop.\n");
 
 }
 

@@ -71,7 +71,7 @@ struct subvolume* find_course_subvol(struct vector3 *loc)
   return 
     &( world->subvol
       [
-        i + (world->n_axis_partitions-1)*(j + (world->n_axis_partitions-1)*k)
+        k + (world->n_axis_partitions-1)*(j + (world->n_axis_partitions-1)*i)
       ]
     );
 }
@@ -219,36 +219,36 @@ struct subvolume* find_subvolume(struct vector3 *loc,struct subvolume *guess)
   
   while (loc->x < world->x_partitions[ sv->llf.x ] )
   {
-    sv = traverse_subvol(sv , &center , X_POS);
+    sv = traverse_subvol(sv , &center , X_NEG);
     center.x = 0.5*(world->x_partitions[ sv->llf.x ] + world->x_partitions[ sv->urb.x ]);
   }
   while (loc->x > world->x_partitions[ sv->urb.x ] )
   {
-    sv = traverse_subvol(sv , &center , X_NEG);
+    sv = traverse_subvol(sv , &center , X_POS);
     center.x = 0.5*(world->x_partitions[ sv->llf.x ] + world->x_partitions[ sv->urb.x ]);
   }
   center.x = loc->x;
   
   while (loc->y < world->y_partitions[ sv->llf.y ] )
   {
-    sv = traverse_subvol(sv , &center , Y_POS);
+    sv = traverse_subvol(sv , &center , Y_NEG);
     center.y = 0.5*(world->y_partitions[ sv->llf.y ] + world->y_partitions[ sv->urb.y ]);
   }
   while (loc->y > world->y_partitions[ sv->urb.y ] )
   {
-    sv = traverse_subvol(sv , &center , Y_NEG);
+    sv = traverse_subvol(sv , &center , Y_POS);
     center.y = 0.5*(world->y_partitions[ sv->llf.y ] + world->y_partitions[ sv->urb.y ]);
   }
   center.y = loc->y;
 
   while (loc->z < world->z_partitions[ sv->llf.z ] )
   {
-    sv = traverse_subvol(sv , &center , Z_POS);
+    sv = traverse_subvol(sv , &center , Z_NEG);
     center.z = 0.5*(world->z_partitions[ sv->llf.z ] + world->z_partitions[ sv->urb.z ]);
   }
   while (loc->z > world->z_partitions[ sv->urb.z ] )
   {
-    sv = traverse_subvol(sv , &center , Z_NEG);
+    sv = traverse_subvol(sv , &center , Z_POS);
     center.z = 0.5*(world->z_partitions[ sv->llf.z ] + world->z_partitions[ sv->urb.z ]);
   }
   center.z = loc->z;
@@ -297,6 +297,7 @@ excert_molecule:
 
 void excert_molecule(struct molecule *m)
 {
+  m->subvol->mol_count--;
   m->properties = NULL;
 }
 
@@ -318,6 +319,35 @@ void insert_molecule_list(struct molecule *m)
     guess = new_m;
     m = (struct molecule*)m->next;
   }
+}
+
+
+/*************************************************************************
+migrate_molecule:
+  In: pointer to a molecule already in a subvolume
+      pointer to the new subvolume to move it to
+  Out: pointer to moved molecule.  The molecule's position is updated
+       but it is not rescheduled.
+*************************************************************************/
+
+struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv)
+{
+  struct molecule *new_m;
+
+  new_m = mem_get(new_sv->mem->mol);
+  memcpy(new_m,m,sizeof(struct molecule));
+  new_m->birthplace = new_sv->mem->mol;
+
+  new_m->next = NULL;
+  new_m->subvol = new_sv;
+  new_m->next_v = new_sv->mol_head;
+  new_sv->mol_head = new_m;
+  new_sv->mol_count++;
+    
+  m->subvol->mol_count--;
+  m->properties = NULL;
+
+  return new_m;    
 }
 
 

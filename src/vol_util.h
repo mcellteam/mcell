@@ -13,6 +13,7 @@ struct subvolume* find_subvolume(struct vector3 *loc,struct subvolume *guess);
 struct molecule* insert_molecule(struct molecule *m,struct molecule *guess);
 void excert_molecule(struct molecule *m);
 void insert_molecule_list(struct molecule *m);
+struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv);
 
 void release_molecules(struct release_event_queue *req);
 

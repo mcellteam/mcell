@@ -406,21 +406,92 @@ int init_species(void)
 /* This is just a placeholder for now--make one giant partition. */
 int init_partitions(void)
 {
-  int i,j,k;
+  int i,j,k,h;
+  int sv_axis;
+  struct vector3 part_lo,part_hi;
   struct subvolume *sv;
+  struct storage *shared_mem;
+  double frac;
   
-  world->n_axis_partitions = 2;
+  if (world->bb_min.x >= world->bb_max.x)
+  {
+    part_lo.x = -10.0;
+    part_hi.x = 10.0;
+  }
+  else
+  {
+    part_lo.x = world->bb_min.x;
+    part_hi.x = world->bb_max.x;
+  }
+  if (world->bb_min.y >= world->bb_max.y)
+  {
+    part_lo.y = -10.0;
+    part_hi.y = 10.0;
+  }
+  else
+  {
+    part_lo.y = world->bb_min.y;
+    part_hi.y = world->bb_max.y;
+  }
+  if (world->bb_min.z >= world->bb_max.z)
+  {
+    part_lo.z = -10.0;
+    part_hi.z = 10.0;
+  }
+  else
+  {
+    part_lo.z = world->bb_min.z;
+    part_hi.z = world->bb_max.z;
+  }
+
+/* Cheating for now. */  
+  part_lo.x = -10.1;
+  part_hi.x = 10.01;
+  part_lo.y = -10.1;
+  part_hi.y = 10.01;
+  part_lo.z = -10.1;
+  part_hi.z = 10.01;
+
+  part_lo.x *= (1.0+EPS_C)/world->length_unit;
+  part_lo.y *= (1.0+EPS_C)/world->length_unit;
+  part_lo.z *= (1.0+EPS_C)/world->length_unit;
+  part_hi.x *= (1.0+EPS_C)/world->length_unit;
+  part_hi.y *= (1.0+EPS_C)/world->length_unit;
+  part_hi.z *= (1.0+EPS_C)/world->length_unit;
+  
+  
+  world->n_axis_partitions = 11;
+
+  if (world->n_axis_partitions < 4) world->n_axis_partitions = 4;
+  sv_axis = world->n_axis_partitions-1;
+  
   world->x_partitions = (double*)malloc(sizeof(double)*world->n_axis_partitions);
   world->y_partitions = (double*)malloc(sizeof(double)*world->n_axis_partitions);
   world->z_partitions = (double*)malloc(sizeof(double)*world->n_axis_partitions);
+
   world->x_partitions[0] = - GIGANTIC;
-  world->x_partitions[1] = GIGANTIC;
+  world->x_partitions[1] = part_lo.x;
+  world->x_partitions[world->n_axis_partitions-2] = part_hi.x;
+  world->x_partitions[world->n_axis_partitions-1] = GIGANTIC;
+
   world->y_partitions[0] = - GIGANTIC;
-  world->y_partitions[1] = GIGANTIC;
+  world->y_partitions[1] = part_lo.y;
+  world->y_partitions[world->n_axis_partitions-2] = part_hi.y;
+  world->y_partitions[world->n_axis_partitions-1] = GIGANTIC;
+
   world->z_partitions[0] = - GIGANTIC;
-  world->z_partitions[1] = GIGANTIC;
-  
-  
+  world->z_partitions[1] = part_lo.z;
+  world->z_partitions[world->n_axis_partitions-2] = part_hi.z;
+  world->z_partitions[world->n_axis_partitions-1] = GIGANTIC;
+
+  for (i=2;i<world->n_axis_partitions-2;i++)
+  {
+    frac = ((double)(i-1)) / ((double)(world->n_axis_partitions-3));
+    world->x_partitions[i] = part_lo.x + frac*(part_hi.x - part_lo.x);
+    world->y_partitions[i] = part_lo.y + frac*(part_hi.y - part_lo.y);
+    world->z_partitions[i] = part_lo.z + frac*(part_hi.z - part_lo.z);
+  }
+    
   world->n_fine_partitions = world->n_axis_partitions;
   world->x_fineparts = world->x_partitions;
   world->y_fineparts = world->y_partitions;
@@ -429,20 +500,38 @@ int init_partitions(void)
   world->n_waypoints = 1;
   world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint*)*world->n_waypoints);
   
-  world->n_subvols = world->n_waypoints;
-  world->subvol = (struct subvolume*)malloc(sizeof(struct subvolume*)*world->n_subvols);
-  for (i=0;i<world->n_axis_partitions-1;i++)
-  for (j=0;j<world->n_axis_partitions-1;j++)
-  for (k=0;k<world->n_axis_partitions-1;k++)
+  shared_mem = (struct storage*)malloc(sizeof(struct storage));    
+  shared_mem->list = create_mem(sizeof(struct wall_list),50);
+  shared_mem->mol  = create_mem(sizeof(struct molecule),50);
+  shared_mem->smol  = create_mem(sizeof(struct surface_molecule),50);
+  shared_mem->gmol  = create_mem(sizeof(struct grid_molecule),50);
+  shared_mem->wall = create_mem(sizeof(struct wall),50);
+  shared_mem->coll = create_mem(sizeof(struct collision),50);
+  
+  shared_mem->timer = create_scheduler(1.0,100.0,100,0.0);
+  shared_mem->current_time = 0.0;
+  if (world->time_step_max==0.0) shared_mem->max_timestep = MICROSEC_PER_YEAR;
+  else
   {
-    sv = & (world->subvol[k + world->n_axis_partitions*(j + k*world->n_axis_partitions)]);
+    if (world->time_step_max < world->time_unit) shared_mem->max_timestep = 1.0;
+    else shared_mem->max_timestep = world->time_step_max/world->time_unit;
+  }
+  
+  world->n_subvols = sv_axis * sv_axis * sv_axis;
+  world->subvol = (struct subvolume*)malloc(sizeof(struct subvolume)*world->n_subvols);
+  for (i=0;i<sv_axis;i++)
+  for (j=0;j<sv_axis;j++)
+  for (k=0;k<sv_axis;k++)
+  {
+    h = k + sv_axis*(j + sv_axis*i);
+    sv = & (world->subvol[ h ]);
     sv->wall_head = NULL;
     sv->wall_tail = NULL;
     sv->wall_count = 0;
     sv->mol_head = NULL;
     sv->mol_count = 0;
     
-    sv->index = -1;
+    sv->index = h;
     
     sv->llf.x = i;
     sv->llf.y = j;
@@ -450,35 +539,28 @@ int init_partitions(void)
     sv->urb.x = i+1;
     sv->urb.y = j+1;
     sv->urb.z = k+1;
-
-
     
     sv->is_bsp = 0;
+
+    if (i==0) sv->neighbor[X_NEG] = NULL;
+    else sv->neighbor[X_NEG] = &(world->subvol[ h - sv_axis*sv_axis ]);
     
-    sv->neighbor[0] = NULL;
-    sv->neighbor[1] = NULL;
-    sv->neighbor[2] = NULL;
-    sv->neighbor[3] = NULL;
-    sv->neighbor[4] = NULL;
-    sv->neighbor[5] = NULL;
+    if (i==sv_axis-1) sv->neighbor[X_POS] = NULL;
+    else sv->neighbor[X_POS] = &(world->subvol[ h + sv_axis*sv_axis ]);
     
-    sv->mem = (struct storage*)malloc(sizeof(struct storage));
+    if (j==0) sv->neighbor[Y_NEG] = NULL;
+    else sv->neighbor[Y_NEG] = &(world->subvol[ h - sv_axis ]);
     
-    sv->mem->list = create_mem(sizeof(struct wall_list),50);
-    sv->mem->mol  = create_mem(sizeof(struct molecule),50);
-    sv->mem->smol  = create_mem(sizeof(struct surface_molecule),50);
-    sv->mem->gmol  = create_mem(sizeof(struct grid_molecule),50);
-    sv->mem->wall = create_mem(sizeof(struct wall),50);
-    sv->mem->coll = create_mem(sizeof(struct collision),50);
+    if (j==sv_axis-1) sv->neighbor[Y_POS] = NULL;
+    else sv->neighbor[Y_POS] = &(world->subvol[ h + sv_axis ]);
     
-    sv->mem->timer = create_scheduler(1.0,100.0,100,0.0);
-    sv->mem->current_time = 0.0;
-    if (world->time_step_max==0.0) sv->mem->max_timestep = MICROSEC_PER_YEAR;
-    else
-    {
-      if (world->time_step_max < world->time_unit) sv->mem->max_timestep = 1.0;
-      else sv->mem->max_timestep = world->time_step_max/world->time_unit;
-    }
+    if (k==0) sv->neighbor[Z_NEG] = NULL;
+    else sv->neighbor[Z_NEG] = &(world->subvol[ h - 1 ]);
+    
+    if (k==sv_axis-1) sv->neighbor[Z_POS] = NULL;
+    else sv->neighbor[Z_POS] = &(world->subvol[ h + 1 ]);
+    
+    sv->mem = shared_mem;
   }
   
   world->binning = 0;

@@ -144,7 +144,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
 
   if (v->x < 0.0)
   {
-    dx = m->pos.x - world->x_fineparts[ sv->llf.x ];
+    dx = world->x_fineparts[ sv->llf.x ] - m->pos.x;
     i = 0;
   }
   else
@@ -155,7 +155,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
 
   if (v->y < 0.0)
   {
-    dy = m->pos.y - world->y_fineparts[ sv->llf.y ];
+    dy = world->y_fineparts[ sv->llf.y ] - m->pos.y;
     j = 0;
   }
   else
@@ -166,7 +166,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
 
   if (v->z < 0.0)
   {
-    dz = m->pos.z - world->z_fineparts[ sv->llf.z ];
+    dz = world->z_fineparts[ sv->llf.z ] - m->pos.z;
     k = 0;
   }
   else
@@ -178,6 +178,9 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
   tx = dx * v->y * v->z;
   ty = v->x * dy * v->z;
   tz = v->x * v->y * dz;
+  if (tx<0.0) tx = -tx;
+  if (ty<0.0) ty = -ty;
+  if (tz<0.0) tz = -tz;
   
   if (tx < ty)
   {
@@ -239,18 +242,19 @@ diffuse_3D:
   In: molecule that is moving
       maximum time we can spend diffusing
       are we inert (nonzero) or can we react (zero)?
-  Out: 1 if the molecule still exists, 0 otherwise.
+  Out: Pointer to the molecule if it still exists (may have been
+       reallocated), NULL otherwise.
        Position and time are updated, but molecule is not rescheduled.
 *************************************************************************/
 
-int diffuse_3D(struct molecule *m,double max_time,int inert)
+struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
 {
   struct vector3 displacement;
   struct collision *smash,*shead,*shead2;
-  struct subvolume *sv,*oldsv;
+  struct subvolume *sv;
   struct wall *w;
   struct rxn *r;
-  struct molecule *mp;
+  struct molecule *mp,*old_mp;
   struct species *sm;
   double d2;
   double d2_nearmax;
@@ -260,19 +264,35 @@ int diffuse_3D(struct molecule *m,double max_time,int inert)
   
   int i,j,k;
   
+  int calculate_displacement = 1;
+  
   sm = m->properties;
   if (sm->space_step <= 0.0)
   {
     m->t += max_time;
-    return 1;
+    return m;
   }
   
-  oldsv = m->subvol;
+pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
+
+  sv = m->subvol;
   
   shead = NULL;
-  for (mp = oldsv->mol_head ; mp != NULL ; mp = mp->next_v)
+  old_mp = NULL;
+  for (mp = sv->mol_head ; mp != NULL ; old_mp = mp , mp = mp->next_v)
   {
     if (mp==m) continue;
+    
+    if (mp->properties == NULL)  /* Reclaim storage */
+    {
+      if (old_mp != NULL) old_mp->next_v = mp->next_v;
+      else sv->mol_head = mp->next_v;
+      
+      if ((mp->flags & IN_MASK)==IN_VOLUME) mem_put(mp->birthplace,mp);
+      else if ((mp->flags & IN_VOLUME) != NULL) mp->flags -= IN_VOLUME;
+      
+      continue;
+    }
     
     r = trigger_bimolecular(
             m->properties->hashval,mp->properties->hashval,
@@ -281,7 +301,7 @@ int diffuse_3D(struct molecule *m,double max_time,int inert)
     
     if (r != NULL)
     {
-      smash = mem_get(oldsv->mem->coll);
+      smash = mem_get(sv->mem->coll);
       smash->target = (void*) mp;
       smash->intermediate = r;
       smash->next = shead;
@@ -290,57 +310,59 @@ int diffuse_3D(struct molecule *m,double max_time,int inert)
     }
   }
   
-  if (max_time > MULTISTEP_WORTHWHILE)
+  if (calculate_displacement)
   {
-    d2_nearmax = sm->space_step * world->r_step[ (int)(world->radial_subdivisions * MULTISTEP_PERCENTILE) ];
-    d2_nearmax *= d2_nearmax;
-  
-    for (smash = shead ; smash != NULL ; smash = smash->next)
+    if (max_time > MULTISTEP_WORTHWHILE)
     {
-      mp = (struct molecule*)smash->target;
-      d2 = (m->pos.x - mp->pos.x)*(m->pos.x - mp->pos.x) +
-           (m->pos.y - mp->pos.y)*(m->pos.x - mp->pos.y) +
-           (m->pos.z - mp->pos.z)*(m->pos.x - mp->pos.z);
+      d2_nearmax = sm->space_step * world->r_step[ (int)(world->radial_subdivisions * MULTISTEP_PERCENTILE) ];
+      d2_nearmax *= d2_nearmax;
+    
+      for (smash = shead ; smash != NULL ; smash = smash->next)
+      {
+        mp = (struct molecule*)smash->target;
+        d2 = (m->pos.x - mp->pos.x)*(m->pos.x - mp->pos.x) +
+             (m->pos.y - mp->pos.y)*(m->pos.x - mp->pos.y) +
+             (m->pos.z - mp->pos.z)*(m->pos.x - mp->pos.z);
+        if (d2 < d2min) d2min = d2;
+      }
+    
+      d2 = (m->pos.x - world->x_fineparts[ sv->llf.x ]);
+      d2 *= d2;
       if (d2 < d2min) d2min = d2;
+      
+      d2 = (m->pos.x - world->x_fineparts[ sv->urb.x ]);
+      d2 *= d2;
+      if (d2 < d2min) d2min = d2;
+
+      d2 = (m->pos.y - world->y_fineparts[ sv->llf.y ]);
+      d2 *= d2;
+      if (d2 < d2min) d2min = d2;
+      
+      d2 = (m->pos.y - world->y_fineparts[ sv->urb.y ]);
+      d2 *= d2;
+      if (d2 < d2min) d2min = d2;
+
+      d2 = (m->pos.z - world->z_fineparts[ sv->llf.z ]);
+      d2 *= d2;
+      if (d2 < d2min) d2min = d2;
+      
+      d2 = (m->pos.z - world->z_fineparts[ sv->urb.z ]);
+      d2 *= d2;
+      if (d2 < d2min) d2min = d2;
+      
+      if (d2 < d2_nearmax) steps = 1.0;
+      else if ( d2_nearmax*max_time < d2 ) steps = (1.0+EPS_C)*max_time;
+      else steps = d2 / d2_nearmax;
+
+      if (steps < MULTISTEP_WORTHWHILE) steps = 1.0;
     }
-  
-    d2 = (m->pos.x - world->x_fineparts[ oldsv->llf.x ]);
-    d2 *= d2;
-    if (d2 < d2min) d2min = d2;
+    else if (max_time < MULTISTEP_FRACTION) steps = max_time;
+    else steps = 1.0;
     
-    d2 = (m->pos.x - world->x_fineparts[ oldsv->urb.x ]);
-    d2 *= d2;
-    if (d2 < d2min) d2min = d2;
-
-    d2 = (m->pos.y - world->y_fineparts[ oldsv->llf.y ]);
-    d2 *= d2;
-    if (d2 < d2min) d2min = d2;
+    if (steps == 1.0) pick_displacement(&displacement,sm->space_step);
+    else pick_displacement(&displacement,sqrt(steps)*sm->space_step);
     
-    d2 = (m->pos.y - world->y_fineparts[ oldsv->urb.y ]);
-    d2 *= d2;
-    if (d2 < d2min) d2min = d2;
-
-    d2 = (m->pos.z - world->z_fineparts[ oldsv->llf.z ]);
-    d2 *= d2;
-    if (d2 < d2min) d2min = d2;
-    
-    d2 = (m->pos.z - world->z_fineparts[ oldsv->urb.z ]);
-    d2 *= d2;
-    if (d2 < d2min) d2min = d2;
-    
-    if (d2 < d2_nearmax) steps = 1.0;
-    else if ( d2_nearmax*max_time < d2 ) steps = (1.0+EPS_C)*max_time;
-    else steps = d2 / d2_nearmax;
-
-    if (steps < MULTISTEP_WORTHWHILE) steps = 1.0;
   }
-  else if (max_time < MULTISTEP_FRACTION) steps = max_time;
-  else steps = 1.0;
-  
-  if (steps == 1.0) pick_displacement(&displacement,sm->space_step);
-  else pick_displacement(&displacement,sqrt(steps)*sm->space_step);
-  
-  sv = m->subvol;
   
   do
   {
@@ -371,8 +393,8 @@ int diffuse_3D(struct molecule *m,double max_time,int inert)
         else
         {
           if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
-          if (shead != NULL) mem_put_list(oldsv->mem->coll,shead);
-          return 0;
+          if (shead != NULL) mem_put_list(sv->mem->coll,shead);
+          return NULL;
         }
       }
       else if ( (smash->what & COLLIDE_WALL) != 0 )
@@ -398,8 +420,8 @@ int diffuse_3D(struct molecule *m,double max_time,int inert)
             else if (j==0)
             {
               if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
-              if (shead != NULL) mem_put_list(oldsv->mem->coll,shead);
-              return 0;
+              if (shead != NULL) mem_put_list(sv->mem->coll,shead);
+              return NULL;
             }
           }
         }
@@ -418,9 +440,39 @@ int diffuse_3D(struct molecule *m,double max_time,int inert)
         
         break;
       }
-      else /* subvolume */
+      else if ((smash->what & COLLIDE_SUBVOL) != 0)
       {
-        /* TODO: add this case. */
+        struct subvolume *nsv;
+        
+        m->pos.x = smash->loc.x;
+        m->pos.y = smash->loc.y;
+        m->pos.z = smash->loc.z;
+        displacement.x *= (1.0-smash->t);
+        displacement.y *= (1.0-smash->t);
+        displacement.z *= (1.0-smash->t);
+        
+        m->t += steps*smash->t;
+        steps *= (1.0-smash->t);
+
+        nsv = traverse_subvol(sv,&(m->pos),smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL);
+        if (nsv==NULL)
+        {
+          m->properties = NULL;
+          if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
+          if (shead != NULL) mem_put_list(sv->mem->coll,shead);
+          
+          return NULL;
+        }
+        else
+        {
+          m = migrate_molecule(m,nsv);
+        }
+
+        if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
+        if (shead != NULL) mem_put_list(sv->mem->coll,shead);
+        
+        calculate_displacement = 0;
+        goto pretend_to_call_diffuse_3D;  /* Jump to beginning of function */        
       }
     }
     
@@ -428,13 +480,13 @@ int diffuse_3D(struct molecule *m,double max_time,int inert)
   }
   while (smash != NULL);
   
-  if (shead != NULL) mem_put_list(oldsv->mem->coll,shead);
+  if (shead != NULL) mem_put_list(sv->mem->coll,shead);
   m->pos.x += displacement.x;
   m->pos.y += displacement.y;
   m->pos.z += displacement.z;
   m->t += steps;
-
-  return 1;
+  
+  return m;
 }
     
 
@@ -515,8 +567,8 @@ void run_timestep(struct subvolume *sv,double release_time,double checkpt_time)
       {
         if (max_time > release_time - sv->mem->current_time) max_time = release_time - sv->mem->current_time;
         t = a->t + max_time;
-        j = diffuse_3D((struct molecule*)a , max_time , a->flags & ACT_INERT);
-        if (j) /* We still exist */
+        a = (struct abstract_molecule*)diffuse_3D((struct molecule*)a , max_time , a->flags & ACT_INERT);
+        if (a!=NULL) /* We still exist */
         {
           if (a->t < t) a->t2 = t - a->t;
         }
@@ -530,7 +582,9 @@ void run_timestep(struct subvolume *sv,double release_time,double checkpt_time)
     else a->t += max_time;
 
     a->flags += IN_SCHEDULE;
-    schedule_add(sv->mem->timer,a);
+    if (a->flags & TYPE_GRID) schedule_add(sv->mem->timer,a);
+    else schedule_add(((struct molecule*)a)->subvol->mem->timer,a);
+    
   }
   
   sv->mem->current_time += 1.0;

@@ -625,3 +625,186 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
   
   return COLLIDE_MOL_M;
 }
+
+
+/***************************************************************************
+intersect_box:
+  In: llf corner of box
+      urb corner of box
+      wall we're checking
+  Out: Integer value indicating what happened
+         0    missed
+         1    tri corner inside box
+         2    intersect with -x face
+  Note: t and/or hitpt may be modified even if there is no collision
+        Not highly optimized yet.
+***************************************************************************/
+
+#if 0
+/* New version, not completed, probably worse than old version.*/
+int intersect_box(struct vector3 *llf,struct vector3 *urb,struct wall *w)
+{
+  int i,j;
+  double t,loc;
+  struct vector3 wall_llf,wall_urb,vec,hit;
+  
+  wall_llf.x = GIGANTIC;
+  wall_llf.y = GIGANTIC;
+  wall_llf.z = GIGANTIC;
+  wall_urb.x = -GIGANTIC;
+  wall_urb.y = -GIGANTIC;
+  wall_urb.z = -GIGANTIC;
+  
+  for (i=0;i<3;i++)
+  {
+    if (w->vert[i].x < wall_llf.x) wall_llf.x = w->vert[i].x;
+    if (w->vert[i].x > wall_urb.x) wall_urb.x = w->vert[i].x;
+    if (w->vert[i].y < wall_llf.y) wall_llf.y = w->vert[i].y;
+    if (w->vert[i].y > wall_urb.y) wall_urb.y = w->vert[i].y;
+    if (w->vert[i].z < wall_llf.z) wall_llf.z = w->vert[i].z;
+    if (w->vert[i].z > wall_urb.z) wall_urb.z = w->vert[i].z;
+  }
+  
+  if (wall_llf.x > urb->x || wall_urb.x < llf->x ||
+      wall_llf.y > urb->y || wall_urb.y < llf->y ||
+      wall_llf.z > urb->z || wall_urb.z < llf->z)
+  {
+    return 0;  /* Bounding boxes don't intersect! */
+  }
+  
+  for (i=0;i<3;i++)
+  {
+    if ( w->vert[i].x < urb->x && w->vert[i].x > llf->x &&
+         w->vert[i].y < urb->y && w->vert[i].y > llf->y && 
+         w->vert[i].z < urb->z && w->vert[i].z > llf->z)
+    {
+      return 1;  /* Corner of wall is in box */
+    }
+  }
+  
+  for (i=0;i<3;i++)
+  {
+    j = i+1;
+    if (j>=3) j=0;
+    
+    if ( (w->vert[i].x < llf->x && w->vert[j].x > llf->x) ||
+         (w->vert[i].x > llf->x && w->vert[j].x < llf->x) )
+    {
+      t = (llf->x - w->vert[i].x) / (w->vert[j].x - w->vert[i].x);
+      loc = w->vert[i].y + t*(w->vert[j]->y - w->vert[i]->y);
+      if (llf->y <= loc && urb->y >= loc)
+      {
+        loc = w->vert[i].z + t*(w->vert[j]->z - w->vert[j]->z);
+        if (llf->z <= loc && urb->y >= loc)
+        {
+          return 1;  /* Edge of triangle intersects box */
+        }
+      }
+    }
+    if ( (w->vert[i].x < urb->x && w->vert[j].x > urb->x) ||
+         (w->vert[i].x > urb->x && w->vert[j].x < urb->x) )
+    {
+      t = (urb->x - w->vert[i].x) / (w->vert[j].x - w->vert[i].x);
+      loc = w->vert[i].y + t*(w->vert[j]->y - w->vert[i]->y);
+      if (llf->y <= loc && urb->y >= loc)
+      {
+        loc = w->vert[i].z + t*(w->vert[j]->z - w->vert[j]->z);
+        if (llf->z <= loc && urb->y >= loc)
+        {
+          return 1;  /* Edge of triangle intersects box */
+        }
+      }
+    }
+      
+    if ( (w->vert[i].y < llf->y && w->vert[j].y > llf->y) ||
+         (w->vert[i].y > llf->y && w->vert[j].y < llf->y) )
+    {
+      t = (llf->y - w->vert[i].y) / (w->vert[j].y - w->vert[i].y);
+      loc = w->vert[i].x + t*(w->vert[j]->x - w->vert[i]->x);
+      if (llf->x <= loc && urb->x >= loc)
+      {
+        loc = w->vert[i].z + t*(w->vert[j]->z - w->vert[j]->z);
+        if (llf->z <= loc && urb->y >= loc)
+        {
+          return 1;  /* Edge of triangle intersects box */
+        }
+      }
+    }
+    if ( (w->vert[i].y < urb->y && w->vert[j].y > urb->y) ||
+         (w->vert[i].y > urb->y && w->vert[j].y < urb->y) )
+    {
+      t = (urb->y - w->vert[i].y) / (w->vert[j].y - w->vert[i].y);
+      loc = w->vert[i].x + t*(w->vert[j]->x - w->vert[i]->x);
+      if (llf->x <= loc && urb->x >= loc)
+      {
+        loc = w->vert[i].z + t*(w->vert[j]->z - w->vert[j]->z);
+        if (llf->z <= loc && urb->y >= loc)
+        {
+          return 1;  /* Edge of triangle intersects box */
+        }
+      }
+    }
+      
+    if ( (w->vert[i].z < llf->z && w->vert[j].z > llf->z) ||
+         (w->vert[i].z > llf->z && w->vert[j].z < llf->z) )
+    {
+      t = (llf->z - w->vert[i].z) / (w->vert[j].z - w->vert[i].z);
+      loc = w->vert[i].y + t*(w->vert[j]->y - w->vert[i]->y);
+      if (llf->y <= loc && urb->y >= loc)
+      {
+        loc = w->vert[i].x + t*(w->vert[j]->x - w->vert[j]->x);
+        if (llf->x <= loc && urb->x >= loc)
+        {
+          return 1;  /* Edge of triangle intersects box */
+        }
+      }
+    }
+    if ( (w->vert[i].z < urb->z && w->vert[j].z > urb->z) ||
+         (w->vert[i].z > urb->z && w->vert[j].z < urb->z) )
+    {
+      t = (urb->z - w->vert[i].z) / (w->vert[j].z - w->vert[i].z);
+      loc = w->vert[i].y + t*(w->vert[j]->y - w->vert[i]->y);
+      if (llf->y <= loc && urb->y >= loc)
+      {
+        loc = w->vert[i].x + t*(w->vert[j]->x - w->vert[j]->x);
+        if (llf->x <= loc && urb->x >= loc)
+        {
+          return 1;  /* Edge of triangle intersects box */
+        }
+      }
+    }
+  }
+  
+  vec.x = urb->x - llf->x; vec.y = 0.0; vec.z = 0.0;
+  if (vec.x != 0.0)
+  {
+    i = collide_wall(llf,&vec,w,&t,&hit);
+    if (i) return 1;  /* Edge of wall intersects triangle */
+    vec.x = -vec.x;
+    i = collide_wall(urb,&vec,w,&t,&hit);
+    if (i) return 1;  /* Edge of wall intersects triangle */
+  }
+
+  vec.y = urb->y - llf->y; vec.y = 0.0; vec.z = 0.0;
+  if (vec.y != 0.0)
+  {
+    i = collide_wall(llf,&vec,w,&t,&hit);
+    if (i) return 1;  /* Edge of wall intersects triangle */
+    vec.y = -vec.y;
+    i = collide_wall(urb,&vec,w,&t,&hit);
+    if (i) return 1;  /* Edge of wall intersects triangle */
+  }
+
+  vec.z = urb->z - llf->z; vec.y = 0.0; vec.z = 0.0;
+  if (vec.z != 0.0)
+  {
+    i = collide_wall(llf,&vec,w,&t,&hit);
+    if (i) return 1;  /* Edge of wall intersects triangle */
+    vec.z = -vec.z;
+    i = collide_wall(urb,&vec,w,&t,&hit);
+    if (i) return 1;  /* Edge of wall intersects triangle */
+  }
+  
+  return 0;  /* Near miss! */
+}
+#endif
