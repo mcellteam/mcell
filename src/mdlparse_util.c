@@ -1053,7 +1053,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             /* TODO: handle surface/grid collisions */
           }
           
-          pb_factor = 1.0e11*mpvp->vol->effector_grid_density/(2.0*N_AV)*sqrt( MY_PI * t_step / D_tot );
+	  if (D_tot<=0.0) pb_factor = 0; /* Reaction can't happen! */
+	  else pb_factor = 1.0e11*mpvp->vol->effector_grid_density/(2.0*N_AV)*sqrt( MY_PI * t_step / D_tot );
+	  
           if ( (rx->geometries[0]+rx->geometries[1])*(rx->geometries[0]-rx->geometries[1]) == 0 ) pb_factor *= 2.0;
 
           rx->cum_rates[0] = pb_factor * rx->cum_rates[0];
@@ -1098,6 +1100,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	    pb_factor = 1.0 / (2.0 * sqrt(MY_PI) * mpvp->vol->rx_radius_3d * mpvp->vol->rx_radius_3d * eff_vel);
 	    pb_factor *= 1.0e15 / N_AV;                                      /* Convert L/mol.s to um^3/number.s */
 	  }
+	  else pb_factor = 0.0;  /* No rxn possible */
 
 #if 0	  
           D_tot=rx->players[0]->D_ref+rx->players[1]->D_ref+2.0*sqrt(rx->players[0]->D_ref*rx->players[1]->D_ref);
