@@ -1,0 +1,419 @@
+#LyX 1.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 221
+\textclass article
+\language english
+\inputencoding auto
+\fontscheme default
+\graphics default
+\paperfontsize default
+\spacing single 
+\papersize letterpaper
+\paperpackage a4
+\use_geometry 1
+\use_amsmath 0
+\use_natbib 0
+\use_numerical_citations 0
+\paperorientation portrait
+\leftmargin 1in
+\topmargin 1in
+\rightmargin 1in
+\bottommargin 0.75in
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\quotes_times 2
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+
+\layout Title
+
+Documentation for MCell Grid Utilities
+\layout Author
+
+Rex Kerr
+\layout Standard
+
+The surface grid utilities can be found in the files 
+\family typewriter 
+grid_util.h
+\family default 
+ and 
+\family typewriter 
+grid_util.c
+\layout Section
+
+Theory
+\layout Standard
+
+Consider a triangle with vertices 
+\begin_inset Formula $A,B,C$
+\end_inset 
+
+.
+ We will orient the 
+\begin_inset Formula $\hat{u}$
+\end_inset 
+
+ axis along the line from 
+\begin_inset Formula $A$
+\end_inset 
+
+ to 
+\begin_inset Formula $B$
+\end_inset 
+
+ and the 
+\begin_inset Formula $\hat{v}$
+\end_inset 
+
+ axis perpendicular according to the right-hand rule.
+ Thus, 
+\begin_inset Formula $A$
+\end_inset 
+
+ is at 
+\begin_inset Formula $(0,0)$
+\end_inset 
+
+, 
+\begin_inset Formula $B$
+\end_inset 
+
+ is at 
+\begin_inset Formula $u_{B}\cdot\hat{u}$
+\end_inset 
+
+ and 
+\begin_inset Formula $C$
+\end_inset 
+
+ is at 
+\begin_inset Formula $u_{C}\cdot\hat{u}+v_{C}\cdot\hat{v}$
+\end_inset 
+
+.
+ Suppose that we subdivide this triangle into 
+\begin_inset Formula $n$
+\end_inset 
+
+ equal pieces along each edge, creating 
+\begin_inset Formula $n^{2}$
+\end_inset 
+
+ subtriangles (see Figure 
+\begin_inset LatexCommand \ref{fig:bary}
+
+\end_inset 
+
+).
+ 
+\begin_inset Float figure
+placement H
+wide false
+collapsed false
+
+\layout Standard
+\line_top 
+
+\begin_inset Graphics
+	filename grid_util_bary.eps
+	scale 50
+
+\end_inset 
+
+
+\layout Caption
+\line_bottom 
+
+\begin_inset LatexCommand \label{fig:bary}
+
+\end_inset 
+
+A barycentrically subdivided triangle (top left) consists of 
+\begin_inset Formula $n^{2}$
+\end_inset 
+
+ subtriangles (red) identical to the original save for flipping.
+ These can be numbered in 
+\begin_inset Formula $n$
+\end_inset 
+
+ strips as demonstrated.
+ If you hit a spot on the original triangle (gold dot, top right), you can
+ quickly find which row it is in, and then the portion of the way through
+ the row (bottom left).
+ Finally, the line can be segmented into original-orientation and inverted-orien
+tation segments and the position within that line noted (bottom right).
+\end_inset 
+
+
+\layout Subsection
+
+
+\begin_inset Formula $u,v$
+\end_inset 
+
+ coordinates to barycentric index
+\begin_inset LatexCommand \label{uv_to_bary}
+
+\end_inset 
+
+
+\layout Standard
+
+Any point 
+\begin_inset Formula $P$
+\end_inset 
+
+ in the triangle 
+\begin_inset Formula $ABC$
+\end_inset 
+
+ will have a 
+\begin_inset Formula $\hat{v}$
+\end_inset 
+
+ coordinate between 
+\begin_inset Formula $0$
+\end_inset 
+
+ and 
+\begin_inset Formula $v_{C}$
+\end_inset 
+
+.
+ Barycentric subdivision will split this into 
+\begin_inset Formula $n$
+\end_inset 
+
+ equal strips and thus 
+\begin_inset Formula $P$
+\end_inset 
+
+ will be in the 
+\begin_inset Formula $k=\left\lfloor \frac{n\cdot v_{P}}{v_{C}}\right\rfloor $
+\end_inset 
+
+'th strip (counting from 
+\begin_inset Formula $0$
+\end_inset 
+
+ to 
+\begin_inset Formula $n-1$
+\end_inset 
+
+).
+ Furthermore, one can find that 
+\begin_inset Formula $P$
+\end_inset 
+
+ is a fraction 
+\begin_inset Formula $f=\frac{v_{P}-k\cdot v_{C}/n}{v_{C}/n}=\frac{n\cdot v_{P}}{v_{C}}-k$
+\end_inset 
+
+ of the way to the next strip (see Figure 
+\begin_inset LatexCommand \ref{fig:bary}
+
+\end_inset 
+
+).
+ At 
+\begin_inset Formula $P$
+\end_inset 
+
+, the triangle stretches from 
+\begin_inset Formula $u_{0}=u_{C}\frac{v_{P}}{v_{C}}$
+\end_inset 
+
+ to 
+\begin_inset Formula $u_{1}=u_{B}+\left(u_{C}-u_{B}\right)\frac{v_{P}}{v_{C}}$
+\end_inset 
+
+ along the 
+\begin_inset Formula $u$
+\end_inset 
+
+ axis, which we can map to 
+\begin_inset Formula $2k+1$
+\end_inset 
+
+ regions as shown in Figure 
+\begin_inset LatexCommand \ref{fig:bary}
+
+\end_inset 
+
+.
+ We thus can find 
+\begin_inset Formula $j$
+\end_inset 
+
+ between 
+\begin_inset Formula $0$
+\end_inset 
+
+ and 
+\begin_inset Formula $k$
+\end_inset 
+
+ using 
+\begin_inset Formula $j=\left\lfloor \frac{u_{P}-u_{0}}{u_{1}-u_{0}}\right\rfloor $
+\end_inset 
+
+ and then find if the remainder 
+\begin_inset Formula $\frac{u_{P}-u_{0}}{u_{1}-u_{0}}-j$
+\end_inset 
+
+ is less than 
+\begin_inset Formula $1-f$
+\end_inset 
+
+.
+ If so, let 
+\begin_inset Formula $i=0$
+\end_inset 
+
+ (upright triangle), otherwise set 
+\begin_inset Formula $i=1$
+\end_inset 
+
+ (inverted triangle).
+ Then we have the 
+\begin_inset Formula $2j+i$
+\end_inset 
+
+'th triangle in the 
+\begin_inset Formula $k$
+\end_inset 
+
+'th strip, and there are 
+\begin_inset Formula $\left(n-k-1\right)^{2}$
+\end_inset 
+
+ triangles in higher-numbered strips so the barycentric index is 
+\begin_inset Formula $b=\left(n-k-1\right)^{2}+2j+i$
+\end_inset 
+
+.
+\layout Subsection
+
+Barycentric index to 
+\begin_inset Formula $u,v$
+\end_inset 
+
+ coordinates
+\layout Standard
+
+We can write the barycentric index 
+\begin_inset Formula $b$
+\end_inset 
+
+ as 
+\begin_inset Formula $b=\left\lfloor \sqrt{b}\right\rfloor ^{2}+r$
+\end_inset 
+
+ and 
+\begin_inset Formula $r=2\left\lfloor \frac{r}{2}\right\rfloor +\left(r-2\left\lfloor \frac{r}{2}\right\rfloor \right)$
+\end_inset 
+
+.
+ Using the results of section 
+\begin_inset LatexCommand \ref{uv_to_bary}
+
+\end_inset 
+
+, we thus have 
+\begin_inset Formula $k=n-\left\lfloor \sqrt{b}\right\rfloor -1$
+\end_inset 
+
+, 
+\begin_inset Formula $j=\left\lfloor \frac{r}{2}\right\rfloor =\left\lfloor \frac{b-\left\lfloor \sqrt{b}\right\rfloor ^{2}}{2}\right\rfloor $
+\end_inset 
+
+, and 
+\begin_inset Formula $i=r-2j$
+\end_inset 
+
+.
+ We then have two cases.
+ If 
+\begin_inset Formula $i=0$
+\end_inset 
+
+, the triangle is upright.
+ The 
+\begin_inset Formula $A$
+\end_inset 
+
+-corner starts at 
+\begin_inset Formula $\left(\frac{j}{n}u_{B}+\frac{k}{n}u_{C}\right)\hat{u}+\frac{k}{n}v_{C}\cdot\hat{v}$
+\end_inset 
+
+, and the center of the large triangle is at 
+\begin_inset Formula $\left(\frac{u_{B}+u_{C}}{3}\right)\hat{u}+\frac{v_{C}}{3}\hat{v}$
+\end_inset 
+
+.
+ Since the small triangle is 
+\begin_inset Formula $n$
+\end_inset 
+
+ times smaller along each axis, the centroid of the triangle is thus at
+ 
+\begin_inset Formula $\left(\frac{3j+1}{3n}u_{B}+\frac{3k+1}{3n}u_{C}\right)\hat{u}+\frac{3k+1}{3n}v_{C}\cdot\hat{v}$
+\end_inset 
+
+.
+ If 
+\begin_inset Formula $i=1$
+\end_inset 
+
+, the triangle is inverted and the 
+\begin_inset Formula $A$
+\end_inset 
+
+-corner is on the 
+\begin_inset Formula $k+1$
+\end_inset 
+
+'st line, so our corner is at 
+\begin_inset Formula $\left(\frac{j}{n}u_{B}+\frac{k+1}{n}u_{C}\right)\hat{u}+\frac{k+1}{n}v_{C}\cdot\hat{v}$
+\end_inset 
+
+, and since the triangle is inverted, the centroid is flipped in the 
+\begin_inset Formula $\hat{v}$
+\end_inset 
+
+ direction, and thus is offset by 
+\begin_inset Formula $\left(\frac{u_{B}+u_{C}}{3n}\right)\hat{u}-\frac{v_{C}}{3n}\hat{v}$
+\end_inset 
+
+ from the corner.
+ Thus the centroid is at 
+\begin_inset Formula $\left(\frac{3j+1}{3n}u_{B}+\frac{3k+4}{3n}u_{C}\right)\hat{u}+\frac{3k+2}{3n}v_{C}\cdot\hat{v}$
+\end_inset 
+
+.
+ These two results for different 
+\begin_inset Formula $i$
+\end_inset 
+
+ can be rewritten as follows: 
+\begin_inset Formula $\left(\frac{3j+1}{3n}u_{B}+\frac{3k+1+3i}{3n}u_{C}\right)\hat{u}+\frac{3k+1+i}{3n}v_{C}\cdot\hat{v}$
+\end_inset 
+
+.
+\layout Section
+
+Implementation
+\layout Standard
+
+There are three grid utility functions (so far).
+ Please see the 
+\family typewriter 
+grid_util.c
+\family default 
+ file for explanations.
+\the_end
