@@ -643,6 +643,9 @@ struct volume
   double *d_step;
   double *factorial_r;
   double r_num_directions;
+  double sim_elapsed_time;
+  double chkpt_elapsed_time;
+  double chkpt_elapsed_time_start;
   double current_time;
   double current_start_time;
   double max_diffusion_step;
@@ -652,7 +655,10 @@ struct volume
   double ray_polygon_colls;
   double diffusion_steps;
   double sim_elapse_time;
+  struct vector3 bb_min;
+  struct vector3 bb_max;
   u_int tot_mols;
+  u_int seed;
   u_int init_seed;
   u_int it_time;
   u_int start_time;
@@ -663,6 +669,8 @@ struct volume
   int fully_random;
   int procnum;
   int viz_mode;
+  byte voxel_image_mode;
+  byte voxel_volume_mode;
   char *molecule_prefix_name;
 
   /* MCell startup command line arguments */
@@ -1068,6 +1076,7 @@ struct object {
 	                                   object is referenced in count stmt */
         unsigned int num_regions;	/**< number of regions defined */
 	struct region_list *region_list; /**< ptr to list of regions for 
+					      this object */
 	struct counter_hash_table **counter_hash_table;	/**<hash table for region counter in object*/
 /*        struct eff_dat **eff_prop;*/	/**<  if this object is a
 					   BOX_OBJ or POLY_OBJ this will be an
@@ -1133,7 +1142,7 @@ struct transformation {
  */
 struct release_site_obj {
 	struct vector3 *location;	/**< location of release site */
-	unsigned short ligand;	/**< ligand to be released */
+	struct species *mol_type;	/**< species to be released */
 	byte release_number_method;
 	int release_number;
 	int mean_number;
@@ -1147,7 +1156,7 @@ struct release_site_obj {
 };
 
 /**
- * Ligand release pattern data.
+ * Molecule release pattern data.
  */
 struct release_pattern {
         struct sym_table *sym;

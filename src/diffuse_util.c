@@ -13,8 +13,13 @@
 #include <math.h>
 
 #include "diffuse_util.h"
+#include "mcell_structs.h"
 
-extern FILE *log_file;
+#ifdef DEBUG
+#define no_printf printf
+#endif
+
+extern struct volume *world;
 
 #ifndef MY_PI
 #define MY_PI 3.14159265358979324
@@ -60,9 +65,11 @@ dgser:
 
 double dgser(double aa, double xx)
 {
+  FILE *log_file;
   double y,ap,sum,del,eps,gln;
   int itmax,n;
 
+  log_file=world->log_file;
   itmax=100;
   eps=3.0e-7;
   gln=dgammln(aa);
@@ -100,8 +107,10 @@ dgcf:
 
 double dgcf(double aa, double xx)
 {
+  FILE *log_file;
   double y,gold,a0,a1,b0,b1,fac,an,ana,anf,g,itmax,eps,gln;
 
+  log_file=world->log_file;
   itmax=100;
   eps=3.0e-7;
   gln=dgammln(aa);
@@ -218,10 +227,12 @@ init_r_step:
 
 double* init_r_step(int radial_subdivisions)
 {   
+  FILE *log_file;
   double inc,target,accum,r,r_max,delta_r,delta_r2;
   double *r_step;
-  int i,j;
+  int j;
     
+  log_file=world->log_file;
   if ((r_step=(double *)malloc(radial_subdivisions*sizeof(double)))==NULL) { 
     fprintf(log_file,"MCell: cannot store radial step length table\n");
     return NULL;
@@ -261,22 +272,24 @@ init_d_step:
         data contains three doubles (x,y,z) per requested subdivision
 ***************************************************************************/
 
-#define DEG_2_RAD 0.0174532925213395592
-#define RAD_2_DEG 57.2957795130823208
+#define DEG_2_RAD  0.01745329251994329576
+#define RAD_2_DEG 57.29577951308232087684
 /* Multiply by this factor (Pi/180) to convert from degrees to radians */
 
 double* init_d_step(int radial_directions,int *actual_directions)
 {   
+  FILE *log_file;
   FILE *fp;
-  double r,z,phi,theta,sin_phi,rad;
+  double z;
   double d_phi,phi_mid,phi_edge_prev,phi_edge_approx,phi_factor,theta_mid;
   double *phi_edge;
   double x_bias,y_bias,z_bias;
   double x,y;
-  int i,j,k,l,m,p,q,n_tot,n_edge,n_patches;
+  int i,j,k,l,n_tot,n_edge,n_patches;
   int *n;
   double *d_step;
     
+  log_file=world->log_file;
   n_edge=(int) sqrt(radial_directions*MY_PI/2.0);
   n_patches=(int) (2*(n_edge*n_edge)/MY_PI);
   no_printf("desired n_patches in octant = %d\n",radial_directions);

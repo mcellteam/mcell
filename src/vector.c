@@ -255,7 +255,6 @@ void rotate_matrix(double (*im)[4], double (*om)[4], struct vector3 *axis, doubl
 
 void tform_matrix(struct vector3 *scale, struct vector3 *translate, struct vector3 *axis, double angle, double (*om)[4])
 {
-  double im[4][4];
   double sc[4][4];
   double tm[4][4];
   double r1[4][4],r2[4][4],r3[4][4];
