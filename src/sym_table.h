@@ -7,7 +7,7 @@ typedef unsigned long int ub4;   /* unsigned 4-byte quantities */
 typedef unsigned char ub1;        /* unsigned 1-byte quantities */
 
 ub4 jerkins_hash(ub1 *sym);
-unsigned hash(char *sym);
+unsigned long hash(char *sym);
 struct sym_table *retrieve_sym(char *sym, unsigned short sym_type,
   struct sym_table **hashtab);
 struct sym_table *store_sym(char *sym, unsigned short sym_type,

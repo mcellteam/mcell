@@ -121,7 +121,7 @@ register ub1 *k;        /* the key */
 /* ================================================================ */
 
 
-unsigned hash(char *sym)
+unsigned long hash(char *sym)
 {
   ub4 hashval;
 
