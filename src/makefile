@@ -55,7 +55,7 @@ argparse.bison.o: makedefs argparse.bison.c arglex.flex.c
 mdllex.flex.c: mdllex.l strfunc.h mdlparse.h
 	flex -Cfra mdllex.l
 
-mdlparse.bison.c: mdlparse.y mdlparse.h mdllex.flex.c mdlparse_util.h mcell_structs.h vector.h strfunc.h mem_util.h sym_table.h diffuse_util.h
+mdlparse.bison.c: mdlparse.y mdlparse.h mdllex.flex.c mdlparse_util.h mcell_structs.h vector.h strfunc.h mem_util.h sym_table.h diffuse_util.h rng.h
 	bison -v mdlparse.y
 
 mdlparse.bison.o: makedefs mdlparse.bison.c mdllex.flex.c

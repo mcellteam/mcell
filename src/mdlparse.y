@@ -8,6 +8,7 @@
   #include <float.h>
   #include <limits.h>
   #include <sys/errno.h>
+  #include "rng.h"
   #include "vector.h"
   #include "strfunc.h"
   #include "mcell_structs.h"
@@ -210,6 +211,8 @@ struct counter_list *cnt;
 %token <tok> RADIAL_SUBDIVISIONS
 %token <tok> RADIANCE
 %token <tok> RAYSHADE
+%token <tok> RAND_UNIFORM
+%token <tok> RAND_GAUSSIAN
 %token <tok> REACTION_DATA_OUTPUT
 %token <tok> REACTION_GROUP
 %token <tok> REAL
@@ -985,6 +988,15 @@ num_expr: num_value
 {
   $$=MY_PI;
 }
+	| RAND_UNIFORM
+{
+  $$=rng_double(mdlpvp->vol->seed++);
+}
+	| RAND_GAUSSIAN
+{
+  double r;
+  $$=gaussran4( &(mdlpvp->vol->seed) , &r , 1 , 0.0 , 1.0 );
+}
 	| SEED
 {
   $$=volp->seed_seq;
@@ -1120,6 +1132,15 @@ num_expr_only: intOrReal
 	| PI_TOK
 {
   $$=MY_PI;
+}
+	| RAND_UNIFORM
+{
+  $$=rng_double(mdlpvp->vol->seed++);
+}
+	| RAND_GAUSSIAN
+{
+  double r;
+  $$=gaussran4( &(mdlpvp->vol->seed) , &r , 1 , 0.0 , 1.0 );
 }
 	| SEED
 {
