@@ -29,7 +29,7 @@ int test_unimolecular(struct rxn *rx)
   
   m = 0;
   M = rx->n_pathways-1;
-  if (p > rx->cum_rates[ rx->n_pathways-1 ]) return -1;
+  if (p > rx->cum_rates[ rx->n_pathways-1 ]) return RX_NO_RX;
 
   while (M-m > 1)
   {
@@ -101,7 +101,7 @@ int test_bimolecular(struct rxn *rx,double time_mult)
   int m,M,avg;
   double p = rng_double( world->seed++ ) / time_mult;  /* FIXME: convert to use multiples */
   
-  if ( p > rx->cum_rates[ rx->n_pathways-1 ] ) return -1;
+  if ( p > rx->cum_rates[ rx->n_pathways-1 ] ) return RX_NO_RX;
   
   m = 0;
   M = rx->n_pathways-1;
@@ -130,8 +130,8 @@ test_intersect
   In: the reaction we're testing
       a probability multiplier depending on how many timesteps we've
         moved at once (1.0 means one timestep)
-  Out: RX_BOUNCE if no reaction occurs (assume reflection)
-       RX_WINDOW if transparent
+  Out: RX_NO_RX if no reaction occurs (assume reflection)
+       RX_WINDOW or RX_GHOST if transparent
        int containing which reaction occurs if one does occur
 *************************************************************************/
 
@@ -144,12 +144,12 @@ int test_intersect(struct rxn *rx,double time_mult)
   
   p = rng_double( world->seed++ ) / time_mult;
   
-  if ( p > rx->cum_rates[ rx->n_pathways-1 ] ) return RX_BOUNCE;
+  if ( p > rx->cum_rates[ rx->n_pathways-1 ] ) return RX_NO_RX;
 
   m = 0;
   M = rx->n_pathways-1;
   
-  if ( p > rx->cum_rates[M] ) return RX_BOUNCE;
+  if ( p > rx->cum_rates[M] ) return RX_NO_RX;
   
   while (M-m > 1)
   {
@@ -222,3 +222,4 @@ void check_rates(struct rxn *rx,double t)
     printf("\n");
   }
 }
+

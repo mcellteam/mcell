@@ -169,6 +169,7 @@ log_file_cmd: LOG_FILE_OPT FILE_NAME
     argerror(argpvp->arg_err_msg,argpvp);
     return(1);
   }
+  volp->err_file = volp->log_file;
 };
 
 log_freq_cmd: LOG_FREQ_OPT int_arg
@@ -224,7 +225,8 @@ int argparse_init(int argc, char *argv[], struct volume *vol)
 
   vol->log_freq=100;
   vol->log_file_name=NULL;
-  vol->log_file=stderr;
+  vol->log_file=stdout;
+  vol->err_file=stderr;
   vol->seed_seq=1;
   vol->info_opt=0;
   vol->mdl_infile_name=NULL;

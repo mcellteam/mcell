@@ -88,13 +88,13 @@ wall_util.o: makedefs wall_util.c wall_util.h rng.h vector.h vol_util.h mcell_st
 vol_util.o: makedefs vol_util.c vol_util.h count_util.h rng.h react.h mcell_structs.h mem_util.h
 	$(CC) $(CFLAGS) -c vol_util.c
 
-react_trig.o: makedefs react_trig.c react.h
+react_trig.o: makedefs react_trig.c react.h mcell_structs.h
 	$(CC) $(CFLAGS) -c react_trig.c
 
-react_cond.o: makedefs react_cond.c react.h
+react_cond.o: makedefs react_cond.c react.h mcell_structs.h
 	$(CC) $(CFLAGS) -c react_cond.c
 
-react_outc.o: makedefs react_outc.c react.h
+react_outc.o: makedefs react_outc.c react.h mcell_structs.h
 	$(CC) $(CFLAGS) -c react_outc.c
 	
 diffuse.o: makedefs diffuse.c diffuse.h rng.h mem_util.h sched_util.h mcell_structs.h count_util.h grid_util.h vol_util.h wall_util.h react.h

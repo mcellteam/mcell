@@ -34,6 +34,10 @@
 #define MAX_UNI_TIMESKIP 5000
 
 
+/* SOLVE_QF is a local #define in exact_disk (solves the quadratic formula) */
+/* REGISTER_PARTITION is a local #define in exact_disk */
+/* CHECK_PARTITON is a local #define in exact_disk */
+
 /* CLEAN_AND_RETURN(x) is a local #define in diffuse_3D */
 /* ERROR_AND_QUIT is a local #define in diffuse_3D */
 
@@ -148,7 +152,14 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
   
   shead = NULL;
   smash = (struct collision*) mem_get(sv->mem->coll);
-  if(smash == NULL) return NULL;
+  if(smash == NULL)
+  {
+    fprintf(stderr,"Out of memory.  Trying to save intermediate results.\n");
+    i = emergency_output();
+    fprintf(stderr,"Out of memory while updating position of molecule of type %s\n",m->properties->sym->name);
+    fprintf(stderr,"%d errors while trying to save intermediate results.\n",i);
+    exit( EXIT_FAILURE );
+  }
 
   fake_wlp.next = sv->wall_head;
     
@@ -173,7 +184,11 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
       if (smash==NULL)
       {
 	if (shead!=NULL) mem_put_list(sv->mem->coll,shead);
-	return NULL;
+	fprintf(stderr,"Out of memory.  Trying to save intermediate results.\n");
+	i = emergency_output();
+	fprintf(stderr,"Out of memory while updating position of molecule of type %s\n",m->properties->sym->name);
+	fprintf(stderr,"%d errors while trying to save intermediate results.\n",i);
+	exit( EXIT_FAILURE );
       }
     }
   }
@@ -265,7 +280,11 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
       if (smash==NULL)
       {
 	mem_put_list(sv->mem->coll,shead);
-	return NULL;
+	fprintf(stderr,"Out of memory.  Trying to save intermediate results.\n");
+	i = emergency_output();
+	fprintf(stderr,"Out of memory while updating position of molecule of type %s\n",m->properties->sym->name);
+	fprintf(stderr,"%d errors while trying to save intermediate results.\n",i);
+	exit( EXIT_FAILURE );
       }
       memcpy(smash,c,sizeof(struct collision));
       
@@ -1108,7 +1127,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         if (rx->rate_t != NULL) check_rates(rx,m->t);
 
         i = test_bimolecular(rx,factor);
-        if (i<0) continue;
+        if (i<=RX_NO_RX) continue;
         
         j = outcome_bimolecular(
                 rx,i,(struct abstract_molecule*)m,
@@ -1263,7 +1282,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                   g = (struct grid_molecule*)c->target;
                   
                   i = test_bimolecular(rx,1/c->t); /* Always works */
-                  if (i >= 0)
+                  if (i > RX_NO_RX)
                   {
                     l = outcome_bimolecular(
                       rx,i,(struct abstract_molecule*)m,
@@ -1317,7 +1336,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     w = (struct wall*)c->target;
                     
                     i = test_intersect(rx,rate_factor);
-                    if (i>=0)
+                    if (i > RX_NO_RX)
                     {
                       j = outcome_intersect(
                               rx,i,w,(struct abstract_molecule*)m,
@@ -1394,7 +1413,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                 {
                   if (rx->rate_t != NULL) check_rates(rx,m->t);
                   i = test_bimolecular(rx,rate_factor * w->effectors->binding_factor);
-                  if (i >= 0)
+                  if (i > RX_NO_RX)
                   {
                     l = outcome_bimolecular(
                       rx,i,(struct abstract_molecule*)m,
@@ -1442,7 +1461,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
               }
               if (rx->rate_t != NULL) check_rates(rx,m->t);
               i = test_intersect(rx,rate_factor);
-              if (i>=0)
+              if (i > RX_NO_RX)
               {
                 j = outcome_intersect(
                         rx,i,w,(struct abstract_molecule*)m,
@@ -1620,8 +1639,11 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         j = outcome_unimolecular(r,i,a,a->t);
 	if (j==RX_NO_MEM)
 	{
-	  printf("Out of memory during unimolecular reaction %s...\n",r->sym->name);
-	  return;
+	  fprintf(stderr,"Out of memory.  Trying to save intermediate results.\n");
+	  i = emergency_output();
+	  fprintf(stderr,"Out of memory during unimolecular reaction %s...\n",r->sym->name);
+	  fprintf(stderr,"%d errors while trying to save intermediate results.\n",i);
+	  exit( EXIT_FAILURE );
 	}
         if (j!=RX_DESTROY) /* We still exist */
         {
@@ -1689,10 +1711,14 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     
     if (err)
     {
-      printf("Out of memory while scheduling molecule of type %s\n",a->properties->sym->name);
-      return;
+      fprintf(stderr,"Out of memory.  Trying to save intermediate results.\n");
+      i = emergency_output();
+      fprintf(stderr,"Out of memory while scheduling molecule of type %s\n",a->properties->sym->name);
+      fprintf(stderr,"%d errors while trying to save intermediate results.\n",i);
+      exit( EXIT_FAILURE );
     }
   }
   
   local->current_time += 1.0;
 }
+

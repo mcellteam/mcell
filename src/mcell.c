@@ -219,18 +219,21 @@ void run_sim(void)
 
 int main(int argc, char **argv) {
 
+  FILE *err_file;
   FILE *log_file;
   char hostname[64];
   u_int procnum;
   
 
-  log_file=stderr;
+  log_file=stdout;
+  err_file=stderr;
 
   if ((world=(struct volume *)malloc(sizeof(struct volume)))==NULL) {
-    fprintf(log_file,"MCell: could not store world volume data structure\n");
+    fprintf(err_file,"MCell: could not store world volume data structure\n");
     exit(1);
   }
   world->log_file=log_file;
+  world->err_file=err_file;
 
   world->procnum=0;
   procnum=world->procnum;

@@ -53,6 +53,7 @@
   /* RX_WINDOW signifies that a reaction is between a molecule and the WINDOW wall type */
   /* Any value equal to or less than RX_SPECIAL refers to a special wall type */
   /* RX_BLOCKED signals a reaction that cannot take place because the grid is full */
+  /* Any value equal to or less than RX_NO_RX indicates that a reaction did not take place */
   /* RX_FLIP signals that a molecule flips its orientation (crosses a wall if it's free) */
   /* RX_DESTROY signals that the molecule no longer exists (so don't try to keep using it) */
   /* RX_A_OK signals that all is OK with a reaction, proceed as normal (reflect if you're free) */
@@ -61,6 +62,7 @@
 #define RX_WINDOW  -3
 #define RX_SPECIAL -3
 #define RX_BLOCKED -2
+#define RX_NO_RX   -2
 #define RX_FLIP    -1
 #define RX_DESTROY  0
 #define RX_A_OK     1
@@ -847,6 +849,7 @@ struct volume
   u_int iterations;
   char *log_file_name;
   FILE *log_file;
+  FILE *err_file;
   u_int log_freq;
   u_int chkpt_init;
   u_int chkpt_flag;
