@@ -523,13 +523,14 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
   struct poly_edge *pe_curr = NULL, *pe_ptr_index_0 = NULL, *pe_ptr_index_1=NULL;
 
   double min_value_0, min_value_1;
-
-  /* find out the number of nodes inthe linked_list. */
+  /* find out the number of nodes in the linked_list. */
   pe_curr = p;
   while(pe_curr != NULL) {
 	count++;
 	pe_curr = pe_curr->next;
   }
+  /* for one node there is no need for rearrangement. */
+  if(count == 1) return;
 
  /* create an array that will store the angle 
     between the faces of the edge in the linked_list. */
@@ -540,7 +541,8 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
  }
 
    pe_curr = p;
-   // put values into an angles array
+
+   /* put values into an angles array */
   while(pe_curr != NULL) {
         if(compatible_edges(faces,pe_curr->face1, pe_curr->edge1, pe_curr->face2, pe_curr->edge2)){
                      aligns[ii] = faces[pe_curr->face1]->normal.x * faces[pe_curr->face2]->normal.x + faces[pe_curr->face1]->normal.y * faces[pe_curr->face2]->normal.y + faces[pe_curr->face1]->normal.z * faces[pe_curr->face2]->normal.z;
@@ -573,7 +575,7 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
   }
 
 
-  // find the node with the second smallest value of the 'angle' parameter
+  /* find the node with the second smallest value of the 'angle' parameter */
   min_value_1 = min_n(aligns, count);
   ii = 0;
   pe_curr = p;
@@ -620,7 +622,7 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
    pe_curr = p;
    if(pe_curr->next != pe_ptr_index_1)
    {
-   	while(pe_curr != NULL)
+   	while(pe_curr->next != NULL)
    	{
 		if(pe_curr == pe_ptr_index_1){
 			swap_double(&(p->next->v1x),&(pe_curr->v1x));
@@ -754,6 +756,8 @@ int surface_net( struct wall **facelist, int nfaces )
   
   ehtable_kill(&eht);
   return -is_closed;  /* We use 1 to indicate malloc failure so return 0/-1 */
+
+		printf("I am at end of surface_net()\n");
 }
 
 
