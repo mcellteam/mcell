@@ -2171,11 +2171,14 @@ unimolecular_rxn: reactant RT_ARROW
   mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
   mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
 
+  mdlpvp->fwd_km=0;
+  mdlpvp->fwd_kcat=0;
   mdlpvp->prod_all_3d=1;
 }
-	list_products fwd_rx_rate1
+	list_products fwd_rx_rate1or2
 {
   mdlpvp->pathp->km=mdlpvp->fwd_km;
+  mdlpvp->pathp->kcat=mdlpvp->fwd_kcat;
   if (mdlpvp->prod_all_3d) {
     for (mdlpvp->prodp=mdlpvp->rxnp->pathway_head->product_head;
         mdlpvp->prodp!=NULL;mdlpvp->prodp=mdlpvp->prodp->next) {
@@ -2193,7 +2196,7 @@ unimolecular_rxn: reactant RT_ARROW
     }
     no_printf(" %s[%d]",mdlpvp->prodp->prod->sym->name,mdlpvp->prodp->orientation);
   }
-  no_printf(" [%.9g]\n",mdlpvp->rxnp->pathway_head->km);
+  no_printf(" [%.9g,%.9g]\n",mdlpvp->rxnp->pathway_head->km,mdlpvp->rxnp->pathway_head->kcat);
 #endif
 };
 
@@ -2262,11 +2265,14 @@ bimolecular_rxn: reactant '+'
   mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
   mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
   
+  mdlpvp->fwd_km=0;
+  mdlpvp->fwd_kcat=0;
   mdlpvp->prod_all_3d=1;
 }
-	list_products fwd_rx_rate1
+	list_products fwd_rx_rate1or2
 {
   mdlpvp->pathp->km=mdlpvp->fwd_km;
+  mdlpvp->pathp->kcat=mdlpvp->fwd_kcat;
   if (mdlpvp->prod_all_3d) {
     for (mdlpvp->prodp=mdlpvp->rxnp->pathway_head->product_head;
         mdlpvp->prodp!=NULL;mdlpvp->prodp=mdlpvp->prodp->next) {
@@ -2287,7 +2293,7 @@ bimolecular_rxn: reactant '+'
     }
     no_printf(" %s[%d]",mdlpvp->prodp->prod->sym->name,mdlpvp->prodp->orientation);
   }
-  no_printf(" [%.9g]\n",mdlpvp->rxnp->pathway_head->km);
+  no_printf(" [%.9g,%.9g]\n",mdlpvp->rxnp->pathway_head->km,mdlpvp->rxnp->pathway_head->kcat);
 #endif
 };
 
@@ -2364,6 +2370,11 @@ tail_mark: ','
 {
   mdlpvp->orient_class+=1;
 };
+
+
+fwd_rx_rate1or2:  fwd_rx_rate1
+	| fwd_rx_rate2
+;
 
 
 fwd_rx_rate1: '[' num_expr ']'

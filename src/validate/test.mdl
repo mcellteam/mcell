@@ -21,7 +21,7 @@ DEFINE_MOLECULE Glu {
 }
 
 DEFINE_REACTIONS {
-  ACh -> ACh + Glu [1000]
+  ACh -> ACh + Glu [2000]
   Glu' -> Glu, + ACh' [1000]
   ACh + Glu' -> Glu, + ACh' [1e7]
   ACh + Glu -> NULL [1e7]
