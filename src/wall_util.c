@@ -695,7 +695,7 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
   if ((a->properties->flags & ON_SURFACE)==0) pos = &( ((struct molecule*)a)->pos );
   else pos = &( ((struct surface_molecule*)a)->pos );
   
-  sigma2 = a->properties->radius * a->properties->radius; 
+  sigma2 = world->rx_radius_3d*world->rx_radius_3d; 
 /*  sigma2 = 1.0; */
 
 /*

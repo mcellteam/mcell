@@ -587,10 +587,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         D_tot=rx->players[0]->D_ref+rx->players[1]->D_ref+2.0*sqrt(rx->players[0]->D_ref*rx->players[1]->D_ref);
         if (D_tot>0) {
           if (rx->geometries[0]==0) {
-            pb_factor=(1.0e11*mpvp->vol->effector_grid_density/(4.0*N_AV))*sqrt(MY_PI*mpvp->vol->time_unit/D_tot);
+            pb_factor=(1.0e11/(mpvp->vol->rx_radius_3d*mpvp->vol->rx_radius_3d*4.0*N_AV))*sqrt(mpvp->vol->time_unit/(D_tot*MY_PI));
           }
           else {
-            pb_factor=(1.0e11*mpvp->vol->effector_grid_density/(2.0*N_AV))*sqrt(MY_PI*mpvp->vol->time_unit/D_tot);
+            pb_factor=(1.0e11/(mpvp->vol->rx_radius_3d*mpvp->vol->rx_radius_3d*2.0*N_AV))*sqrt(mpvp->vol->time_unit/(D_tot*MY_PI));
             if (rx->geometries[0]==0
                 || abs(rx->geometries[0])!=abs(rx->geometries[1])) {
               pb_factor*=2.0;
@@ -640,6 +640,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     rx->next = rx_tbl[j];
     rx_tbl[j] = (struct rxn*)sym->value;
   }
+  
+  mpvp->vol->rx_radius_3d /= mpvp->vol->length_unit; /* Convert into length units */
 
   return 0;
 }

@@ -157,6 +157,7 @@ int init_sim(void)
   world->current_start_time=0;
   world->effector_grid_density=1;
   world->length_unit=1.0/sqrt(world->effector_grid_density);
+  world->rx_radius_3d = 0.01;
   world->max_diffusion_step=0;
   world->radial_directions=16384;
   world->radial_subdivisions=1024;
@@ -399,7 +400,7 @@ int init_species(void)
         s = (struct species*) gp->value;
         world->species_list[count] = s;
         world->species_list[count]->hashval &= world->hashsize-1;
-        world->species_list[count]->radius = sqrt(1.0/MY_PI);
+        world->species_list[count]->radius = EPS_C;
         world->species_list[count]->population = 0;
         if ( (s->flags & (ON_SURFACE | ON_GRID)) == 0 )
         {

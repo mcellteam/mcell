@@ -609,8 +609,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         m->collisions++;
 
         factor = rate_factor * estimate_disk(
-          &(smash->loc),&displacement,
-          ((struct abstract_molecule*)smash->target)->properties->radius,
+          &(smash->loc),&displacement,world->rx_radius_3d,
           m->subvol
         );
         

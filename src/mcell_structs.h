@@ -757,6 +757,7 @@ struct volume
   double time_step_max;
   double length_unit;
   double effector_grid_density;
+  double rx_radius_3d;
   double *r_step;
   double *d_step;
   double *factorial_r;

@@ -133,6 +133,7 @@ struct count_list *cnt;
 %token <tok> INPUT_FILE
 %token <tok> INSTANTIATE
 %token <tok> INTEGER
+%token <tok> INTERACTION_RADIUS
 %token <tok> INTERIM_EVENTS
 %token <tok> IRIT
 %token <tok> ITERATION_FRAME_DATA
@@ -261,6 +262,7 @@ struct count_list *cnt;
 %type <tok> time_max_def
 %type <tok> iteration_def
 %type <tok> grid_density_def
+%type <tok> interact_radius_def
 %type <tok> radial_directions_def
 %type <tok> radial_subdivisions_def
 %type <tok> assignment_stmt
@@ -444,6 +446,7 @@ mdl_stmt: time_def
         | time_max_def
 	| iteration_def
 	| grid_density_def
+        | interact_radius_def
 	| radial_directions_def
 	| radial_subdivisions_def
 	| assignment_stmt
@@ -1315,6 +1318,13 @@ grid_density_def: EFFECTOR_GRID_DENSITY '=' num_expr
   mdlpvp->mc_factor=1.0e11*volp->effector_grid_density*sqrt(MY_PI*volp->time_unit)/N_AV;
   mdlpvp->transport_mc_factor=6.2415e18*mdlpvp->mc_factor;
   fflush(stderr);
+};
+
+
+interact_radius_def: INTERACTION_RADIUS '=' num_expr
+{
+  volp->rx_radius_3d = $<dbl>3;
+  no_printf("Molecule-molecule interaction radius = %f\n",volp->rx_radius_3d);
 };
 
 
