@@ -1036,7 +1036,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       {
         if ((a->flags & ACT_NEWBIE) != 0)
         {
-          newbie_time = a->t + 0.5;
+          newbie_time = a->t + 1.0;
 /*          printf("Newbie time set to %.3f (now=%.3f)\n",newbie_time,a->t);*/
         }
 

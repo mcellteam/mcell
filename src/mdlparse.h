@@ -3,9 +3,17 @@
 
 #include "mcell_structs.h"
 
+
 #define RFLCT 0
 #define TRANSP 1
 #define SINK 2
+
+
+struct arg { 
+  byte arg_type; /* DBL, STR */
+  void *arg_value;
+};
+
 
 struct mdlparse_vars {
   char *cval;
@@ -21,11 +29,15 @@ struct mdlparse_vars {
   struct sym_table *stp3;
   char *sym_name;
 
-  char *a_str;
   char str_buf[1024];
   char str_buf2[1024];
   char temp_str[1024];
   char format_str[256];
+  char time_str[128];
+  char *a_str;
+
+  u_int num_args;
+  struct arg arg_list[ARGSIZE];
 
   double val_1;
   double val_2;
@@ -124,6 +136,8 @@ struct mdlparse_vars {
   short orient_class2;
   byte prod_all_3d;
 
+  struct file_stream *filep;
+
   FILE *file;
 
   char mdl_err_msg[1024];
@@ -137,11 +151,13 @@ struct mdlparse_vars {
   struct volume *vol;
 };
 
+
 struct element_connection_list {
   struct num_expr_list *connection_list;
   int n_verts;
   struct element_connection_list *next;
 };
+
 
 /**
  * A linked list used to store the coordinates of vertices and the   
@@ -152,6 +168,9 @@ struct vertex_list {
         struct vector3 *normal;           /**< pointer to one polygon normal */
         struct vertex_list *next;         /**< pointer to next vertex_list */
 };
+
+
+
 
 int mdlparse(void *p);
 void mdlerror(char *s,...);

@@ -157,10 +157,10 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
   struct object *objp;
   struct rxn *rxnp;
   struct region *rp;
+  struct file_stream *filep;
 /*
   struct vector3 *tp;
   struct cmprt *cp;
-  struct file_stream *filep;
   char *strp;
   int i;
 */
@@ -297,6 +297,14 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       rp->surf_class=NULL;
       rp->reg_counter_ref_list=NULL;
       break;
+    case FSTRM:
+      if ((vp=(void *)malloc(sizeof(struct file_stream)))==NULL) {
+        return(NULL);
+      }
+      filep=(struct file_stream *)vp;
+      filep->name=NULL;
+      filep->stream=NULL;
+      break;
 /*
     case PNT:
       if ((vp=(void *)malloc(sizeof(struct vector3)))==NULL) {
@@ -330,14 +338,6 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       cp->vert1=NULL;
       cp->vert2=NULL;
       cp->a_zone_loc=NULL;
-      break;
-    case FSTRM:
-      if ((vp=(void *)malloc(sizeof(struct file_stream)))==NULL) {
-        return(NULL);
-      }
-      filep=(struct file_stream *)vp;
-      filep->name=NULL;
-      filep->stream=NULL;
       break;
     case TMP:
       sp->value=NULL;

@@ -32,4 +32,7 @@ int set_viz_state_value(struct object *objp, int viz_state);
 
 void sort_num_expr_list(struct num_expr_list *head);
 
+int my_sprintf(char *strp,char *format,struct arg *argp,u_int num_args);
+int my_fprintf(FILE *outfile,char *format,struct arg *argp,u_int num_args);
+
 #endif

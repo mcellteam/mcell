@@ -300,6 +300,14 @@ struct counter_list *cnt;
 %type <tok> include_stmt
 %type <tok> viz_output_def
 %type <tok> output_def
+%type <tok> io_stmt
+%type <tok> fopen_stmt
+%type <tok> fclose_stmt
+%type <tok> printf_stmt
+%type <tok> fprintf_stmt
+%type <tok> print_time_stmt
+%type <tok> fprint_time_stmt
+%type <tok> sprintf_stmt
 %type <tok> end_of_mdl_file
 
 %type <tok> rx_net_def
@@ -362,6 +370,12 @@ struct counter_list *cnt;
 
 %type <sym> reactant
 
+%type <sym> new_file_stream
+%type <sym> existing_file_stream
+
+%type <str> file_mode
+%type <str> format_string
+
 %type <nel> array_value
 
 %type <vec3> point
@@ -380,7 +394,6 @@ struct counter_list *cnt;
 %type <tok> orientation
 %type <tok> lig_spec
 %type <tok> t_spec
-%type <tok> io_stmt
 %type <tok> viz_mode_def
 %type <tok> viz_output_def
 %type <tok> list_viz_output_cmds
@@ -400,13 +413,6 @@ struct counter_list *cnt;
 %type <tok> effector_site_def
 %type <tok> add_effector
 %type <tok> wall_prop_cmd
-%type <tok> fopen_stmt
-%type <tok> fclose_stmt
-%type <tok> printf_stmt
-%type <tok> fprintf_stmt
-%type <tok> print_time_stmt
-%type <tok> fprint_time_stmt
-%type <tok> sprintf_stmt
 %type <tok> polarity
 %type <tok> polarity_spec
 %type <tok> viz_frame_data_def
@@ -422,11 +428,7 @@ struct counter_list *cnt;
 %type <sym> existing_molecule_or_reaction_state
 %type <sym> reaction_state
 %type <sym> existing_reaction_state
-%type <sym> new_file_stream
-%type <sym> existing_file_stream
 
-%type <str> file_mode
-%type <str> format_string
 
 
 %type <evnt> event 
@@ -474,12 +476,12 @@ mdl_stmt: time_def
 	| instance_def
 	| existing_obj_define_surface_regions
 	| mod_surface_regions
+	| io_stmt
 	| viz_output_def
 	| output_def
 
-/*	| parallel_partition_def
-	| add_molecules_def
-	| io_stmt
+/*	
+	| parallel_partition_def
 */
 	| include_stmt
 	| end_of_mdl_file
@@ -497,7 +499,7 @@ end_of_mdl_file: EOF_TOK
 /*
             partition_volume(volume);
             build_ligand_table();
-            if (mdlpvp->vol->procnum == 0) print_rx();
+            if (volp->procnum == 0) print_rx();
 */
             no_printf("\n***** End of input file %s reached.\n\n",volp->curr_file);
           }
@@ -4553,6 +4555,340 @@ mol_count_syntax: existing_molecule ',' WORLD
 
 
 
+io_stmt: fopen_stmt
+	| fclose_stmt
+	| printf_stmt
+	| fprintf_stmt
+	| sprintf_stmt
+	| print_time_stmt
+	| fprint_time_stmt
+;
+
+
+fopen_stmt: new_file_stream FOPEN '(' file_name ',' file_mode ')'
+{
+  mdlpvp->gp=$<sym>1;
+  mdlpvp->filep=(struct file_stream *)mdlpvp->gp->value;
+  mdlpvp->filep->name=$<str>4;
+  mdlpvp->a_str=$<str>6;
+  if ((mdlpvp->filep->stream=fopen(mdlpvp->filep->name,mdlpvp->a_str))==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot open file:",mdlpvp->filep->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+};
+
+
+new_file_stream: VAR
+{
+  if (mdlpvp->cval_2!=NULL) {
+    mdlpvp->sym_name=mdlpvp->cval_2;
+  }
+  else {
+    mdlpvp->sym_name=mdlpvp->cval;
+  }
+
+  if ((mdlpvp->gp=store_sym(mdlpvp->sym_name,FSTRM,volp->main_sym_table))==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot store file stream in table:",mdlpvp->sym_name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    if (mdlpvp->sym_name==mdlpvp->cval) {
+      mdlpvp->cval=NULL;
+    }
+    else {
+      mdlpvp->cval_2=NULL;
+    }
+    free((void *)mdlpvp->sym_name);
+    return(1);
+  }
+
+  if (mdlpvp->sym_name==mdlpvp->cval) {
+    mdlpvp->cval=NULL;
+  }
+  else {
+    mdlpvp->cval_2=NULL;
+  }
+
+  $$=mdlpvp->gp;
+};
+
+
+file_mode: str_expr
+{
+  char c;
+
+  mdlpvp->a_str=$<str>1;
+  c=mdlpvp->a_str[0];
+  if (c!='r' 
+      && c!='w'
+      && c!='a') {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Invalid file mode:",mdlpvp->a_str);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    free((void *)mdlpvp->cval);
+    mdlpvp->cval=NULL;
+    return(1);
+  }
+  $$=mdlpvp->a_str;
+};
+
+
+fclose_stmt: FCLOSE '(' existing_file_stream ')'
+{
+  mdlpvp->gp=$<sym>3;
+  mdlpvp->filep=(struct file_stream *)mdlpvp->gp->value;
+  if (fclose(mdlpvp->filep->stream)!=0) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Error closing file:",mdlpvp->filep->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+};
+
+
+existing_file_stream: VAR
+{
+  if (mdlpvp->cval_2!=NULL) {
+    mdlpvp->sym_name=mdlpvp->cval_2;
+  }
+  else {
+    mdlpvp->sym_name=mdlpvp->cval;
+  }
+
+  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,FSTRM,volp->main_sym_table))==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined file stream:",mdlpvp->sym_name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    if (mdlpvp->sym_name==mdlpvp->cval) {
+      mdlpvp->cval=NULL;
+    }
+    else {
+      mdlpvp->cval_2=NULL;
+    }
+    free((void *)mdlpvp->sym_name);
+    return(1);
+  }
+
+  if (mdlpvp->sym_name==mdlpvp->cval) {
+    mdlpvp->cval=NULL;
+  }
+  else {
+    mdlpvp->cval_2=NULL;
+  }
+  free((void *)mdlpvp->sym_name);
+
+#ifdef KELP
+  mdlpvp->gp->ref_count++;
+  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
+#endif
+
+  $$=mdlpvp->gp;
+};
+
+
+printf_stmt: PRINTF arg_list_init '(' format_string ',' list_args ')'
+{
+  mdlpvp->a_str=$<str>4;
+  if (my_fprintf(stderr,mdlpvp->a_str,mdlpvp->arg_list,mdlpvp->num_args)) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to stderr:",mdlpvp->a_str);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+}
+	| PRINTF arg_list_init '(' format_string ')'
+{
+  mdlpvp->a_str=$<str>4;
+  if (my_fprintf(stderr,mdlpvp->a_str,NULL,mdlpvp->num_args)) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to stderr:",mdlpvp->a_str);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+};
+
+
+arg_list_init: /* empty */
+{
+	mdlpvp->num_args=0;
+};
+
+
+format_string: str_expr
+{
+  char *rem_str;
+  char c;
+  int pos1;
+
+  mdlpvp->a_str=$<str>1;
+  rem_str=mdlpvp->a_str;
+  strcpy(mdlpvp->format_str,"");
+  while(rem_str!=NULL) {
+    pos1=strcspn(rem_str,"\\");
+    if(pos1==strlen(rem_str)) {  /* no \ found */
+      strcat(mdlpvp->format_str,rem_str);
+      rem_str=NULL;
+    }
+    else {  /* found a \ */
+      strncat(mdlpvp->format_str,rem_str,pos1);
+      c=rem_str[pos1+1];
+      switch(c) {
+      case 'n':
+        strcat(mdlpvp->format_str,"\n");
+        break;
+      case 't':
+        strcat(mdlpvp->format_str,"\t");
+        break;
+      case '\\':
+        strcat(mdlpvp->format_str,"\\");
+        break;
+      case '\"':
+        strcat(mdlpvp->format_str,"\"");
+        break;
+      }
+      rem_str=rem_str+pos1+2;
+    }
+  }
+  $$=mdlpvp->format_str;
+};
+
+
+list_args: num_expr_only
+{
+        if ((mdlpvp->arg_list[mdlpvp->num_args].arg_value=(void *)double_dup($<dbl>1))==NULL) {
+          sprintf(mdlpvp->mdl_err_msg,"%s","Could not store argument");
+          mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+          return(1);
+        }
+        mdlpvp->arg_list[mdlpvp->num_args++].arg_type=DBL;
+}
+	| list_args ',' num_expr_only
+{
+        if ((mdlpvp->arg_list[mdlpvp->num_args].arg_value=(void *)double_dup($<dbl>3))==NULL) {
+          sprintf(mdlpvp->mdl_err_msg,"%s","Could not store argument");
+          mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+          return(1);
+        }
+        mdlpvp->arg_list[mdlpvp->num_args++].arg_type=DBL;
+}
+	| str_expr_only
+{
+        mdlpvp->arg_list[mdlpvp->num_args].arg_value=(void *)$<str>1;
+        mdlpvp->arg_list[mdlpvp->num_args++].arg_type=STR;
+}
+	| list_args ',' str_expr_only
+{
+        mdlpvp->arg_list[mdlpvp->num_args].arg_value=(void *)$<str>3;
+        mdlpvp->arg_list[mdlpvp->num_args++].arg_type=STR;
+}
+	| existing_var_only
+{
+  mdlpvp->gp=$<sym>1;
+  mdlpvp->arg_list[mdlpvp->num_args].arg_value=mdlpvp->gp->value;
+  switch (mdlpvp->gp->sym_type) {
+  case DBL:
+    mdlpvp->arg_list[mdlpvp->num_args++].arg_type=DBL;
+    break;
+  case STR:
+    mdlpvp->arg_list[mdlpvp->num_args++].arg_type=STR;
+    break;
+  default:
+    mdlerror("Invalid variable type referenced");
+    return(1);
+    break;
+  }
+}
+	| list_args ',' existing_var_only
+{
+  mdlpvp->gp=$<sym>3;
+  mdlpvp->arg_list[mdlpvp->num_args].arg_value=mdlpvp->gp->value;
+  switch (mdlpvp->gp->sym_type) {
+  case DBL:
+    mdlpvp->arg_list[mdlpvp->num_args++].arg_type=DBL;
+    break;
+  case STR:
+    mdlpvp->arg_list[mdlpvp->num_args++].arg_type=STR;
+    break;
+  default:
+    mdlerror("Invalid variable type referenced");
+    return(1);
+    break;
+  }
+};
+
+
+fprintf_stmt: FPRINTF arg_list_init '(' existing_file_stream ',' format_string ',' list_args ')' 
+{
+  mdlpvp->gp=$<sym>4;
+  mdlpvp->filep=(struct file_stream *)mdlpvp->gp->value;
+  mdlpvp->a_str=$<str>6;
+  if (my_fprintf(mdlpvp->filep->stream,mdlpvp->a_str,mdlpvp->arg_list,mdlpvp->num_args)) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to file:",mdlpvp->filep->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+}
+	| FPRINTF arg_list_init '(' existing_file_stream ',' format_string ')'
+{
+  mdlpvp->gp=$<sym>4;
+  mdlpvp->filep=(struct file_stream *)mdlpvp->gp->value;
+  mdlpvp->a_str=$<str>6;
+  if (my_fprintf(mdlpvp->filep->stream,mdlpvp->a_str,NULL,mdlpvp->num_args)) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to file:",mdlpvp->filep->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+};
+
+
+sprintf_stmt: SPRINTF arg_list_init '(' assign_var ',' format_string ',' list_args ')'
+{ 
+  mdlpvp->gp=$<sym>4;
+  mdlpvp->a_str=$<str>6;
+  if (my_sprintf(mdlpvp->str_buf2,mdlpvp->a_str,mdlpvp->arg_list,mdlpvp->num_args)) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not sprintf to variable:",mdlpvp->gp->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  mdlpvp->gp->sym_type=STR;
+  mdlpvp->gp->value=(void *)my_strdup(mdlpvp->str_buf2);
+}
+        | SPRINTF arg_list_init '(' assign_var ',' format_string ')'
+{
+  mdlpvp->gp=$<sym>4;
+  mdlpvp->a_str=$<str>6;
+  if (my_sprintf(mdlpvp->str_buf,mdlpvp->a_str,NULL,mdlpvp->num_args)) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not sprintf to variable:",mdlpvp->gp->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  mdlpvp->gp->sym_type=STR;
+  mdlpvp->gp->value=(void *)my_strdup(mdlpvp->str_buf);
+};
+
+print_time_stmt: PRINT_TIME '(' format_string ')'
+{
+  time_t the_time;
+
+  mdlpvp->a_str=$<str>3;
+  the_time=time(NULL);
+  strftime(mdlpvp->time_str,128,mdlpvp->a_str,localtime(&the_time));
+  if (volp->procnum == 0) fprintf(stderr,"%s",mdlpvp->time_str);
+};
+
+
+fprint_time_stmt: FPRINT_TIME '(' existing_file_stream ',' format_string ')'
+{
+  time_t the_time;
+
+  mdlpvp->gp=$<sym>3;
+  mdlpvp->filep=(struct file_stream *)mdlpvp->gp->value;
+  mdlpvp->a_str=$<str>5;
+  the_time=time(NULL);
+  strftime(mdlpvp->time_str,128,mdlpvp->a_str,localtime(&the_time));
+  if (fprintf(mdlpvp->filep->stream,"%s",mdlpvp->time_str)==EOF) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to file:",mdlpvp->filep->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+};
+
+
+
 
 %%
 
@@ -5263,330 +5599,6 @@ event_spec: ALL_EVENTS {$$=A_EVENTS;}
 	| INTERIM_EVENTS {$$=INTER_EVENTS;}
 ;
 
-
-io_stmt: fopen_stmt
-	| fclose_stmt
-	| printf_stmt
-	| fprintf_stmt
-	| sprintf_stmt
-	| print_time_stmt
-	| fprint_time_stmt
-;
-
-
-fopen_stmt: new_file_stream FOPEN '(' file_name ',' file_mode ')'
-{
-  mdlpvp->gp=$<sym>1;
-  filep=(struct file_stream *)mdlpvp->gp->value;
-  filep->name=$<str>4;
-  a_str=$<str>6;
-  if ((filep->stream=fopen(filep->name,a_str))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot open file:",filep->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-};
-
-
-new_file_stream: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-
-  if ((mdlpvp->gp=store_sym(mdlpvp->sym_name,FSTRM,volp->main_sym_table))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot store file stream in table:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-
-  $$=mdlpvp->gp;
-};
-
-
-file_mode: str_expr
-{
-a_str=$<str>1;
-c=a_str[0];
-if (c!='r' 
-    && c!='w'
-    && c!='a') {
-  sprintf(mdlpvp->mdl_err_msg,"%s %s","Invalid file mode:",a_str);
-  mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-  free((void *)mdlpvp->cval);
-  mdlpvp->cval=NULL;
-  return(1);
-}
-$$=a_str;
-};
-
-
-fclose_stmt: FCLOSE '(' existing_file_stream ')'
-{
-  mdlpvp->gp=$<sym>3;
-  filep=(struct file_stream *)mdlpvp->gp->value;
-  if (fclose(filep->stream)!=0) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Error closing file:",filep->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-};
-
-
-existing_file_stream: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,FSTRM,volp->main_sym_table))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined file stream:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free((void *)mdlpvp->sym_name);
-
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-
-  $$=mdlpvp->gp;
-};
-
-
-printf_stmt: PRINTF arg_list_init '(' format_string ',' list_args ')'
-{
-  a_str=$<str>4;
-  if (my_fprintf(stderr,a_str,arg_list)) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to stderr:",a_str);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-}
-	| PRINTF arg_list_init '(' format_string ')'
-{
-  a_str=$<str>4;
-  if (my_fprintf(stderr,a_str,NULL)) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to stderr:",a_str);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-};
-
-
-arg_list_init: /* empty */
-{
-	num_args=0;
-};
-
-
-format_string: str_expr
-{
-  a_str=$<str>1;
-  rem_str=a_str;
-  strcpy(fmt_str,"");
-  while(rem_str!=NULL) {
-    pos1=strcspn(rem_str,"\\");
-    if(pos1==strlen(rem_str)) {  /* no \ found */
-      strcat(fmt_str,rem_str);
-      rem_str=NULL;
-    }
-    else {  /* found a \ */
-      strncat(fmt_str,rem_str,pos1);
-      c=rem_str[pos1+1];
-      switch(c) {
-      case 'n':
-        strcat(fmt_str,"\n");
-        break;
-      case 't':
-        strcat(fmt_str,"\t");
-        break;
-      case '\\':
-        strcat(fmt_str,"\\");
-        break;
-      case '\"':
-        strcat(fmt_str,"\"");
-        break;
-      }
-      rem_str=rem_str+pos1+2;
-    }
-  }
-  $$=fmt_str;
-};
-
-
-list_args: num_expr_only
-{
-        if ((arg_list[num_args].arg_value=(void *)double_dup($<dbl>1))
-             ==NULL) {
-          sprintf(mdlpvp->mdl_err_msg,"%s","Could not store argument");
-          mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-          return(1);
-        }
-        arg_list[num_args++].arg_type=DBL;
-}
-	| list_args ',' num_expr_only
-{
-        if ((arg_list[num_args].arg_value=(void *)double_dup($<dbl>3))
-             ==NULL) {
-          sprintf(mdlpvp->mdl_err_msg,"%s","Could not store argument");
-          mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-          return(1);
-        }
-        arg_list[num_args++].arg_type=DBL;
-}
-	| str_expr_only
-{
-        arg_list[num_args].arg_value=(void *)$<str>1;
-        arg_list[num_args++].arg_type=STR;
-}
-	| list_args ',' str_expr_only
-{
-        arg_list[num_args].arg_value=(void *)$<str>3;
-        arg_list[num_args++].arg_type=STR;
-}
-	| existing_var_only
-{
-  mdlpvp->gp=$<sym>1;
-  arg_list[num_args].arg_value=mdlpvp->gp->value;
-  switch (mdlpvp->gp->sym_type) {
-  case DBL:
-    arg_list[num_args++].arg_type=DBL;
-    break;
-  case STR:
-    arg_list[num_args++].arg_type=STR;
-    break;
-  default:
-    mdlerror("Invalid variable type referenced");
-    return(1);
-    break;
-  }
-}
-	| list_args ',' existing_var_only
-{
-  mdlpvp->gp=$<sym>3;
-  arg_list[num_args].arg_value=mdlpvp->gp->value;
-  switch (mdlpvp->gp->sym_type) {
-  case DBL:
-    arg_list[num_args++].arg_type=DBL;
-    break;
-  case STR:
-    arg_list[num_args++].arg_type=STR;
-    break;
-  default:
-    mdlerror("Invalid variable type referenced");
-    return(1);
-    break;
-  }
-};
-
-
-fprintf_stmt: FPRINTF arg_list_init '(' existing_file_stream ',' format_string ',' list_args ')' 
-{
-  mdlpvp->gp=$<sym>4;
-  filep=(struct file_stream *)mdlpvp->gp->value;
-  a_str=$<str>6;
-  if (my_fprintf(filep->stream,a_str,arg_list)) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to file:",filep->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-}
-	| FPRINTF arg_list_init '(' existing_file_stream ',' format_string ')'
-{
-  mdlpvp->gp=$<sym>4;
-  filep=(struct file_stream *)mdlpvp->gp->value;
-  a_str=$<str>6;
-  if (my_fprintf(filep->stream,a_str,NULL)) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to file:",filep->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-};
-
-
-sprintf_stmt: SPRINTF arg_list_init '(' assign_var ',' format_string ',' list_args ')'
-{ 
-  mdlpvp->gp=$<sym>4;
-  a_str=$<str>6;
-  if (my_sprintf(mdlpvp->str_buf2,a_str,arg_list)) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not sprintf to variable:",mdlpvp->gp->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-  mdlpvp->gp->sym_type=STR;
-  mdlpvp->gp->value=(void *)my_strdup(mdlpvp->str_buf2);
-}
-        | SPRINTF arg_list_init '(' assign_var ',' format_string ')'
-{
-  mdlpvp->gp=$<sym>4;
-  a_str=$<str>6;
-  if (my_sprintf(mdlpvp->str_buf,a_str,NULL)) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not sprintf to variable:",mdlpvp->gp->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-  mdlpvp->gp->sym_type=STR;
-  mdlpvp->gp->value=(void *)my_strdup(mdlpvp->str_buf);
-};
-
-print_time_stmt: PRINT_TIME '(' format_string ')'
-{
-  a_str=$<str>3;
-  the_time=time(NULL);
-  strftime(time_str,128,a_str,localtime(&the_time));
-  if (procnum == 0) fprintf(stderr,"%s",time_str);
-};
-
-
-fprint_time_stmt: FPRINT_TIME '(' existing_file_stream ',' format_string ')'
-{
-  mdlpvp->gp=$<sym>3;
-  filep=(struct file_stream *)mdlpvp->gp->value;
-  a_str=$<str>5;
-  the_time=time(NULL);
-  strftime(time_str,128,a_str,localtime(&the_time));
-  if (fprintf(filep->stream,"%s",time_str)==EOF) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to file:",filep->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-};
 
 
 

@@ -21,7 +21,7 @@ void update_reaction_output(struct output_list *olp)
 
   log_file=world->log_file;
 
-  no_printf("Updating reaction output...\n");
+  no_printf("Updating reaction output at time %u of %u\n",world->it_time,world->iterations);
   fflush(log_file);
 
   /* Initialize IT_TIME or REAL_TIME output event if necessary */
@@ -70,11 +70,11 @@ void update_reaction_output(struct output_list *olp)
 
   final_chunk=0;
   if (olp->timer_type==STEP_TIME) {
-    if (world->it_time==world->iterations-1) {
+    if (world->it_time>=(world->iterations-(olp->step_time/world->time_unit))) {
       final_chunk=1;
     }
     else {
-      olp->t++;
+      olp->t+=olp->step_time/world->time_unit;
       schedule_add(world->count_scheduler,olp);
     }
   }
@@ -127,6 +127,8 @@ void update_reaction_output(struct output_list *olp)
         }
       }
 
+      no_printf("Writing to output file: %s\n",cip->outfile_name);
+      fflush(log_file);
 
       stop_i=0;
       if (clp->index_type==TIME_STAMP_VAL) {

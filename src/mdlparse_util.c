@@ -1075,19 +1075,7 @@ void sort_num_expr_list(struct num_expr_list *head)
 
 
 
-
-
-
-
-#if 0
-
-
-
-
-
-
-
-int my_fprintf(FILE *outfile,char *format,struct arg *argp)
+int my_fprintf(FILE *outfile,char *format,struct arg *argp,u_int num_args)
 {
   char *rem_str;
   char str1[128];
@@ -1152,7 +1140,9 @@ int my_fprintf(FILE *outfile,char *format,struct arg *argp)
 	return(0);
 }
 
-int my_sprintf(char *strp,char *format,struct arg *argp)
+
+
+int my_sprintf(char *strp,char *format,struct arg *argp,u_int num_args)
 {   
   char *rem_str;
   char str1[128];
@@ -1223,6 +1213,22 @@ int my_sprintf(char *strp,char *format,struct arg *argp)
         }
         return(0);
 }
+
+
+
+
+
+
+
+
+
+#if 0
+
+
+
+
+
+
 
 
 

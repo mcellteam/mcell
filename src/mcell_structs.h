@@ -232,8 +232,8 @@
 /*******************************************************/
 
 /* Parser parameters.  Probably need to be revisited. */
-#define HASHSIZE 128
-#define HASHMASK 0x7f
+#define HASHSIZE 131072
+#define HASHMASK 0x1ffff
 #define COUNTER_HASH 16 
 #define COUNTER_HASHMASK 0xf
    /*LWW 6/13/03 Hashtable size for region counters in each OBJECT*/
