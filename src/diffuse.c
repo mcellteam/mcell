@@ -225,7 +225,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
   if (tx<0.0) tx = -tx;
   if (ty<0.0) ty = -ty;
   if (tz<0.0) tz = -tz;
-  
+
   if (tx < ty)
   {
     if (tx < tz)
@@ -1177,6 +1177,11 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       t_steps = max_time;
       steps = max_time / sm->time_step;
     }
+    if (steps < EPS_C)
+    {
+      steps = EPS_C;
+      t_steps = EPS_C*sm->time_step;
+    }
     
     if (steps == 1.0)
     {
@@ -1192,6 +1197,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
     world->diffusion_number += 1.0;
     world->diffusion_cumsteps += steps;
   }
+  
   
   reflectee = NULL;
   
@@ -1483,12 +1489,11 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
   struct abstract_molecule *a;
   struct rxn *r;
   double t;
-  double stop_time,max_time;
+  double max_time;
   int i,j,err;
   
   while ( (a = (struct abstract_molecule*)schedule_next(local->timer)) != NULL )
   {
-
     if (a->properties == NULL)  /* Defunct!  Remove molecule. */
     {
       if ((a->flags & IN_MASK) == IN_SCHEDULE)
@@ -1502,9 +1507,6 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     }
 
     a->flags -= IN_SCHEDULE;
-    
-    if (local->current_time + local->max_timestep < checkpt_time) stop_time = local->max_timestep;
-    else stop_time = checkpt_time - local->current_time;
     
     if (a->t2 < EPS_C || a->t2 < EPS_C*a->t)
     {
@@ -1555,15 +1557,19 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       }
     }
 
-    if ((a->flags & (ACT_INERT+ACT_REACT)) == 0) max_time = stop_time;
-    else if (a->t2 < stop_time) max_time = a->t2;
-    else max_time = stop_time;
+    if ((a->flags & (ACT_INERT+ACT_REACT)) == 0) max_time = checkpt_time - a->t;
+    else
+    {
+      if (a->t + local->max_timestep < checkpt_time) max_time = local->max_timestep;
+      else max_time = checkpt_time - a->t;
+      if (a->t2<max_time) max_time = a->t2;
+    }
     
     if ((a->flags & ACT_DIFFUSE) != 0)
     {
       if ((a->flags & TYPE_3D) != 0)
       {
-        if (max_time > release_time - local->current_time) max_time = release_time - local->current_time;
+        if (max_time > release_time - a->t) max_time = release_time - a->t;
         t = a->t;
         a = (struct abstract_molecule*)diffuse_3D((struct molecule*)a , max_time , a->flags & ACT_INERT);
         if (a!=NULL) /* We still exist */

@@ -4424,6 +4424,7 @@ viz_mode_def: MODE '=' NONE
   int i;
   double *parts_array;
   int *bins_array;
+  
   sort_num_expr_list(mdlpvp->el_head);
   
   volp->rk_mode_var = (struct rk_mode_data*)malloc(sizeof(struct rk_mode_data));
@@ -4439,7 +4440,7 @@ viz_mode_def: MODE '=' NONE
   {
     parts_array[i] = nel->value/volp->length_unit;
   }
-  for ( ; mdlpvp->el_head != NULL ; mdlpvp->el_head = nel );
+  for ( ; mdlpvp->el_head != NULL ; mdlpvp->el_head = nel )
   {
     nel = mdlpvp->el_head->next;
     free(mdlpvp->el_head);

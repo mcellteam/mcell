@@ -39,7 +39,7 @@ update_frame_data_list:
 	In: struct frame_data_list * fdlp
         Out: Nothing. Calls output visualization functions if necessary.
 	     Updates value of the current iteration step and pointer
-             to the current iteration in the linked list.
+             to the current iteration in the linked list
 **************************************************************************/
 void update_frame_data_list(struct frame_data_list *fdlp)
 {
@@ -48,7 +48,8 @@ void update_frame_data_list(struct frame_data_list *fdlp)
   log_file=world->log_file;
   
   while (fdlp!=NULL) {
-    if(world->it_time==fdlp->viz_iteration) {
+    if(world->it_time==fdlp->viz_iteration+1) /* Finished with viz_iteration'th timestep */
+    {
       switch (world->viz_mode)
       {
 	case DX_MODE:

@@ -59,20 +59,19 @@ void run_sim(void)
   
   world->diffusion_number = world->diffusion_cumsteps = 0.0;
   
-  while (world->it_time < world->iterations
-/*         && world->it_time < world->chkpt_iterations */
-        )
+  while (world->it_time <= world->iterations+1) /* One extra loop for final output */
   {
-    req = schedule_next( world->releaser );
-    while (req != NULL)
+    for ( req=NULL ;
+          req!=NULL || world->it_time>=world->releaser->now ;
+	  req=schedule_next(world->releaser) )
     {
+      if (req==NULL) continue;
       if ( release_molecules(req) )
       {
 	printf("Out of memory while releasing molecules of type %s\n",req->release_site->mol_type->sym->name);
 	return;
       }
       fprintf(world->log_file,"Releasing type = %s! \n",req->release_site->mol_type->sym->name);
-      req = schedule_next( world->releaser );
     }
     if (world->releaser->error)
     {
@@ -82,9 +81,11 @@ void run_sim(void)
       exit( EXIT_FAILURE );
     }
 
-    obp = schedule_next( world->count_scheduler );
-    while (obp != NULL)
+    for ( obp=NULL ;
+          obp!=NULL || world->it_time>=world->count_scheduler->now ;
+	  obp=schedule_next(world->count_scheduler) )
     {
+      if (obp==NULL) continue;
       if (update_reaction_output(obp))
       {
 	fprintf(world->err_file,"Error while updating reaction output. Trying to save intermediate results\n");
@@ -92,7 +93,6 @@ void run_sim(void)
 	fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
 	exit( EXIT_FAILURE );
       }
-      obp = schedule_next( world->count_scheduler );
     }
     if (world->count_scheduler->error)
     {
@@ -103,6 +103,8 @@ void run_sim(void)
     }
 
     update_frame_data_list(world->frame_data_head);
+    
+    if (world->it_time>world->iterations) break;
 
     i = schedule_anticipate( world->releaser , &next_release_time);
     if (!i) next_release_time = world->iterations + 1;
@@ -110,7 +112,7 @@ void run_sim(void)
     
     for (local = world->storage_head ; local != NULL ; local = local->next)
     {
-      if (local->store->current_time <= world->it_time)
+      while (local->store->current_time <= world->it_time)
       {
         run_timestep( local->store , next_release_time , (double)world->iterations );
       }

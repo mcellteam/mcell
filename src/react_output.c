@@ -148,11 +148,11 @@ int update_reaction_output(struct output_block *obp)
 
   final_chunk_flag=0;
   if (obp->timer_type==OUTPUT_BY_STEP) {
-    if (world->it_time>=(world->iterations-(obp->step_time/world->time_unit))) {
+    obp->t+=obp->step_time/world->time_unit;
+    if (obp->t >= world->iterations+1) {
       final_chunk_flag=1;
     }
     else {
-      obp->t+=obp->step_time/world->time_unit;
       if(schedule_add(world->count_scheduler,obp) == 1){
 	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
         int i = emergency_output();
