@@ -298,6 +298,20 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
       delta.x = loc->x - outside.x;
       delta.y = loc->y - outside.y;
       delta.z = loc->z - outside.z;
+      
+      if (sv == NULL)
+      {
+	if ((delta.x*delta.x + delta.y*delta.y + delta.z*delta.z) < EPS_C*EPS_C)
+	{
+	  printf("Didn't quite reach waypoint target, fudging.\n");
+	  traveling = 0;
+	}
+	else
+	{
+	  printf("Couldn't reach waypoint target.  What's wrong?\n");
+	  sv = find_subvolume(&outside , NULL);
+	}
+      }
     }
   }
   

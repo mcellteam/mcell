@@ -703,11 +703,8 @@ int set_partitions()
   if((world->x_fineparts == NULL) || (world->y_fineparts == NULL) ||
         (world->z_fineparts == NULL))
   {
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory during setting partitions.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-
+    fprintf(world->err_file, "Out of memory while trying to create partitions.\n");
+    return 1;
   }
 
   dfx = 1e-3 + (world->bb_max.x - world->bb_min.x)/8191.0;
@@ -832,10 +829,8 @@ int set_partitions()
     if((world->x_partitions == NULL) || (world->y_partitions == NULL) ||
         (world->z_partitions == NULL))
     {
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory during setting partitions.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
+      fprintf(world->err_file, "Out of memory while trying to create partitions.\n");
+      return 1;
     }
 
     x_aspect = (part_max.x - part_min.x) / f_max;
@@ -914,115 +909,137 @@ int set_partitions()
   else
   {
     double *dbl_array;
-    
+
 /* We need to keep the outermost partition away from the world bounding box */
 
     dfx += 1e-3;
     dfy += 1e-3;
     dfz += 1e-3;
     
-    if (world->x_partitions[1] > world->bb_min.x - dfx)
+    if (world->x_partitions[1] + dfx > world->bb_min.x)
     {
-      dbl_array = (double*) malloc( sizeof(double)*(world->nx_parts+1) );
-      if (dbl_array == NULL){ 
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory during setting partitions.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
+      if (world->x_partitions[1] - dfx < world->bb_min.x)
+	world->x_partitions[1] = world->bb_min.x-dfx;
+      else
+      {
+	dbl_array = (double*) malloc( sizeof(double)*(world->nx_parts+1) );
+	if (dbl_array == NULL)
+	{ 
+	  fprintf(world->err_file, "Out of memory while trying to create partitions.\n");
+	  return 1;
+	}
+  
+	dbl_array[0] = world->x_partitions[0];
+	dbl_array[1] = world->bb_min.x - dfx;
+	memcpy(&(dbl_array[2]),&(world->x_partitions[1]),sizeof(double)*(world->nx_parts-1));
+	free( world->x_partitions );
+	world->x_partitions = dbl_array;
+	world->nx_parts++;
       }
-
-      dbl_array[0] = world->x_partitions[0];
-      dbl_array[1] = world->bb_min.x - dfx;
-      memcpy(&(dbl_array[2]),&(world->x_partitions[1]),sizeof(double)*(world->nx_parts-1));
-      free( world->x_partitions );
-      world->x_partitions = dbl_array;
-      world->nx_parts++;
     }
-    if (world->x_partitions[world->nx_parts-2] < world->bb_max.x + dfx)
+    if (world->x_partitions[world->nx_parts-2] - dfx < world->bb_max.x)
     {
-      dbl_array = (double*) malloc( sizeof(double)*(world->nx_parts+1) );
-      if (dbl_array == NULL) { 
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory during setting partitions.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
+      if (world->x_partitions[world->nx_parts-2] + dfx > world->bb_max.x)
+	world->x_partitions[world->nx_parts-2] = world->bb_max.x + dfx;
+      else
+      {
+	dbl_array = (double*) malloc( sizeof(double)*(world->nx_parts+1) );
+	if (dbl_array == NULL)
+	{ 
+	  fprintf(world->err_file, "Out of memory while trying to create partitions.\n");
+	  return 1;
+	}
+  
+	dbl_array[world->nx_parts] = world->x_partitions[world->nx_parts-1];
+	dbl_array[world->nx_parts-1] = world->bb_max.x + dfx;
+	memcpy(dbl_array,world->x_partitions,sizeof(double)*(world->nx_parts-1));
+	free( world->x_partitions );
+	world->x_partitions = dbl_array;
+	world->nx_parts++;
+	}
+    }
+     if (world->y_partitions[1] + dfy > world->bb_min.y)
+    {
+      if (world->y_partitions[1] - dfy < world->bb_min.y)
+	world->y_partitions[1] = world->bb_min.y-dfy;
+      else
+      {
+	dbl_array = (double*) malloc( sizeof(double)*(world->ny_parts+1) );
+	if (dbl_array==NULL)
+	{ 
+	  fprintf(world->err_file, "Out of memory while trying to create partitions.\n");
+	  return 1;
+	}
+  
+	dbl_array[0] = world->y_partitions[0];
+	dbl_array[1] = world->bb_min.y - dfy;
+	memcpy(&(dbl_array[2]),&(world->y_partitions[1]),sizeof(double)*(world->ny_parts-1));
+	free( world->y_partitions );
+	world->y_partitions = dbl_array;
+	world->ny_parts++;
       }
-
-      dbl_array[world->nx_parts] = world->x_partitions[world->nx_parts-1];
-      dbl_array[world->nx_parts-1] = world->bb_max.x + dfx;
-      memcpy(dbl_array,world->x_partitions,sizeof(double)*(world->nx_parts-1));
-      free( world->x_partitions );
-      world->x_partitions = dbl_array;
-      world->nx_parts++;
     }
-     if (world->y_partitions[1] > world->bb_min.y - dfy)
+    if (world->y_partitions[world->ny_parts-2] - dfy < world->bb_max.y)
     {
-      dbl_array = (double*) malloc( sizeof(double)*(world->ny_parts+1) );
-      if (dbl_array==NULL) { 
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory during setting partitions.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
+      if (world->y_partitions[world->ny_parts-2] + dfy > world->bb_max.y)
+	world->y_partitions[world->ny_parts-2] = world->bb_max.y + dfy;
+      else
+      {
+	dbl_array = (double*) malloc( sizeof(double)*(world->ny_parts+1) );
+	if (dbl_array==NULL)
+	{
+	  fprintf(world->err_file, "Out of memory while trying to create partitions.\n");
+	  return 1;
+	}
+  
+	dbl_array[world->ny_parts] = world->y_partitions[world->ny_parts-1];
+	dbl_array[world->ny_parts-1] = world->bb_max.y + dfy;
+	memcpy(dbl_array,world->y_partitions,sizeof(double)*(world->ny_parts-1));
+	free( world->y_partitions );
+	world->y_partitions = dbl_array;
+	world->ny_parts++;
       }
-
-      dbl_array[0] = world->y_partitions[0];
-      dbl_array[1] = world->bb_min.y - dfy;
-      memcpy(&(dbl_array[2]),&(world->y_partitions[1]),sizeof(double)*(world->ny_parts-1));
-      free( world->y_partitions );
-      world->y_partitions = dbl_array;
-      world->ny_parts++;
     }
-    if (world->y_partitions[world->ny_parts-2] < world->bb_max.y + dfy)
+    if (world->z_partitions[1] + dfz > world->bb_min.z)
     {
-      dbl_array = (double*) malloc( sizeof(double)*(world->ny_parts+1) );
-      if (dbl_array==NULL) {
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory during setting partitions.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
+      if (world->z_partitions[1] - dfz < world->bb_min.z)
+	world->z_partitions[1] = world->bb_min.z-dfz;
+      else
+      {
+	dbl_array = (double*) malloc( sizeof(double)*(world->nz_parts+1) );
+	if (dbl_array==NULL)
+	{
+	  fprintf(world->err_file, "Out of memory while trying to create partitions.\n");
+	  return 1;
+	} 
+  
+	dbl_array[0] = world->z_partitions[0];
+	dbl_array[1] = world->bb_min.z - dfz;
+	memcpy(&(dbl_array[2]),&(world->z_partitions[1]),sizeof(double)*(world->nz_parts-1));
+	free( world->z_partitions );
+	world->z_partitions = dbl_array;
+	world->nz_parts++;
       }
-
-      dbl_array[world->ny_parts] = world->y_partitions[world->ny_parts-1];
-      dbl_array[world->ny_parts-1] = world->bb_max.y + dfy;
-      memcpy(dbl_array,world->y_partitions,sizeof(double)*(world->ny_parts-1));
-      free( world->y_partitions );
-      world->y_partitions = dbl_array;
-      world->ny_parts++;
     }
-    if (world->z_partitions[1] > world->bb_min.z - dfz)
+    if (world->z_partitions[world->nz_parts-2] - dfz < world->bb_max.z)
     {
-      dbl_array = (double*) malloc( sizeof(double)*(world->nz_parts+1) );
-      if (dbl_array==NULL) {
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory during setting partitions.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-
-      } 
-
-      dbl_array[0] = world->z_partitions[0];
-      dbl_array[1] = world->bb_min.z - dfz;
-      memcpy(&(dbl_array[2]),&(world->z_partitions[1]),sizeof(double)*(world->nz_parts-1));
-      free( world->z_partitions );
-      world->z_partitions = dbl_array;
-      world->nz_parts++;
-    }
-    if (world->z_partitions[world->nz_parts-2] < world->bb_max.z + dfz)
-    {
-      dbl_array = (double*) malloc( sizeof(double)*(world->nz_parts+1) );
-      if (dbl_array==NULL){
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory during setting partitions.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-      } 
-
-      dbl_array[world->nz_parts] = world->z_partitions[world->nz_parts-1];
-      dbl_array[world->nz_parts-1] = world->bb_max.z + dfz;
-      memcpy(dbl_array,world->z_partitions,sizeof(double)*(world->nz_parts-1));
-      free( world->z_partitions );
-      world->z_partitions = dbl_array;
-      world->nz_parts++;
+      if (world->z_partitions[world->nz_parts-2] + dfz > world->bb_max.z)
+	world->z_partitions[world->nz_parts-2] = world->bb_max.z + dfz;
+      else
+      {
+	dbl_array = (double*) malloc( sizeof(double)*(world->nz_parts+1) );
+	if (dbl_array==NULL){
+	  fprintf(world->err_file, "Out of memory while trying to create partitions.\n");
+	  return 1;
+	} 
+  
+	dbl_array[world->nz_parts] = world->z_partitions[world->nz_parts-1];
+	dbl_array[world->nz_parts-1] = world->bb_max.z + dfz;
+	memcpy(dbl_array,world->z_partitions,sizeof(double)*(world->nz_parts-1));
+	free( world->z_partitions );
+	world->z_partitions = dbl_array;
+	world->nz_parts++;
+      }
     }
    
     world->x_partitions[0] = world->x_fineparts[1];
