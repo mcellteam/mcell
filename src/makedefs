@@ -1,0 +1,10 @@
+CC = gcc
+# CFLAGS = -Wall -O2 -march=athlon -fomit-frame-pointer
+CFLAGS = -Wall -g -DDEBUG
+LIBS =  -lm
+LD = $(CC)
+LDFLAGS = 
+INSTALL_DIR = /home/bartol/bin
+MCELL_EXEC = mcell
+L_CALC_EXEC = l_calc
+EXTRAS = 
