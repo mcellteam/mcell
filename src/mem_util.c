@@ -48,12 +48,14 @@ void catch_me()
 
 void* count_malloc(int n)
 {
+  /*
   howmany_count_malloc++;
-  
+
   if (howmany_count_malloc > 200000)
   { printf("Nuts!\n"); catch_me(); return NULL; }
-  
-  else return malloc(n);
+  */
+
+   return malloc(n);
 }
 
 
@@ -75,7 +77,15 @@ struct counter_helper* create_counter(int size,int length)
   struct counter_helper *ch;
   
   ch = (struct counter_helper*) Malloc( sizeof(struct counter_helper) );
+  if(ch == NULL) {
+    	printf("Memory allocation error!\n");
+	return (NULL);
+  }
   ch->mem = create_mem(size + sizeof(struct counter_header),length);
+  if(ch->mem == NULL) {
+	printf("Memory allocation error!\n");
+	return (NULL);
+  }
   ch->data_size = size;
   ch->n_unique = 0;
   ch->head = NULL;
@@ -102,6 +112,11 @@ void counter_add(struct counter_helper *ch,void *data)
   if (ch->head == NULL)
   {
     new_c = (struct counter_header*) mem_get(ch->mem);
+    if(new_c == NULL)
+    {
+	printf("Memory allocation error\n");
+	return;
+    }
     new_c->next = NULL;
     new_c->prev = NULL;
     new_c->n = 1;
@@ -126,6 +141,10 @@ void counter_add(struct counter_helper *ch,void *data)
       else if (i<0)
       {
         new_c = (struct counter_header*) mem_get(ch->mem);
+        if(new_c == NULL){
+		printf("Memory allocation error\n");
+		return;
+        }
         new_c->next = c;
         new_c->prev = prev_c;
         new_c->n = 1;
@@ -142,6 +161,10 @@ void counter_add(struct counter_helper *ch,void *data)
         if (c->next == NULL)
         {
           new_c = (struct counter_header*) mem_get(ch->mem);
+          if(new_c == NULL){
+		printf("Memory allocation error\n");
+		return;
+          }
           new_c->next = NULL;
           new_c->prev = c;
           new_c->n = 1;
@@ -258,10 +281,18 @@ struct stack_helper* create_stack(int size,int length)
   struct stack_helper *sh;
   
   sh = (struct stack_helper*) Malloc( sizeof(struct stack_helper) );
+  if(sh == NULL) {
+	printf("Memory allocation error!\n");
+	return (NULL);
+  }
   sh->index = 0;
   sh->length = length;
   sh->record_size = size;
   sh->data = (unsigned char*) Malloc( size * length );
+  if(sh->data == NULL) {
+	printf("Memory allocation error!\n");
+	return (NULL);
+  }
   sh->next = NULL;
   sh->defunct = NULL;
 
@@ -289,7 +320,15 @@ void stack_push(struct stack_helper *sh,void *d)
     if (sh->defunct==NULL)
     {
       old_sh = (struct stack_helper*) Malloc( sizeof(struct stack_helper) );
+      if(old_sh == NULL) {
+	printf("Memory allocation error.\n");
+        return;
+      }
       new_data = (unsigned char*) Malloc( sh->record_size * sh->length );
+      if(new_data == NULL) {
+	printf("Memory allocation error.\n");
+        return;
+      }
     }
     else
     {
@@ -439,8 +478,13 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
   int j,i,iL,iR,iLmin,iRmin;
   int nsorted = 0;
 
-  if (sh->defunct == NULL) 
+  if (sh->defunct == NULL){ 
     sh->defunct = create_stack(sh->record_size,sh->length);
+    if(sh->defunct == NULL){
+	printf("Memory allocation error\n");
+	return nsorted;
+    }
+  }
   space = (double**)sh->defunct->data;
 
   for (shp = sh; shp != NULL; shp = shp->next)
@@ -563,8 +607,14 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
   
   if (sh->next != NULL)
   {
-    if (sh->defunct->defunct == NULL)
+    if (sh->defunct->defunct == NULL){
       sh->defunct->defunct = create_stack(sh->record_size,sh->length);
+      if(sh->defunct->defunct == NULL)
+      {
+	printf("Memory allocation error\n");
+	return (0);
+      }
+    }
     temp2 = (double**)sh->defunct->defunct->data;
         
     for (shp = sh->next; shp != NULL; shp = shp->next)
@@ -854,7 +904,17 @@ create_temp:
 struct temp_mem* create_temp(int length)
 {
   struct temp_mem *new_mem = (struct temp_mem*) Malloc(sizeof(struct temp_mem));
+  if (new_mem == NULL)
+  {
+	printf("Memory allocation error\n");
+	return NULL;
+  }
   new_mem->pointers = create_stack(sizeof(void*),length);
+  if (new_mem->pointers == NULL)
+  {
+	printf("Memory allocation error\n");
+	return NULL;
+  }
   return new_mem;
 }
 
@@ -870,6 +930,10 @@ temp_malloc:
 void *temp_malloc(size_t size, struct temp_mem *list)
 {
   void *data = Malloc(size);
+  if (data == NULL){
+	printf("Memory allocation error\n");
+  	return NULL;
+  }
   stack_push(list->pointers,&data);
   return data;
 }

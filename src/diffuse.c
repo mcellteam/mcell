@@ -140,6 +140,10 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
   
   shead = NULL;
   smash = (struct collision*) mem_get(sv->mem->coll);
+  if(smash == NULL){
+	printf("Memory allocation error!\n");
+	return NULL;
+  }
   
   fake_wlp.next = sv->wall_head;
     
@@ -161,6 +165,10 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
       smash->next = shead;
       shead = smash;
       smash = (struct collision*) mem_get(sv->mem->coll);
+      if(smash == NULL){
+	printf("Memory allocation error!\n");
+	return NULL;
+      }
     }
   }
 
@@ -248,6 +256,10 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
     if (i != COLLIDE_MISS)
     {
       smash = (struct collision*) mem_get(sv->mem->coll);
+      if(smash == NULL){
+	printf("Memory allocation error!\n");
+	return NULL;
+      }
       memcpy(smash,c,sizeof(struct collision));
       
       smash->what = i + COLLIDE_MOL;
@@ -942,6 +954,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       if (rx != NULL)
       {
         smash = mem_get(sv->mem->coll);
+        if(smash == NULL){
+	   printf("Memory allocation error!\n");
+	   return NULL;
+        }
         smash->target = (void*) mp;
         smash->intermediate = rx;
         smash->next = shead;
@@ -1135,6 +1151,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                   {
                     if (rx->rate_t != NULL) check_rates(rx,m->t);
                     c = (struct collision*)mem_get(sv->mem->coll);
+                    if(c == NULL){
+	                printf("Memory allocation error!\n");
+	                return NULL;
+                    }
                     c->intermediate = rx;
                     c->target = g;
                     c->t = rx->cum_rates[ rx->n_pathways - 1 ] * w->effectors->binding_factor * rate_factor;
@@ -1167,6 +1187,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
               else if (rx==NULL || rx->n_pathways!=RX_GHOST)
               {
                 c = (struct collision*)mem_get(sv->mem->coll);
+               if(c == NULL){
+	           printf("Memory allocation error!\n");
+	           return NULL;
+               }
                 c->intermediate = rx;
                 c->target = w;
                 if (rx!=NULL)

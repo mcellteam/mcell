@@ -367,7 +367,10 @@ struct sym_table **init_symtab(int size)
 { 
   struct sym_table **symtab; 
   int i;
-  symtab=(struct sym_table **)malloc(size*sizeof(struct sym_table *));
+  if ((symtab=(struct sym_table **)malloc(size*sizeof(struct sym_table *))) == NULL)
+  {
+	return NULL;
+  }
   for (i=0;i<size;symtab[i++]=NULL);
   return(symtab);
 }   

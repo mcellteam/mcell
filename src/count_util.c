@@ -172,6 +172,10 @@ void find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
           if ((xrl->reg->flags & COUNT_CONTENTS) != 0)
           {
             nrl = (struct region_list*) mem_get(rmem);
+            if(nrl == NULL){
+		printf("Memory allocation error!\n");
+		return;
+	    }
             nrl->reg = xrl->reg;
             
             if (i==COLLIDE_BACK) { nrl->next = tarl; tarl = nrl; }
@@ -306,6 +310,10 @@ struct region_list* dup_region_list(struct region_list *r,struct mem_helper *mh)
   while (r!=NULL)
   {
     nr = (struct region_list*) mem_get(mh);
+    if(nr == NULL){
+	printf("Memory allocation error!\n");
+	return NULL;
+    }
     nr->next = NULL;
     nr->reg = r->reg;
     if (rp==NULL) r0 = rp = nr;
@@ -542,7 +550,13 @@ void count_me_by_region(struct abstract_molecule *me,int n)
   }
 }
 
-
+/******************************************************************
+check_region_counters:
+    Checks whether region counters for freely diffusing molecules 
+    contain only closed manifold regions.
+    Returns 0 if region counters statements are correct,
+    and 1 - otherwise.
+********************************************************************/
 int check_region_counters()
 {
   FILE *log_file;
@@ -572,6 +586,7 @@ int check_region_counters()
         else {
           if (rp->manifold_flag==NOT_MANIFOLD) {
             fprintf(log_file,"MCell: error, cannot count diffusing molecules inside non-manifold object region: %s\n",rp->sym->name); 
+	    return (1);
           }
         }
       }

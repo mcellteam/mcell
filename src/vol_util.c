@@ -352,6 +352,10 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
   else sv = find_subvolume(&(m->pos),guess->subvol);
   
   new_m = mem_get(sv->mem->mol);
+  if(new_m == NULL){
+	printf("Memory allocation error.\n");
+        return NULL;
+  }
   memcpy(new_m,m,sizeof(struct molecule));
 
   new_m->birthplace = sv->mem->mol;
@@ -405,6 +409,10 @@ void insert_molecule_list(struct molecule *m)
   while (m != NULL)
   {
     new_m = insert_molecule(m,guess);
+    if(new_m == NULL){
+        m = (struct molecule*)m->next;
+	continue;
+    }
     guess = new_m;
     m = (struct molecule*)m->next;
   }
@@ -644,6 +652,12 @@ void set_partitions()
     world->y_fineparts = (double*)malloc(sizeof(double)*world->n_fineparts);
     world->z_fineparts = (double*)malloc(sizeof(double)*world->n_fineparts);
   }
+  if((world->x_fineparts == NULL) || (world->y_fineparts == NULL) ||
+        (world->z_fineparts == NULL))
+  {
+	printf("Memory allocation error.\n");
+	return;
+  }
 
   dfx = 1e-3 + (world->bb_max.x - world->bb_min.x)/8191.0;
   dfy = 1e-3 + (world->bb_max.y - world->bb_min.y)/8191.0;
@@ -764,6 +778,13 @@ void set_partitions()
     world->y_partitions = (double*) malloc( sizeof(double) * world->ny_parts );
     world->z_partitions = (double*) malloc( sizeof(double) * world->nz_parts );
   
+    if((world->x_partitions == NULL) || (world->y_partitions == NULL) ||
+        (world->z_partitions == NULL))
+    {
+	printf("Memory allocation error.\n");
+	return;
+    }
+
     x_aspect = (part_max.x - part_min.x) / f_max;
     y_aspect = (part_max.y - part_min.y) / f_max;
     z_aspect = (part_max.z - part_min.z) / f_max;
@@ -850,6 +871,10 @@ void set_partitions()
     if (world->x_partitions[1] > world->bb_min.x - dfx)
     {
       dbl_array = (double*) malloc( sizeof(double)*(world->nx_parts+1) );
+      if(dbl_array == NULL){
+	printf("Memory allocation error.\n");
+        return;
+      }
       dbl_array[0] = world->x_partitions[0];
       dbl_array[1] = world->bb_min.x - dfx;
       memcpy(&(dbl_array[2]),&(world->x_partitions[1]),sizeof(double)*(world->nx_parts-1));
@@ -860,6 +885,10 @@ void set_partitions()
     if (world->x_partitions[world->nx_parts-2] < world->bb_max.x + dfx)
     {
       dbl_array = (double*) malloc( sizeof(double)*(world->nx_parts+1) );
+      if(dbl_array == NULL){
+	printf("Memory allocation error.\n");
+        return;
+      }
       dbl_array[world->nx_parts] = world->x_partitions[world->nx_parts-1];
       dbl_array[world->nx_parts-1] = world->bb_max.x + dfx;
       memcpy(dbl_array,world->x_partitions,sizeof(double)*(world->nx_parts-1));
@@ -870,6 +899,10 @@ void set_partitions()
      if (world->y_partitions[1] > world->bb_min.y - dfy)
     {
       dbl_array = (double*) malloc( sizeof(double)*(world->ny_parts+1) );
+      if(dbl_array == NULL){
+	printf("Memory allocation error.\n");
+        return;
+      }
       dbl_array[0] = world->y_partitions[0];
       dbl_array[1] = world->bb_min.y - dfy;
       memcpy(&(dbl_array[2]),&(world->y_partitions[1]),sizeof(double)*(world->ny_parts-1));
@@ -880,6 +913,10 @@ void set_partitions()
     if (world->y_partitions[world->ny_parts-2] < world->bb_max.y + dfy)
     {
       dbl_array = (double*) malloc( sizeof(double)*(world->ny_parts+1) );
+      if(dbl_array == NULL){
+	printf("Memory allocation error.\n");
+        return;
+      }
       dbl_array[world->ny_parts] = world->y_partitions[world->ny_parts-1];
       dbl_array[world->ny_parts-1] = world->bb_max.y + dfy;
       memcpy(dbl_array,world->y_partitions,sizeof(double)*(world->ny_parts-1));
@@ -890,6 +927,10 @@ void set_partitions()
     if (world->z_partitions[1] > world->bb_min.z - dfz)
     {
       dbl_array = (double*) malloc( sizeof(double)*(world->nz_parts+1) );
+      if(dbl_array == NULL){
+	printf("Memory allocation error.\n");
+        return;
+      }
       dbl_array[0] = world->z_partitions[0];
       dbl_array[1] = world->bb_min.z - dfz;
       memcpy(&(dbl_array[2]),&(world->z_partitions[1]),sizeof(double)*(world->nz_parts-1));
@@ -900,6 +941,10 @@ void set_partitions()
     if (world->z_partitions[world->nz_parts-2] < world->bb_max.z + dfz)
     {
       dbl_array = (double*) malloc( sizeof(double)*(world->nz_parts+1) );
+      if(dbl_array == NULL){
+	printf("Memory allocation error.\n");
+        return;
+      }
       dbl_array[world->nz_parts] = world->z_partitions[world->nz_parts-1];
       dbl_array[world->nz_parts-1] = world->bb_max.z + dfz;
       memcpy(dbl_array,world->z_partitions,sizeof(double)*(world->nz_parts-1));

@@ -161,6 +161,10 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
   else len = maxlen;
   
   sh = (struct schedule_helper*) malloc( sizeof( struct schedule_helper ) );
+  if(sh == NULL){
+	printf("Memory allocation error!\n");
+	return NULL;
+  }
   
   sh->dt = dt_min;
   sh->dt_1 = 1/dt_min;
@@ -171,8 +175,20 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
   sh->count = 0;
 
   sh->circ_buf_count = (int*) malloc( sizeof(int) * len );
+  if(sh->circ_buf_count == NULL){
+	printf("Memory allocation error!\n");
+	return NULL;
+  }
   sh->circ_buf_head = (struct abstract_element**) malloc( sizeof( void* ) * len );
+  if(sh->circ_buf_head == NULL){
+	printf("Memory allocation error!\n");
+	return NULL;
+  }
   sh->circ_buf_tail = (struct abstract_element**) malloc( sizeof( void* ) * len );
+  if(sh->circ_buf_tail == NULL){
+	printf("Memory allocation error!\n");
+	return NULL;
+  }
   sh->next_scale = NULL;
   sh->current = sh->current_tail = NULL;
   sh->current_count = 0;
@@ -189,6 +205,10 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
   if (sh->dt * sh->buf_len < dt_max && depth<10)
   {
     sh->next_scale = create_scheduler(dt_min*len,dt_max,maxlen,sh->now+dt_min*len);
+    if(sh->next_scale == NULL){
+	printf("Memory allocation error!\n");
+	return NULL;
+    }
   }
   
   if (depth==20)
@@ -265,6 +285,10 @@ void schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_curren
           sh->dt*sh->buf_len*sh->buf_len,
           sh->buf_len+1,
           sh->now+sh->dt*sh->buf_len);
+      if(sh->next_scale == NULL){
+	printf("Memory allocation error!\n");
+	return;
+      }
     }
     schedule_insert(sh->next_scale,data,0);
   }
