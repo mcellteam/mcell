@@ -269,12 +269,238 @@ void ehtable_kill(struct edge_hashtable *eht)
 
 
 /***************************************************************************
+compatible_edges:
+  In: array of pointers to walls
+      index of first wall
+      index of edge in first wall
+      index of second wall
+      index of edge in second wall
+  Out: 1 if the edge joins the two walls
+       0 if not (i.e. the wall doesn't contain the edge or the edge is
+       traversed in the same direction in each or the two walls are
+       actually the same wall)
+***************************************************************************/
+
+int compatible_edges(struct wall **faces,int wA,int eA,int wB,int eB)
+{
+  struct vector3 *vA0,*vA1,*vA2,*vB0,*vB1,*vB2;
+
+  vA0 = faces[wA]->vert[eA];
+  if (eA==2) vA1 = faces[wA]->vert[0];
+  else vA1 = faces[wA]->vert[eA+1];
+  if (eA==0) vA2 = faces[wA]->vert[2];
+  else vA2 = faces[wA]->vert[eA-1];
+
+  vB0 = faces[wB]->vert[eB];
+  if (eB==2) vB1 = faces[wB]->vert[0];
+  else vB1 = faces[wB]->vert[eB+1];
+  if (eB==0) vB2 = faces[wB]->vert[2];
+  else vB2 = faces[wB]->vert[eB-1];
+
+  return ( (vA0==vB1 && vA1==vB0 && !(vA2==vB2) ) ||
+           ( vA0->x==vB1->x && vA0->y==vB1->y && vA0->z==vB1->z &&
+             vA1->x==vB0->x && vA1->y==vB0->y && vA1->z==vB0->z &&
+             !(vA2->x==vB2->x && vA2->y==vB2->y && vA2->z==vB2->z)
+           )
+         );
+}
+
+
+/***************************************************************************
+refine_edge_pairs:
+  In: the head of a linked list of shared edges
+      array of pointers to walls
+  Out: No return value.  The best-matching pair of edges percolates up
+       to be first in the list.  "Best-matching" means that the edge
+       is traversed in different directions by each face, and that the
+       normals of the two faces are as divergent as possible.
+***************************************************************************/
+
+void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
+{
+#define TSWAP(x,y) temp=(x); (x)=(y); (y)=temp
+  struct poly_edge *p1,*p2,*best_p1,*best_p2;
+  int n1,n2,best_n1,best_n2;
+  double align,best_align;
+  int wA,wB,eA,eB;
+  int temp;
+  
+  best_align = 2;
+  best_p1 = best_p2 = p;
+  best_n1 = 1;
+  best_n2 = 2;
+  
+  p1 = p;
+  n1 = 1;
+  while (p1->n >= n1 && p1 != NULL)
+  {
+    if (n1==1)
+    { 
+      wA = p1->face1;
+      eA = p1->edge1; 
+    }
+    else
+    {
+      wA = p1->face2;
+      eA = p1->face2;
+    }
+    
+    if (n1==1) { n2 = n1+1; p2 = p1; }
+    else { n2 = 1; p2 = p1->next; }
+    while (p2->n >= n1 && p2 != NULL)
+    {
+      if (n2==1)
+      { 
+        wB = p2->face1;
+        eB = p2->edge1; 
+      }
+      else
+      {
+        wB = p2->face2;
+        eB = p2->face2;
+      }
+
+      if (compatible_edges(faces,wA,eA,wB,eB))
+      {
+        align = faces[wA]->normal.x * faces[wB]->normal.x +
+                faces[wA]->normal.y * faces[wB]->normal.y +
+                faces[wA]->normal.z * faces[wB]->normal.z;
+        
+        if (align < best_align)
+        {
+          best_p1 = p1;
+          best_p2 = p2;
+          best_n1 = n1;
+          best_n2 = n2;
+          best_align = align;
+        }
+      }
+      
+      if (n1==1) n1++;
+      else { p1=p1->next; n1=1; }
+    }
+    
+    if (n1==1) n1++;
+    else { p1=p1->next; n1=1; }
+  }
+  
+  /* Now lots of boring logic to swap the values into the right spots.  Yawn. */
+  
+  if (best_align > 1.0) return;  /* No good pairs. */
+  
+  if (best_p1 == best_p2)
+  {
+    if (best_p1==p) return;  /* Best pair is already first */
+   
+    TSWAP(best_p1->face1,p->face1);
+    TSWAP(best_p1->face2,p->face2);
+    TSWAP(best_p1->edge1,p->edge1);
+    TSWAP(best_p1->edge2,p->edge2);
+    
+    return;
+  }
+  
+  if (best_p1==p1)
+  {
+    if (best_n1==1)
+    {
+      if (best_n2==1)
+      {
+        TSWAP(best_p2->face1,p->face2);
+        TSWAP(best_p2->edge1,p->edge2);
+      }
+      else
+      {
+        TSWAP(best_p2->face2,p->face2);
+        TSWAP(best_p2->edge2,p->edge2);
+      }
+    }
+    else
+    {
+      if (best_n2==1)
+      {
+        TSWAP(best_p2->face1,p->face1);
+        TSWAP(best_p2->edge1,p->edge1);
+      }
+      else
+      {
+        TSWAP(best_p2->face2,p->face1);
+        TSWAP(best_p2->edge2,p->edge1);        
+      }
+    }
+  }
+  else if (best_p2==p1)
+  {
+    if (best_n1==1)
+    {
+      if (best_n2==1)
+      {
+        TSWAP(best_p1->face1,p->face2);
+        TSWAP(best_p1->edge1,p->edge2);
+      }
+      else
+      {
+        TSWAP(best_p1->face2,p->face2);
+        TSWAP(best_p1->edge2,p->edge2);
+      }
+    }
+    else
+    {
+      if (best_n2==1)
+      {
+        TSWAP(best_p1->face1,p->face1);
+        TSWAP(best_p1->edge1,p->edge1);
+      }
+      else
+      {
+        TSWAP(best_p1->face2,p->face1);
+        TSWAP(best_p1->edge2,p->edge1);        
+      }
+    }
+  }
+  else
+  {
+    if (best_n1==1)
+    {
+      TSWAP(best_p1->face1,p->face1);
+      TSWAP(best_p1->edge1,p->edge1);        
+    }
+    else
+    {
+      TSWAP(best_p1->face2,p->face1);
+      TSWAP(best_p1->edge2,p->edge1);        
+    }
+    if (best_n2==1)
+    {
+      TSWAP(best_p2->face1,p->face2);
+      TSWAP(best_p2->edge1,p->edge2);        
+    }
+    else
+    {
+      TSWAP(best_p2->face2,p->face2);
+      TSWAP(best_p2->edge2,p->edge2);        
+    }
+  }
+#undef TSWAP
+}
+
+
+/***************************************************************************
 surface_net:
   In: array of pointers to walls
       pointer to storage for the edges
       integer length of array
-  Out: -1 if the surface is closed, 0 if open, 1 on malloc failure
-  Note: Assumes no triply-connected edges.
+  Out: -1 if the surface is a manifold, 0 if it is not, 1 on malloc failure
+       Walls end up connected across their edges.
+  Note: Two edges must have their vertices listed in opposite order (i.e.
+        connect two faces pointing the same way) to be linked.  If more than
+        two faces share the same edge and can be linked, the faces with
+        normals closest to each other will be linked.  We do not assume that
+        the object is connected.  All pieces must be a manifold, however,
+        for the entire object to be a manifold.  (That is, there must not
+        be any free edges anywhere.)  It is possible to build weird, twisty
+        self-intersecting things.  The behavior of these things during a
+        simulation is not guaranteed to be well-defined.
 ***************************************************************************/
 
 int surface_net( struct wall **facelist, int nfaces )
@@ -285,7 +511,6 @@ int surface_net( struct wall **facelist, int nfaces )
   int i,j,k;
   int nedge;
   int nkeys;
-  int same;
   int is_closed = 1;
   
   nkeys = (3*nfaces)/2;
@@ -318,17 +543,17 @@ int surface_net( struct wall **facelist, int nfaces )
   for (i=0;i<nkeys;i++)
   {
     pep = (eht.data + i);
-    same = 0;
     while (pep!=NULL)
     {
       if (pep->n > 2)
       {
-        no_printf("Edge with more than two faces attached! Ignoring extra.\n");
-        same=1;
+        no_printf("Edge with more than two faces attached! Refining.\n");
+        refine_edge_pairs(pep,facelist);
       }
-      if (pep->n==2 || pep->n==3)
+      if (pep->n >= 2)
       {
-        if (pep->face1 != -1 && pep->face2 != -1)
+        if (pep->face1 != -1 && pep->face2 != -1 && 
+            compatible_edges(facelist,pep->face1,pep->edge1,pep->face2,pep->edge2))
         {
           facelist[pep->face1]->nb_walls[pep->edge1] = facelist[pep->face2];
           facelist[pep->face2]->nb_walls[pep->edge2] = facelist[pep->face1];
@@ -341,11 +566,11 @@ int surface_net( struct wall **facelist, int nfaces )
           facelist[pep->face2]->edges[pep->edge2] = e;
           no_printf("  Edge: %d on %d and %d on %d\n",pep->edge1,pep->face1,pep->edge2,pep->face2);
         }
+        else is_closed = 0;
       }
       else if (pep->n==1)
       {
-        if (!same) is_closed = 0;
-        same=0;
+        is_closed = 0;
         e = (struct edge*) mem_get( facelist[pep->face1]->birthplace->join );
         if (e==NULL) return 1;
         e->forward = facelist[pep->face1];

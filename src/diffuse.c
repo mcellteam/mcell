@@ -134,7 +134,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
   struct collision *smash,*shead;
   struct wall_list *wlp;
   struct wall_list fake_wlp;
-  double dx,dy,dz,tx,ty,tz,tmin;
+  double dx,dy,dz,tx,ty,tz;
   int i,j,k;
   
   shead = NULL;
@@ -155,7 +155,6 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
     }
     else if (i!=COLLIDE_MISS)
     {
-      if (smash->t < tmin) tmin = smash->t;
       smash->what = COLLIDE_WALL + i;
       smash->target = (void*) wlp->this_wall;
       smash->next = shead;

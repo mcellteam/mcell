@@ -552,6 +552,7 @@ int init_partitions(void)
   shared_mem->tree = create_mem(sizeof(struct vertex_tree),128);
   shared_mem->effs = create_mem(sizeof(struct surface_grid),128);
   shared_mem->coll = create_mem(sizeof(struct collision),128);
+  shared_mem->regl = create_mem(sizeof(struct region_list),128);
   
   shared_mem->wall_head = NULL;
   shared_mem->wall_count = 0;

@@ -109,7 +109,7 @@ struct subvolume* find_course_subvol(struct vector3 *loc)
 
 /*************************************************************************
 traverse_subvol:
-  In: pointer to a vector3 of where we are
+  In: pointer to our current subvolume
       pointer to a vector3 of where we want to be
       which direction we're traveling to get there
   Out: subvolume that's closest to where we want to be in our direction

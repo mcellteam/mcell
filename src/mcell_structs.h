@@ -630,9 +630,9 @@ struct short3D
 
 struct waypoint
 {
-  struct vector3 loc;
-  struct cmprt_data **owners;
-  int n_owners;
+  struct vector3 loc;              /* This is where the waypoint is */
+  struct region_list *regions;     /* We are inside these regions */
+  struct region_list *antiregions; /* We are out of these regions */
 };
 
 
@@ -658,6 +658,7 @@ struct storage
   struct mem_helper *tree;  /* Vertices */
   struct mem_helper *effs;  /* Effector grids */
   struct mem_helper *coll;  /* Collision list */
+  struct mem_helper *regl;  /* Region lists */
   
   struct wall *wall_head;
   int wall_count;
