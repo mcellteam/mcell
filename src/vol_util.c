@@ -16,6 +16,7 @@
 #include "mcell_structs.h"
 #include "vol_util.h"
 #include "react.h"
+#include "react_output.h"
 
 extern struct volume *world;
 
@@ -353,7 +354,11 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
   else sv = find_subvolume(&(m->pos),guess->subvol);
   
   new_m = mem_get(sv->mem->mol);
-  if(new_m == NULL) return NULL;
+  if(new_m == NULL) {
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory during inserting %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
+        exit(EXIT_FAILURE);
+  }
 
   memcpy(new_m,m,sizeof(struct molecule));
 
@@ -370,7 +375,13 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
     count_me_by_region( (struct abstract_molecule*)new_m , 1 );
   }
   
-  if ( schedule_add(sv->mem->timer,new_m) ) return NULL;
+  if ( schedule_add(sv->mem->timer,new_m) ) {
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory during inserting %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
+        exit(EXIT_FAILURE);
+
+  } 
   
   return new_m;
 }
@@ -409,8 +420,12 @@ int insert_molecule_list(struct molecule *m)
   while (m != NULL)
   {
     new_m = insert_molecule(m,guess);
-    if(new_m == NULL) return 1;
-
+    if(new_m == NULL) { 
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory during inserting %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
+        exit(EXIT_FAILURE);
+    }
     guess = new_m;
     m = (struct molecule*)m->next;
   }
@@ -432,7 +447,11 @@ struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv)
   struct molecule *new_m;
 
   new_m = mem_get(new_sv->mem->mol);
-  if (new_m==NULL) return NULL;
+  if (new_m==NULL){ 
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory during migrating  %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
+        exit(EXIT_FAILURE);
+  }
   
   memcpy(new_m,m,sizeof(struct molecule));
   new_m->birthplace = new_sv->mem->mol;
@@ -493,7 +512,12 @@ int release_molecules(struct release_event_queue *req)
 
     if (req->train_counter < rpat->number_of_trains)
     {
-      if ( schedule_add(world->releaser,req) ) return 1;
+      if ( schedule_add(world->releaser,req) ){
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory during release molecule event.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
+      } 
     }
     return 0;
   }
@@ -505,7 +529,13 @@ int release_molecules(struct release_event_queue *req)
   req->event_type = TRAIN_HIGH_EVENT;
   req->event_time += rpat->release_interval;
 
-  if ( schedule_add(world->releaser,req) ) return 1;
+  if ( schedule_add(world->releaser,req) ) {
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory during release molecule event.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
+
+  }
   
   guess = NULL;
   
@@ -673,7 +703,11 @@ int set_partitions()
   if((world->x_fineparts == NULL) || (world->y_fineparts == NULL) ||
         (world->z_fineparts == NULL))
   {
-    return 1;
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory during setting partitions.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
+
   }
 
   dfx = 1e-3 + (world->bb_max.x - world->bb_min.x)/8191.0;
@@ -798,7 +832,10 @@ int set_partitions()
     if((world->x_partitions == NULL) || (world->y_partitions == NULL) ||
         (world->z_partitions == NULL))
     {
-      return 1;
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory during setting partitions.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
     }
 
     x_aspect = (part_max.x - part_min.x) / f_max;
@@ -887,7 +924,12 @@ int set_partitions()
     if (world->x_partitions[1] > world->bb_min.x - dfx)
     {
       dbl_array = (double*) malloc( sizeof(double)*(world->nx_parts+1) );
-      if (dbl_array == NULL) return 1;
+      if (dbl_array == NULL){ 
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory during setting partitions.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
+      }
 
       dbl_array[0] = world->x_partitions[0];
       dbl_array[1] = world->bb_min.x - dfx;
@@ -899,7 +941,12 @@ int set_partitions()
     if (world->x_partitions[world->nx_parts-2] < world->bb_max.x + dfx)
     {
       dbl_array = (double*) malloc( sizeof(double)*(world->nx_parts+1) );
-      if (dbl_array == NULL) return 1;
+      if (dbl_array == NULL) { 
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory during setting partitions.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
+      }
 
       dbl_array[world->nx_parts] = world->x_partitions[world->nx_parts-1];
       dbl_array[world->nx_parts-1] = world->bb_max.x + dfx;
@@ -911,7 +958,12 @@ int set_partitions()
      if (world->y_partitions[1] > world->bb_min.y - dfy)
     {
       dbl_array = (double*) malloc( sizeof(double)*(world->ny_parts+1) );
-      if (dbl_array==NULL) return 1;
+      if (dbl_array==NULL) { 
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory during setting partitions.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
+      }
 
       dbl_array[0] = world->y_partitions[0];
       dbl_array[1] = world->bb_min.y - dfy;
@@ -923,7 +975,12 @@ int set_partitions()
     if (world->y_partitions[world->ny_parts-2] < world->bb_max.y + dfy)
     {
       dbl_array = (double*) malloc( sizeof(double)*(world->ny_parts+1) );
-      if (dbl_array==NULL) return 1;
+      if (dbl_array==NULL) {
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory during setting partitions.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
+      }
 
       dbl_array[world->ny_parts] = world->y_partitions[world->ny_parts-1];
       dbl_array[world->ny_parts-1] = world->bb_max.y + dfy;
@@ -935,7 +992,13 @@ int set_partitions()
     if (world->z_partitions[1] > world->bb_min.z - dfz)
     {
       dbl_array = (double*) malloc( sizeof(double)*(world->nz_parts+1) );
-      if (dbl_array==NULL) return 1;
+      if (dbl_array==NULL) {
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory during setting partitions.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
+
+      } 
 
       dbl_array[0] = world->z_partitions[0];
       dbl_array[1] = world->bb_min.z - dfz;
@@ -947,7 +1010,12 @@ int set_partitions()
     if (world->z_partitions[world->nz_parts-2] < world->bb_max.z + dfz)
     {
       dbl_array = (double*) malloc( sizeof(double)*(world->nz_parts+1) );
-      if (dbl_array==NULL) return 1;
+      if (dbl_array==NULL){
+	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        int i = emergency_output();
+        fprintf(stderr, "Fatal error: out of memory during setting partitions.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
+      } 
 
       dbl_array[world->nz_parts] = world->z_partitions[world->nz_parts-1];
       dbl_array[world->nz_parts-1] = world->bb_max.z + dfz;

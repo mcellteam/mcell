@@ -19,6 +19,7 @@
 #include "wall_util.h"
 #include "vol_util.h"
 #include "mcell_structs.h"
+#include "react_output.h"
 
 #ifdef DEBUG
 #define no_printf printf
@@ -123,7 +124,7 @@ int edge_hash(struct poly_edge *pe,int nkeys)
 ehtable_init:
   In: pointer to an edge_hashtable struct
       number of keys that the hash table uses
-  Out: Returns 0 on success, 1 on malloc failure.
+  Out: Returns 0 on success, 1 on failure.
        Hash table is initialized.
 ***************************************************************************/
 
@@ -136,7 +137,12 @@ int ehtable_init(struct edge_hashtable *eht,int nkeys)
   eht->stored = 0;
   eht->distinct = 0;
   eht->data = (struct poly_edge*) malloc( nkeys * sizeof(struct poly_edge) );
-  if (eht->data == NULL) return 1;
+  if (eht->data == NULL){
+      fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+      int i = emergency_output();
+      fprintf(stderr, "Fatal error: out of memory during ehtable_init operation.\nAttempt to write intermediate results had %d errors.\n", i);
+      exit(EXIT_FAILURE);
+  } 
   
   for (i=0;i<nkeys;i++)
   {
@@ -153,7 +159,7 @@ int ehtable_init(struct edge_hashtable *eht,int nkeys)
 ehtable_add:
   In: pointer to an edge_hashtable struct
       pointer to the poly_edge to add
-  Out: Returns 0 on success, 1 on malloc failure. 
+  Out: Returns 0 on success, 1 on failure. 
        Edge is added to the hash table.
 ***************************************************************************/
 
@@ -202,7 +208,12 @@ int ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
         }
         
         pei = (struct poly_edge*) malloc( sizeof(struct poly_edge) );
-        if (pei==NULL) return 1;
+        if (pei==NULL) {
+      		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+      		int i = emergency_output();
+      		fprintf(stderr, "Fatal error: out of memory during ehtable_add operation.\nAttempt to write intermediate results had %d errors.\n", i);
+      		exit(EXIT_FAILURE);
+        }
 
         pep->n++;
         pei->next = pep->next;
@@ -222,8 +233,12 @@ int ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
     else  /* Hit end of list, so make space for use next loop. */
     {
       pei = (struct poly_edge*) malloc( sizeof(struct poly_edge) );
-      if (pei==NULL) return 1;
-
+      if (pei==NULL){ 
+      		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+      		int i = emergency_output();
+      		fprintf(stderr, "Fatal error: out of memory during ehtable_add operation.\nAttempt to write intermediate results had %d errors.\n", i);
+      		exit(EXIT_FAILURE);
+      }
       pei->next = pep->next;
       pep->next = pei;
       pei->n = 0;
@@ -562,7 +577,12 @@ int surface_net( struct wall **facelist, int nfaces )
           facelist[pep->face1]->nb_walls[pep->edge1] = facelist[pep->face2];
           facelist[pep->face2]->nb_walls[pep->edge2] = facelist[pep->face1];
           e = (struct edge*) mem_get( facelist[pep->face1]->birthplace->join );
-          if (e==NULL) return 1;
+          if (e==NULL) {
+		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+		int i = emergency_output();
+		fprintf(stderr, "Fatal error: out of memory during surface_net event.\nAttempt to write intermediate results had %d errors.\n", i);
+                exit(EXIT_FAILURE);
+          } 
           e->forward = facelist[pep->face1];
           e->backward = facelist[pep->face2];
           init_edge_transform(e,pep->edge1);
@@ -576,7 +596,12 @@ int surface_net( struct wall **facelist, int nfaces )
       {
         is_closed = 0;
         e = (struct edge*) mem_get( facelist[pep->face1]->birthplace->join );
-        if (e==NULL) return 1;
+        if (e==NULL) { 
+		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+		int i = emergency_output();
+		fprintf(stderr, "Fatal error: out of memory during surface_net event.\nAttempt to write intermediate results had %d errors.\n", i);
+                exit(EXIT_FAILURE);
+        }
         e->forward = facelist[pep->face1];
         e->backward = NULL;
         init_edge_transform(e,pep->edge1);
@@ -675,7 +700,7 @@ void init_edge_transform(struct edge *e,int edgenum)
 sharpen_object:
   In: pointer to an object
       pointer to storage for edges
-  Out: 0 on success, 1 on malloc failure.
+  Out: 0 on success, 1 on failure.
        Adds edges to the object and all its children.
 ***************************************************************************/
 
@@ -705,7 +730,7 @@ int sharpen_object(struct object *parent)
 sharpen_world:
   In: nothing.  Assumes there are polygon objects in the world in their
       correct memory locations.
-  Out: 0 on success, 1 on malloc failure.  Adds edges to every object.
+  Out: 0 on success, 1 on failure.  Adds edges to every object.
 ***************************************************************************/
 
 int sharpen_world()
@@ -1377,14 +1402,18 @@ wall_to_vol:
   In: a wall
       the subvolume to which the wall belongs
   Out: The updated list of walls for that subvolume that now contains the
-       wall requested.  NULL is returned on malloc failure.
+       wall requested.  
 ***************************************************************************/
 
 struct wall_list* wall_to_vol(struct wall *w, struct subvolume *sv)
 {
   struct wall_list *wl = mem_get(sv->mem->list);
-  if(wl == NULL) { return (NULL); }
-  
+  if(wl == NULL) { 
+		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+		int i = emergency_output();
+		fprintf(stderr, "Fatal error: out of memory during wall_to_vol event.\nAttempt to write intermediate results had %d errors.\n", i);
+                exit(EXIT_FAILURE);
+  }
   wl->this_wall = w;
   if (sv->wall_tail==NULL)
   {
@@ -1407,7 +1436,7 @@ localize_vertex:
   In: a vertex
       the local memory storage area where this vertex should be stored
   Out: A pointer to the copy of that vertex in local memory, or NULL on
-       memory allocation failure.
+       failure.
 ***************************************************************************/
 
 struct vector3* localize_vertex(struct vector3 *p, struct storage *stor)
@@ -1429,8 +1458,12 @@ struct vector3* localize_vertex(struct vector3 *p, struct storage *stor)
   }
   
   vl = mem_get( stor->tree );
-  if (vl==NULL) return NULL;
-  
+  if (vl==NULL){ 
+		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+		int i = emergency_output();
+		fprintf(stderr, "Fatal error: out of memory during localize_vertex event.\nAttempt to write intermediate results had %d errors.\n", i);
+                exit(EXIT_FAILURE);
+  }
   memcpy(&(vl->loc) , p , sizeof(struct vector3));
   vl->above = NULL;
   vl->below = NULL;
@@ -1460,7 +1493,12 @@ struct wall* localize_wall(struct wall *w, struct storage *stor)
 {
   struct wall *ww;
   ww = mem_get(stor->face);
-  if (ww==NULL) return ww;
+  if (ww==NULL){ 
+		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+		int i = emergency_output();
+		fprintf(stderr, "Fatal error: out of memory during localize_wall event.\nAttempt to write intermediate results had %d errors.\n", i);
+                exit(EXIT_FAILURE);
+  }
   
   memcpy(ww , w , sizeof(struct wall));
   ww->next = stor->wall_head;
