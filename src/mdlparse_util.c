@@ -587,7 +587,28 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         pb_factor=1;
         rx->cum_rates[0]=1.0-exp(-mpvp->vol->time_unit*rx->cum_rates[0]);
       }
-      else {
+      else if (((rx->players[0]->flags & (IS_SURFACE | ON_GRID)) != 0 ||
+                (rx->players[1]->flags & (IS_SURFACE | ON_GRID)) != 0) &&
+               rx->n_reactants <= 2)
+      {
+        if ((rx->players[0]->flags & (IS_SURFACE | ON_SURFACE | ON_GRID))==0)
+        {
+          D_tot = rx->players[0]->D_ref;
+        }
+        else if ((rx->players[1]->flags & (IS_SURFACE | ON_SURFACE | ON_GRID))==0)
+        {
+          D_tot = rx->players[1]->D_ref;
+        }
+        else
+        {
+          /* TODO: handle surface/grid collisions */
+        }
+        pb_factor = 1.0e11*mpvp->vol->effector_grid_density/(2.0*N_AV)*sqrt( MY_PI * mpvp->vol->time_unit / D_tot );
+        rx->cum_rates[0] = pb_factor * rx->cum_rates[0];
+        printf("Rate %.3f set (surface reaction).\n",rx->cum_rates[0]);
+      }
+      else
+      {
         pb_factor=0;
         D_tot=rx->players[0]->D_ref+rx->players[1]->D_ref+2.0*sqrt(rx->players[0]->D_ref*rx->players[1]->D_ref);
         if (D_tot>0) {

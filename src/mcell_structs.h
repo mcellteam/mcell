@@ -108,11 +108,6 @@
 #define EDGE_TRANSROT 3
 
 
-/* ID for default species */
-#define GENERIC_MOLECULE 1
-#define GENERIC_SURFACE 2
-
-
 /* Size constants */
 #define EPS_C 1e-12
 #define GIGANTIC 1e140

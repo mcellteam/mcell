@@ -8,8 +8,10 @@
 
 
 #include <math.h>
+#include <stdlib.h>
 
 #include "grid_util.h"
+#include "vol_util.h"
 
 
 /*************************************************************************
@@ -149,4 +151,49 @@ void init_grid_geometry(struct surface_grid *g)
   g->fullslope = g->surface->uv_vert1_u / g->surface->uv_vert2.v;
   
   g->n_tiles = g->n * g->n;
+}
+
+
+/*************************************************************************
+create_grid: 
+  In: a wall pointer that needs to have its grid created
+      a guess for the subvolume the center of the grid is in
+  Out: integer, 0 if grid exists or was created, 1 on memory error.
+       The grid is created and the wall is set to point at it.
+*************************************************************************/
+
+int create_grid(struct wall *w,struct subvolume *guess)
+{
+  struct surface_grid *sg;
+  struct vector3 center;
+  int i;
+  
+  if (w->effectors != NULL) return 0;
+  
+  sg = (struct surface_grid *) mem_get(w->birthplace->effs);
+  if (sg == NULL) return 1;
+  
+  center.x = 0.33333333333*(w->vert[0]->x + w->vert[1]->x + w->vert[2]->x);
+  center.y = 0.33333333333*(w->vert[0]->y + w->vert[1]->y + w->vert[2]->y);
+  center.z = 0.33333333333*(w->vert[0]->z + w->vert[1]->z + w->vert[2]->z);
+  
+  sg->surface = w;
+  sg->subvol = find_subvolume(&center , guess);
+  
+  sg->n = sqrt( w->area );
+  if (sg->n<1) sg->n=1;
+
+  sg->n_tiles = sg->n * sg->n;
+  sg->n_occupied = 0;
+
+  sg->binding_factor = ((double)sg->n_tiles) / w->area;
+  init_grid_geometry(sg);
+  
+  sg->mol = (struct grid_molecule**)malloc(sg->n_tiles*sizeof(struct grid_molecule*));
+  if (sg->mol == NULL) return 1;
+  for (i=0;i<sg->n_tiles;i++) sg->mol[0] = NULL;
+  
+  w->effectors = sg;
+  
+  return 0;
 }

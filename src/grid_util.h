@@ -10,5 +10,6 @@ int uv2grid(struct vector2 *v,struct surface_grid *g);
 void grid2uv(struct surface_grid *g,int index,struct vector2 *v);
 
 void init_grid_geometry(struct surface_grid *g);
+int create_grid(struct wall *w,struct subvolume *guess);
 
 #endif

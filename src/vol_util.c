@@ -396,7 +396,7 @@ void release_molecules(struct release_event_queue *req)
   struct molecule m;
   struct molecule *guess;
   int i,number;
-  struct vector3 *dia;
+  struct vector3 *diam_xyz;
   struct vector3 pos;
   double diam,vol;
   double t,k;
@@ -488,8 +488,8 @@ void release_molecules(struct release_event_queue *req)
      break;
   }
   
-  dia = rso->diameter;
-  if (diam != NULL)
+  diam_xyz = rso->diameter;
+  if (diam_xyz != NULL)
   {
     for (i=0;i<number;i++)
     {
@@ -501,9 +501,9 @@ void release_molecules(struct release_event_queue *req)
       } while ( (rso->release_shape == SHAPE_SPHERICAL || rso->release_shape == SHAPE_ELLIPTIC)
                 && pos.x*pos.x + pos.y*pos.y + pos.z*pos.z >= 0.25 );
       
-      m.pos.x = pos.x*dia->x + req->location.x;
-      m.pos.y = pos.y*dia->y + req->location.y;
-      m.pos.z = pos.z*dia->z + req->location.z;
+      m.pos.x = pos.x*diam_xyz->x + req->location.x;
+      m.pos.y = pos.y*diam_xyz->y + req->location.y;
+      m.pos.z = pos.z*diam_xyz->z + req->location.z;
       
       guess = insert_molecule(&m,guess);  /* Insert copy of m into world */
     }

@@ -645,6 +645,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         if (r != NULL)
         {
           i = test_intersect(r,rate_factor);
+          i = 0;
           if (i < 0)
           {
             tell_loc(m,"(Pass)  ");

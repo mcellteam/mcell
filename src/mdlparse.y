@@ -93,7 +93,8 @@ struct count_list *cnt;
 %token <tok> CUBIC_RELEASE_SITE
 %token <tok> CUMULATE_FOR_EACH_TIME_STEP
 %token <tok> DBL_ARROW
-%token <tok> DIFFUSION_CONSTANT
+%token <tok> DIFFUSION_CONSTANT_2D
+%token <tok> DIFFUSION_CONSTANT_3D
 %token <tok> DEFINE
 %token <tok> DEFINE_EFFECTOR_SITE_POSITIONS
 %token <tok> DEFINE_MOLECULE
@@ -1353,18 +1354,19 @@ list_molecule_stmts: molecule_stmt
 
 
 molecule_stmt: new_molecule '{'
+{
+  mdlpvp->gp=$<sym>1;
+  mdlpvp->specp=(struct species *)mdlpvp->gp->value;
+  mdlpvp->specp->sym=mdlpvp->gp;
+}
 	reference_diffusion_def
 	diffusion_def
         charge_def
 	'}'
 {
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->specp=(struct species *)mdlpvp->gp->value;
-  mdlpvp->specp->sym=mdlpvp->gp;
-  /* points to the head of region counter list of the transition count for each ligand */
-  mdlpvp->specp->D_ref=$<dbl>3;
-  mdlpvp->specp->D=$<dbl>4;
-  mdlpvp->specp->charge=(int) $<dbl>5;
+  mdlpvp->specp->D_ref=$<dbl>4;
+  mdlpvp->specp->D=$<dbl>5;
+  mdlpvp->specp->charge=(int) $<dbl>6;
   if (volp->time_unit==0) {
     sprintf(mdlpvp->mdl_err_msg,"%s %s","TIME_STEP not yet specified.  Cannot define molecule:",mdlpvp->specp->sym->name);
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
@@ -1491,8 +1493,15 @@ existing_molecule: VAR
 };
 
 
-diffusion_def: DIFFUSION_CONSTANT '=' num_expr
+diffusion_def: DIFFUSION_CONSTANT_3D '=' num_expr
 {
+  mdlpvp->specp->flags -= (mdlpvp->specp->flags & (ON_SURFACE | ON_GRID));
+  $$=$<dbl>3;
+}
+	| DIFFUSION_CONSTANT_2D '=' num_expr
+{
+  if ($<dbl>3 == 0.0) mdlpvp->specp->flags |= ON_GRID;
+  else mdlpvp->specp->flags |= ON_SURFACE;
   $$=$<dbl>3;
 };
 
