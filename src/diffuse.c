@@ -1077,14 +1077,22 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     }
     else
     {
-      a->t += max_time;
-      a->t2 -=max_time;
+      if (a->t2==0) a->t = checkpt_time;
+      else if (a->t2 + a->t + EPS_C < checkpt_time)
+      {
+        a->t += a->t2;
+        a->t2 = 0;
+      }
+      else
+      {
+        a->t2 -= checkpt_time - a->t;
+        a->t = checkpt_time;
+      }
     }
 
     a->flags += IN_SCHEDULE;
     if (a->flags & TYPE_GRID) schedule_add(local->timer,a);
     else schedule_add(((struct molecule*)a)->subvol->mem->timer,a);
-    
   }
   
   local->current_time += 1.0;

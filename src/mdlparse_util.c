@@ -455,6 +455,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   int num_rx,num_players;
   int true_paths;
   int rx_hash;
+  struct species *temp_sp;
   
   num_rx = 0;
   
@@ -470,6 +471,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       if (sym->sym_type != RX) continue;
       rx = (struct rxn*)sym->value;
       
+      
       rx->next = NULL;
       
       while (rx != NULL)
@@ -477,20 +479,37 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         num_rx++;
       
   /* First we find how many reactions have the same geometry as the current one */
-        true_paths=1;
-        for (path=rx->pathway_head->next ; path != NULL ; path = path->next)
+  /* Also, shove any surfaces to the end of the reactants list. */
+        true_paths=0;
+        for (path=rx->pathway_head ; path != NULL ; path = path->next)
         {
           if (equivalent_geometry(rx->pathway_head,path,rx->n_reactants)) true_paths++;
-          if (!strcmp(path->reactant1->sym->name,"MinD.m") ||
-              (rx->n_reactants>1 && !strcmp(path->reactant2->sym->name,"MinD.m")))
+          if (rx->n_reactants>1)
           {
-            printf("We saw a MinX reaction.\n");
+            if ((path->reactant1->flags & IS_SURFACE) != 0)
+            {
+              temp_sp = path->reactant1;
+              path->reactant1 = path->reactant2;
+              path->reactant2 = temp_sp;
+              geom = path->orientation1;
+              path->orientation1 = path->orientation2;
+              path->orientation2 = geom;
+              printf("Switching order (1/2)!\n");
+            }
+            if (rx->n_reactants>2)
+            {
+              if ((path->reactant2->flags & IS_SURFACE) != 0)
+              {
+                temp_sp = path->reactant3;
+                path->reactant3 = path->reactant2;
+                path->reactant2 = temp_sp;
+                geom = path->orientation3;
+                path->orientation3 = path->orientation2;
+                path->orientation2 = geom;
+                printf("Switching order (2/3)!\n");
+              }
+            }
           }
-        }
-        if (!strcmp(rx->pathway_head->reactant1->sym->name,"MinD.m") ||
-            (rx->n_reactants>1 && !strcmp(rx->pathway_head->reactant2->sym->name,"MinD.m")))
-        {
-          printf("We saw a MinD.m reaction.\n");
         }
         
   /* If they're not all our geometry, stuff the non-matching ones into rx->next */      
@@ -651,7 +670,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
             else
             {
-              k2 = 2*rx->n_reactants;
+              k2 = 2*rx->n_reactants + 1;
               geom = 0;
               for (prod2=path->product_head ; prod2!=prod && prod2!=NULL && geom==0 ; prod2 = prod2->next)
               {
@@ -662,20 +681,29 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 }
                 else geom = 0;
                 
-                if (recycled1 == 1 && prod2->prod == path->reactant1)
+                if (recycled1 == 1)
                 {
-                  recycled1 = 2;
-                  geom *= rx->n_reactants+1;
+                  if (prod2->prod == path->reactant1)
+                  {
+                    recycled1 = 2;
+                    geom *= rx->n_reactants+1;
+                  }
                 }
-                else if (recycled2==1 && prod2->prod == path->reactant2)
+                else if (recycled2==1)
                 {
-                  recycled2 = 2;
-                  geom *= rx->n_reactants+2;
+                  if (prod2->prod == path->reactant2)
+                  {
+                    recycled2 = 2;
+                    geom *= rx->n_reactants+2;
+                  }
                 }
-                else if (recycled3==1 && prod2->prod == path->reactant3)
+                else if (recycled3==1)
                 {
-                  recycled3 = 2;
-                  geom *= rx->n_reactants+3;
+                  if (prod2->prod == path->reactant3)
+                  {
+                    recycled3 = 2;
+                    geom *= rx->n_reactants+3;
+                  }
                 }
                 else
                 {
@@ -684,9 +712,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 }
               }
               rx->geometries[kk] = geom;
-              if (recycled1>1) recycled1 = 1;
-              if (recycled2>1) recycled2 = 1;
-              if (recycled3>1) recycled1 = 1;
             }
           }
 

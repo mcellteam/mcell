@@ -1191,12 +1191,12 @@ struct wall* distribute_wall(struct wall *w)
   int h,i,j,k;
   
   wall_bounding_box(w,&llf,&urb);
-  llf.x -= EPS_C * (llf.x < 0) ? -llf.x : llf.x;
-  llf.y -= EPS_C * (llf.y < 0) ? -llf.y : llf.y;
-  llf.z -= EPS_C * (llf.z < 0) ? -llf.z : llf.z;
-  urb.x += EPS_C * (urb.x < 0) ? -urb.x : urb.x;
-  urb.y += EPS_C * (urb.y < 0) ? -urb.y : urb.y;
-  urb.z += EPS_C * (urb.z < 0) ? -urb.z : urb.z;
+  llf.x -= EPS_C * ((llf.x < 0) ? -llf.x : llf.x);
+  llf.y -= EPS_C * ((llf.y < 0) ? -llf.y : llf.y);
+  llf.z -= EPS_C * ((llf.z < 0) ? -llf.z : llf.z);
+  urb.x += EPS_C * ((urb.x < 0) ? -urb.x : urb.x);
+  urb.y += EPS_C * ((urb.y < 0) ? -urb.y : urb.y);
+  urb.z += EPS_C * ((urb.z < 0) ? -urb.z : urb.z);
   cent.x = 0.33333333333*(w->vert[0]->x + w->vert[1]->x + w->vert[2]->x);
   cent.y = 0.33333333333*(w->vert[0]->y + w->vert[1]->y + w->vert[2]->y);
   cent.z = 0.33333333333*(w->vert[0]->z + w->vert[1]->z + w->vert[2]->z);
@@ -1220,11 +1220,13 @@ struct wall* distribute_wall(struct wall *w)
     wall_to_vol( where_am_i , &(world->subvol[h]) );
     return where_am_i;
   }
-  
+
+/*
   x_min = y_min = z_min = 0;
   x_max = world->nx_parts -1;
   y_max = world->ny_parts -1;
   z_max = world->nz_parts -1;
+*/
   
   for (i=x_min;i<x_max;i++) { if (cent.x < world->x_partitions[i]) break; }
   for (j=y_min;j<y_max;j++) { if (cent.y < world->y_partitions[j]) break; }
@@ -1233,6 +1235,20 @@ struct wall* distribute_wall(struct wall *w)
   h = (k-1) + (world->nz_parts - 1)*((j-1) + (world->ny_parts - 1)*(i-1));
   where_am_i = localize_wall( w , world->subvol[h].mem );
   
+/*
+  printf("Bounded by (%d %d %d) (%d %d %d) [i.e. (%.2e %.2e %.2e) (%.2e %.2e %.2e)]\n",
+         x_min,y_min,z_min,x_max,y_max,z_max,
+         world->x_partitions[x_min],world->x_partitions[x_max],
+         world->y_partitions[y_min],world->y_partitions[y_max],
+         world->z_partitions[z_min],world->z_partitions[z_max]);
+  printf("Wbb is (%.2e %.2e %.2e) (%.2e %.2e %.2e)\n",
+         llf.x,llf.y,llf.z,urb.x,urb.y,urb.z);
+  printf("Vertices are (%.2e %.2e %.2e) (%.2e %.2e %.2e) (%.2e %.2e %.2e)\n",
+         w->vert[0]->x,w->vert[0]->y,w->vert[0]->z,
+         w->vert[1]->x,w->vert[1]->y,w->vert[1]->z,
+         w->vert[2]->x,w->vert[2]->y,w->vert[2]->z);
+*/
+
   for (k=z_min;k<z_max;k++)
   {
     for (j=y_min;j<y_max;j++)

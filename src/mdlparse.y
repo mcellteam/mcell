@@ -1481,11 +1481,13 @@ molecule_stmt: new_molecule '{'
   mdlpvp->l_r_bar=2*mdlpvp->l_perp_bar;
   mdlpvp->l_r_rms=sqrt(6*1.0e8*mdlpvp->specp->D*volp->time_unit);
   if (volp->procnum == 0) {
+#ifdef DEBUG
     fprintf(volp->log_file,"\nMCell: Theoretical average diffusion distances for molecule %s:\n\n",mdlpvp->specp->sym->name);
     fprintf(volp->log_file,"\tl_r_bar = %.9g microns\n",mdlpvp->l_r_bar);
     fprintf(volp->log_file,"\tl_r_rms = %.9g microns\n",mdlpvp->l_r_rms);
     fprintf(volp->log_file,"\tl_perp_bar = %.9g microns\n",mdlpvp->l_perp_bar);
     fprintf(volp->log_file,"\tl_perp_rms = %.9g microns\n\n",mdlpvp->l_perp_rms);
+#endif
   }
   mdlpvp->specp->hashval = hash(mdlpvp->specp->sym->name);
   no_printf("Molecule %s defined with D = %g\n",mdlpvp->specp->sym->name,mdlpvp->specp->D);
@@ -3379,7 +3381,7 @@ bimolecular_rxn: reactant '+'
   mdlpvp->sym_name=concat_rx_name(mdlpvp->stp1->name,mdlpvp->stp2->name);
   if ((mdlpvp->stp3=retrieve_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
       !=NULL) {
-    printf("Retrieved previous reaction.\n");
+    no_printf("Retrieved previous reaction.\n");
   }
   else if ((mdlpvp->stp3=store_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
       ==NULL) {
@@ -5683,6 +5685,18 @@ int mdlparse_init(struct volume *vol)
   mpvp->prod_mem=NULL;
 
   /* create default reflective surface reaction */
+  if ((mpvp->path_mem=create_mem(sizeof(struct pathway),4096))==NULL)
+  {
+    sprintf(mpvp->mdl_err_msg,"Cannot allocate memory to store reaction pathways\n");
+    fprintf(vol->log_file,mpvp->mdl_err_msg);
+    return(1);
+  } 
+  if ((mpvp->prod_mem=create_mem(sizeof(struct product),4096))==NULL) {
+    sprintf(mpvp->mdl_err_msg,"Cannot allocate memory to store reaction products\n");
+    fprintf(vol->log_file,mpvp->mdl_err_msg);
+      return(1);
+  } 
+#if 0
   mpvp->sym_name=concat_rx_name(vol->g_surf->sym->name,vol->g_mol->sym->name);
   if ((mpvp->gp=retrieve_sym(mpvp->sym_name,RX,vol->main_sym_table))
       !=NULL) {
@@ -5694,18 +5708,6 @@ int mdlparse_init(struct volume *vol)
     fprintf(vol->log_file,mpvp->mdl_err_msg);
     return(1);
   }
-  if ((mpvp->path_mem=create_mem(sizeof(struct pathway),16384))==NULL) {
-    sprintf(mpvp->mdl_err_msg,"%s %s -%s-> ...",
-      "Cannot store surface reaction:",vol->g_mol->sym->name,vol->g_surf->sym->name);
-    fprintf(vol->log_file,mpvp->mdl_err_msg);
-    return(1);
-  } 
-  if ((mpvp->prod_mem=create_mem(sizeof(struct product),16384))==NULL) {
-    sprintf(mpvp->mdl_err_msg,"%s %s -%s-> ...",
-      "Cannot store surface reaction:",vol->g_mol->sym->name,vol->g_surf->sym->name);
-    fprintf(vol->log_file,mpvp->mdl_err_msg);
-      return(1);
-  } 
   if ((mpvp->pathp=(struct pathway *)mem_get(mpvp->path_mem))==NULL) {
     sprintf(mpvp->mdl_err_msg,"%s %s -%s-> ...",
       "Cannot store surface reaction:",vol->g_mol->sym->name,vol->g_surf->sym->name);
@@ -5736,6 +5738,7 @@ int mdlparse_init(struct volume *vol)
   mpvp->pathp->product_head=mpvp->prodp;
   mpvp->pathp->next=mpvp->rxnp->pathway_head;
   mpvp->rxnp->pathway_head=mpvp->pathp;
+#endif
 
   mpvp->gp=NULL;
   mpvp->tp=NULL;

@@ -64,7 +64,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
   char ptype[iN-i0];
   short porient[iN-i0];
   
-  if (reacA->properties != rx->players[0])
+  if (reacA->properties == rx->players[1] && reacA->properties != rx->players[0])
   {
     plist[0] = reacA;
     reacA = reacB;
@@ -329,6 +329,8 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
   bits = rng_uint( world->seed++ );
   for (i=i0;i<iN;i++,bits>>=1)
   {
+    if (rx->players[i]==NULL) continue;
+    
     if ( ptype[i-i0] != 0 && (ptype[i-i0]!='m' || w!=NULL) )
     {
       if (rx->geometries[i] == 0)
@@ -635,30 +637,29 @@ outcome_intersect:
        1 if the molecule passes through
        0 if the molecule stops, is destroyed, changes identity, etc..
        Additionally, products are created as needed.
+  Note: Can assume molecule is always first in the reaction.
 *************************************************************************/
 
 int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   struct abstract_molecule *reac,short orient,double t,struct vector3 *hitpt)
 {
-  int blocked,offset,index;
+  int blocked,index;
   
   index = rx->product_idx[path];
-  if (reac->properties == rx->players[0]) offset = 0;
-  else offset = 1;
 
   if ((reac->properties->flags & (ON_GRID | ON_SURFACE)) == 0)
   {
     struct molecule *m = (struct molecule*) reac;
     
     if (index+2==rx->product_idx[path+1] &&
-        m->properties == rx->players[index+offset] &&
-        rx->geometries[index+offset] != 0)
+        rx->players[0] == rx->players[index] &&
+        rx->geometries[index] != 0)
     {
       rx->counter[path]++;
       
-      if (rx->geometries[index+offset] == offset+1) return -1;
-      else if (rx->geometries[index+offset] == -(offset+1)) return 1;
-      else if (rx->geometries[index+offset]*orient > 0) return -1;
+      if (rx->geometries[index] == 1) return -1;
+      else if (rx->geometries[index] == -1) return 1;
+      else if (rx->geometries[index]*orient > 0) return -1;
       else return 1;
     }
     else
@@ -669,7 +670,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
 
       rx->counter[path]++;
       
-      if (rx->players[ index+offset ] == NULL)
+      if (rx->players[ index ] == NULL)
       {
         m->subvol->mol_count--;
         reac->properties->population--;

@@ -91,7 +91,7 @@ void run_sim(void)
     if ( (world->it_time % frequency) == 0 )
     {
       printf("Iterations: %d of %d ",world->it_time,world->iterations);
-#if 1
+#if 0
       printf("count ");
       for (i=0;i<world->n_species;i++)
       {
