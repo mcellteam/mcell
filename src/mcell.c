@@ -26,7 +26,7 @@ void run_sim(void)
 
   struct storage_list *local;
   struct release_event_queue *req;
-  struct output_list *olp;
+  struct output_block *obp;
   double next_release_time;
   int i;
   int count;
@@ -68,11 +68,11 @@ void run_sim(void)
       req = schedule_next( world->releaser );
     }
 
-    olp = schedule_next( world->count_scheduler );
-    while (olp != NULL)
+    obp = schedule_next( world->count_scheduler );
+    while (obp != NULL)
     {
-      update_reaction_output(olp);
-      olp = schedule_next( world->count_scheduler );
+      update_reaction_output(obp);
+      obp = schedule_next( world->count_scheduler );
     }
 
     update_frame_data_list(world->frame_data_head);

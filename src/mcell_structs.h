@@ -506,7 +506,7 @@ struct molecule
   double path_length;
   int collisions;
   
-  struct surface_grid *releaser;
+  struct surface_grid *previous_grid;
   int index;
   
   struct molecule *next_v;        /* Next molecule in this subvolume */
@@ -793,8 +793,8 @@ struct volume
   struct object *root_instance;
   struct release_pattern *default_release_pattern;
   struct release_event_queue *release_event_queue_head;
-  struct counter_list *count_zero;
-  struct output_list *output_list_head;
+  struct output_evaluator *count_zero;
+  struct output_block *output_block_head;
   struct viz_obj *viz_obj_head;
   struct frame_data_list *frame_data_head;
   struct species *g_mol;
@@ -960,8 +960,8 @@ struct node_dat {
 /**
  * Linked list of all reaction data output blocks
  */
-struct output_list {
-	struct output_list *next;   /**< next reaction data output block*/
+struct output_block {
+	struct output_block *next;   /**< next reaction data output block*/
         double t;                   /**< scheduled time to update counters
                                          associated with this output block*/
 	byte timer_type;    /**< output timer type: STEP_TIME,
@@ -978,7 +978,7 @@ struct output_list {
         double *time_array;                 /**< array of output times
                                                  for current output chunk */
         u_int chunk_count;                  /**< number of chunks processed*/
-	struct counter_info *counter_info_head; /**< list of count output
+	struct output_item *output_item_head; /**< list of count output
                                                      statements associated with
                                                      this output block*/
 };
@@ -987,13 +987,13 @@ struct output_list {
 /**
  * Linked list of count output statements associated with a given output block 
  */
-struct counter_info {
-	struct counter_info *next;  
+struct output_item {
+	struct output_item *next;  
 	char *outfile_name;               /**< name of file to contain output*/
-	struct counter_list *counter_list_head;  /**< list of counters 
+	struct output_evaluator *output_evaluator_head;  /**< list of counters 
                                                   associated with this
                                                   count output statement*/
-	struct counter_list *count_expr;  /**< root of count expression tree
+	struct output_evaluator *count_expr;  /**< root of count expression tree
                                                to be evaluated for this
                                                count output statement*/
 };
@@ -1002,8 +1002,8 @@ struct counter_info {
 /**
  * Linked list of counters to be evaluated at update time
  */
-struct counter_list {
-	struct counter_list *next;    /**< next item in count list*/
+struct output_evaluator {
+	struct output_evaluator *next;    /**< next item in count list*/
 	byte update_flag;           /**< counter update necessary?*/
 	byte reset_flag;            /**< reset temp_data to 0 on each iteration?*/
 	byte index_type;            /**< flag indicating final_data is to be
@@ -1018,15 +1018,15 @@ struct counter_list {
                                          specified by type*/
 	void *final_data;           /**< ptr to final outputable data
                                          specified by type*/
-	struct counter_list *operand1;
-	struct counter_list *operand2;
+	struct output_evaluator *operand1;
+	struct output_evaluator *operand2;
 	char oper;
 };
 
 
-struct lig_counter_list {
-	struct lig_counter_list *next;
-        struct counter_list *counter_list;
+struct lig_output_evaluator {
+	struct lig_output_evaluator *next;
+        struct output_evaluator *output_evaluator;
 };
 
 
@@ -1034,7 +1034,7 @@ struct lig_count_ref {
 	struct lig_count_ref *next;
 	unsigned short type;
         char *full_name;
-        struct counter_list *counter_list;
+        struct output_evaluator *output_evaluator;
 };
 
 
@@ -1136,7 +1136,7 @@ struct cmprt {
 	struct sym_table *sym;
         unsigned short type;
 	int inst_count;
-	struct lig_counter_list **lig_counter_list;  /**< array of ptrs to lig_counter_list
+	struct lig_output_evaluator **lig_output_evaluator;  /**< array of ptrs to lig_output_evaluator
 	                                        structures: one for each
 	                                        ligand type */
         byte a_zone_lig;

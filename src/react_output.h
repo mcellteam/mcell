@@ -3,13 +3,13 @@
 
 /* Header file for reaction output routines */
 
-void update_reaction_output(struct output_list *olp);
-void update_counter(struct counter_list *clp);
-void eval_count_expr_tree(struct counter_list *clp);
-int eval_count_expr(struct counter_list *operand1,
-                    struct counter_list *operand2,
+void update_reaction_output(struct output_block *obp);
+void update_counter(struct output_evaluator *oep);
+void eval_count_expr_tree(struct output_evaluator *oep);
+int eval_count_expr(struct output_evaluator *operand1,
+                    struct output_evaluator *operand2,
                     char oper,
-                    struct counter_list *result);
+                    struct output_evaluator *result);
 double eval_double(double op1, double op2, char oper);
 
 

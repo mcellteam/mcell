@@ -11,11 +11,11 @@
 extern struct volume *world;
 
 
-void update_reaction_output(struct output_list *olp)
+void update_reaction_output(struct output_block *obp)
 {
   FILE *log_file,*fp;
-  struct counter_info *cip;
-  struct counter_list *clp;
+  struct output_item *oip;
+  struct output_evaluator *oep;
   u_int curr_buf_index,n_output;
   u_int i,stop_i;
   byte final_chunk;
@@ -26,16 +26,16 @@ void update_reaction_output(struct output_list *olp)
   fflush(log_file);
 
   /* Initialize IT_TIME or REAL_TIME output event if necessary */
-  if (olp->timer_type!=STEP_TIME && olp->curr_time_ptr==NULL) {
-    olp->curr_time_ptr=olp->time_list_head;
-    if (olp->curr_time_ptr->value!=0.0) {
-      if (olp->timer_type==IT_TIME) {
-        olp->t=olp->curr_time_ptr->value; 
+  if (obp->timer_type!=STEP_TIME && obp->curr_time_ptr==NULL) {
+    obp->curr_time_ptr=obp->time_list_head;
+    if (obp->curr_time_ptr->value!=0.0) {
+      if (obp->timer_type==IT_TIME) {
+        obp->t=obp->curr_time_ptr->value; 
       }
       else {
-        olp->t=olp->curr_time_ptr->value/world->time_unit; 
+        obp->t=obp->curr_time_ptr->value/world->time_unit; 
       }
-      schedule_add(world->count_scheduler,olp);
+      schedule_add(world->count_scheduler,obp);
       return;
     }
   }
@@ -43,131 +43,131 @@ void update_reaction_output(struct output_list *olp)
 
   /* update all counters */
 
-  curr_buf_index=olp->curr_buf_index;
-  olp->time_array[curr_buf_index]=olp->t*world->time_unit*1.0e6;
+  curr_buf_index=obp->curr_buf_index;
+  obp->time_array[curr_buf_index]=obp->t*world->time_unit*1.0e6;
 
-  cip=olp->counter_info_head;
-  while (cip!=NULL) {
+  oip=obp->output_item_head;
+  while (oip!=NULL) {
 
     /* copy temp_data into final_data[curr_buf_index] */
-    clp=cip->counter_list_head;
-    while (clp!=NULL) {
-      if (clp->update_flag) {
-        ((int*)clp->final_data)[curr_buf_index]=*(int *)clp->temp_data;
+    oep=oip->output_evaluator_head;
+    while (oep!=NULL) {
+      if (oep->update_flag) {
+        ((int*)oep->final_data)[curr_buf_index]=*(int *)oep->temp_data;
         /* reset temp_data if necessary */
-        if (clp->reset_flag) {
-          *(int *)clp->temp_data=0;
+        if (oep->reset_flag) {
+          *(int *)oep->temp_data=0;
         }
       }
-      clp=clp->next;
+      oep=oep->next;
     }
-    cip=cip->next;
+    oip=oip->next;
   } 
 
-  olp->curr_buf_index++;
+  obp->curr_buf_index++;
 
 
   /* Schedule next output event */
 
   final_chunk=0;
-  if (olp->timer_type==STEP_TIME) {
-    if (world->it_time>=(world->iterations-(olp->step_time/world->time_unit))) {
+  if (obp->timer_type==STEP_TIME) {
+    if (world->it_time>=(world->iterations-(obp->step_time/world->time_unit))) {
       final_chunk=1;
     }
     else {
-      olp->t+=olp->step_time/world->time_unit;
-      schedule_add(world->count_scheduler,olp);
+      obp->t+=obp->step_time/world->time_unit;
+      schedule_add(world->count_scheduler,obp);
     }
   }
   else {
-    olp->curr_time_ptr=olp->curr_time_ptr->next;
-    if (olp->curr_time_ptr==NULL) {
+    obp->curr_time_ptr=obp->curr_time_ptr->next;
+    if (obp->curr_time_ptr==NULL) {
       final_chunk=1;
     }
     else {
-      if (olp->timer_type==IT_TIME) {
-        olp->t=olp->curr_time_ptr->value;
+      if (obp->timer_type==IT_TIME) {
+        obp->t=obp->curr_time_ptr->value;
       }
       else {
-        olp->t=olp->curr_time_ptr->value/world->time_unit; 
+        obp->t=obp->curr_time_ptr->value/world->time_unit; 
       }
-      schedule_add(world->count_scheduler,olp);
+      schedule_add(world->count_scheduler,obp);
     }
   }
 
 
   /* write data to outfile */
 
-  if (olp->curr_buf_index==olp->buffersize || final_chunk) {
+  if (obp->curr_buf_index==obp->buffersize || final_chunk) {
 
-    n_output=olp->buffersize;
-    if (olp->curr_buf_index<olp->buffersize) {
-      n_output=olp->curr_buf_index;
+    n_output=obp->buffersize;
+    if (obp->curr_buf_index<obp->buffersize) {
+      n_output=obp->curr_buf_index;
     }
 
-    cip=olp->counter_info_head;
-    while (cip!=NULL) {
-      clp=cip->count_expr;
-      eval_count_expr_tree(clp);
+    oip=obp->output_item_head;
+    while (oip!=NULL) {
+      oep=oip->count_expr;
+      eval_count_expr_tree(oep);
 
-      if (world->chkpt_seq_num==1 && olp->chunk_count==0) {
-        if ((fp=fopen(cip->outfile_name,"w"))==NULL) {
-          fprintf(log_file,"MCell: could not open output file %s\n",cip->outfile_name);
+      if (world->chkpt_seq_num==1 && obp->chunk_count==0) {
+        if ((fp=fopen(oip->outfile_name,"w"))==NULL) {
+          fprintf(log_file,"MCell: could not open output file %s\n",oip->outfile_name);
           return;
         }
       }
       else if (world->chkpt_seq_num>1){
-        if ((fp=fopen(cip->outfile_name,"a"))==NULL) {
-          fprintf(log_file,"MCell: could not open output file %s\n",cip->outfile_name);
+        if ((fp=fopen(oip->outfile_name,"a"))==NULL) {
+          fprintf(log_file,"MCell: could not open output file %s\n",oip->outfile_name);
           return;
         }
       }
       else {
-        if ((fp=fopen(cip->outfile_name,"a"))==NULL) {   
+        if ((fp=fopen(oip->outfile_name,"a"))==NULL) {   
           return;
         }
       }
 
-      no_printf("Writing to output file: %s\n",cip->outfile_name);
+      no_printf("Writing to output file: %s\n",oip->outfile_name);
       fflush(log_file);
 
       stop_i=0;
-      if (clp->index_type==TIME_STAMP_VAL) {
+      if (oep->index_type==TIME_STAMP_VAL) {
         stop_i=n_output;
       }
-      else if (clp->index_type==INDEX_VAL) {
-        stop_i=clp->n_data;
+      else if (oep->index_type==INDEX_VAL) {
+        stop_i=oep->n_data;
       }
    
-      switch (clp->data_type) {
+      switch (oep->data_type) {
       case DBL:
         for (i=0;i<stop_i;i++) {
-          if (clp->index_type==TIME_STAMP_VAL) {
-            fprintf(fp,"%.9g %.9g\n",olp->time_array[i],
-                    ((double *)clp->final_data)[i]);
+          if (oep->index_type==TIME_STAMP_VAL) {
+            fprintf(fp,"%.9g %.9g\n",obp->time_array[i],
+                    ((double *)oep->final_data)[i]);
           }
-          else if (clp->index_type==INDEX_VAL && final_chunk) {
-            fprintf(fp,"%d %.9g\n",i,((double *)clp->final_data)[i]);
+          else if (oep->index_type==INDEX_VAL && final_chunk) {
+            fprintf(fp,"%d %.9g\n",i,((double *)oep->final_data)[i]);
           }
         }
         break;
       case INT:
         for (i=0;i<stop_i;i++) {
-          if (clp->index_type==TIME_STAMP_VAL) {
-            fprintf(fp,"%.9g %d\n",olp->time_array[i],
-                    ((int *)clp->final_data)[i]);
+          if (oep->index_type==TIME_STAMP_VAL) {
+            fprintf(fp,"%.9g %d\n",obp->time_array[i],
+                    ((int *)oep->final_data)[i]);
           }
-          else if (clp->index_type==INDEX_VAL && final_chunk) {
-            fprintf(fp,"%d %d\n",i,((int *)clp->final_data)[i]);
+          else if (oep->index_type==INDEX_VAL && final_chunk) {
+            fprintf(fp,"%d %d\n",i,((int *)oep->final_data)[i]);
           }
         }
         break;
       }
       fclose(fp);
-      cip=cip->next;
+      oip=oip->next;
     } 
-    olp->chunk_count++;
-    olp->curr_buf_index=0;
+    obp->chunk_count++;
+    obp->curr_buf_index=0;
   }
   
   no_printf("Done updating reaction output\n");
@@ -180,18 +180,18 @@ void update_reaction_output(struct output_list *olp)
 /**
  * Evaluate counter arithmetic expression tree
  */
-void eval_count_expr_tree(struct counter_list *clp)
+void eval_count_expr_tree(struct output_evaluator *oep)
 {
 
-  if (clp->data_type==EXPR) {
-    eval_count_expr_tree(clp->operand1);
-    eval_count_expr_tree(clp->operand2);
-    eval_count_expr(clp->operand1,clp->operand2,clp->oper,clp);
-    if (clp->operand1->index_type!=UNKNOWN) {
-      clp->index_type=clp->operand1->index_type;
+  if (oep->data_type==EXPR) {
+    eval_count_expr_tree(oep->operand1);
+    eval_count_expr_tree(oep->operand2);
+    eval_count_expr(oep->operand1,oep->operand2,oep->oper,oep);
+    if (oep->operand1->index_type!=UNKNOWN) {
+      oep->index_type=oep->operand1->index_type;
     }
-    else if (clp->operand2->index_type!=UNKNOWN) {
-      clp->index_type=clp->operand2->index_type;
+    else if (oep->operand2->index_type!=UNKNOWN) {
+      oep->index_type=oep->operand2->index_type;
     }
   }
   return;
@@ -202,10 +202,10 @@ void eval_count_expr_tree(struct counter_list *clp)
 /**
  * Evaluate a single counter arithmetic expression
  */
-int eval_count_expr(struct counter_list *operand1,
-                    struct counter_list *operand2,
+int eval_count_expr(struct output_evaluator *operand1,
+                    struct output_evaluator *operand2,
                     char oper,
-                    struct counter_list *result)
+                    struct output_evaluator *result)
 {
   FILE *log_file;
   int i;

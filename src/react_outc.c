@@ -267,12 +267,12 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       m->collisions = 0;
       if (reac_g != NULL)
       {
-        m->releaser = reac_g->grid;
+        m->previous_grid = reac_g->grid;
         m->index = reac_g->grid_index;
       }
       else
       {
-        m->releaser = 0;
+        m->previous_grid = 0;
         m->index = -1;
       }
       m->flags = TYPE_3D + ACT_NEWBIE + IN_VOLUME + IN_SCHEDULE;

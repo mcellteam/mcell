@@ -42,22 +42,22 @@ struct counter *store_reg_counter(struct volume *volp,
                                   struct species *sp,
                                   struct region *rp);
 
-struct counter_list *init_mol_counter(byte counter_type,
-                                      struct counter_info *cip,
+struct output_evaluator *init_mol_counter(byte counter_type,
+                                      struct output_item *oip,
                                       struct counter *cp,
                                       u_int buffersize);
 int insert_mol_counter(byte counter_type,
                        struct volume *volp,
-                       struct counter_info *cip,
-                       struct counter_list *clp,
+                       struct output_item *oip,
+                       struct output_evaluator *oep,
                        struct counter *cp,
                        u_int buffersize);
 int build_mol_count_tree(byte counter_type,
                          struct volume *volp,
                          struct object *objp,
                          struct object *root_objp,
-                         struct counter_info *cip,
-                         struct counter_list *clp,
+                         struct output_item *oip,
+                         struct output_evaluator *oep,
                          struct species *sp,
                          u_int buffersize,
                          char *sub_name);

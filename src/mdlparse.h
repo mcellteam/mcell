@@ -90,12 +90,12 @@ struct mdlparse_vars {
   struct state_list *mol_state_head;
   struct state_list *slp;
 
-  struct output_list *olp;
+  struct output_block *obp;
   int n_output;
   int output_freq;
-  struct counter_info *cip;
-  struct counter_list *clp;
-  struct counter_list *clp2;
+  struct output_item *oip;
+  struct output_evaluator *oep;
+  struct output_evaluator *oep2;
   struct counter *cp;
 
   struct polygon_object *pop;

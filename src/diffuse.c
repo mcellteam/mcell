@@ -1143,7 +1143,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
               j = xyz2grid( &(smish->loc) , w->effectors );
               if (w->effectors->mol[j] != NULL)
               {
-                if (m->index != j || m->releaser != w->effectors)
+                if (m->index != j || m->previous_grid != w->effectors)
                 {
                   g = w->effectors->mol[j];
                   rx = trigger_bimolecular(
@@ -1375,7 +1375,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             j = xyz2grid( &(smash->loc) , w->effectors );
             if (w->effectors->mol[j] != NULL)
             {
-              if (m->index != j || m->releaser != w->effectors)
+              if (m->index != j || m->previous_grid != w->effectors)
               {
                 g = w->effectors->mol[j];
                 rx = trigger_bimolecular(

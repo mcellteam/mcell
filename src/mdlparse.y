@@ -58,7 +58,7 @@ struct vector3 *vec3;
 struct num_expr_list *nel;
 struct object *obj;
 struct object_list *objl;
-struct counter_list *cnt;
+struct output_evaluator *cnt;
 } 
 
 
@@ -419,7 +419,7 @@ struct counter_list *cnt;
 %type <tok> list_viz_output_cmds
 %type <tok> viz_output_cmd
 %type <tok> viz_iteration_def 
-%type <tok> viz_output_list_def
+%type <tok> viz_output_block_def
 %type <tok> viz_time_def 
 %type <tok> viz_object_prefixes_def
 %type <tok> list_viz_object_prefixes
@@ -4047,7 +4047,7 @@ viz_output_cmd:
 	viz_mode_def
 	| voxel_image_mode_def
 	| voxel_volume_mode_def
-	| viz_output_list_def
+	| viz_output_block_def
 	| viz_frame_data_def
 	| viz_molecule_prefix_def
 	| viz_object_prefixes_def
@@ -4105,7 +4105,7 @@ voxel_volume_mode_def: VOXEL_VOLUME_MODE '=' boolean
 };
 
 
-viz_output_list_def: viz_iteration_def
+viz_output_block_def: viz_iteration_def
 	| viz_time_def 
 ;
 
@@ -4594,31 +4594,31 @@ existing_logicalOrPhysical: VAR
 
 output_def: REACTION_DATA_OUTPUT '{'
 {
-  if ((mdlpvp->olp=(struct output_list *)
-       malloc(sizeof(struct output_list)))==NULL) {
-    mdlerror("Cannot store output list data");
+  if ((mdlpvp->obp=(struct output_block *)
+       malloc(sizeof(struct output_block)))==NULL) {
+    mdlerror("Cannot store output block data");
     return(1);
   }
-  mdlpvp->olp->next=volp->output_list_head;
-  volp->output_list_head=mdlpvp->olp;
+  mdlpvp->obp->next=volp->output_block_head;
+  volp->output_block_head=mdlpvp->obp;
 
-  mdlpvp->olp->t=0;
-  mdlpvp->olp->timer_type=STEP_TIME;
-  mdlpvp->olp->step_time=volp->time_unit;
-  mdlpvp->olp->time_list_head=NULL;
-  mdlpvp->olp->curr_time_ptr=NULL;
-  mdlpvp->olp->buffersize=COUNTBUFFERSIZE;
-  mdlpvp->olp->curr_buf_index=0;
-  mdlpvp->olp->chunk_count=0;
-  mdlpvp->olp->counter_info_head=NULL;
+  mdlpvp->obp->t=0;
+  mdlpvp->obp->timer_type=STEP_TIME;
+  mdlpvp->obp->step_time=volp->time_unit;
+  mdlpvp->obp->time_list_head=NULL;
+  mdlpvp->obp->curr_time_ptr=NULL;
+  mdlpvp->obp->buffersize=COUNTBUFFERSIZE;
+  mdlpvp->obp->curr_buf_index=0;
+  mdlpvp->obp->chunk_count=0;
+  mdlpvp->obp->output_item_head=NULL;
 }
        output_timer_def
        list_count_cmds
        '}'
 { 
-  if ((mdlpvp->olp->time_array=(double *)
-       malloc(mdlpvp->olp->buffersize*sizeof(double)))==NULL) {
-    mdlerror("Cannot store output list data");
+  if ((mdlpvp->obp->time_array=(double *)
+       malloc(mdlpvp->obp->buffersize*sizeof(double)))==NULL) {
+    mdlerror("Cannot store output block data");
     return(1);
   }
 };
@@ -4632,21 +4632,21 @@ output_timer_def:  step_time_def
 
 step_time_def: STEP '=' num_expr
 {
-  mdlpvp->olp->step_time=$<dbl>3;
-  mdlpvp->olp->timer_type=STEP_TIME;
+  mdlpvp->obp->step_time=$<dbl>3;
+  mdlpvp->obp->timer_type=STEP_TIME;
 
-  mdlpvp->output_freq=mdlpvp->olp->step_time/volp->time_unit;
+  mdlpvp->output_freq=mdlpvp->obp->step_time/volp->time_unit;
   
   if (mdlpvp->output_freq>volp->iterations) {
     sprintf(mdlpvp->mdl_err_msg,"Output step time too large\n\tSetting output step time to %g microseconds\n",volp->iterations*volp->time_unit/1.0e-6);
     mdl_warning(mdlpvp);
-    mdlpvp->olp->step_time=volp->iterations*volp->time_unit;
+    mdlpvp->obp->step_time=volp->iterations*volp->time_unit;
     mdlpvp->output_freq=volp->iterations;
   }
   if (mdlpvp->output_freq<1) {
     sprintf(mdlpvp->mdl_err_msg,"Output frequency too low\n\tSetting output frequency to %g microseconds\n",volp->time_unit/1.0e-6);
     mdl_warning(mdlpvp);
-    mdlpvp->olp->step_time=volp->time_unit;
+    mdlpvp->obp->step_time=volp->time_unit;
     mdlpvp->output_freq=1;
   }
 
@@ -4655,34 +4655,34 @@ step_time_def: STEP '=' num_expr
    **/
   if (volp->chkpt_iterations) {
     mdlpvp->n_output=(int)(volp->chkpt_iterations/mdlpvp->output_freq+1);
-    mdlpvp->olp->buffersize=imin3(volp->chkpt_iterations-volp->start_time,mdlpvp->n_output,COUNTBUFFERSIZE);
+    mdlpvp->obp->buffersize=imin3(volp->chkpt_iterations-volp->start_time,mdlpvp->n_output,COUNTBUFFERSIZE);
   }
   else {
     mdlpvp->n_output=(int)(volp->iterations/mdlpvp->output_freq+1);
-    mdlpvp->olp->buffersize=imin3(volp->iterations-volp->start_time,mdlpvp->n_output,COUNTBUFFERSIZE);
+    mdlpvp->obp->buffersize=imin3(volp->iterations-volp->start_time,mdlpvp->n_output,COUNTBUFFERSIZE);
   }
 
   no_printf("Output step time definition:\n");
-  no_printf("  output step time = %g\n",mdlpvp->olp->step_time);
-  no_printf("  output buffersize = %u\n",mdlpvp->olp->buffersize);
+  no_printf("  output step time = %g\n",mdlpvp->obp->step_time);
+  no_printf("  output buffersize = %u\n",mdlpvp->obp->buffersize);
 }
         | /* empty */
 {
-  mdlpvp->olp->step_time=volp->time_unit;
-  mdlpvp->olp->timer_type=STEP_TIME;
+  mdlpvp->obp->step_time=volp->time_unit;
+  mdlpvp->obp->timer_type=STEP_TIME;
 
   mdlpvp->output_freq=1;
 
   if (mdlpvp->output_freq>volp->iterations) {
     sprintf(mdlpvp->mdl_err_msg,"Output frequency too high\n\tSetting output frequency to %g microseconds\n",volp->iterations*volp->time_unit/1.0e-6);
     mdl_warning(mdlpvp);
-    mdlpvp->olp->step_time=volp->iterations*volp->time_unit;
+    mdlpvp->obp->step_time=volp->iterations*volp->time_unit;
     mdlpvp->output_freq=volp->iterations;
   }
   if (mdlpvp->output_freq<1) {
     sprintf(mdlpvp->mdl_err_msg,"Output frequency too low\n\tSetting output frequency to %g microseconds\n",volp->time_unit/1.0e-6);
     mdl_warning(mdlpvp);
-    mdlpvp->olp->step_time=volp->time_unit;
+    mdlpvp->obp->step_time=volp->time_unit;
     mdlpvp->output_freq=1;
   }
 
@@ -4691,16 +4691,16 @@ step_time_def: STEP '=' num_expr
    **/
   if (volp->chkpt_iterations) {
     mdlpvp->n_output=(int)(volp->chkpt_iterations/mdlpvp->output_freq+1);
-    mdlpvp->olp->buffersize=imin3(volp->chkpt_iterations-volp->start_time,mdlpvp->n_output,COUNTBUFFERSIZE);
+    mdlpvp->obp->buffersize=imin3(volp->chkpt_iterations-volp->start_time,mdlpvp->n_output,COUNTBUFFERSIZE);
   }
   else {
     mdlpvp->n_output=(int)(volp->iterations/mdlpvp->output_freq+1);
-    mdlpvp->olp->buffersize=imin3(volp->iterations-volp->start_time,mdlpvp->n_output,COUNTBUFFERSIZE);
+    mdlpvp->obp->buffersize=imin3(volp->iterations-volp->start_time,mdlpvp->n_output,COUNTBUFFERSIZE);
   }
 
   no_printf("Default output step time definition:\n");
-  no_printf("  output step time = %g\n",mdlpvp->olp->step_time);
-  no_printf("  output buffersize = %u\n",mdlpvp->olp->buffersize);
+  no_printf("  output step time = %g\n",mdlpvp->obp->step_time);
+  no_printf("  output buffersize = %u\n",mdlpvp->obp->buffersize);
 };
 
 
@@ -4713,21 +4713,21 @@ iteration_time_def: ITERATION_LIST '='
 	'[' list_range_specs ']'
 {
   mdlpvp->n_output=mdlpvp->num_pos;
-  mdlpvp->olp->timer_type=IT_TIME;
+  mdlpvp->obp->timer_type=IT_TIME;
 
   /**
    * Compute the output buffersize.
    **/
   if (volp->chkpt_iterations) {
-    mdlpvp->olp->buffersize=imin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,COUNTBUFFERSIZE);
+    mdlpvp->obp->buffersize=imin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,COUNTBUFFERSIZE);
   }
   else {
-    mdlpvp->olp->buffersize=imin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,COUNTBUFFERSIZE);
+    mdlpvp->obp->buffersize=imin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,COUNTBUFFERSIZE);
   }
 
   sort_num_expr_list(mdlpvp->el_head);
-  mdlpvp->olp->time_list_head=mdlpvp->el_head;
-  mdlpvp->olp->curr_time_ptr=NULL;
+  mdlpvp->obp->time_list_head=mdlpvp->el_head;
+  mdlpvp->obp->curr_time_ptr=NULL;
 };
 
 
@@ -4740,21 +4740,21 @@ real_time_def: TIME_LIST '='
 	'[' list_range_specs ']'
 {
   mdlpvp->n_output=mdlpvp->num_pos;
-  mdlpvp->olp->timer_type=REAL_TIME;
+  mdlpvp->obp->timer_type=REAL_TIME;
 
   /**
    * Compute the output buffersize.
    **/
   if (volp->chkpt_iterations) {
-    mdlpvp->olp->buffersize=imin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,COUNTBUFFERSIZE);
+    mdlpvp->obp->buffersize=imin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,COUNTBUFFERSIZE);
   }
   else {
-    mdlpvp->olp->buffersize=imin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,COUNTBUFFERSIZE);
+    mdlpvp->obp->buffersize=imin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,COUNTBUFFERSIZE);
   }
 
   sort_num_expr_list(mdlpvp->el_head);
-  mdlpvp->olp->time_list_head=mdlpvp->el_head;
-  mdlpvp->olp->curr_time_ptr=NULL;
+  mdlpvp->obp->time_list_head=mdlpvp->el_head;
+  mdlpvp->obp->curr_time_ptr=NULL;
 };
 
 
@@ -4762,20 +4762,20 @@ list_count_cmds: count_cmd | list_count_cmds count_cmd;
 
 count_cmd: '{'
 {
-  if ((mdlpvp->cip=(struct counter_info *)malloc
-       (sizeof(struct counter_info)))==NULL) {
+  if ((mdlpvp->oip=(struct output_item *)malloc
+       (sizeof(struct output_item)))==NULL) {
     mdlerror("Cannot store output list data");
     return(1);
   }
-  mdlpvp->cip->next=mdlpvp->olp->counter_info_head;
-  mdlpvp->olp->counter_info_head=mdlpvp->cip;
-  mdlpvp->cip->outfile_name=NULL;
-  mdlpvp->cip->counter_list_head=NULL;
-  mdlpvp->cip->count_expr=NULL;
+  mdlpvp->oip->next=mdlpvp->obp->output_item_head;
+  mdlpvp->obp->output_item_head=mdlpvp->oip;
+  mdlpvp->oip->outfile_name=NULL;
+  mdlpvp->oip->output_evaluator_head=NULL;
+  mdlpvp->oip->count_expr=NULL;
 }
 	count_expr '}' '=' '>' outfile_syntax
 {
-  mdlpvp->cip->count_expr=$<cnt>3;
+  mdlpvp->oip->count_expr=$<cnt>3;
 };
 
 
@@ -4789,113 +4789,113 @@ count_expr: count_value
 }
 	| count_expr '+' count_expr
 {
-  if ((mdlpvp->clp=(struct counter_list *)malloc
-       (sizeof(struct counter_list)))==NULL) {
-    mdlerror("Cannot store counter data");
+  if ((mdlpvp->oep=(struct output_evaluator *)malloc
+       (sizeof(struct output_evaluator)))==NULL) {
+    mdlerror("Cannot store output evaluator data");
     return(1);
   }
-  mdlpvp->clp->next=mdlpvp->cip->counter_list_head;
-  mdlpvp->cip->counter_list_head=mdlpvp->clp;
+  mdlpvp->oep->next=mdlpvp->oip->output_evaluator_head;
+  mdlpvp->oip->output_evaluator_head=mdlpvp->oep;
 
-  mdlpvp->clp->update_flag=0;
-  mdlpvp->clp->reset_flag=0;
-  mdlpvp->clp->index_type=UNKNOWN;
-  mdlpvp->clp->data_type=EXPR;
-  mdlpvp->clp->n_data=0;
-  mdlpvp->clp->temp_data=NULL;
-  mdlpvp->clp->final_data=NULL;
-  mdlpvp->clp->operand1=$<cnt>1;
-  mdlpvp->clp->operand2=$<cnt>3;
-  mdlpvp->clp->oper='+';
+  mdlpvp->oep->update_flag=0;
+  mdlpvp->oep->reset_flag=0;
+  mdlpvp->oep->index_type=UNKNOWN;
+  mdlpvp->oep->data_type=EXPR;
+  mdlpvp->oep->n_data=0;
+  mdlpvp->oep->temp_data=NULL;
+  mdlpvp->oep->final_data=NULL;
+  mdlpvp->oep->operand1=$<cnt>1;
+  mdlpvp->oep->operand2=$<cnt>3;
+  mdlpvp->oep->oper='+';
 
-  $$=mdlpvp->clp;
+  $$=mdlpvp->oep;
 }
         | count_expr '-' count_expr
 {
-  if ((mdlpvp->clp=(struct counter_list *)malloc
-       (sizeof(struct counter_list)))==NULL) {
-    mdlerror("Cannot store counter data");
+  if ((mdlpvp->oep=(struct output_evaluator *)malloc
+       (sizeof(struct output_evaluator)))==NULL) {
+    mdlerror("Cannot store output evaluator data");
     return(1);
   }
-  mdlpvp->clp->next=mdlpvp->cip->counter_list_head;
-  mdlpvp->cip->counter_list_head=mdlpvp->clp;
+  mdlpvp->oep->next=mdlpvp->oip->output_evaluator_head;
+  mdlpvp->oip->output_evaluator_head=mdlpvp->oep;
 
-  mdlpvp->clp->update_flag=0;
-  mdlpvp->clp->reset_flag=0;
-  mdlpvp->clp->index_type=UNKNOWN;
-  mdlpvp->clp->data_type=EXPR;
-  mdlpvp->clp->n_data=0;
-  mdlpvp->clp->temp_data=NULL;
-  mdlpvp->clp->final_data=NULL;
-  mdlpvp->clp->operand1=$<cnt>1;
-  mdlpvp->clp->operand2=$<cnt>3;
-  mdlpvp->clp->oper='-';
+  mdlpvp->oep->update_flag=0;
+  mdlpvp->oep->reset_flag=0;
+  mdlpvp->oep->index_type=UNKNOWN;
+  mdlpvp->oep->data_type=EXPR;
+  mdlpvp->oep->n_data=0;
+  mdlpvp->oep->temp_data=NULL;
+  mdlpvp->oep->final_data=NULL;
+  mdlpvp->oep->operand1=$<cnt>1;
+  mdlpvp->oep->operand2=$<cnt>3;
+  mdlpvp->oep->oper='-';
 
-  $$=mdlpvp->clp;
+  $$=mdlpvp->oep;
 }
         | count_expr '*' count_expr
 {
-  if ((mdlpvp->clp=(struct counter_list *)malloc
-       (sizeof(struct counter_list)))==NULL) {
-    mdlerror("Cannot store counter data");
+  if ((mdlpvp->oep=(struct output_evaluator *)malloc
+       (sizeof(struct output_evaluator)))==NULL) {
+    mdlerror("Cannot store output evaluator data");
     return(1);
   }
-  mdlpvp->clp->next=mdlpvp->cip->counter_list_head;
-  mdlpvp->cip->counter_list_head=mdlpvp->clp;
+  mdlpvp->oep->next=mdlpvp->oip->output_evaluator_head;
+  mdlpvp->oip->output_evaluator_head=mdlpvp->oep;
 
-  mdlpvp->clp->update_flag=0;
-  mdlpvp->clp->reset_flag=0;
-  mdlpvp->clp->index_type=UNKNOWN;
-  mdlpvp->clp->data_type=EXPR;
-  mdlpvp->clp->n_data=0;
-  mdlpvp->clp->temp_data=NULL;
-  mdlpvp->clp->final_data=NULL;
-  mdlpvp->clp->operand1=$<cnt>1;
-  mdlpvp->clp->operand2=$<cnt>3;
-  mdlpvp->clp->oper='*';
+  mdlpvp->oep->update_flag=0;
+  mdlpvp->oep->reset_flag=0;
+  mdlpvp->oep->index_type=UNKNOWN;
+  mdlpvp->oep->data_type=EXPR;
+  mdlpvp->oep->n_data=0;
+  mdlpvp->oep->temp_data=NULL;
+  mdlpvp->oep->final_data=NULL;
+  mdlpvp->oep->operand1=$<cnt>1;
+  mdlpvp->oep->operand2=$<cnt>3;
+  mdlpvp->oep->oper='*';
 
-  $$=mdlpvp->clp;
+  $$=mdlpvp->oep;
 }
         | count_expr '/' count_expr
 {
-  if ((mdlpvp->clp=(struct counter_list *)malloc
-       (sizeof(struct counter_list)))==NULL) {
-    mdlerror("Cannot store counter data");
+  if ((mdlpvp->oep=(struct output_evaluator *)malloc
+       (sizeof(struct output_evaluator)))==NULL) {
+    mdlerror("Cannot store output evaluator data");
     return(1);
   }
-  mdlpvp->clp->next=mdlpvp->cip->counter_list_head;
-  mdlpvp->cip->counter_list_head=mdlpvp->clp;
+  mdlpvp->oep->next=mdlpvp->oip->output_evaluator_head;
+  mdlpvp->oip->output_evaluator_head=mdlpvp->oep;
 
-  mdlpvp->clp->update_flag=0;
-  mdlpvp->clp->reset_flag=0;
-  mdlpvp->clp->index_type=UNKNOWN;
-  mdlpvp->clp->data_type=EXPR;
-  mdlpvp->clp->n_data=0;
-  mdlpvp->clp->temp_data=NULL;
-  mdlpvp->clp->final_data=NULL;
-  mdlpvp->clp->operand1=$<cnt>1;
-  mdlpvp->clp->operand2=$<cnt>3;
-  mdlpvp->clp->oper='/';
+  mdlpvp->oep->update_flag=0;
+  mdlpvp->oep->reset_flag=0;
+  mdlpvp->oep->index_type=UNKNOWN;
+  mdlpvp->oep->data_type=EXPR;
+  mdlpvp->oep->n_data=0;
+  mdlpvp->oep->temp_data=NULL;
+  mdlpvp->oep->final_data=NULL;
+  mdlpvp->oep->operand1=$<cnt>1;
+  mdlpvp->oep->operand2=$<cnt>3;
+  mdlpvp->oep->oper='/';
 
-  $$=mdlpvp->clp;
+  $$=mdlpvp->oep;
 }
         | '-' count_expr %prec UNARYMINUS
 {
-  if ((mdlpvp->clp=(struct counter_list *)malloc
-       (sizeof(struct counter_list)))==NULL) {
-    mdlerror("Cannot store counter data");
+  if ((mdlpvp->oep=(struct output_evaluator *)malloc
+       (sizeof(struct output_evaluator)))==NULL) {
+    mdlerror("Cannot store output evaluator data");
     return(1);
   }
-  mdlpvp->clp->next=mdlpvp->cip->counter_list_head;
-  mdlpvp->cip->counter_list_head=mdlpvp->clp;
+  mdlpvp->oep->next=mdlpvp->oip->output_evaluator_head;
+  mdlpvp->oip->output_evaluator_head=mdlpvp->oep;
 
-  if ((mdlpvp->clp2=(struct counter_list *)malloc
-       (sizeof(struct counter_list)))==NULL) {
-    mdlerror("Cannot store counter data");
+  if ((mdlpvp->oep2=(struct output_evaluator *)malloc
+       (sizeof(struct output_evaluator)))==NULL) {
+    mdlerror("Cannot store output evaluator data");
     return(1);
   }
-  mdlpvp->clp2->next=mdlpvp->cip->counter_list_head;
-  mdlpvp->cip->counter_list_head=mdlpvp->clp2;
+  mdlpvp->oep2->next=mdlpvp->oip->output_evaluator_head;
+  mdlpvp->oip->output_evaluator_head=mdlpvp->oep2;
 
   if (!(mdlpvp->dblp=(double *)malloc
 	(sizeof(double)))) {
@@ -4904,29 +4904,29 @@ count_expr: count_value
   }
 
   *mdlpvp->dblp=-1;
-  mdlpvp->clp2->update_flag=0;
-  mdlpvp->clp2->reset_flag=0;
-  mdlpvp->clp2->index_type=UNKNOWN;
-  mdlpvp->clp2->data_type=DBL;
-  mdlpvp->clp2->n_data=1;
-  mdlpvp->clp2->temp_data=(void *)mdlpvp->dblp;
-  mdlpvp->clp2->final_data=(void *)mdlpvp->dblp;
-  mdlpvp->clp2->operand1=NULL;
-  mdlpvp->clp2->operand2=NULL;
-  mdlpvp->clp2->oper='\0';
+  mdlpvp->oep2->update_flag=0;
+  mdlpvp->oep2->reset_flag=0;
+  mdlpvp->oep2->index_type=UNKNOWN;
+  mdlpvp->oep2->data_type=DBL;
+  mdlpvp->oep2->n_data=1;
+  mdlpvp->oep2->temp_data=(void *)mdlpvp->dblp;
+  mdlpvp->oep2->final_data=(void *)mdlpvp->dblp;
+  mdlpvp->oep2->operand1=NULL;
+  mdlpvp->oep2->operand2=NULL;
+  mdlpvp->oep2->oper='\0';
   
-  mdlpvp->clp->update_flag=0;
-  mdlpvp->clp->reset_flag=0;
-  mdlpvp->clp->index_type=UNKNOWN;
-  mdlpvp->clp->data_type=EXPR;
-  mdlpvp->clp->n_data=0;
-  mdlpvp->clp->temp_data=NULL;
-  mdlpvp->clp->final_data=NULL;
-  mdlpvp->clp->operand1=mdlpvp->clp2;
-  mdlpvp->clp->operand2=$<cnt>2;
-  mdlpvp->clp->oper='*';
+  mdlpvp->oep->update_flag=0;
+  mdlpvp->oep->reset_flag=0;
+  mdlpvp->oep->index_type=UNKNOWN;
+  mdlpvp->oep->data_type=EXPR;
+  mdlpvp->oep->n_data=0;
+  mdlpvp->oep->temp_data=NULL;
+  mdlpvp->oep->final_data=NULL;
+  mdlpvp->oep->operand1=mdlpvp->oep2;
+  mdlpvp->oep->operand2=$<cnt>2;
+  mdlpvp->oep->oper='*';
 
-  $$=mdlpvp->clp;
+  $$=mdlpvp->oep;
 };
 
 
@@ -4936,13 +4936,13 @@ count_value: COUNT '[' count_value_init count_syntax ']'
 }
         | EXPRESSION '[' num_expr ']'
 {
-  if ((mdlpvp->clp=(struct counter_list *)malloc
-       (sizeof(struct counter_list)))==NULL) {
-    mdlerror("Cannot store counter data");
+  if ((mdlpvp->oep=(struct output_evaluator *)malloc
+       (sizeof(struct output_evaluator)))==NULL) {
+    mdlerror("Cannot store output evaluator data");
     return(1);
   }
-  mdlpvp->clp->next=mdlpvp->cip->counter_list_head;
-  mdlpvp->cip->counter_list_head=mdlpvp->clp;
+  mdlpvp->oep->next=mdlpvp->oip->output_evaluator_head;
+  mdlpvp->oip->output_evaluator_head=mdlpvp->oep;
 
   if (!(mdlpvp->dblp=(double *)malloc
 	(sizeof(double)))) {
@@ -4951,51 +4951,51 @@ count_value: COUNT '[' count_value_init count_syntax ']'
   }
 
   *mdlpvp->dblp=$<dbl>3;
-  mdlpvp->clp->update_flag=0;
-  mdlpvp->clp->reset_flag=0;
-  mdlpvp->clp->index_type=TIME_STAMP_VAL;
-  mdlpvp->clp->data_type=DBL;
-  mdlpvp->clp->n_data=1;
-  mdlpvp->clp->temp_data=(void *)mdlpvp->dblp;
-  mdlpvp->clp->final_data=(void *)mdlpvp->dblp;
-  mdlpvp->clp->operand1=NULL;
-  mdlpvp->clp->operand2=NULL;
-  mdlpvp->clp->oper='\0';
+  mdlpvp->oep->update_flag=0;
+  mdlpvp->oep->reset_flag=0;
+  mdlpvp->oep->index_type=TIME_STAMP_VAL;
+  mdlpvp->oep->data_type=DBL;
+  mdlpvp->oep->n_data=1;
+  mdlpvp->oep->temp_data=(void *)mdlpvp->dblp;
+  mdlpvp->oep->final_data=(void *)mdlpvp->dblp;
+  mdlpvp->oep->operand1=NULL;
+  mdlpvp->oep->operand2=NULL;
+  mdlpvp->oep->oper='\0';
 
-  $$=mdlpvp->clp;
+  $$=mdlpvp->oep;
 }; 
 
 
 count_value_init: /* empty */
 {
-  if ((mdlpvp->clp=(struct counter_list *)malloc
-       (sizeof(struct counter_list)))==NULL) {
-    mdlerror("Cannot store counter data");
+  if ((mdlpvp->oep=(struct output_evaluator *)malloc
+       (sizeof(struct output_evaluator)))==NULL) {
+    mdlerror("Cannot store output evaluator data");
     return(1);
   }
-  mdlpvp->clp->next=mdlpvp->cip->counter_list_head;
-  mdlpvp->cip->counter_list_head=mdlpvp->clp;
+  mdlpvp->oep->next=mdlpvp->oip->output_evaluator_head;
+  mdlpvp->oip->output_evaluator_head=mdlpvp->oep;
 
-  mdlpvp->clp->update_flag=1;
-  mdlpvp->clp->reset_flag=0;
-  mdlpvp->clp->index_type=TIME_STAMP_VAL;
+  mdlpvp->oep->update_flag=1;
+  mdlpvp->oep->reset_flag=0;
+  mdlpvp->oep->index_type=TIME_STAMP_VAL;
 
-  mdlpvp->clp->data_type=UNKNOWN;
-  mdlpvp->clp->n_data=0;
-  mdlpvp->clp->temp_data=NULL;
-  mdlpvp->clp->final_data=NULL;
-  mdlpvp->clp->operand1=NULL;
-  mdlpvp->clp->operand2=NULL;
-  mdlpvp->clp->oper='\0';
+  mdlpvp->oep->data_type=UNKNOWN;
+  mdlpvp->oep->n_data=0;
+  mdlpvp->oep->temp_data=NULL;
+  mdlpvp->oep->final_data=NULL;
+  mdlpvp->oep->operand1=NULL;
+  mdlpvp->oep->operand2=NULL;
+  mdlpvp->oep->oper='\0';
 
-  $$=mdlpvp->clp;
+  $$=mdlpvp->oep;
 };
 
 
 outfile_syntax: file_name
 {
-  mdlpvp->cip->outfile_name=$<str>1;
-  no_printf("Counter output file set to %s\n",mdlpvp->cip->outfile_name); 
+  mdlpvp->oip->outfile_name=$<str>1;
+  no_printf("Counter output file set to %s\n",mdlpvp->oip->outfile_name); 
 };
 
 
@@ -5023,7 +5023,7 @@ mol_count_syntax: existing_molecule ',' WORLD
           volp->iterations=0;
         }
 
-	i1=mdlpvp->olp->buffersize;
+	i1=mdlpvp->obp->buffersize;
 	if ((mdlpvp->intp=(int *)malloc(i1*sizeof(int)))==NULL) {
 	  mdlerror("Cannot store count data");
 	  return(1);
@@ -5033,10 +5033,10 @@ mol_count_syntax: existing_molecule ',' WORLD
 	  mdlpvp->intp[i]=0;
 	}
 
-        mdlpvp->clp->data_type=INT;
-        mdlpvp->clp->n_data=i1;
-	mdlpvp->clp->temp_data=(void *)&mdlpvp->specp->population;
-        mdlpvp->clp->final_data=(void *)mdlpvp->intp;
+        mdlpvp->oep->data_type=INT;
+        mdlpvp->oep->n_data=i1;
+	mdlpvp->oep->temp_data=(void *)&mdlpvp->specp->population;
+        mdlpvp->oep->final_data=(void *)mdlpvp->intp;
   
 	no_printf("Counting number of molecule %s in WORLD\n",
           mdlpvp->specp->sym->name);
@@ -5072,7 +5072,7 @@ mol_count_syntax: existing_molecule ',' WORLD
           volp->iterations=0;
         }
 
-	i1=mdlpvp->olp->buffersize;
+	i1=mdlpvp->obp->buffersize;
 	if ((mdlpvp->intp=(int *)malloc(i1*sizeof(int)))==NULL) {
 	  mdlerror("Cannot store count data");
 	  return(1);
@@ -5082,10 +5082,10 @@ mol_count_syntax: existing_molecule ',' WORLD
 	  mdlpvp->intp[i]=0;
 	}
 
-        mdlpvp->clp->data_type=INT;
-        mdlpvp->clp->n_data=i1;
-	mdlpvp->clp->temp_data=(void *)&mdlpvp->cp->n_inside;
-        mdlpvp->clp->final_data=(void *)mdlpvp->intp;
+        mdlpvp->oep->data_type=INT;
+        mdlpvp->oep->n_data=i1;
+	mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->n_inside;
+        mdlpvp->oep->final_data=(void *)mdlpvp->intp;
 	no_printf("Counting number of molecule %s in region %s\n",
           mdlpvp->stp1->name,mdlpvp->stp2->name);
 	fflush(stderr);
@@ -5112,18 +5112,18 @@ mol_count_syntax: existing_molecule ',' WORLD
           volp->iterations=0;
         }
 
-	mdlpvp->clp->update_flag=0;
-        mdlpvp->clp->reset_flag=0;
-	mdlpvp->clp->data_type=EXPR;
-	mdlpvp->clp->index_type=UNKNOWN;
-	mdlpvp->clp->n_data=0;
-	mdlpvp->clp->temp_data=NULL;
-	mdlpvp->clp->final_data=NULL;
-	mdlpvp->clp->operand1=NULL;
-	mdlpvp->clp->operand2=NULL;
-	mdlpvp->clp->oper='+';
-	if (build_mol_count_tree(REPORT_CONTENTS,volp,mdlpvp->objp,mdlpvp->objp2,mdlpvp->cip,mdlpvp->clp,mdlpvp->specp,mdlpvp->olp->buffersize,mdlpvp->prefix_name)) {
-	  mdlerror("Cannot store molecule counter_list data");
+	mdlpvp->oep->update_flag=0;
+        mdlpvp->oep->reset_flag=0;
+	mdlpvp->oep->data_type=EXPR;
+	mdlpvp->oep->index_type=UNKNOWN;
+	mdlpvp->oep->n_data=0;
+	mdlpvp->oep->temp_data=NULL;
+	mdlpvp->oep->final_data=NULL;
+	mdlpvp->oep->operand1=NULL;
+	mdlpvp->oep->operand2=NULL;
+	mdlpvp->oep->oper='+';
+	if (build_mol_count_tree(REPORT_CONTENTS,volp,mdlpvp->objp,mdlpvp->objp2,mdlpvp->oip,mdlpvp->oep,mdlpvp->specp,mdlpvp->obp->buffersize,mdlpvp->prefix_name)) {
+	  mdlerror("Cannot store molecule output_evaluator data");
 	  return(1);
 	}
 
@@ -5160,7 +5160,7 @@ mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
 
         switch($<tok>5) {   
         case REPORT_FRONT_HITS:
-	  i1=mdlpvp->olp->buffersize;
+	  i1=mdlpvp->obp->buffersize;
 	  if ((mdlpvp->dblp=(double *)malloc(i1*sizeof(double)))==NULL) {
 	    mdlerror("Cannot store count data");
 	    return(1);
@@ -5168,13 +5168,13 @@ mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
 	  for (i=0;i<i1;i++) {
 	    mdlpvp->dblp[i]=0;
 	  }
-          mdlpvp->clp->data_type=DBL;
-          mdlpvp->clp->n_data=i1;
-          mdlpvp->clp->final_data=(void *)mdlpvp->dblp;
-          mdlpvp->clp->temp_data=(void *)&mdlpvp->cp->front_hits;
+          mdlpvp->oep->data_type=DBL;
+          mdlpvp->oep->n_data=i1;
+          mdlpvp->oep->final_data=(void *)mdlpvp->dblp;
+          mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->front_hits;
           break;
         case REPORT_BACK_HITS:   
-	  i1=mdlpvp->olp->buffersize;
+	  i1=mdlpvp->obp->buffersize;
 	  if ((mdlpvp->dblp=(double *)malloc(i1*sizeof(double)))==NULL) {
 	    mdlerror("Cannot store count data");
 	    return(1);
@@ -5182,33 +5182,33 @@ mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
 	  for (i=0;i<i1;i++) {
 	    mdlpvp->dblp[i]=0;
 	  }
-          mdlpvp->clp->data_type=DBL;
-          mdlpvp->clp->n_data=i1;
-          mdlpvp->clp->final_data=(void *)mdlpvp->dblp;
-          mdlpvp->clp->temp_data=(void *)&mdlpvp->cp->back_hits;
+          mdlpvp->oep->data_type=DBL;
+          mdlpvp->oep->n_data=i1;
+          mdlpvp->oep->final_data=(void *)mdlpvp->dblp;
+          mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->back_hits;
           break;
         case REPORT_ALL_HITS:   
-	  mdlpvp->clp->update_flag=0;
-          mdlpvp->clp->reset_flag=0;
-	  mdlpvp->clp->data_type=EXPR;
-	  mdlpvp->clp->index_type=UNKNOWN;
-	  mdlpvp->clp->n_data=0;
-	  mdlpvp->clp->temp_data=NULL;
-	  mdlpvp->clp->final_data=NULL;
-	  mdlpvp->clp->operand1=NULL;
-	  mdlpvp->clp->operand2=NULL;
-	  mdlpvp->clp->oper='+';
-          if (insert_mol_counter(REPORT_FRONT_HITS,volp,mdlpvp->cip,mdlpvp->clp,mdlpvp->cp,mdlpvp->olp->buffersize)) {
-	    mdlerror("Cannot store molecule counter_list data");
+	  mdlpvp->oep->update_flag=0;
+          mdlpvp->oep->reset_flag=0;
+	  mdlpvp->oep->data_type=EXPR;
+	  mdlpvp->oep->index_type=UNKNOWN;
+	  mdlpvp->oep->n_data=0;
+	  mdlpvp->oep->temp_data=NULL;
+	  mdlpvp->oep->final_data=NULL;
+	  mdlpvp->oep->operand1=NULL;
+	  mdlpvp->oep->operand2=NULL;
+	  mdlpvp->oep->oper='+';
+          if (insert_mol_counter(REPORT_FRONT_HITS,volp,mdlpvp->oip,mdlpvp->oep,mdlpvp->cp,mdlpvp->obp->buffersize)) {
+	    mdlerror("Cannot store molecule output_evaluator data");
             return(1);
           }
-          if (insert_mol_counter(REPORT_BACK_HITS,volp,mdlpvp->cip,mdlpvp->clp,mdlpvp->cp,mdlpvp->olp->buffersize)) {
-	    mdlerror("Cannot store molecule counter_list data");
+          if (insert_mol_counter(REPORT_BACK_HITS,volp,mdlpvp->oip,mdlpvp->oep,mdlpvp->cp,mdlpvp->obp->buffersize)) {
+	    mdlerror("Cannot store molecule output_evaluator data");
             return(1);
           }
           break;
         case REPORT_FRONT_CROSSINGS:
-	  i1=mdlpvp->olp->buffersize;
+	  i1=mdlpvp->obp->buffersize;
 	  if ((mdlpvp->dblp=(double *)malloc(i1*sizeof(double)))==NULL) {
 	    mdlerror("Cannot store count data");
 	    return(1);
@@ -5216,13 +5216,13 @@ mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
 	  for (i=0;i<i1;i++) {
 	    mdlpvp->dblp[i]=0;
 	  }
-          mdlpvp->clp->data_type=DBL;
-          mdlpvp->clp->n_data=i1;
-          mdlpvp->clp->final_data=(void *)mdlpvp->dblp;
-          mdlpvp->clp->temp_data=(void *)&mdlpvp->cp->front_to_back;
+          mdlpvp->oep->data_type=DBL;
+          mdlpvp->oep->n_data=i1;
+          mdlpvp->oep->final_data=(void *)mdlpvp->dblp;
+          mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->front_to_back;
           break;
         case REPORT_BACK_CROSSINGS:
-	  i1=mdlpvp->olp->buffersize;
+	  i1=mdlpvp->obp->buffersize;
 	  if ((mdlpvp->dblp=(double *)malloc(i1*sizeof(double)))==NULL) {
 	    mdlerror("Cannot store count data");
 	    return(1);
@@ -5230,28 +5230,28 @@ mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
 	  for (i=0;i<i1;i++) {
 	    mdlpvp->dblp[i]=0;
 	  }
-          mdlpvp->clp->data_type=DBL;
-          mdlpvp->clp->n_data=i1;
-          mdlpvp->clp->final_data=(void *)mdlpvp->dblp;
-          mdlpvp->clp->temp_data=(void *)&mdlpvp->cp->back_to_front;
+          mdlpvp->oep->data_type=DBL;
+          mdlpvp->oep->n_data=i1;
+          mdlpvp->oep->final_data=(void *)mdlpvp->dblp;
+          mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->back_to_front;
           break;
         case REPORT_ALL_CROSSINGS:
-	  mdlpvp->clp->update_flag=0;
-          mdlpvp->clp->reset_flag=0;
-	  mdlpvp->clp->data_type=EXPR;
-	  mdlpvp->clp->index_type=UNKNOWN;
-	  mdlpvp->clp->n_data=0;
-	  mdlpvp->clp->temp_data=NULL;
-	  mdlpvp->clp->final_data=NULL;
-	  mdlpvp->clp->operand1=NULL;
-	  mdlpvp->clp->operand2=NULL;
-	  mdlpvp->clp->oper='+';
-          if (insert_mol_counter(REPORT_FRONT_CROSSINGS,volp,mdlpvp->cip,mdlpvp->clp,mdlpvp->cp,mdlpvp->olp->buffersize)) {
-	    mdlerror("Cannot store molecule counter_list data");
+	  mdlpvp->oep->update_flag=0;
+          mdlpvp->oep->reset_flag=0;
+	  mdlpvp->oep->data_type=EXPR;
+	  mdlpvp->oep->index_type=UNKNOWN;
+	  mdlpvp->oep->n_data=0;
+	  mdlpvp->oep->temp_data=NULL;
+	  mdlpvp->oep->final_data=NULL;
+	  mdlpvp->oep->operand1=NULL;
+	  mdlpvp->oep->operand2=NULL;
+	  mdlpvp->oep->oper='+';
+          if (insert_mol_counter(REPORT_FRONT_CROSSINGS,volp,mdlpvp->oip,mdlpvp->oep,mdlpvp->cp,mdlpvp->obp->buffersize)) {
+	    mdlerror("Cannot store molecule output_evaluator data");
             return(1);
           }
-          if (insert_mol_counter(REPORT_BACK_CROSSINGS,volp,mdlpvp->cip,mdlpvp->clp,mdlpvp->cp,mdlpvp->olp->buffersize)) {
-	    mdlerror("Cannot store molecule counter_list data");
+          if (insert_mol_counter(REPORT_BACK_CROSSINGS,volp,mdlpvp->oip,mdlpvp->oep,mdlpvp->cp,mdlpvp->obp->buffersize)) {
+	    mdlerror("Cannot store molecule output_evaluator data");
             return(1);
           }
           break;
@@ -5280,19 +5280,19 @@ mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
           volp->iterations=0;
         }
 
-	mdlpvp->clp->update_flag=0;
-        mdlpvp->clp->reset_flag=0;
-	mdlpvp->clp->data_type=EXPR;
-	mdlpvp->clp->index_type=UNKNOWN;
-	mdlpvp->clp->n_data=0;
-	mdlpvp->clp->temp_data=NULL;
-	mdlpvp->clp->final_data=NULL;
-	mdlpvp->clp->operand1=NULL;
-	mdlpvp->clp->operand2=NULL;
-	mdlpvp->clp->oper='+';
+	mdlpvp->oep->update_flag=0;
+        mdlpvp->oep->reset_flag=0;
+	mdlpvp->oep->data_type=EXPR;
+	mdlpvp->oep->index_type=UNKNOWN;
+	mdlpvp->oep->n_data=0;
+	mdlpvp->oep->temp_data=NULL;
+	mdlpvp->oep->final_data=NULL;
+	mdlpvp->oep->operand1=NULL;
+	mdlpvp->oep->operand2=NULL;
+	mdlpvp->oep->oper='+';
 
-	if (build_mol_count_tree((byte)$<tok>5,volp,mdlpvp->objp,mdlpvp->objp2,mdlpvp->cip,mdlpvp->clp,mdlpvp->specp,mdlpvp->olp->buffersize,mdlpvp->prefix_name)) {
-	  mdlerror("Cannot store molecule counter_list data");
+	if (build_mol_count_tree((byte)$<tok>5,volp,mdlpvp->objp,mdlpvp->objp2,mdlpvp->oip,mdlpvp->oep,mdlpvp->specp,mdlpvp->obp->buffersize,mdlpvp->prefix_name)) {
+	  mdlerror("Cannot store molecule output_evaluator data");
 	  return(1);
 	}
 

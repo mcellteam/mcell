@@ -1597,25 +1597,25 @@ struct counter *store_reg_counter(struct volume *volp,
 }
 
 
-struct counter_list *init_mol_counter(byte counter_type,
-                                      struct counter_info *cip,
+struct output_evaluator *init_mol_counter(byte counter_type,
+                                      struct output_item *oip,
                                       struct counter *cp,
                                       u_int buffersize)
 {
-  struct counter_list *clp;
+  struct output_evaluator *oep;
   double *dblp;
   int i,*intp;
   
-  if ((clp=(struct counter_list *)malloc(sizeof(struct counter_list)))==NULL) {
+  if ((oep=(struct output_evaluator *)malloc(sizeof(struct output_evaluator)))==NULL) {
     return(NULL);
   }
-  clp->next=cip->counter_list_head;
-  cip->counter_list_head=clp;
+  oep->next=oip->output_evaluator_head;
+  oip->output_evaluator_head=oep;
 
-  clp->update_flag=1;
-  clp->reset_flag=0;
-  clp->index_type=TIME_STAMP_VAL;
-  clp->n_data=buffersize;
+  oep->update_flag=1;
+  oep->reset_flag=0;
+  oep->index_type=TIME_STAMP_VAL;
+  oep->n_data=buffersize;
 
   switch(counter_type) {
   case REPORT_CONTENTS:
@@ -1625,9 +1625,9 @@ struct counter_list *init_mol_counter(byte counter_type,
     for (i=0;i<buffersize;i++) {
       intp[i]=0;
     }
-    clp->data_type=INT;
-    clp->final_data=(void *)intp;
-    clp->temp_data=(void *)&cp->n_inside;
+    oep->data_type=INT;
+    oep->final_data=(void *)intp;
+    oep->temp_data=(void *)&cp->n_inside;
     cp->reg_type->flags|=COUNT_CONTENTS;
     break;
   case REPORT_FRONT_HITS:
@@ -1637,9 +1637,9 @@ struct counter_list *init_mol_counter(byte counter_type,
     for (i=0;i<buffersize;i++) {
       dblp[i]=0;
     }
-    clp->data_type=DBL;
-    clp->final_data=(void *)dblp;
-    clp->temp_data=(void *)&cp->front_hits;
+    oep->data_type=DBL;
+    oep->final_data=(void *)dblp;
+    oep->temp_data=(void *)&cp->front_hits;
     cp->reg_type->flags|=COUNT_HITS;
     break;
   case REPORT_BACK_HITS:
@@ -1649,9 +1649,9 @@ struct counter_list *init_mol_counter(byte counter_type,
     for (i=0;i<buffersize;i++) {
       dblp[i]=0;
     }
-    clp->data_type=DBL;
-    clp->final_data=(void *)dblp;
-    clp->temp_data=(void *)&cp->back_hits;
+    oep->data_type=DBL;
+    oep->final_data=(void *)dblp;
+    oep->temp_data=(void *)&cp->back_hits;
     cp->reg_type->flags|=COUNT_HITS;
     break;
   case REPORT_FRONT_CROSSINGS:
@@ -1661,9 +1661,9 @@ struct counter_list *init_mol_counter(byte counter_type,
     for (i=0;i<buffersize;i++) {
       dblp[i]=0;
     }
-    clp->data_type=DBL;
-    clp->final_data=(void *)dblp;
-    clp->temp_data=(void *)&cp->front_to_back;
+    oep->data_type=DBL;
+    oep->final_data=(void *)dblp;
+    oep->temp_data=(void *)&cp->front_to_back;
     cp->reg_type->flags|=COUNT_HITS;
     break;
   case REPORT_BACK_CROSSINGS:
@@ -1673,9 +1673,9 @@ struct counter_list *init_mol_counter(byte counter_type,
     for (i=0;i<buffersize;i++) {
       dblp[i]=0;
     }
-    clp->data_type=DBL;
-    clp->final_data=(void *)dblp;
-    clp->temp_data=(void *)&cp->back_to_front;
+    oep->data_type=DBL;
+    oep->final_data=(void *)dblp;
+    oep->temp_data=(void *)&cp->back_to_front;
     cp->reg_type->flags|=COUNT_HITS;
     break;
   default:
@@ -1683,35 +1683,35 @@ struct counter_list *init_mol_counter(byte counter_type,
     break;
   }
 
-  clp->operand1=NULL;
-  clp->operand2=NULL;
-  clp->oper='\0';
+  oep->operand1=NULL;
+  oep->operand2=NULL;
+  oep->oper='\0';
 
-  return(clp);
+  return(oep);
 }
 
 
 
 int insert_mol_counter(byte counter_type,
                        struct volume *volp,
-                       struct counter_info *cip,
-                       struct counter_list *clp,
+                       struct output_item *oip,
+                       struct output_evaluator *oep,
                        struct counter *cp,
                        u_int buffersize)
 {
-  struct counter_list *operand,*o1,*o2,*tclp;
+  struct output_evaluator *operand,*o1,*o2,*toep;
 
-  operand = clp;
+  operand = oep;
   while (operand!=NULL) {
     if (operand->data_type==EXPR) {
       o1=operand->operand1;
       o2=operand->operand2;
       if (o1==NULL) {
         /* init operand1 and set operand2 to point to count_zero */
-        if ((tclp=init_mol_counter(counter_type,cip,cp,buffersize))==NULL) {
+        if ((toep=init_mol_counter(counter_type,oip,cp,buffersize))==NULL) {
           return(1);
         }
-        operand->operand1=tclp;
+        operand->operand1=toep;
         operand->operand2=volp->count_zero;
         return(0);
       }
@@ -1726,24 +1726,24 @@ int insert_mol_counter(byte counter_type,
         else {
 	  if (o2==volp->count_zero) {
             /* init operand and point operand2 at it */
-            if ((tclp=init_mol_counter(counter_type,cip,cp,buffersize))==NULL) {
+            if ((toep=init_mol_counter(counter_type,oip,cp,buffersize))==NULL) {
               return(1);
             }
-            operand->operand2=tclp;
+            operand->operand2=toep;
             return(0);
           }
 	  else {
             /* malloc space for new EXPR node in count tree at o2*/
-            tclp=o2;
-            if ((o2=(struct counter_list *)malloc(sizeof(struct counter_list)))==NULL) {
+            toep=o2;
+            if ((o2=(struct output_evaluator *)malloc(sizeof(struct output_evaluator)))==NULL) {
               return(1);
             }
             operand->operand2=o2;
-            if ((operand=init_mol_counter(counter_type,cip,cp,buffersize))==NULL) {
+            if ((operand=init_mol_counter(counter_type,oip,cp,buffersize))==NULL) {
               return(1);
             }
-            o2->next=cip->counter_list_head;
-            cip->counter_list_head=o2;
+            o2->next=oip->output_evaluator_head;
+            oip->output_evaluator_head=o2;
             o2->update_flag=0;
             o2->reset_flag=0;
             o2->index_type=UNKNOWN;
@@ -1751,7 +1751,7 @@ int insert_mol_counter(byte counter_type,
             o2->n_data=0;
             o2->temp_data=NULL;
             o2->final_data=NULL;
-            o2->operand1=tclp;
+            o2->operand1=toep;
             o2->operand2=operand;
             o2->oper='+';
             return(0);
@@ -1774,8 +1774,8 @@ int build_mol_count_tree(byte counter_type,
                          struct volume *volp,
                          struct object *objp,
                          struct object *root_objp,
-                         struct counter_info *cip,
-                         struct counter_list *clp,
+                         struct output_item *oip,
+                         struct output_evaluator *oep,
                          struct species *sp,
                          u_int buffersize,
                          char *sub_name)
@@ -1824,7 +1824,7 @@ int build_mol_count_tree(byte counter_type,
   case META_OBJ:
     child_objp=objp->first_child;
     while (child_objp!=NULL) {
-      if (build_mol_count_tree(counter_type,volp,child_objp,root_objp,cip,clp,sp,buffersize,sub_name)) {
+      if (build_mol_count_tree(counter_type,volp,child_objp,root_objp,oip,oep,sp,buffersize,sub_name)) {
         return(1);
       }
       child_objp=child_objp->next;
@@ -1862,23 +1862,23 @@ int build_mol_count_tree(byte counter_type,
 
     switch(counter_type) {
     case REPORT_ALL_HITS:
-      if (insert_mol_counter(REPORT_FRONT_HITS,volp,cip,clp,cp,buffersize)) {
+      if (insert_mol_counter(REPORT_FRONT_HITS,volp,oip,oep,cp,buffersize)) {
         return(1);
       }
-      if (insert_mol_counter(REPORT_BACK_HITS,volp,cip,clp,cp,buffersize)) {
+      if (insert_mol_counter(REPORT_BACK_HITS,volp,oip,oep,cp,buffersize)) {
         return(1);
       }
       break;
     case REPORT_ALL_CROSSINGS:
-      if (insert_mol_counter(REPORT_FRONT_CROSSINGS,volp,cip,clp,cp,buffersize)) {
+      if (insert_mol_counter(REPORT_FRONT_CROSSINGS,volp,oip,oep,cp,buffersize)) {
         return(1);
       }
-      if (insert_mol_counter(REPORT_BACK_CROSSINGS,volp,cip,clp,cp,buffersize)) {
+      if (insert_mol_counter(REPORT_BACK_CROSSINGS,volp,oip,oep,cp,buffersize)) {
         return(1);
       }
       break;
     default:
-      if (insert_mol_counter(counter_type,volp,cip,clp,cp,buffersize)) {
+      if (insert_mol_counter(counter_type,volp,oip,oep,cp,buffersize)) {
         return(1);
       }
       break;

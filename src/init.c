@@ -117,7 +117,7 @@ int init_sim(void)
 {
   FILE *log_file;
   struct sym_table *gp;
-  struct output_list *olp,*olpn;
+  struct output_block *obp,*obpn;
   int i;
   int *intp;
 #include "seed_array.h"
@@ -246,15 +246,15 @@ int init_sim(void)
   world->g_surf=(struct species *)gp->value;
   world->g_surf->flags=IS_SURFACE;
 
-  world->output_list_head=NULL;
+  world->output_block_head=NULL;
   world->release_event_queue_head=NULL;
   world->tot_mols=0;
   world->viz_obj_head=NULL;
   world->viz_mode=0;
   world->frame_data_head=NULL;
 
-  if ((world->count_zero=(struct counter_list *)malloc
-       (sizeof(struct counter_list)))==NULL) {
+  if ((world->count_zero=(struct output_evaluator *)malloc
+       (sizeof(struct output_evaluator)))==NULL) {
     fprintf(log_file,"MCell: cannot store counter data\n");
     return(1); 
   }
@@ -398,16 +398,16 @@ int init_sim(void)
 */
 
 /* Schedule the reaction data output events */
-  olp = world->output_list_head;
-  while(olp != NULL)
+  obp = world->output_block_head;
+  while(obp != NULL)
   {
-    olpn = olp->next;
-    if (schedule_add(world->count_scheduler , olp))
+    obpn = obp->next;
+    if (schedule_add(world->count_scheduler , obp))
     {
       fprintf(log_file,"MCell: error scheduling output for count statements\n");
       return 1;
     }
-    olp = olpn;
+    obp = obpn;
   }
 
   no_printf("Done initializing simulation\n");
