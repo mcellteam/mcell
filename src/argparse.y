@@ -213,6 +213,8 @@ void argerror(char *s,...)
   return;
 }
 
+
+#if 0
 int argparse_init(int argc, char *argv[], struct volume *vol)
 {
   struct argparse_vars arg_var;
@@ -263,4 +265,66 @@ int argparse_init(int argc, char *argv[], struct volume *vol)
 
   return(0);
 }
+#endif
 
+
+int argparse_init(int argc, char *argv[], struct volume *vol)
+{
+  struct argparse_vars arg_var;
+  struct yy_buffer_state *arg_input_buffer;
+  char *tempstr,*arg_string;
+  int arg_string_length;
+  int i;
+
+
+  arg_var.vol=vol;
+
+  vol->log_freq=100;
+  vol->log_file_name=NULL;
+  vol->log_file=stdout;
+  vol->err_file=stderr;
+  vol->seed_seq=1;
+  vol->info_opt=0;
+  vol->mdl_infile_name=NULL;
+
+  if ((arg_var.arg_err_msg=(char *)malloc(1024*sizeof(char)))==NULL) {
+    fprintf(vol->log_file,"MCell: out of memory storing arg_err_msg\n");
+    return(1);
+  }
+
+  arg_string_length=argc;
+  for (i=1;i<argc;i++) {
+    arg_string_length+=strlen(argv[i]);
+  }
+
+  if ((arg_string=(char *)malloc(arg_string_length*sizeof(char)))==NULL) {
+    fprintf(vol->log_file,
+      "MCell: out of memory storing arg_string length %d\n",arg_string_length);
+    return(1);
+  }
+
+  for (i=1;i<argc;i++) {
+    if (i==1) {
+      arg_string=my_strdup(argv[i]);
+    }
+    else {
+      tempstr=arg_string; 
+      arg_string=my_strcat(arg_string," ");
+      free(tempstr);
+
+      tempstr=arg_string; 
+      arg_string=my_strcat(arg_string,argv[i]);
+      free(tempstr);
+    }
+  }
+
+  arg_input_buffer=arg_scan_string(arg_string);
+
+  if (argparse((void *) &arg_var)) {
+     return(1);
+  }
+
+  arg_delete_buffer(arg_input_buffer);
+
+  return(0);
+}
