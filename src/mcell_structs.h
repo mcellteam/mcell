@@ -2,6 +2,7 @@
 #define MCELL_STRUCTS
 
 #include <sys/types.h>
+#include <stdio.h>
 
 #include "vector.h"
 #include "mem_util.h"
@@ -74,6 +75,13 @@
 #define Z_NEG 4
 #define Z_POS 5
 
+#define X_NEG_BIT 0x01
+#define X_POS_BIT 0x02
+#define Y_NEG_BIT 0x04
+#define Y_POS_BIT 0x08
+#define Z_NEG_BIT 0x10
+#define Z_POS_BIT 0x20
+
 
 /* Collision types for rays striking surfaces */
 #define COLLIDE_MISS    0
@@ -98,6 +106,7 @@
 
 /* ID for default species */
 #define GENERIC_MOLECULE 1
+#define GENERIC_SURFACE 2
 
 
 /* Size constants */
@@ -325,12 +334,6 @@ struct species
   short charge;                 /* Electric charge. */
   u_short flags;                /* Free?  Membrane bound?  Membrane? */
   
-/*struct rxn *bimol_rxn_table;*//* Hash of reactions with partners */
-/*u_int bimol_rxn_table_size;*/ /* Number of keys in table */
-/*double bimol_max_prob;*/      /* Max rx. prob. over all partners */
-    
-/*struct rxn *unimol_rxn;*/     /* Unimolecular transitions of self */
-  
   int viz_state;                /* Visualization state for output */
   byte checked;                 /* Bread crumb for graph traversal */
 };
@@ -344,14 +347,13 @@ struct rxn
   u_int n_reactants;         /* How many reactants? (At least 1.) */
   u_int n_pathways;          /* How many pathways lead away? */
   byte *n_products;          /* How many products for each pathway? */
-  int *product_index;        /* Starting index of products for each pathway */
   double *cum_rates;         /* Cumulative rates for (entering) all pathways */
   double *cat_rates;         /* Rate of leaving all pathways (<=0.0 is instant) */
   
   struct species **players;  /* Identities of reactants/products */
   short *geometries;         /* Geometries of reactants/products */
 
-  u_int fates;               /* What happens to reactants in each pathway? */
+  byte *fates;               /* What happens to reactants in each pathway? */
   
   int n_rate_t_rxns;         /* How many pathways have varying rates? */
   int *rate_t_rxn_map;       /* Indices of pathways with varying rates */
@@ -468,16 +470,12 @@ struct wall
   struct wall *next;              /* Next wall in the universe */
   
   struct species *wall_type;      /* Parameters for this type of wall */
-  byte wall_shape;                /* Shape: RECT_POLY, TRI_POLY, GEN_POLY */
-  byte side;                      /* Face of cube (TP, BOT, FRNT, etc.) */
-  byte projection;                /* Direction of 2D projection (0,1,2) */
 
-  byte n_vert;                    /* Number of vertices */
-  struct vector3 **vert;          /* Array of pointers to vertices */
-  struct vector3 **vert_normal;   /* Array of pointers to vertex normals */
+  struct vector3 *vert[3];        /* Array of pointers to vertices */
+  struct vector3 *vert_normal[3]; /* Array of pointers to vertex normals */
 
-  struct edge **edges;            /* Array of pointers to each edge. */
-  struct wall **nb_walls;         /* Array of pointers to neighboring walls */
+  struct edge *edges[3];          /* Array of pointers to each edge. */
+  struct wall *nb_walls[3];       /* Array of pointers to neighboring walls */
 
   double area;                    /* Area of this element */
   
@@ -545,9 +543,13 @@ struct subvolume
   struct short3D llf;          /* Indices of left lower front corner */
   struct short3D urb;          /* Indices of upper right back corner */
   
-  short flags;                 /* Flags saying what the void pointers are */
+  short is_bsp;                /* Flags saying what the void pointers are */
+
+  void *neighbor[6];           /* Subvolume or bsp_tree across each face */
   
-  void *neighbor[6];              /* Subvolume or bsp_tree across each face */
+  struct stack_helper *local_list;  /* Local storage for wall_list */
+  struct stack_helper *local_mol;   /* Local storage for mols */
+  struct stack_helper *local_wall;  /* Local storage for walls */  
 };
 
 
