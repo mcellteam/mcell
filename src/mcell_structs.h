@@ -569,6 +569,16 @@ struct bsp_tree
 };
 
 
+struct counter
+{
+  struct counter *next;
+  int wall_id;
+  int mol_id;
+  int crossings;
+  int impacts;
+};
+
+
 /* All data about the world */
 struct volume
 {
@@ -598,14 +608,20 @@ struct volume
   int n_surfaces;               /* Count of how many walls we have */
   struct wall *walls;           /* Head of a linked list of all walls */
   
+  int hashsize;                 /* How many entries in our hash table? */
   int n_reactions;              /* How many reactions are there, total? */
-  struct rxn **reaction_hash;    /* A hash table of all reactions. */
+  struct rxn **reaction_hash;   /* A hash table of all reactions. */
+  
+  int counter_hashmask;         /* Mask for looking up collision hash table */
+  struct counter **collide_hash;/* Collision hash table */
   
   int n_species;                /* How many different species? */
   struct species **species_list; /* Array of all species. */
   
   struct stack_helper *collision_stack;
   struct counter_helper *collision_counter;
+  
+  struct counter **counter_hash;
   
   u_int rng_idx;
 
@@ -629,11 +645,11 @@ struct volume
   double r_num_directions;
   double current_time;
   double current_start_time;
-  double effector_grid_density;
   double max_diffusion_step;
   double random_number_use;
   double ray_voxel_tests;
   double ray_polygon_tests;
+  double ray_polygon_colls;
   double diffusion_steps;
   double sim_elapse_time;
   u_int tot_mols;
@@ -990,6 +1006,7 @@ struct element_list {
  */
 struct region {
 	struct sym_table *sym;
+	int hashval;
         char *region_last_name;
 	struct object *parent;
 	struct element_list *element_list;
@@ -1002,7 +1019,7 @@ struct region {
  * [\todo what is this?]
  */
 struct region_list {
-	struct region *region;
+	struct region *reg;
 	struct region_list *next;
 };
 
@@ -1052,7 +1069,6 @@ struct object {
         unsigned int num_regions;	/**< number of regions defined */
 	struct region_list *region_list; /**< ptr to list of regions for 
 	struct counter_hash_table **counter_hash_table;	/**<hash table for region counter in object*/
-                                            this object */
 /*        struct eff_dat **eff_prop;*/	/**<  if this object is a
 					   BOX_OBJ or POLY_OBJ this will be an
 					   array of ptrs to eff_dat data
