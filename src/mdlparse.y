@@ -2771,8 +2771,8 @@ polygon_list_def: new_object POLYGON_LIST '{'
   }
   mdlpvp->elmlp->begin=0;
   mdlpvp->elmlp->end=mdlpvp->pop->n_walls-1;
-  mdlpvp->elmlp->next=mdlpvp->element_list_head;
-  mdlpvp->element_list_head=mdlpvp->elmlp;
+  mdlpvp->elmlp->next=mdlpvp->rp->element_list_head;
+  mdlpvp->rp->element_list_head=mdlpvp->elmlp;
 
   mdlpvp->rp->reg_counter_ref_list=NULL;
   mdlpvp->rp->surf_class=volp->g_surf;
@@ -3060,8 +3060,8 @@ box_def: new_object BOX '{'
   }
   mdlpvp->elmlp->begin=0;
   mdlpvp->elmlp->end=mdlpvp->pop->n_walls-1;
-  mdlpvp->elmlp->next=mdlpvp->element_list_head;
-  mdlpvp->element_list_head=mdlpvp->elmlp;
+  mdlpvp->elmlp->next=mdlpvp->rp->element_list_head;
+  mdlpvp->rp->element_list_head=mdlpvp->elmlp;
 
   mdlpvp->rp->reg_counter_ref_list=NULL;
   mdlpvp->rp->surf_class=volp->g_surf;
