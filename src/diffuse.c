@@ -124,7 +124,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
     
   for (wlp = sv->wall_head ; wlp != NULL; wlp = wlp->next)
   {
-    i = collide_wall(&(m->pos),v,wlp->this_wall,&(smash->t),&(smash->loc),m->collisions==-74);
+    i = collide_wall(&(m->pos),v,wlp->this_wall,&(smash->t),&(smash->loc));
 
     if (i==COLLIDE_REDO)
     {
@@ -241,7 +241,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
 
 void tell_loc(struct molecule *m,char *s)
 {
-  if (m->collisions == -74)
+  if (0)
   printf("%sMy name is %x and I live at %.3f,%.3f,%.3f\n",
          s,(int)m,m->pos.x*world->length_unit,m->pos.y*world->length_unit,m->pos.z*world->length_unit);
 }
@@ -417,7 +417,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
       if ( (smash->what & COLLIDE_MOL) != 0 && !inert )
       {
-/*        m->collisions++; */
+        m->collisions++; 
         i = test_bimolecular(smash->intermediate,SET_ME_PROPERLY);
         if (i<0) continue;
         

@@ -448,7 +448,7 @@ void release_molecules(struct release_event_queue *req)
   
   m.t2 = 0.0;
   m.curr_cmprt = NULL;
-  m.collisions = global_index++;
+  m.collisions = 0;
   m.path_length = 0.0;
   
   switch(rso->release_number_method)
@@ -503,7 +503,6 @@ void release_molecules(struct release_event_queue *req)
       m.pos.z = xyz[2] + req->location.z;
       
       guess = insert_molecule(&m,guess);  /* Insert copy of m into world */
-      m.collisions++;
     }
   }
   else

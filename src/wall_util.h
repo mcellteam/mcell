@@ -49,7 +49,7 @@ int sharpen_world();
 void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
                     struct vector3 *A,struct vector3 *B,struct vector3 *n);
 int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
-                 double *t,struct vector3 *hitpt,int report);
+                 double *t,struct vector3 *hitpt);
 int collide_mol(struct vector3 *point,struct vector3 *move,
                 struct abstract_molecule *a,double *t,struct vector3 *hitpt);
 

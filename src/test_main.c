@@ -20,6 +20,9 @@ void run_sim(void)
   struct release_event_queue *req;
   double next_release_time;
   int i;
+  int count;
+  long long total_coll_1,total_coll_2;
+  double total_len;
   
   world->fully_random = 1;
 /*
@@ -69,11 +72,41 @@ void run_sim(void)
   }
 
 #if 1
+  count = 0;
+  total_coll_1 = 0;
+  total_coll_2 = 0;
+  total_len = 0.0;
+  for (i=0;i<world->n_subvols;i++)
+  {
+    struct molecule *mol;
+    for (mol = world->subvol[i].mol_head ; mol != NULL ; mol = mol->next_v)
+    {
+      if (mol->properties != NULL)
+      {
+        if (strcmp(mol->properties->sym->name,"Glw")==0)
+        {
+          count++;
+        }
+        else if (strcmp(mol->properties->sym->name,"ACh")==0)
+        {
+          total_len += mol->path_length;
+          total_coll_1 += mol->collisions;
+        }
+        else if (strcmp(mol->properties->sym->name,"Glu")==0)
+        {
+          total_coll_2 += mol->collisions;
+        }
+      }
+    }
+  }
+  printf("%d %.2f %lld %lld\n",count,total_len*world->length_unit,total_coll_1,total_coll_2);
+#endif    
+#if 0
   for (i=0;i<world->n_subvols;i++)
   {
     struct molecule *mol;
     int j;
-/*    printf("Subvolume %d (%d molecules):\n",i,world->subvol[i].mol_count);*/
+/*    printf("Subvolume %d (%d molecules):\n",i,world->subvol[i].mol_count); */
     
     for (mol = world->subvol[i].mol_head ; mol != NULL ; mol = mol->next_v)
     {

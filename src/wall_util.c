@@ -558,24 +558,13 @@ collide_wall:
 ***************************************************************************/
 
 int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
-                 double *t,struct vector3 *hitpt,int report)
+                 double *t,struct vector3 *hitpt)
 {
   double dp,dv,dd;
   double nx,ny,nz;
   double a,b,c;
   double f,g,h;
   struct vector3 local;
-  
-  if (report)
-  {
-    printf("(%.2f,%.2f,%.2f)->(%.2f,%.2f,%.2f) vs\n  %x [(%.2f,%.2f,%.2f) (%.2f,%.2f,%.2f) (%.2f,%.2f,%.2f)]\n",
-           point->x,point->y,point->z,
-           point->x+move->x,point->y+move->y,point->z+move->z,
-           (int)face,
-           face->vert[0]->x,face->vert[0]->y,face->vert[0]->z,
-           face->vert[1]->x,face->vert[1]->y,face->vert[1]->z,
-           face->vert[2]->x,face->vert[2]->y,face->vert[2]->z);
-  }
   
   nx = face->normal.x;
   ny = face->normal.y;
@@ -1145,6 +1134,7 @@ struct wall* distribute_wall(struct wall *w)
       for (i=x_min;i<x_max;i++)
       {
         h = k + (world->n_parts - 1)*(j + (world->n_parts - 1)*i);
+/* FIX ME: DON'T ADD IF WALL DOESN'T INTERSECT */
         wall_to_vol( where_am_i , &(world->subvol[h]) );
       }
     }
