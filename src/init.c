@@ -263,6 +263,7 @@ int init_sim(void)
   world->tot_mols=0;
   world->viz_obj_head=NULL;
   world->viz_mode=DX_MODE;
+  world->rk_mode_var=NULL;
   world->frame_data_head=NULL;
 
   if ((world->count_zero=(struct output_evaluator *)malloc

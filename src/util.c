@@ -511,3 +511,102 @@ void free_bit_array(struct bit_array *ba)
   free(ba);
 }
 
+
+
+/*************************************************************************
+bisect:
+  In: array of doubles, sorted low to high
+      int saying how many doubles there are
+      double we are using to bisect the array
+  Out: index of the largest element in the array smaller than the bisector
+*************************************************************************/
+
+int bisect(double *list,int n,double val)
+{
+  int lo,hi,mid;
+  lo = 0;
+  hi = n;
+  while (hi-lo > 1)
+  {
+    mid = (hi+lo)/2;
+    if (list[mid] > val) hi = mid;
+    else lo = mid;
+  }
+  return lo;
+}
+
+
+/*************************************************************************
+bisect_near:
+  In: array of doubles, sorted low to high
+      int saying how many doubles there are
+      double we are using to bisect the array
+  Out: index of the element closest to val
+*************************************************************************/
+
+int bisect_near(double *list,int n,double val)
+{
+  int lo,hi,mid;
+  lo = 0;
+  hi = n-1;
+  while (hi-lo > 1)
+  {
+    mid = (hi+lo)/2;
+    if (list[mid] > val) hi = mid;
+    else lo = mid;
+  }
+  if (val > list[hi]) return hi;
+  else if (val < list[lo]) return lo;
+  else if (val - list[lo] < list[hi] - val) return lo;
+  else return hi;
+}
+
+/*************************************************************************
+bin:
+  In: array of doubles, sorted low to high
+      int saying how many doubles there are
+      double we are trying to put into a bin
+  Out: which bin the double falls into, where
+         bin zero is smaller than the first element in the array
+	 bin n is larger than the last element in the array
+	 bin k is larger than element k but smaller than k+1
+*************************************************************************/
+
+int bin(double *list,int n,double val)
+{
+  int lo,hi,mid;
+  lo = 0;
+  hi = n-1;
+  while (hi-lo > 1)
+  {
+    mid = (hi+lo)/2;
+    if (list[mid] > val) hi = mid;
+    else lo = mid;
+  }
+  if (val > list[hi]) return hi+1;
+  else if (val<list[lo]) return lo;
+  else return lo+1;
+}
+
+
+
+/**********************************************************************
+distinguishable -- reports whether two doubles are measurably different
+
+Parameters
+	a -- first double
+	b -- second double
+	eps -- fractional difference that we think is different
+
+Returns
+	1 if the numbers are different, 0 otherwise
+**********************************************************************/
+
+int distinguishable(double a,double b,double eps)
+{
+  if (a<0) a=-a;
+  if (b<0) b=-b;
+  if (a>b) return ((a-b)>a*eps);
+  else return ((b-a) > b*eps);
+}
+

@@ -72,13 +72,13 @@ sym_table.o: makedefs sym_table.c sym_table.h mcell_structs.h
 
 # count/viz  
 
-viz_output.o: makedefs viz_output.c viz_output.h mcell_structs.h sched_util.h grid_util.h
+viz_output.o: makedefs viz_output.c viz_output.h mcell_structs.h sched_util.h grid_util.h util.h
 	$(CC) $(CFLAGS) -c viz_output.c
 
 react_output.o: makedefs react_output.c react_output.h mcell_structs.h sched_util.h
 	$(CC) $(CFLAGS) -c react_output.c
 
-count_util.o: makedefs count_util.c count_util.h wall_util.h vol_util.h mcell_structs.h grid_util.h rng.h
+count_util.o: makedefs count_util.c count_util.h wall_util.h vol_util.h mcell_structs.h grid_util.h rng.h util.h
 	$(CC) $(CFLAGS) -c count_util.c
 
 
@@ -87,7 +87,7 @@ count_util.o: makedefs count_util.c count_util.h wall_util.h vol_util.h mcell_st
 wall_util.o: makedefs wall_util.c wall_util.h rng.h vector.h vol_util.h mcell_structs.h mem_util.h util.h
 	$(CC) $(CFLAGS) -c wall_util.c
 
-vol_util.o: makedefs vol_util.c vol_util.h count_util.h rng.h react.h mcell_structs.h mem_util.h
+vol_util.o: makedefs vol_util.c vol_util.h count_util.h rng.h react.h mcell_structs.h mem_util.h util.h
 	$(CC) $(CFLAGS) -c vol_util.c
 
 react_trig.o: makedefs react_trig.c react.h mcell_structs.h

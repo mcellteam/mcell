@@ -4410,6 +4410,56 @@ viz_mode_def: MODE '=' NONE
 	| MODE '=' CUSTOM_RK
 {
   volp->viz_mode = RK_MODE;
+  volp->rk_mode_var = NULL;
+}
+	| MODE '=' CUSTOM_RK '['
+{
+  mdlpvp->el_head=NULL;
+  mdlpvp->el_tail=NULL;
+  mdlpvp->num_pos=0;
+}
+	list_range_specs ']'
+{
+  struct num_expr_list *nel;
+  int i;
+  double *parts_array;
+  int *bins_array;
+  sort_num_expr_list(mdlpvp->el_head);
+  
+  volp->rk_mode_var = (struct rk_mode_data*)malloc(sizeof(struct rk_mode_data));
+  parts_array = (double*)malloc(mdlpvp->num_pos * sizeof(double));
+  bins_array = (int*)malloc( (mdlpvp->num_pos+1) * sizeof(int) );
+  if (volp->rk_mode_var==NULL || parts_array==NULL || bins_array==NULL)
+  {
+    mdlerror("Out of memory while setting up for visualization\n");
+    return 1;
+  }
+  
+  for (i=0,nel=mdlpvp->el_head ; nel!=NULL ; nel=nel->next,i++)
+  {
+    parts_array[i] = nel->value/volp->length_unit;
+  }
+  for ( ; mdlpvp->el_head != NULL ; mdlpvp->el_head = nel );
+  {
+    nel = mdlpvp->el_head->next;
+    free(mdlpvp->el_head);
+  }
+  for (i=0;i<mdlpvp->num_pos+1;i++) bins_array[i] = 0;
+  volp->viz_mode = RK_MODE;
+  volp->rk_mode_var->n_bins = mdlpvp->num_pos+1;
+  volp->rk_mode_var->bins = bins_array;
+  volp->rk_mode_var->parts = parts_array;
+  volp->rk_mode_var->n_written = 0;
+}
+	point
+{
+  volp->rk_mode_var->direction = $<vec3>9;
+  if (vect_length(volp->rk_mode_var->direction)==0)
+  {
+    mdlerror("Cannot bin along a zero-length vector.\n");
+    return 1;
+  }
+  normalize(volp->rk_mode_var->direction);
 }
 	| MODE '=' ASCII
 {
@@ -4486,7 +4536,10 @@ range_spec: num_expr
 }
 	| '[' num_expr TO num_expr STEP num_expr ']'
 {
-  for (mdlpvp->tmp_dbl=$<dbl>2;mdlpvp->tmp_dbl<$<dbl>4;mdlpvp->tmp_dbl+=$<dbl>6) {
+  for (mdlpvp->tmp_dbl=$<dbl>2;
+       mdlpvp->tmp_dbl<$<dbl>4 || !distinguishable(mdlpvp->tmp_dbl,$<dbl>4,EPSILON);
+       mdlpvp->tmp_dbl+=$<dbl>6)
+  {
     if ((mdlpvp->elp=(struct num_expr_list *)malloc
         (sizeof(struct num_expr_list)))==NULL) {
       mdlerror("Cannot store iteration list data");

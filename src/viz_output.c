@@ -4075,7 +4075,6 @@ int output_rk_custom(struct frame_data_list *fdlp)
   FILE *log_file;
   FILE *custom_file;
   char cf_name[1024];
-  char cf_format[256];
   struct storage_list *slp;
   struct schedule_helper *shp;
   struct abstract_element *aep;
@@ -4084,8 +4083,10 @@ int output_rk_custom(struct frame_data_list *fdlp)
   struct grid_molecule *gmp;
   struct surface_molecule *smp;
   short orient = 0;
+  struct species *target;
   
-  int ndigits,i;
+  int i,j,k;
+  double d;
 
   int id;
   struct vector3 where;
@@ -4093,13 +4094,12 @@ int output_rk_custom(struct frame_data_list *fdlp)
   no_printf("Output in CUSTOM_RK mode...\n");
   log_file = world->log_file;
   
+  if (world->rk_mode_var==NULL) return output_ascii_molecules(fdlp);
+  
   if ((fdlp->type==ALL_FRAME_DATA) || (fdlp->type==MOL_POS) || (fdlp->type==MOL_STATES))
   {
-    i = 10;
-    for (ndigits = 1 ; i <= world->iterations && ndigits<10 ; i*=10 , ndigits++) {}
-    sprintf(cf_format,"%%s.rk.%%0%dd.dat",ndigits);
-    sprintf(cf_name,cf_format,world->molecule_prefix_name,fdlp->viz_iteration);
-    custom_file = fopen(cf_name,"w");
+    sprintf(cf_name,"%s.rk.dat",world->molecule_prefix_name);
+    custom_file = fopen(cf_name,(world->rk_mode_var->n_written)?"a+":"w");
     if (!custom_file)
     {
       fprintf(log_file,"Couldn't open file %s for viz output.\n",cf_name);
@@ -4107,54 +4107,68 @@ int output_rk_custom(struct frame_data_list *fdlp)
     }
     else no_printf("Writing to file %s\n",cf_name);
     
-    for (slp = world->storage_head ; slp != NULL ; slp = slp->next)
+    world->rk_mode_var->n_written++;
+    fprintf(custom_file,"%d",fdlp->viz_iteration);
+    for (j=0;j<world->n_species;j++)
     {
-      for (shp = slp->store->timer ; shp != NULL ; shp = shp->next_scale)
+      target = world->species_list[j];
+      if (target==NULL) continue;
+      if (target->viz_state==EXCLUDE_OBJ) continue;
+      for (k=0;k<world->rk_mode_var->n_bins;k++) world->rk_mode_var->bins[k] = 0;
+      id = target->viz_state;
+      
+      fprintf(custom_file,"\t%d",id);
+      
+      for (slp = world->storage_head ; slp != NULL ; slp = slp->next)
       {
-        for (i=-1;i<shp->buf_len;i++)
-        {
-          if (i<0) aep = shp->current;
-          else aep = shp->circ_buf_head[i];
-          
-          for (aep=(i<0)?shp->current:shp->circ_buf_head[i] ; aep!=NULL ; aep=aep->next)
-          {
-            amp = (struct abstract_molecule*)aep;
-            if (amp->properties == NULL) continue;
-            if (amp->properties->viz_state == EXCLUDE_OBJ) continue;
-
-            id = amp->properties->viz_state;
-            
-            if ((amp->properties->flags & NOT_FREE)==0)
-            {
-              mp = (struct molecule*)amp;
-              where.x = mp->pos.x;
-              where.y = mp->pos.y;
-              where.z = mp->pos.z;
-            }
-            else if ((amp->properties->flags & ON_SURFACE)!=0)
-            {
-              smp = (struct surface_molecule*)amp;
-              where.x = smp->pos.x;
-              where.y = smp->pos.y;
-              where.z = smp->pos.z;
-              orient = smp->orient;
-            }
-            else if ((amp->properties->flags & ON_GRID)!=0)
-            {
-              gmp = (struct grid_molecule*)amp;
-              grid2xyz(gmp->grid,gmp->grid_index,&where);
-              orient = gmp->orient;
-            }
-            else continue;
-            
-            where.x *= world->length_unit;
-            where.y *= world->length_unit;
-            where.z *= world->length_unit;
-            fprintf(custom_file,"%d %10.3e %10.3e %10.3e %2d\n",id,where.x,where.y,where.z,orient);
-          }
-        }
+	for (shp = slp->store->timer ; shp != NULL ; shp = shp->next_scale)
+	{
+	  for (i=-1;i<shp->buf_len;i++)
+	  {
+	    if (i<0) aep = shp->current;
+	    else aep = shp->circ_buf_head[i];
+	    
+	    for (aep=(i<0)?shp->current:shp->circ_buf_head[i] ; aep!=NULL ; aep=aep->next)
+	    {
+	      amp = (struct abstract_molecule*)aep;
+	      if (amp->properties != target) continue;
+  
+	      if ((amp->properties->flags & NOT_FREE)==0)
+	      {
+		mp = (struct molecule*)amp;
+		where.x = mp->pos.x;
+		where.y = mp->pos.y;
+		where.z = mp->pos.z;
+	      }
+	      else if ((amp->properties->flags & ON_SURFACE)!=0)
+	      {
+		smp = (struct surface_molecule*)amp;
+		where.x = smp->pos.x;
+		where.y = smp->pos.y;
+		where.z = smp->pos.z;
+		orient = smp->orient;
+	      }
+	      else if ((amp->properties->flags & ON_GRID)!=0)
+	      {
+		gmp = (struct grid_molecule*)amp;
+		grid2xyz(gmp->grid,gmp->grid_index,&where);
+		orient = gmp->orient;
+	      }
+	      else continue;
+	      
+	      d = dot_prod(&where , world->rk_mode_var->direction);
+	      
+	      k = bin(world->rk_mode_var->parts,world->rk_mode_var->n_bins-1,d);
+	      world->rk_mode_var->bins[k]++;
+	    }
+	  }
+	}
       }
+      for (i=k=0 ; k<world->rk_mode_var->n_bins ; k++) i+=world->rk_mode_var->bins[k];
+      if (i!=target->population) printf("Wanted to bin %d but found %d instead\n",target->population,i);
+      for (k=0 ; k<world->rk_mode_var->n_bins ; k++) fprintf(custom_file," %d",world->rk_mode_var->bins[k]);
     }
+    fprintf(custom_file,"\n");
     fclose(custom_file);
   }
   

@@ -14,6 +14,7 @@
 #include "rng.h"
 #include "grid_util.h"
 #include "mcell_structs.h"
+#include "util.h"
 #include "wall_util.h"
 #include "vol_util.h"
 #include "count_util.h"

@@ -17,57 +17,9 @@
 #include "vol_util.h"
 #include "react.h"
 #include "react_output.h"
+#include "util.h"
 
 extern struct volume *world;
-
-
-/*************************************************************************
-bisect:
-  In: array of doubles, sorted low to high
-      int saying how many doubles there are
-      double we are using to bisect the array
-  Out: index of the largest element in the array smaller than the bisector
-*************************************************************************/
-
-int bisect(double *list,int n,double val)
-{
-  int lo,hi,mid;
-  lo = 0;
-  hi = n;
-  while (hi-lo > 1)
-  {
-    mid = (hi+lo)/2;
-    if (list[mid] > val) hi = mid;
-    else lo = mid;
-  }
-  return lo;
-}
-
-
-/*************************************************************************
-bisect_near:
-  In: array of doubles, sorted low to high
-      int saying how many doubles there are
-      double we are using to bisect the array
-  Out: index of the element closest to val
-*************************************************************************/
-
-int bisect_near(double *list,int n,double val)
-{
-  int lo,hi,mid;
-  lo = 0;
-  hi = n-1;
-  while (hi-lo > 1)
-  {
-    mid = (hi+lo)/2;
-    if (list[mid] > val) hi = mid;
-    else lo = mid;
-  }
-  if (val > list[hi]) return hi;
-  else if (val < list[lo]) return lo;
-  else if (val - list[lo] < list[hi] - val) return lo;
-  else return hi;
-}
 
 
 /*************************************************************************
@@ -682,6 +634,7 @@ set_partitions:
   Out: 0 on success, 1 on error; coarse and fine partitions are set.
 *************************************************************************/
 
+/*FIXME: I am impossible to understand.  Comprehensibilize this function!*/
 int set_partitions()
 {
   double f_min,f_max,f,df,dfx,dfy,dfz;
@@ -834,13 +787,6 @@ int set_partitions()
       return 1;
     }
 
-    for(i = 0; i < world->nx_parts; i++)
-    {
-	world->x_partitions[i] = 0;
-        world->y_partitions[i] = 0;
-	world->z_partitions[i] = 0;
-    }
-
     x_aspect = (part_max.x - part_min.x) / f_max;
     y_aspect = (part_max.y - part_min.y) / f_max;
     z_aspect = (part_max.z - part_min.z) / f_max;
@@ -861,14 +807,14 @@ int set_partitions()
 
     f = (part_max.x - part_min.x) / (x_in - 1);
     world->x_partitions[0] = world->x_fineparts[1];
+    for (i=x_start;i<x_start+x_in;i++)
+    {
+      world->x_partitions[i] = world->x_fineparts[4096 + (i-x_start)*16384/(x_in-1)];
+    }
     for (i=x_start-1;i>0;i--)
     {
       for (j=0 ; world->x_partitions[i+1]-world->x_fineparts[4095-j] < f ; j++) {}
       world->x_partitions[i] = world->x_fineparts[4095-j];
-    }
-    for (i=x_start;i<x_start+x_in;i++)
-    {
-      world->x_partitions[i] = world->x_fineparts[4096 + (i-x_start)*16384/(x_in-1)];
     }
     for (i=x_start+x_in;i<world->nx_parts-1;i++)
     {
@@ -879,14 +825,14 @@ int set_partitions()
     
     f = (part_max.y - part_min.y) / (y_in - 1);
     world->y_partitions[0] = world->y_fineparts[1];
+    for (i=y_start;i<y_start+y_in;i++)
+    {
+      world->y_partitions[i] = world->y_fineparts[4096 + (i-y_start)*16384/(y_in-1)];
+    }
     for (i=y_start-1;i>0;i--)
     {
       for (j=0 ; world->y_partitions[i+1]-world->y_fineparts[4095-j] < f ; j++) {}
 	world->y_partitions[i] = world->y_fineparts[4095-j];
-    }
-    for (i=y_start;i<y_start+y_in;i++)
-    {
-      world->y_partitions[i] = world->y_fineparts[4096 + (i-y_start)*16384/(y_in-1)];
     }
     for (i=y_start+y_in;i<world->ny_parts-1;i++)
     {
@@ -897,14 +843,14 @@ int set_partitions()
     
     f = (part_max.z - part_min.z) / (z_in - 1);
     world->z_partitions[0] = world->z_fineparts[1];
+    for (i=z_start;i<z_start+z_in;i++)
+    {
+      world->z_partitions[i] = world->z_fineparts[4096 + (i-z_start)*16384/(z_in-1)];
+    }
     for (i=z_start-1;i>0;i--)
     {
       for (j=0 ; world->z_partitions[i+1]-world->z_fineparts[4095-j] < f ; j++) {}
       world->z_partitions[i] = world->z_fineparts[4095-j];
-    }
-    for (i=z_start;i<z_start+z_in;i++)
-    {
-      world->z_partitions[i] = world->z_fineparts[4096 + (i-z_start)*16384/(z_in-1)];
     }
     for (i=z_start+z_in;i<world->nz_parts-1;i++)
     {

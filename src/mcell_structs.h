@@ -951,6 +951,7 @@ struct volume
   int fully_random;
   int procnum;			/**< procedure number */
   int viz_mode;
+  struct rk_mode_data *rk_mode_var;
   byte voxel_image_mode;
   byte voxel_volume_mode;
   char *molecule_prefix_name;
@@ -1494,6 +1495,15 @@ struct num_expr_list {
   double value;
 };
  
+
+struct rk_mode_data
+{
+  int n_bins;
+  int* bins;
+  double *parts;
+  struct vector3 *direction;
+  int n_written;
+};
 
 #ifdef DEBUG
 #define no_printf printf

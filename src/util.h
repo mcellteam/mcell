@@ -69,5 +69,13 @@ void bit_operation(struct bit_array *ba,struct bit_array *bb,char op);
 void free_bit_array(struct bit_array *ba);
 
 
+int bisect(double *list,int n,double val);
+int bisect_near(double *list,int n,double val);
+int bin(double *list,int n,double val);
+
+
+int distinguishable(double a,double b,double eps);
+
+
 #endif
 
