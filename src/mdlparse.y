@@ -330,8 +330,8 @@ struct output_evaluator *cnt;
 %type <tok> rxn
 %type <tok> list_rxns
 %type <tok> rx_group_def
-%type <tok> unimolecular_rxn
-%type <tok> bimolecular_rxn
+%type <tok> one_way_unimolecular_rxn
+%type <tok> one_way_bimolecular_rxn
 %type <tok> product
 %type <tok> list_products
 
@@ -408,6 +408,9 @@ struct output_evaluator *cnt;
 
 
 /**********************
+
+%type <tok> two_way_unimolecular_rxn
+%type <tok> two_way_bimolecular_rxn
 
 %type <tok> r_spec
 %type <tok> event_spec
@@ -3704,8 +3707,8 @@ list_rxns: rxn
 ;
 
 
-rxn: unimolecular_rxn
-	| bimolecular_rxn
+rxn: one_way_unimolecular_rxn
+	| one_way_bimolecular_rxn
 ;
 
 
@@ -3825,7 +3828,7 @@ existing_rxpn_or_molecule: VAR
 };
 
 
-unimolecular_rxn: reactant right_arrow
+one_way_unimolecular_rxn: reactant right_arrow
 {
   mdlpvp->gp=$<sym>1;
   if ((mdlpvp->tp=retrieve_sym(mdlpvp->gp->name,RX,volp->main_sym_table))
@@ -3935,7 +3938,7 @@ unimolecular_rxn: reactant right_arrow
 };
 
 
-bimolecular_rxn: reactant '+'
+one_way_bimolecular_rxn: reactant '+'
 {
   mdlpvp->orient_class1=mdlpvp->orient_class;
 }
@@ -4574,101 +4577,55 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
       break;
   }
 }
-	| existing_logicalOrPhysical
-{
-  mdlpvp->element_list_head=NULL;
-}
-	'[' list_element_specs ']' '=' num_expr
+	| existing_region '=' num_expr
 {
   u_int i;
 
   mdlpvp->gp=$<sym>1;
-  mdlpvp->viz_state=(int) $<dbl>7;
-  switch (mdlpvp->gp->sym_type) {
-    case OBJ:
-      mdlpvp->existing_state=0;  
-      mdlpvp->slp=mdlpvp->surf_state_head;
-      while (mdlpvp->slp!=NULL && !mdlpvp->existing_state) {
-        mdlpvp->existing_state=mdlpvp->existing_state||(mdlpvp->viz_state==mdlpvp->slp->state);
-        mdlpvp->slp=mdlpvp->slp->next;
-      }
-      if (!mdlpvp->existing_state) {
-        if ((mdlpvp->slp=(struct state_list *)malloc 
-            (sizeof(struct state_list)))==NULL) {
-          mdlerror("MCell: error cannot store state list");
-          return(1);
-        }
-        mdlpvp->slp->state=mdlpvp->viz_state;
-        mdlpvp->slp->name=mdlpvp->gp->name;
-        mdlpvp->slp->next=mdlpvp->surf_state_head;
-        mdlpvp->surf_state_head=mdlpvp->slp;
-      }
-      mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-      switch (mdlpvp->objp->object_type) {
-        case META_OBJ:
-          mdlerror("Cannot set viz state value of elements of this type of object");
-          return(1);
-          break;
-        case BOX_OBJ:
-          mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
-          if (mdlpvp->objp->viz_state==NULL) {
-            if ((mdlpvp->objp->viz_state=(int *)malloc
-                 (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-	      sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for elements of box object %s",mdlpvp->gp->name);
-              mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-              return(1);
-            }
-            for (i=0;i<mdlpvp->pop->n_walls;i++) {
-              mdlpvp->objp->viz_state[i]=EXCLUDE_OBJ;
-            }
-          }
-          mdlpvp->elmlp=mdlpvp->element_list_head;
-          while (mdlpvp->elmlp!=NULL) {
-            if (mdlpvp->elmlp->begin < 0 || mdlpvp->elmlp->end > mdlpvp->pop->n_walls-1) {
-              mdlerror("Cannot set viz state value -- element out of range");
-              return(1);
-            }
-            for (i=mdlpvp->elmlp->begin;i<=mdlpvp->elmlp->end;i++) {
-              mdlpvp->objp->viz_state[i]=mdlpvp->viz_state;
-            }
-	    mdlpvp->elmlp=mdlpvp->elmlp->next;
-          }
-          break;
-        case POLY_OBJ:
-          mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
-          if (mdlpvp->objp->viz_state==NULL) {
-            if ((mdlpvp->objp->viz_state=(int *)malloc
-                 (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-	      sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for elements of polygon list object %s",mdlpvp->gp->name);
-              mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-              return(1);
-            }
-            for (i=0;i<mdlpvp->pop->n_walls;i++) {
-              mdlpvp->objp->viz_state[i]=EXCLUDE_OBJ;
-            }
-          }
-          mdlpvp->elmlp=mdlpvp->element_list_head;
-          while (mdlpvp->elmlp!=NULL) {
-            if (mdlpvp->elmlp->begin < 0 || mdlpvp->elmlp->end > mdlpvp->pop->n_walls-1) {
-              mdlerror("Cannot set viz state value -- element out of range");
-              return(1);
-            }
-            for (i=mdlpvp->elmlp->begin;i<=mdlpvp->elmlp->end;i++) {
-              mdlpvp->objp->viz_state[i]=mdlpvp->viz_state;
-            }
-	    mdlpvp->elmlp=mdlpvp->elmlp->next;
-          }
-          break;
-        default:
-          mdlerror("Cannot set viz state value of this type of object");
-          return(1);
-          break;
-      }
-      break;
-    default:
-      mdlerror("Cannot set viz state value of elements of this type of object");
+  mdlpvp->viz_state=(int) $<dbl>3;
+
+  mdlpvp->existing_state=0;  
+  mdlpvp->slp=mdlpvp->surf_state_head;
+  while (mdlpvp->slp!=NULL && !mdlpvp->existing_state) {
+    mdlpvp->existing_state=mdlpvp->existing_state||(mdlpvp->viz_state==mdlpvp->slp->state);
+    mdlpvp->slp=mdlpvp->slp->next;
+  }
+  if (!mdlpvp->existing_state) {
+    if ((mdlpvp->slp=(struct state_list *)malloc 
+        (sizeof(struct state_list)))==NULL) {
+      mdlerror("MCell: error cannot store state list");
       return(1);
-      break;
+    }
+    mdlpvp->slp->state=mdlpvp->viz_state;
+    mdlpvp->slp->name=mdlpvp->gp->name;
+    mdlpvp->slp->next=mdlpvp->surf_state_head;
+    mdlpvp->surf_state_head=mdlpvp->slp;
+  }
+  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
+
+  mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
+  if (mdlpvp->objp->viz_state==NULL) {
+    if ((mdlpvp->objp->viz_state=(int *)malloc
+        (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
+      sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for elements of object %s",mdlpvp->gp->name);
+      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      return(1);
+    }
+    for (i=0;i<mdlpvp->pop->n_walls;i++) {
+      mdlpvp->objp->viz_state[i]=EXCLUDE_OBJ;
+    }
+  }
+  mdlpvp->elmlp=mdlpvp->element_list_head;
+  while (mdlpvp->elmlp!=NULL) {
+    if (mdlpvp->elmlp->begin < 0
+        || mdlpvp->elmlp->end > mdlpvp->pop->n_walls-1) {
+      mdlerror("Cannot set viz state value -- element out of range");
+      return(1);
+    }
+    for (i=mdlpvp->elmlp->begin;i<=mdlpvp->elmlp->end;i++) {
+      mdlpvp->objp->viz_state[i]=mdlpvp->viz_state;
+    }
+    mdlpvp->elmlp=mdlpvp->elmlp->next;
   }
 };
 
@@ -4681,6 +4638,7 @@ existing_logicalOrPhysical: VAR
   else {
     mdlpvp->sym_name=mdlpvp->cval;
   }
+
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
     if ((mdlpvp->gp=retrieve_sym(get_first_name(mdlpvp->sym_name),OBJ,volp->main_sym_table))==NULL) {
       sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined object:",mdlpvp->sym_name);
@@ -5166,7 +5124,7 @@ rxpn_or_mol_count_syntax: existing_rxpn_or_molecule ',' WORLD
   u_int i;
   byte report_type;
 
-  no_printf("Region molecule count syntax: \n");
+  no_printf("Region named reaction or molecule count syntax: \n");
   fflush(stderr);
 
   mdlpvp->stp1=$<sym>1;
