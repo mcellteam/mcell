@@ -188,8 +188,13 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
     }
     inter = inter->next;
   }
+
   
   hashGW = world->species_list[GENERIC_SURFACE]->hashval;
+  
+  if (hashW != hashGW)
+  {
+  
   if (hashA == hashGW) hash=hashA;
   else hash = hashA ^ hashGW;
   
@@ -200,7 +205,7 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
     if (inter->n_reactants==2)
     {
       if (reacA->properties==inter->players[0] &&
-          w->wall_type==inter->players[1])
+          world->species_list[GENERIC_SURFACE]==inter->players[1])
       {
         return inter;
         /* No geometry possible with generic surfaces! */
@@ -208,6 +213,9 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
     }
     inter = inter->next;
   }
+  
+  }
+  
   
   hashGM = world->species_list[GENERIC_MOLECULE]->hashval;
   if (hashW == hashGM) hash = hashW;
@@ -219,7 +227,7 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
   {
     if (inter->n_reactants==2)
     {
-      if (reacA->properties==inter->players[0] &&
+      if (world->species_list[GENERIC_MOLECULE]==inter->players[0] &&
           w->wall_type==inter->players[1])
       {
         geomA = inter->geometries[0];
