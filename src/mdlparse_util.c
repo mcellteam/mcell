@@ -1633,8 +1633,10 @@ struct counter *store_reg_counter(struct volume *volp,
     cp->reg_type=rp;
     
     if (counter_type_only == MOL_COUNTER) {
+#ifdef DEBUG
       printf("Will count mol %s (%x) within %s (%x) at hashval %x, counter type %d\n",
              sp->sym->name,sp->hashval,rp->sym->name,rp->hashval,j,(int)counter_type);
+#endif
       cp->data.move.mol_type=sp;
       cp->data.move.front_hits=0;
       cp->data.move.back_hits=0;
@@ -1644,8 +1646,10 @@ struct counter *store_reg_counter(struct volume *volp,
       cp->data.move.n_at=0;
     }
     else {
+#ifdef DEBUG
       printf("Will count rxn %s (%x) within %s (%x) at hashval %x\n",
              rxpnp->sym->name,rxpnp->hashval,rp->sym->name,rp->hashval,j);
+#endif
       cp->data.rx.rxn_type=rxpnp;
       cp->data.rx.n_rxn_enclosed=0;
       cp->data.rx.n_rxn_at=0;
@@ -1876,6 +1880,7 @@ int build_count_tree(byte report_type,
   {
      report_type -= REPORT_ENCLOSED;
      enclosed_count = REPORT_ENCLOSED;
+     printf("Report ON\n");
   }
   else enclosed_count = 0;
 
@@ -2000,21 +2005,27 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
   u_int count_flag = 0;
   byte counter_type = 0;
   byte base_report_type = report_type & REPORT_TYPE_MASK;
-
+  
   /* First step: set appropriate flags on molecules/reactions being counted */
   
   if (base_report_type == REPORT_CONTENTS) count_flag = COUNT_CONTENTS;
   else if (base_report_type == REPORT_RXNS) count_flag = COUNT_RXNS;
   else count_flag = COUNT_HITS;
   
-  if ( (report_type & REPORT_ENCLOSED) != REPORT_WORLD ) count_flag |= COUNT_ENCLOSED;
+  if ( (report_type & REPORT_ENCLOSED)!=0 && (report_type&REPORT_WORLD)==0 )
+  {
+    count_flag |= COUNT_ENCLOSED;
+  }
 
   if (sym_type==MOL)
   {
     sp = (struct species *)value;
     
     if (base_report_type == REPORT_RXNS) return 1;
-    if ( (sp->flags & NOT_FREE) == 0 ) count_flag |= COUNT_ENCLOSED;   
+    if ( (sp->flags & NOT_FREE) == 0 )
+    {
+      count_flag |= COUNT_ENCLOSED;
+    }
     sp->flags |= count_flag;
     
     counter_type = MOL_COUNTER;

@@ -504,8 +504,6 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
   u_int desired_hash;
   u_int COUNT_flag;
   
-  printf("Looking ... ");
-  
   if (rxp!=NULL)
   {
     desired_hash = rxp->hashval;
@@ -599,7 +597,6 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
 	         (g==NULL || (c->counter_type&ENCLOSING_COUNTER)!=0) )
 	    {
 	      c->data.move.n_enclosed += n;
-	      printf("Plus %d  ",n);
 	    }
 	    else if ( c->data.rx.rxn_type==rxp && 
 	              (c->counter_type&ENCLOSING_COUNTER)!=0 )
@@ -625,7 +622,6 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
 	         (g==NULL || (c->counter_type&ENCLOSING_COUNTER)!=0) )
 	    {
 	      c->data.move.n_enclosed -= n;
-	      printf("Plus %d  ",-n);
 	    }
 	    else if ( c->data.rx.rxn_type==rxp && 
 	              (c->counter_type&ENCLOSING_COUNTER)!=0 )
@@ -676,12 +672,10 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
 		      if (j==COLLIDE_FRONT)
 		      {
 			c->data.move.n_enclosed += n;
-			printf("plus %d  ",n);
 		      }
 		      else if (j==COLLIDE_BACK)
 		      {
 			c->data.move.n_enclosed -= n;
-			printf("plus %d  ",-n);
 		      }
 		    }
 		    else if (c->data.rx.rxn_type==rxp && (c->counter_type&ENCLOSING_COUNTER)!=0)
@@ -699,7 +693,6 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
     }
   }
   
-  printf("\n");
 }
 
 
