@@ -448,7 +448,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   struct product *prod,*prod2;
   struct rxn *rx;
   struct rxn **rx_tbl;
-  double pb_factor,D_tot;
+  double pb_factor,D_tot,rate;
   short geom;
   int i,j,k,kk,k2;
   int recycled1,recycled2,recycled3;
@@ -774,7 +774,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         }
         for (j=1;j<rx->n_pathways;j++)
         {
-          printf("Rate %.3e set for ",pb_factor*rx->cum_rates[j]);
+          if (rx->n_reactants==1) rate = 1.0-exp(-mpvp->vol->time_unit*rx->cum_rates[j]);
+          else rate = pb_factor*rx->cum_rates[j];
+
+          printf("Rate %.3e set for ",rate);
           if (rx->n_reactants==1) printf("%s[%d] -> ",rx->players[0]->sym->name,rx->geometries[0]);
           else printf("%s[%d] + %s[%d] -> ",
                       rx->players[0]->sym->name,rx->geometries[0],
@@ -785,7 +788,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
           }
           printf("\n");
-          rx->cum_rates[j] = pb_factor*rx->cum_rates[j] + rx->cum_rates[j-1];
+          rx->cum_rates[j] = rate + rx->cum_rates[j-1];
         }
         
         rx = rx->next;
