@@ -394,7 +394,9 @@ int init_sim(void)
 }
 
 
+/** Initializes array of molecules to the default properties values.
 
+*/
 int init_species(void)
 {
   int i;
@@ -414,8 +416,10 @@ int init_species(void)
   }
   
   world->n_species = count;  printf("Found %d species!\n",world->n_species);
-  world->species_list = (struct species**)malloc(sizeof(struct species*)*world->n_species);
-
+  if((world->species_list = (struct species**)malloc(sizeof(struct species*)*world->n_species)) == NULL)
+  {
+	return (1);
+  }
   count = 0;
   for (i=0;i<HASHSIZE;i++)
   {
