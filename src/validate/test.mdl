@@ -1,7 +1,7 @@
 
 dt = 1e-6
 it = 150
-efg = 1
+efg = 10000
 
 n=2000
 
@@ -19,6 +19,9 @@ DEFINE_MOLECULES {
   Glu {
     DIFFUSION_CONSTANT = 2.1e-6
   }
+  Glw {
+    DIFFUSION_CONSTANT = 0
+  }
 }
 
 DEFINE_SURFACE_CLASSES {
@@ -32,10 +35,7 @@ DEFINE_SURFACE_CLASSES {
 }
 
 DEFINE_REACTIONS {
-  ACh -> ACh + Glu [2000]
-  Glu' -> Glu, + ACh' [1000]
-  ACh + Glu' -> Glu, + ACh' [1e7]
-  ACh + Glu -> NULL [1e7]
+  ACh + Glu -> ACh + Glu + Glw [1e8]
 }
 
 DEFINE_RELEASE_PATTERN pat1 {
@@ -55,7 +55,7 @@ DEFINE_RELEASE_PATTERN pat2 {
 }
 
 ACh_release_site SPHERICAL_RELEASE_SITE {
-  LOCATION = [-0.5,0,0]
+  LOCATION = [-0.05,0,0]
   MOLECULE = ACh
   NUMBER_TO_RELEASE = n
   SITE_DIAMETER = 0.01
@@ -63,7 +63,7 @@ ACh_release_site SPHERICAL_RELEASE_SITE {
 }
 
 Glu_release_site SPHERICAL_RELEASE_SITE {
-  LOCATION = [0.5,0,0]
+  LOCATION = [0.05,0,0]
   MOLECULE = Glu
   NUMBER_TO_RELEASE = n
   SITE_DIAMETER = 0
@@ -71,7 +71,7 @@ Glu_release_site SPHERICAL_RELEASE_SITE {
 }
 
 box BOX {
-  CORNERS = [-1, -1, -1] , [1,1,1]
+  CORNERS = [-0.1, -0.1, -0.1] , [0.1,0.1,0.1]
   DEFINE_SURFACE_REGIONS {
     REGION reg1 {
       ELEMENT_LIST = [TOP,BOTTOM]

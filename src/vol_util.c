@@ -7,6 +7,7 @@
 \**************************************************************************/
 
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "rng.h"
@@ -19,7 +20,7 @@ extern struct volume *world;
 
 /*************************************************************************
 bisect:
-  In: array of doubles doubles, sorted low to high
+  In: array of doubles, sorted low to high
       int saying how many doubles there are
       double we are using to bisect the array
   Out: index of the largest element in the array smaller than the bisector
@@ -41,6 +42,32 @@ int bisect(double *list,int n,double val)
 
 
 /*************************************************************************
+bisect_near:
+  In: array of doubles, sorted low to high
+      int saying how many doubles there are
+      double we are using to bisect the array
+  Out: index of the element closest to val
+*************************************************************************/
+
+int bisect_near(double *list,int n,double val)
+{
+  int lo,hi,mid;
+  lo = 0;
+  hi = n-1;
+  while (hi-lo > 1)
+  {
+    mid = (hi+lo)/2;
+    if (list[mid] > val) hi = mid;
+    else lo = mid;
+  }
+  if (val > list[hi]) return hi;
+  else if (val < list[lo]) return lo;
+  else if (val - list[lo] < list[hi] - val) return lo;
+  else return hi;
+}
+
+
+/*************************************************************************
 inside_subvolume:
   In: pointer to vector3
       pointer to subvolume
@@ -49,12 +76,12 @@ inside_subvolume:
 
 int inside_subvolume(struct vector3 *point,struct subvolume *subvol)
 {
-  return ( (point->x >= world->x_partitions[ subvol->llf.x ] ) &&
-           (point->x <= world->x_partitions[ subvol->urb.x ] ) &&
-           (point->y >= world->y_partitions[ subvol->llf.y ] ) &&
-           (point->y <= world->y_partitions[ subvol->urb.y ] ) &&
-           (point->z >= world->z_partitions[ subvol->llf.z ] ) &&
-           (point->z <= world->z_partitions[ subvol->urb.z ] ) );
+  return ( (point->x >= world->x_fineparts[ subvol->llf.x ] ) &&
+           (point->x <= world->x_fineparts[ subvol->urb.x ] ) &&
+           (point->y >= world->y_fineparts[ subvol->llf.y ] ) &&
+           (point->y <= world->y_fineparts[ subvol->urb.y ] ) &&
+           (point->z >= world->z_fineparts[ subvol->llf.z ] ) &&
+           (point->z <= world->z_fineparts[ subvol->urb.z ] ) );
 }
 
 
@@ -67,13 +94,13 @@ find_course_subvolume:
 struct subvolume* find_course_subvol(struct vector3 *loc)
 {
   int i,j,k;
-  i = bisect(world->x_partitions,world->n_axis_partitions,loc->x);
-  j = bisect(world->y_partitions,world->n_axis_partitions,loc->y);
-  k = bisect(world->z_partitions,world->n_axis_partitions,loc->z);
+  i = bisect(world->x_partitions,world->n_parts,loc->x);
+  j = bisect(world->y_partitions,world->n_parts,loc->y);
+  k = bisect(world->z_partitions,world->n_parts,loc->z);
   return 
     &( world->subvol
       [
-        k + (world->n_axis_partitions-1)*(j + (world->n_axis_partitions-1)*i)
+        k + (world->n_parts-1)*(j + (world->n_parts-1)*i)
       ]
     );
 }
@@ -102,19 +129,19 @@ struct subvolume* traverse_subvol(struct subvolume *here,struct vector3 *point,i
     {
       if ( (branch->flags & X_AXIS) != 0 )
       {
-        if ( point->x <= world->x_partitions[ branch->partition ] ) left_path = 1;
+        if ( point->x <= world->x_fineparts[ branch->partition ] ) left_path = 1;
         else left_path = 0;
       }
       else
       {
         if ( (branch->flags & Y_AXIS) != 0 )
         {
-          if ( point->y <= world->y_partitions[ branch->partition ] ) left_path = 1;
+          if ( point->y <= world->y_fineparts[ branch->partition ] ) left_path = 1;
           else left_path = 0;
         }
         else /* Must be Z_AXIS */
         {
-          if ( point->z <= world->z_partitions[ branch->partition ] ) left_path = 1;
+          if ( point->z <= world->z_fineparts[ branch->partition ] ) left_path = 1;
           else left_path = 0;
         }
       }
@@ -215,43 +242,43 @@ struct subvolume* find_subvolume(struct vector3 *loc,struct subvolume *guess)
   if (guess == NULL) sv = find_course_subvol(loc);
   else sv = guess;
   
-  center.x = 0.5*(world->x_partitions[ sv->llf.x ] + world->x_partitions[ sv->urb.x ]);
-  center.y = 0.5*(world->y_partitions[ sv->llf.y ] + world->y_partitions[ sv->urb.y ]);
-  center.z = 0.5*(world->z_partitions[ sv->llf.z ] + world->z_partitions[ sv->urb.z ]);
+  center.x = 0.5*(world->x_fineparts[ sv->llf.x ] + world->x_fineparts[ sv->urb.x ]);
+  center.y = 0.5*(world->y_fineparts[ sv->llf.y ] + world->y_fineparts[ sv->urb.y ]);
+  center.z = 0.5*(world->z_fineparts[ sv->llf.z ] + world->z_fineparts[ sv->urb.z ]);
   
-  while (loc->x < world->x_partitions[ sv->llf.x ] )
+  while (loc->x < world->x_fineparts[ sv->llf.x ] )
   {
     sv = traverse_subvol(sv , &center , X_NEG);
-    center.x = 0.5*(world->x_partitions[ sv->llf.x ] + world->x_partitions[ sv->urb.x ]);
+    center.x = 0.5*(world->x_fineparts[ sv->llf.x ] + world->x_fineparts[ sv->urb.x ]);
   }
-  while (loc->x > world->x_partitions[ sv->urb.x ] )
+  while (loc->x > world->x_fineparts[ sv->urb.x ] )
   {
     sv = traverse_subvol(sv , &center , X_POS);
-    center.x = 0.5*(world->x_partitions[ sv->llf.x ] + world->x_partitions[ sv->urb.x ]);
+    center.x = 0.5*(world->x_fineparts[ sv->llf.x ] + world->x_fineparts[ sv->urb.x ]);
   }
   center.x = loc->x;
   
-  while (loc->y < world->y_partitions[ sv->llf.y ] )
+  while (loc->y < world->y_fineparts[ sv->llf.y ] )
   {
     sv = traverse_subvol(sv , &center , Y_NEG);
-    center.y = 0.5*(world->y_partitions[ sv->llf.y ] + world->y_partitions[ sv->urb.y ]);
+    center.y = 0.5*(world->y_fineparts[ sv->llf.y ] + world->y_fineparts[ sv->urb.y ]);
   }
-  while (loc->y > world->y_partitions[ sv->urb.y ] )
+  while (loc->y > world->y_fineparts[ sv->urb.y ] )
   {
     sv = traverse_subvol(sv , &center , Y_POS);
-    center.y = 0.5*(world->y_partitions[ sv->llf.y ] + world->y_partitions[ sv->urb.y ]);
+    center.y = 0.5*(world->y_fineparts[ sv->llf.y ] + world->y_fineparts[ sv->urb.y ]);
   }
   center.y = loc->y;
 
-  while (loc->z < world->z_partitions[ sv->llf.z ] )
+  while (loc->z < world->z_fineparts[ sv->llf.z ] )
   {
     sv = traverse_subvol(sv , &center , Z_NEG);
-    center.z = 0.5*(world->z_partitions[ sv->llf.z ] + world->z_partitions[ sv->urb.z ]);
+    center.z = 0.5*(world->z_fineparts[ sv->llf.z ] + world->z_fineparts[ sv->urb.z ]);
   }
-  while (loc->z > world->z_partitions[ sv->urb.z ] )
+  while (loc->z > world->z_fineparts[ sv->urb.z ] )
   {
     sv = traverse_subvol(sv , &center , Z_POS);
-    center.z = 0.5*(world->z_partitions[ sv->llf.z ] + world->z_partitions[ sv->urb.z ]);
+    center.z = 0.5*(world->z_fineparts[ sv->llf.z ] + world->z_fineparts[ sv->urb.z ]);
   }
   center.z = loc->z;
   
@@ -284,6 +311,7 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
   new_m->next_v = sv->mol_head;
   sv->mol_head = new_m;
   sv->mol_count++;
+  new_m->properties->population++;
   
   schedule_add(sv->mem->timer,new_m);
   
@@ -300,6 +328,7 @@ excert_molecule:
 void excert_molecule(struct molecule *m)
 {
   m->subvol->mol_count--;
+  m->properties->population--;
   m->properties = NULL;
 }
 
@@ -418,6 +447,8 @@ void release_molecules(struct release_event_queue *req)
   
   m.t2 = 0.0;
   m.curr_cmprt = NULL;
+  m.collisions = 0;
+  m.path_length = 0.0;
   
   switch(rso->release_number_method)
   {
@@ -482,4 +513,226 @@ void release_molecules(struct release_event_queue *req)
     for (i=0;i<number;i++) guess = insert_molecule(&m,guess);
   }
   
+}
+
+
+/* Utility function that uses bisection to solve for A,B,k such that
+  f(n) = A*exp(n*k)+B
+  f(0) = c
+  f(1) = c+d
+  f(N) = C
+*/
+
+void find_exponential_params(double c,double C,double d,double N,double *A,double *B, double *k)
+{
+  double k_min,k_max,k_mid,f;
+  int i;
+  
+  k_min = 0;
+  k_max = log(GIGANTIC)/N;
+  for (i=0;i<720;i++)
+  {
+    k_mid = 0.5*(k_min + k_max);
+    f = c + (exp(N*k_mid)-1.0)*d/(exp(k_mid)-1.0);
+    if (C > f) k_min = k_mid;
+    else k_max = k_mid;
+    if ((k_max-k_min)/(k_max+k_min) < EPS_C) break;
+  }
+  
+  *k = k_mid;
+  *A = d / ( exp(*k) - 1.0 );
+  *B = c - *A;
+}
+
+
+/*************************************************************************
+set_partitions:
+  In: nothing.  Uses struct volume *world, assumes bounding box is set.
+  Out: no return value; coarse and fine partitions are set.
+*************************************************************************/
+
+void set_partitions()
+{
+  double f_min,f_max,f,df;
+  int i,j;
+  double steps_min,steps_max;
+  double x_aspect,y_aspect,z_aspect;
+  int x_in,y_in,z_in;
+  int x_start,y_start,z_start;
+  double A,B,k;
+  
+  if (world->n_fineparts != 4096 + 16384 + 4096)
+  {
+    world->n_fineparts = 4096 + 16384 + 4096;
+    world->x_fineparts = (double*)malloc(sizeof(double)*world->n_fineparts);
+    world->y_fineparts = (double*)malloc(sizeof(double)*world->n_fineparts);
+    world->z_fineparts = (double*)malloc(sizeof(double)*world->n_fineparts);
+  }
+  
+  f_min = world->llf.x;
+  f_max = world->urb.x;
+  if (f_max - f_min < 1.0*world->length_unit)
+  {
+    f = 1.0*world->length_unit - (f_max-f_min);
+    f_max += f;
+    f_min -= f;
+  }
+  
+  df = (f_max - f_min)/16383.0;
+  for (i=0;i<16384;i++)
+  {
+    world->x_fineparts[ 4096 + i ] = f_min + df*((double)i);
+  }
+  find_exponential_params(-f_min,1e15,df,4096,&A,&B,&k);
+  for (i=1;i<=4096;i++) world->x_fineparts[4096-i] = -(A*exp(i*k)+B);
+  find_exponential_params(f_max,1e15,df,4096,&A,&B,&k);
+  for (i=1;i<=4096;i++) world->x_fineparts[4096+16383+i] = A*exp(i*k)+B;
+
+  f_min = world->llf.y;
+  f_max = world->urb.y;
+  if (f_max - f_min < 1.0*world->length_unit)
+  {
+    f = 1.0*world->length_unit - (f_max-f_min);
+    f_max += f;
+    f_min -= f;
+  }
+  
+  df = (f_max - f_min)/16383.0;
+  for (i=0;i<16384;i++)
+  {
+    world->y_fineparts[ 4096 + i ] = f_min + df*((double)i);
+  }
+  find_exponential_params(-f_min,1e15,df,4096,&A,&B,&k);
+  for (i=1;i<=4096;i++) world->y_fineparts[4096-i] = -(A*exp(i*k)+B);
+  find_exponential_params(f_max,1e15,df,4096,&A,&B,&k);
+  for (i=1;i<=4096;i++) world->y_fineparts[4096+16383+i] = A*exp(i*k)+B;
+
+  f_min = world->llf.z;
+  f_max = world->urb.z;
+  if (f_max - f_min < 1.0*world->length_unit)
+  {
+    f = 1.0*world->length_unit - (f_max-f_min);
+    f_max += f;
+    f_min -= f;
+  }
+  
+  df = (f_max - f_min)/16383.0;
+  for (i=0;i<16384;i++)
+  {
+    world->z_fineparts[ 4096 + i ] = f_min + df*((double)i);
+  }
+  find_exponential_params(-f_min,1e15,df,4096,&A,&B,&k);
+  for (i=1;i<=4096;i++) world->z_fineparts[4096-i] = -(A*exp(i*k)+B);
+  find_exponential_params(f_max,1e15,df,4096,&A,&B,&k);
+  for (i=1;i<=4096;i++) world->z_fineparts[4096+16383+i] = A*exp(i*k)+B;
+  
+  f = world->urb.x - world->llf.x;
+  f_min = f_max = f;
+  f = world->urb.y - world->llf.y;
+  if (f < f_min) f_min = f;
+  else if (f > f_max) f_max = f;
+  f = world->urb.z - world->llf.z;
+  if (f < f_min) f_min = f;
+  else if (f > f_max) f_max = f;
+  
+  if (world->speed_limit == 0)
+  {
+    steps_min = f_min;
+    steps_max = f_max;
+  }
+  else
+  {
+    steps_min = f_min / world->speed_limit;
+    steps_max = f_max / world->speed_limit;
+  }
+  
+  if (steps_max / MAX_TARGET_TIMESTEP > MAX_COARSE_PER_AXIS)
+  {
+    world->n_parts = MAX_COARSE_PER_AXIS;
+  }
+  else if (steps_min / MIN_TARGET_TIMESTEP < 1.0)
+  {
+    world->n_parts = MIN_COARSE_PER_AXIS;
+  }
+  else
+  {
+    world->n_parts = steps_min / MIN_TARGET_TIMESTEP;
+    if (world->n_parts > MAX_COARSE_PER_AXIS)
+      world->n_parts = MAX_COARSE_PER_AXIS;
+    if ((world->n_parts & 1) != 0) world->n_parts += 1;
+  }
+  
+  world->x_partitions = (double*) malloc( sizeof(double) * world->n_parts );
+  world->y_partitions = (double*) malloc( sizeof(double) * world->n_parts );
+  world->z_partitions = (double*) malloc( sizeof(double) * world->n_parts );
+  
+  x_aspect = (world->urb.x - world->llf.x) / f_max;
+  y_aspect = (world->urb.y - world->llf.y) / f_max;
+  z_aspect = (world->urb.z - world->llf.z) / f_max;
+  
+  x_in = floor( (world->n_parts - 2) * x_aspect + 0.5 );
+  y_in = floor( (world->n_parts - 2) * y_aspect + 0.5 );
+  z_in = floor( (world->n_parts - 2) * z_aspect + 0.5 );
+  
+  if (x_in < 2) x_in = 2;
+  if (y_in < 2) y_in = 2;
+  if (z_in < 2) z_in = 2;
+  x_start = (world->n_parts - x_in)/2;
+  y_start = (world->n_parts - y_in)/2;
+  z_start = (world->n_parts - z_in)/2;
+
+  f = (world->urb.x - world->llf.x) / (x_in - 1);
+  world->x_partitions[0] = world->x_fineparts[0];
+  for (i=x_start-1;i>0;i--)
+  {
+    for (j=0 ; world->x_partitions[i+1]-world->x_fineparts[4095-j] < f ; j++) {}
+    world->x_partitions[i] = world->x_fineparts[4095-j];
+  }
+  for (i=x_start;i<x_start+x_in;i++)
+  {
+    world->x_partitions[i] = world->x_fineparts[4096 + (i-x_start)*16384/(x_in-1)];
+  }
+  for (i=x_start+x_in;i<world->n_parts-1;i++)
+  {
+    for (j=0 ; world->x_fineparts[4096+16384+j]-world->x_partitions[i-1] < f ; j++) {}
+    world->x_partitions[i] = world->x_fineparts[4096+16384+j];
+  }
+  world->x_partitions[world->n_parts-1] = world->x_fineparts[4096+16384+4096-1];
+  
+  f = (world->urb.y - world->llf.y) / (y_in - 1);
+  world->y_partitions[0] = world->y_fineparts[0];
+  for (i=y_start-1;i>0;i--)
+  {
+    for (j=0 ; world->y_partitions[i+1]-world->y_fineparts[4095-j] < f ; j++) {}
+    world->y_partitions[i] = world->y_fineparts[4095-j];
+  }
+  for (i=y_start;i<y_start+y_in;i++)
+  {
+    world->y_partitions[i] = world->y_fineparts[4096 + (i-y_start)*16384/(y_in-1)];
+  }
+  for (i=y_start+y_in;i<world->n_parts-1;i++)
+  {
+    for (j=0 ; world->y_fineparts[4096+16384+j]-world->y_partitions[i-1] < f ; j++) {}
+    world->y_partitions[i] = world->y_fineparts[4096+16384+j];
+  }
+  world->y_partitions[world->n_parts-1] = world->y_fineparts[4096+16384+4096-1];
+  
+  f = (world->urb.z - world->llf.z) / (z_in - 1);
+  world->z_partitions[0] = world->z_fineparts[0];
+  for (i=z_start-1;i>0;i--)
+  {
+    for (j=0 ; world->z_partitions[i+1]-world->z_fineparts[4095-j] < f ; j++) {}
+    world->z_partitions[i] = world->z_fineparts[4095-j];
+  }
+  for (i=z_start;i<z_start+z_in;i++)
+  {
+    world->z_partitions[i] = world->z_fineparts[4096 + (i-z_start)*16384/(z_in-1)];
+  }
+  for (i=z_start+z_in;i<world->n_parts-1;i++)
+  {
+    for (j=0 ; world->z_fineparts[4096+16384+j]-world->z_partitions[i-1] < f ; j++) {}
+    world->z_partitions[i] = world->z_fineparts[4096+16384+j];
+  }
+  world->z_partitions[world->n_parts-1] = world->z_fineparts[4096+16384+4096-1];
+
 }

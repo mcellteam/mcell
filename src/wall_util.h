@@ -41,8 +41,10 @@ void ehtable_init(struct edge_hashtable *eht,int nkeys);
 void ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe);
 void ehtable_kill(struct edge_hashtable *eht);
 
-int surface_net( struct wall **facelist, int nfaces );
+int surface_net( struct wall **facelist, struct mem_helper *emem, int nfaces );
 void init_edge_transform(struct edge *e,int edgenum);
+void sharpen_object(struct object *parent,struct mem_helper *emem);
+void sharpen_world();
 
 void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
                     struct vector3 *A,struct vector3 *B,struct vector3 *n);

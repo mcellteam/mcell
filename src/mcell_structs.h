@@ -145,6 +145,12 @@
 #define MAX_RX_HASH 0x100000
 
 
+/* What's the upper bound on the number of coarse partitions? */
+#define MAX_COARSE_PER_AXIS 16
+#define MIN_COARSE_PER_AXIS 4
+#define MAX_TARGET_TIMESTEP 1.0e6
+#define MIN_TARGET_TIMESTEP 10.0
+
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
 /*********************************************************/
@@ -468,6 +474,8 @@ struct molecule
   struct subvolume *subvol;       /* Partition we are in */
   
   struct cmprt_data *curr_cmprt;  /* Compartment we are in (for counting) */
+  double path_length;
+  int collisions;
   
   struct molecule *next_v;        /* Next molecule in this subvolume */
 };
@@ -602,17 +610,26 @@ struct waypoint
 /* Contains space for molcules, walls, wall_lists, etc. */
 struct storage
 {
-  struct mem_helper *list;
-  struct mem_helper *mol;
-  struct mem_helper *smol;
-  struct mem_helper *gmol;
-  struct mem_helper *wall;
-  struct mem_helper *coll;
+  struct mem_helper *list;  /* Wall lists */
+  struct mem_helper *mol;   /* Molecules */
+  struct mem_helper *smol;  /* Surface molecules */
+  struct mem_helper *gmol;  /* Grid molecules */
+  struct mem_helper *wall;  /* Walls */
+  struct mem_helper *effs;  /* Effector grids */
+  struct mem_helper *coll;  /* Collision list */
   
   struct schedule_helper *timer;
   double current_time;
   double max_timestep;
 };
+
+/* Linked list of storage areas. */
+struct storage_list
+{
+  struct storage_list *next;
+  struct storage *store;
+};
+
 
 /* Walls and molecules in a spatial subvolume */
 struct subvolume
@@ -664,12 +681,12 @@ struct volume
   struct vector3 llf;           /* left lower front corner of world */
   struct vector3 urb;           /* upper right back corner of world */
   
-  int n_axis_partitions;        /* Number of coarse partition boundaries */
+  int n_parts;                  /* Number of coarse partition boundaries */
   double *x_partitions;         /* Coarse X partition boundaries */
   double *y_partitions;         /* Coarse Y partition boundaries */
   double *z_partitions;         /* Coarse Z partition boundaries */
   
-  int n_fine_partitions;        /* Number of fine partition boundaries (multiple of n_axis_partitions) */
+  int n_fineparts;        /* Number of fine partition boundaries (multiple of n_axis_partitions) */
   double *x_fineparts;           /* Fine X partition boundaries */
   double *y_fineparts;           /* Fine Y partition boundaries */
   double *z_fineparts;           /* Fine Z partition boundaries */
@@ -698,8 +715,11 @@ struct volume
   
   struct schedule_helper *releaser;
   
-  u_int rng_idx;
-
+  struct mem_helper *storage_mem;      /* Storage for storage list */
+  struct storage_list *storage_head;   /* Linked list of all storage */
+  
+  double speed_limit;           /* How far can the fastest particle get in one timestep? */
+  
   /* Simulation initialization parameters  */
   struct sym_table **main_sym_table;
   struct object *root_object;
@@ -1176,6 +1196,7 @@ struct object {
         int n_verts;                  /**< Total number of vertices in object */
         struct vector3 *verts;        /**< array of vertices in object */
         struct vector3 **vert_p;      /**< array of ptrs to verts in object */
+        struct mem_helper *edgemem;   /**< Storage for edges of object */
         struct viz_obj *viz_obj;
         int *viz_state;			/**< array of viz state values.
 					   One for each element of object. */

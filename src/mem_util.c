@@ -522,7 +522,7 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
       }
       while (j>=0)
       {
-        space[j] = data[j--];
+        space[j] = data[j]; j--;
         noprintf("SetX:%d = %.1f\n",j+1,*space[j+1]);
       }
 

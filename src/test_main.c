@@ -16,6 +16,7 @@ struct volume *world;
 
 void run_sim(void)
 {
+  struct storage_list *local;
   struct release_event_queue *req;
   double next_release_time;
   int i;
@@ -39,7 +40,7 @@ void run_sim(void)
     while (req != NULL)
     {
       release_molecules(req);
-      printf("Releasing! \n");
+      printf("Releasing type = %s! \n",req->release_site->mol_type->sym->name);
       req = schedule_next( world->releaser );
     }
 
@@ -47,18 +48,27 @@ void run_sim(void)
     if (!i) next_release_time = world->iterations + 1;
     if (next_release_time < world->it_time+1) next_release_time = world->it_time+1;
     
-    for (i=0;i<world->n_subvols;i++)
+    for (local = world->storage_head ; local != NULL ; local = local->next)
     {
-      if (world->subvol[i].mem->current_time <= world->it_time)
+      if (local->store->current_time <= world->it_time)
       {
-        run_timestep( &(world->subvol[i]) , next_release_time , (double)world->iterations );
+        run_timestep( local->store , next_release_time , (double)world->iterations );
       }
     }
     
     world->it_time++;
-    printf("Iterations: %d of %d\n",world->it_time,world->iterations);
+    printf("Iterations: %d of %d count ",world->it_time,world->iterations);
+    for (i=0;i<world->n_species;i++)
+    {
+      printf("#%s=%d ",
+             world->species_list[i]->sym->name,
+             world->species_list[i]->population
+            );
+    }
+    printf("\n");
   }
 
+#if 0
   for (i=0;i<world->n_subvols;i++)
   {
     struct molecule *mol;
@@ -72,11 +82,11 @@ void run_sim(void)
 /*        printf("Defunct molecule.\n"); */
         continue;
       }
-      if (mol->properties == world->species_list[0]) j = 0;
-      else j = 1;
-      printf("location = %7.3f %7.3f %7.3f %d\n",mol->pos.x,mol->pos.y,mol->pos.z,world->it_time);
+      for (j=0;j<world->n_species;j++) if (mol->properties==world->species_list[j]) break;
+      printf("location = %7.3f %7.3f %7.3f %d %9.3f %d\n",mol->pos.x,mol->pos.y,mol->pos.z,j,mol->path_length*world->length_unit,mol->collisions);
     }
   }
+#endif
 
   printf("Exiting run loop.\n");
 

@@ -22,6 +22,7 @@
 #include "rng.h"
 #include "sym_table.h"
 #include "wall_util.h"
+#include "vol_util.h"
 #include "init.h"
 
 #ifdef DEBUG
@@ -362,6 +363,10 @@ int init_species(void)
   int i;
   int count = 0;
   struct sym_table *gp;
+  struct species *s;
+  double speed;
+  
+  world->speed_limit = 0;
   
   for (i=0;i<HASHSIZE;i++)
   {
@@ -381,9 +386,17 @@ int init_species(void)
     {    
       if (gp->sym_type==MOL)
       {
-        world->species_list[count] = (struct species*) gp->value;
+        s = (struct species*) gp->value;
+        world->species_list[count] = s;
         world->species_list[count]->hashval &= world->hashsize-1;
         world->species_list[count]->radius = sqrt(1.0/MY_PI);
+        world->species_list[count]->population = 0;
+        if ( (s->flags & (ON_SURFACE | ON_GRID)) == 0 )
+        {
+          speed = 6.0*s->space_step/sqrt(MY_PI);
+          if (speed > world->speed_limit) world->speed_limit = speed;
+        }
+        count++;
       }
     }
   }
@@ -450,42 +463,44 @@ int init_partitions(void)
   part_hi.z *= (1.0+EPS_C)/world->length_unit;
   
   
-  world->n_axis_partitions = 11;
+  world->n_parts = 11;
 
-  if (world->n_axis_partitions < 4) world->n_axis_partitions = 4;
-  sv_axis = world->n_axis_partitions-1;
+  if (world->n_parts < 4) world->n_parts = 4;
   
-  world->x_partitions = (double*)malloc(sizeof(double)*world->n_axis_partitions);
-  world->y_partitions = (double*)malloc(sizeof(double)*world->n_axis_partitions);
-  world->z_partitions = (double*)malloc(sizeof(double)*world->n_axis_partitions);
+  world->x_partitions = (double*)malloc(sizeof(double)*world->n_parts);
+  world->y_partitions = (double*)malloc(sizeof(double)*world->n_parts);
+  world->z_partitions = (double*)malloc(sizeof(double)*world->n_parts);
 
   world->x_partitions[0] = - GIGANTIC;
   world->x_partitions[1] = part_lo.x;
-  world->x_partitions[world->n_axis_partitions-2] = part_hi.x;
-  world->x_partitions[world->n_axis_partitions-1] = GIGANTIC;
+  world->x_partitions[world->n_parts-2] = part_hi.x;
+  world->x_partitions[world->n_parts-1] = GIGANTIC;
 
   world->y_partitions[0] = - GIGANTIC;
   world->y_partitions[1] = part_lo.y;
-  world->y_partitions[world->n_axis_partitions-2] = part_hi.y;
-  world->y_partitions[world->n_axis_partitions-1] = GIGANTIC;
+  world->y_partitions[world->n_parts-2] = part_hi.y;
+  world->y_partitions[world->n_parts-1] = GIGANTIC;
 
   world->z_partitions[0] = - GIGANTIC;
   world->z_partitions[1] = part_lo.z;
-  world->z_partitions[world->n_axis_partitions-2] = part_hi.z;
-  world->z_partitions[world->n_axis_partitions-1] = GIGANTIC;
+  world->z_partitions[world->n_parts-2] = part_hi.z;
+  world->z_partitions[world->n_parts-1] = GIGANTIC;
 
-  for (i=2;i<world->n_axis_partitions-2;i++)
+  for (i=2;i<world->n_parts-2;i++)
   {
-    frac = ((double)(i-1)) / ((double)(world->n_axis_partitions-3));
+    frac = ((double)(i-1)) / ((double)(world->n_parts-3));
     world->x_partitions[i] = part_lo.x + frac*(part_hi.x - part_lo.x);
     world->y_partitions[i] = part_lo.y + frac*(part_hi.y - part_lo.y);
     world->z_partitions[i] = part_lo.z + frac*(part_hi.z - part_lo.z);
   }
     
-  world->n_fine_partitions = world->n_axis_partitions;
+  world->n_fineparts = world->n_parts;
   world->x_fineparts = world->x_partitions;
   world->y_fineparts = world->y_partitions;
   world->z_fineparts = world->z_partitions;
+  
+  set_partitions();
+  sv_axis = world->n_parts-1;
   
   world->n_waypoints = 1;
   world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint*)*world->n_waypoints);
@@ -496,16 +511,23 @@ int init_partitions(void)
   shared_mem->smol  = create_mem(sizeof(struct surface_molecule),50);
   shared_mem->gmol  = create_mem(sizeof(struct grid_molecule),50);
   shared_mem->wall = create_mem(sizeof(struct wall),50);
+  shared_mem->effs = create_mem(sizeof(struct surface_grid),50);
   shared_mem->coll = create_mem(sizeof(struct collision),50);
   
   shared_mem->timer = create_scheduler(1.0,100.0,100,0.0);
   shared_mem->current_time = 0.0;
+  
   if (world->time_step_max==0.0) shared_mem->max_timestep = MICROSEC_PER_YEAR;
   else
   {
     if (world->time_step_max < world->time_unit) shared_mem->max_timestep = 1.0;
     else shared_mem->max_timestep = world->time_step_max/world->time_unit;
   }
+  
+  world->storage_mem = create_mem(sizeof(struct storage_list),10);
+  world->storage_head = (struct storage_list*)mem_get(world->storage_mem);
+  world->storage_head->next = NULL;
+  world->storage_head->store = shared_mem;
   
   world->n_subvols = sv_axis * sv_axis * sv_axis;
   world->subvol = (struct subvolume*)malloc(sizeof(struct subvolume)*world->n_subvols);
@@ -523,12 +545,12 @@ int init_partitions(void)
     
     sv->index = h;
     
-    sv->llf.x = i;
-    sv->llf.y = j;
-    sv->llf.z = k;
-    sv->urb.x = i+1;
-    sv->urb.y = j+1;
-    sv->urb.z = k+1;
+    sv->llf.x = bisect_near( world->x_fineparts , world->n_fineparts , world->x_partitions[i] );
+    sv->llf.y = bisect_near( world->y_fineparts , world->n_fineparts , world->y_partitions[j] );
+    sv->llf.z = bisect_near( world->z_fineparts , world->n_fineparts , world->z_partitions[k] );
+    sv->urb.x = bisect_near( world->x_fineparts , world->n_fineparts , world->x_partitions[i+1] );
+    sv->urb.y = bisect_near( world->y_fineparts , world->n_fineparts , world->y_partitions[j+1] );
+    sv->urb.z = bisect_near( world->z_fineparts , world->n_fineparts , world->z_partitions[k+1] );
     
     sv->is_bsp = 0;
 
@@ -617,6 +639,7 @@ int init_geom(void)
   if (instance_obj(world->root_instance,tm,NULL,NULL,NULL)) {
     return(1);
   }
+  sharpen_world();  /* Add edges */
   
 /* Stick the queue of release events in a scheduler */
   req = world->release_event_queue_head;  

@@ -122,7 +122,7 @@ void ehtable_init(struct edge_hashtable *eht,int nkeys)
 {
   int i;
   
-  printf("Using %d keys.\n",nkeys);
+  no_printf("Using %d keys to find edges.\n",nkeys);
   eht->nkeys = nkeys;
   eht->stored = 0;
   eht->distinct = 0;
@@ -168,7 +168,6 @@ void ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
       pep->v2x = pe->v2x; pep->v2y = pe->v2y; pep->v2z = pe->v2z;
       eht->stored++;
       eht->distinct++;
-      printf(" (new)\n");
       return;
     }
     
@@ -180,7 +179,6 @@ void ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
         pep->edge2 = pe->edge1;
         pep->n++;
         eht->stored++;
-        printf(" (join)\n");
         return;
       }
       else                    /* ...or we're 3rd and need more space */
@@ -265,12 +263,13 @@ void ehtable_kill(struct edge_hashtable *eht)
 /***************************************************************************
 surface_net:
   In: array of pointers to walls
+      pointer to storage for the edges
       integer length of array
   Out: 1 if the surface is closed, 0 otherwise
   Note: Assumes no triply-connected edges.
 ***************************************************************************/
 
-int surface_net( struct wall **facelist, int nfaces )
+int surface_net( struct wall **facelist, struct mem_helper *edgemem, int nfaces )
 {
   struct poly_edge pe,*pep;
   struct edge *e;
@@ -289,9 +288,11 @@ int surface_net( struct wall **facelist, int nfaces )
     nedge = 3;
     for (j=0;j<nedge;j++)
     {
+      if (facelist[i]==NULL) continue;
+      
       if (j+1 < nedge) k = j+1;
       else k = 0;
-
+      
       pe.v1x = facelist[i]->vert[j]->x;
       pe.v1y = facelist[i]->vert[j]->y;
       pe.v1z = facelist[i]->vert[j]->z;
@@ -312,7 +313,7 @@ int surface_net( struct wall **facelist, int nfaces )
     {
       if (pep->n > 2)
       {
-        printf("Edge with more than two faces attached! Ignoring extra.\n");
+        no_printf("Edge with more than two faces attached! Ignoring extra.\n");
         same=1;
       }
       if (pep->n==2 || pep->n==3)
@@ -321,23 +322,25 @@ int surface_net( struct wall **facelist, int nfaces )
         {
           facelist[pep->face1]->nb_walls[pep->edge1] = facelist[pep->face2];
           facelist[pep->face2]->nb_walls[pep->edge2] = facelist[pep->face1];
-          e = (struct edge*) malloc( sizeof(struct edge) );
+          e = (struct edge*) mem_get( edgemem );
           e->forward = facelist[pep->face1];
           e->backward = facelist[pep->face2];
           init_edge_transform(e,pep->edge1);
           facelist[pep->face1]->edges[pep->edge1] = e;
           facelist[pep->face2]->edges[pep->edge2] = e;
+          no_printf("  Edge: %d on %d and %d on %d\n",pep->edge1,pep->face1,pep->edge2,pep->face2);
         }
       }
       else if (pep->n==1)
       {
         if (!same) is_closed = 0;
         same=0;
-        e = (struct edge*) malloc( sizeof(struct edge) );
+        e = (struct edge*) mem_get( edgemem );
         e->forward = facelist[pep->face1];
         e->backward = NULL;
         init_edge_transform(e,pep->edge1);
         facelist[pep->face1]->edges[pep->edge1] = e;
+        no_printf("  Edge: %d on %d\n",pep->edge1,pep->face1);
       }
       pep = pep->next;
     }
@@ -427,6 +430,56 @@ void init_edge_transform(struct edge *e,int edgenum)
 }
 
 
+/***************************************************************************
+sharpen_object:
+  In: pointer to an object
+      pointer to storage for edges
+  Out: No return value.  Adds edges to the object and all its children.
+***************************************************************************/
+
+void sharpen_object(struct object *parent,struct mem_helper *emem)
+{
+  struct object *o;
+  int i;
+  
+  if (parent->object_type == POLY_OBJ || parent->object_type == BOX_OBJ)
+  {
+    i = parent->n_walls;
+    if (i>100) i=100;
+    if (i<10) i=10;
+    if (parent->edgemem == NULL) parent->edgemem = emem;
+    
+    i = surface_net(parent->wall_p , parent->edgemem , parent->n_walls);
+  }
+  else if (parent->object_type == META_OBJ)
+  {
+    for ( o = parent->first_child ; o != NULL ; o = o->next )
+    {
+      sharpen_object( o , emem );
+    }
+  }
+}
+
+
+/***************************************************************************
+sharpen_world:
+  In: nothing.  Assumes there are polygon objects in the world.
+  Out: No return value.  Adds edges to every object.
+***************************************************************************/
+
+void sharpen_world()
+{
+  struct object *o;
+  struct mem_helper *global_edge_memory;
+  
+  global_edge_memory = create_mem(sizeof(struct edge),100);
+  for (o = world->root_instance ; o != NULL ; o = o->next)
+  {
+    sharpen_object(o,global_edge_memory);
+  }
+}
+
+
 
 /**************************************************************************\
  ** Collision section--detect whether rays intersect walls               **
@@ -470,7 +523,7 @@ void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
   e.z = k*v->z;
   
   tiny = (abs_max_2vec( p , &e ) + 1.0) * EPS_C;
-  if ( (rng_uint(world->rng_idx) & 1) == 0 ) tiny = -tiny;
+  if ( (rng_uint(world->seed) & 1) == 0 ) tiny = -tiny;
   
   v->x -= tiny*f.x;
   v->y -= tiny*f.y;
@@ -523,7 +576,7 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
   if (dd+dv == 0.0)
   {
     a = (abs_max_2vec( point , move ) + 1.0) * EPS_C;
-    if ((rng_uint(world->rng_idx++)&1)==0) a = -a;
+    if ((rng_uint(world->seed++)&1)==0) a = -a;
     if (dd==0.0)
     {
       move->x -= a*nx;
@@ -904,4 +957,3 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   no_printf("  vertex 1: %.9g, %.9g, %.9g\n",w->vert[1]->x,w->vert[1]->y,w->vert[1]->z);
   no_printf("  vertex 2: %.9g, %.9g, %.9g\n",w->vert[2]->x,w->vert[2]->y,w->vert[2]->z);
 }
-

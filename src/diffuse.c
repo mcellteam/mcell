@@ -9,6 +9,7 @@
 
 
 #include <math.h>
+#include <string.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -198,7 +199,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
   }
   else
   {
-    if (ty < dz)
+    if (ty < tz)
     {
       smash->t = dy / v->y;
       smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NY + j;
@@ -267,6 +268,8 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   
   int calculate_displacement = 1;
   
+  int listed = 0;
+  
   sm = m->properties;
   if (sm->space_step <= 0.0)
   {
@@ -282,7 +285,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   old_mp = NULL;
   for (mp = sv->mol_head ; mp != NULL ; old_mp = mp , mp = mp->next_v)
   {
-    if (mp==m) continue;
+    if (mp==m) listed++;
     
     if (mp->properties == NULL)  /* Reclaim storage */
     {
@@ -365,6 +368,19 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
     
   }
   
+  d2 = displacement.x*displacement.x + displacement.y*displacement.y +
+       displacement.z*displacement.z;
+       
+  if (sqrt(d2)*world->length_unit > 0.5)
+  {
+    if (calculate_displacement)
+      printf("Yikes, molecule %x wants to travel %.3f on seed %d!\n",
+             (int)m,sqrt(d2),world->seed-1);
+    else
+      printf("Yowzers, molecule %x wants to travel %.3f more!\n",
+             (int)m,sqrt(d2));
+  }
+  
   do
   {
     shead2 = ray_trace(m,shead,sv,&displacement);
@@ -373,7 +389,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
     
     for (smash = shead2; smash != NULL; smash = smash->next)
     {
-      if (smash->t >= 1.0)
+      if (smash->t >= 1.0 || smash->t < 0.0)
       {
         smash = NULL;
         break;
@@ -381,6 +397,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
       if ( (smash->what & COLLIDE_MOL) != 0 && !inert )
       {
+        m->collisions++;
         i = test_bimolecular(smash->intermediate,SET_ME_PROPERLY);
         if (i<0) continue;
         
@@ -432,6 +449,10 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         m->pos.y += displacement.y * smash->t;
         m->pos.z += displacement.z * smash->t;
         m->t += steps*smash->t;
+        m->path_length += sqrt( smash->t*smash->t*
+                                ( displacement.x * displacement.x +
+                                  displacement.y * displacement.y +
+                                  displacement.z * displacement.z ) );
         steps *= (1.0-smash->t);
         
         factor = -2.0 * (displacement.x*w->normal.x + displacement.y*w->normal.y + displacement.z*w->normal.z);
@@ -445,6 +466,9 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       {
         struct subvolume *nsv;
         
+        m->path_length += sqrt( (m->pos.x - smash->loc.x)*(m->pos.x - smash->loc.x)
+                               +(m->pos.y - smash->loc.y)*(m->pos.y - smash->loc.y)
+                               +(m->pos.z - smash->loc.z)*(m->pos.z - smash->loc.z));
         m->pos.x = smash->loc.x;
         m->pos.y = smash->loc.y;
         m->pos.z = smash->loc.z;
@@ -454,10 +478,12 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         
         m->t += steps*smash->t;
         steps *= (1.0-smash->t);
+        if (steps < EPS_C) steps = EPS_C;
 
         nsv = traverse_subvol(sv,&(m->pos),smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL);
         if (nsv==NULL)
         {
+          m->properties->population--;
           m->properties = NULL;
           if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
           if (shead != NULL) mem_put_list(sv->mem->coll,shead);
@@ -466,7 +492,10 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         }
         else
         {
+/*          printf("Moving molecule %x from subvolume %x to %x ",
+                 (int)m,(int)sv,(int)nsv);*/
           m = migrate_molecule(m,nsv);
+/*          printf("and identity is now %x.\n",(int)m);*/
         }
 
         if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
@@ -486,6 +515,9 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   m->pos.y += displacement.y;
   m->pos.z += displacement.z;
   m->t += steps;
+  m->path_length += sqrt( displacement.x*displacement.x +
+                          displacement.y*displacement.y +
+                          displacement.z*displacement.z );
   
   return m;
 }
@@ -494,7 +526,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
 /*************************************************************************
 run_timestep:
-  In: subvolume to use
+  In: local storage area to use
       time of the next release event
       time of the next checkpoint
   Out: No return value.  Every molecule in the subvolume is updated in
@@ -502,7 +534,7 @@ run_timestep:
        current_time of the subvolume is also incremented.
 *************************************************************************/
 
-void run_timestep(struct subvolume *sv,double release_time,double checkpt_time)
+void run_timestep(struct storage *local,double release_time,double checkpt_time)
 {
   struct abstract_molecule *a;
   struct rxn *r;
@@ -510,7 +542,7 @@ void run_timestep(struct subvolume *sv,double release_time,double checkpt_time)
   double stop_time,max_time;
   int i,j;
   
-  while ( (a = (struct abstract_molecule*)schedule_next(sv->mem->timer)) != NULL )
+  while ( (a = (struct abstract_molecule*)schedule_next(local->timer)) != NULL )
   {
 
     if (a->properties == NULL)  /* Defunct!  Remove. */
@@ -523,10 +555,10 @@ void run_timestep(struct subvolume *sv,double release_time,double checkpt_time)
 
     a->flags -=IN_SCHEDULE;
     
-    if (sv->mem->current_time + sv->mem->max_timestep < checkpt_time) stop_time = sv->mem->max_timestep;
-    else stop_time = checkpt_time - sv->mem->current_time;
+    if (local->current_time + local->max_timestep < checkpt_time) stop_time = local->max_timestep;
+    else stop_time = checkpt_time - local->current_time;
     
-    if (a->t2 == 0.0)
+    if (a->t2 < EPS_C)
     {
       if ((a->flags & (ACT_INERT+ACT_NEWBIE)) != 0)
       {
@@ -558,7 +590,7 @@ void run_timestep(struct subvolume *sv,double release_time,double checkpt_time)
     {
       if ((a->flags & TYPE_3D) != 0)
       {
-        if (max_time > release_time - sv->mem->current_time) max_time = release_time - sv->mem->current_time;
+        if (max_time > release_time - local->current_time) max_time = release_time - local->current_time;
         t = a->t;
         a = (struct abstract_molecule*)diffuse_3D((struct molecule*)a , max_time , a->flags & ACT_INERT);
         if (a!=NULL) /* We still exist */
@@ -575,10 +607,10 @@ void run_timestep(struct subvolume *sv,double release_time,double checkpt_time)
     else a->t += max_time;
 
     a->flags += IN_SCHEDULE;
-    if (a->flags & TYPE_GRID) schedule_add(sv->mem->timer,a);
+    if (a->flags & TYPE_GRID) schedule_add(local->timer,a);
     else schedule_add(((struct molecule*)a)->subvol->mem->timer,a);
     
   }
   
-  sv->mem->current_time += 1.0;
+  local->current_time += 1.0;
 }

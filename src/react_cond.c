@@ -25,7 +25,7 @@ test_unimolecular:
 int test_unimolecular(struct rxn *rx)
 {
   int m,M,avg;
-  double p = rng_double( world->rng_idx++ );
+  double p = rng_double( world->seed++ );
   
   m = 0;
   M = rx->n_pathways-1;
@@ -52,7 +52,7 @@ timeof_unimolecular:
 
 double timeof_unimolecular(struct rxn *rx)
 {
-  double p = rng_double( world->rng_idx++ );
+  double p = rng_double( world->seed++ );
   double k_tot = rx->cum_rates[ rx->n_pathways - 1 ];
   return -log( p )/k_tot;
 }
@@ -67,7 +67,7 @@ which_unimolecular:
 int which_unimolecular(struct rxn *rx)
 {
   int m,M,avg;
-  double p = rng_double( world->rng_idx++ );
+  double p = rng_double( world->seed++ );
   
   m = 0;
   M = rx->n_pathways-1;
@@ -99,7 +99,7 @@ test_bimolecular
 int test_bimolecular(struct rxn *rx,double time_mult)
 {
   int m,M,avg;
-  double p = rng_double( world->rng_idx++ );
+  double p = rng_double( world->seed++ );
   
   if ( p > time_mult * rx->cum_rates[ rx->n_pathways-1 ] ) return -1;
   
@@ -141,7 +141,7 @@ int test_intersect(struct rxn *rx,double time_mult)
   
   if (rx->cum_rates[0] >= 1.0) return 0;  /* Shortcut for reflections */
   
-  p = rng_double( world->rng_idx++ );
+  p = rng_double( world->seed++ );
   
   if ( p > time_mult * rx->cum_rates[ rx->n_pathways-1 ] ) return -1;
 

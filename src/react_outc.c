@@ -98,6 +98,7 @@ void outcome_products(struct wall *w,struct molecule *reac_m,
             g = mem_get(local->gmol);
             g->birthplace = local->gmol;
             g->properties = p;
+            p->population++;
             g->flags = TYPE_GRID + ACT_NEWBIE + IN_SCHEDULE;
             if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)g)!= NULL)
               g->flags += ACT_REACT;
@@ -127,6 +128,7 @@ void outcome_products(struct wall *w,struct molecule *reac_m,
           s = mem_get(local->smol);
           s->birthplace = local->smol;
           s->properties = p;
+          p->population++;
           s->flags = TYPE_SURF + ACT_NEWBIE + IN_SURFACE + IN_VOLUME + IN_SCHEDULE;
           if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)s) != NULL)
             s->flags += ACT_REACT;
@@ -192,12 +194,12 @@ void outcome_products(struct wall *w,struct molecule *reac_m,
         m = mem_get(local->mol);
         m->birthplace = local->mol;
         m->properties = p;
+        p->population++;
         m->flags = TYPE_3D + ACT_NEWBIE + IN_VOLUME + IN_SCHEDULE;
         if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)m) != NULL)
           m->flags += ACT_REACT;
         if (p->space_step > 0.0) m->flags += ACT_DIFFUSE;
         
-        p->population++;
         if (reac_m != NULL)
         {
           m->pos.x = reac_m->pos.x;
@@ -227,7 +229,7 @@ void outcome_products(struct wall *w,struct molecule *reac_m,
       }
     }
     
-    bits = rng_uint( world->rng_idx++ );
+    bits = rng_uint( world->seed++ );
     for (i=iN-1;i>=i0;i--,bits>>=1)
     {
       if ( ptype[i-i0] != 0 && (ptype[i-i0]!='m' || w!=NULL) )
@@ -336,6 +338,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
       g->grid->mol[ g->grid_index ] = NULL;
       g->grid->n_occupied--;
     }
+    reac->properties->population--;
     reac->properties = NULL;
     return 0;
   }
@@ -398,7 +401,11 @@ int outcome_bimolecular(struct rxn *rx,int path,
   
   outcome_products(w,m,s,g,rx,path,x,orientA,orientB,t);
   
-  if ((rx->fates[path] & RX_2DESTROY) != 0) reacB->properties = NULL;
+  if ((rx->fates[path] & RX_2DESTROY) != 0)
+  {
+    reacB->properties->population--;
+    reacB->properties = NULL;
+  }
   else if ((rx->fates[path] & RX_2FLIP) != 0)
   {
     if ((reacB->properties->flags & ON_GRID) != 0)
@@ -418,6 +425,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
   }
   if ((rx->fates[path] & RX_DESTROY) != 0)
   {
+    reacA->properties->population--;
     reacA->properties = NULL;
     return 0;
   }

@@ -564,7 +564,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       {
         recycled1 = 0;
         recycled2 = 0;
-        for (k=rx->product_idx[j] , prod=path->product_head ; prod!=NULL ; k++ , prod=prod->next)
+        for (k=rx->product_idx[j] , prod=path->product_head ; prod!=NULL ; prod=prod->next)
         {
           if (recycled1==0 && prod->prod == path->reactant1) recycled1 = 1;
           else if (recycled2==0 && prod->prod == path->reactant2) recycled2 = 1;
@@ -572,6 +572,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           {
             rx->players[k] = prod->prod;
             rx->geometries[k] = prod->orientation;
+            k++;
           }
         }
       }
@@ -586,7 +587,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         D_tot=rx->players[0]->D_ref+rx->players[1]->D_ref+2.0*sqrt(rx->players[0]->D_ref*rx->players[1]->D_ref);
         if (D_tot>0) {
           if (rx->geometries[0]==0) {
-            pb_factor=(1.0e11*mpvp->vol->effector_grid_density/(3.0*N_AV))*sqrt(MY_PI*mpvp->vol->time_unit/D_tot);
+            pb_factor=(1.0e11*mpvp->vol->effector_grid_density/(4.0*N_AV))*sqrt(MY_PI*mpvp->vol->time_unit/D_tot);
           }
           else {
             pb_factor=(1.0e11*mpvp->vol->effector_grid_density/(2.0*N_AV))*sqrt(MY_PI*mpvp->vol->time_unit/D_tot);
@@ -597,9 +598,11 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           }
         }
         rx->cum_rates[0]=pb_factor*rx->cum_rates[0];
+        printf("Rate %.3f set.\n",rx->cum_rates[0]);
       }
       for (j=1;j<rx->n_pathways;j++)
       {
+        printf("Rate %.3f set.\n",pb_factor*rx->cum_rates[j]);
         rx->cum_rates[j] = pb_factor*rx->cum_rates[j] + rx->cum_rates[j-1];
       }
       
