@@ -66,8 +66,6 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
           if (crossed)
           {
             hit_count->n_inside += direction;
-	    printf("REGION %2d\n",direction);
-
 
 /*
             printf("Counted %s (%x) on %s (%x); %x has n_inside = %.1f (up by %d).\n",
@@ -104,28 +102,6 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
 }
 
 
-void blather(char *s,struct region_list *r)
-{
-  printf("%s  Regions are ",s);
-  while (r!=NULL)
-  {
-    printf("%x ",(int)r->reg);
-    r = r->next;
-  }
-  printf("\n");
-}
-
-void blither(char *s,struct wall_list *w)
-{
-  printf("%s  Walls are ",s);
-  while (w!=NULL)
-  {
-    printf("%x ",(int)w->this_wall);
-    w = w->next;
-  }
-  printf("\n");
-}
-
 
 void find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
                             struct region_list** rlp,struct region_list** arlp,
@@ -147,15 +123,13 @@ void find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
   {
     outside.x = loc->x;
     outside.y = loc->y;
-    if (world->bb_min.z < 0) outside.z = world->bb_min.z * (1 + EPS_C);
-    else outside.z = world->bb_min.z * (1 - EPS_C);
+    outside.z = (world->z_partitions[0] + world->z_partitions[1])/2;
   }
   else
   {
     outside.x = start->x;
     outside.y = start->y;
     outside.z = start->z;
-    if (rl!=NULL) blather("Started with regions.",rl); 
   }
   
   delta.x = 0.0;
@@ -164,8 +138,8 @@ void find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
   
   sv = find_subvolume(&outside,NULL);
   svt = find_subvolume(loc,NULL);
-  traveling = 1;  
-  
+  traveling = 1;
+
   while (traveling)
   {
     tarl = trl = NULL;
@@ -186,15 +160,13 @@ void find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
         {
           xrl = tarl->next;
           mem_put(rmem,tarl);
-          trl = xrl;
+          tarl = xrl;
         }
       }
       else if (i==COLLIDE_MISS || t > 1.0 || t > t_hit_sv || (wl->this_wall->flags & COUNT_CONTENTS) == 0 ||
 	       (hit.x-outside.x)*delta.x + (hit.y-outside.y)*delta.y + (hit.z-outside.z)*delta.z < 0) continue;
       else
       {
-	printf("We collided with wall %x in direction %d\n",(int)wl->this_wall,i);
-	blither("",sv->wall_head);
         for (xrl=wl->this_wall->regions ; xrl != NULL ; xrl = xrl->next)
         {
           if ((xrl->reg->flags & COUNT_CONTENTS) != 0)
@@ -303,11 +275,23 @@ void find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
     }
   }
   
-  if (rl != NULL) blather("We have a region.",rl);
-  if (arl!=NULL) blather("We have an antiregion.",arl);
-  
   *rlp = rl;
   *arlp = arl;
+
+  /*  
+  if (rl)
+  {
+   printf("Found regions: ");
+   for (;rl!=NULL;rl=rl->next) printf("%x ",(int)rl->reg);
+   printf("\n");
+  }
+  if (arl)
+  {
+   printf("Found antiregions: ");
+   for (;arl!=NULL;arl=arl->next) printf("%x ",(int)arl->reg);
+   printf("\n");
+  }
+  */
 }
 
 
@@ -418,24 +402,7 @@ int place_waypoints()
           wp->antiregions = NULL;
           find_enclosing_regions(&(wp->loc),NULL,&(wp->regions),
                                  &(wp->antiregions),sv->mem->regl);
-        }
-        
-	if (wp->regions!=NULL && wp->regions->next!=NULL && wp->regions->reg==wp->regions->next->reg)
-	{
-	  printf("Two of the same region %x on waypoint %x at %.2e %.2e %.2e! r=%.2e\n",
-	    (int)wp->regions->reg,(int)wp,wp->loc.x,wp->loc.y,wp->loc.z,
-	    sqrt(wp->loc.x*wp->loc.x + wp->loc.y*wp->loc.y + wp->loc.z*wp->loc.z) );
-	}
-	else if (wp->regions!=NULL)
-	{
-	  printf("One of region %x on waypoint %x at %.2e %.2e %.2e! r=%.2e\n",
-	    (int)wp->regions->reg,(int)wp,wp->loc.x,wp->loc.y,wp->loc.z,
-	    sqrt(wp->loc.x*wp->loc.x + wp->loc.y*wp->loc.y + wp->loc.z*wp->loc.z) );
-	}
-	
-/*        if (wp->regions != NULL) printf("We have a region on waypoint %d\n",h);
-        if (wp->antiregions != NULL) printf("We have an antiregion on waypoint %d\n",h); */
-        
+        }        
       }
     }
   }
