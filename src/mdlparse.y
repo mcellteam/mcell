@@ -2739,7 +2739,6 @@ polygon_list_def: new_object POLYGON_LIST '{'
   }
   mdlpvp->pop->lig_count_ref=NULL;
   mdlpvp->pop->viz_state_ref=NULL;
-  mdlpvp->pop->list_type=ORDERED_POLY;
   mdlpvp->pop->polygon_data=NULL;
   mdlpvp->pop->n_walls=0;
   mdlpvp->pop->n_verts=0;
@@ -3087,7 +3086,6 @@ box_def: new_object BOX '{'
   }
   mdlpvp->pop->lig_count_ref=NULL;
   mdlpvp->pop->viz_state_ref=NULL;
-  mdlpvp->pop->list_type=ORDERED_POLY;
   mdlpvp->pop->polygon_data=NULL;
   mdlpvp->pop->n_walls=0;
   mdlpvp->pop->fully_closed=1;

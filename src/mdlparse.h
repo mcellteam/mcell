@@ -99,7 +99,6 @@ struct mdlparse_vars {
 
   struct polygon_object *pop;
   struct ordered_poly *opp;
-  struct box_poly *bpp;
   struct element_data *edp;
   struct element_connection_list *connection_head;
   struct element_connection_list *connection_tail;

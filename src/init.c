@@ -981,7 +981,7 @@ int compute_bb_release_site(struct object *objp, double (*im)[4])
 
 /**
  * Updates the bounding box of the world based on the size
- * and location of a polygon_object (box_poly or polygon_object).
+ * and location of a polygon_object.
  * Used by compute_bb().
  */
 int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_name)
@@ -998,8 +998,6 @@ int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_n
   m=4;
   n=4;
 
-  switch (pop->list_type) {
-  case ORDERED_POLY:
     opp=(struct ordered_poly *)pop->polygon_data;
     n_verts=opp->n_verts;
  
@@ -1032,8 +1030,6 @@ int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_n
 /*
     fprintf(log_file,"MCell: Total area of physical object %s = %.9g microns^2\n",objp->sym->name,total_area*world->length_unit*world->length_unit);
 */
-    break;
-  }
 
   return(0);
 }
@@ -1046,8 +1042,6 @@ int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_n
  * as defined in the MDL file after applying the necessary geometric
  * transformations (scaling, rotation and translation).
  * <br>
- * <b>Note:</b> Box objects (box_poly) are also instantiated using this
- * function. Ultimately, even boxes are turned into polygon_object's.
  */
 int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj *vizp, struct lig_count_ref *obj_lcrp, char *full_name)
 {
@@ -1075,11 +1069,6 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
   total_area=0;
   obj_name=my_strdup(full_name);
 
-
-  switch (pop->list_type)
-  {
-
-  case ORDERED_POLY:
 
 /* Allocate and initialize walls and vertices */
     if ((w=(struct wall *)malloc(n_walls*sizeof(struct wall)))==NULL) {
@@ -1176,8 +1165,6 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
       }
     }
     objp->total_area=total_area;
-    break;
-  }
 
   return(0);
 }
@@ -1287,10 +1274,6 @@ int init_wall_regions(struct object *objp, char *full_name)
   pop=(struct polygon_object *)objp->contents;
   n_walls=pop->n_walls;
 
-  switch (pop->list_type)
-  {
-
-  case ORDERED_POLY:
    
     no_printf("Processing %d regions in polygon list object: %s\n",
       objp->num_regions,full_name);
@@ -1514,8 +1497,6 @@ int init_wall_regions(struct object *objp, char *full_name)
     }
     free(eff_prop);
 
-    break;
-  }
 
 #ifdef KELP
   cdp->sym->ref_count--;

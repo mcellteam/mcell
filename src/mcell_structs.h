@@ -210,16 +210,6 @@
 #define N_AV 6.0221415e23
 #define ROUND_UP 0.5
                                                                                 
-                                                                                                                                                                
-/* Polygon list types */
-#define BOX_POLY 0  
-#define ORDERED_POLY 1  
-#define UNORDERED_POLY 2  
-   /* BOX_POLY is a right parallelepiped polyhedron */
-   /* ORDERED_POLY is a SGI Inventor-style polyhedron with shared vertices */
-   /* UNORDERED_POLY is a free-form collection of distinct polygons */
-
-
 /* Wall element shapes */
 #define RECT_POLY 0
 #define TRI_POLY 1
@@ -1058,8 +1048,6 @@ struct cmprt_data {
 	struct cmprt_data *next;
 	struct sym_table *sym;
         char *full_name;
-        byte cmprt_type;            /**< type of compartment:
-                                       BOX_POLY, ORDERED_POLY, UNORDERED_POLY */
         byte fully_closed;
 	int instance;
 	int *lig_count;
@@ -1094,20 +1082,8 @@ struct polygon_object {
 	                                   structures: one for each time polygon
 	                                   object is referenced in
 					   STATE_VALUES block */
-	byte list_type;			/**< type of polygon list:
-					   BOX_POLY, ORDERED_POLY,
-                                           or UNORDERED_POLY */
         void *polygon_data;             /**< pointer to appropriate data structure
-                                           holding polygon vertices etc...
-                                           either:
-                                           struct box_poly 
-                                             for list_type BOX_POLY
-                                           -or-
-                                           struct ordered_poly 
-                                             for list_type ORDERED_POLY
-                                           -or-
-                                           struct unordered_poly
-                                             for list_type UNORDERED_POLY */
+                                           holding polygon vertices etc... */
 	int n_walls;			/**< Number of polygons in
                                              polygon object */
         int n_verts;                    /**< Number of vertices in
@@ -1121,15 +1097,6 @@ struct polygon_object {
 					   1 indicates exists. */
 /*        struct eff_dat **eff_prop;*/	/**< array of ptrs to eff_dat data
 					   structures, one for each polygon. */
-};
-
-
-/**
- * A polyhedron that is a box.
- */
-struct box_poly {
-        struct vector3 *llf;             /**< ptr to LLF of box polyhedron */
-        struct vector3 *urb;             /**< prt to URB of box polyhedron */
 };
 
 
