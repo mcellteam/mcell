@@ -128,8 +128,9 @@ void run_sim(void)
       printf("\n");
     }
   }
-  
-  fprintf(stderr,"Average diffusion jump was %.2f timesteps\n",world->diffusion_cumsteps/world->diffusion_number);
+  if(world->diffusion_number > 0){ 
+  	fprintf(stderr,"Average diffusion jump was %.2f timesteps\n",world->diffusion_cumsteps/world->diffusion_number);
+  }
   fprintf(stderr,"Total number of molecule-molecule collisions: %f\n",world->mol_mol_colls);
 
 #if 0

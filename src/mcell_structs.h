@@ -894,7 +894,9 @@ struct volume
   struct storage_list *storage_head;   /* Linked list of all storage */
   
   double speed_limit;           /* How far can the fastest particle get in one timestep? */
+  /*counts the number of times the molecules have had their positions updated */
   double diffusion_number;
+  /* counts the number of timesteps that molecules have diffused for */
   double diffusion_cumsteps;
 
   struct schedule_helper *count_scheduler;
