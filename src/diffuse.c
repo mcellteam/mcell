@@ -790,8 +790,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
         else k = -1;
         
-        if ( w->effectors != NULL && (m->properties->flags&CAN_MOLGRID) != 0 &&
-             (newbie_time<=0 || m->t + steps*smash->t) )
+        if ( w->effectors != NULL && (m->properties->flags&CAN_MOLGRID) != 0 )
+        {
+        if ( (newbie_time<=0 || newbie_time < m->t + steps*smash->t) )
         {
           j = xyz2grid( &(smash->loc) , w->effectors );
           if (w->effectors->mol[j] != NULL)
@@ -822,6 +823,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
               }
             }
           }
+        }
+/*
+        else
+        {
+          printf("No way, I'm not rebinding!\n");
+        }
+*/
         }
         newbie_time = 0.0;
         
@@ -1026,12 +1034,17 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     {
       if ((a->flags & (ACT_INERT+ACT_NEWBIE)) != 0)
       {
+        if ((a->flags & ACT_NEWBIE) != 0)
+        {
+          newbie_time = a->t + 0.5;
+/*          printf("Newbie time set to %.3f (now=%.3f)\n",newbie_time,a->t);*/
+        }
+
         a->flags -= (a->flags & (ACT_INERT + ACT_NEWBIE));
         if ((a->flags & ACT_REACT) != 0)
         {
           r = trigger_unimolecular(a->properties->hashval,a);
           a->t2 = timeof_unimolecular(r);
-          newbie_time = a->t + 0.5;
         }
       }
       else if ((a->flags & ACT_REACT) != 0)
