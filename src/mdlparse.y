@@ -4100,7 +4100,7 @@ viz_iteration_def: ITERATION_LIST '='
     mdlerror("Cannot store iteration list data");
     return(1);
   }
-  mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+  mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
   mdlpvp->fdlp->type=ALL_FRAME_DATA;
   mdlpvp->fdlp->viz_iteration=-1;
   mdlpvp->fdlp->n_viz_iterations=0;
@@ -4198,7 +4198,7 @@ viz_time_def: TIME_LIST '='
     mdlerror("Cannot store iteration list data");
     return(1);
   }
-  mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+  mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
   mdlpvp->fdlp->type=ALL_FRAME_DATA;
   mdlpvp->fdlp->viz_iteration=-1;
   mdlpvp->fdlp->n_viz_iterations=0;
