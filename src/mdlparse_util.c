@@ -967,7 +967,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   
 /* And, finally, we just have to move all the reactions from the */
 /* symbol table into the reaction hash table (of appropriate size). */
-  for (rx_hash=2 ; rx_hash<num_rx ; rx_hash <<= 1) {}
+  for (rx_hash=2 ; rx_hash<=num_rx ; rx_hash <<= 1) {}
   if (rx_hash > MAX_RX_HASH) rx_hash = MAX_RX_HASH;
   
   mpvp->vol->hashsize = rx_hash;
@@ -988,11 +988,12 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       
       rx = (struct rxn*)sym->value;
       
-      if (rx->n_reactants==1) j = rx->players[0]->hashval;
-      else if (rx->players[0]->hashval==rx->players[1]->hashval) j = rx->players[0]->hashval;
-      else j = rx->players[0]->hashval ^ rx->players[1]->hashval;
-      
-      j &= rx_hash;
+      if (rx->n_reactants==1) j = rx->players[0]->hashval & rx_hash;
+      else
+      {
+        j = (rx->players[0]->hashval ^ rx->players[1]->hashval) & rx_hash;
+        if (j==0)  j = rx->players[0]->hashval & rx_hash;
+      }
       
       while (rx->next != NULL) rx = rx->next;
       rx->next = rx_tbl[j];

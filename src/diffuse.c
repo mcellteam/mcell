@@ -484,6 +484,8 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
     if (rl->reg->flags & COUNT_HITS)
     {
       j = (rl->reg->hashval ^ sp->hashval)&world->collide_hashmask;
+      if (j==0) j = rl->reg->hashval & world->collide_hashmask;
+      
       for (hit_count=world->collide_hash[j] ; hit_count!=NULL ; hit_count=hit_count->next)
       {
         if (hit_count->reg_type == rl->reg && hit_count->mol_type == sp)
@@ -498,7 +500,7 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
             else
             {
               hit_count->back_hits++;
-              hit_count->back_to_front;
+              hit_count->back_to_front++;
             }
           }
           else
@@ -803,7 +805,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         
                 if (l==0)
                 {
-                  if ( (m->properties->flags & w->flags & COUNT_HITS) )
+                  if ( (sm->flags & w->flags & COUNT_HITS) )
                     update_collision_count(m->properties,w->regions,k,0);
                                     
                   if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
@@ -848,7 +850,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
               }
               else if (j==0)
               {
-                if ( (m->properties->flags & w->flags & COUNT_HITS) )
+                if ( (sm->flags & w->flags & COUNT_HITS) )
                   update_collision_count(m->properties,w->regions,k,0);
 
                 if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
