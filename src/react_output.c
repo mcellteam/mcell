@@ -201,29 +201,6 @@ int update_reaction_output(struct output_block *obp)
     {
       return 1;  /* Note that there has been an error. */
     }
-    
-    /* For the correct counting inside "write_reaction_output"
-    // we have to set the data_type for the compound count statements
-    // to EXPR.
-    */
-    oip=obp->output_item_head;
-    while (oip!=NULL) {
-       oep=oip->output_evaluator_head;
-       while(oep != NULL){
-          switch (oep->data_type) {
-             case DBL:
-             case INT:
-  	     	if((oep->operand1 != NULL) || (oep->operand2 != NULL)){
-			oep->data_type = EXPR;
-             	}
-             	break;
-             default: break;
-          }
-          oep = oep->next;
-       }
-       oip = oip->next;
-    }
-
   }
   no_printf("Done updating reaction output\n");
   fflush(log_file);
@@ -304,29 +281,29 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
     }
 
     switch (oep->data_type) {
-    case DBL:
-      for (i=0;i<stop_i;i++) {
-	if (oep->index_type==TIME_STAMP_VAL) {
-	  fprintf(fp,"%.9g %.9g\n",obp->time_array[i],
-		  ((double *)oep->final_data)[i]);
+      case DBL:
+	for (i=0;i<stop_i;i++) {
+	  if (oep->index_type==TIME_STAMP_VAL) {
+	    fprintf(fp,"%.9g %.9g\n",obp->time_array[i],
+		    ((double *)oep->final_data)[i]);
+	  }
+	  else if (oep->index_type==INDEX_VAL && final_chunk_flag) {
+	    fprintf(fp,"%d %.9g\n",i,((double *)oep->final_data)[i]);
+	  }
 	}
-	else if (oep->index_type==INDEX_VAL && final_chunk_flag) {
-	  fprintf(fp,"%d %.9g\n",i,((double *)oep->final_data)[i]);
+	break;
+      case INT:
+	for (i=0;i<stop_i;i++) {
+	  if (oep->index_type==TIME_STAMP_VAL) {
+	    fprintf(fp,"%.9g %d\n",obp->time_array[i],
+		    ((int *)oep->final_data)[i]);
+	  }
+	  else if (oep->index_type==INDEX_VAL && final_chunk_flag) {
+	    fprintf(fp,"%d %d\n",i,((int *)oep->final_data)[i]);
+	  }
 	}
-      }
-      break;
-    case INT:
-      for (i=0;i<stop_i;i++) {
-	if (oep->index_type==TIME_STAMP_VAL) {
-	  fprintf(fp,"%.9g %d\n",obp->time_array[i],
-		  ((int *)oep->final_data)[i]);
-	}
-	else if (oep->index_type==INDEX_VAL && final_chunk_flag) {
-	  fprintf(fp,"%d %d\n",i,((int *)oep->final_data)[i]);
-	}
-      }
-      break;
-    default: break;
+	break;
+      default: break;
     }
     fclose(fp);
     oip=oip->next;
@@ -344,7 +321,11 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
  */
 int eval_count_expr_tree(struct output_evaluator *oep)
 {
-  if (oep->data_type==EXPR) {
+  if (oep->operand1!=NULL || oep->operand2!=NULL) {
+    if (oep->operand1==NULL || oep->operand2==NULL)
+    {
+      fprintf(world->err_file,"Evaluating a non-binary operation (not supported, have us fix this).\n");
+    }
     if(eval_count_expr_tree(oep->operand1)) return (1);
     if(eval_count_expr_tree(oep->operand2)) return (1);
     if(eval_count_expr(oep->operand1,oep->operand2,oep->oper,oep)){
