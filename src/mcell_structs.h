@@ -729,11 +729,11 @@ struct counter
   struct counter *next;
   struct region *reg_type;
   struct species *mol_type;
-  double front_hits;
-  double back_hits;
-  double front_to_back;
-  double back_to_front;
-  double n_inside;
+  int front_hits;
+  int back_hits;
+  int front_to_back;
+  int back_to_front;
+  int n_inside;
 };
 
 

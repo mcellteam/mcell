@@ -2244,6 +2244,11 @@ existing_object: VAR
   }
   sprintf(mdlpvp->full_name,"%s",mdlpvp->sym_name);
   mdlpvp->prefix_name=get_prefix_name(mdlpvp->sym_name);
+  no_printf("found existing object %s\n",mdlpvp->objp->sym->name);
+  no_printf("first name of existing object %s is %s\n",mdlpvp->sym_name,get_first_name(mdlpvp->sym_name));
+  no_printf("prefix name of existing object %s is %s\n",mdlpvp->sym_name,mdlpvp->prefix_name);
+  fflush(stderr);
+  fflush(stderr);
 #ifdef KELP
   mdlpvp->objp->sym->ref_count++;
   no_printf("ref_count: %d\n",mdlpvp->objp->sym->ref_count);

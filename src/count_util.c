@@ -67,9 +67,13 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
           {
             hit_count->n_inside += direction;
 
-/*            printf("Counted %s (%x) on %s (%x); %x has n_inside = %.1f (up by %d).\n",
+
+/*
+            printf("Counted %s (%x) on %s (%x); %x has n_inside = %.1f (up by %d).\n",
                    sp->sym->name,sp->hashval,rl->reg->sym->name,rl->reg->hashval,
-                   (int)hit_count,hit_count->n_inside,direction); */
+                   (int)hit_count,hit_count->n_inside,direction);
+*/
+
           }
           if (rl->reg->flags & sp->flags & COUNT_HITS)
           {
@@ -458,15 +462,22 @@ void count_me_by_region(struct abstract_molecule *me,int n)
       {
         i = (rl->reg->hashval ^ sp->hashval) & world->count_hashmask;
         if (i==0) i = sp->hashval & world->count_hashmask;
-/*        printf("Trying to count %s (%x) on %s (%x) with hashval %x\n",
-               sp->sym->name,sp->hashval,rl->reg->sym->name,rl->reg->hashval,i); */
+
+/*
+        printf("Trying to count %s (%x) on %s (%x) with hashval %x\n",
+               sp->sym->name,sp->hashval,rl->reg->sym->name,rl->reg->hashval,i);
+*/
         
         for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
         {
           if (c->reg_type==rl->reg && c->mol_type==sp)
           {
             c->n_inside += n;
-/*            printf("Actually counted; %x has n_inside = %.1f (up by %d).\n",(int)c,c->n_inside,n); */
+
+/*
+           printf("Actually counted; %x has n_inside = %.1f (up by %d).\n",(int)c,c->n_inside,n);
+
+*/
           }
         }
       }
@@ -556,7 +567,7 @@ int check_region_counters()
         }
         else {
           if (rp->manifold_flag==NOT_MANIFOLD) {
-            fprintf(log_file,"MCell: error, cannot count diffusing molecules inside non-closed object region: %s\n",rp->sym->name); 
+            fprintf(log_file,"MCell: error, cannot count diffusing molecules inside non-manifold object region: %s\n",rp->sym->name); 
           }
         }
       }
