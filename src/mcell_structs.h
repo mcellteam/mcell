@@ -1319,12 +1319,16 @@ struct transformation {
  */
 struct frame_data_list {
 	struct frame_data_list *next;
-        byte list_type;
-	int type;
-	int viz_iteration;
-	int n_viz_iterations;
-	struct num_expr_list *iteration_list;
-	struct num_expr_list *curr_viz_iteration;
+        byte list_type;		/* data output timing type (IT_TIME, etc) */
+	int type;               /* visualization frame data type 
+					(ALL_FRAME_DATA, etc.) */ 
+	int viz_iteration;	/* value of the current iteration step. */
+	int n_viz_iterations;	/* number of iterations in the 
+					iteration_list. */
+	struct num_expr_list *iteration_list;   /* linked list of iteration 
+							steps values */
+	struct num_expr_list *curr_viz_iteration; /* points to the current
+						 iteration in the linked list */
 };
 
 

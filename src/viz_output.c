@@ -11,7 +11,13 @@
 
 extern struct volume *world;
 
-
+/**************************************************************************
+update_frame_data_list:
+	In: struct frame_data_list * fdlp
+        Out: Nothing. Calls output visualization functions if necessary.
+	     Updates value of the current iteration step and pointer
+             to the current iteration in the linked list.
+**************************************************************************/
 void update_frame_data_list(struct frame_data_list *fdlp)
 {
   FILE *log_file;
@@ -70,7 +76,13 @@ void update_frame_data_list(struct frame_data_list *fdlp)
   return;
 }
 
-
+/********************************************************************* 
+init_frame_data:
+   In: struct frame_data_list* fdlp
+   Out: nothing.  Initializes  frame_data_list structure. 
+   	Sets the value of the current iteration step to the start value.
+   	Sets the number of iterations.  
+***********************************************************************/
 void init_frame_data_list(struct frame_data_list *fdlp)
 {
   struct num_expr_list *nelp;
@@ -114,6 +126,12 @@ void init_frame_data_list(struct frame_data_list *fdlp)
   return;
 }
 
+/*************************************************************************
+output_dx_objects:
+	In: struct frame_data_list *fdlp
+	Out: 0 on success, 1 on error; output visualization files (*.dx)
+             are written.
+**************************************************************************/
 
 int output_dx_objects(struct frame_data_list *fdlp)
 {
@@ -1123,6 +1141,10 @@ int output_dx_objects(struct frame_data_list *fdlp)
   return(0);
 }
 
+/************************************************************************ 
+output_rk_custom:
+Rex Kerr's personal visualization mode output function 
+*************************************************************************/
 
 int output_rk_custom(struct frame_data_list *fdlp)
 {
