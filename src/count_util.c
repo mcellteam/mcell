@@ -12,6 +12,7 @@
 #include <stdio.h>
 
 #include "rng.h"
+#include "grid_util.h"
 #include "mcell_structs.h"
 #include "wall_util.h"
 #include "vol_util.h"
@@ -72,7 +73,7 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
         {
           if (crossed)
           {
-            hit_count->data.move.n_inside += direction;
+            hit_count->data.move.n_enclosed += direction;
 
 /*
             printf("Counted %s (%x) on %s (%x); %x has n_inside = %.1f (up by %d).\n",
@@ -485,17 +486,36 @@ int place_waypoints()
 count_me_by_region:
    In: abstract molecule we are supposed to count (or a representative one)
        number by which to update the counter (usually +1 or -1)
+       named reaction pathway to count at location of abstract molecule
    Out: No return value.  Appropriate counters are updated.
    Note: This handles all types of molecules, from grid to free.  Grid
-         and free are implemented, surface is not.
+         and free are implemented, surface is not.  If the reaction
+	 pathname is NULL, the molecule is counted.  Otherwise, the
+	 reaction is counted at the location of the molecule.
 *************************************************************************/
 
-void count_me_by_region(struct abstract_molecule *me,int n)
+void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *rxp)
 {
   int i,j,k,h;
   struct region_list *rl;
   struct species *sp = me->properties;
   struct counter *c;
+  
+  u_int desired_hash;
+  u_int COUNT_flag;
+  
+  printf("Looking ... ");
+  
+  if (rxp!=NULL)
+  {
+    desired_hash = rxp->hashval;
+    COUNT_flag = COUNT_RXNS;
+  }
+  else
+  {
+    desired_hash = sp->hashval;
+    COUNT_flag = COUNT_CONTENTS;
+  }
   
   //printf("Counting %x by region (up by %d)!\n",(int)me,n);
   
@@ -504,16 +524,20 @@ void count_me_by_region(struct abstract_molecule *me,int n)
     struct grid_molecule *g = (struct grid_molecule*)me;
     struct wall *w = g->grid->surface;
 
-    if (w->flags & COUNT_CONTENTS)
+    if (w->flags & COUNT_flag)
     {
       for (rl=w->regions ; rl!=NULL ; rl=rl->next)
       {
-        i = (rl->reg->hashval ^ sp->hashval) & world->count_hashmask;
-        if (i==0) i = sp->hashval & world->count_hashmask;
+        i = (rl->reg->hashval ^ desired_hash) & world->count_hashmask;
+        if (i==0) i = desired_hash & world->count_hashmask;
         
         for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
         {
-          if (c->reg_type == rl->reg && c->data.move.mol_type == sp) c->data.move.n_inside += n;
+          if (c->reg_type == rl->reg && (c->counter_type&ENCLOSING_COUNTER)==0)
+	  {
+	    if (rxp==NULL && c->data.move.mol_type == sp) c->data.move.n_at += n;
+	    else if (c->data.rx.rxn_type == rxp) c->data.rx.n_rxn_at += n;
+	  }
         }
       }
     } 
@@ -522,45 +546,93 @@ void count_me_by_region(struct abstract_molecule *me,int n)
   {
     /* Not implemented */
   }
-  else /* Free molecule */
+  
+  if ((sp->flags & NOT_FREE)==0 || (sp->flags&COUNT_ENCLOSED)!=0) /* Free molecule */
   {
-    struct molecule *m = (struct molecule*)me;
+    struct molecule *m;
+    struct grid_molecule *g;
     struct subvolume *sv;
     struct vector3 here,delta,hit;
     struct waypoint *wp;
     struct wall_list *wl;
     struct region_list *rl;
+    struct vector3 loc;
     double t;
     double t_sv_hit;
     
-    i = bisect(world->x_partitions,world->nx_parts,m->pos.x);
-    j = bisect(world->y_partitions,world->ny_parts,m->pos.y);
-    k = bisect(world->z_partitions,world->nz_parts,m->pos.z);
+    if ((sp->flags&NOT_FREE)==0)
+    {
+      m = (struct molecule*)me;
+      g = NULL;
+      
+      loc.x = m->pos.x;
+      loc.y = m->pos.y;
+      loc.z = m->pos.z;
+    }
+    else /* Grid mol */
+    {
+      struct vector3 loc;
+      
+      g = (struct grid_molecule*)me;
+      m = NULL;
+      grid2xyz(g->grid,g->grid_index,&loc);
+    }
+      
+    i = bisect(world->x_partitions,world->nx_parts,loc.x);
+    j = bisect(world->y_partitions,world->ny_parts,loc.y);
+    k = bisect(world->z_partitions,world->nz_parts,loc.z);
+    
     h = k + (world->nz_parts-1)*( j + (world->ny_parts-1)*i );
     wp = &(world->waypoints[h]);
     for (rl=wp->regions ; rl!=NULL ; rl=rl->next)
     {
-      if ( (rl->reg->flags & COUNT_CONTENTS) != 0 )
+      if ( (rl->reg->flags & COUNT_flag) != 0 )
       {
-        i = (rl->reg->hashval ^ sp->hashval) & world->count_hashmask;
-        if (i==0) i = sp->hashval & world->count_hashmask;
+        i = (rl->reg->hashval ^ desired_hash) & world->count_hashmask;
+        if (i==0) i = desired_hash & world->count_hashmask;
         
         for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
         {
-          if (c->reg_type==rl->reg && c->data.move.mol_type==sp) c->data.move.n_inside += n;
+          if (c->reg_type==rl->reg)
+	  {
+	    if ( rxp==NULL && c->data.move.mol_type==sp &&
+	         (g==NULL || (c->counter_type&ENCLOSING_COUNTER)!=0) )
+	    {
+	      c->data.move.n_enclosed += n;
+	      printf("Plus %d  ",n);
+	    }
+	    else if ( c->data.rx.rxn_type==rxp && 
+	              (c->counter_type&ENCLOSING_COUNTER)!=0 )
+	    {
+	      c->data.rx.n_rxn_enclosed += n;
+	    }
+	  }
         }
       }
     }
     for (rl=wp->antiregions ; rl!=NULL ; rl=rl->next)
     {
-      if ( (rl->reg->flags & COUNT_CONTENTS) != 0 )
+      if ( (rl->reg->flags & COUNT_flag) != 0 )
       {
-        i = (rl->reg->hashval ^ sp->hashval) & world->count_hashmask;
-        if (i==0) i = sp->hashval & world->count_hashmask;
+        i = (rl->reg->hashval ^ desired_hash) & world->count_hashmask;
+        if (i==0) i = desired_hash & world->count_hashmask;
         
         for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
         {
-          if (c->reg_type==rl->reg && c->data.move.mol_type==sp) c->data.move.n_inside -= n;
+          if (c->reg_type==rl->reg)
+	  {
+	    if ( rxp==NULL && c->data.move.mol_type==sp &&
+	         (g==NULL || (c->counter_type&ENCLOSING_COUNTER)!=0) )
+	    {
+	      c->data.move.n_enclosed -= n;
+	      printf("Plus %d  ",-n);
+	    }
+	    else if ( c->data.rx.rxn_type==rxp && 
+	              (c->counter_type&ENCLOSING_COUNTER)!=0 )
+	    {
+	      c->data.rx.n_rxn_enclosed -= n;
+	    }
+	  }
         }
       }
     }
@@ -571,36 +643,53 @@ void count_me_by_region(struct abstract_molecule *me,int n)
     
     for ( sv = &(world->subvol[h]) ; sv != NULL ; sv = next_subvol(&here,&delta,sv) )
     {
-      delta.x = m->pos.x - here.x;
-      delta.y = m->pos.y - here.y;
-      delta.z = m->pos.z - here.z;
+      delta.x = loc.x - here.x;
+      delta.y = loc.y - here.y;
+      delta.z = loc.z - here.z;
       
       t_sv_hit = collide_sv_time(&here,&delta,sv);
       if (t_sv_hit > 1.0) t_sv_hit = 1.0;
 
       for (wl = sv->wall_head ; wl != NULL ; wl = wl->next)
       {
-        if (wl->this_wall->flags & COUNT_CONTENTS)
+        if (wl->this_wall->flags & COUNT_flag)
         {
           j = collide_wall(&here,&delta,wl->this_wall,&t,&hit);
           
           if (j!=COLLIDE_MISS && t <= t_sv_hit &&
-	    (hit.x-m->pos.x)*delta.x + (hit.y-m->pos.y)*delta.y + (hit.z-m->pos.z)*delta.z < 0)
+	    (hit.x-loc.x)*delta.x + (hit.y-loc.y)*delta.y + (hit.z-loc.z)*delta.z < 0)
           {
             for (rl=wl->this_wall->regions ; rl!=NULL ; rl=rl->next)
             {
-              if ( (rl->reg->flags & sp->flags & COUNT_CONTENTS) != 0 )
+              if ( (rl->reg->flags & COUNT_flag) != 0 )
               {
-                i = (rl->reg->hashval ^ sp->hashval) & world->count_hashmask;
-                if (i==0) i = sp->hashval & world->count_hashmask;
+                i = (rl->reg->hashval ^ desired_hash) & world->count_hashmask;
+                if (i==0) i = desired_hash & world->count_hashmask;
                 
                 for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
                 {
-                  if (c->reg_type==rl->reg && c->data.move.mol_type==sp)
-                  {
-                    if (j==COLLIDE_FRONT) c->data.move.n_inside += n;
-		    else if (j==COLLIDE_BACK) c->data.move.n_inside -= n;
-                  }
+                  if (c->reg_type==rl->reg)
+		  {
+		    if ( rxp==NULL && c->data.move.mol_type==sp &&
+		         (g==NULL || (c->counter_type&ENCLOSING_COUNTER)!=0) )
+		    {
+		      if (j==COLLIDE_FRONT)
+		      {
+			c->data.move.n_enclosed += n;
+			printf("plus %d  ",n);
+		      }
+		      else if (j==COLLIDE_BACK)
+		      {
+			c->data.move.n_enclosed -= n;
+			printf("plus %d  ",-n);
+		      }
+		    }
+		    else if (c->data.rx.rxn_type==rxp && (c->counter_type&ENCLOSING_COUNTER)!=0)
+		    {
+		      if (j==COLLIDE_FRONT) c->data.rx.n_rxn_enclosed += n;
+		      else if (j==COLLIDE_BACK) c->data.rx.n_rxn_enclosed -=n;
+		    }
+		  }
                 }
               }
             }            
@@ -609,6 +698,8 @@ void count_me_by_region(struct abstract_molecule *me,int n)
       }
     }
   }
+  
+  printf("\n");
 }
 
 
@@ -623,38 +714,36 @@ int check_region_counters()
 {
   FILE *log_file;
   struct counter *cp;
-  struct species *sp;
   struct region *rp;
   u_int i;
 
   log_file=world->log_file;  
   
-  for (i=0;i<world->count_hashmask+1;i++) {
-    for (cp=world->count_hash[i];cp!=NULL;cp=cp->next) {
-      if (cp->counter_type==MOL_COUNTER) {
-        sp=cp->data.move.mol_type;
+  for (i=0;i<world->count_hashmask+1;i++)
+  {
+    for (cp=world->count_hash[i];cp!=NULL;cp=cp->next)
+    {
+      if ( (cp->counter_type & ENCLOSING_COUNTER) != 0)
+      {
         rp=cp->reg_type;
-        /* if species is freely diffusing
-           make sure region is a closed manifold */
-        if ((sp->flags & NOT_FREE)==0) {
-          if (rp->manifold_flag==MANIFOLD_UNCHECKED) {
-            if (is_manifold(rp)) {
-              rp->manifold_flag=IS_MANIFOLD;
-            }
-            else {
-              rp->manifold_flag=NOT_MANIFOLD;
-            }
-          }
-          else {
-            if (rp->manifold_flag==NOT_MANIFOLD) {
-              fprintf(log_file,"MCell: error, cannot count diffusing molecules inside non-manifold object region: %s\n",rp->sym->name); 
-	      return (1);
-            }
-          }
-        }
+	
+	if (rp->manifold_flag==MANIFOLD_UNCHECKED) {
+	  if (is_manifold(rp)) {
+	    rp->manifold_flag=IS_MANIFOLD;
+	  }
+	  else {
+	    rp->manifold_flag=NOT_MANIFOLD;
+	  }
+	}
+	
+	if (rp->manifold_flag==NOT_MANIFOLD) {
+	  fprintf(log_file,"MCell: error, cannot count molecules or events inside non-manifold object region: %s\n",rp->sym->name); 
+	  return (1);
+	}
       }
     }
   }
 
   return(0);
 }
+

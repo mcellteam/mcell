@@ -1887,7 +1887,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
         }
 
         if ((mol->properties->flags & COUNT_CONTENTS) != 0)
-          count_me_by_region((struct abstract_molecule*)mol,1);
+          count_me_by_region((struct abstract_molecule*)mol,1,NULL);
       
         if (schedule_add(w->birthplace->timer,mol)){ 
 		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
@@ -2100,7 +2100,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   }
                   
                   if ((mol->properties->flags & COUNT_CONTENTS) != 0)
-                    count_me_by_region((struct abstract_molecule*)mol,1);
+                    count_me_by_region((struct abstract_molecule*)mol,1,NULL);
       
                   if ( schedule_add(walls[j]->birthplace->timer,mol) ){ 
 			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
@@ -2144,7 +2144,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     }
                   
                     if ((mol->properties->flags & COUNT_CONTENTS) != 0)
-                      count_me_by_region((struct abstract_molecule*)mol,1);
+                      count_me_by_region((struct abstract_molecule*)mol,1,NULL);
       
                     if ( schedule_add(walls[k]->birthplace->timer,mol) ){ 
 			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");

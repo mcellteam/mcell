@@ -80,6 +80,7 @@ I ([0-9]+)
 "ALL"			{return(ALL);}
 "ALL_CROSSINGS"		{return(ALL_CROSSINGS);}
 "ALL_ELEMENTS"		{return(ALL_ELEMENTS);}
+"ALL_ENCLOSED"		{return(ALL_ENCLOSED);}
 "ALL_EVENTS"		{return(ALL_EVENTS);}
 "ALL_HITS"		{return(ALL_HITS);}
 "ASIN"			{return(ASIN);}

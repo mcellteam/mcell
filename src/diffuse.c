@@ -1654,7 +1654,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                   sm->sym->name,m->pos.x*world->length_unit,
                   m->pos.y*world->length_unit,m->pos.z*world->length_unit);
           if ((sm->flags&COUNT_CONTENTS)!=0)
-	    count_me_by_region((struct abstract_molecule*)m,-1);
+	    count_me_by_region((struct abstract_molecule*)m,-1,NULL);
           sm->population--;
           m->properties = NULL;
 	  

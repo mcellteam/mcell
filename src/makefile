@@ -63,7 +63,7 @@ mdlparse.bison.c: mdlparse.y mdlparse.h mdllex.flex.c mdlparse_util.h mcell_stru
 mdlparse.bison.o: makedefs mdlparse.bison.c mdllex.flex.c
 	$(CC) $(CFLAGS) -c mdlparse.bison.c
 
-mdlparse_util.o: makedefs mdlparse_util.c mdlparse_util.h vector.h strfunc.h sym_table.h mcell_structs.h mdlparse.h
+mdlparse_util.o: makedefs mdlparse_util.c mdlparse_util.h vector.h strfunc.h sym_table.h mcell_structs.h mdlparse.h vol_util.h
 	$(CC) $(CFLAGS) -c mdlparse_util.c
   
 sym_table.o: makedefs sym_table.c sym_table.h mcell_structs.h
@@ -78,7 +78,7 @@ viz_output.o: makedefs viz_output.c viz_output.h mcell_structs.h sched_util.h gr
 react_output.o: makedefs react_output.c react_output.h mcell_structs.h sched_util.h
 	$(CC) $(CFLAGS) -c react_output.c
 
-count_util.o: makedefs count_util.c count_util.h wall_util.h vol_util.h mcell_structs.h rng.h
+count_util.o: makedefs count_util.c count_util.h wall_util.h vol_util.h mcell_structs.h grid_util.h rng.h
 	$(CC) $(CFLAGS) -c count_util.c
 
 

@@ -79,6 +79,7 @@ struct output_evaluator *cnt;
 %token <tok> ALL
 %token <tok> ALL_CROSSINGS
 %token <tok> ALL_ELEMENTS
+%token <tok> ALL_ENCLOSED
 %token <tok> ALL_EVENTS
 %token <tok> ALL_HITS
 %token <tok> ASIN
@@ -5137,369 +5138,155 @@ count_syntax: rxpn_or_mol_count_syntax
 
 rxpn_or_mol_count_syntax: existing_rxpn_or_molecule ',' WORLD 
 {
-	u_int i,i1;
+  u_int i;
+  byte report_type;
 
-        no_printf("\nWorld reaction or molecule count syntax:\n");
-        fflush(stderr);
+  no_printf("\nWorld reaction or molecule count syntax:\n");
+  fflush(stderr);
+
+  mdlpvp->stp1=$<sym>1;
   
-	mdlpvp->stp1=$<sym>1;
-
-        if (volp->iterations<0) {
-          sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
-	  mdl_warning(mdlpvp);
-          volp->iterations=0;
-        }
-
-	i1=mdlpvp->obp->buffersize;
-	if ((mdlpvp->intp=(int *)malloc(i1*sizeof(int)))==NULL) {
-	  mdlerror("Cannot store count data");
-	  return(1);
-        }
-
-	for (i=0;i<i1;i++) {
-	  mdlpvp->intp[i]=0;
-	}
-
-        mdlpvp->oep->data_type=INT;
-        mdlpvp->oep->n_data=i1;
-        mdlpvp->oep->final_data=(void *)mdlpvp->intp;
-
-        if (mdlpvp->stp1->sym_type==MOL) {
-          mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
-	  mdlpvp->oep->temp_data=(void *)&mdlpvp->specp->population;
-	  no_printf("Counting number of molecule %s in WORLD\n",
-            mdlpvp->specp->sym->name);
-	  fflush(stderr);
-        }
-        else {
-          mdlpvp->rxpnp=(struct rxn_pathname *)mdlpvp->stp1->value;
-          mdlpvp->oep->temp_data=(void *)&mdlpvp->rxpnp->path->count;
-          no_printf("Counting number of reaction %s in WORLD\n",
-            mdlpvp->rxpnp->sym->name);
-          fflush(stderr);
-        }
+  if (mdlpvp->stp1->sym_type == MOL) report_type = REPORT_CONTENTS + REPORT_WORLD;
+  else report_type = REPORT_RXNS + REPORT_WORLD;
   
+  i = handle_count_request(mdlpvp->stp1->sym_type,
+			   mdlpvp->stp1->value,
+			   NULL,
+			   NULL,
+			   report_type,
+			   mdlpvp);
+  if (i)
+  {
+    mdlerror("Failed to count requested items in the world");
+    return 1;
+  }
 }
-
 	| existing_rxpn_or_molecule ',' existing_region
-
 {	  
-	u_int i,i1;
+  u_int i;
+  byte report_type;
 
-	no_printf("Region molecule count syntax: \n");
-	fflush(stderr);
+  no_printf("Region molecule count syntax: \n");
+  fflush(stderr);
 
-	mdlpvp->stp1=$<sym>1;
-	mdlpvp->stp2=$<sym>3;
-	mdlpvp->rp=(struct region *)mdlpvp->stp2->value;
+  mdlpvp->stp1=$<sym>1;
+  mdlpvp->stp2=$<sym>3;
+  mdlpvp->rp=(struct region *)mdlpvp->stp2->value;
 
-        if (mdlpvp->stp1->sym_type==MOL) {
-          mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
-          mdlpvp->rp->flags|=COUNT_CONTENTS;
-          mdlpvp->specp->flags|=COUNT_CONTENTS;
-          if ((mdlpvp->specp->flags & NOT_FREE)==0) {
-            volp->place_waypoints_flag=1;
-          }
-
-          if ((mdlpvp->cp=store_reg_counter(volp,(void *)mdlpvp->specp,mdlpvp->rp,MOL_COUNTER))==NULL) {
-	    mdlerror("Cannot store region counter data");
-	    return(1);
-          }
-        }
-        else {
-          mdlpvp->rxpnp=(struct rxn_pathname *)mdlpvp->stp1->value;
-          mdlpvp->rp->flags|=COUNT_RXNS;
-          mdlpvp->rxpnp->path->reactant1->flags|=COUNT_RXNS;
-          if (mdlpvp->rxpnp->path->reactant2!=NULL) {
-            mdlpvp->rxpnp->path->reactant2->flags|=COUNT_RXNS;
-          }
-
-          if ((mdlpvp->cp=store_reg_counter(volp,(void *)mdlpvp->rxpnp,mdlpvp->rp,RXN_COUNTER))==NULL) {
-	    mdlerror("Cannot store region counter data");
-	    return(1);
-          }
-        }
-
-        if (volp->iterations<0) {
-          sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
-	  mdl_warning(mdlpvp);
-          volp->iterations=0;
-        }
-
-	i1=mdlpvp->obp->buffersize;
-	if ((mdlpvp->intp=(int *)malloc(i1*sizeof(int)))==NULL) {
-	  mdlerror("Cannot store count data");
-	  return(1);
-        }
-
-	for (i=0;i<i1;i++) {
-	  mdlpvp->intp[i]=0;
-	}
-
-        mdlpvp->oep->data_type=INT;
-        mdlpvp->oep->n_data=i1;
-        mdlpvp->oep->final_data=(void *)mdlpvp->intp;
-        if (mdlpvp->stp1->sym_type==MOL) {
-	  mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->data.move.n_inside;
-	  no_printf("Counting number of molecule %s in region %s\n",
-            mdlpvp->stp1->name,mdlpvp->stp2->name);
-	  fflush(stderr);
-        }
-        else {
-	  mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->data.rx.n_rxn;
-	  no_printf("Counting number of reaction %s in region %s\n",
-            mdlpvp->stp1->name,mdlpvp->stp2->name);
-	  fflush(stderr);
-        }
+  if (mdlpvp->stp1->sym_type==MOL) report_type = REPORT_CONTENTS;
+  else report_type = REPORT_RXNS;
+  
+  i = handle_count_request(mdlpvp->stp1->sym_type,
+			   mdlpvp->stp1->value,
+			   mdlpvp->rp,
+			   NULL,
+			   report_type,
+			   mdlpvp);
+  if (i)
+  {
+    mdlerror("Failed to count requested items in the world");
+    return 1;
+  }
 }
 	| existing_rxpn_or_molecule ',' existing_object 
 {
-	no_printf("\nObject molecule count syntax:\n");
-	fflush(stderr);
+  u_int i;
+  byte report_type;
 
-	mdlpvp->stp1=$<sym>1;
-	mdlpvp->stp2=$<sym>3;
-	mdlpvp->objp=(struct object *)mdlpvp->stp2->value;
-        mdlpvp->objp2=mdlpvp->top_objp;
+  no_printf("\nObject molecule count syntax:\n");
+  fflush(stderr);
 
-        if (mdlpvp->stp1->sym_type==MOL) {
-          mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
-          mdlpvp->specp->flags|=COUNT_CONTENTS;
-          if ((mdlpvp->specp->flags & NOT_FREE)==0) {
-            volp->place_waypoints_flag=1;
-          }
-        }
-        else {
-          mdlpvp->rxpnp=(struct rxn_pathname *)mdlpvp->stp1->value;
-          mdlpvp->rxpnp->path->reactant1->flags|=COUNT_RXNS;
-          if (mdlpvp->rxpnp->path->reactant2!=NULL) {
-            mdlpvp->rxpnp->path->reactant2->flags|=COUNT_RXNS;
-          }
-        }
+  mdlpvp->stp1=$<sym>1;
+  mdlpvp->stp2=$<sym>3;
+  mdlpvp->objp=(struct object *)mdlpvp->stp2->value;
+  mdlpvp->objp2=mdlpvp->top_objp;
   
-        if (volp->iterations<0) {
-          sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
-	  mdl_warning(mdlpvp);
-          volp->iterations=0;
-        }
+  if (mdlpvp->stp1->sym_type==MOL) report_type = REPORT_CONTENTS;
+  else report_type = REPORT_RXNS;
 
-	mdlpvp->oep->update_flag=0;
-        mdlpvp->oep->reset_flag=0;
-	mdlpvp->oep->data_type=EXPR;
-	mdlpvp->oep->index_type=UNKNOWN;
-	mdlpvp->oep->n_data=0;
-	mdlpvp->oep->temp_data=NULL;
-	mdlpvp->oep->final_data=NULL;
-	mdlpvp->oep->operand1=NULL;
-	mdlpvp->oep->operand2=NULL;
-	mdlpvp->oep->oper='+';
-
-        if (mdlpvp->stp1->sym_type==MOL) {
-	  if (build_count_tree(REPORT_CONTENTS,volp,mdlpvp->objp,mdlpvp->oip,mdlpvp->oep,(void *)mdlpvp->specp,mdlpvp->obp->buffersize,mdlpvp->prefix_name)) {
-	    mdlerror("Cannot store molecule output_evaluator data");
-	    return(1);
-	  }
-	  no_printf("Counting number of molecule %s in object %s\n",
-            mdlpvp->stp1->name,mdlpvp->stp2->name);
-	  fflush(stderr);
-        }
-        else {
-	  if (build_count_tree(REPORT_RXNS,volp,mdlpvp->objp,mdlpvp->oip,mdlpvp->oep,(void *)mdlpvp->rxpnp,mdlpvp->obp->buffersize,mdlpvp->prefix_name)) {
-	    mdlerror("Cannot store named reaction output_evaluator data");
-	    return(1);
-	  }
-	  no_printf("Counting number of reaction %s in object %s\n",
-            mdlpvp->stp1->name,mdlpvp->stp2->name);
-	  fflush(stderr);
-        }
+  i = handle_count_request(mdlpvp->stp1->sym_type,
+			   mdlpvp->stp1->value,
+			   NULL,
+			   mdlpvp->objp,
+			   report_type,
+			   mdlpvp);
+  if (i)
+  {
+    mdlerror("Failed to count requested items in the world");
+    return 1;
+  }
 };
  
 
 mol_hit_count_syntax: existing_rxpn_or_molecule ',' existing_region ',' hit_spec
 {
-	u_int i,i1;
+  u_int i;
+  byte report_type;
 
-	no_printf("Region molecule hit count syntax: \n");
-	fflush(stderr);
+  no_printf("Region molecule hit count syntax: \n");
+  fflush(stderr);
 
-	mdlpvp->stp1=$<sym>1;
-	if (mdlpvp->stp1->sym_type!=MOL) {
-          sprintf(mdlpvp->mdl_err_msg,"%s %s","Count item must be a molecule, not a named reaction pathway:",mdlpvp->stp1->name);
-          mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-	  return(1);
-        }
-        mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
-	mdlpvp->stp2=$<sym>3;
-	mdlpvp->rp=(struct region *)mdlpvp->stp2->value;
-        mdlpvp->rp->flags|=COUNT_HITS;
-        mdlpvp->specp->flags|=COUNT_HITS;
+  mdlpvp->stp1=$<sym>1;
+  mdlpvp->stp2=$<sym>3;
+  mdlpvp->rp=(struct region*)mdlpvp->stp2->value;
+  report_type = (byte)$<dbl>5;
+  
+  if (report_type==REPORT_ENCLOSED)
+  {
+    if (mdlpvp->stp1->sym_type==MOL) report_type = REPORT_CONTENTS+REPORT_ENCLOSED;
+    else report_type = REPORT_RXNS+REPORT_ENCLOSED;
+  }
 
-        if ((mdlpvp->cp=store_reg_counter(volp,(void *)mdlpvp->specp,mdlpvp->rp,MOL_COUNTER))==NULL) {
-	  mdlerror("Cannot store region counter data");
-	  return(1);
-        }
-
-        if (volp->iterations<0) {
-          sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
-	  mdl_warning(mdlpvp);
-          volp->iterations=0;
-        }
-
-        switch($<tok>5) {   
-        case REPORT_FRONT_HITS:
-	  i1=mdlpvp->obp->buffersize;
-	  if ((mdlpvp->dblp=(double *)malloc(i1*sizeof(double)))==NULL) {
-	    mdlerror("Cannot store count data");
-	    return(1);
-          }
-	  for (i=0;i<i1;i++) {
-	    mdlpvp->dblp[i]=0;
-	  }
-          mdlpvp->oep->data_type=DBL;
-          mdlpvp->oep->n_data=i1;
-          mdlpvp->oep->final_data=(void *)mdlpvp->dblp;
-          mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->data.move.front_hits;
-          break;
-        case REPORT_BACK_HITS:   
-	  i1=mdlpvp->obp->buffersize;
-	  if ((mdlpvp->dblp=(double *)malloc(i1*sizeof(double)))==NULL) {
-	    mdlerror("Cannot store count data");
-	    return(1);
-          }
-	  for (i=0;i<i1;i++) {
-	    mdlpvp->dblp[i]=0;
-	  }
-          mdlpvp->oep->data_type=DBL;
-          mdlpvp->oep->n_data=i1;
-          mdlpvp->oep->final_data=(void *)mdlpvp->dblp;
-          mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->data.move.back_hits;
-          break;
-        case REPORT_ALL_HITS:   
-	  mdlpvp->oep->update_flag=0;
-          mdlpvp->oep->reset_flag=0;
-	  mdlpvp->oep->data_type=EXPR;
-	  mdlpvp->oep->index_type=UNKNOWN;
-	  mdlpvp->oep->n_data=0;
-	  mdlpvp->oep->temp_data=NULL;
-	  mdlpvp->oep->final_data=NULL;
-	  mdlpvp->oep->operand1=NULL;
-	  mdlpvp->oep->operand2=NULL;
-	  mdlpvp->oep->oper='+';
-          if (insert_counter(REPORT_FRONT_HITS,volp,mdlpvp->oip,mdlpvp->oep,mdlpvp->cp,mdlpvp->obp->buffersize)) {
-	    mdlerror("Cannot store molecule output_evaluator data");
-            return(1);
-          }
-          if (insert_counter(REPORT_BACK_HITS,volp,mdlpvp->oip,mdlpvp->oep,mdlpvp->cp,mdlpvp->obp->buffersize)) {
-	    mdlerror("Cannot store molecule output_evaluator data");
-            return(1);
-          }
-          break;
-        case REPORT_FRONT_CROSSINGS:
-	  i1=mdlpvp->obp->buffersize;
-	  if ((mdlpvp->dblp=(double *)malloc(i1*sizeof(double)))==NULL) {
-	    mdlerror("Cannot store count data");
-	    return(1);
-          }
-	  for (i=0;i<i1;i++) {
-	    mdlpvp->dblp[i]=0;
-	  }
-          mdlpvp->oep->data_type=DBL;
-          mdlpvp->oep->n_data=i1;
-          mdlpvp->oep->final_data=(void *)mdlpvp->dblp;
-          mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->data.move.front_to_back;
-          break;
-        case REPORT_BACK_CROSSINGS:
-	  i1=mdlpvp->obp->buffersize;
-	  if ((mdlpvp->dblp=(double *)malloc(i1*sizeof(double)))==NULL) {
-	    mdlerror("Cannot store count data");
-	    return(1);
-          }
-	  for (i=0;i<i1;i++) {
-	    mdlpvp->dblp[i]=0;
-	  }
-          mdlpvp->oep->data_type=DBL;
-          mdlpvp->oep->n_data=i1;
-          mdlpvp->oep->final_data=(void *)mdlpvp->dblp;
-          mdlpvp->oep->temp_data=(void *)&mdlpvp->cp->data.move.back_to_front;
-          break;
-        case REPORT_ALL_CROSSINGS:
-	  mdlpvp->oep->update_flag=0;
-          mdlpvp->oep->reset_flag=0;
-	  mdlpvp->oep->data_type=EXPR;
-	  mdlpvp->oep->index_type=UNKNOWN;
-	  mdlpvp->oep->n_data=0;
-	  mdlpvp->oep->temp_data=NULL;
-	  mdlpvp->oep->final_data=NULL;
-	  mdlpvp->oep->operand1=NULL;
-	  mdlpvp->oep->operand2=NULL;
-	  mdlpvp->oep->oper='+';
-          if (insert_counter(REPORT_FRONT_CROSSINGS,volp,mdlpvp->oip,mdlpvp->oep,mdlpvp->cp,mdlpvp->obp->buffersize)) {
-	    mdlerror("Cannot store molecule output_evaluator data");
-            return(1);
-          }
-          if (insert_counter(REPORT_BACK_CROSSINGS,volp,mdlpvp->oip,mdlpvp->oep,mdlpvp->cp,mdlpvp->obp->buffersize)) {
-	    mdlerror("Cannot store molecule output_evaluator data");
-            return(1);
-          }
-          break;
-        }
-
-	no_printf("Counting hits of molecule %s in region %s\n",
-          mdlpvp->stp1->name,mdlpvp->stp2->name);
-	fflush(stderr);
+  i = handle_count_request(mdlpvp->stp1->sym_type,
+			   mdlpvp->stp1->value,
+			   mdlpvp->rp,
+			   NULL,
+			   report_type,
+			   mdlpvp);
+  if (i)
+  {
+    mdlerror("Failed to count requested items in the world");
+    return 1;
+  }
 }
 	| existing_rxpn_or_molecule ',' existing_object ',' hit_spec
 {
-	no_printf("\nObject molecule hit count syntax:\n");
-	fflush(stderr);
-
-	mdlpvp->stp1=$<sym>1;
-	if (mdlpvp->stp1->sym_type!=MOL) {
-          sprintf(mdlpvp->mdl_err_msg,"%s %s","Count item must be a molecule not a name reaction pathway:",mdlpvp->stp1->name);
-          mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-	  return(1);
-        }
-        mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
-        mdlpvp->specp->flags|=COUNT_HITS;
-
-	mdlpvp->stp2=$<sym>3;
-	mdlpvp->objp=(struct object *)mdlpvp->stp2->value;
-        mdlpvp->objp2=mdlpvp->top_objp;
+  u_int i;
+  byte report_type;
   
-        if (volp->iterations<0) {
-          sprintf(mdlpvp->mdl_err_msg,"Iterations = %d\n\tSetting iterations to 0\n",volp->iterations);
-	  mdl_warning(mdlpvp);
-          volp->iterations=0;
-        }
+  mdlpvp->stp1=$<sym>1;
+  mdlpvp->stp2=$<sym>3;
+  mdlpvp->objp=(struct object*)mdlpvp->stp2->value;
+  mdlpvp->objp2=mdlpvp->top_objp;
+  report_type = (byte)$<dbl>5;
+  
+  if (report_type==REPORT_ENCLOSED)
+  {
+    if (mdlpvp->stp1->sym_type==MOL) report_type = REPORT_CONTENTS+REPORT_ENCLOSED;
+    else report_type = REPORT_RXNS+REPORT_ENCLOSED;
+  }
 
-	mdlpvp->oep->update_flag=0;
-        mdlpvp->oep->reset_flag=0;
-	mdlpvp->oep->data_type=EXPR;
-	mdlpvp->oep->index_type=UNKNOWN;
-	mdlpvp->oep->n_data=0;
-	mdlpvp->oep->temp_data=NULL;
-	mdlpvp->oep->final_data=NULL;
-	mdlpvp->oep->operand1=NULL;
-	mdlpvp->oep->operand2=NULL;
-	mdlpvp->oep->oper='+';
-
-	if (build_count_tree((byte)$<tok>5,volp,mdlpvp->objp,mdlpvp->oip,mdlpvp->oep,(void *)mdlpvp->specp,mdlpvp->obp->buffersize,mdlpvp->prefix_name)) {
-	  mdlerror("Cannot store molecule output_evaluator data");
-	  return(1);
-	}
-
-	no_printf("Counting hits of molecule %s in object %s\n",
-          mdlpvp->stp1->name,mdlpvp->stp2->name);
-	fflush(stderr);
+  i = handle_count_request(mdlpvp->stp1->sym_type,
+			   mdlpvp->stp1->value,
+			   NULL,
+			   mdlpvp->objp,
+			   report_type,
+			   mdlpvp);
+  if (i)
+  {
+    mdlerror("Failed to count requested items in the world");
+    return 1;
+  }
 };
 
 
-hit_spec: FRONT_HITS { $$ = REPORT_FRONT_HITS }
-	| BACK_HITS { $$ = REPORT_BACK_HITS }
-	| ALL_HITS { $$ = REPORT_ALL_HITS }
-	| FRONT_CROSSINGS { $$ = REPORT_FRONT_CROSSINGS }
-	| BACK_CROSSINGS { $$ = REPORT_BACK_CROSSINGS }
-	| ALL_CROSSINGS { $$ = REPORT_ALL_CROSSINGS }
+hit_spec: FRONT_HITS { $$ = REPORT_FRONT_HITS; }
+	| BACK_HITS { $$ = REPORT_BACK_HITS; }
+	| ALL_HITS { $$ = REPORT_ALL_HITS; }
+	| FRONT_CROSSINGS { $$ = REPORT_FRONT_CROSSINGS; }
+	| BACK_CROSSINGS { $$ = REPORT_BACK_CROSSINGS; }
+	| ALL_CROSSINGS { $$ = REPORT_ALL_CROSSINGS; }
+	| ALL_ENCLOSED { $$ = REPORT_ENCLOSED; }
 ;
 
 

@@ -19,7 +19,8 @@
    /* Walls have IS_SURFACE set, molecules do not. */
    /* Surface and grid molecules have ON_SURFACE set */
    /* Grid molecules have ON_GRID set */
-   /* IS_ACTIVE is set if this molecule can do anything on its own */
+   /* COUNT_ENCLOSED set if you count what happens inside closed region */
+   /* (otherwise only count stuff happening at the surface) */
 #define ON_SURFACE       0x01
 #define ON_GRID          0x02
 #define IS_SURFACE       0x04
@@ -34,20 +35,34 @@
 #define COUNT_HITS       0x2000
 #define COUNT_SOME       0x3000
 #define COUNT_RXNS       0x4000
+#define COUNT_ENCLOSED   0x8000
 
 /* rxn/mol/region counter report types */
+/* Do not set both WORLD and ENCLOSED flags; ENCLOSED applies only to regions */
+/* First set reports a single number */
 #define REPORT_CONTENTS        0
 #define REPORT_FRONT_HITS      1
 #define REPORT_BACK_HITS       2
-#define REPORT_ALL_HITS        3
-#define REPORT_FRONT_CROSSINGS 4
-#define REPORT_BACK_CROSSINGS  5
-#define REPORT_ALL_CROSSINGS   6
-#define REPORT_RXNS            7
+#define REPORT_FRONT_CROSSINGS 3
+#define REPORT_BACK_CROSSINGS  4
+#define REPORT_RXNS            5
+/* Anything >= REPORT_MULTIPLE reports some combination of the above */
+#define REPORT_MULTIPLE        6 
+#define REPORT_ALL_HITS        7
+#define REPORT_ALL_CROSSINGS   8
+/* All basic report types can be masked with this value */
+#define REPORT_TYPE_MASK       0x0F
+/* And finally we have some flags to say whether we're to count over */
+/* the entire world or the volume enclosed by a region (set only one) */
+#define REPORT_WORLD           0x20
+#define REPORT_ENCLOSED        0x40
 
-/* rxn/mol/region counter types */
-#define MOL_COUNTER 0
-#define RXN_COUNTER 1
+/* rxn/mol/region counter flags */
+/* Only set one of MOL_COUNTER or RXN_COUNTER */
+/* Set ENCLOSING_COUNTER if the region is closed and counts inside itself */
+#define MOL_COUNTER 1
+#define RXN_COUNTER 2
+#define ENCLOSING_COUNTER 4
 
 #define MANIFOLD_UNCHECKED 0
 #define NOT_MANIFOLD       1
@@ -788,7 +803,8 @@ struct bsp_tree
 struct rxn_counter_data
 {
   struct rxn_pathname *rxn_type;    /* named rxn we are counting */
-  double n_rxn;                     /* # rxn occurrance */
+  double n_rxn_at;                  /* # rxn occurrance on surface */
+  double n_rxn_enclosed;            /* # rxn occurrance inside closed region */
 };
 
 
@@ -799,7 +815,8 @@ struct move_counter_data
   double back_hits;                /* # hits on back of region */
   double front_to_back;            /* # crossings from front to back */
   double back_to_front;            /* # crossings from back to front */
-  int n_inside;                    /* # molecules within the region */
+  int n_at;                        /* # molecules on region surface */
+  int n_enclosed;                  /* # molecules inside closed region */
 };
 
 

@@ -65,4 +65,11 @@ int build_count_tree(byte report_type,
                          u_int buffersize,
                          char *sub_name);
 
+int handle_count_request(unsigned short sym_type,
+                         void *value,
+			 struct region *r,
+			 struct object *obj,
+			 byte report_type,
+			 struct mdlparse_vars *mdlpvp);
+
 #endif

@@ -170,9 +170,6 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
           plist[i-i0] = (struct abstract_molecule*)g;
           ptype[i-i0] = 'g';
           
-          if (p->flags & COUNT_CONTENTS)
-            count_me_by_region((struct abstract_molecule*)g,1);
-
           if ( schedule_add(local->timer,g) ) return RX_NO_MEM;
           
         }
@@ -329,13 +326,19 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       m->t2 = 0.0;
       m->t = t;
 
-      if (p->flags & COUNT_CONTENTS)
-        count_me_by_region((struct abstract_molecule*)m,1);
-
       if ( schedule_add( local->timer , m ) ) return RX_NO_MEM;
       
     }
   }
+  
+/*
+  if (rx->pathway_head[path]->pathname != NULL)
+  {
+    rx->pathway_head[path]->count++;
+    count_rx_by_region(reacA,w,rx->pathway_head[path]->pathname,1);
+  }
+*/
+  
   
   bits = rng_uint( world->seed++ );
   for (i=i0;i<iN;i++,bits>>=1)
@@ -408,6 +411,9 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
         m->subvol->mol_count++;
       }
     }
+    
+    if ((plist[i-i0]->properties->flags & COUNT_CONTENTS) != 0)
+      count_me_by_region(plist[i-i0],1,NULL);
   }
 
   return bounce;
@@ -475,7 +481,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
     }
 
     if ((reac->properties->flags & COUNT_CONTENTS) != 0)
-      count_me_by_region(reac,-1);
+      count_me_by_region(reac,-1,NULL);
     
     reac->properties->population--;
     reac->properties = NULL;
@@ -589,7 +595,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
       }
 
       if ((reacB->properties->flags & COUNT_CONTENTS) != 0)
-        count_me_by_region(reacB,-1);
+        count_me_by_region(reacB,-1,NULL);
     
       reacB->properties->population--;
       reacB->properties = NULL;
@@ -610,7 +616,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
       }
 
       if ((reacA->properties->flags & COUNT_CONTENTS) != 0)
-        count_me_by_region(reacA,-1);
+        count_me_by_region(reacA,-1,NULL);
     
       reacA->properties->population--;
       reacA->properties = NULL;
@@ -635,7 +641,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
       }
 
       if ((reacB->properties->flags & COUNT_CONTENTS) != 0)
-        count_me_by_region(reacB,-1);
+        count_me_by_region(reacB,-1,NULL);
     
       reacB->properties->population--;
       reacB->properties = NULL;
@@ -656,7 +662,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
       }
 
       if ((reacA->properties->flags & COUNT_CONTENTS) != 0)
-        count_me_by_region(reacA,-1);
+        count_me_by_region(reacA,-1,NULL);
     
       reacA->properties->population--;
       reacA->properties = NULL;
@@ -709,7 +715,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     {
       m->subvol->mol_count--;
       if ( (reac->properties->flags & COUNT_CONTENTS) != 0 )
-	count_me_by_region(reac,-1);
+	count_me_by_region(reac,-1,NULL);
       reac->properties->population--;
       reac->properties = NULL;
       return RX_DESTROY;

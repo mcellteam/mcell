@@ -372,7 +372,7 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
   
   if (new_m->properties->flags & COUNT_CONTENTS)
   {
-    count_me_by_region( (struct abstract_molecule*)new_m , 1 );
+    count_me_by_region( (struct abstract_molecule*)new_m , 1 , NULL );
   }
   
   if ( schedule_add(sv->local_storage->timer,new_m) ) {
@@ -397,7 +397,7 @@ void excert_molecule(struct molecule *m)
 {
   if (m->properties->flags & COUNT_CONTENTS)
   {
-    count_me_by_region( (struct abstract_molecule*)m , -1 );
+    count_me_by_region( (struct abstract_molecule*)m , -1 , NULL );
   }
   m->subvol->mol_count--;
   m->properties->population--;

@@ -1600,12 +1600,16 @@ struct counter *store_reg_counter(struct volume *volp,
   struct species *sp;
   struct rxn_pathname *rxpnp;
   u_int j,hashval;
+  byte counter_type_only;
 
   /* create new counter if not already in counter table */
   if ((cp=retrieve_reg_counter(volp,vp,rp,counter_type))==NULL) {
     sp=NULL;
     rxpnp=NULL;
-    if (counter_type == MOL_COUNTER) {
+    if ((counter_type&ENCLOSING_COUNTER)==0) counter_type_only = counter_type;
+    else counter_type_only = counter_type - ENCLOSING_COUNTER;
+    
+    if (counter_type_only == MOL_COUNTER) {
       sp=(struct species *)vp;
       hashval=sp->hashval;
     }
@@ -1628,21 +1632,23 @@ struct counter *store_reg_counter(struct volume *volp,
     cp->counter_type=counter_type;
     cp->reg_type=rp;
     
-    if (counter_type == MOL_COUNTER) {
-      printf("Will count mol %s (%x) within %s (%x) at hashval %x\n",
-             sp->sym->name,sp->hashval,rp->sym->name,rp->hashval,j);
+    if (counter_type_only == MOL_COUNTER) {
+      printf("Will count mol %s (%x) within %s (%x) at hashval %x, counter type %d\n",
+             sp->sym->name,sp->hashval,rp->sym->name,rp->hashval,j,(int)counter_type);
       cp->data.move.mol_type=sp;
       cp->data.move.front_hits=0;
       cp->data.move.back_hits=0;
       cp->data.move.front_to_back=0;
       cp->data.move.back_to_front=0;
-      cp->data.move.n_inside=0;
+      cp->data.move.n_enclosed=0;
+      cp->data.move.n_at=0;
     }
     else {
       printf("Will count rxn %s (%x) within %s (%x) at hashval %x\n",
              rxpnp->sym->name,rxpnp->hashval,rp->sym->name,rp->hashval,j);
       cp->data.rx.rxn_type=rxpnp;
-      cp->data.rx.n_rxn=0;
+      cp->data.rx.n_rxn_enclosed=0;
+      cp->data.rx.n_rxn_at=0;
     }
   
   }
@@ -1659,6 +1665,13 @@ struct output_evaluator *init_counter(byte report_type,
   struct output_evaluator *oep;
   double *dblp;
   int i,*intp;
+  u_int enclosed_flag = 0;
+  
+  if ( (report_type & REPORT_ENCLOSED) != 0 )
+  {
+    enclosed_flag = COUNT_ENCLOSED;
+    report_type -= REPORT_ENCLOSED;
+  }
   
   if ((oep=(struct output_evaluator *)malloc(sizeof(struct output_evaluator)))==NULL) {
     return(NULL);
@@ -1681,8 +1694,9 @@ struct output_evaluator *init_counter(byte report_type,
     }
     oep->data_type=INT;
     oep->final_data=(void *)intp;
-    oep->temp_data=(void *)&cp->data.move.n_inside;
-    cp->reg_type->flags|=COUNT_CONTENTS;
+    if (enclosed_flag) oep->temp_data=(void *)&cp->data.move.n_enclosed;
+    else oep->temp_data=(void *)&cp->data.move.n_at;
+    cp->reg_type->flags|=COUNT_CONTENTS+enclosed_flag;
     break;
   case REPORT_FRONT_HITS:
     if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
@@ -1694,7 +1708,7 @@ struct output_evaluator *init_counter(byte report_type,
     oep->data_type=DBL;
     oep->final_data=(void *)dblp;
     oep->temp_data=(void *)&cp->data.move.front_hits;
-    cp->reg_type->flags|=COUNT_HITS;
+    cp->reg_type->flags|=COUNT_HITS+enclosed_flag;
     break;
   case REPORT_BACK_HITS:
     if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
@@ -1706,7 +1720,7 @@ struct output_evaluator *init_counter(byte report_type,
     oep->data_type=DBL;
     oep->final_data=(void *)dblp;
     oep->temp_data=(void *)&cp->data.move.back_hits;
-    cp->reg_type->flags|=COUNT_HITS;
+    cp->reg_type->flags|=COUNT_HITS+enclosed_flag;
     break;
   case REPORT_FRONT_CROSSINGS:
     if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
@@ -1718,7 +1732,7 @@ struct output_evaluator *init_counter(byte report_type,
     oep->data_type=DBL;
     oep->final_data=(void *)dblp;
     oep->temp_data=(void *)&cp->data.move.front_to_back;
-    cp->reg_type->flags|=COUNT_HITS;
+    cp->reg_type->flags|=COUNT_HITS+enclosed_flag;
     break;
   case REPORT_BACK_CROSSINGS:
     if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
@@ -1730,7 +1744,7 @@ struct output_evaluator *init_counter(byte report_type,
     oep->data_type=DBL;
     oep->final_data=(void *)dblp;
     oep->temp_data=(void *)&cp->data.move.back_to_front;
-    cp->reg_type->flags|=COUNT_HITS;
+    cp->reg_type->flags|=COUNT_HITS+enclosed_flag;
     break;
   case REPORT_RXNS:
     if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
@@ -1741,8 +1755,11 @@ struct output_evaluator *init_counter(byte report_type,
     }
     oep->data_type=DBL;
     oep->final_data=(void *)dblp;
-    oep->temp_data=(void *)&cp->data.rx.n_rxn;
-    cp->reg_type->flags|=COUNT_RXNS;
+    if (enclosed_flag)
+      oep->temp_data=(void *)&cp->data.rx.n_rxn_enclosed;
+    else
+      oep->temp_data=(void *)&cp->data.rx.n_rxn_at;
+    cp->reg_type->flags|=COUNT_RXNS+enclosed_flag;
     break;
   default:
     printf("Error: Unknown counter report type %d\n", report_type);
@@ -1853,6 +1870,14 @@ int build_count_tree(byte report_type,
   byte counter_type;
   char temp_str[1024];
   char *tmp_name,*region_name;
+  byte enclosed_count;
+  
+  if ((report_type & REPORT_ENCLOSED) != 0)
+  {
+     report_type -= REPORT_ENCLOSED;
+     enclosed_count = REPORT_ENCLOSED;
+  }
+  else enclosed_count = 0;
 
   if (sub_name!=NULL) { 
     if (strcmp(sub_name,"")==0) {
@@ -1890,7 +1915,7 @@ int build_count_tree(byte report_type,
   case META_OBJ:
     child_objp=objp->first_child;
     while (child_objp!=NULL) {
-      if (build_count_tree(report_type,volp,child_objp,oip,oep,vp,buffersize,sub_name)) {
+      if (build_count_tree(report_type+enclosed_count,volp,child_objp,oip,oep,vp,buffersize,sub_name)) {
         return(1);
       }
       child_objp=child_objp->next;
@@ -1928,6 +1953,8 @@ int build_count_tree(byte report_type,
     else {
       counter_type = MOL_COUNTER;
     }
+    
+    if (enclosed_count) counter_type |= ENCLOSING_COUNTER;
 
     if ((cp=store_reg_counter(volp,vp,rp,counter_type))==NULL) {
       return(1);
@@ -1935,23 +1962,23 @@ int build_count_tree(byte report_type,
 
     switch(report_type) {
     case REPORT_ALL_HITS:
-      if (insert_counter(REPORT_FRONT_HITS,volp,oip,oep,cp,buffersize)) {
+      if (insert_counter(REPORT_FRONT_HITS+enclosed_count,volp,oip,oep,cp,buffersize)) {
         return(1);
       }
-      if (insert_counter(REPORT_BACK_HITS,volp,oip,oep,cp,buffersize)) {
+      if (insert_counter(REPORT_BACK_HITS+enclosed_count,volp,oip,oep,cp,buffersize)) {
         return(1);
       }
       break;
     case REPORT_ALL_CROSSINGS:
-      if (insert_counter(REPORT_FRONT_CROSSINGS,volp,oip,oep,cp,buffersize)) {
+      if (insert_counter(REPORT_FRONT_CROSSINGS+enclosed_count,volp,oip,oep,cp,buffersize)) {
         return(1);
       }
-      if (insert_counter(REPORT_BACK_CROSSINGS,volp,oip,oep,cp,buffersize)) {
+      if (insert_counter(REPORT_BACK_CROSSINGS+enclosed_count,volp,oip,oep,cp,buffersize)) {
         return(1);
       }
       break;
     default:
-      if (insert_counter(report_type,volp,oip,oep,cp,buffersize)) {
+      if (insert_counter(report_type+enclosed_count,volp,oip,oep,cp,buffersize)) {
         return(1);
       }
       break;
@@ -1964,7 +1991,231 @@ int build_count_tree(byte report_type,
 
 
 
+int handle_count_request(unsigned short sym_type,void *value,struct region *r,struct object *obj,byte report_type,struct mdlparse_vars *mdlpvp)
+{
+  int i,i1;
+  struct species *sp = NULL;
+  struct rxn_pathname *rxp = NULL;
+  struct counter *c;
+  u_int count_flag = 0;
+  byte counter_type = 0;
+  byte base_report_type = report_type & REPORT_TYPE_MASK;
 
+  /* First step: set appropriate flags on molecules/reactions being counted */
+  
+  if (base_report_type == REPORT_CONTENTS) count_flag = COUNT_CONTENTS;
+  else if (base_report_type == REPORT_RXNS) count_flag = COUNT_RXNS;
+  else count_flag = COUNT_HITS;
+  
+  if ( (report_type & REPORT_ENCLOSED) != REPORT_WORLD ) count_flag |= COUNT_ENCLOSED;
+
+  if (sym_type==MOL)
+  {
+    sp = (struct species *)value;
+    
+    if (base_report_type == REPORT_RXNS) return 1;
+    if ( (sp->flags & NOT_FREE) == 0 ) count_flag |= COUNT_ENCLOSED;   
+    sp->flags |= count_flag;
+    
+    counter_type = MOL_COUNTER;
+  }
+  else if (sym_type==RXPN)
+  {
+    rxp = (struct rxn_pathname *)value;
+    
+    if (base_report_type != REPORT_RXNS) return 1;
+    if (rxp->path->reactant2 != NULL)
+    {
+      if ( (rxp->path->reactant1->flags & NOT_FREE) == 0 &&
+	   (rxp->path->reactant2->flags & NOT_FREE) == 0) count_flag |= COUNT_ENCLOSED;
+      rxp->path->reactant2->flags |= count_flag;
+    }
+    else
+    {
+      if ( (rxp->path->reactant1->flags & NOT_FREE) == 0 ) count_flag |= COUNT_ENCLOSED;
+    }
+    rxp->path->reactant1->flags |= count_flag;
+    
+    counter_type = RXN_COUNTER;
+  }
+  else return 1;  /* Invalid symbol type */
+
+  if ( (count_flag & COUNT_ENCLOSED) != 0 )
+  {
+    mdlpvp->vol->place_waypoints_flag = 1;
+    counter_type |= ENCLOSING_COUNTER;
+    report_type |= REPORT_ENCLOSED;
+  }
+  
+  if (mdlpvp->vol->iterations<0) {
+    fprintf(mdlpvp->vol->err_file,"Iterations = %d\n\tSetting iterations to 0\n",mdlpvp->vol->iterations);
+    mdlpvp->vol->iterations=0;
+  }
+  
+  /* Second step: create appropriate counters */
+  
+  if (obj!=NULL)  /* Report on object */
+  {
+    mdlpvp->oep->update_flag=0;
+    mdlpvp->oep->reset_flag=0;
+    mdlpvp->oep->data_type=EXPR;
+    mdlpvp->oep->index_type=UNKNOWN;
+    mdlpvp->oep->n_data=0;
+    mdlpvp->oep->temp_data=NULL;
+    mdlpvp->oep->final_data=NULL;
+    mdlpvp->oep->operand1=NULL;
+    mdlpvp->oep->operand2=NULL;
+    mdlpvp->oep->oper='+';
+
+    if (build_count_tree(report_type,mdlpvp->vol,obj,mdlpvp->oip,mdlpvp->oep,value,mdlpvp->obp->buffersize,mdlpvp->prefix_name))
+    {
+      fprintf(mdlpvp->vol->err_file,"Cannot store count evaluator data for object %s\n",obj->sym->name);
+      return 1;
+    }
+  }
+  else  /* Report on region or world */
+  {
+    if (r!=NULL) r->flags |= count_flag;
+    
+    if (base_report_type==REPORT_CONTENTS)
+    {
+      i1=mdlpvp->obp->buffersize;
+      if ((mdlpvp->intp=(int *)malloc(i1*sizeof(int)))==NULL)
+      {
+	fprintf(mdlpvp->vol->err_file,"Cannot store count data");
+	return 1;
+      }
+
+      for (i=0;i<i1;i++) mdlpvp->intp[i]=0;
+      mdlpvp->oep->data_type=INT;
+      mdlpvp->oep->n_data=i1;
+      mdlpvp->oep->final_data=(void *)mdlpvp->intp;
+      
+      if (r==NULL) /* Count on world */
+      {
+	mdlpvp->oep->temp_data = (void*) &sp->population;
+      }
+      else /* Region */
+      {   
+	c = store_reg_counter(mdlpvp->vol,(void *)sp,r,counter_type);
+	if (c==NULL)
+	{
+	  fprintf(mdlpvp->vol->err_file,"Cannot store count data");
+	  return 1;
+	}
+	
+	if ((report_type & REPORT_ENCLOSED) != 0)
+	  mdlpvp->oep->temp_data = (void *)&c->data.move.n_enclosed;
+	else
+	  mdlpvp->oep->temp_data = (void *)&c->data.move.n_at;
+      }
+    }
+    else if (base_report_type<REPORT_MULTIPLE)
+    {
+      i1=mdlpvp->obp->buffersize;
+      if ((mdlpvp->dblp=(double *)malloc(i1*sizeof(double)))==NULL)
+      {
+	fprintf(mdlpvp->vol->err_file,"Cannot store count data");
+	return 1;
+      }
+      
+      for (i=0;i<i1;i++) mdlpvp->dblp[i]=0;
+      mdlpvp->oep->data_type=DBL;
+      mdlpvp->oep->n_data=i1;
+      mdlpvp->oep->final_data=(void *)mdlpvp->dblp;
+      
+      if (r==NULL) /* Count on world */
+      {
+	mdlpvp->oep->temp_data = (void*)&rxp->path->count;
+      }
+      else /* Region */
+      {
+	if (sym_type==MOL) c = store_reg_counter(mdlpvp->vol,(void *)sp,r,counter_type);
+	else c = store_reg_counter(mdlpvp->vol,(void *)rxp,r,counter_type);
+	if (c==NULL)
+	{
+	  fprintf(mdlpvp->vol->err_file,"Cannot store count data");
+	  return 1;
+	}
+	
+	switch (base_report_type)
+	{ 
+	  case REPORT_FRONT_HITS:
+	    mdlpvp->oep->temp_data = (void*)&c->data.move.front_hits;
+	    break;
+	  case REPORT_BACK_HITS:
+	    mdlpvp->oep->temp_data = (void*)&c->data.move.back_hits;
+	    break;
+	  case REPORT_FRONT_CROSSINGS:
+	    mdlpvp->oep->temp_data = (void*)&c->data.move.front_to_back;
+	    break;
+	  case REPORT_BACK_CROSSINGS:
+	    mdlpvp->oep->temp_data = (void*)&c->data.move.back_to_front;
+	    break;
+	  case REPORT_RXNS:
+	    if ((report_type&REPORT_ENCLOSED) != 0)
+	      mdlpvp->oep->temp_data = (void*)&c->data.rx.n_rxn_enclosed;
+	    else
+	      mdlpvp->oep->temp_data = (void*)&c->data.rx.n_rxn_at;
+	    break;
+	  default:
+	    return 1;
+	    break;
+	}
+      }
+    }
+    else  /* ALL_HITS or ALL_CROSSINGS -- must be molecules in region */
+    {
+      c = store_reg_counter(mdlpvp->vol,(void *)sp,r,counter_type);
+      if (c==NULL)
+      {
+	fprintf(mdlpvp->vol->err_file,"Cannot store count data");
+	return 1;
+      }
+      
+      mdlpvp->oep->update_flag=0;
+      mdlpvp->oep->reset_flag=0;
+      mdlpvp->oep->data_type=EXPR;
+      mdlpvp->oep->index_type=UNKNOWN;
+      mdlpvp->oep->n_data=0;
+      mdlpvp->oep->temp_data=NULL;
+      mdlpvp->oep->final_data=NULL;
+      mdlpvp->oep->operand1=NULL;
+      mdlpvp->oep->operand2=NULL;
+      mdlpvp->oep->oper='+';
+
+      switch (base_report_type)
+      {
+	case REPORT_ALL_HITS:
+	  if (insert_counter(REPORT_FRONT_HITS,mdlpvp->vol,mdlpvp->oip,mdlpvp->oep,c,mdlpvp->obp->buffersize))
+	  {
+	    fprintf(mdlpvp->vol->err_file,"Cannot store molecule output_evaluator data");
+	    return 1;
+	  }
+	  if (insert_counter(REPORT_BACK_HITS,mdlpvp->vol,mdlpvp->oip,mdlpvp->oep,c,mdlpvp->obp->buffersize)) {
+	    fprintf(mdlpvp->vol->err_file,"Cannot store molecule output_evaluator data");
+	    return 1;
+	  }
+	  break;
+	case REPORT_ALL_CROSSINGS:
+	  if (insert_counter(REPORT_FRONT_CROSSINGS,mdlpvp->vol,mdlpvp->oip,mdlpvp->oep,c,mdlpvp->obp->buffersize))
+	  {
+	    fprintf(mdlpvp->vol->err_file,"Cannot store molecule output_evaluator data");
+	    return 1;
+	  }
+	  if (insert_counter(REPORT_BACK_CROSSINGS,mdlpvp->vol,mdlpvp->oip,mdlpvp->oep,c,mdlpvp->obp->buffersize)) {
+	    fprintf(mdlpvp->vol->err_file,"Cannot store molecule output_evaluator data");
+	    return 1;
+	  }
+	  break;
+	default:
+	  return 1;
+	  break;
+      }
+    }
+  }
+  return 0;
+}
 
 
 
