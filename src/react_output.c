@@ -101,7 +101,7 @@ int update_reaction_output(struct output_block *obp)
   if (obp->timer_type!=OUTPUT_BY_STEP && obp->curr_time_ptr==NULL) {
     obp->curr_time_ptr=obp->time_list_head;
     if (obp->curr_time_ptr->value!=0.0) {
-      if (obp->timer_type==OUTPUT_BY_TIME_LIST) {
+      if (obp->timer_type==OUTPUT_BY_ITERATION_LIST) {
         obp->t=obp->curr_time_ptr->value; 
       }
       else {
@@ -167,7 +167,7 @@ int update_reaction_output(struct output_block *obp)
       final_chunk_flag=1;
     }
     else {
-      if (obp->timer_type==OUTPUT_BY_TIME_LIST) {
+      if (obp->timer_type==OUTPUT_BY_ITERATION_LIST) {
         obp->t=obp->curr_time_ptr->value;
       }
       else {

@@ -4234,7 +4234,7 @@ frame_data_spec: frame_data_item '='
     mdlerror("Cannot store iteration frame data");
     return(1);
   }
-  mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+  mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
   mdlpvp->fdlp->type=$<tok>1;
   mdlpvp->fdlp->viz_iteration=-1;
   mdlpvp->fdlp->n_viz_iterations=0;
@@ -4689,7 +4689,7 @@ iteration_time_def: ITERATION_LIST '='
 	'[' list_range_specs ']'
 {
   mdlpvp->n_output=mdlpvp->num_pos;
-  mdlpvp->obp->timer_type=OUTPUT_BY_TIME_LIST;
+  mdlpvp->obp->timer_type=OUTPUT_BY_ITERATION_LIST;
 
   /**
    * Compute the output buffersize.
@@ -4716,7 +4716,7 @@ real_time_def: TIME_LIST '='
 	'[' list_range_specs ']'
 {
   mdlpvp->n_output=mdlpvp->num_pos;
-  mdlpvp->obp->timer_type=OUTPUT_BY_ITERATION_LIST;
+  mdlpvp->obp->timer_type=OUTPUT_BY_TIME_LIST;
 
   /**
    * Compute the output buffersize.
