@@ -3,7 +3,9 @@
 
 /* Header file for reaction output routines */
 
+int emergency_output();
 int update_reaction_output(struct output_block *obp);
+int write_reaction_output(struct output_block *obp,int final_chunk);
 int eval_count_expr_tree(struct output_evaluator *oep);
 int eval_count_expr(struct output_evaluator *operand1,
                     struct output_evaluator *operand2,

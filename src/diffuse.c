@@ -11,6 +11,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "rng.h"
@@ -23,6 +24,7 @@
 #include "vol_util.h"
 #include "wall_util.h"
 #include "react.h"
+#include "react_output.h"
 
 
 
@@ -30,6 +32,10 @@
 #define MULTISTEP_PERCENTILE 0.99
 #define MULTISTEP_FRACTION 0.9
 #define MAX_UNI_TIMESKIP 5000
+
+
+/* CLEAN_AND_RETURN(x) is a local #define in diffuse_3D */
+/* ERROR_AND_QUIT is a local #define in diffuse_3D */
 
 
 extern struct volume *world;
@@ -860,9 +866,11 @@ diffuse_3D:
 
 struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
 {
-#define TOL 10.0*EPS_C
-  struct vector3 displacement;
-  struct collision *smash,*shead,*shead2;
+  const double TOL = 10.0*EPS_C;   /* Two walls are coincident if this close */
+  struct vector3 displacement;           /* Molecule moves along this vector */
+  struct collision *smash;     /* Thing we've hit that's under consideration */
+  struct collision *shead;        /* Things we might hit (can interact with) */
+  struct collision *shead2;     /* Things that we will hit, given our motion */ 
   struct subvolume *sv;
   struct wall_list *wl;
   struct wall *w;
@@ -1053,11 +1061,11 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
        displacement.z*displacement.z;
   
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->mem->coll,shead2); if (shead!=NULL) mem_put_list(sv->mem->coll,shead); return (x)
-#define ERROR_AND_RETURN(x) printf("Out of memory during diffusion of a %s molecule\n",sm->sym->name); CLEAN_AND_RETURN((x))
+#define ERROR_AND_QUIT fprintf(stderr,"Out of memory: trying to save intermediate results.\n"); i=emergency_output(); fprintf(stderr,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
   do
   {
     shead2 = ray_trace(m,shead,sv,&displacement);
-    if (shead2==NULL) { ERROR_AND_RETURN(NULL); }
+    if (shead2==NULL) { ERROR_AND_QUIT; }
     
     if (shead2->next!=NULL)  /* Could be sped up/combined */
     {
@@ -1153,7 +1161,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 		    if (c==NULL)
 		    {
 		      if (g_head!=NULL) mem_put_list(sv->mem->coll,g_head);
-		      ERROR_AND_RETURN(NULL);
+		      ERROR_AND_QUIT;
 		    }
 
                     c->intermediate = rx;
@@ -1192,7 +1200,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 		{
 		  if (w_head!=NULL) mem_put_list(sv->mem->coll,w_head);
 		  if (g_head!=NULL) mem_put_list(sv->mem->coll,g_head);
-		  ERROR_AND_RETURN(NULL);
+		  ERROR_AND_QUIT;
 		}
                 c->intermediate = rx;
                 c->target = w;
@@ -1267,7 +1275,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 		    {
 		      if (w_head!=NULL) mem_put_list(sv->mem->coll,w_head);
 		      mem_put_list(sv->mem->coll,g_head);
-		      ERROR_AND_RETURN( NULL );
+		      ERROR_AND_QUIT;
 		    }
 		    
                     if (l==RX_FLIP)
@@ -1319,7 +1327,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 			    if (j==RX_NO_MEM)
 		      {
 			mem_put_list(sv->mem->coll,w_head);
-			ERROR_AND_RETURN(NULL);
+			ERROR_AND_QUIT;
 		      }
 
 		      count_type = j;
@@ -1394,7 +1402,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                       k,g->orient,m->t+t_steps*smash->t,&(smash->loc)
                     );
                     
-		    if (l==RX_NO_MEM) { ERROR_AND_RETURN(NULL); }
+		    if (l==RX_NO_MEM) { ERROR_AND_QUIT; }
                     if (l==RX_FLIP)
                     {
                       if ( (sm->flags & w->flags & COUNT_SOME) )
@@ -1441,7 +1449,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                         k,m->t + t_steps*smash->t,&(smash->loc)
                       );
 		      
-		if (j==RX_NO_MEM) { ERROR_AND_RETURN(NULL); } 
+		if (j==RX_NO_MEM) { ERROR_AND_QUIT; } 
                 if (j==1)
                 {
                   if ( (sm->flags & w->flags & COUNT_SOME) )
@@ -1528,7 +1536,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
     if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
   }
   while (smash != NULL);
-#undef ERROR_AND_RETURN
+#undef ERROR_AND_QUIT
 #undef CLEAN_AND_RETURN
   
   if (shead != NULL) mem_put_list(sv->mem->coll,shead);

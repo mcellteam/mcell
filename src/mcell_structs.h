@@ -49,6 +49,14 @@
 #define IS_MANIFOLD        2
 
 /* Reaction flags */
+  /* RX_GHOST signifies that a reaction is between a molecule and the GHOST wall type */
+  /* RX_WINDOW signifies that a reaction is between a molecule and the WINDOW wall type */
+  /* Any value equal to or less than RX_SPECIAL refers to a special wall type */
+  /* RX_BLOCKED signals a reaction that cannot take place because the grid is full */
+  /* RX_FLIP signals that a molecule flips its orientation (crosses a wall if it's free) */
+  /* RX_DESTROY signals that the molecule no longer exists (so don't try to keep using it) */
+  /* RX_A_OK signals that all is OK with a reaction, proceed as normal (reflect if you're free) */
+  /* RX_NO_MEM signals a memory allocation error. */
 #define RX_GHOST   -4
 #define RX_WINDOW  -3
 #define RX_SPECIAL -3

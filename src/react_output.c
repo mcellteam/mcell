@@ -10,15 +10,85 @@
 
 extern struct volume *world;
 
+/**************************************************************************
+emergency_output:
+  In: No arguments.
+  Out: Number of errors encountered while trying to make an emergency
+       dump of output buffers (0 indicates emergency save went fine).
+       The code assumes a memory error, dumps any memory it can to
+       try to make enough room to create a file to save results held
+       in buffers.
+  Note: The simulation is COMPLETELY TRASHED after this function is
+        called.  Do NOT use this in normal operation.  Do NOT try to
+	continue running after this function is called.  This function
+	will deallocate all molecules, walls, etc. to try to recover
+	memory!  You should only print messages and exit after running
+	this function.
+**************************************************************************/
+
+int emergency_output()
+{
+  struct storage_list *mem;
+  struct schedule_helper *sh;
+  struct output_block *ob;
+  int n_errors = 0;
+  int i;
+  
+  /* PANIC--delete everything we can get our pointers on! */
+  for (mem = world->storage_head ; mem != NULL ; mem = mem->next)
+  {
+    delete_mem( mem->store->list );
+    delete_mem( mem->store->mol );
+    delete_mem( mem->store->smol );
+    delete_mem( mem->store->gmol );
+    delete_mem( mem->store->face );
+    delete_mem( mem->store->join );
+    delete_mem( mem->store->tree );
+    delete_mem( mem->store->effs );
+    delete_mem( mem->store->coll );
+    delete_mem( mem->store->regl );
+  }
+  delete_mem( world->storage_mem );
+  
+  /* We now might have some free memory, dump to disk! */
+  for (sh = world->count_scheduler ; sh != NULL ; sh = sh->next_scale)
+  {
+    for (i=0;i<=sh->buf_len;i++)
+    {
+      if (i==sh->buf_len) ob = (struct output_block*) sh->current;
+      else ob = (struct output_block*) sh->circ_buf_head[i];
+      
+      for ( ; ob != NULL ; ob = ob->next )
+      {
+	if ( write_reaction_output(ob,1) )
+	{
+	  n_errors++;
+	  printf("Failed to write reaction output block.\n");
+	}
+      }
+    } 
+  }
+  
+  return n_errors;
+}
+
+
+/**************************************************************************
+update_reaction_output:
+  In: the output_block we want to update
+  Out: 0 on success, 1 on failure.
+       The counters in this block are updated, and the block is
+       rescheduled for the next output time.  The counters are saved
+       to an internal buffer, and written out when full.
+**************************************************************************/
 
 int update_reaction_output(struct output_block *obp)
 {
-  FILE *log_file,*fp;
+  FILE *log_file;
   struct output_item *oip;
   struct output_evaluator *oep;
-  u_int curr_buf_index,n_output;
-  u_int i,stop_i;
-  byte final_chunk;
+  u_int curr_buf_index;
+  int final_chunk;
 
   log_file=world->log_file;
 
@@ -98,86 +168,112 @@ int update_reaction_output(struct output_block *obp)
 
   /* write data to outfile */
 
-  if (obp->curr_buf_index==obp->buffersize || final_chunk) {
-
-    n_output=obp->buffersize;
-    if (obp->curr_buf_index<obp->buffersize) {
-      n_output=obp->curr_buf_index;
+  if (obp->curr_buf_index==obp->buffersize || final_chunk)
+  {
+    if ( write_reaction_output(obp,final_chunk) )
+    {
+      return 1;  /* Note that there has been an error. */
     }
-
-    oip=obp->output_item_head;
-    while (oip!=NULL) {
-      oep=oip->count_expr;
-      if(eval_count_expr_tree(oep)){
-	return (1);
-      }
-
-      if (world->chkpt_seq_num==1 && obp->chunk_count==0) {
-        if ((fp=fopen(oip->outfile_name,"w"))==NULL) {
-          fprintf(log_file,"MCell: could not open output file %s\n",oip->outfile_name);
-          return (1);
-        }
-      }
-      else if (world->chkpt_seq_num>1){
-        if ((fp=fopen(oip->outfile_name,"a"))==NULL) {
-          fprintf(log_file,"MCell: could not open output file %s\n",oip->outfile_name);
-          return (1);
-        }
-      }
-      else {
-        if ((fp=fopen(oip->outfile_name,"a"))==NULL) {   
-          return (1);
-        }
-      }
-
-      no_printf("Writing to output file: %s\n",oip->outfile_name);
-      fflush(log_file);
-
-      stop_i=0;
-      if (oep->index_type==TIME_STAMP_VAL) {
-        stop_i=n_output;
-      }
-      else if (oep->index_type==INDEX_VAL) {
-        stop_i=oep->n_data;
-      }
-   
-      switch (oep->data_type) {
-      case DBL:
-        for (i=0;i<stop_i;i++) {
-          if (oep->index_type==TIME_STAMP_VAL) {
-            fprintf(fp,"%.9g %.9g\n",obp->time_array[i],
-                    ((double *)oep->final_data)[i]);
-          }
-          else if (oep->index_type==INDEX_VAL && final_chunk) {
-            fprintf(fp,"%d %.9g\n",i,((double *)oep->final_data)[i]);
-          }
-        }
-        break;
-      case INT:
-        for (i=0;i<stop_i;i++) {
-          if (oep->index_type==TIME_STAMP_VAL) {
-            fprintf(fp,"%.9g %d\n",obp->time_array[i],
-                    ((int *)oep->final_data)[i]);
-          }
-          else if (oep->index_type==INDEX_VAL && final_chunk) {
-            fprintf(fp,"%d %d\n",i,((int *)oep->final_data)[i]);
-          }
-        }
-        break;
-      default: break;
-      }
-      fclose(fp);
-      oip=oip->next;
-    } 
-    obp->chunk_count++;
-    obp->curr_buf_index=0;
   }
-  
+
   no_printf("Done updating reaction output\n");
   fflush(log_file);
-  return (0);
+  return 0;
 }
 
+
+/**************************************************************************
+write_reaction_output:
+  In: the output_block we want to write to disk
+  Out: 0 on success, 1 on failure.
+       The reaction output buffer is flushed and written to disk.
+**************************************************************************/  
+  
+int write_reaction_output(struct output_block *obp,int final_chunk)
+{
+  FILE *log_file,*fp;
+  struct output_item *oip;
+  struct output_evaluator *oep;
+  u_int n_output;
+  u_int i,stop_i;
+  
+  log_file = world->log_file;
+  
+  n_output=obp->buffersize;
+  if (obp->curr_buf_index<obp->buffersize) {
+    n_output=obp->curr_buf_index;
+  }
+
+  oip=obp->output_item_head;
+  while (oip!=NULL) {
+    oep=oip->count_expr;
+    if(eval_count_expr_tree(oep)){
+      return (1);
+    }
+
+    if (world->chkpt_seq_num==1 && obp->chunk_count==0) {
+      if ((fp=fopen(oip->outfile_name,"w"))==NULL) {
+	fprintf(log_file,"MCell: could not open output file %s\n",oip->outfile_name);
+	return (1);
+      }
+    }
+    else if (world->chkpt_seq_num>1){
+      if ((fp=fopen(oip->outfile_name,"a"))==NULL) {
+	fprintf(log_file,"MCell: could not open output file %s\n",oip->outfile_name);
+	return (1);
+      }
+    }
+    else {
+      if ((fp=fopen(oip->outfile_name,"a"))==NULL) {   
+	return (1);
+      }
+    }
+
+    no_printf("Writing to output file: %s\n",oip->outfile_name);
+    fflush(log_file);
+
+    stop_i=0;
+    if (oep->index_type==TIME_STAMP_VAL) {
+      stop_i=n_output;
+    }
+    else if (oep->index_type==INDEX_VAL) {
+      stop_i=oep->n_data;
+    }
+ 
+    switch (oep->data_type) {
+    case DBL:
+      for (i=0;i<stop_i;i++) {
+	if (oep->index_type==TIME_STAMP_VAL) {
+	  fprintf(fp,"%.9g %.9g\n",obp->time_array[i],
+		  ((double *)oep->final_data)[i]);
+	}
+	else if (oep->index_type==INDEX_VAL && final_chunk) {
+	  fprintf(fp,"%d %.9g\n",i,((double *)oep->final_data)[i]);
+	}
+      }
+      break;
+    case INT:
+      for (i=0;i<stop_i;i++) {
+	if (oep->index_type==TIME_STAMP_VAL) {
+	  fprintf(fp,"%.9g %d\n",obp->time_array[i],
+		  ((int *)oep->final_data)[i]);
+	}
+	else if (oep->index_type==INDEX_VAL && final_chunk) {
+	  fprintf(fp,"%d %d\n",i,((int *)oep->final_data)[i]);
+	}
+      }
+      break;
+    default: break;
+    }
+    fclose(fp);
+    oip=oip->next;
+  } 
+  obp->chunk_count++;
+  obp->curr_buf_index=0;
+  
+  return 0;
+}
+  
 
 
 /**
