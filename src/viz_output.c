@@ -29,35 +29,13 @@ void update_frame_data_list(struct frame_data_list *fdlp)
       if(world->viz_mode==DX_MODE) {
         output_dx_objects(fdlp);
       }
-/*
-      if(world->viz_mode==RADIANCE_MODE) {
-        output_radiance_objects(fdlp);
-      }
-      if(world->viz_mode==RAYSHADE_MODE) {
-        output_rayshade_objects(fdlp);
-      }
-      if(world->viz_mode==POVRAY_MODE) {
-        output_povray_objects(fdlp);
-      }
-      if(world->viz_mode==RENDERMAN_MODE) {
-        output_renderman_objects(fdlp);
-      }
-      if(world->viz_mode==IRIT_MODE) {
-        output_irit_objects(fdlp);
-      }
-      if(world->viz_mode==MCELL_MODE) {
-        output_mcell_objects(fdlp);
-      }
-      if(world->voxel_image_mode==1) {
-        output_voxel_image(fdlp);
-      }
-      if(world->voxel_volume_mode==1) {
-        output_voxel_volume(fdlp);
-      }
-*/
       else if (world->viz_mode==RK_MODE)
       {
         output_rk_custom(fdlp);
+      }
+      else if (world->viz_mode == NO_VIZ_MODE)
+      {
+        ; /* do nothing for visualization */
       }
       fdlp->curr_viz_iteration=fdlp->curr_viz_iteration->next;
       if (fdlp->curr_viz_iteration!=NULL) {
@@ -87,7 +65,7 @@ void init_frame_data_list(struct frame_data_list *fdlp)
 {
   struct num_expr_list *nelp;
   int done;
-
+  
   while (fdlp!=NULL) {
     fdlp->viz_iteration=-1;
     fdlp->n_viz_iterations=0;

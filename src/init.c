@@ -261,7 +261,7 @@ int init_sim(void)
   world->release_event_queue_head=NULL;
   world->tot_mols=0;
   world->viz_obj_head=NULL;
-  world->viz_mode=0;
+  world->viz_mode=DX_MODE;
   world->frame_data_head=NULL;
 
   if ((world->count_zero=(struct output_evaluator *)malloc
@@ -1485,7 +1485,7 @@ int init_wall_regions(struct object *objp, char *full_name)
   struct region_list *rlp,*rlp2,*reg_eff_num_head,*rlp3,*reg_count_head;
   struct region_list *rlp4, *lig_hit_count;
   struct region_list *wrlp;
-  struct lig_hit_counter **lig_hit;
+  struct lig_hit_counter **lig_hit; 
   struct element_list *elp;
 /*  struct reg_counter_ref *rcrp; */
   struct reg_counter_ref_list *rcrlp;

@@ -4063,30 +4063,6 @@ viz_mode_def: MODE '=' NONE
 {
 	volp->viz_mode = DX_MODE; 
 }
-	| MODE '=' RADIANCE
-{
-	volp->viz_mode = RADIANCE_MODE;
-}
-	| MODE '=' RAYSHADE
-{
-	volp->viz_mode = RAYSHADE_MODE;
-}
-	| MODE '=' POVRAY
-{
-	volp->viz_mode = POVRAY_MODE;
-}
-	| MODE '=' RENDERMAN
-{
-	volp->viz_mode = RENDERMAN_MODE;
-}
-	| MODE '=' IRIT
-{
-	volp->viz_mode = IRIT_MODE;
-}
-	| MODE '=' MCELL_GENERIC
-{
-	volp->viz_mode = MCELL_MODE;
-}
 	| MODE '=' CUSTOM_RK
 {
   volp->viz_mode = RK_MODE;

@@ -359,13 +359,7 @@
 /* Visualization modes. */
 #define NO_VIZ_MODE 0
 #define DX_MODE 1
-#define IRIT_MODE 2
-#define RADIANCE_MODE 3
-#define RAYSHADE_MODE 4
-#define RENDERMAN_MODE 5
-#define POVRAY_MODE 6
-#define MCELL_MODE 7
-#define RK_MODE 8
+#define RK_MODE 2 
 
 
 /* Visualization frame data types. */
