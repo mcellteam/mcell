@@ -273,7 +273,6 @@ int argparse_init(int argc, char *argv[], struct volume *vol)
   struct argparse_vars arg_var;
   struct yy_buffer_state *arg_input_buffer;
   char *tempstr,*arg_string;
-  int arg_string_length;
   int i;
 
 
@@ -292,28 +291,27 @@ int argparse_init(int argc, char *argv[], struct volume *vol)
     return(1);
   }
 
-  arg_string_length=argc;
-  for (i=1;i<argc;i++) {
-    arg_string_length+=strlen(argv[i]);
-  }
-
-  if ((arg_string=(char *)malloc(arg_string_length*sizeof(char)))==NULL) {
-    fprintf(vol->log_file,
-      "MCell: out of memory storing arg_string length %d\n",arg_string_length);
-    return(1);
-  }
-
+  arg_string=NULL;
   for (i=1;i<argc;i++) {
     if (i==1) {
-      arg_string=my_strdup(argv[i]);
+      if ((arg_string=my_strdup(argv[i]))==NULL) {
+        fprintf(vol->log_file,"MCell: out of memory storing arg_string\n");
+        return(1);
+      }
     }
     else {
       tempstr=arg_string; 
-      arg_string=my_strcat(arg_string," ");
+      if ((arg_string=my_strcat(arg_string," "))==NULL) {
+        fprintf(vol->log_file,"MCell: out of memory storing arg_string\n");
+        return(1);
+      }
       free(tempstr);
 
       tempstr=arg_string; 
-      arg_string=my_strcat(arg_string,argv[i]);
+      if ((arg_string=my_strcat(arg_string,argv[i]))==NULL) {
+        fprintf(vol->log_file,"MCell: out of memory storing arg_string\n");
+        return(1);
+      }
       free(tempstr);
     }
   }
