@@ -334,6 +334,7 @@ struct counter_list *cnt;
 %type <sym> existing_str_var
 %type <sym> existing_num_var
 %type <sym> existing_array
+%type <sym> existing_num_or_array
 
 %type <dbl> num_value
 %type <dbl> num_expr
@@ -378,6 +379,7 @@ struct counter_list *cnt;
 %type <str> format_string
 
 %type <nel> array_value
+%type <nel> array_expr_only
 
 %type <vec3> point
 
@@ -698,6 +700,67 @@ existing_array: VAR
     }
     free((void *)mdlpvp->sym_name);
     return(1);
+  }
+  if (mdlpvp->sym_name==mdlpvp->cval) {
+    mdlpvp->cval=NULL;
+  }
+  else {
+    mdlpvp->cval_2=NULL;
+  }
+  free((void *)mdlpvp->sym_name);
+#ifdef KELP
+  mdlpvp->gp->ref_count++;
+  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
+#endif
+  $$=mdlpvp->gp;
+};
+
+
+array_expr_only: '['
+{
+  mdlpvp->num_pos=0;
+  mdlpvp->el_head=NULL;
+  mdlpvp->el_tail=NULL;
+}
+	array_expr ']'
+{
+#ifdef DEBUG
+  mdlpvp->elp=mdlpvp->el_head;
+  no_printf("\nArray expression: [");
+  while (mdlpvp->elp!=NULL) {
+    no_printf("%f",mdlpvp->elp->value);
+    mdlpvp->elp=mdlpvp->elp->next;
+    if (mdlpvp->elp!=NULL) {
+      no_printf(",");
+    }
+  }
+  no_printf("]\n");
+#endif
+  $$=mdlpvp->el_head;
+};
+
+
+existing_num_or_array: VAR 
+{
+  if (mdlpvp->cval_2!=NULL) {
+    mdlpvp->sym_name=mdlpvp->cval_2;
+  }
+  else {
+    mdlpvp->sym_name=mdlpvp->cval;
+  }
+  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,ARRAY,volp->main_sym_table))==NULL) {
+    if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,DBL,volp->main_sym_table))==NULL) {
+      sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined numeric or array variable:",mdlpvp->sym_name);
+      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      if (mdlpvp->sym_name==mdlpvp->cval) {
+        mdlpvp->cval=NULL;
+      }
+      else {
+        mdlpvp->cval_2=NULL;
+      }
+      free((void *)mdlpvp->sym_name);
+      return(1);
+    }
   }
   if (mdlpvp->sym_name==mdlpvp->cval) {
     mdlpvp->cval=NULL;
@@ -1133,6 +1196,7 @@ existing_num_var: VAR
 
 intOrReal: INTEGER {$$=(double)mdlpvp->ival;}
 	| REAL {$$=mdlpvp->rval;};
+
 
 file_name: str_expr
 {
@@ -2363,10 +2427,9 @@ release_site_cmd:
   mdlpvp->rsop->mol_type=(struct species *)mdlpvp->gp->value;
 }
 	| release_number_cmd
-	| SITE_DIAMETER '=' num_expr
+	| SITE_DIAMETER '=' num_expr_only
 {
-  if ((mdlpvp->rsop->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL)
-  {
+  if ((mdlpvp->rsop->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
     mdlerror("Cannot store release diameter data");
     return(1);
   }
@@ -2374,12 +2437,90 @@ release_site_cmd:
   mdlpvp->rsop->diameter->y = $<dbl>3 / volp->length_unit;
   mdlpvp->rsop->diameter->z = $<dbl>3 / volp->length_unit;
 }
-	| SITE_DIAMETER '=' point
+	| SITE_DIAMETER '=' array_expr_only
 {
-  mdlpvp->rsop->diameter=$<vec3>3;
-  mdlpvp->rsop->diameter->x /= volp->length_unit;
-  mdlpvp->rsop->diameter->y /= volp->length_unit;
-  mdlpvp->rsop->diameter->z /= volp->length_unit;
+  mdlpvp->el_head=$<nel>3;
+  if ((mdlpvp->rsop->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
+    mdlerror("Cannot store release diameter data");
+    return(1);
+  }
+  mdlpvp->elp=mdlpvp->el_head;
+  if (mdlpvp->elp!=NULL) {
+    mdlpvp->rsop->diameter->x=mdlpvp->elp->value / volp->length_unit;
+    mdlpvp->elp=mdlpvp->elp->next;
+  }
+  else {
+    mdlerror("Three dimensional value required");
+    return(1);
+  }
+  if (mdlpvp->elp!=NULL) {
+    mdlpvp->rsop->diameter->y=mdlpvp->elp->value / volp->length_unit;
+    mdlpvp->elp=mdlpvp->elp->next;
+  }
+  else {
+    mdlerror("Three dimensional value required");
+    return(1);
+  }
+  if (mdlpvp->elp!=NULL) {
+    mdlpvp->rsop->diameter->z=mdlpvp->elp->value / volp->length_unit;
+    mdlpvp->elp=mdlpvp->elp->next;
+  }
+  else {
+    mdlerror("Three dimensional value required");
+    return(1);
+  }
+  if (mdlpvp->elp!=NULL) {
+    mdlerror("Three dimensional value required");
+    return(1);
+  }
+}
+	| SITE_DIAMETER '=' existing_num_or_array
+{
+  mdlpvp->gp=$<sym>3;
+  if ((mdlpvp->rsop->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
+    mdlerror("Cannot store release diameter data");
+    return(1);
+  }
+  switch (mdlpvp->gp->sym_type) {
+  case DBL:
+    mdlpvp->tmp_dbl = *(double *)mdlpvp->gp->value;
+    mdlpvp->rsop->diameter->x = mdlpvp->tmp_dbl / volp->length_unit;
+    mdlpvp->rsop->diameter->y = mdlpvp->tmp_dbl / volp->length_unit;
+    mdlpvp->rsop->diameter->z = mdlpvp->tmp_dbl / volp->length_unit;
+    break;
+  case ARRAY:
+    mdlpvp->el_head=(struct num_expr_list *)mdlpvp->gp->value;
+    mdlpvp->elp=mdlpvp->el_head;
+    if (mdlpvp->elp!=NULL) {
+      mdlpvp->rsop->diameter->x=mdlpvp->elp->value / volp->length_unit;
+      mdlpvp->elp=mdlpvp->elp->next;
+    }
+    else {
+      mdlerror("Three dimensional value required");
+      return(1);
+    }
+    if (mdlpvp->elp!=NULL) {
+      mdlpvp->rsop->diameter->y=mdlpvp->elp->value / volp->length_unit;
+      mdlpvp->elp=mdlpvp->elp->next;
+    }
+    else {
+      mdlerror("Three dimensional value required");
+      return(1);
+    }
+    if (mdlpvp->elp!=NULL) {
+      mdlpvp->rsop->diameter->z=mdlpvp->elp->value / volp->length_unit;
+      mdlpvp->elp=mdlpvp->elp->next;
+    }
+    else {
+      mdlerror("Three dimensional value required");
+      return(1);
+    }
+    if (mdlpvp->elp!=NULL) {
+      mdlerror("Three dimensional value required");
+      return(1);
+    }
+    break;
+  }
 }
 	| RELEASE_PROBABILITY '=' num_expr
 {
@@ -2468,6 +2609,10 @@ point: array_value
     mdlpvp->elp=mdlpvp->elp->next;
   }
   else {
+    mdlerror("Three dimensional value required");
+    return(1);
+  }
+  if (mdlpvp->elp!=NULL) {
     mdlerror("Three dimensional value required");
     return(1);
   }

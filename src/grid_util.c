@@ -187,7 +187,9 @@ int create_grid(struct wall *w,struct subvolume *guess)
   sg->surface = w;
   sg->subvol = find_subvolume(&center , guess);
   
-  sg->n = sqrt( w->area );
+  /* sg->n = sqrt( w->area ); */
+  /* sg->n = 0.5 + sqrt( w->area ); */
+  sg->n = (int) ceil(sqrt( w->area ));
   if (sg->n<1) sg->n=1;
 
   sg->n_tiles = sg->n * sg->n;

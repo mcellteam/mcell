@@ -1094,6 +1094,7 @@ struct polygon_object {
 					   structures, one for each polygon. */
 };
 
+
 /**
  * A polyhedron that is a box.
  */
@@ -1101,6 +1102,7 @@ struct box_poly {
         struct vector3 *llf;             /**< ptr to LLF of box polyhedron */
         struct vector3 *urb;             /**< prt to URB of box polyhedron */
 };
+
 
 /**
  * A general ordered polyhedron. 
@@ -1220,6 +1222,7 @@ struct counter_hash_table {
 	void *value;
 };
 
+
 /**
  * Container data structure for all physical objects.
  */
@@ -1247,12 +1250,16 @@ struct object {
         int n_verts;                  /**< Total number of vertices in object */
         struct vector3 *verts;        /**< array of vertices in object */
         struct vector3 **vert_p;      /**< array of ptrs to verts in object */
+        double total_area;            /**< area of object in length units */
+        u_int n_tiles;                /**< number of tiles on object */
+        u_int n_occupied_tiles;       /**< number of occupied tiles on object */
         struct mem_helper *edgemem;   /**< Storage for edges of object */
         struct viz_obj *viz_obj;
         int *viz_state;			/**< array of viz state values.
 					   One for each element of object. */
         double t_matrix[4][4];		/**< transformation matrix for object */
 };
+
 
 /**
  * Doubly linked list of names.

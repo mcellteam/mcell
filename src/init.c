@@ -1063,20 +1063,17 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
   case ORDERED_POLY:
 
 /* Allocate and initialize walls and vertices */
-    if ((w=(struct wall *)malloc(n_walls*sizeof(struct wall)))==NULL)
-    {
+    if ((w=(struct wall *)malloc(n_walls*sizeof(struct wall)))==NULL) {
       return(1);
     }
-    if ((wp=(struct wall **)malloc(n_walls*sizeof(struct wall *)))==NULL)
-    {
+    if ((wp=(struct wall **)malloc(n_walls*sizeof(struct wall *)))==NULL) {
       return(1);
     }
-    if ((v=(struct vector3 *)malloc(n_walls*sizeof(struct vector3)))==NULL)
-    {
+    if ((v=(struct vector3 *)malloc(n_walls*sizeof(struct vector3)))==NULL) {
       return(1);
     }
-    if ((vp=(struct vector3 **)malloc(n_walls*sizeof(struct vector3 *)))==NULL)
-    {
+    if ((vp=(struct vector3 **)malloc
+        (n_walls*sizeof(struct vector3 *)))==NULL) {
       return(1);
     }
     objp->walls=w;
@@ -1093,8 +1090,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
    in struct object.
 */
 /*
-    if (opp->normal!=NULL)
-    {
+    if (opp->normal!=NULL) {
       compute_vertex_normals=1;
     }
 */
@@ -1110,8 +1106,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
     }
 
  
-    for (i=0;i<n_verts;i++)
-    {
+    for (i=0;i<n_verts;i++) {
       vp[i]=&v[i];
       p[0][0]=opp->vertex[i].x;
       p[0][1]=opp->vertex[i].y;
@@ -1122,8 +1117,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
       v[i].y=p[0][1]/world->length_unit;
       v[i].z=p[0][2]/world->length_unit;
 
-      if (compute_vertex_normals)
-      {
+      if (compute_vertex_normals) {
         p[0][0]=opp->normal[i].x;
         p[0][1]=opp->normal[i].y;
         p[0][2]=opp->normal[i].z;
@@ -1142,29 +1136,27 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
     }
 
 
-    for (i=0;i<n_walls;i++)
-    {
-      if (pop->side_stat[i])
-      {
+    for (i=0;i<n_walls;i++) {
+      if (pop->side_stat[i]) {
         wp[i]=&w[i];
         index_0=opp->element_data[i].vertex_index[0];
         index_1=opp->element_data[i].vertex_index[1];
         index_2=opp->element_data[i].vertex_index[2];
 
         init_tri_wall(objp,i,vp[index_0],vp[index_1],vp[index_2]);
+        total_area+=wp[i]->area;
 
-        if (wp[i]->area==0)
-        {
+        if (wp[i]->area==0) {
           fprintf(log_file,"\nMCell: Warning -- Degenerate polygon found and automatically removed: %s %d\n\n",objp->sym->name,i);
           pop->side_stat[i]=0;
           wp[i]=NULL;
         }
       }
-      else
-      {
+      else {
         wp[i]=NULL;
       }
     }
+    objp->total_area=total_area;
     break;
   }
 
@@ -1441,6 +1433,12 @@ int init_wall_regions(struct object *objp, char *full_name)
 
       }
     }
+    no_printf("Total area of object %s = %.9g um^2\n",objp->sym->name,objp->total_area/world->effector_grid_density);
+    no_printf("  number of tiles = %u\n",objp->n_tiles);
+    no_printf("  number of occupied tiles = %u\n",objp->n_occupied_tiles);
+    no_printf("  grid molecule density = %.9g\n",objp->n_occupied_tiles*world->effector_grid_density/objp->total_area);
+    fflush(stdout);
+
 	  if (lig_hit_count!=NULL) {
 	    rlp=lig_hit_count;
 	    while(rlp!=NULL) {
@@ -1521,6 +1519,7 @@ int init_wall_regions(struct object *objp, char *full_name)
 int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
 {
   FILE *log_file;
+  struct object *objp;
   struct species **eff;
   struct surface_grid *sg;
   struct eff_dat *effdp;
@@ -1539,6 +1538,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
     return(1);
   }
   sg=w->effectors;
+  objp=w->parent_object;
 
   nr=0;
   effdp=effdp_head;
@@ -1565,6 +1565,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
 
   n=sg->n_tiles;
   area=w->area;
+  objp->n_tiles+=n;
   no_printf("Initializing %d effectors...\n",n);
   no_printf("  Area = %.9g\n",area);
   no_printf("  Grid_size = %d\n",sg->n);
@@ -1633,6 +1634,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
   }
 
   sg->n_occupied=n_occupied;
+  objp->n_occupied_tiles+=n_occupied;
 
   for (i=0;i<nr;i++) {
     no_printf("Total number of effector %s = %d\n",eff[i]->sym->name,eff[i]->population);

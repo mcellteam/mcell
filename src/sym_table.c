@@ -245,6 +245,9 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       objp->n_verts=0;
       objp->verts=NULL;
       objp->vert_p=NULL;
+      objp->total_area=0;
+      objp->n_tiles=0;
+      objp->n_occupied_tiles=0;
       objp->edgemem=NULL;
       objp->viz_obj=NULL;
       objp->viz_state=NULL;
