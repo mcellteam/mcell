@@ -63,7 +63,6 @@ int emergency_output()
 	if ( write_reaction_output(ob,1) )
 	{
 	  n_errors++;
-	  printf("Failed to write reaction output block.\n");
 	}
       }
     } 
