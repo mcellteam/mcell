@@ -27,6 +27,7 @@
 
 
 /* Reaction flags */
+#if 0
 #define RX_DESTROY   0x001
 #define RX_FLIP      0x002
 #define RX_PROD      0x004
@@ -34,6 +35,7 @@
 #define RX_2DESTROY  0x010
 #define RX_2FLIP     0x020
 #define RX_2PROD     0x040
+#endif
 
 
 /* Flags for BSP trees to determine whether something is a node or a branch */
@@ -399,8 +401,6 @@ struct rxn
   struct species **players;  /* Identities of reactants/products */
   short *geometries;         /* Geometries of reactants/products */
 
-  byte *fates;               /* What happens to reactants in each pathway? */
-  
   int n_rate_t_rxns;         /* How many pathways have varying rates? */
   int *rate_t_rxn_map;       /* Indices of pathways with varying rates */
   struct t_func *rate_t;     /* Rate over time for each varying pathway */

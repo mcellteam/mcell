@@ -21,7 +21,9 @@ int test_intersect(struct rxn *rx,double time_mult);
 int outcome_products(struct wall *w,struct molecule *reac_m,
   struct surface_molecule *reac_s,struct grid_molecule *reac_g,
   struct rxn *rx,int path,struct storage *local,
-  short orientA,short orientB,double t,struct vector3 *hitpt);
+  short orientA,short orientB,double t,struct vector3 *hitpt,
+  struct abstract_molecule *reacA,struct abstract_molecule *reacB,
+  struct abstract_molecule *moving);
 int outcome_unimolecular(struct rxn *rx,int path,
   struct abstract_molecule *reac,double t);
 int outcome_bimolecular(struct rxn *rx,int path,

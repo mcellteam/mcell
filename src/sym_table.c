@@ -276,7 +276,6 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       rxnp->cat_rates=NULL;
       rxnp->players=NULL;
       rxnp->geometries=NULL;
-      rxnp->fates=NULL;
       rxnp->n_rate_t_rxns=0;
       rxnp->rate_t_rxn_map=NULL;
       rxnp->rate_t=NULL;
