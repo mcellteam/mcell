@@ -46,6 +46,8 @@ void init_edge_transform(struct edge *e,int edgenum);
 int sharpen_object(struct object *parent);
 int sharpen_world();
 
+int is_manifold(struct region *r);
+
 void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
                     struct vector3 *A,struct vector3 *B,struct vector3 *n);
 double touch_wall(struct vector3 *point,struct vector3 *move,struct wall *face);

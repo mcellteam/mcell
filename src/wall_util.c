@@ -718,6 +718,49 @@ int sharpen_world()
 
 
 /**************************************************************************\
+ ** Geometry section--report on geometrical properties of object         **
+\**************************************************************************/
+
+
+/***************************************************************************
+is_manifold:
+  In: a region.  This region must already be painted on walls.  The edges
+      must have already been added to the object (i.e. sharpened).
+  Out: 1 if the region is a manifold, 0 otherwise.
+***************************************************************************/
+
+int is_manifold(struct region *r)
+{
+  struct element_list *el;
+  struct wall **wall_array,*w;
+  int i;
+  int j;
+  struct region_list *rl;
+  
+  wall_array = r->parent->wall_p;
+  for (el = r->element_list_head ; el != NULL ; el = el->next)
+  {
+    for (i=el->begin ; i<=el->end ; i++)
+    {
+      w = wall_array[i];
+      for (j=0;j<2;j++)
+      {
+        if (w->nb_walls[j] == NULL) return 0; /* Bare edge--not a manifold */
+        
+        for (rl = w->nb_walls[j]->regions ; rl != NULL ; rl = rl->next)
+        {
+          if (rl->reg == r) break;
+        }
+        if (rl==NULL) return 0;  /* Can leave region--not a manifold */
+      }
+    }
+  }
+  return 1;
+}
+
+
+
+/**************************************************************************\
  ** Collision section--detect whether rays intersect walls               **
 \**************************************************************************/
 

@@ -29,7 +29,7 @@
 #define MULTISTEP_WORTHWHILE 2
 #define MULTISTEP_PERCENTILE 0.99
 #define MULTISTEP_FRACTION 0.9
-
+#define MAX_UNI_TIMESKIP 5000
 
 
 extern struct volume *world;
@@ -1293,7 +1293,13 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     }
     else
     {
-      if (a->t2==0) a->t = checkpt_time;
+      if (a->t2==0)
+      {
+        if ((checkpt_time - a->t) < MAX_UNI_TIMESKIP)
+          a->t = checkpt_time;
+        else
+          a->t += MAX_UNI_TIMESKIP;
+      }
       else if (a->t2 + a->t + EPS_C < checkpt_time)
       {
         a->t += a->t2;
