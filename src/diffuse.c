@@ -8,6 +8,7 @@
 
 
 
+#include <math.h>
 #include <stdio.h>
 
 
@@ -25,7 +26,7 @@
 
 
 
-extern volume *world;
+extern struct volume *world;
 
 
 /*************************************************************************
@@ -64,15 +65,15 @@ void pick_displacement(struct vector3 *v,double scale)
     
     bits = rng_uint(world->rng_idx++);
     
-    x_bit =         (bits & 0x8000000);
-    y_bit =         (bits & 0x4000000);
-    z_bit =         (bits & 0x2000000);
-    thetaphi_bits = (bits & 0x1FFFF000) >> 12;
-    r_bit =         (bits & 0x0000FFF);
+    x_bit =        (bits & 0x8000000);
+    y_bit =        (bits & 0x4000000);
+    z_bit =        (bits & 0x2000000);
+    thetaphi_bit = (bits & 0x1FFFF000) >> 12;
+    r_bit =        (bits & 0x0000FFF);
     
     r = scale * world->r_step[ r_bit & (world->radial_subdivisions - 1) ];
     
-    idx = (thetaphi_bits & world->directions_mask);
+    idx = (thetaphi_bit & world->directions_mask);
     while ( idx >= world->num_directions)
     {
       idx = ( rng_uint(world->rng_idx++) & world->directions_mask);
@@ -80,14 +81,14 @@ void pick_displacement(struct vector3 *v,double scale)
     
     idx *= 3;
     
-    if (x_bit) v->x = r * d_step[idx];
-    else v->x = -r * d_step[idx];
+    if (x_bit) v->x = r * world->d_step[idx];
+    else v->x = -r * world->d_step[idx];
     
-    if (y_bit) v->y = r * d_step[idx+1];
-    else v->y = -r * d_step[idx+1];
+    if (y_bit) v->y = r * world->d_step[idx+1];
+    else v->y = -r * world->d_step[idx+1];
 
-    if (z_bit) v->z = r * d_step[idx+2];
-    else v->z = -r * d_step[idx+2];
+    if (z_bit) v->z = r * world->d_step[idx+2];
+    else v->z = -r * world->d_step[idx+2];
   }
 }
 
@@ -105,20 +106,20 @@ ray_trace:
 struct collision* ray_trace(struct molecule *m, struct collision *c,
                             struct subvolume *sv, struct vector3 *v)
 {
-  struct collision *smash,*shead;
+  struct collision *smash,*shead,*shead2;
   struct wall_list *wlp;
   struct wall_list fake_wlp;
-  double dx,dy,dz,tx,ty,tz;
+  double dx,dy,dz,tx,ty,tz,tmin;
   int i,j,k;
   
   shead = NULL;
   smash = (struct collision*) mem_get(sv->mem->coll);
   
-  fake_wlp->next = sv->wall_head;
+  fake_wlp.next = sv->wall_head;
     
   for (wlp = sv->wall_head ; wlp != NULL; wlp = wlp->next)
   {
-    i = collide_wall(&(m->pos),&v,wlp->this_wall,&(smash->t),&(smash->loc));
+    i = collide_wall(&(m->pos),v,wlp->this_wall,&(smash->t),&(smash->loc));
 
     if (i==COLLIDE_REDO)
     {
@@ -130,7 +131,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
     else if (i!=COLLIDE_MISS)
     {
       if (smash->t < tmin) tmin = smash->t;
-      smash->which = COLLIDE_WALL + i;
+      smash->what = COLLIDE_WALL + i;
       smash->target = (void*) wlp->this_wall;
       smash->next = shead2;
       shead = smash;
@@ -180,12 +181,12 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
     if (tx < tz)
     {
       smash->t = dx / v->x;
-      smash->which = COLLIDE_SUBVOL + COLLIDE_NX + i;
+      smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NX + i;
     }
     else
     {
       smash->t = dz / v->z;
-      smash->which = COLLIDE_SUBVOL + COLLIDE_NZ + k;
+      smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NZ + k;
     }
   }
   else
@@ -193,12 +194,12 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
     if (ty < dz)
     {
       smash->t = dy / v->y;
-      smash->which = COLLIDE_SUBVOL + COLLIDE_NY + j;
+      smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NY + j;
     }
     else
     {
       smash->t = dz / v->z;
-      smash->which = COLLIDE_SUBVOL + COLLIDE_NZ + k;
+      smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NZ + k;
     }
   }
   
@@ -219,7 +220,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
       smash = (struct collision*) mem_get(sv->mem->coll);
       memcpy(smash,c,sizeof(struct collision));
       
-      smash->which = i + COLLIDE_MOL;
+      smash->what = i + COLLIDE_MOL;
 
       smash->next = shead;
       shead = smash;
@@ -243,17 +244,21 @@ diffuse_3D:
 int diffuse_3D(struct molecule *m,double target_time)
 {
   struct vector3 displacement;
-  struct collision *smash,*shead;
+  struct collision *smash,*shead,*shead2;
   struct subvolume *sv,*oldsv;
   struct wall *w;
   struct rxn *r;
   struct molecule *mp;
+  struct species *sm;
+  double d2;
   double d2min = GIGANTIC;
   double steps,taken;
+  double factor;
   
   int i,j,k;
   
-  if (m->properties->space_step <= 0)
+  sm = m->properties;
+  if (sm->space_step <= 0)
   {
     m->t += m->subvol->mem->max_timestep;
     return 1;
@@ -266,7 +271,10 @@ int diffuse_3D(struct molecule *m,double target_time)
   {
     if (mp==m) continue;
     
-    r = trigger_bimolecular(m->properties->hashval,mp->properties->hashval,m,mp,0,0);
+    r = trigger_bimolecular(
+            m->properties->hashval,mp->properties->hashval,
+            (struct abstract_molecule*)m,(struct abstract_molecule*)mp,0,0
+          );
     
     if (r != NULL)
     {
@@ -274,7 +282,7 @@ int diffuse_3D(struct molecule *m,double target_time)
       smash->target = (void*) mp;
       smash->intermediate = r;
       smash->next = shead;
-      smash->which = COLLIDE_MOL;
+      smash->what = COLLIDE_MOL;
       shead = smash;
     }
   }
@@ -314,8 +322,8 @@ int diffuse_3D(struct molecule *m,double target_time)
     d2 *= d2;
     if (d2 < d2min) d2min = d2;
     
-    if (d2 < m->space_step * m->space_step) steps = 1.0;
-    else steps = d2 / (m->space_step * m->space_step);
+    if (d2 < sm->space_step * sm->space_step) steps = 1.0;
+    else steps = d2 / (sm->space_step * sm->space_step);
     
     if (steps > target_time - m->t) steps = (1.0+EPS_C)*(target_time - m->t);
   }
@@ -330,7 +338,7 @@ int diffuse_3D(struct molecule *m,double target_time)
   {
     shead2 = ray_trace(m,shead,sv,&displacement);
     
-    shead2 = ae_list_sort((struct abstract_element*)shead2);
+    shead2 = (struct collision*)ae_list_sort((struct abstract_element*)shead2);
     
     for (smash = shead2; smash != NULL; smash = smash->next)
     {
@@ -340,14 +348,16 @@ int diffuse_3D(struct molecule *m,double target_time)
         break;
       }
 
-      if ( (smash->which & COLLIDE_MOL) != 0 )
+      if ( (smash->what & COLLIDE_MOL) != 0 )
       {
         i = test_bimolecular(smash->intermediate,SET_ME_PROPERLY);
         if (i<0) continue;
         
-        j = outcome_bimolecular(smash->intermediate,i,m,
-                                (struct abstract_molecule*)smash->target,
-                                0,0,m->t+steps*smash->t);
+        j = outcome_bimolecular(
+                smash->intermediate,i,(struct abstract_molecule*)m,
+                (struct abstract_molecule*)smash->target,
+                0,0,m->t+steps*smash->t
+              );
         
         if (j) continue;
         else
@@ -357,13 +367,15 @@ int diffuse_3D(struct molecule *m,double target_time)
           return 0;
         }
       }
-      else if ( (smash->which & COLLIDE_WALL) != 0 )
+      else if ( (smash->what & COLLIDE_WALL) != 0 )
       {
         w = (struct wall*) smash->target;
         
-        if ( (smash->what & COLLISION_MASK) == COLLIDE_FRONT ) k = 1;
+        if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
         else k = -1;
-        r = trigger_intersect(m->properties->hashval,m,k,w);
+        r = trigger_intersect(
+                m->properties->hashval,(struct abstract_molecule*)m,k,w
+              );
         
         if (r != NULL)
         {
@@ -371,7 +383,9 @@ int diffuse_3D(struct molecule *m,double target_time)
           if (i < 0) continue; /* pass through--set counters here! */
           else
           {
-            j = outcome_intersect(r,i,w,m,k,m->t + steps*smash->t);
+            j = outcome_intersect(
+                    r,i,w,(struct abstract_molecule*)m,k,m->t + steps*smash->t
+                  );
             if (j==1) continue; /* pass through -- set counters! */
             else if (j==0)
             {

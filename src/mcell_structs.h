@@ -76,8 +76,23 @@
 #define COLLIDE_MISS    0
 #define COLLIDE_FRONT   1
 #define COLLIDE_BACK    2
-#define COLLIDE_REDO   -1
-#define COLLIDE_HIT     3
+#define COLLIDE_REDO    -1
+
+#define COLLIDE_MOL_M   3
+#define COLLIDE_MOL_SP  4
+#define COLLIDE_MOL_SN  5
+
+#define COLLIDE_SV_NX   6
+#define COLLIDE_SV_PX   7
+#define COLLIDE_SV_NY   8
+#define COLLIDE_SV_PY   9
+#define COLLIDE_SV_NZ   10
+#define COLLIDE_SV_PZ   11
+
+#define COLLIDE_WALL    0x10
+#define COLLIDE_MOL     0x20
+#define COLLIDE_SUBVOL  0x40
+#define COLLIDE_MASK    0x0F
 
 
 /* Types for things we can hit */
@@ -531,9 +546,11 @@ struct storage
   struct mem_helper *smol;
   struct mem_helper *gmol;
   struct mem_helper *wall;
+  struct mem_helper *coll;
   
   struct schedule_helper *timer;
   double current_time;
+  double max_timestep;
 };
 
 /* Walls and molecules in a spatial subvolume */
@@ -666,6 +683,7 @@ struct volume
   u_int radial_directions;
   u_int radial_subdivisions;
   u_int num_directions;
+  int directions_mask;
   int fully_random;
   int procnum;
   int viz_mode;
@@ -721,9 +739,11 @@ struct surface_grid
 /* Temporary data structure to store information about collisions. */
 struct collision
 {
+  struct collision *next;
+  double t;
+  
   void *target;
   struct rxn *intermediate;
-  double t;
   struct vector3 loc;
   int what;
 };
