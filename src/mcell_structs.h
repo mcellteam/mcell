@@ -1,7 +1,7 @@
 #ifndef MCELL_STRUCTS
 #define MCELL_STRUCTS
 
-#include <machine/limits.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <stdio.h>
 
