@@ -294,6 +294,7 @@ int argparse_init(int argc, char *argv[], struct volume *vol)
   arg_string=my_strdup("");
   for (i=1;i<argc;i++) {
     if (i==1) {
+      free(arg_string);
       if ((arg_string=my_strdup(argv[i]))==NULL) {
         fprintf(vol->log_file,"MCell: out of memory storing arg_string\n");
         return(1);
