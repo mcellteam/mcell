@@ -111,7 +111,7 @@ ray_trace:
 struct collision* ray_trace(struct molecule *m, struct collision *c,
                             struct subvolume *sv, struct vector3 *v)
 {
-  struct collision *smash,*shead,*shead2;
+  struct collision *smash,*shead;
   struct wall_list *wlp;
   struct wall_list fake_wlp;
   double dx,dy,dz,tx,ty,tz,tmin;
@@ -124,7 +124,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
     
   for (wlp = sv->wall_head ; wlp != NULL; wlp = wlp->next)
   {
-    i = collide_wall(&(m->pos),v,wlp->this_wall,&(smash->t),&(smash->loc));
+    i = collide_wall(&(m->pos),v,wlp->this_wall,&(smash->t),&(smash->loc),m->collisions==-74);
 
     if (i==COLLIDE_REDO)
     {
@@ -138,7 +138,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
       if (smash->t < tmin) tmin = smash->t;
       smash->what = COLLIDE_WALL + i;
       smash->target = (void*) wlp->this_wall;
-      smash->next = shead2;
+      smash->next = shead;
       shead = smash;
       smash = (struct collision*) mem_get(sv->mem->coll);
     }
@@ -236,6 +236,14 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
   }
   
   return shead;
+}
+
+
+void tell_loc(struct molecule *m,char *s)
+{
+  if (m->collisions == -74)
+  printf("%sMy name is %x and I live at %.3f,%.3f,%.3f\n",
+         s,(int)m,m->pos.x*world->length_unit,m->pos.y*world->length_unit,m->pos.z*world->length_unit);
 }
   
 
@@ -371,6 +379,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   d2 = displacement.x*displacement.x + displacement.y*displacement.y +
        displacement.z*displacement.z;
        
+#if 0
   if (sqrt(d2)*world->length_unit > 0.5)
   {
     if (calculate_displacement)
@@ -380,6 +389,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       printf("Yowzers, molecule %x wants to travel %.3f more!\n",
              (int)m,sqrt(d2));
   }
+#endif
   
   do
   {
@@ -394,10 +404,20 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         smash = NULL;
         break;
       }
+      
+      if (smash->next != NULL && smash->next->t - smash->t < 10*EPS_C &&
+          (smash->what & COLLIDE_SUBVOL)!= 0)
+      {
+        struct collision *temp;
+        temp = smash->next;
+        smash->next = temp->next;
+        temp->next = smash;
+        smash = temp;
+      }
 
       if ( (smash->what & COLLIDE_MOL) != 0 && !inert )
       {
-        m->collisions++;
+/*        m->collisions++; */
         i = test_bimolecular(smash->intermediate,SET_ME_PROPERLY);
         if (i<0) continue;
         
@@ -428,7 +448,11 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         if (r != NULL)
         {
           i = test_intersect(r,SET_ME_PROPERLY);
-          if (i < 0) continue; /* pass through--set counters here! */
+          if (i < 0)
+          {
+            tell_loc(m,"(Pass)  ");
+            continue; /* pass through--set counters here! */
+          }
           else
           {
             j = outcome_intersect(
@@ -444,10 +468,12 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
           }
         }
         /* default is to reflect */
+        smash->t *= (1.0 - EPS_C);
         
         m->pos.x += displacement.x * smash->t;
         m->pos.y += displacement.y * smash->t;
         m->pos.z += displacement.z * smash->t;
+        tell_loc(m,"Boing!!  ");
         m->t += steps*smash->t;
         m->path_length += sqrt( smash->t*smash->t*
                                 ( displacement.x * displacement.x +
@@ -469,6 +495,43 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         m->path_length += sqrt( (m->pos.x - smash->loc.x)*(m->pos.x - smash->loc.x)
                                +(m->pos.y - smash->loc.y)*(m->pos.y - smash->loc.y)
                                +(m->pos.z - smash->loc.z)*(m->pos.z - smash->loc.z));
+        tell_loc(m,"Whoosh!  ");
+
+#if 0
+        if ((fabs(m->pos.x)-10.0)>EPS_C ||
+            (fabs(m->pos.y)-10.0)>EPS_C ||
+            (fabs(m->pos.z)-10.0)>EPS_C)
+        {
+          struct wall_list *twlp;
+          printf("  We shouldn't be whooshing at %.3f!\n",smash->t);
+          printf("  We are: %.3f %.3f %.3f -> %.3f %.3f %.3f\n",
+                 m->pos.x,m->pos.y,m->pos.z,
+                 smash->loc.x,smash->loc.y,smash->loc.z);
+          printf("  LLF corner: %.3f %.3f %.3f\n",
+                 world->x_fineparts[sv->llf.x],
+                 world->y_fineparts[sv->llf.y],
+                 world->z_fineparts[sv->llf.z]);
+          printf("  URB corner: %.3f %.3f %.3f\n",
+                 world->x_fineparts[sv->urb.x],
+                 world->y_fineparts[sv->urb.y],
+                 world->z_fineparts[sv->urb.z]);
+          for (twlp = sv->wall_head; twlp != NULL; twlp = twlp->next)
+          {
+            printf("    Wall %x: [%.2f %.2f %.2f] [%.2f %.2f %.2f] [%.2f %.2f %.2f]\n",
+                   (int)twlp->this_wall,
+                   twlp->this_wall->vert[0]->x,
+                   twlp->this_wall->vert[0]->y,
+                   twlp->this_wall->vert[0]->z,
+                   twlp->this_wall->vert[1]->x,
+                   twlp->this_wall->vert[1]->y,
+                   twlp->this_wall->vert[1]->z,
+                   twlp->this_wall->vert[2]->x,
+                   twlp->this_wall->vert[2]->y,
+                   twlp->this_wall->vert[2]->z);
+          }
+        }
+#endif
+
         m->pos.x = smash->loc.x;
         m->pos.y = smash->loc.y;
         m->pos.z = smash->loc.z;
@@ -514,6 +577,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   m->pos.x += displacement.x;
   m->pos.y += displacement.y;
   m->pos.z += displacement.z;
+  tell_loc(m,"Whew...  ");
   m->t += steps;
   m->path_length += sqrt( displacement.x*displacement.x +
                           displacement.y*displacement.y +

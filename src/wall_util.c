@@ -9,11 +9,13 @@
 
 
 #include <math.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "rng.h"
 #include "wall_util.h"
+#include "vol_util.h"
 #include "mcell_structs.h"
 
 #ifdef DEBUG
@@ -115,10 +117,11 @@ int edge_hash(struct poly_edge *pe,int nkeys)
 ehtable_init:
   In: pointer to an edge_hashtable struct
       number of keys that the hash table uses
-  Out: No return value.  Hash table is initialized.
+  Out: Returns 0 on success, 1 on malloc failure.
+       Hash table is initialized.
 ***************************************************************************/
 
-void ehtable_init(struct edge_hashtable *eht,int nkeys)
+int ehtable_init(struct edge_hashtable *eht,int nkeys)
 {
   int i;
   
@@ -127,11 +130,7 @@ void ehtable_init(struct edge_hashtable *eht,int nkeys)
   eht->stored = 0;
   eht->distinct = 0;
   eht->data = (struct poly_edge*) malloc( nkeys * sizeof(struct poly_edge) );
-  if (eht->data == NULL)
-  { 
-    printf("Malloc failed in ehtable_init\n");
-    exit(1);
-  }
+  if (eht->data == NULL) return 1;
   
   for (i=0;i<nkeys;i++)
   {
@@ -139,6 +138,8 @@ void ehtable_init(struct edge_hashtable *eht,int nkeys)
     eht->data[i].n = 0;
     eht->data[i].face1 = eht->data[i].face2 = -1;
   }
+  
+  return 0;
 }
 
 
@@ -146,10 +147,11 @@ void ehtable_init(struct edge_hashtable *eht,int nkeys)
 ehtable_add:
   In: pointer to an edge_hashtable struct
       pointer to the poly_edge to add
-  Out: No return value.  Edge is added to the hash table.
+  Out: Returns 0 on success, 1 on malloc failure. 
+       Edge is added to the hash table.
 ***************************************************************************/
 
-void ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
+int ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
 {
   int i;
   struct poly_edge *pep,*pei;
@@ -168,7 +170,7 @@ void ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
       pep->v2x = pe->v2x; pep->v2y = pe->v2y; pep->v2z = pe->v2z;
       eht->stored++;
       eht->distinct++;
-      return;
+      return 0;
     }
     
     if (edge_equals(pep,pe))  /* This edge exists already ... */
@@ -179,7 +181,7 @@ void ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
         pep->edge2 = pe->edge1;
         pep->n++;
         eht->stored++;
-        return;
+        return 0;
       }
       else                    /* ...or we're 3rd and need more space */
       {
@@ -194,6 +196,7 @@ void ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
         }
         
         pei = (struct poly_edge*) malloc( sizeof(struct poly_edge) );
+        if (pei==NULL) return 1;
 
         pep->n++;
         pei->next = pep->next;
@@ -213,6 +216,7 @@ void ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
     else  /* Hit end of list, so make space for use next loop. */
     {
       pei = (struct poly_edge*) malloc( sizeof(struct poly_edge) );
+      if (pei==NULL) return 1;
 
       pei->next = pep->next;
       pep->next = pei;
@@ -224,6 +228,8 @@ void ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
       pep = pei;
     }
   }
+  
+  return 0;
 }
 
 
@@ -265,11 +271,11 @@ surface_net:
   In: array of pointers to walls
       pointer to storage for the edges
       integer length of array
-  Out: 1 if the surface is closed, 0 otherwise
+  Out: 1 if the surface is closed, 0 if open, -1 on malloc failure
   Note: Assumes no triply-connected edges.
 ***************************************************************************/
 
-int surface_net( struct wall **facelist, struct mem_helper *edgemem, int nfaces )
+int surface_net( struct wall **facelist, int nfaces )
 {
   struct poly_edge pe,*pep;
   struct edge *e;
@@ -281,7 +287,8 @@ int surface_net( struct wall **facelist, struct mem_helper *edgemem, int nfaces 
   int is_closed = 1;
   
   nkeys = (3*nfaces)/2;
-  ehtable_init(&eht,nkeys);
+
+  if ( ehtable_init(&eht,nkeys) ) return -1;
   
   for (i=0;i<nfaces;i++)
   {
@@ -302,7 +309,7 @@ int surface_net( struct wall **facelist, struct mem_helper *edgemem, int nfaces 
       pe.face1 = i;
       pe.edge1 = j;
       
-      ehtable_add(&eht,&pe);
+      if ( ehtable_add(&eht,&pe) ) return -1;
     }
   }
   
@@ -322,7 +329,8 @@ int surface_net( struct wall **facelist, struct mem_helper *edgemem, int nfaces 
         {
           facelist[pep->face1]->nb_walls[pep->edge1] = facelist[pep->face2];
           facelist[pep->face2]->nb_walls[pep->edge2] = facelist[pep->face1];
-          e = (struct edge*) mem_get( edgemem );
+          e = (struct edge*) mem_get( facelist[pep->face1]->birthplace->join );
+          if (e==NULL) return -1;
           e->forward = facelist[pep->face1];
           e->backward = facelist[pep->face2];
           init_edge_transform(e,pep->edge1);
@@ -335,7 +343,8 @@ int surface_net( struct wall **facelist, struct mem_helper *edgemem, int nfaces 
       {
         if (!same) is_closed = 0;
         same=0;
-        e = (struct edge*) mem_get( edgemem );
+        e = (struct edge*) mem_get( facelist[pep->face1]->birthplace->join );
+        if (e==NULL) return -1;
         e->forward = facelist[pep->face1];
         e->backward = NULL;
         init_edge_transform(e,pep->edge1);
@@ -434,10 +443,11 @@ void init_edge_transform(struct edge *e,int edgenum)
 sharpen_object:
   In: pointer to an object
       pointer to storage for edges
-  Out: No return value.  Adds edges to the object and all its children.
+  Out: 0 on success, 1 on malloc failure.
+       Adds edges to the object and all its children.
 ***************************************************************************/
 
-void sharpen_object(struct object *parent,struct mem_helper *emem)
+int sharpen_object(struct object *parent)
 {
   struct object *o;
   int i;
@@ -447,36 +457,38 @@ void sharpen_object(struct object *parent,struct mem_helper *emem)
     i = parent->n_walls;
     if (i>100) i=100;
     if (i<10) i=10;
-    if (parent->edgemem == NULL) parent->edgemem = emem;
     
-    i = surface_net(parent->wall_p , parent->edgemem , parent->n_walls);
+    i = surface_net(parent->wall_p , parent->n_walls);
+    if (i==-1) return 1;
   }
   else if (parent->object_type == META_OBJ)
   {
     for ( o = parent->first_child ; o != NULL ; o = o->next )
     {
-      sharpen_object( o , emem );
+      if ( sharpen_object( o ) ) return 1;
     }
   }
+  
+  return 0;
 }
 
 
 /***************************************************************************
 sharpen_world:
-  In: nothing.  Assumes there are polygon objects in the world.
-  Out: No return value.  Adds edges to every object.
+  In: nothing.  Assumes there are polygon objects in the world in their
+      correct memory locations.
+  Out: 0 on success, 1 on malloc failure.  Adds edges to every object.
 ***************************************************************************/
 
-void sharpen_world()
+int sharpen_world()
 {
   struct object *o;
-  struct mem_helper *global_edge_memory;
   
-  global_edge_memory = create_mem(sizeof(struct edge),100);
   for (o = world->root_instance ; o != NULL ; o = o->next)
   {
-    sharpen_object(o,global_edge_memory);
+    if (sharpen_object(o)) return 1;
   }
+  return 0;
 }
 
 
@@ -518,11 +530,7 @@ void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
   f.y = n->z*e.x - n->x*e.z;
   f.z = n->x*e.y - n->y*e.x;
   
-  e.x = k*v->x;
-  e.y = k*v->y;
-  e.z = k*v->z;
-  
-  tiny = (abs_max_2vec( p , &e ) + 1.0) * EPS_C;
+  tiny = (abs_max_2vec( p , v ) + 1.0) * EPS_C / k;
   if ( (rng_uint(world->seed) & 1) == 0 ) tiny = -tiny;
   
   v->x -= tiny*f.x;
@@ -550,13 +558,24 @@ collide_wall:
 ***************************************************************************/
 
 int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
-                 double *t,struct vector3 *hitpt)
+                 double *t,struct vector3 *hitpt,int report)
 {
   double dp,dv,dd;
   double nx,ny,nz;
   double a,b,c;
   double f,g,h;
   struct vector3 local;
+  
+  if (report)
+  {
+    printf("(%.2f,%.2f,%.2f)->(%.2f,%.2f,%.2f) vs\n  %x [(%.2f,%.2f,%.2f) (%.2f,%.2f,%.2f) (%.2f,%.2f,%.2f)]\n",
+           point->x,point->y,point->z,
+           point->x+move->x,point->y+move->y,point->z+move->z,
+           (int)face,
+           face->vert[0]->x,face->vert[0]->y,face->vert[0]->z,
+           face->vert[1]->x,face->vert[1]->y,face->vert[1]->z,
+           face->vert[2]->x,face->vert[2]->y,face->vert[2]->z);
+  }
   
   nx = face->normal.x;
   ny = face->normal.y;
@@ -946,6 +965,16 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   w->unit_v.z = w->normal.x * w->unit_u.y - w->normal.y * w->unit_u.x;
   w->d = v0->x * w->normal.x + v0->y * w->normal.y + v0->z * w->normal.z;
   
+  w->uv_vert1_u = (w->vert[1]->x - w->vert[0]->x)*w->unit_u.x + 
+                  (w->vert[1]->y - w->vert[0]->y)*w->unit_u.y +
+                  (w->vert[1]->z - w->vert[0]->z)*w->unit_u.z;
+  w->uv_vert2.u = (w->vert[2]->x - w->vert[0]->x)*w->unit_u.x + 
+                  (w->vert[2]->y - w->vert[0]->y)*w->unit_u.y +
+                  (w->vert[2]->z - w->vert[0]->z)*w->unit_u.z;
+  w->uv_vert2.v = (w->vert[2]->x - w->vert[0]->x)*w->unit_v.x + 
+                  (w->vert[2]->y - w->vert[0]->y)*w->unit_v.y +
+                  (w->vert[2]->z - w->vert[0]->z)*w->unit_v.z;
+  
   w->mol = NULL;
   w->mol_count = 0;
   w->effectors = NULL;
@@ -956,4 +985,211 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   no_printf("  vertex 0: %.9g, %.9g, %.9g\n",w->vert[0]->x,w->vert[0]->y,w->vert[0]->z);
   no_printf("  vertex 1: %.9g, %.9g, %.9g\n",w->vert[1]->x,w->vert[1]->y,w->vert[1]->z);
   no_printf("  vertex 2: %.9g, %.9g, %.9g\n",w->vert[2]->x,w->vert[2]->y,w->vert[2]->z);
+}
+
+
+void wall_bounding_box(struct wall *w , struct vector3 *llf, struct vector3 *urb)
+{
+  llf->x = urb->x = w->vert[0]->x;
+  llf->y = urb->y = w->vert[0]->y;
+  llf->z = urb->z = w->vert[0]->z;
+  
+  if (w->vert[1]->x < llf->x) llf->x = w->vert[1]->x;
+  else if (w->vert[1]->x > urb->x) urb->x = w->vert[1]->x;
+  if (w->vert[2]->x < llf->x) llf->x = w->vert[2]->x;
+  else if (w->vert[2]->x > urb->x) urb->x = w->vert[2]->x;
+
+  if (w->vert[1]->y < llf->y) llf->y = w->vert[1]->y;
+  else if (w->vert[1]->y > urb->y) urb->y = w->vert[1]->y;
+  if (w->vert[2]->y < llf->y) llf->y = w->vert[2]->y;
+  else if (w->vert[2]->y > urb->y) urb->y = w->vert[2]->y;
+
+  if (w->vert[1]->z < llf->z) llf->z = w->vert[1]->z;
+  else if (w->vert[1]->z > urb->z) urb->z = w->vert[1]->z;
+  if (w->vert[2]->z < llf->z) llf->z = w->vert[2]->z;
+  else if (w->vert[2]->z > urb->z) urb->z = w->vert[2]->z;
+}
+
+
+struct wall_list* wall_to_vol(struct wall *w, struct subvolume *sv)
+{
+  struct wall_list *wl = mem_get(sv->mem->list);
+  wl->this_wall = w;
+  if (sv->wall_tail==NULL)
+  {
+    sv->wall_head = sv->wall_tail = wl;
+    wl->next = NULL;
+  }
+  else
+  {
+    wl->next = sv->wall_head;
+    sv->wall_head = wl;
+  }
+  sv->wall_count++;
+  
+  return wl;
+}
+
+
+struct vector3* localize_vertex(struct vector3 *p, struct storage *stor)
+{
+  struct vertex_tree *ovl,*vl;
+  
+  ovl = NULL;
+  vl = stor->vert_head;
+  while (vl != NULL)
+  {
+    ovl = vl;
+    if (p->z == vl->loc.z)
+    {
+      if (p->x == vl->loc.x && p->y == vl->loc.y) return &(vl->loc);
+      vl = vl->next;
+    }
+    else if (p->z > vl->loc.z) vl = vl->above;
+    else vl = vl->below;
+  }
+  
+  vl = mem_get( stor->tree );
+  if (vl==NULL) return NULL;
+  
+  memcpy(&(vl->loc) , p , sizeof(struct vector3));
+  vl->above = NULL;
+  vl->below = NULL;
+  vl->next = NULL;
+  if (ovl==NULL) stor->vert_head = vl;
+  else
+  {
+    if (p->z == ovl->loc.z) ovl->next = vl;
+    else if (p->z > ovl->loc.z) ovl->above = vl;
+    else ovl->below = vl;
+  }  
+  stor->vert_count++;
+  
+  return &(vl->loc);
+}
+  
+
+struct wall* localize_wall(struct wall *w, struct storage *stor)
+{
+  struct wall *ww;
+  ww = mem_get(stor->face);
+  if (ww==NULL) return ww;
+  
+  memcpy(ww , w , sizeof(struct wall));
+  ww->next = stor->wall_head;
+  stor->wall_head = ww;
+  stor->wall_count++;
+  
+  ww->vert[0] = localize_vertex(ww->vert[0],stor);
+  ww->vert[1] = localize_vertex(ww->vert[1],stor);
+  ww->vert[2] = localize_vertex(ww->vert[2],stor);
+  
+  ww->birthplace = stor;
+  
+  return ww;
+}
+
+
+struct wall* distribute_wall(struct wall *w)
+{
+  struct wall *where_am_i;
+  struct vector3 llf,urb,cent;
+  int x_max,x_min,y_max,y_min,z_max,z_min;
+  int h,i,j,k;
+  
+  wall_bounding_box(w,&llf,&urb);
+  llf.x -= EPS_C * (llf.x < 0) ? -llf.x : llf.x;
+  llf.y -= EPS_C * (llf.y < 0) ? -llf.y : llf.y;
+  llf.z -= EPS_C * (llf.z < 0) ? -llf.z : llf.z;
+  urb.x += EPS_C * (urb.x < 0) ? -urb.x : urb.x;
+  urb.y += EPS_C * (urb.y < 0) ? -urb.y : urb.y;
+  urb.z += EPS_C * (urb.z < 0) ? -urb.z : urb.z;
+  cent.x = 0.33333333333*(w->vert[0]->x + w->vert[1]->x + w->vert[2]->x);
+  cent.y = 0.33333333333*(w->vert[0]->y + w->vert[1]->y + w->vert[2]->y);
+  cent.z = 0.33333333333*(w->vert[0]->z + w->vert[1]->z + w->vert[2]->z);
+  
+  x_min = bisect( world->x_partitions , world->n_parts , llf.x );
+  if (urb.x < world->x_partitions[x_min+1]) x_max = x_min+1;
+  else x_max = bisect( world->x_partitions , world->n_parts , urb.x ) + 1;
+
+  y_min = bisect( world->y_partitions , world->n_parts , llf.y );
+  if (urb.y < world->y_partitions[y_min+1]) y_max = y_min+1;
+  else y_max = bisect( world->y_partitions , world->n_parts , urb.y ) + 1;
+
+  z_min = bisect( world->z_partitions , world->n_parts , llf.z );
+  if (urb.z < world->z_partitions[z_min+1]) z_max = z_min+1;
+  else z_max = bisect( world->z_partitions , world->n_parts , urb.z ) + 1;
+  
+  if ( (z_max-z_min)*(y_max-y_min)*(x_max-x_min) == 1 )
+  {
+    h = z_min + (world->n_parts - 1)*(y_min + (world->n_parts - 1)*x_min);
+    where_am_i = localize_wall( w , world->subvol[h].mem );
+    wall_to_vol( where_am_i , &(world->subvol[h]) );
+    return where_am_i;
+  }
+  
+  x_min = y_min = z_min = 0;
+  x_max = y_max = z_max = world->n_parts - 1;
+  
+  for (i=x_min;i<x_max;i++) { if (cent.x < world->x_partitions[i]) break; }
+  for (j=y_min;j<y_max;j++) { if (cent.y < world->y_partitions[j]) break; }
+  for (k=z_min;k<z_max;k++) { if (cent.z < world->z_partitions[k]) break; }
+  
+  h = (k-1) + (world->n_parts - 1)*((j-1) + (world->n_parts - 1)*(i-1));
+  where_am_i = localize_wall( w , world->subvol[h].mem );
+  
+  for (k=z_min;k<z_max;k++)
+  {
+    for (j=y_min;j<y_max;j++)
+    {
+      for (i=x_min;i<x_max;i++)
+      {
+        h = k + (world->n_parts - 1)*(j + (world->n_parts - 1)*i);
+        wall_to_vol( where_am_i , &(world->subvol[h]) );
+      }
+    }
+  }
+  
+  return where_am_i;
+}
+  
+
+int distribute_object(struct object *parent)
+{
+  struct object *o;
+  int i;
+  
+  if (parent->object_type == BOX_OBJ || parent->object_type == POLY_OBJ)
+  {
+    for (i=0;i<parent->n_walls;i++)
+    {
+      if (parent->wall_p[i]==NULL) continue;  /* Wall removed. */
+      
+      parent->wall_p[i] = distribute_wall(parent->wall_p[i]);
+
+      if (parent->wall_p[i]==NULL) return 1;
+    }
+  }
+  else if (parent->object_type == META_OBJ)
+  {
+    for (o = parent->first_child; o != NULL; o = o->next)
+    {
+      if (distribute_object(o) != 0) return 1;
+    }
+  }
+  
+  return 0;
+}
+
+
+int distribute_world()
+{
+  struct object *o;
+  
+  for (o = world->root_instance ; o != NULL ; o = o->next)
+  {
+    if (distribute_object(o) != 0) return 1;
+  }
+  
+  return 0;
 }

@@ -391,6 +391,7 @@ release_molecules:
 
 void release_molecules(struct release_event_queue *req)
 {
+  static int global_index = 0;
   struct release_site_obj *rso;
   struct release_pattern *rpat;
   struct molecule m;
@@ -447,7 +448,7 @@ void release_molecules(struct release_event_queue *req)
   
   m.t2 = 0.0;
   m.curr_cmprt = NULL;
-  m.collisions = 0;
+  m.collisions = global_index++;
   m.path_length = 0.0;
   
   switch(rso->release_number_method)
@@ -502,6 +503,7 @@ void release_molecules(struct release_event_queue *req)
       m.pos.z = xyz[2] + req->location.z;
       
       guess = insert_molecule(&m,guess);  /* Insert copy of m into world */
+      m.collisions++;
     }
   }
   else
@@ -560,6 +562,7 @@ void set_partitions()
   int x_in,y_in,z_in;
   int x_start,y_start,z_start;
   double A,B,k;
+  struct vector3 part_min,part_max;
   
   if (world->n_fineparts != 4096 + 16384 + 4096)
   {
@@ -569,14 +572,24 @@ void set_partitions()
     world->z_fineparts = (double*)malloc(sizeof(double)*world->n_fineparts);
   }
   
-  f_min = world->llf.x;
-  f_max = world->urb.x;
-  if (f_max - f_min < 1.0*world->length_unit)
+  f_min = world->bb_min.x;
+  f_max = world->bb_max.x;
+  
+  if (f_min<0) f_min *= 1.0+EPS_C;
+  else f_min *= 1.0-EPS_C;
+  if (f_max<0) f_max *= 1.0-EPS_C;
+  else f_max *= 1.0+EPS_C;
+  
+  if (f_max - f_min < 0.1/world->length_unit)
   {
-    f = 1.0*world->length_unit - (f_max-f_min);
-    f_max += f;
-    f_min -= f;
+    printf("Rescaling: was %.3f to %.3f, now ",f_min,f_max);
+    f = 0.1/world->length_unit - (f_max-f_min);
+    f_max += 0.5*f;
+    f_min -= 0.5*f;
+    printf("%.3f to %.3f\n",f_min,f_max);
   }
+  part_min.x = f_min;
+  part_max.x = f_max;
   
   df = (f_max - f_min)/16383.0;
   for (i=0;i<16384;i++)
@@ -588,14 +601,18 @@ void set_partitions()
   find_exponential_params(f_max,1e15,df,4096,&A,&B,&k);
   for (i=1;i<=4096;i++) world->x_fineparts[4096+16383+i] = A*exp(i*k)+B;
 
-  f_min = world->llf.y;
-  f_max = world->urb.y;
-  if (f_max - f_min < 1.0*world->length_unit)
+  f_min = world->bb_min.y;
+  f_max = world->bb_max.y;
+  if (f_max - f_min < 0.1/world->length_unit)
   {
-    f = 1.0*world->length_unit - (f_max-f_min);
-    f_max += f;
-    f_min -= f;
+    printf("Rescaling: was %.3f to %.3f, now ",f_min,f_max);
+    f = 0.1/world->length_unit - (f_max-f_min);
+    f_max += 0.5*f;
+    f_min -= 0.5*f;
+    printf("%.3f to %.3f\n",f_min,f_max);
   }
+  part_min.y = f_min;
+  part_max.y = f_max;
   
   df = (f_max - f_min)/16383.0;
   for (i=0;i<16384;i++)
@@ -607,14 +624,18 @@ void set_partitions()
   find_exponential_params(f_max,1e15,df,4096,&A,&B,&k);
   for (i=1;i<=4096;i++) world->y_fineparts[4096+16383+i] = A*exp(i*k)+B;
 
-  f_min = world->llf.z;
-  f_max = world->urb.z;
-  if (f_max - f_min < 1.0*world->length_unit)
+  f_min = world->bb_min.z;
+  f_max = world->bb_max.z;
+  if (f_max - f_min < 0.1/world->length_unit)
   {
-    f = 1.0*world->length_unit - (f_max-f_min);
-    f_max += f;
-    f_min -= f;
+    printf("Rescaling: was %.3f to %.3f, now ",f_min,f_max);
+    f = 0.1/world->length_unit - (f_max-f_min);
+    f_max += 0.5*f;
+    f_min -= 0.5*f;
+    printf("%.3f to %.3f\n",f_min,f_max);
   }
+  part_min.z = f_min;
+  part_max.z = f_max;
   
   df = (f_max - f_min)/16383.0;
   for (i=0;i<16384;i++)
@@ -626,12 +647,12 @@ void set_partitions()
   find_exponential_params(f_max,1e15,df,4096,&A,&B,&k);
   for (i=1;i<=4096;i++) world->z_fineparts[4096+16383+i] = A*exp(i*k)+B;
   
-  f = world->urb.x - world->llf.x;
+  f = part_max.x - part_min.x;
   f_min = f_max = f;
-  f = world->urb.y - world->llf.y;
+  f = part_max.y - part_min.y;
   if (f < f_min) f_min = f;
   else if (f > f_max) f_max = f;
-  f = world->urb.z - world->llf.z;
+  f = part_max.z - part_min.z;
   if (f < f_min) f_min = f;
   else if (f > f_max) f_max = f;
   
@@ -650,7 +671,7 @@ void set_partitions()
   {
     world->n_parts = MAX_COARSE_PER_AXIS;
   }
-  else if (steps_min / MIN_TARGET_TIMESTEP < 1.0)
+  else if (steps_min / MIN_TARGET_TIMESTEP < MIN_COARSE_PER_AXIS)
   {
     world->n_parts = MIN_COARSE_PER_AXIS;
   }
@@ -666,9 +687,9 @@ void set_partitions()
   world->y_partitions = (double*) malloc( sizeof(double) * world->n_parts );
   world->z_partitions = (double*) malloc( sizeof(double) * world->n_parts );
   
-  x_aspect = (world->urb.x - world->llf.x) / f_max;
-  y_aspect = (world->urb.y - world->llf.y) / f_max;
-  z_aspect = (world->urb.z - world->llf.z) / f_max;
+  x_aspect = (part_max.x - part_min.x) / f_max;
+  y_aspect = (part_max.y - part_min.y) / f_max;
+  z_aspect = (part_max.z - part_min.z) / f_max;
   
   x_in = floor( (world->n_parts - 2) * x_aspect + 0.5 );
   y_in = floor( (world->n_parts - 2) * y_aspect + 0.5 );
@@ -680,8 +701,11 @@ void set_partitions()
   x_start = (world->n_parts - x_in)/2;
   y_start = (world->n_parts - y_in)/2;
   z_start = (world->n_parts - z_in)/2;
+  if (x_start < 1) x_start = 1;
+  if (y_start < 1) y_start = 1;
+  if (z_start < 1) z_start = 1;
 
-  f = (world->urb.x - world->llf.x) / (x_in - 1);
+  f = (part_max.x - part_min.x) / (x_in - 1);
   world->x_partitions[0] = world->x_fineparts[0];
   for (i=x_start-1;i>0;i--)
   {
@@ -699,7 +723,7 @@ void set_partitions()
   }
   world->x_partitions[world->n_parts-1] = world->x_fineparts[4096+16384+4096-1];
   
-  f = (world->urb.y - world->llf.y) / (y_in - 1);
+  f = (part_max.y - part_min.y) / (y_in - 1);
   world->y_partitions[0] = world->y_fineparts[0];
   for (i=y_start-1;i>0;i--)
   {
@@ -717,7 +741,7 @@ void set_partitions()
   }
   world->y_partitions[world->n_parts-1] = world->y_fineparts[4096+16384+4096-1];
   
-  f = (world->urb.z - world->llf.z) / (z_in - 1);
+  f = (part_max.z - part_min.z) / (z_in - 1);
   world->z_partitions[0] = world->z_fineparts[0];
   for (i=z_start-1;i>0;i--)
   {
@@ -735,4 +759,13 @@ void set_partitions()
   }
   world->z_partitions[world->n_parts-1] = world->z_fineparts[4096+16384+4096-1];
 
+  printf("X partitions: ");
+  for (i=0;i<world->n_parts;i++) printf("%.3f ",world->x_partitions[i]);
+  printf("\n");
+  printf("Y partitions: ");
+  for (i=0;i<world->n_parts;i++) printf("%.3f ",world->y_partitions[i]);
+  printf("\n");
+  printf("Z partitions: ");
+  for (i=0;i<world->n_parts;i++) printf("%.3f ",world->z_partitions[i]);
+  printf("\n");
 }

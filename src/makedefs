@@ -1,6 +1,6 @@
 CC = gcc
 # CFLAGS = -Wall -O3 -march=pentium4
-CFLAGS = -Wall -g -DDEBUG
+CFLAGS = -Wall -ggdb3 -O0 -DDEBUG
 LIBS =  -lm
 LD = $(CC)
 LDFLAGS = 

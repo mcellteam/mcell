@@ -301,6 +301,16 @@ int init_sim(void)
     return(1);
   }
   
+  if (distribute_world()) {
+    fprintf(log_file,"MCell: error moving geometry to partitions\n");
+    return(1);
+  }
+  
+  if (sharpen_world()) {
+    fprintf(log_file,"MCell: error adding edges to geometry\n");
+    return(1);
+  }
+  
 
 
   /* Decompose the space into subvolumes */
@@ -406,7 +416,7 @@ int init_species(void)
 
 
 
-/* This is just a placeholder for now--make one giant partition. */
+/* This is just a placeholder for now. */
 int init_partitions(void)
 {
   int i,j,k,h;
@@ -510,9 +520,16 @@ int init_partitions(void)
   shared_mem->mol  = create_mem(sizeof(struct molecule),50);
   shared_mem->smol  = create_mem(sizeof(struct surface_molecule),50);
   shared_mem->gmol  = create_mem(sizeof(struct grid_molecule),50);
-  shared_mem->wall = create_mem(sizeof(struct wall),50);
+  shared_mem->face = create_mem(sizeof(struct wall),50);
+  shared_mem->join = create_mem(sizeof(struct edge),50);
+  shared_mem->tree = create_mem(sizeof(struct vertex_tree),50);
   shared_mem->effs = create_mem(sizeof(struct surface_grid),50);
   shared_mem->coll = create_mem(sizeof(struct collision),50);
+  
+  shared_mem->wall_head = NULL;
+  shared_mem->wall_count = 0;
+  shared_mem->vert_head = NULL;
+  shared_mem->vert_count = 0;
   
   shared_mem->timer = create_scheduler(1.0,100.0,100,0.0);
   shared_mem->current_time = 0.0;
@@ -530,6 +547,7 @@ int init_partitions(void)
   world->storage_head->store = shared_mem;
   
   world->n_subvols = sv_axis * sv_axis * sv_axis;
+  printf("Creating %d subvolumes (%d per axis)\n",world->n_subvols,sv_axis);
   world->subvol = (struct subvolume*)malloc(sizeof(struct subvolume)*world->n_subvols);
   for (i=0;i<sv_axis;i++)
   for (j=0;j<sv_axis;j++)
@@ -639,7 +657,6 @@ int init_geom(void)
   if (instance_obj(world->root_instance,tm,NULL,NULL,NULL)) {
     return(1);
   }
-  sharpen_world();  /* Add edges */
   
 /* Stick the queue of release events in a scheduler */
   req = world->release_event_queue_head;  
@@ -900,23 +917,23 @@ int compute_bb_release_site(struct object *objp, double (*im)[4])
   location[0][2]=rsop->location->z;
   location[0][3]=1.0;
   mult_matrix(location,im,location,l,m,n);
-  if (location[0][0]<world->bb_min.x) {
-    world->bb_min.x=location[0][0];
+  if (location[0][0]/world->length_unit<world->bb_min.x) {
+    world->bb_min.x=location[0][0]/world->length_unit;
   }
-  if (location[0][1]<world->bb_min.y) {
-    world->bb_min.y=location[0][1];
+  if (location[0][1]/world->length_unit<world->bb_min.y) {
+    world->bb_min.y=location[0][1]/world->length_unit;
   }
-  if (location[0][2]<world->bb_min.z) {
-    world->bb_min.z=location[0][2];
+  if (location[0][2]/world->length_unit<world->bb_min.z) {
+    world->bb_min.z=location[0][2]/world->length_unit;
   }
-  if (location[0][0]>world->bb_max.x) {
-    world->bb_max.x=location[0][0];
+  if (location[0][0]/world->length_unit>world->bb_max.x) {
+    world->bb_max.x=location[0][0]/world->length_unit;
   }
-  if (location[0][1]>world->bb_max.y) {
-    world->bb_max.y=location[0][1];
+  if (location[0][1]/world->length_unit>world->bb_max.y) {
+    world->bb_max.y=location[0][1]/world->length_unit;
   }
-  if (location[0][2]>world->bb_max.z) {
-    world->bb_max.z=location[0][2];
+  if (location[0][2]/world->length_unit>world->bb_max.z) {
+    world->bb_max.z=location[0][2]/world->length_unit;
   }
 
   return(0);
@@ -954,23 +971,23 @@ int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_n
       p[0][2]=opp->vertex[i].z;
       p[0][3]=1.0;
       mult_matrix(p,im,p,l,m,n);
-      if (p[0][0]<world->bb_min.x) {
-        world->bb_min.x=p[0][0];
+      if (p[0][0]/world->length_unit<world->bb_min.x) {
+        world->bb_min.x=p[0][0]/world->length_unit;
       }
-      if (p[0][1]<world->bb_min.y) {
-        world->bb_min.y=p[0][1];
+      if (p[0][1]/world->length_unit<world->bb_min.y) {
+        world->bb_min.y=p[0][1]/world->length_unit;
       }
-      if (p[0][2]<world->bb_min.z) {
-        world->bb_min.z=p[0][2];
+      if (p[0][2]/world->length_unit<world->bb_min.z) {
+        world->bb_min.z=p[0][2]/world->length_unit;
       }
-      if (p[0][0]>world->bb_max.x) {
-        world->bb_max.x=p[0][0];
+      if (p[0][0]/world->length_unit>world->bb_max.x) {
+        world->bb_max.x=p[0][0]/world->length_unit;
       }
-      if (p[0][1]>world->bb_max.y) {
-        world->bb_max.y=p[0][1];
+      if (p[0][1]/world->length_unit>world->bb_max.y) {
+        world->bb_max.y=p[0][1]/world->length_unit;
       }
-      if (p[0][2]>world->bb_max.z) {
-        world->bb_max.z=p[0][2];
+      if (p[0][2]/world->length_unit>world->bb_max.z) {
+        world->bb_max.z=p[0][2]/world->length_unit;
       }
     }
 

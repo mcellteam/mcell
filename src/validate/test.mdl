@@ -1,12 +1,12 @@
 
-dt = 1e-6
-it = 150
+dt = 2e-6
+it = 5000
 efg = 10000
 
-n=2000
+n=100
 
 TIME_STEP = dt
-TIME_STEP_MAX = dt*50
+TIME_STEP_MAX = dt*1.01
 ITERATIONS = it
 EFFECTOR_GRID_DENSITY = efg
 RADIAL_SUBDIVISIONS = 256
@@ -55,18 +55,18 @@ DEFINE_RELEASE_PATTERN pat2 {
 }
 
 ACh_release_site SPHERICAL_RELEASE_SITE {
-  LOCATION = [-0.05,0,0]
+  LOCATION = [0.09,0.09,0.09]
   MOLECULE = ACh
   NUMBER_TO_RELEASE = n
-  SITE_DIAMETER = 0.01
+  SITE_DIAMETER = 0.000000001
   RELEASE_PATTERN = pat1
 }
 
 Glu_release_site SPHERICAL_RELEASE_SITE {
-  LOCATION = [0.05,0,0]
+  LOCATION = [-0.09,-0.09,-0.09]
   MOLECULE = Glu
   NUMBER_TO_RELEASE = n
-  SITE_DIAMETER = 0
+  SITE_DIAMETER = 0.00001
   RELEASE_PATTERN = pat1
 }
 
@@ -83,7 +83,7 @@ box BOX {
     }
   }
 }
-
+/*
 poly POLYGON_LIST {
   VERTEX_LIST {
     [0,0,0]
@@ -95,12 +95,12 @@ poly POLYGON_LIST {
     [0,2,1]
   }
 }
-
+*/
 INSTANTIATE foo OBJECT {
   ACh_release_site OBJECT ACh_release_site {}
   Glu_release_site OBJECT Glu_release_site {}
   box OBJECT box {}
-  poly OBJECT poly {}
+/*  poly OBJECT poly {}*/
 }
 
 INCLUDE_FILE = "test_include.mdl"

@@ -37,27 +37,32 @@ struct edge_hashtable
 int edge_equals(struct poly_edge *e1,struct poly_edge *e2);
 int edge_hash(struct poly_edge *pe,int nkeys);
 
-void ehtable_init(struct edge_hashtable *eht,int nkeys);
-void ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe);
+int ehtable_init(struct edge_hashtable *eht,int nkeys);
+int ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe);
 void ehtable_kill(struct edge_hashtable *eht);
 
-int surface_net( struct wall **facelist, struct mem_helper *emem, int nfaces );
+int surface_net( struct wall **facelist, int nfaces );
 void init_edge_transform(struct edge *e,int edgenum);
-void sharpen_object(struct object *parent,struct mem_helper *emem);
-void sharpen_world();
+int sharpen_object(struct object *parent);
+int sharpen_world();
 
 void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
                     struct vector3 *A,struct vector3 *B,struct vector3 *n);
 int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
-                 double *t,struct vector3 *hitpt);
+                 double *t,struct vector3 *hitpt,int report);
 int collide_mol(struct vector3 *point,struct vector3 *move,
                 struct abstract_molecule *a,double *t,struct vector3 *hitpt);
 
-void init_tri_wall(struct object *objp,
-                   int side,
-                   struct vector3 *v0,
-                   struct vector3 *v1,
-                   struct vector3 *v2);
+void init_tri_wall(struct object *objp,int side,
+                   struct vector3 *v0,struct vector3 *v1,struct vector3 *v2);
+
+struct wall_list* wall_to_vol(struct wall *w, struct subvolume *sv);
+struct vector3* localize_vertex(struct vector3 *p, struct storage *stor);
+struct wall* localize_wall(struct wall *w, struct storage *stor);
+struct wall* distrubute_wall(struct wall *w);
+int distribute_object(struct object *parent);
+int distribute_world();
+
 
 #endif
 

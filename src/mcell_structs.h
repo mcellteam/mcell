@@ -147,7 +147,7 @@
 
 /* What's the upper bound on the number of coarse partitions? */
 #define MAX_COARSE_PER_AXIS 16
-#define MIN_COARSE_PER_AXIS 4
+#define MIN_COARSE_PER_AXIS 6
 #define MAX_TARGET_TIMESTEP 1.0e6
 #define MIN_TARGET_TIMESTEP 10.0
 
@@ -574,6 +574,7 @@ struct wall
   int viz_state;                  /* For display purposes */
 
   struct object *parent_object;   /* The object we are a part of */
+  struct storage *birthplace;     /* Where we live in memory */
   
   struct region_list *regions;    /* Regions that contain this wall */
 };
@@ -607,6 +608,16 @@ struct waypoint
 };
 
 
+struct vertex_tree
+{
+  struct vertex_tree *next;
+  struct vertex_tree *above;
+  struct vertex_tree *below;
+  
+  struct vector3 loc;
+};
+
+
 /* Contains space for molcules, walls, wall_lists, etc. */
 struct storage
 {
@@ -614,9 +625,16 @@ struct storage
   struct mem_helper *mol;   /* Molecules */
   struct mem_helper *smol;  /* Surface molecules */
   struct mem_helper *gmol;  /* Grid molecules */
-  struct mem_helper *wall;  /* Walls */
+  struct mem_helper *face;  /* Walls */
+  struct mem_helper *join;  /* Edges */
+  struct mem_helper *tree;  /* Vertices */
   struct mem_helper *effs;  /* Effector grids */
   struct mem_helper *coll;  /* Collision list */
+  
+  struct wall *wall_head;
+  int wall_count;
+  struct vertex_tree *vert_head;
+  int vert_count;
   
   struct schedule_helper *timer;
   double current_time;
@@ -678,8 +696,10 @@ struct counter
 struct volume
 {
 /*  struct vector3 corner[8];*/  /* Corners of the world */
+#if 0
   struct vector3 llf;           /* left lower front corner of world */
   struct vector3 urb;           /* upper right back corner of world */
+#endif
   
   int n_parts;                  /* Number of coarse partition boundaries */
   double *x_partitions;         /* Coarse X partition boundaries */

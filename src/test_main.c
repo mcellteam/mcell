@@ -68,7 +68,7 @@ void run_sim(void)
     printf("\n");
   }
 
-#if 0
+#if 1
   for (i=0;i<world->n_subvols;i++)
   {
     struct molecule *mol;
