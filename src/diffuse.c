@@ -756,8 +756,24 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
 }
 
 
-
 #ifdef DEBUG
+/* Debugging function searching for misplaced molecules in the Min simulation */
+void scream_if_misplaced(struct molecule *m)
+{
+  if (m->pos.x*world->length_unit > 4.0 || m->pos.x < 0.0)
+  {
+    printf("Out of X bounds.\n");
+  }
+  if (fabs(m->pos.y*world->length_unit) > 0.5)
+  {
+    printf("Out of Y bounds.\n");
+  }
+  if (fabs(m->pos.z*world->length_unit) > 0.5)
+  {
+    printf("Out of Z bounds.\n");
+  }  
+}
+
 /* Debugging function: print a string and some details about a molecule. */
 void tell_loc(struct molecule *m,char *s)
 {
@@ -1233,7 +1249,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           struct collision *smish,*g_head,*gp,*w_head,*wp,*c;
           int is_window = 0;
           int is_ghost = 0;
-          int count_type = RX_A_OK;
+          int rx_result = RX_A_OK;
           
           g_head = gp = w_head = wp = NULL;
           
@@ -1384,12 +1400,12 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     if (l==RX_FLIP)
                     {
                       if (w_head!=NULL) mem_put_list(sv->local_storage->coll,w_head);
-                      count_type = RX_FLIP;  /* pass through */
+                      rx_result = RX_FLIP;  /* pass through */
                       break;
                     }
-                    else if (l==0)
+                    else if (l==RX_DESTROY)
                     {
-                      count_type = RX_DESTROY;  /* destroyed */
+                      rx_result = RX_DESTROY;  /* destroyed */
                       break;
                     }
                   }
@@ -1399,9 +1415,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             mem_put_list(sv->local_storage->coll,g_head);
           }
           
-          if (count_type==RX_A_OK) /* Possibility of a reaction with a wall */
+          if (rx_result==RX_A_OK) /* Possibility of a reaction with a wall */
           {
-            if (wp->loc.x==0.0) count_type = 0; /* All reflective */
+            if (wp->loc.x==0.0) rx_result = 0; /* All reflective */
             else
             {
               x = wp->loc.x;
@@ -1433,7 +1449,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 			ERROR_AND_QUIT;
 		      }
 
-		      count_type = j;
+		      rx_result = j;
                     }
                   }
                 }
@@ -1450,14 +1466,14 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             
             if ( (sm->flags & w->flags & COUNT_SOME) )
             {
-              if (count_type==RX_FLIP) update_collision_count(sm,w->regions,k,1);
+              if (rx_result==RX_FLIP) update_collision_count(sm,w->regions,k,1);
               else update_collision_count(sm,w->regions,k,0);
             }
           }
                 
           smash = smish;
-          if (count_type==RX_DESTROY) { CLEAN_AND_RETURN(NULL); }
-          else if (count_type==RX_FLIP || is_ghost) continue;
+          if (rx_result==RX_DESTROY) { CLEAN_AND_RETURN(NULL); }
+          else if (rx_result==RX_FLIP || is_ghost) continue;
         }
         else /* Simple case, no coincident walls */
         {
@@ -1553,14 +1569,14 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                       );
 		      
 		if (j==RX_NO_MEM) { ERROR_AND_QUIT; } 
-                if (j==1)
+                if (j==RX_FLIP)
                 {
                   if ( (sm->flags & w->flags & COUNT_SOME) )
                     update_collision_count(sm,w->regions,k,1);
 
                   continue; /* pass through */
                 }
-                else if (j==0)
+                else if (j==RX_DESTROY)
                 {
                   if ( (sm->flags & w->flags & COUNT_SOME) )
                     update_collision_count(sm,w->regions,k,0);

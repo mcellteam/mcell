@@ -690,7 +690,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
 {
   int result,index;
   
-  if (rx->n_pathways <= RX_SPECIAL) return 1;
+  if (rx->n_pathways <= RX_SPECIAL)  return RX_FLIP;
 
   index = rx->product_idx[path];
 
@@ -714,7 +714,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
       reac->properties = NULL;
       return RX_DESTROY;
     }
-    else return result;
+    else return RX_A_OK;
   }
   else /* Grid can't intersect, so this must be a surface molecule */
   {

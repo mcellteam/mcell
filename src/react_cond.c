@@ -157,7 +157,7 @@ int test_intersect(struct rxn *rx,double time_mult)
     if (p > rx->cum_rates[avg]) m = avg;
     else M = avg;
   }
-  
+
   if (m==M) return m;
   if (p > rx->cum_rates[m]) return M;
   else return m;
