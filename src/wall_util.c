@@ -314,6 +314,7 @@ compatible_edges:
 int compatible_edges(struct wall **faces,int wA,int eA,int wB,int eB)
 {
   struct vector3 *vA0,*vA1,*vA2,*vB0,*vB1,*vB2;
+  if((wA < 0) || (eA < 0) || (wB < 0) || (eB < 0)) return 0;
 
   vA0 = faces[wA]->vert[eA];
   if (eA==2) vA1 = faces[wA]->vert[0];
@@ -545,11 +546,13 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
 
    /* put values into an angles array */
   while(pe_curr != NULL) {
-        if(compatible_edges(faces,pe_curr->face1, pe_curr->edge1, pe_curr->face2, pe_curr->edge2)){
+        if((pe_curr->face1 >= 0) && (pe_curr->edge1 >= 0) && (pe_curr->face2 >=0) && (pe_curr->edge2 >=0)){
+           if(compatible_edges(faces,pe_curr->face1, pe_curr->edge1, pe_curr->face2, pe_curr->edge2)){
                      aligns[ii] = faces[pe_curr->face1]->normal.x * faces[pe_curr->face2]->normal.x + faces[pe_curr->face1]->normal.y * faces[pe_curr->face2]->normal.y + faces[pe_curr->face1]->normal.z * faces[pe_curr->face2]->normal.z;
-        }else{
+            }else{
 		     aligns[ii] = INT_MAX;
-        }       
+            }       
+        }
 	pe_curr = pe_curr->next;
         ii++;
   }
@@ -714,26 +717,28 @@ int surface_net( struct wall **facelist, int nfaces )
       }
       if (pep->n >= 2)
       {
-        if (pep->face1 != -1 && pep->face2 != -1 && 
-            compatible_edges(facelist,pep->face1,pep->edge1,pep->face2,pep->edge2))
-        {
-          facelist[pep->face1]->nb_walls[pep->edge1] = facelist[pep->face2];
-          facelist[pep->face2]->nb_walls[pep->edge2] = facelist[pep->face1];
-          e = (struct edge*) mem_get( facelist[pep->face1]->birthplace->join );
-          if (e==NULL) {
-		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
-		int i = emergency_output();
-		fprintf(stderr, "Fatal error: out of memory during surface_net event.\nAttempt to write intermediate results had %d errors.\n", i);
-                exit(EXIT_FAILURE);
-          } 
-          e->forward = facelist[pep->face1];
-          e->backward = facelist[pep->face2];
-          init_edge_transform(e,pep->edge1);
-          facelist[pep->face1]->edges[pep->edge1] = e;
-          facelist[pep->face2]->edges[pep->edge2] = e;
-          no_printf("  Edge: %d on %d and %d on %d\n",pep->edge1,pep->face1,pep->edge2,pep->face2);
-        }
-        else is_closed = 0;
+        if (pep->face1 != -1 && pep->face2 != -1)
+        { 
+              if(compatible_edges(facelist,pep->face1,pep->edge1,pep->face2,pep->edge2))
+              {
+          	facelist[pep->face1]->nb_walls[pep->edge1] = facelist[pep->face2];
+          	facelist[pep->face2]->nb_walls[pep->edge2] = facelist[pep->face1];
+          	e = (struct edge*) mem_get( facelist[pep->face1]->birthplace->join );
+          	if (e==NULL) {
+			fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+			int i = emergency_output();
+			fprintf(stderr, "Fatal error: out of memory during surface_net event.\nAttempt to write intermediate results had %d errors.\n", i);
+                	exit(EXIT_FAILURE);
+          	} 
+          	e->forward = facelist[pep->face1];
+          	e->backward = facelist[pep->face2];
+          	init_edge_transform(e,pep->edge1);
+          	facelist[pep->face1]->edges[pep->edge1] = e;
+          	facelist[pep->face2]->edges[pep->edge2] = e;
+          	no_printf("  Edge: %d on %d and %d on %d\n",pep->edge1,pep->face1,pep->edge2,pep->face2);
+              }
+
+       } else{ is_closed = 0;}
       }
       else if (pep->n==1)
       {
@@ -1195,7 +1200,10 @@ collide_mol:
 int collide_mol(struct vector3 *point,struct vector3 *move,
                 struct abstract_molecule *a,double *t,struct vector3 *hitpt)
 {
+  /* direction vector from the starting point to the molecule 
+     we test for collision. */
   struct vector3 dir;
+  /* vector to the position of the molecule we test for collision. */
   struct vector3 *pos;
   double movelen2,d,dirlen2;
   double sigma2;
@@ -1212,15 +1220,17 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
   dir.z = pos->z - point->z;
   
   d = dir.x*move->x + dir.y*move->y + dir.z*move->z;
-  
+  /* check whether we are moving further backwards from the test molecule. */
   if (d<0) return COLLIDE_MISS;
   
   movelen2 = move->x*move->x + move->y*move->y + move->z*move->z;
-  
+  /* check whether the test molecule is futher than the displacement. */
   if (d > movelen2) return COLLIDE_MISS;
   
   dirlen2 = dir.x*dir.x + dir.y*dir.y + dir.z*dir.z;
   
+  /* check whether the moving molecule will miss interaction sphere of the
+     test molecule.*/
   if (movelen2*dirlen2 - d*d > movelen2*sigma2) return COLLIDE_MISS;
 
   *t = d/movelen2;
