@@ -191,6 +191,15 @@ int init_sim(void)
   fflush(log_file);
   ran4_init(&world->seed);
 
+  world->collide_hashmask = 0xFFFF;
+  world->collide_hash = (struct counter**)malloc(sizeof(struct counter*)*(world->collide_hashmask+1));
+  if (world->collide_hash == NULL)
+  {
+    fprintf(log_file,"MCell: could not store counter hash table\n");
+    return(1);
+  }
+  for (i=0;i<=world->collide_hashmask;i++) world->collide_hash[i] = NULL;
+
   world->main_sym_table=init_symtab(HASHSIZE);
 
   if ((gp=store_sym("WORLD_OBJ",OBJ,world->main_sym_table))==NULL) {
@@ -533,15 +542,15 @@ int init_partitions(void)
   world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint*)*world->n_waypoints);
   
   shared_mem = (struct storage*)malloc(sizeof(struct storage));    
-  shared_mem->list = create_mem(sizeof(struct wall_list),50);
-  shared_mem->mol  = create_mem(sizeof(struct molecule),50);
-  shared_mem->smol  = create_mem(sizeof(struct surface_molecule),50);
-  shared_mem->gmol  = create_mem(sizeof(struct grid_molecule),50);
-  shared_mem->face = create_mem(sizeof(struct wall),50);
-  shared_mem->join = create_mem(sizeof(struct edge),50);
-  shared_mem->tree = create_mem(sizeof(struct vertex_tree),50);
-  shared_mem->effs = create_mem(sizeof(struct surface_grid),50);
-  shared_mem->coll = create_mem(sizeof(struct collision),50);
+  shared_mem->list = create_mem(sizeof(struct wall_list),128);
+  shared_mem->mol  = create_mem(sizeof(struct molecule),128);
+  shared_mem->smol  = create_mem(sizeof(struct surface_molecule),128);
+  shared_mem->gmol  = create_mem(sizeof(struct grid_molecule),128);
+  shared_mem->face = create_mem(sizeof(struct wall),128);
+  shared_mem->join = create_mem(sizeof(struct edge),128);
+  shared_mem->tree = create_mem(sizeof(struct vertex_tree),128);
+  shared_mem->effs = create_mem(sizeof(struct surface_grid),128);
+  shared_mem->coll = create_mem(sizeof(struct collision),128);
   
   shared_mem->wall_head = NULL;
   shared_mem->wall_count = 0;
@@ -612,9 +621,6 @@ int init_partitions(void)
   
   world->binning = 0;
   world->lookup = NULL;
-  
-  world->collide_hashmask = 0xFFFF;
-  world->collide_hash = (struct counter**)malloc(sizeof(struct counter*)*(world->collide_hashmask+1));
   
   return 0;
 }

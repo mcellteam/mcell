@@ -30,9 +30,8 @@
 #define CAN_MOLSURF      0x40
 #define CAN_MOLWALL      0x80
 #define COUNT_CONTENTS   0x1000
-#define COUNT_CROSSINGS  0x2000
-#define COUNT_HITS       0x4000
-#define COUNT_RXNS       0x8000
+#define COUNT_HITS       0x2000
+#define COUNT_RXNS       0x4000
 
 
 /* Reaction flags */
@@ -590,7 +589,8 @@ struct wall
   
   struct surface_grid *effectors; /* Grid of effectors for this wall */
   
-  int viz_state;                  /* For display purposes */
+  int viz_state;                  /* For display purposes--is short enough? */
+  u_short flags;                  /* Flags for whether we need to count */
 
   struct object *parent_object;   /* The object we are a part of */
   struct storage *birthplace;     /* Where we live in memory */
@@ -704,10 +704,12 @@ struct bsp_tree
 struct counter
 {
   struct counter *next;
-  int wall_id;
-  int mol_id;
-  int crossings;
-  int impacts;
+  struct region *reg_type;
+  struct species *mol_type;
+  double front_hits;
+  double back_hits;
+  double front_to_back;
+  double back_to_front;
 };
 
 
@@ -1184,6 +1186,7 @@ struct region {
 	struct reg_counter_ref_list *reg_counter_ref_list;
 	struct eff_dat *eff_dat_head;
         struct species *surf_class;
+        u_short flags;
 };
 
 /**

@@ -14,6 +14,7 @@
 
 #include "mem_util.h"
 
+#include "mcell_structs.h"
 
 #define INSERTION_MAX 16
 #define INSERTION_MIN 4
@@ -25,10 +26,25 @@ void nullprintf(char *whatever,...) {}
 
 int howmany_count_malloc = 0;
 
+extern struct volume *world;
+
 void catch_me()
 {
+  int i;
+  printf("Allocating unreasonably many memory blocks--what are you doing?!\n");
+  printf("Species counts: ");
+  for (i=0;i<world->n_species;i++)
+  {
+    printf("#%s=%d ",
+           world->species_list[i]->sym->name,
+           world->species_list[i]->population
+          );
+  }
+
   exit(1);
 }
+
+
 
 void* count_malloc(int n)
 {

@@ -471,6 +471,47 @@ int test_subvol_for_circular(struct subvolume *sv)
   if (mp != NULL) return 1;
   return 0;
 }
+
+
+void update_collision_count(struct species *sp,struct region_list *rl,int direction,int crossed)
+{
+  int j;
+  struct counter *hit_count;
+
+  hit_count = NULL;  
+  for ( ; rl != NULL ; rl = rl->next)
+  {
+    if (rl->reg->flags & COUNT_HITS)
+    {
+      j = (rl->reg->hashval ^ sp->hashval)&world->collide_hashmask;
+      for (hit_count=world->collide_hash[j] ; hit_count!=NULL ; hit_count=hit_count->next)
+      {
+        if (hit_count->reg_type == rl->reg && hit_count->mol_type == sp)
+        {
+          if (crossed)
+          {
+            if (direction==1)
+            {
+              hit_count->front_hits++;
+              hit_count->front_to_back++;
+            }
+            else
+            {
+              hit_count->back_hits++;
+              hit_count->back_to_front;
+            }
+          }
+          else
+          {
+            if (direction==1) hit_count->front_hits++;
+            else hit_count->back_hits++;
+          }
+        }
+      }
+    }
+  }
+
+}
   
   
 
@@ -727,8 +768,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       {
         w = (struct wall*) smash->target;
         
+        world->ray_polygon_colls++;
+        
         if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
         else k = -1;
+        
+        if ( (m->properties->flags & w->flags & COUNT_HITS) )
+          update_collision_count(m->properties,w->regions,k,0);
         
         if ( w->effectors != NULL && (m->properties->flags&CAN_MOLGRID) != 0 )
         {
@@ -757,8 +803,12 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         
                 if (l==0)
                 {
+                  if ( (m->properties->flags & w->flags & COUNT_HITS) )
+                    update_collision_count(m->properties,w->regions,k,0);
+                                    
                   if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
                   if (shead != NULL) mem_put_list(sv->mem->coll,shead);
+
                   return NULL;
                 }
               }
@@ -789,17 +839,30 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                       rx,i,w,(struct abstract_molecule*)m,
                       k,m->t + steps*smash->t,&(smash->loc)
                     );
-              if (j==1) continue; /* pass through */
+              if (j==1)
+              {
+                if ( (m->properties->flags & w->flags & COUNT_HITS) )
+                  update_collision_count(m->properties,w->regions,k,1);
+                  
+                continue; /* pass through */
+              }
               else if (j==0)
               {
+                if ( (m->properties->flags & w->flags & COUNT_HITS) )
+                  update_collision_count(m->properties,w->regions,k,0);
+
                 if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
                 if (shead != NULL) mem_put_list(sv->mem->coll,shead);
+
                 return NULL;
               }
             }
           }
         }
         /* default is to reflect */
+
+        if ( (m->properties->flags & w->flags & COUNT_HITS) )
+          update_collision_count(m->properties,w->regions,k,0);
 
         m->pos.x += displacement.x * smash->t;
         m->pos.y += displacement.y * smash->t;

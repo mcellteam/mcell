@@ -978,7 +978,7 @@ int wall_in_box(struct vector3 **vert,struct vector3 *normal,
 #define n_vert 3
   int temp;
   int i,j,k;
-  struct vector3 *v1,*v2,*b;
+  struct vector3 *v1,*v2;
   struct vector3 n,u,v;
   struct vector3 ba,bb,c;
   double r,a1,a2,a3,a4,cu,cv;
