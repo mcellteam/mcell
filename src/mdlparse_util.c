@@ -1680,15 +1680,11 @@ int build_mol_count_tree(byte counter_type,
     break;
   case BOX_OBJ:
     pop=(struct polygon_object *)objp->contents;
-    if (pop->fully_closed) {
-      found_pop=pop;
-    }
+    found_pop=pop;
     break;
   case POLY_OBJ:
     pop=(struct polygon_object *)objp->contents;
-    if (pop->fully_closed) {
-      found_pop=pop;
-    }
+    found_pop=pop;
     break;
   }
 
