@@ -1137,6 +1137,7 @@ int output_rk_custom(struct frame_data_list *fdlp)
   struct molecule *mp;
   struct grid_molecule *gmp;
   struct surface_molecule *smp;
+  short orient = 0;
   
   int ndigits,i;
 
@@ -1190,18 +1191,20 @@ int output_rk_custom(struct frame_data_list *fdlp)
               where.x = smp->pos.x;
               where.y = smp->pos.y;
               where.z = smp->pos.z;
+              orient = smp->orient;
             }
             else if ((amp->properties->flags & ON_GRID)!=0)
             {
               gmp = (struct grid_molecule*)amp;
               grid2xyz(gmp->grid,gmp->grid_index,&where);
+              orient = gmp->orient;
             }
             else continue;
             
             where.x *= world->length_unit;
             where.y *= world->length_unit;
             where.z *= world->length_unit;
-            fprintf(custom_file,"%d %10.3e %10.3e %10.3e\n",id,where.x,where.y,where.z);
+            fprintf(custom_file,"%d %10.3e %10.3e %10.3e %2d\n",id,where.x,where.y,where.z,orient);
           }
         }
       }

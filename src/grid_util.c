@@ -108,8 +108,8 @@ void grid2xyz(struct surface_grid *g,int index,struct vector3 *v)
   
   over3n = 1.0 / (double) (3*g->n);
   
-  ucoef = ((double)(3*j+1))*over3n*g->surface->uv_vert1_u + 
-          ((double)(3*(k+i)+1))*over3n*g->surface->uv_vert2.u;
+  ucoef = ((double)(3*j+i+1))*over3n*g->surface->uv_vert1_u + 
+          ((double)(3*k+i+1))*over3n*g->surface->uv_vert2.u;
   vcoef = ((double)(3*k+i+1))*over3n*g->surface->uv_vert2.v;
   
   v->x = ucoef*unit_u->x + vcoef*unit_v->x + g->surface->vert[0]->x;
@@ -132,8 +132,8 @@ void grid2uv(struct surface_grid *g,int index,struct vector2 *v)
   
   over3n = 1.0 / (double) (3*g->n);
   
-  v->u = ((double)(3*j+1))*over3n*g->surface->uv_vert1_u + 
-          ((double)(3*(k+i)+1))*over3n*g->surface->uv_vert2.u;
+  v->u = ((double)(3*j+i+1))*over3n*g->surface->uv_vert1_u + 
+          ((double)(3*k+i+1))*over3n*g->surface->uv_vert2.u;
   v->v = ((double)(3*k+i+1))*over3n*g->surface->uv_vert2.v;
 }
 
@@ -174,7 +174,7 @@ int create_grid(struct wall *w,struct subvolume *guess)
   struct surface_grid *sg;
   struct vector3 center;
   int i;
-  
+
   if (w->effectors != NULL) return 0;
   
   sg = (struct surface_grid *) mem_get(w->birthplace->effs);
@@ -202,6 +202,6 @@ int create_grid(struct wall *w,struct subvolume *guess)
   for (i=0;i<sg->n_tiles;i++) sg->mol[i] = NULL;
   
   w->effectors = sg;
-  
+
   return 0;
 }
