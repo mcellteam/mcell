@@ -341,11 +341,11 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       cp->vert2=NULL;
       cp->a_zone_loc=NULL;
       break;
+*/
     case TMP:
       sp->value=NULL;
       return(sp);
       break;
-*/
     default:
        printf("Error: Wrong symbol type %d\n",sym_type);
        break;

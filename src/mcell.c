@@ -220,7 +220,7 @@ int main(int argc, char **argv) {
   log_file=stderr;
 
   if ((world=(struct volume *)malloc(sizeof(struct volume)))==NULL) {
-    fprintf(log_file,"test_main: could not store world volume data structure\n");
+    fprintf(log_file,"MCell: could not store world volume data structure\n");
     exit(1);
   }
   world->log_file=log_file;
@@ -237,7 +237,7 @@ int main(int argc, char **argv) {
       log_file=world->log_file;
     }
     fprintf(log_file,"\n");
-    fprintf(log_file,"test_main");
+    fprintf(log_file,"MCell");
     fprintf(log_file,"  Running on %s\n\n",hostname);
     if (procnum == 0) {
       if (world->info_opt) {
@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
 
   log_file=world->log_file;
   fprintf(log_file,"\n");
-  fprintf(log_file,"test_main");
+  fprintf(log_file,"MCell");
   fprintf(log_file,"  Running on %s\n\n",hostname);
   if (world->info_opt) {
     fprintf(log_file,"  -info option selected\n");
