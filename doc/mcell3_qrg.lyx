@@ -1,0 +1,6207 @@
+#LyX 1.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 221
+\textclass article
+\language english
+\inputencoding auto
+\fontscheme pslatex
+\graphics default
+\paperfontsize 11
+\spacing single 
+\papersize Default
+\paperpackage a4
+\use_geometry 1
+\use_amsmath 1
+\use_natbib 0
+\use_numerical_citations 0
+\paperorientation portrait
+\leftmargin 1in
+\topmargin 1in
+\rightmargin 1in
+\bottommargin 1in
+\headheight 0in
+\headsep 0in
+\footskip 0.5in
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation skip
+\defskip medskip
+\quotes_language english
+\quotes_times 2
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+
+\layout Title
+
+MCell3 Quick Tutorial and Reference Guide
+\layout Author
+
+Rex Kerr
+\layout Standard
+
+In this document, the main text is in a serif font.
+ Command-line entries, mdl file commands, and code is in a 
+\family typewriter 
+fixed-width
+\family default 
+ font.
+ Values that must be supplied by the user are in an 
+\family sans 
+\shape italic 
+italicized sans-serif
+\family default 
+\shape default 
+ font.
+\layout Standard
+
+This document isn't finished.
+ It's barely even started.
+ But, here it is.
+ This document was created using LyX 1.3.4.
+\layout Section
+
+Running MCell3
+\layout Standard
+
+MCell3 runs on the command line.
+ The format is
+\layout Quotation
+
+
+\family typewriter 
+mcell3 
+\family sans 
+\shape italic 
+options
+\family typewriter 
+\shape default 
+ 
+\family sans 
+\shape italic 
+filename
+\layout Standard
+
+By default, MCell3 sends informational messages, such as simulation progress,
+ to stdout (which will normally appear on the screen); error messages are
+ sent to stderr (which will also normally appear on the screen).
+ Results of simulations are written to files and do not appear as MCell3
+ is running.
+\layout Standard
+
+A brief summary of MCell3 optional command-line arguments is given below.
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="8" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Argument
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+-seed 
+\family sans 
+\shape italic 
+N
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Start with random number seed 
+\family sans 
+\shape italic 
+N
+\family default 
+\shape default 
+ instead of 1 (the default).
+ The valid range is 1-3000.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+-iterations 
+\family sans 
+\shape italic 
+N
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Run the simulation with 
+\family sans 
+\shape italic 
+N
+\family default 
+\shape default 
+ timesteps (overrides the value in the mdl file)
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+-help
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Print out a basic help screen.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+-info
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Same as 
+\family typewriter 
+-help
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+-logfile 
+\family sans 
+\shape italic 
+filename
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Send messages to 
+\family sans 
+\shape italic 
+filename
+\family default 
+\shape default 
+ instead of stdout/stderr
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+-logfreq 
+\family sans 
+\shape italic 
+N
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Valid syntax, but not implemented.
+ Does nothing.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+-checkpoint_infile 
+\family sans 
+\shape italic 
+filename
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Use 
+\family sans 
+\shape italic 
+filename
+\family default 
+\shape default 
+ as a checkpoint file for the current simulation (overrides any value in
+ the mdl file).
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Section
+
+Model Description Language overview
+\layout Standard
+
+MCell3 runs simulations that are specified in 
+\emph on 
+model description language
+\emph default 
+ (mdl) format.
+ These files typically have the extension .mdl, but are not required to.
+ A mdl file is a text file with commands separated by whitespace.
+ The nature and type of whitespace (space, tab, newline) is unimportant
+ to MCell3.
+ You are thus free to use whitespace to clarify the contents of the mdl
+ file.
+\layout Standard
+
+Commands fall into five general groups, which usually should be given in
+ the order presented below.
+ Although this is not always required, there are some commands (e.g.
+ defining a molecule) that must be used before others (e.g.
+ defining a reaction that uses that molecule).
+ The order below should always be safe:
+\layout Enumerate
+
+Initialization.
+ These commands set global parameters such as the timestep, spatial partitioning
+, and duration of the simulation.
+\layout Enumerate
+
+Molecule definitions.
+ These commands specify the names and diffusion constants of molecules in
+ the simulation.
+\layout Enumerate
+
+Reaction definitions.
+ These commands specify the reactions that can occur between molecules and
+ the rate at which those reactions occur.
+\layout Enumerate
+
+Geometry specification.
+ These commands describe the membranes and other boundaries within which
+ the simulation occurs, plus where in the world to place molecules initially.
+\layout Enumerate
+
+Output specification.
+ These commands specify what data should be output as the simulation is
+ running; this can include graphical snapshots of the simulation in progress,
+ as well as lists of numbers of molecules or reactions as a function of
+ time.
+\layout Standard
+
+In addition, there are utility commands--defining variables and including
+ other mdl files--that can appear nearly anywhere.
+\layout Section
+
+MDL commands
+\layout Subsection
+
+Initialization commands
+\layout Standard
+
+The following initialization commands are required in every mdl file.
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="3" columns="2">
+<features islongtable="true">
+<column alignment="block" valignment="top" leftline="true" width="2in">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true">
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+TIME_STEP = 
+\family sans 
+\shape italic 
+t
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Set the simulation time step to 
+\family sans 
+\shape italic 
+t
+\family default 
+\shape default 
+ seconds.
+ 
+\family typewriter 
+1e-6
+\family default 
+ is a common value.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ITERATIONS = 
+\family sans 
+\shape italic 
+N
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Run the simulation for 
+\family sans 
+\shape italic 
+N
+\family default 
+\shape default 
+ iterations.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+The following initialization commands are optional.
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="8" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+TIME_STEP_MAX = 
+\family sans 
+\shape italic 
+N
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+MCell3 will move longer than the specified simulation time step if it seems
+ safe.
+ This command makes sure that the longest possible time step is no longer
+ than 
+\family sans 
+\shape italic 
+N
+\family default 
+\shape default 
+ seconds, even if MCell3 thinks a longer step would be safe.
+ The default is ???
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+SPACE_STEP = 
+\family sans 
+\shape italic 
+N
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Have all diffusing molecules take time steps of different duration, chosen
+ so that the mean diffusion distance is 
+\family sans 
+\shape italic 
+N
+\family default 
+\shape default 
+ microns for each molecule.
+ By default, all molecules move the same time step.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+EFFECTOR_GRID_DENSITY = 
+\family sans 
+\shape italic 
+N
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Tile all surfaces so that they can hold molecules at 
+\family sans 
+\shape italic 
+N
+\family default 
+\shape default 
+ different positions per square micron.
+ The default is 10000.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+INTERACTION_RADIUS = 
+\family sans 
+\shape italic 
+N
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Diffusing molecules will interact with each other when they get within 
+\family sans 
+\shape italic 
+N
+\family default 
+\shape default 
+ microns of each other.
+ The default is 0.01.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+PARTITION_
+\family sans 
+\shape italic 
+D
+\family typewriter 
+\shape default 
+ = [
+\family sans 
+\shape italic 
+list
+\family typewriter 
+\shape default 
+]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+D
+\family default 
+\shape default 
+ must be 
+\family typewriter 
+X
+\family default 
+, 
+\family typewriter 
+Y
+\family default 
+, or 
+\family typewriter 
+Z
+\family default 
+.
+ Subdivide that axis of space at the boundaries given in 
+\family sans 
+\shape italic 
+list
+\family default 
+\shape default 
+ (in microns).
+ In future versions, MCell3 will further subdivide space if it is computationall
+y advantageous.
+ By default, each axis will be split into between five and fifteen equal
+ partitions.
+ If you do not explicitly partition all three axes, MCell3 is likely to
+ ignore your request and perform automatic partitioning.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+RADIAL_DIRECTIONS = 
+\family sans 
+\shape italic 
+N
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Specifies how many different directions to put in the lookup table.
+ The default is sensible.
+ Don't use this unless you know what you're doing.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+RADIAL_SUBDIVISIONS = 
+\family sans 
+\shape italic 
+N
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Specifies how many distances to put in the diffusion lookup table.
+ Again, the default is sensible.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Subsection
+
+Molecule definition commands
+\layout Standard
+
+All molecules must be defined by name in a 
+\family typewriter 
+DEFINE_MOLECULES
+\family default 
+ block.
+ For users of MCell 2, note that there is no longer a distinction between
+ a receptor and a ligand.
+ Everything is a molecule, and every different bound state of a receptor
+ must have a unique name (since it must be a unique molecule).
+ A define molecule block can be one of the following:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="4" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+DEFINE_MOLECULE 
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ {
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+}
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Define a single molecule called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+.
+ The molecule's properties are specified by commands inside braces.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+DEFINE_MOLECULES {
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+}
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Define a series of molecules by name, using the following command.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ {
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+}
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Within a 
+\family typewriter 
+DEFINE_MOLECULES
+\family default 
+ block, define a new molecule called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+.
+ The molecule's properties are specified by commands inside braces.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+Each molecule must have a diffusion constant set using one of the following
+ commands:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="3" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+DIFFUSION_CONSTANT = 
+\family sans 
+\shape italic 
+D
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+This molecule diffuses in space with diffusion constant 
+\family sans 
+\shape italic 
+D
+\family default 
+\shape default 
+.
+ 
+\family sans 
+\shape italic 
+D
+\family default 
+\shape default 
+ can be zero, in which case the molecule doesn't move.
+ Synonyms for this command are 
+\family typewriter 
+DIFFUSION_CONSTANT_3D
+\family default 
+ and 
+\family typewriter 
+D_3D
+\family default 
+.
+ The units of 
+\family sans 
+\shape italic 
+D
+\family default 
+\shape default 
+ are 
+\begin_inset Formula $\mathrm{{cm}^{2}/\mathrm{{s}}}$
+\end_inset 
+
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+DIFFUSION_CONSTANT_2D = 
+\family sans 
+\shape italic 
+D
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+This molecule is constrained to a surface and diffuses with diffusion constant
+ 
+\family sans 
+\shape italic 
+D
+\family default 
+\shape default 
+.
+ Until surface diffusion is implemented, only 
+\family typewriter 
+0
+\family default 
+ is a valid value for 
+\family sans 
+\shape italic 
+D
+\family default 
+\shape default 
+.
+ 
+\family typewriter 
+D_2D
+\family default 
+ is a synonym for this command.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+The following optional commands can be applied to each molecule (and must
+ appear in this order, and after the diffusion constant is set):
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="3" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+CUSTOM_TIME_STEP = 
+\family sans 
+\shape italic 
+t
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+This molecule should take timesteps of length 
+\family sans 
+\shape italic 
+t
+\family default 
+\shape default 
+ (in seconds).
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+TARGET_ONLY
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+This molecule will not initiate reactions when it runs into other molecules.
+ This setting can speed up simulations when applied to a molecule at high
+ concentrations that reacts with a molecule at low concentrations (it is
+ more efficient for the low-concentration molecule to trigger the reactions).
+ This directive does not affect unimolecular reactions.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Subsection
+
+Reaction definition commands
+\layout Standard
+
+All reactions must be defined inside a reaction definition block:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="2" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+DEFINE_REACTIONS {
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+}
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Define a series of reactions inside braces.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+Reactions are specified using arrow notation:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="3" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+reactants
+\family typewriter 
+\shape default 
+ -> 
+\family sans 
+\shape italic 
+products
+\family typewriter 
+\shape default 
+ [
+\family sans 
+\shape italic 
+rate
+\family typewriter 
+\shape default 
+]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Define a reaction that occurs between one or two 
+\family sans 
+\shape italic 
+reactants
+\family default 
+\shape default 
+ and produces an arbitrary number of 
+\family sans 
+\shape italic 
+products
+\family default 
+\shape default 
+, with a specified 
+\family sans 
+\shape italic 
+rate
+\family default 
+\shape default 
+.
+ If a molecule is in the 
+\family sans 
+\shape italic 
+reactants
+\family default 
+\shape default 
+ list and not in the 
+\family sans 
+\shape italic 
+products
+\family default 
+\shape default 
+ list, it is destroyed in the reaction.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+reactants
+\family typewriter 
+\shape default 
+ -> 
+\family sans 
+\shape italic 
+products
+\family typewriter 
+\shape default 
+ [
+\family sans 
+\shape italic 
+rate
+\family typewriter 
+\shape default 
+]:
+\family sans 
+\shape italic 
+name
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+As above, and call the reaction 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+ so it can be referred to later.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+This notation is perhaps best explained through examples.
+ In the most basic form, reactants and products are just the names of molecules,
+ separated by 
+\family typewriter 
++
+\family default 
+:
+\layout Quote
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="6" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Example
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A -> B [100]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Molecule 
+\family typewriter 
+A
+\family default 
+ changes into molecule 
+\family typewriter 
+B
+\family default 
+ at a rate of 
+\begin_inset Formula $100\,\mathrm{{s}^{-1}}$
+\end_inset 
+
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A -> A + B [100]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Molecule 
+\family typewriter 
+A
+\family default 
+ emits molecules of 
+\family typewriter 
+B
+\family default 
+ at a rate of 
+\begin_inset Formula $100\,\mathrm{{s}^{-1}}$
+\end_inset 
+
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A + B -> A [1e6]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Molecule 
+\family typewriter 
+A
+\family default 
+ destroys molecule 
+\family typewriter 
+B
+\family default 
+ at a rate of 
+\begin_inset Formula $10^{5}\,\mathrm{{mol}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\end_inset 
+
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A + B -> A + C [1e6]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Molecule 
+\family typewriter 
+A
+\family default 
+ catalytically converts 
+\family typewriter 
+B
+\family default 
+ to 
+\family typewriter 
+C
+\family default 
+ at a rate of 
+\begin_inset Formula $10^{5}\,\mathrm{{mol}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\end_inset 
+
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A+B -> A+B+C [1e6]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Collision of 
+\family typewriter 
+A
+\family default 
+ and 
+\family typewriter 
+B
+\family default 
+ catalytically generates 
+\family typewriter 
+C
+\family default 
+ at a rate of 
+\begin_inset Formula $10^{5}\,\mathrm{{mol}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\end_inset 
+
+.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+Orientation classes are a fundamentally new concept introduced in MCell3.
+ They replace the MCell 2 idea of 
+\family typewriter 
+POSITIVE_POLE
+\family default 
+, 
+\family typewriter 
+NEGATIVE_POLE
+\family default 
+, and 
+\family typewriter 
+BOTH_POLES
+\family default 
+ specifications for receptors.
+\layout Standard
+
+In MCell3, molecules in a surface have an orientation.
+ If a reaction is geometrically constrained--for example, if a ligand can
+ only bind to the extracellular side of a receptor--you can enforce this
+ geometric constraint in MCell3 by writing down the relative orientations
+ of the reactants and products.
+ The two orientations are specified by 
+\family typewriter 
+'
+\family default 
+ and 
+\family typewriter 
+,
+\family default 
+ (comma and apostraphe) after the molecule's name.
+ For example, a surface-bound molecule 
+\family typewriter 
+B
+\family default 
+ has the orientations 
+\family typewriter 
+B'
+\family default 
+ and 
+\family typewriter 
+B,
+\family default 
+.
+ You can think of these as the top and bottom of 
+\family typewriter 
+B
+\family default 
+.
+ For example:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="3" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Example
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+B' -> B, [10]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Molecule 
+\family typewriter 
+B
+\family default 
+ flips (changes its orientation) at a rate of 
+\begin_inset Formula $10\mathrm{{s}^{-1}}$
+\end_inset 
+
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+B' -> B' + A' + C, [10]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Molecule 
+\family typewriter 
+B
+\family default 
+ emits molecules of 
+\family typewriter 
+A
+\family default 
+ on one side and C on the other at a rate of 
+\begin_inset Formula $10\mathrm{{s}^{-1}}$
+\end_inset 
+
+
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+In the second example, 
+\family typewriter 
+A
+\family default 
+ comes off of the top of 
+\family typewriter 
+B
+\family default 
+ (e.g.
+ on the extracellular side) while 
+\family typewriter 
+C
+\family default 
+ comes off on the bottom (e.g.
+ on the intracellular side).
+\layout Standard
+
+Molecules diffusing in 3D do not have an orientation, but they adopt one
+ when they strike a surface.
+ The side that they strike is their 
+\begin_inset Quotes eld
+\end_inset 
+
+top
+\begin_inset Quotes erd
+\end_inset 
+
+ side.
+ The far side is the 
+\begin_inset Quotes eld
+\end_inset 
+
+bottom
+\begin_inset Quotes erd
+\end_inset 
+
+ side.
+ (In MCell 2 terminology, the side they hit is their positive pole, and
+ the other side is their negative pole.) Thus, if 
+\family typewriter 
+A
+\family default 
+ diffuses in 3D but 
+\family typewriter 
+B
+\family default 
+ and 
+\family typewriter 
+C
+\family default 
+ are on a surface:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="3" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Example
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A' + B' -> C' [1e5]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Molecule 
+\family typewriter 
+A
+\family default 
+ binds to the top side of 
+\family typewriter 
+B
+\family default 
+, producing a 
+\family typewriter 
+C
+\family default 
+ facing the same way as 
+\family typewriter 
+B
+\family default 
+, at a rate of 
+\begin_inset Formula $10^{5}\,\mathrm{{mol}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\end_inset 
+
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A' + B, -> C' [1e5]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Molecule 
+\family typewriter 
+A
+\family default 
+ binds to the bottom side of 
+\family typewriter 
+B
+\family default 
+, producing a 
+\family typewriter 
+C
+\family default 
+ facing the opposite way as 
+\family typewriter 
+B
+\family default 
+, at a rate of 
+\begin_inset Formula $10^{5}\,\mathrm{{mol}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\end_inset 
+
+.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+So far, all examples have used the first orientation class, specified with
+ 
+\family typewriter 
+'
+\family default 
+ and 
+\family typewriter 
+,
+\family default 
+.
+ By default, if no orientation is specified, the molecule is in the zeroth
+ class, and the reaction refers to the top of the molecule.
+ The second orientation class is specified by 
+\begin_inset Formula $\texttt{{'}{'}}$
+\end_inset 
+
+ and 
+\begin_inset Formula $\texttt{{,}{,}}$
+\end_inset 
+
+.
+ The third is 
+\begin_inset Formula $\texttt{{'}{'}{'}}$
+\end_inset 
+
+ and 
+\begin_inset Formula $\texttt{{,}{,}{,}}$
+\end_inset 
+
+ and so on.
+ A molecule can be in only one orientation class, and molecules in different
+ classes do not pay attention to each others' orientation.
+ Therefore:
+\begin_inset  Tabular
+<lyxtabular version="3" rows="6" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Example
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A + B, -> C' [1e5]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Molecule 
+\family typewriter 
+A
+\family default 
+ binds to either side of 
+\family typewriter 
+B
+\family default 
+, producing a 
+\family typewriter 
+C
+\family default 
+ facing the opposite way as 
+\family typewriter 
+B
+\family default 
+, at a rate of 
+\begin_inset Formula $10^{5}\,\mathrm{{mol}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\end_inset 
+
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A + B -> C [1e5]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Molecule 
+\family typewriter 
+A
+\family default 
+ binds to the top side of 
+\family typewriter 
+B
+\family default 
+, producing a 
+\family typewriter 
+C
+\family default 
+ facing the same way as 
+\family typewriter 
+B
+\family default 
+, at a rate of 
+\begin_inset Formula $10^{5}\,\mathrm{{mol}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\end_inset 
+
+.
+ (Same as 
+\family typewriter 
+A'+B'->C'
+\family default 
+)
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A, + B' -> C [1e5]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Molecule 
+\family typewriter 
+A
+\family default 
+ hits the other side from the top of 
+\family typewriter 
+B
+\family default 
+ and produces 
+\family typewriter 
+C
+\family default 
+ that is equally likely to point either way, at a rate of 
+\begin_inset Formula $10^{5}\,\mathrm{{mol}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\end_inset 
+
+.
+ Since hitting the 
+\begin_inset Quotes eld
+\end_inset 
+
+other side from the top
+\begin_inset Quotes erd
+\end_inset 
+
+ is the same as 
+\begin_inset Quotes eld
+\end_inset 
+
+hitting the bottom
+\begin_inset Quotes erd
+\end_inset 
+
+, this is the same as 
+\family typewriter 
+A'+B,->C
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A, + B' -> C
+\family default 
+
+\begin_inset Formula $\texttt{{'}{'}}$
+\end_inset 
+
+
+\family typewriter 
+ [1e5]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Same as above, since 
+\family typewriter 
+C
+\family default 
+ is still not in the same orientation class as the others.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A'+B
+\family default 
+
+\begin_inset Formula $\texttt{{'}{'}}$
+\end_inset 
+
+
+\family typewriter 
+ -> A,+B
+\family default 
+
+\begin_inset Formula $\texttt{{'}{'}{'}}$
+\end_inset 
+
+
+\family typewriter 
+ [1e5]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Molecule 
+\family typewriter 
+A
+\family default 
+ hits molecule 
+\family typewriter 
+B
+\family default 
+ on either side, causing 
+\family typewriter 
+A
+\family default 
+ to go to the other side and 
+\family typewriter 
+B
+\family default 
+ to tumble to a random orientation, at a rate of 
+\begin_inset Formula $10^{5}\,\mathrm{{mol}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\end_inset 
+
+.
+ (
+\family typewriter 
+A'+B->A,+B
+\family default 
+
+\begin_inset Formula $\texttt{{'}{'}}$
+\end_inset 
+
+ would do the same thing, as would 
+\family typewriter 
+A,+B->A'+B
+\family default 
+
+\begin_inset Formula $\texttt{{,}{,}}$
+\end_inset 
+
+ and so on.)
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+There are examples of how one would use this syntax to model well-known
+ biological reactions at the end of this file.
+\layout Subsection
+
+Geometry definition commands
+\layout Subsubsection
+
+Surface properties
+\layout Standard
+
+MCell3 allows the user to specify properties of the surfaces of objects.
+ For example, one may wish to specify that a surface does not block the
+ diffusion of molecules.
+ Surface properties are specified inside a surface definition block:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="4" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+DEFINE_SURFACE 
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ {
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+}
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Define a single surface type called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+.
+ The properties are specified by commands inside braces.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+DEFINE_SURFACES {
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+}
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Define a series of surface types by name, using the following command.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ {
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+}
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Within a 
+\family typewriter 
+DEFINE_SURFACES
+\family default 
+ block, define a new surface type called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+.
+ The properties are specified by commands inside braces.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+To define surface properties, use the following commands:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="6" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+REFLECTIVE = 
+\family sans 
+\shape italic 
+name
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+The molecule called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+ is reflected by this surface.
+ This is the default behavior.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+TRANSPARENT = 
+\family sans 
+\shape italic 
+name
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+The molecule called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+ passes through this surface.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ABSORPTIVE = 
+\family sans 
+\shape italic 
+name
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+The molecule called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+ is destroyed if it touches this surface.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+MOLECULE_DENSITY {
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+}
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Add molecules at the specified density (units???) using the format 
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+=
+\family sans 
+\shape italic 
+density 
+\family default 
+\shape default 
+inside the braces.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+MOLECULE_NUMBER {
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+}
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Add this exact number of molecules onto any region that is made out of this
+ surface class, using the format 
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+=
+\family sans 
+\shape italic 
+number
+\family default 
+\shape default 
+ inside the braces.
+ Note: this usage is not recommended; it is better to add exact numbers
+ of molecules to the region.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Subsubsection
+
+Geometrical objects
+\layout Standard
+
+Two types of geometrical objects are supported in MCell3.
+ Objects should not have coincident surfaces unless neither surface contains
+ a molecule that any moving molecule can react with.
+ Also, all coincident surfaces should agree on whether they are transparent,
+ reflective, or absorptive to each molecule that might strike them.
+ Geometrical objects can be defined using:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="6" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ BOX { 
+\family sans 
+\shape italic 
+...
+
+\family typewriter 
+\shape default 
+ }
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+This defines a box object called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+.
+ The position of the object is defined inside braces.
+ Internally, a box is just stored as a set of triangular surface elements.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+CORNERS = [
+\family sans 
+\shape italic 
+x1
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+y1
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+z1
+\family typewriter 
+\shape default 
+],[
+\family sans 
+\shape italic 
+x2
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+y2
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+z2
+\family typewriter 
+\shape default 
+]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+The box object has corners as specified.
+ The first coordinates should be less than the second set of coordinates,
+ although MCell3 may fix it if you do it incorrectly.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ POLYGON_LIST { 
+\family sans 
+\shape italic 
+...
+
+\family typewriter 
+\shape default 
+ }
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+This defines a polygon list object called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+.
+ Polygon list objects explicitly give their triangular surface elements.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+VERTEX_LIST { 
+\family sans 
+\shape italic 
+...
+
+\family typewriter 
+\shape default 
+ }
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Specify the vertices of the triangles inside a polygon list object inside
+ braces.
+ Each vertex is given by the triple 
+\family typewriter 
+[
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+y
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+z
+\family typewriter 
+\shape default 
+]
+\family default 
+, and vertices are listed one after another without commas.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ELEMENT_CONNECTIONS { 
+\family sans 
+\shape italic 
+...
+
+\family typewriter 
+\shape default 
+ }
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Specify the triangles by vertex indices.
+ The vertices are numbered from 0 upwards in the order they were given in
+ the vertex list.
+ The direction of the surface normal is determined by the right-hand rule
+ while following the vertices.
+ Each triangle is given by a triple 
+\family typewriter 
+[
+\family sans 
+\shape italic 
+i
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+j
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+k
+\family typewriter 
+\shape default 
+]
+\family default 
+, and the triangles are listed one after another without commas.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+A variety of optional commands can be used inside a geometrical object definitio
+n block, after corners or vertex list / element connections are specified,
+ to modify the basic composition of the object and its surface properties.
+ These are described below.
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="4" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+REMOVE_ELEMENTS { 
+\family sans 
+\shape italic 
+...
+
+\family typewriter 
+\shape default 
+ }
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Remove the portion of the object specified inside braces using element specifier
+s described below.
+ You can think of this as a special type of region that defines the removed
+ portions of the object.
+ No real region exists on any part of the object that has been removed.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+DEFINE_REGIONS { 
+\family sans 
+\shape italic 
+...
+
+\family typewriter 
+\shape default 
+ }
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Define regions on the object.
+ You can have an arbitrary number of regions on an object, and they may
+ overlap if you wish.
+ Molecules added to overlapping regions accumulate; surface properties are
+ those of the last region applied.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ { 
+\family sans 
+\shape italic 
+...
+
+\family typewriter 
+\shape default 
+ }
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Inside a define region block, this specifies a new region called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+.
+ Inside braces, you first specify the elements to be included and then list
+ any special properties of that region, such as surface-bound molecules
+ in the region.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+Element specifiers consist of one or more of the following, which are applied
+ in order:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="7" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+INCLUDE_ELEMENTS [ 
+\family sans 
+\shape italic 
+list
+\family typewriter 
+\shape default 
+ ]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Include the elements specified by number or name.
+ For polygon objects, these refer to the triangles defined by the element
+ connections, counting from zero upwards in the order given.
+ For rectangles, the side names 
+\family typewriter 
+LEFT
+\family default 
+, 
+\family typewriter 
+RIGHT
+\family default 
+, 
+\family typewriter 
+FRONT
+\family default 
+, 
+\family typewriter 
+BACK
+\family default 
+, 
+\family typewriter 
+BOTTOM
+\family default 
+, and 
+\family typewriter 
+TOP
+\family default 
+ can be used to refer to the sides, where left/right corresponds to the
+ x axis (left is lower x values), front/back to y, and bottom/top to z.
+ 
+\family typewriter 
+ALL_ELEMENTS
+\family default 
+ refers to the entire object.
+ Numbers can be specified individually (separated by commas) or in ranges
+ with the format 
+\family sans 
+\shape italic 
+N
+\family default 
+\shape default 
+ TO 
+\family sans 
+\shape italic 
+M
+\family default 
+\shape default 
+.
+ The two styles can be mixed (separated by commas).
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+EXCLUDE_ELEMENTS [ 
+\family sans 
+\shape italic 
+list
+\family typewriter 
+\shape default 
+ ]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Exclude the elements listed.
+ If this is the first element specifier, assume that all elements not listed
+ are included.
+ If not, subtract from the existing list.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+INCLUDE_REGION = 
+\family sans 
+\shape italic 
+name
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Include the existing region on this object called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+ into this region, too.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+EXCLUDE_REGION = 
+\family sans 
+\shape italic 
+name
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Exclude the existing region on this object called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+ from this new region.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+INCLUDE_PATCH=[
+\family sans 
+\shape italic 
+x1
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+y1
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+z1
+\family typewriter 
+\shape default 
+],[
+\family sans 
+\shape italic 
+x2
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+y2
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+z2
+\family typewriter 
+\shape default 
+]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+This specifier is only valid on box objects, and the corners must define
+ a rectangular patch that is on exactly one side of the box.
+ The box will be divided into triangles in such a way that this patch consists
+ of separate triangles and will form a region.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+EXCLUDE_PATCH=[
+\family sans 
+\shape italic 
+x1
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+y1
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+z1
+\family typewriter 
+\shape default 
+],[
+\family sans 
+\shape italic 
+x2
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+y2
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+z2
+\family typewriter 
+\shape default 
+]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Exclude the patch from this region.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+After element specifiers, regions can specify a surface type and add extra
+ molecules using
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="4" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+SURFACE_CLASS = 
+\family sans 
+\shape italic 
+name
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Set the surface type of this region to the previously defined surface class
+ called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+MOLECULE_DENSITY {
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+}
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Add molecules at the specified density (units???) using the format 
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+=
+\family sans 
+\shape italic 
+density 
+\family default 
+\shape default 
+inside the braces.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+MOLECULE_NUMBER {
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+}
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Add this exact number of molecules onto any region that is made out of this
+ surface class, using the format 
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+=
+\family sans 
+\shape italic 
+number
+\family default 
+\shape default 
+ inside the braces.
+ Note: this usage is not recommended; it is better to add exact numbers
+ of molecules to the region.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Subsubsection
+
+Release objects
+\layout Standard
+
+Release objects place molecules into three-dimensional space.
+ These molecules must be defined with a 3D diffusion constant.
+ Release objects are defined using the following commands:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="4" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ SPHERICAL_RELEASE_SITE {
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+}
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Create a spherical release site called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+.
+ Molecules are released uniformly within the sphere depending on the defined
+ radius of the object.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ CUBIC_RELEASE_SITE {
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+}
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Create a cubic release site called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+.
+ Molecules are released in a box as specified by the radius.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ SPHERICAL_SHELL_SITE {
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+}
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Create a spherical shell release site called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+.
+ Molecules are distributed on a spherical shell at the defined radius of
+ the object.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+The following commands define where, what, and when a release object releases
+ molecules:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="11" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+LOCATION = [
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+y
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+z
+\family typewriter 
+\shape default 
+]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+The release occurs centered at this location.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+MOLECULE = 
+\family sans 
+\shape italic 
+name
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+The named molecule is the one that will be released.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+SITE_DIAMETER = 
+\family sans 
+\shape italic 
+d
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+The release site has diameter 
+\family sans 
+\shape italic 
+d
+\family default 
+\shape default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+SITE_DIAMETER = [
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+y
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+z
+\family typewriter 
+\shape default 
+]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Release is asymmetric with a different diameters in different directions,
+ as indicated by the vector.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+RELEASE_PROBABILITY = 
+\family sans 
+\shape italic 
+p
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+This release does not occur every time, but rather with probability 
+\family sans 
+\shape italic 
+p
+\family default 
+\shape default 
+.
+ (If omitted, the default is to release without fail.)
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+NUMBER_TO_RELEASE = 
+\family sans 
+\shape italic 
+n
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Release 
+\family sans 
+\shape italic 
+n
+\family default 
+\shape default 
+ molecules.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+GAUSSIAN_RELEASE_NUMBER {
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+}
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Release molecules according to a Gaussian distribution, specified by the
+ following two commands.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+MEAN_NUMBER = 
+\family sans 
+\shape italic 
+n
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+The mean of the Gaussian distribution.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+STANDARD_DEVIATION = 
+\family sans 
+\shape italic 
+s
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+The standard deviation of the Gaussian distribution.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+RELEASE_PATTERN = 
+\family sans 
+\shape italic 
+name
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Use the named release pattern instead of the default.
+ The default is to release the specified number of molecules at the beginning
+ of the simulation.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+Release patterns are defined as follows.
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="8" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+DEFINE_RELEASE_PATTERN 
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ {
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+}
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Define a new release pattern that contains the commands below.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+DELAY = 
+\family sans 
+\shape italic 
+t
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+The release pattern will start at time 
+\family sans 
+\shape italic 
+t
+\family default 
+\shape default 
+.
+ (Default is to start at time zero.)
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+RELEASE_INTERVAL = 
+\family sans 
+\shape italic 
+t
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+During a train of releases, release molecules after every 
+\family sans 
+\shape italic 
+t
+\family default 
+\shape default 
+ seconds.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+TRAIN_DURATION = 
+\family sans 
+\shape italic 
+t
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+The train of releases lasts for 
+\family sans 
+\shape italic 
+t
+\family default 
+\shape default 
+ seconds.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+TRAIN_INTERVAL = 
+\family sans 
+\shape italic 
+t
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+A new train of releases happens every 
+\family sans 
+\shape italic 
+t
+\family default 
+\shape default 
+ seconds.
+ Behavior is undefined if the interval is less than the duration.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+NUMBER_OF_TRAINS = 
+\family sans 
+\shape italic 
+n
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Repeat the release process for 
+\family sans 
+\shape italic 
+n
+\family default 
+\shape default 
+ trains of releases.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+NUMBER_OF_TRAINS = UNLIMITED
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Repeat trains forever.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Subsubsection
+
+Geometrical transformations
+\layout Standard
+
+At the end of the definition of a release object or geometrical object,
+ or in the block where an object is instantiated, it can be moved using
+ the following transformation commands (placed at the end of the block before
+ the closing brace).
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="4" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+TRANSLATE = [
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+y
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+z
+\family typewriter 
+\shape default 
+]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Move the object by the specified vector.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+SCALE = [
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+y
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+z
+\family typewriter 
+\shape default 
+]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Scale the object by multiplying each coordinate by the corresponding value
+ in the vector.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ROTATE = [
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+y
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+z
+\family typewriter 
+\shape default 
+] , 
+\family sans 
+\shape italic 
+A
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Rotate 
+\family sans 
+\shape italic 
+A
+\family default 
+\shape default 
+ degrees about the axis defined by the supplied vector.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Subsubsection
+
+Instantiation of objects
+\layout Standard
+
+Objects can contain lists of other objects using
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="4" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ OBJECT { 
+\family sans 
+\shape italic 
+...
+
+\family typewriter 
+\shape default 
+ } 
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Define a new object called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+.
+ Inside the braces, list other objects one at a time to be added (see below).
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+INSTANTIATE 
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ OBJECT { 
+\family sans 
+\shape italic 
+...
+
+\family typewriter 
+\shape default 
+ }
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Define a new object called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+ and insert it into the world.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+newname
+\family typewriter 
+\shape default 
+ OBJECT 
+\family sans 
+\shape italic 
+oldname
+\family typewriter 
+\shape default 
+ { 
+\family sans 
+\shape italic 
+...
+
+\family typewriter 
+\shape default 
+ }
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Add the object called 
+\family sans 
+\shape italic 
+oldname
+\family default 
+\shape default 
+ into the existing object and label it 
+\family sans 
+\shape italic 
+newname
+\family default 
+\shape default 
+.
+ You can add extra commands (e.g.
+ transformation) inside the braces.
+ The two names can be the same thing.
+ Thereafter, this object can be referred to in the world as 
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+.
+\family sans 
+\shape italic 
+newname
+\family default 
+\shape default 
+.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+You can also directly add release sites, boxes, and polygon objects into
+ another object.
+\layout Subsection
+
+Output specification commands
+\layout Standard
+
+There are two forms of output in MCell3, visualization output and count
+ output.
+ Visualization output typically contains the molecules and/or geometry of
+ the model in a form suitable for visualization or analysis that requires
+ knowledge of the precise location of particles.
+ Count output reports running totals of summary statistics such as the total
+ number of molecules of a certain type in the world, the number of times
+ a reaction has occurred inside some object in the world, and so on.
+\layout Standard
+
+Each mdl file can have multiple visualization blocks, but they must all
+ have the same mode (see below).
+ The visualization commands are:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="4" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+VIZ_DATA_OUTPUT { 
+\family sans 
+\shape italic 
+...
+
+\family typewriter 
+\shape default 
+ }
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Define a new visualization data output block which contains the commands
+ below.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+MODE = 
+\family sans 
+\shape italic 
+mode
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Use 
+\family sans 
+\shape italic 
+mode
+\family default 
+\shape default 
+ as the output mode.
+ Unless you know what you're doing, use 
+\family typewriter 
+DX
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+...
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+(This is the same as MCell 2, I think.)
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+Each mdl file can also have multiple reaction data output blocks.
+ Each block consists of the following:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="6" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+REACTION_DATA_OUTPUT { 
+\family sans 
+\shape italic 
+...
+
+\family typewriter 
+\shape default 
+ }
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Define a new count data output block which contains the commands below.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+STEP = 
+\family sans 
+\shape italic 
+t
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Output this block every 
+\family sans 
+\shape italic 
+t
+\family default 
+\shape default 
+ seconds.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+TIME_LIST = [ 
+\family sans 
+\shape italic 
+list
+\family typewriter 
+\shape default 
+ ]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Output this block at the times specified in the list.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ITERATION_LIST = [ 
+\family sans 
+\shape italic 
+list
+\family typewriter 
+\shape default 
+ ]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Output this block at the iteration numbers specified in the list (i.e.
+ after that number of timesteps).
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+{ 
+\family sans 
+\shape italic 
+value
+\family typewriter 
+\shape default 
+ } => 
+\begin_inset Quotes eld
+\end_inset 
+
+
+\family sans 
+\shape italic 
+file
+\family typewriter 
+\shape default 
+
+\begin_inset Quotes erd
+\end_inset 
+
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Output the value in braces to the filename in parentheses.
+ This command is typically repeated many times inside the output block.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+The values specified in braces are count statements, or mathematical operations
+ applied to count statements (e.g.
+ you can add, subtract, etc.
+ count statements to each other and to constants and so on).
+ The count statements themselves have the following syntax:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="6" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+COUNT [
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ , WORLD]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Count things in the world.
+ If 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+ refers to a molecule, count how many of that molecule are in the world.
+ If it refers to a reaction, count how many times that reaction has occurred
+ so far.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+COUNT [
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ , 
+\family sans 
+\shape italic 
+object
+\family typewriter 
+\shape default 
+]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Count things inside the object called 
+\family sans 
+\shape italic 
+object
+\family default 
+\shape default 
+.
+ This must be an instantiated object.
+ For example, if you have instantiated an object called 
+\family typewriter 
+my_world
+\family default 
+ with a box called 
+\family typewriter 
+my_box
+\family default 
+ inside it, 
+\family sans 
+\shape italic 
+object
+\family default 
+\shape default 
+ would be 
+\family typewriter 
+my_world.my_box
+\family default 
+c.
+ If you are counting surface molecules or reactions at a surface, only the
+ ones that actually occur on 
+\family sans 
+\shape italic 
+object
+\family default 
+\shape default 
+ will be counted.
+ Molecules with a 3D diffusion constant will be counted inside the object,
+ but the object must be closed.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+COUNT [
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ , 
+\family sans 
+\shape italic 
+region
+\family typewriter 
+\shape default 
+]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Count things inside the named region.
+ It must be referenced fully.
+ E.g.
+ if 
+\family typewriter 
+my_box
+\family default 
+ (from above) has a region called 
+\family typewriter 
+my_region
+\family default 
+, the name would be 
+\family typewriter 
+my_world.my_box.my_region
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+COUNT [
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+region
+\family typewriter 
+\shape default 
+,ALL_ENCLOSED]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Count all reactions that occur inside this region (not counting those that
+ occur on the surface of the region).
+ This lets you count surface molecules contained within a box, for example.
+ This will work with objects as well as regions, but the object or region
+ must be closed.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+COUNT [
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+region
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+hits
+\family typewriter 
+\shape default 
+]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Output the number of times the named molecule has hit the named region (or
+ object).
+ The 
+\family sans 
+\shape italic 
+hits
+\family default 
+\shape default 
+ specifier should be one of 
+\family typewriter 
+FRONT_HITS
+\family default 
+, 
+\family typewriter 
+BACK_HITS
+\family default 
+, 
+\family typewriter 
+ALL_HITS
+\family default 
+, 
+\family typewriter 
+FRONT_CROSSINGS
+\family default 
+, 
+\family typewriter 
+BACK_CROSSINGS
+\family default 
+, and 
+\family typewriter 
+ALL_CROSSINGS
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Subsection
+
+Utility commands
+\layout Standard
+
+MCell3 understands the standard numeric operations 
+\family typewriter 
++ - * /
+\family default 
+ as well as the following standard functions:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="18" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+SQRT(
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Return the square root of 
+\family sans 
+\shape italic 
+x
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+EXP(
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Return the value of 
+\begin_inset Formula $e$
+\end_inset 
+
+ raised to the 
+\family sans 
+\shape italic 
+x
+\begin_inset Formula $^{\textrm{th}}$
+\end_inset 
+
+ 
+\family default 
+\shape default 
+power
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+LOG(
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Return the natural logarithm of 
+\family sans 
+\shape italic 
+x
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+LOG10(
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Return the base 10 logarithm of 
+\family sans 
+\shape italic 
+x
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+SIN(
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Return the sine of 
+\family sans 
+\shape italic 
+x
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+COS(
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Return the cosine of 
+\family sans 
+\shape italic 
+x
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+TAN(
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Return the tangent of 
+\family sans 
+\shape italic 
+x
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ASIN(
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Return the inverse sine of 
+\family sans 
+\shape italic 
+x
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ACOS(
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Return the inverse cosine of 
+\family sans 
+\shape italic 
+x
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ATAN(
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Return the inverse tangent of 
+\family sans 
+\shape italic 
+x
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ABS(
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Return the absolute value of 
+\family sans 
+\shape italic 
+x
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+CEIL(
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Return the smallest integer at least as big as 
+\family sans 
+\shape italic 
+x
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+FLOOR(
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Return the largest integer at no bigger than 
+\family sans 
+\shape italic 
+x
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+MAX(
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+y
+\family typewriter 
+\shape default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Return the larger of 
+\family sans 
+\shape italic 
+x
+\family default 
+\shape default 
+ and 
+\family sans 
+\shape italic 
+y
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+MIN(
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+y
+\family typewriter 
+\shape default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Return the smaller of 
+\family sans 
+\shape italic 
+x
+\family default 
+\shape default 
+ and 
+\family sans 
+\shape italic 
+y
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+PI
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+The numeric value 
+\begin_inset Formula $\pi=3.14159265358979323846$
+\end_inset 
+
+
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+SEED
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+The value of the random number generator seed
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+At any outer block in MCell3, one can define variables simply by assigning
+ a value to the name of the variable.
+ E.g.
+ 
+\family typewriter 
+my_lucky_number=13
+\family default 
+ would be a valid (if unusual) way to define a variable.
+ Variables can take numeric, array, or string values.
+ String values consist of text between double quotes.
+ Array values are lists of numbers inside brackets separated by commas,
+ or starting and ending values plus a step size, as exemplified below (note
+ the double brackets):
+\layout LyX-Code
+
+my_lucky_number = 13
+\layout LyX-Code
+
+my_favorite_array = [1,3,5,7,11,17]
+\layout LyX-Code
+
+my_second_favorite_array = [[1.3 TO 2.75 STEP 0.331]]
+\layout LyX-Code
+
+my_boring_string = 
+\begin_inset Quotes eld
+\end_inset 
+
+la la la, la la la
+\begin_inset Quotes erd
+\end_inset 
+
+
+\layout Standard
+
+The C-style 
+\family typewriter 
+printf
+\family default 
+ and 
+\family typewriter 
+sprintf
+\family default 
+ commands work too, pretty much the way you'd expect them to.
+ MCell3 comments are delimited by 
+\family typewriter 
+/*
+\family default 
+ and 
+\family typewriter 
+*/
+\family default 
+.
+\layout Section
+
+Technical details affecting simulation speed and accuracy
+\layout Subsection
+
+Partitioning
+\layout Standard
+
+In future releases, MCell3 will automatically partition space to improve
+ execution speed.
+ Currently, however, this must be performed manually.
+ In general, partitions should be chosen to avoid having too many surfaces
+ and molecules in one subvolume defined by the partitions.
+ Molecules that are specified as 
+\family typewriter 
+TARGET_ONLY
+\family default 
+ or which do not interact with other molecules diffusing in 3D need only
+ have relatively few surfaces in one subvolume.
+\layout Standard
+
+If there are few surfaces and/or molecules in a subvolume, it is advantageous
+ to have the subvolume as large as possible.
+ Crossing partition boundaries takes a small amount of time, so it is rarely
+ useful to have partitions more finely spaced than the average diffusion
+ distance of the faster-moving molecules in the simulation.
+\layout Standard
+
+In cases where the diffusing molecules do not interact with each other,
+ they can safely take extended time-steps by measuring how far they are
+ from things they could interact with.
+ In this case, the partitions with no surfaces should be as large as possible.
+ For example, a box works well with partitions just inside its outer walls.
+\layout Standard
+
+Finally, note that partition placement is not exact.
+ The model is divided into 16384 possible partition boundaries, so partitions
+ may shift by up to about one part in twenty thousand of the size of the
+ model.
+ For instance, if the model has a structure that is 6
+\begin_inset Formula $\mu$
+\end_inset 
+
+m long, partitions may vary by about 0.0003
+\begin_inset Formula $\mu$
+\end_inset 
+
+m.
+ Thus, do not place partitions too close to objects in your model or they
+ may not appear on the side you expect them to appear.
+\layout Subsection
+
+Mean diffusion distance
+\layout Standard
+
+Diffusion in MCell3 (and in earlier versions of MCell) is modeled as a series
+ of motions in a straight line.
+ This is a good approximation around geometry that is of a larger scale
+ than the mean diffusion length for the timestep of the molecule in question.
+ For accurate results around intricate geometry, it may be necessary to
+ reduce the time step (or space step).
+\layout Subsection
+
+Reaction probabilities
+\layout Standard
+
+MCell3 assigns a probability of reaction for each collision.
+ These probabilities are chosen to match the bulk reaction rate specified
+ in the mdl file.
+ The match will not occur, however, if the probability goes above 1.0.
+ Internal correction factors can also raise the actual probability above
+ the typical probability specified at the beginning.
+ Therefore, MCell3 will output a warning if the reaction probability goes
+ above 0.8 for reactions where a 3D diffusing molecule hits a surface, or
+ if the probability goes above 0.3 for a collision between pairs of 3D diffusing
+ molecules.
+\layout Standard
+
+If warnings are given (and possibly even if they are not), one should reduce
+ the time step to lower the probabilities and see if the same results are
+ generated.
+ If not, simulations should be run with shorter time steps in order to avoid
+ overly high probabilities.
+\layout Standard
+
+Unimolecular reactions with half-lives of less than one time step are also
+ not perfectly accurate.
+ Although unimolecular transitions will always occur at the right rate,
+ other molecules may not experience the right effective concentration of
+ each state, since a short-lifetime species may not be converted to another
+ species until the end of the time step after which many other molecules
+ may have had a chance to interact with it.
+ Thus, the shortest-lifetime species in a series of unimolecular transitions
+ should not have a half-life of less than approximately one time step if
+ other molecules can interact with that state.
+\layout Subsection
+
+Interaction radii
+\layout Standard
+
+Bimolecular reactions occur within a distance specified by the 
+\family typewriter 
+INTERACTION_RADIUS
+\family default 
+ command.
+ In many cases, one may want to increase or decrease this value.
+ In particular, in order to get the right probability of reaction, MCell3
+ increases the probability of reaction when near surfaces and partition
+ boundaries.
+ In general, the reaction rate has approximately 1-2% error if the average
+ spacing between surfaces is at least 10 times the interaction radius, and
+ the reaction probabilities are 0.3 or less.
+\layout Standard
+
+For example, if one has partitions spaced 0.02
+\begin_inset Formula $\mu$
+\end_inset 
+
+m apart, simulation accuracy will be very poor with the default interaction
+ radius of 0.01
+\begin_inset Formula $\mu$
+\end_inset 
+
+m.
+ Thus, one might wish to specify 
+\family typewriter 
+INTERACTION_RADIUS=0.001
+\family default 
+.
+\layout Section
+
+Example models
+\layout Subsection
+
+Ligand-gated ion channel
+\layout Standard
+
+Below are a set of molecule definitions and reactions that specify an ion
+ channel that is gated by the binding of a single ligand.
+\layout LyX-Code
+
+DEFINE_MOLECULES {
+\layout LyX-Code
+
+  channel_unbound { D_2D=0 }
+\layout LyX-Code
+
+  channel_bound   { D_2D=0 }
+\layout LyX-Code
+
+  channel_open    { D_2D=0 }
+\layout LyX-Code
+
+  ligand          { D_3D=2e-8 }
+\layout LyX-Code
+
+  ion             { D_3D=3e-8 }
+\layout LyX-Code
+
+}
+\layout LyX-Code
+
+DEFINE_REACTIONS {
+\layout LyX-Code
+
+  channel_unbound' + ligand' -> channel_bound'             [1e7]
+\layout LyX-Code
+
+  channel_bound'             -> channel_unbound' + ligand' [2e2]
+\layout LyX-Code
+
+  channel_bound'             -> channel_open'              [5e2]
+\layout LyX-Code
+
+  channel_open'              -> channel_open'    + ion,    [8e4]
+\layout LyX-Code
+
+}
+\layout Standard
+
+We have defined a reaction where a ligand binds to one end of a channel
+ (presumably the extracellular face), which causes the channel to be in
+ its bound state.
+ In that state it can either release the ligand or become open.
+ While open, it will emit ions on the other end (presumably the intracellular
+ face).
+ This would be suitable if the ion concentration is much higher outside
+ than inside, or the membrane potential makes it highly favorable for the
+ ion to move inside, so that we don't have to worry about the reverse reaction.
+ If there is no electrical driving force, we might have to model ions both
+ inside and outside:
+\layout LyX-Code
+
+DEFINE_REACTIONS {
+\layout LyX-Code
+
+  channel_unbound' + ligand' -> channel_bound'             [1e7]
+\layout LyX-Code
+
+  channel_bound'             -> channel_unbound' + ligand' [2e2]
+\layout LyX-Code
+
+  channel_bound'             -> channel_open'              [5e2]
+\layout LyX-Code
+
+  channel_open + ion'        -> channel_open     + ion,    [4e7]
+\layout LyX-Code
+
+}
+\layout Standard
+
+Here, the ion travels in either direction just as easily since it pays no
+ attention to the orientation of the channel.
+ However, if there was a modest driving force, traveling in might be easier
+ than traveling out, which would be reflected in the rates.
+\layout LyX-Code
+
+DEFINE_REACTIONS {
+\layout LyX-Code
+
+  channel_unbound' + ligand' -> channel_bound'             [1e7]
+\layout LyX-Code
+
+  channel_bound'             -> channel_unbound' + ligand' [2e2]
+\layout LyX-Code
+
+  channel_bound'             -> channel_open'              [5e2]
+\layout LyX-Code
+
+  channel_open' + ion'       -> channel_open'    + ion,    [4e8]
+\layout LyX-Code
+
+  channel_open' + ion,       -> channel_open'    + ion'    [1e8]
+\layout LyX-Code
+
+}
+\layout Standard
+
+In this case, the ion is four times as likely to travel from outside to
+ inside as inside to outside.
+ Finally, note that most of the orientation marks are unnecessary given
+ that the default is to be in orientation class zero facing up.
+ Thus, we can write the last set of reactions as
+\layout LyX-Code
+
+DEFINE_REACTIONS {
+\layout LyX-Code
+
+  channel_unbound + ligand -> channel_bound            [1e7]
+\layout LyX-Code
+
+  channel_bound            -> channel_unbound + ligand [2e2]
+\layout LyX-Code
+
+  channel_bound            -> channel_open             [5e2]
+\layout LyX-Code
+
+  channel_open' + ion'     -> channel_open'   + ion,   [4e8]
+\layout LyX-Code
+
+  channel_open' + ion,     -> channel_open'   + ion'   [1e8]
+\layout LyX-Code
+
+}
+\layout Standard
+
+to achieve the same effect.
+\layout Subsection
+
+Example bimolecular reaction
+\layout Standard
+
+Here's a complete mdl file that implements a simple bimolecular reaction
+ that should achieve equilibrium at 482 molecules of each species.
+\layout LyX-Code
+
+time_step = 1.0e-6
+\layout LyX-Code
+
+\layout LyX-Code
+
+TIME_STEP = time_step
+\layout LyX-Code
+
+TIME_STEP_MAX = time_step
+\layout LyX-Code
+
+ITERATIONS = 1e-2/time_step
+\layout LyX-Code
+
+EFFECTOR_GRID_DENSITY = 10000
+\layout LyX-Code
+
+INTERACTION_RADIUS = 0.001
+\layout LyX-Code
+
+\layout LyX-Code
+
+PARTITION_X = [ [-0.1 TO 0.1 STEP 0.01] ]
+\layout LyX-Code
+
+PARTITION_Y = [ [-0.1 TO 0.1 STEP 0.01] ]
+\layout LyX-Code
+
+PARTITION_Z = [ [-0.1 TO 0.1 STEP 0.01] ]
+\layout LyX-Code
+
+\layout LyX-Code
+
+DEFINE_MOLECULES
+\layout LyX-Code
+
+{
+\layout LyX-Code
+
+  A { D_3D = 100e-8 }
+\layout LyX-Code
+
+  B { D_3D = 100e-8 }
+\layout LyX-Code
+
+  C { D_3D = 100e-8 }
+\layout LyX-Code
+
+}
+\layout LyX-Code
+
+\layout LyX-Code
+
+/* Your basic reversable binding reaction */
+\layout LyX-Code
+
+DEFINE_REACTIONS
+\layout LyX-Code
+
+{
+\layout LyX-Code
+
+  A + B -> C [1e7]
+\layout LyX-Code
+
+  C -> A + B [1e3]
+\layout LyX-Code
+
+}
+\layout LyX-Code
+
+\layout LyX-Code
+
+small_box BOX
+\layout LyX-Code
+
+{
+\layout LyX-Code
+
+  CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+\layout LyX-Code
+
+}
+\layout LyX-Code
+
+INSTANTIATE my_world OBJECT
+\layout LyX-Code
+
+{
+\layout LyX-Code
+
+  A_release CUBIC_RELEASE_SITE {
+\layout LyX-Code
+
+    LOCATION=[0,0,0]
+\layout LyX-Code
+
+    MOLECULE=A
+\layout LyX-Code
+
+    NUMBER_TO_RELEASE=482
+\layout LyX-Code
+
+    SITE_DIAMETER=0.196
+\layout LyX-Code
+
+  }
+\layout LyX-Code
+
+  B_release CUBIC_RELEASE_SITE {
+\layout LyX-Code
+
+    LOCATION=[0,0,0]
+\layout LyX-Code
+
+    MOLECULE=B
+\layout LyX-Code
+
+    NUMBER_TO_RELEASE=482
+\layout LyX-Code
+
+    SITE_DIAMETER=0.196
+\layout LyX-Code
+
+  }
+\layout LyX-Code
+
+  C_release CUBIC_RELEASE_SITE {
+\layout LyX-Code
+
+    LOCATION=[0,0,0]
+\layout LyX-Code
+
+    MOLECULE=C
+\layout LyX-Code
+
+    NUMBER_TO_RELEASE=482
+\layout LyX-Code
+
+    SITE_DIAMETER=0.196
+\layout LyX-Code
+
+  }
+\layout LyX-Code
+
+\layout LyX-Code
+
+ my_box OBJECT small_box {}
+\layout LyX-Code
+
+}
+\layout LyX-Code
+
+\layout LyX-Code
+
+REACTION_DATA_OUTPUT
+\layout LyX-Code
+
+{
+\layout LyX-Code
+
+  STEP = 1e-5
+\layout LyX-Code
+
+  { COUNT [A,WORLD] } => "eq_A.dat"
+\layout LyX-Code
+
+  { COUNT [B,WORLD] } => "eq_B.dat"
+\layout LyX-Code
+
+  { COUNT [C,WORLD] } => "eq_C.dat"
+\layout LyX-Code
+
+}
+\layout Standard
+
+This isn't finished, but we'll just stop here.
+\layout LyX-Code
+
+\the_end
