@@ -311,10 +311,11 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
           k = 1;
         }
         
-        if (j>rx->n_reactants) porient[i-i0] = k*porient[j-(rx->n_reactants+1)];
+        if (j > rx->n_reactants) porient[i-i0] = k*porient[j-(rx->n_reactants+1)];
         else if (j==1) porient[i-i0] = k*orientA;
         else if (j==2 && reacB!=NULL) porient[i-i0] = k*orientB;
         else porient[i-i0] = k;
+        
       }
 
       if (ptype[i-i0]=='s')
@@ -356,7 +357,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       }
     }
   }
-
+  
   return blocked;
 }
 

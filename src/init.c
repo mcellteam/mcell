@@ -1502,7 +1502,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
   struct surface_grid *sg;
   struct eff_dat *effdp;
   struct grid_molecule *mol;
-  signed char *orientation;
+  short *orientation;
   unsigned int i,j,n,nr,n_occupied;
   int p_index;
   double rand[1],*prob,area,tot_prob,tot_density;
@@ -1530,7 +1530,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
   if ((prob=(double *)malloc(nr*sizeof(double)))==NULL) {
     return(1);
   }
-  if ((orientation=(signed char *)malloc(nr*sizeof(signed char)))==NULL) {
+  if ((orientation=(short*)malloc(nr*sizeof(short)))==NULL) {
     return(1);
   }
 
@@ -1556,7 +1556,9 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
     no_printf("  Adding effector %s to wall at density %.9g\n",effdp->eff->sym->name,effdp->quantity);
     tot_prob+=(area*effdp->quantity)/(n*world->effector_grid_density);
     prob[i]=tot_prob;
-    orientation[i]=effdp->orientation;
+    if (effdp->orientation > 0) orientation[i] = 1;
+    else if (effdp->orientation < 0) orientation[i] = -1;
+    else orientation[i] = 0;
     eff[i++]=effdp->eff;
     tot_density+=effdp->quantity;
     effdp=effdp->next;
@@ -1728,7 +1730,9 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
           eff=effdp->eff;
 
           if (world->chkpt_init) {  /* only needed for denovo initiliazation */
-	    orientation=effdp->orientation;
+	    if (effdp->orientation > 0) orientation = 1;
+	    else if (effdp->orientation < 0) orientation = -1;
+	    else orientation = 0;
   
             n_set=effdp->quantity;
             n_clear=n_free_eff-n_set;

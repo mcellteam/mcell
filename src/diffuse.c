@@ -443,12 +443,26 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   
   int calculate_displacement = 1;
   
+  double lo = 1.0/world->length_unit;
+  double hi = 2.0/world->length_unit;
+  
   sm = m->properties;
   if (sm==NULL) printf("BROKEN!!!!!\n");
   if (sm->space_step <= 0.0)
   {
     m->t += max_time;
     return m;
+  }
+  
+  if (m->subvol != find_subvolume(&(m->pos),m->subvol))
+  {
+    printf("U POSITION: LOST (%x at t=%.3e)\n",(int)m,m->subvol->mem->current_time);
+  }  
+  if (m->pos.x < lo || m->pos.x > hi || m->pos.y < lo || m->pos.y > hi ||
+      m->pos.z < lo || m->pos.z > hi)
+  {
+    printf("U BOXIN': LEAKY (%.3e %.3e %.3e not in [%.3e %.3e]\n",
+           m->pos.x,m->pos.y,m->pos.z,lo,hi);
   }
   
 pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
@@ -643,11 +657,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           if (w->effectors->mol[j] != NULL)
           {
             g = w->effectors->mol[j];
+            if (g->orient != 1) printf("Bizarre[1]!  Orientation of %x is %d\n",(int)g,g->orient);
             r = trigger_bimolecular(
               m->properties->hashval,g->properties->hashval,
               (struct abstract_molecule*)m,(struct abstract_molecule*)g,
               k,g->orient
             );
+            if (g->orient != 1) printf("Bizarre[2]!  Orientation of %x is %d\n",(int)g,g->orient);
             if (r!=NULL)
             {
               i = test_bimolecular(r,w->effectors->binding_factor);
@@ -656,8 +672,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                 l = outcome_bimolecular(
                   r,i,(struct abstract_molecule*)m,
                   (struct abstract_molecule*)g,
-                  0,0,m->t+steps*smash->t
+                  k,g->orient,m->t+steps*smash->t
                 );
+                if (w->effectors->mol[j]!=NULL &&
+                    w->effectors->mol[j]->orient != 1) printf("Bizarre[3]!  Orientation of %x is %d\n",(int)w->effectors->mol[j],w->effectors->mol[j]->orient);
         
                 if (l==0)
                 {
