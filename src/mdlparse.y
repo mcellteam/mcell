@@ -3476,7 +3476,7 @@ element_spec: num_expr
   if (mdlpvp->exclude_me) mdlpvp->elmlp->special = (struct element_special*)mdlpvp->elmlp;
   else mdlpvp->elmlp->special=NULL;
 
-  if ($<tok>1==ALL_SIDES) {
+  if ($<tok>1==ALL_SIDES && mdlpvp->objp->object_type==POLY_OBJ) {
     mdlpvp->elmlp->begin=0;
     mdlpvp->elmlp->end=mdlpvp->pop->n_walls-1;
   }

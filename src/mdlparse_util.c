@@ -1924,7 +1924,7 @@ int normalize_elements(struct region *reg, int existing)
     if (reg->parent->object_type==BOX_OBJ && el->begin>=0)
     {
       i = el->begin;
-      printf("Using switch statement\n");
+      printf("Using switch statement %d\n",i);
       switch(i)
       {
 	case X_NEG:
