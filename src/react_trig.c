@@ -1,16 +1,24 @@
+/**************************************************************************\
+** File: react_trig.c                                                     **
+**                                                                        **
+** Purpose: Detects the possibility of a uni/bimolecular/surface reaction **
+**                                                                        **
+** Testing status: partially validated (see validate_react_trig.c)        **
+\**************************************************************************/
+
+
 #include "mcell_structs.h"
 
 extern struct volume *world;
-
-#define SGN(x) (((x)==0) ? 0 : (((x)>0) ? 1 : -1))
-#define ABS(x) (((x)<0) ? -x : x)
-#define SQ(x)  ((x)*(x))
 
 /*************************************************************************
 trigger_unimolecular:
    In: hash value of molecule's species, pointer to a molecule
    Out: NULL if there are no unimolecular reactions for this species
         pointer to the reaction if there are
+   Note: This is only tested on molecules that have just been created
+         or come off the scheduling queue--do not run on a scheduled
+         molecule.
 *************************************************************************/
 
 struct rxn* trigger_unimolecular(int hash,struct abstract_molecule *reac)
@@ -42,6 +50,9 @@ trigger_bimolecular:
    Out: NULL if there are no bimolecular reactions for these species
         NULL if the orientations do not match the specified orientations
         pointer to the reaction if a valid reaction exists
+   Note: The target molecule is already scheduled and can be destroyed
+         but not rescheduled.  Assume we've already checked that target
+         and moving molecules are not inert!
 *************************************************************************/
 
 struct rxn* trigger_bimolecular(int hashA,int hashB,
@@ -157,6 +168,7 @@ trigger_intersection:
           molecule/wall intersection, or for this mol/generic wall,
           or this wall/generic mol     
         pointer to the reaction if there are
+   Note: Moving molecule may be inert.
 *************************************************************************/
 
 struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,

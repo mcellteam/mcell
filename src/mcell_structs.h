@@ -25,26 +25,13 @@
 
 
 /* Reaction flags */
-#define RX_GHOST     0x00001
-#define RX_DESTROY   0x00002
-#define RX_CATALYST  0x00004
-#define RX_SURFACE   0x00008
-#define RX_FLIP      0x00010
-#define RX_TUMBLE    0x00020
-#define RX_1SAME3    0x00040
-#define RX_1OPP3     0x00080
-
-#define RX_DESTROY2  0x00100
-#define RX_CATALYST2 0x00200
-#define RX_FLIP2     0x00400
-#define RX_TUMBLE2   0x00800
-#define RX_2SAME1    0x01000
-#define RX_2OPP1     0x02000
-#define RX_2SAME3    0x04000
-#define RX_2OPP3     0x08000
-
-#define RX_CATALYST3 0x10000
-#define RX_SURFACE3  0x20000
+#define RX_DESTROY   0x001
+#define RX_FLIP      0x002
+#define RX_PROD      0x004
+#define RX_REFL      0x008
+#define RX_2DESTROY  0x010
+#define RX_2FLIP     0x020
+#define RX_2PROD     0x040
 
 
 /* Flags for BSP trees to determine whether something is a node or a branch */
@@ -346,7 +333,7 @@ struct rxn
   
   u_int n_reactants;         /* How many reactants? (At least 1.) */
   u_int n_pathways;          /* How many pathways lead away? */
-  byte *n_products;          /* How many products for each pathway? */
+  u_int *product_idx;        /* Index of 1st player for products of pathway */
   double *cum_rates;         /* Cumulative rates for (entering) all pathways */
   double *cat_rates;         /* Rate of leaving all pathways (<=0.0 is instant) */
   
@@ -409,8 +396,7 @@ struct molecule
   
   struct cmprt_data *curr_cmprt;  /* Compartment we are in (for counting) */
   
-  struct molecule *next_nb;       /* Next molecule in this subvolume */
-  struct molecule *prev_nb;       /* Previous molecule in this subvol */
+  struct molecule *next_v;        /* Next molecule in this subvolume */
 };
 
 
@@ -424,14 +410,16 @@ struct surface_molecule
   
   double t2;                        /* Time of move or -time of unimol. rxn */
   
-  struct vector2 *pos;              /* Position in surface coordinates */
+  struct vector3 pos;              /* Position in the world */
+  struct vector2 s_pos;            /* Position in surface coordinates */
   struct wall *curr_wall;           /* The surface element we are on */
+  struct subvolume *subvol;         /* Partition we're in */
   short orient;                     /* Facing up or down? */
   
   struct region_data *curr_region;  /* Region we are in (for counting) */
   
-  struct surface_molecule *next_nb; /* Next molecule on this surface */
-  struct surface_molecule *prev_nb; /* Previous molecule on this surface */
+  struct surface_molecule *next_s;  /* Next molecule on this surface */
+  struct surface_molecule *next_v;  /* Next molecule in this volume */
 };
 
 
@@ -444,6 +432,7 @@ struct grid_molecule
   struct species *properties;
   
   int grid_index;              /* Which gridpoint do we occupy? */
+  struct subvolume *subvol;    /* Which SSV are we in? */
   short orient;                /* Which way do we point? */
   struct surface_grid *grid;   /* Our grid (which tells us our surface) */
 };
@@ -528,6 +517,19 @@ struct waypoint
 };
 
 
+/* Contains space for molcules, walls, wall_lists, etc. */
+struct storage
+{
+  struct mem_helper *list;
+  struct mem_helper *mol;
+  struct mem_helper *smol;
+  struct mem_helper *gmol;
+  struct mem_helper *wall;
+  
+  struct schedule_helper *timer;
+  double current_time;
+};
+
 /* Walls and molecules in a spatial subvolume */
 struct subvolume
 {
@@ -547,9 +549,7 @@ struct subvolume
 
   void *neighbor[6];           /* Subvolume or bsp_tree across each face */
   
-  struct stack_helper *local_list;  /* Local storage for wall_list */
-  struct stack_helper *local_mol;   /* Local storage for mols */
-  struct stack_helper *local_wall;  /* Local storage for walls */  
+  struct storage *mem;         /* Local storage */
 };
 
 
@@ -600,6 +600,8 @@ struct volume
   
   struct stack_helper *collision_stack;
   struct counter_helper *collision_counter;
+  
+  u_int rng_idx;
 };
 
 

@@ -1,0 +1,33 @@
+#ifndef MCELL_REACT
+#define MCELL_REACT
+
+#include "mcell_structs.h"
+
+struct rxn* trigger_unimolecular(int hash,struct abstract_molecule *reac);
+struct rxn* trigger_bimolecular(int hashA,int hashB,
+  struct abstract_molecule *reacA,struct abstract_molecule *reacB,
+  short orientA,short orientB);
+struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
+  short orientA,struct wall *w);
+
+
+int test_unimolecular(struct rxn *rx);
+double timeof_unimolecular(struct rxn *rx);
+int which_unimolecular(struct rxn *rx);
+int test_bimolecular(struct rxn *rx,double time_mult);
+int test_intersect(struct rxn *rx,double time_mult);
+
+
+void outcome_products(struct wall *w,struct molecule *reac_m,
+  struct surface_molecule *reac_s,struct grid_molecule *reac_g,
+  struct rxn *rx,int path,struct storage *local,
+  short orientA,short orientB,double t);
+int outcome_unimolecular(struct rxn *rx,int path,
+  struct abstract_molecule *reac,double t);
+int outcome_bimolecular(struct rxn *rx,int path,
+  struct abstract_molecule *reacA,struct abstract_molecule *reacB,
+  short orientA,short orientB,double t);
+int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
+  struct abstract_molecule *reac,short orient,double t);
+
+#endif

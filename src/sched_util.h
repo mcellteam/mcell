@@ -26,12 +26,14 @@ struct schedule_helper
 struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,double start_time);
 
 void schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_current);
+void schedule_excert(struct schedule_helper *sh,void *data,void *blank,int size);
 int schedule_advance(struct schedule_helper *sh, void** head, void** tail);
 
 void* schedule_next(struct schedule_helper *sh);
 #define schedule_add(x,y) schedule_insert((x),(y),1)
 
 void delete_scheduler(struct schedule_helper *sh);
+
 
 #endif
 

@@ -6,14 +6,7 @@
 #include <stdlib.h>
 
 #include "mcell_structs.h"
-
-
-struct rxn* trigger_unimolecular(int hash,struct abstract_molecule *reac);
-struct rxn* trigger_bimolecular(int hashA,int hashB,
-  struct abstract_molecule *reacA,struct abstract_molecule *reacB,
-  short orientA,short orientB);
-struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
-  short orientA,struct wall *w);
+#include "react.h"
 
 
 struct volume *world;
