@@ -163,3 +163,63 @@ int test_intersect(struct rxn *rx,double time_mult)
   if (p > rx->cum_rates[m]) return M;
   else return m;
 }
+
+
+/*************************************************************************
+check_rates:
+  In: A reaction struct
+      The current time
+  Out: No return value.  Rates are updated if necessary.
+       Memory isn't reclaimed.
+  Note: This isn't meant for really heavy-duty use (multiple pathways
+        with rapidly changing rates)--if you want that, the code should
+        probably be rewritten to accumulate probability changes from the
+        list as it goes (and the list should be sorted by pathway, too).
+*************************************************************************/
+
+void check_rates(struct rxn *rx,double t)
+{
+  int j,k;
+  double dprob;
+  struct t_func *tv;
+  int did_something = 0;
+  
+  for ( tv = rx->rate_t ; tv!= NULL && tv->time < t ; tv = tv->next )
+  {
+    j = tv->path;
+    if (j == 0) dprob = tv->value - rx->cum_rates[0];
+    else dprob = tv->value - (rx->cum_rates[j]-rx->cum_rates[j-1]);
+
+    for (k = tv->path ; k < rx->n_pathways ; k++) rx->cum_rates[k] += dprob;
+    did_something++;
+  }
+  
+  rx->rate_t = tv;
+  
+  if (!did_something) return;
+  
+  if (rx->n_reactants==1)
+  {
+    printf("Rate %.4e set for %s[%d] -> ",rx->cum_rates[0],
+           rx->players[0]->sym->name,rx->geometries[0]);
+
+    for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
+    {
+      if (rx->players[k]==NULL) printf("NIL ");
+      else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+    }
+    printf("\n");
+  }
+  else
+  {
+    printf("Rate %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_rates[0],
+           rx->players[0]->sym->name,rx->geometries[0],
+           rx->players[1]->sym->name,rx->geometries[1]);
+    for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
+    {
+      if (rx->players[k]==NULL) printf("NIL ");
+      else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+    }
+    printf("\n");
+  }
+}

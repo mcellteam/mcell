@@ -276,11 +276,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       rxnp->cat_rates=NULL;
       rxnp->players=NULL;
       rxnp->geometries=NULL;
-      rxnp->n_rate_t_rxns=0;
-      rxnp->rate_t_rxn_map=NULL;
       rxnp->rate_t=NULL;
-      rxnp->jump_t=NULL;
-      rxnp->last_update=0;
       rxnp->counter=NULL;
       rxnp->pathway_head=NULL;
       break;

@@ -272,7 +272,7 @@ surface_net:
   In: array of pointers to walls
       pointer to storage for the edges
       integer length of array
-  Out: 1 if the surface is closed, 0 if open, -1 on malloc failure
+  Out: -1 if the surface is closed, 0 if open, 1 on malloc failure
   Note: Assumes no triply-connected edges.
 ***************************************************************************/
 
@@ -289,7 +289,7 @@ int surface_net( struct wall **facelist, int nfaces )
   
   nkeys = (3*nfaces)/2;
 
-  if ( ehtable_init(&eht,nkeys) ) return -1;
+  if ( ehtable_init(&eht,nkeys) ) return 1;
   
   for (i=0;i<nfaces;i++)
   {
@@ -310,7 +310,7 @@ int surface_net( struct wall **facelist, int nfaces )
       pe.face1 = i;
       pe.edge1 = j;
       
-      if ( ehtable_add(&eht,&pe) ) return -1;
+      if ( ehtable_add(&eht,&pe) ) return 1;
     }
   }
   
@@ -332,7 +332,7 @@ int surface_net( struct wall **facelist, int nfaces )
           facelist[pep->face1]->nb_walls[pep->edge1] = facelist[pep->face2];
           facelist[pep->face2]->nb_walls[pep->edge2] = facelist[pep->face1];
           e = (struct edge*) mem_get( facelist[pep->face1]->birthplace->join );
-          if (e==NULL) return -1;
+          if (e==NULL) return 1;
           e->forward = facelist[pep->face1];
           e->backward = facelist[pep->face2];
           init_edge_transform(e,pep->edge1);
@@ -346,7 +346,7 @@ int surface_net( struct wall **facelist, int nfaces )
         if (!same) is_closed = 0;
         same=0;
         e = (struct edge*) mem_get( facelist[pep->face1]->birthplace->join );
-        if (e==NULL) return -1;
+        if (e==NULL) return 1;
         e->forward = facelist[pep->face1];
         e->backward = NULL;
         init_edge_transform(e,pep->edge1);
@@ -358,7 +358,7 @@ int surface_net( struct wall **facelist, int nfaces )
   }
   
   ehtable_kill(&eht);
-  return is_closed;
+  return -is_closed;  /* We use 1 to indicate malloc failure so return 0/-1 */
 }
 
 
@@ -456,12 +456,8 @@ int sharpen_object(struct object *parent)
   
   if (parent->object_type == POLY_OBJ || parent->object_type == BOX_OBJ)
   {
-    i = parent->n_walls;
-    if (i>100) i=100;
-    if (i<10) i=10;
-    
     i = surface_net(parent->wall_p , parent->n_walls);
-    if (i==-1) return 1;
+    if (i==1) return 1;
   }
   else if (parent->object_type == META_OBJ)
   {

@@ -24,7 +24,7 @@
 #define ON_GRID          0x02
 #define IS_SURFACE       0x04
 #define NOT_FREE         0x07
-#define IS_ACTIVE        0x08
+#define TIME_VARY        0x08
 #define CAN_MOLMOL       0x10
 #define CAN_MOLGRID      0x20
 #define CAN_MOLSURF      0x40
@@ -139,6 +139,7 @@
 #define ACT_INERT   0x010
 #define ACT_REACT   0x020
 #define ACT_NEWBIE  0x040
+#define ACT_CHANGE  0x080
 
 #define IN_SCHEDULE 0x100
 #define IN_SURFACE  0x200
@@ -417,11 +418,7 @@ struct rxn
   struct species **players;  /* Identities of reactants/products */
   short *geometries;         /* Geometries of reactants/products */
 
-  int n_rate_t_rxns;         /* How many pathways have varying rates? */
-  int *rate_t_rxn_map;       /* Indices of pathways with varying rates */
-  struct t_func *rate_t;     /* Rate over time for each varying pathway */
-  struct t_func *jump_t;     /* Summary of transition times */   
-  u_int last_update;         /* When did we last update rates? */
+  struct t_func *rate_t;     /* List of rates changing over time */
   
   struct pathway *pathway_head; /* list of pathways built at parse-time */
 };
@@ -441,6 +438,7 @@ struct pathway {
   struct species *reactant3;
   double km;
   double kcat;
+  char* km_filename;
   short orientation1;
   short orientation2;
   short orientation3;
@@ -459,10 +457,10 @@ struct product {
 /* Piecewise constant function for time-varying reaction rates */
 struct t_func
 {
-  int index;        /* Which constant part are we in? */
-  int n;            /* How many pieces do we have? */
-  u_int *time;      /* When are we done (units=timesteps)? */
-  double *value;    /* What is the value now? */
+  struct t_func *next;
+  double time;                    /* Time to switch to next rate */
+  double value;                   /* Current rate */
+  int path;                       /* Which rxn pathway is this for? */
 };
 
 
@@ -749,6 +747,7 @@ struct volume
   int hashsize;                 /* How many entries in our hash table? */
   int n_reactions;              /* How many reactions are there, total? */
   struct rxn **reaction_hash;   /* A hash table of all reactions. */
+  struct mem_helper *rxn_mem;   /* Memory to store time-varying reactions */
   
   int collide_hashmask;         /* Mask for looking up collision hash table */
   struct counter **collide_hash;/* Collision hash table */

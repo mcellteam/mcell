@@ -423,6 +423,104 @@ int equivalent_geometry(struct pathway *p1,struct pathway *p2,int n)
 
 
 /*************************************************************************
+load_rate_file:
+In: Reaction structure that we'll load the rates into.
+    Filename to read the rates from.
+    Index of the pathway that these rates apply to.
+    mdlparse_vars struct (for access to global data)
+Out: Returns 1 on error, 0 on success.
+     Rates are added to the rate_t linked list.  If there is a rate
+     given for time <= 0, then this rate is stuck into cum_rates and
+     the (time <= 0) entries are not added to the list.  If no initial
+     rate is given in the file, it is assumed to be zero.
+Note: The file format is assumed to be two columns of numbers; the first
+      column is time (in seconds) and the other is rate (in appropriate
+      units) that starts at that time.  Lines that are not numbers are
+      ignored.
+*************************************************************************/
+#define RATE_SEPARATORS "\f\n\r\t\v ,;"
+#define FIRST_DIGIT "+-0123456789"
+int load_rate_file(struct rxn *rx , char *fname , int path, struct mdlparse_vars *mpvp)
+{
+  int i;
+  FILE *f = fopen(fname,"r");
+  
+  if (!f) return 1;
+  else
+  {
+    struct t_func *tp,*tp2;
+    double t,rate;
+    char buf[2048];
+    char *cp;
+    int linecount = 0;
+#ifdef DEBUG
+    int valid_linecount = 0;
+#endif
+    
+    tp2 = NULL;
+    while ( fgets(buf,2048,f) )
+    {
+      linecount++;
+      for (i=0;i<2048;i++) { if (!strchr(RATE_SEPARATORS,buf[i])) break; }
+      
+      if (i<2048 && strchr(FIRST_DIGIT,buf[i]))
+      {
+        t = strtod( (buf+i) , &cp );
+        if (cp == (buf+i)) continue;  /* Conversion error. */
+        
+        for ( i=cp-buf ; i<2048 ; i++) { if (!strchr(RATE_SEPARATORS,buf[i])) break; }
+        rate = strtod( (buf+i) , &cp );
+        if (cp == (buf+i)) continue;  /* Conversion error */
+        
+        tp = mem_get(mpvp->vol->rxn_mem);
+        tp->next = NULL;
+        tp->path = path;
+        tp->time = t / mpvp->vol->time_unit;
+        tp->value = rate;
+#ifdef DEBUG
+        valid_linecount++;
+#endif
+        
+        if (rx->rate_t == NULL)
+        {
+          rx->rate_t = tp;
+          tp2 = tp;
+        }
+        else
+        {
+          if (tp2==NULL)
+          {
+            tp2 = tp;
+            tp->next = rx->rate_t;
+            rx->rate_t = tp;
+          }
+          else
+          {
+            if (tp->time < tp2->time)
+            {
+              fprintf(mpvp->vol->log_file,"Warning: line %d of rate file %s out of sequence.  Resorting.\n",linecount,fname);
+            }
+            tp->next = tp2->next;
+            tp2->next = tp;
+            tp2 = tp;
+          }
+        }
+      }
+    }
+
+#ifdef DEBUG    
+    fprintf(mpvp->vol->log_file,"Read %d rates from file %s\n",valid_linecount,fname);
+#endif
+    
+    fclose(f);
+  }
+  return 0;
+}
+#undef FIRST_DIGIT
+#undef RATE_SEPARATORS
+
+
+/*************************************************************************
 prepare_reactions:
 In: Global parse structure with all user-defined reactions collected
     into a linked list off of rx->pathway_head.
@@ -448,6 +546,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   struct product *prod,*prod2;
   struct rxn *rx;
   struct rxn **rx_tbl;
+  struct t_func *tp;
   double pb_factor,D_tot,rate;
   short geom;
   int i,j,k,kk,k2;
@@ -456,6 +555,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   int true_paths;
   int rx_hash;
   struct species *temp_sp;
+  int n_rate_t_rxns;
   
   num_rx = 0;
   
@@ -463,6 +563,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   {
     mpvp->vol->rx_radius_3d = 1.0/sqrt( MY_PI*mpvp->vol->effector_grid_density );
   }
+  mpvp->vol->rxn_mem = create_mem( sizeof(struct t_func) , 100 );
   
   for (i=0;i<HASHSIZE;i++)
   {
@@ -530,11 +631,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           rx->next->counter = NULL;
           rx->next->players = NULL;
           rx->next->geometries = NULL;
-          rx->next->n_rate_t_rxns = 0;
-          rx->next->rate_t_rxn_map = NULL;
+
           rx->next->rate_t = NULL;
-          rx->next->jump_t = NULL;
-          rx->next->last_update = 0;
           
           rx->next->pathway_head = NULL;
           
@@ -562,11 +660,16 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         if (rx->product_idx==NULL || rx->cum_rates==NULL ||
             rx->cat_rates==NULL || rx->counter==NULL) return 1;
         
+        
+        n_rate_t_rxns = 0;
         for (j=0 , path=rx->pathway_head ; path!=NULL ; j++ , path = path->next)
         {
           rx->product_idx[j] = 0;
           rx->cat_rates[j] = path->kcat;
-          rx->cum_rates[j] = path->km;
+
+          if (path->km_filename == NULL) rx->cum_rates[j] = path->km;
+          else n_rate_t_rxns++;
+          
           rx->counter[j] = 0;
           recycled1 = 0;
           recycled2 = 0;
@@ -582,7 +685,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         }
 
   /* Now that we know how many products there really are, set the index array */
-  /* and malloc space for all the product and geometry flags */
+  /* and malloc space for the products and geometries. */
         path = rx->pathway_head;
         
         num_players = rx->n_reactants;
@@ -598,6 +701,34 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         rx->geometries = (short*)malloc(sizeof(short)*rx->product_idx[rx->n_pathways]);
         
         if (rx->players==NULL || rx->geometries==NULL) return 1;
+
+  /* Load all the time-varying rates from disk (if any), merge them into */
+  /* a single sorted list, and pull off any updates for time zero. */
+        if (n_rate_t_rxns > 0)
+        {
+          k = 0;
+          for (j=0, path=rx->pathway_head ; path!=NULL ; j++, path=path->next)
+          {
+            if (path->km_filename != NULL)
+            {
+              kk = load_rate_file( rx , path->km_filename , j , mpvp );
+              if (kk)
+              {
+                printf("Couldn't load rates from file %s\n",path->km_filename);
+                return 1;
+              }
+            }
+          }
+          rx->rate_t = (struct t_func*)
+            ae_list_sort( (struct abstract_element*)rx->rate_t );
+            
+          while (rx->rate_t != NULL && rx->rate_t->time <= 0.0)
+          {
+            rx->cum_rates[ rx->rate_t->path ] = rx->rate_t->value;
+            rx->rate_t = rx->rate_t->next;
+          }
+        }
+        
 
   /* Set the geometry of the reactants.  These are used for triggering. */
   /* Since we use flags to control orientation changes, just tell everyone to stay put. */
@@ -797,6 +928,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           }
           printf("\n");
         }
+
         for (j=1;j<rx->n_pathways;j++)
         {
           if (rx->n_reactants==1) rate = 1.0-exp(-mpvp->vol->time_unit*rx->cum_rates[j]);
@@ -816,10 +948,28 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           rx->cum_rates[j] = rate + rx->cum_rates[j-1];
         }
         
+        printf("Made it to here!\n");
+
+        if (n_rate_t_rxns > 0)
+        {
+          if (rx->n_reactants==1)
+          {
+            for (tp = rx->rate_t ; tp != NULL ; tp = tp->next)
+               tp->value = 1.0 - exp(-mpvp->vol->time_unit*tp->value);
+          }
+          else
+          {
+            for (tp = rx->rate_t ; tp != NULL ; tp = tp->next)
+               tp->value *= pb_factor;
+          }
+        }
+        
         rx = rx->next;
       }
     }
   }
+  
+  printf("Made it here, too!\n");
   
 /* And, finally, we just have to move all the reactions from the */
 /* symbol table into the reaction hash table (of appropriate size). */

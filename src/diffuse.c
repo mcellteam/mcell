@@ -491,7 +491,7 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   struct subvolume *sv;
   struct wall_list *wl;
   struct wall *w;
-  struct rxn *r;
+  struct rxn *rx;
   struct molecule *mp,*old_mp;
   struct grid_molecule *g;
   struct abstract_molecule *am;
@@ -507,11 +507,6 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   
   int calculate_displacement = 1;
 
-#if 0  
-  double lo = 1.0/world->length_unit;
-  double hi = 2.0/world->length_unit;
-#endif
-  
   sm = m->properties;
   if (sm==NULL) printf("BROKEN!!!!!\n");
   if (sm->space_step <= 0.0)
@@ -520,57 +515,17 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
     return m;
   }
   
-#if 0
-  if (m->subvol != find_subvolume(&(m->pos),m->subvol))
-  {
-    printf("U POSITION: LOST (%x at t=%.3e)\n",(int)m,m->subvol->mem->current_time);
-  }
-  if (test_subvol_for_circular(m->subvol))
-  {
-    printf("U MOLECULES: RINGED [%x by %x]\n",(int)m->subvol,(int)m);
-    printf("  [%d]",m->subvol->mol_count); mp = m->subvol->mol_head;
-    for (i=0;i<100;i++)
-    {
-      printf(" %x",(int)mp);
-      mp = mp->next_v;
-      if (mp==NULL) break;
-    }
-    printf("\n");
-  }
-#endif
+/* Even if we can't react, let's do a little bit of clean up. */
+/* We'll just clear out anyone after us who is defunct and */
+/* not worry about the whole list.  (Tom's idea, impl. by Rex) */
 
-#if 0
-  if (m->pos.x < lo || m->pos.x > hi || m->pos.y < lo || m->pos.y > hi ||
-      m->pos.z < lo || m->pos.z > hi)
-  {
-/*
-    printf("U BOXIN': LEAKY (%.3e %.3e %.3e not in [%.3e %.3e]\n",
-           m->pos.x,m->pos.y,m->pos.z,lo,hi);
-*/
-  }
-#endif
-
-
-#if 1
   while (m->next_v != NULL && m->next_v->properties == NULL)
   {
     mp = m->next_v;
-    if ((mp->flags & TYPE_GRID)!=0) printf("Huh?!\n");
     m->next_v = mp->next_v;
     
     if ((mp->flags & IN_MASK)==IN_VOLUME)
     {
-#if 0
-      if (search_schedule_for_me(mp->subvol->mem->timer,(struct abstract_element*)mp))
-      {
-        printf("ERRORROROROROR!!\n");
-        printf("Flags are %x\n",mp->flags);
-      }
-      if (!search_memory_for_me(mp->subvol->mem->mol,(struct abstract_list*)mp))
-      {
-        printf("Idiotocracy!\n");
-      }
-#endif
       mem_put(mp->birthplace,mp);
     }
     else if ((mp->flags & IN_VOLUME) != 0)
@@ -579,19 +534,12 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
       mp->next_v = NULL;
     }
   }
-#endif
+
+/* Done housekeeping, now let's do something fun! */    
   
 pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
   sv = m->subvol;
-  
-  
-/* Even if we can't react, let's do a little bit of clean up. */
-/* We'll just clear out anyone after us who is defunct and */
-/* not worry about the whole list.  (Tom's idea, impl. by Rex) */
-
-
-/* Done housekeeping, now let's do something fun! */    
   
   shead = NULL;
   old_mp = NULL;
@@ -622,16 +570,16 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         else goto continue_special_diffuse_3D;  /*continue without incrementing pointer*/
       }
       
-      r = trigger_bimolecular(
-              m->properties->hashval,mp->properties->hashval,
-              (struct abstract_molecule*)m,(struct abstract_molecule*)mp,0,0
-            );
+      rx = trigger_bimolecular(
+               m->properties->hashval,mp->properties->hashval,
+               (struct abstract_molecule*)m,(struct abstract_molecule*)mp,0,0
+             );
       
-      if (r != NULL)
+      if (rx != NULL)
       {
         smash = mem_get(sv->mem->coll);
         smash->target = (void*) mp;
-        smash->intermediate = r;
+        smash->intermediate = rx;
         smash->next = shead;
         smash->what = COLLIDE_MOL;
         shead = smash;
@@ -716,18 +664,6 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   d2 = displacement.x*displacement.x + displacement.y*displacement.y +
        displacement.z*displacement.z;
        
-#if 0
-  if (sqrt(d2)*world->length_unit > 0.5)
-  {
-    if (calculate_displacement)
-      printf("Yikes, molecule %x wants to travel %.3f on seed %d!\n",
-             (int)m,sqrt(d2),world->seed-1);
-    else
-      printf("Yowzers, molecule %x wants to travel %.3f more!\n",
-             (int)m,sqrt(d2));
-  }
-#endif
-  
   do
   {
     shead2 = ray_trace(m,shead,sv,&displacement);
@@ -752,13 +688,15 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         temp->next = smash;
         smash = temp;
       }
+      
+      rx = smash->intermediate;
 
       if ( (smash->what & COLLIDE_MOL) != 0 && !inert )
       {
         m->collisions++;
 
         am = (struct abstract_molecule*)smash->target;
-        if ((am->flags & ACT_INERT) != 0)
+        if ((am->flags & ACT_INERT) != 0)  /* FIXME */
         {
           if (smash->t < am->t + am->t2) continue;
         }
@@ -767,11 +705,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           &(smash->loc),&displacement,world->rx_radius_3d,m->subvol
         );
         
-        i = test_bimolecular(smash->intermediate,factor);
+        if (rx->rate_t != NULL) check_rates(rx,m->t);
+
+        i = test_bimolecular(rx,factor);
         if (i<0) continue;
         
         j = outcome_bimolecular(
-                smash->intermediate,i,(struct abstract_molecule*)m,
+                rx,i,(struct abstract_molecule*)m,
                 am,0,0,m->t+steps*smash->t,&(smash->loc)
               );
         
@@ -798,18 +738,19 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             if (m->index != j || m->releaser != w->effectors)
             {
             g = w->effectors->mol[j];
-            r = trigger_bimolecular(
+            rx = trigger_bimolecular(
               m->properties->hashval,g->properties->hashval,
               (struct abstract_molecule*)m,(struct abstract_molecule*)g,
               k,g->orient
             );
-            if (r!=NULL)
+            if (rx!=NULL)
             {
-              i = test_bimolecular(r,rate_factor * w->effectors->binding_factor);
+              if (rx->rate_t != NULL) check_rates(rx,m->t);
+              i = test_bimolecular(rx,rate_factor * w->effectors->binding_factor);
               if (i >= 0)
               {
                 l = outcome_bimolecular(
-                  r,i,(struct abstract_molecule*)m,
+                  rx,i,(struct abstract_molecule*)m,
                   (struct abstract_molecule*)g,
                   k,g->orient,m->t+steps*smash->t,&(smash->loc)
                 );
@@ -834,17 +775,18 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         if ( (m->properties->flags&CAN_MOLWALL) != 0 )
         {
           m->index = -1;
-          r = trigger_intersect(
+          rx = trigger_intersect(
                   m->properties->hashval,(struct abstract_molecule*)m,k,w
                 );
           
-          if (r != NULL)
+          if (rx != NULL)
           {
-            i = test_intersect(r,rate_factor);
+            if (rx->rate_t != NULL) check_rates(rx,m->t);
+            i = test_intersect(rx,rate_factor);
             if (i>=0)
             {
               j = outcome_intersect(
-                      r,i,w,(struct abstract_molecule*)m,
+                      rx,i,w,(struct abstract_molecule*)m,
                       k,m->t + steps*smash->t,&(smash->loc)
                     );
               if (j==1) continue; /* pass through */
@@ -884,42 +826,6 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         m->path_length += sqrt( (m->pos.x - smash->loc.x)*(m->pos.x - smash->loc.x)
                                +(m->pos.y - smash->loc.y)*(m->pos.y - smash->loc.y)
                                +(m->pos.z - smash->loc.z)*(m->pos.z - smash->loc.z));
-        tell_loc(m,"Whoosh!  ");
-
-#if 0
-        if ((fabs(m->pos.x)-10.0)>EPS_C ||
-            (fabs(m->pos.y)-10.0)>EPS_C ||
-            (fabs(m->pos.z)-10.0)>EPS_C)
-        {
-          struct wall_list *twlp;
-          printf("  We shouldn't be whooshing at %.3f!\n",smash->t);
-          printf("  We are: %.3f %.3f %.3f -> %.3f %.3f %.3f\n",
-                 m->pos.x,m->pos.y,m->pos.z,
-                 smash->loc.x,smash->loc.y,smash->loc.z);
-          printf("  LLF corner: %.3f %.3f %.3f\n",
-                 world->x_fineparts[sv->llf.x],
-                 world->y_fineparts[sv->llf.y],
-                 world->z_fineparts[sv->llf.z]);
-          printf("  URB corner: %.3f %.3f %.3f\n",
-                 world->x_fineparts[sv->urb.x],
-                 world->y_fineparts[sv->urb.y],
-                 world->z_fineparts[sv->urb.z]);
-          for (twlp = sv->wall_head; twlp != NULL; twlp = twlp->next)
-          {
-            printf("    Wall %x: [%.2f %.2f %.2f] [%.2f %.2f %.2f] [%.2f %.2f %.2f]\n",
-                   (int)twlp->this_wall,
-                   twlp->this_wall->vert[0]->x,
-                   twlp->this_wall->vert[0]->y,
-                   twlp->this_wall->vert[0]->z,
-                   twlp->this_wall->vert[1]->x,
-                   twlp->this_wall->vert[1]->y,
-                   twlp->this_wall->vert[1]->z,
-                   twlp->this_wall->vert[2]->x,
-                   twlp->this_wall->vert[2]->y,
-                   twlp->this_wall->vert[2]->z);
-          }
-        }
-#endif
 
         m->pos.x = smash->loc.x;
         m->pos.y = smash->loc.y;
@@ -935,6 +841,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         nsv = traverse_subvol(sv,&(m->pos),smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL);
         if (nsv==NULL)
         {
+          fprintf(world->log_file,"Error: a %s molecule escaped the world at (%.2e,%.2e,%.2e)\n",
+                  m->properties->sym->name,m->pos.x*world->length_unit,
+                  m->pos.y*world->length_unit,m->pos.z*world->length_unit);
           m->properties->population--;
           m->properties = NULL;
           if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
@@ -942,25 +851,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           
           return NULL;
         }
-        else
-        {
-          struct molecule *mm;
-          struct species *mms;
-/*          printf("Moving molecule %x from subvolume %x to %x ",
-                 (int)m,(int)sv,(int)nsv);*/
-          mms = m->properties;
-          mm = m;
-          if (m->subvol == NULL) printf("WE DO NOT EXIST!!\n");
-          if (m->subvol == nsv) printf("CRAZY!  Moving from a volume into itself!\n");
-          m = migrate_molecule(m,nsv);
-          if (m->properties==NULL)
-          {
-            printf("We nulled, used to be %x with %x, now %x with NULL!\n",(int)mm,(int)mms,(int)m);
-            if (calculate_displacement) printf("(First pass.)\n");
-          }
-          
-/*          printf("and identity is now %x.\n",(int)m);*/
-        }
+        else m = migrate_molecule(m,nsv);
 
         if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
         if (shead != NULL) mem_put_list(sv->mem->coll,shead);
@@ -1030,12 +921,13 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     
     if (a->t2 < EPS_C || a->t2 < EPS_C*a->t)
     {
-      if ((a->flags & (ACT_INERT+ACT_NEWBIE)) != 0)
+      if ((a->flags & (ACT_INERT+ACT_NEWBIE+ACT_CHANGE)) != 0)
       {
-        a->flags -= (a->flags & (ACT_INERT + ACT_NEWBIE));
+        a->flags -= (a->flags & (ACT_INERT + ACT_NEWBIE + ACT_CHANGE));
         if ((a->flags & ACT_REACT) != 0)
         {
           r = trigger_unimolecular(a->properties->hashval,a);
+          if (r->rate_t != NULL) check_rates(r,(a->t + a->t2)*(1.0+EPS_C));
           a->t2 = timeof_unimolecular(r);
         }
       }
@@ -1047,6 +939,12 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         if (j) /* We still exist */
         {
           a->t2 = timeof_unimolecular(r);
+          if ( r->rate_t != NULL )
+          {
+            if (a->t + a->t2 > r->rate_t->time)
+            a->t2 = r->rate_t->time - a->t;
+            a->flags |= ACT_CHANGE;
+          }
         }
         else continue;
       }

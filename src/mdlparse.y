@@ -342,6 +342,7 @@ struct counter_list *cnt;
 %type <dbl> diffusion_def
 %type <dbl> reference_diffusion_def
 %type <dbl> charge_def
+%type <dbl> atomic_rate
 
 %type <str> str_value
 %type <str> str_expr
@@ -3335,9 +3336,6 @@ unimolecular_rxn: reactant RT_ARROW
   }
   mdlpvp->pathp->product_head=NULL;
 
-  mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
-  mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
-
   mdlpvp->fwd_km=0;
   mdlpvp->fwd_kcat=0;
   mdlpvp->prod_all_3d=1;
@@ -3346,6 +3344,33 @@ unimolecular_rxn: reactant RT_ARROW
 {
   mdlpvp->pathp->km=mdlpvp->fwd_km;
   mdlpvp->pathp->kcat=mdlpvp->fwd_kcat;
+  if (mdlpvp->rate_filename != NULL)
+  {
+    struct pathway *tpp;
+    
+    mdlpvp->pathp->km_filename = mdlpvp->rate_filename;
+    mdlpvp->rate_filename = NULL;
+    
+    if (mdlpvp->rxnp->pathway_head == NULL)
+    {
+      mdlpvp->rxnp->pathway_head = mdlpvp->pathp;
+      mdlpvp->pathp->next = NULL;
+    }
+    else  /* Move varying reactions to the end of the list */
+    {
+      for ( tpp = mdlpvp->rxnp->pathway_head ; 
+            tpp->next != NULL && tpp->next->km_filename==NULL ; 
+            tpp = tpp->next ) {}
+      mdlpvp->pathp->next = tpp->next;
+      tpp->next = mdlpvp->pathp;
+    }
+  }
+  else
+  {
+    mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
+    mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
+  }
+
   if (mdlpvp->prod_all_3d && 
       (mdlpvp->rxnp->pathway_head->reactant1->flags&NOT_FREE)==0) {
     for (mdlpvp->prodp=mdlpvp->rxnp->pathway_head->product_head;
@@ -3364,7 +3389,14 @@ unimolecular_rxn: reactant RT_ARROW
     }
     no_printf(" %s[%d]",mdlpvp->prodp->prod->sym->name,mdlpvp->prodp->orientation);
   }
-  no_printf(" [%.9g,%.9g]\n",mdlpvp->rxnp->pathway_head->km,mdlpvp->rxnp->pathway_head->kcat);
+  if (mdlpvp->pathp->km_filename == NULL)
+  {
+    no_printf(" [%.9g,%.9g]\n",mdlpvp->rxnp->pathway_head->km,mdlpvp->rxnp->pathway_head->kcat);
+  }
+  else
+  {
+    no_printf(" [(%s)]\n",mdlpvp->pathp->km_filename);
+  }
 #endif
 };
 
@@ -3425,6 +3457,11 @@ bimolecular_rxn: reactant '+'
 {
   mdlpvp->pathp->km=mdlpvp->fwd_km;
   mdlpvp->pathp->kcat=mdlpvp->fwd_kcat;
+  if (mdlpvp->rate_filename != NULL)
+  {
+    mdlpvp->pathp->km_filename = mdlpvp->rate_filename;
+    mdlpvp->rate_filename = NULL;
+  }
   if (mdlpvp->prod_all_3d &&
       (mdlpvp->rxnp->pathway_head->reactant1->flags&NOT_FREE)==0 &&
       (mdlpvp->rxnp->pathway_head->reactant2->flags&NOT_FREE)==0) {
@@ -3447,7 +3484,14 @@ bimolecular_rxn: reactant '+'
     }
     no_printf(" %s[%d]",mdlpvp->prodp->prod->sym->name,mdlpvp->prodp->orientation);
   }
-  no_printf(" [%.9g,%.9g]\n",mdlpvp->rxnp->pathway_head->km,mdlpvp->rxnp->pathway_head->kcat);
+  if (mdlpvp->pathp->km_filename == NULL)
+  {
+    no_printf(" [%.9g,%.9g]\n",mdlpvp->rxnp->pathway_head->km,mdlpvp->rxnp->pathway_head->kcat);
+  }
+  else
+  {
+    no_printf(" [(%s)]\n",mdlpvp->pathp->km_filename);
+  }
 #endif
 };
 
@@ -3531,26 +3575,56 @@ fwd_rx_rate1or2:  fwd_rx_rate1
 ;
 
 
-fwd_rx_rate1: '[' num_expr ']'
+fwd_rx_rate1: '[' atomic_rate ']'
 {
   mdlpvp->fwd_km=$<dbl>2;
 }
-	| '[' '>' num_expr ']'
+	| '[' '>' atomic_rate ']'
 {
   mdlpvp->fwd_km=$<dbl>3;
 };
 
 
-fwd_rx_rate2: '[' num_expr ',' num_expr ']'
+fwd_rx_rate2: '[' atomic_rate ',' num_expr ']'
 {
   mdlpvp->fwd_km=$<dbl>2;
   mdlpvp->fwd_kcat=$<dbl>4;
 }
-	| '[' '>' num_expr ',' num_expr ']'
+	| '[' '>' atomic_rate ',' num_expr ']'
 {
   mdlpvp->fwd_km=$<dbl>3;
   mdlpvp->fwd_kcat=$<dbl>5;
 };
+
+atomic_rate: num_expr_only
+{
+  $$ = $<dbl>1;
+  mdlpvp->rate_filename = NULL;
+}
+	| str_expr_only
+{
+  $$=0;
+  mdlpvp->rate_filename = $<str>1;
+}
+	| existing_var_only
+{
+  struct sym_table *gp = $<sym>1;
+  switch (gp->sym_type)
+  {
+    case DBL:
+      $$ = *(double *)gp->value;
+      break;
+    case STR:
+      $$ = 0;
+      mdlpvp->rate_filename = my_strdup((char*)gp->value);
+      break;
+    default:
+      mdlerror("Invalid variable used for rates: must be number or filename");
+      return(1);
+      break;
+  }
+};
+  
 
 
 viz_output_def: VIZ_DATA_OUTPUT '{'
@@ -5626,7 +5700,7 @@ struct mdlparse_vars *clunky_mpvp_for_errors;
 
 void mdlerror(char *s,...)
 {
-  va_list ap;
+/*  va_list ap; */
   FILE *log_file;
   struct mdlparse_vars *mpvp = clunky_mpvp_for_errors;
 
