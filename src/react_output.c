@@ -121,7 +121,7 @@ int update_reaction_output(struct output_block *obp)
   /* update all counters */
 
   curr_buf_index=obp->curr_buf_index;
-  obp->time_array[curr_buf_index]=obp->t*world->time_unit*1.0e6;
+  obp->time_array[curr_buf_index]=obp->t*world->time_unit*MAX_TARGET_TIMESTEP;
 
   oip=obp->output_item_head;
   while (oip!=NULL) {
@@ -191,8 +191,30 @@ int update_reaction_output(struct output_block *obp)
     {
       return 1;  /* Note that there has been an error. */
     }
-  }
+    
+    /* For the correct counting inside "write_reaction_output"
+    // we have to set the data_type for the compound count statements
+    // to EXPR.
+    */
+    oip=obp->output_item_head;
+    while (oip!=NULL) {
+       oep=oip->output_evaluator_head;
+       while(oep != NULL){
+          switch (oep->data_type) {
+             case DBL:
+             case INT:
+  	     	if((oep->operand1 != NULL) || (oep->operand2 != NULL)){
+			oep->data_type = EXPR;
+             	}
+             	break;
+             default: break;
+          }
+          oep = oep->next;
+       }
+       oip = oip->next;
+    }
 
+  }
   no_printf("Done updating reaction output\n");
   fflush(log_file);
   return 0;
@@ -243,6 +265,7 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
     }
     else {
       if ((fp=fopen(oip->outfile_name,"a"))==NULL) {   
+	fprintf(log_file,"MCell: could not open output file %s\n",oip->outfile_name);
 	return (1);
       }
     }
@@ -257,7 +280,19 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
     else if (oep->index_type==INDEX_VAL) {
       stop_i=oep->n_data;
     }
- 
+    
+    /* For the correct writing of the final_data to the output file
+    // the data_type field should be either DBL, or INT.
+    */
+    if(oep->data_type == EXPR){
+      if((oep->operand1->data_type == DBL) || (oep->operand2->data_type == DBL))
+      {
+	oep->data_type = DBL;
+      }else{
+	oep->data_type = INT;
+      }
+    }
+
     switch (oep->data_type) {
     case DBL:
       for (i=0;i<stop_i;i++) {
@@ -299,7 +334,6 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
  */
 int eval_count_expr_tree(struct output_evaluator *oep)
 {
-
   if (oep->data_type==EXPR) {
     if(eval_count_expr_tree(oep->operand1)) return (1);
     if(eval_count_expr_tree(oep->operand2)) return (1);

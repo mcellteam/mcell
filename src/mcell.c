@@ -224,8 +224,8 @@ void run_sim(void)
   t_final = time(NULL);
   getrusage(RUSAGE_SELF,&run_time);
   fprintf( world->log_file,"Total CPU time = %f (user) and %f (system)\n",
-           run_time.ru_utime.tv_sec + (run_time.ru_utime.tv_usec/1.0e6),
-           run_time.ru_stime.tv_sec + (run_time.ru_stime.tv_usec/1.0e6) );
+           run_time.ru_utime.tv_sec + (run_time.ru_utime.tv_usec/MAX_TARGET_TIMESTEP),
+           run_time.ru_stime.tv_sec + (run_time.ru_stime.tv_usec/MAX_TARGET_TIMESTEP) );
   fprintf( world->log_file,"Total wall clock time = %d seconds\n",
            (int)(t_final - t_initial) );
 #endif
