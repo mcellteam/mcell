@@ -35,4 +35,31 @@ void sort_num_expr_list(struct num_expr_list *head);
 int my_sprintf(char *strp,char *format,struct arg *argp,u_int num_args);
 int my_fprintf(FILE *outfile,char *format,struct arg *argp,u_int num_args);
 
+struct counter *retrieve_reg_counter(struct volume *volp,
+                                     struct species *sp,
+                                     struct region *rp);
+struct counter *store_reg_counter(struct volume *volp,
+                                  struct species *sp,
+                                  struct region *rp);
+
+struct counter_list *init_mol_counter(byte counter_type,
+                                      struct counter_info *cip,
+                                      struct counter *cp,
+                                      u_int buffersize);
+int insert_mol_counter(byte counter_type,
+                       struct volume *volp,
+                       struct counter_info *cip,
+                       struct counter_list *clp,
+                       struct counter *cp,
+                       u_int buffersize);
+int build_mol_count_tree(byte counter_type,
+                         struct volume *volp,
+                         struct object *objp,
+                         struct object *root_objp,
+                         struct counter_info *cip,
+                         struct counter_list *clp,
+                         struct species *sp,
+                         u_int buffersize,
+                         char *sub_name);
+
 #endif

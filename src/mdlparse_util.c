@@ -205,8 +205,9 @@ struct region *make_new_region(struct volume *volp,char *obj_name,
   char temp[1024];
   char *region_name;
 
-  /* full region names in symbol table have the form:
-	meta.meta.poly,region_last_name */
+  /* full region names of REG type symbols stored in main symbol table
+     have the form:
+	metaobj.metaobj.poly,region_last_name */
 
   strncpy(temp,"",1024);
   strncpy(temp,obj_name,1022);
@@ -1402,6 +1403,305 @@ int my_sprintf(char *strp,char *format,struct arg *argp,u_int num_args)
 }
 
 
+struct counter *retrieve_reg_counter(struct volume *volp,
+                                     struct species *sp,
+                                     struct region *rp)
+{
+  struct counter *cp;
+  u_int j;
+
+  j = (rp->hashval ^ sp->hashval)&volp->count_hashmask;
+  if (j==0) {
+    j = sp->hashval & volp->count_hashmask;
+  }
+  
+  cp=volp->count_hash[j];
+  while(cp!=NULL) {
+    if (cp->reg_type==rp && cp->mol_type==sp) {
+      return(cp);
+    }
+    cp=cp->next;
+  }
+
+  return(NULL);
+}
+
+
+struct counter *store_reg_counter(struct volume *volp,
+                                  struct species *sp,
+                                  struct region *rp)
+{
+  struct counter *cp;
+  u_int j;
+
+  /* create new counter if not already in counter table */
+  if ((cp=retrieve_reg_counter(volp,sp,rp))==NULL) {
+    j = (rp->hashval ^ sp->hashval)&volp->count_hashmask;
+    if (j==0) {
+      j = sp->hashval & volp->count_hashmask;
+    }
+
+    if ((cp=(struct counter *)malloc(sizeof(struct counter)))==NULL) {
+      return(NULL);
+    }
+  
+    cp->next=volp->count_hash[j];
+    volp->count_hash[j]=cp;
+
+    cp->reg_type=rp;
+    cp->mol_type=sp;
+    cp->front_hits=0;
+    cp->back_hits=0;
+    cp->front_to_back=0;
+    cp->back_to_front=0;
+    cp->n_inside=0;
+  }
+
+  return(cp);
+}
+
+
+struct counter_list *init_mol_counter(byte counter_type,
+                                      struct counter_info *cip,
+                                      struct counter *cp,
+                                      u_int buffersize)
+{
+  struct counter_list *clp;
+  int i,*intp;
+  
+  if ((clp=(struct counter_list *)malloc(sizeof(struct counter_list)))==NULL) {
+    return(NULL);
+  }
+  clp->next=cip->counter_list_head;
+  cip->counter_list_head=clp;
+
+  clp->update_flag=1;
+  clp->reset_flag=0;
+  clp->index_type=TIME_STAMP_VAL;
+
+  if ((intp=(int *)malloc(buffersize*sizeof(int)))==NULL) {
+    return(NULL);
+  }
+  for (i=0;i<buffersize;i++) {
+    intp[i]=0;
+  }
+
+  clp->data_type=INT;
+  clp->n_data=buffersize;
+  clp->final_data=(void *)intp;
+  switch(counter_type) {
+  case REPORT_CONTENTS:
+    cp->reg_type->flags|=COUNT_CONTENTS;
+    clp->temp_data=(void *)&cp->n_inside;
+    break;
+  case REPORT_FRONT_HITS:
+    cp->reg_type->flags|=COUNT_HITS;
+    clp->temp_data=(void *)&cp->front_hits;
+    break;
+  case REPORT_BACK_HITS:
+    cp->reg_type->flags|=COUNT_HITS;
+    clp->temp_data=(void *)&cp->back_hits;
+    break;
+  case REPORT_FRONT_CROSSINGS:
+    cp->reg_type->flags|=COUNT_HITS;
+    clp->temp_data=(void *)&cp->front_to_back;
+    break;
+  case REPORT_BACK_CROSSINGS:
+    cp->reg_type->flags|=COUNT_HITS;
+    clp->temp_data=(void *)&cp->back_to_front;
+    break;
+  }
+
+  clp->operand1=NULL;
+  clp->operand2=NULL;
+  clp->oper='\0';
+
+  return(clp);
+}
+
+
+
+int insert_mol_counter(byte counter_type,
+                       struct volume *volp,
+                       struct counter_info *cip,
+                       struct counter_list *clp,
+                       struct counter *cp,
+                       u_int buffersize)
+{
+  struct counter_list *operand,*o1,*o2,*tclp;
+
+  operand = clp;
+  while (operand!=NULL) {
+    if (operand->data_type==EXPR) {
+      o1=operand->operand1;
+      o2=operand->operand2;
+      if (o1==NULL) {
+        /* init operand1 and set operand2 to point to count_zero */
+        if ((tclp=init_mol_counter(counter_type,cip,cp,buffersize))==NULL) {
+          return(1);
+        }
+        operand->operand1=tclp;
+        operand->operand2=volp->count_zero;
+        return(0);
+      }
+      else {
+        if (o2==NULL) {
+          mdlerror("Oops 1, unexpected condition encountered while building molecule count tree\n");
+	  return(1);
+        }
+        if (o2->data_type==EXPR) {
+          operand=o2;
+        }
+        else {
+	  if (o2==volp->count_zero) {
+            /* init operand and point operand2 at it */
+            if ((tclp=init_mol_counter(counter_type,cip,cp,buffersize))==NULL) {
+              return(1);
+            }
+            operand->operand2=tclp;
+            return(0);
+          }
+	  else {
+            /* malloc space for new EXPR node in count tree at o2*/
+            tclp=o2;
+            if ((o2=(struct counter_list *)malloc(sizeof(struct counter_list)))==NULL) {
+              return(1);
+            }
+            operand->operand2=o2;
+            if ((operand=init_mol_counter(counter_type,cip,cp,buffersize))==NULL) {
+              return(1);
+            }
+            o2->next=cip->counter_list_head;
+            cip->counter_list_head=o2;
+            o2->update_flag=0;
+            o2->reset_flag=0;
+            o2->index_type=UNKNOWN;
+            o2->data_type=EXPR;
+            o2->n_data=0;
+            o2->temp_data=NULL;
+            o2->final_data=NULL;
+            o2->operand1=tclp;
+            o2->operand2=operand;
+            o2->oper='+';
+            return(0);
+          }
+        }
+      }
+    }
+    else {
+      mdlerror("Oops 2, unexpected condition encountered while building molecule count tree\n");
+      return(1);
+    }
+  }
+
+  return(0);
+}
+
+
+
+int build_mol_count_tree(byte counter_type,
+                         struct volume *volp,
+                         struct object *objp,
+                         struct object *root_objp,
+                         struct counter_info *cip,
+                         struct counter_list *clp,
+                         struct species *sp,
+                         u_int buffersize,
+                         char *sub_name)
+{
+  struct polygon_object *pop,*found_pop;
+  struct object *child_objp;
+  struct sym_table *stp;
+  struct counter *cp;
+  struct region *rp;
+  char temp_str[1024];
+  char *tmp_name,*region_name;
+
+  if (sub_name!=NULL) { 
+    if (strcmp(sub_name,"")==0) {
+      tmp_name=my_strdup("");              
+    }
+    else {
+      tmp_name=my_strcat(sub_name,".");              
+    }
+    sub_name=my_strcat(tmp_name,objp->last_name);    
+    free((void *)tmp_name);
+  }
+  else {
+    sub_name=my_strdup(objp->last_name);    
+  }
+
+  found_pop=NULL;
+  switch (objp->object_type) { 
+
+  case META_OBJ:
+    child_objp=objp->first_child;
+    while (child_objp!=NULL) {
+      if (build_mol_count_tree(counter_type,volp,child_objp,root_objp,cip,clp,sp,buffersize,sub_name)) {
+        return(1);
+      }
+      child_objp=child_objp->next;
+    }
+    break;
+  case BOX_OBJ:
+    pop=(struct polygon_object *)objp->contents;
+    if (pop->fully_closed) {
+      found_pop=pop;
+    }
+    break;
+  case POLY_OBJ:
+    pop=(struct polygon_object *)objp->contents;
+    if (pop->fully_closed) {
+      found_pop=pop;
+    }
+    break;
+  }
+
+  if (found_pop) {
+    strncpy(temp_str,"",1024);
+    strncpy(temp_str,sub_name,1022);
+    strcat(temp_str,",");
+    region_name=my_strcat(temp_str,"ALL");
+    if ((stp=retrieve_sym(region_name,REG,volp->main_sym_table))==NULL) {
+      mdlerror("Unexpected error.  Cannot find default object region\n");
+      return(1);
+    }
+    free((void *)region_name);
+    rp=(struct region *)stp->value;
+
+    if ((cp=store_reg_counter(volp,sp,rp))==NULL) {
+      return(1);
+    }
+
+    switch(counter_type) {
+    case REPORT_ALL_HITS:
+      if (insert_mol_counter(REPORT_FRONT_HITS,volp,cip,clp,cp,buffersize)) {
+        return(1);
+      }
+      if (insert_mol_counter(REPORT_BACK_HITS,volp,cip,clp,cp,buffersize)) {
+        return(1);
+      }
+      break;
+    case REPORT_ALL_CROSSINGS:
+      if (insert_mol_counter(REPORT_FRONT_CROSSINGS,volp,cip,clp,cp,buffersize)) {
+        return(1);
+      }
+      if (insert_mol_counter(REPORT_BACK_CROSSINGS,volp,cip,clp,cp,buffersize)) {
+        return(1);
+      }
+      break;
+    default:
+      if (insert_mol_counter(counter_type,volp,cip,clp,cp,buffersize)) {
+        return(1);
+      }
+      break;
+    }
+  }
+
+  free((void *)sub_name);
+  return(0);
+}
+
 
 
 
@@ -1410,7 +1710,6 @@ int my_sprintf(char *strp,char *format,struct arg *argp,u_int num_args)
 
 
 #if 0
-
 
 
 
@@ -2172,216 +2471,6 @@ int partition_volume(struct volume *volp)
 
   no_printf("Done Partitioning Volume.\n");
   fflush(stderr);
-  return(0);
-}
-
-
-
-struct counter_list *init_mol_counter(struct counter_info *cip,
-                                      u_int buffersize)
-{
-  struct counter_list *clp;
-  int i,*intp;
-  
-  if ((clp=(struct counter_list *)malloc(sizeof(struct counter_list)))==NULL) {
-    mdlerror("Cannot store count data");
-    return(NULL);
-  }
-  clp->next=cip->counter_list_head;
-  cip->counter_list_head=clp;
-
-  clp->update_flag=1;
-  clp->reset_flag=0;
-  clp->index_type=TIME_STAMP_VAL;
-
-  if ((intp=(int *)malloc(buffersize*sizeof(int)))==NULL) {
-    mdlerror("Cannot store count data");
-    return(NULL);
-  }
-  for (i=0;i<buffersize;i++) {
-    intp[i]=0;
-  }
-
-  clp->data_type=INT;
-  clp->n_data=buffersize;
-  clp->final_data=(void *)intp;
-
-  /* NOTE: clp->temp_data must be set to
-  (void *)&cdp->lig_count[ligip->type]
-  at time of instancing */
-  clp->temp_data=NULL;
-
-  clp->operand1=NULL;
-  clp->operand2=NULL;
-  clp->oper='\0';
-
-  return(clp);
-}
-
-
-
-struct counter_list *get_next_operand(struct volume *volp,
-                                      struct counter_info *cip,
-                                      struct counter_list *clp,
-                                      u_int buffersize)
-{
-  struct counter_list *operand,*o1,*o2,*tclp;
-
-  operand = clp;
-  while (operand!=NULL) {
-    if (operand->data_type==EXPR) {
-      o1=operand->operand1;
-      o2=operand->operand2;
-      if (o1==NULL) {
-        /* init operand1 and set operand2 to point to count_zero */
-        if ((tclp=init_mol_counter(cip,buffersize))==NULL) {
-          return(NULL);
-        }
-        operand->operand1=tclp;
-        operand->operand2=volp->count_zero;
-        operand=tclp;
-        return(operand);
-      }
-      else {
-        if (o2==NULL) {
-          mdlerror("Oops 1, unexpected condition encountered while building molecule count tree\n");
-	  return(NULL);
-        }
-        if (o2->data_type==EXPR) {
-          operand=o2;
-        }
-        else {
-	  if (o2==volp->count_zero) {
-            /* init operand and point operand2 at it */
-            if ((tclp=init_mol_counter(cip,buffersize))==NULL) {
-              return(NULL);
-            }
-            operand->operand2=tclp;
-            operand=tclp;
-            return(operand);
-          }
-	  else {
-            /* malloc space for new EXPR node in count tree at o2*/
-            tclp=o2;
-            if ((o2=(struct counter_list *)malloc(sizeof(struct counter_list)))==NULL) {
-              return(NULL);
-            }
-            operand->operand2=o2;
-            if ((operand=init_mol_counter(cip,buffersize))==NULL) {
-              return(NULL);
-            }
-            o2->update_flag=0;
-            o2->reset_flag=0;
-            o2->index_type=UNKNOWN;
-            o2->data_type=EXPR;
-            o2->n_data=0;
-            o2->temp_data=NULL;
-            o2->final_data=NULL;
-            o2->operand1=tclp;
-            o2->operand2=operand;
-            o2->oper='+';
-            o2->next=cip->counter_list_head;
-            cip->counter_list_head=o2;
-            return(operand);
-          }
-        }
-      }
-    }
-    else {
-      mdlerror("Oops 2, unexpected condition encountered while building molecule count tree\n");
-      return(NULL);
-    }
-  }
-
-  return(operand);
-}
-
-
-
-int build_mol_count_tree(struct volume *volp,
-                         struct object *objp,
-                         struct object *root_objp,
-                         struct counter_info *cip,
-                         struct counter_list *clp,
-                         byte lig_type,
-                         u_int buffersize,
-                         char *sub_name)
-{
-  struct polygon_object *pop,*found_pop;
-  struct meta_object *mop;
-  struct object_list *objlp;
-  struct counter_list *next_operand;
-  struct lig_count_ref *lcrp1,*lcrp2;
-  char *tmp_name;
-
-  if (sub_name!=NULL) { 
-    if (strcmp(sub_name,"")==0) {
-      tmp_name=my_strdup("");              
-    }
-    else {
-      tmp_name=my_strcat(sub_name,".");              
-    }
-    sub_name=my_strcat(tmp_name,objp->last_name);    
-    free((void *)tmp_name);
-  }
-  else {
-    sub_name=my_strdup(objp->last_name);    
-  }
-
-  found_pop=NULL;
-  switch (objp->object_type) { 
-  case META_OBJ:
-    mop=(struct meta_object *)objp->obj;
-    objlp=mop->first_child;
-    while (objlp!=NULL) {
-      if (build_mol_count_tree(volp,objlp->object,root_objp,cip,clp,lig_type,buffersize,sub_name)) {
-        return(1);
-      }
-      objlp=objlp->next;
-    }
-    break;
-  case BOX_OBJ:
-    pop=(struct polygon_object *)objp->obj;
-    if (pop->fully_closed) {
-      found_pop=pop;
-    }
-    break;
-  case POLY_OBJ:
-    pop=(struct polygon_object *)objp->obj;
-    if (pop->fully_closed) {
-      found_pop=pop;
-    }
-    break;
-  }
-
-  if (found_pop) {
-    if ((next_operand=get_next_operand(volp,cip,clp,buffersize))==NULL) {
-      return(1);
-    }
-    if ((lcrp1=(struct lig_count_ref *)malloc
-         (sizeof(struct lig_count_ref)))==NULL) {
-      mdlerror("Cannot store molecule count data\n");
-      return(1);
-    }
-    if ((lcrp2=(struct lig_count_ref *)malloc
-         (sizeof(struct lig_count_ref)))==NULL) {
-      mdlerror("Cannot store molecule count data\n");
-      return(1);
-    }
-    lcrp1->type=lig_type;
-    lcrp1->full_name=my_strdup(sub_name);
-    lcrp1->counter_list=next_operand;
-    lcrp1->next=root_objp->lig_count_ref;
-    root_objp->lig_count_ref=lcrp1;
-
-    lcrp2->type=lig_type;
-    lcrp2->full_name=lcrp1->full_name;
-    lcrp2->counter_list=next_operand;
-    lcrp2->next=found_pop->lig_count_ref;
-    found_pop->lig_count_ref=lcrp2;
-  }
-
-  free((void *)sub_name);
   return(0);
 }
 

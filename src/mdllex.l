@@ -78,12 +78,15 @@ I ([0-9]+)
 "ABSORPTIVE"		{return(ABSORPTIVE);}
 "ACOS"			{return(ACOS);}
 "ALL"			{return(ALL);}
+"ALL_CROSSINGS"		{return(ALL_CROSSINGS);}
 "ALL_ELEMENTS"		{return(ALL_ELEMENTS);}
 "ALL_EVENTS"		{return(ALL_EVENTS);}
 "ALL_HITS"		{return(ALL_HITS);}
 "ASIN"			{return(ASIN);}
 "ATAN"			{return(ATAN);}
 "BACK"			{return(BACK);}
+"BACK_CROSSINGS"	{return(BACK_CROSSINGS);}
+"BACK_HITS"		{return(BACK_HITS);}
 "BINDING_POLE"		{return(BINDING_POLE);}
 "BOTH_POLES"		{return(BOTH_POLES);}
 "BOTTOM"		{return(BOTTOM);}
@@ -139,6 +142,8 @@ I ([0-9]+)
 "FOR_EACH_LIGAND"	{return(FOR_EACH_MOLECULE);}
 "FOR_EACH_EFFECTOR"	{return(FOR_EACH_EFFECTOR);}
 "FRONT"			{return(FRONT);}
+"FRONT_CROSSINGS"	{return(FRONT_CROSSINGS);}
+"FRONT_HITS"		{return(FRONT_HITS);}
 "FULLY_RANDOM"		{return(FULLY_RANDOM);}
 "GAUSSIAN_RELEASE_NUMBER" {return(GAUSSIAN_RELEASE_NUMBER);}
 "INCLUDE_FILE"		{return(INCLUDE_FILE);}

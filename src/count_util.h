@@ -5,5 +5,7 @@
 
 void update_collision_count(struct species *sp,struct region_list *rl,int direction,int crossed);
 void count_me_by_region(struct abstract_molecule *me,int n);
+int place_waypoints();
+int check_region_counters();
 
 #endif

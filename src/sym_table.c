@@ -205,7 +205,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       specp->sym=sp;
       specp->eff_dat_head=NULL;
       specp->species_id=0;
-      specp->hashval=0;
+      specp->hashval=hash(sym);
       specp->population=0;
       specp->D=0.0;
       specp->D_ref=0.0;
@@ -289,12 +289,15 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       }
       rp=(struct region *)vp;
       rp->sym=sp;
+      rp->hashval=hash(sym);
       rp->region_last_name=NULL;
       rp->parent=NULL;
       rp->element_list_head=NULL;
       rp->eff_dat_head=NULL;
       rp->surf_class=NULL;
       rp->reg_counter_ref_list=NULL;
+      rp->flags=0;
+      rp->manifold_flag=MANIFOLD_UNCHECKED;
       break;
     case FSTRM:
       if ((vp=(void *)malloc(sizeof(struct file_stream)))==NULL) {
@@ -362,161 +365,5 @@ struct sym_table **init_symtab(int size)
   return(symtab);
 }   
 
-
-
-/* =============== object->counter_hash_table ================== */
-/* Three functions defined here are used to initialize, retrieve and
- * strore region counters for each object.
- * Available after MCell 2.68
- */ 
-
-struct counter_hash_table **init_countertab(int size)
-{ 
-  struct counter_hash_table **countertab; 
-  int i;
-
-  countertab=(struct counter_hash_table **)malloc
-    (size*sizeof(struct counter_hash_table *));
-  for (i=0;i<size;countertab[i++]=NULL);
-  return(countertab);
-} 
-
-
-struct counter_hash_table *retrieve_counter(char *counter,
-  struct reg_counter_ref *rcrp, struct counter_hash_table **countertab)
-{
-  struct counter_hash_table *sp;
-  struct reg_counter_ref_list *rcrlp;
-  struct reg_counter_ref *sp_rcrp;
-  struct rx *next_state;
-  struct region *parent;
-  byte count_type, count_method;
-
-  count_type=rcrp->count_type;
-  count_method=rcrp->count_method;
-  next_state=rcrp->next_state;
-  parent=rcrp->parent;  
-
-  for (sp=countertab[hash(counter)&COUNTER_HASHMASK]; sp!=NULL; sp=sp->next) {
-    rcrlp=(struct reg_counter_ref_list *)sp->value;
-    sp_rcrp=rcrlp->reg_counter_ref;
-    
-    if ((strcmp(counter,sp->name)==0)
-        && next_state==sp_rcrp->next_state
-        && count_type==sp_rcrp->count_type
-        && parent==sp_rcrp->parent
-        && count_method==sp_rcrp->count_method) {
-      return(sp);
-    }
-  }
-  return(NULL);
-}
-
-
-struct counter_hash_table *store_counter(char *counter,
-  struct reg_counter_ref_list *rcrlp, struct counter_hash_table **countertab)
-{
-  struct counter_hash_table *new_comer, *curr, *hash_table_head,  *prev;
-  unsigned hashval;
-  struct region *rp,*rp_curr;
-  struct reg_counter_ref_list  *rcrlp_curr;
-  struct reg_counter_ref *rcrp, *rcrp_curr;
-  int sort_flag;
-  
-
-    /* save the counters into the table, and sort them by 
-       the order of increasing region address.
-     */
-    curr=NULL;
-    hash_table_head=NULL;
-    /* Get info of the new region counter */
-    hashval=hash(counter)&COUNTER_HASHMASK;
-    rcrp=rcrlp->reg_counter_ref;
-    rp=rcrp->parent;
-
-    /* If it is an empty table, save the new counter to the table */
-    if (countertab[hashval]==NULL) {
-      if ((new_comer=(struct counter_hash_table *)malloc
-          (sizeof(struct counter_hash_table)))==NULL) {
-        return(NULL);
-      }
-      new_comer->value=rcrlp;
-      new_comer->name=counter;
-      new_comer->next=countertab[hashval];
-      countertab[hashval]=new_comer;
-    }
-    /* if table not empty, sort counter's region address by an
-     * increasing order to put the new counter to an appropriate 
-     * position.
-     */  
-    else {
-      prev=NULL;
-      curr=countertab[hashval];
-      sort_flag=0;
-      /* find head item info */
-      rcrlp_curr=(struct reg_counter_ref_list *)curr->value;
-      rcrp_curr=rcrlp_curr->reg_counter_ref;
-      rp_curr=rcrp_curr->parent;
-      /* if the new counter's region address smaller or equal to the 
-       * one on top of the table, put the new counter to top of it.
-       */       
-      if ((int)rp_curr>=(int)rp) {
-	if ((new_comer=(struct counter_hash_table *)malloc
-            (sizeof(struct counter_hash_table)))==NULL) {
-	  return(NULL);
-	}
-
-	new_comer->value=rcrlp;
-	new_comer->name=counter;
-	new_comer->next=countertab[hashval];
-	countertab[hashval]=new_comer;
-      }
-      /* if new counter's region address bigger than the table head one,
-       * start sort and search until find one whoes region address 
-       * bigger than the new counter, and insert the new counter  
-       * before that table item
-       */       
-      else {
-	while ((curr!=NULL)&&(sort_flag==0)) {
-	  rcrlp_curr=(struct reg_counter_ref_list *)curr->value;
-	  rcrp_curr=rcrlp_curr->reg_counter_ref;
-	  rp_curr=rcrp_curr->parent;
-
-	  if ((int)rp<(int)rp_curr) {
-	    sort_flag=1;
-	  }
-	  prev=curr;
-	  curr=curr->next;
-	}
-	/* insert the new counter to the list*/
-	if (curr!=NULL) {
-	  if ((new_comer=(struct counter_hash_table *)malloc
-              (sizeof(struct counter_hash_table)))==NULL) {
-	    return(NULL);
-	  }
-	  rcrlp_curr=(struct reg_counter_ref_list *)curr->value;
-	  rcrp_curr=rcrlp_curr->reg_counter_ref;
-	  rp_curr=rcrp_curr->parent;
-
-	  new_comer->value=rcrlp;
-	  new_comer->name=counter;
-	  new_comer->next=curr;
-	  prev->next=new_comer;
-	}
-	/* append new counter to the end of the list */
-	else if (curr==NULL) {
-	  if ((new_comer=(struct counter_hash_table *)malloc
-              (sizeof(struct counter_hash_table)))==NULL) {
-	    return(NULL);
-	  }
-	  new_comer->value=rcrlp;
-	  new_comer->name=counter;
-	  new_comer->next=NULL;
-	  prev->next=new_comer;
-	}
-      }
-    }
-    return(countertab[hashval]);	
-}
 
 

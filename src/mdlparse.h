@@ -95,6 +95,7 @@ struct mdlparse_vars {
   struct counter_info *cip;
   struct counter_list *clp;
   struct counter_list *clp2;
+  struct counter *cp;
 
   struct polygon_object *pop;
   struct ordered_poly *opp;

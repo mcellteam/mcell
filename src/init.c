@@ -169,6 +169,7 @@ int init_sim(void)
   world->r_step=NULL;
   world->d_step=NULL;
   world->n_release_events=0;
+  world->place_waypoints=0;
 
   if ((world->factorial_r=(double *)malloc(101*sizeof(double)))==NULL) {
     fprintf(log_file,"MCell: could not store factorial array\n");
@@ -182,7 +183,7 @@ int init_sim(void)
     world->factorial_r[i]=1.0/fact;
   }
   if (world->seed_seq < 1 || world->seed_seq > 3000) {
-    fprintf(log_file,"MCell: error random sequence number not in range 1 to 3000\n");
+    fprintf(log_file,"MCell: error, random sequence number not in range 1 to 3000\n");
     return(1);
   }
 
@@ -192,14 +193,14 @@ int init_sim(void)
   fflush(log_file);
   ran4_init(&world->seed);
 
-  world->collide_hashmask = 0xFFFF;
-  world->collide_hash = (struct counter**)malloc(sizeof(struct counter*)*(world->collide_hashmask+1));
-  if (world->collide_hash == NULL)
+  world->count_hashmask = COUNT_HASHMASK;
+  world->count_hash = (struct counter**)malloc(sizeof(struct counter*)*(world->count_hashmask+1));
+  if (world->count_hash == NULL)
   {
     fprintf(log_file,"MCell: could not store counter hash table\n");
     return(1);
   }
-  for (i=0;i<=world->collide_hashmask;i++) world->collide_hash[i] = NULL;
+  for (i=0;i<=world->count_hashmask;i++) world->count_hash[i] = NULL;
 
   world->main_sym_table=init_symtab(HASHSIZE);
 
@@ -326,7 +327,18 @@ int init_sim(void)
     fprintf(log_file,"MCell: error initializing object regions\n");
     return(1);
   }
-  
+
+  if (check_region_counters()) {
+    fprintf(log_file,"MCell: error in region count statement\n");
+    return(1);
+  }
+
+  if (world->place_waypoints) {
+    if (place_waypoints()) {
+      fprintf(log_file,"MCell: error storing waypoints\n");
+      return(1);
+    }
+  }
 
 
   /* Decompose the space into subvolumes */
@@ -391,6 +403,7 @@ int init_sim(void)
   fflush(log_file);
   return(0);
 }
+
 
 
 int init_species(void)
@@ -1324,15 +1337,21 @@ int init_wall_regions(struct object *objp, char *full_name)
         for (i=elp->begin;i<=elp->end;i++) {
           if (pop->side_stat[i]) {
 
-            /* prepend this region to wall region list of i_th wall */
+
+            /* prepend this region to wall region list of i_th wall
+               only if the region is used in counting */
             w=objp->wall_p[i];
-            if ((wrlp=(struct region_list *)malloc
-              (sizeof(struct region_list)))==NULL) {
-              return(1);
+            if ((rp->flags & COUNT_SOME) !=0) {
+              if ((wrlp=(struct region_list *)mem_get
+                (w->birthplace->regl))==NULL) {
+                return(1);
+              }
+              wrlp->reg=rp;
+              wrlp->next=w->regions;
+              w->regions=wrlp;
+              w->flags|=rp->flags;
             }
-            wrlp->reg=rp;
-            wrlp->next=w->regions;
-            w->regions=wrlp;
+
             w->surf_class = rp->surf_class;  /* (Re?)set surface class */
  
             /* prepend region eff data for this region
@@ -1417,21 +1436,6 @@ int init_wall_regions(struct object *objp, char *full_name)
       if (pop->side_stat[i]) {
       
         w=objp->wall_p[i];
-
-	/* Try to find out which region contains this wall
-	 * Only when there are regions in this object and 
-	 * there are region counters for this object.
-	 * Else we set it to NULL 6/26/03*/
-/*
-	rlp=objp->regions;
-	if ((rlp!=NULL)&&((reg_count_head!=NULL)||(lig_hit_count!=NULL))) {
-	  w->regions=init_region_list_for_wall(rlp,i); 
-  	}
-	else {
-	  w->regions=NULL;
-	}
-*/
-	/* end of new searching */
 
 	if ((effdp=eff_prop[i])!=NULL) {
 	  if (init_effectors_by_density(w,effdp)) {

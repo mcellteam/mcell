@@ -56,10 +56,10 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
   {
     if (rl->reg->flags & COUNT_SOME)
     {
-      j = (rl->reg->hashval ^ sp->hashval)&world->collide_hashmask;
-      if (j==0) j = sp->hashval & world->collide_hashmask;
+      j = (rl->reg->hashval ^ sp->hashval)&world->count_hashmask;
+      if (j==0) j = sp->hashval & world->count_hashmask;
       
-      for (hit_count=world->collide_hash[j] ; hit_count!=NULL ; hit_count=hit_count->next)
+      for (hit_count=world->count_hash[j] ; hit_count!=NULL ; hit_count=hit_count->next)
       {
         if (hit_count->reg_type == rl->reg && hit_count->mol_type == sp)
         {
@@ -405,10 +405,10 @@ void count_me_by_region(struct abstract_molecule *me,int n)
     {
       for (rl=w->regions ; rl!=NULL ; rl=rl->next)
       {
-        i = (rl->reg->hashval ^ sp->hashval) & world->collide_hashmask;
-        if (i==0) i = sp->hashval & world->collide_hashmask;
+        i = (rl->reg->hashval ^ sp->hashval) & world->count_hashmask;
+        if (i==0) i = sp->hashval & world->count_hashmask;
         
-        for ( c = world->collide_hash[i] ; c != NULL ; c = c->next )
+        for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
         {
           if (c->reg_type == rl->reg && c->mol_type == sp) c->n_inside += n;
         }
@@ -440,10 +440,10 @@ void count_me_by_region(struct abstract_molecule *me,int n)
     {
       if ( (rl->reg->flags & COUNT_CONTENTS) != 0 )
       {
-        i = (rl->reg->hashval & sp->hashval) & world->collide_hashmask;
-        if (i==0) i = sp->hashval & world->collide_hashmask;
+        i = (rl->reg->hashval & sp->hashval) & world->count_hashmask;
+        if (i==0) i = sp->hashval & world->count_hashmask;
         
-        for ( c = world->collide_hash[i] ; c != NULL ; c = c->next )
+        for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
         {
           if (c->reg_type==rl->reg && c->mol_type==sp) c->n_inside += n;
         }
@@ -453,10 +453,10 @@ void count_me_by_region(struct abstract_molecule *me,int n)
     {
       if ( (rl->reg->flags & COUNT_CONTENTS) != 0 )
       {
-        i = (rl->reg->hashval & sp->hashval) & world->collide_hashmask;
-        if (i==0) i = sp->hashval & world->collide_hashmask;
+        i = (rl->reg->hashval & sp->hashval) & world->count_hashmask;
+        if (i==0) i = sp->hashval & world->count_hashmask;
         
-        for ( c = world->collide_hash[i] ; c != NULL ; c = c->next )
+        for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
         {
           if (c->reg_type==rl->reg && c->mol_type==sp) c->n_inside -= n;
         }
@@ -485,10 +485,10 @@ void count_me_by_region(struct abstract_molecule *me,int n)
             {
               if ( (rl->reg->flags & m->flags & COUNT_CONTENTS) != 0 )
               {
-                i = (rl->reg->hashval & sp->hashval) & world->collide_hashmask;
-                if (i==0) i = sp->hashval & world->collide_hashmask;
+                i = (rl->reg->hashval & sp->hashval) & world->count_hashmask;
+                if (i==0) i = sp->hashval & world->count_hashmask;
                 
-                for ( c = world->collide_hash[i] ; c != NULL ; c = c->next )
+                for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
                 {
                   if (c->reg_type==rl->reg && c->mol_type==sp)
                   {
@@ -503,4 +503,43 @@ void count_me_by_region(struct abstract_molecule *me,int n)
       }
     }
   }
+}
+
+
+int check_region_counters()
+{
+  FILE *log_file;
+  struct counter *cp;
+  struct species *sp;
+  struct region *rp;
+  u_int i;
+
+
+  log_file=world->log_file;  
+  
+  for (i=0;i<world->count_hashmask+1;i++) {
+    for (cp=world->count_hash[i];cp!=NULL;cp=cp->next) {
+      sp=cp->mol_type;
+      rp=cp->reg_type;
+      /* if species is freely diffusing
+         make sure region is a closed manifold */
+      if ((sp->flags & NOT_FREE)==0) {
+        if (rp->manifold_flag==MANIFOLD_UNCHECKED) {
+          if (is_manifold(rp)) {
+            rp->manifold_flag=IS_MANIFOLD;
+          }
+          else {
+            rp->manifold_flag=NOT_MANIFOLD;
+          }
+        }
+        else {
+          if (rp->manifold_flag==NOT_MANIFOLD) {
+            fprintf(log_file,"MCell: error, cannot count diffusing molecules inside non-closed object region: %s\n",rp->sym->name); 
+          }
+        }
+      }
+    }
+  }
+
+  return(0);
 }

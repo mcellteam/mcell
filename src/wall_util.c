@@ -1522,6 +1522,7 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   }
 
   w->parent_object = objp;
+  w->flags=0;
   w->regions = NULL;
   no_printf("Created wall %d on object %s at:\n",w->side,w->parent_object->sym->name);
   no_printf("  vertex 0: %.9g, %.9g, %.9g\n",w->vert[0]->x,w->vert[0]->y,w->vert[0]->z);

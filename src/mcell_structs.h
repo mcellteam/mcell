@@ -34,6 +34,18 @@
 #define COUNT_SOME       0x3000
 #define COUNT_RXNS       0x4000
 
+/* mol/region counter types */
+#define REPORT_CONTENTS        0
+#define REPORT_FRONT_HITS      1
+#define REPORT_BACK_HITS       2
+#define REPORT_ALL_HITS        3
+#define REPORT_FRONT_CROSSINGS 4
+#define REPORT_BACK_CROSSINGS  5
+#define REPORT_ALL_CROSSINGS   6
+
+#define MANIFOLD_UNCHECKED 0
+#define NOT_MANIFOLD       1
+#define IS_MANIFOLD        2
 
 /* Reaction flags */
 #define RX_GHOST   -3
@@ -159,6 +171,9 @@
 /* 0x100000 = 2 million */
 #define MAX_RX_HASH 0x100000
 
+/* How big will we let the count-by-region table get? */
+/* 0x10000 = 128K */
+#define MAX_COUNT_HASH 0x10000
 
 /* What's the upper bound on the number of coarse partitions? */
 #define MAX_COARSE_PER_AXIS 16
@@ -240,11 +255,9 @@
 /*******************************************************/
 
 /* Parser parameters.  Probably need to be revisited. */
-#define HASHSIZE 131072
+#define HASHSIZE 0x20000
 #define HASHMASK 0x1ffff
-#define COUNTER_HASH 16 
-#define COUNTER_HASHMASK 0xf
-   /*LWW 6/13/03 Hashtable size for region counters in each OBJECT*/
+#define COUNT_HASHMASK 0xffff
 
 #define PATHWAYSIZE 64
 #define RXSIZE 2048
@@ -747,6 +760,9 @@ struct volume
   
   int n_waypoints;              /* How many of these = (n_axis_p-3)^3 */
   struct waypoint *waypoints;   /* Contains compartment information */
+  byte place_waypoints;         /* We need to place waypoints
+                                   if we count 3D diffusing molecules
+                                   in regions */
   
   int n_subvols;                /* How many coarse subvolumes? */
   struct subvolume *subvol;     /* Array containing all subvolumes */
@@ -762,8 +778,8 @@ struct volume
   struct rxn **reaction_hash;   /* A hash table of all reactions. */
   struct mem_helper *rxn_mem;   /* Memory to store time-varying reactions */
   
-  int collide_hashmask;         /* Mask for looking up collision hash table */
-  struct counter **collide_hash;/* Collision hash table */
+  int count_hashmask;         /* Mask for looking up count hash table */
+  struct counter **count_hash;/* count hash table */
   
   int n_species;                /* How many different species? */
   struct species **species_list; /* Array of all species. */
@@ -1190,7 +1206,7 @@ struct element_list {
  */
 struct region {
 	struct sym_table *sym;
-	int hashval;
+	u_int hashval;
         char *region_last_name;
 	struct object *parent;
 	struct element_list *element_list_head;
@@ -1198,6 +1214,7 @@ struct region {
 	struct eff_dat *eff_dat_head;
         struct species *surf_class;
         u_short flags;
+        byte manifold_flag;
 };
 
 /**
