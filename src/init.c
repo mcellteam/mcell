@@ -1428,11 +1428,9 @@ int init_wall_regions(struct object *objp, char *full_name)
 	  }
   
     if (reg_eff_num_head!=NULL) {
-/*
-      if (init_effectors_by_number(pop,cdp,reg_eff_num_head)) {
+      if (init_effectors_by_number(objp,reg_eff_num_head)) {
         return(1);
       }
-*/
       /* free region list created to hold regions populated by number */
       rlp=reg_eff_num_head;
       while(rlp!=NULL) {
@@ -1514,11 +1512,8 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
   no_printf("Initializing effectors by density...\n");
   fflush(log_file);
 
-  sg=w->effectors;
-  if (sg==NULL) {
-    if (create_grid(w,NULL)) {
-      return(1);
-    }
+  if (create_grid(w,NULL)) {
+    return(1);
   }
   sg=w->effectors;
 
@@ -1594,16 +1589,16 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
         sg->mol[i]=mol;
         mol->t=0;
         mol->t2=0;
-        mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
-        if (trigger_unimolecular(eff[p_index]->hashval,
-          (struct abstract_molecule *)mol)!=NULL) {
-          mol->flags|=ACT_REACT;
-        }
         mol->properties=eff[p_index];
         mol->birthplace=w->birthplace->gmol;
         mol->grid_index=i;
         mol->orient=orientation[p_index];
         mol->grid=sg;
+        mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
+        if (trigger_unimolecular(eff[p_index]->hashval,
+          (struct abstract_molecule *)mol)!=NULL) {
+          mol->flags|=ACT_REACT;
+        }
         schedule_add(w->birthplace->timer,mol);
       }
     }
@@ -1624,6 +1619,273 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
 
 	
   return(0);
+}
+
+
+
+int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_num_head)
+{
+  FILE *log_file;
+  struct polygon_object *pop;
+  struct species *eff;
+  struct grid_molecule ***tiles,***tiles_tmp;
+  struct grid_molecule gmol,*bread_crumb,*mol;
+  struct region_list *rlp; 
+  struct region *rp;
+  struct element_list *elp;
+  struct surface_grid *sg;
+  struct eff_dat *effdp;
+  struct wall **walls,**walls_tmp,*w;
+  short orientation;
+  double rand[1];
+  unsigned int *index,*index_tmp;
+  unsigned int n_free_eff,n_set,n_clear;
+  unsigned int i,j,k;
+  byte done;
+
+    no_printf("Initializing effectors by number...\n");
+
+    log_file=world->log_file;
+    pop=(struct polygon_object *)objp->contents;
+
+    tiles=NULL;
+    tiles_tmp=NULL;
+    index=NULL;
+    index_tmp=NULL;
+    walls=NULL;
+    walls_tmp=NULL;
+    bread_crumb=&gmol;
+
+    /* traverse region list and add effector sites by number to whole regions
+       as appropriate */
+    rlp=reg_eff_num_head;
+    while (rlp!=NULL) {
+      rp=rlp->reg;
+        /* initialize effector grids in region as needed and */
+        /* count total number of free effector sites in region */
+        n_free_eff=0;
+        elp=rp->element_list_head;
+        while (elp!=NULL) {
+          for (i=elp->begin;i<=elp->end;i++) {
+            if (pop->side_stat[i]) {
+              w=objp->wall_p[i];
+              if (create_grid(w,NULL)) {
+                return(1);
+              }
+              sg=w->effectors;
+              n_free_eff=n_free_eff+(sg->n_tiles-sg->n_occupied);
+            }
+          }
+          elp=elp->next;
+        }
+        no_printf("Number of free effector tiles in region %s = %d\n",rp->sym->name,n_free_eff);
+        fflush(stdout);
+      if (world->chkpt_init) {  /* only needed for denovo initiliazation */
+        /* allocate memory to hold array of pointers to all free tiles */
+        if ((tiles=(struct grid_molecule ***)malloc
+           (n_free_eff*sizeof(struct grid_molecule **)))==NULL) {
+          return(1);
+        }
+        if ((index=(unsigned int *)malloc
+           (n_free_eff*sizeof(unsigned int)))==NULL) {
+          return(1);
+        }
+        if ((walls=(struct wall **)malloc
+           (n_free_eff*sizeof(struct wall *)))==NULL) {
+          return(1);
+        }
+        /* initialize array of pointers to all free tiles */
+        k=0;
+        elp=rp->element_list_head;
+        while (elp!=NULL) {
+          for (i=elp->begin;i<=elp->end;i++) {
+            if (pop->side_stat[i]) {
+              w=objp->wall_p[i];
+              sg=w->effectors;
+              if (sg!=NULL) {
+                for (j=0;j<sg->n_tiles;j++) {
+                  if (sg->mol[j]==NULL) {
+                    tiles[k]=&(sg->mol[j]);
+                    index[k]=j;
+                    walls[k++]=w;
+                  }
+                }
+              }
+            }
+          }
+          elp=elp->next;
+        }
+      } /* end while(world->chkpt_init) */
+
+      /* distribute desired number of effector sites */
+      /* for each effector type to add */
+      effdp=rp->eff_dat_head;
+      while (effdp!=NULL) {
+        if (effdp->quantity_type==EFFNUM) {
+          eff=effdp->eff;
+
+          if (world->chkpt_init) {  /* only needed for denovo initiliazation */
+	    orientation=effdp->orientation;
+  
+            n_set=effdp->quantity;
+            n_clear=n_free_eff-n_set;
+            eff->population+=n_set;
+
+            if (n_set > n_free_eff) {
+              fprintf(log_file,"\nMCell: Warning -- Number of %s effectors to place (%d) exceeds number of free effector tiles (%d) in region %s[%s]\n\n",eff->sym->name,n_set,n_free_eff,rp->parent->sym->name,rp->region_last_name);
+              n_set=n_free_eff;
+              n_clear=0;
+            }
+            no_printf("distribute %d of effector %s\n",n_set,eff->sym->name);
+            no_printf("n_set = %d  n_clear = %d  n_free_eff = %d\n",n_set,n_clear,n_free_eff);
+            fflush(stdout);
+
+            /* if filling more than half the free tiles
+              init all with bread_crumbs
+              choose which tiles to free again
+              and then convert remaining bread_crumbs to actual molecules */
+            if (n_set > n_free_eff/2) {
+              no_printf("filling more than half the free tiles: init all with bread_crumb\n");
+              fflush(stdout);
+              for (j=0;j<n_free_eff;j++) {
+                *tiles[j]=bread_crumb;
+              }
+
+              no_printf("choose which tiles to free again\n");
+              fflush(stdout);
+              for (j=0;j<n_clear;j++) {
+                done=0;
+                while (!done) {
+                  world->random_number_use++;
+                  ran4(&world->seed,rand,1,n_free_eff);
+                  k=rand[0];
+                  if (*tiles[k]==bread_crumb) {
+                    *tiles[k]=NULL;
+                    done=1;
+                  }
+                }
+              }
+
+              no_printf("convert remaining bread_crumbs to actual molecules\n");
+              fflush(stdout);
+              for (j=0;j<n_free_eff;j++) {
+                if (*tiles[j]==bread_crumb) {
+                  mol=(struct grid_molecule *)mem_get
+                    (walls[j]->birthplace->gmol);
+                  *tiles[j]=mol;
+                  mol->t=0;
+                  mol->t2=0;
+                  mol->properties=eff;
+                  mol->birthplace=walls[j]->birthplace->gmol;
+                  mol->grid_index=index[j];
+                  mol->orient=orientation;
+                  mol->grid=walls[j]->effectors;
+                  mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
+                  if (trigger_unimolecular(eff->hashval,
+                    (struct abstract_molecule *)mol)!=NULL) {
+                    mol->flags|=ACT_REACT;
+                  }
+                  schedule_add(walls[j]->birthplace->timer,mol);
+                }
+              }
+            }
+            else {  /* just fill only the tiles we need */
+              no_printf("fill only the tiles we need\n");
+              fflush(stdout);
+              for (j=0;j<n_set;j++) {
+                done=0;
+                while (!done) {
+                  world->random_number_use++;
+                  ran4(&world->seed,rand,1,n_free_eff);
+                  k=rand[0];
+                  if (*tiles[k]==NULL) {
+                    mol=(struct grid_molecule *)mem_get
+                      (walls[k]->birthplace->gmol);
+                    *tiles[k]=mol;
+                    mol->t=0;
+                    mol->t2=0;
+                    mol->properties=eff;
+                    mol->birthplace=walls[k]->birthplace->gmol;
+                    mol->grid_index=index[k];
+                    mol->orient=orientation;
+                    mol->grid=walls[k]->effectors;
+                    mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
+                      if (trigger_unimolecular(eff->hashval,
+                      (struct abstract_molecule *)mol)!=NULL) {
+                      mol->flags|=ACT_REACT;
+                    }
+                    schedule_add(walls[k]->birthplace->timer,mol);
+                    done=1;
+                  }
+                }
+              }
+            }
+        /* allocate memory to hold array of pointers to remaining free tiles */
+            if ((tiles_tmp=(struct grid_molecule ***)malloc
+                 (n_clear*sizeof(struct grid_molecule **)))==NULL) {
+              return(1);
+            }
+            if ((index_tmp=(unsigned int *)malloc
+               (n_clear*sizeof(unsigned int)))==NULL) {
+              return(1);
+            }
+            if ((walls_tmp=(struct wall **)malloc
+               (n_clear*sizeof(struct wall *)))==NULL) {
+              return(1);
+            }
+            k=0;
+            for (i=0;i<n_free_eff;i++) {
+              if (*tiles[i]==NULL) {
+                tiles_tmp[k]=tiles[i];
+                index_tmp[k]=index[i];
+                walls_tmp[k++]=walls[i];
+              }
+            }
+            /* free original array of pointers to all free tiles */
+            free(tiles);
+            free(index);
+            free(walls);
+            tiles=tiles_tmp;
+            index=index_tmp;
+            walls=walls_tmp;
+            n_free_eff=n_free_eff-n_set;
+
+            /* update n_occupied for each effector grid */
+            elp=rp->element_list_head;
+            while (elp!=NULL) {
+              for (i=elp->begin;i<=elp->end;i++) {
+                if (pop->side_stat[i]) {
+                  sg=objp->wall_p[i]->effectors;
+                  if (sg!=NULL) {
+		    sg->n_occupied=0;
+                    for (j=0;j<sg->n_tiles;j++) {
+                      if (sg->mol[j]!=NULL) {
+                        sg->n_occupied++;
+                      }
+                    }
+                  }
+                }
+              }
+              elp=elp->next;
+            }
+          } /* end while(world->chkpt_init) */
+        }
+        effdp=effdp->next;
+      }
+      /* free array of pointers to all free tiles */
+      if (tiles!=NULL) {
+        free(tiles);
+      }
+      if (index!=NULL) {
+        free(index);
+      }
+      if (walls!=NULL) {
+        free(walls);
+      }
+      rlp=rlp->next;
+    }
+    no_printf("Done initialize effectors by number.\n");
+    return(0);
 }
 
 
@@ -2006,467 +2268,6 @@ int init_effector_grid(struct wall *wp)
 	
   no_printf("Done creating new effector grid.\n");
 
-  return(0);
-}
-
-
-int init_effectors_by_number(struct polygon_object *pop, struct cmprt_data *cdp, struct region_list *reg_eff_num_head)
-{
-  struct rx *rx,***tiles,***tiles_tmp;
-  struct region_list *rlp; 
-  struct region *rp;
-  struct element_list *elp;
-  struct effector *ep;
-  struct eff_dat *effdp;
-  struct wall **walls,**walls_tmp,*wp;
-  struct ligand *lp;
-  struct vector3 ab,bc,step_u,step_v,diagonal,p0,p1,p2;
-  unsigned short **dsp,**dsp_tmp,desired_state;
-  unsigned short *psp;
-  byte prev_state_flag,grid_shape;
-  signed char **orient,**orient_tmp,orientation;
-  double rand[1];
-  double fuzz,tiny_x,tiny_y,tiny_z,r1,r2,r3,v_val;
-  unsigned int *index,*index_tmp;
-  unsigned int n_free_eff,n_set,n_clear;
-  unsigned int i,j,k,m,p,nl,n_ligs;
-  int grid_size;
-  int subvol,uu,vv;
-  byte done;
-
-    no_printf("Initializing effectors by number...\n");
-
-/* Place initially bound ligands on appropriate pole of effector */
-/*
-    fuzz=POLE*0.000001;
-*/
-    fuzz=0.0;
-
-    nl=1+n_ligand_types;
-    n_ligs=0;
-
-    tiles=NULL;
-    tiles_tmp=NULL;
-    index=NULL;
-    index_tmp=NULL;
-    orient=NULL;
-    orient_tmp=NULL;
-    dsp=NULL;
-    dsp_tmp=NULL;
-    walls=NULL;
-    walls_tmp=NULL;
-    /* traverse region list and add effector sites by number to whole regions
-       as appropriate */
-    rlp=reg_eff_num_head;
-    while (rlp!=NULL) {
-      rp=rlp->region;
-        /* initialize effector grids in region as needed and */
-        /* count total number of free effector sites in region */
-        n_free_eff=0;
-        elp=rp->element_list_head;
-        while (elp!=NULL) {
-          for (i=elp->begin;i<=elp->end;i++) {
-            if (pop->side_stat[i]) {
-              wp=cdp->wall[pop->cmprt_side_map[i]];
-              ep=wp->effectors;
-              if (ep==NULL) {
-                if (init_effector_grid(wp)) {
-                  return(1);
-                }
-                ep=wp->effectors;
-              }
-              n_free_eff=n_free_eff+(ep->n_tiles-ep->n_occupied);
-            }
-          }
-          elp=elp->next;
-        }
-        no_printf("Number of free effector tiles in region %s = %d\n",rp->sym->name,n_free_eff);
-        fflush(stdout);
-      if (chkpt_init) {  /* only needed for denovo initiliazation */
-        /* allocate memory to hold array of pointers to all free tiles */
-        if ((tiles=(struct rx ***)malloc
-           (n_free_eff*sizeof(struct rx **)))==NULL) {
-          return(1);
-        }
-        if ((index=(unsigned int *)malloc
-           (n_free_eff*sizeof(unsigned int)))==NULL) {
-          return(1);
-        }
-        if ((orient=(signed char **)malloc
-           (n_free_eff*sizeof(signed char *)))==NULL) {
-          return(1);
-        }
-        if ((dsp=(unsigned short **)malloc(n_free_eff*sizeof(unsigned short *)))==NULL) {
-          return(1);
-        }
-        if ((walls=(struct wall **)malloc
-           (n_free_eff*sizeof(struct wall *)))==NULL) {
-          return(1);
-        }
-        /* initialize array of pointers to all free tiles */
-        k=0;
-        elp=rp->element_list_head;
-        while (elp!=NULL) {
-          for (i=elp->begin;i<=elp->end;i++) {
-            if (pop->side_stat[i]) {
-              ep=cdp->wall[pop->cmprt_side_map[i]]->effectors;
-              if (ep!=NULL) {
-                for (j=0;j<ep->n_tiles;j++) {
-                  if (ep->tiles[j]==NULL) {
-                    tiles[k]=&(ep->tiles[j]);
-                    index[k]=j;
-                    orient[k]=&(ep->orient[j]);
-                    dsp[k]=&(ep->desired_state[j]);
-                    walls[k++]=ep->wall;
-                  }
-                }
-              }
-            }
-          }
-          elp=elp->next;
-        }
-      } /* chkpt_init */
-
-      /* distribute desired number of effector sites */
-      /* for each effector type to add */
-      effdp=rp->eff_dat;
-      prev_state_flag=0;
-      while (effdp!=NULL) {
-        if (effdp->quantity_type==EFFNUM) {
-          rx=effdp->rx;
-          prev_state_flag=prev_state_flag||rx->parent_rx->prev_state_flag;
-
-          if (chkpt_init) {  /* only needed for denovo initiliazation */
-	    orientation=effdp->orient;
-            desired_state=rx->state_index;
-  
-            n_set=effdp->quantity;
-            n_clear=n_free_eff-n_set;
-            rx->count+=n_set;
-
-            if (n_set > n_free_eff) {
-              fprintf(log_file,"\nMCell: Warning -- Number of %s effectors to place (%d) exceeds number of free effector tiles (%d) in region %s[%s]\n\n",rx->sym->name,n_set,n_free_eff,rp->parent->sym->name,rp->region_last_name);
-              n_set=n_free_eff;
-              n_clear=0;
-            }
-            no_printf("distribute %d of effector %s\n",n_set,rx->sym->name);
-            no_printf("n_set = %d  n_clear = %d  n_free_eff = %d\n",n_set,n_clear,n_free_eff);
-            fflush(stdout);
-
-            /* if filling more than half the free tiles then init all to full */
-            /* and choose which tiles to free again */
-            if (n_set > n_free_eff/2) {
-              no_printf("filling more than half the free tiles: init all to full\n");
-              fflush(stdout);
-              for (j=0;j<n_free_eff;j++) {
-                *tiles[j]=rx;
-                *orient[j]=orientation;
-                *dsp[j]=desired_state;
-              }
-              no_printf("choose which tiles to free again\n");
-              fflush(stdout);
-              for (j=0;j<n_clear;j++) {
-                done=0;
-                while (!done) {
-                  random_number_use++;
-                  ran4(&seed,rand,1,n_free_eff);
-                  k=rand[0];
-                  if (*tiles[k]!=NULL) {
-                    *tiles[k]=NULL;
-                    *orient[k]=0;
-                    *dsp[k]=0;
-                    done=1;
-                  }
-                }
-              }
-              /* create bound molecules as needed on newly filled tiles */
-              for (j=0;j<n_free_eff;j++) {
-                if (*tiles[j]!=NULL) {
-                  rx=*tiles[j];
-                    for (m=1;m<nl;m++) {
-	              for (p=0;p<rx->bound_ligands[m];p++) {
-	                if ((lp=(struct ligand *)malloc
-	                   (sizeof(struct ligand)))==NULL) {
-	                  fprintf(log_file,"MCell: cannot store molecule\n");
-	                  return(1);
-	                }
-	                lp->next_ligand=ligand_table[m]->top;
-	                ligand_table[m]->top=lp;
-	                tot_mols++;
-	                ligand_table[m]->n_mols++;
-                        n_ligs++;
-	                lp->lig_num=ligand_table[m]->lig_index++;
-	                
-                        wp=walls[j];
-                        tiny_x=fuzz*wp->normal.x;
-                        tiny_y=fuzz*wp->normal.y;
-                        tiny_z=fuzz*wp->normal.z;
-                        r1=wp->vert[0]->x;
-                        r2=wp->vert[0]->y;
-                        r3=wp->vert[0]->z;
-  
-                        vectorize(wp->vert[0],wp->vert[1],&ab);
-                        vectorize(wp->vert[1],wp->vert[2],&bc);
-                        grid_size=wp->effectors->grid_size;
-                        grid_shape=wp->effectors->grid_shape;
-                        step_u.x=ab.x/grid_size;
-                        step_u.y=ab.y/grid_size;
-                        step_u.z=ab.z/grid_size;
-                        step_v.x=bc.x/grid_size;
-                        step_v.y=bc.y/grid_size;
-                        step_v.z=bc.z/grid_size;
-                        vectorize(&step_u,&step_v,&diagonal);
-                        if (grid_shape==TRIANGULAR) {
-                          uu=(int) sqrt((double) index[j]);
-                          vv=index[j]-(uu*uu);
-                        }
-                        else {
-                          uu=index[j]/(2*grid_size);
-                          vv=index[j]-(uu*2*grid_size);
-                        }
-                        v_val=vv/2;
-                        p0.x=(uu+1)*step_u.x;
-                        p0.y=(uu+1)*step_u.y;
-                        p0.z=(uu+1)*step_u.z;
-                        p1.x=p0.x+(v_val*step_v.x);
-                        p1.y=p0.y+(v_val*step_v.y);
-                        p1.z=p0.z+(v_val*step_v.z);
-                        if (vv%2==0) {
-                          p2.x=p1.x+(0.33*diagonal.x);
-                          p2.y=p1.y+(0.33*diagonal.y);
-                          p2.z=p1.z+(0.33*diagonal.z);
-                        }
-                        else {
-                          p2.x=p1.x+(0.66*diagonal.x);
-                          p2.y=p1.y+(0.66*diagonal.y);
-                          p2.z=p1.z+(0.66*diagonal.z);
-                        }
-  
-	                /* put ligand in middle of effector */
-	                lp->pos.x=r1+p2.x+tiny_x;
-	                lp->pos.y=r2+p2.y+tiny_y;
-	                lp->pos.z=r3+p2.z+tiny_z;
-	                
-	                lp->effector=wp->effectors;
-	                lp->index=index[j];
-                        subvol=find_subvol(volume,&lp->pos,-1);
-                        if (subvol<0) {
-	                  fprintf(log_file,"MCell: invalid subvolume referenced while initializing effectors\n");
-                          return(1);
-                        }
-            
-	                lp->subvol=subvol;
-	              }
-                    }
-
-                }
-              }
-            }
-            else {  /* just fill only the tiles we need */
-              no_printf("fill only the tiles we need\n");
-              fflush(stdout);
-              for (j=0;j<n_set;j++) {
-                done=0;
-                while (!done) {
-                  random_number_use++;
-                  ran4(&seed,rand,1,n_free_eff);
-                  k=rand[0];
-                  if (*tiles[k]==NULL) {
-                    *tiles[k]=rx;
-                    *orient[k]=orientation;
-                    *dsp[k]=desired_state;
-
-                    /* create bound molecules as needed */
-                    for (m=1;m<nl;m++) {
-	              for (p=0;p<rx->bound_ligands[m];p++) {
-	                if ((lp=(struct ligand *)malloc
-	                   (sizeof(struct ligand)))==NULL) {
-	                  fprintf(log_file,"MCell: cannot store molecule\n");
-	                  return(1);
-	                }
-	                lp->next_ligand=ligand_table[m]->top;
-	                ligand_table[m]->top=lp;
-	                tot_mols++;
-	                ligand_table[m]->n_mols++;
-                        n_ligs++;
-	                lp->lig_num=ligand_table[m]->lig_index++;
-	                
-                        wp=walls[k];
-                        tiny_x=fuzz*wp->normal.x;
-                        tiny_y=fuzz*wp->normal.y;
-                        tiny_z=fuzz*wp->normal.z;
-                        r1=wp->vert[0]->x;
-                        r2=wp->vert[0]->y;
-                        r3=wp->vert[0]->z;
-  
-                        vectorize(wp->vert[0],wp->vert[1],&ab);
-                        vectorize(wp->vert[1],wp->vert[2],&bc);
-                        grid_size=wp->effectors->grid_size;
-                        grid_shape=wp->effectors->grid_shape;
-                        step_u.x=ab.x/grid_size;
-                        step_u.y=ab.y/grid_size;
-                        step_u.z=ab.z/grid_size;
-                        step_v.x=bc.x/grid_size;
-                        step_v.y=bc.y/grid_size;
-                        step_v.z=bc.z/grid_size;
-                        vectorize(&step_u,&step_v,&diagonal);
-                        if (grid_shape==TRIANGULAR) {
-                          uu=(int) sqrt((double) index[k]);
-                          vv=index[k]-(uu*uu);
-                        }
-                        else {
-                          uu=index[k]/(2*grid_size);
-                          vv=index[k]-(uu*2*grid_size);
-                        }
-                        v_val=vv/2;
-                        p0.x=(uu+1)*step_u.x;
-                        p0.y=(uu+1)*step_u.y;
-                        p0.z=(uu+1)*step_u.z;
-                        p1.x=p0.x+(v_val*step_v.x);
-                        p1.y=p0.y+(v_val*step_v.y);
-                        p1.z=p0.z+(v_val*step_v.z);
-                        if (vv%2==0) {
-                          p2.x=p1.x+(0.33*diagonal.x);
-                          p2.y=p1.y+(0.33*diagonal.y);
-                          p2.z=p1.z+(0.33*diagonal.z);
-                        }
-                        else {
-                          p2.x=p1.x+(0.66*diagonal.x);
-                          p2.y=p1.y+(0.66*diagonal.y);
-                          p2.z=p1.z+(0.66*diagonal.z);
-                        }
-  
-	                /* put ligand in middle of effector */
-	                lp->pos.x=r1+p2.x+tiny_x;
-	                lp->pos.y=r2+p2.y+tiny_y;
-	                lp->pos.z=r3+p2.z+tiny_z;
-	                
-	                lp->effector=wp->effectors;
-	                lp->index=index[k];
-                        subvol=find_subvol(volume,&lp->pos,-1);
-                        if (subvol<0) {
-	                  fprintf(log_file,"MCell: invalid subvolume referenced while initializing effectors\n");
-                          return(1);
-                        }
-            
-	                lp->subvol=subvol;
-	              }
-                    }
-
-                    done=1;
-                  }
-                }
-              }
-            }
-        /* allocate memory to hold array of pointers to remaining free tiles */
-            if ((tiles_tmp=(struct rx ***)malloc
-                 (n_clear*sizeof(struct rx **)))==NULL) {
-              return(1);
-            }
-            if ((index_tmp=(unsigned int *)malloc
-               (n_clear*sizeof(unsigned int)))==NULL) {
-              return(1);
-            }
-            if ((orient_tmp=(signed char **)malloc
-                 (n_clear*sizeof(signed char *)))==NULL) {
-              return(1);
-            }
-            if ((dsp_tmp=(unsigned short **)malloc
-                 (n_clear*sizeof(unsigned short *)))==NULL) {
-              return(1);
-            }
-            if ((walls_tmp=(struct wall **)malloc
-               (n_clear*sizeof(struct wall *)))==NULL) {
-              return(1);
-            }
-            k=0;
-            for (i=0;i<n_free_eff;i++) {
-              if (*tiles[i]==NULL) {
-                tiles_tmp[k]=tiles[i];
-                index_tmp[k]=index[i];
-                orient_tmp[k]=orient[i];
-                dsp_tmp[k]=dsp[i];
-                walls_tmp[k++]=walls[i];
-              }
-            }
-            /* free original array of pointers to all free tiles */
-            free(tiles);
-            free(index);
-            free(orient);
-            free(dsp);
-            free(walls);
-            tiles=tiles_tmp;
-            index=index_tmp;
-            orient=orient_tmp;
-            dsp=dsp_tmp;
-            walls=walls_tmp;
-            n_free_eff=n_free_eff-n_set;
-
-            /* update n_occupied for each effector grid */
-            elp=rp->element_list_head;
-            while (elp!=NULL) {
-              for (i=elp->begin;i<=elp->end;i++) {
-                if (pop->side_stat[i]) {
-                  ep=cdp->wall[pop->cmprt_side_map[i]]->effectors;
-                  if (ep!=NULL) {
-		    ep->n_occupied=0;
-                    for (j=0;j<ep->n_tiles;j++) {
-                      if (ep->tiles[j]!=NULL) {
-                        ep->n_occupied++;
-                      }
-                    }
-                  }
-                }
-              }
-              elp=elp->next;
-            }
-          } /* chkpt_init */
-        }
-        effdp=effdp->next;
-      }
-      /* free array of pointers to all free tiles */
-      if (tiles!=NULL) {
-        free(tiles);
-      }
-      if (index!=NULL) {
-        free(index);
-      }
-      if (orient!=NULL) {
-        free(orient);
-      }
-      if (dsp!=NULL) {
-        free(dsp);
-      }
-      if (walls!=NULL) {
-        free(walls);
-      }
-      /* create arrays to hold prev_state as necessary */
-      if (prev_state_flag) {
-        elp=rp->element_list_head;
-        while (elp!=NULL) {
-          for (i=elp->begin;i<=elp->end;i++) {
-            if (pop->side_stat[i]) {
-              ep=cdp->wall[pop->cmprt_side_map[i]]->effectors;
-              if (ep!=NULL) {
-		psp=ep->prev_state;
-                if (psp==NULL) {
-                  if ((psp=(unsigned short *)malloc(ep->n_tiles*sizeof(unsigned short)))==NULL) {
-                    return(1);
-                  }
-                  for (j=0;j<ep->n_tiles;j++) {
-                    psp[j]=0;
-                  }
-                  ep->prev_state=psp;
-                }
-              }
-            }
-          }
-          elp=elp->next;
-        }
-      }
-      rlp=rlp->next;
-    }
-  no_printf("Done initialize effectors by number.\n");
   return(0);
 }
 

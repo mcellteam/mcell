@@ -35,6 +35,8 @@ int init_wall_regions(struct object *objp, char *full_name);
 
 int init_effectors_by_density(struct wall *w, struct eff_dat *eff_dat_head);
 
+int init_effectors_by_number(struct object *objp, struct region_list *rlp);
+
 int compute_bb(struct object *objp,
 	       double (*im)[4],
 	       char *sub_name);
@@ -71,8 +73,6 @@ struct region_list *init_region_list_for_wall(struct region_list *rlp,int index)
 int init_effector_grid(struct wall *wp);
 
 int init_effectors_by_density(struct wall *wp, struct eff_dat *effdp_head);
-
-int init_effectors_by_number(struct polygon_object *pop, struct cmprt_data *cdp, struct region_list *rlp);
 
 int init_effector_table(struct wall *wp);
 

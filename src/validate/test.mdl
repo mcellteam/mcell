@@ -50,6 +50,9 @@ DEFINE_SURFACE_CLASSES {
   surf_b {
     TRANSPARENT = Glu
     ABSORPTIVE = ACh
+    MOLECULE_NUMBER {
+      ACf' = 100
+    }
   }
 }
 
@@ -114,7 +117,7 @@ DEFINE_SURFACE_REGIONS {
   box[reg2] {
     ELEMENT_LIST = [LEFT,RIGHT]
     SURFACE_CLASS = surf_a
-    MOLECULE_DENSITY {
+    MOLECULE_NUMBER {
       ACf' = 250
     }
   }

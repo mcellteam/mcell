@@ -14,6 +14,7 @@
 #include <stdlib.h>
 
 #include "rng.h"
+#include "vector.h"
 #include "wall_util.h"
 #include "vol_util.h"
 #include "mcell_structs.h"
@@ -1005,14 +1006,10 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   w->nb_walls[1] = NULL;
   w->nb_walls[2] = NULL;
   
-  vA.x = v1->x - v0->x;
-  vA.y = v1->y - v0->y;
-  vA.z = v1->z - v0->z;
-  vB.x = v2->x - v0->x;
-  vB.y = v2->y - v0->y;
-  vB.z = v2->z - v0->z;
+  vectorize(v0, v1, &vA);
+  vectorize(v0, v2, &vB);
   cross_prod(&vA , &vB , &vX);
-  w->area = 0.5 * sqrt(vX.x*vX.x + vX.y*vX.y + vX.z*vX.z);
+  w->area = 0.5 * vect_length(&vX);
 
 /*  
   w->area = sqrt(0.5 * ( ((v1->x - v0->x)*(v1->x - v0->x)+

@@ -1619,7 +1619,7 @@ surface_rxn_stmt: surface_rxn_type '=' existing_molecule
   mdlpvp->pathp->reactant1=(struct species *)mdlpvp->stp1->value;
   mdlpvp->pathp->reactant2=(struct species *)mdlpvp->stp2->value;
   mdlpvp->pathp->reactant3=NULL;
-  mdlpvp->pathp->km=DBL_MAX;
+  mdlpvp->pathp->km=GIGANTIC;
   mdlpvp->pathp->kcat=0;
 
   switch ($<tok>1) {
@@ -7048,7 +7048,7 @@ int mdlparse_init(struct volume *vol)
   mpvp->pathp->reactant1=vol->g_surf;
   mpvp->pathp->reactant2=vol->g_mol;
   mpvp->pathp->reactant3=NULL;
-  mpvp->pathp->km=DBL_MAX;
+  mpvp->pathp->km=GIGANTIC;
   mpvp->pathp->kcat=0;
 
   mpvp->pathp->orientation1=0;
