@@ -4,7 +4,7 @@ include makedefs
 SHELL = /bin/sh
 
 MCELL_VERSION = `head -1 ./mcell.h | cut -d " " -f 6`
-MCELL_OBJS = argparse.bison.o mdlparse.bison.o mdlparse_util.o sym_table.o mcell.o strfunc.o vector.o rng.o diffuse_util.o init.o test_main.o
+MCELL_OBJS = argparse.bison.o mdlparse.bison.o mdlparse_util.o sym_table.o strfunc.o vector.o rng.o diffuse_util.o mem_util.o sched_util.o count_util.o wall_util.o vol_util.o init.o test_main.o
 
 all: $(MCELL_EXEC) test_main
 
@@ -44,6 +44,21 @@ rng.o: rng.c rng.h
 diffuse_util.o: diffuse_util.c diffuse_util.h
 	$(CC) $(CFLAGS) -c diffuse_util.c
 
+mem_util.o: mem_util.c mem_util.h
+	$(CC) $(CFLAGS) -c mem_util.c
+
+sched_util.o: sched_util.c sched_util.h
+	$(CC) $(CFLAGS) -c sched_util.c
+
+count_util.o: count_util.c count_util.h
+	$(CC) $(CFLAGS) -c count_util.c
+
+wall_util.o: wall_util.c wall_util.h
+	$(CC) $(CFLAGS) -c wall_util.c
+
+vol_util.o: vol_util.c vol_util.h
+	$(CC) $(CFLAGS) -c vol_util.c
+
 sym_table.o: sym_table.c sym_table.h mcell_structs.h
 	$(CC) $(CFLAGS) -c sym_table.c
 
@@ -53,14 +68,18 @@ init.o: init.c init.h mcell_structs.h
 test_main.o: test_main.c mcell_structs.h
 	$(CC) $(CFLAGS) -c test_main.c
 
-test_main: argparse.bison.o mdlparse.bison.o mdlparse_util.o sym_table.o strfunc.o vector.o init.o rng.o test_main.o diffuse_util.o
-	$(LD) $(CFLAGS) argparse.bison.o mdlparse.bison.o mdlparse_util.o sym_table.o strfunc.o vector.o init.o rng.o test_main.o diffuse_util.o $(LIBS) -o test_main
+test_main: argparse.bison.o mdlparse.bison.o mdlparse_util.o sym_table.o strfunc.o vector.o init.o rng.o test_main.o diffuse_util.o mem_util.o sched_util.o count_util.o wall_util.o vol_util.o
+	$(LD) $(CFLAGS) argparse.bison.o mdlparse.bison.o mdlparse_util.o sym_table.o strfunc.o vector.o init.o rng.o test_main.o diffuse_util.o mem_util.o sched_util.o count_util.o wall_util.o vol_util.o $(LIBS) -o test_main
 
 $(MCELL_EXEC): $(MCELL_OBJS)
 	$(LD) $(CFLAGS) $(MCELL_OBJS) $(LIBS) -o $(MCELL_EXEC)
 
 clean:
 	rm -f $(MCELL_OBJS) arglex.flex.c argparse.bison.c mdllex.flex.c mdlparse.bison.c test_main $(MCELL_EXEC) $(L_CALC_EXEC)
+
+################################
+# OUT OF DATE BELOW THIS POINT #
+################################
 
 distclean:
 	rm -f $(OBJS) arglex.c argparse.c mdllex.c mdlparse.c $(MCELL_EXEC) \

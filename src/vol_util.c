@@ -6,6 +6,8 @@
 ** Testing status: compiles.  Worked earlier, but has been changed.       **
 \**************************************************************************/
 
+#include <math.h>
+#include "rng.h"
 #include "mcell_structs.h"
 #include "vol_util.h"
 
@@ -121,6 +123,8 @@ struct subvolume* traverse_subvol(struct subvolume *here,struct vector3 *point,i
       }
     }
   }
+  
+  return NULL;
 }
 
 
@@ -307,4 +311,134 @@ void insert_molecule_list(struct molecule *m)
     guess = new_m;
     m = (struct molecule*)m->next;
   }
+}
+
+
+/*************************************************************************
+release_molecules:
+  In: pointer to a release event
+  Out: no return value; next event is scheduled and molecule(s) are
+       released into the world as specified.
+*************************************************************************/
+
+void release_molecules(struct release_event_queue *req)
+{
+  struct release_site_obj *rso;
+  struct release_pattern *rpat;
+  struct molecule m;
+  struct molecule *guess;
+  int i,number;
+  double diam,vol;
+  double xyz[3];
+  double t,k;
+  double num;
+  
+  rso = req->release_site;
+  rpat = rso->pattern;
+  
+  if (req->event_type == TRAIN_HIGH_EVENT)
+  {
+    if (rso->release_prob < 1.0)
+    {
+      k = -log( 1.0 - rso->release_prob );
+      t = -log( rng_double(world->seed++) ) / k;  /* Poisson dist. */
+      req->event_time += rpat->release_interval * (ceil(t)-1.0); /* Rounded to integers */
+    }
+    
+    if (req->event_time > req->train_high_time + rpat->train_duration)
+    {
+      req->train_high_time += rpat->train_duration + rpat->train_interval;
+      req->event_time = req->train_high_time;
+      req->event_counter++;
+    }
+    else req->event_type = RELEASE_EVENT;
+
+    if (req->event_counter < rpat->number_of_trains)
+    {
+      schedule_add(world->releaser,req);
+    }
+    return;
+  }
+
+  /* Fall through if it's a release event */
+
+  m.t = req->event_time;
+
+  req->event_type = TRAIN_HIGH_EVENT;
+  req->event_time += rpat->release_interval;
+
+  schedule_add(world->releaser,req);
+  
+  guess = NULL;
+  
+  m.properties = rso->mol_type;
+  
+  m.t_inert = -1;  /* Schedule me! */
+  m.t = req->event_time;
+  m.t2 = 0.0;
+  m.curr_cmprt = NULL;
+  
+  switch(rso->release_number_method)
+  {
+    case CONSTNUM:
+      number = rso->release_number;
+      break;
+    case GAUSSNUM:
+      if (rso->standard_deviation > 0)
+      {
+        gaussran4(&(world->seed),&num,1,
+                  rso->release_number,rso->standard_deviation);
+        number = (int) num;
+                  
+      }
+      else
+      {
+        rso->release_number_method = CONSTNUM;
+        number = rso->release_number;
+      }
+      break;
+    case VOLNUM:
+      if (rso->standard_deviation > 0)
+      {
+        gaussran4(&(world->seed),&diam,1,
+                    rso->mean_diameter,rso->standard_deviation);
+      }
+      else
+      {
+        diam = rso->mean_diameter;
+      }
+      vol = (MY_PI/6.0) * diam*diam*diam;
+      number = (int) (N_AV * 1e-15 * rso->concentration * vol);
+      break;
+   default:
+     number = 0;
+     break;
+  }
+  
+  diam = rso->diameter;
+  if (diam > 0)
+  {
+    for (i=0;i<number;i++)
+    {
+      do /* Pick values in unit square, toss if not in unit circle */
+      {
+        ran4(&(world->seed),xyz,3,diam);
+      } while ( xyz[0]*xyz[0] + xyz[1]*xyz[1] + xyz[2]*xyz[2] >= 2.0*diam*diam );
+      
+      m.pos.x = xyz[0] + req->location.x;
+      m.pos.y = xyz[1] + req->location.y;
+      m.pos.z = xyz[2] + req->location.z;
+      
+      guess = insert_molecule(&m,guess);  /* Insert copy of m into world */
+    }
+  }
+  else
+  {
+    m.pos.x = req->location.x;
+    m.pos.y = req->location.y;
+    m.pos.z = req->location.z;
+    
+    for (i=0;i<number;i++) guess = insert_molecule(&m,guess);
+  }
+  
 }

@@ -8,7 +8,9 @@ void init_credits(void);
 
 int init_sim(void);
 
+int init_species(void);
 int init_geom(void);
+int init_partitions(void);
 
 int instance_obj(struct object *objp,
 		 double (*im)[4],

@@ -1,7 +1,7 @@
 #ifndef MCELL_STRUCTS
 #define MCELL_STRUCTS
 
-#include <limits.h>
+#include <machine/limits.h>
 #include <sys/types.h>
 #include <stdio.h>
 
@@ -616,7 +616,7 @@ struct volume
   int n_waypoints;              /* How many of these = (n_axis_p-3)^3 */
   struct waypoint *waypoints;   /* Contains compartment information */
   
-  int n_subvol;                 /* How many coarse subvolumes? */
+  int n_subvols;                /* How many coarse subvolumes? */
   struct subvolume *subvol;     /* Array containing all subvolumes */
    
   int binning;                  /* How many real partitions per one in lookup? */
@@ -629,11 +629,13 @@ struct volume
   int n_reactions;              /* How many reactions are there, total? */
   struct rxn **reaction_hash;   /* A hash table of all reactions. */
   
-  int counter_hashmask;         /* Mask for looking up collision hash table */
-  struct counter **counter_hash;/* Collision hash table */
+  int collide_hashmask;         /* Mask for looking up collision hash table */
+  struct counter **collide_hash;/* Collision hash table */
   
   int n_species;                /* How many different species? */
   struct species **species_list; /* Array of all species. */
+  
+  struct schedule_helper *releaser;
   
   u_int rng_idx;
 
@@ -743,6 +745,44 @@ struct collision
   int what;
 };
 
+
+struct release_event_queue {
+  struct release_event_queue *next;
+  double event_time;
+
+  struct release_site_obj *release_site;
+  struct vector3 location;
+  byte event_type;
+  int event_counter;
+  double train_high_time;
+  int index;                   /**< unique index of this release_event */
+};
+
+
+struct release_site_obj {
+	struct vector3 *location;	/**< location of release site */
+	struct species *mol_type;	/**< species to be released */
+	byte release_number_method;
+	int release_number;
+	int mean_number;
+	double mean_diameter;
+	double concentration;
+        double standard_deviation;
+	double diameter;	/**< diameter of release site [\todo can release sites
+						  only be spherical? */
+	double release_prob;
+	struct release_pattern *pattern;
+};
+
+
+struct release_pattern {
+        struct sym_table *sym;
+	double delay;
+	double release_interval;
+	double train_interval;
+	double train_duration;
+	int number_of_trains;
+};
 
 /******************************************************************/
 /**  Everything below this line has been copied from MCell 2.69  **/
@@ -1151,50 +1191,11 @@ struct transformation {
         struct vector3 rot_axis;
         double rot_angle;
 };
- 
-/**
- * Data pertaining to a ligand release site.
- */
-struct release_site_obj {
-	struct vector3 *location;	/**< location of release site */
-	struct species *mol_type;	/**< species to be released */
-	byte release_number_method;
-	int release_number;
-	int mean_number;
-	double mean_diameter;
-	double concentration;
-        double standard_deviation;
-	double diameter;	/**< diameter of release site [\todo can release sites
-						  only be spherical? */
-	double release_prob;
-	struct release_pattern *release_pattern;
-};
 
 /**
  * Molecule release pattern data.
  */
-struct release_pattern {
-        struct sym_table *sym;
-	double delay;
-	double release_interval;
-	double train_interval;
-	double train_duration;
-	int number_of_trains;
-};
 
-/**
- * Linked list of timed ligand release events.
- */
-struct release_event_queue {
-	struct release_site_obj *release_site_obj;
-	struct vector3 location;
-	byte event_type;
-	double event_time;
-	int event_counter;
-	double train_high_time;
-        int index;                   /**< unique index of this release_event */
-	struct release_event_queue *next;
-};
 
 /**
  * Linked list of data to be output.

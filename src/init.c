@@ -250,7 +250,8 @@ int init_sim(void)
   world->count_zero->oper='\0';
   world->count_zero->next=world->count_list;
   world->count_list=world->count_zero;
-
+  
+  world->releaser = create_scheduler(1.0,100.0,100,0.0);
 
   /* Parse the MDL file: */
   no_printf("Node %d parsing MDL file %s\n",world->procnum,world->mdl_infile_name);
@@ -364,36 +365,38 @@ int init_species(void)
       }
     }
   }
+  
+  return 0;
 }
 
 
 
-/* This is just a placeholder for now--make one giant partition.
+/* This is just a placeholder for now--make one giant partition. */
 int init_partitions(void)
 {
   int i,j,k;
   struct subvolume *sv;
   
   world->n_axis_partitions = 2;
-  world->x_axis_partitions = (double*)malloc(sizeof(double)*world->n_axis_partitions);
-  world->y_axis_partitions = (double*)malloc(sizeof(double)*world->n_axis_partitions);
-  world->z_axis_partitions = (double*)malloc(sizeof(double)*world->n_axis_partitions);
+  world->x_partitions = (double*)malloc(sizeof(double)*world->n_axis_partitions);
+  world->y_partitions = (double*)malloc(sizeof(double)*world->n_axis_partitions);
+  world->z_partitions = (double*)malloc(sizeof(double)*world->n_axis_partitions);
   
   world->n_fine_partitions = world->n_axis_partitions;
-  world->x_fineparts = world->x_axis_partitions;
-  world->y_fineparts = world->y_axis_partitions;
-  world->z_fineparts = world->z_axis_partitions;
+  world->x_fineparts = world->x_partitions;
+  world->y_fineparts = world->y_partitions;
+  world->z_fineparts = world->z_partitions;
   
   world->n_waypoints = 1;
   world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint*)*world->n_waypoints);
   
   world->n_subvols = world->n_waypoints;
   world->subvol = (struct subvolume*)malloc(sizeof(struct subvolume*)*world->n_subvols);
-  for (i=0;i<world->n_axis_partitons-1;i++)
-  for (j=0;j<world->n_axis_partitons-1;j++)
-  for (k=0;k<world->n_axis_partitons-1;k++)
+  for (i=0;i<world->n_axis_partitions-1;i++)
+  for (j=0;j<world->n_axis_partitions-1;j++)
+  for (k=0;k<world->n_axis_partitions-1;k++)
   {
-    sv = world->subvol[k + world->n_axis_partitions*(j + k*world->n_axis_partitions)];
+    sv = & (world->subvol[k + world->n_axis_partitions*(j + k*world->n_axis_partitions)]);
     sv->wall_head = NULL;
     sv->wall_tail = NULL;
     sv->wall_count = 0;
@@ -402,17 +405,21 @@ int init_partitions(void)
     
     sv->index = -1;
     
-    sv->llf.x = world->x_axis_partitions[i];
-    sv->llf.y = world->y_axis_partitions[j];
-    sv->llf.z = world->z_axis_partitions[k];
-    sv->urb.x = world->x_axis_partitions[i+1];
-    sv->urb.y = world->y_axis_partitions[j+1];
-    sv->urb.z = world->z_axis_partitions[k+1];
+    sv->llf.x = world->x_partitions[i];
+    sv->llf.y = world->y_partitions[j];
+    sv->llf.z = world->z_partitions[k];
+    sv->urb.x = world->x_partitions[i+1];
+    sv->urb.y = world->y_partitions[j+1];
+    sv->urb.z = world->z_partitions[k+1];
     
     sv->is_bsp = 0;
     
-    neighbor[0] = neighbor[1] = neighbor[2] = neighbor[3] =\
-      neighbor[4] = neighbor[5] = NULL;
+    sv->neighbor[0] = NULL;
+    sv->neighbor[1] = NULL;
+    sv->neighbor[2] = NULL;
+    sv->neighbor[3] = NULL;
+    sv->neighbor[4] = NULL;
+    sv->neighbor[5] = NULL;
     
     sv->mem = (struct storage*)malloc(sizeof(struct storage));
     
@@ -427,14 +434,14 @@ int init_partitions(void)
     sv->mem->current_time = 0.0;
     sv->mem->max_timestep = 100.0;
   }
-  }
-  }
   
   world->binning = 0;
   world->lookup = NULL;
   
-  world->counter_hashmask = 0xFFFF;
-  world->counter_hash = (struct counter**)malloc(sizeof(struct counter*)*(world->counter_hashmask+1));
+  world->collide_hashmask = 0xFFFF;
+  world->collide_hash = (struct counter**)malloc(sizeof(struct counter*)*(world->collide_hashmask+1));
+  
+  return 0;
 }
 
 
@@ -450,6 +457,7 @@ int init_geom(void)
   FILE *log_file;
   double tm[4][4];
   double vol_infinity;
+  struct release_event_queue *req,*rqn;
 
   no_printf("Initializing physical objects\n");
   log_file=world->log_file;
@@ -472,6 +480,15 @@ int init_geom(void)
   
   if (instance_obj(world->root_instance,tm,NULL,NULL,NULL)) {
     return(1);
+  }
+  
+/* Stick the queue of release events in a scheduler */
+  req = world->release_event_queue_head;  
+  while(req != NULL)
+  {
+    rqn = req->next;
+    schedule_add(world->releaser , req);
+    req = rqn;
   }
 
   return(0);
@@ -609,9 +626,9 @@ int instance_release_site(struct object *objp, double (*im)[4])
 	  reqp->location.y=location[0][1]/world->length_unit;
 	  reqp->location.z=location[0][2]/world->length_unit;
 
-	  reqp->release_site_obj=rsop;
+	  reqp->release_site=rsop;
 	  reqp->event_type=TRAIN_HIGH_EVENT;
-	  reqp->event_time=rsop->release_pattern->delay;
+	  reqp->event_time=rsop->pattern->delay;
 	  reqp->event_counter=0;
 	  reqp->train_high_time=0;
 	  reqp->index=world->n_release_events++;

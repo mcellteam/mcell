@@ -10,6 +10,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "rng.h"
 #include "wall_util.h"
@@ -262,7 +263,6 @@ int surface_net( struct wall **facelist, int nfaces )
   int i,j,k;
   int nedge;
   int nkeys;
-  int face;
   int same;
   int is_closed = 1;
   
@@ -344,7 +344,6 @@ void init_edge_transform(struct edge *e,int edgenum)
 {
   struct vector3 v,*vp;
   struct vector2 ehatf,ehatb;
-  double l;
   int i,j;
   
   if (edgenum+1 < 3)
@@ -553,7 +552,8 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
     {
       if ( c*face->uv_vert1_u + g < h + face->uv_vert1_u*face->uv_vert2.v )
       {
-        return COLLIDE_HIT;
+        if (dv>0) return COLLIDE_BACK;
+        else return COLLIDE_FRONT;
       }
       else if (c*face->uv_vert1_u + g == h + face->uv_vert1_u*face->uv_vert2.v)
       {

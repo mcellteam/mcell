@@ -22,7 +22,6 @@ ae_list_sort:
 
 struct abstract_element* ae_list_sort(struct abstract_element *ae)
 {
-  int i,j,k;
   struct abstract_element *stack[64];
   int stack_n[64];
   struct abstract_element *left,*right,*merge,*tail;

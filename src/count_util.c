@@ -7,9 +7,11 @@
 \**************************************************************************/
 
 
+#include <math.h>
 #include <stdio.h>
 
 #include "mcell_structs.h"
+#include "wall_util.h"
 #include "count_util.h"
 
 
@@ -81,11 +83,11 @@ void count_crossings(struct molecule *m,struct subvolume *sv,
   int i;
   struct wall_list *wl;
   double t;
-  double hitpt;
+  struct vector3 hitpt;
   
   for (wl = sv->wall_head ; wl != NULL ; wl = wl->next)
   {
-    i = collide_wall(m,move,wl->this_wall,&t,&hitpt);
+    i = collide_wall(&(m->pos),move,wl->this_wall,&t,&hitpt);
     if (i==COLLIDE_REDO)
     {
       /* Ignore this for now.  Should fix. */

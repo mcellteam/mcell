@@ -210,7 +210,7 @@ double r_func(double s)
 {   
   double f,s_sqr,val;
     
-  f=2.25675833419102511712;  /* 4.0/sqrt(pi) */
+  f=2.2567583341910251478;  /* 4.0/sqrt(pi) */
   s_sqr=s*s;
   val=f*s_sqr*exp(-s_sqr);
     

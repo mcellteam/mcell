@@ -1788,7 +1788,7 @@ release_site_def: new_object SPHERICAL_RELEASE_SITE '{'
   mdlpvp->rsop->standard_deviation=0;
   mdlpvp->rsop->diameter=0;
   mdlpvp->rsop->release_prob=1.0;
-  mdlpvp->rsop->release_pattern=volp->default_release_pattern;
+  mdlpvp->rsop->pattern=volp->default_release_pattern;
   mdlpvp->objp->object_type=REL_SITE_OBJ;
   mdlpvp->objp->contents=mdlpvp->rsop;
   mdlpvp->objp->parent=mdlpvp->curr_obj;
@@ -1836,7 +1836,7 @@ release_site_cmd:
 	| RELEASE_PATTERN '=' existing_release_pattern
 {
   mdlpvp->gp=$<sym>3;
-  mdlpvp->rsop->release_pattern=(struct release_pattern *)mdlpvp->gp->value;
+  mdlpvp->rsop->pattern=(struct release_pattern *)mdlpvp->gp->value;
 };
 
 release_number_cmd: constant_release_number_cmd

@@ -8,6 +8,7 @@
 \**************************************************************************/
 
 
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "mem_util.h"
@@ -32,7 +33,8 @@ void* count_malloc(int n)
 {
   howmany_count_malloc++;
   
-  if (howmany_count_malloc > 200000) { printf("Nuts!\n"); catch_me(); }
+  if (howmany_count_malloc > 200000)
+  { printf("Nuts!\n"); catch_me(); return NULL; }
   
   else return malloc(n);
 }
@@ -60,6 +62,8 @@ struct counter_helper* create_counter(int size,int length)
   ch->data_size = size;
   ch->n_unique = 0;
   ch->head = NULL;
+  
+  return ch;
 }
 
 
@@ -148,8 +152,6 @@ counter_reset:
 
 void counter_reset(struct counter_helper *ch)
 {
-  struct counter_header *c;
-  
   ch->n_unique = 0;
   if (ch->head != NULL) mem_put_list(ch->mem , ch->head);
 }
@@ -245,6 +247,8 @@ struct stack_helper* create_stack(int size,int length)
   sh->data = (unsigned char*) Malloc( size * length );
   sh->next = NULL;
   sh->defunct = NULL;
+
+  return sh;
 }
 
 
@@ -831,7 +835,7 @@ create_temp:
 
 struct temp_mem* create_temp(int length)
 {
-  struct temp_mem *new_mem = Malloc(sizeof(struct temp_mem));
+  struct temp_mem *new_mem = (struct temp_mem*) Malloc(sizeof(struct temp_mem));
   new_mem->pointers = create_stack(sizeof(void*),length);
   return new_mem;
 }

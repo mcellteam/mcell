@@ -7,9 +7,24 @@
 #include "strfunc.h"
 #include "argparse.h"
 #include "mdlparse.h"
+#include "vol_util.h"
 #include "init.h"
 
 struct volume *world;
+
+void run_sim(void)
+{
+  struct release_event_queue *req;
+  while (world->it_time < world->iterations
+/*         && world->it_time < world->chkpt_iterations */
+        )
+  {
+    req = schedule_next( world->releaser );
+    
+    if (req==NULL) world->it_time++;
+    else release_molecules(req);
+  }
+}
 
 int main(int argc, char **argv) {
 
@@ -82,6 +97,8 @@ int main(int argc, char **argv) {
     return(1);
   }
 
-
+  
+  run_sim();
+  
   exit(0);
 }

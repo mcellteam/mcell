@@ -14,4 +14,6 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess);
 void excert_molecule(struct molecule *m);
 void insert_molecule_list(struct molecule *m);
 
+void release_molecules(struct release_event_queue *req);
+
 #endif
