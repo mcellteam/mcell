@@ -1016,7 +1016,6 @@ struct release_event_queue {
 
   struct release_site_obj *release_site;
   struct vector3 location;		/**< location of the release */
-  byte event_type;			/**< type of the release event */
   int train_counter;			/**< counts executed trains */
   double train_high_time;		/**< time of the train's start */
 };
