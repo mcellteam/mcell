@@ -7,6 +7,8 @@
 \**************************************************************************/
 
 #include <math.h>
+#include <string.h>
+
 #include "rng.h"
 #include "mcell_structs.h"
 #include "vol_util.h"

@@ -6,8 +6,10 @@
 ** Testing status: validated (see validate_sched_util.c).                 **
 \**************************************************************************/
 
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "sched_util.h"
 
 int depth;
