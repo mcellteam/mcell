@@ -393,26 +393,26 @@ void set_bit_range(struct bit_array *ba,int idx1,int idx2,int value)
   {
     mask = 0;
     for (i=ofs1;i<=ofs2;i++) mask |= (1<<i);
-    cmask = -1 ^ mask;
+    cmask = ~mask;
     
     if (value) data[idx1] = (data[idx1]&cmask) | mask;
     else data[idx1] = data[idx1]&cmask;
   }
   else
   {
-    if (value) value = -1;
+    if (value) value = ~0;
     else value = 0;
     for (i=idx1+1;i<idx2;i++) data[i] = value;
     
     mask = 0;
     for (i=ofs1;i<8*sizeof(int);i++) mask |= (1<<i);
-    cmask = -1 ^ mask;
+    cmask = ~mask;
     if (value) data[idx1] = (data[idx1]&cmask) | mask;
     else data[idx1] = data[idx1]&cmask;
     
     mask = 0;
-    for (i=0;i<=8*ofs2;i++) mask |= (1<<i);
-    cmask = -1 ^ mask;
+    for (i=0;i<=ofs2;i++) mask |= (1<<i);
+    cmask = ~mask;
     if (value) data[idx2] = (data[idx2]&cmask) | mask;
     else data[idx2] = data[idx2]&cmask;    
   }

@@ -2015,6 +2015,16 @@ int normalize_elements(struct region *reg, int existing)
   
   if (existing) bit_operation(elt_array,((struct polygon_object*)reg->parent->contents)->side_removed,'-');
   
+#ifdef DEBUG
+  printf("Normalized membership of %s: ",reg->sym->name);
+  for (i=0;i<reg->membership->nbits;i++)
+  {
+    if (get_bit(reg->membership,i)) printf("X");
+    else printf("_");
+  }
+  printf("\n");
+#endif
+  
   return 0;
 }
 
