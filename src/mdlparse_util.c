@@ -9,6 +9,8 @@
 #include "vector.h"
 #include "strfunc.h"
 #include "sym_table.h"
+#include "util.h"
+#include "vol_util.h"
 #include "mcell_structs.h"
 #include "mdlparse_util.h"
 #include "mdlparse.h"
@@ -347,20 +349,34 @@ int copy_object(struct volume *volp,struct object *curr_objp,
     } 
     rp->parent=objp;
     rp->reg_counter_ref_list=NULL;
+    rp->membership = NULL;
     rp->surf_class=rp2->surf_class;
-    elp2=rp2->element_list_head;
-    while (elp2!=NULL) {
+    
+    for ( elp2=rp2->element_list_head ; elp2!=NULL ; elp2=elp2->next)
+    { 
+      /* FIXME: take this for loop out later, shouldn't be needed */
       if ((elp=(struct element_list *)malloc
            (sizeof(struct element_list)))==NULL) {
         sprintf(err_msg,"%s %s","Cannot store object name:",sym_name);
         return(1);
       }
+      elp->special=NULL;
       elp->next=rp->element_list_head;
       rp->element_list_head=elp;
       elp->begin=elp2->begin;
       elp->end=elp2->end;
-      elp2=elp2->next;
+      if (elp2->special!=NULL) elp->begin = elp->end = 0;
     }
+    if (rp2->membership != NULL)
+    {
+      rp->membership = duplicate_bit_array(rp2->membership);
+      if (rp->membership==NULL)
+      {
+	sprintf(err_msg,"%s %s","Cannot store object name:",sym_name);
+	return 1;
+      }
+    }
+    else printf("No membership data for %s\n",rp2->sym->name);
     effdp2=rp2->eff_dat_head;
     while (effdp2!=NULL) {
       if ((effdp=(struct eff_dat *)malloc(sizeof(struct eff_dat)))==NULL) {
@@ -653,6 +669,8 @@ Note: The user inputs _geometric equivalence classes_, but here we
       the reactants (NULL = destroyed), and the rest are real products.
 PostNote: The reactants are used for triggering, and those have
       equivalence class geometry even in here.
+PostPostNote: Before prepare_reactions is called, pathway_head is a
+       linked list.  Afterwards, it is an array.
 *************************************************************************/
 int prepare_reactions(struct mdlparse_vars *mpvp)
 {
@@ -782,8 +800,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           if (path->kcat >= 0.0) rx->cat_rates[j] = path->kcat;
           else
           {
-            if (path->kcat==KCAT_RATE_WINDOW) rx->n_pathways = RX_WINDOW;
-            else if (path->kcat==KCAT_RATE_GHOST) rx->n_pathways = RX_GHOST;
+	    if (path->kcat==KCAT_RATE_TRANSPARENT) rx->n_pathways = RX_TRANSP;
             if (j!=0 || path->next!=NULL)
             {
               printf("Warning: mixing surface modes with other surface reactions.  Please don't.\n");
@@ -812,7 +829,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         path = rx->pathway_head;
         
         num_players = rx->n_reactants;
-        for (j=0;j<rx->n_pathways;j++)
+	kk = rx->n_pathways;
+	if (kk<=RX_SPECIAL) kk = 1;
+        for (j=0;j<kk;j++)
         {
           k = rx->product_idx[j] + rx->n_reactants;
           rx->product_idx[j] = num_players;
@@ -1021,8 +1040,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                  rx->players[1]->sym->name,rx->geometries[1]);
           if (rx->n_pathways <= RX_SPECIAL)
           {
-            if (rx->n_pathways == RX_GHOST) printf("(GHOST)");
-            else if (rx->n_pathways == RX_WINDOW) printf("(WINDOW)");
+            if (rx->n_pathways == RX_TRANSP) printf("(TRANSPARENT)");
           }
           else
           {
@@ -1118,6 +1136,24 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                tp->value *= pb_factor;
           }
         }
+	
+	if (rx->n_pathways>1)  /* Convert linked list into array */
+	{
+	  struct pathway *temp_p;
+	  temp_p = (struct pathway*)malloc(rx->n_pathways*sizeof(struct pathway));
+	  if (temp_p==NULL) return 1;
+	  
+	  for ( j=0,path=rx->pathway_head ; path!=NULL ; j++,path=path->next )
+	  {
+	    memcpy(&(temp_p[j]),path,sizeof(struct pathway));
+	    temp_p[j].next = path;  /* Store list elts so we can free them */
+	  }
+	  for ( j=0 ; j<rx->n_pathways ; j++ ) mem_put(mpvp->path_mem,temp_p[j].next);
+	  
+	  /* Fix it up so we can still use it as a linked list if we want */
+	  for ( j=1 ; j<rx->n_pathways ; j++ ) temp_p[j-1].next = &(temp_p[j]);
+	  temp_p[rx->n_pathways-1].next = NULL;
+	}
         
         rx = rx->next;
       }
@@ -1225,7 +1261,7 @@ int make_cuboid(struct vector3 *p1, struct vector3 *p2, struct ordered_poly *opp
   struct vector3 *corner;
   struct element_data *edp;
   double dx,dy,dz;
-  int i,*intp;
+  int i;
 
   if ((corner=(struct vector3 *)malloc
       (opp->n_verts*sizeof(struct vector3)))==NULL) {
@@ -1237,13 +1273,9 @@ int make_cuboid(struct vector3 *p1, struct vector3 *p2, struct ordered_poly *opp
       (opp->n_walls*sizeof(struct element_data)))==NULL) {
     return(1);
   }
-  opp->element_data=edp;
+  opp->element=edp;
   
   for(i=0;i<opp->n_walls;i++){
-    if ((intp=(int *)malloc(3*sizeof(int)))==NULL) {
-      return(1);
-    }
-    edp[i].vertex_index=intp;
     edp[i].n_verts=3;
   }
 
@@ -1336,6 +1368,857 @@ int make_cuboid(struct vector3 *p1, struct vector3 *p2, struct ordered_poly *opp
 }
 
 
+struct subdivided_box* init_cuboid(struct vector3 *p1,struct vector3 *p2)
+{
+  struct subdivided_box *b;
+  
+  if (p2->x-p1->x < EPS_C || p2->y-p1->y < EPS_C || p2->z-p1->z < EPS_C)
+  {
+    mdlerror("Box vertices out of order or box is degenerate.");
+    return NULL;
+  }
+
+  b = (struct subdivided_box*)malloc(sizeof(struct subdivided_box));
+  if (b==NULL) return NULL;
+  
+  b->nx = b->ny = b->nz = 2;
+  b->x = (double*)malloc( b->nx * sizeof(double) );
+  b->y = (double*)malloc( b->nx * sizeof(double) );
+  b->z = (double*)malloc( b->nx * sizeof(double) );
+  if (b->x==NULL || b->y==NULL || b->z==NULL) return NULL;
+  
+  b->x[0] = p1->x;
+  b->x[1] = p2->x;
+  b->y[0] = p1->y;
+  b->y[1] = p2->y;
+  b->z[0] = p1->z;
+  b->z[1] = p2->z;
+  
+  return b;
+}
+
+int check_patch(struct subdivided_box *b,struct vector3 *p1,struct vector3 *p2,double egd)
+{
+  int i = 0;
+  int nbits = 0;
+  int j;
+  const double minspacing = sqrt(2.0 / egd);
+  double d;
+  
+  if (p1->x != p2->x) { i |= BRANCH_X; nbits++; }
+  if (p1->y != p2->y) { i |= BRANCH_Y; nbits++; }
+  if (p1->z != p2->z) { i |= BRANCH_Z; nbits++; }
+  
+  /* Check that we're a patch on one surface */
+  if (nbits!=2) return 0;
+  
+  /* Sanity checks for sizes */
+  if ((i&BRANCH_X)!=0 && (p1->x > p2->x || p1->x < b->x[0] || p2->x > b->x[b->nx-1])) return 0;
+  if ((i&BRANCH_Y)!=0 && (p1->y > p2->y || p1->y < b->y[0] || p2->y > b->y[b->ny-1])) return 0;
+  if ((i&BRANCH_Z)!=0 && (p1->z > p2->z || p1->z < b->z[0] || p2->z > b->z[b->nz-1])) return 0;
+  
+  /* Check for sufficient spacing */
+  if (i&BRANCH_X)
+  {
+    d = p2->x - p1->x;
+    if (d > 0 && d < minspacing) return 0;
+    for (j=0;j<b->nx;j++)
+    {
+      d = fabs(b->x[j] - p1->x);
+      if (d > 0 && d < minspacing) return 0;
+      d = fabs(b->x[j] - p2->x);
+      if (d > 0 && d < minspacing) return 0;
+    }
+  }
+  if (i&BRANCH_Y)
+  {
+    d = p2->y - p1->y;
+    if (d > 0 && d < minspacing) return 0;
+    for (j=0;j<b->ny;j++)
+    {
+      d = fabs(b->y[j] - p1->y);
+      if (d > 0 && d < minspacing) return 0;
+      d = fabs(b->y[j] - p2->y);
+      if (d > 0 && d < minspacing) return 0;
+    }
+  }
+  if (i&BRANCH_Z)
+  {
+    d = p2->z - p1->z;
+    if (d > 0 && d < minspacing) return 0;
+    for (j=0;j<b->nz;j++)
+    {
+      d = fabs(b->z[j] - p1->z);
+      if (d > 0 && d < minspacing) return 0;
+      d = fabs(b->z[j] - p2->z);
+      if (d > 0 && d < minspacing) return 0;
+    }
+  }
+
+  return i;
+}
+
+int refine_cuboid(struct vector3 *p1,struct vector3 *p2,struct subdivided_box *b, double egd)
+{
+  int i,j,k;
+  double *new_list;
+  int new_n;
+  
+  printf("Refining subdivisions.\n");
+  
+  i = check_patch(b,p1,p2,egd);
+  
+  if (i==0) return 2; /* Error */
+  
+  if (i&BRANCH_X)
+  {   
+    new_n = b->nx + 2;
+    for (j=0;j<b->nx;j++)
+    {
+      if (p1->x == b->x[j]) new_n--;
+      if (p2->x == b->x[j]) new_n--;
+    }
+    if (new_n > b->nx)
+    {
+      new_list = (double*)malloc(new_n * sizeof(double));
+      if (new_list==NULL) return 1;
+      
+      for ( j=k=0 ; b->x[j]<p1->x ; j++ ) new_list[k++]=b->x[j];
+      new_list[k++]=p1->x;
+      for ( ; b->x[j]<p2->x ; j++ ) new_list[k++]=b->x[j];
+      if (p1->x!=p2->x) new_list[k++]=p2->x;
+      for ( ; j<b->nx ; j++ ) new_list[k++]=b->x[j];
+      
+      free(b->x);
+      b->x = new_list;
+      b->nx = new_n;
+    }
+    printf("Branch x done.\n");
+  }
+  if (i&BRANCH_Y) /* Same as above with x->y */
+  {
+    new_n = b->ny + 2;
+    for (j=0;j<b->ny;j++)
+    {
+      if (p1->y == b->y[j]) new_n--;
+      if (p2->y == b->y[j]) new_n--;
+    }
+    if (new_n > b->ny)
+    {
+      new_list = (double*)malloc(new_n * sizeof(double));
+      if (new_list==NULL) return 1;
+      
+      for ( j=k=0 ; b->y[j]<p1->y ; j++ ) new_list[k++]=b->y[j];
+      new_list[k++]=p1->y;
+      for ( ; b->y[j]<p2->y ; j++ ) new_list[k++]=b->y[j];
+      if (p1->y!=p2->y) new_list[k++]=p2->y;
+      for ( ; j<b->ny ; j++ ) new_list[k++]=b->y[j];
+      
+      free(b->y);
+      b->y = new_list;
+      b->ny = new_n;
+    }
+    printf("Branch y done.\n");
+  }
+  if (i&BRANCH_Z)  /* Same again, x->z */
+  {
+    new_n = b->nz + 2;
+    for (j=0;j<b->nz;j++)
+    {
+      if (p1->z == b->z[j]) new_n--;
+      if (p2->z == b->z[j]) new_n--;
+    }
+    if (new_n > b->nz)
+    {
+      new_list = (double*)malloc(new_n * sizeof(double));
+      if (new_list==NULL) return 1;
+      
+      for ( j=k=0 ; b->z[j]<p1->z ; j++ ) new_list[k++]=b->z[j];
+      new_list[k++]=p1->z;
+      for ( ; b->z[j]<p2->z ; j++ ) new_list[k++]=b->z[j];
+      if (p1->z!=p2->z) new_list[k++]=p2->z;
+      for ( ; j<b->nz ; j++ ) new_list[k++]=b->z[j];
+      
+      free(b->z);
+      b->z = new_list;
+      b->nz = new_n;
+    }
+    printf("Branch z done.\n");
+  }
+ 
+  return 0;
+}
+
+
+void print_cuboid(struct subdivided_box *b)
+{
+  int i;
+  printf("X coordinate:\n");
+  for (i=0;i<b->nx;i++) printf("  %.8e\n",b->x[i]);
+  printf("Y coordinate:\n");
+  for (i=0;i<b->ny;i++) printf("  %.8e\n",b->y[i]);
+  printf("Z coordinate:\n");
+  for (i=0;i<b->nz;i++) printf("  %.8e\n",b->z[i]);
+}
+  
+
+
+int divide_cuboid(struct subdivided_box *b,int axis,int idx,int ndiv)
+{
+  double *old_list;
+  double *new_list;
+  int old_n;
+  int new_n;
+  int i,j,k;
+  
+  if (ndiv<2) return 0;
+  
+  switch(axis)
+  {
+    case BRANCH_X:
+      old_list = b->x;
+      old_n = b->nx;
+      break;
+    case BRANCH_Y:
+      old_list = b->y;
+      old_n = b->ny;
+      break;
+    case BRANCH_Z:
+      old_list = b->z;
+      old_n = b->nz;
+      break;
+    default:
+      return 1;
+      break;
+  }
+  
+  new_n = old_n + ndiv - 1;
+  new_list = (double*) malloc( new_n * sizeof(double) );
+  
+  if (new_list==NULL) return 1;
+  
+  for ( i=j=0 ; i<=idx ; i++,j++) new_list[j] = old_list[i];
+  for (k=1;k<ndiv;k++) new_list[j++] = (((double)k/(double)ndiv))*(old_list[i]-old_list[i-1]) + old_list[i-1];
+  for ( ; i<old_n ; i++,j++) new_list[j] = old_list[i];
+  
+  printf("Split axis %d at %d by %d:",axis,idx,ndiv);
+  for (i=0;i<old_n;i++) printf(" %.3e",old_list[i]);
+  printf("\nInto");
+  for (j=0;j<new_n;j++) printf(" %.3e",new_list[j]);
+  printf("\n");
+  
+  switch(axis)
+  {
+    case BRANCH_X:
+      b->x = new_list;
+      b->nx = new_n;
+      break;
+    case BRANCH_Y:
+      b->y = new_list;
+      b->ny = new_n;
+      break;
+    case BRANCH_Z:
+      b->z = new_list;
+      b->nz = new_n;
+      break;
+    default:
+      return 1;
+      break;
+  }
+  
+  free(old_list);
+  return 0;
+}
+
+
+int reaspect_cuboid(struct subdivided_box *b,int max_ratio)
+{
+  double min_x,min_y,min_z,max_x,max_y,max_z;
+  int ix,iy,iz,jx,jy,jz;
+  int i,j;
+  int changed;
+  
+  do
+  {
+    changed = 0;
+    
+    max_x = min_x = b->x[1] - b->x[0];
+    jx = ix = 0;
+    for (i=1;i<b->nx-1;i++)
+    {
+      if (min_x > b->x[i+1] - b->x[i])
+      {
+	min_x = b->x[i+1] - b->x[i];
+	ix = i;
+      }
+      else if (max_x < b->x[i+1] - b->x[i])
+      {
+	max_x = b->x[i+1] - b->x[i];
+	jx = i;
+      }
+    }
+    
+    max_y = min_y = b->y[1] - b->y[0];
+    jy = iy = 0;
+    for (i=1;i<b->ny-1;i++)
+    {
+      if (min_y > b->y[i+1] - b->y[i])
+      {
+	min_y = b->y[i+1] - b->y[i];
+	iy = i;
+      }
+      else if (max_y < b->y[i+1] - b->y[i])
+      {
+	max_y = b->y[i+1] - b->y[i];
+	jy = i;
+      }
+    }
+
+    max_z = min_z = b->z[1] - b->z[0];
+    jz = iz = 0;
+    for (i=1;i<b->nz-1;i++)
+    {
+      if (min_z > b->z[i+1] - b->z[i])
+      {
+	min_z = b->z[i+1] - b->z[i];
+	iz = i;
+      }
+      else if (max_z < b->z[i+1] - b->z[i])
+      {
+	max_z = b->z[i+1] - b->z[i];
+	jz = i;
+      }
+    }
+    
+    if (max_y/min_x > max_ratio)
+    {
+      j = divide_cuboid(b , BRANCH_Y , jy , (int)ceil(max_y/(max_ratio*min_x)) );
+      if (j) return 1;
+      changed |= BRANCH_Y;
+    }
+    else if (max_x/min_y > max_ratio)
+    {
+      j = divide_cuboid(b,BRANCH_X,jx,(int)ceil(max_x/(max_ratio*min_y)));
+      if (j) return 1;
+      changed |= BRANCH_X;
+    }
+    
+    if ((changed&BRANCH_X)==0 && max_z/min_x > max_ratio)
+    {
+      j = divide_cuboid(b , BRANCH_Z , jz , (int)ceil(max_z/(max_ratio*min_x)) );
+      if (j) return 1;
+      changed |= BRANCH_Z;
+    }
+    else if ((changed&BRANCH_X)==0 && max_x/min_z > max_ratio)
+    {
+      j = divide_cuboid(b,BRANCH_X,jx,(int)ceil(max_x/(max_ratio*min_z)));
+      if (j) return 1;
+      changed |= BRANCH_X;
+    }
+
+    if ((changed&(BRANCH_Y|BRANCH_Z))==0 && max_z/min_y > max_ratio)
+    {
+      j = divide_cuboid(b , BRANCH_Z , jz , (int)ceil(max_z/(max_ratio*min_y)) );
+      if (j) return 1;
+      changed |= BRANCH_Z;
+    }
+    else if ((changed&(BRANCH_Y|BRANCH_Z))==0 && max_y/min_z > max_ratio)
+    {
+      j = divide_cuboid(b,BRANCH_Y,jy,(int)ceil(max_y/(max_ratio*min_z)));
+      if (j) return 1;
+      changed |= BRANCH_Y;
+    }  
+  } while (changed);
+  
+  return 0;
+}
+
+
+int count_cuboid_elements(struct subdivided_box *sb)
+{
+  return 4*((sb->nx-1)*(sb->ny-1) + (sb->nx-1)*(sb->nz-1) + (sb->ny-1)*(sb->nz-1));
+}
+
+int count_cuboid_vertices(struct subdivided_box *sb)
+{
+  return 2*sb->ny*sb->nz + 2*(sb->nx-2)*sb->nz + 2*(sb->nx-2)*(sb->ny-2);
+}
+
+
+void cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct vector3 *v2,struct bit_array *ba)
+{
+  int i,ii;
+  int a_lo,a_hi,b_lo,b_hi;
+  int line,base;
+  
+  i = check_patch(sb,v1,v2,GIGANTIC);
+  if (!i) return;
+  ii = NODIR;
+  if ( (i&BRANCH_X)==0 )
+  {
+    if (sb->x[0]==v1->x) ii = X_NEG;
+    else ii = X_POS;
+  }
+  else if ( (i&BRANCH_Y)==0 )
+  {
+    if (sb->y[0]==v1->y) ii = Y_NEG;
+    else ii = Y_POS;
+  }
+  else
+  {
+    if (sb->z[0]==v1->z) ii = Z_NEG;
+    else ii = Z_POS;
+  }
+  if (ii==NODIR) return;
+  
+  switch (ii)
+  {
+    case X_NEG:
+      a_lo = bisect_near(sb->y,sb->ny,v1->y);
+      a_hi = bisect_near(sb->y,sb->ny,v2->y)-1;
+      b_lo = bisect_near(sb->z,sb->nz,v1->z);
+      b_hi = bisect_near(sb->z,sb->nz,v2->z)-1;
+      line = sb->ny-1;
+      base = 0;
+      break;
+    case X_POS:
+      a_lo = bisect_near(sb->y,sb->ny,v1->y);
+      a_hi = bisect_near(sb->y,sb->ny,v2->y)-1;
+      b_lo = bisect_near(sb->z,sb->nz,v1->z);
+      b_hi = bisect_near(sb->z,sb->nz,v2->z)-1;
+      line = sb->ny-1;
+      base = (sb->ny-1)*(sb->nz-1);
+      break;
+    case Y_NEG:
+      a_lo = bisect_near(sb->x,sb->nx,v1->x);
+      a_hi = bisect_near(sb->x,sb->nx,v2->x)-1;
+      b_lo = bisect_near(sb->z,sb->nz,v1->z);
+      b_hi = bisect_near(sb->z,sb->nz,v2->z)-1;
+      line = sb->nx-1;
+      base = 2*(sb->ny-1)*(sb->nz-1);
+      break;
+    case Y_POS:
+      a_lo = bisect_near(sb->x,sb->nx,v1->x);
+      a_hi = bisect_near(sb->x,sb->nx,v2->x)-1;
+      b_lo = bisect_near(sb->z,sb->nz,v1->z);
+      b_hi = bisect_near(sb->z,sb->nz,v2->z)-1;
+      line = sb->nx-1;
+      base = 2*(sb->ny-1)*(sb->nz-1) + (sb->nx-1)*(sb->nz-1);
+      break;
+    case Z_NEG:
+      a_lo = bisect_near(sb->x,sb->nx,v1->x);
+      a_hi = bisect_near(sb->x,sb->nx,v2->x)-1;
+      b_lo = bisect_near(sb->y,sb->ny,v1->y);
+      b_hi = bisect_near(sb->y,sb->ny,v2->y)-1;
+      line = sb->nx-1;
+      base = 2*(sb->ny-1)*(sb->nz-1) + 2*(sb->nx-1)*(sb->nz-1);
+      break;
+    case Z_POS:
+      a_lo = bisect_near(sb->x,sb->nx,v1->x);
+      a_hi = bisect_near(sb->x,sb->nx,v2->x)-1;
+      b_lo = bisect_near(sb->y,sb->ny,v1->y);
+      b_hi = bisect_near(sb->y,sb->ny,v2->y)-1;
+      line = sb->nx-1;
+      base = 2*(sb->ny-1)*(sb->nz-1) + 2*(sb->nx-1)*(sb->nz-1) + (sb->nx-1)*(sb->ny-1);
+      break;
+    default:
+      printf("Error!\n");
+      return;
+  }
+  
+  set_all_bits(ba,0);
+  printf("Range is %d->%d, %d->%d\n",a_lo,a_hi,b_lo,b_hi);
+  
+  if (a_lo==0 && a_hi==line-1)
+  {
+    set_bit_range(ba , 2*(base+line*b_lo+a_lo) , 2*(base+line*b_hi+a_hi)+1 , 1);
+  }
+  else
+  {
+    for (i=b_lo ; i<=b_hi ; i++)
+    {
+      set_bit_range(ba , 2*(base+line*i+a_lo) , 2*(base+line*i+a_hi)+1 , 1);
+    }
+  }
+}
+
+
+int normalize_elements(struct region *reg, int existing)
+{
+  struct element_list *el;
+  struct bit_array *elt_array;
+  struct bit_array *temp = NULL;
+  struct polygon_object *po=NULL;
+  char op;
+  int n_elts;
+  int i = 0;
+  
+  if (reg->element_list_head==NULL) return 0;
+  
+  if (reg->parent->object_type == BOX_OBJ)
+  {
+    po = (struct polygon_object*)reg->parent->contents;
+    n_elts = count_cuboid_elements(po->sb);
+    print_cuboid(po->sb);
+  }
+  else n_elts = reg->parent->n_walls;
+  
+  printf("Normalizing region %s\n",reg->sym->name);
+  
+  if (reg->membership == NULL)
+  {
+    elt_array = new_bit_array(n_elts);
+    if (elt_array==NULL) { printf("Hie"); return 1; }
+    reg->membership = elt_array;
+  }
+  else elt_array = reg->membership;
+  
+  
+  if (reg->element_list_head->special==NULL)
+  {
+    set_all_bits(elt_array,0);
+  }
+  else if ((void*)reg->element_list_head->special==(void*)reg->element_list_head) /* Special flag for exclusion */
+  {
+    set_all_bits(elt_array,1);
+  }
+  else
+  {
+    if (reg->element_list_head->special->exclude) set_all_bits(elt_array,1);
+    else set_all_bits(elt_array,0);
+  }
+  
+  for (el = reg->element_list_head ; el != NULL ; el = el->next)
+  {
+    if (reg->parent->object_type==BOX_OBJ && el->begin>=0)
+    {
+      i = el->begin;
+      printf("Using switch statement\n");
+      switch(i)
+      {
+	case X_NEG:
+	  el->begin=0;
+	  el->end=2*(po->sb->ny-1)*(po->sb->nz-1)-1;
+	  break;
+	case X_POS:
+	  el->begin=2*(po->sb->ny-1)*(po->sb->nz-1);
+	  el->end=4*(po->sb->ny-1)*(po->sb->nz-1)-1;
+	  break;
+	case Y_NEG:
+	  el->begin=4*(po->sb->ny-1)*(po->sb->nz-1);
+	  el->end=el->begin + 2*(po->sb->nx-1)*(po->sb->nz-1) - 1;
+	  break;
+	case Y_POS:
+	  el->begin=4*(po->sb->ny-1)*(po->sb->nz-1) + 2*(po->sb->nx-1)*(po->sb->nz-1);
+	  el->end=el->begin + 2*(po->sb->nx-1)*(po->sb->nz-1) - 1;
+	  break;
+	case Z_NEG:
+	  el->begin=4*(po->sb->ny-1)*(po->sb->nz-1) + 4*(po->sb->nx-1)*(po->sb->nz-1);
+	  el->end=el->begin + 2*(po->sb->nx-1)*(po->sb->ny-1) - 1;
+	  break;
+	case Z_POS:
+	  el->end=n_elts-1;
+	  el->begin=el->end + 1 - 2*(po->sb->nx-1)*(po->sb->ny-1);
+	  break;
+	case ALL_SIDES:
+	  el->begin=0;
+	  el->end=n_elts-1;
+	  break;
+	default:
+	  return 1;
+	  break;
+      }
+    }
+    else if (el->begin < 0 || el->end >= n_elts)
+    {
+      printf("Hii n_elts=%d but begin=%d end=%d\n",n_elts,el->begin,el->end);
+      return 1;
+    }
+    
+    if (el->special==NULL) set_bit_range(elt_array,el->begin,el->end,1);
+    else if ((void*)el->special==(void*)el) set_bit_range(elt_array,el->begin,el->end,0);
+    else
+    {
+      if (el->special->referent!=NULL)
+      {
+	if (el->special->referent->membership == NULL)
+	{
+	  if (el->special->referent->element_list_head != NULL)
+	  {
+	    i = normalize_elements(el->special->referent,existing);
+	    if (i) { printf("Hiy"); return i; }
+	  }
+	}
+	if (el->special->referent->membership != NULL)
+	{
+	  if (el->special->referent->membership->nbits==0)
+	  {
+	    if (el->special->exclude) set_all_bits(elt_array,0);
+	    else set_all_bits(elt_array,1);
+	  }
+	  else
+	  {
+	    if (el->special->exclude) op = '-';
+	    else op = '+';
+	    
+	    bit_operation(elt_array,el->special->referent->membership,op);
+	  }
+	}
+      }
+      else
+      {
+	int iii;
+	if (temp==NULL) temp = new_bit_array(n_elts);
+	if (temp==NULL || po==NULL || existing) { printf("Hia"); return 1; } 
+	
+	if (el->special->exclude) op = '-';
+	else op = '+';
+	
+	cuboid_patch_to_bits(po->sb,&(el->special->corner1),&(el->special->corner2),temp);
+	printf("]>");
+	for (iii=0;iii<temp->nbits;iii++) printf("%c",get_bit(temp,iii) ? '#' : '.');
+	printf("\n");
+	bit_operation(elt_array,temp,op);
+      }
+    }
+  }
+  
+  if (temp!=NULL) free_bit_array(temp);
+  
+  if (existing) bit_operation(elt_array,((struct polygon_object*)reg->parent->contents)->side_removed,'-');
+  
+  return 0;
+}
+
+int vertex_at_index(struct subdivided_box *sb, int ix, int iy, int iz)
+{
+  int i;
+  
+  if (ix==0 || ix==sb->nx-1)
+  {
+    i = sb->ny * iz + iy;
+    if (ix==0) return i;
+    else return i + sb->ny*sb->nz;
+  }
+  else if (iy==0 || iy==sb->ny-1)
+  {
+    i = 2*sb->ny*sb->nz + (sb->nx-2)*iz + (ix-1);
+    if (iy==0) return i;
+    else return i + (sb->nx-2)*sb->nz;
+  }
+  else if (iz==0 || iz==sb->nz-1)
+  {
+    i = 2*sb->ny*sb->nz + 2*(sb->nx-2)*sb->nz + (sb->nx-2)*(iy-1) + (ix-1);
+    if (iz==0) return i;
+    else return i + (sb->nx-2)*(sb->ny-2);
+  }
+  else
+  {
+    printf("Asking for point %d %d %d but limits are [0 0 0] to [%d %d %d]\n",ix,iy,iz,sb->nx-1,sb->ny-1,sb->nz-1);
+    return -1;
+  }
+}
+
+int polygonalize_cuboid(struct ordered_poly *opp,struct subdivided_box *sb)
+{
+  struct vector3 *v;
+  struct element_data *e;
+  int i,j,a,b,c;
+  int ii,bb,cc;
+  
+  opp->n_verts = count_cuboid_vertices(sb);
+  opp->vertex = (struct vector3*)malloc( opp->n_verts * sizeof(struct vector3) );
+  opp->normal = NULL;
+  opp->n_walls = count_cuboid_elements(sb);
+  opp->element = (struct element_data*)malloc( opp->n_walls * sizeof(struct element_data) );
+  
+  if (opp->vertex==NULL || opp->element==NULL) return 1;
+  
+  for (a=0;a<2;a++) for (b=0;b<2;b++) for (c=0;c<2;c++) printf("%d,%d,%d->%d\n",a,b,c,vertex_at_index(sb,a,b,c));
+  
+  for (i=0;i<opp->n_walls;i++) opp->element[i].n_verts = 3;
+  
+  /* Set vertices and elements on X faces */
+  ii = 0;
+  bb = 0;
+  cc = 2*(sb->nz-1)*(sb->ny-1);
+  b = 0;
+  c = sb->nz*sb->ny;
+  for ( j=0 ; j<sb->nz ; j++ )
+  {
+    a = sb->ny;
+    for ( i=0 ; i<sb->ny ; i++ )
+    {
+      printf("Setting indices %d %d\n",b+j*a+i,c+j*a+i);
+      v = &(opp->vertex[b+j*a+i]);
+      v->x = sb->x[0];
+      v->y = sb->y[i];
+      v->z = sb->z[j];
+      v = &(opp->vertex[c+j*a+i]);
+      v->x = sb->x[sb->nx-1];
+      v->y = sb->y[i];
+      v->z = sb->z[j];
+      
+      if (i>0 && j>0)
+      {
+	e = &(opp->element[bb+ii]);
+	e->vertex_index[0] = vertex_at_index(sb,0,i-1,j-1);
+	e->vertex_index[2] = vertex_at_index(sb,0,i,j-1);
+	e->vertex_index[1] = vertex_at_index(sb,0,i-1,j);
+	e = &(opp->element[bb+ii+1]);
+	e->vertex_index[0] = vertex_at_index(sb,0,i,j);
+	e->vertex_index[1] = vertex_at_index(sb,0,i,j-1);
+	e->vertex_index[2] = vertex_at_index(sb,0,i-1,j);
+	e = &(opp->element[cc+ii]);
+	e->vertex_index[0] = vertex_at_index(sb,sb->nx-1,i-1,j-1);
+	e->vertex_index[1] = vertex_at_index(sb,sb->nx-1,i,j-1);
+	e->vertex_index[2] = vertex_at_index(sb,sb->nx-1,i-1,j);
+	e = &(opp->element[cc+ii+1]);
+	e->vertex_index[0] = vertex_at_index(sb,sb->nx-1,i,j);
+	e->vertex_index[2] = vertex_at_index(sb,sb->nx-1,i,j-1);
+	e->vertex_index[1] = vertex_at_index(sb,sb->nx-1,i-1,j);
+        printf("Setting elements %d %d %d %d of %d\n",bb+ii,bb+ii+1,cc+ii,cc+ii+1,opp->n_walls);
+	
+	ii+=2;
+      }
+    }
+  }
+  
+  /* Set vertices and elements on Y faces */
+  bb = ii;
+  cc = bb + 2*(sb->nx-1)*(sb->nz-1);
+  b = 2*sb->nz*sb->ny;
+  c = b + sb->nz*(sb->nx-2);
+  for ( j=0 ; j<sb->nz ; j++ )
+  {
+    a = sb->nx-2;
+    for ( i=1 ; i<sb->nx ; i++ )
+    {
+      if (i<sb->nx-1)
+      {
+        printf("Setting indices %d %d of %d\n",b+j*a+(i-1),c+j*a+(i-1),opp->n_verts);
+	v = &(opp->vertex[b+j*a+(i-1)]);
+	v->x = sb->x[i];
+	v->y = sb->y[0];
+	v->z = sb->z[j];
+	v = &(opp->vertex[c+j*a+(i-1)]);
+	v->x = sb->x[i];
+	v->y = sb->y[sb->ny-1];
+	v->z = sb->z[j];
+      }
+      
+      if (j>0)
+      {
+	e = &(opp->element[bb+ii]);
+	e->vertex_index[0] = vertex_at_index(sb,i-1,0,j-1);
+	e->vertex_index[1] = vertex_at_index(sb,i,0,j-1);
+	e->vertex_index[2] = vertex_at_index(sb,i-1,0,j);
+	e = &(opp->element[bb+ii+1]);
+	e->vertex_index[0] = vertex_at_index(sb,i,0,j);
+	e->vertex_index[2] = vertex_at_index(sb,i,0,j-1);
+	e->vertex_index[1] = vertex_at_index(sb,i-1,0,j);
+	e = &(opp->element[cc+ii]);
+	e->vertex_index[0] = vertex_at_index(sb,i-1,sb->ny-1,j-1);
+	e->vertex_index[2] = vertex_at_index(sb,i,sb->ny-1,j-1);
+	e->vertex_index[1] = vertex_at_index(sb,i-1,sb->ny-1,j);
+	e = &(opp->element[cc+ii+1]);
+	e->vertex_index[0] = vertex_at_index(sb,i,sb->ny-1,j);
+	e->vertex_index[1] = vertex_at_index(sb,i,sb->ny-1,j-1);
+	e->vertex_index[2] = vertex_at_index(sb,i-1,sb->ny-1,j);
+        printf("Setting elements %d %d %d %d of %d\n",bb+ii,bb+ii+1,cc+ii,cc+ii+1,opp->n_walls);
+	
+	ii+=2;	
+      }
+    }
+  }
+  
+  /* Set vertices and elements on Z faces */
+  bb = ii;
+  cc = bb + 2*(sb->nx-1)*(sb->ny-1);
+  b = 2*sb->nz*sb->ny + 2*(sb->nx-2)*sb->nz;
+  c = b + (sb->nx-2)*(sb->ny-2);
+  for ( j=1 ; j<sb->ny ; j++ )
+  {
+    a = sb->nx-2;
+    for ( i=1 ; i<sb->nx ; i++ )
+    {
+      if (i<sb->nx-1 && j<sb->ny-1)
+      {
+	printf("Setting indices %d %d of %d\n",b+(j-1)*a+(i-1),c+(j-1)*a+(i-1),opp->n_verts);
+	v = &(opp->vertex[b+(j-1)*a+(i-1)]);
+	v->x = sb->x[i];
+	v->y = sb->y[j];
+	v->z = sb->z[0];
+	v = &(opp->vertex[c+(j-1)*a+(i-1)]);
+	v->x = sb->x[i];
+	v->y = sb->y[j];
+	v->z = sb->z[sb->nz-1];
+      }
+      
+      e = &(opp->element[bb+ii]);
+      e->vertex_index[0] = vertex_at_index(sb,i-1,j-1,0);
+      e->vertex_index[2] = vertex_at_index(sb,i,j-1,0);
+      e->vertex_index[1] = vertex_at_index(sb,i-1,j,0);
+      e = &(opp->element[bb+ii+1]);
+      e->vertex_index[0] = vertex_at_index(sb,i,j,0);
+      e->vertex_index[1] = vertex_at_index(sb,i,j-1,0);
+      e->vertex_index[2] = vertex_at_index(sb,i-1,j,0);
+      e = &(opp->element[cc+ii]);
+      e->vertex_index[0] = vertex_at_index(sb,i-1,j-1,sb->nz-1);
+      e->vertex_index[1] = vertex_at_index(sb,i,j-1,sb->nz-1);
+      e->vertex_index[2] = vertex_at_index(sb,i-1,j,sb->nz-1);
+      e = &(opp->element[cc+ii+1]);
+      e->vertex_index[0] = vertex_at_index(sb,i,j,sb->nz-1);
+      e->vertex_index[2] = vertex_at_index(sb,i,j-1,sb->nz-1);
+      e->vertex_index[1] = vertex_at_index(sb,i-1,j,sb->nz-1);
+      
+      printf("Setting elements %d %d %d %d of %d\n",bb+ii,bb+ii+1,cc+ii,cc+ii+1,opp->n_walls);
+      
+      ii+=2;   
+    }
+  }
+  
+  printf("BOX has vertices:\n");
+  for (i=0;i<opp->n_verts;i++) printf("  %.5e %.5e %.5e\n",opp->vertex[i].x,opp->vertex[i].y,opp->vertex[i].z);
+  printf("BOX has walls:\n");
+  for (i=0;i<opp->n_walls;i++) printf("  %d %d %d\n",opp->element[i].vertex_index[0],opp->element[i].vertex_index[1],opp->element[i].vertex_index[2]);
+  printf("\n");
+  
+  return 0;
+}
+
+
+void remove_gaps_from_regions(struct object *ob)
+{
+  struct polygon_object *po;
+  struct region_list *rl;
+  int i,missing;
+  
+  if (ob->object_type!=BOX_OBJ && ob->object_type!=POLY_OBJ) return;
+  po = (struct polygon_object*)ob->contents;
+  
+  for (rl=ob->regions;rl!=NULL;rl=rl->next)
+  {
+    if (rl->reg->surf_class == (struct species*)&(rl->reg->surf_class))
+    {
+      rl->reg->surf_class=NULL;
+      bit_operation(po->side_removed,rl->reg->membership,'+');
+      set_all_bits(rl->reg->membership,0);
+    }
+  }
+  
+  missing=0;
+  for (i=0;i<po->side_removed->nbits;i++)
+  {
+    if (get_bit(po->side_removed,i)) missing++;
+  }
+  ob->n_walls_actual = po->n_walls - missing;
+  
+  for (rl=ob->regions;rl!=NULL;rl=rl->next)
+  {
+    bit_operation(rl->reg->membership,po->side_removed,'-');
+  }
+}
 
 int set_viz_state_value(struct object *objp, int viz_state)
 {

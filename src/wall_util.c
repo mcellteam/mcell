@@ -15,6 +15,7 @@
 
 #include "rng.h"
 #include "vector.h"
+#include "util.h"
 #include "mem_util.h"
 #include "wall_util.h"
 #include "vol_util.h"
@@ -900,32 +901,37 @@ is_manifold:
   In: a region.  This region must already be painted on walls.  The edges
       must have already been added to the object (i.e. sharpened).
   Out: 1 if the region is a manifold, 0 otherwise.
-  Note: by "manifold" we mean "manifold without boundaries"
+  Note: by "manifold" we mean "orientable compact two-dimensional
+        manifold without boundaries embedded in R3"
 ***************************************************************************/
 
 int is_manifold(struct region *r)
 {
-  struct element_list *el;
   struct wall **wall_array,*w;
-  int i;
-  int j;
+  int i,j;
   struct region_list *rl;
   
   wall_array = r->parent->wall_p;
-  for (el = r->element_list_head ; el != NULL ; el = el->next)
+  for (i=0;i<r->parent->n_walls;i++)
   {
-    for (i=el->begin ; i<=el->end ; i++)
+    if (get_bit(r->membership,i)) continue;  /* Skip removed wall */
+    w = wall_array[i];
+    for (j=0;j<2;j++)
     {
-      w = wall_array[i];
-      for (j=0;j<2;j++)
+      if (w->nb_walls[j] == NULL)
       {
-        if (w->nb_walls[j] == NULL) return 0; /* Bare edge--not a manifold */
-        
-        for (rl = w->nb_walls[j]->regions ; rl != NULL ; rl = rl->next)
-        {
-          if (rl->reg == r) break;
-        }
-        if (rl==NULL) return 0;  /* Can leave region--not a manifold */
+	printf("BARE EDGE on wall %d edge %d\n",i,j);
+	return 0; /* Bare edge--not a manifold */
+      }
+      
+      for (rl = w->nb_walls[j]->regions ; rl != NULL ; rl = rl->next)
+      {
+	if (rl->reg == r) break;
+      }
+      if (rl==NULL)
+      {
+	printf("Wall %d edge %d leaves region!\n",i,j);
+	return 0;  /* Can leave region--not a manifold */
       }
     }
   }

@@ -1,3 +1,6 @@
+#ifndef MCELL_UTIL
+#define MCELL_UTIL
+
 /**********************************************************************
 * Definitions for the infinite array whose size may grow. *
 *
@@ -48,4 +51,23 @@ void ia_int_store(struct infinite_int_array *array_ptr, int index, int data_to_s
 char* ia_string_get(struct infinite_string_array *array_ptr, int index);
 void ia_string_store(struct infinite_string_array *array_ptr, int index, char *data_to_store);
 
+
+struct bit_array
+{
+  int nbits;
+  int nints;
+  /* Bit array data runs off the end of this struct */
+};
+
+struct bit_array* new_bit_array(int bits);
+struct bit_array* duplicate_bit_array(struct bit_array *old);
+int get_bit(struct bit_array* ba, int idx);
+void set_bit(struct bit_array *ba, int idx, int value);
+void set_bit_range(struct bit_array *ba,int idx1,int idx2,int value);
+void set_all_bits(struct bit_array *ba,int value);
+void bit_operation(struct bit_array *ba,struct bit_array *bb,char op);
+void free_bit_array(struct bit_array *ba);
+
+
+#endif
 

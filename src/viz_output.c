@@ -49,25 +49,29 @@ void update_frame_data_list(struct frame_data_list *fdlp)
   
   while (fdlp!=NULL) {
     if(world->it_time==fdlp->viz_iteration) {
-      if(world->viz_mode==DX_MODE) {
-        output_dx_objects(fdlp);
-      }
-      else if (world->viz_mode == DREAMM_V3_MODE)
+      switch (world->viz_mode)
       {
-        if(fdlp->type == ALL_FRAME_DATA){
-        	output_dreamm_objects_all_frame_data(fdlp);
-        }else{
-    		frames_iterations_count++;
-        	output_dreamm_objects_some_frame_data(fdlp);
-        }
-      }
-      else if (world->viz_mode==RK_MODE)
-      {
-        output_rk_custom(fdlp);
-      }
-      else if (world->viz_mode == NO_VIZ_MODE)
-      {
-        ; /* do nothing for visualization */
+	case DX_MODE:
+          output_dx_objects(fdlp);
+	  break;
+	case DREAMM_V3_MODE:
+          if(fdlp->type == ALL_FRAME_DATA) output_dreamm_objects_all_frame_data(fdlp);
+          else
+	  {
+            frames_iterations_count++;
+            output_dreamm_objects_some_frame_data(fdlp);
+	  }
+	  break;
+	case RK_MODE:
+          output_rk_custom(fdlp);
+	  break;
+	case ASCII_MODE:
+	  output_ascii_molecules(fdlp);
+	  break;
+	case NO_VIZ_MODE:
+	default:
+	  /* Do nothing for vizualization */
+	  break;
       }
       fdlp->curr_viz_iteration=fdlp->curr_viz_iteration->next;
       if (fdlp->curr_viz_iteration!=NULL) {
@@ -345,6 +349,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
       objp = vcp->obj;
       pop=(struct polygon_object *)objp->contents;
       if (objp->object_type==BOX_OBJ) {
+#if 0
         if (viz_surf_pos || viz_surf_states)
         {
           element_data_count=0.5*objp->n_walls_actual;
@@ -560,7 +565,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
               "object \"%s.states\" class array type int rank 0 items %d ascii data follows\n",
               objp->sym->name,element_data_count);
             for (ii=0;ii<objp->n_walls;ii+=2) {
-              if (pop->side_stat[ii]) {
+              if (!get_bit(pop->side_removed,ii)) {
                 state=objp->viz_state[ii];
                 fprintf(wall_states_header,"%d\n",state);
               }
@@ -572,13 +577,14 @@ int output_dx_objects(struct frame_data_list *fdlp)
           wall_states_index++;
 */
         }
+#endif
       }
 
-      if (objp->object_type==POLY_OBJ) {
+      if (objp->object_type==POLY_OBJ || objp->object_type==BOX_OBJ) {
         if (viz_surf && (viz_surf_pos || viz_surf_states))
         {
           opp=(struct ordered_poly *)pop->polygon_data;
-          edp=opp->element_data;
+          edp=opp->element;
           element_data_count=objp->n_walls_actual;
 
           if (viz_surf_pos && !viz_surf_states) {
@@ -606,7 +612,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
               "object \"%s.connections\" class array type int rank 1 shape 3 items %d %s binary data follows\n",
               objp->sym->name,element_data_count,my_byte_order);
             for (ii=0;ii<objp->n_walls;ii++) {
-              if (pop->side_stat[ii]) {
+              if (!get_bit(pop->side_removed,ii)) {
                 for (jj=0;jj<edp[ii].n_verts-2;jj++) {
                   vi1=edp[ii].vertex_index[0];
                   vi2=edp[ii].vertex_index[jj+1];
@@ -655,7 +661,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
               "object \"%s.states\" class array type int rank 0 items %d ascii data follows\n",
               objp->sym->name,element_data_count);
             for (ii=0;ii<objp->n_walls;ii++) {
-              if (pop->side_stat[ii]) {
+              if (!get_bit(pop->side_removed,ii)) {
                 for (jj=0;jj<edp[ii].n_verts-2;jj++) {
                   vi1=edp[ii].vertex_index[0];
                   vi2=edp[ii].vertex_index[jj+1];
@@ -664,8 +670,8 @@ int output_dx_objects(struct frame_data_list *fdlp)
 	          fwrite(&vi2,sizeof vi2,1,wall_verts_header);
 	          fwrite(&vi3,sizeof vi3,1,wall_verts_header);
                 }
-              state=objp->viz_state[ii];
-              fprintf(wall_states_header,"%d\n",state);
+		state=objp->viz_state[ii];
+		fprintf(wall_states_header,"%d\n",state);
               }
             }
             fprintf(wall_verts_header,
@@ -686,7 +692,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
             "object \"%s.states\" class array type int rank 0 items %d ascii data follows\n",
             objp->sym->name,element_data_count);
           for (ii=0;ii<objp->n_walls;ii++) {
-            if (pop->side_stat[ii]) {
+            if (!get_bit(pop->side_removed,ii)) {
               state=objp->viz_state[ii];
               fprintf(wall_states_header,"%d\n",state);
             }
@@ -1768,6 +1774,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
       objp = vcp->obj;
       pop=(struct polygon_object *)objp->contents;
       if (objp->object_type==BOX_OBJ) {
+#if 0	
         if (viz_surf_pos_flag || viz_surf_states_flag)
         {
           element_data_count=0.5*objp->n_walls_actual;
@@ -1804,7 +1811,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
              
 
             for (ii=0;ii<objp->n_walls;ii+=2) {
-              if (pop->side_stat[ii]) {
+              if (!get_bit(pop->side_stat,ii)) {
                 switch (ii) {
                   case TP:
                     vi1=3;
@@ -1892,7 +1899,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
            main_index++;
  
 	    for (ii=0;ii<objp->n_walls;ii+=2) {
-              if (pop->side_stat[ii]) {
+              if (!get_bit(pop->side_removed,ii)) {
                 state=objp->viz_state[ii];
                 fwrite(&state,sizeof (state),1,mesh_states_data);
                 mesh_states_byte_offset += sizeof(state);
@@ -1903,15 +1910,16 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
           } /* end (viz_surf_states_flag) */
 
         } /* end (viz_surf_pos_flag || viz_surf_states_flag) for BOX_OBJ */
+#endif
       }  /* end BOX_OBJ */
 
 
 
-      if (objp->object_type==POLY_OBJ) {
+      if (objp->object_type==POLY_OBJ || objp->object_type==BOX_OBJ) {
         if (viz_surf_pos_flag || viz_surf_states_flag)
         {
           opp=(struct ordered_poly *)pop->polygon_data;
-          edp=opp->element_data;
+          edp=opp->element;
           element_data_count=objp->n_walls_actual;
 
           if (viz_surf_pos_flag) {
@@ -1945,7 +1953,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
               "attribute \"element type\" string \"triangles\"\n\n");
 
             for (ii=0;ii<objp->n_walls;ii++) {
-              if (pop->side_stat[ii]) {
+              if (!get_bit(pop->side_removed,ii)) {
                 for (jj=0;jj<edp[ii].n_verts-2;jj++) {
                   vi1=edp[ii].vertex_index[0];
                   vi2=edp[ii].vertex_index[jj+1];
@@ -1972,7 +1980,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
            main_index++;
 
           for (ii=0;ii<objp->n_walls;ii++) {
-            if (pop->side_stat[ii]) {
+            if (!get_bit(pop->side_removed,ii)) {
               state=objp->viz_state[ii];
               fwrite(&state,sizeof (state),1,mesh_states_data);
               mesh_states_byte_offset += sizeof(state);
@@ -3159,6 +3167,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
       objp = vcp->obj;
       pop=(struct polygon_object *)objp->contents;
       if (objp->object_type==BOX_OBJ) {
+#if 0
           
             element_data_count=0.5*objp->n_walls_actual;
         
@@ -3204,7 +3213,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
             main_index++;
             
             for (ii=0;ii<objp->n_walls;ii+=2) {
-              if (pop->side_stat[ii]) {
+              if (!get_bit(pop->side_removed,ii)) {
                 switch (ii) {
                   case TP:
                     vi1=3;
@@ -3278,13 +3287,13 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
                 mesh_states_byte_offset += sizeof(state);
               }
             }
-
+#endif
       }
 
 
-      if (objp->object_type==POLY_OBJ) {
+      if (objp->object_type==POLY_OBJ || objp->object_type==BOX_OBJ) {
           opp=(struct ordered_poly *)pop->polygon_data;
-          edp=opp->element_data;
+          edp=opp->element;
           element_data_count=objp->n_walls_actual;
 
 
@@ -3330,7 +3339,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
 
 
             for (ii=0;ii<objp->n_walls;ii++) {
-              if (pop->side_stat[ii]) {
+              if (!get_bit(pop->side_removed,ii)) {
                 for (jj=0;jj<edp[ii].n_verts-2;jj++) {
                   vi1=edp[ii].vertex_index[0];
                   vi2=edp[ii].vertex_index[jj+1];
@@ -4056,6 +4065,104 @@ int output_rk_custom(struct frame_data_list *fdlp)
             where.y *= world->length_unit;
             where.z *= world->length_unit;
             fprintf(custom_file,"%d %10.3e %10.3e %10.3e %2d\n",id,where.x,where.y,where.z,orient);
+          }
+        }
+      }
+    }
+    fclose(custom_file);
+  }
+  
+  return 0;
+}
+
+/************************************************************************ 
+output_ascii_molecules:
+In: a frame data list (internal viz output data structure)
+Out: 0 on success, 1 on failure.  The positions of molecules are output
+     in exponential floating point notation (with 8 decimal places)
+*************************************************************************/
+
+int output_ascii_molecules(struct frame_data_list *fdlp)
+{
+  FILE *log_file;
+  FILE *custom_file;
+  char cf_name[1024];
+  char cf_format[256];
+  struct storage_list *slp;
+  struct schedule_helper *shp;
+  struct abstract_element *aep;
+  struct abstract_molecule *amp;
+  struct molecule *mp;
+  struct grid_molecule *gmp;
+  struct surface_molecule *smp;
+  short orient = 0;
+  
+  int ndigits,i;
+
+  int id;
+  struct vector3 where;
+  
+  no_printf("Output in ASCII mode (molecules only)...\n");
+  log_file = world->log_file;
+  
+  if ((fdlp->type==ALL_FRAME_DATA) || (fdlp->type==MOL_POS) || (fdlp->type==MOL_STATES))
+  {
+    i = 10;
+    for (ndigits = 1 ; i <= world->iterations && ndigits<10 ; i*=10 , ndigits++) {}
+    sprintf(cf_format,"%%s.rk.%%0%dd.dat",ndigits);
+    sprintf(cf_name,cf_format,world->molecule_prefix_name,fdlp->viz_iteration);
+    custom_file = fopen(cf_name,"w");
+    if (!custom_file)
+    {
+      fprintf(log_file,"Couldn't open file %s for viz output.\n",cf_name);
+      return 1;
+    }
+    else no_printf("Writing to file %s\n",cf_name);
+    
+    for (slp = world->storage_head ; slp != NULL ; slp = slp->next)
+    {
+      for (shp = slp->store->timer ; shp != NULL ; shp = shp->next_scale)
+      {
+        for (i=-1;i<shp->buf_len;i++)
+        {
+          if (i<0) aep = shp->current;
+          else aep = shp->circ_buf_head[i];
+          
+          for (aep=(i<0)?shp->current:shp->circ_buf_head[i] ; aep!=NULL ; aep=aep->next)
+          {
+            amp = (struct abstract_molecule*)aep;
+            if (amp->properties == NULL) continue;
+            if (amp->properties->viz_state == EXCLUDE_OBJ) continue;
+
+            id = amp->properties->viz_state;
+            
+            if ((amp->properties->flags & NOT_FREE)==0)
+            {
+              mp = (struct molecule*)amp;
+              where.x = mp->pos.x;
+              where.y = mp->pos.y;
+              where.z = mp->pos.z;
+            }
+            else if ((amp->properties->flags & ON_SURFACE)!=0)
+            {
+              smp = (struct surface_molecule*)amp;
+              where.x = smp->pos.x;
+              where.y = smp->pos.y;
+              where.z = smp->pos.z;
+              orient = smp->orient;
+            }
+            else if ((amp->properties->flags & ON_GRID)!=0)
+            {
+              gmp = (struct grid_molecule*)amp;
+              grid2xyz(gmp->grid,gmp->grid_index,&where);
+              orient = gmp->orient;
+            }
+            else continue;
+            
+            where.x *= world->length_unit;
+            where.y *= world->length_unit;
+            where.z *= world->length_unit;
+            fprintf(custom_file,"%d %15.8e %15.8e %15.8e %2d\n",id,where.x,where.y,where.z,orient);
           }
         }
       }

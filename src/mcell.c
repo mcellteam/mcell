@@ -191,8 +191,7 @@ void run_sim(void)
         if (j==0) fprintf(world->log_file,"Reaction %s[%d]",rxp->players[0]->sym->name,rxp->geometries[0]);
         else fprintf(world->log_file," + %s[%d]",rxp->players[j]->sym->name,rxp->geometries[j]);
       }
-      if (rxp->n_pathways==RX_WINDOW) fprintf(world->log_file," WINDOW");
-      else if (rxp->n_pathways==RX_GHOST) fprintf(world->log_file," GHOST");
+      if (rxp->n_pathways==RX_TRANSP) fprintf(world->log_file," TRANSPARENT");
       fprintf(world->log_file,"\n");
       for (j=0;j<rxp->n_pathways;j++)
       {

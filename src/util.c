@@ -248,3 +248,266 @@ char * ia_string_get(struct infinite_string_array *array_ptr, int index)
 	current_ptr = ia_string_locate(array_ptr, index, &current_index);
 	return (current_ptr->data[current_index]); 
 }
+
+
+
+/*******************************************************************
+new_bit_array -- mallocs an array of the desired number of bits
+
+Parameters
+	bits -- how many bits to place in the array
+
+Returns
+	A pointer to a newly allocated bit_array struct, or NULL
+	on memory error.
+*******************************************************************/
+struct bit_array* new_bit_array(int bits)
+{
+  struct bit_array *ba;
+  int *data;
+  int n = (bits + 8*sizeof(int)-1)/(8*sizeof(int));
+  
+  ba = (struct bit_array*) malloc(sizeof(struct bit_array) + sizeof(int)*n);
+  
+  if (ba==NULL) return NULL;
+  
+  ba->nbits = bits;
+  ba->nints = n;
+  
+  data = &(ba->nints);
+  data++;
+  
+  return ba;
+}
+
+
+/*************************************************************************
+duplicate_bit_array -- mallocs an array and copies an existing bit array
+
+Parameters
+	old -- existing bit array to duplicate (in newly malloced memory)
+
+Returns
+	A pointer to a newly allocated bit_array struct, or NULL
+	on memory error.
+*************************************************************************/
+struct bit_array* duplicate_bit_array(struct bit_array *old)
+{
+  struct bit_array *ba;
+  
+  ba = (struct bit_array*) malloc(sizeof(struct bit_array) + sizeof(int)*old->nints);
+  if (ba==NULL) return NULL;
+  
+  memcpy(ba,old,sizeof(struct bit_array) + sizeof(int)*old->nints);
+  
+  return ba;
+}
+
+
+/*******************************************************************
+get_bit -- returns the value of a bit in a bit_array
+
+Parameters
+	ba -- pointer to a bit_array struct
+	idx -- the index of the bit to return
+
+Returns
+	0 or 1, depending on whether the idx'th bit is set.  No
+	bounds checking is performed.
+*******************************************************************/
+int get_bit(struct bit_array* ba, int idx)
+{
+  int *data;
+  int ofs;
+  
+  data = &(ba->nints);
+  data++;  /* At start of bit array memory */
+  
+  ofs = idx & (8*sizeof(int) - 1);
+  idx = idx / (8*sizeof(int));
+  ofs = 1 << ofs;
+  
+  if ((data[idx] & ofs) != 0) return 1;
+  else return 0;
+}
+  
+
+/*******************************************************************
+set_bit -- set a value in a bit array
+
+Parameters
+	ba -- pointer to a bit_array struct
+	idx -- the index of the bit to set
+	value -- 0 = turn bit off; nonzero = turn bit on
+
+Returns
+	Nothing
+*******************************************************************/
+void set_bit(struct bit_array *ba, int idx, int value)
+{
+  int *data;
+  int ofs;
+  
+  data = &(ba->nints);
+  data++;  /* At start of bit array memory */
+  
+  ofs = idx & (8*sizeof(int) - 1);
+  idx = idx / (8*sizeof(int));
+  ofs = -1 & (1 << ofs);
+  
+  if (value) value = (1<<ofs);
+  else value = 0;
+  
+  data[idx] = (data[idx]&ofs) | value;
+}
+
+
+/*******************************************************************
+set_bit_range -- set a value in a bit array
+
+Parameters
+	ba -- pointer to a bit_array struct
+	idx1 -- the index of the first bit to set
+	idx2 -- the index of the last bit to set
+	value -- 0 = turn bits off; nonzero = turn bits on
+
+Returns
+	Nothing
+*******************************************************************/
+void set_bit_range(struct bit_array *ba,int idx1,int idx2,int value)
+{
+  int *data;
+  int ofs1,ofs2;
+  int mask,cmask;
+  int i;
+  
+  data = &(ba->nints);
+  data++;  /* At start of bit array memory */
+  
+  ofs1 = idx1 & (8*sizeof(int)-1);
+  ofs2 = idx2 & (8*sizeof(int)-1);
+  idx1 = idx1 / (8*sizeof(int));
+  idx2 = idx2 / (8*sizeof(int));
+  
+  if (idx1==idx2)
+  {
+    mask = 0;
+    for (i=ofs1;i<=ofs2;i++) mask |= (1<<i);
+    cmask = -1 ^ mask;
+    
+    if (value) data[idx1] = (data[idx1]&cmask) | mask;
+    else data[idx1] = data[idx1]&cmask;
+  }
+  else
+  {
+    if (value) value = -1;
+    else value = 0;
+    for (i=idx1+1;i<idx2;i++) data[i] = value;
+    
+    mask = 0;
+    for (i=ofs1;i<8*sizeof(int);i++) mask |= (1<<i);
+    cmask = -1 ^ mask;
+    if (value) data[idx1] = (data[idx1]&cmask) | mask;
+    else data[idx1] = data[idx1]&cmask;
+    
+    mask = 0;
+    for (i=0;i<=8*ofs2;i++) mask |= (1<<i);
+    cmask = -1 ^ mask;
+    if (value) data[idx2] = (data[idx2]&cmask) | mask;
+    else data[idx2] = data[idx2]&cmask;    
+  }
+}
+
+/*******************************************************************
+set_all_bits -- sets all values in a bit array
+
+Parameters
+	ba -- pointer to a bit_array struct
+	value -- 0 = turn bits off; nonzero = turn bits on
+
+Returns
+	Nothing
+*******************************************************************/
+void set_all_bits(struct bit_array *ba,int value)
+{
+  int *data;
+  int i;
+  
+  if (value) value = -1;
+  
+  data = &(ba->nints);
+  data++;  /* At start of bit array memory */
+
+  for (i=0;i<ba->nints;i++) data[i] = value;  
+}
+
+/*******************************************************************
+bit operation -- performs a logical operation on two bit arrays
+
+Parameters
+	ba -- pointer to a bit_array struct
+	bb -- pointer to another bit_array struct
+	op -- character that determines which operation to perform
+	        '!' -- ba = NOT ba
+		'~' -- same
+		'|' -- ba = ba OR bb
+		'+' -- same
+		'&' -- ba = ba AND bb
+		'^' -- ba = ba XOR bb
+		'-' -- ba = ba AND NOT bb
+	value -- 0 = turn bits off; nonzero = turn bits on
+
+Returns
+	Nothing
+*******************************************************************/
+void bit_operation(struct bit_array *ba,struct bit_array *bb,char op)
+{
+  int i;
+  int *da,*db;
+  
+  if (op=='!' || op == '~')
+  {
+    da = &(ba->nints); da++;
+    for (i=0;i<ba->nints;i++) da[i] = ~da[i];
+    return;
+  }
+  
+  if (ba->nbits != bb->nbits) return;
+  
+  da = &(ba->nints); da++;
+  db = &(bb->nints); db++;
+  
+  switch(op)
+  {
+    case '^':
+      for (i=0;i<ba->nints;i++) da[i] ^= db[i];
+      break;
+    case '|':
+    case '+':
+      for (i=0;i<ba->nints;i++) da[i] |= db[i];
+      break;
+    case '-':
+      for (i=0;i<ba->nints;i++) da[i] |= (-1 & db[i]);
+      break;
+    case '&':
+      for (i=0;i<ba->nints;i++) da[i] &= db[i];
+      break;
+    default:
+      break;
+  } 
+}
+
+/**********************************************************************
+free_bit_array -- frees a bit array (just a wrapper to free() for now)
+
+Parameters
+	ba -- pointer to a bit_array struct
+
+Returns
+	Nothing
+**********************************************************************/
+void free_bit_array(struct bit_array *ba)
+{
+  free(ba);
+}
+

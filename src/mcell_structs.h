@@ -69,8 +69,7 @@
 #define IS_MANIFOLD        2
 
 /* Reaction flags */
-  /* RX_GHOST signifies that a reaction is between a molecule and the GHOST wall type */
-  /* RX_WINDOW signifies that a reaction is between a molecule and the WINDOW wall type */
+  /* RX_TRANSP signifies that a reaction is between a molecule and a TRANSPARENT wall */
   /* Any value equal to or less than RX_SPECIAL refers to a special wall type */
   /* RX_BLOCKED signals a reaction that cannot take place because the grid is full */
   /* Any value equal to or less than RX_NO_RX indicates that a reaction did not take place */
@@ -78,8 +77,7 @@
   /* RX_DESTROY signals that the molecule no longer exists (so don't try to keep using it) */
   /* RX_A_OK signals that all is OK with a reaction, proceed as normal (reflect if you're free) */
   /* RX_NO_MEM signals a memory allocation error. */
-#define RX_GHOST   -4
-#define RX_WINDOW  -3
+#define RX_TRANSP  -3
 #define RX_SPECIAL -3
 #define RX_BLOCKED -2
 #define RX_NO_RX   -2
@@ -117,6 +115,7 @@
 #define Y_POS 3
 #define Z_NEG 4
 #define Z_POS 5
+#define NODIR 6
 
 #define X_NEG_BIT 0x01
 #define X_POS_BIT 0x02
@@ -171,8 +170,7 @@
 #define GIGANTIC 1e140
 
 /* Special rate constants used to define unusual reactions */
-#define KCAT_RATE_WINDOW -1.0
-#define KCAT_RATE_GHOST -2.0
+#define KCAT_RATE_TRANSPARENT -1.0
 
 
 /* Abstract molecule flags */
@@ -417,6 +415,7 @@
 #define DX_MODE 1
 #define DREAMM_V3_MODE 2
 #define RK_MODE 3 
+#define ASCII_MODE 4
 
 
 /* Visualization frame data types. */
@@ -1052,6 +1051,17 @@ struct release_pattern {
 	int number_of_trains;		/**< how many trains are produced. */
 };
 
+/* Holds information about a box with rectangular patches on it. */
+struct subdivided_box
+{
+  int nx;
+  int ny;
+  int nz;
+  double *x;
+  double *y;
+  double *z;
+};
+
 /******************************************************************/
 /**  Everything below this line has been copied from MCell 2.69  **/
 /******************************************************************/
@@ -1183,8 +1193,9 @@ struct polygon_object {
 	                                   structures: one for each time polygon
 	                                   object is referenced in
 					   STATE_VALUES block */
-        void *polygon_data;             /**< pointer to appropriate data structure
-                                           holding polygon vertices etc... */
+        struct ordered_poly *polygon_data; /**< pointer to data structure
+                                                holding polygon vertices etc... */
+	struct subdivided_box *sb;      /**< Holds corners of box if necessary */
 	int n_walls;			/**< Number of polygons in
                                              polygon object */
         int n_verts;                    /**< Number of vertices in
@@ -1192,10 +1203,7 @@ struct polygon_object {
 	byte fully_closed;		/**< flag indicating closure of object */
         struct species **surf_class;    /** array of pointers to surface class, 
                                             one for each polygon */
-        unsigned short *side_stat;	/**< array of side status values:
-	                                   one for each polygon in object.
-					   0 indicates removed
-					   1 indicates exists. */
+	struct bit_array *side_removed; /**< Bit array; if bit is on, side is removed */
 /*        struct eff_dat **eff_prop;*/	/**< array of ptrs to eff_dat data
 					   structures, one for each polygon. */
 };
@@ -1209,7 +1217,7 @@ struct polygon_object {
 struct ordered_poly {
 	struct vector3 *vertex;         /**< Array of polygon vertices */
 	struct vector3 *normal;         /**< Array of polygon normals */
-	struct element_data *element_data; /**< Array element_data
+	struct element_data *element; /**< Array element_data
                                               data structures */
 	int n_verts;                    /**< Number of vertices in polyhedron */
 	int n_walls;                    /**< Number of polygons in polyhedron */
@@ -1221,9 +1229,9 @@ struct ordered_poly {
  * and to contruct each polygon of a polygon object.
  */
 struct element_data {
-        int *vertex_index;              /**< Array of vertex indices forming a
+        int vertex_index[3];              /**< Array of vertex indices forming a
                                            polygon. */
-	int n_verts;                    /**< Number of vertices in polygon. */
+	int n_verts;                    /**< Number of vertices in polygon (always 3). */
 };
 
 /**
@@ -1265,7 +1273,17 @@ struct eff_dat {
 struct element_list {
         struct element_list *next;
         unsigned int begin;
-        unsigned int end;   
+        unsigned int end;
+	struct element_special *special;
+};
+
+/* Elements can be patches on boxes or other regions */
+struct element_special
+{
+  struct vector3 corner1;
+  struct vector3 corner2;
+  struct region *referent;
+  byte exclude;
 };
 
 /**
@@ -1279,6 +1297,7 @@ struct region {
         char *region_last_name;
 	struct object *parent;
 	struct element_list *element_list_head;
+	struct bit_array *membership;
 	struct reg_counter_ref_list *reg_counter_ref_list;
 	struct eff_dat *eff_dat_head;
         struct species *surf_class;

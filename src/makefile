@@ -57,13 +57,13 @@ argparse.bison.o: makedefs argparse.bison.c arglex.flex.c
 mdllex.flex.c: mdllex.l strfunc.h mdlparse.h
 	flex -Cfra mdllex.l
 
-mdlparse.bison.c: mdlparse.y mdlparse.h mdllex.flex.c mdlparse_util.h mcell_structs.h vector.h strfunc.h mem_util.h sym_table.h diffuse_util.h rng.h
+mdlparse.bison.c: mdlparse.y mdlparse.h mdllex.flex.c mdlparse_util.h mcell_structs.h vector.h strfunc.h mem_util.h sym_table.h diffuse_util.h rng.h util.h
 	bison -v mdlparse.y
 
 mdlparse.bison.o: makedefs mdlparse.bison.c mdllex.flex.c
 	$(CC) $(CFLAGS) -c mdlparse.bison.c
 
-mdlparse_util.o: makedefs mdlparse_util.c mdlparse_util.h vector.h strfunc.h sym_table.h mcell_structs.h mdlparse.h vol_util.h
+mdlparse_util.o: makedefs mdlparse_util.c mdlparse_util.h vector.h strfunc.h sym_table.h mcell_structs.h mdlparse.h vol_util.h util.h
 	$(CC) $(CFLAGS) -c mdlparse_util.c
   
 sym_table.o: makedefs sym_table.c sym_table.h mcell_structs.h
@@ -84,7 +84,7 @@ count_util.o: makedefs count_util.c count_util.h wall_util.h vol_util.h mcell_st
 
 # core
 
-wall_util.o: makedefs wall_util.c wall_util.h rng.h vector.h vol_util.h mcell_structs.h mem_util.h
+wall_util.o: makedefs wall_util.c wall_util.h rng.h vector.h vol_util.h mcell_structs.h mem_util.h util.h
 	$(CC) $(CFLAGS) -c wall_util.c
 
 vol_util.o: makedefs vol_util.c vol_util.h count_util.h rng.h react.h mcell_structs.h mem_util.h
@@ -102,7 +102,7 @@ react_outc.o: makedefs react_outc.c react.h mcell_structs.h
 diffuse.o: makedefs diffuse.c diffuse.h rng.h mem_util.h sched_util.h mcell_structs.h count_util.h grid_util.h vol_util.h wall_util.h react.h
 	$(CC) $(CFLAGS) -c diffuse.c
 
-init.o: makedefs init.c init.h mcell_structs.h strfunc.h vector.h rng.h sym_table.h count_util.h vol_util.h wall_util.h grid_util.h viz_output.h react.h seed_array.h
+init.o: makedefs init.c init.h mcell_structs.h strfunc.h vector.h rng.h sym_table.h count_util.h vol_util.h wall_util.h grid_util.h viz_output.h react.h seed_array.h util.h
 	$(CC) $(CFLAGS) -c init.c
 
   

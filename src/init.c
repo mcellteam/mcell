@@ -29,6 +29,7 @@
 #include "react.h"
 #include "init.h"
 #include "react_output.h"
+#include "util.h"
 
 #ifdef DEBUG
 #define no_printf printf
@@ -1349,18 +1350,21 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
     }
 
     for (i=0;i<n_walls;i++) {
-      if (pop->side_stat[i]) {
+      if (!get_bit(pop->side_removed,i)) {
         wp[i]=&w[i];
-        index_0=opp->element_data[i].vertex_index[0];
-        index_1=opp->element_data[i].vertex_index[1];
-        index_2=opp->element_data[i].vertex_index[2];
+        index_0=opp->element[i].vertex_index[0];
+        index_1=opp->element[i].vertex_index[1];
+        index_2=opp->element[i].vertex_index[2];
  
         init_tri_wall(objp,i,vp[index_0],vp[index_1],vp[index_2]);
         total_area+=wp[i]->area;
 
         if (wp[i]->area==0) {
           fprintf(log_file,"\nMCell: Warning -- Degenerate polygon found and automatically removed: %s %d\n\n",objp->sym->name,i);
-          pop->side_stat[i]=0;
+	  fprintf(log_file,"  Vertex 0: %.5e %.5e %.5e\n",vp[index_0]->x,vp[index_0]->y,vp[index_0]->z);
+	  fprintf(log_file,"  Vertex 1: %.5e %.5e %.5e\n",vp[index_1]->x,vp[index_1]->y,vp[index_1]->z);
+	  fprintf(log_file,"  Vertex 2: %.5e %.5e %.5e\n",vp[index_2]->x,vp[index_2]->y,vp[index_2]->z);
+	  set_bit(pop->side_removed,i,1);
           objp->n_walls_actual--;
           wp[i]=NULL;
         }
@@ -1492,7 +1496,7 @@ int init_wall_regions(struct object *objp, char *full_name)
   struct region_list *rlp4, *lig_hit_count;
   struct region_list *wrlp;
   struct lig_hit_counter **lig_hit; 
-  struct element_list *elp;
+/*  struct element_list *elp; */
 /*  struct reg_counter_ref *rcrp; */
   struct reg_counter_ref_list *rcrlp;
 /*  struct counter_hash_table **countertab; */
@@ -1547,86 +1551,88 @@ int init_wall_regions(struct object *objp, char *full_name)
       if (lig_hit!=NULL) {
 	lig_hit_flag=1;
       }
-      elp=rp->element_list_head;
-      while (elp!=NULL) {
-        for (i=elp->begin;i<=elp->end;i++) {
-          if (pop->side_stat[i]) {
+      printf("Checking region %s on %s\n",rp->sym->name,objp->sym->name);
+      if (rp->membership==NULL)
+      {
+	printf("Hey, we never filled the membership information for %s\n",rp->sym->name);
+        rlp=rlp->next;
+      }
+      for (i=0;i<rp->membership->nbits;i++)
+      {
+	if (get_bit(rp->membership,i)) {
+
+	  /* prepend this region to wall region list of i_th wall
+	     only if the region is used in counting */
+	  w=objp->wall_p[i];
+	  if ((rp->flags & COUNT_SOME) !=0) {
+	    if ((wrlp=(struct region_list *)mem_get
+	      (w->birthplace->regl))==NULL) {
+		      fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+		      int i = emergency_output();
+		      fprintf(stderr,"Fatal error: out of memory while wall regions initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+		      exit(EXIT_FAILURE);
+	    }
+	    wrlp->reg=rp;
+	    wrlp->next=w->regions;
+	    w->regions=wrlp;
+	    w->flags|=rp->flags;
+	  }
 
 
-            /* prepend this region to wall region list of i_th wall
-               only if the region is used in counting */
-            w=objp->wall_p[i];
-            if ((rp->flags & COUNT_SOME) !=0) {
-              if ((wrlp=(struct region_list *)mem_get
-                (w->birthplace->regl))==NULL) {
-			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        		int i = emergency_output();
-			fprintf(stderr,"Fatal error: out of memory while wall regions initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
-              }
-              wrlp->reg=rp;
-              wrlp->next=w->regions;
-              w->regions=wrlp;
-              w->flags|=rp->flags;
-            }
+	  /* prepend region eff data for this region
+	    to eff_prop for i_th wall */
+	  effdp=rp->eff_dat_head;
+	  while (effdp!=NULL) {
+	    if (effdp->quantity_type==EFFDENS) {
+	      if ((dup_effdp=(struct eff_dat *)malloc
+		   (sizeof(struct eff_dat)))==NULL){
+		      fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+		      int i = emergency_output();
+		      fprintf(stderr,"Fatal error: out of memory while wall regions initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+		      exit(EXIT_FAILURE);
+	      }
+	      dup_effdp->eff=effdp->eff;
+	      dup_effdp->quantity_type=effdp->quantity_type;
+	      dup_effdp->quantity=effdp->quantity;
+	      dup_effdp->orientation=effdp->orientation;
+	      dup_effdp->next=eff_prop[i];
+	      eff_prop[i]=dup_effdp;
+	    }
+	    else {
+	      reg_eff_num=1;
+	    }
+	    effdp=effdp->next;
+	  }
 
- 
-            /* prepend region eff data for this region
-              to eff_prop for i_th wall */
-            effdp=rp->eff_dat_head;
-            while (effdp!=NULL) {
-              if (effdp->quantity_type==EFFDENS) {
-                if ((dup_effdp=(struct eff_dat *)malloc
-                     (sizeof(struct eff_dat)))==NULL){
-			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        		int i = emergency_output();
-			fprintf(stderr,"Fatal error: out of memory while wall regions initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
-                }
-                dup_effdp->eff=effdp->eff;
-                dup_effdp->quantity_type=effdp->quantity_type;
-                dup_effdp->quantity=effdp->quantity;
-                dup_effdp->orientation=effdp->orientation;
-                dup_effdp->next=eff_prop[i];
-                eff_prop[i]=dup_effdp;
-              }
-              else {
-                reg_eff_num=1;
-              }
-              effdp=effdp->next;
-            }
+	  /* prepend surf_class eff data for this region
+	    to eff_prop for i_th wall */
+	  if (rp->surf_class != NULL) {
+	    w->surf_class = rp->surf_class;  /* (Re?)set surface class */
+	    effdp=rp->surf_class->eff_dat_head;
+	    while (effdp!=NULL) {
+	      if (effdp->quantity_type==EFFDENS) {
+		if ((dup_effdp=(struct eff_dat *)malloc
+		     (sizeof(struct eff_dat)))==NULL){
+		      fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
+		      int i = emergency_output();
+		      fprintf(stderr,"Fatal error: out of memory while wall regions initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+		      exit(EXIT_FAILURE);
+		}
+		dup_effdp->eff=effdp->eff;
+		dup_effdp->quantity_type=effdp->quantity_type;
+		dup_effdp->quantity=effdp->quantity;
+		dup_effdp->orientation=effdp->orientation;
+		dup_effdp->next=eff_prop[i];
+		eff_prop[i]=dup_effdp;
+	      }
+	      else {
+		reg_eff_num=1;
+	      }
+	      effdp=effdp->next;
+	    }
+	  }
 
-            /* prepend surf_class eff data for this region
-              to eff_prop for i_th wall */
-            if (rp->surf_class != NULL) {
-              w->surf_class = rp->surf_class;  /* (Re?)set surface class */
-              effdp=rp->surf_class->eff_dat_head;
-              while (effdp!=NULL) {
-                if (effdp->quantity_type==EFFDENS) {
-                  if ((dup_effdp=(struct eff_dat *)malloc
-                       (sizeof(struct eff_dat)))==NULL){
-			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        		int i = emergency_output();
-			fprintf(stderr,"Fatal error: out of memory while wall regions initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
-                  }
-                  dup_effdp->eff=effdp->eff;
-                  dup_effdp->quantity_type=effdp->quantity_type;
-                  dup_effdp->quantity=effdp->quantity;
-                  dup_effdp->orientation=effdp->orientation;
-                  dup_effdp->next=eff_prop[i];
-                  eff_prop[i]=dup_effdp;
-                }
-                else {
-                  reg_eff_num=1;
-                }
-                effdp=effdp->next;
-              }
-            }
-
-          }
-        }
-        elp=elp->next;
+	}
       }
       if (reg_eff_num) {
         if ((rlp2=(struct region_list *)malloc
@@ -1666,7 +1672,7 @@ int init_wall_regions(struct object *objp, char *full_name)
     }
 
     for (i=0;i<n_walls;i++) {
-      if (pop->side_stat[i]) {
+      if (!get_bit(pop->side_removed,i)) {
       
         w=objp->wall_p[i];
 
@@ -1928,7 +1934,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
   struct grid_molecule gmol,*bread_crumb,*mol;
   struct region_list *rlp; 
   struct region *rp;
-  struct element_list *elp;
+/*  struct element_list *elp; */
   struct surface_grid *sg;
   struct eff_dat *effdp;
   struct wall **walls,**walls_tmp,*w;
@@ -1960,19 +1966,17 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
         /* initialize effector grids in region as needed and */
         /* count total number of free effector sites in region */
         n_free_eff=0;
-        elp=rp->element_list_head;
-        while (elp!=NULL) {
-          for (i=elp->begin;i<=elp->end;i++) {
-            if (pop->side_stat[i]) {
-              w=objp->wall_p[i];
-              if (create_grid(w,NULL)) {
-                return(1);
-              }
-              sg=w->effectors;
-              n_free_eff=n_free_eff+(sg->n_tiles-sg->n_occupied);
-            }
+	for (i=0;i<rp->membership->nbits;i++)
+	{
+	  if (get_bit(rp->membership,i))
+	  {
+	    w=objp->wall_p[i];
+	    if (create_grid(w,NULL)) {
+	      return(1);
+	    }
+	    sg=w->effectors;
+	    n_free_eff=n_free_eff+(sg->n_tiles-sg->n_occupied);
           }
-          elp=elp->next;
         }
         no_printf("Number of free effector tiles in region %s = %d\n",rp->sym->name,n_free_eff);
         fflush(stdout);
@@ -2001,24 +2005,22 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
         }
         /* initialize array of pointers to all free tiles */
         k=0;
-        elp=rp->element_list_head;
-        while (elp!=NULL) {
-          for (i=elp->begin;i<=elp->end;i++) {
-            if (pop->side_stat[i]) {
-              w=objp->wall_p[i];
-              sg=w->effectors;
-              if (sg!=NULL) {
-                for (j=0;j<sg->n_tiles;j++) {
-                  if (sg->mol[j]==NULL) {
-                    tiles[k]=&(sg->mol[j]);
-                    index[k]=j;
-                    walls[k++]=w;
-                  }
-                }
-              }
-            }
-          }
-          elp=elp->next;
+	for (i=0;i<rp->membership->nbits;i++)
+	{
+	  if (get_bit(rp->membership,i))
+	  {
+	    w=objp->wall_p[i];
+	    sg=w->effectors;
+	    if (sg!=NULL) {
+	      for (j=0;j<sg->n_tiles;j++) {
+		if (sg->mol[j]==NULL) {
+		  tiles[k]=&(sg->mol[j]);
+		  index[k]=j;
+		  walls[k++]=w;
+		}
+	      }
+	    }
+	  }
         }
       } /* end while(world->chkpt_init) */
 
@@ -2197,22 +2199,21 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
             n_free_eff=n_free_eff-n_set;
 
             /* update n_occupied for each effector grid */
-            elp=rp->element_list_head;
-            while (elp!=NULL) {
-              for (i=elp->begin;i<=elp->end;i++) {
-                if (pop->side_stat[i]) {
-                  sg=objp->wall_p[i]->effectors;
-                  if (sg!=NULL) {
-		    sg->n_occupied=0;
-                    for (j=0;j<sg->n_tiles;j++) {
-                      if (sg->mol[j]!=NULL) {
-                        sg->n_occupied++;
-                      }
-                    }
-                  }
+	    for (i=0;i<rp->membership->nbits;i++)
+	    {
+	      if (get_bit(rp->membership,i))
+	      {
+		sg=objp->wall_p[i]->effectors;
+		if (sg!=NULL)
+		{
+		  sg->n_occupied=0;
+		  for (j=0;j<sg->n_tiles;j++) {
+		    if (sg->mol[j]!=NULL) {
+		      sg->n_occupied++;
+		    }
+		  }
                 }
               }
-              elp=elp->next;
             }
           } /* end while(world->chkpt_init) */
         }
@@ -2306,25 +2307,15 @@ int init_region_counter(struct polygon_object *pop, struct cmprt_data *cdp, stru
  * Add from MCell 2.68, designed for the region counters.
  */
 struct region_list  *init_region_list_for_wall(struct region_list *rlp, int index) {
-  struct element_list *elp;
+/*  struct element_list *elp; */
   struct region *rp;
   struct region_list *rlp1, *wall_region_head;
-  byte wall_on_region_flag;
   
-  wall_region_head=NULL; 
- 
-  while (rlp!=NULL) {
-    wall_on_region_flag=0; 
-    rp=rlp->region;
-    elp=rp->element_list_head;
-    while (elp!=NULL) {
-      if ((index<=elp->end)&&(index>=elp->begin)) {
-	wall_on_region_flag=1;
-      }
-      elp=elp->next;
-    }
-
-    if (wall_on_region_flag) {
+  wall_region_head=NULL;
+  
+  for ( ; rlp!=NULL ; rlp=rlp->next )
+  {
+    if (get_bit(rlp->region->membership,index)) {
       if ((rlp1=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
 	mdlerror("Can not save region_list for wall");
 	return(NULL);
@@ -2333,7 +2324,6 @@ struct region_list  *init_region_list_for_wall(struct region_list *rlp, int inde
       rlp1->next=wall_region_head;
       wall_region_head=rlp1;
     }
-    rlp=rlp->next;
   }
   return(wall_region_head);
 

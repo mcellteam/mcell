@@ -119,6 +119,7 @@ struct mdlparse_vars {
   struct element_list *element_list_head;
   struct element_list *elmlp;
   char *region_name;
+  int exclude_me;
 
   struct eff_dat *eff_dat_head;
   struct eff_dat *effdp;

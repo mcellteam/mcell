@@ -692,7 +692,6 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
       }
     }
   }
-  
 }
 
 

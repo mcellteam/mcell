@@ -28,6 +28,23 @@ int prepare_reactions(struct mdlparse_vars *mpvp);
 int make_cuboid(struct vector3 *p1,
                 struct vector3 *p2,
                 struct ordered_poly *opp);
+		
+		
+/* Routines to deal with turning box objects into polygon objects */
+/* and to convert element_lists into bit arrays to handle include/exclude */
+struct subdivided_box* init_cuboid(struct vector3 *p1,struct vector3 *p2);
+int check_patch(struct subdivided_box *b,struct vector3 *p1,struct vector3 *p2,double egd);
+int refine_cuboid(struct vector3 *p1,struct vector3 *p2,struct subdivided_box *b, double egd);
+int divide_cuboid(struct subdivided_box *b,int axis,int idx,int ndiv);
+int reaspect_cuboid(struct subdivided_box *b,int max_ratio);
+int count_cuboid_elements(struct subdivided_box *sb);
+int count_cuboid_vertices(struct subdivided_box *sb);
+void cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct vector3 *v2,struct bit_array *ba);
+int normalize_elements(struct region *reg,int existing);
+int vertex_at_index(struct subdivided_box *sb, int ix, int iy, int iz);
+int polygonalize_cuboid(struct ordered_poly *opp,struct subdivided_box *sb);
+void remove_gaps_from_regions(struct object *ob);
+		
 
 int set_viz_state_value(struct object *objp, int viz_state);
 

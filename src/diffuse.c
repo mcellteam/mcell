@@ -615,7 +615,7 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
     if ( (moving->properties->flags && CAN_MOLWALL) != 0 )
     {
       rx = trigger_intersect(moving->properties->hashval,(struct abstract_molecule*)moving,0,wl->this_wall);
-      if (rx != NULL && (rx->n_pathways==RX_GHOST || rx->n_pathways==RX_WINDOW))
+      if (rx != NULL && (rx->n_pathways==RX_TRANSP))
       {
 	continue; /* We can move through this wall! */
       }
@@ -969,6 +969,73 @@ int can_hit_target(struct molecule *m,struct molecule *targ,struct subvolume *sv
 #endif
 
 
+double safe_time_step(struct molecule *m,struct collision *shead)
+{
+  double d2;
+  double d2_nearmax;
+  double d2min = GIGANTIC;
+  struct subvolume *sv = m->subvol;
+  struct wall *w;
+  struct wall_list *wl;
+  struct collision *smash;
+  double steps;
+  struct molecule *mp;
+  
+  d2_nearmax = m->properties->space_step * world->r_step[ (int)(world->radial_subdivisions * MULTISTEP_PERCENTILE) ];
+  d2_nearmax *= d2_nearmax;
+
+  if ( (m->properties->flags & (CAN_MOLMOL|CANT_INITIATE)) == CAN_MOLMOL )
+  {
+    for (smash = shead ; smash != NULL ; smash = smash->next)
+    {
+      mp = (struct molecule*)smash->target;
+      d2 = (m->pos.x - mp->pos.x)*(m->pos.x - mp->pos.x) +
+	   (m->pos.y - mp->pos.y)*(m->pos.x - mp->pos.y) +
+	   (m->pos.z - mp->pos.z)*(m->pos.x - mp->pos.z);
+      if (d2 < d2min) d2min = d2;
+    }
+  }
+  for (wl = sv->wall_head ; wl!=NULL ; wl = wl->next)
+  {
+    w = wl->this_wall;
+    d2 = (w->normal.x*m->pos.x + w->normal.y*m->pos.y + w->normal.z*m->pos.z) - w->d;
+    d2 *= d2;
+    if (d2 < d2min) d2min = d2;
+  }
+
+  d2 = (m->pos.x - world->x_fineparts[ sv->llf.x ]);
+  d2 *= d2;
+  if (d2 < d2min) d2min = d2;
+  
+  d2 = (m->pos.x - world->x_fineparts[ sv->urb.x ]);
+  d2 *= d2;
+  if (d2 < d2min) d2min = d2;
+
+  d2 = (m->pos.y - world->y_fineparts[ sv->llf.y ]);
+  d2 *= d2;
+  if (d2 < d2min) d2min = d2;
+  
+  d2 = (m->pos.y - world->y_fineparts[ sv->urb.y ]);
+  d2 *= d2;
+  if (d2 < d2min) d2min = d2;
+
+  d2 = (m->pos.z - world->z_fineparts[ sv->llf.z ]);
+  d2 *= d2;
+  if (d2 < d2min) d2min = d2;
+  
+  d2 = (m->pos.z - world->z_fineparts[ sv->urb.z ]);
+  d2 *= d2;
+  if (d2 < d2min) d2min = d2;
+  
+  if (d2min < d2_nearmax) steps = 1.0;
+  else steps = d2min / d2_nearmax;
+	
+  if (steps < MULTISTEP_WORTHWHILE) steps = 1.0;
+  
+  return steps;
+}
+
+
 
 /*************************************************************************
 diffuse_3D:
@@ -988,21 +1055,16 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   struct collision *shead;        /* Things we might hit (can interact with) */
   struct collision *shead2;     /* Things that we will hit, given our motion */ 
   struct subvolume *sv;
-  struct wall_list *wl;
   struct wall *w;
   struct rxn *rx;
   struct molecule *mp,*old_mp;
   struct grid_molecule *g;
   struct abstract_molecule *am;
   struct species *sm;
-  double d2;
-  double d2_nearmax;
-  double d2min = GIGANTIC;
   double steps=1.0;
   double t_steps=1.0;
   double factor;
   double rate_factor=1.0;
-  double x,xx;
   double t_already = 0.0;
   
   int i,j,k,l;
@@ -1102,62 +1164,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   
   if (calculate_displacement)
   {
-    if (max_time > MULTISTEP_WORTHWHILE)
-    {
-      d2_nearmax = sm->space_step * world->r_step[ (int)(world->radial_subdivisions * MULTISTEP_PERCENTILE) ];
-      d2_nearmax *= d2_nearmax;
-    
-      if ( (sm->flags & (CAN_MOLMOL|CANT_INITIATE)) == CAN_MOLMOL )
-      {
-        for (smash = shead ; smash != NULL ; smash = smash->next)
-        {
-          mp = (struct molecule*)smash->target;
-          d2 = (m->pos.x - mp->pos.x)*(m->pos.x - mp->pos.x) +
-               (m->pos.y - mp->pos.y)*(m->pos.x - mp->pos.y) +
-               (m->pos.z - mp->pos.z)*(m->pos.x - mp->pos.z);
-          if (d2 < d2min) d2min = d2;
-        }
-      }
-      for (wl = sv->wall_head ; wl!=NULL ; wl = wl->next)
-      {
-        w = wl->this_wall;
-        d2 = (w->normal.x*m->pos.x + w->normal.y*m->pos.y + w->normal.z*m->pos.z) - w->d;
-        d2 *= d2;
-        if (d2 < d2min) d2min = d2;
-      }
-    
-      d2 = (m->pos.x - world->x_fineparts[ sv->llf.x ]);
-      d2 *= d2;
-      if (d2 < d2min) d2min = d2;
-      
-      d2 = (m->pos.x - world->x_fineparts[ sv->urb.x ]);
-      d2 *= d2;
-      if (d2 < d2min) d2min = d2;
-
-      d2 = (m->pos.y - world->y_fineparts[ sv->llf.y ]);
-      d2 *= d2;
-      if (d2 < d2min) d2min = d2;
-      
-      d2 = (m->pos.y - world->y_fineparts[ sv->urb.y ]);
-      d2 *= d2;
-      if (d2 < d2min) d2min = d2;
-
-      d2 = (m->pos.z - world->z_fineparts[ sv->llf.z ]);
-      d2 *= d2;
-      if (d2 < d2min) d2min = d2;
-      
-      d2 = (m->pos.z - world->z_fineparts[ sv->urb.z ]);
-      d2 *= d2;
-      if (d2 < d2min) d2min = d2;
-      
-      if (d2min < d2_nearmax) steps = 1.0;
-      else if ( d2_nearmax*max_time < d2min ) steps = (1.0+EPS_C)*max_time;
-      else steps = d2min / d2_nearmax;
-            
-      if (steps < MULTISTEP_WORTHWHILE) steps = 1.0;
-    }
+    if (max_time > MULTISTEP_WORTHWHILE) steps = safe_time_step(m,shead);
     else steps = 1.0;
-    
+
     t_steps = steps * sm->time_step;
     if (t_steps > max_time)
     {
@@ -1180,8 +1189,6 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
     world->diffusion_cumsteps += steps;
   }
   
-  d2 = displacement.x*displacement.x + displacement.y*displacement.y +
-       displacement.z*displacement.z;
   
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
 #define ERROR_AND_QUIT fprintf(world->err_file,"Out of memory: trying to save intermediate results.\n"); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
@@ -1247,379 +1254,125 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       else if ( (smash->what & COLLIDE_WALL) != 0 )
 
       {
-  /* We may have to handle coincident walls, which is a pain. */
-        if (smash->next!=NULL && (smash->next->what&COLLIDE_WALL)!=0 &&
-            smash->next->t - smash->t <= TOL)
-        {
-          struct collision *smish,*g_head,*gp,*w_head,*wp,*c;
-          int is_window = 0;
-          int is_ghost = 0;
-          int rx_result = RX_A_OK;
-          
-          g_head = gp = w_head = wp = NULL;
-          
-          for (smish=smash ; smish != NULL ; smish=smish->next)
-          {
-            w = (struct wall*) smish->target;
-            world->ray_polygon_colls++;
-            if ( (smish->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
-            else k = -1;
-            
-            if ( w->effectors != NULL && (sm->flags&CAN_MOLGRID) != 0 && !is_window )
-            {
-              j = xyz2grid( &(smish->loc) , w->effectors );
-              if (w->effectors->mol[j] != NULL)
-              {
-                if (m->index != j || m->previous_grid != w->effectors)
-                {
-                  g = w->effectors->mol[j];
-                  rx = trigger_bimolecular(
-                    sm->hashval,g->properties->hashval,
-                    (struct abstract_molecule*)m,(struct abstract_molecule*)g,
-                    k,g->orient
-                  );
-                  if (rx!=NULL)
-                  {
-                    if (rx->rate_t != NULL) check_rates(rx,m->t);
-                    c = (struct collision*)mem_get(sv->local_storage->coll);
-		    if (c==NULL)
-		    {
-		      if (g_head!=NULL) mem_put_list(sv->local_storage->coll,g_head);
-		      ERROR_AND_QUIT;
-		    }
-
-                    c->intermediate = rx;
-                    c->target = g;
-                    c->t = rx->cum_rates[ rx->n_pathways - 1 ] * w->effectors->binding_factor * rate_factor;
-                    c->next = NULL;
-                    if (gp==NULL)
-                    {
-                      g_head = gp = c;
-                      c->loc.x = c->t;
-                    }
-                    else
-                    {
-                      gp->next = c;
-                      c->loc.x = gp->loc.x + c->t;
-                      gp = c;
-                    }
-                  }
-                }
-              }
-            }
-            if ( !is_window )
-            {
-              m->index = -1;
-              
-              if ( (sm->flags&CAN_MOLWALL) == 0 ) rx = NULL;
-              else rx = trigger_intersect(
-                       sm->hashval,(struct abstract_molecule*)m,k,w
-                     );
-                     
-              if (rx!=NULL && rx->n_pathways==RX_WINDOW) is_window++;
-              else if (rx==NULL || rx->n_pathways!=RX_GHOST)
-              {
-                c = (struct collision*)mem_get(sv->local_storage->coll);
-		if (c==NULL)
+	w = (struct wall*) smash->target;
+	
+	world->ray_polygon_colls++;
+	
+	if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
+	else k = -1;
+	
+	if ( w->effectors != NULL && (sm->flags&CAN_MOLGRID) != 0 )
+	{
+	  j = xyz2grid( &(smash->loc) , w->effectors );
+	  if (w->effectors->mol[j] != NULL)
+	  {
+	    if (m->index != j || m->previous_grid != w->effectors)
+	    {
+	      g = w->effectors->mol[j];
+	      rx = trigger_bimolecular(
+		sm->hashval,g->properties->hashval,
+		(struct abstract_molecule*)m,(struct abstract_molecule*)g,
+		k,g->orient
+	      );
+	      if (rx!=NULL)
+	      {
+		if (rx->rate_t != NULL) check_rates(rx,m->t);
+		i = test_bimolecular(rx,rate_factor * w->effectors->binding_factor);
+		if (i > RX_NO_RX)
 		{
-		  if (w_head!=NULL) mem_put_list(sv->local_storage->coll,w_head);
-		  if (g_head!=NULL) mem_put_list(sv->local_storage->coll,g_head);
-		  ERROR_AND_QUIT;
-		}
-                c->intermediate = rx;
-                c->target = w;
-                if (rx!=NULL)
-                {
-                  c->t = rx->cum_rates[ rx->n_pathways - 1 ] * rate_factor;
-                }
-                else c->t = 0.0;
-                
-                c->next = NULL;
-                if (wp==NULL)
-                {
-                  w_head = wp = c;
-                  c->loc.x = c->t;
-                }
-                else
-                {
-                  wp->next = c;
-                  c->loc.x = wp->loc.x + c->t;
-                  wp = c;
-                }
-              }
-            }
-            if (smish->next == NULL) break;
-            if (smish->next->t - smash->t > TOL) break;
-          }
-          
-          if (is_window)
-          {
-            for (c=smash;c!=smish->next;c=c->next)
-            {
-              w = (struct wall*) c->target;
-              if ( (c->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
-              else k = -1;
-              
-              if ( (sm->flags & w->flags & COUNT_SOME) )
-              {
-                update_collision_count(sm,w->regions,k,1);
-                UPDATE_LOCATION(c);
-              }
-            }
-                
-            if (g_head!=NULL) mem_put_list(sv->local_storage->coll,g_head);
-            if (w_head!=NULL) mem_put_list(sv->local_storage->coll,w_head);
-            
-            smash=smish;
-            continue;
-          }
-          
-          if (gp!=NULL) /* Possibility of reaction with grid molecule */
-          {
-            x = gp->loc.x;
-            xx = rng_double(world->seed++);
-            if (x>1.0) xx *= x;
-            
-            if (x >= xx)
-            {
-              for (c=g_head;c!=NULL;c=c->next)
-              {
-                if (c->loc.x >= x)
-                {
-                  rx = c->intermediate;
-                  g = (struct grid_molecule*)c->target;
-                  
-                  i = test_bimolecular(rx,1/c->t); /* Always works */
-                  if (i > RX_NO_RX)
-                  {
-                    l = outcome_bimolecular(
-                      rx,i,(struct abstract_molecule*)m,
-                      (struct abstract_molecule*)g,
-                      k,g->orient,m->t+t_steps*smash->t,&(smash->loc)
-                    );
-                    
-		    if (l==RX_NO_MEM)
+		  l = outcome_bimolecular(
+		    rx,i,(struct abstract_molecule*)m,
+		    (struct abstract_molecule*)g,
+		    k,g->orient,m->t+t_steps*smash->t,&(smash->loc)
+		  );
+		  
+		  if (l==RX_NO_MEM) { ERROR_AND_QUIT; }
+		  if (l==RX_FLIP)
+		  {
+		    if ( (sm->flags & w->flags & COUNT_SOME) )
 		    {
-		      if (w_head!=NULL) mem_put_list(sv->local_storage->coll,w_head);
-		      mem_put_list(sv->local_storage->coll,g_head);
-		      ERROR_AND_QUIT;
+		      update_collision_count(sm,w->regions,k,1);
+		      UPDATE_LOCATION(smash);
 		    }
 		    
-                    if (l==RX_FLIP)
-                    {
-                      if (w_head!=NULL) mem_put_list(sv->local_storage->coll,w_head);
-                      rx_result = RX_FLIP;  /* pass through */
-                      break;
-                    }
-                    else if (l==RX_DESTROY)
-                    {
-                      rx_result = RX_DESTROY;  /* destroyed */
-                      break;
-                    }
-                  }
-                }
-              }
-            }
-            mem_put_list(sv->local_storage->coll,g_head);
-          }
-          
-          if (rx_result==RX_A_OK) /* Possibility of a reaction with a wall */
-          {
-            if (wp->loc.x==0.0) rx_result = 0; /* All reflective */
-            else
-            {
-              x = wp->loc.x;
-              xx = rng_double(world->seed++);
-              if (x>1.0) xx *= x;
-              
-              if (x >= xx)
-              {
-                for (c=w_head;c!=NULL;c=c->next)
-                {
-                  if (c->loc.x >= x)
-                  {
-                    rx = c->intermediate;
-                    if (rx==NULL) continue; /* Was reflective */
-                    
-                    w = (struct wall*)c->target;
-                    
-                    i = test_intersect(rx,rate_factor);
-                    if (i > RX_NO_RX)
-                    {
-                      j = outcome_intersect(
-                              rx,i,w,(struct abstract_molecule*)m,
-                              k,m->t + t_steps*smash->t,&(smash->loc)
-                            );
+		    continue; /* pass through */
+		  }
+		  else if (l==RX_DESTROY)
+		  {
+		    if ( (sm->flags & w->flags & COUNT_SOME) )
+		      update_collision_count(sm,w->regions,k,0);
+		    
+		    CLEAN_AND_RETURN(NULL);
+		  }
+		}
+	      }
+	    }
+	    else m->index = -1; /* Avoided rebinding, but next time it's OK */
+	  }
+	}
+	
+	if ( (sm->flags&CAN_MOLWALL) != 0 )
+	{
+	  m->index = -1;
+	  rx = trigger_intersect(
+		  sm->hashval,(struct abstract_molecule*)m,k,w
+		);
+	  
+	  if (rx != NULL)
+	  {
+	    if (rx->n_pathways == RX_TRANSP)
+	    {
+	      if ( (sm->flags & COUNT_SOME) )
+	      {
+		update_collision_count(sm,w->regions,k,1);
+		UPDATE_LOCATION(smash);
+	      }
 
-			    if (j==RX_NO_MEM)
-		      {
-			mem_put_list(sv->local_storage->coll,w_head);
-			ERROR_AND_QUIT;
-		      }
+	      continue;
+	    }
+	    if (rx->rate_t != NULL) check_rates(rx,m->t);
+	    i = test_intersect(rx,rate_factor);
+	    if (i > RX_NO_RX)
+	    {
+	      j = outcome_intersect(
+		      rx,i,w,(struct abstract_molecule*)m,
+		      k,m->t + t_steps*smash->t,&(smash->loc)
+		    );
+		    
+	      if (j==RX_NO_MEM) { ERROR_AND_QUIT; } 
+	      if (j==RX_FLIP)
+	      {
+		if ( (sm->flags & COUNT_SOME) )
+		{
+		  update_collision_count(sm,w->regions,k,1);
+		  UPDATE_LOCATION(smash);
+		}
 
-		      rx_result = j;
-                    }
-                  }
-                }
-              }
-            }
-            mem_put_list(sv->local_storage->coll,w_head);
-          }
-          
-          for (c=smash;c!=smish->next;c=c->next)
-          {
-            w = (struct wall*) c->target;
-            if ( (c->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
-            else k = -1;
-            
-            if ( (sm->flags & w->flags & COUNT_SOME) )
-            {
-              if (rx_result==RX_FLIP) update_collision_count(sm,w->regions,k,1);
-              else update_collision_count(sm,w->regions,k,0);
-              UPDATE_LOCATION(c);
-            }
-          }
-                
-          smash = smish;
-          if (rx_result==RX_DESTROY) { CLEAN_AND_RETURN(NULL); }
-          else if (rx_result==RX_FLIP || is_ghost) continue;
-        }
-        else /* Simple case, no coincident walls */
-        {
-          w = (struct wall*) smash->target;
-          
-          world->ray_polygon_colls++;
-          
-          if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
-          else k = -1;
-          
-          if ( (sm->flags & CAN_MOLWALL) != 0 )
-          {
-            rx = trigger_intersect(sm->hashval,(struct abstract_molecule*)m,k,w);
-            if (rx!=NULL && rx->n_pathways == RX_WINDOW)
-            {
-              if ( (sm->flags & w->flags & COUNT_SOME) )
-              {
-                update_collision_count(sm,w->regions,k,1);
-                UPDATE_LOCATION(smash);
-              }
+		continue; /* pass through */
+	      }
+	      else if (j==RX_DESTROY)
+	      {
+		if ( (sm->flags & COUNT_SOME) )
+		  update_collision_count(sm,w->regions,k,0);
 
-              continue; /* pass through */
-            }
-          }
-                    
-          if ( w->effectors != NULL && (sm->flags&CAN_MOLGRID) != 0 )
-          {
-            j = xyz2grid( &(smash->loc) , w->effectors );
-            if (w->effectors->mol[j] != NULL)
-            {
-              if (m->index != j || m->previous_grid != w->effectors)
-              {
-                g = w->effectors->mol[j];
-                rx = trigger_bimolecular(
-                  sm->hashval,g->properties->hashval,
-                  (struct abstract_molecule*)m,(struct abstract_molecule*)g,
-                  k,g->orient
-                );
-                if (rx!=NULL)
-                {
-                  if (rx->rate_t != NULL) check_rates(rx,m->t);
-                  i = test_bimolecular(rx,rate_factor * w->effectors->binding_factor);
-                  if (i > RX_NO_RX)
-                  {
-                    l = outcome_bimolecular(
-                      rx,i,(struct abstract_molecule*)m,
-                      (struct abstract_molecule*)g,
-                      k,g->orient,m->t+t_steps*smash->t,&(smash->loc)
-                    );
-                    
-		    if (l==RX_NO_MEM) { ERROR_AND_QUIT; }
-                    if (l==RX_FLIP)
-                    {
-                      if ( (sm->flags & w->flags & COUNT_SOME) )
-                      {
-                        update_collision_count(sm,w->regions,k,1);
-                        UPDATE_LOCATION(smash);
-                      }
-                      
-                      continue; /* pass through */
-                    }
-                    else if (l==RX_DESTROY)
-                    {
-                      if ( (sm->flags & w->flags & COUNT_SOME) )
-                        update_collision_count(sm,w->regions,k,0);
-		      
-		      CLEAN_AND_RETURN(NULL);
-                    }
-                  }
-                }
-              }
-              else m->index = -1; /* Avoided rebinding, but next time it's OK */
-            }
-          }
-          
-          if ( (sm->flags&CAN_MOLWALL) != 0 )
-          {
-            m->index = -1;
-            rx = trigger_intersect(
-                    sm->hashval,(struct abstract_molecule*)m,k,w
-                  );
-            
-            if (rx != NULL)
-            {
-              if (rx->n_pathways == RX_GHOST)
-              {
-                if ( (sm->flags & w->flags & COUNT_SOME) )
-                {
-                  update_collision_count(sm,w->regions,k,1);
-                  UPDATE_LOCATION(smash);
-                }
-
-                continue;
-              }
-              if (rx->rate_t != NULL) check_rates(rx,m->t);
-              i = test_intersect(rx,rate_factor);
-              if (i > RX_NO_RX)
-              {
-                j = outcome_intersect(
-                        rx,i,w,(struct abstract_molecule*)m,
-                        k,m->t + t_steps*smash->t,&(smash->loc)
-                      );
-		      
-		if (j==RX_NO_MEM) { ERROR_AND_QUIT; } 
-                if (j==RX_FLIP)
-                {
-                  if ( (sm->flags & w->flags & COUNT_SOME) )
-                  {
-                    update_collision_count(sm,w->regions,k,1);
-                    UPDATE_LOCATION(smash);
-                  }
-
-                  continue; /* pass through */
-                }
-                else if (j==RX_DESTROY)
-                {
-                  if ( (sm->flags & w->flags & COUNT_SOME) )
-                    update_collision_count(sm,w->regions,k,0);
-
-		  CLEAN_AND_RETURN(NULL);
-                }
-              }
-            }
-          }
-          
-          if ( (sm->flags & w->flags & COUNT_SOME) )
-            update_collision_count(sm,w->regions,k,0);
-        }
+		CLEAN_AND_RETURN(NULL);
+	      }
+	    }
+	  }
+	}
+	
         /* default is to reflect */
         
+	if ( (sm->flags & COUNT_SOME) ) update_collision_count(sm,w->regions,k,0);
+
         m->pos.x += displacement.x * (smash->t - t_already);
         m->pos.y += displacement.y * (smash->t - t_already);
         m->pos.z += displacement.z * (smash->t - t_already);
         m->t += t_steps*smash->t;
-        m->path_length += t_steps*(smash->t-t_already)*sqrt(( displacement.x * displacement.x +
-                                                              displacement.y * displacement.y +
-                                                              displacement.z * displacement.z ) );
+        m->path_length += t_steps*(smash->t-t_already)*
+	                  sqrt(( displacement.x * displacement.x +
+                                 displacement.y * displacement.y +
+                                 displacement.z * displacement.z ) );
         t_steps *= (1.0-smash->t);
         t_already = 0.0;
         
@@ -1677,6 +1430,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
     if (shead2 != NULL) mem_put_list(sv->local_storage->coll,shead2);
   }
   while (smash != NULL);
+#undef UPDATE_LOCATION
 #undef ERROR_AND_QUIT
 #undef CLEAN_AND_RETURN
   
