@@ -164,6 +164,51 @@ struct subvolume* traverse_subvol(struct subvolume *here,struct vector3 *point,i
 }
 
 
+
+/*************************************************************************
+collide_sv_time:
+  In: pointer to a vector3 of where we are (*here)
+      pointer to a vector3 of where we want to be
+      our current subvolume
+  Out: time to hit the closest wall of the subvolume
+*************************************************************************/
+
+double collide_sv_time(struct vector3 *here,struct vector3 *move,struct subvolume *sv)
+{
+  double dx,dy,dz,tx,ty,tz,t;
+  int whichx,whichy,whichz,which;
+  
+  whichx = whichy = whichz = 1;
+  
+  if (move->x > 0) dx = world->x_fineparts[ sv->urb.x ] - here->x;
+  else { dx = world->x_fineparts[ sv->llf.x ] - here->x; whichx = 0; }
+  
+  if (move->y > 0) dy = world->y_fineparts[ sv->urb.y ] - here->y;
+  else { dy = world->y_fineparts[ sv->llf.y ] - here->y; whichy = 0; }
+  
+  if (move->z > 0) dz = world->z_fineparts[ sv->urb.z ] - here->z;
+  else { dz = world->z_fineparts[ sv->llf.z ] - here->z; whichz = 0; }
+  
+  tx = dx * move->y * move->z; if (tx<0) tx = -tx;
+  ty = move->x * dy * move->z; if (ty<0) ty = -ty;
+  tz = move->x * move->y * dz; if (tz<0) tz = -tz;
+  
+  if (tx<ty || move->y==0.0)
+  {
+    if (tx<tz || move->z==0.0) { t = dx / move->x; which = X_NEG + whichx; }
+    else { t = dz / move->z; which = Z_NEG + whichz; }
+  }
+  else /* ty<tx */
+  {
+    if (ty<tz || move->z==0.0) { t = dy / move->y; which = Y_NEG + whichy; }
+    else { t = dz / move->z; which = Z_NEG + whichz; }
+  }
+  
+  return t;
+}
+
+
+
 /*************************************************************************
 next_subvol:
   In: pointer to a vector3 of where we are (*here)

@@ -66,6 +66,7 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
           if (crossed)
           {
             hit_count->n_inside += direction;
+	    printf("REGION %2d\n",direction);
 
 
 /*
@@ -103,6 +104,29 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
 }
 
 
+void blather(char *s,struct region_list *r)
+{
+  printf("%s  Regions are ",s);
+  while (r!=NULL)
+  {
+    printf("%x ",(int)r->reg);
+    r = r->next;
+  }
+  printf("\n");
+}
+
+void blither(char *s,struct wall_list *w)
+{
+  printf("%s  Walls are ",s);
+  while (w!=NULL)
+  {
+    printf("%x ",(int)w->this_wall);
+    w = w->next;
+  }
+  printf("\n");
+}
+
+
 void find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
                             struct region_list** rlp,struct region_list** arlp,
                             struct mem_helper *rmem)
@@ -112,7 +136,7 @@ void find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
   struct wall_list *wl;
   struct region_list *rl,*arl;
   struct region_list *trl,*tarl,*xrl,*yrl,*nrl;
-  double t;
+  double t,t_hit_sv;
   int traveling;
   int i;
   
@@ -131,6 +155,7 @@ void find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
     outside.x = start->x;
     outside.y = start->y;
     outside.z = start->z;
+    if (rl!=NULL) blather("Started with regions.",rl); 
   }
   
   delta.x = 0.0;
@@ -144,6 +169,8 @@ void find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
   while (traveling)
   {
     tarl = trl = NULL;
+    t_hit_sv = collide_sv_time(&outside,&delta,sv);
+    
     for (wl = sv->wall_head ; wl != NULL ; wl = wl->next)
     {
       i = collide_wall(&outside , &delta , wl->this_wall , &t , &hit);
@@ -162,9 +189,12 @@ void find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
           trl = xrl;
         }
       }
-      else if (i==COLLIDE_MISS || t > 1.0 || (wl->this_wall->flags & COUNT_CONTENTS) == 0) continue;
+      else if (i==COLLIDE_MISS || t > 1.0 || t > t_hit_sv || (wl->this_wall->flags & COUNT_CONTENTS) == 0 ||
+	       (hit.x-outside.x)*delta.x + (hit.y-outside.y)*delta.y + (hit.z-outside.z)*delta.z < 0) continue;
       else
       {
+	printf("We collided with wall %x in direction %d\n",(int)wl->this_wall,i);
+	blither("",sv->wall_head);
         for (xrl=wl->this_wall->regions ; xrl != NULL ; xrl = xrl->next)
         {
           if ((xrl->reg->flags & COUNT_CONTENTS) != 0)
@@ -272,6 +302,9 @@ void find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
       delta.z = loc->z - outside.z;
     }
   }
+  
+  if (rl != NULL) blather("We have a region.",rl);
+  if (arl!=NULL) blather("We have an antiregion.",arl);
   
   *rlp = rl;
   *arlp = arl;
@@ -387,6 +420,19 @@ int place_waypoints()
                                  &(wp->antiregions),sv->mem->regl);
         }
         
+	if (wp->regions!=NULL && wp->regions->next!=NULL && wp->regions->reg==wp->regions->next->reg)
+	{
+	  printf("Two of the same region %x on waypoint %x at %.2e %.2e %.2e! r=%.2e\n",
+	    (int)wp->regions->reg,(int)wp,wp->loc.x,wp->loc.y,wp->loc.z,
+	    sqrt(wp->loc.x*wp->loc.x + wp->loc.y*wp->loc.y + wp->loc.z*wp->loc.z) );
+	}
+	else if (wp->regions!=NULL)
+	{
+	  printf("One of region %x on waypoint %x at %.2e %.2e %.2e! r=%.2e\n",
+	    (int)wp->regions->reg,(int)wp,wp->loc.x,wp->loc.y,wp->loc.z,
+	    sqrt(wp->loc.x*wp->loc.x + wp->loc.y*wp->loc.y + wp->loc.z*wp->loc.z) );
+	}
+	
 /*        if (wp->regions != NULL) printf("We have a region on waypoint %d\n",h);
         if (wp->antiregions != NULL) printf("We have an antiregion on waypoint %d\n",h); */
         
@@ -449,12 +495,12 @@ void count_me_by_region(struct abstract_molecule *me,int n)
     struct wall_list *wl;
     struct region_list *rl;
     double t;
+    double t_sv_hit;
     
     i = bisect(world->x_partitions,world->nx_parts,m->pos.x);
     j = bisect(world->y_partitions,world->ny_parts,m->pos.y);
     k = bisect(world->z_partitions,world->nz_parts,m->pos.z);
     h = k + (world->nz_parts-1)*( j + (world->ny_parts-1)*i );
-    
     wp = &(world->waypoints[h]);
     for (rl=wp->regions ; rl!=NULL ; rl=rl->next)
     {
@@ -462,23 +508,10 @@ void count_me_by_region(struct abstract_molecule *me,int n)
       {
         i = (rl->reg->hashval ^ sp->hashval) & world->count_hashmask;
         if (i==0) i = sp->hashval & world->count_hashmask;
-
-/*
-        printf("Trying to count %s (%x) on %s (%x) with hashval %x\n",
-               sp->sym->name,sp->hashval,rl->reg->sym->name,rl->reg->hashval,i);
-*/
         
         for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
         {
-          if (c->reg_type==rl->reg && c->mol_type==sp)
-          {
-            c->n_inside += n;
-
-/*
-           printf("Actually counted; %x has n_inside = %.1f (up by %d).\n",(int)c,c->n_inside,n);
-
-*/
-          }
+          if (c->reg_type==rl->reg && c->mol_type==sp) c->n_inside += n;
         }
       }
     }
@@ -505,6 +538,9 @@ void count_me_by_region(struct abstract_molecule *me,int n)
       delta.x = m->pos.x - here.x;
       delta.y = m->pos.y - here.y;
       delta.z = m->pos.z - here.z;
+      
+      t_sv_hit = collide_sv_time(&here,&delta,sv);
+      if (t_sv_hit > 1.0) t_sv_hit = 1.0;
 
       for (wl = sv->wall_head ; wl != NULL ; wl = wl->next)
       {
@@ -512,11 +548,12 @@ void count_me_by_region(struct abstract_molecule *me,int n)
         {
           j = collide_wall(&here,&delta,wl->this_wall,&t,&hit);
           
-          if (j!=COLLIDE_MISS)
+          if (j!=COLLIDE_MISS && t <= t_sv_hit &&
+	    (hit.x-m->pos.x)*delta.x + (hit.y-m->pos.y)*delta.y + (hit.z-m->pos.z)*delta.z < 0)
           {
             for (rl=wl->this_wall->regions ; rl!=NULL ; rl=rl->next)
             {
-              if ( (rl->reg->flags & m->flags & COUNT_CONTENTS) != 0 )
+              if ( (rl->reg->flags & sp->flags & COUNT_CONTENTS) != 0 )
               {
                 i = (rl->reg->hashval ^ sp->hashval) & world->count_hashmask;
                 if (i==0) i = sp->hashval & world->count_hashmask;
@@ -526,7 +563,7 @@ void count_me_by_region(struct abstract_molecule *me,int n)
                   if (c->reg_type==rl->reg && c->mol_type==sp)
                   {
                     if (j==COLLIDE_FRONT) c->n_inside += n;
-                    else if (j==COLLIDE_BACK) c->n_inside -= n;
+		    else if (j==COLLIDE_BACK) c->n_inside -= n;
                   }
                 }
               }

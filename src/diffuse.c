@@ -1161,6 +1161,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           fprintf(world->log_file,"Error: a %s molecule escaped the world at (%.2e,%.2e,%.2e)\n",
                   m->properties->sym->name,m->pos.x*world->length_unit,
                   m->pos.y*world->length_unit,m->pos.z*world->length_unit);
+          if ((m->properties->flags&COUNT_CONTENTS)!=0)
+	    count_me_by_region((struct abstract_molecule*)m,-1);
           m->properties->population--;
           m->properties = NULL;
           if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);

@@ -688,23 +688,6 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   {
     struct molecule *m = (struct molecule*) reac;
     
-#if 0
-/* What the heck was this supposed to do--some sort of auto-permeability? */
-    if (index+2==rx->product_idx[path+1] &&
-        rx->players[0] == rx->players[index] &&
-        rx->geometries[index] != 0)
-    {
-      rx->counter[path]++;
-      
-      if (rx->geometries[index] == 1) return -1;
-      else if (rx->geometries[index] == -1) return 1;
-      else if (rx->geometries[index]*orient > 0) return -1;
-      else return 1;
-    }
-    else
-    {
-#endif
-
     blocked = outcome_products(surface,m,NULL,NULL,rx,path,m->subvol->mem,orient,0,t,hitpt,reac,NULL,reac);
 
     if (blocked == -2) return -1;
@@ -714,15 +697,14 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     if (rx->players[ index ] == NULL)
     {
       m->subvol->mol_count--;
+      if ( (reac->properties->flags & COUNT_CONTENTS) != 0 )
+	count_me_by_region(reac,-1);
       reac->properties->population--;
       reac->properties = NULL;
       return 0;
     }
     else return blocked;
 
-#if 0
-    }
-#endif
   }
   else /* Grid can't intersect, so this must be a surface molecule */
   {
