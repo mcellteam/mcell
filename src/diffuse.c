@@ -595,7 +595,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   
   shead = NULL;
   old_mp = NULL;
-  if ( (m->properties->flags & CAN_MOLMOL) != 0 )
+  if ( (sm->flags & CAN_MOLMOL) != 0 )
   {
     for (mp = sv->mol_head ; mp != NULL ; old_mp = mp , mp = mp->next_v)
     {
@@ -623,7 +623,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       }
       
       rx = trigger_bimolecular(
-               m->properties->hashval,mp->properties->hashval,
+               sm->hashval,mp->properties->hashval,
                (struct abstract_molecule*)m,(struct abstract_molecule*)mp,0,0
              );
       
@@ -646,7 +646,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       d2_nearmax = sm->space_step * world->r_step[ (int)(world->radial_subdivisions * MULTISTEP_PERCENTILE) ];
       d2_nearmax *= d2_nearmax;
     
-      if ( (m->properties->flags & CAN_MOLMOL) != 0 )
+      if ( (sm->flags & CAN_MOLMOL) != 0 )
       {
         for (smash = shead ; smash != NULL ; smash = smash->next)
         {
@@ -833,7 +833,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
               
               if ( (sm->flags&CAN_MOLWALL) == 0 ) rx = NULL;
               else rx = trigger_intersect(
-                       m->properties->hashval,(struct abstract_molecule*)m,k,w
+                       sm->hashval,(struct abstract_molecule*)m,k,w
                      );
                      
               if (rx!=NULL && rx->n_pathways==RX_WINDOW) is_window++;
@@ -875,7 +875,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
               else k = -1;
               
               if ( (sm->flags & w->flags & COUNT_SOME) )
-                update_collision_count(m->properties,w->regions,k,1);
+                update_collision_count(sm,w->regions,k,1);
             }
                 
             if (g_head!=NULL) mem_put_list(sv->mem->coll,g_head);
@@ -1042,15 +1042,15 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     
                     if (l==1)
                     {
-                      if ( (m->properties->flags & w->flags & COUNT_SOME) )
-                        update_collision_count(m->properties,w->regions,k,1);
+                      if ( (sm->flags & w->flags & COUNT_SOME) )
+                        update_collision_count(sm,w->regions,k,1);
                       
                       continue; /* pass through */
                     }
                     else if (l==0)
                     {
                       if ( (sm->flags & w->flags & COUNT_SOME) )
-                        update_collision_count(m->properties,w->regions,k,0);
+                        update_collision_count(sm,w->regions,k,0);
                                         
                       if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
                       if (shead != NULL) mem_put_list(sv->mem->coll,shead);
@@ -1068,11 +1068,11 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             }
           }
           
-          if ( (m->properties->flags&CAN_MOLWALL) != 0 )
+          if ( (sm->flags&CAN_MOLWALL) != 0 )
           {
             m->index = -1;
             rx = trigger_intersect(
-                    m->properties->hashval,(struct abstract_molecule*)m,k,w
+                    sm->hashval,(struct abstract_molecule*)m,k,w
                   );
             
             if (rx != NULL)
@@ -1094,15 +1094,15 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                       );
                 if (j==1)
                 {
-                  if ( (m->properties->flags & w->flags & COUNT_SOME) )
-                    update_collision_count(m->properties,w->regions,k,1);
+                  if ( (sm->flags & w->flags & COUNT_SOME) )
+                    update_collision_count(sm,w->regions,k,1);
 
                   continue; /* pass through */
                 }
                 else if (j==0)
                 {
                   if ( (sm->flags & w->flags & COUNT_SOME) )
-                    update_collision_count(m->properties,w->regions,k,0);
+                    update_collision_count(sm,w->regions,k,0);
 
                   if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
                   if (shead != NULL) mem_put_list(sv->mem->coll,shead);
@@ -1113,8 +1113,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             }
           }
           
-          if ( (m->properties->flags & w->flags & COUNT_SOME) )
-            update_collision_count(m->properties,w->regions,k,0);
+          if ( (sm->flags & w->flags & COUNT_SOME) )
+            update_collision_count(sm,w->regions,k,0);
         }
         /* default is to reflect */
         
@@ -1159,11 +1159,11 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         if (nsv==NULL)
         {
           fprintf(world->log_file,"Error: a %s molecule escaped the world at (%.2e,%.2e,%.2e)\n",
-                  m->properties->sym->name,m->pos.x*world->length_unit,
+                  sm->sym->name,m->pos.x*world->length_unit,
                   m->pos.y*world->length_unit,m->pos.z*world->length_unit);
-          if ((m->properties->flags&COUNT_CONTENTS)!=0)
+          if ((sm->flags&COUNT_CONTENTS)!=0)
 	    count_me_by_region((struct abstract_molecule*)m,-1);
-          m->properties->population--;
+          sm->population--;
           m->properties = NULL;
           if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
           if (shead != NULL) mem_put_list(sv->mem->coll,shead);
