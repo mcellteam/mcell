@@ -1593,6 +1593,11 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         /* default is to reflect */
         
 	if ( (sm->flags & COUNT_HITS) ) update_collision_count(sm,w->regions,k,0,rate_factor);
+	if (m->flags&COUNT_ME)
+	{
+	  m->flags -= COUNT_ME;
+	  count_me_by_region((struct abstract_molecule*)m,-1,NULL);
+	}
 
 	m->pos.x = smash->loc.x;
 	m->pos.y = smash->loc.y;
