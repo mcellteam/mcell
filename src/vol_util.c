@@ -478,11 +478,11 @@ void release_molecules(struct release_event_queue *req)
     {
       req->train_high_time += rpat->train_duration + rpat->train_interval;
       req->event_time = req->train_high_time;
-      req->event_counter++;
+      req->train_counter++;
     }
     else req->event_type = RELEASE_EVENT;
 
-    if (req->event_counter < rpat->number_of_trains)
+    if (req->train_counter < rpat->number_of_trains)
     {
       schedule_add(world->releaser,req);
     }

@@ -168,7 +168,6 @@ int init_sim(void)
   world->r_num_directions=1.0/world->num_directions;
   world->r_step=NULL;
   world->d_step=NULL;
-  world->n_release_events=0;
   world->place_waypoints=0;
 
   if ((world->factorial_r=(double *)malloc(101*sizeof(double)))==NULL) {
@@ -844,9 +843,8 @@ int instance_release_site(struct object *objp, double (*im)[4])
 	  reqp->release_site=rsop;
 	  reqp->event_type=TRAIN_HIGH_EVENT;
 	  reqp->event_time=rsop->pattern->delay;
-	  reqp->event_counter=0;
+	  reqp->train_counter=0;
 	  reqp->train_high_time=0;
-	  reqp->index=world->n_release_events++;
 	  reqp->next=world->release_event_queue_head;
 	  world->release_event_queue_head=reqp;
 

@@ -834,7 +834,6 @@ struct volume
   u_int init_seed;
   u_int it_time;
   u_int start_time;
-  u_int n_release_events;
   u_int radial_directions;
   u_int radial_subdivisions;
   u_int num_directions;
@@ -906,14 +905,13 @@ struct collision
 
 struct release_event_queue {
   struct release_event_queue *next;
-  double event_time;
+  double event_time;			/**< time of the release */
 
   struct release_site_obj *release_site;
-  struct vector3 location;
-  byte event_type;
-  int event_counter;
-  double train_high_time;
-  int index;                   /**< unique index of this release_event */
+  struct vector3 location;		/**< location of the release */
+  byte event_type;			/**< type of the release event */
+  int train_counter;			/**< counts executed trains */
+  double train_high_time;		/**< time of the train end */
 };
 
 
