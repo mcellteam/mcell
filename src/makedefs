@@ -1,9 +1,9 @@
 # CC = gcc32
 CC = gcc
-# CFLAGS = -Wall -O3 -march=pentium4
+CFLAGS = -Wall -O3 -march=pentium4
 # CFLAGS = -Wall -O3 -march=pentiumpro
+# CFLAGS = -Wall -ggdb3 -O0 -fno-strict-aliasing -pg
 # CFLAGS = -Wall -ggdb3 -O0 -fno-strict-aliasing -pg -DDEBUG
-CFLAGS = -Wall -ggdb3 -O0 -fno-strict-aliasing -pg
 LIBS =  -lm
 LD = $(CC)
 LDFLAGS = 

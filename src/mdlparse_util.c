@@ -1470,6 +1470,7 @@ struct counter_list *init_mol_counter(byte counter_type,
                                       u_int buffersize)
 {
   struct counter_list *clp;
+  double *dblp;
   int i,*intp;
   
   if ((clp=(struct counter_list *)malloc(sizeof(struct counter_list)))==NULL) {
@@ -1481,37 +1482,68 @@ struct counter_list *init_mol_counter(byte counter_type,
   clp->update_flag=1;
   clp->reset_flag=0;
   clp->index_type=TIME_STAMP_VAL;
-
-  if ((intp=(int *)malloc(buffersize*sizeof(int)))==NULL) {
-    return(NULL);
-  }
-  for (i=0;i<buffersize;i++) {
-    intp[i]=0;
-  }
-
-  clp->data_type=INT;
   clp->n_data=buffersize;
-  clp->final_data=(void *)intp;
+
   switch(counter_type) {
   case REPORT_CONTENTS:
-    cp->reg_type->flags|=COUNT_CONTENTS;
+    if ((intp=(int *)malloc(buffersize*sizeof(int)))==NULL) {
+      return(NULL);
+    }
+    for (i=0;i<buffersize;i++) {
+      intp[i]=0;
+    }
+    clp->data_type=INT;
+    clp->final_data=(void *)intp;
     clp->temp_data=(void *)&cp->n_inside;
+    cp->reg_type->flags|=COUNT_CONTENTS;
     break;
   case REPORT_FRONT_HITS:
-    cp->reg_type->flags|=COUNT_HITS;
+    if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
+      return(NULL);
+    }
+    for (i=0;i<buffersize;i++) {
+      dblp[i]=0;
+    }
+    clp->data_type=DBL;
+    clp->final_data=(void *)dblp;
     clp->temp_data=(void *)&cp->front_hits;
+    cp->reg_type->flags|=COUNT_HITS;
     break;
   case REPORT_BACK_HITS:
-    cp->reg_type->flags|=COUNT_HITS;
+    if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
+      return(NULL);
+    }
+    for (i=0;i<buffersize;i++) {
+      dblp[i]=0;
+    }
+    clp->data_type=DBL;
+    clp->final_data=(void *)dblp;
     clp->temp_data=(void *)&cp->back_hits;
+    cp->reg_type->flags|=COUNT_HITS;
     break;
   case REPORT_FRONT_CROSSINGS:
-    cp->reg_type->flags|=COUNT_HITS;
+    if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
+      return(NULL);
+    }
+    for (i=0;i<buffersize;i++) {
+      dblp[i]=0;
+    }
+    clp->data_type=DBL;
+    clp->final_data=(void *)dblp;
     clp->temp_data=(void *)&cp->front_to_back;
+    cp->reg_type->flags|=COUNT_HITS;
     break;
   case REPORT_BACK_CROSSINGS:
-    cp->reg_type->flags|=COUNT_HITS;
+    if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
+      return(NULL);
+    }
+    for (i=0;i<buffersize;i++) {
+      dblp[i]=0;
+    }
+    clp->data_type=DBL;
+    clp->final_data=(void *)dblp;
     clp->temp_data=(void *)&cp->back_to_front;
+    cp->reg_type->flags|=COUNT_HITS;
     break;
   }
 

@@ -4999,30 +4999,30 @@ mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
         switch($<tok>5) {   
         case REPORT_FRONT_HITS:
 	  i1=mdlpvp->olp->buffersize;
-	  if ((mdlpvp->intp=(int *)malloc(i1*sizeof(int)))==NULL) {
+	  if ((mdlpvp->dblp=(double *)malloc(i1*sizeof(double)))==NULL) {
 	    mdlerror("Cannot store count data");
 	    return(1);
           }
 	  for (i=0;i<i1;i++) {
-	    mdlpvp->intp[i]=0;
+	    mdlpvp->dblp[i]=0;
 	  }
-          mdlpvp->clp->data_type=INT;
+          mdlpvp->clp->data_type=DBL;
           mdlpvp->clp->n_data=i1;
-          mdlpvp->clp->final_data=(void *)mdlpvp->intp;
+          mdlpvp->clp->final_data=(void *)mdlpvp->dblp;
           mdlpvp->clp->temp_data=(void *)&mdlpvp->cp->front_hits;
           break;
         case REPORT_BACK_HITS:   
 	  i1=mdlpvp->olp->buffersize;
-	  if ((mdlpvp->intp=(int *)malloc(i1*sizeof(int)))==NULL) {
+	  if ((mdlpvp->dblp=(double *)malloc(i1*sizeof(double)))==NULL) {
 	    mdlerror("Cannot store count data");
 	    return(1);
           }
 	  for (i=0;i<i1;i++) {
-	    mdlpvp->intp[i]=0;
+	    mdlpvp->dblp[i]=0;
 	  }
-          mdlpvp->clp->data_type=INT;
+          mdlpvp->clp->data_type=DBL;
           mdlpvp->clp->n_data=i1;
-          mdlpvp->clp->final_data=(void *)mdlpvp->intp;
+          mdlpvp->clp->final_data=(void *)mdlpvp->dblp;
           mdlpvp->clp->temp_data=(void *)&mdlpvp->cp->back_hits;
           break;
         case REPORT_ALL_HITS:   
@@ -5047,30 +5047,30 @@ mol_hit_count_syntax: existing_molecule ',' existing_region ',' hit_spec
           break;
         case REPORT_FRONT_CROSSINGS:
 	  i1=mdlpvp->olp->buffersize;
-	  if ((mdlpvp->intp=(int *)malloc(i1*sizeof(int)))==NULL) {
+	  if ((mdlpvp->dblp=(double *)malloc(i1*sizeof(double)))==NULL) {
 	    mdlerror("Cannot store count data");
 	    return(1);
           }
 	  for (i=0;i<i1;i++) {
-	    mdlpvp->intp[i]=0;
+	    mdlpvp->dblp[i]=0;
 	  }
-          mdlpvp->clp->data_type=INT;
+          mdlpvp->clp->data_type=DBL;
           mdlpvp->clp->n_data=i1;
-          mdlpvp->clp->final_data=(void *)mdlpvp->intp;
+          mdlpvp->clp->final_data=(void *)mdlpvp->dblp;
           mdlpvp->clp->temp_data=(void *)&mdlpvp->cp->front_to_back;
           break;
         case REPORT_BACK_CROSSINGS:
 	  i1=mdlpvp->olp->buffersize;
-	  if ((mdlpvp->intp=(int *)malloc(i1*sizeof(int)))==NULL) {
+	  if ((mdlpvp->dblp=(double *)malloc(i1*sizeof(double)))==NULL) {
 	    mdlerror("Cannot store count data");
 	    return(1);
           }
 	  for (i=0;i<i1;i++) {
-	    mdlpvp->intp[i]=0;
+	    mdlpvp->dblp[i]=0;
 	  }
-          mdlpvp->clp->data_type=INT;
+          mdlpvp->clp->data_type=DBL;
           mdlpvp->clp->n_data=i1;
-          mdlpvp->clp->final_data=(void *)mdlpvp->intp;
+          mdlpvp->clp->final_data=(void *)mdlpvp->dblp;
           mdlpvp->clp->temp_data=(void *)&mdlpvp->cp->back_to_front;
           break;
         case REPORT_ALL_CROSSINGS:
