@@ -99,14 +99,12 @@ test_bimolecular
 int test_bimolecular(struct rxn *rx,double time_mult)
 {
   int m,M,avg;
-  double p = rng_double( world->seed++ ) * time_mult;
+  double p = rng_double( world->seed++ ) / time_mult;  /* FIXME: convert to use multiples */
   
   if ( p > rx->cum_rates[ rx->n_pathways-1 ] ) return -1;
   
   m = 0;
   M = rx->n_pathways-1;
-  
-/*  if (time_mult != 1.0) p = p / (1.0 - pow(1.0-rx->cum_rates[M],time_mult)); */
   
   if ( p > rx->cum_rates[M] )
   {

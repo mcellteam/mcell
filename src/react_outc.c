@@ -259,6 +259,17 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       m = mem_get(local->mol);
       m->birthplace = local->mol;
       m->properties = p;
+      m->collisions = 0;
+      if (reac_g != NULL)
+      {
+        m->releaser = reac_g->grid;
+        m->index = reac_g->grid_index;
+      }
+      else
+      {
+        m->releaser = 0;
+        m->index = -1;
+      }
       p->population++;
       m->flags = TYPE_3D + ACT_NEWBIE + IN_VOLUME + IN_SCHEDULE;
       if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)m) != NULL)
@@ -371,7 +382,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
         m = (struct molecule*)plist[i-i0];
         if (porient[i-i0]>0) f = EPS_C;
         else f = -EPS_C;
-        
+/*        f *= m->properties->space_step*10.0/EPS_C; */
         	
         m->pos.x += f*w->normal.x;
         m->pos.y += f*w->normal.y;

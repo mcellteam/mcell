@@ -90,7 +90,9 @@ void run_sim(void)
     
     if ( (world->it_time % frequency) == 0 )
     {
-      printf("Iterations: %d of %d count ",world->it_time,world->iterations);
+      printf("Iterations: %d of %d ",world->it_time,world->iterations);
+#if 1
+      printf("count ");
       for (i=0;i<world->n_species;i++)
       {
         printf("#%s=%d ",
@@ -98,6 +100,7 @@ void run_sim(void)
                world->species_list[i]->population
               );
       }
+#endif
       printf("\n");
     }
   }

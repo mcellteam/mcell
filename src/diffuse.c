@@ -25,9 +25,9 @@
 
 
 
-#define MULTISTEP_WORTHWHILE 2.0
+#define MULTISTEP_WORTHWHILE 2
 #define MULTISTEP_PERCENTILE 0.99
-#define MULTISTEP_FRACTION 0.98
+#define MULTISTEP_FRACTION 0.9
 
 
 
@@ -484,7 +484,7 @@ diffuse_3D:
        Position and time are updated, but molecule is not rescheduled.
 *************************************************************************/
 
-struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert,double newbie_time)
+struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
 {
   struct vector3 displacement;
   struct collision *smash,*shead,*shead2;
@@ -708,7 +708,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       rate_factor = sqrt(steps);
       pick_displacement(&displacement,rate_factor*sm->space_step);
     }
-    
+
     world->diffusion_number += 1.0;
     world->diffusion_cumsteps += steps;
   }
@@ -792,11 +792,11 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         
         if ( w->effectors != NULL && (m->properties->flags&CAN_MOLGRID) != 0 )
         {
-        if ( (newbie_time<=0 || newbie_time < m->t + steps*smash->t) )
-        {
           j = xyz2grid( &(smash->loc) , w->effectors );
           if (w->effectors->mol[j] != NULL)
           {
+            if (m->index != j || m->releaser != w->effectors)
+            {
             g = w->effectors->mol[j];
             r = trigger_bimolecular(
               m->properties->hashval,g->properties->hashval,
@@ -822,19 +822,18 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                 }
               }
             }
+            }
+            else
+            {
+/*              printf("Nope!  I'm not rebinding.\n");  */
+              m->index = -1;
+            }
           }
         }
-/*
-        else
-        {
-          printf("No way, I'm not rebinding!\n");
-        }
-*/
-        }
-        newbie_time = 0.0;
         
         if ( (m->properties->flags&CAN_MOLWALL) != 0 )
         {
+          m->index = -1;
           r = trigger_intersect(
                   m->properties->hashval,(struct abstract_molecule*)m,k,w
                 );
@@ -985,7 +984,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   m->path_length += sqrt( displacement.x*displacement.x +
                           displacement.y*displacement.y +
                           displacement.z*displacement.z );
-  
+  m->index = -1;
   return m;
 }
     
@@ -1008,7 +1007,6 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
   double t;
   double stop_time,max_time;
   int i,j;
-  double newbie_time = 0;
   
   while ( (a = (struct abstract_molecule*)schedule_next(local->timer)) != NULL )
   {
@@ -1034,12 +1032,6 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     {
       if ((a->flags & (ACT_INERT+ACT_NEWBIE)) != 0)
       {
-        if ((a->flags & ACT_NEWBIE) != 0)
-        {
-          newbie_time = a->t + 1.0;
-/*          printf("Newbie time set to %.3f (now=%.3f)\n",newbie_time,a->t);*/
-        }
-
         a->flags -= (a->flags & (ACT_INERT + ACT_NEWBIE));
         if ((a->flags & ACT_REACT) != 0)
         {
@@ -1070,7 +1062,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       {
         if (max_time > release_time - local->current_time) max_time = release_time - local->current_time;
         t = a->t;
-        a = (struct abstract_molecule*)diffuse_3D((struct molecule*)a , max_time , a->flags & ACT_INERT,newbie_time);
+        a = (struct abstract_molecule*)diffuse_3D((struct molecule*)a , max_time , a->flags & ACT_INERT);
         if (a!=NULL) /* We still exist */
         {
           a->t2 -= a->t - t;

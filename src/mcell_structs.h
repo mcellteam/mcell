@@ -144,7 +144,6 @@
 #define IN_SURFACE  0x200
 #define IN_VOLUME   0x400
 #define IN_MASK     0x700
-#define ACT_UNBOUND 0x1000
 
 
 /* How big will we let the reaction table get? */
@@ -495,6 +494,9 @@ struct molecule
   struct cmprt_data *curr_cmprt;  /* Compartment we are in (for counting) */
   double path_length;
   int collisions;
+  
+  struct surface_grid *releaser;
+  int index;
   
   struct molecule *next_v;        /* Next molecule in this subvolume */
 };
