@@ -432,7 +432,6 @@ struct grid_molecule
   struct species *properties;
   
   int grid_index;              /* Which gridpoint do we occupy? */
-  struct subvolume *subvol;    /* Which SSV are we in? */
   short orient;                /* Which way do we point? */
   struct surface_grid *grid;   /* Our grid (which tells us our surface) */
 };
@@ -462,6 +461,9 @@ struct wall
 
   struct vector3 *vert[3];        /* Array of pointers to vertices */
   struct vector3 *vert_normal[3]; /* Array of pointers to vertex normals */
+  
+  double uv_vert1_u;              /* Surface u-coord of 2nd corner (v=0) */
+  struct vector2 uv_vert2;        /* Surface coords of third corner */
 
   struct edge *edges[3];          /* Array of pointers to each edge. */
   struct wall *nb_walls[3];       /* Array of pointers to neighboring walls */
@@ -608,34 +610,22 @@ struct volume
 /* Grid over a surface containing grid_molecules */
 struct surface_grid
 {
-  byte grid_shape;         /* RECTANGULAR or TRIANGULAR grid */
-  int grid_size;           /* Number of slots along each axis */
+  int n;                   /* Number of slots along each axis */
 
-  struct vector3 i_axis;   /* First axis of grid (in world coordinates) */
-  struct vector3 j_axis;   /* Second axis of grid (world coordinates) */
-
-  struct vector2 u_axis;   /* First axis of grid (surface coordinates) */
-  struct vector2 v_axis;   /* Second axis of grid (surface coordinates) */
-  struct vector2 diag;     /* Diagonal of grid (surface coordinates) */
+  double inv_strip_wid;    /* Reciprocal of the width of one strip */
+  double vert2_slope;      /* Slope from vertex 0 to vertex 2 */
+  double fullslope;        /* Slope of full width of triangle */
   
-  double r_slope;     /* Reciprocal of slope of last side of triangular grid, or of upwards diagonal of rectangular grid */
-  double u_factor;    /* Triangular: (grid_size^2)/(u_axis_width_of_parallelogram^2); rectangular: (2*(grid_size^2))/width_of_rectangle */
-  double u_factor_2;  /* Triangular: length_first/grid_size */
-  double v_factor;    /* grid_size / height */
-  double r_u_factor;  /* Reciprocal of u_factor */
-  double r_v_factor;  /* Reciprocal of v_factor */
-
   double binding_factor;   /* Binding probability correction factor for surface area */
   
   u_int n_tiles;           /* Number of tiles in effector grid (triangle: grid_size^2, rectangle: 2*grid_size^2) */
   u_int n_occupied;        /* Number of tiles occupied by grid_molecules */
   struct grid_molecule **mol;  /* Array of pointers to grid_molecule for each tile */
   
-  int n_types;             /* Number of grid_molecule types in this grid (do we care any more? */
-  
   int set;                 /* segl object set number */
   int index;               /* Unique index into effector_table */
   
+  struct subvolume *subvol;/* Best match for which subvolume we're in */
   struct wall *surface;    /* The wall that we are in */
 };
 
