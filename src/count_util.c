@@ -325,11 +325,11 @@ int place_waypoints()
   
   if (!world->waypoints) return 1;  /* Malloc failure */
   
-  for (i=0;i<world->nx_parts;i++)
+  for (i=0;i<world->nx_parts-1;i++)
   {
-    for (j=0;j<world->ny_parts;j++)
+    for (j=0;j<world->ny_parts-1;j++)
     {
-      for (k=0;k<world->nz_parts;k++)
+      for (k=0;k<world->nz_parts-1;k++)
       {
         h = k + (world->nz_parts-1)*(j + (world->ny_parts-1)*i);
         wp = &(world->waypoints[h]);
@@ -372,6 +372,8 @@ int place_waypoints()
           find_enclosing_regions(&(wp->loc),NULL,&(wp->regions),
                                  &(wp->antiregions),sv->mem->regl);
         }
+        
+        if (wp->regions!=NULL || wp->antiregions!=NULL) printf("Woo!\n");
       }
     }
   }
@@ -397,10 +399,13 @@ void count_me_by_region(struct abstract_molecule *me,int n)
   struct species *sp = me->properties;
   struct counter *c;
   
+  //printf("Counting %x by region (up by %d)!\n",(int)me,n);
+  
   if ((sp->flags & ON_GRID) != 0)
   {
     struct grid_molecule *g = (struct grid_molecule*)me;
     struct wall *w = g->grid->surface;
+
     if (w->flags & COUNT_CONTENTS)
     {
       for (rl=w->regions ; rl!=NULL ; rl=rl->next)
@@ -435,12 +440,12 @@ void count_me_by_region(struct abstract_molecule *me,int n)
     h = k + (world->nz_parts-1)*( j + (world->ny_parts-1)*i );
     
     wp = &(world->waypoints[h]);
-    
+  
     for (rl=wp->regions ; rl!=NULL ; rl=rl->next)
     {
       if ( (rl->reg->flags & COUNT_CONTENTS) != 0 )
       {
-        i = (rl->reg->hashval & sp->hashval) & world->count_hashmask;
+        i = (rl->reg->hashval ^ sp->hashval) & world->count_hashmask;
         if (i==0) i = sp->hashval & world->count_hashmask;
         
         for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
@@ -453,7 +458,7 @@ void count_me_by_region(struct abstract_molecule *me,int n)
     {
       if ( (rl->reg->flags & COUNT_CONTENTS) != 0 )
       {
-        i = (rl->reg->hashval & sp->hashval) & world->count_hashmask;
+        i = (rl->reg->hashval ^ sp->hashval) & world->count_hashmask;
         if (i==0) i = sp->hashval & world->count_hashmask;
         
         for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
@@ -485,7 +490,7 @@ void count_me_by_region(struct abstract_molecule *me,int n)
             {
               if ( (rl->reg->flags & m->flags & COUNT_CONTENTS) != 0 )
               {
-                i = (rl->reg->hashval & sp->hashval) & world->count_hashmask;
+                i = (rl->reg->hashval ^ sp->hashval) & world->count_hashmask;
                 if (i==0) i = sp->hashval & world->count_hashmask;
                 
                 for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
