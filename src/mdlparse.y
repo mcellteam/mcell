@@ -275,6 +275,7 @@ struct count_list *cnt;
 %type <tok> list_rxns
 %type <tok> rx_group_def
 %type <tok> unimolecular_rxn
+%type <tok> bimolecular_rxn
 %type <tok> product
 %type <tok> list_products
 
@@ -1657,7 +1658,7 @@ new_object: VAR
     mdlpvp->object_name_list->next=NULL;
     mdlpvp->object_name_list_end=mdlpvp->object_name_list;
   }
-  if ((mdlpvp->object_name_list_end=concat_name(mdlpvp->object_name_list_end,mdlpvp->sym_name))==NULL) {
+  if ((mdlpvp->object_name_list_end=concat_obj_name(mdlpvp->object_name_list_end,mdlpvp->sym_name))==NULL) {
     sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot store object name:",mdlpvp->sym_name);
     return(1);
   }
@@ -2107,6 +2108,7 @@ list_rxns: rxn
 
 
 rxn: unimolecular_rxn
+	| bimolecular_rxn
 ;
 
 
@@ -2167,9 +2169,91 @@ unimolecular_rxn: reactant RT_ARROW
 {
   mdlpvp->pathp->km=mdlpvp->fwd_km;
 #ifdef DEBUG
-  no_printf("unimolecular reaction defined:\n");
+  no_printf("Unimolecular reaction defined:\n");
   no_printf("  %s[%d] ->",mdlpvp->rxnp->pathway_head->reactant1->sym->name,
     mdlpvp->rxnp->pathway_head->orientation1);
+  for (mdlpvp->prodp=mdlpvp->rxnp->pathway_head->product_head;
+      mdlpvp->prodp!=NULL;mdlpvp->prodp=mdlpvp->prodp->next) {
+    if (mdlpvp->prodp!=mdlpvp->rxnp->pathway_head->product_head) {
+      no_printf(" +");
+    }
+    no_printf(" %s[%d]",mdlpvp->prodp->prod->sym->name,mdlpvp->prodp->orientation);
+  }
+  no_printf(" [%.9g]\n",mdlpvp->rxnp->pathway_head->km);
+#endif
+};
+
+
+bimolecular_rxn: reactant '+'
+{
+  mdlpvp->orient_class1=mdlpvp->orient_class;
+}
+	reactant RT_ARROW 
+{
+  mdlpvp->stp1=$<sym>1;
+  mdlpvp->stp2=$<sym>4;
+  mdlpvp->orient_class2=mdlpvp->orient_class;
+  mdlpvp->sym_name=concat_rx_name(mdlpvp->stp1->name,mdlpvp->stp2->name);
+  if ((mdlpvp->stp3=retrieve_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
+      !=NULL) {
+  }
+  else if ((mdlpvp->stp3=store_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
+      ==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s + %s -> ...","Cannot store reaction:",
+      mdlpvp->stp1->name,mdlpvp->stp2->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  /* fill in reactant parts of struct rxn here */
+  if (mdlpvp->path_mem==NULL) {
+    if ((mdlpvp->path_mem=create_mem(sizeof(struct pathway),16384))==NULL) {
+      sprintf(mdlpvp->mdl_err_msg,"%s %s + %s -> ...","Cannot store reaction:",
+        mdlpvp->stp1->name,mdlpvp->stp2->name);
+      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      return(1);
+    } 
+  }
+  if (mdlpvp->prod_mem==NULL) {
+    if ((mdlpvp->prod_mem=create_mem(sizeof(struct product),16384))==NULL) {
+      sprintf(mdlpvp->mdl_err_msg,"%s %s + %s -> ...","Cannot store reaction:",
+        mdlpvp->stp1->name,mdlpvp->stp2->name);
+      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      return(1);
+    } 
+  }
+  if ((mdlpvp->pathp=(struct pathway *)mem_get(mdlpvp->path_mem))==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s + %s -> ...","Cannot store reaction:",
+      mdlpvp->stp1->name,mdlpvp->stp2->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  mdlpvp->rxnp=(struct rxn *)mdlpvp->stp3->value;
+  mdlpvp->rxnp->n_reactants=2;
+  mdlpvp->rxnp->n_pathways++;
+  mdlpvp->pathp->reactant1=(struct species *)mdlpvp->stp1->value;
+  mdlpvp->pathp->reactant2=(struct species *)mdlpvp->stp2->value;
+  mdlpvp->pathp->reactant3=NULL;
+  mdlpvp->pathp->km=0;
+  mdlpvp->pathp->kcat=0;
+  mdlpvp->pathp->orientation1=mdlpvp->orient_class1;
+  mdlpvp->pathp->orientation2=mdlpvp->orient_class2;
+  mdlpvp->pathp->orientation3=0;
+  mdlpvp->pathp->product_head=NULL;
+
+  mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
+  mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
+  
+}
+	list_products fwd_rx_rate1
+{
+  mdlpvp->pathp->km=mdlpvp->fwd_km;
+#ifdef DEBUG
+  no_printf("Bimolecular reaction defined:\n");
+  no_printf("  %s[%d] + %s[%d] ->",
+    mdlpvp->rxnp->pathway_head->reactant1->sym->name,
+    mdlpvp->rxnp->pathway_head->orientation1,
+    mdlpvp->rxnp->pathway_head->reactant2->sym->name,
+    mdlpvp->rxnp->pathway_head->orientation2);
   for (mdlpvp->prodp=mdlpvp->rxnp->pathway_head->product_head;
       mdlpvp->prodp!=NULL;mdlpvp->prodp=mdlpvp->prodp->next) {
     if (mdlpvp->prodp!=mdlpvp->rxnp->pathway_head->product_head) {

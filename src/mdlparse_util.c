@@ -50,7 +50,7 @@ double *double_dup(double value)
 }
 
 
-struct name_list *concat_name(struct name_list *name_list_end,char *name)
+struct name_list *concat_obj_name(struct name_list *name_list_end,char *name)
 {
   struct name_list *np;
   char temp[256];
@@ -323,6 +323,24 @@ int copy_object(struct volume *volp,struct object *curr_objp,
 }
 
 
+char *concat_rx_name(char *name1, char *name2)
+{
+  char *tmp_name;
+  char *rx_name;
+
+  if (strcmp(name1,name2)<=0) {
+    tmp_name=my_strcat(name1,"+");
+    rx_name=my_strcat(tmp_name,name2);
+  }
+  else {
+    tmp_name=my_strcat(name2,"+");
+    rx_name=my_strcat(tmp_name,name1);
+  }
+  free(tmp_name);
+  return(rx_name);
+}
+
+
 int equivalent_geometry(struct pathway *p1,struct pathway *p2,int n)
 {
   short o11,o12,o13,o21,o22,o23;
@@ -545,6 +563,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   
   return 0;
 }
+
+
 
 
 #if 0

@@ -22,6 +22,8 @@ DEFINE_MOLECULE Glu {
 
 DEFINE_REACTIONS {
   ACh -> ACh + Glu [2000]
+  Glu' -> Glu, + ACh' [1000]
+  ACh + Glu' -> Glu, + ACh' [3000]
 }
 
 DEFINE_RELEASE_PATTERN pat1 {

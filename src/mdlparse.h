@@ -12,6 +12,9 @@ struct mdlparse_vars {
 
   struct sym_table *gp;
   struct sym_table *tp;
+  struct sym_table *stp1;
+  struct sym_table *stp2;
+  struct sym_table *stp3;
   char *sym_name;
 
   char *a_str;
@@ -68,6 +71,8 @@ struct mdlparse_vars {
   double back_km;
   double back_kcat;
   short orient_class;
+  short orient_class1;
+  short orient_class2;
 
   FILE *file;
 
