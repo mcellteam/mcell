@@ -445,19 +445,19 @@ int init_partitions(void)
   }
 
 /* Cheating for now. */  
-  part_lo.x = -10.1;
-  part_hi.x = 10.01;
-  part_lo.y = -10.1;
-  part_hi.y = 10.01;
-  part_lo.z = -10.1;
-  part_hi.z = 10.01;
+  part_lo.x = -1.1;
+  part_hi.x = 1.01;
+  part_lo.y = -1.1;
+  part_hi.y = 1.01;
+  part_lo.z = -1.1;
+  part_hi.z = 1.01;
 
-  part_lo.x *= (1.0+EPS_C)/world->length_unit;
-  part_lo.y *= (1.0+EPS_C)/world->length_unit;
-  part_lo.z *= (1.0+EPS_C)/world->length_unit;
-  part_hi.x *= (1.0+EPS_C)/world->length_unit;
-  part_hi.y *= (1.0+EPS_C)/world->length_unit;
-  part_hi.z *= (1.0+EPS_C)/world->length_unit;
+  part_lo.x *= 0.3*(1.0+EPS_C)/world->length_unit;
+  part_lo.y *= 0.3*(1.0+EPS_C)/world->length_unit;
+  part_lo.z *= 0.3*(1.0+EPS_C)/world->length_unit;
+  part_hi.x *= 0.3*(1.0+EPS_C)/world->length_unit;
+  part_hi.y *= 0.3*(1.0+EPS_C)/world->length_unit;
+  part_hi.z *= 0.3*(1.0+EPS_C)/world->length_unit;
   
   
   world->n_axis_partitions = 11;

@@ -350,10 +350,10 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       d2 *= d2;
       if (d2 < d2min) d2min = d2;
       
-      if (d2 < d2_nearmax) steps = 1.0;
-      else if ( d2_nearmax*max_time < d2 ) steps = (1.0+EPS_C)*max_time;
-      else steps = d2 / d2_nearmax;
-
+      if (d2min < d2_nearmax) steps = 1.0;
+      else if ( d2_nearmax*max_time < d2min ) steps = (1.0+EPS_C)*max_time;
+      else steps = d2min / d2_nearmax;
+      
       if (steps < MULTISTEP_WORTHWHILE) steps = 1.0;
     }
     else if (max_time < MULTISTEP_FRACTION) steps = max_time;

@@ -323,6 +323,228 @@ int copy_object(struct volume *volp,struct object *curr_objp,
 }
 
 
+int equivalent_geometry(struct pathway *p1,struct pathway *p2,int n)
+{
+  short o11,o12,o13,o21,o22,o23;
+  
+  if (p1->orientation1 == 0) o11 = 0;
+  else if (p1->orientation1 < 0) o11 = -1;
+  else o11 = 1;
+  if (p2->orientation1 == 0) o21 = 0;
+  else if (p1->orientation1 < 0) o21 = -1;
+  else o21 = 1;
+  
+  if (n<2)
+  {
+    o12 = o13 = o22 = o23 = 0;
+  }
+  else
+  {
+    if (p1->orientation2 == p1->orientation1) o12 = o11;
+    else if (p1->orientation2 == -p1->orientation1) o12 = -o11;
+    else if (p1->orientation2 == 0) o12 = 0;
+    else if (p1->orientation2 < 0) o12 = -2;
+    else o12 = 2;
+    if (p2->orientation2 == p2->orientation1) o22 = o21;
+    else if (p2->orientation2 == -p2->orientation1) o22 = -o21;
+    else if (p2->orientation2 == 0) o22 = 0;
+    else if (p2->orientation2 < 0) o22 = -2;
+    else o22 = 2;
+    
+    if (n<3)
+    {
+      o13 = o23 = 0;
+    }
+    else
+    {
+      if (p1->orientation3 == p1->orientation1) o13 = o11;
+      else if (p1->orientation3 == -p1->orientation1) o13 = -o11;
+      else if (p1->orientation3 == p1->orientation2) o13 = o12;
+      else if (p1->orientation3 == -p1->orientation2) o13 = -o12;
+      else if (p1->orientation3 == 0) o13 = 0;
+      else if (p1->orientation3 < 0) o13 = -3;
+      else o13 = 3;
+      if (p2->orientation3 == p2->orientation1) o23 = o21;
+      else if (p1->orientation3 == -p1->orientation1) o23 = -o21;
+      else if (p1->orientation3 == p1->orientation2) o23 = o22;
+      else if (p1->orientation3 == -p1->orientation2) o23 = -o22;
+      else if (p1->orientation3 == 0) o23 = 0;
+      else if (p1->orientation3 < 0) o23 = -3;
+      else o23 = 3;
+    }
+  }
+  
+  if (o11==o21 && o12==o22 && o13==o23) return 1;
+  if (o11==-o21 && o12==-o22 && o13==-o23) return 1;
+  return 0;
+}
+
+
+int prepare_reactions(struct mdlparse_vars *mpvp)
+{
+  struct sym_table *sym;
+  struct pathway *path,*last_path;
+  struct product *prod;
+  struct rxn *rx;
+  int i,j,k;
+  int recycled1,recycled2;
+  int num_rx,num_prods;
+  int true_paths;
+  
+  num_rx = 0;
+  for (i=0;i<HASHSIZE;i++)
+  {
+    sym = mpvp->vol->main_sym_table[i];
+    if (sym->sym_type == RX) num_rx++;
+  }
+  
+  for (i=0;i<HASHSIZE;i++)
+  {
+    sym = mpvp->vol->main_sym_table[i];
+    if (sym->sym_type != RX) continue;
+    
+    rx = (struct rxn*)sym->value;
+    
+    rx->next = NULL;
+    
+    while (rx != NULL)
+    {
+    
+      for (path=rx->pathway_head->next ; path != NULL ; path = path->next)
+      {
+        if (equivalent_geometry(rx->pathway_head,path,rx->n_reactants)) true_paths++;
+      }
+      
+      if (true_paths < rx->n_pathways)
+      {
+        rx->next = (struct rxn*)malloc(sizeof(struct rxn));
+        if (rx->next==NULL) return 1;
+        
+        rx->next->sym = rx->sym;
+        rx->next->n_reactants = rx->n_reactants;
+
+        rx->next->n_pathways = rx->n_pathways - true_paths;
+        rx->n_pathways = true_paths;
+        
+        rx->next->product_idx = NULL;
+        rx->next->cum_rates = NULL;
+        rx->next->cat_rates = NULL;
+        rx->next->players = NULL;
+        rx->next->geometries = NULL;
+        rx->next->fates = NULL;
+        rx->next->n_rate_t_rxns = 0;
+        rx->next->rate_t_rxn_map = NULL;
+        rx->next->rate_t = NULL;
+        rx->next->jump_t = NULL;
+        rx->next->last_update = 0;
+        rx->next->rxn_count_dt = NULL;
+        rx->next->rxn_count_cum = NULL;
+        
+        rx->next->pathway_head = NULL;
+        
+        last_path = rx->pathway_head;
+        for (path=rx->pathway_head->next ; path != NULL ; last_path = path , path = path->next)
+        {
+          if (!equivalent_geometry(rx->pathway_head,path,rx->n_reactants))
+          {
+            last_path->next = path->next;
+            path->next = rx->next->pathway_head;
+            rx->next->pathway_head = path;
+            path = last_path;
+          }
+        }
+      }
+      
+      rx->product_idx = (u_int*)malloc(sizeof(u_int)*(rx->n_pathways+1));
+      rx->cum_rates = (double*)malloc(sizeof(double)*rx->n_pathways);
+      rx->cat_rates = (double*)malloc(sizeof(double)*rx->n_pathways);
+      rx->fates = (byte*)malloc(sizeof(byte)*rx->n_pathways);
+      
+      if (rx->product_idx==NULL || rx->cum_rates==NULL ||
+          rx->cat_rates==NULL || rx->fates==NULL) return 1;
+      
+      for (j=0 , path=rx->pathway_head ; path!=NULL ; j++ , path = path->next)
+      {
+        rx->product_idx[j] = 0;
+        rx->cat_rates[j] = path->kcat;
+        rx->cum_rates[j] = path->km;
+        rx->fates[j] = 0;
+        recycled1 = 0;
+        recycled2 = 0;
+        
+        for (prod=path->product_head ; prod != NULL ; prod = prod->next)
+        {
+          if (recycled1 == 0 && prod->prod == path->reactant1)
+          {
+            recycled1 = 1;
+            if (prod->orientation != path->orientation1) rx->fates[j] += RX_FLIP;
+          }
+          else if (recycled2 == 0 && prod->prod == path->reactant2)
+          {
+            recycled2 = 1;
+            if (prod->orientation != path->orientation2) rx->fates[j] += RX_2FLIP;
+          }
+          else rx->product_idx[j]++;
+        }
+        
+        if (!recycled1) rx->fates += RX_DESTROY;
+        if (!recycled2 && rx->n_reactants>1) rx->fates[j] += RX_2DESTROY;
+      }
+      
+      num_prods = rx->n_reactants;
+      for (j=0;j<rx->n_pathways;j++)
+      {
+        k = rx->product_idx[j];
+        rx->product_idx[j] = num_prods;
+        num_prods += k;
+      }
+      rx->product_idx[rx->n_pathways] = num_prods;
+      
+      rx->players = (struct species**)malloc(sizeof(struct species*)*rx->product_idx[rx->n_pathways]);
+      rx->geometries = (short*)malloc(sizeof(short)*rx->product_idx[rx->n_pathways]);
+      
+      if (rx->players==NULL || rx->geometries==NULL) return 1;
+      
+      rx->players[0] = path->reactant1;
+      rx->geometries[0] = path->orientation1;
+      if (rx->n_reactants > 1)
+      {
+        rx->players[1] = path->reactant2;
+        rx->geometries[1] = path->orientation2;
+        if (rx->n_reactants > 2)
+        {
+          rx->players[2] = path->reactant3;
+          rx->geometries[2] = path->orientation3;
+        }
+      }
+      
+      for (j=0 , path=rx->pathway_head ; path!=NULL ; j++ , path = path->next)
+      {
+        recycled1 = 0;
+        recycled2 = 0;
+        for (k=rx->product_idx[j] , prod=path->product_head ; prod!=NULL ; k++ , prod=prod->next)
+        {
+          if (recycled1==0 && prod->prod == path->reactant1) recycled1 = 1;
+          else if (recycled2==0 && prod->prod == path->reactant2) recycled2 = 1;
+          else
+          {
+            rx->players[k] = prod->prod;
+            rx->geometries[k] = prod->orientation;
+          }
+        }
+      }
+      
+      for (j=1;j<rx->n_pathways;j++)
+      {
+        rx->cum_rates[j] += rx->cum_rates[j-1];
+      }
+      
+      rx = rx->next;
+    }
+  }
+  
+  return 0;
+}
 
 
 #if 0
