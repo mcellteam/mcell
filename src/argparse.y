@@ -291,7 +291,7 @@ int argparse_init(int argc, char *argv[], struct volume *vol)
     return(1);
   }
 
-  arg_string=NULL;
+  arg_string=my_strdup("");
   for (i=1;i<argc;i++) {
     if (i==1) {
       if ((arg_string=my_strdup(argv[i]))==NULL) {
