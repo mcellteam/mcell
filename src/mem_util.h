@@ -38,7 +38,7 @@ struct mem_helper
   int buf_len;
   int buf_index;
   int record_size;
-  unsigned char *storage;
+  unsigned char *heap_array;
   struct abstract_list *defunct;
   struct mem_helper *next_helper;
 };

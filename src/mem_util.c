@@ -783,9 +783,9 @@ struct mem_helper* create_mem(int size,int length)
   mh->defunct = NULL;
   mh->next_helper = NULL;
   
-  mh->storage = (unsigned char*) Malloc( mh->buf_len * mh->record_size );
+  mh->heap_array = (unsigned char*) Malloc( mh->buf_len * mh->record_size );
   
-  if (mh->storage==NULL)
+  if (mh->heap_array==NULL)
   {
     free (mh);
     return NULL;
@@ -815,7 +815,7 @@ void* mem_get(struct mem_helper *mh)
   {
     int offset = mh->buf_index * mh->record_size;
     mh->buf_index++;
-    return (void*)(mh->storage + offset);
+    return (void*)(mh->heap_array + offset);
   }
   else
   {
@@ -825,9 +825,9 @@ void* mem_get(struct mem_helper *mh)
     if (mhnext==NULL) return NULL;
     
     mhnext->next_helper = mh->next_helper;
-    temp = mhnext->storage;
-    mhnext->storage = mh->storage;
-    mh->storage = temp;
+    temp = mhnext->heap_array;
+    mhnext->heap_array = mh->heap_array;
+    mh->heap_array = temp;
     mhnext->buf_index = mh->buf_index;
     mh->next_helper = mhnext;
     
@@ -887,7 +887,7 @@ void delete_mem(struct mem_helper *mh)
 {
   if(mh == NULL) return;
   if (mh->next_helper) delete_mem(mh->next_helper);
-  free(mh->storage);
+  free(mh->heap_array);
   free(mh);
 }
 

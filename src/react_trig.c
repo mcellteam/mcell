@@ -23,7 +23,7 @@ trigger_unimolecular:
 
 struct rxn* trigger_unimolecular(int hash,struct abstract_molecule *reac)
 {
-  struct rxn *inter = world->reaction_hash[hash & (world->hashsize-1)];
+  struct rxn *inter = world->reaction_hash[hash & (world->rx_hashsize-1)];
   
   while (inter != NULL)
   {
@@ -64,8 +64,8 @@ struct rxn* trigger_bimolecular(int hashA,int hashB,
   short geomA,geomB;
   struct rxn *inter;
   
-  hash = (hashA ^ hashB) & (world->hashsize-1);
-  if (hash==0) hash = hashA & (world->hashsize-1);
+  hash = (hashA ^ hashB) & (world->rx_hashsize-1);
+  if (hash==0) hash = hashA & (world->rx_hashsize-1);
   
   inter = world->reaction_hash[hash];
   
@@ -178,8 +178,8 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
   short geom1,geom2;
   struct rxn *inter;
 
-  hashW = w->surf_class->hashval & (world->hashsize-1);
-  hashA &= (world->hashsize-1);
+  hashW = w->surf_class->hashval & (world->rx_hashsize-1);
+  hashA &= (world->rx_hashsize-1);
   if (hashA == hashW) hash = hashA;
   else hash = hashA ^ hashW;
   
@@ -205,7 +205,7 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
   }
 
 /* TODO: fix generics to allow wall to come first */  
-  hashGW = world->g_surf->hashval & (world->hashsize-1);
+  hashGW = world->g_surf->hashval & (world->rx_hashsize-1);
   
   if (hashW != hashGW)
   {
@@ -232,7 +232,7 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
   }
   
   
-  hashGM = world->g_surf->hashval & (world->hashsize-1);
+  hashGM = world->g_surf->hashval & (world->rx_hashsize-1);
   if (hashW == hashGM) hash = hashW;
   else hash = hashW ^ hashGM;
   

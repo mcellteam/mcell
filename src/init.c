@@ -201,7 +201,7 @@ int init_sim(void)
   }
   for (i=0;i<=world->count_hashmask;i++) world->count_hash[i] = NULL;
 
-  if((world->main_sym_table=init_symtab(HASHSIZE)) == NULL){
+  if((world->main_sym_table=init_symtab(SYM_HASHSIZE)) == NULL){
     fprintf(log_file,"MCell: initialization of symbol table failed\n");
     return(1);
   }
@@ -438,7 +438,7 @@ int init_species(void)
   
   world->speed_limit = 0;
   
-  for (i=0;i<HASHSIZE;i++)
+  for (i=0;i<SYM_HASHSIZE;i++)
   {
     for (gp = world->main_sym_table[i] ; gp != NULL ; gp = gp->next)
     {    
@@ -453,7 +453,7 @@ int init_species(void)
         exit(EXIT_FAILURE);
   }
   count = 0;
-  for (i=0;i<HASHSIZE;i++)
+  for (i=0;i<SYM_HASHSIZE;i++)
   {
     for (gp = world->main_sym_table[i] ; gp != NULL ; gp = gp->next)
     {    
@@ -462,7 +462,7 @@ int init_species(void)
         s = (struct species*) gp->value;
         world->species_list[count] = s;
         world->species_list[count]->species_id = count;
-/*        world->species_list[count]->hashval &= world->hashsize-1; */
+/*        world->species_list[count]->hashval &= world->rx_hashsize-1; */
         world->species_list[count]->radius = EPS_C;
         world->species_list[count]->population = 0;
         if ( (s->flags & (ON_SURFACE | ON_GRID)) == 0 )

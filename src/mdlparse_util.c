@@ -671,7 +671,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   mpvp->vol->rxn_mem = create_mem( sizeof(struct t_func) , 100 );
   if (mpvp->vol->rxn_mem == NULL) return 1;
   
-  for (i=0;i<HASHSIZE;i++)
+  for (i=0;i<SYM_HASHSIZE;i++)
   {
     for ( sym = mpvp->vol->main_sym_table[i] ; sym!=NULL ; sym = sym->next )
     {
@@ -1119,16 +1119,16 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   for (rx_hash=2 ; rx_hash<=num_rx ; rx_hash <<= 1) {}
   if (rx_hash > MAX_RX_HASH) rx_hash = MAX_RX_HASH;
   
-  mpvp->vol->hashsize = rx_hash;
+  mpvp->vol->rx_hashsize = rx_hash;
   rx_hash -= 1;
   
-  rx_tbl = (struct rxn**)malloc(sizeof(struct rxn*) * mpvp->vol->hashsize);
+  rx_tbl = (struct rxn**)malloc(sizeof(struct rxn*) * mpvp->vol->rx_hashsize);
   if (rx_tbl==NULL) return 1;
   mpvp->vol->reaction_hash = rx_tbl;
   
   for (i=0;i<=rx_hash;i++) rx_tbl[i] = NULL;
   
-  for (i=0;i<HASHSIZE;i++)
+  for (i=0;i<SYM_HASHSIZE;i++)
   {
     for ( sym = mpvp->vol->main_sym_table[i] ; sym!=NULL ; sym = sym->next )
     {
@@ -2675,7 +2675,7 @@ int build_ligand_table()
     for (i=0;i<1+n_ligand_types;i++) {
       ligand_table[i]=NULL;
     }
-    for (i=0;i<HASHSIZE;i++) { 
+    for (i=0;i<SYM_HASHSIZE;i++) { 
       gp=main_sym_table[i];
       while (gp!=NULL) {
         no_printf("found symbol %s of type %d\n",gp->name,gp->sym_type);
@@ -2699,7 +2699,7 @@ int print_rx()
   /*print out rx mechanism*/
   no_printf("Printing out reaction mechanisms...\n");
   fflush(stderr);
-  for (i=0;i<HASHSIZE;i++) { 
+  for (i=0;i<SYM_HASHSIZE;i++) { 
     gp=main_sym_table[i];
     while (gp!=NULL) {
       if (gp->sym_type==RX) {

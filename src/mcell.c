@@ -172,7 +172,7 @@ void run_sim(void)
 #endif
 #if 1
   printf("Reaction counters:\n");
-  for (i=0;i<world->hashsize;i++)
+  for (i=0;i<world->rx_hashsize;i++)
   {
     struct rxn *rxp;
     int j,k;

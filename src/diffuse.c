@@ -795,7 +795,7 @@ int search_memory_for_me(struct mem_helper *mh,struct abstract_list *al)
   
   for (i=0;i<mh->buf_len;i++)
   {
-    if (al == (struct abstract_list*)(mh->storage + mh->record_size*i)) return 1;
+    if (al == (struct abstract_list*)(mh->heap_array + mh->record_size*i)) return 1;
   }
   
   if (mh->next_helper == NULL) return 0;

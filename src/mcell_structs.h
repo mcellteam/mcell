@@ -265,7 +265,7 @@
 /*******************************************************/
 
 /* Parser parameters.  Probably need to be revisited. */
-#define HASHSIZE 0x20000
+#define SYM_HASHSIZE 0x20000
 #define HASHMASK 0x1ffff
 #define COUNT_HASHMASK 0xffff
 
@@ -786,7 +786,8 @@ struct volume
   int n_walls;                  /* Total number of walls */
   int n_verts;
   
-  int hashsize;                 /* How many entries in our hash table? */
+  int rx_hashsize;                 /* How many entries in our reaction 
+                  			hash table? */
   int n_reactions;              /* How many reactions are there, total? */
   struct rxn **reaction_hash;   /* A hash table of all reactions. */
   struct mem_helper *rxn_mem;   /* Memory to store time-varying reactions */
