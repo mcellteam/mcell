@@ -21,6 +21,7 @@
 #include "vector.h"
 #include "rng.h"
 #include "sym_table.h"
+#include "count_util.h"
 #include "vol_util.h"
 #include "wall_util.h"
 #include "grid_util.h"
@@ -1634,6 +1635,9 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
           mol->flags|=ACT_REACT;
         }
 
+        if ((mol->properties->flags & COUNT_CONTENTS) != 0)
+          count_me_by_region((struct abstract_molecule*)mol,1);
+      
         schedule_add(w->birthplace->timer,mol);
       }
     }
@@ -1808,8 +1812,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
               fflush(stdout);
               for (j=0;j<n_free_eff;j++) {
                 if (*tiles[j]==bread_crumb) {
-                  mol=(struct grid_molecule *)mem_get
-                    (walls[j]->birthplace->gmol);
+                  mol=(struct grid_molecule *)
+                    mem_get(walls[j]->birthplace->gmol);
                   *tiles[j]=mol;
                   mol->t=0;
                   mol->t2=0;
@@ -1823,6 +1827,10 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     (struct abstract_molecule *)mol)!=NULL) {
                     mol->flags|=ACT_REACT;
                   }
+                  
+                  if ((mol->properties->flags & COUNT_CONTENTS) != 0)
+                    count_me_by_region((struct abstract_molecule*)mol,1);
+      
                   schedule_add(walls[j]->birthplace->timer,mol);
                 }
               }
@@ -1852,6 +1860,10 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                       (struct abstract_molecule *)mol)!=NULL) {
                       mol->flags|=ACT_REACT;
                     }
+                  
+                    if ((mol->properties->flags & COUNT_CONTENTS) != 0)
+                      count_me_by_region((struct abstract_molecule*)mol,1);
+      
                     schedule_add(walls[k]->birthplace->timer,mol);
                     done=1;
                   }

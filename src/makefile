@@ -4,7 +4,7 @@ include makedefs
 SHELL = /bin/sh
 
 MCELL_VERSION = `head -1 ./mcell.h | cut -d " " -f 6`
-MCELL_OBJS = argparse.bison.o mdlparse.bison.o mdlparse_util.o sym_table.o strfunc.o viz_output.o react_output.o vector.o rng.o diffuse_util.o mem_util.o sched_util.o wall_util.o vol_util.o grid_util.o react_trig.o react_cond.o react_outc.o diffuse.o init.o test_main.o
+MCELL_OBJS = argparse.bison.o mdlparse.bison.o mdlparse_util.o sym_table.o strfunc.o viz_output.o react_output.o vector.o rng.o diffuse_util.o mem_util.o sched_util.o wall_util.o vol_util.o grid_util.o react_trig.o react_cond.o react_outc.o count_util.o diffuse.o init.o test_main.o
 
 all: $(MCELL_EXEC) test_main
 
@@ -67,6 +67,9 @@ react_cond.o: react_cond.c react.h
 
 react_outc.o: react_outc.c react.h
 	$(CC) $(CFLAGS) -c react_outc.c
+	
+count_util.o: count_util.c count_util.h
+	$(CC) $(CFLAGS) -c count_util.c
 
 diffuse.o: diffuse.c diffuse.h
 	$(CC) $(CFLAGS) -c diffuse.c
@@ -86,8 +89,8 @@ react_output.o: react_output.c react_output.h mcell_structs.h sched_util.h
 test_main.o: test_main.c mcell_structs.h
 	$(CC) $(CFLAGS) -c test_main.c
 
-test_main: argparse.bison.o mdlparse.bison.o mdlparse_util.o sym_table.o strfunc.o viz_output.o react_output.o vector.o init.o rng.o test_main.o diffuse_util.o mem_util.o sched_util.o wall_util.o vol_util.o grid_util.o react_trig.o react_cond.o react_outc.o diffuse.o
-	$(LD) $(CFLAGS) argparse.bison.o mdlparse.bison.o mdlparse_util.o sym_table.o strfunc.o viz_output.o react_output.o vector.o init.o rng.o test_main.o diffuse_util.o mem_util.o sched_util.o wall_util.o vol_util.o grid_util.o react_trig.o react_cond.o react_outc.o diffuse.o $(LIBS) -o test_main
+test_main: argparse.bison.o mdlparse.bison.o mdlparse_util.o sym_table.o strfunc.o viz_output.o react_output.o vector.o init.o rng.o test_main.o diffuse_util.o mem_util.o sched_util.o wall_util.o vol_util.o grid_util.o react_trig.o react_cond.o react_outc.o count_util.o diffuse.o
+	$(LD) $(CFLAGS) argparse.bison.o mdlparse.bison.o mdlparse_util.o sym_table.o strfunc.o viz_output.o react_output.o vector.o init.o rng.o test_main.o diffuse_util.o mem_util.o sched_util.o wall_util.o vol_util.o grid_util.o react_trig.o react_cond.o react_outc.o count_util.o diffuse.o $(LIBS) -o test_main
 
 $(MCELL_EXEC): $(MCELL_OBJS)
 	$(LD) $(CFLAGS) $(MCELL_OBJS) $(LIBS) -o $(MCELL_EXEC)

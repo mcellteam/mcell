@@ -14,6 +14,7 @@
 #include "rng.h"
 #include "grid_util.h"
 #include "mcell_structs.h"
+#include "count_util.h"
 #include "react.h"
 #include "vol_util.h"
 
@@ -167,6 +168,10 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
           
           plist[i-i0] = (struct abstract_molecule*)g;
           ptype[i-i0] = 'g';
+          
+          if (p->flags & COUNT_CONTENTS)
+            count_me_by_region((struct abstract_molecule*)g,1);
+
           schedule_add(local->timer,g);
           
         }
@@ -457,6 +462,10 @@ int outcome_unimolecular(struct rxn *rx,int path,
     if ((reac->properties->flags & ON_GRID) != 0)
     {
       struct grid_molecule *g = (struct grid_molecule*) reac;
+      
+      if ((reac->properties->flags & COUNT_CONTENTS) != 0)
+        count_me_by_region(reac,-1);
+      
       if (g->grid->mol[g->grid_index]==g) g->grid->mol[ g->grid_index ] = NULL;
       g->grid->n_occupied--;
     }
@@ -557,6 +566,10 @@ int outcome_bimolecular(struct rxn *rx,int path,
       if ((reacB->properties->flags & ON_GRID) != 0)
       {
         g = (struct grid_molecule*)reacB;
+
+        if ((reacB->properties->flags & COUNT_CONTENTS) != 0)
+          count_me_by_region(reacB,-1);
+      
         if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
         g->grid->n_occupied--;
       }
@@ -573,6 +586,10 @@ int outcome_bimolecular(struct rxn *rx,int path,
       if ((reacA->properties->flags & ON_GRID) != 0)
       {
         g = (struct grid_molecule*)reacA;
+
+        if ((reacA->properties->flags & COUNT_CONTENTS) != 0)
+          count_me_by_region(reacA,-1);
+      
         if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
         g->grid->n_occupied--;
       }
@@ -593,6 +610,10 @@ int outcome_bimolecular(struct rxn *rx,int path,
       if ((reacB->properties->flags & ON_GRID) != 0)
       {
         g = (struct grid_molecule*)reacB;
+
+        if ((reacB->properties->flags & COUNT_CONTENTS) != 0)
+          count_me_by_region(reacB,-1);
+      
         if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
         g->grid->n_occupied--;
       }
@@ -609,6 +630,10 @@ int outcome_bimolecular(struct rxn *rx,int path,
       if ((reacA->properties->flags & ON_GRID) != 0)
       {
         g = (struct grid_molecule*)reacA;
+
+        if ((reacA->properties->flags & COUNT_CONTENTS) != 0)
+          count_me_by_region(reacA,-1);
+      
         if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
         g->grid->n_occupied--;
       }

@@ -18,6 +18,7 @@
 #include "sched_util.h"
 
 #include "mcell_structs.h"
+#include "count_util.h"
 #include "grid_util.h"
 #include "vol_util.h"
 #include "wall_util.h"
@@ -470,49 +471,6 @@ int test_subvol_for_circular(struct subvolume *sv)
   
   if (mp != NULL) return 1;
   return 0;
-}
-
-
-void update_collision_count(struct species *sp,struct region_list *rl,int direction,int crossed)
-{
-  int j;
-  struct counter *hit_count;
-
-  hit_count = NULL;  
-  for ( ; rl != NULL ; rl = rl->next)
-  {
-    if (rl->reg->flags & COUNT_HITS)
-    {
-      j = (rl->reg->hashval ^ sp->hashval)&world->collide_hashmask;
-      if (j==0) j = sp->hashval & world->collide_hashmask;
-      
-      for (hit_count=world->collide_hash[j] ; hit_count!=NULL ; hit_count=hit_count->next)
-      {
-        if (hit_count->reg_type == rl->reg && hit_count->mol_type == sp)
-        {
-          if (crossed)
-          {
-            if (direction==1)
-            {
-              hit_count->front_hits++;
-              hit_count->front_to_back++;
-            }
-            else
-            {
-              hit_count->back_hits++;
-              hit_count->back_to_front++;
-            }
-          }
-          else
-          {
-            if (direction==1) hit_count->front_hits++;
-            else hit_count->back_hits++;
-          }
-        }
-      }
-    }
-  }
-
 }
 
 

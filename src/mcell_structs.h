@@ -31,6 +31,7 @@
 #define CAN_MOLWALL      0x80
 #define COUNT_CONTENTS   0x1000
 #define COUNT_HITS       0x2000
+#define COUNT_SOME       0x3000
 #define COUNT_RXNS       0x4000
 
 

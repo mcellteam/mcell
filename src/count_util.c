@@ -17,36 +17,56 @@
 
 extern struct volume *world;
 
-                                   
+
 /*************************************************************************
-count_hit:
-   In: molecule
-       wall it hit
-       direction of impact relative to normal
+update_collision_count:
+   In: species of thing that hit
+       region list for the wall we hit
+       direction of impact relative to surface normal
+       whether we crossed or not
    Out: No return value.  Appropriate counters are updated.
 *************************************************************************/
 
-void count_hit(struct molecule *m,struct wall *w,int direction)
+void update_collision_count(struct species *sp,struct region_list *rl,int direction,int crossed)
 {
-  int hashval;
-  struct region_list *rl;
-  struct counter *cp;
-  
-  world->ray_polygon_colls++;
-  
-  for (rl = w->regions ; rl != NULL ; rl = rl->next)
+  int j;
+  struct counter *hit_count;
+
+  hit_count = NULL;  
+  for ( ; rl != NULL ; rl = rl->next)
   {
-    if (m->properties->hashval == rl->reg->hashval) hashval = m->properties->hashval;
-    else hashval = m->properties->hashval ^ rl->reg->hashval;
-    
-    for (cp = world->collide_hash[hashval] ; cp != NULL ; cp = cp->next)
+    if (rl->reg->flags & COUNT_SOME)
     {
-      if (cp->mol_id == m->properties->hashval &&
-          cp->wall_id == rl->reg->hashval)
+      j = (rl->reg->hashval ^ sp->hashval)&world->collide_hashmask;
+      if (j==0) j = sp->hashval & world->collide_hashmask;
+      
+      for (hit_count=world->collide_hash[j] ; hit_count!=NULL ; hit_count=hit_count->next)
       {
-        if (direction==0) cp->impacts++;
-        else cp->crossings += direction;
-        break;
+        if (hit_count->reg_type == rl->reg && hit_count->mol_type == sp)
+        {
+          if (crossed) hit_count->n_inside += direction;
+          if (rl->reg->flags & sp->flags & COUNT_HITS)
+          {
+            if (crossed)
+            {
+              if (direction==1)
+              {
+                hit_count->front_hits++;
+                hit_count->front_to_back++;
+              }
+              else
+              {
+                hit_count->back_hits++;
+                hit_count->back_to_front++;
+              }
+            }
+            else
+            {
+              if (direction==1) hit_count->front_hits++;
+              else hit_count->back_hits++;
+            }
+          }
+        }
       }
     }
   }
@@ -54,50 +74,37 @@ void count_hit(struct molecule *m,struct wall *w,int direction)
 
 
 /*************************************************************************
-count_react:
-   In: reaction
-       path that reaction took
-       the current timestep
+count_me_by_region:
+   In: abstract molecule we are supposed to count (or a representative one)
+       number by which to update the counter (usually +1 or -1)
    Out: No return value.  Appropriate counters are updated.
+   Note: This handles all types of molecules, from grid to free.  Right
+         now, only grid is implemented.
 *************************************************************************/
 
-void count_react(struct rxn *rx,int path,double timestep)
-{
-  rx->counter[path]++;
-  
-#if 0
-  rx->rxn_count_cum[path]++;
-  if ( floor(timestep) > rx->last_update ) rx->rxn_count_dt[path] = 1;
-  else rx->rxn_count_dt[path]++;
-#endif
-}
-
-
-/*************************************************************************
-count_crossings:
-   In: molecule
-       subvolume to test
-       displacement vector for the molecule's motion
-   Out: No return value.  Appropriate counters are updated.
-*************************************************************************/
-
-void count_crossings(struct molecule *m,struct subvolume *sv,
-                     struct vector3 *move)
+void count_me_by_region(struct abstract_molecule *me,int n)
 {
   int i;
-  struct wall_list *wl;
-  double t;
-  struct vector3 hitpt;
+  struct region_list *rl;
+  struct species *sp = me->properties;
+  struct counter *c;
   
-  for (wl = sv->wall_head ; wl != NULL ; wl = wl->next)
+  if ((sp->flags & ON_GRID) != 0)
   {
-    i = collide_wall(&(m->pos),move,wl->this_wall,&t,&hitpt);
-    if (i==COLLIDE_REDO)
+    struct grid_molecule *g = (struct grid_molecule*)me;
+    struct wall *w = g->grid->surface;
+    if (w->flags & COUNT_CONTENTS)
     {
-      /* Ignore this for now.  Should fix. */
-    }
-    else if (i == COLLIDE_MISS) continue;
-    else if (i == COLLIDE_FRONT) count_hit(m,wl->this_wall,1);
-    else count_hit(m,wl->this_wall,-1);
+      for (rl=w->regions ; rl!=NULL ; rl=rl->next)
+      {
+        i = (rl->reg->hashval ^ sp->hashval) & world->collide_hashmask;
+        if (i==0) i = sp->hashval & world->collide_hashmask;
+        
+        for ( c = world->collide_hash[i] ; c != NULL ; c = c->next )
+        {
+          if (c->reg_type == rl->reg && c->mol_type == sp) c->n_inside += n;
+        }
+      }
+    } 
   }
 }

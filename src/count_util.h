@@ -3,9 +3,7 @@
 
 #include "mcell_structs.h"
 
-void count_hit(struct molecule *m,struct wall *w,int direction);
-void count_react(struct rxn *rx,int path,double timestep);
-void count_crossings(struct molecule *m,struct subvolume *sv,
-                     struct vector3 *move);
+void update_collision_count(struct species *sp,struct region_list *rl,int direction,int crossed);
+void count_me_by_region(struct abstract_molecule *me,int n);
 
 #endif
