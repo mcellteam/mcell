@@ -17,6 +17,7 @@ struct volume *world;
 void run_sim(void)
 {
   struct release_event_queue *req;
+  double next_release_time;
   int i;
   
   world->fully_random = 1;
@@ -41,10 +42,14 @@ void run_sim(void)
       printf("Releasing! \n");
       req = schedule_next( world->releaser );
     }
+
+    i = schedule_anticipate( world->releaser , &next_release_time);
+    if (!i) next_release_time = world->iterations + 1;
+    if (next_release_time < world->it_time+1) next_release_time = world->it_time+1;
     
     for (i=0;i<world->n_subvols;i++)
     {
-      run_timestep( &(world->subvol[i]) , world->it_time + 10.0 , (double)world->iterations );
+      run_timestep( &(world->subvol[i]) , next_release_time , (double)world->iterations );
     }
     
     world->it_time++;

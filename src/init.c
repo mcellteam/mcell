@@ -32,6 +32,8 @@
 
 extern struct volume *world;
 
+#define MICROSEC_PER_YEAR 365.25*86400.0*1e6
+
 /**
  * Prints out author and grant credits.
  * When invoked with the -info option, this function prints to log_file
@@ -150,6 +152,7 @@ int init_sim(void)
   world->chkpt_elapsed_time_start=0;
   world->it_time=0;
   world->time_unit=0;
+  world->time_step_max=0;
   world->start_time=0;
   world->current_time=0;
   world->current_start_time=0;
@@ -470,7 +473,12 @@ int init_partitions(void)
     
     sv->mem->timer = create_scheduler(1.0,100.0,100,0.0);
     sv->mem->current_time = 0.0;
-    sv->mem->max_timestep = 3000.0;
+    if (world->time_step_max==0.0) sv->mem->max_timestep = MICROSEC_PER_YEAR;
+    else
+    {
+      if (world->time_step_max < world->time_unit) sv->mem->max_timestep = 1.0;
+      else sv->mem->max_timestep = world->time_step_max/world->time_unit;
+    }
   }
   
   world->binning = 0;

@@ -681,6 +681,7 @@ struct volume
   struct viz_obj *viz_obj_head;
   struct frame_data_list *frame_data_head;
   double time_unit;
+  double time_step_max;
   double length_unit;
   double effector_grid_density;
   double *r_step;

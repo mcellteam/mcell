@@ -217,6 +217,7 @@ struct count_list *cnt;
 %token <tok> TAN
 %token <tok> TIME_LIST
 %token <tok> TIME_STEP
+%token <tod> TIME_STEP_MAX
 %token <tok> TO
 %token <tok> TOP
 %token <tok> TRAIN_DURATION
@@ -247,6 +248,7 @@ struct count_list *cnt;
 %type <tok> mdl_stmt_list
 %type <tok> mdl_stmt
 %type <tok> time_def
+%type <tok> time_max_def
 %type <tok> iteration_def
 %type <tok> grid_density_def
 %type <tok> radial_directions_def
@@ -401,6 +403,7 @@ mdl_stmt_list: mdl_stmt
  
 
 mdl_stmt: time_def
+        | time_max_def
 	| iteration_def
 	| grid_density_def
 	| radial_directions_def
@@ -1202,6 +1205,18 @@ if (volp->time_unit<0) {
   volp->time_unit=-volp->time_unit;
 }
 no_printf("Time unit = %g\n",volp->time_unit);
+fflush(stderr);
+};
+
+time_max_def: TIME_STEP_MAX '=' num_expr
+{
+volp->time_step_max = $<dbl>3;
+if (volp->time_step_max<0) {
+  sprintf(mdlpvp->mdl_err_msg,"Maximum time step = %g\n\tSetting to %g\n",volp->time_unit,-volp->time_step_max);
+  mdl_warning(mdlpvp);
+  volp->time_step_max=-volp->time_step_max;
+}
+no_printf("Maximum time step = %g\n",volp->time_step_max);
 fflush(stderr);
 };
 

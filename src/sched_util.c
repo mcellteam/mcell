@@ -175,7 +175,11 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
   sh->current = sh->current_tail = NULL;
   sh->current_count = 0;
   
-  for (i=0;i<len;i++) sh->circ_buf_head[i] = sh->circ_buf_tail[i] = NULL;
+  for (i=0;i<len;i++)
+  {
+    sh->circ_buf_head[i] = sh->circ_buf_tail[i] = NULL;
+    sh->circ_buf_count[i] = 0;
+  }
   
 //    printf("dt_min=%f dt_max=%f maxlen=%d start_time=%f\n",dt_min,dt_max,maxlen,start_time);
 //    printf("len=%d n_slots=%f\n",len,n_slots);
@@ -235,7 +239,7 @@ void schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_curren
     if (nsteps < 0.0) i = sh->index;
     else i = (int) nsteps + sh->index;
     if (i >= sh->buf_len) i -= sh->buf_len;
-//    printf("[%2d %2d %f] ",i,sh->index,sh->now);
+
     if (sh->circ_buf_tail[i]==NULL)
     {
       sh->circ_buf_count[i] = 1;
@@ -368,6 +372,44 @@ void* schedule_next(struct schedule_helper *sh)
     if (sh->current == NULL) sh->current_tail = NULL;
     return data;
   }
+}
+
+
+/*************************************************************************
+schedule_anticipate:
+  In: scheduler that we are using
+      pointer to double to store the anticipated time
+  Out: 1 if there is an event anticipated, 0 otherwise
+*************************************************************************/
+
+int schedule_anticipate(struct schedule_helper *sh,double *t)
+{
+  int i,j;
+  double dt = 0.0;
+
+  for ( ; sh!=NULL ; sh = sh->next_scale )
+  {
+    if (sh->current != NULL)
+    {
+      *t = sh->now + dt;
+      return 1;
+    }
+    
+    for (i=0;i<sh->buf_len;i++)
+    {
+      j = i + sh->index;
+      if (j >= sh->buf_len) j -= sh->buf_len;
+      if (sh->circ_buf_count[j] > 0)
+      {
+        *t = sh->now + sh->dt*i + dt;
+        return 1;
+      }
+    }
+    
+    dt += sh->dt;
+  }
+  
+  return 0;
 }
 
 

@@ -228,6 +228,7 @@ I ([0-9]+)
 "SURFACE_STATES"	{return(SURFACE_STATES);}
 "TAN"			{return(TAN);}
 "TIME_STEP"		{return(TIME_STEP);}
+"TIME_STEP_MAX"         {return(TIME_STEP_MAX);}
 "TO"			{return(TO);}
 "TOP"			{return(TOP);}
 "TRAIN_DURATION"	{return(TRAIN_DURATION);}

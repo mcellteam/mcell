@@ -34,6 +34,8 @@ void schedule_sort(struct schedule_helper *sh);
 void* schedule_next(struct schedule_helper *sh);
 #define schedule_add(x,y) schedule_insert((x),(y),1)
 
+int schedule_anticipate(struct schedule_helper *sh,double *t);
+
 void delete_scheduler(struct schedule_helper *sh);
 
 
