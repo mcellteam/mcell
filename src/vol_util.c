@@ -692,6 +692,7 @@ int set_partitions()
   int x_start,y_start,z_start;
   double A,B,k;
   struct vector3 part_min,part_max;
+
   
   if (world->n_fineparts != 4096 + 16384 + 4096)
   {
@@ -833,6 +834,13 @@ int set_partitions()
       return 1;
     }
 
+    for(i = 0; i < world->nx_parts; i++)
+    {
+	world->x_partitions[i] = 0;
+        world->y_partitions[i] = 0;
+	world->z_partitions[i] = 0;
+    }
+
     x_aspect = (part_max.x - part_min.x) / f_max;
     y_aspect = (part_max.y - part_min.y) / f_max;
     z_aspect = (part_max.z - part_min.z) / f_max;
@@ -874,7 +882,7 @@ int set_partitions()
     for (i=y_start-1;i>0;i--)
     {
       for (j=0 ; world->y_partitions[i+1]-world->y_fineparts[4095-j] < f ; j++) {}
-      world->y_partitions[i] = world->y_fineparts[4095-j];
+	world->y_partitions[i] = world->y_fineparts[4095-j];
     }
     for (i=y_start;i<y_start+y_in;i++)
     {
