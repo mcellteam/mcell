@@ -238,6 +238,7 @@ struct counter_list *cnt;
 %token <tok> SPECIFIED_EFFECTORS
 %token <tok> SPECIFIED_MOLECULES
 %token <tok> SPHERICAL_RELEASE_SITE
+%token <tok> SPHERICAL_SHELL_SITE
 %token <tok> SPRINTF
 %token <tok> SQRT
 %token <tok> STANDARD_DEVIATION
@@ -515,7 +516,11 @@ end_of_mdl_file: EOF_TOK
           no_printf("include_flag = %d\n",mdlpvp->include_flag); 
           fflush(stderr);
           if (!mdlpvp->include_flag) {
-            prepare_reactions(mdlpvp);
+             if (prepare_reactions(mdlpvp))
+	     {
+	       mdlerror("Failed to initialize reactions.\n",mdlpvp);
+	       return(1);
+	     }
 /*
             partition_volume(volume);
             build_ligand_table();
@@ -2520,6 +2525,10 @@ release_site_geom: SPHERICAL_RELEASE_SITE
 	| RECTANGULAR_RELEASE_SITE
 {
   $$=SHAPE_RECTANGULAR;
+}
+	| SPHERICAL_SHELL_SITE
+{
+  $$=SHAPE_SPHERICAL_SHELL;
 };
 
 

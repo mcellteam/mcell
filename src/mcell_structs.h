@@ -188,6 +188,7 @@
 #define SHAPE_CUBIC 1
 #define SHAPE_ELLIPTIC 2
 #define SHAPE_RECTANGULAR 3
+#define SHAPE_SPHERICAL_SHELL 4
 
 
 /* Flags for parser to indicate which axis we are partitioning */

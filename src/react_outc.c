@@ -75,7 +75,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
     orientA = orientB;
     orientB = (short)j;
   }
-
+  
   plist[0] = reacA;
   if ( (reacA->properties->flags&ON_GRID)!=0 ) ptype[0] = 'g';
   else if ( (reacA->properties->flags&ON_SURFACE)!=0 ) ptype[0] = 's';
@@ -202,7 +202,6 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
         if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)s) != NULL)
           s->flags += ACT_REACT;
         
-        p->population++;
         if (reac_s != NULL)
         {
           s->pos.x = reac_s->pos.x;
@@ -264,6 +263,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       m = mem_get(local->mol);
       m->birthplace = local->mol;
       m->properties = p;
+      p->population++;
       m->collisions = 0;
       if (reac_g != NULL)
       {
@@ -275,7 +275,6 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
         m->releaser = 0;
         m->index = -1;
       }
-      p->population++;
       m->flags = TYPE_3D + ACT_NEWBIE + IN_VOLUME + IN_SCHEDULE;
       if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)m) != NULL)
         m->flags += ACT_REACT;
@@ -366,6 +365,8 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
         else porient[i-i0] = k;
         
       }
+      
+//      if (i-i0 < rx->n_reactants && porient[i-i0]==0) continue;
 
       if (ptype[i-i0]=='s')
       {
@@ -414,7 +415,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       }
     }
   }
-  
+
   return blocked;
 }
 
@@ -656,7 +657,8 @@ int outcome_bimolecular(struct rxn *rx,int path,
       return 0;
     }
   }
-  return blocked;
+  
+  return 1;
 }
 
 
@@ -703,6 +705,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
       reac->properties = NULL;
       return 0;
     }
+    else if (blocked==0) return -1;
     else return blocked;
 
   }

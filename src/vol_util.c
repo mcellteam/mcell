@@ -561,8 +561,16 @@ void release_molecules(struct release_event_queue *req)
         pos.x = (rng_double(world->seed++)-0.5);
         pos.y = (rng_double(world->seed++)-0.5);
         pos.z = (rng_double(world->seed++)-0.5);
-      } while ( (rso->release_shape == SHAPE_SPHERICAL || rso->release_shape == SHAPE_ELLIPTIC)
+      } while ( (rso->release_shape == SHAPE_SPHERICAL || rso->release_shape == SHAPE_ELLIPTIC || rso->release_shape == SHAPE_SPHERICAL_SHELL)
                 && pos.x*pos.x + pos.y*pos.y + pos.z*pos.z >= 0.25 );
+      
+      if (rso->release_shape == SHAPE_SPHERICAL_SHELL)
+      {
+	double r;
+	r = sqrt( pos.x*pos.x + pos.y*pos.y + pos.z*pos.z)*2.0;
+	if (r==0.0) { pos.x = 0.0; pos.y = 0.0; pos.z = 0.5; }
+	else { pos.x /= r; pos.y /= r; pos.z /= r; }
+      }
       
       m.pos.x = pos.x*diam_xyz->x + req->location.x;
       m.pos.y = pos.y*diam_xyz->y + req->location.y;

@@ -1083,8 +1083,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                 rx,i,(struct abstract_molecule*)m,
                 am,0,0,m->t+t_steps*smash->t,&(smash->loc)
               );
-        
-        if (j) continue;
+	      
+
+	if (j) continue;
         else
         {
           if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
@@ -1571,6 +1572,14 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
           r = trigger_unimolecular(a->properties->hashval,a);
           if (r->rate_t != NULL) check_rates(r,(a->t + a->t2)*(1.0+EPS_C));
           a->t2 = timeof_unimolecular(r);
+	  if (r->rate_t != NULL)
+	  {
+	    if (a->t + a->t2 > r->rate_t->time)
+	    {
+	      a->t2 = r->rate_t->time - a->t;
+	      a->flags |= ACT_CHANGE;
+	    }
+	  }
         }
       }
       else if ((a->flags & ACT_REACT) != 0)
@@ -1584,8 +1593,10 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
           if ( r->rate_t != NULL )
           {
             if (a->t + a->t2 > r->rate_t->time)
-            a->t2 = r->rate_t->time - a->t;
-            a->flags |= ACT_CHANGE;
+	    {
+              a->t2 = r->rate_t->time - a->t;
+              a->flags |= ACT_CHANGE;
+	    }
           }
         }
         else continue;
