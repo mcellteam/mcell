@@ -14,6 +14,7 @@
 /**  Brand new constants created for use in MCell3  **/
 /*****************************************************/
 
+
 /* Species flags */
    /* Walls have IS_SURFACE set, molecules do not. */
    /* Surface and grid molecules have ON_SURFACE set */
