@@ -1,0 +1,407 @@
+#LyX 1.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 221
+\textclass article
+\language english
+\inputencoding auto
+\fontscheme default
+\graphics default
+\paperfontsize default
+\spacing single 
+\papersize letterpaper
+\paperpackage a4
+\use_geometry 1
+\use_amsmath 0
+\use_natbib 0
+\use_numerical_citations 0
+\paperorientation portrait
+\leftmargin 1in
+\topmargin 1in
+\rightmargin 1in
+\bottommargin 0.75in
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\quotes_times 2
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+
+\layout Title
+
+Documentation for MCell Memory Utilities
+\layout Author
+
+Rex Kerr
+\layout Standard
+
+The memory utilities can be found in the files 
+\family typewriter 
+mem_util.h
+\family default 
+ and 
+\family typewriter 
+mem_util.c
+\layout Section
+
+stack_helper
+\layout Standard
+
+The 
+\family typewriter 
+stack_helper
+\family default 
+ struct and functions implement a hybrid array/linked-list stack of a set
+ of items of the same size.
+ The main struct has an array of data of a specified size, plus a pointer
+ to the next part of the stack should the first part overflow.
+ There are seven functions for dealing with stacks:
+\layout LyX-Code
+
+struct stack_helper* create_stack(int size,int length);
+\layout LyX-Code
+
+void stack_push(struct stack_helper *sh,void *d);
+\layout LyX-Code
+
+void stack_pop(struct stack_helper *sh, void *d);
+\layout LyX-Code
+
+void stack_dump(struct stack_helper *sh);
+\layout LyX-Code
+
+inline int stack_size(struct stack_helper *sh);
+\layout LyX-Code
+
+void* stack_access(struct stack_helper *sh,int n);
+\layout LyX-Code
+
+void delete_stack(struct stack_helper *sh);
+\layout Standard
+
+To start, one creates a new stack using the 
+\family typewriter 
+create_stack
+\family default 
+ function.
+ The first argument is the size of your data structure (e.g.
+ 
+\family typewriter 
+sizeof(struct my_struct)
+\family default 
+).
+ The second argument is the number of elements in an array of that data
+ structure.
+ This number should be chosen small enough to not overburden memory, but
+ large enough so the stack can function primarily with array access rather
+ than with list-traversal.
+\layout Standard
+
+You can then push and pop items of that data type onto and off of the stack
+ using the 
+\family typewriter 
+stack_push
+\family default 
+ and 
+\family typewriter 
+stack_pop
+\family default 
+ functions.
+ Note that these 
+\emph on 
+copy
+\emph default 
+ the data, so stacks are best used for small structs or other types.
+\layout Standard
+
+If you wish to clear out the stack, use 
+\family typewriter 
+stack_dump
+\family default 
+.
+ To see the current size of the stack, use 
+\family typewriter 
+stack_size
+\family default 
+.
+ (Zero means the stack is empty.) To get a pointer to one element of the
+ stack, use 
+\family typewriter 
+stack_access
+\family default 
+.
+ The oldest item on the stack has an index of 
+\family typewriter 
+0
+\family default 
+; the most recent has an index of 
+\family typewriter 
+stack_size(...)-1
+\family default 
+.
+\layout Standard
+
+Calling 
+\family typewriter 
+delete_stack
+\family default 
+ will delete everything you've pushed onto the stack, and will free the
+ stack_helper itself.
+ If you wish to only empty the stack but keep using it, use 
+\family typewriter 
+stack_dump
+\family default 
+ instead.
+\layout Standard
+
+Note: stacks are slow in the current implementation if the stack is many
+ times longer than the length of the array, as it has to wade down a long
+ linked list.
+ Need to fix this.
+ (Easy enough, just swap so the first thing always is the one with space!)
+ Index-based access will always be slow, though (can't avoid traversing
+ the list).
+\layout Section
+
+mem_helper
+\layout Standard
+
+The 
+\family typewriter 
+mem_helper
+\family default 
+ struct and functions implement a hybrid array/linked-list block-memory
+ allocation specifically for linked lists.
+ The main struct has an array of data of a specified size, plus a pointer
+ to the next allocation block should the first part run out of space.
+ It also maintains a linked list of list elements that have been deallocated
+ so that they can be reused.
+ There are five functions for this utility:
+\layout LyX-Code
+
+struct mem_helper* create_mem(int size,int length);
+\layout LyX-Code
+
+void* mem_get(struct mem_helper *mh);
+\layout LyX-Code
+
+void mem_put(struct mem_helper *mh,void *defunct);
+\layout LyX-Code
+
+void mem_put_list(struct mem_helper *mh,void *defunct);
+\layout LyX-Code
+
+void delete_mem(struct mem_helper *mh);
+\layout Standard
+
+To start, one creates a new helper with the create_mem function.
+ The first argument is the size of your data structure (e.g.
+ 
+\family typewriter 
+sizeof(struct my_struct)
+\family default 
+) and the second is the number of those structures to allocate in each chunk.
+\layout Standard
+
+You then can use 
+\family typewriter 
+mem_get
+\family default 
+ in place of 
+\family typewriter 
+malloc
+\family default 
+ to get a pointer to the start of a data structure, and 
+\family typewriter 
+mem_put
+\family default 
+ instead of 
+\family typewriter 
+free
+\family default 
+ when you are done with one of your list elements.
+ If you have a linked list and you wish to free all of them, use 
+\family typewriter 
+mem_put_list
+\family default 
+ on the head of the linked list.
+ When you're done with everything you've created with that helper, call
+ 
+\family typewriter 
+delete_mem
+\family default 
+ and all memory you have allocated, plus the 
+\family typewriter 
+mem_helper
+\family default 
+ struct itself, will be freed.
+\layout Section
+
+temp_mem
+\layout Standard
+
+If you want to create a bunch of objects using 
+\family typewriter 
+malloc
+\family default 
+ and don't want to worry about freeing them all individually, use the 
+\family typewriter 
+temp_mem
+\family default 
+ struct and functions.
+ There are only three functions:
+\layout LyX-Code
+
+struct temp_mem* setup_temp_mem(int length);
+\layout LyX-Code
+
+void* temp_malloc(size_t size,struct temp_mem *list);
+\layout LyX-Code
+
+void free_temp(struct temp_mem *list);
+\layout Standard
+
+Start off by calling 
+\family typewriter 
+setup_temp_mem
+\family default 
+ with an argument that estimates the number of separate items you'll be
+ mallocing (the pointers will be stored on a 
+\family typewriter 
+stack_helper 
+\family default 
+stack).
+ Then, just use 
+\family typewriter 
+temp_malloc
+\family default 
+ instead of 
+\family typewriter 
+malloc
+\family default 
+, and when you're done with everything you've 
+\family typewriter 
+temp_malloc
+\family default 
+'ed, call 
+\family typewriter 
+free_temp
+\family default 
+.
+ Simple!
+\layout Section
+
+counter_helper
+\layout Standard
+
+The 
+\family typewriter 
+counter_helper
+\family default 
+ struct and functions are a way to make a set (in the mathematical sense)
+ out of a list of items.
+ In particular, 
+\family typewriter 
+counter_helper
+\family default 
+ will find identical items and keep track of the number of that type of
+ item rather than storing each one individually.
+ This numbering is kept track of in the 
+\family typewriter 
+counter_header
+\family default 
+ struct.
+ The following functions are for use with counter_helper:
+\layout LyX-Code
+
+struct counter_helper* create_counter(int size,int length);
+\layout LyX-Code
+
+void counter_add(struct counter_helper *ch,void *data);
+\layout LyX-Code
+
+void counter_reset(struct counter_helper *ch);
+\layout LyX-Code
+
+struct counter_header* counter_iterator(struct counter_helper *ch);
+\layout LyX-Code
+
+struct counter_header* counter_next_entry(struct counter_header *c);
+\layout LyX-Code
+
+void counter_read(struct counter_helper *ch,struct counter_header *c,void
+ *data);
+\layout LyX-Code
+
+void delete_counter(struct counter_helper *ch);
+\layout Standard
+
+As usual, you start with 
+\family typewriter 
+create_counter
+\family default 
+ and specify the size of your struct and the number of items to allocate
+ at once.
+ (
+\family typewriter 
+counter_helper
+\family default 
+ uses 
+\family typewriter 
+mem_helper
+\family default 
+.) You can then add items using counter_add, where the items will be binned
+ into groups and counted as you go.
+ This method 
+\emph on 
+copies
+\emph default 
+ the data from the individual items.
+ (This is implemented using linked lists and therefore is slow for large
+ numbers of items! If you want to throw away the items you've collected
+ so far, use 
+\family typewriter 
+counter_reset
+\family default 
+.
+\layout Standard
+
+Once you've added all the items you wish to (or before, if you please),
+ you can traverse the counted set of items by calling 
+\family typewriter 
+counter_iterator
+\family default 
+ to point to the first item in the set (returns a 
+\family typewriter 
+counter_header
+\family default 
+ as an iterator), and then 
+\family typewriter 
+counter_next_entry
+\family default 
+ on that iterator to get the next one.
+ If you want to read out the data stored at a particular location, use 
+\family typewriter 
+counter_read
+\family default 
+ to copy the data in the counter into the pointer you provide.
+\layout Standard
+
+Finally, when you're done, 
+\family typewriter 
+delete_counter
+\family default 
+ will delete the 
+\family typewriter 
+counter_helper
+\family default 
+ and everything contained within.
+ None of the items you added will be deleted, since 
+\family typewriter 
+counter_helper
+\family default 
+ creates copies of the data rather than using the originals.
+\layout LyX-Code
+
+\the_end

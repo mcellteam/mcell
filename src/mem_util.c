@@ -258,3 +258,30 @@ void delete_mem(struct mem_helper *mh)
   free(mh->storage);
   free(mh);
 }
+
+
+struct temp_mem* temp_mem(int length)
+{
+  struct temp_mem *new_mem = malloc(sizeof(struct temp_mem));
+  new_mem->pointers = create_stack(sizeof(void*),length);
+  return new_mem;
+}
+
+void *temp_malloc(size_t size, struct temp_mem *list)
+{
+  void *data = malloc(size);
+  stack_push(list->pointers,&data);
+  return data;
+}
+
+void free_temp(struct temp_mem *list)
+{
+  void *data;
+  if (list==NULL) return;
+  while (stack_size(list->pointers))
+  {
+    stack_pop(list->pointers,&data);
+    free(data);
+  }
+  free(list);
+}
