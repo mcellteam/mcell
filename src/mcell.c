@@ -1,3 +1,6 @@
+#if defined(__linux__)
+#define _GNU_SOURCE 1
+#endif
 
 #include <time.h>
 #include <sys/time.h>
@@ -6,6 +9,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#if defined(__linux__)
+#include <fenv.h>
+#endif
 
 #include "rng.h"
 #include "strfunc.h"
@@ -242,6 +248,10 @@ int main(int argc, char **argv) {
   char hostname[64];
   u_int procnum;
   
+
+#if defined(__linux__)
+  feenableexcept(FE_DIVBYZERO);
+#endif
 
   log_file=stdout;
   err_file=stderr;
