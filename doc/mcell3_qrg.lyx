@@ -4666,7 +4666,7 @@ Each mdl file can also have multiple reaction data output blocks.
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="6" columns="2">
+<lyxtabular version="3" rows="7" columns="2">
 <features islongtable="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -4801,7 +4801,7 @@ Output this block at the iteration numbers specified in the list (i.e.
 \end_inset 
 </cell>
 </row>
-<row topline="true" bottomline="true">
+<row topline="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
@@ -4838,7 +4838,63 @@ file
 \layout Standard
 
 Output the value in braces to the filename in parentheses.
- This command is typically repeated many times inside the output block.
+ The first column will be the timestep; the second will be the value listed.
+ This command can be repeated to send different output to many files.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+{ 
+\family sans 
+\shape italic 
+value
+\family typewriter 
+\shape default 
+ , 
+\family sans 
+\shape italic 
+value
+\family typewriter 
+\shape default 
+ , 
+\family sans 
+\shape italic 
+...
+
+\family typewriter 
+\shape default 
+ } => 
+\begin_inset Quotes eld
+\end_inset 
+
+
+\family sans 
+\shape italic 
+file
+\family typewriter 
+\shape default 
+
+\begin_inset Quotes erd
+\end_inset 
+
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Output the list of values in braces, one to a column, in the order listed.
+ The first column will be the timestep.
+ This command can be repeated.
 \end_inset 
 </cell>
 </row>
@@ -5109,17 +5165,33 @@ Estimate the concentration of the molecule at that region, averaged since
 \begin_inset Formula $t_{i}$
 \end_inset 
 
- be the time of the current output (the 
+ be the time of the 
 \begin_inset Formula $i$
 \end_inset 
 
-th one), let 
-\begin_inset Formula $\bar{c}\left(t_{i}\right)$
+th output, let 
+\begin_inset Formula $t_{j}$
 \end_inset 
 
- be the concentration averaged up to the time of the current output, and
- use the formula 
-\begin_inset Formula $\bar{c}\left(t_{i-1}\rightarrow t_{i}\right)=\frac{t_{i}\bar{c}\left(t_{i}\right)-t_{i-1}\bar{c}\left(t_{i-1}\right)}{t_{i}-t_{i-1}}$
+ be some earlier output, and let 
+\begin_inset Formula $\bar{c}\left(t\right)$
+\end_inset 
+
+ be the concentration averaged up to time 
+\begin_inset Formula $t$
+\end_inset 
+
+.
+ Then the average concentration between times 
+\begin_inset Formula $t_{j}$
+\end_inset 
+
+ and 
+\begin_inset Formula $t_{i}$
+\end_inset 
+
+ is 
+\begin_inset Formula $\bar{c}\left(t_{j}\rightarrow t_{i}\right)=\frac{t_{i}\bar{c}\left(t_{i}\right)-t_{j}\bar{c}\left(t_{j}\right)}{t_{i}-t_{j}}$
 \end_inset 
 
 .

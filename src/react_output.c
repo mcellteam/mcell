@@ -84,7 +84,7 @@ update_reaction_output:
 int update_reaction_output(struct output_block *obp)
 {
   FILE *log_file;
-  struct output_item *oip;
+  struct output_item *oip,*oi;
   struct output_evaluator *oep;
   u_int curr_buf_index;
   int final_chunk_flag;		// flag signaling an end to the scheduled
@@ -123,32 +123,32 @@ int update_reaction_output(struct output_block *obp)
   curr_buf_index=obp->curr_buf_index;
   obp->time_array[curr_buf_index]=obp->t*world->time_unit*MAX_TARGET_TIMESTEP;
 
-  oip=obp->output_item_head;
-  while (oip!=NULL) {
-
-    /* copy temp_data into final_data[curr_buf_index] */
-    oep=oip->output_evaluator_head;
-    while (oep!=NULL) {
-      if (oep->update_flag) {
-	switch (oep->data_type)
-	{
-	  case INT:
-	    ((int*)oep->final_data)[curr_buf_index]=*(int *)oep->temp_data;
-	    /* reset temp_data if necessary */
-	    if (oep->reset_flag) *(int *)oep->temp_data=0;
-	    break;
-	  case DBL:
-	    ((double*)oep->final_data)[curr_buf_index]=*(double*)oep->temp_data;
-	    if (oep->reset_flag) *(double*)oep->temp_data=0;
-	    break;
-	  default:
-	    printf("OMGWTFPWNED!\n");
-	    break;
+  for (oi=obp->output_item_head ; oi!=NULL ; oi=oi->next)  /* Each file */
+  {
+    for (oip=oi ; oip!=NULL ; oip=oip->next_column)        /* Each column */
+    {
+      /* copy temp_data into final_data[curr_buf_index] */
+      for (oep=oip->output_evaluator_head ; oep!=NULL ; oep=oep->next)
+      {
+	if (oep->update_flag) {
+	  switch (oep->data_type)
+	  {
+	    case INT:
+	      ((int*)oep->final_data)[curr_buf_index]=*(int *)oep->temp_data;
+	      /* reset temp_data if necessary */
+	      if (oep->reset_flag) *(int *)oep->temp_data=0;
+	      break;
+	    case DBL:
+	      ((double*)oep->final_data)[curr_buf_index]=*(double*)oep->temp_data;
+	      if (oep->reset_flag) *(double*)oep->temp_data=0;
+	      break;
+	    default:
+	      printf("OMGWTFPWNED!\n");
+	      break;
+	  }
 	}
       }
-      oep=oep->next;
     }
-    oip=oip->next;
   } 
 
   obp->curr_buf_index++;
@@ -219,94 +219,95 @@ write_reaction_output:
 int write_reaction_output(struct output_block *obp,int final_chunk_flag)
 {
   FILE *log_file,*fp;
-  struct output_item *oip;
+  struct output_item *oip,*oi;
   struct output_evaluator *oep;
   u_int n_output;
   u_int i,stop_i;
+  u_int n_cols;
   
   log_file = world->log_file;
   
   n_output=obp->buffersize;
-  if (obp->curr_buf_index<obp->buffersize) {
-    n_output=obp->curr_buf_index;
-  }
+  if (obp->curr_buf_index<obp->buffersize) n_output=obp->curr_buf_index;
 
-  oip=obp->output_item_head;
-  while (oip!=NULL) {
-    oep=oip->count_expr;
-    if(eval_count_expr_tree(oep)){
-      return (1);
-    }
-
+  for (oi=obp->output_item_head ; oi!=NULL ; oi=oi->next)
+  {
+    
     if (world->chkpt_seq_num==1 && obp->chunk_count==0) {
-      if ((fp=fopen(oip->outfile_name,"w"))==NULL) {
-	fprintf(log_file,"MCell: could not open output file %s\n",oip->outfile_name);
+      if ((fp=fopen(oi->outfile_name,"w"))==NULL) {
+	fprintf(log_file,"MCell: could not open output file %s\n",oi->outfile_name);
 	return (1);
       }
     }
     else if (world->chkpt_seq_num>1){
-      if ((fp=fopen(oip->outfile_name,"a"))==NULL) {
-	fprintf(log_file,"MCell: could not open output file %s\n",oip->outfile_name);
+      if ((fp=fopen(oi->outfile_name,"a"))==NULL) {
+	fprintf(log_file,"MCell: could not open output file %s\n",oi->outfile_name);
 	return (1);
       }
     }
     else {
-      if ((fp=fopen(oip->outfile_name,"a"))==NULL) {   
-	fprintf(log_file,"MCell: could not open output file %s\n",oip->outfile_name);
+      if ((fp=fopen(oi->outfile_name,"a"))==NULL) {   
+	fprintf(log_file,"MCell: could not open output file %s\n",oi->outfile_name);
 	return (1);
       }
     }
 
-    no_printf("Writing to output file: %s\n",oip->outfile_name);
+    no_printf("Writing to output file: %s\n",oi->outfile_name);
     fflush(log_file);
-
-    stop_i=0;
-    if (oep->index_type==TIME_STAMP_VAL) {
-      stop_i=n_output;
-    }
-    else if (oep->index_type==INDEX_VAL) {
-      stop_i=oep->n_data;
+    
+    stop_i=n_output;
+    
+    n_cols=0;
+    for (oip=oi ; oip!=NULL ; oip=oip->next_column)
+    {
+      if (eval_count_expr_tree(oip->count_expr)) return 1;
+      n_cols++;
     }
     
-    /* For the correct writing of the final_data to the output file
-    // the data_type field should be either DBL, or INT.
-    */
-    if(oep->data_type == EXPR){
-      if((oep->operand1->data_type == DBL) || (oep->operand2->data_type == DBL))
+    
+    for (i=0;i<stop_i;i++)
+    {
+      fprintf(fp,"%.9g",obp->time_array[i]);
+            
+      for (oip=oi ; oip!=NULL ; oip=oip->next_column)
       {
-	oep->data_type = DBL;
-      }else{
-	oep->data_type = INT;
+	oep = oip->count_expr;
+	if (oep->index_type!=TIME_STAMP_VAL)
+	{
+	  fprintf(world->err_file,"Unsupported count index type, please contact the development team.\n");
+	  return 1;
+	}
+	
+	/* For the correct writing of the final_data to the output file
+	// the data_type field should be either DBL, or INT.
+	*/
+	if(oep->data_type == EXPR)
+	{
+	  oep->data_type=DBL;
+	  if((oep->operand1->data_type == INT) && (oep->operand2->data_type == INT))
+	  {
+	    oep->data_type = INT;
+	  }
+	}
+	
+	if (oep->data_type==DBL)
+	{
+	  fprintf(fp," %.9g",((double*)oep->final_data)[i]);
+	}
+	else if (oep->data_type==INT)
+	{
+	  fprintf(fp," %d",((int*)oep->final_data)[i]);
+	}
+	else
+	{
+	  fprintf(world->err_file,"Trying to output a count that is a non-numeric value.\n");
+	  return 1;
+	}
       }
-    }
-
-    switch (oep->data_type) {
-      case DBL:
-	for (i=0;i<stop_i;i++) {
-	  if (oep->index_type==TIME_STAMP_VAL) {
-	    fprintf(fp,"%.9g %.9g\n",obp->time_array[i],
-		    ((double *)oep->final_data)[i]);
-	  }
-	  else if (oep->index_type==INDEX_VAL && final_chunk_flag) {
-	    fprintf(fp,"%d %.9g\n",i,((double *)oep->final_data)[i]);
-	  }
-	}
-	break;
-      case INT:
-	for (i=0;i<stop_i;i++) {
-	  if (oep->index_type==TIME_STAMP_VAL) {
-	    fprintf(fp,"%.9g %d\n",obp->time_array[i],
-		    ((int *)oep->final_data)[i]);
-	  }
-	  else if (oep->index_type==INDEX_VAL && final_chunk_flag) {
-	    fprintf(fp,"%d %d\n",i,((int *)oep->final_data)[i]);
-	  }
-	}
-	break;
-      default: break;
+      
+      fprintf(fp,"\n");
     }
     fclose(fp);
-    oip=oip->next;
   } 
   obp->chunk_count++;
   obp->curr_buf_index=0;

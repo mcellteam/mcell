@@ -1106,6 +1106,7 @@ struct output_item {
 	struct output_evaluator *count_expr;  /**< root of count expression tree
                                                to be evaluated for this
                                                count output statement*/
+	struct output_item *next_column;
 };
 
 

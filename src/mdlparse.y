@@ -5109,12 +5109,54 @@ count_cmd: '{'
   mdlpvp->oip->outfile_name=NULL;
   mdlpvp->oip->output_evaluator_head=NULL;
   mdlpvp->oip->count_expr=NULL;
+  mdlpvp->oip->next_column=NULL;
 }
-	count_expr '}' '=' '>' outfile_syntax
+	list_count_exprs '}' '=' '>' outfile_syntax
 {
-  mdlpvp->oip->count_expr=$<cnt>3;
+  struct output_item *oi,*oi2;
+  for (oi=mdlpvp->obp->output_item_head ; oi!=NULL ; oi=oi->next_column)
+  {
+    if (oi->outfile_name!=NULL) break;
+  }
+  if (oi==NULL)
+  {
+    mdlerror("Couldn't find a valid output filename");
+    return 1;
+  }
+  for (oi2=mdlpvp->obp->output_item_head ; oi2!=NULL ; oi2=oi2->next_column)
+  {
+    if (oi2!=oi) oi2->outfile_name = oi->outfile_name;
+  }
 };
 
+list_count_exprs:
+	single_count_expr
+	| list_count_exprs ',' single_count_expr
+	
+single_count_expr:
+{
+  if (mdlpvp->oip->count_expr!=NULL)
+  {
+    struct output_item *new_oi = (struct output_item*)malloc(sizeof(struct output_item));
+    
+    if (new_oi==NULL)
+    {
+      mdlerror("Cannot store output list data");
+      return 1;
+    }
+    new_oi->outfile_name=NULL;
+    new_oi->output_evaluator_head=NULL;
+    new_oi->count_expr=NULL;
+    new_oi->next = mdlpvp->oip->next;
+    new_oi->next_column=NULL;
+    mdlpvp->oip->next_column = new_oi;
+    mdlpvp->oip=new_oi;
+  }
+}
+	count_expr
+{
+  mdlpvp->oip->count_expr = $<cnt>2;  
+};
 
 count_expr: count_value
 {
