@@ -595,7 +595,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               geom = path->orientation1;
               path->orientation1 = path->orientation2;
               path->orientation2 = geom;
-              printf("Switching order (1/2)!\n");
             }
             if (rx->n_reactants>2)
             {
@@ -607,7 +606,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 geom = path->orientation3;
                 path->orientation3 = path->orientation2;
                 path->orientation2 = geom;
-                printf("Switching order (2/3)!\n");
               }
             }
           }
@@ -948,8 +946,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           rx->cum_rates[j] = rate + rx->cum_rates[j-1];
         }
         
-        printf("Made it to here!\n");
-
         if (n_rate_t_rxns > 0)
         {
           if (rx->n_reactants==1)
@@ -968,8 +964,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       }
     }
   }
-  
-  printf("Made it here, too!\n");
   
 /* And, finally, we just have to move all the reactions from the */
 /* symbol table into the reaction hash table (of appropriate size). */

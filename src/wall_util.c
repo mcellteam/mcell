@@ -801,7 +801,7 @@ intersect_box:
   Note: t and/or hitpt may be modified even if there is no collision
         Not highly optimized yet.
 ***************************************************************************/
-
+#if 0
 /* New version, not completed, probably worse than old version.*/
 int intersect_box(struct vector3 *llf,struct vector3 *urb,struct wall *w)
 {
@@ -968,6 +968,190 @@ int intersect_box(struct vector3 *llf,struct vector3 *urb,struct wall *w)
   }
   
   return 0;  /* Near miss! */
+}
+#endif
+
+/* Old versions copied from MCell2 */
+int wall_in_box(struct vector3 **vert,struct vector3 *normal,
+                double d,struct vector3 *b0,struct vector3 *b1)
+{
+#define n_vert 3
+  int temp;
+  int i,j,k;
+  struct vector3 *v1,*v2,*b;
+  struct vector3 n,u,v;
+  struct vector3 ba,bb,c;
+  double r,a1,a2,a3,a4,cu,cv;
+  double vu_[6]; /* Assume wall has 3 vertices */
+  double *vv_;
+  int v_set;
+  double d_box[8];
+  int n_opposite;
+  
+/* Lookup table for vertex-edge mapping for a cube */
+  int which_x1[12] = {0,0,0,0,1,1,1,1,0,0,0,1};
+  int which_y1[12] = {0,0,1,1,1,1,0,0,0,0,1,0};
+  int which_z1[12] = {0,1,1,0,0,1,1,0,0,1,1,0};
+  int which_x2[12] = {0,0,0,1,1,1,1,0,0,1,1,0};
+  int which_y2[12] = {0,1,1,1,1,0,0,0,1,0,1,1};
+  int which_z2[12] = {1,1,0,0,1,1,0,0,0,1,1,0};
+  
+  int edge1_vt[12] = {0,1,3,2,6,7,5,4,0,1,3,4};
+  int edge2_vt[12] = {1,3,2,6,7,5,4,0,2,5,7,2};
+  
+/* Check if any vertex of the wall is in the box. */
+  for (i=0;i<n_vert;i++)
+  {
+    v2 = vert[i];
+    if (v2->x >= b0->x && v2->x <= b1->x && 
+        v2->y >= b0->y && v2->y <= b1->y &&
+        v2->z >= b0->z && v2->z <= b1->z) return 1;
+  }
+  
+  
+/* Check if any wall edge intersects any face of the box */
+  for (i=0;i<n_vert;i++)
+  {
+    v2 = vert[i];
+    v1 = (i==0) ? vert[n_vert-1] : vert[i-1];
+    
+/* x-faces */
+    if ((v1->x <= b0->x && b0->x < v2->x) || (v1->x > b0->x && b0->x >= v2->x))
+    {
+      r = (b0->x - v1->x)/(v2->x - v1->x);
+      a3 = v1->y + r*(v2->y - v1->y);
+      a4 = v1->z + r*(v2->z - v1->z);
+      if (b0->y <= a3 && a3 <= b1->y && b0->z <= a4 && a4 <= b1->z) return 2;
+    }
+    if ((v1->x <= b1->x && b1->x < v2->x) || (v1->x > b1->x && b1->x >= v2->x))
+    {
+      r = (b1->x - v1->x)/(v2->x - v1->x);
+      a3 = v1->y + r*(v2->y - v1->y);
+      a4 = v1->z + r*(v2->z - v1->z);
+      if (b0->y <= a3 && a3 <= b1->y && b0->z <= a4 && a4 <= b1->z) return 3;
+    }
+
+/* y-faces */
+    if ((v1->y <= b0->y && b0->y < v2->y) || (v1->y > b0->y && b0->y >= v2->y))
+    {
+      r = (b0->y - v1->y)/(v2->y - v1->y);
+      a3 = v1->x + r*(v2->x - v1->x);
+      a4 = v1->z + r*(v2->z - v1->z);
+      if (b0->x <= a3 && a3 <= b1->x && b0->z <= a4 && a4 <= b1->z) return 4;
+    }
+    if ((v1->y <= b1->y && b1->y < v2->y) || (v1->y > b1->y && b1->y >= v2->y))
+    {
+      r = (b1->y - v1->y)/(v2->y - v1->y);
+      a3 = v1->x + r*(v2->x - v1->x);
+      a4 = v1->z + r*(v2->z - v1->z);
+      if (b0->x <= a3 && a3 <= b1->x && b0->z <= a4 && a4 <= b1->z) return 5;
+    }
+
+/* z-faces */
+    if ((v1->z <= b0->z && b0->z < v2->z) || (v1->z > b0->z && b0->z >= v2->z))
+    {
+      r = (b0->z - v1->z)/(v2->z - v1->z);
+      a3 = v1->y + r*(v2->y - v1->y);
+      a4 = v1->x + r*(v2->x - v1->x);
+      if (b0->y <= a3 && a3 <= b1->y && b0->x <= a4 && a4 <= b1->x) return 6;
+    }
+    if ((v1->z <= b1->z && b1->z < v2->z) || (v1->z > b1->z && b1->z >= v2->z))
+    {
+      r = (b1->z - v1->z)/(v2->z - v1->z);
+      a3 = v1->y + r*(v2->y - v1->y);
+      a4 = v1->x + r*(v2->x - v1->x);
+      if (b0->y <= a3 && a3 <= b1->y && b0->x <= a4 && a4 <= b1->x) return 7;
+    }
+
+  }
+
+
+/* Check if any box edge intersects the wall */
+
+  n_opposite = 0;
+  vv_ = &(vu_[n_vert]);
+  v_set = 0;
+
+/* Wall coordinate system n,u,v */  
+  n.x = normal->x; n.y = normal->y; n.z = normal->z;
+  u.x = vert[1]->x - vert[0]->x;
+  u.y = vert[1]->y - vert[0]->y;
+  u.z = vert[1]->z - vert[0]->z;
+  r = 1/sqrt(u.x*u.x + u.y*u.y + u.z*u.z);
+  u.x *= r; u.y *=r; u.z *= r;
+  v.x = n.y*u.z - n.z*u.y;
+  v.y = - (n.x*u.z - n.z*u.x);
+  v.z = n.x*u.y - n.y*u.x;
+
+  
+/* Test every edge. */
+  bb.x = b0->x; bb.y = b0->y; bb.z = b0->z;
+  d_box[0] = bb.x*n.x + bb.y*n.y + bb.z*n.z;
+  for (i=0;i<12;i++)
+  {
+    if (i<7) /* Visiting new vertices in order */
+    {
+      ba.x = bb.x; ba.y = bb.y; ba.z = bb.z;
+      bb.x = (which_x2[i]) ? b1->x : b0->x;
+      bb.y = (which_y2[i]) ? b1->y : b0->y;
+      bb.z = (which_z2[i]) ? b1->z : b0->z;
+      a2 = d_box[ edge2_vt[i] ] = bb.x*n.x + bb.y*n.y + bb.z*n.z;
+      a1 = d_box[ edge1_vt[i] ];
+      
+      if ( (a1 - d < 0 && a2 - d < 0) ||
+           (a1 - d > 0 && a2 - d > 0) ) continue;
+      else n_opposite++;
+    }
+    else /* Revisiting old vertices out of order */
+    {
+/*      if (!n_opposite) return 0; */
+      a1 = d_box[ edge1_vt[i] ];
+      a2 = d_box[ edge2_vt[i] ];
+
+      if ( (a1 - d < 0 && a2 - d < 0) ||
+           (a1 - d > 0 && a2 - d > 0) ) continue;
+      
+      n_opposite++;
+      ba.x = (which_x1[i]) ? b1->x : b0->x;
+      ba.y = (which_y1[i]) ? b1->y : b0->y;
+      ba.z = (which_z1[i]) ? b1->z : b0->z;
+      bb.x = (which_x2[i]) ? b1->x : b0->x;
+      bb.y = (which_y2[i]) ? b1->y : b0->y;
+      bb.z = (which_z2[i]) ? b1->z : b0->z;
+    }
+/* Now ba,bb = box edge endpoints ; a1,a2 = distances along wall normal */
+    r = (d - a1)/(a2-a1);
+    c.x = ba.x + r*(bb.x-ba.x);
+    c.y = ba.y + r*(bb.y-ba.y);
+    c.z = ba.z + r*(bb.z-ba.z);
+    cu = c.x*u.x + c.y*u.y + c.z*u.z;
+    cv = c.x*v.x + c.y*v.y + c.z*v.z;
+    if (!v_set)
+    {
+      v_set=1;
+      for (j=0;j<n_vert;j++)
+      {
+        vu_[j] = vert[j]->x*u.x + vert[j]->y*u.y + vert[j]->z*u.z;
+        vv_[j] = vert[j]->x*v.x + vert[j]->y*v.y + vert[j]->z*v.z;
+      }
+    }
+/* Test for internal intersection point in wall coordinate space */
+    temp=0;    
+    for (j=0;j<n_vert;j++)
+    {
+      k = (j==0) ? n_vert-1 : j-1;
+      if ( (vu_[k] < cu && cu <= vu_[j]) ||
+           (vu_[k] >= cu && cu > vu_[j]) )
+      {
+        r = (cu - vu_[k])/(vu_[j] - vu_[k]);
+        if ( (vv_[k] + r*(vv_[j]-vv_[k])) > cv ) temp++;
+      }
+    }
+    if (temp & 1) return 8+i;
+  }
+  
+  return 0;
+#undef n_vert
 }
 
 
@@ -1214,6 +1398,8 @@ struct wall* distribute_wall(struct wall *w)
     h = z_min + (world->nz_parts - 1)*(y_min + (world->ny_parts - 1)*x_min);
     where_am_i = localize_wall( w , world->subvol[h].mem );
     wall_to_vol( where_am_i , &(world->subvol[h]) );
+/*    if (!clip_polygon(&llf,&urb,w->vert,3)) printf("This wall doesn't belong in the only box it intersects?!\n"); */
+    if (!wall_in_box(w->vert,&(w->normal),w->d,&llf,&urb)) printf("This wall doesn't belong in the only box it intersects?!\n");
     return where_am_i;
   }
 
@@ -1258,7 +1444,9 @@ struct wall* distribute_wall(struct wall *w)
         urb.x = world->x_fineparts[ world->subvol[h].urb.x ] - 100*EPS_C;
         urb.y = world->y_fineparts[ world->subvol[h].urb.y ] - 100*EPS_C;
         urb.z = world->z_fineparts[ world->subvol[h].urb.z ] - 100*EPS_C;
-        if (intersect_box(&llf,&urb,w)) wall_to_vol( where_am_i , &(world->subvol[h]) );
+/*        if (intersect_box(&llf,&urb,w)) wall_to_vol( where_am_i , &(world->subvol[h]) ); */
+/*        if (clip_polygon(&llf,&urb,w->vert,3)) wall_to_vol( where_am_i , &(world->subvol[h]) ); */
+        if (wall_in_box(w->vert,&(w->normal),w->d,&llf,&urb)) wall_to_vol( where_am_i , &(world->subvol[h]) );
       }
     }
   }
