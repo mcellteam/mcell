@@ -1453,10 +1453,47 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   cross_prod(&vA , &vB , &vX);
   w->area = 0.5 * vect_length(&vX);
 
+  if(w->area == 0)
+  {
+	/* this is a degenerate polygon. 
+         * perform initialization and quit. */
+  	w->unit_u.x = 0;
+  	w->unit_u.y = 0;
+  	w->unit_u.z = 0;
+
+  	w->normal.x = 0;
+  	w->normal.y = 0;
+  	w->normal.z = 0;
+
+  	w->unit_v.x = 0;
+  	w->unit_v.y = 0;
+  	w->unit_v.z = 0;
+	w->d = 0;
+  	w->uv_vert1_u = 0;
+  	w->uv_vert2.u = 0; 
+  	w->uv_vert2.v = 0;
+
+  	w->mol = NULL;
+  	w->mol_count = 0;
+  	w->effectors = NULL;
+  	w->viz_state = EXCLUDE_OBJ; 
+  	if (objp->viz_state!=NULL) {
+    		w->viz_state=objp->viz_state[side];
+  	}
+  	else {
+    		w->viz_state=EXCLUDE_OBJ;
+  	}
+
+  	w->parent_object = objp;
+  	w->flags=0;
+  	w->regions = NULL;
+
+	return;
+  }
+
   fx = (v1->x - v0->x);
   fy = (v1->y - v0->y);
   fz = (v1->z - v0->z);
-  if((fx == 0) && (fy == 0) && (fz == 0)) return;
   f = 1 / sqrt( fx*fx + fy*fy + fz*fz );
   
   w->unit_u.x = fx * f;
@@ -1466,7 +1503,6 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   fx = (v2->x - v0->x);
   fy = (v2->y - v0->y);
   fz = (v2->z - v0->z);
-  if((fx == 0) && (fy == 0) && (fz == 0)) return;
 
   w->normal.x = w->unit_u.y * fz - w->unit_u.z * fy;
   w->normal.y = w->unit_u.z * fx - w->unit_u.x * fz;
