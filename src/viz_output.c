@@ -48,7 +48,7 @@ void update_frame_data_list(struct frame_data_list *fdlp)
   log_file=world->log_file;
   
   while (fdlp!=NULL) {
-    if(world->it_time==fdlp->viz_iteration+1) /* Finished with viz_iteration'th timestep */
+    if(world->it_time==fdlp->viz_iteration)
     {
       switch (world->viz_mode)
       {

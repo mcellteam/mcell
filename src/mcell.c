@@ -36,6 +36,7 @@ void run_sim(void)
   double next_release_time;
   int i;
   int count;
+  double not_yet;
   long long total_coll_1,total_coll_2;
   double total_len;
   int frequency;
@@ -61,11 +62,13 @@ void run_sim(void)
   
   while (world->it_time <= world->iterations+1) /* One extra loop for final output */
   {
+    not_yet = world->it_time + 1.0;
     
-    for ( req=schedule_next(world->releaser) ;
-          req!=NULL || world->it_time>=world->releaser->now ;
+    for ( req=NULL ;
+          req!=NULL || not_yet>=world->releaser->now ;
 	  req=schedule_next(world->releaser)) 
     {
+      if (req==NULL) continue;
       if ( release_molecules(req) )
       {
 	printf("Out of memory while releasing molecules of type %s\n",req->release_site->mol_type->sym->name);
@@ -81,7 +84,7 @@ void run_sim(void)
     }
 
     for ( obp=NULL ;
-          obp!=NULL || world->it_time>=world->count_scheduler->now ;
+          obp!=NULL || not_yet>=world->count_scheduler->now ;
 	  obp=schedule_next(world->count_scheduler) )
     {
       if (obp==NULL) continue;
@@ -111,9 +114,9 @@ void run_sim(void)
     
     for (local = world->storage_head ; local != NULL ; local = local->next)
     {
-      while (local->store->current_time <= world->it_time)
+      while (local->store->current_time <= not_yet)
       {
-        run_timestep( local->store , next_release_time , (double)world->iterations );
+        run_timestep( local->store , next_release_time , (double)world->iterations+1.0 );
       }
     }
     
