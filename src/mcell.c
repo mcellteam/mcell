@@ -247,7 +247,7 @@ int main(int argc, char **argv) {
 
   if ((world=(struct volume *)malloc(sizeof(struct volume)))==NULL) {
     fprintf(err_file,"MCell: could not store world volume data structure\n");
-    exit(1);
+    exit(EXIT_FAILURE);
   }
   world->log_file=log_file;
   world->err_file=err_file;
@@ -305,7 +305,7 @@ int main(int argc, char **argv) {
 
   if (init_sim()) {
     fprintf(log_file,"MCell: error initializing simulation\n");
-    return(1);
+    exit(EXIT_FAILURE);
   }
 
   printf("Running...\n");
