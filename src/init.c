@@ -1352,7 +1352,6 @@ int init_wall_regions(struct object *objp, char *full_name)
               w->flags|=rp->flags;
             }
 
-            w->surf_class = rp->surf_class;  /* (Re?)set surface class */
  
             /* prepend region eff data for this region
               to eff_prop for i_th wall */
@@ -1378,25 +1377,29 @@ int init_wall_regions(struct object *objp, char *full_name)
 
             /* prepend surf_class eff data for this region
               to eff_prop for i_th wall */
-            effdp=rp->surf_class->eff_dat_head;
-            while (effdp!=NULL) {
-              if (effdp->quantity_type==EFFDENS) {
-                if ((dup_effdp=(struct eff_dat *)malloc
-                     (sizeof(struct eff_dat)))==NULL){
-                  return(1);
+            if (rp->surf_class != NULL) {
+              w->surf_class = rp->surf_class;  /* (Re?)set surface class */
+              effdp=rp->surf_class->eff_dat_head;
+              while (effdp!=NULL) {
+                if (effdp->quantity_type==EFFDENS) {
+                  if ((dup_effdp=(struct eff_dat *)malloc
+                       (sizeof(struct eff_dat)))==NULL){
+                    return(1);
+                  }
+                  dup_effdp->eff=effdp->eff;
+                  dup_effdp->quantity_type=effdp->quantity_type;
+                  dup_effdp->quantity=effdp->quantity;
+                  dup_effdp->orientation=effdp->orientation;
+                  dup_effdp->next=eff_prop[i];
+                  eff_prop[i]=dup_effdp;
                 }
-                dup_effdp->eff=effdp->eff;
-                dup_effdp->quantity_type=effdp->quantity_type;
-                dup_effdp->quantity=effdp->quantity;
-                dup_effdp->orientation=effdp->orientation;
-                dup_effdp->next=eff_prop[i];
-                eff_prop[i]=dup_effdp;
+                else {
+                  reg_eff_num=1;
+                }
+                effdp=effdp->next;
               }
-              else {
-                reg_eff_num=1;
-              }
-              effdp=effdp->next;
             }
+
           }
         }
         elp=elp->next;
