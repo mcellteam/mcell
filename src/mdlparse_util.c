@@ -548,7 +548,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   struct rxn *rx;
   struct rxn **rx_tbl;
   struct t_func *tp;
-  double pb_factor,D_tot,rate;
+  double pb_factor,D_tot,rate,t_step;
   short geom;
   int i,j,k,kk,k2;
   int recycled1,recycled2,recycled3;
@@ -880,21 +880,24 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                   (rx->players[1]->flags & (IS_SURFACE | ON_GRID)) != 0) &&
                  rx->n_reactants == 2)
         {
-          if ((rx->players[0]->flags & (IS_SURFACE | ON_SURFACE | ON_GRID))==0)
+          if ((rx->players[0]->flags & NOT_FREE)==0)
           {
             D_tot = rx->players[0]->D_ref;
+	    t_step = rx->players[0]->time_step * mpvp->vol->time_unit;
           }
-          else if ((rx->players[1]->flags & (IS_SURFACE | ON_SURFACE | ON_GRID))==0)
+          else if ((rx->players[1]->flags & NOT_FREE)==0)
           {
             D_tot = rx->players[1]->D_ref;
+	    t_step = rx->players[1]->time_step * mpvp->vol->time_unit;
           }
           else
           {
             D_tot = 1.0; /* Placeholder */
+	    t_step = 1.0;
             /* TODO: handle surface/grid collisions */
           }
           
-          pb_factor = 1.0e11*mpvp->vol->effector_grid_density/(2.0*N_AV)*sqrt( MY_PI * mpvp->vol->time_unit / D_tot );
+          pb_factor = 1.0e11*mpvp->vol->effector_grid_density/(2.0*N_AV)*sqrt( MY_PI * t_step / D_tot );
           if ( (rx->geometries[0]+rx->geometries[1])*(rx->geometries[0]-rx->geometries[1]) == 0 ) pb_factor *= 2.0;
 
           rx->cum_rates[0] = pb_factor * rx->cum_rates[0];
@@ -919,7 +922,29 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         }
         else
         {
+	  double eff_vel_a = rx->players[0]->space_step/rx->players[0]->time_step;
+	  double eff_vel_b = rx->players[1]->space_step/rx->players[1]->time_step;
+	  double eff_vel;
+
           pb_factor=0;
+	  
+	  if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
+	  {
+	    printf("Error: Reaction between %s and %s listed, but both marked TARGET_ONLY\n",
+	           rx->players[0]->sym->name,rx->players[1]->sym->name);
+            return 1;
+	  }
+	  else if (rx->players[0]->flags & CANT_INITIATE) eff_vel_a = 0;
+	  else if (rx->players[1]->flags & CANT_INITIATE) eff_vel_b = 0;
+	  
+	  if (eff_vel_a + eff_vel_b > 0)
+	  {
+	    eff_vel = (eff_vel_a + eff_vel_b) * mpvp->vol->length_unit / mpvp->vol->time_unit;   /* Units=um/sec */
+	    pb_factor = 1.0 / (2.0 * sqrt(MY_PI) * mpvp->vol->rx_radius_3d * mpvp->vol->rx_radius_3d * eff_vel);
+	    pb_factor *= 1.0e15 / N_AV;                                      /* Convert L/mol.s to um^3/number.s */
+	  }
+
+#if 0	  
           D_tot=rx->players[0]->D_ref+rx->players[1]->D_ref+2.0*sqrt(rx->players[0]->D_ref*rx->players[1]->D_ref);
           if (D_tot>0) {
             if (rx->geometries[0]==0) {
@@ -933,6 +958,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               }
             }
           }
+#endif
+	  
           rx->cum_rates[0]=pb_factor*rx->cum_rates[0];
           printf("Rate %.4e (l) set for %s[%d] + %s[%d] -> ",rx->cum_rates[0],
                  rx->players[0]->sym->name,rx->geometries[0],

@@ -105,6 +105,7 @@ struct counter_list *cnt;
 %token <tok> COS
 %token <tok> COUNT
 %token <tok> CUSTOM_RK
+%token <tok> CUSTOM_TIME_STEP
 %token <tok> CUBIC_RELEASE_SITE
 %token <tok> CUMULATE_FOR_EACH_TIME_STEP
 %token <tok> DBL_ARROW
@@ -233,6 +234,7 @@ struct counter_list *cnt;
 %token <tok> SEED
 %token <tok> SIN
 %token <tok> SITE_DIAMETER
+%token <tok> SPACE_STEP
 %token <tok> SPECIFIED_EFFECTORS
 %token <tok> SPECIFIED_MOLECULES
 %token <tok> SPHERICAL_RELEASE_SITE
@@ -250,6 +252,7 @@ struct counter_list *cnt;
 %token <tok> SURFACE_POSITIONS
 %token <tok> SURFACE_STATES
 %token <tok> TAN
+%token <tok> TARGET_ONLY
 %token <tok> TIME_LIST
 %token <tok> TIME_STEP
 %token <tod> TIME_STEP_MAX
@@ -285,6 +288,7 @@ struct counter_list *cnt;
 %type <tok> mdl_stmt
 %type <tok> time_def
 %type <tok> time_max_def
+%type <tok> space_def
 %type <tok> iteration_def
 %type <tok> grid_density_def
 %type <tok> interact_radius_def
@@ -353,7 +357,8 @@ struct counter_list *cnt;
 %type <dbl> intOrReal 
 %type <dbl> diffusion_def
 %type <dbl> reference_diffusion_def
-%type <dbl> charge_def
+%type <dbl> mol_timestep_def
+%type <dbl> target_def
 %type <dbl> atomic_rate
 
 %type <str> str_value
@@ -474,6 +479,7 @@ mdl_stmt_list: mdl_stmt
 
 mdl_stmt: time_def
         | time_max_def
+	| space_def
 	| iteration_def
 	| grid_density_def
         | interact_radius_def
@@ -1362,11 +1368,24 @@ no_printf("Time unit = %g\n",volp->time_unit);
 fflush(stderr);
 };
 
+space_def: SPACE_STEP '=' num_expr
+{
+volp->space_step=$<dbl>3;
+if (volp->space_step<0) {
+  sprintf(mdlpvp->mdl_err_msg,"Space step = %g\n\tSetting to %g\n",volp->space_step,-volp->space_step);
+  mdl_warning(mdlpvp);
+  volp->space_step = -volp->space_step;
+}
+no_printf("Space step = %g\n",volp->space_step);
+volp->space_step /= volp->length_unit; /* Use internal units */
+fflush(stderr);
+};
+
 time_max_def: TIME_STEP_MAX '=' num_expr
 {
 volp->time_step_max = $<dbl>3;
 if (volp->time_step_max<0) {
-  sprintf(mdlpvp->mdl_err_msg,"Maximum time step = %g\n\tSetting to %g\n",volp->time_unit,-volp->time_step_max);
+  sprintf(mdlpvp->mdl_err_msg,"Maximum time step = %g\n\tSetting to %g\n",volp->time_step_max,-volp->time_step_max);
   mdl_warning(mdlpvp);
   volp->time_step_max=-volp->time_step_max;
 }
@@ -1528,12 +1547,13 @@ molecule_stmt: new_molecule '{'
 }
 	reference_diffusion_def
 	diffusion_def
-        charge_def
+        mol_timestep_def
+	target_def
 	'}'
 {
   mdlpvp->specp->D_ref=$<dbl>4;
   mdlpvp->specp->D=$<dbl>5;
-  mdlpvp->specp->charge=(int) $<dbl>6;
+  mdlpvp->specp->time_step=$<dbl>6;
   if (volp->time_unit==0) {
     sprintf(mdlpvp->mdl_err_msg,"%s %s","TIME_STEP not yet specified.  Cannot define molecule:",mdlpvp->specp->sym->name);
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
@@ -1544,7 +1564,33 @@ molecule_stmt: new_molecule '{'
   }
   mdlpvp->mc_factor=1.0e11*volp->effector_grid_density*sqrt(MY_PI*volp->time_unit)/N_AV;
   mdlpvp->transport_mc_factor=6.2415e18*mdlpvp->mc_factor;
-  mdlpvp->specp->space_step=sqrt(4.0*1.0e8*mdlpvp->specp->D*volp->time_unit)/volp->length_unit;
+
+  if (mdlpvp->specp->time_step != 0.0) /* Custom timestep */
+  {
+    mdlpvp->specp->space_step = sqrt( 4.0 * 1.0e8 * mdlpvp->specp->D * mdlpvp->specp->time_step ) / volp->length_unit;
+    mdlpvp->specp->time_step /= volp->time_unit;
+  }
+  else if (volp->space_step==0) /* Global timestep */
+  {
+    mdlpvp->specp->space_step=sqrt(4.0*1.0e8*mdlpvp->specp->D*volp->time_unit)/volp->length_unit;
+    mdlpvp->specp->time_step=1.0;
+  }
+  else if (mdlpvp->specp->D==0) /* Immobile (boring) */
+  {
+    mdlpvp->specp->space_step=0.0;
+    mdlpvp->specp->time_step=1.0;
+  }
+  else /* Global spacestep */
+  {
+    mdlpvp->specp->space_step = volp->space_step;
+    mdlpvp->specp->time_step = (volp->space_step*volp->space_step*volp->length_unit*volp->length_unit)*MY_PI/(16.0 * 1.0e8 * mdlpvp->specp->D);
+  }
+  
+  if ($<dbl>7 != 0.0)
+  {
+    mdlpvp->specp->flags |= CANT_INITIATE;
+  }
+  
   if (volp->r_step==NULL) {
     if ((volp->r_step=init_r_step(volp->radial_subdivisions))==NULL) {
       mdlerror("Cannot store r_step data for molecule");
@@ -1570,17 +1616,33 @@ molecule_stmt: new_molecule '{'
     max_diffusion_step=mdlpvp->specp->space_step*r_step[volp->radial_subdivisions-1];
   }
 */
-  mdlpvp->l_perp_bar=sqrt(4*1.0e8*mdlpvp->specp->D*volp->time_unit/MY_PI);
-  mdlpvp->l_perp_rms=sqrt(2*1.0e8*mdlpvp->specp->D*volp->time_unit);
-  mdlpvp->l_r_bar=2*mdlpvp->l_perp_bar;
-  mdlpvp->l_r_rms=sqrt(6*1.0e8*mdlpvp->specp->D*volp->time_unit);
-  if (volp->procnum == 0) {
+  
+  if (mdlpvp->specp->time_step==1.0)
+  {
+    mdlpvp->l_perp_bar=sqrt(4*1.0e8*mdlpvp->specp->D*volp->time_unit/MY_PI);
+    mdlpvp->l_perp_rms=sqrt(2*1.0e8*mdlpvp->specp->D*volp->time_unit);
+    mdlpvp->l_r_bar=2*mdlpvp->l_perp_bar;
+    mdlpvp->l_r_rms=sqrt(6*1.0e8*mdlpvp->specp->D*volp->time_unit);
+    if (volp->procnum == 0) {
 #ifdef DEBUG
-    fprintf(volp->log_file,"\nMCell: Theoretical average diffusion distances for molecule %s:\n\n",mdlpvp->specp->sym->name);
-    fprintf(volp->log_file,"\tl_r_bar = %.9g microns\n",mdlpvp->l_r_bar);
-    fprintf(volp->log_file,"\tl_r_rms = %.9g microns\n",mdlpvp->l_r_rms);
-    fprintf(volp->log_file,"\tl_perp_bar = %.9g microns\n",mdlpvp->l_perp_bar);
-    fprintf(volp->log_file,"\tl_perp_rms = %.9g microns\n\n",mdlpvp->l_perp_rms);
+      fprintf(volp->log_file,"\nMCell: Theoretical average diffusion distances for molecule %s:\n\n",mdlpvp->specp->sym->name);
+      fprintf(volp->log_file,"\tl_r_bar = %.9g microns\n",mdlpvp->l_r_bar);
+      fprintf(volp->log_file,"\tl_r_rms = %.9g microns\n",mdlpvp->l_r_rms);
+      fprintf(volp->log_file,"\tl_perp_bar = %.9g microns\n",mdlpvp->l_perp_bar);
+      fprintf(volp->log_file,"\tl_perp_rms = %.9g microns\n\n",mdlpvp->l_perp_rms);
+#endif
+    }
+  }
+  else
+  {
+#ifdef DEBUG
+    if (volp->procnum == 0)
+    {
+      fprintf(volp->log_file,"\nMCell: Theoretical average diffusion time for molecule %s:\n",mdlpvp->specp->sym->name);
+      fprintf(volp->log_file,"\tl_r_bar fixed at %.9g microns\n",mdlpvp->specp->space_step*2.0/sqrt(MY_PI));
+      fprintf(volp->log_file,"\tPosition update every %.2e microseconds (%.4g timesteps)\n\n",
+              mdlpvp->specp->time_step*mdlpvp->time_unit,mdlpvp->specp->time_step);
+    }
 #endif
   }
   no_printf("Molecule %s defined with D = %g\n",mdlpvp->specp->sym->name,mdlpvp->specp->D);
@@ -1693,13 +1755,22 @@ reference_diffusion_def: /* empty */
 };
 
 
-charge_def: /* empty */
+mol_timestep_def: /* empty */
 {
-  $$=1;
+  $$=0.0;
 }
-	| CHARGE '=' num_expr
+	| CUSTOM_TIME_STEP '=' num_expr
 {
   $$=$<dbl>3;
+};
+
+target_def: /* empty */
+{
+  $$ = 0.0;
+}
+	| TARGET_ONLY
+{
+  $$=1.0;
 };
 
 

@@ -29,6 +29,7 @@
 #define CAN_MOLGRID      0x20
 #define CAN_MOLSURF      0x40
 #define CAN_MOLWALL      0x80
+#define CANT_INITIATE    0x100
 #define COUNT_CONTENTS   0x1000
 #define COUNT_HITS       0x2000
 #define COUNT_SOME       0x3000
@@ -414,8 +415,8 @@ struct species
   double D_ref;                 /* Reference diffusion constant */
   double radius;                /* Molecular radius */
   double space_step;            /* Characteristic step length */
-/*double time_step;*/           /* Minimum (maximum?) sensible timestep */
-  short charge;                 /* Electric charge. */
+  double time_step;             /* Minimum (maximum?) sensible timestep */
+/*short charge;*/               /* Electric charge. */
   u_short flags;                /* Free?  Membrane bound?  Membrane? */
   
   int viz_state;                /* Visualization state for output */
@@ -809,6 +810,7 @@ struct volume
   struct species *g_surf;
   double time_unit;
   double time_step_max;
+  double space_step;
   double length_unit;
   double effector_grid_density;
   double rx_radius_3d;

@@ -211,7 +211,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       specp->D_ref=0.0;
       specp->radius=0.0;
       specp->space_step=0.0;
-      specp->charge=0;
+      specp->time_step=0.0;
       specp->flags=0;
       specp->viz_state=EXCLUDE_OBJ;
 /*

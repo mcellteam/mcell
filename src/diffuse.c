@@ -551,6 +551,7 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   double d2_nearmax;
   double d2min = GIGANTIC;
   double steps=1.0;
+  double t_steps=1.0;
   double factor;
   double rate_factor=1.0;
   double x,xx;
@@ -595,7 +596,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   
   shead = NULL;
   old_mp = NULL;
-  if ( (sm->flags & CAN_MOLMOL) != 0 )
+  if ( (sm->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL )
   {
     for (mp = sv->mol_head ; mp != NULL ; old_mp = mp , mp = mp->next_v)
     {
@@ -646,7 +647,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       d2_nearmax = sm->space_step * world->r_step[ (int)(world->radial_subdivisions * MULTISTEP_PERCENTILE) ];
       d2_nearmax *= d2_nearmax;
     
-      if ( (sm->flags & CAN_MOLMOL) != 0 )
+      if ( (sm->flags & (CAN_MOLMOL|CANT_INITIATE)) == CAN_MOLMOL )
       {
         for (smash = shead ; smash != NULL ; smash = smash->next)
         {
@@ -660,7 +661,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       for (wl = sv->wall_head ; wl!=NULL ; wl = wl->next)
       {
         w = wl->this_wall;
-        d2 = w->normal.x*m->pos.x + w->normal.y*m->pos.y + w->normal.z*m->pos.z;
+        d2 = (w->normal.x*m->pos.x + w->normal.y*m->pos.y + w->normal.z*m->pos.z) - w->d;
         d2 *= d2;
         if (d2 < d2min) d2min = d2;
       }
@@ -692,11 +693,17 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       if (d2min < d2_nearmax) steps = 1.0;
       else if ( d2_nearmax*max_time < d2min ) steps = (1.0+EPS_C)*max_time;
       else steps = d2min / d2_nearmax;
-      
+            
       if (steps < MULTISTEP_WORTHWHILE) steps = 1.0;
     }
-    else if (max_time < MULTISTEP_FRACTION) steps = max_time;
     else steps = 1.0;
+    
+    t_steps = steps * sm->time_step;
+    if (t_steps > max_time)
+    {
+      t_steps = max_time;
+      steps = max_time / sm->time_step;
+    }
     
     if (steps == 1.0)
     {
@@ -758,7 +765,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         
         j = outcome_bimolecular(
                 rx,i,(struct abstract_molecule*)m,
-                am,0,0,m->t+steps*smash->t,&(smash->loc)
+                am,0,0,m->t+t_steps*smash->t,&(smash->loc)
               );
         
         if (j) continue;
@@ -906,7 +913,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     l = outcome_bimolecular(
                       rx,i,(struct abstract_molecule*)m,
                       (struct abstract_molecule*)g,
-                      k,g->orient,m->t+steps*smash->t,&(smash->loc)
+                      k,g->orient,m->t+t_steps*smash->t,&(smash->loc)
                     );
                     
                     if (l==1)
@@ -952,7 +959,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     {
                       j = outcome_intersect(
                               rx,i,w,(struct abstract_molecule*)m,
-                              k,m->t + steps*smash->t,&(smash->loc)
+                              k,m->t + t_steps*smash->t,&(smash->loc)
                             );
                       if (j==1)
                       {
@@ -1037,7 +1044,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     l = outcome_bimolecular(
                       rx,i,(struct abstract_molecule*)m,
                       (struct abstract_molecule*)g,
-                      k,g->orient,m->t+steps*smash->t,&(smash->loc)
+                      k,g->orient,m->t+t_steps*smash->t,&(smash->loc)
                     );
                     
                     if (l==1)
@@ -1090,7 +1097,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
               {
                 j = outcome_intersect(
                         rx,i,w,(struct abstract_molecule*)m,
-                        k,m->t + steps*smash->t,&(smash->loc)
+                        k,m->t + t_steps*smash->t,&(smash->loc)
                       );
                 if (j==1)
                 {
@@ -1122,12 +1129,11 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         m->pos.y += displacement.y * smash->t;
         m->pos.z += displacement.z * smash->t;
         tell_loc(m,"Boing!!  ");
-        m->t += steps*smash->t;
-        m->path_length += sqrt( smash->t*smash->t*
-                                ( displacement.x * displacement.x +
-                                  displacement.y * displacement.y +
-                                  displacement.z * displacement.z ) );
-        steps *= (1.0-smash->t);
+        m->t += t_steps*smash->t;
+        m->path_length += t_steps*smash->t*sqrt(( displacement.x * displacement.x +
+                                                  displacement.y * displacement.y +
+                                                  displacement.z * displacement.z ) );
+        t_steps *= (1.0-smash->t);
         
         factor = -2.0 * (displacement.x*w->normal.x + displacement.y*w->normal.y + displacement.z*w->normal.z);
         displacement.x = (displacement.x + factor*w->normal.x) * (1.0-smash->t);
@@ -1151,9 +1157,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         displacement.y *= (1.0-smash->t);
         displacement.z *= (1.0-smash->t);
         
-        m->t += steps*smash->t;
-        steps *= (1.0-smash->t);
-        if (steps < EPS_C) steps = EPS_C;
+        m->t += t_steps*smash->t;
+        t_steps *= (1.0-smash->t);
+        if (t_steps < EPS_C) t_steps = EPS_C;
 
         nsv = traverse_subvol(sv,&(m->pos),smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL);
         if (nsv==NULL)
@@ -1190,7 +1196,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   m->pos.y += displacement.y;
   m->pos.z += displacement.z;
   tell_loc(m,"Whew...  ");
-  m->t += steps;
+  m->t += t_steps;
   m->path_length += sqrt( displacement.x*displacement.x +
                           displacement.y*displacement.y +
                           displacement.z*displacement.z );

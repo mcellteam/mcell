@@ -641,8 +641,6 @@ void set_partitions()
   dfy = 1e-3 + (world->bb_max.y - world->bb_min.y)/8191.0;
   dfz = 1e-3 + (world->bb_max.z - world->bb_min.z)/8191.0;
  
-//  f_min = world->bb_min.x - 1e-3 - (world->bb_max.x - world->bb_min.x)/8191.0;
-//  f_max = world->bb_max.x + 1e-3 + (world->bb_max.x - world->bb_min.x)/8191.0;
   f_min = world->bb_min.x - dfx;
   f_max = world->bb_max.x + dfx;
   if (f_max - f_min < 0.1/world->length_unit)
@@ -666,8 +664,6 @@ void set_partitions()
   for (i=1;i<=4096;i++) world->x_fineparts[4096+16383+i] = A*exp(i*k)+B;
   dfx = df;
 
-//  f_min = world->bb_min.y - 1e-3 - (world->bb_max.y - world->bb_min.y)/8191.0;
-//  f_max = world->bb_max.y + 1e-3 + (world->bb_max.y - world->bb_min.y)/8191.0;
   f_min = world->bb_min.y - dfy;
   f_max = world->bb_max.y + dfy;
   if (f_max - f_min < 0.1/world->length_unit)
@@ -691,8 +687,6 @@ void set_partitions()
   for (i=1;i<=4096;i++) world->y_fineparts[4096+16383+i] = A*exp(i*k)+B;
   dfy = df;
 
-//  f_min = world->bb_min.z - 1e-3 - (world->bb_max.z - world->bb_min.z)/8191.0;
-//  f_max = world->bb_max.z + 1e-3 + (world->bb_max.z - world->bb_min.z)/8191.0;
   f_min = world->bb_min.z - dfz;
   f_max = world->bb_max.z + dfz;
   if (f_max - f_min < 0.1/world->length_unit)
