@@ -30,7 +30,7 @@ int bisect(double *list,int n,double val)
   while (hi-lo > 1)
   {
     mid = (hi+lo)/2;
-    if (list[mid] <= val) hi = mid;
+    if (list[mid] > val) hi = mid;
     else lo = mid;
   }
   return lo;
@@ -65,10 +65,14 @@ struct subvolume* find_course_subvol(struct vector3 *loc)
 {
   int i,j,k;
   i = bisect(world->x_partitions,world->n_axis_partitions,loc->x);
-  j = bisect(world->x_partitions,world->n_axis_partitions,loc->y);
-  k = bisect(world->x_partitions,world->n_axis_partitions,loc->z);
-  
-  return &( world->subvol[i + (world->n_axis_partitions-1)*(j + (world->n_axis_partitions-1)*k)] );
+  j = bisect(world->y_partitions,world->n_axis_partitions,loc->y);
+  k = bisect(world->z_partitions,world->n_axis_partitions,loc->z);
+  return 
+    &( world->subvol
+      [
+        i + (world->n_axis_partitions-1)*(j + (world->n_axis_partitions-1)*k)
+      ]
+    );
 }
 
 
@@ -206,6 +210,7 @@ struct subvolume* find_subvolume(struct vector3 *loc,struct subvolume *guess)
   struct vector3 center;
   
   if (guess == NULL) sv = find_course_subvol(loc);
+  else sv = guess;
   
   center.x = 0.5*(world->x_partitions[ sv->llf.x ] + world->x_partitions[ sv->urb.x ]);
   center.y = 0.5*(world->y_partitions[ sv->llf.y ] + world->y_partitions[ sv->urb.y ]);
@@ -374,7 +379,6 @@ void release_molecules(struct release_event_queue *req)
   m.properties = rso->mol_type;
   
   m.t_inert = -1;  /* Schedule me! */
-  m.t = req->event_time;
   m.t2 = 0.0;
   m.curr_cmprt = NULL;
   

@@ -42,7 +42,6 @@ void outcome_products(struct wall *w,struct molecule *reac_m,
   struct grid_molecule *g;
   struct species *p;
   struct surface_grid *sg;
-  int nused = 0;
 
   i0 = rx->product_idx[path];
   iN = rx->product_idx[path+1];
@@ -208,7 +207,7 @@ void outcome_products(struct wall *w,struct molecule *reac_m,
     }
     
     bits = rng_uint( world->rng_idx++ );
-    for (i=iN-1;i>=i0;i--,bits>>1)
+    for (i=iN-1;i>=i0;i--,bits>>=1)
     {
       if ( ptype[i-i0] != 0 && (ptype[i-i0]!='m' || w!=NULL) )
       {

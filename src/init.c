@@ -269,6 +269,7 @@ int init_sim(void)
     fprintf(log_file,"MCell: error initializing species\n");
     return(1);
   }
+  no_printf("Done setting up species.\n");
 
   /* Initialize the geometry */
   if (init_geom()) {
@@ -276,10 +277,13 @@ int init_sim(void)
     return(1);
   }
   
+  no_printf("Done setting up geometry.\n");
+  
   if (init_partitions()) {
     fprintf(log_file,"MCell: error initializing partitions.\n");
     return(1);
   }
+  
 
 
   /* Decompose the space into subvolumes */
@@ -340,8 +344,32 @@ int init_sim(void)
 int init_species(void)
 {
   int i;
-  int count;
+  int count = 0;
   struct sym_table *gp;
+  
+/* FIX ME WHEN WE HAVE REACTIONS */
+  world->n_reactions = 0;
+  world->reaction_hash = (struct rxn**)malloc(sizeof(struct rxn*));
+  world->hashsize = 1;
+  world->reaction_hash[0] = (struct rxn*)malloc(sizeof(struct rxn));
+  world->reaction_hash[0]->next = NULL;
+  world->reaction_hash[0]->n_reactants = 1;
+  world->reaction_hash[0]->n_pathways = 1;
+  world->reaction_hash[0]->product_idx = (u_int*)malloc(sizeof(int));
+  world->reaction_hash[0]->product_idx[0] = 1;
+  world->reaction_hash[0]->cum_rates = (double*)malloc(sizeof(double));
+  world->reaction_hash[0]->cum_rates[0] = 1e-100;
+  world->reaction_hash[0]->cat_rates = world->reaction_hash[0]->cum_rates;
+  world->reaction_hash[0]->players = (struct species**)malloc(2*sizeof(struct species*));
+  world->reaction_hash[0]->players[0] = NULL;
+  world->reaction_hash[0]->players[1] = NULL;
+  world->reaction_hash[0]->geometries = (short*)malloc(2*sizeof(short));
+  world->reaction_hash[0]->geometries[0] = 0;
+  world->reaction_hash[0]->geometries[1] = 0;
+  world->reaction_hash[0]->geometries = (short*)malloc(2*sizeof(short));
+  world->reaction_hash[0]->fates = (byte*)malloc(sizeof(byte));
+  world->reaction_hash[0]->fates[0] = 0;
+/* END FIX ME*/
   
   for (i=0;i<HASHSIZE;i++)
   {
@@ -351,7 +379,7 @@ int init_species(void)
     }
   }
   
-  world->n_species = count;
+  world->n_species = count;  printf("Found %d species!\n",world->n_species);
   world->species_list = (struct species**)malloc(sizeof(struct species*)*world->n_species);
 
   count = 0;
@@ -362,6 +390,7 @@ int init_species(void)
       if (gp->sym_type==MOL)
       {
         world->species_list[count] = (struct species*) gp->value;
+        world->species_list[count]->hashval &= world->hashsize-1;
       }
     }
   }
@@ -381,6 +410,13 @@ int init_partitions(void)
   world->x_partitions = (double*)malloc(sizeof(double)*world->n_axis_partitions);
   world->y_partitions = (double*)malloc(sizeof(double)*world->n_axis_partitions);
   world->z_partitions = (double*)malloc(sizeof(double)*world->n_axis_partitions);
+  world->x_partitions[0] = - GIGANTIC;
+  world->x_partitions[1] = GIGANTIC;
+  world->y_partitions[0] = - GIGANTIC;
+  world->y_partitions[1] = GIGANTIC;
+  world->z_partitions[0] = - GIGANTIC;
+  world->z_partitions[1] = GIGANTIC;
+  
   
   world->n_fine_partitions = world->n_axis_partitions;
   world->x_fineparts = world->x_partitions;
@@ -405,12 +441,14 @@ int init_partitions(void)
     
     sv->index = -1;
     
-    sv->llf.x = world->x_partitions[i];
-    sv->llf.y = world->y_partitions[j];
-    sv->llf.z = world->z_partitions[k];
-    sv->urb.x = world->x_partitions[i+1];
-    sv->urb.y = world->y_partitions[j+1];
-    sv->urb.z = world->z_partitions[k+1];
+    sv->llf.x = i;
+    sv->llf.y = j;
+    sv->llf.z = k;
+    sv->urb.x = i+1;
+    sv->urb.y = j+1;
+    sv->urb.z = k+1;
+
+
     
     sv->is_bsp = 0;
     
@@ -432,7 +470,7 @@ int init_partitions(void)
     
     sv->mem->timer = create_scheduler(1.0,100.0,100,0.0);
     sv->mem->current_time = 0.0;
-    sv->mem->max_timestep = 100.0;
+    sv->mem->max_timestep = 1000.0;
   }
   
   world->binning = 0;

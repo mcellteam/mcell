@@ -108,11 +108,11 @@ struct rxn* trigger_bimolecular(int hashA,int hashB,
 
           /* If we are oriented, one of us is a surface or grid mol. */
           /* Try target first.  Moving molecule can't be grid mol. */
-          if (reacB->properties->flags & ON_SURFACE != 0)
+          if ((reacB->properties->flags & ON_SURFACE) != 0)
             w = ((struct surface_molecule*) reacB) -> curr_wall;
-          else if (reacB->properties->flags & ON_GRID != 0)
+          else if ((reacB->properties->flags & ON_GRID) != 0)
             w = (((struct grid_molecule*) reacB)->grid)->surface;
-          else if (reacA->properties->flags & ON_SURFACE != 0)
+          else if ((reacA->properties->flags & ON_SURFACE) != 0)
             w = ((struct surface_molecule*) reacA) -> curr_wall;
             
           /* If a wall was found, we keep going to check.... */

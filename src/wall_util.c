@@ -576,3 +576,52 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
   }
   else return COLLIDE_MISS;
 }
+
+
+/***************************************************************************
+collide_mol:
+  In: starting coordinate
+      vector to move along
+      molecule we're checking for a collision
+      double to store time of collision
+      vector to store the location of the collision
+  Out: Integer value indicating what happened
+         COLLIDE_MISS   missed
+         COLLIDE_MOL_M  hit
+  Note: t and/or hitpt may be modified even if there is no collision
+        Not highly optimized yet.
+***************************************************************************/
+
+int collide_mol(struct vector3 *point,struct vector3 *move,
+                struct abstract_molecule *a,double *t,struct vector3 *hitpt)
+{
+  struct vector3 dir;
+  struct vector3 *pos;
+  double movelen2,d,dirlen2;
+  double sigma2;
+  
+  if ((a->properties->flags & ON_GRID)!=0) return COLLIDE_MISS; /* Should never call on grid molecule! */
+  
+  if ((a->properties->flags & ON_SURFACE)==0) pos = &( ((struct molecule*)a)->pos );
+  else pos = &( ((struct surface_molecule*)a)->pos );
+  
+  sigma2 = a->properties->radius * a->properties->radius;
+  
+  dir.x = pos->x - point->x;
+  dir.y = pos->y - point->y;
+  dir.z = pos->z - point->z;
+  
+  d = dir.x*move->x + dir.y*move->y + dir.z*move->z;
+  
+  if (d<0) return COLLIDE_MISS;
+  
+  movelen2 = move->x*move->x + move->y*move->y + move->z*move->z;
+  
+  if (d > movelen2) return COLLIDE_MISS;
+  
+  dirlen2 = dir.x*dir.x + dir.y*dir.y + dir.z*dir.z;
+  
+  if (movelen2*dirlen2 - d*d > movelen2*sigma2) return COLLIDE_MISS;
+  
+  return COLLIDE_MOL_M;
+}

@@ -20,7 +20,7 @@
 void nullprintf(char *whatever,...) {}
 
 #define noprintf nullprintf
-#define Malloc malloc
+#define Malloc count_malloc
 
 int howmany_count_malloc = 0;
 

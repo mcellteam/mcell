@@ -11,10 +11,11 @@
 #include <math.h>
 #include <stdio.h>
 
-
-#include "mcell_structs.h"
+#include "rng.h"
 #include "mem_util.h"
 #include "sched_util.h"
+
+#include "mcell_structs.h"
 #include "vol_util.h"
 #include "wall_util.h"
 #include "react.h"
@@ -46,9 +47,9 @@ void pick_displacement(struct vector3 *v,double scale)
   {
     double h,r_sin_phi,theta;
     
-    r = scale * world->r_step[ rng_uint(world->rng_idx++) & (world->radial_subdivisions-1) ];
-    h = 2.0*rng_double(world->rng_idx++);
-    theta = 2.0*MY_PI*rng_double(world->rng_idx++);
+    r = scale * world->r_step[ rng_uint(world->seed++) & (world->radial_subdivisions-1) ];
+    h = 2.0*rng_double(world->seed++) - 1.0;
+    theta = 2.0*MY_PI*rng_double(world->seed++);
     
     r_sin_phi = r * sqrt(1.0 - h*h);
     
@@ -63,7 +64,7 @@ void pick_displacement(struct vector3 *v,double scale)
     uint bits;
     uint idx;
     
-    bits = rng_uint(world->rng_idx++);
+    bits = rng_uint(world->seed++);
     
     x_bit =        (bits & 0x8000000);
     y_bit =        (bits & 0x4000000);
@@ -76,7 +77,7 @@ void pick_displacement(struct vector3 *v,double scale)
     idx = (thetaphi_bit & world->directions_mask);
     while ( idx >= world->num_directions)
     {
-      idx = ( rng_uint(world->rng_idx++) & world->directions_mask);
+      idx = ( rng_uint(world->seed++) & world->directions_mask);
     }
     
     idx *= 3;
@@ -213,7 +214,7 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
 
   for ( ; c!=NULL ; c = c->next)
   {
-    i = collide_mol(&(m->pos),&v,(struct abstract_molecule*)c->target,
+    i = collide_mol(&(m->pos),v,(struct abstract_molecule*)c->target,
                     &(c->t),&(c->loc));
     if (i != COLLIDE_MISS)
     {
@@ -252,7 +253,7 @@ int diffuse_3D(struct molecule *m,double target_time)
   struct species *sm;
   double d2;
   double d2min = GIGANTIC;
-  double steps,taken;
+  double steps;
   double factor;
   
   int i,j,k;
@@ -328,11 +329,13 @@ int diffuse_3D(struct molecule *m,double target_time)
     if (steps > target_time - m->t) steps = (1.0+EPS_C)*(target_time - m->t);
   }
   else steps = 1.0;
+  
+  if (steps > sqrt(10.0)) steps = sqrt(10.0);
 
   pick_displacement(&displacement,steps*m->properties->space_step);
   sv = m->subvol;
   
-  steps *= 2;  /* Convert distance steps to time steps */
+  steps *= steps;  /* Convert distance steps to time steps */
   
   do
   {
@@ -655,7 +658,6 @@ void run_timestep(struct subvolume *sv)
       }
       else /* diffuse */
       {
-      
         j = diffuse_3D(m,-m->t2);
         if (j) /* still exists */
         {
@@ -665,6 +667,8 @@ void run_timestep(struct subvolume *sv)
             m->t = -m->t2;
             m->t2 = t;
           }
+          
+          schedule_add(sv->mem->timer,a);
         }
         
       }

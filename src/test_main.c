@@ -4,10 +4,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "rng.h"
 #include "strfunc.h"
 #include "argparse.h"
 #include "mdlparse.h"
 #include "vol_util.h"
+#include "diffuse.h"
 #include "init.h"
 
 struct volume *world;
@@ -15,15 +17,53 @@ struct volume *world;
 void run_sim(void)
 {
   struct release_event_queue *req;
+  int i;
+  
+  world->fully_random = 1;
+/*
+  for (i=0;i<10000;i++)
+  {
+    struct vector3 v;
+    pick_displacement(&v,1.0);
+    printf("vector = %7.3f %7.3f %7.3f\n",v.x,v.y,v.z);
+  }
+  return;
+*/  
+  
   while (world->it_time < world->iterations
 /*         && world->it_time < world->chkpt_iterations */
         )
   {
     req = schedule_next( world->releaser );
+    while (req != NULL)
+    {
+      release_molecules(req);
+      printf("Releasing! \n");
+      req = schedule_next( world->releaser );
+    }
     
-    if (req==NULL) world->it_time++;
-    else release_molecules(req);
+    for (i=0;i<world->n_subvols;i++)
+    {
+      run_timestep( &(world->subvol[i]) );
+    }
+    
+    world->it_time++;
+    printf("Iterations: %d of %d\n",world->it_time,world->iterations);
   }
+
+  for (i=0;i<world->n_subvols;i++)
+  {
+    struct molecule *mol = world->subvol[i].mol_head;
+    int j;
+    while (mol != NULL)
+    {
+      if (mol->properties == world->species_list[0]) j = 0;
+      else j = 1;
+      printf("location = %7.3f %7.3f %7.3f %d\n",mol->pos.x,mol->pos.y,mol->pos.z,j);
+      mol = mol->next_v;
+    }
+  }
+
 }
 
 int main(int argc, char **argv) {
@@ -97,8 +137,9 @@ int main(int argc, char **argv) {
     return(1);
   }
 
-  
+  printf("Running...\n");
   run_sim();
+  printf("Done running.\n");
   
   exit(0);
 }
