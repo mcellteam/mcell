@@ -5,7 +5,7 @@ SHELL = /bin/sh
 
 MCELL_VERSION = `head -1 ./mcell.h | cut -d " " -f 6`
 
-UTILITY_OBJS = strfunc.o vector.o rng.o diffuse_util.o mem_util.o sched_util.o grid_util.o  
+UTILITY_OBJS = strfunc.o vector.o rng.o diffuse_util.o mem_util.o sched_util.o grid_util.o util.o 
 PARSE_OBJS = argparse.bison.o mdlparse.bison.o mdlparse_util.o sym_table.o 
 COUNT_VIZ_OBJS = viz_output.o react_output.o count_util.o
 CORE_OBJS = react_cond.o react_outc.o react_trig.o wall_util.o vol_util.o diffuse.o init.o 
@@ -40,6 +40,8 @@ sched_util.o: makedefs sched_util.c sched_util.h
 grid_util.o: makedefs grid_util.c grid_util.h vol_util.h mcell_structs.h
 	$(CC) $(CFLAGS) -c grid_util.c
 
+util.o: makedefs util.c util.h
+	$(CC) $(CFLAGS) -c util.c 
 
 # parsing
 

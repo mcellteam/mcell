@@ -400,7 +400,8 @@
 /* Visualization modes. */
 #define NO_VIZ_MODE 0
 #define DX_MODE 1
-#define RK_MODE 2 
+#define DREAMM_V3_MODE 2
+#define RK_MODE 3 
 
 
 /* Visualization frame data types. */
@@ -411,8 +412,9 @@
 #define EFF_STATES 2
 #define MOL_POS 3
 #define MOL_STATES 4
-#define SURF_POS 5
-#define SURF_STATES 6
+#define MOL_POS_STATES 5
+#define SURF_POS 6
+#define SURF_STATES 7
 
 
 /* event types for release event queue */
@@ -1449,6 +1451,7 @@ struct num_expr_list {
   struct num_expr_list *next;
   double value;
 };
+ 
 
 #ifdef DEBUG
 #define no_printf printf

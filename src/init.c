@@ -1370,6 +1370,8 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
       }
     }
     objp->total_area=total_area;
+				printf("n_walls = %d\n", n_walls);
+				printf("n_walls_actual = %d\n", objp->n_walls_actual);
 
   return(0);
 }

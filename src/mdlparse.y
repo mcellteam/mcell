@@ -122,6 +122,7 @@ struct output_evaluator *cnt;
 %token <tok> DELAY
 %token <tok> DENSITY
 %token <tok> DX
+%token <tok> DREAMM_V3
 %token <tok> EFFECTOR
 %token <tok> EFFECTOR_GRID_DENSITY
 %token <tok> EFFECTOR_POSITIONS
@@ -167,6 +168,7 @@ struct output_evaluator *cnt;
 %token <tok> MOLECULE_NUMBER
 %token <tok> MOLECULE_POSITIONS
 %token <tok> MOLECULE_STATES
+%token <tok> MOLECULE_POSITIONS_STATES
 %token <tok> LOCATION
 %token <tok> LOG
 %token <tok> LOG10
@@ -4208,6 +4210,10 @@ viz_mode_def: MODE '=' NONE
 {
 	volp->viz_mode = DX_MODE; 
 }
+	| MODE '=' DREAMM_V3
+{
+	volp->viz_mode = DREAMM_V3_MODE; 
+}
 	| MODE '=' CUSTOM_RK
 {
   volp->viz_mode = RK_MODE;
@@ -4409,6 +4415,10 @@ frame_data_item:  ALL
 	| MOLECULE_STATES
 {
   $$=MOL_STATES;
+}
+	| MOLECULE_POSITIONS_STATES
+{
+  $$=MOL_POS_STATES;
 }
 	| SURFACE_POSITIONS
 {
