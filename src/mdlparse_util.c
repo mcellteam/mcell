@@ -301,6 +301,29 @@ struct region *make_new_region(struct volume *volp,char *obj_name,
 }
 
 
+struct region *retrieve_old_region(struct volume *volp,char *obj_name,
+			           char *region_last_name,char *err_msg)
+{
+  struct sym_table *gp;
+  char temp[1024];
+  char *region_name;
+
+  strncpy(temp,"",1024);
+  strncpy(temp,obj_name,1022);
+  strcat(temp,",");   
+  region_name=my_strcat(temp,region_last_name);
+  if(region_name == NULL) {
+	mdlerror("Memory allocation error\n");
+	return (NULL);
+  }
+  
+  gp=retrieve_sym(region_name,REG,volp->main_sym_table);
+  free(region_name);
+  
+  if (gp==NULL) return NULL;
+  else return((struct region *)gp->value);
+}
+
 /**
  * copy contents of objp2 into objp and make curr_objp be parent of objp 
  * it is assumed that objp has already been stored in symbol table
@@ -1411,6 +1434,9 @@ int check_patch(struct subdivided_box *b,struct vector3 *p1,struct vector3 *p2,d
   
   /* Check that we're a patch on one surface */
   if (nbits!=2) return 0;
+  if ( (i&BRANCH_X)==0 && p1->x != b->x[0] && p1->x != b->x[b->nx-1]) return 0;
+  if ( (i&BRANCH_Y)==0 && p1->y != b->y[0] && p1->y != b->y[b->ny-1]) return 0;
+  if ( (i&BRANCH_Z)==0 && p1->z != b->z[0] && p1->z != b->z[b->nz-1]) return 0;
   
   /* Sanity checks for sizes */
   if ((i&BRANCH_X)!=0 && (p1->x > p2->x || p1->x < b->x[0] || p2->x > b->x[b->nx-1])) return 0;
@@ -1464,11 +1490,13 @@ int refine_cuboid(struct vector3 *p1,struct vector3 *p2,struct subdivided_box *b
   double *new_list;
   int new_n;
   
-  printf("Refining subdivisions.\n");
-  
   i = check_patch(b,p1,p2,egd);
   
-  if (i==0) return 2; /* Error */
+  if (i==0)
+  {
+    mdlerror("Invalid patch specified");
+    return 1;
+  }
   
   if (i&BRANCH_X)
   {   
@@ -2199,12 +2227,15 @@ void remove_gaps_from_regions(struct object *ob)
   
   for (rl=ob->regions;rl!=NULL;rl=rl->next)
   {
+    printf("Checking region %s\n",rl->reg->sym->name);
     if (rl->reg->surf_class == (struct species*)&(rl->reg->surf_class))
     {
+      printf("Found a REMOVED region\n");
       rl->reg->surf_class=NULL;
       bit_operation(po->side_removed,rl->reg->membership,'+');
       set_all_bits(rl->reg->membership,0);
     }
+    else printf("Found a region with surface class %x stored at %x\n",(int)rl->reg->surf_class,(int)&(rl->reg->surf_class));
   }
   
   missing=0;
@@ -2218,6 +2249,26 @@ void remove_gaps_from_regions(struct object *ob)
   {
     bit_operation(rl->reg->membership,po->side_removed,'-');
   }
+  
+#ifdef DEBUG
+  printf("Sides for %s: ",ob->sym->name);  
+  for (i=0;i<po->side_removed->nbits;i++)
+  {
+    if (get_bit(po->side_removed,i)) printf("-");
+    else printf("#");
+  }
+  printf("\n");
+  for (rl=ob->regions;rl!=NULL;rl=rl->next)
+  {
+    printf("Sides for %s: ",rl->reg->sym->name);  
+    for (i=0;i<rl->reg->membership->nbits;i++)
+    {
+      if (get_bit(rl->reg->membership,i)) printf("+");
+      else printf(".");
+    }
+    printf("\n");
+  }
+#endif
 }
 
 int set_viz_state_value(struct object *objp, int viz_state)

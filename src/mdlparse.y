@@ -2979,6 +2979,7 @@ polygon_list_def: new_object POLYGON_LIST '{'
 	list_opt_object_cmds
 	'}'
 {
+  mdlpvp->curr_obj->regions=mdlpvp->region_list_head;
   remove_gaps_from_regions(mdlpvp->curr_obj);
   mdlpvp->n_walls_actual = mdlpvp->curr_obj->n_walls_actual;
   no_printf("Polygon list %s defined:\n",mdlpvp->curr_obj->sym->name);
@@ -2987,7 +2988,6 @@ polygon_list_def: new_object POLYGON_LIST '{'
   mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
   mdlpvp->curr_obj->parent->n_walls_actual+=mdlpvp->curr_obj->n_walls_actual;
   mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
-  mdlpvp->curr_obj->regions=mdlpvp->region_list_head;
   mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
   if (mdlpvp->object_name_list_end->prev!=NULL) {
     mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
@@ -3307,6 +3307,7 @@ box_def: new_object BOX '{'
 	list_opt_object_cmds
 	'}'
 {
+  mdlpvp->curr_obj->regions=mdlpvp->region_list_head;
   remove_gaps_from_regions(mdlpvp->curr_obj);
   mdlpvp->n_walls_actual = mdlpvp->curr_obj->n_walls_actual;
 #ifdef DEBUG
@@ -3319,7 +3320,6 @@ box_def: new_object BOX '{'
   mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
   mdlpvp->curr_obj->parent->n_walls_actual+=mdlpvp->curr_obj->n_walls_actual;
   mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
-  mdlpvp->curr_obj->regions=mdlpvp->region_list_head;
   mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
   if (mdlpvp->object_name_list_end->prev!=NULL) {
     mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
@@ -3345,25 +3345,33 @@ opt_polygon_object_cmd:
 
 remove_side: REMOVE_ELEMENTS '{'
 {
-  if ((mdlpvp->rp=make_new_region(volp,mdlpvp->obj_name,"REMOVED",mdlpvp->mdl_err_msg))==NULL) {
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
+  mdlpvp->rp = retrieve_old_region(volp,mdlpvp->obj_name,"REMOVED",mdlpvp->mdl_err_msg);
+  if (mdlpvp->rp==NULL)
+  {
+    if ((mdlpvp->rp=make_new_region(volp,mdlpvp->obj_name,"REMOVED",mdlpvp->mdl_err_msg))==NULL) {
+      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      return(1);
+    }
+    if ((mdlpvp->rlp=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
+      sprintf(mdlpvp->mdl_err_msg,"%s %s",
+	"Cannot store object default region name:",mdlpvp->rp->sym->name);
+      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      return(1);
+    }
+    mdlpvp->rp->region_last_name="REMOVED";
+    mdlpvp->rp->parent=mdlpvp->curr_obj;
+    mdlpvp->rp->reg_counter_ref_list=NULL;
+    mdlpvp->rp->surf_class=(struct species*)&mdlpvp->rp->surf_class;
+    mdlpvp->rlp->reg=mdlpvp->rp;
+    mdlpvp->rlp->next = mdlpvp->region_list_head;
+    mdlpvp->region_list_head = mdlpvp->rlp;
+    mdlpvp->objp->num_regions++;
+    mdlpvp->element_list_head = NULL;
   }
-  if ((mdlpvp->rlp=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s",
-      "Cannot store object default region name:",mdlpvp->rp->sym->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
+  else
+  {
+    mdlpvp->element_list_head = mdlpvp->rp->element_list_head;
   }
-  mdlpvp->rp->region_last_name="REMOVED";
-  mdlpvp->rp->parent=mdlpvp->curr_obj;
-  mdlpvp->rp->reg_counter_ref_list=NULL;
-  mdlpvp->rp->surf_class=(struct species*)mdlpvp->rp->surf_class;
-  mdlpvp->rlp->reg=mdlpvp->rp;
-  mdlpvp->rlp->next = mdlpvp->region_list_head;
-  mdlpvp->region_list_head = mdlpvp->rlp;
-  mdlpvp->objp->num_regions++;
-  mdlpvp->element_list_head = NULL;
 }
 	element_specifier_list '}'
 {
@@ -3587,7 +3595,11 @@ patch_statement: patch_type '=' point ',' point
   temp_urb = $<vec3>5;
   memcpy(&(mdlpvp->elmlp->special->corner1),temp_llf,sizeof(struct vector3));
   memcpy(&(mdlpvp->elmlp->special->corner2),temp_urb,sizeof(struct vector3));
-  refine_cuboid(temp_llf,temp_urb,mdlpvp->pop->sb,mdlpvp->vol->effector_grid_density);
+  if (refine_cuboid(temp_llf,temp_urb,mdlpvp->pop->sb,mdlpvp->vol->effector_grid_density))
+  {
+    mdlerror("Could not refine box to include new patch");
+    return 1;
+  }
   printf("Just put a patch on region %s\n",mdlpvp->rp->sym->name);
   free(temp_llf);
   free(temp_urb);

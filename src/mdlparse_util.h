@@ -18,6 +18,8 @@ struct object *make_new_object(struct volume *volp,char *obj_name,
 			       char *err_msg);
 struct region *make_new_region(struct volume *volp,char *obj_name,
 			       char *region_last_name,char *err_msg);
+struct region *retrieve_old_region(struct volume *volp,char *obj_name,
+			           char *region_last_name,char *err_msg);
 int copy_object(struct volume *volp,struct object *curr_objp,
 		struct object *objp,struct object *objp2, char *err_msg);
 char *concat_rx_name(char *name1, char *name2);

@@ -914,7 +914,7 @@ int is_manifold(struct region *r)
   wall_array = r->parent->wall_p;
   for (i=0;i<r->parent->n_walls;i++)
   {
-    if (get_bit(r->membership,i)) continue;  /* Skip removed wall */
+    if (!get_bit(r->membership,i)) continue;  /* Skip removed wall */
     w = wall_array[i];
     for (j=0;j<2;j++)
     {

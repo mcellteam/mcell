@@ -353,7 +353,7 @@ void set_bit(struct bit_array *ba, int idx, int value)
   
   ofs = idx & (8*sizeof(int) - 1);
   idx = idx / (8*sizeof(int));
-  ofs = -1 & (1 << ofs);
+  ofs = ~(1 << ofs);
   
   if (value) value = (1<<ofs);
   else value = 0;
@@ -487,7 +487,7 @@ void bit_operation(struct bit_array *ba,struct bit_array *bb,char op)
       for (i=0;i<ba->nints;i++) da[i] |= db[i];
       break;
     case '-':
-      for (i=0;i<ba->nints;i++) da[i] |= (-1 & db[i]);
+      for (i=0;i<ba->nints;i++) da[i] &= ~db[i];
       break;
     case '&':
       for (i=0;i<ba->nints;i++) da[i] &= db[i];
