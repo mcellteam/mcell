@@ -109,13 +109,12 @@ void grid2xyz(struct surface_grid *g,int index,struct vector3 *v)
   over3n = 1.0 / (double) (3*g->n);
   
   ucoef = ((double)(3*j+1))*over3n*g->surface->uv_vert1_u + 
-          ((double)(3*(k+i)+1))*over3n*g->surface->uv_vert2.u +
-          g->vert0.u;
-  vcoef = ((double)(3*k+i+1))*over3n*g->surface->uv_vert2.v + g->vert0.v;
+          ((double)(3*(k+i)+1))*over3n*g->surface->uv_vert2.u;
+  vcoef = ((double)(3*k+i+1))*over3n*g->surface->uv_vert2.v;
   
-  v->x = ucoef*unit_u->x + vcoef*unit_v->x;
-  v->y = ucoef*unit_u->y + vcoef*unit_v->y;
-  v->z = ucoef*unit_u->z + vcoef*unit_v->z;
+  v->x = ucoef*unit_u->x + vcoef*unit_v->x + g->surface->vert[0]->x;
+  v->y = ucoef*unit_u->y + vcoef*unit_v->y + g->surface->vert[0]->y;
+  v->z = ucoef*unit_u->z + vcoef*unit_v->z + g->surface->vert[0]->z;
 }
 
 void grid2uv(struct surface_grid *g,int index,struct vector2 *v)

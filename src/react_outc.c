@@ -261,7 +261,11 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
     {
       if ( ptype[i-i0] != 0 && (ptype[i-i0]!='m' || w!=NULL) )
       {
-        if (rx->geometries[i] == 0) porient[i-i0] = ((bits&1)==0) ? 1 : -1;
+        if (rx->geometries[i] == 0)
+        {
+          if ((bits&1)==0) porient[i-i0] = 1;
+          else porient[i-i0] = -1;
+        }
         else
         {
           for (j=0;j<rx->n_reactants;j++)
@@ -276,7 +280,11 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
               if ( (rx->geometries[i]+rx->geometries[j])*
                    (rx->geometries[i]-rx->geometries[j]) == 0 ) break;
             }
-            if (j <= i) porient[i-i0] = ((bits&1)==0) ? 1 : -1;
+            if (j <= i)
+            {
+              if ((bits&1)==0) porient[i-i0] = 1;
+              else porient[i-i0] = -1;
+            }
             else
             {
               if (rx->geometries[j]+rx->geometries[i] == 0)
@@ -314,13 +322,14 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
         else
         {
           m = (struct molecule*)plist[i-i0];
-          f = m->pos.x*w->normal.x + m->pos.y*w->normal.y + m->pos.z*w->normal.z;
-          if ( (f<0.0 && porient[i-i0]>0) || (f>0.0 && porient[i-i0]<0) )
-          {
-            m->pos.x -= 2.0*f*w->normal.x;
-            m->pos.y -= 2.0*f*w->normal.y;
-            m->pos.z -= 2.0*f*w->normal.z;
-          }
+          if (porient[i-i0]>0) f = -EPS_C;
+          else f = EPS_C;
+          
+          m->pos.x += f*w->normal.x;
+          m->pos.y += f*w->normal.y;
+          m->pos.z += f*w->normal.z;
+          
+          printf("Creating a NEW MOLECULE at %.3e %.3e %.3e [%d]\n",m->pos.x,m->pos.y,m->pos.z,porient[i-i0]);
         }
       }
     }
@@ -485,9 +494,9 @@ int outcome_bimolecular(struct rxn *rx,int path,
   }
   if ((rx->fates[path] & RX_DESTROY) != 0)
   {
-    if ((reacB->properties->flags & ON_GRID) != 0)
+    if ((reacA->properties->flags & ON_GRID) != 0)
     {
-      g = (struct grid_molecule*)reacB;
+      g = (struct grid_molecule*)reacA;
       if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
       g->grid->n_occupied--;
     }
