@@ -238,7 +238,8 @@ int init_sim(void)
   }
   world->default_release_pattern=(struct release_pattern *)gp->value;
   world->default_release_pattern->delay=0;
-  world->default_release_pattern->release_interval=2;
+  /*world->default_release_pattern->release_interval=2;*/
+  world->default_release_pattern->release_interval=0;
   world->default_release_pattern->train_interval=1;
   world->default_release_pattern->train_duration=1;
   world->default_release_pattern->number_of_trains=1;
@@ -1008,7 +1009,7 @@ int instance_release_site(struct object *objp, double (*im)[4])
                         than train interval\n");
                 return (1);
           } 
-
+	  
 	  no_printf("Done instancing release site object %s\n",objp->sym->name);
 /*
   } else {

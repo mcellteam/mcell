@@ -61,17 +61,16 @@ void run_sim(void)
   
   while (world->it_time <= world->iterations+1) /* One extra loop for final output */
   {
-    for ( req=NULL ;
+    
+    for ( req=schedule_next(world->releaser) ;
           req!=NULL || world->it_time>=world->releaser->now ;
-	  req=schedule_next(world->releaser) )
+	  req=schedule_next(world->releaser)) 
     {
-      if (req==NULL) continue;
       if ( release_molecules(req) )
       {
 	printf("Out of memory while releasing molecules of type %s\n",req->release_site->mol_type->sym->name);
 	return;
       }
-      fprintf(world->log_file,"Releasing type = %s! \n",req->release_site->mol_type->sym->name);
     }
     if (world->releaser->error)
     {

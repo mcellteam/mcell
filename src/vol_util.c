@@ -479,16 +479,18 @@ int release_molecules(struct release_event_queue *req)
   m.t = req->event_time;
 
   req->event_type = TRAIN_HIGH_EVENT;
-  req->event_time += rpat->release_interval;
+  if(rpat->release_interval > 0)
+  {
+  	req->event_time += rpat->release_interval;
 
-  if ( schedule_add(world->releaser,req) ) {
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory during release molecule event.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
+  	if ( schedule_add(world->releaser,req) ) {
+		fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        	int i = emergency_output();
+        	fprintf(stderr, "Fatal error: out of memory during release molecule event.\nAttempt to write intermediate results had %d errors.\n", i);
+        	exit(EXIT_FAILURE);
 
+  	}
   }
-  
   guess = NULL;
   
   m.properties = rso->mol_type;
@@ -570,6 +572,7 @@ int release_molecules(struct release_event_queue *req)
       guess = insert_molecule(&m,guess);  /* Insert copy of m into world */
       if (guess == NULL) return 1;
     }
+    fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
   }
   else
   {
@@ -582,6 +585,7 @@ int release_molecules(struct release_event_queue *req)
        guess = insert_molecule(&m,guess);
        if (guess == NULL) return 1;
     }
+    fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
   }
   
   return 0;
