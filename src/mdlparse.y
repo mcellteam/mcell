@@ -89,6 +89,7 @@ struct count_list *cnt;
 %token <tok> CORNERS
 %token <tok> COS
 %token <tok> COUNT
+%token <tok> CUSTOM_RK
 %token <tok> CUBIC_RELEASE_SITE
 %token <tok> CUMULATE_FOR_EACH_TIME_STEP
 %token <tok> DBL_ARROW
@@ -3349,6 +3350,7 @@ bimolecular_rxn: reactant '+'
   mdlpvp->sym_name=concat_rx_name(mdlpvp->stp1->name,mdlpvp->stp2->name);
   if ((mdlpvp->stp3=retrieve_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
       !=NULL) {
+    printf("Retrieved previous reaction.\n");
   }
   else if ((mdlpvp->stp3=store_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
       ==NULL) {
@@ -3450,7 +3452,7 @@ product: existing_molecule
   mdlpvp->prodp->prod=(struct species *)mdlpvp->gp->value;
   mdlpvp->prodp->orientation=mdlpvp->orient_class;
 
-  mdlpvp->prod_all_3d=(mdlpvp->prod_all_3d && (mdlpvp->prodp->prod->flags==0));
+  mdlpvp->prod_all_3d=(mdlpvp->prod_all_3d && ((mdlpvp->prodp->prod->flags&NOT_FREE)==0));
 
   mdlpvp->prodp->next=mdlpvp->pathp->product_head;
   mdlpvp->pathp->product_head=mdlpvp->prodp;
@@ -3574,6 +3576,10 @@ viz_mode_def: MODE '=' NONE
 	| MODE '=' MCELL_GENERIC
 {
 	volp->viz_mode = MCELL_MODE;
+}
+	| MODE '=' CUSTOM_RK
+{
+  volp->viz_mode = RK_MODE;
 };
 
 

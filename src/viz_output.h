@@ -6,6 +6,7 @@
 void update_frame_data_list(struct frame_data_list *fdlp);
 void init_frame_data_list(struct frame_data_list *fdlp);
 int output_dx_objects(struct frame_data_list *fdlp);
+int output_rk_custom(struct frame_data_list *fdlp);
 
 /*
 int output_radiance_objects(struct frame_data_list *fdlp);

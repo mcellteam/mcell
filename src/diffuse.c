@@ -772,7 +772,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         
         j = outcome_bimolecular(
                 smash->intermediate,i,(struct abstract_molecule*)m,
-                am,0,0,m->t+steps*smash->t
+                am,0,0,m->t+steps*smash->t,&(smash->loc)
               );
         
         if (j) continue;
@@ -796,13 +796,11 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           if (w->effectors->mol[j] != NULL)
           {
             g = w->effectors->mol[j];
-            if (g->orient != 1) printf("Bizarre[1]!  Orientation of %x is %d\n",(int)g,g->orient);
             r = trigger_bimolecular(
               m->properties->hashval,g->properties->hashval,
               (struct abstract_molecule*)m,(struct abstract_molecule*)g,
               k,g->orient
             );
-            if (g->orient != 1) printf("Bizarre[2]!  Orientation of %x is %d\n",(int)g,g->orient);
             if (r!=NULL)
             {
               i = test_bimolecular(r,rate_factor * w->effectors->binding_factor);
@@ -811,10 +809,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                 l = outcome_bimolecular(
                   r,i,(struct abstract_molecule*)m,
                   (struct abstract_molecule*)g,
-                  k,g->orient,m->t+steps*smash->t
+                  k,g->orient,m->t+steps*smash->t,&(smash->loc)
                 );
-                if (w->effectors->mol[j]!=NULL &&
-                    w->effectors->mol[j]->orient != 1) printf("Bizarre[3]!  Orientation of %x is %d\n",(int)w->effectors->mol[j],w->effectors->mol[j]->orient);
         
                 if (l==0)
                 {
@@ -842,7 +838,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                       r,i,w,(struct abstract_molecule*)m,
                       k,m->t + steps*smash->t,&(smash->loc)
                     );
-              if (j==1) continue; /* pass through -- set counters! */
+              if (j==1) continue; /* pass through */
               else if (j==0)
               {
                 if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
@@ -1023,7 +1019,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     if (local->current_time + local->max_timestep < checkpt_time) stop_time = local->max_timestep;
     else stop_time = checkpt_time - local->current_time;
     
-    if (a->t2 < EPS_C)
+    if (a->t2 < EPS_C || a->t2 < EPS_C*a->t)
     {
       if ((a->flags & (ACT_INERT+ACT_NEWBIE)) != 0)
       {

@@ -24,6 +24,7 @@ void run_sim(void)
   int count;
   long long total_coll_1,total_coll_2;
   double total_len;
+  int frequency;
   
 /*
   for (i=0;i<10000;i++)
@@ -34,6 +35,11 @@ void run_sim(void)
   }
   return;
 */  
+
+  if (world->iterations < 1000) frequency = 10;
+  else if (world->iterations < 100000) frequency = 100;
+  else if (world->iterations < 10000000) frequency = 1000;
+  else frequency = 10000;
   
   world->diffusion_number = world->diffusion_cumsteps = 0.0;
   
@@ -64,15 +70,19 @@ void run_sim(void)
     }
     
     world->it_time++;
-    printf("Iterations: %d of %d count ",world->it_time,world->iterations);
-    for (i=0;i<world->n_species;i++)
+    
+    if ( (world->it_time % frequency) == 0 )
     {
-      printf("#%s=%d ",
-             world->species_list[i]->sym->name,
-             world->species_list[i]->population
-            );
+      printf("Iterations: %d of %d count ",world->it_time,world->iterations);
+      for (i=0;i<world->n_species;i++)
+      {
+        printf("#%s=%d ",
+               world->species_list[i]->sym->name,
+               world->species_list[i]->population
+              );
+      }
+      printf("\n");
     }
-    printf("\n");
   }
   
   fprintf(stderr,"Average diffusion jump was %.2f timesteps\n",world->diffusion_cumsteps/world->diffusion_number);
@@ -85,7 +95,7 @@ void run_sim(void)
   }
 #endif
 
-#if 1
+#if 0
   count = 0;
   total_coll_1 = 0;
   total_coll_2 = 0;
@@ -115,7 +125,7 @@ void run_sim(void)
   }
   printf("%d %.2f %lld %lld\n",count,total_len*world->length_unit,total_coll_1,total_coll_2);
 #endif
-#if 1
+#if 0
   printf("Reaction counters:\n");
   for (i=0;i<world->hashsize;i++)
   {
@@ -157,7 +167,9 @@ void run_sim(void)
         continue;
       }
       for (j=0;j<world->n_species;j++) if (mol->properties==world->species_list[j]) break;
-      printf("location = %7.3f %7.3f %7.3f %d %9.3f %d\n",mol->pos.x,mol->pos.y,mol->pos.z,j,mol->path_length*world->length_unit,mol->collisions);
+      printf("location = %7.3f %7.3f %7.3f %d %9.3f %d\n",
+             mol->pos.x*world->length_unit,mol->pos.y*world->length_unit,mol->pos.z*world->length_unit,
+             j,mol->path_length*world->length_unit,mol->collisions);
     }
   }
 #endif

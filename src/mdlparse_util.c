@@ -463,324 +463,334 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   
   for (i=0;i<HASHSIZE;i++)
   {
-    sym = mpvp->vol->main_sym_table[i];
-    if (sym==NULL) continue;
-    if (sym->sym_type != RX) continue;
-    
-    rx = (struct rxn*)sym->value;
-    
-    rx->next = NULL;
-    
-    while (rx != NULL)
+    for ( sym = mpvp->vol->main_sym_table[i] ; sym!=NULL ; sym = sym->next )
     {
-      num_rx++;
-    
-/* First we find how many reactions have the same geometry as the current one */
-      true_paths=1;
-      for (path=rx->pathway_head->next ; path != NULL ; path = path->next)
-      {
-        if (equivalent_geometry(rx->pathway_head,path,rx->n_reactants)) true_paths++;
-      }
+      if (sym->sym_type != RX) continue;
+      rx = (struct rxn*)sym->value;
       
-/* If they're not all our geometry, stuff the non-matching ones into rx->next */      
-      if (true_paths < rx->n_pathways)
+      rx->next = NULL;
+      
+      while (rx != NULL)
       {
-        rx->next = (struct rxn*)malloc(sizeof(struct rxn));
-        if (rx->next==NULL) return 1;
-        
-        rx->next->sym = rx->sym;
-        rx->next->n_reactants = rx->n_reactants;
-
-        rx->next->n_pathways = rx->n_pathways - true_paths;
-        rx->n_pathways = true_paths;
-        
-        rx->next->product_idx = NULL;
-        rx->next->cum_rates = NULL;
-        rx->next->cat_rates = NULL;
-        rx->next->counter = NULL;
-        rx->next->players = NULL;
-        rx->next->geometries = NULL;
-        rx->next->n_rate_t_rxns = 0;
-        rx->next->rate_t_rxn_map = NULL;
-        rx->next->rate_t = NULL;
-        rx->next->jump_t = NULL;
-        rx->next->last_update = 0;
-        
-        rx->next->pathway_head = NULL;
-        
-        last_path = rx->pathway_head;
-        for (path=rx->pathway_head->next ; path != NULL ; last_path = path , path = path->next)
+        num_rx++;
+      
+  /* First we find how many reactions have the same geometry as the current one */
+        true_paths=1;
+        for (path=rx->pathway_head->next ; path != NULL ; path = path->next)
         {
-          if (!equivalent_geometry(rx->pathway_head,path,rx->n_reactants))
+          if (equivalent_geometry(rx->pathway_head,path,rx->n_reactants)) true_paths++;
+          if (!strcmp(path->reactant1->sym->name,"MinD.m") ||
+              (rx->n_reactants>1 && !strcmp(path->reactant2->sym->name,"MinD.m")))
           {
-            last_path->next = path->next;
-            path->next = rx->next->pathway_head;
-            rx->next->pathway_head = path;
-            path = last_path;
+            printf("We saw a MinX reaction.\n");
           }
         }
-      }
-/* At this point we have reactions of the same geometry and can collapse them */
-
-/* Search for reactants that appear as products--they aren't listed twice. */
-/* Any reactants that don't appear are set to be destroyed. */
-      rx->product_idx = (u_int*)malloc(sizeof(u_int)*(rx->n_pathways+1));
-      rx->cum_rates = (double*)malloc(sizeof(double)*rx->n_pathways);
-      rx->cat_rates = (double*)malloc(sizeof(double)*rx->n_pathways);
-      rx->counter = (double*)malloc(sizeof(double)*rx->n_pathways);
-      
-      if (rx->product_idx==NULL || rx->cum_rates==NULL ||
-          rx->cat_rates==NULL || rx->counter==NULL) return 1;
-      
-      for (j=0 , path=rx->pathway_head ; path!=NULL ; j++ , path = path->next)
-      {
-        rx->product_idx[j] = 0;
-        rx->cat_rates[j] = path->kcat;
-        rx->cum_rates[j] = path->km;
-        rx->counter[j] = 0;
-        recycled1 = 0;
-        recycled2 = 0;
-        recycled3 = 0;
+        if (!strcmp(rx->pathway_head->reactant1->sym->name,"MinD.m") ||
+            (rx->n_reactants>1 && !strcmp(rx->pathway_head->reactant2->sym->name,"MinD.m")))
+        {
+          printf("We saw a MinD.m reaction.\n");
+        }
         
-        for (prod=path->product_head ; prod != NULL ; prod = prod->next)
+  /* If they're not all our geometry, stuff the non-matching ones into rx->next */      
+        if (true_paths < rx->n_pathways)
         {
-          if (recycled1 == 0 && prod->prod == path->reactant1) recycled1 = 1;
-          else if (recycled2 == 0 && prod->prod == path->reactant2) recycled2 = 1;
-          else if (recycled3 == 0 && prod->prod == path->reactant3) recycled3 = 1;
-          else rx->product_idx[j]++;
-        }
-      }
-
-/* Now that we know how many products there really are, set the index array */
-/* and malloc space for all the product and geometry flags */
-      path = rx->pathway_head;
-      
-      num_players = rx->n_reactants;
-      for (j=0;j<rx->n_pathways;j++)
-      {
-        k = rx->product_idx[j] + rx->n_reactants;
-        rx->product_idx[j] = num_players;
-        num_players += k;
-      }
-      rx->product_idx[rx->n_pathways] = num_players;
-      
-      rx->players = (struct species**)malloc(sizeof(struct species*)*rx->product_idx[rx->n_pathways]);
-      rx->geometries = (short*)malloc(sizeof(short)*rx->product_idx[rx->n_pathways]);
-      
-      if (rx->players==NULL || rx->geometries==NULL) return 1;
-
-/* Set the geometry of the reactants.  These are used for triggering. */
-/* Since we use flags to control orientation changes, just tell everyone to stay put. */
-      path = rx->pathway_head;
-      rx->players[0] = path->reactant1;
-      rx->geometries[0] = path->orientation1;
-      if (rx->n_reactants > 1)
-      {
-        rx->players[1] = path->reactant2;
-        rx->geometries[1] = path->orientation2;
-        if (rx->n_reactants > 2)
-        {
-          rx->players[2] = path->reactant3;
-          rx->geometries[2] = path->orientation3;
-        }
-      }
-      
-/* Now we walk through the list setting the geometries of each of the products */
-/* We do this by looking for an earlier geometric match and pointing there */
-/* or we just point to 0 if there is no match. */
-      for (j=0 , path=rx->pathway_head ; path!=NULL ; j++ , path = path->next)
-      {
-        recycled1 = 0;
-        recycled2 = 0;
-        recycled3 = 0;
-        k = rx->product_idx[j] + rx->n_reactants;
-        for ( prod=path->product_head ; prod != NULL ; prod = prod->next)
-        {
-          if (recycled1==0 && prod->prod == path->reactant1)
-          {
-            recycled1 = 1;
-            kk = rx->product_idx[j] + 0;
-          }
-          else if (recycled2==0 && prod->prod == path->reactant2)
-          {
-            recycled2 = 1;
-            kk = rx->product_idx[j] + 1;
-          }
-          else if (recycled3==0 && prod->prod == path->reactant3)
-          {
-            recycled3 = 1;
-            kk = rx->product_idx[j] + 2;
-          }
-          else
-          {
-            kk = k;
-            k++;
-          }
-
-          rx->players[kk] = prod->prod;
+          rx->next = (struct rxn*)malloc(sizeof(struct rxn));
+          if (rx->next==NULL) return 1;
           
-          if ( (prod->orientation+path->orientation1)*(prod->orientation-path->orientation1) == 0)
+          rx->next->sym = rx->sym;
+          rx->next->n_reactants = rx->n_reactants;
+
+          rx->next->n_pathways = rx->n_pathways - true_paths;
+          rx->n_pathways = true_paths;
+          
+          rx->next->product_idx = NULL;
+          rx->next->cum_rates = NULL;
+          rx->next->cat_rates = NULL;
+          rx->next->counter = NULL;
+          rx->next->players = NULL;
+          rx->next->geometries = NULL;
+          rx->next->n_rate_t_rxns = 0;
+          rx->next->rate_t_rxn_map = NULL;
+          rx->next->rate_t = NULL;
+          rx->next->jump_t = NULL;
+          rx->next->last_update = 0;
+          
+          rx->next->pathway_head = NULL;
+          
+          last_path = rx->pathway_head;
+          for (path=rx->pathway_head->next ; path != NULL ; last_path = path , path = path->next)
           {
-            if (prod->orientation == path->orientation1) rx->geometries[kk] = 1;
-            else rx->geometries[kk] = -1;
+            if (!equivalent_geometry(rx->pathway_head,path,rx->n_reactants))
+            {
+              last_path->next = path->next;
+              path->next = rx->next->pathway_head;
+              rx->next->pathway_head = path;
+              path = last_path;
+            }
           }
-          else if ( rx->n_reactants > 1 &&
-                    (prod->orientation+path->orientation2)*(prod->orientation-path->orientation2) == 0
-                  )
+        }
+  /* At this point we have reactions of the same geometry and can collapse them */
+
+  /* Search for reactants that appear as products--they aren't listed twice. */
+  /* Any reactants that don't appear are set to be destroyed. */
+        rx->product_idx = (u_int*)malloc(sizeof(u_int)*(rx->n_pathways+1));
+        rx->cum_rates = (double*)malloc(sizeof(double)*rx->n_pathways);
+        rx->cat_rates = (double*)malloc(sizeof(double)*rx->n_pathways);
+        rx->counter = (double*)malloc(sizeof(double)*rx->n_pathways);
+        
+        if (rx->product_idx==NULL || rx->cum_rates==NULL ||
+            rx->cat_rates==NULL || rx->counter==NULL) return 1;
+        
+        for (j=0 , path=rx->pathway_head ; path!=NULL ; j++ , path = path->next)
+        {
+          rx->product_idx[j] = 0;
+          rx->cat_rates[j] = path->kcat;
+          rx->cum_rates[j] = path->km;
+          rx->counter[j] = 0;
+          recycled1 = 0;
+          recycled2 = 0;
+          recycled3 = 0;
+          
+          for (prod=path->product_head ; prod != NULL ; prod = prod->next)
           {
-            if (prod->orientation == path->orientation2) rx->geometries[kk] = 2;
-            else rx->geometries[kk] = -2;
+            if (recycled1 == 0 && prod->prod == path->reactant1) recycled1 = 1;
+            else if (recycled2 == 0 && prod->prod == path->reactant2) recycled2 = 1;
+            else if (recycled3 == 0 && prod->prod == path->reactant3) recycled3 = 1;
+            else rx->product_idx[j]++;
           }
-          else if ( rx->n_reactants > 2 &&
-                    (prod->orientation+path->orientation3)*(prod->orientation-path->orientation3) == 0
-                  )
+        }
+
+  /* Now that we know how many products there really are, set the index array */
+  /* and malloc space for all the product and geometry flags */
+        path = rx->pathway_head;
+        
+        num_players = rx->n_reactants;
+        for (j=0;j<rx->n_pathways;j++)
+        {
+          k = rx->product_idx[j] + rx->n_reactants;
+          rx->product_idx[j] = num_players;
+          num_players += k;
+        }
+        rx->product_idx[rx->n_pathways] = num_players;
+        
+        rx->players = (struct species**)malloc(sizeof(struct species*)*rx->product_idx[rx->n_pathways]);
+        rx->geometries = (short*)malloc(sizeof(short)*rx->product_idx[rx->n_pathways]);
+        
+        if (rx->players==NULL || rx->geometries==NULL) return 1;
+
+  /* Set the geometry of the reactants.  These are used for triggering. */
+  /* Since we use flags to control orientation changes, just tell everyone to stay put. */
+        path = rx->pathway_head;
+        rx->players[0] = path->reactant1;
+        rx->geometries[0] = path->orientation1;
+        if (rx->n_reactants > 1)
+        {
+          rx->players[1] = path->reactant2;
+          rx->geometries[1] = path->orientation2;
+          if (rx->n_reactants > 2)
           {
-            if (prod->orientation == path->orientation2) rx->geometries[kk] = 3;
-            else rx->geometries[kk] = -3;
+            rx->players[2] = path->reactant3;
+            rx->geometries[2] = path->orientation3;
+          }
+        }
+        
+  /* Now we walk through the list setting the geometries of each of the products */
+  /* We do this by looking for an earlier geometric match and pointing there */
+  /* or we just point to 0 if there is no match. */
+        for (j=0 , path=rx->pathway_head ; path!=NULL ; j++ , path = path->next)
+        {
+          recycled1 = 0;
+          recycled2 = 0;
+          recycled3 = 0;
+          k = rx->product_idx[j] + rx->n_reactants;
+          for ( prod=path->product_head ; prod != NULL ; prod = prod->next)
+          {
+            if (recycled1==0 && prod->prod == path->reactant1)
+            {
+              recycled1 = 1;
+              kk = rx->product_idx[j] + 0;
+            }
+            else if (recycled2==0 && prod->prod == path->reactant2)
+            {
+              recycled2 = 1;
+              kk = rx->product_idx[j] + 1;
+            }
+            else if (recycled3==0 && prod->prod == path->reactant3)
+            {
+              recycled3 = 1;
+              kk = rx->product_idx[j] + 2;
+            }
+            else
+            {
+              kk = k;
+              k++;
+            }
+
+            rx->players[kk] = prod->prod;
+            
+            if ( (prod->orientation+path->orientation1)*(prod->orientation-path->orientation1) == 0)
+            {
+              if (prod->orientation == path->orientation1) rx->geometries[kk] = 1;
+              else rx->geometries[kk] = -1;
+            }
+            else if ( rx->n_reactants > 1 &&
+                      (prod->orientation+path->orientation2)*(prod->orientation-path->orientation2) == 0
+                    )
+            {
+              if (prod->orientation == path->orientation2) rx->geometries[kk] = 2;
+              else rx->geometries[kk] = -2;
+            }
+            else if ( rx->n_reactants > 2 &&
+                      (prod->orientation+path->orientation3)*(prod->orientation-path->orientation3) == 0
+                    )
+            {
+              if (prod->orientation == path->orientation2) rx->geometries[kk] = 3;
+              else rx->geometries[kk] = -3;
+            }
+            else
+            {
+              k2 = 2*rx->n_reactants;
+              geom = 0;
+              for (prod2=path->product_head ; prod2!=prod && prod2!=NULL && geom==0 ; prod2 = prod2->next)
+              {
+                if ( (prod2->orientation+prod->orientation)*(prod2->orientation-prod->orientation) == 0 )
+                {
+                  if (prod2->orientation == prod->orientation) geom = 1;
+                  else geom = -1;
+                }
+                else geom = 0;
+                
+                if (recycled1 == 1 && prod2->prod == path->reactant1)
+                {
+                  recycled1 = 2;
+                  geom *= rx->n_reactants+1;
+                }
+                else if (recycled2==1 && prod2->prod == path->reactant2)
+                {
+                  recycled2 = 2;
+                  geom *= rx->n_reactants+2;
+                }
+                else if (recycled3==1 && prod2->prod == path->reactant3)
+                {
+                  recycled3 = 2;
+                  geom *= rx->n_reactants+3;
+                }
+                else
+                {
+                  geom *= k2;
+                  k2++;
+                }
+              }
+              rx->geometries[kk] = geom;
+              if (recycled1>1) recycled1 = 1;
+              if (recycled2>1) recycled2 = 1;
+              if (recycled3>1) recycled1 = 1;
+            }
+          }
+
+          k = rx->product_idx[j];
+          if (recycled1==0) rx->players[k] = NULL;
+          if (recycled2==0 && rx->n_reactants>1) rx->players[k+1] = NULL;
+          if (recycled3==0 && rx->n_reactants>2) rx->players[k+2] = NULL;
+        }
+        
+
+  /* Whew, done with the geometry.  We now just have to compute appropriate */
+  /* reaction rates based on the type of reaction. */
+        if (rx->n_reactants==1) {
+          pb_factor=1;
+          rx->cum_rates[0]=1.0-exp(-mpvp->vol->time_unit*rx->cum_rates[0]);
+          printf("Rate %.4e set for %s[%d] -> ",rx->cum_rates[0],
+                 rx->players[0]->sym->name,rx->geometries[0]);
+
+          for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
+          {
+            if (rx->players[k]==NULL) printf("NIL ");
+            else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+          }
+          printf("\n");
+        }
+        else if (((rx->players[0]->flags & (IS_SURFACE | ON_GRID)) != 0 ||
+                  (rx->players[1]->flags & (IS_SURFACE | ON_GRID)) != 0) &&
+                 rx->n_reactants == 2)
+        {
+          if ((rx->players[0]->flags & (IS_SURFACE | ON_SURFACE | ON_GRID))==0)
+          {
+            D_tot = rx->players[0]->D_ref;
+          }
+          else if ((rx->players[1]->flags & (IS_SURFACE | ON_SURFACE | ON_GRID))==0)
+          {
+            D_tot = rx->players[1]->D_ref;
           }
           else
           {
-            k2 = 2*rx->n_reactants;
-            geom = 0;
-            for (prod2=path->product_head ; prod2!=prod && prod2!=NULL && geom==0 ; prod2 = prod2->next)
-            {
-              if ( (prod2->orientation+prod->orientation)*(prod2->orientation-prod->orientation) == 0 )
-              {
-                if (prod2->orientation == prod->orientation) geom = 1;
-                else geom = -1;
-              }
-              else geom = 0;
-              
-              if (recycled1 == 1 && prod2->prod == path->reactant1)
-              {
-                recycled1 = 2;
-                geom *= rx->n_reactants+1;
-              }
-              else if (recycled2==1 && prod2->prod == path->reactant2)
-              {
-                recycled2 = 2;
-                geom *= rx->n_reactants+2;
-              }
-              else if (recycled3==1 && prod2->prod == path->reactant3)
-              {
-                recycled3 = 2;
-                geom *= rx->n_reactants+3;
-              }
-              else
-              {
-                geom *= k2;
-                k2++;
-              }
-            }
-            rx->geometries[kk] = geom;
-            if (recycled1>1) recycled1 = 1;
-            if (recycled2>1) recycled2 = 1;
-            if (recycled3>1) recycled1 = 1;
+            D_tot = 1.0; /* Placeholder */
+            /* TODO: handle surface/grid collisions */
           }
-        }
+          
+          pb_factor = 1.0e11*mpvp->vol->effector_grid_density/(2.0*N_AV)*sqrt( MY_PI * mpvp->vol->time_unit / D_tot );
+          if ( (rx->geometries[0]+rx->geometries[1])*(rx->geometries[0]-rx->geometries[1]) == 0 ) pb_factor *= 2.0;
 
-        k = rx->product_idx[j];
-        if (recycled1==0) rx->players[k] = NULL;
-        if (recycled2==0 && rx->n_reactants>1) rx->players[k+1] = NULL;
-        if (recycled3==0 && rx->n_reactants>2) rx->players[k+2] = NULL;
-      }
-      
+          rx->cum_rates[0] = pb_factor * rx->cum_rates[0];
 
-/* Whew, done with the geometry.  We now just have to compute appropriate */
-/* reaction rates based on the type of reaction. */
-      if (rx->n_reactants==1) {
-        pb_factor=1;
-        rx->cum_rates[0]=1.0-exp(-mpvp->vol->time_unit*rx->cum_rates[0]);
-        printf("Rate %.4e set for %s[%d] -> ",rx->cum_rates[0],
-               rx->players[0]->sym->name,rx->geometries[0]);
-
-        for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
-        {
-          if (rx->players[k]==NULL) printf("NIL ");
-          else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
-        }
-        printf("\n");
-      }
-      else if (((rx->players[0]->flags & (IS_SURFACE | ON_GRID)) != 0 ||
-                (rx->players[1]->flags & (IS_SURFACE | ON_GRID)) != 0) &&
-               rx->n_reactants == 2)
-      {
-        if ((rx->players[0]->flags & (IS_SURFACE | ON_SURFACE | ON_GRID))==0)
-        {
-          D_tot = rx->players[0]->D_ref;
-        }
-        else if ((rx->players[1]->flags & (IS_SURFACE | ON_SURFACE | ON_GRID))==0)
-        {
-          D_tot = rx->players[1]->D_ref;
+          printf("Rate %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_rates[0],
+                 rx->players[0]->sym->name,rx->geometries[0],
+                 rx->players[1]->sym->name,rx->geometries[1]);
+          for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
+          {
+            if (rx->players[k]==NULL) printf("NIL ");
+            else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+          }
+          printf("\n");
         }
         else
         {
-          D_tot = 1.0; /* Placeholder */
-          /* TODO: handle surface/grid collisions */
-        }
-        
-        pb_factor = 1.0e11*mpvp->vol->effector_grid_density/(2.0*N_AV)*sqrt( MY_PI * mpvp->vol->time_unit / D_tot );
-        if ( (rx->geometries[0]+rx->geometries[1])*(rx->geometries[0]-rx->geometries[1]) == 0 ) pb_factor *= 2.0;
-
-        rx->cum_rates[0] = pb_factor * rx->cum_rates[0];
-
-        printf("Rate %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_rates[0],
-               rx->players[0]->sym->name,rx->geometries[0],
-               rx->players[1]->sym->name,rx->geometries[1]);
-        for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
-        {
-          if (rx->players[k]==NULL) printf("NIL ");
-          else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
-        }
-        printf("\n");
-      }
-      else
-      {
-        pb_factor=0;
-        D_tot=rx->players[0]->D_ref+rx->players[1]->D_ref+2.0*sqrt(rx->players[0]->D_ref*rx->players[1]->D_ref);
-        if (D_tot>0) {
-          if (rx->geometries[0]==0) {
-            pb_factor=(1.0e11/(mpvp->vol->rx_radius_3d*mpvp->vol->rx_radius_3d*4.0*N_AV))*sqrt(mpvp->vol->time_unit/(D_tot*MY_PI));
-          }
-          else {
-            pb_factor=(1.0e11/(mpvp->vol->rx_radius_3d*mpvp->vol->rx_radius_3d*2.0*N_AV))*sqrt(mpvp->vol->time_unit/(D_tot*MY_PI));
-            if (rx->geometries[0]==0
-                || abs(rx->geometries[0])!=abs(rx->geometries[1])) {
-              pb_factor*=2.0;
+          pb_factor=0;
+          D_tot=rx->players[0]->D_ref+rx->players[1]->D_ref+2.0*sqrt(rx->players[0]->D_ref*rx->players[1]->D_ref);
+          if (D_tot>0) {
+            if (rx->geometries[0]==0) {
+              pb_factor=(1.0e11/(mpvp->vol->rx_radius_3d*mpvp->vol->rx_radius_3d*4.0*N_AV))*sqrt(mpvp->vol->time_unit/(D_tot*MY_PI));
+            }
+            else {
+              pb_factor=(1.0e11/(mpvp->vol->rx_radius_3d*mpvp->vol->rx_radius_3d*2.0*N_AV))*sqrt(mpvp->vol->time_unit/(D_tot*MY_PI));
+              if (rx->geometries[0]==0
+                  || abs(rx->geometries[0])!=abs(rx->geometries[1])) {
+                pb_factor*=2.0;
+              }
             }
           }
+          rx->cum_rates[0]=pb_factor*rx->cum_rates[0];
+          printf("Rate %.4e (l) set for %s[%d] + %s[%d] -> ",rx->cum_rates[0],
+                 rx->players[0]->sym->name,rx->geometries[0],
+                 rx->players[1]->sym->name,rx->geometries[1]);
+          for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
+          {
+            if (rx->players[k]==NULL) printf("NIL ");
+            else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+          }
+          printf("\n");
         }
-        rx->cum_rates[0]=pb_factor*rx->cum_rates[0];
-        printf("Rate %.4e (l) set for %s[%d] + %s[%d] -> ",rx->cum_rates[0],
-               rx->players[0]->sym->name,rx->geometries[0],
-               rx->players[1]->sym->name,rx->geometries[1]);
-        for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
+        for (j=1;j<rx->n_pathways;j++)
         {
-          if (rx->players[k]==NULL) printf("NIL ");
-          else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+          printf("Rate %.3e set for ",pb_factor*rx->cum_rates[j]);
+          if (rx->n_reactants==1) printf("%s[%d] -> ",rx->players[0]->sym->name,rx->geometries[0]);
+          else printf("%s[%d] + %s[%d] -> ",
+                      rx->players[0]->sym->name,rx->geometries[0],
+                      rx->players[1]->sym->name,rx->geometries[1]);
+          for (k = rx->product_idx[j] ; k < rx->product_idx[j+1] ; k++)
+          {
+            if (rx->players[k]==NULL) printf("NIL ");
+            else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+          }
+          printf("\n");
+          rx->cum_rates[j] = pb_factor*rx->cum_rates[j] + rx->cum_rates[j-1];
         }
-        printf("\n");
+        
+        rx = rx->next;
       }
-      for (j=1;j<rx->n_pathways;j++)
-      {
-        printf("Rate %.3e set for ",pb_factor*rx->cum_rates[j]);
-        if (rx->n_reactants==1) printf("%s[%d] -> ",rx->players[0]->sym->name,rx->geometries[0]);
-        else printf("%s[%d] + %s[%d] -> ",
-                    rx->players[0]->sym->name,rx->geometries[0],
-                    rx->players[1]->sym->name,rx->geometries[1]);
-        for (k = rx->product_idx[j] ; k < rx->product_idx[j+1] ; k++)
-        {
-          if (rx->players[k]==NULL) printf("NIL ");
-          else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
-        }
-        printf("\n");
-        rx->cum_rates[j] = pb_factor*rx->cum_rates[j] + rx->cum_rates[j-1];
-      }
-      
-      rx = rx->next;
     }
   }
-
+  
 /* And, finally, we just have to move all the reactions from the */
 /* symbol table into the reaction hash table (of appropriate size). */
   for (rx_hash=2 ; rx_hash<num_rx ; rx_hash <<= 1) {}
@@ -797,21 +807,23 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   
   for (i=0;i<HASHSIZE;i++)
   {
-    sym = mpvp->vol->main_sym_table[i];
-    if (sym==NULL) continue;
-    if (sym->sym_type != RX) continue;
-    
-    rx = (struct rxn*)sym->value;
-    
-    if (rx->n_reactants==1) j = rx->players[0]->hashval;
-    else if (rx->players[0]->hashval==rx->players[1]->hashval) j = rx->players[0]->hashval;
-    else j = rx->players[0]->hashval ^ rx->players[1]->hashval;
-    
-    j &= rx_hash;
-    
-    while (rx->next != NULL) rx = rx->next;
-    rx->next = rx_tbl[j];
-    rx_tbl[j] = (struct rxn*)sym->value;
+    for ( sym = mpvp->vol->main_sym_table[i] ; sym!=NULL ; sym = sym->next )
+    {
+      if (sym==NULL) continue;
+      if (sym->sym_type != RX) continue;
+      
+      rx = (struct rxn*)sym->value;
+      
+      if (rx->n_reactants==1) j = rx->players[0]->hashval;
+      else if (rx->players[0]->hashval==rx->players[1]->hashval) j = rx->players[0]->hashval;
+      else j = rx->players[0]->hashval ^ rx->players[1]->hashval;
+      
+      j &= rx_hash;
+      
+      while (rx->next != NULL) rx = rx->next;
+      rx->next = rx_tbl[j];
+      rx_tbl[j] = (struct rxn*)sym->value;
+    }
   }
   
   mpvp->vol->rx_radius_3d /= mpvp->vol->length_unit; /* Convert into length units */

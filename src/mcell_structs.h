@@ -334,6 +334,7 @@
 #define RENDERMAN_MODE 5
 #define POVRAY_MODE 6
 #define MCELL_MODE 7
+#define RK_MODE 8
 
 /* Visualization frame data types. */
 #define ALL_FRAME_DATA 0
