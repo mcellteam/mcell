@@ -11,7 +11,7 @@ all: $(MCELL_EXEC) test_main
 arglex.flex.c: arglex.l
 	flex -Cfra arglex.l
 
-argparse.bison.c: argparse.y argparse.h
+argparse.bison.c: argparse.y argparse.h arglex.flex.c
 	bison argparse.y
 
 argparse.bison.o: argparse.bison.c arglex.flex.c
@@ -23,7 +23,7 @@ mcell.o: mcell.c mcell_structs.h vector.h chkpt.h ran4.h
 mdllex.flex.c: mdllex.l
 	flex -Cfra mdllex.l
 
-mdlparse.bison.c: mdlparse.y mdlparse.h mcell_structs.h vector.h
+mdlparse.bison.c: mdlparse.y mdlparse.h mdllex.flex.c mcell_structs.h vector.h
 	bison -v mdlparse.y
 
 mdlparse.bison.o: mdlparse.bison.c mdllex.flex.c

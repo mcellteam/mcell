@@ -1012,7 +1012,7 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   vB.y = v2->y - v0->y;
   vB.z = v2->z - v0->z;
   cross_prod(&vA , &vB , &vX);
-  w->area = 0.5 * (vX.x*vX.x + vX.y*vX.y + vX.z*vX.z);
+  w->area = 0.5 * sqrt(vX.x*vX.x + vX.y*vX.y + vX.z*vX.z);
 
 /*  
   w->area = sqrt(0.5 * ( ((v1->x - v0->x)*(v1->x - v0->x)+
@@ -1068,6 +1068,13 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   w->mol_count = 0;
   w->effectors = NULL;
   w->viz_state = EXCLUDE_OBJ; 
+  if (objp->viz_state!=NULL) {
+    w->viz_state=objp->viz_state[side];
+  }
+  else {
+    w->viz_state=EXCLUDE_OBJ;
+  }
+
   w->parent_object = objp;
   w->regions = NULL;
   no_printf("Created wall %d on object %s at:\n",w->side,w->parent_object->sym->name);
@@ -1259,6 +1266,10 @@ int distribute_object(struct object *parent)
 
       if (parent->wall_p[i]==NULL) return 1;
     }
+    /* Since we have just made local copies of the walls
+       and have pointed each parent->wall_p[i] at its birthplace,
+       we can now free the scratch copy of the object walls */
+    if (parent->walls!=NULL) free(parent->walls);
   }
   else if (parent->object_type == META_OBJ)
   {

@@ -23,6 +23,12 @@ DEFINE_MOLECULES {
   Glw {
     DIFFUSION_CONSTANT = 2e-6
   }
+  AChR.R {
+    DIFFUSION_CONSTANT_2D = 0
+  }
+  AChR.AR {
+    DIFFUSION_CONSTANT_2D = 0
+  }
   ACf {
     DIFFUSION_CONSTANT_2D = 0
   }
@@ -37,6 +43,9 @@ DEFINE_MOLECULES {
 DEFINE_SURFACE_CLASSES {
   surf_a {
     TRANSPARENT = ACh
+    MOLECULE_DENSITY {
+      ACf' = 500
+    }
   }
   surf_b {
     TRANSPARENT = Glu
@@ -87,16 +96,41 @@ Glu_release_site CUBIC_RELEASE_SITE {
 box BOX {
   CORNERS = [-0.1, -0.1, -0.1] , [0.1,0.1,0.1]
   DEFINE_SURFACE_REGIONS {
-    REGION reg1 {
+    reg1 {
       ELEMENT_LIST = [TOP,BOTTOM]
-    }
-  }
-  SET_SURFACE_CLASSES {
-    REGION reg1 {
-      CLASS = surf_a
+/*
+      SURFACE_CLASS = surf_a
+*/
+      MOLECULE_DENSITY {
+        ACf' = 1000
+      }
     }
   }
 }
+
+
+/*
+DEFINE_SURFACE_REGIONS {
+  box[reg2] {
+    ELEMENT_LIST = [LEFT,RIGHT]
+    SURFACE_CLASS = surf_a
+    MOLECULE_DENSITY {
+      ACf' = 250
+    }
+  }
+}
+
+
+MODIFY_SURFACE_REGIONS {
+  box[reg1] {
+    SURFACE_CLASS = surf_a
+    MOLECULE_DENSITY {
+      ACf' = 2000
+    }
+  }
+}
+*/
+
 
 poly POLYGON_LIST {
   VERTEX_LIST {

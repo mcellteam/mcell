@@ -125,9 +125,8 @@ unsigned hash(char *sym)
 {
   ub4 hashval;
 
-  for (hashval=0; *sym!='\0';sym++) {
-    hashval=jenkins_hash(sym);
-  }
+  hashval=jenkins_hash(sym);
+
   return(hashval);
 } 
 
@@ -204,6 +203,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       }
       specp=(struct species *)vp;
       specp->sym=sp;
+      specp->eff_dat_head=NULL;
       specp->species_id=0;
       specp->hashval=0;
       specp->population=0;
@@ -236,7 +236,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       objp->last_child=NULL;
       objp->lig_count_ref=NULL;
       objp->num_regions=0;
-      objp->region_list=NULL;
+      objp->regions=NULL;
       objp->counter_hash_table=NULL;
       objp->cmprt_data=NULL;
       objp->n_walls=0;
@@ -294,8 +294,8 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       rp->sym=sp;
       rp->region_last_name=NULL;
       rp->parent=NULL;
-      rp->element_list=NULL;
-      rp->eff_dat=NULL;
+      rp->element_list_head=NULL;
+      rp->eff_dat_head=NULL;
       rp->surf_class=NULL;
       rp->reg_counter_ref_list=NULL;
       break;
@@ -370,7 +370,7 @@ struct sym_table **init_symtab(int size)
 /* =============== object->counter_hash_table ================== */
 /* Three functions defined here are used to initialize, retrieve and
  * strore region counters for each object.
- * Avaliable after MCell 2.68
+ * Available after MCell 2.68
  */ 
 
 struct counter_hash_table **init_countertab(int size)

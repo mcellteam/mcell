@@ -163,7 +163,7 @@
                                                                                 
 #define R_UINT_MAX 2.3283064365386963e-10
 #define MY_PI 3.14159265358979323846
-#define N_AV 6.02205e23
+#define N_AV 6.0221415e23
 #define ROUND_UP 0.5
                                                                                 
                                                                                                                                                                 
@@ -365,6 +365,9 @@ struct species
   u_int species_id;             /* Unique ID for this species */
   u_int hashval;                /* Hash value (may be nonunique) */
   struct sym_table *sym;        /* Symbol table entry (name) */
+  struct eff_dat *eff_dat_head; /* if IS_SURFACE this points to head of
+                                   effector data list associated with 
+                                   surface class */
   
   u_int population;             /* How many of this species exist? */
   
@@ -833,7 +836,6 @@ struct surface_grid
   u_int n_occupied;        /* Number of tiles occupied by grid_molecules */
   struct grid_molecule **mol;  /* Array of pointers to grid_molecule for each tile */
   
-  int set;                 /* segl object set number */
   int index;               /* Unique index into effector_table */
   
   struct subvolume *subvol;/* Best match for which subvolume we're in */
@@ -1123,7 +1125,7 @@ struct eff_dat {
         struct species *eff; /* effector species to place on surface */
         byte quantity_type;  /* type is either EFFDENS or EFFNUM */
         double quantity; /* amount of effectors to place: density or number */
-	signed char orient;
+	short orientation;
 };
 
 /**
@@ -1145,9 +1147,9 @@ struct region {
 	int hashval;
         char *region_last_name;
 	struct object *parent;
-	struct element_list *element_list;
+	struct element_list *element_list_head;
 	struct reg_counter_ref_list *reg_counter_ref_list;
-	struct eff_dat *eff_dat;
+	struct eff_dat *eff_dat_head;
         struct species *surf_class;
 };
 
@@ -1204,7 +1206,7 @@ struct object {
 	                                   structures: one for each time meta-
 	                                   object is referenced in count stmt */
         unsigned int num_regions;	/**< number of regions defined */
-	struct region_list *region_list; /**< ptr to list of regions for 
+	struct region_list *regions;    /**< ptr to list of regions for 
 					      this object */
 	struct counter_hash_table **counter_hash_table;	/**<hash table for region counter in object*/
 /*        struct eff_dat **eff_prop;*/	/**<  if this object is a

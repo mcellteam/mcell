@@ -67,7 +67,7 @@ double *double_dup(double value)
 struct name_list *concat_obj_name(struct name_list *name_list_end,char *name)
 {
   struct name_list *np;
-  char temp[256];
+  char temp[1024];
 
   if (name_list_end->name==NULL) {
     name_list_end->name=name;
@@ -77,8 +77,8 @@ struct name_list *concat_obj_name(struct name_list *name_list_end,char *name)
     if ((np=(struct name_list *)malloc(sizeof(struct name_list)))==NULL) {
       return(NULL);
     }
-    strncpy(temp,"",256);
-    strncpy(temp,name_list_end->name,254);
+    strncpy(temp,"",1024);
+    strncpy(temp,name_list_end->name,1022);
     strcat(temp,".");
     np->name=my_strcat(temp,name);
     np->next=NULL;
@@ -88,8 +88,8 @@ struct name_list *concat_obj_name(struct name_list *name_list_end,char *name)
   }
   else {
     np=name_list_end->next;
-    strncpy(temp,"",256);
-    strncpy(temp,name_list_end->name,254);
+    strncpy(temp,"",1024);
+    strncpy(temp,name_list_end->name,1022);
     strcat(temp,".");
     np->name=my_strcat(temp,name);
     return(np);
@@ -201,14 +201,14 @@ struct region *make_new_region(struct volume *volp,char *obj_name,
 			       char *region_last_name,char *err_msg)
 {
   struct sym_table *gp;
-  char temp[256];
+  char temp[1024];
   char *region_name;
 
   /* full region names in symbol table have the form:
 	meta.meta.poly,region_last_name */
 
-  strncpy(temp,"",256);
-  strncpy(temp,obj_name,254);
+  strncpy(temp,"",1024);
+  strncpy(temp,obj_name,1022);
   strcat(temp,",");   
   region_name=my_strcat(temp,region_last_name);
   if ((gp=retrieve_sym(region_name,REG,volp->main_sym_table))==NULL) {
@@ -239,27 +239,28 @@ int copy_object(struct volume *volp,struct object *curr_objp,
   struct region *rp,*rp2;
   struct element_list *elp,*elp2;
   struct eff_dat *effdp,*effdp2;
-  char temp[256];
+  char temp[1024];
   char *sym_name,*child_obj_name;
 
   sym_name=objp->sym->name;
 
   objp->object_type=objp2->object_type;
   objp->parent=curr_objp;
+  objp->num_regions=objp2->num_regions;
   objp->n_walls=objp2->n_walls;
   objp->walls=objp2->walls;
   objp->wall_p=objp2->wall_p;
   objp->n_verts=objp2->n_verts;
   objp->verts=objp2->verts;
   objp->vert_p=objp2->vert_p;
-  rlp2=objp2->region_list;
+  rlp2=objp2->regions;
   while (rlp2!=NULL) {
     if ((rlp=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
       sprintf(err_msg,"%s %s","Cannot store object name:",sym_name);
       return(1);
     }
-    rlp->next=objp->region_list;
-    objp->region_list=rlp;
+    rlp->next=objp->regions;
+    objp->regions=rlp;
     rp2=rlp2->reg;
     if ((rp=make_new_region(volp,sym_name,rp2->region_last_name,err_msg))==NULL) { 
       return(1);
@@ -269,31 +270,31 @@ int copy_object(struct volume *volp,struct object *curr_objp,
     rp->parent=objp;
     rp->reg_counter_ref_list=NULL;
     rp->surf_class=rp2->surf_class;
-    elp2=rp2->element_list;
+    elp2=rp2->element_list_head;
     while (elp2!=NULL) {
       if ((elp=(struct element_list *)malloc
            (sizeof(struct element_list)))==NULL) {
         sprintf(err_msg,"%s %s","Cannot store object name:",sym_name);
         return(1);
       }
-      elp->next=rp->element_list;
-      rp->element_list=elp;
+      elp->next=rp->element_list_head;
+      rp->element_list_head=elp;
       elp->begin=elp2->begin;
       elp->end=elp2->end;
       elp2=elp2->next;
     }
-    effdp2=rp2->eff_dat;
+    effdp2=rp2->eff_dat_head;
     while (effdp2!=NULL) {
       if ((effdp=(struct eff_dat *)malloc(sizeof(struct eff_dat)))==NULL) {
         sprintf(err_msg,"%s %s","Cannot store object name:",sym_name);
         return(1);
       }
-      effdp->next=rp->eff_dat;
-      rp->eff_dat=effdp;
+      effdp->next=rp->eff_dat_head;
+      rp->eff_dat_head=effdp;
       effdp->eff=effdp2->eff;
       effdp->quantity_type=effdp2->quantity_type;
       effdp->quantity=effdp2->quantity;
-      effdp->orient=effdp2->orient;
+      effdp->orientation=effdp2->orientation;
       effdp2=effdp2->next;
     }
     rlp2=rlp2->next;
@@ -304,8 +305,8 @@ int copy_object(struct volume *volp,struct object *curr_objp,
     case META_OBJ:
       child_objp2=objp2->first_child;
       while (child_objp2!=NULL) {
-        strncpy(temp,"",256);
-        strncpy(temp,sym_name,254);
+        strncpy(temp,"",1024);
+        strncpy(temp,sym_name,1022);
         strcat(temp,".");   
         child_obj_name=my_strcat(temp,child_objp2->last_name);
         if ((child_objp=make_new_object(volp,child_obj_name,err_msg))==NULL) {

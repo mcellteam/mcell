@@ -21,8 +21,10 @@
 #include "vector.h"
 #include "rng.h"
 #include "sym_table.h"
-#include "wall_util.h"
 #include "vol_util.h"
+#include "wall_util.h"
+#include "grid_util.h"
+#include "react.h"
 #include "init.h"
 
 #ifdef DEBUG
@@ -136,10 +138,7 @@ int init_sim(void)
   world->chkpt_iterations=0;
   world->chkpt_seq_num=0;
 
-  /* ============ by Erhan Gokcay 5/8/2002 =========== */
-  /* This is set in the main program. */
-  /*chkpt_init=1; */
-  /* ================================================= */
+  world->chkpt_init=1;
   world->chkpt_flag=0;
   world->molecule_prefix_name=NULL;
   world->random_number_use=0;
@@ -289,7 +288,7 @@ int init_sim(void)
   }
   no_printf("Done setting up species.\n");
 
-  /* Initialize the geometry */
+/* Instantiation Pass #1: Initialize the geometry */
   if (init_geom()) {
     fprintf(log_file,"MCell: error initializing geometry\n");
     return(1);
@@ -297,6 +296,7 @@ int init_sim(void)
   
   no_printf("Done setting up geometry.\n");
   
+/* Instantiation Pass #2: Partition geometry */
   if (init_partitions()) {
     fprintf(log_file,"MCell: error initializing partitions.\n");
     return(1);
@@ -309,6 +309,12 @@ int init_sim(void)
   
   if (sharpen_world()) {
     fprintf(log_file,"MCell: error adding edges to geometry\n");
+    return(1);
+  }
+
+/* Instantiation Pass #3: Initialize regions */
+  if (init_regions()) {
+    fprintf(log_file,"MCell: error initializing object regions\n");
     return(1);
   }
   
@@ -701,6 +707,7 @@ int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp, str
   if (lcrp==NULL) {
     lcrp=objp->lig_count_ref;
   }
+
   if (sub_name!=NULL) { 
     if (strcmp(sub_name,"")==0) {
       tmp_name=my_strdup("");
@@ -842,6 +849,7 @@ int compute_bb(struct object *objp, double (*im)[4], char *sub_name)
   m=4;
   n=4;
   mult_matrix(objp->t_matrix,im,tm,l,m,n);
+
   if (sub_name!=NULL) { 
     if (strcmp(sub_name,"")==0) {
       tmp_name=my_strdup("");
@@ -1038,25 +1046,26 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
   obj_name=my_strdup(full_name);
 
 
-  switch (pop->list_type) {
+  switch (pop->list_type)
+  {
 
   case ORDERED_POLY:
 
-/* Allocate and initialize memory */
-    if ((w=(struct wall *)malloc
-        (n_walls*sizeof(struct wall)))==NULL){
+/* Allocate and initialize walls and vertices */
+    if ((w=(struct wall *)malloc(n_walls*sizeof(struct wall)))==NULL)
+    {
       return(1);
     }
-    if ((wp=(struct wall **)malloc
-        (n_walls*sizeof(struct wall *)))==NULL){
+    if ((wp=(struct wall **)malloc(n_walls*sizeof(struct wall *)))==NULL)
+    {
       return(1);
     }
-    if ((v=(struct vector3 *)malloc
-        (n_walls*sizeof(struct vector3)))==NULL){
+    if ((v=(struct vector3 *)malloc(n_walls*sizeof(struct vector3)))==NULL)
+    {
       return(1);
     }
-    if ((vp=(struct vector3 **)malloc
-        (n_walls*sizeof(struct vector3 *)))==NULL){
+    if ((vp=(struct vector3 **)malloc(n_walls*sizeof(struct vector3 *)))==NULL)
+    {
       return(1);
     }
     objp->walls=w;
@@ -1064,19 +1073,23 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
     objp->verts=v;
     objp->vert_p=vp;
 
-    compute_vertex_normals=0;
     opp=(struct ordered_poly *)pop->polygon_data;
 
-/* This is commented out to deactivate computation of vertex normals */
-/* If we want vertex normals we'll have to add a place to store them
-   in struct object */
+    compute_vertex_normals=0;
+
+/* The following is commented out to deactivate computation of vertex normals.
+   If we want vertex normals we'll have to add a place to store them
+   in struct object.
+*/
 /*
-    if (opp->normal!=NULL) {
+    if (opp->normal!=NULL)
+    {
       compute_vertex_normals=1;
     }
 */
  
-    for (i=0;i<n_verts;i++) {
+    for (i=0;i<n_verts;i++)
+    {
       vp[i]=&v[i];
       p[0][0]=opp->vertex[i].x;
       p[0][1]=opp->vertex[i].y;
@@ -1087,7 +1100,8 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
       v[i].y=p[0][1]/world->length_unit;
       v[i].z=p[0][2]/world->length_unit;
 
-      if (compute_vertex_normals) {
+      if (compute_vertex_normals)
+      {
         p[0][0]=opp->normal[i].x;
         p[0][1]=opp->normal[i].y;
         p[0][2]=opp->normal[i].z;
@@ -1106,19 +1120,30 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
     }
 
 
-    for (i=0;i<n_walls;i++) {
-      wp[i]=&w[i];
-      index_0=opp->element_data[i].vertex_index[0];
-      index_1=opp->element_data[i].vertex_index[1];
-      index_2=opp->element_data[i].vertex_index[2];
+    for (i=0;i<n_walls;i++)
+    {
+      if (pop->side_stat[i])
+      {
+        wp[i]=&w[i];
+        index_0=opp->element_data[i].vertex_index[0];
+        index_1=opp->element_data[i].vertex_index[1];
+        index_2=opp->element_data[i].vertex_index[2];
 
-      init_tri_wall(objp,i,vp[index_0],vp[index_1],vp[index_2]);
+        init_tri_wall(objp,i,vp[index_0],vp[index_1],vp[index_2]);
 
-      if (wp[i]->area==0) {
-        fprintf(log_file,"\nMCell: Warning -- Degenerate polygon found and automatically removed: %s %d\n\n",objp->sym->name,i);
-        pop->side_stat[i]=0;
+        if (wp[i]->area==0)
+        {
+          fprintf(log_file,"\nMCell: Warning -- Degenerate polygon found and automatically removed: %s %d\n\n",objp->sym->name,i);
+          pop->side_stat[i]=0;
+          wp[i]=NULL;
+        }
+      }
+      else
+      {
+        wp[i]=NULL;
       }
     }
+    break;
   }
 
   return(0);
@@ -1126,9 +1151,75 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
 
 
 
-/* This function not ready yet */
+int init_regions()
+{
 
-#if 0
+  if (instance_obj_regions(world->root_instance,NULL)) {
+    return(1);
+  }
+
+  return(0);
+}
+
+
+
+int instance_obj_regions(struct object *objp,char *sub_name)
+{
+  FILE *log_file;
+  struct object *child_objp;
+  char *tmp_name;
+
+  log_file=world->log_file;
+
+  if (sub_name!=NULL) { 
+    if (strcmp(sub_name,"")==0) {
+      tmp_name=my_strdup("");
+    }
+    else {
+      tmp_name=my_strcat(sub_name,".");              
+    }
+    sub_name=my_strcat(tmp_name,objp->last_name);    
+    free((void *)tmp_name);
+  }
+  else {
+    sub_name=my_strdup(objp->last_name);    
+  }
+
+  switch (objp->object_type) {
+  case META_OBJ:
+    no_printf("Initializing regions in meta object: %s\n",sub_name);
+    fflush(log_file);
+    child_objp=objp->first_child;
+    while (child_objp!=NULL) {
+      if (instance_obj_regions(child_objp,sub_name)) {
+        return(1);
+      }
+      child_objp=child_objp->next;
+    }
+    break;
+  case REL_SITE_OBJ:
+    break;
+  case BOX_OBJ:
+    no_printf("Initializing regions in box object: %s\n",sub_name);
+    fflush(log_file);
+    if (init_wall_regions(objp,sub_name)) {
+      return(1);
+    }
+    break;
+  case POLY_OBJ:
+    no_printf("Initializing regions in polygon list object: %s\n",sub_name);
+    fflush(log_file);
+    if (init_wall_regions(objp,sub_name)) {
+      return(1);
+    }
+    break;
+  }
+
+  free((void *)sub_name);
+  return(0);
+}
+
+
 
 /**
  * Initialize data associated with wall regions.
@@ -1138,48 +1229,41 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
  * Creates surface grids.
  * Populates effector tiles by region.
  */
-int init_wall_regions(struct object *objp)
+int init_wall_regions(struct object *objp, char *full_name)
 {
   FILE *log_file;
   struct polygon_object *pop;
-  struct ordered_poly *opp;
-  struct box_poly *bpp;
-  struct vertex_list *vlp;
-  struct vector3 *v,**vp;
-  struct vector3 corner[8],**face,*rect_vert[4],**vert,*vp1,*vp2,v1,v2,vx,vy,vz;
-  struct vector3 *vertex_normal,**face_vertex_normal;
-  struct vector3 ab,bc,ac;
-  struct cmprt_data *cdp;
-  struct cmprt_data_list *cdlp;
-  struct wall *w,**wp;
-  struct wall_list *wlp;
-  struct effector *ep;
-  struct rx *rx;
+  struct wall *w;
   struct eff_dat *effdp,*dup_effdp,**eff_prop;
-  struct lig_count_ref *poly_lcrp;
+/*  struct lig_count_ref *poly_lcrp; */
   struct region *rp;
   struct region_list *rlp,*rlp2,*reg_eff_num_head,*rlp3,*reg_count_head;
   struct region_list *rlp4, *lig_hit_count;
+  struct region_list *wrlp;
   struct lig_hit_counter **lig_hit;
   struct element_list *elp;
-  struct reg_counter_ref *rcrp;
+/*  struct reg_counter_ref *rcrp; */
   struct reg_counter_ref_list *rcrlp;
-  struct counter_hash_table **countertab;
-  double dx,dy,dz;
-  double p[1][4],origin[1][4];
-  double area,total_area;
-  int i,j,k,cnt,n_verts,n_walls,n_element_verts,index_0,index_1,index_2;
-  int done;
-  unsigned short l,m,n;
-  char *obj_name,*full_name;
-  byte compute_vertex_normals,reg_eff_num,reg_count_num;
+/*  struct counter_hash_table **countertab; */
+  int i,n_walls;
+  byte reg_eff_num,reg_count_num;
   byte lig_hit_flag;
-  byte throw_away = 0;
-  byte wall_on_region_flag;
 
+  log_file=world->log_file;
 
-/* Things to be done during wall instantiation Pass 3: */
+  pop=(struct polygon_object *)objp->contents;
+  n_walls=pop->n_walls;
 
+  switch (pop->list_type)
+  {
+
+  case ORDERED_POLY:
+   
+    no_printf("Processing %d regions in polygon list object: %s\n",
+      objp->num_regions,full_name);
+    fflush(log_file);
+
+  /* allocate scratch storage to hold effector info for each wall */
     if ((eff_prop=(struct eff_dat **)malloc
        (n_walls*sizeof(struct eff_dat *)))==NULL) {
       return(1);
@@ -1188,24 +1272,17 @@ int init_wall_regions(struct object *objp)
     for (i=0;i<n_walls;i++) {
       eff_prop[i]=NULL;
     }
-
-    poly_lcrp=pop->lig_count_ref;
-    while (poly_lcrp!=NULL) {
-      if (strcmp(full_name,poly_lcrp->full_name)==0) {
-        poly_lcrp->count_list->temp_data=(void *)&cdp->lig_count[poly_lcrp->type];
-      }
-      poly_lcrp=poly_lcrp->next;
-    }
+ 
 
     /* prepend a copy of eff_dat for each element referenced in each region
        of this object to the eff_prop list for the referenced element */
     reg_eff_num_head=NULL;
     reg_count_head=NULL;
     lig_hit_count=NULL;
-    rlp=objp->region_list;
+    rlp=objp->regions;
     
     while (rlp!=NULL) {
-      rp=rlp->region;
+      rp=rlp->reg;
       reg_eff_num=0;
       reg_count_num=0;
       lig_hit_flag=0;
@@ -1213,25 +1290,63 @@ int init_wall_regions(struct object *objp)
       if (rcrlp!=NULL) {
 	reg_count_num=1;
       }
+/*
       lig_hit=rp->lig_hit_counter;
+*/
+      lig_hit=NULL;
       if (lig_hit!=NULL) {
 	lig_hit_flag=1;
       }
-      elp=rp->element_list;
+      elp=rp->element_list_head;
       while (elp!=NULL) {
         for (i=elp->begin;i<=elp->end;i++) {
           if (pop->side_stat[i]) {
-            effdp=rp->eff_dat;
+
+            /* prepend this region to wall region list of i_th wall */
+            w=objp->wall_p[i];
+            if ((wrlp=(struct region_list *)malloc
+              (sizeof(struct region_list)))==NULL) {
+              return(1);
+            }
+            wrlp->reg=rp;
+            wrlp->next=w->regions;
+            w->regions=wrlp;
+ 
+            /* prepend region eff data for this region
+              to eff_prop for i_th wall */
+            effdp=rp->eff_dat_head;
             while (effdp!=NULL) {
               if (effdp->quantity_type==EFFDENS) {
                 if ((dup_effdp=(struct eff_dat *)malloc
                      (sizeof(struct eff_dat)))==NULL){
                   return(1);
                 }
-                dup_effdp->rx=effdp->rx;
+                dup_effdp->eff=effdp->eff;
                 dup_effdp->quantity_type=effdp->quantity_type;
                 dup_effdp->quantity=effdp->quantity;
-                dup_effdp->orient=effdp->orient;
+                dup_effdp->orientation=effdp->orientation;
+                dup_effdp->next=eff_prop[i];
+                eff_prop[i]=dup_effdp;
+              }
+              else {
+                reg_eff_num=1;
+              }
+              effdp=effdp->next;
+            }
+
+            /* prepend surf_class eff data for this region
+              to eff_prop for i_th wall */
+            effdp=rp->surf_class->eff_dat_head;
+            while (effdp!=NULL) {
+              if (effdp->quantity_type==EFFDENS) {
+                if ((dup_effdp=(struct eff_dat *)malloc
+                     (sizeof(struct eff_dat)))==NULL){
+                  return(1);
+                }
+                dup_effdp->eff=effdp->eff;
+                dup_effdp->quantity_type=effdp->quantity_type;
+                dup_effdp->quantity=effdp->quantity;
+                dup_effdp->orientation=effdp->orientation;
                 dup_effdp->next=eff_prop[i];
                 eff_prop[i]=dup_effdp;
               }
@@ -1249,7 +1364,7 @@ int init_wall_regions(struct object *objp)
              (sizeof(struct region_list)))==NULL){
           return(1);
         }
-        rlp2->region=rp;
+        rlp2->reg=rp;
         rlp2->next=reg_eff_num_head;
         reg_eff_num_head=rlp2;
       }
@@ -1258,7 +1373,7 @@ int init_wall_regions(struct object *objp)
              (sizeof(struct region_list)))==NULL){
           return(1);
         }
-        rlp3->region=rp;
+        rlp3->reg=rp;
         rlp3->next=reg_count_head;
         reg_count_head=rlp3;
       }
@@ -1267,122 +1382,40 @@ int init_wall_regions(struct object *objp)
              (sizeof(struct region_list)))==NULL){
           return(1);
         }
-        rlp4->region=rp;
+        rlp4->reg=rp;
         rlp4->next=lig_hit_count;
         lig_hit_count=rlp4;
       }
 
       rlp=rlp->next;
     }
-    k=0;
+
     for (i=0;i<n_walls;i++) {
       if (pop->side_stat[i]) {
-          face_vertex_normal=NULL;
-          n_element_verts=opp->element_data[i].n_verts;
-          if ((face=(struct vector3 **)malloc
-	       (n_element_verts*sizeof(struct vector3 *)))==NULL) {
-            return(1);
-          }
-          if (compute_vertex_normals) {
-            if ((face_vertex_normal=(struct vector3 **)malloc
-	         (n_element_verts*sizeof(struct vector3 *)))==NULL) {
-              return(1);
-            }
-          }
-	  throw_away = 0;
-          for (j=0;j<n_element_verts;j++) {
-            index_0=opp->element_data[i].vertex_index[j];
-            face[j]=&corner[index_0];
-            if (compute_vertex_normals) {
-              face_vertex_normal[j]=&vertex_normal[index_0];
-            }
-			  
-            /* Check if any of the vertices is in the region for
-             * for this node */
-            if ( ((face[j][0].x <= volume->x_partitions[0])
-                 || (face[j][0].x >= volume->x_partitions[volume->n_x_subvol]))
-             || ((face[j][0].y <= volume->y_partitions[0])
-                 || (face[j][0].y >= volume->y_partitions[volume->n_y_subvol]))
-             || ((face[j][0].z <= volume->z_partitions[0])
-                 || (face[j][0].z >= volume->z_partitions[volume->n_z_subvol])) ){
-              throw_away++;
-            }
-          }
+      
+        w=objp->wall_p[i];
 
-          /* If the entire wall is outside the region for this node, skip it */
-          if (throw_away == n_element_verts) {
-            cdp->n_walls--;
-            free(face);
-            free(face_vertex_normal);
-            continue;
-          }
+	/* Try to find out which region contains this wall
+	 * Only when there are regions in this object and 
+	 * there are region counters for this object.
+	 * Else we set it to NULL 6/26/03*/
+/*
+	rlp=objp->regions;
+	if ((rlp!=NULL)&&((reg_count_head!=NULL)||(lig_hit_count!=NULL))) {
+	  w->regions=init_region_list_for_wall(rlp,i); 
+  	}
+	else {
+	  w->regions=NULL;
+	}
+*/
+	/* end of new searching */
 
-	  if ((wp=init_wall(face,face_vertex_normal,n_element_verts))==NULL) {
+	if ((effdp=eff_prop[i])!=NULL) {
+	  if (init_effectors_by_density(w,effdp)) {
 	    return(1);
 	  }
-	  if ((wlp=(struct wall_list *)malloc
-	       (sizeof(struct wall_list)))==NULL) {
-	    return(1);
-	  }
-	  wlp->wall=wp;
-	  wlp->next=cdp->wall_list;
-	  cdp->wall_list=wlp;
-          pop->cmprt_side_map[i]=k;
-	  cdp->wall[k++]=wp;
-	  wp->next_wall=wall_head;
-	  wall_head=wp;
-          if (wp->n_vert==3) {
-            wp->wall_shape=TRI_POLY;
-          }
-          else {
-            wp->wall_shape=GEN_POLY;
-          }
+	}
 
-          vectorize(wp->vert[0],wp->vert[1],&ab);
-          vectorize(wp->vert[1],wp->vert[2],&bc);
-          if (wp->wall_shape==TRI_POLY) {
-            vectorize(wp->vert[0],wp->vert[2],&ac);
-            cross_prod(&ab,&ac,&v1);
-            area=0.5*vect_length(&v1);
-            wp->area=area;
-            total_area=total_area+wp->area;
-          }
-          else {
-            /* todo: compute area of general polygon */
-            wp->area=0;
-            total_area=total_area+wp->area;
-          }
-
-	  wp->parent_object=objp;   /* Lin-Wei Wu 6/25/03 */
-	  wp->side=i;
-	  wp->parent=cdp;
-	  wp->wall_type=pop->lig_prop[i];
-	  wp->effectors=NULL;
-          if (objp->viz_state!=NULL) {
-	    wp->viz_state=objp->viz_state[i];
-          }
-          else {
-	    wp->viz_state=EXCLUDE_OBJ;
-          }
-
-	  /* Try to find out which region contains this wall
-	   * Only when there are regions in this object and 
-	   * there are region counters for this object.
-	   * Else we set it to NULL 6/26/03*/
-	  rlp=objp->region_list;
-	  if ((rlp!=NULL)&&((reg_count_head!=NULL)||(lig_hit_count!=NULL))) {
-	    wp->region_list=init_region_list_for_wall(rlp,i); 
-  	  }
-	  else {
-	    wp->region_list=NULL;
-	  }
-	  
-	  /* end of new searching */
-	  if ((effdp=eff_prop[i])!=NULL) {
-	    if (init_effectors_by_density(wp,effdp)) {
-	      return(1);
-	    }
-	  }
       }
     }
 	  if (lig_hit_count!=NULL) {
@@ -1395,9 +1428,11 @@ int init_wall_regions(struct object *objp)
 	  }
   
     if (reg_eff_num_head!=NULL) {
+/*
       if (init_effectors_by_number(pop,cdp,reg_eff_num_head)) {
         return(1);
       }
+*/
       /* free region list created to hold regions populated by number */
       rlp=reg_eff_num_head;
       while(rlp!=NULL) {
@@ -1411,7 +1446,8 @@ int init_wall_regions(struct object *objp)
      *had been placed with concern of the region overlapping
     */
     if (reg_count_head!=NULL) {
-      if (!chkpt_infile) {
+#if 0 
+      if (!world->chkpt_infile) {
         if (init_region_counter(pop,cdp,reg_count_head)) {
           return(1);
         }
@@ -1422,6 +1458,7 @@ int init_wall_regions(struct object *objp)
       if (init_counter_hash_table(objp,reg_count_head)) {
 	return(1);
       }
+#endif
       /* free region_list created by the initialization of region counter*/
       rlp=reg_count_head;
       while(rlp!=NULL) {
@@ -1458,7 +1495,136 @@ int init_wall_regions(struct object *objp)
   return(0);
 }
 
-#endif
+
+
+int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
+{
+  FILE *log_file;
+  struct species **eff;
+  struct surface_grid *sg;
+  struct eff_dat *effdp;
+  struct grid_molecule *mol;
+  signed char *orientation;
+  unsigned int i,j,n,nr,n_occupied;
+  int p_index;
+  double rand[1],*prob,area,tot_prob,tot_density;
+
+  log_file=world->log_file;
+
+  no_printf("Initializing effectors by density...\n");
+  fflush(log_file);
+
+  sg=w->effectors;
+  if (sg==NULL) {
+    if (create_grid(w,NULL)) {
+      return(1);
+    }
+  }
+  sg=w->effectors;
+
+  nr=0;
+  effdp=effdp_head;
+  while (effdp!=NULL) {
+    nr++;
+    effdp=effdp->next;
+  }
+
+  if ((eff=(struct species **)malloc(nr*sizeof(struct species *)))==NULL) {
+    return(1);
+  }
+  if ((prob=(double *)malloc(nr*sizeof(double)))==NULL) {
+    return(1);
+  }
+  if ((orientation=(signed char *)malloc(nr*sizeof(signed char)))==NULL) {
+    return(1);
+  }
+
+  for (i=0;i<nr;i++) {
+    eff[i]=NULL;
+    prob[i]=0.0;
+    orientation[i]=0;
+  }
+
+  n=sg->n_tiles;
+  area=w->area;
+  no_printf("Initializing %d effectors...\n",n);
+  no_printf("  Area = %.9g\n",area);
+  no_printf("  Grid_size = %d\n",sg->n);
+  no_printf("  Number of effector types in wall = %d\n",nr);
+  fflush(log_file);
+
+  i=0;
+  tot_prob=0;
+  tot_density=0;
+  effdp=effdp_head;
+  while (effdp!=NULL) {
+    no_printf("  Adding effector %s to wall at density %.9g\n",effdp->eff->sym->name,effdp->quantity);
+    tot_prob+=(area*effdp->quantity)/(n*world->effector_grid_density);
+    prob[i]=tot_prob;
+    orientation[i]=effdp->orientation;
+    eff[i++]=effdp->eff;
+    tot_density+=effdp->quantity;
+    effdp=effdp->next;
+  }
+
+  if (tot_density>world->effector_grid_density) {
+    fprintf(log_file,"\nMCell: Warning -- Total effector density too high: %f\n\n",tot_density);
+    fflush(log_file);
+/*
+    return(1);
+*/
+  }
+
+  n_occupied=0;
+  for (i=0;i<n;i++) {
+    if (world->chkpt_init) {
+      j=0;
+      p_index=-1;
+      world->random_number_use++;
+      ran4(&world->seed,rand,1,1.0);
+      while (j<nr && p_index==-1) {
+        if (rand[0]<=prob[j++]) {
+          p_index=j-1;
+        }
+      }
+      if (p_index!=-1) {
+        n_occupied++;
+        eff[p_index]->population++;
+        mol=(struct grid_molecule *)mem_get(w->birthplace->gmol);
+        sg->mol[i]=mol;
+        mol->t=0;
+        mol->t2=0;
+        mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
+        if (trigger_unimolecular(eff[p_index]->hashval,
+          (struct abstract_molecule *)mol)!=NULL) {
+          mol->flags|=ACT_REACT;
+        }
+        mol->properties=eff[p_index];
+        mol->birthplace=w->birthplace->gmol;
+        mol->grid_index=i;
+        mol->orient=orientation[p_index];
+        mol->grid=sg;
+        schedule_add(w->birthplace->timer,mol);
+      }
+    }
+  }
+
+  sg->n_occupied=n_occupied;
+
+  for (i=0;i<nr;i++) {
+    no_printf("Total number of effector %s = %d\n",eff[i]->sym->name,eff[i]->population);
+  }
+
+  free(eff);
+  free(prob);
+  free(orientation);
+
+  no_printf("Done initializing %d effectors by density\n",n_occupied);
+  fflush(log_file);
+
+	
+  return(0);
+}
 
 
 
@@ -1497,7 +1663,7 @@ int init_region_counter(struct polygon_object *pop, struct cmprt_data *cdp, stru
     fflush(log_file);
     while (rlp!=NULL) {
       rp=rlp->region;
-      elp=rp->element_list;
+      elp=rp->element_list_head;
       /* check effector numbers for each region of the object*/
       while (elp!=NULL) {
 	for (i=elp->begin;i<=elp->end;i++) {
@@ -1542,7 +1708,7 @@ struct region_list  *init_region_list_for_wall(struct region_list *rlp, int inde
   while (rlp!=NULL) {
     wall_on_region_flag=0; 
     rp=rlp->region;
-    elp=rp->element_list;
+    elp=rp->element_list_head;
     while (elp!=NULL) {
       if ((index<=elp->end)&&(index>=elp->begin)) {
 	wall_on_region_flag=1;
@@ -1897,7 +2063,7 @@ int init_effectors_by_number(struct polygon_object *pop, struct cmprt_data *cdp,
         /* initialize effector grids in region as needed and */
         /* count total number of free effector sites in region */
         n_free_eff=0;
-        elp=rp->element_list;
+        elp=rp->element_list_head;
         while (elp!=NULL) {
           for (i=elp->begin;i<=elp->end;i++) {
             if (pop->side_stat[i]) {
@@ -1939,7 +2105,7 @@ int init_effectors_by_number(struct polygon_object *pop, struct cmprt_data *cdp,
         }
         /* initialize array of pointers to all free tiles */
         k=0;
-        elp=rp->element_list;
+        elp=rp->element_list_head;
         while (elp!=NULL) {
           for (i=elp->begin;i<=elp->end;i++) {
             if (pop->side_stat[i]) {
@@ -2237,7 +2403,7 @@ int init_effectors_by_number(struct polygon_object *pop, struct cmprt_data *cdp,
             n_free_eff=n_free_eff-n_set;
 
             /* update n_occupied for each effector grid */
-            elp=rp->element_list;
+            elp=rp->element_list_head;
             while (elp!=NULL) {
               for (i=elp->begin;i<=elp->end;i++) {
                 if (pop->side_stat[i]) {
@@ -2276,7 +2442,7 @@ int init_effectors_by_number(struct polygon_object *pop, struct cmprt_data *cdp,
       }
       /* create arrays to hold prev_state as necessary */
       if (prev_state_flag) {
-        elp=rp->element_list;
+        elp=rp->element_list_head;
         while (elp!=NULL) {
           for (i=elp->begin;i<=elp->end;i++) {
             if (pop->side_stat[i]) {
@@ -2301,222 +2467,6 @@ int init_effectors_by_number(struct polygon_object *pop, struct cmprt_data *cdp,
       rlp=rlp->next;
     }
   no_printf("Done initialize effectors by number.\n");
-  return(0);
-}
-
-
-int init_effectors_by_density(struct wall *wp, struct eff_dat *effdp_head)
-{
-  struct rx **tiles,*rx[NUM_ADD_EFFECTORS];
-  struct effector *ep;
-  struct eff_dat *effdp;
-  struct vector3 v1,u_axis,v_axis,p_b,p_c,p_d,i_axis,j_axis;
-  struct vector3 ab,bc,ac,step_u,step_v,diagonal,p0,p1,p2;
-  unsigned short *dsp,*psp;
-  signed char *orp,orientation[NUM_ADD_EFFECTORS];
-  int *tsp;
-  unsigned int i,j,k,l,m,n,p,nr,nl,ir,jr,n_ligs,n_occupied;
-  unsigned int n_ran;
-  int p_index,rx_index,subvol;
-  int grid_size,uu,vv,vv_max;
-  byte grid_shape;
-  byte prev_state_flag;
-  double rand[1],prob[NUM_ADD_EFFECTORS],area,tot_prob,tot_density;
-  double fuzz,tiny_x,tiny_y,tiny_z,length0,length3,r1,r2,r3,i1,i2,i3,j1,j2,j3;
-  double diag_x,diag_y,r_slope,width,u_width;
-  double u_factor,u_factor_2,v_factor,v_val,binding_factor;
-  struct ligand *lp;
-
-  no_printf("Initializing effectors by density...\n");
-
-  ep=wp->effectors;
-  if (ep==NULL) {
-    if (init_effector_grid(wp)) {
-      return(1);
-    }
-  }
-  ep=wp->effectors;
-
-/* Place initially bound ligands on appropriate pole of effector */
-/*
-  fuzz=POLE*0.000001;
-*/
-  fuzz=0.0;
-  tiny_x=fuzz*wp->normal.x;
-  tiny_y=fuzz*wp->normal.y;
-  tiny_z=fuzz*wp->normal.z;
-
-  n=ep->n_tiles;
-  no_printf("Initializing %d effectors...\n",n);
-  fflush(log_file);
-  area=wp->area;
-  vectorize(wp->vert[0],wp->vert[1],&ab);
-  vectorize(wp->vert[1],wp->vert[2],&bc);
-  grid_size=ep->grid_size;
-  grid_shape=ep->grid_shape;
-  step_u.x=ab.x/grid_size;
-  step_u.y=ab.y/grid_size;
-  step_u.z=ab.z/grid_size;
-  step_v.x=bc.x/grid_size;
-  step_v.y=bc.y/grid_size;
-  step_v.z=bc.z/grid_size;
-  vectorize(&step_u,&step_v,&diagonal);
-
-  no_printf("  Area = %.9g\n",area);
-  no_printf("  grid_size = %d\n",grid_size);
-
-  r1=wp->vert[0]->x;
-  r2=wp->vert[0]->y;
-  r3=wp->vert[0]->z;
-
-  nl=1+n_ligand_types;
-  n_ligs=0;
-
-  tiles=ep->tiles;
-  dsp=ep->desired_state;
-  tsp=ep->time_stamp;
-  orp=ep->orient;
-
-  for (k=0;k<NUM_ADD_EFFECTORS;k++) {
-    rx[k]=NULL;
-    prob[k]=0.0;
-    orientation[k]=0;
-  }
-
-  nr=0;
-  tot_prob=0;
-  tot_density=0;
-  prev_state_flag=0;
-  effdp=effdp_head;
-  while (effdp!=NULL) {
-    no_printf("  adding effector state %s to wall at density %.9g\n",effdp->rx->sym->name,effdp->quantity);
-    tot_prob+=(area*effdp->quantity)/(n*effector_grid_density);
-    prob[nr]=tot_prob;
-    orientation[nr]=effdp->orient;
-    rx[nr++]=effdp->rx;
-    tot_density+=effdp->quantity;
-    prev_state_flag=prev_state_flag||effdp->rx->parent_rx->prev_state_flag;
-    effdp=effdp->next;
-  }
-
-  no_printf("Number of effector types in wall = %d\n",nr);
-  fflush(log_file);
-  if (tot_density>effector_grid_density) {
-    fprintf(log_file,"\nMCell: Warning -- Total effector density too high: %f\n\n",tot_density);
-    fflush(log_file);
-/*
-    return(1);
-*/
-  }
-
-  if (prev_state_flag) {
-    if ((psp=(unsigned short *)malloc(n*sizeof(unsigned short)))==NULL) {
-      fprintf(log_file,"MCell: cannot store previous state data for effector grid: %d\n",n);
-      fflush(log_file);
-      return(1);
-    }
-  }
-  else {
-    psp=NULL;
-  }
-
-  k=0;
-  n_occupied=0;
-  for (uu=0;uu<grid_size;uu++) {
-    p0.x=(uu+1)*step_u.x;
-    p0.y=(uu+1)*step_u.y;
-    p0.z=(uu+1)*step_u.z;
-    if (grid_shape==RECTANGULAR) {
-      vv_max=2*grid_size;
-    }
-    else {
-      vv_max=(2*uu)+1;
-    }
-    v_val=0;
-    for (vv=0;vv<vv_max;vv++) {
-      p1.x=p0.x+(v_val*step_v.x);
-      p1.y=p0.y+(v_val*step_v.y);
-      p1.z=p0.z+(v_val*step_v.z);
-      if (vv%2==0) {
-        p2.x=p1.x+(0.33*diagonal.x);
-        p2.y=p1.y+(0.33*diagonal.y);
-        p2.z=p1.z+(0.33*diagonal.z);
-      }
-      else {
-        p2.x=p1.x+(0.66*diagonal.x);
-        p2.y=p1.y+(0.66*diagonal.y);
-        p2.z=p1.z+(0.66*diagonal.z);
-        v_val++;
-      }
-      if (prev_state_flag) {
-        psp[k]=0;
-      }
-      
-      if (chkpt_init) {
-        l=0;
-        p_index=-1;
-        random_number_use++;
-        ran4(&seed,rand,1,1.0);
-        while (l<nr && p_index==-1) {
-          if (rand[0]<=prob[l++]) {
-	    p_index=l-1;
-          }
-        }
-        if (p_index!=-1) {
-          n_occupied++;
-          tiles[k]=rx[p_index];
-          dsp[k]=rx[p_index]->state_index;
-          orp[k]=orientation[p_index];
-          rx[p_index]->count++;
-          for (m=1;m<nl;m++) {
-	    for (p=0;p<rx[p_index]->bound_ligands[m];p++) {
-	      if ((lp=(struct ligand *)malloc
-	           (sizeof(struct ligand)))==NULL) {
-	        fprintf(log_file,"MCell: cannot store molecule\n");
-	        return(1);
-	      }
-	      lp->next_ligand=ligand_table[m]->top;
-	      ligand_table[m]->top=lp;
-	      tot_mols++;
-	      ligand_table[m]->n_mols++;
-              n_ligs++;
-	      lp->lig_num=ligand_table[m]->lig_index++;
-	      
-	      /* put ligand in middle of effector */
-	      lp->pos.x=r1+p2.x+tiny_x;
-	      lp->pos.y=r2+p2.y+tiny_y;
-	      lp->pos.z=r3+p2.z+tiny_z;
-	      
-	      lp->effector=ep;
-	      lp->index=k;
-              subvol=find_subvol(volume,&lp->pos,-1);
-              if (subvol<0) {
-	        fprintf(log_file,"MCell: invalid subvolume referenced while initializing effectors\n");
-                return(1);
-              }
-  
-	      lp->subvol=subvol;
-	    }
-          }
-        }
-      }
-      k++;
-    }
-  }
-  no_printf("  final index = %d\n",k);
-
-  for (k=0;k<nr;k++) {
-    no_printf("Number of effector type %d = %d\n",k+1,rx[k]->count);
-  }
-  no_printf("Number of molecules initialized on effector sites = %d\n",n_ligs);
-  no_printf("Done initializing %d effectors by density\n",n_ran);
-  fflush(log_file);
-
-  ep->n_occupied=n_occupied;
-  
-  ep->prev_state=psp;
-  ep->n_types=nr;
-	
   return(0);
 }
 

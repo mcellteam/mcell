@@ -34,7 +34,7 @@ I ([0-9]+)
 
 %%
 
-[ \t]+			;
+[ \t]+                  ;
 "-help"			{return(HELP_OPT);}
 "-info"			{return(INFO_OPT);}
 "-logfile"		{return(LOG_FILE_OPT);}
@@ -44,7 +44,6 @@ I ([0-9]+)
 "-checkpoint_infile"	{return(CHECKPOINT_OPT);}
 {R}			{sscanf((const char *)argtext,"%lf",&apvp->rval); return(REAL);}
 {I}			{sscanf((const char *)argtext,"%d",&apvp->ival); return(INTEGER);}
-[A-Za-z0-9\_\.\\/]+	{apvp->cval=my_strdup(argtext); return(FILE_NAME);}
+[[:alnum:][:punct:]]+	 {apvp->cval=my_strdup(argtext); return(FILE_NAME);}
 .			;
-\n			;
 <<EOF>>			{return(EOF_TOK);}

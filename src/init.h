@@ -27,6 +27,14 @@ int instance_polygon_object(struct object *objp,
 		struct lig_count_ref *obj_lcrp,
 		char *full_name);
 
+int init_regions();
+
+int instance_obj_regions(struct object *objp, char *sub_name);
+
+int init_wall_regions(struct object *objp, char *full_name);
+
+int init_effectors_by_density(struct wall *w, struct eff_dat *eff_dat_head);
+
 int compute_bb(struct object *objp,
 	       double (*im)[4],
 	       char *sub_name);
@@ -47,8 +55,6 @@ void cube_face(struct vector3 *corner, struct vector3 **face, int i);
 void cube_faces(struct vector3 *corner, struct vector3 *(*face)[4]);
 
 void swap_double(double *x, double *y);
-
-int init_wall_regions(struct object *objp);
 
 
 /*

@@ -90,9 +90,13 @@ struct mdlparse_vars {
   struct region *rp;
   struct region_list *region_list_head;
   struct region_list *rlp;
-  struct element_list *element_head;
+  struct element_list *element_list_head;
   struct element_list *elmlp;
   char *region_name;
+
+  struct eff_dat *eff_dat_head;
+  struct eff_dat *effdp;
+  byte mol_quant_type;
 
   struct rxn *rxnp;
   struct mem_helper *path_mem;

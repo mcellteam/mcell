@@ -64,7 +64,6 @@ struct count_list *cnt;
 %token <tok> ABS
 %token <tok> ABSORPTIVE
 %token <tok> ACOS
-%token <tok> ADD_MOLECULES
 %token <tok> ALL
 %token <tok> ALL_ELEMENTS
 %token <tok> ALL_EVENTS
@@ -82,7 +81,7 @@ struct count_list *cnt;
 %token <tok> CHECKPOINT_OUTFILE
 %token <tok> CHECKPOINT_ITERATIONS
 %token <tok> CONCENTRATION
-%token <tok> CLASS
+%token <tok> SURFACE_CLASS
 %token <tok> COLOR
 %token <tok> COLOR_SIDE
 %token <tok> COLOR_EFFECTOR
@@ -145,7 +144,10 @@ struct count_list *cnt;
 %token <tok> FULLY_RANDOM
 %token <tok> LFT_ARROW
 %token <tok> LEFT
+%token <tok> MODIFY_SURFACE_REGIONS
 %token <tok> MOLECULE
+%token <tok> MOLECULE_DENSITY
+%token <tok> MOLECULE_NUMBER
 %token <tok> MOLECULE_POSITIONS
 %token <tok> MOLECULE_STATES
 %token <tok> LOCATION
@@ -198,7 +200,6 @@ struct count_list *cnt;
 %token <tok> REFERENCE_STATE
 %token <tok> REFLECTIVE
 %token <tok> REFERENCE_DIFFUSION_CONSTANT
-%token <tok> REGION
 %token <tok> RELEASE_INTERVAL
 %token <tok> RELEASE_PATTERN
 %token <tok> RELEASE_PROBABILITY
@@ -210,7 +211,6 @@ struct count_list *cnt;
 %token <tok> RT_ARROW
 %token <tok> SCALE
 %token <tok> SEED
-%token <tok> SET_SURFACE_CLASSES
 %token <tok> SIN
 %token <tok> SITE_DIAMETER
 %token <tok> SPECIFIED_EFFECTORS
@@ -276,12 +276,12 @@ struct count_list *cnt;
 %type <tok> surface_classes_def
 %type <tok> define_one_surface_class
 %type <tok> define_multiple_surface_classes
-%type <tok> surface_prop
+%type <tok> surface_rxn_type
 %type <tok> chkpt_stmt
 %type <tok> release_pattern_def
 %type <tok> physical_object_def
-%type <tok> surface_regions_def
-%type <tok> set_surface_classes
+%type <tok> existing_obj_define_surface_regions
+%type <tok> mod_surface_regions
 %type <tok> instance_def
 %type <tok> include_stmt
 %type <tok> end_of_mdl_file
@@ -302,12 +302,6 @@ struct count_list *cnt;
 %type <tok> side
 %type <tok> side_name
 %type <tok> remove_side
-%type <tok> in_obj_set_surface_classes
-%type <tok> in_obj_surface_regions_def
-%type <tok> list_in_obj_surface_class_region_refs
-%type <tok> in_obj_surface_class_region_ref
-%type <tok> list_surface_class_region_refs
-%type <tok> surface_class_region_ref
 
 %type <sym> assign_var
 %type <sym> existing_var_only
@@ -330,6 +324,7 @@ struct count_list *cnt;
 
 %type <sym> new_molecule
 %type <sym> existing_molecule
+%type <sym> existing_surface_molecule
 %type <sym> new_surface_class
 %type <sym> existing_surface_class
 %type <sym> new_release_pattern
@@ -345,7 +340,6 @@ struct count_list *cnt;
 %type <sym> polygon_list_def
 %type <sym> new_region
 %type <sym> existing_region
-%type <sym> in_obj_existing_region
 
 %type <sym> reactant
 
@@ -462,8 +456,8 @@ mdl_stmt: time_def
 	| release_pattern_def
 	| physical_object_def
 	| instance_def
-	| surface_regions_def
-	| set_surface_classes
+	| existing_obj_define_surface_regions
+	| mod_surface_regions
 /*
 	| partition_def
 	| parallel_partition_def
@@ -1550,6 +1544,7 @@ surface_class_stmt: new_surface_class '{'
 {
   mdlpvp->stp1=$<sym>1;
   mdlpvp->specp=(struct species *)mdlpvp->gp->value;
+  mdlpvp->eff_dat_head=NULL;
 }
 	list_surface_prop_stmts
 	'}'
@@ -1585,7 +1580,12 @@ list_surface_prop_stmts: surface_prop_stmt
 ;
 
 
-surface_prop_stmt: surface_prop '=' existing_molecule
+surface_prop_stmt: surface_rxn_stmt
+	| surface_class_mol_stmt
+;
+
+
+surface_rxn_stmt: surface_rxn_type '=' existing_molecule
 {
   mdlpvp->stp2=$<sym>3;
   mdlpvp->specp=(struct species *)mdlpvp->stp2->value;
@@ -1683,10 +1683,73 @@ surface_prop_stmt: surface_prop '=' existing_molecule
 };
 
 
-surface_prop: REFLECTIVE {$$=RFLCT;}
+surface_rxn_type: REFLECTIVE {$$=RFLCT;}
 	| TRANSPARENT {$$=TRANSP;}
 	| ABSORPTIVE {$$=SINK;}
 ;
+
+
+surface_class_mol_stmt: surface_mol_stmt
+{
+  mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
+  mdlpvp->specp->eff_dat_head=mdlpvp->eff_dat_head;
+};
+
+
+surface_mol_stmt: mol_quant_type '{'
+	list_surface_mol_quant
+	'}'
+;
+
+
+mol_quant_type: MOLECULE_DENSITY
+{
+  mdlpvp->mol_quant_type=EFFDENS;
+}
+	| MOLECULE_NUMBER
+{
+  mdlpvp->mol_quant_type=EFFNUM;
+};
+
+
+list_surface_mol_quant: surface_mol_quant
+	| list_surface_mol_quant surface_mol_quant
+;
+
+
+surface_mol_quant: existing_surface_molecule '=' num_expr
+{
+  mdlpvp->stp2=$<sym>1;
+  mdlpvp->specp=(struct species *)mdlpvp->stp2->value;
+  if ((mdlpvp->effdp=(struct eff_dat *)malloc(sizeof(struct eff_dat)))==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot store data for surface molecule:",mdlpvp->stp2->name);
+    return(1);
+  }
+  mdlpvp->effdp->next=mdlpvp->eff_dat_head;
+  mdlpvp->eff_dat_head=mdlpvp->effdp;
+  mdlpvp->effdp->eff=mdlpvp->specp;
+  mdlpvp->effdp->quantity_type=mdlpvp->mol_quant_type;
+  mdlpvp->effdp->quantity=$<dbl>3;
+  mdlpvp->effdp->orientation=mdlpvp->orient_class;
+};
+
+
+existing_surface_molecule: existing_molecule
+{
+  mdlpvp->orient_class=1;
+}
+	orientation_class
+{
+  mdlpvp->stp2=$<sym>1;
+  mdlpvp->specp=(struct species *)mdlpvp->stp2->value;
+  if ((mdlpvp->specp->flags & ON_GRID) == 0)
+  {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Invalid surface molecule specified:",mdlpvp->stp2->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  $$=mdlpvp->stp2;
+};
 
 
 chkpt_stmt: CHECKPOINT_INFILE '=' file_name
@@ -2355,6 +2418,7 @@ polygon_list_def: new_object POLYGON_LIST '{'
   mdlpvp->objp->parent=mdlpvp->curr_obj;
   mdlpvp->obj_name=mdlpvp->objp->sym->name;
   mdlpvp->curr_obj=mdlpvp->objp;
+  mdlpvp->region_list_head=mdlpvp->objp->regions;
 }
 	vertex_list_cmd
         element_connection_cmd
@@ -2445,6 +2509,7 @@ polygon_list_def: new_object POLYGON_LIST '{'
   mdlpvp->curr_obj->n_verts=mdlpvp->pop->n_verts;
   mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
   mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
+  mdlpvp->curr_obj->regions=mdlpvp->region_list_head;
   mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
   if (mdlpvp->object_name_list_end->prev!=NULL) {
     mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
@@ -2681,6 +2746,7 @@ box_def: new_object BOX '{'
   mdlpvp->objp->parent=mdlpvp->curr_obj;
   mdlpvp->obj_name=mdlpvp->objp->sym->name;
   mdlpvp->curr_obj=mdlpvp->objp;
+  mdlpvp->region_list_head=mdlpvp->objp->regions;
 }
 	CORNERS '=' point ',' point
 	list_opt_polygon_object_cmds
@@ -2709,6 +2775,7 @@ box_def: new_object BOX '{'
   mdlpvp->curr_obj->n_verts=mdlpvp->pop->n_verts;
   mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
   mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
+  mdlpvp->curr_obj->regions=mdlpvp->region_list_head;
   mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
   if (mdlpvp->object_name_list_end->prev!=NULL) {
     mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
@@ -2728,11 +2795,7 @@ list_opt_polygon_object_cmds: /* empty */
 
 opt_polygon_object_cmd:
 	remove_side
-	| in_obj_surface_regions_def
-	| in_obj_set_surface_classes
-/*
-	| in_obj_add_molecules
-*/
+	| in_obj_define_surface_regions
 ;
 
 
@@ -2792,7 +2855,7 @@ side_name: TOP {$$=TP;}
 
 element_list_stmt: ELEMENT_LIST 
 {
-  mdlpvp->element_head=NULL;
+  mdlpvp->element_list_head=NULL;
 }
 	'=' '[' list_element_specs ']'
 ;
@@ -2810,8 +2873,8 @@ element_spec: num_expr
   }
   mdlpvp->elmlp->begin=(unsigned int) ($<dbl>1);
   mdlpvp->elmlp->end=mdlpvp->elmlp->begin;
-  mdlpvp->elmlp->next=mdlpvp->element_head;
-  mdlpvp->element_head=mdlpvp->elmlp;
+  mdlpvp->elmlp->next=mdlpvp->element_list_head;
+  mdlpvp->element_list_head=mdlpvp->elmlp;
 }
 	| num_expr TO num_expr
 {
@@ -2820,8 +2883,8 @@ element_spec: num_expr
   }
   mdlpvp->elmlp->begin=(unsigned int) ($<dbl>1);
   mdlpvp->elmlp->end=(unsigned int) ($<dbl>3);
-  mdlpvp->elmlp->next=mdlpvp->element_head;
-  mdlpvp->element_head=mdlpvp->elmlp;
+  mdlpvp->elmlp->next=mdlpvp->element_list_head;
+  mdlpvp->element_list_head=mdlpvp->elmlp;
 }
 	| side_name
 {
@@ -2830,8 +2893,8 @@ element_spec: num_expr
   if ((mdlpvp->elmlp=(struct element_list *)malloc
              (sizeof(struct element_list)))==NULL) {
   }
-  mdlpvp->elmlp->next=mdlpvp->element_head;
-  mdlpvp->element_head=mdlpvp->elmlp;
+  mdlpvp->elmlp->next=mdlpvp->element_list_head;
+  mdlpvp->element_list_head=mdlpvp->elmlp;
 
   if ($<tok>1==ALL_SIDES) {
     for (i=0;i<mdlpvp->pop->n_walls;i++) {
@@ -2850,26 +2913,26 @@ element_spec: num_expr
 };
 
 
-in_obj_surface_regions_def: DEFINE_SURFACE_REGIONS '{'
-	list_surface_region_stmts
+in_obj_define_surface_regions: DEFINE_SURFACE_REGIONS '{'
+	list_in_obj_surface_region_defs
 	'}'
 ;
 
 
-surface_regions_def: DEFINE_SURFACE_REGIONS '{'
-	list_surface_region_object_refs
+existing_obj_define_surface_regions: DEFINE_SURFACE_REGIONS '{'
+	list_existing_obj_surface_region_defs
 	'}'
 ;
 
 
-list_surface_region_object_refs: surface_region_object_ref
-	| list_surface_region_object_refs surface_region_object_ref
+list_existing_obj_surface_region_defs: existing_obj_surface_region_def
+	| list_existing_obj_surface_region_defs existing_obj_surface_region_def
 ;
 
 
-surface_region_object_ref: OBJECT existing_object '{'
+existing_obj_surface_region_def: existing_object
 {
-  mdlpvp->gp=$<sym>2;
+  mdlpvp->gp=$<sym>1;
   mdlpvp->objp=(struct object *)mdlpvp->gp->value;
   mdlpvp->obj_name=mdlpvp->objp->sym->name;
   if (mdlpvp->objp->object_type!=BOX_OBJ && mdlpvp->objp->object_type!=POLY_OBJ) {
@@ -2877,28 +2940,74 @@ surface_region_object_ref: OBJECT existing_object '{'
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
     return(1);
   }
-  mdlpvp->region_list_head=mdlpvp->objp->region_list;
+  mdlpvp->pop=mdlpvp->objp->contents;
+  mdlpvp->region_list_head=mdlpvp->objp->regions;
 }
-	list_surface_region_stmts
+	'[' new_region ']' '{'
+{
+  mdlpvp->gp=$<sym>4;
+  mdlpvp->rp=(struct region *)mdlpvp->gp->value;
+  mdlpvp->eff_dat_head=mdlpvp->rp->eff_dat_head;
+}
+	element_list_stmt
+	list_opt_surface_region_stmts
 	'}'
 {
-  mdlpvp->objp->region_list=mdlpvp->region_list_head;
+  mdlpvp->rp->eff_dat_head=mdlpvp->eff_dat_head;
+  mdlpvp->objp->regions=mdlpvp->region_list_head;
+  mdlpvp->objp->num_regions++;
+
+  mdlpvp->elmlp=mdlpvp->element_list_head;
+  while (mdlpvp->elmlp!=NULL) {
+    if (mdlpvp->elmlp->begin==ALL_SIDES) {
+      mdlpvp->elmlp->begin=0;
+      mdlpvp->elmlp->end=mdlpvp->pop->n_walls-1;
+    }
+    if (mdlpvp->elmlp->begin < 0 || mdlpvp->elmlp->end > mdlpvp->pop->n_walls-1) {
+    sprintf(mdlpvp->mdl_err_msg,"Cannot create region: %s -- element out of rangs",mdlpvp->rp->sym->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+    }
+    mdlpvp->elmlp=mdlpvp->elmlp->next;
+  }
+  mdlpvp->rp->element_list_head=mdlpvp->element_list_head;
 };
 
 
-list_surface_region_stmts: surface_region_stmt
-	| list_surface_region_stmts surface_region_stmt
+list_opt_surface_region_stmts: /* empty */
+	| list_opt_surface_region_stmts opt_surface_region_stmt
 ;
 
 
-surface_region_stmt: REGION new_region '{'
+opt_surface_region_stmt: set_surface_class_stmt
+	| surface_mol_stmt
+;
+
+
+set_surface_class_stmt:	SURFACE_CLASS '=' existing_surface_class 
+{
+  mdlpvp->gp=$<sym>3;
+  mdlpvp->rp->surf_class=(struct species *)mdlpvp->gp->value;
+};
+
+
+list_in_obj_surface_region_defs: in_obj_surface_region_def
+	| list_in_obj_surface_region_defs in_obj_surface_region_def
+;
+
+
+in_obj_surface_region_def: new_region '{'
+{
+  mdlpvp->gp=$<sym>1;
+  mdlpvp->rp=(struct region *)mdlpvp->gp->value;
+  mdlpvp->eff_dat_head=mdlpvp->rp->eff_dat_head;
+}
 	element_list_stmt
+	list_opt_surface_region_stmts
 	'}'
 {
-  mdlpvp->gp=$<sym>2;
-  mdlpvp->rp=(struct region *)mdlpvp->gp->value;
   mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
-  mdlpvp->elmlp=mdlpvp->element_head;
+  mdlpvp->elmlp=mdlpvp->element_list_head;
   while (mdlpvp->elmlp!=NULL) {
     if (mdlpvp->elmlp->begin==ALL_SIDES) {
       mdlpvp->elmlp->begin=0;
@@ -2912,7 +3021,8 @@ surface_region_stmt: REGION new_region '{'
     mdlpvp->elmlp=mdlpvp->elmlp->next;
   }
   mdlpvp->objp->num_regions++;
-  mdlpvp->rp->element_list=mdlpvp->element_head;
+  mdlpvp->rp->element_list_head=mdlpvp->element_list_head;
+  mdlpvp->rp->eff_dat_head=mdlpvp->eff_dat_head;
 };
 
 
@@ -2942,12 +3052,38 @@ new_region: VAR
   mdlpvp->rp->region_last_name=mdlpvp->sym_name;
   mdlpvp->rp->parent=mdlpvp->curr_obj;
   mdlpvp->rp->reg_counter_ref_list=NULL;
+  mdlpvp->rp->surf_class=volp->g_surf;
   mdlpvp->rlp->reg=mdlpvp->rp;
   mdlpvp->rlp->next=mdlpvp->region_list_head;
   mdlpvp->region_list_head=mdlpvp->rlp;
   no_printf("Creating new region: %s\n",mdlpvp->rp->sym->name);
   fflush(stderr);
   $$=mdlpvp->rp->sym;
+};
+
+
+mod_surface_regions: MODIFY_SURFACE_REGIONS '{'
+	list_existing_surface_region_refs
+	'}'
+;
+
+
+list_existing_surface_region_refs: existing_surface_region_ref
+	| list_existing_surface_region_refs existing_surface_region_ref
+;
+
+
+existing_surface_region_ref: existing_region '{'
+{
+  mdlpvp->gp=$<sym>1;
+  mdlpvp->rp=(struct region *)mdlpvp->gp->value;
+  mdlpvp->eff_dat_head=mdlpvp->rp->eff_dat_head;
+}
+	opt_surface_region_stmt
+	list_opt_surface_region_stmts
+	'}'
+{
+  mdlpvp->rp->eff_dat_head=mdlpvp->eff_dat_head;
 };
 
 
@@ -2993,93 +3129,6 @@ existing_region: existing_object '[' VAR ']'
   $$=mdlpvp->gp;
 };
 
-
-in_obj_existing_region: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-  mdlpvp->obj_name=mdlpvp->curr_obj->sym->name;
-  strncpy(mdlpvp->temp_str,"",1024);
-  strncpy(mdlpvp->temp_str,mdlpvp->obj_name,1022);
-  strcat(mdlpvp->temp_str,",");   
-  mdlpvp->region_name=my_strcat(mdlpvp->temp_str,mdlpvp->sym_name);
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->region_name,REG,volp->main_sym_table))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined region:",mdlpvp->region_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-  free((void *)mdlpvp->region_name);
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free((void *)mdlpvp->sym_name);
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-  $$=mdlpvp->gp;
-};
-
-
-in_obj_set_surface_classes: SET_SURFACE_CLASSES '{'
-	list_in_obj_surface_class_region_refs
-	'}'
-;
-
-
-list_in_obj_surface_class_region_refs: in_obj_surface_class_region_ref
-      | list_in_obj_surface_class_region_refs in_obj_surface_class_region_ref
-;
-
-
-in_obj_surface_class_region_ref: REGION in_obj_existing_region '{'
-	CLASS '=' existing_surface_class
-{
-  mdlpvp->gp=$<sym>2;
-  mdlpvp->tp=$<sym>6;
-  mdlpvp->rp=(struct region *)mdlpvp->gp->value;
-  mdlpvp->rp->surf_class=(struct species *)mdlpvp->tp->value;
-}
-	'}'
-;
-
-
-set_surface_classes: SET_SURFACE_CLASSES '{'
-	list_surface_class_region_refs
-	'}'
-;
-
-
-list_surface_class_region_refs: surface_class_region_ref
-	| list_surface_class_region_refs surface_class_region_ref
-;
-
-
-surface_class_region_ref: REGION existing_region '{'
-	CLASS '=' existing_surface_class 
-{
-  mdlpvp->gp=$<sym>2;
-  mdlpvp->tp=$<sym>6;
-  mdlpvp->rp=(struct region *)mdlpvp->gp->value;
-  mdlpvp->rp->surf_class=(struct species *)mdlpvp->tp->value;
-}
-	'}'
-;
- 
 
 instance_def: INSTANTIATE new_object OBJECT '{'
 {
@@ -3823,7 +3872,7 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
 }
 	| existing_logicalOrPhysical
 {
-  element_head=NULL;
+  element_list_head=NULL;
 }
 	'[' list_element_specs ']' '=' num_expr
 {
@@ -3866,7 +3915,7 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
               mdlpvp->objp->viz_state[i]=EXCLUDE_OBJ;
             }
           }
-          elmlp=element_head;
+          elmlp=element_list_head;
           while (elmlp!=NULL) {
             if (elmlp->begin==ALL_SIDES) {
               elmlp->begin=0;
@@ -3894,7 +3943,7 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
               mdlpvp->objp->viz_state[i]=EXCLUDE_OBJ;
             }
           }
-          elmlp=element_head;
+          elmlp=element_list_head;
           while (elmlp!=NULL) {
             if (elmlp->begin==ALL_SIDES) {
               elmlp->begin=0;
@@ -4077,9 +4126,9 @@ list_region_ref: region_ref
 	| list_region_ref region_ref
 ;
 
-region_ref: REGION existing_region '{'
+region_ref: existing_region '{'
 {
-  mdlpvp->gp=$<sym>2;
+  mdlpvp->gp=$<sym>1;
   rp=(struct region *)mdlpvp->gp->value;
 }
 	list_add_effector_state
@@ -4188,8 +4237,8 @@ req_add_effector_cmds:  STATE '=' existing_reaction_state
 	rp->reg_counter_ref_list=NULL;
 	rp->lig_hit_counter=NULL;
         rlp->reg=rp;
-        rlp->next=mdlpvp->curr_obj->region_list;
-        mdlpvp->curr_obj->region_list=rlp;
+        rlp->next=mdlpvp->curr_obj->regions;
+        mdlpvp->curr_obj->regions=rlp;
         no_printf("Creating new region: %s\n",rp->sym->name);
         fflush(stderr);
 
@@ -4199,7 +4248,7 @@ req_add_effector_cmds:  STATE '=' existing_reaction_state
         elmlp->begin=0;
         elmlp->end=0;
         elmlp->next=NULL;
-        rp->element_list=elmlp;
+        rp->element_list_head=elmlp;
 
         if ($<tok>7==ALL_SIDES) {
           if ((effdp=(struct eff_dat *)malloc
