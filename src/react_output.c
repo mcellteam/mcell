@@ -11,7 +11,7 @@
 extern struct volume *world;
 
 
-void update_reaction_output(struct output_block *obp)
+int update_reaction_output(struct output_block *obp)
 {
   FILE *log_file,*fp;
   struct output_item *oip;
@@ -36,7 +36,7 @@ void update_reaction_output(struct output_block *obp)
         obp->t=obp->curr_time_ptr->value/world->time_unit; 
       }
       schedule_add(world->count_scheduler,obp);
-      return;
+      return (0);
     }
   }
 
@@ -108,23 +108,25 @@ void update_reaction_output(struct output_block *obp)
     oip=obp->output_item_head;
     while (oip!=NULL) {
       oep=oip->count_expr;
-      eval_count_expr_tree(oep);
+      if(eval_count_expr_tree(oep)){
+	return (1);
+      }
 
       if (world->chkpt_seq_num==1 && obp->chunk_count==0) {
         if ((fp=fopen(oip->outfile_name,"w"))==NULL) {
           fprintf(log_file,"MCell: could not open output file %s\n",oip->outfile_name);
-          return;
+          return (1);
         }
       }
       else if (world->chkpt_seq_num>1){
         if ((fp=fopen(oip->outfile_name,"a"))==NULL) {
           fprintf(log_file,"MCell: could not open output file %s\n",oip->outfile_name);
-          return;
+          return (1);
         }
       }
       else {
         if ((fp=fopen(oip->outfile_name,"a"))==NULL) {   
-          return;
+          return (1);
         }
       }
 
@@ -162,6 +164,7 @@ void update_reaction_output(struct output_block *obp)
           }
         }
         break;
+      default: break;
       }
       fclose(fp);
       oip=oip->next;
@@ -172,7 +175,7 @@ void update_reaction_output(struct output_block *obp)
   
   no_printf("Done updating reaction output\n");
   fflush(log_file);
-  return;
+  return (0);
 }
 
 
@@ -180,13 +183,15 @@ void update_reaction_output(struct output_block *obp)
 /**
  * Evaluate counter arithmetic expression tree
  */
-void eval_count_expr_tree(struct output_evaluator *oep)
+int eval_count_expr_tree(struct output_evaluator *oep)
 {
 
   if (oep->data_type==EXPR) {
     eval_count_expr_tree(oep->operand1);
     eval_count_expr_tree(oep->operand2);
-    eval_count_expr(oep->operand1,oep->operand2,oep->oper,oep);
+    if(eval_count_expr(oep->operand1,oep->operand2,oep->oper,oep)){
+	return (1);
+    }
     if (oep->operand1->index_type!=UNKNOWN) {
       oep->index_type=oep->operand1->index_type;
     }
@@ -194,7 +199,7 @@ void eval_count_expr_tree(struct output_evaluator *oep)
       oep->index_type=oep->operand2->index_type;
     }
   }
-  return;
+  return (0);
 }
 
 
@@ -208,9 +213,11 @@ int eval_count_expr(struct output_evaluator *operand1,
                     struct output_evaluator *result)
 {
   FILE *log_file;
-  int i;
-  byte int_flag1,int_flag2,double_result_flag;
-  double op1,op2;
+  int i;                     /* counter */
+  byte int_flag1,int_flag2,double_result_flag;  /* flags pointing to the data 
+						   type of the operands and
+						   result. */
+  double op1,op2;				/* operands values */
 
   log_file=world->log_file;
 
@@ -221,24 +228,32 @@ int eval_count_expr(struct output_evaluator *operand1,
   int_flag2=0;
 
   switch (operand1->data_type) {
-  case INT:
-    int_flag1=1;
-    op1=((int *)operand1->final_data)[0];
-    break;
-  case DBL:
-    double_result_flag=1;
-    op1=((double *)operand1->final_data)[0];
-    break;
+  	case INT:
+    		int_flag1=1;
+    		op1=((int *)operand1->final_data)[0];
+    		break;
+  	case DBL:
+    		double_result_flag=1;
+    		op1=((double *)operand1->final_data)[0];
+    		break;
+        default:
+        	fprintf(log_file,"MCell: Wrong operand data type.\n");
+        	return(1);
+                break;
   }
   switch (operand2->data_type) {
-  case INT:
-    int_flag2=1;
-    op2=((int *)operand2->final_data)[0];
-    break;
-  case DBL:
-    double_result_flag=1;
-    op2=((double *)operand2->final_data)[0];
-    break;
+  	case INT:
+    		int_flag2=1;
+    		op2=((int *)operand2->final_data)[0];
+    		break;
+  	case DBL:
+    		double_result_flag=1;
+    		op2=((double *)operand2->final_data)[0];
+    		break;
+        default:
+        	fprintf(log_file,"MCell: Wrong operand data type.\n");
+        	return(1);
+                break;
   }
   if (oper=='/') {
     double_result_flag=1;
@@ -284,9 +299,17 @@ int eval_count_expr(struct output_evaluator *operand1,
     }
     if (double_result_flag) {
       ((double *)result->final_data)[i]=eval_double(op1,op2,oper);
+      if(((double *)result->final_data)[i] == GIGANTIC){
+        fprintf(log_file,"MCell: division by zero error\n");
+        return(1);
+      }
     }
     else {
       ((int *)result->final_data)[i]=(int) eval_double(op1,op2,oper);
+      if(((int *)result->final_data)[i] == GIGANTIC){
+        fprintf(log_file,"MCell: division by zero error\n");
+        return(1);
+      }
     }
   }
   fflush(log_file);
@@ -312,7 +335,11 @@ double eval_double(double op1, double op2, char oper)
     return(op1*op2);
     break;
   case '/':
-    return(op1/op2);
+    if(op2 == 0){
+	return GIGANTIC;
+    }else{
+    	return(op1/op2);
+    }
     break;
   }
   return(0);

@@ -3,9 +3,8 @@
 
 /* Header file for reaction output routines */
 
-void update_reaction_output(struct output_block *obp);
-void update_counter(struct output_evaluator *oep);
-void eval_count_expr_tree(struct output_evaluator *oep);
+int update_reaction_output(struct output_block *obp);
+int eval_count_expr_tree(struct output_evaluator *oep);
 int eval_count_expr(struct output_evaluator *operand1,
                     struct output_evaluator *operand2,
                     char oper,

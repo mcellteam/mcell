@@ -71,7 +71,10 @@ void run_sim(void)
     obp = schedule_next( world->count_scheduler );
     while (obp != NULL)
     {
-      update_reaction_output(obp);
+      if(update_reaction_output(obp)){
+	printf("Error while updating reaction output.\n");
+	return;
+      }
       obp = schedule_next( world->count_scheduler );
     }
 

@@ -317,7 +317,7 @@
 #define INTER_EVENTS 2
 
 
-/* Count list value types. */
+/* Output evaluator index types. */
 #define UNKNOWN 0
 #define TIME_STAMP_VAL 1
 #define INDEX_VAL 2
@@ -985,7 +985,7 @@ struct output_block {
 
 
 /**
- * Linked list of count output statements associated with a given output block 
+ * Linked list of output statements associated with a given output block 
  */
 struct output_item {
 	struct output_item *next;  
@@ -1000,7 +1000,7 @@ struct output_item {
 
 
 /**
- * Linked list of counters to be evaluated at update time
+ * Linked list of output evaluators to be evaluated at update time
  */
 struct output_evaluator {
 	struct output_evaluator *next;    /**< next item in count list*/
@@ -1010,10 +1010,8 @@ struct output_evaluator {
 	                              indexed by either
 	                              TIME_STAMP_VAL or INDEX_VAL*/
 	byte data_type;             /**< type of data to track:
-	                              SURF_MOL_CNT VOL_MOL_CNT
-                                      SURF_RX_CNT VOl_RX_CNT
                                       EXPR INT DBL*/
-	u_int n_data;
+	u_int n_data;               /** buffer size */
 	void *temp_data;            /**< ptr to intermediate data
                                          specified by type*/
 	void *final_data;           /**< ptr to final outputable data
