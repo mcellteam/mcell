@@ -9,6 +9,7 @@
 #include "argparse.h"
 #include "mdlparse.h"
 #include "vol_util.h"
+#include "viz_output.h"
 #include "diffuse.h"
 #include "init.h"
 
@@ -47,6 +48,8 @@ void run_sim(void)
       printf("Releasing type = %s! \n",req->release_site->mol_type->sym->name);
       req = schedule_next( world->releaser );
     }
+
+    update_frame_data_list(world->frame_data_head);
 
     i = schedule_anticipate( world->releaser , &next_release_time);
     if (!i) next_release_time = world->iterations + 1;

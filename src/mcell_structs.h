@@ -23,6 +23,7 @@
 #define ON_SURFACE  0x01
 #define ON_GRID     0x02
 #define IS_SURFACE  0x04
+#define NOT_FREE    0x07
 #define IS_ACTIVE   0x08
 #define CAN_MOLMOL  0x10
 #define CAN_MOLGRID 0x20
@@ -1215,14 +1216,6 @@ struct object {
 	struct region_list *regions;    /**< ptr to list of regions for 
 					      this object */
 	struct counter_hash_table **counter_hash_table;	/**<hash table for region counter in object*/
-/*        struct eff_dat **eff_prop;*/	/**<  if this object is a
-					   BOX_OBJ or POLY_OBJ this will be an
-					   array of ptrs to eff_dat data
-					   structures, one for each polygon. */
-	struct cmprt_data *cmprt_data;	/**< if this object is a 
-					   BOX_OBJ or POLY_OBJ this will
-					   point to the cmprt_data struct
-					   containing the instantiated object */
         int n_walls;                  /**< Total number of walls in object */
         struct wall *walls;           /**< array of walls in object */
         struct wall **wall_p;         /**< array of ptrs to walls in object */
@@ -1253,6 +1246,16 @@ struct viz_obj {
 	char *name;
         char *full_name;
 	struct object *obj;
+	struct viz_child *viz_child_head;
+};
+
+/**
+ * Linked list of pointers to objects.
+ * Used to point to child polygon or box objects to be visualized.
+ */
+struct viz_child {
+  struct viz_child *next;
+  struct object *obj;
 };
 
 /**
@@ -1283,6 +1286,17 @@ struct frame_data_list {
 	int n_viz_iterations;
 	struct num_expr_list *iteration_list;
 	struct num_expr_list *curr_viz_iteration;
+};
+
+
+/**
+ * Linked list of unique viz states.
+ * required by certain viz output modes e.g. Renderman
+ */
+struct state_list {
+  int state;
+  char *name;
+  struct state_list *next;
 };
 
 

@@ -24,6 +24,7 @@
 #include "vol_util.h"
 #include "wall_util.h"
 #include "grid_util.h"
+#include "viz_output.h"
 #include "react.h"
 #include "init.h"
 
@@ -364,8 +365,8 @@ int init_sim(void)
    *Initialize the frame date list for the visualization 
    *and reaction output.
    **/
+  init_frame_data_list(world->frame_data_head);
 /*
-  init_frame_data_list(frame_data_head);
   init_reaction_list(reaction_data_head);
 */
 
@@ -405,6 +406,7 @@ int init_species(void)
       {
         s = (struct species*) gp->value;
         world->species_list[count] = s;
+        world->species_list[count]->species_id = count;
         world->species_list[count]->hashval &= world->hashsize-1;
         world->species_list[count]->radius = EPS_C;
         world->species_list[count]->population = 0;
@@ -1028,6 +1030,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
   struct vector3 *v,**vp;
   struct vector3 *vertex_normal;
   struct wall *w,**wp;
+  struct viz_child *vcp;
   double p[1][4],origin[1][4];
   double total_area;
   int i,n_verts,n_walls,index_0,index_1,index_2;
@@ -1087,6 +1090,17 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
       compute_vertex_normals=1;
     }
 */
+
+    if (vizp!=NULL && objp->viz_state!=NULL) {
+      if ((vcp=(struct viz_child *)malloc
+           (sizeof(struct viz_child)))==NULL) {
+        return(1);
+      }
+      vcp->obj = objp;
+      vcp->next = vizp->viz_child_head;
+      vizp->viz_child_head = vcp;
+    }
+
  
     for (i=0;i<n_verts;i++)
     {

@@ -935,6 +935,7 @@ int make_cuboid(struct vector3 *p1, struct vector3 *p2, struct ordered_poly *opp
   corner[7].y=p2->y;
   corner[7].z=p2->z;
 
+  /* TOP */
   edp[0].vertex_index[0]=1;
   edp[0].vertex_index[1]=5;
   edp[0].vertex_index[2]=7;
@@ -942,6 +943,7 @@ int make_cuboid(struct vector3 *p1, struct vector3 *p2, struct ordered_poly *opp
   edp[1].vertex_index[1]=7;
   edp[1].vertex_index[2]=3;
 
+  /* BOTTOM */
   edp[2].vertex_index[0]=0;
   edp[2].vertex_index[1]=2;
   edp[2].vertex_index[2]=6;
@@ -949,6 +951,7 @@ int make_cuboid(struct vector3 *p1, struct vector3 *p2, struct ordered_poly *opp
   edp[3].vertex_index[1]=6;
   edp[3].vertex_index[2]=4;
   
+  /* LEFT */
   edp[4].vertex_index[0]=0;
   edp[4].vertex_index[1]=4;
   edp[4].vertex_index[2]=5;
@@ -956,6 +959,7 @@ int make_cuboid(struct vector3 *p1, struct vector3 *p2, struct ordered_poly *opp
   edp[5].vertex_index[1]=5;
   edp[5].vertex_index[2]=1;
   
+  /* RIGHT */
   edp[6].vertex_index[0]=2;
   edp[6].vertex_index[1]=3;
   edp[6].vertex_index[2]=7;
@@ -963,6 +967,7 @@ int make_cuboid(struct vector3 *p1, struct vector3 *p2, struct ordered_poly *opp
   edp[7].vertex_index[1]=7;
   edp[7].vertex_index[2]=6;
   
+  /* FRONT */
   edp[8].vertex_index[0]=0;
   edp[8].vertex_index[1]=1;
   edp[8].vertex_index[2]=3;
@@ -970,6 +975,7 @@ int make_cuboid(struct vector3 *p1, struct vector3 *p2, struct ordered_poly *opp
   edp[9].vertex_index[1]=3;
   edp[9].vertex_index[2]=2;
   
+  /* BACK */
   edp[10].vertex_index[0]=4;
   edp[10].vertex_index[1]=6;
   edp[10].vertex_index[2]=7;
@@ -982,59 +988,46 @@ int make_cuboid(struct vector3 *p1, struct vector3 *p2, struct ordered_poly *opp
 
 
 
-
-
-
-#if 0
-
-
-
-
-
-
-int set_viz_state_value(struct object *objp,int viz_state)
+int set_viz_state_value(struct object *objp, int viz_state)
 {
-  struct object_list *objlp;
-  struct meta_object *mop;
-  struct polygon_object *pop;
+  struct object *child_objp;
   int i;
 
   switch (objp->object_type) {
     case META_OBJ:
-      mop=(struct meta_object *)objp->obj;
-      objlp=mop->first_child;
-      while (objlp!=NULL) {
-        if (set_viz_state_value(objlp->object,viz_state)) {
+      child_objp=objp->first_child;
+      while (child_objp!=NULL) {
+        if (set_viz_state_value(child_objp,viz_state)) {
           return(1);
         }
-        objlp=objlp->next;
+        child_objp=child_objp->next;
       }
       break;
     case BOX_OBJ:
-      pop=(struct polygon_object *)objp->obj;
       if (objp->viz_state==NULL) {
-        if ((objp->viz_state=(int *)malloc(pop->n_walls*sizeof(int)))==NULL) {
+        if ((objp->viz_state=(int *)malloc(objp->n_walls*sizeof(int)))==NULL) {
           return(1);
         }
       }
-      for (i=0;i<pop->n_walls;i++) {
+      for (i=0;i<objp->n_walls;i++) {
         objp->viz_state[i]=viz_state;
       }
       break;
     case POLY_OBJ:
-      pop=(struct polygon_object *)objp->obj;
       if (objp->viz_state==NULL) {
-        if ((objp->viz_state=(int *)malloc(pop->n_walls*sizeof(int)))==NULL) {
+        if ((objp->viz_state=(int *)malloc(objp->n_walls*sizeof(int)))==NULL) {
           return(1);
         }
       }
-      for (i=0;i<pop->n_walls;i++) {
+      for (i=0;i<objp->n_walls;i++) {
         objp->viz_state[i]=viz_state;
       }
       break;
   }
   return(0);
 }
+
+
 
 void sort_num_expr_list(struct num_expr_list *head)
 {
@@ -1059,6 +1052,19 @@ void sort_num_expr_list(struct num_expr_list *head)
 
   return;
 }
+
+
+
+
+
+
+
+#if 0
+
+
+
+
+
 
 
 int my_fprintf(FILE *outfile,char *format,struct arg *argp)

@@ -28,4 +28,8 @@ int make_cuboid(struct vector3 *p1,
                 struct vector3 *p2,
                 struct ordered_poly *opp);
 
+int set_viz_state_value(struct object *objp, int viz_state);
+
+void sort_num_expr_list(struct num_expr_list *head);
+
 #endif

@@ -463,8 +463,10 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   if (m->pos.x < lo || m->pos.x > hi || m->pos.y < lo || m->pos.y > hi ||
       m->pos.z < lo || m->pos.z > hi)
   {
+/*
     printf("U BOXIN': LEAKY (%.3e %.3e %.3e not in [%.3e %.3e]\n",
            m->pos.x,m->pos.y,m->pos.z,lo,hi);
+*/
   }
   
 pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */

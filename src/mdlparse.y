@@ -172,7 +172,7 @@ struct count_list *cnt;
 %token <tok> NUMBER_OF_TRAINS
 %token <tok> NUMBER_TO_RELEASE
 %token <tok> OBJECT
-%token <tok> OBJECT_FILE_DESIGNATORS
+%token <tok> OBJECT_FILE_PREFIXES
 %token <tok> ORIENTATION
 %token <tok> PARALLEL_PARTITION
 %token <tok> PART
@@ -284,6 +284,7 @@ struct count_list *cnt;
 %type <tok> mod_surface_regions
 %type <tok> instance_def
 %type <tok> include_stmt
+%type <tok> viz_output_def
 %type <tok> end_of_mdl_file
 
 %type <tok> rx_net_def
@@ -302,6 +303,8 @@ struct count_list *cnt;
 %type <tok> side
 %type <tok> side_name
 %type <tok> remove_side
+
+%type <tok> frame_data_item
 
 %type <sym> assign_var
 %type <sym> existing_var_only
@@ -340,6 +343,7 @@ struct count_list *cnt;
 %type <sym> polygon_list_def
 %type <sym> new_region
 %type <sym> existing_region
+%type <sym> existing_logicalOrPhysical
 
 %type <sym> reactant
 
@@ -392,7 +396,6 @@ struct count_list *cnt;
 %type <tok> viz_frame_data_def
 %type <tok> list_frame_data_specs
 %type <tok> frame_data_spec
-%type <tok> frame_data_item
 %type <tok> parallel_partition_def
 %type <tok> partition_plane
 
@@ -401,7 +404,6 @@ struct count_list *cnt;
 
 %type <sym> transition
 %type <sym> existing_molecule_or_reaction_state
-%type <sym> existing_logicalOrPhysical
 %type <sym> reaction_state
 %type <sym> existing_reaction_state
 %type <sym> new_file_stream
@@ -458,11 +460,11 @@ mdl_stmt: time_def
 	| instance_def
 	| existing_obj_define_surface_regions
 	| mod_surface_regions
+	| viz_output_def
 /*
 	| partition_def
 	| parallel_partition_def
 	| add_molecules_def
-	| viz_output_def
 	| output_def
 	| io_stmt
 */
@@ -2442,6 +2444,7 @@ polygon_list_def: new_object POLYGON_LIST '{'
         element_connection_cmd
 {
   u_int i,j;
+
   mdlpvp->pop->n_walls=mdlpvp->n_walls;
   mdlpvp->pop->n_verts=mdlpvp->n_verts;
   mdlpvp->opp->n_walls=mdlpvp->n_walls;
@@ -2906,8 +2909,6 @@ element_spec: num_expr
 }
 	| side_name
 {
-  int i;
-
   if ((mdlpvp->elmlp=(struct element_list *)malloc
              (sizeof(struct element_list)))==NULL) {
   }
@@ -2915,9 +2916,8 @@ element_spec: num_expr
   mdlpvp->element_list_head=mdlpvp->elmlp;
 
   if ($<tok>1==ALL_SIDES) {
-    for (i=0;i<mdlpvp->pop->n_walls;i++) {
-      mdlpvp->pop->side_stat[i]=0;
-    }
+    mdlpvp->elmlp->begin=0;
+    mdlpvp->elmlp->end=mdlpvp->pop->n_walls-1;
   }
   else if (mdlpvp->objp->object_type==POLY_OBJ) {
     mdlerror("Illegal reference to polygon list element by side-name");
@@ -2977,10 +2977,6 @@ existing_obj_surface_region_def: existing_object
 
   mdlpvp->elmlp=mdlpvp->element_list_head;
   while (mdlpvp->elmlp!=NULL) {
-    if (mdlpvp->elmlp->begin==ALL_SIDES) {
-      mdlpvp->elmlp->begin=0;
-      mdlpvp->elmlp->end=mdlpvp->pop->n_walls-1;
-    }
     if (mdlpvp->elmlp->begin < 0 || mdlpvp->elmlp->end > mdlpvp->pop->n_walls-1) {
     sprintf(mdlpvp->mdl_err_msg,"Cannot create region: %s -- element out of rangs",mdlpvp->rp->sym->name);
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
@@ -3027,10 +3023,6 @@ in_obj_surface_region_def: new_region '{'
   mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
   mdlpvp->elmlp=mdlpvp->element_list_head;
   while (mdlpvp->elmlp!=NULL) {
-    if (mdlpvp->elmlp->begin==ALL_SIDES) {
-      mdlpvp->elmlp->begin=0;
-      mdlpvp->elmlp->end=mdlpvp->pop->n_walls-1;
-    }
     if (mdlpvp->elmlp->begin < 0 || mdlpvp->elmlp->end > mdlpvp->pop->n_walls-1) {
     sprintf(mdlpvp->mdl_err_msg,"Cannot create region: %s -- element out of rangs",mdlpvp->rp->sym->name);
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
@@ -3473,21 +3465,6 @@ fwd_rx_rate2: '[' num_expr ',' num_expr ']'
 };
 
 
-
-
-
-%%
-
-
-
-
-
-/* **************************************************************** */
-
-#if 0
-
-
-
 viz_output_def: VIZ_DATA_OUTPUT '{'
 	list_viz_output_cmds
 	'}'
@@ -3509,6 +3486,7 @@ viz_output_cmd:
 	| viz_object_prefixes_def
 	| viz_state_values_def
 ;
+
 
 viz_mode_def: MODE '=' NONE
 {
@@ -3543,17 +3521,23 @@ viz_mode_def: MODE '=' NONE
 	volp->viz_mode = MCELL_MODE;
 };
 
+
 voxel_image_mode_def: VOXEL_IMAGE_MODE '=' boolean
 {
   volp->voxel_image_mode = $<tok>3;
 };
+
 
 voxel_volume_mode_def: VOXEL_VOLUME_MODE '=' boolean
 {
   volp->voxel_volume_mode = $<tok>3;
 };
 
-viz_output_list_def: viz_iteration_def | viz_time_def ;
+
+viz_output_list_def: viz_iteration_def
+	| viz_time_def 
+;
+
 
 viz_iteration_def: ITERATION_LIST '='
 {
@@ -3579,9 +3563,11 @@ viz_iteration_def: ITERATION_LIST '='
   volp->frame_data_head = mdlpvp->fdlp;  
 };
 
+
 list_range_specs: range_spec
 	| list_range_specs ',' range_spec
 ;
+
 
 range_spec: num_expr
 {
@@ -3648,7 +3634,6 @@ range_spec: num_expr
     }
     mdlpvp->num_pos++;
   }
-
 };
 
 
@@ -3682,9 +3667,11 @@ viz_frame_data_def: ITERATION_FRAME_DATA '{'
 	'}'
 ;
 
+
 list_frame_data_specs: frame_data_spec
 	| list_frame_data_specs frame_data_spec
 ;
+
 
 frame_data_spec: frame_data_item '='
 {
@@ -3746,14 +3733,17 @@ viz_molecule_prefix_def: MOLECULE_FILE_PREFIX '=' str_expr
   volp->molecule_prefix_name = $<str>3;
 };
 
-viz_object_prefixes_def: OBJECT_FILE_DESIGNATORS '{'
+
+viz_object_prefixes_def: OBJECT_FILE_PREFIXES '{'
 	list_viz_object_prefixes
 	'}'
 ;
 
+
 list_viz_object_prefixes: viz_object_prefix
 	| list_viz_object_prefixes viz_object_prefix
 ;
+
 
 viz_object_prefix: existing_object '=' str_expr
 {
@@ -3767,75 +3757,80 @@ viz_object_prefix: existing_object '=' str_expr
   mdlpvp->vizp->name = $<str>3;
   mdlpvp->vizp->full_name = my_strdup(mdlpvp->full_name);
   mdlpvp->vizp->obj = mdlpvp->objp;
-  mdlpvp->vizp->cmprt_data_list = NULL;
+  mdlpvp->vizp->viz_child_head = NULL;
   mdlpvp->vizp->next = volp->viz_obj_head;
-  volp->viz_obj_head = vizp;
+  volp->viz_obj_head = mdlpvp->vizp;
 };
+
 
 viz_state_values_def: STATE_VALUES '{'
 	list_viz_state_values
 	'}'
 ;
 
+
 list_viz_state_values: viz_state_value
 	| list_viz_state_values viz_state_value
 ;
 
+
 viz_state_value: existing_logicalOrPhysical '=' num_expr
 {
+  u_int i;
+
   mdlpvp->gp=$<sym>1;
   mdlpvp->viz_state=(int) $<dbl>3;
   switch (mdlpvp->gp->sym_type) {
     case OBJ:
       mdlpvp->existing_state=0;  
-      slp=surf_state_head;
-      while (slp!=NULL && !existing_state) {
-        existing_state=existing_state||(viz_state==slp->state);
-        slp=slp->next;
+      mdlpvp->slp=mdlpvp->surf_state_head;
+      while (mdlpvp->slp!=NULL && !mdlpvp->existing_state) {
+        mdlpvp->existing_state=mdlpvp->existing_state||(mdlpvp->viz_state==mdlpvp->slp->state);
+        mdlpvp->slp=mdlpvp->slp->next;
       }
-      if (!existing_state) {
-        if ((slp=(struct state_list *)malloc 
+      if (!mdlpvp->existing_state) {
+        if ((mdlpvp->slp=(struct state_list *)malloc 
             (sizeof(struct state_list)))==NULL) {
           mdlerror("MCell: error cannot store state list");
           return(1);
         }
-        slp->state=viz_state;
-        slp->name=mdlpvp->gp->name;
-        slp->next=surf_state_head;
-        surf_state_head=slp;
+        mdlpvp->slp->state=mdlpvp->viz_state;
+        mdlpvp->slp->name=mdlpvp->gp->name;
+        mdlpvp->slp->next=mdlpvp->surf_state_head;
+        mdlpvp->surf_state_head=mdlpvp->slp;
       }
       mdlpvp->objp=(struct object *)mdlpvp->gp->value;
       switch (mdlpvp->objp->object_type) {
         case META_OBJ:
-          if (set_viz_state_value(mdlpvp->objp,viz_state)) {
+          if (set_viz_state_value(mdlpvp->objp,mdlpvp->viz_state)) {
             mdlerror("Cannot store viz state value for object");
             return(1);
           }
           break;
         case BOX_OBJ:
-          pop=(struct polygon_object *)mdlpvp->objp->obj;
+          mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
           if (mdlpvp->objp->viz_state==NULL) {
             if ((mdlpvp->objp->viz_state=(int *)malloc
-                 (pop->n_walls*sizeof(int)))==NULL) {
+                 (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
               mdlerror("Cannot store viz state value for object");
               return(1);
             }
           }
-          for (i=0;i<pop->n_walls;i++) {
-            mdlpvp->objp->viz_state[i]=viz_state;
+          for (i=0;i<mdlpvp->pop->n_walls;i++) {
+            mdlpvp->objp->viz_state[i]=mdlpvp->viz_state;
           }
           break;
         case POLY_OBJ:
-          pop=(struct polygon_object *)mdlpvp->objp->obj;
+          mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
           if (mdlpvp->objp->viz_state==NULL) {
             if ((mdlpvp->objp->viz_state=(int *)malloc
-                 (pop->n_walls*sizeof(int)))==NULL) {
+                 (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
               mdlerror("Cannot store viz state value for object");
               return(1);
             }
           }
-          for (i=0;i<pop->n_walls;i++) {
-            mdlpvp->objp->viz_state[i]=viz_state;
+          for (i=0;i<mdlpvp->pop->n_walls;i++) {
+            mdlpvp->objp->viz_state[i]=mdlpvp->viz_state;
           }
           break;
         default:
@@ -3844,76 +3839,57 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
           break;
       }
       break;
-    case RX:
-      existing_state=0;  
-      slp=eff_state_head;
-      while (slp!=NULL && !existing_state) {
-        existing_state=existing_state||(viz_state==slp->state);
-        slp=slp->next;
-      }
-      if (!existing_state) {
-        if ((slp=(struct state_list *)malloc 
-            (sizeof(struct state_list)))==NULL) {
-          mdlerror("MCell: error cannot store state list");
-          return(1);
-        }
-        slp->state=viz_state;
-        slp->name=mdlpvp->gp->name;
-        slp->next=eff_state_head;
-        eff_state_head=slp;
-      }
-      rxp=(struct rx *)mdlpvp->gp->value;
-      rxp->viz_state=viz_state;
-      break;
     case MOL:
-      existing_state=0;  
-      slp=lig_state_head;
-      while (slp!=NULL && !existing_state) {
-        existing_state=existing_state||(viz_state==slp->state);
-        slp=slp->next;
+      mdlpvp->existing_state=0;  
+      mdlpvp->slp=mdlpvp->mol_state_head;
+      while (mdlpvp->slp!=NULL && !mdlpvp->existing_state) {
+        mdlpvp->existing_state=mdlpvp->existing_state||(mdlpvp->viz_state==mdlpvp->slp->state);
+        mdlpvp->slp=mdlpvp->slp->next;
       }
-      if (!existing_state) {
-        if ((slp=(struct state_list *)malloc 
+      if (!mdlpvp->existing_state) {
+        if ((mdlpvp->slp=(struct state_list *)malloc 
             (sizeof(struct state_list)))==NULL) {
           mdlerror("MCell: error cannot store state list");
           return(1);
         }
-        slp->state=viz_state;
-        slp->name=mdlpvp->gp->name;
-        slp->next=lig_state_head;
-        lig_state_head=slp;
+        mdlpvp->slp->state=mdlpvp->viz_state;
+        mdlpvp->slp->name=mdlpvp->gp->name;
+        mdlpvp->slp->next=mdlpvp->mol_state_head;
+        mdlpvp->mol_state_head=mdlpvp->slp;
       }
-      ligip=(struct ligand_info *)mdlpvp->gp->value;
-      ligip->viz_state=viz_state;
+      mdlpvp->specp=(struct species *)mdlpvp->gp->value;
+      mdlpvp->specp->viz_state=mdlpvp->viz_state;
       break;
   }
 }
 	| existing_logicalOrPhysical
 {
-  element_list_head=NULL;
+  mdlpvp->element_list_head=NULL;
 }
 	'[' list_element_specs ']' '=' num_expr
 {
+  u_int i;
+
   mdlpvp->gp=$<sym>1;
-  viz_state=(int) $<dbl>7;
+  mdlpvp->viz_state=(int) $<dbl>7;
   switch (mdlpvp->gp->sym_type) {
     case OBJ:
-      existing_state=0;  
-      slp=surf_state_head;
-      while (slp!=NULL && !existing_state) {
-        existing_state=existing_state||(viz_state==slp->state);
-        slp=slp->next;
+      mdlpvp->existing_state=0;  
+      mdlpvp->slp=mdlpvp->surf_state_head;
+      while (mdlpvp->slp!=NULL && !mdlpvp->existing_state) {
+        mdlpvp->existing_state=mdlpvp->existing_state||(mdlpvp->viz_state==mdlpvp->slp->state);
+        mdlpvp->slp=mdlpvp->slp->next;
       }
-      if (!existing_state) {
-        if ((slp=(struct state_list *)malloc 
+      if (!mdlpvp->existing_state) {
+        if ((mdlpvp->slp=(struct state_list *)malloc 
             (sizeof(struct state_list)))==NULL) {
           mdlerror("MCell: error cannot store state list");
           return(1);
         }
-        slp->state=viz_state;
-        slp->name=mdlpvp->gp->name;
-        slp->next=surf_state_head;
-        surf_state_head=slp;
+        mdlpvp->slp->state=mdlpvp->viz_state;
+        mdlpvp->slp->name=mdlpvp->gp->name;
+        mdlpvp->slp->next=mdlpvp->surf_state_head;
+        mdlpvp->surf_state_head=mdlpvp->slp;
       }
       mdlpvp->objp=(struct object *)mdlpvp->gp->value;
       switch (mdlpvp->objp->object_type) {
@@ -3922,59 +3898,51 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
           return(1);
           break;
         case BOX_OBJ:
-          pop=(struct polygon_object *)mdlpvp->objp->obj;
+          mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
           if (mdlpvp->objp->viz_state==NULL) {
             if ((mdlpvp->objp->viz_state=(int *)malloc
-                 (pop->n_walls*sizeof(int)))==NULL) {
+                 (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
               mdlerror("Cannot store viz state value for object");
               return(1);
             }
-            for (i=0;i<pop->n_walls;i++) {
+            for (i=0;i<mdlpvp->pop->n_walls;i++) {
               mdlpvp->objp->viz_state[i]=EXCLUDE_OBJ;
             }
           }
-          elmlp=element_list_head;
-          while (elmlp!=NULL) {
-            if (elmlp->begin==ALL_SIDES) {
-              elmlp->begin=0;
-              elmlp->end=pop->n_walls-1;
-            }
-            if (elmlp->begin < 0 || elmlp->end > pop->n_walls-1) {
+          mdlpvp->elmlp=mdlpvp->element_list_head;
+          while (mdlpvp->elmlp!=NULL) {
+            if (mdlpvp->elmlp->begin < 0 || mdlpvp->elmlp->end > mdlpvp->pop->n_walls-1) {
               mdlerror("Cannot set viz state value -- element out of range");
               return(1);
             }
-            for (i=elmlp->begin;i<=elmlp->end;i++) {
-              mdlpvp->objp->viz_state[i]=viz_state;
+            for (i=mdlpvp->elmlp->begin;i<=mdlpvp->elmlp->end;i++) {
+              mdlpvp->objp->viz_state[i]=mdlpvp->viz_state;
             }
-	    elmlp=elmlp->next;
+	    mdlpvp->elmlp=mdlpvp->elmlp->next;
           }
           break;
         case POLY_OBJ:
-          pop=(struct polygon_object *)mdlpvp->objp->obj;
+          mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
           if (mdlpvp->objp->viz_state==NULL) {
             if ((mdlpvp->objp->viz_state=(int *)malloc
-                 (pop->n_walls*sizeof(int)))==NULL) {
+                 (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
               mdlerror("Cannot store viz state value for object");
               return(1);
             }
-            for (i=0;i<pop->n_walls;i++) {
+            for (i=0;i<mdlpvp->pop->n_walls;i++) {
               mdlpvp->objp->viz_state[i]=EXCLUDE_OBJ;
             }
           }
-          elmlp=element_list_head;
-          while (elmlp!=NULL) {
-            if (elmlp->begin==ALL_SIDES) {
-              elmlp->begin=0;
-              elmlp->end=pop->n_walls-1;
-            }
-            if (elmlp->begin < 0 || elmlp->end > pop->n_walls-1) {
+          mdlpvp->elmlp=mdlpvp->element_list_head;
+          while (mdlpvp->elmlp!=NULL) {
+            if (mdlpvp->elmlp->begin < 0 || mdlpvp->elmlp->end > mdlpvp->pop->n_walls-1) {
               mdlerror("Cannot set viz state value -- element out of range");
               return(1);
             }
-            for (i=elmlp->begin;i<=elmlp->end;i++) {
-              mdlpvp->objp->viz_state[i]=viz_state;
+            for (i=mdlpvp->elmlp->begin;i<=mdlpvp->elmlp->end;i++) {
+              mdlpvp->objp->viz_state[i]=mdlpvp->viz_state;
             }
-	    elmlp=elmlp->next;
+	    mdlpvp->elmlp=mdlpvp->elmlp->next;
           }
           break;
         default:
@@ -3990,6 +3958,7 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
   }
 };
 
+
 existing_logicalOrPhysical: VAR
 {
   if (mdlpvp->cval_2!=NULL) {
@@ -3998,35 +3967,33 @@ existing_logicalOrPhysical: VAR
   else {
     mdlpvp->sym_name=mdlpvp->cval;
   }
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,RX,volp->main_sym_table))==NULL) {
-    if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
-      if ((mdlpvp->gp=retrieve_sym(get_first_name(mdlpvp->sym_name),OBJ,volp->main_sym_table))==NULL) {
-        sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined object:",mdlpvp->sym_name);
-        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-        if (mdlpvp->sym_name==mdlpvp->cval) {
-          mdlpvp->cval=NULL;
-        }
-        else {
-          mdlpvp->cval_2=NULL;
-        }
-        free((void *)mdlpvp->sym_name);
-        return(1);
+  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
+    if ((mdlpvp->gp=retrieve_sym(get_first_name(mdlpvp->sym_name),OBJ,volp->main_sym_table))==NULL) {
+      sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined object:",mdlpvp->sym_name);
+      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      if (mdlpvp->sym_name==mdlpvp->cval) {
+        mdlpvp->cval=NULL;
       }
-      mdlpvp->top_objp=(struct object *)mdlpvp->gp->value;
-      if ((mdlpvp->objp=find_full_name(mdlpvp->top_objp,mdlpvp->sym_name,NULL))==NULL) {
-        sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined object:",mdlpvp->sym_name);
-        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-        if (mdlpvp->sym_name==mdlpvp->cval) {
-          mdlpvp->cval=NULL;
-        }
-        else {
-          mdlpvp->cval_2=NULL;
-        }
-        free((void *)mdlpvp->sym_name);
-        return(1);
+      else {
+        mdlpvp->cval_2=NULL;
       }
-      mdlpvp->gp=mdlpvp->objp->sym;
+      free((void *)mdlpvp->sym_name);
+      return(1);
     }
+    mdlpvp->top_objp=(struct object *)mdlpvp->gp->value;
+    if ((mdlpvp->objp=find_full_name(mdlpvp->top_objp,mdlpvp->sym_name,NULL))==NULL) {
+      sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined object:",mdlpvp->sym_name);
+      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      if (mdlpvp->sym_name==mdlpvp->cval) {
+        mdlpvp->cval=NULL;
+      }
+      else {
+        mdlpvp->cval_2=NULL;
+      }
+      free((void *)mdlpvp->sym_name);
+      return(1);
+    }
+    mdlpvp->gp=mdlpvp->objp->sym;
   }
   if (mdlpvp->sym_name==mdlpvp->cval) {
     mdlpvp->cval=NULL;
@@ -4041,6 +4008,26 @@ existing_logicalOrPhysical: VAR
 #endif
   $$=mdlpvp->gp;
 };
+
+
+
+
+
+
+%%
+
+
+
+
+
+/* **************************************************************** */
+
+#if 0
+
+
+
+
+
 
 parallel_partition_def: PARALLEL_PARTITION '=' partition_plane
 ;
