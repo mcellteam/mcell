@@ -31,8 +31,8 @@ int xyz2grid(struct vector3 *v,struct surface_grid *g)
   double striploc,striprem,stripeloc,striperem;
   int strip,stripe,flip;
   
-  i = v->x * unit_u->x + v->y * unit_u->y + v->z * unit_u->z;
-  j = v->y * unit_v->x + v->y * unit_v->y + v->z * unit_v->z;
+  i = v->x * unit_u->x + v->y * unit_u->y + v->z * unit_u->z - g->vert0.u;
+  j = v->x * unit_v->x + v->y * unit_v->y + v->z * unit_v->z - g->vert0.v;
   
   striploc = j*g->inv_strip_wid;
   strip = (int)striploc;
@@ -109,8 +109,9 @@ void grid2xyz(struct surface_grid *g,int index,struct vector3 *v)
   over3n = 1.0 / (double) (3*g->n);
   
   ucoef = ((double)(3*j+1))*over3n*g->surface->uv_vert1_u + 
-          ((double)(3*(k+i)+1))*over3n*g->surface->uv_vert2.u;
-  vcoef = ((double)(3*k+i+1))*over3n*g->surface->uv_vert2.v;
+          ((double)(3*(k+i)+1))*over3n*g->surface->uv_vert2.u +
+          g->vert0.u;
+  vcoef = ((double)(3*k+i+1))*over3n*g->surface->uv_vert2.v + g->vert0.v;
   
   v->x = ucoef*unit_u->x + vcoef*unit_v->x;
   v->y = ucoef*unit_u->y + vcoef*unit_v->y;
@@ -149,6 +150,13 @@ void init_grid_geometry(struct surface_grid *g)
   g->inv_strip_wid = 1.0 / (g->surface->uv_vert2.v / ((double)g->n));
   g->vert2_slope = g->surface->uv_vert2.u / g->surface->uv_vert2.v;
   g->fullslope = g->surface->uv_vert1_u / g->surface->uv_vert2.v;
+
+  g->vert0.u = g->surface->vert[0]->x*g->surface->unit_u.x +
+               g->surface->vert[0]->y*g->surface->unit_u.y +
+               g->surface->vert[0]->z*g->surface->unit_u.z;
+  g->vert0.v = g->surface->vert[0]->x*g->surface->unit_v.x +
+               g->surface->vert[0]->y*g->surface->unit_v.y +
+               g->surface->vert[0]->z*g->surface->unit_v.z;
   
   g->n_tiles = g->n * g->n;
 }
@@ -191,7 +199,8 @@ int create_grid(struct wall *w,struct subvolume *guess)
   
   sg->mol = (struct grid_molecule**)malloc(sg->n_tiles*sizeof(struct grid_molecule*));
   if (sg->mol == NULL) return 1;
-  for (i=0;i<sg->n_tiles;i++) sg->mol[0] = NULL;
+
+  for (i=0;i<sg->n_tiles;i++) sg->mol[i] = NULL;
   
   w->effectors = sg;
   

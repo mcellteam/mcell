@@ -18,6 +18,7 @@
 #include "sched_util.h"
 
 #include "mcell_structs.h"
+#include "grid_util.h"
 #include "vol_util.h"
 #include "wall_util.h"
 #include "react.h"
@@ -266,7 +267,7 @@ void tell_loc(struct molecule *m,char *s)
 
 double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv)
 {
-  struct vector3 u,v,nu,nv,hit;
+  struct vector3 u,v;
   double d2_mv_i,a,b,t;
   double upperU = 1.0;
   double upperV = 1.0;
@@ -291,31 +292,15 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
   
 /* FIXME--this is horribly inefficient; should create modified collide_wall */
 
-  nu.x = -u.x;
-  nu.y = -u.y;
-  nu.z = -u.z;
-  nv.x = -v.x;
-  nv.y = -v.y;
-  nv.z = -v.z;
-  
   for (wl = sv->wall_head ; wl!=NULL ; wl = wl->next)
   {
-    if (collide_wall(loc,&u,wl->this_wall,&t,&hit)!=COLLIDE_MISS)
-    {
-      if (t>0 && t<upperU) upperU = t;
-    }
-    else if (collide_wall(loc,&nu,wl->this_wall,&t,&hit)!=COLLIDE_MISS)
-    {
-      if (t>0 && t<lowerU) lowerU = t;
-    }
-    if (collide_wall(loc,&v,wl->this_wall,&t,&hit)!=COLLIDE_MISS)
-    {
-      if (t>0 && t<upperV) upperV = t;
-    }
-    else if (collide_wall(loc,&nv,wl->this_wall,&t,&hit)!=COLLIDE_MISS)
-    {
-      if (t>0 && t<lowerV) lowerV = t;
-    }
+    t = touch_wall(loc,&u,wl->this_wall);
+    if (t>0.0 && t<upperU) upperU = t;
+    if (t<0.0 && -t<lowerU) lowerU = -t;
+    
+    t = touch_wall(loc,&v,wl->this_wall);
+    if (t>0.0 && t<upperV) upperV = t;
+    if (t<0.0 && -t<lowerV) lowerV = -t;
   }
 
 
@@ -445,6 +430,8 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   struct wall *w;
   struct rxn *r;
   struct molecule *mp,*old_mp;
+  struct grid_molecule *g;
+  struct abstract_molecule *am;
   struct species *sm;
   double d2;
   double d2_nearmax;
@@ -452,7 +439,7 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   double steps;
   double factor,rate_factor;
   
-  int i,j,k;
+  int i,j,k,l;
   
   int calculate_displacement = 1;
   
@@ -481,7 +468,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       else sv->mol_head = mp->next_v;
       
       if ((mp->flags & IN_MASK)==IN_VOLUME) mem_put(mp->birthplace,mp);
-      else if ((mp->flags & IN_VOLUME) != NULL) mp->flags -= IN_VOLUME;
+      else if ((mp->flags & IN_VOLUME) != 0) mp->flags -= IN_VOLUME;
       
       continue;
     }
@@ -608,18 +595,22 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       {
         m->collisions++;
 
+        am = (struct abstract_molecule*)smash->target;
+        if ((am->flags & ACT_INERT) != 0)
+        {
+          if (smash->t < am->t + am->t2) continue;
+        }
+
         factor = rate_factor * estimate_disk(
-          &(smash->loc),&displacement,world->rx_radius_3d,
-          m->subvol
+          &(smash->loc),&displacement,world->rx_radius_3d,m->subvol
         );
         
-        i = test_bimolecular(smash->intermediate,factor);
+        i = test_bimolecular(smash->intermediate,1.0/factor);
         if (i<0) continue;
         
         j = outcome_bimolecular(
                 smash->intermediate,i,(struct abstract_molecule*)m,
-                (struct abstract_molecule*)smash->target,
-                0,0,m->t+steps*smash->t
+                am,0,0,m->t+steps*smash->t
               );
         
         if (j) continue;
@@ -632,12 +623,44 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       }
       else if ( (smash->what & COLLIDE_WALL) != 0 )
       {
-/*        if (smash->t < 10*EPS_C) continue; */
-        
         w = (struct wall*) smash->target;
         
         if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
         else k = -1;
+        
+        if (w->effectors != NULL)
+        {
+          j = xyz2grid( &(smash->loc) , w->effectors );
+          if (w->effectors->mol[j] != NULL)
+          {
+            g = w->effectors->mol[j];
+            r = trigger_bimolecular(
+              m->properties->hashval,g->properties->hashval,
+              (struct abstract_molecule*)m,(struct abstract_molecule*)g,
+              k,g->orient
+            );
+            if (r!=NULL)
+            {
+              i = test_bimolecular(r,w->effectors->binding_factor);
+              if (i >= 0)
+              {
+                l = outcome_bimolecular(
+                  r,i,(struct abstract_molecule*)m,
+                  (struct abstract_molecule*)g,
+                  0,0,m->t+steps*smash->t
+                );
+        
+                if (l==0)
+                {
+                  if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
+                  if (shead != NULL) mem_put_list(sv->mem->coll,shead);
+                  return NULL;
+                }
+              }
+            }
+          }
+        }
+        
         r = trigger_intersect(
                 m->properties->hashval,(struct abstract_molecule*)m,k,w
               );
@@ -645,7 +668,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         if (r != NULL)
         {
           i = test_intersect(r,rate_factor);
-          i = 0;
+          i = 0; /* Cheat--always take first reaction. */
           if (i < 0)
           {
             tell_loc(m,"(Pass)  ");
@@ -654,7 +677,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
           else
           {
             j = outcome_intersect(
-                    r,i,w,(struct abstract_molecule*)m,k,m->t + steps*smash->t
+                    r,i,w,(struct abstract_molecule*)m,
+                    k,m->t + steps*smash->t,&(smash->loc)
                   );
             if (j==1) continue; /* pass through -- set counters! */
             else if (j==0)

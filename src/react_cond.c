@@ -91,7 +91,7 @@ int which_unimolecular(struct rxn *rx)
 test_bimolecular
   In: the reaction we're testing
       a probability multiplier depending on how many timesteps we've
-        moved at once (1.0 means one timestep)
+        moved at once (1.0 means one timestep) and/or missing interaction area
   Out: -1 if no reaction occurs
        int containing which reaction occurs if one does occur
 *************************************************************************/
@@ -99,15 +99,14 @@ test_bimolecular
 int test_bimolecular(struct rxn *rx,double time_mult)
 {
   int m,M,avg;
-  double p = rng_double( world->seed++ );
+  double p = rng_double( world->seed++ ) * time_mult;
   
-  if ( p > time_mult * rx->cum_rates[ rx->n_pathways-1 ] ) return -1;
+  if ( p > rx->cum_rates[ rx->n_pathways-1 ] ) return -1;
   
   m = 0;
   M = rx->n_pathways-1;
   
 /*  if (time_mult != 1.0) p = p / (1.0 - pow(1.0-rx->cum_rates[M],time_mult)); */
-  p /= time_mult;
   
   if ( p > rx->cum_rates[M] )
   {
@@ -146,14 +145,14 @@ int test_intersect(struct rxn *rx,double time_mult)
   
   if (rx->cum_rates[0] >= 1.0) return 0;  /* Shortcut for reflections */
   
-  p = rng_double( world->seed++ );
+  p = rng_double( world->seed++ ) * time_mult;
   
-  if ( p > time_mult * rx->cum_rates[ rx->n_pathways-1 ] ) return -1;
+  if ( p > rx->cum_rates[ rx->n_pathways-1 ] ) return -1;
 
   m = 0;
   M = rx->n_pathways-1;
   
-  if (time_mult != 1.0) p = p / (1.0 - pow(1.0-rx->cum_rates[M],time_mult));
+/*if (time_mult != 1.0) p = p / (1.0 - pow(1.0-rx->cum_rates[M],time_mult));*/
   
   if ( p > rx->cum_rates[M] ) return -1;
   

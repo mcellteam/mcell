@@ -540,6 +540,66 @@ void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
 
 
 /***************************************************************************
+touch_wall:
+  In: starting coordinate
+      vector to move along (forwards and backwards)
+      wall we're checking for a collision
+  Out: Double value between -1.0 and 1.0 if the movement ray intersected
+         the wall within range.  Returns 1.0 if out of range or missed.
+  Note: This code is used to estimate probabilities in constrained spaces.
+        Use collide_wall to detect collisions between molecules and
+        surfaces.
+***************************************************************************/
+
+double touch_wall(struct vector3 *point,struct vector3 *move,struct wall *face)
+{
+  double dp,dv,dd;
+  double nx,ny,nz;
+  double b,c,t;
+  double f,g,h;
+  struct vector3 local;
+  
+  nx = face->normal.x;
+  ny = face->normal.y;
+  nz = face->normal.z;
+  
+  dp = nx*point->x + ny*point->y + nz*point->z;
+  dv = nx*move->x + ny*move->y + nz*move->z;
+  dd = dp - face->d;
+
+  if (dd==0.0 || dd*dd >= dv*dv) return 1.0;
+
+  t = -dd/dv;
+  
+  local.x = point->x + t*move->x - face->vert[0]->x;
+  local.y = point->y + t*move->y - face->vert[0]->y;
+  local.z = point->z + t*move->z - face->vert[0]->z;
+  
+  b = local.x*face->unit_u.x + local.y*face->unit_u.y + local.z*face->unit_u.z;
+  c = local.x*face->unit_v.x + local.y*face->unit_v.y + local.z*face->unit_v.z;
+  
+  if (face->uv_vert2.v < 0.0)
+  {
+    c = -c;
+    f = -face->uv_vert2.v;
+  }
+  else f = face->uv_vert2.v;
+    
+  if (c > 0)
+  {
+    g = b*f;
+    h = c*face->uv_vert2.u;
+    if (g > h)
+    {
+      if ( c*face->uv_vert1_u + g < h + face->uv_vert1_u*face->uv_vert2.v ) return t;
+    }
+  }
+  
+  return 1.0;  
+}
+
+
+/***************************************************************************
 collide_wall:
   In: starting coordinate
       vector to move along
@@ -595,7 +655,7 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
     return COLLIDE_MISS;
   }
   
-  if (dd==0.0 && dv!=0.0)
+  if (dd==0.0 && dv==0.0)
   {
     a = (abs_max_2vec( point , move ) + 1.0) * EPS_C;
     if ((rng_uint(world->seed++)&1)==0) a = -a;

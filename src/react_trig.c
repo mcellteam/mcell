@@ -51,8 +51,8 @@ trigger_bimolecular:
         NULL if the orientations do not match the specified orientations
         pointer to the reaction if a valid reaction exists
    Note: The target molecule is already scheduled and can be destroyed
-         but not rescheduled.  Assume we've already checked that target
-         and moving molecules are not inert!
+         but not rescheduled.  Assume we have or will check separately that
+         the moving molecule is not inert!
 *************************************************************************/
 
 struct rxn* trigger_bimolecular(int hashA,int hashB,

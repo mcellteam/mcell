@@ -825,6 +825,7 @@ struct surface_grid
   double inv_strip_wid;    /* Reciprocal of the width of one strip */
   double vert2_slope;      /* Slope from vertex 0 to vertex 2 */
   double fullslope;        /* Slope of full width of triangle */
+  struct vector2 vert0;    /* 2D coordinates of vertex zero */
   
   double binding_factor;   /* Binding probability correction factor for surface area */
   

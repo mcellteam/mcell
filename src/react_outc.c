@@ -28,11 +28,12 @@ outcome_products:
        local storage for creating new molecules
        orientations of the molecules in the reaction
        time that the reaction is occurring
-   Out: No return value.
+   Out: Zero if successful, one if a grid reaction was blocked by a full
+        target grid tile.
         Creates products as necessary and schedules them.
 *************************************************************************/
 
-void outcome_products(struct wall *w,struct molecule *reac_m,
+int outcome_products(struct wall *w,struct molecule *reac_m,
   struct surface_molecule *reac_s,struct grid_molecule *reac_g,
   struct rxn *rx,int path,struct storage *local,
   short orientA,short orientB,double t,struct vector3 *hitpt)
@@ -43,6 +44,7 @@ void outcome_products(struct wall *w,struct molecule *reac_m,
   struct grid_molecule *g;
   struct species *p;
   struct surface_grid *sg;
+  int blocked = 1;
 
   i0 = rx->product_idx[path];
   iN = rx->product_idx[path+1];
@@ -62,14 +64,15 @@ void outcome_products(struct wall *w,struct molecule *reac_m,
     
       if ( (p->flags & ON_GRID) != 0 )
       {
-        if (reac_g!=NULL)
-        {
-          /* TODO: Not sure what to do here. */
-        }
-        else if (reac_s!=NULL || (reac_m!=NULL && w!=NULL))
+        if (reac_g!=NULL || reac_s!=NULL || (reac_m!=NULL && w!=NULL))
         {
           j = -1;
-          if (reac_s!=NULL)
+          if (reac_g!=NULL) /* We will replace reac_g */
+          {
+            j = reac_g->grid_index;
+            sg = reac_g->grid;
+          }
+          else if (reac_s!=NULL)
           {
             sg = reac_s->curr_wall->effectors;
             if (sg==NULL)
@@ -118,6 +121,8 @@ void outcome_products(struct wall *w,struct molecule *reac_m,
             plist[i-i0] = (struct abstract_molecule*)g;
             ptype[i-i0] = 'g';
             schedule_add(local->timer,g);
+            
+            blocked = 0;
           }
           else
           {
@@ -192,6 +197,8 @@ void outcome_products(struct wall *w,struct molecule *reac_m,
           s->t2 = 0.0;
           s->t = t;
           schedule_add( local->timer , s );
+          
+          blocked = 0;
         }
         else
         {
@@ -237,6 +244,8 @@ void outcome_products(struct wall *w,struct molecule *reac_m,
         m->t2 = 0.0;
         m->t = t;
         schedule_add( local->timer , m );
+        
+        blocked = 0;
       }
     }
     
@@ -309,6 +318,8 @@ void outcome_products(struct wall *w,struct molecule *reac_m,
       }
     }
   }
+  
+  return blocked;
 }
 
 
@@ -346,7 +357,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
     if ((reac->properties->flags & ON_GRID) != 0)
     {
       struct grid_molecule *g = (struct grid_molecule*) reac;
-      g->grid->mol[ g->grid_index ] = NULL;
+      if (g->grid->mol[g->grid_index]==g) g->grid->mol[ g->grid_index ] = NULL;
       g->grid->n_occupied--;
     }
     reac->properties->population--;
@@ -365,7 +376,8 @@ outcome_bimolecular:
       two molecules that are reacting (first is moving one)
       orientations of the two molecules
       time that the reaction is occurring
-  Out: 0 of moving molecule no longer exists, 1 if it does
+  Out: 0 of moving molecule no longer exists, 1 if it does, -1 if reaction
+       failed due to lack of space for products.
        Products are created as needed.
 *************************************************************************/
 
@@ -379,6 +391,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
   struct wall *w = NULL;
   struct storage *x;
   struct vector3 *hitpt;
+  int blocked;
   
   if ((reacA->properties->flags & (ON_GRID | ON_SURFACE)) == 0)
   {
@@ -414,10 +427,18 @@ int outcome_bimolecular(struct rxn *rx,int path,
     }
   }
   
-  outcome_products(w,m,s,g,rx,path,x,orientA,orientB,t,hitpt);
+  blocked = outcome_products(w,m,s,g,rx,path,x,orientA,orientB,t,hitpt);
+  
+  if (blocked) return -1;
   
   if ((rx->fates[path] & RX_2DESTROY) != 0)
   {
+    if ((reacB->properties->flags & ON_GRID) != 0)
+    {
+      g = (struct grid_molecule*)reacB;
+      if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
+      g->grid->n_occupied--;
+    }
     reacB->properties->population--;
     reacB->properties = NULL;
   }
@@ -440,6 +461,12 @@ int outcome_bimolecular(struct rxn *rx,int path,
   }
   if ((rx->fates[path] & RX_DESTROY) != 0)
   {
+    if ((reacB->properties->flags & ON_GRID) != 0)
+    {
+      g = (struct grid_molecule*)reacB;
+      if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
+      g->grid->n_occupied--;
+    }
     reacA->properties->population--;
     reacA->properties = NULL;
     return 0;
@@ -482,6 +509,8 @@ outcome_intersect:
 int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   struct abstract_molecule *reac,short orient,double t,struct vector3 *hitpt)
 {
+  int blocked;
+  
   if ((reac->properties->flags & (ON_GRID | ON_SURFACE)) == 0)
   {
     struct molecule *m = (struct molecule*) reac;
@@ -493,9 +522,10 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     }
     else
     {
-      outcome_products(surface,m,NULL,NULL,rx,path,m->subvol->mem,orient,0,t,hitpt);
+      blocked = outcome_products(surface,m,NULL,NULL,rx,path,m->subvol->mem,orient,0,t,hitpt);
       if ((rx->fates[path] & RX_REFL) != 0) return -1;
       else if ((rx->fates[path] & RX_FLIP) != 0) return 1;
+      else if (blocked) return -1;
       else if ((rx->fates[path] & RX_DESTROY) != 0)
       {
         reac->properties->population--;
@@ -516,9 +546,9 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     }
     else
     {
-      outcome_products(surface,NULL,s,NULL,rx,path,s->subvol->mem,orient,0,t,hitpt);
+      blocked = outcome_products(surface,NULL,s,NULL,rx,path,s->subvol->mem,orient,0,t,hitpt);
       if ((rx->fates[path] & RX_REFL) != 0) return -1;
-      else if ((rx->fates[path] & RX_DESTROY) == 0) return 1;
+      else if (blocked || (rx->fates[path] & RX_DESTROY) == 0) return 1;
       else
       {
         reac->properties->population--;

@@ -18,7 +18,7 @@ int test_bimolecular(struct rxn *rx,double time_mult);
 int test_intersect(struct rxn *rx,double time_mult);
 
 
-void outcome_products(struct wall *w,struct molecule *reac_m,
+int outcome_products(struct wall *w,struct molecule *reac_m,
   struct surface_molecule *reac_s,struct grid_molecule *reac_g,
   struct rxn *rx,int path,struct storage *local,
   short orientA,short orientB,double t,struct vector3 *hitpt);
