@@ -435,6 +435,11 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   
   num_rx = 0;
   
+  if (mpvp->vol->rx_radius_3d <= 0.0)
+  {
+    mpvp->vol->rx_radius_3d = 1.0/sqrt( MY_PI*mpvp->vol->effector_grid_density );
+  }
+  
   for (i=0;i<HASHSIZE;i++)
   {
     sym = mpvp->vol->main_sym_table[i];

@@ -157,7 +157,7 @@ int init_sim(void)
   world->current_start_time=0;
   world->effector_grid_density=1;
   world->length_unit=1.0/sqrt(world->effector_grid_density);
-  world->rx_radius_3d = 0.01;
+  world->rx_radius_3d = 0;
   world->max_diffusion_step=0;
   world->radial_directions=16384;
   world->radial_subdivisions=1024;

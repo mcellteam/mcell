@@ -1,7 +1,7 @@
 
-dt = 0.2e-6
-it = 20000
-efg = 10000
+dt = 0.4e-6
+it = 2000
+efg = 1000
 
 n=100
 
@@ -9,6 +9,7 @@ TIME_STEP = dt
 TIME_STEP_MAX = dt*1.01
 ITERATIONS = it
 EFFECTOR_GRID_DENSITY = efg
+/*INTERACTION_RADIUS = 0.01*/
 RADIAL_SUBDIVISIONS = 256
 RADIAL_DIRECTIONS = 16384
 
@@ -55,7 +56,7 @@ DEFINE_RELEASE_PATTERN pat2 {
 }
 
 ACh_release_site SPHERICAL_RELEASE_SITE {
-  LOCATION = [0.09,0.09,0.09]
+  LOCATION = [0.09,0.09,0.01]
   MOLECULE = ACh
   NUMBER_TO_RELEASE = n
   SITE_DIAMETER = 0.000000001
@@ -63,7 +64,7 @@ ACh_release_site SPHERICAL_RELEASE_SITE {
 }
 
 Glu_release_site SPHERICAL_RELEASE_SITE {
-  LOCATION = [-0.09,-0.09,-0.09]
+  LOCATION = [0.01,0.01,0.2]
   MOLECULE = Glu
   NUMBER_TO_RELEASE = n
   SITE_DIAMETER = 0.00001
@@ -83,24 +84,27 @@ box BOX {
     }
   }
 }
-/*
+
 poly POLYGON_LIST {
   VERTEX_LIST {
     [0,0,0]
-    [1,0,0]
-    [1,1,0]
+    [0.363424,0,0]
+    [0,0.363424,0]
+    [0,0,0.363424]
   }
   ELEMENT_CONNECTIONS {
     [0,1,2]
-    [0,2,1]
+    [1,2,3]
+    [3,0,1]
+    [0,2,3]
   }
 }
-*/
+
 INSTANTIATE foo OBJECT {
   ACh_release_site OBJECT ACh_release_site {}
   Glu_release_site OBJECT Glu_release_site {}
-  box OBJECT box {}
-/*  poly OBJECT poly {}*/
+/*  box OBJECT box {} */
+  poly OBJECT poly {}
 }
 
 INCLUDE_FILE = "test_include.mdl"
