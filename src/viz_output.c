@@ -1277,10 +1277,13 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   char buffer[100]; /* used to write 'frame_data' object information */
   /* linked list that stores data for the 'frame_data' object */
   static struct infinite_string_array frame_data_list;
-  static int frame_data_count = 0; /* count elements in frame_numbers_list array. */
-  /* linked list that stores data for the 'frame_numbers' object */
-  static struct infinite_int_array frame_numbers_list;
-  static int frame_numbers_count = 0; /* count elements in frame_numbers_list array. */
+  static int frame_data_count = 0; /* count elements in frame_data_list array.*/
+  /* linked lists that stores data for the 'frame_numbers' object */
+  static struct infinite_int_array frame_numbers_pos;
+  static struct infinite_int_array frame_numbers_mesh;
+  static struct infinite_int_array frame_numbers_mol;
+  static struct infinite_int_array frame_numbers_eff;
+  static int frame_numbers_count = 0; /* count elements in frame_numbers_pos array. */
   char my_byte_order[8];  /* shows binary ordering ('lsb' or 'msb') */
   static int mesh_pos_byte_offset = 0;  /* defines position of the object data
                                   in the mesh positions binary data file */
@@ -2012,13 +2015,19 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
          {
              fprintf(master_header,
                 "object %d field   # %s #\n",main_index, obj_names[ii]);
-             fprintf(master_header,
+             if(surf_pos[ii] > 0){
+             	fprintf(master_header,
                  "\tcomponent \"positions\" value %d\n",surf_pos[ii]);
-             fprintf(master_header,
+             }
+             if(surf_con[ii] > 0){
+             	fprintf(master_header,
                  "\tcomponent \"connections\" value %d\n",surf_con[ii]);
-             fprintf(master_header,
-                "\tcomponent \"state_values\" value %d\n\n",surf_states[ii]);
-	     
+             }
+             if(surf_states[ii] > 0){
+             	fprintf(master_header,
+                	"\tcomponent \"state_values\" value %d\n",surf_states[ii]);
+	     }
+             fprintf(master_header, "\n");
 	     /* put number of this field into the linked list 
                 of the field numbers for meshes */
              newNode = (struct num_expr_list *)malloc(sizeof (struct num_expr_list));
@@ -2206,12 +2215,19 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 
              fprintf(master_header,
                 "object %d field   # %s #\n",main_index, eff_names[ii]);
-             fprintf(master_header,
+             if(eff_pos[ii] > 0){
+             	fprintf(master_header,
                  "\tcomponent \"positions\" value %d\n",eff_pos[ii]);
-             fprintf(master_header,
-                 "\tcomponent \"data\" value %d # orientations #\n",eff_orient[ii]);
-             fprintf(master_header,
-                "\tcomponent \"state_values\" value %d\n\n",eff_states[ii]);
+             }
+             if(eff_orient[ii] > 0){     
+             	fprintf(master_header,
+                 	"\tcomponent \"data\" value %d # orientations #\n",eff_orient[ii]);
+             }
+             if(eff_states[ii] > 0){
+             	fprintf(master_header,
+                	"\tcomponent \"state_values\" value %d\n",eff_states[ii]);
+             }
+             fprintf(master_header, "\n");
              /* put number of this field into the linked list 
                 of the field numbers for grid molecules */
              newNode = (struct num_expr_list *)malloc(sizeof (struct num_expr_list));
@@ -2414,12 +2430,19 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 
              fprintf(master_header,
                 "object %d field   # %s #\n",main_index, mol_names[ii]);
-             fprintf(master_header,
-                 "\tcomponent \"positions\" value %d\n",mol_pos[ii]);
-             fprintf(master_header,
-                 "\tcomponent \"data\" value %d # orientations #\n",mol_orient[ii]);
-             fprintf(master_header,
-                "\tcomponent \"state_values\" value %d\n\n",mol_states[ii]);
+             if(mol_pos[ii] > 0) {
+             	fprintf(master_header,
+                 	"\tcomponent \"positions\" value %d\n",mol_pos[ii]);
+             }
+             if(mol_orient[ii] > 0){
+             	fprintf(master_header,
+                 	"\tcomponent \"data\" value %d # orientations #\n",mol_orient[ii]);
+             }
+             if(mol_states[ii] > 0){ 
+             	fprintf(master_header,
+                	"\tcomponent \"state_values\" value %d\n",mol_states[ii]);
+             }
+             fprintf(master_header, "\n");
              /* put number of this field into the linked list 
                 of the field numbers for molecules */
              newNode = (struct num_expr_list *)malloc(sizeof (struct num_expr_list));
@@ -2503,16 +2526,25 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
         combined_group_index = main_index;
       	if(mesh_group_index > 0){
           	fprintf(master_header,"\tmember \"meshes\" value %d\n",mesh_group_index);
+		ia_int_store(&frame_numbers_mesh, frame_numbers_count,mesh_group_index);
 		mesh_group_index = 0;
 
-      	}
+      	}else{
+		ia_int_store(&frame_numbers_mesh, frame_numbers_count,-1);
+        }
       	if(mol_group_index > 0){
           	fprintf(master_header,"\tmember \"molecules\" value %d\n",mol_group_index);
+		ia_int_store(&frame_numbers_mol, frame_numbers_count,mol_group_index);
 		mol_group_index = 0;
+        }else{
+		ia_int_store(&frame_numbers_mol, frame_numbers_count,-1);
         }
         if(eff_group_index > 0){
           	fprintf(master_header,"\tmember \"effectors\" value %d\n",eff_group_index);
+		ia_int_store(&frame_numbers_eff, frame_numbers_count,eff_group_index);
 		eff_group_index = 0;
+        }else{
+		ia_int_store(&frame_numbers_eff, frame_numbers_count,-1);
         }
       	fprintf(master_header,"\n");
       }
@@ -2535,8 +2567,8 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 		special_eff_frames_counter = 0;
         }
  
-	/* put value of viz_iteration into the frame_numbers_list */ 
-	ia_int_store(&frame_numbers_list, frame_numbers_count,viz_iteration);
+	/* put value of viz_iteration into the frame_numbers_pos */ 
+	ia_int_store(&frame_numbers_pos, frame_numbers_count,viz_iteration);
         frame_numbers_count++;
 
      }
@@ -2558,11 +2590,14 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 	/* write 'frame_numbers' object. */
         if(frame_numbers_count > 0)
         {
-        	int elem;
-        	fprintf(master_header,"object \"frame_numbers\" class array  type int rank 0 items %d data follows\n",frame_numbers_count);
+        	int elem1, elem2, elem3, elem4;
+        	fprintf(master_header,"object \"frame_numbers\" class array  type int rank 1 shape 4 items %d data follows\n",frame_numbers_count);
 		for(ii = 0; ii < frame_numbers_count; ii++){
-                	elem = ia_int_get(&frame_numbers_list, ii);
-			fprintf(master_header, "\t%d\n", elem);
+                	elem1 = ia_int_get(&frame_numbers_pos, ii);
+                	elem2 = ia_int_get(&frame_numbers_mesh, ii);
+                	elem3 = ia_int_get(&frame_numbers_mol, ii);
+                	elem4 = ia_int_get(&frame_numbers_eff, ii);
+			fprintf(master_header, "\t%d\t%d\t%d\t%d\n", elem1, elem2, elem3, elem4);
         	}
 		fprintf(master_header, "\n\n");
         }
@@ -2602,7 +2637,25 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 
         /* free linked list for frame_numbers. */
   	struct infinite_int_array *arr_int_ptr, *temp_int_ptr;
-  	arr_int_ptr = (&frame_numbers_list)->next;
+  	arr_int_ptr = (&frame_numbers_pos)->next;
+  	while(arr_int_ptr != NULL){
+		temp_int_ptr = arr_int_ptr;
+		arr_int_ptr = arr_int_ptr->next;
+		free(temp_int_ptr);
+  	}     
+  	arr_int_ptr = (&frame_numbers_mesh)->next;
+  	while(arr_int_ptr != NULL){
+		temp_int_ptr = arr_int_ptr;
+		arr_int_ptr = arr_int_ptr->next;
+		free(temp_int_ptr);
+  	}     
+  	arr_int_ptr = (&frame_numbers_mol)->next;
+  	while(arr_int_ptr != NULL){
+		temp_int_ptr = arr_int_ptr;
+		arr_int_ptr = arr_int_ptr->next;
+		free(temp_int_ptr);
+  	}     
+  	arr_int_ptr = (&frame_numbers_eff)->next;
   	while(arr_int_ptr != NULL){
 		temp_int_ptr = arr_int_ptr;
 		arr_int_ptr = arr_int_ptr->next;
@@ -2776,10 +2829,13 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
   char buffer[100]; /* used to write 'frame_data' object information */
   /* linked list that stores data for the 'frame_data' object */
   static struct infinite_string_array frame_data_list;
-  static int frame_data_count = 0; /* count elements in frame_numbers_list array. */
-  /* linked list that stores data for the 'frame_numbers' object */
-  static struct infinite_int_array frame_numbers_list;
-  static int frame_numbers_count = 0; /* count elements in frame_numbers_list array. */
+  static int frame_data_count = 0; /* count elements in frame_data_list array. */
+  /* linked lists that stores data for the 'frame_numbers' object */
+  static struct infinite_int_array frame_numbers_pos;
+  static struct infinite_int_array frame_numbers_mesh;
+  static struct infinite_int_array frame_numbers_mol;
+  static struct infinite_int_array frame_numbers_eff;
+  static int frame_numbers_count = 0; /* count elements in frame_numbers_pos array. */
   char my_byte_order[8];  /* shows binary ordering ('lsb' or 'msb') */
   static int mesh_pos_byte_offset = 0;  /* defines position of the object data
                                   in the mesh positions binary data file */
@@ -3787,16 +3843,25 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
         combined_group_index = main_index;
       	if(mesh_group_index > 0){
           	fprintf(master_header,"\tmember \"meshes\" value %d\n",mesh_group_index);
+		ia_int_store(&frame_numbers_mesh, frame_numbers_count, mesh_group_index);
 		mesh_group_index = 0;
 
-      	}
+      	}else{
+		ia_int_store(&frame_numbers_mesh, frame_numbers_count, -1);
+        }
         if(eff_group_index > 0){
           	fprintf(master_header,"\tmember \"effectors\" value %d\n",eff_group_index);
+		ia_int_store(&frame_numbers_eff, frame_numbers_count, eff_group_index);
 		eff_group_index = 0;
-        }
+        }else{
+		ia_int_store(&frame_numbers_eff, frame_numbers_count, -1);
+        } 
       	if(mol_group_index > 0){
           	fprintf(master_header,"\tmember \"molecules\" value %d\n",mol_group_index);
+		ia_int_store(&frame_numbers_mol, frame_numbers_count, mol_group_index);
 		mol_group_index = 0;
+        }else{
+		ia_int_store(&frame_numbers_mol, frame_numbers_count, -1);
         }
       	fprintf(master_header,"\n");
 
@@ -3811,8 +3876,8 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
       	main_index++;
       	fprintf(master_header, "\n\n");
      
-	/* put value of viz_iteration into the frame_numbers_list */ 
-	ia_int_store(&frame_numbers_list, frame_numbers_count,viz_iteration);
+	/* put value of viz_iteration into the frame_numbers_pos */ 
+	ia_int_store(&frame_numbers_pos, frame_numbers_count,viz_iteration);
         frame_numbers_count++;
 
      if(fdlp->curr_viz_iteration->next == NULL)
@@ -3832,11 +3897,14 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
 	/* write 'frame_numbers' object. */
         if(frame_numbers_count > 0)
         {
-        	int elem;
+        	int elem1, elem2, elem3, elem4;
         	fprintf(master_header,"object \"frame_numbers\" class array  type int rank 0 items %d data follows\n",frame_numbers_count);
 		for(ii = 0; ii < frame_numbers_count; ii++){
-                	elem = ia_int_get(&frame_numbers_list, ii);
-			fprintf(master_header, "\t%d\n", elem);
+                	elem1 = ia_int_get(&frame_numbers_pos, ii);
+                	elem2 = ia_int_get(&frame_numbers_mesh, ii);
+                	elem3 = ia_int_get(&frame_numbers_mol, ii);
+                	elem4 = ia_int_get(&frame_numbers_eff, ii);
+			fprintf(master_header, "\t%d\t%d\t%d\t%d\n", elem1, elem2, elem3, elem4);
         	}
 		fprintf(master_header, "\n\n");
         }
@@ -3875,7 +3943,25 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
         
 	/* free linked list for frame_numbers. */
   	struct infinite_int_array *arr_int_ptr, *temp_int_ptr;
-  	arr_int_ptr = (&frame_numbers_list)->next;
+  	arr_int_ptr = (&frame_numbers_pos)->next;
+  	while(arr_int_ptr != NULL){
+		temp_int_ptr = arr_int_ptr;
+		arr_int_ptr = arr_int_ptr->next;
+		free(temp_int_ptr);
+  	}     
+  	arr_int_ptr = (&frame_numbers_mesh)->next;
+  	while(arr_int_ptr != NULL){
+		temp_int_ptr = arr_int_ptr;
+		arr_int_ptr = arr_int_ptr->next;
+		free(temp_int_ptr);
+  	}     
+  	arr_int_ptr = (&frame_numbers_mol)->next;
+  	while(arr_int_ptr != NULL){
+		temp_int_ptr = arr_int_ptr;
+		arr_int_ptr = arr_int_ptr->next;
+		free(temp_int_ptr);
+  	}     
+  	arr_int_ptr = (&frame_numbers_eff)->next;
   	while(arr_int_ptr != NULL){
 		temp_int_ptr = arr_int_ptr;
 		arr_int_ptr = arr_int_ptr->next;
