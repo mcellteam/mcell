@@ -459,6 +459,13 @@ char *concat_rx_name(char *name1, char *name2)
 }
 
 
+/*************************************************************************
+equivalent_geometry:
+In: Two pathways to compare
+    The number of reactants for the pathways
+Out: Returns 1 if the two pathways are the same (i.e. have equivalent
+     geometry), 0 otherwise.
+*************************************************************************/
 int equivalent_geometry(struct pathway *p1,struct pathway *p2,int n)
 {
   short o11,o12,o13,o21,o22,o23;
@@ -662,10 +669,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     mpvp->vol->rx_radius_3d = 1.0/sqrt( MY_PI*mpvp->vol->effector_grid_density );
   }
   mpvp->vol->rxn_mem = create_mem( sizeof(struct t_func) , 100 );
-  if(mpvp->vol->rxn_mem == NULL){
-	mdlerror("Memory allocation error.\n");
-        return (1);
-  }
+  if (mpvp->vol->rxn_mem == NULL) return 1;
   
   for (i=0;i<HASHSIZE;i++)
   {
@@ -681,8 +685,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       {
         num_rx++;
       
-  /* First we find how many reactions have the same geometry as the current one */
-  /* Also, shove any surfaces to the end of the reactants list. */
+        /* First we find how many reactions have the same geometry as the current one */
+        /* Also, shove any surfaces to the end of the reactants list. */
         true_paths=0;
         for (path=rx->pathway_head ; path != NULL ; path = path->next)
         {
@@ -713,7 +717,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           }
         }
         
-  /* If they're not all our geometry, stuff the non-matching ones into rx->next */      
+        /* If they're not all our geometry, stuff the non-matching ones into rx->next */      
         if (true_paths < rx->n_pathways)
         {
           rx->next = (struct rxn*)malloc(sizeof(struct rxn));
@@ -748,10 +752,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
           }
         }
-  /* At this point we have reactions of the same geometry and can collapse them */
+        /* At this point we have reactions of the same geometry and can collapse them */
 
-  /* Search for reactants that appear as products--they aren't listed twice. */
-  /* Any reactants that don't appear are set to be destroyed. */
+	/* Search for reactants that appear as products--they aren't listed twice. */
+	/* Any reactants that don't appear are set to be destroyed. */
         rx->product_idx = (u_int*)malloc(sizeof(u_int)*(rx->n_pathways+1));
         rx->cum_rates = (double*)malloc(sizeof(double)*rx->n_pathways);
         rx->cat_rates = (double*)malloc(sizeof(double)*rx->n_pathways);
@@ -793,8 +797,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           }
         }
 
-  /* Now that we know how many products there really are, set the index array */
-  /* and malloc space for the products and geometries. */
+	/* Now that we know how many products there really are, set the index array */
+	/* and malloc space for the products and geometries. */
         path = rx->pathway_head;
         
         num_players = rx->n_reactants;
@@ -811,8 +815,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         
         if (rx->players==NULL || rx->geometries==NULL) return 1;
 
-  /* Load all the time-varying rates from disk (if any), merge them into */
-  /* a single sorted list, and pull off any updates for time zero. */
+	/* Load all the time-varying rates from disk (if any), merge them into */
+	/* a single sorted list, and pull off any updates for time zero. */
         if (n_rate_t_rxns > 0)
         {
           k = 0;
@@ -828,8 +832,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               }
             }
           }
-          rx->rate_t = (struct t_func*)
-            ae_list_sort( (struct abstract_element*)rx->rate_t );
+          rx->rate_t = (struct t_func*) ae_list_sort( (struct abstract_element*)rx->rate_t );
             
           while (rx->rate_t != NULL && rx->rate_t->time <= 0.0)
           {
@@ -839,8 +842,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         }
         
 
-  /* Set the geometry of the reactants.  These are used for triggering. */
-  /* Since we use flags to control orientation changes, just tell everyone to stay put. */
+	/* Set the geometry of the reactants.  These are used for triggering. */
+	/* Since we use flags to control orientation changes, just tell everyone to stay put. */
         path = rx->pathway_head;
         rx->players[0] = path->reactant1;
         rx->geometries[0] = path->orientation1;
@@ -855,9 +858,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           }
         }
         
-  /* Now we walk through the list setting the geometries of each of the products */
-  /* We do this by looking for an earlier geometric match and pointing there */
-  /* or we just point to 0 if there is no match. */
+	/* Now we walk through the list setting the geometries of each of the products */
+	/* We do this by looking for an earlier geometric match and pointing there */
+	/* or we just point to 0 if there is no match. */
         for (j=0 , path=rx->pathway_head ; path!=NULL ; j++ , path = path->next)
         {
           recycled1 = 0;
@@ -962,8 +965,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         }
         
 
-  /* Whew, done with the geometry.  We now just have to compute appropriate */
-  /* reaction rates based on the type of reaction. */
+	/* Whew, done with the geometry.  We now just have to compute appropriate */
+	/* reaction rates based on the type of reaction. */
         if (rx->n_reactants==1) {
           pb_factor=1;
           rx->cum_rates[0]=1.0-exp(-mpvp->vol->time_unit*rx->cum_rates[0]);
@@ -1111,8 +1114,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     }
   }
   
-/* And, finally, we just have to move all the reactions from the */
-/* symbol table into the reaction hash table (of appropriate size). */
+  /* And, finally, we just have to move all the reactions from the */
+  /* symbol table into the reaction hash table (of appropriate size). */
   for (rx_hash=2 ; rx_hash<=num_rx ; rx_hash <<= 1) {}
   if (rx_hash > MAX_RX_HASH) rx_hash = MAX_RX_HASH;
   

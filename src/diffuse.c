@@ -1571,7 +1571,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
   struct rxn *r;
   double t;
   double stop_time,max_time;
-  int i,j;
+  int i,j,err;
   
   while ( (a = (struct abstract_molecule*)schedule_next(local->timer)) != NULL )
   {
@@ -1679,8 +1679,14 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     }
 
     a->flags += IN_SCHEDULE;
-    if (a->flags & TYPE_GRID) schedule_add(local->timer,a);
-    else schedule_add(((struct molecule*)a)->subvol->mem->timer,a);
+    if (a->flags & TYPE_GRID) err = schedule_add(local->timer,a);
+    else err = schedule_add(((struct molecule*)a)->subvol->mem->timer,a);
+    
+    if (err)
+    {
+      printf("Out of memory while scheduling molecule of type %s\n",a->properties->sym->name);
+      return;
+    }
   }
   
   local->current_time += 1.0;

@@ -339,7 +339,8 @@ struct subvolume* find_subvolume(struct vector3 *loc,struct subvolume *guess)
 insert_molecule
   In: pointer to a molecule that we're going to place in local storage
       pointer to a molecule that may be nearby
-  Out: pointer to the new molecule (copies data from molecule passed in)
+  Out: pointer to the new molecule (copies data from molecule passed in),
+       or NULL if out of memory
 *************************************************************************/
 
 struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
@@ -352,10 +353,8 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
   else sv = find_subvolume(&(m->pos),guess->subvol);
   
   new_m = mem_get(sv->mem->mol);
-  if(new_m == NULL){
-	printf("Memory allocation error.\n");
-        return NULL;
-  }
+  if(new_m == NULL) return NULL;
+
   memcpy(new_m,m,sizeof(struct molecule));
 
   new_m->birthplace = sv->mem->mol;
@@ -371,7 +370,7 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
     count_me_by_region( (struct abstract_molecule*)new_m , 1 );
   }
   
-  schedule_add(sv->mem->timer,new_m);
+  if ( schedule_add(sv->mem->timer,new_m) ) return NULL;
   
   return new_m;
 }
@@ -398,10 +397,11 @@ void excert_molecule(struct molecule *m)
 /*************************************************************************
 insert_molecule_list:
   In: pointer to a linked list of molecules to copy into subvolumes.
-  Out: no return value; molecules are placed in their subvolumes.
+  Out: 0 on success, 1 on memory allocation error; molecules are placed
+       in their subvolumes.
 *************************************************************************/
 
-void insert_molecule_list(struct molecule *m)
+int insert_molecule_list(struct molecule *m)
 {
   struct molecule *new_m,*guess;
   
@@ -409,13 +409,13 @@ void insert_molecule_list(struct molecule *m)
   while (m != NULL)
   {
     new_m = insert_molecule(m,guess);
-    if(new_m == NULL){
-        m = (struct molecule*)m->next;
-	continue;
-    }
+    if(new_m == NULL) return 1;
+
     guess = new_m;
     m = (struct molecule*)m->next;
   }
+  
+  return 0;
 }
 
 
@@ -424,7 +424,7 @@ migrate_molecule:
   In: pointer to a molecule already in a subvolume
       pointer to the new subvolume to move it to
   Out: pointer to moved molecule.  The molecule's position is updated
-       but it is not rescheduled.
+       but it is not rescheduled.  Returns NULL if out of memory.
 *************************************************************************/
 
 struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv)
@@ -432,6 +432,7 @@ struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv)
   struct molecule *new_m;
 
   new_m = mem_get(new_sv->mem->mol);
+  if (new_m==NULL) return NULL;
   
   memcpy(new_m,m,sizeof(struct molecule));
   new_m->birthplace = new_sv->mem->mol;
@@ -452,11 +453,11 @@ struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv)
 /*************************************************************************
 release_molecules:
   In: pointer to a release event
-  Out: no return value; next event is scheduled and molecule(s) are
-       released into the world as specified.
+  Out: 0 on success, 1 on failure; next event is scheduled and molecule(s)
+       are released into the world as specified.
 *************************************************************************/
 
-void release_molecules(struct release_event_queue *req)
+int release_molecules(struct release_event_queue *req)
 {
   struct release_site_obj *rso;
   struct release_pattern *rpat;
@@ -492,9 +493,9 @@ void release_molecules(struct release_event_queue *req)
 
     if (req->train_counter < rpat->number_of_trains)
     {
-      schedule_add(world->releaser,req);
+      if ( schedule_add(world->releaser,req) ) return 1;
     }
-    return;
+    return 0;
   }
 
   /* Fall through if it's a release event */
@@ -504,7 +505,7 @@ void release_molecules(struct release_event_queue *req)
   req->event_type = TRAIN_HIGH_EVENT;
   req->event_time += rpat->release_interval;
 
-  schedule_add(world->releaser,req);
+  if ( schedule_add(world->releaser,req) ) return 1;
   
   guess = NULL;
   
@@ -585,10 +586,7 @@ void release_molecules(struct release_event_queue *req)
       m.pos.z = pos.z*diam_xyz->z + req->location.z;
       
       guess = insert_molecule(&m,guess);  /* Insert copy of m into world */
-      if (guess == NULL){
-	printf("Memory allocation error.\n");
-	return;
-      }
+      if (guess == NULL) return 1;
     }
   }
   else
@@ -597,25 +595,34 @@ void release_molecules(struct release_event_queue *req)
     m.pos.y = req->location.y;
     m.pos.z = req->location.z;
     
-    for (i=0;i<number;i++) {
+    for (i=0;i<number;i++)
+    {
        guess = insert_molecule(&m,guess);
-       if (guess == NULL){
-		printf("Memory allocation error.\n");
-		return;
-       }
-        
+       if (guess == NULL) return 1;
     }
   }
   
+  return 0;
 }
 
 
-/* Utility function that uses bisection to solve for A,B,k such that
-  f(n) = A*exp(n*k)+B
-  f(0) = c
-  f(1) = c+d
-  f(N) = C
-*/
+/*************************************************************************
+find_exponential_params:
+  In: value of f(0)
+      value of f(N)
+      difference between f(1) and f(0)
+      number of data points
+      pointer to where we store the scaling factor A
+      pointer to the constant offset B
+      pointer to the rate of decay k
+  Out: no return value.  This is a utility function that uses bisection
+       to solve for A,B,k to find an exponentially increasing function
+         f(n) = A*exp(n*k)+B
+       subject to the contstraints
+         f(0) = c
+         f(1) = c+d
+         f(N) = C
+*************************************************************************/
 
 void find_exponential_params(double c,double C,double d,double N,double *A,double *B, double *k)
 {
@@ -642,10 +649,10 @@ void find_exponential_params(double c,double C,double d,double N,double *A,doubl
 /*************************************************************************
 set_partitions:
   In: nothing.  Uses struct volume *world, assumes bounding box is set.
-  Out: no return value; coarse and fine partitions are set.
+  Out: 0 on success, 1 on error; coarse and fine partitions are set.
 *************************************************************************/
 
-void set_partitions()
+int set_partitions()
 {
   double f_min,f_max,f,df,dfx,dfy,dfz;
   int i,j;
@@ -666,8 +673,7 @@ void set_partitions()
   if((world->x_fineparts == NULL) || (world->y_fineparts == NULL) ||
         (world->z_fineparts == NULL))
   {
-	printf("Memory allocation error.\n");
-        exit(1);
+    return 1;
   }
 
   dfx = 1e-3 + (world->bb_max.x - world->bb_min.x)/8191.0;
@@ -792,8 +798,7 @@ void set_partitions()
     if((world->x_partitions == NULL) || (world->y_partitions == NULL) ||
         (world->z_partitions == NULL))
     {
-	printf("Memory allocation error.\n");
-	exit(1);
+      return 1;
     }
 
     x_aspect = (part_max.x - part_min.x) / f_max;
@@ -882,10 +887,8 @@ void set_partitions()
     if (world->x_partitions[1] > world->bb_min.x - dfx)
     {
       dbl_array = (double*) malloc( sizeof(double)*(world->nx_parts+1) );
-      if(dbl_array == NULL){
-	printf("Memory allocation error.\n");
-        exit(1);
-      }
+      if (dbl_array == NULL) return 1;
+
       dbl_array[0] = world->x_partitions[0];
       dbl_array[1] = world->bb_min.x - dfx;
       memcpy(&(dbl_array[2]),&(world->x_partitions[1]),sizeof(double)*(world->nx_parts-1));
@@ -896,10 +899,8 @@ void set_partitions()
     if (world->x_partitions[world->nx_parts-2] < world->bb_max.x + dfx)
     {
       dbl_array = (double*) malloc( sizeof(double)*(world->nx_parts+1) );
-      if(dbl_array == NULL){
-	printf("Memory allocation error.\n");
-        exit(1);
-      }
+      if (dbl_array == NULL) return 1;
+
       dbl_array[world->nx_parts] = world->x_partitions[world->nx_parts-1];
       dbl_array[world->nx_parts-1] = world->bb_max.x + dfx;
       memcpy(dbl_array,world->x_partitions,sizeof(double)*(world->nx_parts-1));
@@ -910,10 +911,8 @@ void set_partitions()
      if (world->y_partitions[1] > world->bb_min.y - dfy)
     {
       dbl_array = (double*) malloc( sizeof(double)*(world->ny_parts+1) );
-      if(dbl_array == NULL){
-	printf("Memory allocation error.\n");
-        exit(1);
-      }
+      if (dbl_array==NULL) return 1;
+
       dbl_array[0] = world->y_partitions[0];
       dbl_array[1] = world->bb_min.y - dfy;
       memcpy(&(dbl_array[2]),&(world->y_partitions[1]),sizeof(double)*(world->ny_parts-1));
@@ -924,10 +923,8 @@ void set_partitions()
     if (world->y_partitions[world->ny_parts-2] < world->bb_max.y + dfy)
     {
       dbl_array = (double*) malloc( sizeof(double)*(world->ny_parts+1) );
-      if(dbl_array == NULL){
-	printf("Memory allocation error.\n");
-        exit(1);
-      }
+      if (dbl_array==NULL) return 1;
+
       dbl_array[world->ny_parts] = world->y_partitions[world->ny_parts-1];
       dbl_array[world->ny_parts-1] = world->bb_max.y + dfy;
       memcpy(dbl_array,world->y_partitions,sizeof(double)*(world->ny_parts-1));
@@ -938,10 +935,8 @@ void set_partitions()
     if (world->z_partitions[1] > world->bb_min.z - dfz)
     {
       dbl_array = (double*) malloc( sizeof(double)*(world->nz_parts+1) );
-      if(dbl_array == NULL){
-	printf("Memory allocation error.\n");
-        exit(1);
-      }
+      if (dbl_array==NULL) return 1;
+
       dbl_array[0] = world->z_partitions[0];
       dbl_array[1] = world->bb_min.z - dfz;
       memcpy(&(dbl_array[2]),&(world->z_partitions[1]),sizeof(double)*(world->nz_parts-1));
@@ -952,10 +947,8 @@ void set_partitions()
     if (world->z_partitions[world->nz_parts-2] < world->bb_max.z + dfz)
     {
       dbl_array = (double*) malloc( sizeof(double)*(world->nz_parts+1) );
-      if(dbl_array == NULL){
-	printf("Memory allocation error.\n");
-        exit(1);
-      }
+      if (dbl_array==NULL) return 1;
+
       dbl_array[world->nz_parts] = world->z_partitions[world->nz_parts-1];
       dbl_array[world->nz_parts-1] = world->bb_max.z + dfz;
       memcpy(dbl_array,world->z_partitions,sizeof(double)*(world->nz_parts-1));
@@ -1014,15 +1007,5 @@ void set_partitions()
   for (i=0;i<world->nz_parts;i++) printf("%.5f ",world->z_partitions[i]);
   printf("\n");
 
-  /*
-  printf("X fineparts: ");
-  for (i=0;i<world->n_fineparts;i++) printf("%.3e ",world->x_fineparts[i]);
-  printf("\n");
-  printf("Y fineparts: ");
-  for (i=0;i<world->n_fineparts;i++) printf("%.3e ",world->y_fineparts[i]);
-  printf("\n");
-  printf("Z fineparts: ");
-  for (i=0;i<world->n_fineparts;i++) printf("%.3e ",world->z_fineparts[i]);
-  printf("\n");
-  */
+  return 0;
 }

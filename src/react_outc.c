@@ -289,7 +289,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       
       if (reac_m != NULL)
       {
-        if (hitpt==NULL)
+        if (hitpt==NULL || (struct abstract_molecule*)reac_m != moving)
         {
           m->pos.x = reac_m->pos.x;
           m->pos.y = reac_m->pos.y;
@@ -526,6 +526,11 @@ int outcome_bimolecular(struct rxn *rx,int path,
     {
       g = (struct grid_molecule*)reacB;
       w = g->grid->surface;
+    }
+    else /* Prefer to use target */
+    {
+      m = (struct molecule*) reacB;
+      x = m->subvol->mem;
     }
   }
   else if ( (reacA->properties->flags & ON_GRID) == 0 )

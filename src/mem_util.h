@@ -67,7 +67,7 @@ void delete_counter(struct counter_helper *ch);
 
 
 struct stack_helper* create_stack(int size,int length);
-void stack_push(struct stack_helper *sh,void *d);
+void* stack_push(struct stack_helper *sh,void *d);
 void stack_pop(struct stack_helper *sh, void *d);
 void stack_dump(struct stack_helper *sh);
 int stack_size(struct stack_helper *sh);

@@ -22,11 +22,18 @@
 void nullprintf(char *whatever,...) {}
 
 #define noprintf nullprintf
-#define Malloc count_malloc
 
-int howmany_count_malloc = 0;
+#ifdef DEBUG
+#define Malloc count_malloc
+#else
+#define Malloc malloc
+#endif
 
 extern struct volume *world;
+
+
+#ifdef DEBUG
+int howmany_count_malloc = 0;
 
 void catch_me()
 {
@@ -44,19 +51,16 @@ void catch_me()
   exit(1);
 }
 
-
-
 void* count_malloc(int n)
 {
-  /*
   howmany_count_malloc++;
 
   if (howmany_count_malloc > 200000)
   { printf("Nuts!\n"); catch_me(); return NULL; }
-  */
 
    return malloc(n);
 }
+#endif
 
 
 
@@ -281,20 +285,20 @@ struct stack_helper* create_stack(int size,int length)
   struct stack_helper *sh;
   
   sh = (struct stack_helper*) Malloc( sizeof(struct stack_helper) );
-  if(sh == NULL) {
-	printf("Memory allocation error!\n");
-	return (NULL);
-  }
+  if (sh == NULL) return NULL;
+
   sh->index = 0;
   sh->length = length;
   sh->record_size = size;
-  sh->data = (unsigned char*) Malloc( size * length );
-  if(sh->data == NULL) {
-	printf("Memory allocation error!\n");
-	return (NULL);
-  }
   sh->next = NULL;
   sh->defunct = NULL;
+
+  sh->data = (unsigned char*) Malloc( size * length );
+  if(sh->data == NULL)
+  {
+    free(sh);
+    return NULL;
+  }
 
   return sh;
 }
@@ -304,14 +308,17 @@ struct stack_helper* create_stack(int size,int length)
 stack_push:
    In: a stack_helper
        data to put on the stack
-   Out: No return value.  The data is pushed on the stack.
+   Out: Address of pushed item, or NULL on memory failure.
+        The data is pushed on the stack.
    Note: Pushing is an O(1) operation in stack size.  There is overhead
          for each new block of memory the stack needs, so longer blocks
          speed things up some if you have enough space.
 *************************************************************************/
 
-void stack_push(struct stack_helper *sh,void *d)
+void* stack_push(struct stack_helper *sh,void *d)
 {
+  void* top_of_stack;
+  
   if (sh->index >= sh->length)
   {
     struct stack_helper *old_sh;
@@ -320,14 +327,13 @@ void stack_push(struct stack_helper *sh,void *d)
     if (sh->defunct==NULL)
     {
       old_sh = (struct stack_helper*) Malloc( sizeof(struct stack_helper) );
-      if(old_sh == NULL) {
-	printf("Memory allocation error.\n");
-        return;
-      }
+      if (old_sh == NULL) return NULL;
+
       new_data = (unsigned char*) Malloc( sh->record_size * sh->length );
-      if(new_data == NULL) {
-	printf("Memory allocation error.\n");
-        return;
+      if(new_data == NULL)
+      {
+	free(old_sh);
+	return NULL;
       }
     }
     else
@@ -341,9 +347,13 @@ void stack_push(struct stack_helper *sh,void *d)
     sh->data = new_data;
     sh->index = 0;
   }
+  
+  top_of_stack = sh->data + sh->record_size*sh->index;
 
-  memcpy( sh->data + sh->record_size*sh->index , d , sh->record_size );
+  memcpy( top_of_stack , d , sh->record_size );
   sh->index++;
+  
+  return top_of_stack;
 }
 
 
@@ -464,7 +474,8 @@ void* stack_access(struct stack_helper *sh,int n)
 stack_semisort_pdouble:
    In: A stack_helper with elements that are pointers to doubles
        Time before which we care about ordering (don't sort after)
-   Out: Number of items actually sorted.  Lowest time is on top.
+   Out: Number of items actually sorted, or -1 on memory allocation
+        error.  Lowest time is on top.
    Note: Uses a combination of insertion sort and in-place iterative
          mergesort.  Not fast for stacks made up of many pieces.
 *************************************************************************/
@@ -480,10 +491,7 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
 
   if (sh->defunct == NULL){ 
     sh->defunct = create_stack(sh->record_size,sh->length);
-    if(sh->defunct == NULL){
-	printf("Memory allocation error\n");
-	return nsorted;
-    }
+    if(sh->defunct == NULL) return -1;
   }
   space = (double**)sh->defunct->data;
 
@@ -609,11 +617,7 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
   {
     if (sh->defunct->defunct == NULL){
       sh->defunct->defunct = create_stack(sh->record_size,sh->length);
-      if(sh->defunct->defunct == NULL)
-      {
-	printf("Memory allocation error\n");
-	return (0);
-      }
+      if(sh->defunct->defunct == NULL) return -1;
     }
     temp2 = (double**)sh->defunct->defunct->data;
         
@@ -771,7 +775,7 @@ struct mem_helper* create_mem(int size,int length)
   struct mem_helper *mh;
   mh = (struct mem_helper*)Malloc( sizeof(struct mem_helper) );
   
-  if (mh==NULL) return mh;
+  if (mh==NULL) return NULL;
   
   mh->buf_len = (length>0) ? length : 128;
   mh->record_size = (size>0) ? size : sizeof(void*);
@@ -904,17 +908,15 @@ create_temp:
 struct temp_mem* create_temp(int length)
 {
   struct temp_mem *new_mem = (struct temp_mem*) Malloc(sizeof(struct temp_mem));
-  if (new_mem == NULL)
-  {
-	printf("Memory allocation error\n");
-	return NULL;
-  }
+  if (new_mem == NULL) return NULL;
+
   new_mem->pointers = create_stack(sizeof(void*),length);
   if (new_mem->pointers == NULL)
   {
-	printf("Memory allocation error\n");
-	return NULL;
+    free(new_mem);
+    return NULL;
   }
+
   return new_mem;
 }
 
@@ -929,12 +931,18 @@ temp_malloc:
 
 void *temp_malloc(size_t size, struct temp_mem *list)
 {
-  void *data = Malloc(size);
-  if (data == NULL){
-	printf("Memory allocation error\n");
-  	return NULL;
+  void *data,*record;
+  
+  data = Malloc(size);
+  if (data==NULL) return NULL;
+  
+  record = stack_push(list->pointers,&data);
+  if (record==NULL)
+  {
+    free(data);
+    return NULL;
   }
-  stack_push(list->pointers,&data);
+  
   return data;
 }
 
@@ -959,3 +967,4 @@ void free_temp(struct temp_mem *list)
   }
   free(list);
 }
+

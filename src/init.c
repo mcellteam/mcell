@@ -402,7 +402,11 @@ int init_sim(void)
   while(olp != NULL)
   {
     olpn = olp->next;
-    schedule_add(world->count_scheduler , olp);
+    if (schedule_add(world->count_scheduler , olp))
+    {
+      fprintf(log_file,"MCell: error scheduling output for count statements\n");
+      return 1;
+    }
     olp = olpn;
   }
 
@@ -563,7 +567,7 @@ int init_partitions(void)
   world->z_fineparts = world->z_partitions;
 #endif
 
-  set_partitions();
+  if (set_partitions()) return 1;
   
   world->n_waypoints = 1;
   if((world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint*)*world->n_waypoints)) == NULL){
@@ -745,7 +749,7 @@ int init_geom(void)
   while(req != NULL)
   {
     rqn = req->next;
-    schedule_add(world->releaser , req);
+    if (schedule_add(world->releaser , req)) return 1;
     req = rqn;
   }
 
@@ -1734,7 +1738,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
         if ((mol->properties->flags & COUNT_CONTENTS) != 0)
           count_me_by_region((struct abstract_molecule*)mol,1);
       
-        schedule_add(w->birthplace->timer,mol);
+        if (schedule_add(w->birthplace->timer,mol)) return 1;
       }
     }
   }
@@ -1931,7 +1935,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   if ((mol->properties->flags & COUNT_CONTENTS) != 0)
                     count_me_by_region((struct abstract_molecule*)mol,1);
       
-                  schedule_add(walls[j]->birthplace->timer,mol);
+                  if ( schedule_add(walls[j]->birthplace->timer,mol) ) return 1;
                 }
               }
             }
@@ -1968,7 +1972,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     if ((mol->properties->flags & COUNT_CONTENTS) != 0)
                       count_me_by_region((struct abstract_molecule*)mol,1);
       
-                    schedule_add(walls[k]->birthplace->timer,mol);
+                    if ( schedule_add(walls[k]->birthplace->timer,mol) ) return 1;
                     done=1;
                   }
                 }

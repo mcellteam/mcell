@@ -144,7 +144,8 @@ create_scheduler:
       maximum number of slots in this scheduler
       the current time
   Out: pointer to a new instance of schedule_helper; pass this to later
-       functions.  (Dispose of with delete_scheduler.)
+       functions.  (Dispose of with delete_scheduler.)  Returns NULL
+       if out of memory.
 *************************************************************************/
 
 struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,double start_time)
@@ -161,10 +162,7 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
   else len = maxlen;
   
   sh = (struct schedule_helper*) malloc( sizeof( struct schedule_helper ) );
-  if(sh == NULL){
-	printf("Memory allocation error!\n");
-	return NULL;
-  }
+  if(sh == NULL) return NULL;
   
   sh->dt = dt_min;
   sh->dt_1 = 1/dt_min;
@@ -175,20 +173,14 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
   sh->count = 0;
 
   sh->circ_buf_count = (int*) malloc( sizeof(int) * len );
-  if(sh->circ_buf_count == NULL){
-	printf("Memory allocation error!\n");
-	return NULL;
-  }
+  if (sh->circ_buf_count == NULL) return NULL;
+
   sh->circ_buf_head = (struct abstract_element**) malloc( sizeof( void* ) * len );
-  if(sh->circ_buf_head == NULL){
-	printf("Memory allocation error!\n");
-	return NULL;
-  }
+  if (sh->circ_buf_head == NULL) return NULL;
+
   sh->circ_buf_tail = (struct abstract_element**) malloc( sizeof( void* ) * len );
-  if(sh->circ_buf_tail == NULL){
-	printf("Memory allocation error!\n");
-	return NULL;
-  }
+  if (sh->circ_buf_tail == NULL) return NULL;
+  
   sh->next_scale = NULL;
   sh->current = sh->current_tail = NULL;
   sh->current_count = 0;
@@ -205,18 +197,8 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
   if (sh->dt * sh->buf_len < dt_max && depth<10)
   {
     sh->next_scale = create_scheduler(dt_min*len,dt_max,maxlen,sh->now+dt_min*len);
-    if(sh->next_scale == NULL){
-	printf("Memory allocation error!\n");
-	return NULL;
-    }
+    if (sh->next_scale == NULL) return NULL;
   }
-  
-  if (depth==20)
-  {
-    printf("BLOODY MURDER!  Scale = %f\n",sh->dt);
-    exit(1);
-  }
-
   
   return sh;
 }
@@ -229,10 +211,11 @@ schedule_insert:
       flag to indicate whether times in the "past" go into the list
          of current events (if 0, go into next event, not current).
       the current time
-  Out: No return value.  Data item is placed in scheduler.
+  Out: 0 on success, 1 on memory allocation failure.  Data item is
+       placed in scheduler.
 *************************************************************************/
 
-void schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_current)
+int schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_current)
 {
   struct abstract_element *ae = (struct abstract_element*)data;
   double nsteps;
@@ -252,7 +235,7 @@ void schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_curren
       sh->current_tail = ae;
       ae->next = NULL;
     }
-    return;
+    return 0;
   }
   sh->count++;
   nsteps = (ae->t - sh->now) * sh->dt_1 ;
@@ -280,18 +263,16 @@ void schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_curren
   {
     if (sh->next_scale == NULL)
     {
-      sh->next_scale = 
-        create_scheduler(sh->dt*sh->buf_len,
-          sh->dt*sh->buf_len*sh->buf_len,
-          sh->buf_len+1,
-          sh->now+sh->dt*sh->buf_len);
-      if(sh->next_scale == NULL){
-	printf("Memory allocation error!\n");
-	return;
-      }
+      sh->next_scale = create_scheduler(sh->dt*sh->buf_len,
+                                        sh->dt*sh->buf_len*sh->buf_len,
+					sh->buf_len+1,
+					sh->now+sh->dt*sh->buf_len
+				       );
+      if(sh->next_scale == NULL) return 1;
     }
-    schedule_insert(sh->next_scale,data,0);
+    if ( schedule_insert(sh->next_scale,data,0) ) return 1;
   }
+  return 0;
 }
 
 
@@ -322,7 +303,7 @@ schedule_advance:
       a pointer to the head-pointer for the list of the next time block
       a pointer to the tail-pointer for the list of the next time block
   Out: Number of items in the next block of time.  These items start
-      with *head, and end with *tail.
+      with *head, and end with *tail.  Returns -1 on memory error.
 *************************************************************************/
 
 int schedule_advance(struct schedule_helper *sh,struct abstract_element **head,
@@ -347,11 +328,11 @@ int schedule_advance(struct schedule_helper *sh,struct abstract_element **head,
     if (sh->next_scale != NULL)
     {
       int conservecount = sh->count;
-      schedule_advance(sh->next_scale,&p,NULL);
+      if ( schedule_advance(sh->next_scale,&p,NULL) == -1 ) return -1;
       while (p != NULL)
       {
         nextp = p->next;
-        schedule_insert(sh,(void*)p,0);
+        if ( schedule_insert(sh,(void*)p,0) )  return -1;
         p = nextp;
       }
       sh->count = conservecount;

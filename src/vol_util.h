@@ -15,11 +15,11 @@ double collide_sv_time(struct vector3 *point,struct vector3 *move,struct subvolu
 
 struct molecule* insert_molecule(struct molecule *m,struct molecule *guess);
 void excert_molecule(struct molecule *m);
-void insert_molecule_list(struct molecule *m);
+int insert_molecule_list(struct molecule *m);
 struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv);
 
-void release_molecules(struct release_event_queue *req);
+int release_molecules(struct release_event_queue *req);
 
-void set_partitions();
+int set_partitions();
 
 #endif

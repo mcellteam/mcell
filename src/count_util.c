@@ -20,6 +20,13 @@
 
 extern struct volume *world;
 
+
+/*************************************************************************
+eps_equals:
+   In: two doubles
+   Out: 1 if they are equal to within some small tolerance, 0 otherwise
+*************************************************************************/
+
 int eps_equals(double x,double y)
 {
   double mag;
@@ -102,8 +109,19 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
 }
 
 
+/*************************************************************************
+find_enclosing_regions:
+   In: location we want to end up
+       starting position
+       list of regions we're inside at the starting position
+       list of inside-out regions we're "outside" at the starting position
+       memory handler to store lists of regions
+   Out: 0 on success, 1 on memory allocation error.  The region and
+        inside-out region lists are updated to be correct at the ending
+	position.
+*************************************************************************/
 
-void find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
+int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
                             struct region_list** rlp,struct region_list** arlp,
                             struct mem_helper *rmem)
 {
@@ -172,10 +190,8 @@ void find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
           if ((xrl->reg->flags & COUNT_CONTENTS) != 0)
           {
             nrl = (struct region_list*) mem_get(rmem);
-            if(nrl == NULL){
-		printf("Memory allocation error!\n");
-		return;
-	    }
+	    if (nrl==NULL) return 1;
+
             nrl->reg = xrl->reg;
             
             if (i==COLLIDE_BACK) { nrl->next = tarl; tarl = nrl; }
@@ -282,23 +298,18 @@ void find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
   *rlp = rl;
   *arlp = arl;
 
-  /*  
-  if (rl)
-  {
-   printf("Found regions: ");
-   for (;rl!=NULL;rl=rl->next) printf("%x ",(int)rl->reg);
-   printf("\n");
-  }
-  if (arl)
-  {
-   printf("Found antiregions: ");
-   for (;arl!=NULL;arl=arl->next) printf("%x ",(int)arl->reg);
-   printf("\n");
-  }
-  */
+  return 0;
 }
 
 
+
+/*************************************************************************
+dup_region_list:
+   In: a list of regions
+       memory handler to use for duplicated regions
+   Out: The duplicated list of regions, or NULL on a memory allocation
+        error.
+*************************************************************************/
 
 struct region_list* dup_region_list(struct region_list *r,struct mem_helper *mh)
 {
@@ -310,10 +321,8 @@ struct region_list* dup_region_list(struct region_list *r,struct mem_helper *mh)
   while (r!=NULL)
   {
     nr = (struct region_list*) mem_get(mh);
-    if(nr == NULL){
-	printf("Memory allocation error!\n");
-	return NULL;
-    }
+    if(nr == NULL) return NULL;
+
     nr->next = NULL;
     nr->reg = r->reg;
     if (rp==NULL) r0 = rp = nr;
@@ -337,7 +346,7 @@ place_waypoints:
 
 int place_waypoints()
 {
-  int h,i,j,k;
+  int g,h,i,j,k;
   int i_will_use_waypoints = 0;
   int waypoint_in_wall = 0;
   struct waypoint *wp;
@@ -401,16 +410,17 @@ int place_waypoints()
           wp->regions = dup_region_list(world->waypoints[h-1].regions,sv->mem->regl);
           wp->antiregions = dup_region_list(world->waypoints[h-1].antiregions,sv->mem->regl);
           
-          find_enclosing_regions(&(wp->loc),&(world->waypoints[h-1].loc),
-                                 &(wp->regions),&(wp->antiregions),sv->mem->regl);
+          g = find_enclosing_regions(&(wp->loc),&(world->waypoints[h-1].loc),
+                                     &(wp->regions),&(wp->antiregions),sv->mem->regl);
         }
         else
         {
           wp->regions = NULL;
           wp->antiregions = NULL;
-          find_enclosing_regions(&(wp->loc),NULL,&(wp->regions),
-                                 &(wp->antiregions),sv->mem->regl);
-        }        
+          g = find_enclosing_regions(&(wp->loc),NULL,&(wp->regions),
+                                 &(wp->antiregions),sv->mem->regl);	  
+        }
+	if (g) return 1;
       }
     }
   }
@@ -425,8 +435,8 @@ count_me_by_region:
    In: abstract molecule we are supposed to count (or a representative one)
        number by which to update the counter (usually +1 or -1)
    Out: No return value.  Appropriate counters are updated.
-   Note: This handles all types of molecules, from grid to free.  Right
-         now, only grid is implemented.
+   Note: This handles all types of molecules, from grid to free.  Grid
+         and free are implemented, surface is not.
 *************************************************************************/
 
 void count_me_by_region(struct abstract_molecule *me,int n)
@@ -550,12 +560,13 @@ void count_me_by_region(struct abstract_molecule *me,int n)
   }
 }
 
+
 /******************************************************************
 check_region_counters:
-    Checks whether region counters for freely diffusing molecules 
-    contain only closed manifold regions.
-    Returns 0 if region counters statements are correct,
-    and 1 - otherwise.
+  In: No arguments.
+  Out: 0 if counter statements are correct, 1 otherwise.
+  Note: A statement is incorrect if a non-closed manifold region
+        tries to count a freely diffusing molecule.
 ********************************************************************/
 int check_region_counters()
 {
@@ -564,7 +575,6 @@ int check_region_counters()
   struct species *sp;
   struct region *rp;
   u_int i;
-
 
   log_file=world->log_file;  
   

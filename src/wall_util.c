@@ -33,6 +33,11 @@ extern struct volume *world;
  ** Internal utility function section--max/min stuff                     **
 \**************************************************************************/
 
+/**** These functions are used only in this file.  They should all ****/
+/**** be obvious, save maybe abs_max_2vec, which picks out the     ****/
+/**** largest (absolute) value found among two vectors (useful for ****/
+/**** properly handling floating-point rounding error).            ****/
+
 #define max(x,y) ((x)>(y)) ? (x): (y)
 #define min(x,y) ((x)<(y)) ? (x): (y)
 
@@ -43,17 +48,16 @@ inline double abs_max_2vec(struct vector3 *v1,struct vector3 *v2)
                      max( abs(v2->y) , abs(v2->x) ) ) );
 }
 
-
 inline double max3(double f1, double f2, double f3)
 {
   return (max(f1,max(f2,f3)));
 }
 
-
 inline double min3(double f1, double f2, double f3)
 {
   return (min(f1,min(f2,f3)));
 }
+
 
 
 /**************************************************************************\
@@ -727,6 +731,7 @@ is_manifold:
   In: a region.  This region must already be painted on walls.  The edges
       must have already been added to the object (i.e. sharpened).
   Out: 1 if the region is a manifold, 0 otherwise.
+  Note: by "manifold" we mean "manifold without boundaries"
 ***************************************************************************/
 
 int is_manifold(struct region *r)
@@ -774,7 +779,6 @@ jump_away_line:
       location of the second vertex of the edge
       normal vector to the surface containing our edge
   Out: No return value.  Movement vector is slightly changed.
-  WARNING: broken--not picking tiny values properly!
 ***************************************************************************/
 
 void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
@@ -797,7 +801,7 @@ void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
   f.y = n->z*e.x - n->x*e.z;
   f.z = n->x*e.y - n->y*e.x;
   
-  tiny = (abs_max_2vec( p , v ) + 1.0) * EPS_C / k;
+  tiny = EPS_C * (abs_max_2vec(p,v) + 1.0) / (k * max3(abs(f.x),abs(f.y),abs(f.z)));
   if ( (rng_uint(world->seed) & 1) == 0 ) tiny = -tiny;
   
   v->x -= tiny*f.x;
@@ -1027,12 +1031,6 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
   else pos = &( ((struct surface_molecule*)a)->pos );
   
   sigma2 = world->rx_radius_3d*world->rx_radius_3d; 
-/*  sigma2 = 1.0; */
-
-/*
-  printf("At [%21g %21g %21g] heading [%21g %21g %21g] checking [%21g %21g %21g]\n",
-    point->x,point->y,point->z,move->x,move->y,move->z,pos->x,pos->y,pos->z);
-*/
 
   dir.x = pos->x - point->x;
   dir.y = pos->y - point->y;
@@ -1059,188 +1057,15 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
 
 
 /***************************************************************************
-intersect_box:
-  In: llf corner of box
-      urb corner of box
-      wall we're checking
-  Out: Integer value indicating what happened
-         0    missed
-         1    tri corner inside box
-         2    intersect with -x face
-  Note: t and/or hitpt may be modified even if there is no collision
-        Not highly optimized yet.
+wall_in_box:
+  In: array of pointers to vertices for wall (should be 3)
+      normal vector for wall
+      distance from wall to origin (point normal form)
+      first corner of bounding box
+      opposite corner of bounding box
+  Out: 1 if the wall intersects the box.  0 otherwise.
 ***************************************************************************/
-#if 0
-/* New version, not completed, probably worse than old version.*/
-int intersect_box(struct vector3 *llf,struct vector3 *urb,struct wall *w)
-{
-  int i,j;
-  double t,loc;
-  struct vector3 wall_llf,wall_urb,vec,hit;
-  
-  wall_llf.x = GIGANTIC;
-  wall_llf.y = GIGANTIC;
-  wall_llf.z = GIGANTIC;
-  wall_urb.x = -GIGANTIC;
-  wall_urb.y = -GIGANTIC;
-  wall_urb.z = -GIGANTIC;
-  
-  for (i=0;i<3;i++)
-  {
-    if (w->vert[i]->x < wall_llf.x) wall_llf.x = w->vert[i]->x;
-    if (w->vert[i]->x > wall_urb.x) wall_urb.x = w->vert[i]->x;
-    if (w->vert[i]->y < wall_llf.y) wall_llf.y = w->vert[i]->y;
-    if (w->vert[i]->y > wall_urb.y) wall_urb.y = w->vert[i]->y;
-    if (w->vert[i]->z < wall_llf.z) wall_llf.z = w->vert[i]->z;
-    if (w->vert[i]->z > wall_urb.z) wall_urb.z = w->vert[i]->z;
-  }
-  
-  if (wall_llf.x > urb->x || wall_urb.x < llf->x ||
-      wall_llf.y > urb->y || wall_urb.y < llf->y ||
-      wall_llf.z > urb->z || wall_urb.z < llf->z)
-  {
-    return 0;  /* Bounding boxes don't intersect! */
-  }
-  else return 1;
-  
-  for (i=0;i<3;i++)
-  {
-    if ( w->vert[i]->x < urb->x && w->vert[i]->x > llf->x &&
-         w->vert[i]->y < urb->y && w->vert[i]->y > llf->y && 
-         w->vert[i]->z < urb->z && w->vert[i]->z > llf->z)
-    {
-      return 1;  /* Corner of wall is in box */
-    }
-  }
-  
-  for (i=0;i<3;i++)
-  {
-    j = i+1;
-    if (j>=3) j=0;
-    
-    if ( (w->vert[i]->x < llf->x && w->vert[j]->x > llf->x) ||
-         (w->vert[i]->x > llf->x && w->vert[j]->x < llf->x) )
-    {
-      t = (llf->x - w->vert[i]->x) / (w->vert[j]->x - w->vert[i]->x);
-      loc = w->vert[i]->y + t*(w->vert[j]->y - w->vert[i]->y);
-      if (llf->y <= loc && urb->y >= loc)
-      {
-        loc = w->vert[i]->z + t*(w->vert[j]->z - w->vert[j]->z);
-        if (llf->z <= loc && urb->y >= loc)
-        {
-          return 1;  /* Edge of triangle intersects box */
-        }
-      }
-    }
-    if ( (w->vert[i]->x < urb->x && w->vert[j]->x > urb->x) ||
-         (w->vert[i]->x > urb->x && w->vert[j]->x < urb->x) )
-    {
-      t = (urb->x - w->vert[i]->x) / (w->vert[j]->x - w->vert[i]->x);
-      loc = w->vert[i]->y + t*(w->vert[j]->y - w->vert[i]->y);
-      if (llf->y <= loc && urb->y >= loc)
-      {
-        loc = w->vert[i]->z + t*(w->vert[j]->z - w->vert[j]->z);
-        if (llf->z <= loc && urb->y >= loc)
-        {
-          return 1;  /* Edge of triangle intersects box */
-        }
-      }
-    }
-      
-    if ( (w->vert[i]->y < llf->y && w->vert[j]->y > llf->y) ||
-         (w->vert[i]->y > llf->y && w->vert[j]->y < llf->y) )
-    {
-      t = (llf->y - w->vert[i]->y) / (w->vert[j]->y - w->vert[i]->y);
-      loc = w->vert[i]->x + t*(w->vert[j]->x - w->vert[i]->x);
-      if (llf->x <= loc && urb->x >= loc)
-      {
-        loc = w->vert[i]->z + t*(w->vert[j]->z - w->vert[j]->z);
-        if (llf->z <= loc && urb->y >= loc)
-        {
-          return 1;  /* Edge of triangle intersects box */
-        }
-      }
-    }
-    if ( (w->vert[i]->y < urb->y && w->vert[j]->y > urb->y) ||
-         (w->vert[i]->y > urb->y && w->vert[j]->y < urb->y) )
-    {
-      t = (urb->y - w->vert[i]->y) / (w->vert[j]->y - w->vert[i]->y);
-      loc = w->vert[i]->x + t*(w->vert[j]->x - w->vert[i]->x);
-      if (llf->x <= loc && urb->x >= loc)
-      {
-        loc = w->vert[i]->z + t*(w->vert[j]->z - w->vert[j]->z);
-        if (llf->z <= loc && urb->y >= loc)
-        {
-          return 1;  /* Edge of triangle intersects box */
-        }
-      }
-    }
-      
-    if ( (w->vert[i]->z < llf->z && w->vert[j]->z > llf->z) ||
-         (w->vert[i]->z > llf->z && w->vert[j]->z < llf->z) )
-    {
-      t = (llf->z - w->vert[i]->z) / (w->vert[j]->z - w->vert[i]->z);
-      loc = w->vert[i]->y + t*(w->vert[j]->y - w->vert[i]->y);
-      if (llf->y <= loc && urb->y >= loc)
-      {
-        loc = w->vert[i]->x + t*(w->vert[j]->x - w->vert[j]->x);
-        if (llf->x <= loc && urb->x >= loc)
-        {
-          return 1;  /* Edge of triangle intersects box */
-        }
-      }
-    }
-    if ( (w->vert[i]->z < urb->z && w->vert[j]->z > urb->z) ||
-         (w->vert[i]->z > urb->z && w->vert[j]->z < urb->z) )
-    {
-      t = (urb->z - w->vert[i]->z) / (w->vert[j]->z - w->vert[i]->z);
-      loc = w->vert[i]->y + t*(w->vert[j]->y - w->vert[i]->y);
-      if (llf->y <= loc && urb->y >= loc)
-      {
-        loc = w->vert[i]->x + t*(w->vert[j]->x - w->vert[j]->x);
-        if (llf->x <= loc && urb->x >= loc)
-        {
-          return 1;  /* Edge of triangle intersects box */
-        }
-      }
-    }
-  }
-  
-  vec.x = urb->x - llf->x; vec.y = 0.0; vec.z = 0.0;
-  if (vec.x != 0.0)
-  {
-    i = collide_wall(llf,&vec,w,&t,&hit);
-    if (i) return 1;  /* Edge of wall intersects triangle */
-    vec.x = -vec.x;
-    i = collide_wall(urb,&vec,w,&t,&hit);
-    if (i) return 1;  /* Edge of wall intersects triangle */
-  }
 
-  vec.y = urb->y - llf->y; vec.y = 0.0; vec.z = 0.0;
-  if (vec.y != 0.0)
-  {
-    i = collide_wall(llf,&vec,w,&t,&hit);
-    if (i) return 1;  /* Edge of wall intersects triangle */
-    vec.y = -vec.y;
-    i = collide_wall(urb,&vec,w,&t,&hit);
-    if (i) return 1;  /* Edge of wall intersects triangle */
-  }
-
-  vec.z = urb->z - llf->z; vec.y = 0.0; vec.z = 0.0;
-  if (vec.z != 0.0)
-  {
-    i = collide_wall(llf,&vec,w,&t,&hit);
-    if (i) return 1;  /* Edge of wall intersects triangle */
-    vec.z = -vec.z;
-    i = collide_wall(urb,&vec,w,&t,&hit);
-    if (i) return 1;  /* Edge of wall intersects triangle */
-  }
-  
-  return 0;  /* Near miss! */
-}
-#endif
-
-/* Old versions copied from MCell2 */
 int wall_in_box(struct vector3 **vert,struct vector3 *normal,
                 double d,struct vector3 *b0,struct vector3 *b1)
 {
@@ -1424,9 +1249,18 @@ int wall_in_box(struct vector3 **vert,struct vector3 *normal,
 }
 
 
+/***************************************************************************
+init_tri_wall:
+  In: object to which the wall belongs
+      index of the wall within that object
+      three vectors defining the vertices of the wall.
+  Out: No return value.  The wall is properly initialized with normal
+       vectors, local coordinate vectors, and so on.
+***************************************************************************/
+
 void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vector3 *v1, struct vector3 *v2)
 {
-  struct wall *w;
+  struct wall *w;            /* The wall we're working with */
   double f,fx,fy,fz;
   struct vector3 vA,vB,vX;
   
@@ -1434,16 +1268,6 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   w->next = NULL;
   w->surf_class = world->g_surf;
   w->side = side;
-  
-/*
-  fx = max3( abs(v0->x - v1->x) , abs(v0->x - v2->x) , abs(v1->x - v2->x) );
-  fy = max3( abs(v0->y - v1->y) , abs(v0->y - v2->y) , abs(v1->y - v2->y) );
-  fz = max3( abs(v0->z - v1->z) , abs(v0->z - v2->z) , abs(v1->z - v2->z) );
-  
-  if (fx == min3(fx,fy,fz)) w->projection = 0;
-  else if (fy == min3(fx,fy,fz)) w->projection = 1;
-  else w->projection = 2;
-*/
   
   w->vert[0] = v0;
   w->vert[1] = v1;
@@ -1459,21 +1283,6 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   vectorize(v0, v2, &vB);
   cross_prod(&vA , &vB , &vX);
   w->area = 0.5 * vect_length(&vX);
-
-/*  
-  w->area = sqrt(0.5 * ( ((v1->x - v0->x)*(v1->x - v0->x)+
-                          (v1->y - v0->y)*(v1->y - v0->y)+
-                          (v1->z - v0->z)*(v1->z - v0->z)) *
-                         ((v2->x - v0->x)*(v2->x - v0->x)+
-                          (v2->y - v0->y)*(v2->y - v0->y)+
-                          (v2->z - v0->z)*(v2->z - v0->z)) +
-                         ((v1->x - v0->x)*(v2->x - v0->x)+
-                          (v1->y - v0->y)*(v2->y - v0->y)+
-                          (v1->z - v0->z)*(v2->z - v0->z)) *
-                         ((v1->x - v0->x)*(v2->x - v0->x)+
-                          (v1->y - v0->y)*(v2->y - v0->y)+
-                          (v1->z - v0->z)*(v2->z - v0->z)) ) );
-*/
 
   fx = (v1->x - v0->x);
   fy = (v1->y - v0->y);
@@ -1531,6 +1340,15 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
 }
 
 
+/***************************************************************************
+wall_bounding_box:
+  In: a wall
+      vector to store one corner of the bounding box for that wall
+      vector to store the opposite corner
+  Out: No return value.  The vectors are set to define the smallest box
+       that contains the wall.
+***************************************************************************/
+
 void wall_bounding_box(struct wall *w , struct vector3 *llf, struct vector3 *urb)
 {
   llf->x = urb->x = w->vert[0]->x;
@@ -1554,12 +1372,19 @@ void wall_bounding_box(struct wall *w , struct vector3 *llf, struct vector3 *urb
 }
 
 
+/***************************************************************************
+wall_to_vol:
+  In: a wall
+      the subvolume to which the wall belongs
+  Out: The updated list of walls for that subvolume that now contains the
+       wall requested.  NULL is returned on malloc failure.
+***************************************************************************/
+
 struct wall_list* wall_to_vol(struct wall *w, struct subvolume *sv)
 {
   struct wall_list *wl = mem_get(sv->mem->list);
-  if(wl == NULL){
-	return (NULL);
-  }
+  if(wl == NULL) { return (NULL); }
+  
   wl->this_wall = w;
   if (sv->wall_tail==NULL)
   {
@@ -1576,6 +1401,14 @@ struct wall_list* wall_to_vol(struct wall *w, struct subvolume *sv)
   return wl;
 }
 
+
+/***************************************************************************
+localize_vertex:
+  In: a vertex
+      the local memory storage area where this vertex should be stored
+  Out: A pointer to the copy of that vertex in local memory, or NULL on
+       memory allocation failure.
+***************************************************************************/
 
 struct vector3* localize_vertex(struct vector3 *p, struct storage *stor)
 {
@@ -1615,6 +1448,14 @@ struct vector3* localize_vertex(struct vector3 *p, struct storage *stor)
 }
   
 
+/***************************************************************************
+localize_wall:
+  In: a wall
+      the local memory storage area where this wall should be stored
+  Out: A pointer to the copy of that wall in local memory, or NULL on
+       memory allocation failure.
+***************************************************************************/
+
 struct wall* localize_wall(struct wall *w, struct storage *stor)
 {
   struct wall *ww;
@@ -1641,14 +1482,21 @@ struct wall* localize_wall(struct wall *w, struct storage *stor)
 }
 
 
+/***************************************************************************
+distribute_wall:
+  In: a wall belonging to an object
+  Out: A pointer to the wall as copied into appropriate local memory, or
+       NULL on memory allocation error.  Also, the wall is added to the
+       appropriate wall lists for all subvolumes it intersects; if this
+       fails due to memory allocation errors, NULL is also returned.
+***************************************************************************/
+
 struct wall* distribute_wall(struct wall *w)
 {
-  struct wall *where_am_i;
-  struct wall_list *wl;
-  struct vector3 llf,urb,cent;
-  int x_max,x_min,y_max,y_min,z_max,z_min;
-  int h,i,j,k;
-  
+  struct wall *where_am_i;            /* Version of the wall in local memory */
+  struct vector3 llf,urb,cent;                      /* Bounding box for wall */
+  int x_max,x_min,y_max,y_min,z_max,z_min; /* Enlarged box to avoid rounding */
+  int h,i,j,k;                         /* Iteration variables for subvolumes */
 
   wall_bounding_box(w,&llf,&urb);
   llf.x -= EPS_C * ((llf.x < 0) ? -llf.x : llf.x);
@@ -1677,53 +1525,22 @@ struct wall* distribute_wall(struct wall *w)
   {
     h = z_min + (world->nz_parts - 1)*(y_min + (world->ny_parts - 1)*x_min);
     where_am_i = localize_wall( w , world->subvol[h].mem );
-    if(where_am_i == NULL) {
-	printf("Memory allocation error.\n");
-        return (NULL);
-    }
+    if(where_am_i == NULL) return NULL;
      
-    wl = wall_to_vol( where_am_i , &(world->subvol[h]) );
-    if(wl == NULL){
-	printf("Memory allocation error.\n");
-        return (NULL);
-    }
-/*    if (!clip_polygon(&llf,&urb,w->vert,3)) printf("This wall doesn't belong in the only box it intersects?!\n"); */
-    if (!wall_in_box(w->vert,&(w->normal),w->d,&llf,&urb)) printf("This wall doesn't belong in the only box it intersects?!\n");
+    if (wall_to_vol( where_am_i , &(world->subvol[h]) ) == NULL) return NULL;
+
+    /*    if (!wall_in_box(w->vert,&(w->normal),w->d,&llf,&urb)) printf("This wall doesn't belong in the only box it intersects?!\n"); */
     return where_am_i;
   }
 
-/*
-  x_min = y_min = z_min = 0;
-  x_max = world->nx_parts -1;
-  y_max = world->ny_parts -1;
-  z_max = world->nz_parts -1;
-*/
-  
   for (i=x_min;i<x_max;i++) { if (cent.x < world->x_partitions[i]) break; }
   for (j=y_min;j<y_max;j++) { if (cent.y < world->y_partitions[j]) break; }
   for (k=z_min;k<z_max;k++) { if (cent.z < world->z_partitions[k]) break; }
   
   h = (k-1) + (world->nz_parts - 1)*((j-1) + (world->ny_parts - 1)*(i-1));
   where_am_i = localize_wall( w , world->subvol[h].mem );
-  if(where_am_i == NULL) {
-	printf("Memory allocation error.\n");
-        return (NULL);
-  }
+  if(where_am_i == NULL) return NULL;
   
-/*
-  printf("Bounded by (%d %d %d) (%d %d %d) [i.e. (%.2e %.2e %.2e) (%.2e %.2e %.2e)]\n",
-         x_min,y_min,z_min,x_max,y_max,z_max,
-         world->x_partitions[x_min],world->x_partitions[x_max],
-         world->y_partitions[y_min],world->y_partitions[y_max],
-         world->z_partitions[z_min],world->z_partitions[z_max]);
-  printf("Wbb is (%.2e %.2e %.2e) (%.2e %.2e %.2e)\n",
-         llf.x,llf.y,llf.z,urb.x,urb.y,urb.z);
-  printf("Vertices are (%.2e %.2e %.2e) (%.2e %.2e %.2e) (%.2e %.2e %.2e)\n",
-         w->vert[0]->x,w->vert[0]->y,w->vert[0]->z,
-         w->vert[1]->x,w->vert[1]->y,w->vert[1]->z,
-         w->vert[2]->x,w->vert[2]->y,w->vert[2]->z);
-*/
-
   for (k=z_min;k<z_max;k++)
   {
     for (j=y_min;j<y_max;j++)
@@ -1734,17 +1551,13 @@ struct wall* distribute_wall(struct wall *w)
         llf.x = world->x_fineparts[ world->subvol[h].llf.x ] - 100*EPS_C;
         llf.y = world->y_fineparts[ world->subvol[h].llf.y ] - 100*EPS_C;
         llf.z = world->z_fineparts[ world->subvol[h].llf.z ] - 100*EPS_C;
-        urb.x = world->x_fineparts[ world->subvol[h].urb.x ] - 100*EPS_C;
-        urb.y = world->y_fineparts[ world->subvol[h].urb.y ] - 100*EPS_C;
-        urb.z = world->z_fineparts[ world->subvol[h].urb.z ] - 100*EPS_C;
-/*        if (intersect_box(&llf,&urb,w)) wall_to_vol( where_am_i , &(world->subvol[h]) ); */
-/*        if (clip_polygon(&llf,&urb,w->vert,3)) wall_to_vol( where_am_i , &(world->subvol[h]) ); */
-        if (wall_in_box(w->vert,&(w->normal),w->d,&llf,&urb)) {
-           wl = wall_to_vol( where_am_i , &(world->subvol[h]) );
-           if(wl == NULL){
-		printf("Memory allocation error.\n");
-		return (NULL);
-           }
+        urb.x = world->x_fineparts[ world->subvol[h].urb.x ] + 100*EPS_C;
+        urb.y = world->y_fineparts[ world->subvol[h].urb.y ] + 100*EPS_C;
+        urb.z = world->z_fineparts[ world->subvol[h].urb.z ] + 100*EPS_C;
+
+        if (wall_in_box(w->vert,&(w->normal),w->d,&llf,&urb))
+	{
+	  if (wall_to_vol(where_am_i,&(world->subvol[h])) == NULL) return NULL;
         }
       }
     }
@@ -1754,9 +1567,20 @@ struct wall* distribute_wall(struct wall *w)
 }
   
 
+/***************************************************************************
+distribute_object:
+  In: an object
+  Out: 0 on success, 1 on memory allocation failure.  The object's walls
+       are copied to local memory and the wall lists in the appropriate
+       subvolumes are set to refer to that wall.  The object's own copy
+       of the wall is deallocated and it is set to point to the new version.
+  Note: this function is recursive and is called on any children of the
+        object passed to it.
+***************************************************************************/
+
 int distribute_object(struct object *parent)
 {
-  struct object *o;
+  struct object *o;   /* Iterator for child objects */
   int i;
   
   if (parent->object_type == BOX_OBJ || parent->object_type == POLY_OBJ)
@@ -1767,12 +1591,17 @@ int distribute_object(struct object *parent)
       
       parent->wall_p[i] = distribute_wall(parent->wall_p[i]);
 
-      if (parent->wall_p[i]==NULL) return 1;
+      if (parent->wall_p[i]==NULL)
+      {
+	printf("Out of memory while initializing object %s\n",parent->sym->name);
+	return 1;
+      }
     }
-    /* Since we have just made local copies of the walls
-       and have pointed each parent->wall_p[i] at its birthplace,
-       we can now free the scratch copy of the object walls */
-    if (parent->walls!=NULL) free(parent->walls);
+    if (parent->walls!=NULL)
+    {
+      free(parent->walls);
+      parent->walls = NULL;  /* Use wall_p from now on! */
+    }
   }
   else if (parent->object_type == META_OBJ)
   {
@@ -1786,9 +1615,16 @@ int distribute_object(struct object *parent)
 }
 
 
+/***************************************************************************
+distribute_world:
+  In: No arguments.
+  Out: 0 on success, 1 on memory allocation failure.  Every geometric object
+       is distributed to local memory and into appropriate subvolumes.
+***************************************************************************/
+
 int distribute_world()
 {
-  struct object *o;
+  struct object *o;     /* Iterator for objects in the world */
   
   for (o = world->root_instance ; o != NULL ; o = o->next)
   {
