@@ -1377,7 +1377,7 @@ if (volp->space_step<0) {
   volp->space_step = -volp->space_step;
 }
 no_printf("Space step = %g\n",volp->space_step);
-volp->space_step /= volp->length_unit; /* Use internal units */
+volp->space_step *= 0.5*sqrt(MY_PI) / volp->length_unit; /* Use internal units, convert from mean to characterstic length */
 fflush(stderr);
 };
 
@@ -1452,7 +1452,11 @@ grid_density_def: EFFECTOR_GRID_DENSITY '=' num_expr
 {
   volp->effector_grid_density=$<dbl>3;
   no_printf("Max density = %f\n",volp->effector_grid_density);
+  
+  volp->space_step*=volp->length_unit;
   volp->length_unit=1.0/sqrt(volp->effector_grid_density);
+  volp->space_step/=volp->length_unit;
+  
   no_printf("Length unit = %f\n",volp->length_unit);
   mdlpvp->mc_factor=1.0e11*volp->effector_grid_density*sqrt(MY_PI*volp->time_unit)/N_AV;
   mdlpvp->transport_mc_factor=6.2415e18*mdlpvp->mc_factor;
@@ -1583,7 +1587,7 @@ molecule_stmt: new_molecule '{'
   else /* Global spacestep */
   {
     mdlpvp->specp->space_step = volp->space_step;
-    mdlpvp->specp->time_step = (volp->space_step*volp->space_step*volp->length_unit*volp->length_unit)*MY_PI/(16.0 * 1.0e8 * mdlpvp->specp->D);
+    mdlpvp->specp->time_step = (volp->space_step*volp->space_step*volp->length_unit*volp->length_unit)*MY_PI/(16.0 * 1.0e8 * mdlpvp->specp->D)/volp->time_unit;
   }
   
   if ($<dbl>7 != 0.0)
@@ -1624,7 +1628,7 @@ molecule_stmt: new_molecule '{'
     mdlpvp->l_r_bar=2*mdlpvp->l_perp_bar;
     mdlpvp->l_r_rms=sqrt(6*1.0e8*mdlpvp->specp->D*volp->time_unit);
     if (volp->procnum == 0) {
-#ifdef DEBUG
+#if 1
       fprintf(volp->log_file,"\nMCell: Theoretical average diffusion distances for molecule %s:\n\n",mdlpvp->specp->sym->name);
       fprintf(volp->log_file,"\tl_r_bar = %.9g microns\n",mdlpvp->l_r_bar);
       fprintf(volp->log_file,"\tl_r_rms = %.9g microns\n",mdlpvp->l_r_rms);
@@ -1635,13 +1639,13 @@ molecule_stmt: new_molecule '{'
   }
   else
   {
-#ifdef DEBUG
+#if 1
     if (volp->procnum == 0)
     {
       fprintf(volp->log_file,"\nMCell: Theoretical average diffusion time for molecule %s:\n",mdlpvp->specp->sym->name);
-      fprintf(volp->log_file,"\tl_r_bar fixed at %.9g microns\n",mdlpvp->specp->space_step*2.0/sqrt(MY_PI));
-      fprintf(volp->log_file,"\tPosition update every %.2e microseconds (%.4g timesteps)\n\n",
-              mdlpvp->specp->time_step*mdlpvp->time_unit,mdlpvp->specp->time_step);
+      fprintf(volp->log_file,"\tl_r_bar fixed at %.9g microns\n",volp->length_unit*mdlpvp->specp->space_step*2.0/sqrt(MY_PI));
+      fprintf(volp->log_file,"\tPosition update every %.3e seconds (%.3g timesteps)\n\n",
+              mdlpvp->specp->time_step*volp->time_unit,mdlpvp->specp->time_step);
     }
 #endif
   }
@@ -3648,13 +3652,13 @@ unimolecular_rxn: reactant RT_ARROW
   mdlpvp->pathp->reactant3=NULL;
   mdlpvp->pathp->km=0;
   mdlpvp->pathp->kcat=0;
-  if (mdlpvp->pathp->reactant1->flags==0) {
+  if ( (mdlpvp->pathp->reactant1->flags & NOT_FREE) == 0) {
     mdlpvp->pathp->orientation1=mdlpvp->orient_class;
   }
   mdlpvp->pathp->orientation1=0;
   mdlpvp->pathp->orientation2=0;
   mdlpvp->pathp->orientation3=0;
-  if (mdlpvp->pathp->reactant1->flags!=0) {
+  if ( (mdlpvp->pathp->reactant1->flags & NOT_FREE) != 0) {
     mdlpvp->pathp->orientation1=mdlpvp->orient_class;
   }
   mdlpvp->pathp->product_head=NULL;
@@ -3762,8 +3766,8 @@ bimolecular_rxn: reactant '+'
   mdlpvp->pathp->orientation1=0;
   mdlpvp->pathp->orientation2=0;
   mdlpvp->pathp->orientation3=0;
-  if (mdlpvp->pathp->reactant1->flags!=0
-      || mdlpvp->pathp->reactant2->flags!=0) {
+  if ( (mdlpvp->pathp->reactant1->flags & NOT_FREE) != 0
+      || (mdlpvp->pathp->reactant2->flags & NOT_FREE) != 0) {
     mdlpvp->pathp->orientation1=mdlpvp->orient_class1;
     mdlpvp->pathp->orientation2=mdlpvp->orient_class2;
   }

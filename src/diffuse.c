@@ -945,6 +945,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         smash->what = COLLIDE_MOL;
         shead = smash;
       }
+/*      else printf("Rx between %s and %s is NULL\n",sm->sym->name,mp->properties->sym->name); */
     }
   }
   
