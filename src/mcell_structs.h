@@ -904,7 +904,7 @@ struct release_event_queue {
   struct vector3 location;		/**< location of the release */
   byte event_type;			/**< type of the release event */
   int train_counter;			/**< counts executed trains */
-  double train_high_time;		/**< time of the train end */
+  double train_high_time;		/**< time of the train's start */
 };
 
 
@@ -924,14 +924,17 @@ struct release_site_obj {
 	struct release_pattern *pattern;
 };
 
-
+/* Timing pattern for molecule release from a release site. */
 struct release_pattern {
         struct sym_table *sym;
-	double delay;
-	double release_interval;
-	double train_interval;
-	double train_duration;
-	int number_of_trains;
+	double delay;			/**< delay between time 0 
+                                           and first release event. */
+	double release_interval;	/**< time between release events 
+                                           within a train. */
+	double train_interval;		/**< time from the start of one train 
+                                           to the start of the next one. */
+	double train_duration;		/**< length of the train. */
+	int number_of_trains;		/**< how many trains are produced. */
 };
 
 /******************************************************************/

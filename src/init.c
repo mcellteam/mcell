@@ -846,9 +846,16 @@ int instance_release_site(struct object *objp, double (*im)[4])
 	  reqp->event_type=TRAIN_HIGH_EVENT;
 	  reqp->event_time=rsop->pattern->delay;
 	  reqp->train_counter=0;
-	  reqp->train_high_time=0;
+	  reqp->train_high_time=rsop->pattern->delay;
 	  reqp->next=world->release_event_queue_head;
 	  world->release_event_queue_head=reqp;
+
+          if(rsop->pattern->train_duration > rsop->pattern->train_interval)
+          {
+        	printf("Error: Release pattern train duration is greater \
+                        than train interval\n");
+                return (1);
+          } 
 
 	  no_printf("Done instancing release site object %s\n",objp->sym->name);
 /*

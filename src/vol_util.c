@@ -476,7 +476,7 @@ void release_molecules(struct release_event_queue *req)
     
     if (req->event_time > req->train_high_time + rpat->train_duration)
     {
-      req->train_high_time += rpat->train_duration + rpat->train_interval;
+      req->train_high_time += rpat->train_interval;
       req->event_time = req->train_high_time;
       req->train_counter++;
     }
