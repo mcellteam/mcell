@@ -514,8 +514,58 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
   }
 
 }
+
+
+/* This isn't very efficient for lots of coincident objects; it uses
+a bubble-sort-like algorithm (albeit on a nearly sorted list). */
+
+struct collision* gather_walls_first(struct collision *shead,double tol)
+{
+  struct collision *cp,*co,*ci,*cf,*ct;
   
-  
+  co = NULL;
+  cp = shead;
+  while (cp->next != NULL)
+  {
+    if (cp->next->t - cp->t > tol || (cp->what&COLLIDE_WALL) != 0 )
+    {
+      co = cp;
+      cp = cp->next;
+    }
+    else
+    {
+      for (ct=cp; ; ct=ct->next)  /* Find any wall */
+      {
+        if (ct->next==NULL) return shead;
+        
+        if (ct->next->t - cp->t > tol)
+        {
+          co = ct;
+          cp = ct->next;
+          break;
+        }
+        if ((ct->next->what&COLLIDE_WALL) != 0)
+        {
+          ci = ct->next;
+          for (cf=ci ; cf->next!=NULL ; cf=cf->next)  /* Find last wall */
+          {
+            if (cf->next->t - cp->t > tol || (cf->next->what&COLLIDE_WALL)==0) break;
+          }
+          
+          if (co==NULL) shead = ci;
+          ct->next = cf->next;
+          cf->next = cp;
+          co = cf;
+          
+          break;
+        }
+      }
+    }
+  }
+  return shead;
+}
+
+
 
 /*************************************************************************
 diffuse_3D:
@@ -529,6 +579,7 @@ diffuse_3D:
 
 struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
 {
+#define TOL 10.0*EPS_C
   struct vector3 displacement;
   struct collision *smash,*shead,*shead2;
   struct subvolume *sv;
@@ -545,6 +596,7 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   double steps=1.0;
   double factor;
   double rate_factor=1.0;
+  double x,xx;
   
   int i,j,k,l;
   
@@ -711,7 +763,11 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   {
     shead2 = ray_trace(m,shead,sv,&displacement);
     
-    shead2 = (struct collision*)ae_list_sort((struct abstract_element*)shead2);
+    if (shead2!=NULL && shead2->next!=NULL)  /* Could be sped up/combined */
+    {
+      shead2 = (struct collision*)ae_list_sort((struct abstract_element*)shead2);
+      shead2 = gather_walls_first(shead2,TOL);
+    }
     
     for (smash = shead2; smash != NULL; smash = smash->next)
     {
@@ -720,16 +776,6 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       {
         smash = NULL;
         break;
-      }
-      
-      if (smash->next != NULL && smash->next->t - smash->t < 10*EPS_C &&
-          (smash->what & COLLIDE_WALL)==0 && (smash->next->what & COLLIDE_WALL)!=0)
-      {
-        struct collision *temp;
-        temp = smash->next;
-        smash->next = temp->next;
-        temp->next = smash;
-        smash = temp;
       }
       
       rx = smash->intermediate;
@@ -766,48 +812,341 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           return NULL;
         }
       }
+
       else if ( (smash->what & COLLIDE_WALL) != 0 )
+
       {
-        w = (struct wall*) smash->target;
-        
-        world->ray_polygon_colls++;
-        
-        if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
-        else k = -1;
-        
-        if ( (m->properties->flags & w->flags & COUNT_HITS) )
-          update_collision_count(m->properties,w->regions,k,0);
-        
-        if ( w->effectors != NULL && (m->properties->flags&CAN_MOLGRID) != 0 )
+  /* We may have to handle coincident walls, which is a pain. */
+        if (smash->next!=NULL && (smash->next->what&COLLIDE_WALL)!=0 &&
+            smash->next->t - smash->t <= TOL)
         {
-          j = xyz2grid( &(smash->loc) , w->effectors );
-          if (w->effectors->mol[j] != NULL)
+          struct collision *smish,*g_head,*gp,*w_head,*wp,*c;
+          int is_window = 0;
+          int is_ghost = 0;
+          int count_type = 0;
+          
+          g_head = gp = w_head = wp = NULL;
+          
+          for (smish=smash ; smish != NULL ; smish=smish->next)
           {
-            if (m->index != j || m->releaser != w->effectors)
+            w = (struct wall*) smish->target;
+            world->ray_polygon_colls++;
+            if ( (smish->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
+            else k = -1;
+            
+            if ( w->effectors != NULL && (sm->flags&CAN_MOLGRID) != 0 && !is_window )
             {
-            g = w->effectors->mol[j];
-            rx = trigger_bimolecular(
-              m->properties->hashval,g->properties->hashval,
-              (struct abstract_molecule*)m,(struct abstract_molecule*)g,
-              k,g->orient
-            );
-            if (rx!=NULL)
-            {
-              if (rx->rate_t != NULL) check_rates(rx,m->t);
-              i = test_bimolecular(rx,rate_factor * w->effectors->binding_factor);
-              if (i >= 0)
+              j = xyz2grid( &(smish->loc) , w->effectors );
+              if (w->effectors->mol[j] != NULL)
               {
-                l = outcome_bimolecular(
-                  rx,i,(struct abstract_molecule*)m,
-                  (struct abstract_molecule*)g,
-                  k,g->orient,m->t+steps*smash->t,&(smash->loc)
+                if (m->index != j || m->releaser != w->effectors)
+                {
+                  g = w->effectors->mol[j];
+                  rx = trigger_bimolecular(
+                    sm->hashval,g->properties->hashval,
+                    (struct abstract_molecule*)m,(struct abstract_molecule*)g,
+                    k,g->orient
+                  );
+                  if (rx!=NULL)
+                  {
+                    if (rx->rate_t != NULL) check_rates(rx,m->t);
+                    c = (struct collision*)mem_get(sv->mem->coll);
+                    c->intermediate = rx;
+                    c->target = g;
+                    c->t = rx->cum_rates[ rx->n_pathways - 1 ] * w->effectors->binding_factor * rate_factor;
+                    c->next = NULL;
+                    if (gp==NULL)
+                    {
+                      g_head = gp = c;
+                      c->loc.x = c->t;
+                    }
+                    else
+                    {
+                      gp->next = c;
+                      c->loc.x = gp->loc.x + c->t;
+                      gp = c;
+                    }
+                  }
+                }
+              }
+            }
+            if ( !is_window )
+            {
+              m->index = -1;
+              
+              if ( (sm->flags&CAN_MOLWALL) == 0 ) rx = NULL;
+              else rx = trigger_intersect(
+                       m->properties->hashval,(struct abstract_molecule*)m,k,w
+                     );
+                     
+              if (rx!=NULL && rx->n_pathways==RX_WINDOW) is_window++;
+              else if (rx==NULL || rx->n_pathways!=RX_GHOST)
+              {
+                c = (struct collision*)mem_get(sv->mem->coll);
+                c->intermediate = rx;
+                c->target = w;
+                if (rx!=NULL)
+                {
+                  c->t = rx->cum_rates[ rx->n_pathways - 1 ] * rate_factor;
+                }
+                else c->t = 0.0;
+                
+                c->next = NULL;
+                if (wp==NULL)
+                {
+                  w_head = wp = c;
+                  c->loc.x = c->t;
+                }
+                else
+                {
+                  wp->next = c;
+                  c->loc.x = wp->loc.x + c->t;
+                  wp = c;
+                }
+              }
+            }
+            if (smish->next == NULL) break;
+            if (smish->next->t - smash->t > TOL) break;
+          }
+          
+          if (is_window)
+          {
+            for (c=smash;c!=smish->next;c=c->next)
+            {
+              w = (struct wall*) c->target;
+              if ( (c->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
+              else k = -1;
+              
+              if ( (sm->flags & w->flags & COUNT_HITS) )
+                update_collision_count(m->properties,w->regions,k,1);
+            }
+                
+            if (g_head!=NULL) mem_put_list(sv->mem->coll,g_head);
+            if (w_head!=NULL) mem_put_list(sv->mem->coll,w_head);
+            
+            smash=smish;
+            continue;
+          }
+          
+          if (gp!=NULL) /* Possibility of reaction with grid molecule */
+          {
+            x = gp->loc.x;
+            xx = rng_double(world->seed++);
+            if (x>1.0) xx *= x;
+            
+            if (x >= xx)
+            {
+              for (c=g_head;c!=NULL;c=c->next)
+              {
+                if (c->loc.x >= x)
+                {
+                  rx = c->intermediate;
+                  g = (struct grid_molecule*)c->target;
+                  
+                  i = test_bimolecular(rx,1/c->t); /* Always works */
+                  if (i >= 0)
+                  {
+                    l = outcome_bimolecular(
+                      rx,i,(struct abstract_molecule*)m,
+                      (struct abstract_molecule*)g,
+                      k,g->orient,m->t+steps*smash->t,&(smash->loc)
+                    );
+                    
+                    if (l==1)
+                    {
+                      if (w_head!=NULL) mem_put_list(sv->mem->coll,w_head);
+                      count_type = 1;  /* pass through */
+                      break;
+                    }
+                    else if (l==0)
+                    {
+                      count_type = -1;  /* destroyed */
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+            mem_put_list(sv->mem->coll,g_head);
+          }
+          
+          if (count_type==0) /* Possibility of a reaction with a wall */
+          {
+            if (wp->loc.x==0.0) count_type = 0; /* All reflective */
+            else
+            {
+              x = wp->loc.x;
+              xx = rng_double(world->seed++);
+              if (x>1.0) xx *= x;
+              
+              if (x >= xx)
+              {
+                for (c=w_head;c!=NULL;c=c->next)
+                {
+                  if (c->loc.x >= x)
+                  {
+                    rx = c->intermediate;
+                    if (rx==NULL) continue; /* Was reflective */
+                    
+                    w = (struct wall*)c->target;
+                    
+                    i = test_intersect(rx,rate_factor);
+                    if (i>=0)
+                    {
+                      j = outcome_intersect(
+                              rx,i,w,(struct abstract_molecule*)m,
+                              k,m->t + steps*smash->t,&(smash->loc)
+                            );
+                      if (j==1)
+                      {
+                        count_type = 1; /* pass through */
+                        break;
+                      }
+                      else if (j==0)
+                      {
+                        count_type = -1; /* destroyed */
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            mem_put_list(sv->mem->coll,w_head);
+          }
+          
+          for (c=smash;c!=smish->next;c=c->next)
+          {
+            w = (struct wall*) c->target;
+            if ( (c->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
+            else k = -1;
+            
+            if ( (sm->flags & w->flags & COUNT_HITS) )
+            {
+              if (count_type==1) update_collision_count(sm,w->regions,k,1);
+              else update_collision_count(sm,w->regions,k,0);
+            }
+          }
+                
+          smash = smish;
+          if (count_type==-1)
+          {
+            if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
+            if (shead != NULL) mem_put_list(sv->mem->coll,shead);
+            return NULL;
+          }
+          else if (count_type==1 || is_ghost) continue;
+        }
+        else /* Simple case, no coincident walls */
+        {
+          w = (struct wall*) smash->target;
+          
+          world->ray_polygon_colls++;
+          
+          if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
+          else k = -1;
+          
+          if ( (sm->flags & CAN_MOLWALL) != 0 )
+          {
+            rx = trigger_intersect(sm->hashval,(struct abstract_molecule*)m,k,w);
+            if (rx!=NULL && rx->n_pathways == RX_WINDOW)
+            {
+              if ( (sm->flags & w->flags & COUNT_HITS) )
+                update_collision_count(sm,w->regions,k,1);
+
+              continue; /* pass through */
+            }
+          }
+                    
+          if ( w->effectors != NULL && (sm->flags&CAN_MOLGRID) != 0 )
+          {
+            j = xyz2grid( &(smash->loc) , w->effectors );
+            if (w->effectors->mol[j] != NULL)
+            {
+              if (m->index != j || m->releaser != w->effectors)
+              {
+                g = w->effectors->mol[j];
+                rx = trigger_bimolecular(
+                  sm->hashval,g->properties->hashval,
+                  (struct abstract_molecule*)m,(struct abstract_molecule*)g,
+                  k,g->orient
                 );
-        
-                if (l==0)
+                if (rx!=NULL)
+                {
+                  if (rx->rate_t != NULL) check_rates(rx,m->t);
+                  i = test_bimolecular(rx,rate_factor * w->effectors->binding_factor);
+                  if (i >= 0)
+                  {
+                    l = outcome_bimolecular(
+                      rx,i,(struct abstract_molecule*)m,
+                      (struct abstract_molecule*)g,
+                      k,g->orient,m->t+steps*smash->t,&(smash->loc)
+                    );
+                    
+                    if (l==1)
+                    {
+                      if ( (m->properties->flags & w->flags & COUNT_HITS) )
+                        update_collision_count(m->properties,w->regions,k,1);
+                      
+                      continue; /* pass through */
+                    }
+                    else if (l==0)
+                    {
+                      if ( (sm->flags & w->flags & COUNT_HITS) )
+                        update_collision_count(m->properties,w->regions,k,0);
+                                        
+                      if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
+                      if (shead != NULL) mem_put_list(sv->mem->coll,shead);
+
+                      return NULL;
+                    }
+                  }
+                }
+              }
+              else
+              {
+  /*              printf("Nope!  I'm not rebinding.\n");  */
+                m->index = -1;
+              }
+            }
+          }
+          
+          if ( (m->properties->flags&CAN_MOLWALL) != 0 )
+          {
+            m->index = -1;
+            rx = trigger_intersect(
+                    m->properties->hashval,(struct abstract_molecule*)m,k,w
+                  );
+            
+            if (rx != NULL)
+            {
+              if (rx->n_pathways == RX_GHOST)
+              {
+                if ( (sm->flags & w->flags & COUNT_HITS) )
+                  update_collision_count(sm,w->regions,k,1);
+
+                continue;
+              }
+              if (rx->rate_t != NULL) check_rates(rx,m->t);
+              i = test_intersect(rx,rate_factor);
+              if (i>=0)
+              {
+                j = outcome_intersect(
+                        rx,i,w,(struct abstract_molecule*)m,
+                        k,m->t + steps*smash->t,&(smash->loc)
+                      );
+                if (j==1)
+                {
+                  if ( (m->properties->flags & w->flags & COUNT_HITS) )
+                    update_collision_count(m->properties,w->regions,k,1);
+
+                  continue; /* pass through */
+                }
+                else if (j==0)
                 {
                   if ( (sm->flags & w->flags & COUNT_HITS) )
                     update_collision_count(m->properties,w->regions,k,0);
-                                    
+
                   if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
                   if (shead != NULL) mem_put_list(sv->mem->coll,shead);
 
@@ -815,57 +1154,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                 }
               }
             }
-            }
-            else
-            {
-/*              printf("Nope!  I'm not rebinding.\n");  */
-              m->index = -1;
-            }
           }
-        }
-        
-        if ( (m->properties->flags&CAN_MOLWALL) != 0 )
-        {
-          m->index = -1;
-          rx = trigger_intersect(
-                  m->properties->hashval,(struct abstract_molecule*)m,k,w
-                );
           
-          if (rx != NULL)
-          {
-            if (rx->rate_t != NULL) check_rates(rx,m->t);
-            i = test_intersect(rx,rate_factor);
-            if (i>=0)
-            {
-              j = outcome_intersect(
-                      rx,i,w,(struct abstract_molecule*)m,
-                      k,m->t + steps*smash->t,&(smash->loc)
-                    );
-              if (j==1)
-              {
-                if ( (m->properties->flags & w->flags & COUNT_HITS) )
-                  update_collision_count(m->properties,w->regions,k,1);
-                  
-                continue; /* pass through */
-              }
-              else if (j==0)
-              {
-                if ( (sm->flags & w->flags & COUNT_HITS) )
-                  update_collision_count(m->properties,w->regions,k,0);
-
-                if (shead2 != NULL) mem_put_list(sv->mem->coll,shead2);
-                if (shead != NULL) mem_put_list(sv->mem->coll,shead);
-
-                return NULL;
-              }
-            }
-          }
+          if ( (m->properties->flags & w->flags & COUNT_HITS) )
+            update_collision_count(m->properties,w->regions,k,0);
         }
         /* default is to reflect */
-
-        if ( (m->properties->flags & w->flags & COUNT_HITS) )
-          update_collision_count(m->properties,w->regions,k,0);
-
+        
         m->pos.x += displacement.x * smash->t;
         m->pos.y += displacement.y * smash->t;
         m->pos.z += displacement.z * smash->t;
@@ -942,6 +1237,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                           displacement.z*displacement.z );
   m->index = -1;
   return m;
+#undef TOL
 }
     
 

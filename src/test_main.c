@@ -159,6 +159,8 @@ void run_sim(void)
         if (j==0) printf("Reaction %s[%d]",rxp->players[0]->sym->name,rxp->geometries[0]);
         else printf(" + %s[%d]",rxp->players[j]->sym->name,rxp->geometries[j]);
       }
+      if (rxp->n_pathways==RX_WINDOW) printf(" WINDOW");
+      else if (rxp->n_pathways==RX_GHOST) printf(" GHOST");
       printf("\n");
       for (j=0;j<rxp->n_pathways;j++)
       {

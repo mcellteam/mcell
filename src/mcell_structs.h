@@ -35,6 +35,10 @@
 
 
 /* Reaction flags */
+#define RX_GHOST   -3
+#define RX_WINDOW  -2
+#define RX_SPECIAL -2
+#define RX_BOUNCE  -1
 #if 0
 #define RX_DESTROY   0x001
 #define RX_FLIP      0x002
@@ -121,6 +125,10 @@
 /* Size constants */
 #define EPS_C 1e-12
 #define GIGANTIC 1e140
+
+/* Special rate constants used to define unusual reactions */
+#define KCAT_RATE_WINDOW -1.0
+#define KCAT_RATE_GHOST -2.0
 
 
 /* Abstract molecule flags */
@@ -408,7 +416,7 @@ struct rxn
   struct sym_table *sym;     /* ptr to symbol table entry for this rxn */
   
   u_int n_reactants;         /* How many reactants? (At least 1.) */
-  u_int n_pathways;          /* How many pathways lead away? */
+  int n_pathways;            /* How many pathways lead away? (Negative = special reaction)*/
   u_int *product_idx;        /* Index of 1st player for products of pathway */
   double *cum_rates;         /* Cumulative rates for (entering) all pathways */
   double *cat_rates;         /* Rate of leaving all pathways (<=0.0 is instant) */

@@ -260,6 +260,7 @@ struct counter_list *cnt;
 %token <tok> VOLUME_DEPENDENT_RELEASE_NUMBER
 %token <tok> VOXEL_IMAGE_MODE
 %token <tok> VOXEL_VOLUME_MODE
+%token <tok> WINDOW
 %token <tok> WORLD
 %token <tok> X_TOK
 %token <tok> XY_TOK
@@ -1794,6 +1795,7 @@ surface_rxn_stmt: surface_rxn_type '=' existing_molecule
       mdlpvp->pathp->product_head=mdlpvp->prodp;
       break;
     case TRANSP:
+    case WINDW:
       mdlpvp->pathp->orientation1=0;
       mdlpvp->pathp->orientation2=1;
       mdlpvp->pathp->orientation3=0;
@@ -1803,6 +1805,8 @@ surface_rxn_stmt: surface_rxn_type '=' existing_molecule
         mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
         return(1);
       }
+      if ($<tok>1 == WINDW) mdlpvp->pathp->kcat = KCAT_RATE_WINDOW;
+      else mdlpvp->pathp->kcat = KCAT_RATE_GHOST;
       mdlpvp->prodp->prod=mdlpvp->pathp->reactant2;
       mdlpvp->prodp->orientation=-1;
       mdlpvp->prodp->next=NULL;
@@ -1841,6 +1845,7 @@ surface_rxn_stmt: surface_rxn_type '=' existing_molecule
 surface_rxn_type: REFLECTIVE {$$=RFLCT;}
 	| TRANSPARENT {$$=TRANSP;}
 	| ABSORPTIVE {$$=SINK;}
+	| WINDOW {$$=WINDW;}
 ;
 
 

@@ -663,7 +663,16 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         for (j=0 , path=rx->pathway_head ; path!=NULL ; j++ , path = path->next)
         {
           rx->product_idx[j] = 0;
-          rx->cat_rates[j] = path->kcat;
+          if (path->kcat >= 0.0) rx->cat_rates[j] = path->kcat;
+          else
+          {
+            if (path->kcat==KCAT_RATE_WINDOW) rx->n_pathways = RX_WINDOW;
+            else if (path->kcat==KCAT_RATE_GHOST) rx->n_pathways = RX_GHOST;
+            if (j!=0 || path->next!=NULL)
+            {
+              printf("Warning: mixing surface modes with other surface reactions.  Please don't.\n");
+            }
+          }
 
           if (path->km_filename == NULL) rx->cum_rates[j] = path->km;
           else n_rate_t_rxns++;
@@ -693,10 +702,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           rx->product_idx[j] = num_players;
           num_players += k;
         }
-        rx->product_idx[rx->n_pathways] = num_players;
+        rx->product_idx[j] = num_players;
         
-        rx->players = (struct species**)malloc(sizeof(struct species*)*rx->product_idx[rx->n_pathways]);
-        rx->geometries = (short*)malloc(sizeof(short)*rx->product_idx[rx->n_pathways]);
+        rx->players = (struct species**)malloc(sizeof(struct species*)*num_players);
+        rx->geometries = (short*)malloc(sizeof(short)*num_players);
         
         if (rx->players==NULL || rx->geometries==NULL) return 1;
 
@@ -892,10 +901,18 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           printf("Rate %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_rates[0],
                  rx->players[0]->sym->name,rx->geometries[0],
                  rx->players[1]->sym->name,rx->geometries[1]);
-          for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
+          if (rx->n_pathways <= RX_SPECIAL)
           {
-            if (rx->players[k]==NULL) printf("NIL ");
-            else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+            if (rx->n_pathways == RX_GHOST) printf("(GHOST)");
+            else if (rx->n_pathways == RX_WINDOW) printf("(WINDOW)");
+          }
+          else
+          {
+            for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
+            {
+              if (rx->players[k]==NULL) printf("NIL ");
+              else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+            }
           }
           printf("\n");
         }

@@ -1,6 +1,6 @@
 TIME_STEP = 1e-6
-TIME_STEP_MAX = 100e-6
-ITERATIONS = 100000
+TIME_STEP_MAX = 1.1e-6
+ITERATIONS = 1000
 EFFECTOR_GRID_DENSITY = 10000
 
 PARTITION_X = [0.99,1.01,1.99,2.01]
@@ -10,7 +10,9 @@ PARTITION_Z = [0.99,1.01,1.99,2.01]
 DEFINE_MOLECULES {
   A { DIFFUSION_CONSTANT_3D = 2e-6 }
   B { DIFFUSION_CONSTANT_2D = 0 }
+  C { DIFFUSION_CONSTANT_2D = 0 }
   B.A { DIFFUSION_CONSTANT_2D = 0 }
+  C.A { DIFFUSION_CONSTANT_2D = 0 }
 }
 
 DEFINE_SURFACE_CLASSES {
@@ -22,8 +24,9 @@ DEFINE_SURFACE_CLASSES {
 
 DEFINE_REACTIONS {
   A' + B, -> B.A, [2e7]
+  A' + C, -> C.A' [2e7]
   B.A, -> B, + A' [1e2]
-  transp + A' -> A, [2e45]
+  C.A' -> C + A' [1e2]
 }
 
 A_site CUBIC_RELEASE_SITE {
@@ -38,7 +41,7 @@ box BOX {
   DEFINE_SURFACE_REGIONS {
     r1 {
       ELEMENT_LIST = [TOP,BOTTOM,LEFT,RIGHT,FRONT,BACK]
-      MOLECULE_DENSITY { B' = 500 }
+      MOLECULE_DENSITY { B' = 0 }
     }
   }
 }
@@ -49,6 +52,17 @@ not_box BOX {
     r1 {
       ELEMENT_LIST = [ALL_ELEMENTS]
       SURFACE_CLASS = transp
+      MOLECULE_DENSITY { C' = 100 }
+    }
+  }
+}
+
+small_box BOX {
+  CORNERS = [1.3,1.3,1.3] , [1.7,1.7,1.7]
+  DEFINE_SURFACE_REGIONS {
+    r1 {
+      ELEMENT_LIST = [ALL_ELEMENTS]
+      MOLECULE_DENSITY { B' = 100 }
     }
   }
 }
@@ -56,5 +70,6 @@ not_box BOX {
 INSTANTIATE world OBJECT {
   release_site OBJECT A_site {}
   effectors OBJECT box {}
-  imaginary OBJECT not_box {}
+  container OBJECT small_box {}
+  imaginary OBJECT not_box {} 
 }

@@ -481,8 +481,9 @@ outcome_bimolecular:
       two molecules that are reacting (first is moving one)
       orientations of the two molecules
       time that the reaction is occurring
-  Out: 0 of moving molecule no longer exists, 1 if it does, -1 if reaction
-       failed due to lack of space for products.
+  Out: 0 of moving molecule no longer exists, 1 if it does,
+       -1 if it's been transported across a membrane, and
+       -2 if reaction failed due to lack of space for products.
        Products are created as needed.
 *************************************************************************/
 
@@ -545,7 +546,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
   
   blocked = outcome_products(w,m,s,g,rx,path,x,orientA,orientB,t,hitpt,reacA,reacB,reacA);
   
-  if (blocked==-2) return -1;
+  if (blocked==-2) return blocked;
 
   rx->counter[path]++;
   
@@ -621,7 +622,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
       return 0;
     }
   }
-  return 1;
+  return blocked;
 }
 
 
@@ -645,6 +646,8 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
 {
   int blocked,index;
   
+  if (rx->n_reactants <= RX_SPECIAL) return 1;
+
   index = rx->product_idx[path];
 
   if ((reac->properties->flags & (ON_GRID | ON_SURFACE)) == 0)

@@ -7,6 +7,7 @@
 #define RFLCT 0
 #define TRANSP 1
 #define SINK 2
+#define WINDW 3
 
 
 struct arg { 

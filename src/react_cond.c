@@ -130,10 +130,9 @@ test_intersect
   In: the reaction we're testing
       a probability multiplier depending on how many timesteps we've
         moved at once (1.0 means one timestep)
-  Out: -1 if no reaction occurs
+  Out: RX_BOUNCE if no reaction occurs (assume reflection)
+       RX_WINDOW if transparent
        int containing which reaction occurs if one does occur
-       0 if the reaction is a reflection that always occurs
-         (this is checked for first)
 *************************************************************************/
 
 int test_intersect(struct rxn *rx,double time_mult)
@@ -141,16 +140,16 @@ int test_intersect(struct rxn *rx,double time_mult)
   int m,M,avg;
   double p;
   
-  if (rx->cum_rates[0] >= 1.0) return 0;  /* Shortcut for reflections */
+  if (rx->n_pathways <= RX_SPECIAL) return rx->n_pathways;
   
   p = rng_double( world->seed++ ) / time_mult;
   
-  if ( p > rx->cum_rates[ rx->n_pathways-1 ] ) return -1;
+  if ( p > rx->cum_rates[ rx->n_pathways-1 ] ) return RX_BOUNCE;
 
   m = 0;
   M = rx->n_pathways-1;
   
-  if ( p > rx->cum_rates[M] ) return -1;
+  if ( p > rx->cum_rates[M] ) return RX_BOUNCE;
   
   while (M-m > 1)
   {
