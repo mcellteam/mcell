@@ -1268,7 +1268,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   char mol_pos_name[1024]; /* molecule_positions data file name */
   char mol_states_name[1024]; /* molecule_positions data file name */
   char mol_orient_name[1024]; /* molecule orientations data file name */
-  char buffer[1024]; /* used to write 'frame_data' object information */
+  char buffer[100]; /* used to write 'frame_data' object information */
   /* linked list that stores data for the 'frame_data' object */
   static struct infinite_string_array frame_data_list;
   static int frame_data_count = 0; /* count elements in frame_numbers_list array. */
@@ -2201,7 +2201,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
              fprintf(master_header,
                  "\tcomponent \"positions\" value %d\n",eff_pos[ii]);
              fprintf(master_header,
-                 "\tcomponent \"orientations\" value %d\n",eff_orient[ii]);
+                 "\tcomponent \"data\" value %d # orientations #\n",eff_orient[ii]);
              fprintf(master_header,
                 "\tcomponent \"state_values\" value %d\n\n",eff_states[ii]);
              /* put number of this field into the linked list 
@@ -2409,7 +2409,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
              fprintf(master_header,
                  "\tcomponent \"positions\" value %d\n",mol_pos[ii]);
              fprintf(master_header,
-                 "\tcomponent \"orientations\" value %d\n",mol_orient[ii]);
+                 "\tcomponent \"data\" value %d # orientations #\n",mol_orient[ii]);
              fprintf(master_header,
                 "\tcomponent \"state_values\" value %d\n\n",mol_states[ii]);
              /* put number of this field into the linked list 
@@ -2603,14 +2603,24 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 
   	/* free linked list for frame_data. */
   	struct infinite_string_array *arr_string_ptr, *temp_string_ptr;
+  	arr_string_ptr = (&frame_data_list);
+        for(ii = 0; ii < BLOCK_SIZE; ii++){
+	    if(arr_string_ptr->data[ii] != NULL){
+		free(arr_string_ptr->data[ii]);
+            }
+        }
   	arr_string_ptr = (&frame_data_list)->next;
   	while(arr_string_ptr != NULL){
-		temp_string_ptr = arr_string_ptr;
-		arr_string_ptr = arr_string_ptr->next;
-		free(temp_string_ptr);
+           for(ii = 0; ii < BLOCK_SIZE; ii++){
+	       if(arr_string_ptr->data[ii] != NULL){
+		   free(arr_string_ptr->data[ii]);
+               }
+           }
+	   temp_string_ptr = arr_string_ptr;
+	   arr_string_ptr = arr_string_ptr->next;
+	   free(temp_string_ptr);
   	}
-     
-     }
+    } 
      
  
    /* free allocated memory */
@@ -2755,7 +2765,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
   char mol_pos_name[1024]; /* molecule_positions data file name */
   char mol_states_name[1024]; /* molecule_positions data file name */
   char mol_orient_name[1024]; /* molecule orientations data file name */
-  char buffer[1024]; /* used to write 'frame_data' object information */
+  char buffer[100]; /* used to write 'frame_data' object information */
   /* linked list that stores data for the 'frame_data' object */
   static struct infinite_string_array frame_data_list;
   static int frame_data_count = 0; /* count elements in frame_numbers_list array. */
@@ -3517,7 +3527,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
              fprintf(master_header,
                  "\tcomponent \"positions\" value %d\n",eff_pos[ii]);
              fprintf(master_header,
-                 "\tcomponent \"orientations\" value %d\n",eff_orient[ii]);
+                 "\tcomponent \"data\" value %d # orientations #\n",eff_orient[ii]);
              fprintf(master_header,
                 "\tcomponent \"state_values\" value %d\n\n",eff_states[ii]);
              /* put number of this field into the linked list 
@@ -3723,7 +3733,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
              fprintf(master_header,
                  "\tcomponent \"positions\" value %d\n",mol_pos[ii]);
              fprintf(master_header,
-                 "\tcomponent \"orientations\" value %d\n",mol_orient[ii]);
+                 "\tcomponent \"data\" value %d # orientations #\n",mol_orient[ii]);
              fprintf(master_header,
                 "\tcomponent \"state_values\" value %d\n\n",mol_states[ii]);
              /* put number of this field into the linked list 
@@ -3865,12 +3875,23 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
 
   	/* free linked list for frame_data. */
   	struct infinite_string_array *arr_string_ptr, *temp_string_ptr;
+  	arr_string_ptr = (&frame_data_list);
+        for(ii = 0; ii < BLOCK_SIZE; ii++){
+	    if(arr_string_ptr->data[ii] != NULL){
+		free(arr_string_ptr->data[ii]);
+            }
+        }
   	arr_string_ptr = (&frame_data_list)->next;
   	while(arr_string_ptr != NULL){
-		temp_string_ptr = arr_string_ptr;
-		arr_string_ptr = arr_string_ptr->next;
-		free(temp_string_ptr);
-  	}     
+           for(ii = 0; ii < BLOCK_SIZE; ii++){
+	       if(arr_string_ptr->data[ii] != NULL){
+		   free(arr_string_ptr->data[ii]);
+               }
+           }
+	   temp_string_ptr = arr_string_ptr;
+	   arr_string_ptr = arr_string_ptr->next;
+	   free(temp_string_ptr);
+  	}
      }
 
 

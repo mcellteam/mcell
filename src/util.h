@@ -3,7 +3,7 @@
 *
 ***********************************************************************/
 
-#define BLOCK_SIZE 100
+#define BLOCK_SIZE 10
 
 /** struct infinite_double_array
     Used to hold information for an infinite array of doubles.
@@ -32,7 +32,7 @@ struct infinite_int_array{
 */
 struct infinite_string_array{
 	/* the data  for this block */
-	char data[1024][BLOCK_SIZE];
+	char *data[BLOCK_SIZE];
 
 	/* pointer to the next array. */
 	struct infinite_string_array *next;

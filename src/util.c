@@ -5,6 +5,7 @@
 #include <memory.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "strfunc.h"
 
 /********************************************************************
 ia_double_locate -- Gets the location of an element of infinite array
@@ -210,12 +211,18 @@ Parameters
 *************************************************************************/
 void ia_string_store(struct infinite_string_array *array_ptr, int index, char *data_to_store)
 {
+        char *new_entry; /* pointer to the temporary string */
 	/* pointer to the current bucket */
 	struct infinite_string_array *current_ptr;
 	int current_index;	/* Index into the current bucket */
 
 	current_ptr = ia_string_locate(array_ptr, index, &current_index);
-	strcpy(current_ptr->data[current_index], data_to_store);
+        new_entry = my_strdup(data_to_store);
+        if(new_entry == NULL){
+		fprintf(stderr, "is_string_store(): memory allocation error.\n");
+        }else{
+		current_ptr->data[current_index] = new_entry;	
+        }
 }
 
 /*********************************************************************
@@ -229,7 +236,7 @@ Returns
 	the value of the element
 
 Note: You can get an element that has not been previously stored.
-      The value of any unitialiazed element is empty string.
+      The value of any unitialiazed element is NULL.
 **********************************************************************/
 char * ia_string_get(struct infinite_string_array *array_ptr, int index)
 {
