@@ -85,6 +85,7 @@ I ([0-9]+)
 "ALL_HITS"		{return(ALL_HITS);}
 "ASCII"			{return(ASCII);}
 "ASIN"			{return(ASIN);}
+"ASPECT_RATIO"		{return(ASPECT_RATIO);}
 "ATAN"			{return(ATAN);}
 "BACK"			{return(BACK);}
 "BACK_CROSSINGS"	{return(BACK_CROSSINGS);}

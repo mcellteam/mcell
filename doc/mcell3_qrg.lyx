@@ -2569,7 +2569,7 @@ Two types of geometrical objects are supported in MCell3.
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="6" columns="2">
+<lyxtabular version="3" rows="7" columns="2">
 <features islongtable="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -2689,6 +2689,38 @@ z2
 The box object has corners as specified.
  The first coordinates should be less than the second set of coordinates,
  although MCell3 may fix it if you do it incorrectly.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ASPECT_RATIO = 
+\family sans 
+\shape italic 
+a
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Make sure that the ratio of the long to short side of each triangle making
+ up the box is no more than 
+\family sans 
+\shape italic 
+a
+\family default 
+\shape default 
+.
+ The smallest allowed value is 2.
+ The default is to not care about triangle shape.
 \end_inset 
 </cell>
 </row>

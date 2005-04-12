@@ -85,6 +85,7 @@ struct output_evaluator *cnt;
 %token <tok> ALL_HITS
 %token <tok> ASCII
 %token <tok> ASIN
+%token <tok> ASPECT_RATIO
 %token <tok> ATAN
 %token <tok> BACK
 %token <tok> BACK_CROSSINGS
@@ -3258,16 +3259,21 @@ box_def: new_object BOX '{'
     mdlerror("Cannot store box corner data");
     return 1;
   }
+  mdlpvp->box_aspect_ratio = 0.0;
 }
+	opt_aspect_ratio_def
 	list_opt_polygon_object_cmds
 {
   int i;
 
-  i = reaspect_cuboid(mdlpvp->pop->sb,2000.0);
-  if (i)
+  if (mdlpvp->box_aspect_ratio >= 2.0)
   {
-    mdlerror("Error setting up box geometry");
-    return 1;
+    i = reaspect_cuboid(mdlpvp->pop->sb,mdlpvp->box_aspect_ratio);
+    if (i)
+    {
+      mdlerror("Error setting up box geometry");
+      return 1;
+    }
   }
   for (mdlpvp->rlp=mdlpvp->region_list_head ; mdlpvp->rlp!=NULL; mdlpvp->rlp=mdlpvp->rlp->next)
   {
@@ -3330,7 +3336,19 @@ box_def: new_object BOX '{'
   $$=$<sym>1;
 };
 
+opt_aspect_ratio_def:
+	| aspect_ratio_def
+;
 
+aspect_ratio_def: ASPECT_RATIO '=' num_expr
+{
+  mdlpvp->box_aspect_ratio = $<dbl>3;
+  if (!(mdlpvp->box_aspect_ratio >= 2.0))
+  {
+    mdlerror("Invalid aspect ratio selected (must be greater than or equal to 2.0)");
+    return 1;
+  }
+}
 
 list_opt_polygon_object_cmds: /* empty */
 	| list_opt_polygon_object_cmds opt_polygon_object_cmd

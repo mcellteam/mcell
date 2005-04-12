@@ -112,6 +112,7 @@ struct mdlparse_vars {
   int n_walls;
   int n_walls_actual;
   int n_verts;
+  double box_aspect_ratio;
 
   struct region *rp;
   struct region_list *region_list_head;
