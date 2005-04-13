@@ -94,7 +94,7 @@ test_bimolecular
   In: the reaction we're testing
       a probability multiplier depending on how many timesteps we've
         moved at once (1.0 means one timestep) and/or missing interaction area
-  Out: -1 if no reaction occurs
+  Out: RX_NO_RX if no reaction occurs
        int containing which reaction occurs if one does occur
 *************************************************************************/
 
@@ -107,12 +107,6 @@ int test_bimolecular(struct rxn *rx,double time_mult)
   
   m = 0;
   M = rx->n_pathways-1;
-  
-  if ( p > rx->cum_probs[M] )
-  {
-    printf("BROKEN!!!\n");
-    return -1;
-  }
   
   while (M-m > 1)
   {
