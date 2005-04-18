@@ -1040,7 +1040,7 @@ double safe_time_step(struct molecule *m,struct collision *shead)
 }
 
 #if 0
-/* Under development */
+/* Under construction */
 /****************************************************************************
 expand_collision_list:
   In: molecule that is moving
@@ -1107,9 +1107,9 @@ static struct collision* expand_collision_list(struct molecule *m, struct collis
          (2*world->rx_radius_3d) do not account for the interaction with it.	
       		*/
                 if(v->x < 0.0) {
-    		     distance = world->x_fineparts[ nsv1->urb.x ] - mp->pos.x;
+    		     distance = world->x_fineparts[ nsv1->llf.x ] - mp->pos.x;
 	        }else if(v->x > 0.0){
-    		     distance = mp->pos.x - world->x_fineparts[ nsv1->llf.x ];
+    		     distance = mp->pos.x - world->x_fineparts[ nsv1->urb.x ];
                 }
 
       		if(distance < 0){
@@ -1155,9 +1155,9 @@ static struct collision* expand_collision_list(struct molecule *m, struct collis
          (2*world->rx_radius_3d) do not account for the interaction with it.	
       		*/
                 if(v->y < 0.0) {
-    		     distance = world->y_fineparts[ nsv2->urb.y ] - mp->pos.y;
+    		     distance = world->y_fineparts[ nsv2->llf.y ] - mp->pos.y;
 	        }else if(v->y > 0.0){
-    		     distance = mp->pos.y - world->y_fineparts[ nsv2->llf.y ];
+    		     distance = mp->pos.y - world->y_fineparts[ nsv2->urb.y ];
                 }
 
       		if(distance < 0){
@@ -1204,9 +1204,9 @@ static struct collision* expand_collision_list(struct molecule *m, struct collis
          (2*world->rx_radius_3d) do not account for the interaction with it.	
       		*/
                 if(v->z < 0.0) {
-    		     distance = world->z_fineparts[ nsv3->urb.z ] - mp->pos.z;
+    		     distance = world->z_fineparts[ nsv3->llf.z ] - mp->pos.z;
 	        }else if(v->y > 0.0){
-    		     distance = mp->pos.z - world->z_fineparts[ nsv3->llf.z ];
+    		     distance = mp->pos.z - world->z_fineparts[ nsv3->urb.z ];
                 }
 
       		if(distance < 0){
@@ -1275,7 +1275,8 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   struct species *sm;
   double steps=1.0;
   double t_steps=1.0;
-  double factor;
+  double factor;           /* return value from 'estimate_disk()' function */
+  double scaling;     /* scales reaction cumulative_probabilitities array */
   double rate_factor=1.0;
 
   int i,j,k,l;
@@ -1452,12 +1453,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         );
 	if (factor<0) continue; /* Reaction blocked by a wall */
 	
-	factor = rate_factor / factor;
+        scaling = factor / rate_factor;
         
         if (rx->prob_t != NULL) check_probs(rx,m->t);
 
         i = test_bimolecular(rx,factor);
-        if (i<=RX_NO_RX) continue;
+        
+        if (i < RX_LEAST_VALID_PATHWAY) continue;
 	
         j = outcome_bimolecular(
                 rx,i,(struct abstract_molecule*)m,
@@ -1494,8 +1496,11 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	      if (rx!=NULL)
 	      {
 		if (rx->prob_t != NULL) check_probs(rx,m->t);
-		i = test_bimolecular(rx,rate_factor * w->effectors->binding_factor);
-		if (i > RX_NO_RX)
+                scaling = 1.0 / (rate_factor * w->effectors->binding_factor);
+		
+		i = test_bimolecular(rx, scaling);
+		
+                if (i >= RX_LEAST_VALID_PATHWAY)
 		{
 		  l = outcome_bimolecular(
 		    rx,i,(struct abstract_molecule*)m,

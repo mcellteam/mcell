@@ -92,18 +92,28 @@ int which_unimolecular(struct rxn *rx)
 /*************************************************************************
 test_bimolecular
   In: the reaction we're testing
-      a probability multiplier depending on how many timesteps we've
+      a scaling coefficient depending on how many timesteps we've
         moved at once (1.0 means one timestep) and/or missing interaction area
   Out: RX_NO_RX if no reaction occurs
        int containing which reaction occurs if one does occur
 *************************************************************************/
 
-int test_bimolecular(struct rxn *rx,double time_mult)
+int test_bimolecular(struct rxn *rx, double scaling)
 {
   int m,M,avg;
-  double p = rng_double( world->seed++ ) / time_mult;  /* FIXME: convert to use multiples */
-  
-  if ( p > rx->cum_probs[ rx->n_pathways-1 ] ) return RX_NO_RX;
+  double p;         /* random number probability */
+
+  if(rx->cum_probs[rx->n_pathways - 1] > scaling)
+  {
+	fprintf(world->err_file, "test_bimolecular(): reaction cumulative probabbilities are greater then 1 after adjustment. Time step may need to be reduced.\n");
+        /* just to keep the proportions of outbound pathways the same. */
+        p = rng_double( world->seed++ ) * rx->cum_probs[rx->n_pathways - 1];
+  }else{
+        /* instead of scaling rx->cum_probs array we scale random probability */
+        p = rng_double( world->seed++ ) * scaling;
+        if (p > rx->cum_probs[rx->n_pathways - 1]) return RX_NO_RX;
+
+  }
   
   m = 0;
   M = rx->n_pathways-1;

@@ -13,7 +13,6 @@
 /**  Brand new constants created for use in MCell3  **/
 /*****************************************************/
 
-
 /* Species flags */
    /* Walls have IS_SURFACE set, molecules do not. */
    /* Surface and grid molecules have ON_SURFACE set */
@@ -84,6 +83,7 @@
 #define RX_BLOCKED -2
 #define RX_NO_RX   -2
 #define RX_FLIP    -1
+#define RX_LEAST_VALID_PATHWAY 0
 #define RX_DESTROY  0
 #define RX_A_OK     1
 #define RX_NO_MEM   3
