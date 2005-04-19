@@ -1457,7 +1457,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         
         if (rx->prob_t != NULL) check_probs(rx,m->t);
 
-        i = test_bimolecular(rx,factor);
+        i = test_bimolecular(rx, scaling);
         
         if (i < RX_LEAST_VALID_PATHWAY) continue;
 	
