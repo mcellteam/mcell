@@ -32,6 +32,7 @@
 #define MULTISTEP_FRACTION 0.9
 #define MAX_UNI_TIMESKIP 5000
 
+/* #define USE_EXPANDED_COLLISION_LIST */
 
 /* SOLVE_QF is a local #define in exact_disk (solves the quadratic formula) */
 /* REGISTER_PARTITION is a local #define in exact_disk */
@@ -757,6 +758,221 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
   return area/(4.0*rpt);
 }
 
+/*************************************************************************
+estimate_disk_exp:
+  In: location of moving molecule at time of collision
+      movement vector for moving molecule
+      interaction radius
+      subvolume the moving molecule is in
+      the moving molecule
+      the target molecule at time of collision
+  Out: The fraction of a full interaction disk that is actually
+       accessible to the moving molecule, estimated using Monte Carlo
+       integration. The partition walls are not taken into account.
+*************************************************************************/
+double estimate_disk_exp(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv,struct molecule *moving,struct molecule *target)
+{
+  int rpt,idx,bits;
+  double area;
+  struct vector3 u,v,loc_to_targ;
+  double d2_mv_i,a,b,t;
+  double upperU;
+  double upperV;
+  double lowerU;
+  double lowerV;
+  struct wall_list *wl;
+  struct rxn *rx;
+  
+  area = 0;
+  d2_mv_i = 1.0/(mv->x*mv->x + mv->y*mv->y + mv->z*mv->z);
+  
+  loc_to_targ.x = target->pos.x - loc->x;
+  loc_to_targ.y = target->pos.y - loc->y;
+  loc_to_targ.z = target->pos.z - loc->z;
+  
+  for (rpt = 0; rpt < 1 ; rpt++)
+  {
+  
+  upperU = lowerU = upperV = lowerV = 1.0;
+  
+  idx = world->num_directions;
+  while (idx >= world->num_directions)
+  {
+    bits = rng_uint(world->seed++);
+    idx = bits & world->directions_mask;
+  }
+  if (bits&0x80000000) u.x = world->d_step[idx]; else u.x = -world->d_step[idx];
+  if (bits&0x40000000) u.y = world->d_step[idx+1]; else u.y = -world->d_step[idx+1];
+  if (bits&0x20000000) u.z = world->d_step[idx+2]; else u.z = -world->d_step[idx+2];
+  
+  a = (u.x*mv->x + u.y*mv->y + u.z*mv->z);
+  
+  if (a*a*d2_mv_i < 0.9)  /* Vectors too closely aligned */
+  {
+    rpt--;
+    continue;
+  }
+  
+  u.x = u.x - a*mv->x;
+  u.y = u.y - a*mv->y;
+  u.z = u.z - a*mv->z;
+  b = R/sqrt(u.x*u.x + u.y*u.y + u.z*u.z);
+  u.x *= b;
+  u.y *= b;
+  u.z *= b;
+  a = sqrt(d2_mv_i);
+  v.x = a*(mv->y*u.z - mv->z*u.y);
+  v.y = a*(-mv->x*u.z + mv->z*u.x);
+  v.z = a*(mv->x*u.y - mv->y*u.x);
+  
+  for (wl = sv->wall_head ; wl!=NULL ; wl = wl->next)
+  {
+    if ( (moving->properties->flags && CAN_MOLWALL) != 0 )
+    {
+      rx = trigger_intersect(moving->properties->hashval,(struct abstract_molecule*)moving,0,wl->this_wall);
+      if (rx != NULL && (rx->n_pathways==RX_TRANSP))
+      {
+	continue; /* We can move through this wall! */
+      }
+    }
+    
+    t = touch_wall(loc,&u,wl->this_wall);
+    if (t>0.0 && t<upperU) upperU = t;
+    if (t<0.0 && -t<lowerU) lowerU = -t;
+    
+    t = touch_wall(loc,&v,wl->this_wall);
+    if (t>0.0 && t<upperV) upperV = t;
+    if (t<0.0 && -t<lowerV) lowerV = -t;
+    
+    if (rpt==0)
+    {
+      t = touch_wall(loc,&loc_to_targ,wl->this_wall);
+      if (t>0 && t<1) return -1;  /* This wall blocked us! */
+    }
+  }
+
+/*
+  if (u.x > EPS_C)
+  {
+    u.x = 1/u.x;
+    t = (world->x_fineparts[sv->urb.x] - loc->x)*u.x;
+    if (t < upperU) upperU = t;
+    t = (loc->x - world->x_fineparts[sv->llf.x])*u.x;
+    if (t < lowerU) lowerU = t;
+  }
+  else if (u.x < -EPS_C)
+  {
+    u.x = 1/u.x;
+    t = (world->x_fineparts[sv->llf.x] - loc->x)*u.x;
+    if (t < upperU) upperU = t;
+    t = (loc->x - world->x_fineparts[sv->urb.x])*u.x;
+    if (t < lowerU) lowerU = t;
+  }
+  if (u.y > EPS_C)
+  {
+    u.y = 1/u.y;
+    t = (world->y_fineparts[sv->urb.y] - loc->y)*u.y;
+    if (t < upperU) upperU = t;
+    t = (loc->y - world->y_fineparts[sv->llf.y])*u.y;
+    if (t < lowerU) lowerU = t;
+  }
+  else if (u.y < -EPS_C)
+  {
+    u.y = 1/u.y;
+    t = (world->y_fineparts[sv->llf.y] - loc->y)*u.y;
+    if (t < upperU) upperU = t;
+    t = (loc->y - world->y_fineparts[sv->urb.y])*u.y;
+    if (t < lowerU) lowerU = t;
+  }
+  if (u.z > EPS_C)
+  {
+    u.z = 1/u.z;
+    t = (world->z_fineparts[sv->urb.z] - loc->z)*u.z;
+    if (t < upperU) upperU = t;
+    t = (loc->z - world->z_fineparts[sv->llf.z])*u.z;
+    if (t < lowerU) lowerU = t;
+  }
+  else if (u.z < -EPS_C)
+  {
+    u.z = 1/u.z;
+    t = (world->z_fineparts[sv->llf.z] - loc->z)*u.z;
+    if (t < upperU) upperU = t;
+    t = (loc->z - world->z_fineparts[sv->urb.z])*u.z;
+    if (t < lowerU) lowerU = t;
+  }
+
+  if (v.x > EPS_C)
+  {
+    v.x = 1/v.x;
+    t = (world->x_fineparts[sv->urb.x] - loc->x)*v.x;
+    if (t < upperV) upperV = t;
+    t = (loc->x - world->x_fineparts[sv->llf.x])*v.x;
+    if (t < lowerV) lowerV = t;
+  }
+  else if (v.x < -EPS_C)
+  {
+    v.x = 1/v.x;
+    t = (world->x_fineparts[sv->llf.x] - loc->x)*v.x;
+    if (t < upperV) upperV = t;
+    t = (loc->x - world->x_fineparts[sv->urb.x])*v.x;
+    if (t < lowerV) lowerV = t;
+  }
+  if (v.y > EPS_C)
+  {
+    v.y = 1/v.y;
+    t = (world->y_fineparts[sv->urb.y] - loc->y)*v.y;
+    if (t < upperV) upperV = t;
+    t = (loc->y - world->y_fineparts[sv->llf.y])*v.y;
+    if (t < lowerV) lowerV = t;
+  }
+  else if (v.y < -EPS_C)
+  {
+    v.y = 1/v.y;
+    t = (world->y_fineparts[sv->llf.y] - loc->y)*v.y;
+    if (t < upperV) upperV = t;
+    t = (loc->y - world->y_fineparts[sv->urb.y])*v.y;
+    if (t < lowerV) lowerV = t;
+  }
+  if (v.z > EPS_C)
+  {
+    v.z = 1/v.z;
+    t = (world->z_fineparts[sv->urb.z] - loc->z)*v.z;
+    if (t < upperV) upperV = t;
+    t = (loc->z - world->z_fineparts[sv->llf.z])*v.z;
+    if (t < lowerV) lowerV = t;
+  }
+  else if (v.z < -EPS_C)
+  {
+    v.z = 1/v.z;
+    t = (world->z_fineparts[sv->llf.z] - loc->z)*v.z;
+    if (t < upperV) upperV = t;
+    t = (loc->z - world->z_fineparts[sv->urb.z])*v.z;
+    if (t < lowerV) lowerV = t;
+  }
+
+  */
+
+
+  if (upperU < 0 || upperU > 1.0 ||
+      lowerU < 0 || lowerU > 1.0 ||
+      upperV < 0 || upperV > 1.0 ||
+      lowerV < 0 || lowerV > 1.0)
+  {
+    printf("Crazy!\n");
+  }
+
+  area += upperU*upperU + lowerU*lowerU + upperV*upperV + lowerV*lowerV;
+/*
+  if (a > 1.1) printf("Correction factor %.2f\n",a);
+  if (a < 1.0-EPS_C) printf("MUDDY BLURDER! a=%.2f R=%.2f u=[%.2f %.2f %.2f] %.2f %.2f %.2f %.2f\n",
+                            a,R,u.x,u.y,u.z,upperU,lowerU,upperV,lowerV);
+*/
+  }
+  
+  if (rpt==0) return 1.0;
+  return area/(4.0*rpt);
+}
+
 
 #ifdef DEBUG
 /* Debugging function searching for misplaced molecules in the Min simulation */
@@ -1039,31 +1255,27 @@ double safe_time_step(struct molecule *m,struct collision *shead)
   return steps;
 }
 
-#if 0
-/* Under construction */
 /****************************************************************************
 expand_collision_list:
   In: molecule that is moving
-      linked list of potential collisions with molecules from the 
-                starting subvolume
       subvolume that we start in
       displacement vector from current to new location
+      linked list of potential collisions with molecules from the 
+                starting subvolume
   Out: To the current collision list of molecules we may react with in our 
        subvolume added molecules from the 3 neighboring subvolumes in the 
        direction of movement. Returns new list of collisions.
 	
 ****************************************************************************/
-static struct collision* expand_collision_list(struct molecule *m, struct collision *c, struct subvolume *sv, struct vector3 *v)
+struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv, struct vector3 *v, struct collision *shead1)
 {
-  struct collision *smash,*shead1;
+  struct collision *smash;
   struct molecule *mp;
   struct subvolume *nsv1, *nsv2, *nsv3;
   struct rxn *rx;
   /* distance from the molecule to the closest subvolume wall. */
   double distance = 0;
   int i;
-
-  shead1 = c;
 
   if((v == NULL) || (vect_length(v) == 0)) return shead1;
 
@@ -1097,26 +1309,26 @@ static struct collision* expand_collision_list(struct molecule *m, struct collis
      
     /* find the molecules from the neighboring subvolumes that may react with
        the starting molecule. */
-    if(nsv1 != NULL)
+    if((nsv1 != NULL) && (nsv1->mol_head != NULL))
     {
     	for (mp = nsv1->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
       
       		/* if the molecule is farther from the subvolume wall than 
-         (2*world->rx_radius_3d) do not account for the interaction with it.	
+         (world->rx_radius_3d) do not account for the interaction with it.	
       		*/
                 if(v->x < 0.0) {
-    		     distance = world->x_fineparts[ nsv1->llf.x ] - mp->pos.x;
+    		     distance = world->x_fineparts[ nsv1->urb.x ] - mp->pos.x;
 	        }else if(v->x > 0.0){
-    		     distance = mp->pos.x - world->x_fineparts[ nsv1->urb.x ];
+    		     distance = mp->pos.x - world->x_fineparts[ nsv1->llf.x ];
                 }
 
       		if(distance < 0){
 			distance = -distance;
       		}      
 
-      		if(distance > 2 * world->rx_radius_3d){
+      		if(distance >  world->rx_radius_3d){
 			continue;
       		}
 
@@ -1145,26 +1357,26 @@ static struct collision* expand_collision_list(struct molecule *m, struct collis
     	}
     }
     
-    if(nsv2 != NULL)
+    if((nsv2 != NULL) && (nsv2->mol_head != NULL))
     {
     	for (mp = nsv2->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
       
       		/* if the molecule is farther from the subvolume wall than 
-         (2*world->rx_radius_3d) do not account for the interaction with it.	
+         (world->rx_radius_3d) do not account for the interaction with it.	
       		*/
                 if(v->y < 0.0) {
-    		     distance = world->y_fineparts[ nsv2->llf.y ] - mp->pos.y;
+    		     distance = world->y_fineparts[ nsv2->urb.y ] - mp->pos.y;
 	        }else if(v->y > 0.0){
-    		     distance = mp->pos.y - world->y_fineparts[ nsv2->urb.y ];
+    		     distance = mp->pos.y - world->y_fineparts[ nsv2->llf.y ];
                 }
 
       		if(distance < 0){
 			distance = -distance;
       		}      
 
-      		if(distance > 2 * world->rx_radius_3d){
+      		if(distance >  world->rx_radius_3d){
 			continue;
       		}
 
@@ -1194,26 +1406,26 @@ static struct collision* expand_collision_list(struct molecule *m, struct collis
    }
     
 
-    if(nsv3 != NULL)
+    if((nsv3 != NULL) && (nsv3->mol_head != NULL))
     {
     	for (mp = nsv3->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
       
       		/* if the molecule is farther from the subvolume wall than 
-         (2*world->rx_radius_3d) do not account for the interaction with it.	
+         (world->rx_radius_3d) do not account for the interaction with it.	
       		*/
                 if(v->z < 0.0) {
-    		     distance = world->z_fineparts[ nsv3->llf.z ] - mp->pos.z;
-	        }else if(v->y > 0.0){
-    		     distance = mp->pos.z - world->z_fineparts[ nsv3->urb.z ];
+    		     distance = world->z_fineparts[ nsv3->urb.z ] - mp->pos.z;
+	        }else if(v->z > 0.0){
+    		     distance = mp->pos.z - world->z_fineparts[ nsv3->llf.z ];
                 }
 
       		if(distance < 0){
 			distance = -distance;
       		}      
 
-      		if(distance > 2 * world->rx_radius_3d){
+      		if(distance >  world->rx_radius_3d){
 			continue;
       		}
 
@@ -1242,11 +1454,9 @@ static struct collision* expand_collision_list(struct molecule *m, struct collis
     	}
    }
 
-
     return shead1;
 
 }
-#endif
 
 /*************************************************************************
 diffuse_3D:
@@ -1278,6 +1488,14 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   double factor;           /* return value from 'estimate_disk()' function */
   double scaling;     /* scales reaction cumulative_probabilitities array */
   double rate_factor=1.0;
+#ifdef USE_EXPANDED_COLLISION_LIST
+  /* linked list of potential collisions with molecules located in 
+     the neighboring subvolumes before ray-tracing. */
+  struct collision *shead_exp = NULL;
+  /* linked list of potential collisions with molecules located in 
+     the neighboring subvolumes after ray-tracing. */
+  struct collision *shead2_exp = NULL;
+#endif
 
   int i,j,k,l;
   
@@ -1400,22 +1618,96 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       pick_displacement(&displacement,rate_factor*sm->space_step);
     }
 
+
     world->diffusion_number += 1.0;
     world->diffusion_cumsteps += steps;
   }
 
   
    reflectee = NULL;
-
  
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
 #define ERROR_AND_QUIT fprintf(world->err_file,"Out of memory: trying to save intermediate results.\n"); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
   do
   {
 
+#ifdef USE_EXPANDED_COLLISION_LIST
+
     shead2 = ray_trace(m,shead,sv,&displacement,reflectee);
 
     if (shead2==NULL) { ERROR_AND_QUIT; }
+   
+    shead_exp = expand_collision_list(m, sv, &displacement, shead_exp);
+
+    shead2_exp = ray_trace(m,shead_exp, sv, &displacement, reflectee);
+
+
+#else
+
+    shead2 = ray_trace(m,shead,sv,&displacement,reflectee);
+
+    if (shead2==NULL) { ERROR_AND_QUIT; }
+
+#endif
+
+#ifdef USE_EXPANDED_COLLISION_LIST
+    if (shead2_exp->next!=NULL)  /* Could be sped up/combined */
+    {
+      shead2_exp = (struct collision*)ae_list_sort((struct abstract_element*)shead2_exp);
+    }
+    
+    for (smash = shead2_exp; smash != NULL; smash = smash->next)
+    {
+      
+      if (smash->t >= 1.0 || smash->t < 0.0)
+      {
+         smash = NULL;
+         break;
+      }
+      
+      rx = smash->intermediate;
+
+      if ( (smash->what & COLLIDE_MOL) != 0 && !inert )
+      {
+	if (smash->t < EPS_C) continue;
+	
+        m->collisions++;
+	world->mol_mol_colls++;
+
+        am = (struct abstract_molecule*)smash->target;
+        if ((am->flags & ACT_INERT) != 0)  /* FIXME */
+        {
+          /*if (smash->t < am->t + am->t2) continue;*/
+        }
+         
+        factor = estimate_disk_exp(
+          &(smash->loc),&displacement,world->rx_radius_3d,m->subvol,m,
+	  (struct molecule*)am
+        );
+          
+	if (factor<0) continue;   /* Reaction blocked by a wall */
+	
+         scaling = factor / rate_factor; 
+        
+        if (rx->prob_t != NULL) check_probs(rx,m->t);
+
+        i = test_bimolecular(rx,scaling);
+        
+        if (i < RX_LEAST_VALID_PATHWAY) continue;
+	
+        j = outcome_bimolecular(
+                rx,i,(struct abstract_molecule*)m,
+                am,0,0,m->t+t_steps*smash->t,&(smash->loc)
+              );
+	      
+	if (j==RX_NO_MEM) { ERROR_AND_QUIT; }
+	if (j!=RX_DESTROY) continue;
+        else { CLEAN_AND_RETURN( NULL ); }
+      }
+    } /* end for */
+	
+
+#endif
 
     if (shead2->next!=NULL)  /* Could be sped up/combined */
     {
@@ -1446,18 +1738,26 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         {
           /*if (smash->t < am->t + am->t2) continue;*/
         }
-
+#ifdef USE_EXPANDED_COLLISION_LIST
+        
+        factor = estimate_disk_exp(
+          &(smash->loc),&displacement,world->rx_radius_3d,m->subvol,m,
+	  (struct molecule*)am
+        );
+	
+#else
         factor = estimate_disk(
           &(smash->loc),&displacement,world->rx_radius_3d,m->subvol,m,
 	  (struct molecule*)am
         );
+#endif
 	if (factor<0) continue; /* Reaction blocked by a wall */
 	
         scaling = factor / rate_factor;
         
         if (rx->prob_t != NULL) check_probs(rx,m->t);
 
-        i = test_bimolecular(rx, scaling);
+        i = test_bimolecular(rx,scaling);
         
         if (i < RX_LEAST_VALID_PATHWAY) continue;
 	
@@ -1668,12 +1968,24 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
     }
     
     if (shead2 != NULL) mem_put_list(sv->local_storage->coll,shead2);
+    
+
   }
   while (smash != NULL);
 #undef ERROR_AND_QUIT
 #undef CLEAN_AND_RETURN
   
   if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
+
+#ifdef USE_EXPANDED_COLLISION_LIST
+	if(shead_exp != NULL) {
+		mem_put_list(sv->local_storage->coll, shead_exp);
+        }
+	if(shead2_exp != NULL) {
+		mem_put_list(sv->local_storage->coll, shead2_exp);
+        }
+#endif
+
   m->pos.x += displacement.x;
   m->pos.y += displacement.y;
   m->pos.z += displacement.z;
