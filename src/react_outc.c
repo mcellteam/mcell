@@ -461,7 +461,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
   
   if (result==RX_NO_MEM) return RX_NO_MEM;
   
-  if (result != RX_BLOCKED) rx->counter[path]++;
+  if (result != RX_BLOCKED) rx->pathway_head[path].count++;
 
   who_am_i = rx->players[rx->product_idx[path]];
   
@@ -575,7 +575,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
   if (result==RX_NO_MEM) return RX_NO_MEM;
   else if (result==RX_BLOCKED) return RX_BLOCKED;
   
-  rx->counter[path]++;
+  rx->pathway_head[path].count++;
   
   if (rx->players[0]==reacA->properties)
   {
@@ -713,7 +713,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     if (result==RX_NO_MEM) return RX_NO_MEM;
     else if (result == RX_BLOCKED) return RX_A_OK;
 
-    rx->counter[path]++;
+    rx->pathway_head[path].count++;
     
     if (rx->players[ index ] == NULL)
     {
@@ -743,7 +743,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
       if (result==RX_NO_MEM) return RX_NO_MEM;
       if (result==RX_BLOCKED) return RX_A_OK;
 
-      rx->counter[path]++;
+      rx->pathway_head[path].count++;
 
       if (rx->players[ rx->product_idx[path] ] == NULL)
       {

@@ -306,7 +306,6 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       rxnp->players=NULL;
       rxnp->geometries=NULL;
       rxnp->prob_t=NULL;
-      rxnp->counter=NULL;
       rxnp->pathway_head=NULL;
       break;
     case RXPN:

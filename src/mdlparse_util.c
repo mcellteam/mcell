@@ -783,7 +783,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           rx->next->product_idx = NULL;
           rx->next->cum_probs = NULL;
           rx->next->cat_probs = NULL;
-          rx->next->counter = NULL;
           rx->next->players = NULL;
           rx->next->geometries = NULL;
 
@@ -810,10 +809,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         rx->product_idx = (u_int*)malloc(sizeof(u_int)*(rx->n_pathways+1));
         rx->cum_probs = (double*)malloc(sizeof(double)*rx->n_pathways);
         rx->cat_probs = (double*)malloc(sizeof(double)*rx->n_pathways);
-        rx->counter = (double*)malloc(sizeof(double)*rx->n_pathways);
         
         if (rx->product_idx==NULL || rx->cum_probs==NULL ||
-            rx->cat_probs==NULL || rx->counter==NULL) return 1;
+            rx->cat_probs==NULL ) return 1;
         
         
         n_prob_t_rxns = 0;
@@ -833,7 +831,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           if (path->km_filename == NULL) rx->cum_probs[j] = path->km;
           else n_prob_t_rxns++;
           
-          rx->counter[j] = 0;
+          path->count = 0;
           recycled1 = 0;
           recycled2 = 0;
           recycled3 = 0;
@@ -1167,11 +1165,16 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	if (rx->n_pathways>1)  /* Convert linked list into array */
 	{
 	  struct pathway *temp_p;
+	  struct pathway_count_request *pcr;
 	  temp_p = (struct pathway*)malloc(rx->n_pathways*sizeof(struct pathway));
 	  if (temp_p==NULL) return 1;
 	  
 	  for ( j=0,path=rx->pathway_head ; path!=NULL ; j++,path=path->next )
 	  {
+	    for (pcr=path->pcr ; pcr!=NULL ; pcr=pcr->next) /* Fix count references */
+	    {
+	      pcr->requester->temp_data = &(temp_p[j].count);
+	    }
 	    memcpy(&(temp_p[j]),path,sizeof(struct pathway));
 	    temp_p[j].next = path;  /* Store list elts so we can free them */
 	  }
@@ -3112,6 +3115,17 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
       
       if (r==NULL) /* Count on world */
       {
+	struct pathway_count_request *pcr;
+	pcr = mem_get(mdlpvp->vol->pathway_requester);
+	if (pcr==NULL)
+	{
+	  fprintf(mdlpvp->vol->err_file,"Out of memory while trying to attach count to reaction\n");
+	  return 1;
+	}
+	pcr->requester = mdlpvp->oep;
+	pcr->next = rxp->path->pcr;
+	rxp->path->pcr = pcr;
+	
 	mdlpvp->oep->temp_data = (void*)&rxp->path->count;
       }
       else /* Region */

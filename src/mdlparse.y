@@ -1961,6 +1961,7 @@ surface_rxn_stmt: surface_rxn_type '=' existing_molecule
   mdlpvp->pathp->reactant3=NULL;
   mdlpvp->pathp->km=GIGANTIC;
   mdlpvp->pathp->kcat=0;
+  mdlpvp->pathp->pcr=NULL;
 
   switch ($<tok>1) {
     case RFLCT:
@@ -4073,6 +4074,7 @@ one_way_unimolecular_rxn: reactant right_arrow
     mdlpvp->pathp->orientation1=mdlpvp->orient_class;
   }
   mdlpvp->pathp->product_head=NULL;
+  mdlpvp->pathp->pcr=NULL;
 
   mdlpvp->fwd_km=0;
   mdlpvp->fwd_kcat=0;
@@ -4196,6 +4198,7 @@ one_way_bimolecular_rxn: reactant '+'
     mdlpvp->pathp->orientation2=mdlpvp->orient_class2;
   }
   mdlpvp->pathp->product_head=NULL;
+  mdlpvp->pathp->pcr=NULL;
 
   mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
   mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
@@ -6539,10 +6542,11 @@ int mdlparse_init(struct volume *vol)
   mpvp->pathp->reactant3=NULL;
   mpvp->pathp->km=GIGANTIC;
   mpvp->pathp->kcat=0;
-
   mpvp->pathp->orientation1=0;
   mpvp->pathp->orientation2=1;
   mpvp->pathp->orientation3=0;
+  mpvp->pathp->pcr=NULL;
+
   if ((mpvp->prodp=(struct product *)mem_get(mpvp->prod_mem))==NULL) {
     sprintf(mpvp->mdl_err_msg,"%s %s -%s-> ...",
       "Cannot store surface reaction:",vol->g_mol->sym->name,vol->g_surf->sym->name);

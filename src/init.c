@@ -209,6 +209,13 @@ int init_sim(void)
     exit(EXIT_FAILURE);
   }
   for (i=0;i<=world->count_hashmask;i++) world->count_hash[i] = NULL;
+  
+  world->pathway_requester = create_mem(sizeof(struct pathway_count_request),64);
+  if (world->pathway_requester==NULL)
+  {
+    fprintf(world->err_file,"Out of memory: could not create space to pair reactions with count requests\n");
+    exit(EXIT_FAILURE);
+  }
 
   if((world->main_sym_table=init_symtab(SYM_HASHSIZE)) == NULL){
     fprintf(log_file,"MCell: initialization of symbol table failed\n");

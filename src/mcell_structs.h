@@ -497,7 +497,6 @@ struct rxn
   u_int *product_idx;        /* Index of 1st player for products of pathway */
   double *cum_probs;         /* Cumulative probabilities for (entering) all pathways */
   double *cat_probs;         /* Probabilities of leaving all pathways (<=0.0 is instant) */
-  double *counter;            /* How many times have we taken each path? */
   
   struct species **players;  /* Identities of reactants/products */
   short *geometries;         /* Geometries of reactants/products */
@@ -537,8 +536,8 @@ struct pathway {
   short orientation2;            /* Orientation of second reactant */
   short orientation3;            /* Orientation of third reactant */
   struct product *product_head;  /* Linked lists of species created */
+  struct pathway_count_request *pcr;  /* Who is counting us? */
 };
-
 
 /* Parse-time structure for products of reaction pathways */
 struct product {
@@ -911,6 +910,7 @@ struct volume
   struct output_block *output_block_head;
   struct viz_obj *viz_obj_head;
   struct frame_data_list *frame_data_head;
+  struct mem_helper *pathway_requester;
   struct species *g_mol;
   struct species *g_surf;
   double time_unit;
@@ -1152,6 +1152,14 @@ struct viz_state_ref {
 	int viz_state;
         char *full_name;
 };
+
+struct pathway_count_request
+{
+  struct pathway_count_request *next;
+  struct output_evaluator *requester;
+};
+
+
 
 
 /**
