@@ -712,6 +712,12 @@ N
 Specifies how many different directions to put in the lookup table.
  The default is sensible.
  Don't use this unless you know what you're doing.
+ Instead of a number, you can specify 
+\family typewriter 
+FULLY_RANDOM
+\family default 
+ to generate the directions directly from double precision numbers (but
+ this is slower).
 \end_inset 
 </cell>
 </row>
@@ -736,6 +742,11 @@ N
 
 Specifies how many distances to put in the diffusion lookup table.
  Again, the default is sensible.
+ 
+\family typewriter 
+FULLY_RANDOM
+\family default 
+ is not implemented here.
 \end_inset 
 </cell>
 </row>
@@ -2947,7 +2958,7 @@ s described below.
 
 
 \family typewriter 
-DEFINE_REGIONS { 
+DEFINE_SURFACE_REGIONS { 
 \family sans 
 \shape italic 
 ...
