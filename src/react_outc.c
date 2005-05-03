@@ -340,7 +340,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
 */
   
   
-  bits = rng_uint( world->seed++ );
+  bits = rng_uint( world->rng );
   for (i=i0;i<iN;i++,bits>>=1)
   {
     if (rx->players[i]==NULL) continue;

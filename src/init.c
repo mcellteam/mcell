@@ -16,10 +16,10 @@
 #include <kelp.h>
 #endif
 
+#include "rng.h"
 #include "mcell_structs.h"
 #include "strfunc.h"
 #include "vector.h"
-#include "rng.h"
 #include "sym_table.h"
 #include "count_util.h"
 #include "vol_util.h"
@@ -30,6 +30,10 @@
 #include "init.h"
 #include "react_output.h"
 #include "util.h"
+
+#ifndef RAN4_H
+#include "ran4.h"
+#endif
 
 #ifdef DEBUG
 #define no_printf printf
@@ -62,16 +66,17 @@ void init_credits(void)
 {
   FILE *log_file;
   unsigned int seed;
-  double ran_vec[100];
   time_t the_time;
   char *institute[2],*author[2];
+  int i;
+  struct ran4_state rng;
  
   log_file=world->log_file;
   time(&the_time);
   seed=(unsigned int)the_time;
-  ran4_init(&seed);
-  ran4(&seed,ran_vec,100,1.0);
-  if (ran_vec[99]<0.5) {
+  ran4_init(&rng,seed);
+  for (i=0;i<100;i++) ran4_uint32(&rng);
+  if (ran4_dbl32(&rng)<0.5) {
     institute[0]=my_strdup("The Salk Institute");
     institute[1]=my_strdup("& Cornell University");
     author[0]=my_strdup("Thomas M. Bartol Jr.");
@@ -190,16 +195,28 @@ int init_sim(void)
   world->z_fineparts = NULL;
   world->n_fineparts = 0;
 
+#ifdef USE_RAN4
   if (world->seed_seq < 1 || world->seed_seq > 3000) {
-    fprintf(log_file,"MCell: error, random sequence number not in range 1 to 3000\n");
+    fprintf(log_file,"MCell: error, random sequence number not in range 1 to 3000\n  Recompile without USE_RAN4 flag in rng.h to increase the range\n");
     return(1);
   }
+#else
+  if (world->seed_seq < 1 || world->seed_seq > INT_MAX) {
+    fprintf(log_file,"MCell: error, random sequence number not in range 1 to 2^31-1\n");
+    return(1);
+  }
+#endif
 
-  world->seed=seed_array[world->seed_seq-1];
-  world->init_seed = world->seed;
-  fprintf(log_file,"MCell[%d]: random sequence: %d  seed: %d\n", world->procnum,world->seed_seq,world->seed);
+  world->rng = malloc(sizeof(struct rng_state));
+  if (world->rng==NULL)
+  {
+    fprintf(world->err_file,"Out of memory: failed to allocate random number generator\n");
+    exit(EXIT_FAILURE);
+  }
+  world->init_seed = seed_array[world->seed_seq-1];
+  rng_init(world->rng,world->init_seed);
+  fprintf(log_file,"MCell[%d]: random sequence: %d  seed: %d\n", world->procnum,world->seed_seq,world->init_seed);
   fflush(log_file);
-  ran4_init(&world->seed);
 
   world->count_hashmask = COUNT_HASHMASK;
   world->count_hash = (struct counter**)malloc(sizeof(struct counter*)*(world->count_hashmask+1));
@@ -1786,7 +1803,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
   short *orientation;
   unsigned int i,j,n,nr,n_occupied;
   int p_index;
-  double rand[1],*prob,area,tot_prob,tot_density;
+  double rand,*prob,area,tot_prob,tot_density;
 
   log_file=world->log_file;
 
@@ -1869,10 +1886,9 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
     if (world->chkpt_init) {
       j=0;
       p_index=-1;
-      world->random_number_use++;
-      ran4(&world->seed,rand,1,1.0);
+      rand = rng_dbl(world->rng);
       while (j<nr && p_index==-1) {
-        if (rand[0]<=prob[j++]) {
+        if (rand<=prob[j++]) {
           p_index=j-1;
         }
       }
@@ -1949,7 +1965,6 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
   struct eff_dat *effdp;
   struct wall **walls,**walls_tmp,*w;
   short orientation;
-  double rand[1];
   unsigned int *index,*index_tmp;
   unsigned int n_free_eff,n_set,n_clear;
   unsigned int i,j,k;
@@ -2075,9 +2090,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
               for (j=0;j<n_clear;j++) {
                 done=0;
                 while (!done) {
-                  world->random_number_use++;
-                  ran4(&world->seed,rand,1,n_free_eff);
-                  k=rand[0];
+		  k = (int) (rng_dbl(world->rng)*n_free_eff);
                   if (*tiles[k]==bread_crumb) {
                     *tiles[k]=NULL;
                     done=1;
@@ -2129,9 +2142,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
               for (j=0;j<n_set;j++) {
                 done=0;
                 while (!done) {
-                  world->random_number_use++;
-                  ran4(&world->seed,rand,1,n_free_eff);
-                  k=rand[0];
+		  k = (int) (rng_dbl(world->rng)*n_free_eff);
                   if (*tiles[k]==NULL) {
                     mol=(struct grid_molecule *)mem_get
                       (walls[k]->birthplace->gmol);

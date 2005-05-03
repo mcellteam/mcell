@@ -982,7 +982,7 @@ void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
   f.z = n->x*e.y - n->y*e.x;
   
   tiny = EPS_C * (abs_max_2vec(p,v) + 1.0) / (k * max3(fabs(f.x),fabs(f.y),fabs(f.z)));
-  if ( (rng_uint(world->seed) & 1) == 0 ) tiny = -tiny;
+  if ( (rng_uint(world->rng) & 1) == 0 ) tiny = -tiny;
   
   v->x -= tiny*f.x;
   v->y -= tiny*f.y;
@@ -1111,7 +1111,7 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
   if (dd==0.0 && dv==0.0)
   {
     a = (abs_max_2vec( point , move ) + 1.0) * EPS_C;
-    if ((rng_uint(world->seed++)&1)==0) a = -a;
+    if ((rng_uint(world->rng)&1)==0) a = -a;
     if (dd==0.0)
     {
       move->x -= a*nx;

@@ -63,11 +63,11 @@ void pick_displacement(struct vector3 *v,double scale)
     double x,y,z;
     do
     {
-      x = 2.0*rng_double(world->seed++)-1.0;
-      y = 2.0*rng_double(world->seed++)-1.0;
-      z = 2.0*rng_double(world->seed++)-1.0;
+      x = 2.0*rng_dbl(world->rng)-1.0;
+      y = 2.0*rng_dbl(world->rng)-1.0;
+      z = 2.0*rng_dbl(world->rng)-1.0;
     } while (x*x + y*y + z*z >= 1.0 || x*x + y*y + z*z < 0.001);
-    r = scale * world->r_step[ rng_uint(world->seed++) & (world->radial_subdivisions-1) ] / sqrt(x*x + y*y + z*z);
+    r = scale * world->r_step[ rng_uint(world->rng) & (world->radial_subdivisions-1) ] / sqrt(x*x + y*y + z*z);
     v->x = r*x;
     v->y = r*y;
     v->z = r*z;
@@ -80,9 +80,9 @@ void pick_displacement(struct vector3 *v,double scale)
   {
     double h,r_sin_phi,theta;
     
-    r = scale * world->r_step[ rng_uint(world->seed++) & (world->radial_subdivisions-1) ];
-    h = 2.0*rng_double(world->seed++) - 1.0;
-    theta = 2.0*MY_PI*rng_double(world->seed++);
+    r = scale * world->r_step[ rng_uint(world->rng) & (world->radial_subdivisions-1) ];
+    h = 2.0*rng_dbl(world->rng) - 1.0;
+    theta = 2.0*MY_PI*rng_dbl(world->rng);
     
     r_sin_phi = r * sqrt(1.0 - h*h);
     
@@ -97,7 +97,7 @@ void pick_displacement(struct vector3 *v,double scale)
     u_int bits;
     u_int idx;
     
-    bits = rng_uint(world->seed++);
+    bits = rng_uint(world->rng);
     
     x_bit =        (bits & 0x80000000);
     y_bit =        (bits & 0x40000000);
@@ -110,7 +110,7 @@ void pick_displacement(struct vector3 *v,double scale)
     idx = (thetaphi_bit & world->directions_mask);
     while ( idx >= world->num_directions)
     {
-      idx = ( rng_uint(world->seed++) & world->directions_mask);
+      idx = ( rng_uint(world->rng) & world->directions_mask);
     }
     
     idx *= 3;
@@ -586,7 +586,7 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
   idx = world->num_directions;
   while (idx >= world->num_directions)
   {
-    bits = rng_uint(world->seed++);
+    bits = rng_uint(world->rng);
     idx = bits & world->directions_mask;
   }
   if (bits&0x80000000) u.x = world->d_step[idx]; else u.x = -world->d_step[idx];
@@ -798,7 +798,7 @@ double estimate_disk_exp(struct vector3 *loc,struct vector3 *mv,double R,struct 
   idx = world->num_directions;
   while (idx >= world->num_directions)
   {
-    bits = rng_uint(world->seed++);
+    bits = rng_uint(world->rng);
     idx = bits & world->directions_mask;
   }
   if (bits&0x80000000) u.x = world->d_step[idx]; else u.x = -world->d_step[idx];

@@ -25,7 +25,7 @@ test_unimolecular:
 int test_unimolecular(struct rxn *rx)
 {
   int m,M,avg;
-  double p = rng_double( world->seed++ );
+  double p = rng_dbl( world->rng );
   
   m = 0;
   M = rx->n_pathways-1;
@@ -52,7 +52,7 @@ timeof_unimolecular:
 
 double timeof_unimolecular(struct rxn *rx)
 {
-  double p = rng_double( world->seed++ );
+  double p = rng_dbl( world->rng );
   double k_tot = rx->cum_probs[ rx->n_pathways - 1 ];
   
   if (k_tot<=0) return GIGANTIC;
@@ -69,7 +69,7 @@ which_unimolecular:
 int which_unimolecular(struct rxn *rx)
 {
   int m,M,avg;
-  double p = rng_double( world->seed++ );
+  double p = rng_dbl( world->rng );
   
   m = 0;
   M = rx->n_pathways-1;
@@ -107,10 +107,10 @@ int test_bimolecular(struct rxn *rx, double scaling)
   {
 	fprintf(world->err_file, "test_bimolecular(): reaction cumulative probabilities are greater then 1 after adjustment. Time step may need to be reduced.\n");
         /* just to keep the proportions of outbound pathways the same. */
-        p = rng_double( world->seed++ ) * rx->cum_probs[rx->n_pathways - 1];
+        p = rng_dbl( world->rng ) * rx->cum_probs[rx->n_pathways - 1];
   }else{
         /* instead of scaling rx->cum_probs array we scale random probability */
-        p = rng_double( world->seed++ ) * scaling;
+        p = rng_dbl( world->rng ) * scaling;
         if (p > rx->cum_probs[rx->n_pathways - 1]) return RX_NO_RX;
 
   }
@@ -148,7 +148,7 @@ int test_intersect(struct rxn *rx,double time_mult)
   
   if (rx->n_pathways <= RX_SPECIAL) return rx->n_pathways;
   
-  p = rng_double( world->seed++ ) / time_mult;
+  p = rng_dbl( world->rng ) / time_mult;
   
   if ( p > rx->cum_probs[ rx->n_pathways-1 ] ) return RX_NO_RX;
 

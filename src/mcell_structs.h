@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <stdio.h>
 
+#include "rng.h"
 #include "vector.h"
 #include "mem_util.h"
 #include "sched_util.h"
@@ -937,7 +938,7 @@ struct volume
   struct vector3 bb_min;	/**< bounding box minimum size */
   struct vector3 bb_max;	/**< bounding box maximum size */
   u_int tot_mols;
-  u_int seed;
+  struct rng_state *rng;
   u_int init_seed;
   u_int it_time;
   double elapsed_time;

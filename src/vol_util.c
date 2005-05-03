@@ -440,7 +440,6 @@ int release_molecules(struct release_event_queue *req)
   struct vector3 pos;
   double diam,vol;
   double t,k;
-  double num;
   
   if(req == NULL) return 0;
   rso = req->release_site;
@@ -478,10 +477,7 @@ int release_molecules(struct release_event_queue *req)
     case GAUSSNUM:
       if (rso->standard_deviation > 0)
       {
-        gaussran4(&(world->seed),&num,1,
-                  rso->release_number,rso->standard_deviation);
-        number = (int) num;
-                  
+	number = (int) rng_gauss(world->rng)*rso->standard_deviation + rso->release_number;
       }
       else
       {
@@ -492,8 +488,7 @@ int release_molecules(struct release_event_queue *req)
     case VOLNUM:
       if (rso->standard_deviation > 0)
       {
-        gaussran4(&(world->seed),&diam,1,
-                    rso->mean_diameter,rso->standard_deviation);
+	diam = rng_gauss(world->rng)*rso->standard_deviation;
       }
       else
       {
@@ -514,9 +509,9 @@ int release_molecules(struct release_event_queue *req)
     {
       do /* Pick values in unit square, toss if not in unit circle */
       {
-        pos.x = (rng_double(world->seed++)-0.5);
-        pos.y = (rng_double(world->seed++)-0.5);
-        pos.z = (rng_double(world->seed++)-0.5);
+        pos.x = (rng_dbl(world->rng)-0.5);
+        pos.y = (rng_dbl(world->rng)-0.5);
+        pos.z = (rng_dbl(world->rng)-0.5);
       } while ( (rso->release_shape == SHAPE_SPHERICAL || rso->release_shape == SHAPE_ELLIPTIC || rso->release_shape == SHAPE_SPHERICAL_SHELL)
                 && pos.x*pos.x + pos.y*pos.y + pos.z*pos.z >= 0.25 );
       
@@ -568,7 +563,7 @@ int release_molecules(struct release_event_queue *req)
     if (rso->release_prob < 1.0)
     {
       k = -log( 1.0 - rso->release_prob );
-      t = -log( rng_double(world->seed++) ) / k;  /* Poisson dist. */
+      t = -log( rng_dbl(world->rng) ) / k;  /* Poisson dist. */
       req->event_time += rpat->release_interval * (ceil(t)-1.0); /* Rounded to integers */
     }else{
   	req->event_time += rpat->release_interval;

@@ -1,13 +1,35 @@
-#ifndef RAN4_H
-#define RAN4_H
+#ifndef RNG_H
+#define RNG_H
 
+/*#define USE_RAN4*/
 
-void ran4_init(unsigned int *e_state);
-double ran4(unsigned int *e_state, double *ran_vec, unsigned int n, double range);
-unsigned int iran4(unsigned int *e_state, unsigned int *iran_vec, unsigned int n);
-double gaussran4(unsigned int *e_state, double *ran_vec, unsigned int n, double mean, double stddev);
+#ifdef USE_RAN4
 
-double rng_double(unsigned int index);
-unsigned int rng_uint(unsigned int index);
+/*********************RAN4**********************/
+#include "ran4.h"
+
+#define rng_state ran4_state
+
+#define rng_init(x,y) ran4_init((x),(y))
+#define rng_dbl(x) ran4_dbl32((x))
+#define rng_uint(x) ran4_uint32((x))
+/***********************************************/
+
+#else
+
+/*******************ISAAC64*********************/
+#include "isaac64.h"
+
+#define rng_state isaac64_state
+
+#define rng_init(x,y) isaac64_init((x),(y))
+#define rng_dbl(x) isaac64_dbl32((x))
+#define rng_uint(x) isaac64_uint32((x))
+/***********************************************/
 
 #endif
+
+double rng_gauss(struct rng_state *rng);
+
+#endif
+

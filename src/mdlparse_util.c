@@ -1606,7 +1606,7 @@ int divide_cuboid(struct subdivided_box *b,int axis,int idx,int ndiv)
   int new_n;
   int i,j,k;
   
-  if (ndiv<2) return 0;
+  if (ndiv<2) ndiv=2;
   
   switch(axis)
   {

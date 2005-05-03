@@ -5,7 +5,7 @@ SHELL = /bin/sh
 
 MCELL_VERSION = `head -1 ./mcell.h | cut -d " " -f 6`
 
-UTILITY_OBJS = strfunc.o vector.o rng.o diffuse_util.o mem_util.o sched_util.o grid_util.o util.o 
+UTILITY_OBJS = strfunc.o vector.o ran4.o isaac64.o rng.o diffuse_util.o mem_util.o sched_util.o grid_util.o util.o 
 PARSE_OBJS = argparse.bison.o mdlparse.bison.o mdlparse_util.o sym_table.o 
 COUNT_VIZ_OBJS = viz_output.o react_output.o count_util.o
 CORE_OBJS = react_cond.o react_outc.o react_trig.o wall_util.o vol_util.o diffuse.o init.o 
@@ -16,6 +16,8 @@ EXTRAS = arglex.flex.c argparse.bison.c mdllex.flex.c mdlparse.bison.c mdlparse.
 
 all: $(MCELL_EXEC)
 
+# Note that mcell_structs.h depends on rng.h
+# so always include rng.h if you include mcell_structs.h
 
 # utility
 
@@ -25,19 +27,25 @@ strfunc.o: makedefs strfunc.c strfunc.h
 vector.o: makedefs vector.c vector.h
 	$(CC) $(CFLAGS) -c vector.c
 
-rng.o: makedefs rng.c rng.h
+ran4.o: makedefs ran4.c ran4.h
+	$(CC) $(CFLAGS) -c ran4.c
+	
+isaac64.o: makedefs isaac64.c isaac64.h
+	$(CC) $(CFLAGS) -c isaac64.c
+
+rng.o: makedefs rng.c rng.h ran4.h isaac64.h
 	$(CC) $(CFLAGS) -c rng.c
 
-diffuse_util.o: makedefs diffuse_util.c diffuse_util.h mcell_structs.h
+diffuse_util.o: makedefs diffuse_util.c diffuse_util.h rng.h mcell_structs.h
 	$(CC) $(CFLAGS) -c diffuse_util.c
 
-mem_util.o: makedefs mem_util.c mem_util.h mcell_structs.h
+mem_util.o: makedefs mem_util.c mem_util.h rng.h mcell_structs.h
 	$(CC) $(CFLAGS) -c mem_util.c
 
 sched_util.o: makedefs sched_util.c sched_util.h
 	$(CC) $(CFLAGS) -c sched_util.c
 
-grid_util.o: makedefs grid_util.c grid_util.h vol_util.h mcell_structs.h
+grid_util.o: makedefs grid_util.c grid_util.h vol_util.h rng.h mcell_structs.h
 	$(CC) $(CFLAGS) -c grid_util.c
 
 util.o: makedefs util.c util.h
@@ -48,7 +56,7 @@ util.o: makedefs util.c util.h
 arglex.flex.c: arglex.l strfunc.h argparse.h
 	flex -Cfra arglex.l
 
-argparse.bison.c: argparse.y argparse.h mcell_structs.h arglex.flex.c
+argparse.bison.c: argparse.y argparse.h rng.h mcell_structs.h arglex.flex.c
 	bison argparse.y
 
 argparse.bison.o: makedefs argparse.bison.c arglex.flex.c
@@ -57,52 +65,52 @@ argparse.bison.o: makedefs argparse.bison.c arglex.flex.c
 mdllex.flex.c: mdllex.l strfunc.h mdlparse.h
 	flex -Cfra mdllex.l
 
-mdlparse.bison.c: mdlparse.y mdlparse.h mdllex.flex.c mdlparse_util.h mcell_structs.h vector.h strfunc.h mem_util.h sym_table.h diffuse_util.h rng.h util.h
+mdlparse.bison.c: mdlparse.y mdlparse.h mdllex.flex.c mdlparse_util.h rng.h mcell_structs.h vector.h strfunc.h mem_util.h sym_table.h diffuse_util.h util.h
 	bison -v mdlparse.y
 
 mdlparse.bison.o: makedefs mdlparse.bison.c mdllex.flex.c
 	$(CC) $(CFLAGS) -c mdlparse.bison.c
 
-mdlparse_util.o: makedefs mdlparse_util.c mdlparse_util.h vector.h strfunc.h sym_table.h mcell_structs.h mdlparse.h vol_util.h util.h
+mdlparse_util.o: makedefs mdlparse_util.c mdlparse_util.h vector.h strfunc.h sym_table.h rng.h mcell_structs.h mdlparse.h vol_util.h util.h
 	$(CC) $(CFLAGS) -c mdlparse_util.c
   
-sym_table.o: makedefs sym_table.c sym_table.h mcell_structs.h
+sym_table.o: makedefs sym_table.c sym_table.h rng.h mcell_structs.h
 	$(CC) $(CFLAGS) -c sym_table.c
 
 
 # count/viz  
 
-viz_output.o: makedefs viz_output.c viz_output.h mcell_structs.h sched_util.h grid_util.h util.h
+viz_output.o: makedefs viz_output.c viz_output.h rng.h mcell_structs.h sched_util.h grid_util.h util.h
 	$(CC) $(CFLAGS) -c viz_output.c
 
-react_output.o: makedefs react_output.c react_output.h mcell_structs.h sched_util.h
+react_output.o: makedefs react_output.c react_output.h rng.h mcell_structs.h sched_util.h
 	$(CC) $(CFLAGS) -c react_output.c
 
-count_util.o: makedefs count_util.c count_util.h wall_util.h vol_util.h mcell_structs.h grid_util.h rng.h util.h
+count_util.o: makedefs count_util.c count_util.h wall_util.h vol_util.h rng.h mcell_structs.h grid_util.h rng.h util.h
 	$(CC) $(CFLAGS) -c count_util.c
 
 
 # core
 
-wall_util.o: makedefs wall_util.c wall_util.h rng.h vector.h vol_util.h mcell_structs.h mem_util.h util.h
+wall_util.o: makedefs wall_util.c wall_util.h vector.h vol_util.h rng.h mcell_structs.h mem_util.h util.h
 	$(CC) $(CFLAGS) -c wall_util.c
 
-vol_util.o: makedefs vol_util.c vol_util.h count_util.h rng.h react.h mcell_structs.h mem_util.h util.h
+vol_util.o: makedefs vol_util.c vol_util.h count_util.h rng.h react.h rng.h mcell_structs.h mem_util.h util.h
 	$(CC) $(CFLAGS) -c vol_util.c
 
-react_trig.o: makedefs react_trig.c react.h mcell_structs.h
+react_trig.o: makedefs react_trig.c react.h rng.h mcell_structs.h
 	$(CC) $(CFLAGS) -c react_trig.c
 
-react_cond.o: makedefs react_cond.c react.h mcell_structs.h
+react_cond.o: makedefs react_cond.c react.h rng.h mcell_structs.h
 	$(CC) $(CFLAGS) -c react_cond.c
 
-react_outc.o: makedefs react_outc.c react.h mcell_structs.h
+react_outc.o: makedefs react_outc.c react.h rng.h mcell_structs.h
 	$(CC) $(CFLAGS) -c react_outc.c
 	
-diffuse.o: makedefs diffuse.c diffuse.h rng.h mem_util.h sched_util.h mcell_structs.h count_util.h grid_util.h vol_util.h wall_util.h react.h
+diffuse.o: makedefs diffuse.c diffuse.h mem_util.h sched_util.h rng.h mcell_structs.h count_util.h grid_util.h vol_util.h wall_util.h react.h
 	$(CC) $(CFLAGS) -c diffuse.c
 
-init.o: makedefs init.c init.h mcell_structs.h strfunc.h vector.h rng.h sym_table.h count_util.h vol_util.h wall_util.h grid_util.h viz_output.h react.h seed_array.h util.h
+init.o: makedefs init.c init.h rng.h mcell_structs.h strfunc.h vector.h sym_table.h ran4.h count_util.h vol_util.h wall_util.h grid_util.h viz_output.h react.h seed_array.h util.h
 	$(CC) $(CFLAGS) -c init.c
 
   

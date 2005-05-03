@@ -1031,12 +1031,11 @@ num_expr: num_value
 }
 	| RAND_UNIFORM
 {
-  $$=rng_double(mdlpvp->vol->seed++);
+  $$=rng_dbl(mdlpvp->vol->rng);
 }
 	| RAND_GAUSSIAN
 {
-  double r;
-  $$=gaussran4( &(mdlpvp->vol->seed) , &r , 1 , 0.0 , 1.0 );
+  $$=rng_gauss(mdlpvp->vol->rng);
 }
 	| SEED
 {
@@ -1176,12 +1175,11 @@ num_expr_only: intOrReal
 }
 	| RAND_UNIFORM
 {
-  $$=rng_double(mdlpvp->vol->seed++);
+  $$=rng_dbl(mdlpvp->vol->rng);
 }
 	| RAND_GAUSSIAN
 {
-  double r;
-  $$=gaussran4( &(mdlpvp->vol->seed) , &r , 1 , 0.0 , 1.0 );
+  $$=rng_gauss(mdlpvp->vol->rng);
 }
 	| SEED
 {
