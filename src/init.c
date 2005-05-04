@@ -127,7 +127,9 @@ int init_sim(void)
   struct output_block *obp,*obpn;
   int i;
   int *intp;
+#ifdef USE_RAN4
 #include "seed_array.h"
+#endif 
 
   log_file=world->log_file;
 #ifdef KELP
@@ -195,17 +197,6 @@ int init_sim(void)
   world->z_fineparts = NULL;
   world->n_fineparts = 0;
 
-#ifdef USE_RAN4
-  if (world->seed_seq < 1 || world->seed_seq > 3000) {
-    fprintf(log_file,"MCell: error, random sequence number not in range 1 to 3000\n  Recompile without USE_RAN4 flag in rng.h to increase the range\n");
-    return(1);
-  }
-#else
-  if (world->seed_seq < 1 || world->seed_seq > INT_MAX) {
-    fprintf(log_file,"MCell: error, random sequence number not in range 1 to 2^31-1\n");
-    return(1);
-  }
-#endif
 
   world->rng = malloc(sizeof(struct rng_state));
   if (world->rng==NULL)
@@ -213,10 +204,24 @@ int init_sim(void)
     fprintf(world->err_file,"Out of memory: failed to allocate random number generator\n");
     exit(EXIT_FAILURE);
   }
+#ifdef USE_RAN4
+  if (world->seed_seq < 1 || world->seed_seq > 3000) {
+    fprintf(log_file,"MCell: error, random sequence number not in range 1 to 3000\n  Recompile without USE_RAN4 flag in rng.h to increase the range\n");
+    return(1);
+  }
   world->init_seed = seed_array[world->seed_seq-1];
   rng_init(world->rng,world->init_seed);
   fprintf(log_file,"MCell[%d]: random sequence: %d  seed: %d\n", world->procnum,world->seed_seq,world->init_seed);
   fflush(log_file);
+#else
+  if (world->seed_seq < 1 || world->seed_seq > INT_MAX) {
+    fprintf(log_file,"MCell: error, random sequence number not in range 1 to 2^31-1\n");
+    return(1);
+  }
+  rng_init(world->rng,world->seed_seq);
+  fprintf(log_file,"MCell[%d]: random sequence %d\n",world->procnum,world->seed_seq);
+  fflush(log_file);
+#endif
 
   world->count_hashmask = COUNT_HASHMASK;
   world->count_hash = (struct counter**)malloc(sizeof(struct counter*)*(world->count_hashmask+1));

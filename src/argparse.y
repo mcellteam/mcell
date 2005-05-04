@@ -5,6 +5,7 @@
   #include <unistd.h>
   #include <stdarg.h>
   #include <fcntl.h>
+  #include "rng.h"
   #include "mcell_structs.h"
   #include "strfunc.h"
   #include "argparse.h"
@@ -113,12 +114,14 @@ mdl_infile_cmd: FILE_NAME
 seed_cmd: SEED_OPT int_arg
 {
   volp->seed_seq=(int) $<dbl>2;
+#ifdef USE_RAN4
   if (volp->seed_seq < 1 || volp->seed_seq > 3000) {
     sprintf(argpvp->arg_err_msg,"Random sequence number %d not in range 1 to 3000",
       volp->seed_seq);
     argerror(argpvp->arg_err_msg,argpvp);
     return(1);
   }
+#endif
 };
 
 iterations_cmd: ITERATIONS_OPT int_arg
