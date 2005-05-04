@@ -73,7 +73,7 @@ Macros to get individual random numbers
        rng->randcnt=RANDMAX-2, \
        DBL64 * ((*((ub8 *)(((ub4 *)(rng->randrsl)) + rng->randcnt)))>>11) ))
 
-#define isaac64s_dbl64(rng) \
+#define isaac64_dbl64(rng) \
    (rng->randcnt>1 ? \
      ( DBL64 * (*((ub8 *)(((ub4 *)(rng->randrsl)) + (rng->randcnt-=2)))) ) : \
      ( isaac64_generate(rng), \
