@@ -222,7 +222,7 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
   struct output_item *oip,*oi;
   struct output_evaluator *oep;
   u_int n_output;
-  u_int i,stop_i;
+  u_int i,stop_i,ii;
   u_int n_cols;
   
   log_file = world->log_file;
@@ -269,13 +269,14 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
     {
       fprintf(fp,"%.9g",obp->time_array[i]);
             
-      for (oip=oi ; oip!=NULL ; oip=oip->next_column)
+      
+      for (ii=0,oip=oi ; oip!=NULL ; oip=oip->next_column,ii++)
       {
 	oep = oip->count_expr;
 	if (oep->index_type!=TIME_STAMP_VAL)
 	{
-	  fprintf(world->err_file,"Unsupported count index type, please contact the development team.\n");
-	  return 1;
+	  fprintf(world->err_file,"Warning: no data (no geometry?) to count for column %d of '%s' -- skipping column.\n",ii+2,oi->outfile_name);
+	  continue;
 	}
 	
 	/* For the correct writing of the final_data to the output file
@@ -300,8 +301,8 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
 	}
 	else
 	{
-	  fprintf(world->err_file,"Trying to output a count that is a non-numeric value.\n");
-	  return 1;
+	  fprintf(world->err_file,"Warning: non-numeric count for column %d of '%s' -- skipping column.\n",ii+2,oi->outfile_name);
+	  continue;
 	}
       }
       
