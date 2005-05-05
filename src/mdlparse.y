@@ -3289,6 +3289,10 @@ box_def: new_object BOX '{'
     mdlerror("Could not turn box object into polygons");
     return 1;
   }
+  else
+  {
+    fprintf(volp->log_file,"Box object %s converted into %d polygons\n",mdlpvp->curr_obj->sym->name,mdlpvp->opp->n_walls);
+  }
   
   mdlpvp->pop->n_walls = mdlpvp->opp->n_walls;
   mdlpvp->pop->n_verts = mdlpvp->opp->n_verts;

@@ -485,7 +485,7 @@ int init_species(void)
     }
   }
   
-  world->n_species = count;  printf("Found %d species!\n",world->n_species);
+  world->n_species = count;
   if((world->species_list = (struct species**)malloc(sizeof(struct species*)*world->n_species)) == NULL)
   {
 	fprintf(stderr, "Out of memory during species initialization.\n");
@@ -1294,30 +1294,14 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
   }
 
 /* Allocate and initialize walls and vertices */
-    if ((w=(struct wall *)malloc(n_walls*sizeof(struct wall)))==NULL) {
-		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        	int i = emergency_output();
-		fprintf(stderr,"Fatal error: out of memory while instantion of polygon object.\nAttempt to write intermediate results had %d errors.\n", i);
-        	exit(EXIT_FAILURE);
-    }
-    if ((wp=(struct wall **)malloc(n_walls*sizeof(struct wall *)))==NULL) {
-		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        	int i = emergency_output();
-		fprintf(stderr,"Fatal error: out of memory while instantion of polygon object.\nAttempt to write intermediate results had %d errors.\n", i);
-        	exit(EXIT_FAILURE);
-    }
-    if ((v=(struct vector3 *)malloc(n_verts*sizeof(struct vector3)))==NULL) {
-		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        	int i = emergency_output();
-		fprintf(stderr,"Fatal error: out of memory while instantion of polygon object.\nAttempt to write intermediate results had %d errors.\n", i);
-        	exit(EXIT_FAILURE);
-    }
-    if ((vp=(struct vector3 **)malloc
-        (n_verts*sizeof(struct vector3 *)))==NULL) {
-		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        	int i = emergency_output();
-		fprintf(stderr,"Fatal error: out of memory while instantion of polygon object.\nAttempt to write intermediate results had %d errors.\n", i);
-        	exit(EXIT_FAILURE);
+    w=(struct wall *)malloc(n_walls*sizeof(struct wall));
+    wp=(struct wall **)malloc(n_walls*sizeof(struct wall *));
+    v=(struct vector3 *)malloc(n_verts*sizeof(struct vector3));
+    vp=(struct vector3 **)malloc(n_verts*sizeof(struct vector3 *)); 
+    if (w==NULL || wp==NULL || v==NULL || vp==NULL)
+    {
+      fprintf(world->err_file,"Out of memory while instantiating polygon object.  Quitting.\n");
+      exit(EXIT_FAILURE);
     }
     objp->walls=w;
     objp->wall_p=wp;
@@ -1405,8 +1389,11 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
       }
     }
     objp->total_area=total_area;
-				printf("n_walls = %d\n", n_walls);
-				printf("n_walls_actual = %d\n", objp->n_walls_actual);
+
+#ifdef DEBUG    
+  printf("n_walls = %d\n", n_walls);
+  printf("n_walls_actual = %d\n", objp->n_walls_actual);
+#endif
 
   return(0);
 }
@@ -1541,17 +1528,13 @@ int init_wall_regions(struct object *objp, char *full_name)
   n_walls=pop->n_walls;
 
    
-    no_printf("Processing %d regions in polygon list object: %s\n",
-      objp->num_regions,full_name);
-    fflush(log_file);
+    no_printf("Processing %d regions in polygon list object: %s\n",objp->num_regions,full_name);
 
   /* allocate scratch storage to hold effector info for each wall */
-    if ((eff_prop=(struct eff_dat **)malloc
-       (n_walls*sizeof(struct eff_dat *)))==NULL) {
-		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        	int i = emergency_output();
-		fprintf(stderr,"Fatal error: out of memory while wall regions initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        	exit(EXIT_FAILURE);
+    if ((eff_prop=(struct eff_dat **)malloc(n_walls*sizeof(struct eff_dat *)))==NULL)
+    {
+      fprintf(world->err_file,"Out of memory: can't create space for molecules on a region.\n");
+      return 1;
     }
 
     for (i=0;i<n_walls;i++) {
@@ -1582,10 +1565,9 @@ int init_wall_regions(struct object *objp, char *full_name)
       if (lig_hit!=NULL) {
 	lig_hit_flag=1;
       }
-      printf("Checking region %s on %s\n",rp->sym->name,objp->sym->name);
       if (rp->membership==NULL)
       {
-	printf("Hey, we never filled the membership information for %s\n",rp->sym->name);
+	fprintf(world->err_file,"Internal error: incomplete region information for %s\n  Ignoring region and continuing.\n",rp->sym->name);
         rlp=rlp->next;
       }
       for (i=0;i<rp->membership->nbits;i++)
@@ -1596,13 +1578,13 @@ int init_wall_regions(struct object *objp, char *full_name)
 	     only if the region is used in counting */
 	  w=objp->wall_p[i];
 	  rp->area += w->area;
-	  if ((rp->flags & COUNT_SOME) !=0) {
-	    if ((wrlp=(struct region_list *)mem_get
-	      (w->birthplace->regl))==NULL) {
-		      fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-		      int i = emergency_output();
-		      fprintf(stderr,"Fatal error: out of memory while wall regions initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-		      exit(EXIT_FAILURE);
+	  if ((rp->flags & COUNT_SOME) !=0)
+	  {
+	    wrlp = (struct region_list *)mem_get(w->birthplace->regl);
+	    if (wrlp==NULL)
+	    {
+	      fprintf(world->err_file,"Out of memory: can't place regions on geometry.\n");
+	      return 1;
 	    }
 	    wrlp->reg=rp;
 	    wrlp->next=w->regions;
@@ -1616,12 +1598,10 @@ int init_wall_regions(struct object *objp, char *full_name)
 	  effdp=rp->eff_dat_head;
 	  while (effdp!=NULL) {
 	    if (effdp->quantity_type==EFFDENS) {
-	      if ((dup_effdp=(struct eff_dat *)malloc
-		   (sizeof(struct eff_dat)))==NULL){
-		      fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-		      int i = emergency_output();
-		      fprintf(stderr,"Fatal error: out of memory while wall regions initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-		      exit(EXIT_FAILURE);
+	      if ((dup_effdp=(struct eff_dat *)malloc(sizeof(struct eff_dat)))==NULL)
+	      {
+		fprintf(world->err_file,"Out of memory: can't create space for molecules on a region.\n");
+		return 1;
 	      }
 	      dup_effdp->eff=effdp->eff;
 	      dup_effdp->quantity_type=effdp->quantity_type;
@@ -1643,12 +1623,10 @@ int init_wall_regions(struct object *objp, char *full_name)
 	    effdp=rp->surf_class->eff_dat_head;
 	    while (effdp!=NULL) {
 	      if (effdp->quantity_type==EFFDENS) {
-		if ((dup_effdp=(struct eff_dat *)malloc
-		     (sizeof(struct eff_dat)))==NULL){
-		      fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-		      int i = emergency_output();
-		      fprintf(stderr,"Fatal error: out of memory while wall regions initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-		      exit(EXIT_FAILURE);
+		if ((dup_effdp=(struct eff_dat *)malloc(sizeof(struct eff_dat)))==NULL)
+		{
+		  fprintf(world->err_file,"Out of memory: can't create space for molecules on a region.\n");
+		  return 1;
 		}
 		dup_effdp->eff=effdp->eff;
 		dup_effdp->quantity_type=effdp->quantity_type;
@@ -1666,34 +1644,32 @@ int init_wall_regions(struct object *objp, char *full_name)
 
 	}
       }
-      if (reg_eff_num) {
-        if ((rlp2=(struct region_list *)malloc
-             (sizeof(struct region_list)))==NULL){
-			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        		int i = emergency_output();
-			fprintf(stderr,"Fatal error: out of memory while wall regions initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
+      if (reg_eff_num)
+      {
+        if ((rlp2=(struct region_list *)malloc(sizeof(struct region_list)))==NULL)
+	{
+	  fprintf(world->err_file,"Out of memory: can't place regions on geometry.\n");
+	  return 1;
         }
         rlp2->reg=rp;
         rlp2->next=reg_eff_num_head;
         reg_eff_num_head=rlp2;
       }
       if (reg_count_num) {
-        if ((rlp3=(struct region_list *)malloc
-             (sizeof(struct region_list)))==NULL){
-          return(1);
+        if ((rlp3=(struct region_list *)malloc(sizeof(struct region_list)))==NULL)
+	{
+	  fprintf(world->err_file,"Out of memory: can't place regions on geometry.\n");
+	  return 1;
         }
         rlp3->reg=rp;
         rlp3->next=reg_count_head;
         reg_count_head=rlp3;
       }
       if (lig_hit_flag) {
-        if ((rlp4=(struct region_list *)malloc
-             (sizeof(struct region_list)))==NULL){
-			fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        		int i = emergency_output();
-			fprintf(stderr,"Fatal error: out of memory while wall regions initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
+        if ((rlp4=(struct region_list *)malloc(sizeof(struct region_list)))==NULL)
+	{
+	  fprintf(world->err_file,"Out of memory: can't place regions on geometry.\n");
+	  return 1;
         }
         rlp4->reg=rp;
         rlp4->next=lig_hit_count;

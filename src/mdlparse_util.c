@@ -715,6 +715,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   
   num_rx = 0;
   
+  fprintf(mpvp->vol->log_file,"\nReaction probabilities generated for the following reactions:\n");
+  
   if (mpvp->vol->rx_radius_3d <= 0.0)
   {
     mpvp->vol->rx_radius_3d = 1.0/sqrt( MY_PI*mpvp->vol->effector_grid_density );
@@ -824,7 +826,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	    if (path->kcat==KCAT_RATE_TRANSPARENT) rx->n_pathways = RX_TRANSP;
             if (j!=0 || path->next!=NULL)
             {
-              printf("Warning: mixing surface modes with other surface reactions.  Please don't.\n");
+              fprintf(mpvp->vol->err_file,"Warning: mixing surface modes with other surface reactions.  Please don't.\n");
             }
           }
 
@@ -877,7 +879,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               kk = load_rate_file( rx , path->km_filename , j , mpvp );
               if (kk)
               {
-                printf("Couldn't load rates from file %s\n",path->km_filename);
+                fprintf(mpvp->vol->err_file,"Couldn't load rates from file %s\n",path->km_filename);
                 return 1;
               }
             }
@@ -1020,15 +1022,15 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         if (rx->n_reactants==1) {
           pb_factor=1;
           rx->cum_probs[0]=1.0-exp(-mpvp->vol->time_unit*rx->cum_probs[0]);
-          printf("Probability %.4e set for %s[%d] -> ",rx->cum_probs[0],
+          fprintf(mpvp->vol->log_file,"\tProbability %.4e set for %s[%d] -> ",rx->cum_probs[0],
                  rx->players[0]->sym->name,rx->geometries[0]);
 
           for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
           {
-            if (rx->players[k]==NULL) printf("NIL ");
-            else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+            if (rx->players[k]==NULL) fprintf(mpvp->vol->log_file,"NIL ");
+            else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
           }
-          printf("\n");
+          fprintf(mpvp->vol->log_file,"\n");
         }
         else if (((rx->players[0]->flags & (IS_SURFACE | ON_GRID)) != 0 ||
                   (rx->players[1]->flags & (IS_SURFACE | ON_GRID)) != 0) &&
@@ -1058,22 +1060,22 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
           rx->cum_probs[0] = pb_factor * rx->cum_probs[0];
 
-          printf("Probability %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_probs[0],
+          fprintf(mpvp->vol->log_file,"\tProbability %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_probs[0],
                  rx->players[0]->sym->name,rx->geometries[0],
                  rx->players[1]->sym->name,rx->geometries[1]);
           if (rx->n_pathways <= RX_SPECIAL)
           {
-            if (rx->n_pathways == RX_TRANSP) printf("(TRANSPARENT)");
+            if (rx->n_pathways == RX_TRANSP) fprintf(mpvp->vol->log_file,"(TRANSPARENT)");
           }
           else
           {
             for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
             {
-              if (rx->players[k]==NULL) printf("NIL ");
-              else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+              if (rx->players[k]==NULL) fprintf(mpvp->vol->log_file,"NIL ");
+              else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
             }
           }
-          printf("\n");
+          fprintf(mpvp->vol->log_file,"\n");
         }
         else
         {
@@ -1085,7 +1087,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  
 	  if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
 	  {
-	    printf("Error: Reaction between %s and %s listed, but both marked TARGET_ONLY\n",
+	    fprintf(mpvp->vol->err_file,"Error: Reaction between %s and %s listed, but both marked TARGET_ONLY\n",
 	           rx->players[0]->sym->name,rx->players[1]->sym->name);
             return 1;
 	  }
@@ -1117,16 +1119,16 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 #endif
 	  
           rx->cum_probs[0]=pb_factor*rx->cum_probs[0];
-          printf("Probability %.4e (l) set for %s[%d] + %s[%d] -> ",
+          fprintf(mpvp->vol->log_file,"\tProbability %.4e (l) set for %s[%d] + %s[%d] -> ",
                  rx->cum_probs[0],
                  rx->players[0]->sym->name,rx->geometries[0],
                  rx->players[1]->sym->name,rx->geometries[1]);
           for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
           {
-            if (rx->players[k]==NULL) printf("NIL ");
-            else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+            if (rx->players[k]==NULL) fprintf(mpvp->vol->log_file,"NIL ");
+            else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
           }
-          printf("\n");
+          fprintf(mpvp->vol->log_file,"\n");
         }
 
         for (j=1;j<rx->n_pathways;j++)
@@ -1134,17 +1136,17 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           if (rx->n_reactants==1) rate = 1.0-exp(-mpvp->vol->time_unit*rx->cum_probs[j]);
           else rate = pb_factor*rx->cum_probs[j];
 
-          printf("Probability %.3e set for ",rate);
-          if (rx->n_reactants==1) printf("%s[%d] -> ",rx->players[0]->sym->name,rx->geometries[0]);
-          else printf("%s[%d] + %s[%d] -> ",
+          fprintf(mpvp->vol->log_file,"\tProbability %.3e set for ",rate);
+          if (rx->n_reactants==1) fprintf(mpvp->vol->log_file,"%s[%d] -> ",rx->players[0]->sym->name,rx->geometries[0]);
+          else fprintf(mpvp->vol->log_file,"%s[%d] + %s[%d] -> ",
                       rx->players[0]->sym->name,rx->geometries[0],
                       rx->players[1]->sym->name,rx->geometries[1]);
           for (k = rx->product_idx[j] ; k < rx->product_idx[j+1] ; k++)
           {
-            if (rx->players[k]==NULL) printf("NIL ");
-            else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+            if (rx->players[k]==NULL) fprintf(mpvp->vol->log_file,"NIL ");
+            else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
           }
-          printf("\n");
+          fprintf(mpvp->vol->log_file,"\n");
           rx->cum_probs[j] = rate + rx->cum_probs[j-1];
         }
         
@@ -1274,7 +1276,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       }
     }
   }
-
+  fprintf(mpvp->vol->log_file,"\n");
   return 0;
 }
 
@@ -1528,7 +1530,6 @@ int refine_cuboid(struct vector3 *p1,struct vector3 *p2,struct subdivided_box *b
       b->x = new_list;
       b->nx = new_n;
     }
-    printf("Branch x done.\n");
   }
   if (i&BRANCH_Y) /* Same as above with x->y */
   {
@@ -1553,7 +1554,6 @@ int refine_cuboid(struct vector3 *p1,struct vector3 *p2,struct subdivided_box *b
       b->y = new_list;
       b->ny = new_n;
     }
-    printf("Branch y done.\n");
   }
   if (i&BRANCH_Z)  /* Same again, x->z */
   {
@@ -1578,7 +1578,6 @@ int refine_cuboid(struct vector3 *p1,struct vector3 *p2,struct subdivided_box *b
       b->z = new_list;
       b->nz = new_n;
     }
-    printf("Branch z done.\n");
   }
  
   return 0;
@@ -1888,11 +1887,8 @@ int normalize_elements(struct region *reg, int existing)
   {
     po = (struct polygon_object*)reg->parent->contents;
     n_elts = count_cuboid_elements(po->sb);
-    print_cuboid(po->sb);
   }
   else n_elts = reg->parent->n_walls;
-  
-  printf("Normalizing region %s\n",reg->sym->name);
   
   if (reg->membership == NULL)
   {
@@ -1922,7 +1918,6 @@ int normalize_elements(struct region *reg, int existing)
     if (reg->parent->object_type==BOX_OBJ && el->begin>=0)
     {
       i = el->begin;
-      printf("Using switch statement %d\n",i);
       switch(i)
       {
 	case X_NEG:
@@ -2073,7 +2068,7 @@ int polygonalize_cuboid(struct ordered_poly *opp,struct subdivided_box *sb)
   
   if (opp->vertex==NULL || opp->element==NULL) return 1;
   
-  for (a=0;a<2;a++) for (b=0;b<2;b++) for (c=0;c<2;c++) printf("%d,%d,%d->%d\n",a,b,c,vertex_at_index(sb,a,b,c));
+/*  for (a=0;a<2;a++) for (b=0;b<2;b++) for (c=0;c<2;c++) printf("%d,%d,%d->%d\n",a,b,c,vertex_at_index(sb,a,b,c)); */
   
   for (i=0;i<opp->n_walls;i++) opp->element[i].n_verts = 3;
   
@@ -2088,7 +2083,7 @@ int polygonalize_cuboid(struct ordered_poly *opp,struct subdivided_box *sb)
     a = sb->ny;
     for ( i=0 ; i<sb->ny ; i++ )
     {
-      printf("Setting indices %d %d\n",b+j*a+i,c+j*a+i);
+      /*printf("Setting indices %d %d\n",b+j*a+i,c+j*a+i);*/
       v = &(opp->vertex[b+j*a+i]);
       v->x = sb->x[0];
       v->y = sb->y[i];
@@ -2116,7 +2111,7 @@ int polygonalize_cuboid(struct ordered_poly *opp,struct subdivided_box *sb)
 	e->vertex_index[0] = vertex_at_index(sb,sb->nx-1,i,j);
 	e->vertex_index[2] = vertex_at_index(sb,sb->nx-1,i,j-1);
 	e->vertex_index[1] = vertex_at_index(sb,sb->nx-1,i-1,j);
-        printf("Setting elements %d %d %d %d of %d\n",bb+ii,bb+ii+1,cc+ii,cc+ii+1,opp->n_walls);
+        /*printf("Setting elements %d %d %d %d of %d\n",bb+ii,bb+ii+1,cc+ii,cc+ii+1,opp->n_walls);*/
 	
 	ii+=2;
       }
@@ -2135,7 +2130,7 @@ int polygonalize_cuboid(struct ordered_poly *opp,struct subdivided_box *sb)
     {
       if (i<sb->nx-1)
       {
-        printf("Setting indices %d %d of %d\n",b+j*a+(i-1),c+j*a+(i-1),opp->n_verts);
+        /*printf("Setting indices %d %d of %d\n",b+j*a+(i-1),c+j*a+(i-1),opp->n_verts);*/
 	v = &(opp->vertex[b+j*a+(i-1)]);
 	v->x = sb->x[i];
 	v->y = sb->y[0];
@@ -2164,7 +2159,7 @@ int polygonalize_cuboid(struct ordered_poly *opp,struct subdivided_box *sb)
 	e->vertex_index[0] = vertex_at_index(sb,i,sb->ny-1,j);
 	e->vertex_index[1] = vertex_at_index(sb,i,sb->ny-1,j-1);
 	e->vertex_index[2] = vertex_at_index(sb,i-1,sb->ny-1,j);
-        printf("Setting elements %d %d %d %d of %d\n",bb+ii,bb+ii+1,cc+ii,cc+ii+1,opp->n_walls);
+        /*printf("Setting elements %d %d %d %d of %d\n",bb+ii,bb+ii+1,cc+ii,cc+ii+1,opp->n_walls);*/
 	
 	ii+=2;	
       }
@@ -2183,7 +2178,7 @@ int polygonalize_cuboid(struct ordered_poly *opp,struct subdivided_box *sb)
     {
       if (i<sb->nx-1 && j<sb->ny-1)
       {
-	printf("Setting indices %d %d of %d\n",b+(j-1)*a+(i-1),c+(j-1)*a+(i-1),opp->n_verts);
+	/*printf("Setting indices %d %d of %d\n",b+(j-1)*a+(i-1),c+(j-1)*a+(i-1),opp->n_verts);*/
 	v = &(opp->vertex[b+(j-1)*a+(i-1)]);
 	v->x = sb->x[i];
 	v->y = sb->y[j];
@@ -2211,17 +2206,19 @@ int polygonalize_cuboid(struct ordered_poly *opp,struct subdivided_box *sb)
       e->vertex_index[2] = vertex_at_index(sb,i,j-1,sb->nz-1);
       e->vertex_index[1] = vertex_at_index(sb,i-1,j,sb->nz-1);
       
-      printf("Setting elements %d %d %d %d of %d\n",bb+ii,bb+ii+1,cc+ii,cc+ii+1,opp->n_walls);
+      /*printf("Setting elements %d %d %d %d of %d\n",bb+ii,bb+ii+1,cc+ii,cc+ii+1,opp->n_walls);*/
       
       ii+=2;   
     }
   }
   
+#ifdef DEBUG
   printf("BOX has vertices:\n");
   for (i=0;i<opp->n_verts;i++) printf("  %.5e %.5e %.5e\n",opp->vertex[i].x,opp->vertex[i].y,opp->vertex[i].z);
   printf("BOX has walls:\n");
   for (i=0;i<opp->n_walls;i++) printf("  %d %d %d\n",opp->element[i].vertex_index[0],opp->element[i].vertex_index[1],opp->element[i].vertex_index[2]);
   printf("\n");
+#endif
   
   return 0;
 }
@@ -2238,15 +2235,15 @@ void remove_gaps_from_regions(struct object *ob)
   
   for (rl=ob->regions;rl!=NULL;rl=rl->next)
   {
-    printf("Checking region %s\n",rl->reg->sym->name);
+    no_printf("Checking region %s\n",rl->reg->sym->name);
     if (rl->reg->surf_class == (struct species*)&(rl->reg->surf_class))
     {
-      printf("Found a REMOVED region\n");
+      no_printf("Found a REMOVED region\n");
       rl->reg->surf_class=NULL;
       bit_operation(po->side_removed,rl->reg->membership,'+');
       set_all_bits(rl->reg->membership,0);
     }
-    else printf("Found a region with surface class %x stored at %x\n",(int)rl->reg->surf_class,(int)&(rl->reg->surf_class));
+    else no_printf("Found a region with surface class %x stored at %x\n",(int)rl->reg->surf_class,(int)&(rl->reg->surf_class));
   }
   
   missing=0;
