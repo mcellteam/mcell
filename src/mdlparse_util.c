@@ -95,7 +95,7 @@ struct name_list *concat_obj_name(struct name_list *name_list_end,char *name)
     strcat(temp,".");
     np->name=my_strcat(temp,name);
     if(np->name == NULL){
-	mdlerror("Memory allocation error\n");
+	mdlerror_nested("Memory allocation error\n");
         return (NULL);
     }
     np->next=NULL;
@@ -110,7 +110,7 @@ struct name_list *concat_obj_name(struct name_list *name_list_end,char *name)
     strcat(temp,".");
     np->name=my_strcat(temp,name);
     if(np->name == NULL){
-	mdlerror("Memory allocation error\n");
+	mdlerror_nested("Memory allocation error\n");
         return (NULL);
     }
     return(np);
@@ -126,13 +126,13 @@ char *get_first_name(char *obj_name)
 
   tmp_name=my_strdup(obj_name);
   if(tmp_name == NULL){
-	mdlerror("Memory allocation error\n");
+	mdlerror_nested("Memory allocation error\n");
 	return (NULL);
   } 
   first_name=strtok(tmp_name,"."); 
   first_name=my_strdup(tmp_name);
   if(first_name == NULL){
-	mdlerror("Memory allocation error\n");
+	mdlerror_nested("Memory allocation error\n");
 	return (NULL);
   } 
   free((void *)tmp_name);
@@ -150,12 +150,12 @@ char *get_prefix_name(char *obj_name)
 
   prefix_name=my_strdup("");
   if(prefix_name == NULL){
-	mdlerror("Memory allocation error\n");
+	mdlerror_nested("Memory allocation error\n");
 	return (NULL);
   } 
   tmp_name=my_strdup(obj_name);
   if(tmp_name == NULL){
-	mdlerror("Memory allocation error\n");
+	mdlerror_nested("Memory allocation error\n");
 	return (NULL);
   } 
   tmp_name2=strtok(tmp_name,"."); 
@@ -167,20 +167,20 @@ char *get_prefix_name(char *obj_name)
         free((void *)prefix_name);
         next_name=my_strdup("");
         if(next_name == NULL){
-		mdlerror("Memory allocation error\n");
+		mdlerror_nested("Memory allocation error\n");
 		return (NULL);
   	} 
       }
       else {
         next_name=my_strcat(prefix_name,".");
         if(next_name == NULL){
-		mdlerror("Memory allocation error\n");
+		mdlerror_nested("Memory allocation error\n");
 		return (NULL);
   	} 
       }
       prefix_name=my_strcat(next_name,prev_name);
       if(prefix_name == NULL){
-	  mdlerror("Memory allocation error\n");
+	  mdlerror_nested("Memory allocation error\n");
 	  return (NULL);
       } 
       prev_name=tmp_name2;
@@ -204,20 +204,20 @@ struct object *find_full_name(struct object *objp,char *full_name,
     if (strcmp(sub_name,"")==0) {
       tmp_name=my_strdup("");
       if(tmp_name == NULL){
-	  mdlerror("Memory allocation error\n");
+	  mdlerror_nested("Memory allocation error\n");
 	  return (NULL);
       } 
     }
     else {
       tmp_name=my_strcat(sub_name,".");
       if(tmp_name == NULL){
-	  mdlerror("Memory allocation error\n");
+	  mdlerror_nested("Memory allocation error\n");
 	  return (NULL);
       } 
     }
     sub_name=my_strcat(tmp_name,objp->last_name);
     if(sub_name == NULL){
-	  mdlerror("Memory allocation error\n");
+	  mdlerror_nested("Memory allocation error\n");
 	  return (NULL);
     } 
     free((void *)tmp_name);
@@ -225,7 +225,7 @@ struct object *find_full_name(struct object *objp,char *full_name,
   else {
     sub_name=my_strdup(objp->last_name);
     if(sub_name == NULL){
-	  mdlerror("Memory allocation error\n");
+	  mdlerror_nested("Memory allocation error\n");
 	  return (NULL);
     } 
   }
@@ -283,7 +283,7 @@ struct region *make_new_region(struct volume *volp,char *obj_name,
   strcat(temp,",");   
   region_name=my_strcat(temp,region_last_name);
   if(region_name == NULL) {
-	mdlerror("Memory allocation error\n");
+	mdlerror_nested("Memory allocation error\n");
 	return (NULL);
   }
   if ((gp=retrieve_sym(region_name,REG,volp->main_sym_table))==NULL) {
@@ -313,7 +313,7 @@ struct region *retrieve_old_region(struct volume *volp,char *obj_name,
   strcat(temp,",");   
   region_name=my_strcat(temp,region_last_name);
   if(region_name == NULL) {
-	mdlerror("Memory allocation error\n");
+	mdlerror_nested("Memory allocation error\n");
 	return (NULL);
   }
   
@@ -367,7 +367,7 @@ int copy_object(struct volume *volp,struct object *curr_objp,
     rlp->reg=rp;
     rp->region_last_name=my_strdup(rp2->region_last_name);
     if(rp->region_last_name == NULL){
-	  mdlerror("Memory allocation error\n");
+	  mdlerror_nested("Memory allocation error\n");
 	  return (1);
     } 
     rp->parent=objp;
@@ -427,7 +427,7 @@ int copy_object(struct volume *volp,struct object *curr_objp,
         strcat(temp,".");   
         child_obj_name=my_strcat(temp,child_objp2->last_name);
         if(child_obj_name == NULL){
-	     mdlerror("Memory allocation error\n");
+	     mdlerror_nested("Memory allocation error\n");
 	     return (1);
         } 
         if ((child_objp=make_new_object(volp,child_obj_name,err_msg))==NULL) {
@@ -435,7 +435,7 @@ int copy_object(struct volume *volp,struct object *curr_objp,
         }
         child_objp->last_name=my_strdup(child_objp2->last_name);
         if(child_objp->last_name == NULL){
-	  mdlerror("Memory allocation error\n");
+	  mdlerror_nested("Memory allocation error\n");
 	  return (1);
         } 
 
@@ -482,24 +482,24 @@ char *concat_rx_name(char *name1, char *name2)
   if (strcmp(name1,name2)<=0) {
     tmp_name=my_strcat(name1,"+");
     if(tmp_name == NULL){
-	mdlerror("Memory allocation error.\n");
+	mdlerror_nested("Memory allocation error.\n");
         return (NULL);
     }
     rx_name=my_strcat(tmp_name,name2);
     if(rx_name == NULL){
-	mdlerror("Memory allocation error.\n");
+	mdlerror_nested("Memory allocation error.\n");
         return (NULL);
     }
   }
   else {
     tmp_name=my_strcat(name2,"+");
     if(tmp_name == NULL){
-	mdlerror("Memory allocation error.\n");
+	mdlerror_nested("Memory allocation error.\n");
         return (NULL);
     }
     rx_name=my_strcat(tmp_name,name1);
     if(rx_name == NULL){
-	mdlerror("Memory allocation error.\n");
+	mdlerror_nested("Memory allocation error.\n");
         return (NULL);
     }
   }
@@ -624,7 +624,7 @@ int load_rate_file(struct rxn *rx , char *fname , int path, struct mdlparse_vars
         
         tp = mem_get(mpvp->vol->rxn_mem);
         if(tp == NULL){
-		mdlerror("Memory allocation error.\n");
+		mdlerror_nested("Memory allocation error.\n");
 		return (1);
         }
         tp->next = NULL;
@@ -1406,7 +1406,7 @@ struct subdivided_box* init_cuboid(struct vector3 *p1,struct vector3 *p2)
   
   if (p2->x-p1->x < EPS_C || p2->y-p1->y < EPS_C || p2->z-p1->z < EPS_C)
   {
-    mdlerror("Box vertices out of order or box is degenerate.");
+    mdlerror_nested("Box vertices out of order or box is degenerate.");
     return NULL;
   }
 
@@ -1503,7 +1503,7 @@ int refine_cuboid(struct vector3 *p1,struct vector3 *p2,struct subdivided_box *b
   
   if (i==0)
   {
-    mdlerror("Invalid patch specified");
+    mdlerror_nested("Invalid patch specified");
     return 1;
   }
   
@@ -1850,13 +1850,12 @@ void cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct ve
       base = 2*(sb->ny-1)*(sb->nz-1) + 2*(sb->nx-1)*(sb->nz-1) + (sb->nx-1)*(sb->ny-1);
       break;
     default:
-      printf("Error!\n");
+      mdlerror_nested("Peculiar error while converting box to triangles (should never happen)!\n");
       return;
   }
   
   set_all_bits(ba,0);
-  printf("Range is %d->%d, %d->%d\n",a_lo,a_hi,b_lo,b_hi);
-  
+
   if (a_lo==0 && a_hi==line-1)
   {
     set_bit_range(ba , 2*(base+line*b_lo+a_lo) , 2*(base+line*b_hi+a_hi)+1 , 1);
@@ -1999,9 +1998,6 @@ int normalize_elements(struct region *reg, int existing)
 	else op = '+';
 	
 	cuboid_patch_to_bits(po->sb,&(el->special->corner1),&(el->special->corner2),temp);
-	printf("]>");
-	for (iii=0;iii<temp->nbits;iii++) printf("%c",get_bit(temp,iii) ? '#' : '.');
-	printf("\n");
 	bit_operation(elt_array,temp,op);
       }
     }
@@ -2773,7 +2769,7 @@ int insert_counter(byte report_type,
       }
       else {
         if (o2==NULL) {
-          mdlerror("Oops 1, unexpected condition encountered while building molecule count tree\n");
+          mdlerror_nested("Oops 1, unexpected condition encountered while building molecule count tree\n");
 	  return(1);
         }
         if (o2->data_type==EXPR) {
@@ -2816,7 +2812,7 @@ int insert_counter(byte report_type,
       }
     }
     else {
-      mdlerror("Oops 2, unexpected condition encountered while building molecule count tree\n");
+      mdlerror_nested("Oops 2, unexpected condition encountered while building molecule count tree\n");
       return(1);
     }
   }
@@ -2856,20 +2852,20 @@ int build_count_tree(byte report_type,
     if (strcmp(sub_name,"")==0) {
       tmp_name=my_strdup("");
       if(tmp_name == NULL){
-	mdlerror("Memory allocation error\n");
+	mdlerror_nested("Memory allocation error\n");
 	return (1);
       }              
     }
     else {
       tmp_name=my_strcat(sub_name,".");              
       if(tmp_name == NULL){
-	mdlerror("Memory allocation error\n");
+	mdlerror_nested("Memory allocation error\n");
 	return (1);
       }              
     }
     sub_name=my_strcat(tmp_name,objp->last_name);    
     if(sub_name == NULL){
-	mdlerror("Memory allocation error\n");
+	mdlerror_nested("Memory allocation error\n");
 	return (1);
     }              
     free((void *)tmp_name);
@@ -2877,7 +2873,7 @@ int build_count_tree(byte report_type,
   else {
     sub_name=my_strdup(objp->last_name);    
     if(sub_name == NULL){
-	mdlerror("Memory allocation error\n");
+	mdlerror_nested("Memory allocation error\n");
 	return (1);
     }              
   }
@@ -2910,11 +2906,11 @@ int build_count_tree(byte report_type,
     strcat(temp_str,",");
     region_name=my_strcat(temp_str,"ALL");
     if(region_name == NULL){
-       mdlerror("Memory allocation error.\n");
+       mdlerror_nested("Memory allocation error.\n");
        return (1);
     }
     if ((stp=retrieve_sym(region_name,REG,volp->main_sym_table))==NULL) {
-      mdlerror("Unexpected error.  Cannot find default object region\n");
+      mdlerror_nested("Unexpected error.  Cannot find default object region\n");
       return(1);
     }
     free((void *)region_name);
@@ -3056,6 +3052,12 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
     if (build_count_tree(report_type,mdlpvp->vol,obj,mdlpvp->oip,mdlpvp->oep,value,mdlpvp->obp->buffersize,mdlpvp->prefix_name))
     {
       fprintf(mdlpvp->vol->err_file,"Cannot store count evaluator data for object %s\n",obj->sym->name);
+      return 1;
+    }
+    
+    if (mdlpvp->oep->operand1==NULL)
+    {
+      fprintf(mdlpvp->vol->err_file,"There is nothing to count inside object %s!\n",obj->sym->name);
       return 1;
     }
   }
@@ -3580,7 +3582,7 @@ int partition_volume(struct volume *volp)
   p2.z=vol_infinity;
   if ((nx_parts==2)&&(volp->x_partitions==NULL)) {
     if ((volp->x_partitions=(double *)malloc(2*sizeof(double)))==NULL) {
-      mdlerror("Cannot store volume data");
+      mdlerror_nested("Cannot store volume data");
       return(1);
     }       
     volp->x_partitions[0]=p1.x;
@@ -3588,7 +3590,7 @@ int partition_volume(struct volume *volp)
   }
   if ((ny_parts==2)&&(volp->y_partitions==NULL)) {
     if ((volp->y_partitions=(double *)malloc(2*sizeof(double)))==NULL) {
-      mdlerror("Cannot store volume data");
+      mdlerror_nested("Cannot store volume data");
       return(1);
     }       
     volp->y_partitions[0]=p1.y;
@@ -3596,7 +3598,7 @@ int partition_volume(struct volume *volp)
   }
   if ((nz_parts==2)&&(volp->z_partitions==NULL)) {
     if ((volp->z_partitions=(double *)malloc(2*sizeof(double)))==NULL) {
-      mdlerror("Cannot store volume data");
+      mdlerror_nested("Cannot store volume data");
       return(1);
     }       
     volp->z_partitions[0]=p1.z;
@@ -3607,22 +3609,22 @@ int partition_volume(struct volume *volp)
 
   if ((volp->x_walls=(struct wall **)malloc
        (nx_parts*sizeof(struct wall *)))==NULL) {
-    mdlerror("Cannot store subvolume partition data");
+    mdlerror_nested("Cannot store subvolume partition data");
     return(1);
   }
   if ((volp->y_walls=(struct wall **)malloc
        (ny_parts*sizeof(struct wall *)))==NULL) {
-    mdlerror("Cannot store subvolume partition data");
+    mdlerror_nested("Cannot store subvolume partition data");
     return(1);
   }
   if ((volp->z_walls=(struct wall **)malloc
        (nz_parts*sizeof(struct wall *)))==NULL) {
-    mdlerror("Cannot store subvolume partition data");
+    mdlerror_nested("Cannot store subvolume partition data");
     return(1);
   }
   if ((subvolp=(struct subvolume *)malloc
        (n_subvol*sizeof(struct subvolume)))==NULL) {
-    mdlerror("Cannot store subvolume partition data");
+    mdlerror_nested("Cannot store subvolume partition data");
     return(1);
   }
   volp->subvol=subvolp;
@@ -3637,12 +3639,12 @@ int partition_volume(struct volume *volp)
 
   if ((verts=(struct vector3 *)malloc
        (4*sizeof(struct vector3)))==NULL) {
-    mdlerror("Cannot store subvolume partition data");
+    mdlerror_nested("Cannot store subvolume partition data");
     return(1);
   }
   if ((face=(struct vector3 **)malloc
        (4*sizeof(struct vector3 *)))==NULL) {
-    mdlerror("Cannot store subvolume partition data");
+    mdlerror_nested("Cannot store subvolume partition data");
     return(1);
   }
   for (i=0;i<4;i++) {
@@ -3669,7 +3671,7 @@ int partition_volume(struct volume *volp)
     }
     if ((wp->wall_type=(byte *)malloc
          ((1+n_ligand_types)*sizeof(byte)))==NULL) {
-      mdlerror("Cannot store subvolume partition data");
+      mdlerror_nested("Cannot store subvolume partition data");
       return(1);
     }
     for (j=0;j<(1+n_ligand_types);j++) {
@@ -3680,12 +3682,12 @@ int partition_volume(struct volume *volp)
 
   if ((verts=(struct vector3 *)malloc
        (4*sizeof(struct vector3)))==NULL) {
-    mdlerror("Cannot store subvolume partition data");
+    mdlerror_nested("Cannot store subvolume partition data");
     return(1);
   }
   if ((face=(struct vector3 **)malloc
        (4*sizeof(struct vector3 *)))==NULL) {
-    mdlerror("Cannot store subvolume partition data");
+    mdlerror_nested("Cannot store subvolume partition data");
     return(1);
   }
   for (i=0;i<4;i++) {
@@ -3712,7 +3714,7 @@ int partition_volume(struct volume *volp)
     }
     if ((wp->wall_type=(byte *)malloc
          ((1+n_ligand_types)*sizeof(byte)))==NULL) {
-      mdlerror("Cannot store subvolume partition data");
+      mdlerror_nested("Cannot store subvolume partition data");
       return(1);
     }
     for (j=0;j<(1+n_ligand_types);j++) {
@@ -3723,12 +3725,12 @@ int partition_volume(struct volume *volp)
 
   if ((verts=(struct vector3 *)malloc
        (4*sizeof(struct vector3)))==NULL) {
-    mdlerror("Cannot store subvolume partition data");
+    mdlerror_nested("Cannot store subvolume partition data");
     return(1);
   }
   if ((face=(struct vector3 **)malloc
        (4*sizeof(struct vector3 *)))==NULL) {
-    mdlerror("Cannot store subvolume partition data");
+    mdlerror_nested("Cannot store subvolume partition data");
     return(1);
   }
   for (i=0;i<4;i++) {
@@ -3755,7 +3757,7 @@ int partition_volume(struct volume *volp)
     }
     if ((wp->wall_type=(byte *)malloc
          ((1+n_ligand_types)*sizeof(byte)))==NULL) {
-      mdlerror("Cannot store subvolume partition data");
+      mdlerror_nested("Cannot store subvolume partition data");
       return(1);
     }
     for (j=0;j<(1+n_ligand_types);j++) {
@@ -4003,7 +4005,7 @@ int build_ligand_table()
   if (ligand_table==NULL) {
     if ((ligand_table=(struct ligand_info **)malloc
          ((1+n_ligand_types)*sizeof(struct ligand_info *)))==NULL) {
-      mdlerror("Cannot build molecule table");
+      mdlerror_nested("Cannot build molecule table");
       return(1);
     }
     for (i=0;i<1+n_ligand_types;i++) {

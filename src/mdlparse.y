@@ -3621,7 +3621,6 @@ patch_statement: patch_type '=' point ',' point
     mdlerror("Could not refine box to include new patch");
     return 1;
   }
-  printf("Just put a patch on region %s\n",mdlpvp->rp->sym->name);
   free(temp_llf);
   free(temp_urb);
   mdlpvp->elmlp->next=mdlpvp->element_list_head;
@@ -6458,16 +6457,33 @@ void mdlerror(char *s,...)
 */
 
   log_file=stderr;
-  if (mpvp->vol->log_file!=NULL) {
-    log_file=mpvp->vol->log_file;
+  if (mpvp->vol->err_file!=NULL) {
+    log_file=mpvp->vol->err_file;
   }
 
   if (mpvp->vol->procnum == 0) {
-	fprintf(log_file,"MCell: error on line: %d of file: %s  %s\n",\
+	fprintf(log_file,"MCell: error on line: %d of file: %s\n  %s\n",\
 	        mpvp->line_num[mpvp->include_stack_ptr],mpvp->vol->curr_file,s);
 	fflush(log_file);
   }
 	return;
+}
+
+void mdlerror_nested(char *s)
+{
+  FILE *log_file;
+  struct mdlparse_vars *mpvp = clunky_mpvp_for_errors;
+
+  log_file=stderr;
+  if (mpvp->vol->err_file!=NULL) {
+    log_file=mpvp->vol->err_file;
+  }
+
+  if (mpvp->vol->procnum == 0) {
+    fprintf(log_file,"MCell error: %s\n",s);
+    fflush(log_file);
+  }
+  return;
 }
 
 int mdlparse_init(struct volume *vol)

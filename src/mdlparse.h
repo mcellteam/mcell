@@ -181,6 +181,7 @@ struct vertex_list {
 
 int mdlparse(void *p);
 void mdlerror(char *s,...);
+void mdlerror_nested(char *s);
 int mdlparse_init(struct volume *vol);
 
 #endif
