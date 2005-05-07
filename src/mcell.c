@@ -35,9 +35,9 @@ void run_sim(void)
   struct output_block *obp;
   double next_release_time;
   int i;
-  int count;
+  /*int count;
   long long total_coll_1,total_coll_2;
-  double total_len;
+  double total_len;*/
   double not_yet;
   int frequency;
   

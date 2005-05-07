@@ -223,7 +223,8 @@ int output_dx_objects(struct frame_data_list *fdlp)
   u_int mol_pos_index,mol_pos_field_index,mol_pos_group_index;
   u_int mol_states_index,mol_states_group_index;
   int ii,jj;
-  int vi1,vi2,vi3,vi4;
+  int vi1,vi2,vi3;
+  /*int vi4;*/
   int num;
   int viz_iteration,n_viz_iterations;
   /* int first_viz_iteration; */
@@ -1244,7 +1245,8 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   u_int group_index = 0;
   static u_int series_index = 0;
   int ii,jj;
-  int vi1,vi2,vi3,vi4;
+  int vi1,vi2,vi3;
+  /* int vi4;*/
   int num;
   int viz_iteration,n_viz_iterations;
   int element_data_count;
@@ -2800,7 +2802,8 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
   u_int group_index = 0;
   static u_int series_index = 0;
   int ii,jj;
-  int vi1,vi2,vi3,vi4;
+  int vi1,vi2,vi3;
+  /* int vi4; */
   int num;
   int viz_iteration,n_viz_iterations;
   int element_data_count;
