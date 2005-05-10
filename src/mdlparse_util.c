@@ -1990,7 +1990,6 @@ int normalize_elements(struct region *reg, int existing)
       }
       else
       {
-	int iii;
 	if (temp==NULL) temp = new_bit_array(n_elts);
 	if (temp==NULL || po==NULL || existing) { printf("Hia"); return 1; } 
 	

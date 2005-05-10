@@ -1189,6 +1189,26 @@ int can_hit_target(struct molecule *m,struct molecule *targ,struct subvolume *sv
 #endif
 
 
+/****************************************************************************
+safe_time_step:
+  In: molecule that is moving
+      linked list of potential collisions with molecules from the 
+                starting subvolume
+  Out: The estimated number of time steps this molecule can take before
+       something interesting might happen to it, or 1.0 if something might
+       happen within one timestep.
+  Note: Each molecule uses its own timestep.  Only molecules that the moving
+  	molecule can react with directly are counted (secondary reaction
+	products are ignored, so might be skipped).  "Might happen" is to
+	the 99% confidence level (i.e. the distance you'd have to go before
+	1% of the molecules will have gotten far enough to have a chance of
+	reacting, although those 1% will probably not go in the right
+	direction).  This doesn't take into account the diffusion of other
+	target molecules, so it may introduce errors for clouds of molecules
+	diffusing into each other from a distance.
+	*FIXME*: Add a flag to make this be very conservative or to turn
+	this off entirely, aside from the TIME_STEP_MAX= directive.
+****************************************************************************/
 double safe_time_step(struct molecule *m,struct collision *shead)
 {
   double d2;
