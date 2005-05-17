@@ -77,7 +77,7 @@ I ([0-9]+)
 "ABS"			{return(ABS);}
 "ABSORPTIVE"		{return(ABSORPTIVE);}
 "ACOS"			{return(ACOS);}
-"ALL"			{return(ALL);}
+"ALL_DATA"		{return(ALL_DATA);}
 "ALL_CROSSINGS"		{return(ALL_CROSSINGS);}
 "ALL_ELEMENTS"		{return(ALL_ELEMENTS);}
 "ALL_ENCLOSED"		{return(ALL_ENCLOSED);}

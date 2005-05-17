@@ -77,7 +77,7 @@ struct output_evaluator *cnt;
 %token <tok> ABS
 %token <tok> ABSORPTIVE
 %token <tok> ACOS
-%token <tok> ALL
+%token <tok> ALL_DATA
 %token <tok> ALL_CROSSINGS
 %token <tok> ALL_ELEMENTS
 %token <tok> ALL_ENCLOSED
@@ -4669,7 +4669,7 @@ frame_data_spec: frame_data_item '='
 };
 
 
-frame_data_item:  ALL
+frame_data_item:  ALL_DATA
 {
   $$=ALL_FRAME_DATA;
 }
