@@ -41,7 +41,7 @@ int divide_cuboid(struct subdivided_box *b,int axis,int idx,int ndiv);
 int reaspect_cuboid(struct subdivided_box *b,int max_ratio);
 int count_cuboid_elements(struct subdivided_box *sb);
 int count_cuboid_vertices(struct subdivided_box *sb);
-void cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct vector3 *v2,struct bit_array *ba);
+int cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct vector3 *v2,struct bit_array *ba);
 int normalize_elements(struct region *reg,int existing);
 int vertex_at_index(struct subdivided_box *sb, int ix, int iy, int iz);
 int polygonalize_cuboid(struct ordered_poly *opp,struct subdivided_box *sb);

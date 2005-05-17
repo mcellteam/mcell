@@ -3666,6 +3666,7 @@ existing_obj_surface_region_def: existing_object
 {
   mdlpvp->gp=$<sym>4;
   mdlpvp->rp=(struct region *)mdlpvp->gp->value;
+  mdlpvp->rp->parent = mdlpvp->objp;  /* Was set to root of world, fixing */
   mdlpvp->eff_dat_head=mdlpvp->rp->eff_dat_head;
   mdlpvp->element_list_head = NULL;
 }

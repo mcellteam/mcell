@@ -1773,14 +1773,15 @@ int count_cuboid_vertices(struct subdivided_box *sb)
 }
 
 
-void cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct vector3 *v2,struct bit_array *ba)
+/* Returns 0 on success, 1 if conversion fails */
+int cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct vector3 *v2,struct bit_array *ba)
 {
   int i,ii;
   int a_lo,a_hi,b_lo,b_hi;
   int line,base;
   
   i = check_patch(sb,v1,v2,GIGANTIC);
-  if (!i) return;
+  if (!i) return 1;
   ii = NODIR;
   if ( (i&BRANCH_X)==0 )
   {
@@ -1797,7 +1798,7 @@ void cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct ve
     if (sb->z[0]==v1->z) ii = Z_NEG;
     else ii = Z_POS;
   }
-  if (ii==NODIR) return;
+  if (ii==NODIR) return 1;
   
   switch (ii)
   {
@@ -1806,6 +1807,10 @@ void cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct ve
       a_hi = bisect_near(sb->y,sb->ny,v2->y)-1;
       b_lo = bisect_near(sb->z,sb->nz,v1->z);
       b_hi = bisect_near(sb->z,sb->nz,v2->z)-1;
+      if ( distinguishable(sb->y[a_lo],v1->y,EPS_C) ) return 1;
+      if ( distinguishable(sb->y[a_hi],v2->y,EPS_C) ) return 1;
+      if ( distinguishable(sb->z[b_lo],v1->z,EPS_C) ) return 1;
+      if ( distinguishable(sb->z[b_hi],v2->z,EPS_C) ) return 1;
       line = sb->ny-1;
       base = 0;
       break;
@@ -1814,6 +1819,10 @@ void cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct ve
       a_hi = bisect_near(sb->y,sb->ny,v2->y)-1;
       b_lo = bisect_near(sb->z,sb->nz,v1->z);
       b_hi = bisect_near(sb->z,sb->nz,v2->z)-1;
+      if ( distinguishable(sb->y[a_lo],v1->y,EPS_C) ) return 1;
+      if ( distinguishable(sb->y[a_hi],v2->y,EPS_C) ) return 1;
+      if ( distinguishable(sb->z[b_lo],v1->z,EPS_C) ) return 1;
+      if ( distinguishable(sb->z[b_hi],v2->z,EPS_C) ) return 1;
       line = sb->ny-1;
       base = (sb->ny-1)*(sb->nz-1);
       break;
@@ -1822,6 +1831,10 @@ void cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct ve
       a_hi = bisect_near(sb->x,sb->nx,v2->x)-1;
       b_lo = bisect_near(sb->z,sb->nz,v1->z);
       b_hi = bisect_near(sb->z,sb->nz,v2->z)-1;
+      if ( distinguishable(sb->x[a_lo],v1->x,EPS_C) ) return 1;
+      if ( distinguishable(sb->x[a_hi],v2->x,EPS_C) ) return 1;
+      if ( distinguishable(sb->z[b_lo],v1->z,EPS_C) ) return 1;
+      if ( distinguishable(sb->z[b_hi],v2->z,EPS_C) ) return 1;
       line = sb->nx-1;
       base = 2*(sb->ny-1)*(sb->nz-1);
       break;
@@ -1830,6 +1843,10 @@ void cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct ve
       a_hi = bisect_near(sb->x,sb->nx,v2->x)-1;
       b_lo = bisect_near(sb->z,sb->nz,v1->z);
       b_hi = bisect_near(sb->z,sb->nz,v2->z)-1;
+      if ( distinguishable(sb->x[a_lo],v1->x,EPS_C) ) return 1;
+      if ( distinguishable(sb->x[a_hi],v2->x,EPS_C) ) return 1;
+      if ( distinguishable(sb->z[b_lo],v1->z,EPS_C) ) return 1;
+      if ( distinguishable(sb->z[b_hi],v2->z,EPS_C) ) return 1;
       line = sb->nx-1;
       base = 2*(sb->ny-1)*(sb->nz-1) + (sb->nx-1)*(sb->nz-1);
       break;
@@ -1838,6 +1855,10 @@ void cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct ve
       a_hi = bisect_near(sb->x,sb->nx,v2->x)-1;
       b_lo = bisect_near(sb->y,sb->ny,v1->y);
       b_hi = bisect_near(sb->y,sb->ny,v2->y)-1;
+      if ( distinguishable(sb->x[a_lo],v1->x,EPS_C) ) return 1;
+      if ( distinguishable(sb->x[a_hi],v2->x,EPS_C) ) return 1;
+      if ( distinguishable(sb->y[b_lo],v1->y,EPS_C) ) return 1;
+      if ( distinguishable(sb->y[b_hi],v2->y,EPS_C) ) return 1;
       line = sb->nx-1;
       base = 2*(sb->ny-1)*(sb->nz-1) + 2*(sb->nx-1)*(sb->nz-1);
       break;
@@ -1846,14 +1867,18 @@ void cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct ve
       a_hi = bisect_near(sb->x,sb->nx,v2->x)-1;
       b_lo = bisect_near(sb->y,sb->ny,v1->y);
       b_hi = bisect_near(sb->y,sb->ny,v2->y)-1;
+      if ( distinguishable(sb->x[a_lo],v1->x,EPS_C) ) return 1;
+      if ( distinguishable(sb->x[a_hi],v2->x,EPS_C) ) return 1;
+      if ( distinguishable(sb->y[b_lo],v1->y,EPS_C) ) return 1;
+      if ( distinguishable(sb->y[b_hi],v2->y,EPS_C) ) return 1;
       line = sb->nx-1;
       base = 2*(sb->ny-1)*(sb->nz-1) + 2*(sb->nx-1)*(sb->nz-1) + (sb->nx-1)*(sb->ny-1);
       break;
     default:
-      mdlerror_nested("Peculiar error while converting box to triangles (should never happen)!\n");
-      return;
+      mdlerror_nested("Peculiar error while interpreting a box as triangles (should never happen)!\n");
+      return 1;
   }
-  
+    
   set_all_bits(ba,0);
 
   if (a_lo==0 && a_hi==line-1)
@@ -1867,6 +1892,8 @@ void cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct ve
       set_bit_range(ba , 2*(base+line*i+a_lo) , 2*(base+line*i+a_hi)+1 , 1);
     }
   }
+  
+  return 0;
 }
 
 
@@ -1990,13 +2017,15 @@ int normalize_elements(struct region *reg, int existing)
       }
       else
       {
+	int ii;
 	if (temp==NULL) temp = new_bit_array(n_elts);
 	if (temp==NULL || po==NULL || existing) { printf("Hia"); return 1; } 
 	
 	if (el->special->exclude) op = '-';
 	else op = '+';
 	
-	cuboid_patch_to_bits(po->sb,&(el->special->corner1),&(el->special->corner2),temp);
+	ii=cuboid_patch_to_bits(po->sb,&(el->special->corner1),&(el->special->corner2),temp);
+	if (ii) return 1; /* Something wrong with patch */
 	bit_operation(elt_array,temp,op);
       }
     }
