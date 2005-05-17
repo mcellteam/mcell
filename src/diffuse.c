@@ -1799,16 +1799,12 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       }
     }
 
-    if ((a->flags & (ACT_INERT+ACT_REACT)) == 0) max_time = checkpt_time - a->t;
-    else
-    {
-      if (a->t + local->max_timestep < checkpt_time) max_time = local->max_timestep;
-      else max_time = checkpt_time - a->t;
-      if (a->t2<max_time) max_time = a->t2;
-    }
-    
     if ((a->flags & ACT_DIFFUSE) != 0)
     {
+      max_time = checkpt_time - a->t;
+      if (local->max_timestep < max_time) max_time = local->max_timestep;
+      if (a->t2<max_time && (a->flags&(ACT_REACT|ACT_INERT))!=0) max_time = a->t2;
+
       if ((a->flags & TYPE_3D) != 0)
       {
         if (max_time > release_time - a->t) max_time = release_time - a->t;

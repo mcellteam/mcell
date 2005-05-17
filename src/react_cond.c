@@ -55,7 +55,7 @@ double timeof_unimolecular(struct rxn *rx)
   double p = rng_dbl( world->rng );
   double k_tot = rx->cum_probs[ rx->n_pathways - 1 ];
   
-  if (k_tot<=0) return GIGANTIC;
+  if (k_tot<=0 || p==0) return GIGANTIC;
   return -log( p )/k_tot;
 }
 
