@@ -18,5 +18,9 @@ struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv);
 int release_molecules(struct release_event_queue *req);
 
 int set_partitions();
+double distance_point_line(struct vector3 *q, struct vector3 *v0, struct vector3 *v1);
+int navigate_world(int curr_index, int direction);
+int navigate_world_by_edge(int curr_index, int direction1, int direction2);
+int navigate_world_by_corner(int curr_index, int direction1, int direction2, int direction3);
 
 #endif

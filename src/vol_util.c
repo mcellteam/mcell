@@ -79,6 +79,7 @@ struct subvolume* traverse_subvol(struct subvolume *here,struct vector3 *point,i
   if ((here->is_bsp & flag) == 0) return (struct subvolume*)here->neighbor[which];
   else
   {
+    printf("I am here\n");
     branch = (struct bsp_tree*) here->neighbor[which];
     while (branch != NULL)
     {
@@ -1056,4 +1057,137 @@ int set_partitions()
   printf("\n");
 
   return 0;
+}
+/**********************************************************************
+distance_point_line -- returns distance between point and line in 3D space
+              The line is defined by 2 points
+              The formulas are taken from "Computer Graphics" 
+              by Michael Mortenson, ISBN 0-8311-1182-8, p.222
+Parameters
+	q -- location of the fixed point
+	v0 -- first point on the line
+	v1 -- second point on the line
+
+Returns
+	distance between the point and the line
+**********************************************************************/
+double distance_point_line(struct vector3 *q, struct vector3 *v0, struct vector3 *v1)
+{
+   double x,y,z; /* coordinates of the point q */
+   double x0,y0,z0; /* coordinates of the point v0 */
+   double x1,y1,z1; /* coordinates of the point v1 */
+   double u; /* parameter in the equation of the line
+                p(u) = p0 + u(p1 - p0) */
+   double p_x,p_y,p_z; /* X,Y, and Z components of the vector p (line) */
+   double nominator, denominator, d_min;
+
+   x = q->x;
+   y = q->y;
+   z = q->z;
+
+   x0 = v0->x;
+   y0 = v0->y;
+   z0 = v0->z;
+
+   x1 = v1->x;
+   y1 = v1->y;
+   z1 = v1->z;
+   
+   nominator = (x1 - x0)*(x - x0) + (y1 - y0)*(y - y0) + (z1 - z0)*(z - z0);
+   denominator = sqrt(pow((x1-x0),2) + pow((y1 - y0),2) + pow((z1 - z0),2));
+   u = nominator/denominator;
+
+   p_x = x0 +u*(x1 - x0);
+   p_y = y0 +u*(y1 - y0);
+   p_z = z0 +u*(z1 - z0);
+
+   d_min = sqrt(pow((p_x - x),2) + pow((p_y - y),2) + pow((p_z - z),2)); 
+   return d_min;
+} 
+
+/**********************************************************************
+navigate_world -- returns index of the destination subvolume
+
+Parameters
+	cur_index -- index of the starting subvolume 
+	direction -- direction of the movement
+                     Valid values are X_NEG, X_POS, Y_NEG, Y_POS,
+                                      Z_NEG, Z_POS.
+
+Returns
+	index of the destination neighbor subvolume ("face-to-face")
+**********************************************************************/
+int navigate_world(int curr_index, int direction)
+{
+        switch(direction)
+        {
+		case(X_NEG):
+		   return curr_index - (world->nz_parts-1)*(world->ny_parts-1);
+                   break;
+                case(X_POS):
+		   return curr_index + (world->nz_parts-1)*(world->ny_parts-1);
+                   break;
+                case(Y_NEG):  
+		   return curr_index - (world->nz_parts-1);
+                   break;
+                case(Y_POS):
+		   return curr_index + (world->nz_parts-1);
+                   break;
+                case(Z_NEG):
+                   return curr_index - 1;
+                   break;
+                case(Z_POS):
+                   return curr_index + 1;
+                   break;
+                default:
+		   return INT_MAX;
+                   break;
+
+        }
+ 
+}
+
+/**********************************************************************
+navigate_world_by_edge -- returns index of the destination subvolume
+
+Parameters
+	cur_index -- index of the starting subvolume 
+	direction1 -- direction of the first movement
+	direction2 -- direction of the second movement
+                     Valid values are X_NEG, X_POS, Y_NEG, Y_POS,
+                                      Z_NEG, Z_POS.
+
+Returns
+	index of the destination neighbor subvolume ("edge-to-edge")
+**********************************************************************/
+int navigate_world_by_edge(int curr_index, int direction1, int direction2)
+{
+  	int first_index, final_index;
+        first_index = navigate_world(curr_index, direction1);
+        final_index = navigate_world(first_index, direction2);
+    
+        return final_index; 
+}
+/**********************************************************************
+navigate_world_by_corner -- returns index of the destination subvolume
+
+Parameters
+	cur_index -- index of the starting subvolume 
+	direction1 -- direction of the first movement
+	direction2 -- direction of the second movement
+	direction3 -- direction of the third movement
+                     Valid values are X_NEG, X_POS, Y_NEG, Y_POS,
+                                      Z_NEG, Z_POS.
+
+Returns
+	index of the destination neighbor subvolume ("corner-to-corner")
+**********************************************************************/
+int navigate_world_by_corner(int curr_index, int direction1, int direction2, int direction3)
+{
+  	int first_index, second_index, final_index;
+        first_index = navigate_world(curr_index, direction1);
+        second_index = navigate_world(first_index, direction2);
+        final_index = navigate_world(second_index, direction3);
+    
+        return final_index; 
 }
