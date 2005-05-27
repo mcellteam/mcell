@@ -68,6 +68,7 @@ struct wall* distrubute_wall(struct wall *w);
 int distribute_object(struct object *parent);
 int distribute_world();
 
+void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b, struct vector3 *c, struct vector3 *final_result);
+int test_sphere_triangle(struct vector3 *s, double radius, struct vector3 *a, struct vector3 *b, struct vector3 *c, struct vector3 *p);
 
 #endif
-

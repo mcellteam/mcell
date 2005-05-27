@@ -432,4 +432,28 @@ void cross_prod(struct vector3 *v1, struct vector3 *v2, struct vector3 *v3)
   v3->z=(v1->x)*(v2->y)-(v1->y)*(v2->x);
 }
 
+/************************************************************************
+vect_sum:
+ In: v1 - first vector3
+     v2 - second vector3
+ Out: v3 - the sum of the v1 and v2 
+************************************************************************/
+void vect_sum(struct vector3 *v1, struct vector3 *v2, struct vector3 *v3)
+{
+  v3->x = v1->x + v2->x;
+  v3->y = v1->y + v2->y;
+  v3->z = v1->z + v2->z;
+} 
+/***********************************************************************
+ scalar_prod:
+ In: v - vector3
+     a - scalar 
+ Out: result - the product of the vector3 v by scalar a
+***********************************************************************/
+void scalar_prod(struct vector3 *v1, double a, struct vector3 *result)
+{
+  result->x = a*v1->x;
+  result->y = a*v1->y;
+  result->z = a*v1->z;
+} 
 #undef MY_PI

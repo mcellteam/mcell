@@ -1855,3 +1855,109 @@ int distribute_world()
   return 0;
 }
 
+/***************************************************************************
+closest_pt_point_triangle:
+  In:  p - point 
+       a,b,c - vectors defining the vertices of the triangle. 
+  Out: final_result - closest point on triangle ABC to a point p. 
+       The code is adapted from "Real-time Collision Detection" by Christer Ericson, ISBN 1-55860-732-3, p.141.
+       
+***************************************************************************/
+void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b, struct vector3 *c, struct vector3 *final_result)
+{
+   struct vector3 ab, ac, ap, bp, cp, result1;
+   double d1, d2, d3, d4, vc, d5, d6, vb, va, denom, v, w;
+
+   /* Check if P in vertex region outside A */
+   vectorize(a, b, &ab);
+   vectorize(a, c, &ac);
+   vectorize(a, p, &ap);
+   d1 = dot_prod(&ab, &ap);
+   d2 = dot_prod(&ac, &ap);
+   if(d1 <= 0.0f && d2 <= 0.0f) {
+       final_result = a; /* barycentric coordinates (1,0,0) */
+       return;
+   }
+
+   /* Check if P in vertex region outside B */
+   vectorize(b, p, &bp);
+   d3 = dot_prod(&ab, &bp);
+   d4 = dot_prod(&ac, &bp);
+   if(d3 >= 0.0f && d4 <= d3) {
+      final_result = b; /* barycentric coordinates (0,1,0) */
+      return;
+   }
+
+   /* Check if P in edge region of AB, if so return projection of P onto AB */
+   vc = d1*d4 - d3*d2;
+   if(vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f) {
+        v = d1 / (d1 - d3);
+        scalar_prod(&ab, v, &result1);
+        vect_sum(a, &result1, final_result);
+        return;  /* barycentric coordinates (1-v,v,0) */
+   }
+
+   /* Check if P in vertex region outside C */
+   vectorize(c, p, &cp);
+   d5 = dot_prod(&ab, &cp);
+   d6 = dot_prod(&ac, &cp);
+   if(d6 >=0.0f && d5 <= d6) {
+        final_result = c;  /* barycentric coordinates (0,0,1) */
+        return;
+   }
+
+   /* Check if P in edge region of AC, if so return projection of P onto AC */
+   vb = d5*d2 - d1*d6;
+   if(vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f){
+      w = d2/ (d2 - d6);
+      scalar_prod(&ac, w, &result1);
+      vect_sum(a, &result1, final_result);
+      return;      /* barycentric coordinates (0, 1-w,w) */
+   }
+  
+   /* Check if P in edge region of BC, if so return projection of P onto BC */
+   va = d3*d6 - d5*d4;
+   if(va <= 0.0f && (d4 - d3) >= 0.0f && (d5 - d6) >= 0.0f) {
+	w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+        vectorize(b, c, &result1);
+        scalar_prod(&result1, w, &result1);
+        vect_sum(b, &result1, final_result);
+        return;  /*barycentric coordinates (0,1-w, w) */
+   }
+
+   /* P inside face region. Compute Q through its barycentric 
+      coordinates (u,v,w) */
+   denom = 1.0f / (va + vb + vc);
+   v = vb * denom;
+   w = vc * denom;
+   scalar_prod(&ab, v, &ab);
+   scalar_prod(&ac, w, &ac);
+   vect_sum(&ab, &ac, &result1);
+   vect_sum(a, &result1, final_result);
+   return;   /* = u*a + v*b + w*c, u = va * denom = 1.0f - v -w */
+
+}
+/***************************************************************************
+test_sphere_triangle:
+  In:  s - center of the sphere
+       radius - radius of the sphere
+       a,b,c - vectors to the vertices of the triangle.  
+  Out: Returns 1 if sphere intersects triangle ABC, 0 - otherwise.
+       The point p on ABC closest to the sphere center is also returned.
+       The code is adapted from "Real-time Collision Detection" by Christer Ericson, ISBN 1-55860-732-3, p.167.
+       
+***************************************************************************/
+int test_sphere_triangle(struct vector3 *s, double radius, struct vector3 *a, struct vector3 *b, struct vector3 *c, struct vector3 *p)
+{
+   struct vector3 v;
+
+   /* Find point P on triangle ABC closest to the sphere center. */
+   closest_pt_point_triangle(s,a,b,c,p);
+
+   /* Sphere and triangle intersect if the (squared) distance from the sphere
+      center to point p is less than the (squared) sphere radius. */
+      
+    vectorize(s, p, &v);
+    return (dot_prod(&v,&v) <= radius*radius);
+
+}

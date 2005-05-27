@@ -25,5 +25,7 @@ void vectorize(struct vector3 *p1, struct vector3 *p2, struct vector3 *v);
 double vect_length(struct vector3 *v);
 double dot_prod(struct vector3 *v1, struct vector3 *v2);
 void cross_prod(struct vector3 *v1, struct vector3 *v2, struct vector3 *v3);
+void vect_sum(struct vector3 *v1, struct vector3 *v2, struct vector3 *v3);
+void scalar_prod(struct vector3 *v1, double a, struct vector3 *result);
 
 #endif
