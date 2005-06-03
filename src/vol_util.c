@@ -650,7 +650,6 @@ int set_partitions()
   double A,B,k;
   struct vector3 part_min,part_max;
 
-  
   if (world->n_fineparts != 4096 + 16384 + 4096)
   {
     world->n_fineparts = 4096 + 16384 + 4096;
@@ -757,7 +756,25 @@ int set_partitions()
     steps_min = f_min / world->speed_limit;
     steps_max = f_max / world->speed_limit;
   }
-  
+ 
+   /* verify that the partition linear size is less/equal to the 
+      interaction sphere diameter. */
+  /* maximum allowed number of partitions */ 
+   double num_part_x;
+   num_part_x = (world->bb_max.x - world->bb_min.x)/(2*world->rx_radius_3d);
+
+  if(world->nx_parts > (int)num_part_x){
+        if(world->x_partitions != NULL) free (world->x_partitions);
+        if(world->y_partitions != NULL) free (world->y_partitions);
+        if(world->z_partitions != NULL) free (world->z_partitions);
+        world->x_partitions = NULL;
+        world->y_partitions = NULL;
+        world->z_partitions = NULL;
+        fprintf(world->err_file, "Partitions requested: %dx%dx%d.  Partitions allowed due to the interaction sphere limitations: %dx%dx%d.  Switched to automatic partitioning.\n", world->nx_parts, world->ny_parts, world->nz_parts, (int)num_part_x, (int)num_part_x, (int)num_part_x);
+
+  }
+
+  /* go with automatic partitioning */
   if (world->x_partitions == NULL ||
       world->y_partitions == NULL ||
       world->z_partitions == NULL)
@@ -779,6 +796,13 @@ int set_partitions()
       
       world->ny_parts = world->nz_parts = world->nx_parts;
     }
+    
+      /* again verify that the partition linear size is less/equal to the 
+      interaction sphere diameter. */
+      while(world->nx_parts > (int)num_part_x){
+        world->nx_parts--;
+        world->ny_parts = world->nz_parts = world->nx_parts;
+      }
     
     world->x_partitions = (double*) malloc( sizeof(double) * world->nx_parts );
     world->y_partitions = (double*) malloc( sizeof(double) * world->ny_parts );
@@ -866,6 +890,7 @@ int set_partitions()
   }
   else
   {
+
     double *dbl_array;
 
 /* We need to keep the outermost partition away from the world bounding box */
