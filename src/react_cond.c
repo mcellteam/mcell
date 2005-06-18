@@ -105,7 +105,7 @@ int test_bimolecular(struct rxn *rx, double scaling)
 
   if(rx->cum_probs[rx->n_pathways - 1] > scaling)
   {
-	fprintf(world->err_file, "test_bimolecular(): reaction cumulative probabilities are greater then 1 after adjustment. Time step may need to be reduced.\n");
+//	fprintf(world->err_file, "test_bimolecular(): reaction cumulative probabilities are greater then 1 after adjustment. Time step may need to be reduced.\n");
         /* just to keep the proportions of outbound pathways the same. */
         p = rng_dbl( world->rng ) * rx->cum_probs[rx->n_pathways - 1];
   }else{

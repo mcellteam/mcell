@@ -1200,13 +1200,13 @@ collide_mol:
 int collide_mol(struct vector3 *point,struct vector3 *move,
                 struct abstract_molecule *a,double *t,struct vector3 *hitpt)
 {
-  /* direction vector from the starting point to the molecule 
-     we test for collision. */
-  struct vector3 dir;
-  /* vector to the position of the molecule we test for collision. */
-  struct vector3 *pos;
-  double movelen2,d,dirlen2;
-  double sigma2;
+  struct vector3 dir; /* From starting point of moving molecule to target */
+  struct vector3 *pos; /* Position of target molecule */
+  
+  double movelen2; /* Square of distance the moving molecule travels */
+  double dirlen2;  /* Square of distance between moving and target molecules */
+  double d;        /* Dot product of movement vector and vector to target */
+  double sigma2;   /* Square of interaction radius */
   
   if ((a->properties->flags & ON_GRID)!=0) return COLLIDE_MISS; /* Should never call on grid molecule! */
   
@@ -1220,23 +1220,26 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
   dir.z = pos->z - point->z;
   
   d = dir.x*move->x + dir.y*move->y + dir.z*move->z;
-  /* check whether we are moving further backwards from the test molecule. */
-  if (d<0) return COLLIDE_MISS;
+  
+  /* Miss the molecule if it's behind us */
+  if (d<0) return COLLIDE_MISS; 
   
   movelen2 = move->x*move->x + move->y*move->y + move->z*move->z;
+
   /* check whether the test molecule is futher than the displacement. */
   if (d > movelen2) return COLLIDE_MISS;
   
   dirlen2 = dir.x*dir.x + dir.y*dir.y + dir.z*dir.z;
   
-  /* check whether the moving molecule will miss interaction sphere of the
+  /* check whether the moving molecule will miss interaction disk of the
      test molecule.*/
   if (movelen2*dirlen2 - d*d > movelen2*sigma2) return COLLIDE_MISS;
 
   *t = d/movelen2;
-  hitpt->x = point->x + *t*move->x;  
-  hitpt->y = point->y + *t*move->y;  
-  hitpt->z = point->z + *t*move->z;  
+//  *t = d/sqrt(movelen2*dirlen2);
+  hitpt->x = point->x + (*t)*move->x;  
+  hitpt->y = point->y + (*t)*move->y;  
+  hitpt->z = point->z + (*t)*move->z;  
   return COLLIDE_MOL_M;
 }
 

@@ -2011,12 +2011,12 @@ surface_rxn_stmt: surface_rxn_type '=' existing_molecule
 #ifdef DEBUG
   no_printf("Surface reaction defined:\n");
   no_printf("  %s[%d] -%s[%d]->",
-    mdlpvp->rxnp->pathway_head->reactant2->sym->name,
-    mdlpvp->rxnp->pathway_head->orientation2,
-    mdlpvp->rxnp->pathway_head->reactant1->sym->name,
-    mdlpvp->rxnp->pathway_head->orientation1);
+  mdlpvp->rxnp->pathway_head->reactant2->sym->name,
+  mdlpvp->rxnp->pathway_head->orientation2,
+  mdlpvp->rxnp->pathway_head->reactant1->sym->name,
+  mdlpvp->rxnp->pathway_head->orientation1);
   for (mdlpvp->prodp=mdlpvp->rxnp->pathway_head->product_head;
-      mdlpvp->prodp!=NULL;mdlpvp->prodp=mdlpvp->prodp->next) {
+       mdlpvp->prodp!=NULL;mdlpvp->prodp=mdlpvp->prodp->next) {
     if (mdlpvp->prodp!=mdlpvp->rxnp->pathway_head->product_head) {
       no_printf(" +");
     }

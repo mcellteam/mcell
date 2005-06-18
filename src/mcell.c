@@ -60,7 +60,7 @@ void run_sim(void)
   
   world->diffusion_number = world->diffusion_cumsteps = 0.0;
   
-  while (world->it_time <= world->iterations+1) /* One extra loop for final output */
+  while (world->it_time <= world->iterations) 
   {
     not_yet = world->it_time + 1.0;
     
@@ -109,7 +109,7 @@ void run_sim(void)
 
     update_frame_data_list(world->frame_data_head);
     
-    if (world->it_time>world->iterations) break;
+    if (world->it_time>=world->iterations) break; /* Output only on last loop */
 
     i = schedule_anticipate( world->releaser , &next_release_time);
     if (!i) next_release_time = world->iterations + 1;

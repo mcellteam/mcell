@@ -2640,6 +2640,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       
       if (smash->t >= 1.0 || smash->t < 0.0)
       {
+	if ((smash->what&COLLIDE_MOL)!=0) printf("YOWSERS %d %.8e\n",world->it_time,smash->t);
         smash = NULL;
         break;
       }
@@ -2676,6 +2677,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         scaling = factor / rate_factor;
 #endif
         if (rx->prob_t != NULL) check_probs(rx,m->t);
+	
+//	printf("Thunk! %d %.8e\n",world->it_time,smash->t);
 
         i = test_bimolecular(rx,scaling);
         

@@ -3007,6 +3007,9 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
   else if (base_report_type == REPORT_RXNS) count_flag = COUNT_RXNS;
   else count_flag = COUNT_HITS;
   
+  if (count_flag != COUNT_RXNS) printf("ERROR ERROR ERROR\n");
+  if ((report_type&REPORT_WORLD)) printf("World count\n");
+  
   if ( (report_type & REPORT_ENCLOSED)!=0 && (report_type&REPORT_WORLD)==0 )
   {
     count_flag |= COUNT_ENCLOSED;
@@ -3033,12 +3036,14 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
     if (rxp->path->reactant2 != NULL)
     {
       if ( (rxp->path->reactant1->flags & NOT_FREE) == 0 &&
-	   (rxp->path->reactant2->flags & NOT_FREE) == 0) count_flag |= COUNT_ENCLOSED;
+	   (rxp->path->reactant2->flags & NOT_FREE) == 0 &&
+           (report_type&REPORT_WORLD) == 0) count_flag |= COUNT_ENCLOSED;
       rxp->path->reactant2->flags |= count_flag;
     }
     else
     {
-      if ( (rxp->path->reactant1->flags & NOT_FREE) == 0 ) count_flag |= COUNT_ENCLOSED;
+      if ( (rxp->path->reactant1->flags & NOT_FREE) == 0 &&
+	   (report_type&REPORT_WORLD) == 0) count_flag |= COUNT_ENCLOSED;
     }
     rxp->path->reactant1->flags |= count_flag;
     
@@ -3140,7 +3145,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
       mdlpvp->oep->n_data=i1;
       mdlpvp->oep->final_data=(void *)mdlpvp->dblp;
       
-      if (r==NULL) /* Count on world */
+      if (r==NULL) /* Count on world--must be rxn */
       {
 	struct pathway_count_request *pcr;
 	pcr = mem_get(mdlpvp->vol->pathway_requester);
