@@ -12,4 +12,4 @@ LD = $(CC)
 LDFLAGS = 
 # INSTALL_DIR = $(HOME)/bin
 MCELL_EXEC = mcell3
-EXTRAS = 
+EXTRAS =
