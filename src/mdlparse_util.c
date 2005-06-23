@@ -3007,9 +3007,6 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
   else if (base_report_type == REPORT_RXNS) count_flag = COUNT_RXNS;
   else count_flag = COUNT_HITS;
   
-  if (count_flag != COUNT_RXNS) printf("ERROR ERROR ERROR\n");
-  if ((report_type&REPORT_WORLD)) printf("World count\n");
-  
   if ( (report_type & REPORT_ENCLOSED)!=0 && (report_type&REPORT_WORLD)==0 )
   {
     count_flag |= COUNT_ENCLOSED;
