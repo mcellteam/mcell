@@ -589,6 +589,7 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
     bits = rng_uint(world->rng);
     idx = bits & world->directions_mask;
   }
+  idx *= 3;
   if (bits&0x80000000) u.x = world->d_step[idx]; else u.x = -world->d_step[idx];
   if (bits&0x40000000) u.y = world->d_step[idx+1]; else u.y = -world->d_step[idx+1];
   if (bits&0x20000000) u.z = world->d_step[idx+2]; else u.z = -world->d_step[idx+2];
@@ -601,6 +602,7 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
     continue;
   }
   
+  a *= d2_mv_i;
   u.x = u.x - a*mv->x;
   u.y = u.y - a*mv->y;
   u.z = u.z - a*mv->z;
