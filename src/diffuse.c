@@ -32,7 +32,7 @@
 #define MULTISTEP_FRACTION 0.9
 #define MAX_UNI_TIMESKIP 5000
 
-/* #define USE_EXPANDED_COLLISION_LIST */      
+/*#define USE_EXPANDED_COLLISION_LIST */       
 
 /* SOLVE_QF is a local #define in exact_disk (solves the quadratic formula) */
 /* REGISTER_PARTITION is a local #define in exact_disk */
@@ -43,6 +43,7 @@
 
 
 extern struct volume *world;
+extern double scaling_sum, scaling_count;
 
 /*************************************************************************
 pick_displacement:
@@ -641,7 +642,6 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
     }
   }
 
-#if !defined (USE_EXPANDED_COLLISION_LIST)
   if (u.x > EPS_C)
   {
     u.x = 1/u.x;
@@ -739,7 +739,6 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
     t = (loc->z - world->z_fineparts[sv->urb.z])*v.z;
     if (t < lowerV) lowerV = t;
   }
-#endif
 
   if (upperU < 0 || upperU > 1.0 ||
       lowerU < 0 || lowerU > 1.0 ||
@@ -764,30 +763,32 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
 /*************************************************************************
 estimate_clipped_interaction:
   In:  target -  molecule at time of collision
-  Out: avail_volume -the fraction of a full interaction volume that is actually
-                     accessible for interaction with moving molecule.
-       avail_surface - the fraction of a full interaction surface that is
-                     accessible for interaction with moving molecule.
+  Out: value of the clipped interaction disk area
 *************************************************************************/
-void estimate_clipped_interaction(struct molecule *target, double *avail_volume, double *avail_surface)
+double estimate_clipped_interaction(struct molecule *target)
 {
-  double clipped_volume, volume, clipped_surface, surface, clipped_radius;
-  double h, R;
   struct wall_list *wl;
   struct wall *wall;
   struct rxn *rx;
   struct subvolume *sv;  /* the present subvolume for the molecule */
-  int test_result;
   struct vector3 p;  /* the closest point on the wall to the center 
                         of the interaction sphere */
+  double d;         /* distance between the molecule and the closest point
+                       on the triangular wall */
+  double min_d;         /* minimum distance between the molecule and all                                   triangular walls */
+  
   struct vector3 dist; /* the vector from the center of the interaction
                           sphere to the closest point on the intersecting
                           triangle */
+  double param;
+
+  min_d = GIGANTIC;
 
   sv = target->subvol; 
-  clipped_radius = EPS_C;
-  R = world->rx_radius_3d; 
-  
+  p.x = 0;
+  p.y = 0;
+  p.z = 0;
+   
   for (wl = sv->wall_head ; wl!=NULL ; wl = wl->next)
   {
 
@@ -803,33 +804,28 @@ void estimate_clipped_interaction(struct molecule *target, double *avail_volume,
       }
     }
 
-    /* find out whether the target molecule interaction sphere crosses
-       the wall. */ 
-    test_result = test_sphere_triangle(&(target->pos), R,
-                  wall->vert[0],wall->vert[1],wall->vert[2], &p);
-
-    if(test_result > 0){
+    /* calculate distance from the target molecule to the wall 
+       and return the correction factor if necessary */
+    closest_pt_point_triangle(&(target->pos), wall->vert[0], wall->vert[1], wall->vert[2], &p);
+        vectorize(&p, &(target->pos), &dist);
+        d = vect_length(&dist); 
         
-        vectorize(&(target->pos), &p, &dist);
-	h = R - vect_length(&dist); 
-        if(h > clipped_radius){
-		clipped_radius = h;
+        if(d < world->rx_radius_3d){
+             if(min_d > d){
+                    min_d = d;
+             }
+
         }
-    }
-    
+
   }
-  /* calculate volume of the clipped spherical segment */
-  clipped_volume = MY_PI*clipped_radius*clipped_radius*(3*R - clipped_radius)/3;
-  volume = 4*MY_PI*pow(R,3)/3;
-  *avail_volume = clipped_volume/volume;
+  if(min_d < GIGANTIC){
+           param = min_d/world->rx_radius_3d;
+           return 1 - 0.5*(1 - param)*(1 - param);
+  }else{
+     return 1.0;
+  }
 
-  /* calculate surface of the clipped spherical segment */
-  clipped_surface = MY_PI*clipped_radius*(4*R - clipped_radius);
-  surface = 4*MY_PI*R*R;
-  *avail_surface = clipped_surface/surface;
-  
 }
-
 
 #ifdef DEBUG
 /* Debugging function searching for misplaced molecules in the Min simulation */
@@ -1136,15 +1132,14 @@ double safe_diffusion_step(struct molecule *m,struct collision *shead)
 expand_collision_list:
   In: molecule that is moving
       subvolume that we start in
-      displacement vector from current to new location
       linked list of potential collisions with molecules from the 
                 starting subvolume
   Out: To the current collision list of molecules we may react with in our 
-       subvolume added molecules from the 3 neighboring subvolumes in the 
-       direction of movement. Returns new list of collisions.
+       subvolume the molecules from the neighbor subvolumes are added.
+       Returns new list of collisions.
 	
 ****************************************************************************/
-struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv, struct vector3 *v, struct collision *shead1)
+struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv, struct collision *shead1)
 {
   struct collision *smash;
   struct molecule *mp;
@@ -1154,8 +1149,8 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
   struct subvolume *edge1, *edge2, *edge3, *edge4, *edge5, *edge6;
   struct subvolume *edge7, *edge8, *edge9, *edge10, *edge11, *edge12;
   /* neighbors of the current subvolume "corner-to-corner" */
-  /*struct subvolume *corner1, *corner2, *corner3, *corner4, *corner5, *corner6;
-  struct subvolume *corner7, *corner8;*/
+  struct subvolume *corner1, *corner2, *corner3, *corner4, *corner5, *corner6;
+  struct subvolume *corner7, *corner8;
   struct rxn *rx;
   /* distance from the molecule to the closest subvolume wall. */
   double distance = 0;
@@ -1163,10 +1158,9 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
   int cur_index;
   /* index of the neighbor subvolume */
   int neighbor_index;
-  struct vector3 v0, v1; /* verices of the edge */
+  struct vector3 v0, v1; /* vertices of the edge */
   int i;
 
-  if((v == NULL) || (vect_length(v) == 0)) return shead1;
   cur_index = sv->index;
 
     face1 = (struct subvolume *)(sv->neighbor[X_NEG]);
@@ -2051,7 +2045,6 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     	}
     }
 
-#if 0
    /* let's reach subvolumes located "corner-to-corner" from the top face
       of the current subvolume. */
    /* go (-X and -Y and +Z) */
@@ -2450,11 +2443,11 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     	}
     }
 
-#endif
 
     return shead1;
 
 }
+
 /*************************************************************************
 diffuse_3D:
   In: molecule that is moving
@@ -2483,16 +2476,11 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   double steps=1.0;
   double t_steps=1.0;
   double factor;           /* return value from 'estimate_disk()' function */
-  double scaling;     /* scales reaction cumulative_probabilitities array */
+  double scaling = 1.0;          /* scales reaction cumulative_probabilitities array */
   double rate_factor=1.0;
-#ifdef USE_EXPANDED_COLLISION_LIST
-  /* fractions of the volume/surface of the target molecule interaction sphere
-     accessible to the moving molecule. */
-  double avail_volume = 1.0, avail_surface = 1.0; 
-#endif                                        
 
   int i,j,k,l;
-  
+    
   int calculate_displacement = 1;
 
   sm = m->properties;
@@ -2583,11 +2571,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 /*      else printf("Rx between %s and %s is NULL\n",sm->sym->name,mp->properties->sym->name); */
     }
   }
- 
-#ifdef USE_EXPANDED_COLLISION_LIST
-    shead = expand_collision_list(m, sv, &displacement, shead); 
-#endif
- 
+  
   if (calculate_displacement)
   {
     if (max_time > MULTISTEP_WORTHWHILE) steps = safe_diffusion_step(m,shead);
@@ -2616,12 +2600,15 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       pick_displacement(&displacement,rate_factor*sm->space_step);
     }
 
-
     world->diffusion_number += 1.0;
     world->diffusion_cumsteps += steps;
   }
   
    reflectee = NULL;
+
+#ifdef USE_EXPANDED_COLLISION_LIST
+    shead = expand_collision_list(m, sv, shead); 
+#endif
  
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
 #define ERROR_AND_QUIT fprintf(world->err_file,"Out of memory: trying to save intermediate results.\n"); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
@@ -2662,14 +2649,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           /*if (smash->t < am->t + am->t2) continue;*/
         }
         
-	
 #ifdef USE_EXPANDED_COLLISION_LIST
-        /* scaling = 1.0; */
-        estimate_clipped_interaction((struct molecule*)am, &avail_volume, &avail_surface);
-        scaling = avail_volume;
-        /* Reaction blocked by a wall. */ 
-        /* if(scaling < 0.1) continue; */
-#else
+        scaling = estimate_clipped_interaction((struct molecule*)am);
+#else 
 	factor = estimate_disk(
           &(smash->loc),&displacement,world->rx_radius_3d,m->subvol,m,
 	  (struct molecule*)am
@@ -2677,8 +2659,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	if (factor<0) continue; /* Reaction blocked by a wall */
         
         scaling = factor / rate_factor;
-#endif
-        if (rx->prob_t != NULL) check_probs(rx,m->t);
+#endif 
+   if (rx->prob_t != NULL) check_probs(rx,m->t);
 	
 //	printf("Thunk! %d %.8e\n",world->it_time,smash->t);
 
@@ -2860,6 +2842,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         m->pos.x = smash->loc.x;
         m->pos.y = smash->loc.y;
         m->pos.z = smash->loc.z;
+        
         displacement.x *= (1.0-smash->t);
         displacement.y *= (1.0-smash->t);
         displacement.z *= (1.0-smash->t);
