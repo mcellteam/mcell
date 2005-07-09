@@ -32,7 +32,7 @@
 #define MULTISTEP_FRACTION 0.9
 #define MAX_UNI_TIMESKIP 5000
 
-/*#define USE_EXPANDED_COLLISION_LIST */       
+/*#define USE_EXPANDED_COLLISION_LIST */        
 
 /* SOLVE_QF is a local #define in exact_disk (solves the quadratic formula) */
 /* REGISTER_PARTITION is a local #define in exact_disk */
@@ -1152,15 +1152,12 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
   struct subvolume *corner1, *corner2, *corner3, *corner4, *corner5, *corner6;
   struct subvolume *corner7, *corner8;
   struct rxn *rx;
-  /* distance from the molecule to the closest subvolume wall. */
-  double distance = 0;
   /* index of the current subvolume */
   int cur_index;
   /* index of the neighbor subvolume */
   int neighbor_index;
-  struct vector3 v0, v1; /* vertices of the edge */
   int i;
-
+   
   cur_index = sv->index;
 
     face1 = (struct subvolume *)(sv->neighbor[X_NEG]);
@@ -1177,20 +1174,7 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     	for (mp = face1->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
-      
-      		/* if the molecule is farther from the subvolume wall than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-    		distance = world->x_fineparts[ face1->urb.x ] - mp->pos.x;
-
-      		if(distance < 0){
-			distance = -distance;
-      		}      
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
+                  
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -1221,19 +1205,6 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     	for (mp = face2->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
-      
-      		/* if the molecule is farther from the subvolume wall than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-    		distance = mp->pos.x - world->x_fineparts[ face2->llf.x ];
-
-      		if(distance < 0){
-			distance = -distance;
-      		}      
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
 
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
@@ -1265,19 +1236,6 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     	for (mp = face3->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
-      
-      		/* if the molecule is farther from the subvolume wall than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-    		distance = world->y_fineparts[ face3->urb.y ] - mp->pos.y;
-
-      		if(distance < 0){
-			distance = -distance;
-      		}      
-
-      		if(distance >  world->rx_radius_3d){
-			continue;
-      		}
 
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
@@ -1309,19 +1267,6 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     	for (mp = face4->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
-      
-      		/* if the molecule is farther from the subvolume wall than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-    		distance = mp->pos.y - world->y_fineparts[ face4->llf.y ];
-
-      		if(distance < 0){
-			distance = -distance;
-      		}      
-
-      		if(distance >  world->rx_radius_3d){
-			continue;
-      		}
 
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
@@ -1353,20 +1298,7 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     	for (mp = face5->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
-      
-      		/* if the molecule is farther from the subvolume wall than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-    		distance = world->z_fineparts[ face5->urb.z ] - mp->pos.z;
-
-      		if(distance < 0){
-			distance = -distance;
-      		}      
-
-      		if(distance >  world->rx_radius_3d){
-			continue;
-      		}
-
+                      
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -1396,20 +1328,7 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     	for (mp = face6->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
-      
-      		/* if the molecule is farther from the subvolume wall than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-    	        distance = mp->pos.z - world->z_fineparts[ face6->llf.z ];
-
-      		if(distance < 0){
-			distance = -distance;
-      		}      
-
-      		if(distance >  world->rx_radius_3d){
-			continue;
-      		}
-
+                     
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -1463,7 +1382,7 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
    /* go (-Y and -Z) */
    neighbor_index = cur_index  - (world->nz_parts-1) - 1;
    edge8 = &(world->subvol[neighbor_index]);
-   /* let's reach subvolumes located "edge-to-edge" from the verical edges
+   /* let's reach subvolumes located "edge-to-edge" from the vertical edges
       of the current subvolume. */
    /* go (-Y and -X) */
    neighbor_index = cur_index  - (world->nz_parts-1) - (world->nz_parts-1)*(world->ny_parts-1);;
@@ -1480,27 +1399,11 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
 
     if((edge1 != NULL) && (edge1->mol_head != NULL))
     {
-        /* find coordinates of the shared edge */
-        v0.x = world->x_fineparts[sv->llf.x];
-        v0.y = world->y_fineparts[sv->llf.y];
-        v0.z = world->z_fineparts[sv->urb.z];
-        v1.x = world->x_fineparts[sv->llf.x];
-        v1.y = world->y_fineparts[sv->urb.y];
-        v1.z = world->z_fineparts[sv->urb.z];
         
     	for (mp = edge1->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
-      
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                distance = distance_point_line(&(mp->pos),&v0,&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
+                  
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -1528,27 +1431,11 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
 
     if((edge2 != NULL) && (edge2->mol_head != NULL))
     {
-        /* find coordinates of the shared edge */
-        v0.x = world->x_fineparts[sv->llf.x];
-        v0.y = world->y_fineparts[sv->urb.y];
-        v0.z = world->z_fineparts[sv->urb.z];
-        v1.x = world->x_fineparts[sv->urb.x];
-        v1.y = world->y_fineparts[sv->urb.y];
-        v1.z = world->z_fineparts[sv->urb.z];
         
     	for (mp = edge2->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
-      
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                distance = distance_point_line(&(mp->pos),&v0,&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
+                  
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -1575,28 +1462,12 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     }
     if((edge3 != NULL) && (edge3->mol_head != NULL))
     {
-        /* find coordinates of the shared edge */
-        v0.x = world->x_fineparts[sv->urb.x];
-        v0.y = world->y_fineparts[sv->llf.y];
-        v0.z = world->z_fineparts[sv->urb.z];
-        v1.x = world->x_fineparts[sv->urb.x];
-        v1.y = world->y_fineparts[sv->urb.y];
-        v1.z = world->z_fineparts[sv->urb.z];
         
     	for (mp = edge3->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
-      
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                distance = distance_point_line(&(mp->pos),&v0,&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
-      		/* check for the possible reaction. */
+      		
+                /* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
@@ -1622,27 +1493,10 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     }
     if((edge4 != NULL) && (edge4->mol_head != NULL))
     {
-        /* find coordinates of the shared edge */
-        v0.x = world->x_fineparts[sv->llf.x];
-        v0.y = world->y_fineparts[sv->llf.y];
-        v0.z = world->z_fineparts[sv->urb.z];
-        v1.x = world->x_fineparts[sv->urb.x];
-        v1.y = world->y_fineparts[sv->llf.y];
-        v1.z = world->z_fineparts[sv->urb.z];
-        
     	for (mp = edge4->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
-      
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                distance = distance_point_line(&(mp->pos),&v0,&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
+                  
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -1670,27 +1524,11 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
 
     if((edge5 != NULL) && (edge5->mol_head != NULL))
     {
-        /* find coordinates of the shared edge */
-        v0.x = world->x_fineparts[sv->llf.x];
-        v0.y = world->y_fineparts[sv->llf.y];
-        v0.z = world->z_fineparts[sv->llf.z];
-        v1.x = world->x_fineparts[sv->llf.x];
-        v1.y = world->y_fineparts[sv->urb.y];
-        v1.z = world->z_fineparts[sv->llf.z];
         
     	for (mp = edge5->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
-      
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                distance = distance_point_line(&(mp->pos),&v0,&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
+                      
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -1717,28 +1555,12 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     }
     if((edge6 != NULL) && (edge6->mol_head != NULL))
     {
-        /* find coordinates of the shared edge */
-        v0.x = world->x_fineparts[sv->llf.x];
-        v0.y = world->y_fineparts[sv->urb.y];
-        v0.z = world->z_fineparts[sv->llf.z];
-        v1.x = world->x_fineparts[sv->urb.x];
-        v1.y = world->y_fineparts[sv->urb.y];
-        v1.z = world->z_fineparts[sv->llf.z];
         
     	for (mp = edge6->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
-      
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                distance = distance_point_line(&(mp->pos),&v0,&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
-      		/* check for the possible reaction. */
+      		
+                /* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
@@ -1764,26 +1586,10 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     }
     if((edge7 != NULL) && (edge7->mol_head != NULL))
     {
-        /* find coordinates of the shared edge */
-        v0.x = world->x_fineparts[sv->urb.x];
-        v0.y = world->y_fineparts[sv->llf.y];
-        v0.z = world->z_fineparts[sv->llf.z];
-        v1.x = world->x_fineparts[sv->urb.x];
-        v1.y = world->y_fineparts[sv->urb.y];
-        v1.z = world->z_fineparts[sv->llf.z];
         
     	for (mp = edge7->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
-      
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                distance = distance_point_line(&(mp->pos),&v0,&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
 
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
@@ -1811,27 +1617,11 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     }
     if((edge8 != NULL) && (edge8->mol_head != NULL))
     {
-        /* find coordinates of the shared edge */
-        v0.x = world->x_fineparts[sv->llf.x];
-        v0.y = world->y_fineparts[sv->llf.y];
-        v0.z = world->z_fineparts[sv->llf.z];
-        v1.x = world->x_fineparts[sv->urb.x];
-        v1.y = world->y_fineparts[sv->llf.y];
-        v1.z = world->z_fineparts[sv->llf.z];
         
     	for (mp = edge8->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
       
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                distance = distance_point_line(&(mp->pos),&v0,&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -1858,27 +1648,10 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     }
     if((edge9 != NULL) && (edge9->mol_head != NULL))
     {
-        /* find coordinates of the shared edge */
-        v0.x = world->x_fineparts[sv->llf.x];
-        v0.y = world->y_fineparts[sv->llf.y];
-        v0.z = world->z_fineparts[sv->llf.z];
-        v1.x = world->x_fineparts[sv->llf.x];
-        v1.y = world->y_fineparts[sv->llf.y];
-        v1.z = world->z_fineparts[sv->urb.z];
-        
     	for (mp = edge9->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
       
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                distance = distance_point_line(&(mp->pos),&v0,&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -1905,27 +1678,11 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     }
     if((edge10 != NULL) && (edge10->mol_head != NULL))
     {
-        /* find coordinates of the shared edge */
-        v0.x = world->x_fineparts[sv->llf.x];
-        v0.y = world->y_fineparts[sv->urb.y];
-        v0.z = world->z_fineparts[sv->llf.z];
-        v1.x = world->x_fineparts[sv->llf.x];
-        v1.y = world->y_fineparts[sv->urb.y];
-        v1.z = world->z_fineparts[sv->urb.z];
         
     	for (mp = edge10->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
       
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                distance = distance_point_line(&(mp->pos),&v0,&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -1952,27 +1709,10 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     }
     if((edge11 != NULL) && (edge11->mol_head != NULL))
     {
-        /* find coordinates of the shared edge */
-        v0.x = world->x_fineparts[sv->urb.x];
-        v0.y = world->y_fineparts[sv->urb.y];
-        v0.z = world->z_fineparts[sv->llf.z];
-        v1.x = world->x_fineparts[sv->urb.x];
-        v1.y = world->y_fineparts[sv->urb.y];
-        v1.z = world->z_fineparts[sv->urb.z];
-        
     	for (mp = edge11->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
       
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                distance = distance_point_line(&(mp->pos),&v0,&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -1999,27 +1739,11 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     }
     if((edge12 != NULL) && (edge12->mol_head != NULL))
     {
-        /* find coordinates of the shared edge */
-        v0.x = world->x_fineparts[sv->urb.x];
-        v0.y = world->y_fineparts[sv->llf.y];
-        v0.z = world->z_fineparts[sv->llf.z];
-        v1.x = world->x_fineparts[sv->urb.x];
-        v1.y = world->y_fineparts[sv->llf.y];
-        v1.z = world->z_fineparts[sv->urb.z];
         
     	for (mp = edge12->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
       
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                distance = distance_point_line(&(mp->pos),&v0,&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -2075,26 +1799,11 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
 
     if((corner1 != NULL) && (corner1->mol_head != NULL))
     {
-        /* find coordinates of the shared corner */
-        v0.x = world->x_fineparts[sv->llf.x];
-        v0.y = world->y_fineparts[sv->llf.y];
-        v0.z = world->z_fineparts[sv->urb.z];
-               
  
     	for (mp = corner1->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
-      
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                vectorize(&(mp->pos),&v0,&v1);
-                distance = vect_length(&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
+                       
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -2121,26 +1830,11 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     }
     if((corner2 != NULL) && (corner2->mol_head != NULL))
     {
-        /* find coordinates of the shared corner */
-        v0.x = world->x_fineparts[sv->llf.x];
-        v0.y = world->y_fineparts[sv->urb.y];
-        v0.z = world->z_fineparts[sv->urb.z];
-               
  
     	for (mp = corner2->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
-      
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                vectorize(&(mp->pos),&v0,&v1);
-                distance = vect_length(&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
+                      
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -2167,26 +1861,11 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     }
     if((corner3 != NULL) && (corner3->mol_head != NULL))
     {
-        /* find coordinates of the shared corner */
-        v0.x = world->x_fineparts[sv->urb.x];
-        v0.y = world->y_fineparts[sv->urb.y];
-        v0.z = world->z_fineparts[sv->urb.z];
-               
  
     	for (mp = corner3->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
       
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                vectorize(&(mp->pos),&v0,&v1);
-                distance = vect_length(&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -2213,26 +1892,11 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     }
     if((corner4 != NULL) && (corner4->mol_head != NULL))
     {
-        /* find coordinates of the shared corner */
-        v0.x = world->x_fineparts[sv->urb.x];
-        v0.y = world->y_fineparts[sv->llf.y];
-        v0.z = world->z_fineparts[sv->urb.z];
-               
  
     	for (mp = corner4->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
       
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                vectorize(&(mp->pos),&v0,&v1);
-                distance = vect_length(&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -2260,26 +1924,11 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
 
     if((corner5 != NULL) && (corner5->mol_head != NULL))
     {
-        /* find coordinates of the shared corner */
-        v0.x = world->x_fineparts[sv->llf.x];
-        v0.y = world->y_fineparts[sv->llf.y];
-        v0.z = world->z_fineparts[sv->llf.z];
-               
  
     	for (mp = corner5->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
       
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                vectorize(&(mp->pos),&v0,&v1);
-                distance = vect_length(&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -2306,26 +1955,11 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     }
     if((corner6 != NULL) && (corner6->mol_head != NULL))
     {
-        /* find coordinates of the shared corner */
-        v0.x = world->x_fineparts[sv->llf.x];
-        v0.y = world->y_fineparts[sv->urb.y];
-        v0.z = world->z_fineparts[sv->llf.z];
-               
  
     	for (mp = corner6->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
-      
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                vectorize(&(mp->pos),&v0,&v1);
-                distance = vect_length(&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
+                   
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -2352,26 +1986,11 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     }
     if((corner7 != NULL) && (corner7->mol_head != NULL))
     {
-        /* find coordinates of the shared corner */
-        v0.x = world->x_fineparts[sv->urb.x];
-        v0.y = world->y_fineparts[sv->urb.y];
-        v0.z = world->z_fineparts[sv->llf.z];
-               
  
     	for (mp = corner7->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
       
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                vectorize(&(mp->pos),&v0,&v1);
-                distance = vect_length(&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
@@ -2398,26 +2017,11 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     }
     if((corner8 != NULL) && (corner8->mol_head != NULL))
     {
-        /* find coordinates of the shared corner */
-        v0.x = world->x_fineparts[sv->urb.x];
-        v0.y = world->y_fineparts[sv->llf.y];
-        v0.z = world->z_fineparts[sv->llf.z];
-               
  
     	for (mp = corner8->mol_head ; mp != NULL ; mp = mp->next_v)
     	{
       		if (mp->properties == NULL) continue;  
       
-      		/* if the molecule is farther from the subvolume edge than 
-         (world->rx_radius_3d) do not account for the interaction with it.	
-      		*/
-                vectorize(&(mp->pos),&v0,&v1);
-                distance = vect_length(&v1); 
-
-      		if(distance > world->rx_radius_3d){
-			continue;
-      		}
-
       		/* check for the possible reaction. */
       		rx = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
