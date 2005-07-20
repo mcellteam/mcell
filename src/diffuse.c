@@ -32,7 +32,7 @@
 #define MULTISTEP_FRACTION 0.9
 #define MAX_UNI_TIMESKIP 5000
 
-/*#define USE_EXPANDED_COLLISION_LIST */        
+/*#define USE_EXPANDED_COLLISION_LIST  */       
 
 /* SOLVE_QF is a local #define in exact_disk (solves the quadratic formula) */
 /* REGISTER_PARTITION is a local #define in exact_disk */
@@ -2047,7 +2047,6 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
     	}
     }
 
-
     return shead1;
 
 }
@@ -2244,7 +2243,6 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       {
 	if (smash->t < EPS_C) continue;
 	
-        m->collisions++;
 	world->mol_mol_colls++;
 
         am = (struct abstract_molecule*)smash->target;

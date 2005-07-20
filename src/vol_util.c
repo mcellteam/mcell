@@ -465,7 +465,6 @@ int release_molecules(struct release_event_queue *req)
   
   m.t2 = 0.0;
   m.curr_cmprt = NULL;
-  m.collisions = 0;
   m.previous_grid = NULL;
   m.index = -1;
   m.path_length = 0.0;
@@ -762,7 +761,7 @@ int set_partitions()
   /* maximum allowed number of partitions */ 
    double num_part_x;
    num_part_x = (world->bb_max.x - world->bb_min.x)/(2*world->rx_radius_3d);
-
+  
   if(world->nx_parts > (int)num_part_x){
         if(world->x_partitions != NULL) free (world->x_partitions);
         if(world->y_partitions != NULL) free (world->y_partitions);

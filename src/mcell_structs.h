@@ -585,7 +585,6 @@ struct molecule
   
   struct cmprt_data *curr_cmprt;  /* Compartment we are in (for counting) */
   double path_length;             /* Distance traveled since birth */
-  int collisions;                 /* How many things have we hit? */
   
   struct surface_grid *previous_grid;   /* Wall we were released from */
   int index;                            /* Index on that wall (don't rebind) */
@@ -954,6 +953,7 @@ struct volume
   byte voxel_image_mode;
   byte voxel_volume_mode;
   char *molecule_prefix_name;
+  double my_counter;
 
   /* MCell startup command line arguments */
   byte info_opt;

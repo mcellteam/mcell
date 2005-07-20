@@ -264,7 +264,6 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       m->birthplace = local->mol;
       m->properties = p;
       p->population++;
-      m->collisions = 0;
       if (reac_g != NULL)
       {
         m->previous_grid = reac_g->grid;
