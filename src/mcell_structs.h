@@ -244,6 +244,14 @@
 #define Z_PARTS 2
 
 
+/* Flags for the exact disk computation */
+#define EXD_HEAD  0
+#define EXD_TAIL  1
+#define EXD_CROSS 2
+#define EXD_SPAN  3
+#define EXD_OTHER 4
+
+
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
 /*********************************************************/
@@ -746,6 +754,7 @@ struct storage
   struct mem_helper *effs;  /* Effector grids */
   struct mem_helper *coll;  /* Collision list */
   struct mem_helper *regl;  /* Region lists */
+  struct mem_helper *exdv;  /* Vertex lists for interaction disk area */
   
   struct wall *wall_head;              /* Locally stored walls */
   int wall_count;                      /* How many local walls? */
@@ -1013,6 +1022,20 @@ struct collision
 };
 
 
+/* Data structures to store information about interaction disk geometry */
+struct exd_vertex
+{
+  struct exd_vertex *next;
+  double u,v;              /* x,y style coordinates */
+  double r2,zeta;          /* r,theta style coordinates */
+  struct exd_vertex *e;    /* Edge to next vertex */
+  struct exd_vertex *span; /* List of edges spanning this point */
+  int role;                /* Head, tail, whatever */
+};
+
+
+
+/* Data structures to describe release events */
 struct release_event_queue {
   struct release_event_queue *next;
   double event_time;			/**< time of the release */

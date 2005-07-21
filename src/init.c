@@ -621,78 +621,39 @@ int init_partitions(void)
   if (set_partitions()) return 1;
   
   world->n_waypoints = 1;
-  if((world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint*)*world->n_waypoints)) == NULL){
-	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
+  if((world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint*)*world->n_waypoints)) == NULL)
+  {
+    fprintf(stderr,"Fatal error: out of memory while initializing partitions.\n");
+    exit(EXIT_FAILURE);
   }
   
-  if((shared_mem = (struct storage*)malloc(sizeof(struct storage))) == NULL){
-	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-  }    
-  if((shared_mem->list = create_mem(sizeof(struct wall_list),128)) == NULL){
-	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
+  if((shared_mem = (struct storage*)malloc(sizeof(struct storage))) == NULL)
+  {
+    fprintf(stderr,"Fatal error: out of memory while initializing partitions.\n");
+    exit(EXIT_FAILURE);
   }
-  if((shared_mem->mol  = create_mem(sizeof(struct molecule),128)) == NULL){
-	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-  }
-  if((shared_mem->smol  = create_mem(sizeof(struct surface_molecule),128)) == NULL) {
-	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-  }
-  if((shared_mem->gmol  = create_mem(sizeof(struct grid_molecule),128)) == NULL)  {
-	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-  }
-  if((shared_mem->face = create_mem(sizeof(struct wall),128)) == NULL){
-	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-  }
-  if((shared_mem->join = create_mem(sizeof(struct edge),128)) == NULL){
-	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-  }
-  if((shared_mem->tree = create_mem(sizeof(struct vertex_tree),128)) == NULL){
-	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-  }
-  if((shared_mem->effs = create_mem(sizeof(struct surface_grid),128)) == NULL){
-	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-  }
-  if((shared_mem->coll = create_mem(sizeof(struct collision),128)) == NULL){
-	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-  }
-  if((shared_mem->regl = create_mem(sizeof(struct region_list),128)) == NULL){
-	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
+  
+  shared_mem->list = create_mem(sizeof(struct wall_list),128);
+  shared_mem->mol  = create_mem(sizeof(struct molecule),128);
+  shared_mem->smol  = create_mem(sizeof(struct surface_molecule),128);
+  shared_mem->gmol  = create_mem(sizeof(struct grid_molecule),128);
+  shared_mem->face = create_mem(sizeof(struct wall),128);
+  shared_mem->join = create_mem(sizeof(struct edge),128);
+  shared_mem->tree = create_mem(sizeof(struct vertex_tree),128);
+  shared_mem->effs = create_mem(sizeof(struct surface_grid),128);
+  shared_mem->coll = create_mem(sizeof(struct collision),128);
+  shared_mem->regl = create_mem(sizeof(struct region_list),128);
+  shared_mem->exdv = create_mem(sizeof(struct exd_vertex),64);
+  
+  if (shared_mem->list==NULL || shared_mem->mol==NULL ||
+      shared_mem->smol==NULL || shared_mem->gmol==NULL ||
+      shared_mem->face==NULL || shared_mem->join==NULL ||
+      shared_mem->tree==NULL || shared_mem->effs==NULL ||
+      shared_mem->coll==NULL || shared_mem->regl==NULL ||
+      shared_mem->exdv==NULL)
+  {
+    fprintf(stderr,"Fatal error: out of memory while initializing partitions.\n");
+    exit(EXIT_FAILURE);
   }
   
   shared_mem->wall_head = NULL;

@@ -34,9 +34,8 @@
 
 /*#define USE_EXPANDED_COLLISION_LIST  */       
 
-/* SOLVE_QF is a local #define in exact_disk (solves the quadratic formula) */
-/* REGISTER_PARTITION is a local #define in exact_disk */
-/* CHECK_PARTITON is a local #define in exact_disk */
+/* EXD_TIME_CALC is a local #define in exact_disk */
+/* EXD_SPAN_CALC is a local #define in exact_disk */
 
 /* CLEAN_AND_RETURN(x) is a local #define in diffuse_3D */
 /* ERROR_AND_QUIT is a local #define in diffuse_3D */
@@ -289,263 +288,6 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
 
 
 
-#if 0
-/* This function will do what estimate_disk does but do an exact computation.*/
-/* This function is currently under construction, and may not be used. */
-double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv,
-                  struct molecule *moving,struct molecule *target)
-{
-  int relevant_walls = 0;
-  struct wall_list *wl;
-  
-  /* How many things we might intersect with? */
-  
-  for ( wl = sv->wall_head ; wl!=NULL ; wl = wl->next ) relevant_walls++;
-  if ( world->x_fineparts[ sv->urb.x ] - loc->x < R ) relevant_walls++;
-  if ( world->y_fineparts[ sv->urb.y ] - loc->y < R ) relevant_walls++;
-  if ( world->z_fineparts[ sv->urb.z ] - loc->z < R ) relevant_walls++;
-  if ( loc->x - world->x_fineparts[ sv->llf.x ] < R ) relevant_walls++;
-  if ( loc->y - world->y_fineparts[ sv->llf.y ] < R ) relevant_walls++;
-  if ( loc->z - world->z_fineparts[ sv->llf.z ] < R ) relevant_walls++;
-  
-  if (relevant_walls==0) return 1.0;
-  else
-  {
-    struct vector3 n,u,v,hit;
-    double a,b,c,d,f,g,h;
-    struct vector2 startpoints[relevant_walls];
-    struct vector2 endpoints[ relevant_walls ];
-    struct vector2 fix_loc;
-    int max_intersecting = 0;
-    int idx = 0;
-    int direct_hit = 0;
-    int added_line;
-    struct rxn *rx;
-    struct wall *w;
-    
-    /* Set up an orthogonal coordinate system */
-    /* first axis = direction of motion */
-    /* second axis = direction from collision location to target particle */
-    /* third axis = cross product of first two */
-    
-    a = 1.0/sqrt(mv->x*mv->x + mv->y*mv->y + mv->z*mv->z);
-    n.x = a * mv->x;
-    n.y = a * mv->y;
-    n.z = a * mv->z;
-    
-    u.x = target->pos.x - loc->x;
-    u.y = target->pos.y - loc->y;
-    u.z = target->pos.z - loc->z;
-    a = sqrt(u.x*u.x + u.y*u.y + u.z*u.z);
-    if (a < 0.5*EPS_C)
-    {
-      direct_hit = 1;
-      if (n.x * n.x < EPS_C) { u.x = 0; u.y = -n.z; u.z = n.y; }
-      else if (n.y*n.y<EPS_C) { u.x = -n.z; u.y = 0; u.z = n.x; }
-      else { u.x = -n.y; u.y = n.x; u.z = 0; }
-      a = 1.0/sqrt(u.x*u.x + u.y*u.y + u.z*u.z);
-    }
-    else a = 1.0/a;
-    u.x *= a;
-    u.y *= a;
-    u.z *= a;
-    
-    v.x = n.y*u.z - n.z*u.y;
-    v.y = n.z*u.x - n.x*u.z;
-    v.z = n.x*u.y - n.y*u.x;
-    
-    d = loc->x*mv->x + loc->y*mv->y + loc->z*mv->z;
-    
-    /* First we check all the partitions */
-    /* We touch partition z if R*u.z*cos(t) + R*v.z*sin(t) == distance to partition */
-    /* Solve quadratically--define in a macro to save space */
-    
-    /*
-    Macro does the equivalent of the following (except for setting the once-used b and c)
-	  a = u.z*u.z + v.z*v.z;
-	  b = f * v.z;              This is actually -b in the QF            
-	  c = f*f - u.z*u.z;
-	  g = b/a;                  Leading term for R*sin(t)
-	  h = (g*g - c/a);          Square of plus/minus term                   
-    */  
-    #define SOLVE_QF( uw , vw ) a = (uw)*(uw) + (vw)*(vw); g = f*(vw)/a; h = g*g - (f*f - (uw)*(uw))
-	
-    /*
-    And we want to add the intersection points of the  partition neatly, so we macro
-    the equivalent of
-	  f = world->z_fineparts[ sv->urb.z ] - loc->z;
-	  if (f<R)         Might touch
-	  {
-	    SOLVE_QF( u.z , v.z );
-	    if (h>0)       Root exists
-	    {
-	      h = sqrt(h);
-	      if (g-h > -1.0 && g+h < 1.0)     In range
-	      {
-		startpoints[ idx ].v = g-h;
-		startpoints[ idx ].u = sqrt( 1.0 - (g-h)*(g-h) );
-		endpoints[ idx ].v = g+h;
-		endpoints[ idx ].u = sqrt( 1.0 - (g+h)*(g+h) );
-		idx++;
-	      }
-	    }
-	  }
-    */
-    #define REGISTER_PARTITION startpoints[idx].v=g-h; startpoints[idx].u=sqrt(1-(g-h)*(g-h)); endpoints[idx].v=g+h; endpoints[idx].u=sqrt(1-(g+h)*(g+h)); idx++
-    #define CHECK_PARTITION( uw , vw , fw , Rw ) f = (fw); if (f<(Rw)) { SOLVE_QF((uw),(vw)); if (h>0) { h=sqrt(h); if (g-h>-R&&g+h<R) { REGISTER_PARTITION; } } }
-
-    CHECK_PARTITION( u.x , v.x , world->x_fineparts[ sv->urb.x ] - loc->x , R )
-    CHECK_PARTITION( u.x , v.x , world->x_fineparts[ sv->llf.x ] - loc->x , -R)
-    CHECK_PARTITION( u.y , v.y , world->y_fineparts[ sv->urb.y ] - loc->y , R )
-    CHECK_PARTITION( u.y , v.y , world->y_fineparts[ sv->llf.y ] - loc->y , -R)
-    CHECK_PARTITION( u.z , v.z , world->z_fineparts[ sv->urb.z ] - loc->z , R )
-    CHECK_PARTITION( u.z , v.z , world->z_fineparts[ sv->llf.z ] - loc->z , -R)
-    
-    #undef CHECK_PARTITION
-    #undef REGISTER_PARTITON
-    #undef SOLVE_QF
-    
-    /* Blech, okay, I'm glad that's done with. */
-    
-    /* Now we check all the walls and return -1 if we can't reach our target */
-    /* Ignoring very rare cases of parallel wall and vertices stuck in */
-    /* the interaction disk--that makes the code much bulkier */
-    
-    if (sv->wall_head != NULL)
-    {
-      fix_loc.u = u.x*target->pos.x + u.y*target->pos.y + u.z*target->pos.z;
-      fix_loc.v = v.x*target->pos.x + v.y*target->pos.y + v.z*target->pos.z;
-    }
-    
-    for (wl = sv->wall_head ; wl!=NULL ; wl = wl->next)
-    {
-      w = wl->this_wall;
-      added_line = 0;
-      
-      if ( (moving->properties->flags & CAN_MOLWALL) != 0 )
-      {
-	a = w->normal.x * loc->x + w->normal.y * loc->y + w->normal.z * loc->z;
-	rx = trigger_intersect(moving->properties->hashval,(struct abstract_molecule*)moving,(a>w->d)?1:-1,w);
-	if (rx != NULL && (rx->n_pathways==RX_WINDOW || rx->n_pathways==RX_GHOST) )
-	{
-	  continue; /* Ghost/window, we can see through it! */
-	}
-      }
-      
-      /* Point normal locations */
-      a = w->vert[0]->x * n.x + w->vert[0]->y * n.y + w->vert[0]->z * n.z;
-      b = w->vert[1]->x * n.x + w->vert[1]->y * n.y + w->vert[1]->z * n.z;
-      c = w->vert[2]->x * n.x + w->vert[2]->y * n.y + w->vert[2]->z * n.z;
-      
-      /* Intersection time of edges */
-      if ( a != b ) f = (d - a)/(b - a); else f = -1;
-      if ( b != c ) g = (d - b)/(c - b); else g = -1;
-      if ( c != a ) h = (d - c)/(a - c); else h = -1;
-      
-      if (f>0 && f<1)
-      {
-	if (g>0 && g<1)
-	{
-	  hit.x = (1-f) * w->vert[0]->x + f * w->vert[1]->x;
-	  hit.y = (1-f) * w->vert[0]->y + f * w->vert[1]->y;
-	  hit.z = (1-f) * w->vert[0]->z + f * w->vert[1]->z;
-	  startpoints[idx].u = hit.x*u.x + hit.y*u.y + hit.z*u.z;
-	  startpoints[idx].v = hit.x*v.x + hit.y*v.y + hit.z*v.z;
-	  
-	  hit.x = (1-g) * w->vert[0]->x + g * w->vert[1]->x;
-	  hit.y = (1-g) * w->vert[0]->y + g * w->vert[1]->y;
-	  hit.z = (1-g) * w->vert[0]->z + g * w->vert[1]->z;
-	  endpoints[idx].u = hit.x*u.x + hit.y*u.y + hit.z*u.z;
-	  endpoints[idx].v = hit.x*v.x + hit.y*v.y + hit.z*v.z;
-	  
-	  added_line = 1;
-	}
-	else if (h>0 && h<1)
-	{
-	  hit.x = (1-f) * w->vert[0]->x + f * w->vert[1]->x;
-	  hit.y = (1-f) * w->vert[0]->y + f * w->vert[1]->y;
-	  hit.z = (1-f) * w->vert[0]->z + f * w->vert[1]->z;
-	  startpoints[idx].u = hit.x*u.x + hit.y*u.y + hit.z*u.z;
-	  startpoints[idx].v = hit.x*v.x + hit.y*v.y + hit.z*v.z;
-	  
-	  hit.x = (1-h) * w->vert[0]->x + h * w->vert[1]->x;
-	  hit.y = (1-h) * w->vert[0]->y + h * w->vert[1]->y;
-	  hit.z = (1-h) * w->vert[0]->z + h * w->vert[1]->z;
-	  endpoints[idx].u = hit.x*u.x + hit.y*u.y + hit.z*u.z;
-	  endpoints[idx].v = hit.x*v.x + hit.y*v.y + hit.z*v.z;
-	  
-	  added_line = 1;
-	}
-      }
-      else if (g>0 && g<1 && h>0 && h<1)
-      {
-	hit.x = (1-g) * w->vert[0]->x + g * w->vert[1]->x;
-	hit.y = (1-g) * w->vert[0]->y + g * w->vert[1]->y;
-	hit.z = (1-g) * w->vert[0]->z + g * w->vert[1]->z;
-	startpoints[idx].u = hit.x*u.x + hit.y*u.y + hit.z*u.z;
-	startpoints[idx].v = hit.x*v.x + hit.y*v.y + hit.z*v.z;
-	
-	hit.x = (1-h) * w->vert[0]->x + h * w->vert[1]->x;
-	hit.y = (1-h) * w->vert[0]->y + h * w->vert[1]->y;
-	hit.z = (1-h) * w->vert[0]->z + h * w->vert[1]->z;
-	endpoints[idx].u = hit.x*u.x + hit.y*u.y + hit.z*u.z;
-	endpoints[idx].v = hit.x*v.x + hit.y*v.y + hit.z*v.z;
-	
-	added_line = 1;
-      }
-	
-      if (added_line && !direct_hit) /* Check if this blocked us from target */
-      {
-	if (fix_loc.u == 0)
-	{
-	  if ( startpoints[idx].u != endpoints[idx].u )
-	  {
-	    a = -startpoints[idx].u / (endpoints[idx].u - startpoints[idx].u);
-	    if (a>0 && a<1)
-	    {
-	      b = ((1-a)*startpoints[idx].v + a*endpoints[idx].v) / fix_loc.v;
-	      if (b>0 && b<1) return -1;
-	    }
-	  }
-	}
-	else if (fix_loc.v == 0)
-	{
-	  if ( startpoints[idx].v != endpoints[idx].v )
-	  {
-	    a = -startpoints[idx].v / (endpoints[idx].v - startpoints[idx].v);
-	    if (a>0 && a<1)
-	    {
-	      b = ((1-a)*startpoints[idx].u + a*endpoints[idx].u) / fix_loc.u;
-	      if (b>0 && b<1) return -1;
-	    }
-	  }
-	}
-	else
-	{
-	  c = endpoints[idx].v - startpoints[idx].v + startpoints[idx].u - endpoints[idx].u;
-	  if (c != 0)
-	  {
-	    a = (fix_loc.v * startpoints[idx].u - fix_loc.u * startpoints[idx].v)/c;
-	    if (a>0 && a<1)
-	    {
-	      b = ((1-b)*startpoints[idx].v + a*endpoints[idx].v) / fix_loc.v;
-	      if (b>0 && b<1) return -1;
-	    }
-	  }
-	}
-      }
-      
-      idx += added_line;
-    }
-    
-    /* Now we have to compute the area given all the line segments */
-    max_intersecting = idx;
-  }
- 
-  return 1.0;
-}
-#endif
-
 /*************************************************************************
 estimate_disk:
   In: location of moving molecule at time of collision
@@ -758,6 +500,826 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
   
   if (rpt==0) return 1.0;
   return area/(4.0*rpt);
+}
+
+
+
+
+/******************************/
+/** exact_disk stuff follows **/
+/******************************/
+
+struct exd_vector3
+{
+  double m,u,v;
+};
+
+/* Speed: 9ns (compare with 84ns for atan2) */
+/* Added extra computations--speed not retested yet */
+double exd_zetize(double y,double x)
+{
+  if (y>=0.0)
+  {  
+    if (x>=0)
+    {
+      if (x<y) return 1.0-0.5*x/y;
+      else return 0.5*y/x;
+    }
+    else
+    {
+      if (-x<y) return 1.0-0.5*x/y;
+      else return 2.0+0.5*y/x;
+    }
+  }
+  else
+  {
+    if (x<=0)
+    {
+      if (y<x) return 3.0-0.5*x/y;
+      else return 2.0+0.5*y/x;
+    }
+    else
+    {
+      if (x<-y) return 3.0-0.5*x/y;
+      else return 4.0+0.5*y/x;
+    }
+  }   
+}  
+
+
+/* Speed: 86ns on azzuri (as marked + 6ns function call overhead) */
+void exd_coordize(struct vector3 *mv,struct vector3 *m,struct vector3 *u,struct vector3 *v)
+{
+  double a;
+  
+  /* Normalize input vector -- 27ns */
+  a = 1.0/sqrt(mv->x*mv->x + mv->y*mv->y + mv->z*mv->z);
+  m->x = a*mv->x; m->y = a*mv->y; m->z = a*mv->z;
+  
+  /* Find orthogonal vectors -- 21ns */ 
+  if (m->x*m->x > m->y*m->y)
+  {
+    if (m->x*m->x > m->z*m->z)
+    {
+      if (m->y*m->y > m->z*m->z)
+      {
+        u->x = m->y; u->y = -m->x; u->z = 0.0; a = 1.0 - m->z*m->z;
+        v->x = m->z*m->x; v->y = m->z*m->y; v->z = -a;
+      }
+      else
+      {   
+        u->x = m->z; u->y = 0.0; u->z = -m->x; a = 1.0 - m->y*m->y;
+        v->x = -m->y*m->x; v->y = a; v->z = -m->y*m->z;
+      }
+    }  
+    else
+    {   
+      u->x = -m->z; u->y = 0.0; u->z = m->x; a = 1.0 - m->y*m->y;
+      v->x = m->y*m->x; v->y = -a; v->z = m->y*m->z;
+    }
+  }  
+  else
+  {   
+    if (m->y*m->y > m->z*m->z)
+    {
+      if (m->x*m->x > m->z*m->z)
+      {
+        u->x = -m->y; u->y = m->x; u->z = 0.0; a = 1.0 - m->z*m->z;
+        v->x = -m->z*m->x; v->y = -m->z*m->y; v->z = a;
+      }
+      else
+      {   
+        u->x = 0.0; u->y = m->z; u->z = -m->y; a = 1.0 - m->x*m->x;
+        v->x = -a; v->y = m->x*m->y; v->z = m->x*m->z;
+      }
+    }  
+    else
+    {   
+      u->x = 0.0; u->y = -m->z; u->z = m->y; a = 1.0 - m->x*m->x;
+      v->x = a; v->y = -m->x*m->y; v->z = -m->x*m->z;
+    }
+  }  
+  
+  /* Normalize orthogonal vectors -- 32ns */
+  a = 1/sqrt(a);
+  u->x *= a;
+  u->y *= a;
+  u->z *= a;
+  v->x *= a;
+  v->y *= a;
+  v->z *= a;
+}
+
+
+/* FIXME -- handle malloc errors */
+double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv,struct molecule *moving,struct molecule *target)
+{
+#define EXD_SPAN_CALC(v1,v2,p) ((v1)->u - (p)->u)*((v2)->v - (p)->v)  -  ((v2)->u - (p)->u)*((v1)->v - (p)->v)
+#define EXD_TIME_CALC(v1,v2,p) ((p)->u*(v1)->v - (p)->v*(v1)->u) / ((p)->v*((v2)->u-(v1)->u) - (p)->u*((v2)->v-(v1)->v))
+  struct wall_list *wl;
+  struct wall *w;
+  struct vector3 llf,urb;
+  
+  struct exd_vector3 v0muv,v1muv,v2muv;
+  struct exd_vertex pa,pb;
+  struct exd_vertex *ppa,*ppb,*pqa,*pqb,*vertex_head,*vp,*vq,*vr,*vs;
+  struct rxn *rx;
+  double pa_pb;
+  int n_verts,n_edges;
+  int p_flags;
+  
+  double R2;
+  int uncoordinated;
+  struct vector3 m,u,v;
+  struct exd_vector3 Lmuv;
+  struct exd_vertex g;
+  double m2_i;
+  double l_n,m_n;
+  double a,b,c,d,r,s,t,A,zeta;
+  int i;
+  
+  /* Initialize */
+  vertex_head = NULL;
+  n_verts = 0;
+  n_edges = 0;
+  
+  /* Partially set up coordinate systems for first pass */
+  R2 = R*R;
+  m2_i = 1.0/(mv->x*mv->x + mv->y*mv->y + mv->z*mv->z);
+  uncoordinated = 1;
+
+  /* Find walls that occlude the interaction disk (or block the reaction) */
+  for (wl=sv->wall_head;wl!=NULL;wl=wl->next)
+  {
+    w = wl->this_wall;
+    
+    /* Ignore this wall if it is too far away! */
+    
+    /* Find distance from plane of wall to molecule */    
+    l_n = loc->x*w->normal.x + loc->y*w->normal.y + loc->z*w->normal.z;
+    d = w->d - l_n;
+    
+    /* See if we're within interaction distance of wall */
+    m_n = mv->x*w->normal.x + mv->y*w->normal.y + mv->z*w->normal.z;
+    
+    if ( d*d >= R2*(1 - m2_i*m_n*m_n) ) continue;
+
+    
+    /* Ignore this wall if no overlap between wall & disk bounding boxes */
+    
+    /* Find wall bounding box */
+    urb.x = llf.x = w->vert[0]->x;
+    if (w->vert[1]->x < llf.x) llf.x = w->vert[1]->x;
+    else urb.x = w->vert[1]->x;
+    if (w->vert[2]->x < llf.x) llf.x = w->vert[2]->x;
+    else if (w->vert[2]->x > urb.x) urb.x = w->vert[2]->x;
+
+    urb.y = llf.y = w->vert[0]->y;
+    if (w->vert[1]->y < llf.y) llf.y = w->vert[1]->y;
+    else urb.y = w->vert[1]->y;
+    if (w->vert[2]->y < llf.y) llf.y = w->vert[2]->y;
+    else if (w->vert[2]->y > urb.y) urb.y = w->vert[2]->y;
+
+    urb.z = llf.z = w->vert[0]->z;
+    if (w->vert[1]->z < llf.z) llf.z = w->vert[1]->z;
+    else urb.z = w->vert[1]->z;
+    if (w->vert[2]->z < llf.z) llf.z = w->vert[2]->z;
+    else if (w->vert[2]->z > urb.z) urb.z = w->vert[2]->z;
+    
+    /* Reject those without overlapping bounding boxes */
+    b = R2*(1.0-mv->x*mv->x*m2_i);
+    a = llf.x - loc->x; if (a>0 && a*a >= b) continue;
+    a = loc->x - urb.x; if (a>0 && a*a >= b) continue;
+
+    b = R2*(1.0-mv->y*mv->y*m2_i);
+    a = llf.y - loc->y; if (a>0 && a*a >= b) continue;
+    a = loc->y - urb.y; if (a>0 && a*a >= b) continue;
+
+    b = R2*(1.0-mv->z*mv->z*m2_i);
+    a = llf.z - loc->z; if (a>0 && a*a >= b) continue;
+    a = loc->z - urb.z; if (a>0 && a*a >= b) continue;
+
+    
+    /* Ignore this wall if moving molecule can travel through it */
+    
+    /* Reject those that the moving particle can travel through */
+    if ( (moving->properties->flags && CAN_MOLWALL) != 0 )
+    {
+      rx = trigger_intersect(moving->properties->hashval,(struct abstract_molecule*)moving,0,w);
+      if (rx != NULL && (rx->n_pathways==RX_TRANSP))
+      {
+	continue;
+      }
+    }
+    
+    
+    /* Find line of intersection between wall and disk */
+    
+    /* Set up coordinate system and convert vertices */
+    if (uncoordinated)
+    {
+      exd_coordize(mv,&m,&u,&v);
+      
+      Lmuv.m = loc->x*m.x + loc->y*m.y + loc->z*m.z;    
+      Lmuv.u = loc->x*u.x + loc->y*u.y + loc->z*u.z;    
+      Lmuv.v = loc->x*v.x + loc->y*v.y + loc->z*v.z;
+      
+      g.u = (target->pos.x - loc->x)*u.x + (target->pos.y - loc->y)*u.y + (target->pos.z - loc->z)*u.z;
+      g.v = (target->pos.x - loc->x)*v.x + (target->pos.y - loc->y)*v.y + (target->pos.z - loc->z)*v.z;
+      g.r2 = g.u*g.u+g.v*g.v;
+      g.zeta = exd_zetize(g.v,g.u);
+      
+      uncoordinated=0;
+    }
+    
+    v0muv.m = w->vert[0]->x*m.x + w->vert[0]->y*m.y + w->vert[0]->z*m.z - Lmuv.m;
+    v0muv.u = w->vert[0]->x*u.x + w->vert[0]->y*u.y + w->vert[0]->z*u.z - Lmuv.u;
+    v0muv.v = w->vert[0]->x*v.x + w->vert[0]->y*v.y + w->vert[0]->z*v.z - Lmuv.v;
+    
+    v1muv.m = w->vert[1]->x*m.x + w->vert[1]->y*m.y + w->vert[1]->z*m.z - Lmuv.m;
+    v1muv.u = w->vert[1]->x*u.x + w->vert[1]->y*u.y + w->vert[1]->z*u.z - Lmuv.u;
+    v1muv.v = w->vert[1]->x*v.x + w->vert[1]->y*v.y + w->vert[1]->z*v.z - Lmuv.v;
+
+    v2muv.m = w->vert[2]->x*m.x + w->vert[2]->y*m.y + w->vert[2]->z*m.z - Lmuv.m;
+    v2muv.u = w->vert[2]->x*u.x + w->vert[2]->y*u.y + w->vert[2]->z*u.z - Lmuv.u;
+    v2muv.v = w->vert[2]->x*v.x + w->vert[2]->y*v.y + w->vert[2]->z*v.z - Lmuv.v;
+    
+    /* Draw lines between points and pick intersections with plane of m=0 */
+    if ( (v0muv.m < 0) == (v1muv.m < 0) )  /* v0,v1 on same side */
+    {
+      if ( (v2muv.m < 0) == (v1muv.m < 0) ) continue;
+      t = v0muv.m/(v0muv.m-v2muv.m);
+      pa.u = v0muv.u + (v2muv.u-v0muv.u)*t;
+      pa.v = v0muv.v + (v2muv.v-v0muv.v)*t;
+      t = v1muv.m/(v1muv.m-v2muv.m);
+      pb.u = v1muv.u + (v2muv.u-v1muv.u)*t;
+      pb.v = v1muv.v + (v2muv.v-v1muv.v)*t;
+    }
+    else if ( (v0muv.m<0) == (v2muv.m<0) ) /* v0,v2 on same side */
+    {
+      t = v0muv.m/(v0muv.m-v1muv.m);
+      pa.u = v0muv.u + (v1muv.u-v0muv.u)*t;
+      pa.v = v0muv.v + (v1muv.v-v0muv.v)*t;
+      t = v2muv.m/(v2muv.m-v1muv.m);
+      pb.u = v2muv.u + (v1muv.u-v2muv.u)*t;
+      pb.v = v2muv.v + (v1muv.v-v2muv.v)*t;
+    }
+    else /* v1, v2 on same side */
+    {
+      t = v1muv.m/(v1muv.m-v0muv.m);
+      pa.u = v1muv.u + (v0muv.u-v1muv.u)*t;
+      pa.v = v1muv.v + (v0muv.v-v1muv.v)*t;
+      t = v2muv.m/(v2muv.m-v0muv.m);
+      pb.u = v2muv.u + (v0muv.u-v2muv.u)*t;
+      pb.v = v2muv.v + (v0muv.v-v2muv.v)*t;
+    }
+    
+    /* Intersect line with circle; skip this wall if no intersection */
+    pa.r2 = pa.u*pa.u + pa.v*pa.v;
+    pb.r2 = pb.u*pb.u + pb.v*pb.v;
+    t=0; s=1;
+    
+    if (pa.r2 > R2 || pb.r2 > R2)
+    {
+      pa_pb = pa.u*pb.u + pa.v*pb.v;
+      a = 1.0/(pa.r2 + pb.r2 - 2*pa_pb);
+      b = (pa_pb - pa.r2)*a;
+      c = (R2 - pa.r2)*a;
+      d = b*b+c;
+      if (d<=0) continue;
+      d = sqrt(d);
+      t = -b-d;
+      if (t>=1) continue;
+      if (t<0) t=0;
+      s = -b+d;
+      if (s<=0) continue;
+      if (s>1) s=1;
+    }
+    
+    
+    /* Add this edge to the growing list, or return -1 if edge blocks target */
+    
+    /* Construct final endpoints and prepare to store them */
+    ppa = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
+    if (t>0)
+    {
+      ppa->u = pa.u + t*(pb.u-pa.u);
+      ppa->v = pa.v + t*(pb.v-pa.v);
+      ppa->r2 = ppa->u*ppa->u + ppa->v*ppa->v;
+      ppa->zeta = exd_zetize(ppa->v,ppa->u);
+    }
+    else
+    {
+      ppa->u = pa.u; ppa->v = pa.v; ppa->r2 = pa.r2;
+      ppa->zeta = exd_zetize(pa.v,pa.u);
+    }
+    ppb = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
+    if (s<1)
+    {
+      ppb->u = pa.u + s*(pb.u-pa.u);
+      ppb->v = pa.v + s*(pb.v-pa.v);
+      ppb->r2 = ppb->u*ppb->u + ppb->v*ppb->v;
+      ppb->zeta = exd_zetize(ppb->v,ppb->u);
+    }
+    else
+    {
+      ppb->u = pb.u; ppb->v = pb.v; ppb->r2 = pb.r2;
+      ppb->zeta = exd_zetize(pb.v,pb.u);
+    }
+    
+    /* It's convenient if ppa is earlier, ccw, than ppb */
+    a = (ppb->zeta - ppa->zeta);
+    if (a<0) a+=4.0;
+    if (a >= 2.0)
+    {
+      vp = ppb; ppb=ppa; ppa=vp;
+      a=4.0-a;
+    }
+    
+    /* Detect a blocked reaction: line is between origin and target */
+    b = (g.zeta - ppa->zeta);
+    if (b<0) b+=4.0;
+    
+    if (b<a)
+    {
+      c = (ppa->u-g.u)*(ppb->v-g.v)-(ppa->v-g.v)*(ppb->u-g.u);
+      if (c<=0) /* Blocked!! */
+      {
+	ppa->next=ppb; ppb->next=vertex_head;
+	mem_put_list( sv->local_storage->exdv , ppa );
+	return -1.0;
+      }
+    }
+    
+    ppa->role = EXD_HEAD;
+    ppb->role = EXD_TAIL;
+    ppa->e = ppb;
+    ppb->e = NULL;
+    
+    ppb->next = vertex_head;
+    ppa->next = ppb;
+    vertex_head = ppa;
+    n_verts += 2;
+    n_edges++;
+  }
+
+  
+  /* Find partition boundaries that occlude the interaction disk */
+  
+  /* First see if any overlap */
+  p_flags = 0;
+
+  d = loc->x - world->x_fineparts[ sv->llf.x ];
+  if (d<R)
+  {
+    c = R2*(mv->y*mv->y + mv->z*mv->z)*m2_i;
+    if (d*d<c) p_flags |= X_NEG_BIT;
+    d = world->x_fineparts[ sv->urb.x ] - loc->x;
+    if (d*d<c) p_flags |= X_POS_BIT;
+  }
+  else
+  {
+    d = world->x_fineparts[ sv->urb.x ] - loc->x;
+    if (d<R && d*d<R2*(mv->y*mv->y + mv->z*mv->z)*m2_i) p_flags |= X_POS_BIT;
+  }
+
+  d = loc->y - world->y_fineparts[ sv->llf.y ];
+  if (d<R)
+  {
+    c = R2*(mv->x*mv->x + mv->z*mv->z)*m2_i;
+    if (d*d<c) p_flags |= Y_NEG_BIT;
+    d = world->y_fineparts[ sv->urb.y ] - loc->y;
+    if (d*d<c) p_flags |= Y_POS_BIT;
+  }
+  else
+  {
+    d = world->y_fineparts[ sv->urb.y ] - loc->y;
+    if (d<R && d*d<R2*(mv->x*mv->x + mv->z*mv->z)*m2_i) p_flags |= Y_POS_BIT;
+  }
+
+  d = loc->z - world->z_fineparts[ sv->llf.z ];
+  if (d<R)
+  {
+    c = R2*(mv->y*mv->y + mv->x*mv->x)*m2_i;
+    if (d*d<c) p_flags |= X_NEG_BIT;
+    d = world->z_fineparts[ sv->urb.z ] - loc->z;
+    if (d*d<c) p_flags |= Z_POS_BIT;
+  }
+  else
+  {
+    d = world->x_fineparts[ sv->urb.z ] - loc->z;
+    if (d<R && d*d<R2*(mv->y*mv->y + mv->x*mv->x)*m2_i) p_flags |= Z_POS_BIT;
+  }
+  
+  /* Now find the lines created by any that do overlap */
+  if (p_flags)
+  {
+    if (uncoordinated) exd_coordize(mv,&m,&u,&v);
+    uncoordinated = 0;
+    
+    for (i=1;i<=p_flags;i*=2)
+    {
+      if ((i & p_flags)!=0)
+      {
+	/* Load up the relevant variables */
+	switch (i)
+	{
+	  case X_NEG_BIT:
+	    d = world->x_fineparts[ sv->llf.x ] - loc->x;
+	    a = u.x; b = v.x;
+	    break;
+	  case X_POS_BIT:
+	    d = world->x_fineparts[ sv->urb.x ] - loc->x;
+	    a = u.x; b = v.x;
+	    break;
+	  case Y_NEG_BIT:
+	    d = world->y_fineparts[ sv->llf.y ] - loc->y;
+	    a = u.y; b = v.y;
+	    break;
+	  case Y_POS_BIT:
+	    d = world->y_fineparts[ sv->urb.y ] - loc->y;
+	    a = u.y; b = v.y;
+	    break;
+	  case Z_NEG_BIT:
+	    d = world->z_fineparts[ sv->llf.z ] - loc->z;
+	    a = u.z; b = v.z;
+	    break;
+	  case Z_POS_BIT:
+	    d = world->z_fineparts[ sv->urb.z ] - loc->z;
+	    a = u.z; b = v.z;
+	    break;
+	  default:
+	    continue;
+	}
+	
+	if (a==0)
+	{
+	  s = d/b; t = sqrt(R2-s*s);
+	  pa.u = t; pa.v = s;
+	  pb.u = -t; pb.v = s;
+	}
+	else if (b==0)
+	{
+	  t = d/b; s = sqrt(R2-t*t);
+	  pa.u = t; pa.v = s;
+	  pb.u = t; pb.v = -s;
+	}
+	else
+	{
+	  c = a*a+b*b;
+	  s = d*b;
+	  t = sqrt(R2*c-d*d);
+	  c = 1.0/c;
+	  r = 1.0/a;
+	  pa.v = c*(s+t*a);
+	  pa.u = (d-b*pa.v)*r;
+	  pb.v = c*(s-t*a);
+	  pb.u = (d-b*pb.v)*r;
+	}
+	
+	/* Create memory for the pair of vertices */
+	ppa = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
+	ppb = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
+	
+	a = exd_zetize(pa.v,pa.u);
+	b = exd_zetize(pb.v,pb.u);
+        c = b-a;
+	if (c<0) c += 4;
+	if (c<2)
+	{
+	  ppa->u = pa.u; ppa->v = pa.v; ppa->r2 = pa.u*pa.u+pa.v*pa.v; ppa->zeta = a;
+	  ppb->u = pb.u; ppb->v = pb.v; ppb->r2 = pb.u*pb.u+pb.v*pb.v; ppb->zeta = b;
+	}
+	else
+	{
+	  ppb->u = pa.u; ppb->v = pa.v; ppb->r2 = pa.u*pa.u+pa.v*pa.v; ppb->zeta = a;
+	  ppa->u = pb.u; ppa->v = pb.v; ppa->r2 = pb.u*pb.u+pb.v*pb.v; ppa->zeta = b;	  
+	}
+	
+	ppa->role = EXD_HEAD;
+	ppb->role = EXD_TAIL;
+	ppa->e = ppb;
+	ppb->e = NULL;
+	
+	ppb->next = vertex_head;
+	ppa->next = ppb;
+	vertex_head = ppa;
+	n_verts += 2;
+	n_edges++;	
+      }
+    }
+  }
+  
+  
+  /* Now that we have everything, see if we can perform simple calculations */
+  
+  /* Did we even find anything?  If not, return full area */
+  if (n_edges==0)
+  {
+    return 1.0;
+  }
+  /* If there is only one edge, just calculate it */
+  else if (n_edges==1)
+  {
+    ppa = vertex_head;
+    ppb = ppa->e;
+    
+    a = ppa->u*ppb->u+ppa->v*ppb->v;
+    b = ppa->u*ppb->v-ppa->v*ppb->u;
+    if (a<=0) /* Angle > pi/2 */
+    {
+      s = atan(-a/b)+0.5*MY_PI;
+    }
+    else
+    {
+      s = atan(b/a);
+    }
+    A = (0.5*b + R2*(MY_PI-0.5*s))/(MY_PI*R2);
+    
+    mem_put_list( sv->local_storage->exdv , vertex_head );
+    return A;
+  }
+  
+  
+  /* If there are multiple edges, calculating area is more complex. */
+  
+  /* Insertion sort the multiple edges */
+  vp=vertex_head->next;
+  ppa = ppb = vertex_head;
+  ppa->next = NULL;
+  ppa->span = NULL;
+  while (vp!=NULL)
+  {
+    /* Snip off one item from old list to add */
+    vp->span = NULL;
+    vq = vp->next;
+    
+    /* Add it to list with ppa as head and ppb as tail */
+    if (vp->zeta < ppa->zeta)
+    {
+      vp->next = ppa;
+      ppa = vp;
+    }
+    else
+    {
+      for (pqa=ppa;pqa->next!=NULL;pqa=pqa->next)
+      {
+	if (vp->zeta < pqa->next->zeta) break;
+      }
+      vp->next = pqa->next;
+      pqa->next = vp;
+      if (vp->next==NULL) ppb = vp;
+    }
+    
+    /* Repeat for remainder of old list */
+    vp = vq;
+  }
+  
+  /* Close circular list */ 
+  vertex_head = ppa;
+  ppb->next = ppa;
+  
+  
+  /* Walk around the circle, inserting points where lines cross */
+  ppb=NULL;
+  for (ppa=vertex_head ; ppa!=vertex_head || ppb==NULL; ppa=ppa->next)
+  {
+    if (ppa->role != EXD_HEAD) continue;
+    ppb=ppa->e;
+    
+    for (pqa=ppa->next;pqa!=ppb;pqa=pqa->next)
+    {
+      if (pqa->role != EXD_HEAD) continue;
+      pqb=pqa->e;
+      
+      /* Create displacement vectors */
+      pa.u = ppb->u-ppa->u;
+      pa.v = ppb->v-ppa->v;
+      pb.u = pqb->u-pqa->u;
+      pb.v = pqb->v-pqa->v;
+      r = pb.u*pa.v - pa.u*pb.v;
+      
+      /* Check if lines are parallel--combine if so */
+      if (r*r<EPS_C*(pa.u*pa.u+pa.v*pa.v)*(pb.u*pb.u+pb.v*pb.v))
+      {
+	pqa->e = NULL;
+	pqa->role = EXD_OTHER;
+	
+	a = pqb->zeta - ppb->zeta;
+	if (a<0) a += 4.0;
+	
+	if (a>2) /* Other line is completely contained inside us */
+	{
+	  pqb->role = EXD_OTHER;
+	}
+	else  /* We have a new endpoint, so we need to check crosses again */
+	{
+	  ppa->e = pqb;
+	  ppb->role = EXD_OTHER;
+	  pqa=ppa;
+	}
+	continue;
+      }
+      
+      /* Check if these lines cross and find times at which they do */
+      s = (ppa->u-pqa->u)*pa.v - (ppa->v-pqa->v)*pa.u;
+      if (s*r <= 0) continue;
+      t = s/r;
+      if (t>=1) continue;
+      if (pa.u*pa.u>pa.v*pa.v)
+      {
+	s = (pqa->u-ppa->u+t*pb.u)*pa.u;
+	if (s <= 0 || s >= pa.u*pa.u) continue;
+      }
+      else
+      {
+	s = (pqa->v-ppa->v+t*pb.v)*pa.v;
+	if (s <= 0 || s >= pa.v*pa.v) continue;
+      }
+      
+      /* Create intersection point */
+      vq = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
+      vq->u = pqa->u + t*pb.u;
+      vq->v = pqa->v + t*pb.v;
+      vq->r2 = vq->u*vq->u + vq->v*vq->v;
+      vq->zeta = exd_zetize(vq->v,vq->u);
+      vq->e = ppb;
+      vq->role = EXD_CROSS;
+      
+      /* Insert new point into the list */
+      for (vp=ppa;vp!=ppb;vp=vp->next)
+      {
+	a = vq->zeta-vp->next->zeta;
+	if (a>2.0) a -= 4.0;
+	
+	if (a>=0) break;
+      }
+      
+      vq->next = vp->next;
+      vp->next = vq;
+    }
+  }
+  
+  /* Collapse nearby points in zeta and R */
+  for (vp=vertex_head,vq=NULL ; vq!=vertex_head ; vp=vq)
+  {
+    for (vq=vp->next;vq!=vertex_head;vq=vq->next)
+    {
+      if (vq->zeta-vp->zeta < EPS_C)
+      {
+	vq->zeta = vp->zeta;
+	if (-EPS_C < vq->r2-vp->r2 && EPS_C > vq->r2-vp->r2)
+	{
+	  vq->r2=vp->r2;
+	  /* Mark crosses that occur multiple times--only need one */
+	  if (vp->role==EXD_CROSS && vq->role==EXD_CROSS) vq->role = EXD_OTHER;
+	}
+      }
+      else break;
+    }
+  }
+  
+  /* Register all spanning line segments */
+  vq=NULL;
+  for (vp=vertex_head ; vp!=vertex_head || vq==NULL ; vp=vp->next)
+  {
+    if (vp->role != EXD_HEAD) continue;
+    
+    for (vq=vp->next ; vq!=vp->e ; vq=vq->next)
+    {
+      if (vq->zeta==vp->zeta) continue;
+      if (vq->zeta==vp->e->zeta) break;
+      if (vq->role==EXD_OTHER) continue;
+      
+      vr = (struct exd_vertex*) mem_get( sv->local_storage->exdv );
+      vr->next = vq->span;
+      vq->span = vr;
+      vr->e = vp;
+      vr->zeta = vq->zeta;
+      vr->role = EXD_SPAN;
+    }
+  }
+
+  /* Now we finally walk through and calculate the area */  
+  A=0.0;
+  zeta=0.0;
+  vr = vs = NULL;
+  for (vp=vertex_head ; zeta < 4.0-EPS_C ; vp=vp->next)
+  {
+    if (vp->role == EXD_OTHER) continue;
+    
+    /* Store data for the next tentatively approved point */
+    if (vs==&pa) vr=&pb;
+    else vr=&pa;
+    vr->u = vp->u;
+    vr->v = vp->v;
+    vr->zeta = vp->zeta;
+    if (vp->role == EXD_TAIL)
+    {
+      vr->r2 = R2*(1.0+EPS_C);
+      vr->e = NULL;
+    }
+    else
+    {
+      vr->r2 = vp->r2;
+      vr->e = vp->e;
+    }
+    
+    /* Check each span to see if anything is closer than our approval point */
+    for (vq=vp->span ; vq!=NULL ; vq=vq->next)
+    {
+      ppa = vq->e;
+      ppb = ppa->e;
+      b = EXD_SPAN_CALC(ppa,ppb,vr);
+      c = b*b;
+      if (c < R2*R2*EPS_C)  /* Span crosses the point */
+      {
+	if (vr->e==NULL)
+	{
+	  vr->r2 = vr->u*vr->u + vr->v*vr->v;
+	  vr->e = ppb;
+	}
+	else
+	{
+	  b = EXD_SPAN_CALC(vr,vr->e,ppb);
+	  if (b>0) vr->e = ppb;
+	}
+      }
+      else if (b<0 || vr->e==NULL)  /* Span is inside the point or spans tail */
+      {
+	t = EXD_TIME_CALC(ppa,ppb,vp);
+	vr->u = ppa->u + t*(ppb->u - ppa->u);
+	vr->v = ppa->v + t*(ppb->v - ppa->v);
+	vr->r2 = vr->u*vr->u + vr->v*vr->v;
+	vr->e = ppb;
+      }
+    }
+    
+    /* Should have an approved point in vr */
+    if (vs==NULL) /* No angle traversed yet */
+    {
+      vs = vr;
+    }
+    else
+    {
+      c = vr->zeta - vs->zeta;
+      if (c<0) c+=4.0;
+      if (/*vr->e != vs->e || c+zeta >= 4.0-EPS_C*/1)
+      {
+	zeta += c;
+	if (vs->e == NULL)
+	{
+	  if (c>=2.0) /* More than pi */
+	  {
+	    vs->u=-vs->u;
+	    vs->v=-vs->v;
+	    A += 0.5*MY_PI*R2;
+	  }
+	  a = vs->u*vr->u + vs->v*vr->v;
+	  b = vs->u*vr->v - vs->v*vr->u;
+	  if (a<=0) /* More than pi/2 */
+	  {
+    	    s = atan( -a / b )+0.5*MY_PI;
+	  }
+	  else
+	  {
+	    s = atan( b / a );
+	  }
+	  A += 0.5*s*R2;
+	}
+	else
+	{
+	  if (vs->e->zeta == vr->zeta)
+	  {
+	    A += 0.5*( vs->u*vs->e->v - vs->v*vs->e->u );
+	  }
+	  else
+	  {
+	    t = EXD_TIME_CALC(vs,vs->e,vr);
+	    b = vs->u+(vs->e->u-vs->u)*t;
+	    c = vs->v+(vs->e->v-vs->v)*t;
+	    A += 0.5*(vs->u*c - vs->v*b);
+	  }
+	}
+	vs=vr;
+      }
+    }
+  }
+  
+  
+  /* Finally, let's clean up the mess we made! */
+  
+  /* Deallocate lists */
+  ppa = vertex_head->next;
+  vertex_head->next = NULL;
+  mem_put_list( sv->local_storage->exdv , ppa );
+  
+  /* Return fractional area */
+  
+  return A/(MY_PI*R2);
+  
+#undef EXD_TIME_CALC
+#undef EXD_SPAN_CALC 
 }
 
 /*************************************************************************
@@ -2258,6 +2820,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           &(smash->loc),&displacement,world->rx_radius_3d,m->subvol,m,
 	  (struct molecule*)am
         );
+	
 	if (factor<0) continue; /* Reaction blocked by a wall */
         
         scaling = factor / rate_factor;
