@@ -1123,18 +1123,18 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
       
       /* Check if these lines cross and find times at which they do */
       s = (ppa->u-pqa->u)*pa.v - (ppa->v-pqa->v)*pa.u;
-      if (s*r <= 0) continue;
+      if (s*r <= EPS_C*R2*R2) continue;
       t = s/r;
-      if (t>=1) continue;
+      if (t>=1-EPS_C) continue;
       if (pa.u*pa.u>pa.v*pa.v)
       {
 	s = (pqa->u-ppa->u+t*pb.u)*pa.u;
-	if (s <= 0 || s >= pa.u*pa.u) continue;
+	if (s <= EPS_C*R2 || s >= pa.u*pa.u*(1.0-EPS_C)) continue;
       }
       else
       {
 	s = (pqa->v-ppa->v+t*pb.v)*pa.v;
-	if (s <= 0 || s >= pa.v*pa.v) continue;
+	if (s <= EPS_C*R2 || s >= pa.v*pa.v*(1.0-EPS_C)) continue;
       }
       
       /* Create intersection point */
@@ -1144,6 +1144,7 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
       vq->r2 = vq->u*vq->u + vq->v*vq->v;
       vq->zeta = exd_zetize(vq->v,vq->u);
       vq->e = ppb;
+      vq->span = NULL;
       vq->role = EXD_CROSS;
       
       /* Insert new point into the list */
@@ -1151,8 +1152,9 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
       {
 	a = vq->zeta-vp->next->zeta;
 	if (a>2.0) a -= 4.0;
+	else if (a<-2.0) a += 4.0;
 	
-	if (a>=0) break;
+	if (a<0) break;
       }
       
       vq->next = vp->next;
@@ -1172,7 +1174,8 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
 	{
 	  vq->r2=vp->r2;
 	  /* Mark crosses that occur multiple times--only need one */
-	  if (vp->role==EXD_CROSS && vq->role==EXD_CROSS) vq->role = EXD_OTHER;
+	  if (vq->role==EXD_CROSS) vq->role = EXD_OTHER;
+	  else if (vp->role==EXD_CROSS) vp->role = EXD_OTHER;
 	}
       }
       else break;
@@ -1264,10 +1267,10 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
     {
       c = vr->zeta - vs->zeta;
       if (c<0) c+=4.0;
-      if (/*vr->e != vs->e || c+zeta >= 4.0-EPS_C*/1)
+      if (/*vr->e != vs->e || c+zeta >= 4.0-EPS_C*/ c>EPS_C)
       {
 	zeta += c;
-	if (vs->e == NULL)
+	if (vs->e == NULL || (vs->e->zeta-vs->zeta)*(vs->e->zeta-vs->zeta) < EPS_C*EPS_C)
 	{
 	  if (c>=2.0) /* More than pi */
 	  {
@@ -1302,6 +1305,10 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
 	  }
 	}
 	vs=vr;
+      }
+      else
+      { 
+	if (vr->e!=NULL) vs=vr; 
       }
     }
   }
@@ -2643,6 +2650,7 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   double factor;           /* return value from 'estimate_disk()' function */
   double scaling = 1.0;          /* scales reaction cumulative_probabilitities array */
   double rate_factor=1.0;
+  double f;
 
   int i,j,k,l;
     
@@ -2820,6 +2828,22 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           &(smash->loc),&displacement,world->rx_radius_3d,m->subvol,m,
 	  (struct molecule*)am
         );
+#if 0
+	printf("Estimate %.5f ; ",factor);
+	f = exact_disk(
+          &(smash->loc),&displacement,world->rx_radius_3d,m->subvol,m,
+	  (struct molecule*)am
+        );
+	printf(" Exact %.5f\n",f);
+	
+	if (fabs(f-factor)>0.05)
+	{
+	  factor = exact_disk(
+	    &(smash->loc),&displacement,world->rx_radius_3d,m->subvol,m,
+	    (struct molecule*)am
+	  );
+	}
+#endif
 	
 	if (factor<0) continue; /* Reaction blocked by a wall */
         
