@@ -635,7 +635,7 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
   struct exd_vertex g;
   double m2_i;
   double l_n,m_n;
-  double a,b,c,d,r,s,t,A,zeta;
+  double a,b,c,d,r,s,t,A,zeta,last_zeta;
   int i;
   
   /* Initialize */
@@ -1159,6 +1159,7 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
       
       vq->next = vp->next;
       vp->next = vq;
+      if (vq->zeta < vertex_head->zeta) vertex_head = vq;
     }
   }
   
@@ -1206,10 +1207,13 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
   /* Now we finally walk through and calculate the area */  
   A=0.0;
   zeta=0.0;
+  last_zeta=-1;
   vr = vs = NULL;
   for (vp=vertex_head ; zeta < 4.0-EPS_C ; vp=vp->next)
   {
     if (vp->role == EXD_OTHER) continue;
+    if (vp->zeta==last_zeta) continue;
+    last_zeta = vp->zeta;
     
     /* Store data for the next tentatively approved point */
     if (vs==&pa) vr=&pb;
@@ -1227,6 +1231,27 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
       vr->r2 = vp->r2;
       vr->e = vp->e;
     }
+    
+    /* Check head points at same place to see if they're closer */
+    for (vq=vp->next ; vq->zeta==last_zeta ; vq=vq->next)
+    {
+      if (vq->role==EXD_HEAD)
+      {
+	if (vq->r2 < vp->r2 || vr->e==NULL)
+	{
+	  vr->u = vq->u;
+	  vr->v = vq->v;
+	  vr->r2 = vq->r2;
+	  vr->e = vq->e;
+	}
+	else if (vq->r2 == vr->r2)
+	{
+	  b = EXD_SPAN_CALC(vr,vr->e,vq->e);
+	  if (b>0) vr->e = vq->e;
+	}
+      }
+    }
+	
     
     /* Check each span to see if anything is closer than our approval point */
     for (vq=vp->span ; vq!=NULL ; vq=vq->next)
@@ -2836,7 +2861,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         );
 	printf(" Exact %.5f\n",f);
 	
-	if (fabs(f-factor)>0.05)
+	if (fabs(f-factor)>0.03)
 	{
 	  factor = exact_disk(
 	    &(smash->loc),&displacement,world->rx_radius_3d,m->subvol,m,
