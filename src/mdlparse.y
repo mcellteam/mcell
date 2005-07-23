@@ -107,6 +107,7 @@ struct output_evaluator *cnt;
 %token <tok> CORNERS
 %token <tok> COS
 %token <tok> COUNT
+%token <tok> CUSTOM_SPACE_STEP
 %token <tok> CUSTOM_RK
 %token <tok> CUSTOM_TIME_STEP
 %token <tok> CUBIC_RELEASE_SITE
@@ -1630,8 +1631,17 @@ molecule_stmt: new_molecule '{'
 
   if (mdlpvp->specp->time_step != 0.0) /* Custom timestep */
   {
-    mdlpvp->specp->space_step = sqrt( 4.0 * 1.0e8 * mdlpvp->specp->D * mdlpvp->specp->time_step ) / volp->length_unit;
-    mdlpvp->specp->time_step /= volp->time_unit;
+    if (mdlpvp->specp->time_step < 0) /* Hack--negative value means space step */
+    {
+      mdlpvp->specp->space_step = -mdlpvp->specp->time_step;
+      mdlpvp->specp->time_step = (mdlpvp->specp->space_step*mdlpvp->specp->space_step)*MY_PI/(16.0 * 1.0e8 * mdlpvp->specp->D)/volp->time_unit;
+      mdlpvp->specp->space_step /= volp->length_unit;
+    }
+    else
+    {
+      mdlpvp->specp->space_step = sqrt( 4.0 * 1.0e8 * mdlpvp->specp->D * mdlpvp->specp->time_step ) / volp->length_unit;
+      mdlpvp->specp->time_step /= volp->time_unit;
+    }
   }
   else if (volp->space_step==0) /* Global timestep */
   {
@@ -1839,7 +1849,27 @@ mol_timestep_def: /* empty */
 }
 	| CUSTOM_TIME_STEP '=' num_expr
 {
-  $$=$<dbl>3;
+  if ($<dbl>3 > 0)
+  {
+    $$=$<dbl>3;
+  }
+  else
+  {
+    mdlerror("Zero or negative custom time step is disallowed (ignoring).");
+    $$ = 0.0;
+  }
+}
+	| CUSTOM_SPACE_STEP '=' num_expr
+{
+  if ($<dbl>3 > 0)
+  {
+    $$ = - $<dbl>3;
+  }
+  else
+  {
+    mdlerror("Zero or negative custom space step is disallowed (ignoring).");
+    $$ = 0.0;
+  }
 };
 
 target_def: /* empty */
