@@ -901,7 +901,7 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
   if (d<R)
   {
     c = R2*(mv->y*mv->y + mv->x*mv->x)*m2_i;
-    if (d*d<c) p_flags |= X_NEG_BIT;
+    if (d*d<c) p_flags |= Z_NEG_BIT;
     d = world->z_fineparts[ sv->urb.z ] - loc->z;
     if (d*d<c) p_flags |= Z_POS_BIT;
   }
@@ -954,13 +954,25 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
 	
 	if (a==0)
 	{
-	  s = d/b; t = sqrt(R2-s*s);
+	  s = d/b;
+	  if (s*s>R2)
+	  {
+	    printf("Huh?");
+	    continue;
+	  }
+	  t = sqrt(R2-s*s);
 	  pa.u = t; pa.v = s;
 	  pb.u = -t; pb.v = s;
 	}
 	else if (b==0)
 	{
-	  t = d/b; s = sqrt(R2-t*t);
+	  t = d/b;
+	  if (t*t>R2)
+	  {
+	    printf("Huh?");
+	    continue;
+	  }
+	  s = sqrt(R2-t*t);
 	  pa.u = t; pa.v = s;
 	  pb.u = t; pb.v = -s;
 	}
@@ -968,6 +980,11 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
 	{
 	  c = a*a+b*b;
 	  s = d*b;
+	  if (d*d>R2*c)
+	  {
+	    printf("Huh?");
+	    continue;
+	  }
 	  t = sqrt(R2*c-d*d);
 	  c = 1.0/c;
 	  r = 1.0/a;
@@ -1116,6 +1133,7 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
 	{
 	  ppa->e = pqb;
 	  ppb->role = EXD_OTHER;
+	  ppb=pqb;
 	  pqa=ppa;
 	}
 	continue;
@@ -1175,8 +1193,8 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
 	{
 	  vq->r2=vp->r2;
 	  /* Mark crosses that occur multiple times--only need one */
-	  if (vq->role==EXD_CROSS) vq->role = EXD_OTHER;
-	  else if (vp->role==EXD_CROSS) vp->role = EXD_OTHER;
+//	  if (vq->role==EXD_CROSS && vp->role != EXD_OTHER) vq->role = EXD_OTHER;
+//	  else if (vp->role==EXD_CROSS && vq->role != EXD_OTHER) vp->role = EXD_OTHER;
 	}
       }
       else break;
