@@ -201,6 +201,7 @@ struct output_evaluator *cnt;
 %token <tok> OBJECT
 %token <tok> OBJECT_FILE_PREFIXES
 %token <tok> ORIENTATION
+%token <tok> OUTPUT_BUFFER_SIZE 
 %token <tok> PARALLEL_PARTITION
 %token <tok> PART
 %token <tok> PARTITION_X
@@ -4967,11 +4968,11 @@ output_def: REACTION_DATA_OUTPUT '{'
   mdlpvp->obp->step_time=volp->time_unit;
   mdlpvp->obp->time_list_head=NULL;
   mdlpvp->obp->curr_time_ptr=NULL;
-  mdlpvp->obp->buffersize=COUNTBUFFERSIZE;
   mdlpvp->obp->curr_buf_index=0;
   mdlpvp->obp->chunk_count=0;
   mdlpvp->obp->output_item_head=NULL;
 }
+       output_buffer_size_def
        output_timer_def
        list_count_cmds
        '}'
@@ -4983,6 +4984,14 @@ output_def: REACTION_DATA_OUTPUT '{'
   }
 };
 
+output_buffer_size_def: OUTPUT_BUFFER_SIZE '=' num_expr
+{
+  mdlpvp->obp->buffersize=$<dbl>3;
+}
+        | /* empty */
+{
+  mdlpvp->obp->buffersize=COUNTBUFFERSIZE;
+}
 
 output_timer_def:  step_time_def 
                 | iteration_time_def 
@@ -5015,11 +5024,11 @@ step_time_def: STEP '=' num_expr
    **/
   if (volp->chkpt_iterations) {
     mdlpvp->n_output=(int)(volp->chkpt_iterations/mdlpvp->output_freq+1);
-    mdlpvp->obp->buffersize=imin3(volp->chkpt_iterations-volp->start_time,mdlpvp->n_output,COUNTBUFFERSIZE);
+    mdlpvp->obp->buffersize=imin3(volp->chkpt_iterations-volp->start_time,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
   else {
     mdlpvp->n_output=(int)(volp->iterations/mdlpvp->output_freq+1);
-    mdlpvp->obp->buffersize=imin3(volp->iterations-volp->start_time,mdlpvp->n_output,COUNTBUFFERSIZE);
+    mdlpvp->obp->buffersize=imin3(volp->iterations-volp->start_time,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
 
   no_printf("Output step time definition:\n");
@@ -5051,11 +5060,11 @@ step_time_def: STEP '=' num_expr
    **/
   if (volp->chkpt_iterations) {
     mdlpvp->n_output=(int)(volp->chkpt_iterations/mdlpvp->output_freq+1);
-    mdlpvp->obp->buffersize=imin3(volp->chkpt_iterations-volp->start_time,mdlpvp->n_output,COUNTBUFFERSIZE);
+    mdlpvp->obp->buffersize=imin3(volp->chkpt_iterations-volp->start_time,mdlpvp->n_output,mdlpvp->obp->buffersize); 
   }
   else {
     mdlpvp->n_output=(int)(volp->iterations/mdlpvp->output_freq+1);
-    mdlpvp->obp->buffersize=imin3(volp->iterations-volp->start_time,mdlpvp->n_output,COUNTBUFFERSIZE);
+    mdlpvp->obp->buffersize=imin3(volp->iterations-volp->start_time,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
 
   no_printf("Default output step time definition:\n");
@@ -5079,10 +5088,10 @@ iteration_time_def: ITERATION_LIST '='
    * Compute the output buffersize.
    **/
   if (volp->chkpt_iterations) {
-    mdlpvp->obp->buffersize=imin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,COUNTBUFFERSIZE);
+    mdlpvp->obp->buffersize=imin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
   else {
-    mdlpvp->obp->buffersize=imin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,COUNTBUFFERSIZE);
+    mdlpvp->obp->buffersize=imin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize); 
   }
 
   sort_num_expr_list(mdlpvp->el_head);
@@ -5106,10 +5115,10 @@ real_time_def: TIME_LIST '='
    * Compute the output buffersize.
    **/
   if (volp->chkpt_iterations) {
-    mdlpvp->obp->buffersize=imin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,COUNTBUFFERSIZE);
+    mdlpvp->obp->buffersize=imin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
   else {
-    mdlpvp->obp->buffersize=imin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,COUNTBUFFERSIZE);
+    mdlpvp->obp->buffersize=imin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
 
   sort_num_expr_list(mdlpvp->el_head);
