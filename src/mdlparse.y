@@ -5016,7 +5016,13 @@ output_def: REACTION_DATA_OUTPUT '{'
 
 output_buffer_size_def: OUTPUT_BUFFER_SIZE '=' num_expr
 {
+  double temp_value = $<dbl>3;
   mdlpvp->obp->buffersize=$<dbl>3;
+  if (!(temp_value >= 1.0 && temp_value < pow(2,sizeof(u_int))))
+  {
+    mdlerror("Buffer size invalid.  Try a value in the range 100-1000000.\n");
+    return 1;
+  }
 }
         | /* empty */
 {

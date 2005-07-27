@@ -145,7 +145,6 @@ N
 \family default 
 \shape default 
  instead of 1 (the default).
- The valid range is 1-3000.
 \end_inset 
 </cell>
 </row>
@@ -1060,7 +1059,7 @@ The following optional commands can be applied to each molecule (and must
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="3" columns="2">
+<lyxtabular version="3" rows="4" columns="2">
 <features islongtable="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -1112,6 +1111,45 @@ t
 \family default 
 \shape default 
  (in seconds).
+ Use either this or 
+\family typewriter 
+CUSTOM_SPACE_STEP
+\family default 
+, not both.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+CUSTOM_SPACE_STEP = 
+\family sans 
+\shape italic 
+L
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+This molecule should take steps of average length 
+\family sans 
+\shape italic 
+L
+\family default 
+\shape default 
+ (in microns).
+ If you use this directive, do not set 
+\family typewriter 
+CUSTOM_TIME_STEP
+\family default 
+.
 \end_inset 
 </cell>
 </row>
@@ -2253,7 +2291,7 @@ Explanation
 
 
 \family typewriter 
-DEFINE_SURFACE 
+DEFINE_SURFACE_CLASS 
 \family sans 
 \shape italic 
 name
@@ -2292,7 +2330,7 @@ name
 
 
 \family typewriter 
-DEFINE_SURFACES {
+DEFINE_SURFACE_CLASSES {
 \family sans 
 \shape italic 
 ...
@@ -4709,7 +4747,7 @@ Each mdl file can also have multiple reaction data output blocks.
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="7" columns="2">
+<lyxtabular version="3" rows="8" columns="2">
 <features islongtable="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -4759,6 +4797,51 @@ REACTION_DATA_OUTPUT {
 \layout Standard
 
 Define a new count data output block which contains the commands below.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+OUTPUT_BUFFER_SIZE = 
+\family sans 
+\shape italic 
+N
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Write output to disk after every 
+\family sans 
+\shape italic 
+N
+\family default 
+\shape default 
+ blocks.
+ The default is 
+\family sans 
+\shape italic 
+N
+\family default 
+\shape default 
+=10000.
+ This command is optional, but must be first if it is used.
+ The output will also always be written when the simulation terminates,
+ regardless of 
+\family sans 
+\shape italic 
+N
+\family default 
+\shape default 
+.
 \end_inset 
 </cell>
 </row>
@@ -5333,7 +5416,7 @@ MCell3 understands the standard numeric operations
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="18" columns="2">
+<lyxtabular version="3" rows="20" columns="2">
 <features islongtable="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -5826,6 +5909,47 @@ x
 \family sans 
 \shape italic 
 y
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+RAND_UNIFORM
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Return a random number uniformly distributed between 0 and 1
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+RAND_GAUSSIAN
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Return a random number from a Gaussian distribution with mean 0 and standard
+ deviation 1.
 \end_inset 
 </cell>
 </row>
