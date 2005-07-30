@@ -2,6 +2,7 @@
 #define _GNU_SOURCE 1
 #endif
 
+#include <math.h>
 #include <time.h>
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -35,6 +36,7 @@ void run_sim(void)
   struct output_block *obp;
   double next_release_time;
   int i;
+  int first_report;
   /*int count;
   long long total_coll_1,total_coll_2;
   double total_len;*/
@@ -185,7 +187,58 @@ void run_sim(void)
   }
   printf("%d %.2f %lld %lld\n",count,total_len*world->length_unit,total_coll_1,total_coll_2);
 #endif
-#if 1
+
+
+  first_report=1;
+  for (i=0;i<world->rx_hashsize;i++)
+  {
+    struct rxn *rxp;
+    int j;
+    
+    for (rxp = world->reaction_hash[i] ; rxp != NULL ; rxp = rxp->next)
+    {
+      if (rxp->n_occurred < rxp->n_skipped*1000)
+      {
+	if (first_report)
+	{
+	  fprintf(world->log_file,"\nWARNING: some reactions were missed because reaction probability exceeded 1.\n");
+	  first_report=0;
+	}
+	fprintf(world->log_file,"  ");
+	for (j=0;j<rxp->n_reactants;j++)
+	{
+	  fprintf(world->log_file,"%s%s[%d]",(j)?" + ":"",rxp->players[j]->sym->name,rxp->geometries[j]);
+	}
+	fprintf(world->log_file,"  --  %g%% of reactions missed.\n",0.001*round(1000*rxp->n_skipped*100/(rxp->n_skipped+rxp->n_occurred)));
+      }
+    }
+  }
+  if (!first_report) fprintf(world->log_file,"\n");
+  
+  first_report+=1;
+  for (i=0;i<world->n_species;i++)
+  {
+    double f;
+    
+    if (world->species_list[i]->n_deceased > 0)
+    {
+      f = world->species_list[i]->cum_lifetime / world->species_list[i]->n_deceased;
+      
+      if (f < 50)
+      {
+	if (first_report)
+	{
+	  if (first_report>1) fprintf(world->log_file,"\n");
+	  fprintf(world->log_file,"WARNING: some molecules had a lifetime short relative to the timestep.\n");
+	  first_report=0;
+	}
+	fprintf(world->log_file,"  Mean lifetime of %s was %g timesteps.\n",world->species_list[i]->sym->name,0.01*round(100*f));
+      }
+    }
+  }
+  if (!first_report) fprintf(world->log_file,"\n");
+    
+#if 0
   printf("Reaction counters:\n");
   for (i=0;i<world->rx_hashsize;i++)
   {

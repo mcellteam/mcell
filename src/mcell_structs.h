@@ -489,6 +489,9 @@ struct species
 /*short charge;*/               /* Electric charge. */
   u_short flags;                /* Free?  Membrane bound?  Membrane? */
   
+  long long n_deceased;         /* Total number that have been destroyed. */
+  double cum_lifetime;          /* Timesteps lived by destroyed molecules */
+  
   int viz_state;                /* Visualization state for output */
   byte checked;                 /* Bread crumb for graph traversal */
 };
@@ -509,6 +512,9 @@ struct rxn
   
   struct species **players;  /* Identities of reactants/products */
   short *geometries;         /* Geometries of reactants/products */
+  
+  long long n_occurred;      /* How many times has this reaction occurred? */
+  double n_skipped;          /* How many reactions were skipped due to probability overflow? */
 
   struct t_func *prob_t;     /* List of probabilities changing over time */
   
@@ -575,6 +581,7 @@ struct abstract_molecule
   short flags;                     /* Who am I, what am I doing, etc. */
   struct species *properties;      /* What type of molecule are we? */
   struct mem_helper *birthplace;   /* What was I allocated from? */
+  double birthday;                 /* Time at which this particle was born */
 };
 
 
@@ -587,12 +594,12 @@ struct molecule
   short flags;
   struct species *properties;
   struct mem_helper *birthplace;
+  double birthday;
   
   struct vector3 pos;             /* Position in space */
   struct subvolume *subvol;       /* Partition we are in */
   
   struct cmprt_data *curr_cmprt;  /* Compartment we are in (for counting) */
-  double birthday;                /* Time at which this particle was born */
   
   struct surface_grid *previous_grid;   /* Wall we were released from */
   int index;                            /* Index on that wall (don't rebind) */
@@ -611,6 +618,7 @@ struct surface_molecule
   short flags;
   struct species *properties;
   struct mem_helper *birthplace;
+  double birthday;
   
   struct vector3 pos;               /* Position in the world */
   struct subvolume *subvol;         /* Partition we're in */
@@ -636,6 +644,7 @@ struct grid_molecule
   short flags;
   struct species *properties;
   struct mem_helper *birthplace;
+  double birthday;
   
   int grid_index;              /* Which gridpoint do we occupy? */
   short orient;                /* Which way do we point? */

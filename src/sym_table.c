@@ -230,6 +230,10 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       specp->space_step=0.0;
       specp->time_step=0.0;
       specp->flags=0;
+      
+      specp->n_deceased=0;
+      specp->cum_lifetime=0.0;
+      
       specp->viz_state=EXCLUDE_OBJ;
 /*
       specp->transition_count_each=NULL;
@@ -305,6 +309,8 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       rxnp->cat_probs=NULL;
       rxnp->players=NULL;
       rxnp->geometries=NULL;
+      rxnp->n_occurred=0;
+      rxnp->n_skipped=0;
       rxnp->prob_t=NULL;
       rxnp->pathway_head=NULL;
       break;

@@ -504,6 +504,8 @@ int init_species(void)
 /*        world->species_list[count]->hashval &= world->rx_hashsize-1; */
         world->species_list[count]->radius = EPS_C;
         world->species_list[count]->population = 0;
+	world->species_list[count]->n_deceased = 0;
+	world->species_list[count]->cum_lifetime = 0;
         if(world->species_list[count]->viz_state < 0){
         	world->species_list[count]->viz_state = EXCLUDE_OBJ;
         }
@@ -1847,6 +1849,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
         sg->mol[i]=mol;
         mol->t=0;
         mol->t2=0;
+	mol->birthday = 0;
 
         mol->properties=eff[p_index];
         mol->birthplace=w->birthplace->gmol;
@@ -2055,6 +2058,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   *tiles[j]=mol;
                   mol->t=0;
                   mol->t2=0;
+		  mol->birthday=0;
                   mol->properties=eff;
                   mol->birthplace=walls[j]->birthplace->gmol;
                   mol->grid_index=index[j];
@@ -2097,6 +2101,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     *tiles[k]=mol;
                     mol->t=0;
                     mol->t2=0;
+		    mol->birthday=0;
                     mol->properties=eff;
                     mol->birthplace=walls[k]->birthplace->gmol;
                     mol->grid_index=index[k];

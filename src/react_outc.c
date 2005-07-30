@@ -153,6 +153,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
           g = mem_get(local->gmol);
 	  if (g==NULL) return RX_NO_MEM;
           g->birthplace = local->gmol;
+	  g->birthday = t;
           g->properties = p;
           p->population++;
           g->flags = TYPE_GRID + ACT_NEWBIE + IN_SCHEDULE;
@@ -195,6 +196,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
         s = mem_get(local->smol);
 	if (s==NULL) return RX_NO_MEM;
         s->birthplace = local->smol;
+	s->birthday = t;
         s->properties = p;
         p->population++;
         s->flags = TYPE_SURF + ACT_NEWBIE + IN_SURFACE + IN_VOLUME + IN_SCHEDULE;
@@ -483,6 +485,8 @@ int outcome_unimolecular(struct rxn *rx,int path,
     if ((reac->properties->flags & COUNT_CONTENTS) != 0)
       count_me_by_region(reac,-1,NULL);
     
+    reac->properties->n_deceased++;
+    reac->properties->cum_lifetime += t - reac->birthday;
     reac->properties->population--;
     reac->properties = NULL;
     return RX_DESTROY;
@@ -597,7 +601,9 @@ int outcome_bimolecular(struct rxn *rx,int path,
 
       if ((reacB->properties->flags & COUNT_CONTENTS) != 0)
         count_me_by_region(reacB,-1,NULL);
-    
+      
+      reacB->properties->n_deceased++;
+      reacB->properties->cum_lifetime += t - reacB->birthday;
       reacB->properties->population--;
       reacB->properties = NULL;
       if ((reacB->flags&IN_MASK)==0) mem_put(reacB->birthplace,reacB);
@@ -620,6 +626,8 @@ int outcome_bimolecular(struct rxn *rx,int path,
       if ((reacA->properties->flags&COUNT_CONTENTS)!=0 && (reacA->flags&COUNT_ME)!=0)
 	count_me_by_region(reacA,-1,NULL);
     
+      reacA->properties->n_deceased++;
+      reacA->properties->cum_lifetime += t - reacA->birthday;
       reacA->properties->population--;
       reacA->properties = NULL;
       return RX_DESTROY;
@@ -646,6 +654,8 @@ int outcome_bimolecular(struct rxn *rx,int path,
       if ((reacB->properties->flags & COUNT_CONTENTS) != 0)
         count_me_by_region(reacB,-1,NULL);
     
+      reacB->properties->n_deceased++;
+      reacB->properties->cum_lifetime += t - reacB->birthday;
       reacB->properties->population--;
       reacB->properties = NULL;
       if ((reacB->flags&IN_MASK)==0) mem_put(reacB->birthplace,reacB);
@@ -668,6 +678,8 @@ int outcome_bimolecular(struct rxn *rx,int path,
       if ((reacA->properties->flags&COUNT_CONTENTS)!=0 && (reacA->flags&COUNT_ME)!=0)
 	count_me_by_region(reacA,-1,NULL);
     
+      reacA->properties->n_deceased++;
+      reacA->properties->cum_lifetime += t - reacA->birthday;
       reacA->properties->population--;
       reacA->properties = NULL;
       return RX_DESTROY;
@@ -720,6 +732,8 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
       m->subvol->mol_count--;
       if ((reac->properties->flags&COUNT_CONTENTS)!=0 && (reac->flags&COUNT_ME)!=0)
 	count_me_by_region(reac,-1,NULL);
+      reac->properties->n_deceased++;
+      reac->properties->cum_lifetime += t - reac->birthday;
       reac->properties->population--;
       reac->properties = NULL;
       return RX_DESTROY;
@@ -747,6 +761,8 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
 
       if (rx->players[ rx->product_idx[path] ] == NULL)
       {
+	reac->properties->n_deceased++;
+	reac->properties->cum_lifetime += t - reac->birthday;
         reac->properties->population--;
         reac->properties = NULL;
         return RX_DESTROY;

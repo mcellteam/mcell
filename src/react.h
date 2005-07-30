@@ -14,8 +14,8 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
 int test_unimolecular(struct rxn *rx);
 double timeof_unimolecular(struct rxn *rx);
 int which_unimolecular(struct rxn *rx);
-int test_bimolecular(struct rxn *rx,double time_mult);
-int test_intersect(struct rxn *rx,double time_mult);
+int test_bimolecular(struct rxn *rx,double scaling);
+int test_intersect(struct rxn *rx,double scaling);
 void check_probs(struct rxn *rx,double t);
 
 

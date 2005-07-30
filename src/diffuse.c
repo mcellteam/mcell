@@ -2996,6 +2996,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	  {
 	    if (rx->n_pathways == RX_TRANSP)
 	    {
+	      rx->n_occurred++;
 	      if ( (sm->flags & COUNT_HITS) )
 	      {
 		update_collision_count(sm,w->regions,k,1,rate_factor);
@@ -3009,7 +3010,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	      continue; /* Ignore this wall and keep going */
 	    }
 	    if (rx->prob_t != NULL) check_probs(rx,m->t);
-	    i = test_intersect(rx,rate_factor);
+	    i = test_intersect(rx,1.0/rate_factor);
 	    if (i > RX_NO_RX)
 	    {
 	      j = outcome_intersect(

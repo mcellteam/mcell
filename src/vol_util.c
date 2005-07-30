@@ -353,6 +353,8 @@ void excert_molecule(struct molecule *m)
     count_me_by_region( (struct abstract_molecule*)m , -1 , NULL );
   }
   m->subvol->mol_count--;
+  m->properties->n_deceased++;
+  m->properties->cum_lifetime += m->t - m->birthday;
   m->properties->population--;
   m->properties = NULL;
 }

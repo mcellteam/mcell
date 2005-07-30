@@ -96,6 +96,8 @@ test_bimolecular
         moved at once (1.0 means one timestep) and/or missing interaction area
   Out: RX_NO_RX if no reaction occurs
        int containing which reaction occurs if one does occur
+  Note: If this reaction does not return RX_NO_RX, it is assumed that the
+        reaction does take place, and counters are updated appropriately.
 *************************************************************************/
 
 int test_bimolecular(struct rxn *rx, double scaling)
@@ -103,16 +105,23 @@ int test_bimolecular(struct rxn *rx, double scaling)
   int m,M,avg;
   double p;         /* random number probability */
 
-  if(rx->cum_probs[rx->n_pathways - 1] > scaling)
+  if(rx->cum_probs[rx->n_pathways - 1] > scaling) /* Cannot scale enough */
   {
-//	fprintf(world->err_file, "test_bimolecular(): reaction cumulative probabilities are greater then 1 after adjustment. Time step may need to be reduced.\n");
-        /* just to keep the proportions of outbound pathways the same. */
-        p = rng_dbl( world->rng ) * rx->cum_probs[rx->n_pathways - 1];
-  }else{
-        /* instead of scaling rx->cum_probs array we scale random probability */
-        p = rng_dbl( world->rng ) * scaling;
-        if (p > rx->cum_probs[rx->n_pathways - 1]) return RX_NO_RX;
-
+    /* How may reactions did we miss? */
+    if (scaling==0.0) rx->n_skipped += GIGANTIC;
+    else rx->n_skipped += rx->cum_probs[rx->n_pathways -1] / scaling;
+    
+    /* Keep the proportions of outbound pathways the same. */
+    p = rng_dbl( world->rng ) * rx->cum_probs[rx->n_pathways - 1];
+    rx->n_occurred++;
+  }
+  else
+  {
+    /* Instead of scaling rx->cum_probs array we scale random probability */
+    p = rng_dbl( world->rng ) * scaling;
+    
+    if (p > rx->cum_probs[rx->n_pathways - 1]) return RX_NO_RX;
+    rx->n_occurred++;
   }
   
   m = 0;
@@ -139,18 +148,31 @@ test_intersect
   Out: RX_NO_RX if no reaction occurs (assume reflection)
        RX_WINDOW or RX_GHOST if transparent
        int containing which reaction occurs if one does occur
+  Note: If not RX_NO_RX, and not the trasparency shortcut, then we
+        update counters assuming the reaction will take place.
 *************************************************************************/
 
-int test_intersect(struct rxn *rx,double time_mult)
+int test_intersect(struct rxn *rx,double scaling)
 {
   int m,M,avg;
   double p;
   
   if (rx->n_pathways <= RX_SPECIAL) return rx->n_pathways;
   
-  p = rng_dbl( world->rng ) / time_mult;
+  if (rx->cum_probs[rx->n_pathways-1] > scaling)
+  {
+    if (scaling<=0.0) rx->n_skipped += GIGANTIC;
+    else rx->n_skipped += rx->cum_probs[rx->n_pathways-1] / scaling;
+    p = rng_dbl( world->rng ) * rx->cum_probs[rx->n_pathways-1];
+    rx->n_occurred++;
+  }
+  else
+  {
+    p = rng_dbl( world->rng ) * scaling;
   
-  if ( p > rx->cum_probs[ rx->n_pathways-1 ] ) return RX_NO_RX;
+    if ( p > rx->cum_probs[ rx->n_pathways-1 ] ) return RX_NO_RX;
+    rx->n_occurred++;
+  }
 
   m = 0;
   M = rx->n_pathways-1;
