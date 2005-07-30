@@ -126,9 +126,9 @@ seed_cmd: SEED_OPT int_arg
 
 iterations_cmd: ITERATIONS_OPT int_arg
 {
-  volp->iterations=(int) $<dbl>2;
+  volp->iterations=(long long) $<dbl>2;
   if (volp->iterations < 0) {
-    sprintf(argpvp->arg_err_msg,"Iterations %d is less than 0",
+    sprintf(argpvp->arg_err_msg,"Iterations %lld is less than 0",
       volp->iterations);
     argerror(argpvp->arg_err_msg,argpvp);
     return(1);

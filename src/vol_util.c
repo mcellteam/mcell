@@ -467,7 +467,7 @@ int release_molecules(struct release_event_queue *req)
   m.curr_cmprt = NULL;
   m.previous_grid = NULL;
   m.index = -1;
-  m.path_length = 0.0;
+  m.birthday = m.t;
   
   switch(rso->release_number_method)
   {

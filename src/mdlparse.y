@@ -37,6 +37,8 @@
 
 
   #define min(x,y) ((x)<(y)) ? (x): (y)
+  
+  #define min3(x,y,z) ((x)<(y)) ? (((x)<(z))?(x):(z)) : (((y)<(z))?(y):(z))
 
 
   int imin3(int f1, int f2, int f3)
@@ -44,6 +46,10 @@
     return (min(f1,min(f2,f3)));
   }
 
+  long long llmin3(long long f1,long long f2,long long f3)
+  {
+    return min(f1,min(f2,f3));
+  }
 
 
 %}
@@ -1456,7 +1462,7 @@ fflush(stderr);
 iteration_def: ITERATIONS '=' num_expr
 {
 if (volp->iterations==0) {
-  volp->iterations=(int) $<dbl>3;
+  volp->iterations=(long long) $<dbl>3;
 }
 no_printf("Iterations = %d\n",volp->iterations);
 fflush(stderr);
@@ -1629,7 +1635,12 @@ molecule_stmt: new_molecule '{'
   mdlpvp->mc_factor=1.0e11*volp->effector_grid_density*sqrt(MY_PI*volp->time_unit)/N_AV;
   mdlpvp->transport_mc_factor=6.2415e18*mdlpvp->mc_factor;
 
-  if (mdlpvp->specp->time_step != 0.0) /* Custom timestep */
+  if (mdlpvp->specp->D==0) /* Immobile (boring) */
+  {
+    mdlpvp->specp->space_step=0.0;
+    mdlpvp->specp->time_step=1.0;
+  }
+  else if (mdlpvp->specp->time_step != 0.0) /* Custom timestep */
   {
     if (mdlpvp->specp->time_step < 0) /* Hack--negative value means space step */
     {
@@ -1646,11 +1657,6 @@ molecule_stmt: new_molecule '{'
   else if (volp->space_step==0) /* Global timestep */
   {
     mdlpvp->specp->space_step=sqrt(4.0*1.0e8*mdlpvp->specp->D*volp->time_unit)/volp->length_unit;
-    mdlpvp->specp->time_step=1.0;
-  }
-  else if (mdlpvp->specp->D==0) /* Immobile (boring) */
-  {
-    mdlpvp->specp->space_step=0.0;
     mdlpvp->specp->time_step=1.0;
   }
   else /* Global spacestep */
@@ -2148,7 +2154,7 @@ chkpt_stmt: CHECKPOINT_INFILE '=' file_name
 }
 	| CHECKPOINT_ITERATIONS '=' num_expr
 {
-  volp->chkpt_iterations=(int) $<dbl>3;
+  volp->chkpt_iterations=(long long) $<dbl>3;
   volp->chkpt_flag = 1;
 };
 
@@ -4555,7 +4561,7 @@ viz_iteration_def: ITERATION_LIST '='
   }
   mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
   mdlpvp->fdlp->type=ALL_FRAME_DATA;
-  mdlpvp->fdlp->viz_iteration=-1;
+  mdlpvp->fdlp->viz_iterationll=-1;
   mdlpvp->fdlp->n_viz_iterations=0;
   mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
   mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -4656,7 +4662,7 @@ viz_time_def: TIME_LIST '='
   }
   mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
   mdlpvp->fdlp->type=ALL_FRAME_DATA;
-  mdlpvp->fdlp->viz_iteration=-1;
+  mdlpvp->fdlp->viz_iterationll=-1;
   mdlpvp->fdlp->n_viz_iterations=0;
   mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
   mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -4692,7 +4698,7 @@ frame_data_spec: frame_data_item '='
   }
   mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
   mdlpvp->fdlp->type=$<tok>1;
-  mdlpvp->fdlp->viz_iteration=-1;
+  mdlpvp->fdlp->viz_iterationll=-1;
   mdlpvp->fdlp->n_viz_iterations=0;
   mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
   mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -5059,12 +5065,13 @@ step_time_def: STEP '=' num_expr
    * Compute the output buffersize.
    **/
   if (volp->chkpt_iterations) {
-    mdlpvp->n_output=(int)(volp->chkpt_iterations/mdlpvp->output_freq+1);
-    mdlpvp->obp->buffersize=imin3(volp->chkpt_iterations-volp->start_time,mdlpvp->n_output,mdlpvp->obp->buffersize);
+    mdlpvp->n_output=(long long)(volp->chkpt_iterations/mdlpvp->output_freq+1);
+    mdlpvp->obp->buffersize=llmin3(volp->chkpt_iterations-volp->start_time,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
-  else {
-    mdlpvp->n_output=(int)(volp->iterations/mdlpvp->output_freq+1);
-    mdlpvp->obp->buffersize=imin3(volp->iterations-volp->start_time,mdlpvp->n_output,mdlpvp->obp->buffersize);
+  else
+  {
+    mdlpvp->n_output=(long long)(volp->iterations/mdlpvp->output_freq+1);
+    mdlpvp->obp->buffersize=llmin3(volp->iterations-volp->start_time,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
 
   no_printf("Output step time definition:\n");
@@ -5095,12 +5102,12 @@ step_time_def: STEP '=' num_expr
    * Compute the output buffersize.
    **/
   if (volp->chkpt_iterations) {
-    mdlpvp->n_output=(int)(volp->chkpt_iterations/mdlpvp->output_freq+1);
-    mdlpvp->obp->buffersize=imin3(volp->chkpt_iterations-volp->start_time,mdlpvp->n_output,mdlpvp->obp->buffersize); 
+    mdlpvp->n_output=(long long)(volp->chkpt_iterations/mdlpvp->output_freq+1);
+    mdlpvp->obp->buffersize=llmin3(volp->chkpt_iterations-volp->start_time,mdlpvp->n_output,mdlpvp->obp->buffersize); 
   }
   else {
-    mdlpvp->n_output=(int)(volp->iterations/mdlpvp->output_freq+1);
-    mdlpvp->obp->buffersize=imin3(volp->iterations-volp->start_time,mdlpvp->n_output,mdlpvp->obp->buffersize);
+    mdlpvp->n_output=(long long)(volp->iterations/mdlpvp->output_freq+1);
+    mdlpvp->obp->buffersize=llmin3(volp->iterations-volp->start_time,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
 
   no_printf("Default output step time definition:\n");
@@ -5124,10 +5131,10 @@ iteration_time_def: ITERATION_LIST '='
    * Compute the output buffersize.
    **/
   if (volp->chkpt_iterations) {
-    mdlpvp->obp->buffersize=imin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
+    mdlpvp->obp->buffersize=llmin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
   else {
-    mdlpvp->obp->buffersize=imin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize); 
+    mdlpvp->obp->buffersize=llmin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize); 
   }
 
   sort_num_expr_list(mdlpvp->el_head);
@@ -5151,10 +5158,10 @@ real_time_def: TIME_LIST '='
    * Compute the output buffersize.
    **/
   if (volp->chkpt_iterations) {
-    mdlpvp->obp->buffersize=imin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
+    mdlpvp->obp->buffersize=llmin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
   else {
-    mdlpvp->obp->buffersize=imin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
+    mdlpvp->obp->buffersize=llmin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
 
   sort_num_expr_list(mdlpvp->el_head);

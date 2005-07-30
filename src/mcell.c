@@ -53,10 +53,11 @@ void run_sim(void)
 
   t_initial = time(NULL);
   
-  if (world->iterations < 1000) frequency = 10;
-  else if (world->iterations < 100000) frequency = 100;
-  else if (world->iterations < 10000000) frequency = 1000;
-  else frequency = 10000;
+  if      (world->iterations < 1000)       frequency = 10;
+  else if (world->iterations < 100000)     frequency = 100;
+  else if (world->iterations < 10000000)   frequency = 1000;
+  else if (world->iterations < 1000000000) frequency = 10000;
+  else                                       frequency = 100000;
   
   world->diffusion_number = world->diffusion_cumsteps = 0.0;
   
@@ -127,7 +128,7 @@ void run_sim(void)
     
     if ( (world->it_time % frequency) == 0 )
     {
-      printf("Iterations: %d of %d ",world->it_time,world->iterations);
+      printf("Iterations: %lld of %lld ",world->it_time,world->iterations);
 #if 0
       printf("count ");
       for (i=0;i<world->n_species;i++)

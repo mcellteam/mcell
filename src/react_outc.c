@@ -262,6 +262,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       m = mem_get(local->mol);
       if (m==NULL) return RX_NO_MEM;
       m->birthplace = local->mol;
+      m->birthday = t;
       m->properties = p;
       p->population++;
       if (reac_g != NULL)

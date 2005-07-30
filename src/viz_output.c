@@ -48,7 +48,7 @@ void update_frame_data_list(struct frame_data_list *fdlp)
   log_file=world->log_file;
   
   while (fdlp!=NULL) {
-    if(world->it_time==fdlp->viz_iteration)
+    if(world->it_time==fdlp->viz_iterationll)
     {
       switch (world->viz_mode)
       {
@@ -78,10 +78,10 @@ void update_frame_data_list(struct frame_data_list *fdlp)
       if (fdlp->curr_viz_iteration!=NULL) {
 	switch (fdlp->list_type) {
 	  case OUTPUT_BY_ITERATION_LIST:
-	  	  fdlp->viz_iteration=(int)fdlp->curr_viz_iteration->value; 
+	  	  fdlp->viz_iterationll=(long long)fdlp->curr_viz_iteration->value; 
 	          break;
 	  case OUTPUT_BY_TIME_LIST:
-	          fdlp->viz_iteration=(int)(fdlp->curr_viz_iteration->value/world->time_unit + ROUND_UP);
+	          fdlp->viz_iterationll=(long long)(fdlp->curr_viz_iteration->value/world->time_unit + ROUND_UP);
 	          break;
           default:
                   fprintf(log_file,"MCell: error - wrong frame_data_list list_type %d\n", fdlp->list_type);
@@ -111,7 +111,7 @@ void init_frame_data_list(struct frame_data_list *fdlp)
   struct species **species_list;
 
   while (fdlp!=NULL) {
-    fdlp->viz_iteration=-1;
+    fdlp->viz_iterationll=-1;
     fdlp->n_viz_iterations=0;
     nelp=fdlp->iteration_list;
     done=0;
@@ -121,7 +121,7 @@ void init_frame_data_list(struct frame_data_list *fdlp)
 	fdlp->n_viz_iterations++;
 	if (!done) {
 	  if (nelp->value>=world->start_time) {
-          fdlp->viz_iteration=(int)nelp->value;
+          fdlp->viz_iterationll=(long long)nelp->value;
           fdlp->curr_viz_iteration=nelp;
           done=1;
 	  }
@@ -134,7 +134,7 @@ void init_frame_data_list(struct frame_data_list *fdlp)
 	fdlp->n_viz_iterations++;
 	if (!done) {
 	  if (nelp->value>=world->current_start_time) {
-	    fdlp->viz_iteration=(int)(nelp->value/world->time_unit+ROUND_UP);
+	    fdlp->viz_iterationll=(long long)(nelp->value/world->time_unit+ROUND_UP);
 	    fdlp->curr_viz_iteration=nelp;
 	    done=1;
 	  }
@@ -226,7 +226,8 @@ int output_dx_objects(struct frame_data_list *fdlp)
   int vi1,vi2,vi3;
   /*int vi4;*/
   int num;
-  int viz_iteration,n_viz_iterations;
+  long long viz_iterationll;
+  int n_viz_iterations;
   /* int first_viz_iteration; */
   int pos_count,state_count,element_data_count;
   int effector_state_pos_count;
@@ -259,7 +260,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
     sprintf(my_byte_order,"msb");
   }
 
-  viz_iteration=fdlp->viz_iteration;
+  viz_iterationll=fdlp->viz_iterationll;
   n_viz_iterations=fdlp->n_viz_iterations;
   /* first_viz_iteration=(viz_iteration==fdlp->iteration_list->value); */
 
@@ -291,8 +292,8 @@ int output_dx_objects(struct frame_data_list *fdlp)
     eff_states_header=NULL;
 
     if (viz_surf_pos) {
-      sprintf(file_name,"%s.mesh_elements.%d.dx",
-               vizp->name,viz_iteration);
+      sprintf(file_name,"%s.mesh_elements.%lld.dx",
+               vizp->name,viz_iterationll);
       if ((wall_verts_header=fopen(file_name,"wb"))==NULL) {
         fprintf(log_file,"MCell: error cannot open mesh elements file %s\n",
                file_name);
@@ -301,8 +302,8 @@ int output_dx_objects(struct frame_data_list *fdlp)
     }
 
     if (viz_surf_states) {
-      sprintf(file_name,"%s.mesh_element_states.%d.dx",
-               vizp->name,viz_iteration);
+      sprintf(file_name,"%s.mesh_element_states.%lld.dx",
+               vizp->name,viz_iterationll);
       if ((wall_states_header=fopen(file_name,"wb"))==NULL) {
         fprintf(log_file,"MCell: error cannot open mesh element states file %s\n",
                file_name);
@@ -311,7 +312,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
     }
 
     if (viz_eff_pos) {
-      sprintf(file_name,"%s.effector_site_positions.%d.dx",vizp->name,viz_iteration);
+      sprintf(file_name,"%s.effector_site_positions.%lld.dx",vizp->name,viz_iterationll);
       if ((eff_pos_header=fopen(file_name,"wb"))==NULL) {
         fprintf(log_file,"MCell: error cannot open effector position file %s\n",file_name);
         return(1);
@@ -319,7 +320,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
     }
   
     if (viz_eff_states) {
-      sprintf(file_name,"%s.effector_site_states.%d.dx",vizp->name,viz_iteration);
+      sprintf(file_name,"%s.effector_site_states.%lld.dx",vizp->name,viz_iterationll);
       if ((eff_states_header=fopen(file_name,"wb"))==NULL) {
         fprintf(log_file,"MCell: error cannot open effector states file %s\n",file_name);
         return(1);
@@ -1009,14 +1010,14 @@ int output_dx_objects(struct frame_data_list *fdlp)
     pos_count=0;
     state_count=0;
     if (viz_mol_pos) {
-      sprintf(file_name,"%s.molecule_positions.%d.dx",world->molecule_prefix_name,viz_iteration);
+      sprintf(file_name,"%s.molecule_positions.%lld.dx",world->molecule_prefix_name,viz_iterationll);
       if ((mol_pos_header=fopen(file_name,"wb"))==NULL) {
         fprintf(log_file,"MCell: error cannot open molecule positions header file %s\n",file_name);
         return(1);
       }
     }
     if (viz_mol_states) {
-      sprintf(file_name,"%s.molecule_states.%d.dx",world->molecule_prefix_name,viz_iteration);
+      sprintf(file_name,"%s.molecule_states.%lld.dx",world->molecule_prefix_name,viz_iterationll);
       if ((mol_states_header=fopen(file_name,"wb"))==NULL) {
         fprintf(log_file,"MCell: error cannot open molecule states header file %s\n",file_name);
         return(1);
@@ -1248,7 +1249,8 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   int vi1,vi2,vi3;
   /* int vi4;*/
   int num;
-  int viz_iteration,n_viz_iterations;
+  long long viz_iterationll;
+  int n_viz_iterations;
   int element_data_count;
   int state;
   int viz_type;
@@ -1337,11 +1339,11 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 
   /* points to the values of the current iteration steps
      for certain frame types. */
-  static int curr_surf_pos_iteration_step = -1;
-  static int curr_surf_states_iteration_step = -1;
-  static int curr_eff_pos_iteration_step = -1;
-  static int curr_eff_states_iteration_step = -1;
-  static int curr_mol_pos_states_iteration_step = -1;
+  static long long curr_surf_pos_iteration_step = -1;
+  static long long curr_surf_states_iteration_step = -1;
+  static long long curr_eff_pos_iteration_step = -1;
+  static long long curr_eff_states_iteration_step = -1;
+  static long long curr_mol_pos_states_iteration_step = -1;
 
   /* points to the special case in iteration steps
      when both values for SURF_POS and SURF_STATES
@@ -1349,8 +1351,8 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
      special_surf_iteration_step = [0,200]
      Same for (EFF_POS,EFF_STATES) 
   */
-  static int special_surf_iteration_step = -1;
-  static int special_eff_iteration_step = -1;
+  static long long special_surf_iteration_step = -1;
+  static long long special_eff_iteration_step = -1;
   /* counts number of this function executions
      for special_surf_iteration_step cases. */
   static int special_surf_frames_counter = 0;
@@ -1375,7 +1377,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   }
 
 
-  viz_iteration=fdlp->viz_iteration;
+  viz_iterationll=fdlp->viz_iterationll;
   n_viz_iterations=fdlp->n_viz_iterations;
 
   viz_type=fdlp->type;
@@ -1677,17 +1679,17 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
     while(fdl_ptr != NULL){
 	if(fdl_ptr->type == SURF_STATES) 
         {
-             curr_surf_states_iteration_step = fdl_ptr->viz_iteration;
+             curr_surf_states_iteration_step = fdl_ptr->viz_iterationll;
         }else if(fdl_ptr->type == SURF_POS){
-             curr_surf_pos_iteration_step = fdl_ptr->viz_iteration;
+             curr_surf_pos_iteration_step = fdl_ptr->viz_iterationll;
 	}else if(fdl_ptr->type == EFF_STATES) 
         {
-             curr_eff_states_iteration_step = fdl_ptr->viz_iteration;
+             curr_eff_states_iteration_step = fdl_ptr->viz_iterationll;
         }else if(fdl_ptr->type == EFF_POS){
-             curr_eff_pos_iteration_step = fdl_ptr->viz_iteration;
+             curr_eff_pos_iteration_step = fdl_ptr->viz_iterationll;
 	}else if(fdl_ptr->type == MOL_POS_STATES) 
         {
-             curr_mol_pos_states_iteration_step = fdl_ptr->viz_iteration;
+             curr_mol_pos_states_iteration_step = fdl_ptr->viz_iterationll;
         }	
         fdl_ptr = fdl_ptr->next;
     }
@@ -1770,7 +1772,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 
     /* check for the special_iteration_step  */  
     if(viz_surf_pos_flag || viz_surf_states_flag){	    
-	    if(fdlp->viz_iteration == special_surf_iteration_step){
+	    if(fdlp->viz_iterationll == special_surf_iteration_step){
 		special_surf_frames_counter++;
             }
     }
@@ -2084,7 +2086,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 /* dump grid molecules. */
     /* check for the special_iteration_step  */  
     if(viz_eff_pos_flag || viz_eff_states_flag){	    
-	    if(fdlp->viz_iteration == special_eff_iteration_step){
+	    if(fdlp->viz_iterationll == special_eff_iteration_step){
 		special_eff_frames_counter++;
             }
     }
@@ -2507,17 +2509,18 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 
       /* create combined group object for meshes and molecules */
       int show_combined_group = 1;
-      if(((fdlp->viz_iteration == curr_surf_pos_iteration_step) ||
-	 (fdlp->viz_iteration == curr_surf_states_iteration_step))
-             && (mesh_group_index == 0)){
+      if(((fdlp->viz_iterationll == curr_surf_pos_iteration_step) ||
+	  (fdlp->viz_iterationll == curr_surf_states_iteration_step)) && 
+         (mesh_group_index == 0))
+      {
             	show_combined_group = 0;
       }
-      if(((fdlp->viz_iteration == curr_eff_pos_iteration_step) ||
-	 (fdlp->viz_iteration == curr_eff_states_iteration_step))
+      if(((fdlp->viz_iterationll == curr_eff_pos_iteration_step) ||
+	 (fdlp->viz_iterationll == curr_eff_states_iteration_step))
              && (eff_group_index == 0)){
             	show_combined_group = 0;
       }
-      if((fdlp->viz_iteration == curr_mol_pos_states_iteration_step) 
+      if((fdlp->viz_iterationll == curr_mol_pos_states_iteration_step) 
              && (mol_group_index == 0)){
             	show_combined_group = 0;
       }
@@ -2555,7 +2558,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
       if(show_combined_group){
 
         /* create an entry into an 'frame_data' object. */
-      	sprintf(buffer, "\tmember %d value %d position %d\n", series_index, combined_group_index, viz_iteration);
+      	sprintf(buffer, "\tmember %d value %d position %lld\n", series_index, combined_group_index, viz_iterationll);
 	ia_string_store(&frame_data_list, frame_data_count, buffer);
         frame_data_count++;
       	series_index++;
@@ -2571,7 +2574,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
         }
  
 	/* put value of viz_iteration into the frame_numbers_pos */ 
-	ia_int_store(&frame_numbers_pos, frame_numbers_count,viz_iteration);
+	ia_int_store(&frame_numbers_pos, frame_numbers_count,(int)viz_iterationll);  /*FIXME--viz_iteration is a long long!*/
         frame_numbers_count++;
 
      }
@@ -2805,7 +2808,8 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
   int vi1,vi2,vi3;
   /* int vi4; */
   int num;
-  int viz_iteration,n_viz_iterations;
+  long long viz_iterationll;
+  int n_viz_iterations;
   int element_data_count;
   int state;
   int viz_type;
@@ -3078,7 +3082,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
   }
 
 
-  viz_iteration=fdlp->viz_iteration;
+  viz_iterationll=fdlp->viz_iterationll;
   n_viz_iterations=fdlp->n_viz_iterations;
 
   viz_type=fdlp->type;
@@ -3872,7 +3876,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
 
 
      /* create entry into "frame_data" object. */
-      	sprintf(buffer, "\tmember %d value %d position %d\n", series_index, combined_group_index, viz_iteration);
+      	sprintf(buffer, "\tmember %d value %d position %lld\n", series_index, combined_group_index, viz_iterationll);
 	ia_string_store(&frame_data_list, frame_data_count, buffer);
         frame_data_count++;
 
@@ -3881,7 +3885,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
       	fprintf(master_header, "\n\n");
      
 	/* put value of viz_iteration into the frame_numbers_pos */ 
-	ia_int_store(&frame_numbers_pos, frame_numbers_count,viz_iteration);
+	ia_int_store(&frame_numbers_pos, frame_numbers_count,(int)viz_iterationll);  /*FIXME--viz_iteration is a long long! */
         frame_numbers_count++;
 
      if(fdlp->curr_viz_iteration->next == NULL)
@@ -4112,7 +4116,7 @@ int output_rk_custom(struct frame_data_list *fdlp)
     else no_printf("Writing to file %s\n",cf_name);
     
     world->rk_mode_var->n_written++;
-    fprintf(custom_file,"%d",fdlp->viz_iteration);
+    fprintf(custom_file,"%lld",fdlp->viz_iterationll);
     for (j=0;j<world->n_species;j++)
     {
       target = world->species_list[j];
@@ -4202,6 +4206,7 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
   short orient = 0;
   
   int ndigits,i;
+  long long lli;
 
   int id;
   struct vector3 where;
@@ -4211,10 +4216,10 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
   
   if ((fdlp->type==ALL_FRAME_DATA) || (fdlp->type==MOL_POS) || (fdlp->type==MOL_STATES))
   {
-    i = 10;
-    for (ndigits = 1 ; i <= world->iterations && ndigits<10 ; i*=10 , ndigits++) {}
-    sprintf(cf_format,"%%s.rk.%%0%dd.dat",ndigits);
-    sprintf(cf_name,cf_format,world->molecule_prefix_name,fdlp->viz_iteration);
+    lli = 10;
+    for (ndigits = 1 ; lli <= world->iterations && ndigits<20 ; lli*=10 , ndigits++) {}
+    sprintf(cf_format,"%%s.rk.%%0%dlld.dat",ndigits);
+    sprintf(cf_name,cf_format,world->molecule_prefix_name,fdlp->viz_iterationll);
     custom_file = fopen(cf_name,"w");
     if (!custom_file)
     {

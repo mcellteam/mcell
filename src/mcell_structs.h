@@ -592,7 +592,7 @@ struct molecule
   struct subvolume *subvol;       /* Partition we are in */
   
   struct cmprt_data *curr_cmprt;  /* Compartment we are in (for counting) */
-  double path_length;             /* Distance traveled since birth */
+  double birthday;                /* Time at which this particle was born */
   
   struct surface_grid *previous_grid;   /* Wall we were released from */
   int index;                            /* Index on that wall (don't rebind) */
@@ -948,9 +948,9 @@ struct volume
   u_int tot_mols;
   struct rng_state *rng;
   u_int init_seed;
-  u_int it_time;
+  long long it_time;
   double elapsed_time;
-  u_int start_time;
+  long long start_time;
   u_int radial_directions;
   u_int radial_subdivisions;
   u_int num_directions;
@@ -967,14 +967,14 @@ struct volume
   /* MCell startup command line arguments */
   byte info_opt;
   u_int seed_seq;
-  u_int iterations;
+  long long iterations;
   char *log_file_name;
   FILE *log_file;
   FILE *err_file;
   u_int log_freq;
   u_int chkpt_init;
   u_int chkpt_flag;
-  u_int chkpt_iterations;
+  long long chkpt_iterations;
   u_int chkpt_seq_num;
   char *chkpt_infile;
   char *chkpt_outfile;
@@ -1306,8 +1306,8 @@ struct eff_dat {
  */
 struct element_list {
         struct element_list *next;
-        unsigned int begin;
-        unsigned int end;
+        u_int begin;
+        u_int end;
 	struct element_special *special;
 };
 
@@ -1469,8 +1469,8 @@ struct frame_data_list {
         byte list_type;		/* data output timing type (OUTPUT_BY_TIME_LIST, etc) */
 	int type;               /* visualization frame data type 
 					(ALL_FRAME_DATA, etc.) */ 
-	int viz_iteration;	/* value of the current iteration step. */
-	int n_viz_iterations;	/* number of iterations in the 
+	long long viz_iterationll;	/* value of the current iteration step. */
+	long long n_viz_iterations;	/* number of iterations in the 
 					iteration_list. */
 	struct num_expr_list *iteration_list;   /* linked list of iteration 
 							steps values */

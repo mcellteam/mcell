@@ -91,8 +91,8 @@ struct mdlparse_vars {
   struct state_list *slp;
 
   struct output_block *obp;
-  int n_output;
-  int output_freq;
+  long long n_output;
+  long long output_freq;
   struct output_item *oip;
   struct output_evaluator *oep;
   struct output_evaluator *oep2;

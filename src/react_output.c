@@ -94,7 +94,7 @@ int update_reaction_output(struct output_block *obp)
 
   log_file=world->log_file;
 
-  no_printf("Updating reaction output at time %u of %u\n",world->it_time,world->iterations);
+  no_printf("Updating reaction output at time %lld of %lld\n",world->it_time,world->iterations);
   fflush(log_file);
 
   /* Initialize OUTPUT_BY_TIME_LIST or OUTPUT_BY_ITERATION_LIST output event if necessary */

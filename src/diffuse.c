@@ -907,7 +907,7 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
   }
   else
   {
-    d = world->x_fineparts[ sv->urb.z ] - loc->z;
+    d = world->z_fineparts[ sv->urb.z ] - loc->z;
     if (d<R && d*d<R2*(mv->y*mv->y + mv->x*mv->x)*m2_i) p_flags |= Z_POS_BIT;
   }
   
@@ -2710,6 +2710,15 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
     return m;
   }
   
+  /* Newly created particles that have long time steps gradually increase */
+  /* their timestep to the full value */
+  if (sm->time_step > 1.0)
+  {
+    f = 1.0 + 0.2*(m->t - m->birthday);
+    if (f<1) printf("I don't think so.\n");
+    if (max_time > f) max_time=f;
+  }
+  
 /* Even if we can't react, let's do a little bit of clean up. */
 /* We'll just clear out anyone after us who is defunct and */
 /* not worry about the whole list.  (Tom's idea, impl. by Rex) */
@@ -2845,7 +2854,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       
       if (smash->t >= 1.0 || smash->t < 0.0)
       {
-	if ((smash->what&COLLIDE_MOL)!=0) printf("YOWSERS %d %.8e\n",world->it_time,smash->t);
+	if ((smash->what&COLLIDE_MOL)!=0) printf("YOWSERS %lld %.8e\n",world->it_time,smash->t);
         smash = NULL;
         break;
       }
@@ -2867,7 +2876,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 #ifdef USE_EXPANDED_COLLISION_LIST
         scaling = estimate_clipped_interaction((struct molecule*)am);
 #else 
-	factor = estimate_disk(
+	factor = exact_disk(
           &(smash->loc),&displacement,world->rx_radius_3d,m->subvol,m,
 	  (struct molecule*)am
         );
@@ -3048,12 +3057,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	m->pos.z = smash->loc.z;
         m->t += t_steps*smash->t;
 	reflectee = w;
-/*
-        m->path_length += t_steps * smash->t *
-	                  sqrt(( displacement.x * displacement.x +
-                                 displacement.y * displacement.y +
-                                 displacement.z * displacement.z ) );
-*/
+
         t_steps *= (1.0-smash->t);
         
         factor = -2.0 * (displacement.x*w->normal.x + displacement.y*w->normal.y + displacement.z*w->normal.z);
@@ -3066,11 +3070,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       else if ((smash->what & COLLIDE_SUBVOL) != 0)
       {
         struct subvolume *nsv;
-/*        
-        m->path_length += sqrt( (m->pos.x - smash->loc.x)*(m->pos.x - smash->loc.x)
-                               +(m->pos.y - smash->loc.y)*(m->pos.y - smash->loc.y)
-                               +(m->pos.z - smash->loc.z)*(m->pos.z - smash->loc.z));
-*/
+
         m->pos.x = smash->loc.x;
         m->pos.y = smash->loc.y;
         m->pos.z = smash->loc.z;
@@ -3120,11 +3120,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   m->pos.y += displacement.y;
   m->pos.z += displacement.z;
   m->t += t_steps;
-/*
-  m->path_length += sqrt( displacement.x*displacement.x +
-                          displacement.y*displacement.y +
-                          displacement.z*displacement.z );
-*/
+
   m->index = -1;
   if ((sm->flags&COUNT_ENCLOSED)!=0 && (m->flags&COUNT_ME)==0) count_me_by_region((struct abstract_molecule*)m,1,NULL);
   

@@ -3056,7 +3056,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
   }
   
   if (mdlpvp->vol->iterations<0) {
-    fprintf(mdlpvp->vol->err_file,"Iterations = %d\n\tSetting iterations to 0\n",mdlpvp->vol->iterations);
+    fprintf(mdlpvp->vol->err_file,"Iterations = %lld\n\tSetting iterations to 0\n",mdlpvp->vol->iterations);
     mdlpvp->vol->iterations=0;
   }
   
