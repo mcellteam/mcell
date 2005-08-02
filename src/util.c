@@ -14,7 +14,7 @@ ia_double_locate -- Gets the location of an element of infinite array
 Parameters
 	array_ptr -- Pointer to the array to use
 	index -- Index into the array.
-	current_index -- Pointer to the index into this bucket (returned)
+	current_index_ptr -- Pointer to the index into this bucket (returned)
 
 Returns
 	Pointer to the current bucket
@@ -92,7 +92,7 @@ ia_int_locate -- Gets the location of an element of infinite array
 Parameters
 	array_ptr -- Pointer to the array to use
 	index -- Index into the array.
-	current_index -- Pointer to the index into this bucket (returned)
+	current_index_ptr -- Pointer to the index into this bucket (returned)
 
 Returns
 	Pointer to the current bucket
@@ -249,6 +249,83 @@ char * ia_string_get(struct infinite_string_array *array_ptr, int index)
 	return (current_ptr->data[current_index]); 
 }
 
+/********************************************************************
+ia_pointer_locate -- Gets the location of an element of infinite array
+                    of pointers
+
+Parameters
+	array_ptr -- Pointer to the array to use
+	index -- Index into the array.
+	current_index_ptr -- Pointer to the index into this bucket (returned)
+
+Returns
+	Pointer to the current bucket
+************************************************************************/
+static struct infinite_pointer_array *ia_pointer_locate(struct infinite_pointer_array *array_ptr, int index, int *current_index_ptr)
+{
+	/* pointer to the current bucket */
+	struct infinite_pointer_array *current_ptr;
+
+	current_ptr = array_ptr;
+	*current_index_ptr = index;
+
+	while(*current_index_ptr >= BLOCK_SIZE){
+		if(current_ptr->next == NULL){
+		   current_ptr->next = malloc(sizeof(struct infinite_pointer_array));
+		   if(current_ptr->next == NULL){
+                       fprintf(stderr, "Memory allocation error\n");
+			exit(1);
+                   }
+                   memset(current_ptr->next, '\0', sizeof(struct infinite_pointer_array));
+                }
+         	current_ptr = current_ptr->next;
+         	*current_index_ptr -= BLOCK_SIZE;
+         }
+         return (current_ptr);
+
+}
+
+/*************************************************************************
+ia_pointer_store  -- Stores an element into an infinite array of pointers 
+
+Parameters
+	array_ptr -- Pointer to the array to use
+	index -- Index into the array.
+	data_to store  - Data to be stored
+*************************************************************************/
+void ia_pointer_store(struct infinite_pointer_array *array_ptr, int index, void *data_to_store)
+{
+	/* pointer to the current bucket */
+	struct infinite_pointer_array *current_ptr;
+	int current_index;	/* Index into the current bucket */
+
+	current_ptr = ia_pointer_locate(array_ptr, index, &current_index);
+	current_ptr->data[current_index] = data_to_store;
+}
+
+/*********************************************************************
+ia_pointer_get -- Gets an element from an infinite array of pointers.
+
+Parameters
+	array_ptr -- Pointer to the array to use.
+	index	-- Index into the array
+
+Returns
+	the value of the element
+
+Note: You can get an element that has not been previously stored.
+      The value of any unitialiazed element is NULL.
+**********************************************************************/
+void *ia_pointer_get(struct infinite_pointer_array *array_ptr, int index)
+{
+	/* pointer to the current bucket */
+        struct infinite_pointer_array *current_ptr;
+
+	int current_index;	/* index into the current bucket */
+        
+	current_ptr = ia_pointer_locate(array_ptr, index, &current_index);
+	return (current_ptr->data[current_index]); 
+}
 
 
 /*******************************************************************

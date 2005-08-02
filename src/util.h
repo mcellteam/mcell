@@ -41,8 +41,23 @@ struct infinite_string_array{
 	struct infinite_string_array *next;
 };
 
+/** struct infinite_pointer_array
+    Used to hold information for an infinite array of pointers.
+*/
+struct infinite_pointer_array{
+	/* the data  for this block */
+        /* array of pointers */
+	void *data[BLOCK_SIZE];
+
+	/* pointer to the next array. */
+	struct infinite_pointer_array *next;
+};
+
 /* Initializes the infinite array */
 #define ia_init(array_ptr)	{(array_ptr)->next = NULL;}
+
+
+
 
 double ia_double_get(struct infinite_double_array *array_ptr, int index);
 void ia_double_store(struct infinite_double_array *array_ptr, int index, double data_to_store);
@@ -50,6 +65,8 @@ int ia_int_get(struct infinite_int_array *array_ptr, int index);
 void ia_int_store(struct infinite_int_array *array_ptr, int index, int data_to_store);
 char* ia_string_get(struct infinite_string_array *array_ptr, int index);
 void ia_string_store(struct infinite_string_array *array_ptr, int index, char *data_to_store);
+void *ia_pointer_get(struct infinite_pointer_array *array_ptr, int index);
+void ia_pointer_store(struct infinite_pointer_array *array_ptr, int index, void *data_to_store);
 
 
 struct bit_array
@@ -78,4 +95,3 @@ int distinguishable(double a,double b,double eps);
 
 
 #endif
-

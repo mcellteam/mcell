@@ -32,7 +32,7 @@
 #define MULTISTEP_FRACTION 0.9
 #define MAX_UNI_TIMESKIP 5000
 
-/*#define USE_EXPANDED_COLLISION_LIST  */       
+/*#define USE_EXPANDED_COLLISION_LIST */        
 
 /* EXD_TIME_CALC is a local #define in exact_disk */
 /* EXD_SPAN_CALC is a local #define in exact_disk */
@@ -148,7 +148,10 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
   struct abstract_molecule *a;
   struct wall_list *wlp;
   struct wall_list fake_wlp;
-  double dx,dy,dz,tx,ty,tz;
+  double dx,dy,dz;
+  /* time, in units of of the molecule's time step, at which molecule
+     will cross the x,y,z partitions, respectively. */ 
+  double tx,ty,tz;
   int i,j,k;
   
   shead = NULL;
@@ -516,6 +519,15 @@ struct exd_vector3
 
 /* Speed: 9ns (compare with 84ns for atan2) */
 /* Added extra computations--speed not retested yet */
+/****************************************************************
+exd_zetize:
+	In: x,y - double values
+        Out: approximation of the function atan2 which executes 
+             faster.  
+             Returns value between 0 and 4 that is increasing with angle 
+             theta and which repeats every quadrant.
+             Utility finction in 'exact_disk()'.
+****************************************************************/
 double exd_zetize(double y,double x)
 {
   if (y>=0.0)
@@ -546,7 +558,15 @@ double exd_zetize(double y,double x)
   }   
 }  
 
-
+/*********************************************************************
+exd_coordize:
+	In: vector3 mv
+        Out: unit vectors m,u,v such that vector m is in the direction
+             of vector mv, and vectors u and v are orthogonal to m.
+             Function creates a right-hand coordinate system
+             based on unit vectors m,u,v.
+             This is a utility function in 'exact_disk()'.
+*********************************************************************/ 
 /* Speed: 86ns on azzuri (as marked + 6ns function call overhead) */
 void exd_coordize(struct vector3 *mv,struct vector3 *m,struct vector3 *u,struct vector3 *v)
 {
@@ -868,7 +888,6 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
   
   /* First see if any overlap */
   p_flags = 0;
-
   d = loc->x - world->x_fineparts[ sv->llf.x ];
   if (d<R)
   {
@@ -910,7 +929,7 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
     d = world->z_fineparts[ sv->urb.z ] - loc->z;
     if (d<R && d*d<R2*(mv->y*mv->y + mv->x*mv->x)*m2_i) p_flags |= Z_POS_BIT;
   }
-  
+
   /* Now find the lines created by any that do overlap */
   if (p_flags)
   {
@@ -1997,16 +2016,16 @@ struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv
    /* let's reach subvolumes located "edge-to-edge" from the vertical edges
       of the current subvolume. */
    /* go (-Y and -X) */
-   neighbor_index = cur_index  - (world->nz_parts-1) - (world->nz_parts-1)*(world->ny_parts-1);;
+   neighbor_index = cur_index  - (world->nz_parts-1) - (world->nz_parts-1)*(world->ny_parts-1);
    edge9 = &(world->subvol[neighbor_index]);
    /* go (+Y and -X) */
    neighbor_index = cur_index  + (world->nz_parts-1) - (world->nz_parts-1)*(world->ny_parts-1);;
    edge10 = &(world->subvol[neighbor_index]);
    /* go (+Y and +X) */
-   neighbor_index = cur_index  + (world->nz_parts-1) + (world->nz_parts-1)*(world->ny_parts-1);;
+   neighbor_index = cur_index  + (world->nz_parts-1) + (world->nz_parts-1)*(world->ny_parts-1);
    edge11 = &(world->subvol[neighbor_index]);
    /* go (-Y and +X) */
-   neighbor_index = cur_index  - (world->nz_parts-1) + (world->nz_parts-1)*(world->ny_parts-1);;
+   neighbor_index = cur_index  - (world->nz_parts-1) + (world->nz_parts-1)*(world->ny_parts-1);
    edge12 = &(world->subvol[neighbor_index]);
 
     if((edge1 != NULL) && (edge1->mol_head != NULL))
@@ -2796,7 +2815,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 /*      else printf("Rx between %s and %s is NULL\n",sm->sym->name,mp->properties->sym->name); */
     }
   }
-  
+ 
   if (calculate_displacement)
   {
     if (max_time > MULTISTEP_WORTHWHILE) steps = safe_diffusion_step(m,shead);
@@ -2831,10 +2850,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   
    reflectee = NULL;
 
-#ifdef USE_EXPANDED_COLLISION_LIST
-    shead = expand_collision_list(m, sv, shead); 
-#endif
- 
+#ifdef USE_EXPANDED_COLLISION_LIST 
+    shead = expand_collision_list(m, sv, shead);  
+#endif 
+
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
 #define ERROR_AND_QUIT fprintf(world->err_file,"Out of memory: trying to save intermediate results.\n"); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
   do
@@ -2871,8 +2890,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         if ((am->flags & ACT_INERT) != 0)  /* FIXME */
         {
           /*if (smash->t < am->t + am->t2) continue;*/
-        }
-        
+        }  
 #ifdef USE_EXPANDED_COLLISION_LIST
         scaling = estimate_clipped_interaction((struct molecule*)am);
 #else 
@@ -2880,22 +2898,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           &(smash->loc),&displacement,world->rx_radius_3d,m->subvol,m,
 	  (struct molecule*)am
         );
-#if 0
-	printf("Estimate %.5f ; ",factor);
-	f = exact_disk(
-          &(smash->loc),&displacement,world->rx_radius_3d,m->subvol,m,
-	  (struct molecule*)am
-        );
-	printf(" Exact %.5f\n",f);
-	
-	if (fabs(f-factor)>0.03)
-	{
-	  factor = exact_disk(
-	    &(smash->loc),&displacement,world->rx_radius_3d,m->subvol,m,
-	    (struct molecule*)am
-	  );
-	}
-#endif
+      
 	
 	if (factor<0) continue; /* Reaction blocked by a wall */
         
@@ -3101,8 +3104,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
         if (shead2 != NULL) mem_put_list(sv->local_storage->coll,shead2);
         if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
-        
         calculate_displacement = 0;
+        
         if (m->properties==NULL) fprintf(world->err_file,"This molecule shouldn't be jumping.\n");
         goto pretend_to_call_diffuse_3D;  /* Jump to beginning of function */        
       }
@@ -3112,6 +3115,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
   }
   while (smash != NULL);
+
 #undef ERROR_AND_QUIT
 #undef CLEAN_AND_RETURN
   
