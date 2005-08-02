@@ -251,6 +251,11 @@
 #define EXD_SPAN  3
 #define EXD_OTHER 4
 
+/* Negative numbers used for reaction disks */
+/* Note: TARGET_OCCLUDED is assumed for any negative number not defined here */
+#define TARGET_OCCLUDED    -1
+#define EXD_OUT_OF_MEMORY  -2
+
 
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/

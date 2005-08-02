@@ -301,7 +301,7 @@ estimate_disk:
       the target molecule at time of collision
   Out: The fraction of a full interaction disk that is actually
        accessible to the moving molecule, estimated using Monte Carlo
-       integration.
+       integration, or TARGET_OCCLUDED if the target is not accessible.
 *************************************************************************/
 
 double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv,struct molecule *moving,struct molecule *target)
@@ -383,7 +383,7 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
     if (rpt==0)
     {
       t = touch_wall(loc,&loc_to_targ,wl->this_wall);
-      if (t>0 && t<1) return -1;  /* This wall blocked us! */
+      if (t>0 && t<1) return TARGET_OCCLUDED;  /* This wall blocked us! */
     }
   }
 
@@ -512,22 +512,30 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
 /** exact_disk stuff follows **/
 /******************************/
 
+/* This is the same as the normal vector3, but the coordinates have different names */
 struct exd_vector3
 {
   double m,u,v;
 };
 
-/* Speed: 9ns (compare with 84ns for atan2) */
-/* Added extra computations--speed not retested yet */
+
 /****************************************************************
 exd_zetize:
-	In: x,y - double values
-        Out: approximation of the function atan2 which executes 
-             faster.  
-             Returns value between 0 and 4 that is increasing with angle 
-             theta and which repeats every quadrant.
-             Utility finction in 'exact_disk()'.
+In: y coordinate (as in atan2)
+    x coordinate (as in atan2)
+Out: Zeta value corresponding to (y,x), in the range 0 to 4.
+     Zeta is a substitute for the angle theta, and this function
+     is a substitute for atan2(y,x) which returns theta. Like
+     theta, zeta increases throughout the unit circle, but it
+     only has 8-fold symmetry instead of perfect symmetry.  Zeta
+     values 0-1 are the first quadrant, 1-2 the second, and so
+     on.  Zeta is a monotonically increasing function of theta,
+     but requires ~9x less computation time--valuable for when
+     you need to sort by angle but don't need the angle itself.
+Note: This is a utility finction in 'exact_disk()'.
 ****************************************************************/
+/* Speed: 9ns (compare with 84ns for atan2) */
+/* Added extra computations--speed not retested yet */
 double exd_zetize(double y,double x)
 {
   if (y>=0.0)
@@ -558,14 +566,18 @@ double exd_zetize(double y,double x)
   }   
 }  
 
+
 /*********************************************************************
 exd_coordize:
-	In: vector3 mv
-        Out: unit vectors m,u,v such that vector m is in the direction
-             of vector mv, and vectors u and v are orthogonal to m.
-             Function creates a right-hand coordinate system
-             based on unit vectors m,u,v.
-             This is a utility function in 'exact_disk()'.
+In: movement vector
+    place to store unit movement vector (first basis vector)
+    place to store second basis vector
+    place to store third basis vector
+Out: No return value.  Unit vectors m,u,v are set such that vector m
+     is in the direction of vector mv, and vectors u and v are
+     orthogonal to m.  The vectors m,u,v, form a right-handed
+     coordinate system.
+Note: This is a utility function for 'exact_disk()'.
 *********************************************************************/ 
 /* Speed: 86ns on azzuri (as marked + 6ns function call overhead) */
 void exd_coordize(struct vector3 *mv,struct vector3 *m,struct vector3 *u,struct vector3 *v)
@@ -631,7 +643,20 @@ void exd_coordize(struct vector3 *mv,struct vector3 *m,struct vector3 *u,struct 
 }
 
 
-/* FIXME -- handle malloc errors */
+/*************************************************************************
+exact_disk:
+  In: location of moving molecule at time of collision
+      movement vector for moving molecule
+      interaction radius
+      subvolume the moving molecule is in
+      the moving molecule
+      the target molecule at time of collision
+  Out: The fraction of a full interaction disk that is actually
+       accessible to the moving molecule, computed exactly from the
+       geometry, or TARGET_OCCLUDED if the path to the target molecule is
+       blocked.  If there is a memory error, it returns EXD_OUT_OF_MEMORY.
+*************************************************************************/
+
 double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv,struct molecule *moving,struct molecule *target)
 {
 #define EXD_SPAN_CALC(v1,v2,p) ((v1)->u - (p)->u)*((v2)->v - (p)->v)  -  ((v2)->u - (p)->u)*((v1)->v - (p)->v)
@@ -821,6 +846,8 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
     
     /* Construct final endpoints and prepare to store them */
     ppa = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
+    ppb = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
+    if (ppa==NULL || ppb==NULL) return EXD_OUT_OF_MEMORY;
     if (t>0)
     {
       ppa->u = pa.u + t*(pb.u-pa.u);
@@ -833,7 +860,6 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
       ppa->u = pa.u; ppa->v = pa.v; ppa->r2 = pa.r2;
       ppa->zeta = exd_zetize(pa.v,pa.u);
     }
-    ppb = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
     if (s<1)
     {
       ppb->u = pa.u + s*(pb.u-pa.u);
@@ -867,7 +893,7 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
       {
 	ppa->next=ppb; ppb->next=vertex_head;
 	mem_put_list( sv->local_storage->exdv , ppa );
-	return -1.0;
+	return TARGET_OCCLUDED;
       }
     }
     
@@ -1016,6 +1042,7 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
 	/* Create memory for the pair of vertices */
 	ppa = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
 	ppb = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
+	if (ppa==NULL || ppb==NULL) return EXD_OUT_OF_MEMORY;
 	
 	a = exd_zetize(pa.v,pa.u);
 	b = exd_zetize(pb.v,pb.u);
@@ -1176,6 +1203,7 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
       
       /* Create intersection point */
       vq = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
+      if (vq==NULL) return EXD_OUT_OF_MEMORY;
       vq->u = pqa->u + t*pb.u;
       vq->v = pqa->v + t*pb.v;
       vq->r2 = vq->u*vq->u + vq->v*vq->v;
@@ -1233,6 +1261,7 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
       if (vq->role==EXD_OTHER) continue;
       
       vr = (struct exd_vertex*) mem_get( sv->local_storage->exdv );
+      if (vr==NULL) return EXD_OUT_OF_MEMORY;
       vr->next = vq->span;
       vq->span = vr;
       vr->e = vp;
@@ -1390,6 +1419,13 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
 #undef EXD_TIME_CALC
 #undef EXD_SPAN_CALC 
 }
+
+/**************************/
+/** done with exact_disk **/
+/**************************/
+
+
+
 
 /*************************************************************************
 estimate_clipped_interaction:
@@ -1556,7 +1592,7 @@ gather_walls_first:
        walls first among equals.
   Note: This isn't very efficient for lots of coincident objects since
         it uses a bubble-sort-like algorithm.  The list that is passed
-	in should have already been quicksorted, though, so it shouldn't
+	in should have already been mergesorted, though, so it shouldn't
 	be too bad.
 *************************************************************************/
 
@@ -2899,14 +2935,15 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	  (struct molecule*)am
         );
       
-	
-	if (factor<0) continue; /* Reaction blocked by a wall */
+	if (factor<0) /* Probably hit a wall, might have run out of memory */
+	{
+	  if (factor==EXD_OUT_OF_MEMORY) { ERROR_AND_QUIT; }
+	  continue; /* Reaction blocked by a wall */
+	}
         
         scaling = factor / rate_factor;
 #endif 
-   if (rx->prob_t != NULL) check_probs(rx,m->t);
-	
-//	printf("Thunk! %d %.8e\n",world->it_time,smash->t);
+        if (rx->prob_t != NULL) check_probs(rx,m->t);
 
         i = test_bimolecular(rx,scaling);
         
