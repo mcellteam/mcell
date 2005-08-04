@@ -14,9 +14,9 @@
 extern struct volume *world;
 /* serial # of the frame_iteration in the linked list.
  each frame may have several iterations */
-static int frames_iterations_count = 0;
+static long long frames_iterations_count = 0;
 /* total # of frames_iterations in the linked list*/	
-static int total_frames_iterations = 0; 
+static long long total_frames_iterations = 0; 
 static int obj_to_show_number; /* number of viz_obj objects in the world */
 static int eff_to_show_number; /* number of types of effectors */ 
 static int mol_to_show_number; /* number of types of 3D mol's */
@@ -227,7 +227,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
   /*int vi4;*/
   int num;
   long long viz_iterationll;
-  int n_viz_iterations;
+  long long n_viz_iterations;
   /* int first_viz_iteration; */
   int pos_count,state_count,element_data_count;
   int effector_state_pos_count;
@@ -1250,7 +1250,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   /* int vi4;*/
   int num;
   long long viz_iterationll;
-  int n_viz_iterations;
+  long long n_viz_iterations;
   int element_data_count;
   int state;
   int viz_type;
@@ -1284,11 +1284,11 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   static struct infinite_string_array frame_data_list;
   static int frame_data_count = 0; /* count elements in frame_data_list array.*/
   /* linked lists that stores data for the 'frame_numbers' object */
-  static struct infinite_int_array frame_numbers_pos;
-  static struct infinite_int_array frame_numbers_mesh;
-  static struct infinite_int_array frame_numbers_mol;
-  static struct infinite_int_array frame_numbers_eff;
-  static int frame_numbers_count = 0; /* count elements in frame_numbers_pos array. */
+  static struct infinite_longlong_array frame_numbers_pos;
+  static struct infinite_longlong_array frame_numbers_mesh;
+  static struct infinite_longlong_array frame_numbers_mol;
+  static struct infinite_longlong_array frame_numbers_eff;
+  static long long frame_numbers_count = 0; /* count elements in frame_numbers_pos array. */
   char my_byte_order[8];  /* shows binary ordering ('lsb' or 'msb') */
   static int mesh_pos_byte_offset = 0;  /* defines position of the object data
                                   in the mesh positions binary data file */
@@ -1319,9 +1319,9 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   struct num_expr_list *newNode = NULL;
   struct num_expr_list *temp = NULL;
   /* placeholders for the members of the combined group */
-  static int mesh_group_index = 0;
-  static int mol_group_index = 0;
-  static int eff_group_index = 0;
+  static long long mesh_group_index = 0;
+  static long long mol_group_index = 0;
+  static long long eff_group_index = 0;
   int combined_group_index = 0;
 
   /* counts number of times master_header file was opened.*/
@@ -1375,7 +1375,13 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   else {
     sprintf(my_byte_order,"msb");
   }
-
+  
+  /*initialize infinite arrays. */
+  ia_init(&frame_numbers_pos);
+  ia_init(&frame_numbers_mesh);
+  ia_init(&frame_numbers_mol);
+  ia_init(&frame_numbers_eff);
+  ia_init(&frame_data_list);
 
   viz_iterationll=fdlp->viz_iterationll;
   n_viz_iterations=fdlp->n_viz_iterations;
@@ -2531,26 +2537,26 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
         fprintf(master_header,"object %d group\n",main_index);
         combined_group_index = main_index;
       	if(mesh_group_index > 0){
-          	fprintf(master_header,"\tmember \"meshes\" value %d\n",mesh_group_index);
-		ia_int_store(&frame_numbers_mesh, frame_numbers_count,mesh_group_index);
+          	fprintf(master_header,"\tmember \"meshes\" value %lld\n",mesh_group_index);
+		ia_longlong_store(&frame_numbers_mesh, frame_numbers_count,mesh_group_index);
 		mesh_group_index = 0;
 
       	}else{
-		ia_int_store(&frame_numbers_mesh, frame_numbers_count,-1);
+		ia_longlong_store(&frame_numbers_mesh, frame_numbers_count,-1);
         }
       	if(mol_group_index > 0){
-          	fprintf(master_header,"\tmember \"molecules\" value %d\n",mol_group_index);
-		ia_int_store(&frame_numbers_mol, frame_numbers_count,mol_group_index);
+          	fprintf(master_header,"\tmember \"molecules\" value %lld\n",mol_group_index);
+		ia_longlong_store(&frame_numbers_mol, frame_numbers_count,mol_group_index);
 		mol_group_index = 0;
         }else{
-		ia_int_store(&frame_numbers_mol, frame_numbers_count,-1);
+		ia_longlong_store(&frame_numbers_mol, frame_numbers_count,-1);
         }
         if(eff_group_index > 0){
-          	fprintf(master_header,"\tmember \"effectors\" value %d\n",eff_group_index);
-		ia_int_store(&frame_numbers_eff, frame_numbers_count,eff_group_index);
+          	fprintf(master_header,"\tmember \"effectors\" value %lld\n",eff_group_index);
+		ia_longlong_store(&frame_numbers_eff, frame_numbers_count,eff_group_index);
 		eff_group_index = 0;
         }else{
-		ia_int_store(&frame_numbers_eff, frame_numbers_count,-1);
+		ia_longlong_store(&frame_numbers_eff, frame_numbers_count,-1);
         }
       	fprintf(master_header,"\n");
       }
@@ -2574,7 +2580,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
         }
  
 	/* put value of viz_iteration into the frame_numbers_pos */ 
-	ia_int_store(&frame_numbers_pos, frame_numbers_count,(int)viz_iterationll);  /*FIXME--viz_iteration is a long long!*/
+	ia_longlong_store(&frame_numbers_pos, frame_numbers_count,viz_iterationll);  
         frame_numbers_count++;
 
      }
@@ -2588,6 +2594,9 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
         	char *elem;
 		for(ii = 0; ii < frame_data_count; ii++){
                 	elem = ia_string_get(&frame_data_list, ii);
+                        if(elem == NULL){
+                          fprintf(log_file, "MCell:ia_string_get() tries to access uninitialized data.\n");
+                        }
 			fprintf(master_header, "\t%s", elem);
         	}
         }
@@ -2596,14 +2605,20 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 	/* write 'frame_numbers' object. */
         if(frame_numbers_count > 0)
         {
-        	int elem1, elem2, elem3, elem4;
-        	fprintf(master_header,"object \"frame_numbers\" class array  type int rank 1 shape 4 items %d data follows\n",frame_numbers_count);
+        	long long elem1, elem2, elem3, elem4;
+        	fprintf(master_header,"object \"frame_numbers\" class array  type int rank 1 shape 4 items %lld data follows\n",frame_numbers_count);
 		for(ii = 0; ii < frame_numbers_count; ii++){
-                	elem1 = ia_int_get(&frame_numbers_pos, ii);
-                	elem2 = ia_int_get(&frame_numbers_mesh, ii);
-                	elem3 = ia_int_get(&frame_numbers_mol, ii);
-                	elem4 = ia_int_get(&frame_numbers_eff, ii);
-			fprintf(master_header, "\t%d\t%d\t%d\t%d\n", elem1, elem2, elem3, elem4);
+                	elem1 = ia_longlong_get(&frame_numbers_pos, ii);
+                	elem2 = ia_longlong_get(&frame_numbers_mesh, ii);
+                	elem3 = ia_longlong_get(&frame_numbers_mol, ii);
+                	elem4 = ia_longlong_get(&frame_numbers_eff, ii);
+                        if((elem1 == LONG_MIN) || (elem2 == LONG_MIN) ||
+                           (elem3 == LONG_MIN) || (elem4 == LONG_MIN))
+                        {
+                          fprintf(log_file, "MCell:ia_longlong_get() tries to access uninitialized data.\n");
+                          return 1;
+                        }
+			fprintf(master_header, "\t%lld\t%lld\t%lld\t%lld\n", elem1, elem2, elem3, elem4);
         	}
 		fprintf(master_header, "\n\n");
         }
@@ -2642,30 +2657,30 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
         }
 
         /* free linked list for frame_numbers. */
-  	struct infinite_int_array *arr_int_ptr, *temp_int_ptr;
-  	arr_int_ptr = (&frame_numbers_pos)->next;
-  	while(arr_int_ptr != NULL){
-		temp_int_ptr = arr_int_ptr;
-		arr_int_ptr = arr_int_ptr->next;
-		free(temp_int_ptr);
+  	struct infinite_longlong_array *arr_ll_ptr, *temp_ll_ptr;
+  	arr_ll_ptr = (&frame_numbers_pos)->next;
+  	while(arr_ll_ptr != NULL){
+		temp_ll_ptr = arr_ll_ptr;
+		arr_ll_ptr = arr_ll_ptr->next;
+		free(temp_ll_ptr);
   	}     
-  	arr_int_ptr = (&frame_numbers_mesh)->next;
-  	while(arr_int_ptr != NULL){
-		temp_int_ptr = arr_int_ptr;
-		arr_int_ptr = arr_int_ptr->next;
-		free(temp_int_ptr);
+  	arr_ll_ptr = (&frame_numbers_mesh)->next;
+  	while(arr_ll_ptr != NULL){
+		temp_ll_ptr = arr_ll_ptr;
+		arr_ll_ptr = arr_ll_ptr->next;
+		free(temp_ll_ptr);
   	}     
-  	arr_int_ptr = (&frame_numbers_mol)->next;
-  	while(arr_int_ptr != NULL){
-		temp_int_ptr = arr_int_ptr;
-		arr_int_ptr = arr_int_ptr->next;
-		free(temp_int_ptr);
+  	arr_ll_ptr = (&frame_numbers_mol)->next;
+  	while(arr_ll_ptr != NULL){
+		temp_ll_ptr = arr_ll_ptr;
+		arr_ll_ptr = arr_ll_ptr->next;
+		free(temp_ll_ptr);
   	}     
-  	arr_int_ptr = (&frame_numbers_eff)->next;
-  	while(arr_int_ptr != NULL){
-		temp_int_ptr = arr_int_ptr;
-		arr_int_ptr = arr_int_ptr->next;
-		free(temp_int_ptr);
+  	arr_ll_ptr = (&frame_numbers_eff)->next;
+  	while(arr_ll_ptr != NULL){
+		temp_ll_ptr = arr_ll_ptr;
+		arr_ll_ptr = arr_ll_ptr->next;
+		free(temp_ll_ptr);
   	}     
 
   	/* free linked list for frame_data. */
@@ -2809,7 +2824,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
   /* int vi4; */
   int num;
   long long viz_iterationll;
-  int n_viz_iterations;
+  long long n_viz_iterations;
   int element_data_count;
   int state;
   int viz_type;
@@ -2839,11 +2854,11 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
   static struct infinite_string_array frame_data_list;
   static int frame_data_count = 0; /* count elements in frame_data_list array. */
   /* linked lists that stores data for the 'frame_numbers' object */
-  static struct infinite_int_array frame_numbers_pos;
-  static struct infinite_int_array frame_numbers_mesh;
-  static struct infinite_int_array frame_numbers_mol;
-  static struct infinite_int_array frame_numbers_eff;
-  static int frame_numbers_count = 0; /* count elements in frame_numbers_pos array. */
+  static struct infinite_longlong_array frame_numbers_pos;
+  static struct infinite_longlong_array frame_numbers_mesh;
+  static struct infinite_longlong_array frame_numbers_mol;
+  static struct infinite_longlong_array frame_numbers_eff;
+  static long long frame_numbers_count = 0; /* count elements in frame_numbers_pos array. */
   char my_byte_order[8];  /* shows binary ordering ('lsb' or 'msb') */
   static int mesh_pos_byte_offset = 0;  /* defines position of the object data
                                   in the mesh positions binary data file */
@@ -2874,9 +2889,9 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
   struct num_expr_list *newNode = NULL;
   struct num_expr_list *temp = NULL;
   /* placeholders for the members of the combined group */
-  int mesh_group_index = 0;
-  int mol_group_index = 0;
-  int eff_group_index = 0;
+  long long mesh_group_index = 0;
+  long long mol_group_index = 0;
+  long long eff_group_index = 0;
   int combined_group_index = 0;
   int first_iteration = 0;      /* flag signaling the first iteration
                                    in the iteration list */
@@ -3081,6 +3096,12 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
     sprintf(my_byte_order,"msb");
   }
 
+  /*initialize infinite arrays. */
+  ia_init(&frame_numbers_pos);
+  ia_init(&frame_numbers_mesh);
+  ia_init(&frame_numbers_mol);
+  ia_init(&frame_numbers_eff);
+  ia_init(&frame_data_list);
 
   viz_iterationll=fdlp->viz_iterationll;
   n_viz_iterations=fdlp->n_viz_iterations;
@@ -3850,26 +3871,26 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
         fprintf(master_header,"object %d group\n",main_index);
         combined_group_index = main_index;
       	if(mesh_group_index > 0){
-          	fprintf(master_header,"\tmember \"meshes\" value %d\n",mesh_group_index);
-		ia_int_store(&frame_numbers_mesh, frame_numbers_count, mesh_group_index);
+          	fprintf(master_header,"\tmember \"meshes\" value %lld\n",mesh_group_index);
+		ia_longlong_store(&frame_numbers_mesh, frame_numbers_count, mesh_group_index);
 		mesh_group_index = 0;
 
       	}else{
-		ia_int_store(&frame_numbers_mesh, frame_numbers_count, -1);
+		ia_longlong_store(&frame_numbers_mesh, frame_numbers_count, -1);
         }
         if(eff_group_index > 0){
-          	fprintf(master_header,"\tmember \"effectors\" value %d\n",eff_group_index);
-		ia_int_store(&frame_numbers_eff, frame_numbers_count, eff_group_index);
+          	fprintf(master_header,"\tmember \"effectors\" value %lld\n",eff_group_index);
+		ia_longlong_store(&frame_numbers_eff, frame_numbers_count, eff_group_index);
 		eff_group_index = 0;
         }else{
-		ia_int_store(&frame_numbers_eff, frame_numbers_count, -1);
+		ia_longlong_store(&frame_numbers_eff, frame_numbers_count, -1);
         } 
       	if(mol_group_index > 0){
-          	fprintf(master_header,"\tmember \"molecules\" value %d\n",mol_group_index);
-		ia_int_store(&frame_numbers_mol, frame_numbers_count, mol_group_index);
+          	fprintf(master_header,"\tmember \"molecules\" value %lld\n",mol_group_index);
+		ia_longlong_store(&frame_numbers_mol, frame_numbers_count, mol_group_index);
 		mol_group_index = 0;
         }else{
-		ia_int_store(&frame_numbers_mol, frame_numbers_count, -1);
+		ia_longlong_store(&frame_numbers_mol, frame_numbers_count, -1);
         }
       	fprintf(master_header,"\n");
 
@@ -3885,7 +3906,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
       	fprintf(master_header, "\n\n");
      
 	/* put value of viz_iteration into the frame_numbers_pos */ 
-	ia_int_store(&frame_numbers_pos, frame_numbers_count,(int)viz_iterationll);  /*FIXME--viz_iteration is a long long! */
+	ia_longlong_store(&frame_numbers_pos, frame_numbers_count,viz_iterationll);  
         frame_numbers_count++;
 
      if(fdlp->curr_viz_iteration->next == NULL)
@@ -3897,6 +3918,9 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
         	char *elem;
 		for(ii = 0; ii < frame_data_count; ii++){
                 	elem = ia_string_get(&frame_data_list, ii);
+                        if(elem == NULL){
+                          fprintf(log_file, "MCell:ia_string_get() tries to access uninitialized data.\n");
+                        }
 			fprintf(master_header, "\t%s", elem);
         	}
         }
@@ -3905,14 +3929,20 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
 	/* write 'frame_numbers' object. */
         if(frame_numbers_count > 0)
         {
-        	int elem1, elem2, elem3, elem4;
-        	fprintf(master_header,"object \"frame_numbers\" class array  type int rank 0 items %d data follows\n",frame_numbers_count);
+        	long long elem1, elem2, elem3, elem4;
+        	fprintf(master_header,"object \"frame_numbers\" class array  type int rank 0 items %lld data follows\n",frame_numbers_count);
 		for(ii = 0; ii < frame_numbers_count; ii++){
-                	elem1 = ia_int_get(&frame_numbers_pos, ii);
-                	elem2 = ia_int_get(&frame_numbers_mesh, ii);
-                	elem3 = ia_int_get(&frame_numbers_mol, ii);
-                	elem4 = ia_int_get(&frame_numbers_eff, ii);
-			fprintf(master_header, "\t%d\t%d\t%d\t%d\n", elem1, elem2, elem3, elem4);
+                	elem1 = ia_longlong_get(&frame_numbers_pos, ii);
+                	elem2 = ia_longlong_get(&frame_numbers_mesh, ii);
+                	elem3 = ia_longlong_get(&frame_numbers_mol, ii);
+                	elem4 = ia_longlong_get(&frame_numbers_eff, ii);
+                        if((elem1 == LONG_MIN) || (elem2 == LONG_MIN) ||
+                           (elem3 == LONG_MIN) || (elem4 == LONG_MIN))
+                        {
+                          fprintf(log_file, "MCell:ia_longlong_get() tries to access uninitialized data.\n");
+                          return 1;
+                        }
+			fprintf(master_header, "\t%lld\t%lld\t%lld\t%lld\n", elem1, elem2, elem3, elem4);
         	}
 		fprintf(master_header, "\n\n");
         }
@@ -3950,30 +3980,30 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
         }
         
 	/* free linked list for frame_numbers. */
-  	struct infinite_int_array *arr_int_ptr, *temp_int_ptr;
-  	arr_int_ptr = (&frame_numbers_pos)->next;
-  	while(arr_int_ptr != NULL){
-		temp_int_ptr = arr_int_ptr;
-		arr_int_ptr = arr_int_ptr->next;
-		free(temp_int_ptr);
+  	struct infinite_longlong_array *arr_ll_ptr, *temp_ll_ptr;
+  	arr_ll_ptr = (&frame_numbers_pos)->next;
+  	while(arr_ll_ptr != NULL){
+		temp_ll_ptr = arr_ll_ptr;
+		arr_ll_ptr = arr_ll_ptr->next;
+		free(temp_ll_ptr);
   	}     
-  	arr_int_ptr = (&frame_numbers_mesh)->next;
-  	while(arr_int_ptr != NULL){
-		temp_int_ptr = arr_int_ptr;
-		arr_int_ptr = arr_int_ptr->next;
-		free(temp_int_ptr);
+  	arr_ll_ptr = (&frame_numbers_mesh)->next;
+  	while(arr_ll_ptr != NULL){
+		temp_ll_ptr = arr_ll_ptr;
+		arr_ll_ptr = arr_ll_ptr->next;
+		free(temp_ll_ptr);
   	}     
-  	arr_int_ptr = (&frame_numbers_mol)->next;
-  	while(arr_int_ptr != NULL){
-		temp_int_ptr = arr_int_ptr;
-		arr_int_ptr = arr_int_ptr->next;
-		free(temp_int_ptr);
+  	arr_ll_ptr = (&frame_numbers_mol)->next;
+  	while(arr_ll_ptr != NULL){
+		temp_ll_ptr = arr_ll_ptr;
+		arr_ll_ptr = arr_ll_ptr->next;
+		free(temp_ll_ptr);
   	}     
-  	arr_int_ptr = (&frame_numbers_eff)->next;
-  	while(arr_int_ptr != NULL){
-		temp_int_ptr = arr_int_ptr;
-		arr_int_ptr = arr_int_ptr->next;
-		free(temp_int_ptr);
+  	arr_ll_ptr = (&frame_numbers_eff)->next;
+  	while(arr_ll_ptr != NULL){
+		temp_ll_ptr = arr_ll_ptr;
+		arr_ll_ptr = arr_ll_ptr->next;
+		free(temp_ll_ptr);
   	}     
 
   	/* free linked list for frame_data. */

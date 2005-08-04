@@ -19,8 +19,8 @@ struct infinite_double_array{
 	struct infinite_double_array *next;
 };
 
-/** struct infinite_double_array
-    Used to hold information for an infinite array of doubles.
+/** struct infinite_int_array
+    Used to hold information for an infinite array of integers.
 */
 struct infinite_int_array{
 	/* the data  for this block */
@@ -30,6 +30,16 @@ struct infinite_int_array{
 	struct infinite_int_array *next;
 };
 
+/** struct infinite_longlong_array
+    Used to hold information for an infinite array of long long integers.
+*/
+struct infinite_longlong_array{
+	/* the data  for this block */
+	long long data[BLOCK_SIZE];
+
+	/* pointer to the next array. */
+	struct infinite_longlong_array *next;
+};
 /** struct infinite_string_array
     Used to hold information for an infinite array of strings.
 */
@@ -53,7 +63,9 @@ struct infinite_pointer_array{
 	struct infinite_pointer_array *next;
 };
 
-/* Initializes the infinite array */
+/* Initializes the infinite array. 
+   Initialization of the field "data" should be performed
+   separately to the value corresponding to the data type of the field array*/
 #define ia_init(array_ptr)	{(array_ptr)->next = NULL;}
 
 
@@ -63,6 +75,8 @@ double ia_double_get(struct infinite_double_array *array_ptr, int index);
 void ia_double_store(struct infinite_double_array *array_ptr, int index, double data_to_store);
 int ia_int_get(struct infinite_int_array *array_ptr, int index);
 void ia_int_store(struct infinite_int_array *array_ptr, int index, int data_to_store);
+long long ia_longlong_get(struct infinite_longlong_array *array_ptr, long long index);
+void ia_longlong_store(struct infinite_longlong_array *array_ptr, long long index, long long data_to_store);
 char* ia_string_get(struct infinite_string_array *array_ptr, int index);
 void ia_string_store(struct infinite_string_array *array_ptr, int index, char *data_to_store);
 void *ia_pointer_get(struct infinite_pointer_array *array_ptr, int index);

@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "strfunc.h"
+#include <limits.h>
 
 /********************************************************************
 ia_double_locate -- Gets the location of an element of infinite array
@@ -23,6 +24,7 @@ static struct infinite_double_array *ia_double_locate(struct infinite_double_arr
 {
 	/* pointer to the current bucket */
 	struct infinite_double_array *current_ptr;
+        int i;
 
 	current_ptr = array_ptr;
 	*current_index_ptr = index;
@@ -34,7 +36,11 @@ static struct infinite_double_array *ia_double_locate(struct infinite_double_arr
                        fprintf(stderr, "Memory allocation error\n");
 			exit(1);
                    }
-                   memset(current_ptr->next, '\0', sizeof(struct infinite_double_array));
+                 /*  memset(current_ptr->next, '\0', sizeof(struct infinite_double_array)); */
+                   for(i = 0; i < BLOCK_SIZE; i++)
+                   {
+                     array_ptr->data[i] = LONG_MIN;
+                   }
                 }
          	current_ptr = current_ptr->next;
          	*current_index_ptr -= BLOCK_SIZE;
@@ -72,7 +78,7 @@ Returns
 	the value of the element
 
 Note: You can get an element that has not been previously stored.
-      The value of any unitialiazed element is zero.
+      The value of any unitialiazed element is LONG_MIN.
 **********************************************************************/
 double ia_double_get(struct infinite_double_array *array_ptr, int index)
 {
@@ -101,6 +107,7 @@ static struct infinite_int_array *ia_int_locate(struct infinite_int_array *array
 {
 	/* pointer to the current bucket */
 	struct infinite_int_array *current_ptr;
+        int i;
 
 	current_ptr = array_ptr;
 	*current_index_ptr = index;
@@ -112,7 +119,11 @@ static struct infinite_int_array *ia_int_locate(struct infinite_int_array *array
                        fprintf(stderr, "Memory allocation error\n");
 			exit(1);
                    }
-                   memset(current_ptr->next, '\0', sizeof(struct infinite_int_array));
+                   /*memset(current_ptr->next, '\0', sizeof(struct infinite_int_array)); */
+                   for(i = 0; i < BLOCK_SIZE; i++)
+                   {
+                     array_ptr->data[i] = LONG_MIN;
+                   }
                 }
          	current_ptr = current_ptr->next;
          	*current_index_ptr -= BLOCK_SIZE;
@@ -150,7 +161,7 @@ Returns
 	the value of the element
 
 Note: You can get an element that has not been previously stored.
-      The value of any unitialiazed element is zero.
+      The value of any unitialiazed element is LONG_MIN.
 **********************************************************************/
 int ia_int_get(struct infinite_int_array *array_ptr, int index)
 {
@@ -163,6 +174,89 @@ int ia_int_get(struct infinite_int_array *array_ptr, int index)
 	return (current_ptr->data[current_index]); 
 }
 
+/********************************************************************
+ia_longlong_locate -- Gets the location of an element of infinite array
+                    of long long integers
+
+Parameters
+	array_ptr -- Pointer to the array to use
+	index -- Index into the array.
+	current_index_ptr -- Pointer to the index into this bucket (returned)
+
+Returns
+	Pointer to the current bucket
+************************************************************************/
+static struct infinite_longlong_array *ia_longlong_locate(struct infinite_longlong_array *array_ptr, long long index, long long *current_index_ptr)
+{
+	/* pointer to the current bucket */
+	struct infinite_longlong_array *current_ptr;
+        int i; 
+
+	current_ptr = array_ptr;
+	*current_index_ptr = index;
+
+	while(*current_index_ptr >= BLOCK_SIZE){
+		if(current_ptr->next == NULL){
+		   current_ptr->next = malloc(sizeof(struct infinite_longlong_array));
+		   if(current_ptr->next == NULL){
+                       fprintf(stderr, "Memory allocation error\n");
+			exit(1);
+                   }
+                   /*memset(current_ptr->next, '\0', sizeof(struct infinite_longlong_array)); */
+                   for(i = 0; i < BLOCK_SIZE; i++)
+                   {
+                     array_ptr->data[i] = LONG_MIN;
+                   }
+                }
+         	current_ptr = current_ptr->next;
+         	*current_index_ptr -= BLOCK_SIZE;
+         }
+         return (current_ptr);
+
+}
+
+/*************************************************************************
+ia_longlong_store  -- Stores an element into an infinite array of integers
+
+Parameters
+	array_ptr -- Pointer to the array to use
+	index -- Index into the array.
+	data_to store  - Data to be stored
+*************************************************************************/
+void ia_longlong_store(struct infinite_longlong_array *array_ptr, long long index, long long data_to_store)
+{
+	/* pointer to the current bucket */
+	struct infinite_longlong_array *current_ptr;
+	long long current_index;	/* Index into the current bucket */
+
+	current_ptr = ia_longlong_locate(array_ptr, index, &current_index);
+	current_ptr->data[current_index] = data_to_store;
+}
+
+/*********************************************************************
+ia_longlong_get -- Gets an element from an infinite array of longlong 
+                   integers.
+
+Parameters
+	array_ptr -- Pointer to the array to use.
+	index	-- Index into the array
+
+Returns
+	the value of the element
+
+Note: You can get an element that has not been previously stored.
+      The value of any unitialiazed element is LONG_MIN.
+**********************************************************************/
+long long ia_longlong_get(struct infinite_longlong_array *array_ptr, long long index)
+{
+	/* pointer to the current bucket */
+        struct infinite_longlong_array *current_ptr;
+
+	long long current_index;	/* index into the current bucket */
+        
+	current_ptr = ia_longlong_locate(array_ptr, index, &current_index);
+	return (current_ptr->data[current_index]); 
+}
 
 /********************************************************************
 ia_string_locate -- Gets the location of an element in the infinite 
@@ -180,6 +274,7 @@ static struct infinite_string_array *ia_string_locate(struct infinite_string_arr
 {
 	/* pointer to the current bucket */
 	struct infinite_string_array *current_ptr;
+        int i;
 
 	current_ptr = array_ptr;
 	*current_index_ptr = index;
@@ -191,7 +286,12 @@ static struct infinite_string_array *ia_string_locate(struct infinite_string_arr
                        fprintf(stderr, "Memory allocation error\n");
 			exit(1);
                    }
-                   memset(current_ptr->next, '\0', sizeof(struct infinite_string_array));
+                 /*  memset(current_ptr->next, '\0', sizeof(struct infinite_string_array));     */
+                   for(i = 0; i < BLOCK_SIZE; i++)
+                   {
+                     array_ptr->data[i] = NULL;
+                   }
+
                 }
          	current_ptr = current_ptr->next;
          	*current_index_ptr -= BLOCK_SIZE;
@@ -265,7 +365,8 @@ static struct infinite_pointer_array *ia_pointer_locate(struct infinite_pointer_
 {
 	/* pointer to the current bucket */
 	struct infinite_pointer_array *current_ptr;
-
+        int i;
+  
 	current_ptr = array_ptr;
 	*current_index_ptr = index;
 
@@ -276,7 +377,11 @@ static struct infinite_pointer_array *ia_pointer_locate(struct infinite_pointer_
                        fprintf(stderr, "Memory allocation error\n");
 			exit(1);
                    }
-                   memset(current_ptr->next, '\0', sizeof(struct infinite_pointer_array));
+                   /*memset(current_ptr->next, '\0', sizeof(struct infinite_pointer_array)); */
+                   for(i = 0; i < BLOCK_SIZE; i++)
+                   {
+                     array_ptr->data[i] = NULL;
+                   }
                 }
          	current_ptr = current_ptr->next;
          	*current_index_ptr -= BLOCK_SIZE;
