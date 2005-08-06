@@ -39,8 +39,9 @@ static struct infinite_double_array *ia_double_locate(struct infinite_double_arr
                  /*  memset(current_ptr->next, '\0', sizeof(struct infinite_double_array)); */
                    for(i = 0; i < BLOCK_SIZE; i++)
                    {
-                     array_ptr->data[i] = LONG_MIN;
+                     current_ptr->next->data[i] = LONG_MIN;
                    }
+                   current_ptr->next->next = NULL;
                 }
          	current_ptr = current_ptr->next;
          	*current_index_ptr -= BLOCK_SIZE;
@@ -122,8 +123,9 @@ static struct infinite_int_array *ia_int_locate(struct infinite_int_array *array
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_int_array)); */
                    for(i = 0; i < BLOCK_SIZE; i++)
                    {
-                     array_ptr->data[i] = LONG_MIN;
+                     current_ptr->next->data[i] = LONG_MIN;
                    }
+                   current_ptr->next->next = NULL;
                 }
          	current_ptr = current_ptr->next;
          	*current_index_ptr -= BLOCK_SIZE;
@@ -205,8 +207,9 @@ static struct infinite_longlong_array *ia_longlong_locate(struct infinite_longlo
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_longlong_array)); */
                    for(i = 0; i < BLOCK_SIZE; i++)
                    {
-                     array_ptr->data[i] = LONG_MIN;
+                     current_ptr->next->data[i] = LONG_MIN;
                    }
+                   current_ptr->next->next = NULL;
                 }
          	current_ptr = current_ptr->next;
          	*current_index_ptr -= BLOCK_SIZE;
@@ -286,12 +289,14 @@ static struct infinite_string_array *ia_string_locate(struct infinite_string_arr
                        fprintf(stderr, "Memory allocation error\n");
 			exit(1);
                    }
-                 /*  memset(current_ptr->next, '\0', sizeof(struct infinite_string_array));     */
+                   /*memset(current_ptr->next, '\0', sizeof(struct infinite_string_array)); */    
+                   
                    for(i = 0; i < BLOCK_SIZE; i++)
                    {
-                     array_ptr->data[i] = NULL;
+                     current_ptr->next->data[i] = NULL;
                    }
-
+                   current_ptr->next->next = NULL;
+                   
                 }
          	current_ptr = current_ptr->next;
          	*current_index_ptr -= BLOCK_SIZE;
@@ -364,7 +369,7 @@ Returns
 static struct infinite_pointer_array *ia_pointer_locate(struct infinite_pointer_array *array_ptr, int index, int *current_index_ptr)
 {
 	/* pointer to the current bucket */
-	struct infinite_pointer_array *current_ptr;
+	struct infinite_pointer_array *current_ptr = NULL;
         int i;
   
 	current_ptr = array_ptr;
@@ -380,8 +385,9 @@ static struct infinite_pointer_array *ia_pointer_locate(struct infinite_pointer_
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_pointer_array)); */
                    for(i = 0; i < BLOCK_SIZE; i++)
                    {
-                     array_ptr->data[i] = NULL;
+                     current_ptr->next->data[i] = NULL;
                    }
+                   current_ptr->next->next = NULL;
                 }
          	current_ptr = current_ptr->next;
          	*current_index_ptr -= BLOCK_SIZE;
