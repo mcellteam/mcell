@@ -322,7 +322,7 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
   sv->mol_head = new_m;
   sv->mol_count++;
   new_m->properties->population++;
-  
+
   if (new_m->properties->flags & COUNT_CONTENTS)
   {
     count_me_by_region( (struct abstract_molecule*)new_m , 1 , NULL );
@@ -335,7 +335,6 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
         exit(EXIT_FAILURE);
 
   } 
-  
   return new_m;
 }
 
@@ -417,7 +416,7 @@ struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv)
   new_m->next_v = new_sv->mol_head;
   new_sv->mol_head = new_m;
   new_sv->mol_count++;
-    
+ 
   m->subvol->mol_count--;
   m->properties = NULL;
 
@@ -1217,3 +1216,55 @@ int navigate_world_by_corner(int curr_index, int direction1, int direction2, int
     
         return final_index; 
 }
+
+/************************************************************************
+   In: starting position of the molecule
+       displacement (random walk) vector
+       vector to store one corner of the bounding box
+       vector to store the opposite corner of the bounding box 
+   Out: No return value. The vectors are set to define the bounding box
+        of the random walk movement that extends for R_INT in all
+        directions.
+************************************************************************/
+void path_bounding_box(struct vector3 *loc, struct vector3 * displacement,
+ struct vector3 *llf, struct vector3 *urb)
+{
+   struct vector3 final;  /* final position of the molecule after random walk */
+   double R;     /* molecule interaction radius */
+
+  
+   R = world->rx_radius_3d; 
+   vect_sum(loc, displacement, &final);
+
+   llf->x = urb->x = loc->x;
+   llf->y = urb->y = loc->y;
+   llf->z = urb->z = loc->z;
+
+   if(final.x < llf->x) {
+         llf->x = final.x;
+   }
+   if(final.x > urb->x){
+       urb->x = final.x;
+   }
+   if(final.y < llf->y) {
+         llf->y = final.y;
+   }
+   if(final.y > urb->y){
+       urb->y = final.y;
+   }
+   if(final.z < llf->z) {
+         llf->z = final.z;
+   }
+   if(final.z > urb->z){
+       urb->z = final.z;
+   }
+   /* Extend the bounding box at the distance R. */
+   llf->x -= R;
+   llf->y -= R;
+   llf->z -= R;
+
+   urb->x += R;
+   urb->y += R;
+   urb->z += R;
+}
+

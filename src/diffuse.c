@@ -32,7 +32,7 @@
 #define MULTISTEP_FRACTION 0.9
 #define MAX_UNI_TIMESKIP 5000
 
-/*#define USE_EXPANDED_COLLISION_LIST */        
+#define USE_EXPANDED_COLLISION_LIST        
 
 /* EXD_TIME_CALC is a local #define in exact_disk */
 /* EXD_SPAN_CALC is a local #define in exact_disk */
@@ -914,6 +914,7 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
   
   /* First see if any overlap */
   p_flags = 0;
+/*
   d = loc->x - world->x_fineparts[ sv->llf.x ];
   if (d<R)
   {
@@ -955,6 +956,7 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
     d = world->z_fineparts[ sv->urb.z ] - loc->z;
     if (d<R && d*d<R2*(mv->y*mv->y + mv->x*mv->x)*m2_i) p_flags |= Z_POS_BIT;
   }
+*/
 
   /* Now find the lines created by any that do overlap */
   if (p_flags)
@@ -1794,9 +1796,1359 @@ double safe_diffusion_step(struct molecule *m,struct collision *shead)
   
   return steps;
 }
+ 
+/****************************************************************************
+expand_collision_list_partial:
+  In: molecule that is moving
+      displacement to the new location
+      subvolume that we start in
+      linked list of potential collisions with molecules from the 
+                starting subvolume
+  Out: To the current collision list of molecules we may react with in our 
+       subvolume the molecules from the neighbor subvolumes are added.
+       The molecules are added only when the molecule displacement bounding box 
+       intersects with the subvolume bounding box.
+       Returns new list of collisions.
+	
+****************************************************************************/
+struct collision* expand_collision_list_partial(struct molecule *m, struct vector3 *mv, struct subvolume *sv, struct collision *shead1)
+{
+  struct collision *smash;
+  struct molecule *mp;
+  /* neighbors of the current subvolume */
+  struct subvolume *new_sv;
+  struct rxn *rx;
+  /* lower left and upper_right corners of the molecule path
+     bounding box expanded by R. */
+  struct vector3 path_llf, path_urb;
+  /* lower left and upper right corners of the subvolume */
+  struct vector3 new_sv_llf, new_sv_urb;
+  struct vector3 v0, v1;
+  /* index of the neighbor subvolume */
+  int neighbor_index;
+  int i;
+  double d, d1, d2;  /* distance */
+  double R, R2;  /* molecule interaction radius */
+  
+ 
+  R = (world->rx_radius_3d); 
+  R2 = R*R;
+
+  /* find the molecule path bounding box. */
+  path_bounding_box(&(m->pos), mv, &path_llf, &path_urb);
+  
+     new_sv = (struct subvolume *)(sv->neighbor[X_POS]);
+     if(new_sv != NULL)
+     {
+          new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+          new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+          new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+          new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+          new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+          new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+          if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue; 
+                /* if molecule is farther than R from the shared SV plane */ 
+                d = mp->pos.x - world->x_fineparts[sv->urb.x];
+                if(d > R) continue; 
+                     
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+          }
+     }
+     new_sv = (struct subvolume *)(sv->neighbor[X_NEG]);
+     if(new_sv != NULL)
+     {
+          new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+          new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+          new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+          new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+          new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+          new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+          if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                /* if molecule is farther than R from the shared SV plane */ 
+                d = world->x_fineparts[sv->llf.x] - mp->pos.x;
+                if(d > R) continue; 
+                  
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}								
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+          }
+     }
+     new_sv = (struct subvolume *)(sv->neighbor[Z_POS]);
+     if(new_sv != NULL)
+     {
+       new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+       new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+       new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+       new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+       new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+       new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+       if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+         /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                /* if molecule is farther than R from the shared SV plane */ 
+                d = mp->pos.z - world->z_fineparts[sv->urb.z];
+                if(d > R) continue; 
+                  
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+       }
+     }
+
+     new_sv = (struct subvolume *)(sv->neighbor[Z_NEG]);
+     if(new_sv != NULL)
+     {
+       new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+       new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+       new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+       new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+       new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+       new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+       if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                /* if molecule is farther than R from the shared SV plane */ 
+                d = world->z_fineparts[sv->llf.z] - mp->pos.z;
+                if(d > R) continue; 
+                  
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+       }
+     }
+
+     new_sv = (struct subvolume *)(sv->neighbor[Y_POS]);
+     if(new_sv != NULL)
+     {
+          new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+          new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+          new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+          new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+          new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+          new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+          if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                /* if molecule is farther than R from the shared SV plane */ 
+                d = mp->pos.y - world->y_fineparts[sv->urb.y];
+                if(d > R) continue; 
+                  
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+          }
+     }
+
+     new_sv = (struct subvolume *)(sv->neighbor[Y_NEG]);
+     if(new_sv != NULL)
+     {
+          new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+          new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+          new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+          new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+          new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+          new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+          if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                /* if molecule is farther than R from the shared SV plane */ 
+                d = world->y_fineparts[sv->llf.y] - mp->pos.y;
+                if(d > R) continue; 
+                  
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+          }
+     }
+
+   /* let's reach subvolumes located "edge-to-edge" from the top face
+      of the current subvolume. */
+   /* go (-X and +Z) */
+   	neighbor_index = sv->index -(world->nz_parts-1)*(world->ny_parts-1) + 1;
+   	new_sv = &(world->subvol[neighbor_index]);
+   	if(new_sv != NULL){
+          new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+          new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+          new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+          new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+          new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+          new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+          if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+          
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                /* if molecule is farther than R from the shared SV edge */ 
+                d1 = mp->pos.z - world->z_fineparts[sv->urb.z];
+                d2 = world->x_fineparts[sv->llf.x] - mp->pos.x;
+                if((d1 > R) && (d2 > R)) continue; 
+                  
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+          }
+   
+   	}
+   /* go (+Y and +Z) */
+      neighbor_index = sv->index  + (world->nz_parts-1) + 1;
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL)
+      {
+          new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+          new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+          new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+          new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+          new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+          new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+          if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+            
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                /* if molecule is farther than R from the shared SV edge */ 
+                d1 = mp->pos.z - world->z_fineparts[sv->urb.z];
+                d2 = mp->pos.y -world->y_fineparts[sv->urb.y];                
+                if((d1 > R) && (d2 > R)) continue;
+  
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+          }
+      } 
+   
+   /* go (+X and +Z) */
+      neighbor_index = sv->index  + (world->nz_parts-1)*(world->ny_parts-1) + 1;
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL)
+      {
+          new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+          new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+          new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+          new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+          new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+          new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+          if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+            
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;
+                /* if molecule is farther than R from the shared SV edge */ 
+                d1 = mp->pos.z - world->z_fineparts[sv->urb.z];
+                d2 = mp->pos.x - world->x_fineparts[sv->urb.x]; 
+                if((d1 > R) && (d2 > R)) continue; 
+                  
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+          }
+   
+      }
+   /* go (-Y and +Z) */
+      neighbor_index = sv->index  - (world->nz_parts-1) + 1;
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL){
+          new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+          new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+          new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+          new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+          new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+          new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+          if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue; 
+                /* if molecule is farther than R from the shared SV edge */ 
+                d1 = mp->pos.z - world->z_fineparts[sv->urb.z];
+                d2 = world->y_fineparts[sv->llf.y] - mp->pos.y;
+                if((d1 > R) && (d2 > R)) continue;
+                
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+          }
+   
+      }
+   /* let's reach subvolumes located "edge-to-edge" from the bottom face
+      of the current subvolume. */
+   /* go (-X and -Z) */
+      neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) - 1;
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL)
+      {
+          new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+          new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+          new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+          new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+          new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+          new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+          if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue; 
+                /* if molecule is farther than R from the shared SV edge */ 
+                d1 = world->z_fineparts[sv->llf.z] - mp->pos.z;
+                d2 = world->x_fineparts[sv->llf.x] - mp->pos.x;
+                if((d1 > R) && (d2 > R)) continue; 
+                  
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+          }
+   
+      }
+   /* go (+Y and -Z) */
+      neighbor_index = sv->index  + (world->nz_parts-1) - 1;
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL){
+          new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+          new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+          new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+          new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+          new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+          new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+          if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                /* if molecule is farther than R from the shared SV edge */ 
+                d1 = world->z_fineparts[sv->llf.z] - mp->pos.z;
+                d2 = mp->pos.y - world->y_fineparts[sv->urb.y];
+                if((d1 > R) && (d2 > R)) continue; 
+                
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+          }
+   
+      }
+   /* go (+X and -Z) */
+      neighbor_index = sv->index  + (world->nz_parts-1)*(world->ny_parts-1) - 1;
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL){
+          new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+          new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+          new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+          new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+          new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+          new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+          if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                /* if molecule is farther than R from the shared SV edge */ 
+                d1 = world->z_fineparts[sv->llf.z] - mp->pos.z;
+                d2 = mp->pos.x - world->x_fineparts[sv->urb.x];
+                if((d1 > R) && (d2 > R)) continue; 
+                  
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+          }
+   
+      }
+   /* go (-Y and -Z) */
+      neighbor_index = sv->index  - (world->nz_parts-1) - 1;
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL){
+          new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+          new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+          new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+          new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+          new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+          new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+          if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                /* if molecule is farther than R from the shared SV edge */ 
+                d1 = world->z_fineparts[sv->llf.z] - mp->pos.z;
+                d2 = world->y_fineparts[sv->llf.y] - mp->pos.y;
+                if((d1 > R) && (d2 > R)) continue;
+                  
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+          }
+   
+      }
+   /* let's reach subvolumes located "edge-to-edge" from the vertical edges
+      of the current subvolume. */
+   /* go (-Y and -X) */
+      neighbor_index = sv->index  - (world->nz_parts-1) - (world->nz_parts-1)*(world->ny_parts-1);;
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL){
+          new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+          new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+          new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+          new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+          new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+          new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+          if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue; 
+                /* if molecule is farther than R from the shared SV edge */ 
+                d1 = world->y_fineparts[sv->llf.y] - mp->pos.y;
+                d2 = world->x_fineparts[sv->llf.x] - mp->pos.x;
+                if((d1 > R) && (d2 > R)) continue; 
+                  
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+          }
+   
+      }
+   /* go (+Y and -X) */
+      neighbor_index = sv->index  + (world->nz_parts-1) - (world->nz_parts-1)*(world->ny_parts-1);;
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL){
+          new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+          new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+          new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+          new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+          new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+          new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+          if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                /* if molecule is farther than R from the shared SV edge */ 
+                d1 = mp->pos.y - world->y_fineparts[sv->urb.y];
+                d2 = world->x_fineparts[sv->llf.x] - mp->pos.x;  
+                if((d1 > R) && (d2 > R)) continue; 
+                  
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+          }
+   
+      }
+   /* go (+Y and +X) */
+      neighbor_index = sv->index  + (world->nz_parts-1) + (world->nz_parts-1)*(world->ny_parts-1);
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL){
+          new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+          new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+          new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+          new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+          new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+          new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+          if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue; 
+                /* if molecule is farther than R from the shared SV edge */
+                d1 = mp->pos.y - world->y_fineparts[sv->urb.y];
+                d2 = mp->pos.x - world->x_fineparts[sv->llf.x];  
+                if((d1 > R) && (d2 > R)) continue; 
+                  
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+          }
+   
+      }
+   /* go (-Y and +X) */
+      neighbor_index = sv->index  - (world->nz_parts-1) + (world->nz_parts-1)*(world->ny_parts-1);;
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL){
+          new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+          new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+          new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+          new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+          new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+          new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+          if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                /* if molecule is farther than R from the shared SV edge */ 
+                d1 = world->y_fineparts[sv->llf.y] - mp->pos.y; 
+                d2 = mp->pos.x - world->x_fineparts[sv->llf.x];  
+                if((d1 > R) && (d2 > R)) continue; 
+                  
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+          }
+   
+      }
+
+   /* let's reach subvolumes located "corner-to-corner" from the top face
+      of the current subvolume. */
+   /* go (-X and -Y and +Z) */
+      neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) + 1;
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL){
+        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+        new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+        new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+        new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+        if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+
+                /* find coordinates of the shared corner */
+                v0.x = world->x_fineparts[sv->llf.x];
+                v0.y = world->y_fineparts[sv->llf.y];
+                v0.z = world->z_fineparts[sv->urb.z];
+
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                 
+                /* check for the distance from the shared corner */
+                vectorize(&(mp->pos), &v0,&v1);
+                d = vect_length(&v1);
+                if (d > R) continue;
+ 
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+        }
+   
+      }
+   /* go (-X and +Y and +Z) */
+      neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) + 1;
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL){
+        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+        new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+        new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+        new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+        if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+
+                /* find coordinates of the shared corner */
+                v0.x = world->x_fineparts[sv->llf.x];
+                v0.y = world->y_fineparts[sv->urb.y];
+                v0.z = world->z_fineparts[sv->urb.z];
+
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                
+                /* check for the distance from the shared corner */
+                vectorize(&(mp->pos), &v0,&v1);
+                d = vect_length(&v1);
+                if (d > R) continue;
+                  
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+        }
+   
+      }
+  /* go (+X and +Y and +Z) */
+      neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) + 1;
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL){
+        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+        new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+        new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+        new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+        if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+
+                /* find coordinates of the shared corner */
+                v0.x = world->x_fineparts[sv->urb.x];
+                v0.y = world->y_fineparts[sv->urb.y];
+                v0.z = world->z_fineparts[sv->urb.z];
+
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                  
+                /* check for the distance from the shared corner */
+                vectorize(&(mp->pos), &v0,&v1);
+                d = vect_length(&v1);
+                if (d > R) continue;
+
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+        }
+   
+      }
+  /* go (+X and -Y and +Z) */
+      neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) + 1;
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL){
+        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+        new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+        new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+        new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+        if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+
+                /* find coordinates of the shared corner */
+                v0.x = world->x_fineparts[sv->urb.x];
+                v0.y = world->y_fineparts[sv->llf.y];
+                v0.z = world->z_fineparts[sv->urb.z];
+
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                
+                /* check for the distance from the shared corner */
+                vectorize(&(mp->pos), &v0,&v1);
+                d = vect_length(&v1);
+                if (d > R) continue;
+                  
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+        }
+   
+      }
+   /* go (-X and -Y and -Z) */
+      neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) - 1;
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL){
+        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+        new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+        new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+        new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+        if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+
+                /* find coordinates of the shared corner */
+                v0.x = world->x_fineparts[sv->llf.x];
+                v0.y = world->y_fineparts[sv->llf.y];
+                v0.z = world->z_fineparts[sv->llf.z];
+
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+
+                /* check for the distance from the shared corner */
+                vectorize(&(mp->pos), &v0,&v1);
+                d = vect_length(&v1);
+                if (d > R) continue;
+
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+        }
+   
+      }
+   /* go (-X and +Y and -Z) */
+      neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) - 1;
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL){
+        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+        new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+        new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+        new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+        if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+
+                /* find coordinates of the shared corner */
+                v0.x = world->x_fineparts[sv->llf.x];
+                v0.y = world->y_fineparts[sv->urb.y];
+                v0.z = world->z_fineparts[sv->llf.z];
+
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                  
+                /* check for the distance from the shared corner */
+                vectorize(&(mp->pos), &v0,&v1);
+                d = vect_length(&v1);
+                if (d > R) continue;
+
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+        }
+   
+      }
+  /* go (+X and +Y and -Z) */
+      neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) - 1;
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL){
+        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+        new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+        new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+        new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+        if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+
+                /* find coordinates of the shared corner */
+                v0.x = world->x_fineparts[sv->urb.x];
+                v0.y = world->y_fineparts[sv->urb.y];
+                v0.z = world->z_fineparts[sv->llf.z];
+
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                  
+                /* check for the distance from the shared corner */
+                vectorize(&(mp->pos), &v0,&v1);
+                d = vect_length(&v1);
+                if (d > R) continue;
+
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+        }
+   
+      }
+  /* go (+X and -Y and -Z) */
+      neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) - 1;
+      new_sv = &(world->subvol[neighbor_index]);
+      if(new_sv != NULL){
+        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+        new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+        new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+        new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+        if(test_bounding_boxes(&path_llf, &path_urb, &new_sv_llf, &new_sv_urb)){
+
+                /* find coordinates of the shared corner */
+                v0.x = world->x_fineparts[sv->urb.x];
+                v0.y = world->y_fineparts[sv->llf.y];
+                v0.z = world->z_fineparts[sv->llf.z];
+
+
+            /* include molecules from this SV */
+    	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
+    	    {
+      		if (mp->properties == NULL) continue;  
+                
+                /* check for the distance from the shared corner */
+                vectorize(&(mp->pos), &v0,&v1);
+                d = vect_length(&v1);
+                if (d > R) continue;
+                  
+      		/* check for the possible reaction. */
+      		rx = trigger_bimolecular(
+               		m->properties->hashval,mp->properties->hashval,
+               		(struct abstract_molecule*)m,
+                        (struct abstract_molecule*)mp,0,0);
+      
+      		if (rx != NULL)
+      		{
+        		smash = mem_get(sv->local_storage->coll);
+        		if (smash == NULL)
+			{
+	  			fprintf(world->err_file,"Out of memory.  Trying to save intermediate states.\n");
+	  			i = emergency_output();
+	  			fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+	  			exit( EXIT_FAILURE );
+        		}
+        		smash->target = (void*) mp;
+        		smash->intermediate = rx;
+        		smash->next = shead1;
+        		smash->what = COLLIDE_MOL;
+        		shead1 = smash;
+      		}
+    	     }
+
+
+        }
+   
+      }
+
+  return shead1;
+}
 
 /****************************************************************************
-expand_collision_list:
+expand_collision_list_full:
   In: molecule that is moving
       subvolume that we start in
       linked list of potential collisions with molecules from the 
@@ -1806,7 +3158,7 @@ expand_collision_list:
        Returns new list of collisions.
 	
 ****************************************************************************/
-struct collision* expand_collision_list(struct molecule *m, struct subvolume *sv, struct collision *shead1)
+struct collision* expand_collision_list_full(struct molecule *m, struct subvolume *sv, struct collision *shead1)
 {
   struct collision *smash;
   struct molecule *mp;
@@ -2851,7 +4203,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 /*      else printf("Rx between %s and %s is NULL\n",sm->sym->name,mp->properties->sym->name); */
     }
   }
- 
+  
   if (calculate_displacement)
   {
     if (max_time > MULTISTEP_WORTHWHILE) steps = safe_diffusion_step(m,shead);
@@ -2887,7 +4239,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
    reflectee = NULL;
 
 #ifdef USE_EXPANDED_COLLISION_LIST 
-    shead = expand_collision_list(m, sv, shead);  
+    /*shead = expand_collision_list_full(m, sv, shead); */ 
+    shead = expand_collision_list_partial(m, &displacement, sv, shead);  
 #endif 
 
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
@@ -2927,9 +4280,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         {
           /*if (smash->t < am->t + am->t2) continue;*/
         }  
-#ifdef USE_EXPANDED_COLLISION_LIST
+/*#ifdef USE_EXPANDED_COLLISION_LIST
         scaling = estimate_clipped_interaction((struct molecule*)am);
-#else 
+#else */
 	factor = exact_disk(
           &(smash->loc),&displacement,world->rx_radius_3d,m->subvol,m,
 	  (struct molecule*)am
@@ -2942,7 +4295,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	}
         
         scaling = factor / rate_factor;
-#endif 
+/*#endif */
         if (rx->prob_t != NULL) check_probs(rx,m->t);
 
         i = test_bimolecular(rx,scaling);

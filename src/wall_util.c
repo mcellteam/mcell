@@ -1196,7 +1196,6 @@ collide_mol:
   Note: t and/or hitpt may be modified even if there is no collision
         Not highly optimized yet.
 ***************************************************************************/
-
 int collide_mol(struct vector3 *point,struct vector3 *move,
                 struct abstract_molecule *a,double *t,struct vector3 *hitpt)
 {
@@ -1243,6 +1242,41 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
   return COLLIDE_MOL_M;
 }
 
+#if 0
+/* ray-sphere collision */
+int collide_mol(struct vector3 *point,struct vector3 *move,
+                struct abstract_molecule *a,double *t,struct vector3 *hitpt)
+{
+  /* vector to the position of the molecule we test for collision. */
+  struct vector3 *pos;
+  struct vector3 d; /* unit vector in the direction of move */
+  double k; /* parameter in the ray equation */
+  double move_length; /* length of the move vector */
+  int result; 
+
+ 
+  if ((a->properties->flags & ON_GRID)!=0) return COLLIDE_MISS; /* Should never call on grid molecule! */
+  
+  if ((a->properties->flags & ON_SURFACE)==0) pos = &( ((struct molecule*)a)->pos );
+  else pos = &( ((struct surface_molecule*)a)->pos );
+
+  move_length = vect_length(move);
+
+  d.x = move->x/move_length;
+  d.y = move->y/move_length;
+  d.z = move->z/move_length;
+
+  result = test_sphere_ray(point, &d, pos, world->rx_radius_3d, &k, hitpt);
+  if (result == 0) return COLLIDE_MISS;
+  /* verify that the detected intersection does not lie beyond 
+     the end of the move */ 
+  if (k > move_length) return COLLIDE_MISS;
+  *t = k/move_length;
+ 
+  return COLLIDE_MOL_M;
+
+}
+#endif
 
 /***************************************************************************
 wall_in_box:
@@ -1953,6 +1987,9 @@ test_sphere_triangle:
 int test_sphere_triangle(struct vector3 *s, double radius, struct vector3 *a, struct vector3 *b, struct vector3 *c, struct vector3 *p)
 {
    struct vector3 v;
+   v.x = 0;
+   v.y = 0;
+   v.z = 0;
 
    /* Find point P on triangle ABC closest to the sphere center. */
    closest_pt_point_triangle(s,a,b,c,p);
@@ -1963,4 +2000,148 @@ int test_sphere_triangle(struct vector3 *s, double radius, struct vector3 *a, st
     vectorize(s, p, &v);
     return (dot_prod(&v,&v) <= radius*radius);
 
+}
+
+/***************************************************************************
+compute_plane:
+  In:  a,b,c - vectors to the three noncollinear points.
+       p - pointer to the struct plane.  
+  Out: Computes plane equation. 
+       Returnes plane.
+       The code is adapted from "Real-time Collision Detection" by Christer Ericson, ISBN 1-55860-732-3, p.55.
+       
+***************************************************************************/
+
+void compute_plane(struct vector3 *a, struct vector3 *b, struct vector3 *c, struct plane *p)
+{
+	struct vector3 ba, ca;
+
+        vectorize(a, b, &ba);
+        vectorize(a, c, &ca);
+
+        cross_prod(&ba, &ca, &(p->n));
+        /* normalize the plane normal */
+        normalize(&(p->n));
+
+        p->d = dot_prod(&(p->n), a);
+
+        return;
+}
+
+/***************************************************************************
+test_sphere_plane:
+  In:  s - center of the sphere
+       radius - radius of the sphere
+       p - struct plane.  
+  Out: Returns 1 if sphere intersects plane p, 0 - otherwise.
+       The code is adapted from "Real-time Collision Detection" by Christer Ericson, ISBN 1-55860-732-3, p.160.
+       
+***************************************************************************/
+int test_sphere_plane(struct vector3 *s, double radius, struct plane *p)
+{
+	/* For a normalized plane (|p.n = 1|), evaluating the plane equation
+           for a point gives the signed distance of the point to the plane */
+
+        double dist;
+    
+        dist = dot_prod(s, &(p->n)) - p->d;
+        /* If sphere center within +/- radius from the plane, plane 
+           intersects sphere */
+        return fabs(dist) <= radius;
+
+}
+/***************************************************************************
+test_sphere_ray:
+  In:  p - start point of the ray
+       d - unit vector of the ray
+       s - center of the sphere
+       radius - radius of the sphere
+       t - parameter in the ray equation (r = p + t*d)
+       q - point of the intersection 
+  Out: Returns 1 if sphere intersects ray, 0 - otherwise.
+       The code is adapted from "Real-time Collision Detection" by Christer Ericson, ISBN 1-55860-732-3, p.178.
+       
+***************************************************************************/
+int test_sphere_ray(struct vector3 *p, struct vector3 *d, struct vector3 *s,
+       double radius, double *t, struct vector3 *q)
+{
+	struct vector3 m, result;
+        double b,c, discr;
+
+        vectorize(s, p, &m);
+        b = dot_prod(&m, d);
+        c = dot_prod(&m,&m) - radius*radius;
+        /* exit if ray's origin outside sphere (c > 0) and ray pointing 
+           away from sphere ( b > 0) */   
+        if (c > 0.0 && b > 0.0) return 0;
+        
+        discr = b*b - c;
+        /* A negative discriminant corresponds to the ray missing sphere */
+        if (discr < 0.0) return 0;
+        /* ray now found to intersect sphere, compute smallest t value of 
+           intersection */         
+        *t = - b - sqrt(discr);
+        /* If t is negative, ray started inside sphere so clamp t to zero */
+        if (*t < 0.0) *t = 0.0;
+        scalar_prod(d, *t, &result);
+        vect_sum(p, &result, q);
+        return 1;
+
+}
+
+/***************************************************************************
+test_segment_plane:
+  In:  a - start point of the segment
+       b - end point of the segment
+       p - plane
+       t - parameter in the ray equation (r = p + t*d)
+       q - point of the intersection 
+  Out: Returns 1 if segment intersects plane, 0 - otherwise.
+       The code is adapted from "Real-time Collision Detection" by Christer Ericson, ISBN 1-55860-732-3, p.176.
+       
+***************************************************************************/
+int test_segment_plane(struct vector3 *a, struct vector3 *b, struct plane *p, double *t, struct vector3 *q)
+{
+   struct vector3 ab, t_ab; 
+   double n_a, n_ab;
+
+    /* Compute the t value for the directed line ab intersecting the plane */
+    vectorize(a, b, &ab);
+    n_a = dot_prod(&(p->n), a);
+    n_ab = dot_prod(&(p->n), &ab);
+
+    *t = (p->d - n_a) / n_ab;
+
+    /* If t in [0..1] compute and return intersection point */
+
+   if((*t >= 0.0) && (*t <= 1.0)) {
+	scalar_prod(&ab, *t, &t_ab);
+        vect_sum(a, &t_ab, q);
+        return 1;
+   }
+   /* Else no intersection */
+   return 0;
+  
+}    
+/***************************************************************************
+test_bounding_boxes:
+  In:  llf1 - lower left corner of the 1st box
+       urb1 - upper right back corner of the 1st box
+       llf2 - lower left corner of the 2nd box
+       urb2 - upper right back corner of the 2nd box
+  Out: Returns 1 if boxes intersect, 0 - otherwise
+       The code is adapted from "Real-time Collision Detection" by Christer Ericson, ISBN 1-55860-732-3, p.79.
+       
+***************************************************************************/
+int test_bounding_boxes(struct vector3 *llf1, struct vector3 *urb1, struct vector3 *llf2, struct vector3 *urb2)
+{
+  /* Two boxes overlap only if they overlap on all three axes
+     while their extent along each dimension is seen as an interval
+     on the corresponding axis. */
+
+  /* exit with no intersection is separated along axis */
+  if((urb1->x <  llf2->x) || (llf1->x > urb2->x)) return 0;
+  if((urb1->y <  llf2->y) || (llf1->y > urb2->y)) return 0;
+  if((urb1->z <  llf2->z) || (llf1->z > urb2->z)) return 0;
+  /* Overlapping on all axis means that boxes are intersecting. */
 }

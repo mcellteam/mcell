@@ -23,4 +23,5 @@ int navigate_world(int curr_index, int direction);
 int navigate_world_by_edge(int curr_index, int direction1, int direction2);
 int navigate_world_by_corner(int curr_index, int direction1, int direction2, int direction3);
 
+void path_bounding_box(struct vector3 *loc, struct vector3 *displacement, struct vector3 *llf, struct vector3 *urb);
 #endif

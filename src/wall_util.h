@@ -33,6 +33,13 @@ struct edge_hashtable
   int distinct;           /* How many of those are distinct? */
 };
 
+struct plane {
+	struct vector3 n;	/* Plane normal.  Points x on the plane satisfy
+                                   dot_prod(n,x) = d */
+        double d;                /* d = dot_prod(n,p) for a given point p on 
+                                    the plane */
+};
+
 
 int edge_equals(struct poly_edge *e1,struct poly_edge *e2);
 int edge_hash(struct poly_edge *pe,int nkeys);
@@ -70,5 +77,10 @@ int distribute_world();
 
 void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b, struct vector3 *c, struct vector3 *final_result);
 int test_sphere_triangle(struct vector3 *s, double radius, struct vector3 *a, struct vector3 *b, struct vector3 *c, struct vector3 *p);
-
+void compute_plane(struct vector3 *a, struct vector3 *b, struct vector3 *c, struct plane *p);
+int test_sphere_plane(struct vector3 *s, double radius, struct plane *p); 
+int test_sphere_ray(struct vector3 *p, struct vector3 *d, struct vector3 *s,
+           double radius, double *t, struct vector3 *q);
+int test_segment_plane(struct vector3 *a, struct vector3 *b, struct plane *p, double *t, struct vector3 *q);
+int test_bounding_boxes(struct vector3 *llf1, struct vector3 *urb1, struct vector3 *llf2, struct vector3 *urb2);
 #endif
