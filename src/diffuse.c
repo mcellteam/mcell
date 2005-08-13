@@ -32,7 +32,7 @@
 #define MULTISTEP_FRACTION 0.9
 #define MAX_UNI_TIMESKIP 5000
 
-/*#define USE_EXPANDED_COLLISION_LIST  */      
+/*#define USE_EXPANDED_COLLISION_LIST */        
 
 /* EXD_TIME_CALC is a local #define in exact_disk */
 /* EXD_SPAN_CALC is a local #define in exact_disk */
@@ -4099,6 +4099,10 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   double scaling = 1.0;          /* scales reaction cumulative_probabilitities array */
   double rate_factor=1.0;
   double f;
+#ifdef USE_EXPANDED_COLLISION_LIST
+  /* this flag is set to 1 only after reflection from a wall. */
+  int redo_expand_collision_list_flag = 0; 
+#endif
 
   int i,j,k,l;
     
@@ -4245,6 +4249,12 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 #define ERROR_AND_QUIT fprintf(world->err_file,"Out of memory: trying to save intermediate results.\n"); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
   do
   {
+#ifdef USE_EXPANDED_COLLISION_LIST 
+    if(redo_expand_collision_list_flag)
+    {
+    	shead = expand_collision_list_partial(m, &displacement, sv, shead);  
+    }
+#endif 
     shead2 = ray_trace(m,shead,sv,&displacement,reflectee);
     
     if (shead2==NULL) { ERROR_AND_QUIT; }
@@ -4456,6 +4466,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         displacement.x = (displacement.x + factor*w->normal.x) * (1.0-smash->t);
         displacement.y = (displacement.y + factor*w->normal.y) * (1.0-smash->t);
         displacement.z = (displacement.z + factor*w->normal.z) * (1.0-smash->t);
+
+#if defined USE_EXPANDED_COLLISION_LIST
+        redo_expand_collision_list_flag = 0;
+#endif
         
         break;
       }
