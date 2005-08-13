@@ -32,7 +32,7 @@
 #define MULTISTEP_FRACTION 0.9
 #define MAX_UNI_TIMESKIP 5000
 
-#define USE_EXPANDED_COLLISION_LIST        
+/*#define USE_EXPANDED_COLLISION_LIST  */      
 
 /* EXD_TIME_CALC is a local #define in exact_disk */
 /* EXD_SPAN_CALC is a local #define in exact_disk */
@@ -914,7 +914,6 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
   
   /* First see if any overlap */
   p_flags = 0;
-/*
   d = loc->x - world->x_fineparts[ sv->llf.x ];
   if (d<R)
   {
@@ -956,7 +955,6 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
     d = world->z_fineparts[ sv->urb.z ] - loc->z;
     if (d<R && d*d<R2*(mv->y*mv->y + mv->x*mv->x)*m2_i) p_flags |= Z_POS_BIT;
   }
-*/
 
   /* Now find the lines created by any that do overlap */
   if (p_flags)
