@@ -1788,6 +1788,13 @@ struct wall* distribute_wall(struct wall *w)
     if (wall_to_vol( where_am_i , &(world->subvol[h]) ) == NULL) return NULL;
 
     /*    if (!wall_in_box(w->vert,&(w->normal),w->d,&llf,&urb)) printf("This wall doesn't belong in the only box it intersects?!\n"); */
+
+#ifdef USE_EXPANDED_COLLISION_LIST
+    /* test whether this wall is within R_INT from the neighbor SV's 
+       and if it is - add the wall to the wall_list of the neighbor SV */
+    add_wall_to_neighbor_subvolumes(where_am_i, &llf, &urb, &(world->subvol[h]));
+#endif
+
     return where_am_i;
   }
 
@@ -1816,6 +1823,12 @@ struct wall* distribute_wall(struct wall *w)
         if (wall_in_box(w->vert,&(w->normal),w->d,&llf,&urb))
 	{
 	  if (wall_to_vol(where_am_i,&(world->subvol[h])) == NULL) return NULL;
+#ifdef USE_EXPANDED_COLLISION_LIST
+          /* test whether this wall is within R_INT from the neighbor SV's 
+             and if it is - add the wall to the wall_list of the neighbor SV */
+          add_wall_to_neighbor_subvolumes(where_am_i, &llf, &urb, &(world->subvol[h]));
+#endif
+
         }
       }
     }
@@ -2144,4 +2157,759 @@ int test_bounding_boxes(struct vector3 *llf1, struct vector3 *urb1, struct vecto
   if((urb1->y <  llf2->y) || (llf1->y > urb2->y)) return 0;
   if((urb1->z <  llf2->z) || (llf1->z > urb2->z)) return 0;
   /* Overlapping on all axis means that boxes are intersecting. */
+  return 1;
+}
+
+/***************************************************************************
+test_bounding_boxes_distance:
+  In:  llf1 - lower left corner of the 1st box
+       urb1 - upper right back corner of the 1st box
+       llf2 - lower left corner of the 2nd box
+       urb2 - upper right back corner of the 2nd box
+       R - distance
+  Out: Returns 1 if boxes are closer than R to each other, 
+       0 - otherwise
+***************************************************************************/
+int test_bounding_boxes_distance(struct vector3 *llf1, struct vector3 *urb1, struct vector3 *llf2, struct vector3 *urb2, double R)
+{
+  /* Two boxes are closer than R to each other only if their 
+     extents along any of dimensions are closer than R.
+     Extent along each dimension is seen as an interval
+     on the corresponding axis. */
+
+  if (llf2->x > urb1->x){
+     if((llf2->x - urb1->x) < R) return 1;
+  }
+  if(llf1->x > urb2->x){
+     if((llf1->x - urb2->x) < R) return 1;
+  }
+  if (llf2->y > urb1->y){
+     if((llf2->y - urb1->y) < R) return 1;
+  }
+  if(llf1->y > urb2->y){
+     if((llf1->y - urb2->y) < R) return 1;
+  }
+  if (llf2->z > urb1->z){
+     if((llf2->z - urb1->z) < R) return 1;
+  }
+  if(llf1->z > urb2->z){
+     if((llf1->z - urb2->z) < R) return 1;
+  }
+  
+  return 0;
+}
+
+/***************************************************************************
+add_wall_to_neighbor_subvolumes:
+  In:  w - wal to be added
+       llf - vector to the left lower front corner of the wall's bounding box
+       urb - vector to the upper right back corner of the wall's bounding box
+       sv - starting subvolume
+  Out: If wall is closer to the neighbor SV than R_INT it is added
+       to the neighbor SV's wall_list 
+***************************************************************************/
+void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, struct vector3 *wall_urb, struct subvolume *sv)
+{
+
+  /* neighbors of the current subvolume */
+  struct subvolume *new_sv;
+  /* lower left and upper right corners of the subvolume */
+  struct vector3 new_sv_llf, new_sv_urb;
+  /* index of the neighbor subvolume */
+  int neighbor_index;
+  double R;  /* molecule interaction radius */
+  
+ 
+  R = (world->rx_radius_3d); 
+
+  new_sv = (struct subvolume *)(sv->neighbor[X_POS]);
+  if(new_sv != NULL)
+  {
+      new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+      new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+      new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+      new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+      new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+      new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+
+   }
+   new_sv = (struct subvolume *)(sv->neighbor[X_NEG]);
+   if(new_sv != NULL)
+   {
+       new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+       new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+       new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+       new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+       new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+       new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+
+   }
+   new_sv = (struct subvolume *)(sv->neighbor[Z_POS]);
+   if(new_sv != NULL)
+   {
+       new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+       new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+       new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+       new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+       new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+       new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+
+   }
+
+     new_sv = (struct subvolume *)(sv->neighbor[Z_NEG]);
+     if(new_sv != NULL)
+     {
+       new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+       new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+       new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+       new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+       new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+       new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+       }
+
+     }
+
+     new_sv = (struct subvolume *)(sv->neighbor[Y_POS]);
+     if(new_sv != NULL)
+     {
+        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+        new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+        new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+        new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+     
+     }
+
+     new_sv = (struct subvolume *)(sv->neighbor[Y_NEG]);
+     if(new_sv != NULL)
+     {
+       new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+       new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+       new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+       new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+       new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+       new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+
+    }
+
+   /* let's reach subvolumes located "edge-to-edge" from the top face
+      of the current subvolume. */
+   /* go (-X and +Z) */
+   neighbor_index = sv->index -(world->nz_parts-1)*(world->ny_parts-1) + 1;
+   new_sv = &(world->subvol[neighbor_index]);
+   if(new_sv != NULL){
+      new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+      new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+      new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+      new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+      new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+      new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+   
+   }
+   /* go (+Y and +Z) */
+   neighbor_index = sv->index  + (world->nz_parts-1) + 1;
+   new_sv = &(world->subvol[neighbor_index]);
+   if(new_sv != NULL)
+   {
+      new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+      new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+      new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+      new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+      new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+      new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+      
+   } 
+   
+   /* go (+X and +Z) */
+   neighbor_index = sv->index  + (world->nz_parts-1)*(world->ny_parts-1) + 1;
+   new_sv = &(world->subvol[neighbor_index]);
+   if(new_sv != NULL)
+   {
+      new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+      new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+      new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+      new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+      new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+      new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+            
+   
+   }
+   /* go (-Y and +Z) */
+   neighbor_index = sv->index  - (world->nz_parts-1) + 1;
+   new_sv = &(world->subvol[neighbor_index]);
+   if(new_sv != NULL){
+      new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+      new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+      new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+      new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+      new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+      new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+   
+   }
+   /* let's reach subvolumes located "edge-to-edge" from the bottom face
+      of the current subvolume. */
+   /* go (-X and -Z) */
+   neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) - 1;
+   new_sv = &(world->subvol[neighbor_index]);
+   if(new_sv != NULL)
+   {
+       new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+       new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+       new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+       new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+       new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+       new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+    	     
+    }
+
+
+   /* go (+Y and -Z) */
+   neighbor_index = sv->index  + (world->nz_parts-1) - 1;
+   new_sv = &(world->subvol[neighbor_index]);
+   if(new_sv != NULL){
+       new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+       new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+       new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+       new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+       new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+       new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+   
+   }
+   /* go (+X and -Z) */
+   neighbor_index = sv->index  + (world->nz_parts-1)*(world->ny_parts-1) - 1;
+   new_sv = &(world->subvol[neighbor_index]);
+   if(new_sv != NULL){
+      new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+      new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+      new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+      new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+      new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+      new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+   
+   }
+   /* go (-Y and -Z) */
+   neighbor_index = sv->index  - (world->nz_parts-1) - 1;
+   new_sv = &(world->subvol[neighbor_index]);
+   if(new_sv != NULL){
+       new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+       new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+       new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+       new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+       new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+       new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+
+   
+   }
+   /* let's reach subvolumes located "edge-to-edge" from the vertical edges
+      of the current subvolume. */
+   /* go (-Y and -X) */
+   neighbor_index = sv->index  - (world->nz_parts-1) - (world->nz_parts-1)*(world->ny_parts-1);;
+   new_sv = &(world->subvol[neighbor_index]);
+   if(new_sv != NULL){
+       new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+       new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+       new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+       new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+       new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+       new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+
+   
+   }
+   /* go (+Y and -X) */
+   neighbor_index = sv->index  + (world->nz_parts-1) - (world->nz_parts-1)*(world->ny_parts-1);;
+   new_sv = &(world->subvol[neighbor_index]);
+   if(new_sv != NULL){
+      new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+      new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+      new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+      new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+      new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+      new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+   }
+   /* go (+Y and +X) */
+   neighbor_index = sv->index  + (world->nz_parts-1) + (world->nz_parts-1)*(world->ny_parts-1);
+   new_sv = &(world->subvol[neighbor_index]);
+   if(new_sv != NULL){
+       new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+       new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+       new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+       new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+       new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+       new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+   
+   }
+   /* go (-Y and +X) */
+   neighbor_index = sv->index  - (world->nz_parts-1) + (world->nz_parts-1)*(world->ny_parts-1);;
+   new_sv = &(world->subvol[neighbor_index]);
+   if(new_sv != NULL){
+       new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+       new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+       new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+       new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+       new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+       new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+   
+   }
+   /* let's reach subvolumes located "corner-to-corner" from the top face
+      of the current subvolume. */
+   /* go (-X and -Y and +Z) */
+   neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) + 1;
+   new_sv = &(world->subvol[neighbor_index]);
+   if(new_sv != NULL){
+        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+        new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+        new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+        new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+   
+   }
+   /* go (-X and +Y and +Z) */
+   neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) + 1;
+   new_sv = &(world->subvol[neighbor_index]);
+   if(new_sv != NULL){
+        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+        new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+        new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+        new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+   
+   }
+  /* go (+X and +Y and +Z) */
+  neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) + 1;
+  new_sv = &(world->subvol[neighbor_index]);
+  if(new_sv != NULL){
+      new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+      new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+      new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+      new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+      new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+      new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+   
+  }
+  /* go (+X and -Y and +Z) */
+  neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) + 1;
+  new_sv = &(world->subvol[neighbor_index]);
+  if(new_sv != NULL){
+      new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+      new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+      new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+      new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+      new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+      new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+   
+  }
+   /* go (-X and -Y and -Z) */
+   neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) - 1;
+   new_sv = &(world->subvol[neighbor_index]);
+   if(new_sv != NULL){
+        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+        new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+        new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+        new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+   
+   }
+   /* go (-X and +Y and -Z) */
+   neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) - 1;
+   new_sv = &(world->subvol[neighbor_index]);
+   if(new_sv != NULL){
+        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+        new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+        new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+        new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+   
+   }
+  /* go (+X and +Y and -Z) */
+   neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) - 1;
+   new_sv = &(world->subvol[neighbor_index]);
+   if(new_sv != NULL){
+        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+        new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+        new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+        new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+   
+   }
+  /* go (+X and -Y and -Z) */
+   neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) - 1;
+   new_sv = &(world->subvol[neighbor_index]);
+  if(new_sv != NULL){
+        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
+        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
+        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
+        new_sv_urb.x = world->x_fineparts[new_sv->urb.x];
+        new_sv_urb.y = world->y_fineparts[new_sv->urb.y];
+        new_sv_urb.z = world->z_fineparts[new_sv->urb.z];
+      /* if the wall does not intersect the subvolume,
+         test how close it comes to. */
+      if (!wall_in_box(w->vert,&(w->normal),w->d,&new_sv_llf,&new_sv_urb))
+      {
+         if(test_bounding_boxes_distance(wall_llf, wall_urb, &new_sv_llf, &new_sv_urb, R))
+         {
+             /* include wall to this SV's wall_list */
+             if (wall_to_vol( w, new_sv ) == NULL) 
+             {
+	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         exit(EXIT_FAILURE);
+             }
+         }
+      }
+   
+  }
 }

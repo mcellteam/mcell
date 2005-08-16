@@ -14,6 +14,8 @@
 /**  Brand new constants created for use in MCell3  **/
 /*****************************************************/
 
+/*#define USE_EXPANDED_COLLISION_LIST */
+
 /* Species flags */
    /* Walls have IS_SURFACE set, molecules do not. */
    /* Surface and grid molecules have ON_SURFACE set */
@@ -797,7 +799,7 @@ struct subvolume
   
   struct molecule *mol_head;   /* Head of linked list of molecules */
   int mol_count;               /* How many molecules are here? */
-  
+
   int index;                   /* Index of subvolume (parallelization?) */
   
   struct short3D llf;          /* Indices of left lower front corner */

@@ -83,4 +83,6 @@ int test_sphere_ray(struct vector3 *p, struct vector3 *d, struct vector3 *s,
            double radius, double *t, struct vector3 *q);
 int test_segment_plane(struct vector3 *a, struct vector3 *b, struct plane *p, double *t, struct vector3 *q);
 int test_bounding_boxes(struct vector3 *llf1, struct vector3 *urb1, struct vector3 *llf2, struct vector3 *urb2);
+int test_bounding_boxes_distance(struct vector3 *llf1, struct vector3 *urb1, struct vector3 *llf2, struct vector3 *urb2, double R);
+void add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, struct vector3 *wall_urb, struct subvolume *sv);
 #endif
