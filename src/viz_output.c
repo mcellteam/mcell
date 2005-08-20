@@ -2388,14 +2388,22 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
           main_index++;
           
           /* write molecule orientations information. 
-             for 3D molecules we put the number of items in the array as 0. */
+             for 3D molecules we use default orientation [0,0,1] */
       	  mol_orient_byte_offset_prev = mol_orient_byte_offset;
-          int num_orient_mol = 0;
-          fprintf(master_header,"object %d class array type float rank 1 shape 3 items %d  # %s orientations #\n\n",main_index,num_orient_mol, species_list[ii]->sym->name);
+          v1 = 0;
+          v2 = 0;
+          v3 = 1;
+          fwrite(&v1,sizeof v1,1,mol_orient_data);
+          fwrite(&v2,sizeof v2,1,mol_orient_data);
+          fwrite(&v3,sizeof v3,1,mol_orient_data);
+          mol_orient_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
+          fprintf(master_header,"object %d class constantarray type float rank 1 shape 3 items %d %s binary data file %s,%d # %s orientations #\n",main_index,num, my_byte_order, mol_orient_name, mol_orient_byte_offset_prev, species_list[ii]->sym->name);
+          fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
           mol_orient[mol_orient_index] = main_index;
           mol_orient_index++;
           main_index++;
 
+          /* write molecule states information. */ 
       	  mol_states_byte_offset_prev = mol_states_byte_offset;
           fwrite(&state,sizeof state,1,mol_states_data);
           mol_states_byte_offset += (sizeof state);
@@ -2606,7 +2614,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
         if(frame_numbers_count > 0)
         {
         	long long elem1, elem2, elem3, elem4;
-        	fprintf(master_header,"object \"frame_numbers\" class array  type int rank 1 shape 4 items %lld data follows\n",frame_numbers_count);
+        	fprintf(master_header,"#object \"frame_numbers\" class array  type int rank 1 shape 4 items %lld data follows\n",frame_numbers_count);
 		for(ii = 0; ii < frame_numbers_count; ii++){
                 	elem1 = ia_longlong_get(&frame_numbers_pos, ii);
                 	elem2 = ia_longlong_get(&frame_numbers_mesh, ii);
@@ -2618,7 +2626,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
                           fprintf(log_file, "MCell:ia_longlong_get() tries to access uninitialized data.\n");
                           return 1;
                         }
-			fprintf(master_header, "\t%lld\t%lld\t%lld\t%lld\n", elem1, elem2, elem3, elem4);
+			fprintf(master_header, "#\t%lld\t%lld\t%lld\t%lld\n", elem1, elem2, elem3, elem4);
         	}
 		fprintf(master_header, "\n\n");
         }
@@ -3783,14 +3791,22 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
         main_index++;
           
           /* write molecule orientations information. 
-             for 3D molecules we put the number of items in the array as 0.*/
+             for 3D molecules we use default orientation as [0,0,1]. */
       	  mol_orient_byte_offset_prev = mol_orient_byte_offset;
-          int num_orient_mol = 0;
-          fprintf(master_header,"object %d class array type float rank 1 shape 3 items %d  # %s orientations #\n\n",main_index,num_orient_mol, species_list[ii]->sym->name);
+          v1 = 0;
+          v2 = 0;
+          v3 = 1;
+          fwrite(&v1,sizeof v1,1,mol_orient_data);
+          fwrite(&v2,sizeof v2,1,mol_orient_data);
+          fwrite(&v3,sizeof v3,1,mol_orient_data);
+          mol_orient_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
+          fprintf(master_header,"object %d class constantarray type float rank 1 shape 3 items %d %s binary data file %s,%d # %s orientations #\n",main_index,num, my_byte_order, mol_orient_name, mol_orient_byte_offset_prev, species_list[ii]->sym->name);
+          fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
           mol_orient[mol_orient_index] = main_index;
           mol_orient_index++;
           main_index++;
 
+          /* write molecules state information. */
       	  mol_states_byte_offset_prev = mol_states_byte_offset;
           fwrite(&state,sizeof state,1,mol_states_data);
           mol_states_byte_offset += (sizeof state);
@@ -3930,7 +3946,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
         if(frame_numbers_count > 0)
         {
         	long long elem1, elem2, elem3, elem4;
-        	fprintf(master_header,"object \"frame_numbers\" class array  type int rank 0 items %lld data follows\n",frame_numbers_count);
+        	fprintf(master_header,"#object \"frame_numbers\" class array  type int rank 0 items %lld data follows\n",frame_numbers_count);
 		for(ii = 0; ii < frame_numbers_count; ii++){
                 	elem1 = ia_longlong_get(&frame_numbers_pos, ii);
                 	elem2 = ia_longlong_get(&frame_numbers_mesh, ii);
@@ -3942,7 +3958,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
                           fprintf(log_file, "MCell:ia_longlong_get() tries to access uninitialized data.\n");
                           return 1;
                         }
-			fprintf(master_header, "\t%lld\t%lld\t%lld\t%lld\n", elem1, elem2, elem3, elem4);
+			fprintf(master_header, "#\t%lld\t%lld\t%lld\t%lld\n", elem1, elem2, elem3, elem4);
         	}
 		fprintf(master_header, "\n\n");
         }
