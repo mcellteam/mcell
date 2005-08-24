@@ -3259,16 +3259,241 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
 }
 
 
+struct release_evaluator* pack_release_expr(struct release_evaluator *rel,struct release_evaluator *rer,byte op)
+{
+  struct release_evaluator *re = NULL;
+  
+  if ( (rer->op&REXP_MASK)==REXP_NO_OP && (rer->op&REXP_LEFT_REGION)!=0)
+  {
+    if ( (rel->op&REXP_MASK)==REXP_NO_OP && (rel->op&REXP_LEFT_REGION)!=0)
+    {
+      re = rel;
+      re->right = rer->left;
+      re->op = op | REXP_LEFT_REGION | REXP_RIGHT_REGION;
+      free(rer);
+    }
+    else
+    {
+      re = rer;
+      re->right = re->left;
+      re->left = (void*)rel;
+      re->op = op | REXP_RIGHT_REGION;
+    }
+  }
+  else if ( (rel->op&REXP_MASK)==REXP_NO_OP && (rel->op&REXP_LEFT_REGION)!=0 )
+  {
+    re = rel;
+    re->right = (void*)rer;
+    re->op = op | REXP_LEFT_REGION;
+  }
+  else
+  {
+    re = (struct release_evaluator*)malloc(sizeof(struct release_evaluator));
+    if (re==NULL)
+    {
+      mdlerror_nested("Out of memory while trying to parse region list for release site");
+      return NULL;
+    }
+    
+    re->left = (void*)rel;
+    re->right = (void*)rer;
+    re->op = op;
+  }
+  
+  return re;
+};
+
+
+/* Not the most efficient due to slow merging, but it works. */
+struct void_list* rel_expr_grab_obj(struct release_evaluator *root,struct mem_helper *voidmem)
+{
+  struct void_list *vl = NULL;
+  struct void_list *vr = NULL;
+  
+  if (root->left != NULL)
+  {
+    if (root->op&REXP_LEFT_REGION)
+    {
+      vl = mem_get(voidmem);
+      if (vl==NULL) return NULL;
+      vl->data = ((struct region*)(root->left))->parent;
+    }
+    else vl = rel_expr_grab_obj(root->left,voidmem);
+  }
+  if (root->right != NULL)
+  {
+    if (root->op&REXP_RIGHT_REGION)
+    {
+      vr = mem_get(voidmem);
+      if (vr==NULL) return NULL;
+      vr->data = ((struct region*)(root->left))->parent;
+    }
+    else vr = rel_expr_grab_obj(root->right,voidmem);
+  }
+  
+  if (vl==NULL)
+  {
+    if (vr==NULL) return NULL;
+    return vr;
+  }
+  else if (vr==NULL)
+  {
+    return vl;
+  }
+  else
+  {
+    struct void_list *vp;
+    
+    for (vp=vl;vp->next!=NULL;vp=vp->next) {}
+    
+    vp->next = vr;
+    
+    return vl;
+  }
+  return NULL;
+}
+
+
+struct object** find_unique_rev_objects(struct release_evaluator *root,int *n)
+{
+  struct object **o_array;
+  struct void_list *vp,*vq;
+  struct mem_helper *voidmem;
+  int i;
+  
+  voidmem = create_mem(1024,sizeof(struct void_list));
+  
+  vp = rel_expr_grab_obj(root,voidmem);
+  if (vp==NULL) return NULL;
+  
+  vp = void_list_sort(vp);
+  
+  for (i=1,vq=vp ; vq->next!=NULL ; vq=vq->next , i++)
+  {
+    while (vq->data == vq->next->data)
+    {
+      vq->next = vq->next->next;
+      if (vq->next==NULL) break;
+    }
+  }
+  
+  *n = i;
+  
+  o_array = (struct object**)malloc(i*sizeof(struct object*));
+  if (o_array==NULL) return NULL;
+  
+  for (i=0,vq=vp ; vq!=NULL ; vq=vq->next,i++)
+  {
+    o_array[i] = (struct object*)vq->data;
+  }
+  
+  return o_array;
+}
+
+
+int eval_rel_region_expr(struct release_evaluator *expr,int n,struct object **objs,struct bit_array **result)
+{
+  int i;
+  char bit_op;
+  
+  if (expr->left!=NULL)
+  {
+    if (expr->op&REXP_LEFT_REGION)
+    {
+      i = void_array_search((void**)objs,n,((struct region*)(expr->left))->parent);
+      result[i] = duplicate_bit_array( ((struct region*)(expr->left))->membership );
+      if (result[i]==NULL) return 1;
+    }
+    else
+    {
+      i = eval_rel_region_expr(expr->left,n,objs,result);
+      if (i) return 1;
+    }
+    
+    if (expr->right==NULL)
+    {
+      if (expr->op&REXP_NO_OP) return 0;
+      else return 1;
+    }
+    
+    if (expr->op&REXP_RIGHT_REGION)
+    {
+      i = void_array_search((void**)objs,n,((struct region*)(expr->right))->parent);
+      if (result[i]==NULL)
+      {
+        result[i] = duplicate_bit_array( ((struct region*)(expr->right))->membership );
+        if (result[i]==NULL) return 1;
+      }
+      else
+      {
+        if (expr->op&REXP_UNION) bit_op = '|';
+        else if (expr->op&REXP_SUBTRACTION) bit_op = '-';
+        else if (expr->op&REXP_INTERSECTION) bit_op = '&';
+        else return 1;
+
+        bit_operation(result[i],((struct region*)(expr->right))->membership,bit_op);
+      }
+    }
+    else
+    {
+      struct bit_array *res2[n];
+      for (i=0;i<n;i++) res2[i]=NULL;
+      
+      i = eval_rel_region_expr(expr->right,n,objs,result);
+      if (i) return 1;
+      
+      for (i=0;i<n;i++)
+      {
+        if (res2[i]!=NULL)
+        {
+          if (result[i]==NULL) result[i] = res2[i];
+          else
+          {
+            if (expr->op&REXP_UNION) bit_op = '|';
+            else if (expr->op&REXP_SUBTRACTION) bit_op = '-';
+            else if (expr->op&REXP_INTERSECTION) bit_op = '&';
+            else return 1;
+            
+            bit_operation(result[i],res2[i],bit_op);
+            free_bit_array(res2[i]);
+          }
+        }
+      }
+    }
+  }
+  else return 1;  /* Left should always have something! */
+  
+  return 0;
+}
+
+
+int init_rel_region_data(struct release_region_data *rrd)
+{
+  int i;
+
+  rrd->owners = find_unique_rev_objects(rrd->expression , &(rrd->n_objects));
+  if (rrd->owners==NULL) return 1;
+  
+  rrd->in_release = (struct bit_array**)malloc(rrd->n_objects*sizeof(struct bit_array*));
+  if (rrd->in_release==NULL) return 1;
+  for (i=0;i<rrd->n_objects;i++) rrd->in_release[i]=NULL;
+  
+  i = eval_rel_region_expr(rrd->expression,rrd->n_objects,rrd->owners,rrd->in_release);
+  if (i) return 1;
+  for (i=0;i<rrd->n_objects;i++) { if (rrd->in_release[i]==NULL) return 1; }
+  
+  return 0;
+}
+
+
+
+
+
+
+
 
 
 #if 0
-
-
-
-
-
-
-
 
 int partition_volume(struct volume *volp)
 {
@@ -4208,3 +4433,4 @@ int print_rx()
 }
 
 #endif
+

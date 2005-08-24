@@ -108,4 +108,15 @@ int bin(double *list,int n,double val);
 int distinguishable(double a,double b,double eps);
 
 
+struct void_list
+{
+  struct void_list *next;
+  void *data;
+};
+
+struct void_list* void_list_sort(struct void_list *vl);
+struct void_list* void_list_sort_by(struct void_list *vl,int (*leq)(void*,void*));
+
+int void_array_search(void **array,int n,void *to_find);
+
 #endif

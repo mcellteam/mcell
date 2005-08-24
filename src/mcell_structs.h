@@ -232,11 +232,13 @@
 
 
 /* Shapes for release sites */
+#define SHAPE_UNDEFINED -1
 #define SHAPE_SPHERICAL 0
 #define SHAPE_CUBIC 1
 #define SHAPE_ELLIPTIC 2
 #define SHAPE_RECTANGULAR 3
 #define SHAPE_SPHERICAL_SHELL 4
+#define SHAPE_REGION 5
 
 
 /* Flags for parser to indicate which axis we are partitioning */
@@ -257,6 +259,15 @@
 /* Note: TARGET_OCCLUDED is assumed for any negative number not defined here */
 #define TARGET_OCCLUDED    -1
 #define EXD_OUT_OF_MEMORY  -2
+
+/* Boolean set operations for releases on regions */
+#define REXP_NO_OP        0
+#define REXP_UNION        1
+#define REXP_INTERSECTION 2
+#define REXP_SUBTRACTION  3
+#define REXP_MASK         0x0F
+#define REXP_LEFT_REGION  0x10
+#define REXP_RIGHT_REGION 0x20
 
 
 /*********************************************************/
@@ -1073,7 +1084,8 @@ struct release_site_obj {
 	double mean_diameter;
 	double concentration;
         double standard_deviation;
-	struct vector3 *diameter;	
+	struct vector3 *diameter;
+	struct release_region_data *region_data;
 
 	double release_prob;
 	struct release_pattern *pattern;
@@ -1090,6 +1102,30 @@ struct release_pattern {
                                            to the start of the next one. */
 	double train_duration;		/**< length of the train. */
 	int number_of_trains;		/**< how many trains are produced. */
+};
+
+struct release_region_data
+{
+  struct vector3 llf;
+  struct vector3 urb;
+
+  int n_walls_included;
+  double *cum_area_list;
+  int *wall_index;
+  int *obj_index;
+  
+  int n_objects;
+  struct object **owners;
+  struct bit_array **in_release;
+
+  struct release_evaluator *expression;
+};
+
+struct release_evaluator
+{
+  byte op;
+  void *left;
+  void *right;
 };
 
 /* Holds information about a box with rectangular patches on it. */

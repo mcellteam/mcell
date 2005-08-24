@@ -649,6 +649,10 @@ int set_partitions()
   int x_start,y_start,z_start;
   double A,B,k;
   struct vector3 part_min,part_max;
+  double smallest_spacing;
+  
+  smallest_spacing = 0.1/world->length_unit;  /* 100nm */
+  if (2*world->rx_radius_3d > smallest_spacing) smallest_spacing=2*world->rx_radius_3d;
 
   if (world->n_fineparts != 4096 + 16384 + 4096)
   {
@@ -670,13 +674,13 @@ int set_partitions()
  
   f_min = world->bb_min.x - dfx;
   f_max = world->bb_max.x + dfx;
-  if (f_max - f_min < 0.1/world->length_unit)
+  if (f_max - f_min < smallest_spacing)
   {
-    printf("Rescaling: was %.3f to %.3f, now ",f_min,f_max);
-    f = 0.1/world->length_unit - (f_max-f_min);
+    printf("Rescaling: was %.3f to %.3f, now ",f_min*world->length_unit,f_max*world->length_unit);
+    f = smallest_spacing - (f_max-f_min);
     f_max += 0.5*f;
     f_min -= 0.5*f;
-    printf("%.3f to %.3f\n",f_min,f_max);
+    printf("%.3f to %.3f\n",f_min*world->length_unit,f_max*world->length_unit);
   }
   part_min.x = f_min;
   part_max.x = f_max;
@@ -693,13 +697,13 @@ int set_partitions()
 
   f_min = world->bb_min.y - dfy;
   f_max = world->bb_max.y + dfy;
-  if (f_max - f_min < 0.1/world->length_unit)
+  if (f_max - f_min < smallest_spacing)
   {
-    printf("Rescaling: was %.3f to %.3f, now ",f_min,f_max);
-    f = 0.1/world->length_unit - (f_max-f_min);
+    printf("Rescaling: was %.3f to %.3f, now ",f_min*world->length_unit,f_max*world->length_unit);
+    f = smallest_spacing - (f_max-f_min);
     f_max += 0.5*f;
     f_min -= 0.5*f;
-    printf("%.3f to %.3f\n",f_min,f_max);
+    printf("%.3f to %.3f\n",f_min*world->length_unit,f_max*world->length_unit);
   }
   part_min.y = f_min;
   part_max.y = f_max; 
@@ -716,13 +720,13 @@ int set_partitions()
 
   f_min = world->bb_min.z - dfz;
   f_max = world->bb_max.z + dfz;
-  if (f_max - f_min < 0.1/world->length_unit)
+  if (f_max - f_min < smallest_spacing)
   {
-    printf("Rescaling: was %.3f to %.3f, now ",f_min,f_max);
-    f = 0.1/world->length_unit - (f_max-f_min);
+    printf("Rescaling: was %.3f to %.3f, now ",f_min*world->length_unit,f_max*world->length_unit);
+    f = smallest_spacing - (f_max-f_min);
     f_max += 0.5*f;
     f_min -= 0.5*f;
-    printf("%.3f to %.3f\n",f_min,f_max);
+    printf("%.3f to %.3f\n",f_min*world->length_unit,f_max*world->length_unit);
   }
   part_min.z = f_min;
   part_max.z = f_max;
@@ -757,26 +761,50 @@ int set_partitions()
     steps_max = f_max / world->speed_limit;
   }
  
-   /* verify that the partition linear size is less/equal to the 
-      interaction sphere diameter. */
-  /* maximum allowed number of partitions */ 
-/*
-     THIS IS WRONG!!!
-   double num_part_x;
-   num_part_x = (world->bb_max.x - world->bb_min.x)/(2*world->rx_radius_3d);
-  
-  if(world->nx_parts > (int)num_part_x){
-        if(world->x_partitions != NULL) free (world->x_partitions);
-        if(world->y_partitions != NULL) free (world->y_partitions);
-        if(world->z_partitions != NULL) free (world->z_partitions);
-        world->x_partitions = NULL;
-        world->y_partitions = NULL;
-        world->z_partitions = NULL;
-        fprintf(world->err_file, "Partitions requested: %dx%dx%d.  Partitions allowed due to the interaction sphere limitations: %dx%dx%d.  Switched to automatic partitioning.\n", world->nx_parts, world->ny_parts, world->nz_parts, (int)num_part_x, (int)num_part_x, (int)num_part_x);
-
+  /* Verify that partitions are not closer than interaction diameter. */
+  if (world->x_partitions!=NULL)
+  {
+    for (i=1;i<world->nx_parts;i++)
+    {
+      if (world->x_partitions[i] - world->x_partitions[i-1] < 2*world->rx_radius_3d)
+      {
+        fprintf(world->err_file,"Error: X partitions closer than interaction diameter\n");
+        fprintf(world->err_file,"  X partition #%d at %g\n",i,world->length_unit*world->x_partitions[i-1]);
+        fprintf(world->err_file,"  X partition #%d at %g\n",i+1,world->length_unit*world->x_partitions[i]);
+        fprintf(world->err_file,"  Interaction diameter %g\n",2*world->length_unit*world->rx_radius_3d);
+        return 1;
+      }
+    }
   }
-*/
-
+  if (world->y_partitions!=NULL)
+  {
+    for (i=1;i<world->ny_parts;i++)
+    {
+      if (world->y_partitions[i] - world->y_partitions[i-1] < 2*world->rx_radius_3d)
+      {
+        fprintf(world->err_file,"Error: Y partitions closer than interaction diameter\n");
+        fprintf(world->err_file,"  Y partition #%d at %g\n",i,world->length_unit*world->y_partitions[i-1]);
+        fprintf(world->err_file,"  Y partition #%d at %g\n",i+1,world->length_unit*world->y_partitions[i]);
+        fprintf(world->err_file,"  Interaction diameter %g\n",2*world->length_unit*world->rx_radius_3d);
+        return 1;
+      }
+    }
+  }
+  if (world->z_partitions!=NULL)
+  {
+    for (i=1;i<world->nz_parts;i++)
+    {
+      if (world->z_partitions[i] - world->z_partitions[i-1] < 2*world->rx_radius_3d)
+      {
+        fprintf(world->err_file,"Error: Z partitions closer than interaction diameter\n");
+        fprintf(world->err_file,"  Z partition #%d at %g\n",i,world->length_unit*world->z_partitions[i-1]);
+        fprintf(world->err_file,"  Z partition #%d at %g\n",i+1,world->length_unit*world->z_partitions[i]);
+        fprintf(world->err_file,"  Interaction diameter %g\n",2*world->length_unit*world->rx_radius_3d);
+        return 1;
+      }
+    }
+  }
+  
 
   /* go with automatic partitioning */
   if (world->x_partitions == NULL ||
@@ -801,16 +829,6 @@ int set_partitions()
       world->ny_parts = world->nz_parts = world->nx_parts;
     }
     
-      /* again verify that the partition linear size is less/equal to the 
-      interaction sphere diameter. */
-/*
-     THIS IS WRONG!!!
-      while(world->nx_parts > (int)num_part_x){
-        world->nx_parts--;
-        world->ny_parts = world->nz_parts = world->nx_parts;
-      }
-*/
-  
     world->x_partitions = (double*) malloc( sizeof(double) * world->nx_parts );
     world->y_partitions = (double*) malloc( sizeof(double) * world->ny_parts );
     world->z_partitions = (double*) malloc( sizeof(double) * world->nz_parts );
@@ -830,6 +848,20 @@ int set_partitions()
     y_in = floor( (world->ny_parts - 2) * y_aspect + 0.5 );
     z_in = floor( (world->nz_parts - 2) * z_aspect + 0.5 );
     
+    smallest_spacing = 2*world->rx_radius_3d;
+    if ( (part_max.x-part_min.x)/(x_in-1) < smallest_spacing )
+    {
+      x_in = 1 + floor((part_max.x-part_min.x)/smallest_spacing);
+    }
+    if ( (part_max.y-part_min.y)/(y_in-1) < smallest_spacing )
+    {
+      y_in = 1 + floor((part_max.y-part_min.y)/smallest_spacing);
+    }
+    if ( (part_max.z-part_min.z)/(z_in-1) < smallest_spacing )
+    {
+      z_in = 1 + floor((part_max.z-part_min.z)/smallest_spacing);
+    }
+    
     if (x_in < 2) x_in = 2;
     if (y_in < 2) y_in = 2;
     if (z_in < 2) z_in = 2;
@@ -839,7 +871,7 @@ int set_partitions()
     if (x_start < 1) x_start = 1;
     if (y_start < 1) y_start = 1;
     if (z_start < 1) z_start = 1;
-
+    
     f = (part_max.x - part_min.x) / (x_in - 1);
     world->x_partitions[0] = world->x_fineparts[1];
     for (i=x_start;i<x_start+x_in;i++)

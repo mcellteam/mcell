@@ -66,6 +66,7 @@ struct num_expr_list *nel;
 struct object *obj;
 struct object_list *objl;
 struct output_evaluator *cnt;
+struct release_evaluator *rev;
 } 
 
 
@@ -116,6 +117,7 @@ struct output_evaluator *cnt;
 %token <tok> CUSTOM_SPACE_STEP
 %token <tok> CUSTOM_RK
 %token <tok> CUSTOM_TIME_STEP
+%token <tok> CUBIC
 %token <tok> CUBIC_RELEASE_SITE
 %token <tok> CUMULATE_FOR_EACH_TIME_STEP
 %token <tok> DIFFUSION_CONSTANT_2D
@@ -141,6 +143,7 @@ struct output_evaluator *cnt;
 %token <tok> EITHER_POLE
 %token <tok> ELEMENT
 %token <tok> ELEMENT_CONNECTIONS
+%token <tok> ELLIPTIC
 %token <tok> ELLIPTIC_RELEASE_SITE
 %token <tok> EOF_TOK
 %token <tok> EXCLUDE_ELEMENTS
@@ -234,12 +237,14 @@ struct output_evaluator *cnt;
 %token <tok> REACTION_GROUP
 %token <tok> REAL
 %token <tok> RECTANGULAR_RELEASE_SITE
+%token <tok> RECTANGULAR_TOKEN
 %token <tok> REFERENCE_STATE
 %token <tok> REFLECTIVE
 %token <tok> REFERENCE_DIFFUSION_CONSTANT
 %token <tok> RELEASE_INTERVAL
 %token <tok> RELEASE_PATTERN
 %token <tok> RELEASE_PROBABILITY
+%token <tok> RELEASE_SITE
 %token <tok> REMOVE_ELEMENTS
 %token <tok> RENDERMAN
 %token <tok> RIGHT
@@ -247,12 +252,15 @@ struct output_evaluator *cnt;
 %token <tok> ROUND_OFF
 %token <tok> SCALE
 %token <tok> SEED
+%token <tok> SHAPE
 %token <tok> SIN
 %token <tok> SITE_DIAMETER
 %token <tok> SPACE_STEP
 %token <tok> SPECIFIED_EFFECTORS
 %token <tok> SPECIFIED_MOLECULES
+%token <tok> SPHERICAL
 %token <tok> SPHERICAL_RELEASE_SITE
+%token <tok> SPHERICAL_SHELL
 %token <tok> SPHERICAL_SHELL_SITE
 %token <tok> SPRINTF
 %token <tok> SQRT
@@ -351,7 +359,7 @@ struct output_evaluator *cnt;
 %type <tok> list_products
 
 %type <tok> boolean
-%type <tok> release_site_geom
+%type <tok> release_site_geom_old
 %type <tok> side
 %type <tok> side_name
 %type <tok> patch_type
@@ -398,6 +406,8 @@ struct output_evaluator *cnt;
 %type <sym> existing_object_ref
 %type <sym> meta_object_def
 %type <sym> release_site_def
+%type <sym> release_site_def_new
+%type <sym> release_site_def_old
 %type <sym> box_def
 %type <sym> polygon_list_def
 %type <sym> new_region
@@ -423,6 +433,7 @@ struct output_evaluator *cnt;
 %type <cnt> count_value
 %type <cnt> count_value_init
 
+%type <rev> release_region_expr
 
 /**********************
 
@@ -2586,7 +2597,171 @@ existing_object_ref:
 };
 
 
-release_site_def: new_object release_site_geom '{'
+release_site_def: release_site_def_old
+{
+  $$ = $<sym>1;
+}
+	| release_site_def_new
+{
+  $$ = $<sym>1;
+};
+
+
+release_site_def_new: new_object RELEASE_SITE '{'
+{
+  mdlpvp->gp=$<sym>1;
+  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
+  if ((mdlpvp->rsop=(struct release_site_obj *)malloc
+              (sizeof(struct release_site_obj)))==NULL) {
+    mdlerror("Cannot store release site data");
+    return(1);
+  }
+  mdlpvp->rsop->location=NULL;
+  mdlpvp->rsop->mol_type=NULL;
+  mdlpvp->rsop->release_number_method=CONSTNUM;
+  mdlpvp->rsop->release_shape = SHAPE_UNDEFINED;
+  mdlpvp->rsop->release_number=0;
+  mdlpvp->rsop->mean_number=0;
+  mdlpvp->rsop->mean_diameter=0;
+  mdlpvp->rsop->concentration=0;
+  mdlpvp->rsop->standard_deviation=0;
+  mdlpvp->rsop->diameter=0;
+  mdlpvp->rsop->region_data=NULL;
+  mdlpvp->rsop->release_prob=1.0;
+  mdlpvp->rsop->pattern=volp->default_release_pattern;
+
+  mdlpvp->objp->object_type=REL_SITE_OBJ;
+  mdlpvp->objp->contents=mdlpvp->rsop;
+  mdlpvp->objp->parent=mdlpvp->curr_obj;
+
+  mdlpvp->curr_obj=mdlpvp->objp;
+}
+	release_site_geom
+	list_release_site_cmds
+	list_opt_object_cmds
+	'}'
+{
+  no_printf("Release site %s defined:\n",mdlpvp->curr_obj->sym->name);
+  no_printf("\tLocation = [%f,%f,%f]\n",mdlpvp->rsop->location->x,mdlpvp->rsop->location->y,mdlpvp->rsop->location->z);
+  mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
+  if (mdlpvp->object_name_list_end->prev!=NULL) {
+    mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
+  }
+  else {
+    mdlpvp->object_name_list_end->name=NULL;
+  }
+  $$=$<sym>1;
+};
+
+release_site_geom: SHAPE '=' release_region_expr
+{
+  struct release_evaluator *re = $<rev>3;
+  struct release_region_data *rrd;
+  
+  mdlpvp->objp = mdlpvp->curr_obj;
+  
+  mdlpvp->rsop->release_shape = SHAPE_REGION;
+  
+  rrd = (struct release_region_data*)malloc(sizeof(struct release_region_data));
+  if (rrd==NULL)
+  {
+    mdlerror("Out of memory while trying to create release site on region");
+    return 1;
+  }
+  
+  rrd->n_walls_included = -1; /* Indicates uninitialized state */
+  rrd->cum_area_list = NULL;
+  rrd->wall_index = NULL;
+  rrd->obj_index = NULL;
+  rrd->n_objects = -1;
+  rrd->owners = NULL;
+  rrd->in_release = NULL;
+  
+  rrd->expression = re;
+  mdlpvp->rsop->region_data = rrd;
+}
+	| SHAPE '=' SPHERICAL
+{
+  mdlpvp->rsop->release_shape = SHAPE_SPHERICAL;
+}
+	| SHAPE '=' CUBIC
+{
+  mdlpvp->rsop->release_shape = SHAPE_CUBIC;
+}
+	| SHAPE '=' ELLIPTIC
+{
+  mdlpvp->rsop->release_shape = SHAPE_ELLIPTIC;
+}
+	| SHAPE '=' RECTANGULAR_TOKEN
+{
+  mdlpvp->rsop->release_shape = SHAPE_RECTANGULAR
+}
+	| SHAPE '=' SPHERICAL_SHELL
+{
+  mdlpvp->rsop->release_shape = SHAPE_SPHERICAL_SHELL;
+};
+
+release_region_expr:
+	existing_region
+{
+  struct sym_table *my_sym = $<sym>1;
+  struct release_evaluator *re;
+  
+  mdlpvp->objp = mdlpvp->curr_obj;  /* Fix up vars from "existing_region" */
+  
+  re = (struct release_evaluator*)malloc(sizeof(struct release_evaluator));
+  if (re==NULL)
+  {
+    mdlerror("Out of memory while trying to create release site on region");
+    return 1;
+  }
+  
+  re->op = REXP_NO_OP | REXP_LEFT_REGION;
+  re->left = my_sym->value;
+  re->right = NULL;
+  
+  $$=re;
+}
+	| '(' release_region_expr ')'
+{
+  $$ = $<rev>2;
+}
+	| release_region_expr '+' release_region_expr
+{
+  struct release_evaluator *re;
+  re = pack_release_expr($<rev>1,$<rev>3,REXP_UNION);
+  if (re==NULL)
+  {
+    mdlerror("Out of memory while trying to create release site on region");
+    return 1;
+  }
+  $$ = re;
+}
+	| release_region_expr '-' release_region_expr
+{
+  struct release_evaluator *re;
+  re = pack_release_expr($<rev>1,$<rev>3,REXP_UNION);
+  if (re==NULL)
+  {
+    mdlerror("Out of memory while trying to create release site on region");
+    return 1;
+  }
+  $$ = re;
+}
+	| release_region_expr '*' release_region_expr
+{
+  struct release_evaluator *re;
+  re = pack_release_expr($<rev>1,$<rev>3,REXP_UNION);
+  if (re==NULL)
+  {
+    mdlerror("Out of memory while trying to create release site on region");
+    return 1;
+  }
+  $$ = re;
+};
+
+
+release_site_def_old: new_object release_site_geom_old '{'
 {
   mdlpvp->gp=$<sym>1;
   mdlpvp->objp=(struct object *)mdlpvp->gp->value;
@@ -2605,6 +2780,7 @@ release_site_def: new_object release_site_geom '{'
   mdlpvp->rsop->concentration=0;
   mdlpvp->rsop->standard_deviation=0;
   mdlpvp->rsop->diameter=0;
+  mdlpvp->rsop->region_data=NULL;
   mdlpvp->rsop->release_prob=1.0;
   mdlpvp->rsop->pattern=volp->default_release_pattern;
   mdlpvp->objp->object_type=REL_SITE_OBJ;
@@ -2629,7 +2805,7 @@ release_site_def: new_object release_site_geom '{'
 };
 
 
-release_site_geom: SPHERICAL_RELEASE_SITE
+release_site_geom_old: SPHERICAL_RELEASE_SITE
 {
   $$=SHAPE_SPHERICAL;
 }

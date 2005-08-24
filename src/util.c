@@ -798,3 +798,258 @@ int distinguishable(double a,double b,double eps)
   else return ((b-a) > b*eps);
 }
 
+
+
+
+/* Mergesort generic list based on memory order of first pointer */
+
+struct void_list* void_list_sort(struct void_list *vl)
+{
+  struct void_list *stack[64];
+  int stack_n[64];
+  struct void_list *left,*right,*merge,*tail;
+  int si = 0;
+  
+  while (vl != NULL)
+  {
+    if (vl->next == NULL)
+    {
+      stack[si] = vl;
+      stack_n[si] = 1;
+      vl = NULL;
+      si++;
+    }
+    else if ((int)vl->data <= (int)vl->next->data)
+    {
+      stack[si] = vl;
+      stack_n[si] = 2;
+      vl = vl->next->next;
+      stack[si]->next->next = NULL;
+      si++;
+    }
+    else
+    {
+      stack[si] = vl->next;
+      stack_n[si] = 2;
+      left = vl;
+      vl = vl->next->next;
+      stack[si]->next = left;
+      left->next = NULL;
+      si++;
+    }
+    while (si > 1 && stack_n[si-1]*2 >= stack_n[si-2])
+    {
+      stack_n[si-2] += stack_n[si-1];
+
+      left = stack[si-2];
+      right = stack[si-1];
+      if ((int)left->data <= (int)right->data) { merge = left; left = left->next; }
+      else { merge = right; right = right->next; }
+      merge->next = NULL;
+      tail = merge;
+
+      while (1)
+      {
+        if (left==NULL)
+        {
+          tail->next = right; tail = right;
+          break;
+        }
+        if (right==NULL)
+        {
+          tail->next = left; tail = left;
+          break;
+        }
+
+        if ((int)left->data <= (int)right->data)
+        { 
+          tail->next = left; tail = left; left = left->next;
+        }
+        else
+        { 
+          tail->next = right; tail = right; right = right->next; 
+        }
+      }
+      
+      stack[si-2] = merge;
+      si--;   
+    }
+  }
+  
+  while (si > 1)  /* Exact duplicate of code in loop--keep it this way! */
+  {
+    stack_n[si-2] += stack_n[si-1];
+
+    left = stack[si-2];
+    right = stack[si-1];
+    if ((int)left->data <= (int)right->data) { merge = left; left = left->next; }
+    else { merge = right; right = right->next; }
+    merge->next = NULL;
+    tail = merge;
+
+    while (1)
+    {
+      if (left==NULL)
+      {
+        tail->next = right; tail = right;
+        break;
+      }
+      if (right==NULL)
+      {
+        tail->next = left; tail = left;
+        break;
+      }
+
+      if ((int)left->data <= (int)right->data)
+      { 
+        tail->next = left; tail = left; left = left->next;
+      }
+      else
+      { 
+        tail->next = right; tail = right; right = right->next; 
+      }
+    }
+    
+    stack[si-2] = merge;
+    si--;   
+  }
+  
+  return stack[0];
+}
+
+
+/* Mergesort generic list based on function pointer evaluation */
+/* Function is expected to return nonzero if first arg is less than or equal to 2nd */
+struct void_list* void_list_sort_by(struct void_list *vl,int (*leq)(void*,void*))
+{
+  struct void_list *stack[64];
+  int stack_n[64];
+  struct void_list *left,*right,*merge,*tail;
+  int si = 0;
+  
+  while (vl != NULL)
+  {
+    if (vl->next == NULL)
+    {
+      stack[si] = vl;
+      stack_n[si] = 1;
+      vl = NULL;
+      si++;
+    }
+    else if ( (*leq)(vl->data , vl->next->data) )
+    {
+      stack[si] = vl;
+      stack_n[si] = 2;
+      vl = vl->next->next;
+      stack[si]->next->next = NULL;
+      si++;
+    }
+    else
+    {
+      stack[si] = vl->next;
+      stack_n[si] = 2;
+      left = vl;
+      vl = vl->next->next;
+      stack[si]->next = left;
+      left->next = NULL;
+      si++;
+    }
+    while (si > 1 && stack_n[si-1]*2 >= stack_n[si-2])
+    {
+      stack_n[si-2] += stack_n[si-1];
+
+      left = stack[si-2];
+      right = stack[si-1];
+      if ((*leq)(left->data , right->data)) { merge = left; left = left->next; }
+      else { merge = right; right = right->next; }
+      merge->next = NULL;
+      tail = merge;
+
+      while (1)
+      {
+        if (left==NULL)
+        {
+          tail->next = right; tail = right;
+          break;
+        }
+        if (right==NULL)
+        {
+          tail->next = left; tail = left;
+          break;
+        }
+
+        if ((*leq)(left->data , right->data))
+        { 
+          tail->next = left; tail = left; left = left->next;
+        }
+        else
+        { 
+          tail->next = right; tail = right; right = right->next; 
+        }
+      }
+      
+      stack[si-2] = merge;
+      si--;   
+    }
+  }
+  
+  while (si > 1)  /* Exact duplicate of code in loop--keep it this way! */
+  {
+    stack_n[si-2] += stack_n[si-1];
+
+    left = stack[si-2];
+    right = stack[si-1];
+    if ((*leq)(left->data , right->data)) { merge = left; left = left->next; }
+    else { merge = right; right = right->next; }
+    merge->next = NULL;
+    tail = merge;
+
+    while (1)
+    {
+      if (left==NULL)
+      {
+        tail->next = right; tail = right;
+        break;
+      }
+      if (right==NULL)
+      {
+        tail->next = left; tail = left;
+        break;
+      }
+
+      if ((*leq)(left->data , right->data))
+      { 
+        tail->next = left; tail = left; left = left->next;
+      }
+      else
+      { 
+        tail->next = right; tail = right; right = right->next; 
+      }
+    }
+    
+    stack[si-2] = merge;
+    si--;   
+  }
+  
+  return stack[0];
+}
+
+
+int void_array_search(void **array,int n,void *to_find)
+{
+  int lo = 0;
+  int hi = n-1;
+  int m;
+  
+  while (hi-lo > 1)
+  {
+    m = (hi-lo)/2;
+    if (to_find==array[m]) return m;
+    else if ((int)to_find > (int)array[m]) lo=m;
+    else hi=m;
+  }
+  
+  if (to_find==array[lo]) return lo;
+  if (to_find==array[hi]) return hi;
+  return -1;
+}

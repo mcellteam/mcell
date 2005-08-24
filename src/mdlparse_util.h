@@ -91,4 +91,7 @@ int handle_count_request(unsigned short sym_type,
 			 byte report_type,
 			 struct mdlparse_vars *mdlpvp);
 
+
+struct release_evaluator *pack_release_expr(struct release_evaluator *rel,struct release_evaluator *rer,byte op);
+                                     
 #endif

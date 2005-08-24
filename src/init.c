@@ -174,7 +174,7 @@ int init_sim(void)
   world->start_time=0;
   world->current_time=0;
   world->current_start_time=0;
-  world->effector_grid_density=1;
+  world->effector_grid_density=10000;
   world->length_unit=1.0/sqrt(world->effector_grid_density);
   world->rx_radius_3d = 0;
   world->max_diffusion_step=0;
