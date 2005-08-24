@@ -2113,9 +2113,10 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
    /* let's reach subvolumes located "edge-to-edge" from the top face
       of the current subvolume. */
    /* go (-X and +Z) */
-   	neighbor_index = sv->index -(world->nz_parts-1)*(world->ny_parts-1) + 1;
-   	new_sv = &(world->subvol[neighbor_index]);
-   	if(new_sv != NULL){
+     	neighbor_index = sv->index -(world->nz_parts-1)*(world->ny_parts-1) + 1;
+        if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+        {
+   	  new_sv = &(world->subvol[neighbor_index]);
           new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
           new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
           new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2163,9 +2164,9 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
    	}
    /* go (+Y and +Z) */
       neighbor_index = sv->index  + (world->nz_parts-1) + 1;
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL)
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
       {
+          new_sv = &(world->subvol[neighbor_index]);
           new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
           new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
           new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2213,9 +2214,9 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
    
    /* go (+X and +Z) */
       neighbor_index = sv->index  + (world->nz_parts-1)*(world->ny_parts-1) + 1;
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL)
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
       {
+          new_sv = &(world->subvol[neighbor_index]);
           new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
           new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
           new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2263,8 +2264,9 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
       }
    /* go (-Y and +Z) */
       neighbor_index = sv->index  - (world->nz_parts-1) + 1;
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL){
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+      {
+          new_sv = &(world->subvol[neighbor_index]);
           new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
           new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
           new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2313,9 +2315,9 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
       of the current subvolume. */
    /* go (-X and -Z) */
       neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) - 1;
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL)
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
       {
+          new_sv = &(world->subvol[neighbor_index]);
           new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
           new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
           new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2362,8 +2364,9 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
       }
    /* go (+Y and -Z) */
       neighbor_index = sv->index  + (world->nz_parts-1) - 1;
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL){
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+      {
+          new_sv = &(world->subvol[neighbor_index]);
           new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
           new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
           new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2410,8 +2413,9 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
       }
    /* go (+X and -Z) */
       neighbor_index = sv->index  + (world->nz_parts-1)*(world->ny_parts-1) - 1;
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL){
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+      {
+          new_sv = &(world->subvol[neighbor_index]);
           new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
           new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
           new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2458,8 +2462,9 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
       }
    /* go (-Y and -Z) */
       neighbor_index = sv->index  - (world->nz_parts-1) - 1;
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL){
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+      {
+          new_sv = &(world->subvol[neighbor_index]);
           new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
           new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
           new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2507,9 +2512,10 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
    /* let's reach subvolumes located "edge-to-edge" from the vertical edges
       of the current subvolume. */
    /* go (-Y and -X) */
-      neighbor_index = sv->index  - (world->nz_parts-1) - (world->nz_parts-1)*(world->ny_parts-1);;
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL){
+      neighbor_index = sv->index  - (world->nz_parts-1) - (world->nz_parts-1)*(world->ny_parts-1);
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+      {
+          new_sv = &(world->subvol[neighbor_index]);
           new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
           new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
           new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2555,9 +2561,10 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
    
       }
    /* go (+Y and -X) */
-      neighbor_index = sv->index  + (world->nz_parts-1) - (world->nz_parts-1)*(world->ny_parts-1);;
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL){
+      neighbor_index = sv->index  + (world->nz_parts-1) - (world->nz_parts-1)*(world->ny_parts-1);
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+      {
+          new_sv = &(world->subvol[neighbor_index]);
           new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
           new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
           new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2604,8 +2611,9 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
       }
    /* go (+Y and +X) */
       neighbor_index = sv->index  + (world->nz_parts-1) + (world->nz_parts-1)*(world->ny_parts-1);
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL){
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+      {
+          new_sv = &(world->subvol[neighbor_index]);
           new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
           new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
           new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2651,9 +2659,10 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
    
       }
    /* go (-Y and +X) */
-      neighbor_index = sv->index  - (world->nz_parts-1) + (world->nz_parts-1)*(world->ny_parts-1);;
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL){
+      neighbor_index = sv->index  - (world->nz_parts-1) + (world->nz_parts-1)*(world->ny_parts-1);
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+      {
+          new_sv = &(world->subvol[neighbor_index]);
           new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
           new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
           new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2703,8 +2712,9 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
       of the current subvolume. */
    /* go (-X and -Y and +Z) */
       neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) + 1;
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL){
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+      {
+        new_sv = &(world->subvol[neighbor_index]);
         new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
         new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
         new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2758,8 +2768,9 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
       }
    /* go (-X and +Y and +Z) */
       neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) + 1;
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL){
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+      {
+        new_sv = &(world->subvol[neighbor_index]);
         new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
         new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
         new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2813,8 +2824,9 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
       }
   /* go (+X and +Y and +Z) */
       neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) + 1;
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL){
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+      {
+        new_sv = &(world->subvol[neighbor_index]);
         new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
         new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
         new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2868,8 +2880,9 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
       }
   /* go (+X and -Y and +Z) */
       neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) + 1;
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL){
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+      {
+        new_sv = &(world->subvol[neighbor_index]);
         new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
         new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
         new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2923,8 +2936,9 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
       }
    /* go (-X and -Y and -Z) */
       neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) - 1;
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL){
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+      {
+        new_sv = &(world->subvol[neighbor_index]);
         new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
         new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
         new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2978,8 +2992,9 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
       }
    /* go (-X and +Y and -Z) */
       neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) - 1;
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL){
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+      {
+        new_sv = &(world->subvol[neighbor_index]);
         new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
         new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
         new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -3033,8 +3048,9 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
       }
   /* go (+X and +Y and -Z) */
       neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) - 1;
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL){
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+      {
+        new_sv = &(world->subvol[neighbor_index]);
         new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
         new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
         new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -3088,8 +3104,9 @@ struct collision* expand_collision_list_partial(struct molecule *m, struct vecto
       }
   /* go (+X and -Y and -Z) */
       neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) - 1;
-      new_sv = &(world->subvol[neighbor_index]);
-      if(new_sv != NULL){
+      if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+      {
+        new_sv = &(world->subvol[neighbor_index]);
         new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
         new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
         new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -3164,10 +3181,10 @@ struct collision* expand_collision_list_full(struct molecule *m, struct subvolum
   /* neighbors of the current subvolume "face-to-face" */
   struct subvolume *face1, *face2, *face3, *face4, *face5, *face6;
   /* neighbors of the current subvolume "edge-to-edge" */
-  struct subvolume *edge1, *edge2, *edge3, *edge4, *edge5, *edge6;
-  struct subvolume *edge7, *edge8, *edge9, *edge10, *edge11, *edge12;
+  struct subvolume *edge1=NULL, *edge2=NULL, *edge3=NULL, *edge4=NULL,                *edge5=NULL, *edge6=NULL;
+  struct subvolume *edge7=NULL, *edge8=NULL, *edge9=NULL, *edge10=NULL, *edge11=NULL, *edge12=NULL;
   /* neighbors of the current subvolume "corner-to-corner" */
-  struct subvolume *corner1, *corner2, *corner3, *corner4, *corner5, *corner6;
+  struct subvolume *corner1=NULL, *corner2, *corner3, *corner4, *corner5, *corner6;
   struct subvolume *corner7, *corner8;
   struct rxn *rx;
   /* index of the current subvolume */
@@ -3376,44 +3393,69 @@ struct collision* expand_collision_list_full(struct molecule *m, struct subvolum
       of the current subvolume. */
    /* go (-X and +Z) */
    neighbor_index = cur_index -(world->nz_parts-1)*(world->ny_parts-1) + 1;
-   edge1 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      edge1 = &(world->subvol[neighbor_index]);
+   }
+      
    /* go (+Y and +Z) */
    neighbor_index = cur_index  + (world->nz_parts-1) + 1;
-   edge2 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      edge2 = &(world->subvol[neighbor_index]);
+   }
    /* go (+X and +Z) */
    neighbor_index = cur_index  + (world->nz_parts-1)*(world->ny_parts-1) + 1;
-   edge3 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      edge3 = &(world->subvol[neighbor_index]);
+   }
    /* go (-Y and +Z) */
    neighbor_index = cur_index  - (world->nz_parts-1) + 1;
-   edge4 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      edge4 = &(world->subvol[neighbor_index]);
+   }
    /* let's reach subvolumes located "edge-to-edge" from the bottom face
       of the current subvolume. */
    /* go (-X and -Z) */
    neighbor_index = cur_index - (world->nz_parts-1)*(world->ny_parts-1) - 1;
-   edge5 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      edge5 = &(world->subvol[neighbor_index]);
+   }
    /* go (+Y and -Z) */
    neighbor_index = cur_index  + (world->nz_parts-1) - 1;
-   edge6 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      edge6 = &(world->subvol[neighbor_index]);
+   }
    /* go (+X and -Z) */
    neighbor_index = cur_index  + (world->nz_parts-1)*(world->ny_parts-1) - 1;
-   edge7 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      edge7 = &(world->subvol[neighbor_index]);
+   }
    /* go (-Y and -Z) */
    neighbor_index = cur_index  - (world->nz_parts-1) - 1;
-   edge8 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      edge8 = &(world->subvol[neighbor_index]);
+   }
    /* let's reach subvolumes located "edge-to-edge" from the vertical edges
       of the current subvolume. */
    /* go (-Y and -X) */
    neighbor_index = cur_index  - (world->nz_parts-1) - (world->nz_parts-1)*(world->ny_parts-1);
-   edge9 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      edge9 = &(world->subvol[neighbor_index]);
+   }
    /* go (+Y and -X) */
    neighbor_index = cur_index  + (world->nz_parts-1) - (world->nz_parts-1)*(world->ny_parts-1);;
-   edge10 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      edge10 = &(world->subvol[neighbor_index]);
+   }
    /* go (+Y and +X) */
    neighbor_index = cur_index  + (world->nz_parts-1) + (world->nz_parts-1)*(world->ny_parts-1);
-   edge11 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      edge11 = &(world->subvol[neighbor_index]);
+   }
    /* go (-Y and +X) */
    neighbor_index = cur_index  - (world->nz_parts-1) + (world->nz_parts-1)*(world->ny_parts-1);
-   edge12 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      edge12 = &(world->subvol[neighbor_index]);
+   }
 
     if((edge1 != NULL) && (edge1->mol_head != NULL))
     {
@@ -3791,29 +3833,45 @@ struct collision* expand_collision_list_full(struct molecule *m, struct subvolum
       of the current subvolume. */
    /* go (-X and -Y and +Z) */
    neighbor_index = cur_index - (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) + 1;
-   corner1 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      corner1 = &(world->subvol[neighbor_index]);
+   }
    /* go (-X and +Y and +Z) */
    neighbor_index = cur_index - (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) + 1;
-   corner2 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      corner2 = &(world->subvol[neighbor_index]);
+   }
   /* go (+X and +Y and +Z) */
    neighbor_index = cur_index + (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) + 1;
-   corner3 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      corner3 = &(world->subvol[neighbor_index]);
+   }
   /* go (+X and -Y and +Z) */
    neighbor_index = cur_index + (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) + 1;
-   corner4 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      corner4 = &(world->subvol[neighbor_index]);
+   }
 
    /* go (-X and -Y and -Z) */
    neighbor_index = cur_index - (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) - 1;
-   corner5 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      corner5 = &(world->subvol[neighbor_index]);
+   }
    /* go (-X and +Y and -Z) */
    neighbor_index = cur_index - (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) - 1;
-   corner6 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      corner6 = &(world->subvol[neighbor_index]);
+   }
   /* go (+X and +Y and -Z) */
    neighbor_index = cur_index + (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) - 1;
-   corner7 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      corner7 = &(world->subvol[neighbor_index]);
+   }
   /* go (+X and -Y and -Z) */
    neighbor_index = cur_index + (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) - 1;
-   corner8 = &(world->subvol[neighbor_index]);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols)){
+      corner8 = &(world->subvol[neighbor_index]);
+   }
 
     if((corner1 != NULL) && (corner1->mol_head != NULL))
     {
