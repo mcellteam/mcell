@@ -760,6 +760,8 @@ int set_partitions()
    /* verify that the partition linear size is less/equal to the 
       interaction sphere diameter. */
   /* maximum allowed number of partitions */ 
+/*
+     THIS IS WRONG!!!
    double num_part_x;
    num_part_x = (world->bb_max.x - world->bb_min.x)/(2*world->rx_radius_3d);
   
@@ -773,6 +775,8 @@ int set_partitions()
         fprintf(world->err_file, "Partitions requested: %dx%dx%d.  Partitions allowed due to the interaction sphere limitations: %dx%dx%d.  Switched to automatic partitioning.\n", world->nx_parts, world->ny_parts, world->nz_parts, (int)num_part_x, (int)num_part_x, (int)num_part_x);
 
   }
+*/
+
 
   /* go with automatic partitioning */
   if (world->x_partitions == NULL ||
@@ -799,11 +803,14 @@ int set_partitions()
     
       /* again verify that the partition linear size is less/equal to the 
       interaction sphere diameter. */
+/*
+     THIS IS WRONG!!!
       while(world->nx_parts > (int)num_part_x){
         world->nx_parts--;
         world->ny_parts = world->nz_parts = world->nx_parts;
       }
-    
+*/
+  
     world->x_partitions = (double*) malloc( sizeof(double) * world->nx_parts );
     world->y_partitions = (double*) malloc( sizeof(double) * world->ny_parts );
     world->z_partitions = (double*) malloc( sizeof(double) * world->nz_parts );
