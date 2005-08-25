@@ -3184,8 +3184,8 @@ struct collision* expand_collision_list_full(struct molecule *m, struct subvolum
   struct subvolume *edge1=NULL, *edge2=NULL, *edge3=NULL, *edge4=NULL,                *edge5=NULL, *edge6=NULL;
   struct subvolume *edge7=NULL, *edge8=NULL, *edge9=NULL, *edge10=NULL, *edge11=NULL, *edge12=NULL;
   /* neighbors of the current subvolume "corner-to-corner" */
-  struct subvolume *corner1=NULL, *corner2, *corner3, *corner4, *corner5, *corner6;
-  struct subvolume *corner7, *corner8;
+  struct subvolume *corner1=NULL, *corner2=NULL, *corner3=NULL, *corner4=NULL;
+  struct subvolume *corner5=NULL, *corner6=NULL,*corner7=NULL, *corner8=NULL;
   struct rxn *rx;
   /* index of the current subvolume */
   int cur_index;
