@@ -847,6 +847,9 @@ int set_partitions()
     x_in = floor( (world->nx_parts - 2) * x_aspect + 0.5 );
     y_in = floor( (world->ny_parts - 2) * y_aspect + 0.5 );
     z_in = floor( (world->nz_parts - 2) * z_aspect + 0.5 );
+    if (x_in < 2) x_in = 2;
+    if (y_in < 2) y_in = 2;
+    if (z_in < 2) z_in = 2;
     
     smallest_spacing = 2*world->rx_radius_3d;
     if ( (part_max.x-part_min.x)/(x_in-1) < smallest_spacing )
