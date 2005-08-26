@@ -83,4 +83,6 @@ int init_release_event_table(struct release_event_queue *reqp);
 void destroy_sym_value(struct sym_table *sym);
 */
 
+int init_releases();
+
 #endif

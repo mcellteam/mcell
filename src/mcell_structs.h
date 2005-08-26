@@ -901,6 +901,7 @@ struct volume
   byte place_waypoints_flag;         /* We need to place waypoints
                                    if we count 3D diffusing molecules
                                    in regions */
+  byte releases_on_regions_flag; /* Triggers special release site initialization */
   
   int n_subvols;                /* How many coarse subvolumes? */
   struct subvolume *subvol;     /* Array containing all subvolumes */
@@ -1117,6 +1118,7 @@ struct release_region_data
   int n_objects;
   struct object **owners;
   struct bit_array **in_release;
+  int *walls_per_obj;
 
   struct release_evaluator *expression;
 };

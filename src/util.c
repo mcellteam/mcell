@@ -685,6 +685,64 @@ void bit_operation(struct bit_array *ba,struct bit_array *bb,char op)
   } 
 }
 
+
+/**********************************************************************
+count_bits -- count how many bits are set in a bit array
+
+Parameters
+	ba -- pointer to a bit_array struct
+
+Returns
+	int containing number of nonzero bits
+**********************************************************************/
+int count_bits(struct bit_array *ba)
+{
+  static const int cb_table[256] =
+  { 0 , 1 , 1 , 2 , 1 , 2 , 2 , 3 , 1 , 2 , 2 , 3 , 2 , 3 , 3 , 4 ,
+    1 , 2 , 2 , 3 , 2 , 3 , 3 , 4 , 2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 ,
+    1 , 2 , 2 , 3 , 2 , 3 , 3 , 4 , 2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 ,
+    2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 , 3 , 4 , 4 , 5 , 4 , 5 , 5 , 6 ,    
+    1 , 2 , 2 , 3 , 2 , 3 , 3 , 4 , 2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 ,
+    2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 , 3 , 4 , 4 , 5 , 4 , 5 , 5 , 6 ,    
+    2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 , 3 , 4 , 4 , 5 , 4 , 5 , 5 , 6 ,    
+    3 , 4 , 4 , 5 , 4 , 5 , 5 , 6 , 4 , 5 , 5 , 6 , 5 , 6 , 6 , 7 ,
+    1 , 2 , 2 , 3 , 2 , 3 , 3 , 4 , 2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 ,
+    2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 , 3 , 4 , 4 , 5 , 4 , 5 , 5 , 6 ,    
+    2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 , 3 , 4 , 4 , 5 , 4 , 5 , 5 , 6 ,    
+    3 , 4 , 4 , 5 , 4 , 5 , 5 , 6 , 4 , 5 , 5 , 6 , 5 , 6 , 6 , 7 ,
+    2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 , 3 , 4 , 4 , 5 , 4 , 5 , 5 , 6 ,    
+    3 , 4 , 4 , 5 , 4 , 5 , 5 , 6 , 4 , 5 , 5 , 6 , 5 , 6 , 6 , 7 ,
+    4 , 5 , 5 , 6 , 5 , 6 , 6 , 7 , 5 , 6 , 7 , 7 , 6 , 7 , 7 , 8 };
+  
+  int i,j,n,cnt;
+  unsigned char *d;
+  int *dd = &(ba->nints);
+  
+  dd++;
+  d = (unsigned char*)dd;
+  
+  n = (ba->nints - 1)*sizeof(int);
+  cnt = 0;
+  for (i=0;i<n;i++) cnt += cb_table[(*d++)];
+  
+  n = ba->nbits - n*8;
+  if (n==0) return cnt;
+  
+  j = dd[ba->nints-1];
+  while (n>=8)
+  {
+    cnt += cb_table[ j & 0xFF ];
+    n-=8;
+    j>>=8;
+  }
+  if (n>0)
+  {
+    cnt += cb_table[ j & 0xFF ] - cb_table[ (j&0xFF)>>(8-n) ];
+  }
+  return cnt;
+}
+
+
 /**********************************************************************
 free_bit_array -- frees a bit array (just a wrapper to free() for now)
 

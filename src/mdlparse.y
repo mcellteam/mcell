@@ -2661,6 +2661,7 @@ release_site_geom: SHAPE '=' release_region_expr
   mdlpvp->objp = mdlpvp->curr_obj;
   
   mdlpvp->rsop->release_shape = SHAPE_REGION;
+  mdlpvp->vol->releases_on_regions_flag = 1;
   
   rrd = (struct release_region_data*)malloc(sizeof(struct release_region_data));
   if (rrd==NULL)
@@ -2841,6 +2842,11 @@ release_site_cmd:
 {
   mdlpvp->gp=$<sym>3;
   mdlpvp->rsop->mol_type=(struct species *)mdlpvp->gp->value;
+  if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==0 &&
+      mdlpvp->rsop->release_shape==SHAPE_REGION)
+  {
+    mdlpvp->vol->place_waypoints_flag=1;
+  }
 }
 	| release_number_cmd
 	| SITE_DIAMETER '=' num_expr_only
@@ -3606,8 +3612,9 @@ remove_side: REMOVE_ELEMENTS '{'
   {
     mdlpvp->element_list_head = mdlpvp->rp->element_list_head;
   }
+  mdlpvp->exclude_me = 0;  /* Default is named regions are in removal list */
 }
-	element_specifier_list '}'
+	remove_element_specifier_list '}'
 {
   mdlpvp->rp->element_list_head = mdlpvp->element_list_head;
   if (mdlpvp->objp->object_type==POLY_OBJ)
@@ -3619,6 +3626,11 @@ remove_side: REMOVE_ELEMENTS '{'
     }
   }
 };
+
+remove_element_specifier_list:
+	element_specifier_list
+	| just_an_element_list
+;
 
 
 side: ELEMENT '=' side_name
@@ -3663,6 +3675,10 @@ excl_element_list_stmt: EXCLUDE_ELEMENTS
   mdlpvp->exclude_me = 1;
 }
 	'=' '[' list_element_specs ']'
+;
+
+just_an_element_list:
+	list_element_specs
 ;
 
 list_element_specs: element_spec

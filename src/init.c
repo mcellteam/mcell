@@ -186,6 +186,7 @@ int init_sim(void)
   world->r_step=NULL;
   world->d_step=NULL;
   world->place_waypoints_flag=0;
+  world->releases_on_regions_flag=0;
   world->count_scheduler = NULL;
   world->storage_head = NULL;
   world->storage_allocator = NULL;
@@ -377,7 +378,7 @@ int init_sim(void)
     fprintf(log_file,"MCell: error initializing object regions\n");
     return(1);
   }
-
+  
   if (check_region_counters()) {
     fprintf(log_file,"MCell: error in region count statement\n");
     return(1);
@@ -387,6 +388,15 @@ int init_sim(void)
     if (place_waypoints()) {
       fprintf(log_file,"MCell: error storing waypoints\n");
       return(1);
+    }
+  }
+  
+  if (world->releases_on_regions_flag)
+  {
+    if (init_releases())
+    {
+      fprintf(log_file,"MCell: error intializing releases on regions\n");
+      return 1;
     }
   }
 
@@ -2704,4 +2714,236 @@ fflush(stdout);
 #endif
 
 
+
+
+int init_releases()
+{ return 0; }
+
+
+/* Not the most efficient due to slow merging, but it works. */
+struct void_list* rel_expr_grab_obj(struct release_evaluator *root,struct mem_helper *voidmem)
+{
+  struct void_list *vl = NULL;
+  struct void_list *vr = NULL;
+  
+  if (root->left != NULL)
+  {
+    if (root->op&REXP_LEFT_REGION)
+    {
+      vl = mem_get(voidmem);
+      if (vl==NULL) return NULL;
+      vl->data = ((struct region*)(root->left))->parent;
+    }
+    else vl = rel_expr_grab_obj(root->left,voidmem);
+  }
+  if (root->right != NULL)
+  {
+    if (root->op&REXP_RIGHT_REGION)
+    {
+      vr = mem_get(voidmem);
+      if (vr==NULL) return NULL;
+      vr->data = ((struct region*)(root->left))->parent;
+    }
+    else vr = rel_expr_grab_obj(root->right,voidmem);
+  }
+  
+  if (vl==NULL)
+  {
+    if (vr==NULL) return NULL;
+    return vr;
+  }
+  else if (vr==NULL)
+  {
+    return vl;
+  }
+  else
+  {
+    struct void_list *vp;
+    
+    for (vp=vl;vp->next!=NULL;vp=vp->next) {}
+    
+    vp->next = vr;
+    
+    return vl;
+  }
+  return NULL;
+}
+
+
+struct object** find_unique_rev_objects(struct release_evaluator *root,int *n)
+{
+  struct object **o_array;
+  struct void_list *vp,*vq;
+  struct mem_helper *voidmem;
+  int i;
+  
+  voidmem = create_mem(1024,sizeof(struct void_list));
+  
+  vp = rel_expr_grab_obj(root,voidmem);
+  if (vp==NULL) return NULL;
+  
+  vp = void_list_sort(vp);
+  
+  for (i=1,vq=vp ; vq->next!=NULL ; vq=vq->next , i++)
+  {
+    while (vq->data == vq->next->data)
+    {
+      vq->next = vq->next->next;
+      if (vq->next==NULL) break;
+    }
+  }
+  
+  *n = i;
+  
+  o_array = (struct object**)malloc(i*sizeof(struct object*));
+  if (o_array==NULL) return NULL;
+  
+  for (i=0,vq=vp ; vq!=NULL ; vq=vq->next,i++)
+  {
+    o_array[i] = (struct object*)vq->data;
+  }
+  
+  return o_array;
+}
+
+
+int eval_rel_region_expr(struct release_evaluator *expr,int n,struct object **objs,struct bit_array **result)
+{
+  int i;
+  char bit_op;
+  
+  if (expr->left!=NULL)
+  {
+    if (expr->op&REXP_LEFT_REGION)
+    {
+      i = void_array_search((void**)objs,n,((struct region*)(expr->left))->parent);
+      result[i] = duplicate_bit_array( ((struct region*)(expr->left))->membership );
+      if (result[i]==NULL) return 1;
+    }
+    else
+    {
+      i = eval_rel_region_expr(expr->left,n,objs,result);
+      if (i) return 1;
+    }
+    
+    if (expr->right==NULL)
+    {
+      if (expr->op&REXP_NO_OP) return 0;
+      else return 1;
+    }
+    
+    if (expr->op&REXP_RIGHT_REGION)
+    {
+      i = void_array_search((void**)objs,n,((struct region*)(expr->right))->parent);
+      if (result[i]==NULL)
+      {
+        result[i] = duplicate_bit_array( ((struct region*)(expr->right))->membership );
+        if (result[i]==NULL) return 1;
+      }
+      else
+      {
+        if (expr->op&REXP_UNION) bit_op = '|';
+        else if (expr->op&REXP_SUBTRACTION) bit_op = '-';
+        else if (expr->op&REXP_INTERSECTION) bit_op = '&';
+        else return 1;
+
+        bit_operation(result[i],((struct region*)(expr->right))->membership,bit_op);
+      }
+    }
+    else
+    {
+      struct bit_array *res2[n];
+      for (i=0;i<n;i++) res2[i]=NULL;
+      
+      i = eval_rel_region_expr(expr->right,n,objs,result);
+      if (i) return 1;
+      
+      for (i=0;i<n;i++)
+      {
+        if (res2[i]!=NULL)
+        {
+          if (result[i]==NULL) result[i] = res2[i];
+          else
+          {
+            if (expr->op&REXP_UNION) bit_op = '|';
+            else if (expr->op&REXP_SUBTRACTION) bit_op = '-';
+            else if (expr->op&REXP_INTERSECTION) bit_op = '&';
+            else return 1;
+            
+            bit_operation(result[i],res2[i],bit_op);
+            free_bit_array(res2[i]);
+          }
+        }
+      }
+    }
+  }
+  else return 1;  /* Left should always have something! */
+  
+  return 0;
+}
+
+
+int init_rel_region_data_2d(struct release_region_data *rrd)
+{
+  int i,j,k;
+  struct polygon_object *po;
+
+  rrd->owners = find_unique_rev_objects(rrd->expression , &(rrd->n_objects));
+  if (rrd->owners==NULL) return 1;
+  
+  rrd->in_release = (struct bit_array**)malloc(rrd->n_objects*sizeof(struct bit_array*));
+  if (rrd->in_release==NULL) return 1;
+  for (i=0;i<rrd->n_objects;i++) rrd->in_release[i]=NULL;
+  
+  i = eval_rel_region_expr(rrd->expression,rrd->n_objects,rrd->owners,rrd->in_release);
+  if (i) return 1;
+  for (i=0;i<rrd->n_objects;i++) { if (rrd->in_release[i]==NULL) return 1; }
+  
+  rrd->walls_per_obj = (int*)malloc(rrd->n_objects*sizeof(int));
+  if (rrd->walls_per_obj==NULL) return 1;
+  
+  rrd->n_walls_included=0;
+  for (i=0;i<rrd->n_objects;i++)
+  {
+    rrd->walls_per_obj[i] = count_bits(rrd->in_release[i]);
+    rrd->n_walls_included += rrd->walls_per_obj[i];
+  }
+  
+  rrd->cum_area_list = (double*)malloc(rrd->n_walls_included*sizeof(double));
+  rrd->wall_index = (int*)malloc(rrd->n_walls_included*sizeof(int));
+  rrd->obj_index = (int*)malloc(rrd->n_walls_included*sizeof(int));
+  if (rrd->cum_area_list==NULL || rrd->wall_index==NULL || rrd->obj_index==NULL) return 1;
+  
+  j = 0;
+  for (i=0;i<rrd->n_objects;i++)
+  {
+    if (rrd->owners[i]->object_type != POLY_OBJ) return 1;
+    po = (struct polygon_object*)(rrd->owners[i]->contents);
+    for (k=0;k<po->n_walls;k++)
+    {
+      if (get_bit(rrd->in_release[i],k))
+      {
+        rrd->cum_area_list[i] = rrd->owners[i]->wall_p[k]->area;
+        rrd->obj_index[j] = i;
+        rrd->wall_index[j] = k;
+        j++;
+      }
+    }
+  }
+  
+  for (i=1;i<rrd->n_walls_included;i++)
+  {
+    rrd->cum_area_list[i] += rrd->cum_area_list[i-1];
+  }
+  
+  return 0;
+}
+
+
+int init_rel_region_data_3d(struct release_region_data *rrd)
+{
+  int i,j,k;
+  
+  return 0;
+}
 
