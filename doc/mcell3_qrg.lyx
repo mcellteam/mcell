@@ -2985,6 +2985,9 @@ s described below.
  You can think of this as a special type of region that defines the removed
  portions of the object.
  No real region exists on any part of the object that has been removed.
+ You can use a list of element numbers/names instead of the full element
+ specifiers if you wish, but you cannot mix element numbers/names with the
+ element specifier syntax defined below.
 \end_inset 
 </cell>
 </row>
@@ -3053,9 +3056,9 @@ name
 \family default 
 \shape default 
 .
- Inside braces, you first specify the elements to be included and then list
- any special properties of that region, such as surface-bound molecules
- in the region.
+ Inside braces, you first specify the elements to be included using the
+ element specifiers below and then list any special properties of that region,
+ such as surface-bound molecules in the region.
 \end_inset 
 </cell>
 </row>
@@ -3106,7 +3109,7 @@ Explanation
 
 
 \family typewriter 
-INCLUDE_ELEMENTS [ 
+INCLUDE_ELEMENTS = [ 
 \family sans 
 \shape italic 
 list
@@ -3161,7 +3164,11 @@ ALL_ELEMENTS
 N
 \family default 
 \shape default 
- TO 
+ 
+\family typewriter 
+TO
+\family default 
+ 
 \family sans 
 \shape italic 
 M
@@ -3180,7 +3187,7 @@ M
 
 
 \family typewriter 
-EXCLUDE_ELEMENTS [ 
+EXCLUDE_ELEMENTS = [ 
 \family sans 
 \shape italic 
 list
@@ -6413,6 +6420,14 @@ small_box BOX
 \layout LyX-Code
 
   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+\layout LyX-Code
+
+  /* REMOVE_ELEMENTS { TOP,LEFT } */  /* Could remove sides ...
+ */
+\layout LyX-Code
+
+  /* REMOVE_ELEMENTS { INCLUDE_PATCH = [0.1,0,0] , [0.1,0.05,0.05] } /*...
+ or patch*/
 \layout LyX-Code
 
 }
