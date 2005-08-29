@@ -2716,10 +2716,6 @@ fflush(stdout);
 
 
 
-int init_releases()
-{ return 0; }
-
-
 /* Not the most efficient due to slow merging, but it works. */
 struct void_list* rel_expr_grab_obj(struct release_evaluator *root,struct mem_helper *voidmem)
 {
@@ -2742,7 +2738,7 @@ struct void_list* rel_expr_grab_obj(struct release_evaluator *root,struct mem_he
     {
       vr = mem_get(voidmem);
       if (vr==NULL) return NULL;
-      vr->data = ((struct region*)(root->left))->parent;
+      vr->data = ((struct region*)(root->right))->parent;
     }
     else vr = rel_expr_grab_obj(root->right,voidmem);
   }
@@ -2784,7 +2780,7 @@ struct object** find_unique_rev_objects(struct release_evaluator *root,int *n)
   
   vp = void_list_sort(vp);
   
-  for (i=1,vq=vp ; vq->next!=NULL ; vq=vq->next , i++)
+  for (i=1,vq=vp ; vq!=NULL && vq->next!=NULL ; vq=vq->next , i++)
   {
     while (vq->data == vq->next->data)
     {
@@ -2793,6 +2789,7 @@ struct object** find_unique_rev_objects(struct release_evaluator *root,int *n)
     }
   }
   
+  if (vq==NULL) i--;
   *n = i;
   
   o_array = (struct object**)malloc(i*sizeof(struct object*));
@@ -2917,7 +2914,8 @@ int init_rel_region_data_2d(struct release_region_data *rrd)
   j = 0;
   for (i=0;i<rrd->n_objects;i++)
   {
-    if (rrd->owners[i]->object_type != POLY_OBJ) return 1;
+    k = rrd->owners[i]->object_type;
+    if (k != POLY_OBJ && k != BOX_OBJ) return 1;
     po = (struct polygon_object*)(rrd->owners[i]->contents);
     for (k=0;k<po->n_walls;k++)
     {
@@ -2940,10 +2938,261 @@ int init_rel_region_data_2d(struct release_region_data *rrd)
 }
 
 
-int init_rel_region_data_3d(struct release_region_data *rrd)
+struct vector3* create_region_bbox(struct region *r)
 {
   int i,j,k;
+  struct vector3 *bbox;
+  struct vector3 *v;
+  
+  bbox = (struct vector3*) malloc(2*sizeof(struct vector3));
+  if (bbox==NULL) return NULL;
+  
+  j=0;
+  for (i=0;i<r->membership->nbits;i++)
+  {
+    if (get_bit(r->membership,i))
+    {
+      if (!j)
+      {
+        bbox[0].x = bbox[1].x = r->parent->wall_p[i]->vert[0]->x;
+        bbox[0].y = bbox[1].y = r->parent->wall_p[i]->vert[0]->y;
+        bbox[0].z = bbox[1].z = r->parent->wall_p[i]->vert[0]->z;
+      }
+      for (k=0;k<3;k++)
+      {
+        v = r->parent->wall_p[i]->vert[k];
+        if (bbox[0].x > v->x) bbox[0].x = v->x;
+        else if (bbox[1].x < v->x) bbox[1].x = v->x;
+        if (bbox[0].y > v->y) bbox[0].y = v->y;
+        else if (bbox[1].y < v->y) bbox[1].y = v->y;
+        if (bbox[0].z > v->z) bbox[0].z = v->z;
+        else if (bbox[1].z < v->z) bbox[1].z = v->z;
+      }
+      j++;
+    }
+  }
+  
+  return bbox;
+}
+
+
+int eval_rel_region_bbox(struct release_evaluator *expr,struct vector3 *llf,struct vector3 *urb)
+{
+  int i;
+  struct region *r;
+  
+  if (expr->left!=NULL)
+  {
+    if (expr->op&REXP_LEFT_REGION)
+    {
+      r = (struct region*)(expr->left);
+      if (r->manifold_flag==MANIFOLD_UNCHECKED)
+      {
+        if (is_manifold(r)) r->manifold_flag = IS_MANIFOLD;
+        else
+        {
+          fprintf(world->log_file,"Error--cannot release a 3D molecule inside an unclosed region\n");
+          return 1;
+        }
+      }
+      
+      if (r->bbox==NULL)
+      {
+        r->bbox = create_region_bbox(r);
+        if (r->bbox==NULL) return 1;
+      }
+      
+      llf->x = r->bbox[0].x;
+      llf->y = r->bbox[0].y;
+      llf->z = r->bbox[0].z;
+      urb->x = r->bbox[1].x;
+      urb->y = r->bbox[1].y;
+      urb->z = r->bbox[1].z;
+    }
+    else
+    {
+      i = eval_rel_region_bbox(expr->left,llf,urb);
+      if (i) return 1;
+    }
+    
+    if (expr->right==NULL)
+    {
+      if (expr->op&REXP_NO_OP) return 0;
+      else return 1;
+    }
+    
+    if (expr->op&REXP_SUBTRACTION) return 0;
+    else
+    {
+      struct vector3 llf2;
+      struct vector3 urb2;
+      
+      if (expr->op&REXP_RIGHT_REGION)
+      {
+        r = (struct region*)(expr->right);
+        if (r->manifold_flag==MANIFOLD_UNCHECKED)
+        {
+          if (is_manifold(r)) r->manifold_flag = IS_MANIFOLD;
+          else
+          {
+            fprintf(world->log_file,"Error--cannot release a 3D molecule inside an unclosed region\n");
+            return 1;
+          }
+        }
+        
+        if (r->bbox==NULL)
+        {
+          r->bbox = create_region_bbox(r);
+          if (r->bbox==NULL) return 1;          
+        }
+
+        llf2.x = r->bbox[0].x;
+        llf2.y = r->bbox[0].y;
+        llf2.z = r->bbox[0].z;
+        urb2.x = r->bbox[1].x;
+        urb2.y = r->bbox[1].y;
+        urb2.z = r->bbox[1].z;
+      }
+      else
+      {
+        i = eval_rel_region_bbox(expr->right,&llf2,&urb2);
+        if (i) return 1;
+      }
+      
+      if (expr->op&REXP_UNION)
+      {
+        if (llf->x > llf2.x) llf->x = llf2.x;
+        if (llf->y > llf2.y) llf->y = llf2.y;
+        if (llf->z > llf2.z) llf->z = llf2.z;
+        if (urb->x < urb2.x) urb->x = urb2.x;
+        if (urb->y < urb2.y) urb->y = urb2.y;
+        if (urb->z < urb2.z) urb->z = urb2.z;
+      }
+      else if (expr->op&REXP_INTERSECTION)
+      {
+        if (llf->x < llf2.x) llf->x = llf2.x;
+        if (llf->y < llf2.y) llf->y = llf2.y;
+        if (llf->z < llf2.z) llf->z = llf2.z;
+        if (urb->x > urb2.x) urb->x = urb2.x;
+        if (urb->y > urb2.y) urb->y = urb2.y;
+        if (urb->z > urb2.z) urb->z = urb2.z;
+      }
+      else return 1;
+    }
+  }
+  else return 1;  /* Left should always have something! */
   
   return 0;
 }
 
+
+int init_rel_region_data_3d(struct release_region_data *rrd)
+{
+  int i;
+  
+  rrd->n_walls_included = 0;
+  
+  i = eval_rel_region_bbox(rrd->expression,&(rrd->llf),&(rrd->urb));
+
+  if (i) return 1;
+
+  if (rrd->llf.x >= rrd->urb.x ||
+      rrd->llf.y >= rrd->urb.y ||
+      rrd->llf.z >= rrd->urb.z)
+  {
+    return -1;  /* Special signal to print out "nothing in here" error msg */
+  }
+  
+  return 0;
+}
+
+
+void output_relreg_eval_tree(FILE *f,char *prefix,char cA,char cB,struct release_evaluator *expr)
+{
+  int l = strlen(prefix);
+  char my_op;
+  
+  if (expr->op&REXP_NO_OP)
+  {
+    fprintf(f,"%s >%s\n",prefix,((struct region*)(expr->left))->sym->name);
+  }
+  else
+  {
+    char prefixA[l+3];
+    char prefixB[l+3];
+    strncpy(prefixA,prefix,l);
+    strncpy(prefixB,prefix,l);
+    prefixA[l] = cA;
+    prefixB[l] = cB;
+    prefixA[l+1] = prefixB[l+1] = ' ';
+    prefixA[l+2] = prefixB[l+2] = 0;
+    
+    if (expr->op&REXP_LEFT_REGION)
+    {
+      fprintf(f,"%s >%s\n",prefix,((struct region*)(expr->left))->sym->name);
+    }
+    else
+    {
+      output_relreg_eval_tree(f,prefixA,' ','|',expr->left);
+    }
+    
+    my_op = '?';
+    if (expr->op & REXP_UNION) my_op = '+';
+    else if (expr->op & REXP_INTERSECTION) my_op = '*';
+    else if (expr->op & REXP_SUBTRACTION) my_op = '-';
+    
+    fprintf(f,"%s%c\n",prefix,my_op);
+    
+    if (expr->op&REXP_RIGHT_REGION)
+    {
+      fprintf(f,"%s >%s\n",prefix,((struct region*)(expr->left))->sym->name);
+    }
+    else
+    {
+      output_relreg_eval_tree(f,prefixA,'|',' ',expr->right);
+    }
+  }
+}
+  
+
+
+int init_releases()
+{
+  struct release_event_queue *req;
+  struct abstract_element *ae;
+  struct schedule_helper *sh;
+  int i,j;
+  
+  for (sh=world->releaser ; sh!=NULL ; sh=sh->next_scale)
+  {
+    for (i=-1;i<sh->buf_len;i++)
+    {
+      for ( ae = (i==-1)?sh->current:sh->circ_buf_head[i] ; ae!=NULL ; ae=ae->next )
+      {
+        req = (struct release_event_queue*)ae;
+        if (req->release_site->release_shape == SHAPE_REGION)
+        {
+          if ((req->release_site->mol_type->flags & NOT_FREE) == 0)
+          {
+            j = init_rel_region_data_3d(req->release_site->region_data);
+            if (j==-1)
+            {
+              fprintf(world->err_file,"Region release site is empty!  Ignoring!  Evaluation tree:");
+              output_relreg_eval_tree(world->err_file," ",' ',' ',req->release_site->region_data->expression);
+              req->release_site->release_number_method=CONSTNUM;
+              req->release_site->release_number=0;
+            }
+            else if (j) return 1;
+          }
+          else
+          {
+            j = init_rel_region_data_2d(req->release_site->region_data);
+            if (j) { return 1; }
+          }
+        }
+      }
+    }
+  }
+  
+  return 0;
+}

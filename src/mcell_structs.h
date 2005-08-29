@@ -261,10 +261,11 @@
 #define EXD_OUT_OF_MEMORY  -2
 
 /* Boolean set operations for releases on regions */
-#define REXP_NO_OP        0
-#define REXP_UNION        1
-#define REXP_INTERSECTION 2
-#define REXP_SUBTRACTION  3
+/* Set only one of NO_OP, UNION, INTERSECTION, SUBTRACTION */
+#define REXP_NO_OP        1
+#define REXP_UNION        2
+#define REXP_INTERSECTION 4
+#define REXP_SUBTRACTION  8
 #define REXP_MASK         0x0F
 #define REXP_LEFT_REGION  0x10
 #define REXP_RIGHT_REGION 0x20
@@ -1080,6 +1081,7 @@ struct release_site_obj {
 	struct species *mol_type;	/**< species to be released */
 	byte release_number_method;
 	byte release_shape;
+	short orientation;
 	int release_number;
 	int mean_number;
 	double mean_diameter;
@@ -1389,6 +1391,7 @@ struct region {
 	struct reg_counter_ref_list *reg_counter_ref_list;
 	struct eff_dat *eff_dat_head;
         struct species *surf_class;
+        struct vector3 *bbox;  /* Vector of length 2, may be null */
 	double area;
         u_short flags;
         byte manifold_flag;

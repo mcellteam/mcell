@@ -395,6 +395,7 @@ struct release_evaluator *rev;
 %type <sym> new_molecule
 %type <sym> existing_molecule
 %type <sym> existing_surface_molecule
+%type <sym> existing_molecule_opt_orient
 %type <sym> new_surface_class
 %type <sym> existing_surface_class
 %type <sym> new_release_pattern
@@ -2143,6 +2144,17 @@ existing_surface_molecule: existing_molecule
   $$=mdlpvp->stp2;
 };
 
+existing_molecule_opt_orient:
+	existing_molecule 
+{
+  mdlpvp->orient_class = 0;
+  $$=$<sym>1;
+}
+	| existing_molecule list_orient_marks
+{
+  $$=$<sym>1;
+};
+
 
 chkpt_stmt: CHECKPOINT_INFILE '=' file_name
 {
@@ -2620,6 +2632,7 @@ release_site_def_new: new_object RELEASE_SITE '{'
   mdlpvp->rsop->mol_type=NULL;
   mdlpvp->rsop->release_number_method=CONSTNUM;
   mdlpvp->rsop->release_shape = SHAPE_UNDEFINED;
+  mdlpvp->rsop->orientation=0;
   mdlpvp->rsop->release_number=0;
   mdlpvp->rsop->mean_number=0;
   mdlpvp->rsop->mean_diameter=0;
@@ -2721,6 +2734,8 @@ release_region_expr:
   re->left = my_sym->value;
   re->right = NULL;
   
+  ((struct region*)re->left)->flags |= COUNT_CONTENTS;
+  
   $$=re;
 }
 	| '(' release_region_expr ')'
@@ -2741,7 +2756,7 @@ release_region_expr:
 	| release_region_expr '-' release_region_expr
 {
   struct release_evaluator *re;
-  re = pack_release_expr($<rev>1,$<rev>3,REXP_UNION);
+  re = pack_release_expr($<rev>1,$<rev>3,REXP_SUBTRACTION);
   if (re==NULL)
   {
     mdlerror("Out of memory while trying to create release site on region");
@@ -2752,7 +2767,7 @@ release_region_expr:
 	| release_region_expr '*' release_region_expr
 {
   struct release_evaluator *re;
-  re = pack_release_expr($<rev>1,$<rev>3,REXP_UNION);
+  re = pack_release_expr($<rev>1,$<rev>3,REXP_INTERSECTION);
   if (re==NULL)
   {
     mdlerror("Out of memory while trying to create release site on region");
@@ -2838,15 +2853,18 @@ release_site_cmd:
 {
   mdlpvp->rsop->location=$<vec3>3;
 }
-	| MOLECULE '=' existing_molecule
+	| MOLECULE '=' 
+{ mdlpvp->orient_class=1; }
+	existing_molecule_opt_orient
 {
-  mdlpvp->gp=$<sym>3;
+  mdlpvp->gp=$<sym>4;
   mdlpvp->rsop->mol_type=(struct species *)mdlpvp->gp->value;
   if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==0 &&
       mdlpvp->rsop->release_shape==SHAPE_REGION)
   {
     mdlpvp->vol->place_waypoints_flag=1;
   }
+  mdlpvp->rsop->orientation = mdlpvp->orient_class;
 }
 	| release_number_cmd
 	| SITE_DIAMETER '=' num_expr_only

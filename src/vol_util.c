@@ -18,6 +18,7 @@
 #include "react.h"
 #include "react_output.h"
 #include "util.h"
+#include "wall_util.h"
 
 extern struct volume *world;
 
@@ -424,6 +425,206 @@ struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv)
 }
 
 
+
+int eval_rel_region_3d(struct release_evaluator *expr,struct waypoint *wp,struct region_list *in_regions,struct region_list *out_regions)
+{
+  struct region *r;
+  struct region_list *rl;
+  int found_l,found_r;
+  
+  found_l=0;
+  if (expr->op & REXP_LEFT_REGION)
+  {
+    r = (struct region*)expr->left;
+    for (rl=wp->regions ; rl!=NULL ; rl=rl->next)
+    {
+      if (rl->reg == r)
+      {
+        found_l=1;
+        break;
+      }
+    }
+    if (found_l)
+    {
+      for (rl=out_regions ; rl!=NULL ; rl=rl->next)
+      {
+        if (rl->reg==r)
+        {
+          found_l=0;
+          break;
+        }
+      }
+    }
+    else
+    {
+      for (rl=in_regions ; rl!=NULL ; rl=rl->next)
+      {
+        if (rl->reg==r)
+        {
+          found_l=1;
+          break;
+        }
+      }
+    }
+  }
+  else found_l = eval_rel_region_3d(expr->left,wp,in_regions,out_regions);
+  
+  if (expr->op & REXP_NO_OP) return found_l;
+  
+  found_r=0;
+  if (expr->op & REXP_RIGHT_REGION)
+  {
+    r = (struct region*)expr->right;
+    for (rl=wp->regions ; rl!=NULL ; rl=rl->next)
+    {
+      if (rl->reg == r)
+      {
+        found_r=1;
+        break;
+      }
+    }
+    if (found_r)
+    {
+      for (rl=out_regions ; rl!=NULL ; rl=rl->next)
+      {
+        if (rl->reg==r)
+        {
+          found_r=0;
+          break;
+        }
+      }
+    }
+    else
+    {
+      for (rl=in_regions ; rl!=NULL ; rl=rl->next)
+      {
+        if (rl->reg==r)
+        {
+          found_r=1;
+          break;
+        }
+      }
+    }
+  }
+  else found_r = eval_rel_region_3d(expr->right,wp,in_regions,out_regions);
+  
+  if (expr->op & REXP_UNION) return (found_l || found_r);
+  else if (expr->op & REXP_INTERSECTION) return (found_l && found_r);
+  else if (expr->op & REXP_SUBTRACTION) return (found_l && !found_r);
+
+  return 0;
+}
+
+
+int release_inside_regions(struct release_site_obj *rso,struct molecule *m,int n)
+{
+  struct molecule *new_m;
+  struct release_region_data *rrd;
+  struct region_list *extra_in,*extra_out;
+  struct region_list *rl,*rl2;
+  struct subvolume *sv = NULL;
+  struct wall_list *wl;
+  struct vector3 delta;
+  struct vector3 *origin;
+  struct waypoint *wp;
+  double t;
+  struct vector3 hit;
+  int bad_location;
+  int i;
+  
+  rrd = rso->region_data;
+  new_m = NULL;
+  m->curr_cmprt = NULL;
+  m->previous_grid = NULL;
+  m->index = -1;
+  
+  while (n>0)
+  {
+    m->pos.x = rrd->llf.x + (rrd->urb.x-rrd->llf.x)*rng_dbl(world->rng);
+    m->pos.y = rrd->llf.y + (rrd->urb.y-rrd->llf.y)*rng_dbl(world->rng);
+    m->pos.z = rrd->llf.z + (rrd->urb.z-rrd->llf.z)*rng_dbl(world->rng);
+    
+    if (sv == NULL) sv = find_subvolume(&(m->pos),NULL);
+    else if ( !inside_subvolume(&(m->pos),sv) )
+    {
+      sv = find_subvolume(&(m->pos),sv);
+    }
+    
+    extra_in=extra_out=NULL;
+    wp = &(world->waypoints[sv->index]);
+    origin = &(wp->loc);
+    delta.x = m->pos.x - origin->x;
+    delta.y = m->pos.y - origin->y;
+    delta.z = m->pos.z - origin->z;
+    
+    bad_location = 0;
+    
+    for (wl=sv->wall_head ; wl!=NULL ; wl=wl->next)
+    {
+      i = collide_wall(origin,&delta,wl->this_wall,&t,&hit);
+      
+      if (i!=COLLIDE_MISS)
+      {
+        if ( (t>-EPS_C && t<EPS_C) || (t>1.0-EPS_C && t<1.0+EPS_C) )
+        {
+          bad_location = 1;
+          break;
+        }
+        for (rl=wl->this_wall->regions ; rl!=NULL ; rl=rl->next)
+        {
+          rl2 = (struct region_list*)mem_get(sv->local_storage->regl);
+          rl2->reg = rl->reg;
+          
+          if (i==COLLIDE_FRONT)
+          {
+            rl2->next = extra_in;
+            extra_in = rl2;
+          }
+          else if (i==COLLIDE_BACK)
+          {
+            rl2->next = extra_out;
+            extra_out = rl2;
+          }
+          else
+          {
+            bad_location = 1;
+            break;
+          }
+        }
+      }
+    }
+    if (bad_location) continue;
+    
+    for (rl=extra_in ; rl!=NULL ; rl=rl->next)
+    {
+      if (rl->reg==NULL) continue;
+      for (rl2=extra_out ; rl2!=NULL ; rl2=rl2->next)
+      {
+        if (rl2->reg==NULL) continue;
+        if (rl->reg==rl2->reg)
+        {
+          rl->reg = NULL;
+          rl2->reg = NULL;
+          break;
+        }
+      }
+    }
+
+    i = eval_rel_region_3d(rrd->expression,wp,extra_in,extra_out);
+    if (!i) continue;
+    
+    m->subvol = sv;
+    new_m =  insert_molecule(m,new_m);
+    
+    if (new_m==NULL) return 1;
+    
+    n--;
+  }
+  
+  return 0;
+}
+
+
 /*************************************************************************
 release_molecules:
   In: pointer to a release event
@@ -435,7 +636,10 @@ int release_molecules(struct release_event_queue *req)
   struct release_site_obj *rso;
   struct release_pattern *rpat;
   struct molecule m;
+  struct grid_molecule g;
+  struct abstract_molecule *ap;
   struct molecule *mp;
+  struct grid_molecule *gp;
   struct molecule *guess;
   int i,number;
   struct vector3 *diam_xyz;
@@ -447,28 +651,35 @@ int release_molecules(struct release_event_queue *req)
   rso = req->release_site;
   rpat = rso->pattern;
  
+  if ((rso->mol_type->flags & NOT_FREE) == 0)
+  {
+    mp = &m;  /* Avoid strict-aliasing message */
+    ap = (struct abstract_molecule*)mp;
+    ap->flags = TYPE_3D | IN_VOLUME;
+  }
+  else
+  {
+    gp = &g;  /* Avoid strict-aliasing message */
+    ap = (struct abstract_molecule*)gp;
+    ap->flags = TYPE_GRID | IN_SURFACE;
+  }
+  ap->flags |= IN_SCHEDULE + ACT_NEWBIE;
+
   if(req->train_counter == 0)
   {
 	req->train_counter++;
   }
+  
+  guess = NULL;
  
   /* Set molecule characteristics. */
-  m.t = req->event_time;
-
-  guess = NULL;
+  ap->t = req->event_time;
+  ap->properties = rso->mol_type;
+  ap->t2 = 0.0;
+  ap->birthday = ap->t;
   
-  m.properties = rso->mol_type;
-  m.flags = TYPE_3D + IN_VOLUME + IN_SCHEDULE + ACT_NEWBIE;
-  mp = &m;
-  if (trigger_unimolecular(rso->mol_type->hashval , (struct abstract_molecule*)mp) != NULL) 
-    m.flags += ACT_REACT;
-  if (rso->mol_type->space_step > 0.0) m.flags += ACT_DIFFUSE;
-  
-  m.t2 = 0.0;
-  m.curr_cmprt = NULL;
-  m.previous_grid = NULL;
-  m.index = -1;
-  m.birthday = m.t;
+  if (trigger_unimolecular(rso->mol_type->hashval , ap) != NULL) ap->flags += ACT_REACT;
+  if (rso->mol_type->space_step > 0.0) ap->flags += ACT_DIFFUSE;
   
   switch(rso->release_number_method)
   {
@@ -495,7 +706,25 @@ int release_molecules(struct release_event_queue *req)
       {
         diam = rso->mean_diameter;
       }
-      vol = (MY_PI/6.0) * diam*diam*diam;
+      switch (rso->release_shape)
+      {
+        case SHAPE_SPHERICAL:
+          vol = MY_PI * diam*diam;
+          number = (int) (world->effector_grid_density * rso->concentration * vol);
+          break;
+        case SHAPE_SPHERICAL_SHELL:
+          vol = (MY_PI/6.0) * diam*diam*diam;
+          number = (int) (N_AV * 1e-15 * rso->concentration * vol);
+          break;
+        case SHAPE_RECTANGULAR:
+          vol = diam*diam*diam;
+          number = (int) (N_AV * 1e-15 * rso->concentration * vol);
+          break;
+        default:
+          vol = 0;
+          number = 0;
+          break;
+      }
       number = (int) (N_AV * 1e-15 * rso->concentration * vol);
       break;
    default:
@@ -503,48 +732,70 @@ int release_molecules(struct release_event_queue *req)
      break;
   }
   
-  diam_xyz = rso->diameter;
-  if (diam_xyz != NULL)
+  if (rso->release_shape == SHAPE_REGION)
   {
-    for (i=0;i<number;i++)
+    if (ap->flags & TYPE_3D)
     {
-      do /* Pick values in unit square, toss if not in unit circle */
-      {
-        pos.x = (rng_dbl(world->rng)-0.5);
-        pos.y = (rng_dbl(world->rng)-0.5);
-        pos.z = (rng_dbl(world->rng)-0.5);
-      } while ( (rso->release_shape == SHAPE_SPHERICAL || rso->release_shape == SHAPE_ELLIPTIC || rso->release_shape == SHAPE_SPHERICAL_SHELL)
-                && pos.x*pos.x + pos.y*pos.y + pos.z*pos.z >= 0.25 );
-      
-      if (rso->release_shape == SHAPE_SPHERICAL_SHELL)
-      {
-	double r;
-	r = sqrt( pos.x*pos.x + pos.y*pos.y + pos.z*pos.z)*2.0;
-	if (r==0.0) { pos.x = 0.0; pos.y = 0.0; pos.z = 0.5; }
-	else { pos.x /= r; pos.y /= r; pos.z /= r; }
-      }
-      
-      m.pos.x = pos.x*diam_xyz->x + req->location.x;
-      m.pos.y = pos.y*diam_xyz->y + req->location.y;
-      m.pos.z = pos.z*diam_xyz->z + req->location.z;
-      
-      guess = insert_molecule(&m,guess);  /* Insert copy of m into world */
-      if (guess == NULL) return 1;
+      i = release_inside_regions(rso,(struct molecule*)ap,number);
+      if (i) return 1;
+      fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
     }
-    fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
+    else
+    {
+      i = release_onto_regions(rso,(struct grid_molecule*)ap,number);
+      if (i) return 1;
+      fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
+    }
   }
-  else
+  else  /* Guaranteed to be 3D molecule */
   {
-    m.pos.x = req->location.x;
-    m.pos.y = req->location.y;
-    m.pos.z = req->location.z;
+    m.curr_cmprt = NULL;
+    m.previous_grid = NULL;
+    m.index = -1;
     
-    for (i=0;i<number;i++)
+    diam_xyz = rso->diameter;
+    if (diam_xyz != NULL)
     {
-       guess = insert_molecule(&m,guess);
-       if (guess == NULL) return 1;
+      for (i=0;i<number;i++)
+      {
+        do /* Pick values in unit square, toss if not in unit circle */
+        {
+          pos.x = (rng_dbl(world->rng)-0.5);
+          pos.y = (rng_dbl(world->rng)-0.5);
+          pos.z = (rng_dbl(world->rng)-0.5);
+        } while ( (rso->release_shape == SHAPE_SPHERICAL || rso->release_shape == SHAPE_ELLIPTIC || rso->release_shape == SHAPE_SPHERICAL_SHELL)
+                  && pos.x*pos.x + pos.y*pos.y + pos.z*pos.z >= 0.25 );
+        
+        if (rso->release_shape == SHAPE_SPHERICAL_SHELL)
+        {
+          double r;
+          r = sqrt( pos.x*pos.x + pos.y*pos.y + pos.z*pos.z)*2.0;
+          if (r==0.0) { pos.x = 0.0; pos.y = 0.0; pos.z = 0.5; }
+          else { pos.x /= r; pos.y /= r; pos.z /= r; }
+        }
+        
+        m.pos.x = pos.x*diam_xyz->x + req->location.x;
+        m.pos.y = pos.y*diam_xyz->y + req->location.y;
+        m.pos.z = pos.z*diam_xyz->z + req->location.z;
+        
+        guess = insert_molecule(&m,guess);  /* Insert copy of m into world */
+        if (guess == NULL) return 1;
+      }
+      fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
     }
-    fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
+    else
+    {
+      m.pos.x = req->location.x;
+      m.pos.y = req->location.y;
+      m.pos.z = req->location.z;
+      
+      for (i=0;i<number;i++)
+      {
+         guess = insert_molecule(&m,guess);
+         if (guess == NULL) return 1;
+      }
+      fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
+    }
   }
  
   /* Exit if no more releases should be scheduled. */

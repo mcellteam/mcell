@@ -22,6 +22,8 @@
 #include "mcell_structs.h"
 #include "react_output.h"
 #include "mdlparse_util.h"
+#include "grid_util.h"
+#include "count_util.h"
 
 #ifdef DEBUG
 #define no_printf printf
@@ -2913,3 +2915,178 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
    
   }
 }
+
+
+struct reg_rel_helper_data
+{
+  struct reg_rel_helper_data *next;
+  struct surface_grid *grid;
+  int index;
+  double my_area;
+};
+
+int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,int n)
+{
+  int success,failure;
+  double est_sites_avail;
+  double seek_cost,pick_cost;
+  const double rel_list_gen_cost = 10.0;  /* Just a guess */
+  const int too_many_failures = 10;       /* Also a guess */
+  struct release_region_data *rrd;
+  struct mem_helper *mh;
+  struct reg_rel_helper_data *rrhd_head,*p;
+  int n_rrhd;
+  int h,i,j,k;
+  double A,max_A;
+  struct wall *w;
+  struct grid_molecule *new_g;
+  
+  rrd = rso->region_data;
+  
+  success = failure = 0;
+  seek_cost = 0;
+  
+  max_A = rrd->cum_area_list[rrd->n_walls_included-1];
+  est_sites_avail = (int)max_A;
+  pick_cost = rel_list_gen_cost * est_sites_avail;
+  
+  if (n==0)
+  {
+    if (rso->release_number_method == VOLNUM)
+    {
+      n = (int)( world->effector_grid_density * rso->concentration * est_sites_avail );
+    }
+  }
+  
+  while (n>0)
+  {
+    if (failure >= success+too_many_failures)
+    {
+      seek_cost = n*( ((double)(success+failure+2))/((double)(success+1)) );
+    }
+    if (seek_cost < pick_cost)
+    {
+      A = rng_dbl( world->rng )*max_A;
+      i = bisect( rrd->cum_area_list , rrd->n_walls_included , A );
+      w = rrd->owners[rrd->obj_index[i]]->wall_p[ rrd->wall_index[i] ];
+      
+      if (w->effectors==NULL)
+      {
+        j = create_grid(w,NULL);
+        if (j) return 1;
+      }
+      if (i) A -= rrd->cum_area_list[i-1];
+      j = w->effectors->n;
+      j = (int)((j*j)*(A/w->area));
+      if (j>=w->effectors->n_tiles) j=w->effectors->n_tiles-1;
+      
+      if (w->effectors->mol[j] != NULL) failure++;
+      else
+      {
+        new_g = (struct grid_molecule*)mem_get( w->effectors->subvol->local_storage->gmol );
+        if (new_g==NULL) return 1;
+        memcpy(new_g,g,sizeof(struct grid_molecule));
+        new_g->birthplace = w->effectors->subvol->local_storage->gmol;
+        new_g->grid_index = j;
+        new_g->orient = rso->orientation;
+        new_g->grid = w->effectors;
+        
+        w->effectors->mol[j] = new_g;
+
+        w->effectors->n_occupied++;
+        new_g->properties->population++;
+        if (new_g->properties->flags & COUNT_CONTENTS)
+          count_me_by_region((struct abstract_molecule*)new_g,1,NULL);
+
+        k = schedule_add( w->effectors->subvol->local_storage->timer , new_g );
+        if (k) return 1;
+        
+        success++;
+        n--;
+      }
+    }
+    else
+    {
+      mh = create_mem( sizeof(struct reg_rel_helper_data) , 1024 );
+      rrhd_head = NULL;
+      n_rrhd=0;
+      max_A=0;
+      for (i=0;i<rrd->n_objects;i++)
+      {
+        for (j=0;j<rrd->in_release[i]->nbits;j++)
+        {
+          if (!get_bit(rrd->in_release[i],j)) continue;
+          
+          w = rrd->owners[i]->wall_p[j];
+          
+          if (w->effectors==NULL)
+          {
+            k = create_grid(w,NULL);
+            if (k) return 1;
+          }
+          else if (w->effectors->n_occupied == w->effectors->n_tiles) continue;
+          
+          A = w->area / (w->effectors->n_tiles);
+          
+          for (k=0;k<w->effectors->n_tiles;k++)
+          {
+            if (w->effectors->mol[i]==NULL)
+            {
+              p = mem_get(mh);
+              if (p==NULL) return 1;
+              
+              p->next = rrhd_head;
+              p->grid = w->effectors;
+              p->index = k;
+              p->my_area = A;
+              max_A += A;
+              
+              rrhd_head = p;
+              n_rrhd++;
+            }
+          }
+        }
+      }
+      
+      
+      for (p=rrhd_head ; p!=NULL && n>0 ; p=p->next)
+      {
+        if (n>=n_rrhd || rng_dbl(world->rng)<(p->my_area/max_A)*((double)n))
+        {
+          new_g = (struct grid_molecule*)mem_get( p->grid->subvol->local_storage->gmol );
+          if (new_g==NULL) return 1;
+          memcpy(new_g,g,sizeof(struct grid_molecule));
+          new_g->birthplace = p->grid->subvol->local_storage->gmol;
+          new_g->grid_index = p->index;
+          new_g->orient = rso->orientation;
+          new_g->grid = p->grid;
+          
+          p->grid->mol[ p->index ] = new_g;
+
+          p->grid->n_occupied++;
+          new_g->properties->population++;
+          if (new_g->properties->flags & COUNT_CONTENTS)
+            count_me_by_region((struct abstract_molecule*)new_g,1,NULL);
+
+          h = schedule_add( p->grid->subvol->local_storage->timer , new_g );
+          if (h) return 1;
+          
+          n--;
+          n_rrhd--;
+        }
+        max_A -= p->my_area;
+      }
+      
+      delete_mem(mh);
+      
+      if (n>0)
+      {
+        fprintf(world->log_file,"Warning: could not release %d of %s (surface full)\n",n,g->properties->sym->name);
+        break;
+      }
+    }
+  }
+  
+  return 0;
+}
+
