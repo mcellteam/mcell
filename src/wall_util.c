@@ -2960,6 +2960,9 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
   
   while (n>0)
   {
+    success -= success>>7; /* Time-decaying sum */
+    failure -= failure>>7;
+    
     if (failure >= success+too_many_failures)
     {
       seek_cost = n*( ((double)(success+failure+2))/((double)(success+1)) );
@@ -2967,7 +2970,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
     if (seek_cost < pick_cost)
     {
       A = rng_dbl( world->rng )*max_A;
-      i = bisect( rrd->cum_area_list , rrd->n_walls_included , A );
+      i = bisect_high( rrd->cum_area_list , rrd->n_walls_included , A );
       w = rrd->owners[rrd->obj_index[i]]->wall_p[ rrd->wall_index[i] ];
       
       if (w->effectors==NULL)

@@ -808,6 +808,34 @@ int bisect_near(double *list,int n,double val)
   else return hi;
 }
 
+
+/*************************************************************************
+bisect_high:
+  In: array of doubles, sorted low to high
+      int saying how many doubles there are
+      double we are using to bisect the array
+  Out: index of the smallest element in the array larger than the bisector
+*************************************************************************/
+
+int bisect_high(double *list,int n,double val)
+{
+  int lo,hi,mid;
+  lo = 0;
+  hi = n-1;
+  while (hi-lo > 1)
+  {
+    mid = (hi+lo)/2;
+    if (list[mid] > val) hi = mid;
+    else lo = mid;
+  }
+  if (list[lo] > val) return lo;
+  else return hi;
+}
+
+
+
+
+
 /*************************************************************************
 bin:
   In: array of doubles, sorted low to high

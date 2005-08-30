@@ -456,7 +456,8 @@ int copy_object(struct volume *volp,struct object *curr_objp,
       }
       break;
     case REL_SITE_OBJ:
-      objp->contents=objp2->contents;
+      objp->contents=duplicate_release_site(objp2->contents,objp,volp->root_instance,volp->main_sym_table);
+      if (objp->contents==NULL) return 1;
       break;
     case BOX_OBJ:
       objp->contents=objp2->contents;
@@ -3305,7 +3306,200 @@ struct release_evaluator* pack_release_expr(struct release_evaluator *rel,struct
 
 
 
+struct object* common_ancestor(struct object *a,struct object*b)
+{
+  struct object *pa,*pb;
+  
+  for (pa=(a->object_type==META_OBJ)?a:a->parent ; pa!=NULL ; pa=pa->parent)
+  {
+    for (pb=(b->object_type==META_OBJ)?b:b->parent ; pb!=NULL ; pb=pb->parent)
+    {
+      if (pa==pb) return pa;
+    }
+  }
+  
+  return NULL;
+}
 
+
+int check_release_regions(struct release_evaluator *rel,struct object *parent,struct object *instance)
+{
+  struct object *ob;
+  
+  if (rel->left != NULL)
+  {
+    if (rel->op & REXP_LEFT_REGION)
+    {
+      ob = common_ancestor(parent,((struct region*)rel->left)->parent);
+      if (ob==NULL || (ob->parent==NULL && ob!=instance))
+      {
+        ob = common_ancestor(instance,((struct region*)rel->left)->parent);
+      }
+        
+      if (ob==NULL)
+      {
+        mdlerror_nested("Region neither instanced nor grouped with release site.");
+        return 1;
+      }
+    }
+  }
+  else if (check_release_regions(rel->left,parent,instance)) return 1;
+  
+  if (rel->right != NULL)
+  {
+    if (rel->op & REXP_RIGHT_REGION)
+    {
+      ob = common_ancestor(parent,((struct region*)rel->right)->parent);
+      if (ob==NULL || (ob->parent==NULL && ob!=instance))
+      {
+        ob = common_ancestor(instance,((struct region*)rel->right)->parent);
+      }
+      
+      if (ob==NULL)
+      {
+        mdlerror_nested("Region not grouped with release site.");
+        return 1;
+      }
+    }
+  }
+  else if (check_release_regions(rel->right,parent,instance)) return 1;
+  
+  return 0;
+}
+
+
+struct region* find_corresponding_region(struct region *old_r,struct object *old_ob,struct object *new_ob,struct object *instance,struct sym_table **symhash)
+{
+  struct object *ancestor;
+  struct object *ob;
+  struct sym_table *gp;
+  
+  ancestor = common_ancestor(old_ob,old_r->parent);
+  
+  if (ancestor==NULL)
+  {
+    for (ob=old_r->parent ; ob!=NULL ; ob=ob->parent)
+    {
+      if (ob==instance) break;
+    }
+    
+    if (ob==NULL) return NULL;
+    else return old_r;  /* Point to same already-instanced object */
+  }
+  else
+  {
+    int old_prefix_idx = strlen(ancestor->sym->name);
+    int new_prefix_idx = old_prefix_idx + strlen(new_ob->sym->name) - strlen(old_ob->sym->name);
+    int max_len = strlen(old_r->sym->name) + strlen(new_ob->sym->name);
+    char new_name[ max_len ];
+    
+    strncpy(new_name,new_ob->sym->name,new_prefix_idx);
+    strncpy(new_name+new_prefix_idx,old_r->sym->name+old_prefix_idx,max_len-new_prefix_idx);
+    
+    gp = retrieve_sym(new_name,REG,symhash);
+    
+    if (gp==NULL) return NULL;
+    else return (struct region*)(gp->value);
+  }
+}
+
+struct release_evaluator* duplicate_rel_region_expr(struct release_evaluator *expr,struct object *old_self,struct object *new_self,struct object *instance,struct sym_table **symhash)
+{
+  struct region *r;
+  struct release_evaluator *nexp;
+  
+  nexp = (struct release_evaluator*)malloc(sizeof(struct release_evaluator));
+  if (nexp==NULL) return NULL;
+  
+  nexp->op = expr->op;
+  
+  if (expr->left!=NULL)
+  {
+    if (expr->op&REXP_LEFT_REGION)
+    {
+      r = find_corresponding_region(expr->left,old_self,new_self,instance,symhash);
+      
+      if (r==NULL)
+      {
+        char str[ 80 + strlen(r->sym->name) + strlen(old_self->sym->name) + strlen(new_self->sym->name) ];
+        sprintf(str,"Can't find new region corresponding to %s for %s (copy of %s)\n",r->sym->name,new_self->sym->name,old_self->sym->name);
+        mdlerror_nested(str);
+        return NULL;
+      }
+      
+      nexp->left = r;
+    }
+    else nexp->left = duplicate_rel_region_expr(expr->left,old_self,new_self,instance,symhash);
+  }
+
+  if (expr->right!=NULL)
+  {
+    if (expr->op&REXP_RIGHT_REGION)
+    {
+      r = find_corresponding_region(expr->right,old_self,new_self,instance,symhash);
+      
+      if (r==NULL)
+      {
+        char str[ 80 + strlen(r->sym->name) + strlen(old_self->sym->name) + strlen(new_self->sym->name) ];
+        sprintf(str,"Can't find new region corresponding to %s for %s (copy of %s)\n",r->sym->name,new_self->sym->name,old_self->sym->name);
+        mdlerror_nested(str);
+        return NULL;
+      }
+      
+      nexp->right = r;
+    }
+    else nexp->right = duplicate_rel_region_expr(expr->right,old_self,new_self,instance,symhash);
+  }
+  
+  return nexp;
+}
+
+
+struct release_site_obj* duplicate_release_site(struct release_site_obj *old,struct object *new_self,struct object *instance,struct sym_table **symhash)
+{
+  struct release_site_obj *rso;
+  struct release_region_data *rrd;
+  
+  if (old->release_shape != SHAPE_REGION) return old;
+  
+  rso = (struct release_site_obj*)malloc(sizeof(struct release_site_obj));
+  if (rso==NULL) return NULL;
+  
+  rso->release_shape = old->release_shape;
+  rso->location = NULL;
+  rso->mol_type = old->mol_type;
+  rso->release_number_method = old->release_number_method;
+  rso->orientation = old->orientation;
+  rso->release_number = old->release_number;
+  rso->mean_number = old->release_number;
+  rso->mean_diameter = old->mean_diameter;
+  rso->concentration = old->concentration;
+  rso->standard_deviation = old->standard_deviation;
+  rso->diameter = old->diameter;
+  rso->release_prob = old->release_prob;
+  rso->pattern = old->pattern;
+  
+  rrd = (struct release_region_data*)malloc(sizeof(struct release_region_data));
+  if (rrd==NULL) return NULL;
+  
+  memcpy(&(rrd->llf),&(old->region_data->llf),sizeof(struct vector3));
+  memcpy(&(rrd->urb),&(old->region_data->urb),sizeof(struct vector3));
+  rrd->n_walls_included = -1;
+  rrd->cum_area_list = NULL;
+  rrd->wall_index = NULL;
+  rrd->obj_index = NULL;
+  rrd->n_objects = -1;
+  rrd->owners = NULL;
+  rrd->in_release = NULL;
+  rrd->self = new_self;
+  
+  rrd->expression = duplicate_rel_region_expr(old->region_data->expression,old->region_data->self,new_self,instance,symhash);
+  if (rrd->expression==NULL) return NULL;
+  
+  rso->region_data = rrd;
+  
+  return rso;
+}
 
 
 

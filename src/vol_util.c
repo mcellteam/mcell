@@ -425,14 +425,22 @@ struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv)
 }
 
 
+/*************************************************************************
+eval_rel_region_3d:
+  In: an expression tree containing regions to release on
+      the waypoint for the current subvolume
+      a list of regions entered from the waypoint to the release loc.
+      a list of regions exited from the waypoint to the release loc.
+  Out: 1 if the location chosen satisfies the expression, 0 if not.
+*************************************************************************/
 
 int eval_rel_region_3d(struct release_evaluator *expr,struct waypoint *wp,struct region_list *in_regions,struct region_list *out_regions)
 {
   struct region *r;
   struct region_list *rl;
-  int found_l,found_r;
+  int satisfies_l,satisfies_r;
   
-  found_l=0;
+  satisfies_l=0;
   if (expr->op & REXP_LEFT_REGION)
   {
     r = (struct region*)expr->left;
@@ -440,17 +448,17 @@ int eval_rel_region_3d(struct release_evaluator *expr,struct waypoint *wp,struct
     {
       if (rl->reg == r)
       {
-        found_l=1;
+        satisfies_l=1;
         break;
       }
     }
-    if (found_l)
+    if (satisfies_l)
     {
       for (rl=out_regions ; rl!=NULL ; rl=rl->next)
       {
         if (rl->reg==r)
         {
-          found_l=0;
+          satisfies_l=0;
           break;
         }
       }
@@ -461,17 +469,17 @@ int eval_rel_region_3d(struct release_evaluator *expr,struct waypoint *wp,struct
       {
         if (rl->reg==r)
         {
-          found_l=1;
+          satisfies_l=1;
           break;
         }
       }
     }
   }
-  else found_l = eval_rel_region_3d(expr->left,wp,in_regions,out_regions);
+  else satisfies_l = eval_rel_region_3d(expr->left,wp,in_regions,out_regions);
   
-  if (expr->op & REXP_NO_OP) return found_l;
+  if (expr->op & REXP_NO_OP) return satisfies_l;
   
-  found_r=0;
+  satisfies_r=0;
   if (expr->op & REXP_RIGHT_REGION)
   {
     r = (struct region*)expr->right;
@@ -479,17 +487,17 @@ int eval_rel_region_3d(struct release_evaluator *expr,struct waypoint *wp,struct
     {
       if (rl->reg == r)
       {
-        found_r=1;
+        satisfies_r=1;
         break;
       }
     }
-    if (found_r)
+    if (satisfies_r)
     {
       for (rl=out_regions ; rl!=NULL ; rl=rl->next)
       {
         if (rl->reg==r)
         {
-          found_r=0;
+          satisfies_r=0;
           break;
         }
       }
@@ -500,21 +508,32 @@ int eval_rel_region_3d(struct release_evaluator *expr,struct waypoint *wp,struct
       {
         if (rl->reg==r)
         {
-          found_r=1;
+          satisfies_r=1;
           break;
         }
       }
     }
   }
-  else found_r = eval_rel_region_3d(expr->right,wp,in_regions,out_regions);
+  else satisfies_r = eval_rel_region_3d(expr->right,wp,in_regions,out_regions);
   
-  if (expr->op & REXP_UNION) return (found_l || found_r);
-  else if (expr->op & REXP_INTERSECTION) return (found_l && found_r);
-  else if (expr->op & REXP_SUBTRACTION) return (found_l && !found_r);
+  if (expr->op & REXP_UNION) return (satisfies_l || satisfies_r);
+  else if (expr->op & REXP_INTERSECTION) return (satisfies_l && satisfies_r);
+  else if (expr->op & REXP_SUBTRACTION) return (satisfies_l && !satisfies_r);
 
   return 0;
 }
 
+
+/*************************************************************************
+release_inside_regions:
+  In: pointer to a release site object
+      template molecule to release
+      integer number of molecules to release
+  Out: 0 on success, 1 on failure; next event is scheduled and molecule(s)
+       are released into the world as specified.
+  Note: if the VOLNUM release method is used, the number of molecules
+        passed in is ignored.
+*************************************************************************/
 
 int release_inside_regions(struct release_site_obj *rso,struct molecule *m,int n)
 {
@@ -537,6 +556,12 @@ int release_inside_regions(struct release_site_obj *rso,struct molecule *m,int n
   m->curr_cmprt = NULL;
   m->previous_grid = NULL;
   m->index = -1;
+  
+  if (rso->release_number_method==VOLNUM)
+  {
+    double vol = (rrd->urb.x-rrd->llf.x)+(rrd->urb.y-rrd->llf.y)+(rrd->urb.z-rrd->llf.z);
+    n = N_AV*1e-15*vol;
+  }
   
   while (n>0)
   {
@@ -611,7 +636,11 @@ int release_inside_regions(struct release_site_obj *rso,struct molecule *m,int n
     }
 
     i = eval_rel_region_3d(rrd->expression,wp,extra_in,extra_out);
-    if (!i) continue;
+    if (!i)
+    {
+      if (rso->release_number_method==VOLNUM) n--;
+      continue;
+    }
     
     m->subvol = sv;
     new_m =  insert_molecule(m,new_m);

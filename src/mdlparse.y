@@ -2690,9 +2690,16 @@ release_site_geom: SHAPE '=' release_region_expr
   rrd->n_objects = -1;
   rrd->owners = NULL;
   rrd->in_release = NULL;
+  rrd->self = mdlpvp->curr_obj;
   
   rrd->expression = re;
   mdlpvp->rsop->region_data = rrd;
+  
+  if (check_release_regions(re,mdlpvp->curr_obj,mdlpvp->vol->root_instance))
+  {
+    mdlerror("Trying to release on a region that the release site cannot see!\n  Try grouping the release site and the corresponding geometry with an OBJECT.");
+    return 1;
+  }
 }
 	| SHAPE '=' SPHERICAL
 {

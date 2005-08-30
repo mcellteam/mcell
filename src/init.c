@@ -966,12 +966,20 @@ int instance_release_site(struct object *objp, double (*im)[4])
 
   log_file=world->log_file;
   rsop=(struct release_site_obj *)objp->contents;
+  
   l=1;
   m=4;
   n=4;
-  location[0][0]=rsop->location->x;
-  location[0][1]=rsop->location->y;
-  location[0][2]=rsop->location->z;
+  if (rsop->release_shape!=SHAPE_REGION)
+  {
+    location[0][0]=rsop->location->x;
+    location[0][1]=rsop->location->y;
+    location[0][2]=rsop->location->z;
+  }
+  else
+  {
+    for (i=0;i<2;i++) location[0][i] = 0;
+  }
   location[0][3]=1;
   mult_matrix(location,im,location,l,m,n);
 
@@ -1135,6 +1143,8 @@ int compute_bb_release_site(struct object *objp, double (*im)[4])
   unsigned short l,m,n;
 
   rsop=(struct release_site_obj *)objp->contents;
+  
+  if (rsop->release_shape == SHAPE_REGION) return 0;
 
   l=1;
   m=4;
@@ -2921,7 +2931,7 @@ int init_rel_region_data_2d(struct release_region_data *rrd)
     {
       if (get_bit(rrd->in_release[i],k))
       {
-        rrd->cum_area_list[i] = rrd->owners[i]->wall_p[k]->area;
+        rrd->cum_area_list[j] = rrd->owners[i]->wall_p[k]->area;
         rrd->obj_index[j] = i;
         rrd->wall_index[j] = k;
         j++;

@@ -1122,6 +1122,7 @@ struct release_region_data
   struct bit_array **in_release;
   int *walls_per_obj;
 
+  struct object *self;
   struct release_evaluator *expression;
 };
 

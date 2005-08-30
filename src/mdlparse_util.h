@@ -93,5 +93,10 @@ int handle_count_request(unsigned short sym_type,
 
 
 struct release_evaluator *pack_release_expr(struct release_evaluator *rel,struct release_evaluator *rer,byte op);
+struct object* common_ancestor(struct object *a,struct object*b);
+int check_release_regions(struct release_evaluator *rel,struct object *parent,struct object *instance);
+struct region* find_corresponding_region(struct region *old_r,struct object *old_ob,struct object *new_ob,struct object *instance,struct sym_table **symhash);
+struct release_evaluator* duplicate_rel_region_expr(struct release_evaluator *expr,struct object *old_self,struct object *new_self,struct object *instance,struct sym_table **symhash);
+struct release_site_obj* duplicate_release_site(struct release_site_obj *old,struct object *new_self,struct object *instance,struct sym_table **symhash);
                                      
 #endif

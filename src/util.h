@@ -103,6 +103,7 @@ void free_bit_array(struct bit_array *ba);
 
 int bisect(double *list,int n,double val);
 int bisect_near(double *list,int n,double val);
+int bisect_high(double *list,int n,double val);
 int bin(double *list,int n,double val);
 
 

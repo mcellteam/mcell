@@ -15,6 +15,7 @@ void excert_molecule(struct molecule *m);
 int insert_molecule_list(struct molecule *m);
 struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv);
 
+int eval_rel_region_3d(struct release_evaluator *expr,struct waypoint *wp,struct region_list *in_regions,struct region_list *out_regions);
 int release_inside_regions(struct release_site_obj *rso,struct molecule *m,int n);
 int release_molecules(struct release_event_queue *req);
 
