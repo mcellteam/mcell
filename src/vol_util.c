@@ -557,7 +557,7 @@ int release_inside_regions(struct release_site_obj *rso,struct molecule *m,int n
   m->previous_grid = NULL;
   m->index = -1;
   
-  if (rso->release_number_method==VOLNUM)
+  if (rso->release_number_method==CCNNUM)
   {
     double vol = (rrd->urb.x-rrd->llf.x)+(rrd->urb.y-rrd->llf.y)+(rrd->urb.z-rrd->llf.z);
     n = N_AV*1e-15*vol;
@@ -638,7 +638,7 @@ int release_inside_regions(struct release_site_obj *rso,struct molecule *m,int n
     i = eval_rel_region_3d(rrd->expression,wp,extra_in,extra_out);
     if (!i)
     {
-      if (rso->release_number_method==VOLNUM) n--;
+      if (rso->release_number_method==CCNNUM) n--;
       continue;
     }
     
@@ -675,6 +675,7 @@ int release_molecules(struct release_event_queue *req)
   struct vector3 pos;
   double diam,vol;
   double t,k;
+  double location[1][4];
   
   if(req == NULL) return 0;
   rso = req->release_site;
@@ -727,38 +728,40 @@ int release_molecules(struct release_event_queue *req)
       }
       break;
     case VOLNUM:
+      diam = rso->mean_diameter;
       if (rso->standard_deviation > 0)
       {
-	diam = rng_gauss(world->rng)*rso->standard_deviation;
+	diam += rng_gauss(world->rng)*rso->standard_deviation;
       }
+      vol = (MY_PI/6.0) * diam*diam*diam;
+      number = (int)(N_AV * 1e-15 * rso->concentration * vol + 0.5);
+      break;
+    case CCNNUM:
+      if (rso->diameter==NULL) number = 0;
       else
       {
-        diam = rso->mean_diameter;
+        switch(rso->release_shape)
+        {
+          case SHAPE_SPHERICAL:
+          case SHAPE_ELLIPTIC:
+            vol = (1.0/6.0)*MY_PI*rso->diameter->x*rso->diameter->y*rso->diameter->z*(world->length_unit*world->length_unit*world->length_unit);
+            break;
+          case SHAPE_RECTANGULAR:
+          case SHAPE_CUBIC:
+            vol = rso->diameter->x*rso->diameter->y*rso->diameter->z*(world->length_unit*world->length_unit*world->length_unit);
+            break;
+          default:
+            fprintf(world->err_file,"Can't release a concentration on a spherical shell\n");
+            vol = 0;
+            break;
+        }
+        number = (int)(N_AV * 1e-15 * rso->concentration * vol + 0.5);
       }
-      switch (rso->release_shape)
-      {
-        case SHAPE_SPHERICAL:
-          vol = MY_PI * diam*diam;
-          number = (int) (world->effector_grid_density * rso->concentration * vol);
-          break;
-        case SHAPE_SPHERICAL_SHELL:
-          vol = (MY_PI/6.0) * diam*diam*diam;
-          number = (int) (N_AV * 1e-15 * rso->concentration * vol);
-          break;
-        case SHAPE_RECTANGULAR:
-          vol = diam*diam*diam;
-          number = (int) (N_AV * 1e-15 * rso->concentration * vol);
-          break;
-        default:
-          vol = 0;
-          number = 0;
-          break;
-      }
-      number = (int) (N_AV * 1e-15 * rso->concentration * vol);
       break;
-   default:
-     number = 0;
-     break;
+    
+    default:
+      number = 0;
+      break;
   }
   
   if (rso->release_shape == SHAPE_REGION)
@@ -803,9 +806,16 @@ int release_molecules(struct release_event_queue *req)
           else { pos.x /= r; pos.y /= r; pos.z /= r; }
         }
         
-        m.pos.x = pos.x*diam_xyz->x + req->location.x;
-        m.pos.y = pos.y*diam_xyz->y + req->location.y;
-        m.pos.z = pos.z*diam_xyz->z + req->location.z;
+        location[0][0] = pos.x*diam_xyz->x + rso->location->x;
+        location[0][1] = pos.y*diam_xyz->y + rso->location->y;
+        location[0][2] = pos.z*diam_xyz->z + rso->location->z;
+        location[0][3] = 1;
+        
+        mult_matrix(location,req->t_matrix,location,1,4,4);
+        
+        m.pos.x = location[0][0];
+        m.pos.y = location[0][1];
+        m.pos.z = location[0][2];
         
         guess = insert_molecule(&m,guess);  /* Insert copy of m into world */
         if (guess == NULL) return 1;
@@ -814,9 +824,16 @@ int release_molecules(struct release_event_queue *req)
     }
     else
     {
-      m.pos.x = req->location.x;
-      m.pos.y = req->location.y;
-      m.pos.z = req->location.z;
+      location[0][0] = rso->location->x;
+      location[0][1] = rso->location->y;
+      location[0][2] = rso->location->z;
+      location[0][3] = 1;
+      
+      mult_matrix(location,req->t_matrix,location,1,4,4);
+      
+      m.pos.x = location[0][0];
+      m.pos.y = location[0][1];
+      m.pos.z = location[0][2];
       
       for (i=0;i<number;i++)
       {

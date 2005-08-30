@@ -960,72 +960,36 @@ int instance_release_site(struct object *objp, double (*im)[4])
   FILE *log_file;
   struct release_site_obj *rsop;
   struct release_event_queue *reqp;
-  double location[1][4];
-  unsigned short l,m,n;
-  int i;
+  int i,j;
 
   log_file=world->log_file;
   rsop=(struct release_site_obj *)objp->contents;
   
-  l=1;
-  m=4;
-  n=4;
-  if (rsop->release_shape!=SHAPE_REGION)
+  no_printf("Instancing release site object %s\n",objp->sym->name);
+  fflush(log_file);
+  reqp = (struct release_event_queue*)malloc(sizeof(struct release_event_queue));
+  if (reqp==NULL)
   {
-    location[0][0]=rsop->location->x;
-    location[0][1]=rsop->location->y;
-    location[0][2]=rsop->location->z;
+    fprintf(world->err_file,"Fatal error: out of memory while instantiating release site.\n");
+    return 1;
   }
-  else
+
+  reqp->release_site=rsop;
+  reqp->event_time=rsop->pattern->delay;
+  reqp->train_counter=0;
+  reqp->train_high_time=rsop->pattern->delay;
+  reqp->next=world->release_event_queue_head;
+  world->release_event_queue_head=reqp;
+  
+  for (i=0;i<4;i++) for (j=0;j<4;j++) reqp->t_matrix[i][j]=im[i][j];
+
+  if(rsop->pattern->train_duration > rsop->pattern->train_interval)
   {
-    for (i=0;i<2;i++) location[0][i] = 0;
-  }
-  location[0][3]=1;
-  mult_matrix(location,im,location,l,m,n);
-
-/*
-  if ( ((location[0][0] >= volume->x_partitions[0])
-			  && (location[0][0] <= volume->x_partitions[volume->n_x_subvol]))
-    && ((location[0][1] >= volume->y_partitions[0])
-			  && (location[0][1] <= volume->y_partitions[volume->n_y_subvol]))
-    && ((location[0][2] >= volume->z_partitions[0])
-			  && (location[0][2] <= volume->z_partitions[volume->n_z_subvol])) ){
-*/
-
-	  no_printf("Instancing release site object %s\n",objp->sym->name);
-	  fflush(log_file);
-	  if ((reqp=(struct release_event_queue *)malloc
-				  (sizeof(struct release_event_queue)))==NULL) {
-		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
-        	i = emergency_output();
-		fprintf(stderr,"Fatal error: out of memory while release site instantiation.\nAttempt to write intermediate results had %d errors.\n", i);
-        	exit(EXIT_FAILURE);
-	  }
-
-	  reqp->location.x=location[0][0]/world->length_unit;
-	  reqp->location.y=location[0][1]/world->length_unit;
-	  reqp->location.z=location[0][2]/world->length_unit;
-	  
-	  reqp->release_site=rsop;
-	  reqp->event_time=rsop->pattern->delay;
-	  reqp->train_counter=0;
-	  reqp->train_high_time=rsop->pattern->delay;
-	  reqp->next=world->release_event_queue_head;
-	  world->release_event_queue_head=reqp;
-
-          if(rsop->pattern->train_duration > rsop->pattern->train_interval)
-          {
-        	printf("Error: Release pattern train duration is greater \
-                        than train interval\n");
-                return (1);
-          } 
-	  
-	  no_printf("Done instancing release site object %s\n",objp->sym->name);
-/*
-  } else {
-	no_printf("Ignoring release site object %s\n",objp->sym->name);
-  }
-*/
+    fprintf(world->err_file,"Error: Release pattern train duration is greater than train interval\n");
+    return 1;
+  } 
+  
+  no_printf("Done instancing release site object %s\n",objp->sym->name);
 
   fflush(log_file);
   return(0);

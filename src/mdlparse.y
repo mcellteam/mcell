@@ -2638,7 +2638,7 @@ release_site_def_new: new_object RELEASE_SITE '{'
   mdlpvp->rsop->mean_diameter=0;
   mdlpvp->rsop->concentration=0;
   mdlpvp->rsop->standard_deviation=0;
-  mdlpvp->rsop->diameter=0;
+  mdlpvp->rsop->diameter=NULL;
   mdlpvp->rsop->region_data=NULL;
   mdlpvp->rsop->release_prob=1.0;
   mdlpvp->rsop->pattern=volp->default_release_pattern;
@@ -2802,7 +2802,7 @@ release_site_def_old: new_object release_site_geom_old '{'
   mdlpvp->rsop->mean_diameter=0;
   mdlpvp->rsop->concentration=0;
   mdlpvp->rsop->standard_deviation=0;
-  mdlpvp->rsop->diameter=0;
+  mdlpvp->rsop->diameter=NULL;
   mdlpvp->rsop->region_data=NULL;
   mdlpvp->rsop->release_prob=1.0;
   mdlpvp->rsop->pattern=volp->default_release_pattern;
@@ -2983,6 +2983,7 @@ release_site_cmd:
 release_number_cmd: constant_release_number_cmd
 	| gaussian_release_number_cmd
 	| volume_dependent_number_cmd
+	| concentration_dependent_release_cmd
 ;
 
 
@@ -3023,6 +3024,12 @@ volume_dependent_number_cmd: VOLUME_DEPENDENT_RELEASE_NUMBER '{'
   mdlpvp->rsop->concentration=$<dbl>11;
 };
 
+concentration_dependent_release_cmd: CONCENTRATION '=' num_expr
+{
+  mdlpvp->rsop->release_number_method=CCNNUM;
+  mdlpvp->rsop->release_number=-1;
+  mdlpvp->rsop->concentration = $<dbl>3;
+};
 
 point: array_value
 {

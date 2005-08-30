@@ -374,6 +374,7 @@ int copy_object(struct volume *volp,struct object *curr_objp,
     rp->reg_counter_ref_list=NULL;
     rp->membership = NULL;
     rp->surf_class=rp2->surf_class;
+    rp->flags=rp2->flags;
     
     for ( elp2=rp2->element_list_head ; elp2!=NULL ; elp2=elp2->next)
     { 
@@ -3342,8 +3343,8 @@ int check_release_regions(struct release_evaluator *rel,struct object *parent,st
         return 1;
       }
     }
+    else if (check_release_regions(rel->left,parent,instance)) return 1;
   }
-  else if (check_release_regions(rel->left,parent,instance)) return 1;
   
   if (rel->right != NULL)
   {
@@ -3361,8 +3362,8 @@ int check_release_regions(struct release_evaluator *rel,struct object *parent,st
         return 1;
       }
     }
+    else if (check_release_regions(rel->right,parent,instance)) return 1;
   }
-  else if (check_release_regions(rel->right,parent,instance)) return 1;
   
   return 0;
 }

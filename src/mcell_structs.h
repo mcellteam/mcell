@@ -469,6 +469,7 @@
 #define CONSTNUM 0
 #define GAUSSNUM 1
 #define VOLNUM 2
+#define CCNNUM 3
 
 
 
@@ -1070,7 +1071,7 @@ struct release_event_queue {
   double event_time;			/**< time of the release */
 
   struct release_site_obj *release_site;
-  struct vector3 location;		/**< location of the release */
+  double t_matrix[4][4];                /**< transformation matrix */
   int train_counter;			/**< counts executed trains */
   double train_high_time;		/**< time of the train's start */
 };
