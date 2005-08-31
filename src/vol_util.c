@@ -531,7 +531,7 @@ release_inside_regions:
       integer number of molecules to release
   Out: 0 on success, 1 on failure; next event is scheduled and molecule(s)
        are released into the world as specified.
-  Note: if the VOLNUM release method is used, the number of molecules
+  Note: if the CCNNUM release method is used, the number of molecules
         passed in is ignored.
 *************************************************************************/
 
@@ -559,8 +559,8 @@ int release_inside_regions(struct release_site_obj *rso,struct molecule *m,int n
   
   if (rso->release_number_method==CCNNUM)
   {
-    double vol = (rrd->urb.x-rrd->llf.x)+(rrd->urb.y-rrd->llf.y)+(rrd->urb.z-rrd->llf.z);
-    n = N_AV*1e-15*vol;
+    double vol = (rrd->urb.x-rrd->llf.x)*(rrd->urb.y-rrd->llf.y)*(rrd->urb.z-rrd->llf.z);
+    n = (int)(0.5 + N_AV*1e-15*rso->concentration*vol*world->length_unit*world->length_unit*world->length_unit);
   }
   
   while (n>0)

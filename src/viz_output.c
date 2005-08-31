@@ -4229,6 +4229,7 @@ int output_rk_custom(struct frame_data_list *fdlp)
   return 0;
 }
 
+
 /************************************************************************ 
 output_ascii_molecules:
 In: a frame data list (internal viz output data structure)
@@ -4264,7 +4265,7 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
   {
     lli = 10;
     for (ndigits = 1 ; lli <= world->iterations && ndigits<20 ; lli*=10 , ndigits++) {}
-    sprintf(cf_format,"%%s.rk.%%0%dlld.dat",ndigits);
+    sprintf(cf_format,"%%s.ascii.%%0%dlld.dat",ndigits);
     sprintf(cf_name,cf_format,world->molecule_prefix_name,fdlp->viz_iterationll);
     custom_file = fopen(cf_name,"w");
     if (!custom_file)

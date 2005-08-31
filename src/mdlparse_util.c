@@ -3261,6 +3261,18 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
 }
 
 
+/*************************************************************************
+pack_release_expr:
+  In: release evaluation tree (set operations) for left side of expression
+      release evaluation tree for right side of expression
+      operation
+  Out: release evaluation tree containing the two subtrees and the
+       operation
+  Note: singleton elements (with REXP_NO_OP operation) are compacted by
+        this function and held simply as the corresponding region, not
+        the NO_OP operation of that region (the operation is needed for
+        efficient parsing)
+*************************************************************************/
 struct release_evaluator* pack_release_expr(struct release_evaluator *rel,struct release_evaluator *rer,byte op)
 {
   struct release_evaluator *re = NULL;
@@ -3306,7 +3318,12 @@ struct release_evaluator* pack_release_expr(struct release_evaluator *rel,struct
 };
 
 
-
+/*************************************************************************
+common_ancestor:
+  In: an object
+      another object
+  Out: their common ancestor in the object tree, or NULL if none exists
+*************************************************************************/
 struct object* common_ancestor(struct object *a,struct object*b)
 {
   struct object *pa,*pb;
@@ -3323,6 +3340,16 @@ struct object* common_ancestor(struct object *a,struct object*b)
 }
 
 
+/*************************************************************************
+check_release_regions:
+  In: an release evaluator (set operations applied to regions)
+      the object that owns this release evaluator
+      the root object that begins the instance tree
+  Out: 0 if all regions refer to instanced objects or to a common
+       ancestor of the object with the evaluator, meaning that the
+       object can be found.  1 if any referred-to region cannot be
+       found.
+*************************************************************************/
 int check_release_regions(struct release_evaluator *rel,struct object *parent,struct object *instance)
 {
   struct object *ob;
@@ -3369,6 +3396,22 @@ int check_release_regions(struct release_evaluator *rel,struct object *parent,st
 }
 
 
+/*************************************************************************
+find_corresponding_region:
+  In: a region
+      the object that referred to that region
+      a new object that should refer to its corresponding region
+      the root object that begins the instance tree
+      the main symbol hash table for the world
+  Out: a pointer to the region that has the same relationship to the
+       new object as the given region has to the old object, or NULL
+       if there is no corresponding region.
+  Note: correspondence is computed by name mangling; if an object
+        A.B.C refers to region A.B.D,R and we have a new object E.F.G.H,
+        then the corresponding region is considered to be E.F.G.D,R
+        (i.e. go back one to find common ancestor, then go forward
+        into the thing labeled "D,R").
+*************************************************************************/
 struct region* find_corresponding_region(struct region *old_r,struct object *old_ob,struct object *new_ob,struct object *instance,struct sym_table **symhash)
 {
   struct object *ancestor;
@@ -3404,6 +3447,16 @@ struct region* find_corresponding_region(struct region *old_r,struct object *old
   }
 }
 
+/*************************************************************************
+duplicate_rel_region_expr:
+  In: a region expression tree
+      the object containing that tree
+      a new object for which we want to build a corresponding tree
+      the root object that begins the instance tree
+      the main symbol hash table for the world
+  Out: the newly constructed expression tree for the new object, or
+       NULL if no such tree can be built
+*************************************************************************/
 struct release_evaluator* duplicate_rel_region_expr(struct release_evaluator *expr,struct object *old_self,struct object *new_self,struct object *instance,struct sym_table **symhash)
 {
   struct region *r;
@@ -3456,6 +3509,17 @@ struct release_evaluator* duplicate_rel_region_expr(struct release_evaluator *ex
 }
 
 
+/*************************************************************************
+duplicate_release_site:
+  In: an existing release site object
+      the object that is to contain a duplicate release site object
+      the root object that begins the instance tree
+      the main symbol hash table for the world
+  Out: a duplicated release site object, or NULL if the release site
+       cannot be duplicated, or the old release site object if the
+       release site doesn't need to be duplicated (because it is a
+       geometrical release site)
+*************************************************************************/
 struct release_site_obj* duplicate_release_site(struct release_site_obj *old,struct object *new_self,struct object *instance,struct sym_table **symhash)
 {
   struct release_site_obj *rso;

@@ -816,7 +816,6 @@ bisect_high:
       double we are using to bisect the array
   Out: index of the smallest element in the array larger than the bisector
 *************************************************************************/
-
 int bisect_high(double *list,int n,double val)
 {
   int lo,hi,mid;
@@ -888,8 +887,11 @@ int distinguishable(double a,double b,double eps)
 
 
 
-/* Mergesort generic list based on memory order of first pointer */
-
+/*************************************************************************
+void_list_sort:
+  In: linked list contining void pointers
+  Out: linked list is mergesorted by memory address
+*************************************************************************/
 struct void_list* void_list_sort(struct void_list *vl)
 {
   struct void_list *stack[64];
@@ -1005,8 +1007,16 @@ struct void_list* void_list_sort(struct void_list *vl)
 }
 
 
-/* Mergesort generic list based on function pointer evaluation */
-/* Function is expected to return nonzero if first arg is less than or equal to 2nd */
+/*************************************************************************
+void_list_sort_by:
+  In: linked list contining void pointers
+      comparison function that compares two void pointers
+  Out: linked list is mergesorted according to function
+  Note: function should implement "less than or equal to", i.e., it
+        should return a nonzero value if the first pointer is considered
+        to be less than or equal to the second (based on contents or
+        whatever), and it should return zero otherwise.
+*************************************************************************/
 struct void_list* void_list_sort_by(struct void_list *vl,int (*leq)(void*,void*))
 {
   struct void_list *stack[64];
@@ -1122,6 +1132,14 @@ struct void_list* void_list_sort_by(struct void_list *vl,int (*leq)(void*,void*)
 }
 
 
+/*************************************************************************
+void_array_search:
+  In: array of void pointers sorted by memory address
+      length of the array
+      void pointer we're trying to find
+  Out: index of the void pointer in the array, or -1 if there is no
+       matching pointer in the list
+*************************************************************************/
 int void_array_search(void **array,int n,void *to_find)
 {
   int lo = 0;

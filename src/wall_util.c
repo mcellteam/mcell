@@ -2138,6 +2138,7 @@ int test_segment_plane(struct vector3 *a, struct vector3 *b, struct plane *p, do
    return 0;
   
 }    
+
 /***************************************************************************
 test_bounding_boxes:
   In:  llf1 - lower left corner of the 1st box
@@ -2917,6 +2918,9 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
 }
 
 
+
+
+/* Helper struct for release_onto_regions */
 struct reg_rel_helper_data
 {
   struct reg_rel_helper_data *next;
@@ -2925,6 +2929,18 @@ struct reg_rel_helper_data
   double my_area;
 };
 
+/***************************************************************************
+release_onto_regions:
+  In: a release site object
+      a template grid molecule we're going to release
+      the number of molecules to release
+  Out: 0 on success, 1 on failure.  Molecules are released uniformly at
+       random onto the free area in the regions specified by the release
+      site object.
+  Note: if there is insufficient space to place all the molecules, the
+        function will print a warning message but return success.
+  Note: if the CCNNUM method is used, the number passed in is ignored.
+***************************************************************************/
 int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,int n)
 {
   int success,failure;
@@ -2950,12 +2966,9 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
   est_sites_avail = (int)max_A;
   pick_cost = rel_list_gen_cost * est_sites_avail;
   
-  if (n==0)
+  if (rso->release_number_method == CCNNUM)
   {
-    if (rso->release_number_method == VOLNUM)
-    {
-      n = (int)( world->effector_grid_density * rso->concentration * est_sites_avail );
-    }
+    n = (int)( rso->concentration * est_sites_avail / world->effector_grid_density);
   }
   
   while (n>0)
