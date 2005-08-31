@@ -3550,7 +3550,7 @@ Release objects place molecules into three-dimensional space.
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="4" columns="2">
+<lyxtabular version="3" rows="5" columns="2">
 <features islongtable="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -3573,6 +3573,89 @@ Command
 
 \series bold 
 Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ RELEASE_SITE {
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+}
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Create a release site called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+.
+ The shape and method of release is specified later.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ CUBIC_RELEASE_SITE {
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+}
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Create a cubic release site called 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+.
+ Molecules are released in a box as specified by the radius.
+ (This is the same as using the 
+\family typewriter 
+SHAPE=CUBIC
+\family default 
+ command inside 
+\family typewriter 
+RELEASE_SITE
+\family default 
+.)
 \end_inset 
 </cell>
 </row>
@@ -3611,43 +3694,15 @@ name
 .
  Molecules are released uniformly within the sphere depending on the defined
  radius of the object.
-\end_inset 
-</cell>
-</row>
-<row topline="true">
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\layout Standard
-
-
-\family sans 
-\shape italic 
-name
+ (This is the same as using the 
 \family typewriter 
-\shape default 
- CUBIC_RELEASE_SITE {
-\family sans 
-\shape italic 
-...
-\family typewriter 
-\shape default 
-}
-\end_inset 
-</cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\layout Standard
-
-Create a cubic release site called 
-\family sans 
-\shape italic 
-name
+SHAPE=SPHERICAL
 \family default 
-\shape default 
-.
- Molecules are released in a box as specified by the radius.
+ command inside 
+\family typewriter 
+RELEASE_SITE
+\family default 
+.)
 \end_inset 
 </cell>
 </row>
@@ -3686,6 +3741,16 @@ name
 .
  Molecules are distributed on a spherical shell at the defined radius of
  the object.
+ For now, you must specify the number to distribute, not a concentration.
+ (This is the same as using the 
+\family typewriter 
+SHAPE=SPHERICAL_SHELL
+\family default 
+ command inside 
+\family typewriter 
+RELEASE_SITE
+\family default 
+.)
 \end_inset 
 </cell>
 </row>
@@ -3702,7 +3767,7 @@ The following commands define where, what, and when a release object releases
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="11" columns="2">
+<lyxtabular version="3" rows="13" columns="2">
 <features islongtable="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -3725,6 +3790,72 @@ Command
 
 \series bold 
 Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+SHAPE = 
+\family sans 
+\shape italic 
+geometry
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Release molecules in the specified shape (only used with 
+\family typewriter 
+RELEASE_SITE
+\family default 
+).
+ Valid shapes are 
+\family typewriter 
+CUBIC
+\family default 
+, 
+\family typewriter 
+SPHERICAL
+\family default 
+, and 
+\family typewriter 
+SPHERICAL_SHELL
+\family default 
+, or the name of a region on which to release.
+ The region must already be instantiated or be inside the same 
+\family typewriter 
+OBJECT
+\family default 
+ as the release site (see 
+\family typewriter 
+OBJECT
+\family default 
+ command).
+ Region names can be combined with 
+\family typewriter 
++
+\family default 
+ to indicate release on both regions, 
+\family typewriter 
+-
+\family default 
+ to indicate the release occurs on the first and not the second, and 
+\family typewriter 
+*
+\family default 
+ to indicate the release occurs only where the two regions overlap.
+ Parentheses may be used for grouping.
+ If the molecule has a 3D diffusion constant, it will be released in the
+ volume bounded by the regions and each region must be closed; otherwise,
+ it will be released on the surface.
 \end_inset 
 </cell>
 </row>
@@ -3763,6 +3894,7 @@ z
 \layout Standard
 
 The release occurs centered at this location.
+ Only used for geometrical shapes, not releases on regions.
 \end_inset 
 </cell>
 </row>
@@ -3815,6 +3947,7 @@ d
 \family default 
 \shape default 
 .
+ Not used for releases on regions.
 \end_inset 
 </cell>
 </row>
@@ -3854,6 +3987,7 @@ z
 
 Release is asymmetric with a different diameters in different directions,
  as indicated by the vector.
+ Not used for releases on regions.
 \end_inset 
 </cell>
 </row>
@@ -3913,6 +4047,41 @@ n
 \family default 
 \shape default 
  molecules.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+CONCENTRATION = 
+\family sans 
+\shape italic 
+c
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Release molecules at concentration 
+\family sans 
+\shape italic 
+c
+\family default 
+\shape default 
+ molar for volumes and 
+\family sans 
+\shape italic 
+c
+\family default 
+\shape default 
+ molecules per square micron for surfaces.
 \end_inset 
 </cell>
 </row>
@@ -6182,8 +6351,8 @@ For example, if one has partitions spaced 0.02
 \begin_inset Formula $\mu$
 \end_inset 
 
-m apart, simulation accuracy will be very poor with the default interaction
- radius of 0.01
+m apart, simulation accuracy will be poor with the default interaction radius
+ of 0.01
 \begin_inset Formula $\mu$
 \end_inset 
 
@@ -6193,6 +6362,39 @@ m.
 INTERACTION_RADIUS=0.001
 \family default 
 .
+\layout Subsection
+
+Placing molecules in the world
+\layout Standard
+
+There are two ways to place molecules on surfaces: with a release site on
+ a region, and as part of the property of a surface or region.
+ Release sites are more flexible but slower; if you do not need the flexibility
+ of release site notation, you're better off defining a region and using
+ the 
+\family typewriter 
+MOLECULE_DENSITY
+\family default 
+ or 
+\family typewriter 
+MOLECULE_NUMBER
+\family default 
+ commands to add molecules at initialization.
+\layout Standard
+
+All placement of molecules in volumes is done with release sites.
+ However, the geometrical release sites (
+\family typewriter 
+CUBIC
+\family default 
+ and 
+\family typewriter 
+SPHERICAL
+\family default 
+) require less computation to place each molecule.
+ Thus, these should be used preferentially for simple geometry.
+ To release particles at a point, use a cubic release site and set the diameter
+ to 0.
 \layout Section
 
 Example models
