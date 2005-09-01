@@ -4047,6 +4047,23 @@ n
 \family default 
 \shape default 
  molecules.
+ For releases on regions, 
+\family sans 
+\shape italic 
+n
+\family default 
+\shape default 
+ can be negative, and the release will then remove molecules of that type
+ from the region.
+ To remove all molecules of a type, just make 
+\family sans 
+\shape italic 
+n
+\family default 
+\shape default 
+ large and negative.
+ It is unwise to both add and remove molecules on the same timestep---the
+ order of addition and removal is not defined in that case.
 \end_inset 
 </cell>
 </row>
