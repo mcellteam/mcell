@@ -2929,6 +2929,78 @@ struct reg_rel_helper_data
   double my_area;
 };
 
+
+int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule *g,int n)
+{
+  struct release_region_data *rrd;
+  struct mem_helper *mh;
+  struct reg_rel_helper_data *rrhd_head,*p;
+  int n_rrhd;
+  int i,j,k;
+  struct wall *w;
+  struct grid_molecule *gp;  
+  
+  rrd = rso->region_data;
+
+  mh = create_mem( sizeof(struct reg_rel_helper_data) , 1024 );
+  if (mh==NULL) return 1;
+  
+  rrhd_head = NULL;
+  n_rrhd=0;
+  
+  for (i=0;i<rrd->n_objects;i++)
+  {
+    for (j=0;j<rrd->in_release[i]->nbits;j++)
+    {
+      if (!get_bit(rrd->in_release[i],j)) continue;
+      
+      w = rrd->owners[i]->wall_p[j];
+      
+      if (w->effectors==NULL) continue;
+      
+      for (k=0;k<w->effectors->n_tiles;k++)
+      {
+        gp = w->effectors->mol[k];
+        if (gp!=NULL)
+        {
+          if (gp->properties == g->properties)
+          {
+            p = mem_get(mh);
+            if (p==NULL) return 1;
+            
+            p->next = rrhd_head;
+            p->grid = w->effectors;
+            p->index = k;
+            rrhd_head = p;
+
+            n_rrhd++;
+          }
+        }
+      }
+    }
+  }
+
+  for (p=rrhd_head ; n<0 && n_rrhd>0 && p!=NULL ; p=p->next , n_rrhd--)
+  {
+    if (rng_dbl(world->rng) < ((double)(-n))/((double)n_rrhd))
+    {
+      gp = p->grid->mol[ p->index ];
+      gp->properties->population--;
+      if ((gp->properties->flags & COUNT_CONTENTS) != 0)
+        count_me_by_region((struct abstract_molecule*)gp,-1,NULL);
+      gp->properties = NULL;
+      p->grid->mol[ p->index ] = NULL;
+      p->grid->n_occupied--;
+
+      n++;      
+    }
+  }
+  
+  delete_mem(mh);
+  
+  return 0;
+}
+
 /***************************************************************************
 release_onto_regions:
   In: a release site object
@@ -2971,11 +3043,10 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
     n = (int)( rso->concentration * est_sites_avail / world->effector_grid_density);
   }
   
+  if (n<0) return vacuum_from_regions(rso,g,n);
+  
   while (n>0)
   {
-    success -= success>>7; /* Time-decaying sum */
-    failure -= failure>>7;
-    
     if (failure >= success+too_many_failures)
     {
       seek_cost = n*( ((double)(success+failure+2))/((double)(success+1)) );
@@ -3024,6 +3095,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
     else
     {
       mh = create_mem( sizeof(struct reg_rel_helper_data) , 1024 );
+      if (mh==NULL) return 1;
       rrhd_head = NULL;
       n_rrhd=0;
       max_A=0;

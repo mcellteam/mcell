@@ -525,12 +525,155 @@ int eval_rel_region_3d(struct release_evaluator *expr,struct waypoint *wp,struct
 
 
 /*************************************************************************
+vacuum_inside_regions:
+  In: pointer to a release site object
+      template molecule to remove
+      integer number of molecules to remove (negative)
+  Out: 0 on success, 1 on failure; molecule(s) are removed from the
+       world as specified.
+  Note: if more molecules are to be removed than actually exist, all
+        existing molecules of the specified type are removed.
+*************************************************************************/
+
+int vacuum_inside_regions(struct release_site_obj *rso,struct molecule *m,int n)
+{
+  struct molecule *mp;
+  struct release_region_data *rrd;
+  struct region_list *extra_in,*extra_out;
+  struct region_list *rl,*rl2;
+  struct waypoint *wp;
+  struct subvolume *sv = NULL;
+  int i1,i2,j1,j2,k1,k2;
+  int h,i,j,k,l;
+  struct mem_helper *mh;
+  struct void_list *vl;
+  struct void_list *vl_head = NULL;
+  int vl_num = 0;
+  double t;
+  struct vector3 hit,delta;
+  struct vector3 *origin;
+  struct wall_list *wl;
+  
+  rrd = rso->region_data;
+  
+  mh = create_mem(sizeof(struct void_list),1024);
+  if (mh==NULL) return 1;
+  
+  i1 = bisect(world->x_partitions,world->nx_parts,rrd->llf.x);
+  i2 = bisect_high(world->x_partitions,world->nx_parts,rrd->urb.x);
+  j1 = bisect(world->y_partitions,world->ny_parts,rrd->llf.y);
+  j2 = bisect_high(world->y_partitions,world->ny_parts,rrd->urb.y);
+  k1 = bisect(world->z_partitions,world->nz_parts,rrd->llf.z);
+  k2 = bisect_high(world->z_partitions,world->nz_parts,rrd->urb.z);
+  
+  for (i=i1;i<i2;i++)
+  {
+    for (j=j1;j<j2;j++)
+    {
+      for (k=k1;k<k2;k++)
+      {
+        h = k + (world->nz_parts - 1)*(j + (world->ny_parts-1)*i);
+        sv = &(world->subvol[h]);
+        
+        for (mp=sv->mol_head ; mp!=NULL ; mp=mp->next_v)
+        {
+          if (mp->properties==m->properties)
+          {
+            extra_in=extra_out=NULL;
+            wp = &(world->waypoints[sv->index]);
+            origin = &(wp->loc);
+            delta.x = mp->pos.x - origin->x;
+            delta.y = mp->pos.y - origin->y;
+            delta.z = mp->pos.z - origin->z;
+            
+            for (wl=sv->wall_head ; wl!=NULL ; wl=wl->next)
+            {
+              l = collide_wall(origin,&delta,wl->this_wall,&t,&hit);
+              
+              if (l!=COLLIDE_MISS)
+              {
+                for (rl=wl->this_wall->regions ; rl!=NULL ; rl=rl->next)
+                {
+                  if (l==COLLIDE_FRONT || l==COLLIDE_BACK)
+                  {
+                    rl2 = (struct region_list*)mem_get(sv->local_storage->regl);
+                    rl2->reg = rl->reg;
+                    
+                    if (l==COLLIDE_FRONT)
+                    {
+                      rl2->next = extra_in;
+                      extra_in = rl2;
+                    }
+                    else  /*l==COLLIDE_BACK*/
+                    {
+                      rl2->next = extra_out;
+                      extra_out = rl2;
+                    }
+                  }
+                }
+              }
+            }
+            
+            for (rl=extra_in ; rl!=NULL ; rl=rl->next)
+            {
+              if (rl->reg==NULL) continue;
+              for (rl2=extra_out ; rl2!=NULL ; rl2=rl2->next)
+              {
+                if (rl2->reg==NULL) continue;
+                if (rl->reg==rl2->reg)
+                {
+                  rl->reg = NULL;
+                  rl2->reg = NULL;
+                  break;
+                }
+              }
+            }
+
+            l = eval_rel_region_3d(rrd->expression,wp,extra_in,extra_out);
+            
+            if (l)
+            {
+              vl = (struct void_list*)mem_get(mh);
+              if (vl==NULL) return 1;
+              
+              vl->data = mp;
+              vl->next = vl_head;
+              vl_head = vl;
+              vl_num++;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  for ( vl=vl_head ; n<0 && vl_num>0 && vl!=NULL ; vl=vl->next , vl_num--)
+  {
+    if ( rng_dbl(world->rng) < ((double)(-n))/((double)vl_num) )
+    {
+      mp = (struct molecule*)vl->data;
+      mp->properties->population--;
+      mp->subvol->mol_count--;
+      if ((mp->properties->flags & COUNT_CONTENTS) != 0)
+        count_me_by_region((struct abstract_molecule*)mp,-1,NULL);
+      mp->properties = NULL;
+      
+      n++;
+    }
+  }
+  
+  delete_mem(mh);
+  return 0;
+}
+
+
+/*************************************************************************
 release_inside_regions:
   In: pointer to a release site object
       template molecule to release
       integer number of molecules to release
-  Out: 0 on success, 1 on failure; next event is scheduled and molecule(s)
-       are released into the world as specified.
+  Out: 0 on success, 1 on failure; molecule(s) are released into the
+       world as specified.
   Note: if the CCNNUM release method is used, the number of molecules
         passed in is ignored.
 *************************************************************************/
@@ -562,6 +705,8 @@ int release_inside_regions(struct release_site_obj *rso,struct molecule *m,int n
     double vol = (rrd->urb.x-rrd->llf.x)*(rrd->urb.y-rrd->llf.y)*(rrd->urb.z-rrd->llf.z);
     n = (int)(0.5 + N_AV*1e-15*rso->concentration*vol*world->length_unit*world->length_unit*world->length_unit);
   }
+  
+  if (n<0) return vacuum_inside_regions(rso,m,n);
   
   while (n>0)
   {
@@ -770,13 +915,17 @@ int release_molecules(struct release_event_queue *req)
     {
       i = release_inside_regions(rso,(struct molecule*)ap,number);
       if (i) return 1;
-      fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
+      
+      if (number>0) fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
+      else fprintf(world->log_file, "Unreleasing type = %s\n", req->release_site->mol_type->sym->name);
     }
     else
     {
       i = release_onto_regions(rso,(struct grid_molecule*)ap,number);
       if (i) return 1;
-      fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
+
+      if (number>0) fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
+      else fprintf(world->log_file, "Unreleasing type = %s\n", req->release_site->mol_type->sym->name);
     }
   }
   else  /* Guaranteed to be 3D molecule */
