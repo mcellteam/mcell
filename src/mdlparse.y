@@ -90,6 +90,7 @@ struct release_evaluator *rev;
 %token <tok> ALL_ENCLOSED
 %token <tok> ALL_EVENTS
 %token <tok> ALL_HITS
+%token <tok> AREA_OCCUPIED
 %token <tok> ASCII
 %token <tok> ASIN
 %token <tok> ASPECT_RATIO
@@ -274,6 +275,7 @@ struct release_evaluator *rev;
 %token <tok> SUM_OVER_ALL_MOLECULES
 %token <tok> SUM_OVER_ALL_TIME_STEPS
 %token <tok> SURFACE_CLASS
+%token <tok> SURFACE_MOLECULE_AREA
 %token <tok> SURFACE_POSITIONS
 %token <tok> SURFACE_STATES
 %token <tok> TAN
@@ -315,6 +317,7 @@ struct release_evaluator *rev;
 %type <tok> space_def
 %type <tok> iteration_def
 %type <tok> grid_density_def
+%type <tok> grid_area_used_def
 %type <tok> interact_radius_def
 %type <tok> radial_directions_def
 %type <tok> radial_subdivisions_def
@@ -383,6 +386,7 @@ struct release_evaluator *rev;
 %type <dbl> intOrReal 
 %type <dbl> diffusion_def
 %type <dbl> reference_diffusion_def
+%type <dbl> mol_area_used_def
 %type <dbl> mol_timestep_def
 %type <dbl> target_def
 %type <dbl> atomic_rate
@@ -517,6 +521,7 @@ mdl_stmt: time_def
 	| space_def
 	| iteration_def
 	| grid_density_def
+	| grid_area_used_def
         | interact_radius_def
 	| radial_directions_def
 	| radial_subdivisions_def
@@ -1541,6 +1546,16 @@ grid_density_def: EFFECTOR_GRID_DENSITY '=' num_expr
   fflush(stderr);
 };
 
+grid_area_used_def: SURFACE_MOLECULE_AREA '=' num_expr
+{
+  volp->default_grid_mol_area = $<dbl>3;
+  if (volp->default_grid_mol_area < 0)
+  {
+    mdlerror("Warning: surface molecule area should be zero or positive.");
+    volp->default_grid_mol_area = 0;
+  }
+};
+
 
 interact_radius_def: INTERACTION_RADIUS '=' num_expr
 {
@@ -1631,6 +1646,7 @@ molecule_stmt: new_molecule '{'
 	diffusion_def
         mol_timestep_def
 	target_def
+	mol_area_used_def
 	'}'
 {
   mdlpvp->specp->D_ref=$<dbl>4;
@@ -1680,6 +1696,13 @@ molecule_stmt: new_molecule '{'
   if ($<dbl>7 != 0.0)
   {
     mdlpvp->specp->flags |= CANT_INITIATE;
+  }
+  
+  mdlpvp->specp->area = $<dbl>8;
+  if (mdlpvp->specp->area < 0.0)
+  {
+    mdlerror("Warning: Molecule should occupy an area of 0 or greater.");
+    mdlpvp->specp->area = 0.0;
   }
   
   if (volp->r_step==NULL) {
@@ -1897,6 +1920,15 @@ target_def: /* empty */
 {
   $$=1.0;
 };
+
+mol_area_used_def:
+{
+  $$ = mdlpvp->vol->default_grid_mol_area;
+}
+	| AREA_OCCUPIED '=' num_expr
+{
+  $$ = $<dbl>3;
+}
 
 
 surface_classes_def: define_one_surface_class

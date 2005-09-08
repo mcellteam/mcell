@@ -176,6 +176,7 @@ int init_sim(void)
   world->current_start_time=0;
   world->effector_grid_density=10000;
   world->length_unit=1.0/sqrt(world->effector_grid_density);
+  world->default_grid_mol_area=1/world->effector_grid_density;
   world->rx_radius_3d = 0;
   world->max_diffusion_step=0;
   world->radial_directions=16384;
@@ -484,6 +485,7 @@ int init_species(void)
   struct sym_table *gp;
   struct species *s;
   double speed;
+  double old_dgma;
   
   world->speed_limit = 0;
   
@@ -494,6 +496,16 @@ int init_species(void)
       if (gp->sym_type==MOL) count++;
     }
   }
+  
+  old_dgma = world->default_grid_mol_area;
+  world->default_grid_mol_area *= world->effector_grid_density;
+  if (!distinguishable(world->default_grid_mol_area,1,EPS_C)) world->default_grid_mol_area = 1.0;
+  if (world->default_grid_mol_area > 1)
+  {
+    fprintf(world->err_file,"Warning: default area for surface molecules is larger than area of one grid element.\n  Resetting to be 1/EFFECTOR_GRID_DENSITY.\n");
+    world->default_grid_mol_area = 1.0;
+  }
+  
   
   world->n_species = count;
   if((world->species_list = (struct species**)malloc(sizeof(struct species*)*world->n_species)) == NULL)
@@ -513,6 +525,20 @@ int init_species(void)
         world->species_list[count]->species_id = count;
 /*        world->species_list[count]->hashval &= world->rx_hashsize-1; */
         world->species_list[count]->radius = EPS_C;
+	if (world->species_list[count]->area == old_dgma)
+	{
+	  world->species_list[count]->area = world->default_grid_mol_area;
+	}
+	else
+	{
+	  world->species_list[count]->area *= world->effector_grid_density;
+	  if (!distinguishable(world->species_list[count]->area,1,EPS_C)) world->species_list[count]->area = 1.0;
+	  if (world->species_list[count]->area > 1.0)
+	  {
+	    fprintf(world->err_file,"Warning: molecule %s has an area larger than area of one grid element.\n  Resetting to be the area of one grid element.\n",world->species_list[count]->sym->name);
+	    world->species_list[count]->area = 1.0;
+	  }
+	}
         world->species_list[count]->population = 0;
 	world->species_list[count]->n_deceased = 0;
 	world->species_list[count]->cum_lifetime = 0;

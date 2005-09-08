@@ -499,6 +499,7 @@ struct species
   double D;                     /* Diffusion constant */
   double D_ref;                 /* Reference diffusion constant */
   double radius;                /* Molecular radius */
+  double area;                  /* Surface area consumed */
   double space_step;            /* Characteristic step length */
   double time_step;             /* Minimum (maximum?) sensible timestep */
 /*short charge;*/               /* Electric charge. */
@@ -929,6 +930,7 @@ struct volume
   double length_unit;
   double effector_grid_density;
   double rx_radius_3d;
+  double default_grid_mol_area;
   double *r_step;
   double *d_step;
   double r_num_directions;

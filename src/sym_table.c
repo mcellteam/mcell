@@ -227,6 +227,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       specp->D=0.0;
       specp->D_ref=0.0;
       specp->radius=0.0;
+      specp->area=0.0;
       specp->space_step=0.0;
       specp->time_step=0.0;
       specp->flags=0;
