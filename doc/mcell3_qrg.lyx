@@ -768,7 +768,10 @@ DEFINE_MOLECULES
  a receptor and a ligand.
  Everything is a molecule, and every different bound state of a receptor
  must have a unique name (since it must be a unique molecule).
- A define molecule block can be one of the following:
+ The names must be unique in the entire simulation (not just the MDL file).
+\layout Standard
+
+A define molecule block can be one of the following:
 \layout Standard
 
 
@@ -1346,6 +1349,12 @@ products
 \family default 
 \shape default 
  list, it is destroyed in the reaction.
+ One reactant may be a surface type (see section 
+\begin_inset LatexCommand \ref{sec_surfprop}
+
+\end_inset 
+
+).
 \end_inset 
 </cell>
 </row>
@@ -2247,11 +2256,18 @@ Geometry definition commands
 \layout Subsubsection
 
 Surface properties
+\begin_inset LatexCommand \label{sec_surfprop}
+
+\end_inset 
+
+
 \layout Standard
 
 MCell3 allows the user to specify properties of the surfaces of objects.
  For example, one may wish to specify that a surface does not block the
  diffusion of molecules.
+ Each type of surface is defined by name, and each surface name must be
+ unique in the simulation and should not match any molecule names.
  Surface properties are specified inside a surface definition block:
 \layout Standard
 
