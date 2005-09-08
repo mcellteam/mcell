@@ -1238,43 +1238,33 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     {
       if (rx->n_reactants==2)
       {
-        if ( (rx->players[0]->flags & (ON_SURFACE | ON_GRID | IS_SURFACE))==0 &&
-             (rx->players[1]->flags & (ON_SURFACE | ON_GRID | IS_SURFACE))==0 )
+        if ( (rx->players[0]->flags & NOT_FREE)==0 &&
+             (rx->players[1]->flags & NOT_FREE)==0 )
         {
           rx->players[0]->flags |= CAN_MOLMOL;
           rx->players[1]->flags |= CAN_MOLMOL;
         }
-        else if ( (rx->players[0]->flags & (ON_SURFACE | ON_GRID | IS_SURFACE))==0 &&
+        else if ( (rx->players[0]->flags & NOT_FREE)==0 &&
                   (rx->players[1]->flags & (IS_SURFACE))!=0 )
         {
           rx->players[0]->flags |= CAN_MOLWALL;
         }
-        else if ( (rx->players[1]->flags & (ON_SURFACE | ON_GRID | IS_SURFACE))==0 &&
+        else if ( (rx->players[1]->flags & NOT_FREE)==0 &&
                   (rx->players[0]->flags & (IS_SURFACE))!=0 )
         {
           rx->players[1]->flags |= CAN_MOLWALL;
         }
-        else if ( (rx->players[0]->flags & (ON_SURFACE | ON_GRID | IS_SURFACE))==0 &&
+        else if ( (rx->players[0]->flags & NOT_FREE)==0 &&
                   (rx->players[1]->flags & (ON_GRID))!= 0 )
         {
           rx->players[0]->flags |= CAN_MOLGRID;
         }
-        else if ( (rx->players[1]->flags & (ON_SURFACE | ON_GRID | IS_SURFACE))==0 &&
+        else if ( (rx->players[1]->flags & NOT_FREE)==0 &&
                   (rx->players[0]->flags & (ON_GRID))!= 0 )
         {
           rx->players[1]->flags |= CAN_MOLGRID;
         }
-        else if ( (rx->players[0]->flags & (ON_SURFACE | ON_GRID | IS_SURFACE))==0 &&
-                  (rx->players[1]->flags & (ON_GRID | ON_SURFACE))==ON_SURFACE )
-        {
-          rx->players[0]->flags |= CAN_MOLSURF;
-        }
-        else if ( (rx->players[1]->flags & (ON_SURFACE | ON_GRID | IS_SURFACE))==0 &&
-                  (rx->players[0]->flags & (ON_GRID | ON_SURFACE ))==ON_SURFACE )
-        {
-          rx->players[1]->flags |= CAN_MOLSURF;
-        }
-        /* TODO: add surface/grid/wall interactions with each other. */
+        /* TODO: add grid/grid, grid/wall interactions */
       }
     }
   }

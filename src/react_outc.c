@@ -41,8 +41,7 @@ outcome_products:
 *************************************************************************/
 
 int outcome_products(struct wall *w,struct molecule *reac_m,
-  struct surface_molecule *reac_s,struct grid_molecule *reac_g,
-  struct rxn *rx,int path,struct storage *local,
+  struct grid_molecule *reac_g,struct rxn *rx,int path,struct storage *local,
   short orientA,short orientB,double t,struct vector3 *hitpt,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,
   struct abstract_molecule *moving)
@@ -51,7 +50,6 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
 
   int i;
   struct molecule *m;
-  struct surface_molecule *s;
   struct grid_molecule *g;
   struct species *p;
   struct surface_grid *sg;
@@ -78,8 +76,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
   
   plist[0] = reacA;
   if ( (reacA->properties->flags&ON_GRID)!=0 ) ptype[0] = 'g';
-  else if ( (reacA->properties->flags&ON_SURFACE)!=0 ) ptype[0] = 's';
-  else if ( (reacA->properties->flags&IS_SURFACE)==0 ) ptype[0] = 'm';
+  else if ( (reacA->properties->flags&NOT_FREE)==0 ) ptype[0] = 'm';
   else ptype[0] = '!';
   if (rx->n_reactants > 1)
   {
@@ -92,8 +89,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
     {
       plist[1] = reacB;
       if ( (reacB->properties->flags&ON_GRID)!=0 ) ptype[1] = 'g';
-      else if ( (reacB->properties->flags&ON_SURFACE)!=0 ) ptype[1] = 's';
-      else if ( (reacB->properties->flags&IS_SURFACE)==0 ) ptype[1] = 'm';
+      else if ( (reacB->properties->flags&NOT_FREE)==0 ) ptype[1] = 'm';
       else ptype[1] = '!';
     }
   }
@@ -104,31 +100,13 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
   
     if ( (p->flags & ON_GRID) != 0 )
     {
-      if (reac_g!=NULL || reac_s!=NULL || (reac_m!=NULL && w!=NULL))
+      if (reac_g!=NULL || (reac_m!=NULL && w!=NULL))
       {
         j = -1;
         if (reac_g!=NULL) /* We will replace reac_g */
         {
           j = reac_g->grid_index;
           sg = reac_g->grid;
-        }
-        else if (reac_s!=NULL)
-        {
-          sg = reac_s->curr_wall->effectors;
-          if (sg==NULL)
-          {
-            if ( create_grid(reac_s->curr_wall,reac_s->subvol) ) return RX_NO_MEM;
-            sg = reac_s->curr_wall->effectors;
-          }
-          if (sg!=NULL)
-          {
-            j = uv2grid(&(reac_s->s_pos),sg);
-            if (sg->mol[j]!=NULL)
-            {
-              j = -1; /* Slot full, no rxn */
-              return RX_BLOCKED;
-            }
-          }
         }
         else
         {
@@ -187,78 +165,6 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
         continue;
       }
     }
-    else if ( (p->flags & ON_SURFACE) != 0 )
-    {
-      printf("Don't use me.\n");
-      /* TODO: fix up so we use hitpt to set our location if avail */
-      if ( reac_s != NULL || reac_g!=NULL || (reac_m!=NULL && w!=NULL))
-      {
-        s = mem_get(local->smol);
-	if (s==NULL) return RX_NO_MEM;
-        s->birthplace = local->smol;
-	s->birthday = t;
-        s->properties = p;
-        p->population++;
-        s->flags = TYPE_SURF + ACT_NEWBIE + IN_SURFACE + IN_VOLUME + IN_SCHEDULE;
-        if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)s) != NULL)
-          s->flags += ACT_REACT;
-        
-        if (reac_s != NULL)
-        {
-          s->pos.x = reac_s->pos.x;
-          s->pos.y = reac_s->pos.y;
-          s->pos.z = reac_s->pos.z;
-          s->s_pos.u = reac_s->s_pos.u;
-          s->s_pos.v = reac_s->s_pos.v;
-          s->curr_wall = reac_s->curr_wall;
-          s->next_s = reac_s->next_s;
-          reac_s->next_s = s;
-          s->next_v = reac_s->next_v;
-          reac_s->next_v = (struct molecule*)s;
-        }
-        else
-        {
-          if (reac_m != NULL)
-          {
-            s->pos.x = reac_m->pos.x;
-            s->pos.y = reac_m->pos.y;
-            s->pos.z = reac_m->pos.z;
-            s->subvol = reac_m->subvol;
-            s->next_v = s->subvol->mol_head;
-            s->subvol->mol_head = (struct molecule*)s;
-          }
-          else
-          {
-            grid2xyz(reac_g->grid , reac_g->grid_index , &(s->pos));
-            /* Could set uv too (faster)! */
-            /* TODO: Look up subvolume. */
-          }
-          if (w != NULL) s->curr_wall = w;
-          else s->curr_wall = reac_g->grid->surface;
-          s->next_s = s->curr_wall->mol;
-          s->curr_wall->mol = s;
-          s->s_pos.u = s->pos.x * s->curr_wall->unit_u.x +
-                       s->pos.y * s->curr_wall->unit_u.y +
-                       s->pos.z * s->curr_wall->unit_u.z;
-          s->s_pos.v = s->pos.x * s->curr_wall->unit_v.x +
-                       s->pos.y * s->curr_wall->unit_v.y +
-                       s->pos.z * s->curr_wall->unit_v.z;
-        }
-        s->curr_wall->mol_count++;
-        plist[i-i0] = (struct abstract_molecule*)s;
-        ptype[i-i0] = 's';
-        s->t2 = 0.0;
-        s->t = t;
-        if ( schedule_add( local->timer , s ) ) return RX_NO_MEM;
-        
-      }
-      else
-      {
-        plist[i-i0] = NULL;
-        ptype[i-i0] = 0;
-        continue;
-      }
-    }
     else
     {
       m = mem_get(local->mol);
@@ -305,18 +211,6 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
           m->subvol->mol_head = m;
           m->subvol->mol_count++;
         }
-      }
-      else if (reac_s != NULL)
-      {
-        if (hitpt==NULL)
-        {
-          m->pos.x = reac_s->pos.x;
-          m->pos.y = reac_s->pos.y;
-          m->pos.z = reac_s->pos.z;
-        }
-        m->subvol = reac_s->subvol;
-        m->next_v = m->subvol->mol_head;
-        m->subvol->mol_head = m;
       }
       else if (reac_g != NULL)
       {
@@ -376,11 +270,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       
 //      if (i-i0 < rx->n_reactants && porient[i-i0]==0) continue;
 
-      if (ptype[i-i0]=='s')
-      {
-        ((struct surface_molecule*)plist[i-i0])->orient = porient[i-i0];
-      }
-      else if (ptype[i-i0]=='g')
+      if (ptype[i-i0]=='g')
       {
         ((struct grid_molecule*)plist[i-i0])->orient = porient[i-i0];
       }
@@ -442,23 +332,18 @@ int outcome_unimolecular(struct rxn *rx,int path,
   struct species *who_was_i = reac->properties;
   int result = RX_A_OK;
   
-  if ((reac->properties->flags & (ON_GRID | ON_SURFACE)) == 0)
+  if ((reac->properties->flags & NOT_FREE) == 0)
   {
     struct molecule *m = (struct molecule*)reac;
-    result = outcome_products(NULL,m,NULL,NULL,rx,path,m->subvol->local_storage,
+    result = outcome_products(NULL,m,NULL,rx,path,m->subvol->local_storage,
                               0,0,t,NULL,reac,NULL,NULL);
   }
-  else if ((reac->properties->flags & ON_GRID) != 0)
+  else
   {
     struct grid_molecule *g = (struct grid_molecule*) reac;
-    result = outcome_products(g->grid->surface,NULL,NULL,g,rx,path,
+    result = outcome_products(g->grid->surface,NULL,g,rx,path,
                               g->grid->subvol->local_storage,
                               g->orient,0,t,NULL,reac,NULL,NULL);
-  }
-  else if ((reac->properties->flags & ON_SURFACE) != 0)
-  {
-    struct surface_molecule *s = (struct surface_molecule*)reac;
-    result = outcome_products(s->curr_wall,NULL,s,NULL,rx,path,s->subvol->local_storage,s->orient,0,t,NULL,reac,NULL,NULL);
   }
   
   if (result==RX_NO_MEM) return RX_NO_MEM;
@@ -469,17 +354,17 @@ int outcome_unimolecular(struct rxn *rx,int path,
   
   if (who_am_i == NULL)
   {
-    if ((reac->properties->flags & ON_GRID) != 0)
+    if ((reac->properties->flags & NOT_FREE)==0)
+    {
+      struct molecule *m = (struct molecule*)reac;
+      m->subvol->mol_count--;
+    }
+    else
     {
       struct grid_molecule *g = (struct grid_molecule*) reac;
       
       if (g->grid->mol[g->grid_index]==g) g->grid->mol[ g->grid_index ] = NULL;
       g->grid->n_occupied--;
-    }
-    else if ((reac->properties->flags & NOT_FREE)==0)
-    {
-      struct molecule *m = (struct molecule*)reac;
-      m->subvol->mol_count--;
     }
 
     if ((reac->properties->flags & COUNT_CONTENTS) != 0)
@@ -517,22 +402,16 @@ int outcome_bimolecular(struct rxn *rx,int path,
   short orientA,short orientB,double t,struct vector3 *hitpt)
 {
   struct grid_molecule *g = NULL;
-  struct surface_molecule *s = NULL;
   struct molecule *m = NULL;
   struct wall *w = NULL;
   struct storage *x;
   int result;
   
-  if ((reacA->properties->flags & (ON_GRID | ON_SURFACE)) == 0)
+  if ((reacA->properties->flags & NOT_FREE) == 0)
   {
     m = (struct molecule*) reacA;
     x = m->subvol->local_storage;
-    if ((reacB->properties->flags & ON_SURFACE) != 0)
-    {
-      s = (struct surface_molecule*)reacB;
-      w = s->curr_wall;
-    }
-    else if ((reacB->properties->flags & ON_GRID) != 0)
+    if ((reacB->properties->flags & ON_GRID) != 0)
     {
       g = (struct grid_molecule*)reacB;
       w = g->grid->surface;
@@ -543,38 +422,23 @@ int outcome_bimolecular(struct rxn *rx,int path,
       x = m->subvol->local_storage;
     }
   }
-  else if ( (reacA->properties->flags & ON_GRID) == 0 )
-  {
-    s = (struct surface_molecule*)reacA;
-    x = s->subvol->local_storage;
-    w = s->curr_wall;
-    
-    if ((reacB->properties->flags & ON_GRID) != 0)
-    {
-      g = (struct grid_molecule*)reacB;
-    }
-    else if ((reacB->properties->flags & (ON_GRID | ON_SURFACE)) == 0)
-    {
-      m = (struct molecule*)reacB;
-    }
-  }
   else /* Grid molecule */
   {
     g = (struct grid_molecule*)reacA;
     x = g->grid->surface->birthplace;
     w = g->grid->surface;
     
-    if ((reacB->properties->flags & ON_SURFACE) == 0)
+    if ((reacB->properties->flags & NOT_FREE) == 0)
     {
       m = (struct molecule*)reacB;
     }
     else /* Must be surface */
     {
-      s = (struct surface_molecule*)reacA;
+      /* TODO: handle this case */
     }
   }
   
-  result = outcome_products(w,m,s,g,rx,path,x,orientA,orientB,t,hitpt,reacA,reacB,reacA);
+  result = outcome_products(w,m,g,rx,path,x,orientA,orientB,t,hitpt,reacA,reacB,reacA);
   
   if (result==RX_NO_MEM) return RX_NO_MEM;
   else if (result==RX_BLOCKED) return RX_BLOCKED;
@@ -716,11 +580,11 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
 
   index = rx->product_idx[path];
 
-  if ((reac->properties->flags & (ON_GRID | ON_SURFACE)) == 0)
+  if ((reac->properties->flags & NOT_FREE) == 0)
   {
     struct molecule *m = (struct molecule*) reac;
     
-    result = outcome_products(surface,m,NULL,NULL,rx,path,m->subvol->local_storage,orient,0,t,hitpt,reac,NULL,reac);
+    result = outcome_products(surface,m,NULL,rx,path,m->subvol->local_storage,orient,0,t,hitpt,reac,NULL,reac);
 
     if (result==RX_NO_MEM) return RX_NO_MEM;
     else if (result == RX_BLOCKED) return RX_A_OK;
@@ -742,33 +606,8 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   }
   else /* Grid can't intersect, so this must be a surface molecule */
   {
-    /* TODO: fix this to look like 3D molecule case. */
-    struct surface_molecule *s = (struct surface_molecule*) reac;
-
-    if (index+2==rx->product_idx[path+1] &&
-        rx->geometries[ rx->product_idx[path] ] == 1)
-    {
-      return RX_A_OK;
-    }
-    else
-    {
-      result = outcome_products(surface,NULL,s,NULL,rx,path,s->subvol->local_storage,orient,0,t,hitpt,reac,NULL,reac);
-      
-      if (result==RX_NO_MEM) return RX_NO_MEM;
-      if (result==RX_BLOCKED) return RX_A_OK;
-
-      rx->pathway_head[path].count++;
-
-      if (rx->players[ rx->product_idx[path] ] == NULL)
-      {
-	reac->properties->n_deceased++;
-	reac->properties->cum_lifetime += t - reac->birthday;
-        reac->properties->population--;
-        reac->properties = NULL;
-        return RX_DESTROY;
-      }
-      else return result;
-    }
+    /* TODO: write this for grid molecule case. */
+    return RX_A_OK;
   }
 }
 

@@ -555,10 +555,6 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
       }
     } 
   }
-  else if ((sp->flags & ON_SURFACE) != 0)
-  {
-    /* Not implemented */
-  }
   
   if ((sp->flags & NOT_FREE)==0 || (sp->flags&COUNT_ENCLOSED)!=0) /* Free molecule */
   {

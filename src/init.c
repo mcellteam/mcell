@@ -519,7 +519,7 @@ int init_species(void)
         if(world->species_list[count]->viz_state < 0){
         	world->species_list[count]->viz_state = EXCLUDE_OBJ;
         }
-        if ( (s->flags & (ON_SURFACE | ON_GRID)) == 0 )
+        if ( (s->flags & NOT_FREE) == 0 )
         {
           speed = 6.0*s->space_step/sqrt(MY_PI);
           if (speed > world->speed_limit) world->speed_limit = speed;
@@ -647,7 +647,6 @@ int init_partitions(void)
   
   shared_mem->list = create_mem(sizeof(struct wall_list),128);
   shared_mem->mol  = create_mem(sizeof(struct molecule),128);
-  shared_mem->smol  = create_mem(sizeof(struct surface_molecule),128);
   shared_mem->gmol  = create_mem(sizeof(struct grid_molecule),128);
   shared_mem->face = create_mem(sizeof(struct wall),128);
   shared_mem->join = create_mem(sizeof(struct edge),128);
@@ -657,8 +656,8 @@ int init_partitions(void)
   shared_mem->regl = create_mem(sizeof(struct region_list),128);
   shared_mem->exdv = create_mem(sizeof(struct exd_vertex),64);
   
-  if (shared_mem->list==NULL || shared_mem->mol==NULL ||
-      shared_mem->smol==NULL || shared_mem->gmol==NULL ||
+  if (shared_mem->list==NULL ||
+      shared_mem->mol==NULL  || shared_mem->gmol==NULL ||
       shared_mem->face==NULL || shared_mem->join==NULL ||
       shared_mem->tree==NULL || shared_mem->effs==NULL ||
       shared_mem->coll==NULL || shared_mem->regl==NULL ||

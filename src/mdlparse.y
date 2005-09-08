@@ -1840,13 +1840,12 @@ existing_molecule: VAR
 
 diffusion_def: DIFFUSION_CONSTANT_3D '=' num_expr
 {
-  mdlpvp->specp->flags -= (mdlpvp->specp->flags & (ON_SURFACE | ON_GRID));
+  mdlpvp->specp->flags -= (mdlpvp->specp->flags & ON_GRID);
   $$=$<dbl>3;
 }
 	| DIFFUSION_CONSTANT_2D '=' num_expr
 {
-  if ($<dbl>3 == 0.0) mdlpvp->specp->flags |= ON_GRID;
-  else mdlpvp->specp->flags |= ON_SURFACE;
+  mdlpvp->specp->flags |= ON_GRID;
   $$=$<dbl>3;
 };
 

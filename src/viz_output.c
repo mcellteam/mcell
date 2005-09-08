@@ -2360,13 +2360,12 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
          num=viz_mol_count[spec_id];
          if (state!=EXCLUDE_OBJ
              && num!=species_list[ii]->population
-             && ((species_list[ii]->flags & NOT_FREE)==0) 
-             && ((species_list[ii]->flags & ON_SURFACE)==0)) {
+             && ((species_list[ii]->flags & NOT_FREE)==0)) {
              fprintf(log_file,"MCell: molecule count disagreement!!\n");
              fprintf(log_file,"  Species %s  population = %d  count = %d\n",species_list[ii]->sym->name,species_list[ii]->population,num);
          }
       }
-      if (viz_mol_count[spec_id]>0 && ((species_list[ii]->flags & NOT_FREE) == 0) && ((species_list[ii]->flags & ON_SURFACE) == 0)) {
+      if (viz_mol_count[spec_id]>0 && ((species_list[ii]->flags & NOT_FREE) == 0)) {
         /* here are 3D diffusing molecules */
         num = viz_mol_count[spec_id];
       	  
@@ -3762,13 +3761,12 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
          num=viz_mol_count[spec_id];
          if (state!=EXCLUDE_OBJ
              && num!=species_list[ii]->population
-             && ((species_list[ii]->flags & NOT_FREE)==0) 
-             && ((species_list[ii]->flags & ON_SURFACE)==0)) {
+             && ((species_list[ii]->flags & NOT_FREE)==0)) {
              fprintf(log_file,"MCell: molecule count disagreement!!\n");
              fprintf(log_file,"  Species %s  population = %d  count = %d\n",species_list[ii]->sym->name,species_list[ii]->population,num);
          }
       }
-      if (viz_mol_count[spec_id]>0 && ((species_list[ii]->flags & NOT_FREE) == 0) && ((species_list[ii]->flags & ON_SURFACE) == 0)) {
+      if (viz_mol_count[spec_id]>0 && ((species_list[ii]->flags & NOT_FREE) == 0)) {
 
         /* here are 3D diffusing molecules */
         num = viz_mol_count[spec_id];
@@ -4135,7 +4133,6 @@ int output_rk_custom(struct frame_data_list *fdlp)
   struct abstract_molecule *amp;
   struct molecule *mp;
   struct grid_molecule *gmp;
-  struct surface_molecule *smp;
   short orient = 0;
   struct species *target;
   
@@ -4194,14 +4191,6 @@ int output_rk_custom(struct frame_data_list *fdlp)
 		where.y = mp->pos.y;
 		where.z = mp->pos.z;
 	      }
-	      else if ((amp->properties->flags & ON_SURFACE)!=0)
-	      {
-		smp = (struct surface_molecule*)amp;
-		where.x = smp->pos.x;
-		where.y = smp->pos.y;
-		where.z = smp->pos.z;
-		orient = smp->orient;
-	      }
 	      else if ((amp->properties->flags & ON_GRID)!=0)
 	      {
 		gmp = (struct grid_molecule*)amp;
@@ -4249,7 +4238,6 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
   struct abstract_molecule *amp;
   struct molecule *mp;
   struct grid_molecule *gmp;
-  struct surface_molecule *smp;
   short orient = 0;
   
   int ndigits,i;
@@ -4298,14 +4286,6 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
               where.x = mp->pos.x;
               where.y = mp->pos.y;
               where.z = mp->pos.z;
-            }
-            else if ((amp->properties->flags & ON_SURFACE)!=0)
-            {
-              smp = (struct surface_molecule*)amp;
-              where.x = smp->pos.x;
-              where.y = smp->pos.y;
-              where.z = smp->pos.z;
-              orient = smp->orient;
             }
             else if ((amp->properties->flags & ON_GRID)!=0)
             {

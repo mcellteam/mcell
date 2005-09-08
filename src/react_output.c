@@ -39,7 +39,6 @@ int emergency_output()
   {
     delete_mem( mem->store->list );
     delete_mem( mem->store->mol );
-    delete_mem( mem->store->smol );
     delete_mem( mem->store->gmol );
     delete_mem( mem->store->face );
     delete_mem( mem->store->join );

@@ -20,8 +20,7 @@ void check_probs(struct rxn *rx,double t);
 
 
 int outcome_products(struct wall *w,struct molecule *reac_m,
-  struct surface_molecule *reac_s,struct grid_molecule *reac_g,
-  struct rxn *rx,int path,struct storage *local,
+  struct grid_molecule *reac_g,struct rxn *rx,int path,struct storage *local,
   short orientA,short orientB,double t,struct vector3 *hitpt,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,
   struct abstract_molecule *moving);

@@ -18,19 +18,16 @@
 
 /* Species flags */
    /* Walls have IS_SURFACE set, molecules do not. */
-   /* Surface and grid molecules have ON_SURFACE set */
    /* Grid molecules have ON_GRID set */
    /* COUNT_ENCLOSED set if you count what happens inside closed region */
    /* (otherwise only count stuff happening at the surface) */
-#define ON_SURFACE       0x01
-#define ON_GRID          0x02
-#define IS_SURFACE       0x04
-#define NOT_FREE         0x07
-#define TIME_VARY        0x08
+#define ON_GRID          0x01
+#define IS_SURFACE       0x02
+#define NOT_FREE         0x03
+#define TIME_VARY        0x04
 #define CAN_MOLMOL       0x10
 #define CAN_MOLGRID      0x20
-#define CAN_MOLSURF      0x40
-#define CAN_MOLWALL      0x80
+#define CAN_MOLWALL      0x40
 #define CANT_INITIATE    0x100
 #define COUNT_CONTENTS   0x1000
 #define COUNT_HITS       0x2000
@@ -180,16 +177,14 @@
 
 
 /* Abstract molecule flags */
-/* RULES: only one of TYPE_GRID, TYPE_3D, TYPE_SURF set. */
-/*   Only TYPE_3D and TYPE_SURF can ACT_DIFFUSE */
+/* RULES: only one of TYPE_GRID, TYPE_3D set. */
 /*   ACT_NEWBIE beats ACT_INERT beats ACT_REACT */
 /*   Can free up memory when nothing in IN_MASK */
 
 /* Molecule type--grid molecule, 3D molecule, or surface molecule */
-#define TYPE_GRID 0x001
+#define TYPE_GRID   0x001
 #define TYPE_3D   0x002
-#define TYPE_SURF 0x004
-#define TYPE_MASK 0x007
+#define TYPE_MASK 0x003
 
 /* NEWBIE molecules get scheduled before anything else happens to them. */
 /* INERT molecules don't react, REACT molecules do */
@@ -628,33 +623,6 @@ struct molecule
 };
 
 
-/* Freely diffusing or fixed molecules on a surface */
-/* Same as struct molecule with extra stuff tacked on end */
-struct surface_molecule
-{
-  struct abstract_molecule *next;
-  double t;
-  double t2;
-  short flags;
-  struct species *properties;
-  struct mem_helper *birthplace;
-  double birthday;
-  
-  struct vector3 pos;               /* Position in the world */
-  struct subvolume *subvol;         /* Partition we're in */
-
-  struct region_data *curr_region;  /* Region we are in (for counting) */
-
-  struct molecule *next_v;          /* Next molecule in this volume */
-
-  short orient;                     /* Facing up or down? */
-  struct vector2 s_pos;             /* Position in surface coordinates */
-  struct wall *curr_wall;           /* The surface element we are on */
-  
-  struct surface_molecule *next_s;  /* Next molecule on this surface */
-};
-
-
 /* Fixed molecule on a grid on a surface */
 struct grid_molecule
 {
@@ -669,6 +637,10 @@ struct grid_molecule
   int grid_index;              /* Which gridpoint do we occupy? */
   short orient;                /* Which way do we point? */
   struct surface_grid *grid;   /* Our grid (which tells us our surface) */
+  struct vector2 s_pos;        /* Where are we in surface coordinates? */
+  
+  struct grid_molecule *prev_g; /* Doubly linked list of molecules */
+  struct grid_molecule *next_g; /* at this grid index */
 };
 
 
@@ -775,7 +747,6 @@ struct storage
 {
   struct mem_helper *list;  /* Wall lists */
   struct mem_helper *mol;   /* Molecules */
-  struct mem_helper *smol;  /* Surface molecules */
   struct mem_helper *gmol;  /* Grid molecules */
   struct mem_helper *face;  /* Walls */
   struct mem_helper *join;  /* Edges */
