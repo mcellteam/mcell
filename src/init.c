@@ -1837,6 +1837,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
         mol->properties=eff[p_index];
         mol->birthplace=w->birthplace->gmol;
         mol->grid_index=i;
+	grid2uv(sg,i,&(mol->s_pos));
         mol->orient=orientation[p_index];
         mol->grid=sg;
 
@@ -2045,6 +2046,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   mol->properties=eff;
                   mol->birthplace=walls[j]->birthplace->gmol;
                   mol->grid_index=index[j];
+		  grid2uv(walls[j]->effectors,index[j],&(mol->s_pos));
                   mol->orient=orientation;
                   mol->grid=walls[j]->effectors;
                   mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
@@ -2088,6 +2090,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     mol->properties=eff;
                     mol->birthplace=walls[k]->birthplace->gmol;
                     mol->grid_index=index[k];
+		    grid2uv(walls[k]->effectors,index[k],&(mol->s_pos));
                     mol->orient=orientation;
                     mol->grid=walls[k]->effectors;
                     mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;

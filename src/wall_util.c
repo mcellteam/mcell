@@ -3074,6 +3074,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
         memcpy(new_g,g,sizeof(struct grid_molecule));
         new_g->birthplace = w->effectors->subvol->local_storage->gmol;
         new_g->grid_index = j;
+	grid2uv(w->effectors,j,&(new_g->s_pos));
         new_g->orient = rso->orientation;
         new_g->grid = w->effectors;
         
@@ -3145,6 +3146,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           memcpy(new_g,g,sizeof(struct grid_molecule));
           new_g->birthplace = p->grid->subvol->local_storage->gmol;
           new_g->grid_index = p->index;
+	  grid2uv(p->grid,p->index,&(new_g->s_pos));
           new_g->orient = rso->orientation;
           new_g->grid = p->grid;
           

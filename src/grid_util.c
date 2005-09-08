@@ -16,6 +16,38 @@
 
 
 /*************************************************************************
+xyz2uv and uv2xyz:
+  In: 2D and 3D vectors and a wall
+  Out: first vector is converted to 2nd vector
+       WARNING: no error checking--point assumed to be valid!
+*************************************************************************/
+void xyz2uv(struct vector3 *a,struct wall *w,struct vector2 *b)
+{
+  if (w->effectors)
+  {
+    b->u = a->x * w->unit_u.x + a->y * w->unit_u.y + a->z * w->unit_u.z - w->effectors->vert0.u;
+    b->v = a->x * w->unit_v.x + a->y * w->unit_v.y + a->z * w->unit_v.z - w->effectors->vert0.v;
+  }
+  else
+  {
+    struct vector3 p;
+    p.x = a->x - w->vert[0]->x;
+    p.y = a->y - w->vert[0]->y;
+    p.z = a->z - w->vert[0]->z;
+    b->u = p.x * w->unit_u.x + p.y * w->unit_u.y + p.z * w->unit_u.z;
+    b->v = p.x * w->unit_v.x + p.y * w->unit_v.y + p.z * w->unit_v.z;
+  }
+}
+
+void uv2xyz(struct vector2 *a,struct wall *w,struct vector3 *b)
+{
+  b->x = a->u * w->unit_u.x + a->v * w->unit_v.x + w->vert[0]->x;
+  b->y = a->u * w->unit_u.y + a->v * w->unit_v.y + w->vert[0]->y;
+  b->z = a->u * w->unit_u.z + a->v * w->unit_v.z + w->vert[0]->z;
+}
+
+
+/*************************************************************************
 xyz2grid and uv2grid:
   In: a vector and a surface grid
   Out: int containing the index on the grid of that vector

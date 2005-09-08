@@ -141,6 +141,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
           g->t = t;
           g->t2 = 0.0;
           g->grid_index = j;
+	  grid2uv(sg,j,&(g->s_pos));
           g->grid = sg;
           
           if (reac_g==NULL || sg->mol[j]!=reac_g) sg->n_occupied++;
@@ -214,7 +215,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       }
       else if (reac_g != NULL)
       {
-        if (hitpt==NULL) grid2xyz(reac_g->grid , reac_g->grid_index , &(m->pos));
+        if (hitpt==NULL) uv2xyz(&(reac_g->s_pos) , reac_g->grid->surface , &(m->pos));
         m->subvol = find_subvolume(&(m->pos),reac_g->grid->subvol);
       }
       plist[i-i0] = (struct abstract_molecule*)m;

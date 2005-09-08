@@ -3,6 +3,9 @@
 
 #include "mcell_structs.h"
 
+void xyz2uv(struct vector3 *a,struct wall *w,struct vector2 *b);
+void uv2xyz(struct vector2 *a,struct wall *w,struct vector3 *b);
+
 int xyz2grid(struct vector3 *v,struct surface_grid *g);
 void grid2xyz(struct surface_grid *g,int index,struct vector3 *v);
 

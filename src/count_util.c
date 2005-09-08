@@ -584,7 +584,7 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
       
       g = (struct grid_molecule*)me;
       m = NULL;
-      grid2xyz(g->grid,g->grid_index,&loc);
+      uv2xyz(&(g->s_pos),g->grid->surface,&loc);
     }
       
     i = bisect(world->x_partitions,world->nx_parts,loc.x);

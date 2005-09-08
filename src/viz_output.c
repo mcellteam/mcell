@@ -4194,7 +4194,7 @@ int output_rk_custom(struct frame_data_list *fdlp)
 	      else if ((amp->properties->flags & ON_GRID)!=0)
 	      {
 		gmp = (struct grid_molecule*)amp;
-		grid2xyz(gmp->grid,gmp->grid_index,&where);
+		uv2xyz(&(gmp->s_pos),gmp->grid->surface,&where);
 		orient = gmp->orient;
 	      }
 	      else continue;
@@ -4290,7 +4290,7 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
             else if ((amp->properties->flags & ON_GRID)!=0)
             {
               gmp = (struct grid_molecule*)amp;
-              grid2xyz(gmp->grid,gmp->grid_index,&where);
+              uv2xyz(&(gmp->s_pos),gmp->grid->surface,&where);
               orient = gmp->orient;
             }
             else continue;
