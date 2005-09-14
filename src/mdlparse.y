@@ -2688,7 +2688,15 @@ release_site_def_new: new_object RELEASE_SITE '{'
   no_printf("Release site %s defined:\n",mdlpvp->curr_obj->sym->name);
   if (mdlpvp->rsop->release_shape!=SHAPE_REGION)
   {
+    if (mdlpvp->rsop->location==NULL)
+    {
+      mdlerror("Release site is missing location.\n");
+      return 1;
+    }
     no_printf("\tLocation = [%f,%f,%f]\n",mdlpvp->rsop->location->x,mdlpvp->rsop->location->y,mdlpvp->rsop->location->z);
+    mdlpvp->rsop->location->x/=mdlpvp->vol->length_unit;
+    mdlpvp->rsop->location->y/=mdlpvp->vol->length_unit;
+    mdlpvp->rsop->location->z/=mdlpvp->vol->length_unit;
   }
   mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
   if (mdlpvp->object_name_list_end->prev!=NULL) {
