@@ -4300,8 +4300,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
    reflectee = NULL;
 
 #ifdef USE_EXPANDED_COLLISION_LIST 
-    /*shead = expand_collision_list_full(m, sv, shead); */ 
-    shead = expand_collision_list_partial(m, &displacement, sv, shead);  
+    /*shead = expand_collision_list_full(m, sv, shead); */
+    if((m->properties->flags & CAN_MOLMOL) != 0){ 
+    	shead = expand_collision_list_partial(m, &displacement, sv, shead);
+    }  
 #endif 
 
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
@@ -4311,7 +4313,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 #ifdef USE_EXPANDED_COLLISION_LIST 
     if(redo_expand_collision_list_flag)
     {
-    	shead = expand_collision_list_partial(m, &displacement, sv, shead);  
+      if((m->properties->flags & CAN_MOLMOL) != 0){ 
+    	  shead = expand_collision_list_partial(m, &displacement, sv, shead);
+      }  
     }
 #endif 
     shead2 = ray_trace(m,shead,sv,&displacement,reflectee);
