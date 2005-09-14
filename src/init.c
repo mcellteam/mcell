@@ -198,7 +198,7 @@ int init_sim(void)
   world->y_fineparts = NULL;
   world->z_fineparts = NULL;
   world->n_fineparts = 0;
-
+  world->my_counter = 0;
 
   world->rng = malloc(sizeof(struct rng_state));
   if (world->rng==NULL)
@@ -341,7 +341,7 @@ int init_sim(void)
   }
   no_printf("Done parsing MDL file: %s\n",world->mdl_infile_name);
   fflush(stderr);
-  
+ 
   /* Set up the array of species */
   if (init_species())
   {
@@ -400,7 +400,6 @@ int init_sim(void)
       return 1;
     }
   }
-
 
   /* Decompose the space into subvolumes */
 /*
@@ -1130,7 +1129,8 @@ int compute_bb_release_site(struct object *objp, double (*im)[4])
   struct release_site_obj *rsop;
   double location[1][4];
   unsigned short l,m,n;
-
+  double diam_x, diam_y, diam_z; /* diameters of the release_site */ 
+ 
   rsop=(struct release_site_obj *)objp->contents;
   
   if (rsop->release_shape == SHAPE_REGION) return 0;
@@ -1143,23 +1143,33 @@ int compute_bb_release_site(struct object *objp, double (*im)[4])
   location[0][2]=rsop->location->z;
   location[0][3]=1.0;
   mult_matrix(location,im,location,l,m,n);
-  if (location[0][0]/world->length_unit<world->bb_min.x) {
-    world->bb_min.x=location[0][0]/world->length_unit;
+  
+  if(rsop->diameter == NULL){
+	diam_x = diam_y = diam_z = 0;
+  }else{
+        diam_x = rsop->diameter->x;
+        diam_y = rsop->diameter->y;
+        diam_z = rsop->diameter->z;
   }
-  if (location[0][1]/world->length_unit<world->bb_min.y) {
-    world->bb_min.y=location[0][1]/world->length_unit;
+
+
+  if (location[0][0]  - diam_x < world->bb_min.x) {
+    world->bb_min.x=location[0][0] - diam_x;
   }
-  if (location[0][2]/world->length_unit<world->bb_min.z) {
-    world->bb_min.z=location[0][2]/world->length_unit;
+  if (location[0][1] - diam_y < world->bb_min.y) {
+    world->bb_min.y=location[0][1] - diam_y;
   }
-  if (location[0][0]/world->length_unit>world->bb_max.x) {
-    world->bb_max.x=location[0][0]/world->length_unit;
+  if (location[0][2] - diam_z < world->bb_min.z) {
+    world->bb_min.z=location[0][2] - diam_z;
   }
-  if (location[0][1]/world->length_unit>world->bb_max.y) {
-    world->bb_max.y=location[0][1]/world->length_unit;
+  if (location[0][0] + diam_x > world->bb_max.x) {
+    world->bb_max.x=location[0][0] + diam_x;
   }
-  if (location[0][2]/world->length_unit>world->bb_max.z) {
-    world->bb_max.z=location[0][2]/world->length_unit;
+  if (location[0][1] + diam_y > world->bb_max.y) {
+    world->bb_max.y=location[0][1] + diam_y;
+  }
+  if (location[0][2] + diam_z > world->bb_max.z) {
+    world->bb_max.z=location[0][2] + diam_z;
   }
 
   return(0);
@@ -2436,7 +2446,7 @@ int init_effector_grid(struct wall *wp)
     }
     n=2*grid_size*grid_size;
     binding_factor=n/area;
-    no_printf("binding_factor = %g\n",binding_factor);
+    printf("binding_factor = %g\n",binding_factor);
     r_slope=(wp->length_first/wp->length_last);
     diag_x=wp->length_first;
     diag_y=wp->length_last;
@@ -2467,7 +2477,7 @@ int init_effector_grid(struct wall *wp)
     }
     n=grid_size*grid_size;
     binding_factor=n/area;
-    no_printf("binding_factor = %g\n",binding_factor);
+    printf("binding_factor = %g\n",binding_factor);
     p_b.x=wp->length_first;
     p_b.y=0;
     p_b.z=0;
