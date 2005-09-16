@@ -37,6 +37,8 @@ void run_sim(void)
   double next_release_time;
   int i;
   int first_report;
+  /* used to suppress printing some warning messages when the reactant is a surface */
+  int do_not_print;
   /*int count;
   long long total_coll_1,total_coll_2;
   double total_len;*/
@@ -88,7 +90,7 @@ void run_sim(void)
       fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
       exit( EXIT_FAILURE );
     }
-
+    
     for ( obp=schedule_next(world->count_scheduler) ;
           obp!=NULL || not_yet>=world->count_scheduler->now ;
 	  obp=schedule_next(world->count_scheduler) )
@@ -109,7 +111,7 @@ void run_sim(void)
       fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
       exit( EXIT_FAILURE );
     }
-
+    
     update_frame_data_list(world->frame_data_head);
     
     if (world->it_time>=world->iterations) break; /* Output only on last loop */
@@ -197,12 +199,23 @@ void run_sim(void)
     
     for (rxp = world->reaction_hash[i] ; rxp != NULL ; rxp = rxp->next)
     {
+       do_not_print = 0;
+       /* skip printing messages if one of the reactants is a surface */
+	for (j=0;j<rxp->n_reactants;j++)
+	{
+	  if((rxp->players[j]->flags & IS_SURFACE) != 0) {
+		do_not_print = 1;
+          }
+	}
+             
+        if(do_not_print == 1) continue;
+
       if (rxp->n_occurred < rxp->n_skipped*1000)
       {
 	if (first_report)
 	{
 	  fprintf(world->log_file,"\nWARNING: some reactions were missed because reaction probability exceeded 1.\n");
-	  first_report=0;
+	  first_report=0; 
 	}
 	fprintf(world->log_file,"  ");
 	for (j=0;j<rxp->n_reactants;j++)
@@ -298,7 +311,7 @@ void run_sim(void)
 #endif
 
   printf("Exiting run loop.\n");
-
+ 
 }
 
 int main(int argc, char **argv) {
@@ -378,10 +391,9 @@ int main(int argc, char **argv) {
     fprintf(log_file,"MCell: error initializing simulation\n");
     exit(EXIT_FAILURE);
   }
-
   printf("Running...\n");
   run_sim();
   printf("Done running.\n");
-  
+
   exit(0);
 }
