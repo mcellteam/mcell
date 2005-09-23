@@ -83,6 +83,7 @@ struct release_evaluator *rev;
 
 %token <tok> ABS
 %token <tok> ABSORPTIVE
+%token <tok> ACCURATE_3D_REACTIONS
 %token <tok> ACOS
 %token <tok> ALL_DATA
 %token <tok> ALL_CROSSINGS
@@ -103,6 +104,7 @@ struct release_evaluator *rev;
 %token <tok> BOTTOM
 %token <tok> BOX
 %token <tok> CEIL
+%token <tok> CENTER_MOLECULES_ON_GRID
 %token <tok> CHARGE
 %token <tok> CHECKPOINT_INFILE
 %token <tok> CHECKPOINT_OUTFILE
@@ -321,6 +323,9 @@ struct release_evaluator *rev;
 %type <tok> interact_radius_def
 %type <tok> radial_directions_def
 %type <tok> radial_subdivisions_def
+%type <tok> optional_flag_def
+%type <tok> optional_flag_randomgrid_def
+%type <tok> optional_flag_expandlist_def
 %type <tok> assignment_stmt
 %type <tok> partition_def
 %type <tok> molecules_def
@@ -520,6 +525,7 @@ mdl_stmt: time_def
         | time_max_def
 	| space_def
 	| iteration_def
+	| optional_flag_def
 	| grid_density_def
 	| grid_area_used_def
         | interact_radius_def
@@ -1483,6 +1489,18 @@ if (volp->iterations==0) {
 }
 no_printf("Iterations = %d\n",volp->iterations);
 fflush(stderr);
+};
+
+optional_flag_def: optional_flag_randomgrid_def | optional_flag_expandlist_def;
+
+optional_flag_randomgrid_def: CENTER_MOLECULES_ON_GRID '=' boolean
+{
+  mdlpvp->vol->randomize_gmol_pos = !($<tok>3);
+};
+
+optional_flag_expandlist_def: ACCURATE_3D_REACTIONS '=' boolean
+{
+  mdlpvp->vol->use_expanded_list = $<tok>3;
 };
 
 

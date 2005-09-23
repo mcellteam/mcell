@@ -970,6 +970,10 @@ struct volume
   byte voxel_volume_mode;
   char *molecule_prefix_name;
   double my_counter;
+  
+  /* Optional stuff */
+  int use_expanded_list;
+  int randomize_gmol_pos;
 
   /* MCell startup command line arguments */
   byte info_opt;

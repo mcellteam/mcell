@@ -10,9 +10,13 @@
 #include <math.h>
 #include <stdlib.h>
 
+#include "rng.h"
 #include "grid_util.h"
 #include "vol_util.h"
 #include "mcell_structs.h"
+
+
+extern struct volume *world;
 
 
 /*************************************************************************
@@ -115,11 +119,12 @@ int uv2grid(struct vector2 *v,struct surface_grid *g)
 
 
 /*************************************************************************
-grid2xyz and grid2uv
+grid2xyz and grid2uv and grid2uv_random
   In: a surface grid
       index of a tile on that grid
       vector to store the results
-  Out: vector contains the coordinates of the center of that tile
+  Out: vector contains the coordinates of the center of that tile, or
+       a random coordinate within that tile.
        WARNING: no error checking--index assumed to be valid!
   Note: grid2xyz just multiplies by uv unit vectors at the end.
 *************************************************************************/
@@ -168,6 +173,30 @@ void grid2uv(struct surface_grid *g,int index,struct vector2 *v)
   v->u = ((double)(3*j+i+1))*over3n*g->surface->uv_vert1_u + 
           ((double)(3*k+i+1))*over3n*g->surface->uv_vert2.u;
   v->v = ((double)(3*k+i+1))*over3n*g->surface->uv_vert2.v;
+}
+
+void grid2uv_random(struct surface_grid *g,int index,struct vector2 *v)
+{
+  int root;
+  int rootrem;
+  int k,j,i;
+  double over_n;
+  double u_ran,v_ran;
+  
+  root = (int)( sqrt((double)index) );
+  rootrem = index - root*root;
+  k = g->n - root - 1;
+  j = rootrem/2;
+  i = rootrem - 2*j;
+  
+  over_n = 1.0 / (double) (g->n);
+  
+  u_ran = rng_dbl(world->rng);
+  v_ran = 1.0 - sqrt(rng_dbl(world->rng));
+  
+  v->u = ((double)(j+i) + (1-2*i)*(1.0-v_ran)*u_ran)*over_n*g->surface->uv_vert1_u + 
+          ((double)(k+i) + (1-2*i)*v_ran)*over_n*g->surface->uv_vert2.u;
+  v->v = ((double)(k+i) + (1-2*i)*v_ran)*over_n*g->surface->uv_vert2.v;
 }
 
 

@@ -1790,11 +1790,12 @@ struct wall* distribute_wall(struct wall *w)
 
     /*    if (!wall_in_box(w->vert,&(w->normal),w->d,&llf,&urb)) printf("This wall doesn't belong in the only box it intersects?!\n"); */
 
-#ifdef USE_EXPANDED_COLLISION_LIST
-    /* test whether this wall is within R_INT from the neighbor SV's 
-       and if it is - add the wall to the wall_list of the neighbor SV */
-    add_wall_to_neighbor_subvolumes(where_am_i, &llf, &urb, &(world->subvol[h]));
-#endif
+    if (world->use_expanded_list)
+    {
+      /* test whether this wall is within R_INT from the neighbor SV's 
+	 and if it is - add the wall to the wall_list of the neighbor SV */
+      add_wall_to_neighbor_subvolumes(where_am_i, &llf, &urb, &(world->subvol[h]));
+    }
 
     return where_am_i;
   }
@@ -1824,12 +1825,13 @@ struct wall* distribute_wall(struct wall *w)
         if (wall_in_box(w->vert,&(w->normal),w->d,&llf,&urb))
 	{
 	  if (wall_to_vol(where_am_i,&(world->subvol[h])) == NULL) return NULL;
-#ifdef USE_EXPANDED_COLLISION_LIST
-          /* test whether this wall is within R_INT from the neighbor SV's 
-             and if it is - add the wall to the wall_list of the neighbor SV */
-          add_wall_to_neighbor_subvolumes(where_am_i, &llf, &urb, &(world->subvol[h]));
-#endif
 
+          if (world->use_expanded_list)
+	  {
+	    /* test whether this wall is within R_INT from the neighbor SV's 
+	       and if it is - add the wall to the wall_list of the neighbor SV */
+	    add_wall_to_neighbor_subvolumes(where_am_i, &llf, &urb, &(world->subvol[h]));
+	  }
         }
       }
     }
@@ -3074,7 +3076,8 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
         memcpy(new_g,g,sizeof(struct grid_molecule));
         new_g->birthplace = w->effectors->subvol->local_storage->gmol;
         new_g->grid_index = j;
-	grid2uv(w->effectors,j,&(new_g->s_pos));
+	if (world->randomize_gmol_pos) grid2uv_random(w->effectors,j,&(new_g->s_pos));
+	else grid2uv(w->effectors,j,&(new_g->s_pos));
         new_g->orient = rso->orientation;
         new_g->grid = w->effectors;
         
@@ -3146,7 +3149,8 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           memcpy(new_g,g,sizeof(struct grid_molecule));
           new_g->birthplace = p->grid->subvol->local_storage->gmol;
           new_g->grid_index = p->index;
-	  grid2uv(p->grid,p->index,&(new_g->s_pos));
+	  if (world->randomize_gmol_pos) grid2uv_random(p->grid,p->index,&(new_g->s_pos));
+	  else grid2uv(p->grid,p->index,&(new_g->s_pos));
           new_g->orient = rso->orientation;
           new_g->grid = p->grid;
           

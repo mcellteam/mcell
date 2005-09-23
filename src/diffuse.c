@@ -910,166 +910,167 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
 
   
   /* Find partition boundaries that occlude the interaction disk */
-  
-  /* First see if any overlap */
-  p_flags = 0;
-#ifndef USE_EXPANDED_COLLISION_LIST
-  d = loc->x - world->x_fineparts[ sv->llf.x ];
-  if (d<R)
-  {
-    c = R2*(mv->y*mv->y + mv->z*mv->z)*m2_i;
-    if (d*d<c) p_flags |= X_NEG_BIT;
-    d = world->x_fineparts[ sv->urb.x ] - loc->x;
-    if (d*d<c) p_flags |= X_POS_BIT;
-  }
-  else
-  {
-    d = world->x_fineparts[ sv->urb.x ] - loc->x;
-    if (d<R && d*d<R2*(mv->y*mv->y + mv->z*mv->z)*m2_i) p_flags |= X_POS_BIT;
-  }
-
-  d = loc->y - world->y_fineparts[ sv->llf.y ];
-  if (d<R)
-  {
-    c = R2*(mv->x*mv->x + mv->z*mv->z)*m2_i;
-    if (d*d<c) p_flags |= Y_NEG_BIT;
-    d = world->y_fineparts[ sv->urb.y ] - loc->y;
-    if (d*d<c) p_flags |= Y_POS_BIT;
-  }
-  else
-  {
-    d = world->y_fineparts[ sv->urb.y ] - loc->y;
-    if (d<R && d*d<R2*(mv->x*mv->x + mv->z*mv->z)*m2_i) p_flags |= Y_POS_BIT;
-  }
-
-  d = loc->z - world->z_fineparts[ sv->llf.z ];
-  if (d<R)
-  {
-    c = R2*(mv->y*mv->y + mv->x*mv->x)*m2_i;
-    if (d*d<c) p_flags |= Z_NEG_BIT;
-    d = world->z_fineparts[ sv->urb.z ] - loc->z;
-    if (d*d<c) p_flags |= Z_POS_BIT;
-  }
-  else
-  {
-    d = world->z_fineparts[ sv->urb.z ] - loc->z;
-    if (d<R && d*d<R2*(mv->y*mv->y + mv->x*mv->x)*m2_i) p_flags |= Z_POS_BIT;
-  }
-#endif
-
-  /* Now find the lines created by any that do overlap */
-  if (p_flags)
-  {
-    if (uncoordinated) exd_coordize(mv,&m,&u,&v);
-    uncoordinated = 0;
+  if (!world->use_expanded_list) /* We'll hit partitions */
+  {  
+    /* First see if any overlap */
+    p_flags = 0;
     
-    for (i=1;i<=p_flags;i*=2)
+    d = loc->x - world->x_fineparts[ sv->llf.x ];
+    if (d<R)
     {
-      if ((i & p_flags)!=0)
+      c = R2*(mv->y*mv->y + mv->z*mv->z)*m2_i;
+      if (d*d<c) p_flags |= X_NEG_BIT;
+      d = world->x_fineparts[ sv->urb.x ] - loc->x;
+      if (d*d<c) p_flags |= X_POS_BIT;
+    }
+    else
+    {
+      d = world->x_fineparts[ sv->urb.x ] - loc->x;
+      if (d<R && d*d<R2*(mv->y*mv->y + mv->z*mv->z)*m2_i) p_flags |= X_POS_BIT;
+    }
+  
+    d = loc->y - world->y_fineparts[ sv->llf.y ];
+    if (d<R)
+    {
+      c = R2*(mv->x*mv->x + mv->z*mv->z)*m2_i;
+      if (d*d<c) p_flags |= Y_NEG_BIT;
+      d = world->y_fineparts[ sv->urb.y ] - loc->y;
+      if (d*d<c) p_flags |= Y_POS_BIT;
+    }
+    else
+    {
+      d = world->y_fineparts[ sv->urb.y ] - loc->y;
+      if (d<R && d*d<R2*(mv->x*mv->x + mv->z*mv->z)*m2_i) p_flags |= Y_POS_BIT;
+    }
+  
+    d = loc->z - world->z_fineparts[ sv->llf.z ];
+    if (d<R)
+    {
+      c = R2*(mv->y*mv->y + mv->x*mv->x)*m2_i;
+      if (d*d<c) p_flags |= Z_NEG_BIT;
+      d = world->z_fineparts[ sv->urb.z ] - loc->z;
+      if (d*d<c) p_flags |= Z_POS_BIT;
+    }
+    else
+    {
+      d = world->z_fineparts[ sv->urb.z ] - loc->z;
+      if (d<R && d*d<R2*(mv->y*mv->y + mv->x*mv->x)*m2_i) p_flags |= Z_POS_BIT;
+    }
+  
+    /* Now find the lines created by any that do overlap */
+    if (p_flags)
+    {
+      if (uncoordinated) exd_coordize(mv,&m,&u,&v);
+      uncoordinated = 0;
+      
+      for (i=1;i<=p_flags;i*=2)
       {
-	/* Load up the relevant variables */
-	switch (i)
+	if ((i & p_flags)!=0)
 	{
-	  case X_NEG_BIT:
-	    d = world->x_fineparts[ sv->llf.x ] - loc->x;
-	    a = u.x; b = v.x;
-	    break;
-	  case X_POS_BIT:
-	    d = world->x_fineparts[ sv->urb.x ] - loc->x;
-	    a = u.x; b = v.x;
-	    break;
-	  case Y_NEG_BIT:
-	    d = world->y_fineparts[ sv->llf.y ] - loc->y;
-	    a = u.y; b = v.y;
-	    break;
-	  case Y_POS_BIT:
-	    d = world->y_fineparts[ sv->urb.y ] - loc->y;
-	    a = u.y; b = v.y;
-	    break;
-	  case Z_NEG_BIT:
-	    d = world->z_fineparts[ sv->llf.z ] - loc->z;
-	    a = u.z; b = v.z;
-	    break;
-	  case Z_POS_BIT:
-	    d = world->z_fineparts[ sv->urb.z ] - loc->z;
-	    a = u.z; b = v.z;
-	    break;
-	  default:
-	    continue;
-	}
-	
-	if (a==0)
-	{
-	  s = d/b;
-	  if (s*s>R2)
+	  /* Load up the relevant variables */
+	  switch (i)
 	  {
-	    printf("Huh?");
-	    continue;
+	    case X_NEG_BIT:
+	      d = world->x_fineparts[ sv->llf.x ] - loc->x;
+	      a = u.x; b = v.x;
+	      break;
+	    case X_POS_BIT:
+	      d = world->x_fineparts[ sv->urb.x ] - loc->x;
+	      a = u.x; b = v.x;
+	      break;
+	    case Y_NEG_BIT:
+	      d = world->y_fineparts[ sv->llf.y ] - loc->y;
+	      a = u.y; b = v.y;
+	      break;
+	    case Y_POS_BIT:
+	      d = world->y_fineparts[ sv->urb.y ] - loc->y;
+	      a = u.y; b = v.y;
+	      break;
+	    case Z_NEG_BIT:
+	      d = world->z_fineparts[ sv->llf.z ] - loc->z;
+	      a = u.z; b = v.z;
+	      break;
+	    case Z_POS_BIT:
+	      d = world->z_fineparts[ sv->urb.z ] - loc->z;
+	      a = u.z; b = v.z;
+	      break;
+	    default:
+	      continue;
 	  }
-	  t = sqrt(R2-s*s);
-	  pa.u = t; pa.v = s;
-	  pb.u = -t; pb.v = s;
-	}
-	else if (b==0)
-	{
-	  t = d/b;
-	  if (t*t>R2)
+	  
+	  if (a==0)
 	  {
-	    printf("Huh?");
-	    continue;
+	    s = d/b;
+	    if (s*s>R2)
+	    {
+	      printf("Huh?");
+	      continue;
+	    }
+	    t = sqrt(R2-s*s);
+	    pa.u = t; pa.v = s;
+	    pb.u = -t; pb.v = s;
 	  }
-	  s = sqrt(R2-t*t);
-	  pa.u = t; pa.v = s;
-	  pb.u = t; pb.v = -s;
-	}
-	else
-	{
-	  c = a*a+b*b;
-	  s = d*b;
-	  if (d*d>R2*c)
+	  else if (b==0)
 	  {
-	    printf("Huh?");
-	    continue;
+	    t = d/b;
+	    if (t*t>R2)
+	    {
+	      printf("Huh?");
+	      continue;
+	    }
+	    s = sqrt(R2-t*t);
+	    pa.u = t; pa.v = s;
+	    pb.u = t; pb.v = -s;
 	  }
-	  t = sqrt(R2*c-d*d);
-	  c = 1.0/c;
-	  r = 1.0/a;
-	  pa.v = c*(s+t*a);
-	  pa.u = (d-b*pa.v)*r;
-	  pb.v = c*(s-t*a);
-	  pb.u = (d-b*pb.v)*r;
+	  else
+	  {
+	    c = a*a+b*b;
+	    s = d*b;
+	    if (d*d>R2*c)
+	    {
+	      printf("Huh?");
+	      continue;
+	    }
+	    t = sqrt(R2*c-d*d);
+	    c = 1.0/c;
+	    r = 1.0/a;
+	    pa.v = c*(s+t*a);
+	    pa.u = (d-b*pa.v)*r;
+	    pb.v = c*(s-t*a);
+	    pb.u = (d-b*pb.v)*r;
+	  }
+	  
+	  /* Create memory for the pair of vertices */
+	  ppa = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
+	  ppb = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
+	  if (ppa==NULL || ppb==NULL) return EXD_OUT_OF_MEMORY;
+	  
+	  a = exd_zetize(pa.v,pa.u);
+	  b = exd_zetize(pb.v,pb.u);
+	  c = b-a;
+	  if (c<0) c += 4;
+	  if (c<2)
+	  {
+	    ppa->u = pa.u; ppa->v = pa.v; ppa->r2 = pa.u*pa.u+pa.v*pa.v; ppa->zeta = a;
+	    ppb->u = pb.u; ppb->v = pb.v; ppb->r2 = pb.u*pb.u+pb.v*pb.v; ppb->zeta = b;
+	  }
+	  else
+	  {
+	    ppb->u = pa.u; ppb->v = pa.v; ppb->r2 = pa.u*pa.u+pa.v*pa.v; ppb->zeta = a;
+	    ppa->u = pb.u; ppa->v = pb.v; ppa->r2 = pb.u*pb.u+pb.v*pb.v; ppa->zeta = b;	  
+	  }
+	  
+	  ppa->role = EXD_HEAD;
+	  ppb->role = EXD_TAIL;
+	  ppa->e = ppb;
+	  ppb->e = NULL;
+	  
+	  ppb->next = vertex_head;
+	  ppa->next = ppb;
+	  vertex_head = ppa;
+	  n_verts += 2;
+	  n_edges++;	
 	}
-	
-	/* Create memory for the pair of vertices */
-	ppa = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
-	ppb = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
-	if (ppa==NULL || ppb==NULL) return EXD_OUT_OF_MEMORY;
-	
-	a = exd_zetize(pa.v,pa.u);
-	b = exd_zetize(pb.v,pb.u);
-        c = b-a;
-	if (c<0) c += 4;
-	if (c<2)
-	{
-	  ppa->u = pa.u; ppa->v = pa.v; ppa->r2 = pa.u*pa.u+pa.v*pa.v; ppa->zeta = a;
-	  ppb->u = pb.u; ppb->v = pb.v; ppb->r2 = pb.u*pb.u+pb.v*pb.v; ppb->zeta = b;
-	}
-	else
-	{
-	  ppb->u = pa.u; ppb->v = pa.v; ppb->r2 = pa.u*pa.u+pa.v*pa.v; ppb->zeta = a;
-	  ppa->u = pb.u; ppa->v = pb.v; ppa->r2 = pb.u*pb.u+pb.v*pb.v; ppa->zeta = b;	  
-	}
-	
-	ppa->role = EXD_HEAD;
-	ppb->role = EXD_TAIL;
-	ppa->e = ppb;
-	ppb->e = NULL;
-	
-	ppb->next = vertex_head;
-	ppa->next = ppb;
-	vertex_head = ppa;
-	n_verts += 2;
-	n_edges++;	
       }
     }
   }
@@ -3126,10 +3127,10 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   double scaling = 1.0;          /* scales reaction cumulative_probabilitities array */
   double rate_factor=1.0;
   double f;
-#ifdef USE_EXPANDED_COLLISION_LIST
-  /* this flag is set to 1 only after reflection from a wall. */
+
+  /* this flag is set to 1 only after reflection from a wall and only with expanded lists. */
   int redo_expand_collision_list_flag = 0; 
-#endif
+
 
   int i,j,k,l;
     
@@ -3267,24 +3268,22 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   
    reflectee = NULL;
 
-#ifdef USE_EXPANDED_COLLISION_LIST 
-    if((m->properties->flags & CAN_MOLMOL) != 0){ 
-    	shead = expand_collision_list(m, &displacement, sv, shead);
-    }  
-#endif 
+    if(world->use_expanded_list && (m->properties->flags & CAN_MOLMOL) != 0)
+    { 
+      shead = expand_collision_list(m, &displacement, sv, shead);
+    }   
 
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
 #define ERROR_AND_QUIT fprintf(world->err_file,"Out of memory: trying to save intermediate results.\n"); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
   do
   {
-#ifdef USE_EXPANDED_COLLISION_LIST 
-    if(redo_expand_collision_list_flag)
+    if(world->use_expanded_list && redo_expand_collision_list_flag)
     {
       if((m->properties->flags & CAN_MOLMOL) != 0){ 
     	  shead = expand_collision_list(m, &displacement, sv, shead);
       }  
     }
-#endif 
+ 
     shead2 = ray_trace(m,shead,sv,&displacement,reflectee);
     
     if (shead2==NULL) { ERROR_AND_QUIT; }
@@ -3493,9 +3492,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         displacement.y = (displacement.y + factor*w->normal.y) * (1.0-smash->t);
         displacement.z = (displacement.z + factor*w->normal.z) * (1.0-smash->t);
 
-#if defined USE_EXPANDED_COLLISION_LIST
-        redo_expand_collision_list_flag = 0;
-#endif
+        redo_expand_collision_list_flag = 0; /* Only useful if we're using expanded lists, but easier to always set it */
         
         break;
       }

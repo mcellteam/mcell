@@ -76,6 +76,7 @@ I ([0-9]+)
 [ \t]+			;
 "ABS"			{return(ABS);}
 "ABSORPTIVE"		{return(ABSORPTIVE);}
+"ACCURATE_3D_REACTIONS" {return(ACCURATE_3D_REACTIONS);}
 "ACOS"			{return(ACOS);}
 "ALL_DATA"		{return(ALL_DATA);}
 "ALL_CROSSINGS"		{return(ALL_CROSSINGS);}
@@ -96,6 +97,7 @@ I ([0-9]+)
 "BOTTOM"		{return(BOTTOM);}
 "BOX"			{return(BOX);}
 "CEIL"			{return(CEIL);}
+"CENTER_MOLECULES_ON_GRID" {return(CENTER_MOLECULES_ON_GRID);}
 "CHARGE"		{return(CHARGE);}
 "CHECKPOINT_INFILE"	{return(CHECKPOINT_INFILE);}
 "CHECKPOINT_OUTFILE"	{return(CHECKPOINT_OUTFILE);}

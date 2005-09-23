@@ -141,7 +141,14 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
           g->t = t;
           g->t2 = 0.0;
           g->grid_index = j;
-	  grid2uv(sg,j,&(g->s_pos));
+	  
+	  if (world->randomize_gmol_pos)
+	  {
+	    if (reac_g!=NULL) memcpy(&(g->s_pos),&(reac_g->s_pos),sizeof(struct vector2));
+	    else xyz2uv(hitpt,sg->surface,&(g->s_pos));
+	  }
+	  else grid2uv(sg,j,&(g->s_pos));
+
           g->grid = sg;
           
           if (reac_g==NULL || sg->mol[j]!=reac_g) sg->n_occupied++;
