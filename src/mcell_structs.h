@@ -14,12 +14,6 @@
 /**  Brand new constants created for use in MCell3  **/
 /*****************************************************/
 
-/* Used in files "diffuse.c" and "wall_util.c" to specify 
-   an option to look for the potential collisions between 
-   3D molecules not only in the present subvolume
-   but also in the neighbor subvolumes. */
-#define USE_EXPANDED_COLLISION_LIST  
-
 /* Species flags */
    /* Walls have IS_SURFACE set, molecules do not. */
    /* Grid molecules have ON_GRID set */

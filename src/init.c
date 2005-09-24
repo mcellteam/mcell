@@ -127,6 +127,10 @@ int init_sim(void)
   struct output_block *obp,*obpn;
   int i;
   int *intp;
+  int reactants_3D_present = 0; /* flag to check whether there are 3D reactants
+                             (participants in the reactions
+                              between 3D molecules) in the simulation */
+
 #ifdef USE_RAN4
 #include "seed_array.h"
 #endif 
@@ -352,6 +356,19 @@ int init_sim(void)
     return(1);
   }
   no_printf("Done setting up species.\n");
+
+ /* If there are no 3D molecules-reactants in the simulation
+    set up the"use_expanded_list" flag to zero. */
+  for(i = 0; i < world->n_species; i++)
+  {
+        struct	species *sp = world->species_list[i];
+        if((sp->flags & CAN_MOLMOL) != 0){
+		reactants_3D_present = 1;
+        }
+  }
+  if(reactants_3D_present == 0){
+	world->use_expanded_list = 0;
+  }
 
 /* Instantiation Pass #1: Initialize the geometry */
   if (init_geom()) {
