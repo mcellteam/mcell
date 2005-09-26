@@ -364,6 +364,7 @@ int init_sim(void)
         struct	species *sp = world->species_list[i];
         if((sp->flags & CAN_MOLMOL) != 0){
 		reactants_3D_present = 1;
+                break;
         }
   }
   if(reactants_3D_present == 0){
