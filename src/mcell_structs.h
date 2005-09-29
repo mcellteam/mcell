@@ -686,9 +686,6 @@ struct wall
   struct vector3 unit_v;          /* V basis vector for this wall */
   double d;                       /* Distance to origin (point normal form) */
   
-  struct surface_molecule *mol;   /* Head of list of surface molecules */
-  int mol_count;                  /* How many surface molecules? */
-  
   struct surface_grid *effectors; /* Grid of effectors for this wall */
   
   int viz_state;                  /* For display purposes--is short enough? */
@@ -707,6 +704,29 @@ struct wall_list
   struct wall_list *next;   /* The next entry in the list */
   
   struct wall *this_wall;        /* The wall in this entry */
+};
+
+
+/* Grid over a surface containing grid_molecules */
+struct surface_grid
+{
+  int n;                   /* Number of slots along each axis */
+
+  double inv_strip_wid;    /* Reciprocal of the width of one strip */
+  double vert2_slope;      /* Slope from vertex 0 to vertex 2 */
+  double fullslope;        /* Slope of full width of triangle */
+  struct vector2 vert0;    /* 2D coordinates of vertex zero */
+  
+  double binding_factor;   /* Binding probability correction factor for surface area */
+  
+  u_int n_tiles;           /* Number of tiles in effector grid (triangle: grid_size^2, rectangle: 2*grid_size^2) */
+  u_int n_occupied;        /* Number of tiles occupied by grid_molecules */
+  struct grid_molecule **mol;  /* Array of pointers to grid_molecule for each tile */
+  
+  int index;               /* Unique index into effector_table */
+  
+  struct subvolume *subvol;/* Best match for which subvolume we're in */
+  struct wall *surface;    /* The wall that we are in */
 };
 
 
@@ -968,6 +988,7 @@ struct volume
   /* Optional stuff */
   int use_expanded_list;
   int randomize_gmol_pos;
+  double vacancy_search_dist2;
 
   /* MCell startup command line arguments */
   byte info_opt;
@@ -988,29 +1009,6 @@ struct volume
   FILE *chkpt_signal_file_tmp;
   char *mdl_infile_name;
   char *curr_file;
-};
-
-
-/* Grid over a surface containing grid_molecules */
-struct surface_grid
-{
-  int n;                   /* Number of slots along each axis */
-
-  double inv_strip_wid;    /* Reciprocal of the width of one strip */
-  double vert2_slope;      /* Slope from vertex 0 to vertex 2 */
-  double fullslope;        /* Slope of full width of triangle */
-  struct vector2 vert0;    /* 2D coordinates of vertex zero */
-  
-  double binding_factor;   /* Binding probability correction factor for surface area */
-  
-  u_int n_tiles;           /* Number of tiles in effector grid (triangle: grid_size^2, rectangle: 2*grid_size^2) */
-  u_int n_occupied;        /* Number of tiles occupied by grid_molecules */
-  struct grid_molecule **mol;  /* Array of pointers to grid_molecule for each tile */
-  
-  int index;               /* Unique index into effector_table */
-  
-  struct subvolume *subvol;/* Best match for which subvolume we're in */
-  struct wall *surface;    /* The wall that we are in */
 };
 
 

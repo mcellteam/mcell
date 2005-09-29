@@ -206,6 +206,7 @@ int init_sim(void)
   
   world->use_expanded_list=1;
   world->randomize_gmol_pos=0;
+  world->vacancy_search_dist2=0;
 
   world->rng = malloc(sizeof(struct rng_state));
   if (world->rng==NULL)
@@ -821,7 +822,7 @@ int init_geom(void)
   double tm[4][4];
   double vol_infinity;
   struct release_event_queue *req,*rqn;
-
+  
   no_printf("Initializing physical objects\n");
   log_file=world->log_file;
   vol_infinity=sqrt(DBL_MAX)/4;

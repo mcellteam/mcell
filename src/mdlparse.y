@@ -295,6 +295,7 @@ struct release_evaluator *rev;
 %token <tok> TRUE
 %token <tok> UNLIMITED
 %token <tok> VAR
+%token <tok> VACANCY_SEARCH_DISTANCE
 %token <tok> VERTEX_LIST
 %token <tok> VIZ_DATA_OUTPUT
 %token <tok> VOLUME_DEPENDENT_RELEASE_NUMBER
@@ -326,6 +327,7 @@ struct release_evaluator *rev;
 %type <tok> optional_flag_def
 %type <tok> optional_flag_randomgrid_def
 %type <tok> optional_flag_expandlist_def
+%type <tok> optional_vacancy_search_def
 %type <tok> assignment_stmt
 %type <tok> partition_def
 %type <tok> molecules_def
@@ -1491,7 +1493,9 @@ no_printf("Iterations = %d\n",volp->iterations);
 fflush(stderr);
 };
 
-optional_flag_def: optional_flag_randomgrid_def | optional_flag_expandlist_def;
+optional_flag_def: optional_flag_randomgrid_def 
+	| optional_flag_expandlist_def 
+	| optional_vacancy_search_def;
 
 optional_flag_randomgrid_def: CENTER_MOLECULES_ON_GRID '=' boolean
 {
@@ -1501,6 +1505,12 @@ optional_flag_randomgrid_def: CENTER_MOLECULES_ON_GRID '=' boolean
 optional_flag_expandlist_def: ACCURATE_3D_REACTIONS '=' boolean
 {
   mdlpvp->vol->use_expanded_list = $<tok>3;
+};
+
+optional_vacancy_search_def: VACANCY_SEARCH_DISTANCE '=' num_expr
+{
+  mdlpvp->vol->vacancy_search_dist2 = $<dbl>3;
+  if (mdlpvp->vol->vacancy_search_dist2 < 0) mdlpvp->vol->vacancy_search_dist2=0;
 };
 
 

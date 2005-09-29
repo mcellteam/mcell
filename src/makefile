@@ -45,7 +45,7 @@ mem_util.o: makedefs mem_util.c mem_util.h rng.h mcell_structs.h
 sched_util.o: makedefs sched_util.c sched_util.h
 	$(CC) $(CFLAGS) -c sched_util.c
 
-grid_util.o: makedefs grid_util.c grid_util.h vol_util.h rng.h mcell_structs.h
+grid_util.o: makedefs grid_util.c grid_util.h vol_util.h wall_util.h rng.h mcell_structs.h
 	$(CC) $(CFLAGS) -c grid_util.c
 
 util.o: makedefs util.c util.h

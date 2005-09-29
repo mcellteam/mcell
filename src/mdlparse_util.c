@@ -717,6 +717,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   
   num_rx = 0;
   
+  mpvp->vol->vacancy_search_dist2 /= mpvp->vol->length_unit;           /* Convert units */
+  mpvp->vol->vacancy_search_dist2 *= mpvp->vol->vacancy_search_dist2;  /* Take square */
+  
   fprintf(mpvp->vol->log_file,"\nReaction probabilities generated for the following reactions:\n");
   
   if (mpvp->vol->rx_radius_3d <= 0.0)

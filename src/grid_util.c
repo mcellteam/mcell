@@ -8,11 +8,13 @@
 
 
 #include <math.h>
+#include <string.h>
 #include <stdlib.h>
 
 #include "rng.h"
 #include "grid_util.h"
 #include "vol_util.h"
+#include "wall_util.h"
 #include "mcell_structs.h"
 
 
@@ -269,3 +271,171 @@ int create_grid(struct wall *w,struct subvolume *guess)
 
   return 0;
 }
+
+
+
+/*************************************************************************
+nearest_free: 
+  In: a surface grid
+      a vector in u,v coordinates on that surface
+      the maximum distance we can search for free spots
+  Out: integer containing the index of the closest unoccupied grid point
+       to the vector, or -1 if no unoccupied points are found in range
+  Note: we assume you've already checked the grid element that contains
+        the point, so we don't bother looking there first.
+*************************************************************************/
+
+int nearest_free(struct surface_grid *g,struct vector2 *v,double max_d2,double *found_dist2)
+{
+  int h,i,j,k;
+  int span;
+  int can_flip;
+  int idx;
+  double d2;
+  double f,ff,fff;
+  double over3n = 0.333333333333333/(double)(g->n);
+  
+  idx = -1;
+  d2 = 2*max_d2 + 1.0;
+  
+  for (k=0;k<g->n;k++)
+  {
+    f = v->v - ((double)(3*k+1))*over3n*g->surface->uv_vert2.v;
+    ff = f - over3n*g->surface->uv_vert2.v;
+    ff *= ff;
+    f *= f;
+    if (f > max_d2 && ff > max_d2) continue;  /* Entire strip is too far away */
+    
+    span = (g->n - k);
+    for (j=0 ; j < span ; j++)
+    {
+      can_flip = (j!=span-1);
+      for (i=0 ; i <= can_flip ; i++)
+      {
+	fff = v->u - over3n*( (double)(3*j+i+1)*g->surface->uv_vert1_u + (double)(3*k+i+1)*g->surface->uv_vert2.u );
+	fff *= fff;
+	if (i) fff += ff;
+	else fff += f;
+	
+	if (fff<max_d2 && (idx==-1 || fff<d2))
+	{
+	  h = (g->n-k)-1;
+	  h = h*h + 2*j + i;
+	  
+	  if (g->mol[h]==NULL)
+	  {
+	    idx = h;
+	    d2 = fff;
+	  }
+	  else if (idx==-1)
+	  {
+	    if (fff < d2) d2=fff;
+	  }
+	}
+      }
+    }
+  }
+ 
+  if (found_dist2!=NULL) *found_dist2 = d2;
+  
+  return idx;
+}
+
+
+/*************************************************************************
+search_nbhd_for_free: 
+  In: the wall that we ought to be in
+      a vector in u,v coordinates on that surface where we should go
+      the maximum distance we can search for free spots
+      a place to store the index of our free slot
+      a function that we'll call to make sure a wall is okay
+      context for that function passed in by whatever called us
+  Out: pointer to the wall that has the free slot, or NULL if no wall
+       exist in range.
+  Note: This is not recursive.  It should be made recursive.
+*************************************************************************/
+
+struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,double max_d2,int *found_idx,
+                             int (*ok)(void*,struct wall*),void *context)
+{
+  struct wall *there;
+  int i,j;
+  double d2;
+  struct vector2 pt,ed;
+  struct vector2 vurt0,vurt1;
+  int best_i;
+  double best_d2;
+  struct wall *best_w;
+  
+  best_i = -1;
+  best_d2 = 2.0*max_d2+1.0;
+  best_w = NULL;
+  
+  if (origin->effectors==NULL)
+  {
+    if (create_grid(origin,NULL)) return NULL;  /* FIXME: handle out of memory properly */
+  }
+  
+  i = nearest_free(origin->effectors,point,max_d2,&d2);
+
+  if (i != -1)
+  {
+    best_i = i;  
+    best_d2 = d2;
+    best_w = origin;
+  }
+  
+  for (j=0 ; j<3 ; j++)
+  {
+    if (origin->edges[j]==NULL || origin->edges[j]->backward==NULL) continue;
+    
+    if (origin->edges[j]->forward==origin) there = origin->edges[j]->backward;
+    else there = origin->edges[j]->forward;
+    
+    if (! (*ok)(context,there) ) continue;  /* Calling function doesn't like this wall */
+    
+    switch (j)
+    {
+      case 0:
+        vurt0.u = vurt0.v = 0.0;
+	vurt1.u = origin->uv_vert1_u; vurt1.v = 0;
+	break;
+      case 1:
+      	vurt0.u = origin->uv_vert1_u; vurt0.v = 0;
+        memcpy(&vurt1,&(origin->uv_vert2),sizeof(struct vector2));
+	break;
+      case 2:
+        memcpy(&vurt0,&(origin->uv_vert2),sizeof(struct vector2));
+	vurt1.u = vurt1.v = 0.0;
+        break;
+      /* No default case since 0<=j<=2 */
+    }
+    ed.u = vurt1.u - vurt0.u;
+    ed.v = vurt1.v - vurt0.v;
+    pt.u = point->u - vurt0.u;
+    pt.v = point->v - vurt0.v;
+    
+    d2 = pt.u*ed.u + pt.v*ed.v;
+    d2 = (pt.u*pt.u + pt.v*pt.v) - d2*d2/(ed.u*ed.u+ed.v*ed.v); /* Distance squared to line */
+    
+    if (d2<best_d2)
+    {
+      if (there->effectors==NULL)
+      {
+	if (create_grid(there,NULL)) return NULL;  /* FIXME: handle out of memory properly */
+      }
+      traverse_surface(origin,point,j,&pt);
+      i = nearest_free(there->effectors,&pt,max_d2,&d2);
+      
+      if (i!=-1 && d2 < best_d2)
+      {
+	best_i = i;
+	best_d2 = d2;
+	best_w = there;
+      }
+    }
+  }
+  
+  *found_idx = best_i;
+  return best_w;
+} 

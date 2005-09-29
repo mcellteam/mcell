@@ -754,7 +754,7 @@ int surface_net( struct wall **facelist, int nfaces )
         }
         e->forward = facelist[pep->face1];
         e->backward = NULL;
-        init_edge_transform(e,pep->edge1);
+        /* Don't call init_edge_transform unless both edges are set */
         facelist[pep->face1]->edges[pep->edge1] = e;
         no_printf("  Edge: %d on %d\n",pep->edge1,pep->face1);
       }
@@ -774,78 +774,91 @@ init_edge_transform
   In: pointer to an edge
       integer telling the which edge (0-2) of the "forward" face we are
   Out: No return value.  Coordinate transform in edge struct is set.
+  Note: Don't call this on a free edge.
 ***************************************************************************/
 
 void init_edge_transform(struct edge *e,int edgenum)
 {
-  struct vector3 v,*vp;
-  struct vector2 ehatf,ehatb;
+  struct vector2 O_f,O_b;
+  struct vector2 ehat_f,ehat_b;
+  struct vector2 fhat_f,fhat_b;
+  struct wall *wf,*wb;
+  struct vector2 temp;
+  struct vector3 temp3d;
+  double d;
   int i,j;
+  double mtx[2][2];
+  struct vector2 q;
   
-  if (edgenum+1 < 3)
-  { 
-    i = edgenum;
-    j = i+1; 
-  }
-  else
-  {
-    i = edgenum;
-    j = 0;
-  }
-  v.x = e->forward->vert[j]->x - e->forward->vert[i]->x;
-  v.y = e->forward->vert[j]->y - e->forward->vert[i]->y;
-  v.z = e->forward->vert[j]->z - e->forward->vert[i]->z;
+  wf = e->forward;
+  wb = e->backward;
+  i=edgenum;
+  j=i+1;
+  if (j>2) j=0;
   
-  e->length = sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
-  e->length_1 = 1 / e->length;
+  /* Intermediate basis from the perspective of the forward frame */
+    
+  temp3d.x = wf->vert[i]->x - wf->vert[0]->x;
+  temp3d.y = wf->vert[i]->y - wf->vert[0]->y;
+  temp3d.z = wf->vert[i]->z - wf->vert[0]->z;
+  O_f.u = dot_prod(&temp3d,&(wf->unit_u));
+  O_f.v = dot_prod(&temp3d,&(wf->unit_v));                        /* Origin */
   
-  v.x *= e->length_1;
-  v.y *= e->length_1;
-  v.z *= e->length_1;
+  temp3d.x = wf->vert[j]->x - wf->vert[0]->x;
+  temp3d.y = wf->vert[j]->y - wf->vert[0]->y;
+  temp3d.z = wf->vert[j]->z - wf->vert[0]->z;
+  temp.u = dot_prod(&temp3d,&(wf->unit_u)) - O_f.u;
+  temp.v = dot_prod(&temp3d,&(wf->unit_v)) - O_f.v;        /* Far side of e */
   
-  if (e->backward == NULL) return;
+  d = 1.0/sqrt(temp.u*temp.u + temp.v*temp.v);
+  ehat_f.u = temp.u*d;
+  ehat_f.v = temp.v*d;                                   /* ehat along edge */
+  fhat_f.u = -ehat_f.v;
+  fhat_f.v = ehat_f.u;                               /* fhat 90 degrees CCW */
   
-  vp = &(e->forward->unit_u);
-  ehatf.u = v.x * vp->x + v.y * vp->y + v.z * vp->z;
-  vp = &(e->forward->unit_v);
-  ehatf.v = v.x * vp->x + v.y * vp->y + v.z * vp->z;
-  vp = &(e->backward->unit_u);
-  ehatb.u = v.x * vp->x + v.y * vp->y + v.z * vp->z;
-  vp = &(e->backward->unit_v);
-  ehatb.v = v.x * vp->x + v.y * vp->y + v.z * vp->z;
+  /* Intermediate basis from the perspective of the backward frame */
   
-  e->cos_theta = ehatf.u*ehatb.u + ehatf.v*ehatb.v;
-  e->sin_theta = ehatf.v*ehatb.u - ehatf.u*ehatb.v;
-
-/*  
-  if (fabs(e->cos_theta*e->cos_theta + e->sin_theta*e->sin_theta - 1.0) > EPS_C)
-  {
-    printf("Linear transformation error.\n");
-    exit(1);
-  }
-*/
-  if (e->forward->vert[0] == e->backward->vert[0])
-  {
-    e->translate.u = e->translate.v = 0.0;
-  }
-  else
-  {
-    vp = e->forward->vert[0];
-    v.x = e->forward->vert[edgenum]->x - vp->x;
-    v.y = e->forward->vert[edgenum]->y - vp->y;
-    v.z = e->forward->vert[edgenum]->z - vp->z;
-    ehatf.u = v.x*e->forward->unit_u.x + v.y*e->forward->unit_u.y + v.z*e->forward->unit_u.z;
-    ehatf.v = v.x*e->forward->unit_v.x + v.y*e->forward->unit_v.y + v.z*e->forward->unit_v.z;
-    vp = e->backward->vert[0];
-    v.x = e->forward->vert[edgenum]->x - vp->x;
-    v.y = e->forward->vert[edgenum]->y - vp->y;
-    v.z = e->forward->vert[edgenum]->z - vp->z;
-    ehatb.u = v.x*e->forward->unit_u.x + v.y*e->forward->unit_u.y + v.z*e->forward->unit_u.z;
-    ehatb.v = v.x*e->forward->unit_v.x + v.y*e->forward->unit_v.y + v.z*e->forward->unit_v.z;
-    e->translate.u = -ehatf.u + e->cos_theta*ehatb.u - e->sin_theta*ehatb.v;
-    e->translate.v = -ehatf.v + e->sin_theta*ehatb.u + e->cos_theta*ehatb.v;
-  }  
+  temp3d.x = wf->vert[i]->x - wb->vert[0]->x;
+  temp3d.y = wf->vert[i]->y - wb->vert[0]->y;
+  temp3d.z = wf->vert[i]->z - wb->vert[0]->z;
+  O_b.u = dot_prod(&temp3d,&(wb->unit_u));
+  O_b.v = dot_prod(&temp3d,&(wb->unit_v));                        /* Origin */
+  
+  temp3d.x = wf->vert[j]->x - wb->vert[0]->x;
+  temp3d.y = wf->vert[j]->y - wb->vert[0]->y;
+  temp3d.z = wf->vert[j]->z - wb->vert[0]->z;
+  temp.u = dot_prod(&temp3d,&(wb->unit_u)) - O_b.u;
+  temp.v = dot_prod(&temp3d,&(wb->unit_v)) - O_b.v;        /* Far side of e */
+  
+  d = 1.0/sqrt(temp.u*temp.u + temp.v*temp.v);
+  ehat_b.u = temp.u*d;
+  ehat_b.v = temp.v*d;                                   /* ehat along edge */
+  fhat_b.u = -ehat_b.v;
+  fhat_b.v = ehat_b.u;                               /* fhat 90 degrees CCW */
+  
+  /* Calculate transformation matrix */
+  
+  mtx[0][0] = ehat_f.u*ehat_b.u + fhat_f.u*fhat_b.u;
+  mtx[0][1] = ehat_f.v*ehat_b.u + fhat_f.v*fhat_b.u;
+  mtx[1][0] = ehat_f.u*ehat_b.v + fhat_f.u*fhat_b.v;
+  mtx[1][1] = ehat_f.v*ehat_b.v + fhat_f.v*fhat_b.v;
+  
+  /* Calculate translation vector */
+  
+  q.u = O_b.u;
+  q.v = O_b.v;
+  
+  q.u -= mtx[0][0]*O_f.u + mtx[0][1]*O_f.v;
+  q.v -= mtx[1][0]*O_f.u + mtx[1][1]*O_f.v;
+  
+  /* Store the results */
+  
+  e->cos_theta = mtx[0][0];
+  e->sin_theta = mtx[0][1];
+  e->translate.u = q.u;
+  e->translate.v = q.v;
 }
+
 
 
 /***************************************************************************
@@ -898,9 +911,57 @@ int sharpen_world()
 
 
 
+
 /**************************************************************************\
- ** Geometry section--report on geometrical properties of object         **
+ ** Geometry section--report on and use geometrical properties of object **
 \**************************************************************************/
+
+/***************************************************************************
+traverse_surface:
+  In: a wall
+      a point in the coordinate system of that wall
+      which edge to travel off of
+      a vector to set for the new wall
+  Out: NULL if the edge is bare, or a pointer to the wall in that direction
+       if not.  newloc is set to loc in the coordinate system of the new
+       wall (after flattening the walls along their shared edge)
+***************************************************************************/
+
+struct wall* traverse_surface(struct wall *here,struct vector2 *loc,int which,struct vector2 *newloc)
+{
+  struct edge *e;
+  struct wall *there;
+  double u,v;
+  
+  e = here->edges[which];
+
+  if (e==NULL) return NULL;
+  
+  if (e->forward == here)
+  {
+    there = e->backward;
+    
+    u =  e->cos_theta*loc->u + e->sin_theta*loc->v;
+    v = -e->sin_theta*loc->u + e->cos_theta*loc->v;
+    
+    newloc->u = u + e->translate.u;
+    newloc->v = v + e->translate.v;
+
+    return there;
+  }
+  else
+  {
+    there = e->forward;
+    
+    u = loc->u - e->translate.u;
+    v = loc->v - e->translate.v;
+    
+    newloc->u =  e->cos_theta*u - e->sin_theta*v;
+    newloc->v =  e->sin_theta*u + e->cos_theta*v;
+    
+    return there;
+  }
+}
 
 
 /***************************************************************************
@@ -1527,8 +1588,6 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   	w->uv_vert2.u = 0; 
   	w->uv_vert2.v = 0;
 
-  	w->mol = NULL;
-  	w->mol_count = 0;
   	w->effectors = NULL;
   	w->viz_state = EXCLUDE_OBJ; 
   	if (objp->viz_state!=NULL) {
@@ -1580,8 +1639,6 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
                   (w->vert[2]->y - w->vert[0]->y)*w->unit_v.y +
                   (w->vert[2]->z - w->vert[0]->z)*w->unit_v.z;
   
-  w->mol = NULL;
-  w->mol_count = 0;
   w->effectors = NULL;
   w->viz_state = EXCLUDE_OBJ; 
   if (objp->viz_state!=NULL) {
@@ -3093,6 +3150,45 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
         
         success++;
         n--;
+
+#if 0
+        /* FIXME: remove this.  It's just debugging code. */
+	if (w!=NULL)
+	{
+	  struct vector2 va,vb,vc;
+	  struct vector3 vv;
+	  struct wall *ww,*www;
+	  int i,j;
+	  struct edge *e;
+	  
+	  for (i=0;i<3;i++)
+	  {
+	    e = w->edges[i];
+	    if (e->forward!=NULL && e->backward!=NULL)
+	    {
+	      va.u = new_g->s_pos.u;
+	      va.v = new_g->s_pos.v;
+	      ww = traverse_surface(w,&va,i,&vb);
+	      
+	      for (j=0;j<3;j++)
+	      {
+		if (ww->edges[j]->forward==ww && ww->edges[j]->backward==w) break;
+		if (ww->edges[j]->forward==w && ww->edges[j]->backward==ww) break;
+	      }
+	      www = traverse_surface(ww,&vb,j,&vc);
+	      
+	      uv2xyz(&va,w,&vv);
+	      printf("   %14.8e %14.8e  %14.8e %14.8e %14.8e ",va.u,va.v,vv.x,vv.y,vv.z);
+	      uv2xyz(&vb,ww,&vv);
+	      printf("   %14.8e %14.8e  %14.8e %14.8e %14.8e\n",vb.u,vb.v,vv.x,vv.y,vv.z);
+	      uv2xyz(&vc,www,&vv);
+	      printf("   %14.8e %14.8e  %14.8e %14.8e %14.8e\n",vc.u,vc.v,vv.x,vv.y,vv.z);
+	      printf("\n");
+	    }
+	  }
+	}
+#endif
+
       }
     }
     else

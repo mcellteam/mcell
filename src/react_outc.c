@@ -21,6 +21,16 @@
 extern struct volume *world;
 
 
+int is_compatible_surface(void *req_species,struct wall *w)
+{
+  struct species *rs = (struct species*)req_species;
+  
+  if (rs==NULL) return 1;
+  
+  return (w->surf_class == rs);
+}
+
+
 /*************************************************************************
 outcome_products:
    In: relevant wall in the interaction
@@ -58,10 +68,24 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
   double f;
   int i0 = rx->product_idx[path];
   int iN = rx->product_idx[path+1];
+  int replace_p1 = 0;
+  int replace_p2 = 0;
+  struct vector2 uv_loc;
   
   struct abstract_molecule *plist[iN-i0];
   char ptype[iN-i0];
   short porient[iN-i0];
+  struct surface_grid *glist[iN-i0];
+  int xlist[iN-i0];
+  byte flist[iN-i0];
+  struct grid_molecule fake;
+  int fake_idx = -1;
+  
+#define FLAG_NOT_SET 0
+#define FLAG_USE_UV_LOC 1
+#define FLAG_USE_REACA_UV 2
+#define FLAG_USE_REACB_UV 3
+#define FLAG_USE_RANDOM 4
   
   if (reacA->properties == rx->players[1] && reacA->properties != rx->players[0])
   {
@@ -93,7 +117,98 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       else ptype[1] = '!';
     }
   }
+  
+  /* Make sure there's space for the reaction to occur */
+  /* FIXME--could speed this up with some pre-computation of reactions to at least see if we need to bother */
+  k = -1;
+  if (ptype[0]=='g' && rx->players[i0]==NULL) replace_p1=1;
+  if (rx->n_reactants>1 && ptype[1]=='g' && rx->players[i0+1]==NULL) replace_p2=1;
+  if (reac_g!=NULL || (reac_m!=NULL && w!=NULL))  /* Surface involved */
+  {
+    if (reac_g!=NULL) memcpy(&uv_loc , &(reac_g->s_pos) , sizeof(struct vector2));
+    else xyz2uv(hitpt,w,&uv_loc);
+    
+    for (j=i0+rx->n_reactants;j<iN;j++)
+    {
+      if (rx->players[j]->flags&ON_GRID)
+      {
+	/* FIXME: when enabling grid-grid reactions, fill target location first */
+	if (replace_p1)
+	{
+	  glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid;
+	  xlist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid_index;
+	  flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
+	  replace_p1=0;
+	  continue;
+	}
+	else if (replace_p2)
+	{
+	  glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacB)->grid;
+	  xlist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacB)->grid_index;
+	  flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACB_UV;
+	  replace_p2=0;
+	  continue;
+	}
+	else if (w->effectors==NULL)
+	{
+	  if (create_grid(w,reac_m->subvol)) return RX_NO_MEM;  /* No effectors means it must be a 3d mol/surface rx */
+	  fake_idx = j - (i0+rx->n_reactants);
+	  glist[fake_idx] = w->effectors;
+	  xlist[fake_idx] = uv2grid(&uv_loc,w->effectors);
+	  flist[fake_idx] = FLAG_USE_UV_LOC;
+	  continue;
+	}
+	else
+	{
+	  struct wall *temp_w;
+	  
+	  if (fake_idx > -1) glist[fake_idx]->mol[ xlist[fake_idx] ] = &fake; /* Assumed empty! */
 
+          fake_idx = j - (i0+rx->n_reactants);
+	  if (k==-1)
+	  {
+	    k = uv2grid(&uv_loc,w->effectors);
+	    if (w->effectors->mol[k]==NULL)
+	    {
+	      glist[fake_idx] = w->effectors;
+	      xlist[fake_idx] = k;
+	      flist[fake_idx] = FLAG_USE_UV_LOC;
+	      continue;
+	    }
+	  }
+	  
+	  if (world->vacancy_search_dist2 > 0)
+	  {
+	    /* FIXME: only do this for surfaces compatible with the reaction! */
+    	    temp_w = search_nbhd_for_free(w,&uv_loc,world->vacancy_search_dist2,&k,&is_compatible_surface,NULL);
+            
+	    if (temp_w != NULL)
+	    {
+	      glist[fake_idx] = temp_w->effectors;
+	      xlist[fake_idx] = k;
+	      flist[fake_idx] = FLAG_USE_RANDOM;
+	      continue;
+	    }
+	  }
+	  
+	  /* Uh-oh--if we get to this point and we haven't found space, we're blocked */
+	  for (k=0;k<fake_idx;k++)
+	  {
+	    if (glist[k]->mol[ xlist[k] ] == &fake) glist[k]->mol[xlist[k]]=NULL; /* Remove sentinels */
+	  }
+	  return RX_BLOCKED;
+	}
+      }
+      else
+      {
+	glist[j - (i0+rx->n_reactants)]=NULL;
+	xlist[j - (i0+rx->n_reactants)]=-1;
+	flist[j - (i0+rx->n_reactants)]=FLAG_NOT_SET;
+      }
+    }
+  }
+
+  /* We know there's space, so now actually create everyone */
   for (i=i0+rx->n_reactants;i<iN;i++)
   {
     p = rx->players[i];
@@ -102,69 +217,54 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
     {
       if (reac_g!=NULL || (reac_m!=NULL && w!=NULL))
       {
-        j = -1;
-        if (reac_g!=NULL) /* We will replace reac_g */
-        {
-          j = reac_g->grid_index;
-          sg = reac_g->grid;
-        }
-        else
-        {
-          sg = w->effectors;
-          if (sg == NULL)
-          {
-            if ( create_grid(w,reac_m->subvol) ) return RX_NO_MEM;
-            sg = w->effectors;
-          }
-          if (sg != NULL)
-          {
-            j = xyz2grid(hitpt,sg);
-            if (sg->mol[j]!=NULL)
-            {
-              j = -1; /* Slot full, no rxn */
-              return RX_BLOCKED;
-            }
-          }
-        }
-        if (j>-1)
-        {
-          g = mem_get(local->gmol);
-	  if (g==NULL) return RX_NO_MEM;
-          g->birthplace = local->gmol;
-	  g->birthday = t;
-          g->properties = p;
-          p->population++;
-          g->flags = TYPE_GRID + ACT_NEWBIE + IN_SCHEDULE;
-          if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)g)!= NULL)
-            g->flags += ACT_REACT;
-          
-          g->t = t;
-          g->t2 = 0.0;
-          g->grid_index = j;
-	  
-	  if (world->randomize_gmol_pos)
+	k = i-(i0+rx->n_reactants);
+	
+	g = mem_get(local->gmol);
+	if (g==NULL) return RX_NO_MEM;
+	g->birthplace = local->gmol;
+	g->birthday = t;
+	g->properties = p;
+	p->population++;
+	g->flags = TYPE_GRID + ACT_NEWBIE + IN_SCHEDULE;
+	if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)g)!= NULL)
+	  g->flags += ACT_REACT;
+	
+	g->t = t;
+	g->t2 = 0.0;
+	sg = g->grid = glist[k];
+	j = g->grid_index = xlist[k];
+	
+	if (world->randomize_gmol_pos)
+	{
+	  switch (flist[k])
 	  {
-	    if (reac_g!=NULL) memcpy(&(g->s_pos),&(reac_g->s_pos),sizeof(struct vector2));
-	    else xyz2uv(hitpt,sg->surface,&(g->s_pos));
+	    case FLAG_USE_REACA_UV:
+	      memcpy(&(g->s_pos),&(((struct grid_molecule*)reacA)->s_pos),sizeof(struct vector2));
+	      break;
+	    case FLAG_USE_REACB_UV:
+	      memcpy(&(g->s_pos),&(((struct grid_molecule*)reacB)->s_pos),sizeof(struct vector2));
+	      break;
+	    case FLAG_USE_UV_LOC:
+	      memcpy(&(g->s_pos),&(uv_loc),sizeof(struct vector2));
+	      break;
+	    case FLAG_USE_RANDOM:
+	      grid2uv_random(glist[k],xlist[k],&(g->s_pos));
+	      break;
+	    default:
+	      fprintf(world->err_file,"Screwed up surface molecule placement badly!\n  Aborting execution (guessing out of memory?).\n");
+	      return RX_NO_MEM;
+	      break;
 	  }
-	  else grid2uv(sg,j,&(g->s_pos));
+	}
+	else grid2uv(sg,j,&(g->s_pos));
 
-          g->grid = sg;
-          
-          if (reac_g==NULL || sg->mol[j]!=reac_g) sg->n_occupied++;
-          sg->mol[j] = g;
-          
-          plist[i-i0] = (struct abstract_molecule*)g;
-          ptype[i-i0] = 'g';
-          
-          if ( schedule_add(local->timer,g) ) return RX_NO_MEM;
-          
-        }
-        else
-        {
-          plist[i-i0] = NULL;
-          ptype[i-i0] = 0;
-        }
+	if (reac_g==NULL || sg->mol[j]!=reac_g) sg->n_occupied++;
+	sg->mol[j] = g;
+	
+	plist[i-i0] = (struct abstract_molecule*)g;
+	ptype[i-i0] = 'g';
+	
+	if ( schedule_add(local->timer,g) ) return RX_NO_MEM;
       }
       else
       {
@@ -243,7 +343,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
   }
 */
   
-  
+  /* Finally, set orientations correctly */
   bits = rng_uint( world->rng );
   for (i=i0;i<iN;i++,bits>>=1)
   {
@@ -317,6 +417,12 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
   }
 
   return bounce;
+  
+#undef FLAG_NOT_SET
+#undef FLAG_USE_UV_LOC
+#undef FLAG_USE_REACA_UV
+#undef FLAG_USE_REACB_UV
+#undef FLAG_USE_RANDOM
 }
 
 
