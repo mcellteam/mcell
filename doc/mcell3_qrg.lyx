@@ -476,7 +476,7 @@ The following initialization commands are optional.
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="8" columns="2">
+<lyxtabular version="3" rows="11" columns="2">
 <features islongtable="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -720,7 +720,7 @@ FULLY_RANDOM
 \end_inset 
 </cell>
 </row>
-<row topline="true" bottomline="true">
+<row topline="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
@@ -746,6 +746,156 @@ Specifies how many distances to put in the diffusion lookup table.
 FULLY_RANDOM
 \family default 
  is not implemented here.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ACCURATE_3D_REACTIONS = 
+\family sans 
+\shape italic 
+boolean
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Specifies which method to use for computing 3D molecule-molecule interactions.
+ If 
+\family sans 
+\shape italic 
+boolean
+\family default 
+\shape default 
+ is 
+\family typewriter 
+TRUE
+\family default 
+, then molecules will look through partition boundaries for potential interactin
+g partners--this is slower but more accurate.
+ If 
+\family sans 
+\shape italic 
+boolean
+\family default 
+\shape default 
+ is 
+\family typewriter 
+FALSE
+\family default 
+, then molecule interaction disks will be clipped at partition boundaries
+ and probabilities adjusted to get the correct rate--this is faster but
+ can be less accurate.
+ The default is 
+\family typewriter 
+TRUE
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+CENTER_MOLECULES_ON_GRID = 
+\family sans 
+\shape italic 
+boolean
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+If 
+\family sans 
+\shape italic 
+boolean
+\family default 
+\shape default 
+ is set to 
+\family typewriter 
+TRUE
+\family default 
+, then all molecules on a surface will be located exactly at the center
+ of their grid element.
+ If 
+\family typewriter 
+FALSE
+\family default 
+, the molecules will be randomly located when placed, and reactions will
+ take place at the location of the target (or the site of impact in the
+ case of 3D molecule/surface reactions).
+ The default is currently 
+\family typewriter 
+TRUE
+\family default 
+, but this should probably be changed.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+VACANCY_SEARCH_DISTANCE = 
+\family sans 
+\shape italic 
+r
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Normally, a reaction will not proceed on a surface unless there is room
+ to place all products on the single grid element where the reaction is
+ initiated.
+ By increasing 
+\family sans 
+\shape italic 
+r
+\family default 
+\shape default 
+ from its default value of 0, one can specify how far from the reaction's
+ location, in microns, the reaction can place its products.
+ To be useful, 
+\family sans 
+\shape italic 
+r
+\family default 
+\shape default 
+ must be larger than the longest axis of the grid element on the triangle
+ in question.
+ The reaction will then proceed if there is room to place its products within
+ a radius 
+\family sans 
+\shape italic 
+r
+\family default 
+\shape default 
+, and will place those products as close as possible to the place where
+ the reaction occurs (deterministically, so small-scale directional bias
+ is possible).
 \end_inset 
 </cell>
 </row>
