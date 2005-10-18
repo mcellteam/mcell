@@ -14,6 +14,10 @@
 /**  Brand new constants created for use in MCell3  **/
 /*****************************************************/
 
+/* use checkpointing */
+/*#define USE_CHKPT  */
+
+
 /* Species flags */
    /* Walls have IS_SURFACE set, molecules do not. */
    /* Grid molecules have ON_GRID set */
@@ -953,10 +957,12 @@ struct volume
   double *d_step;
   double r_num_directions;
   double sim_elapsed_time;
-  double chkpt_elapsed_time;
-  double chkpt_elapsed_time_start;
-  double current_time;
-  double current_start_time;
+  double chkpt_elapsed_time;    /** elapsed simulation time (in sec) for new 
+                                    checkpoint */
+  double chkpt_elapsed_time_start;  /**< start of the simulation time (in sec)
+                                        for new checkpoint */
+  double current_time;          /**< current simulation time in seconds */
+  double current_start_time;    /**< simulation start time (in seconds) */
   double max_diffusion_step;
   double random_number_use;
   double ray_voxel_tests;
@@ -968,10 +974,15 @@ struct volume
   struct vector3 bb_max;	/**< bounding box maximum size */
   u_int tot_mols;
   struct rng_state *rng;
-  u_int init_seed;
+  u_int init_seed;              /**<  initial seed value for random function */
+#ifdef USE_CHKPT
+  u_int seed;              /**<  seed value for random function taken from the 
+                                 checkpointing*/
+#endif
+
   long long it_time;
-  double elapsed_time;
-  long long start_time;
+  double elapsed_time;    /**< number of iterations after simulation starts */
+  long long start_time;  /**< starting iteration number for the current run */
   u_int radial_directions;
   u_int radial_subdivisions;
   u_int num_directions;
@@ -992,21 +1003,28 @@ struct volume
 
   /* MCell startup command line arguments */
   byte info_opt;
-  u_int seed_seq;
+  u_int seed_seq;            /**< index in the seed_array */
   long long iterations;
   char *log_file_name;
   FILE *log_file;
   FILE *err_file;
   u_int log_freq;
+  /* flag set to 0 if CHECKPOINT_INFILE can be opened for reading,
+     otherwise - if there is no such file or it can't be read it is set to 1 */
   u_int chkpt_init;
+  /* flag set to 1 if there are any CHECKPOINT statements in "mdl" file */
   u_int chkpt_flag;
+  /* value of the CHECKPOINT_ITERATIONS keyword */
   long long chkpt_iterations;
   u_int chkpt_seq_num;
   char *chkpt_infile;
   char *chkpt_outfile;
+  /* Handle for the file named "chkpt_infile" */
   FILE *chkpt_infs;
   FILE *chkpt_outfs;
   FILE *chkpt_signal_file_tmp;
+  long long chkpt_n_release_events;  /* number of release events written 
+                                      to CHKPT_OUTFILE */
   char *mdl_infile_name;
   char *curr_file;
 };

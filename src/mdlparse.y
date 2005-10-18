@@ -1070,10 +1070,12 @@ num_expr: num_value
 {
   $$=rng_gauss(mdlpvp->vol->rng);
 }
+/*
 	| SEED
 {
-  $$=volp->seed_seq;
+   $$=volp->seed_seq; 
 }
+*/
 	| STRING_TO_NUM '(' str_expr ')'
 {
   $$=strtod($<str>3,(char **)NULL);
@@ -1214,10 +1216,12 @@ num_expr_only: intOrReal
 {
   $$=rng_gauss(mdlpvp->vol->rng);
 }
+/*
 	| SEED
 {
   $$=volp->seed_seq;
 }
+*/
 	| STRING_TO_NUM '(' str_expr ')'
 {
   $$=strtod($<str>3,(char **)NULL);

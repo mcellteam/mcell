@@ -23,6 +23,7 @@
 #include "viz_output.h"
 #include "diffuse.h"
 #include "init.h"
+#include "chkpt.h"
 
 struct volume *world;
 
@@ -42,7 +43,7 @@ void run_sim(void)
   /*int count;
   long long total_coll_1,total_coll_2;
   double total_len;*/
-  double not_yet;
+  long long not_yet;
   int frequency;
   
 /*
@@ -64,7 +65,10 @@ void run_sim(void)
   else                                       frequency = 100000;
   
   world->diffusion_number = world->diffusion_cumsteps = 0.0;
-  
+#ifdef USE_CHKPT 
+  world->it_time = world->start_time;
+#endif
+ 
   while (world->it_time <= world->iterations) 
   {
     not_yet = world->it_time + 1.0;
@@ -146,6 +150,30 @@ void run_sim(void)
       printf("\n");
     }
   }
+
+#ifdef USE_CHKPT
+  /* write output checkpoint file */
+  if ((world->it_time - world->start_time)==world->chkpt_iterations && world->chkpt_outfile) {
+    if ((world->chkpt_outfs=fopen(world->chkpt_outfile,"wb"))==NULL) {
+      fprintf(world->log_file,"MCell: fatal error cannot write checkpoint file %s\n",world->chkpt_outfile);
+      exit(1);
+    }
+    else {
+      fprintf(world->log_file,"MCell: time = %lld, writing to checkpoint file %s\n",world->it_time, world->chkpt_outfile);
+      world->chkpt_elapsed_time = world->chkpt_elapsed_time + world->chkpt_iterations*world->time_unit;
+      world->current_time = world->it_time*world->time_unit;/* Lin-Wei 12-05-02 */
+      if (write_chkpt(world->chkpt_outfs)) {
+	fprintf(world->log_file,"MCell: error writing checkpoint file %s\n",world->chkpt_outfile);
+	exit(1);
+      }
+      fclose(world->chkpt_outfs);
+    }
+  }
+  fprintf(world->log_file,"iterations = %lld ; elapsed time = %1.15g seconds; current_time = %1.15g seconds \n",world->it_time,world->chkpt_elapsed_time_start+((world->it_time - world->start_time)*world->time_unit), world->current_time);
+  fflush(world->log_file);
+
+#endif
+
   if(world->diffusion_number > 0){ 
   	fprintf(stderr,"Average diffusion jump was %.2f timesteps\n",world->diffusion_cumsteps/world->diffusion_number);
   }
@@ -319,8 +347,16 @@ int main(int argc, char **argv) {
   FILE *err_file;
   FILE *log_file;
   char hostname[64];
+#ifdef USE_CHKPT
+  /* char processpid_str[7]; */
+  /* char chkpt_signal_outfilename[255]; */
+  world->chkpt_infile = NULL;
+  world->chkpt_init = 1;
+#endif
   u_int procnum;
-  
+#ifdef USE_CHKPT
+  long long exec_iterations; /* number of simulation iterations for this run */
+#endif 
 
 #if defined(__linux__)
   feenableexcept(FE_DIVBYZERO);
@@ -391,6 +427,38 @@ int main(int argc, char **argv) {
     fprintf(log_file,"MCell: error initializing simulation\n");
     exit(EXIT_FAILURE);
   }
+
+#ifdef USE_CHKPT
+
+  fprintf(log_file,"MCell: checkpoint sequence number %d begins at elapsed time %1.15g seconds\n", world->chkpt_seq_num, world->chkpt_elapsed_time_start);
+  if (((world->iterations - world->start_time) < world->chkpt_iterations) && world->chkpt_outfile) {
+    world->chkpt_iterations = world->iterations - world->start_time;
+  } else if (world->chkpt_outfile) {
+    world->iterations = world->chkpt_iterations + world->start_time;
+  }
+
+
+  if (world->chkpt_outfile) {
+    exec_iterations = world->chkpt_iterations;
+  }
+  else if ((world->chkpt_infile)&&(!world->chkpt_iterations)) {
+    exec_iterations = world->iterations - world->start_time;
+  }
+  else {
+	exec_iterations = world->iterations;
+  }
+  fprintf(log_file,"MCell: executing %lld iterations starting at iteration number %lld.\n",
+          exec_iterations,world->start_time);
+
+  /* Lin-Wei Wu 12-02-2002 */
+/* not sure what to do with that old stuff???
+  if (world->chkpt_seq_num>1) {
+    output_list->counter=output_list->counter+1;
+  }
+*/
+
+#endif
+
   printf("Running...\n");
   run_sim();
   printf("Done running.\n");

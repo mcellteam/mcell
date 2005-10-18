@@ -8,7 +8,7 @@ MCELL_VERSION = `head -1 ./mcell.h | cut -d " " -f 6`
 UTILITY_OBJS = strfunc.o vector.o ran4.o isaac64.o rng.o diffuse_util.o mem_util.o sched_util.o grid_util.o util.o 
 PARSE_OBJS = argparse.bison.o mdlparse.bison.o mdlparse_util.o sym_table.o 
 COUNT_VIZ_OBJS = viz_output.o react_output.o count_util.o
-CORE_OBJS = react_cond.o react_outc.o react_trig.o wall_util.o vol_util.o diffuse.o init.o 
+CORE_OBJS = react_cond.o react_outc.o react_trig.o wall_util.o vol_util.o diffuse.o init.o chkpt.o 
 MCELL_OBJS = $(PARSE_OBJS) $(COUNT_VIZ_OBJS) $(UTILITY_OBJS) $(CORE_OBJS) mcell.o
 EXTRAS = arglex.flex.c argparse.bison.c mdllex.flex.c mdlparse.bison.c mdlparse.bison.output
 
@@ -113,6 +113,8 @@ diffuse.o: makedefs diffuse.c diffuse.h mem_util.h sched_util.h rng.h mcell_stru
 init.o: makedefs init.c init.h rng.h mcell_structs.h strfunc.h vector.h sym_table.h ran4.h count_util.h vol_util.h wall_util.h grid_util.h viz_output.h react.h seed_array.h util.h
 	$(CC) $(CFLAGS) -c init.c
 
+chkpt.o: makedefs chkpt.c chkpt.h mcell_structs.h
+	$(CC) $(CFLAGS) -c chkpt.c
   
 # mcell
 

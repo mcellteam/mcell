@@ -31,6 +31,10 @@
 #include "react_output.h"
 #include "util.h"
 
+#ifdef USE_CHKPT
+#include "chkpt.h"
+#endif
+
 #ifndef RAN4_H
 #include "ran4.h"
 #endif
@@ -157,9 +161,9 @@ int init_sim(void)
 
   world->chkpt_outfile=NULL;
   world->chkpt_iterations=0;
-  world->chkpt_seq_num=1;
+  world->chkpt_seq_num=0;
 
-  world->chkpt_init=1;
+  /*world->chkpt_init=1; */  /* set in the main() */
   world->chkpt_flag=0;
   world->molecule_prefix_name=NULL;
   world->random_number_use=0;
@@ -171,6 +175,9 @@ int init_sim(void)
   world->sim_elapsed_time=0;
   world->chkpt_elapsed_time=0;
   world->chkpt_elapsed_time_start=0;
+#ifdef USE_CHKPT
+  world->chkpt_n_release_events = 0;
+#endif
   world->it_time=0;
   world->elapsed_time=0;
   world->time_unit=0;
@@ -220,6 +227,10 @@ int init_sim(void)
     return(1);
   }
   world->init_seed = seed_array[world->seed_seq-1];
+#ifdef USE_CHKPT
+  /* just initialization to safe number */
+  world->seed = world->init_seed;
+#endif
   rng_init(world->rng,world->init_seed);
   fprintf(log_file,"MCell[%d]: random sequence: %d  seed: %d\n", world->procnum,world->seed_seq,world->init_seed);
   fflush(log_file);
@@ -228,6 +239,11 @@ int init_sim(void)
     fprintf(log_file,"MCell: error, random sequence number not in range 1 to 2^31-1\n");
     return(1);
   }
+#ifdef USE_CHKPT
+  /* just initialization to safe numbers */
+  world->init_seed = seed_array[1];
+  world->seed = world->init_seed;
+#endif
   rng_init(world->rng,world->seed_seq);
   fprintf(log_file,"MCell[%d]: random sequence %d\n",world->procnum,world->seed_seq);
   fflush(log_file);
@@ -443,25 +459,28 @@ int init_sim(void)
     fprintf(log_file,"MCell: error initializing release event table\n");
     return(1);
   }
-  
+*/  
+#ifdef USE_CHKPT
 
-  if (chkpt_infile) {
-    if ((chkpt_infs=fopen(chkpt_infile,"rb"))==NULL) {
-      chkpt_seq_num=1;
+  if (world->chkpt_infile) {
+    if ((world->chkpt_infs=fopen(world->chkpt_infile,"rb"))==NULL) {
+      world->chkpt_seq_num=1;
     }
     else {
-      fprintf(log_file,"MCell: reading from checkpoint file %s\n",chkpt_infile);
-      if(read_chkpt(chkpt_infs)) {
-	fprintf(log_file,"MCell: error reading from checkpoint file %s\n",chkpt_infile);
+      fprintf(log_file,"MCell: reading from checkpoint file %s\n",world->chkpt_infile);
+      if(read_chkpt(world->chkpt_infs)) {
+	fprintf(log_file,"MCell: error reading from checkpoint file %s\n",world->chkpt_infile);
 	return(1);
       }
-      fclose(chkpt_infs);
+      /* reinitialize randon numbers with new seed value. */
+      rng_init(world->rng,world->seed);
+      fclose(world->chkpt_infs);
     }
   }
   else {
-    chkpt_seq_num=1;
+    world->chkpt_seq_num=1;
   }
-*/
+#endif
 
   /**
    *Initialize the frame data list for the visualization 
