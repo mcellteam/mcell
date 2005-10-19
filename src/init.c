@@ -1043,10 +1043,10 @@ int instance_release_site(struct object *objp, double (*im)[4])
   reqp->event_time=rsop->pattern->delay;
   reqp->train_counter=0;
   reqp->train_high_time=rsop->pattern->delay;
+  for (i=0;i<4;i++) for (j=0;j<4;j++) reqp->t_matrix[i][j]=im[i][j];
   reqp->next=world->release_event_queue_head;
   world->release_event_queue_head=reqp;
   
-  for (i=0;i<4;i++) for (j=0;j<4;j++) reqp->t_matrix[i][j]=im[i][j];
 
   if(rsop->pattern->train_duration > rsop->pattern->train_interval)
   {

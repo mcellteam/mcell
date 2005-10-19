@@ -350,8 +350,6 @@ int main(int argc, char **argv) {
 #ifdef USE_CHKPT
   /* char processpid_str[7]; */
   /* char chkpt_signal_outfilename[255]; */
-  world->chkpt_infile = NULL;
-  world->chkpt_init = 1;
 #endif
   u_int procnum;
 #ifdef USE_CHKPT
@@ -376,6 +374,10 @@ int main(int argc, char **argv) {
   procnum=world->procnum;
   gethostname(hostname,64);
 
+#ifdef USE_CHKPT
+  world->chkpt_infile = NULL;
+  world->chkpt_init = 1;
+#endif
   /*
    * Parse the command line arguments and print out errors if necessary.
    */

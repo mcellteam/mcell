@@ -44,7 +44,7 @@ int write_chkpt(FILE *fs)
   if (write_rng_state(fs)) {
     return(1);
   }
-
+  /*
   if (write_release_event_queue(fs)) {
     return(1);
   }
@@ -57,6 +57,7 @@ int write_chkpt(FILE *fs)
   if (write_rx_states(fs)) {
     return(1);
   }
+  */
   return(0);
 }
 
@@ -94,6 +95,7 @@ int read_chkpt(FILE *fs)
 	  return(1);
 	}
 	break;
+      
       case CURRENT_ITERATION_CMD:
 	if (read_current_iteration(fs)) {
 	  return(1);
@@ -109,6 +111,7 @@ int read_chkpt(FILE *fs)
 	  return(1);
 	}
 	break;
+        /*
       case RELEASE_EVENT_CMD:
 	if (read_release_event_queue(fs)) {
 	  return(1);
@@ -129,6 +132,8 @@ int read_chkpt(FILE *fs)
 	  return(1);
 	}
 	break;
+        */
+      default: break;
       }
     }
   }
@@ -396,7 +401,8 @@ int write_release_event_queue(FILE *fs)
 
 
   reqp = world->release_event_queue_head;
-  while(reqp->event_time <= world->it_time){
+  
+  while(reqp != NULL){
     dbl_val=((reqp->event_time-world->start_time)*world->time_unit)+world->chkpt_elapsed_time_start;
     if (!fwrite(&dbl_val,sizeof dbl_val,1,fs)) {
       fprintf(stderr,"MCell: write release_event_queue error in 'chkpt.c'.\n");
@@ -490,6 +496,9 @@ int read_release_event_queue(FILE *fs)
     world->release_event_queue_head = reqp;
 
   }
+  /* reset the number of checkpoint release events to zero. */
+  world->chkpt_n_release_events = 0;
+
   return(0);
 }
 
