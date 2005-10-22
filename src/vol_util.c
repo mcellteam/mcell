@@ -846,7 +846,46 @@ int release_molecules(struct release_event_queue *req)
   }
   
   guess = NULL;
- 
+
+#ifdef USE_CHKPT
+   if( req->event_time < world->it_time)
+   {
+     do{
+  	/* Schedule next release event and leave the function. 
+           This part of the code is relevant to checkpointing. */
+  	if(rpat->release_interval > 0)
+  	{
+    		if (rso->release_prob < 1.0)
+    		{
+      			k = -log( 1.0 - rso->release_prob );
+      			t = -log( rng_dbl(world->rng) ) / k;  /* Poisson dist. */
+      			req->event_time += rpat->release_interval * (ceil(t)-1.0); /* Rounded to integers */
+    		}else{
+  			req->event_time += rpat->release_interval;
+    		}
+  	}
+    	/* we may need to move to the next train. */
+  	if (req->event_time > req->train_high_time + rpat->train_duration)
+  	{
+      		req->train_high_time += rpat->train_interval;
+      		req->event_time = req->train_high_time;
+      		req->train_counter++;
+  	}
+      }while(req->event_time <= world->start_time);
+
+  	if (req->train_counter <= rpat->number_of_trains)
+  	{
+      		if ( schedule_add(world->releaser,req) ){
+			fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+        		int i = emergency_output();
+        		fprintf(stderr, "Fatal error: out of memory during release molecule event.\nAttempt to write intermediate results had %d errors.\n", i);
+        		exit(EXIT_FAILURE);
+      		} 
+  	}
+        return 0;
+     }
+#endif
+
   /* Set molecule characteristics. */
   ap->t = req->event_time;
   ap->properties = rso->mol_type;

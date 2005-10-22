@@ -27,8 +27,6 @@ int write_chkpt_seq_num(FILE *fs);
 int read_chkpt_seq_num(FILE *fs);
 int write_rng_state(FILE *fs);
 int read_rng_state(FILE *fs);
-int write_release_event_queue(FILE *fs);
-int read_release_event_queue(FILE *fs);
 int write_free_molecules(FILE *fs);
 int read_free_molecule(FILE *fs);
 int write_grid_molecules(FILE *fs);
