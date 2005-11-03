@@ -5,6 +5,8 @@
 
 #define CHKPT_BUFSIZE 10000
 #define IO_COUNT 10000
+#define MCELL_BIG_ENDIAN 16
+#define MCELL_LITTLE_ENDIAN 17
 
 #define CURRENT_TIME_CMD 1
 #define CURRENT_ITERATION_CMD 2
@@ -14,7 +16,7 @@
 #define MOLECULE_CMD 6
 #define EFFECTOR_CMD 7
 #define RX_STATE_CMD 8
-
+#define BYTE_ORDER_CMD 9
 
 
 int write_chkpt(FILE *fs);
@@ -33,5 +35,7 @@ int write_grid_molecules(FILE *fs);
 int read_grid_molecule(FILE *fs);
 int write_rx_states(FILE *fs);
 int read_rx_state(FILE *fs);
+int write_byte_order(FILE *fs);
+int read_byte_order(FILE *fs);
 
 #endif

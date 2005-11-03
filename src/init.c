@@ -176,7 +176,7 @@ int init_sim(void)
   world->chkpt_elapsed_time=0;
   world->chkpt_elapsed_time_start=0;
 #ifdef USE_CHKPT
-  world->chkpt_n_release_events = 0;
+  world->chkpt_byte_order_mismatch = 0;
 #endif
   world->it_time=0;
   world->elapsed_time=0;

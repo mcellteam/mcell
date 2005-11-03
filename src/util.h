@@ -6,7 +6,7 @@
 *
 ***********************************************************************/
 
-#define BLOCK_SIZE 10
+#define BLOCK_SIZE 10000
 
 /** struct infinite_double_array
     Used to hold information for an infinite array of doubles.
@@ -121,4 +121,5 @@ struct void_list* void_list_sort_by(struct void_list *vl,int (*leq)(void*,void*)
 
 int void_array_search(void **array,int n,void *to_find);
 
+unsigned char * byte_swap(unsigned char *b);
 #endif

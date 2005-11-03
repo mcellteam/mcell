@@ -12,6 +12,7 @@
 #include "mcell_structs.h"
 #include "vol_util.h" 
 #include "chkpt.h"
+#include "util.h"
 
 extern struct volume *world;
 int io_bytes;
@@ -30,6 +31,9 @@ int write_chkpt(FILE *fs)
 
   io_bytes=0;
   if (setvbuf(fs,NULL,_IOFBF,CHKPT_BUFSIZE)) {
+    return(1);
+  }
+  if(write_byte_order(fs)) {
     return(1);
   }
   if (write_current_time(fs)) {
@@ -111,6 +115,11 @@ int read_chkpt(FILE *fs)
 	  return(1);
 	}
 	break;
+      case BYTE_ORDER_CMD:
+	if (read_byte_order(fs)) {
+	   return (1);
+        }
+        break;
         /*
       case RELEASE_EVENT_CMD:
 	if (read_release_event_queue(fs)) {
@@ -138,6 +147,88 @@ int read_chkpt(FILE *fs)
     }
   }
   return(0);
+}
+
+/***************************************************************************
+write_byte_order:
+In:  fs - checkpoint file to write to.
+Out: Writes byte order of the machine that creates checkpoint file 
+        to the checkpoint file. 
+     Returns 1 on error, and 0 - on success.
+
+***************************************************************************/
+int write_byte_order(FILE *fs)
+{
+   int word, byte_order;
+   byte *word_p;
+
+   word = 0x04030201;
+   word_p = (byte *)&word;
+
+   if(word_p[0] == 1){
+	byte_order = MCELL_LITTLE_ENDIAN;
+   }else{
+	byte_order = MCELL_BIG_ENDIAN;
+   }
+	
+   byte cmd = BYTE_ORDER_CMD;
+
+   if (!fwrite(&cmd,sizeof cmd,1,fs)) {
+      fprintf(stderr,"MCell: write_byte_order error in 'chkpt.c'.\n");
+      return(1);
+   }
+   io_bytes+=sizeof cmd;
+   if (!fwrite(&byte_order,sizeof (byte_order),1,fs)) {
+     fprintf(stderr,"MCell: write_byte_order error in 'chkpt.c'.\n");
+     return(1);
+   }
+   io_bytes+=sizeof (byte_order);
+
+   return 0;
+}
+/***************************************************************************
+read_byte_order:
+In:  fs - checkpoint file to read from.
+Out: Reads byte order  from the checkpoint file. 
+     Returns 1 on error, and 0 - on success.
+     Reports byte order mismatch between the machines that writes to and
+       reads from the checkpoint file,
+
+***************************************************************************/
+int read_byte_order(FILE *fs)
+{
+
+   int byte_order_read, byte_order_present, word;
+   byte *word_p;
+   
+   word = 0x04030201;
+   word_p = (byte *)&word;
+   
+   if(word_p[0] == 1){
+	byte_order_present = MCELL_LITTLE_ENDIAN;
+   }else{
+	byte_order_present = MCELL_BIG_ENDIAN;
+   }
+
+   if (!fread(&(byte_order_read),sizeof (byte_order_read),1,fs)) {
+      fprintf(stderr,"MCell: read_byte_order error in 'chkpt.c'.\n");
+      return(1);
+   }
+   io_bytes+=sizeof (byte_order_read);
+
+   /* find whether there is mismatch between two machines */
+   if (byte_order_read != byte_order_present)
+   {
+	world->chkpt_byte_order_mismatch = 1;
+   }
+
+/*
+  fprintf(stderr,"read_byte_order io_bytes = %d\n",io_bytes);
+  fflush(stderr);
+*/
+  return(0);
+
+
 }
 
 
@@ -179,10 +270,28 @@ Out: Reads current time (in the terms of real time) from the checkpoint file.
 ***************************************************************************/
 int read_current_time(FILE *fs)
 {
+  double tmp1, tmp2;
+  unsigned char *byte_array; /*pointer to the byte array */
 
-  if (!fread(&(world->current_start_time),sizeof (world->current_start_time),1,fs)) {
+  byte_array = NULL;
+  if (!fread(&(tmp1),sizeof(tmp1),1,fs)) {
     fprintf(stderr,"MCell: read current_time error in 'chkpt.c'.\n");
     return(1);
+  }
+
+  if(world->chkpt_byte_order_mismatch == 1)
+  {
+     /* we need to swap bytes here. */
+     byte_array = byte_swap((unsigned char *)&tmp1);
+     if(byte_array == NULL) {
+    	fprintf(stderr,"MCell: read current_time error in 'chkpt.c'.\n");
+    	return(1);
+     }
+     tmp2 = *(double *)byte_array;
+     world->current_start_time = tmp2;
+
+  }else{
+     world->current_start_time = tmp1;
   }
   io_bytes+=sizeof (world->current_start_time);
 /*
@@ -234,16 +343,52 @@ Out: Reads current iteration number from the checkpoint file.
 ***************************************************************************/
 int read_current_iteration(FILE *fs)
 {
+  long long tmp1, tmp2;
+  double tmp3, tmp4;
+  unsigned char *byte_array;
 
-  if (!fread(&(world->start_time),sizeof (world->start_time),1,fs)) {
+  byte_array = NULL;
+
+  if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
     fprintf(stderr,"MCell: read current_iteration error in 'chkpt.c'.\n");
     return(1);
   }
+
+  if(world->chkpt_byte_order_mismatch == 1)
+  {
+     /* we need to swap bytes here. */
+     byte_array = byte_swap((unsigned char *)&tmp1);
+     if(byte_array == NULL) {
+    	fprintf(stderr,"MCell: read current_time error in 'chkpt.c'.\n");
+    	return(1);
+     }
+     tmp2 = *(long long *)byte_array;
+     world->start_time = tmp2;
+  }else{
+     world->start_time = tmp1;
+  }
+
   io_bytes+=sizeof (world->start_time);
-  if (!fread(&(world->chkpt_elapsed_time_start),sizeof (world->chkpt_elapsed_time_start),1,fs)) {
+
+  byte_array = NULL;
+  if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
     fprintf(stderr,"MCell: read current_iteration error in 'chkpt.c'.\n");
     return(1);
   }
+  if(world->chkpt_byte_order_mismatch == 1)
+  {
+     /* we need to swap bytes here. */
+     byte_array = byte_swap((unsigned char *)&tmp3);
+     if(byte_array == NULL) {
+    	fprintf(stderr,"MCell: read current_time error in 'chkpt.c'.\n");
+    	return(1);
+     }
+     tmp4 = *(double *)byte_array;
+     world->chkpt_elapsed_time_start = tmp4;
+  }else{
+     world->chkpt_elapsed_time_start = tmp3;
+  }
+
   io_bytes+=sizeof (world->chkpt_elapsed_time_start);
   world->chkpt_elapsed_time=world->chkpt_elapsed_time_start;
 /*
@@ -292,11 +437,28 @@ Out: Reads checkpoint sequence number from the checkpoint file.
 ***************************************************************************/
 int read_chkpt_seq_num(FILE *fs)
 {
+   u_int tmp1, tmp2;
+   unsigned char *byte_array;
 
-  if (!fread(&(world->chkpt_seq_num),sizeof (world->chkpt_seq_num),1,fs)) {
+  byte_array = NULL;
+  if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
     fprintf(stderr,"MCell: read chkpt_seq_number error in 'chkpt.c'.\n");
     return(1);
   }
+  if(world->chkpt_byte_order_mismatch == 1)
+  {
+     /* we need to swap bytes here. */
+     byte_array = byte_swap((unsigned char *)&tmp1);
+     if(byte_array == NULL) {
+    	fprintf(stderr,"MCell: read current_time error in 'chkpt.c'.\n");
+    	return(1);
+     }
+     tmp2 = *(u_int *)byte_array;
+     world->chkpt_seq_num = tmp2;
+  }else{
+     world->chkpt_seq_num = tmp1;
+  }
+
   io_bytes+=sizeof (world->chkpt_seq_num);
   world->chkpt_seq_num++;
 /*

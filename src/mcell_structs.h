@@ -15,7 +15,7 @@
 /*****************************************************/
 
 /* use checkpointing */
-/*#define USE_CHKPT  */
+#define USE_CHKPT  
 
 
 /* Species flags */
@@ -977,7 +977,10 @@ struct volume
   u_int init_seed;              /**<  initial seed value for random function */
 #ifdef USE_CHKPT
   u_int seed;              /**<  seed value for random function taken from the 
-                                 checkpointing*/
+                                   checkpointing*/
+  u_int chkpt_byte_order_mismatch;   /**< flag that defines whether mismatch
+                                      in byte order exists between machines
+                                      that writes and reads checkpoint file.*/
 #endif
 
   long long it_time;
@@ -1023,8 +1026,6 @@ struct volume
   FILE *chkpt_infs;
   FILE *chkpt_outfs;
   FILE *chkpt_signal_file_tmp;
-  long long chkpt_n_release_events;  /* number of release events written 
-                                      to CHKPT_OUTFILE */
   char *mdl_infile_name;
   char *curr_file;
 };

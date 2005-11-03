@@ -1158,3 +1158,31 @@ int void_array_search(void **array,int n,void *to_find)
   if (to_find==array[hi]) return hi;
   return -1;
 }
+
+/*************************************************************************
+byte_swap:
+  In: array of bytes to be swapped
+  Out: array of bytes swapped so that the last byte becomes the first one, etc.
+       NULL on memory allocation error       
+*************************************************************************/
+unsigned char *byte_swap(unsigned char *b)
+{
+   int i,j, n;
+   unsigned char *tmp;  /* pointer to the byte array to be returned */
+
+   i = 0;
+   n = sizeof(b);
+   j = n - 1;
+
+   tmp = (unsigned char *)malloc(n);
+   if (tmp != NULL){
+	while (i < n)
+        {
+	   tmp[i] = b[j];
+           i++;
+           j--;
+        }
+    } 
+
+    return tmp;
+}  
