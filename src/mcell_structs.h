@@ -15,7 +15,7 @@
 /*****************************************************/
 
 /* use checkpointing */
-#define USE_CHKPT  
+/*#define USE_CHKPT  */
 
 
 /* Species flags */
@@ -978,10 +978,10 @@ struct volume
 #ifdef USE_CHKPT
   u_int seed;              /**<  seed value for random function taken from the 
                                    checkpointing*/
+#endif
   u_int chkpt_byte_order_mismatch;   /**< flag that defines whether mismatch
                                       in byte order exists between machines
                                       that writes and reads checkpoint file.*/
-#endif
 
   long long it_time;
   double elapsed_time;    /**< number of iterations after simulation starts */
