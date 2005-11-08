@@ -13,6 +13,8 @@
 #include "vol_util.h" 
 #include "chkpt.h"
 #include "util.h"
+#include "rng.h"
+#include <string.h>
 
 extern struct volume *world;
 int io_bytes;
@@ -36,6 +38,9 @@ int write_chkpt(FILE *fs)
   if(write_byte_order(fs)) {
     return(1);
   }
+  if(write_mcell_version(fs)) {
+    return(1);
+  }
   if (write_current_time(fs)) {
     return(1);
   }
@@ -45,6 +50,7 @@ int write_chkpt(FILE *fs)
   if (write_chkpt_seq_num(fs)) {
     return(1);
   }
+  
   if (write_rng_state(fs)) {
     return(1);
   }
@@ -117,6 +123,11 @@ int read_chkpt(FILE *fs)
 	break;
       case BYTE_ORDER_CMD:
 	if (read_byte_order(fs)) {
+	   return (1);
+        }
+        break;
+      case MCELL_VERSION_CMD:
+	if (read_mcell_version(fs)) {
 	   return (1);
         }
         break;
@@ -253,6 +264,8 @@ int write_current_time(FILE *fs)
     return(1);
   }
   io_bytes+=sizeof (world->current_time);
+
+
 /*
   fprintf(stderr,"write_current_time io_bytes = %d\n",io_bytes);
   fflush(stderr);
@@ -367,7 +380,6 @@ int read_current_iteration(FILE *fs)
   }else{
      world->start_time = tmp1;
   }
-
   io_bytes+=sizeof (world->start_time);
 
   byte_array = NULL;
@@ -478,6 +490,7 @@ Out: Writes seed values to the checkpoint file.
 ***************************************************************************/
 int write_rng_state(FILE *fs)
 {
+  int i;
   byte cmd = RNG_STATE_CMD;
   
   if (!fwrite(&cmd,sizeof cmd,1,fs)) {
@@ -485,20 +498,50 @@ int write_rng_state(FILE *fs)
     return(1);
   }
   io_bytes+=sizeof cmd;
-  if (!fwrite(&(world->init_seed),sizeof (world->init_seed),1,fs)) {
+  if (!fwrite(&(world->rng->randcnt),sizeof (world->rng->randcnt),1,fs)) {
     fprintf(stderr,"MCell: write rng_state error in 'chkpt.c'.\n");
     return(1);
   }
-  io_bytes+=sizeof (world->init_seed);
-#ifdef USE_CHKPT
-  if (!fwrite(&world->seed,sizeof (world->seed),1,fs)) {
+  io_bytes+=sizeof (world->rng->randcnt);
+  if (!fwrite(&(world->rng->aa),sizeof (world->rng->aa),1,fs)) {
     fprintf(stderr,"MCell: write rng_state error in 'chkpt.c'.\n");
     return(1);
   }
-  io_bytes+=sizeof (world->seed);
-#endif
+  io_bytes+=sizeof (world->rng->aa);
+
+  if (!fwrite(&(world->rng->bb),sizeof (world->rng->bb),1,fs)) {
+    fprintf(stderr,"MCell: write rng_state error in 'chkpt.c'.\n");
+    return(1);
+  }
+  io_bytes+=sizeof (world->rng->bb);
+  if (!fwrite(&(world->rng->cc),sizeof (world->rng->cc),1,fs)) {
+    fprintf(stderr,"MCell: write rng_state error in 'chkpt.c'.\n");
+    return(1);
+  }
+  io_bytes+=sizeof (world->rng->cc);
+
+
+  for(i = 0; i < RANDSIZ; i++)
+  {
+  	if (!fwrite(&(world->rng->randrsl[i]),sizeof (world->rng->randrsl[i]),1,fs)) {
+    		fprintf(stderr,"MCell: write rng_state error in 'chkpt.c'.\n");
+    		return(1);
+  	}
+  	io_bytes+=sizeof (world->rng->randrsl[i]);
+	
+  }  
+  for(i = 0; i < RANDSIZ; i++)
+  {
+  	if (!fwrite(&(world->rng->mm[i]),sizeof (world->rng->mm[i]),1,fs)) {
+    		fprintf(stderr,"MCell: write rng_state error in 'chkpt.c'.\n");
+    		return(1);
+  	}
+  	io_bytes+=sizeof (world->rng->mm[i]);
+	
+  }  
+
+
 /*
-  fprintf(stderr,"write_rng_state init_seed = %d  seed = %d\n",world->init_seed,world->seed);
   fprintf(stderr,"write_rng_state io_bytes = %d\n",io_bytes);
   fflush(stderr);
 */
@@ -515,25 +558,141 @@ Out: Reads seed values from the checkpoint file.
 ***************************************************************************/
 int read_rng_state(FILE *fs)
 {
-  unsigned int chkpt_init_seed, chkpt_seed;
+   
+   int tmp1, tmp2, i;
+   ub8 tmp3, tmp4;
+   unsigned char *byte_array;
+
+
+  byte_array = NULL;
+  if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
+    fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    return(1);
+  }
+  if(world->chkpt_byte_order_mismatch == 1)
+  {
+     /* we need to swap bytes here. */
+     byte_array = byte_swap((unsigned char *)&tmp1);
+     if(byte_array == NULL) {
+    	fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    	return(1);
+     }
+     tmp2 = *(int *)byte_array;
+     world->rng->randcnt = tmp2;
+  }else{
+     world->rng->randcnt = tmp1;
+  }
+  io_bytes+=sizeof (world->rng->randcnt);
   
-  if (!fread(&chkpt_init_seed,sizeof chkpt_init_seed,1,fs)) {
+  byte_array = NULL;
+  if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
     fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
     return(1);
   }
-  io_bytes+=sizeof chkpt_init_seed;
-  if (!fread(&chkpt_seed,sizeof chkpt_seed,1,fs)) {
+  if(world->chkpt_byte_order_mismatch == 1)
+  {
+     /* we need to swap bytes here. */
+     byte_array = byte_swap((unsigned char *)&tmp3);
+     if(byte_array == NULL) {
+    	fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    	return(1);
+     }
+     tmp4 = *(ub8 *)byte_array;
+     world->rng->aa = tmp4;
+  }else{
+     world->rng->aa = tmp3;
+  }
+  io_bytes+=sizeof (world->rng->aa);
+
+  byte_array = NULL;
+  if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
     fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
     return(1);
   }
-  io_bytes+=sizeof chkpt_seed;
-#ifdef USE_CHKPT
-  if (chkpt_init_seed == world->init_seed) {
-    world->seed = chkpt_seed;
+  if(world->chkpt_byte_order_mismatch == 1)
+  {
+     /* we need to swap bytes here. */
+     byte_array = byte_swap((unsigned char *)&tmp3);
+     if(byte_array == NULL) {
+    	fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    	return(1);
+     }
+     tmp4 = *(ub8 *)byte_array;
+     world->rng->bb = tmp4;
+  }else{
+     world->rng->bb = tmp3;
   }
-#endif
+  io_bytes+=sizeof (world->rng->bb);
+
+  byte_array = NULL;
+  if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
+    fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    return(1);
+  }
+  if(world->chkpt_byte_order_mismatch == 1)
+  {
+     /* we need to swap bytes here. */
+     byte_array = byte_swap((unsigned char *)&tmp3);
+     if(byte_array == NULL) {
+    	fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    	return(1);
+     }
+     tmp4 = *(ub8 *)byte_array;
+     world->rng->cc = tmp4;
+  }else{
+     world->rng->cc = tmp3;
+  }
+  io_bytes+=sizeof (world->rng->cc);
+  
+  byte_array = NULL;
+  for(i = 0; i < RANDSIZ; i++)
+  {
+  	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
+    		fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    		return(1);
+  	}
+        if(world->chkpt_byte_order_mismatch == 1)
+        {
+          	/* we need to swap bytes here. */
+     		byte_array = byte_swap((unsigned char *)&tmp3);
+     		if(byte_array == NULL) {
+    			fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    			return(1);
+     		}
+     		tmp4 = *(ub8 *)byte_array;
+     		world->rng->randrsl[i] = tmp4;
+  	}else{
+     		world->rng->randrsl[i] = tmp3;
+  	}
+  	io_bytes+=sizeof (world->rng->randrsl[i]);
+	
+  }  
+  
+  byte_array = NULL;
+  for(i = 0; i < RANDSIZ; i++)
+  {
+  	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
+    		fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    		return(1);
+  	}
+        if(world->chkpt_byte_order_mismatch == 1)
+        {
+          	/* we need to swap bytes here. */
+     		byte_array = byte_swap((unsigned char *)&tmp3);
+     		if(byte_array == NULL) {
+    			fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    			return(1);
+     		}
+     		tmp4 = *(ub8 *)byte_array;
+     		world->rng->mm[i] = tmp4;
+  	}else{
+     		world->rng->mm[i] = tmp3;
+  	}
+  	io_bytes+=sizeof (world->rng->randrsl[i]);
+	
+  }  
+
 /*
-  fprintf(stderr,"read_rng_state chkpt_init_seed = %d  chkpt_seed = %d\n",chkpt_init_seed,chkpt_seed);
   fprintf(stderr,"read_rng_state io_bytes = %d\n",io_bytes);
   fflush(stderr);
 */
@@ -870,3 +1029,91 @@ int read_rx_state(FILE *fs)
   return(0);
 }
 
+/***************************************************************************
+write_mcell_version:
+In:  fs - checkpoint file to write to.
+Out: MCell3 software version is written to the checkpoint file.
+     Returns 1 on error, and 0 - on success.
+
+***************************************************************************/
+int write_mcell_version(FILE *fs)
+{
+
+   int i;
+   u_int version_length;  /* length of the string MCELL_VERSION */
+   
+   byte cmd = MCELL_VERSION_CMD;
+   if (!fwrite(&cmd,sizeof cmd,1,fs)) {
+      fprintf(stderr,"MCell: write_mcell_version error in 'chkpt.c'.\n");
+      return(1);
+   }
+   io_bytes+=sizeof cmd;
+   
+   /* write number of characters in the MCell version string. */    
+   version_length = (u_int)(strlen(world->mcell_version));
+   if (!fwrite(&version_length,sizeof (version_length),1,fs)) {
+      fprintf(stderr,"MCell: write_mcell_version error in 'chkpt.c'.\n");
+      return(1);
+   }
+   io_bytes+=sizeof (version_length);
+
+   for(i = 0; i < version_length; i++)
+   {        
+   	if (!fwrite(&(world->mcell_version[i]),sizeof (char),1,fs)) 	{
+      		fprintf(stderr,"MCell: write_mcell_version error in 'chkpt.c'.\n");
+      		return(1);
+   	}
+   }
+   io_bytes += version_length; 
+ 
+   return 0;
+}
+
+/***************************************************************************
+read_mcell_version:
+In:  fs - checkpoint file to read from.
+Out: MCell3 software version is read from the checkpoint file.
+     Returns 1 on error, and 0 - on success.
+
+***************************************************************************/
+int read_mcell_version(FILE *fs)
+{
+
+   int i;
+   u_int version_length;  /* length of the string MCELL_VERSION */
+   FILE *log_file;
+
+   log_file = world->log_file;
+   
+   /* read number of characters in the MCell version string. */    
+   if (!fread(&version_length,sizeof (u_int),1,fs)) {
+      fprintf(stderr,"MCell: read_mcell_version error in 'chkpt.c'.\n");
+      return(1);
+   }
+    
+   io_bytes+=sizeof (version_length);
+
+   char mcell_version_read[version_length + 1];   /* version of MCell3 read from
+                                  checkpoint file. */
+
+   for(i = 0; i < version_length; i++)
+   {
+         
+   	if (!fread(&(mcell_version_read[i]),sizeof (char), 1,fs)) {
+      		fprintf(stderr,"MCell: read_mcell_version error in 'chkpt.c'.\n");
+      		return(1);
+   	}
+           
+   }
+   mcell_version_read[version_length] = '\0';
+   io_bytes += version_length;  
+      
+   fprintf(log_file,"Checkpoint file was created with MCell Version %s\n", mcell_version_read);
+   
+   if(strcmp(mcell_version_read,world->mcell_version) != 0){
+      fprintf(stderr,"Discrepancy between MCell versions found.\n");
+      fprintf(stderr, "Present MCell Version %s.\n", world->mcell_version);
+   }
+
+   return 0;         
+}

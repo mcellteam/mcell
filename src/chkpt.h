@@ -17,10 +17,12 @@
 #define EFFECTOR_CMD 7
 #define RX_STATE_CMD 8
 #define BYTE_ORDER_CMD 9
-
+#define MCELL_VERSION_CMD 10
 
 int write_chkpt(FILE *fs);
 int read_chkpt(FILE *fs);
+int write_mcell_version(FILE *fs);
+int read_mcell_version(FILE *fs);
 int write_current_time(FILE *fs);
 int read_current_time(FILE *fs);
 int write_current_iteration(FILE *fs);

@@ -213,6 +213,10 @@ int init_sim(void)
   world->randomize_gmol_pos=0;
   world->vacancy_search_dist2=0;
 
+  world->mcell_version = MCELL_VERSION;
+  fprintf(log_file,"Current MCell Version is %s\n", world->mcell_version);
+
+
   world->rng = malloc(sizeof(struct rng_state));
   if (world->rng==NULL)
   {
@@ -225,10 +229,6 @@ int init_sim(void)
     return(1);
   }
   world->init_seed = seed_array[world->seed_seq-1];
-#ifdef USE_CHKPT
-  /* just initialization to safe number */
-  world->seed = world->init_seed;
-#endif
   rng_init(world->rng,world->init_seed);
   fprintf(log_file,"MCell[%d]: random sequence: %d  seed: %d\n", world->procnum,world->seed_seq,world->init_seed);
   fflush(log_file);
@@ -237,11 +237,6 @@ int init_sim(void)
     fprintf(log_file,"MCell: error, random sequence number not in range 1 to 2^31-1\n");
     return(1);
   }
-#ifdef USE_CHKPT
-  /* just initialization to safe numbers */
-  world->init_seed = seed_array[1];
-  world->seed = world->init_seed;
-#endif
   rng_init(world->rng,world->seed_seq);
   fprintf(log_file,"MCell[%d]: random sequence %d\n",world->procnum,world->seed_seq);
   fflush(log_file);
@@ -470,8 +465,8 @@ int init_sim(void)
 	fprintf(log_file,"MCell: error reading from checkpoint file %s\n",world->chkpt_infile);
 	return(1);
       }
-      /* reinitialize randon numbers with new seed value. */
-      rng_init(world->rng,world->seed);
+      /* reinitialize random numbers with new seed value. */
+      /* TO WRITE the code here */
       fclose(world->chkpt_infs);
     }
   }

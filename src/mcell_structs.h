@@ -15,8 +15,10 @@
 /*****************************************************/
 
 /* use checkpointing */
-/*#define USE_CHKPT  */
+#define USE_CHKPT  
 
+/* MCell version */
+#define MCELL_VERSION "3.001"
 
 /* Species flags */
    /* Walls have IS_SURFACE set, molecules do not. */
@@ -975,10 +977,6 @@ struct volume
   u_int tot_mols;
   struct rng_state *rng;
   u_int init_seed;              /**<  initial seed value for random function */
-#ifdef USE_CHKPT
-  u_int seed;              /**<  seed value for random function taken from the 
-                                   checkpointing*/
-#endif
   u_int chkpt_byte_order_mismatch;   /**< flag that defines whether mismatch
                                       in byte order exists between machines
                                       that writes and reads checkpoint file.*/
@@ -998,7 +996,8 @@ struct volume
   byte voxel_volume_mode;
   char *molecule_prefix_name;
   double my_counter;
-  
+  char *mcell_version; 
+ 
   /* Optional stuff */
   int use_expanded_list;
   int randomize_gmol_pos;
