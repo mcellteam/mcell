@@ -1956,7 +1956,7 @@ In MCell3, molecules in a surface have an orientation.
 \family typewriter 
 ,
 \family default 
- (comma and apostraphe) after the molecule's name.
+ (apostrophe and comma) after the molecule's name.
  For example, a surface-bound molecule 
 \family typewriter 
 B
@@ -3007,6 +3007,17 @@ D2
 \end_inset 
 
 ) to every surface with this surface class.
+ By default, molecules will be oriented in the same direction as the surface.
+ Use orientation marks after the name to specify the direction.
+ For example, 
+\family typewriter 
+A'
+\family default 
+ specifies a molecule in the same orientation as the surface, while 
+\family typewriter 
+A,
+\family default 
+ specifies the opposite orientation.
 \end_inset 
 </cell>
 </row>
@@ -3116,6 +3127,8 @@ N2
 , of molecules onto any region that is made out of this surface class.
  Note: this usage is not recommended; it is better to add exact numbers
  of molecules to the region.
+ Orientation marks after the name can be used to specify the direction the
+ molecules are facing.
 \end_inset 
 </cell>
 </row>
@@ -3626,6 +3639,11 @@ z
 ]
 \family default 
 .
+ This command must be given before the 
+\family typewriter 
+ELEMENT_CONNECTIONS
+\family default 
+ command.
 \end_inset 
 </cell>
 </row>
@@ -3759,6 +3777,11 @@ c
 ]
 \family default 
  of vertex numbers.
+ This command must be given after the 
+\family typewriter 
+VERTEX_LIST
+\family default 
+ command.
 \end_inset 
 </cell>
 </row>
@@ -4418,8 +4441,10 @@ This is the same as the Surface Property Command of the same name.
 Release objects
 \layout Standard
 
-Release objects place molecules into three-dimensional space.
- These molecules must be defined with a 3D diffusion constant.
+Release objects place molecules into the world.
+ Release objects provide the only means of placing molecules in a three
+ dimensional space, but some release shapes can place molecules on surfaces
+ as well.
  Release objects are defined using the following commands:
 \layout Standard
 
@@ -6406,7 +6431,7 @@ file
 
 \layout Standard
 
-Output the value in braces to the filename in parentheses.
+Output the value in braces to the filename in quotes.
  The first column will be the timestep; the second will be the value listed.
  This command can be repeated to send different output to many files.
 \end_inset 
