@@ -374,10 +374,8 @@ int main(int argc, char **argv) {
   procnum=world->procnum;
   gethostname(hostname,64);
 
-#ifdef USE_CHKPT
   world->chkpt_infile = NULL;
   world->chkpt_init = 1;
-#endif
   /*
    * Parse the command line arguments and print out errors if necessary.
    */
