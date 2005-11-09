@@ -15,7 +15,7 @@
 /*****************************************************/
 
 /* use checkpointing */
-/*#define USE_CHKPT */ 
+#define USE_CHKPT  
 
 /* MCell version */
 #define MCELL_VERSION "3.001"
@@ -492,6 +492,8 @@ typedef unsigned long u_long;
 struct species
 {
   u_int species_id;             /* Unique ID for this species */
+  u_int chkpt_species_id;        /* Unique ID for this species from the 
+                                   checkpoint file */
   u_int hashval;                /* Hash value (may be nonunique) */
   struct sym_table *sym;        /* Symbol table entry (name) */
   struct eff_dat *eff_dat_head; /* if IS_SURFACE this points to head of
@@ -511,7 +513,7 @@ struct species
   
   long long n_deceased;         /* Total number that have been destroyed. */
   double cum_lifetime;          /* Timesteps lived by destroyed molecules */
-  
+ 
   int viz_state;                /* Visualization state for output */
   byte checked;                 /* Bread crumb for graph traversal */
 };

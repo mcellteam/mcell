@@ -54,13 +54,10 @@ int write_chkpt(FILE *fs)
   if (write_rng_state(fs)) {
     return(1);
   }
+  if (write_species_table(fs)) {
+    return(1);
+  }
   /*
-  if (write_release_event_queue(fs)) {
-    return(1);
-  }
-  if (write_free_molecules(fs)) {
-    return(1);
-  }
   if (write_grid_molecules(fs)) {
     return(1);
   }
@@ -131,17 +128,12 @@ int read_chkpt(FILE *fs)
 	   return (1);
         }
         break;
+      case SPECIES_TABLE_CMD:
+	if (read_species_table(fs)) {
+	  return(1);
+	}
+	break;
         /*
-      case RELEASE_EVENT_CMD:
-	if (read_release_event_queue(fs)) {
-	  return(1);
-	}
-	break;
-      case MOLECULE_CMD:
-	if (read_free_molecule(fs)) {
-	  return(1);
-	}
-	break;
       case EFFECTOR_CMD:
 	if (read_grid_molecule(fs)) {
 	  return(1);
@@ -288,7 +280,7 @@ int read_current_time(FILE *fs)
 
   byte_array = NULL;
   if (!fread(&(tmp1),sizeof(tmp1),1,fs)) {
-    fprintf(stderr,"MCell: read current_time error in 'chkpt.c'.\n");
+    fprintf(stderr,"MCell: read_current_time error in 'chkpt.c'.\n");
     return(1);
   }
 
@@ -297,7 +289,7 @@ int read_current_time(FILE *fs)
      /* we need to swap bytes here. */
      byte_array = byte_swap((unsigned char *)&tmp1);
      if(byte_array == NULL) {
-    	fprintf(stderr,"MCell: read current_time error in 'chkpt.c'.\n");
+    	fprintf(stderr,"MCell: read_current_time error in 'chkpt.c'.\n");
     	return(1);
      }
      tmp2 = *(double *)byte_array;
@@ -330,12 +322,12 @@ int write_current_iteration(FILE *fs)
   }
   io_bytes+=sizeof cmd;
   if (!fwrite(&(world->it_time),sizeof (world->it_time),1,fs)) {
-    fprintf(stderr,"MCell: write current_iteration error in 'chkpt.c'.\n");
+    fprintf(stderr,"MCell: write_current_iteration error in 'chkpt.c'.\n");
     return(1);
   }
   io_bytes+=sizeof (world->it_time);
   if (!fwrite(&(world->chkpt_elapsed_time),sizeof (world->chkpt_elapsed_time),1,fs)) {
-    fprintf(stderr,"MCell: write current_iteration error in 'chkpt.c'.\n");
+    fprintf(stderr,"MCell: write_current_iteration error in 'chkpt.c'.\n");
     return(1);
   }
   io_bytes+=sizeof (world->chkpt_elapsed_time);
@@ -363,7 +355,7 @@ int read_current_iteration(FILE *fs)
   byte_array = NULL;
 
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
-    fprintf(stderr,"MCell: read current_iteration error in 'chkpt.c'.\n");
+    fprintf(stderr,"MCell: read_current_iteration error in 'chkpt.c'.\n");
     return(1);
   }
 
@@ -372,7 +364,7 @@ int read_current_iteration(FILE *fs)
      /* we need to swap bytes here. */
      byte_array = byte_swap((unsigned char *)&tmp1);
      if(byte_array == NULL) {
-    	fprintf(stderr,"MCell: read current_time error in 'chkpt.c'.\n");
+    	fprintf(stderr,"MCell: read_current_iteration error in 'chkpt.c'.\n");
     	return(1);
      }
      tmp2 = *(long long *)byte_array;
@@ -384,7 +376,7 @@ int read_current_iteration(FILE *fs)
 
   byte_array = NULL;
   if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
-    fprintf(stderr,"MCell: read current_iteration error in 'chkpt.c'.\n");
+    fprintf(stderr,"MCell: read_current_iteration error in 'chkpt.c'.\n");
     return(1);
   }
   if(world->chkpt_byte_order_mismatch == 1)
@@ -392,7 +384,7 @@ int read_current_iteration(FILE *fs)
      /* we need to swap bytes here. */
      byte_array = byte_swap((unsigned char *)&tmp3);
      if(byte_array == NULL) {
-    	fprintf(stderr,"MCell: read current_time error in 'chkpt.c'.\n");
+    	fprintf(stderr,"MCell: read_current_iteration error in 'chkpt.c'.\n");
     	return(1);
      }
      tmp4 = *(double *)byte_array;
@@ -423,12 +415,12 @@ int write_chkpt_seq_num(FILE *fs)
   byte cmd = CHKPT_SEQ_NUM_CMD;
 
   if (!fwrite(&cmd,sizeof cmd,1,fs)) {
-    fprintf(stderr,"MCell: write chkpt_seq_number error in 'chkpt.c'.\n");
+    fprintf(stderr,"MCell: write_chkpt_seq_number error in 'chkpt.c'.\n");
     return(1);
   }
   io_bytes+=sizeof cmd;
   if (!fwrite(&(world->chkpt_seq_num),sizeof (world->chkpt_seq_num),1,fs)) {
-    fprintf(stderr,"MCell: write chkpt_seq_number error in 'chkpt.c'.\n");
+    fprintf(stderr,"MCell: write_chkpt_seq_number error in 'chkpt.c'.\n");
     return(1);
   }
   io_bytes+=sizeof (world->chkpt_seq_num);
@@ -454,7 +446,7 @@ int read_chkpt_seq_num(FILE *fs)
 
   byte_array = NULL;
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
-    fprintf(stderr,"MCell: read chkpt_seq_number error in 'chkpt.c'.\n");
+    fprintf(stderr,"MCell: read_chkpt_seq_number error in 'chkpt.c'.\n");
     return(1);
   }
   if(world->chkpt_byte_order_mismatch == 1)
@@ -462,7 +454,7 @@ int read_chkpt_seq_num(FILE *fs)
      /* we need to swap bytes here. */
      byte_array = byte_swap((unsigned char *)&tmp1);
      if(byte_array == NULL) {
-    	fprintf(stderr,"MCell: read current_time error in 'chkpt.c'.\n");
+    	fprintf(stderr,"MCell: read_chkpt_seq_number error in 'chkpt.c'.\n");
     	return(1);
      }
      tmp2 = *(u_int *)byte_array;
@@ -494,28 +486,28 @@ int write_rng_state(FILE *fs)
   byte cmd = RNG_STATE_CMD;
   
   if (!fwrite(&cmd,sizeof cmd,1,fs)) {
-    fprintf(stderr,"MCell: write rng_state error in 'chkpt.c'.\n");
+    fprintf(stderr,"MCell: write_rng_state error in 'chkpt.c'.\n");
     return(1);
   }
   io_bytes+=sizeof cmd;
   if (!fwrite(&(world->rng->randcnt),sizeof (world->rng->randcnt),1,fs)) {
-    fprintf(stderr,"MCell: write rng_state error in 'chkpt.c'.\n");
+    fprintf(stderr,"MCell: write_rng_state error in 'chkpt.c'.\n");
     return(1);
   }
   io_bytes+=sizeof (world->rng->randcnt);
   if (!fwrite(&(world->rng->aa),sizeof (world->rng->aa),1,fs)) {
-    fprintf(stderr,"MCell: write rng_state error in 'chkpt.c'.\n");
+    fprintf(stderr,"MCell: write_rng_state error in 'chkpt.c'.\n");
     return(1);
   }
   io_bytes+=sizeof (world->rng->aa);
 
   if (!fwrite(&(world->rng->bb),sizeof (world->rng->bb),1,fs)) {
-    fprintf(stderr,"MCell: write rng_state error in 'chkpt.c'.\n");
+    fprintf(stderr,"MCell: write_rng_state error in 'chkpt.c'.\n");
     return(1);
   }
   io_bytes+=sizeof (world->rng->bb);
   if (!fwrite(&(world->rng->cc),sizeof (world->rng->cc),1,fs)) {
-    fprintf(stderr,"MCell: write rng_state error in 'chkpt.c'.\n");
+    fprintf(stderr,"MCell: write_rng_state error in 'chkpt.c'.\n");
     return(1);
   }
   io_bytes+=sizeof (world->rng->cc);
@@ -524,7 +516,7 @@ int write_rng_state(FILE *fs)
   for(i = 0; i < RANDSIZ; i++)
   {
   	if (!fwrite(&(world->rng->randrsl[i]),sizeof (world->rng->randrsl[i]),1,fs)) {
-    		fprintf(stderr,"MCell: write rng_state error in 'chkpt.c'.\n");
+    		fprintf(stderr,"MCell: write_rng_state error in 'chkpt.c'.\n");
     		return(1);
   	}
   	io_bytes+=sizeof (world->rng->randrsl[i]);
@@ -533,7 +525,7 @@ int write_rng_state(FILE *fs)
   for(i = 0; i < RANDSIZ; i++)
   {
   	if (!fwrite(&(world->rng->mm[i]),sizeof (world->rng->mm[i]),1,fs)) {
-    		fprintf(stderr,"MCell: write rng_state error in 'chkpt.c'.\n");
+    		fprintf(stderr,"MCell: write_rng_state error in 'chkpt.c'.\n");
     		return(1);
   	}
   	io_bytes+=sizeof (world->rng->mm[i]);
@@ -566,7 +558,7 @@ int read_rng_state(FILE *fs)
 
   byte_array = NULL;
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
-    fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
     return(1);
   }
   if(world->chkpt_byte_order_mismatch == 1)
@@ -574,7 +566,7 @@ int read_rng_state(FILE *fs)
      /* we need to swap bytes here. */
      byte_array = byte_swap((unsigned char *)&tmp1);
      if(byte_array == NULL) {
-    	fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    	fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
     	return(1);
      }
      tmp2 = *(int *)byte_array;
@@ -586,7 +578,7 @@ int read_rng_state(FILE *fs)
   
   byte_array = NULL;
   if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
-    fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
     return(1);
   }
   if(world->chkpt_byte_order_mismatch == 1)
@@ -594,7 +586,7 @@ int read_rng_state(FILE *fs)
      /* we need to swap bytes here. */
      byte_array = byte_swap((unsigned char *)&tmp3);
      if(byte_array == NULL) {
-    	fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    	fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
     	return(1);
      }
      tmp4 = *(ub8 *)byte_array;
@@ -606,7 +598,7 @@ int read_rng_state(FILE *fs)
 
   byte_array = NULL;
   if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
-    fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
     return(1);
   }
   if(world->chkpt_byte_order_mismatch == 1)
@@ -614,7 +606,7 @@ int read_rng_state(FILE *fs)
      /* we need to swap bytes here. */
      byte_array = byte_swap((unsigned char *)&tmp3);
      if(byte_array == NULL) {
-    	fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    	fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
     	return(1);
      }
      tmp4 = *(ub8 *)byte_array;
@@ -626,7 +618,7 @@ int read_rng_state(FILE *fs)
 
   byte_array = NULL;
   if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
-    fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
     return(1);
   }
   if(world->chkpt_byte_order_mismatch == 1)
@@ -634,7 +626,7 @@ int read_rng_state(FILE *fs)
      /* we need to swap bytes here. */
      byte_array = byte_swap((unsigned char *)&tmp3);
      if(byte_array == NULL) {
-    	fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    	fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
     	return(1);
      }
      tmp4 = *(ub8 *)byte_array;
@@ -648,7 +640,7 @@ int read_rng_state(FILE *fs)
   for(i = 0; i < RANDSIZ; i++)
   {
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
-    		fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    		fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
     		return(1);
   	}
         if(world->chkpt_byte_order_mismatch == 1)
@@ -656,7 +648,7 @@ int read_rng_state(FILE *fs)
           	/* we need to swap bytes here. */
      		byte_array = byte_swap((unsigned char *)&tmp3);
      		if(byte_array == NULL) {
-    			fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    			fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
     			return(1);
      		}
      		tmp4 = *(ub8 *)byte_array;
@@ -672,7 +664,7 @@ int read_rng_state(FILE *fs)
   for(i = 0; i < RANDSIZ; i++)
   {
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
-    		fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    		fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
     		return(1);
   	}
         if(world->chkpt_byte_order_mismatch == 1)
@@ -680,7 +672,7 @@ int read_rng_state(FILE *fs)
           	/* we need to swap bytes here. */
      		byte_array = byte_swap((unsigned char *)&tmp3);
      		if(byte_array == NULL) {
-    			fprintf(stderr,"MCell: read rng_state error in 'chkpt.c'.\n");
+    			fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
     			return(1);
      		}
      		tmp4 = *(ub8 *)byte_array;
@@ -701,48 +693,78 @@ int read_rng_state(FILE *fs)
 
 
 /***************************************************************************
-write_free_molecules:
+write_species_table:
 In:  fs - checkpoint file to write to.
-Out: Writes free molecules data to the checkpoint file. 
+Out: Writes species data to the checkpoint file. 
      Returns 1 on error, and 0 - on success.
 
 ***************************************************************************/
-int write_free_molecules(FILE *fs)
+int write_species_table(FILE *fs)
 {
-  byte cmd = MOLECULE_CMD;
-  struct species *properties;
-  /*struct molecule *molp; */
+  byte cmd = SPECIES_TABLE_CMD;
   int i;
+  char *species_name;
+  u_int species_name_length;
+  u_int sp_id;       /* species id */
+  u_int count;        /* number of existing species */
 
-  for(i = 1; i < world->n_species + 1; i++){
-     properties = world->species_list[i];
-     if((properties->flags & NOT_FREE) != 0) continue; /* it is not a free molecule */
 
-     if (!fwrite(&cmd,sizeof cmd,1,fs)) {
-       fprintf(stderr,"MCell: write molecules error in 'chkpt.c'.\n");
-       return(1);
-     }
-     io_bytes+=sizeof cmd;
-     if (!fwrite(&properties->species_id,sizeof properties->species_id,1,fs)) {
-       fprintf(stderr,"MCell: write molecules error in 'chkpt.c'.\n");
-       return(1);
-     }
-     io_bytes+=sizeof properties->species_id;
-     if (!fwrite(&properties->population,sizeof properties->population,1,fs)) {
-       fprintf(stderr,"MCell: write molecules error in 'chkpt.c'.\n");
-       return(1);
-     }
-     io_bytes+=sizeof properties->population;
-     if (!fwrite(&properties->n_deceased,sizeof properties->n_deceased,1,fs)) {
-       fprintf(stderr,"MCell: write molecules error in 'chkpt.c'.\n");
-       return(1);
-     }
-     io_bytes+=sizeof properties->n_deceased;
-     /* TO DO: write positions of each molecule */
+  if (!fwrite(&cmd,sizeof cmd,1,fs)) {
+     fprintf(stderr,"MCell: write_species_table error in 'chkpt.c'.\n");
+     return(1);
+  }
+  io_bytes+=sizeof cmd;
 
-  }  
+  count = 0;
+  /* write total number of existing species */
+  for(i = 0; i < world->n_species; i++)
+  {
+        if(world->species_list[i]->population > 0) count++;
+  }
+  if (!fwrite(&(count),sizeof (count),1,fs)) {
+     	fprintf(stderr,"MCell: write_species_table error in 'chkpt.c'.\n");
+     	return(1);
+  }
+  io_bytes+=sizeof(count);
+
+  sp_id = 0;   /* set the initial value */
+  /* write data for each species */
+  for(i = 0; i < world->n_species; i++)
+  {
+        if(world->species_list[i]->population == 0) continue;
+
+	species_name = world->species_list[i]->sym->name;
+        species_name_length = strlen(species_name);
+        
+        /* write species name length. */
+        if (!fwrite(&(species_name_length),sizeof (species_name_length),1,fs)) {
+     		fprintf(stderr,"MCell: write_species_table error in 'chkpt.c'.\n");
+     		return(1);
+  	}
+        io_bytes+=sizeof(species_name_length);
+
+        /* write species name. */
+        for(i = 0; i < species_name_length; i++)
+        {
+   		if (!fwrite(&(species_name[i]),sizeof (char),1,fs)) 	{
+      			fprintf(stderr,"MCell: write_species_table error in 'chkpt.c'.\n");
+      			return(1);
+   		}
+   	}
+   	io_bytes += species_name_length; 
+        
+        /* write species ID. */
+        if (!fwrite(&(sp_id),sizeof (sp_id),1,fs)) {
+     		fprintf(stderr,"MCell: write_species_table error in 'chkpt.c'.\n");
+     		return(1);
+  	}
+        io_bytes+=sizeof(sp_id);
+        sp_id++;
+
+  }
+
 /*
-  fprintf(stderr,"write_molecules io_bytes = %d\n",io_bytes);
+  fprintf(stderr,"write_species_table io_bytes = %d\n",io_bytes);
   fflush(stderr);
 */
   return(0);
@@ -750,69 +772,109 @@ int write_free_molecules(FILE *fs)
 
 
 /***************************************************************************
-read_free_molecule:
+read_species_table:
 In:  fs - checkpoint file to read from.
-Out: Reads free molecules from the checkpoint file. 
+Out: Reads species data from the checkpoint file. 
      Returns 1 on error, and 0 - on success.
 
 ***************************************************************************/
-int read_free_molecule(FILE *fs)
+int read_species_table(FILE *fs)
 {
-  struct species *properties;
-  struct molecule *molp; 
-  u_int i;
-  u_int species_id;
+  int i;
+  u_int sp_id, sp_name_length, total_species, tmp1, tmp2;
+  unsigned char *byte_array;
 
-  if (!fread(&species_id,sizeof species_id,1,fs)) {
-    fprintf(stderr,"MCell: read molecules error in 'chkpt.c'.\n");
-    return(1);
+  byte_array = NULL;
+  /* read total number of species written. */
+  if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
+     fprintf(stderr,"MCell: read_species_table error in 'chkpt.c'.\n");
+     return(1);
   }
-  io_bytes+=sizeof species_id;
-  properties = world->species_list[species_id];
-  if (!fread(&properties->population,sizeof properties->population,1,fs)) {
-       fprintf(stderr,"MCell: read molecules error in 'chkpt.c'.\n");
-       return(1);
+  if(world->chkpt_byte_order_mismatch == 1)
+  {
+     /* we need to swap bytes here. */
+     byte_array = byte_swap((unsigned char *)&tmp1);
+     if(byte_array == NULL) {
+    	fprintf(stderr,"MCell: read_species_table error in 'chkpt.c'.\n");
+    	return(1);
+     }
+     tmp2 = *(u_int *)byte_array;
+     total_species = tmp2;
+  }else{
+     total_species = tmp1;
   }
-  io_bytes+=sizeof properties->population;
-  if (!fread(&properties->n_deceased,sizeof properties->n_deceased,1,fs)) {
-       fprintf(stderr,"MCell: read molecules error in 'chkpt.c'.\n");
-       return(1);
-  }
-  io_bytes+=sizeof properties->n_deceased;
+  io_bytes+=sizeof(total_species);
+
+  for(i = 0; i < total_species; i++)
+  {
+      byte_array = NULL;
+     /* read name length for this species */
+     if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
+        fprintf(stderr,"MCell: read_species_table error in 'chkpt.c'.\n");
+        return(1);
+     }
+     if(world->chkpt_byte_order_mismatch == 1)
+     {
+        /* we need to swap bytes here. */
+        byte_array = byte_swap((unsigned char *)&tmp1);
+        if(byte_array == NULL) {
+    	   fprintf(stderr,"MCell: read_species_table error in 'chkpt.c'.\n");
+    	   return(1);
+        }
+        tmp2 = *(u_int *)byte_array;
+        sp_name_length = tmp2;
+     }else{
+        sp_name_length = tmp1;
+     }
+     io_bytes+=sizeof(sp_name_length);
+
+     char sp_name[sp_name_length +1];
   
+     /* read species name. */
+     for(i = 0; i < sp_name_length; i++)
+     {
+   	if (!fread(&(sp_name[i]),sizeof (char),1,fs)) 	{
+      		fprintf(stderr,"MCell: read_species_table error in 'chkpt.c'.\n");
+      		return(1);
+   	}
+     }
+     sp_name[sp_name_length] = '\0';
+     io_bytes += sp_name_length; 
 
-  for (i = 0; i < properties->population; i++) {
-    if ((molp=(struct molecule *)malloc(sizeof(struct molecule)))==NULL) {
-      fprintf(stderr,"MCell: memory allocation error in 'chkpt.c'.\n");
-      return(1);
-    }
-    if (!fread(&molp->pos.x,sizeof molp->pos.x,1,fs)) {
-      fprintf(stderr,"MCell: read molecules error in 'chkpt.c'.\n");
-      return(1);
-    }      
-    io_bytes+=sizeof molp->pos.x;
-    if (!fread(&molp->pos.y,sizeof molp->pos.y,1,fs)) {
-      fprintf(stderr,"MCell: read molecules error in 'chkpt.c'.\n");
-      return(1);
-    }      
-    io_bytes+=sizeof molp->pos.y;
-    if (!fread(&molp->pos.z,sizeof molp->pos.z,1,fs)) {
-       fprintf(stderr,"MCell: read molecules error in 'chkpt.c'.\n");
-      return(1);
-    }      
-    io_bytes+=sizeof molp->pos.z;
-    if (!fread(&molp->index,sizeof molp->index,1,fs)) {
-       fprintf(stderr,"MCell: read molecules error in 'chkpt.c'.\n");
-      return(1);
-    }
-    io_bytes+=sizeof molp->index;
+     /* read the species id */
+     byte_array = NULL;
+     if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
+        fprintf(stderr,"MCell: read_species_table error in 'chkpt.c'.\n");
+        return(1);
+     }
+     if(world->chkpt_byte_order_mismatch == 1)
+     {
+           /* we need to swap bytes here. */
+           byte_array = byte_swap((unsigned char *)&tmp1);
+           if(byte_array == NULL) {
+    	      fprintf(stderr,"MCell: read_species_table error in 'chkpt.c'.\n");
+    	      return(1);
+           }
+           tmp2 = *(u_int *)byte_array;
+           sp_id = tmp2;
+      }else{
+           sp_id = tmp1;
+      }
+      io_bytes+=sizeof(sp_id);
 
-    /* find actual subvolume for molecule because partitioning may have changed during checkpointing */
-      molp->subvol = find_subvolume(&molp->pos,NULL);
+      /* find this species among world->species */
+      for(i = 0; i < world->n_species; i++)
+      {
+           if((strcmp(world->species_list[i]->sym->name, sp_name) == 0)){
+		world->species_list[i]->chkpt_species_id = sp_id;
+                break;
+           }
+
+      }
   }
 
 /*
-  fprintf(stderr,"read_molecules io_bytes = %d\n",io_bytes);
+  fprintf(stderr,"read_species_table io_bytes = %d\n",io_bytes);
   fflush(stderr);
 */
   return(0);

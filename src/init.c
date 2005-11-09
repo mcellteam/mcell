@@ -556,6 +556,7 @@ int init_species(void)
         s = (struct species*) gp->value;
         world->species_list[count] = s;
         world->species_list[count]->species_id = count;
+        world->species_list[count]->chkpt_species_id = UINT_MAX;
 /*        world->species_list[count]->hashval &= world->rx_hashsize-1; */
         world->species_list[count]->radius = EPS_C;
 	if (world->species_list[count]->area == old_dgma)
