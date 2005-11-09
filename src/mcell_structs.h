@@ -15,7 +15,7 @@
 /*****************************************************/
 
 /* use checkpointing */
-#define USE_CHKPT  
+/*#define USE_CHKPT  */
 
 /* MCell version */
 #define MCELL_VERSION "3.001"
