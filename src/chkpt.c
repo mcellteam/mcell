@@ -3,7 +3,7 @@
 **
 ** Purpose: Writes and reads MCell checkpoint files.
 ** 
-** Testing status: compiles, but untested.
+** Testing status: partially tested.
 */
 
 
@@ -55,6 +55,9 @@ int write_chkpt(FILE *fs)
     return(1);
   }
   if (write_species_table(fs)) {
+    return(1);
+  }
+  if (write_mol_scheduler_state(fs)) {
     return(1);
   }
   /*
@@ -130,6 +133,11 @@ int read_chkpt(FILE *fs)
         break;
       case SPECIES_TABLE_CMD:
 	if (read_species_table(fs)) {
+	  return(1);
+	}
+	break;
+      case MOL_SCHEDULER_STATE_CMD:
+	if (read_mol_scheduler_state(fs)) {
 	  return(1);
 	}
 	break;
@@ -881,6 +889,44 @@ int read_species_table(FILE *fs)
 }
 
 /***************************************************************************
+write_mol_scheduler_state:
+In:  fs - checkpoint file to write to.
+Out: Writes molecule scheduler data to the checkpoint file. 
+     Returns 1 on error, and 0 - on success.
+
+***************************************************************************/
+int write_mol_scheduler_state(FILE *fs)
+{
+  byte cmd = MOL_SCHEDULER_STATE_CMD;
+
+  if (!fwrite(&cmd,sizeof cmd,1,fs)) {
+     fprintf(stderr,"MCell: write_species_table error in 'chkpt.c'.\n");
+     return(1);
+  }
+  io_bytes+=sizeof cmd;
+
+
+
+  return 0;
+}
+
+
+/***************************************************************************
+read_mol_scheduler_state:
+In:  fs - checkpoint file to read from.
+Out: Reads molecule scheduler data from the checkpoint file. 
+     Returns 1 on error, and 0 - on success.
+
+***************************************************************************/
+int read_mol_scheduler_state(FILE *fs)
+{
+
+  return 0;
+}
+
+
+#if 0
+/***************************************************************************
 write_grid_molecules:
 In:  fs - checkpoint file to write to.
 Out: data for grid molecules is written to the file.
@@ -1090,6 +1136,7 @@ int read_rx_state(FILE *fs)
 */
   return(0);
 }
+#endif
 
 /***************************************************************************
 write_mcell_version:

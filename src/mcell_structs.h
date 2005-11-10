@@ -14,8 +14,6 @@
 /**  Brand new constants created for use in MCell3  **/
 /*****************************************************/
 
-/* use checkpointing */
-/*#define USE_CHKPT  */
 
 /* MCell version */
 #define MCELL_VERSION "3.001"

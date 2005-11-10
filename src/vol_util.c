@@ -847,7 +847,7 @@ int release_molecules(struct release_event_queue *req)
   
   guess = NULL;
 
-#ifdef USE_CHKPT
+/* This part of the code is added for checkpointing. */
    if( req->event_time < world->it_time)
    {
      do{
@@ -884,7 +884,6 @@ int release_molecules(struct release_event_queue *req)
   	}
         return 0;
      }
-#endif
 
   /* Set molecule characteristics. */
   ap->t = req->event_time;

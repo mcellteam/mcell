@@ -30,10 +30,7 @@
 #include "init.h"
 #include "react_output.h"
 #include "util.h"
-
-#ifdef USE_CHKPT
 #include "chkpt.h"
-#endif
 
 #ifndef RAN4_H
 #include "ran4.h"
@@ -453,7 +450,6 @@ int init_sim(void)
     return(1);
   }
 */  
-#ifdef USE_CHKPT
 
   if (world->chkpt_infile) {
     if ((world->chkpt_infs=fopen(world->chkpt_infile,"rb"))==NULL) {
@@ -465,15 +461,12 @@ int init_sim(void)
 	fprintf(log_file,"MCell: error reading from checkpoint file %s\n",world->chkpt_infile);
 	return(1);
       }
-      /* reinitialize random numbers with new seed value. */
-      /* TO WRITE the code here */
       fclose(world->chkpt_infs);
     }
   }
   else {
     world->chkpt_seq_num=1;
   }
-#endif
 
   /**
    *Initialize the frame data list for the visualization 
