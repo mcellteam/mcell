@@ -15,6 +15,8 @@
 #include "util.h"
 #include "rng.h"
 #include <string.h>
+#include "grid_util.h"
+#include "react.h"
 
 extern struct volume *world;
 int io_bytes;
@@ -710,7 +712,7 @@ Out: Writes species data to the checkpoint file.
 int write_species_table(FILE *fs)
 {
   byte cmd = SPECIES_TABLE_CMD;
-  int i;
+  int i, j;
   char *species_name;
   u_int species_name_length;
   u_int sp_id;       /* species id */
@@ -752,9 +754,9 @@ int write_species_table(FILE *fs)
         io_bytes+=sizeof(species_name_length);
 
         /* write species name. */
-        for(i = 0; i < species_name_length; i++)
+        for(j = 0; j < species_name_length; j++)
         {
-   		if (!fwrite(&(species_name[i]),sizeof (char),1,fs)) 	{
+   		if (!fwrite(&(species_name[j]),sizeof (char),1,fs)) 	{
       			fprintf(stderr,"MCell: write_species_table error in 'chkpt.c'.\n");
       			return(1);
    		}
@@ -767,6 +769,11 @@ int write_species_table(FILE *fs)
      		return(1);
   	}
         io_bytes+=sizeof(sp_id);
+
+        /* assign "chkpt_species_id" to this species. 
+           It will be used in "write_mol_scheduler_state()".*/
+         world->species_list[i]->chkpt_species_id = sp_id;
+
         sp_id++;
 
   }
@@ -788,7 +795,7 @@ Out: Reads species data from the checkpoint file.
 ***************************************************************************/
 int read_species_table(FILE *fs)
 {
-  int i;
+  int i, j;
   u_int sp_id, sp_name_length, total_species, tmp1, tmp2;
   unsigned char *byte_array;
 
@@ -839,9 +846,9 @@ int read_species_table(FILE *fs)
      char sp_name[sp_name_length +1];
   
      /* read species name. */
-     for(i = 0; i < sp_name_length; i++)
+     for(j = 0; j < sp_name_length; j++)
      {
-   	if (!fread(&(sp_name[i]),sizeof (char),1,fs)) 	{
+   	if (!fread(&(sp_name[j]),sizeof (char),1,fs)) 	{
       		fprintf(stderr,"MCell: read_species_table error in 'chkpt.c'.\n");
       		return(1);
    	}
@@ -871,10 +878,10 @@ int read_species_table(FILE *fs)
       io_bytes+=sizeof(sp_id);
 
       /* find this species among world->species */
-      for(i = 0; i < world->n_species; i++)
+      for(j = 0; j < world->n_species; j++)
       {
-           if((strcmp(world->species_list[i]->sym->name, sp_name) == 0)){
-		world->species_list[i]->chkpt_species_id = sp_id;
+           if((strcmp(world->species_list[j]->sym->name, sp_name) == 0)){
+		world->species_list[j]->chkpt_species_id = sp_id;
                 break;
            }
 
@@ -898,14 +905,133 @@ Out: Writes molecule scheduler data to the checkpoint file.
 int write_mol_scheduler_state(FILE *fs)
 {
   byte cmd = MOL_SCHEDULER_STATE_CMD;
+  struct storage_list *slp;
+  struct schedule_helper *shp;
+  struct abstract_element *aep;
+  struct abstract_molecule *amp;
+  struct molecule *mp;
+  struct grid_molecule *gmp;
+  struct vector3 where;
+  short orient = 0;
+  u_int total_items = 0;
+  int i;
 
   if (!fwrite(&cmd,sizeof cmd,1,fs)) {
-     fprintf(stderr,"MCell: write_species_table error in 'chkpt.c'.\n");
+     fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
      return(1);
   }
   io_bytes+=sizeof cmd;
 
+  /* find out total items in the scheduler */
+  for(slp = world->storage_head; slp != NULL; slp = slp->next)
+  {
+    for(shp = slp->store->timer; shp != NULL; shp = shp->next_scale)
+    {
+      for (i = -1; i < shp->buf_len; i++)
+      {
+         for(aep=(i<0)?shp->current:shp->circ_buf_head[i]; aep != NULL; aep = aep->next)
+         {
+            amp = (struct abstract_molecule *)aep;
+            if((amp->properties->flags & NOT_FREE) == 0)
+            {
+		total_items++;
+            }  
+            else if ((amp->properties->flags & ON_GRID) != 0)
+            {
+		total_items++;
+            }else continue;
+         }
+       }
+     }
+   }
+    /* write total number of items in the scheduler */
+    if (!fwrite(&(total_items),sizeof (total_items),1,fs)) {
+     	fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     	return(1);
+    }
+    io_bytes+=sizeof(total_items);
 
+  for(slp = world->storage_head; slp != NULL; slp = slp->next)
+  {
+    for(shp = slp->store->timer; shp != NULL; shp = shp->next_scale)
+    {
+      for (i = -1; i < shp->buf_len; i++)
+      {
+         for(aep=(i<0)?shp->current:shp->circ_buf_head[i]; aep != NULL; aep = aep->next)
+         {
+            amp = (struct abstract_molecule *)aep;
+            if((amp->properties->flags & NOT_FREE) == 0)
+            {
+		mp = (struct molecule *)amp;
+                if(mp->previous_grid != NULL) {
+                   fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\nThe value of 'previous_grid' is not NULL.\n");
+                }
+                where.x = mp->pos.x;
+                where.y = mp->pos.y;
+                where.z = mp->pos.z;
+            }
+            else if ((amp->properties->flags & ON_GRID) != 0)
+            {
+		gmp = (struct grid_molecule *)amp;
+                uv2xyz(&(gmp->s_pos), gmp->grid->surface, &where);
+                where.x = mp->pos.x;
+                where.y = mp->pos.y;
+                where.z = mp->pos.z;
+                orient = gmp->orient;
+            }else continue;
+          
+            /* write chkpt_species ID. */
+            if(amp->properties->chkpt_species_id == UINT_MAX){
+     		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     		return(1);
+  	    }
+            if (!fwrite(&(amp->properties->chkpt_species_id),sizeof (amp->properties->chkpt_species_id),1,fs)) {
+     		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     		return(1);
+  	    }
+            io_bytes+=sizeof(amp->properties->chkpt_species_id);
+           
+            /* write molecule schedule time */
+            if (!fwrite(&(amp->t),sizeof (amp->t),1,fs)) {
+     		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     		return(1);
+  	    }
+            io_bytes+=sizeof(amp->t);
+            
+            /* write molecule lifetime */
+            if (!fwrite(&(amp->t2),sizeof (amp->t2),1,fs)) {
+     		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     		return(1);
+  	    }
+            io_bytes+=sizeof(amp->t2);
+
+            /* write molecule position */
+            if (!fwrite(&(where.x),sizeof (where.x),1,fs)) {
+     		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     		return(1);
+  	    }
+            io_bytes+=sizeof(where.x);
+            if (!fwrite(&(where.y),sizeof (where.y),1,fs)) {
+     		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     		return(1);
+  	    }
+            io_bytes+=sizeof(where.y);
+            if (!fwrite(&(where.z),sizeof (where.z),1,fs)) {
+     		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     		return(1);
+  	    }
+            io_bytes+=sizeof(where.z);
+             
+            /* write molecule orientation */
+            if (!fwrite(&(orient),sizeof (orient),1,fs)) {
+     		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     		return(1);
+  	    }
+            io_bytes+=sizeof(orient);
+          }
+        }
+      }         
+  }
 
   return 0;
 }
@@ -920,6 +1046,256 @@ Out: Reads molecule scheduler data from the checkpoint file.
 ***************************************************************************/
 int read_mol_scheduler_state(FILE *fs)
 {
+  u_int tmp1, tmp2, total_items, chkpt_sp_id, i;
+  double tmp3, tmp4, sched_time, lifetime, x_coord, y_coord, z_coord;
+  short tmp5, tmp6, orient;
+  unsigned char *byte_array;
+  struct molecule m;
+  struct grid_molecule gm;
+  struct molecule *mp;
+  struct grid_molecule *gmp;
+  struct abstract_molecule *ap;
+  struct molecule *guess;
+  /*struct vector3 where_3;*/
+  /*struct vector2 where_2; */
+  int j;
+
+
+  byte_array = NULL;
+  /* read total number of items in the scheduler. */
+  if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
+     fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+     return(1);
+  }
+  if(world->chkpt_byte_order_mismatch == 1)
+  {
+     /* we need to swap bytes here. */
+     byte_array = byte_swap((unsigned char *)&tmp1);
+     if(byte_array == NULL) {
+    	fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+    	return(1);
+     }
+     tmp2 = *(u_int *)byte_array;
+     total_items = tmp2;
+     byte_array = NULL;
+  }else{
+     total_items = tmp1;
+  }
+  io_bytes+=sizeof(total_items);
+  
+  for(i = 0; i < total_items; i++)
+  {
+  	/* read chkpt_species_id */
+  	if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
+     	   fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+     	   return(1);
+  	}
+  	if(world->chkpt_byte_order_mismatch == 1)
+  	{
+     	   /* we need to swap bytes here. */
+     	   byte_array = byte_swap((unsigned char *)&tmp1);
+     	   if(byte_array == NULL) {
+              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+    	      return(1);
+           }
+           tmp2 = *(u_int *)byte_array;
+           chkpt_sp_id = tmp2;
+        }else{
+           chkpt_sp_id = tmp1;
+        }
+        io_bytes+=sizeof(chkpt_sp_id);
+
+  	/* read molecule schedule time */
+  	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
+     	   fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+     	   return(1);
+  	}
+  	if(world->chkpt_byte_order_mismatch == 1)
+  	{
+     	   /* we need to swap bytes here. */
+     	   byte_array = byte_swap((unsigned char *)&tmp3);
+     	   if(byte_array == NULL) {
+              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+    	      return(1);
+           }
+           tmp4 = *(double *)byte_array;
+           sched_time = tmp4;
+        }else{
+           sched_time = tmp3;
+        }
+        io_bytes+=sizeof(sched_time);
+
+  	/* read molecule lifetime */
+  	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
+     	   fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+     	   return(1);
+  	}
+  	if(world->chkpt_byte_order_mismatch == 1)
+  	{
+     	   /* we need to swap bytes here. */
+     	   byte_array = byte_swap((unsigned char *)&tmp3);
+     	   if(byte_array == NULL) {
+              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+    	      return(1);
+           }
+           tmp4 = *(double *)byte_array;
+           lifetime = tmp4;
+        }else{
+           lifetime = tmp3;
+        }
+        io_bytes+=sizeof(lifetime);
+
+  	/* read molecule x-coordinate */
+  	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
+     	   fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+     	   return(1);
+  	}
+  	if(world->chkpt_byte_order_mismatch == 1)
+  	{
+     	   /* we need to swap bytes here. */
+     	   byte_array = byte_swap((unsigned char *)&tmp3);
+     	   if(byte_array == NULL) {
+              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+    	      return(1);
+           }
+           tmp4 = *(double *)byte_array;
+           x_coord = tmp4;
+        }else{
+           x_coord = tmp3;
+        }
+        io_bytes+=sizeof(x_coord);
+
+  	/* read molecule y-coordinate */
+  	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
+     	   fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+     	   return(1);
+  	}
+  	if(world->chkpt_byte_order_mismatch == 1)
+  	{
+     	   /* we need to swap bytes here. */
+     	   byte_array = byte_swap((unsigned char *)&tmp3);
+     	   if(byte_array == NULL) {
+              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+    	      return(1);
+           }
+           tmp4 = *(double *)byte_array;
+           y_coord = tmp4;
+        }else{
+           y_coord = tmp3;
+        }
+        io_bytes+=sizeof(y_coord);
+
+  	/* read molecule z-coordinate */
+  	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
+     	   fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+     	   return(1);
+  	}
+  	if(world->chkpt_byte_order_mismatch == 1)
+  	{
+     	   /* we need to swap bytes here. */
+     	   byte_array = byte_swap((unsigned char *)&tmp3);
+     	   if(byte_array == NULL) {
+              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+    	      return(1);
+           }
+           tmp4 = *(double *)byte_array;
+           z_coord = tmp4;
+        }else{
+           z_coord = tmp3;
+        }
+        io_bytes+=sizeof(z_coord);
+
+  	/* read molecule orientation */
+  	if (!fread(&(tmp5),sizeof (tmp5),1,fs)) {
+     	   fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+     	   return(1);
+  	}
+  	if(world->chkpt_byte_order_mismatch == 1)
+  	{
+     	   /* we need to swap bytes here. */
+     	   byte_array = byte_swap((unsigned char *)&tmp5);
+     	   if(byte_array == NULL) {
+              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+    	      return(1);
+           }
+           tmp6 = *(short *)byte_array;
+           orient = tmp6;
+        }else{
+           orient = tmp5;
+        }
+        io_bytes+=sizeof(orient);
+
+        guess = NULL;
+
+        /* populate molecule scheduler */
+        if(orient == 0)  /* 3D molecule */
+        {  
+           mp = &m;
+           ap = (struct abstract_molecule *)mp;
+           ap->flags = TYPE_3D | IN_VOLUME;
+        }else{  /* grid_molecule */
+             gmp = &gm;
+             ap = (struct abstract_molecule *)gmp;
+             ap->flags = TYPE_GRID | IN_SURFACE;
+        }   
+           /* set molecule characteristics */
+        ap->flags |= IN_SCHEDULE + ACT_NEWBIE;
+        ap->t = sched_time;
+        ap->t2 = lifetime;
+        ap->birthday = ap->t;           
+        ap->properties = NULL; 
+        for(j = 0; j < world->n_species; j++){
+           if(world->species_list[j]->chkpt_species_id == chkpt_sp_id)
+           {
+	      ap->properties = world->species_list[j];
+              break;
+           }           
+        }
+        if(ap->properties == NULL){
+           fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\nCannot set up species type for the molecule.\n");
+    	   return(1);
+        }
+        if(trigger_unimolecular(ap->properties->hashval, ap) != NULL)
+        {
+	   ap->flags += ACT_REACT;
+        }
+        if(ap->properties->space_step > 0.0)
+        {
+	   ap->flags += ACT_DIFFUSE;
+        }
+ 
+        if(orient == 0){  /* 3D molecule */
+           m.curr_cmprt = NULL;
+           m.previous_grid = NULL;
+           m.index = -1;
+           mp->pos.x = x_coord;
+           mp->pos.y = y_coord;
+           mp->pos.z = z_coord;
+           
+           guess = insert_molecule(mp, guess); /* Insert copy of m into world */           if(guess == NULL)
+           {
+              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\nCannot insert copy of molecule into world.\n");
+    	      return(1);
+           }
+
+        }else{    /* grid_molecule */
+
+            /*
+            gmp = (struct grid_molecule *)malloc(sizeof (struct grid_molecule));
+            if (gmp == NULL){
+              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+    	      return(1);
+           }
+           gmp->next = NULL;
+
+           where_3.x = x_coord;
+           where_3.y = y_coord;
+           where_3.z = z_coord;
+           gmp->orient = orient;
+            */
+           /* How to transform from where_3 to s_pos ??? */
+       }
+  }
 
   return 0;
 }
