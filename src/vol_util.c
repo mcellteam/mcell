@@ -19,6 +19,7 @@
 #include "react_output.h"
 #include "util.h"
 #include "wall_util.h"
+#include "grid_util.h"
 
 extern struct volume *world;
 
@@ -288,6 +289,190 @@ struct subvolume* find_subvolume(struct vector3 *loc,struct subvolume *guess)
   
   return sv;
 }  
+
+
+struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc,short orient,struct vector3 *search_diam,double t)
+{
+  double search_d2,d2;
+  struct vector2 s_loc;
+
+  double best_d2;
+  struct wall *best_w;
+  struct vector2 best_uv;
+  struct vector3 best_xyz;
+  
+  int i0,i1,j0,j1,k0,k1,i,j,k,h;
+
+  struct subvolume *sv;
+  struct wall_list *wl;
+//  struct wall *w;
+  struct grid_molecule *g;
+  
+  
+  if (search_diam==NULL) search_d2 = EPS_C*EPS_C;
+  else
+  {
+    search_d2 = search_diam->x * search_diam->x;  /* Guaranteed that x==y==z */
+    if (search_d2 < EPS_C*EPS_C) search_d2 = EPS_C*EPS_C;
+  }
+  
+  sv = find_subvolume(loc,NULL);
+  
+  best_d2 = search_d2*2 + 1;
+  best_w = NULL;
+  for (wl=sv->wall_head ; wl!=NULL ; wl=wl->next)
+  {
+    d2 = closest_interior_point(loc,wl->this_wall,&s_loc,search_d2);
+    if (d2 < search_d2 && d2 < best_d2)
+    {
+      best_d2 = d2;
+      best_w = wl->this_wall;
+      best_uv.u = s_loc.u;
+      best_uv.v = s_loc.v;
+    }
+  }
+
+  if (search_d2 > EPS_C*EPS_C)  /* Might need to look in adjacent subvolumes */
+  {
+    i = sv->index / ((world->ny_parts-1)*(world->nz_parts-1));
+    j = sv->index/(world->nz_parts-1) - i*(world->ny_parts-1);
+    k = sv->index - (world->nz_parts-1)*(j + i*(world->ny_parts-1));
+    
+    for (i0=i ; i0>0 ; i0--)
+    {
+      d2 = loc->x - world->x_partitions[ i0 ]; d2 *= d2;
+      if (d2 >= best_d2 || d2 >= search_d2) break;
+    }
+    for (i1=i ; i1<world->nx_parts-1 ; i1++)
+    {
+      d2 = loc->x - world->x_partitions[ i1+1 ]; d2 *= d2;
+      if (d2 >= best_d2 || d2 >= search_d2) break;
+    }
+    for (j0=j ; j0>0 ; j0--)
+    {
+      d2 = loc->y - world->y_partitions[ j0 ]; d2 *= d2;
+      if (d2 >= best_d2 || d2 >= search_d2) break;
+    }
+    for (j1=j ; j1<world->ny_parts-1 ; j1++)
+    {
+      d2 = loc->y - world->y_partitions[ j1+1 ]; d2 *= d2;
+      if (d2 >= best_d2 || d2 >= search_d2) break;
+    }
+    for (k0=k ; k0>0 ; k0--)
+    {
+      d2 = loc->z - world->z_partitions[ k0 ]; d2 *= d2;
+      if (d2 >= best_d2 || d2 >= search_d2) break;
+    }
+    for (k1=i ; k1<world->nz_parts-1 ; k1++)
+    {
+      d2 = loc->z - world->z_partitions[ k1+1 ]; d2 *= d2;
+      if (d2 >= best_d2 || d2 >= search_d2) break;
+    }
+    
+    if (i0<i || i1>1 || j0<j || j1>j || k0<k || k1>k)
+    {
+      for (i=i0;i<=i1;i++)
+      {
+	for (j=j0;j<=j1;j++)
+	{
+	  for (k=k0;k<=k1;k++)
+	  {
+	    h = k + (world->nz_parts-1)*(j + (world->ny_parts-1)*i);
+	    if (h == sv->index) continue;
+	    
+	    for (wl=world->subvol[h].wall_head ; wl!=NULL ; wl=wl->next)
+	    {
+	      d2 = closest_interior_point(loc,wl->this_wall,&s_loc,search_d2);
+	      if (d2 <= search_d2 && d2 < best_d2)
+	      {
+		best_d2 = d2;
+		best_w = wl->this_wall;
+		best_uv.u = s_loc.u;
+		best_uv.v = s_loc.v;
+	      }	    
+	    }
+	  }
+	}
+      }
+      if (best_w!=NULL)
+      {
+	uv2xyz(&best_uv,best_w,&best_xyz);
+	sv = find_subvolume(&best_xyz,sv);  /* May have switched subvolumes */
+      }
+    }
+  }
+  
+  if (best_w==NULL) return NULL;
+  
+  d2 = search_d2 - best_d2;  /* We can look this far around the surface we hit for an empty spot */
+  
+  if (best_w->effectors==NULL)
+  {
+    if (create_grid(best_w,sv))
+    {
+      fprintf(world->err_file,"Out of memory while trying to insert molecules\n");
+      i = emergency_output();
+      fprintf(world->err_file,"%d errors while attempting emergency output\n",i);
+      exit(EXIT_FAILURE);
+    }
+    i = uv2grid(&best_uv,best_w->effectors);
+  }
+  else
+  {
+    i = uv2grid(&best_uv,best_w->effectors);
+    if (best_w->effectors->mol[i]!=NULL)
+    {
+      if (d2 <= EPS_C*EPS_C) return NULL;
+      else
+      {
+	best_w = search_nbhd_for_free(best_w,&best_uv,d2,&i,NULL,NULL);
+	if (best_w==NULL) return NULL;
+	
+	if (world->randomize_gmol_pos) grid2uv_random(best_w->effectors,i,&best_uv);
+	else grid2uv(best_w->effectors,i,&best_uv);
+      }
+    }
+  }
+  
+  g = mem_get(sv->local_storage->gmol);
+  if (g==NULL)
+  {
+    fprintf(world->err_file,"Out of memory while trying to insert molecules\n");
+    i = emergency_output();
+    fprintf(world->err_file,"%d errors while attempting emergency output\n",i);
+    exit(EXIT_FAILURE);
+  }
+
+  g->birthplace = sv->local_storage->gmol;
+  g->birthday = t;
+  g->properties = s;
+  s->population++;
+  g->flags = TYPE_GRID + ACT_NEWBIE + IN_SCHEDULE;
+  if (trigger_unimolecular(s->hashval,(struct abstract_molecule*)g)!= NULL)
+    g->flags += ACT_REACT;
+  
+  g->t = t;
+  g->t2 = 0.0;
+  g->grid = best_w->effectors;
+  g->grid_index = i;
+  g->s_pos.u = best_uv.u;
+  g->s_pos.v = best_uv.v;
+  g->orient = orient;
+  
+  g->grid->n_occupied++;
+  
+  g->grid->mol[ g->grid_index ] = g;
+  
+  if ( schedule_add(sv->local_storage->timer,g) )
+  {
+    fprintf(world->err_file,"Out of memory while trying to insert molecules\n");
+    i = emergency_output();
+    fprintf(world->err_file,"%d errors while attempting emergency output\n",i);
+    exit(EXIT_FAILURE);    
+  }
+  
+  return g;
+}
 
 
 /*************************************************************************
@@ -820,13 +1005,16 @@ int release_molecules(struct release_event_queue *req)
   struct vector3 pos;
   double diam,vol;
   double t,k;
+  struct release_single_molecule *rsm;
   double location[1][4];
   
   if(req == NULL) return 0;
   rso = req->release_site;
   rpat = rso->pattern;
- 
-  if ((rso->mol_type->flags & NOT_FREE) == 0)
+
+  /* Set up canonical molecule to be released */
+  /* If we have a list, assume a 3D molecule and fix later */
+  if (rso->mol_list!=NULL || (rso->mol_type->flags & NOT_FREE)==0)
   {
     mp = &m;  /* Avoid strict-aliasing message */
     ap = (struct abstract_molecule*)mp;
@@ -891,8 +1079,11 @@ int release_molecules(struct release_event_queue *req)
   ap->t2 = 0.0;
   ap->birthday = ap->t;
   
-  if (trigger_unimolecular(rso->mol_type->hashval , ap) != NULL) ap->flags += ACT_REACT;
-  if (rso->mol_type->space_step > 0.0) ap->flags += ACT_DIFFUSE;
+  if (rso->mol_list==NULL)  /* All molecules are the same, so we can set flags */
+  {
+    if (trigger_unimolecular(rso->mol_type->hashval , ap) != NULL) ap->flags += ACT_REACT;
+    if (rso->mol_type->space_step > 0.0) ap->flags += ACT_DIFFUSE;
+  }
   
   switch(rso->release_number_method)
   {
@@ -966,37 +1157,71 @@ int release_molecules(struct release_event_queue *req)
       else fprintf(world->log_file, "Unreleasing type = %s\n", req->release_site->mol_type->sym->name);
     }
   }
-  else  /* Guaranteed to be 3D molecule */
+  else  /* Guaranteed to be 3D molecule or at least specified by 3D location if in list */
   {
     m.curr_cmprt = NULL;
     m.previous_grid = NULL;
     m.index = -1;
     
     diam_xyz = rso->diameter;
-    if (diam_xyz != NULL)
+    rsm = rso->mol_list;
+    if (rsm != NULL)
     {
+      for ( ; rsm!=NULL ; rsm=rsm->next)
+      {
+	location[0][0] = rsm->loc.x + rso->location->x;
+	location[0][1] = rsm->loc.y + rso->location->y;
+	location[0][2] = rsm->loc.z + rso->location->z;
+	location[0][3] = 1;
+	
+	mult_matrix(location,req->t_matrix,location,1,4,4);
+	
+	m.pos.x = location[0][0];
+	m.pos.y = location[0][1];
+	m.pos.z = location[0][2];
+	  
+	if ((rsm->mol_type->flags & NOT_FREE)==0)
+	{
+	  m.properties = rsm->mol_type;
+	  guess = insert_molecule(&m,guess);
+	  if (guess==NULL) return 1;
+	}
+	else
+	{
+	  gp = insert_grid_molecule(rsm->mol_type,&(m.pos),rsm->orient,diam_xyz,req->event_time);
+	  if (gp==NULL)
+	  {
+	    fprintf(world->err_file,"Warning: unable to find surface upon which to place molecule %s\n",rsm->mol_type->sym->name);
+	    fprintf(world->err_file,"  Perhaps you want to SITE_DIAMETER larger to increase search distance?\n");
+	  }
+	}
+      }
+    }
+    else if (diam_xyz != NULL)
+    {
+      
       for (i=0;i<number;i++)
       {
-        do /* Pick values in unit square, toss if not in unit circle */
-        {
-          pos.x = (rng_dbl(world->rng)-0.5);
-          pos.y = (rng_dbl(world->rng)-0.5);
-          pos.z = (rng_dbl(world->rng)-0.5);
-        } while ( (rso->release_shape == SHAPE_SPHERICAL || rso->release_shape == SHAPE_ELLIPTIC || rso->release_shape == SHAPE_SPHERICAL_SHELL)
-                  && pos.x*pos.x + pos.y*pos.y + pos.z*pos.z >= 0.25 );
-        
-        if (rso->release_shape == SHAPE_SPHERICAL_SHELL)
-        {
-          double r;
-          r = sqrt( pos.x*pos.x + pos.y*pos.y + pos.z*pos.z)*2.0;
-          if (r==0.0) { pos.x = 0.0; pos.y = 0.0; pos.z = 0.5; }
-          else { pos.x /= r; pos.y /= r; pos.z /= r; }
-        }
-        
-        location[0][0] = pos.x*diam_xyz->x + rso->location->x;
-        location[0][1] = pos.y*diam_xyz->y + rso->location->y;
-        location[0][2] = pos.z*diam_xyz->z + rso->location->z;
-        location[0][3] = 1;
+	do /* Pick values in unit square, toss if not in unit circle */
+	{
+	  pos.x = (rng_dbl(world->rng)-0.5);
+	  pos.y = (rng_dbl(world->rng)-0.5);
+	  pos.z = (rng_dbl(world->rng)-0.5);
+	} while ( (rso->release_shape == SHAPE_SPHERICAL || rso->release_shape == SHAPE_ELLIPTIC || rso->release_shape == SHAPE_SPHERICAL_SHELL)
+		  && pos.x*pos.x + pos.y*pos.y + pos.z*pos.z >= 0.25 );
+	
+	if (rso->release_shape == SHAPE_SPHERICAL_SHELL)
+	{
+	  double r;
+	  r = sqrt( pos.x*pos.x + pos.y*pos.y + pos.z*pos.z)*2.0;
+	  if (r==0.0) { pos.x = 0.0; pos.y = 0.0; pos.z = 0.5; }
+	  else { pos.x /= r; pos.y /= r; pos.z /= r; }
+	}
+	
+	location[0][0] = pos.x*diam_xyz->x + rso->location->x;
+	location[0][1] = pos.y*diam_xyz->y + rso->location->y;
+	location[0][2] = pos.z*diam_xyz->z + rso->location->z;
+	location[0][3] = 1;
         
         mult_matrix(location,req->t_matrix,location,1,4,4);
         

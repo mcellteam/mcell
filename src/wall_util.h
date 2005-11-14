@@ -53,6 +53,8 @@ void init_edge_transform(struct edge *e,int edgenum);
 int sharpen_object(struct object *parent);
 int sharpen_world();
 
+double closest_interior_point(struct vector3 *pt,struct wall *w,struct vector2 *ip,double r2);
+
 struct wall* traverse_surface(struct wall *here,struct vector2 *loc,int which,struct vector2 *newloc);
 int is_manifold(struct region *r);
 

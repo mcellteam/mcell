@@ -392,7 +392,7 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
     if (origin->edges[j]->forward==origin) there = origin->edges[j]->backward;
     else there = origin->edges[j]->forward;
     
-    if (! (*ok)(context,there) ) continue;  /* Calling function doesn't like this wall */
+    if (ok!=NULL && !(*ok)(context,there) ) continue;  /* Calling function doesn't like this wall */
     
     switch (j)
     {

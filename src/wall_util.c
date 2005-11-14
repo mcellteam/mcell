@@ -916,6 +916,139 @@ int sharpen_world()
  ** Geometry section--report on and use geometrical properties of object **
 \**************************************************************************/
 
+#if 0
+int point_closest_to(struct vector2 *a,struct wall *w,struct vector2 *ip,int edge,struct vector2 *p0,struct vector2 *p1)
+{
+  struct vector2 a_v1,v2_v1,v1;
+  struct vector2 *p,*q;
+  double p_sq,qdp;
+  
+  switch (edge)
+  {
+    case 0:
+      v1.u = w->uv_vert1_u;
+      v1.v = 0;
+      p = &v1;
+      q = a;
+      break;
+    case 1:
+      v2_v1.u = w->uv_vert2.u - w->uv_vert1_u;
+      v2_v1.v = w->uv_vert2.v;
+      a_v1.u = a->u - w->uv_vert1_u;
+      a_v1.v = a->v;
+      p = &v2_v1;
+      q = &a_v1;
+      break;
+    case 2:
+      p = &(w->uv_vert2);
+      q = a;
+      break;
+    default:
+      p=q=NULL;
+      break;
+  }
+  
+  p_sq = p->u*p->u + p->v*p->v;
+  qdp = p->u*q->u + p->v*q->v;
+
+  if (qdp<=0)
+  {
+    memcpy(ip,p0,sizeof(struct vector2));
+    return -1;
+  }
+  else if (qdp*qdp >= p_sq*p_sq)
+  {
+    memcpy(ip,p1,sizeof(struct vector2));
+    return 1;
+  }
+  else
+  {
+    double p_sq_i = 1.0/p_sq;
+    ip->u = qdp*p_sq_i*p->u + w->uv_vert1_u;
+    ip->v = qdp*p_sq_i*p->v;
+    return 0;
+  }
+}
+
+double closest_interior_point(struct vector3 *pt,struct wall *w,struct vector2 *ip,double r2)
+{
+  double A,B;
+  struct vector2 a,v0,v1;
+  double f,g;
+  int i;
+  
+  f = pt->x*w->normal.x + pt->y*w->normal.y + pt->z*w->normal.z;
+  f -= w->d;
+  f *= f;
+  
+  if (f>=r2) return r2;
+  
+  xyz2uv(pt,w,&a);
+  
+  A = w->uv_vert1_u*a.v;
+  B = a.u*w->uv_vert2.u - a.v*w->uv_vert2.v;
+  
+  if (A>0 && B>0 && 0.5*A*B < w->area)
+  {
+    memcpy(ip,&a,sizeof(struct vector2));
+    return f;
+  }
+  
+  v0.u = v0.v = 0.0;
+  v1.u = w->uv_vert1_u;
+  v1.v = 0.0;
+  
+  
+  if (A>0)
+  {
+    if (B>0) point_closest_to(&a,w,ip,1,&v1,&(w->uv_vert2));
+    else
+    {
+      i = point_closest_to(&a,w,ip,2,&v0,&(w->uv_vert2));
+      if (i>0) point_closest_to(&a,w,ip,1,&v1,&(w->uv_vert2));
+    }
+  }
+  else
+  {
+    i = point_closest_to(&a,w,ip,0,&v0,&v1);
+    
+    if (i<0 && B>0) point_closest_to(&a,w,ip,2,&v0,&(w->uv_vert2));
+    if (i>0 && B<=0) point_closest_to(&a,w,ip,1,&v1,&(w->uv_vert2));
+  }
+  
+  g = (ip->u - a.u)*(ip->u - a.u) + (ip->v - a.v)*(ip->v - a.v);
+  if (f+g >= r2) return r2;
+  
+  ip->u *= (1.0-EPS_C);
+  ip->u += EPS_C*(w->uv_vert1_u + w->uv_vert2.u)*0.333333333333333333;
+  ip->v *= (1.0-EPS_C);
+  ip->v += EPS_C*w->uv_vert2.v*0.3333333333333333333;
+  
+  return f+g;
+}
+#endif
+
+double closest_interior_point(struct vector3 *pt,struct wall *w,struct vector2 *ip,double r2)
+{
+  struct vector3 v;
+  
+  closest_pt_point_triangle(pt , w->vert[0] , w->vert[1] , w->vert[2] , &v);
+  xyz2uv(&v,w,ip);
+  
+  /* Check to see if we're lying on an edge; if so, scoot towards centroid. */
+  if (ip->v==0 ||
+      !distinguishable(0,ip->v*w->uv_vert2.u-ip->u*w->uv_vert2.v,EPS_C) ||
+      !distinguishable( 2.0*w->area ,
+          w->uv_vert1_u*ip->v + ip->v*w->uv_vert2.u-ip->u*w->uv_vert2.v ,
+	  EPS_C ) )
+  {
+    ip->u = (1.0-EPS_C)*ip->u + EPS_C*0.333333333333333*(w->uv_vert1_u+w->uv_vert2.u);
+    ip->v = (1.0-EPS_C)*ip->v + EPS_C*0.333333333333333*w->uv_vert2.v;
+  }
+  return (v.x-pt->x)*(v.x-pt->x) + (v.y-pt->y)*(v.y-pt->y) +(v.z-pt->z)*(v.z-pt->z);
+}
+
+
 /***************************************************************************
 traverse_surface:
   In: a wall

@@ -183,13 +183,7 @@ struct release_evaluator *rev;
 %token <tok> ITERATIONS
 %token <tok> FULLY_RANDOM
 %token <tok> LEFT
-%token <tok> MODIFY_SURFACE_REGIONS
-%token <tok> MOLECULE
-%token <tok> MOLECULE_DENSITY
-%token <tok> MOLECULE_NUMBER
-%token <tok> MOLECULE_POSITIONS
-%token <tok> MOLECULE_STATES
-%token <tok> MOLECULE_POSITIONS_STATES
+%token <tok> LIST
 %token <tok> LOCATION
 %token <tok> LOG
 %token <tok> LOG10
@@ -200,6 +194,13 @@ struct release_evaluator *rev;
 %token <tok> MIN_TOK
 %token <tok> MOD
 %token <tok> MODE
+%token <tok> MODIFY_SURFACE_REGIONS
+%token <tok> MOLECULE
+%token <tok> MOLECULE_DENSITY
+%token <tok> MOLECULE_NUMBER
+%token <tok> MOLECULE_POSITIONS
+%token <tok> MOLECULE_STATES
+%token <tok> MOLECULE_POSITIONS_STATES
 %token <tok> MOLECULE_FILE_PREFIX
 %token <tok> NAME
 %token <tok> NEGATIVE_POLE
@@ -2703,6 +2704,7 @@ release_site_def_new: new_object RELEASE_SITE '{'
   mdlpvp->rsop->standard_deviation=0;
   mdlpvp->rsop->diameter=NULL;
   mdlpvp->rsop->region_data=NULL;
+  mdlpvp->rsop->mol_list=NULL;
   mdlpvp->rsop->release_prob=1.0;
   mdlpvp->rsop->pattern=volp->default_release_pattern;
 
@@ -2722,8 +2724,23 @@ release_site_def_new: new_object RELEASE_SITE '{'
   {
     if (mdlpvp->rsop->location==NULL)
     {
-      mdlerror("Release site is missing location.\n");
-      return 1;
+      if (mdlpvp->rsop->release_shape!=SHAPE_LIST || mdlpvp->rsop->mol_list==NULL)
+      {
+        mdlerror("Release site is missing location.\n");
+        return 1;
+      }
+      else
+      {
+	mdlpvp->rsop->location = (struct vector3*)malloc(sizeof(struct vector3));
+	if (mdlpvp->rsop->location==NULL)
+	{
+	  mdlerror("Out of memory storing region location");
+	  return 1;
+	}
+	mdlpvp->rsop->location->x = 0;
+	mdlpvp->rsop->location->y = 0;
+	mdlpvp->rsop->location->z = 0;	
+      }
     }
     no_printf("\tLocation = [%f,%f,%f]\n",mdlpvp->rsop->location->x,mdlpvp->rsop->location->y,mdlpvp->rsop->location->z);
     mdlpvp->rsop->location->x/=mdlpvp->vol->length_unit;
@@ -2794,6 +2811,11 @@ release_site_geom: SHAPE '=' release_region_expr
 	| SHAPE '=' SPHERICAL_SHELL
 {
   mdlpvp->rsop->release_shape = SHAPE_SPHERICAL_SHELL;
+}
+	| SHAPE '=' LIST
+{
+  mdlpvp->rsop->release_shape = SHAPE_LIST;
+  mdlpvp->rsop->release_number_method = CONSTNUM;
 };
 
 release_region_expr:
@@ -2952,6 +2974,13 @@ release_site_cmd:
   mdlpvp->rsop->orientation = mdlpvp->orient_class;
 }
 	| release_number_cmd
+{
+  if (mdlpvp->rsop->release_shape==SHAPE_LIST)
+  {
+    mdlerror("Molecules are already specified in a list--cannot set number or density.");
+    return 1;
+  }
+}
 	| SITE_DIAMETER '=' num_expr_only
 {
   if ((mdlpvp->rsop->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
@@ -2964,6 +2993,11 @@ release_site_cmd:
 }
 	| SITE_DIAMETER '=' array_expr_only
 {
+  if (mdlpvp->rsop->release_shape==SHAPE_LIST)
+  {
+    mdlerror("Release list diameters must be single valued.");
+    return 1;
+  }
   mdlpvp->el_head=$<nel>3;
   if ((mdlpvp->rsop->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
     mdlerror("Cannot store release diameter data");
@@ -3014,6 +3048,11 @@ release_site_cmd:
     mdlpvp->rsop->diameter->z = mdlpvp->tmp_dbl / volp->length_unit;
     break;
   case ARRAY:
+    if (mdlpvp->rsop->release_shape==SHAPE_LIST)
+    {
+      mdlerror("Release list diameters must be single valued.");
+      return 1;
+    }
     mdlpvp->el_head=(struct num_expr_list *)mdlpvp->gp->value;
     mdlpvp->elp=mdlpvp->el_head;
     if (mdlpvp->elp!=NULL) {
@@ -3045,6 +3084,9 @@ release_site_cmd:
       return(1);
     }
     break;
+  default:
+    mdlerror("Diameter must either be a number or a 3-valued vector.");
+    return 1;
   }
 }
 	| RELEASE_PROBABILITY '=' num_expr
@@ -3055,6 +3097,32 @@ release_site_cmd:
 {
   mdlpvp->gp=$<sym>3;
   mdlpvp->rsop->pattern=(struct release_pattern *)mdlpvp->gp->value;
+}
+	| MOLECULE_POSITIONS
+{
+  if (mdlpvp->rsop->release_shape != SHAPE_LIST)
+  {
+    mdlerror("You must use the LIST shape to specify molecule positions in a release.");
+    return 1;
+  }
+  mdlpvp->orient_class=1;  /* Apparently need this to get orientations right. */
+}
+	'{' molecule_release_pos_list '}'
+{
+  struct release_single_molecule *rsm,*old_head;
+  
+  old_head = mdlpvp->rsop->mol_list;
+  mdlpvp->rsop->mol_list = NULL;
+  mdlpvp->rsop->release_number = 0;
+  while (old_head!=NULL)  /* Flip list from stack order to queue order */
+  {
+    rsm = old_head;
+    old_head = old_head->next;
+    
+    rsm->next = mdlpvp->rsop->mol_list;
+    mdlpvp->rsop->mol_list = rsm;
+    mdlpvp->rsop->release_number++;
+  }
 };
 
 
@@ -3107,6 +3175,37 @@ concentration_dependent_release_cmd: CONCENTRATION '=' num_expr
   mdlpvp->rsop->release_number_method=CCNNUM;
   mdlpvp->rsop->release_number=-1;
   mdlpvp->rsop->concentration = $<dbl>3;
+};
+
+molecule_release_pos_list: molecule_release_pos
+	| molecule_release_pos_list molecule_release_pos;
+	
+molecule_release_pos:
+	existing_molecule_opt_orient point
+{
+  struct release_single_molecule *rsm;
+  struct vector3 temp_v3;
+  
+  memcpy(&temp_v3,$<vec3>2,sizeof(struct vector3));
+  free($<vec3>2);
+  
+  rsm = (struct release_single_molecule*)malloc(sizeof(struct release_single_molecule));
+  
+  if (rsm==NULL)
+  {
+    mdlerror("Out of memory reading molecule positions");
+    return 1;
+  }
+  
+  rsm->orient = mdlpvp->orient_class;
+  rsm->loc.x = temp_v3.x / mdlpvp->vol->length_unit;
+  rsm->loc.y = temp_v3.y / mdlpvp->vol->length_unit;
+  rsm->loc.z = temp_v3.z / mdlpvp->vol->length_unit;
+  rsm->mol_type = (struct species*)( ($<sym>1)->value );
+  
+  rsm->next = mdlpvp->rsop->mol_list;
+  mdlpvp->rsop->mol_list = rsm;        /* Acquire list in reverse order */
+  mdlpvp->orient_class = 1; /* Apparently need this to get orientations right? */
 };
 
 point: array_value

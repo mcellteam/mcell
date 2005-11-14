@@ -236,6 +236,7 @@
 #define SHAPE_RECTANGULAR 3
 #define SHAPE_SPHERICAL_SHELL 4
 #define SHAPE_REGION 5
+#define SHAPE_LIST 6
 
 
 /* Flags for parser to indicate which axis we are partitioning */
@@ -1081,6 +1082,7 @@ struct release_site_obj {
         double standard_deviation;
 	struct vector3 *diameter;
 	struct release_region_data *region_data;
+	struct release_single_molecule *mol_list;
 
 	double release_prob;
 	struct release_pattern *pattern;
@@ -1116,6 +1118,14 @@ struct release_region_data
 
   struct object *self;
   struct release_evaluator *expression;
+};
+
+struct release_single_molecule
+{
+  struct release_single_molecule *next;
+  struct species *mol_type;
+  struct vector3 loc;
+  short orient;
 };
 
 struct release_evaluator
