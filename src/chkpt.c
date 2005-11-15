@@ -974,9 +974,6 @@ int write_mol_scheduler_state(FILE *fs)
             {
 		gmp = (struct grid_molecule *)amp;
                 uv2xyz(&(gmp->s_pos), gmp->grid->surface, &where);
-                where.x = mp->pos.x;
-                where.y = mp->pos.y;
-                where.z = mp->pos.z;
                 orient = gmp->orient;
             }else continue;
           
@@ -1051,17 +1048,23 @@ int read_mol_scheduler_state(FILE *fs)
   short tmp5, tmp6, orient;
   unsigned char *byte_array;
   struct molecule m;
-  struct grid_molecule gm;
   struct molecule *mp;
   struct grid_molecule *gmp;
   struct abstract_molecule *ap;
   struct molecule *guess;
-  /*struct vector3 where_3;*/
-  /*struct vector2 where_2; */
+  struct vector3 where;
+  /* seach diameter where to place grid_molecule */
+  struct vector3 *diam_xyz = NULL;  
+  struct release_event_queue *req;
+  struct release_site_obj *rso;
+  struct species *properties = NULL;
   int j;
 
 
   byte_array = NULL;
+  mp = &m;
+  ap = (struct abstract_molecule *)mp;
+
   /* read total number of items in the scheduler. */
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
      fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
@@ -1226,45 +1229,37 @@ int read_mol_scheduler_state(FILE *fs)
         io_bytes+=sizeof(orient);
 
         guess = NULL;
+        for(j = 0; j < world->n_species; j++){
+           if(world->species_list[j]->chkpt_species_id == chkpt_sp_id)
+           {
+	      properties = world->species_list[j];
+              break;
+           }           
+        }
+        if(properties == NULL){
+           fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\nCannot set up species type for the molecule.\n");
+    	   return(1);
+        }
 
         /* populate molecule scheduler */
         if(orient == 0)  /* 3D molecule */
         {  
-           mp = &m;
-           ap = (struct abstract_molecule *)mp;
-           ap->flags = TYPE_3D | IN_VOLUME;
-        }else{  /* grid_molecule */
-             gmp = &gm;
-             ap = (struct abstract_molecule *)gmp;
-             ap->flags = TYPE_GRID | IN_SURFACE;
-        }   
            /* set molecule characteristics */
-        ap->flags |= IN_SCHEDULE + ACT_NEWBIE;
-        ap->t = sched_time;
-        ap->t2 = lifetime;
-        ap->birthday = ap->t;           
-        ap->properties = NULL; 
-        for(j = 0; j < world->n_species; j++){
-           if(world->species_list[j]->chkpt_species_id == chkpt_sp_id)
+           ap->flags = TYPE_3D | IN_VOLUME;
+           ap->flags |= IN_SCHEDULE + ACT_NEWBIE;
+           ap->t = sched_time;
+           ap->t2 = lifetime;
+           ap->birthday = ap->t;           
+           ap->properties = properties; 
+           if(trigger_unimolecular(ap->properties->hashval, ap) != NULL)
            {
-	      ap->properties = world->species_list[j];
-              break;
-           }           
-        }
-        if(ap->properties == NULL){
-           fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\nCannot set up species type for the molecule.\n");
-    	   return(1);
-        }
-        if(trigger_unimolecular(ap->properties->hashval, ap) != NULL)
-        {
-	   ap->flags += ACT_REACT;
-        }
-        if(ap->properties->space_step > 0.0)
-        {
-	   ap->flags += ACT_DIFFUSE;
-        }
+	      ap->flags += ACT_REACT;
+           }
+           if(ap->properties->space_step > 0.0)
+           {
+	      ap->flags += ACT_DIFFUSE;
+           }
  
-        if(orient == 0){  /* 3D molecule */
            m.curr_cmprt = NULL;
            m.previous_grid = NULL;
            m.index = -1;
@@ -1279,240 +1274,27 @@ int read_mol_scheduler_state(FILE *fs)
            }
 
         }else{    /* grid_molecule */
-
-            /*
-            gmp = (struct grid_molecule *)malloc(sizeof (struct grid_molecule));
-            if (gmp == NULL){
-              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
-    	      return(1);
+           where.x = x_coord;
+           where.y = y_coord;
+           where.z = z_coord;
+         
+           /* find the maximum search diameter where to place grid_molecule */
+           for(req = world->release_event_queue_head; req != NULL; req = req->next){
+              rso = req->release_site;
+              if (rso->mol_type == ap->properties){
+              	diam_xyz = rso->diameter;
+                break;
+              }
            }
-           gmp->next = NULL;
+           /* insert grid_molecule into world */ 
+	   gmp = insert_grid_molecule(properties, &where,orient,  
+                     diam_xyz, sched_time);
 
-           where_3.x = x_coord;
-           where_3.y = y_coord;
-           where_3.z = z_coord;
-           gmp->orient = orient;
-            */
-           /* How to transform from where_3 to s_pos ??? */
        }
   }
 
   return 0;
 }
-
-
-#if 0
-/***************************************************************************
-write_grid_molecules:
-In:  fs - checkpoint file to write to.
-Out: data for grid molecules is written to the file.
-     Returns 1 on error, and 0 - on success.
-
-***************************************************************************/
-int write_grid_molecules(FILE *fs)
-{
-  byte cmd = EFFECTOR_CMD;
-  struct species *properties;
-  /*struct grid_molecule *gmolp; */
-  int i;
-
-  for(i = 1; i < world->n_species + 1; i++){
-     properties = world->species_list[i];
-     if((properties->flags & ON_GRID) == ON_GRID)
-     {
-     	if (!fwrite(&cmd,sizeof cmd,1,fs)) {
-       	fprintf(stderr,"MCell: write molecules error in 'chkpt.c'\n");
-       	return(1);
-     	}
-     	io_bytes+=sizeof cmd;
-     	if (!fwrite(&properties->species_id,sizeof properties->species_id,1,fs)) 	{
-       	   fprintf(stderr,"MCell: write grid molecules error in 'chkpt.c'\n");
-       	   return(1);
-     	}
-     	io_bytes+=sizeof properties->species_id;
-     	if (!fwrite(&properties->population,sizeof properties->population,1,fs)) 	{
-           fprintf(stderr,"MCell: write grid molecules error in 'chkpt.c'\n");
-       	   return(1);
-     	}												
-     	io_bytes+=sizeof properties->population;
-     	if (!fwrite(&properties->n_deceased,sizeof properties->n_deceased,1,fs)) 	{
-       	   fprintf(stderr,"MCell: write grid molecules error in 'chkpt.c'\n");
-       	   return(1);
-     	}
-     	io_bytes+=sizeof properties->n_deceased;
-    /* TO DO: write grid_index, orientation, and positions of each molecule */
-      }
-  }
-
-/*
-  fprintf(stderr,"write_effectors io_bytes = %d\n",io_bytes);
-  fflush(stderr);
-*/
-  return(0);
-}
-
-/***************************************************************************
-read_grid_molecule:
-In:  fs - checkpoint file to read from.
-Out: memory for grid molecules is allocated and their properties are set.
-     Returns 1 on error, and 0 - on success.
-
-***************************************************************************/
-int read_grid_molecule(FILE *fs)
-{
-  struct species *properties;
-  struct grid_molecule *gmolp; 
-  u_int i;
-  u_int species_id;
-
-
-  if (!fread(&species_id,sizeof species_id,1,fs)) {
-    fprintf(stderr,"MCell: read grid molecules error in 'chkpt.c'.\n");
-    return(1);
-  }
-  io_bytes+=sizeof species_id;
-
-  properties = world->species_list[species_id];
-  if (!fread(&properties->population,sizeof properties->population,1,fs)) {
-       fprintf(stderr,"MCell: read grid molecules error in 'chkpt.c'.\n");
-       return(1);
-  }
-  io_bytes+=sizeof properties->population;
-  if (!fread(&properties->n_deceased,sizeof properties->n_deceased,1,fs)) {
-       fprintf(stderr,"MCell: read grid molecules error in 'chkpt.c'.\n");
-       return(1);
-  }
-  io_bytes+=sizeof properties->n_deceased;
-
-  for (i = 0; i < properties->population; i++) {
-    if ((gmolp=(struct grid_molecule *)malloc(sizeof(struct grid_molecule)))==NULL) {
-      fprintf(stderr,"MCell: memory allocation error in 'chkpt.c'.\n");
-      return(1);
-    }
-
-    if (!fread(&gmolp->grid_index,sizeof gmolp->grid_index,1,fs)) {
-      fprintf(stderr,"MCell: read grid molecules error in 'chkpt.c'.\n");
-      return(1);
-    }      
-    io_bytes+=sizeof gmolp->grid_index;
-
-    if (!fread(&gmolp->orient,sizeof gmolp->orient,1,fs)) {
-      fprintf(stderr,"MCell: read grid molecules error in 'chkpt.c'.\n");
-      return(1);
-    }      
-    io_bytes+=sizeof gmolp->orient;
-
-    if (!fread(&gmolp->s_pos.u,sizeof gmolp->s_pos.u,1,fs)) {
-      fprintf(stderr,"MCell: read grid molecules error in 'chkpt.c'.\n");
-      return(1);
-    }      
-    io_bytes+=sizeof gmolp->s_pos.u;
-
-    if (!fread(&gmolp->s_pos.v,sizeof gmolp->s_pos.v,1,fs)) {
-      fprintf(stderr,"MCell: read grid molecules error in 'chkpt.c'.\n");
-      return(1);
-    }      
-    io_bytes+=sizeof gmolp->s_pos.v;
-
-  }
-
-/*
-  fprintf(stderr,"read_effector io_bytes = %d\n",io_bytes);
-  fflush(stderr);
-*/
-  return(0);
-}
-
-/***************************************************************************
-write_rx_states:
-In: fs - checkpoint file to write to.
-Out: data for reactions is written to the checkpoint file.
-     Returns 1 on error, and 0 - on success.
-
-***************************************************************************/
-int write_rx_states(FILE *fs)
-{
-  byte cmd = RX_STATE_CMD;
-  struct rxn *rx;
-  struct pathway *pathp;
-  int n_states;
-  int i, j, num_null_pathp = 0;
-
-  for (i = 0; i < world->rx_hashsize; i++) {
-    rx = world->reaction_hash[i];
-    if (rx == NULL) continue;
-    if (!fwrite(&cmd,sizeof cmd,1,fs)) {
-      return(1);
-    }
-    io_bytes+=sizeof cmd;
-    if (!fwrite(&i,sizeof i,1,fs)) {
-      fprintf(stderr,"MCell: write grid molecules error in 'chkpt.c'.\n");
-      return(1);
-    }
-    io_bytes+=sizeof i;
-    
-    n_states = rx->n_pathways;
-    for (j=0;j<n_states;j++) {
-      pathp = &(rx->pathway_head[j]);
-      if (pathp == NULL) {
-        num_null_pathp++;
-        fprintf(stderr,"Found null pathway %d while writing chkpt file\n",num_null_pathp);
-      }
-      else if (!fwrite(&pathp->count,sizeof pathp->count,1,fs)) {
-        fprintf(stderr,"MCell: write grid molecules error in 'chkpt.c'.\n");
-	return(1);
-      }
-      io_bytes+=sizeof pathp->count;
-    }
-    
-  }
-
-/*
-  fprintf(stderr,"write_rx_states io_bytes = %d\n",io_bytes);
-  fflush(stderr);
-*/
-  return(0);
-}
-
-/***************************************************************************
-read_rx_state:
-In:  fs - checkpoint file to read from.
-Out: memory for reactions is allocated and their properties are set.
-     Returns 1 on error, and 0 - on success.
-
-***************************************************************************/
-int read_rx_state(FILE *fs)
-{
-
-  struct rxn *rx;
-  struct pathway *pathp;
-  int n_states;
-  int i, j;
-
-  if (!fread(&i,sizeof i,1,fs)) {
-    fprintf(stderr,"MCell: read rx_states error in 'chkpt.c'.\n");
-    return(1);
-  }
-  io_bytes+=sizeof i;
-  rx = world->reaction_hash[i];
-  n_states = rx->n_pathways;
-
-  for (j=0;j<n_states;j++) {
-    pathp = &(rx->pathway_head[j]);
-    if (!fread(&pathp->count,sizeof pathp->count,1,fs)) {
-      fprintf(stderr,"MCell: read rx_states error in 'chkpt.c'.\n");
-      return(1);
-    }
-    io_bytes+=sizeof pathp->count;
-  }
-
-/*
-  fprintf(stderr,"read_rx_state io_bytes = %d\n",io_bytes);
-  fflush(stderr);
-*/
-  return(0);
-}
-#endif
 
 /***************************************************************************
 write_mcell_version:

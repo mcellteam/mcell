@@ -15,8 +15,7 @@
 #define MCELL_VERSION_CMD 5 
 #define SPECIES_TABLE_CMD 6
 #define MOL_SCHEDULER_STATE_CMD 7
-#define RX_STATE_CMD 8
-#define BYTE_ORDER_CMD 9
+#define BYTE_ORDER_CMD 8
 
 int write_chkpt(FILE *fs);
 int read_chkpt(FILE *fs);
@@ -34,12 +33,6 @@ int write_species_table(FILE *fs);
 int read_species_table(FILE *fs);
 int write_mol_scheduler_state(FILE *fs);
 int read_mol_scheduler_state(FILE *fs);
-/*
-int write_grid_molecules(FILE *fs);
-int read_grid_molecule(FILE *fs);
-int write_rx_states(FILE *fs);
-int read_rx_state(FILE *fs);
-*/
 int write_byte_order(FILE *fs);
 int read_byte_order(FILE *fs);
 
