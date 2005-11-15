@@ -291,6 +291,18 @@ struct subvolume* find_subvolume(struct vector3 *loc,struct subvolume *guess)
 }  
 
 
+
+/*************************************************************************
+insert_grid_molecule
+  In: species for the new molecule
+      3D location of the new molecule
+      orientation of the new molecule
+      diameter to search for a free surface spot (vector3 now, should be double!)
+      schedule time for the new molecule
+  Out: pointer to the new molecule, or NULL if no free spot was found.
+  Note: This function halts the program if it runs out of memory.
+*************************************************************************/
+
 struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc,short orient,struct vector3 *search_diam,double t)
 {
   double search_d2,d2;

@@ -2758,6 +2758,14 @@ fflush(stdout);
 
 
 
+/***************************************************************************
+rel_expr_grab_obj:
+  In: release expression
+      place to allocate memory for temporary void_list
+  Out: a linked list containing all the objects referred to in the
+       release expression (including duplcates), or NULL if there are
+       no such objects.
+***************************************************************************/
 
 /* Not the most efficient due to slow merging, but it works. */
 struct void_list* rel_expr_grab_obj(struct release_evaluator *root,struct mem_helper *voidmem)
@@ -2809,6 +2817,15 @@ struct void_list* rel_expr_grab_obj(struct release_evaluator *root,struct mem_he
 }
 
 
+/***************************************************************************
+find_unique_rev_objects:
+  In: release expression
+      place to store the number of unique objects we find
+  Out: an array of pointers to each object listed in the release
+       expression (no duplicates), or NULL if out of memory.  The
+       second argument is set to the length of the array.
+***************************************************************************/
+
 struct object** find_unique_rev_objects(struct release_evaluator *root,int *n)
 {
   struct object **o_array;
@@ -2846,6 +2863,18 @@ struct object** find_unique_rev_objects(struct release_evaluator *root,int *n)
   return o_array;
 }
 
+
+/***************************************************************************
+eval_rel_region_expr:
+  In: release expression for a 2D region release
+      the number of distinct objects in the world listed in the expression
+      array of pointers to each of those objects
+      array of pointers to bit arrays specifying which walls of each
+        object are included in this release
+  Out: 0 on success, 1 on failure.  On success, the bit arrays are set
+       so that they indicate which walls of each object are included in
+       this release site.
+***************************************************************************/
 
 int eval_rel_region_expr(struct release_evaluator *expr,int n,struct object **objs,struct bit_array **result)
 {
@@ -2923,6 +2952,15 @@ int eval_rel_region_expr(struct release_evaluator *expr,int n,struct object **ob
 }
 
 
+/***************************************************************************
+init_rel_region_data_2d:
+  In: release data for a release of 2D molecules onto a region
+  Out: 0 on success, 1 on failure.  A summary of all potentially available
+       space over all objects contained in the region expression is
+       generated and stored in arrays (typically of length equal to the
+       number of walls in the region expression).
+***************************************************************************/
+
 int init_rel_region_data_2d(struct release_region_data *rrd)
 {
   int i,j,k;
@@ -2981,6 +3019,13 @@ int init_rel_region_data_2d(struct release_region_data *rrd)
 }
 
 
+/***************************************************************************
+create_region_bbox:
+  In: a region
+  Out: pointer to a 2-element array contining the LLF and URB corners of
+       a bounding box around the region, or NULL if out of memory.
+***************************************************************************/
+
 struct vector3* create_region_bbox(struct region *r)
 {
   int i,j,k;
@@ -3018,6 +3063,16 @@ struct vector3* create_region_bbox(struct region *r)
   return bbox;
 }
 
+
+/***************************************************************************
+eval_rel_region_bbox:
+  In: release expression for a 3D region release
+      place to store LLF corner of the bounding box for the release
+      place to store URB corner
+  Out: 0 on success, 1 on failure.  Bounding box is set based on release
+       expression (based boolean intersection of bounding boxes for each
+       region).  The function reports failure if any region is unclosed.
+***************************************************************************/
 
 int eval_rel_region_bbox(struct release_evaluator *expr,struct vector3 *llf,struct vector3 *urb)
 {
@@ -3129,6 +3184,15 @@ int eval_rel_region_bbox(struct release_evaluator *expr,struct vector3 *llf,stru
 }
 
 
+/***************************************************************************
+init_rel_region_data_3d:
+  In: release region data structure
+  Out: 0 on success, 1 on failure, -1 if there is no volume contained
+       in the release (user error).  The release must be for a 3D release
+       of molecules.  eval_rel_region_bbox is called to perform the
+       initialization.
+***************************************************************************/
+
 int init_rel_region_data_3d(struct release_region_data *rrd)
 {
   int i;
@@ -3149,6 +3213,16 @@ int init_rel_region_data_3d(struct release_region_data *rrd)
   return 0;
 }
 
+
+/***************************************************************************
+output_regrel_eval_tree:
+  In: file to print tree on
+      prefix string to put before the current branch of the tree
+      prefix character for left half of current branch
+      prefix character for right half of current branch
+      release expression
+  Out: no return value.  The tree is printed to the file.
+***************************************************************************/
 
 void output_relreg_eval_tree(FILE *f,char *prefix,char cA,char cB,struct release_evaluator *expr)
 {
@@ -3198,6 +3272,13 @@ void output_relreg_eval_tree(FILE *f,char *prefix,char cA,char cB,struct release
 }
   
 
+/***************************************************************************
+init_releases:
+  In: nothing
+  Out: 0 on success, 1 on failure.  All release sites are initialized.
+       Right now, the only release sites that need to be initialized are
+       releases on regions.
+***************************************************************************/
 
 int init_releases()
 {
