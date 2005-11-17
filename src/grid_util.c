@@ -275,6 +275,113 @@ int create_grid(struct wall *w,struct subvolume *guess)
 
 
 /*************************************************************************
+grid_neighbors: 
+  In: a surface grid
+      an index on that grid
+      an array[3] of pointers to be filled in with neighboring grid(s)
+      an array[3] of pointers to be filled in with neighboring indices
+  Out: no return value.  The three nearest neighbors are returned,
+       which may be on a neighboring grid if the supplied index is
+       at an edge.  If there is no neighbor in one of the three
+       directions, the neighboring grid pointer is set to NULL.
+  Note: the three neighbors are returned in the same order as the
+        edges, i.e. the 0th will be the nearest neighbor in the
+        direction of the 0th edge, and so on.
+  Note: this code is only to find neighboring molecules, NOT to find
+        free spots.  If a nearby wall exists but has no grid placed
+	on it, this function returns NULL for that grid, even though
+	there is space there (just no molecules)!
+*************************************************************************/
+
+void grid_neighbors(struct surface_grid *grid,int idx,struct surface_grid **nb_grid,int *nb_idx)
+{
+  int i,j,k,root,rootrem;
+  struct vector3 loc_3d;
+  struct vector2 near_2d;
+  double d;
+  
+  root = (int)( sqrt((double)idx) );
+  rootrem = idx - root*root;
+  k = grid->n - root - 1;
+  j = rootrem/2;
+  i = rootrem - 2*j;
+  
+  /* First look "left" (towards edge 2) */
+  if (j>0 || i>0)
+  {
+    nb_grid[2] = grid;
+    nb_idx[2] = idx-1;
+  }
+  else
+  {
+    if (grid->surface->nb_walls[2]==NULL) nb_grid[2] = NULL;
+    else if (grid->surface->nb_walls[2]->effectors==NULL) nb_grid[2] = NULL;
+    else
+    {
+      if (grid->mol[idx]!=NULL) uv2xyz(&grid->mol[idx]->s_pos,grid->surface,&loc_3d);
+      else grid2xyz(grid,idx,&loc_3d);
+      d = closest_interior_point(&loc_3d,grid->surface->nb_walls[2],&near_2d,GIGANTIC);
+      if (d==GIGANTIC) nb_grid[2]=NULL;
+      else
+      {
+	nb_grid[2] = grid->surface->nb_walls[2]->effectors;
+	nb_idx[2] = uv2grid(&near_2d,nb_grid[2]);
+      }
+    }
+  }
+  
+  /* Then "right" (towards edge 1) */
+  if (2*j <= root)
+  {
+    nb_grid[1] = grid;
+    nb_idx[1] = idx+1;
+  }
+  else
+  {
+    if (grid->surface->nb_walls[1]==NULL) nb_grid[1] = NULL;
+    else if (grid->surface->nb_walls[1]->effectors==NULL) nb_grid[1] = NULL;
+    else
+    {
+      if (grid->mol[idx]!=NULL) uv2xyz(&grid->mol[idx]->s_pos,grid->surface,&loc_3d);
+      else grid2xyz(grid,idx,&loc_3d);
+      d = closest_interior_point(&loc_3d,grid->surface->nb_walls[1],&near_2d,GIGANTIC);
+      if (d==GIGANTIC) nb_grid[1]=NULL;
+      else
+      {
+	nb_grid[1] = grid->surface->nb_walls[1]->effectors;
+	nb_idx[1] = uv2grid(&near_2d,nb_grid[1]);
+      }
+    }
+  }
+
+    
+  /* Finally "up/down" (towards edge 0 if not flipped) */
+  if (i || k+1 < grid->n)
+  {
+    nb_grid[0] = grid;
+    nb_idx[0] = 2*j+(k+1)*(k+1);
+  }
+  else
+  {
+    if (grid->surface->nb_walls[0]==NULL) nb_grid[0] = NULL;
+    else if (grid->surface->nb_walls[0]->effectors==NULL) nb_grid[0] = NULL;
+    else
+    {
+      if (grid->mol[idx]!=NULL) uv2xyz(&grid->mol[idx]->s_pos,grid->surface,&loc_3d);
+      else grid2xyz(grid,idx,&loc_3d);
+      d = closest_interior_point(&loc_3d,grid->surface->nb_walls[0],&near_2d,GIGANTIC);
+      if (d==GIGANTIC) nb_grid[0]=NULL;
+      else
+      {
+	nb_grid[0] = grid->surface->nb_walls[0]->effectors;
+	nb_idx[0] = uv2grid(&near_2d,nb_grid[0]);
+      }
+    }
+  }
+}
+
+
+/*************************************************************************
 nearest_free: 
   In: a surface grid
       a vector in u,v coordinates on that surface
