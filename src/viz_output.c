@@ -133,7 +133,7 @@ void init_frame_data_list(struct frame_data_list *fdlp)
       while (nelp!=NULL) {
 	fdlp->n_viz_iterations++;
 	if (!done) {
-	  if (nelp->value>=world->current_start_time) {
+	  if (nelp->value>=world->current_start_real_time) {
 	    fdlp->viz_iterationll=(long long)(nelp->value/world->time_unit+ROUND_UP);
 	    fdlp->curr_viz_iteration=nelp;
 	    done=1;

@@ -30,6 +30,7 @@
 #define CAN_MOLMOL       0x10
 #define CAN_MOLGRID      0x20
 #define CAN_MOLWALL      0x40
+#define CAN_GRIDGRID     0x80
 #define CANT_INITIATE    0x100
 #define COUNT_CONTENTS   0x1000
 #define COUNT_HITS       0x2000
@@ -89,6 +90,8 @@
 #define RX_DESTROY  0
 #define RX_A_OK     1
 #define RX_NO_MEM   3
+#define RX_PATHWAY_BITS 32
+#define RX_GREATEST_VALID_PATHWAY ((1LL << RX_PATHWAY_BITS)-1) 
 
 
 /* Flags for BSP trees to determine whether something is a node or a branch */

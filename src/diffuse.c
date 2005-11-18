@@ -3558,6 +3558,83 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 }
     
 
+struct grid_molecule* react_2D(struct grid_molecule *g,double t)
+{
+  struct surface_grid *sg[3];    /* Neighboring surface grids */
+  int si[3];                     /* Indices on those grids of neighbor molecules */
+  struct grid_molecule *gm[3];   /* Neighboring molecules */
+  struct rxn *rx[3];             /* Reactions we can perform with those molecules */
+  double cf[3];                  /* Correction factor for area for those molecules */
+  int i,j,k,n;
+  long long ii;
+  
+  grid_neighbors(g->grid,g->grid_index,sg,si);
+  
+  for (i=n=0 ; i<3 ; i++)
+  {
+    if (sg[i]!=NULL)
+    {
+      gm[n] = sg[i]->mol[ si[i] ];
+      rx[n] = trigger_bimolecular(
+        g->properties->hashval,gm[n]->properties->hashval,
+	(struct abstract_molecule*)g,(struct abstract_molecule*)gm[n],
+	g->orient,gm[n]->orient
+      );
+      if (rx[n]!=NULL)
+      {
+	cf[n] = 0.5*(g->grid->binding_factor + sg[i]->binding_factor)*t;
+	n++;
+      }
+    }
+  }
+  
+  if (n==0) return g;  /* Nobody to react with */
+  else if (n==1)
+  {
+    i = test_bimolecular(rx[0],cf[0]);
+    j = 0;
+  }
+  else
+  {
+    ii = test_many_bimolecular(rx,cf,n);
+    if (ii>=RX_LEAST_VALID_PATHWAY)
+    {
+      i = (int)(ii & RX_GREATEST_VALID_PATHWAY);
+      j = (int)(ii >> RX_PATHWAY_BITS);
+    }
+    else
+    {
+      i = (int)ii;
+      j = 0;
+    }
+  }
+  
+  if (i<RX_LEAST_VALID_PATHWAY) return g;  /* No reaction */
+  
+  k = outcome_bimolecular(
+    rx[j],i,
+    (struct abstract_molecule*)g,(struct abstract_molecule*)gm[j],
+    g->orient,gm[j]->orient,g->t,NULL
+  );
+
+  if (k==RX_NO_MEM)
+  {
+    fprintf(world->err_file,"Out of memory.  Trying to save intermediate results.\n");
+    k = emergency_output();
+    fprintf(world->err_file,"Out of memory during bimolecular surface reaction %s...\n",rx[j]->sym->name);
+    fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",k);
+    exit( EXIT_FAILURE );
+  }
+  
+  if (j==RX_DESTROY)
+  {
+    mem_put(g->birthplace,g);
+    return NULL;
+  }
+  
+  return g;
+}
+
 
 /*************************************************************************
 run_timestep:
@@ -3668,6 +3745,22 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         a->t += max_time;
         a->t2 -= max_time;
       }
+    }
+    else if ( (a->flags&TYPE_GRID)!=0 && (a->properties->flags&CAN_GRIDGRID) && !(a->flags&ACT_INERT))
+    {
+       max_time = checkpt_time - a->t;
+       if (a->t2<max_time && (a->flags &(ACT_REACT|ACT_INERT))!=0) max_time = a->t2;
+       if (max_time > release_time - a->t) max_time = release_time - a->t;
+       if (a->properties->time_step < max_time) max_time = a->properties->time_step;
+       
+       a = (struct abstract_molecule*)react_2D((struct grid_molecule*)a , max_time );
+       
+       if (a!=NULL)
+       {
+	 a->t2 -= max_time;
+	 a->t += max_time;  /* react_2D doesn't advance the time, so do it here! */
+       }
+       else continue;
     }
     else
     {

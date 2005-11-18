@@ -15,6 +15,7 @@ int test_unimolecular(struct rxn *rx);
 double timeof_unimolecular(struct rxn *rx);
 int which_unimolecular(struct rxn *rx);
 int test_bimolecular(struct rxn *rx,double scaling);
+long long test_many_bimolecular(struct rxn **rx,double *scaling, int n);
 int test_intersect(struct rxn *rx,double scaling);
 void check_probs(struct rxn *rx,double t);
 

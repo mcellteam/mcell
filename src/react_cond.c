@@ -109,7 +109,7 @@ int test_bimolecular(struct rxn *rx, double scaling)
   {
     /* How may reactions did we miss? */
     if (scaling==0.0) rx->n_skipped += GIGANTIC;
-    else rx->n_skipped += rx->cum_probs[rx->n_pathways -1] / scaling;
+    else rx->n_skipped += (rx->cum_probs[rx->n_pathways -1] / scaling) - 1.0;
     
     /* Keep the proportions of outbound pathways the same. */
     p = rng_dbl( world->rng ) * rx->cum_probs[rx->n_pathways - 1];
@@ -137,6 +137,86 @@ int test_bimolecular(struct rxn *rx, double scaling)
   if (m==M) return m;
   if (p > rx->cum_probs[m]) return M;
   else return m;
+}
+
+
+/*************************************************************************
+test_many_bimolecular
+  In: an array of reactions we're testing
+      scaling coefficients depending on how many timesteps we've moved
+        at once (1.0 means one timestep) and/or missing interaction areas
+      the number of elements in the array
+  Out: RX_NO_RX if no reaction occurs
+       long long containing which reaction occurs if one does occur
+          first RX_PATHWAY_BITS indicate the pathway
+	  remaining bits indicate which reaction to follow
+  Note: If this reaction does not return RX_NO_RX, it is assumed that the
+        reaction does take place, and counters are updated appropriately.
+  Note: this uses only one call to get a random double, so you can't
+        effectively sample events that happen less than 10^-15 of the
+	time.
+*************************************************************************/
+
+long long test_many_bimolecular(struct rxn **rx,double *scaling, int n)
+{
+  double rxp[n];
+  struct rxn *my_rx;
+  int i;
+  int m,M,avg;
+  double p,f;
+  
+  if (n==1) return test_bimolecular(rx[0],scaling[0]);
+
+  /* FIXME: lots of division here, can we convert to multiplication? */
+  rxp[0] = rx[0]->cum_probs[ rx[0]->n_pathways - 1 ]/scaling[0];
+  for (i=1;i<n;i++)
+  {
+    rxp[i] = rxp[i-1] + rx[i]->cum_probs[ rx[i]->n_pathways-1 ]/scaling[i];
+  }
+  
+  if (rxp[n-1] > 1.0)
+  {
+    f = rxp[n-1]-1.0;            /* Number of failed reactions */
+    for (i=0;i<n;i++)            /* Distribute failures */
+    {
+      rx[i]->n_skipped += f * (rx[i]->cum_probs[rx[i]->n_pathways-1])/rxp[n-1];
+    }
+    p = rng_dbl( world->rng ) * rxp[n-1];
+  }
+  else
+  {
+    p = rng_dbl(world->rng);
+    if (p > rxp[n-1]) return RX_NO_RX;
+  }
+  
+  /* Pick the reaction that happens */
+  m=0;
+  M=n-1;
+  while (M-m>1)
+  {
+    avg = (M+m)/2;
+    if (p > rxp[avg]) m = avg;
+    else M = avg;
+  }
+  if (p > rxp[m]) i=M;
+  else i = m;
+  
+  my_rx = rx[i];
+  if (p>0) p = (p - rxp[i-1]);
+  my_rx->n_occurred++;
+  
+  /* Now pick the pathway within that reaction */
+  m=0;
+  M=my_rx->n_pathways-1;
+  while (M-m>1)
+  {
+    avg = (M+m)/2;
+    if (p > my_rx->cum_probs[avg]) m = avg;
+    else M=avg;
+  }
+  if (p>my_rx->cum_probs[m]) m=M;
+  
+  return (long long)m + (((long long)i) << RX_PATHWAY_BITS);
 }
 
 
