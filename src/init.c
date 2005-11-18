@@ -170,16 +170,16 @@ int init_sim(void)
   world->mol_mol_colls=0;
   world->diffusion_steps=0;
   world->sim_elapsed_time=0;
-  world->chkpt_elapsed_time=0;
-  world->chkpt_elapsed_time_start=0;
+  world->chkpt_elapsed_real_time=0;
+  world->chkpt_elapsed_real_time_start=0;
   world->chkpt_byte_order_mismatch = 0;
   world->it_time=0;
   world->elapsed_time=0;
   world->time_unit=0;
   world->time_step_max=0;
   world->start_time=0;
-  world->current_time=0;
-  world->current_start_time=0;
+  world->current_real_time=0;
+  world->current_start_real_time=0;
   world->effector_grid_density=10000;
   world->length_unit=1.0/sqrt(world->effector_grid_density);
   world->default_grid_mol_area=1/world->effector_grid_density;
@@ -468,7 +468,7 @@ int init_sim(void)
     world->chkpt_seq_num=1;
   }
 
-  /**
+   /**
    *Initialize the frame data list for the visualization 
    *and reaction output.
    **/
@@ -724,14 +724,17 @@ int init_partitions(void)
   shared_mem->wall_count = 0;
   shared_mem->vert_head = NULL;
   shared_mem->vert_count = 0;
-  
-  if((shared_mem->timer = create_scheduler(1.0,100.0,100,0.0)) == NULL){
+ 
+ if(world->chkpt_init)
+ {
+     if((shared_mem->timer = create_scheduler(1.0,100.0,100,0.0)) == NULL){
 	fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
         int i = emergency_output();
 	fprintf(stderr,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
         exit(EXIT_FAILURE);
+     }
+     shared_mem->current_time = 0.0;
   }
-  shared_mem->current_time = 0.0;
   
   if (world->time_step_max==0.0) shared_mem->max_timestep = MICROSEC_PER_YEAR;
   else

@@ -43,7 +43,7 @@ int write_chkpt(FILE *fs)
   if(write_mcell_version(fs)) {
     return(1);
   }
-  if (write_current_time(fs)) {
+  if (write_current_real_time(fs)) {
     return(1);
   }
   if (write_current_iteration(fs)) {
@@ -62,14 +62,6 @@ int write_chkpt(FILE *fs)
   if (write_mol_scheduler_state(fs)) {
     return(1);
   }
-  /*
-  if (write_grid_molecules(fs)) {
-    return(1);
-  }
-  if (write_rx_states(fs)) {
-    return(1);
-  }
-  */
   return(0);
 }
 
@@ -103,9 +95,12 @@ int read_chkpt(FILE *fs)
       io_bytes+=sizeof cmd;
       switch (cmd) {
       case CURRENT_TIME_CMD:
-	if (read_current_time(fs)) {
+	if (read_current_real_time(fs)) {
 	  return(1);
 	}
+        if(create_molecule_scheduler()){
+	  return 1;
+        }
 	break;
       
       case CURRENT_ITERATION_CMD:
@@ -143,18 +138,6 @@ int read_chkpt(FILE *fs)
 	  return(1);
 	}
 	break;
-        /*
-      case EFFECTOR_CMD:
-	if (read_grid_molecule(fs)) {
-	  return(1);
-	}
-	break;
-      case RX_STATE_CMD:
-	if (read_rx_state(fs)) {
-	  return(1);
-	}
-	break;
-        */
       default: break;
       }
     }
@@ -246,30 +229,30 @@ int read_byte_order(FILE *fs)
 
 
 /***************************************************************************
-write_current_time:
+write_current_real_time:
 In:  fs - checkpoint file to write to.
-Out: Writes current time (in the terms of real time) in the checkpoint file. 
+Out: Writes current real time (in the terms of sec) in the checkpoint file. 
      Returns 1 on error, and 0 - on success.
 
 ***************************************************************************/
-int write_current_time(FILE *fs)
+int write_current_real_time(FILE *fs)
 {
   byte cmd = CURRENT_TIME_CMD;
 
   if (!fwrite(&cmd,sizeof cmd,1,fs)) {
-    fprintf(stderr,"MCell: write_current_time error in 'chkpt.c'.\n");
+    fprintf(stderr,"MCell: write_current_real_time error in 'chkpt.c'.\n");
     return(1);
   }
   io_bytes+=sizeof cmd;
-  if (!fwrite(&(world->current_time),sizeof (world->current_time),1,fs)) {
-    fprintf(stderr,"MCell: write_current_time error in 'chkpt.c'.\n");
+  if (!fwrite(&(world->current_real_time),sizeof (world->current_real_time),1,fs)) {
+    fprintf(stderr,"MCell: write_current_real_time error in 'chkpt.c'.\n");
     return(1);
   }
-  io_bytes+=sizeof (world->current_time);
+  io_bytes+=sizeof (world->current_real_time);
 
 
 /*
-  fprintf(stderr,"write_current_time io_bytes = %d\n",io_bytes);
+  fprintf(stderr,"write_current_real_time io_bytes = %d\n",io_bytes);
   fflush(stderr);
 */
   return(0);
@@ -277,13 +260,13 @@ int write_current_time(FILE *fs)
 
 
 /***************************************************************************
-read_current_time:
+read_current_real_time:
 In:  fs - checkpoint file to read from.
-Out: Reads current time (in the terms of real time) from the checkpoint file. 
+Out: Reads current real time (in the terms of sec) from the checkpoint file. 
      Returns 1 on error, and 0 - on success.
 
 ***************************************************************************/
-int read_current_time(FILE *fs)
+int read_current_real_time(FILE *fs)
 {
   double tmp1, tmp2;
   unsigned char *byte_array; /*pointer to the byte array */
@@ -303,18 +286,40 @@ int read_current_time(FILE *fs)
     	return(1);
      }
      tmp2 = *(double *)byte_array;
-     world->current_start_time = tmp2;
+     world->current_start_real_time = tmp2;
 
   }else{
-     world->current_start_time = tmp1;
+     world->current_start_real_time = tmp1;
   }
-  io_bytes+=sizeof (world->current_start_time);
+  io_bytes+=sizeof (world->current_start_real_time);
 /*
-  fprintf(stderr,"read_current_time io_bytes = %d\n",io_bytes);
+  fprintf(stderr,"read_current_real_time io_bytes = %d\n",io_bytes);
   fflush(stderr);
 */
   return(0);
 }
+
+/***************************************************************************
+create_molecule_scheduler:
+In:  none.
+Out: Creates global molecule scheduler using checkpoint file values. 
+     Returns 1 on error, and 0 - on success.
+
+***************************************************************************/
+int create_molecule_scheduler()
+{
+  double start_time;
+  
+  start_time = world->current_start_real_time/world->time_unit;
+  if((world->storage_head->store->timer = create_scheduler(1.0,100.0,100,start_time)) == NULL){
+     fprintf(stderr, "Out of memory while creating molecule scheduler.\n");
+     return 1;
+  }
+  world->storage_head->store->current_time = start_time;
+
+  return 0;
+}
+
 
 /***************************************************************************
 write_current_iteration:
@@ -336,11 +341,11 @@ int write_current_iteration(FILE *fs)
     return(1);
   }
   io_bytes+=sizeof (world->it_time);
-  if (!fwrite(&(world->chkpt_elapsed_time),sizeof (world->chkpt_elapsed_time),1,fs)) {
+  if (!fwrite(&(world->chkpt_elapsed_real_time),sizeof (world->chkpt_elapsed_real_time),1,fs)) {
     fprintf(stderr,"MCell: write_current_iteration error in 'chkpt.c'.\n");
     return(1);
   }
-  io_bytes+=sizeof (world->chkpt_elapsed_time);
+  io_bytes+=sizeof (world->chkpt_elapsed_real_time);
 /*
   fprintf(stderr,"write_current_iteration io_bytes = %d\n",io_bytes);
   fflush(stderr);
@@ -398,13 +403,13 @@ int read_current_iteration(FILE *fs)
     	return(1);
      }
      tmp4 = *(double *)byte_array;
-     world->chkpt_elapsed_time_start = tmp4;
+     world->chkpt_elapsed_real_time_start = tmp4;
   }else{
-     world->chkpt_elapsed_time_start = tmp3;
+     world->chkpt_elapsed_real_time_start = tmp3;
   }
 
-  io_bytes+=sizeof (world->chkpt_elapsed_time_start);
-  world->chkpt_elapsed_time=world->chkpt_elapsed_time_start;
+  io_bytes+=sizeof (world->chkpt_elapsed_real_time_start);
+  world->chkpt_elapsed_real_time=world->chkpt_elapsed_real_time_start;
 /*
   fprintf(stderr,"read_current_iteration io_bytes = %d\n",io_bytes);
   fflush(stderr);
@@ -905,6 +910,7 @@ Out: Writes molecule scheduler data to the checkpoint file.
 int write_mol_scheduler_state(FILE *fs)
 {
   byte cmd = MOL_SCHEDULER_STATE_CMD;
+  byte act_newbie_flag;
   struct storage_list *slp;
   struct schedule_helper *shp;
   struct abstract_element *aep;
@@ -987,7 +993,20 @@ int write_mol_scheduler_state(FILE *fs)
      		return(1);
   	    }
             io_bytes+=sizeof(amp->properties->chkpt_species_id);
-           
+
+            /*write molecule ACT_NEWBIE flag */        
+            if ((amp->flags & ACT_NEWBIE) != 0)
+            {
+		act_newbie_flag = HAS_ACT_NEWBIE;
+            }else{
+		act_newbie_flag = HAS_NOT_ACT_NEWBIE;
+            }
+            if (!fwrite(&act_newbie_flag,sizeof (act_newbie_flag),1,fs)) {
+                fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+                return(1);
+            }
+            io_bytes+=sizeof (act_newbie_flag);
+   
             /* write molecule schedule time */
             if (!fwrite(&(amp->t),sizeof (amp->t),1,fs)) {
      		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
@@ -1001,6 +1020,13 @@ int write_mol_scheduler_state(FILE *fs)
      		return(1);
   	    }
             io_bytes+=sizeof(amp->t2);
+
+            /* write molecule birthday */
+            if (!fwrite(&(amp->birthday),sizeof (amp->birthday),1,fs)) {
+     		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     		return(1);
+  	    }
+            io_bytes+=sizeof(amp->birthday);
 
             /* write molecule position */
             if (!fwrite(&(where.x),sizeof (where.x),1,fs)) {
@@ -1044,26 +1070,28 @@ Out: Reads molecule scheduler data from the checkpoint file.
 int read_mol_scheduler_state(FILE *fs)
 {
   u_int tmp1, tmp2, total_items, chkpt_sp_id, i;
-  double tmp3, tmp4, sched_time, lifetime, x_coord, y_coord, z_coord;
+  double tmp3, tmp4, sched_time, lifetime, birthday, x_coord, y_coord, z_coord;
   short tmp5, tmp6, orient;
   unsigned char *byte_array;
   struct molecule m;
   struct molecule *mp;
   struct grid_molecule *gmp;
-  struct abstract_molecule *ap;
+  struct abstract_molecule *ap; 
   struct molecule *guess;
+  /* molecule location */
   struct vector3 where;
-  /* seach diameter where to place grid_molecule */
+  /* search diameter where to place grid_molecule */
   struct vector3 *diam_xyz = NULL;  
   struct release_event_queue *req;
   struct release_site_obj *rso;
   struct species *properties = NULL;
+  byte act_newbie_flag;
   int j;
 
 
   byte_array = NULL;
-  mp = &m;
-  ap = (struct abstract_molecule *)mp;
+  mp = &m; 
+  ap = (struct abstract_molecule *)mp;  
 
   /* read total number of items in the scheduler. */
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
@@ -1108,6 +1136,13 @@ int read_mol_scheduler_state(FILE *fs)
         }
         io_bytes+=sizeof(chkpt_sp_id);
 
+        /*read molecule ACT_NEWBIE flag */        
+        if (!fread(&act_newbie_flag,sizeof (act_newbie_flag),1,fs)) {
+             fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+             return(1);
+        }
+        io_bytes+=sizeof (act_newbie_flag);
+
   	/* read molecule schedule time */
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
      	   fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
@@ -1147,6 +1182,26 @@ int read_mol_scheduler_state(FILE *fs)
            lifetime = tmp3;
         }
         io_bytes+=sizeof(lifetime);
+  	
+        /* read molecule birthday */
+  	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
+     	   fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+     	   return(1);
+  	}
+  	if(world->chkpt_byte_order_mismatch == 1)
+  	{
+     	   /* we need to swap bytes here. */
+     	   byte_array = byte_swap((unsigned char *)&tmp3);
+     	   if(byte_array == NULL) {
+              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+    	      return(1);
+           }
+           tmp4 = *(double *)byte_array;
+           birthday = tmp4;
+        }else{
+           birthday = tmp3;
+        }
+        io_bytes+=sizeof(birthday);
 
   	/* read molecule x-coordinate */
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
@@ -1246,10 +1301,13 @@ int read_mol_scheduler_state(FILE *fs)
         {  
            /* set molecule characteristics */
            ap->flags = TYPE_3D | IN_VOLUME;
-           ap->flags |= IN_SCHEDULE + ACT_NEWBIE;
+           if(act_newbie_flag == HAS_ACT_NEWBIE){
+              ap->flags |= ACT_NEWBIE;
+           }
+           ap->flags |= IN_SCHEDULE;
            ap->t = sched_time;
            ap->t2 = lifetime;
-           ap->birthday = ap->t;           
+           ap->birthday = birthday;           
            ap->properties = properties; 
            if(trigger_unimolecular(ap->properties->hashval, ap) != NULL)
            {
@@ -1260,25 +1318,26 @@ int read_mol_scheduler_state(FILE *fs)
 	      ap->flags += ACT_DIFFUSE;
            }
  
-           m.curr_cmprt = NULL;
-           m.previous_grid = NULL;
-           m.index = -1;
+           mp->curr_cmprt = NULL;
+           mp->previous_grid = NULL;
+           mp->index = -1;
            mp->pos.x = x_coord;
            mp->pos.y = y_coord;
            mp->pos.z = z_coord;
-           
-           guess = insert_molecule(mp, guess); /* Insert copy of m into world */           if(guess == NULL)
+          
+           /* Insert copy of m into world */ 
+          guess = insert_molecule(mp, guess);  
+          if(guess == NULL)
            {
               fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\nCannot insert copy of molecule into world.\n");
     	      return(1);
            }
-
         }else{    /* grid_molecule */
            where.x = x_coord;
            where.y = y_coord;
            where.z = z_coord;
          
-           /* find the maximum search diameter where to place grid_molecule */
+           /* find the maximum search diameter used in placing grid_molecule */
            for(req = world->release_event_queue_head; req != NULL; req = req->next){
               rso = req->release_site;
               if (rso->mol_type == ap->properties){
@@ -1289,6 +1348,11 @@ int read_mol_scheduler_state(FILE *fs)
            /* insert grid_molecule into world */ 
 	   gmp = insert_grid_molecule(properties, &where,orient,  
                      diam_xyz, sched_time);
+           gmp->birthday = birthday;
+           if(act_newbie_flag == HAS_NOT_ACT_NEWBIE){
+              /*clear a bit flag */
+              gmp->flags &= ~ACT_NEWBIE;
+           }
 
        }
   }
@@ -1374,7 +1438,7 @@ int read_mcell_version(FILE *fs)
    }
    mcell_version_read[version_length] = '\0';
    io_bytes += version_length;  
-      
+
    fprintf(log_file,"Checkpoint file was created with MCell Version %s\n", mcell_version_read);
    
    if(strcmp(mcell_version_read,world->mcell_version) != 0){

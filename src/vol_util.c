@@ -1048,6 +1048,11 @@ int release_molecules(struct release_event_queue *req)
   guess = NULL;
 
 /* This part of the code is added for checkpointing. */
+   if(( req->event_time < world->it_time) && (rpat == world->default_release_pattern)){
+        /* there was one time release in the past */
+	return 0;
+   }
+
    if( req->event_time < world->it_time)
    {
      do{
@@ -1071,7 +1076,7 @@ int release_molecules(struct release_event_queue *req)
       		req->event_time = req->train_high_time;
       		req->train_counter++;
   	}
-      }while(req->event_time <= world->start_time);
+      }while(req->event_time <= world->start_time); 
 
   	if (req->train_counter <= rpat->number_of_trains)
   	{

@@ -16,7 +16,7 @@
 
 
 /* MCell version */
-#define MCELL_VERSION "3.001"
+#define MCELL_VERSION "3.001" 
 
 /* Species flags */
    /* Walls have IS_SURFACE set, molecules do not. */
@@ -960,12 +960,12 @@ struct volume
   double *d_step;
   double r_num_directions;
   double sim_elapsed_time;
-  double chkpt_elapsed_time;    /** elapsed simulation time (in sec) for new 
+  double chkpt_elapsed_real_time;    /** elapsed simulation time (in sec) for new 
                                     checkpoint */
-  double chkpt_elapsed_time_start;  /**< start of the simulation time (in sec)
+  double chkpt_elapsed_real_time_start;  /**< start of the simulation time (in sec)
                                         for new checkpoint */
-  double current_time;          /**< current simulation time in seconds */
-  double current_start_time;    /**< simulation start time (in seconds) */
+  double current_real_time;          /**< current simulation time in seconds */
+  double current_start_real_time;    /**< simulation start time (in seconds) */
   double max_diffusion_step;
   double random_number_use;
   double ray_voxel_tests;

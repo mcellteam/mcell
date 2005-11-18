@@ -17,12 +17,15 @@
 #define MOL_SCHEDULER_STATE_CMD 7
 #define BYTE_ORDER_CMD 8
 
+#define HAS_ACT_NEWBIE 1
+#define HAS_NOT_ACT_NEWBIE 0
+
 int write_chkpt(FILE *fs);
 int read_chkpt(FILE *fs);
 int write_mcell_version(FILE *fs);
 int read_mcell_version(FILE *fs);
-int write_current_time(FILE *fs);
-int read_current_time(FILE *fs);
+int write_current_real_time(FILE *fs);
+int read_current_real_time(FILE *fs);
 int write_current_iteration(FILE *fs);
 int read_current_iteration(FILE *fs);
 int write_chkpt_seq_num(FILE *fs);
@@ -35,5 +38,6 @@ int write_mol_scheduler_state(FILE *fs);
 int read_mol_scheduler_state(FILE *fs);
 int write_byte_order(FILE *fs);
 int read_byte_order(FILE *fs);
+int create_molecule_scheduler();
 
 #endif

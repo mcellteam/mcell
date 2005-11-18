@@ -92,7 +92,7 @@ void run_sim(void)
       fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
       exit( EXIT_FAILURE );
     }
-    
+  
     for ( obp=schedule_next(world->count_scheduler) ;
           obp!=NULL || not_yet>=world->count_scheduler->now ;
 	  obp=schedule_next(world->count_scheduler) )
@@ -129,7 +129,6 @@ void run_sim(void)
         run_timestep( local->store , next_release_time , (double)world->iterations+1.0 );
       }
     }
-    
     world->it_time++;
     
     if ( (world->it_time % frequency) == 0 )
@@ -157,8 +156,8 @@ void run_sim(void)
     }
     else {
       fprintf(world->log_file,"MCell: time = %lld, writing to checkpoint file %s\n",world->it_time, world->chkpt_outfile);
-      world->chkpt_elapsed_time = world->chkpt_elapsed_time + world->chkpt_iterations*world->time_unit;
-      world->current_time = world->it_time*world->time_unit;/* Lin-Wei 12-05-02 */
+      world->chkpt_elapsed_real_time = world->chkpt_elapsed_real_time + world->chkpt_iterations*world->time_unit;
+      world->current_real_time = world->it_time*world->time_unit;
       if (write_chkpt(world->chkpt_outfs)) {
 	fprintf(world->log_file,"MCell: error writing checkpoint file %s\n",world->chkpt_outfile);
 	exit(1);
@@ -166,7 +165,7 @@ void run_sim(void)
       fclose(world->chkpt_outfs);
     }
   }
-  fprintf(world->log_file,"iterations = %lld ; elapsed time = %1.15g seconds; current_time = %1.15g seconds \n",world->it_time,world->chkpt_elapsed_time_start+((world->it_time - world->start_time)*world->time_unit), world->current_time);
+  fprintf(world->log_file,"iterations = %lld ; elapsed time = %1.15g seconds; current_time = %1.15g seconds \n",world->it_time,world->chkpt_elapsed_real_time_start+((world->it_time - world->start_time)*world->time_unit), world->current_real_time);
   fflush(world->log_file);
 
 
@@ -420,7 +419,7 @@ int main(int argc, char **argv) {
 
   if(world->chkpt_flag)
   {
-  	fprintf(log_file,"MCell: checkpoint sequence number %d begins at elapsed time %1.15g seconds\n", world->chkpt_seq_num, world->chkpt_elapsed_time_start);
+  	fprintf(log_file,"MCell: checkpoint sequence number %d begins at elapsed time %1.15g seconds\n", world->chkpt_seq_num, world->chkpt_elapsed_real_time_start);
   	if (((world->iterations - world->start_time) < world->chkpt_iterations) && world->chkpt_outfile) {
     		world->chkpt_iterations = world->iterations - world->start_time;
   	} else if (world->chkpt_outfile) {
