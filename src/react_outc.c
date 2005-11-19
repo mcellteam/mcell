@@ -132,7 +132,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
     {
       if (rx->players[j]->flags&ON_GRID)
       {
-	/* FIXME: when enabling grid-grid reactions, fill target location first */
+	/* FIXME: decide on a policy for who is replaced first in grid-grid reactions */
 	if (replace_p1)
 	{
 	  glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid;

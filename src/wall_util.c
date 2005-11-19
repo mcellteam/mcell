@@ -932,19 +932,25 @@ closest_interior_point:
 double closest_interior_point(struct vector3 *pt,struct wall *w,struct vector2 *ip,double r2)
 {
   struct vector3 v;
+  double a1,a2;
   
   closest_pt_point_triangle(pt , w->vert[0] , w->vert[1] , w->vert[2] , &v);
   xyz2uv(&v,w,ip);
   
   /* Check to see if we're lying on an edge; if so, scoot towards centroid. */
-  if (ip->v==0 ||
-      !distinguishable(0,ip->v*w->uv_vert2.u-ip->u*w->uv_vert2.v,EPS_C) ||
-      !distinguishable( 2.0*w->area ,
-          w->uv_vert1_u*ip->v + ip->v*w->uv_vert2.u-ip->u*w->uv_vert2.v ,
-	  EPS_C ) )
+  
+  a1 = ip->u*w->uv_vert2.v-ip->v*w->uv_vert2.u;
+  a2 = w->uv_vert1_u*ip->v;
+  while (!distinguishable(ip->v,0,EPS_C) ||
+         !distinguishable(a1,0,EPS_C) ||
+	 !distinguishable(a1+a2,2.0*w->area,EPS_C) )
   {
-    ip->u = (1.0-EPS_C)*ip->u + EPS_C*0.333333333333333*(w->uv_vert1_u+w->uv_vert2.u);
-    ip->v = (1.0-EPS_C)*ip->v + EPS_C*0.333333333333333*w->uv_vert2.v;
+    /* Need to move centrally by a fraction larger than EPS_C or we'll have to do this many times! */
+    ip->u = (1.0-5*EPS_C)*ip->u + 5*EPS_C*0.333333333333333*(w->uv_vert1_u+w->uv_vert2.u);
+    ip->v = (1.0-5*EPS_C)*ip->v + 5*EPS_C*0.333333333333333*w->uv_vert2.v;
+    
+    a1 = ip->u*w->uv_vert2.v-ip->v*w->uv_vert2.u;
+    a2 = w->uv_vert1_u*ip->v;
   }
   return (v.x-pt->x)*(v.x-pt->x) + (v.y-pt->y)*(v.y-pt->y) +(v.z-pt->z)*(v.z-pt->z);
 }
@@ -3264,7 +3270,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           
           for (k=0;k<w->effectors->n_tiles;k++)
           {
-            if (w->effectors->mol[i]==NULL)
+            if (w->effectors->mol[k]==NULL)
             {
               p = mem_get(mh);
               if (p==NULL) return 1;

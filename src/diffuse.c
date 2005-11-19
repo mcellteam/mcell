@@ -3575,15 +3575,18 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
     if (sg[i]!=NULL)
     {
       gm[n] = sg[i]->mol[ si[i] ];
-      rx[n] = trigger_bimolecular(
-        g->properties->hashval,gm[n]->properties->hashval,
-	(struct abstract_molecule*)g,(struct abstract_molecule*)gm[n],
-	g->orient,gm[n]->orient
-      );
-      if (rx[n]!=NULL)
+      if (gm[n]!=NULL)
       {
-	cf[n] = 0.5*(g->grid->binding_factor + sg[i]->binding_factor)*t;
-	n++;
+	rx[n] = trigger_bimolecular(
+	  g->properties->hashval,gm[n]->properties->hashval,
+	  (struct abstract_molecule*)g,(struct abstract_molecule*)gm[n],
+	  g->orient,gm[n]->orient
+	);
+	if (rx[n]!=NULL)
+	{
+	  cf[n] = sg[i]->binding_factor/t;
+	  n++;
+	}
       }
     }
   }

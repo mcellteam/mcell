@@ -1041,27 +1041,44 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                   (rx->players[1]->flags & (IS_SURFACE | ON_GRID)) != 0) &&
                  rx->n_reactants == 2)
         {
-          if ((rx->players[0]->flags & NOT_FREE)==0)
-          {
-            D_tot = rx->players[0]->D_ref;
-	    t_step = rx->players[0]->time_step * mpvp->vol->time_unit;
-          }
-          else if ((rx->players[1]->flags & NOT_FREE)==0)
-          {
-            D_tot = rx->players[1]->D_ref;
-	    t_step = rx->players[1]->time_step * mpvp->vol->time_unit;
-          }
-          else
-          {
-            D_tot = 1.0; /* Placeholder */
-	    t_step = 1.0;
-            /* TODO: handle surface/grid collisions */
-          }
-          
-	  if (D_tot<=0.0) pb_factor = 0; /* Reaction can't happen! */
-	  else pb_factor = 1.0e11*mpvp->vol->effector_grid_density/(2.0*N_AV)*sqrt( MY_PI * t_step / D_tot );
+	  if ((rx->players[0]->flags&ON_GRID)!=0 && (rx->players[1]->flags&ON_GRID)!=0)
+	  {
+	    if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
+	    {
+	      fprintf(mpvp->vol->err_file,"Error: Reaction between %s and %s listed, but both marked TARGET_ONLY\n",
+		     rx->players[0]->sym->name,rx->players[1]->sym->name);
+	      return 1;
+	    }
+	    else if ( (rx->players[0]->flags | rx->players[1]->flags) & CANT_INITIATE )
+	    {
+	      pb_factor = mpvp->vol->time_unit*mpvp->vol->effector_grid_density/3;
+	    }
+	    else pb_factor = mpvp->vol->time_unit*mpvp->vol->effector_grid_density/6;
+	  }
+	  else
+	  {
+	    if ((rx->players[0]->flags & NOT_FREE)==0)
+	    {
+	      D_tot = rx->players[0]->D_ref;
+	      t_step = rx->players[0]->time_step * mpvp->vol->time_unit;
+	    }
+	    else if ((rx->players[1]->flags & NOT_FREE)==0)
+	    {
+	      D_tot = rx->players[1]->D_ref;
+	      t_step = rx->players[1]->time_step * mpvp->vol->time_unit;
+	    }
+	    else
+	    {
+	      D_tot = 1.0; /* Placeholder */
+	      t_step = 1.0;
+	      /* TODO: handle surface/grid collisions */
+	    }
+	    
+	    if (D_tot<=0.0) pb_factor = 0; /* Reaction can't happen! */
+	    else pb_factor = 1.0e11*mpvp->vol->effector_grid_density/(2.0*N_AV)*sqrt( MY_PI * t_step / D_tot );
 	  
-          if ( (rx->geometries[0]+rx->geometries[1])*(rx->geometries[0]-rx->geometries[1]) == 0 ) pb_factor *= 2.0;
+            if ( (rx->geometries[0]+rx->geometries[1])*(rx->geometries[0]-rx->geometries[1]) == 0 ) pb_factor *= 2.0;
+	  }
 
           rx->cum_probs[0] = pb_factor * rx->cum_probs[0];
 
@@ -1107,22 +1124,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  }
 	  else pb_factor = 0.0;  /* No rxn possible */
 
-#if 0	  
-          D_tot=rx->players[0]->D_ref+rx->players[1]->D_ref+2.0*sqrt(rx->players[0]->D_ref*rx->players[1]->D_ref);
-          if (D_tot>0) {
-            if (rx->geometries[0]==0) {
-              pb_factor=(1.0e11/(mpvp->vol->rx_radius_3d*mpvp->vol->rx_radius_3d*4.0*N_AV))*sqrt(mpvp->vol->time_unit/(D_tot*MY_PI));
-            }
-            else {
-              pb_factor=(1.0e11/(mpvp->vol->rx_radius_3d*mpvp->vol->rx_radius_3d*2.0*N_AV))*sqrt(mpvp->vol->time_unit/(D_tot*MY_PI));
-              if (rx->geometries[0]==0
-                  || abs(rx->geometries[0])!=abs(rx->geometries[1])) {
-                pb_factor*=2.0;
-              }
-            }
-          }
-#endif
-	  
           rx->cum_probs[0]=pb_factor*rx->cum_probs[0];
           fprintf(mpvp->vol->log_file,"\tProbability %.4e (l) set for %s[%d] + %s[%d] -> ",
                  rx->cum_probs[0],
@@ -1267,7 +1268,13 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         {
           rx->players[1]->flags |= CAN_MOLGRID;
         }
-        /* TODO: add grid/grid, grid/wall interactions */
+	else if ( (rx->players[0]->flags & ON_GRID) != 0 &&
+	          (rx->players[1]->flags & ON_GRID) != 0 )
+	{
+	  rx->players[0]->flags |= CAN_GRIDGRID;
+	  rx->players[1]->flags |= CAN_GRIDGRID;
+	}
+        /* TODO: add grid/wall interactions */
       }
     }
   }

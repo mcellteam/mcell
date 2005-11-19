@@ -302,7 +302,7 @@ void grid_neighbors(struct surface_grid *grid,int idx,struct surface_grid **nb_g
   
   root = (int)( sqrt((double)idx) );
   rootrem = idx - root*root;
-  k = grid->n - root - 1;
+  k = root;
   j = rootrem/2;
   i = rootrem - 2*j;
   
@@ -331,7 +331,7 @@ void grid_neighbors(struct surface_grid *grid,int idx,struct surface_grid **nb_g
   }
   
   /* Then "right" (towards edge 1) */
-  if (2*j <= root)
+  if (j < root)
   {
     nb_grid[1] = grid;
     nb_idx[1] = idx+1;
@@ -359,7 +359,8 @@ void grid_neighbors(struct surface_grid *grid,int idx,struct surface_grid **nb_g
   if (i || k+1 < grid->n)
   {
     nb_grid[0] = grid;
-    nb_idx[0] = 2*j+(k+1)*(k+1);
+    if (i) nb_idx[0] = 2*j+(k-1)*(k-1);    /* Flip->prev strip, no flip */
+    else nb_idx[0] = 1 + 2*j+(k+1)*(k+1);  /* No flip->next strip, flip */
   }
   else
   {
