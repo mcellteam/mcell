@@ -375,13 +375,13 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
       d2 = loc->z - world->z_partitions[ k0 ]; d2 *= d2;
       if (d2 >= best_d2 || d2 >= search_d2) break;
     }
-    for (k1=i ; k1<world->nz_parts-1 ; k1++)
+    for (k1=k ; k1<world->nz_parts-1 ; k1++)
     {
       d2 = loc->z - world->z_partitions[ k1+1 ]; d2 *= d2;
       if (d2 >= best_d2 || d2 >= search_d2) break;
     }
     
-    if (i0<i || i1>1 || j0<j || j1>j || k0<k || k1>k)
+    if (i0<i || i1>i || j0<j || j1>j || k0<k || k1>k)
     {
       for (i=i0;i<=i1;i++)
       {

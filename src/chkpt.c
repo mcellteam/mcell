@@ -938,14 +938,9 @@ int write_mol_scheduler_state(FILE *fs)
          for(aep=(i<0)?shp->current:shp->circ_buf_head[i]; aep != NULL; aep = aep->next)
          {
             amp = (struct abstract_molecule *)aep;
-            if((amp->properties->flags & NOT_FREE) == 0)
-            {
-		total_items++;
-            }  
-            else if ((amp->properties->flags & ON_GRID) != 0)
-            {
-		total_items++;
-            }else continue;
+	    if (amp->properties==NULL) continue;
+	    
+	    if (!(amp->properties->flags&IS_SURFACE)) total_items++;  /* Must be molecule */
          }
        }
      }
@@ -966,6 +961,8 @@ int write_mol_scheduler_state(FILE *fs)
          for(aep=(i<0)?shp->current:shp->circ_buf_head[i]; aep != NULL; aep = aep->next)
          {
             amp = (struct abstract_molecule *)aep;
+	    if (amp->properties==NULL) continue;
+	    
             if((amp->properties->flags & NOT_FREE) == 0)
             {
 		mp = (struct molecule *)amp;
@@ -975,6 +972,7 @@ int write_mol_scheduler_state(FILE *fs)
                 where.x = mp->pos.x;
                 where.y = mp->pos.y;
                 where.z = mp->pos.z;
+                orient = 0;
             }
             else if ((amp->properties->flags & ON_GRID) != 0)
             {
@@ -1297,7 +1295,7 @@ int read_mol_scheduler_state(FILE *fs)
         }
 
         /* populate molecule scheduler */
-        if(orient == 0)  /* 3D molecule */
+        if ((properties->flags&NOT_FREE)==0)  /* 3D molecule */
         {  
            /* set molecule characteristics */
            ap->flags = TYPE_3D | IN_VOLUME;
@@ -1345,9 +1343,20 @@ int read_mol_scheduler_state(FILE *fs)
                 break;
               }
            }
+	   struct vector3 cheat;
+	   cheat.x = cheat.y = cheat.z = 10.0;
            /* insert grid_molecule into world */ 
 	   gmp = insert_grid_molecule(properties, &where,orient,  
-                     diam_xyz, sched_time);
+                     &cheat, sched_time);
+
+	   if (gmp==NULL)
+	   {
+	     fprintf(world->log_file,"Could not place molecule %s at (%f,%f,%f)\n",
+	             properties->sym->name,where.x*world->length_unit,where.y*world->length_unit,where.z*world->length_unit);
+		     
+	     continue;
+	   }
+
            gmp->birthday = birthday;
            if(act_newbie_flag == HAS_NOT_ACT_NEWBIE){
               /*clear a bit flag */
