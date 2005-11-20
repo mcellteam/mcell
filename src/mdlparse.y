@@ -2900,6 +2900,7 @@ release_site_def_old: new_object release_site_geom_old '{'
   mdlpvp->rsop->standard_deviation=0;
   mdlpvp->rsop->diameter=NULL;
   mdlpvp->rsop->region_data=NULL;
+  mdlpvp->rsop->mol_list=NULL;
   mdlpvp->rsop->release_prob=1.0;
   mdlpvp->rsop->pattern=volp->default_release_pattern;
   mdlpvp->objp->object_type=REL_SITE_OBJ;

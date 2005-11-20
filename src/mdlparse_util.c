@@ -3543,6 +3543,7 @@ struct release_site_obj* duplicate_release_site(struct release_site_obj *old,str
   rso->diameter = old->diameter;
   rso->release_prob = old->release_prob;
   rso->pattern = old->pattern;
+  rso->mol_list = old->mol_list;
   
   rrd = (struct release_region_data*)malloc(sizeof(struct release_region_data));
   if (rrd==NULL) return NULL;

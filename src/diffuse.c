@@ -43,37 +43,49 @@
 extern struct volume *world;
 extern double scaling_sum, scaling_count;
 
+
+
+/*************************************************************************
+pick_displacement:
+  In: vector2 to store the new displacement
+      scale factor to apply to the displacement
+  Out: No return value.  vector is set to a random orientation and a
+         distance chosen from the probability distribution of a diffusing
+         2D molecule, scaled by the scaling factor.
+*************************************************************************/
+
+void pick_2d_displacement(struct vector2 *v,double scale)
+{
+  struct vector2 a;
+  double f;
+  
+  /* TODO: this is exact case only--see if lookup is faster. */
+  do
+  {
+    a.u = 2.0*rng_dbl(world->rng)-1.0;
+    a.v = 2.0*rng_dbl(world->rng)-1.0;
+    f = a.u*a.u + a.v*a.v;
+  } while (f<0.01 || f>1.0);
+  
+  f = (1.0/f) * sqrt(log( 1/(1-rng_dbl(world->rng)) )) * scale;
+  
+  v->u = (a.u*a.u-a.v*a.v)*f;
+  v->v = (2.0*a.u*a.v)*f;
+}
+  
+
 /*************************************************************************
 pick_displacement:
   In: vector3 to store the new displacement
       scale factor to apply to the displacement
   Out: No return value.  vector is set to a random orientation and a
          distance chosen from the probability distribution of a diffusing
-         molecule, scaled by the scaling factor.
+         3D molecule, scaled by the scaling factor.
 *************************************************************************/
 
 void pick_displacement(struct vector3 *v,double scale)
 {
   double r;
-  
-#if 0
-  if (world->fully_random)
-  {
-    double x,y,z;
-    do
-    {
-      x = 2.0*rng_dbl(world->rng)-1.0;
-      y = 2.0*rng_dbl(world->rng)-1.0;
-      z = 2.0*rng_dbl(world->rng)-1.0;
-    } while (x*x + y*y + z*z >= 1.0 || x*x + y*y + z*z < 0.001);
-    r = scale * world->r_step[ rng_uint(world->rng) & (world->radial_subdivisions-1) ] / sqrt(x*x + y*y + z*z);
-    v->x = r*x;
-    v->y = r*y;
-    v->z = r*z;
-    return;
-  }
-#endif
-    
   
   if (world->fully_random)
   {
