@@ -1336,13 +1336,6 @@ int read_mol_scheduler_state(FILE *fs)
            where.z = z_coord;
          
            /* find the maximum search diameter used in placing grid_molecule */
-           for(req = world->release_event_queue_head; req != NULL; req = req->next){
-              rso = req->release_site;
-              if (rso->mol_type == ap->properties){
-              	diam_xyz = rso->diameter;
-                break;
-              }
-           }
 	   struct vector3 cheat;
 	   cheat.x = cheat.y = cheat.z = 10.0;
            /* insert grid_molecule into world */ 
@@ -1356,7 +1349,6 @@ int read_mol_scheduler_state(FILE *fs)
 		     
 	     continue;
 	   }
-
            gmp->birthday = birthday;
            if(act_newbie_flag == HAS_NOT_ACT_NEWBIE){
               /*clear a bit flag */
