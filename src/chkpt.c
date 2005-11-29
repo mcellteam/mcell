@@ -966,7 +966,7 @@ int write_mol_scheduler_state(FILE *fs)
             if((amp->properties->flags & NOT_FREE) == 0)
             {
 		mp = (struct molecule *)amp;
-                if(mp->previous_grid != NULL) {
+                if(mp->previous_grid != NULL  && mp->index>=0) {
                    fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\nThe value of 'previous_grid' is not NULL.\n");
                 }
                 where.x = mp->pos.x;
@@ -1074,15 +1074,10 @@ int read_mol_scheduler_state(FILE *fs)
   struct molecule m;
   struct molecule *mp;
   struct grid_molecule *gmp;
-  struct abstract_molecule *ap; 
-  struct molecule *guess;
-  /* molecule location */
-  struct vector3 where;
-  /* search diameter where to place grid_molecule */
-  struct vector3 *diam_xyz = NULL;  
-  struct release_event_queue *req;
-  struct release_site_obj *rso;
-  struct species *properties = NULL;
+  struct abstract_molecule *ap;
+  struct molecule *guess=NULL;
+  struct vector3 where;             /* molecule location */
+  struct species *properties;
   byte act_newbie_flag;
   int j;
 
@@ -1281,7 +1276,7 @@ int read_mol_scheduler_state(FILE *fs)
         }
         io_bytes+=sizeof(orient);
 
-        guess = NULL;
+        properties = NULL;
         for(j = 0; j < world->n_species; j++){
            if(world->species_list[j]->chkpt_species_id == chkpt_sp_id)
            {
@@ -1335,12 +1330,7 @@ int read_mol_scheduler_state(FILE *fs)
            where.y = y_coord;
            where.z = z_coord;
          
-           /* find the maximum search diameter used in placing grid_molecule */
-	   struct vector3 cheat;
-	   cheat.x = cheat.y = cheat.z = 10.0;
-           /* insert grid_molecule into world */ 
-	   gmp = insert_grid_molecule(properties, &where,orient,  
-                     &cheat, sched_time);
+	   gmp = insert_grid_molecule(properties, &where,orient,CHKPT_GRID_TOLERANCE,sched_time);
 
 	   if (gmp==NULL)
 	   {
@@ -1349,6 +1339,7 @@ int read_mol_scheduler_state(FILE *fs)
 		     
 	     continue;
 	   }
+           gmp->t2 = lifetime;
            gmp->birthday = birthday;
            if(act_newbie_flag == HAS_NOT_ACT_NEWBIE){
               /*clear a bit flag */

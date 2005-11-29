@@ -271,6 +271,11 @@
 #define REXP_LEFT_REGION  0x10
 #define REXP_RIGHT_REGION 0x20
 
+/* Distance in length units to search for a new site for a grid molecule */
+/* after checkpointing.  Current site might be full, so a value >1 is */
+/* advisable.  Being a little generous here. */
+#define CHKPT_GRID_TOLERANCE 2.0
+
 
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/

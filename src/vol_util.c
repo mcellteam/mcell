@@ -303,7 +303,7 @@ insert_grid_molecule
   Note: This function halts the program if it runs out of memory.
 *************************************************************************/
 
-struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc,short orient,struct vector3 *search_diam,double t)
+struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc,short orient,double search_diam,double t)
 {
   double search_d2,d2;
   struct vector2 s_loc;
@@ -321,12 +321,8 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
   struct grid_molecule *g;
   
   
-  if (search_diam==NULL) search_d2 = EPS_C*EPS_C;
-  else
-  {
-    search_d2 = search_diam->x * search_diam->x;  /* Guaranteed that x==y==z */
-    if (search_d2 < EPS_C*EPS_C) search_d2 = EPS_C*EPS_C;
-  }
+  if (search_diam<=EPS_C) search_d2 = EPS_C*EPS_C;
+  else search_d2 = search_diam * search_diam;
   
   sv = find_subvolume(loc,NULL);
   
@@ -1205,7 +1201,9 @@ int release_molecules(struct release_event_queue *req)
 	}
 	else
 	{
-	  gp = insert_grid_molecule(rsm->mol_type,&(m.pos),rsm->orient,diam_xyz,req->event_time);
+          if (diam_xyz==NULL) diam=0.0;
+          else diam=diam_xyz->x;
+	  gp = insert_grid_molecule(rsm->mol_type,&(m.pos),rsm->orient,diam,req->event_time);
 	  if (gp==NULL)
 	  {
 	    fprintf(world->err_file,"Warning: unable to find surface upon which to place molecule %s\n",rsm->mol_type->sym->name);
