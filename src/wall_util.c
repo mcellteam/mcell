@@ -2025,7 +2025,7 @@ void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a, struct vect
    d1 = dot_prod(&ab, &ap);
    d2 = dot_prod(&ac, &ap);
    if(d1 <= 0.0f && d2 <= 0.0f) {
-       final_result = a; /* barycentric coordinates (1,0,0) */
+       memcpy(final_result,a,sizeof(struct vector3)); /* barycentric coordinates (1,0,0) */
        return;
    }
 
@@ -2034,7 +2034,7 @@ void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a, struct vect
    d3 = dot_prod(&ab, &bp);
    d4 = dot_prod(&ac, &bp);
    if(d3 >= 0.0f && d4 <= d3) {
-      final_result = b; /* barycentric coordinates (0,1,0) */
+      memcpy(final_result,b,sizeof(struct vector3)); /* barycentric coordinates (0,1,0) */
       return;
    }
 
@@ -2052,7 +2052,7 @@ void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a, struct vect
    d5 = dot_prod(&ab, &cp);
    d6 = dot_prod(&ac, &cp);
    if(d6 >=0.0f && d5 <= d6) {
-        final_result = c;  /* barycentric coordinates (0,0,1) */
+        memcpy(final_result,c,sizeof(struct vector3));  /* barycentric coordinates (0,0,1) */
         return;
    }
 
