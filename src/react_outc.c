@@ -412,8 +412,11 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       }
     }
     
-    if ((plist[i-i0]->properties->flags & COUNT_CONTENTS) != 0)
+    if (i >= i0+rx->n_reactants &&
+        (plist[i-i0]->properties->flags & COUNT_CONTENTS) != 0)
+    {
       count_me_by_region(plist[i-i0],1,NULL);
+    }
   }
 
   return bounce;
@@ -482,7 +485,9 @@ int outcome_unimolecular(struct rxn *rx,int path,
     }
 
     if ((reac->properties->flags & COUNT_CONTENTS) != 0)
+    {
       count_me_by_region(reac,-1,NULL);
+    }
     
     reac->properties->n_deceased++;
     reac->properties->cum_lifetime += t - reac->birthday;
