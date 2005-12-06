@@ -135,6 +135,7 @@ double collide_sv_time(struct vector3 *here,struct vector3 *move,struct subvolum
   int whichx,whichy,whichz,which;
   
   whichx = whichy = whichz = 1;
+  if (move->x==0 && move->y==0 && move->z==0) return GIGANTIC;
   
   if (move->x > 0) dx = world->x_fineparts[ sv->urb.x ] - here->x;
   else { dx = world->x_fineparts[ sv->llf.x ] - here->x; whichx = 0; }
@@ -181,6 +182,7 @@ struct subvolume* next_subvol(struct vector3 *here,struct vector3 *move,struct s
   int whichx,whichy,whichz,which;
   
   whichx = whichy = whichz = 1;
+  if (move->x==0 && move->y==0 && move->z==0) return NULL;
   
   if (move->x > 0) dx = world->x_fineparts[ sv->urb.x ] - here->x;
   else { dx = world->x_fineparts[ sv->llf.x ] - here->x; whichx = 0; }

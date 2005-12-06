@@ -17,6 +17,7 @@
 #include "rng.h"
 #include "mem_util.h"
 #include "sched_util.h"
+#include "util.h"
 
 #include "mcell_structs.h"
 #include "count_util.h"
@@ -3779,26 +3780,20 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     }
     else
     {
-      if (a->t2==0)
-      {
-        if ((checkpt_time - a->t) < MAX_UNI_TIMESKIP)
-          a->t = checkpt_time;
-        else
-          a->t += MAX_UNI_TIMESKIP;
-      }
-      else if (a->t2 + a->t + EPS_C < checkpt_time)
+      if (a->t2==0) a->t += MAX_UNI_TIMESKIP;
+      else 
       {
         a->t += a->t2;
         a->t2 = 0;
       }
-      else
-      {
-        a->t2 -= checkpt_time - a->t;
-        a->t = checkpt_time;
-      }
     }
 
     a->flags += IN_SCHEDULE;
+    
+    /* If we're near an integer boundary, advance to the next integer */
+    t = ceil(a->t)*(1.0+0.1*EPS_C);
+    if (!distinguishable(t,a->t,EPS_C)) a->t=t;
+    
     if (a->flags & TYPE_GRID) err = schedule_add(local->timer,a);
     else err = schedule_add(((struct molecule*)a)->subvol->local_storage->timer,a);
     
