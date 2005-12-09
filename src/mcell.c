@@ -129,6 +129,7 @@ void run_sim(void)
         run_timestep( local->store , next_release_time , (double)world->iterations+1.0 );
       }
     }
+    
     world->it_time++;
     
     if ( (world->it_time % frequency) == 0 )
@@ -343,7 +344,7 @@ int main(int argc, char **argv) {
   FILE *log_file;
   char hostname[64];
   u_int procnum;
-  long long exec_iterations; /* number of simulation iterations for this run */
+  long long exec_iterations = 0; /* number of simulation iterations for this run */
 
 #if defined(__linux__)
   feenableexcept(FE_DIVBYZERO);
@@ -441,6 +442,7 @@ int main(int argc, char **argv) {
 
   }
 
+  if((world->chkpt_flag) && (exec_iterations == 0)) exit(0);
 
   printf("Running...\n");
   run_sim();

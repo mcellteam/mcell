@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 
 #include "sched_util.h"
 #include "mcell_structs.h"
@@ -96,27 +97,6 @@ int update_reaction_output(struct output_block *obp)
   no_printf("Updating reaction output at time %lld of %lld\n",world->it_time,world->iterations);
   fflush(log_file);
 
-  /* Initialize OUTPUT_BY_TIME_LIST or OUTPUT_BY_ITERATION_LIST output event if necessary */
-  if (obp->timer_type!=OUTPUT_BY_STEP && obp->curr_time_ptr==NULL) {
-    obp->curr_time_ptr=obp->time_list_head;
-    if (obp->curr_time_ptr->value!=0.0) {
-      if (obp->timer_type==OUTPUT_BY_ITERATION_LIST) {
-        obp->t=obp->curr_time_ptr->value; 
-      }
-      else {
-        obp->t=obp->curr_time_ptr->value/world->time_unit; 
-      }
-      if(schedule_add(world->count_scheduler,obp) == 1){
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory while updating reaction outputs.\nAttempt to write intermediate results had %d errors.\n", i);
-	exit(EXIT_FAILURE); 
-      }	
-      return (0);
-    }
-  }
-
-
   /* update all counters */
 
   curr_buf_index=obp->curr_buf_index;
@@ -172,21 +152,34 @@ int update_reaction_output(struct output_block *obp)
   }
   else {
     obp->curr_time_ptr=obp->curr_time_ptr->next;
-    if (obp->curr_time_ptr==NULL) {
+    if (obp->curr_time_ptr==NULL) { 
       final_chunk_flag=1;
     }
     else {
       if (obp->timer_type==OUTPUT_BY_ITERATION_LIST) {
         obp->t=obp->curr_time_ptr->value;
-      }
-      else {
+        if (obp->t >= world->iterations + 1) {
+           final_chunk_flag=1;
+        }else{
+           if(schedule_add(world->count_scheduler,obp) == 1){
+	     fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+             int i = emergency_output();
+             fprintf(stderr, "Fatal error: out of memory while updating reaction outputs.\nAttempt to write intermediate results had %d errors.\n", i);
+	     exit(EXIT_FAILURE); 
+           }
+        }
+      }else {
         obp->t=obp->curr_time_ptr->value/world->time_unit; 
-      }
-      if(schedule_add(world->count_scheduler,obp) == 1){
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
-        int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory while updating reaction outputs.\nAttempt to write intermediate results had %d errors.\n", i);
-	exit(EXIT_FAILURE); 
+        if (obp->t >= world->iterations + 1) {
+           final_chunk_flag=1;
+        }else{
+           if(schedule_add(world->count_scheduler,obp) == 1){
+	     fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+             int i = emergency_output();
+             fprintf(stderr, "Fatal error: out of memory while updating reaction outputs.\nAttempt to write intermediate results had %d errors.\n", i);
+	     exit(EXIT_FAILURE); 
+           }
+        }
       }
     }
   }
@@ -203,6 +196,7 @@ int update_reaction_output(struct output_block *obp)
   }
   no_printf("Done updating reaction output\n");
   fflush(log_file);
+  
   return 0;
 }
 
@@ -266,6 +260,7 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
     
     for (i=0;i<stop_i;i++)
     {
+
       fprintf(fp,"%.9g",obp->time_array[i]);
             
       

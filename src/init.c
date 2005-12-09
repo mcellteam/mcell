@@ -340,12 +340,6 @@ int init_sim(void)
         exit(EXIT_FAILURE);
   }
 
-  world->count_scheduler = create_scheduler(1.0,100.0,100,0.0);
-  if(world->count_scheduler == NULL){
-	fprintf(stderr,"Out of memory while creating count_scheduler.\n");
-        exit(EXIT_FAILURE);
-  }
-
   /* Parse the MDL file: */
   no_printf("Node %d parsing MDL file %s\n",world->procnum,world->mdl_infile_name);
   fflush(stderr);
@@ -477,18 +471,57 @@ int init_sim(void)
   init_reaction_list(reaction_data_head);
 */
 
+
+  world->count_scheduler = create_scheduler(1.0,100.0,100,world->current_start_real_time/world->time_unit);
+  if(world->count_scheduler == NULL){
+	fprintf(stderr,"Out of memory while creating count_scheduler.\n");
+        exit(EXIT_FAILURE);
+  }
+
 /* Schedule the reaction data output events */
   obp = world->output_block_head;
   while(obp != NULL)
   {
     obpn = obp->next;
+    if(obp->timer_type == OUTPUT_BY_STEP)
+    {
+       if(world->chkpt_seq_num > 1)
+       {
+          while((obp->t < world->iterations + 1) && (obp->t <= world->count_scheduler->now)){
+              obp->t += obp->step_time/world->time_unit;
+
+          }
+       }      
+    }else if(obp->timer_type != OUTPUT_BY_STEP && obp->curr_time_ptr == NULL){
+        obp->curr_time_ptr = obp->time_list_head;
+        if(world->chkpt_seq_num == 1){
+          if(obp->timer_type == OUTPUT_BY_ITERATION_LIST){
+             obp->t = obp->curr_time_ptr->value;
+          }else{
+             obp->t = obp->curr_time_ptr->value/world->time_unit;
+          }
+        }else{
+          if(obp->timer_type == OUTPUT_BY_ITERATION_LIST){
+             while((obp->t < world->iterations + 1) && (obp->t <= world->count_scheduler->now)){
+                 obp->curr_time_ptr = obp->curr_time_ptr->next;
+                 if(obp->curr_time_ptr == NULL) break;
+                 obp->t = obp->curr_time_ptr->value;
+              }
+          }else{
+             while((obp->t < world->iterations + 1) && (obp->t <= world->count_scheduler->now)){
+                 obp->curr_time_ptr = obp->curr_time_ptr->next;
+                 if(obp->curr_time_ptr == NULL) break;
+                 obp->t = obp->curr_time_ptr->value/world->time_unit;
+              }
+          }
+        }
+    }
     if (schedule_add(world->count_scheduler , obp))
     {
-      fprintf(stderr,"Out of memory: trying to save intermediate results\n");
-      int i = emergency_output();
-      fprintf(stderr,"Fatal error: out of memory while scheduling output for count statements.\nAttempt to write intermediate results had %d errors\n", i);
-      exit(EXIT_FAILURE);
-
+      	fprintf(stderr,"Out of memory: trying to save intermediate results\n");
+      	int i = emergency_output();
+      	fprintf(stderr,"Fatal error: out of memory while scheduling output for count statements.\nAttempt to write intermediate results had %d errors\n", i);
+      	exit(EXIT_FAILURE);
     }
     obp = obpn;
   }
