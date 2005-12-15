@@ -2816,6 +2816,7 @@ struct void_list* rel_expr_grab_obj(struct release_evaluator *root,struct mem_he
       vl = mem_get(voidmem);
       if (vl==NULL) return NULL;
       vl->data = ((struct region*)(root->left))->parent;
+      vl->next=NULL;
     }
     else vl = rel_expr_grab_obj(root->left,voidmem);
   }
@@ -2826,6 +2827,7 @@ struct void_list* rel_expr_grab_obj(struct release_evaluator *root,struct mem_he
       vr = mem_get(voidmem);
       if (vr==NULL) return NULL;
       vr->data = ((struct region*)(root->right))->parent;
+      vr->next=NULL;
     }
     else vr = rel_expr_grab_obj(root->right,voidmem);
   }
@@ -2895,6 +2897,8 @@ struct object** find_unique_rev_objects(struct release_evaluator *root,int *n)
   {
     o_array[i] = (struct object*)vq->data;
   }
+  
+  delete_mem(voidmem);
   
   return o_array;
 }
@@ -3003,18 +3007,46 @@ int init_rel_region_data_2d(struct release_region_data *rrd)
   struct polygon_object *po;
 
   rrd->owners = find_unique_rev_objects(rrd->expression , &(rrd->n_objects));
-  if (rrd->owners==NULL) return 1;
+  if (rrd->owners==NULL)
+  {
+    fprintf(world->err_file,"Error: cannot find any objects for region release\n");
+    return 1;
+  }
   
   rrd->in_release = (struct bit_array**)malloc(rrd->n_objects*sizeof(struct bit_array*));
-  if (rrd->in_release==NULL) return 1;
+  if (rrd->in_release==NULL)
+  {
+    fprintf(world->err_file,"Error: out of memory creating region lists for 2D region releases\n");
+    return 1;
+  }
   for (i=0;i<rrd->n_objects;i++) rrd->in_release[i]=NULL;
   
   i = eval_rel_region_expr(rrd->expression,rrd->n_objects,rrd->owners,rrd->in_release);
-  if (i) return 1;
-  for (i=0;i<rrd->n_objects;i++) { if (rrd->in_release[i]==NULL) return 1; }
+  if (i)
+  {
+    fprintf(world->err_file,"Error: could not evaluate region expression.\n");
+    return 1;
+  }
+  for (i=0;i<rrd->n_objects;i++)
+  {
+    if (rrd->in_release[i]==NULL) 
+    {
+      if (rrd->owners[i]==NULL)
+      {
+	fprintf(world->err_file,"Object %d of %d in region expression was not found!\n",i+1,rrd->n_objects);
+	return 1;
+      }
+      fprintf(world->err_file,"Error: could not generate region data on object %s\n(Out of memory?)\n",rrd->owners[i]->sym->name);
+      return 1;
+    }
+  }
   
   rrd->walls_per_obj = (int*)malloc(rrd->n_objects*sizeof(int));
-  if (rrd->walls_per_obj==NULL) return 1;
+  if (rrd->walls_per_obj==NULL)
+  {
+    fprintf(world->err_file,"Error: out of memory creating wall counts for 2D region releases\n");
+    return 1;
+  }
   
   rrd->n_walls_included=0;
   for (i=0;i<rrd->n_objects;i++)
@@ -3026,13 +3058,21 @@ int init_rel_region_data_2d(struct release_region_data *rrd)
   rrd->cum_area_list = (double*)malloc(rrd->n_walls_included*sizeof(double));
   rrd->wall_index = (int*)malloc(rrd->n_walls_included*sizeof(int));
   rrd->obj_index = (int*)malloc(rrd->n_walls_included*sizeof(int));
-  if (rrd->cum_area_list==NULL || rrd->wall_index==NULL || rrd->obj_index==NULL) return 1;
+  if (rrd->cum_area_list==NULL || rrd->wall_index==NULL || rrd->obj_index==NULL)
+  {
+    fprintf(world->err_file,"Error: out of memory creating area lists for 2D region releases\n");
+    return 1;
+  }
   
   j = 0;
   for (i=0;i<rrd->n_objects;i++)
   {
     k = rrd->owners[i]->object_type;
-    if (k != POLY_OBJ && k != BOX_OBJ) return 1;
+    if (k != POLY_OBJ && k != BOX_OBJ)
+    {
+      fprintf(world->err_file,"Error: found a region on something that isn't a box or polygon object?\n");
+      return 1;
+    }
     po = (struct polygon_object*)(rrd->owners[i]->contents);
     for (k=0;k<po->n_walls;k++)
     {
@@ -3337,17 +3377,27 @@ int init_releases()
             j = init_rel_region_data_3d(req->release_site->region_data);
             if (j==-1)
             {
-              fprintf(world->err_file,"Region release site is empty!  Ignoring!  Evaluation tree:");
+              fprintf(world->err_file,"Region release site is empty!  Ignoring!  Evaluation tree:\n");
               output_relreg_eval_tree(world->err_file," ",' ',' ',req->release_site->region_data->expression);
               req->release_site->release_number_method=CONSTNUM;
               req->release_site->release_number=0;
             }
-            else if (j) return 1;
+            else if (j)
+	    {
+	      fprintf(world->err_file,"Error initializing region release for molecule %s\nEvaluation tree (3D release):\n",req->release_site->mol_type->sym->name);
+	      output_relreg_eval_tree(world->err_file," ",' ',' ',req->release_site->region_data->expression);
+	      return 1;
+	    }
           }
           else
           {
             j = init_rel_region_data_2d(req->release_site->region_data);
-            if (j) { return 1; }
+            if (j)
+	    { 
+	      fprintf(world->err_file,"Error initializing region release for molecule %s\nEvaluation tree (2D release):\n",req->release_site->mol_type->sym->name);
+	      output_relreg_eval_tree(world->err_file," ",' ',' ',req->release_site->region_data->expression);
+	      return 1;
+	    }
           }
         }
       }

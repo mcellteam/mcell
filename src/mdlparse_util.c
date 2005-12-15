@@ -1191,6 +1191,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  /* Fix it up so we can still use it as a linked list if we want */
 	  for ( j=1 ; j<rx->n_pathways ; j++ ) temp_p[j-1].next = &(temp_p[j]);
 	  temp_p[rx->n_pathways-1].next = NULL;
+	  rx->pathway_head = temp_p;
 	}
         
         rx = rx->next;

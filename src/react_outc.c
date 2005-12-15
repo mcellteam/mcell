@@ -336,9 +336,8 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
   }
   
 /*
-  if (rx->pathway_head[path]->pathname != NULL)
+  if (rx->pathway_head[path].pathname != NULL)
   {
-    rx->pathway_head[path]->count++;
     count_rx_by_region(reacA,w,rx->pathway_head[path]->pathname,1);
   }
 */
