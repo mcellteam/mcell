@@ -20,7 +20,8 @@ static long long total_frames_iterations = 0;
 static int obj_to_show_number; /* number of viz_obj objects in the world */
 static int eff_to_show_number; /* number of types of effectors */ 
 static int mol_to_show_number; /* number of types of 3D mol's */
-/* arrays used in the function 'output_dreamm_objects_some_frame_data()' */
+/* arrays used in the functions 'output_dreamm_objects_some_frame_data()' 
+   and 'output_dreamm_objects_all_frame_data()'.      */
 u_int *surf_states = NULL;
 u_int *surf_pos = NULL;
 u_int *surf_con = NULL;
@@ -1365,6 +1366,11 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 
   log_file=world->log_file;
   no_printf("Viz output in DREAMM_V3 mode...\n");
+  
+  if(world->file_prefix_name == NULL) {
+   	fprintf(log_file, "Inside VIZ_DATA_OUTPUT block the required keyword FILENAME_PREFIX is missing.\n");
+   	exit(1);
+  }
 
   word_p=(unsigned char *)&word;
   word=0x04030201;
@@ -1593,7 +1599,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   }  /* end if(viz_mol_pos_flag || viz_mol_states_flag) */
 
   /* Open master header file. */
-  sprintf(file_name,"%s.master_header.dx",world->molecule_prefix_name);
+  sprintf(file_name,"%s.master_header.dx",world->file_prefix_name);
 
   if(count_master_header == 0){
       if ((master_header=fopen(file_name,"w"))==NULL) {
@@ -1612,7 +1618,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 
 
   if (viz_mol_pos_states_flag || viz_eff_pos_flag) {
-      sprintf(file_name,"%s.molecule_positions.bin",world->molecule_prefix_name);
+      sprintf(file_name,"%s.molecule_positions.bin",world->file_prefix_name);
      /* remove the folder name from the molecule_positions data file name */
      ch_ptr = strrchr(file_name, '/');
      ++ch_ptr;
@@ -1633,7 +1639,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 
     }
 
-      sprintf(file_name,"%s.molecule_orientations.bin",world->molecule_prefix_name);
+      sprintf(file_name,"%s.molecule_orientations.bin",world->file_prefix_name);
      /* remove the folder name from the molecule_positions data file name */
      ch_ptr = strrchr(file_name, '/');
      ++ch_ptr;
@@ -1657,7 +1663,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   }
 
     if (viz_mol_pos_states_flag || viz_eff_states_flag) {
-       sprintf(file_name,"%s.molecule_states.bin",world->molecule_prefix_name);
+       sprintf(file_name,"%s.molecule_states.bin",world->file_prefix_name);
        /* remove the folder name from the molecule_states data file name */
        ch_ptr = strrchr(file_name, '/');
        ++ch_ptr;
@@ -1719,7 +1725,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
      while(vizp!=NULL) {
    
       if (viz_surf_pos_flag) {
-      	sprintf(file_name,"%s.mesh_positions.bin",vizp->name);
+      	sprintf(file_name,"%s.mesh_positions.bin",world->file_prefix_name);
      
      	/* remove the folder name from the mesh_positions data file name */
      	ch_ptr = strrchr(file_name, '/');
@@ -1746,7 +1752,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 
 
       if (viz_surf_states_flag) {
-         sprintf(file_name,"%s.mesh_states.bin", vizp->name);
+         sprintf(file_name,"%s.mesh_states.bin", world->file_prefix_name);
      
         /* remove the folder name from the mesh_states data file name */
         ch_ptr = strrchr(file_name, '/');
@@ -2880,7 +2886,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
   int mol_pos_byte_offset_prev = 0; /*defines position of the object data 
                            in the effector positions binary file */
   int mol_orient_byte_offset_prev = 0; /*defines position of the object data                             in the effector orientations binary file */
-  int mol_states_byte_offset_prev = 0; /* defines position of the object                          d ata in the effector states binary file. */
+  int mol_states_byte_offset_prev = 0; /* defines position of the object                          data in the effector states binary file. */
 
   /* linked list that stores members of the group for surfaces */
   struct num_expr_list *surf_head = NULL;  
@@ -2906,7 +2912,13 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
 
   u_int n_species = world->n_species;
   species_list=world->species_list;
+  log_file=world->log_file;
   
+  if(world->file_prefix_name == NULL) {
+   	fprintf(log_file, "Inside VIZ_DATA_OUTPUT block the required keyword FILENAME_PREFIX is missing.\n");
+   	exit(1);
+  }
+
   /* these arrays are used to hold values of main_index for objects */
   if(obj_to_show_number > 0)
   {
@@ -3090,7 +3102,6 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
   	}
   }
 
-  log_file=world->log_file;
   no_printf("Viz output in DREAMM_V3 mode all frame data...\n");
 
   word_p=(unsigned char *)&word;
@@ -3121,7 +3132,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
 
 
   /* Open master header file. */
-  sprintf(file_name,"%s.master_header.dx",world->molecule_prefix_name);
+  sprintf(file_name,"%s.master_header.dx",world->file_prefix_name);
 
   if(first_iteration == 1){
       if ((master_header=fopen(file_name,"w"))==NULL) {
@@ -3137,7 +3148,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
   }
   
 
-  sprintf(file_name,"%s.molecule_positions.bin",world->molecule_prefix_name);
+  sprintf(file_name,"%s.molecule_positions.bin",world->file_prefix_name);
   /* remove the folder name from the molecule_positions data file name */
   ch_ptr = strrchr(file_name, '/');
   ++ch_ptr;
@@ -3157,7 +3168,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
 
    }
 
-     sprintf(file_name,"%s.molecule_orientations.bin",world->molecule_prefix_name);
+     sprintf(file_name,"%s.molecule_orientations.bin",world->file_prefix_name);
      /* remove the folder name from the molecule_positions data file name */
      ch_ptr = strrchr(file_name, '/');
      ++ch_ptr;
@@ -3178,7 +3189,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
      }
 
 
-       sprintf(file_name,"%s.molecule_states.bin",world->molecule_prefix_name);
+       sprintf(file_name,"%s.molecule_states.bin",world->file_prefix_name);
        /* remove the folder name from the molecule_states data file name */
        ch_ptr = strrchr(file_name, '/');
        ++ch_ptr;
@@ -3204,7 +3215,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
      
      while(vizp!=NULL) {
    
-      	sprintf(file_name,"%s.mesh_positions.bin",vizp->name);
+      	sprintf(file_name,"%s.mesh_positions.bin",world->file_prefix_name);
      
      	/* remove the folder name from the mesh_positions data file name */
      	ch_ptr = strrchr(file_name, '/');
@@ -3227,7 +3238,7 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
        }
 
 
-         sprintf(file_name,"%s.mesh_states.bin", vizp->name);
+         sprintf(file_name,"%s.mesh_states.bin", world->file_prefix_name);
      
         /* remove the folder name from the mesh_states data file name */
         ch_ptr = strrchr(file_name, '/');

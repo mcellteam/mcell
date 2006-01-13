@@ -395,6 +395,7 @@
 #define BOX_OBJ 1
 #define POLY_OBJ 2
 #define REL_SITE_OBJ 3
+#define VOXEL_OBJ 4
                                                                                 
 
 /* Box sides */
@@ -1004,6 +1005,7 @@ struct volume
   byte voxel_image_mode;
   byte voxel_volume_mode;
   char *molecule_prefix_name;
+  char *file_prefix_name;
   double my_counter;
   char *mcell_version; 
  
@@ -1336,6 +1338,64 @@ struct element_data {
 };
 
 /**
+ * A voxel list object, part of a volume.
+ */
+struct voxel_object {
+	struct lig_count_ref *lig_count_ref;
+					/**< ptr to list of lig_count_ref
+	                                   structures: one for each time voxel 
+	                                   object is referenced in count stmt */
+	struct viz_state_ref *viz_state_ref;
+					/**< ptr to list of viz_state_ref
+	                                   structures: one for each time voxel 
+	                                   object is referenced in
+					   STATE_VALUES block */
+        struct ordered_voxel *voxel_data; /**< pointer to data structure
+                                                holding voxel vertices etc... */
+	int n_voxels;			/**< Number of voxels in
+                                             voxel object */
+        int n_verts;                    /**< Number of vertices in
+                                             voxel object */
+	byte fully_closed;		/**< flag indicating closure of object */
+};
+
+/**
+ * A general ordered polyhedron consisting from tetrahedrons (voxels). 
+ * That is, the vertices of each polygonal face are ordered according to
+ * the right hand rule.
+ */
+struct ordered_voxel {
+	struct vector3 *vertex;         /**< Array of tetrahedron vertices */
+	struct tet_element_data *element; /**< Array tet_element_data
+                                              data structures */
+	struct tet_neighbors_data *neighbor; /**< Array tet_neighbors_data
+                                              data structures */
+	int n_verts;                  /**< Number of vertices in polyhedron */
+	int n_voxels;                 /**< Number of voxels in polyhedron */
+};
+
+/**
+ * Data structure used to build one tetrahedron.
+ * This data structure is used to store the data from the MDL file
+ * and to contruct each tetrahedron of a voxel object.
+ */
+struct tet_element_data {
+        int vertex_index[4];              /**< Array of vertex indices forming a
+                                           tetrahedron. */
+	int n_verts;                    /**< Number of vertices in tetrahedron (always 4). */
+};
+
+/**
+ * This data structure is used to store the data about neighbors
+ * of each tetrahedron of a voxel object.
+ */
+struct tet_neighbors_data {
+        int neighbors_index[4];        /**< Array of indices pointing 
+                                           to the neighbors of tetrahedron. */
+	int n_neighbors;               /**< Number of neighbors of tetrahedron (always 4). */
+};
+
+/**
  * A compartment.
  */
 struct cmprt {
@@ -1495,10 +1555,12 @@ struct name_list {
 /**
  * Visualization objects.
  */
-struct viz_obj {
+struct viz_obj 
+{
 	struct viz_obj *next;
-	char *name;
-        char *full_name;
+	char *name;            /* name taken from OBJECT_FILE_PREFIXES
+                                  assignment  */
+        char *full_name;       /* full name of the object, like A.B.C */
 	struct object *obj;
 	struct viz_child *viz_child_head;
 };

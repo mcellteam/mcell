@@ -156,6 +156,7 @@ struct release_evaluator *rev;
 %token <tok> EXPRESSION
 %token <tok> FALSE
 %token <tok> FCLOSE
+%token <tok> FILENAME_PREFIX
 %token <tok> FLOOR
 %token <tok> FOPEN
 %token <tok> FOR_EACH_EFFECTOR
@@ -283,6 +284,7 @@ struct release_evaluator *rev;
 %token <tok> SURFACE_STATES
 %token <tok> TAN
 %token <tok> TARGET_ONLY
+%token <tok> TET_ELEMENT_CONNECTIONS
 %token <tok> TIME_LIST
 %token <tok> TIME_STEP
 %token <tod> TIME_STEP_MAX
@@ -301,6 +303,7 @@ struct release_evaluator *rev;
 %token <tok> VIZ_DATA_OUTPUT
 %token <tok> VOLUME_DEPENDENT_RELEASE_NUMBER
 %token <tok> VOXEL_IMAGE_MODE
+%token <tok> VOXEL_LIST
 %token <tok> VOXEL_VOLUME_MODE
 %token <tok> WORLD
 %token <tok> X_TOK
@@ -423,6 +426,7 @@ struct release_evaluator *rev;
 %type <sym> release_site_def_old
 %type <sym> box_def
 %type <sym> polygon_list_def
+%type <sym> voxel_list_def
 %type <sym> new_region
 %type <sym> existing_region
 %type <sym> existing_logicalOrPhysical
@@ -2404,6 +2408,10 @@ object_def:
         | polygon_list_def
 {
         $$=$<sym>1;
+}
+        | voxel_list_def
+{
+        $$=$<sym>1;
 };
 
 
@@ -3426,6 +3434,109 @@ polygon_list_def: new_object POLYGON_LIST '{'
 };
 
 
+voxel_list_def: new_object VOXEL_LIST '{'
+{
+  mdlpvp->gp=$<sym>1;
+  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
+  if ((mdlpvp->vop=(struct voxel_object *)malloc
+              (sizeof(struct voxel_object)))==NULL) {
+    mdlerror("Cannot store voxel list object data");
+    return(1);
+  }
+  mdlpvp->vop->lig_count_ref=NULL;
+  mdlpvp->vop->viz_state_ref=NULL;
+  mdlpvp->vop->voxel_data=NULL;
+  mdlpvp->vop->n_voxels=0;
+  mdlpvp->vop->n_verts=0;
+  mdlpvp->vop->fully_closed=0;
+
+  
+  if ((mdlpvp->ovp=(struct ordered_voxel *)malloc
+              (sizeof(struct ordered_voxel)))==NULL) {
+    mdlerror("Cannot store voxel object data");
+    return(1);
+  }
+  mdlpvp->ovp->vertex=NULL;
+  mdlpvp->ovp->element=NULL;
+  mdlpvp->ovp->neighbor=NULL;
+  mdlpvp->ovp->n_verts=0;
+  mdlpvp->ovp->n_voxels=0;
+  mdlpvp->vop->voxel_data=(void *)mdlpvp->ovp;
+
+  mdlpvp->objp->object_type=VOXEL_OBJ;
+  mdlpvp->objp->contents=mdlpvp->vop;
+  mdlpvp->objp->parent=mdlpvp->curr_obj;
+  mdlpvp->obj_name=mdlpvp->objp->sym->name;
+  mdlpvp->curr_obj=mdlpvp->objp;
+}
+	vertex_list_cmd
+        tet_element_connection_cmd 
+	'}'
+{
+  u_int i,j;
+
+  mdlpvp->vop->n_voxels=mdlpvp->n_voxels;
+  mdlpvp->vop->n_verts=mdlpvp->n_verts;
+  mdlpvp->ovp->n_voxels=mdlpvp->n_voxels;
+  mdlpvp->ovp->n_verts=mdlpvp->n_verts;
+
+  if ((mdlpvp->ovp->vertex=(struct vector3 *)malloc
+              (mdlpvp->ovp->n_verts*sizeof(struct vector3)))==NULL) {
+    mdlerror("Cannot store voxel object data");
+    return(1);
+  }
+
+  mdlpvp->vlp=mdlpvp->vertex_head;
+  for (i=0;i<mdlpvp->ovp->n_verts;i++) {
+    mdlpvp->ovp->vertex[i].x=mdlpvp->vlp->vertex->x;
+    mdlpvp->ovp->vertex[i].y=mdlpvp->vlp->vertex->y;
+    mdlpvp->ovp->vertex[i].z=mdlpvp->vlp->vertex->z;
+    mdlpvp->vlp_temp=mdlpvp->vlp;
+    free(mdlpvp->vlp_temp->vertex);
+    mdlpvp->vlp=mdlpvp->vlp->next;
+    free(mdlpvp->vlp_temp);
+  }
+  if ((mdlpvp->tedp=(struct tet_element_data *)malloc
+              (mdlpvp->ovp->n_voxels*sizeof(struct tet_element_data)))==NULL) {
+    mdlerror("Cannot store voxel object data");
+    return(1);
+  }
+  mdlpvp->ovp->element=mdlpvp->tedp;
+  mdlpvp->eclp=mdlpvp->connection_head;
+  for (i=0;i<mdlpvp->ovp->n_voxels;i++) {
+    if (mdlpvp->eclp->n_verts != 4)
+    {
+      mdlerror("All voxels must have four vertices.");
+      return(1);
+    }
+    mdlpvp->tedp[i].n_verts=mdlpvp->eclp->n_verts;
+    mdlpvp->elp=mdlpvp->eclp->connection_list;
+    for (j=0;j<mdlpvp->eclp->n_verts;j++) {
+      mdlpvp->tedp[i].vertex_index[j]=(int)mdlpvp->elp->value;
+      mdlpvp->elp_temp=mdlpvp->elp;
+      mdlpvp->elp=mdlpvp->elp->next;
+      free(mdlpvp->elp_temp);
+    }
+    mdlpvp->eclp_temp=mdlpvp->eclp;
+    mdlpvp->eclp=mdlpvp->eclp->next;
+    free(mdlpvp->eclp_temp);
+  }
+  no_printf("Voxel list %s defined:\n",mdlpvp->curr_obj->sym->name);
+  no_printf(" n_verts = %d\n",mdlpvp->vop->n_verts);
+  /*mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts; 
+  mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
+  if (mdlpvp->object_name_list_end->prev!=NULL) {
+    mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
+  }
+  else {
+    mdlpvp->object_name_list_end->name=NULL;
+  }
+  */
+
+  $$=$<sym>1;
+
+};
+
 vertex_list_cmd: VERTEX_LIST '{' 
 {
   mdlpvp->n_verts=0;
@@ -3534,6 +3645,15 @@ element_connection_cmd: ELEMENT_CONNECTIONS '{'
   mdlpvp->n_walls_actual=mdlpvp->n_walls;
 };
 
+tet_element_connection_cmd: TET_ELEMENT_CONNECTIONS '{'
+{
+  mdlpvp->n_voxels=0;
+  mdlpvp->connection_head=NULL;
+  mdlpvp->connection_tail=NULL;
+}
+        list_tet_arrays
+        '}'
+;
 
 list_arrays: array_value
 {
@@ -3590,6 +3710,60 @@ list_arrays: array_value
   }
 };
 
+list_tet_arrays: array_value
+{
+  mdlpvp->elp=$<nel>1;
+  if ((mdlpvp->eclp=(struct element_connection_list *)malloc
+              (sizeof(struct element_connection_list)))==NULL) {
+    mdlerror("Cannot store element connection data");
+    return(1);
+  }
+  mdlpvp->n_voxels++;
+  mdlpvp->eclp->connection_list=mdlpvp->elp;
+  mdlpvp->eclp->n_verts=0;
+  while (mdlpvp->elp!=NULL) {
+    mdlpvp->eclp->n_verts++;
+    mdlpvp->elp=mdlpvp->elp->next;
+  }
+  if (mdlpvp->eclp->n_verts!=4) {
+    mdlerror("Non-tetrahedron element found in voxel list object");
+    return(1);
+  }
+  if (mdlpvp->connection_tail==NULL) {
+    mdlpvp->connection_tail=mdlpvp->eclp;
+  }
+  mdlpvp->connection_tail->next=mdlpvp->eclp;
+  mdlpvp->eclp->next=NULL;
+  mdlpvp->connection_tail=mdlpvp->eclp;
+  if (mdlpvp->connection_head==NULL) {
+    mdlpvp->connection_head=mdlpvp->eclp;
+  }
+}
+        | list_tet_arrays array_value
+{
+  mdlpvp->elp=$<nel>2;
+  if ((mdlpvp->eclp=(struct element_connection_list *)malloc
+              (sizeof(struct element_connection_list)))==NULL) {
+    mdlerror("Cannot store element connection data");
+    return(1);
+  }
+  mdlpvp->n_voxels++;
+  mdlpvp->eclp->connection_list=mdlpvp->elp;
+  mdlpvp->eclp->n_verts=0;
+  while (mdlpvp->elp!=NULL) {
+    mdlpvp->eclp->n_verts++;
+    mdlpvp->elp=mdlpvp->elp->next;
+  }
+  if (mdlpvp->connection_tail==NULL) {
+    mdlpvp->connection_tail=mdlpvp->eclp;
+  }
+  mdlpvp->connection_tail->next=mdlpvp->eclp;
+  mdlpvp->eclp->next=NULL;
+  mdlpvp->connection_tail=mdlpvp->eclp;
+  if (mdlpvp->connection_head==NULL) {
+    mdlpvp->connection_head=mdlpvp->eclp;
+  }
+};
 
 boolean: TRUE { $$=1; }
 	| FALSE { $$=0; }
@@ -4850,6 +5024,7 @@ viz_output_cmd:
 	| viz_output_block_def
 	| viz_frame_data_def
 	| viz_molecule_prefix_def
+	| viz_filename_prefix_def
 	| viz_object_prefixes_def
 	| viz_state_values_def
 ;
@@ -5146,6 +5321,10 @@ viz_molecule_prefix_def: MOLECULE_FILE_PREFIX '=' str_expr
   volp->molecule_prefix_name = $<str>3;
 };
 
+viz_filename_prefix_def: FILENAME_PREFIX '=' str_expr
+{
+  volp->file_prefix_name = $<str>3;
+};
 
 viz_object_prefixes_def: OBJECT_FILE_PREFIXES '{'
 	list_viz_object_prefixes

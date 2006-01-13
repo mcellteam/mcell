@@ -101,6 +101,7 @@ struct mdlparse_vars {
   struct polygon_object *pop;
   struct ordered_poly *opp;
   struct element_data *edp;
+  struct tet_element_data *tedp;
   struct element_connection_list *connection_head;
   struct element_connection_list *connection_tail;
   struct element_connection_list *eclp;
@@ -113,6 +114,10 @@ struct mdlparse_vars {
   int n_walls_actual;
   int n_verts;
   double box_aspect_ratio;
+
+  struct voxel_object *vop;
+  struct ordered_voxel *ovp;
+  int n_voxels;
 
   struct region *rp;
   struct region_list *region_list_head;

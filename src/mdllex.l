@@ -152,6 +152,7 @@ I ([0-9]+)
 "EXP"			{return(EXP);}
 "EXPRESSION"		{return(EXPRESSION);}
 "FALSE"			{return(FALSE);}
+"FILENAME_PREFIX"	{return(FILENAME_PREFIX);}
 "FLOOR"			{return(FLOOR);}
 "FOR_EACH_TIME_STEP"	{return(FOR_EACH_TIME_STEP);}
 "FOR_EACH_MOLECULE" |
@@ -275,6 +276,7 @@ I ([0-9]+)
 "SURFACE_STATES"	{return(SURFACE_STATES);}
 "TAN"			{return(TAN);}
 "TARGET_ONLY"		{return(TARGET_ONLY);}
+"TET_ELEMENT_CONNECTIONS" {return(TET_ELEMENT_CONNECTIONS);}
 "TIME_LIST"             {return(TIME_LIST);}
 "TIME_STEP"		{return(TIME_STEP);}
 "TIME_STEP_MAX"         {return(TIME_STEP_MAX);}
@@ -292,6 +294,7 @@ I ([0-9]+)
 "VIZ_DATA_OUTPUT"	{return(VIZ_DATA_OUTPUT);}
 "VOLUME_DEPENDENT_RELEASE_NUMBER" {return(VOLUME_DEPENDENT_RELEASE_NUMBER);}
 "VOXEL_IMAGE_MODE"	{return(VOXEL_IMAGE_MODE);}
+"VOXEL_LIST"            {return(VOXEL_LIST);}
 "VOXEL_VOLUME_MODE"	{return(VOXEL_VOLUME_MODE);}
 "WORLD"			{return(WORLD);}
 "YES"			{return(YES);}
