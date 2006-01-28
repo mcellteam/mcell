@@ -81,7 +81,6 @@ struct subvolume* traverse_subvol(struct subvolume *here,struct vector3 *point,i
   if ((here->is_bsp & flag) == 0) return (struct subvolume*)here->neighbor[which];
   else
   {
-    printf("I am here\n");
     branch = (struct bsp_tree*) here->neighbor[which];
     while (branch != NULL)
     {

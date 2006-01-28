@@ -6,6 +6,7 @@
 *
 ***********************************************************************/
 
+
 #define BLOCK_SIZE 10000
 
 /** struct infinite_double_array
@@ -28,6 +29,17 @@ struct infinite_int_array{
 
 	/* pointer to the next array. */
 	struct infinite_int_array *next;
+};
+
+/** struct infinite_uint_array
+    Used to hold information for an infinite array of unsigned integers.
+*/
+struct infinite_uint_array{
+	/* the data  for this block */
+	unsigned int data[BLOCK_SIZE];
+
+	/* pointer to the next array. */
+	struct infinite_uint_array *next;
 };
 
 /** struct infinite_longlong_array
@@ -75,6 +87,8 @@ double ia_double_get(struct infinite_double_array *array_ptr, int index);
 void ia_double_store(struct infinite_double_array *array_ptr, int index, double data_to_store);
 int ia_int_get(struct infinite_int_array *array_ptr, int index);
 void ia_int_store(struct infinite_int_array *array_ptr, int index, int data_to_store);
+unsigned int ia_uint_get(struct infinite_uint_array *array_ptr, int index);
+void ia_uint_store(struct infinite_uint_array *array_ptr, int index, unsigned int data_to_store);
 long long ia_longlong_get(struct infinite_longlong_array *array_ptr, long long index);
 void ia_longlong_store(struct infinite_longlong_array *array_ptr, long long index, long long data_to_store);
 char* ia_string_get(struct infinite_string_array *array_ptr, int index);

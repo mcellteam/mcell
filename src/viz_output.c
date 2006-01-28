@@ -244,6 +244,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
   byte viz_surf_pos,viz_surf_states;
   char file_name[1024];
   char my_byte_order[8];
+  
 
   u_int n_species = world->n_species;
 
@@ -802,9 +803,9 @@ int output_dx_objects(struct frame_data_list *fdlp)
 	           fwrite(&v1,sizeof v1,1,eff_pos_header);
 	           fwrite(&v2,sizeof v2,1,eff_pos_header);
 	           fwrite(&v3,sizeof v3,1,eff_pos_header);
-                   v1=w->normal.x;
-                   v2=w->normal.y;
-                   v3=w->normal.z;
+                   v1=(float)((w->normal.x)*(gmol->orient));
+                   v2=(float)((w->normal.y)*(gmol->orient));
+                   v3=(float)((w->normal.z)*(gmol->orient));
                    fwrite(&v1,sizeof v1,1,eff_pos_header);
                    fwrite(&v2,sizeof v2,1,eff_pos_header);
                    fwrite(&v3,sizeof v3,1,eff_pos_header);
@@ -1225,6 +1226,8 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   FILE *mol_pos_data = NULL;	/* data file for molecule positions */
   FILE *mol_states_data = NULL; /* data file for molecule states */
   FILE *mol_orient_data = NULL; /* data file for molecule orientations */
+  FILE *frame_numbers_data = NULL; /* data file for frame_numbers */
+  FILE *time_values_data = NULL; /* data file for time_values */
   struct viz_obj *vizp = NULL;
   struct viz_child *vcp = NULL;
   struct surface_grid *sg;
@@ -1249,9 +1252,9 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   int ii,jj;
   int vi1,vi2,vi3;
   /* int vi4;*/
-  int num;
-  long long viz_iterationll;
-  long long n_viz_iterations;
+  u_int num;
+  u_int viz_iteration;
+  u_int n_viz_iterations;
   int element_data_count;
   int state;
   int viz_type;
@@ -1280,16 +1283,18 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   char mol_pos_name[1024]; /* molecule_positions data file name */
   char mol_states_name[1024]; /* molecule_positions data file name */
   char mol_orient_name[1024]; /* molecule orientations data file name */
+  char frame_numbers_name[1024]; /* frame numbers data file name */
+  char time_values_name[1024]; /* time values data file name */
   char buffer[100]; /* used to write 'frame_data' object information */
   /* linked list that stores data for the 'frame_data' object */
-  static struct infinite_string_array frame_data_list;
-  static int frame_data_count = 0; /* count elements in frame_data_list array.*/
+  static struct infinite_string_array frame_data_series_list;
+  static u_int frame_data_series_count = 0; /* count elements in frame_data_series_list array.*/
   /* linked lists that stores data for the 'frame_numbers' object */
-  static struct infinite_longlong_array frame_numbers_pos;
-  static struct infinite_longlong_array frame_numbers_mesh;
-  static struct infinite_longlong_array frame_numbers_mol;
-  static struct infinite_longlong_array frame_numbers_eff;
-  static long long frame_numbers_count = 0; /* count elements in frame_numbers_pos array. */
+  static struct infinite_uint_array frame_numbers_pos;
+  static struct infinite_uint_array frame_numbers_mesh;
+  static struct infinite_uint_array frame_numbers_mol;
+  static struct infinite_uint_array frame_numbers_eff;
+  static u_int frame_numbers_count = 0; /* count elements in frame_numbers_pos array. */
   char my_byte_order[8];  /* shows binary ordering ('lsb' or 'msb') */
   static int mesh_pos_byte_offset = 0;  /* defines position of the object data
                                   in the mesh positions binary data file */
@@ -1301,6 +1306,10 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
                            in the molecule orientations binary file */
   static int mol_states_byte_offset = 0; /* defines position of the object data
                               in the molecule states binary file. */
+  static int frame_numbers_byte_offset = 0; /* defines position of the frame 
+                          numbers data in the frame_numbers binary file */
+  static int time_values_byte_offset = 0; /* defines position of the time 
+                          values data in the time_values binary file */
   int mol_pos_byte_offset_prev = 0; /*defines position of the object data 
                            in the effector positions binary file */
   int mol_orient_byte_offset_prev = 0; /*defines position of the object da                            ta in the effector orientations binary file */
@@ -1387,10 +1396,10 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   ia_init(&frame_numbers_mesh);
   ia_init(&frame_numbers_mol);
   ia_init(&frame_numbers_eff);
-  ia_init(&frame_data_list);
+  ia_init(&frame_data_series_list);
 
-  viz_iterationll=fdlp->viz_iterationll;
-  n_viz_iterations=fdlp->n_viz_iterations;
+  viz_iteration = (u_int)(fdlp->viz_iterationll);
+  n_viz_iterations = (u_int)(fdlp->n_viz_iterations);
 
   viz_type=fdlp->type;
 
@@ -1793,147 +1802,6 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
     while(vcp!=NULL) {
       objp = vcp->obj;
       pop=(struct polygon_object *)objp->contents;
-      if (objp->object_type==BOX_OBJ) {
-#if 0	
-        if (viz_surf_pos_flag || viz_surf_states_flag)
-        {
-          element_data_count=0.5*objp->n_walls_actual;
-        
-          if (viz_surf_pos_flag) {
-             
-	      fprintf(master_header, "object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d # %s.positions #\n",
-              main_index,objp->n_verts,my_byte_order,mesh_pos_name, mesh_pos_byte_offset, objp->sym->name);
-            fprintf(master_header,
-              "\tattribute \"dep\" string \"positions\"\n\n");
-            // output box vertices 
-            for (ii=0;ii<objp->n_verts;ii++) {
-              v1 = world->length_unit*objp->verts[ii].x;
-              v2 = world->length_unit*objp->verts[ii].y;
-              v3 = world->length_unit*objp->verts[ii].z;
-              fwrite(&v1,sizeof v1,1,mesh_pos_data);
-              fwrite(&v2,sizeof v2,1,mesh_pos_data);
-              fwrite(&v3,sizeof v3,1,mesh_pos_data);
-              mesh_pos_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-            }
-            surf_pos[surf_pos_index] = main_index;
-            surf_pos_index++;
-            main_index++;
-          
-    
-            /* output box wall connections */
-            fprintf(master_header,
-              "object %d class array type int rank 1 shape 4 items %d %s binary data file %s,%d # %s.connections #\n",
-              main_index,element_data_count,my_byte_order, mesh_pos_name, mesh_pos_byte_offset, objp->sym->name);
-            fprintf(master_header,
-              "\tattribute \"ref\" string \"positions\"\n");
-            fprintf(master_header,
-              "\tattribute \"element type\" string \"quads\"\n\n");
-             
-
-            for (ii=0;ii<objp->n_walls;ii+=2) {
-              if (!get_bit(pop->side_stat,ii)) {
-                switch (ii) {
-                  case TP:
-                    vi1=3;
-                    vi2=7;
-                    vi3=1;
-                    vi4=5;
-                    fwrite(&vi1,sizeof vi1,1,mesh_pos_data);
-                    fwrite(&vi2,sizeof vi2,1,mesh_pos_data);
-                    fwrite(&vi3,sizeof vi3,1,mesh_pos_data);
-                    fwrite(&vi4,sizeof vi4,1,mesh_pos_data);
-                    mesh_pos_byte_offset += (sizeof(vi1) + sizeof(vi2) + sizeof(vi3) + sizeof(vi4));
-                  break;
-                  case BOT:
-                    vi1=0;
-                    vi2=4;
-                    vi3=2;
-                    vi4=6;
-                    fwrite(&vi1,sizeof vi1,1,mesh_pos_data);
-                    fwrite(&vi2,sizeof vi2,1,mesh_pos_data);
-                    fwrite(&vi3,sizeof vi3,1,mesh_pos_data);
-                    fwrite(&vi4,sizeof vi4,1,mesh_pos_data);
-                    mesh_pos_byte_offset += (sizeof(vi1) + sizeof(vi2) + sizeof(vi3) + sizeof(vi4));
-                  break;
-                  case FRNT:
-                    vi1=4;
-                    vi2=0;
-                    vi3=5;
-                    vi4=1;
-                    fwrite(&vi1,sizeof vi1,1,mesh_pos_data);
-                    fwrite(&vi2,sizeof vi2,1,mesh_pos_data);
-                    fwrite(&vi3,sizeof vi3,1,mesh_pos_data);
-                    fwrite(&vi4,sizeof vi4,1,mesh_pos_data);
-                    mesh_pos_byte_offset += (sizeof(vi1) + sizeof(vi2) + sizeof(vi3) + sizeof(vi4));
-                  break;
-                  case BCK:
-                    vi1=2;
-                    vi2=6;
-                    vi3=3;
-                    vi4=7;
-                    fwrite(&vi1,sizeof vi1,1,mesh_pos_data);
-                    fwrite(&vi2,sizeof vi2,1,mesh_pos_data);
-                    fwrite(&vi3,sizeof vi3,1,mesh_pos_data);
-                    fwrite(&vi4,sizeof vi4,1,mesh_pos_data);
-                    mesh_pos_byte_offset += (sizeof(vi1) + sizeof(vi2) + sizeof(vi3) + sizeof(vi4));
-                  break;
-                  case LFT:
-                    vi1=0;
-                    vi2=2;
-                    vi3=1;
-                    vi4=3;
-                    fwrite(&vi1,sizeof vi1,1,mesh_pos_data);
-                    fwrite(&vi2,sizeof vi2,1,mesh_pos_data);
-                    fwrite(&vi3,sizeof vi3,1,mesh_pos_data);
-                    fwrite(&vi4,sizeof vi4,1,mesh_pos_data);
-                    mesh_pos_byte_offset += (sizeof(vi1) + sizeof(vi2) + sizeof(vi3) + sizeof(vi4));
-                  break;
-                  case RT:
-                    vi1=6;
-                    vi2=4;
-                    vi3=7;
-                    vi4=5;
-                    fwrite(&vi1,sizeof vi1,1,mesh_pos_data);
-                    fwrite(&vi2,sizeof vi2,1,mesh_pos_data);
-                    fwrite(&vi3,sizeof vi3,1,mesh_pos_data);
-                    fwrite(&vi4,sizeof vi4,1,mesh_pos_data);
-                    mesh_pos_byte_offset += (sizeof(vi1) + sizeof(vi2) + sizeof(vi3) + sizeof(vi4));
-                  break;
-                }
-              }
-            }
-            surf_con[surf_con_index] = main_index;
-            main_index++;
-            surf_con_index++;
-
-
-          } /* end viz_surf_pos_flag */
-
-          if (viz_surf_states_flag) {
-
-            fprintf(master_header,
-              "object %d class array type int rank 0 items %d %s binary data file %s,%d # *%s.states #\n", main_index, element_data_count, my_byte_order, mesh_states_name, mesh_states_byte_offset, objp->sym->name);
-            fprintf(master_header,"\tattribute \"dep\" string \"connections\"\n\n");
-           surf_states[surf_states_index] = main_index;
-           surf_states_index++;
-           main_index++;
- 
-	    for (ii=0;ii<objp->n_walls;ii+=2) {
-              if (!get_bit(pop->side_removed,ii)) {
-                state=objp->viz_state[ii];
-                fwrite(&state,sizeof (state),1,mesh_states_data);
-                mesh_states_byte_offset += sizeof(state);
-              }
-            }
-
- 
-          } /* end (viz_surf_states_flag) */
-
-        } /* end (viz_surf_pos_flag || viz_surf_states_flag) for BOX_OBJ */
-#endif
-      }  /* end BOX_OBJ */
-
-
 
       if (objp->object_type==POLY_OBJ || objp->object_type==BOX_OBJ) {
         if (viz_surf_pos_flag || viz_surf_states_flag)
@@ -1954,9 +1822,9 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 
             /* output polyhedron vertices */
             for (ii=0;ii<objp->n_verts;ii++) {
-              v1 = world->length_unit*objp->verts[ii].x;
-              v2 = world->length_unit*objp->verts[ii].y;
-              v3 = world->length_unit*objp->verts[ii].z;
+              v1 = (float)(world->length_unit*objp->verts[ii].x);
+              v2 = (float)(world->length_unit*objp->verts[ii].y);
+              v3 = (float)(world->length_unit*objp->verts[ii].z);
               fwrite(&v1,sizeof v1,1,mesh_pos_data);
               fwrite(&v2,sizeof v2,1,mesh_pos_data);
               fwrite(&v3,sizeof v3,1,mesh_pos_data);
@@ -2068,7 +1936,8 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
         vizp = world->viz_obj_head;
         if(vizp != NULL){
 
-        	fprintf(master_header,"object %d group # %s #\n",main_index, "meshes");
+        	/*fprintf(master_header,"object %d group # %s #\n",main_index, "meshes"); */
+        	fprintf(master_header,"object \"%s%u\" group # %s #\n","meshes_", viz_iteration, "meshes");
         	mesh_group_index = main_index;
         	main_index++;
 
@@ -2153,17 +2022,17 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
                             grid_mol_name) == 0){
                   		if (viz_eff_pos_flag) {
                                    /* write positions information */
-	           		   v1=world->length_unit*p0.x;
-	           		   v2=world->length_unit*p0.y;
-	           		   v3=world->length_unit*p0.z;
+	           		   v1=(float)(world->length_unit*p0.x);
+	           		   v2=(float)(world->length_unit*p0.y);
+	           		   v3=(float)(world->length_unit*p0.z);
 	           		   fwrite(&v1,sizeof v1,1,mol_pos_data);
 	               		   fwrite(&v2,sizeof v2,1,mol_pos_data);
 	           		   fwrite(&v3,sizeof v3,1,mol_pos_data);
                                    mol_pos_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
                                    /* write orientations information */
-                   		   v1=w->normal.x;
-                   		   v2=w->normal.y;
-                   		   v3=w->normal.z;
+                   		   v1=(float)((w->normal.x)*(gmol->orient));
+                   		   v2=(float)((w->normal.y)*(gmol->orient));
+                   		   v3=(float)((w->normal.z)*(gmol->orient));
                    		   fwrite(&v1,sizeof v1,1,mol_orient_data);
                    		   fwrite(&v2,sizeof v2,1,mol_orient_data);
                    		   fwrite(&v3,sizeof v3,1,mol_orient_data);
@@ -2378,9 +2247,9 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 	  mol_pos_byte_offset_prev = mol_pos_byte_offset;
           for (jj=0;jj<num;jj++) {
             molp=viz_molp[spec_id][jj];
-	    v1=world->length_unit*molp->pos.x;
-	    v2=world->length_unit*molp->pos.y;
-	    v3=world->length_unit*molp->pos.z;
+	    v1=(float)(world->length_unit*molp->pos.x);
+	    v2=(float)(world->length_unit*molp->pos.y);
+	    v3=(float)(world->length_unit*molp->pos.z);
 	    fwrite(&v1,sizeof v1,1,mol_pos_data);
 	    fwrite(&v2,sizeof v2,1,mol_pos_data);
 	    fwrite(&v3,sizeof v3,1,mol_pos_data);
@@ -2488,10 +2357,12 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
       if(show_molecules || show_effectors) {
 
         if(show_molecules){
-                fprintf(master_header,"object %d group # %s #\n",main_index, "3D molecules");
+                /*fprintf(master_header,"object %d group # %s #\n",main_index, "3D molecules"); */
+                fprintf(master_header,"object \"%s%u\" group # %s #\n", "molecules_", viz_iteration, "3D molecules"); 
         	mol_group_index = main_index;
         }else if(show_effectors){
-                fprintf(master_header,"object %d group # %s #\n",main_index, "effectors");
+                /*fprintf(master_header,"object %d group # %s #\n",main_index, "effectors"); */
+                fprintf(master_header,"object \"%s%u\" group # %s #\n","effectors_", viz_iteration, "effectors");
                eff_group_index = main_index;
         }
         main_index++;
@@ -2550,26 +2421,29 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
         fprintf(master_header,"object %d group\n",main_index);
         combined_group_index = main_index;
       	if(mesh_group_index > 0){
-          	fprintf(master_header,"\tmember \"meshes\" value %lld\n",mesh_group_index);
-		ia_longlong_store(&frame_numbers_mesh, frame_numbers_count,mesh_group_index);
+          	/*fprintf(master_header,"\tmember \"meshes\" value %lld\n",mesh_group_index); */
+          	fprintf(master_header,"\tmember \"meshes\" value \"%s%u\"\n", "meshes_",viz_iteration);
+		ia_uint_store(&frame_numbers_mesh, frame_numbers_count,mesh_group_index);
 		mesh_group_index = 0;
 
       	}else{
-		ia_longlong_store(&frame_numbers_mesh, frame_numbers_count,-1);
+		ia_uint_store(&frame_numbers_mesh, frame_numbers_count,UINT_MAX);
         }
       	if(mol_group_index > 0){
-          	fprintf(master_header,"\tmember \"molecules\" value %lld\n",mol_group_index);
-		ia_longlong_store(&frame_numbers_mol, frame_numbers_count,mol_group_index);
+          	/*fprintf(master_header,"\tmember \"molecules\" value %lld\n",mol_group_index); */
+          	fprintf(master_header,"\tmember \"molecules\" value \"%s%u\"\n",  "molecules_", viz_iteration); 
+		ia_uint_store(&frame_numbers_mol, frame_numbers_count,mol_group_index);
 		mol_group_index = 0;
         }else{
-		ia_longlong_store(&frame_numbers_mol, frame_numbers_count,-1);
+		ia_uint_store(&frame_numbers_mol, frame_numbers_count,UINT_MAX);
         }
         if(eff_group_index > 0){
-          	fprintf(master_header,"\tmember \"effectors\" value %lld\n",eff_group_index);
-		ia_longlong_store(&frame_numbers_eff, frame_numbers_count,eff_group_index);
+          	/*fprintf(master_header,"\tmember \"effectors\" value %lld\n",eff_group_index); */
+          	fprintf(master_header,"\tmember \"effectors\" value \"%s%u\"\n",  "effectors_", viz_iteration);
+		ia_uint_store(&frame_numbers_eff, frame_numbers_count,eff_group_index);
 		eff_group_index = 0;
         }else{
-		ia_longlong_store(&frame_numbers_eff, frame_numbers_count,-1);
+		ia_uint_store(&frame_numbers_eff, frame_numbers_count,UINT_MAX);
         }
       	fprintf(master_header,"\n");
       }
@@ -2577,9 +2451,9 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
       if(show_combined_group){
 
         /* create an entry into an 'frame_data' object. */
-      	sprintf(buffer, "\tmember %d value %d position %lld\n", series_index, combined_group_index, viz_iterationll);
-	ia_string_store(&frame_data_list, frame_data_count, buffer);
-        frame_data_count++;
+      	sprintf(buffer, "\tmember %d value %d position %u\n", series_index, combined_group_index, viz_iteration);
+	ia_string_store(&frame_data_series_list, frame_data_series_count, buffer);
+        frame_data_series_count++;
       	series_index++;
       	main_index++;
 
@@ -2593,47 +2467,86 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
         }
  
 	/* put value of viz_iteration into the frame_numbers_pos */ 
-	ia_longlong_store(&frame_numbers_pos, frame_numbers_count,viz_iterationll);  
+	ia_uint_store(&frame_numbers_pos, frame_numbers_count,viz_iteration);  
         frame_numbers_count++;
 
      }
 
      if(frames_iterations_count == total_frames_iterations)
      {
-	/* write 'frame_data' object. */
-    	fprintf(master_header,"object \"frame_data\" class series\n");
-        if(frame_data_count > 0)
-        {
-        	char *elem;
-		for(ii = 0; ii < frame_data_count; ii++){
-                	elem = ia_string_get(&frame_data_list, ii);
-                        if(elem == NULL){
-                          fprintf(log_file, "MCell:ia_string_get() tries to access uninitialized data.\n");
-                        }
-			fprintf(master_header, "\t%s", elem);
-        	}
-        }
-	fprintf(master_header, "\n\n");
-
 	/* write 'frame_numbers' object. */
+      	sprintf(file_name,"%s.frame_numbers.bin",world->file_prefix_name);
+     
+     	/* remove the folder name from the frame_numbers data file name */
+     	ch_ptr = strrchr(file_name, '/');
+     	++ch_ptr;
+     	strcpy(frame_numbers_name, ch_ptr);
+
+      	if ((frame_numbers_data=fopen(file_name,"wb"))==NULL) {
+           fprintf(log_file,"MCell: error cannot open frame_numbers file %s\n",
+               file_name);
+           return(1);
+        }
+
         if(frame_numbers_count > 0)
         {
-        	long long elem1, elem2, elem3, elem4;
-        	fprintf(master_header,"#object \"frame_numbers\" class array  type int rank 1 shape 4 items %lld data follows\n",frame_numbers_count);
+        	u_int elem1;
+                double t_value;
+
+        	fprintf(master_header,"object \"frame_numbers\" class array  type unsigned int rank 0 items %u %s binary data file %s,%d\n",frame_numbers_count, my_byte_order,frame_numbers_name, frame_numbers_byte_offset);
 		for(ii = 0; ii < frame_numbers_count; ii++){
-                	elem1 = ia_longlong_get(&frame_numbers_pos, ii);
-                	elem2 = ia_longlong_get(&frame_numbers_mesh, ii);
-                	elem3 = ia_longlong_get(&frame_numbers_mol, ii);
-                	elem4 = ia_longlong_get(&frame_numbers_eff, ii);
-                        if((elem1 == LONG_MIN) || (elem2 == LONG_MIN) ||
-                           (elem3 == LONG_MIN) || (elem4 == LONG_MIN))
+                	elem1 = ia_uint_get(&frame_numbers_pos, ii);
+                        if(elem1 == UINT_MAX) 
                         {
-                          fprintf(log_file, "MCell:ia_longlong_get() tries to access uninitialized data.\n");
+                          fprintf(log_file, "MCell:ia_uint_get() tries to access uninitialized data.\n");
                           return 1;
                         }
-			fprintf(master_header, "#\t%lld\t%lld\t%lld\t%lld\n", elem1, elem2, elem3, elem4);
+			
+                        fwrite(&elem1, sizeof(elem1),1,frame_numbers_data);
         	}
 		fprintf(master_header, "\n\n");
+
+             /* write "time_values" object. */
+      	     sprintf(file_name,"%s.time_values.bin",world->file_prefix_name);
+     
+     	     /* remove the folder name from the time_values data file name */
+     	     ch_ptr = strrchr(file_name, '/');
+     	     ++ch_ptr;
+     	     strcpy(time_values_name, ch_ptr);
+
+      	     if ((time_values_data=fopen(file_name,"wb"))==NULL) {
+                fprintf(log_file,"MCell: error cannot open  file %s\n",
+                    file_name);
+                return(1);
+             }
+
+        	fprintf(master_header,"object \"time_values\" class array  type double rank 0 items %u %s binary data file %s,%d\n",frame_numbers_count, my_byte_order,time_values_name, time_values_byte_offset);
+												for(ii = 0; ii < frame_numbers_count; ii++){
+                	elem1 = ia_uint_get(&frame_numbers_pos, ii);
+                        if(elem1 == UINT_MAX) 
+                        {
+                          fprintf(log_file, "MCell:ia_uint_get() tries to access uninitialized data.\n");
+                          return 1;
+                        }
+                        t_value = elem1*world->time_unit;
+                        fwrite(&(t_value), sizeof(t_value),1,time_values_data);
+                 }
+		fprintf(master_header, "\n\n");
+	
+                /* write 'frame_data' object. */
+    		fprintf(master_header,"object \"%s\" class series\n", "frame_data");
+        	if(frame_data_series_count > 0)
+        	{
+        	   char *elem;
+		   for(ii = 0; ii < frame_data_series_count; ii++){
+                       elem = ia_string_get(&frame_data_series_list, ii);
+                       if(elem == NULL){
+                           fprintf(log_file, "MCell:ia_string_get() tries to access uninitialized data.\n");
+                        }
+			fprintf(master_header, "\t%s", elem);
+        	    }
+                 }
+	         fprintf(master_header, "\n\n");
         }
 
         /* free allocated memory */
@@ -2670,41 +2583,41 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
         }
 
         /* free linked list for frame_numbers. */
-  	struct infinite_longlong_array *arr_ll_ptr, *temp_ll_ptr;
-  	arr_ll_ptr = (&frame_numbers_pos)->next;
-  	while(arr_ll_ptr != NULL){
-		temp_ll_ptr = arr_ll_ptr;
-		arr_ll_ptr = arr_ll_ptr->next;
-		free(temp_ll_ptr);
+  	struct infinite_uint_array *arr_ui_ptr, *temp_ui_ptr;
+  	arr_ui_ptr = (&frame_numbers_pos)->next;
+  	while(arr_ui_ptr != NULL){
+		temp_ui_ptr = arr_ui_ptr;
+		arr_ui_ptr = arr_ui_ptr->next;
+		free(temp_ui_ptr);
   	}     
-  	arr_ll_ptr = (&frame_numbers_mesh)->next;
-  	while(arr_ll_ptr != NULL){
-		temp_ll_ptr = arr_ll_ptr;
-		arr_ll_ptr = arr_ll_ptr->next;
-		free(temp_ll_ptr);
+  	arr_ui_ptr = (&frame_numbers_mesh)->next;
+  	while(arr_ui_ptr != NULL){
+		temp_ui_ptr = arr_ui_ptr;
+		arr_ui_ptr = arr_ui_ptr->next;
+		free(temp_ui_ptr);
   	}     
-  	arr_ll_ptr = (&frame_numbers_mol)->next;
-  	while(arr_ll_ptr != NULL){
-		temp_ll_ptr = arr_ll_ptr;
-		arr_ll_ptr = arr_ll_ptr->next;
-		free(temp_ll_ptr);
+  	arr_ui_ptr = (&frame_numbers_mol)->next;
+  	while(arr_ui_ptr != NULL){
+		temp_ui_ptr = arr_ui_ptr;
+		arr_ui_ptr = arr_ui_ptr->next;
+		free(temp_ui_ptr);
   	}     
-  	arr_ll_ptr = (&frame_numbers_eff)->next;
-  	while(arr_ll_ptr != NULL){
-		temp_ll_ptr = arr_ll_ptr;
-		arr_ll_ptr = arr_ll_ptr->next;
-		free(temp_ll_ptr);
+  	arr_ui_ptr = (&frame_numbers_eff)->next;
+  	while(arr_ui_ptr != NULL){
+		temp_ui_ptr = arr_ui_ptr;
+		arr_ui_ptr = arr_ui_ptr->next;
+		free(temp_ui_ptr);
   	}     
 
   	/* free linked list for frame_data. */
   	struct infinite_string_array *arr_string_ptr, *temp_string_ptr;
-  	arr_string_ptr = (&frame_data_list);
+  	arr_string_ptr = (&frame_data_series_list);
         for(ii = 0; ii < BLOCK_SIZE; ii++){
 	    if(arr_string_ptr->data[ii] != NULL){
 		free(arr_string_ptr->data[ii]);
             }
         }
-  	arr_string_ptr = (&frame_data_list)->next;
+  	arr_string_ptr = (&frame_data_series_list)->next;
   	while(arr_string_ptr != NULL){
            for(ii = 0; ii < BLOCK_SIZE; ii++){
 	       if(arr_string_ptr->data[ii] != NULL){
@@ -2787,6 +2700,12 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
     }
     if(mesh_states_data != NULL){
     	fclose(mesh_states_data);
+    }
+    if(frame_numbers_data != NULL){
+        fclose(frame_numbers_data);
+    }
+    if(time_values_data != NULL){
+        fclose(time_values_data);
     }
 
 
@@ -3580,9 +3499,9 @@ int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
 	           		   fwrite(&v3,sizeof v3,1,mol_pos_data);
                                    mol_pos_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
                                    /* write orientations information */
-                   		   v1=w->normal.x;
-                   		   v2=w->normal.y;
-                   		   v3=w->normal.z;
+                   		   v1=(float)((w->normal.x)*(gmol->orient));
+                   		   v2=(float)((w->normal.y)*(gmol->orient));
+                   		   v3=(float)((w->normal.z)*(gmol->orient));
                    		   fwrite(&v1,sizeof v1,1,mol_orient_data);
                    		   fwrite(&v2,sizeof v2,1,mol_orient_data);
                    		   fwrite(&v3,sizeof v3,1,mol_orient_data);

@@ -123,7 +123,7 @@ static struct infinite_int_array *ia_int_locate(struct infinite_int_array *array
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_int_array)); */
                    for(i = 0; i < BLOCK_SIZE; i++)
                    {
-                     current_ptr->next->data[i] = LONG_MIN;
+                     current_ptr->next->data[i] = INT_MIN;
                    }
                    current_ptr->next->next = NULL;
                 }
@@ -163,7 +163,7 @@ Returns
 	the value of the element
 
 Note: You can get an element that has not been previously stored.
-      The value of any unitialiazed element is LONG_MIN.
+      The value of any unitialiazed element is INT_MIN.
 **********************************************************************/
 int ia_int_get(struct infinite_int_array *array_ptr, int index)
 {
@@ -173,6 +173,90 @@ int ia_int_get(struct infinite_int_array *array_ptr, int index)
 	int current_index;	/* index into the current bucket */
         
 	current_ptr = ia_int_locate(array_ptr, index, &current_index);
+	return (current_ptr->data[current_index]); 
+}
+
+/********************************************************************
+ia_uint_locate -- Gets the location of an element of infinite array
+                    of unsigned integers
+
+Parameters
+	array_ptr -- Pointer to the array to use
+	index -- Index into the array.
+	current_index_ptr -- Pointer to the index into this bucket (returned)
+
+Returns
+	Pointer to the current bucket
+************************************************************************/
+static struct infinite_uint_array *ia_uint_locate(struct infinite_uint_array *array_ptr, int index, int *current_index_ptr)
+{
+	/* pointer to the current bucket */
+	struct infinite_uint_array *current_ptr;
+        int i;
+
+	current_ptr = array_ptr;
+	*current_index_ptr = index;
+
+	while(*current_index_ptr >= BLOCK_SIZE){
+		if(current_ptr->next == NULL){
+		   current_ptr->next = malloc(sizeof(struct infinite_uint_array));
+		   if(current_ptr->next == NULL){
+                       fprintf(stderr, "Memory allocation error\n");
+			exit(1);
+                   }
+                   /*memset(current_ptr->next, '\0', sizeof(struct infinite_int_array)); */
+                   for(i = 0; i < BLOCK_SIZE; i++)
+                   {
+                     current_ptr->next->data[i] = UINT_MAX;
+                   }
+                   current_ptr->next->next = NULL;
+                }
+         	current_ptr = current_ptr->next;
+         	*current_index_ptr -= BLOCK_SIZE;
+         }
+         return (current_ptr);
+
+}
+
+/*************************************************************************
+ia_uint_store  -- Stores an element into an infinite array of unsigned integers
+
+Parameters
+	array_ptr -- Pointer to the array to use
+	index -- Index into the array.
+	data_to store  - Data to be stored
+*************************************************************************/
+void ia_uint_store(struct infinite_uint_array *array_ptr, int index, unsigned int data_to_store)
+{
+	/* pointer to the current bucket */
+	struct infinite_uint_array *current_ptr;
+	int current_index;	/* Index into the current bucket */
+
+	current_ptr = ia_uint_locate(array_ptr, index, &current_index);
+	current_ptr->data[current_index] = data_to_store;
+}
+
+/*********************************************************************
+ia_uint_get -- Gets an element from an infinite array of integers.
+
+Parameters
+	array_ptr -- Pointer to the array to use.
+	index	-- Index into the array
+
+Returns
+	the value of the element
+
+Note: You can get an element that has not been previously stored.
+      The value of any unitialiazed element is UINT_MAX.
+**********************************************************************/
+unsigned int ia_uint_get(struct infinite_uint_array *array_ptr, int index)
+{
+	/* pointer to the current bucket */
+        struct infinite_uint_array *current_ptr;
+
+	int current_index;	/* index into the current bucket */
+        
+	current_ptr = ia_uint_locate(array_ptr, index, &current_index);
 	return (current_ptr->data[current_index]); 
 }
 
