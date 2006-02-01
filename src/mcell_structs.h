@@ -1111,38 +1111,42 @@ struct release_pattern {
 	int number_of_trains;		/**< how many trains are produced. */
 };
 
+/* Extended data for complex releases on regions */
+/* Not all fields are used for all release types */
 struct release_region_data
 {
-  struct vector3 llf;
-  struct vector3 urb;
+  struct vector3 llf;   /* One corner of bounding box for release area */
+  struct vector3 urb;   /* Opposite corner */
 
-  int n_walls_included;
-  double *cum_area_list;
-  int *wall_index;
-  int *obj_index;
+  int n_walls_included;  /* How many walls total */
+  double *cum_area_list; /* Cumulative area of all walls */
+  int *wall_index;       /* Indices of each wall (by object) */
+  int *obj_index;        /* Indices for objects (in world list) */
   
-  int n_objects;
-  struct object **owners;
-  struct bit_array **in_release;
-  int *walls_per_obj;
+  int n_objects;                  /* How many objects are there total */
+  struct object **owners;         /* Array of pointers to each object */
+  struct bit_array **in_release;  /* Bit array saying which walls are in release for each object */
+  int *walls_per_obj;             /* Number of walls in release for each object */
 
-  struct object *self;
-  struct release_evaluator *expression;
+  struct object *self;            /* A pointer to our own release object */
+  struct release_evaluator *expression;  /* A set construction expression combining regions to form this release site */
 };
 
+/* Data structure used to store LIST releases */
 struct release_single_molecule
 {
-  struct release_single_molecule *next;
-  struct species *mol_type;
-  struct vector3 loc;
-  short orient;
+  struct release_single_molecule *next;  /* Next in the list */
+  struct species *mol_type;              /* Species to release */
+  struct vector3 loc;                    /* Position to release it */
+  short orient;                          /* Orientation (for 2D species) */
 };
 
+/* Data structure used to hold combinations of regions */
 struct release_evaluator
 {
-  byte op;
-  void *left;
-  void *right;
+  byte op;       /* The operation used (values are #def'ed as REXP_... */
+  void *left;    /* The left side of the expression--another evaluator or a region object depending on bitmask of op */
+  void *right;   /* The right side--same thing */
 };
 
 /* Holds information about a box with rectangular patches on it. */
