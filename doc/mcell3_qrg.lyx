@@ -1943,12 +1943,20 @@ BOTH_POLES
  specifications for receptors.
 \layout Standard
 
-In MCell3, molecules in a surface have an orientation.
- If a reaction is geometrically constrained--for example, if a ligand can
- only bind to the extracellular side of a receptor--you can enforce this
- geometric constraint in MCell3 by writing down the relative orientations
- of the reactants and products.
- The two orientations are specified by 
+Molecules in a surface have an orientation: up if they point in the direction
+ of the surface normal, down otherwise..
+ Molecules in 3D that strike or come off a surface also have an orientation:
+ up if the surface normal points towards them, down if it points away.
+\layout Standard
+
+Reactions normally do not specify absolute orientation.
+ Instead, a reaction lists the required relative orientation of the reactants,
+ and specifies the relative orientation of the products.
+ This allows you to write general reactions that do not depend on the direction
+ of insertion of a molecule into a membrane.
+\layout Standard
+
+The two orientations are specified by 
 \family typewriter 
 '
 \family default 
@@ -1970,17 +1978,12 @@ B'
 B,
 \family default 
 .
- You can think of these as the top and bottom of 
-\family typewriter 
-B
-\family default 
-.
  For example:
 \layout Standard
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="3" columns="2">
+<lyxtabular version="3" rows="4" columns="2">
 <features islongtable="true" headBottomDL="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -2058,11 +2061,48 @@ B
 \family typewriter 
 A
 \family default 
- on one side and C on the other at a rate of 
+ on the side it's pointing to and emits 
+\family typewriter 
+C
+\family default 
+ on the other side, at a rate of 
 \begin_inset Formula $10\mathrm{{s}^{-1}}$
 \end_inset 
 
 
+\end_inset 
+</cell>
+</row>
+<row bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+B, -> B, + A, + C' [10]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+This specifies exactly the same reaction as above.
+ 
+\family typewriter 
+B
+\family default 
+ and 
+\family typewriter 
+A
+\family default 
+ end up with the same orientation, while 
+\family typewriter 
+C
+\family default 
+ has opposite orientation.
 \end_inset 
 </cell>
 </row>
@@ -2073,45 +2113,30 @@ A
 
 \layout Standard
 
-In the second example, 
-\family typewriter 
-A
-\family default 
- comes off of the top of 
-\family typewriter 
-B
-\family default 
- (e.g.
- on the extracellular side) while 
-\family typewriter 
-C
-\family default 
- comes off on the bottom (e.g.
- on the intracellular side).
+The best way to keep the relationships straight is to draw a 
+\begin_inset Quotes eld
+\end_inset 
+
+before
+\begin_inset Quotes erd
+\end_inset 
+
+ picture with each reactant facing the direction of the tick mark, and an
+ 
+\begin_inset Quotes eld
+\end_inset 
+
+after
+\begin_inset Quotes erd
+\end_inset 
+
+ picture with each product facing in the direction of the tick mark.
+ Since you can always turn your picture upside-down and still have the same
+ picture, you can also always flip all tick marks and get the same reaction.
+ You can thus use tick marks that are consistent with your mental picture.
 \layout Standard
 
-Molecules diffusing in 3D do not have an orientation, but they adopt one
- when they strike a surface.
- The side that they strike is their 
-\begin_inset Quotes eld
-\end_inset 
-
-top
-\begin_inset Quotes erd
-\end_inset 
-
- side.
- The far side is the 
-\begin_inset Quotes eld
-\end_inset 
-
-bottom
-\begin_inset Quotes erd
-\end_inset 
-
- side.
- (In MCell 2 terminology, the side they hit is their positive pole, and
- the other side is their negative pole.) Thus, if 
+If 
 \family typewriter 
 A
 \family default 
@@ -2128,7 +2153,7 @@ C
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="3" columns="2">
+<lyxtabular version="3" rows="5" columns="2">
 <features islongtable="true" headBottomDL="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -2174,11 +2199,15 @@ Molecule
 \family typewriter 
 A
 \family default 
- binds to the top side of 
+ binds to 
 \family typewriter 
 B
 \family default 
-, producing a 
+ if it is on the side that 
+\family typewriter 
+B
+\family default 
+ is pointing to, producing a 
 \family typewriter 
 C
 \family default 
@@ -2194,7 +2223,28 @@ B
 \end_inset 
 </cell>
 </row>
-<row topline="true" bottomline="true">
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A, + B, -> C, [1e5]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+The same reaction again---everything occurs on the same side, but we wrote
+ it on the bottom this time.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
@@ -2214,7 +2264,7 @@ Molecule
 \family typewriter 
 A
 \family default 
- binds to the bottom side of 
+ binds when it hits the opposite side of 
 \family typewriter 
 B
 \family default 
@@ -2226,11 +2276,36 @@ C
 \family typewriter 
 B
 \family default 
-, at a rate of 
+ (i.e.
+ towards the side 
+\family typewriter 
+A
+\family default 
+ came from), at a rate of 
 \begin_inset Formula $10^{5}\,\mathrm{{M}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A, + B' -> C, [1e5]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Same as above.
 \end_inset 
 </cell>
 </row>
@@ -2251,8 +2326,6 @@ So far, all examples have used the first orientation class, specified with
 ,
 \family default 
 .
- By default, if no orientation is specified, the molecule is in the zeroth
- class, and the reaction refers to the top of the molecule.
  The second orientation class is specified by 
 \begin_inset Formula $\texttt{{'}{'}}$
 \end_inset 
@@ -2273,9 +2346,11 @@ So far, all examples have used the first orientation class, specified with
  and so on.
  A molecule can be in only one orientation class, and molecules in different
  classes do not pay attention to each others' orientation.
+ In a reaction where orientation may be a factor, every molecule must be
+ explicitly given an orientation class.
  Therefore:
 \begin_inset  Tabular
-<lyxtabular version="3" rows="6" columns="2">
+<lyxtabular version="3" rows="8" columns="2">
 <features islongtable="true" headBottomDL="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -2309,7 +2384,15 @@ Explanation
 
 
 \family typewriter 
-A + B, -> C' [1e5]
+A
+\family default 
+
+\begin_inset Formula $\texttt{{'}{'}}$
+\end_inset 
+
+
+\family typewriter 
+ + B, -> C' [1e5]
 \end_inset 
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
@@ -2325,7 +2408,7 @@ A
 \family typewriter 
 B
 \family default 
-, producing a 
+ (since they are in different orientation classes); this produces a 
 \family typewriter 
 C
 \family default 
@@ -2349,7 +2432,11 @@ B
 
 
 \family typewriter 
-A + B -> C [1e5]
+A
+\begin_inset Formula ${,}{,}$
+\end_inset 
+
+ + B, -> C' [1e5]
 \end_inset 
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
@@ -2357,32 +2444,12 @@ A + B -> C [1e5]
 
 \layout Standard
 
-Molecule 
+This is the same reaction---since 
 \family typewriter 
 A
 \family default 
- binds to the top side of 
-\family typewriter 
-B
-\family default 
-, producing a 
-\family typewriter 
-C
-\family default 
- facing the same way as 
-\family typewriter 
-B
-\family default 
-, at a rate of 
-\begin_inset Formula $10^{5}\,\mathrm{{M}}^{-1}\cdot\mathrm{{s}^{-1}}$
-\end_inset 
-
-.
- (Same as 
-\family typewriter 
-A'+B'->C'
-\family default 
-)
+ is the only molecule in the second orientation class, it doesn't matter
+ which way we specify things.
 \end_inset 
 </cell>
 </row>
@@ -2394,7 +2461,43 @@ A'+B'->C'
 
 
 \family typewriter 
-A, + B' -> C [1e5]
+A
+\begin_inset Formula ${,}{,}$
+\end_inset 
+
+ + B' -> C, [1e5]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Same again--
+\family typewriter 
+B
+\family default 
+ and 
+\family typewriter 
+C
+\family default 
+ still have opposite orientations.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A, + B' -> C
+\begin_inset Formula ${,}{,}$
+\end_inset 
+
+ [1e5]
 \end_inset 
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
@@ -2406,7 +2509,7 @@ Molecule
 \family typewriter 
 A
 \family default 
- hits the other side from the top of 
+ hits the opposite side of 
 \family typewriter 
 B
 \family default 
@@ -2419,25 +2522,6 @@ C
 \end_inset 
 
 .
- Since hitting the 
-\begin_inset Quotes eld
-\end_inset 
-
-other side from the top
-\begin_inset Quotes erd
-\end_inset 
-
- is the same as 
-\begin_inset Quotes eld
-\end_inset 
-
-hitting the bottom
-\begin_inset Quotes erd
-\end_inset 
-
-, this is the same as 
-\family typewriter 
-A'+B,->C
 \end_inset 
 </cell>
 </row>
@@ -2473,7 +2557,7 @@ C
 \end_inset 
 </cell>
 </row>
-<row topline="true" bottomline="true">
+<row topline="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
@@ -2513,36 +2597,81 @@ A
 \family typewriter 
 B
 \family default 
- on either side, causing 
+ on either side; 
 \family typewriter 
 A
 \family default 
- to go to the other side and 
+ keeps traveling (goes to the other side) and 
 \family typewriter 
 B
 \family default 
- to tumble to a random orientation, at a rate of 
+ to tumbles to a random orientation, at a rate of 
 \begin_inset Formula $10^{5}\,\mathrm{{M}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
- (
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
 \family typewriter 
-A'+B->A,+B
+A'+B
 \family default 
 
 \begin_inset Formula $\texttt{{'}{'}}$
 \end_inset 
 
- would do the same thing, as would 
+
 \family typewriter 
-A,+B->A'+B
+ -> C
 \family default 
 
-\begin_inset Formula $\texttt{{,}{,}}$
+\begin_inset Formula $\texttt{{'}{'}{'}}$
 \end_inset 
 
- and so on.)
+
+\family typewriter 
++D
+\family default 
+
+\begin_inset Formula $\texttt{{'}{'}{'}{'}}$
+\end_inset 
+
+
+\family typewriter 
+ [1e5]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A
+\family default 
+ and 
+\family typewriter 
+B
+\family default 
+ react in any orientation and produce 
+\family typewriter 
+C
+\family default 
+ and 
+\family typewriter 
+D
+\family default 
+ in random orientations.
+ All orientation classes are different, so there are no geometrical constraints
+ here.
 \end_inset 
 </cell>
 </row>
@@ -2555,6 +2684,11 @@ A,+B->A'+B
 
 There are examples of how one would use this syntax to model well-known
  biological reactions at the end of this file.
+\layout Standard
+
+
+\emph on 
+Need to add code and syntax to specify a surface with an orientation also.
 \layout Subsection
 
 Geometry definition commands
@@ -3007,8 +3141,8 @@ D2
 \end_inset 
 
 ) to every surface with this surface class.
- By default, molecules will be oriented in the same direction as the surface.
- Use orientation marks after the name to specify the direction.
+ Use orientation marks after the name to specify the direction relative
+ to the surface normal.
  For example, 
 \family typewriter 
 A'
@@ -3127,8 +3261,8 @@ N2
 , of molecules onto any region that is made out of this surface class.
  Note: this usage is not recommended; it is better to add exact numbers
  of molecules to the region.
- Orientation marks after the name can be used to specify the direction the
- molecules are facing.
+ Orientation marks after the name must be used to specify the direction
+ the molecules are facing.
 \end_inset 
 </cell>
 </row>
@@ -3137,7 +3271,23 @@ N2
 \end_inset 
 
 
+\layout Standard
+
+Note that surface normals are defined by the right-hand rule applied to
+ the vertices in order as listed (see section 
+\begin_inset LatexCommand \ref{geom_obj}
+
+\end_inset 
+
+).
+ Box objects are converted internally into triangles and the surface normals
+ point outwards.
 \layout Subsubsection
+
+
+\begin_inset LatexCommand \label{geom_obj}
+
+\end_inset 
 
 Geometrical objects
 \layout Standard
@@ -4916,13 +5066,6 @@ LIST
 \family default 
  shape.
  You must specify an orientation if the molecule is a surface molecule.
- 
-\emph on 
-!!
-\emph default 
-Maybe we should fix this.
-\emph on 
-!!
 \end_inset 
 </cell>
 </row>
@@ -7725,8 +7868,13 @@ SPHERICAL
 \family default 
 ) require less computation to place each molecule.
  Thus, these should be used preferentially for simple geometry.
- To release particles at a point, use a cubic release site and set the diameter
- to 0.
+ To release many particles at a one point, use a cubic release site and
+ set the diameter to 0.
+ To release many particles at different points, use the 
+\family typewriter 
+LIST
+\family default 
+ release type.
 \layout Section
 
 Example models
@@ -7803,7 +7951,23 @@ DEFINE_REACTIONS {
   channel_bound'             -> channel_open'              [5e2]
 \layout LyX-Code
 
-  channel_open + ion'        -> channel_open     + ion,    [4e7]
+  channel_open
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+{'}{'}
+\end_inset 
+
+ + ion'      -> channel_open
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+{'}{'}
+\end_inset 
+
+     + ion,  [4e7]
 \layout LyX-Code
 
 }
@@ -7838,33 +8002,6 @@ DEFINE_REACTIONS {
 
 In this case, the ion is four times as likely to travel from outside to
  inside as inside to outside.
- Finally, note that most of the orientation marks are unnecessary given
- that the default is to be in orientation class zero facing up.
- Thus, we can write the last set of reactions as
-\layout LyX-Code
-
-DEFINE_REACTIONS {
-\layout LyX-Code
-
-  channel_unbound + ligand -> channel_bound            [1e7]
-\layout LyX-Code
-
-  channel_bound            -> channel_unbound + ligand [2e2]
-\layout LyX-Code
-
-  channel_bound            -> channel_open             [5e2]
-\layout LyX-Code
-
-  channel_open' + ion'     -> channel_open'   + ion,   [4e8]
-\layout LyX-Code
-
-  channel_open' + ion,     -> channel_open'   + ion'   [1e8]
-\layout LyX-Code
-
-}
-\layout Standard
-
-to achieve the same effect.
 \layout Subsection
 
 Example bimolecular reaction
