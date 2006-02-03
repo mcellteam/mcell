@@ -1403,6 +1403,15 @@ int make_cuboid(struct vector3 *p1, struct vector3 *p2, struct ordered_poly *opp
 }
 
 
+/*************************************************************************
+init_cuboid:
+In: llf corner of a cube
+    urb corner of a cube
+Out: returns a subdivided_box struct, with no subdivisions and corners
+     as specified.  NULL is returned if there is no memory or the
+     urb corner is not up from, to the right of, and behind the llf corner
+*************************************************************************/
+
 struct subdivided_box* init_cuboid(struct vector3 *p1,struct vector3 *p2)
 {
   struct subdivided_box *b;
@@ -1431,6 +1440,23 @@ struct subdivided_box* init_cuboid(struct vector3 *p1,struct vector3 *p2)
   
   return b;
 }
+
+
+/*************************************************************************
+check_patch:
+In: a subdivided box (array of subdivision locations along each axis)
+    a vector that is one corner of the patch, in 3D
+    the other corner of the patch, in 3D
+    the effector grid density, which limits how fine divisions can be
+Out: returns 0 if the patch is broken, or a bitmask saying which
+     coordinates need to be subdivided in order to represent the new
+     patch, if the spacings are okay.
+Note: the two corners of the patch must be aligned with a Cartesian
+      plane (i.e. it is a planar patch), and must be on the surface
+      of the subdivided box.  Furthermore, the coordinates in the
+      first corner must be smaller or the same size as the coordinates
+      in the second corner.
+*************************************************************************/
 
 int check_patch(struct subdivided_box *b,struct vector3 *p1,struct vector3 *p2,double egd)
 {
@@ -1495,6 +1521,20 @@ int check_patch(struct subdivided_box *b,struct vector3 *p1,struct vector3 *p2,d
 
   return i;
 }
+
+
+/*************************************************************************
+refine_cuboid:
+In: a vector that is one corner of the patch, in 3D
+    the other corner of the patch, in 3D
+    a subdivided box upon which the patch will be placed
+    the effector grid density, which limits how fine divisions can be
+Out: returns 1 on failure, 0 on success.  The box has additional
+     subdivisions added that fall at the edges of the patch so that
+     the patch can be specified in terms of subdivisions (i.e. can
+     be constructed by triangles that tile each piece of the
+     subdivided surface).
+*************************************************************************/
 
 int refine_cuboid(struct vector3 *p1,struct vector3 *p2,struct subdivided_box *b, double egd)
 {
@@ -1587,6 +1627,7 @@ int refine_cuboid(struct vector3 *p1,struct vector3 *p2,struct subdivided_box *b
 }
 
 
+/* Debugging function to print out a subdivided box */
 void print_cuboid(struct subdivided_box *b)
 {
   int i;
@@ -1599,6 +1640,15 @@ void print_cuboid(struct subdivided_box *b)
 }
   
 
+/*************************************************************************
+divide_cuboid:
+In: a subdivided box to further subdivide
+    which axis to divide
+    which of the existing divisions should be subdivided
+    the number of subdivisions to make
+Out: returns 1 on failure, 0 on success.  The requested subdivision(s)
+     are added.
+*************************************************************************/
 
 int divide_cuboid(struct subdivided_box *b,int axis,int idx,int ndiv)
 {
@@ -1661,6 +1711,17 @@ int divide_cuboid(struct subdivided_box *b,int axis,int idx,int ndiv)
   return 0;
 }
 
+
+/*************************************************************************
+reaspect_cuboid:
+In: a subdivided box whose surface is a bunch of rectangles
+    the maximum allowed aspect ratio (long side / short side) of a rectangle
+Out: returns 1 on failure, 0 on success.  The subdivided box is further
+     divided to ensure that all surface subdivisions meet the
+     aspect ratio criterion.
+Note: This is not, in general, possible if max_ratio is less than
+      sqrt(2), and it is diffucult if max_ratio is less than 2.
+*************************************************************************/
 
 int reaspect_cuboid(struct subdivided_box *b,int max_ratio)
 {
@@ -1765,18 +1826,32 @@ int reaspect_cuboid(struct subdivided_box *b,int max_ratio)
 }
 
 
+/* Trivial utility function that counts # walls in a box */
 int count_cuboid_elements(struct subdivided_box *sb)
 {
   return 4*((sb->nx-1)*(sb->ny-1) + (sb->nx-1)*(sb->nz-1) + (sb->ny-1)*(sb->nz-1));
 }
 
+/* Trivial utility function that counts # vertices in a box */
 int count_cuboid_vertices(struct subdivided_box *sb)
 {
   return 2*sb->ny*sb->nz + 2*(sb->nx-2)*sb->nz + 2*(sb->nx-2)*(sb->ny-2);
 }
 
 
-/* Returns 0 on success, 1 if conversion fails */
+/*************************************************************************
+cuboid_patch_to_bits:
+In: a subdivided box upon which the patch is located
+    the lower-valued corner of the patch
+    the other corner
+    a bit array to store the results.
+Out: returns 1 on failure, 0 on success.  The surface of the box is
+     considered to be tiled with triangles in a particular order, and
+     an array of bits is set to be 0 for each triangle that is not in
+     the patch and 1 for each triangle that is.  (This is the internal
+     format for regions.)
+*************************************************************************/
+
 int cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct vector3 *v2,struct bit_array *ba)
 {
   int i,ii;
@@ -1899,6 +1974,15 @@ int cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct vec
   return 0;
 }
 
+
+/*************************************************************************
+normalize_elements:
+In: a region
+    a flag indicating whether the region is being modified or created
+Out: returns 1 on failure, 0 on success.  Lists of element specifiers
+     are converted into bitmasks that specify whether a wall is in or
+     not in that region.  This also handles combinations of regions.
+*************************************************************************/
 
 int normalize_elements(struct region *reg, int existing)
 {
@@ -2051,6 +2135,20 @@ int normalize_elements(struct region *reg, int existing)
   return 0;
 }
 
+
+/*************************************************************************
+vertex_at_index:
+In: a subdivided box from which we want to retrieve one surface patch
+    the x index of the patch
+    the y index of the patch
+    the z index of the patch
+Out: returns the index into the array of walls for the first wall in the
+     patch; add 1 to get the second triangle.  If an invalid coordinate
+     is given, -1 is returned.
+Note: since the patch must be on the surface, at least one of ix, iy, iz
+      must be either 0 or at its maximum.
+*************************************************************************/
+
 int vertex_at_index(struct subdivided_box *sb, int ix, int iy, int iz)
 {
   int i;
@@ -2079,6 +2177,17 @@ int vertex_at_index(struct subdivided_box *sb, int ix, int iy, int iz)
     return -1;
   }
 }
+
+
+/*************************************************************************
+divide_cuboid:
+In: an ordered polygon object that we will create
+    a subdivided box
+Out: returns 1 on failure, 0 on success.  The partitions along each
+     axis of the subdivided box are considered to be grid lines along
+     which we subdivide the surface of the box.  Walls corresponding to
+     these surface elements are created and placed into an ordered_poly.
+*************************************************************************/
 
 int polygonalize_cuboid(struct ordered_poly *opp,struct subdivided_box *sb)
 {
@@ -2250,6 +2359,13 @@ int polygonalize_cuboid(struct ordered_poly *opp,struct subdivided_box *sb)
   return 0;
 }
 
+
+/*************************************************************************
+remove_gaps_from_regions:
+In: an object with regions
+Out: Any walls that have been removed from the object are removed from
+     every region on that object.
+*************************************************************************/
 
 void remove_gaps_from_regions(struct object *ob)
 {
@@ -3568,946 +3684,4 @@ struct release_site_obj* duplicate_release_site(struct release_site_obj *old,str
   return rso;
 }
 
-
-
-#if 0
-
-int partition_volume(struct volume *volp)
-{
-  struct subvolume *subvolp;
-  struct vector3 p1,p2;
-  struct vector3 *verts,**face;
-  struct wall_list *wlp;
-  struct wall *wp;
-  unsigned int i,j,k,m,n,nx,ny,nz,nxy,nx_parts,ny_parts,nz_parts,n_subvol;
-  unsigned int rem, l, lower, upper;
-  unsigned int index, subvol_crd[3];
- 
-  no_printf("Partitioning Volume...\n");
-  fflush(stderr);
-
-  /* Add the boundary partitions */
-  volp->n_x_partitions+=2;
-  volp->n_y_partitions+=2;
-  volp->n_z_partitions+=2;
-
-  nx_parts=volp->n_x_partitions;
-  ny_parts=volp->n_y_partitions;
-  nz_parts=volp->n_z_partitions;
-
-  nx=nx_parts-1;
-  ny=ny_parts-1;
-  nz=nz_parts-1;
-
-  n_subvol=nx*ny*nz;
-
-#ifdef KELP
-  /* Note that when parallel processing, n_subvols != nx*ny*nz !!*/
-  /* compute upper(exclusive) and lower(inclusive) bounds of subvolumes assuming 1d */
-
-  switch (parallel_x+parallel_y+parallel_z) {
-    case 0:	/* Multi-processing, but no parallel directive given
-               Assume PARALLEL_PARTITION = XYZ and drop into that case */
-      parallel_x = 1;
-      parallel_y = 1;
-      parallel_z = 1;
-    case 3:   /* decompose in all 3 dims */
-      l = (nx*ny*nz)/nprocs;
-      rem = l%nprocs;
-      if (procnum < rem) {
-        n_subvol = l + 1;
-        lower = procnum*(l+1);
-        upper = (procnum+1)*(l+1);
-      } else {
-        n_subvol = l;
-        lower = rem + procnum*l;
-        upper = rem + (procnum+1)*l;
-      }
-
-	  /* find the bounding walls for the set of subvols */
-	  lower_part[0] = nx_parts;
-	  lower_part[1] = ny_parts;
-	  lower_part[2] = nz_parts;
-	  upper_part[0] = 0;
-	  upper_part[1] = 0;
-	  upper_part[2] = 0;
-	  for (i=lower;i<upper;i++){
-	    morton_to_cart(i,subvol_crd,3);	/* find the corresponding coordinates of the
-		                                   subvol in cart space using the Morton
-										   space-filling curve */
-        for (j=0;j<3;j++){
-          if (subvol_crd[j] < lower_part[j]) lower_part[j] = subvol_crd[j];
-  		  if (subvol_crd[j]+1 > upper_part[j]) upper_part[j] = subvol_crd[j] + 1;
-		}
-      }
-	  nx_parts = upper_part[0]-lower_part[0]+1;
-	  ny_parts = upper_part[1]-lower_part[1]+1;
-	  nz_parts = upper_part[2]-lower_part[2]+1;
-	  nx = nx_parts-1;
-	  ny = ny_parts-1;
-	  nz = nz_parts-1;
-
-      /* create only those walls */
-	  dblp = (double *)malloc(nx_parts*sizeof(double));
-	  for (i=lower_part[0];i<=upper_part[0];i++)
-	    dblp[i-lower_part[0]] = volp->x_partitions[i];
-      free(volp->x_partitions);
-	  volp->x_partitions=dblp;
-
-	  dblp = (double *)malloc(ny_parts*sizeof(double));
-	  for (i=lower_part[1];i<=upper_part[1];i++)
-	    dblp[i-lower_part[1]] = volp->y_partitions[i];
-      free(volp->y_partitions);
-	  volp->y_partitions=dblp;
-
-	  dblp = (double *)malloc(nz_parts*sizeof(double));
-	  for (i=lower_part[2];i<=upper_part[2];i++)
-	    dblp[i-lower_part[2]] = volp->z_partitions[i];
-      free(volp->z_partitions);
-	  volp->z_partitions=dblp;
-	break;
-	case 2:   /* decompose in 2 dims */
-
-	  if (!parallel_x) {	/* Partitioning in YZ plane */
-
-        l = (ny*nz)/nprocs;
-        rem = l%nprocs;
-        if (procnum < rem) {
-          n_subvol = nx*(l + 1);
-          lower = procnum*(l+1);
-          upper = (procnum+1)*(l+1);
-        } else {
-          n_subvol = nx*l;
-          lower = rem + procnum*l;
-          upper = rem + (procnum+1)*l;
-        }
-  
-		lower_part[0] = 0;
-		upper_part[0] = nx_parts-1;
-        lower_part[1] = ny_parts;
-        lower_part[2] = nz_parts;
-		upper_part[1] = 0;
-		upper_part[2] = 0;
-	    for (i=lower;i<upper;i++){
-		  morton_to_cart(i,subvol_crd,2);
-		  for (j=1;j<3;j++){
-            if (subvol_crd[j] < lower_part[j]) lower_part[j] = subvol_crd[j];
-  		    if (subvol_crd[j]+1 > upper_part[j]) upper_part[j] = subvol_crd[j] + 1;
-		  }
-        }
-	    ny_parts = upper_part[1]-lower_part[1]+1;
-	    nz_parts = upper_part[2]-lower_part[2]+1;
-	    ny = ny_parts-1;
-	    nz = nz_parts-1;
-
-	    dblp = (double *)malloc(ny_parts*sizeof(double));
-        for (i=lower_part[1];i<=upper_part[1];i++)
-	      dblp[i-lower_part[1]] = volp->y_partitions[i];
-        free(volp->y_partitions);
-        volp->y_partitions=dblp;
-
-        dblp = (double *)malloc(nz_parts*sizeof(double));
-        for (i=lower_part[2];i<=upper_part[2];i++)
-          dblp[i-lower_part[2]] = volp->z_partitions[i];
-        free(volp->z_partitions);
-        volp->z_partitions=dblp;
-		
-      } else if (!parallel_y) {		/* Partitioning in XZ plance */
-
-        l = (nx*nz)/nprocs;
-        rem = l%nprocs;
-        if (procnum < rem) {
-          n_subvol = ny*(l + 1);
-          lower = procnum*(l+1);
-          upper = (procnum+1)*(l+1);
-        } else {
-          n_subvol = ny*l;
-          lower = rem + procnum*l;
-          upper = rem + (procnum+1)*l;
-        }
-  
-		lower_part[1] = 0;
-		upper_part[1] = ny_parts-1;
-	    lower_part[0] = nx_parts;
-		lower_part[2] = nz_parts;
-		upper_part[0] = 0;
-		upper_part[2] = 0;
-
-	    for (i=lower;i<upper;i++){
-		  morton_to_cart(i,subvol_crd,2);
-		  for (j=0;j<3;j=j+2){
-            if (subvol_crd[j] < lower_part[j]) lower_part[j] = subvol_crd[j];
-  		    if (subvol_crd[j]+1 > upper_part[j]) upper_part[j] = subvol_crd[j] + 1;
-		  }
-        }
-	    nx_parts = upper_part[0]-lower_part[0]+1;
-	    nz_parts = upper_part[2]-lower_part[2]+1;
-	    nx = nx_parts-1;
-	    nz = nz_parts-1;
-
-	    dblp = (double *)malloc(nx_parts*sizeof(double));
-        for (i=lower_part[0];i<=upper_part[0];i++)
-	      dblp[i-lower_part[0]] = volp->x_partitions[i];
-        free(volp->x_partitions);
-        volp->x_partitions=dblp;
-
-        dblp = (double *)malloc(nz_parts*sizeof(double));
-        for (i=lower_part[2];i<=upper_part[2];i++)
-          dblp[i-lower_part[2]] = volp->z_partitions[i];
-        free(volp->z_partitions);
-        volp->z_partitions=dblp;
-		
-	  } else {	/* Partitioning in XY plane */
-
-        l = (nx*ny)/nprocs;
-        rem = l%nprocs;
-        if (procnum < rem) {
-          n_subvol = nz*(l + 1);
-          lower = procnum*(l+1);
-          upper = (procnum+1)*(l+1);
-        } else {
-          n_subvol = nz*l;
-          lower = rem + procnum*l;
-          upper = rem + (procnum+1)*l;
-        }
-
-		lower_part[2] = 0;
-		upper_part[2] = nz_parts-1;
-	    lower_part[0] = nx_parts;
-		lower_part[1] = ny_parts;
-		upper_part[0] = 0;
-		upper_part[1] = 0;
-
-	    for (i=lower;i<upper;i++){
-		  morton_to_cart(i,subvol_crd,2);
-		  for (j=0;j<2;j++){
-            if (subvol_crd[j] < lower_part[j]) lower_part[j] = subvol_crd[j];
-  		    if (subvol_crd[j]+1 > upper_part[j]) upper_part[j] = subvol_crd[j] + 1;
-		  }
-        }
-	    nx_parts = upper_part[0]-lower_part[0]+1;
-	    ny_parts = upper_part[1]-lower_part[1]+1;
-	    nx = nx_parts-1;
-	    ny = ny_parts-1;
-
-	    dblp = (double *)malloc(nx_parts*sizeof(double));
-        for (i=lower_part[0];i<=upper_part[0];i++)
-	      dblp[i-lower_part[0]] = volp->x_partitions[i];
-        free(volp->x_partitions);
-        volp->x_partitions=dblp;
-
-        dblp = (double *)malloc(ny_parts*sizeof(double));
-        for (i=lower_part[1];i<=upper_part[1];i++)
-          dblp[i-lower_part[1]] = volp->y_partitions[i];
-        free(volp->y_partitions);
-        volp->y_partitions=dblp;
-      }
-    break;
-	case 1: /* Partitioning in only 1 dim */
-	  
-	  if (parallel_x) {		/* Partitioning along X axis */
-
-        l = nx/nprocs;
-        rem = l%nprocs;
-        if (procnum < rem) {
-          n_subvol = ny*nz*(l + 1);
-          lower = procnum*(l+1);
-          upper = (procnum+1)*(l+1);
-        } else {
-          n_subvol = ny*nz*l;
-          lower = rem + procnum*l;
-          upper = rem + (procnum+1)*l;
-        }
-	  
-	    nx_parts = upper - lower;
-		nx = nx_parts - 1;
-
-	    lower_part[0] = lower;
-		upper_part[0] = upper;
-		lower_part[1] = 0;
-		upper_part[1] = ny_parts-1;
-		lower_part[2] = 0;
-		upper_part[2] = nz_parts-1;
-
-		dblp = (double *)malloc(nx_parts*sizeof(double));
-		for (i=lower;i<=upper;i++)
-		  dblp[i-lower] = volp->x_partitions[i];
-		free(volp->x_partitions);
-		volp->x_partitions = dblp;
-      } else if (parallel_y) {	/* Partitioning along Y axis */
-
-        l = ny/nprocs;
-        rem = l%nprocs;
-        if (procnum < rem) {
-          n_subvol = nx*nz*(l + 1);
-          lower = procnum*(l+1);
-          upper = (procnum+1)*(l+1);
-        } else {
-          n_subvol = nx*nz*l;
-          lower = rem + procnum*l;
-          upper = rem + (procnum+1)*l;
-        }
-	  
-	    ny_parts = upper - lower;
-		ny = ny_parts - 1;
-
-	    lower_part[1] = lower;
-		upper_part[1] = upper;
-		lower_part[0] = 0;
-		upper_part[0] = nx_parts-1;
-		lower_part[2] = 0;
-		upper_part[2] = nz_parts-1;
-
-		dblp = (double *)malloc(ny_parts*sizeof(double));
-		for (i=lower;i<=upper;i++)
-		  dblp[i-lower] = volp->y_partitions[i];
-		free(volp->y_partitions);
-		volp->y_partitions = dblp;
-      } else {		/* Partitioning along Z axis */
-
-        l = nz/nprocs;
-        rem = l%nprocs;
-        if (procnum < rem) {
-          n_subvol = nx*ny*(l + 1);
-          lower = procnum*(l+1);
-          upper = (procnum+1)*(l+1);
-        } else {
-          n_subvol = nx*ny*l;
-          lower = rem + procnum*l;
-          upper = rem + (procnum+1)*l;
-        }
-	  
-	    nz_parts = upper - lower;
-		nz = nz_parts - 1;
-
-	    lower_part[2] = lower;
-		upper_part[2] = upper;
-		lower_part[0] = 0;
-		upper_part[0] = nx_parts-1;
-		lower_part[1] = 0;
-		upper_part[1] = ny_parts-1;
-
-		dblp = (double *)malloc(nz_parts*sizeof(double));
-		for (i=lower;i<=upper;i++)
-		  dblp[i-lower] = volp->z_partitions[i];
-		free(volp->z_partitions);
-		volp->z_partitions = dblp;
-      }
-    break;
-  }
-
-  fprintf(log_file, "MCell node%d: %d subvols allocated\n", procnum, n_subvol);
-  fflush(log_file);
-#endif
-
-  nxy=nx*ny;
-  volp->n_x_subvol=nx;
-  volp->n_y_subvol=ny;
-  volp->n_z_subvol=nz;
-  volp->n_subvol=n_subvol;	/* Note!! When parallel processing n_subvol != nx*ny*nz !!*/
-
-  p1.x=-vol_infinity;
-  p1.y=-vol_infinity;
-  p1.z=-vol_infinity;
-  p2.x=vol_infinity;
-  p2.y=vol_infinity;
-  p2.z=vol_infinity;
-  if ((nx_parts==2)&&(volp->x_partitions==NULL)) {
-    if ((volp->x_partitions=(double *)malloc(2*sizeof(double)))==NULL) {
-      mdlerror_nested("Cannot store volume data");
-      return(1);
-    }       
-    volp->x_partitions[0]=p1.x;
-    volp->x_partitions[1]=p2.x;
-  }
-  if ((ny_parts==2)&&(volp->y_partitions==NULL)) {
-    if ((volp->y_partitions=(double *)malloc(2*sizeof(double)))==NULL) {
-      mdlerror_nested("Cannot store volume data");
-      return(1);
-    }       
-    volp->y_partitions[0]=p1.y;
-    volp->y_partitions[1]=p2.y;
-  }
-  if ((nz_parts==2)&&(volp->z_partitions==NULL)) {
-    if ((volp->z_partitions=(double *)malloc(2*sizeof(double)))==NULL) {
-      mdlerror_nested("Cannot store volume data");
-      return(1);
-    }       
-    volp->z_partitions[0]=p1.z;
-    volp->z_partitions[1]=p2.z;
-  }
-  cube_corners(&p1,&p2,volp->corner);
-  cube_corners(&p1,&p2,node_dat.corner);
-
-  if ((volp->x_walls=(struct wall **)malloc
-       (nx_parts*sizeof(struct wall *)))==NULL) {
-    mdlerror_nested("Cannot store subvolume partition data");
-    return(1);
-  }
-  if ((volp->y_walls=(struct wall **)malloc
-       (ny_parts*sizeof(struct wall *)))==NULL) {
-    mdlerror_nested("Cannot store subvolume partition data");
-    return(1);
-  }
-  if ((volp->z_walls=(struct wall **)malloc
-       (nz_parts*sizeof(struct wall *)))==NULL) {
-    mdlerror_nested("Cannot store subvolume partition data");
-    return(1);
-  }
-  if ((subvolp=(struct subvolume *)malloc
-       (n_subvol*sizeof(struct subvolume)))==NULL) {
-    mdlerror_nested("Cannot store subvolume partition data");
-    return(1);
-  }
-  volp->subvol=subvolp;
-  for (i=0;i<n_subvol;i++) {
-    subvolp[i].wall_list=NULL;
-    subvolp[i].end_wall_list=NULL;
-    subvolp[i].wall_count=0;
-    for (j=0;j<6;j++) {
-      subvolp[i].walls[j]=NULL;
-    }
-  }
-
-  if ((verts=(struct vector3 *)malloc
-       (4*sizeof(struct vector3)))==NULL) {
-    mdlerror_nested("Cannot store subvolume partition data");
-    return(1);
-  }
-  if ((face=(struct vector3 **)malloc
-       (4*sizeof(struct vector3 *)))==NULL) {
-    mdlerror_nested("Cannot store subvolume partition data");
-    return(1);
-  }
-  for (i=0;i<4;i++) {
-    face[i]=&verts[i];
-  }
-  for (i=0;i<nx_parts;i++) {
-    verts[0].x=volp->x_partitions[i];
-    verts[0].y=volp->y_partitions[0];
-    verts[0].z=volp->z_partitions[0];
-
-    verts[1].x=volp->x_partitions[i];
-    verts[1].y=volp->y_partitions[0];
-    verts[1].z=volp->z_partitions[nz];
-
-    verts[2].x=volp->x_partitions[i];
-    verts[2].y=volp->y_partitions[ny];
-    verts[2].z=volp->z_partitions[nz];
-
-    verts[3].x=volp->x_partitions[i];
-    verts[3].y=volp->y_partitions[ny];
-    verts[3].z=volp->z_partitions[0];
-    if ((wp=init_wall(face,NULL,4))==NULL) {
-      return(1);
-    }
-    if ((wp->wall_type=(byte *)malloc
-         ((1+n_ligand_types)*sizeof(byte)))==NULL) {
-      mdlerror_nested("Cannot store subvolume partition data");
-      return(1);
-    }
-    for (j=0;j<(1+n_ligand_types);j++) {
-      wp->wall_type[j]=SUBVOL;
-    }
-    volp->x_walls[i]=wp;
-  }
-
-  if ((verts=(struct vector3 *)malloc
-       (4*sizeof(struct vector3)))==NULL) {
-    mdlerror_nested("Cannot store subvolume partition data");
-    return(1);
-  }
-  if ((face=(struct vector3 **)malloc
-       (4*sizeof(struct vector3 *)))==NULL) {
-    mdlerror_nested("Cannot store subvolume partition data");
-    return(1);
-  }
-  for (i=0;i<4;i++) {
-    face[i]=&verts[i];
-  }
-  for (i=0;i<ny_parts;i++) {
-    verts[0].x=volp->x_partitions[0];
-    verts[0].y=volp->y_partitions[i];
-    verts[0].z=volp->z_partitions[0];
-
-    verts[1].x=volp->x_partitions[nx];
-    verts[1].y=volp->y_partitions[i];
-    verts[1].z=volp->z_partitions[0];
-
-    verts[2].x=volp->x_partitions[nx];
-    verts[2].y=volp->y_partitions[i];
-    verts[2].z=volp->z_partitions[nz];
-
-    verts[3].x=volp->x_partitions[0];
-    verts[3].y=volp->y_partitions[i];
-    verts[3].z=volp->z_partitions[nz];
-    if ((wp=init_wall(face,NULL,4))==NULL) {
-      return(1);
-    }
-    if ((wp->wall_type=(byte *)malloc
-         ((1+n_ligand_types)*sizeof(byte)))==NULL) {
-      mdlerror_nested("Cannot store subvolume partition data");
-      return(1);
-    }
-    for (j=0;j<(1+n_ligand_types);j++) {
-      wp->wall_type[j]=SUBVOL;
-    }
-    volp->y_walls[i]=wp;
-  }
-
-  if ((verts=(struct vector3 *)malloc
-       (4*sizeof(struct vector3)))==NULL) {
-    mdlerror_nested("Cannot store subvolume partition data");
-    return(1);
-  }
-  if ((face=(struct vector3 **)malloc
-       (4*sizeof(struct vector3 *)))==NULL) {
-    mdlerror_nested("Cannot store subvolume partition data");
-    return(1);
-  }
-  for (i=0;i<4;i++) {
-    face[i]=&verts[i];
-  }
-  for (i=0;i<nz_parts;i++) {
-    verts[0].x=volp->x_partitions[0];
-    verts[0].y=volp->y_partitions[0];
-    verts[0].z=volp->z_partitions[i];
-
-    verts[1].x=volp->x_partitions[0];
-    verts[1].y=volp->y_partitions[ny];
-    verts[1].z=volp->z_partitions[i];
-
-    verts[2].x=volp->x_partitions[nx];
-    verts[2].y=volp->y_partitions[ny];
-    verts[2].z=volp->z_partitions[i];
-
-    verts[3].x=volp->x_partitions[nx];
-    verts[3].y=volp->y_partitions[0];
-    verts[3].z=volp->z_partitions[i];
-    if ((wp=init_wall(face,NULL,4))==NULL) {
-      return(1);
-    }
-    if ((wp->wall_type=(byte *)malloc
-         ((1+n_ligand_types)*sizeof(byte)))==NULL) {
-      mdlerror_nested("Cannot store subvolume partition data");
-      return(1);
-    }
-    for (j=0;j<(1+n_ligand_types);j++) {
-      wp->wall_type[j]=SUBVOL;
-    }
-    volp->z_walls[i]=wp;
-  }
-
-#ifdef KELP
-  /* Nasty loop to initialize all the subvols */
-  /* Set subvol coordinates */
-  for (i=lower;i<upper;i++) {	
-	switch (parallel_x+parallel_y+parallel_z) {
-      case 0:
-      case 3:      /* 3 dim decomposition */
-	    morton_to_cart(i,subvol_crd,3);
-		l = i-lower;
-		subvolp[l].x_index = subvol_crd[0] - lower_part[0];
-		subvolp[l].y_index = subvol_crd[1] - lower_part[1];
-		subvolp[l].z_index = subvol_crd[2] - lower_part[2];
-      break;
-	  case 2:      /* 2 dim decomposition */
-	    morton_to_cart(i,subvol_crd,2);
-	    if (!parallel_x) {
-		  for(j=0;j<nx;j++) {
-			l = (i-lower)*nx + j;
-		    subvolp[l].x_index = j;
-		    subvolp[l].y_index = subvol_crd[0] - lower_part[1];
-		    subvolp[l].z_index = subvol_crd[1] - lower_part[2];
-          }
-		} else if (!parallel_y) {
-		  for(j=0;j<ny;j++) {
-			l = (i-lower)*ny + j;
-		    subvolp[l].x_index = subvol_crd[0] - lower_part[0];
-		    subvolp[l].y_index = j;
-		    subvolp[l].z_index = subvol_crd[1] - lower_part[2];
-          }
-		} else {
-		  for(j=0;j<nz;j++) {
-			l = (i-lower)*nz + j;
-		    subvolp[l].x_index = subvol_crd[0] - lower_part[0];
-		    subvolp[l].y_index = subvol_crd[1] - lower_part[1];
-		    subvolp[l].z_index = j;
-          }
-		}
-      break;
-	  case 1:      /* 1 dim decomposition */
-        if (parallel_x) {
-          for (j=0;j<ny;j++) {
-            for (k=0;k<nz;k++) {
-			  l = (i-lower)*ny*nz + j + k*ny;
-              subvolp[l].x_index = i - lower;
-              subvolp[l].y_index = j;
-              subvolp[l].z_index = k;
-            }
-          }
-        } else if (parallel_y) {
-	      for (j=0;j<nx;j++) {
-		    for (k=0;k<nz;k++) {
-			  l = (i-lower)*nx*nz + j + k*nx;
-		      subvolp[l].x_index = j;
-		      subvolp[l].y_index = i - lower;
-		      subvolp[l].z_index = k;
-            }
-		  }
-        } else {
-	      for (j=0;j<nx;j++) {
-		    for (k=0;k<ny;k++) {
-			  l = (i-lower)*nx*ny + j + k*nx;
-		      subvolp[l].x_index = j;
-		      subvolp[l].y_index = k;
-		      subvolp[l].z_index = i - lower;
-            }
-		  }
-        }
-	  break;
-	}
-  }
-
-  /* Setup the walls for the subvolumes */
-  for (i=0;i<n_subvol;i++) {
-	if (subvolp[i].z_index > 0) {
-		subvolp[i].walls[BOT] = volp->z_walls[subvolp[i].z_index];
-	} else {
-		subvolp[i].walls[BOT] = NULL;
-	}
-	if (subvolp[i].z_index < (nz-1)) {
-		subvolp[i].walls[TP] = volp->z_walls[subvolp[i].z_index+1];
-	} else {
-		subvolp[i].walls[TP] = NULL;
-	}
-
-	if (subvolp[i].y_index > 0) {
-		subvolp[i].walls[FRNT] = volp->y_walls[subvolp[i].y_index];
-	} else {
-		subvolp[i].walls[FRNT] = NULL;
-	}
-	if (subvolp[i].y_index < (ny-1)) {
-		subvolp[i].walls[BCK] = volp->y_walls[subvolp[i].y_index+1];
-	} else {
-		subvolp[i].walls[BCK] = NULL;
-	}
-
-	if (subvolp[i].x_index > 0) {
-		subvolp[i].walls[LFT] = volp->x_walls[subvolp[i].x_index];
-	} else {
-		subvolp[i].walls[LFT] = NULL;
-	}
-	if (subvolp[i].x_index < (nx-1)) {
-		subvolp[i].walls[RT] = volp->x_walls[subvolp[i].x_index+1];
-	} else {
-		subvolp[i].walls[RT] = NULL;
-	}
-  }
-
-
-  /* Set wall_type for the partitions */
-  for (i=lower;i<upper;i++) {
-	switch (parallel_x+parallel_y+parallel_z) {
-      case 0:
-      case 3:      /* 3 dim decomposition */
-      break;
-	  case 2:      /* 2 dim decomposition */
-      break;
-	  case 1:      /* 1 dim decomposition */
-	  break;
-	}
-  }
-	
-
-
-#else
-    
-  /* Nasty loop to initialize all the subvols */
-  l=0;
-  for (k=0;k<nz;k++) {
-    for (j=0;j<ny;j++) {
-      for (i=0;i<nx;i++) {
-        subvolp[l].x_index=i;
-        subvolp[l].y_index=j;
-        subvolp[l].z_index=k;
-        if (k<(nz-1)) {
-          subvolp[l].walls[TP]=volp->z_walls[k+1];
-        }
-        else {
-          subvolp[l].walls[TP]=NULL;
-        }
-        if (k>0) {
-          subvolp[l].walls[BOT]=volp->z_walls[k];
-        }
-        else {
-          subvolp[l].walls[BOT]=NULL;
-        }
-        if (j>0) {
-          subvolp[l].walls[FRNT]=volp->y_walls[j];
-        }
-        else {
-          subvolp[l].walls[FRNT]=NULL;
-        }
-        if (j<(ny-1)) {
-        subvolp[l].walls[BCK]=volp->y_walls[j+1];
-        }
-        else {
-          subvolp[l].walls[BCK]=NULL;
-        }
-        if (i>0) {
-          subvolp[l].walls[LFT]=volp->x_walls[i];
-        }
-        else {
-          subvolp[l].walls[LFT]=NULL;
-        }
-        if (i<(nx-1)) {
-          subvolp[l].walls[RT]=volp->x_walls[i+1];
-        }
-        else {
-          subvolp[l].walls[RT]=NULL;
-        }
-        subvolp[l].wall_list=NULL;
-        subvolp[l].end_wall_list=NULL;
-
-        l++;
-      }
-    }
-  }
-#endif
-
-/* indexed by wall_index [0-5] for subvolume wall faces */
-  motion_map[0]=nxy;
-  motion_map[1]=-nxy;
-  motion_map[2]=-nx;
-  motion_map[3]=nx;
-  motion_map[4]=-1;
-  motion_map[5]=1;
-
-/* indexed by region index [0-26] for subvolume neighboring regions */
-/*
-  motion_map[0]=-nxy-nx-1;
-  motion_map[1]=-nxy-nx;
-  motion_map[2]=-nxy-nx+1;
-
-  motion_map[3]=-nxy-1;
-  motion_map[4]=-nxy;
-  motion_map[5]=-nxy+1;
-
-  motion_map[6]=-nxy+nx-1;
-  motion_map[7]=-nxy+nx;
-  motion_map[8]=-nxy+nx+1;
-
-  motion_map[9]=-nx-1;
-  motion_map[10]=-nx;
-  motion_map[11]=-nx+1;
-
-  motion_map[12]=-1;
-  motion_map[13]=0;
-  motion_map[14]=1;
-
-  motion_map[15]=nx-1;
-  motion_map[16]=nx;
-  motion_map[17]=nx+1;
-
-  motion_map[18]=nxy-nx-1;
-  motion_map[19]=nxy-nx;
-  motion_map[20]=nxy-nx+1;
-
-  motion_map[21]=nxy-1;
-  motion_map[22]=nxy;
-  motion_map[23]=nxy+1;
-
-  motion_map[24]=nxy+nx-1;
-  motion_map[25]=nxy+nx;
-  motion_map[26]=nxy+nx+1;
-*/
-
-  no_printf("Done Partitioning Volume.\n");
-  fflush(stderr);
-  return(0);
-}
-
-
-int build_ligand_table()
-{
-  /*build ligand_table*/
-  no_printf("Building molecule table...\n");
-  fflush(stderr);
-  if (ligand_table==NULL) {
-    if ((ligand_table=(struct ligand_info **)malloc
-         ((1+n_ligand_types)*sizeof(struct ligand_info *)))==NULL) {
-      mdlerror_nested("Cannot build molecule table");
-      return(1);
-    }
-    for (i=0;i<1+n_ligand_types;i++) {
-      ligand_table[i]=NULL;
-    }
-    for (i=0;i<SYM_HASHSIZE;i++) { 
-      gp=main_sym_table[i];
-      while (gp!=NULL) {
-        no_printf("found symbol %s of type %d\n",gp->name,gp->sym_type);
-        if (gp->sym_type==LIG) {
-          ligip=(struct ligand_info *)gp->value;
-          ligand_table[ligip->type]=ligip;
-          no_printf("Ligand type %d and address %d added to ligand_table\n",ligip->type,(int)ligip);
-	  fflush(stderr);
-        }
-        gp=gp->next;
-      }
-    }
-  }
-  no_printf("Done building ligand table.\n");
-  fflush(stderr);
-  return(0);
-}
-
-int print_rx()
-{
-  /*print out rx mechanism*/
-  no_printf("Printing out reaction mechanisms...\n");
-  fflush(stderr);
-  for (i=0;i<SYM_HASHSIZE;i++) { 
-    gp=main_sym_table[i];
-    while (gp!=NULL) {
-      if (gp->sym_type==RX) {
-        no_printf("\nAddress of %s = %d\n",gp->name,(int)gp->value);
-        fflush(stderr);
-        rxp=(struct rx *)gp->value;
-        no_printf("Rx index of %s = %d\n",gp->name,rxp->state_index);
-        fflush(stderr);
-        for (j=1;j<1+n_ligand_types;j++) {
-	  no_printf("Number of molecules of type %d bound = %d\n",j,
-		    rxp->bound_ligands[j]);
-	  fflush(stderr);
-        }
-        no_printf("Viz state value of reaction state = %d\n",rxp->viz_state);
-        fflush(stderr);
-        for (j=0;j<1+n_ligand_types;j++) {
-	  rx_dat=rxp->bind_rx[j];
-	  if (rx_dat!=NULL) {
-	    no_printf("Bind rx info for molecules %d\n",j);
-	    fflush(stderr);
-	    temp1=rx_dat->n_rates;
-	    for (k=0;k<temp1;k++) {
-	      no_printf("Rx rate %d = %22.19f\n",k,rx_dat->rate[k]);
-	      no_printf("Rx pointer %d = %d\n",k,(int)rx_dat->next_rx[k]);
-	      no_printf("Rx index %d = %d\n",k,rx_dat->next_state_index[k]);
-	      no_printf("Rx polarity %d = %d\n",k,rx_dat->polarity[k]);
-	      fflush(stderr);
-	    }
-	    no_printf("\n");
-	    fflush(stderr);
-	  }
-        }
-        for (j=0;j<1+n_ligand_types;j++) {
-	  rx_dat=rxp->transport_rx[j];
-	  if (rx_dat!=NULL) {
-	    no_printf("Transport rx info for molecule %d\n",j);
-	    fflush(stderr);
-	    temp1=rx_dat->n_rates;
-	    for (k=0;k<temp1;k++) {
-	      no_printf("Rx rate %d = %22.19f\n",k,rx_dat->rate[k]);
-	      no_printf("Rx pointer %d = %d\n",k,(int)rx_dat->next_rx[k]);
-	      no_printf("Rx index %d = %d\n",k,rx_dat->next_state_index[k]);
-	      no_printf("Rx polarity %d = %d\n",k,rx_dat->polarity[k]);
-	      fflush(stderr);
-	    }
-	    no_printf("\n");
-	    fflush(stderr);
-	  }
-        }
-        for (j=0;j<1+n_ligand_types;j++) {
-	  rx_dat=rxp->dissoc_rx[j];
-	  if (rx_dat!=NULL) {
-	    no_printf("Dissoc rx info for molecule %d\n",j);
-	    fflush(stderr);
-	    temp1=rx_dat->n_rates;
-	    for (k=0;k<temp1;k++) {
-	      no_printf("Rx rate %d = %22.19f\n",k,rx_dat->rate[k]);
-	      no_printf("Rx pointer %d = %d\n",k,(int)rx_dat->next_rx[k]);
-	      no_printf("Rx index %d = %d\n",k,rx_dat->next_state_index[k]);
-	      no_printf("Rx polarity %d = %d\n",k,rx_dat->polarity[k]);
-	      fflush(stderr);
-	    }
-	    no_printf("\n");
-	    fflush(stderr);
-	  }
-        }
-        for (j=0;j<1+n_ligand_types;j++) {
-	  rx_dat=rxp->product_poisson_rx[j];
-	  if (rx_dat!=NULL) {
-	    no_printf("Product Poisson rx info for molecule %d\n",j);
-	    fflush(stderr);
-	    temp1=rx_dat->n_rates;
-	    for (k=0;k<temp1;k++) {
-	      no_printf("Rx rate %d = %22.19f\n",k,rx_dat->rate[k]);
-	      no_printf("Rx pointer %d = %d\n",k,(int)rx_dat->next_rx[k]);
-	      no_printf("Rx index %d = %d\n",k,rx_dat->next_state_index[k]);
-	      no_printf("Rx polarity %d = %d\n",k,rx_dat->polarity[k]);
-	      fflush(stderr);
-	    }
-	    no_printf("\n");
-	    fflush(stderr);
-	  }
-        }
-        for (j=0;j<1+n_ligand_types;j++) {
-	  rx_dat=rxp->product_rx[j];
-	  if (rx_dat!=NULL) {
-	    no_printf("Product rx info for molecule %d\n",j);
-	    fflush(stderr);
-	    temp1=rx_dat->n_rates;
-	    for (k=0;k<temp1;k++) {
-	      no_printf("Rx rate %d = %22.19f\n",k,rx_dat->rate[k]);
-	      no_printf("Rx pointer %d = %d\n",k,(int)rx_dat->next_rx[k]);
-	      no_printf("Rx index %d = %d\n",k,rx_dat->next_state_index[k]);
-	      no_printf("Rx polarity %d = %d\n",k,rx_dat->polarity[k]);
-	      fflush(stderr);
-	    }
-	    no_printf("\n");
-	    fflush(stderr);
-	  }
-        }
-        for (j=0;j<1+n_ligand_types;j++) {
-	  rx_dat=rxp->degrade_rx[j];
-	  if (rx_dat!=NULL) {
-	    no_printf("Degrade rx info for molecule %d\n",j);
-	    fflush(stderr);
-	    temp1=rx_dat->n_rates;
-	    for (k=0;k<temp1;k++) {
-	      no_printf("Rx rate %d = %22.19f\n",k,rx_dat->rate[k]);
-	      no_printf("Rx pointer %d = %d\n",k,(int)rx_dat->next_rx[k]);
-	      no_printf("Rx index %d = %d\n",k,rx_dat->next_state_index[k]);
-	      fflush(stderr);
-	    }
-	    no_printf("\n");
-	    fflush(stderr);
-	  }
-        }
-        for (j=0;j<1;j++) {
-	  rx_dat=rxp->isom_rx;
-	  if (rx_dat!=NULL) {
-	    no_printf("Isom rx info\n");
-	    fflush(stderr);
-	    temp1=rx_dat->n_rates;
-	    for (k=0;k<temp1;k++) {
-	      no_printf("Rx rate %d = %22.19f\n",k,rx_dat->rate[k]);
-	      no_printf("Rx pointer %d = %d\n",k,(int)rx_dat->next_rx[k]);
-	      no_printf("Rx index %d = %d\n",k,rx_dat->next_state_index[k]);
-	      fflush(stderr);
-	    }
-	    no_printf("\n");
-	    fflush(stderr);
-	  }
-        }
-      }
-      gp=gp->next;
-    }
-  }
-  no_printf("Done printing out reaction mechanisms.\n");
-  fflush(stderr);
-  return(0);
-}
-
-#endif
 
