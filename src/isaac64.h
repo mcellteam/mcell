@@ -9,12 +9,14 @@ Modified for modularity by Tom Bartol and Rex Kerr
 #ifndef ISAAC64_H
 #define ISAAC64_H
 
+#include <stdint.h>
+
 #define RANDSIZL   (8)
 #define RANDSIZ    (1<<RANDSIZL)
 #define RANDMAX    (2*RANDSIZ)
 
 typedef unsigned long long ub8;
-typedef unsigned long int  ub4;
+typedef uint32_t  ub4;
 typedef unsigned short int ub2;
 typedef unsigned char      ub1;
 
