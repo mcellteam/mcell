@@ -194,6 +194,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
 	  /* Uh-oh--if we get to this point and we haven't found space, we're blocked */
 	  for (k=0;k<fake_idx;k++)
 	  {
+	    if (glist[k]==NULL) continue;
 	    if (glist[k]->mol[ xlist[k] ] == &fake) glist[k]->mol[xlist[k]]=NULL; /* Remove sentinels */
 	  }
 	  return RX_BLOCKED;
@@ -720,7 +721,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
       reac->properties = NULL;
       return RX_DESTROY;
     }
-    else return RX_A_OK;
+    else return result; /* RX_A_OK or RX_FLIP */
   }
   else /* Grid can't intersect, so this must be a surface molecule */
   {
