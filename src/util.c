@@ -2,6 +2,7 @@
 * An infinite array of doubles cam grow as needed.
 *******************************************************/
 #include "util.h"
+#include <stdint.h>
 #include <memory.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -992,7 +993,7 @@ struct void_list* void_list_sort(struct void_list *vl)
       vl = NULL;
       si++;
     }
-    else if ((int)vl->data <= (int)vl->next->data)
+    else if ((intptr_t)vl->data <= (intptr_t)vl->next->data)
     {
       stack[si] = vl;
       stack_n[si] = 2;
@@ -1016,7 +1017,7 @@ struct void_list* void_list_sort(struct void_list *vl)
 
       left = stack[si-2];
       right = stack[si-1];
-      if ((int)left->data <= (int)right->data) { merge = left; left = left->next; }
+      if ((intptr_t)left->data <= (intptr_t)right->data) { merge = left; left = left->next; }
       else { merge = right; right = right->next; }
       merge->next = NULL;
       tail = merge;
@@ -1034,7 +1035,7 @@ struct void_list* void_list_sort(struct void_list *vl)
           break;
         }
 
-        if ((int)left->data <= (int)right->data)
+        if ((intptr_t)left->data <= (intptr_t)right->data)
         { 
           tail->next = left; tail = left; left = left->next;
         }
@@ -1055,7 +1056,7 @@ struct void_list* void_list_sort(struct void_list *vl)
 
     left = stack[si-2];
     right = stack[si-1];
-    if ((int)left->data <= (int)right->data) { merge = left; left = left->next; }
+    if ((intptr_t)left->data <= (intptr_t)right->data) { merge = left; left = left->next; }
     else { merge = right; right = right->next; }
     merge->next = NULL;
     tail = merge;
@@ -1073,7 +1074,7 @@ struct void_list* void_list_sort(struct void_list *vl)
         break;
       }
 
-      if ((int)left->data <= (int)right->data)
+      if ((intptr_t)left->data <= (intptr_t)right->data)
       { 
         tail->next = left; tail = left; left = left->next;
       }
@@ -1234,7 +1235,7 @@ int void_array_search(void **array,int n,void *to_find)
   {
     m = (hi-lo)/2;
     if (to_find==array[m]) return m;
-    else if ((int)to_find > (int)array[m]) lo=m;
+    else if ((intptr_t)to_find > (intptr_t)array[m]) lo=m;
     else hi=m;
   }
   

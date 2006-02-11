@@ -7,7 +7,7 @@
  **   (See validate_mem_util.c.)                                         **
 \**************************************************************************/
 
-
+#include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -124,7 +124,7 @@ void counter_add(struct counter_helper *ch,void *data)
     new_c->next = NULL;
     new_c->prev = NULL;
     new_c->n = 1;
-    memcpy((void*)(((int)new_c)+sizeof(struct counter_header)),data,ch->data_size);
+    memcpy((void*)(((intptr_t)new_c)+sizeof(struct counter_header)),data,ch->data_size);
     
     ch->head = new_c;
     ch->n_unique++;
@@ -152,7 +152,7 @@ void counter_add(struct counter_helper *ch,void *data)
         new_c->next = c;
         new_c->prev = prev_c;
         new_c->n = 1;
-        memcpy((void*)(((int)new_c)+sizeof(struct counter_header)),data,ch->data_size);
+        memcpy((void*)(((intptr_t)new_c)+sizeof(struct counter_header)),data,ch->data_size);
         
         if (prev_c != NULL) prev_c->next = new_c;
         c->prev = new_c;
@@ -172,7 +172,7 @@ void counter_add(struct counter_helper *ch,void *data)
           new_c->next = NULL;
           new_c->prev = c;
           new_c->n = 1;
-          memcpy((void*)(((int)new_c)+sizeof(struct counter_header)),data,ch->data_size);
+          memcpy((void*)(((intptr_t)new_c)+sizeof(struct counter_header)),data,ch->data_size);
           
           c->next = new_c;
           
@@ -560,7 +560,6 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
     
     for (span=2;span<good;span*=2)
     {
-      noprintf("SPAN %d good %d using %x\n",span,good,(unsigned int)space);
       j = shp->index-1;
 
       for (i=good;i-span>0;i-=2*span)
@@ -601,13 +600,8 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
     
     if ((unsigned char*)data != shp->data)
     {
-      noprintf("SHP gets %x, leaves %x\n",(unsigned int)data,(unsigned int)shp->data);
       space = (double**)shp->data;
       shp->data = (unsigned char*)data;
-    }
-    else
-    {
-      noprintf("SHP has %x, left %x\n",(unsigned int)data,(unsigned int)space);
     }
     
     nsorted += good;
@@ -623,7 +617,6 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
         
     for (shp = sh->next; shp != NULL; shp = shp->next)
     {
-      noprintf("sh @ %x ; shp @ %x\n",(unsigned int)sh,(unsigned int)shp);
       shq = sh;
       data = (double**)shp->data;
       data2 = (double**)shq->data;
@@ -633,7 +626,6 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
       j = sh->index-1;
       data2 = (double**)shq->data;
 
-      noprintf("Left @ %x, right @ %x\n",(unsigned int)data,(unsigned int)data2);
       for (i=0;i<iL;i++) if (*data[i] < *data[i+1]) noprintf("Boggled L [%d] %.1f %.1f!\n",i,*data[i],*data[i+1]);
       for (i=0;i<iR;i++) if (*data2[i] < *data2[i+1]) noprintf("Boggled R [%d] %.1f %.1f!\n",i,*data2[i],*data2[i+1]);
 
@@ -651,15 +643,10 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
         }
           
         
-        if (iL < 0)
-        {
-          noprintf("iL<0\n",(unsigned int)data);
-          break;
-        }
+        if (iL < 0) { break; }
         
         if (j < 0)
         {
-          noprintf("j<0, putting %x into shq, using %x\n",(unsigned int)space,(unsigned int)temp2);
           shq->data = (unsigned char*) space;
           space = temp2;
           temp2 = NULL;
@@ -668,7 +655,6 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
         
         if (iR < 0)
         {
-          noprintf("iR<0, keeping %x as temp2, shq @ %x\n",(unsigned int)data2,(unsigned int)shq->next);
           temp2 = data2;
           shq = shq->next;
           data2 = (double**)shq->data;
@@ -687,12 +673,10 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
           }
           temp2 = data2;
           shq = shq->next;
-          noprintf("shq @ %x, keeping %x as temp2\n",(unsigned int)shq,(unsigned int)temp2);
         }
         
         while (shq != shp->next)
         {
-          noprintf("shq gets %x, %x kept, shq @ %x\n",(unsigned int)space,(unsigned int)shq->data,(unsigned int)shq->next);
           data2 = (double**)shq->data;
           shq->data = (unsigned char*) space;
           space = data2;
@@ -706,7 +690,6 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
           space[j--] = data[iL--];
           noprintf("Finishing: Left %d -> %d = %.1f\n",iL+1,j+1,*space[j+1]);
         }
-        noprintf("shp gets %x, %x kept\n",(unsigned int)space,(unsigned int)data);
         shp->data = (unsigned char*) space;
         space = data;
       }

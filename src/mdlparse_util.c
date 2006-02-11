@@ -2386,7 +2386,6 @@ void remove_gaps_from_regions(struct object *ob)
       bit_operation(po->side_removed,rl->reg->membership,'+');
       set_all_bits(rl->reg->membership,0);
     }
-    else no_printf("Found a region with surface class %x stored at %x\n",(int)rl->reg->surf_class,(int)&(rl->reg->surf_class));
   }
   
   missing=0;
