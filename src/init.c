@@ -1307,14 +1307,19 @@ int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_n
  */
 int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj *vizp, struct lig_count_ref *obj_lcrp, char *full_name)
 {
+// #define INIT_VERTEX_NORMALS
+// Uncomment to compute vertex normals
   FILE *log_file;
   struct polygon_object *pop;
   struct ordered_poly *opp;
   struct vector3 *v,**vp;
-  struct vector3 *vertex_normal;
   struct wall *w,**wp;
   struct viz_child *vcp;
-  double p[1][4],origin[1][4];
+  double p[1][4];
+#ifdef INIT_VERTEX_NORMALS
+  struct vector3 *vertex_normal;
+  double origin[1][4];
+#endif
   double total_area;
   int i,n_verts,n_walls,index_0,index_1,index_2;
   unsigned short l,m,n;
@@ -1358,15 +1363,14 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
 
     compute_vertex_normals=0;
 
-/* The following is commented out to deactivate computation of vertex normals.
-   If we want vertex normals we'll have to add a place to store them
+/* If we want vertex normals we'll have to add a place to store them
    in struct object.
 */
-/*
+#ifdef INIT_VERTEX_NORMALS
     if (opp->normal!=NULL) {
       compute_vertex_normals=1;
     }
-*/
+#endif
 
     if (vizp!=NULL && objp->viz_state!=NULL) {
       if ((vcp=(struct viz_child *)malloc
@@ -1392,6 +1396,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
       v[i].y=p[0][1]/world->length_unit;
       v[i].z=p[0][2]/world->length_unit;
 
+#ifdef INIT_VERTEX_NORMALS
       if (compute_vertex_normals) {
         p[0][0]=opp->normal[i].x;
         p[0][1]=opp->normal[i].y;
@@ -1408,6 +1413,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
         vertex_normal[i].z=p[0][2]-origin[0][2];
         normalize(&vertex_normal[i]);
       }
+#endif
     }
 
     for (i=0;i<n_walls;i++) {

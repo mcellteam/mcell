@@ -580,8 +580,6 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
     }
     else /* Grid mol */
     {
-      struct vector3 loc;
-      
       g = (struct grid_molecule*)me;
       m = NULL;
       uv2xyz(&(g->s_pos),g->grid->surface,&loc);

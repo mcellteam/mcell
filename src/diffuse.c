@@ -341,12 +341,12 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
   
   upperU = lowerU = upperV = lowerV = 1.0;
   
-  idx = world->num_directions;
-  while (idx >= world->num_directions)
+  do
   {
     bits = rng_uint(world->rng);
     idx = bits & world->directions_mask;
-  }
+  } while (idx >= world->num_directions);
+  
   idx *= 3;
   if (bits&0x80000000) u.x = world->d_step[idx]; else u.x = -world->d_step[idx];
   if (bits&0x40000000) u.y = world->d_step[idx+1]; else u.y = -world->d_step[idx+1];
@@ -704,6 +704,8 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
   R2 = R*R;
   m2_i = 1.0/(mv->x*mv->x + mv->y*mv->y + mv->z*mv->z);
   uncoordinated = 1;
+  Lmuv.m = Lmuv.u = Lmuv.v = 0.0;  /* Keep compiler happy */
+  g.u = g.v = g.r2 = g.zeta = 0.0; /* More compiler happiness */
 
   /* Find walls that occlude the interaction disk (or block the reaction) */
   for (wl=sv->wall_head;wl!=NULL;wl=wl->next)
