@@ -796,6 +796,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           rx->next->prob_t = NULL;
           
           rx->next->pathway_head = NULL;
+	  rx->next->info = NULL;
           
           last_path = rx->pathway_head;
           for (path=rx->pathway_head->next ; path != NULL ; last_path = path , path = path->next)
@@ -1170,28 +1171,37 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           }
         }
 	
-	if (rx->n_pathways>1)  /* Convert linked list into array */
+	/* Move counts from list into array */
+	if (rx->n_pathways > 0)
 	{
-	  struct pathway *temp_p;
-	  struct pathway_count_request *pcr;
-	  temp_p = (struct pathway*)malloc(rx->n_pathways*sizeof(struct pathway));
-	  if (temp_p==NULL) return 1;
-	  
+          struct pathway_count_request *pcr;
+  
+	  rx->info = (struct pathway_info*) malloc(rx->n_pathways*sizeof(struct pathway_info));
+	  if (rx->info==NULL) return 1;
+	    
 	  for ( j=0,path=rx->pathway_head ; path!=NULL ; j++,path=path->next )
 	  {
+	    rx->info[j].count = 0;
+	    rx->info[j].pathname = path->pathname;    /* Keep track of named rxns */
+  
 	    for (pcr=path->pcr ; pcr!=NULL ; pcr=pcr->next) /* Fix count references */
 	    {
-	      pcr->requester->temp_data = &(temp_p[j].count);
+	      pcr->requester->temp_data = &(rx->info[j].count);
 	    }
-	    memcpy(&(temp_p[j]),path,sizeof(struct pathway));
-	    temp_p[j].next = path;  /* Store list elts so we can free them */
 	  }
-	  for ( j=0 ; j<rx->n_pathways ; j++ ) mem_put(mpvp->path_mem,temp_p[j].next);
+	}
+	else /* Special reaction, only one exit pathway */
+	{
+	  struct pathway_count_request *pcr;
 	  
-	  /* Fix it up so we can still use it as a linked list if we want */
-	  for ( j=1 ; j<rx->n_pathways ; j++ ) temp_p[j-1].next = &(temp_p[j]);
-	  temp_p[rx->n_pathways-1].next = NULL;
-	  rx->pathway_head = temp_p;
+	  rx->info = (struct pathway_info*)malloc(sizeof(struct pathway_info));
+	  rx->info[0].count = 0;
+	  rx->info[0].pathname = rx->pathway_head->pathname;
+	  
+	  for (pcr=path->pcr ; pcr!=NULL ; pcr=pcr->next) /* Fix count references */
+	  {
+	    pcr->requester->temp_data = &(rx->info[0].count);
+	  }
 	}
         
         rx = rx->next;

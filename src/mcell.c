@@ -293,7 +293,7 @@ void run_sim(void)
       fprintf(world->log_file,"\n");
       for (j=0;j<rxp->n_pathways;j++)
       {
-        fprintf(world->log_file,"  Count %g: ->",rxp->pathway_head[j].count);
+        fprintf(world->log_file,"  Count %g: ->",rxp->info[j].count);
         for (k=rxp->product_idx[j] ; k<rxp->product_idx[j+1] ; k++)
         {
           if (rxp->players[k]!=NULL) fprintf(world->log_file," %s{%d}",rxp->players[k]->sym->name,rxp->geometries[k]);

@@ -214,8 +214,8 @@
 
 
 /* How big will we let the reaction table get? */
-/* 0x100000 = 2 million */
-#define MAX_RX_HASH 0x100000
+/* 0x400000 = 8 million */
+#define MAX_RX_HASH 0x400000
 
 /* How big will we let the count-by-region table get? */
 /* 0x10000 = 128K */
@@ -326,11 +326,11 @@
 /*******************************************************/
 
 /* Parser parameters.  Probably need to be revisited. */
-/* size of symbol hash table */
-#define SYM_HASHSIZE 0x20000
+/* size of symbol hash table 0x100000 = 1M */
+#define SYM_HASHSIZE 0x100000
 
 /* mask for symbol table hash */
-#define SYM_HASHMASK 0x1ffff
+#define SYM_HASHMASK 0x0FFFFF
 
 /* maximum number of args allowed in MDL "C"-style print statements */
 #define ARGSIZE 255
@@ -548,7 +548,8 @@ struct rxn
 
   struct t_func *prob_t;     /* List of probabilities changing over time */
   
-  struct pathway *pathway_head; /* list/array of pathways built at parse-time */
+  struct pathway *pathway_head; /* list of pathways built at parse-time */
+  struct pathway_info *info; /* Counts and names for each pathway */
 };
 
 
@@ -559,6 +560,8 @@ struct rxn_group
 };
 
 
+/* Named reaction.  Pathway may be NULL during running of simulation; it
+is only needed during parsing. */
 struct rxn_pathname {
   struct sym_table *sym;
   u_int hashval;
@@ -567,6 +570,7 @@ struct rxn_pathname {
 
 
 /* Parse-time structure for reaction pathways */
+/* Everything except pathname can be deallocated after prepare_reactions */
 struct pathway {
   struct pathway *next;
   struct rxn_pathname *pathname; /* data for named reaction pathway or NULL */
@@ -590,6 +594,14 @@ struct product {
   struct species *prod;          /* Molecule type to be created */
   short orientation;             /* Orientation to place molecule */
 };
+
+/* Run-time info for each pathway */
+struct pathway_info
+{
+  double count;
+  struct rxn_pathname *pathname;
+};
+  
 
 
 /* Piecewise constant function for time-varying reaction rates */

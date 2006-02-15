@@ -80,7 +80,7 @@ register ub1 *k;        /* the key */
 {
    register ub4 a,b,c,len,initval,length;
    /* Set up the internal state */
-   length=strlen(k);	/* the length of the key */
+   length=strlen((char*)k);	/* the length of the key */
    initval=0;		  
    len = length;
    a = b = 0x9e3779b9;  /* the golden ratio; an arbitrary value */
@@ -314,6 +314,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       rxnp->n_skipped=0;
       rxnp->prob_t=NULL;
       rxnp->pathway_head=NULL;
+      rxnp->info=NULL;
       break;
     case RXPN:
       if ((vp=(void *)malloc(sizeof(struct rxn_pathname)))==NULL) {
