@@ -1198,7 +1198,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  rx->info[0].count = 0;
 	  rx->info[0].pathname = rx->pathway_head->pathname;
 	  
-	  for (pcr=path->pcr ; pcr!=NULL ; pcr=pcr->next) /* Fix count references */
+	  for (pcr=rx->pathway_head->pcr ; pcr!=NULL ; pcr=pcr->next) /* Fix count references */
 	  {
 	    pcr->requester->temp_data = &(rx->info[0].count);
 	  }
