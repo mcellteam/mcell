@@ -786,7 +786,7 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct molecule *m,int n)
               
               if (l!=COLLIDE_MISS)
               {
-                for (rl=wl->this_wall->regions ; rl!=NULL ; rl=rl->next)
+                for (rl=wl->this_wall->counting_regions ; rl!=NULL ; rl=rl->next)
                 {
                   if (l==COLLIDE_FRONT || l==COLLIDE_BACK)
                   {
@@ -934,7 +934,7 @@ int release_inside_regions(struct release_site_obj *rso,struct molecule *m,int n
           bad_location = 1;
           break;
         }
-        for (rl=wl->this_wall->regions ; rl!=NULL ; rl=rl->next)
+        for (rl=wl->this_wall->counting_regions ; rl!=NULL ; rl=rl->next)
         {
           rl2 = (struct region_list*)mem_get(sv->local_storage->regl);
           rl2->reg = rl->reg;

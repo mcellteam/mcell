@@ -205,7 +205,7 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
 	       (hit.x-outside.x)*delta.x + (hit.y-outside.y)*delta.y + (hit.z-outside.z)*delta.z < 0) continue;
       else
       {
-        for (xrl=wl->this_wall->regions ; xrl != NULL ; xrl = xrl->next)
+        for (xrl=wl->this_wall->counting_regions ; xrl != NULL ; xrl = xrl->next)
         {
           if ((xrl->reg->flags & COUNT_CONTENTS) != 0)
           {
@@ -539,7 +539,7 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
 
     if (w->flags & COUNT_flag)
     {
-      for (rl=w->regions ; rl!=NULL ; rl=rl->next)
+      for (rl=w->counting_regions ; rl!=NULL ; rl=rl->next)
       {
         i = (rl->reg->hashval ^ desired_hash) & world->count_hashmask;
         if (i==0) i = desired_hash & world->count_hashmask;
@@ -664,7 +664,7 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
           if (j!=COLLIDE_MISS && t <= t_sv_hit &&
 	    (hit.x-loc.x)*delta.x + (hit.y-loc.y)*delta.y + (hit.z-loc.z)*delta.z < 0)
           {
-            for (rl=wl->this_wall->regions ; rl!=NULL ; rl=rl->next)
+            for (rl=wl->this_wall->counting_regions ; rl!=NULL ; rl=rl->next)
             {
               if ( (rl->reg->flags & COUNT_flag) != 0 )
               {

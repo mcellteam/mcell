@@ -1,6 +1,8 @@
 #ifndef REACT_OUTPUT_H
 #define REACT_OUTPUT_H
 
+#include "mcell_structs.h"
+
 /* Header file for reaction output routines */
 
 int emergency_output();

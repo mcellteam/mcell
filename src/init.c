@@ -1639,8 +1639,8 @@ int init_wall_regions(struct object *objp, char *full_name)
 	      return 1;
 	    }
 	    wrlp->reg=rp;
-	    wrlp->next=w->regions;
-	    w->regions=wrlp;
+	    wrlp->next=w->counting_regions;
+	    w->counting_regions=wrlp;
 	    w->flags|=rp->flags;
 	  }
 

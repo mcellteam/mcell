@@ -722,7 +722,7 @@ struct wall
   struct object *parent_object;   /* The object we are a part of */
   struct storage *birthplace;     /* Where we live in memory */
   
-  struct region_list *regions;    /* Regions that contain this wall */
+  struct region_list *counting_regions; /* Counted-on regions containing this wall */
 };
 
 

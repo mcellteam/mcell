@@ -3402,7 +3402,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 		  {
 		    if ( (sm->flags & w->flags & COUNT_HITS) )
 		    {
-		      update_collision_count(sm,w->regions,k,1,rate_factor * w->effectors->binding_factor);
+		      update_collision_count(sm,w->counting_regions,k,1,rate_factor * w->effectors->binding_factor);
 		    }
 		    if ((m->flags&COUNT_ME)!=0)
 		    {
@@ -3415,7 +3415,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 		  else if (l==RX_DESTROY)
 		  {
 		    if ( (sm->flags & w->flags & COUNT_HITS) )
-		      update_collision_count(sm,w->regions,k,0,rate_factor);
+		      update_collision_count(sm,w->counting_regions,k,0,rate_factor);
 		    
 		    CLEAN_AND_RETURN(NULL);
 		  }
@@ -3440,7 +3440,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	      rx->n_occurred++;
 	      if ( (sm->flags & COUNT_HITS) )
 	      {
-		update_collision_count(sm,w->regions,k,1,rate_factor);
+		update_collision_count(sm,w->counting_regions,k,1,rate_factor);
 	      }
 	      if ((m->flags&COUNT_ME)!=0)
 	      {
@@ -3464,7 +3464,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	      {
 		if ( (sm->flags & COUNT_HITS) )
 		{
-		  update_collision_count(sm,w->regions,k,1,rate_factor);
+		  update_collision_count(sm,w->counting_regions,k,1,rate_factor);
 		}
 		if ((m->flags&COUNT_ME)!=0)
 		{
@@ -3477,7 +3477,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	      else if (j==RX_DESTROY)
 	      {
 		if ( (sm->flags & COUNT_HITS) )
-		  update_collision_count(sm,w->regions,k,0,rate_factor);
+		  update_collision_count(sm,w->counting_regions,k,0,rate_factor);
 
 		CLEAN_AND_RETURN(NULL);
 	      }
@@ -3487,7 +3487,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	
         /* default is to reflect */
         
-	if ( (sm->flags & COUNT_HITS) ) update_collision_count(sm,w->regions,k,0,rate_factor);
+	if ( (sm->flags & COUNT_HITS) ) update_collision_count(sm,w->counting_regions,k,0,rate_factor);
 	if (m->flags&COUNT_ME)
 	{
 	  m->flags -= COUNT_ME;

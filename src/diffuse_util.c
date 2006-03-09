@@ -277,7 +277,7 @@ init_d_step:
 #define RAD_2_DEG 57.29577951308232087684
 /* Multiply by this factor (Pi/180) to convert from degrees to radians */
 
-double* init_d_step(int radial_directions,u_int *actual_directions)
+double* init_d_step(int radial_directions,unsigned int *actual_directions)
 {   
   FILE *log_file;
   double z;
