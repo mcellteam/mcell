@@ -163,6 +163,7 @@ int init_sim(void)
   /*world->chkpt_init=1; */  /* set in the main() */
   world->chkpt_flag=0;
   world->molecule_prefix_name=NULL;
+  world->file_prefix_name=NULL;
   world->random_number_use=0;
   world->ray_voxel_tests=0;
   world->ray_polygon_tests=0;
@@ -204,8 +205,8 @@ int init_sim(void)
   world->y_fineparts = NULL;
   world->z_fineparts = NULL;
   world->n_fineparts = 0;
-  world->my_counter = 0;
   
+  world->viz_output_flag = 0; 
   world->use_expanded_list=1;
   world->randomize_gmol_pos=0;
   world->vacancy_search_dist2=0;
@@ -308,7 +309,7 @@ int init_sim(void)
   world->release_event_queue_head=NULL;
   world->tot_mols=0;
   world->viz_obj_head=NULL;
-  world->viz_mode=DX_MODE;
+  world->viz_mode=DREAMM_V3_MODE;
   world->rk_mode_var=NULL;
   world->frame_data_head=NULL;
 
@@ -349,7 +350,7 @@ int init_sim(void)
   }
   no_printf("Done parsing MDL file: %s\n",world->mdl_infile_name);
   fflush(stderr);
- 
+
   /* Set up the array of species */
   if (init_species())
   {
@@ -357,6 +358,29 @@ int init_sim(void)
     return(1);
   }
   no_printf("Done setting up species.\n");
+  
+
+  /* Visualize all molecules if asked in "mdl" file */
+  if(world->viz_mode == DREAMM_V3_MODE)
+  {
+    if((world->viz_output_flag & VIZ_ALL_MOLECULES) != 0) {
+       struct species *sp;
+  
+      for(i = 0; i < world->n_species; i++)
+      {
+         sp = world->species_list[i];
+         if((sp->flags & IS_SURFACE) != 0) continue;
+         if(strcmp(sp->sym->name, "GENERIC_MOLECULE") == 0) continue;  
+
+         /* set viz_state to INCLUDE_OBJ for the molecule we want to visualize
+             but will not assign state value */
+         sp->viz_state = INCLUDE_OBJ;
+
+      } 
+
+    }
+  }
+
 
  /* If there are no 3D molecules-reactants in the simulation
     set up the"use_expanded_list" flag to zero. */
@@ -466,7 +490,7 @@ int init_sim(void)
    *Initialize the frame data list for the visualization 
    *and reaction output.
    **/
-  init_frame_data_list(world->frame_data_head);
+  init_frame_data_list(world->frame_data_head); 
 /*
   init_reaction_list(reaction_data_head);
 */
@@ -534,7 +558,7 @@ int init_sim(void)
 
 /********************************************************************
 init_species: 
-   Initializes array of molecules to the default properties values.
+   Initializes array of molecules types to the default properties values.
 
 *********************************************************************/
 int init_species(void)
@@ -618,7 +642,6 @@ int init_species(void)
    
   return 0;
 }
-
 
 
 /* This is just a placeholder for now. */
@@ -1371,8 +1394,11 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
       compute_vertex_normals=1;
     }
 #endif
+   if(vizp!=NULL)
+   {
+     if((world->viz_mode == DREAMM_V3_MODE) || (objp->viz_state!=NULL))
+     {
 
-    if (vizp!=NULL && objp->viz_state!=NULL) {
       if ((vcp=(struct viz_child *)malloc
            (sizeof(struct viz_child)))==NULL) {
 		fprintf(stderr,"Out of memory:trying to save intermediate results.\n");
@@ -1384,7 +1410,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
       vcp->next = vizp->viz_child_head;
       vizp->viz_child_head = vcp;
     }
- 
+  }  
     for (i=0;i<n_verts;i++) {
       vp[i]=&v[i];
       p[0][0]=opp->vertex[i].x;
@@ -1582,6 +1608,7 @@ int init_wall_regions(struct object *objp, char *full_name)
    
     no_printf("Processing %d regions in polygon list object: %s\n",objp->num_regions,full_name);
 
+
   /* allocate scratch storage to hold effector info for each wall */
     if ((eff_prop=(struct eff_dat **)malloc(n_walls*sizeof(struct eff_dat *)))==NULL)
     {
@@ -1626,12 +1653,13 @@ int init_wall_regions(struct object *objp, char *full_name)
       {
 	if (get_bit(rp->membership,i)) {
 
+
 	  /* prepend this region to wall region list of i_th wall
 	     only if the region is used in counting */
 	  w=objp->wall_p[i];
 	  rp->area += w->area;
 	  if ((rp->flags & COUNT_SOME) !=0)
-	  {
+	  {  
 	    wrlp = (struct region_list *)mem_get(w->birthplace->regl);
 	    if (wrlp==NULL)
 	    {
@@ -1642,7 +1670,7 @@ int init_wall_regions(struct object *objp, char *full_name)
 	    wrlp->next=w->counting_regions;
 	    w->counting_regions=wrlp;
 	    w->flags|=rp->flags;
-	  }
+	  } 
 
 
 	  /* prepend region eff data for this region
@@ -1666,7 +1694,7 @@ int init_wall_regions(struct object *objp, char *full_name)
 	      reg_eff_num=1;
 	    }
 	    effdp=effdp->next;
-	  }
+	  } /*end (while (effdp != NULL) */
 
 	  /* prepend surf_class eff data for this region
 	    to eff_prop for i_th wall */
@@ -1691,7 +1719,7 @@ int init_wall_regions(struct object *objp, char *full_name)
 		reg_eff_num=1;
 	      }
 	      effdp=effdp->next;
-	    }
+	    } /* end while(effdp != NULL) */
 	  }
 
 	}
@@ -1729,7 +1757,7 @@ int init_wall_regions(struct object *objp, char *full_name)
       }
 
       rlp=rlp->next;
-    }
+    } /*end while (rlp != NULL) */
 
     for (i=0;i<n_walls;i++) {
       if (!get_bit(pop->side_removed,i)) {

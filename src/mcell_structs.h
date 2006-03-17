@@ -320,6 +320,10 @@
 #define EFFDENS 0
 #define EFFNUM 1
 
+/* Viz output options */
+#define VIZ_ALL_MOLECULES 0x001
+#define VIZ_MOLECULES_STATES 0x002
+#define VIZ_SURFACE_STATES 0x004
 
 /*******************************************************/
 /**  Old constants copied from MCell2, may be broken  **/
@@ -409,7 +413,8 @@
                    
                                                              
 /* Viz state values */
-#define EXCLUDE_OBJ INT_MIN
+#define EXCLUDE_OBJ INT_MIN /*object is not visualized */
+#define INCLUDE_OBJ INT_MAX /*object is visualized but state value is not set*/
 
 
 /* output evaluator specifications. Broken until we finish rxn counting */
@@ -466,11 +471,14 @@
 #define EFF_POS 1
 #define EFF_STATES 2
 #define MOL_POS 3
-#define MOL_STATES 4
-#define MOL_POS_STATES 5
-#define SURF_POS 6
+#define MOL_ORIENT 4
+#define MOL_STATES 5
+#define SURF_POS 6 
 #define SURF_STATES 7
-
+#define MESH_GEOMETRY 8
+#define REG_DATA 9
+#define ALL_MOL_DATA  10
+#define ALL_MESH_DATA 11
 
 /* release number methods */
 #define CONSTNUM 0
@@ -523,6 +531,8 @@ struct species
   double cum_lifetime;          /* Timesteps lived by destroyed molecules */
  
   int viz_state;                /* Visualization state for output */
+  int region_viz_value;         /* Visualization state for surface class 
+                                   for output */
   byte checked;                 /* Bread crumb for graph traversal */
 };
 
@@ -1018,8 +1028,8 @@ struct volume
   byte voxel_volume_mode;
   char *molecule_prefix_name;
   char *file_prefix_name;
-  double my_counter;
   char *mcell_version; 
+  u_short viz_output_flag; /*takes  VIZ_ALL_MOLECULES  */
  
   /* Optional stuff */
   int use_expanded_list;
@@ -1164,12 +1174,12 @@ struct release_evaluator
 /* Holds information about a box with rectangular patches on it. */
 struct subdivided_box
 {
-  int nx;
-  int ny;
-  int nz;
-  double *x;
-  double *y;
-  double *z;
+  int nx; /* number of subdivisions including box corners in X-direction */
+  int ny; /* number of subdivisions including box corners in Y-direction */
+  int nz; /* number of subdivisions including box corners in Z-direction */
+  double *x;  /* array of X-coordinates of subdivisions */
+  double *y;  /* array of Y-coordinates of subdivisions */
+  double *z;  /* array of Z-coordinates of subdivisions */
 };
 
 /******************************************************************/
@@ -1449,8 +1459,8 @@ struct eff_dat {
  */
 struct element_list {
         struct element_list *next;
-        u_int begin;
-        u_int end;
+        u_int begin; /*first number in the list of numbers */
+        u_int end;   /* last number in the list of numbers */
 	struct element_special *special;
 };
 
@@ -1478,8 +1488,10 @@ struct region {
 	struct reg_counter_ref_list *reg_counter_ref_list;
 	struct eff_dat *eff_dat_head;
         struct species *surf_class;
-        struct vector3 *bbox;  /* Vector of length 2, may be null */
-	double area;
+        struct vector3 *bbox;  /* Vector of length 2, may be null 
+                                 - NOT IMPLEMENTED yet*/
+        int region_viz_value; /* used for visualization */
+	double area; 
         u_short flags;
         byte manifold_flag;
 };
@@ -1575,7 +1587,7 @@ struct viz_obj
 {
 	struct viz_obj *next;
 	char *name;            /* name taken from OBJECT_FILE_PREFIXES
-                                  assignment  */
+                                 or FILENAME_PREFIXES assignment  */
         char *full_name;       /* full name of the object, like A.B.C */
 	struct object *obj;
 	struct viz_child *viz_child_head;
@@ -1589,6 +1601,7 @@ struct viz_child {
   struct viz_child *next;
   struct object *obj;
 };
+
 
 /**
  * Geometric transformation data for a physical object.

@@ -236,6 +236,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       specp->cum_lifetime=0.0;
       
       specp->viz_state=EXCLUDE_OBJ;
+      specp->region_viz_value = EXCLUDE_OBJ;
 /*
       specp->transition_count_each=NULL;
       specp->transition_count_all=NULL;
@@ -344,6 +345,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       rp->membership=NULL;
       rp->eff_dat_head=NULL;
       rp->surf_class=NULL;
+      rp->region_viz_value=EXCLUDE_OBJ;
       rp->reg_counter_ref_list=NULL;
       rp->bbox=NULL;
       rp->area=0.0;

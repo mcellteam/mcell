@@ -12,28 +12,39 @@
 #include "util.h"
 
 extern struct volume *world;
-/* serial # of the frame_iteration in the linked list.
- each frame may have several iterations */
-static long long frames_iterations_count = 0;
-/* total # of frames_iterations in the linked list*/	
-static long long total_frames_iterations = 0; 
+/* last iteration number in the simulation */
+static long long last_iteration = 0; 
 static int obj_to_show_number; /* number of viz_obj objects in the world */
 static int eff_to_show_number; /* number of types of effectors */ 
 static int mol_to_show_number; /* number of types of 3D mol's */
-/* arrays used in the functions 'output_dreamm_objects_some_frame_data()' 
-   and 'output_dreamm_objects_all_frame_data()'.      */
+
+/* these arrays are used to hold values of main_index for objects */
 u_int *surf_states = NULL;
 u_int *surf_pos = NULL;
 u_int *surf_con = NULL;
-char **obj_names = NULL;
+u_int *surf_field_indices = NULL;
 u_int *eff_pos = NULL;
 u_int *eff_orient = NULL;
 u_int *eff_states = NULL;
-char **eff_names = NULL;
+u_int *eff_field_indices = NULL;
 u_int *mol_pos = NULL;
 u_int *mol_orient = NULL;
 u_int *mol_states = NULL;
+u_int *mol_field_indices = NULL;
+/* array of viz_objects names */
+char **obj_names = NULL;
+/* array of volume_molecule names */
 char **mol_names = NULL;
+/* array of surface_molecule (effectors) names */
+char **eff_names = NULL;
+/* 2-dimensional array of regions names for each object. 
+   First index refers to the object, second - to the regions. */
+char  ***region_names = NULL; 
+/* array that holds number of regions for each object */
+int *obj_num_regions = NULL;
+/* 2-dimensional array of regions indices for each object. 
+   First index refers to the object, second - to the regions indices. */
+int  **surf_region_values = NULL; 
 
 /**************************************************************************
 update_frame_data_list:
@@ -51,18 +62,14 @@ void update_frame_data_list(struct frame_data_list *fdlp)
   while (fdlp!=NULL) {
     if(world->it_time==fdlp->viz_iterationll)
     {
+      
       switch (world->viz_mode)
       {
 	case DX_MODE:
           output_dx_objects(fdlp);
 	  break;
 	case DREAMM_V3_MODE:
-          if(fdlp->type == ALL_FRAME_DATA) output_dreamm_objects_all_frame_data(fdlp);
-          else
-	  {
-            frames_iterations_count++;
-            output_dreamm_objects_some_frame_data(fdlp);
-	  }
+          output_dreamm_objects(fdlp);
 	  break;
 	case RK_MODE:
           output_rk_custom(fdlp);
@@ -108,8 +115,15 @@ init_frame_data:
 void init_frame_data_list(struct frame_data_list *fdlp)
 {
   struct num_expr_list *nelp;
-  int done, ii;
-  struct species **species_list;
+  int done, ii, jj;
+  struct species *sp;
+  int mol_orient_frame_present = 0;
+  int mol_pos_frame_present = 0;
+  int reg_data_frame_present = 0;
+  int mesh_geometry_frame_present = 0;
+  FILE *log_file;
+
+  log_file=world->log_file;
 
   while (fdlp!=NULL) {
     fdlp->viz_iterationll=-1;
@@ -122,11 +136,16 @@ void init_frame_data_list(struct frame_data_list *fdlp)
 	fdlp->n_viz_iterations++;
 	if (!done) {
 	  if (nelp->value>=world->start_time) {
-          fdlp->viz_iterationll=(long long)nelp->value;
-          fdlp->curr_viz_iteration=nelp;
-          done=1;
+             fdlp->viz_iterationll=(long long)nelp->value;
+             fdlp->curr_viz_iteration=nelp;
+             done=1;
 	  }
 	}
+        
+        if((long long)(nelp->value) > last_iteration){
+             last_iteration = (long long)(nelp->value);
+        }
+         
 	nelp=nelp->next;
       }
       break;
@@ -139,7 +158,10 @@ void init_frame_data_list(struct frame_data_list *fdlp)
 	    fdlp->curr_viz_iteration=nelp;
 	    done=1;
 	  }
-      }
+        }
+        if((long long)(nelp->value/world->time_unit + ROUND_UP) > last_iteration){
+             last_iteration = (long long)(nelp->value);
+        }
 	nelp=nelp->next;
       }
       break;
@@ -147,15 +169,28 @@ void init_frame_data_list(struct frame_data_list *fdlp)
          fprintf(stderr,"MCell: error - wrong frame_data_list list_type %d\n", fdlp->list_type);
          break;
     }
+        
+    if(fdlp->type == MOL_ORIENT) {
+        mol_orient_frame_present = 1;
+    }
+    if(fdlp->type == MOL_POS) {
+        mol_pos_frame_present = 1;
+    }
+    if(fdlp->type == MESH_GEOMETRY) {
+        mesh_geometry_frame_present = 1;
+    }
+    if(fdlp->type == REG_DATA) {
+        reg_data_frame_present = 1;
+    }
+
     fdlp=fdlp->next;
   }
 
-  struct frame_data_list *fdl_ptr = world->frame_data_head;
-  /* Count total number of frames miltiplied by the number
-     of iterations per frame in the linked list of frames. */  
-  while(fdl_ptr != NULL){
-	total_frames_iterations += (fdl_ptr->n_viz_iterations);
-        fdl_ptr = fdl_ptr->next;
+  if((mol_orient_frame_present) & (!mol_pos_frame_present)){
+     fprintf(log_file, "The input file contains ORIENTATIONS but not POSITIONS statement in the MOLECULES block. The molecules cannot be visualized.\n");
+  }
+  if((reg_data_frame_present) & (!mesh_geometry_frame_present)){
+     fprintf(log_file, "The input file contains REGION_DATA but not GEOMETRY statement in the MESHES block. The meshes cannot be visualized.\n");
   }
 
   /* find out the number of objects to visualize. */
@@ -163,27 +198,83 @@ void init_frame_data_list(struct frame_data_list *fdlp)
   while(vizp != NULL){
         struct viz_child *vcp = vizp->viz_child_head;
         while(vcp != NULL){
-		obj_to_show_number++;
-                vcp = vcp->next;
-        }
+	   obj_to_show_number++;
+
+           vcp = vcp->next;
+        } /* end while (vcp) */
 	vizp = vizp->next;
+  } /* end while (vizp) */
+
+  /* fill the obj_num_regions array */
+  obj_num_regions = (int *)malloc(obj_to_show_number * sizeof(int *)); 
+  if(obj_num_regions == NULL){
+     fprintf(log_file, "MCell: memory allocation error.\n");
+     exit(1);
   }
+  vizp = world->viz_obj_head;
+  ii = 0;
+  while(vizp != NULL){
+        struct viz_child *vcp = vizp->viz_child_head;
+        while(vcp != NULL){
+           /* find out the number of regions in the object */ 
+           obj_num_regions[ii] = vcp->obj->num_regions - 1;
+           ii++;
+           vcp = vcp->next;
+        } /* end while (vcp) */
+	vizp = vizp->next;
+  } /* end while (vizp) */
+
+  
+  /* declare and initialize 2-dimensional array that will hold
+     indices of the "region_data" objects which are components
+     of the field object.
+     Here first index points to the object and the second index
+     - to the array of indices for this object regions */
+  surf_region_values = (int **)malloc(obj_to_show_number * sizeof(int *));
+  if(surf_region_values == NULL){
+       fprintf(log_file, "MCell: memory allocation error\n");
+       exit(1);
+  }
+  /* initialize the array */
+  for(ii = 0; ii < obj_to_show_number; ii++)
+  {
+     surf_region_values[ii] = NULL;
+
+  }
+  int n_regs; /* number of regions for the object */
+  for(ii = 0; ii < obj_to_show_number; ii++)
+  {
+    n_regs = obj_num_regions[ii];
+    if(n_regs > 0){
+       surf_region_values[ii] = (int *)malloc(n_regs*sizeof(int));
+       if(surf_region_values[ii] == NULL){
+          fprintf(log_file, "MCell: memory allocation error\n");
+          exit(1);
+       }
+       for(jj = 0; jj < n_regs; jj++)
+       {
+          surf_region_values[ii][jj] = 0;
+       }
+    }
+      
+  }
+
+
   /* find out number of effectors and 3D molecules to visualize */
-  u_int n_species = world->n_species;
-  species_list=world->species_list;
+  for(ii = 0; ii < world->n_species; ii++)
+  {
+     sp = world->species_list[ii];
+     if((sp->flags & IS_SURFACE) != 0) continue;
+     if(strcmp(sp->sym->name, "GENERIC_MOLECULE") == 0) continue;
+     if(((sp->flags & ON_GRID) == ON_GRID) && (sp->viz_state > 0)){ 
+	  eff_to_show_number++;
+     }else if(((sp->flags & NOT_FREE) == 0) && (sp->viz_state > 0)) {
+          mol_to_show_number++;
 
-  for (ii=0;ii<n_species;ii++) {
+     }    
+  }
+ 
 
-          if(species_list[ii]->viz_state == EXCLUDE_OBJ) continue;
-          if((species_list[ii]->flags & ON_GRID) == ON_GRID) 
-          { 
-                /* calculate number of effectors */
-	        eff_to_show_number++;
-          }else if((species_list[ii]->flags & NOT_FREE) == 0) {
-                /* calculate number of 3D molecules */
-                mol_to_show_number++;
-          }
-  } 
   return;
 }
 
@@ -265,6 +356,17 @@ int output_dx_objects(struct frame_data_list *fdlp)
   viz_iterationll=fdlp->viz_iterationll;
   n_viz_iterations=fdlp->n_viz_iterations;
   /* first_viz_iteration=(viz_iteration==fdlp->iteration_list->value); */
+  
+ /* here is the check to prevent writing twice the same info 
+    - at the end of one checkpoint and the beginning of the next checkpoint.
+   */
+  if((world->chkpt_flag) && (world->start_time > 0)){
+     if (world->it_time == world->start_time){
+         if(viz_iterationll % (world->chkpt_iterations) == 0){
+             return 0;
+         }
+     }
+  }
 
   viz_type=fdlp->type;
   viz_eff=((viz_type==ALL_FRAME_DATA) || (viz_type==EFF_POS)
@@ -1210,19 +1312,20 @@ int output_dx_objects(struct frame_data_list *fdlp)
 }
 
 /*************************************************************************
-output_dreamm_objects_some_frame_data:
+output_dreamm_objects:
 	In: struct frame_data_list *fdlp
 	Out: 0 on success, 1 on error; output visualization files (*.dx)
              in dreamm group format are written.
         NB! NOT TESTED FOR SURFACE_MOLECULES!!!
 **************************************************************************/
 
-int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
+int output_dreamm_objects(struct frame_data_list *fdlp)
 {
   FILE *log_file;
   FILE *master_header = NULL;
   FILE *mesh_pos_data = NULL;  /* data file for wall vertices */
   FILE *mesh_states_data = NULL; /* data file for wall states */
+  FILE *region_data = NULL; /* data file for region's data */
   FILE *mol_pos_data = NULL;	/* data file for molecule positions */
   FILE *mol_states_data = NULL; /* data file for molecule states */
   FILE *mol_orient_data = NULL; /* data file for molecule orientations */
@@ -1233,6 +1336,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   struct surface_grid *sg;
   struct wall *w,**wp;
   struct species **species_list;
+  struct species *specp;
   struct object *objp;
   struct polygon_object *pop;
   struct ordered_poly *opp;
@@ -1244,14 +1348,14 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   struct abstract_molecule *amp;
   struct grid_molecule *gmol;
   struct molecule *molp,***viz_molp = NULL;       /* for 3D molecules */
+  struct region *rp;
+  struct region_list *rlp;
   float v1,v2,v3;
-  u_int spec_id, *viz_mol_count = NULL, *viz_grid_mol_count = NULL;
+  u_int spec_id = 0, *viz_mol_count = NULL, *viz_grid_mol_count = NULL;
   static u_int main_index = 1;
-  u_int group_index = 0;
   static u_int series_index = 0;
   int ii,jj;
   int vi1,vi2,vi3;
-  /* int vi4;*/
   u_int num;
   u_int viz_iteration;
   u_int n_viz_iterations;
@@ -1263,6 +1367,8 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   int surf_pos_index = 0; 
   int surf_con_index = 0;
   int surf_states_index = 0;
+  int surf_region_values_index = 0;
+  int surf_obj_region_values_index = 0;
   int eff_states_index = 0;
   int eff_pos_index = 0;
   int eff_orient_index = 0;
@@ -1271,35 +1377,42 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   int mol_orient_index = 0;
   int word;
   byte *word_p;
-  byte viz_eff_pos_flag,viz_eff_states_flag;	/* flags */
-  byte viz_mol_pos_flag,viz_mol_states_flag;	/* flags */
-  byte viz_mol_pos_states_flag;	/* flag */
-  byte viz_surf_pos_flag,viz_surf_states_flag;	/* flags */
+  byte viz_mol_pos_flag = 0, viz_mol_states_flag = 0;	/* flags */
+  byte viz_mol_orient_flag = 0, viz_region_data_flag = 0;   /* flags */
+  byte viz_mol_all_data_flag = 0, viz_surf_all_data_flag = 0;	/* flags */
+  byte viz_surf_pos_flag = 0, viz_surf_states_flag = 0;	/* flags */
   char file_name[1024];
   char *ch_ptr = NULL; /* pointer used to extract data file name */
   char *grid_mol_name = NULL; /* points to the name of the grid molecule */
-  char mesh_pos_name[1024]; /* wall vertices data file name */
-  char mesh_states_name[1024]; /* wall states data file name */
-  char mol_pos_name[1024]; /* molecule_positions data file name */
-  char mol_states_name[1024]; /* molecule_positions data file name */
+  char mesh_pos_name[1024]; /* meshes vertices data file name */
+  char mesh_states_name[1024]; /* meshes states data file name */
+  char region_viz_data_name[1024]; /* region_viz_data file name */
+  char mol_pos_name[1024]; /* molecule positions data file name */
+  char mol_states_name[1024]; /* molecule states data file name */
   char mol_orient_name[1024]; /* molecule orientations data file name */
   char frame_numbers_name[1024]; /* frame numbers data file name */
   char time_values_name[1024]; /* time values data file name */
   char buffer[100]; /* used to write 'frame_data' object information */
+  /* used to write combined group information */
+  static u_int member_meshes_iteration = UINT_MAX;
+  static u_int member_molecules_iteration = UINT_MAX;
+  static u_int member_effectors_iteration = UINT_MAX;
   /* linked list that stores data for the 'frame_data' object */
   static struct infinite_string_array frame_data_series_list;
   static u_int frame_data_series_count = 0; /* count elements in frame_data_series_list array.*/
   /* linked lists that stores data for the 'frame_numbers' object */
   static struct infinite_uint_array frame_numbers_pos;
-  static struct infinite_uint_array frame_numbers_mesh;
-  static struct infinite_uint_array frame_numbers_mol;
-  static struct infinite_uint_array frame_numbers_eff;
-  static u_int frame_numbers_count = 0; /* count elements in frame_numbers_pos array. */
+  static u_int frame_numbers_count = 0; /* count elements in 
+                                           frame_numbers_pos array  */
   char my_byte_order[8];  /* shows binary ordering ('lsb' or 'msb') */
   static int mesh_pos_byte_offset = 0;  /* defines position of the object data
                                   in the mesh positions binary data file */
   static int mesh_states_byte_offset = 0; /* defines position of the object data
                                     in the mesh states binary file */
+  static int region_data_byte_offset = 0; /* defines position of the 
+                            object data in the region_data binary file */
+  static int region_data_byte_offset_prev = 0; /* defines position of the 
+                            object data in the region_data binary file */
   static int mol_pos_byte_offset = 0; /*defines position of the object data 
                            in the molecule positions binary file */
   static int mol_orient_byte_offset = 0; /*defines position of the object data 
@@ -1310,24 +1423,10 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
                           numbers data in the frame_numbers binary file */
   static int time_values_byte_offset = 0; /* defines position of the time 
                           values data in the time_values binary file */
-  int mol_pos_byte_offset_prev = 0; /*defines position of the object data 
-                           in the effector positions binary file */
-  int mol_orient_byte_offset_prev = 0; /*defines position of the object da                            ta in the effector orientations binary file */
-  int mol_states_byte_offset_prev = 0; /* defines position of the object                                           data in the effector states binary file. */
-  
-  /* linked list that stores members of the group for surfaces */
-  struct num_expr_list *surf_head = NULL;  
-  struct num_expr_list *surf_end = NULL;
-  /* linked list that stores members of the group for 3D molecules */
-  struct num_expr_list *mol_head = NULL;  
-  struct num_expr_list *mol_end = NULL;
-  /* linked list that stores members of the group for effectors */
-  struct num_expr_list *eff_head = NULL;  
-  struct num_expr_list *eff_end = NULL;
-
-  struct num_expr_list *curr_ptr = NULL;
-  struct num_expr_list *newNode = NULL;
-  struct num_expr_list *temp = NULL;
+  int mol_pos_byte_offset_prev = 0; /* used when defining position  
+                           in the molecule positions binary file */
+  int mol_orient_byte_offset_prev = 0; /* used when defining position                               in the molecule orientations binary file */
+  int mol_states_byte_offset_prev = 0; /* used when defining position                                  in the molecule states binary file. */
   /* placeholders for the members of the combined group */
   static long long mesh_group_index = 0;
   static long long mol_group_index = 0;
@@ -1346,28 +1445,33 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   static int count_mesh_pos_data = 0;
   /* counts number of times mesh_states_data file was opened. */
   static int count_mesh_states_data = 0;
+  /* counts number of times region_values_data file was opened. */
+  static int count_region_data = 0;
 
   /* points to the values of the current iteration steps
      for certain frame types. */
   static long long curr_surf_pos_iteration_step = -1;
-  static long long curr_surf_states_iteration_step = -1;
-  static long long curr_eff_pos_iteration_step = -1;
-  static long long curr_eff_states_iteration_step = -1;
-  static long long curr_mol_pos_states_iteration_step = -1;
+  static long long curr_region_data_iteration_step = -1;
+  static long long curr_mol_pos_iteration_step = -1;
+  static long long curr_mol_orient_iteration_step = -1;
 
   /* points to the special case in iteration steps
-     when both values for SURF_POS and SURF_STATES
-     are equal.  E.g. SURF_POS = [0,200], SURF_STATES = [0,100, 200,300]
-     special_surf_iteration_step = [0,200]
-     Same for (EFF_POS,EFF_STATES) 
+     when both values for GEOMETRY and REGION_VIZ_VALUES
+     are equal.  E.g. for the cases when GEOMETRY = [0,200], 
+     REGION_VIZ_VALUES = [0,100, 200,300] 
+     special_surf_iteration_step = [0,200].Same for (MOL_POS,MOL_ORIENT). 
   */
+   
   static long long special_surf_iteration_step = -1;
-  static long long special_eff_iteration_step = -1;
-  /* counts number of this function executions
-     for special_surf_iteration_step cases. */
-  static int special_surf_frames_counter = 0;
-  static int special_eff_frames_counter = 0;
+   
+  static long long special_mol_iteration_step = -1;
   
+  /* counts number of this function executions
+     for special_surf_iteration_step/special_mol_iteration_step cases. */
+  
+  static int special_surf_frames_counter = 0;
+  
+  static int special_mol_frames_counter = 0;
 
   struct frame_data_list * fdl_ptr; 
   u_int n_species = world->n_species;
@@ -1393,9 +1497,6 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   
   /*initialize infinite arrays. */
   ia_init(&frame_numbers_pos);
-  ia_init(&frame_numbers_mesh);
-  ia_init(&frame_numbers_mol);
-  ia_init(&frame_numbers_eff);
   ia_init(&frame_data_series_list);
 
   viz_iteration = (u_int)(fdlp->viz_iterationll);
@@ -1403,31 +1504,49 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 
   viz_type=fdlp->type;
 
-  if(viz_type == ALL_FRAME_DATA) {
-   	fprintf(log_file, "Wrong viz_type. Received %d type.  Expected other type.\n", viz_type);
-   	return 1;
+  /* here is the check to prevent writing twice the same info 
+    - at the end of one checkpoint and the beginning of the next checkpoint.
+   */
+  if((world->chkpt_flag) && (world->start_time > 0)){
+     if (world->it_time == world->start_time){
+         if(viz_iteration % (world->chkpt_iterations) == 0){
+             return 0;
+         }
+     }
   }
-  
-  /* initialize flags */
-  viz_eff_pos_flag = (viz_type==EFF_POS);
-  viz_eff_states_flag = (viz_type==EFF_STATES);
-  viz_mol_pos_flag = (viz_type==MOL_POS);
-  viz_mol_states_flag = (viz_type==MOL_STATES);
-  viz_mol_pos_states_flag = (viz_type==MOL_POS_STATES);
-  viz_surf_pos_flag = (viz_type==SURF_POS);
-  viz_surf_states_flag = (viz_type==SURF_STATES);
 
-  if(viz_mol_pos_flag || viz_mol_states_flag) {
-   	fprintf(log_file, "Wrong vizualization option for molecules. Expected type such as MOLECULE_POSITIONS_STATES.\n");
-   	return 1;
+  /* initialize flags */
+  viz_mol_pos_flag = (viz_type==MOL_POS);
+  viz_mol_orient_flag = (viz_type==MOL_ORIENT);
+  viz_mol_all_data_flag = (viz_type==ALL_MOL_DATA);
+  if(viz_mol_all_data_flag){
+       viz_mol_pos_flag = viz_mol_orient_flag = 1;
   }
+  if(viz_mol_pos_flag){
+     if((world->viz_output_flag & VIZ_MOLECULES_STATES) != 0){
+     	viz_mol_states_flag = 1;
+     }
+  } 
+  
+  viz_surf_pos_flag = (viz_type==MESH_GEOMETRY);
+  viz_region_data_flag = (viz_type==REG_DATA);
+  viz_surf_all_data_flag = (viz_type==ALL_MESH_DATA);
+  if(viz_surf_all_data_flag){
+     viz_surf_pos_flag = viz_region_data_flag = 1;
+  }
+  if(viz_surf_pos_flag){
+     if((world->viz_output_flag & VIZ_SURFACE_STATES) != 0){
+     	viz_surf_states_flag = 1;
+     }
+  }
+
 
   /* these arrays are used to hold values of main_index for objects */
-  if(viz_surf_pos_flag || viz_surf_states_flag)
+  if((viz_surf_pos_flag) || (viz_region_data_flag))
   {
      if(obj_to_show_number > 0)
      {
-  	if(surf_states == NULL){ 
+  	if((surf_states == NULL) && (viz_surf_states_flag)){ 
      		if ((surf_states=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL)      {
          		fprintf(stderr,"MCell: memory allocation error\n");
          		return (1);
@@ -1436,7 +1555,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 			surf_states[ii] = 0;
      		}
    	}
-   	if(surf_pos == NULL){
+   	if((surf_pos == NULL) && (viz_surf_pos_flag)){
      		if ((surf_pos=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL) {
          		fprintf(stderr,"MCell: memory allocation error\n");
          		return (1);
@@ -1445,7 +1564,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 			surf_pos[ii] = 0;
      		}
    	}
-   	if(surf_con == NULL){
+   	if((surf_con == NULL) && (viz_surf_pos_flag)){
       		if ((surf_con=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL) {
          		fprintf(stderr,"MCell: memory allocation error\n");
          		return (1);
@@ -1453,7 +1572,18 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
       		for(ii = 0; ii < obj_to_show_number; ii++){
 			surf_con[ii] = 0;
       		}
-   	}
+        }
+   	if(surf_field_indices == NULL){
+      		if ((surf_field_indices=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL) {
+         		fprintf(stderr,"MCell: memory allocation error\n");
+         		return (1);
+      		}
+      		for(ii = 0; ii < obj_to_show_number; ii++){
+			surf_field_indices[ii] = 0;
+      		}
+        }
+    
+
    	/* initialize array of viz_objects names */
    	if(obj_names == NULL){
       		if ((obj_names = (char **)malloc(obj_to_show_number*sizeof(char *)))==NULL) {
@@ -1463,35 +1593,77 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
       		for(ii = 0; ii < obj_to_show_number; ii++){
 			obj_names[ii] = NULL;
       		}
-   	}
-  
-     	ii = 0;
-     	vizp = world->viz_obj_head;
-     	while(vizp != NULL){
-		vcp = vizp->viz_child_head;
-        	while(vcp != NULL){
-         		if(obj_names != NULL){
-         		   obj_names[ii] = my_strdup(vcp->obj->sym->name);
-                           if(obj_names[ii] == NULL){
+                /* create an array of region names */
+   	        if(region_names == NULL){
+      	            if ((region_names = (char ***)malloc(obj_to_show_number*sizeof(char **)))==NULL) { 
+         	        fprintf(stderr,"MCell: memory allocation error\n");
+         	        return (1);
+      	            }
+                    /* initialize it */
+                    for(ii = 0; ii < obj_to_show_number; ii++)
+                    {
+                       region_names[ii] = NULL;
+                    }
+                 }          
+      
+     	        ii = 0;
+     	        vizp = world->viz_obj_head;
+     	        while(vizp != NULL){
+		   vcp = vizp->viz_child_head;
+        	   while(vcp != NULL){
+         	       obj_names[ii] = my_strdup(vcp->obj->sym->name);
+                       if(obj_names[ii] == NULL){
+         		    fprintf(stderr,"MCell: memory allocation error\n");
+         		    return (1);
+         	        }
+                
+                        int n_regs;   /* number of regions in the object */
+                        /* subtract the default region ALL */
+                        n_regs = vcp->obj->num_regions - 1;
+                        if(n_regs > 0){
+		            region_names[ii] = (char **)malloc(n_regs*sizeof(char *));
+                            if(region_names[ii] == NULL){ 
          		       fprintf(stderr,"MCell: memory allocation error\n");
          		       return (1);
-         		   }
-                           ii++;
-         		}
+      		            }
+                        }
+
+                        jj = 0;
+ 
+                        for(rlp = vcp->obj->regions; rlp != NULL; rlp = rlp->next){
+                            rp = rlp->reg;
+                            if(strcmp(rp->region_last_name, "ALL") == 0) continue;
+                            
+                            region_names[ii][jj] = my_strdup(rp->region_last_name);
+                            if(region_names[ii][jj] == NULL)
+                            { 
+         		       fprintf(stderr,"MCell: memory allocation error\n");
+         		       return (1);
+      		            }
+                            jj++;
+                             
+                        }
+                        
+                        ii++;
          		vcp = vcp->next;
-       		}
-       		vizp = vizp->next;
-    	}
+       		    } /* end while (vcp) */
+       		    vizp = vizp->next;
+    	         } /* end while (vizp) */
+
+   	}
+       
        } /* end if (obj_to_show_number > 0) */
-    }  /* end if (viz_surf_pos_flag || viz_surf_states_flag) */
+    }  /* end if (viz_surf_pos_flag  || viz_region_data_flag) */
+
+
 
      /* these arrays are used to hold values of main_index for effectors 
       and 3D molecules */
-   if(viz_eff_pos_flag || viz_eff_states_flag)
+   if(viz_mol_pos_flag || viz_mol_orient_flag)
    {
      if(eff_to_show_number > 0)
      {
-     	if(eff_states == NULL){ 
+     	if((eff_states == NULL) && (viz_mol_states_flag)){ 
      		if((eff_states=(u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL)        {
          		fprintf(stderr,"MCell: memory allocation error\n");
          		return (1);
@@ -1500,7 +1672,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 			eff_states[ii] = 0;
      		}
      	}
-     	if(eff_pos == NULL){
+     	if((eff_pos == NULL) && (viz_mol_pos_flag)){
      		if ((eff_pos=(u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL) 	{
          		fprintf(stderr,"MCell: memory allocation error\n");
          		return (1);
@@ -1509,7 +1681,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 			eff_pos[ii] = 0;
      		}
      	}
-     	if(eff_orient == NULL){
+     	if((eff_orient == NULL) && (viz_mol_orient_flag)){
      		if ((eff_orient = (u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL) 	{
          		fprintf(stderr,"MCell: memory allocation error\n");
          		return (1);
@@ -1518,8 +1690,18 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 			eff_orient[ii] = 0;
      		}
      	}
+     	if(eff_field_indices == NULL){
+     		if ((eff_field_indices = (u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL) 	{
+         		fprintf(stderr,"MCell: memory allocation error\n");
+         		return (1);
+     		}
+     		for(ii = 0; ii < eff_to_show_number; ii++){
+			eff_field_indices[ii] = 0;
+     		}
+     	}
    	/* initialize array of grid_mol's names */
    	if(eff_names == NULL){
+
       		if ((eff_names = (char **)malloc(eff_to_show_number*sizeof(char *)))==NULL) {
          		fprintf(stderr,"MCell: memory allocation error\n");
          		return (1);
@@ -1527,30 +1709,33 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
       		for(ii = 0; ii < eff_to_show_number; ii++){
 			eff_names[ii] = NULL;
       		}
-   	}
-        index = 0;
-        for (ii=0;ii<n_species;ii++) {
-
-          if(species_list[ii]->viz_state == EXCLUDE_OBJ) continue;
-          if((species_list[ii]->flags & ON_GRID) == ON_GRID) 
-          { 
-             eff_names[index] = my_strdup(species_list[ii]->sym->name);
-             if(eff_names[index] == NULL){
-                 fprintf(stderr,"MCell: memory allocation error\n");
-                 return (1);
-             }
-             index++;
-          }
+   	
+                index = 0;
+        
+                for(ii = 0; ii < world->n_species; ii++)
+                {
+     	           specp = world->species_list[ii];
+     	           if((specp->flags & IS_SURFACE) != 0) continue;
+     	           if(strcmp(specp->sym->name, "GENERIC_MOLECULE") == 0) continue;
+                   if(((specp->flags & ON_GRID) == ON_GRID) && (specp->viz_state > 0)){ 
+                      eff_names[index] = my_strdup(specp->sym->name);
+                      if(eff_names[index] == NULL){
+                         fprintf(stderr,"MCell: memory allocation error\n");
+                         return (1);
+                      }
+                      index++;
+                    } 
+                 }
         }
         index = 0;
      } /* end if (eff_to_show_number > 0) */
-   }  /* end if(viz_eff_pos_flag || viz_eff_states_flag) */
+   }  /* end if(viz_eff_pos_flag  */
    
-   if(viz_mol_pos_states_flag )
+   if(viz_mol_pos_flag || viz_mol_orient_flag)
    {
      if(mol_to_show_number > 0)
      {
-     	if(mol_states == NULL){ 
+     	if((mol_states == NULL) && (viz_mol_states_flag)){ 
      		if((mol_states=(u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL)        {
          		fprintf(stderr,"MCell: memory allocation error\n");
          		return (1);
@@ -1559,7 +1744,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 			mol_states[ii] = 0;
      		}
      	}
-     	if(mol_pos == NULL){
+     	if((mol_pos == NULL) && (viz_mol_pos_flag)) {
      		if ((mol_pos=(u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL) 	{
          		fprintf(stderr,"MCell: memory allocation error\n");
          		return (1);
@@ -1568,7 +1753,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 			mol_pos[ii] = 0;
      		}
      	}
-     	if(mol_orient == NULL){
+     	if((mol_orient == NULL) && (viz_mol_orient_flag)){
      		if ((mol_orient = (u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL) 	{
          		fprintf(stderr,"MCell: memory allocation error\n");
          		return (1);
@@ -1577,6 +1762,16 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 			mol_orient[ii] = 0;
      		}
      	}
+     	if(mol_field_indices == NULL){
+     		if ((mol_field_indices = (u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL) 	{
+         		fprintf(stderr,"MCell: memory allocation error\n");
+         		return (1);
+     		}
+     		for(ii = 0; ii < mol_to_show_number; ii++){
+			mol_field_indices[ii] = 0;
+     		}
+     	}
+        
    	/* initialize array of mol's names */
    	if(mol_names == NULL){
       		if ((mol_names = (char **)malloc(mol_to_show_number*sizeof(char *)))==NULL) {
@@ -1586,48 +1781,57 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
       		for(ii = 0; ii < mol_to_show_number; ii++){
 			mol_names[ii] = NULL;
       		}
-   	}
-        index = 0;
-        for (ii=0;ii<n_species;ii++) {
-
-          if(species_list[ii]->viz_state == EXCLUDE_OBJ) continue;
-          
-          if((species_list[ii]->flags & NOT_FREE) == 0) 
-          { 
-             mol_names[index] = my_strdup(species_list[ii]->sym->name);
-             if(mol_names[index] == NULL){
-                 fprintf(stderr,"MCell: memory allocation error\n");
-                 return (1);
-             }
-             index++;
-          }
+   	
+        	index = 0;
+        	for(ii = 0; ii < world->n_species; ii++)
+        	{
+     	   	   specp = world->species_list[ii];
+     	   	   if((specp->flags & IS_SURFACE) != 0) continue;
+     	   	   if(strcmp(specp->sym->name, "GENERIC_MOLECULE") == 0) continue;
+           	   if(((specp->flags & NOT_FREE) == 0) && (specp->viz_state > 0)){ 
+                       mol_names[index] = my_strdup(specp->sym->name);
+                       if(mol_names[index] == NULL){
+                         fprintf(stderr,"MCell: memory allocation error\n");
+                         return (1);
+                       }
+                       index++;
+                   } 
+                }
         }
         index = 0;
 
      } /* end if (mol_to_show_number > 0) */
-  }  /* end if(viz_mol_pos_flag || viz_mol_states_flag) */
+  }  /* end if(viz_mol_pos_flag || viz_mol_orient_flag) */
 
   /* Open master header file. */
-  sprintf(file_name,"%s.master_header.dx",world->file_prefix_name);
+  if(world->chkpt_flag){
+    sprintf(file_name,"%s.%u.dx",world->file_prefix_name, world->chkpt_seq_num);
+  }else{
+    sprintf(file_name,"%s.dx",world->file_prefix_name);
+  }
 
   if(count_master_header == 0){
       if ((master_header=fopen(file_name,"w"))==NULL) {
            fprintf(log_file,"MCell: error cannot open master header file %s\n",file_name);
            return(1);
-      }else{}
+      }
       count_master_header++;
 
   }else{
       if ((master_header=fopen(file_name,"a"))==NULL) {
-        fprintf(log_file,"MCell: error cannot open master header file %s\n",file_name);
-        return(1);
-      }else{}
+           fprintf(log_file,"MCell: error cannot open master header file %s\n",file_name);
+           return(1);
+      }
       count_master_header++;
+
   }
 
-
-  if (viz_mol_pos_states_flag || viz_eff_pos_flag) {
-      sprintf(file_name,"%s.molecule_positions.bin",world->file_prefix_name);
+  if (viz_mol_pos_flag) {
+     if(world->chkpt_flag){
+       sprintf(file_name,"%s.molecule_positions.%u.bin",world->file_prefix_name,               world->chkpt_seq_num);
+     }else{
+       sprintf(file_name,"%s.molecule_positions.bin",world->file_prefix_name);
+     }
      /* remove the folder name from the molecule_positions data file name */
      ch_ptr = strrchr(file_name, '/');
      ++ch_ptr;
@@ -1641,14 +1845,20 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
         count_mol_pos_data++;
      }else{
         if ((mol_pos_data=fopen(file_name,"ab"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open molecule positions data file %s\n",file_name);
-           return(1);
-        }else{}
+              fprintf(log_file,"MCell: error cannot open molecule positions data file %s\n",file_name);
+              return(1);
+        }
         count_mol_pos_data++;
-
     }
+  }
 
+  if(viz_mol_orient_flag)
+  {
+    if(world->chkpt_flag){
+      sprintf(file_name,"%s.molecule_orientations.%u.bin",world->file_prefix_name, world->chkpt_seq_num);
+    }else{
       sprintf(file_name,"%s.molecule_orientations.bin",world->file_prefix_name);
+    }
      /* remove the folder name from the molecule_positions data file name */
      ch_ptr = strrchr(file_name, '/');
      ++ch_ptr;
@@ -1658,83 +1868,52 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
         if ((mol_orient_data=fopen(file_name,"wb"))==NULL) {
            fprintf(log_file,"MCell: error cannot open molecule orientations data file %s\n",file_name);
            return(1);
-        }else{}
+        }
         count_mol_orient_data++;
      }else{
         if ((mol_orient_data=fopen(file_name,"ab"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open molecule orientations data file %s\n",file_name);
-           return(1);
-        }else{}
+              fprintf(log_file,"MCell: error cannot open molecule orientations data file %s\n",file_name);
+              return(1);
+        }
         count_mol_orient_data++;
 
      }
-
+   
   }
 
-    if (viz_mol_pos_states_flag || viz_eff_states_flag) {
-       sprintf(file_name,"%s.molecule_states.bin",world->file_prefix_name);
+
+    if (viz_mol_states_flag) {
+      if(world->chkpt_flag){
+         sprintf(file_name,"%s.molecule_states.%u.bin",world->file_prefix_name, world->chkpt_seq_num);
+      }else{
+         sprintf(file_name,"%s.molecule_states.bin",world->file_prefix_name);
+      }
        /* remove the folder name from the molecule_states data file name */
        ch_ptr = strrchr(file_name, '/');
        ++ch_ptr;
        strcpy(mol_states_name, ch_ptr);
      
        if (count_mol_states_data == 0){
-        	if ((mol_states_data = fopen(file_name,"wb"))==NULL) {
-           		fprintf(log_file,"MCell: error cannot open molecule states data file %s\n",file_name);
-           		return(1);
-         	}else{}
-         	count_mol_states_data++;
+            if ((mol_states_data = fopen(file_name,"wb"))==NULL) {
+           	   fprintf(log_file,"MCell: error cannot open molecule states data file %s\n",file_name);
+           	   return(1);
+            }
+            count_mol_states_data++;
        }else{
-        	if ((mol_states_data = fopen(file_name,"ab"))==NULL) {
-           		fprintf(log_file,"MCell: error cannot open molecule states data file %s\n",file_name);
-           		return(1);
-         	}else{}
-         	count_mol_states_data++;
+           if ((mol_states_data = fopen(file_name,"ab"))==NULL) {
+           	   fprintf(log_file,"MCell: error cannot open molecule states data file %s\n",file_name);
+           	   return(1);
+            }
+            count_mol_states_data++;
        }
     }
     
-    /* find out the values of the current iteration steps for
-       the (SURF_POS,SURF_STATES), (EFF_POS, EFF_STATES), 
-       (MOL_POS_STATES) frames combinations */
-    fdl_ptr = world->frame_data_head;
-    while(fdl_ptr != NULL){
-	if(fdl_ptr->type == SURF_STATES) 
-        {
-             curr_surf_states_iteration_step = fdl_ptr->viz_iterationll;
-        }else if(fdl_ptr->type == SURF_POS){
-             curr_surf_pos_iteration_step = fdl_ptr->viz_iterationll;
-	}else if(fdl_ptr->type == EFF_STATES) 
-        {
-             curr_eff_states_iteration_step = fdl_ptr->viz_iterationll;
-        }else if(fdl_ptr->type == EFF_POS){
-             curr_eff_pos_iteration_step = fdl_ptr->viz_iterationll;
-	}else if(fdl_ptr->type == MOL_POS_STATES) 
-        {
-             curr_mol_pos_states_iteration_step = fdl_ptr->viz_iterationll;
-        }	
-        fdl_ptr = fdl_ptr->next;
-    }
-    /* If the values of the current iteration steps for SURF_POS and
-       SURF_STATES are equal set this value to the special_surf_iteration_step.
-       Do the same for the (EFF_POS,EFF_STATES).
-    */
-    if(curr_surf_states_iteration_step == curr_surf_pos_iteration_step){
-	special_surf_iteration_step = curr_surf_states_iteration_step;
-    }
-    if(curr_eff_states_iteration_step == curr_eff_pos_iteration_step){
-	special_eff_iteration_step = curr_eff_states_iteration_step;
-    }
-
-
-
-/* dump walls */
-  if (viz_surf_pos_flag || viz_surf_states_flag) {
-     vizp = world->viz_obj_head;
-     
-     while(vizp!=NULL) {
-   
       if (viz_surf_pos_flag) {
-      	sprintf(file_name,"%s.mesh_positions.bin",world->file_prefix_name);
+        if(world->chkpt_flag){
+      	   sprintf(file_name,"%s.mesh_positions.%u.bin",world->file_prefix_name, world->chkpt_seq_num);
+        }else{
+      	   sprintf(file_name,"%s.mesh_positions.bin",world->file_prefix_name);
+        }
      
      	/* remove the folder name from the mesh_positions data file name */
      	ch_ptr = strrchr(file_name, '/');
@@ -1743,25 +1922,27 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 
        if (count_mesh_pos_data == 0){
       	 if ((mesh_pos_data=fopen(file_name,"wb"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open mesh positions file %s\n",
-               file_name);
-           return(1);
-         }else{}
-         count_mesh_pos_data++;
+                fprintf(log_file,"MCell: error cannot open mesh positions file %s\n",file_name);
+                return(1);
+          }
+          count_mesh_pos_data++;
        }else{
-      	 if ((mesh_pos_data=fopen(file_name,"ab"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open mesh positions file %s\n",
-               file_name);
-           return(1);
-         }else{}
-         count_mesh_pos_data++;
+      	   if ((mesh_pos_data=fopen(file_name,"ab"))==NULL) {
+               fprintf(log_file,"MCell: error cannot open mesh positions file %s\n",file_name);
+               return(1);
+           }
+           count_mesh_pos_data++;
        }
 
       }
 
 
       if (viz_surf_states_flag) {
-         sprintf(file_name,"%s.mesh_states.bin", world->file_prefix_name);
+         if(world->chkpt_flag){
+           sprintf(file_name,"%s.mesh_states.%u.bin", world->file_prefix_name, world->chkpt_seq_num);
+         }else{
+           sprintf(file_name,"%s.mesh_states.bin", world->file_prefix_name);
+         }
      
         /* remove the folder name from the mesh_states data file name */
         ch_ptr = strrchr(file_name, '/');
@@ -1769,43 +1950,111 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
         strcpy(mesh_states_name, ch_ptr);
 
        if (count_mesh_states_data == 0){
-        if ((mesh_states_data=fopen(file_name,"wb"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open mesh states file %s\n",
-               file_name);
-           return(1);
-        }else{}
-         count_mesh_states_data++;
+           if ((mesh_states_data=fopen(file_name,"wb"))==NULL) {
+                  fprintf(log_file,"MCell: error cannot open mesh states file %s\n",file_name);
+                  return(1);
+            }
+            count_mesh_states_data++;
        }else{
           if ((mesh_states_data=fopen(file_name,"ab"))==NULL) {
-             fprintf(log_file,"MCell: error cannot open mesh states file %s\n",
-               file_name);
-             return(1);
-          }else{}
+              fprintf(log_file,"MCell: error cannot open mesh states file %s\n", file_name);
+              return(1);
+          }
           count_mesh_states_data++;
        }
       }
 
-    /* Traverse all visualized compartments 
-       output mesh element positions and connections */
+      if (viz_region_data_flag) {
+         if(world->chkpt_flag){
+            sprintf(file_name,"%s.region_indices.%u.bin", world->file_prefix_name, world->chkpt_seq_num);
+         }else{
+            sprintf(file_name,"%s.region_indices.bin", world->file_prefix_name);
+         }
+     
+        /* remove the folder name from the region values data file name */
+        ch_ptr = strrchr(file_name, '/');
+        ++ch_ptr;
+        strcpy(region_viz_data_name, ch_ptr);
+
+       if (count_region_data == 0){
+          if ((region_data=fopen(file_name,"wb"))==NULL) {
+              fprintf(log_file,"MCell: error cannot open region viz values file %s\n", file_name);
+              return(1);
+           }
+           count_region_data++;
+       }else{
+          if ((region_data=fopen(file_name,"ab"))==NULL) {
+                fprintf(log_file,"MCell: error cannot open region viz values file %s\n", file_name);
+                return(1);
+          }
+          count_region_data++;
+       }
+      }
+
+
+    /* find out the values of the current iteration steps for
+       (GEOMETRY, REG_DATA),  
+       (MOL_POS, MOL_ORIENT) frames combinations */
+   
+    fdl_ptr = world->frame_data_head;
+    while(fdl_ptr != NULL){
+        if(fdl_ptr->type == MESH_GEOMETRY){
+             curr_surf_pos_iteration_step = fdl_ptr->viz_iterationll;
+        }if(fdl_ptr->type == REG_DATA){
+             curr_region_data_iteration_step = fdl_ptr->viz_iterationll;
+        }if(fdl_ptr->type == ALL_MESH_DATA){
+             curr_surf_pos_iteration_step = fdl_ptr->viz_iterationll;
+             curr_region_data_iteration_step = fdl_ptr->viz_iterationll;
+        }else if(fdl_ptr->type == MOL_POS){
+             curr_mol_pos_iteration_step = fdl_ptr->viz_iterationll;
+	}else if(fdl_ptr->type == MOL_ORIENT) 
+        {
+             curr_mol_orient_iteration_step = fdl_ptr->viz_iterationll;
+        }else if(fdl_ptr->type == ALL_MOL_DATA){
+             curr_mol_pos_iteration_step = fdl_ptr->viz_iterationll;
+             curr_mol_orient_iteration_step = fdl_ptr->viz_iterationll;
+        }	
+        fdl_ptr = fdl_ptr->next;
+    }
+  
+    /* If the values of the current iteration steps for REG_VIZ_VALUES and
+       MESH_GEOMETRY are equal set this value to the 
+       special_surf_iteration_step.
+       Do the same for the (MOL_POS,MOL_ORIENT).
+    */
+     
+    if(curr_region_data_iteration_step == curr_surf_pos_iteration_step){
+	special_surf_iteration_step = curr_surf_pos_iteration_step;
+    }
     
-
-    vcp = vizp->viz_child_head;
-
+    if(curr_mol_orient_iteration_step == curr_mol_pos_iteration_step){
+	special_mol_iteration_step = curr_mol_orient_iteration_step;
+    }
+    
     /* check for the special_iteration_step  */  
-    if(viz_surf_pos_flag || viz_surf_states_flag){	    
+    if(viz_surf_pos_flag || viz_region_data_flag){	    
 	    if(fdlp->viz_iterationll == special_surf_iteration_step){
 		special_surf_frames_counter++;
             }
     }
-    
+
+
+/* dump walls */
+  if((viz_surf_pos_flag) || (viz_region_data_flag)) {
+     vizp = world->viz_obj_head;
+     
+     while(vizp!=NULL) {
+
+    /* Traverse all visualized compartments 
+       output mesh element positions and connections */
+    vcp = vizp->viz_child_head;
 
     while(vcp!=NULL) {
       objp = vcp->obj;
+      if(objp->viz_state == NULL) continue;
       pop=(struct polygon_object *)objp->contents;
 
       if (objp->object_type==POLY_OBJ || objp->object_type==BOX_OBJ) {
-        if (viz_surf_pos_flag || viz_surf_states_flag)
-        {
           opp=(struct ordered_poly *)pop->polygon_data;
           edp=opp->element;
           element_data_count=objp->n_walls_actual;
@@ -1838,7 +2087,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
             fprintf(master_header,
               "\tattribute \"ref\" string \"positions\"\n");
             fprintf(master_header,
-              "attribute \"element type\" string \"triangles\"\n\n");
+              "\tattribute \"element type\" string \"triangles\"\n\n");
 
             for (ii=0;ii<objp->n_walls;ii++) {
               if (!get_bit(pop->side_removed,ii)) {
@@ -1858,7 +2107,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
             surf_con_index++;
 
           } /* end viz_surf_pos_flag for POLY_OBJ */
-    
+ 
           if (viz_surf_states_flag) {
             fprintf(master_header,
               "object %d class array type int rank 0 items %d %s binary data file %s,%d # %s.states #\n", main_index, element_data_count, my_byte_order, mesh_states_name, mesh_states_byte_offset, objp->sym->name);
@@ -1867,39 +2116,93 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
            surf_states_index++;
            main_index++;
 
-          for (ii=0;ii<objp->n_walls;ii++) {
-            if (!get_bit(pop->side_removed,ii)) {
-              state=objp->viz_state[ii];
-              fwrite(&state,sizeof (state),1,mesh_states_data);
-              mesh_states_byte_offset += sizeof(state);
+            for (ii=0;ii<objp->n_walls;ii++) {
+               if (!get_bit(pop->side_removed,ii)) {
+                 state=objp->viz_state[ii];
+                 fwrite(&state,sizeof (state),1,mesh_states_data);
+                 mesh_states_byte_offset += sizeof(state);
+               }
             }
-          }
 
           } 	/* end viz_surf_states_flag for POLY_OBJ */
 
+          if(viz_region_data_flag && (objp->num_regions > 1))
+          {
+              surf_region_values_index = 0;
 
-        } /* end (viz_surf_pos_flag || viz_surf_states_flag) for POLY_OBJ */
-      }	/* end POLY_OBJ */
+              for(rlp = objp->regions; rlp != NULL; rlp = rlp->next)
+              {
+                  rp = rlp->reg;
+                  if(strcmp(rp->region_last_name, "ALL") == 0) continue; 
+                  
+                  /* number of walls in the region */
+                  int region_walls_number = 0; 
+                  
+                  for(jj = 0; jj < objp->n_walls; jj++)
+                  {
+                    int n = objp->wall_p[jj]->side;
+                    if(get_bit(rp->membership,n))
+                    {
+                        fwrite(&n,sizeof (n),1,region_data);
+                        region_data_byte_offset += sizeof(n);
+                        region_walls_number++;
+                    }
+
+                  }
+
+                  fprintf(master_header,
+                        "object %d class array type int rank 0 items %d %s binary data file %s,%d # %s.region_data #\n", main_index, region_walls_number, my_byte_order, region_viz_data_name, region_data_byte_offset_prev, objp->sym->name);
+                  fprintf(master_header,"\tattribute \"ref\" string \"connections\"\n");  
+                  fprintf(master_header,"\tattribute \"identity\" string \"region_indices\"\n");
+                  fprintf(master_header,"\tattribute \"name\" string \"%s\"\n", rp->region_last_name);
+                  if(rp->region_viz_value > 0){
+                      fprintf(master_header,"\tattribute \"viz_value\" value %d\n", rp->region_viz_value);
+                  }
+
+                  region_data_byte_offset_prev = region_data_byte_offset;
+                  surf_region_values[surf_obj_region_values_index][surf_region_values_index] = main_index;
+                  surf_region_values_index++;
+                  main_index++;
+                  fprintf(master_header, "\n\n");
+
+              } /* end for */
+              
+
+           } /* end if(region_data_flag) */
+
+
+       }	/* end POLY_OBJ */
+
+       surf_obj_region_values_index++; 
+
       vcp = vcp->next;
       }
       
       vizp = vizp->next;
       }
-    } /* end (viz_surf_pos_flag || viz_surf_states_flag) for vizp */
-
+    } /* end (viz_surf_pos_flag || viz_surf_states_flag || viz_region_data_flag) for vizp */
     
     /* build fields here */
       int show_meshes = 0;
-      if((viz_surf_pos_flag || viz_surf_states_flag) && ((special_surf_frames_counter == 0) || (special_surf_frames_counter == 2))){
+   if(obj_to_show_number > 0)
+   {
+      if(fdlp->type == ALL_MESH_DATA) {
+           show_meshes = 1;
+      }
+      else if((viz_surf_pos_flag || viz_region_data_flag) && ((special_surf_frames_counter == 0) || (special_surf_frames_counter == 2))){
 		show_meshes = 1;
       }
- 
+    }
+
+
     if(show_meshes)
     {
          for(ii = 0; ii < obj_to_show_number; ii++)
          {
-             fprintf(master_header,
-                "object %d field   # %s #\n",main_index, obj_names[ii]);
+             if(obj_names[ii] != NULL){
+                fprintf(master_header,
+                    "object %d field   # %s #\n",main_index, obj_names[ii]);
+             }
              if(surf_pos[ii] > 0){
              	fprintf(master_header,
                  "\tcomponent \"positions\" value %d\n",surf_pos[ii]);
@@ -1908,24 +2211,25 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
              	fprintf(master_header,
                  "\tcomponent \"connections\" value %d\n",surf_con[ii]);
              }
-             if(surf_states[ii] > 0){
-             	fprintf(master_header,
+             if(surf_states != NULL){
+                if(surf_states[ii] > 0){
+             	   fprintf(master_header,
                 	"\tcomponent \"state_values\" value %d\n",surf_states[ii]);
-	     }
-             fprintf(master_header, "\n");
-	     /* put number of this field into the linked list 
-                of the field numbers for meshes */
-             newNode = (struct num_expr_list *)malloc(sizeof (struct num_expr_list));
-	     if(newNode == NULL) return 1;
-             newNode->value = (double)main_index;
-             newNode->next = NULL;    
-
-             if((surf_head == NULL) && (surf_end == NULL)){
-		surf_head = surf_end = newNode;
-	     }else{
-		surf_end->next = newNode;
-		surf_end = newNode;
+	        }
              }
+             if(surf_region_values[ii] != NULL)
+             {
+                for(jj = 0; jj < obj_num_regions[ii]; jj++)
+                {
+                   if(surf_region_values[ii][jj] > 0){
+             	      fprintf(master_header,
+                	"\tcomponent \"%s\" value %d\n",region_names[ii][jj], surf_region_values[ii][jj]);
+	           }
+                }
+             }
+             fprintf(master_header, "\n");
+             surf_field_indices[ii] = main_index;
+
              main_index++;
            }     
      }
@@ -1936,65 +2240,70 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
         vizp = world->viz_obj_head;
         if(vizp != NULL){
 
-        	/*fprintf(master_header,"object %d group # %s #\n",main_index, "meshes"); */
         	fprintf(master_header,"object \"%s%u\" group # %s #\n","meshes_", viz_iteration, "meshes");
         	mesh_group_index = main_index;
         	main_index++;
+                member_meshes_iteration = viz_iteration;
 
-        	curr_ptr = surf_head;
+                ii = 0;
         	while(vizp != NULL) {
          		vcp = vizp->viz_child_head;
-              
          		while(vcp != NULL){
-                		if(curr_ptr != NULL){
-                   	    		group_index = (int)curr_ptr->value;
-                		}else{
-		   	    		break;
-                		}
-             			fprintf(master_header,"\tmember \"%s\" value %d\n",vcp->obj->sym->name,group_index);
-             	       		curr_ptr = curr_ptr->next;		
-		       		vcp = vcp->next;
+                          if(surf_field_indices[ii] > 0){
+             			fprintf(master_header,"\tmember \"%s\" value %d\n",vcp->obj->sym->name,surf_field_indices[ii]);
+                          }
+                          ii++;
+		       	  vcp = vcp->next;
          		}
          		vizp = vizp->next;
         	}       
-        	fprintf(master_header, "\n\n"); 
+        	fprintf(master_header, "\n"); 
       	}  /* end (if vizp) */
    } 
 
       
     /* Visualize molecules. */
 
+
+
 /* dump grid molecules. */
-    /* check for the special_iteration_step  */  
-    if(viz_eff_pos_flag || viz_eff_states_flag){	    
-	    if(fdlp->viz_iterationll == special_eff_iteration_step){
-		special_eff_frames_counter++;
+    /* check for the special_iteration_step  */ 
+    if(viz_mol_pos_flag || viz_mol_orient_flag){	    
+	    if(fdlp->viz_iterationll == special_mol_iteration_step){
+		special_mol_frames_counter++;
             }
     }
-    
+
     /* create references to the numbers of grid molecules of each name. */
     if ((viz_grid_mol_count=(u_int *)malloc(n_species*sizeof(u_int)))==NULL) {
       return(1);
     }
 
+
+      /* perform initialization */
+   for (ii = 0; ii < n_species; ii++){
+      viz_grid_mol_count[ii]=0;
+
+   } 
+
    for (ii = 0; ii < n_species; ii++)
    {
-      /* perform initialization */
-      spec_id=species_list[ii]->species_id;
-      viz_grid_mol_count[spec_id]=0;
-
-     if((species_list[ii]->flags & ON_GRID) == 0) continue; 
-     if(species_list[ii]->viz_state == EXCLUDE_OBJ) continue; 
-        
-     grid_mol_name = species_list[ii]->sym->name;
+     specp = species_list[ii];
+     if((specp->flags & ON_GRID) == 0) continue; 
+     if(specp->viz_state == EXCLUDE_OBJ) continue; 
     
-     if(viz_eff_pos_flag || viz_eff_states_flag){
+     grid_mol_name = specp->sym->name;
 
+     if(viz_mol_pos_flag){
       	mol_pos_byte_offset_prev = mol_pos_byte_offset;
+     }
+     if(viz_mol_orient_flag){
       	mol_orient_byte_offset_prev = mol_orient_byte_offset;
-      	mol_states_byte_offset_prev = mol_states_byte_offset;
-      
-      /* Write binary data files. */
+     }
+     if(viz_mol_states_flag){
+      	   mol_states_byte_offset_prev = mol_states_byte_offset;
+     }
+        /* Write binary data files. */
       vizp = world->viz_obj_head;
       while(vizp != NULL) {
          vcp = vizp->viz_child_head;
@@ -2010,17 +2319,16 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
                      for (index=0;index<sg->n_tiles;index++) {
                         grid2xyz(sg,index,&p0);
 	                gmol=sg->mol[index];
-	                if (gmol!=NULL) {
+	                if ((gmol!=NULL) && (viz_mol_states_flag)){
 	                   state=sg->mol[index]->properties->viz_state;
-	                }else{
-			   state = EXCLUDE_OBJ;
                         }
-                        if (state!=EXCLUDE_OBJ) {
-                          spec_id = gmol->properties->species_id;
-                          viz_grid_mol_count[spec_id]++;
+                        if (gmol != NULL) {
                           if(strcmp(gmol->properties->sym->name,
                             grid_mol_name) == 0){
-                  		if (viz_eff_pos_flag) {
+                                  spec_id = gmol->properties->species_id;
+                                  viz_grid_mol_count[spec_id]++;
+
+                               if(viz_mol_pos_flag){
                                    /* write positions information */
 	           		   v1=(float)(world->length_unit*p0.x);
 	           		   v2=(float)(world->length_unit*p0.y);
@@ -2029,6 +2337,8 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 	               		   fwrite(&v2,sizeof v2,1,mol_pos_data);
 	           		   fwrite(&v3,sizeof v3,1,mol_pos_data);
                                    mol_pos_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
+                               }
+                               if(viz_mol_orient_flag){
                                    /* write orientations information */
                    		   v1=(float)((w->normal.x)*(gmol->orient));
                    		   v2=(float)((w->normal.y)*(gmol->orient));
@@ -2037,14 +2347,13 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
                    		   fwrite(&v2,sizeof v2,1,mol_orient_data);
                    		   fwrite(&v3,sizeof v3,1,mol_orient_data);
                                    mol_orient_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-
                   		}
                           }
                            
-                        } /* end if */
+                        } /* end if (gmol)*/
                      } /* end for */
-                   } /* end if */
-                 } /* end if */
+                   } /* end if (sg) */
+                 } /* end if (w)*/
               } /* end for */
               vcp = vcp->next;
             } /* end while (vcp) */
@@ -2052,55 +2361,64 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
             vizp = vizp->next;
          } /* end while (vzp) */
 
-        num = viz_grid_mol_count[ii];
+        num = viz_grid_mol_count[spec_id];
         
-        if(viz_eff_pos_flag)
+        if(viz_mol_pos_flag)
         {   
         	fprintf(master_header,"object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d # %s positions #\n",main_index,num,my_byte_order, mol_pos_name, mol_pos_byte_offset_prev, grid_mol_name);
         	fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
                 eff_pos[eff_pos_index] = main_index;
                 eff_pos_index++;
         	main_index++;
-   
-        	fprintf(master_header,"object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d   # %s orientations #\n",main_index,num,my_byte_order, mol_orient_name, mol_orient_byte_offset_prev, species_list[ii]->sym->name);
+         }
+         
+         if(viz_mol_orient_flag)
+         {
+        	fprintf(master_header,"object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d   # %s orientations #\n",main_index,num,my_byte_order, mol_orient_name, mol_orient_byte_offset_prev, grid_mol_name);
         	fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
                 eff_orient[eff_orient_index] = main_index;
                 eff_orient_index++;
         	main_index++;
          }
 
-        if (viz_eff_states_flag) {
+        if (viz_mol_states_flag) {
             /* write states information. */
             fwrite(&state,sizeof state,1,mol_states_data);
             mol_states_byte_offset += (sizeof state);
         
-	    fprintf(master_header,"object %d class constantarray type int items %d %s binary data file %s,%d  # %s states #\n",main_index,num, my_byte_order,mol_states_name,mol_states_byte_offset_prev, species_list[ii]->sym->name);
+	    fprintf(master_header,"object %d class constantarray type int items %d %s binary data file %s,%d  # %s states #\n",main_index,num, my_byte_order,mol_states_name,mol_states_byte_offset_prev, grid_mol_name);
 
             fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
 	     eff_states[eff_states_index] = main_index;
              eff_states_index++;
              main_index++;
         }
-  
-      } /* end if(viz_eff_pos_flag || viz_eff_states_flag) */
 
-   } /* end for */
+   } /* end for loop */
+
 
 
 /* build fields for grid molecules here */
-      int show_effectors = 0;
+  int show_effectors = 0;
 
-      if((viz_eff_pos_flag || viz_eff_states_flag) && ((special_eff_frames_counter ==0) || (special_eff_frames_counter == 2))){
+  if(eff_to_show_number > 0){
+      if(fdlp->type == ALL_MOL_DATA) {
+           show_effectors = 1;
+      }
+      else if((viz_mol_pos_flag || viz_mol_orient_flag) && ((special_mol_frames_counter ==0) || (special_mol_frames_counter == 2))){
 		show_effectors = 1;
       }
-
+  }
+ 
   if(show_effectors){
+
 
        for(ii = 0; ii < eff_to_show_number; ii++)
        {
-
-             fprintf(master_header,
-                "object %d field   # %s #\n",main_index, eff_names[ii]);
+             if(eff_names[ii] != NULL){
+                fprintf(master_header,
+                    "object %d field   # %s #\n",main_index, eff_names[ii]);
+             }
              if(eff_pos[ii] > 0){
              	fprintf(master_header,
                  "\tcomponent \"positions\" value %d\n",eff_pos[ii]);
@@ -2109,36 +2427,25 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
              	fprintf(master_header,
                  	"\tcomponent \"data\" value %d # orientations #\n",eff_orient[ii]);
              }
-             if(eff_states[ii] > 0){
-             	fprintf(master_header,
+             if(viz_mol_states_flag)
+             {
+                if(eff_states[ii] > 0){
+             	   fprintf(master_header,
                 	"\tcomponent \"state_values\" value %d\n",eff_states[ii]);
+                }
              }
              fprintf(master_header, "\n");
-             /* put number of this field into the linked list 
-                of the field numbers for grid molecules */
-             newNode = (struct num_expr_list *)malloc(sizeof (struct num_expr_list));
-	     if(newNode == NULL) {
-		fprintf(log_file, "Memory allocation error\n");
-		return 1;
-             }
-             newNode->value = (double)main_index;
-             newNode->next = NULL;    
-
-             if((eff_head == NULL) && (eff_end == NULL)){
-		eff_head = eff_end = newNode;
-	     }else{
-		eff_end->next = newNode;
-		eff_end = newNode;
-             }
+             eff_field_indices[ii] = main_index;
              main_index++;
       }
   }
 
 
 
-/* dump 3D and surface molecules: */
 
-  if(viz_mol_pos_states_flag){	 
+/* dump 3D molecules: */
+
+ if(viz_mol_pos_flag || viz_mol_orient_flag){	 
    
         /* create references to the molecules. */
         if ((viz_molp=(struct molecule ***)malloc(n_species*sizeof(struct molecule **)))==NULL) {
@@ -2149,9 +2456,6 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
 		fprintf(log_file, "Memory allocation error\n");
       		return(1);
     	}
-    }
-
-  if(viz_mol_pos_states_flag){	 
   
     for (ii=0;ii<n_species;ii++) {
       /* perform initialization */
@@ -2159,20 +2463,18 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
       viz_molp[spec_id]=NULL;
       viz_mol_count[spec_id]=0;
 
-      if (species_list[ii]->viz_state!=EXCLUDE_OBJ) {
+      if (species_list[ii]->viz_state == EXCLUDE_OBJ)  continue;
 
-        num=species_list[ii]->population;
-        if ((num>0) && (species_list[ii]->flags & NOT_FREE) == 0) {
+      num=species_list[ii]->population;
+      if ((num>0) && (species_list[ii]->flags & NOT_FREE) == 0) {
           /* create references for 3D molecules */
           if ((viz_molp[spec_id]=(struct molecule **)malloc
             (num*sizeof(struct molecule *)))==NULL) {
 		fprintf(log_file, "Memory allocation error\n");
                 return(1);
           }
-        }
       }
-    }
-
+    } /* end for */
 
     slp=world->storage_head;
     while (slp!=NULL) {
@@ -2193,11 +2495,11 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
                 else {
                   fprintf(log_file,"MCell: molecule count disagreement!!\n");
                   fprintf(log_file,"  Species %s  population = %d  count = %d\n",molp->properties->sym->name,molp->properties->population,viz_mol_count[spec_id]);
-                }
-              }
-            }
+                } /* end if/else */
+              }  /* end if(molp) */
+            } /* end if(amp) */
             amp=amp->next;
-          } /* end while */
+          } /* end while  (amp) */
         } /* end for */
         
         amp=(struct abstract_molecule *)shp->current;
@@ -2220,10 +2522,11 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
         }
         
         shp=shp->next_scale;
-      }
+      } /* end (while (shp) */
 
       slp=slp->next;
-    }
+    } /* end (while slp) */
+
 
     for (ii=0;ii<n_species;ii++) {
       
@@ -2233,17 +2536,18 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
       if(viz_mol_count[spec_id] > 0)
       {
          num=viz_mol_count[spec_id];
-         if (state!=EXCLUDE_OBJ
-             && num!=species_list[ii]->population
+         if(num!=species_list[ii]->population
              && ((species_list[ii]->flags & NOT_FREE)==0)) {
              fprintf(log_file,"MCell: molecule count disagreement!!\n");
              fprintf(log_file,"  Species %s  population = %d  count = %d\n",species_list[ii]->sym->name,species_list[ii]->population,num);
          }
       }
+
       if (viz_mol_count[spec_id]>0 && ((species_list[ii]->flags & NOT_FREE) == 0)) {
         /* here are 3D diffusing molecules */
         num = viz_mol_count[spec_id];
-      	  
+       if(viz_mol_pos_flag)
+       { 	  
 	  mol_pos_byte_offset_prev = mol_pos_byte_offset;
           for (jj=0;jj<num;jj++) {
             molp=viz_molp[spec_id][jj];
@@ -2260,7 +2564,10 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
           mol_pos[mol_pos_index] = main_index;
           mol_pos_index++;
           main_index++;
-          
+        }
+
+        if(viz_mol_orient_flag)
+        {  
           /* write molecule orientations information. 
              for 3D molecules we use default orientation [0,0,1] */
       	  mol_orient_byte_offset_prev = mol_orient_byte_offset;
@@ -2276,7 +2583,10 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
           mol_orient[mol_orient_index] = main_index;
           mol_orient_index++;
           main_index++;
+        }
 
+        if(viz_mol_states_flag)
+        {
           /* write molecule states information. */ 
       	  mol_states_byte_offset_prev = mol_states_byte_offset;
           fwrite(&state,sizeof state,1,mol_states_data);
@@ -2286,171 +2596,151 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
           mol_states[mol_states_index] = main_index;
           mol_states_index++;
           main_index++;
+        }
       }
       /* output empty arrays for zero molecule counts here */
       else if ((viz_mol_count[spec_id]==0) && ((species_list[ii]->flags & NOT_FREE) == 0)) {
-
+        if(viz_mol_pos_flag)
+        {
           fprintf(master_header,"object %d array   # %s positions #\n",main_index, species_list[ii]->sym->name);
           mol_pos[mol_pos_index] = main_index;
           mol_pos_index++;
           main_index++;
+        }
+        if(viz_mol_orient_flag)
+        {
           fprintf(master_header,"object %d array   # %s orientations #\n",main_index, species_list[ii]->sym->name);
           mol_orient[mol_orient_index] = main_index;
           mol_orient_index++;
           main_index++;
-
-
+        }
+       
+       if(viz_mol_states_flag)
+       {
           fprintf(master_header,"object %d array   # %s states #\n",main_index, species_list[ii]->sym->name);
           mol_states[mol_states_index] = main_index;
           mol_states_index++;
           main_index++;
           
+       }
 	 fprintf(master_header,"\n");
       }
     }
-  } /* end if(viz_mol_pos_states_flag) */
+  } /* end if((viz_mol_pos_flag) || (viz_mol_orient_flag)) */
  
 
 /* build fields here */
       int show_molecules = 0;
-      if(viz_mol_pos_states_flag ){
+   if(mol_to_show_number > 0)
+   {
+      if(fdlp->type == ALL_MOL_DATA) {
+           show_molecules = 1;
+      }
+      else if((viz_mol_pos_flag || viz_mol_orient_flag) && ((special_mol_frames_counter ==0) || (special_mol_frames_counter == 2))){
 		show_molecules = 1;
-      } 
+      }
+   }
 
     if(show_molecules)
     {
       for (ii=0; ii<mol_to_show_number; ii++) {
-
-             fprintf(master_header,
-                "object %d field   # %s #\n",main_index, mol_names[ii]);
-             if(mol_pos[ii] > 0) {
-             	fprintf(master_header,
+               if(mol_names[ii] != NULL){
+                  fprintf(master_header,
+                      "object %d field   # %s #\n",main_index, mol_names[ii]);
+                }
+                if(mol_pos[ii] > 0) {
+             	   fprintf(master_header,
                  	"\tcomponent \"positions\" value %d\n",mol_pos[ii]);
-             }
-             if(mol_orient[ii] > 0){
-             	fprintf(master_header,
+                }
+                if(mol_orient[ii] > 0){
+             	   fprintf(master_header,
                  	"\tcomponent \"data\" value %d # orientations #\n",mol_orient[ii]);
-             }
-             if(mol_states[ii] > 0){ 
-             	fprintf(master_header,
+                }
+             if(viz_mol_states_flag)
+             {
+                if(mol_states[ii] > 0){ 
+             	   fprintf(master_header,
                 	"\tcomponent \"state_values\" value %d\n",mol_states[ii]);
+                }
              }
              fprintf(master_header, "\n");
-             /* put number of this field into the linked list 
-                of the field numbers for molecules */
-             newNode = (struct num_expr_list *)malloc(sizeof (struct num_expr_list));
-	     if(newNode == NULL) return 1;
-             newNode->value = (double)main_index;
-             newNode->next = NULL;    
-
-             if((mol_head == NULL) && (mol_end == NULL)){
-		mol_head = mol_end = newNode;
-	     }else{
-		mol_end->next = newNode;
-		mol_end = newNode;
-             }
+             mol_field_indices[ii] = main_index;
              main_index++;
       }
     }
 
-      /* create group object for molecules/effectors */
-      if(show_molecules || show_effectors) {
+      /* create group objects for molecules/effectors */
 
-        if(show_molecules){
-                /*fprintf(master_header,"object %d group # %s #\n",main_index, "3D molecules"); */
-                fprintf(master_header,"object \"%s%u\" group # %s #\n", "molecules_", viz_iteration, "3D molecules"); 
-        	mol_group_index = main_index;
-        }else if(show_effectors){
-                /*fprintf(master_header,"object %d group # %s #\n",main_index, "effectors"); */
-                fprintf(master_header,"object \"%s%u\" group # %s #\n","effectors_", viz_iteration, "effectors");
-               eff_group_index = main_index;
-        }
-        main_index++;
-
-        if(show_effectors)
-        {
-                curr_ptr = eff_head;
-      		for (ii=0;ii<eff_to_show_number;ii++) {
-                	if(curr_ptr != NULL){
-                		group_index = (int)curr_ptr->value;
-                	}else{
-				break;
-                        }
-          		fprintf(master_header,"\tmember \"%s\" value %d\n",eff_names[ii], group_index);
-             		curr_ptr = curr_ptr->next;		
-          	}
-      	}
         if(show_molecules)
         {
-                curr_ptr = mol_head;
+                fprintf(master_header,"object \"%s%u\" group # %s #\n", "volume_molecules_", viz_iteration, "volume molecules"); 
+        	mol_group_index = main_index;
+                member_molecules_iteration = viz_iteration;
       		for (ii=0;ii<mol_to_show_number;ii++) {
-                	if(curr_ptr != NULL){
-                		group_index = (int)curr_ptr->value;
-                	}else{
-				break;
-                        }
-          		fprintf(master_header,"\tmember \"%s\" value %d\n",mol_names[ii], group_index);
-             		curr_ptr = curr_ptr->next;		
+                   if(mol_field_indices[ii] > 0){
+          		fprintf(master_header,"\tmember \"%s\" value %d\n",mol_names[ii], mol_field_indices[ii]);
+                    }
           	}
+               main_index++;
       	}
-        fprintf(master_header, "\n\n"); 
-      }	
+
+        fprintf(master_header, "\n"); 
+
  
+        if(show_effectors)
+        {
+                fprintf(master_header,"object \"%s%u\" group # %s #\n","surface_molecules_", viz_iteration, "surface molecules");
+               eff_group_index = main_index;
+               member_effectors_iteration = viz_iteration;
+      	       for (ii=0;ii<eff_to_show_number;ii++) {
+                   if(eff_field_indices[ii] > 0){
+                       fprintf(master_header,"\tmember \"%s\" value %d\n",eff_names[ii], eff_field_indices[ii]);
+                   }
+               }
+                main_index++;
+      	}
+        fprintf(master_header, "\n"); 
 
       /* create combined group object for meshes and molecules */
       int show_combined_group = 1;
       if(((fdlp->viz_iterationll == curr_surf_pos_iteration_step) ||
-	  (fdlp->viz_iterationll == curr_surf_states_iteration_step)) && 
-         (mesh_group_index == 0))
+	  (fdlp->viz_iterationll == curr_region_data_iteration_step)) && 
+        (mesh_group_index == 0)) 
       {
             	show_combined_group = 0;
       }
-      if(((fdlp->viz_iterationll == curr_eff_pos_iteration_step) ||
-	 (fdlp->viz_iterationll == curr_eff_states_iteration_step))
-             && (eff_group_index == 0)){
+      if(((fdlp->viz_iterationll == curr_mol_pos_iteration_step) ||
+	 (fdlp->viz_iterationll == curr_mol_orient_iteration_step))
+             && ((mol_group_index == 0) && (eff_group_index == 0))){ 
             	show_combined_group = 0;
       }
-      if((fdlp->viz_iterationll == curr_mol_pos_states_iteration_step) 
-             && (mol_group_index == 0)){
-            	show_combined_group = 0;
-      }
-      
 
       if(show_combined_group)
       {
         fprintf(master_header,"object %d group\n",main_index);
         combined_group_index = main_index;
-      	if(mesh_group_index > 0){
-          	/*fprintf(master_header,"\tmember \"meshes\" value %lld\n",mesh_group_index); */
-          	fprintf(master_header,"\tmember \"meshes\" value \"%s%u\"\n", "meshes_",viz_iteration);
-		ia_uint_store(&frame_numbers_mesh, frame_numbers_count,mesh_group_index);
-		mesh_group_index = 0;
+        if(member_meshes_iteration != UINT_MAX){  
+          	fprintf(master_header,"\tmember \"meshes\" value \"%s%u\"\n", "meshes_",member_meshes_iteration);
+	     	mesh_group_index = 0; 
 
-      	}else{
-		ia_uint_store(&frame_numbers_mesh, frame_numbers_count,UINT_MAX);
+      	}
+        if(member_molecules_iteration != UINT_MAX) {  
+          	fprintf(master_header,"\tmember \"volume_molecules\" value \"%s%u\"\n",  "volume_molecules_", member_molecules_iteration); 
+		mol_group_index = 0; 
         }
-      	if(mol_group_index > 0){
-          	/*fprintf(master_header,"\tmember \"molecules\" value %lld\n",mol_group_index); */
-          	fprintf(master_header,"\tmember \"molecules\" value \"%s%u\"\n",  "molecules_", viz_iteration); 
-		ia_uint_store(&frame_numbers_mol, frame_numbers_count,mol_group_index);
-		mol_group_index = 0;
-        }else{
-		ia_uint_store(&frame_numbers_mol, frame_numbers_count,UINT_MAX);
+       if(member_effectors_iteration != UINT_MAX) {  
+          	fprintf(master_header,"\tmember \"surface_molecules\" value \"%s%u\"\n",  "surface_molecules_", member_effectors_iteration);
+		eff_group_index = 0; 
         }
-        if(eff_group_index > 0){
-          	/*fprintf(master_header,"\tmember \"effectors\" value %lld\n",eff_group_index); */
-          	fprintf(master_header,"\tmember \"effectors\" value \"%s%u\"\n",  "effectors_", viz_iteration);
-		ia_uint_store(&frame_numbers_eff, frame_numbers_count,eff_group_index);
-		eff_group_index = 0;
-        }else{
-		ia_uint_store(&frame_numbers_eff, frame_numbers_count,UINT_MAX);
-        }
-      	fprintf(master_header,"\n");
+      	
+        fprintf(master_header,"\n");
       }
+
+
      /* create entry into "frame_data" object. */
       if(show_combined_group){
 
-        /* create an entry into an 'frame_data' object. */
+        /* create an entry into a 'frame_data' object. */
       	sprintf(buffer, "\tmember %d value %d position %u\n", series_index, combined_group_index, viz_iteration);
 	ia_string_store(&frame_data_series_list, frame_data_series_count, buffer);
         frame_data_series_count++;
@@ -2458,25 +2748,107 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
       	main_index++;
 
       	fprintf(master_header, "\n\n");
-        
+
         if(special_surf_frames_counter == 2){
 		special_surf_frames_counter = 0;
         }
-        if(special_eff_frames_counter == 2){
-		special_eff_frames_counter = 0;
+        if(special_mol_frames_counter == 2){
+		special_mol_frames_counter = 0;
         }
- 
+          
+
 	/* put value of viz_iteration into the frame_numbers_pos */ 
 	ia_uint_store(&frame_numbers_pos, frame_numbers_count,viz_iteration);  
         frame_numbers_count++;
 
      }
 
-     if(frames_iterations_count == total_frames_iterations)
-     {
-	/* write 'frame_numbers' object. */
-      	sprintf(file_name,"%s.frame_numbers.bin",world->file_prefix_name);
+     /* flag that signals the need to write "footers" for 
+        the master file */
+     int time_to_write_footers = 0;
+     /* flag pointing to another frame with certain condition */
+     int found = 0;
+     struct frame_data_list *fdlp_temp;
+     long long next_iteration_step = 0;  /* next iteration for this frame */
+     long long next_iteration_step_temp = INT_MAX; /*next iteration for other frame */
      
+
+     if(fdlp->curr_viz_iteration->next != NULL){
+        next_iteration_step = (long long)(fdlp->curr_viz_iteration->next->value);
+     }
+
+     if(world->chkpt_flag){
+        /* check whether it is the last frame */
+        
+
+        if((world->it_time == (world->start_time + world->chkpt_iterations)) ||
+                 (world->it_time == last_iteration)){
+
+
+             /* look ahead to find out whether there are 
+                other frames to be output */
+             for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
+                if((fdlp_temp->viz_iterationll == (world->start_time + world->chkpt_iterations)) || (fdlp_temp->viz_iterationll == last_iteration)){
+                   found = 1;
+                   break;
+                }
+             }
+             
+             if(!found){
+                /* this is the last frame */
+                    time_to_write_footers = 1; 
+             }
+        }
+        else if(next_iteration_step > (world->start_time + world->chkpt_iterations)) {
+             /* look ahead to find out whether next_iteration_step
+                for other frames is less than 'world->chkpt_iterations'
+             */
+             for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
+                if((fdlp_temp->curr_viz_iteration != NULL) && 
+                    (fdlp_temp->curr_viz_iteration->next != NULL)){
+                    next_iteration_step_temp = (long long)(fdlp_temp->curr_viz_iteration->next->value);
+                   if(next_iteration_step_temp  < world->start_time + world->chkpt_iterations){
+                      found = 1;
+                      break;
+                   }
+                }
+             }
+             if(!found){
+                /* this is the last frame */
+                    time_to_write_footers = 1; 
+             }
+        }else{}
+
+    }else{
+          if(world->it_time == last_iteration){
+
+             /* look ahead to find out whether there are 
+                other frames to be output */
+             for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
+                if(fdlp_temp->viz_iterationll == last_iteration){
+                   found = 1;
+                   break;
+                }
+             }
+             if(!found){
+                /* this is the last frame */
+                    time_to_write_footers = 1; 
+             }
+           }
+
+    }   
+
+
+     if(time_to_write_footers)
+     {
+       
+	/* write 'frame_numbers' object. */
+        if(world->chkpt_flag){
+      	   sprintf(file_name,"%s.frame_numbers.%u.bin",world->file_prefix_name,               world->chkpt_seq_num);
+        }else{
+      	   sprintf(file_name,"%s.frame_numbers.bin",world->file_prefix_name);
+        }
+
      	/* remove the folder name from the frame_numbers data file name */
      	ch_ptr = strrchr(file_name, '/');
      	++ch_ptr;
@@ -2487,6 +2859,25 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
                file_name);
            return(1);
         }
+
+        /* write "time_values" object. */
+        if(world->chkpt_flag){
+     	    sprintf(file_name,"%s.time_values.%u.bin",world->file_prefix_name, world->chkpt_seq_num);
+        }else{
+     	    sprintf(file_name,"%s.time_values.bin",world->file_prefix_name);
+        }
+
+     	/* remove the folder name from the time_values data file name */
+     	ch_ptr = strrchr(file_name, '/');
+     	++ch_ptr;
+     	strcpy(time_values_name, ch_ptr);
+
+      	if ((time_values_data=fopen(file_name,"wb"))==NULL) {
+            fprintf(log_file,"MCell: error cannot open  file %s\n",
+                    file_name);
+            return(1);
+        }
+
 
         if(frame_numbers_count > 0)
         {
@@ -2506,19 +2897,6 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
         	}
 		fprintf(master_header, "\n\n");
 
-             /* write "time_values" object. */
-      	     sprintf(file_name,"%s.time_values.bin",world->file_prefix_name);
-     
-     	     /* remove the folder name from the time_values data file name */
-     	     ch_ptr = strrchr(file_name, '/');
-     	     ++ch_ptr;
-     	     strcpy(time_values_name, ch_ptr);
-
-      	     if ((time_values_data=fopen(file_name,"wb"))==NULL) {
-                fprintf(log_file,"MCell: error cannot open  file %s\n",
-                    file_name);
-                return(1);
-             }
 
         	fprintf(master_header,"object \"time_values\" class array  type double rank 0 items %u %s binary data file %s,%d\n",frame_numbers_count, my_byte_order,time_values_name, time_values_byte_offset);
 												for(ii = 0; ii < frame_numbers_count; ii++){
@@ -2547,89 +2925,9 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
         	    }
                  }
 	         fprintf(master_header, "\n\n");
-        }
+        } /* end if(frame_numbers_count > 0) */
+    } /* end if(time_to_write_footers) */
 
-        /* free allocated memory */
-        if(surf_states != NULL) free(surf_states);
-        if(surf_pos != NULL) free(surf_pos);
-        if(surf_con != NULL) free(surf_con);
-        if(obj_names != NULL) {
-            for (ii=0;ii<obj_to_show_number;ii++) {
-               if (obj_names[ii]!=NULL) {
-                   free(obj_names[ii]);
-               }
-            }
-            free(obj_names);
-        }
-        if(eff_states != NULL) free(eff_states);
-        if(eff_pos != NULL) free(eff_pos);
-        if(eff_names != NULL) {
-            for (ii=0;ii<eff_to_show_number;ii++) {
-               if (eff_names[ii]!=NULL) {
-                   free(eff_names[ii]);
-               }
-            }
-            free(eff_names);
-        }
-        if(mol_states != NULL) free(mol_states);
-        if(mol_pos != NULL) free(mol_pos);
-        if(mol_names != NULL) {
-            for (ii=0;ii<mol_to_show_number;ii++) {
-               if (mol_names[ii]!=NULL) {
-                   free(mol_names[ii]);
-               }
-            }
-            free(mol_names);
-        }
-
-        /* free linked list for frame_numbers. */
-  	struct infinite_uint_array *arr_ui_ptr, *temp_ui_ptr;
-  	arr_ui_ptr = (&frame_numbers_pos)->next;
-  	while(arr_ui_ptr != NULL){
-		temp_ui_ptr = arr_ui_ptr;
-		arr_ui_ptr = arr_ui_ptr->next;
-		free(temp_ui_ptr);
-  	}     
-  	arr_ui_ptr = (&frame_numbers_mesh)->next;
-  	while(arr_ui_ptr != NULL){
-		temp_ui_ptr = arr_ui_ptr;
-		arr_ui_ptr = arr_ui_ptr->next;
-		free(temp_ui_ptr);
-  	}     
-  	arr_ui_ptr = (&frame_numbers_mol)->next;
-  	while(arr_ui_ptr != NULL){
-		temp_ui_ptr = arr_ui_ptr;
-		arr_ui_ptr = arr_ui_ptr->next;
-		free(temp_ui_ptr);
-  	}     
-  	arr_ui_ptr = (&frame_numbers_eff)->next;
-  	while(arr_ui_ptr != NULL){
-		temp_ui_ptr = arr_ui_ptr;
-		arr_ui_ptr = arr_ui_ptr->next;
-		free(temp_ui_ptr);
-  	}     
-
-  	/* free linked list for frame_data. */
-  	struct infinite_string_array *arr_string_ptr, *temp_string_ptr;
-  	arr_string_ptr = (&frame_data_series_list);
-        for(ii = 0; ii < BLOCK_SIZE; ii++){
-	    if(arr_string_ptr->data[ii] != NULL){
-		free(arr_string_ptr->data[ii]);
-            }
-        }
-  	arr_string_ptr = (&frame_data_series_list)->next;
-  	while(arr_string_ptr != NULL){
-           for(ii = 0; ii < BLOCK_SIZE; ii++){
-	       if(arr_string_ptr->data[ii] != NULL){
-		   free(arr_string_ptr->data[ii]);
-               }
-           }
-	   temp_string_ptr = arr_string_ptr;
-	   arr_string_ptr = arr_string_ptr->next;
-	   free(temp_string_ptr);
-  	}
-    } 
-     
  
    /* free allocated memory */
    if (viz_molp != NULL) {
@@ -2645,39 +2943,7 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
   if (viz_mol_count != NULL) {
     free (viz_mol_count);
   }
-  
-  /* free linked list for surfaces. */
-  if(surf_head != NULL){
-    curr_ptr = surf_head;
-    while(curr_ptr != NULL){
-        temp = curr_ptr;
-        curr_ptr = curr_ptr->next;
-        free(temp);
-    }
-    surf_head = surf_end = NULL;
-  }      
 
-  /* free linked list for effectors. */
-  if(eff_head != NULL){
-    curr_ptr = eff_head;
-    while(curr_ptr != NULL){
-        temp = curr_ptr;
-        curr_ptr = curr_ptr->next;
-        free(temp);
-    }
-    eff_head = eff_end = NULL;
-  }      
-  
-  /* free linked list for molecules. */
-  if(mol_head != NULL){
-    curr_ptr = mol_head;
-    while(curr_ptr != NULL){
-        temp = curr_ptr;
-        curr_ptr = curr_ptr->next;
-        free(temp);
-    }
-    mol_head = mol_end = NULL;
-  }
 
   if (viz_grid_mol_count != NULL) {
     free (viz_grid_mol_count);
@@ -2700,6 +2966,9 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
     }
     if(mesh_states_data != NULL){
     	fclose(mesh_states_data);
+    }
+    if(region_data != NULL){
+    	fclose(region_data);
     }
     if(frame_numbers_data != NULL){
         fclose(frame_numbers_data);
@@ -2709,1343 +2978,11 @@ int output_dreamm_objects_some_frame_data(struct frame_data_list *fdlp)
     }
 
 
+
   return(0);
 
 }
 
-/*************************************************************************
-output_dreamm_objects_all_frame_data:
-	In: struct frame_data_list *fdlp
-	Out: 0 on success, 1 on error; output visualization files (*.dx)
-             in dreamm group format are written.
-        NB! NOT TESTED FOR SURFACE_MOLECULES!!!
-**************************************************************************/
-
-int output_dreamm_objects_all_frame_data(struct frame_data_list *fdlp)
-{
-  FILE *log_file;
-  FILE *master_header = NULL;
-  FILE *mesh_pos_data = NULL;  /* data file for wall vertices */
-  FILE *mesh_states_data = NULL; /* data file for wall states */
-  FILE *mol_pos_data = NULL;	/* data file for molecule positions */
-  FILE *mol_states_data = NULL; /* data file for molecule states */
-  FILE *mol_orient_data = NULL; /* data file for molecule orientations */
-  struct viz_obj *vizp = NULL;
-  struct viz_child *vcp = NULL;
-  struct surface_grid *sg;
-  struct wall *w,**wp;
-  struct species **species_list;
-  struct object *objp;
-  struct polygon_object *pop;
-  struct ordered_poly *opp;
-  struct element_data *edp;
-  struct vector3 p0;
-  struct storage_list *slp;
-  struct storage *sp;
-  struct schedule_helper *shp;
-  struct abstract_molecule *amp;
-  struct grid_molecule *gmol;
-  struct molecule *molp,***viz_molp = NULL;       /* for 3D molecules */
-  float v1,v2,v3;
-  u_int spec_id, *viz_mol_count, *viz_grid_mol_count;
-  static u_int main_index = 1;
-  u_int group_index = 0;
-  static u_int series_index = 0;
-  int ii,jj;
-  int vi1,vi2,vi3;
-  /* int vi4; */
-  int num;
-  long long viz_iterationll;
-  long long n_viz_iterations;
-  int element_data_count;
-  int state;
-  int viz_type;
-  unsigned int index;
-  /* indices used in arrays "u_int *surf_pos", etc. */
-  int surf_pos_index = 0; 
-  int surf_con_index = 0;
-  int surf_states_index = 0;
-  int eff_states_index = 0;
-  int eff_pos_index = 0;
-  int eff_orient_index = 0;
-  int mol_states_index = 0;
-  int mol_pos_index = 0;
-  int mol_orient_index = 0;
-  int word;
-  byte *word_p;
-  char file_name[1024];
-  char *ch_ptr = NULL; /* pointer used to extract data file name */
-  char *grid_mol_name = NULL; /* points to the name of the grid molecule */
-  char mesh_pos_name[1024]; /* wall vertices data file name */
-  char mesh_states_name[1024]; /* wall states data file name */
-  char mol_pos_name[1024]; /* molecule_positions data file name */
-  char mol_states_name[1024]; /* molecule_positions data file name */
-  char mol_orient_name[1024]; /* molecule orientations data file name */
-  char buffer[100]; /* used to write 'frame_data' object information */
-  /* linked list that stores data for the 'frame_data' object */
-  static struct infinite_string_array frame_data_list;
-  static int frame_data_count = 0; /* count elements in frame_data_list array. */
-  /* linked lists that stores data for the 'frame_numbers' object */
-  static struct infinite_longlong_array frame_numbers_pos;
-  static struct infinite_longlong_array frame_numbers_mesh;
-  static struct infinite_longlong_array frame_numbers_mol;
-  static struct infinite_longlong_array frame_numbers_eff;
-  static long long frame_numbers_count = 0; /* count elements in frame_numbers_pos array. */
-  char my_byte_order[8];  /* shows binary ordering ('lsb' or 'msb') */
-  static int mesh_pos_byte_offset = 0;  /* defines position of the object data
-                                  in the mesh positions binary data file */
-  static int mesh_states_byte_offset = 0; /* defines position of the object data
-                                    in the mesh states binary file */
-  static int mol_pos_byte_offset = 0; /*defines position of the object data 
-                           in the molecule positions binary file */
-  static int mol_orient_byte_offset = 0; /*defines position of the object data 
-                           in the molecule orientations binary file */
-  static int mol_states_byte_offset = 0; /* defines position of the object data
-                              in the molecule states binary file. */
-  int mol_pos_byte_offset_prev = 0; /*defines position of the object data 
-                           in the effector positions binary file */
-  int mol_orient_byte_offset_prev = 0; /*defines position of the object data                             in the effector orientations binary file */
-  int mol_states_byte_offset_prev = 0; /* defines position of the object                          data in the effector states binary file. */
-
-  /* linked list that stores members of the group for surfaces */
-  struct num_expr_list *surf_head = NULL;  
-  struct num_expr_list *surf_end = NULL;
-  /* linked list that stores members of the group for 3D molecules */
-  struct num_expr_list *mol_head = NULL;  
-  struct num_expr_list *mol_end = NULL;
-  /* linked list that stores members of the group for effectors */
-  struct num_expr_list *eff_head = NULL;  
-  struct num_expr_list *eff_end = NULL;
-  
-  struct num_expr_list *curr_ptr = NULL;
-  struct num_expr_list *newNode = NULL;
-  struct num_expr_list *temp = NULL;
-  /* placeholders for the members of the combined group */
-  long long mesh_group_index = 0;
-  long long mol_group_index = 0;
-  long long eff_group_index = 0;
-  int combined_group_index = 0;
-  int first_iteration = 0;      /* flag signaling the first iteration
-                                   in the iteration list */
-
-
-  u_int n_species = world->n_species;
-  species_list=world->species_list;
-  log_file=world->log_file;
-  
-  if(world->file_prefix_name == NULL) {
-   	fprintf(log_file, "Inside VIZ_DATA_OUTPUT block the required keyword FILENAME_PREFIX is missing.\n");
-   	exit(1);
-  }
-
-  /* these arrays are used to hold values of main_index for objects */
-  if(obj_to_show_number > 0)
-  {
-  	if(surf_states == NULL){ 
-		if ((surf_states=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL)      {
-         		fprintf(stderr,"MCell: memory allocation error\n");
-         		return (1);
-     		}
-        	for(ii = 0; ii < obj_to_show_number; ii++){
-			surf_states[ii] = 0;
-     		}
-   	}
-   	if(surf_pos == NULL){
-     		if ((surf_pos=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL) {
-         		fprintf(stderr,"MCell: memory allocation error\n");
-         		return (1);
-     		}
-     		for(ii = 0; ii < obj_to_show_number; ii++){
-			surf_pos[ii] = 0;
-     		}
-   	}
-   	if(surf_con == NULL){
-      		if ((surf_con=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL) {
-         		fprintf(stderr,"MCell: memory allocation error\n");
-         		return (1);
-      		}
-      		for(ii = 0; ii < obj_to_show_number; ii++){
-			surf_con[ii] = 0;
-      		}
-   	}
-   	/* initialize array of viz_objects names */
-   	if(obj_names == NULL){
-      		if ((obj_names = (char **)malloc(obj_to_show_number*sizeof(char *)))==NULL) {
-         		fprintf(stderr,"MCell: memory allocation error\n");
-         		return (1);
-      		}
-      		for(ii = 0; ii < obj_to_show_number; ii++){
-			obj_names[ii] = NULL;
-      		}
-   	}
-  
-     	ii = 0;
-     	vizp = world->viz_obj_head;
-     	while(vizp != NULL){
-		vcp = vizp->viz_child_head;
-        	while(vcp != NULL){
-         		if(obj_names != NULL){
-         		   obj_names[ii] = my_strdup(vcp->obj->sym->name);
-                           if(obj_names[ii] == NULL){
-         		       fprintf(stderr,"MCell: memory allocation error\n");
-         		       return (1);
-         		   }
-                           ii++;
-         		}
-         		vcp = vcp->next;
-       		}
-       		vizp = vizp->next;
-    	}
-  } /* end if (obj_to_show_number > 0) */
-
-  /* these arrays are used to hold values of main_index for effectors 
-     and 3D molecules */
-  if(eff_to_show_number > 0)
-  {
-     	if(eff_states == NULL){ 
-     		if((eff_states=(u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL)        {
-         		fprintf(stderr,"MCell: memory allocation error\n");
-         		return (1);
-     		}
-     		for(ii = 0; ii < eff_to_show_number; ii++){
-			eff_states[ii] = 0;
-     		}
-     	}
-     	if(eff_pos == NULL){
-     		if ((eff_pos=(u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL) 	{
-         		fprintf(stderr,"MCell: memory allocation error\n");
-         		return (1);
-     		}
-     		for(ii = 0; ii < eff_to_show_number; ii++){
-			eff_pos[ii] = 0;
-     		}
-     	}
-     	if(eff_orient == NULL){
-     		if ((eff_orient = (u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL) 	{
-         		fprintf(stderr,"MCell: memory allocation error\n");
-         		return (1);
-     		}
-     		for(ii = 0; ii < eff_to_show_number; ii++){
-			eff_orient[ii] = 0;
-     		}
-     	}
-   	/* initialize array of grid_mol's names */
-   	if(eff_names == NULL){
-      		if ((eff_names = (char **)malloc(eff_to_show_number*sizeof(char *)))==NULL) {
-         		fprintf(stderr,"MCell: memory allocation error\n");
-         		return (1);
-      		}
-      		for(ii = 0; ii < eff_to_show_number; ii++){
-			eff_names[ii] = NULL;
-      		}
-   	}
-        index = 0;
-        for (ii=0;ii<n_species;ii++) {
-
-          if(species_list[ii]->viz_state == EXCLUDE_OBJ) continue;
-          if((species_list[ii]->flags & ON_GRID) == ON_GRID) 
-          { 
-             eff_names[index] = my_strdup(species_list[ii]->sym->name);
-             if(eff_names[index] == NULL){
-                 fprintf(stderr,"MCell: memory allocation error\n");
-                 return (1);
-             }
-             index++;
-          }
-        }
-        index = 0;
-   } /* end if (eff_to_show_number > 0) */
-   
-  if(mol_to_show_number > 0)
-  {
-     	if(mol_states == NULL){ 
-     		if((mol_states=(u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL)        {
-         		fprintf(stderr,"MCell: memory allocation error\n");
-         		return (1);
-     		}
-     		for(ii = 0; ii < mol_to_show_number; ii++){
-			mol_states[ii] = 0;
-     		}
-     	}
-     	if(mol_pos == NULL){
-     		if ((mol_pos=(u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL) 	{
-         		fprintf(stderr,"MCell: memory allocation error\n");
-         		return (1);
-     		}
-     		for(ii = 0; ii < mol_to_show_number; ii++){
-			mol_pos[ii] = 0;
-     		}
-     	}
-     	if(mol_orient == NULL){
-     		if ((mol_orient = (u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL) 	{
-         		fprintf(stderr,"MCell: memory allocation error\n");
-         		return (1);
-     		}
-     		for(ii = 0; ii < mol_to_show_number; ii++){
-			mol_orient[ii] = 0;
-     		}
-     	}
-   	/* initialize array of mol's names */
-   	if(mol_names == NULL){
-      		if ((mol_names = (char **)malloc(mol_to_show_number*sizeof(char *)))==NULL) {
-         		fprintf(stderr,"MCell: memory allocation error\n");
-         		return (1);
-      		}
-      		for(ii = 0; ii < mol_to_show_number; ii++){
-			mol_names[ii] = NULL;
-      		}
-   	}
-        index = 0;
-        for (ii=0;ii<n_species;ii++) {
-
-          if(species_list[ii]->viz_state == EXCLUDE_OBJ) continue;
-          
-          if((species_list[ii]->flags & NOT_FREE) == 0) 
-          { 
-             mol_names[index] = my_strdup(species_list[ii]->sym->name);
-             if(mol_names[index] == NULL){
-                 fprintf(stderr,"MCell: memory allocation error\n");
-                 return (1);
-             }
-             index++;
-          }
-        }
-        index = 0;
-
-  } /* end if (mol_to_show_number > 0) */
-
-  /* check whether it is a first iteration for a given 'fdlp' */
-  if(first_iteration == 0){
-  	if(world->it_time <= fdlp->iteration_list->value){
-  		first_iteration = 1;
-  	}
-  }
-
-  no_printf("Viz output in DREAMM_V3 mode all frame data...\n");
-
-  word_p=(unsigned char *)&word;
-  word=0x04030201;
-
-  if (word_p[0]==1) {
-    sprintf(my_byte_order,"lsb");
-  }
-  else {
-    sprintf(my_byte_order,"msb");
-  }
-
-  /*initialize infinite arrays. */
-  ia_init(&frame_numbers_pos);
-  ia_init(&frame_numbers_mesh);
-  ia_init(&frame_numbers_mol);
-  ia_init(&frame_numbers_eff);
-  ia_init(&frame_data_list);
-
-  viz_iterationll=fdlp->viz_iterationll;
-  n_viz_iterations=fdlp->n_viz_iterations;
-
-  viz_type=fdlp->type;
-  if(viz_type != ALL_FRAME_DATA) {
-   	fprintf(log_file, "Wrong viz_type. Expected ALL_FRAME_DATA.  Received %d\n", viz_type);
-   	return 1;
-  }
-
-
-  /* Open master header file. */
-  sprintf(file_name,"%s.master_header.dx",world->file_prefix_name);
-
-  if(first_iteration == 1){
-      if ((master_header=fopen(file_name,"w"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open master header file %s\n",file_name);
-           return(1);
-      }
-
-  }else{
-      if ((master_header=fopen(file_name,"a"))==NULL) {
-        fprintf(log_file,"MCell: error cannot open master header file %s\n",file_name);
-        return(1);
-      }
-  }
-  
-
-  sprintf(file_name,"%s.molecule_positions.bin",world->file_prefix_name);
-  /* remove the folder name from the molecule_positions data file name */
-  ch_ptr = strrchr(file_name, '/');
-  ++ch_ptr;
-  strcpy(mol_pos_name, ch_ptr);
-     
-
-  if (first_iteration == 1){
-        if ((mol_pos_data=fopen(file_name,"wb"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open molecule positions data file %s\n",file_name);
-           return(1);
-        }else{}
-   }else{
-        if ((mol_pos_data=fopen(file_name,"ab"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open molecule positions data file %s\n",file_name);
-           return(1);
-        }else{}
-
-   }
-
-     sprintf(file_name,"%s.molecule_orientations.bin",world->file_prefix_name);
-     /* remove the folder name from the molecule_positions data file name */
-     ch_ptr = strrchr(file_name, '/');
-     ++ch_ptr;
-     strcpy(mol_orient_name, ch_ptr);
-     
-
-     if (first_iteration == 1){
-        if ((mol_orient_data=fopen(file_name,"wb"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open molecule orientations data file %s\n",file_name);
-           return(1);
-        }else{}
-     }else{
-        if ((mol_orient_data=fopen(file_name,"ab"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open molecule orientations data file %s\n",file_name);
-           return(1);
-        }else{}
-
-     }
-
-
-       sprintf(file_name,"%s.molecule_states.bin",world->file_prefix_name);
-       /* remove the folder name from the molecule_states data file name */
-       ch_ptr = strrchr(file_name, '/');
-       ++ch_ptr;
-       strcpy(mol_states_name, ch_ptr);
-
-     
-       if (first_iteration == 1){
-        if ((mol_states_data = fopen(file_name,"wb"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open molecule states data file %s\n",file_name);
-           return(1);
-         }else{}
-       }else{
-        if ((mol_states_data = fopen(file_name,"ab"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open molecule states data file %s\n",file_name);
-           return(1);
-         }else{}
-
-       }
-    
-
-/* dump walls */
-     vizp = world->viz_obj_head;
-     
-     while(vizp!=NULL) {
-   
-      	sprintf(file_name,"%s.mesh_positions.bin",world->file_prefix_name);
-     
-     	/* remove the folder name from the mesh_positions data file name */
-     	ch_ptr = strrchr(file_name, '/');
-     	++ch_ptr;
-     	strcpy(mesh_pos_name, ch_ptr);
-     
-
-       if (first_iteration == 1){
-      	 if ((mesh_pos_data=fopen(file_name,"wb"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open mesh positions file %s\n",
-               file_name);
-           return(1);
-         }else{}
-       }else{
-      	 if ((mesh_pos_data=fopen(file_name,"ab"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open mesh positions file %s\n",
-               file_name);
-           return(1);
-         }else{}
-       }
-
-
-         sprintf(file_name,"%s.mesh_states.bin", world->file_prefix_name);
-     
-        /* remove the folder name from the mesh_states data file name */
-        ch_ptr = strrchr(file_name, '/');
-        ++ch_ptr;
-        strcpy(mesh_states_name, ch_ptr);
-
-
-       if (first_iteration == 1){
-        if ((mesh_states_data=fopen(file_name,"wb"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open mesh states file %s\n",
-               file_name);
-           return(1);
-        }else{}
-       }else{
-          if ((mesh_states_data=fopen(file_name,"ab"))==NULL) {
-             fprintf(log_file,"MCell: error cannot open mesh states file %s\n",
-               file_name);
-             return(1);
-          }else{}
-       }
-
-    /* Traverse all visualized compartments 
-       output mesh element positions and connections */
-    
-
-    vcp = vizp->viz_child_head;
-
-    while(vcp!=NULL) {
-      objp = vcp->obj;
-      pop=(struct polygon_object *)objp->contents;
-      if (objp->object_type==BOX_OBJ) {
-#if 0
-          
-            element_data_count=0.5*objp->n_walls_actual;
-        
-               
-            fprintf(master_header,
-              "object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d # %s.positions #\n",
-              main_index,objp->n_verts,my_byte_order,mesh_pos_name, mesh_pos_byte_offset, objp->sym->name);
-            fprintf(master_header,
-              "\tattribute \"dep\" string \"positions\"\n\n");
-
-            /* output box vertices */
-            for (ii=0;ii<objp->n_verts;ii++) {
-              v1 = world->length_unit*objp->verts[ii].x;
-              v2 = world->length_unit*objp->verts[ii].y;
-              v3 = world->length_unit*objp->verts[ii].z;
-              fwrite(&v1,sizeof v1,1,mesh_pos_data);
-              fwrite(&v2,sizeof v2,1,mesh_pos_data);
-              fwrite(&v3,sizeof v3,1,mesh_pos_data);
-              mesh_pos_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-            }
-            surf_pos[surf_pos_index] = main_index;
-            surf_pos_index++;
-	    main_index++;
-    
-            /* output box wall connections */
-            fprintf(master_header,
-              "object %d class array type int rank 1 shape 4 items %d %s binary data file %s,%d # %s.connections #\n",
-              main_index,element_data_count,my_byte_order, mesh_pos_name, mesh_pos_byte_offset, objp->sym->name);
-            fprintf(master_header,
-              "\tattribute \"ref\" string \"positions\"\n");
-            fprintf(master_header,
-              "\tattribute \"element type\" string \"quads\"\n\n");
-            surf_con[surf_con_index] = main_index;
-            surf_con_index++;
-            main_index++;
-
-
-            fprintf(master_header,
-              "object %d class array type int rank 0 items %d %s binary data file %s,%d # %s.states #\n", main_index, element_data_count, my_byte_order, mesh_states_name, mesh_states_byte_offset, objp->sym->name);
-            fprintf(master_header,"\tattribute \"dep\" string \"connections\"\n\n");
-            surf_states[surf_states_index] = main_index;
-            surf_states_index++;
-            main_index++;
-            
-            for (ii=0;ii<objp->n_walls;ii+=2) {
-              if (!get_bit(pop->side_removed,ii)) {
-                switch (ii) {
-                  case TP:
-                    vi1=3;
-                    vi2=7;
-                    vi3=1;
-                    vi4=5;
-                    fwrite(&vi1,sizeof vi1,1,mesh_pos_data);
-                    fwrite(&vi2,sizeof vi2,1,mesh_pos_data);
-                    fwrite(&vi3,sizeof vi3,1,mesh_pos_data);
-                    fwrite(&vi4,sizeof vi4,1,mesh_pos_data);
-                    mesh_pos_byte_offset += (sizeof(vi1) + sizeof(vi2) + sizeof(vi3) + sizeof(vi4));
-                  break;
-                  case BOT:
-                    vi1=0;
-                    vi2=4;
-                    vi3=2;
-                    vi4=6;
-                    fwrite(&vi1,sizeof vi1,1,mesh_pos_data);
-                    fwrite(&vi2,sizeof vi2,1,mesh_pos_data);
-                    fwrite(&vi3,sizeof vi3,1,mesh_pos_data);
-                    fwrite(&vi4,sizeof vi4,1,mesh_pos_data);
-                    mesh_pos_byte_offset += (sizeof(vi1) + sizeof(vi2) + sizeof(vi3) + sizeof(vi4));
-                  break;
-                  case FRNT:
-                    vi1=4;
-                    vi2=0;
-                    vi3=5;
-                    vi4=1;
-                    fwrite(&vi1,sizeof vi1,1,mesh_pos_data);
-                    fwrite(&vi2,sizeof vi2,1,mesh_pos_data);
-                    fwrite(&vi3,sizeof vi3,1,mesh_pos_data);
-                    fwrite(&vi4,sizeof vi4,1,mesh_pos_data);
-                    mesh_pos_byte_offset += (sizeof(vi1) + sizeof(vi2) + sizeof(vi3) + sizeof(vi4));
-                  break;
-                  case BCK:
-                    vi1=2;
-                    vi2=6;
-                    vi3=3;
-                    vi4=7;
-                    fwrite(&vi1,sizeof vi1,1,mesh_pos_data);
-                    fwrite(&vi2,sizeof vi2,1,mesh_pos_data);
-                    fwrite(&vi3,sizeof vi3,1,mesh_pos_data);
-                    fwrite(&vi4,sizeof vi4,1,mesh_pos_data);
-                    mesh_pos_byte_offset += (sizeof(vi1) + sizeof(vi2) + sizeof(vi3) + sizeof(vi4));
-                  break;
-                  case LFT:
-                    vi1=0;
-                    vi2=2;
-                    vi3=1;
-                    vi4=3;
-                    fwrite(&vi1,sizeof vi1,1,mesh_pos_data);
-                    fwrite(&vi2,sizeof vi2,1,mesh_pos_data);
-                    fwrite(&vi3,sizeof vi3,1,mesh_pos_data);
-                    fwrite(&vi4,sizeof vi4,1,mesh_pos_data);
-                    mesh_pos_byte_offset += (sizeof(vi1) + sizeof(vi2) + sizeof(vi3) + sizeof(vi4));
-                  break;
-                  case RT:
-                    vi1=6;
-                    vi2=4;
-                    vi3=7;
-                    vi4=5;
-                    fwrite(&vi1,sizeof vi1,1,mesh_pos_data);
-                    fwrite(&vi2,sizeof vi2,1,mesh_pos_data);
-                    fwrite(&vi3,sizeof vi3,1,mesh_pos_data);
-                    fwrite(&vi4,sizeof vi4,1,mesh_pos_data);
-                    mesh_pos_byte_offset += (sizeof(vi1) + sizeof(vi2) + sizeof(vi3) + sizeof(vi4));
-                  break;
-                }
-                state=objp->viz_state[ii];
-                fwrite(&state,sizeof (state),1,mesh_states_data);
-                mesh_states_byte_offset += sizeof(state);
-              }
-            }
-#endif
-      }
-
-
-      if (objp->object_type==POLY_OBJ || objp->object_type==BOX_OBJ) {
-          opp=(struct ordered_poly *)pop->polygon_data;
-          edp=opp->element;
-          element_data_count=objp->n_walls_actual;
-
-
-            fprintf(master_header,
-              "object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d # %s.positions #\n",
-              main_index,objp->n_verts,my_byte_order,mesh_pos_name, mesh_pos_byte_offset, objp->sym->name);
-            fprintf(master_header,
-              "\tattribute \"dep\" string \"positions\"\n\n");
-            surf_pos[surf_pos_index] = main_index;
-            surf_pos_index++;
-            main_index++;
-            
-	    /* output polyhedron vertices */
-            for (ii=0;ii<objp->n_verts;ii++) {
-              v1 = world->length_unit*objp->verts[ii].x;
-              v2 = world->length_unit*objp->verts[ii].y;
-              v3 = world->length_unit*objp->verts[ii].z;
-	      fwrite(&v1,sizeof v1,1,mesh_pos_data);
-	      fwrite(&v2,sizeof v2,1,mesh_pos_data);
-	      fwrite(&v3,sizeof v3,1,mesh_pos_data);
-              mesh_pos_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-            }
-
-            /* output polygon element connections */
-            fprintf(master_header,
-              "object %d class array type int rank 1 shape 3 items %d %s binary data file %s,%d # %s.connections #\n",
-              main_index,element_data_count,my_byte_order, mesh_pos_name, mesh_pos_byte_offset, objp->sym->name);
-            fprintf(master_header,
-              "\tattribute \"ref\" string \"positions\"\n");
-            fprintf(master_header,
-              "\tattribute \"element type\" string \"triangles\"\n\n");
-            surf_con[surf_con_index] = main_index;
-            surf_con_index++;
-            main_index++;
-
-
-            fprintf(master_header,
-              "object %d class array type int rank 0 items %d %s binary data file %s,%d # %s.states #\n", main_index, element_data_count, my_byte_order, mesh_states_name, mesh_states_byte_offset, objp->sym->name);
-            fprintf(master_header,"\tattribute \"dep\" string \"connections\"\n\n");
-           surf_states[surf_states_index] = main_index;
-           surf_states_index++;
-           main_index++;
-
-
-            for (ii=0;ii<objp->n_walls;ii++) {
-              if (!get_bit(pop->side_removed,ii)) {
-                for (jj=0;jj<edp[ii].n_verts-2;jj++) {
-                  vi1=edp[ii].vertex_index[0];
-                  vi2=edp[ii].vertex_index[jj+1];
-                  vi3=edp[ii].vertex_index[jj+2];
-	          fwrite(&vi1,sizeof vi1,1,mesh_pos_data);
-	          fwrite(&vi2,sizeof vi2,1,mesh_pos_data);
-	          fwrite(&vi3,sizeof vi3,1,mesh_pos_data);
-                  mesh_pos_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-                }
-              state=objp->viz_state[ii];
-              fwrite(&state,sizeof (state),1,mesh_states_data);
-              mesh_states_byte_offset += sizeof(state);
-              }
-            }
-      }
-      vcp = vcp->next;
-      }
-      
-      vizp = vizp->next;
-      }
-  
-    /* create field objects */
-    for(ii = 0; ii < obj_to_show_number; ii++)
-    {
-             fprintf(master_header,
-                "object %d field   # %s #\n",main_index, obj_names[ii]);
-             fprintf(master_header,
-                 "\tcomponent \"positions\" value %d\n",surf_pos[ii]);
-             fprintf(master_header,
-                 "\tcomponent \"connections\" value %d\n",surf_con[ii]);
-             fprintf(master_header,
-                "\tcomponent \"state_values\" value %d\n\n",surf_states[ii]);
-	     
-	     /* put number of this field into the linked list 
-                of the field numbers for meshes */
-             newNode = (struct num_expr_list *)malloc(sizeof (struct num_expr_list));
-	     if(newNode == NULL) return 1;
-             newNode->value = (double)main_index;
-             newNode->next = NULL;    
-
-             if((surf_head == NULL) && (surf_end == NULL)){
-		surf_head = surf_end = newNode;
-	     }else{
-		surf_end->next = newNode;
-		surf_end = newNode;
-             }
-             main_index++;
-    }     
-
-      
-    /* create a group object for all meshes. */
-    vizp = world->viz_obj_head;
-    if(vizp != NULL){
-
-        	fprintf(master_header,"object %d group # %s #\n",main_index, "meshes");
-        	mesh_group_index = main_index;
-        	main_index++;
-
-        	curr_ptr = surf_head;
-        	while(vizp != NULL) {
-         		vcp = vizp->viz_child_head;
-              
-         		while(vcp != NULL){
-                		if(curr_ptr != NULL){
-                   	    		group_index = (int)curr_ptr->value;
-                		}else{
-		   	    		break;
-                		}
-             			fprintf(master_header,"\tmember \"%s\" value %d\n",vcp->obj->sym->name,group_index);
-             	       		curr_ptr = curr_ptr->next;		
-		       		vcp = vcp->next;
-       		}
-       		vizp = vizp->next;
-       	}       
-       	fprintf(master_header, "\n\n"); 
-   }  /* end (if vizp) */
-    
-
-   /* Visualize molecules. */
-
-/* dump grid molecules. */
-    
-    /* create references to the numbers of grid molecules of each name. */
-    if ((viz_grid_mol_count=(u_int *)malloc(n_species*sizeof(u_int)))==NULL) {
-      return(1);
-    }
-
-   for (ii = 0; ii < n_species; ii++)
-   {
-      /* perform initialization */
-      spec_id=species_list[ii]->species_id;
-      viz_grid_mol_count[spec_id]=0;
-
-     if((species_list[ii]->flags & ON_GRID) == 0) continue; 
-     if(species_list[ii]->viz_state == EXCLUDE_OBJ) continue; 
-        
-     grid_mol_name = species_list[ii]->sym->name;
-    
-     mol_pos_byte_offset_prev = mol_pos_byte_offset;
-     mol_orient_byte_offset_prev = mol_orient_byte_offset;
-     mol_states_byte_offset_prev = mol_states_byte_offset;
-      
-      /* Write binary data files. */
-      vizp = world->viz_obj_head;
-      while(vizp != NULL) {
-         vcp = vizp->viz_child_head;
-         while(vcp != NULL){
-	     objp = vcp->obj;
-             wp = objp->wall_p;
-             no_printf("Traversing walls in object %s\n",objp->sym->name);
-             for (jj=0;jj<objp->n_walls;jj++) {
-                w = wp[jj];
-                if (w!=NULL) {
-	           sg = w->effectors;
-                   if (sg!=NULL) {
-                     for (index=0;index<sg->n_tiles;index++) {
-                        grid2xyz(sg,index,&p0);
-	                gmol=sg->mol[index];
-	                if (gmol!=NULL) {
-	                   state=sg->mol[index]->properties->viz_state;
-	                }else{
-			   state = EXCLUDE_OBJ;
-                        }
-                        if (state!=EXCLUDE_OBJ) {
-                          spec_id = gmol->properties->species_id;
-                          viz_grid_mol_count[spec_id]++;
-                          if(strcmp(gmol->properties->sym->name,
-                            grid_mol_name) == 0){
-                                   /* write positions information */
-	           		   v1=world->length_unit*p0.x;
-	           		   v2=world->length_unit*p0.y;
-	           		   v3=world->length_unit*p0.z;
-	           		   fwrite(&v1,sizeof v1,1,mol_pos_data);
-	               		   fwrite(&v2,sizeof v2,1,mol_pos_data);
-	           		   fwrite(&v3,sizeof v3,1,mol_pos_data);
-                                   mol_pos_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-                                   /* write orientations information */
-                   		   v1=(float)((w->normal.x)*(gmol->orient));
-                   		   v2=(float)((w->normal.y)*(gmol->orient));
-                   		   v3=(float)((w->normal.z)*(gmol->orient));
-                   		   fwrite(&v1,sizeof v1,1,mol_orient_data);
-                   		   fwrite(&v2,sizeof v2,1,mol_orient_data);
-                   		   fwrite(&v3,sizeof v3,1,mol_orient_data);
-                                   mol_orient_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-
-                          }
-                           
-                        } /* end if */
-                     } /* end for */
-                   } /* end if */
-                 } /* end if */
-              } /* end for */
-              vcp = vcp->next;
-            } /* end while (vcp) */
-                                              
-            vizp = vizp->next;
-         } /* end while (vzp) */
-
-        num = viz_grid_mol_count[ii];
-           
-        fprintf(master_header,"object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d # %s positions #\n",main_index,num,my_byte_order, mol_pos_name, mol_pos_byte_offset_prev, grid_mol_name);
-        fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
-        eff_pos[eff_pos_index] = main_index;
-        eff_pos_index++;
-        main_index++;
-   
-        fprintf(master_header,"object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d   # %s orientations #\n",main_index,num,my_byte_order, mol_orient_name, mol_orient_byte_offset_prev, species_list[ii]->sym->name);
-        fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
-        eff_orient[eff_orient_index] = main_index;
-        eff_orient_index++;
-        main_index++;
-
-        /* write states information. */
-        fwrite(&state,sizeof state,1,mol_states_data);
-        mol_states_byte_offset += (sizeof state);
-
-        fprintf(master_header,"object %d class constantarray type int items %d %s binary data file %s,%d  # %s states #\n",main_index,num, my_byte_order,mol_states_name,mol_states_byte_offset_prev, species_list[ii]->sym->name);
-
-        fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
-        eff_states[eff_states_index] = main_index;
-        eff_states_index++;
-        main_index++;
-  
-
-   } /* end for */
-
-/* build fields for grid molecules here */
-
-    for(ii = 0; ii < eff_to_show_number; ii++)
-    {
-
-             fprintf(master_header,
-                "object %d field   # %s #\n",main_index, eff_names[ii]);
-             fprintf(master_header,
-                 "\tcomponent \"positions\" value %d\n",eff_pos[ii]);
-             fprintf(master_header,
-                 "\tcomponent \"data\" value %d # orientations #\n",eff_orient[ii]);
-             fprintf(master_header,
-                "\tcomponent \"state_values\" value %d\n\n",eff_states[ii]);
-             /* put number of this field into the linked list 
-                of the field numbers for grid molecules */
-             newNode = (struct num_expr_list *)malloc(sizeof (struct num_expr_list));
-	     if(newNode == NULL) return 1;
-             newNode->value = (double)main_index;
-             newNode->next = NULL;    
-
-             if((eff_head == NULL) && (eff_end == NULL)){
-		eff_head = eff_end = newNode;
-	     }else{
-		eff_end->next = newNode;
-		eff_end = newNode;
-             }
-             main_index++;
-   }
-
-      /* create group object for effectors */
-
-        if(eff_to_show_number > 0){
-                fprintf(master_header,"object %d group # %s #\n",main_index, "effectors");
-               eff_group_index = main_index;
-               main_index++;
-
-                curr_ptr = eff_head;
-      		for (ii=0;ii<eff_to_show_number;ii++) {
-                	if(curr_ptr != NULL){
-                		group_index = (int)curr_ptr->value;
-                	}else{
-				break;
-                        }
-          		fprintf(master_header,"\tmember \"%s\" value %d\n",eff_names[ii], group_index);
-             		curr_ptr = curr_ptr->next;		
-          	}
-                fprintf(master_header, "\n\n"); 
-      	}
-
-
-
-
-/* dump 3D and surface molecules: */
-
-    /* create references to the molecules. */
-    if ((viz_molp=(struct molecule ***)malloc(n_species*sizeof(struct molecule **)))==NULL) {
-      return(1);
-    }
-    if ((viz_mol_count=(u_int *)malloc(n_species*sizeof(u_int)))==NULL) {
-      return(1);
-    }
-
-    for (ii=0;ii<n_species;ii++) {
-      /* perform initialization */
-      spec_id=species_list[ii]->species_id;
-      viz_molp[spec_id]=NULL;
-      viz_mol_count[spec_id]=0;
-
-      if (species_list[ii]->viz_state!=EXCLUDE_OBJ) {
-
-        num=species_list[ii]->population;
-        if ((num>0) && (species_list[ii]->flags & NOT_FREE) == 0) {
-          /* create references for 3D molecules */
-          if ((viz_molp[spec_id]=(struct molecule **)malloc
-            (num*sizeof(struct molecule *)))==NULL) {
-            return(1);
-          }
-        }
-      }
-    }
-
-
-    slp=world->storage_head;
-    while (slp!=NULL) {
-      sp=slp->store;
-      shp=sp->timer;
-      while (shp!=NULL) {
-        
-        for (ii=0;ii<shp->buf_len;ii++) {
-          amp=(struct abstract_molecule *)shp->circ_buf_head[ii];
-          while (amp!=NULL) {
-            if ((amp->properties!=NULL) && (amp->flags & TYPE_3D) == TYPE_3D){
-              molp=(struct molecule *)amp;
-              if (molp->properties->viz_state!=EXCLUDE_OBJ) {
-                spec_id=molp->properties->species_id;
-                if (viz_mol_count[spec_id]<molp->properties->population) {
-                  viz_molp[spec_id][viz_mol_count[spec_id]++]=molp;
-                }
-                else {
-                  fprintf(log_file,"MCell: molecule count disagreement!!\n");
-                  fprintf(log_file,"  Species %s  population = %d  count = %d\n",molp->properties->sym->name,molp->properties->population,viz_mol_count[spec_id]);
-                }
-              }
-            }
-            amp=amp->next;
-          } /* end while */
-        } /* end for */
-        
-        amp=(struct abstract_molecule *)shp->current;
-        while (amp!=NULL) {
-          if ((amp->properties!=NULL) && (amp->flags & TYPE_3D) == TYPE_3D) {
-            molp=(struct molecule *)amp;
-            if (molp->properties->viz_state!=EXCLUDE_OBJ) {
-              spec_id=molp->properties->species_id;
-              if (viz_mol_count[spec_id]<molp->properties->population) {
-                viz_molp[spec_id][viz_mol_count[spec_id]++]=molp;
-              }
-              else {
-                fprintf(log_file,"MCell: molecule count disagreement!!\n");
-                fprintf(log_file,"  Species %s  population = %d  count = %d\n",molp->properties->sym->name,molp->properties->population,viz_mol_count[spec_id]);
-              }
-            }
-
-           }
-          amp=amp->next;
-        }
-        
-        shp=shp->next_scale;
-      }
-
-      slp=slp->next;
-    }
-
-    for (ii=0;ii<n_species;ii++) {
-      
-      if(species_list[ii]->viz_state == EXCLUDE_OBJ) continue; 
-      spec_id=species_list[ii]->species_id;
-      
-      if(viz_mol_count[spec_id] > 0)
-      {
-         num=viz_mol_count[spec_id];
-         if (state!=EXCLUDE_OBJ
-             && num!=species_list[ii]->population
-             && ((species_list[ii]->flags & NOT_FREE)==0)) {
-             fprintf(log_file,"MCell: molecule count disagreement!!\n");
-             fprintf(log_file,"  Species %s  population = %d  count = %d\n",species_list[ii]->sym->name,species_list[ii]->population,num);
-         }
-      }
-      if (viz_mol_count[spec_id]>0 && ((species_list[ii]->flags & NOT_FREE) == 0)) {
-
-        /* here are 3D diffusing molecules */
-        num = viz_mol_count[spec_id];
-
-        mol_pos_byte_offset_prev = mol_pos_byte_offset;
-        for (jj=0;jj<num;jj++) {
-            molp=viz_molp[spec_id][jj];
-	    v1=world->length_unit*molp->pos.x;
-	    v2=world->length_unit*molp->pos.y;
-	    v3=world->length_unit*molp->pos.z;
-	    fwrite(&v1,sizeof v1,1,mol_pos_data);
-	    fwrite(&v2,sizeof v2,1,mol_pos_data);
-	    fwrite(&v3,sizeof v3,1,mol_pos_data);
-            mol_pos_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-        }
-        fprintf(master_header,"object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d  # %s positions #\n",main_index,num,my_byte_order, mol_pos_name, mol_pos_byte_offset_prev, species_list[ii]->sym->name);
-        fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
-        mol_pos[mol_pos_index] = main_index;
-        mol_pos_index++;
-        main_index++;
-          
-          /* write molecule orientations information. 
-             for 3D molecules we use default orientation as [0,0,1]. */
-      	  mol_orient_byte_offset_prev = mol_orient_byte_offset;
-          v1 = 0;
-          v2 = 0;
-          v3 = 1;
-          fwrite(&v1,sizeof v1,1,mol_orient_data);
-          fwrite(&v2,sizeof v2,1,mol_orient_data);
-          fwrite(&v3,sizeof v3,1,mol_orient_data);
-          mol_orient_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-          fprintf(master_header,"object %d class constantarray type float rank 1 shape 3 items %d %s binary data file %s,%d # %s orientations #\n",main_index,num, my_byte_order, mol_orient_name, mol_orient_byte_offset_prev, species_list[ii]->sym->name);
-          fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
-          mol_orient[mol_orient_index] = main_index;
-          mol_orient_index++;
-          main_index++;
-
-          /* write molecules state information. */
-      	  mol_states_byte_offset_prev = mol_states_byte_offset;
-          fwrite(&state,sizeof state,1,mol_states_data);
-          mol_states_byte_offset += (sizeof state);
-          fprintf(master_header,"object %d class constantarray type int items %d %s binary data file %s,%d  # %s states #\n",main_index,num, my_byte_order,mol_states_name,mol_states_byte_offset_prev, species_list[ii]->sym->name);
-          fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
-          mol_states[mol_states_index] = main_index;
-          mol_states_index++;
-          main_index++;
-      }
-      /* output empty arrays for zero molecule counts here */
-      else if ((viz_mol_count[spec_id]==0) && ((species_list[ii]->flags & NOT_FREE) == 0)) {
-
-          fprintf(master_header,"object %d array   # %s positions #\n",main_index, species_list[ii]->sym->name);
-          mol_pos[mol_pos_index] = main_index;
-          mol_pos_index++;
-          main_index++;
-          fprintf(master_header,"object %d array   # %s orientations #\n",main_index, species_list[ii]->sym->name);
-          mol_orient[mol_orient_index] = main_index;
-          mol_orient_index++;
-          main_index++;
-
-          fprintf(master_header,"object %d array   # %s states #\n",main_index, species_list[ii]->sym->name);
-          mol_states[mol_states_index] = main_index;
-          mol_states_index++;
-          main_index++;
-      }
-    }
-
-/* build fields and groups here */
-      for (ii=0; ii<mol_to_show_number; ii++) {
-
-             fprintf(master_header,
-                "object %d field   # %s #\n",main_index, mol_names[ii]);
-             fprintf(master_header,
-                 "\tcomponent \"positions\" value %d\n",mol_pos[ii]);
-             fprintf(master_header,
-                 "\tcomponent \"data\" value %d # orientations #\n",mol_orient[ii]);
-             fprintf(master_header,
-                "\tcomponent \"state_values\" value %d\n\n",mol_states[ii]);
-             /* put number of this field into the linked list 
-                of the field numbers for molecules */
-             newNode = (struct num_expr_list *)malloc(sizeof (struct num_expr_list));
-	     if(newNode == NULL) return 1;
-             newNode->value = (double)main_index;
-             newNode->next = NULL;    
-
-             if((mol_head == NULL) && (mol_end == NULL)){
-		mol_head = mol_end = newNode;
-	     }else{
-		mol_end->next = newNode;
-		mol_end = newNode;
-             }
-             main_index++;
-      }
-        
-      /* create group object for molecules */
-        if(mol_to_show_number > 0){
-                fprintf(master_header,"object %d group # %s #\n",main_index, "3D molecules");
-        	mol_group_index = main_index;
-                main_index++;
-
-                curr_ptr = mol_head;
-      		for (ii=0;ii<mol_to_show_number;ii++) {
-                	if(curr_ptr != NULL){
-                		group_index = (int)curr_ptr->value;
-                	}else{
-				break;
-                        }
-          		fprintf(master_header,"\tmember \"%s\" value %d\n",mol_names[ii], group_index);
-             		curr_ptr = curr_ptr->next;		
-          	}
-                fprintf(master_header, "\n\n"); 
-      	}
-
- 
-
-      /* create combined group object for meshes and molecules */
-        fprintf(master_header,"object %d group\n",main_index);
-        combined_group_index = main_index;
-      	if(mesh_group_index > 0){
-          	fprintf(master_header,"\tmember \"meshes\" value %lld\n",mesh_group_index);
-		ia_longlong_store(&frame_numbers_mesh, frame_numbers_count, mesh_group_index);
-		mesh_group_index = 0;
-
-      	}else{
-		ia_longlong_store(&frame_numbers_mesh, frame_numbers_count, -1);
-        }
-        if(eff_group_index > 0){
-          	fprintf(master_header,"\tmember \"effectors\" value %lld\n",eff_group_index);
-		ia_longlong_store(&frame_numbers_eff, frame_numbers_count, eff_group_index);
-		eff_group_index = 0;
-        }else{
-		ia_longlong_store(&frame_numbers_eff, frame_numbers_count, -1);
-        } 
-      	if(mol_group_index > 0){
-          	fprintf(master_header,"\tmember \"molecules\" value %lld\n",mol_group_index);
-		ia_longlong_store(&frame_numbers_mol, frame_numbers_count, mol_group_index);
-		mol_group_index = 0;
-        }else{
-		ia_longlong_store(&frame_numbers_mol, frame_numbers_count, -1);
-        }
-      	fprintf(master_header,"\n");
-
-
-
-     /* create entry into "frame_data" object. */
-      	sprintf(buffer, "\tmember %d value %d position %lld\n", series_index, combined_group_index, viz_iterationll);
-	ia_string_store(&frame_data_list, frame_data_count, buffer);
-        frame_data_count++;
-
-        series_index++;
-      	main_index++;
-      	fprintf(master_header, "\n\n");
-     
-	/* put value of viz_iteration into the frame_numbers_pos */ 
-	ia_longlong_store(&frame_numbers_pos, frame_numbers_count,viz_iterationll);  
-        frame_numbers_count++;
-
-     if(fdlp->curr_viz_iteration->next == NULL)
-     {
-	/* write 'frame_data' object. */
-    	fprintf(master_header,"object \"frame_data\" class series\n");
-        if(frame_data_count > 0)
-        {
-        	char *elem;
-		for(ii = 0; ii < frame_data_count; ii++){
-                	elem = ia_string_get(&frame_data_list, ii);
-                        if(elem == NULL){
-                          fprintf(log_file, "MCell:ia_string_get() tries to access uninitialized data.\n");
-                        }
-			fprintf(master_header, "\t%s", elem);
-        	}
-        }
-	fprintf(master_header, "\n\n");
-
-	/* write 'frame_numbers' object. */
-        if(frame_numbers_count > 0)
-        {
-        	long long elem1, elem2, elem3, elem4;
-        	fprintf(master_header,"#object \"frame_numbers\" class array  type int rank 0 items %lld data follows\n",frame_numbers_count);
-		for(ii = 0; ii < frame_numbers_count; ii++){
-                	elem1 = ia_longlong_get(&frame_numbers_pos, ii);
-                	elem2 = ia_longlong_get(&frame_numbers_mesh, ii);
-                	elem3 = ia_longlong_get(&frame_numbers_mol, ii);
-                	elem4 = ia_longlong_get(&frame_numbers_eff, ii);
-                        if((elem1 == LONG_MIN) || (elem2 == LONG_MIN) ||
-                           (elem3 == LONG_MIN) || (elem4 == LONG_MIN))
-                        {
-                          fprintf(log_file, "MCell:ia_longlong_get() tries to access uninitialized data.\n");
-                          return 1;
-                        }
-			fprintf(master_header, "#\t%lld\t%lld\t%lld\t%lld\n", elem1, elem2, elem3, elem4);
-        	}
-		fprintf(master_header, "\n\n");
-        }
-
-        if(surf_states != NULL) free(surf_states);
-        if(surf_pos != NULL) free(surf_pos);
-        if(surf_con != NULL) free(surf_con);
-        if(obj_names != NULL) {
-            for (ii=0;ii<obj_to_show_number;ii++) {
-               if (obj_names[ii]!=NULL) {
-                   free(obj_names[ii]);
-               }
-            }
-            free(obj_names);
-        }
-        if(eff_states != NULL) free(eff_states);
-        if(eff_pos != NULL) free(eff_pos);
-        if(eff_names != NULL) {
-            for (ii=0;ii<eff_to_show_number;ii++) {
-               if (eff_names[ii]!=NULL) {
-                   free(eff_names[ii]);
-               }
-            }
-            free(eff_names);
-        }
-        if(mol_states != NULL) free(mol_states);
-        if(mol_pos != NULL) free(mol_pos);
-        if(mol_names != NULL) {
-            for (ii=0;ii<mol_to_show_number;ii++) {
-               if (mol_names[ii]!=NULL) {
-                   free(mol_names[ii]);
-               }
-            }
-            free(mol_names);
-        }
-        
-	/* free linked list for frame_numbers. */
-  	struct infinite_longlong_array *arr_ll_ptr, *temp_ll_ptr;
-  	arr_ll_ptr = (&frame_numbers_pos)->next;
-  	while(arr_ll_ptr != NULL){
-		temp_ll_ptr = arr_ll_ptr;
-		arr_ll_ptr = arr_ll_ptr->next;
-		free(temp_ll_ptr);
-  	}     
-  	arr_ll_ptr = (&frame_numbers_mesh)->next;
-  	while(arr_ll_ptr != NULL){
-		temp_ll_ptr = arr_ll_ptr;
-		arr_ll_ptr = arr_ll_ptr->next;
-		free(temp_ll_ptr);
-  	}     
-  	arr_ll_ptr = (&frame_numbers_mol)->next;
-  	while(arr_ll_ptr != NULL){
-		temp_ll_ptr = arr_ll_ptr;
-		arr_ll_ptr = arr_ll_ptr->next;
-		free(temp_ll_ptr);
-  	}     
-  	arr_ll_ptr = (&frame_numbers_eff)->next;
-  	while(arr_ll_ptr != NULL){
-		temp_ll_ptr = arr_ll_ptr;
-		arr_ll_ptr = arr_ll_ptr->next;
-		free(temp_ll_ptr);
-  	}     
-
-  	/* free linked list for frame_data. */
-  	struct infinite_string_array *arr_string_ptr, *temp_string_ptr;
-  	arr_string_ptr = (&frame_data_list);
-        for(ii = 0; ii < BLOCK_SIZE; ii++){
-	    if(arr_string_ptr->data[ii] != NULL){
-		free(arr_string_ptr->data[ii]);
-            }
-        }
-  	arr_string_ptr = (&frame_data_list)->next;
-  	while(arr_string_ptr != NULL){
-           for(ii = 0; ii < BLOCK_SIZE; ii++){
-	       if(arr_string_ptr->data[ii] != NULL){
-		   free(arr_string_ptr->data[ii]);
-               }
-           }
-	   temp_string_ptr = arr_string_ptr;
-	   arr_string_ptr = arr_string_ptr->next;
-	   free(temp_string_ptr);
-  	}
-     }
-
-
-   /* free allocated memory */
-   if (viz_molp != NULL) {
-    for (ii=0;ii<n_species;ii++) {
-      if (viz_molp[ii]!=NULL) {
-        free(viz_molp[ii]);
-      }
-    }
-    
-    free(viz_molp);
-  }
-   
-  if (viz_mol_count != NULL) {
-    free (viz_mol_count);
-  }
-  
-  /* free linked list for surfaces. */
-  if(surf_head != NULL){
-    curr_ptr = surf_head;
-    while(curr_ptr != NULL){
-        temp = curr_ptr;
-        curr_ptr = curr_ptr->next;
-        free(temp);
-    }
-    surf_head = surf_end = NULL;
-  }      
-
-  /* free linked list for effectors. */
-  if(eff_head != NULL){
-    curr_ptr = eff_head;
-    while(curr_ptr != NULL){
-        temp = curr_ptr;
-        curr_ptr = curr_ptr->next;
-        free(temp);
-    }
-    eff_head = eff_end = NULL;
-  }      
-  
-  /* free linked list for molecules */
-  if(mol_head != NULL){
-    curr_ptr = mol_head;
-    while(curr_ptr != NULL){
-        temp = curr_ptr;
-        curr_ptr = curr_ptr->next;
-        free(temp);
-    }
-    mol_head = mol_end = NULL;
-  }
-
-  
-  if (viz_grid_mol_count != NULL) {
-    free (viz_grid_mol_count);
-  }
-  
-    if(master_header != NULL){
-    	fclose(master_header);
-    }
-    if(mol_pos_data != NULL){
-    	fclose(mol_pos_data);
-    }
-    if(mol_orient_data != NULL){
-    	fclose(mol_orient_data);
-    }
-    if(mol_states_data != NULL){
-    	fclose(mol_states_data);
-    }
-    if(mesh_pos_data != NULL){
-    	fclose(mesh_pos_data);
-    }
-    if(mesh_states_data != NULL){
-    	fclose(mesh_states_data);
-    }
-
-  return(0);
-}
 
 /************************************************************************ 
 output_rk_custom:

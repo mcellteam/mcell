@@ -91,6 +91,10 @@ struct release_evaluator *rev;
 %token <tok> ALL_ENCLOSED
 %token <tok> ALL_EVENTS
 %token <tok> ALL_HITS
+%token <tok> ALL_ITERATIONS
+%token <tok> ALL_MESHES
+%token <tok> ALL_MOLECULES
+%token <tok> ALL_TIMES
 %token <tok> AREA_OCCUPIED
 %token <tok> ASCII
 %token <tok> ASIN
@@ -156,7 +160,7 @@ struct release_evaluator *rev;
 %token <tok> EXPRESSION
 %token <tok> FALSE
 %token <tok> FCLOSE
-%token <tok> FILENAME_PREFIX
+%token <tok> FILENAME
 %token <tok> FLOOR
 %token <tok> FOPEN
 %token <tok> FOR_EACH_EFFECTOR
@@ -164,12 +168,16 @@ struct release_evaluator *rev;
 %token <tok> FOR_EACH_TIME_STEP
 %token <tok> FPRINT_TIME
 %token <tok> FPRINTF
+%token <tok> FRAME_DATA
 %token <tok> FRONT
 %token <tok> FRONT_CROSSINGS
 %token <tok> FRONT_HITS
 %token <tok> GAUSSIAN_RELEASE_NUMBER
+%token <tok> GEOMETRY
 %token <tok> INCLUDE_ELEMENTS
 %token <tok> INCLUDE_FILE
+%token <tok> INCLUDE_MOLECULES
+%token <tok> INCLUDE_OBJECT
 %token <tok> INCLUDE_PATCH
 %token <tok> INCLUDE_REGION
 %token <tok> INITIAL_EVENTS
@@ -181,6 +189,7 @@ struct release_evaluator *rev;
 %token <tok> IRIT
 %token <tok> ITERATION_FRAME_DATA
 %token <tok> ITERATION_LIST
+%token <tok> ITERATION_NUMBERS
 %token <tok> ITERATIONS
 %token <tok> FULLY_RANDOM
 %token <tok> LEFT
@@ -192,11 +201,13 @@ struct release_evaluator *rev;
 %token <tok> MCELL_GENERIC
 %token <tok> MEAN_DIAMETER
 %token <tok> MEAN_NUMBER
+%token <tok> MESHES
 %token <tok> MIN_TOK
 %token <tok> MOD
 %token <tok> MODE
 %token <tok> MODIFY_SURFACE_REGIONS
 %token <tok> MOLECULE
+%token <tok> MOLECULES
 %token <tok> MOLECULE_DENSITY
 %token <tok> MOLECULE_NUMBER
 %token <tok> MOLECULE_POSITIONS
@@ -204,6 +215,7 @@ struct release_evaluator *rev;
 %token <tok> MOLECULE_POSITIONS_STATES
 %token <tok> MOLECULE_FILE_PREFIX
 %token <tok> NAME
+%token <tok> NAME_LIST
 %token <tok> NEGATIVE_POLE
 %token <tok> NO
 %token <tok> NONE
@@ -216,7 +228,9 @@ struct release_evaluator *rev;
 %token <tok> OBJECT
 %token <tok> OBJECT_FILE_PREFIXES
 %token <tok> ORIENTATION
+%token <tok> ORIENTATIONS
 %token <tok> OUTPUT_BUFFER_SIZE 
+%token <tok> POSITIONS
 %token <tok> PARALLEL_PARTITION
 %token <tok> PART
 %token <tok> PARTITION_X
@@ -246,6 +260,7 @@ struct release_evaluator *rev;
 %token <tok> REFERENCE_STATE
 %token <tok> REFLECTIVE
 %token <tok> REFERENCE_DIFFUSION_CONSTANT
+%token <tok> REGION_DATA
 %token <tok> RELEASE_INTERVAL
 %token <tok> RELEASE_PATTERN
 %token <tok> RELEASE_PROBABILITY
@@ -286,6 +301,7 @@ struct release_evaluator *rev;
 %token <tok> TARGET_ONLY
 %token <tok> TET_ELEMENT_CONNECTIONS
 %token <tok> TIME_LIST
+%token <tok> TIME_POINTS
 %token <tok> TIME_STEP
 %token <tod> TIME_STEP_MAX
 %token <tok> TO
@@ -301,6 +317,8 @@ struct release_evaluator *rev;
 %token <tok> VACANCY_SEARCH_DISTANCE
 %token <tok> VERTEX_LIST
 %token <tok> VIZ_DATA_OUTPUT
+%token <tok> VIZ_OUTPUT
+%token <tok> VIZ_VALUE
 %token <tok> VOLUME_DEPENDENT_RELEASE_NUMBER
 %token <tok> VOXEL_IMAGE_MODE
 %token <tok> VOXEL_LIST
@@ -349,7 +367,8 @@ struct release_evaluator *rev;
 %type <tok> partition_dimension
 %type <tok> instance_def
 %type <tok> include_stmt
-%type <tok> viz_output_def
+%type <tok> viz_data_output_def
+%type <tok> viz_output_def 
 %type <tok> output_def
 %type <tok> io_stmt
 %type <tok> fopen_stmt
@@ -360,6 +379,8 @@ struct release_evaluator *rev;
 %type <tok> fprint_time_stmt
 %type <tok> sprintf_stmt
 %type <tok> end_of_mdl_file
+
+/*%type <tok> viz_frame_data_def */
 
 %type <tok> rx_net_def
 %type <tok> rx_stmt
@@ -374,13 +395,15 @@ struct release_evaluator *rev;
 
 %type <tok> boolean
 %type <tok> release_site_geom_old
-%type <tok> side
+%type <tok> side 
 %type <tok> side_name
 %type <tok> patch_type
 %type <tok> prev_region_type
 %type <tok> remove_side
 
-%type <tok> frame_data_item
+%type <tok> iteration_frame_data_item
+%type <tok> viz_molecules_one_item
+%type <tok> viz_meshes_one_item
 
 %type <tok> hit_spec
 
@@ -550,6 +573,7 @@ mdl_stmt: time_def
 	| existing_obj_define_surface_regions
 	| mod_surface_regions
 	| io_stmt
+	| viz_data_output_def
 	| viz_output_def
 	| output_def
 
@@ -2028,6 +2052,7 @@ list_surface_prop_stmts: surface_prop_stmt
 
 surface_prop_stmt: surface_rxn_stmt
 	| surface_class_mol_stmt
+	| surface_class_viz_value_stmt 
 ;
 
 
@@ -2190,6 +2215,12 @@ surface_mol_quant: existing_surface_molecule '=' num_expr
   mdlpvp->effdp->quantity_type=mdlpvp->mol_quant_type;
   mdlpvp->effdp->quantity=$<dbl>3;
   mdlpvp->effdp->orientation=mdlpvp->orient_class;
+};
+
+
+surface_class_viz_value_stmt: VIZ_VALUE '=' num_expr
+{
+  mdlpvp->specp->region_viz_value = (int)$<dbl>3;
 };
 
 
@@ -3373,7 +3404,6 @@ polygon_list_def: new_object POLYGON_LIST '{'
   }
 
   /* Create object default region on polygon list object: */
-
   if ((mdlpvp->rp=make_new_region(volp,mdlpvp->obj_name,"ALL",mdlpvp->mdl_err_msg))==NULL) {
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
     return(1);
@@ -3813,7 +3843,6 @@ box_def: new_object BOX '{'
   mdlpvp->region_list_head=mdlpvp->objp->regions;
 
   /* Create object default region on box object: */
-
   if ((mdlpvp->rp=make_new_region(volp,mdlpvp->obj_name,"ALL",mdlpvp->mdl_err_msg))==NULL) {
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
     return(1);
@@ -4291,6 +4320,7 @@ existing_obj_surface_region_def: existing_object
   }
 }
 	list_opt_surface_region_stmts
+        list_opt_surface_region_viz_values_stmts  
 	'}'
 {
   mdlpvp->rp->eff_dat_head=mdlpvp->eff_dat_head;
@@ -4304,6 +4334,11 @@ list_opt_surface_region_stmts: /* empty */
 ;
 
 
+list_opt_surface_region_viz_values_stmts: /* empty */ 
+                                          |  surface_region_viz_value_stmt
+;
+
+
 opt_surface_region_stmt: set_surface_class_stmt
 	| surface_mol_stmt
 ;
@@ -4313,8 +4348,24 @@ set_surface_class_stmt:	SURFACE_CLASS '=' existing_surface_class
 {
   mdlpvp->gp=$<sym>3;
   mdlpvp->rp->surf_class=(struct species *)mdlpvp->gp->value;
+
+  if(mdlpvp->rp->surf_class->region_viz_value > 0){
+     mdlpvp->rp->region_viz_value = mdlpvp->rp->surf_class->region_viz_value;
+  }
 };
 
+surface_region_viz_value_stmt: VIZ_VALUE '=' num_expr
+{
+  /* if surface_class->region_viz_value is already defined print warning */
+  if(mdlpvp->rp->surf_class != NULL){
+     if(mdlpvp->rp->surf_class->region_viz_value > 0){
+         sprintf(mdlpvp->mdl_err_msg,"ATTENTION: region_viz_value defined both through SURFACE_CLASS and VIZ_VALUE statements.\n");
+         mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+     }
+   }
+   /*this statement overwrites the results of the 'set_surface_class_stmt' */
+   mdlpvp->rp->region_viz_value = (int)$<dbl>3;
+};
 
 list_in_obj_surface_region_defs: in_obj_surface_region_def
 	| list_in_obj_surface_region_defs in_obj_surface_region_def
@@ -4323,6 +4374,7 @@ list_in_obj_surface_region_defs: in_obj_surface_region_def
 
 in_obj_surface_region_def: new_region '{'
 {
+
   mdlpvp->gp=$<sym>1;
   mdlpvp->rp=(struct region *)mdlpvp->gp->value;
   mdlpvp->eff_dat_head=mdlpvp->rp->eff_dat_head;
@@ -4341,12 +4393,16 @@ in_obj_surface_region_def: new_region '{'
   }
 }
 	list_opt_surface_region_stmts
+        list_opt_surface_region_viz_values_stmts   
 	'}'
 {
   mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
   mdlpvp->elmlp=mdlpvp->element_list_head;
   mdlpvp->objp->num_regions++;
   mdlpvp->rp->eff_dat_head=mdlpvp->eff_dat_head;
+  if((mdlpvp->rp->surf_class != NULL) && (mdlpvp->rp->surf_class->region_viz_value > 0)){
+      mdlpvp->rp->region_viz_value = mdlpvp->rp->surf_class->region_viz_value;
+  }
 };
 
 
@@ -4405,6 +4461,7 @@ existing_surface_region_ref: existing_region '{'
 }
 	opt_surface_region_stmt
 	list_opt_surface_region_stmts
+        list_opt_surface_region_viz_values_stmts  
 	'}'
 {
   mdlpvp->rp->eff_dat_head=mdlpvp->eff_dat_head;
@@ -4541,10 +4598,10 @@ list_dashes: '-'
 right_arrow: list_dashes '>'
 ;
 
-
+/*
 double_arrow: '<' list_dashes '>'
 ;
-
+*/
 
 new_rxn_pathname: /* empty */
 {
@@ -5005,26 +5062,783 @@ atomic_rate: num_expr_only
 };
   
 
-
-viz_output_def: VIZ_DATA_OUTPUT '{'
+viz_output_def: VIZ_OUTPUT '{'
 	list_viz_output_cmds
 	'}'
 ;
-
 
 list_viz_output_cmds: viz_output_cmd
 	| list_viz_output_cmds viz_output_cmd
 ;
 
+viz_output_cmd: viz_mode_def
+    	| viz_filename_prefix_def 
+	| viz_molecules_block_def
+	| viz_meshes_block_def 
+;
 
-viz_output_cmd:
+viz_filename_prefix_def: FILENAME '=' str_expr
+{
+  volp->file_prefix_name = $<str>3;
+};
+
+viz_molecules_block_def: MOLECULES '{'
+	list_viz_molecules_block_cmds
+	'}'
+;
+
+list_viz_molecules_block_cmds: viz_molecules_block_cmd
+	| list_viz_molecules_block_cmds viz_molecules_block_cmd
+;
+
+viz_molecules_block_cmd: 
+		viz_molecules_name_list_cmd
+        	| viz_molecules_time_points_def
+        	| viz_molecules_iteration_numbers_def 
+;
+
+viz_molecules_name_list_cmd: NAME_LIST '{' 
+		                viz_include_mols_cmd
+                             '}'
+;
+
+viz_include_mols_cmd: list_mol_name_specs 
+                      | list_mol_name_specs_state_values
+                      | list_all_mols_specs
+;
+
+list_mol_name_specs: mol_name_spec 
+	| list_mol_name_specs  mol_name_spec 
+;
+
+mol_name_spec: existing_molecule
+{
+  mdlpvp->gp=$<sym>1;
+  mdlpvp->specp=(struct species *)mdlpvp->gp->value;
+  mdlpvp->specp->viz_state = INCLUDE_OBJ;
+
+};
+
+list_mol_name_specs_state_values: mol_name_specs_state_value
+	| list_mol_name_specs_state_values  mol_name_specs_state_value
+;
+
+mol_name_specs_state_value: existing_molecule '=' num_expr
+{
+  mdlpvp->gp=$<sym>1;
+  mdlpvp->specp=(struct species *)mdlpvp->gp->value;
+
+  /* set the 'viz_state' value */ 
+  mdlpvp->viz_state=(int) $<dbl>3;
+  if (mdlpvp->gp->sym_type == MOL) {
+      mdlpvp->existing_state=0;  
+      mdlpvp->slp=mdlpvp->mol_state_head;
+      while (mdlpvp->slp!=NULL && !mdlpvp->existing_state) {
+        mdlpvp->existing_state=mdlpvp->existing_state||(mdlpvp->viz_state==mdlpvp->slp->state);
+        mdlpvp->slp=mdlpvp->slp->next;
+      }
+      if (!mdlpvp->existing_state) {
+        if ((mdlpvp->slp=(struct state_list *)malloc 
+            (sizeof(struct state_list)))==NULL) {
+          mdlerror("MCell: error cannot store state list");
+          return(1);
+        }
+        mdlpvp->slp->state=mdlpvp->viz_state;
+        mdlpvp->slp->name=mdlpvp->gp->name;
+        mdlpvp->slp->next=mdlpvp->mol_state_head;
+        mdlpvp->mol_state_head=mdlpvp->slp;
+      }
+      mdlpvp->specp->viz_state=mdlpvp->viz_state;
+
+  }
+  if((volp->viz_output_flag & VIZ_MOLECULES_STATES) == 0){
+      volp->viz_output_flag |= VIZ_MOLECULES_STATES;
+  }
+};
+
+list_all_mols_specs: ALL_MOLECULES
+{
+  volp->viz_output_flag |= VIZ_ALL_MOLECULES;
+};
+
+viz_molecules_time_points_def: TIME_POINTS '{'
+                               viz_molecules_time_points_cmds
+                          '}'
+;
+
+viz_molecules_time_points_cmds: viz_molecules_time_points_one_cmd
+    | viz_molecules_time_points_cmds viz_molecules_time_points_one_cmd
+;
+
+viz_molecules_time_points_one_cmd: molecules_time_points_range_cmd 
+                                   | molecules_time_points_all_times_cmd    
+;
+
+molecules_time_points_range_cmd: viz_molecules_one_item '@' '[' 
+{
+  mdlpvp->num_pos=0;
+  mdlpvp->el_head=NULL;
+  mdlpvp->el_tail=NULL;
+}
+     list_range_specs ']'
+{
+  sort_num_expr_list(mdlpvp->el_head);
+  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+        (sizeof(struct frame_data_list)))==NULL) {
+    mdlerror("Cannot store time points data");
+    return(1);
+  }
+  mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+  mdlpvp->fdlp->type=$<tok>1;
+  mdlpvp->fdlp->viz_iterationll=-1;
+  mdlpvp->fdlp->n_viz_iterations=0;
+  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+  mdlpvp->fdlp->next=volp->frame_data_head;
+  volp->frame_data_head = mdlpvp->fdlp;  
+};
+
+molecules_time_points_all_times_cmd: viz_molecules_one_item '@' ALL_TIMES 
+{
+  mdlpvp->num_pos=0;
+  mdlpvp->el_head=NULL;
+  mdlpvp->el_tail=NULL;
+  long long step;
+  for(step = 0; step <= volp->iterations; step++)
+  {
+  	if ((mdlpvp->elp=(struct num_expr_list *)malloc
+           (sizeof(struct num_expr_list)))==NULL) {
+    		mdlerror("Cannot store time points data");
+                return(1);
+        }
+ 
+        mdlpvp->elp->value=(double)(step*(volp->time_unit));
+        if (mdlpvp->el_tail==NULL) {
+           mdlpvp->el_tail=mdlpvp->elp;
+        }
+        mdlpvp->el_tail->next=mdlpvp->elp;
+        mdlpvp->elp->next=NULL;
+        mdlpvp->el_tail=mdlpvp->elp;
+        if (mdlpvp->el_head==NULL) {
+            mdlpvp->el_head=mdlpvp->elp;
+        }
+        mdlpvp->num_pos++;  
+  }
+  sort_num_expr_list(mdlpvp->el_head); 
+  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+        (sizeof(struct frame_data_list)))==NULL) {
+    mdlerror("Cannot store time points data");
+    return(1);
+  }
+  mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+  mdlpvp->fdlp->type=$<tok>1;
+  mdlpvp->fdlp->viz_iterationll=-1;
+  mdlpvp->fdlp->n_viz_iterations=0;
+  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+  mdlpvp->fdlp->next=volp->frame_data_head;
+  volp->frame_data_head = mdlpvp->fdlp;  
+
+};
+
+viz_molecules_iteration_numbers_def: ITERATION_NUMBERS '{'
+                                  viz_molecules_iteration_numbers_cmds
+                                 '}'
+;
+
+viz_molecules_iteration_numbers_cmds: viz_molecules_iteration_numbers_one_cmd
+  | viz_molecules_iteration_numbers_cmds viz_molecules_iteration_numbers_one_cmd
+;
+
+viz_molecules_iteration_numbers_one_cmd: molecules_iteration_numbers_range_cmd 
+                            | molecules_iteration_numbers_all_iterations_cmd    
+;
+
+molecules_iteration_numbers_range_cmd: viz_molecules_one_item '@' '[' 
+{
+  mdlpvp->num_pos=0;
+  mdlpvp->el_head=NULL;
+  mdlpvp->el_tail=NULL;
+}
+     list_range_specs ']'
+{
+  sort_num_expr_list(mdlpvp->el_head);
+  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+        (sizeof(struct frame_data_list)))==NULL) {
+    mdlerror("Cannot store iteration numbers data");
+    return(1);
+  }
+  mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+  mdlpvp->fdlp->type=$<tok>1;
+  mdlpvp->fdlp->viz_iterationll=-1;
+  mdlpvp->fdlp->n_viz_iterations=0;
+  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+  mdlpvp->fdlp->next=volp->frame_data_head;
+  volp->frame_data_head = mdlpvp->fdlp;  
+};
+
+molecules_iteration_numbers_all_iterations_cmd: viz_molecules_one_item '@' 
+                                                 ALL_ITERATIONS 
+{
+  mdlpvp->num_pos=0;
+  mdlpvp->el_head=NULL;
+  mdlpvp->el_tail=NULL;
+  long long step;
+  for(step = 0; step <= volp->iterations; step++)
+  {
+  	if ((mdlpvp->elp=(struct num_expr_list *)malloc
+           (sizeof(struct num_expr_list)))==NULL) {
+    		mdlerror("Cannot store iteration numbers data");
+                return(1);
+        }
+ 
+        mdlpvp->elp->value=(double)(step);
+        if (mdlpvp->el_tail==NULL) {
+           mdlpvp->el_tail=mdlpvp->elp;
+        }
+        mdlpvp->el_tail->next=mdlpvp->elp;
+        mdlpvp->elp->next=NULL;
+        mdlpvp->el_tail=mdlpvp->elp;
+        if (mdlpvp->el_head==NULL) {
+            mdlpvp->el_head=mdlpvp->elp;
+        }
+        mdlpvp->num_pos++;  
+  }
+  sort_num_expr_list(mdlpvp->el_head); 
+  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+        (sizeof(struct frame_data_list)))==NULL) {
+    mdlerror("Cannot store iteration numbers data");
+    return(1);
+  }
+  mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+  mdlpvp->fdlp->type=$<tok>1;
+  mdlpvp->fdlp->viz_iterationll=-1;
+  mdlpvp->fdlp->n_viz_iterations=0;
+  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+  mdlpvp->fdlp->next=volp->frame_data_head;
+  volp->frame_data_head = mdlpvp->fdlp;  
+
+};
+
+viz_molecules_one_item: ALL_DATA
+{
+  $$=ALL_MOL_DATA;
+}
+	| POSITIONS
+{
+  $$=MOL_POS;
+}
+	| ORIENTATIONS
+{
+  $$=MOL_ORIENT;
+};
+
+
+viz_meshes_block_def: MESHES '{'
+	list_viz_meshes_block_cmds
+	'}'
+;
+
+list_viz_meshes_block_cmds: viz_meshes_block_cmd
+	| list_viz_meshes_block_cmds viz_meshes_block_cmd
+;
+
+viz_meshes_block_cmd: 
+		viz_meshes_name_list_cmd
+        	| viz_meshes_time_points_def 
+         	| viz_meshes_iteration_numbers_def  
+;
+
+viz_meshes_name_list_cmd: NAME_LIST '{' 
+		                viz_include_meshes_cmd
+                             '}'
+;
+
+viz_include_meshes_cmd: list_meshes_name_specs 
+                      | list_meshes_name_specs_state_values 
+                      | list_all_meshes_specs   
+;
+
+list_meshes_name_specs: mesh_one_name_spec
+           | list_meshes_name_specs mesh_one_name_spec
+
+
+mesh_one_name_spec: existing_object
+{
+  u_int i;
+
+  mdlpvp->gp=$<sym>1;
+  /* create viz_obj object */
+  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
+  mdlpvp->sym_name=mdlpvp->gp->name;
+  if ((mdlpvp->vizp = (struct viz_obj *)malloc
+        (sizeof(struct viz_obj)))==NULL) {
+    mdlerror("Cannot store viz obj data");
+    return(1);
+  }
+  
+  mdlpvp->objp->viz_obj = mdlpvp->vizp;
+  mdlpvp->vizp->name = my_strdup(mdlpvp->prefix_name);
+  if(mdlpvp->vizp->name == NULL){
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
+          (char *)mdlpvp->sym_name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  
+  mdlpvp->vizp->full_name = my_strdup(mdlpvp->full_name);
+  if(mdlpvp->vizp->full_name == NULL){
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
+          (char *)mdlpvp->sym_name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  
+  mdlpvp->vizp->viz_child_head = NULL;
+  mdlpvp->vizp->obj=mdlpvp->objp;
+  mdlpvp->vizp->next=volp->viz_obj_head;
+  volp->viz_obj_head = mdlpvp->vizp;
+ 
+  /* set viz_state value of INCLUDE_OBJ for the object */
+  if (mdlpvp->gp->sym_type == OBJ) {
+      switch (mdlpvp->objp->object_type) {
+        case META_OBJ:
+          if (set_viz_state_value(mdlpvp->objp,INCLUDE_OBJ)) {
+	    sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for meta object %s",mdlpvp->gp->name);
+            mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+            return(1);
+          }
+          break;
+        case BOX_OBJ:
+          mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
+          if (mdlpvp->objp->viz_state==NULL) {
+            if ((mdlpvp->objp->viz_state=(int *)malloc
+                 (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
+	      sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for box object %s",mdlpvp->gp->name);
+              mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+              return(1);
+            }
+          }
+          for (i=0;i<mdlpvp->pop->n_walls;i++) {
+            mdlpvp->objp->viz_state[i]=INCLUDE_OBJ;
+          }
+          break;
+        case POLY_OBJ:
+          mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
+          if (mdlpvp->objp->viz_state==NULL) {
+            if ((mdlpvp->objp->viz_state=(int *)malloc
+                 (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
+	      sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for polygon list object %s",mdlpvp->gp->name);
+              mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+              return(1);
+            }
+          }
+          for (i=0;i<mdlpvp->pop->n_walls;i++) {
+            mdlpvp->objp->viz_state[i]=INCLUDE_OBJ;
+          }
+          break;
+        default:
+          mdlerror("Cannot set viz state value of this type of object");
+          return(1);
+          break;
+      }
+    }
+
+};
+
+list_meshes_name_specs_state_values: mesh_one_name_spec_state_value
+    | list_meshes_name_specs_state_values mesh_one_name_spec_state_value
+
+
+mesh_one_name_spec_state_value: existing_object '=' num_expr
+{
+
+  u_int i;
+
+  mdlpvp->gp=$<sym>1;
+  mdlpvp->viz_state=(int) $<dbl>3;
+  /* create viz_obj object */
+  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
+  mdlpvp->sym_name=mdlpvp->gp->name;
+  if ((mdlpvp->vizp = (struct viz_obj *)malloc
+        (sizeof(struct viz_obj)))==NULL) {
+    mdlerror("Cannot store viz obj data");
+    return(1);
+  }
+  
+  mdlpvp->objp->viz_obj = mdlpvp->vizp;
+  mdlpvp->vizp->name = my_strdup(mdlpvp->prefix_name);
+  if(mdlpvp->vizp->name == NULL){
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
+          (char *)mdlpvp->sym_name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  
+  mdlpvp->vizp->full_name = my_strdup(mdlpvp->full_name);
+  if(mdlpvp->vizp->full_name == NULL){
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
+          (char *)mdlpvp->sym_name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  
+  mdlpvp->vizp->viz_child_head = NULL;
+  mdlpvp->vizp->obj=mdlpvp->objp;
+  mdlpvp->vizp->next=volp->viz_obj_head;
+  volp->viz_obj_head = mdlpvp->vizp;
+
+  if((volp->viz_output_flag & VIZ_SURFACE_STATES) == 0){
+      volp->viz_output_flag |= VIZ_SURFACE_STATES;
+  }
+ 
+  /* set viz_state value for the object */
+  if (mdlpvp->gp->sym_type == OBJ) {
+      mdlpvp->existing_state=0;  
+      mdlpvp->slp=mdlpvp->surf_state_head;
+      while (mdlpvp->slp!=NULL && !mdlpvp->existing_state) {
+        mdlpvp->existing_state=mdlpvp->existing_state||(mdlpvp->viz_state==mdlpvp->slp->state);
+        mdlpvp->slp=mdlpvp->slp->next;
+      }
+      if (!mdlpvp->existing_state) {
+        if ((mdlpvp->slp=(struct state_list *)malloc 
+            (sizeof(struct state_list)))==NULL) {
+          mdlerror("MCell: error cannot store state list");
+          return(1);
+        }
+        mdlpvp->slp->state=mdlpvp->viz_state;
+        mdlpvp->slp->name=mdlpvp->gp->name;
+        mdlpvp->slp->next=mdlpvp->surf_state_head;
+        mdlpvp->surf_state_head=mdlpvp->slp;
+      }
+      switch (mdlpvp->objp->object_type) {
+        case META_OBJ:
+          if (set_viz_state_value(mdlpvp->objp,mdlpvp->viz_state)) {
+	    sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for meta object %s",mdlpvp->gp->name);
+            mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+            return(1);
+          }
+          break;
+        case BOX_OBJ:
+          mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
+          if (mdlpvp->objp->viz_state==NULL) {
+            if ((mdlpvp->objp->viz_state=(int *)malloc
+                 (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
+	      sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for box object %s",mdlpvp->gp->name);
+              mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+              return(1);
+            }
+          }
+          for (i=0;i<mdlpvp->pop->n_walls;i++) {
+            mdlpvp->objp->viz_state[i]=mdlpvp->viz_state;
+          }
+          break;
+        case POLY_OBJ:
+          mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
+          if (mdlpvp->objp->viz_state==NULL) {
+            if ((mdlpvp->objp->viz_state=(int *)malloc
+                 (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
+	      sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for polygon list object %s",mdlpvp->gp->name);
+              mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+              return(1);
+            }
+          }
+          for (i=0;i<mdlpvp->pop->n_walls;i++) {
+            mdlpvp->objp->viz_state[i]=mdlpvp->viz_state;
+          }
+          break;
+        default:
+          mdlerror("Cannot set viz state value of this type of object");
+          return(1);
+          break;
+      }
+    }
+
+};
+
+list_all_meshes_specs: ALL_MESHES
+{
+  u_int i;
+  struct object *o;
+  for(o = volp->root_instance->first_child; o != NULL; o = o->next)
+  {
+     mdlpvp->objp = o;
+     mdlpvp->sym_name=o->sym->name;
+     if ((mdlpvp->vizp = (struct viz_obj *)malloc
+        (sizeof(struct viz_obj)))==NULL) {
+        mdlerror("Cannot store viz obj data");
+      return(1);
+     }
+  
+     mdlpvp->objp->viz_obj = mdlpvp->vizp;
+     mdlpvp->vizp->name = my_strdup(volp->file_prefix_name);
+     if(mdlpvp->vizp->name == NULL){
+        sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
+          (char *)mdlpvp->sym_name);
+        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+       return(1);
+     }
+  
+     mdlpvp->vizp->full_name = my_strdup(o->sym->name);
+     if(mdlpvp->vizp->full_name == NULL){
+        sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
+          (char *)mdlpvp->sym_name);
+        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+        return(1);
+     }
+  
+     mdlpvp->vizp->viz_child_head = NULL;
+     mdlpvp->vizp->obj=mdlpvp->objp;
+     mdlpvp->vizp->next=volp->viz_obj_head;
+     volp->viz_obj_head = mdlpvp->vizp;
+  
+     /* set viz_state value of INCLUDE_OBJ for the object */
+     if (mdlpvp->gp->sym_type == OBJ) {
+         switch (mdlpvp->objp->object_type) {
+           case META_OBJ:
+             if (set_viz_state_value(mdlpvp->objp,INCLUDE_OBJ)) {
+	       sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for meta object %s",mdlpvp->gp->name);
+               mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+               return(1);
+             }
+             break;
+           case BOX_OBJ:
+             mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
+             if (mdlpvp->objp->viz_state==NULL) {
+                if ((mdlpvp->objp->viz_state=(int *)malloc
+                    (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
+	          sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for box object %s",mdlpvp->gp->name);
+                  mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+                  return(1);
+                }
+             }
+             for (i=0;i<mdlpvp->pop->n_walls;i++) {
+                mdlpvp->objp->viz_state[i]=INCLUDE_OBJ;
+             }
+             break;
+           case POLY_OBJ:
+             mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
+             if (mdlpvp->objp->viz_state==NULL) {
+                if ((mdlpvp->objp->viz_state=(int *)malloc
+                      (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
+	        sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for polygon list object %s",mdlpvp->gp->name);
+                mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+                return(1);
+              }
+            }
+            for (i=0;i<mdlpvp->pop->n_walls;i++) {
+               mdlpvp->objp->viz_state[i]=INCLUDE_OBJ;
+            }
+            break;
+          default:
+             mdlerror("Cannot set viz state value of this type of object");
+             return(1);
+             break;
+         }
+     }
+
+  }
+
+
+};
+
+viz_meshes_time_points_def: TIME_POINTS '{'
+                               viz_meshes_time_points_cmds
+                          '}'
+;
+
+viz_meshes_time_points_cmds: viz_meshes_time_points_one_cmd
+    | viz_meshes_time_points_cmds viz_meshes_time_points_one_cmd
+;
+
+viz_meshes_time_points_one_cmd: meshes_time_points_range_cmd 
+                                   | meshes_time_points_all_times_cmd    
+;
+
+meshes_time_points_range_cmd: viz_meshes_one_item '@' '[' 
+{
+  mdlpvp->num_pos=0;
+  mdlpvp->el_head=NULL;
+  mdlpvp->el_tail=NULL;
+}
+     list_range_specs ']'
+{
+  sort_num_expr_list(mdlpvp->el_head);
+  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+        (sizeof(struct frame_data_list)))==NULL) {
+    mdlerror("Cannot store time points data");
+    return(1);
+  }
+  mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+  mdlpvp->fdlp->type=$<tok>1;
+  mdlpvp->fdlp->viz_iterationll=-1;
+  mdlpvp->fdlp->n_viz_iterations=0;
+  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+  mdlpvp->fdlp->next=volp->frame_data_head;
+  volp->frame_data_head = mdlpvp->fdlp;  
+};
+
+meshes_time_points_all_times_cmd: viz_meshes_one_item '@' ALL_TIMES 
+{
+  mdlpvp->num_pos=0;
+  mdlpvp->el_head=NULL;
+  mdlpvp->el_tail=NULL;
+  long long step;
+  for(step = 0; step <= volp->iterations; step++)
+  {
+  	if ((mdlpvp->elp=(struct num_expr_list *)malloc
+           (sizeof(struct num_expr_list)))==NULL) {
+    		mdlerror("Cannot store time points data");
+                return(1);
+        }
+ 
+        mdlpvp->elp->value=(double)(step*(volp->time_unit));
+        if (mdlpvp->el_tail==NULL) {
+           mdlpvp->el_tail=mdlpvp->elp;
+        }
+        mdlpvp->el_tail->next=mdlpvp->elp;
+        mdlpvp->elp->next=NULL;
+        mdlpvp->el_tail=mdlpvp->elp;
+        if (mdlpvp->el_head==NULL) {
+            mdlpvp->el_head=mdlpvp->elp;
+        }
+        mdlpvp->num_pos++;  
+  }
+  sort_num_expr_list(mdlpvp->el_head); 
+  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+        (sizeof(struct frame_data_list)))==NULL) {
+    mdlerror("Cannot store time points data");
+    return(1);
+  }
+  mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+  mdlpvp->fdlp->type=$<tok>1;
+  mdlpvp->fdlp->viz_iterationll=-1;
+  mdlpvp->fdlp->n_viz_iterations=0;
+  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+  mdlpvp->fdlp->next=volp->frame_data_head;
+  volp->frame_data_head = mdlpvp->fdlp;  
+
+};
+
+viz_meshes_iteration_numbers_def: ITERATION_NUMBERS '{'
+                                  viz_meshes_iteration_numbers_cmds
+                                 '}'
+;
+
+viz_meshes_iteration_numbers_cmds: viz_meshes_iteration_numbers_one_cmd
+  | viz_meshes_iteration_numbers_cmds viz_meshes_iteration_numbers_one_cmd
+;
+
+viz_meshes_iteration_numbers_one_cmd: meshes_iteration_numbers_range_cmd 
+                            | meshes_iteration_numbers_all_iterations_cmd    
+;
+
+meshes_iteration_numbers_range_cmd: viz_meshes_one_item '@' '[' 
+{
+  mdlpvp->num_pos=0;
+  mdlpvp->el_head=NULL;
+  mdlpvp->el_tail=NULL;
+}
+     list_range_specs ']'
+{
+  sort_num_expr_list(mdlpvp->el_head);
+  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+        (sizeof(struct frame_data_list)))==NULL) {
+    mdlerror("Cannot store iteration numbers data");
+    return(1);
+  }
+  mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+  mdlpvp->fdlp->type=$<tok>1;
+  mdlpvp->fdlp->viz_iterationll=-1;
+  mdlpvp->fdlp->n_viz_iterations=0;
+  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+  mdlpvp->fdlp->next=volp->frame_data_head;
+  volp->frame_data_head = mdlpvp->fdlp;  
+};
+
+meshes_iteration_numbers_all_iterations_cmd: viz_meshes_one_item '@' 
+                                                 ALL_ITERATIONS 
+{
+  mdlpvp->num_pos=0;
+  mdlpvp->el_head=NULL;
+  mdlpvp->el_tail=NULL;
+  long long step;
+  for(step = 0; step <= volp->iterations; step++)
+  {
+  	if ((mdlpvp->elp=(struct num_expr_list *)malloc
+           (sizeof(struct num_expr_list)))==NULL) {
+    		mdlerror("Cannot store iteration numbers data");
+                return(1);
+        }
+ 
+        mdlpvp->elp->value=(double)(step);
+        if (mdlpvp->el_tail==NULL) {
+           mdlpvp->el_tail=mdlpvp->elp;
+        }
+        mdlpvp->el_tail->next=mdlpvp->elp;
+        mdlpvp->elp->next=NULL;
+        mdlpvp->el_tail=mdlpvp->elp;
+        if (mdlpvp->el_head==NULL) {
+            mdlpvp->el_head=mdlpvp->elp;
+        }
+        mdlpvp->num_pos++;  
+  }
+  sort_num_expr_list(mdlpvp->el_head); 
+  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+        (sizeof(struct frame_data_list)))==NULL) {
+    mdlerror("Cannot store iteration numbers data");
+    return(1);
+  }
+  mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+  mdlpvp->fdlp->type=$<tok>1;
+  mdlpvp->fdlp->viz_iterationll=-1;
+  mdlpvp->fdlp->n_viz_iterations=0;
+  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+  mdlpvp->fdlp->next=volp->frame_data_head;
+  volp->frame_data_head = mdlpvp->fdlp;  
+
+};
+
+
+viz_meshes_one_item: ALL_DATA
+{
+  $$=ALL_MESH_DATA;
+}
+	| GEOMETRY
+{
+  $$=MESH_GEOMETRY;
+}
+	| REGION_DATA
+{
+  $$=REG_DATA;
+};
+
+
+/* old viz_output style */
+viz_data_output_def: VIZ_DATA_OUTPUT '{'
+	list_viz_data_output_cmds
+	'}'
+;
+
+
+list_viz_data_output_cmds: viz_data_output_cmd
+	| list_viz_data_output_cmds viz_data_output_cmd
+;
+
+
+viz_data_output_cmd:
 	viz_mode_def
 	| voxel_image_mode_def
 	| voxel_volume_mode_def
 	| viz_output_block_def
-	| viz_frame_data_def
+	| viz_iteration_frame_data_def
 	| viz_molecule_prefix_def
-	| viz_filename_prefix_def
 	| viz_object_prefixes_def
 	| viz_state_values_def
 ;
@@ -5246,18 +6060,18 @@ viz_time_def: TIME_LIST '='
 };
 
 
-viz_frame_data_def: ITERATION_FRAME_DATA '{'
-	list_frame_data_specs
+viz_iteration_frame_data_def: ITERATION_FRAME_DATA '{'
+	list_iteration_frame_data_specs
 	'}'
 ;
 
 
-list_frame_data_specs: frame_data_spec
-	| list_frame_data_specs frame_data_spec
+list_iteration_frame_data_specs: iteration_frame_data_spec
+	| list_iteration_frame_data_specs iteration_frame_data_spec
 ;
 
 
-frame_data_spec: frame_data_item '='
+iteration_frame_data_spec: iteration_frame_data_item '='
 {
   mdlpvp->num_pos=0;
   mdlpvp->el_head=NULL;
@@ -5282,7 +6096,7 @@ frame_data_spec: frame_data_item '='
 };
 
 
-frame_data_item:  ALL_DATA
+iteration_frame_data_item:  ALL_DATA
 {
   $$=ALL_FRAME_DATA;
 }
@@ -5302,10 +6116,6 @@ frame_data_item:  ALL_DATA
 {
   $$=MOL_STATES;
 }
-	| MOLECULE_POSITIONS_STATES
-{
-  $$=MOL_POS_STATES;
-}
 	| SURFACE_POSITIONS
 {
   $$=SURF_POS;
@@ -5321,10 +6131,6 @@ viz_molecule_prefix_def: MOLECULE_FILE_PREFIX '=' str_expr
   volp->molecule_prefix_name = $<str>3;
 };
 
-viz_filename_prefix_def: FILENAME_PREFIX '=' str_expr
-{
-  volp->file_prefix_name = $<str>3;
-};
 
 viz_object_prefixes_def: OBJECT_FILE_PREFIXES '{'
 	list_viz_object_prefixes
