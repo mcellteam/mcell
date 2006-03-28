@@ -126,6 +126,7 @@ void init_frame_data_list(struct frame_data_list *fdlp)
   log_file=world->log_file;
 
   while (fdlp!=NULL) {
+ 
     fdlp->viz_iterationll=-1;
     fdlp->n_viz_iterations=0;
     nelp=fdlp->iteration_list;
@@ -208,7 +209,7 @@ void init_frame_data_list(struct frame_data_list *fdlp)
   /* fill the obj_num_regions array */
   obj_num_regions = (int *)malloc(obj_to_show_number * sizeof(int *)); 
   if(obj_num_regions == NULL){
-     fprintf(log_file, "MCell: memory allocation error.\n");
+     fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
      exit(1);
   }
   vizp = world->viz_obj_head;
@@ -232,7 +233,7 @@ void init_frame_data_list(struct frame_data_list *fdlp)
      - to the array of indices for this object regions */
   surf_region_values = (int **)malloc(obj_to_show_number * sizeof(int *));
   if(surf_region_values == NULL){
-       fprintf(log_file, "MCell: memory allocation error\n");
+     fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
        exit(1);
   }
   /* initialize the array */
@@ -248,7 +249,7 @@ void init_frame_data_list(struct frame_data_list *fdlp)
     if(n_regs > 0){
        surf_region_values[ii] = (int *)malloc(n_regs*sizeof(int));
        if(surf_region_values[ii] == NULL){
-          fprintf(log_file, "MCell: memory allocation error\n");
+          fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
           exit(1);
        }
        for(jj = 0; jj < n_regs; jj++)
@@ -335,11 +336,9 @@ int output_dx_objects(struct frame_data_list *fdlp)
   byte viz_surf_pos,viz_surf_states;
   char file_name[1024];
   char my_byte_order[8];
-  
 
   u_int n_species = world->n_species;
-
-
+  
   log_file=world->log_file;
   no_printf("Viz output in DX mode...\n");
 
@@ -385,6 +384,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
   viz_surf_pos=((viz_type==ALL_FRAME_DATA) || (viz_type==SURF_POS));
   viz_surf_states=((viz_type==ALL_FRAME_DATA) || (viz_type==SURF_STATES));
 
+
 /* dump walls and effectors: */
   if (viz_surf_or_eff) {
   vizp = world->viz_obj_head;
@@ -399,8 +399,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
       sprintf(file_name,"%s.mesh_elements.%lld.dx",
                vizp->name,viz_iterationll);
       if ((wall_verts_header=fopen(file_name,"wb"))==NULL) {
-        fprintf(log_file,"MCell: error cannot open mesh elements file %s\n",
-               file_name);
+        fprintf(world->err_file,"File %s, Line %ld: error cannot open mesh elements file %s\n", __FILE__, (long)__LINE__, file_name);
         return(1);
       }
     }
@@ -409,8 +408,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
       sprintf(file_name,"%s.mesh_element_states.%lld.dx",
                vizp->name,viz_iterationll);
       if ((wall_states_header=fopen(file_name,"wb"))==NULL) {
-        fprintf(log_file,"MCell: error cannot open mesh element states file %s\n",
-               file_name);
+        fprintf(world->err_file,"File %s, Line %ld: error cannot open mesh element states file %s\n", __FILE__, (long)__LINE__, file_name);
         return(1);
       }
     }
@@ -418,7 +416,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
     if (viz_eff_pos) {
       sprintf(file_name,"%s.effector_site_positions.%lld.dx",vizp->name,viz_iterationll);
       if ((eff_pos_header=fopen(file_name,"wb"))==NULL) {
-        fprintf(log_file,"MCell: error cannot open effector position file %s\n",file_name);
+        fprintf(world->err_file,"File %s, Line %ld: error cannot open effector position file %s\n", __FILE__, (long)__LINE__, file_name);
         return(1);
       }
     }
@@ -426,7 +424,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
     if (viz_eff_states) {
       sprintf(file_name,"%s.effector_site_states.%lld.dx",vizp->name,viz_iterationll);
       if ((eff_states_header=fopen(file_name,"wb"))==NULL) {
-        fprintf(log_file,"MCell: error cannot open effector states file %s\n",file_name);
+        fprintf(world->err_file,"File %s, Line %ld: error cannot open effector states file %s\n", __FILE__, (long)__LINE__, file_name);
         return(1);
       }
     }
@@ -1116,14 +1114,14 @@ int output_dx_objects(struct frame_data_list *fdlp)
     if (viz_mol_pos) {
       sprintf(file_name,"%s.molecule_positions.%lld.dx",world->molecule_prefix_name,viz_iterationll);
       if ((mol_pos_header=fopen(file_name,"wb"))==NULL) {
-        fprintf(log_file,"MCell: error cannot open molecule positions header file %s\n",file_name);
+        fprintf(world->err_file,"File %s, Line %ld: error cannot open molecule positions header file %s\n", __FILE__, (long)__LINE__, file_name);
         return(1);
       }
     }
     if (viz_mol_states) {
       sprintf(file_name,"%s.molecule_states.%lld.dx",world->molecule_prefix_name,viz_iterationll);
       if ((mol_states_header=fopen(file_name,"wb"))==NULL) {
-        fprintf(log_file,"MCell: error cannot open molecule states header file %s\n",file_name);
+        fprintf(world->err_file,"File %s, Line %ld: error cannot open molecule states header file %s\n", __FILE__, (long)__LINE__, file_name);
         return(1);
       }
     }
@@ -1132,9 +1130,11 @@ int output_dx_objects(struct frame_data_list *fdlp)
     n_species=world->n_species;
 
     if ((viz_molp=(struct molecule ***)malloc(n_species*sizeof(struct molecule **)))==NULL) {
+        fprintf(world->err_file,"File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
       return(1);
     }
     if ((viz_mol_count=(u_int *)malloc(n_species*sizeof(u_int)))==NULL) {
+        fprintf(world->err_file,"File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
       return(1);
     }
 
@@ -1149,7 +1149,8 @@ int output_dx_objects(struct frame_data_list *fdlp)
         if (num>0) {
           if ((viz_molp[spec_id]=(struct molecule **)malloc
             (num*sizeof(struct molecule *)))==NULL) {
-            return(1);
+                fprintf(world->err_file,"File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                return(1);
           }
         }
       }
@@ -1481,7 +1482,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
   no_printf("Viz output in DREAMM_V3 mode...\n");
   
   if(world->file_prefix_name == NULL) {
-   	fprintf(log_file, "Inside VIZ_DATA_OUTPUT block the required keyword FILENAME_PREFIX is missing.\n");
+   	fprintf(world->err_file, "File %s, Line %ld: Inside VIZ_DATA_OUTPUT block the required keyword FILENAME_PREFIX is missing.\n", __FILE__, (long)__LINE__);
    	exit(1);
   }
 
@@ -1548,7 +1549,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      {
   	if((surf_states == NULL) && (viz_surf_states_flag)){ 
      		if ((surf_states=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL)      {
-         		fprintf(stderr,"MCell: memory allocation error\n");
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		return (1);
      		}
         	for(ii = 0; ii < obj_to_show_number; ii++){
@@ -1557,7 +1558,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
    	}
    	if((surf_pos == NULL) && (viz_surf_pos_flag)){
      		if ((surf_pos=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL) {
-         		fprintf(stderr,"MCell: memory allocation error\n");
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		return (1);
      		}
      		for(ii = 0; ii < obj_to_show_number; ii++){
@@ -1566,7 +1567,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
    	}
    	if((surf_con == NULL) && (viz_surf_pos_flag)){
       		if ((surf_con=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL) {
-         		fprintf(stderr,"MCell: memory allocation error\n");
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		return (1);
       		}
       		for(ii = 0; ii < obj_to_show_number; ii++){
@@ -1575,7 +1576,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
         }
    	if(surf_field_indices == NULL){
       		if ((surf_field_indices=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL) {
-         		fprintf(stderr,"MCell: memory allocation error\n");
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		return (1);
       		}
       		for(ii = 0; ii < obj_to_show_number; ii++){
@@ -1587,7 +1588,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
    	/* initialize array of viz_objects names */
    	if(obj_names == NULL){
       		if ((obj_names = (char **)malloc(obj_to_show_number*sizeof(char *)))==NULL) {
-         		fprintf(stderr,"MCell: memory allocation error\n");
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		return (1);
       		}
       		for(ii = 0; ii < obj_to_show_number; ii++){
@@ -1596,7 +1597,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                 /* create an array of region names */
    	        if(region_names == NULL){
       	            if ((region_names = (char ***)malloc(obj_to_show_number*sizeof(char **)))==NULL) { 
-         	        fprintf(stderr,"MCell: memory allocation error\n");
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          	        return (1);
       	            }
                     /* initialize it */
@@ -1613,7 +1614,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
         	   while(vcp != NULL){
          	       obj_names[ii] = my_strdup(vcp->obj->sym->name);
                        if(obj_names[ii] == NULL){
-         		    fprintf(stderr,"MCell: memory allocation error\n");
+                            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		    return (1);
          	        }
                 
@@ -1623,7 +1624,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                         if(n_regs > 0){
 		            region_names[ii] = (char **)malloc(n_regs*sizeof(char *));
                             if(region_names[ii] == NULL){ 
-         		       fprintf(stderr,"MCell: memory allocation error\n");
+                               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		       return (1);
       		            }
                         }
@@ -1637,7 +1638,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                             region_names[ii][jj] = my_strdup(rp->region_last_name);
                             if(region_names[ii][jj] == NULL)
                             { 
-         		       fprintf(stderr,"MCell: memory allocation error\n");
+                               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		       return (1);
       		            }
                             jj++;
@@ -1665,7 +1666,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      {
      	if((eff_states == NULL) && (viz_mol_states_flag)){ 
      		if((eff_states=(u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL)        {
-         		fprintf(stderr,"MCell: memory allocation error\n");
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		return (1);
      		}
      		for(ii = 0; ii < eff_to_show_number; ii++){
@@ -1674,7 +1675,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      	}
      	if((eff_pos == NULL) && (viz_mol_pos_flag)){
      		if ((eff_pos=(u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL) 	{
-         		fprintf(stderr,"MCell: memory allocation error\n");
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		return (1);
      		}
      		for(ii = 0; ii < eff_to_show_number; ii++){
@@ -1683,7 +1684,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      	}
      	if((eff_orient == NULL) && (viz_mol_orient_flag)){
      		if ((eff_orient = (u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL) 	{
-         		fprintf(stderr,"MCell: memory allocation error\n");
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		return (1);
      		}
      		for(ii = 0; ii < eff_to_show_number; ii++){
@@ -1692,7 +1693,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      	}
      	if(eff_field_indices == NULL){
      		if ((eff_field_indices = (u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL) 	{
-         		fprintf(stderr,"MCell: memory allocation error\n");
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		return (1);
      		}
      		for(ii = 0; ii < eff_to_show_number; ii++){
@@ -1703,7 +1704,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
    	if(eff_names == NULL){
 
       		if ((eff_names = (char **)malloc(eff_to_show_number*sizeof(char *)))==NULL) {
-         		fprintf(stderr,"MCell: memory allocation error\n");
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		return (1);
       		}
       		for(ii = 0; ii < eff_to_show_number; ii++){
@@ -1720,7 +1721,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                    if(((specp->flags & ON_GRID) == ON_GRID) && (specp->viz_state > 0)){ 
                       eff_names[index] = my_strdup(specp->sym->name);
                       if(eff_names[index] == NULL){
-                         fprintf(stderr,"MCell: memory allocation error\n");
+                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
                          return (1);
                       }
                       index++;
@@ -1737,7 +1738,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      {
      	if((mol_states == NULL) && (viz_mol_states_flag)){ 
      		if((mol_states=(u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL)        {
-         		fprintf(stderr,"MCell: memory allocation error\n");
+                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		return (1);
      		}
      		for(ii = 0; ii < mol_to_show_number; ii++){
@@ -1746,7 +1747,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      	}
      	if((mol_pos == NULL) && (viz_mol_pos_flag)) {
      		if ((mol_pos=(u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL) 	{
-         		fprintf(stderr,"MCell: memory allocation error\n");
+                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		return (1);
      		}
      		for(ii = 0; ii < mol_to_show_number; ii++){
@@ -1755,7 +1756,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      	}
      	if((mol_orient == NULL) && (viz_mol_orient_flag)){
      		if ((mol_orient = (u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL) 	{
-         		fprintf(stderr,"MCell: memory allocation error\n");
+                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		return (1);
      		}
      		for(ii = 0; ii < mol_to_show_number; ii++){
@@ -1764,7 +1765,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      	}
      	if(mol_field_indices == NULL){
      		if ((mol_field_indices = (u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL) 	{
-         		fprintf(stderr,"MCell: memory allocation error\n");
+                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		return (1);
      		}
      		for(ii = 0; ii < mol_to_show_number; ii++){
@@ -1775,7 +1776,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
    	/* initialize array of mol's names */
    	if(mol_names == NULL){
       		if ((mol_names = (char **)malloc(mol_to_show_number*sizeof(char *)))==NULL) {
-         		fprintf(stderr,"MCell: memory allocation error\n");
+                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		return (1);
       		}
       		for(ii = 0; ii < mol_to_show_number; ii++){
@@ -1791,7 +1792,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
            	   if(((specp->flags & NOT_FREE) == 0) && (specp->viz_state > 0)){ 
                        mol_names[index] = my_strdup(specp->sym->name);
                        if(mol_names[index] == NULL){
-                         fprintf(stderr,"MCell: memory allocation error\n");
+                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
                          return (1);
                        }
                        index++;
@@ -1812,14 +1813,14 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
   if(count_master_header == 0){
       if ((master_header=fopen(file_name,"w"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open master header file %s\n",file_name);
+           fprintf(world->err_file, "File %s, Line %ld: cannot open master header file %s.\n", __FILE__, (long)__LINE__,file_name);
            return(1);
       }
       count_master_header++;
 
   }else{
       if ((master_header=fopen(file_name,"a"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open master header file %s\n",file_name);
+           fprintf(world->err_file, "File %s, Line %ld: cannot open master header file %s.\n", __FILE__, (long)__LINE__,file_name);
            return(1);
       }
       count_master_header++;
@@ -1839,13 +1840,13 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      
      if (count_mol_pos_data == 0){
         if ((mol_pos_data=fopen(file_name,"wb"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open molecule positions data file %s\n",file_name);
+           fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
            return(1);
         }else{}
         count_mol_pos_data++;
      }else{
         if ((mol_pos_data=fopen(file_name,"ab"))==NULL) {
-              fprintf(log_file,"MCell: error cannot open molecule positions data file %s\n",file_name);
+              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
               return(1);
         }
         count_mol_pos_data++;
@@ -1866,13 +1867,13 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
      if (count_mol_orient_data == 0){
         if ((mol_orient_data=fopen(file_name,"wb"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open molecule orientations data file %s\n",file_name);
+           fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
            return(1);
         }
         count_mol_orient_data++;
      }else{
         if ((mol_orient_data=fopen(file_name,"ab"))==NULL) {
-              fprintf(log_file,"MCell: error cannot open molecule orientations data file %s\n",file_name);
+              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
               return(1);
         }
         count_mol_orient_data++;
@@ -1895,13 +1896,13 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      
        if (count_mol_states_data == 0){
             if ((mol_states_data = fopen(file_name,"wb"))==NULL) {
-           	   fprintf(log_file,"MCell: error cannot open molecule states data file %s\n",file_name);
+                   fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
            	   return(1);
             }
             count_mol_states_data++;
        }else{
            if ((mol_states_data = fopen(file_name,"ab"))==NULL) {
-           	   fprintf(log_file,"MCell: error cannot open molecule states data file %s\n",file_name);
+                   fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
            	   return(1);
             }
             count_mol_states_data++;
@@ -1922,13 +1923,13 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
        if (count_mesh_pos_data == 0){
       	 if ((mesh_pos_data=fopen(file_name,"wb"))==NULL) {
-                fprintf(log_file,"MCell: error cannot open mesh positions file %s\n",file_name);
+                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
                 return(1);
           }
           count_mesh_pos_data++;
        }else{
       	   if ((mesh_pos_data=fopen(file_name,"ab"))==NULL) {
-               fprintf(log_file,"MCell: error cannot open mesh positions file %s\n",file_name);
+               fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
                return(1);
            }
            count_mesh_pos_data++;
@@ -1951,13 +1952,13 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
        if (count_mesh_states_data == 0){
            if ((mesh_states_data=fopen(file_name,"wb"))==NULL) {
-                  fprintf(log_file,"MCell: error cannot open mesh states file %s\n",file_name);
+                  fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
                   return(1);
             }
             count_mesh_states_data++;
        }else{
           if ((mesh_states_data=fopen(file_name,"ab"))==NULL) {
-              fprintf(log_file,"MCell: error cannot open mesh states file %s\n", file_name);
+              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
               return(1);
           }
           count_mesh_states_data++;
@@ -1978,13 +1979,13 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
        if (count_region_data == 0){
           if ((region_data=fopen(file_name,"wb"))==NULL) {
-              fprintf(log_file,"MCell: error cannot open region viz values file %s\n", file_name);
+              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
               return(1);
            }
            count_region_data++;
        }else{
           if ((region_data=fopen(file_name,"ab"))==NULL) {
-                fprintf(log_file,"MCell: error cannot open region viz values file %s\n", file_name);
+                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
                 return(1);
           }
           count_region_data++;
@@ -2449,11 +2450,11 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
    
         /* create references to the molecules. */
         if ((viz_molp=(struct molecule ***)malloc(n_species*sizeof(struct molecule **)))==NULL) {
-		fprintf(log_file, "Memory allocation error\n");
+                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
       		return(1);
     	}
     	if ((viz_mol_count=(u_int *)malloc(n_species*sizeof(u_int)))==NULL) {
-		fprintf(log_file, "Memory allocation error\n");
+                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
       		return(1);
     	}
   
@@ -2470,7 +2471,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
           /* create references for 3D molecules */
           if ((viz_molp[spec_id]=(struct molecule **)malloc
             (num*sizeof(struct molecule *)))==NULL) {
-		fprintf(log_file, "Memory allocation error\n");
+                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
                 return(1);
           }
       }
@@ -2855,8 +2856,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      	strcpy(frame_numbers_name, ch_ptr);
 
       	if ((frame_numbers_data=fopen(file_name,"wb"))==NULL) {
-           fprintf(log_file,"MCell: error cannot open frame_numbers file %s\n",
-               file_name);
+            fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, file_name);
            return(1);
         }
 
@@ -2873,8 +2873,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      	strcpy(time_values_name, ch_ptr);
 
       	if ((time_values_data=fopen(file_name,"wb"))==NULL) {
-            fprintf(log_file,"MCell: error cannot open  file %s\n",
-                    file_name);
+            fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, file_name);
             return(1);
         }
 
@@ -2889,7 +2888,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                 	elem1 = ia_uint_get(&frame_numbers_pos, ii);
                         if(elem1 == UINT_MAX) 
                         {
-                          fprintf(log_file, "MCell:ia_uint_get() tries to access uninitialized data.\n");
+                          fprintf(world->err_file, "File %s, Line %ld: ia_uint_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
                           return 1;
                         }
 			
@@ -2903,7 +2902,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                 	elem1 = ia_uint_get(&frame_numbers_pos, ii);
                         if(elem1 == UINT_MAX) 
                         {
-                          fprintf(log_file, "MCell:ia_uint_get() tries to access uninitialized data.\n");
+                          fprintf(world->err_file, "File %s, Line %ld: ia_uint_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
                           return 1;
                         }
                         t_value = elem1*world->time_unit;
@@ -2919,7 +2918,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 		   for(ii = 0; ii < frame_data_series_count; ii++){
                        elem = ia_string_get(&frame_data_series_list, ii);
                        if(elem == NULL){
-                           fprintf(log_file, "MCell:ia_string_get() tries to access uninitialized data.\n");
+                          fprintf(world->err_file, "File %s, Line %ld: ia_string_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
                         }
 			fprintf(master_header, "\t%s", elem);
         	    }

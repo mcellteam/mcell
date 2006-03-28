@@ -5075,11 +5075,20 @@ viz_output_cmd: viz_mode_def
     	| viz_filename_prefix_def 
 	| viz_molecules_block_def
 	| viz_meshes_block_def 
+	| viz_output_block_def
+	| viz_iteration_frame_data_def
+	| viz_molecule_prefix_def
+	| viz_object_prefixes_def
+	| viz_state_values_def
 ;
 
 viz_filename_prefix_def: FILENAME '=' str_expr
 {
   volp->file_prefix_name = $<str>3;
+
+  if(volp->viz_mode == DX_MODE) {
+      volp->molecule_prefix_name = $<str>3;
+  }
 };
 
 viz_molecules_block_def: MOLECULES '{'
@@ -5113,6 +5122,10 @@ list_mol_name_specs: mol_name_spec
 
 mol_name_spec: existing_molecule
 {
+  if(volp->viz_mode == DX_MODE){
+    mdlerror("In DX MODE the state value for the molecule should be specified.\n");
+    return(1);
+  }
   mdlpvp->gp=$<sym>1;
   mdlpvp->specp=(struct species *)mdlpvp->gp->value;
   mdlpvp->specp->viz_state = INCLUDE_OBJ;
@@ -5158,6 +5171,10 @@ mol_name_specs_state_value: existing_molecule '=' num_expr
 
 list_all_mols_specs: ALL_MOLECULES
 {
+  if(volp->viz_mode == DX_MODE){
+    mdlerror("In DX MODE the state value for the molecule should be specified.\n");
+    return(1);
+  }
   volp->viz_output_flag |= VIZ_ALL_MOLECULES;
 };
 
@@ -5183,19 +5200,84 @@ molecules_time_points_range_cmd: viz_molecules_one_item '@' '['
      list_range_specs ']'
 {
   sort_num_expr_list(mdlpvp->el_head);
-  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-        (sizeof(struct frame_data_list)))==NULL) {
-    mdlerror("Cannot store time points data");
-    return(1);
+  int temp = $<tok>1;
+
+  if(volp->viz_mode == DREAMM_V3){
+     if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+                mdlerror("Cannot store time points data");
+                return(1);
+      }
+      mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+      mdlpvp->fdlp->type=$<tok>1;
+      mdlpvp->fdlp->viz_iterationll=-1;
+      mdlpvp->fdlp->n_viz_iterations=0;
+      mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+      mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+      mdlpvp->fdlp->next=volp->frame_data_head;
+      volp->frame_data_head = mdlpvp->fdlp;  
+  }else if(volp->viz_mode == DX_MODE){ 
+     if((temp == MOL_POS) || (temp == ALL_MOL_DATA)){
+        /* create four frames */
+        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+                mdlerror("Cannot store time points data");
+                return(1);
+         }
+         mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+         mdlpvp->fdlp->type=EFF_POS;
+         mdlpvp->fdlp->viz_iterationll=-1;
+         mdlpvp->fdlp->n_viz_iterations=0;
+         mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+         mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+         mdlpvp->fdlp->next=volp->frame_data_head;
+         volp->frame_data_head = mdlpvp->fdlp;  
+
+         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+                mdlerror("Cannot store time points data");
+                return(1);
+          }
+          mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+          mdlpvp->fdlp->type=EFF_STATES;
+          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->n_viz_iterations=0;
+          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+          mdlpvp->fdlp->next=volp->frame_data_head;
+          volp->frame_data_head = mdlpvp->fdlp;  
+
+          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+                (sizeof(struct frame_data_list)))==NULL) {
+                   mdlerror("Cannot store time points data");
+                   return(1);
+          }
+          mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+          mdlpvp->fdlp->type=MOL_POS;
+          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->n_viz_iterations=0;
+          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+          mdlpvp->fdlp->next=volp->frame_data_head;
+          volp->frame_data_head = mdlpvp->fdlp;  
+     
+          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+               (sizeof(struct frame_data_list)))==NULL) {
+                    mdlerror("Cannot store time points data");
+                    return(1);
+          }
+          mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+          mdlpvp->fdlp->type=MOL_STATES;
+          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->n_viz_iterations=0;
+          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+          mdlpvp->fdlp->next=volp->frame_data_head;
+          volp->frame_data_head = mdlpvp->fdlp;  
+     }else if(temp == MOL_ORIENT){
+         /* do nothing */
+     }
   }
-  mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-  mdlpvp->fdlp->type=$<tok>1;
-  mdlpvp->fdlp->viz_iterationll=-1;
-  mdlpvp->fdlp->n_viz_iterations=0;
-  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-  mdlpvp->fdlp->next=volp->frame_data_head;
-  volp->frame_data_head = mdlpvp->fdlp;  
 };
 
 molecules_time_points_all_times_cmd: viz_molecules_one_item '@' ALL_TIMES 
@@ -5204,6 +5286,8 @@ molecules_time_points_all_times_cmd: viz_molecules_one_item '@' ALL_TIMES
   mdlpvp->el_head=NULL;
   mdlpvp->el_tail=NULL;
   long long step;
+  int temp;
+
   for(step = 0; step <= volp->iterations; step++)
   {
   	if ((mdlpvp->elp=(struct num_expr_list *)malloc
@@ -5225,20 +5309,85 @@ molecules_time_points_all_times_cmd: viz_molecules_one_item '@' ALL_TIMES
         mdlpvp->num_pos++;  
   }
   sort_num_expr_list(mdlpvp->el_head); 
-  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-        (sizeof(struct frame_data_list)))==NULL) {
-    mdlerror("Cannot store time points data");
-    return(1);
-  }
-  mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-  mdlpvp->fdlp->type=$<tok>1;
-  mdlpvp->fdlp->viz_iterationll=-1;
-  mdlpvp->fdlp->n_viz_iterations=0;
-  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-  mdlpvp->fdlp->next=volp->frame_data_head;
-  volp->frame_data_head = mdlpvp->fdlp;  
+  temp = $<tok>1;
 
+  if(volp->viz_mode == DREAMM_V3)
+  {
+     if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+              mdlerror("Cannot store time points data");
+              return(1);
+     }
+     mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+     mdlpvp->fdlp->type=$<tok>1;
+     mdlpvp->fdlp->viz_iterationll=-1;
+     mdlpvp->fdlp->n_viz_iterations=0;
+     mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+     mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+     mdlpvp->fdlp->next=volp->frame_data_head;
+     volp->frame_data_head = mdlpvp->fdlp;  
+  }else if(volp->viz_mode == DX_MODE){ 
+     if((temp == MOL_POS) || (temp == ALL_MOL_DATA)){
+        /* create four frames */
+        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+                mdlerror("Cannot store time points data");
+                return(1);
+         }
+         mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+         mdlpvp->fdlp->type=EFF_POS;
+         mdlpvp->fdlp->viz_iterationll=-1;
+         mdlpvp->fdlp->n_viz_iterations=0;
+         mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+         mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+         mdlpvp->fdlp->next=volp->frame_data_head;
+         volp->frame_data_head = mdlpvp->fdlp;  
+
+         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+                mdlerror("Cannot store time points data");
+                return(1);
+          }
+          mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+          mdlpvp->fdlp->type=EFF_STATES;
+          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->n_viz_iterations=0;
+          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+          mdlpvp->fdlp->next=volp->frame_data_head;
+          volp->frame_data_head = mdlpvp->fdlp;  
+
+          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+                (sizeof(struct frame_data_list)))==NULL) {
+                   mdlerror("Cannot store time points data");
+                   return(1);
+          }
+          mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+          mdlpvp->fdlp->type=MOL_POS;
+          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->n_viz_iterations=0;
+          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+          mdlpvp->fdlp->next=volp->frame_data_head;
+          volp->frame_data_head = mdlpvp->fdlp;  
+     
+          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+               (sizeof(struct frame_data_list)))==NULL) {
+                    mdlerror("Cannot store time points data");
+                    return(1);
+          }
+          mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+          mdlpvp->fdlp->type=MOL_STATES;
+          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->n_viz_iterations=0;
+          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+          mdlpvp->fdlp->next=volp->frame_data_head;
+          volp->frame_data_head = mdlpvp->fdlp;  
+     }else if(temp == MOL_ORIENT){
+         /* do nothing */
+     }
+  }
 };
 
 viz_molecules_iteration_numbers_def: ITERATION_NUMBERS '{'
@@ -5263,19 +5412,87 @@ molecules_iteration_numbers_range_cmd: viz_molecules_one_item '@' '['
      list_range_specs ']'
 {
   sort_num_expr_list(mdlpvp->el_head);
-  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-        (sizeof(struct frame_data_list)))==NULL) {
-    mdlerror("Cannot store iteration numbers data");
-    return(1);
+
+  int temp = $<tok>1;
+
+  if(volp->viz_mode == DREAMM_V3)
+  {
+     if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+              mdlerror("Cannot store iteration numbers data");
+              return(1);
+      }
+      mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+      mdlpvp->fdlp->type=$<tok>1;
+      mdlpvp->fdlp->viz_iterationll=-1;
+      mdlpvp->fdlp->n_viz_iterations=0;
+      mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+      mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+      mdlpvp->fdlp->next=volp->frame_data_head;
+      volp->frame_data_head = mdlpvp->fdlp;  
+  }else if(volp->viz_mode == DX_MODE){ 
+     if((temp == MOL_POS) || (temp == ALL_MOL_DATA)){
+        /* create four frames */
+        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+                mdlerror("Cannot store time points data");
+                return(1);
+         }
+         mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+         mdlpvp->fdlp->type=EFF_POS;
+         mdlpvp->fdlp->viz_iterationll=-1;
+         mdlpvp->fdlp->n_viz_iterations=0;
+         mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+         mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+         mdlpvp->fdlp->next=volp->frame_data_head;
+         volp->frame_data_head = mdlpvp->fdlp;  
+
+         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+                mdlerror("Cannot store time points data");
+                return(1);
+          }
+          mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+          mdlpvp->fdlp->type=EFF_STATES;
+          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->n_viz_iterations=0;
+          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+          mdlpvp->fdlp->next=volp->frame_data_head;
+          volp->frame_data_head = mdlpvp->fdlp;  
+
+          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+                (sizeof(struct frame_data_list)))==NULL) {
+                   mdlerror("Cannot store time points data");
+                   return(1);
+          }
+          mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+          mdlpvp->fdlp->type=MOL_POS;
+          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->n_viz_iterations=0;
+          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+          mdlpvp->fdlp->next=volp->frame_data_head;
+          volp->frame_data_head = mdlpvp->fdlp;  
+     
+          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+               (sizeof(struct frame_data_list)))==NULL) {
+                    mdlerror("Cannot store time points data");
+                    return(1);
+          }
+          mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+          mdlpvp->fdlp->type=MOL_STATES;
+          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->n_viz_iterations=0;
+          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+          mdlpvp->fdlp->next=volp->frame_data_head;
+          volp->frame_data_head = mdlpvp->fdlp;  
+     }else if(temp == MOL_ORIENT){
+         /* do nothing */
+     }
   }
-  mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-  mdlpvp->fdlp->type=$<tok>1;
-  mdlpvp->fdlp->viz_iterationll=-1;
-  mdlpvp->fdlp->n_viz_iterations=0;
-  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-  mdlpvp->fdlp->next=volp->frame_data_head;
-  volp->frame_data_head = mdlpvp->fdlp;  
+
 };
 
 molecules_iteration_numbers_all_iterations_cmd: viz_molecules_one_item '@' 
@@ -5285,6 +5502,8 @@ molecules_iteration_numbers_all_iterations_cmd: viz_molecules_one_item '@'
   mdlpvp->el_head=NULL;
   mdlpvp->el_tail=NULL;
   long long step;
+  int temp;
+
   for(step = 0; step <= volp->iterations; step++)
   {
   	if ((mdlpvp->elp=(struct num_expr_list *)malloc
@@ -5306,19 +5525,85 @@ molecules_iteration_numbers_all_iterations_cmd: viz_molecules_one_item '@'
         mdlpvp->num_pos++;  
   }
   sort_num_expr_list(mdlpvp->el_head); 
-  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-        (sizeof(struct frame_data_list)))==NULL) {
-    mdlerror("Cannot store iteration numbers data");
-    return(1);
+  temp = $<tok>1;
+
+  if(volp->viz_mode == DREAMM_V3)
+  {
+     if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+              mdlerror("Cannot store iteration numbers data");
+              return(1);
+     }
+     mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+     mdlpvp->fdlp->type=$<tok>1;
+     mdlpvp->fdlp->viz_iterationll=-1;
+     mdlpvp->fdlp->n_viz_iterations=0;
+     mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+     mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+     mdlpvp->fdlp->next=volp->frame_data_head;
+     volp->frame_data_head = mdlpvp->fdlp;  
+  }else if(volp->viz_mode == DX_MODE){ 
+     if((temp == MOL_POS) || (temp == ALL_MOL_DATA)){
+        /* create four frames */
+        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+                mdlerror("Cannot store time points data");
+                return(1);
+         }
+         mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+         mdlpvp->fdlp->type=EFF_POS;
+         mdlpvp->fdlp->viz_iterationll=-1;
+         mdlpvp->fdlp->n_viz_iterations=0;
+         mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+         mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+         mdlpvp->fdlp->next=volp->frame_data_head;
+         volp->frame_data_head = mdlpvp->fdlp;  
+
+         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+                mdlerror("Cannot store time points data");
+                return(1);
+          }
+          mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+          mdlpvp->fdlp->type=EFF_STATES;
+          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->n_viz_iterations=0;
+          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+          mdlpvp->fdlp->next=volp->frame_data_head;
+          volp->frame_data_head = mdlpvp->fdlp;  
+
+          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+                (sizeof(struct frame_data_list)))==NULL) {
+                   mdlerror("Cannot store time points data");
+                   return(1);
+          }
+          mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+          mdlpvp->fdlp->type=MOL_POS;
+          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->n_viz_iterations=0;
+          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+          mdlpvp->fdlp->next=volp->frame_data_head;
+          volp->frame_data_head = mdlpvp->fdlp;  
+     
+          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+               (sizeof(struct frame_data_list)))==NULL) {
+                    mdlerror("Cannot store time points data");
+                    return(1);
+          }
+          mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+          mdlpvp->fdlp->type=MOL_STATES;
+          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->n_viz_iterations=0;
+          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+          mdlpvp->fdlp->next=volp->frame_data_head;
+          volp->frame_data_head = mdlpvp->fdlp;  
+     }else if(temp == MOL_ORIENT){
+         /* do nothing */
+     }
   }
-  mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-  mdlpvp->fdlp->type=$<tok>1;
-  mdlpvp->fdlp->viz_iterationll=-1;
-  mdlpvp->fdlp->n_viz_iterations=0;
-  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-  mdlpvp->fdlp->next=volp->frame_data_head;
-  volp->frame_data_head = mdlpvp->fdlp;  
 
 };
 
@@ -5367,6 +5652,11 @@ list_meshes_name_specs: mesh_one_name_spec
 
 mesh_one_name_spec: existing_object
 {
+  if(volp->viz_mode == DX_MODE){
+    mdlerror("In DX MODE the state value for the object should be specified.\n");
+    return(1);
+  }
+  
   u_int i;
 
   mdlpvp->gp=$<sym>1;
@@ -5380,7 +5670,7 @@ mesh_one_name_spec: existing_object
   }
   
   mdlpvp->objp->viz_obj = mdlpvp->vizp;
-  mdlpvp->vizp->name = my_strdup(mdlpvp->prefix_name);
+  mdlpvp->vizp->name = my_strdup(volp->file_prefix_name);
   if(mdlpvp->vizp->name == NULL){
     sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
           (char *)mdlpvp->sym_name);
@@ -5469,7 +5759,7 @@ mesh_one_name_spec_state_value: existing_object '=' num_expr
   }
   
   mdlpvp->objp->viz_obj = mdlpvp->vizp;
-  mdlpvp->vizp->name = my_strdup(mdlpvp->prefix_name);
+  mdlpvp->vizp->name = my_strdup(volp->file_prefix_name);
   if(mdlpvp->vizp->name == NULL){
     sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
           (char *)mdlpvp->sym_name);
@@ -5560,6 +5850,11 @@ mesh_one_name_spec_state_value: existing_object '=' num_expr
 
 list_all_meshes_specs: ALL_MESHES
 {
+  if(volp->viz_mode == DX_MODE){
+    mdlerror("The keyword ALL_MESHES cannot be used in DX MODE.\n");
+    return(1);
+  }
+
   u_int i;
   struct object *o;
   for(o = volp->root_instance->first_child; o != NULL; o = o->next)
@@ -5666,19 +5961,58 @@ meshes_time_points_range_cmd: viz_meshes_one_item '@' '['
      list_range_specs ']'
 {
   sort_num_expr_list(mdlpvp->el_head);
-  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-        (sizeof(struct frame_data_list)))==NULL) {
-    mdlerror("Cannot store time points data");
-    return(1);
+
+  int temp = $<tok>1;
+  if(volp->viz_mode == DREAMM_V3_MODE){
+     if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+              mdlerror("Cannot store time points data");
+              return(1);
+     }
+     mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+     mdlpvp->fdlp->type=$<tok>1;
+     mdlpvp->fdlp->viz_iterationll=-1;
+     mdlpvp->fdlp->n_viz_iterations=0;
+     mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+     mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+     mdlpvp->fdlp->next=volp->frame_data_head;
+     volp->frame_data_head = mdlpvp->fdlp; 
+  }else if((volp->viz_mode == DX_MODE) && (temp == REG_DATA)){
+      /* do nothing */
+      fprintf(stderr, "REGION_DATA cannot be dispalyed in DX_MODE, please use \
+                 DREAMM_V3 mode.\n");
+  }else if(volp->viz_mode == DX_MODE){ 
+     if((temp == MESH_GEOMETRY) || (temp == ALL_MESH_DATA)){
+        /* create two frames - SURF_POS and SURF_STATES */
+        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+              (sizeof(struct frame_data_list)))==NULL) {
+                 mdlerror("Cannot store time points data");
+                 return(1);
+        }
+        mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+        mdlpvp->fdlp->type=SURF_POS;
+        mdlpvp->fdlp->viz_iterationll=-1;
+        mdlpvp->fdlp->n_viz_iterations=0;
+        mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+        mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+        mdlpvp->fdlp->next=volp->frame_data_head;
+        volp->frame_data_head = mdlpvp->fdlp; 
+
+        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+              mdlerror("Cannot store time points data");
+              return(1);
+        }
+        mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+        mdlpvp->fdlp->type=SURF_STATES;
+        mdlpvp->fdlp->viz_iterationll=-1;
+        mdlpvp->fdlp->n_viz_iterations=0;
+        mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+        mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+        mdlpvp->fdlp->next=volp->frame_data_head;
+        volp->frame_data_head = mdlpvp->fdlp; 
+     }
   }
-  mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-  mdlpvp->fdlp->type=$<tok>1;
-  mdlpvp->fdlp->viz_iterationll=-1;
-  mdlpvp->fdlp->n_viz_iterations=0;
-  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-  mdlpvp->fdlp->next=volp->frame_data_head;
-  volp->frame_data_head = mdlpvp->fdlp;  
 };
 
 meshes_time_points_all_times_cmd: viz_meshes_one_item '@' ALL_TIMES 
@@ -5708,20 +6042,60 @@ meshes_time_points_all_times_cmd: viz_meshes_one_item '@' ALL_TIMES
         mdlpvp->num_pos++;  
   }
   sort_num_expr_list(mdlpvp->el_head); 
-  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+  
+  int temp = $<tok>1;
+  if(volp->viz_mode == DREAMM_V3_MODE){
+     
+     if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
         (sizeof(struct frame_data_list)))==NULL) {
-    mdlerror("Cannot store time points data");
-    return(1);
-  }
-  mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-  mdlpvp->fdlp->type=$<tok>1;
-  mdlpvp->fdlp->viz_iterationll=-1;
-  mdlpvp->fdlp->n_viz_iterations=0;
-  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-  mdlpvp->fdlp->next=volp->frame_data_head;
-  volp->frame_data_head = mdlpvp->fdlp;  
+           mdlerror("Cannot store time points data");
+           return(1);
+     }
+     mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+     mdlpvp->fdlp->type=$<tok>1;
+     mdlpvp->fdlp->viz_iterationll=-1;
+     mdlpvp->fdlp->n_viz_iterations=0;
+     mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+     mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+     mdlpvp->fdlp->next=volp->frame_data_head;
+     volp->frame_data_head = mdlpvp->fdlp;  
+  }else if((volp->viz_mode == DX_MODE) && (temp == REG_DATA)){
+      /* do nothing */
+      fprintf(stderr, "REGION_DATA cannot be dispalyed in DX_MODE, please use \
+                 DREAMM_V3 mode.\n");
+  }else if(volp->viz_mode == DX_MODE){
+     if((temp == MESH_GEOMETRY) || (temp == ALL_MESH_DATA))
+     {
+        /* create two frames - SURF_POS and SURF_STATES */
+        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+              mdlerror("Cannot store time points data");
+              return(1);
+        }
+        mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+        mdlpvp->fdlp->type=SURF_POS;
+        mdlpvp->fdlp->viz_iterationll=-1;
+        mdlpvp->fdlp->n_viz_iterations=0;
+        mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+        mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+        mdlpvp->fdlp->next=volp->frame_data_head;
+        volp->frame_data_head = mdlpvp->fdlp;  
 
+        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+              mdlerror("Cannot store time points data");
+              return(1);
+        }
+        mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
+        mdlpvp->fdlp->type=SURF_STATES;
+        mdlpvp->fdlp->viz_iterationll=-1;
+        mdlpvp->fdlp->n_viz_iterations=0;
+        mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+        mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+        mdlpvp->fdlp->next=volp->frame_data_head;
+        volp->frame_data_head = mdlpvp->fdlp;  
+    }
+  }
 };
 
 viz_meshes_iteration_numbers_def: ITERATION_NUMBERS '{'
@@ -5746,19 +6120,61 @@ meshes_iteration_numbers_range_cmd: viz_meshes_one_item '@' '['
      list_range_specs ']'
 {
   sort_num_expr_list(mdlpvp->el_head);
-  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-        (sizeof(struct frame_data_list)))==NULL) {
-    mdlerror("Cannot store iteration numbers data");
-    return(1);
+
+  int temp = $<tok>1;
+  if(volp->viz_mode == DREAMM_V3_MODE){
+     if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+                mdlerror("Cannot store iteration numbers data");
+                return(1);
+     }
+     mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+     mdlpvp->fdlp->type=$<tok>1;
+     mdlpvp->fdlp->viz_iterationll=-1;
+     mdlpvp->fdlp->n_viz_iterations=0;
+     mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+     mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+     mdlpvp->fdlp->next=volp->frame_data_head;
+     volp->frame_data_head = mdlpvp->fdlp;  
+  }else if((volp->viz_mode == DX_MODE) && (temp == REG_DATA)){
+      /* do nothing */
+      fprintf(stderr, "REGION_DATA cannot be dispalyed in DX_MODE, please use \
+                 DREAMM_V3 mode.\n");
+  }else if(volp->viz_mode == DX_MODE){
+     if((temp == MESH_GEOMETRY) || (temp == ALL_MESH_DATA)){
+        /* create two frames - SURF_POS and SURF_STATES */
+        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+                mdlerror("Cannot store iteration numbers data");
+                return(1);
+        }
+        mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+        mdlpvp->fdlp->type=SURF_POS;
+        mdlpvp->fdlp->viz_iterationll=-1;
+        mdlpvp->fdlp->n_viz_iterations=0;
+        mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+        mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+        mdlpvp->fdlp->next=volp->frame_data_head;
+        volp->frame_data_head = mdlpvp->fdlp;  
+
+        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+                mdlerror("Cannot store iteration numbers data");
+                return(1);
+        }
+        mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+        mdlpvp->fdlp->type=SURF_STATES;
+        mdlpvp->fdlp->viz_iterationll=-1;
+        mdlpvp->fdlp->n_viz_iterations=0;
+        mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+        mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+        mdlpvp->fdlp->next=volp->frame_data_head;
+        volp->frame_data_head = mdlpvp->fdlp;  
+
+
+     }
+
   }
-  mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-  mdlpvp->fdlp->type=$<tok>1;
-  mdlpvp->fdlp->viz_iterationll=-1;
-  mdlpvp->fdlp->n_viz_iterations=0;
-  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-  mdlpvp->fdlp->next=volp->frame_data_head;
-  volp->frame_data_head = mdlpvp->fdlp;  
 };
 
 meshes_iteration_numbers_all_iterations_cmd: viz_meshes_one_item '@' 
@@ -5788,21 +6204,63 @@ meshes_iteration_numbers_all_iterations_cmd: viz_meshes_one_item '@'
         }
         mdlpvp->num_pos++;  
   }
-  sort_num_expr_list(mdlpvp->el_head); 
-  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-        (sizeof(struct frame_data_list)))==NULL) {
-    mdlerror("Cannot store iteration numbers data");
-    return(1);
-  }
-  mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-  mdlpvp->fdlp->type=$<tok>1;
-  mdlpvp->fdlp->viz_iterationll=-1;
-  mdlpvp->fdlp->n_viz_iterations=0;
-  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-  mdlpvp->fdlp->next=volp->frame_data_head;
-  volp->frame_data_head = mdlpvp->fdlp;  
+  sort_num_expr_list(mdlpvp->el_head);
 
+  int temp = $<tok>1;
+  if(volp->viz_mode == DREAMM_V3_MODE){
+ 
+     if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+        (sizeof(struct frame_data_list)))==NULL) {
+            mdlerror("Cannot store iteration numbers data");
+            return(1);
+     }
+     mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+     mdlpvp->fdlp->type=$<tok>1;
+     mdlpvp->fdlp->viz_iterationll=-1;
+     mdlpvp->fdlp->n_viz_iterations=0;
+     mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+     mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+     mdlpvp->fdlp->next=volp->frame_data_head;
+     volp->frame_data_head = mdlpvp->fdlp;  
+  }else if((volp->viz_mode == DX_MODE) && (temp == REG_DATA)){
+      /* do nothing */
+      fprintf(stderr, "REGION_DATA cannot be dispalyed in DX_MODE, please use \
+                 DREAMM_V3 mode.\n");
+  }else if(volp->viz_mode == DX_MODE) {
+     if((temp == MESH_GEOMETRY) || (temp == ALL_MESH_DATA))
+     {
+        /* create two frames - SURF_POS and SURF_STATES */
+
+        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+               mdlerror("Cannot store iteration numbers data");
+               return(1);
+        }
+        mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+        mdlpvp->fdlp->type=SURF_POS;
+        mdlpvp->fdlp->viz_iterationll=-1;
+        mdlpvp->fdlp->n_viz_iterations=0;
+        mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+        mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+        mdlpvp->fdlp->next=volp->frame_data_head;
+        volp->frame_data_head = mdlpvp->fdlp;  
+
+        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
+           (sizeof(struct frame_data_list)))==NULL) {
+               mdlerror("Cannot store iteration numbers data");
+               return(1);
+        }
+        mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
+        mdlpvp->fdlp->type=SURF_STATES;
+        mdlpvp->fdlp->viz_iterationll=-1;
+        mdlpvp->fdlp->n_viz_iterations=0;
+        mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
+        mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
+        mdlpvp->fdlp->next=volp->frame_data_head;
+        volp->frame_data_head = mdlpvp->fdlp;  
+
+     }
+  }
 };
 
 
