@@ -5578,6 +5578,17 @@ t
 \family default 
 \shape default 
  seconds.
+ Default is to release only once (
+\family sans 
+\shape italic 
+t
+\family default 
+\shape default 
+ = 
+\begin_inset Formula $\infty$
+\end_inset 
+
+).
 \end_inset 
 </cell>
 </row>
@@ -5606,7 +5617,19 @@ The train of releases lasts for
 t
 \family default 
 \shape default 
- seconds.
+ seconds before turning off.
+ Default is to never turn off (
+\family sans 
+\shape italic 
+t
+\family default 
+\shape default 
+ = 
+\begin_inset Formula $\infty$
+\end_inset 
+
+).
+ 
 \end_inset 
 </cell>
 </row>
@@ -5636,7 +5659,18 @@ t
 \family default 
 \shape default 
  seconds.
- Behavior is undefined if the interval is less than the duration.
+ Default is to never have a new train (
+\family sans 
+\shape italic 
+t
+\family default 
+\shape default 
+ = 
+\begin_inset Formula $\infty$
+\end_inset 
+
+).
+ The train interval must not be shorter than the train duration.
 \end_inset 
 </cell>
 </row>
@@ -5666,6 +5700,7 @@ n
 \family default 
 \shape default 
  trains of releases.
+ Default is one train.
 \end_inset 
 </cell>
 </row>
