@@ -176,6 +176,7 @@
 /* Size constants */
 #define EPS_C 1e-12
 #define GIGANTIC 1e140
+#define FOREVER 1e20
 
 /* Special rate constants used to define unusual reactions */
 #define KCAT_RATE_TRANSPARENT -1.0

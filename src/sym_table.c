@@ -288,11 +288,11 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       }
       rpatp=(struct release_pattern *)vp;
       rpatp->sym=sp;
-      rpatp->delay=-1;
-      rpatp->release_interval=-1;
-      rpatp->train_interval=-1;
-      rpatp->train_duration=-1;
-      rpatp->number_of_trains=-1;
+      rpatp->delay=0;
+      rpatp->release_interval=FOREVER;
+      rpatp->train_interval=FOREVER;
+      rpatp->train_duration=FOREVER;
+      rpatp->number_of_trains=1;
       break;
     case RX:
       if ((vp=(void *)malloc(sizeof(struct rxn)))==NULL) {

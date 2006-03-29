@@ -285,9 +285,9 @@ int init_sim(void)
   }
   world->default_release_pattern=(struct release_pattern *)gp->value;
   world->default_release_pattern->delay=0;
-  world->default_release_pattern->release_interval=0;
-  world->default_release_pattern->train_interval=1;
-  world->default_release_pattern->train_duration=1;
+  world->default_release_pattern->release_interval=FOREVER;
+  world->default_release_pattern->train_interval=FOREVER;
+  world->default_release_pattern->train_duration=FOREVER;
   world->default_release_pattern->number_of_trains=1;
    
   if ((gp=store_sym("GENERIC_MOLECULE",MOL,world->main_sym_table))

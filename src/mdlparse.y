@@ -2287,6 +2287,25 @@ release_pattern_def: DEFINE_RELEASE_PATTERN new_release_pattern '{'
 	list_req_release_pattern_cmds
 	'}'
 {
+  if (mdlpvp->rpatp->release_interval<=0)
+  {
+    mdlerror("Release interval must be set to a positive number.");
+    return 1;
+  }
+  if (mdlpvp->rpatp->train_interval<=0)
+  {
+    mdlerror("Train interval must be set to a positive number.");
+    return 1;
+  }
+  if (mdlpvp->rpatp->train_duration > mdlpvp->rpatp->train_interval)
+  {
+    mdlerror("Train duration must not be longer than the train interval.");
+    return 1;
+  }
+  if (mdlpvp->rpatp->train_duration <= 0)
+  {
+    mdlerror("Train duration must be set to a positive number.");
+  }
   no_printf("Release pattern %s defined:\n",mdlpvp->gp->name);
   no_printf("\tdelay = %f\n",mdlpvp->rpatp->delay);
   no_printf("\trelease_interval = %f\n",mdlpvp->rpatp->release_interval);
