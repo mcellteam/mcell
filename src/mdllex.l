@@ -339,7 +339,7 @@ I ([0-9]+)
                            }
 {R}		       {sscanf((const char *)mdltext,"%lf",&mpvp->rval); return(REAL);}
 {I}			{sscanf((const char *)mdltext,"%d",&mpvp->ival); return(INTEGER);}
-[A-Za-z][A-Za-z0-9\_\.]* {
+[A-Za-z][A-Za-z0-9\_\.\*\?]* {
 			   if (mpvp->cval==NULL) {
 			     mpvp->cval_2=NULL;
 			     mpvp->cval=my_strdup(mdltext);
@@ -355,7 +355,7 @@ I ([0-9]+)
 
 			   return(VAR);
 			 }
-[\'\,\(\)\/\-\+\=\^\[\]\{\}\|\<\>\*\#\~\@\:\&\;] {return(mdltext[0]);}
+[\'\,\(\)\/\-\+\=\^\[\]\{\}\|\<\>\#\~\@\:\&\;] {return(mdltext[0]);}
 .			;
 \n			{mpvp->line_num[mpvp->include_stack_ptr]++;}
 <<EOF>>			{return(EOF_TOK);}

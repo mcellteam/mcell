@@ -136,4 +136,19 @@ struct void_list* void_list_sort_by(struct void_list *vl,int (*leq)(void*,void*)
 int void_array_search(void **array,int n,void *to_find);
 
 unsigned char * byte_swap(unsigned char *b);
+
+/* this function implements the UN*X wildcards and returns  */
+/* 0  if *wildcard does not match *test                     */
+/* 1  if *wildcard matches *test                            */
+/* Written by Florian Schintke.                             */
+/* Distributed as free software according to the GNU General Public License. */
+int wildcardfit (char *wildcard, char *test);
+
+
+/* This function analyzes the string and checks
+   whether the string contains wildcards (*, ?,[,]).
+   Returns 1 if wildcard is found, and 0 - otherwise). */
+int contain_wildcard(char *teststring);
+
+
 #endif

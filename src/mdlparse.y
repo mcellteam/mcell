@@ -441,6 +441,8 @@ struct release_evaluator *rev;
 %type <sym> object_def
 %type <sym> new_object
 %type <sym> existing_object
+%type <sym> existing_one_or_multiple_objects
+%type <sym> existing_one_or_multiple_molecules
 %type <sym> object_ref
 %type <sym> existing_object_ref
 %type <sym> meta_object_def
@@ -1884,6 +1886,96 @@ new_molecule: VAR
 };
 
 
+existing_one_or_multiple_molecules: VAR
+{
+  int i;
+  struct sym_table_list *stl;
+  struct sym_table *sym_t;
+
+  if (mdlpvp->cval_2!=NULL) {  
+    mdlpvp->sym_name=mdlpvp->cval_2;
+  }   
+  else {
+    mdlpvp->sym_name=mdlpvp->cval;
+  } 
+
+  if(!contain_wildcard(mdlpvp->sym_name))
+  {
+    /* here is just one molecule */
+  
+    if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
+       sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined molecule:",mdlpvp->sym_name);
+       mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+       if (mdlpvp->sym_name==mdlpvp->cval) {
+         mdlpvp->cval=NULL;
+       }
+       else {
+         mdlpvp->cval_2=NULL;
+       }
+       free((void *)mdlpvp->sym_name);
+       return(1);
+   }
+   if (mdlpvp->sym_name==mdlpvp->cval) {
+       mdlpvp->cval=NULL;
+   }
+   else {
+       mdlpvp->cval_2=NULL;
+   }
+   free((void *)mdlpvp->sym_name);
+#ifdef KELP
+   mdlpvp->gp->ref_count++;
+   no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
+#endif
+   $$=mdlpvp->gp;
+
+ }else{ /* if contains wildcard */
+
+    /* here is a wildcard molecule name */
+    /* do a full sym_table scan comparing each key */
+
+    mdlpvp->sym_table_list_head = NULL;
+
+    for(i = 0; i < SYM_HASHSIZE; i++)
+    {
+       for(sym_t = volp->main_sym_table[i]; sym_t != NULL; sym_t = sym_t->next)
+       {
+         if(wildcardfit(mdlpvp->sym_name, sym_t->name)){
+
+           if(sym_t->sym_type == MOL)
+           {
+               stl = (struct sym_table_list *)malloc(sizeof(struct sym_table_list));
+                if(stl == NULL){
+                  mdlerror("Memory allocation error.\n", mdlpvp);
+                  return 1;
+                }
+                stl->node = sym_t;
+                stl->next = NULL;
+                if(mdlpvp->sym_table_list_head == NULL){
+                   mdlpvp->sym_table_list_head = stl;
+                }else{
+                   stl->next = mdlpvp->sym_table_list_head;
+                   mdlpvp->sym_table_list_head = stl;
+                }
+            }
+          }
+
+         } /* end for */
+    
+    } /* end for */
+   
+  if (mdlpvp->sym_name==mdlpvp->cval) {
+       mdlpvp->cval=NULL;
+   }
+   else {
+       mdlpvp->cval_2=NULL;
+   }
+   free((void *)mdlpvp->sym_name);
+
+ } /* end else */
+
+};
+
+
 existing_molecule: VAR
 {
   if (mdlpvp->cval_2!=NULL) {  
@@ -2569,6 +2661,7 @@ existing_object: VAR
   else {
     mdlpvp->sym_name=mdlpvp->cval;
   }
+
   if ((mdlpvp->gp=retrieve_sym(get_first_name(mdlpvp->sym_name),OBJ,volp->main_sym_table))==NULL) {
     sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined object:",mdlpvp->sym_name);
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
@@ -2619,6 +2712,120 @@ existing_object: VAR
   $$=mdlpvp->objp->sym;
 };
 
+existing_one_or_multiple_objects: VAR
+{
+
+  int i;
+  struct sym_table *sym_t;
+  struct sym_table_list *stl;
+
+  if (mdlpvp->prefix_name!=NULL) {
+    free((void *)mdlpvp->prefix_name);
+    mdlpvp->prefix_name=NULL;
+  }
+  if (mdlpvp->cval_2!=NULL) {
+    mdlpvp->sym_name=mdlpvp->cval_2;
+  }
+  else {
+    mdlpvp->sym_name=mdlpvp->cval;
+  }
+  
+
+  if(!contain_wildcard(mdlpvp->sym_name))
+  {
+    /* here is just one object */
+
+     if ((mdlpvp->gp=retrieve_sym(get_first_name(mdlpvp->sym_name),OBJ,volp->main_sym_table))==NULL) {
+       sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined object:",mdlpvp->sym_name);
+       mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+       if (mdlpvp->sym_name==mdlpvp->cval) {
+         mdlpvp->cval=NULL;
+       }
+       else {
+         mdlpvp->cval_2=NULL;
+       }
+       free((void *)mdlpvp->sym_name);
+       return(1);
+     }
+     mdlpvp->top_objp=(struct object *)mdlpvp->gp->value;
+     if ((mdlpvp->objp=find_full_name(mdlpvp->top_objp,mdlpvp->sym_name,NULL))==NULL) {
+       sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined object:",mdlpvp->sym_name);
+       mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+       if (mdlpvp->sym_name==mdlpvp->cval) {
+          mdlpvp->cval=NULL;
+       }
+       else {
+          mdlpvp->cval_2=NULL;
+       }
+       free((void *)mdlpvp->sym_name);
+       return(1);
+     }
+     if (mdlpvp->sym_name==mdlpvp->cval) {
+        mdlpvp->cval=NULL;
+     }
+     else {
+       mdlpvp->cval_2=NULL;
+     }
+     sprintf(mdlpvp->full_name,"%s",mdlpvp->sym_name);
+     mdlpvp->prefix_name=get_prefix_name(mdlpvp->sym_name);
+     if(mdlpvp->prefix_name == NULL){
+        sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",mdlpvp->sym_name);
+        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+        return (1);
+     }
+     no_printf("found existing object %s\n",mdlpvp->objp->sym->name);
+     no_printf("first name of existing object %s is %s\n",mdlpvp->sym_name,get_first_name(mdlpvp->sym_name));
+     no_printf("prefix name of existing object %s is %s\n",mdlpvp->sym_name,mdlpvp->prefix_name);
+     fflush(stderr);
+#ifdef KELP
+     mdlpvp->objp->sym->ref_count++;
+     no_printf("ref_count: %d\n",mdlpvp->objp->sym->ref_count);
+#endif
+     $$=mdlpvp->objp->sym;
+
+  }else{
+    /* here is a wildcard object */
+    /* do a full sym_table scan comparing each key */
+
+    mdlpvp->sym_table_list_head = NULL;
+
+    for(i = 0; i < SYM_HASHSIZE; i++)
+    {
+       for(sym_t = volp->main_sym_table[i]; sym_t != NULL; sym_t = sym_t->next)
+       {
+         if(wildcardfit(mdlpvp->sym_name, sym_t->name)){
+
+           if(sym_t->sym_type == OBJ)
+           {
+               stl = (struct sym_table_list *)malloc(sizeof(struct sym_table_list));
+                if(stl == NULL){
+                  mdlerror("Memory allocation error.\n", mdlpvp);
+                  return 1;
+                }
+                stl->node = sym_t;
+                stl->next = NULL;
+                if(mdlpvp->sym_table_list_head == NULL){
+                   mdlpvp->sym_table_list_head = stl;
+                }else{
+                   stl->next = mdlpvp->sym_table_list_head;
+                   mdlpvp->sym_table_list_head = stl;
+                }
+            }
+          }
+
+         } /* end for */
+    
+    } /* end for */
+
+  } /* end else */
+     if (mdlpvp->sym_name==mdlpvp->cval) {
+        mdlpvp->cval=NULL;
+     }
+     else {
+       mdlpvp->cval_2=NULL;
+     }
+     fflush(stderr);
+};
 
 list_opt_object_cmds: /* empty */
 	| list_opt_object_cmds opt_object_cmd
@@ -5139,15 +5346,41 @@ list_mol_name_specs: mol_name_spec
 	| list_mol_name_specs  mol_name_spec 
 ;
 
-mol_name_spec: existing_molecule
+mol_name_spec: existing_one_or_multiple_molecules
 {
   if(volp->viz_mode == DX_MODE){
     mdlerror("In DX MODE the state value for the molecule should be specified.\n");
     return(1);
   }
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->specp=(struct species *)mdlpvp->gp->value;
-  mdlpvp->specp->viz_state = INCLUDE_OBJ;
+
+  struct sym_table_list *stl; 
+ 
+  if(mdlpvp->sym_table_list_head == NULL)
+  {
+     /* here is just one molecule name */
+  
+     mdlpvp->gp=$<sym>1;
+     mdlpvp->specp=(struct species *)mdlpvp->gp->value;
+     mdlpvp->specp->viz_state = INCLUDE_OBJ;
+
+  }else{
+      /* here are several molecules names because of using wildcards */ 
+      
+      stl = mdlpvp->sym_table_list_head;
+      while(stl != NULL)
+      {    
+         mdlpvp->gp = stl->node;
+         mdlpvp->specp=(struct species *)mdlpvp->gp->value;
+         mdlpvp->specp->viz_state = INCLUDE_OBJ;
+
+         stl = stl->next;
+      }
+  
+      /* free allocated memory  */
+      free(mdlpvp->sym_table_list_head);
+      mdlpvp->sym_table_list_head = NULL;
+
+  }
 
 };
 
@@ -5221,7 +5454,7 @@ molecules_time_points_range_cmd: viz_molecules_one_item '@' '['
   sort_num_expr_list(mdlpvp->el_head);
   int temp = $<tok>1;
 
-  if(volp->viz_mode == DREAMM_V3){
+  if(volp->viz_mode == DREAMM_V3_MODE){
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
                 mdlerror("Cannot store time points data");
@@ -5330,7 +5563,7 @@ molecules_time_points_all_times_cmd: viz_molecules_one_item '@' ALL_TIMES
   sort_num_expr_list(mdlpvp->el_head); 
   temp = $<tok>1;
 
-  if(volp->viz_mode == DREAMM_V3)
+  if(volp->viz_mode == DREAMM_V3_MODE)
   {
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
@@ -5434,7 +5667,7 @@ molecules_iteration_numbers_range_cmd: viz_molecules_one_item '@' '['
 
   int temp = $<tok>1;
 
-  if(volp->viz_mode == DREAMM_V3)
+  if(volp->viz_mode == DREAMM_V3_MODE)
   {
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
@@ -5546,7 +5779,7 @@ molecules_iteration_numbers_all_iterations_cmd: viz_molecules_one_item '@'
   sort_num_expr_list(mdlpvp->el_head); 
   temp = $<tok>1;
 
-  if(volp->viz_mode == DREAMM_V3)
+  if(volp->viz_mode == DREAMM_V3_MODE)
   {
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
@@ -5669,7 +5902,7 @@ list_meshes_name_specs: mesh_one_name_spec
            | list_meshes_name_specs mesh_one_name_spec
 
 
-mesh_one_name_spec: existing_object
+mesh_one_name_spec: existing_one_or_multiple_objects
 {
   if(volp->viz_mode == DX_MODE){
     mdlerror("In DX MODE the state value for the object should be specified.\n");
@@ -5677,85 +5910,184 @@ mesh_one_name_spec: existing_object
   }
   
   u_int i;
-
-  mdlpvp->gp=$<sym>1;
-  /* create viz_obj object */
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  mdlpvp->sym_name=mdlpvp->gp->name;
-  if ((mdlpvp->vizp = (struct viz_obj *)malloc
-        (sizeof(struct viz_obj)))==NULL) {
-    mdlerror("Cannot store viz obj data");
-    return(1);
-  }
-  
-  mdlpvp->objp->viz_obj = mdlpvp->vizp;
-  mdlpvp->vizp->name = my_strdup(volp->file_prefix_name);
-  if(mdlpvp->vizp->name == NULL){
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
-          (char *)mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-  
-  mdlpvp->vizp->full_name = my_strdup(mdlpvp->full_name);
-  if(mdlpvp->vizp->full_name == NULL){
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
-          (char *)mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-  
-  mdlpvp->vizp->viz_child_head = NULL;
-  mdlpvp->vizp->obj=mdlpvp->objp;
-  mdlpvp->vizp->next=volp->viz_obj_head;
-  volp->viz_obj_head = mdlpvp->vizp;
+  struct sym_table_list *stl; 
  
-  /* set viz_state value of INCLUDE_OBJ for the object */
-  if (mdlpvp->gp->sym_type == OBJ) {
-      switch (mdlpvp->objp->object_type) {
-        case META_OBJ:
-          if (set_viz_state_value(mdlpvp->objp,INCLUDE_OBJ)) {
-	    sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for meta object %s",mdlpvp->gp->name);
-            mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-            return(1);
-          }
-          break;
-        case BOX_OBJ:
-          mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
-          if (mdlpvp->objp->viz_state==NULL) {
-            if ((mdlpvp->objp->viz_state=(int *)malloc
-                 (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-	      sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for box object %s",mdlpvp->gp->name);
-              mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-              return(1);
-            }
-          }
-          for (i=0;i<mdlpvp->pop->n_walls;i++) {
-            mdlpvp->objp->viz_state[i]=INCLUDE_OBJ;
-          }
-          break;
-        case POLY_OBJ:
-          mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
-          if (mdlpvp->objp->viz_state==NULL) {
-            if ((mdlpvp->objp->viz_state=(int *)malloc
-                 (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-	      sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for polygon list object %s",mdlpvp->gp->name);
-              mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-              return(1);
-            }
-          }
-          for (i=0;i<mdlpvp->pop->n_walls;i++) {
-            mdlpvp->objp->viz_state[i]=INCLUDE_OBJ;
-          }
-          break;
-        default:
-          mdlerror("Cannot set viz state value of this type of object");
-          return(1);
-          break;
+  if(mdlpvp->sym_table_list_head == NULL)
+  {
+     /* here is just one mesh object name */
+
+     mdlpvp->gp=$<sym>1;
+     // create viz_obj object 
+     mdlpvp->objp=(struct object *)mdlpvp->gp->value;
+     mdlpvp->sym_name=mdlpvp->gp->name;
+     if ((mdlpvp->vizp = (struct viz_obj *)malloc
+        (sizeof(struct viz_obj)))==NULL) {
+           mdlerror("Cannot store viz obj data");
+           return(1);
+     }
+  
+     mdlpvp->objp->viz_obj = mdlpvp->vizp;
+     mdlpvp->vizp->name = my_strdup(volp->file_prefix_name);
+     if(mdlpvp->vizp->name == NULL){
+         sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
+          (char *)mdlpvp->sym_name);
+         mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+         return(1);
+     }
+  
+     mdlpvp->vizp->full_name = my_strdup(mdlpvp->full_name);
+     if(mdlpvp->vizp->full_name == NULL){
+        sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
+          (char *)mdlpvp->sym_name);
+        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+        return(1);
+     }
+  
+     mdlpvp->vizp->viz_child_head = NULL;
+     mdlpvp->vizp->obj=mdlpvp->objp;
+     mdlpvp->vizp->next=volp->viz_obj_head;
+     volp->viz_obj_head = mdlpvp->vizp;
+ 
+     // set viz_state value of INCLUDE_OBJ for the object 
+     if (mdlpvp->gp->sym_type == OBJ) {
+         switch (mdlpvp->objp->object_type) {
+            case META_OBJ:
+              if (set_viz_state_value(mdlpvp->objp,INCLUDE_OBJ)) {
+	         sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for meta object %s",mdlpvp->gp->name);
+                 mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+                 return(1);
+              }
+              break;
+            case BOX_OBJ:
+                mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
+                if (mdlpvp->objp->viz_state==NULL) {
+                    if ((mdlpvp->objp->viz_state=(int *)malloc
+                         (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
+	                 sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for box object %s",mdlpvp->gp->name);
+                         mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+                         return(1);
+                    }
+                 }
+                 for (i=0;i<mdlpvp->pop->n_walls;i++) {
+                     mdlpvp->objp->viz_state[i]=INCLUDE_OBJ;
+                 }
+                 break;
+             case POLY_OBJ:
+                 mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
+                 if (mdlpvp->objp->viz_state==NULL) {
+                     if ((mdlpvp->objp->viz_state=(int *)malloc
+                        (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
+	                   sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for polygon list object %s",mdlpvp->gp->name);
+                           mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+                           return(1);
+                     }
+                  }
+                  for (i=0;i<mdlpvp->pop->n_walls;i++) {
+                      mdlpvp->objp->viz_state[i]=INCLUDE_OBJ;
+                  }
+                  break;
+             default:
+                  mdlerror("Cannot set viz state value of this type of object");
+                  return(1);
+                  break;
+
+         } /* end switch */
       }
-    }
+
+   }else{
+
+      /* here are several mesh objects names because of using wildcards */ 
+      
+      stl = mdlpvp->sym_table_list_head;
+      while(stl != NULL)
+      {    
+
+         mdlpvp->gp = stl->node;
+         /* create viz_obj object */
+         mdlpvp->objp=(struct object *)mdlpvp->gp->value;
+         if((mdlpvp->objp->object_type == REL_SITE_OBJ) || 
+             (mdlpvp->objp->object_type == META_OBJ)){ 
+                  stl = stl->next;
+                  continue;
+         }  
+         mdlpvp->sym_name=mdlpvp->gp->name;
+
+         if ((mdlpvp->vizp = (struct viz_obj *)malloc
+            (sizeof(struct viz_obj)))==NULL) {
+                mdlerror("Cannot store viz obj data");
+                return(1);
+         } 
+
+         mdlpvp->objp->viz_obj = mdlpvp->vizp;
+         mdlpvp->vizp->name = my_strdup(volp->file_prefix_name);
+         if(mdlpvp->vizp->name == NULL){
+             sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
+                (char *)mdlpvp->sym_name);
+                mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+                return(1);
+         }
+  
+         mdlpvp->vizp->full_name = my_strdup(mdlpvp->sym_name); 
+         if(mdlpvp->vizp->full_name == NULL){
+             sprintf(mdlpvp->mdl_err_msg,"%s %s","Memory allocation error:",
+                  (char *)mdlpvp->sym_name);
+                  mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+                  return(1);
+         }
+  
+         mdlpvp->vizp->viz_child_head = NULL;
+         mdlpvp->vizp->obj=mdlpvp->objp;
+         mdlpvp->vizp->next=volp->viz_obj_head;
+         volp->viz_obj_head = mdlpvp->vizp;
+ 
+         /* set viz_state value of INCLUDE_OBJ for the object */
+         switch (mdlpvp->objp->object_type) {
+               case BOX_OBJ:
+                  mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
+                  if (mdlpvp->objp->viz_state==NULL) {
+                    if ((mdlpvp->objp->viz_state=(int *)malloc
+                         (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
+	                 sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for box object %s",mdlpvp->gp->name);
+                         mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+                         return(1);
+                    }
+                   }
+                   for (i=0;i<mdlpvp->pop->n_walls;i++) {
+                      mdlpvp->objp->viz_state[i]=INCLUDE_OBJ;
+                   }
+                   break;
+                case POLY_OBJ:
+                   mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
+                   if (mdlpvp->objp->viz_state==NULL) {
+                     if ((mdlpvp->objp->viz_state=(int *)malloc
+                        (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
+	                   sprintf(mdlpvp->mdl_err_msg,"Cannot store viz state value for polygon list object %s",mdlpvp->gp->name);
+                           mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+                           return(1);
+                     }
+                   }
+                   for (i=0;i<mdlpvp->pop->n_walls;i++) {
+                      mdlpvp->objp->viz_state[i]=INCLUDE_OBJ;
+                   }
+                   break;
+                default:
+                    mdlerror("Cannot set viz state value of this type of object");
+                    return(1);
+                    break;
+
+         } /* end switch */
+
+         stl = stl->next;
+      } /* end while(stl != NULL) */
+
+      /* free allocated memory  */
+      free(mdlpvp->sym_table_list_head);
+      mdlpvp->sym_table_list_head = NULL;
+
+   } /* end else */
 
 };
+
 
 list_meshes_name_specs_state_values: mesh_one_name_spec_state_value
     | list_meshes_name_specs_state_values mesh_one_name_spec_state_value

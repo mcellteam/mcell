@@ -28,7 +28,10 @@ struct mdlparse_vars {
   struct sym_table *stp1;
   struct sym_table *stp2;
   struct sym_table *stp3;
+  /* used when parsing wildcard names for viz_output */
+  struct sym_table_list *sym_table_list_head;
   char *sym_name;
+
 
   char str_buf[1024];
   char str_buf2[1024];
@@ -55,7 +58,7 @@ struct mdlparse_vars {
   double l_r_bar;
   double l_r_rms;
 
-  int num_pos;
+  long long num_pos;
   struct num_expr_list *elp;
   struct num_expr_list *elp_temp;
   struct num_expr_list *el_head;

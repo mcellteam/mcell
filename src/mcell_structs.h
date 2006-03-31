@@ -1588,7 +1588,7 @@ struct viz_obj
 {
 	struct viz_obj *next;
 	char *name;            /* name taken from OBJECT_FILE_PREFIXES
-                                 or FILENAME_PREFIXES assignment  */
+                  or FILENAME_PREFIXES or FILENAME assignment  */
         char *full_name;       /* full name of the object, like A.B.C */
 	struct object *obj;
 	struct viz_child *viz_child_head;
@@ -1674,6 +1674,18 @@ struct sym_table {
 							  this symbol table entry during computation */
 		byte ref_count;		/**< number of times referenced in MDL file */
 #endif
+};
+
+
+/**
+ * Linked list of symbols.
+ * Used to parse and store user defined symbols having wildcards
+   from the MDL input file.
+ */
+struct sym_table_list {
+  struct sym_table_list *next;
+  struct sym_table *node;
+
 };
 
 /**
