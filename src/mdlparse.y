@@ -323,6 +323,7 @@ struct release_evaluator *rev;
 %token <tok> VOXEL_IMAGE_MODE
 %token <tok> VOXEL_LIST
 %token <tok> VOXEL_VOLUME_MODE
+%token <tok> WILDCARD_VAR
 %token <tok> WORLD
 %token <tok> X_TOK
 %token <tok> XY_TOK
@@ -1888,9 +1889,6 @@ new_molecule: VAR
 
 existing_one_or_multiple_molecules: VAR
 {
-  int i;
-  struct sym_table_list *stl;
-  struct sym_table *sym_t;
 
   if (mdlpvp->cval_2!=NULL) {  
     mdlpvp->sym_name=mdlpvp->cval_2;
@@ -1899,8 +1897,6 @@ existing_one_or_multiple_molecules: VAR
     mdlpvp->sym_name=mdlpvp->cval;
   } 
 
-  if(!contain_wildcard(mdlpvp->sym_name))
-  {
     /* here is just one molecule */
   
     if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
@@ -1928,7 +1924,30 @@ existing_one_or_multiple_molecules: VAR
 #endif
    $$=mdlpvp->gp;
 
- }else{ /* if contains wildcard */
+}
+    	| WILDCARD_VAR
+{
+  int i;
+  struct sym_table_list *stl;
+  struct sym_table *sym_t;
+  char *wildcard_string;
+
+  if (mdlpvp->cval_2!=NULL) {  
+    mdlpvp->sym_name=mdlpvp->cval_2;
+  }   
+  else {
+    mdlpvp->sym_name=mdlpvp->cval;
+  } 
+
+  if(strip_quotes(mdlpvp->sym_name) != NULL){
+      wildcard_string = strip_quotes(mdlpvp->sym_name);
+  }else{
+      sprintf(mdlpvp->mdl_err_msg,"%s ","Memory allocation error\n");
+      mdlerror(mdlpvp->mdl_err_msg);
+      free((void *)mdlpvp->sym_name);
+    
+      return (1);
+  }
 
     /* here is a wildcard molecule name */
     /* do a full sym_table scan comparing each key */
@@ -1939,7 +1958,7 @@ existing_one_or_multiple_molecules: VAR
     {
        for(sym_t = volp->main_sym_table[i]; sym_t != NULL; sym_t = sym_t->next)
        {
-         if(wildcardfit(mdlpvp->sym_name, sym_t->name)){
+         if(wildcardfit(wildcard_string, sym_t->name)){
 
            if(sym_t->sym_type == MOL)
            {
@@ -1970,8 +1989,7 @@ existing_one_or_multiple_molecules: VAR
        mdlpvp->cval_2=NULL;
    }
    free((void *)mdlpvp->sym_name);
-
- } /* end else */
+   free(wildcard_string);
 
 };
 
@@ -2715,10 +2733,6 @@ existing_object: VAR
 existing_one_or_multiple_objects: VAR
 {
 
-  int i;
-  struct sym_table *sym_t;
-  struct sym_table_list *stl;
-
   if (mdlpvp->prefix_name!=NULL) {
     free((void *)mdlpvp->prefix_name);
     mdlpvp->prefix_name=NULL;
@@ -2729,11 +2743,6 @@ existing_one_or_multiple_objects: VAR
   else {
     mdlpvp->sym_name=mdlpvp->cval;
   }
-  
-
-  if(!contain_wildcard(mdlpvp->sym_name))
-  {
-    /* here is just one object */
 
      if ((mdlpvp->gp=retrieve_sym(get_first_name(mdlpvp->sym_name),OBJ,volp->main_sym_table))==NULL) {
        sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined object:",mdlpvp->sym_name);
@@ -2783,7 +2792,44 @@ existing_one_or_multiple_objects: VAR
 #endif
      $$=mdlpvp->objp->sym;
 
+     if (mdlpvp->sym_name==mdlpvp->cval) {
+        mdlpvp->cval=NULL;
+     }
+     else {
+       mdlpvp->cval_2=NULL;
+     }
+     fflush(stderr);
+}
+     | WILDCARD_VAR
+{
+
+
+  int i;
+  struct sym_table *sym_t;
+  struct sym_table_list *stl;
+  char *wildcard_string;
+
+  if (mdlpvp->prefix_name!=NULL) {
+    free((void *)mdlpvp->prefix_name);
+    mdlpvp->prefix_name=NULL;
+  }
+  if (mdlpvp->cval_2!=NULL) {
+    mdlpvp->sym_name=mdlpvp->cval_2;
+  }
+  else {
+    mdlpvp->sym_name=mdlpvp->cval;
+  }
+
+  if(strip_quotes(mdlpvp->sym_name) != NULL){
+      wildcard_string = strip_quotes(mdlpvp->sym_name);
   }else{
+      sprintf(mdlpvp->mdl_err_msg,"%s ","Memory allocation error\n");
+      mdlerror(mdlpvp->mdl_err_msg);
+      free((void *)mdlpvp->sym_name);
+    
+      return (1);
+  }
+
     /* here is a wildcard object */
     /* do a full sym_table scan comparing each key */
 
@@ -2793,7 +2839,7 @@ existing_one_or_multiple_objects: VAR
     {
        for(sym_t = volp->main_sym_table[i]; sym_t != NULL; sym_t = sym_t->next)
        {
-         if(wildcardfit(mdlpvp->sym_name, sym_t->name)){
+         if(wildcardfit(wildcard_string, sym_t->name)){
 
            if(sym_t->sym_type == OBJ)
            {
@@ -2817,14 +2863,17 @@ existing_one_or_multiple_objects: VAR
     
     } /* end for */
 
-  } /* end else */
      if (mdlpvp->sym_name==mdlpvp->cval) {
         mdlpvp->cval=NULL;
      }
      else {
        mdlpvp->cval_2=NULL;
      }
+     free((void *)mdlpvp->sym_name);
+     free(wildcard_string);
      fflush(stderr);
+
+
 };
 
 list_opt_object_cmds: /* empty */

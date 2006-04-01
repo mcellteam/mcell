@@ -329,17 +329,9 @@ I ([0-9]+)
 "=fopen"		{return(FOPEN);}
 "= fopen"		{return(FOPEN);}
 "fclose"		{return(FCLOSE);}
-\"(([^\"]*)|((\\\")*))*\"  {
-                             mpvp->strval=my_strdup(mdltext); 
-			     if(mpvp->strval == NULL){
-                                printf("Memory allocation error.\n");
-                                exit(1);
-                             }
-                             return(STR_VALUE);
-                           }
 {R}		       {sscanf((const char *)mdltext,"%lf",&mpvp->rval); return(REAL);}
 {I}			{sscanf((const char *)mdltext,"%d",&mpvp->ival); return(INTEGER);}
-[A-Za-z][A-Za-z0-9\_\.\*\?]* {
+[A-Za-z][A-Za-z0-9\_\.]* {
 			   if (mpvp->cval==NULL) {
 			     mpvp->cval_2=NULL;
 			     mpvp->cval=my_strdup(mdltext);
@@ -355,7 +347,32 @@ I ([0-9]+)
 
 			   return(VAR);
 			 }
-[\'\,\(\)\/\-\+\=\^\[\]\{\}\|\<\>\#\~\@\:\&\;] {return(mdltext[0]);}
+\"[A-Za-z][A-Za-z0-9\_\.\[\]\-\*\?]*\" {
+			   if (mpvp->cval==NULL) {
+			     mpvp->cval_2=NULL;
+			     mpvp->cval=my_strdup(mdltext);
+			   }
+			   else {
+			     mpvp->cval_2=mpvp->cval;
+			     mpvp->cval=my_strdup(mdltext);
+			   }
+                           if(mpvp->cval == NULL){
+                                printf("Memory allocation error.\n");
+                                exit(1);
+                           }
+
+			   return(WILDCARD_VAR);
+			 }
+\"(([^\"]*)|((\\\")*))*\"  {
+                             mpvp->strval=my_strdup(mdltext); 
+			     if(mpvp->strval == NULL){
+                                printf("Memory allocation error.\n");
+                                exit(1);
+                             }
+                             return(STR_VALUE);
+                           }
+
+[\'\,\(\)\/\-\+\=\^\[\]\{\}\|\<\>\*\#\~\@\:\&\;] {return(mdltext[0]);}
 .			;
 \n			{mpvp->line_num[mpvp->include_stack_ptr]++;}
 <<EOF>>			{return(EOF_TOK);}
