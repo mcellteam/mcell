@@ -1367,6 +1367,34 @@ str_value: STR_VALUE
   }
   free(mdlpvp->strval);
 }
+        | WILDCARD_VAR
+{
+  if (mdlpvp->cval_2!=NULL) {  
+    mdlpvp->strval=mdlpvp->cval_2;
+  }   
+  else {
+    mdlpvp->strval=mdlpvp->cval;
+  } 
+
+  if(strip_quotes(mdlpvp->strval) != NULL){
+      $$ = strip_quotes(mdlpvp->strval);
+  }else{
+      sprintf(mdlpvp->mdl_err_msg,"%s ","Memory allocation error\n");
+      mdlerror(mdlpvp->mdl_err_msg);
+      free((void *)mdlpvp->strval);
+    
+      return (1);
+  }
+   if (mdlpvp->strval==mdlpvp->cval) {
+       mdlpvp->cval=NULL;
+   }
+   else {
+       mdlpvp->cval_2=NULL;
+   }
+   free(mdlpvp->strval);
+
+}
+ 
 	| INPUT_FILE
 {
   $$=volp->mdl_infile_name;
@@ -1423,6 +1451,33 @@ str_expr_only: STR_VALUE
     return (1);
   }
   free(mdlpvp->strval);
+}
+	| WILDCARD_VAR
+{
+  if (mdlpvp->cval_2!=NULL) {  
+    mdlpvp->strval=mdlpvp->cval_2;
+  }   
+  else {
+    mdlpvp->strval=mdlpvp->cval;
+  } 
+
+  if(strip_quotes(mdlpvp->strval) != NULL){
+      $$ = strip_quotes(mdlpvp->strval);
+  }else{
+      sprintf(mdlpvp->mdl_err_msg,"%s ","Memory allocation error\n");
+      mdlerror(mdlpvp->mdl_err_msg);
+      free((void *)mdlpvp->strval);
+    
+      return (1);
+  }
+   if (mdlpvp->strval==mdlpvp->cval) {
+       mdlpvp->cval=NULL;
+   }
+   else {
+       mdlpvp->cval_2=NULL;
+   }
+   free(mdlpvp->strval);
+
 }
 	| INPUT_FILE
 {
