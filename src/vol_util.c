@@ -294,6 +294,19 @@ struct subvolume* find_subvolume(struct vector3 *loc,struct subvolume *guess)
 
 
 /*************************************************************************
+is_defunct_molecule
+  In: abstract_element that is assumed to be an abstract_molecule
+  Out: 0 if the properties field is set, 1 if it is NULL
+  Note: This function is passed to sched_util so it can tell which
+        molecules are active and which are defunct and can be cleaned up.
+*************************************************************************/
+int is_defunct_molecule(struct abstract_element *e)
+{
+  return ((struct abstract_molecule*)e)->properties == NULL;
+}
+
+
+/*************************************************************************
 insert_grid_molecule
   In: species for the new molecule
       3D location of the new molecule
@@ -851,6 +864,10 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct molecule *m,int n)
       if ((mp->properties->flags & COUNT_CONTENTS) != 0)
         count_me_by_region((struct abstract_molecule*)mp,-1,NULL);
       mp->properties = NULL;
+      if (mp->flags & IN_SCHEDULE)
+      {
+        mp->subvol->local_storage->timer->defunct_count++; /* Tally for garbage collection */
+      }
       
       n++;
     }
@@ -1157,7 +1174,7 @@ int release_molecules(struct release_event_queue *req)
       i = release_inside_regions(rso,(struct molecule*)ap,number);
       if (i) return 1;
       
-      if (number>0) fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
+      if (number>0 || (rso->release_number_method==CCNNUM && rso->concentration>0)) fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
       else fprintf(world->log_file, "Unreleasing type = %s\n", req->release_site->mol_type->sym->name);
     }
     else

@@ -3102,6 +3102,10 @@ int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule *g,int
       gp->properties = NULL;
       p->grid->mol[ p->index ] = NULL;
       p->grid->n_occupied--;
+      if (gp->flags & IN_SCHEDULE)
+      {
+        gp->grid->subvol->local_storage->timer->defunct_count++; /* Tally for garbage collection */
+      }
 
       n++;      
     }

@@ -200,6 +200,8 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
     if (sh->next_scale == NULL) return NULL;
   }
   
+  sh->defunct_count = 0;
+  
   return sh;
 }
 
@@ -423,6 +425,106 @@ int schedule_anticipate(struct schedule_helper *sh,double *t)
   }
   
   return 0;
+}
+
+
+/*************************************************************************
+schedule_cleanup:
+  In: scheduler that we are using
+      pointer to a function that will return 0 if an abstract_element is
+      okay, or 1 if it is defunct
+  Out: all defunct items are removed from the scheduler and returned as
+       a linked list (so appropriate action can be taken, such as
+       deallocation)
+*************************************************************************/
+
+struct abstract_element* schedule_cleanup(struct schedule_helper *sh,int (*is_defunct)(struct abstract_element *e))
+{
+  struct abstract_element* defunct_list;
+  struct abstract_element* ae;
+  struct abstract_element* temp;
+  int i;
+  
+  defunct_list=NULL;
+  
+  for ( ; sh!=NULL ; sh=sh->next_scale)
+  {
+    sh->defunct_count=0;
+
+#if 0
+    /* Do current list--but why bother, we'll be pulling these off right away? */
+    while (sh->current != NULL && (*is_defunct)(sh->current) )
+    {
+      temp = sh->current->next;
+      sh->current->next = defunct_list;
+      defunct_list = sh->current;
+      sh->current = temp;
+      sh->current_count--;
+    }
+    if (sh->current==NULL)
+    {
+      sh->current_tail=NULL;
+    }
+    else
+    {
+      for ( ae = sh->current ; ae!=NULL ; ae=ae->next )
+      {
+	while( ae->next!=NULL && (*is_defunct)(ae->next) )
+	{
+	  temp = ae->next->next;
+	  ae->next->next = defunct_list;
+	  defunct_list = ae->next;
+	  ae->next = temp;
+	  sh->current_count--;
+	}
+	if (ae->next==NULL)
+	{
+	  sh->current_tail=ae;
+	  break;
+	}
+      }
+    }
+#endif
+    
+    for (i=0;i<sh->buf_len;i++)
+    {
+      while (sh->circ_buf_head[i]!=NULL && (*is_defunct)(sh->circ_buf_head[i]))
+      {
+	temp = sh->circ_buf_head[i]->next;
+	sh->circ_buf_head[i]->next = defunct_list;
+	defunct_list = sh->circ_buf_head[i];
+	sh->circ_buf_head[i] = temp;
+	sh->circ_buf_count[i]--;
+	sh->count--;
+      }
+      if (sh->circ_buf_head[i]==NULL)
+      {
+	sh->circ_buf_tail[i]=NULL;
+      }
+      else
+      {
+	for (ae=sh->circ_buf_head[i] ; ae!=NULL ; ae=ae->next)
+	{
+	  while( ae->next!=NULL && (*is_defunct)(ae->next) )
+	  {
+	    temp = ae->next->next;
+	    ae->next->next = defunct_list;
+	    defunct_list = ae->next;
+	    ae->next = temp;
+	    sh->circ_buf_count[i]--;
+	    sh->count--;
+	  }
+	  if (ae->next==NULL)
+	  {
+	    sh->circ_buf_tail[i]=ae;
+	    break;
+	  }
+	}
+      }
+    } 
+  }
+  
+  return defunct_list;
 }
 
 

@@ -28,6 +28,7 @@ struct schedule_helper
   struct abstract_element *current_tail;   /* points to the tail of the linked
 					      list of the current items */
   int current_count;			   /* number of current items */
+  int defunct_count;                       /* number of defunct items (set by user)*/
   struct schedule_helper *next_scale;
   int error;				   /* error code (1 - on error, 0 -
 						no errors) */
@@ -47,6 +48,7 @@ void* schedule_next(struct schedule_helper *sh);
 #define schedule_add(x,y) schedule_insert((x),(y),1)
 
 int schedule_anticipate(struct schedule_helper *sh,double *t);
+struct abstract_element* schedule_cleanup(struct schedule_helper *sh,int (*is_defunct)(struct abstract_element *e));
 
 void delete_scheduler(struct schedule_helper *sh);
 

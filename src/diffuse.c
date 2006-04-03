@@ -3662,6 +3662,8 @@ run_timestep:
   Out: No return value.  Every molecule in the subvolume is updated in
        position and rescheduled at least one timestep ahead.  The
        current_time of the subvolume is also incremented.
+  Note: This also occasionally does garbage collection on the scheduling
+        queue.
 *************************************************************************/
 
 void run_timestep(struct storage *local,double release_time,double checkpt_time)
@@ -3672,6 +3674,26 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
   double max_time;
   int i,j,err;
   
+  /* Check for garbage collection first */
+  if ( local->timer->defunct_count > MIN_DEFUNCT_FOR_GC &&
+       MAX_DEFUNCT_FRAC*(local->timer->count) < local->timer->defunct_count )
+  {
+    struct abstract_molecule *temp;
+    a = (struct abstract_molecule*) schedule_cleanup(local->timer , *is_defunct_molecule);
+    while (a!=NULL)
+    {
+      temp = a;
+      a = a->next;
+      if ((temp->flags&IN_MASK)==IN_SCHEDULE)
+      {
+	temp->next = NULL;
+	mem_put(temp->birthplace,temp);
+      }
+      else temp->flags -= IN_SCHEDULE;
+    }
+  }
+  
+  /* Now run the timestep */
   while ( (a = (struct abstract_molecule*)schedule_next(local->timer)) != NULL )
   {
     if (a->properties == NULL)  /* Defunct!  Remove molecule. */

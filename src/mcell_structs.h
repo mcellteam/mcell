@@ -278,6 +278,11 @@
 #define CHKPT_GRID_TOLERANCE 2.0
 
 
+/* Constants for garbage collection of defunct molecules */
+/* (those that were consumed when hit by another molecule) */
+#define MIN_DEFUNCT_FOR_GC 1024
+#define MAX_DEFUNCT_FRAC 0.2
+
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
 /*********************************************************/

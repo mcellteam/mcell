@@ -475,6 +475,10 @@ int outcome_unimolecular(struct rxn *rx,int path,
     {
       struct molecule *m = (struct molecule*)reac;
       m->subvol->mol_count--;
+      if (m->flags & IN_SCHEDULE)
+      {
+	m->subvol->local_storage->timer->defunct_count++;
+      }
     }
     else
     {
@@ -482,6 +486,10 @@ int outcome_unimolecular(struct rxn *rx,int path,
       
       if (g->grid->mol[g->grid_index]==g) g->grid->mol[ g->grid_index ] = NULL;
       g->grid->n_occupied--;
+      if (g->flags & IN_SCHEDULE)
+      {
+	g->grid->subvol->local_storage->timer->defunct_count++;
+      }
     }
 
     if ((reac->properties->flags & COUNT_CONTENTS) != 0)
@@ -575,11 +583,19 @@ int outcome_bimolecular(struct rxn *rx,int path,
         if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
         g->grid->n_occupied--;
 	if (g->flags&IN_SURFACE) g->flags -= IN_SURFACE;
+	if (g->flags & IN_SCHEDULE)
+	{
+	  g->grid->subvol->local_storage->timer->defunct_count++;
+	}
       }
       else if ((reacB->properties->flags & NOT_FREE) == 0)
       {
         m = (struct molecule*)reacB;
         m->subvol->mol_count--;
+	if (m->flags & IN_SCHEDULE)
+	{
+	  m->subvol->local_storage->timer->defunct_count++;
+	}
       }
 
       if ((reacB->properties->flags & COUNT_CONTENTS) != 0)
@@ -599,11 +615,19 @@ int outcome_bimolecular(struct rxn *rx,int path,
 
         if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
         g->grid->n_occupied--;
+	if (g->flags & IN_SCHEDULE)
+	{
+	  g->grid->subvol->local_storage->timer->defunct_count++;
+	}
       }
       else if ((reacA->properties->flags & NOT_FREE) == 0)
       {
         m = (struct molecule*)reacA;
         m->subvol->mol_count--;
+	if (m->flags & IN_SCHEDULE)
+	{
+	  m->subvol->local_storage->timer->defunct_count++;
+	}
       }
 
       if ((reacA->properties->flags&COUNT_CONTENTS)!=0 && (reacA->flags&COUNT_ME)!=0)
@@ -627,11 +651,19 @@ int outcome_bimolecular(struct rxn *rx,int path,
         if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
         g->grid->n_occupied--;
 	if (g->flags&IN_SURFACE) g->flags -= IN_SURFACE;
+	if (g->flags & IN_SCHEDULE)
+	{
+	  g->grid->subvol->local_storage->timer->defunct_count++;
+	}
       }
       else if ((reacB->properties->flags & NOT_FREE) == 0)
       {
         m = (struct molecule*)reacB;
         m->subvol->mol_count--;
+	if (m->flags & IN_SCHEDULE)
+	{
+	  m->subvol->local_storage->timer->defunct_count++;
+	}
       }
 
       if ((reacB->properties->flags & COUNT_CONTENTS) != 0)
@@ -651,11 +683,19 @@ int outcome_bimolecular(struct rxn *rx,int path,
 
         if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
         g->grid->n_occupied--;
+	if (g->flags & IN_SCHEDULE)
+	{
+	  g->grid->subvol->local_storage->timer->defunct_count++;
+	}
       }
       else if ((reacA->properties->flags & NOT_FREE) == 0)
       {
         m = (struct molecule*)reacA;
         m->subvol->mol_count--;
+	if (m->flags & IN_SCHEDULE)
+	{
+	  m->subvol->local_storage->timer->defunct_count++;
+	}
       }
 
       if ((reacA->properties->flags&COUNT_CONTENTS)!=0 && (reacA->flags&COUNT_ME)!=0)
@@ -719,6 +759,11 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
       reac->properties->cum_lifetime += t - reac->birthday;
       reac->properties->population--;
       reac->properties = NULL;
+      if (m->flags & IN_SCHEDULE)
+      {
+        m->subvol->local_storage->timer->defunct_count++;
+      }
+      
       return RX_DESTROY;
     }
     else return result; /* RX_A_OK or RX_FLIP */
