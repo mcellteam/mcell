@@ -136,6 +136,19 @@ void run_sim(void)
     {
       printf("Iterations: %lld of %lld ",world->it_time,world->iterations);
 #if 0
+      for (local=world->storage_head ; local!=NULL ; local=local->next)
+      {
+	int ngm,nm,nc,nr,nex;
+	struct mem_helper *mh;
+	for (ngm=0,mh=local->store->gmol ; mh!=NULL ; mh=mh->next_helper) ngm+=mh->buf_len;
+	for (nm=0,mh=local->store->mol ; mh!=NULL ; mh=mh->next_helper) nm+=mh->buf_len;
+	for (nc=0,mh=local->store->coll ; mh!=NULL ; mh=mh->next_helper) nc+=mh->buf_len;
+	for (nr=0,mh=local->store->regl ; mh!=NULL ; mh=mh->next_helper) nr+=mh->buf_len;
+	for (nex=0,mh=local->store->exdv ; mh!=NULL ; mh=mh->next_helper) nex+=mh->buf_len;
+	fprintf(world->log_file,"g%d m%d c%d r%d x%d",ngm,nm,nc,nr,nex);
+      }
+#endif
+#if 0
       printf("count ");
       for (i=0;i<world->n_species;i++)
       {

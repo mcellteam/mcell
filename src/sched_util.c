@@ -443,48 +443,53 @@ struct abstract_element* schedule_cleanup(struct schedule_helper *sh,int (*is_de
   struct abstract_element* defunct_list;
   struct abstract_element* ae;
   struct abstract_element* temp;
+  struct schedule_helper* top;
+  struct schedule_helper* shp;
   int i;
   
   defunct_list=NULL;
   
-  for ( ; sh!=NULL ; sh=sh->next_scale)
+  for (top=sh ; sh!=NULL ; sh=sh->next_scale)
   {
     sh->defunct_count=0;
 
-#if 0
-    /* Do current list--but why bother, we'll be pulling these off right away? */
-    while (sh->current != NULL && (*is_defunct)(sh->current) )
+    /* Do current list only for inner levels of scheduler */
+    if (top!=sh)
     {
-      temp = sh->current->next;
-      sh->current->next = defunct_list;
-      defunct_list = sh->current;
-      sh->current = temp;
-      sh->current_count--;
-    }
-    if (sh->current==NULL)
-    {
-      sh->current_tail=NULL;
-    }
-    else
-    {
-      for ( ae = sh->current ; ae!=NULL ; ae=ae->next )
+      while (sh->current != NULL && (*is_defunct)(sh->current) )
       {
-	while( ae->next!=NULL && (*is_defunct)(ae->next) )
+	temp = sh->current->next;
+	sh->current->next = defunct_list;
+	defunct_list = sh->current;
+	sh->current = temp;
+	sh->current_count--;
+	for (shp=top;shp!=sh;shp=shp->next_scale) shp->count--;
+      }
+      if (sh->current==NULL)
+      {
+	sh->current_tail=NULL;
+      }
+      else
+      {
+	for ( ae = sh->current ; ae!=NULL ; ae=ae->next )
 	{
-	  temp = ae->next->next;
-	  ae->next->next = defunct_list;
-	  defunct_list = ae->next;
-	  ae->next = temp;
-	  sh->current_count--;
-	}
-	if (ae->next==NULL)
-	{
-	  sh->current_tail=ae;
-	  break;
+	  while( ae->next!=NULL && (*is_defunct)(ae->next) )
+	  {
+	    temp = ae->next->next;
+	    ae->next->next = defunct_list;
+	    defunct_list = ae->next;
+	    ae->next = temp;
+	    sh->current_count--;
+	    for (shp=top;shp!=sh;shp=shp->next_scale) shp->count--;
+	  }
+	  if (ae->next==NULL)
+	  {
+	    sh->current_tail=ae;
+	    break;
+	  }
 	}
       }
     }
-#endif
     
     for (i=0;i<sh->buf_len;i++)
     {
@@ -496,6 +501,7 @@ struct abstract_element* schedule_cleanup(struct schedule_helper *sh,int (*is_de
 	sh->circ_buf_head[i] = temp;
 	sh->circ_buf_count[i]--;
 	sh->count--;
+	for (shp=top;shp!=sh;shp=shp->next_scale) shp->count--;
       }
       if (sh->circ_buf_head[i]==NULL)
       {
@@ -513,6 +519,7 @@ struct abstract_element* schedule_cleanup(struct schedule_helper *sh,int (*is_de
 	    ae->next = temp;
 	    sh->circ_buf_count[i]--;
 	    sh->count--;
+	    for (shp=top;shp!=sh;shp=shp->next_scale) shp->count--;
 	  }
 	  if (ae->next==NULL)
 	  {

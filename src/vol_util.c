@@ -848,6 +848,9 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct molecule *m,int n)
               vl_head = vl;
               vl_num++;
             }
+	    
+	    if (extra_in!=NULL) mem_put_list(sv->local_storage->regl,extra_in);
+	    if (extra_out!=NULL) mem_put_list(sv->local_storage->regl,extra_out);
           }
         }
       }
@@ -974,7 +977,12 @@ int release_inside_regions(struct release_site_obj *rso,struct molecule *m,int n
         }
       }
     }
-    if (bad_location) continue;
+    if (bad_location)
+    {
+      if (extra_in!=NULL) mem_put_list(sv->local_storage->regl,extra_in);
+      if (extra_out!=NULL) mem_put_list(sv->local_storage->regl,extra_out);
+      continue;
+    }
     
     for (rl=extra_in ; rl!=NULL ; rl=rl->next)
     {
@@ -992,6 +1000,10 @@ int release_inside_regions(struct release_site_obj *rso,struct molecule *m,int n
     }
 
     i = eval_rel_region_3d(rrd->expression,wp,extra_in,extra_out);
+
+    if (extra_in!=NULL) mem_put_list(sv->local_storage->regl,extra_in);
+    if (extra_out!=NULL) mem_put_list(sv->local_storage->regl,extra_out);
+    
     if (!i)
     {
       if (rso->release_number_method==CCNNUM) n--;

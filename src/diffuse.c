@@ -3679,18 +3679,23 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
        MAX_DEFUNCT_FRAC*(local->timer->count) < local->timer->defunct_count )
   {
     struct abstract_molecule *temp;
+    j=0;
+    i=local->timer->defunct_count;
     a = (struct abstract_molecule*) schedule_cleanup(local->timer , *is_defunct_molecule);
     while (a!=NULL)
     {
       temp = a;
       a = a->next;
+//      if (temp->properties!=NULL) fprintf(world->err_file,"Removed a non-defunct molecule from scheduler!\n");
       if ((temp->flags&IN_MASK)==IN_SCHEDULE)
       {
 	temp->next = NULL;
 	mem_put(temp->birthplace,temp);
+	j++;
       }
       else temp->flags -= IN_SCHEDULE;
     }
+//    fprintf(world->log_file,"Cleaning up memory: removed %d (actually only %d) unused molecules.\n",i,j);
   }
   
   /* Now run the timestep */
@@ -3704,6 +3709,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         mem_put(a->birthplace,a);
       }
       else a->flags -= IN_SCHEDULE;
+      if (local->timer->defunct_count>0) local->timer->defunct_count--;
       
       continue;
     }
