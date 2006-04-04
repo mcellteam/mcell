@@ -347,7 +347,7 @@ I ([0-9]+)
 
 			   return(VAR);
 			 }
-\"[A-Za-z][A-Za-z0-9\_\.\[\]\-\*\?]*\" {
+\"[A-Za-z\[\]\-\*\?][A-Za-z0-9\_\.\[\]\-\*\?]*\" {
 			   if (mpvp->cval==NULL) {
 			     mpvp->cval_2=NULL;
 			     mpvp->cval=my_strdup(mdltext);
