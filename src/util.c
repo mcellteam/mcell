@@ -626,12 +626,12 @@ void set_bit(struct bit_array *ba, int idx, int value)
   
   ofs = idx & (8*sizeof(int) - 1);
   idx = idx / (8*sizeof(int));
-  ofs = ~(1 << ofs);
+  ofs = (1 << ofs);
   
-  if (value) value = (1<<ofs);
+  if (value) value = ofs;
   else value = 0;
   
-  data[idx] = (data[idx]&ofs) | value;
+  data[idx] = (data[idx]&~ofs) | value;
 }
 
 

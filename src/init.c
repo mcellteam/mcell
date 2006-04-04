@@ -16,6 +16,10 @@
 #include <kelp.h>
 #endif
 
+#ifndef RAN4_H
+#include "ran4.h"
+#endif
+
 #include "rng.h"
 #include "mcell_structs.h"
 #include "strfunc.h"
@@ -27,14 +31,11 @@
 #include "grid_util.h"
 #include "viz_output.h"
 #include "react.h"
-#include "init.h"
 #include "react_output.h"
 #include "util.h"
 #include "chkpt.h"
-
-#ifndef RAN4_H
-#include "ran4.h"
-#endif
+#include "mdlparse_util.h"
+#include "init.h"
 
 #ifdef DEBUG
 #define no_printf printf
@@ -1345,6 +1346,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
 #endif
   double total_area;
   int i,n_verts,n_walls,index_0,index_1,index_2;
+  unsigned int degenerate_count;
   unsigned short l,m,n;
   char *obj_name;
   byte compute_vertex_normals;
@@ -1441,7 +1443,8 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
       }
 #endif
     }
-
+    
+    degenerate_count=0;
     for (i=0;i<n_walls;i++) {
       if (!get_bit(pop->side_removed,i)) {
         wp[i]=&w[i];
@@ -1459,6 +1462,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
 	  fprintf(log_file,"  Vertex 2: %.5e %.5e %.5e\n",vp[index_2]->x,vp[index_2]->y,vp[index_2]->z);
 	  set_bit(pop->side_removed,i,1);
           objp->n_walls_actual--;
+          degenerate_count++;
           wp[i]=NULL;
         }
       }
@@ -1466,6 +1470,8 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
         wp[i]=NULL;
       }
     }
+    if (degenerate_count) remove_gaps_from_regions(objp);
+    
     objp->total_area=total_area;
 
 #ifdef DEBUG    

@@ -110,7 +110,7 @@ react_outc.o: makedefs react_outc.c react.h rng.h mcell_structs.h
 diffuse.o: makedefs diffuse.c diffuse.h mem_util.h sched_util.h rng.h mcell_structs.h count_util.h grid_util.h vol_util.h wall_util.h react.h util.h
 	$(CC) $(CFLAGS) -c diffuse.c
 
-init.o: makedefs init.c init.h rng.h mcell_structs.h strfunc.h vector.h sym_table.h ran4.h count_util.h vol_util.h wall_util.h grid_util.h viz_output.h react.h seed_array.h util.h
+init.o: makedefs init.c init.h rng.h mcell_structs.h strfunc.h vector.h sym_table.h ran4.h count_util.h vol_util.h wall_util.h grid_util.h viz_output.h react.h seed_array.h util.h mdlparse_util.h
 	$(CC) $(CFLAGS) -c init.c
 
 chkpt.o: makedefs chkpt.c chkpt.h mcell_structs.h
