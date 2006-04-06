@@ -6491,7 +6491,7 @@ Write output to disk after every
 N
 \family default 
 \shape default 
- blocks.
+ lines.
  The default is 
 \family sans 
 \shape italic 
@@ -6909,8 +6909,8 @@ region
 
 \layout Standard
 
-Count all reactions that occur inside this region (not counting those that
- occur on the surface of the region).
+Count all molecules or reactions that occur inside this region (not counting
+ those that occur on the surface of the region).
  This lets you count surface molecules contained within a box, for example.
  This will work with objects as well as regions, but the object or region
  must be closed.
