@@ -44,7 +44,7 @@ void run_sim(void)
   long long total_coll_1,total_coll_2;
   double total_len;*/
   long long not_yet;
-  int frequency;
+  long long frequency;
   
 /*
   for (i=0;i<10000;i++)
@@ -56,13 +56,22 @@ void run_sim(void)
   return;
 */  
 
+  if (world->notify->progress_report!=NOTIFY_NONE) fprintf(world->log_file,"Running simulation.\n");
+
   t_initial = time(NULL);
   
-  if      (world->iterations < 1000)       frequency = 10;
-  else if (world->iterations < 100000)     frequency = 100;
-  else if (world->iterations < 10000000)   frequency = 1000;
-  else if (world->iterations < 1000000000) frequency = 10000;
-  else                                       frequency = 100000;
+  if (world->notify->custom_iterations==NOTIFY_CUSTOM)
+  {
+    frequency = world->notify->custom_iteration_value;
+  }
+  else
+  {
+    if      (world->iterations < 1000)       frequency = 10;
+    else if (world->iterations < 100000)     frequency = 100;
+    else if (world->iterations < 10000000)   frequency = 1000;
+    else if (world->iterations < 1000000000) frequency = 10000;
+    else                                       frequency = 100000;
+  }
   
   world->diffusion_number = world->diffusion_cumsteps = 0.0;
   world->it_time = world->start_time;
@@ -81,7 +90,7 @@ void run_sim(void)
       if (req==NULL) continue;
       if ( release_molecules(req) )
       {
-	printf("Out of memory while releasing molecules of type %s\n",req->release_site->mol_type->sym->name);
+	fprintf(world->err_file,"Out of memory while releasing molecules of type %s\n",req->release_site->mol_type->sym->name);
 	return;
       }
     }
@@ -116,6 +125,12 @@ void run_sim(void)
     
     update_frame_data_list(world->frame_data_head);
     
+    if ( (world->it_time % frequency) == 0 && world->notify->custom_iterations!=NOTIFY_NONE)
+    {
+      printf("Iterations: %lld of %lld ",world->it_time,world->iterations);
+      printf("\n");
+    }
+
     if (world->it_time>=world->iterations) break; /* Output only on last loop */
 
     i = schedule_anticipate( world->releaser , &next_release_time);
@@ -132,34 +147,6 @@ void run_sim(void)
     
     world->it_time++;
     
-    if ( (world->it_time % frequency) == 0 )
-    {
-      printf("Iterations: %lld of %lld ",world->it_time,world->iterations);
-#if 0
-      for (local=world->storage_head ; local!=NULL ; local=local->next)
-      {
-	int ngm,nm,nc,nr,nex;
-	struct mem_helper *mh;
-	for (ngm=0,mh=local->store->gmol ; mh!=NULL ; mh=mh->next_helper) ngm+=mh->buf_len;
-	for (nm=0,mh=local->store->mol ; mh!=NULL ; mh=mh->next_helper) nm+=mh->buf_len;
-	for (nc=0,mh=local->store->coll ; mh!=NULL ; mh=mh->next_helper) nc+=mh->buf_len;
-	for (nr=0,mh=local->store->regl ; mh!=NULL ; mh=mh->next_helper) nr+=mh->buf_len;
-	for (nex=0,mh=local->store->exdv ; mh!=NULL ; mh=mh->next_helper) nex+=mh->buf_len;
-	fprintf(world->log_file,"g%d m%d c%d r%d x%d",ngm,nm,nc,nr,nex);
-      }
-#endif
-#if 0
-      printf("count ");
-      for (i=0;i<world->n_species;i++)
-      {
-        printf("#%s=%d ",
-               world->species_list[i]->sym->name,
-               world->species_list[i]->population
-              );
-      }
-#endif
-      printf("\n");
-    }
   }
 
   /* write output checkpoint file */
@@ -179,176 +166,97 @@ void run_sim(void)
       fclose(world->chkpt_outfs);
     }
   }
-  fprintf(world->log_file,"iterations = %lld ; elapsed time = %1.15g seconds; current_time = %1.15g seconds \n",world->it_time,world->chkpt_elapsed_real_time_start+((world->it_time - world->start_time)*world->time_unit), world->current_real_time);
-  fflush(world->log_file);
-
-
-  if(world->diffusion_number > 0){ 
-  	fprintf(stderr,"Average diffusion jump was %.2f timesteps\n",world->diffusion_cumsteps/world->diffusion_number);
-  }
-  fprintf(stderr,"Total number of molecule-molecule collisions: %g\n",world->mol_mol_colls);
-
-#if 0
-  fprintf(stderr,"We have %d directions with a mask of %d\n",world->num_directions,world->directions_mask);
-  for (i=0;i<world->num_directions;i++)
-  {
-    printf("xyz = %.4f %.4f %.4f\n",world->d_step[3*i],world->d_step[3*i+1],world->d_step[3*i+2]);
-  }
-#endif
-
-#if 0
-  count = 0;
-  total_coll_1 = 0;
-  total_coll_2 = 0;
-  total_len = 0.0;
-  for (i=0;i<world->n_subvols;i++)
-  {
-    struct molecule *mol;
-    for (mol = world->subvol[i].mol_head ; mol != NULL ; mol = mol->next_v)
-    {
-      if (mol->properties != NULL)
-      {
-        if (strcmp(mol->properties->sym->name,"Glw")==0)
-        {
-          count++;
-        }
-        else if (strcmp(mol->properties->sym->name,"ACh")==0)
-        {
-          total_len += mol->path_length;
-          total_coll_1 += mol->collisions;
-        }
-        else if (strcmp(mol->properties->sym->name,"Glu")==0)
-        {
-          total_coll_2 += mol->collisions;
-        }
-      }
-    }
-  }
-  printf("%d %.2f %lld %lld\n",count,total_len*world->length_unit,total_coll_1,total_coll_2);
-#endif
-
-
+  
+  if (world->notify->progress_report!=NOTIFY_NONE) fprintf(world->log_file,"Exiting run loop.\n");
+ 
   first_report=1;
-  for (i=0;i<world->rx_hashsize;i++)
+  
+  if (world->notify->missed_reactions != WARN_COPE)
   {
-    struct rxn *rxp;
-    int j;
-    
-    for (rxp = world->reaction_hash[i] ; rxp != NULL ; rxp = rxp->next)
+    for (i=0;i<world->rx_hashsize;i++)
     {
-       do_not_print = 0;
-       /* skip printing messages if one of the reactants is a surface */
-	for (j=0;j<rxp->n_reactants;j++)
-	{
-	  if((rxp->players[j]->flags & IS_SURFACE) != 0) {
-		do_not_print = 1;
-          }
-	}
-             
-        if(do_not_print == 1) continue;
-
-      if (rxp->n_occurred < rxp->n_skipped*1000)
+      struct rxn *rxp;
+      int j;
+      
+      for (rxp = world->reaction_hash[i] ; rxp != NULL ; rxp = rxp->next)
       {
-	if (first_report)
-	{
-	  fprintf(world->log_file,"\nWARNING: some reactions were missed because reaction probability exceeded 1.\n");
-	  first_report=0; 
-	}
-	fprintf(world->log_file,"  ");
-	for (j=0;j<rxp->n_reactants;j++)
-	{
-	  fprintf(world->log_file,"%s%s[%d]",(j)?" + ":"",rxp->players[j]->sym->name,rxp->geometries[j]);
-	}
-	fprintf(world->log_file,"  --  %g%% of reactions missed.\n",0.001*round(1000*rxp->n_skipped*100/(rxp->n_skipped+rxp->n_occurred)));
+         do_not_print = 0;
+         /* skip printing messages if one of the reactants is a surface */
+          for (j=0;j<rxp->n_reactants;j++)
+          {
+            if((rxp->players[j]->flags & IS_SURFACE) != 0) {
+                  do_not_print = 1;
+            }
+          }
+               
+          if(do_not_print == 1) continue;
+  
+        if (rxp->n_occurred*world->notify->missed_reaction_value < rxp->n_skipped)
+        {
+          if (first_report)
+          {
+            fprintf(world->log_file,"\nWARNING: some reactions were missed because reaction probability exceeded 1.\n");
+            first_report=0; 
+          }
+          fprintf(world->log_file,"  ");
+          for (j=0;j<rxp->n_reactants;j++)
+          {
+            fprintf(world->log_file,"%s%s[%d]",(j)?" + ":"",rxp->players[j]->sym->name,rxp->geometries[j]);
+          }
+          fprintf(world->log_file,"  --  %g%% of reactions missed.\n",0.001*round(1000*rxp->n_skipped*100/(rxp->n_skipped+rxp->n_occurred)));
+        }
       }
     }
+    if (!first_report) fprintf(world->log_file,"\n");
   }
-  if (!first_report) fprintf(world->log_file,"\n");
   
   first_report+=1;
-  for (i=0;i<world->n_species;i++)
+  
+  if (world->notify->short_lifetime != WARN_COPE)
   {
-    double f;
-    
-    if (world->species_list[i]->n_deceased > 0)
+    for (i=0;i<world->n_species;i++)
     {
-      f = world->species_list[i]->cum_lifetime / world->species_list[i]->n_deceased;
+      double f;
       
-      if (f < 50)
+      if (world->species_list[i]->n_deceased > 0)
       {
-	if (first_report)
-	{
-	  if (first_report>1) fprintf(world->log_file,"\n");
-	  fprintf(world->log_file,"WARNING: some molecules had a lifetime short relative to the timestep.\n");
-	  first_report=0;
-	}
-	fprintf(world->log_file,"  Mean lifetime of %s was %g timesteps.\n",world->species_list[i]->sym->name,0.01*round(100*f));
-      }
-    }
-  }
-  if (!first_report) fprintf(world->log_file,"\n");
-    
-#if 0
-  printf("Reaction counters:\n");
-  for (i=0;i<world->rx_hashsize;i++)
-  {
-    struct rxn *rxp;
-    int j,k;
-    
-    for (rxp = world->reaction_hash[i] ; rxp != NULL ; rxp = rxp->next)
-    {
-      for (j=0;j<rxp->n_reactants;j++)
-      {
-        if (j==0) fprintf(world->log_file,"Reaction %s[%d]",rxp->players[0]->sym->name,rxp->geometries[0]);
-        else fprintf(world->log_file," + %s[%d]",rxp->players[j]->sym->name,rxp->geometries[j]);
-      }
-      if (rxp->n_pathways==RX_TRANSP) fprintf(world->log_file," TRANSPARENT");
-      fprintf(world->log_file,"\n");
-      for (j=0;j<rxp->n_pathways;j++)
-      {
-        fprintf(world->log_file,"  Count %g: ->",rxp->info[j].count);
-        for (k=rxp->product_idx[j] ; k<rxp->product_idx[j+1] ; k++)
+        f = world->species_list[i]->cum_lifetime / world->species_list[i]->n_deceased;
+        
+        if (f < world->notify->short_lifetime_value)
         {
-          if (rxp->players[k]!=NULL) fprintf(world->log_file," %s{%d}",rxp->players[k]->sym->name,rxp->geometries[k]);
+          if (first_report)
+          {
+            if (first_report>1) fprintf(world->log_file,"\n");
+            fprintf(world->log_file,"WARNING: some molecules had a lifetime short relative to the timestep.\n");
+            first_report=0;
+          }
+          fprintf(world->log_file,"  Mean lifetime of %s was %g timesteps.\n",world->species_list[i]->sym->name,0.01*round(100*f));
         }
-        fprintf(world->log_file,"\n");
       }
     }
+    if (!first_report) fprintf(world->log_file,"\n");
   }
-#endif
-#if 0
-  for (i=0;i<world->n_subvols;i++)
-  {
-    struct molecule *mol;
-    int j;
-/*    printf("Subvolume %d (%d molecules):\n",i,world->subvol[i].mol_count); */
     
-    for (mol = world->subvol[i].mol_head ; mol != NULL ; mol = mol->next_v)
-    {
-      if (mol->properties == NULL)
-      {
-/*        printf("Defunct molecule.\n"); */
-        continue;
-      }
-      for (j=0;j<world->n_species;j++) if (mol->properties==world->species_list[j]) break;
-      printf("location = %7.3f %7.3f %7.3f %d %9.3f %d\n",
-             mol->pos.x*world->length_unit,mol->pos.y*world->length_unit,mol->pos.z*world->length_unit,
-             j,mol->path_length*world->length_unit,mol->collisions);
-    }
-  }
-#endif
-#if 1
-  t_final = time(NULL);
-  getrusage(RUSAGE_SELF,&run_time);
-  fprintf( world->log_file,"Total CPU time = %f (user) and %f (system)\n",
-           run_time.ru_utime.tv_sec + (run_time.ru_utime.tv_usec/MAX_TARGET_TIMESTEP),
-           run_time.ru_stime.tv_sec + (run_time.ru_stime.tv_usec/MAX_TARGET_TIMESTEP) );
-  fprintf( world->log_file,"Total wall clock time = %d seconds\n",
-           (int)(t_final - t_initial) );
-#endif
+  if (world->notify->final_summary==NOTIFY_FULL)
+  {
+    fprintf(world->log_file,"iterations = %lld ; elapsed time = %1.15g seconds; current_time = %1.15g seconds \n",world->it_time,world->chkpt_elapsed_real_time_start+((world->it_time - world->start_time)*world->time_unit), world->current_real_time);
+    fflush(world->log_file);
 
-  printf("Exiting run loop.\n");
+    if(world->diffusion_number > 0)
+    { 
+      fprintf(world->log_file,"Average diffusion jump was %.2f timesteps\n",world->diffusion_cumsteps/world->diffusion_number);
+    }
+    fprintf(world->log_file,"Total number of molecule-molecule collisions: %g\n",world->mol_mol_colls);
  
+    t_final = time(NULL);
+    getrusage(RUSAGE_SELF,&run_time);
+    fprintf( world->log_file,"Total CPU time = %f (user) and %f (system)\n",
+             run_time.ru_utime.tv_sec + (run_time.ru_utime.tv_usec/MAX_TARGET_TIMESTEP),
+             run_time.ru_stime.tv_sec + (run_time.ru_stime.tv_usec/MAX_TARGET_TIMESTEP) );
+    fprintf( world->log_file,"Total wall clock time = %d seconds\n",
+             (int)(t_final - t_initial) );
+  }
+
 }
 
 int main(int argc, char **argv) {
@@ -379,6 +287,7 @@ int main(int argc, char **argv) {
 
   world->chkpt_infile = NULL;
   world->chkpt_init = 1;
+  world->log_freq = -1; /* Indicates that this value has not been set by user */
   /*
    * Parse the command line arguments and print out errors if necessary.
    */
@@ -387,8 +296,8 @@ int main(int argc, char **argv) {
       log_file=world->log_file;
     }
     fprintf(log_file,"\n");
-    fprintf(log_file,"MCell");
-    fprintf(log_file,"  Running on %s\n\n",hostname);
+    fprintf(log_file,"MCell %s (build %s)\n",MCELL_VERSION,"(build date/CVS version date goes here)");
+    fprintf(log_file,"  Running on %s at %s\n\n",hostname,"(current time/date goes here)");
     if (procnum == 0) {
       if (world->info_opt) {
         fprintf(log_file,"  -info option selected\n");
@@ -408,11 +317,21 @@ int main(int argc, char **argv) {
   }
 
   log_file=world->log_file;
-  fprintf(log_file,"\n");
-  fprintf(log_file,"MCell");
-  fprintf(log_file,"  Running on %s\n\n",hostname);
-  if (world->info_opt) {
-    fprintf(log_file,"  -info option selected\n");
+  
+  if (init_notifications())
+  {
+    fprintf(world->err_file,"Could not initialize user-notification data structures.\n");
+    exit(1);
+  }
+  
+  if (world->notify->progress_report!=NOTIFY_NONE)
+  {
+    fprintf(log_file,"\n");
+    fprintf(log_file,"MCell %s (build %s)\n",MCELL_VERSION,"(build date/CVS version date goes here)");
+    fprintf(log_file,"  Running on %s at %s\n\n",hostname,"(current time/date goes here)");
+    if (world->info_opt) {
+      fprintf(log_file,"  -info option selected\n");
+    }
   }
 
 /*

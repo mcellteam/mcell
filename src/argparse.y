@@ -178,6 +178,11 @@ log_file_cmd: LOG_FILE_OPT FILE_NAME
 log_freq_cmd: LOG_FREQ_OPT int_arg
 {
   volp->log_freq=(int) $<dbl>2;
+  if (volp->log_freq<1)
+  {
+    argerror("Iteration report update interval must be at least 1 iteration.");
+    return 1;
+  }
 };
 
 int_arg: INTEGER {$$=(double)argpvp->ival;}
@@ -290,7 +295,7 @@ int argparse_init(int argc, char *argv[], struct volume *vol)
   vol->mdl_infile_name=NULL;
 
   if ((arg_var.arg_err_msg=(char *)malloc(1024*sizeof(char)))==NULL) {
-    fprintf(vol->log_file,"MCell: out of memory storing arg_err_msg\n");
+    fprintf(vol->err_file,"MCell: out of memory storing arg_err_msg\n");
     return(1);
   }
 
@@ -299,21 +304,21 @@ int argparse_init(int argc, char *argv[], struct volume *vol)
     if (i==1) {
       free(arg_string);
       if ((arg_string=my_strdup(argv[i]))==NULL) {
-        fprintf(vol->log_file,"MCell: out of memory storing arg_string\n");
+        fprintf(vol->err_file,"MCell: out of memory storing arg_string\n");
         return(1);
       }
     }
     else {
       tempstr=arg_string; 
       if ((arg_string=my_strcat(arg_string," "))==NULL) {
-        fprintf(vol->log_file,"MCell: out of memory storing arg_string\n");
+        fprintf(vol->err_file,"MCell: out of memory storing arg_string\n");
         return(1);
       }
       free(tempstr);
 
       tempstr=arg_string; 
       if ((arg_string=my_strcat(arg_string,argv[i]))==NULL) {
-        fprintf(vol->log_file,"MCell: out of memory storing arg_string\n");
+        fprintf(vol->err_file,"MCell: out of memory storing arg_string\n");
         return(1);
       }
       free(tempstr);

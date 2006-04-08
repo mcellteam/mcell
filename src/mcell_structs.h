@@ -283,6 +283,17 @@
 #define MIN_DEFUNCT_FOR_GC 1024
 #define MAX_DEFUNCT_FRAC 0.2
 
+/* Constants for notification levels */
+#define NOTIFY_NONE 0
+#define NOTIFY_BRIEF 1
+#define NOTIFY_FULL 2
+#define NOTIFY_CUSTOM 3
+
+/* Constants for warning levels */
+#define WARN_COPE 0
+#define WARN_WARN 1
+#define WARN_ERROR 2
+
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
 /*********************************************************/
@@ -1066,6 +1077,9 @@ struct volume
   FILE *chkpt_signal_file_tmp;
   char *mdl_infile_name;
   char *curr_file;
+  
+  /* Notification/warning/output stuff */
+  struct notifications *notify;
 };
 
 
@@ -1186,6 +1200,36 @@ struct subdivided_box
   double *x;  /* array of X-coordinates of subdivisions */
   double *y;  /* array of Y-coordinates of subdivisions */
   double *z;  /* array of Z-coordinates of subdivisions */
+};
+
+/* Holds information about what we want dumped to the screen */
+struct notifications
+{
+  /* Informational stuff */
+  byte progress_report;
+  byte diffusion_constants;
+  byte reaction_probabilities;
+  double reaction_prob_notify;
+  byte partition_location;
+  byte box_triangulation;
+  byte custom_iterations;
+  long long custom_iteration_value;
+  byte release_events;
+  byte file_writes;
+  byte final_summary;
+  
+  /* Warning stuff */
+  byte neg_diffusion;
+  byte neg_reaction;
+  byte high_reaction_prob;
+  double reaction_prob_warn;
+  byte close_partitions;
+  byte degenerate_polys;
+  byte overwritten_file;
+  byte short_lifetime;
+  long long short_lifetime_value;
+  byte missed_reactions;
+  double missed_reaction_value;
 };
 
 /******************************************************************/

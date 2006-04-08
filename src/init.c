@@ -110,6 +110,47 @@ void init_credits(void)
 }
 
 
+/* Sets default notification values */
+int init_notifications()
+{
+  world->notify = (struct notifications*)malloc(sizeof(struct notifications));
+  if (world->notify==NULL) return 1;
+ 
+  /* Notifications */
+  world->notify->progress_report = NOTIFY_FULL;
+  world->notify->diffusion_constants = NOTIFY_BRIEF;
+  world->notify->reaction_probabilities = NOTIFY_FULL;
+  world->notify->reaction_prob_notify = 0.0;
+  world->notify->partition_location = NOTIFY_NONE;
+  world->notify->box_triangulation = NOTIFY_NONE;
+  world->notify->custom_iterations = NOTIFY_FULL;
+  world->notify->custom_iteration_value = 0;  /* Ignored unless NOTIFY_CUSTOM set */
+  world->notify->release_events = NOTIFY_FULL;
+  world->notify->file_writes = NOTIFY_NONE;
+  world->notify->final_summary = NOTIFY_FULL;
+  /* Warnings */
+  world->notify->neg_diffusion = WARN_WARN;
+  world->notify->neg_reaction = WARN_WARN;
+  world->notify->high_reaction_prob = WARN_COPE;
+  world->notify->reaction_prob_warn = 1.0;
+  world->notify->close_partitions = WARN_WARN;
+  world->notify->degenerate_polys = WARN_WARN;
+  world->notify->overwritten_file = WARN_COPE;
+  world->notify->short_lifetime = WARN_WARN;
+  world->notify->short_lifetime_value = 50;
+  world->notify->missed_reactions = WARN_WARN;
+  world->notify->missed_reaction_value = 0.001;
+  
+  if (world->log_freq!=-1) /* User set this */
+  {
+    world->notify->custom_iterations = NOTIFY_CUSTOM;
+    world->notify->custom_iteration_value = world->log_freq;
+  }
+
+  return 0;
+}
+
+
 
 /**
  * Initializes the parameters required for the simulation (duh!).
@@ -211,10 +252,8 @@ int init_sim(void)
   world->use_expanded_list=1;
   world->randomize_gmol_pos=0;
   world->vacancy_search_dist2=0;
-
+  
   world->mcell_version = MCELL_VERSION;
-  fprintf(log_file,"Current MCell Version is %s\n", world->mcell_version);
-
 
   world->rng = malloc(sizeof(struct rng_state));
   if (world->rng==NULL)

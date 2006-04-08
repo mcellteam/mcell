@@ -720,7 +720,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   mpvp->vol->vacancy_search_dist2 /= mpvp->vol->length_unit;           /* Convert units */
   mpvp->vol->vacancy_search_dist2 *= mpvp->vol->vacancy_search_dist2;  /* Take square */
   
-  fprintf(mpvp->vol->log_file,"\nReaction probabilities generated for the following reactions:\n");
+  if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
+  {
+    fprintf(mpvp->vol->log_file,"\nReaction probabilities generated for the following reactions:\n");
+  }
   
   if (mpvp->vol->rx_radius_3d <= 0.0)
   {
@@ -1028,15 +1031,19 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         if (rx->n_reactants==1) {
           pb_factor=1;
           rx->cum_probs[0]=1.0-exp(-mpvp->vol->time_unit*rx->cum_probs[0]);
-          fprintf(mpvp->vol->log_file,"\tProbability %.4e set for %s[%d] -> ",rx->cum_probs[0],
-                 rx->players[0]->sym->name,rx->geometries[0]);
 
-          for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
+          if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
           {
-            if (rx->players[k]==NULL) fprintf(mpvp->vol->log_file,"NIL ");
-            else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+            fprintf(mpvp->vol->log_file,"\tProbability %.4e set for %s[%d] -> ",rx->cum_probs[0],
+                   rx->players[0]->sym->name,rx->geometries[0]);
+  
+            for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
+            {
+              if (rx->players[k]==NULL) fprintf(mpvp->vol->log_file,"NIL ");
+              else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+            }
+            fprintf(mpvp->vol->log_file,"\n");
           }
-          fprintf(mpvp->vol->log_file,"\n");
         }
         else if (((rx->players[0]->flags & (IS_SURFACE | ON_GRID)) != 0 ||
                   (rx->players[1]->flags & (IS_SURFACE | ON_GRID)) != 0) &&
@@ -1083,22 +1090,25 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
           rx->cum_probs[0] = pb_factor * rx->cum_probs[0];
 
-          fprintf(mpvp->vol->log_file,"\tProbability %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_probs[0],
-                 rx->players[0]->sym->name,rx->geometries[0],
-                 rx->players[1]->sym->name,rx->geometries[1]);
-          if (rx->n_pathways <= RX_SPECIAL)
+          if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
           {
-            if (rx->n_pathways == RX_TRANSP) fprintf(mpvp->vol->log_file,"(TRANSPARENT)");
-          }
-          else
-          {
-            for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
+            fprintf(mpvp->vol->log_file,"\tProbability %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_probs[0],
+                   rx->players[0]->sym->name,rx->geometries[0],
+                   rx->players[1]->sym->name,rx->geometries[1]);
+            if (rx->n_pathways <= RX_SPECIAL)
             {
-              if (rx->players[k]==NULL) fprintf(mpvp->vol->log_file,"NIL ");
-              else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+              if (rx->n_pathways == RX_TRANSP) fprintf(mpvp->vol->log_file,"(TRANSPARENT)");
             }
+            else
+            {
+              for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
+              {
+                if (rx->players[k]==NULL) fprintf(mpvp->vol->log_file,"NIL ");
+                else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+              }
+            }
+            fprintf(mpvp->vol->log_file,"\n");
           }
-          fprintf(mpvp->vol->log_file,"\n");
         }
         else
         {
@@ -1126,35 +1136,42 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  else pb_factor = 0.0;  /* No rxn possible */
 
           rx->cum_probs[0]=pb_factor*rx->cum_probs[0];
-          fprintf(mpvp->vol->log_file,"\tProbability %.4e (l) set for %s[%d] + %s[%d] -> ",
-                 rx->cum_probs[0],
-                 rx->players[0]->sym->name,rx->geometries[0],
-                 rx->players[1]->sym->name,rx->geometries[1]);
-          for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
+
+          if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
           {
-            if (rx->players[k]==NULL) fprintf(mpvp->vol->log_file,"NIL ");
-            else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+            fprintf(mpvp->vol->log_file,"\tProbability %.4e (l) set for %s[%d] + %s[%d] -> ",
+                   rx->cum_probs[0],
+                   rx->players[0]->sym->name,rx->geometries[0],
+                   rx->players[1]->sym->name,rx->geometries[1]);
+            for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
+            {
+              if (rx->players[k]==NULL) fprintf(mpvp->vol->log_file,"NIL ");
+              else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+            }
+            fprintf(mpvp->vol->log_file,"\n");
           }
-          fprintf(mpvp->vol->log_file,"\n");
         }
 
         for (j=1;j<rx->n_pathways;j++)
         {
           if (rx->n_reactants==1) rate = 1.0-exp(-mpvp->vol->time_unit*rx->cum_probs[j]);
           else rate = pb_factor*rx->cum_probs[j];
-
-          fprintf(mpvp->vol->log_file,"\tProbability %.3e set for ",rate);
-          if (rx->n_reactants==1) fprintf(mpvp->vol->log_file,"%s[%d] -> ",rx->players[0]->sym->name,rx->geometries[0]);
-          else fprintf(mpvp->vol->log_file,"%s[%d] + %s[%d] -> ",
-                      rx->players[0]->sym->name,rx->geometries[0],
-                      rx->players[1]->sym->name,rx->geometries[1]);
-          for (k = rx->product_idx[j] ; k < rx->product_idx[j+1] ; k++)
-          {
-            if (rx->players[k]==NULL) fprintf(mpvp->vol->log_file,"NIL ");
-            else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
-          }
-          fprintf(mpvp->vol->log_file,"\n");
           rx->cum_probs[j] = rate + rx->cum_probs[j-1];
+
+          if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
+          {
+            fprintf(mpvp->vol->log_file,"\tProbability %.3e set for ",rate);
+            if (rx->n_reactants==1) fprintf(mpvp->vol->log_file,"%s[%d] -> ",rx->players[0]->sym->name,rx->geometries[0]);
+            else fprintf(mpvp->vol->log_file,"%s[%d] + %s[%d] -> ",
+                        rx->players[0]->sym->name,rx->geometries[0],
+                        rx->players[1]->sym->name,rx->geometries[1]);
+            for (k = rx->product_idx[j] ; k < rx->product_idx[j+1] ; k++)
+            {
+              if (rx->players[k]==NULL) fprintf(mpvp->vol->log_file,"NIL ");
+              else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+            }
+            fprintf(mpvp->vol->log_file,"\n");
+          }
         }
         
         if (n_prob_t_rxns > 0)
@@ -1289,7 +1306,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       }
     }
   }
-  fprintf(mpvp->vol->log_file,"\n");
+  if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
+  {
+    fprintf(mpvp->vol->log_file,"\n");
+  }
   return 0;
 }
 

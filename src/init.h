@@ -6,6 +6,7 @@
 
 void init_credits(void);
 
+int init_notifications();
 int init_sim(void);
 
 int init_species(void);

@@ -94,7 +94,9 @@ struct release_evaluator *rev;
 %token <tok> ALL_ITERATIONS
 %token <tok> ALL_MESHES
 %token <tok> ALL_MOLECULES
+%token <tok> ALL_NOTIFICATIONS
 %token <tok> ALL_TIMES
+%token <tok> ALL_WARNING_CONDITIONS
 %token <tok> AREA_OCCUPIED
 %token <tok> ASCII
 %token <tok> ASIN
@@ -107,12 +109,15 @@ struct release_evaluator *rev;
 %token <tok> BOTH_POLES
 %token <tok> BOTTOM
 %token <tok> BOX
+%token <tok> BOX_TRIANGULATION_REPORT
+%token <tok> BRIEF
 %token <tok> CEIL
 %token <tok> CENTER_MOLECULES_ON_GRID
 %token <tok> CHARGE
 %token <tok> CHECKPOINT_INFILE
 %token <tok> CHECKPOINT_OUTFILE
 %token <tok> CHECKPOINT_ITERATIONS
+%token <tok> CLOSE_PARTITION_SPACING
 %token <tok> COLOR
 %token <tok> COLOR_SIDE
 %token <tok> COLOR_EFFECTOR
@@ -138,8 +143,10 @@ struct release_evaluator *rev;
 %token <tok> DEFINE_SURFACE_REGIONS
 %token <tok> DEFINE_SURFACE_CLASS
 %token <tok> DEFINE_SURFACE_CLASSES
+%token <tok> DEGENERATE_POLYGONS
 %token <tok> DELAY
 %token <tok> DENSITY
+%token <tok> DIFFUSION_CONSTANT_REPORTS
 %token <tok> DX
 %token <tok> DREAMM_V3
 %token <tok> EFFECTOR
@@ -153,6 +160,7 @@ struct release_evaluator *rev;
 %token <tok> ELLIPTIC
 %token <tok> ELLIPTIC_RELEASE_SITE
 %token <tok> EOF_TOK
+%token <tok> ERROR
 %token <tok> EXCLUDE_ELEMENTS
 %token <tok> EXCLUDE_PATCH
 %token <tok> EXCLUDE_REGION
@@ -161,6 +169,8 @@ struct release_evaluator *rev;
 %token <tok> FALSE
 %token <tok> FCLOSE
 %token <tok> FILENAME
+%token <tok> FILE_OUTPUT_REPORT
+%token <tok> FINAL_SUMMARY_REPORT
 %token <tok> FLOOR
 %token <tok> FOPEN
 %token <tok> FOR_EACH_EFFECTOR
@@ -174,6 +184,8 @@ struct release_evaluator *rev;
 %token <tok> FRONT_HITS
 %token <tok> GAUSSIAN_RELEASE_NUMBER
 %token <tok> GEOMETRY
+%token <tok> HIGH_REACTION_PROBABILITY
+%token <tok> IGNORED
 %token <tok> INCLUDE_ELEMENTS
 %token <tok> INCLUDE_FILE
 %token <tok> INCLUDE_MOLECULES
@@ -190,6 +202,7 @@ struct release_evaluator *rev;
 %token <tok> ITERATION_FRAME_DATA
 %token <tok> ITERATION_LIST
 %token <tok> ITERATION_NUMBERS
+%token <tok> ITERATION_NUMBER_REPORT
 %token <tok> ITERATIONS
 %token <tok> FULLY_RANDOM
 %token <tok> LEFT
@@ -203,6 +216,8 @@ struct release_evaluator *rev;
 %token <tok> MEAN_NUMBER
 %token <tok> MESHES
 %token <tok> MIN_TOK
+%token <tok> MISSED_REACTIONS
+%token <tok> MISSED_REACTION_THRESHOLD
 %token <tok> MOD
 %token <tok> MODE
 %token <tok> MODIFY_SURFACE_REGIONS
@@ -214,12 +229,17 @@ struct release_evaluator *rev;
 %token <tok> MOLECULE_STATES
 %token <tok> MOLECULE_POSITIONS_STATES
 %token <tok> MOLECULE_FILE_PREFIX
+%token <tok> MOLECULE_LIFETIME_TOO_SHORT
+%token <tok> MOLECULE_LIFETIME_THRESHOLD
 %token <tok> NAME
 %token <tok> NAME_LIST
 %token <tok> NEGATIVE_POLE
+%token <tok> NEGATIVE_DIFFUSION_CONSTANT
+%token <tok> NEGATIVE_REACTION_PROBABILITY
 %token <tok> NO
 %token <tok> NONE
 %token <tok> NORMAL
+%token <tok> NOTIFICATIONS
 %token <tok> NO_SPECIES
 %token <tok> NUMBER
 %token <tok> NUMBER_BOUND
@@ -227,12 +247,16 @@ struct release_evaluator *rev;
 %token <tok> NUMBER_TO_RELEASE
 %token <tok> OBJECT
 %token <tok> OBJECT_FILE_PREFIXES
+%token <tok> OFF
+%token <tok> ON
 %token <tok> ORIENTATION
 %token <tok> ORIENTATIONS
-%token <tok> OUTPUT_BUFFER_SIZE 
+%token <tok> OUTPUT_BUFFER_SIZE
+%token <tok> OVERWRITTEN_OUTPUT_FILE
 %token <tok> POSITIONS
 %token <tok> PARALLEL_PARTITION
 %token <tok> PART
+%token <tok> PARTITION_LOCATION_REPORT
 %token <tok> PARTITION_X
 %token <tok> PARTITION_Y
 %token <tok> PARTITION_Z
@@ -246,6 +270,7 @@ struct release_evaluator *rev;
 %token <tok> POVRAY
 %token <tok> PRINT_TIME
 %token <tok> PRINTF
+%token <tok> PROGRESS_REPORT
 %token <tok> RADIAL_DIRECTIONS
 %token <tok> RADIAL_SUBDIVISIONS
 %token <tok> RADIANCE
@@ -254,6 +279,9 @@ struct release_evaluator *rev;
 %token <tok> RAND_GAUSSIAN
 %token <tok> REACTION_DATA_OUTPUT
 %token <tok> REACTION_GROUP
+%token <tok> REACTION_PROBABILITY_REPORTS
+%token <tok> REACTION_PROBABILITY_REPORT_THRESHOLD
+%token <tok> REACTION_PROBABILITY_WARNING_THRESHOLD
 %token <tok> REAL
 %token <tok> RECTANGULAR_RELEASE_SITE
 %token <tok> RECTANGULAR_TOKEN
@@ -261,6 +289,7 @@ struct release_evaluator *rev;
 %token <tok> REFLECTIVE
 %token <tok> REFERENCE_DIFFUSION_CONSTANT
 %token <tok> REGION_DATA
+%token <tok> RELEASE_EVENT_REPORT
 %token <tok> RELEASE_INTERVAL
 %token <tok> RELEASE_PATTERN
 %token <tok> RELEASE_PROBABILITY
@@ -323,6 +352,8 @@ struct release_evaluator *rev;
 %token <tok> VOXEL_IMAGE_MODE
 %token <tok> VOXEL_LIST
 %token <tok> VOXEL_VOLUME_MODE
+%token <tok> WARNING
+%token <tok> WARNINGS
 %token <tok> WILDCARD_VAR
 %token <tok> WORLD
 %token <tok> X_TOK
@@ -379,6 +410,12 @@ struct release_evaluator *rev;
 %type <tok> print_time_stmt
 %type <tok> fprint_time_stmt
 %type <tok> sprintf_stmt
+%type <tok> notification_def
+%type <tok> notification_list
+%type <tok> notification_item_def
+%type <tok> warnings_def
+%type <tok> warning_list
+%type <tok> warning_item_def
 %type <tok> end_of_mdl_file
 
 /*%type <tok> viz_frame_data_def */
@@ -394,6 +431,8 @@ struct release_evaluator *rev;
 %type <tok> product
 %type <tok> list_products
 
+%type <tok> notify_level
+%type <tok> warning_level
 %type <tok> boolean
 %type <tok> release_site_geom_old
 %type <tok> side 
@@ -579,6 +618,8 @@ mdl_stmt: time_def
 	| viz_data_output_def
 	| viz_output_def
 	| output_def
+        | notification_def
+        | warnings_def
 
 /*	
 	| parallel_partition_def
@@ -659,6 +700,193 @@ include_stmt: INCLUDE_FILE
   fflush(stderr);
   mdlpvp->include_flag = 0;
 };
+
+notification_def: NOTIFICATIONS '{' notification_list '}';
+
+notification_list: notification_item_def
+        | notification_list notification_item_def;
+
+notification_item_def:
+        ALL_NOTIFICATIONS '=' boolean
+{
+  byte notify_value;
+  if ($<tok>3==1) notify_value = NOTIFY_FULL;
+  else notify_value = NOTIFY_NONE;
+  
+  mdlpvp->vol->notify->progress_report = notify_value;
+  mdlpvp->vol->notify->diffusion_constants = notify_value;
+  mdlpvp->vol->notify->reaction_probabilities = notify_value;
+  mdlpvp->vol->notify->partition_location = notify_value;
+  mdlpvp->vol->notify->box_triangulation = notify_value;
+  mdlpvp->vol->notify->custom_iterations = notify_value;
+  mdlpvp->vol->notify->release_events = notify_value;
+  mdlpvp->vol->notify->file_writes = notify_value;
+  mdlpvp->vol->notify->final_summary = notify_value;
+}
+        | PROGRESS_REPORT '=' boolean
+{
+  if ($<tok>3==1) mdlpvp->vol->notify->progress_report = NOTIFY_FULL;
+  else mdlpvp->vol->notify->progress_report = NOTIFY_NONE;
+}
+        | DIFFUSION_CONSTANT_REPORTS '=' notify_level
+{
+  mdlpvp->vol->notify->diffusion_constants = $<tok>3;
+}
+        | REACTION_PROBABILITY_REPORTS '=' boolean
+{
+  if ($<tok>3==1) mdlpvp->vol->notify->reaction_probabilities = NOTIFY_FULL;
+  else mdlpvp->vol->notify->reaction_probabilities = NOTIFY_NONE;
+}
+        | REACTION_PROBABILITY_REPORT_THRESHOLD '=' num_expr
+{
+  mdlpvp->vol->notify->reaction_prob_notify = $<dbl>3;
+}
+        | PARTITION_LOCATION_REPORT '=' boolean
+{
+  if ($<tok>3==1) mdlpvp->vol->notify->partition_location = NOTIFY_FULL;
+  else mdlpvp->vol->notify->partition_location = NOTIFY_NONE;
+}
+        | BOX_TRIANGULATION_REPORT '=' boolean
+{
+  if ($<tok>3==1) mdlpvp->vol->notify->box_triangulation = NOTIFY_FULL;
+  else mdlpvp->vol->notify->box_triangulation = NOTIFY_NONE;
+}
+        | RELEASE_EVENT_REPORT '=' boolean
+{
+  if ($<tok>3==1) mdlpvp->vol->notify->release_events = NOTIFY_FULL;
+  else mdlpvp->vol->notify->release_events = NOTIFY_NONE;
+}
+        | FILE_OUTPUT_REPORT '=' boolean
+{
+  if ($<tok>3==1) mdlpvp->vol->notify->file_writes = NOTIFY_FULL;
+  else mdlpvp->vol->notify->file_writes = NOTIFY_NONE;
+}
+        | FINAL_SUMMARY_REPORT '=' boolean
+{
+  if ($<tok>3==1) mdlpvp->vol->notify->final_summary = NOTIFY_FULL;
+  else mdlpvp->vol->notify->final_summary = NOTIFY_NONE;
+}
+        | ITERATION_NUMBER_REPORT '=' boolean
+{
+  if (mdlpvp->vol->log_freq == -1) /* Not set on command line */
+  {
+    if ($<tok>3==1) mdlpvp->vol->notify->custom_iterations = NOTIFY_FULL;
+    else mdlpvp->vol->notify->custom_iterations = NOTIFY_NONE;
+  }
+}
+        | ITERATION_NUMBER_REPORT '=' num_expr
+{
+  if (mdlpvp->vol->log_freq == -1) /* Not set on command line */
+  {
+    mdlpvp->vol->notify->custom_iterations = NOTIFY_CUSTOM;
+    if ($<dbl>3 < 1.0)
+    {
+      mdlerror("Invalid iteration number reporting interval: use value >= 1.");
+      return 1;
+    }
+    else mdlpvp->vol->notify->custom_iteration_value = (long long)$<dbl>3;
+  }
+};
+
+notify_level: boolean
+{
+  if ($<tok>1==1) $$=NOTIFY_FULL;
+  else $$=NOTIFY_NONE;
+}
+        | BRIEF
+{
+  $$=NOTIFY_BRIEF;
+};
+
+
+warnings_def: WARNINGS '{' warning_list '}';
+
+warning_list: warning_item_def
+        | warning_list warning_item_def;
+
+warning_item_def:
+        ALL_WARNING_CONDITIONS '=' warning_level
+{
+  byte warn_value = (byte)$<tok>3;
+  mdlpvp->vol->notify->neg_diffusion = warn_value;
+  mdlpvp->vol->notify->neg_reaction = warn_value;
+  mdlpvp->vol->notify->high_reaction_prob = warn_value;
+  mdlpvp->vol->notify->close_partitions = warn_value;
+  mdlpvp->vol->notify->degenerate_polys = warn_value;
+  mdlpvp->vol->notify->overwritten_file = warn_value;
+  mdlpvp->vol->notify->short_lifetime = warn_value;
+  mdlpvp->vol->notify->missed_reactions = warn_value;
+}
+        | NEGATIVE_DIFFUSION_CONSTANT '=' warning_level
+{
+  mdlpvp->vol->notify->neg_diffusion = (byte)$<tok>3;
+}
+        | NEGATIVE_REACTION_PROBABILITY '=' warning_level
+{
+  mdlpvp->vol->notify->neg_reaction = (byte)$<tok>3;
+}
+        | HIGH_REACTION_PROBABILITY '=' warning_level
+{
+  mdlpvp->vol->notify->high_reaction_prob = (byte)$<tok>3;
+}
+        |  REACTION_PROBABILITY_WARNING_THRESHOLD '=' num_expr
+{
+  mdlpvp->vol->notify->reaction_prob_warn = $<dbl>3;
+}
+        | CLOSE_PARTITION_SPACING '=' warning_level
+{
+  mdlpvp->vol->notify->close_partitions = (byte)$<tok>3;
+}
+        | DEGENERATE_POLYGONS '=' warning_level
+{
+  mdlpvp->vol->notify->degenerate_polys = (byte)$<tok>3;
+}
+        | OVERWRITTEN_OUTPUT_FILE '=' warning_level
+{
+  mdlpvp->vol->notify->overwritten_file = (byte)$<tok>3;
+}
+        | MOLECULE_LIFETIME_TOO_SHORT '=' warning_level
+{
+  mdlpvp->vol->notify->short_lifetime = (byte)$<tok>3;
+}
+        | MOLECULE_LIFETIME_THRESHOLD '=' num_expr
+{
+  double lifetime = $<dbl>3;
+  if (lifetime < 0.0)
+  {
+    mdlerror("Molecule lifetimes are measured in iterations and cannot be negative.");
+    return 1;
+  }
+  mdlpvp->vol->notify->short_lifetime_value = (long long)lifetime;
+}
+        | MISSED_REACTIONS '=' warning_level
+{
+  mdlpvp->vol->notify->missed_reactions = (byte)$<tok>3;
+}
+        | MISSED_REACTION_THRESHOLD '=' num_expr
+{
+  double rxfrac = $<dbl>3;
+  if (rxfrac < 0.0 || rxfrac > 1.0)
+  {
+    mdlerror("Values for fraction of reactions missed should be between 0 and 1.");
+    return 1;
+  }
+  mdlpvp->vol->notify->missed_reaction_value = rxfrac;
+};
+
+warning_level:
+        IGNORED
+{
+  $$=WARN_COPE;
+}
+        | WARNING
+{
+  $$=WARN_WARN;
+}
+        | ERROR
+{
+  $$=WARN_ERROR;
+}
 
 
 assignment_stmt: assign_var '=' num_expr_only
@@ -1738,14 +1966,26 @@ molecules_def: define_one_molecule
 ;
 
 
-define_one_molecule: DEFINE_MOLECULE molecule_stmt
-;
+define_one_molecule: DEFINE_MOLECULE
+{
+  if (volp->notify->diffusion_constants==NOTIFY_BRIEF) fprintf(volp->log_file,"Defining molecule with the following diffusion constant:\n");
+}
+        molecule_stmt
+{
+  if (volp->notify->diffusion_constants==NOTIFY_BRIEF) fprintf(volp->log_file,"\n");
+};
 
 
-define_multiple_molecules: DEFINE_MOLECULES '{'
+define_multiple_molecules: DEFINE_MOLECULES
+{
+  if (volp->notify->diffusion_constants==NOTIFY_BRIEF) fprintf(volp->log_file,"Defining molecules with the following diffusion constants:\n");
+}
+        '{'
 	list_molecule_stmts
 	'}'
-;
+{
+  if (volp->notify->diffusion_constants==NOTIFY_BRIEF) fprintf(volp->log_file,"\n");
+};
 
 
 list_molecule_stmts: molecule_stmt
@@ -1854,27 +2094,37 @@ molecule_stmt: new_molecule '{'
     mdlpvp->l_perp_rms=sqrt(2*1.0e8*mdlpvp->specp->D*volp->time_unit);
     mdlpvp->l_r_bar=2*mdlpvp->l_perp_bar;
     mdlpvp->l_r_rms=sqrt(6*1.0e8*mdlpvp->specp->D*volp->time_unit);
-    if (volp->procnum == 0) {
-#if 1
-      fprintf(volp->log_file,"\nMCell: Theoretical average diffusion distances for molecule %s:\n\n",mdlpvp->specp->sym->name);
-      fprintf(volp->log_file,"\tl_r_bar = %.9g microns\n",mdlpvp->l_r_bar);
-      fprintf(volp->log_file,"\tl_r_rms = %.9g microns\n",mdlpvp->l_r_rms);
-      fprintf(volp->log_file,"\tl_perp_bar = %.9g microns\n",mdlpvp->l_perp_bar);
-      fprintf(volp->log_file,"\tl_perp_rms = %.9g microns\n\n",mdlpvp->l_perp_rms);
-#endif
+    if (volp->notify->diffusion_constants==NOTIFY_FULL)
+    {
+      if (volp->procnum == 0) {
+        fprintf(volp->log_file,"\nMCell: Theoretical average diffusion distances for molecule %s:\n",mdlpvp->specp->sym->name);
+        fprintf(volp->log_file,"\tl_r_bar = %.9g microns\n",mdlpvp->l_r_bar);
+        fprintf(volp->log_file,"\tl_r_rms = %.9g microns\n",mdlpvp->l_r_rms);
+        fprintf(volp->log_file,"\tl_perp_bar = %.9g microns\n",mdlpvp->l_perp_bar);
+        fprintf(volp->log_file,"\tl_perp_rms = %.9g microns\n\n",mdlpvp->l_perp_rms);
+      }
+    }
+    else if (volp->notify->diffusion_constants==NOTIFY_BRIEF)
+    {
+      if (volp->procnum==0) fprintf(volp->log_file,"  l_r_bar=%.9g um for %s\n",mdlpvp->l_r_bar,mdlpvp->specp->sym->name);
     }
   }
   else
   {
-#if 1
-    if (volp->procnum == 0)
+    if (volp->notify->diffusion_constants==NOTIFY_FULL)
     {
-      fprintf(volp->log_file,"\nMCell: Theoretical average diffusion time for molecule %s:\n",mdlpvp->specp->sym->name);
-      fprintf(volp->log_file,"\tl_r_bar fixed at %.9g microns\n",volp->length_unit*mdlpvp->specp->space_step*2.0/sqrt(MY_PI));
-      fprintf(volp->log_file,"\tPosition update every %.3e seconds (%.3g timesteps)\n\n",
-              mdlpvp->specp->time_step*volp->time_unit,mdlpvp->specp->time_step);
+      if (volp->procnum == 0)
+      {
+        fprintf(volp->log_file,"\nMCell: Theoretical average diffusion time for molecule %s:\n",mdlpvp->specp->sym->name);
+        fprintf(volp->log_file,"\tl_r_bar fixed at %.9g microns\n",volp->length_unit*mdlpvp->specp->space_step*2.0/sqrt(MY_PI));
+        fprintf(volp->log_file,"\tPosition update every %.3e seconds (%.3g timesteps)\n\n",
+                mdlpvp->specp->time_step*volp->time_unit,mdlpvp->specp->time_step);
+      }
     }
-#endif
+    else if (volp->notify->diffusion_constants==NOTIFY_BRIEF)
+    {
+      if (volp->procnum==0) fprintf(volp->log_file,"  delta t=%.3g timesteps for %s\n",mdlpvp->specp->time_step,mdlpvp->specp->sym->name);
+    }
   }
   no_printf("Molecule %s defined with D = %g\n",mdlpvp->specp->sym->name,mdlpvp->specp->D);
 };
@@ -4129,6 +4379,8 @@ boolean: TRUE { $$=1; }
 	| FALSE { $$=0; }
 	| YES { $$=1; }
 	| NO { $$=0; }
+        | ON { $$=1; }
+        | OFF { $$=0; }
 ;
 
 

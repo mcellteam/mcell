@@ -1181,21 +1181,44 @@ int release_molecules(struct release_event_queue *req)
   
   if (rso->release_shape == SHAPE_REGION)
   {
+    int pop_before = ap->properties->population;
     if (ap->flags & TYPE_3D)
     {
       i = release_inside_regions(rso,(struct molecule*)ap,number);
       if (i) return 1;
       
-      if (number>0 || (rso->release_number_method==CCNNUM && rso->concentration>0)) fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
-      else fprintf(world->log_file, "Unreleasing type = %s\n", req->release_site->mol_type->sym->name);
+      if (world->notify->release_events==NOTIFY_FULL)
+      {
+        if (number>0 || (rso->release_number_method==CCNNUM && rso->concentration>0))
+        {
+          fprintf(world->log_file, "Releasing %d %s at iteration %lld\n",
+            ap->properties->population-pop_before,req->release_site->mol_type->sym->name,world->it_time);
+        }
+        else
+        {
+          fprintf(world->log_file, "Unreleasing %d %s at iteration %lld\n",
+            ap->properties->population-pop_before,req->release_site->mol_type->sym->name,world->it_time);
+        }
+      }
     }
     else
     {
       i = release_onto_regions(rso,(struct grid_molecule*)ap,number);
       if (i) return 1;
 
-      if (number>0) fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
-      else fprintf(world->log_file, "Unreleasing type = %s\n", req->release_site->mol_type->sym->name);
+      if (world->notify->release_events==NOTIFY_FULL)
+      {
+        if (number>0)
+        {
+          fprintf(world->log_file, "Releasing %d %s at iteration %lld\n",
+            ap->properties->population-pop_before,req->release_site->mol_type->sym->name,world->it_time);
+        }
+        else
+        {
+          fprintf(world->log_file, "Unreleasing %d %s at iteration %lld\n",
+            ap->properties->population-pop_before,req->release_site->mol_type->sym->name,world->it_time);
+        }
+      }
     }
   }
   else  /* Guaranteed to be 3D molecule or at least specified by 3D location if in list */
@@ -1275,7 +1298,11 @@ int release_molecules(struct release_event_queue *req)
         guess = insert_molecule(&m,guess);  /* Insert copy of m into world */
         if (guess == NULL) return 1;
       }
-      fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
+      if (world->notify->release_events==NOTIFY_FULL)
+      {
+        fprintf(world->log_file, "Releasing %d %s at iteration %lld\n",
+            number,req->release_site->mol_type->sym->name,world->it_time);
+      }
     }
     else
     {
@@ -1295,7 +1322,11 @@ int release_molecules(struct release_event_queue *req)
          guess = insert_molecule(&m,guess);
          if (guess == NULL) return 1;
       }
-      fprintf(world->log_file, "Releasing type = %s\n", req->release_site->mol_type->sym->name);
+      if (world->notify->release_events==NOTIFY_FULL)
+      {
+        fprintf(world->log_file, "Releasing %d %s at iteration %lld\n",
+            number,req->release_site->mol_type->sym->name,world->it_time);
+      }
     }
   }
  
