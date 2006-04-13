@@ -838,7 +838,56 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         for (j=0 , path=rx->pathway_head ; path!=NULL ; j++ , path = path->next)
         {
           rx->product_idx[j] = 0;
-          if (path->kcat >= 0.0) rx->cat_probs[j] = path->kcat;
+          if (path->kcat >= 0.0)
+          {
+            /* Look for hack that indicates concentration clamp */
+            if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE)!=0 &&
+                path->km==GIGANTIC && path->product_head==NULL && path->kcat>0.0)
+            {
+              struct ccn_clamp_data *ccd;
+              
+              if (j!=0 || path->next!=NULL)
+              {
+                fprintf(mpvp->vol->err_file,"Warning: mixing surface modes with other surface reactions.  Please don't.\n");
+              }
+              
+              ccd = (struct ccn_clamp_data*)malloc(sizeof(struct ccn_clamp_data));
+              if (ccd==NULL)
+              {
+                fprintf(mpvp->vol->err_file,"Out of memory creating concentration clamp for %s\n  (on surface class %s)\n",
+                        path->reactant1->sym->name,path->reactant2->sym->name);
+                return 1;
+              }
+              
+              ccd->surf_class = path->reactant2;
+              ccd->mol = path->reactant1;
+              ccd->concentration = path->kcat;
+              if (path->orientation1*path->orientation2==0)
+              {
+                ccd->orient = 0;
+              }
+              else
+              {
+                ccd->orient = (path->orientation1==path->orientation2) ? 1 : -1;
+              }
+              ccd->sides = NULL;
+              ccd->next_mol = NULL;
+              ccd->next_obj = NULL;
+              ccd->objp = NULL;
+              ccd->n_sides = 0;
+              ccd->side_idx = NULL;
+              ccd->cum_area = NULL;
+              ccd->scaling_factor = 0.0;
+              ccd->next = mpvp->vol->clamp_list;
+              mpvp->vol->clamp_list = ccd;
+              
+              rx->cat_probs[0] = 0;
+            }
+            else
+            {
+              rx->cat_probs[j] = path->kcat;
+            }
+          }
           else
           {
 	    if (path->kcat==KCAT_RATE_TRANSPARENT) rx->n_pathways = RX_TRANSP;

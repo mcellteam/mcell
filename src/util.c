@@ -2,6 +2,8 @@
 * An infinite array of doubles cam grow as needed.
 *******************************************************/
 #include "util.h"
+#include <float.h>
+#include <math.h>
 #include <stdint.h>
 #include <memory.h>
 #include <stdio.h>
@@ -1243,6 +1245,58 @@ int void_array_search(void **array,int n,void *to_find)
   if (to_find==array[hi]) return hi;
   return -1;
 }
+
+
+/*************************************************************************
+poisson_dist:
+  In: mean value
+      random number distributed uniformly between 0 and 1
+  Out: integer of an exact number of events taken from the Poisson
+       distribution.
+  Note: This does not sample the CDF.  Instead, it works its way outwards
+        from the peak of the PDF.  Kinda weird.  It is not the case
+        that low values of the random number will give low values.  It
+        is also not super-efficient, but it works.
+*************************************************************************/
+int poisson_dist(double lambda,double p)
+{
+  int i,lo,hi;
+  double plo,phi,pctr;
+  double lambda_i;
+  
+//  i=(int)lambda;
+//  pctr=lambda-i;
+//  if (p<pctr) return i+1;
+//  else return i;
+  
+  i = (int)lambda;
+  pctr = exp( -lambda + i*log(lambda) - lgamma(i+1) );
+
+  if (p<pctr) return i;
+  
+  lo=hi=i;
+  plo=phi=pctr;
+  
+  p-=pctr;
+  lambda_i = 1.0/lambda;
+  while (p>0)
+  {
+    if (lo>0)
+    {
+      plo *= lo*lambda_i;
+      lo--;
+      if (p<plo) return lo;
+      p-=plo;
+    }
+    hi++;
+    phi = phi*lambda/hi;
+    if (p<phi) return hi;
+    p-=phi+DBL_EPSILON; /* Avoid infinite loop from poor roundoff */
+  }
+  
+  return phi;
+}
+
 
 /*************************************************************************
 byte_swap:

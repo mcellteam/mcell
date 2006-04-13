@@ -29,6 +29,7 @@ int instance_polygon_object(struct object *objp,
 		char *full_name);
 
 int init_regions();
+void init_clamp_lists();
 
 int instance_obj_regions(struct object *objp, char *sub_name);
 

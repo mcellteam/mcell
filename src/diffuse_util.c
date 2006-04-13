@@ -224,6 +224,7 @@ init_r_step:
   In: number of desired radial subdivisions
   Out: pointer to array of doubles containing those subdivisions
        returns NULL on malloc failure
+  Note: This is for 3D diffusion from a point source (molecule movement)
 ***************************************************************************/
 
 double* init_r_step(int radial_subdivisions)
@@ -233,7 +234,7 @@ double* init_r_step(int radial_subdivisions)
   double *r_step;
   int j;
     
-  log_file=world->log_file;
+  log_file=world->err_file;
   if ((r_step=(double *)malloc(radial_subdivisions*sizeof(double)))==NULL) { 
     fprintf(log_file,"MCell: cannot store radial step length table\n");
     return NULL;
@@ -261,6 +262,47 @@ double* init_r_step(int radial_subdivisions)
   
   return r_step;
 }
+
+/***************************************************************************
+init_r_step_surface:
+  In: number of desired radial subdivisions
+  Out: pointer to array of doubles containing those subdivisions
+       returns NULL on malloc failure
+  Note: This is for 3D molecules emitted from a plane
+***************************************************************************/
+
+double* init_r_step_surface(int radial_subdivisions)
+{
+  double *r_step_s;
+  double p,r_max,r_min,step,r,cdf;
+  int i,j;
+  static const double sqrt_pi = 1.7724538509055160273;
+  
+  r_step_s = (double*)malloc(radial_subdivisions*sizeof(double));
+  if (r_step_s==NULL)
+  {
+    fprintf(world->err_file,"Out of memory while storing radial step length table\n");
+    return NULL;
+  }
+  
+  step = 1.0/radial_subdivisions;
+  for ( i=0 , p=(1.0-1e-6)*step ; p<1.0 ; p+=step,i++ )
+  {
+    r_min = 0;
+    r_max = 3.0; /* 17 bit high-end CDF cutoff */
+    for (j=0;j<20;j++) /* 20 bits of accuracy */
+    {
+      r = 0.5*(r_min+r_max);
+      cdf = 1.0-exp(-r*r)+sqrt_pi*r*erfc(r);
+      if (cdf>p) r_max=r;
+      else r_min=r;
+    }
+    r_step_s[i] = r;
+  }
+  
+  return r_step_s;
+}  
+
 
 
 /***************************************************************************

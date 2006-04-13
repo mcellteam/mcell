@@ -196,11 +196,13 @@
 /* INERT molecules don't react, REACT molecules do */
 /* CHANGE molecules have had their rate constant changed */
 /* DIFFUSE molecules diffuse (duh!) */
+/* CLAMPED molecules diffuse for part of a timestep and don't react with surfaces */
 #define ACT_DIFFUSE 0x008
 #define ACT_INERT   0x010
 #define ACT_REACT   0x020
 #define ACT_NEWBIE  0x040
 #define ACT_CHANGE  0x080
+#define ACT_CLAMPED 0x1000
 
 /* Flags telling us which linked lists the molecule appears in. */
 #define IN_SCHEDULE 0x100
@@ -670,8 +672,8 @@ struct molecule
   
   struct cmprt_data *curr_cmprt;  /* Compartment we are in (for counting) */
   
-  struct surface_grid *previous_grid;   /* Wall we were released from */
-  int index;                            /* Index on that wall (don't rebind) */
+  struct wall *previous_wall;     /* Wall we were released from */
+  int index;                      /* Index on that wall (don't rebind) */
   
   struct molecule *next_v;        /* Next molecule in this subvolume */
 };
@@ -1006,6 +1008,7 @@ struct volume
   double default_grid_mol_area;
   double *r_step;
   double *d_step;
+  double *r_step_surface;
   double r_num_directions;
   double sim_elapsed_time;
   double chkpt_elapsed_real_time;    /** elapsed simulation time (in sec) for new 
@@ -1080,6 +1083,9 @@ struct volume
   
   /* Notification/warning/output stuff */
   struct notifications *notify;
+  
+  /* Concentration clamp at surfaces */
+  struct ccn_clamp_data *clamp_list;
 };
 
 
@@ -1230,6 +1236,23 @@ struct notifications
   long long short_lifetime_value;
   byte missed_reactions;
   double missed_reaction_value;
+};
+
+struct ccn_clamp_data
+{
+  struct ccn_clamp_data *next;     /* The next concentration clamp */
+  struct species *surf_class;   /* Which surface class clamps? */
+  struct species *mol;             /* Which molecule does it clamp? */
+  double concentration;            /* At which concentration? */
+  short orient;                    /* On which side? */
+  struct object *objp;             /* Which object are we clamping? */
+  struct bit_array *sides;         /* Which sides on that object? */
+  int n_sides;                     /* How many are set */
+  int *side_idx;                   /* Indices of the sides that are set */
+  double *cum_area;                /* Cumulative area of all the sides */
+  double scaling_factor;           /* Used to predict #mols/timestep */
+  struct ccn_clamp_data *next_mol; /* Next molecule for this class */
+  struct ccn_clamp_data *next_obj; /* Next object for this class */
 };
 
 /******************************************************************/

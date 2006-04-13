@@ -966,7 +966,7 @@ int write_mol_scheduler_state(FILE *fs)
             if((amp->properties->flags & NOT_FREE) == 0)
             {
 		mp = (struct molecule *)amp;
-                if(mp->previous_grid != NULL  && mp->index>=0) {
+                if(mp->previous_wall != NULL  && mp->index>=0) {
                    fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\nThe value of 'previous_grid' is not NULL.\n");
                 }
                 where.x = mp->pos.x;
@@ -1312,7 +1312,7 @@ int read_mol_scheduler_state(FILE *fs)
            }
  
            mp->curr_cmprt = NULL;
-           mp->previous_grid = NULL;
+           mp->previous_wall = NULL;
            mp->index = -1;
            mp->pos.x = x_coord;
            mp->pos.y = y_coord;

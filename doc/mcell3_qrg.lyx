@@ -2919,8 +2919,8 @@ To define surface properties, use the following commands:
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="6" columns="2">
-<features islongtable="true" headBottomDL="true">
+<lyxtabular version="3" rows="7" columns="2">
+<features islongtable="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
 <row topline="true" bottomline="true" endhead="true">
@@ -3030,6 +3030,55 @@ name
 \family default 
 \shape default 
  is destroyed if it touches this surface.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+CONCENTRATION 
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ = 
+\family sans 
+\shape italic 
+value
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+The molecule called 
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+ 
+\family default 
+is destroyed if it touches the surface (as if it had passed through), and
+ new molecules are created at the surface, as if molecules had passed through
+ from the other side at a concentration 
+\family sans 
+\shape italic 
+value
+\family default 
+\shape default 
+ (units = M).
+ Orientation marks may be used; in this case, the other side of the surface
+ is reflective.
+ Note that this command is only used to set the effective concentration
+ of a 3D molecule at a surface; it is not valid to specify a 2D molecule.
 \end_inset 
 </cell>
 </row>

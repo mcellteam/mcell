@@ -135,6 +135,8 @@ struct void_list* void_list_sort_by(struct void_list *vl,int (*leq)(void*,void*)
 
 int void_array_search(void **array,int n,void *to_find);
 
+int poisson_dist(double lambda,double p);
+
 unsigned char * byte_swap(unsigned char *b);
 
 /* this function implements the UN*X wildcards and returns  */
@@ -142,6 +144,7 @@ unsigned char * byte_swap(unsigned char *b);
 /* 1  if *wildcard matches *test                            */
 /* Written by Florian Schintke.                             */
 /* Distributed as free software according to the GNU General Public License. */
+/* FIXME--if we're not releasing under the GPL, we can't use GPLed code. */
 int wildcardfit (char *wildcard, char *test);
 
 

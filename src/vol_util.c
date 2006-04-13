@@ -502,7 +502,7 @@ insert_molecule
   In: pointer to a molecule that we're going to place in local storage
       pointer to a molecule that may be nearby
   Out: pointer to the new molecule (copies data from molecule passed in),
-       or NULL if out of memory
+       or NULL if out of memory.  Molecule is placed in scheduler also.
 *************************************************************************/
 
 struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
@@ -911,7 +911,7 @@ int release_inside_regions(struct release_site_obj *rso,struct molecule *m,int n
   rrd = rso->region_data;
   new_m = NULL;
   m->curr_cmprt = NULL;
-  m->previous_grid = NULL;
+  m->previous_wall = NULL;
   m->index = -1;
   
   if (rso->release_number_method==CCNNUM)
@@ -1224,7 +1224,7 @@ int release_molecules(struct release_event_queue *req)
   else  /* Guaranteed to be 3D molecule or at least specified by 3D location if in list */
   {
     m.curr_cmprt = NULL;
-    m.previous_grid = NULL;
+    m.previous_wall = NULL;
     m.index = -1;
     
     diam_xyz = rso->diameter;

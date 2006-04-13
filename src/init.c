@@ -234,6 +234,7 @@ int init_sim(void)
   world->num_directions=world->radial_directions;
   world->r_num_directions=1.0/world->num_directions;
   world->r_step=NULL;
+  world->r_step_surface=NULL;
   world->d_step=NULL;
   world->place_waypoints_flag=0;
   world->releases_on_regions_flag=0;
@@ -254,6 +255,8 @@ int init_sim(void)
   world->vacancy_search_dist2=0;
   
   world->mcell_version = MCELL_VERSION;
+  
+  world->clamp_list = NULL;
 
   world->rng = malloc(sizeof(struct rng_state));
   if (world->rng==NULL)
@@ -1452,67 +1455,68 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
       vizp->viz_child_head = vcp;
     }
   }  
-    for (i=0;i<n_verts;i++) {
-      vp[i]=&v[i];
-      p[0][0]=opp->vertex[i].x;
-      p[0][1]=opp->vertex[i].y;
-      p[0][2]=opp->vertex[i].z;
-      p[0][3]=1.0;
-      mult_matrix(p,im,p,l,m,n);
-      v[i].x=p[0][0]/world->length_unit;
-      v[i].y=p[0][1]/world->length_unit;
-      v[i].z=p[0][2]/world->length_unit;
+
+  for (i=0;i<n_verts;i++) {
+    vp[i]=&v[i];
+    p[0][0]=opp->vertex[i].x;
+    p[0][1]=opp->vertex[i].y;
+    p[0][2]=opp->vertex[i].z;
+    p[0][3]=1.0;
+    mult_matrix(p,im,p,l,m,n);
+    v[i].x=p[0][0]/world->length_unit;
+    v[i].y=p[0][1]/world->length_unit;
+    v[i].z=p[0][2]/world->length_unit;
 
 #ifdef INIT_VERTEX_NORMALS
-      if (compute_vertex_normals) {
-        p[0][0]=opp->normal[i].x;
-        p[0][1]=opp->normal[i].y;
-        p[0][2]=opp->normal[i].z;
-        p[0][3]=1.0;
-        origin[0][0]=0;
-        origin[0][1]=0;
-        origin[0][2]=0;
-        origin[0][3]=1.0;
-        mult_matrix(p,im,p,l,m,n);
-        mult_matrix(origin,im,origin,l,m,n);
-        vertex_normal[i].x=p[0][0]-origin[0][0];
-        vertex_normal[i].y=p[0][1]-origin[0][1];
-        vertex_normal[i].z=p[0][2]-origin[0][2];
-        normalize(&vertex_normal[i]);
-      }
-#endif
+    if (compute_vertex_normals) {
+      p[0][0]=opp->normal[i].x;
+      p[0][1]=opp->normal[i].y;
+      p[0][2]=opp->normal[i].z;
+      p[0][3]=1.0;
+      origin[0][0]=0;
+      origin[0][1]=0;
+      origin[0][2]=0;
+      origin[0][3]=1.0;
+      mult_matrix(p,im,p,l,m,n);
+      mult_matrix(origin,im,origin,l,m,n);
+      vertex_normal[i].x=p[0][0]-origin[0][0];
+      vertex_normal[i].y=p[0][1]-origin[0][1];
+      vertex_normal[i].z=p[0][2]-origin[0][2];
+      normalize(&vertex_normal[i]);
     }
-    
-    degenerate_count=0;
-    for (i=0;i<n_walls;i++) {
-      if (!get_bit(pop->side_removed,i)) {
-        wp[i]=&w[i];
-        index_0=opp->element[i].vertex_index[0];
-        index_1=opp->element[i].vertex_index[1];
-        index_2=opp->element[i].vertex_index[2];
- 
-        init_tri_wall(objp,i,vp[index_0],vp[index_1],vp[index_2]);
-        total_area+=wp[i]->area;
+#endif
+  }
+  
+  degenerate_count=0;
+  for (i=0;i<n_walls;i++) {
+    if (!get_bit(pop->side_removed,i)) {
+      wp[i]=&w[i];
+      index_0=opp->element[i].vertex_index[0];
+      index_1=opp->element[i].vertex_index[1];
+      index_2=opp->element[i].vertex_index[2];
 
-        if (wp[i]->area==0) {
-          fprintf(log_file,"\nMCell: Warning -- Degenerate polygon found and automatically removed: %s %d\n\n",objp->sym->name,i);
-	  fprintf(log_file,"  Vertex 0: %.5e %.5e %.5e\n",vp[index_0]->x,vp[index_0]->y,vp[index_0]->z);
-	  fprintf(log_file,"  Vertex 1: %.5e %.5e %.5e\n",vp[index_1]->x,vp[index_1]->y,vp[index_1]->z);
-	  fprintf(log_file,"  Vertex 2: %.5e %.5e %.5e\n",vp[index_2]->x,vp[index_2]->y,vp[index_2]->z);
-	  set_bit(pop->side_removed,i,1);
-          objp->n_walls_actual--;
-          degenerate_count++;
-          wp[i]=NULL;
-        }
-      }
-      else {
+      init_tri_wall(objp,i,vp[index_0],vp[index_1],vp[index_2]);
+      total_area+=wp[i]->area;
+
+      if (wp[i]->area==0) {
+        fprintf(log_file,"\nMCell: Warning -- Degenerate polygon found and automatically removed: %s %d\n\n",objp->sym->name,i);
+        fprintf(log_file,"  Vertex 0: %.5e %.5e %.5e\n",vp[index_0]->x,vp[index_0]->y,vp[index_0]->z);
+        fprintf(log_file,"  Vertex 1: %.5e %.5e %.5e\n",vp[index_1]->x,vp[index_1]->y,vp[index_1]->z);
+        fprintf(log_file,"  Vertex 2: %.5e %.5e %.5e\n",vp[index_2]->x,vp[index_2]->y,vp[index_2]->z);
+        set_bit(pop->side_removed,i,1);
+        objp->n_walls_actual--;
+        degenerate_count++;
         wp[i]=NULL;
       }
     }
-    if (degenerate_count) remove_gaps_from_regions(objp);
-    
-    objp->total_area=total_area;
-
+    else {
+      wp[i]=NULL;
+    }
+  }
+  if (degenerate_count) remove_gaps_from_regions(objp);
+  
+  objp->total_area=total_area;
+  
 #ifdef DEBUG    
   printf("n_walls = %d\n", n_walls);
   printf("n_walls_actual = %d\n", objp->n_walls_actual);
@@ -1525,6 +1529,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
 
 int init_regions()
 {
+  if (world->clamp_list!=NULL) init_clamp_lists();
 
   if (instance_obj_regions(world->root_instance,NULL)) {
     return(1);
@@ -1533,6 +1538,32 @@ int init_regions()
   return(0);
 }
 
+
+/* First part of concentration clamp initialization. */
+/* After this, list is grouped by surface class. */
+/* Second part (list of objects) happens with regions. */
+void init_clamp_lists()
+{
+  struct ccn_clamp_data *ccd,*temp;
+  
+  /* Sort by memory order of surface_class pointer--handy way to collect like classes */
+  world->clamp_list = (struct ccn_clamp_data*)void_list_sort((struct void_list*)world->clamp_list);
+  
+  /* Toss other molecules in same surface class into next_mol lists */
+  for (ccd = world->clamp_list ; ccd!=NULL ; ccd=ccd->next)
+  {
+    while (ccd->next != NULL && ccd->surf_class==ccd->next->surf_class)
+    {
+      ccd->next->next_mol = ccd->next_mol;
+      ccd->next_mol = ccd->next;
+      ccd->next = ccd->next->next;
+    }
+    for (temp=ccd->next_mol ; temp!=NULL ; temp=temp->next_mol)
+    {
+      temp->next = ccd->next;
+    }
+  }
+}
 
 
 int instance_obj_regions(struct object *objp,char *sub_name)
@@ -1624,6 +1655,7 @@ int instance_obj_regions(struct object *objp,char *sub_name)
  * Sets wall surf_class by region.
  * Creates surface grids.
  * Populates effector tiles by region.
+ * Creates virtual regions on which to clamp concentration
  */
 int init_wall_regions(struct object *objp, char *full_name)
 {
@@ -1884,6 +1916,110 @@ int init_wall_regions(struct object *objp, char *full_name)
       }
     }
     free(eff_prop);
+
+    
+  /* Check to see if we need to generate virtual regions for */
+  /* concentration clamps on this object */
+  if (world->clamp_list!=NULL)
+  {
+    struct ccn_clamp_data *ccd;
+    struct ccn_clamp_data *temp;
+    int j;
+    int found_something = 0;
+    
+    for (i=0;i<n_walls;i++)
+    {
+      if (get_bit(pop->side_removed,i)) continue;
+      if (objp->wall_p[i]->surf_class != world->g_surf)
+      {
+        for (ccd=world->clamp_list ; ccd!=NULL ; ccd=ccd->next)
+        {
+          if (objp->wall_p[i]->surf_class == ccd->surf_class)
+          {
+            if (ccd->objp!=objp)
+            {
+              if (ccd->objp==NULL) ccd->objp=objp;
+              else if (ccd->next_obj != NULL && ccd->next_obj->objp==objp) ccd=ccd->next_obj;
+              else
+              {
+                temp = (struct ccn_clamp_data*)malloc(sizeof(struct ccn_clamp_data));
+                if (temp==NULL)
+                {
+                  fprintf(world->err_file,"Out of memory assembling concentration clamp data.\n");
+                  return 1;
+                }
+                memcpy(temp,ccd,sizeof(struct ccn_clamp_data));
+                temp->objp = objp;
+                ccd->sides = NULL;
+                ccd->n_sides = 0;
+                ccd->side_idx = NULL;
+                ccd->cum_area = NULL;
+                ccd->next_obj = temp;
+                ccd = temp;
+              }
+            }
+            if (ccd->sides==NULL)
+            {
+              ccd->sides = new_bit_array(n_walls);
+              if (ccd->sides==NULL)
+              {
+                fprintf(world->err_file,"Out of memory assembling concentration clamp data.\n");
+                return 1;
+              }
+              set_all_bits(ccd->sides,0);
+            }
+            set_bit(ccd->sides,i,1);
+            ccd->n_sides++;
+            found_something=1;
+          }
+        }
+      }
+    }
+    
+    if (found_something)
+    {
+      for (ccd=world->clamp_list ; ccd!=NULL ; ccd=ccd->next)
+      {
+        if (ccd->objp!=objp)
+        {
+          if (ccd->next_obj!=NULL && ccd->next_obj->objp==objp) ccd=ccd->next_obj;
+          else continue;
+        }
+        
+        ccd->side_idx = (int*)malloc(ccd->n_sides*sizeof(int));
+        ccd->cum_area = (double*)malloc(ccd->n_sides*sizeof(double));
+        if (ccd->side_idx==NULL || ccd->cum_area==NULL)
+        {
+          fprintf(world->err_file,"Out of memory assembling concentration clamp data.\n");
+          return 1;
+        }
+        
+        j=0;
+        for (i=0;i<n_walls;i++)
+        {
+          if (get_bit(ccd->sides,i))
+          {
+            ccd->side_idx[j] = i;
+            ccd->cum_area[j] = objp->wall_p[i]->area;
+            j++;
+          }
+        }
+        if (j!=ccd->n_sides)
+        {
+          fprintf(world->err_file,"Miscounted the number of walls for concentration clamp\n  on object %s\n  surface class %s\n",
+                  objp->sym->name,ccd->surf_class->sym->name);
+          return 1;
+        }
+        
+        for (j=1;j<ccd->n_sides;j++) ccd->cum_area[j] += ccd->cum_area[j-1];
+        
+        ccd->scaling_factor = ccd->cum_area[ccd->n_sides-1] * world->length_unit * world->length_unit * world->length_unit /
+                              2.9432976599069717358e-9;  /* sqrt(MY_PI)/(1e-15*N_AV) */
+        if (ccd->orient!=0) ccd->scaling_factor *= 0.5;
+      }
+    }
+    
+  }
 
 
 #ifdef KELP

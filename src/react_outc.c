@@ -284,12 +284,12 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       p->population++;
       if (reac_g != NULL)
       {
-        m->previous_grid = reac_g->grid;
+        m->previous_wall = reac_g->grid->surface;
         m->index = reac_g->grid_index;
       }
       else
       {
-        m->previous_grid = 0;
+        m->previous_wall = NULL;
         m->index = -1;
       }
       m->flags = TYPE_3D + ACT_NEWBIE + IN_VOLUME + IN_SCHEDULE;

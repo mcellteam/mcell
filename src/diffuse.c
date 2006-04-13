@@ -73,7 +73,42 @@ void pick_2d_displacement(struct vector2 *v,double scale)
   v->u = (a.u*a.u-a.v*a.v)*f;
   v->v = (2.0*a.u*a.v)*f;
 }
+
+
+/*************************************************************************
+pick_clamped_displacement:
+  In: vector3 to store the new displacement
+      molecule that just came through the surface
+  Out: No return value.  vector is set to a random orientation and a
+         distance chosen from the probability distribution of a diffusing
+         3D molecule that has come through a surface from a uniform
+         concentration on the other side.
+  Note: m->previous_wall points to the wall we're coming from, and
+        m->index is the orientation we came off with
+*************************************************************************/
+
+void pick_clamped_displacement(struct vector3 *v,struct molecule *m)
+{
+  double p;
+  double r_n;
+  struct vector2 r_uv;
+  struct wall *w = m->previous_wall;
   
+  p = rng_dbl(world->rng);
+  
+  /* Correct distribution along normal from surface (from lookup table) */
+  r_n = m->index * m->properties->space_step * 
+        world->r_step_surface[ rng_uint(world->rng) & (world->radial_subdivisions-1) ];
+  
+  /* This is just a guess at an appropriate approximate planar distribution */
+  pick_2d_displacement(&r_uv,sqrt(p)*m->properties->space_step); 
+  
+  v->x = r_n*w->normal.x + r_uv.u*w->unit_u.x + r_uv.v*w->unit_v.x;
+  v->y = r_n*w->normal.y + r_uv.u*w->unit_u.y + r_uv.v*w->unit_v.y;
+  v->z = r_n*w->normal.z + r_uv.u*w->unit_u.z + r_uv.v*w->unit_v.z;
+}
+
+
 
 /*************************************************************************
 pick_displacement:
@@ -3142,6 +3177,7 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   double scaling = 1.0;          /* scales reaction cumulative_probabilitities array */
   double rate_factor=1.0;
   double f;
+  struct vector3 before_astray;
 
   /* this flag is set to 1 only after reflection from a wall and only with expanded lists. */
   int redo_expand_collision_list_flag = 0; 
@@ -3150,7 +3186,11 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   int i,j,k,l;
     
   int calculate_displacement = 1;
-
+  
+  before_astray.x = m->pos.x;
+  before_astray.y = m->pos.y;
+  before_astray.z = m->pos.z;
+  
   sm = m->properties;
   if (sm==NULL) {
 	fprintf(world->err_file,"BROKEN!!!!!\n");
@@ -3162,13 +3202,20 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
     return m;
   }
   
-  /* Newly created particles that have long time steps gradually increase */
-  /* their timestep to the full value */
-  if (sm->time_step > 1.0)
+  if (m->flags&ACT_CLAMPED) /* Pretend we were already moving */
   {
-    f = 1.0 + 0.2*(m->t - m->birthday);
-    if (f<1) printf("I don't think so.\n");
-    if (max_time > f) max_time=f;
+    m->birthday -= 5*sm->time_step; /* Pretend to be old */
+  }
+  else
+  {
+    /* Newly created particles that have long time steps gradually increase */
+    /* their timestep to the full value */
+    if (sm->time_step > 1.0)
+    {
+      f = 1.0 + 0.2*(m->t - m->birthday);
+      if (f<1) printf("I don't think so.\n");
+      if (max_time > f) max_time=f;
+    }
   }
   
 /* Even if we can't react, let's do a little bit of clean up. */
@@ -3251,42 +3298,55 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   
   if (calculate_displacement)
   {
-    if (max_time > MULTISTEP_WORTHWHILE) steps = safe_diffusion_step(m,shead);
-    else steps = 1.0;
- 
-    t_steps = steps * sm->time_step;
-    if (t_steps > max_time)
+    if (m->flags&ACT_CLAMPED)
     {
-      t_steps = max_time;
-      steps = max_time / sm->time_step;
-    }
-    if (steps < EPS_C)
-    {
-      steps = EPS_C;
-      t_steps = EPS_C*sm->time_step;
-    }
-    
-    if (steps == 1.0)
-    {
-      pick_displacement(&displacement,sm->space_step);
-      rate_factor = 1.0;
+      steps = rng_dbl(world->rng);
+      t_steps = sm->time_step;
+      pick_clamped_displacement(&displacement,m);
+      m->flags-=ACT_CLAMPED;
+      m->previous_wall=NULL;
+      m->index=-1;
+      rate_factor=1.0;
     }
     else
     {
-      rate_factor = sqrt(steps);
-      pick_displacement(&displacement,rate_factor*sm->space_step);
+      if (max_time > MULTISTEP_WORTHWHILE) steps = safe_diffusion_step(m,shead);
+      else steps = 1.0;
+   
+      t_steps = steps * sm->time_step;
+      if (t_steps > max_time)
+      {
+        t_steps = max_time;
+        steps = max_time / sm->time_step;
+      }
+      if (steps < EPS_C)
+      {
+        steps = EPS_C;
+        t_steps = EPS_C*sm->time_step;
+      }
+      
+      if (steps == 1.0)
+      {
+        pick_displacement(&displacement,sm->space_step);
+        rate_factor = 1.0;
+      }
+      else
+      {
+        rate_factor = sqrt(steps);
+        pick_displacement(&displacement,rate_factor*sm->space_step);
+      }
     }
 
     world->diffusion_number += 1.0;
     world->diffusion_cumsteps += steps;
   }
   
-   reflectee = NULL;
-
-    if(world->use_expanded_list && (m->properties->flags & CAN_MOLMOL) != 0)
-    { 
-      shead = expand_collision_list(m, &displacement, sv, shead);
-    }   
+  reflectee = NULL;
+  
+  if(world->use_expanded_list && (m->properties->flags & CAN_MOLMOL) != 0)
+  { 
+    shead = expand_collision_list(m, &displacement, sv, shead);
+  }   
 
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
 #define ERROR_AND_QUIT fprintf(world->err_file,"Out of memory: trying to save intermediate results.\n"); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
@@ -3369,12 +3429,12 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
 	else k = -1;
 	
-	if ( w->effectors != NULL && (sm->flags&CAN_MOLGRID) != 0 )
+	if ( w->effectors != NULL && (sm->flags&CAN_MOLGRID) != 0)
 	{
 	  j = xyz2grid( &(smash->loc) , w->effectors );
 	  if (w->effectors->mol[j] != NULL)
 	  {
-	    if (m->index != j || m->previous_grid != w->effectors)
+	    if (m->index != j || m->previous_wall != w )
 	    {
 	      g = w->effectors->mol[j];
 	      rx = trigger_bimolecular(
@@ -3450,44 +3510,48 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
 	      continue; /* Ignore this wall and keep going */
 	    }
-	    if (rx->prob_t != NULL) check_probs(rx,m->t);
-	    i = test_intersect(rx,1.0/rate_factor);
-	    if (i > RX_NO_RX)
-	    {
-	      j = outcome_intersect(
-		      rx,i,w,(struct abstract_molecule*)m,
-		      k,m->t + t_steps*smash->t,&(smash->loc)
-		    );
-		    
-	      if (j==RX_NO_MEM) { ERROR_AND_QUIT; } 
-	      if (j==RX_FLIP)
-	      {
-		if ( (sm->flags & COUNT_HITS) )
-		{
-		  update_collision_count(sm,w->counting_regions,k,1,rate_factor);
-		}
-		if ((m->flags&COUNT_ME)!=0)
-		{
-		  m->flags-=COUNT_ME;
-		  count_me_by_region((struct abstract_molecule*)m,-1,NULL);
-		}
+            if (rx->prob_t != NULL) check_probs(rx,m->t);
+            i = test_intersect(rx,1.0/rate_factor);
+            if (i > RX_NO_RX)
+            {
+              j = outcome_intersect(
+                      rx,i,w,(struct abstract_molecule*)m,
+                      k,m->t + t_steps*smash->t,&(smash->loc)
+                    );
+                    
+              if (j==RX_NO_MEM) { ERROR_AND_QUIT; } 
+              if (j==RX_FLIP)
+              {
+                if ( (sm->flags & COUNT_HITS) )
+                {
+                  update_collision_count(sm,w->counting_regions,k,1,rate_factor);
+                }
+                if ((m->flags&COUNT_ME)!=0)
+                {
+                  m->flags-=COUNT_ME;
+                  count_me_by_region((struct abstract_molecule*)m,-1,NULL);
+                }
 
-		continue; /* pass through */
-	      }
-	      else if (j==RX_DESTROY)
-	      {
-		if ( (sm->flags & COUNT_HITS) )
-		  update_collision_count(sm,w->counting_regions,k,0,rate_factor);
+                if (displacement.x>0 && !distinguishable(smash->loc.x,0.0,EPS_C))
+                {
+                  printf("WTF?\n");
+                }
+                continue; /* pass through */
+              }
+              else if (j==RX_DESTROY)
+              {
+                if ( (sm->flags & COUNT_HITS) )
+                  update_collision_count(sm,w->counting_regions,k,0,rate_factor);
 
-		CLEAN_AND_RETURN(NULL);
-	      }
-	    }
+                CLEAN_AND_RETURN(NULL);
+              }
+            }
 	  }
 	}
 	
         /* default is to reflect */
         
-	if ( (sm->flags & COUNT_HITS) ) update_collision_count(sm,w->counting_regions,k,0,rate_factor);
+	if ( (sm->flags & COUNT_HITS)) update_collision_count(sm,w->counting_regions,k,0,rate_factor);
 	if (m->flags&COUNT_ME)
 	{
 	  m->flags -= COUNT_ME;
@@ -3559,16 +3623,17 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 #undef ERROR_AND_QUIT
 #undef CLEAN_AND_RETURN
   
-  if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
-
   m->pos.x += displacement.x;
   m->pos.y += displacement.y;
   m->pos.z += displacement.z;
   m->t += t_steps;
-
+  
   m->index = -1;
+  m->previous_wall=NULL;
   if ((sm->flags&COUNT_ENCLOSED)!=0 && (m->flags&COUNT_ME)==0) count_me_by_region((struct abstract_molecule*)m,1,NULL);
   
+  if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
+
   return m;
 }
     
@@ -3846,4 +3911,123 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
   }
   
   local->current_time += 1.0;
+}
+
+
+/*************************************************************************
+run_concentration_clamp:
+  In: The current time.
+  Out: No return value.  Molecules are released at concentration-clamped
+       surfaces to maintain the desired concentation.
+*************************************************************************/
+
+void run_concentration_clamp(double t_now)
+{
+  struct ccn_clamp_data *ccd;
+  struct ccn_clamp_data *ccdo;
+  struct ccn_clamp_data *ccdm;
+  double n_collisions;
+  int n_emitted,idx,i;
+  struct wall *w;
+  struct vector3 v;
+  double s1,s2,eps;
+  struct molecule m;
+  struct molecule *mp;
+  
+  int this_count = 0;
+  static int total_count = 0;
+  
+  for (ccd=world->clamp_list ; ccd!=NULL ; ccd=ccd->next)
+  {
+    if (ccd->objp==NULL) continue;
+    for (ccdo=ccd ; ccdo!=NULL ; ccdo=ccdo->next_obj)
+    {
+      for (ccdm=ccdo ; ccdm!=NULL ; ccdm=ccdm->next_mol)
+      {
+        n_collisions = ccdo->scaling_factor * ccdm->mol->space_step * 
+                       ccdm->concentration / ccdm->mol->time_step;
+        n_emitted = poisson_dist( n_collisions , rng_dbl(world->rng) );
+        
+        if (n_emitted==0) continue;
+        
+        m.t = t_now+0.5;
+        m.t2 = 0;
+        m.flags = IN_SCHEDULE | ACT_NEWBIE | TYPE_3D | IN_VOLUME | ACT_CLAMPED | ACT_DIFFUSE;
+        m.properties = ccdm->mol;
+        m.birthplace=NULL;
+        m.birthday = t_now;
+        m.subvol=NULL;
+        m.curr_cmprt=NULL;
+        m.previous_wall=NULL;
+        m.index=0;
+        mp = NULL;
+        
+        this_count+=n_emitted;
+        while (n_emitted>0)
+        {
+          idx = bisect_high(ccdo->cum_area,ccdo->n_sides,rng_dbl(world->rng)*ccdo->cum_area[ccd->n_sides-1]);
+          w = ccdo->objp->wall_p[ ccdo->side_idx[idx] ];
+          
+          s1 = sqrt(rng_dbl(world->rng));
+          s2 = rng_dbl(world->rng)*s1;
+          
+          v.x = w->vert[0]->x + s1*(w->vert[1]->x - w->vert[0]->x) + s2*(w->vert[2]->x - w->vert[1]->x);
+          v.y = w->vert[0]->y + s1*(w->vert[1]->y - w->vert[0]->y) + s2*(w->vert[2]->y - w->vert[1]->y);
+          v.z = w->vert[0]->z + s1*(w->vert[1]->z - w->vert[0]->z) + s2*(w->vert[2]->z - w->vert[1]->z);
+          
+          if (ccdm->orient==1) m.index=1;
+          else if (ccdm->orient==-1) m.index=-1;
+          else if (rng_uint(world->rng)&1) m.index=-1;
+          else m.index=1;
+          
+          eps = EPS_C*m.index;
+          
+          if (v.x>0) s1=v.x; else s1=-v.x;
+          if (v.y>0) s2=v.y; else s2=-v.y;
+          if (s1<s2) s1=s2;
+          if (v.z>0) s2=v.z; else s2=-v.z;
+          if (s1<s2) s1=s2;
+          if (s1>1.0) eps *= s1;
+          
+          m.pos.x = v.x + w->normal.x*eps;
+          m.pos.y = v.y + w->normal.y*eps;
+          m.pos.z = v.z + w->normal.z*eps;
+          m.previous_wall = w;
+          
+          if (mp==NULL)
+          {
+            mp = insert_molecule(&m,mp);
+            if (mp==NULL)
+            {
+              i = emergency_output();
+              fprintf(world->err_file,"Out of memory while concentration clamping molecule of type %s\n",m.properties->sym->name);
+              fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",i);
+              exit( EXIT_FAILURE );
+            }
+            if (trigger_unimolecular(ccdm->mol->hashval , (struct abstract_molecule*)mp) != NULL)
+            {
+              m.flags |= ACT_REACT;
+              mp->flags |= ACT_REACT;
+            }
+          }
+          else
+          {
+            mp=insert_molecule(&m,mp);
+            if (mp==NULL)
+            {
+              i = emergency_output();
+              fprintf(world->err_file,"Out of memory while concentration clamping molecule of type %s\n",m.properties->sym->name);
+              fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",i);
+              exit( EXIT_FAILURE );
+            }
+          }
+          
+          n_emitted--;
+        }
+      }
+    }
+  }
+  
+  total_count += this_count;
+//  printf("Emitted %d\n",total_count);
 }

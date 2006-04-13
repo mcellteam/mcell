@@ -383,6 +383,7 @@ struct release_evaluator *rev;
 %type <tok> optional_flag_expandlist_def
 %type <tok> optional_vacancy_search_def
 %type <tok> assignment_stmt
+%type <tok> equals_or_to
 %type <tok> partition_def
 %type <tok> molecules_def
 %type <tok> define_one_molecule
@@ -1865,13 +1866,24 @@ radial_directions_def: RADIAL_DIRECTIONS '=' num_expr
 radial_subdivisions_def: RADIAL_SUBDIVISIONS '=' num_expr
 {
   volp->radial_subdivisions = (int) $<dbl>3;
-  if (volp->r_step!=NULL) {
-    free(volp->r_step);
+  if (volp->radial_subdivisions <= 0)
+  {
+    mdlerror("Must choose a positive number of radial subdivisions.");
+    return 1;
   }
-  if ((volp->r_step=init_r_step(volp->radial_subdivisions))==NULL) {
+
+  if (volp->r_step!=NULL) free(volp->r_step);
+  if (volp->r_step_surface!=NULL) free(volp->r_step_surface);
+
+  volp->r_step = init_r_step(volp->radial_subdivisions);
+  volp->r_step_surface = init_r_step_surface(volp->radial_subdivisions);
+  
+  if (volp->r_step==NULL || volp->r_step_surface==NULL)
+  {
     mdlerror("Cannot store r_step data for molecule");
     return(1);
   }
+  
   no_printf("radial subdivisions = %d\n",volp->radial_subdivisions);
 };
 
@@ -2066,6 +2078,15 @@ molecule_stmt: new_molecule '{'
     if ((volp->r_step=init_r_step(volp->radial_subdivisions))==NULL) {
       mdlerror("Cannot store r_step data for molecule");
       return(1);
+    }
+  }
+  if (volp->r_step_surface==NULL)
+  {
+    volp->r_step_surface = init_r_step_surface(volp->radial_subdivisions);
+    if (volp->r_step_surface==NULL)
+    {
+      mdlerror("Cannot store r_step_surface data.");
+      return 1;
     }
   }
   if (volp->d_step==NULL) {
@@ -2471,7 +2492,7 @@ surface_prop_stmt: surface_rxn_stmt
 ;
 
 
-surface_rxn_stmt: surface_rxn_type '=' existing_molecule
+surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
 {
   mdlpvp->stp2=$<sym>3;
   mdlpvp->specp=(struct species *)mdlpvp->stp2->value;
@@ -2515,12 +2536,23 @@ surface_rxn_stmt: surface_rxn_type '=' existing_molecule
   mdlpvp->pathp->km=GIGANTIC;
   mdlpvp->pathp->kcat=0;
   mdlpvp->pathp->pcr=NULL;
+  mdlpvp->pathp->km_filename=NULL;
+
+  if (mdlpvp->orient_class==0)
+  {
+    mdlpvp->pathp->orientation1=0;
+    mdlpvp->pathp->orientation2=1;
+    mdlpvp->pathp->orientation3=0;
+  }
+  else
+  {
+    mdlpvp->pathp->orientation1=1;
+    mdlpvp->pathp->orientation2=(mdlpvp->orient_class<0) ? -1 : 1;
+    mdlpvp->pathp->orientation3=0;
+  }
 
   switch ($<tok>1) {
     case RFLCT:
-      mdlpvp->pathp->orientation1=0;
-      mdlpvp->pathp->orientation2=1;
-      mdlpvp->pathp->orientation3=0;
       if ((mdlpvp->prodp=(struct product *)mem_get(mdlpvp->prod_mem))==NULL) {
         sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
           "Cannot store surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
@@ -2533,9 +2565,6 @@ surface_rxn_stmt: surface_rxn_type '=' existing_molecule
       mdlpvp->pathp->product_head=mdlpvp->prodp;
       break;
     case TRANSP:
-      mdlpvp->pathp->orientation1=0;
-      mdlpvp->pathp->orientation2=1;
-      mdlpvp->pathp->orientation3=0;
       if ((mdlpvp->prodp=(struct product *)mem_get(mdlpvp->prod_mem))==NULL) {
         sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
           "Cannot store surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
@@ -2549,9 +2578,6 @@ surface_rxn_stmt: surface_rxn_type '=' existing_molecule
       mdlpvp->pathp->product_head=mdlpvp->prodp;
       break;
     case SINK:
-      mdlpvp->pathp->orientation1=0;
-      mdlpvp->pathp->orientation2=1;
-      mdlpvp->pathp->orientation3=0;
       mdlpvp->pathp->product_head=NULL;
       break;
     default:
@@ -2579,6 +2605,83 @@ surface_rxn_stmt: surface_rxn_type '=' existing_molecule
   }
   no_printf(" [%.9g,%.9g]\n",mdlpvp->rxnp->pathway_head->km,mdlpvp->rxnp->pathway_head->kcat);
 #endif
+}
+        | CONCENTRATION existing_molecule_opt_orient '=' num_expr
+{
+  mdlpvp->stp2=$<sym>2;
+  mdlpvp->specp=(struct species *)mdlpvp->stp2->value;
+  if (mdlpvp->specp->flags==IS_SURFACE) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
+      "Illegal reaction between two surfaces in surface reaction:",
+      mdlpvp->stp2->name,mdlpvp->stp1->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  if (mdlpvp->specp->flags&NOT_FREE || mdlpvp->specp->D <= 0.0)
+  {
+    mdlerror("Concentration clamp must be applied to molecule diffusing in 3D");
+    return 1;
+   }
+   if (($<dbl>4)<0)
+   {
+     mdlerror("Concentration can only be clamped to positive values.");
+     return 1;
+   }
+    
+  mdlpvp->sym_name=concat_rx_name(mdlpvp->stp1->name,mdlpvp->stp2->name);
+  if(mdlpvp->sym_name == NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
+      "Memory allocation error:",mdlpvp->stp1->name,mdlpvp->stp2->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  if ((mdlpvp->stp3=retrieve_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
+      !=NULL) {
+  }
+  else if ((mdlpvp->stp3=store_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
+      ==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
+      "Cannot store surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  if ((mdlpvp->pathp=(struct pathway *)mem_get(mdlpvp->path_mem))==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
+      "Cannot store surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  mdlpvp->rxnp=(struct rxn *)mdlpvp->stp3->value;
+  mdlpvp->rxnp->n_reactants=2;
+  mdlpvp->rxnp->n_pathways++;
+  mdlpvp->pathp->pathname=NULL;
+  mdlpvp->pathp->reactant1=(struct species *)mdlpvp->stp1->value;
+  mdlpvp->pathp->reactant2=(struct species *)mdlpvp->stp2->value;
+  mdlpvp->pathp->reactant3=NULL;
+  
+  mdlpvp->pathp->km=GIGANTIC;
+  
+  /* Hack: kcat doesn't make sense for surfaces, so store CCN here! */
+  mdlpvp->pathp->kcat=$<dbl>4;
+  mdlpvp->pathp->pcr=NULL;
+  mdlpvp->pathp->km_filename=NULL;
+
+  if (mdlpvp->orient_class==0)
+  {
+    mdlpvp->pathp->orientation1=0;
+    mdlpvp->pathp->orientation2=1;
+    mdlpvp->pathp->orientation3=0;
+  }
+  else
+  {
+    mdlpvp->pathp->orientation1=1;
+    mdlpvp->pathp->orientation2=(mdlpvp->orient_class<0) ? -1 : 1;
+    mdlpvp->pathp->orientation3=0;
+  }
+  mdlpvp->pathp->product_head=NULL;
+
+  mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
+  mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
 };
 
 
@@ -2586,6 +2689,8 @@ surface_rxn_type: REFLECTIVE {$$=RFLCT;}
 	| TRANSPARENT {$$=TRANSP;}
 	| ABSORPTIVE {$$=SINK;}
 ;
+
+equals_or_to: '=' {$$=TO} | TO;
 
 
 surface_class_mol_stmt: surface_mol_stmt

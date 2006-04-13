@@ -66,7 +66,8 @@ void run_sim(void)
   }
   else
   {
-    if      (world->iterations < 1000)       frequency = 10;
+    if      (world->iterations < 10)         frequency = 1;
+    else if (world->iterations < 1000)       frequency = 10;
     else if (world->iterations < 100000)     frequency = 100;
     else if (world->iterations < 10000000)   frequency = 1000;
     else if (world->iterations < 1000000000) frequency = 10000;
@@ -132,10 +133,13 @@ void run_sim(void)
     }
 
     if (world->it_time>=world->iterations) break; /* Output only on last loop */
+    
+    run_concentration_clamp(world->it_time);
 
     i = schedule_anticipate( world->releaser , &next_release_time);
     if (!i) next_release_time = world->iterations + 1;
     if (next_release_time < world->it_time+1) next_release_time = world->it_time+1;
+    
     
     for (local = world->storage_head ; local != NULL ; local = local->next)
     {

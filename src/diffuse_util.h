@@ -10,6 +10,7 @@ double inverf(double xx);
 
 double r_func(double s);
 double* init_r_step(int radial_subdivisions);
+double* init_r_step_surface(int radial_subdivisions);
 double* init_d_step(int radial_directions,unsigned int *actual_directions);
 
 #endif
