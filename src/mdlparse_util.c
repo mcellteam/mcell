@@ -286,6 +286,7 @@ struct region *make_new_region(struct volume *volp,char *obj_name,
 	mdlerror_nested("Memory allocation error\n");
 	return (NULL);
   }
+  
   if ((gp=retrieve_sym(region_name,REG,volp->main_sym_table))==NULL) {
     if ((gp=store_sym(region_name,REG,volp->main_sym_table))==NULL) {
       sprintf(err_msg,"%s %s","Cannot store region in table:",region_name);
@@ -375,7 +376,15 @@ int copy_object(struct volume *volp,struct object *curr_objp,
     rp->membership = NULL;
     rp->surf_class=rp2->surf_class;
     rp->flags=rp2->flags;
-    
+    rp->area = rp2->area;
+    rp->bbox = rp2->bbox;
+    rp->manifold_flag = rp2->manifold_flag;
+    if((rp2->surf_class != NULL) && (rp2->surf_class->region_viz_value > 0)){
+        rp->region_viz_value = rp2->surf_class->region_viz_value;
+    }else if (rp2->region_viz_value > 0){
+        rp->region_viz_value = rp2->region_viz_value; 
+    }
+   
     for ( elp2=rp2->element_list_head ; elp2!=NULL ; elp2=elp2->next)
     { 
       /* FIXME: take this for loop out later, shouldn't be needed */
@@ -3137,8 +3146,17 @@ int build_count_tree(byte report_type,
   return(0);
 }
 
-
-
+/****************************************************************************
+handle_count_request:
+   In: type of the object to count on (MOL or RXNP) 
+       object itself that is counted on
+       region where the counting is performed
+       geometrical object where the counting is performed
+       report type (REPORT_CONTENTS or REPORT_RXNPS, etc.)
+       parse-time data structure
+   Out: 0 on success, 1 on failure
+        Creates and initializes counters for the output_item
+*****************************************************************************/
 int handle_count_request(unsigned short sym_type,void *value,struct region *r,struct object *obj,byte report_type,struct mdlparse_vars *mdlpvp)
 {
   int i,i1;
@@ -3148,7 +3166,8 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
   u_int count_flag = 0;
   byte counter_type = 0;
   byte base_report_type = report_type & REPORT_TYPE_MASK;
-  
+ 
+ 
   /* First step: set appropriate flags on molecules/reactions being counted */
   
   if (base_report_type == REPORT_CONTENTS) count_flag = COUNT_CONTENTS;
@@ -3225,14 +3244,14 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
     
     if (base_report_type==REPORT_CONCENTRATION)
     {
-      fprintf(mdlpvp->vol->err_file,"Cannot measure concentration on an arbitrary object.\n  Use objectname[ALL] to count all of a polygon or box object.\n");
+      fprintf(mdlpvp->vol->err_file,"Cannot measure concentration on an arbitrary object.\n  Please supply a region name.\n");
+      return 1;
     }
     if (build_count_tree(report_type,mdlpvp->vol,obj,mdlpvp->oip,mdlpvp->oep,value,mdlpvp->obp->buffersize,mdlpvp->prefix_name))
     {
       fprintf(mdlpvp->vol->err_file,"Cannot store count evaluator data for object %s\n",obj->sym->name);
       return 1;
     }
-    
     if (mdlpvp->oep->operand1==NULL)
     {
       fprintf(mdlpvp->vol->err_file,"There is nothing to count inside object %s!\n",obj->sym->name);
@@ -3245,6 +3264,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
     
     if (base_report_type==REPORT_CONTENTS)
     {
+
       i1=mdlpvp->obp->buffersize;
       if ((mdlpvp->intp=(int *)malloc(i1*sizeof(int)))==NULL)
       {

@@ -30,6 +30,9 @@ struct mdlparse_vars {
   struct sym_table *stp3;
   /* used when parsing wildcard names for viz_output */
   struct sym_table_list *sym_table_list_head;
+  /* set to 1 when molecule/reaction name in the COUNT statement
+     contains a wildcard */
+  int wildcard_present_flag;
   char *sym_name;
 
 

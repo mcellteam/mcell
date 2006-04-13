@@ -104,11 +104,14 @@ int update_reaction_output(struct output_block *obp)
 
   for (oi=obp->output_item_head ; oi!=NULL ; oi=oi->next)  /* Each file */
   {
+
     for (oip=oi ; oip!=NULL ; oip=oip->next_column)        /* Each column */
     {
+
       /* copy temp_data into final_data[curr_buf_index] */
       for (oep=oip->output_evaluator_head ; oep!=NULL ; oep=oep->next)
       {
+
 	if (oep->update_flag) {
 	  switch (oep->data_type)
 	  {
@@ -191,7 +194,8 @@ int update_reaction_output(struct output_block *obp)
   {
     if ( write_reaction_output(obp,final_chunk_flag) )
     {
-      return 1;  /* Note that there has been an error. */
+      fprintf(world->err_file, "File %s, Line %ld: error writing reaction output./n", __FILE__, (long)__LINE__);
+      return 1;  
     }
   }
   no_printf("Done updating reaction output\n");
@@ -216,7 +220,7 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
   struct output_evaluator *oep;
   u_int n_output;
   u_int i,stop_i,ii;
-  u_int n_cols;
+  u_int n_cols;  
   
   log_file = world->log_file;
   
@@ -249,7 +253,7 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
     fflush(log_file);
     
     stop_i=n_output;
-    
+   
     n_cols=0;
     for (oip=oi ; oip!=NULL ; oip=oip->next_column)
     {
@@ -257,7 +261,31 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
       n_cols++;
     }
     
-    
+    /* write headers */
+   if(world->chkpt_seq_num == 1) 
+    {
+       oip = oi;
+       if((n_cols > 1) && (oip->column_title != NULL)){
+         if(obp->timer_type == OUTPUT_BY_ITERATION_LIST)
+         {
+            fprintf(fp,"%s","Iteration_# ");
+         }else{
+            fprintf(fp,"%s","Microsec ");
+         }
+         for (oip=oi ; oip!=NULL ; oip=oip->next_column)
+         {
+            if(oip->column_title != NULL){
+              fprintf(fp,"%s ", oip->column_title);
+            }
+            oip->column_title = NULL;
+
+         }
+         fprintf(fp,"\n");
+
+       }
+    }
+
+
     for (i=0;i<stop_i;i++)
     {
 
@@ -298,10 +326,11 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
 	  fprintf(world->err_file,"Warning: non-numeric count for column %d of '%s' -- skipping column.\n",ii+2,oi->outfile_name);
 	  continue;
 	}
-      }
+      } /* end for (oip->next_column) */
       
       fprintf(fp,"\n");
-    }
+
+    } /* end for (oip->next) */
     fclose(fp);
   } 
   obp->chunk_count++;
@@ -321,6 +350,7 @@ int eval_count_expr_tree(struct output_evaluator *oep)
     if (oep->operand1==NULL || oep->operand2==NULL)
     {
       fprintf(world->err_file,"Evaluating a non-binary operation (not supported, have us fix this).\n");
+      return 1;
     }
     if(eval_count_expr_tree(oep->operand1)) return (1);
     if(eval_count_expr_tree(oep->operand2)) return (1);

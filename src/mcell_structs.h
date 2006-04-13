@@ -1275,6 +1275,11 @@ struct output_item {
 	struct output_evaluator *count_expr;  /**< root of count expression tree
                                                to be evaluated for this
                                                count output statement*/
+        char *column_title; /** column title in the output file */
+        char *name1; /** name of the mol/rxnp from first COUNT statement */
+        char *name2; /** name of the mol/rxnp from second COUNT statement */
+        char *operand; /** operand in the arithmetic expression between 
+                           COUNT statements */
 	struct output_item *next_column;
 };
 
