@@ -1292,6 +1292,7 @@ struct output_block {
 struct output_item {
 	struct output_item *next;  
 	char *outfile_name;               /**< name of file to contain output*/
+	char *header_comment;             /**< comment character(s) for header */
 	struct output_evaluator *output_evaluator_head;  /**< list of counters 
                                                   associated with this
                                                   count output statement*/

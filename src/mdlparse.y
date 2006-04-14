@@ -184,6 +184,7 @@ struct release_evaluator *rev;
 %token <tok> FRONT_HITS
 %token <tok> GAUSSIAN_RELEASE_NUMBER
 %token <tok> GEOMETRY
+%token <tok> HEADER
 %token <tok> HIGH_REACTION_PROBABILITY
 %token <tok> IGNORED
 %token <tok> INCLUDE_ELEMENTS
@@ -444,6 +445,7 @@ struct release_evaluator *rev;
 %type <tok> iteration_frame_data_item
 %type <tok> viz_molecules_one_item
 %type <tok> viz_meshes_one_item
+%type <tok> custom_header
 
 %type <tok> hit_spec
 
@@ -2665,7 +2667,7 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
   mdlpvp->pathp->kcat=$<dbl>4;
   mdlpvp->pathp->pcr=NULL;
   mdlpvp->pathp->km_filename=NULL;
-
+  
   if (mdlpvp->orient_class==0)
   {
     mdlpvp->pathp->orientation1=0;
@@ -2767,7 +2769,11 @@ existing_molecule_opt_orient:
   mdlpvp->orient_class = 0;
   $$=$<sym>1;
 }
-	| existing_molecule list_orient_marks
+	| existing_molecule
+{
+  mdlpvp->orient_class = 1;
+}
+	list_orient_marks
 {
   $$=$<sym>1;
 };
@@ -7734,6 +7740,7 @@ output_def: REACTION_DATA_OUTPUT '{'
   mdlpvp->obp->curr_buf_index=0;
   mdlpvp->obp->chunk_count=0;
   mdlpvp->obp->output_item_head=NULL;
+  mdlpvp->header_comment="";
 }
        output_buffer_size_def
        output_timer_def
@@ -7897,7 +7904,11 @@ real_time_def: TIME_LIST '='
 };
 
 
-list_count_cmds: count_cmd | list_count_cmds count_cmd;
+list_count_cmds:
+	count_cmd 
+	| list_count_cmds count_cmd
+	| custom_header
+	| list_count_cmds custom_header;
 
 count_cmd: '{'
 {
@@ -7916,6 +7927,18 @@ count_cmd: '{'
   mdlpvp->oip->name2=NULL;
   mdlpvp->oip->operand=NULL;
   mdlpvp->oip->next_column=NULL;
+  
+  if (mdlpvp->header_comment==NULL) mdlpvp->oip->header_comment = NULL;
+  else if (!strcmp(mdlpvp->header_comment,"")) mdlpvp->oip->header_comment = "";
+  else
+  {
+    mdlpvp->oip->header_comment = strdup(mdlpvp->header_comment);
+    if (mdlpvp->oip->header_comment==NULL)
+    {
+      mdlerror("Out of memory saving header comment string");
+      return 1;
+    }
+  }
 }
 	list_count_exprs '}' '=' '>' outfile_syntax
 {
@@ -7935,6 +7958,23 @@ count_cmd: '{'
   }
 };
 
+	
+custom_header:
+	HEADER '=' NONE
+{
+  mdlpvp->header_comment=NULL;
+}
+	| HEADER '=' boolean
+{
+  if ($<tok>3==0) mdlpvp->header_comment=NULL;
+  else mdlpvp->header_comment="";
+}
+	| HEADER '=' str_expr
+{
+  mdlpvp->header_comment = $<str>3;
+}
+
+
 list_count_exprs:
 	single_count_expr
 	| list_count_exprs ',' single_count_expr
@@ -7952,6 +7992,7 @@ single_count_expr:
       return 1;
     }
     new_oi->outfile_name=NULL;
+    new_oi->header_comment=NULL;
     new_oi->output_evaluator_head=NULL;
     new_oi->count_expr=NULL;
     new_oi->next = mdlpvp->oip->next;
@@ -8341,6 +8382,7 @@ many_rxpn_or_mol_count_syntax:  existing_many_rxpns_or_molecules ',' WORLD
           return 1;
         }
         new_oi->outfile_name=NULL;
+	new_oi->header_comment=NULL;
         new_oi->output_evaluator_head=NULL;
         new_oi->count_expr=NULL;
         new_oi->column_title = NULL;
@@ -8427,6 +8469,7 @@ many_rxpn_or_mol_count_syntax:  existing_many_rxpns_or_molecules ',' WORLD
           return 1;
         }
         new_oi->outfile_name=NULL;
+	new_oi->header_comment=NULL;
         new_oi->output_evaluator_head=NULL;
         new_oi->count_expr=NULL;
         new_oi->next = mdlpvp->oip->next;
@@ -8521,6 +8564,7 @@ many_rxpn_or_mol_count_syntax:  existing_many_rxpns_or_molecules ',' WORLD
           return 1;
         }
         new_oi->outfile_name=NULL;
+	new_oi->header_comment=NULL;
         new_oi->output_evaluator_head=NULL;
         new_oi->count_expr=NULL;
         new_oi->next = mdlpvp->oip->next;
@@ -8751,6 +8795,7 @@ many_mol_hit_count_syntax: existing_many_rxpns_or_molecules ',' existing_region 
           return 1;
         }
         new_oi->outfile_name=NULL;
+	new_oi->header_comment=NULL;
         new_oi->output_evaluator_head=NULL;
         new_oi->count_expr=NULL;
         new_oi->next = mdlpvp->oip->next;
@@ -8841,6 +8886,7 @@ many_mol_hit_count_syntax: existing_many_rxpns_or_molecules ',' existing_region 
           return 1;
         }
         new_oi->outfile_name=NULL;
+	new_oi->header_comment=NULL;
         new_oi->output_evaluator_head=NULL;
         new_oi->count_expr=NULL;
         new_oi->next = mdlpvp->oip->next;

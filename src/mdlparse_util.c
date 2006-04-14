@@ -1970,9 +1970,9 @@ int cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct vec
   {
     case X_NEG:
       a_lo = bisect_near(sb->y,sb->ny,v1->y);
-      a_hi = bisect_near(sb->y,sb->ny,v2->y)-1;
+      a_hi = bisect_near(sb->y,sb->ny,v2->y);
       b_lo = bisect_near(sb->z,sb->nz,v1->z);
-      b_hi = bisect_near(sb->z,sb->nz,v2->z)-1;
+      b_hi = bisect_near(sb->z,sb->nz,v2->z);
       if ( distinguishable(sb->y[a_lo],v1->y,EPS_C) ) return 1;
       if ( distinguishable(sb->y[a_hi],v2->y,EPS_C) ) return 1;
       if ( distinguishable(sb->z[b_lo],v1->z,EPS_C) ) return 1;
@@ -1982,9 +1982,9 @@ int cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct vec
       break;
     case X_POS:
       a_lo = bisect_near(sb->y,sb->ny,v1->y);
-      a_hi = bisect_near(sb->y,sb->ny,v2->y)-1;
+      a_hi = bisect_near(sb->y,sb->ny,v2->y);
       b_lo = bisect_near(sb->z,sb->nz,v1->z);
-      b_hi = bisect_near(sb->z,sb->nz,v2->z)-1;
+      b_hi = bisect_near(sb->z,sb->nz,v2->z);
       if ( distinguishable(sb->y[a_lo],v1->y,EPS_C) ) return 1;
       if ( distinguishable(sb->y[a_hi],v2->y,EPS_C) ) return 1;
       if ( distinguishable(sb->z[b_lo],v1->z,EPS_C) ) return 1;
@@ -1994,9 +1994,9 @@ int cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct vec
       break;
     case Y_NEG:
       a_lo = bisect_near(sb->x,sb->nx,v1->x);
-      a_hi = bisect_near(sb->x,sb->nx,v2->x)-1;
+      a_hi = bisect_near(sb->x,sb->nx,v2->x);
       b_lo = bisect_near(sb->z,sb->nz,v1->z);
-      b_hi = bisect_near(sb->z,sb->nz,v2->z)-1;
+      b_hi = bisect_near(sb->z,sb->nz,v2->z);
       if ( distinguishable(sb->x[a_lo],v1->x,EPS_C) ) return 1;
       if ( distinguishable(sb->x[a_hi],v2->x,EPS_C) ) return 1;
       if ( distinguishable(sb->z[b_lo],v1->z,EPS_C) ) return 1;
@@ -2006,9 +2006,9 @@ int cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct vec
       break;
     case Y_POS:
       a_lo = bisect_near(sb->x,sb->nx,v1->x);
-      a_hi = bisect_near(sb->x,sb->nx,v2->x)-1;
+      a_hi = bisect_near(sb->x,sb->nx,v2->x);
       b_lo = bisect_near(sb->z,sb->nz,v1->z);
-      b_hi = bisect_near(sb->z,sb->nz,v2->z)-1;
+      b_hi = bisect_near(sb->z,sb->nz,v2->z);
       if ( distinguishable(sb->x[a_lo],v1->x,EPS_C) ) return 1;
       if ( distinguishable(sb->x[a_hi],v2->x,EPS_C) ) return 1;
       if ( distinguishable(sb->z[b_lo],v1->z,EPS_C) ) return 1;
@@ -2018,9 +2018,9 @@ int cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct vec
       break;
     case Z_NEG:
       a_lo = bisect_near(sb->x,sb->nx,v1->x);
-      a_hi = bisect_near(sb->x,sb->nx,v2->x)-1;
+      a_hi = bisect_near(sb->x,sb->nx,v2->x);
       b_lo = bisect_near(sb->y,sb->ny,v1->y);
-      b_hi = bisect_near(sb->y,sb->ny,v2->y)-1;
+      b_hi = bisect_near(sb->y,sb->ny,v2->y);
       if ( distinguishable(sb->x[a_lo],v1->x,EPS_C) ) return 1;
       if ( distinguishable(sb->x[a_hi],v2->x,EPS_C) ) return 1;
       if ( distinguishable(sb->y[b_lo],v1->y,EPS_C) ) return 1;
@@ -2030,9 +2030,9 @@ int cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct vec
       break;
     case Z_POS:
       a_lo = bisect_near(sb->x,sb->nx,v1->x);
-      a_hi = bisect_near(sb->x,sb->nx,v2->x)-1;
+      a_hi = bisect_near(sb->x,sb->nx,v2->x);
       b_lo = bisect_near(sb->y,sb->ny,v1->y);
-      b_hi = bisect_near(sb->y,sb->ny,v2->y)-1;
+      b_hi = bisect_near(sb->y,sb->ny,v2->y);
       if ( distinguishable(sb->x[a_lo],v1->x,EPS_C) ) return 1;
       if ( distinguishable(sb->x[a_hi],v2->x,EPS_C) ) return 1;
       if ( distinguishable(sb->y[b_lo],v1->y,EPS_C) ) return 1;
@@ -2047,15 +2047,15 @@ int cuboid_patch_to_bits(struct subdivided_box *sb,struct vector3 *v1,struct vec
     
   set_all_bits(ba,0);
 
-  if (a_lo==0 && a_hi==line-1)
+  if (a_lo==0 && a_hi==line)
   {
-    set_bit_range(ba , 2*(base+line*b_lo+a_lo) , 2*(base+line*b_hi+a_hi)+1 , 1);
+    set_bit_range(ba , 2*(base+line*b_lo+a_lo) , 2*(base+line*(b_hi-1)+(a_hi-1))+1 , 1);
   }
   else
   {
-    for (i=b_lo ; i<=b_hi ; i++)
+    for (i=b_lo ; i<b_hi ; i++)
     {
-      set_bit_range(ba , 2*(base+line*i+a_lo) , 2*(base+line*i+a_hi)+1 , 1);
+      set_bit_range(ba , 2*(base+line*i+a_lo) , 2*(base+line*i+(a_hi-1))+1 , 1);
     }
   }
   

@@ -266,15 +266,15 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
     }
     
     /* write headers */
-   if(world->chkpt_seq_num == 1) 
+   if(world->chkpt_seq_num == 1 && oi->header_comment!=NULL) 
     {
        oip = oi;
        if((n_cols > 1) && (oip->column_title != NULL)){
          if(obp->timer_type == OUTPUT_BY_ITERATION_LIST)
          {
-            fprintf(fp,"%s","Iteration_# ");
+            fprintf(fp,"%s%s",oip->header_comment,"Iteration_# ");
          }else{
-            fprintf(fp,"%s","Seconds ");
+            fprintf(fp,"%s%s",oip->header_comment,"Seconds ");
          }
          for (oip=oi ; oip!=NULL ; oip=oip->next_column)
          {

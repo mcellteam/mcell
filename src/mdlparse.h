@@ -167,6 +167,8 @@ struct mdlparse_vars {
   u_int include_stack_ptr;
   byte include_flag;
   struct volume *vol;
+  
+  char *header_comment;
 };
 
 
