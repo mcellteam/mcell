@@ -509,7 +509,7 @@ The following initialization commands are optional.
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="11" columns="2">
+<lyxtabular version="3" rows="13" columns="2">
 <features islongtable="true" headBottomDL="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="left" valignment="top" leftline="true" rightline="true" width="4in">
@@ -891,7 +891,7 @@ TRUE
 \end_inset 
 </cell>
 </row>
-<row topline="true" bottomline="true">
+<row topline="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
@@ -939,6 +939,1010 @@ r
 , and will place those products as close as possible to the place where
  the reaction occurs (deterministically, so small-scale directional bias
  is possible).
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+
+\begin_inset Minipage
+position 0
+inner_position 0
+height "0pt"
+width "35col%"
+collapsed false
+
+\layout Standard
+
+
+\family typewriter 
+NOTIFICATIONS
+\layout Standard
+
+
+\family typewriter 
+{
+\layout Standard
+
+
+\family sans 
+\shape italic 
+\SpecialChar ~
+\SpecialChar ~
+notification commands
+\family typewriter 
+\shape default 
+ 
+\layout Standard
+
+
+\family typewriter 
+}
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+vspace{3pt}
+\end_inset 
+
+
+\end_inset 
+
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+This block of commands lets you set the informational messages that MCell3
+ generates.
+ The block can appear multiple times and applies to all MDL below it in
+ the file.
+ It can appear anywhere at the top level (but not inside other blocks).
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+
+\begin_inset Minipage
+position 0
+inner_position 0
+height "0pt"
+width "35col%"
+collapsed false
+
+\layout Standard
+
+
+\family typewriter 
+WARNINGS
+\layout Standard
+
+
+\family typewriter 
+{
+\layout Standard
+
+
+\family sans 
+\shape italic 
+\SpecialChar ~
+\SpecialChar ~
+warning policy commands
+\family typewriter 
+\shape default 
+ 
+\layout Standard
+
+
+\family typewriter 
+}
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+vspace{3pt}
+\end_inset 
+
+
+\end_inset 
+
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+This block of commands lets you control how MCell3 handles warnings---whether
+ it generates a warning and continues, silently handles the condition, or
+ generates an error and quits.
+ The block can appear multiple times and applies to all MDL below it in
+ the file.
+ It can appear anywhere at the top level (but not inside other blocks).
+ 
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+The following commands can be given in a notifications block; in each case,
+ setting the notification policy to 
+\family typewriter 
+OFF
+\family default 
+ will prevent any informational output regarding that aspect of the simulation.
+ This will not affect warnings.
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="12" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="left" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Notification Command
+\end_inset 
+</cell>
+<cell alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+BOX_TRIANGULATION_REPORT = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+If 
+\family sans 
+\shape italic 
+policy
+\family default 
+\shape default 
+ is 
+\family typewriter 
+ON
+\family default 
+, MCell3 will report how many triangles are generated from each box object.
+ Default is 
+\family typewriter 
+OFF
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+DIFFUSION_CONSTANT_REPORT = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+If 
+\family sans 
+\shape italic 
+policy
+\family default 
+\shape default 
+ is 
+\family typewriter 
+ON
+\family default 
+, MCell3 will report four measures of the diffusion constant for each molecule.
+ If 
+\family sans 
+\shape italic 
+policy
+\family default 
+\shape default 
+ is 
+\family typewriter 
+BRIEF
+\family default 
+, MCell3 will report just one measure (average diffusion distance per step)
+ for each molecule.
+ Default is 
+\family typewriter 
+BRIEF
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+FILE_OUTPUT_REPORT = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+If 
+\family sans 
+\shape italic 
+policy
+\family default 
+\shape default 
+ is 
+\family typewriter 
+ON
+\family default 
+, MCell3 will report every time reaction data is written to disk.
+ Default is 
+\family typewriter 
+OFF
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+FINAL_SUMMARY = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+If 
+\family sans 
+\shape italic 
+policy
+\family default 
+\shape default 
+ is 
+\family typewriter 
+ON
+\family default 
+, MCell3 will give some information about the CPU time used and some of
+ the internal events.
+ Default is 
+\family typewriter 
+ON
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ITERATION_REPORT = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+If 
+\family sans 
+\shape italic 
+policy
+\family default 
+\shape default 
+ is 
+\family typewriter 
+ON
+\family default 
+, MCell3 will provide a running report of how many iterations have completed,
+ chosen based on the total number of iterations.
+ If 
+\family sans 
+\shape italic 
+policy
+\family default 
+\shape default 
+ is an integer value, MCell3 will report each time that number of iterations
+ have elapsed.
+ Default is 
+\family typewriter 
+ON
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+PARTITON_LOCATION_REPORT = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+If 
+\family sans 
+\shape italic 
+policy
+\family default 
+\shape default 
+ is 
+\family typewriter 
+ON
+\family default 
+, MCell3 will print out the locations of the partitions used for the simulation.
+ Default is 
+\family typewriter 
+OFF
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+PROBABILITY_REPORT = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+If 
+\family sans 
+\shape italic 
+policy
+\family default 
+\shape default 
+ is 
+\family typewriter 
+ON
+\family default 
+, MCell3 will print out the reaction probabilities for each reaction (except
+ special internal surface reactions such as absorptive surfaces).
+ Default is 
+\family typewriter 
+ON
+\family default 
+.
+ This will reset the reporting threshold to a probability of zero.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+PROBABILITY_REPORT_THRESHOLD = 
+\family sans 
+\shape italic 
+p
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+MCell3 will print out the probabilities for every reaction with probability
+ greater than or equal to 
+\family sans 
+\shape italic 
+p
+\family default 
+\shape default 
+.
+ This will override the policy for probability reports.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+PROGRESS_REPORT = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+If 
+\family sans 
+\shape italic 
+policy
+\family default 
+\shape default 
+ is 
+\family typewriter 
+ON
+\family default 
+, MCell3 will print out messages indicating which part of the simulation
+ process is underway (initializing, running, etc.).
+ Default is 
+\family typewriter 
+ON
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+RELEASE_EVENT_REPORT = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+If 
+\family sans 
+\shape italic 
+policy
+\family default 
+\shape default 
+ is 
+\family typewriter 
+ON
+\family default 
+, MCell3 will print out a message every time molecules are released through
+ a release site (indicating how many molecules of which type were released
+ and the iteration on which they were released).
+ Default is 
+\family typewriter 
+ON
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ALL_NOTIFICATIONS = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Set all notification policies to the same value (
+\family typewriter 
+ON
+\family default 
+ or 
+\family typewriter 
+OFF
+\family default 
+).
+ This overrides the existing probability report threshold, if there is one.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+The following commands can be given in a warnings block.
+ Setting the warning policy to 
+\family typewriter 
+IGNORED
+\family default 
+ will prevent any output and the condition will be handled as best it can.
+ 
+\family typewriter 
+WARNING
+\family default 
+ will give a warning message, but the problem will be handled and the simulation
+ will continue.
+ Setting to 
+\family typewriter 
+ERROR
+\family default 
+ will generate an error and the simulation will stop.
+ This will not affect notification policies.
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="11" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="left" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Warning Command
+\end_inset 
+</cell>
+<cell alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+DEGENERATE_POLYGONS = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Degenerate polygons are polygons with zero area and must be removed for
+ the simulation to run.
+ The default policy is 
+\family typewriter 
+WARNING
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+HIGH_REACTION_PROBABILITY = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Generate warnings or errors if reaction probabilities exceed a certain threshold.
+ The default policy is 
+\family typewriter 
+IGNORED
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+HIGH_PROBABILITY_THRESHOLD = 
+\family sans 
+\shape italic 
+p
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+If the policy is to generate warnings or errors on high probability reactions,
+ have them generated when the probability equals or exceeds 
+\family sans 
+\shape italic 
+p
+\family default 
+\shape default 
+.
+ The default value is 
+\begin_inset Formula $1.0+10^{-12}$
+\end_inset 
+
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+LIFETIME_TOO_SHORT = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Generate warnings if molecules have short lifetimes (which could affect
+ the accuracy of the simulation).
+ This warning occurs after the simulation has ended, so 
+\family typewriter 
+ERROR
+\family default 
+.
+ is not a valid option.
+ The default policy is 
+\family typewriter 
+WARNING
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+LIFETIME_THRESHOLD = 
+\family sans 
+\shape italic 
+n
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+If the policy is to generate a warning if molecules have short lifetimes,
+ then generate warnings on molecules that have an average lifetime of less
+ than 
+\family sans 
+\shape italic 
+n
+\family default 
+\shape default 
+ iterations.
+ The default value is 50.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+MISSED_REACTIONS = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Generate errors or warnings if there are missed reactions (which usually
+ is a consequence of an overly high reaction probability).
+ This warning occurs after the simulation has ended, so 
+\family typewriter 
+ERROR
+\family default 
+.
+ is not a valid option.
+ The default policy is 
+\family typewriter 
+WARNING
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+MISSED_REACTION_THRESHOLD = 
+\family sans 
+\shape italic 
+f
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+If the policy is to generate a warning if there are missed reactions, then
+ generate a warning for each reaction where a fraction of at least 
+\family sans 
+\shape italic 
+f
+\family default 
+\shape default 
+ of reactions were missed.
+ The default value is 
+\begin_inset Formula $10^{-3}$
+\end_inset 
+
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+NEGATIVE_DIFFUSION_CONSTANT = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Diffusion constants cannot be negative, and will be set to zero if they
+ are.
+ The default policy is 
+\family typewriter 
+WARNING
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+NEGATIVE_REACTION_RATE = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Reaction rate constants cannot be negative, and will be set to zero if they
+ are.
+ The default policy is 
+\family typewriter 
+WARNING
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ALL_WARNINGS = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Set all warning policies to the same value (
+\family typewriter 
+IGNORED
+\family default 
+, 
+\family typewriter 
+WARNING
+\family default 
+ or 
+\family typewriter 
+ERROR
+\family default 
+).
+ If 
+\family typewriter 
+ERROR
+\family default 
+ is not a valid choice, the policy will be set to 
+\family typewriter 
+WARNING
+\family default 
+ instead.
 \end_inset 
 </cell>
 </row>
@@ -6489,7 +7493,7 @@ Each reaction data output block consists of the following commands:
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="7" columns="2">
+<lyxtabular version="3" rows="8" columns="2">
 <features islongtable="true" headBottomDL="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -6586,7 +7590,11 @@ t
 \family default 
 \shape default 
  seconds.
- Exactly one of STEP or the following two commands should be used.
+ Exactly one of 
+\family typewriter 
+STEP
+\family default 
+ or the following two commands should be used.
 \end_inset 
 </cell>
 </row>
@@ -6651,6 +7659,58 @@ Output this block at the iteration numbers specified in the list (i.e.
 
 
 \family typewriter 
+HEADER = 
+\family sans 
+\shape italic 
+setting
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Output blocks will normally have one header line that states the output
+ (name of molecule, reaction, etc.) in each column.
+ This command can set the behavior of that header line; it applies to all
+ output files until the next 
+\family typewriter 
+HEADER
+\family default 
+ line.
+ A 
+\family sans 
+\shape italic 
+setting
+\family default 
+\shape default 
+ of 
+\family typewriter 
+ON
+\family default 
+ turns on the header line; 
+\family typewriter 
+OFF
+\family default 
+ prevents any header.
+ A string, in quotes, will turn the header on and prepend the string to
+ the line; this is useful to add comment character(s).
+ For example, 
+\family typewriter 
+``//''
+\family default 
+ would add a C++-style comment prefix to the line.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
 { 
 \family sans 
 \shape italic 
@@ -6680,7 +7740,20 @@ file
 \layout Standard
 
 Output the value in braces to the filename in quotes.
- The first column will be the timestep; the second will be the value listed.
+ The first column will be the time (in seconds) if 
+\family typewriter 
+STEP
+\family default 
+ or 
+\family typewriter 
+TIME_LIST
+\family default 
+ is used, and the iteration number if 
+\family typewriter 
+ITERATION_LIST
+\family default 
+ is used.
+ The second will be the value listed.
  This command can be repeated to send different output to many files.
 \end_inset 
 </cell>
@@ -6735,7 +7808,7 @@ file
 \layout Standard
 
 Output the list of values in braces, one to a column, in the order listed.
- The first column will be the timestep.
+ The first column will be the time/iteration number.
  This command can be repeated.
 \end_inset 
 </cell>
