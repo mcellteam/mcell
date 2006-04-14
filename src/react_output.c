@@ -253,7 +253,10 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
       }
     }
 
-    no_printf("Writing to output file: %s\n",oi->outfile_name);
+    if (world->notify->file_writes==NOTIFY_FULL)
+    {
+      fprintf(world->log_file,"Writing %d lines to output file %s\n",n_output,oi->outfile_name);
+    }
     fflush(log_file);
     
     stop_i=n_output;

@@ -1881,21 +1881,24 @@ int set_partitions()
     world->z_partitions[world->nz_parts-1] = world->z_fineparts[4096+16384+4096-2];
   }
   
-  printf("X partitions: ");
-  printf("-inf ");
-  for (i=1;i<world->nx_parts - 1;i++) printf("%.5f ",world->length_unit * world->x_partitions[i]);
-  printf("inf");
-  printf("\n");
-  printf("Y partitions: ");
-  printf("-inf ");
-  for (i=1;i<world->ny_parts - 1;i++) printf("%.5f ",world->length_unit * world->y_partitions[i]);
-  printf("inf");
-  printf("\n");
-  printf("Z partitions: ");
-  printf("-inf ");
-  for (i=1;i<world->nz_parts - 1;i++) printf("%.5f ",world->length_unit * world->z_partitions[i]);
-  printf("inf");
-  printf("\n");
+  if (world->notify->partition_location==NOTIFY_FULL)
+  {
+    printf("X partitions: ");
+    printf("-inf ");
+    for (i=1;i<world->nx_parts - 1;i++) printf("%.5f ",world->length_unit * world->x_partitions[i]);
+    printf("inf");
+    printf("\n");
+    printf("Y partitions: ");
+    printf("-inf ");
+    for (i=1;i<world->ny_parts - 1;i++) printf("%.5f ",world->length_unit * world->y_partitions[i]);
+    printf("inf");
+    printf("\n");
+    printf("Z partitions: ");
+    printf("-inf ");
+    for (i=1;i<world->nz_parts - 1;i++) printf("%.5f ",world->length_unit * world->z_partitions[i]);
+    printf("inf");
+    printf("\n");
+  }
 
   return 0;
 }

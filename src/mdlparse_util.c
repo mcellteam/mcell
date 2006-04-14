@@ -723,6 +723,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   int rx_hash;
   struct species *temp_sp;
   int n_prob_t_rxns;
+  FILE *warn_file;
   
   num_rx = 0;
   
@@ -1090,17 +1091,36 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           pb_factor=1;
           rx->cum_probs[0]=1.0-exp(-mpvp->vol->time_unit*rx->cum_probs[0]);
 
-          if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
+          if ( (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_notify)
+               || (mpvp->vol->notify->high_reaction_prob != WARN_COPE && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn) )
           {
-            fprintf(mpvp->vol->log_file,"\tProbability %.4e set for %s[%d] -> ",rx->cum_probs[0],
+            warn_file = mpvp->vol->log_file;
+            if (rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn)
+            {
+              if (mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
+              {
+                warn_file = mpvp->vol->err_file;
+                fprintf(warn_file,"\tError: High ");
+              }
+              else if (mpvp->vol->notify->high_reaction_prob==WARN_WARN) fprintf(warn_file,"\tWarning: High ");
+              else fprintf(warn_file,"\t");
+            }
+            else fprintf(warn_file,"\t");
+              
+            fprintf(warn_file,"Probability %.4e set for %s[%d] -> ",rx->cum_probs[0],
                    rx->players[0]->sym->name,rx->geometries[0]);
   
             for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
             {
               if (rx->players[k]==NULL) fprintf(mpvp->vol->log_file,"NIL ");
-              else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+              else fprintf(warn_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
             }
-            fprintf(mpvp->vol->log_file,"\n");
+            fprintf(warn_file,"\n");
+            
+            if (rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn && mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
+            {
+              return 1;
+            }
           }
         }
         else if (((rx->players[0]->flags & (IS_SURFACE | ON_GRID)) != 0 ||
@@ -1148,24 +1168,43 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
           rx->cum_probs[0] = pb_factor * rx->cum_probs[0];
 
-          if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
+          if ( (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_notify)
+               || (mpvp->vol->notify->high_reaction_prob != WARN_COPE && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn) )
           {
-            fprintf(mpvp->vol->log_file,"\tProbability %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_probs[0],
+            warn_file = mpvp->vol->log_file;
+            if (rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn)
+            {
+              if (mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
+              {
+                warn_file = mpvp->vol->err_file;
+                fprintf(warn_file,"\tError: High ");
+              }
+              else if (mpvp->vol->notify->high_reaction_prob==WARN_WARN) fprintf(warn_file,"\tWarning: High ");
+              else fprintf(warn_file,"\t");
+            }
+            else fprintf(warn_file,"\t");
+              
+            fprintf(warn_file,"Probability %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_probs[0],
                    rx->players[0]->sym->name,rx->geometries[0],
                    rx->players[1]->sym->name,rx->geometries[1]);
             if (rx->n_pathways <= RX_SPECIAL)
             {
-              if (rx->n_pathways == RX_TRANSP) fprintf(mpvp->vol->log_file,"(TRANSPARENT)");
+              if (rx->n_pathways == RX_TRANSP) fprintf(warn_file,"(TRANSPARENT)");
             }
             else
             {
               for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
               {
-                if (rx->players[k]==NULL) fprintf(mpvp->vol->log_file,"NIL ");
-                else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+                if (rx->players[k]==NULL) fprintf(warn_file,"NIL ");
+                else fprintf(warn_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
               }
             }
-            fprintf(mpvp->vol->log_file,"\n");
+            fprintf(warn_file,"\n");
+            
+            if (rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn && mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
+            {
+              return 1;
+            }
           }
         }
         else
@@ -1195,18 +1234,37 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
           rx->cum_probs[0]=pb_factor*rx->cum_probs[0];
 
-          if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
+          if ( (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_notify)
+               || (mpvp->vol->notify->high_reaction_prob != WARN_COPE && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn) )
           {
-            fprintf(mpvp->vol->log_file,"\tProbability %.4e (l) set for %s[%d] + %s[%d] -> ",
+            warn_file = mpvp->vol->log_file;
+            if (rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn)
+            {
+              if (mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
+              {
+                warn_file = mpvp->vol->err_file;
+                fprintf(warn_file,"\tError: High ");
+              }
+              else if (mpvp->vol->notify->high_reaction_prob==WARN_WARN) fprintf(warn_file,"\tWarning: High ");
+              else fprintf(warn_file,"\t");
+            }
+            else fprintf(warn_file,"\t");
+              
+            fprintf(warn_file,"Probability %.4e (l) set for %s[%d] + %s[%d] -> ",
                    rx->cum_probs[0],
                    rx->players[0]->sym->name,rx->geometries[0],
                    rx->players[1]->sym->name,rx->geometries[1]);
             for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
             {
-              if (rx->players[k]==NULL) fprintf(mpvp->vol->log_file,"NIL ");
+              if (rx->players[k]==NULL) fprintf(warn_file,"NIL ");
               else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
             }
-            fprintf(mpvp->vol->log_file,"\n");
+            fprintf(warn_file,"\n");
+            
+            if (rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn && mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
+            {
+              return 1;
+            }
           }
         }
 
@@ -1216,19 +1274,38 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           else rate = pb_factor*rx->cum_probs[j];
           rx->cum_probs[j] = rate + rx->cum_probs[j-1];
 
-          if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
+          if ( (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL && rate>=mpvp->vol->notify->reaction_prob_notify)
+               || (mpvp->vol->notify->high_reaction_prob != WARN_COPE && rate>=mpvp->vol->notify->reaction_prob_warn) )
           {
-            fprintf(mpvp->vol->log_file,"\tProbability %.3e set for ",rate);
-            if (rx->n_reactants==1) fprintf(mpvp->vol->log_file,"%s[%d] -> ",rx->players[0]->sym->name,rx->geometries[0]);
-            else fprintf(mpvp->vol->log_file,"%s[%d] + %s[%d] -> ",
+            warn_file = mpvp->vol->log_file;
+            if (rate>=mpvp->vol->notify->reaction_prob_warn)
+            {
+              if (mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
+              {
+                warn_file = mpvp->vol->err_file;
+                fprintf(warn_file,"\tError: High ");
+              }
+              else if (mpvp->vol->notify->high_reaction_prob==WARN_WARN) fprintf(warn_file,"\tWarning: High ");
+              else fprintf(warn_file,"\t");
+            }
+            else fprintf(warn_file,"\t");
+              
+            fprintf(warn_file,"Probability %.3e set for ",rate);
+            if (rx->n_reactants==1) fprintf(warn_file,"%s[%d] -> ",rx->players[0]->sym->name,rx->geometries[0]);
+            else fprintf(warn_file,"%s[%d] + %s[%d] -> ",
                         rx->players[0]->sym->name,rx->geometries[0],
                         rx->players[1]->sym->name,rx->geometries[1]);
             for (k = rx->product_idx[j] ; k < rx->product_idx[j+1] ; k++)
             {
-              if (rx->players[k]==NULL) fprintf(mpvp->vol->log_file,"NIL ");
-              else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+              if (rx->players[k]==NULL) fprintf(warn_file,"NIL ");
+              else fprintf(warn_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
             }
-            fprintf(mpvp->vol->log_file,"\n");
+            fprintf(warn_file,"\n");
+            
+            if (rate>=mpvp->vol->notify->reaction_prob_warn && mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
+            {
+              return 1;
+            }
           }
         }
         

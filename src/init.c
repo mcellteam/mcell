@@ -1499,10 +1499,22 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
       total_area+=wp[i]->area;
 
       if (wp[i]->area==0) {
-        fprintf(log_file,"\nMCell: Warning -- Degenerate polygon found and automatically removed: %s %d\n\n",objp->sym->name,i);
-        fprintf(log_file,"  Vertex 0: %.5e %.5e %.5e\n",vp[index_0]->x,vp[index_0]->y,vp[index_0]->z);
-        fprintf(log_file,"  Vertex 1: %.5e %.5e %.5e\n",vp[index_1]->x,vp[index_1]->y,vp[index_1]->z);
-        fprintf(log_file,"  Vertex 2: %.5e %.5e %.5e\n",vp[index_2]->x,vp[index_2]->y,vp[index_2]->z);
+        if (world->notify->degenerate_polys != WARN_COPE)
+        {
+          if (world->notify->degenerate_polys==WARN_ERROR)
+          {
+            log_file = world->err_file;
+            fprintf(log_file,"\nError -- ");
+          }
+          else fprintf(log_file,"\nWarning -- ");
+          
+          fprintf(log_file,"Degenerate polygon found and automatically removed: %s %d\n\n",objp->sym->name,i);
+          fprintf(log_file,"  Vertex 0: %.5e %.5e %.5e\n",vp[index_0]->x,vp[index_0]->y,vp[index_0]->z);
+          fprintf(log_file,"  Vertex 1: %.5e %.5e %.5e\n",vp[index_1]->x,vp[index_1]->y,vp[index_1]->z);
+          fprintf(log_file,"  Vertex 2: %.5e %.5e %.5e\n",vp[index_2]->x,vp[index_2]->y,vp[index_2]->z);
+          
+          if (world->notify->degenerate_polys==WARN_ERROR) return 1;
+        }
         set_bit(pop->side_removed,i,1);
         objp->n_walls_actual--;
         degenerate_count++;

@@ -96,7 +96,7 @@ struct release_evaluator *rev;
 %token <tok> ALL_MOLECULES
 %token <tok> ALL_NOTIFICATIONS
 %token <tok> ALL_TIMES
-%token <tok> ALL_WARNING_CONDITIONS
+%token <tok> ALL_WARNINGS
 %token <tok> AREA_OCCUPIED
 %token <tok> ASCII
 %token <tok> ASIN
@@ -170,7 +170,7 @@ struct release_evaluator *rev;
 %token <tok> FCLOSE
 %token <tok> FILENAME
 %token <tok> FILE_OUTPUT_REPORT
-%token <tok> FINAL_SUMMARY_REPORT
+%token <tok> FINAL_SUMMARY
 %token <tok> FLOOR
 %token <tok> FOPEN
 %token <tok> FOR_EACH_EFFECTOR
@@ -185,6 +185,7 @@ struct release_evaluator *rev;
 %token <tok> GAUSSIAN_RELEASE_NUMBER
 %token <tok> GEOMETRY
 %token <tok> HEADER
+%token <tok> HIGH_PROBABILITY_THRESHOLD
 %token <tok> HIGH_REACTION_PROBABILITY
 %token <tok> IGNORED
 %token <tok> INCLUDE_ELEMENTS
@@ -203,10 +204,12 @@ struct release_evaluator *rev;
 %token <tok> ITERATION_FRAME_DATA
 %token <tok> ITERATION_LIST
 %token <tok> ITERATION_NUMBERS
-%token <tok> ITERATION_NUMBER_REPORT
+%token <tok> ITERATION_REPORT
 %token <tok> ITERATIONS
 %token <tok> FULLY_RANDOM
 %token <tok> LEFT
+%token <tok> LIFETIME_TOO_SHORT
+%token <tok> LIFETIME_THRESHOLD
 %token <tok> LIST
 %token <tok> LOCATION
 %token <tok> LOG
@@ -230,13 +233,11 @@ struct release_evaluator *rev;
 %token <tok> MOLECULE_STATES
 %token <tok> MOLECULE_POSITIONS_STATES
 %token <tok> MOLECULE_FILE_PREFIX
-%token <tok> MOLECULE_LIFETIME_TOO_SHORT
-%token <tok> MOLECULE_LIFETIME_THRESHOLD
 %token <tok> NAME
 %token <tok> NAME_LIST
 %token <tok> NEGATIVE_POLE
 %token <tok> NEGATIVE_DIFFUSION_CONSTANT
-%token <tok> NEGATIVE_REACTION_PROBABILITY
+%token <tok> NEGATIVE_REACTION_RATE
 %token <tok> NO
 %token <tok> NONE
 %token <tok> NORMAL
@@ -271,6 +272,8 @@ struct release_evaluator *rev;
 %token <tok> POVRAY
 %token <tok> PRINT_TIME
 %token <tok> PRINTF
+%token <tok> PROBABILITY_REPORT
+%token <tok> PROBABILITY_REPORT_THRESHOLD
 %token <tok> PROGRESS_REPORT
 %token <tok> RADIAL_DIRECTIONS
 %token <tok> RADIAL_SUBDIVISIONS
@@ -280,9 +283,6 @@ struct release_evaluator *rev;
 %token <tok> RAND_GAUSSIAN
 %token <tok> REACTION_DATA_OUTPUT
 %token <tok> REACTION_GROUP
-%token <tok> REACTION_PROBABILITY_REPORTS
-%token <tok> REACTION_PROBABILITY_REPORT_THRESHOLD
-%token <tok> REACTION_PROBABILITY_WARNING_THRESHOLD
 %token <tok> REAL
 %token <tok> RECTANGULAR_RELEASE_SITE
 %token <tok> RECTANGULAR_TOKEN
@@ -735,12 +735,12 @@ notification_item_def:
 {
   mdlpvp->vol->notify->diffusion_constants = $<tok>3;
 }
-        | REACTION_PROBABILITY_REPORTS '=' boolean
+        | PROBABILITY_REPORT '=' boolean
 {
   if ($<tok>3==1) mdlpvp->vol->notify->reaction_probabilities = NOTIFY_FULL;
   else mdlpvp->vol->notify->reaction_probabilities = NOTIFY_NONE;
 }
-        | REACTION_PROBABILITY_REPORT_THRESHOLD '=' num_expr
+        | PROBABILITY_REPORT_THRESHOLD '=' num_expr
 {
   mdlpvp->vol->notify->reaction_prob_notify = $<dbl>3;
 }
@@ -764,12 +764,12 @@ notification_item_def:
   if ($<tok>3==1) mdlpvp->vol->notify->file_writes = NOTIFY_FULL;
   else mdlpvp->vol->notify->file_writes = NOTIFY_NONE;
 }
-        | FINAL_SUMMARY_REPORT '=' boolean
+        | FINAL_SUMMARY '=' boolean
 {
   if ($<tok>3==1) mdlpvp->vol->notify->final_summary = NOTIFY_FULL;
   else mdlpvp->vol->notify->final_summary = NOTIFY_NONE;
 }
-        | ITERATION_NUMBER_REPORT '=' boolean
+        | ITERATION_REPORT '=' boolean
 {
   if (mdlpvp->vol->log_freq == -1) /* Not set on command line */
   {
@@ -777,7 +777,7 @@ notification_item_def:
     else mdlpvp->vol->notify->custom_iterations = NOTIFY_NONE;
   }
 }
-        | ITERATION_NUMBER_REPORT '=' num_expr
+        | ITERATION_REPORT '=' num_expr
 {
   if (mdlpvp->vol->log_freq == -1) /* Not set on command line */
   {
@@ -808,7 +808,7 @@ warning_list: warning_item_def
         | warning_list warning_item_def;
 
 warning_item_def:
-        ALL_WARNING_CONDITIONS '=' warning_level
+        ALL_WARNINGS '=' warning_level
 {
   byte warn_value = (byte)$<tok>3;
   mdlpvp->vol->notify->neg_diffusion = warn_value;
@@ -817,6 +817,8 @@ warning_item_def:
   mdlpvp->vol->notify->close_partitions = warn_value;
   mdlpvp->vol->notify->degenerate_polys = warn_value;
   mdlpvp->vol->notify->overwritten_file = warn_value;
+  
+  if (warn_value==WARN_ERROR) warn_value=WARN_WARN;
   mdlpvp->vol->notify->short_lifetime = warn_value;
   mdlpvp->vol->notify->missed_reactions = warn_value;
 }
@@ -824,7 +826,7 @@ warning_item_def:
 {
   mdlpvp->vol->notify->neg_diffusion = (byte)$<tok>3;
 }
-        | NEGATIVE_REACTION_PROBABILITY '=' warning_level
+        | NEGATIVE_REACTION_RATE '=' warning_level
 {
   mdlpvp->vol->notify->neg_reaction = (byte)$<tok>3;
 }
@@ -832,7 +834,7 @@ warning_item_def:
 {
   mdlpvp->vol->notify->high_reaction_prob = (byte)$<tok>3;
 }
-        |  REACTION_PROBABILITY_WARNING_THRESHOLD '=' num_expr
+        |  HIGH_PROBABILITY_THRESHOLD '=' num_expr
 {
   mdlpvp->vol->notify->reaction_prob_warn = $<dbl>3;
 }
@@ -848,11 +850,11 @@ warning_item_def:
 {
   mdlpvp->vol->notify->overwritten_file = (byte)$<tok>3;
 }
-        | MOLECULE_LIFETIME_TOO_SHORT '=' warning_level
+        | LIFETIME_TOO_SHORT '=' warning_level
 {
   mdlpvp->vol->notify->short_lifetime = (byte)$<tok>3;
 }
-        | MOLECULE_LIFETIME_THRESHOLD '=' num_expr
+        | LIFETIME_THRESHOLD '=' num_expr
 {
   double lifetime = $<dbl>3;
   if (lifetime < 0.0)
@@ -2361,12 +2363,56 @@ existing_molecule: VAR
 diffusion_def: DIFFUSION_CONSTANT_3D '=' num_expr
 {
   mdlpvp->specp->flags -= (mdlpvp->specp->flags & ON_GRID);
-  $$=$<dbl>3;
+  if (volp->notify->neg_diffusion==WARN_COPE)
+  {
+    if ($<dbl>3 < 0) $$ = 0;
+    else $$=$<dbl>3;
+  }
+  else if (volp->notify->neg_diffusion==WARN_WARN)
+  {
+    if ($<dbl>3 < 0)
+    {
+      mdlerror("Negative diffusion constant found, setting to zero and continuing.");
+      $$ = 0;
+    }
+    else $$=$<dbl>3;
+  }
+  else
+  {
+    if ($<dbl>3 < 0)
+    {
+      mdlerror("Error: diffusion constants should be zero or positive.");
+      return 1;
+    }
+    else $$=$<dbl>3;
+  }
 }
 	| DIFFUSION_CONSTANT_2D '=' num_expr
 {
   mdlpvp->specp->flags |= ON_GRID;
-  $$=$<dbl>3;
+  if (volp->notify->neg_diffusion==WARN_COPE)
+  {
+    if ($<dbl>3 < 0) $$ = 0;
+    else $$=$<dbl>3;
+  }
+  else if (volp->notify->neg_diffusion==WARN_WARN)
+  {
+    if ($<dbl>3 < 0)
+    {
+      mdlerror("Negative diffusion constant found, setting to zero and continuing.");
+      $$ = 0;
+    }
+    else $$=$<dbl>3;
+  }
+  else
+  {
+    if ($<dbl>3 < 0)
+    {
+      mdlerror("Error: diffusion constants should be zero or positive.");
+      return 1;
+    }
+    else $$=$<dbl>3;
+  }
 };
 
 
@@ -4612,7 +4658,7 @@ box_def: new_object BOX '{'
     mdlerror("Could not turn box object into polygons");
     return 1;
   }
-  else
+  else if (volp->notify->box_triangulation==NOTIFY_FULL)
   {
     fprintf(volp->log_file,"Box object %s converted into %d polygons\n",mdlpvp->curr_obj->sym->name,mdlpvp->opp->n_walls);
   }
@@ -5773,10 +5819,30 @@ fwd_rx_rate1or2:  fwd_rx_rate1
 fwd_rx_rate1: '[' atomic_rate ']'
 {
   mdlpvp->fwd_km=$<dbl>2;
+  if (mdlpvp->fwd_km<0)
+  {
+    mdlpvp->fwd_km=0.0;
+    if (volp->notify->neg_reaction==WARN_ERROR)
+    {
+      mdlerror("Error: reaction rates should be zero or positive.");
+      return 1;
+    }
+    else if (volp->notify->neg_reaction==WARN_WARN) mdlerror("Warning: negative reaction rate; setting to zero and continuing.");
+  }
 }
 	| '[' '>' atomic_rate ']'
 {
   mdlpvp->fwd_km=$<dbl>3;
+  if (mdlpvp->fwd_km<0)
+  {
+    mdlpvp->fwd_km=0.0;
+    if (volp->notify->neg_reaction==WARN_ERROR)
+    {
+      mdlerror("Error: reaction rates should be zero or positive.");
+      return 1;
+    }
+    else if (volp->notify->neg_reaction==WARN_WARN) mdlerror("Warning: negative reaction rate; setting to zero and continuing.");
+  }
 };
 
 
@@ -5784,11 +5850,51 @@ fwd_rx_rate2: '[' atomic_rate ',' num_expr ']'
 {
   mdlpvp->fwd_km=$<dbl>2;
   mdlpvp->fwd_kcat=$<dbl>4;
+  if (mdlpvp->fwd_km<0)
+  {
+    mdlpvp->fwd_km=0;
+    if (volp->notify->neg_reaction==WARN_ERROR)
+    {
+      mdlerror("Reaction rates should be zero or positive.");
+      return 1;
+    }
+    else if (volp->notify->neg_reaction==WARN_WARN) mdlerror("Warning: negative reaction rate; setting to zero and continuing.");
+  }
+  if (mdlpvp->fwd_kcat<0)
+  {
+    mdlpvp->fwd_kcat=0;
+    if (volp->notify->neg_reaction==WARN_ERROR)
+    {
+      mdlerror("Catalytic rates should be zero or positive.");
+      return 1;
+    }
+    else if (volp->notify->neg_reaction==WARN_WARN) mdlerror("Warning: negative catalytic rate; setting to zero and continuing.");
+  }     
 }
 	| '[' '>' atomic_rate ',' num_expr ']'
 {
   mdlpvp->fwd_km=$<dbl>3;
   mdlpvp->fwd_kcat=$<dbl>5;
+  if (mdlpvp->fwd_km<0)
+  {
+    mdlpvp->fwd_km=0;
+    if (volp->notify->neg_reaction==WARN_ERROR)
+    {
+      mdlerror("Reaction rates should be zero or positive.");
+      return 1;
+    }
+    else if (volp->notify->neg_reaction==WARN_WARN) mdlerror("Warning: negative reaction rate; setting to zero and continuing.");
+  }
+  if (mdlpvp->fwd_kcat<0)
+  {
+    mdlpvp->fwd_kcat=0;
+    if (volp->notify->neg_reaction==WARN_ERROR)
+    {
+      mdlerror("Catalytic rates should be zero or positive.");
+      return 1;
+    }
+    else if (volp->notify->neg_reaction==WARN_WARN) mdlerror("Warning: negative catalytic rate; setting to zero and continuing.");
+  }
 };
 
 atomic_rate: num_expr_only
