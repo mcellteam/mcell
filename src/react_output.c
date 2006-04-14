@@ -100,7 +100,11 @@ int update_reaction_output(struct output_block *obp)
   /* update all counters */
 
   curr_buf_index=obp->curr_buf_index;
-  obp->time_array[curr_buf_index]=obp->t*world->time_unit*MAX_TARGET_TIMESTEP;
+  if((obp->timer_type == OUTPUT_BY_STEP) || (obp->timer_type == OUTPUT_BY_TIME_LIST)){
+     obp->time_array[curr_buf_index]=obp->t*world->time_unit;
+  }else{
+     obp->time_array[curr_buf_index] = obp->t;
+  } 
 
   for (oi=obp->output_item_head ; oi!=NULL ; oi=oi->next)  /* Each file */
   {
@@ -270,7 +274,7 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
          {
             fprintf(fp,"%s","Iteration_# ");
          }else{
-            fprintf(fp,"%s","Microsec ");
+            fprintf(fp,"%s","Seconds ");
          }
          for (oip=oi ; oip!=NULL ; oip=oip->next_column)
          {
