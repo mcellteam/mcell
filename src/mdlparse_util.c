@@ -723,6 +723,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   int rx_hash;
   struct species *temp_sp;
   int n_prob_t_rxns;
+  int is_gigantic;
   FILE *warn_file;
   
   num_rx = 0;
@@ -1166,13 +1167,19 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             if ( (rx->geometries[0]+rx->geometries[1])*(rx->geometries[0]-rx->geometries[1]) == 0 ) pb_factor *= 2.0;
 	  }
 
+	  /* Watch out for automatic surface reactions; input rate will be GIGANTIC */
+	  if (rx->cum_probs[0]==GIGANTIC) is_gigantic=1;
+	  else is_gigantic=0;
+	  
           rx->cum_probs[0] = pb_factor * rx->cum_probs[0];
 
-          if ( (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_notify)
-               || (mpvp->vol->notify->high_reaction_prob != WARN_COPE && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn) )
+          if ( (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_notify
+	        && (!is_gigantic || mpvp->vol->notify->reaction_prob_notify==0.0) )
+              || (mpvp->vol->notify->high_reaction_prob != WARN_COPE && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn
+	        && (!is_gigantic || mpvp->vol->notify->reaction_prob_warn==0.0) ) )
           {
             warn_file = mpvp->vol->log_file;
-            if (rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn)
+            if (rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn && (!is_gigantic || mpvp->vol->notify->reaction_prob_warn==0.0) )
             {
               if (mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
               {
@@ -1201,7 +1208,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
             fprintf(warn_file,"\n");
             
-            if (rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn && mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
+            if (rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn && mpvp->vol->notify->high_reaction_prob==WARN_ERROR
+	        && (!is_gigantic || mpvp->vol->notify->reaction_prob_warn==0.0) )
             {
               return 1;
             }
@@ -1729,9 +1737,9 @@ int refine_cuboid(struct vector3 *p1,struct vector3 *p2,struct subdivided_box *b
       if (new_list==NULL) return 1;
       
       for ( j=k=0 ; b->x[j]<p1->x ; j++ ) new_list[k++]=b->x[j];
-      new_list[k++]=p1->x;
+      if (b->x[j]!=p1->x) new_list[k++]=p1->x;
       for ( ; b->x[j]<p2->x ; j++ ) new_list[k++]=b->x[j];
-      if (p1->x!=p2->x) new_list[k++]=p2->x;
+      if (p1->x!=p2->x && b->x[j]!=p2->x) new_list[k++]=p2->x;
       for ( ; j<b->nx ; j++ ) new_list[k++]=b->x[j];
       
       free(b->x);
@@ -1753,9 +1761,9 @@ int refine_cuboid(struct vector3 *p1,struct vector3 *p2,struct subdivided_box *b
       if (new_list==NULL) return 1;
       
       for ( j=k=0 ; b->y[j]<p1->y ; j++ ) new_list[k++]=b->y[j];
-      new_list[k++]=p1->y;
+      if (b->y[j]!=p1->y) new_list[k++]=p1->y;
       for ( ; b->y[j]<p2->y ; j++ ) new_list[k++]=b->y[j];
-      if (p1->y!=p2->y) new_list[k++]=p2->y;
+      if (p1->y!=p2->y && b->y[j]!=p2->y) new_list[k++]=p2->y;
       for ( ; j<b->ny ; j++ ) new_list[k++]=b->y[j];
       
       free(b->y);
@@ -1777,9 +1785,9 @@ int refine_cuboid(struct vector3 *p1,struct vector3 *p2,struct subdivided_box *b
       if (new_list==NULL) return 1;
       
       for ( j=k=0 ; b->z[j]<p1->z ; j++ ) new_list[k++]=b->z[j];
-      new_list[k++]=p1->z;
+      if (b->z[j]!=p1->z) new_list[k++]=p1->z;
       for ( ; b->z[j]<p2->z ; j++ ) new_list[k++]=b->z[j];
-      if (p1->z!=p2->z) new_list[k++]=p2->z;
+      if (p1->z!=p2->z && b->z[j]!=p2->z) new_list[k++]=p2->z;
       for ( ; j<b->nz ; j++ ) new_list[k++]=b->z[j];
       
       free(b->z);

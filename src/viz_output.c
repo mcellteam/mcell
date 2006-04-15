@@ -207,7 +207,8 @@ void init_frame_data_list(struct frame_data_list *fdlp)
   } /* end while (vizp) */
 
   /* fill the obj_num_regions array */
-  obj_num_regions = (int *)malloc(obj_to_show_number * sizeof(int *)); 
+  if (obj_to_show_number==0) obj_num_regions = (int*)malloc(sizeof(int));
+  else obj_num_regions = (int *)malloc(obj_to_show_number * sizeof(int)); 
   if(obj_num_regions == NULL){
      fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
      exit(1);
@@ -231,7 +232,8 @@ void init_frame_data_list(struct frame_data_list *fdlp)
      of the field object.
      Here first index points to the object and the second index
      - to the array of indices for this object regions */
-  surf_region_values = (int **)malloc(obj_to_show_number * sizeof(int *));
+  if (obj_to_show_number==0) surf_region_values = (int**)malloc(sizeof(int*));
+  else surf_region_values = (int **)malloc(obj_to_show_number * sizeof(int*));
   if(surf_region_values == NULL){
      fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
        exit(1);
