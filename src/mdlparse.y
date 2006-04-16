@@ -2585,6 +2585,7 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
   mdlpvp->pathp->kcat=0;
   mdlpvp->pathp->pcr=NULL;
   mdlpvp->pathp->km_filename=NULL;
+  mdlpvp->pathp->count_flags = 0;
 
   if (mdlpvp->orient_class==0)
   {
@@ -2713,6 +2714,7 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
   mdlpvp->pathp->kcat=$<dbl>4;
   mdlpvp->pathp->pcr=NULL;
   mdlpvp->pathp->km_filename=NULL;
+  mdlpvp->pathp->count_flags=0;
   
   if (mdlpvp->orient_class==0)
   {

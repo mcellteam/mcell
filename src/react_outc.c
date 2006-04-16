@@ -413,12 +413,12 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
     }
     
     if (i >= i0+rx->n_reactants &&
-        (plist[i-i0]->properties->flags & COUNT_CONTENTS) != 0)
+        (plist[i-i0]->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
       count_me_by_region(plist[i-i0],1,NULL);
     }
   }
-
+  
   return bounce;
   
 #undef FLAG_NOT_SET
@@ -492,7 +492,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
       }
     }
 
-    if ((reac->properties->flags & COUNT_CONTENTS) != 0)
+    if ((reac->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
       count_me_by_region(reac,-1,NULL);
     }
@@ -598,7 +598,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
 	}
       }
 
-      if ((reacB->properties->flags & COUNT_CONTENTS) != 0)
+      if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
         count_me_by_region(reacB,-1,NULL);
       
       reacB->properties->n_deceased++;
@@ -630,7 +630,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
 	}
       }
 
-      if ((reacA->properties->flags&COUNT_CONTENTS)!=0 && (reacA->flags&COUNT_ME)!=0)
+      if ((reacA->properties->flags&(COUNT_CONTENTS|COUNT_ENCLOSED))!=0 && (reacA->flags&COUNT_ME)!=0)
 	count_me_by_region(reacA,-1,NULL);
     
       reacA->properties->n_deceased++;
@@ -666,7 +666,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
 	}
       }
 
-      if ((reacB->properties->flags & COUNT_CONTENTS) != 0)
+      if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
         count_me_by_region(reacB,-1,NULL);
     
       reacB->properties->n_deceased++;
@@ -698,7 +698,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
 	}
       }
 
-      if ((reacA->properties->flags&COUNT_CONTENTS)!=0 && (reacA->flags&COUNT_ME)!=0)
+      if ((reacA->properties->flags&(COUNT_CONTENTS|COUNT_ENCLOSED))!=0 && (reacA->flags&COUNT_ME)!=0)
 	count_me_by_region(reacA,-1,NULL);
     
       reacA->properties->n_deceased++;
@@ -753,7 +753,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     if (rx->players[ index ] == NULL)
     {
       m->subvol->mol_count--;
-      if ((reac->properties->flags&COUNT_CONTENTS)!=0 && (reac->flags&COUNT_ME)!=0)
+      if ((reac->properties->flags&(COUNT_CONTENTS|COUNT_ENCLOSED))!=0 && (reac->flags&COUNT_ME)!=0)
 	count_me_by_region(reac,-1,NULL);
       reac->properties->n_deceased++;
       reac->properties->cum_lifetime += t - reac->birthday;

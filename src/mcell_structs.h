@@ -34,9 +34,9 @@
 #define CANT_INITIATE    0x100
 #define COUNT_CONTENTS   0x1000
 #define COUNT_HITS       0x2000
-#define COUNT_SOME       0x3000
 #define COUNT_RXNS       0x4000
 #define COUNT_ENCLOSED   0x8000
+#define COUNT_SOME       0xF000
 
 /* rxn/mol/region counter report types */
 /* Do not set both WORLD and ENCLOSED flags; ENCLOSED applies only to regions */
@@ -71,6 +71,10 @@
 #define MANIFOLD_UNCHECKED 0
 #define NOT_MANIFOLD       1
 #define IS_MANIFOLD        2
+
+#define COUNT_RX_CONTENTS 1
+#define COUNT_RX_ENCLOSED 2
+#define COUNT_RX_SOME     3
 
 /* Reaction flags */
   /* RX_TRANSP signifies that a reaction is between a molecule and a TRANSPARENT wall */
@@ -615,6 +619,7 @@ struct pathway {
   short orientation3;            /* Orientation of third reactant */
   struct product *product_head;  /* Linked lists of species created */
   struct pathway_count_request *pcr;  /* Who is counting us? */
+  short count_flags;             /* How is this being counted? */
 };
 
 /* Parse-time structure for products of reaction pathways */
@@ -628,6 +633,7 @@ struct product {
 struct pathway_info
 {
   double count;
+  short count_flags;
   struct rxn_pathname *pathname;
 };
   

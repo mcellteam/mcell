@@ -485,6 +485,9 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
   
   g->grid->mol[ g->grid_index ] = g;
   
+  if (g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
+    count_me_by_region( (struct abstract_molecule*)g , 1 , NULL );
+  
   if ( schedule_add(sv->local_storage->timer,g) )
   {
     fprintf(world->err_file,"Out of memory while trying to insert molecules\n");
@@ -531,7 +534,7 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
   sv->mol_count++;
   new_m->properties->population++;
 
-  if (new_m->properties->flags & COUNT_CONTENTS)
+  if (new_m->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
   {
     count_me_by_region( (struct abstract_molecule*)new_m , 1 , NULL );
   }
@@ -555,7 +558,7 @@ excert_molecule:
 
 void excert_molecule(struct molecule *m)
 {
-  if (m->properties->flags & COUNT_CONTENTS)
+  if (m->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
   {
     count_me_by_region( (struct abstract_molecule*)m , -1 , NULL );
   }
@@ -864,7 +867,7 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct molecule *m,int n)
       mp = (struct molecule*)vl->data;
       mp->properties->population--;
       mp->subvol->mol_count--;
-      if ((mp->properties->flags & COUNT_CONTENTS) != 0)
+      if ((mp->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
         count_me_by_region((struct abstract_molecule*)mp,-1,NULL);
       mp->properties = NULL;
       if (mp->flags & IN_SCHEDULE)

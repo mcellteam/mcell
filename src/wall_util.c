@@ -3097,7 +3097,7 @@ int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule *g,int
     {
       gp = p->grid->mol[ p->index ];
       gp->properties->population--;
-      if ((gp->properties->flags & COUNT_CONTENTS) != 0)
+      if ((gp->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
         count_me_by_region((struct abstract_molecule*)gp,-1,NULL);
       gp->properties = NULL;
       p->grid->mol[ p->index ] = NULL;
@@ -3199,7 +3199,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
 
         w->effectors->n_occupied++;
         new_g->properties->population++;
-        if (new_g->properties->flags & COUNT_CONTENTS)
+        if (new_g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
           count_me_by_region((struct abstract_molecule*)new_g,1,NULL);
 
         k = schedule_add( w->effectors->subvol->local_storage->timer , new_g );
@@ -3207,45 +3207,6 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
         
         success++;
         n--;
-
-#if 0
-        /* FIXME: remove this.  It's just debugging code. */
-	if (w!=NULL)
-	{
-	  struct vector2 va,vb,vc;
-	  struct vector3 vv;
-	  struct wall *ww,*www;
-	  int i,j;
-	  struct edge *e;
-	  
-	  for (i=0;i<3;i++)
-	  {
-	    e = w->edges[i];
-	    if (e->forward!=NULL && e->backward!=NULL)
-	    {
-	      va.u = new_g->s_pos.u;
-	      va.v = new_g->s_pos.v;
-	      ww = traverse_surface(w,&va,i,&vb);
-	      
-	      for (j=0;j<3;j++)
-	      {
-		if (ww->edges[j]->forward==ww && ww->edges[j]->backward==w) break;
-		if (ww->edges[j]->forward==w && ww->edges[j]->backward==ww) break;
-	      }
-	      www = traverse_surface(ww,&vb,j,&vc);
-	      
-	      uv2xyz(&va,w,&vv);
-	      printf("   %14.8e %14.8e  %14.8e %14.8e %14.8e ",va.u,va.v,vv.x,vv.y,vv.z);
-	      uv2xyz(&vb,ww,&vv);
-	      printf("   %14.8e %14.8e  %14.8e %14.8e %14.8e\n",vb.u,vb.v,vv.x,vv.y,vv.z);
-	      uv2xyz(&vc,www,&vv);
-	      printf("   %14.8e %14.8e  %14.8e %14.8e %14.8e\n",vc.u,vc.v,vv.x,vv.y,vv.z);
-	      printf("\n");
-	    }
-	  }
-	}
-#endif
-
       }
     }
     else
@@ -3311,7 +3272,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
 
           p->grid->n_occupied++;
           new_g->properties->population++;
-          if (new_g->properties->flags & COUNT_CONTENTS)
+          if (new_g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
             count_me_by_region((struct abstract_molecule*)new_g,1,NULL);
 
           h = schedule_add( p->grid->subvol->local_storage->timer , new_g );

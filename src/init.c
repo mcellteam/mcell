@@ -481,6 +481,12 @@ int init_sim(void)
     }
   }
   
+  if (init_effectors())
+  {
+    fprintf(world->err_file,"Error initializing effectors on regions.\n");
+    return 1;
+  }
+  
   if (world->releases_on_regions_flag)
   {
     if (init_releases())
@@ -1674,20 +1680,9 @@ int init_wall_regions(struct object *objp, char *full_name)
   FILE *log_file;
   struct polygon_object *pop;
   struct wall *w;
-  struct eff_dat *effdp,*dup_effdp,**eff_prop;
-/*  struct lig_count_ref *poly_lcrp; */
   struct region *rp;
-  struct region_list *rlp,*rlp2,*reg_eff_num_head,*rlp3,*reg_count_head;
-  struct region_list *rlp4, *lig_hit_count;
-  struct region_list *wrlp;
-  struct lig_hit_counter **lig_hit; 
-/*  struct element_list *elp; */
-/*  struct reg_counter_ref *rcrp; */
-  struct reg_counter_ref_list *rcrlp;
-/*  struct counter_hash_table **countertab; */
+  struct region_list *rlp,*wrlp;
   int i,n_walls;
-  byte reg_eff_num,reg_count_num;
-  byte lig_hit_flag;
 
   log_file=world->log_file;
 
@@ -1695,240 +1690,49 @@ int init_wall_regions(struct object *objp, char *full_name)
   n_walls=pop->n_walls;
 
    
-    no_printf("Processing %d regions in polygon list object: %s\n",objp->num_regions,full_name);
+  no_printf("Processing %d regions in polygon list object: %s\n",objp->num_regions,full_name);
 
-
-  /* allocate scratch storage to hold effector info for each wall */
-    if ((eff_prop=(struct eff_dat **)malloc(n_walls*sizeof(struct eff_dat *)))==NULL)
+  /* prepend a copy of eff_dat for each element referenced in each region
+     of this object to the eff_prop list for the referenced element */
+  rlp=objp->regions;
+  
+  for (rlp=objp->regions ; rlp!=NULL ; rlp=rlp->next)
+  {
+    rp=rlp->reg;
+    if (rp->membership==NULL)
     {
-      fprintf(world->err_file,"Out of memory: can't create space for molecules on a region.\n");
+      fprintf(world->err_file,"Internal error: incomplete region information for %s\n",rp->sym->name);
       return 1;
     }
-
-    for (i=0;i<n_walls;i++) {
-      eff_prop[i]=NULL;
-    }
- 
-
-    /* prepend a copy of eff_dat for each element referenced in each region
-       of this object to the eff_prop list for the referenced element */
-    reg_eff_num_head=NULL;
-    reg_count_head=NULL;
-    lig_hit_count=NULL;
-    rlp=objp->regions;
-    
-    while (rlp!=NULL) {
-      rp=rlp->reg;
-      reg_eff_num=0;
-      reg_count_num=0;
-      lig_hit_flag=0;
-      rcrlp=rp->reg_counter_ref_list;
-      if (rcrlp!=NULL) {
-	reg_count_num=1;
-      }
-/*
-      lig_hit=rp->lig_hit_counter;
-*/
-      lig_hit=NULL;
-      if (lig_hit!=NULL) {
-	lig_hit_flag=1;
-      }
-      if (rp->membership==NULL)
+    for (i=0;i<rp->membership->nbits;i++)
+    {
+      if (get_bit(rp->membership,i))
       {
-	fprintf(world->err_file,"Internal error: incomplete region information for %s\n  Ignoring region and continuing.\n",rp->sym->name);
-        rlp=rlp->next;
-      }
-      for (i=0;i<rp->membership->nbits;i++)
-      {
-	if (get_bit(rp->membership,i)) {
+	/* prepend this region to wall region list of i_th wall only if the region is used in counting */
+	w=objp->wall_p[i];
+	rp->area += w->area;
+	if (rp->surf_class!=NULL) w->surf_class = rp->surf_class;
 
-
-	  /* prepend this region to wall region list of i_th wall
-	     only if the region is used in counting */
-	  w=objp->wall_p[i];
-	  rp->area += w->area;
-	  if ((rp->flags & COUNT_SOME) !=0)
-	  {  
-	    wrlp = (struct region_list *)mem_get(w->birthplace->regl);
-	    if (wrlp==NULL)
-	    {
-	      fprintf(world->err_file,"Out of memory: can't place regions on geometry.\n");
-	      return 1;
-	    }
-	    wrlp->reg=rp;
-	    wrlp->next=w->counting_regions;
-	    w->counting_regions=wrlp;
-	    w->flags|=rp->flags;
-	  } 
-
-
-	  /* prepend region eff data for this region
-	    to eff_prop for i_th wall */
-	  effdp=rp->eff_dat_head;
-	  while (effdp!=NULL) {
-	    if (effdp->quantity_type==EFFDENS) {
-	      if ((dup_effdp=(struct eff_dat *)malloc(sizeof(struct eff_dat)))==NULL)
-	      {
-		fprintf(world->err_file,"Out of memory: can't create space for molecules on a region.\n");
-		return 1;
-	      }
-	      dup_effdp->eff=effdp->eff;
-	      dup_effdp->quantity_type=effdp->quantity_type;
-	      dup_effdp->quantity=effdp->quantity;
-	      dup_effdp->orientation=effdp->orientation;
-	      dup_effdp->next=eff_prop[i];
-	      eff_prop[i]=dup_effdp;
-	    }
-	    else {
-	      reg_eff_num=1;
-	    }
-	    effdp=effdp->next;
-	  } /*end (while (effdp != NULL) */
-
-	  /* prepend surf_class eff data for this region
-	    to eff_prop for i_th wall */
-	  if (rp->surf_class != NULL) {
-	    w->surf_class = rp->surf_class;  /* (Re?)set surface class */
-	    effdp=rp->surf_class->eff_dat_head;
-	    while (effdp!=NULL) {
-	      if (effdp->quantity_type==EFFDENS) {
-		if ((dup_effdp=(struct eff_dat *)malloc(sizeof(struct eff_dat)))==NULL)
-		{
-		  fprintf(world->err_file,"Out of memory: can't create space for molecules on a region.\n");
-		  return 1;
-		}
-		dup_effdp->eff=effdp->eff;
-		dup_effdp->quantity_type=effdp->quantity_type;
-		dup_effdp->quantity=effdp->quantity;
-		dup_effdp->orientation=effdp->orientation;
-		dup_effdp->next=eff_prop[i];
-		eff_prop[i]=dup_effdp;
-	      }
-	      else {
-		reg_eff_num=1;
-	      }
-	      effdp=effdp->next;
-	    } /* end while(effdp != NULL) */
+	if ((rp->flags & COUNT_SOME) != 0)
+	{  
+	  wrlp = (struct region_list *)mem_get(w->birthplace->regl);
+	  if (wrlp==NULL)
+	  {
+	    fprintf(world->err_file,"Out of memory: can't place regions on geometry.\n");
+	    return 1;
 	  }
-
+	  wrlp->reg=rp;
+	  wrlp->next=w->counting_regions;
+	  w->counting_regions=wrlp;
+	  w->flags|=rp->flags;
 	}
       }
-      if (reg_eff_num)
-      {
-        if ((rlp2=(struct region_list *)malloc(sizeof(struct region_list)))==NULL)
-	{
-	  fprintf(world->err_file,"Out of memory: can't place regions on geometry.\n");
-	  return 1;
-        }
-        rlp2->reg=rp;
-        rlp2->next=reg_eff_num_head;
-        reg_eff_num_head=rlp2;
-      }
-      if (reg_count_num) {
-        if ((rlp3=(struct region_list *)malloc(sizeof(struct region_list)))==NULL)
-	{
-	  fprintf(world->err_file,"Out of memory: can't place regions on geometry.\n");
-	  return 1;
-        }
-        rlp3->reg=rp;
-        rlp3->next=reg_count_head;
-        reg_count_head=rlp3;
-      }
-      if (lig_hit_flag) {
-        if ((rlp4=(struct region_list *)malloc(sizeof(struct region_list)))==NULL)
-	{
-	  fprintf(world->err_file,"Out of memory: can't place regions on geometry.\n");
-	  return 1;
-        }
-        rlp4->reg=rp;
-        rlp4->next=lig_hit_count;
-        lig_hit_count=rlp4;
-      }
-
-      rlp=rlp->next;
-    } /*end while (rlp != NULL) */
-
-    for (i=0;i<n_walls;i++) {
-      if (!get_bit(pop->side_removed,i)) {
-      
-        w=objp->wall_p[i];
-
-	if ((effdp=eff_prop[i])!=NULL) {
-	  if (init_effectors_by_density(w,effdp)) {
-	    return(1);
-	  }
-	}
-
-      }
     }
-    no_printf("Total area of object %s = %.9g um^2\n",objp->sym->name,objp->total_area/world->effector_grid_density);
-    no_printf("  number of tiles = %u\n",objp->n_tiles);
-    no_printf("  number of occupied tiles = %u\n",objp->n_occupied_tiles);
-    no_printf("  grid molecule density = %.9g\n",objp->n_occupied_tiles*world->effector_grid_density/objp->total_area);
-    fflush(stdout);
-
-	  if (lig_hit_count!=NULL) {
-	    rlp=lig_hit_count;
-	    while(rlp!=NULL) {
-	      rlp4=rlp;
-	      rlp=rlp->next;
-	      free(rlp4);
-	    }
-	  }
-  
-    if (reg_eff_num_head!=NULL) {
-      if (init_effectors_by_number(objp,reg_eff_num_head)) {
-        return(1);
-      }
-      /* free region list created to hold regions populated by number */
-      rlp=reg_eff_num_head;
-      while(rlp!=NULL) {
-        rlp2=rlp;
-        rlp=rlp->next;
-        free(rlp2);
-      }
-    }
-
-    /*Initialize reg_counter after all the effectors in the object 
-     *had been placed with concern of the region overlapping
-    */
-    if (reg_count_head!=NULL) {
-#if 0 
-      if (!world->chkpt_infile) {
-        if (init_region_counter(pop,cdp,reg_count_head)) {
-          return(1);
-        }
-      }
-      /* allocate memory for counter_hash_table, and 
-       * save the reg_counter_ref_list to the table
-       */       
-      if (init_counter_hash_table(objp,reg_count_head)) {
-	return(1);
-      }
-#endif
-      /* free region_list created by the initialization of region counter*/
-      rlp=reg_count_head;
-      while(rlp!=NULL) {
-        rlp3=rlp;
-        rlp=rlp->next;
-        free(rlp3);
-      }
-    }
-
-   
-    /* free eff_prop array and contents */
-    for (i=0;i<n_walls;i++) {
-      if (eff_prop[i]!=NULL) {
-        effdp=eff_prop[i];
-        while(effdp!=NULL) {
-          dup_effdp=effdp;
-          effdp=effdp->next;
-          free(dup_effdp);
-        }
-      }
-    }
-    free(eff_prop);
-
+  } /*end loop over all regions in object */
+  no_printf("Total area of object %s = %.9g um^2\n",objp->sym->name,objp->total_area/world->effector_grid_density);
+  no_printf("  number of tiles = %u\n",objp->n_tiles);
+  no_printf("  number of occupied tiles = %u\n",objp->n_occupied_tiles);
+  no_printf("  grid molecule density = %.9g\n",objp->n_occupied_tiles*world->effector_grid_density/objp->total_area);
     
   /* Check to see if we need to generate virtual regions for */
   /* concentration clamps on this object */
@@ -2046,6 +1850,188 @@ int init_wall_regions(struct object *objp, char *full_name)
 
 
 
+int init_effectors()
+{
+  if (instance_obj_effectors(world->root_instance)) return 1;
+  return 0;
+}
+
+
+int instance_obj_effectors(struct object *objp)
+{
+  struct object *child_objp;
+
+  switch (objp->object_type)
+  {
+    case META_OBJ:
+      for (child_objp=objp->first_child ; child_objp!=NULL ; child_objp=child_objp->next)
+      {
+	if (instance_obj_effectors(child_objp)) return 1;
+      }
+      break;
+    case REL_SITE_OBJ:
+      break;
+    case BOX_OBJ:
+    case POLY_OBJ:
+      if (init_wall_effectors(objp)) return 1;
+      break;
+    default:
+      break;
+  }
+
+  return(0);
+}
+
+
+int init_wall_effectors(struct object *objp)
+{
+  FILE *log_file;
+  struct polygon_object *pop;
+  struct wall *w;
+  struct eff_dat *effdp,*dup_effdp,**eff_prop;
+  struct region *rp;
+  struct region_list *rlp,*rlp2,*reg_eff_num_head;
+  int i,n_walls;
+  byte reg_eff_num;
+
+  log_file=world->log_file;
+
+  pop=(struct polygon_object *)objp->contents;
+  n_walls=pop->n_walls;
+
+   
+  /* allocate scratch storage to hold effector info for each wall */
+  if ((eff_prop=(struct eff_dat **)malloc(n_walls*sizeof(struct eff_dat *)))==NULL)
+  {
+    fprintf(world->err_file,"Out of memory: can't create space for molecules on a region.\n");
+    return 1;
+  }
+
+  for (i=0;i<n_walls;i++) eff_prop[i]=NULL; 
+
+  /* prepend a copy of eff_dat for each element referenced in each region
+     of this object to the eff_prop list for the referenced element */
+  reg_eff_num_head=NULL;
+  rlp=objp->regions;
+  
+  for (rlp=objp->regions ; rlp!=NULL ; rlp=rlp->next)
+  {
+    rp=rlp->reg;
+    reg_eff_num=0;
+
+    for (i=0;i<rp->membership->nbits;i++)
+    {
+      if (get_bit(rp->membership,i))
+      {
+	w=objp->wall_p[i];
+
+	/* prepend region eff data for this region to eff_prop for i_th wall */
+        for ( effdp=rp->eff_dat_head ; effdp!=NULL ; effdp=effdp->next )
+	{
+	  if (effdp->quantity_type==EFFDENS)
+	  {
+	    if ((dup_effdp=(struct eff_dat *)malloc(sizeof(struct eff_dat)))==NULL)
+	    {
+	      fprintf(world->err_file,"Out of memory: can't create space for molecules on a region.\n");
+	      return 1;
+	    }
+	    dup_effdp->eff=effdp->eff;
+	    dup_effdp->quantity_type=effdp->quantity_type;
+	    dup_effdp->quantity=effdp->quantity;
+	    dup_effdp->orientation=effdp->orientation;
+	    dup_effdp->next=eff_prop[i];
+	    eff_prop[i]=dup_effdp;
+	  }
+	  else reg_eff_num=1;
+	}
+
+	/* prepend surf_class eff data for this region to eff_prop for i_th wall on last region */
+	if (w->surf_class != NULL && rlp->next==NULL)
+	{
+	  for ( effdp=w->surf_class->eff_dat_head ; effdp!=NULL ; effdp=effdp->next )
+	  {
+	    if (effdp->quantity_type==EFFDENS)
+	    {
+	      if ((dup_effdp=(struct eff_dat *)malloc(sizeof(struct eff_dat)))==NULL)
+	      {
+		fprintf(world->err_file,"Out of memory: can't create space for molecules on a region.\n");
+		return 1;
+	      }
+	      dup_effdp->eff=effdp->eff;
+	      dup_effdp->quantity_type=effdp->quantity_type;
+	      dup_effdp->quantity=effdp->quantity;
+	      dup_effdp->orientation=effdp->orientation;
+	      dup_effdp->next=eff_prop[i];
+	      eff_prop[i]=dup_effdp;
+	    }
+	    else reg_eff_num=1;
+	  }
+	}
+
+      }
+    } /* done checking each wall */
+    
+    if (reg_eff_num)
+    {
+      if ((rlp2=(struct region_list *)malloc(sizeof(struct region_list)))==NULL)
+      {
+	fprintf(world->err_file,"Out of memory: can't place regions on geometry.\n");
+	return 1;
+      }
+      rlp2->reg=rp;
+      rlp2->next=reg_eff_num_head;
+      reg_eff_num_head=rlp2;
+    }
+  } /*end for (... ; rlp != NULL ; ...) */
+
+  for (i=0;i<n_walls;i++)
+  {
+    if (!get_bit(pop->side_removed,i))
+    {
+      if (eff_prop[i]!=NULL)
+      {
+	if (init_effectors_by_density(objp->wall_p[i],eff_prop[i])) return 1;
+      }
+    }
+  }
+
+  if (reg_eff_num_head!=NULL)
+  {
+    if (init_effectors_by_number(objp,reg_eff_num_head)) {
+      return(1);
+    }
+    
+    /* free region list created to hold regions populated by number */
+    rlp=reg_eff_num_head;
+    while(rlp!=NULL)
+    {
+      rlp2=rlp;
+      rlp=rlp->next;
+      free(rlp2);
+    }
+  }
+
+  /* free eff_prop array and contents */
+  for (i=0;i<n_walls;i++)
+  {
+    if (eff_prop[i]!=NULL)
+    {
+      effdp=eff_prop[i];
+      while(effdp!=NULL)
+      {
+	dup_effdp=effdp;
+	effdp=effdp->next;
+	free(dup_effdp);
+      }
+    }
+  }
+  free(eff_prop);
+
+    
+  return(0);
+}
+
+
 int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
 {
   FILE *log_file;
@@ -2109,7 +2095,6 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
   no_printf("  Area = %.9g\n",area);
   no_printf("  Grid_size = %d\n",sg->n);
   no_printf("  Number of effector types in wall = %d\n",nr);
-  fflush(log_file);
 
   i=0;
   tot_prob=0;
@@ -2175,7 +2160,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
           mol->flags|=ACT_REACT;
         }
 
-        if ((mol->properties->flags & COUNT_CONTENTS) != 0)
+        if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
           count_me_by_region((struct abstract_molecule*)mol,1,NULL);
       
         if (schedule_add(w->birthplace->timer,mol)){ 
@@ -2384,7 +2369,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     mol->flags|=ACT_REACT;
                   }
                   
-                  if ((mol->properties->flags & COUNT_CONTENTS) != 0)
+                  if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
                     count_me_by_region((struct abstract_molecule*)mol,1,NULL);
       
                   if ( schedule_add(walls[j]->birthplace->timer,mol) ){ 
@@ -2429,7 +2414,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                       mol->flags|=ACT_REACT;
                     }
                   
-                    if ((mol->properties->flags & COUNT_CONTENTS) != 0)
+                    if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
                       count_me_by_region((struct abstract_molecule*)mol,1,NULL);
       
                     if ( schedule_add(walls[k]->birthplace->timer,mol) ){ 

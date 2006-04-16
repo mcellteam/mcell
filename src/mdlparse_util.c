@@ -1342,11 +1342,12 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  for ( j=0,path=rx->pathway_head ; path!=NULL ; j++,path=path->next )
 	  {
 	    rx->info[j].count = 0;
+	    rx->info[j].count_flags = path->count_flags;
 	    rx->info[j].pathname = path->pathname;    /* Keep track of named rxns */
   
-	    for (pcr=path->pcr ; pcr!=NULL ; pcr=pcr->next) /* Fix count references */
+	    for (pcr=path->pcr ; pcr!=NULL ; pcr=pcr->next) /* Fix count references & set count-on-region flag */
 	    {
-	      pcr->requester->temp_data = &(rx->info[j].count);
+	      if (pcr->requester->temp_data == &(path->count)) pcr->requester->temp_data = &(rx->info[j].count);
 	    }
 	  }
 	}
@@ -1356,11 +1357,12 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  
 	  rx->info = (struct pathway_info*)malloc(sizeof(struct pathway_info));
 	  rx->info[0].count = 0;
+	  rx->info[0].count_flags = rx->pathway_head->count_flags;
 	  rx->info[0].pathname = rx->pathway_head->pathname;
 	  
 	  for (pcr=rx->pathway_head->pcr ; pcr!=NULL ; pcr=pcr->next) /* Fix count references */
 	  {
-	    pcr->requester->temp_data = &(rx->info[0].count);
+	    if (pcr->requester->temp_data == &(rx->pathway_head->count)) pcr->requester->temp_data = &(rx->info[0].count);
 	  }
 	}
         
@@ -3297,6 +3299,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
   struct species *sp = NULL;
   struct rxn_pathname *rxp = NULL;
   struct counter *c;
+  struct pathway_count_request *pcr;
   u_int count_flag = 0;
   byte counter_type = 0;
   byte base_report_type = report_type & REPORT_TYPE_MASK;
@@ -3446,7 +3449,6 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
       
       if (r==NULL) /* Count on world--must be rxn */
       {
-	struct pathway_count_request *pcr;
 	pcr = mem_get(mdlpvp->vol->pathway_requester);
 	if (pcr==NULL)
 	{
@@ -3484,10 +3486,25 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
 	    mdlpvp->oep->temp_data = (void*)&c->data.move.back_to_front;
 	    break;
 	  case REPORT_RXNS:
+	    pcr = mem_get(mdlpvp->vol->pathway_requester);
+	    if (pcr==NULL)
+	    {
+	      fprintf(mdlpvp->vol->err_file,"Out of memory while trying to attach count to reaction\n");
+	      return 1;
+	    }
+	    pcr->requester = mdlpvp->oep;
+	    pcr->next = rxp->path->pcr;
+	    rxp->path->pcr = pcr;
 	    if ((report_type&REPORT_ENCLOSED) != 0)
+	    {
+	      rxp->path->count_flags |= COUNT_RX_ENCLOSED;
 	      mdlpvp->oep->temp_data = (void*)&c->data.rx.n_rxn_enclosed;
+	    }
 	    else
+	    {
+	      rxp->path->count_flags |= COUNT_RX_CONTENTS;
 	      mdlpvp->oep->temp_data = (void*)&c->data.rx.n_rxn_at;
+	    }
 	    break;
 	  default:
 	    return 1;

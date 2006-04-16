@@ -405,7 +405,8 @@ int place_waypoints()
   
   for (i=0;i<world->n_species;i++)
   {
-    if ((world->species_list[i]->flags & (NOT_FREE | COUNT_CONTENTS)) == COUNT_CONTENTS)
+    if ((world->species_list[i]->flags & (NOT_FREE | COUNT_CONTENTS)) == COUNT_CONTENTS
+        || (world->species_list[i]->flags & COUNT_ENCLOSED)!=0 )
       i_will_use_waypoints++;
   }
   

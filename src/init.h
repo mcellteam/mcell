@@ -35,6 +35,10 @@ int instance_obj_regions(struct object *objp, char *sub_name);
 
 int init_wall_regions(struct object *objp, char *full_name);
 
+int init_effectors();
+int instance_obj_effectors(struct object *objp);
+int init_wall_effectors(struct object *objp);
+
 int init_effectors_by_density(struct wall *w, struct eff_dat *eff_dat_head);
 
 int init_effectors_by_number(struct object *objp, struct region_list *rlp);
