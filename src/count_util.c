@@ -499,6 +499,25 @@ int place_waypoints()
 
 
 /*************************************************************************
+region_listed:
+   In: list of regions
+       one specific region we're interested in
+   Out: 1 if the region is in the list.  0 if not.
+*************************************************************************/
+
+int region_listed(struct region_list *rl,struct region *r)
+{
+  while (rl!=NULL)
+  {
+    if (rl->reg==r) return 1;
+    rl=rl->next;
+  }
+  return 0;
+}
+
+
+
+/*************************************************************************
 count_me_by_region:
    In: abstract molecule we are supposed to count (or a representative one)
        number by which to update the counter (usually +1 or -1)
@@ -569,11 +588,13 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
     struct vector3 loc;
     double t;
     double t_sv_hit;
+    struct wall *my_wall;
     
     if ((sp->flags&NOT_FREE)==0)
     {
       m = (struct molecule*)me;
       g = NULL;
+      my_wall=NULL;
       
       loc.x = m->pos.x;
       loc.y = m->pos.y;
@@ -583,7 +604,8 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
     {
       g = (struct grid_molecule*)me;
       m = NULL;
-      uv2xyz(&(g->s_pos),g->grid->surface,&loc);
+      my_wall=g->grid->surface;
+      uv2xyz(&(g->s_pos),my_wall,&loc);
     }
       
     i = bisect(world->x_partitions,world->nx_parts,loc.x);
@@ -601,7 +623,7 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
         
         for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
         {
-          if (c->reg_type==rl->reg)
+          if (c->reg_type==rl->reg && (my_wall==NULL || !region_listed(my_wall->counting_regions,rl->reg)))
 	  {
 	    if ( rxp==NULL && c->data.move.mol_type==sp &&
 	         (g==NULL || (c->counter_type&ENCLOSING_COUNTER)!=0) )
@@ -626,7 +648,7 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
         
         for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
         {
-          if (c->reg_type==rl->reg)
+          if (c->reg_type==rl->reg && (my_wall==NULL || !region_listed(my_wall->counting_regions,rl->reg)))
 	  {
 	    if ( rxp==NULL && c->data.move.mol_type==sp &&
 	         (g==NULL || (c->counter_type&ENCLOSING_COUNTER)!=0) )
@@ -658,6 +680,8 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
 
       for (wl = sv->wall_head ; wl != NULL ; wl = wl->next)
       {
+	if (wl->this_wall==my_wall) continue;  /* If we're on a wall, skip it */
+	
         if (wl->this_wall->flags & COUNT_flag)
         {
           j = collide_wall(&here,&delta,wl->this_wall,&t,&hit);
@@ -674,8 +698,9 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
                 
                 for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
                 {
-                  if (c->reg_type==rl->reg)
+                  if (c->reg_type==rl->reg && (my_wall==NULL || !region_listed(my_wall->counting_regions,rl->reg)))
 		  {
+		    printf("Counting\n");
 		    if ( rxp==NULL && c->data.move.mol_type==sp &&
 		         (g==NULL || (c->counter_type&ENCLOSING_COUNTER)!=0) )
 		    {
