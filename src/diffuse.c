@@ -235,70 +235,100 @@ struct collision* ray_trace(struct molecule *m, struct collision *c,
     }
   }
 
+  dx=dy=dz=0.0;
+  i=-10;
   if (v->x < 0.0)
   {
     dx = world->x_fineparts[ sv->llf.x ] - m->pos.x;
     i = 0;
   }
-  else
+  else if (v->x > 0.0)
   {
     dx = world->x_fineparts[ sv->urb.x ] - m->pos.x;
     i = 1;
   }
 
+  j=-10;
   if (v->y < 0.0)
   {
     dy = world->y_fineparts[ sv->llf.y ] - m->pos.y;
     j = 0;
   }
-  else
+  else if (v->y > 0.0)
   {
     dy = world->y_fineparts[ sv->urb.y ] - m->pos.y;
     j = 1;
   }
 
+  k=-10;
   if (v->z < 0.0)
   {
     dz = world->z_fineparts[ sv->llf.z ] - m->pos.z;
     k = 0;
   }
-  else
+  else if (v->z > 0.0)
   {
     dz = world->z_fineparts[ sv->urb.z ] - m->pos.z;
     k = 1;
   }
   
-  tx = dx * v->y * v->z;
-  ty = v->x * dy * v->z;
-  tz = v->x * v->y * dz;
-  if (tx<0.0) tx = -tx;
-  if (ty<0.0) ty = -ty;
-  if (tz<0.0) tz = -tz;
-
-  if (tx < ty)
+  if (i+j+k < -15) /* Two or three vectors are zero */
   {
-    if (tx < tz)
+    if (i >= 0) /* X is the nonzero one */
     {
       smash->t = dx / v->x;
       smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NX + i;
     }
-    else
-    {
-      smash->t = dz / v->z;
-      smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NZ + k;
-    }
-  }
-  else
-  {
-    if (ty < tz)
+    else if (j>=0) /* Y is nonzero */
     {
       smash->t = dy / v->y;
       smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NY + j;
     }
-    else
+    else if (k>=0) /* Z is nonzero */
     {
       smash->t = dz / v->z;
       smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NZ + k;
+    }
+    else
+    {
+      smash->t = FOREVER;
+      smash->what = COLLIDE_SUBVOL; /*Wrong, but we'll never hit it, so it's ok*/
+    }
+  }
+  else /* Zero or one vectors zero--use alternate method */
+  {
+    tx = dx * v->y * v->z;
+    ty = v->x * dy * v->z;
+    tz = v->x * v->y * dz;
+    if (tx<0.0) tx = -tx;
+    if (ty<0.0) ty = -ty;
+    if (tz<0.0) tz = -tz;
+  
+    if (tx < ty)
+    {
+      if (tx < tz)
+      {
+        smash->t = dx / v->x;
+        smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NX + i;
+      }
+      else
+      {
+        smash->t = dz / v->z;
+        smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NZ + k;
+      }
+    }
+    else
+    {
+      if (ty < tz)
+      {
+        smash->t = dy / v->y;
+        smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NY + j;
+      }
+      else
+      {
+        smash->t = dz / v->z;
+        smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NZ + k;
+      }
     }
   }
   
