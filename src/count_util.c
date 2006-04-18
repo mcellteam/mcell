@@ -700,7 +700,6 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
                 {
                   if (c->reg_type==rl->reg && (my_wall==NULL || !region_listed(my_wall->counting_regions,rl->reg)))
 		  {
-		    printf("Counting\n");
 		    if ( rxp==NULL && c->data.move.mol_type==sp &&
 		         (g==NULL || (c->counter_type&ENCLOSING_COUNTER)!=0) )
 		    {
