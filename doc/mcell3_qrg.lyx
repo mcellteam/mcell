@@ -4045,7 +4045,7 @@ name
 
 
 \family typewriter 
-CONCENTRATION 
+CLAMP_CONCENTRATION 
 \family sans 
 \shape italic 
 name
@@ -4083,6 +4083,11 @@ value
  is reflective.
  Note that this command is only used to set the effective concentration
  of a 3D molecule at a surface; it is not valid to specify a 2D molecule.
+ This command can be abbreviated as 
+\family typewriter 
+CLAMP_CONC
+\family default 
+.
 \end_inset 
 </cell>
 </row>
@@ -6415,11 +6420,32 @@ LIST
 \layout Standard
 
 
+\begin_inset Minipage
+position 0
+inner_position 0
+height "0pt"
+width "30col%"
+collapsed false
+
+\layout Standard
+
+
 \family typewriter 
 CONCENTRATION = 
 \family sans 
 \shape italic 
 c
+\layout Standard
+
+
+\family typewriter 
+DENSITY = 
+\family sans 
+\shape italic 
+d
+\end_inset 
+
+
 \end_inset 
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
@@ -6436,15 +6462,19 @@ c
  molar for volumes and 
 \family sans 
 \shape italic 
-c
+d
 \family default 
 \shape default 
  molecules per square micron for surfaces.
- Not used for the 
+ Neither can be used for the 
 \family typewriter 
 LIST
 \family default 
- shape.
+ shape; 
+\family typewriter 
+DENSITY
+\family default 
+ is only valid for regions.
 \end_inset 
 </cell>
 </row>
@@ -6460,7 +6490,7 @@ position 0
 inner_position 0
 height "0pt"
 width "30col%"
-collapsed false
+collapsed true
 
 \layout Standard
 
@@ -8059,7 +8089,7 @@ name
 region
 \family typewriter 
 \shape default 
-,CONCENTRATION]
+,ESTIMATE_CONC]
 \end_inset 
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
@@ -8113,6 +8143,11 @@ th output, let
  Note that this is the concentration all around the surface, so if the molecule
  can only reach one side, the concentration on that side will be twice what
  is reported here.
+ The command can be given verbosely as 
+\family typewriter 
+ESTIMATE_CONCENTRATION
+\family default 
+.
 \end_inset 
 </cell>
 </row>
