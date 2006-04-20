@@ -117,6 +117,7 @@ struct release_evaluator *rev;
 %token <tok> CHECKPOINT_INFILE
 %token <tok> CHECKPOINT_OUTFILE
 %token <tok> CHECKPOINT_ITERATIONS
+%token <tok> CLAMP_CONCENTRATION
 %token <tok> CLOSE_PARTITION_SPACING
 %token <tok> COLOR
 %token <tok> COLOR_SIDE
@@ -161,6 +162,7 @@ struct release_evaluator *rev;
 %token <tok> ELLIPTIC_RELEASE_SITE
 %token <tok> EOF_TOK
 %token <tok> ERROR
+%token <tok> ESTIMATE_CONCENTRATION
 %token <tok> EXCLUDE_ELEMENTS
 %token <tok> EXCLUDE_PATCH
 %token <tok> EXCLUDE_REGION
@@ -2655,7 +2657,7 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
   no_printf(" [%.9g,%.9g]\n",mdlpvp->rxnp->pathway_head->km,mdlpvp->rxnp->pathway_head->kcat);
 #endif
 }
-        | CONCENTRATION existing_molecule_opt_orient '=' num_expr
+        | CLAMP_CONCENTRATION existing_molecule_opt_orient '=' num_expr
 {
   mdlpvp->stp2=$<sym>2;
   mdlpvp->specp=(struct species *)mdlpvp->stp2->value;
@@ -3496,6 +3498,27 @@ release_site_def_new: new_object RELEASE_SITE '{'
 	'}'
 {
   no_printf("Release site %s defined:\n",mdlpvp->curr_obj->sym->name);
+  if (mdlpvp->rsop->release_number_method==CCNNUM)
+  {
+    if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==0 && mdlpvp->rsop->release_number != -3)
+    {
+      mdlerror("CONCENTRATION must be used with molecules that can diffuse in 3D");
+      if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==ON_GRID)
+      {
+	mdlerror("  (Use DENSITY for molecules diffusing in 2D.)");
+      }
+      return 1;
+    }
+    else if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==ON_GRID && mdlpvp->rsop->release_number != -2)
+    {
+      mdlerror("DENSITY must be used with molecules that can diffuse in 2D");
+      if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==0)
+      {
+	mdlerror("  (Use CONCENTRATION for molecules diffusing in 3D.)");
+      }
+      return 1;
+    }
+  }
   if (mdlpvp->rsop->release_shape!=SHAPE_REGION)
   {
     if (mdlpvp->rsop->location==NULL)
@@ -3950,7 +3973,13 @@ volume_dependent_number_cmd: VOLUME_DEPENDENT_RELEASE_NUMBER '{'
 concentration_dependent_release_cmd: CONCENTRATION '=' num_expr
 {
   mdlpvp->rsop->release_number_method=CCNNUM;
-  mdlpvp->rsop->release_number=-1;
+  mdlpvp->rsop->release_number=-3; /* Expect 3D molecule */
+  mdlpvp->rsop->concentration = $<dbl>3;
+}
+	| DENSITY '=' num_expr
+{
+  mdlpvp->rsop->release_number_method=CCNNUM;
+  mdlpvp->rsop->release_number=-2; /* Expect 2D molecule */
   mdlpvp->rsop->concentration = $<dbl>3;
 };
 
@@ -9135,7 +9164,7 @@ hit_spec: FRONT_HITS { $$ = REPORT_FRONT_HITS; }
 	| FRONT_CROSSINGS { $$ = REPORT_FRONT_CROSSINGS; }
 	| BACK_CROSSINGS { $$ = REPORT_BACK_CROSSINGS; }
 	| ALL_CROSSINGS { $$ = REPORT_ALL_CROSSINGS; }
-	| CONCENTRATION { $$ = REPORT_CONCENTRATION; }
+	| ESTIMATE_CONCENTRATION { $$ = REPORT_CONCENTRATION; }
 	| ALL_ENCLOSED { $$ = REPORT_ENCLOSED; }
 ;
 
