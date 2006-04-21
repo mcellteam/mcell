@@ -1,5 +1,5 @@
 /* Infinite array - routines to handle infinite arrays *
-* An infinite array of doubles cam grow as needed.
+* An infinite array of doubles can grow as needed.
 *******************************************************/
 #include "util.h"
 #include <float.h>
@@ -36,7 +36,7 @@ static struct infinite_double_array *ia_double_locate(struct infinite_double_arr
 		if(current_ptr->next == NULL){
 		   current_ptr->next = malloc(sizeof(struct infinite_double_array));
 		   if(current_ptr->next == NULL){
-                       fprintf(stderr, "Memory allocation error\n");
+                       fprintf(stderr, "MCell: Out of memory while creating infinite array\n");
 			exit(1);
                    }
                  /*  memset(current_ptr->next, '\0', sizeof(struct infinite_double_array)); */
@@ -120,7 +120,7 @@ static struct infinite_int_array *ia_int_locate(struct infinite_int_array *array
 		if(current_ptr->next == NULL){
 		   current_ptr->next = malloc(sizeof(struct infinite_int_array));
 		   if(current_ptr->next == NULL){
-                       fprintf(stderr, "Memory allocation error\n");
+                       fprintf(stderr, "MCell: Out of memory while creating infinite array\n");
 			exit(1);
                    }
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_int_array)); */
@@ -204,7 +204,7 @@ static struct infinite_uint_array *ia_uint_locate(struct infinite_uint_array *ar
 		if(current_ptr->next == NULL){
 		   current_ptr->next = malloc(sizeof(struct infinite_uint_array));
 		   if(current_ptr->next == NULL){
-                       fprintf(stderr, "Memory allocation error\n");
+                       fprintf(stderr, "MCell: Out of memory while creating infinite array\n");
 			exit(1);
                    }
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_int_array)); */
@@ -288,7 +288,7 @@ static struct infinite_longlong_array *ia_longlong_locate(struct infinite_longlo
 		if(current_ptr->next == NULL){
 		   current_ptr->next = malloc(sizeof(struct infinite_longlong_array));
 		   if(current_ptr->next == NULL){
-                       fprintf(stderr, "Memory allocation error\n");
+                       fprintf(stderr, "MCell: Out of memory while creating infinite array\n");
 			exit(1);
                    }
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_longlong_array)); */
@@ -373,7 +373,7 @@ static struct infinite_string_array *ia_string_locate(struct infinite_string_arr
 		if(current_ptr->next == NULL){
 		   current_ptr->next = malloc(sizeof(struct infinite_string_array));
 		   if(current_ptr->next == NULL){
-                       fprintf(stderr, "Memory allocation error\n");
+                       fprintf(stderr, "MCell: Out of memory while creating infinite array\n");
 			exit(1);
                    }
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_string_array)); */    
@@ -411,7 +411,7 @@ void ia_string_store(struct infinite_string_array *array_ptr, int index, char *d
 	current_ptr = ia_string_locate(array_ptr, index, &current_index);
         new_entry = my_strdup(data_to_store);
         if(new_entry == NULL){
-		fprintf(stderr, "is_string_store(): memory allocation error.\n");
+		fprintf(stderr, "MCell: Out of memory while creating infinite array\n");
         }else{
 		current_ptr->data[current_index] = new_entry;	
         }
@@ -466,7 +466,7 @@ static struct infinite_pointer_array *ia_pointer_locate(struct infinite_pointer_
 		if(current_ptr->next == NULL){
 		   current_ptr->next = malloc(sizeof(struct infinite_pointer_array));
 		   if(current_ptr->next == NULL){
-                       fprintf(stderr, "Memory allocation error\n");
+                       fprintf(stderr, "MCell: Out of memory while creating infinite array\n");
 			exit(1);
                    }
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_pointer_array)); */

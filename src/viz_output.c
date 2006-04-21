@@ -5332,7 +5332,7 @@ char file_name[1024];
 
   if ((image_buffer=(unsigned int *)malloc
                     (num_pixels*sizeof(unsigned int)))==NULL) {
-    printf ("MCell: cannot store voxel image\n");
+    printf ("MCell: Out of memory while creating voxel image\n");
     return(1);
   }
 
@@ -5641,7 +5641,7 @@ char file_name[1024];
 
   if ((voxel_buffer=(unsigned int *)malloc
                     (num_voxels*sizeof(unsigned int)))==NULL) {
-    printf ("MCell: cannot store voxel image\n");
+    printf ("MCell: Out of memory while creating voxel image\n");
     return(1);
   }
 

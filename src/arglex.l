@@ -46,7 +46,7 @@ I ([0-9]+)
 {I}			{sscanf((const char *)argtext,"%d",&apvp->ival); return(INTEGER);}
 [[:alnum:][:punct:]]+	 {apvp->cval=my_strdup(argtext); 
 			  if(apvp->cval == NULL){
-                            printf("Memory allocation error.\n");
+                            fprintf(stderr,"MCell: Out of memory while parsing command line arguments.\n");
                             exit(1);
                           }
 			  return(FILE_NAME);}

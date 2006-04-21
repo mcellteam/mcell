@@ -254,7 +254,7 @@ struct object *make_new_object(struct volume *volp,char *obj_name,char *err_msg)
 
   if ((gp=retrieve_sym(obj_name,OBJ,volp->main_sym_table))==NULL) {
     if ((gp=store_sym(obj_name,OBJ,volp->main_sym_table))==NULL) {
-      sprintf(err_msg,"%s %s","Cannot store object in table:",obj_name);
+      sprintf(err_msg,"%s %s","Out of memory while creating object:",obj_name);
       return(NULL);
     }
   }
@@ -289,7 +289,7 @@ struct region *make_new_region(struct volume *volp,char *obj_name,
   
   if ((gp=retrieve_sym(region_name,REG,volp->main_sym_table))==NULL) {
     if ((gp=store_sym(region_name,REG,volp->main_sym_table))==NULL) {
-      sprintf(err_msg,"%s %s","Cannot store region in table:",region_name);
+      sprintf(err_msg,"%s %s","Out of memory while creating region:",region_name);
       return(NULL);
     }
   }
@@ -356,7 +356,7 @@ int copy_object(struct volume *volp,struct object *curr_objp,
   rlp2=objp2->regions;
   while (rlp2!=NULL) {
     if ((rlp=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
-      sprintf(err_msg,"%s %s","Cannot store object name:",sym_name);
+      sprintf(err_msg,"%s %s","Out of memory while creating object:",sym_name);
       return(1);
     }
     rlp->next=objp->regions;
@@ -390,7 +390,7 @@ int copy_object(struct volume *volp,struct object *curr_objp,
       /* FIXME: take this for loop out later, shouldn't be needed */
       if ((elp=(struct element_list *)malloc
            (sizeof(struct element_list)))==NULL) {
-        sprintf(err_msg,"%s %s","Cannot store object name:",sym_name);
+        sprintf(err_msg,"%s %s","Out of memory while creating object:",sym_name);
         return(1);
       }
       elp->special=NULL;
@@ -405,7 +405,7 @@ int copy_object(struct volume *volp,struct object *curr_objp,
       rp->membership = duplicate_bit_array(rp2->membership);
       if (rp->membership==NULL)
       {
-	sprintf(err_msg,"%s %s","Cannot store object name:",sym_name);
+	sprintf(err_msg,"%s %s","Out of memory while creating object:",sym_name);
 	return 1;
       }
     }
@@ -413,7 +413,7 @@ int copy_object(struct volume *volp,struct object *curr_objp,
     effdp2=rp2->eff_dat_head;
     while (effdp2!=NULL) {
       if ((effdp=(struct eff_dat *)malloc(sizeof(struct eff_dat)))==NULL) {
-        sprintf(err_msg,"%s %s","Cannot store object name:",sym_name);
+        sprintf(err_msg,"%s %s","Out of memory while creating object:",sym_name);
         return(1);
       }
       effdp->next=rp->eff_dat_head;
@@ -3407,7 +3407,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
     
     if (build_count_tree(report_type,mdlpvp->vol,obj,mdlpvp->oip,mdlpvp->oep,value,mdlpvp->obp->buffersize,mdlpvp->prefix_name))
     {
-      fprintf(mdlpvp->vol->err_file,"Cannot store count evaluator data for object %s\n",obj->sym->name);
+      fprintf(mdlpvp->vol->err_file,"Out of memory while creating count evaluator for object %s\n",obj->sym->name);
       return 1;
     }
     if (mdlpvp->oep->operand1==NULL)
@@ -3426,7 +3426,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
       i1=mdlpvp->obp->buffersize;
       if ((mdlpvp->intp=(int *)malloc(i1*sizeof(int)))==NULL)
       {
-	fprintf(mdlpvp->vol->err_file,"Cannot store count data");
+	fprintf(mdlpvp->vol->err_file,"Out of memory while creating counter");
 	return 1;
       }
 
@@ -3444,7 +3444,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
 	c = store_reg_counter(mdlpvp->vol,(void *)sp,r,counter_type);
 	if (c==NULL)
 	{
-	  fprintf(mdlpvp->vol->err_file,"Cannot store count data");
+	  fprintf(mdlpvp->vol->err_file,"Out of memory while creating counter");
 	  return 1;
 	}
 	
@@ -3459,7 +3459,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
       i1=mdlpvp->obp->buffersize;
       if ((mdlpvp->dblp=(double *)malloc(i1*sizeof(double)))==NULL)
       {
-	fprintf(mdlpvp->vol->err_file,"Cannot store count data");
+	fprintf(mdlpvp->vol->err_file,"Out of memory while creating counter");
 	return 1;
       }
       
@@ -3488,7 +3488,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
 	else c = store_reg_counter(mdlpvp->vol,(void *)rxp,r,counter_type);
 	if (c==NULL)
 	{
-	  fprintf(mdlpvp->vol->err_file,"Cannot store count data");
+	  fprintf(mdlpvp->vol->err_file,"Out of memory while creating counter");
 	  return 1;
 	}
 	
@@ -3538,7 +3538,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
       c = store_reg_counter(mdlpvp->vol,(void *)sp,r,counter_type);
       if (c==NULL)
       {
-	fprintf(mdlpvp->vol->err_file,"Cannot store count data");
+	fprintf(mdlpvp->vol->err_file,"Out of memory while creating counter");
 	return 1;
       }
       
@@ -3558,22 +3558,22 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
 	case REPORT_ALL_HITS:
 	  if (insert_counter(REPORT_FRONT_HITS,mdlpvp->vol,mdlpvp->oip,mdlpvp->oep,c,mdlpvp->obp->buffersize))
 	  {
-	    fprintf(mdlpvp->vol->err_file,"Cannot store molecule output_evaluator data");
+	    fprintf(mdlpvp->vol->err_file,"Out of memory while creating molecule output evaluator");
 	    return 1;
 	  }
 	  if (insert_counter(REPORT_BACK_HITS,mdlpvp->vol,mdlpvp->oip,mdlpvp->oep,c,mdlpvp->obp->buffersize)) {
-	    fprintf(mdlpvp->vol->err_file,"Cannot store molecule output_evaluator data");
+	    fprintf(mdlpvp->vol->err_file,"Out of memory while creating molecule output evaluator");
 	    return 1;
 	  }
 	  break;
 	case REPORT_ALL_CROSSINGS:
 	  if (insert_counter(REPORT_FRONT_CROSSINGS,mdlpvp->vol,mdlpvp->oip,mdlpvp->oep,c,mdlpvp->obp->buffersize))
 	  {
-	    fprintf(mdlpvp->vol->err_file,"Cannot store molecule output_evaluator data");
+	    fprintf(mdlpvp->vol->err_file,"Out of memory while creating molecule output evaluator");
 	    return 1;
 	  }
 	  if (insert_counter(REPORT_BACK_CROSSINGS,mdlpvp->vol,mdlpvp->oip,mdlpvp->oep,c,mdlpvp->obp->buffersize)) {
-	    fprintf(mdlpvp->vol->err_file,"Cannot store molecule output_evaluator data");
+	    fprintf(mdlpvp->vol->err_file,"Out of memory while creating molecule output evaluator");
 	    return 1;
 	  }
 	  break;
@@ -3581,11 +3581,11 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
 	  mdlpvp->oep->oper='/';
 	  if (insert_counter(REPORT_CONCENTRATION,mdlpvp->vol,mdlpvp->oip,mdlpvp->oep,c,mdlpvp->obp->buffersize))
 	  {
-	    fprintf(mdlpvp->vol->err_file,"Cannot store molecule output_evaluator data");
+	    fprintf(mdlpvp->vol->err_file,"Out of memory while creating molecule output evaluator");
 	    return 1;
 	  }
 	  if (insert_counter(REPORT_ELAPSED_TIME,mdlpvp->vol,mdlpvp->oip,mdlpvp->oep,(struct counter*)&mdlpvp->vol->elapsed_time,mdlpvp->obp->buffersize)) {
-	    fprintf(mdlpvp->vol->err_file,"Cannot store molecule output_evaluator data");
+	    fprintf(mdlpvp->vol->err_file,"Out of memory while creating molecule output evaluator");
 	    return 1;
 	  }
 	  break;	  

@@ -138,7 +138,7 @@ distclean:
 	rm -f $(OBJS) arglex.c argparse.c mdllex.c mdlparse.c $(MCELL_EXEC) \
 	  config.cache config.log config.status configure makedefs
 
-install: mcell
+install: $(MCELL_EXEC)
 	@if [ "$(INSTALL_DIR)" ]; then \
 	  if [ ! -s $(INSTALL_DIR) ]; then \
 	    echo mkdir $(INSTALL_DIR); \

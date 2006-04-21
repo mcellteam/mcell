@@ -279,7 +279,7 @@ int main(int argc, char **argv) {
   err_file=stderr;
 
   if ((world=(struct volume *)malloc(sizeof(struct volume)))==NULL) {
-    fprintf(err_file,"MCell: could not store world volume data structure\n");
+    fprintf(err_file,"MCell: Out of memory while creating world volume data structure\n");
     exit(EXIT_FAILURE);
   }
   world->log_file=log_file;

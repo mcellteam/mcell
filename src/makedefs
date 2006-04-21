@@ -1,7 +1,9 @@
 CC = gcc
-CFLAGS = -Wall -O3 -march=pentium4
+# CFLAGS = -Wall -O3 -march=pentium4
 # CFLAGS = -Wall -O3 -march=pentiumpro
-# CFLAGS = -Wall -O3 -march=athlon-xp
+CFLAGS = -Wall -O3 -march=athlon-xp
+# CFLAGS = -Wall -march=athlon-xp
+# CFLAGS = -Wall -O3 -march=athlon-mp
 # CFLAGS = -Wall -O3
 # CFLAGS = -Wall -fast
 # CFLAGS = -Wall -ggdb3 -O0 -fno-strict-aliasing -pg
@@ -10,6 +12,6 @@ LIBS =  -lm
 # LIBS =  -lefence -lm
 LD = $(CC)
 LDFLAGS = 
-# INSTALL_DIR = $(HOME)/bin
+INSTALL_DIR = $(HOME)/bin
 MCELL_EXEC = mcell3
 EXTRAS =

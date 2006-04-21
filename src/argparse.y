@@ -103,7 +103,7 @@ mdl_infile_cmd: FILE_NAME
   }
   volp->mdl_infile_name=my_strdup(argpvp->cval);
   if (volp->mdl_infile_name == NULL) {
-    sprintf(argpvp->arg_err_msg,"Memory allocation error: %s",argpvp->cval);
+    sprintf(argpvp->arg_err_msg,"Out of memory while parsing command line arguments: %s",argpvp->cval);
     argerror(argpvp->arg_err_msg,argpvp);
     return(1);
   }
@@ -140,7 +140,7 @@ checkpoint_cmd: CHECKPOINT_OPT FILE_NAME
 {
   volp->chkpt_infile = my_strdup(argpvp->cval);
   if (volp->chkpt_infile == NULL) {
-    sprintf(argpvp->arg_err_msg,"Memory allocation error: %s",argpvp->cval);
+    sprintf(argpvp->arg_err_msg,"Out of memory while parsing command line arguments: %s",argpvp->cval);
     argerror(argpvp->arg_err_msg,argpvp);
     return(1);
   }
@@ -161,7 +161,7 @@ log_file_cmd: LOG_FILE_OPT FILE_NAME
 {
   volp->log_file_name=my_strdup(argpvp->cval);
   if (volp->log_file_name == NULL) {
-    sprintf(argpvp->arg_err_msg,"Memory allocation error: %s",argpvp->cval);
+    sprintf(argpvp->arg_err_msg,"Out of memory while parsing command line arguments: %s",argpvp->cval);
     argerror(argpvp->arg_err_msg,argpvp);
     return(1);
   }

@@ -380,7 +380,7 @@ I ([0-9]+)
 			     mpvp->cval=my_strdup(mdltext);
 			   }
                            if(mpvp->cval == NULL){
-                                printf("Memory allocation error.\n");
+                                fprintf(stderr,"MCell: Out of memory while parsing variable name: %s\n",mdltext);
                                 exit(1);
                            }
 
@@ -396,7 +396,7 @@ I ([0-9]+)
 			     mpvp->cval=my_strdup(mdltext);
 			   }
                            if(mpvp->cval == NULL){
-                                printf("Memory allocation error.\n");
+                                fprintf(stderr,"MCell: Out of memory while parsing wildcard variable name: %s\n",mdltext);
                                 exit(1);
                            }
 
@@ -405,7 +405,7 @@ I ([0-9]+)
 \"(([^\"]*)|((\\\")*))*\"  {
                              mpvp->strval=my_strdup(mdltext); 
 			     if(mpvp->strval == NULL){
-                                printf("Memory allocation error.\n");
+                                fprintf(stderr,"MCell: Out of memory while parsing string: %s\n",mdltext);
                                 exit(1);
                              }
                              return(STR_VALUE);

@@ -287,7 +287,7 @@ int init_sim(void)
   world->count_hash = (struct counter**)malloc(sizeof(struct counter*)*(world->count_hashmask+1));
   if (world->count_hash == NULL)
   {
-    fprintf(log_file,"Out of memory: could not store counter hash table\n");
+    fprintf(log_file,"MCell: Out of memory while creating counter hash table\n");
     exit(EXIT_FAILURE);
   }
   for (i=0;i<=world->count_hashmask;i++) world->count_hash[i] = NULL;
@@ -306,7 +306,7 @@ int init_sim(void)
 	
 
   if ((gp=store_sym("WORLD_OBJ",OBJ,world->main_sym_table))==NULL) {
-    fprintf(log_file,"MCell: could not store world root object\n");
+    fprintf(log_file,"MCell: Out of memory while creating world root object\n");
     return(1);
   }
   world->root_object=(struct object *)gp->value;
@@ -314,7 +314,7 @@ int init_sim(void)
   world->root_object->last_name="";
 
   if ((gp=store_sym("WORLD_INSTANCE",OBJ,world->main_sym_table))==NULL) {
-    fprintf(log_file,"MCell: could not store world root instance\n");
+    fprintf(log_file,"MCell: Out of memory while creating world root instance\n");
     return(1);
   }
   world->root_instance=(struct object *)gp->value;
@@ -323,7 +323,7 @@ int init_sim(void)
 
   if ((gp=store_sym("DEFAULT_RELEASE_PATTERN",RPAT,world->main_sym_table))
       ==NULL) {
-    fprintf(log_file,"MCell: cannot store default release pattern");
+    fprintf(log_file,"MCell: Out of memory while creating default release pattern");
     return(1);
   }
   world->default_release_pattern=(struct release_pattern *)gp->value;
@@ -335,14 +335,14 @@ int init_sim(void)
    
   if ((gp=store_sym("GENERIC_MOLECULE",MOL,world->main_sym_table))
       ==NULL) {
-    fprintf(log_file,"MCell: cannot store generic molecule");
+    fprintf(log_file,"MCell: Out of memory while creating generic molecule");
     return(1);
   }
   world->g_mol=(struct species *)gp->value;
 
   if ((gp=store_sym("GENERIC_SURFACE",MOL,world->main_sym_table))
       ==NULL) {
-    fprintf(log_file,"MCell: cannot store generic surface");
+    fprintf(log_file,"MCell: Out of memory while creating generic surface");
     return(1);
   }
   world->g_surf=(struct species *)gp->value;
@@ -358,11 +358,11 @@ int init_sim(void)
 
   if ((world->count_zero=(struct output_evaluator *)malloc
        (sizeof(struct output_evaluator)))==NULL) {
-    fprintf(log_file,"Out of memory: cannot store counter data\n");
+    fprintf(log_file,"MCell: Out of memory while creating zero counter\n");
     exit(EXIT_FAILURE);
   }
   if (!(intp=(int *)malloc(sizeof(int)))) {
-    fprintf(log_file,"Out of memory: cannot store counter data\n");
+    fprintf(log_file,"MCell: Out of memory while creating zero counter\n");
     exit(EXIT_FAILURE);
   }
   *intp=0;

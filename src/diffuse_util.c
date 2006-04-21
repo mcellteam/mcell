@@ -236,7 +236,7 @@ double* init_r_step(int radial_subdivisions)
     
   log_file=world->err_file;
   if ((r_step=(double *)malloc(radial_subdivisions*sizeof(double)))==NULL) { 
-    fprintf(log_file,"MCell: cannot store radial step length table\n");
+    fprintf(log_file,"MCell: Out of memory while creating radial step length table\n");
     return NULL;
   } 
       
@@ -337,11 +337,11 @@ double* init_d_step(int radial_directions,unsigned int *actual_directions)
   no_printf("desired n_patches in octant = %d\n",radial_directions);
   no_printf("approximate n_patches in octant = %d\n",n_patches);
   if ((phi_edge=(double *)malloc(n_edge*sizeof(double)))==NULL) {
-    fprintf(log_file,"MCell: cannot store directional step table\n");
+    fprintf(log_file,"MCell: Out of memory while creating directional step table\n");
     return NULL;
   } 
   if ((n=(int *)malloc(n_edge*sizeof(int)))==NULL) {
-    fprintf(log_file,"MCell: cannot store directional step table\n");
+    fprintf(log_file,"MCell: Out of memory while creating directional step table\n");
     return NULL;
   } 
   for (i=0;i<n_edge;i++) {
@@ -381,7 +381,7 @@ double* init_d_step(int radial_directions,unsigned int *actual_directions)
   no_printf("phi factor = %f\n",phi_factor);
 
   if ((d_step=(double *)malloc(3*n_tot*sizeof(double)))==NULL) {
-    fprintf(log_file,"MCell: cannot store directional step table\n");
+    fprintf(log_file,"MCell: Out of memory while creating directional step table\n");
     return NULL;
   } 
   k=0;
