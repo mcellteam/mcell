@@ -270,7 +270,13 @@ N
 
 \layout Standard
 
-Valid syntax, but not implemented yet.
+Print out a message when every 
+\family sans 
+\shape italic 
+N
+\family default 
+\shape default 
+ iterations have finished.
 \end_inset 
 </cell>
 </row>
@@ -7854,6 +7860,34 @@ The values specified in braces are count statements, or mathematical operations
  applied to count statements (e.g.
  you can add, subtract, etc.
  count statements to each other and to constants and so on).
+ Wildcards can be used to select multiple molecules or reactions by name,
+ but in this case mathematical operations cannot be used.
+ The wildcards 
+\family typewriter 
+?
+\family default 
+ and 
+\family typewriter 
+*
+\family default 
+ can be used to match any single character and any sequence of characters,
+ respectively; internally, this will generate one count statement per matching
+ name (and therefore will create multiple columns of output).
+ Having headers on is convenient in this case, so one can tell which column
+ corresponds to which name.
+\layout Standard
+
+Count statements are either 
+\emph on 
+instantaneous
+\emph default 
+, and give information about the state of the model at the instant the count
+ is output---the number of molecules in a region, for example---or are 
+\emph on 
+cumulative
+\emph default 
+, and count the number of events that have occurred since the beginning
+ of the simulation.
  The count statements themselves have the following syntax:
 \layout Standard
 
@@ -7907,16 +7941,34 @@ name
 
 \layout Standard
 
-Count things in the world.
+Count molecules or reactions in the world.
  If 
 \family sans 
 \shape italic 
 name
 \family default 
 \shape default 
- refers to a molecule, count how many of that molecule are in the world.
- If it refers to a reaction, count how many times that reaction has occurred
- so far.
+ refers to a molecule, this is an instantaneous count of the number of copies
+ that molecule in the world.
+ If 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+ refers to a reaction, count how many times that reaction has occurred since
+ the beginning of the simulation.
+ If 
+\family typewriter 
+``
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+''
+\family default 
+ is in quotes, the string in quotes will be matched with wildcards.
 \end_inset 
 </cell>
 </row>
@@ -7948,7 +8000,8 @@ object
 
 \layout Standard
 
-Count things inside the object called 
+Count molecules (reactions not implemented yet) inside the object called
+ 
 \family sans 
 \shape italic 
 object
@@ -7982,9 +8035,10 @@ my_world.my_box
 object
 \family default 
 \shape default 
- will be counted.
+ will be counted (not those inside).
  Molecules with a 3D diffusion constant will be counted inside the object,
  but the object must be closed.
+ All counts are instantaneous.
 \end_inset 
 </cell>
 </row>
@@ -8016,7 +8070,7 @@ region
 
 \layout Standard
 
-Count things inside the named region.
+Count molecules (reactions not implemented) inside the named region.
  It must be referenced fully.
  E.g.
  if 
@@ -8030,6 +8084,9 @@ my_region
 , the name would be 
 \family typewriter 
 my_world.my_box[my_region]
+\family default 
+.
+ The count is instantaneous.
 \end_inset 
 </cell>
 </row>
@@ -8061,11 +8118,14 @@ region
 
 \layout Standard
 
-Count all molecules or reactions that occur inside this region (not counting
- those that occur on the surface of the region).
- This lets you count surface molecules contained within a box, for example.
- This will work with objects as well as regions, but the object or region
- must be closed.
+Count all molecules (reactions not implemented) that occur inside this region
+ (not counting those that occur on the surface of the region).
+ This lets you count surface molecules contained on surfaces that lie within
+ a box, for example.
+ This will work with object names as well as region names, but the object
+ or region must be closed.
+ It is only useful for surface molecules.
+ The count is instantaneous.
 \end_inset 
 </cell>
 </row>
@@ -8103,8 +8163,7 @@ Estimate the concentration of the molecule at that region, averaged since
 \end_inset 
 
 ).
- A single object can be used instead of a region, but multiple objects cannot
- be used.
+ A single object can be used instead of a region.
  The region/object does not need to be closed.
  To find the average concentration during one count interval, let 
 \begin_inset Formula $t_{i}$
@@ -8148,6 +8207,7 @@ th output, let
 ESTIMATE_CONCENTRATION
 \family default 
 .
+ The estimate is based on a cumulative count.
 \end_inset 
 </cell>
 </row>
@@ -8218,6 +8278,7 @@ BACK_CROSSINGS
 ALL_CROSSINGS
 \family default 
 .
+ The count is cumulative.
 \end_inset 
 </cell>
 </row>
