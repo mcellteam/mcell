@@ -972,6 +972,31 @@ int distinguishable(double a,double b,double eps)
 }
 
 
+/**********************************************************************
+is_abbrev: reports whether the first string is an abbrevation of the
+  second (i.e. matches the first characters in the second string)
+**********************************************************************/
+int is_abbrev(char *abbrev,char *full)
+{
+  while (*abbrev++ == *full++) {}
+  return *abbrev==0;
+}
+
+/**********************************************************************
+is_reverse_abbrev: reports whether the first string is a reverse
+  abbreviation of the second, i.e. whether it matches the end of
+  the second string.
+**********************************************************************/
+int is_reverse_abbrev(char *abbrev,char *full)
+{
+  int na,nf;
+  na = strlen(abbrev);
+  nf = strlen(full);
+  if (na>nf) return 0;
+  return (strcmp(abbrev,full+(nf-na))==0);
+}
+
+
 
 
 /*************************************************************************

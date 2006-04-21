@@ -3365,6 +3365,32 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
   }
   
   /* Second step: create appropriate counters */
+  if (obj!=NULL && base_report_type==REPORT_CONCENTRATION) /* Convert obj to its ALL region */
+  {
+    struct region_list *rlp;
+    
+    if (obj->object_type != POLY_OBJ && obj->object_type != BOX_OBJ)
+    {
+      fprintf(mdlpvp->vol->err_file,"Cannot measure concentration on an arbitrary object.\n  Please supply a region name or box or polygon object.\n");
+      return 1;
+    }
+    
+    for (rlp=obj->regions ; rlp!=NULL ; rlp=rlp->next)
+    {
+      r=rlp->reg;
+      if (is_reverse_abbrev(",ALL",r->sym->name))
+      {
+	obj=NULL;
+	break;
+      }
+    }
+    
+    if (obj!=NULL)
+    {
+      fprintf(mdlpvp->vol->err_file,"Couldn't find ALL region on object %s\n  Please supply a region name to measure concentration.\n",obj->sym->name);
+      return 1;
+    }
+  }
   
   if (obj!=NULL)  /* Report on object */
   {
@@ -3379,11 +3405,6 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
     mdlpvp->oep->operand2=NULL;
     mdlpvp->oep->oper='+';
     
-    if (base_report_type==REPORT_CONCENTRATION)
-    {
-      fprintf(mdlpvp->vol->err_file,"Cannot measure concentration on an arbitrary object.\n  Please supply a region name.\n");
-      return 1;
-    }
     if (build_count_tree(report_type,mdlpvp->vol,obj,mdlpvp->oip,mdlpvp->oep,value,mdlpvp->obp->buffersize,mdlpvp->prefix_name))
     {
       fprintf(mdlpvp->vol->err_file,"Cannot store count evaluator data for object %s\n",obj->sym->name);

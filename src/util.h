@@ -123,6 +123,8 @@ int bin(double *list,int n,double val);
 
 int distinguishable(double a,double b,double eps);
 
+int is_abbrev(char *abbrev,char *full);
+int is_reverse_abbrev(char *abbrev,char *full);
 
 struct void_list
 {
