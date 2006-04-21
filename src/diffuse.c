@@ -47,7 +47,7 @@ extern double scaling_sum, scaling_count;
 
 
 /*************************************************************************
-pick_displacement:
+pick_2d_displacement:
   In: vector2 to store the new displacement
       scale factor to apply to the displacement
   Out: No return value.  vector is set to a random orientation and a
@@ -171,6 +171,12 @@ void pick_displacement(struct vector3 *v,double scale)
     if (z_bit) v->z = r * world->d_step[idx+2];
     else v->z = -r * world->d_step[idx+2];
   }
+}
+
+
+struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct vector2 *pos,int *idx)
+{
+  return NULL;
 }
 
 
@@ -3207,19 +3213,13 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   double scaling = 1.0;          /* scales reaction cumulative_probabilitities array */
   double rate_factor=1.0;
   double f;
-  struct vector3 before_astray;
 
   /* this flag is set to 1 only after reflection from a wall and only with expanded lists. */
   int redo_expand_collision_list_flag = 0; 
 
-
   int i,j,k,l;
     
   int calculate_displacement = 1;
-  
-  before_astray.x = m->pos.x;
-  before_astray.y = m->pos.y;
-  before_astray.z = m->pos.z;
   
   sm = m->properties;
   if (sm==NULL) {
@@ -3665,6 +3665,83 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
 
   return m;
+}
+
+
+struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
+{
+  struct species *sg;
+  struct vector2 displacement,new_loc;
+  struct wall *new_wall;
+  double f;
+  double steps,t_steps;
+  double rate_factor;
+  int new_idx;
+  
+  sg = g->properties;
+  
+  if (sg==NULL)
+  {
+    fprintf(world->err_file,"Error!  Surface molecule has no properties?  Ignoring!\n");
+    return NULL;
+  }
+  
+  if (sg->space_step <= 0.0)
+  {
+    g->t += max_time;
+    return g;
+  }
+  
+  if (sg->time_step > 1.0)
+  {
+    f = 1.0 + 0.2*(g->t - g->birthday);
+    if (f<1) printf("I don't think so.\n");
+    if (max_time>f) max_time=f;
+  }
+  
+  if ((sg->flags&COUNT_ENCLOSED) != 0) g->flags |= COUNT_ME;
+  else if ((g->flags&COUNT_ME) != 0) g->flags -= COUNT_ME;
+  
+  /* Where are we going? */
+  if (sg->time_step > max_time)
+  {
+    t_steps = max_time;
+    steps = max_time / sg->time_step;
+  }
+  else
+  {
+    t_steps = sg->time_step;
+    steps = 1.0;
+  }
+  if (steps < EPS_C)
+  {
+    steps = EPS_C;
+    t_steps = EPS_C*sg->time_step;
+  }
+  
+  if (steps==1.0)
+  {
+    pick_2d_displacement(&displacement,sg->space_step);
+    rate_factor = 1.0;
+  }
+  else
+  {
+    rate_factor = sqrt(steps);
+    pick_2d_displacement(&displacement,rate_factor*sg->space_step);
+  }
+  
+  world->diffusion_number += 1.0;
+  world->diffusion_cumsteps += steps;
+  
+  new_wall = ray_trace_2d(g,&displacement,&new_loc,&new_idx);
+  
+  if (new_wall==NULL)
+  {
+    fprintf(world->err_file,"Error: couldn't move surface molecule to valid location!\n");
+    return NULL;
+  }
+  
+  return NULL;
 }
     
 
