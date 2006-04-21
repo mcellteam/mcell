@@ -1332,7 +1332,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
   FILE *mol_pos_data = NULL;	/* data file for molecule positions */
   FILE *mol_states_data = NULL; /* data file for molecule states */
   FILE *mol_orient_data = NULL; /* data file for molecule orientations */
-  FILE *frame_numbers_data = NULL; /* data file for frame_numbers */
+  FILE *frame_numbers_data = NULL; /* data file for frame numbers */
   FILE *time_values_data = NULL; /* data file for time_values */
   struct viz_obj *vizp = NULL;
   struct viz_child *vcp = NULL;
@@ -1393,7 +1393,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
   char mol_pos_name[1024]; /* molecule positions data file name */
   char mol_states_name[1024]; /* molecule states data file name */
   char mol_orient_name[1024]; /* molecule orientations data file name */
-  char frame_numbers_name[1024]; /* frame numbers data file name */
+  char frame_numbers_name[1024]; /* frame numbers data file name */ 
   char time_values_name[1024]; /* time values data file name */
   char buffer[100]; /* used to write 'frame_data' object information */
   /* used to write combined group information */
@@ -1404,9 +1404,19 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
   static struct infinite_string_array frame_data_series_list;
   static u_int frame_data_series_count = 0; /* count elements in frame_data_series_list array.*/
   /* linked lists that stores data for the 'frame_numbers' object */
-  static struct infinite_uint_array frame_numbers_pos;
-  static u_int frame_numbers_count = 0; /* count elements in 
-                                           frame_numbers_pos array  */
+  static struct infinite_uint_array frame_numbers_meshes;
+  static struct infinite_uint_array frame_numbers_vol_mols;
+  static struct infinite_uint_array frame_numbers_surf_mols;
+  static struct infinite_uint_array time_values;
+
+  static u_int frame_numbers_meshes_count = 0; /* count elements in 
+                                           frame_numbers_meshes array  */
+  static u_int frame_numbers_vol_mols_count = 0; /* count elements in 
+                                           frame_numbers_vol_mols array  */
+  static u_int frame_numbers_surf_mols_count = 0; /* count elements in 
+                                           frame_numbers_surf_mols array  */
+  static u_int time_values_count = 0; /* count elements in 
+                                           time_values array  */
   char my_byte_order[8];  /* shows binary ordering ('lsb' or 'msb') */
   static int mesh_pos_byte_offset = 0;  /* defines position of the object data
                                   in the mesh positions binary data file */
@@ -1499,7 +1509,10 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
   }
   
   /*initialize infinite arrays. */
-  ia_init(&frame_numbers_pos);
+  ia_init(&frame_numbers_meshes);
+  ia_init(&frame_numbers_vol_mols);
+  ia_init(&frame_numbers_surf_mols);
+  ia_init(&time_values);
   ia_init(&frame_data_series_list);
 
   viz_iteration = (u_int)(fdlp->viz_iterationll);
@@ -2262,6 +2275,11 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
         	}       
         	fprintf(master_header, "\n"); 
       	}  /* end (if vizp) */
+
+        /* store iteration_number for meshes */
+        ia_uint_store(&frame_numbers_meshes, frame_numbers_meshes_count, viz_iteration);
+        frame_numbers_meshes_count++;
+  
    } 
 
       
@@ -2277,38 +2295,43 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
             }
     }
 
-    /* create references to the numbers of grid molecules of each name. */
-    if ((viz_grid_mol_count=(u_int *)malloc(n_species*sizeof(u_int)))==NULL) {
-      return(1);
-    }
 
+ if(viz_mol_pos_flag || viz_mol_orient_flag){	    
 
-      /* perform initialization */
-   for (ii = 0; ii < n_species; ii++){
-      viz_grid_mol_count[ii]=0;
+       /* create references to the numbers of grid molecules of each name. */
+       if ((viz_grid_mol_count=(u_int *)malloc(n_species*sizeof(u_int)))==NULL) {
+         return(1);
+       }
 
-   } 
+       /* perform initialization */
+      for (ii = 0; ii < n_species; ii++){
+         spec_id = species_list[ii]->species_id;
+         viz_grid_mol_count[spec_id]=0;
+
+      } 
+
 
    for (ii = 0; ii < n_species; ii++)
    {
      specp = species_list[ii];
      if((specp->flags & ON_GRID) == 0) continue; 
      if(specp->viz_state == EXCLUDE_OBJ) continue; 
-    
-     grid_mol_name = specp->sym->name;
+ 
+        grid_mol_name = specp->sym->name;
+        spec_id = specp->species_id; 
 
-     if(viz_mol_pos_flag){
-      	mol_pos_byte_offset_prev = mol_pos_byte_offset;
-     }
-     if(viz_mol_orient_flag){
-      	mol_orient_byte_offset_prev = mol_orient_byte_offset;
-     }
-     if(viz_mol_states_flag){
+        if(viz_mol_pos_flag){
+      	   mol_pos_byte_offset_prev = mol_pos_byte_offset;
+        }
+        if(viz_mol_orient_flag){
+      	   mol_orient_byte_offset_prev = mol_orient_byte_offset;
+        }
+        if(viz_mol_states_flag){
       	   mol_states_byte_offset_prev = mol_states_byte_offset;
-     }
+        }
         /* Write binary data files. */
-      vizp = world->viz_obj_head;
-      while(vizp != NULL) {
+        vizp = world->viz_obj_head;
+        while(vizp != NULL) {
          vcp = vizp->viz_child_head;
          while(vcp != NULL){
 	     objp = vcp->obj;
@@ -2326,9 +2349,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 	                   state=sg->mol[index]->properties->viz_state;
                         }
                         if (gmol != NULL) {
-                          if(strcmp(gmol->properties->sym->name,
-                            grid_mol_name) == 0){
-                                  spec_id = gmol->properties->species_id;
+                            if(spec_id == gmol->properties->species_id){
                                   viz_grid_mol_count[spec_id]++;
 
                                if(viz_mol_pos_flag){
@@ -2351,7 +2372,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                    		   fwrite(&v3,sizeof v3,1,mol_orient_data);
                                    mol_orient_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
                   		}
-                          }
+                          } /* end if strcmp */
                            
                         } /* end if (gmol)*/
                      } /* end for */
@@ -2367,24 +2388,38 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
         num = viz_grid_mol_count[spec_id];
         
         if(viz_mol_pos_flag)
-        {   
+        {
+           if(num > 0)
+           {   
         	fprintf(master_header,"object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d # %s positions #\n",main_index,num,my_byte_order, mol_pos_name, mol_pos_byte_offset_prev, grid_mol_name);
         	fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
-                eff_pos[eff_pos_index] = main_index;
-                eff_pos_index++;
-        	main_index++;
+            }else{
+                /* output empty arrays for zero molecule counts here */
+                fprintf(master_header,"object %d array   # %s positions #\n",main_index, grid_mol_name);
+            }
+            eff_pos[eff_pos_index] = main_index;
+            eff_pos_index++;
+            main_index++;
          }
          
          if(viz_mol_orient_flag)
          {
+           if(num > 0)
+           {
         	fprintf(master_header,"object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d   # %s orientations #\n",main_index,num,my_byte_order, mol_orient_name, mol_orient_byte_offset_prev, grid_mol_name);
         	fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
-                eff_orient[eff_orient_index] = main_index;
-                eff_orient_index++;
-        	main_index++;
-         }
+            }else{
+                /* output empty arrays for zero molecule counts here */
+                fprintf(master_header,"object %d array   # %s orientations #\n",main_index, grid_mol_name);
+            }
+            eff_orient[eff_orient_index] = main_index;
+            eff_orient_index++;
+            main_index++;
+        }
 
         if (viz_mol_states_flag) {
+          if(num > 0)
+          {
             /* write states information. */
             fwrite(&state,sizeof state,1,mol_states_data);
             mol_states_byte_offset += (sizeof state);
@@ -2392,14 +2427,20 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 	    fprintf(master_header,"object %d class constantarray type int items %d %s binary data file %s,%d  # %s states #\n",main_index,num, my_byte_order,mol_states_name,mol_states_byte_offset_prev, grid_mol_name);
 
             fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
-	     eff_states[eff_states_index] = main_index;
-             eff_states_index++;
-             main_index++;
-        }
-
+	  }else{
+             /* output empty arrays for zero molecule counts here */
+             fprintf(master_header,"object %d array   # %s states #\n",main_index, grid_mol_name);
+          }
+          eff_states[eff_states_index] = main_index;
+          eff_states_index++;
+          main_index++;
+       }
+       if(num == 0){
+         fprintf(master_header, "\n");
+       }
    } /* end for loop */
 
-
+ } /* end if(viz_mol_pos_flag || viz_mol_orient_flag) */
 
 /* build fields for grid molecules here */
   int show_effectors = 0;
@@ -2627,7 +2668,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
           
        }
 	 fprintf(master_header,"\n");
-      }
+      } /* end else if */
     }
   } /* end if((viz_mol_pos_flag) || (viz_mol_orient_flag)) */
  
@@ -2684,7 +2725,11 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
           		fprintf(master_header,"\tmember \"%s\" value %d\n",mol_names[ii], mol_field_indices[ii]);
                     }
           	}
-               main_index++;
+                main_index++;
+            /* store iteration_number for volume molecules */
+            ia_uint_store(&frame_numbers_vol_mols,frame_numbers_vol_mols_count, 
+                                viz_iteration);
+            frame_numbers_vol_mols_count++;
       	}
 
         fprintf(master_header, "\n"); 
@@ -2700,7 +2745,11 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                        fprintf(master_header,"\tmember \"%s\" value %d\n",eff_names[ii], eff_field_indices[ii]);
                    }
                }
-                main_index++;
+               main_index++;
+            /* store iteration_number for surface molecules */
+            ia_uint_store(&frame_numbers_surf_mols,
+                      frame_numbers_surf_mols_count, viz_iteration);
+            frame_numbers_surf_mols_count++;
       	}
         fprintf(master_header, "\n"); 
 
@@ -2760,9 +2809,9 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
         }
           
 
-	/* put value of viz_iteration into the frame_numbers_pos */ 
-	ia_uint_store(&frame_numbers_pos, frame_numbers_count,viz_iteration);  
-        frame_numbers_count++;
+	/* put value of viz_iteration into the time_values array */ 
+      ia_uint_store(&time_values, time_values_count,viz_iteration);  
+        time_values_count++;
 
      }
 
@@ -2845,14 +2894,19 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      if(time_to_write_footers)
      {
        
+        u_int elem1;
+        double t_value;
+        int extra_elems;
+        int frame_numbers_count;
+
 	/* write 'frame_numbers' object. */
         if(world->chkpt_flag){
-      	   sprintf(file_name,"%s.frame_numbers.%u.bin",world->file_prefix_name,               world->chkpt_seq_num);
+      	   sprintf(file_name,"%s.frame_numbers.%u.bin",                                    world->file_prefix_name, world->chkpt_seq_num);
         }else{
       	   sprintf(file_name,"%s.frame_numbers.bin",world->file_prefix_name);
         }
 
-     	/* remove the folder name from the frame_numbers data file name */
+     /* remove the folder name from the frame_numbers data file name */
      	ch_ptr = strrchr(file_name, '/');
      	++ch_ptr;
      	strcpy(frame_numbers_name, ch_ptr);
@@ -2879,29 +2933,93 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
             return(1);
         }
 
-
-        if(frame_numbers_count > 0)
+        if(frame_numbers_meshes_count > 0)
         {
-        	u_int elem1;
-                double t_value;
+           extra_elems = frame_numbers_vol_mols_count - frame_numbers_meshes_count;
+           if(extra_elems > 0){
+              /* pad the frame_numbers_meshes array with the last 
+                 element so that it will have the same number of elements 
+                 as frame_numbers_vol_mols array */
+              elem1 = ia_uint_get(&frame_numbers_meshes, frame_numbers_meshes_count - 1);
+              
+		for(ii = 0; ii < extra_elems; ii++){
+                   ia_uint_store(&frame_numbers_meshes, frame_numbers_meshes_count + ii, elem1);
+                }
+           }
+        }
 
-        	fprintf(master_header,"object \"frame_numbers\" class array  type unsigned int rank 0 items %u %s binary data file %s,%d\n",frame_numbers_count, my_byte_order,frame_numbers_name, frame_numbers_byte_offset);
-		for(ii = 0; ii < frame_numbers_count; ii++){
-                	elem1 = ia_uint_get(&frame_numbers_pos, ii);
-                        if(elem1 == UINT_MAX) 
-                        {
-                          fprintf(world->err_file, "File %s, Line %ld: ia_uint_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
-                          return 1;
-                        }
-			
-                        fwrite(&elem1, sizeof(elem1),1,frame_numbers_data);
-        	}
-		fprintf(master_header, "\n\n");
+        if(frame_numbers_vol_mols_count > 0)
+        {
+           extra_elems = frame_numbers_meshes_count - frame_numbers_vol_mols_count;
+           if(extra_elems > 0){
+              /* pad the frame_numbers_vol_mols array with the last 
+                 element so that it will have the same number of elements 
+                 as frame_numbers_meshes array */
+              elem1 = ia_uint_get(&frame_numbers_vol_mols, frame_numbers_vol_mols_count - 1);
+              
+		for(ii = 0; ii < extra_elems; ii++){
+                   ia_uint_store(&frame_numbers_vol_mols, frame_numbers_vol_mols_count + ii, elem1);
+                }
+           }
+        }
+
+        if(frame_numbers_surf_mols_count > 0)
+        {
+           extra_elems = frame_numbers_meshes_count - frame_numbers_surf_mols_count;
+           if(extra_elems > 0){
+              /* pad the frame_numbers_surf_mols array with the last 
+                 element so that it will have the same number of elements 
+                 as frame_numbers_meshes array */
+              elem1 = ia_uint_get(&frame_numbers_surf_mols, frame_numbers_surf_mols_count - 1);
+              
+		for(ii = 0; ii < extra_elems; ii++){
+                   ia_uint_store(&frame_numbers_surf_mols, frame_numbers_surf_mols_count + ii, elem1);
+                }
+           }
+        }
+
+      if(frame_numbers_vol_mols_count > frame_numbers_meshes_count){
+         frame_numbers_count = frame_numbers_vol_mols_count;
+      }else{
+         frame_numbers_count = frame_numbers_meshes_count;
+      }
+       
+      fprintf(master_header,"object \"frame_numbers\" class array  type unsigned int rank 1 shape 3 items %u %s binary data file %s,%d\n",frame_numbers_count, my_byte_order,frame_numbers_name, frame_numbers_byte_offset);
+      for(ii = 0; ii < frame_numbers_count; ii++){
+                elem1 = ia_uint_get(&frame_numbers_meshes, ii);
+                if(elem1 == UINT_MAX) 
+                {
+                   fprintf(world->err_file, "File %s, Line %ld: ia_uint_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
+                   return 1;
+                }
+                fwrite(&elem1, sizeof(elem1),1,frame_numbers_data);
+
+                elem1 = ia_uint_get(&frame_numbers_vol_mols, ii);
+                if(elem1 == UINT_MAX) 
+                {
+                   fprintf(world->err_file, "File %s, Line %ld: ia_uint_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
+                   return 1;
+                }
+                fwrite(&elem1, sizeof(elem1),1,frame_numbers_data);
+
+                elem1 = ia_uint_get(&frame_numbers_surf_mols, ii);
+                if(elem1 == UINT_MAX) 
+                {
+                   fprintf(world->err_file, "File %s, Line %ld: ia_uint_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
+                   return 1;
+                }
+                fwrite(&elem1, sizeof(elem1),1,frame_numbers_data);
+
+        }
+     	fprintf(master_header, "\n\n");
 
 
-        	fprintf(master_header,"object \"time_values\" class array  type double rank 0 items %u %s binary data file %s,%d\n",frame_numbers_count, my_byte_order,time_values_name, time_values_byte_offset);
-												for(ii = 0; ii < frame_numbers_count; ii++){
-                	elem1 = ia_uint_get(&frame_numbers_pos, ii);
+
+        if(time_values_count > 0)
+        {
+        	fprintf(master_header,"object \"time_values\" class array  type double rank 0 items %u %s binary data file %s,%d\n",time_values_count, my_byte_order,time_values_name, time_values_byte_offset);
+												for(ii = 0; ii < time_values_count; ii++){
+                	elem1 = ia_uint_get(&time_values, ii);
                         if(elem1 == UINT_MAX) 
                         {
                           fprintf(world->err_file, "File %s, Line %ld: ia_uint_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
@@ -2911,7 +3029,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                         fwrite(&(t_value), sizeof(t_value),1,time_values_data);
                  }
 		fprintf(master_header, "\n\n");
-	
+	}
                 /* write 'frame_data' object. */
     		fprintf(master_header,"object \"%s\" class series\n", "frame_data");
         	if(frame_data_series_count > 0)
@@ -2926,7 +3044,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
         	    }
                  }
 	         fprintf(master_header, "\n\n");
-        } /* end if(frame_numbers_count > 0) */
     } /* end if(time_to_write_footers) */
 
  
