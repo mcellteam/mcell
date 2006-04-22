@@ -2349,8 +2349,14 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 	                   state=sg->mol[index]->properties->viz_state;
                         }
                         if (gmol != NULL) {
-                            if(spec_id == gmol->properties->species_id){
-                                  viz_grid_mol_count[spec_id]++;
+                             if(spec_id == gmol->properties->species_id){
+                                 if(viz_grid_mol_count[spec_id] < specp->population){
+                                     viz_grid_mol_count[spec_id]++;
+                                 }else{
+                                     fprintf(log_file,"MCell: molecule count disagreement!!\n");
+                                     fprintf(log_file,"  Species %s  population = %d  count = %d\n",grid_mol_name,specp->population,viz_grid_mol_count[spec_id]);
+
+                                 }
 
                                if(viz_mol_pos_flag){
                                    /* write positions information */
