@@ -35,11 +35,12 @@ struct abstract_list
 
 struct mem_helper
 {
-  int buf_len;
-  int buf_index;
-  int record_size;
-  unsigned char *heap_array;
-  struct abstract_list *defunct;
+  int buf_len;   /* number of elements to allocate at once  */ 
+  int buf_index; /* index of the next unused element in the array */
+  int record_size; /* size of the element to allocate */
+  unsigned char *heap_array; /* pointer to the array of elements */
+  struct abstract_list *defunct; /* linked list of the elements
+                                    that may be reused for memory request */
   struct mem_helper *next_helper;
 };
 
