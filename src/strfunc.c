@@ -20,11 +20,12 @@ char *my_strcat(char *s1, char *s2)
   char *temp;
   size_t len1,len2;
 
-  len1=strlen(s1);
-  len2=strlen(s2);
+  len1 = (s1==NULL) ? 0 : strlen(s1);
+  len2 = (s2==NULL) ? 0 : strlen(s2);
   if ((temp=(char *)malloc(len1+len2+1))!=NULL) {
-    strcpy(temp,s1);
-    strcpy(temp+len1,s2);
+    if (len1) strcpy(temp,s1);
+    if (len2) strcpy(temp+len1,s2);
+    temp[len1+len2] = '\0';
   }
   return(temp);
 }

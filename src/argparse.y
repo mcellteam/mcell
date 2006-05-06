@@ -286,7 +286,7 @@ int argparse_init(int argc, char *argv[], struct volume *vol)
 
   arg_var.vol=vol;
 
-  vol->log_freq=100;
+  vol->log_freq=-1; /* No user-specified value */
   vol->log_file_name=NULL;
   vol->log_file=stdout;
   vol->err_file=stderr;

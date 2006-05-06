@@ -1090,7 +1090,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	/* reaction rates based on the type of reaction. */
         if (rx->n_reactants==1) {
           pb_factor=1;
-          rx->cum_probs[0]=1.0-exp(-mpvp->vol->time_unit*rx->cum_probs[0]);
+          rx->cum_probs[0]=mpvp->vol->time_unit*rx->cum_probs[0];
 
           if ( (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_notify)
                || (mpvp->vol->notify->high_reaction_prob != WARN_COPE && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn) )
@@ -1278,7 +1278,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
         for (j=1;j<rx->n_pathways;j++)
         {
-          if (rx->n_reactants==1) rate = 1.0-exp(-mpvp->vol->time_unit*rx->cum_probs[j]);
+          if (rx->n_reactants==1) rate = mpvp->vol->time_unit*rx->cum_probs[j];
           else rate = pb_factor*rx->cum_probs[j];
           rx->cum_probs[j] = rate + rx->cum_probs[j-1];
 
@@ -1322,7 +1322,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           if (rx->n_reactants==1)
           {
             for (tp = rx->prob_t ; tp != NULL ; tp = tp->next)
-               tp->value = 1.0 - exp(-mpvp->vol->time_unit*tp->value);
+               tp->value = mpvp->vol->time_unit*tp->value;
           }
           else
           {
