@@ -296,8 +296,7 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
     for (i=0;i<stop_i;i++)
     {
 
-      fprintf(fp,"%.9g",obp->time_array[i]);
-            
+      fprintf(fp,"%#e",obp->time_array[i]); 
       
       for (ii=0,oip=oi ; oip!=NULL ; oip=oip->next_column,ii++)
       {
