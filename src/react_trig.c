@@ -8,6 +8,7 @@
 
 
 #include "mcell_structs.h"
+#include "react.h"
 
 extern struct volume *world;
 
@@ -36,6 +37,25 @@ struct rxn* trigger_unimolecular(int hash,struct abstract_molecule *reac)
   }
 
   return inter;
+}
+
+
+/*************************************************************************
+trigger_surface_unimol:
+   In: pointer to a molecule (had better be a grid molecule)
+       pointer to a wall to test for reaction (if NULL, molecule will use
+         its own wall)
+   Out: NULL if there are no reactions for this species on this surface class
+        pointer to the reaction if there are
+   Note: this is just a wrapper around trigger_intersect
+*************************************************************************/
+
+struct rxn* trigger_surface_unimol(struct abstract_molecule *reac,struct wall *w)
+{
+  struct grid_molecule *g = (struct grid_molecule*)reac;
+  if (w==NULL) w = g->grid->surface;
+  
+  return trigger_intersect(g->properties->hashval,reac,g->orient,w);
 }
 
 

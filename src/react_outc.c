@@ -226,7 +226,8 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
 	g->birthday = t;
 	g->properties = p;
 	p->population++;
-	g->flags = TYPE_GRID + ACT_NEWBIE + IN_SCHEDULE;
+	g->flags = TYPE_GRID | ACT_NEWBIE | IN_SCHEDULE;
+	if (p->space_step>0) g->flags |= ACT_DIFFUSE;
 	if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)g)!= NULL)
 	  g->flags += ACT_REACT;
 	
@@ -735,7 +736,11 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
 {
   int result,index;
   
-  if (rx->n_pathways <= RX_SPECIAL)  return RX_FLIP;
+  if (rx->n_pathways <= RX_SPECIAL)
+  {
+    if (rx->n_pathways==RX_REFLEC) return RX_A_OK;
+    else return RX_FLIP; /* Flip = transparent is default special case */
+  }
 
   index = rx->product_idx[path];
 

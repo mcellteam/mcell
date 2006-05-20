@@ -893,6 +893,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           else
           {
 	    if (path->kcat==KCAT_RATE_TRANSPARENT) rx->n_pathways = RX_TRANSP;
+	    else if (path->kcat==KCAT_RATE_REFLECTIVE) rx->n_pathways = RX_REFLEC;
             if (j!=0 || path->next!=NULL)
             {
               fprintf(mpvp->vol->err_file,"Warning: mixing surface modes with other surface reactions.  Please don't.\n");
@@ -1142,6 +1143,12 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	    }
 	    else pb_factor = mpvp->vol->time_unit*mpvp->vol->effector_grid_density/6;
 	  }
+	  else if ( ((rx->players[0]->flags&IS_SURFACE)!=0 && (rx->players[1]->flags&ON_GRID)!=0) ||
+	            ((rx->players[1]->flags&IS_SURFACE)!=0 && (rx->players[0]->flags&ON_GRID)!=0) )
+	  {
+	    /* This is actually a unimolecular reaction in disguise! */
+	    pb_factor = mpvp->vol->time_unit;
+	  }
 	  else
 	  {
 	    if ((rx->players[0]->flags & NOT_FREE)==0)
@@ -1156,9 +1163,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	    }
 	    else
 	    {
-	      D_tot = 1.0; /* Placeholder */
+	      /* Should never happen. */
+	      D_tot = 1.0;
 	      t_step = 1.0;
-	      /* TODO: handle surface/grid collisions */
 	    }
 	    
 	    if (D_tot<=0.0) pb_factor = 0; /* Reaction can't happen! */
@@ -1197,6 +1204,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             if (rx->n_pathways <= RX_SPECIAL)
             {
               if (rx->n_pathways == RX_TRANSP) fprintf(warn_file,"(TRANSPARENT)");
+	      else if (rx->n_pathways == RX_REFLEC) fprintf(warn_file,"(REFLECTIVE)");
             }
             else
             {
@@ -1447,7 +1455,16 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  rx->players[0]->flags |= CAN_GRIDGRID;
 	  rx->players[1]->flags |= CAN_GRIDGRID;
 	}
-        /* TODO: add grid/wall interactions */
+	else if ( (rx->players[0]->flags & ON_GRID) != 0 &&
+	          (rx->players[1]->flags & IS_SURFACE) != 0 )
+	{
+	  rx->players[0]->flags |= CAN_GRIDWALL;
+	}
+	else if ( (rx->players[1]->flags & ON_GRID) != 0 &&
+	          (rx->players[0]->flags & IS_SURFACE) != 0 )
+	{
+	  rx->players[1]->flags |= CAN_GRIDWALL;
+	}
       }
     }
   }

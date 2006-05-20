@@ -72,6 +72,8 @@ void pick_2d_displacement(struct vector2 *v,double scale)
   
   v->u = (a.u*a.u-a.v*a.v)*f;
   v->v = (2.0*a.u*a.v)*f;
+  
+//  printf("Disp %.8f %.8f %.8f\n",v->u,v->v,scale);
 }
 
 
@@ -174,8 +176,115 @@ void pick_displacement(struct vector3 *v,double scale)
 }
 
 
-struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct vector2 *pos,int *idx)
+/*************************************************************************
+ray_trace_2d:
+  In: molecule that is moving
+      displacement vector from current to new location
+      place to store new coordinate (in coord system of new wall)
+  Out: wall at endpoint of movement vector, plus location of that endpoint
+       in the coordinate system of the new wall.
+*************************************************************************/
+
+struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct vector2 *pos)
 {
+  struct vector2 first_pos,old_pos,boundary_pos;
+  struct vector2 this_pos,this_disp;
+  struct vector2 new_disp,reflector;
+  struct wall *this_wall,*target_wall;
+  struct rxn *rx;
+  int new_wall_index;
+  double f;
+  
+  this_wall = g->grid->surface;
+  
+  first_pos.u = g->s_pos.u;
+  first_pos.v = g->s_pos.v;
+  
+  this_pos.u = g->s_pos.u;
+  this_pos.v = g->s_pos.v;
+  this_disp.u = disp->u;
+  this_disp.v = disp->v;
+  
+  while (1) /* Will break out with return or break when we're done traversing walls */
+  {
+    new_wall_index = find_edge_point(this_wall,&this_pos,&this_disp,&boundary_pos);
+    
+    if (new_wall_index==-2) /* Ambiguous edge collision--just give up */
+    {
+      g->s_pos.u = first_pos.u;
+      g->s_pos.v = first_pos.v;
+      return NULL;
+    }
+  
+    if (new_wall_index==-1) /* We didn't hit the edge.  Stay inside this wall. */
+    {
+      pos->u = this_pos.u + this_disp.u;
+      pos->v = this_pos.v + this_disp.v;
+      
+      g->s_pos.u = first_pos.u;
+      g->s_pos.v = first_pos.v;
+      return this_wall;
+    }
+    
+    old_pos.u = this_pos.u;
+    old_pos.v = this_pos.v;
+    target_wall = traverse_surface(this_wall,&old_pos,new_wall_index,&this_pos);
+  
+    if (target_wall!=NULL)
+    {
+      rx = trigger_intersect(g->properties->hashval,(struct abstract_molecule*)g,g->orient,target_wall);
+      if (rx==NULL || rx->n_pathways!=RX_REFLEC)
+      {
+	this_disp.u = old_pos.u + this_disp.u;
+	this_disp.v = old_pos.v + this_disp.v;
+	traverse_surface(this_wall,&this_disp,new_wall_index,&new_disp);
+	this_disp.u = new_disp.u - this_pos.u;
+	this_disp.v = new_disp.v - this_pos.v;
+	this_wall = target_wall;
+	
+	continue;
+      }
+    }
+    
+    /* If we reach this point, assume we reflect off edge */
+    /* Note that this_pos has been corrupted by traverse_surface; use old_pos */
+    new_disp.u = this_disp.u - (boundary_pos.u - old_pos.u);
+    new_disp.v = this_disp.v - (boundary_pos.v - old_pos.v);
+    switch (new_wall_index)
+    {
+      case 0:
+	new_disp.v *= -1.0;
+	break;
+      case 1:
+	reflector.u = -this_wall->uv_vert2.v;
+	reflector.v = this_wall->uv_vert2.u-this_wall->uv_vert1_u;
+	f = 1.0/sqrt(reflector.u*reflector.u + reflector.v*reflector.v);
+	reflector.u *= f;
+	reflector.v *= f;
+	f = 2.0 * (new_disp.u*reflector.u + new_disp.v*reflector.v);
+	new_disp.u -= f*reflector.u;
+	new_disp.v -= f*reflector.v;
+	break;
+      case 2:
+	reflector.u = this_wall->uv_vert2.v;
+	reflector.v = -this_wall->uv_vert2.u;
+	f = 1.0/sqrt(reflector.u*reflector.u + reflector.v*reflector.v);
+	reflector.u *= f;
+	reflector.v *= f;
+	f = 2.0 * (new_disp.u*reflector.u + new_disp.v*reflector.v);
+	new_disp.u -= f*reflector.u;
+	new_disp.v -= f*reflector.v;
+	break;
+    }
+    
+    this_pos.u = boundary_pos.u;
+    this_pos.v = boundary_pos.v;
+    this_disp.u = new_disp.u;
+    this_disp.v = new_disp.v;
+  }
+  
+  g->s_pos.u = first_pos.u;
+  g->s_pos.v = first_pos.v;
   return NULL;
 }
 
@@ -3540,42 +3649,42 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
 	      continue; /* Ignore this wall and keep going */
 	    }
-            if (rx->prob_t != NULL) check_probs(rx,m->t);
-            i = test_intersect(rx,1.0/rate_factor);
-            if (i > RX_NO_RX)
-            {
-              j = outcome_intersect(
-                      rx,i,w,(struct abstract_molecule*)m,
-                      k,m->t + t_steps*smash->t,&(smash->loc)
-                    );
-                    
-              if (j==RX_NO_MEM) { ERROR_AND_QUIT; } 
-              if (j==RX_FLIP)
-              {
-                if ( (sm->flags & COUNT_HITS) )
-                {
-                  update_collision_count(sm,w->counting_regions,k,1,rate_factor);
-                }
-                if ((m->flags&COUNT_ME)!=0)
-                {
-                  m->flags-=COUNT_ME;
-                  count_me_by_region((struct abstract_molecule*)m,-1,NULL);
-                }
-
-                if (displacement.x>0 && !distinguishable(smash->loc.x,0.0,EPS_C))
-                {
-                  printf("WTF?\n");
-                }
-                continue; /* pass through */
-              }
-              else if (j==RX_DESTROY)
-              {
-                if ( (sm->flags & COUNT_HITS) )
-                  update_collision_count(sm,w->counting_regions,k,0,rate_factor);
-
-                CLEAN_AND_RETURN(NULL);
-              }
-            }
+	    else if (rx->n_pathways != RX_REFLEC)
+	    {
+	      if (rx->prob_t != NULL) check_probs(rx,m->t);
+	      i = test_intersect(rx,1.0/rate_factor);
+	      if (i > RX_NO_RX)
+	      {
+		j = outcome_intersect(
+			rx,i,w,(struct abstract_molecule*)m,
+			k,m->t + t_steps*smash->t,&(smash->loc)
+		      );
+		      
+		if (j==RX_NO_MEM) { ERROR_AND_QUIT; } 
+		if (j==RX_FLIP)
+		{
+		  if ( (sm->flags & COUNT_HITS) )
+		  {
+		    update_collision_count(sm,w->counting_regions,k,1,rate_factor);
+		  }
+		  if ((m->flags&COUNT_ME)!=0)
+		  {
+		    m->flags-=COUNT_ME;
+		    count_me_by_region((struct abstract_molecule*)m,-1,NULL);
+		  }
+  
+		  continue; /* pass through */
+		}
+		else if (j==RX_DESTROY)
+		{
+		  if ( (sm->flags & COUNT_HITS) )
+		    update_collision_count(sm,w->counting_regions,k,0,rate_factor);
+  
+		  CLEAN_AND_RETURN(NULL);
+		}
+	      }
+	    }
+	    /* RX_REFLEC will just fall through here and be reflected by default case below */
 	  }
 	}
 	
@@ -3675,8 +3784,8 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
   struct wall *new_wall;
   double f;
   double steps,t_steps;
-  double rate_factor;
-  int new_idx;
+  double space_factor;
+  int find_new_position,new_idx;
   
   sg = g->properties;
   
@@ -3719,29 +3828,81 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
     t_steps = EPS_C*sg->time_step;
   }
   
-  if (steps==1.0)
-  {
-    pick_2d_displacement(&displacement,sg->space_step);
-    rate_factor = 1.0;
-  }
-  else
-  {
-    rate_factor = sqrt(steps);
-    pick_2d_displacement(&displacement,rate_factor*sg->space_step);
-  }
+  if (steps==1.0) space_factor = sg->space_step;
+  else space_factor = sg->space_step*sqrt(steps);
   
   world->diffusion_number += 1.0;
   world->diffusion_cumsteps += steps;
   
-  new_wall = ray_trace_2d(g,&displacement,&new_loc,&new_idx);
-  
-  if (new_wall==NULL)
+  for (find_new_position=(SURFACE_DIFFUSION_RETRIES+1) ; find_new_position > 0 ; find_new_position--)
   {
-    fprintf(world->err_file,"Error: couldn't move surface molecule to valid location!\n");
-    return NULL;
+    pick_2d_displacement(&displacement,space_factor);
+    
+    new_wall = ray_trace_2d(g,&displacement,&new_loc);
+    
+    if (new_wall==NULL) continue;  /* Something went wrong--try again */
+    
+    if (new_wall == g->grid->surface)
+    {
+      new_idx = uv2grid(&new_loc,new_wall->effectors);
+      if (new_idx < 0 || new_idx >= g->grid->n_tiles)
+      {
+	printf("This is bad -- %d.\n",(int)world->it_time);
+      }
+      if (new_idx != g->grid_index)
+      {
+	if (g->grid->mol[new_idx]!=NULL)
+	{
+	  continue; /* Pick again--full here */
+	}
+	
+	count_me_by_region((struct abstract_molecule*)g,-1,NULL);
+
+	g->grid->mol[g->grid_index]=NULL;
+	g->grid->mol[new_idx] = g;
+	g->grid_index = new_idx;
+      }
+      else count_me_by_region((struct abstract_molecule*)g,-1,NULL);
+      
+      g->s_pos.u = new_loc.u;
+      g->s_pos.v = new_loc.v;
+      count_me_by_region((struct abstract_molecule*)g,1,NULL);
+      
+      find_new_position = 0;
+    }
+    else 
+    {
+      if (new_wall->effectors==NULL)
+      { 
+	if (create_grid(new_wall,NULL))
+	{
+	  fprintf(world->err_file,"Failed to create surface grid for diffusing molecule.");
+	  return NULL;
+	}
+      }
+
+      /* Move to new tile */
+      new_idx = uv2grid(&new_loc,new_wall->effectors);
+      if (new_idx < 0 || new_idx >= new_wall->effectors->n_tiles) printf("Bad, bad -- %d.\n",(int)world->it_time);
+      if (new_wall->effectors->mol[new_idx] != NULL) continue; /* Pick again */
+      
+      count_me_by_region((struct abstract_molecule*)g,-1,NULL);
+      g->grid->mol[g->grid_index]=NULL;
+      g->grid->n_occupied--;
+      g->grid = new_wall->effectors;
+      g->grid_index=new_idx;
+      g->grid->mol[new_idx] = g;
+
+      g->s_pos.u = new_loc.u;
+      g->s_pos.v = new_loc.v;
+      count_me_by_region((struct abstract_molecule*)g,1,NULL);
+      
+      find_new_position=0;
+    }
   }
   
-  return NULL;
+  g->t += t_steps;
+  return g;
 }
     
 
@@ -3841,10 +4002,11 @@ run_timestep:
 void run_timestep(struct storage *local,double release_time,double checkpt_time)
 {
   struct abstract_molecule *a;
-  struct rxn *r;
-  double t;
+  struct wall *w;
+  struct rxn *r,*r2;
+  double t,tt;
   double max_time;
-  int i,j,err;
+  int i,j,err,special;
   
   /* Check for garbage collection first */
   if ( local->timer->defunct_count > MIN_DEFUNCT_FOR_GC &&
@@ -3897,20 +4059,47 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         {
           r = trigger_unimolecular(a->properties->hashval,a);
           if (r->prob_t != NULL) check_probs(r,(a->t + a->t2)*(1.0+EPS_C));
-          a->t2 = timeof_unimolecular(r);
-	  if (r->prob_t != NULL)
+	  
+	  tt=FOREVER; /* When will rates change? */
+	  
+	  if ( (a->properties->flags&CAN_GRIDWALL)!=0 && (r2=trigger_surface_unimol(a,NULL))!=NULL )
 	  {
-	    if (a->t + a->t2 > r->prob_t->time)
-	    {
-	      a->t2 = r->prob_t->time - a->t;
-	      a->flags |= ACT_CHANGE;
-	    }
+	    if (r2->prob_t != NULL) check_probs(r,(a->t + a->t2)*(1.0+EPS_C));
+	    a->t2 = timeof_special_unimol(r,r2);
+	    if (r->prob_t!=NULL) tt = r->prob_t->time;
+	    if (r2->prob_t!=NULL && tt > r2->prob_t->time) tt = r2->prob_t->time;
+	  }
+	  else
+	  {
+	    a->t2 = timeof_unimolecular(r);
+	    if (r->prob_t!=NULL) tt = r->prob_t->time;
+	  }
+	  if (a->t + a->t2 > tt)
+	  {
+	    a->t2 = tt - a->t;
+	    a->flags |= ACT_CHANGE;
 	  }
         }
       }
       else if ((a->flags & ACT_REACT) != 0)
       {
+	special = 0;
         r = trigger_unimolecular(a->properties->hashval,a);
+
+	if (a->properties->flags&CAN_GRIDWALL)
+	{
+	  r2 = trigger_surface_unimol(a,NULL);
+	  if (r2!=NULL)
+	  {
+	    special = 1;
+	    if (is_surface_unimol(r,r2))
+	    {
+	      special = 2;
+	      r = r2; /* Do surface-limited rx instead */
+	    }
+	  }
+	}
+	
         i = which_unimolecular(r);
         j = outcome_unimolecular(r,i,a,a->t);
 	if (j==RX_NO_MEM)
@@ -3923,15 +4112,24 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	}
         if (j!=RX_DESTROY) /* We still exist */
         {
-          a->t2 = timeof_unimolecular(r);
-          if ( r->prob_t != NULL )
-          {
-            if (a->t + a->t2 > r->prob_t->time)
-	    {
-              a->t2 = r->prob_t->time - a->t;
-              a->flags |= ACT_CHANGE;
-	    }
-          }
+	  tt = FOREVER;
+	  if (special)
+	  {
+	    if (special==2) r = trigger_unimolecular(a->properties->hashval,a);
+	    a->t2 = timeof_special_unimol(r,r2);
+	    if (r->prob_t!=NULL) tt=r->prob_t->time;
+	    if (r2->prob_t!=NULL && r2->prob_t->time < tt) tt = r2->prob_t->time;
+	  }
+	  else
+	  {
+	    a->t2 = timeof_unimolecular(r);
+	    if (r->prob_t != NULL) tt=r->prob_t->time;
+	  }
+	  if (a->t + a->t2 > tt)
+	  {
+	    a->t2 = tt - a->t;
+	    a->flags |= ACT_CHANGE;
+	  }
         }
         else /* We don't exist.  Try to recover memory. */
 	{
@@ -3940,6 +4138,8 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	}
       }
     }
+    
+    if ( (a->flags&TYPE_GRID)!=0 && (a->flags&ACT_DIFFUSE)==0 && a->properties->D>0) printf("Need to set ACT_DIFFUSE\n");
 
     if ((a->flags & ACT_DIFFUSE) != 0)
     {
@@ -3958,29 +4158,56 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         }
         else continue;
       }
-      else  /* Surface diffusion not yet implemented */
+      else
       {
-        a->t += max_time;
-        a->t2 -= max_time;
+	if (max_time > release_time - a->t) max_time = release_time - a->t;
+	t = a->t;
+	w = ((struct grid_molecule*)a)->grid->surface;
+	a = (struct abstract_molecule*)diffuse_2D((struct grid_molecule*)a , max_time);
+	
+	if (a!=NULL)
+	{
+	  if ( (a->properties->flags&CAN_GRIDWALL)==0 ||
+	       w==((struct grid_molecule*)a)->grid->surface )
+	  {
+	    a->t2 -= a->t - t;
+	  }
+	  else if (w->surf_class==((struct grid_molecule*)a)->grid->surface->surf_class)
+	  {
+	    a->t2 -= a->t - t;
+	  }
+	  else
+	  {
+	    a->t2 = 0;
+	    a->flags |= ACT_CHANGE; /* Reschedule reaction time */
+	  }
+	}
+	else continue;
       }
     }
-    else if ( (a->flags&TYPE_GRID)!=0 && (a->properties->flags&CAN_GRIDGRID) && !(a->flags&ACT_INERT))
+    
+    if ( (a->flags&TYPE_GRID)!=0 && (a->properties->flags&CAN_GRIDGRID) && !(a->flags&ACT_INERT))
     {
-       max_time = checkpt_time - a->t;
-       if (a->t2<max_time && (a->flags &(ACT_REACT|ACT_INERT))!=0) max_time = a->t2;
-       if (max_time > release_time - a->t) max_time = release_time - a->t;
-       if (a->properties->time_step < max_time) max_time = a->properties->time_step;
+      if ((a->flags&ACT_DIFFUSE)==0) /* Didn't move, so we need to figure out how long to react for */
+      {
+	max_time = checkpt_time - a->t;
+	if (a->t2<max_time && (a->flags &(ACT_REACT|ACT_INERT))!=0) max_time = a->t2;
+	if (max_time > release_time - a->t) max_time = release_time - a->t;
+	if (a->properties->time_step < max_time) max_time = a->properties->time_step;
+      }
+      else max_time = a->t - t;
        
-       a = (struct abstract_molecule*)react_2D((struct grid_molecule*)a , max_time );
-       
-       if (a!=NULL)
-       {
-	 a->t2 -= max_time;
-	 a->t += max_time;  /* react_2D doesn't advance the time, so do it here! */
-       }
-       else continue;
+      a = (struct abstract_molecule*)react_2D((struct grid_molecule*)a , max_time );
+      
+      if (a==NULL) continue;
+      
+      if ((a->flags&ACT_DIFFUSE)==0) /* Advance time if diffusion hasn't already done it */
+      {
+       a->t2 -= max_time;
+       a->t += max_time;
+      }
     }
-    else
+    else if ((a->flags&ACT_DIFFUSE)==0)
     {
       if (a->t2==0) a->t += MAX_UNI_TIMESKIP;
       else 
@@ -4138,3 +4365,4 @@ void run_concentration_clamp(double t_now)
   total_count += this_count;
 //  printf("Emitted %d\n",total_count);
 }
+

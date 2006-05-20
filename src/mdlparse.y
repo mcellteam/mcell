@@ -224,6 +224,7 @@ struct release_evaluator *rev;
 %token <tok> MIN_TOK
 %token <tok> MISSED_REACTIONS
 %token <tok> MISSED_REACTION_THRESHOLD
+%token <tok> MISSING_SURFACE_ORIENTATION
 %token <tok> MOD
 %token <tok> MODE
 %token <tok> MODIFY_SURFACE_REGIONS
@@ -345,6 +346,7 @@ struct release_evaluator *rev;
 %token <tok> TRANSPARENT
 %token <tok> TRUE
 %token <tok> UNLIMITED
+%token <tok> USELESS_VOLUME_ORIENTATION
 %token <tok> VAR
 %token <tok> VACANCY_SEARCH_DISTANCE
 %token <tok> VERTEX_LIST
@@ -377,7 +379,6 @@ struct release_evaluator *rev;
 %type <tok> space_def
 %type <tok> iteration_def
 %type <tok> grid_density_def
-%type <tok> grid_area_used_def
 %type <tok> interact_radius_def
 %type <tok> radial_directions_def
 %type <tok> radial_subdivisions_def
@@ -464,7 +465,6 @@ struct release_evaluator *rev;
 %type <dbl> intOrReal 
 %type <dbl> diffusion_def
 %type <dbl> reference_diffusion_def
-%type <dbl> mol_area_used_def
 %type <dbl> mol_timestep_def
 %type <dbl> target_def
 %type <dbl> atomic_rate
@@ -604,7 +604,6 @@ mdl_stmt: time_def
 	| iteration_def
 	| optional_flag_def
 	| grid_density_def
-	| grid_area_used_def
         | interact_radius_def
 	| radial_directions_def
 	| radial_subdivisions_def
@@ -823,6 +822,8 @@ warning_item_def:
   if (warn_value==WARN_ERROR) warn_value=WARN_WARN;
   mdlpvp->vol->notify->short_lifetime = warn_value;
   mdlpvp->vol->notify->missed_reactions = warn_value;
+  mdlpvp->vol->notify->missed_surf_orient = warn_value;
+  mdlpvp->vol->notify->useless_vol_orient = warn_value;
 }
         | NEGATIVE_DIFFUSION_CONSTANT '=' warning_level
 {
@@ -879,6 +880,14 @@ warning_item_def:
     return 1;
   }
   mdlpvp->vol->notify->missed_reaction_value = rxfrac;
+}
+	| MISSING_SURFACE_ORIENTATION '=' warning_level
+{
+  mdlpvp->vol->notify->missed_surf_orient = (byte)$<tok>3;
+}
+	| USELESS_VOLUME_ORIENTATION '=' warning_level
+{
+  mdlpvp->vol->notify->useless_vol_orient = (byte)$<tok>3;
 };
 
 warning_level:
@@ -1907,17 +1916,6 @@ grid_density_def: EFFECTOR_GRID_DENSITY '=' num_expr
   fflush(stderr);
 };
 
-grid_area_used_def: SURFACE_MOLECULE_AREA '=' num_expr
-{
-  volp->default_grid_mol_area = $<dbl>3;
-  if (volp->default_grid_mol_area < 0)
-  {
-    mdlerror("Warning: surface molecule area should be zero or positive.");
-    volp->default_grid_mol_area = 0;
-  }
-};
-
-
 interact_radius_def: INTERACTION_RADIUS '=' num_expr
 {
   volp->rx_radius_3d = $<dbl>3;
@@ -2019,7 +2017,6 @@ molecule_stmt: new_molecule '{'
 	diffusion_def
         mol_timestep_def
 	target_def
-	mol_area_used_def
 	'}'
 {
   mdlpvp->specp->D_ref=$<dbl>4;
@@ -2464,14 +2461,6 @@ target_def: /* empty */
   $$=1.0;
 };
 
-mol_area_used_def:
-{
-  $$ = mdlpvp->vol->default_grid_mol_area;
-}
-	| AREA_OCCUPIED '=' num_expr
-{
-  $$ = $<dbl>3;
-}
 
 
 surface_classes_def: define_one_surface_class
@@ -2587,6 +2576,19 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
   mdlpvp->pathp->km_filename=NULL;
   mdlpvp->pathp->count_flags = 0;
 
+  if (mdlpvp->orient_specified==0 && (mdlpvp->pathp->reactant2->flags&ON_GRID)!=0)
+  {
+    if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
+    {
+      mdlerror("Error: specify an orientation for surface molecules\n  (use ; or ', or ,' for arbitrary orientation)");
+      return 1;
+    }
+    else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
+    {
+      mdlerror("Warning: orientation not specified for surface molecule\n  (use ; or ', or ,' for arbitrary orientation)");
+    }
+  }
+  
   if (mdlpvp->orient_class==0)
   {
     mdlpvp->pathp->orientation1=0;
@@ -2608,6 +2610,7 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
         mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
         return(1);
       }
+      mdlpvp->pathp->kcat = KCAT_RATE_REFLECTIVE;
       mdlpvp->prodp->prod=mdlpvp->pathp->reactant2;
       mdlpvp->prodp->orientation=1;
       mdlpvp->prodp->next=NULL;
@@ -2665,6 +2668,11 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
       mdlpvp->stp2->name,mdlpvp->stp1->name);
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
     return(1);
+  }
+  if (mdlpvp->specp->flags&ON_GRID)
+  {
+    mdlerror("Concentration clamp does not work on surface molecules.");
+    return 1;
   }
   if (mdlpvp->specp->flags&NOT_FREE || mdlpvp->specp->D <= 0.0)
   {
@@ -2796,7 +2804,8 @@ surface_class_viz_value_stmt: VIZ_VALUE '=' num_expr
 
 existing_surface_molecule: existing_molecule
 {
-  mdlpvp->orient_class=1;
+  mdlpvp->orient_specified=0;
+  mdlpvp->orient_class=0;
 }
 	orientation_class
 {
@@ -2814,12 +2823,14 @@ existing_surface_molecule: existing_molecule
 existing_molecule_opt_orient:
 	existing_molecule 
 {
+  mdlpvp->orient_specified=0;
   mdlpvp->orient_class = 0;
   $$=$<sym>1;
 }
 	| existing_molecule
 {
-  mdlpvp->orient_class = 1;
+  mdlpvp->orient_specified=1;
+  mdlpvp->orient_class=0;
 }
 	list_orient_marks
 {
@@ -3758,11 +3769,9 @@ release_site_cmd:
 {
   mdlpvp->rsop->location=$<vec3>3;
 }
-	| MOLECULE '=' 
-{ mdlpvp->orient_class=1; }
-	existing_molecule_opt_orient
+	| MOLECULE '=' existing_molecule_opt_orient
 {
-  mdlpvp->gp=$<sym>4;
+  mdlpvp->gp=$<sym>3;
   mdlpvp->rsop->mol_type=(struct species *)mdlpvp->gp->value;
   if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==0 &&
       mdlpvp->rsop->release_shape==SHAPE_REGION)
@@ -3770,6 +3779,41 @@ release_site_cmd:
     mdlpvp->vol->place_waypoints_flag=1;
   }
   mdlpvp->rsop->orientation = mdlpvp->orient_class;
+  if (mdlpvp->rsop->mol_type->flags&ON_GRID)
+  {
+    if (!mdlpvp->orient_specified)
+    {
+      if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
+      {
+	mdlerror("Error: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
+	return 1;
+      }
+      else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
+      {
+	mdlerror("Warning: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
+      }
+    }
+  }
+  else if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==0)
+  {
+    if (mdlpvp->orient_specified)
+    {
+      if (mdlpvp->vol->notify->useless_vol_orient==WARN_ERROR)
+      {
+	mdlerror("Error: orientation not used for released volume molecule");
+	return 1;
+      }
+      else if (mdlpvp->vol->notify->useless_vol_orient==WARN_WARN)
+      {
+	mdlerror("Warning: orientation not used for released volume molecule");
+      }
+    }
+  }
+  else
+  {
+    mdlerror("Error: cannot release a surface class instead of a molecule.");
+    return 1;
+  }
 }
 	| release_number_cmd
 {
@@ -3903,7 +3947,6 @@ release_site_cmd:
     mdlerror("You must use the LIST shape to specify molecule positions in a release.");
     return 1;
   }
-  mdlpvp->orient_class=1;  /* Apparently need this to get orientations right. */
 }
 	'{' molecule_release_pos_list '}'
 {
@@ -4007,9 +4050,44 @@ molecule_release_pos:
   rsm->loc.z = temp_v3.z / mdlpvp->vol->length_unit;
   rsm->mol_type = (struct species*)( ($<sym>1)->value );
   
+  if (rsm->mol_type->flags&ON_GRID)
+  {
+    if (!mdlpvp->orient_specified)
+    {
+      if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
+      {
+	mdlerror("Error: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
+	return 1;
+      }
+      else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
+      {
+	mdlerror("Warning: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
+      }
+    }
+  }
+  else if ((rsm->mol_type->flags&NOT_FREE)==0)
+  {
+    if (mdlpvp->orient_specified)
+    {
+      if (mdlpvp->vol->notify->useless_vol_orient==WARN_ERROR)
+      {
+	mdlerror("Error: orientation not used for released volume molecule");
+	return 1;
+      }
+      else if (mdlpvp->vol->notify->useless_vol_orient==WARN_WARN)
+      {
+	mdlerror("Warning: orientation not used for released volume molecule");
+      }
+    }
+  }
+  else
+  {
+    mdlerror("Error: cannot release a surface class instead of a molecule.");
+    return 1;
+  }
+
   rsm->next = mdlpvp->rsop->mol_list;
   mdlpvp->rsop->mol_list = rsm;        /* Acquire list in reverse order */
-  mdlpvp->orient_class = 1; /* Apparently need this to get orientations right? */
 };
 
 point: array_value
@@ -5574,21 +5652,56 @@ one_way_unimolecular_rxn: reactant right_arrow
   mdlpvp->pathp->reactant3=NULL;
   mdlpvp->pathp->km=0;
   mdlpvp->pathp->kcat=0;
-  if ( (mdlpvp->pathp->reactant1->flags & NOT_FREE) == 0) {
-    mdlpvp->pathp->orientation1=mdlpvp->orient_class;
+  
+  if (mdlpvp->pathp->reactant1->flags&ON_GRID)
+  {
+    if (!mdlpvp->orient_specified)
+    {
+      if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
+      {
+	mdlerror("Error: orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
+	return 1;
+      }
+      else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
+      {
+	mdlerror("Warning: orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
+      }
+    }
+    mdlpvp->prod_all_3d = 0;
+    mdlpvp->pathp->orientation1 = mdlpvp->orient_class;
+    mdlpvp->pathp->orientation2 = 0;
+    mdlpvp->pathp->orientation3 = 0;
   }
-  mdlpvp->pathp->orientation1=0;
-  mdlpvp->pathp->orientation2=0;
-  mdlpvp->pathp->orientation3=0;
-  if ( (mdlpvp->pathp->reactant1->flags & NOT_FREE) != 0) {
-    mdlpvp->pathp->orientation1=mdlpvp->orient_class;
+  else if ((mdlpvp->pathp->reactant1->flags&NOT_FREE)==0)
+  {
+    if (mdlpvp->orient_specified)
+    {
+      if (mdlpvp->vol->notify->useless_vol_orient==WARN_ERROR)
+      {
+	mdlerror("Error: orientation specified for molecule in reaction in volume");
+	return 1;
+      }
+      else if (mdlpvp->vol->notify->useless_vol_orient==WARN_WARN)
+      {
+	mdlerror("Warning: orientation specified for molecule in reaction at surface");
+      }
+    }
+    mdlpvp->prod_all_3d = 1;
+    mdlpvp->pathp->orientation1 = 0;
+    mdlpvp->pathp->orientation2 = 0;
+    mdlpvp->pathp->orientation3 = 0;
   }
+  else
+  {
+    mdlerror("Error: surface types cannot undergo unimolecular reactions.");
+    return 1;
+  }
+
   mdlpvp->pathp->product_head=NULL;
   mdlpvp->pathp->pcr=NULL;
 
   mdlpvp->fwd_km=0;
   mdlpvp->fwd_kcat=0;
-  mdlpvp->prod_all_3d=1;
 }
 	list_products fwd_rx_rate1or2 new_rxn_pathname
 {
@@ -5627,13 +5740,6 @@ one_way_unimolecular_rxn: reactant right_arrow
     mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
   }
 
-  if (mdlpvp->prod_all_3d && 
-      (mdlpvp->rxnp->pathway_head->reactant1->flags&NOT_FREE)==0) {
-    for (mdlpvp->prodp=mdlpvp->rxnp->pathway_head->product_head;
-        mdlpvp->prodp!=NULL;mdlpvp->prodp=mdlpvp->prodp->next) {
-      mdlpvp->prodp->orientation=0;
-    }
-  }
 #ifdef DEBUG
   no_printf("Unimolecular reaction defined:\n");
   no_printf("  %s[%d] ->",mdlpvp->rxnp->pathway_head->reactant1->sym->name,
@@ -5660,6 +5766,7 @@ one_way_unimolecular_rxn: reactant right_arrow
 one_way_bimolecular_rxn: reactant '+'
 {
   mdlpvp->orient_class1=mdlpvp->orient_class;
+  mdlpvp->prod_all_3d = (mdlpvp->orient_specified)?0:1;
 }
 	reactant right_arrow
 {
@@ -5699,14 +5806,51 @@ one_way_bimolecular_rxn: reactant '+'
   mdlpvp->pathp->reactant3=NULL;
   mdlpvp->pathp->km=0;
   mdlpvp->pathp->kcat=0;
-  mdlpvp->pathp->orientation1=0;
-  mdlpvp->pathp->orientation2=0;
-  mdlpvp->pathp->orientation3=0;
-  if ( (mdlpvp->pathp->reactant1->flags & NOT_FREE) != 0
-      || (mdlpvp->pathp->reactant2->flags & NOT_FREE) != 0) {
-    mdlpvp->pathp->orientation1=mdlpvp->orient_class1;
-    mdlpvp->pathp->orientation2=mdlpvp->orient_class2;
+  
+  if ( (mdlpvp->pathp->reactant1->flags&NOT_FREE)==0 && (mdlpvp->pathp->reactant2->flags&NOT_FREE)==0 )
+  {
+    if (mdlpvp->orient_specified || !mdlpvp->prod_all_3d)
+    {
+      if (mdlpvp->vol->notify->useless_vol_orient==WARN_ERROR)
+      {
+	mdlerror("Error: orientation specified for molecule in reaction in volume");
+	return 1;
+      }
+      else if (mdlpvp->vol->notify->useless_vol_orient==WARN_WARN)
+      {
+	mdlerror("Warning: orientation specified for molecule in reaction in volume");
+      }
+    }
+    mdlpvp->prod_all_3d = 1;
+    mdlpvp->pathp->orientation1 = 0;
+    mdlpvp->pathp->orientation2 = 0;
+    mdlpvp->pathp->orientation3 = 0;
+  }    
+  else if ( (mdlpvp->pathp->reactant1->flags&IS_SURFACE)!=0 && (mdlpvp->pathp->reactant2->flags&IS_SURFACE)!=0 )
+  {
+    mdlerror("Surfaces cannot react with each other.");
+    return 1;
   }
+  else
+  {
+    if (!mdlpvp->orient_specified || mdlpvp->prod_all_3d)
+    {
+      if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
+      {
+	mdlerror("Error: orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
+	return 1;
+      }
+      else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
+      {
+	mdlerror("Warning: orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
+      }
+    }
+    mdlpvp->prod_all_3d = 0;
+    mdlpvp->pathp->orientation1 = mdlpvp->orient_class1;
+    mdlpvp->pathp->orientation2 = mdlpvp->orient_class2;
+    mdlpvp->pathp->orientation3 = 0;
+  }
+
   mdlpvp->pathp->product_head=NULL;
   mdlpvp->pathp->pcr=NULL;
 
@@ -5715,7 +5859,6 @@ one_way_bimolecular_rxn: reactant '+'
   
   mdlpvp->fwd_km=0;
   mdlpvp->fwd_kcat=0;
-  mdlpvp->prod_all_3d=1;
 }
 	list_products fwd_rx_rate1or2 new_rxn_pathname
 {
@@ -5732,14 +5875,7 @@ one_way_bimolecular_rxn: reactant '+'
     mdlpvp->pathp->km_filename = mdlpvp->rate_filename;
     mdlpvp->rate_filename = NULL;
   }
-  if (mdlpvp->prod_all_3d &&
-      (mdlpvp->rxnp->pathway_head->reactant1->flags&NOT_FREE)==0 &&
-      (mdlpvp->rxnp->pathway_head->reactant2->flags&NOT_FREE)==0) {
-    for (mdlpvp->prodp=mdlpvp->rxnp->pathway_head->product_head;
-        mdlpvp->prodp!=NULL;mdlpvp->prodp=mdlpvp->prodp->next) {
-      mdlpvp->prodp->orientation=0;
-    }
-  }
+
 #ifdef DEBUG
   no_printf("Bimolecular reaction defined:\n");
   no_printf("  %s[%d] + %s[%d] ->",
@@ -5768,7 +5904,8 @@ one_way_bimolecular_rxn: reactant '+'
 
 reactant: existing_molecule
 {
-  mdlpvp->orient_class=1;
+  mdlpvp->orient_specified=0;
+  mdlpvp->orient_class=0;
 }
 	orientation_class
 {
@@ -5783,7 +5920,8 @@ list_products: product
 
 product: existing_molecule
 {
-  mdlpvp->orient_class=1;
+  mdlpvp->orient_specified=0;
+  mdlpvp->orient_class=0;
 }
 	orientation_class
 {
@@ -5795,12 +5933,45 @@ product: existing_molecule
     return(1);
   }
   mdlpvp->prodp->prod=(struct species *)mdlpvp->gp->value;
-  mdlpvp->prodp->orientation=mdlpvp->orient_class;
-
-  mdlpvp->prod_all_3d=(mdlpvp->prod_all_3d && ((mdlpvp->prodp->prod->flags&NOT_FREE)==0));
+  if (mdlpvp->prod_all_3d) mdlpvp->prodp->orientation=0;
+  else mdlpvp->prodp->orientation=mdlpvp->orient_class;
 
   mdlpvp->prodp->next=mdlpvp->pathp->product_head;
   mdlpvp->pathp->product_head=mdlpvp->prodp;
+
+  if ((mdlpvp->prodp->prod->flags&IS_SURFACE)==0) /* Surfaces can be omitted, so ignore them */
+  {
+    if (mdlpvp->prod_all_3d==0)
+    {
+      if (!mdlpvp->orient_specified)
+      {
+	if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
+	{
+	  mdlerror("Error: product orientation not specified in reaction with orientation\n  (use ; or ', or ,' for random orientation)");
+	  return 1;
+	}
+	else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
+	{
+	  mdlerror("Warning: product orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
+	}
+      }
+    }
+    else
+    {
+      if (mdlpvp->orient_specified)
+      {
+	if (mdlpvp->vol->notify->useless_vol_orient==WARN_ERROR)
+	{
+	  mdlerror("Error: orientation specified for molecule in reaction in volume");
+	  return 1;
+	}
+	else if (mdlpvp->vol->notify->useless_vol_orient==WARN_WARN)
+	{
+	  mdlerror("Warning: orientation specified for molecule in reaction at surface");
+	}
+      }
+    }
+  }
 }
 	| NO_SPECIES
 {
@@ -5809,18 +5980,35 @@ product: existing_molecule
 
 orientation_class: /* empty */
 	| list_orient_marks
-;
-
-list_orient_marks: list_head_marks
-	| list_tail_marks
+	| orient_class_number
+	| ';'
 {
-  mdlpvp->orient_class*=-1;
-};
-
-
-list_head_marks: head_mark
-	| list_head_marks head_mark
+  mdlpvp->orient_class=0;
+  mdlpvp->orient_specified=1;
+}
 ;
+
+list_orient_marks:
+        head_mark
+{
+  mdlpvp->orient_class++;
+  mdlpvp->orient_specified=1;
+}
+	| tail_mark
+{
+  mdlpvp->orient_class--;
+  mdlpvp->orient_specified=1;
+}
+        | list_orient_marks head_mark
+{
+  mdlpvp->orient_class++;
+  mdlpvp->orient_specified=1;
+}
+	| list_orient_marks tail_mark
+{
+  mdlpvp->orient_class--;
+  mdlpvp->orient_specified=1;
+};
 
 
 head_mark: '\''
@@ -5829,14 +6017,15 @@ head_mark: '\''
 };
 
 
-list_tail_marks: tail_mark
-	| list_tail_marks tail_mark
-;
-
-
 tail_mark: ','
 {
   mdlpvp->orient_class+=1;
+};
+
+orient_class_number: '{' num_expr '}'
+{
+  mdlpvp->orient_class=(short)$<dbl>2;
+  mdlpvp->orient_specified=1;
 };
 
 

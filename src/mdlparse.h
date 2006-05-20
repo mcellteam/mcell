@@ -148,7 +148,8 @@ struct mdlparse_vars {
   double back_km;
   double back_kcat;
   char *rate_filename;
-  
+
+  short orient_specified;  
   short orient_class;
   short orient_class1;
   short orient_class2;

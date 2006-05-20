@@ -94,28 +94,28 @@ DEFINE_MOLECULES {
 }
 
 DEFINE_REACTIONS {
-  ACh + AChR.R -> AChR.ARs [Kp1]
-  ACh + AChR.R -> AChR.ARt [Kp1]
+  ACh' + AChR.R' -> AChR.ARs' [Kp1]
+  ACh' + AChR.R' -> AChR.ARt' [Kp1]
 
-  AChR.ARs -> ACh + AChR.R [Km1]
-  AChR.ARt -> ACh + AChR.R [Km1]
+  AChR.ARs' -> ACh' + AChR.R' [Km1]
+  AChR.ARt' -> ACh' + AChR.R' [Km1]
 
-  ACh + AChR.ARs -> AChR.A2Rc [Kp2]
-  ACh + AChR.ARt -> AChR.A2Rc [Kp2]
+  ACh' + AChR.ARs' -> AChR.A2Rc' [Kp2]
+  ACh' + AChR.ARt' -> AChR.A2Rc' [Kp2]
 
-  AChR.A2Rc -> ACh + AChR.ARs [Km2]
-  AChR.A2Rc -> ACh + AChR.ARt [Km2]
+  AChR.A2Rc' -> ACh' + AChR.ARs' [Km2]
+  AChR.A2Rc' -> ACh' + AChR.ARt' [Km2]
 
-  AChR.A2Rc -> AChR.A2Ro [beta]
-  AChR.A2Ro -> AChR.A2Rc [alpha]
-
-
-  ACh + BTxAChR.R -> BTxAChR.AR [Kp1]
-  BTxAChR.AR -> ACh + BTxAChR.R [Km1]
+  AChR.A2Rc' -> AChR.A2Ro' [beta]
+  AChR.A2Ro' -> AChR.A2Rc' [alpha]
 
 
-  ACh + AChE.E' -> AChE.AE' [Kpe]
-  AChE.AE -> AChE.E         [Kme]
+  ACh' + BTxAChR.R' -> BTxAChR.AR' [Kp1]
+  BTxAChR.AR' -> ACh' + BTxAChR.R' [Km1]
+
+
+  ACh'' + AChE.E' -> AChE.AE' [Kpe]
+  AChE.AE' -> AChE.E'         [Kme]
 }
 
 

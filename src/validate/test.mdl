@@ -62,8 +62,8 @@ DEFINE_REACTIONS {
   Glu + ACf -> ACf + Glw [1e8]
   Glw' + GENERIC_SURFACE, -> ACg [1e7] */
 /*  Glu' + AChR.R, -> Glu' + AChR.AR, [1e8] */
-  AChR.R -> ACf [1e4] 
-  Glu -> Glw [1e4] 
+  AChR.R, -> ACf, [1e4] 
+  Glu; -> Glw; [1e4] 
 /*  Glw + AChR.AR -> Glw + AChR.R [1e8] */
 /*  ACg -> ACe [1e4] */
 }

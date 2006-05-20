@@ -469,7 +469,8 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
   g->birthday = t;
   g->properties = s;
   s->population++;
-  g->flags = TYPE_GRID + ACT_NEWBIE + IN_SCHEDULE;
+  g->flags = TYPE_GRID | ACT_NEWBIE | IN_SCHEDULE;
+  if (s->space_step > 0) g->flags |= ACT_DIFFUSE;
   if (trigger_unimolecular(s->hashval,(struct abstract_molecule*)g)!= NULL)
     g->flags += ACT_REACT;
   
@@ -1042,6 +1043,7 @@ int release_molecules(struct release_event_queue *req)
   struct grid_molecule *gp;
   struct molecule *guess;
   int i,number;
+  short orient;
   struct vector3 *diam_xyz;
   struct vector3 pos;
   double diam,vol;
@@ -1125,8 +1127,8 @@ int release_molecules(struct release_event_queue *req)
   
   if (rso->mol_list==NULL)  /* All molecules are the same, so we can set flags */
   {
-    if (trigger_unimolecular(rso->mol_type->hashval , ap) != NULL) ap->flags += ACT_REACT;
-    if (rso->mol_type->space_step > 0.0) ap->flags += ACT_DIFFUSE;
+    if (trigger_unimolecular(rso->mol_type->hashval , ap) != NULL) ap->flags |= ACT_REACT;
+    if (rso->mol_type->space_step > 0.0) ap->flags |= ACT_DIFFUSE;
   }
   
   switch(rso->release_number_method)
@@ -1257,7 +1259,12 @@ int release_molecules(struct release_event_queue *req)
 	{
           if (diam_xyz==NULL) diam=0.0;
           else diam=diam_xyz->x;
-	  gp = insert_grid_molecule(rsm->mol_type,&(m.pos),rsm->orient,diam,req->event_time);
+	  
+	  if (rsm->orient>0) orient=1;
+	  else if (rsm->orient<0) orient=-1;
+	  else orient = (rng_uint(world->rng)&1)?1:-1;
+	  
+	  gp = insert_grid_molecule(rsm->mol_type,&(m.pos),orient,diam,req->event_time);
 	  if (gp==NULL)
 	  {
 	    fprintf(world->err_file,"Warning: unable to find surface upon which to place molecule %s\n",rsm->mol_type->sym->name);

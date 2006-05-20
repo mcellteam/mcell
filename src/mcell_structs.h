@@ -31,7 +31,8 @@
 #define CAN_MOLGRID      0x20
 #define CAN_MOLWALL      0x40
 #define CAN_GRIDGRID     0x80
-#define CANT_INITIATE    0x100
+#define CAN_GRIDWALL     0x100
+#define CANT_INITIATE    0x200
 #define COUNT_CONTENTS   0x1000
 #define COUNT_HITS       0x2000
 #define COUNT_RXNS       0x4000
@@ -85,6 +86,7 @@
   /* RX_DESTROY signals that the molecule no longer exists (so don't try to keep using it) */
   /* RX_A_OK signals that all is OK with a reaction, proceed as normal (reflect if you're free) */
   /* RX_NO_MEM signals a memory allocation error. */
+#define RX_REFLEC  -4
 #define RX_TRANSP  -3
 #define RX_SPECIAL -3
 #define RX_BLOCKED -2
@@ -178,12 +180,16 @@
 
 
 /* Size constants */
+/* EPS_C is the fractional difference between two values that is considered meaningful */
+/* GIGANTIC is a distance that is larger than any possible simulation */
+/* FOREVER is a time that cannot be reached within one simulation (too many timesteps) */
 #define EPS_C 1e-12
 #define GIGANTIC 1e140
 #define FOREVER 1e20
 
 /* Special rate constants used to define unusual reactions */
 #define KCAT_RATE_TRANSPARENT -1.0
+#define KCAT_RATE_REFLECTIVE -2.0
 
 
 /* Abstract molecule flags */
@@ -299,6 +305,9 @@
 #define WARN_COPE 0
 #define WARN_WARN 1
 #define WARN_ERROR 2
+
+/* Stuff to set surface diffusion behavior */
+#define SURFACE_DIFFUSION_RETRIES 10
 
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
@@ -1011,7 +1020,6 @@ struct volume
   double length_unit;
   double effector_grid_density;
   double rx_radius_3d;
-  double default_grid_mol_area;
   double *r_step;
   double *d_step;
   double *r_step_surface;
@@ -1242,6 +1250,8 @@ struct notifications
   long long short_lifetime_value;
   byte missed_reactions;
   double missed_reaction_value;
+  byte missed_surf_orient;
+  byte useless_vol_orient;
 };
 
 struct ccn_clamp_data

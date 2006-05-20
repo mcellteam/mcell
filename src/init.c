@@ -140,6 +140,8 @@ int init_notifications()
   world->notify->short_lifetime_value = 50;
   world->notify->missed_reactions = WARN_WARN;
   world->notify->missed_reaction_value = 0.001;
+  world->notify->missed_surf_orient = WARN_ERROR;
+  world->notify->useless_vol_orient = WARN_WARN;
   
   if (world->log_freq!=-1) /* User set this */
   {
@@ -225,7 +227,6 @@ int init_sim(void)
   world->current_start_real_time=0;
   world->effector_grid_density=10000;
   world->length_unit=1.0/sqrt(world->effector_grid_density);
-  world->default_grid_mol_area=1/world->effector_grid_density;
   world->rx_radius_3d = 0;
   world->max_diffusion_step=0;
   world->radial_directions=16384;
@@ -617,7 +618,6 @@ int init_species(void)
   struct sym_table *gp;
   struct species *s;
   double speed;
-  double old_dgma;
   
   world->speed_limit = 0;
   
@@ -628,16 +628,6 @@ int init_species(void)
       if (gp->sym_type==MOL) count++;
     }
   }
-  
-  old_dgma = world->default_grid_mol_area;
-  world->default_grid_mol_area *= world->effector_grid_density;
-  if (!distinguishable(world->default_grid_mol_area,1,EPS_C)) world->default_grid_mol_area = 1.0;
-  if (world->default_grid_mol_area > 1)
-  {
-    fprintf(world->err_file,"Warning: default area for surface molecules is larger than area of one grid element.\n  Resetting to be 1/EFFECTOR_GRID_DENSITY.\n");
-    world->default_grid_mol_area = 1.0;
-  }
-  
   
   world->n_species = count;
   if((world->species_list = (struct species**)malloc(sizeof(struct species*)*world->n_species)) == NULL)
@@ -658,20 +648,6 @@ int init_species(void)
         world->species_list[count]->chkpt_species_id = UINT_MAX;
 /*        world->species_list[count]->hashval &= world->rx_hashsize-1; */
         world->species_list[count]->radius = EPS_C;
-	if (world->species_list[count]->area == old_dgma)
-	{
-	  world->species_list[count]->area = world->default_grid_mol_area;
-	}
-	else
-	{
-	  world->species_list[count]->area *= world->effector_grid_density;
-	  if (!distinguishable(world->species_list[count]->area,1,EPS_C)) world->species_list[count]->area = 1.0;
-	  if (world->species_list[count]->area > 1.0)
-	  {
-	    fprintf(world->err_file,"Warning: molecule %s has an area larger than area of one grid element.\n  Resetting to be the area of one grid element.\n",world->species_list[count]->sym->name);
-	    world->species_list[count]->area = 1.0;
-	  }
-	}
         world->species_list[count]->population = 0;
 	world->species_list[count]->n_deceased = 0;
 	world->species_list[count]->cum_lifetime = 0;
@@ -2106,7 +2082,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
     prob[i]=tot_prob;
     if (effdp->orientation > 0) orientation[i] = 1;
     else if (effdp->orientation < 0) orientation[i] = -1;
-    else orientation[i] = 0;
+    else orientation[i] = (rng_uint(world->rng)&1)?1:-1;
     eff[i++]=effdp->eff;
     tot_density+=effdp->quantity;
     effdp=effdp->next;
@@ -2155,6 +2131,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
         mol->grid=sg;
 
         mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
+	if (mol->properties->space_step>0) mol->flags |= ACT_DIFFUSE;
         if (trigger_unimolecular(eff[p_index]->hashval,
           (struct abstract_molecule *)mol)!=NULL) {
           mol->flags|=ACT_REACT;
@@ -2301,7 +2278,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
           if (world->chkpt_init) {  /* only needed for denovo initiliazation */
 	    if (effdp->orientation > 0) orientation = 1;
 	    else if (effdp->orientation < 0) orientation = -1;
-	    else orientation = 0;
+	    else orientation = (rng_uint(world->rng)&1)?1:-1;
   
             n_set=effdp->quantity;
             n_clear=n_free_eff-n_set;
@@ -2364,6 +2341,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   mol->orient=orientation;
                   mol->grid=walls[j]->effectors;
                   mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
+		  if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
                   if (trigger_unimolecular(eff->hashval,
                     (struct abstract_molecule *)mol)!=NULL) {
                     mol->flags|=ACT_REACT;
@@ -2409,6 +2387,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     mol->orient=orientation;
                     mol->grid=walls[k]->effectors;
                     mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
+		    if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
                       if (trigger_unimolecular(eff->hashval,
                       (struct abstract_molecule *)mol)!=NULL) {
                       mol->flags|=ACT_REACT;

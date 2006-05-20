@@ -3,7 +3,10 @@
 
 #include "mcell_structs.h"
 
+
+/* In react_trig.c */
 struct rxn* trigger_unimolecular(int hash,struct abstract_molecule *reac);
+struct rxn* trigger_surface_unimol(struct abstract_molecule *reac,struct wall *w);
 struct rxn* trigger_bimolecular(int hashA,int hashB,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,
   short orientA,short orientB);
@@ -11,15 +14,19 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
   short orientA,struct wall *w);
 
 
+/* In react_cond.c */
 int test_unimolecular(struct rxn *rx);
 double timeof_unimolecular(struct rxn *rx);
+double timeof_special_unimol(struct rxn *rxuni,struct rxn *rxsurf);
 int which_unimolecular(struct rxn *rx);
+int is_surface_unimol(struct rxn *rxuni,struct rxn *rxsurf);
 int test_bimolecular(struct rxn *rx,double scaling);
 long long test_many_bimolecular(struct rxn **rx,double *scaling, int n);
 int test_intersect(struct rxn *rx,double scaling);
 void check_probs(struct rxn *rx,double t);
 
 
+/* In react_outc.c */
 int outcome_products(struct wall *w,struct molecule *reac_m,
   struct grid_molecule *reac_g,struct rxn *rx,int path,struct storage *local,
   short orientA,short orientB,double t,struct vector3 *hitpt,

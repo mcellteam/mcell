@@ -957,6 +957,92 @@ double closest_interior_point(struct vector3 *pt,struct wall *w,struct vector2 *
 
 
 /***************************************************************************
+find_edge_point:
+  In: a wall
+      a point in the coordinate system of that wall where we are now
+         (assumed to be on or inside triangle)
+      a displacement vector to move
+      a place to store the coordinate of the edge, if we hit it
+  Out: index of the edge we hit (0, 1, or 2), or -1 if the new location
+       is within the wall, or -2 if we can't tell.  If the result is
+       0, 1, or 2, edgept is set to the new location.
+***************************************************************************/
+
+int find_edge_point(struct wall *here,struct vector2 *loc,struct vector2 *disp,struct vector2 *edgept)
+{
+  double lxd;
+  double lxc1,lxc2;
+  double dxc1,dxc2;
+  double f,s,t;
+  
+  lxd = loc->u*disp->v - loc->v*disp->u;
+  
+  lxc1 = -loc->v*here->uv_vert1_u;
+  dxc1 = -disp->v*here->uv_vert1_u;
+  
+  if (dxc1 < -EPS_C || dxc1 > EPS_C)
+  {
+    f = 1.0/dxc1; /* f>0 is passing outwards */
+    s = -lxd*f;
+    if (0.0<s && s<1.0 && f>0.0)
+    {
+      t = -lxc1*f;
+      if (EPS_C<t && t<1.0)
+      {
+	edgept->u = loc->u + t*disp->u;
+	edgept->v = loc->v + t*disp->v;
+	return 0;
+      }
+      else if (t > 1.0+EPS_C) return -1;
+      /* else can't tell if we hit this edge, assume not */
+    }
+  }
+  
+  lxc2 = loc->u*here->uv_vert2.v - loc->v*here->uv_vert2.u;
+  dxc2 = disp->u*here->uv_vert2.v - disp->v*here->uv_vert2.u;
+  
+  if (dxc2 < -EPS_C || dxc2 > EPS_C)
+  {
+    f = 1.0/dxc2; /* f<0 is passing outwards */
+    s = 1.0 + lxd*f;
+    if (0.0<s && s<1.0 && f<0.0)
+    {
+      t = -lxc2*f;
+      if (EPS_C<t && t<1.0)
+      {
+	edgept->u = loc->u + t*disp->u;
+	edgept->v = loc->v + t*disp->v;
+	return 2;
+      }
+      else if (t > 1.0+EPS_C) return -1;
+      /* else can't tell */
+    }
+  }
+  
+  f = dxc2-dxc1;
+  
+  if (f < -EPS_C || f > EPS_C)
+  {
+    f = 1.0/f; /* f>0 is passing outwards */
+    s = -(lxd + dxc1)*f;
+    if (0.0<s && s<1.0 && f>0.0)
+    {
+      t = (here->uv_vert1_u*here->uv_vert2.v + lxc1 - lxc2) * f;
+      if (EPS_C<t && t<1.0)
+      {
+	edgept->u = loc->u + t*disp->u;
+	edgept->v = loc->v + t*disp->v;
+	return 1;
+      }
+      else if (t > 1.0+EPS_C) return -1;
+      /* else can't tell */
+    }
+  }
+  
+  return -2;  /* Couldn't tell whether we hit or not--pick another number */
+}
+
+/***************************************************************************
 traverse_surface:
   In: a wall
       a point in the coordinate system of that wall
@@ -3192,8 +3278,12 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
         new_g->grid_index = j;
 	if (world->randomize_gmol_pos) grid2uv_random(w->effectors,j,&(new_g->s_pos));
 	else grid2uv(w->effectors,j,&(new_g->s_pos));
-        new_g->orient = rso->orientation;
-        new_g->grid = w->effectors;
+	
+	if (rso->orientation > 0) new_g->orient = 1;
+	else if (rso->orientation < 0) new_g->orient = -1;
+	else new_g->orient = (rng_uint(world->rng)&1)?1:-1;
+        
+	new_g->grid = w->effectors;
         
         w->effectors->mol[j] = new_g;
 
@@ -3265,7 +3355,11 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           new_g->grid_index = p->index;
 	  if (world->randomize_gmol_pos) grid2uv_random(p->grid,p->index,&(new_g->s_pos));
 	  else grid2uv(p->grid,p->index,&(new_g->s_pos));
-          new_g->orient = rso->orientation;
+	  
+	  if (rso->orientation>0) new_g->orient=1;
+	  else if (rso->orientation<0) new_g->orient=-1;
+	  else new_g->orient = (rng_uint(world->rng)&1)?1:-1;
+	  
           new_g->grid = p->grid;
           
           p->grid->mol[ p->index ] = new_g;

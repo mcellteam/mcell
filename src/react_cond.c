@@ -55,7 +55,25 @@ double timeof_unimolecular(struct rxn *rx)
   double p = rng_dbl( world->rng );
   double k_tot = rx->cum_probs[ rx->n_pathways - 1 ];
   
-  if (k_tot<=0 || p==0) return GIGANTIC;
+  if (k_tot<=0 || p==0) return FOREVER;
+  return -log( p )/k_tot;
+}
+
+
+/*************************************************************************
+timeof_special_unimol:
+  In: the unimolecular reaction we're testing
+      the surface-dependent "unimolecular" reaction we're testing
+  Out: double containing the number of timesteps until one of the reactions
+       occurs
+*************************************************************************/
+
+double timeof_special_unimol(struct rxn *rxuni,struct rxn *rxsurf)
+{
+  double p = rng_dbl( world->rng );
+  double k_tot = rxuni->cum_probs[rxuni->n_pathways - 1] + rxsurf->cum_probs[rxsurf->n_pathways - 1];
+  
+  if (k_tot<=0 || p==0) return FOREVER;
   return -log( p )/k_tot;
 }
 
@@ -86,6 +104,22 @@ int which_unimolecular(struct rxn *rx)
   if (m==M) return m;
   if (p > rx->cum_probs[m]) return M;
   else return m;
+}
+
+
+/*************************************************************************
+is_surface_unimol:
+  In: a regular unimolecular reaction
+      a surface-dependent unimolecular reaction
+  Out: 1 if the surface-dependent reaction occurs, 0 otherwise
+*************************************************************************/
+
+int is_surface_unimol(struct rxn *rxuni,struct rxn *rxsurf)
+{
+  double k_tot = rxuni->cum_probs[rxuni->n_pathways - 1] + rxsurf->cum_probs[rxsurf->n_pathways - 1];
+
+  if (rng_dbl(world->rng)*k_tot < rxuni->cum_probs[rxuni->n_pathways - 1]) return 0;
+  else return 1;
 }
 
 
