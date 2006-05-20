@@ -5990,40 +5990,27 @@ orientation_class: /* empty */
 
 list_orient_marks:
         head_mark
-{
-  mdlpvp->orient_class++;
-  mdlpvp->orient_specified=1;
-}
 	| tail_mark
-{
-  mdlpvp->orient_class--;
-  mdlpvp->orient_specified=1;
-}
         | list_orient_marks head_mark
-{
-  mdlpvp->orient_class++;
-  mdlpvp->orient_specified=1;
-}
-	| list_orient_marks tail_mark
-{
-  mdlpvp->orient_class--;
-  mdlpvp->orient_specified=1;
-};
+	| list_orient_marks tail_mark;
 
 
 head_mark: '\''
 {
-  mdlpvp->orient_class+=1;
+  mdlpvp->orient_class++;
+  mdlpvp->orient_specified=1;
 };
 
 
 tail_mark: ','
 {
-  mdlpvp->orient_class+=1;
+  mdlpvp->orient_class--;
+  mdlpvp->orient_specified=1;
 };
 
 orient_class_number: '{' num_expr '}'
 {
+  printf("!!oc = %d\n",(int)$<dbl>2);
   mdlpvp->orient_class=(short)$<dbl>2;
   mdlpvp->orient_specified=1;
 };
