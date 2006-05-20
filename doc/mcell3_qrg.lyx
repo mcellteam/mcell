@@ -1595,7 +1595,7 @@ ERROR
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="11" columns="2">
+<lyxtabular version="3" rows="13" columns="2">
 <features islongtable="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="left" valignment="top" leftline="true" rightline="true" width="4in">
@@ -1887,6 +1887,50 @@ WARNING
 
 
 \family typewriter 
+MISSING_SURFACE_ORIENTATION = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Generate errors or warnings if a molecule is placed on a surface or reactions
+ occur at a surface without a specified orientation---the code will assume
+ you mean that there is no orientation in the warning or silent cases.
+ To avoid triggering this condition, if you want to have no orientation,
+ you must specify it explicitly with 
+\family typewriter 
+',
+\family default 
+ or 
+\family typewriter 
+,'
+\family default 
+ or 
+\family typewriter 
+;
+\family default 
+.
+ The default policy is 
+\family typewriter 
+ERROR
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
 NEGATIVE_REACTION_RATE = 
 \family sans 
 \shape italic 
@@ -1900,6 +1944,36 @@ policy
 
 Reaction rate constants cannot be negative, and will be set to zero if they
  are.
+ The default policy is 
+\family typewriter 
+WARNING
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+USELESS_VOLUME_ORIENTATION = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Generate errors or warnings if a molecule is placed in a volume or reactions
+ occur in free space but an orientation is specified anyway---there is no
+ way to impose orientation so the marks will be ignored.
  The default policy is 
 \family typewriter 
 WARNING
@@ -2303,17 +2377,6 @@ D
 \family default 
 \shape default 
 .
- Until surface diffusion is implemented, only 
-\family typewriter 
-0
-\family default 
- is a valid value for 
-\family sans 
-\shape italic 
-D
-\family default 
-\shape default 
-.
  
 \family typewriter 
 D_2D
@@ -2663,13 +2726,10 @@ products
 \end_inset 
 
 ).
- 
-\emph on 
-!!
-\emph default 
-Need to describe rates from files
-\emph on 
-!!
+ The rate can also be a filename, in quotes, that contains two columns:
+ the second is the rate, while the first is the time at which that rate
+ should start being used.
+ This allows variable reaction rates.
 \end_inset 
 </cell>
 </row>
@@ -2957,6 +3017,7 @@ Molecules in a surface have an orientation: up if they point in the direction
  of the surface normal, down otherwise..
  Molecules in 3D that strike or come off a surface also have an orientation:
  up if the surface normal points towards them, down if it points away.
+ 
 \layout Standard
 
 Reactions normally do not specify absolute orientation.
@@ -2964,6 +3025,8 @@ Reactions normally do not specify absolute orientation.
  and specifies the relative orientation of the products.
  This allows you to write general reactions that do not depend on the direction
  of insertion of a molecule into a membrane.
+ Reactions at surfaces will occur in any orientation if the orientations
+ are not specified, and products will appear in random orientations.
 \layout Standard
 
 The two orientations are specified by 
@@ -3696,9 +3759,29 @@ There are examples of how one would use this syntax to model well-known
  biological reactions at the end of this file.
 \layout Standard
 
+Tick marks add, so that 
+\family typewriter 
+',
+\family default 
+ and 
+\family typewriter 
+,'
+\family default 
+ mean no orientation; these mean 
+\begin_inset Quotes eld
+\end_inset 
 
-\emph on 
-Need to add code and syntax to specify a surface with an orientation also.
+no orientation class
+\begin_inset Quotes erd
+\end_inset 
+
+: reactions will occur from either orientation when given no orientation
+ class, and products will orient randomly.
+ A semicolon, 
+\family typewriter 
+;
+\family default 
+, can be used instead of two opposite tick marks.
 \layout Subsection
 
 Geometry definition commands
@@ -4216,6 +4299,8 @@ A'
 A,
 \family default 
  specifies the opposite orientation.
+ Using both marks indicates that the molecule should be assigned an orientation
+ randomly.
 \end_inset 
 </cell>
 </row>
@@ -4327,6 +4412,7 @@ N2
  of molecules to the region.
  Orientation marks after the name must be used to specify the direction
  the molecules are facing.
+ 
 \end_inset 
 </cell>
 </row>
