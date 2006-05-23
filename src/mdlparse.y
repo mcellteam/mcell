@@ -150,6 +150,7 @@ struct release_evaluator *rev;
 %token <tok> DIFFUSION_CONSTANT_REPORTS
 %token <tok> DX
 %token <tok> DREAMM_V3
+%token <tok> DREAMM_V3_GROUPED
 %token <tok> EFFECTOR
 %token <tok> EFFECTOR_GRID_DENSITY
 %token <tok> EFFECTOR_POSITIONS
@@ -6304,7 +6305,7 @@ molecules_time_points_range_cmd: viz_molecules_one_item '@' '['
   sort_num_expr_list(mdlpvp->el_head);
   int temp = $<tok>1;
 
-  if(volp->viz_mode == DREAMM_V3_MODE){
+  if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE)){
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
                 mdlerror("Out of memory while creating time points");
@@ -6413,7 +6414,7 @@ molecules_time_points_all_times_cmd: viz_molecules_one_item '@' ALL_TIMES
   sort_num_expr_list(mdlpvp->el_head); 
   temp = $<tok>1;
 
-  if(volp->viz_mode == DREAMM_V3_MODE)
+  if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE))
   {
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
@@ -6517,7 +6518,7 @@ molecules_iteration_numbers_range_cmd: viz_molecules_one_item '@' '['
 
   int temp = $<tok>1;
 
-  if(volp->viz_mode == DREAMM_V3_MODE)
+  if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE))
   {
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
@@ -6629,7 +6630,7 @@ molecules_iteration_numbers_all_iterations_cmd: viz_molecules_one_item '@'
   sort_num_expr_list(mdlpvp->el_head); 
   temp = $<tok>1;
 
-  if(volp->viz_mode == DREAMM_V3_MODE)
+  if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE))
   {
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
@@ -7164,7 +7165,7 @@ meshes_time_points_range_cmd: viz_meshes_one_item '@' '['
   sort_num_expr_list(mdlpvp->el_head);
 
   int temp = $<tok>1;
-  if(volp->viz_mode == DREAMM_V3_MODE){
+  if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE)){
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
               mdlerror("Out of memory while creating time points");
@@ -7180,8 +7181,8 @@ meshes_time_points_range_cmd: viz_meshes_one_item '@' '['
      volp->frame_data_head = mdlpvp->fdlp; 
   }else if((volp->viz_mode == DX_MODE) && (temp == REG_DATA)){
       /* do nothing */
-      fprintf(stderr, "REGION_DATA cannot be dispalyed in DX_MODE, please use \
-                 DREAMM_V3 mode.\n");
+      fprintf(stderr, "REGION_DATA cannot be displayed in DX_MODE, please use \
+                 DREAMM_V3_GROUPED (or DREAMM_V3) mode.\n");
   }else if(volp->viz_mode == DX_MODE){ 
      if((temp == MESH_GEOMETRY) || (temp == ALL_MESH_DATA)){
         /* create two frames - SURF_POS and SURF_STATES */
@@ -7245,7 +7246,7 @@ meshes_time_points_all_times_cmd: viz_meshes_one_item '@' ALL_TIMES
   sort_num_expr_list(mdlpvp->el_head); 
   
   int temp = $<tok>1;
-  if(volp->viz_mode == DREAMM_V3_MODE){
+  if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE)){
      
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
         (sizeof(struct frame_data_list)))==NULL) {
@@ -7263,7 +7264,7 @@ meshes_time_points_all_times_cmd: viz_meshes_one_item '@' ALL_TIMES
   }else if((volp->viz_mode == DX_MODE) && (temp == REG_DATA)){
       /* do nothing */
       fprintf(stderr, "REGION_DATA cannot be dispalyed in DX_MODE, please use \
-                 DREAMM_V3 mode.\n");
+               DREAMM_V3_GROUPED (or DREAMM_V3) mode.\n");
   }else if(volp->viz_mode == DX_MODE){
      if((temp == MESH_GEOMETRY) || (temp == ALL_MESH_DATA))
      {
@@ -7323,7 +7324,7 @@ meshes_iteration_numbers_range_cmd: viz_meshes_one_item '@' '['
   sort_num_expr_list(mdlpvp->el_head);
 
   int temp = $<tok>1;
-  if(volp->viz_mode == DREAMM_V3_MODE){
+  if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE)){
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
                 mdlerror("Out of memory while creating iteration numbers");
@@ -7339,8 +7340,8 @@ meshes_iteration_numbers_range_cmd: viz_meshes_one_item '@' '['
      volp->frame_data_head = mdlpvp->fdlp;  
   }else if((volp->viz_mode == DX_MODE) && (temp == REG_DATA)){
       /* do nothing */
-      fprintf(stderr, "REGION_DATA cannot be dispalyed in DX_MODE, please use \
-                 DREAMM_V3 mode.\n");
+      fprintf(stderr, "REGION_DATA cannot be displayed in DX_MODE, please use \
+       DREAMM_V3_GROUPED (or DREAMM_V3) mode.\n");   
   }else if(volp->viz_mode == DX_MODE){
      if((temp == MESH_GEOMETRY) || (temp == ALL_MESH_DATA)){
         /* create two frames - SURF_POS and SURF_STATES */
@@ -7408,7 +7409,7 @@ meshes_iteration_numbers_all_iterations_cmd: viz_meshes_one_item '@'
   sort_num_expr_list(mdlpvp->el_head);
 
   int temp = $<tok>1;
-  if(volp->viz_mode == DREAMM_V3_MODE){
+  if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE)){
  
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
         (sizeof(struct frame_data_list)))==NULL) {
@@ -7425,8 +7426,8 @@ meshes_iteration_numbers_all_iterations_cmd: viz_meshes_one_item '@'
      volp->frame_data_head = mdlpvp->fdlp;  
   }else if((volp->viz_mode == DX_MODE) && (temp == REG_DATA)){
       /* do nothing */
-      fprintf(stderr, "REGION_DATA cannot be dispalyed in DX_MODE, please use \
-                 DREAMM_V3 mode.\n");
+      fprintf(stderr, "REGION_DATA cannot be displayed in DX_MODE, please use \
+         DREAMM_V3_GROUPED (or DREAMM_V3) mode.\n");
   }else if(volp->viz_mode == DX_MODE) {
      if((temp == MESH_GEOMETRY) || (temp == ALL_MESH_DATA))
      {
@@ -7514,6 +7515,10 @@ viz_mode_def: MODE '=' NONE
 	| MODE '=' DREAMM_V3
 {
   volp->viz_mode = DREAMM_V3_MODE; 
+}
+	| MODE '=' DREAMM_V3_GROUPED
+{
+  volp->viz_mode = DREAMM_V3_GROUPED_MODE; 
 }
 	| MODE '=' CUSTOM_RK
 {

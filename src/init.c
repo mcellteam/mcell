@@ -405,7 +405,7 @@ int init_sim(void)
   
 
   /* Visualize all molecules if asked in "mdl" file */
-  if(world->viz_mode == DREAMM_V3_MODE)
+  if((world->viz_mode == DREAMM_V3_MODE) || (world->viz_mode == DREAMM_V3_GROUPED_MODE))
   {
     if((world->viz_output_flag & VIZ_ALL_MOLECULES) != 0) {
        struct species *sp;
@@ -1422,7 +1422,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
 #endif
    if(vizp!=NULL)
    {
-     if((world->viz_mode == DREAMM_V3_MODE) || (objp->viz_state!=NULL))
+     if((world->viz_mode == DREAMM_V3_MODE) || (world->viz_mode == DREAMM_V3_GROUPED_MODE) || (objp->viz_state!=NULL))
      {
 
       if ((vcp=(struct viz_child *)malloc

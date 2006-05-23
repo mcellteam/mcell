@@ -353,9 +353,9 @@
 #define EFFNUM 1
 
 /* Viz output options */
-#define VIZ_ALL_MOLECULES 0x001
-#define VIZ_MOLECULES_STATES 0x002
-#define VIZ_SURFACE_STATES 0x004
+#define VIZ_ALL_MOLECULES 0x01
+#define VIZ_MOLECULES_STATES 0x02
+#define VIZ_SURFACE_STATES 0x04
 
 /*******************************************************/
 /**  Old constants copied from MCell2, may be broken  **/
@@ -492,8 +492,9 @@
 #define NO_VIZ_MODE 0
 #define DX_MODE 1
 #define DREAMM_V3_MODE 2
-#define RK_MODE 3 
-#define ASCII_MODE 4
+#define DREAMM_V3_GROUPED_MODE 3
+#define RK_MODE 4
+#define ASCII_MODE 5
 
 
 /* Visualization frame data types. */

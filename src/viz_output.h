@@ -11,6 +11,8 @@ int output_dx_objects(struct frame_data_list *fdlp);
 int output_rk_custom(struct frame_data_list *fdlp);
 int output_ascii_molecules(struct frame_data_list *fdlp);
 int output_dreamm_objects(struct frame_data_list *fdlp);
+int output_dreamm_objects_grouped(struct frame_data_list *fdlp);
+int output_dreamm_objects(struct frame_data_list *fdlp);
 
 
 /*
