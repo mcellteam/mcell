@@ -4047,7 +4047,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       
       continue;
     }
-
+    
     a->flags -= IN_SCHEDULE;
     
     if (a->t2 < EPS_C || a->t2 < EPS_C*a->t)
@@ -4058,22 +4058,29 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         if ((a->flags & ACT_REACT) != 0)
         {
           r = trigger_unimolecular(a->properties->hashval,a);
-          if (r->prob_t != NULL) check_probs(r,(a->t + a->t2)*(1.0+EPS_C));
+	  if (r!=NULL)
+	  {
+            if (r->prob_t != NULL) check_probs(r,(a->t + a->t2)*(1.0+EPS_C));
+	  }
 	  
 	  tt=FOREVER; /* When will rates change? */
 	  
-	  if ( (a->properties->flags&CAN_GRIDWALL)!=0 && (r2=trigger_surface_unimol(a,NULL))!=NULL )
+	  r2=NULL;
+	  if (a->properties->flags&CAN_GRIDWALL) r2=trigger_surface_unimol(a,NULL);
+	  if ( r2!=NULL )
 	  {
-	    if (r2->prob_t != NULL) check_probs(r,(a->t + a->t2)*(1.0+EPS_C));
-	    a->t2 = timeof_special_unimol(r,r2);
-	    if (r->prob_t!=NULL) tt = r->prob_t->time;
+	    if (r2->prob_t != NULL) check_probs(r2,(a->t + a->t2)*(1.0+EPS_C));
+	    a->t2 = (r==NULL) ? timeof_unimolecular(r2) : timeof_special_unimol(r,r2);
+	    if (r!=NULL && r->prob_t!=NULL) tt = r->prob_t->time;
 	    if (r2->prob_t!=NULL && tt > r2->prob_t->time) tt = r2->prob_t->time;
 	  }
-	  else
+	  else if (r!=NULL)
 	  {
 	    a->t2 = timeof_unimolecular(r);
 	    if (r->prob_t!=NULL) tt = r->prob_t->time;
 	  }
+	  else a->t2 = FOREVER;
+	  
 	  if (a->t + a->t2 > tt)
 	  {
 	    a->t2 = tt - a->t;
@@ -4084,6 +4091,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       else if ((a->flags & ACT_REACT) != 0)
       {
 	special = 0;
+	r2 = NULL;
         r = trigger_unimolecular(a->properties->hashval,a);
 
 	if (a->properties->flags&CAN_GRIDWALL)
@@ -4092,7 +4100,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	  if (r2!=NULL)
 	  {
 	    special = 1;
-	    if (is_surface_unimol(r,r2))
+	    if (r==NULL || is_surface_unimol(r,r2))
 	    {
 	      special = 2;
 	      r = r2; /* Do surface-limited rx instead */
@@ -4100,31 +4108,42 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	  }
 	}
 	
-        i = which_unimolecular(r);
-        j = outcome_unimolecular(r,i,a,a->t);
-	if (j==RX_NO_MEM)
+	if (r!=NULL)
 	{
-	  fprintf(world->err_file,"Out of memory.  Trying to save intermediate results.\n");
-	  i = emergency_output();
-	  fprintf(world->err_file,"Out of memory during unimolecular reaction %s...\n",r->sym->name);
-	  fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",i);
-	  exit( EXIT_FAILURE );
+	  i = which_unimolecular(r);
+	  j = outcome_unimolecular(r,i,a,a->t);
+	  if (j==RX_NO_MEM)
+	  {
+	    fprintf(world->err_file,"Out of memory.  Trying to save intermediate results.\n");
+	    i = emergency_output();
+	    fprintf(world->err_file,"Out of memory during unimolecular reaction %s...\n",r->sym->name);
+	    fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",i);
+	    exit( EXIT_FAILURE );
+	  }
 	}
+	else j=RX_NO_RX;
+	
         if (j!=RX_DESTROY) /* We still exist */
         {
 	  tt = FOREVER;
 	  if (special)
 	  {
-	    if (special==2) r = trigger_unimolecular(a->properties->hashval,a);
-	    a->t2 = timeof_special_unimol(r,r2);
-	    if (r->prob_t!=NULL) tt=r->prob_t->time;
-	    if (r2->prob_t!=NULL && r2->prob_t->time < tt) tt = r2->prob_t->time;
+	    if (special==2)
+	    {
+	      r2 = r;
+	      r = trigger_unimolecular(a->properties->hashval,a);
+	    }
+	    a->t2 = (r==NULL) ? timeof_unimolecular(r2) : timeof_special_unimol(r,r2);
+	    if (r!=NULL && r->prob_t!=NULL) tt=r->prob_t->time;
+	    if (r2!=NULL && r2->prob_t!=NULL && r2->prob_t->time < tt) tt = r2->prob_t->time;
 	  }
-	  else
+	  else if (r!=NULL)
 	  {
 	    a->t2 = timeof_unimolecular(r);
 	    if (r->prob_t != NULL) tt=r->prob_t->time;
 	  }
+	  else a->t2 = FOREVER;
+	  
 	  if (a->t + a->t2 > tt)
 	  {
 	    a->t2 = tt - a->t;
@@ -4141,6 +4160,8 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     
     if ( (a->flags&TYPE_GRID)!=0 && (a->flags&ACT_DIFFUSE)==0 && a->properties->D>0) printf("Need to set ACT_DIFFUSE\n");
 
+    t = a->t;
+
     if ((a->flags & ACT_DIFFUSE) != 0)
     {
       max_time = checkpt_time - a->t;
@@ -4150,7 +4171,6 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       if ((a->flags & TYPE_3D) != 0)
       {
         if (max_time > release_time - a->t) max_time = release_time - a->t;
-        t = a->t;
         a = (struct abstract_molecule*)diffuse_3D((struct molecule*)a , max_time , a->flags & ACT_INERT);
         if (a!=NULL) /* We still exist */
         {
@@ -4161,7 +4181,6 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       else
       {
 	if (max_time > release_time - a->t) max_time = release_time - a->t;
-	t = a->t;
 	w = ((struct grid_molecule*)a)->grid->surface;
 	a = (struct abstract_molecule*)diffuse_2D((struct grid_molecule*)a , max_time);
 	

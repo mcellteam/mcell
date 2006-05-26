@@ -471,8 +471,7 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
   s->population++;
   g->flags = TYPE_GRID | ACT_NEWBIE | IN_SCHEDULE;
   if (s->space_step > 0) g->flags |= ACT_DIFFUSE;
-  if (trigger_unimolecular(s->hashval,(struct abstract_molecule*)g)!= NULL)
-    g->flags += ACT_REACT;
+  if (trigger_unimolecular(s->hashval,(struct abstract_molecule*)g)!= NULL || (s->flags&CAN_GRIDWALL)!=0 ) g->flags |= ACT_REACT;
   
   g->t = t;
   g->t2 = 0.0;
@@ -1127,7 +1126,7 @@ int release_molecules(struct release_event_queue *req)
   
   if (rso->mol_list==NULL)  /* All molecules are the same, so we can set flags */
   {
-    if (trigger_unimolecular(rso->mol_type->hashval , ap) != NULL) ap->flags |= ACT_REACT;
+    if (trigger_unimolecular(rso->mol_type->hashval , ap) != NULL || (rso->mol_type->flags&CAN_GRIDWALL)!=0) ap->flags |= ACT_REACT;
     if (rso->mol_type->space_step > 0.0) ap->flags |= ACT_DIFFUSE;
   }
   

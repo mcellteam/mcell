@@ -1302,13 +1302,13 @@ int read_mol_scheduler_state(FILE *fs)
            ap->t2 = lifetime;
            ap->birthday = birthday;           
            ap->properties = properties; 
-           if(trigger_unimolecular(ap->properties->hashval, ap) != NULL)
+           if(trigger_unimolecular(ap->properties->hashval, ap)!=NULL || (ap->properties->flags&CAN_GRIDWALL)!=0)
            {
-	      ap->flags += ACT_REACT;
+	      ap->flags |= ACT_REACT;
            }
            if(ap->properties->space_step > 0.0)
            {
-	      ap->flags += ACT_DIFFUSE;
+	      ap->flags |= ACT_DIFFUSE;
            }
  
            mp->curr_cmprt = NULL;

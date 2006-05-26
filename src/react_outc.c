@@ -228,8 +228,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
 	p->population++;
 	g->flags = TYPE_GRID | ACT_NEWBIE | IN_SCHEDULE;
 	if (p->space_step>0) g->flags |= ACT_DIFFUSE;
-	if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)g)!= NULL)
-	  g->flags += ACT_REACT;
+	if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)g)!= NULL || (p->flags&CAN_GRIDWALL)!=0) g->flags |= ACT_REACT;
 	
 	g->t = t;
 	g->t2 = 0.0;
@@ -294,8 +293,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
         m->index = -1;
       }
       m->flags = TYPE_3D + ACT_NEWBIE + IN_VOLUME + IN_SCHEDULE;
-      if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)m) != NULL)
-        m->flags += ACT_REACT;
+      if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)m) != NULL) m->flags |= ACT_REACT;
       if (p->space_step > 0.0) m->flags += ACT_DIFFUSE;
       
       if (hitpt != NULL)
