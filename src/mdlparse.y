@@ -6759,6 +6759,10 @@ mesh_one_name_spec: existing_one_or_multiple_objects
     mdlerror("In DX MODE the state value for the object should be specified.\n");
     return(1);
   }
+  if(volp->file_prefix_name == NULL){
+    mdlerror("The keyword FILENAME should be specified.\n");
+    return(1);
+  }
   
   u_int i;
   struct sym_table_list *stl; 
@@ -7054,6 +7058,10 @@ list_all_meshes_specs: ALL_MESHES
 {
   if(volp->viz_mode == DX_MODE){
     mdlerror("The keyword ALL_MESHES cannot be used in DX MODE.\n");
+    return(1);
+  }
+  if(volp->file_prefix_name == NULL){
+    mdlerror("The keyword FILENAME should be specified.\n");
     return(1);
   }
 
