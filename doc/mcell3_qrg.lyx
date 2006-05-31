@@ -306,7 +306,7 @@ filename
 \family default 
 \shape default 
  as a checkpoint file for the current simulation (overrides any value in
- the mdl file).
+ the MDL file).
 \end_inset 
 </cell>
 </row>
@@ -324,12 +324,12 @@ MCell3 runs simulations that are specified in
 \emph on 
 model description language
 \emph default 
- (mdl) format.
+ (MDL) format.
  These files typically have the extension .mdl, but are not required to.
- A mdl file is a text file with commands separated by whitespace.
+ A MDL file is a text file with commands separated by whitespace.
  The nature and type of whitespace (space, tab, newline) is unimportant
  to MCell3.
- You are thus free to use whitespace to clarify the contents of the mdl
+ You are thus free to use whitespace to clarify the contents of the MDL
  file.
 \layout Subsection
 
@@ -372,7 +372,7 @@ Output specification.
 \layout Standard
 
 In addition, there are utility commands--defining variables and including
- other mdl files--that can appear nearly anywhere.
+ other MDL files--that can appear nearly anywhere.
 \layout Subsection
 
 How to use this document
@@ -407,7 +407,7 @@ MDL commands
 Initialization commands
 \layout Standard
 
-The following initialization commands are required in every mdl file.
+The following initialization commands are required in every MDL file.
 \layout Standard
 
 
@@ -515,7 +515,7 @@ The following initialization commands are optional.
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="13" columns="2">
+<lyxtabular version="3" rows="16" columns="2">
 <features islongtable="true" headBottomDL="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="left" valignment="top" leftline="true" rightline="true" width="4in">
@@ -602,6 +602,127 @@ N
 \shape default 
  microns for each molecule.
  By default, all molecules move the same time step.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+CHECKPOINT_INFILE = 
+\begin_inset Quotes erd
+\end_inset 
+
+
+\family sans 
+\shape italic 
+filename
+\family typewriter 
+\shape default 
+
+\begin_inset Quotes erd
+\end_inset 
+
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Start the simulation using the conditions specified in the checkpoint file
+ 
+\family sans 
+\shape italic 
+filename
+\family default 
+\shape default 
+.
+ This will start at the time that the saved simulation left off, and will
+ use molecules stored in the specified file instead of surface molecule
+ densities/numbers specified in the MDL file.
+ Release sites can add new molecules if the release time is after the time
+ the simulation starts.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+CHECKPOINT_OUTFILE = 
+\begin_inset Quotes erd
+\end_inset 
+
+
+\family sans 
+\shape italic 
+filename
+\family typewriter 
+\shape default 
+
+\begin_inset Quotes erd
+\end_inset 
+
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Save the state of the simulation when CHECKPOINT_ITERATIONS (described below)
+ is reached, and stop.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+CHECKPOINT_ITERATIONS = 
+\family sans 
+\shape italic 
+N
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Used with 
+\family typewriter 
+CHECKPOINT_OUTFILE
+\family default 
+.
+ This specifies how many iterations to run before stopping and writing the
+ checkpoint file.
+ If 
+\family sans 
+\shape italic 
+N
+\family default 
+\shape default 
+ is less than 
+\family typewriter 
+ITERATIONS
+\family default 
+, the simulation will terminate normally instead.
 \end_inset 
 </cell>
 </row>
@@ -3013,10 +3134,11 @@ BOTH_POLES
  specifications for receptors.
 \layout Standard
 
-Molecules in a surface have an orientation: up if they point in the direction
- of the surface normal, down otherwise..
- Molecules in 3D that strike or come off a surface also have an orientation:
- up if the surface normal points towards them, down if it points away.
+Molecules in a surface (hereafter surface molecules) have an orientation:
+ up if they point in the direction of the surface normal, down otherwise..
+ Molecules in 3D (hereafter, volume molecules) that strike or come off a
+ surface also have an orientation: up if the surface normal points towards
+ them, down if it points away.
  
 \layout Standard
 
@@ -3025,8 +3147,6 @@ Reactions normally do not specify absolute orientation.
  and specifies the relative orientation of the products.
  This allows you to write general reactions that do not depend on the direction
  of insertion of a molecule into a membrane.
- Reactions at surfaces will occur in any orientation if the orientations
- are not specified, and products will appear in random orientations.
 \layout Standard
 
 The two orientations are specified by 
@@ -3420,7 +3540,10 @@ So far, all examples have used the first orientation class, specified with
  A molecule can be in only one orientation class, and molecules in different
  classes do not pay attention to each others' orientation.
  In a reaction where orientation may be a factor, every molecule must be
- explicitly given an orientation class.
+ explicitly given an orientation class; by default it is an error to omit
+ orientation (although this behavior can be adjusted to generate warnings
+ or no messages instead; in this case, molecules without an orientation
+ class act without regard to orientation).
  Therefore:
 \begin_inset  Tabular
 <lyxtabular version="3" rows="8" columns="2">
@@ -3767,21 +3890,43 @@ Tick marks add, so that
 \family typewriter 
 ,'
 \family default 
- mean no orientation; these mean 
-\begin_inset Quotes eld
-\end_inset 
-
-no orientation class
-\begin_inset Quotes erd
-\end_inset 
-
-: reactions will occur from either orientation when given no orientation
- class, and products will orient randomly.
+ mean no orientation (orientation class 0): reactions will occur from either
+ orientation when given no orientation class, and products will orient randomly.
  A semicolon, 
 \family typewriter 
 ;
 \family default 
 , can be used instead of two opposite tick marks.
+ Orientations can also be specified numerically inside 
+\family typewriter 
+{}
+\family default 
+ after the molecule name.
+ For example, 
+\family typewriter 
+A{1}
+\family default 
+ and 
+\family typewriter 
+A{-1}
+\family default 
+ are synonyms for 
+\family typewriter 
+A'
+\family default 
+ and 
+\family typewriter 
+A,
+\family default 
+ and 
+\family typewriter 
+A{0}
+\family default 
+ is a synonym for 
+\family typewriter 
+A;
+\family default 
+.
 \layout Subsection
 
 Geometry definition commands
@@ -4064,7 +4209,10 @@ name
 \family default 
 \shape default 
  is reflected by this surface.
- This is the default behavior.
+ This is the default behavior for volume molecules; it prevents surface
+ molecules from crossing triangle boundaries.
+ Tick marks on the name allow selective passage of molecules in one orientation
+ relative to the surface.
 \end_inset 
 </cell>
 </row>
@@ -4094,6 +4242,13 @@ name
 \family default 
 \shape default 
  passes through this surface.
+ This is only meaningful for volume molecules; surface molecules assume
+ that their surface can be traveled in unless it is labeled 
+\family typewriter 
+REFLECTIVE
+\family default 
+.
+ Tick marks allow the creation of one-way transparent surfaces.
 \end_inset 
 </cell>
 </row>
@@ -4123,6 +4278,8 @@ name
 \family default 
 \shape default 
  is destroyed if it touches this surface.
+ Tick marks allow destruction from only one side for volume molecules, or
+ destruction of only one orientation of surface molecules.
 \end_inset 
 </cell>
 </row>
@@ -4171,7 +4328,8 @@ value
  Orientation marks may be used; in this case, the other side of the surface
  is reflective.
  Note that this command is only used to set the effective concentration
- of a 3D molecule at a surface; it is not valid to specify a 2D molecule.
+ of a volume molecule at a surface; it is not valid to specify a surface
+ molecule.
  This command can be abbreviated as 
 \family typewriter 
 CLAMP_CONC
@@ -5727,7 +5885,9 @@ MOLECULE_NUMBER {
 
 This is the same as the Surface Property Command of the same name.
  Its usage is recommended here, as a regional surface command, rather than
- as a surface property command.
+ as a surface property command, so that the number of molecules is specified
+ in the same place as the geometry, thus making the density easier to figure
+ out.
 \end_inset 
 </cell>
 </row>
@@ -6145,9 +6305,9 @@ OBJECT
 \family default 
  to indicate the release occurs only where the two regions overlap.
  Parentheses may be used for grouping.
- If the molecule has a 3D diffusion constant, it will be released in the
- volume bounded by the regions and each region must be closed; otherwise,
- it will be released on the surface.
+ Volume molecules will be released in the volume bounded by the regions
+ (each region must be closed); surface molecules will be released on the
+ surface (and regions need not be closed).
 \end_inset 
 </cell>
 </row>
@@ -7495,7 +7655,7 @@ There are two forms of output in MCell3, visualization output and count
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="3" columns="2">
+<lyxtabular version="3" rows="4" columns="2">
 <features islongtable="true" headBottomDL="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -7521,7 +7681,7 @@ Explanation
 \end_inset 
 </cell>
 </row>
-<row>
+<row bottomline="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
@@ -7544,10 +7704,46 @@ VIZ_DATA_OUTPUT {
 
 \layout Standard
 
-Define a new visualization data output block which contains the commands
- that are not yet described in this document.
- Each mdl file can have multiple visualization blocks, but they must all
- have the same mode.
+Define a new visualization data output block (which contains commands that
+ are not yet described in this document).
+ Each MDL file can have only one 
+\family typewriter 
+VIZ_DATA_OUTPUT
+\family default 
+ block.
+ This command is used mostly for historical/compatability purposes.
+\end_inset 
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+VIZ_OUTPUT { 
+\family sans 
+\shape italic 
+...
+
+\family typewriter 
+\shape default 
+ }
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Define a new visualization output block (also not described yet).
+ MDL files can have multiple 
+\family typewriter 
+VIZ_OUTPUT
+\family default 
+ blocks with a variety of modes, or will be able to once they're written.
 \end_inset 
 </cell>
 </row>
@@ -7599,7 +7795,7 @@ reaction output commands
 \layout Standard
 
 Define a new count data output block which contains the commands below.
- Each mdl file can have multiple reaction data output blocks.
+ Each MDL file can have multiple reaction data output blocks.
 \end_inset 
 </cell>
 </row>
@@ -7961,6 +8157,11 @@ The values specified in braces are count statements, or mathematical operations
  name (and therefore will create multiple columns of output).
  Having headers on is convenient in this case, so one can tell which column
  corresponds to which name.
+\layout Standard
+
+If a simulation starts from a checkpoint file, it will add to any existing
+ output files.
+ Otherwise, the output files will be overwritten if they already exist.
 \layout Standard
 
 Count statements are either 
@@ -8373,6 +8574,29 @@ ALL_CROSSINGS
 \end_inset 
 
 
+\layout Standard
+
+Cumulative counts are reset when a simulation is started from a checkpoint.
+ This breaks 
+\family typewriter 
+ESTIMATE_CONC
+\family default 
+, but the other cumulative counts can be recovered by adding the last report
+ before the checkpoint to the first one after the checkpoint.
+\layout Standard
+
+
+\emph on 
+!!
+\emph default 
+ Need to describe 
+\family typewriter 
+VIZ_DATA
+\family default 
+ blocks.
+ 
+\emph on 
+!!
 \layout Subsection
 
 Utility commands
@@ -9030,13 +9254,86 @@ sprintf
 .
 \layout Standard
 
+MDL files can include other MDL files using the following syntax:
+\layout Standard
 
-\emph on 
-!!
-\emph default 
-Include file syntax should be described here, but it is not
-\emph on 
-!!
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="2" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+INCLUDE_FILE = 
+\begin_inset Quotes eld
+\end_inset 
+
+
+\family sans 
+\shape italic 
+filename
+\family typewriter 
+\shape default 
+
+\begin_inset Quotes erd
+\end_inset 
+
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Parse the text in 
+\family sans 
+\shape italic 
+filename
+\family default 
+\shape default 
+ as if it were inserted into this MDL file at this point.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+Paths are relative to the location that MCell was run from, not relative
+ to the MDL file being parsed.
 \layout Section
 
 Technical details affecting simulation speed and accuracy
@@ -9105,14 +9402,20 @@ Reaction probabilities
 
 MCell3 assigns a probability of reaction for each collision.
  These probabilities are chosen to match the bulk reaction rate specified
- in the mdl file.
+ in the MDL file.
  The match will not occur, however, if the probability goes above 1.0.
  Internal correction factors can also raise the actual probability above
  the typical probability specified at the beginning.
  Therefore, MCell3 will output a warning if the reaction probability goes
- above 0.8 for reactions where a 3D diffusing molecule hits a surface, or
- if the probability goes above 0.3 for a collision between pairs of 3D diffusing
- molecules.
+ above 0.8 for reactions where a volume molecule hits a surface, or if the
+ probability goes above 0.3 for a collision between pairs of volume molecules.
+ 
+\emph on 
+!!
+\emph default 
+ Is this even true? 
+\emph on 
+!!
 \layout Standard
 
 If warnings are given (and possibly even if they are not), one should reduce
@@ -9132,16 +9435,6 @@ Unimolecular reactions with half-lives of less than one time step are also
  Thus, the shortest-lifetime species in a series of unimolecular transitions
  should not have a half-life of less than approximately one time step if
  other molecules can interact with that state.
-\layout Standard
-
-
-\emph on 
-!!
-\emph default 
-Need to describe the messages that MCell3 spits out when it detects an error
- with probabilities (at the end of a run)
-\emph on 
-!!
 \layout Subsection
 
 Interaction radii
@@ -9154,14 +9447,26 @@ INTERACTION_RADIUS
  command.
  In many cases, one may want to increase or decrease this value.
  In particular, in order to get the right probability of reaction, MCell3
- increases the probability of reaction when near surfaces and partition
- boundaries.
- In general, the reaction rate has approximately 1-2% error if the average
- spacing between surfaces is at least 10 times the interaction radius, and
- the reaction probabilities are 0.3 or less.
+ increases the probability of reaction when near surfaces.
+ 
 \layout Standard
 
-For example, if one has partitions spaced 0.02
+If 
+\family typewriter 
+ACCURATE_3D_REACTIONS
+\family default 
+ is set to 
+\family typewriter 
+FALSE
+\family default 
+, MCell3 also treats partition boundaries as opaque and increases the probabilit
+y of reaction rather than looking for molecules on the other side of the
+ partition.
+ This speeds execution time but can lead to error, the reaction rate has
+ approximately 1-2% error if the average spacing between surfaces is at
+ least 10 times the interaction radius, and the reaction probabilities are
+ 0.3 or less.
+ For example, if one has partitions spaced 0.02
 \begin_inset Formula $\mu$
 \end_inset 
 
@@ -9346,7 +9651,7 @@ In this case, the ion is four times as likely to travel from outside to
 Example bimolecular reaction
 \layout Standard
 
-Here's a complete mdl file that implements a simple bimolecular reaction
+Here's a complete MDL file that implements a simple bimolecular reaction
  that should achieve equilibrium at 482 molecules of each species.
 \layout LyX-Code
 
