@@ -3840,6 +3840,7 @@ struct release_evaluator* duplicate_rel_region_expr(struct release_evaluator *ex
     }
     else nexp->left = duplicate_rel_region_expr(expr->left,old_self,new_self,instance,symhash);
   }
+  else nexp->left = NULL;
 
   if (expr->right!=NULL)
   {
@@ -3859,6 +3860,7 @@ struct release_evaluator* duplicate_rel_region_expr(struct release_evaluator *ex
     }
     else nexp->right = duplicate_rel_region_expr(expr->right,old_self,new_self,instance,symhash);
   }
+  else nexp->right = NULL;
   
   return nexp;
 }

@@ -2821,19 +2821,12 @@ existing_surface_molecule: existing_molecule
   $$=mdlpvp->stp2;
 };
 
-existing_molecule_opt_orient:
-	existing_molecule 
+existing_molecule_opt_orient: existing_molecule
 {
   mdlpvp->orient_specified=0;
-  mdlpvp->orient_class = 0;
-  $$=$<sym>1;
-}
-	| existing_molecule
-{
-  mdlpvp->orient_specified=1;
   mdlpvp->orient_class=0;
 }
-	list_orient_marks
+	orientation_class
 {
   $$=$<sym>1;
 };
