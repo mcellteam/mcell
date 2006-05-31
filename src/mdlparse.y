@@ -2577,19 +2577,6 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
   mdlpvp->pathp->km_filename=NULL;
   mdlpvp->pathp->count_flags = 0;
 
-  if (mdlpvp->orient_specified==0 && (mdlpvp->pathp->reactant2->flags&ON_GRID)!=0)
-  {
-    if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
-    {
-      mdlerror("Error: specify an orientation for surface molecules\n  (use ; or ', or ,' for arbitrary orientation)");
-      return 1;
-    }
-    else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
-    {
-      mdlerror("Warning: orientation not specified for surface molecule\n  (use ; or ', or ,' for arbitrary orientation)");
-    }
-  }
-  
   if (mdlpvp->orient_class==0)
   {
     mdlpvp->pathp->orientation1=0;
