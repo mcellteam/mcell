@@ -61,6 +61,12 @@ int  **surf_region_values = NULL;
   static long long last_meshes_iteration = -1;
   static long long last_mols_iteration = -1;
 
+  /* used in 'time_values' and 'iteration_numbers' arrays */
+  /* total number of non-equal values of "viz_iteration"
+     combined for all frames */
+  static  u_int time_values_total = 0;
+  u_int *time_values = NULL;
+
 /**************************************************************************
 update_frame_data_list:
 	In: struct frame_data_list * fdlp
@@ -74,9 +80,72 @@ void update_frame_data_list(struct frame_data_list *fdlp)
 
   log_file=world->log_file;
 
+  if(world->viz_mode == DREAMM_V3_MODE)
+  {
+  /* this part of the code is used for creating symbolic links in viz_output */
+
+     struct frame_data_list *fdlp_temp;
+     fdlp_temp = fdlp;
+     while (fdlp_temp!=NULL) {
+       if(world->it_time==fdlp_temp->viz_iterationll)
+       {
+     
+       switch (fdlp_temp->list_type) {
+         case OUTPUT_BY_ITERATION_LIST:
+      
+               if((fdlp_temp->type == ALL_MESH_DATA) ||
+                   (fdlp_temp->type == REG_DATA) ||
+                   (fdlp_temp->type == MESH_GEOMETRY))
+               {
+
+                  if(fdlp_temp->viz_iterationll > last_meshes_iteration){
+                     last_meshes_iteration = fdlp_temp->viz_iterationll;
+                   }
+               }else if((fdlp_temp->type == ALL_MOL_DATA) ||
+                   (fdlp_temp->type == MOL_POS) ||
+                   (fdlp_temp->type == MOL_ORIENT))
+               {
+                   if(fdlp_temp->viz_iterationll > last_mols_iteration){
+                     last_mols_iteration = fdlp_temp->viz_iterationll;
+                   }
+               }
+         
+            break;
+         case OUTPUT_BY_TIME_LIST:
+        
+               if((fdlp_temp->type == ALL_MESH_DATA) ||
+                   (fdlp_temp->type == REG_DATA) ||
+                   (fdlp_temp->type == MESH_GEOMETRY))
+               {
+                  if(fdlp_temp->viz_iterationll > last_meshes_iteration){
+                      last_meshes_iteration = fdlp_temp->viz_iterationll;
+                   }
+              }else if((fdlp_temp->type == ALL_MOL_DATA) ||
+                   (fdlp_temp->type == MOL_POS) ||
+                   (fdlp_temp->type == MOL_ORIENT))
+               {
+                  if(fdlp_temp->viz_iterationll > last_mols_iteration){
+                        last_mols_iteration = fdlp_temp->viz_iterationll;
+                   }
+               }
+	
+              break;
+          default:
+              fprintf(stderr,"MCell: error - wrong frame_data_list list_type %d\n", fdlp->list_type);
+              break;
+       } /* end switch */
+
+     } /* end if (world->it_time == fdlp_temp->viz_iterationll) */
+    fdlp_temp = fdlp_temp->next;
+    
+   } /* end while */
+  } /* if (world->viz_mode) */
+
+
   while (fdlp!=NULL) {
     if(world->it_time==fdlp->viz_iterationll)
     {
+ 
       switch (world->viz_mode)
       {
 	case DX_MODE:
@@ -152,26 +221,6 @@ void init_frame_data_list(struct frame_data_list *fdlp)
     case OUTPUT_BY_ITERATION_LIST:
       while (nelp!=NULL) {
 	fdlp->n_viz_iterations++;
-      
-        if(world->viz_mode == DREAMM_V3_MODE)
-        {
-            if((fdlp->type == ALL_MESH_DATA) ||
-                   (fdlp->type == REG_DATA) ||
-                   (fdlp->type == MESH_GEOMETRY))
-            {
-                if((long long)nelp->value > last_meshes_iteration){
-                   last_meshes_iteration = (long long)nelp->value;
-                }
-            }else if((fdlp->type == ALL_MOL_DATA) ||
-                   (fdlp->type == MOL_POS) ||
-                   (fdlp->type == MOL_ORIENT))
-            {
-               if((long long)nelp->value > last_mols_iteration){
-                   last_mols_iteration = (long long)nelp->value;
-               }
-            }
-
-        }
 
 	if (!done) {
 	  if (nelp->value>=world->start_time) {
@@ -191,27 +240,7 @@ void init_frame_data_list(struct frame_data_list *fdlp)
     case OUTPUT_BY_TIME_LIST:
       while (nelp!=NULL) {
 	fdlp->n_viz_iterations++;
-        
-        if(world->viz_mode == DREAMM_V3_MODE)
-        {
-            if((fdlp->type == ALL_MESH_DATA) ||
-                   (fdlp->type == REG_DATA) ||
-                   (fdlp->type == MESH_GEOMETRY))
-            {
-                if((long long)((nelp->value/world->time_unit + ROUND_UP) > last_meshes_iteration)){
-                   last_meshes_iteration = (long long)(nelp->value/world->time_unit + ROUND_UP);
-                }
-            }else if((fdlp->type == ALL_MOL_DATA) ||
-                   (fdlp->type == MOL_POS) ||
-                   (fdlp->type == MOL_ORIENT))
-            {
-               if((long long)((nelp->value/world->time_unit + ROUND_UP) > last_mols_iteration)){
-                   last_mols_iteration = (long long)(nelp->value/world->time_unit + ROUND_UP);
-               }
-            }
 
-        }
-	
         if (!done) {
 	  if (nelp->value>=world->current_start_real_time) {
 	    fdlp->viz_iterationll=(long long)(nelp->value/world->time_unit+ROUND_UP);
@@ -243,9 +272,24 @@ void init_frame_data_list(struct frame_data_list *fdlp)
         reg_data_frame_present = 1;
     }
 
+    if(fdlp->n_viz_iterations > time_values_total){
+        time_values_total = fdlp->n_viz_iterations;
+    }
+
     fdlp=fdlp->next;
+  } /* end while */
+
+  if(world->iterations < time_values_total - 1){
+      time_values_total = world->iterations + 1;
+  }
+  if(world->chkpt_flag){
+    
+    if((world->start_time + world->chkpt_iterations) < time_values_total -1){
+        time_values_total = world->start_time + world->chkpt_iterations + 1;
+    }
   }
 
+  
   if((mol_orient_frame_present) & (!mol_pos_frame_present)){
      fprintf(log_file, "The input file contains ORIENTATIONS but not POSITIONS statement in the MOLECULES block. The molecules cannot be visualized.\n");
   }
@@ -335,7 +379,6 @@ void init_frame_data_list(struct frame_data_list *fdlp)
 
      }    
   }
-
 
   return;
 }
@@ -1427,7 +1470,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
   byte viz_surf_pos_flag = 0, viz_surf_states_flag = 0;	/* flags */
   char file_name[1024];
   char viz_data_dir_name[1024];
-  char frame_data_dir_name[1024];
+  static char frame_data_dir_name[1024];
   char master_header_name[1024];
   char iteration_number[1024];
   char iteration_number_dir[1024];
@@ -1506,11 +1549,11 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
   static long long special_mol_iteration_step = -1;
 
   /* linked lists that stores data for the 'iteration_numbers' object */
-  static struct infinite_uint_array iteration_numbers_meshes;
-  static struct infinite_uint_array iteration_numbers_vol_mols;
-  static struct infinite_uint_array iteration_numbers_surf_mols;
-  static struct infinite_uint_array time_values;
+  static u_int *iteration_numbers_meshes;
+  static u_int *iteration_numbers_vol_mols;
+  static u_int *iteration_numbers_surf_mols;
   u_int elem; /* element of the above arrays */
+
 
   /* counts number of times header files were opened.*/
   static int count_meshes_header = 0;
@@ -1566,6 +1609,8 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
   static int viz_data_dir_created = 0;
   /* depth of the user specified viz_output directory structure */
   int viz_dir_depth = 0;
+  /* keeps track of the last value written into 'time_values' array */
+  static u_int last_time_value_written = 0;
   
   /* counts number of this function executions
      for special_surf_iteration_step/special_mol_iteration_step cases. */
@@ -1584,7 +1629,9 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
   log_file=world->log_file;
   no_printf("Viz output in DREAMM_V3 mode...\n");
-  
+
+
+
   if(world->file_prefix_name == NULL) {
    	fprintf(world->err_file, "File %s, Line %ld: Inside VIZ_OUTPUT block the required keyword FILENAME is missing.\n", __FILE__, (long)__LINE__);
    	exit(1);
@@ -1599,12 +1646,65 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
   else {
     sprintf(my_byte_order,"msb");
   }
+
  
-  /*initialize infinite arrays. */
-  ia_init(&iteration_numbers_meshes);
-  ia_init(&iteration_numbers_vol_mols);
-  ia_init(&iteration_numbers_surf_mols);
-  ia_init(&time_values);
+  /*initialize  arrays. */
+  
+  if(time_values == NULL){
+  
+     time_values = (u_int *)malloc(sizeof(u_int) * time_values_total);
+     if(time_values == NULL){
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+         		return (1);
+      }
+      
+      for(ii = 0; ii < time_values_total; ii++){
+        time_values[ii] = UINT_MAX;
+      }
+     
+   }
+
+  if(iteration_numbers_meshes == NULL){
+  
+     iteration_numbers_meshes = (u_int *)malloc(sizeof(u_int) * time_values_total);
+     if(iteration_numbers_meshes == NULL){
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+         		return (1);
+      }
+      
+      for(ii = 0; ii < time_values_total; ii++){
+        iteration_numbers_meshes[ii] = UINT_MAX;
+      }
+     
+   }
+
+  if(iteration_numbers_vol_mols == NULL){
+  
+     iteration_numbers_vol_mols = (u_int *)malloc(sizeof(u_int) * time_values_total);
+     if(iteration_numbers_vol_mols == NULL){
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+         		return (1);
+      }
+      
+      for(ii = 0; ii < time_values_total; ii++){
+        iteration_numbers_vol_mols[ii] = UINT_MAX;
+      }
+     
+   }
+  
+   if(iteration_numbers_surf_mols == NULL){
+  
+     iteration_numbers_surf_mols = (u_int *)malloc(sizeof(u_int) * time_values_total);
+     if(iteration_numbers_surf_mols == NULL){
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+         		return (1);
+      }
+      
+      for(ii = 0; ii < time_values_total; ii++){
+        iteration_numbers_surf_mols[ii] = UINT_MAX;
+      }
+     
+   }
 
   viz_iteration = (u_int)(fdlp->viz_iterationll);
   n_viz_iterations = (u_int)(fdlp->n_viz_iterations);
@@ -1621,6 +1721,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
          }
      }
   }
+
 
   /* initialize flags */
   viz_mol_pos_flag = (viz_type==MOL_POS);
@@ -1962,6 +2063,8 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      }
 
      viz_data_dir_created = 1;
+
+
   }
 
     /* create a subdirectory for the "iteration" data */
@@ -2122,7 +2225,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
    if ((viz_mol_pos_flag) || ((mol_to_show_number == 0) && (eff_to_show_number == 0))) {
      
-   /*  if(mol_to_show_number > 0){ 	 */
         sprintf(file_name,"%s/volume_molecules_positions.bin",iteration_number_dir);
      
      	/* remove the folder name from the volume_molecules_positions data file name */
@@ -2148,9 +2250,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                 fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
                 return(1);
         }
-/*     } */
 
-/*     if(eff_to_show_number > 0){ 	 */
         sprintf(file_name,"%s/surface_molecules_positions.bin",iteration_number_dir);
      
      	/* remove the folder name from the surface_molecules_positions data file name */
@@ -2176,13 +2276,11 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                 fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
                 return(1);
         }
-  /*   }  */
 
    }
 
    if ((viz_mol_orient_flag) || ((mol_to_show_number == 0) && (eff_to_show_number == 0))){
      
-/*     if(mol_to_show_number > 0){ */
       	 
         sprintf(file_name,"%s/volume_molecules_orientations.bin", iteration_number_dir);
      
@@ -2209,10 +2307,8 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                 fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
                 return(1);
         }
-   /*  }  */
 
 
- /*     if(eff_to_show_number > 0){  */
       	 
         sprintf(file_name,"%s/surface_molecules_orientations.bin",iteration_number_dir);
      
@@ -2239,11 +2335,9 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                 fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
                 return(1);
         }
-    /* }   */
    }
 
    if ((viz_mol_states_flag) || ((mol_to_show_number == 0) && (eff_to_show_number == 0))) {
-   /*  if(mol_to_show_number > 0){  */
       	 
         sprintf(file_name,"%s/volume_molecules_states.bin", iteration_number_dir);
      
@@ -2270,9 +2364,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                 fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
                 return(1);
         }
-/*     }  */
 
-   /*  if(eff_to_show_number > 0){  */
       	 
         sprintf(file_name,"%s/surface_molecules_states.bin", iteration_number_dir);
      
@@ -2299,12 +2391,10 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                 fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
                 return(1);
         }
-   /*  }  */
 
    }
 
     if ((viz_mol_pos_flag || viz_mol_orient_flag)  || ((mol_to_show_number == 0) && (eff_to_show_number == 0))){
-   /*   if(mol_to_show_number > 0){  */
          sprintf(file_name,"%s/volume_molecules.dx", iteration_number_dir);
      
         /* remove the folder name from the volume molecules header  file name */
@@ -2340,9 +2430,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
            }
            count_vol_mol_header++;
         }
-    /*  }  */
 
- /*    if(eff_to_show_number > 0){  */
          sprintf(file_name,"%s/surface_molecules.dx", iteration_number_dir);
      
         /* remove the folder name from the surface molecules header  file name */
@@ -2378,7 +2466,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
            }
            count_surf_mol_header++;
         }
-    /*  }  */
     }
 
 
@@ -2435,8 +2522,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
             }
     }
 
-
-
   /* dump walls */
   if((viz_surf_pos_flag) || (viz_region_data_flag)) {
      vizp = world->viz_obj_head;
@@ -2449,6 +2534,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
     vcp = vizp->viz_child_head;
 
     while(vcp!=NULL) {
+
       objp = vcp->obj;
       if(objp->viz_state == NULL) continue;
       pop=(struct polygon_object *)objp->contents;
@@ -2583,6 +2669,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
       }
     } /* end (viz_surf_pos_flag || viz_surf_states_flag || viz_region_data_flag) for vizp */
     
+
     /* build fields here */
    if(obj_to_show_number > 0)
    {
@@ -2669,26 +2756,21 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
         special_surf_frames_counter = 0;
 
         /* store iteration_number for meshes */
-        ia_uint_store(&iteration_numbers_meshes, iteration_numbers_meshes_count, viz_iteration);
-        iteration_numbers_meshes_count++;
+      iteration_numbers_meshes[iteration_numbers_meshes_count] = viz_iteration;
+      iteration_numbers_meshes_count++;
 
 	/* put value of viz_iteration into the time_values array */
-        if(time_values_count == 0){ 
-           ia_uint_store(&time_values, time_values_count,viz_iteration);  
-           time_values_count++;
-        }else{
-           /* check whether the current iteration is already written */
-          elem = ia_uint_get(&time_values, time_values_count - 1);
-          if(elem == UINT_MAX) 
-          {
-                   fprintf(world->err_file, "File %s, Line %ld: ia_uint_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
-                   return 1;
-          }else if(elem < viz_iteration){
-               ia_uint_store(&time_values, time_values_count,viz_iteration);  
+            if(time_values_count == 0){
+               time_values[time_values_count] = viz_iteration;  
                time_values_count++;
-          }
-        }
-    }
+               last_time_value_written = viz_iteration;
+            }else if(viz_iteration > last_time_value_written){
+               time_values[time_values_count] = viz_iteration;  
+               time_values_count++;
+               last_time_value_written = viz_iteration;
+            } 
+          
+    } /* end if(show_meshes) */
 
     /* Visualize molecules. */
 
@@ -3134,25 +3216,21 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
         special_mol_frames_counter = 0;
 
         /* store iteration_number for volume molecules */
-        ia_uint_store(&iteration_numbers_vol_mols,iteration_numbers_vol_mols_count, viz_iteration);
-        iteration_numbers_vol_mols_count++;
-	
+      iteration_numbers_vol_mols[iteration_numbers_vol_mols_count] =  viz_iteration;
+      iteration_numbers_vol_mols_count++;
+
+
         /* put value of viz_iteration into the time_values array */
-        if(time_values_count == 0){ 
-           ia_uint_store(&time_values, time_values_count,viz_iteration);  
-           time_values_count++;
-        }else{
-           /* check whether the current iteration is already written */
-          elem = ia_uint_get(&time_values, time_values_count - 1);
-          if(elem == UINT_MAX) 
-          {
-                   fprintf(world->err_file, "File %s, Line %ld: ia_uint_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
-                   return 1;
-          }else if(elem < viz_iteration){
-               ia_uint_store(&time_values, time_values_count,viz_iteration);  
+            if(time_values_count == 0){
+               time_values[time_values_count] = viz_iteration;  
                time_values_count++;
-          }
-        }
+               last_time_value_written = viz_iteration;
+            }else if(viz_iteration > last_time_value_written){
+               time_values[time_values_count] = viz_iteration;  
+               time_values_count++;
+               last_time_value_written = viz_iteration;
+            } 
+
    }
 
 
@@ -3171,56 +3249,52 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
         surf_mol_main_index = 1;
         count_surf_mol_header = 0;
         special_mol_frames_counter = 0;
-
+       
 
        /* store iteration_number for surface molecules */
-       ia_uint_store(&iteration_numbers_surf_mols,
-                      iteration_numbers_surf_mols_count, viz_iteration);
-       iteration_numbers_surf_mols_count++;
-        
+    iteration_numbers_surf_mols[iteration_numbers_surf_mols_count] = viz_iteration;
+    iteration_numbers_surf_mols_count++;
+
+
         /* put value of viz_iteration into the time_values array */
-        if(time_values_count == 0){ 
-           ia_uint_store(&time_values, time_values_count,viz_iteration);  
-           time_values_count++;
-        }else{
-           /* check whether the current iteration is already written */
-          elem = ia_uint_get(&time_values, time_values_count - 1);
-          if(elem == UINT_MAX) 
-          {
-                   fprintf(world->err_file, "File %s, Line %ld: ia_uint_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
-                   return 1;
-          }else if(elem < viz_iteration){
-               ia_uint_store(&time_values, time_values_count,viz_iteration);  
+            if(time_values_count == 0){
+               time_values[time_values_count] = viz_iteration;  
                time_values_count++;
-          }
-        }
+               last_time_value_written = viz_iteration;
+            }else if(viz_iteration > last_time_value_written){
+               time_values[time_values_count] = viz_iteration;  
+               time_values_count++;
+               last_time_value_written = viz_iteration;
+            } 
+
   }
    
 
   /* check whether it is time to write data into the master_header file */
      struct frame_data_list *fdlp_temp;
-     long long next_iteration_step = 0;  /* next iteration for this frame */
+     long long next_iteration_step_this_frame = UINT_MAX;  /* next iteration for this frame */
+     static long long next_iteration_step_previous_frame = -1;  /* next iteration for previous frame */
 
      if(fdlp->curr_viz_iteration->next != NULL){
 	switch (fdlp->list_type) {
 	  case OUTPUT_BY_ITERATION_LIST:
-	  	  next_iteration_step=(long long)fdlp->curr_viz_iteration->next->value; 
+	  	  next_iteration_step_this_frame = (long long)fdlp->curr_viz_iteration->next->value; 
 	          break;
 	  case OUTPUT_BY_TIME_LIST:
-	          next_iteration_step=(long long)(fdlp->curr_viz_iteration->next->value/world->time_unit + ROUND_UP);
+	          next_iteration_step_this_frame = (long long)(fdlp->curr_viz_iteration->next->value/world->time_unit + ROUND_UP);
 	          break;
           default:
                   fprintf(log_file,"MCell: error - wrong frame_data_list list_type %d\n", fdlp->list_type);
                   break;
 	}
      }
-     
+    
+
      found = 0;
      if(world->chkpt_flag){
         /* check whether it is the last frame */
-
                
-        if((world->it_time == (world->start_time + world->chkpt_iterations)) ||
+        if((world->it_time == world->iterations) ||
                  (world->it_time == final_iteration))
                
         { 
@@ -3228,7 +3302,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
              /* look forward to find out whether there are 
                 other frames to be output */
              for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
-                if((fdlp_temp->viz_iterationll == (world->start_time + world->chkpt_iterations)) || (fdlp_temp->viz_iterationll == final_iteration)){ 
+                if((fdlp_temp->viz_iterationll == world->iterations) || (fdlp_temp->viz_iterationll == final_iteration)){ 
                    found = 1;
                    break;
                 }
@@ -3240,68 +3314,42 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
              }
         }
         
-       else if((world->iterations < next_iteration_step) || (next_iteration_step == 0)){
+       else if(((world->iterations < next_iteration_step_this_frame) && (next_iteration_step_this_frame != UINT_MAX)) || (next_iteration_step_this_frame == UINT_MAX)){
         
-          // look forward to find out whether there are 
-          //   other frames to be output 
-        for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
-                
-                if((fdlp_temp->viz_iterationll >= fdlp->viz_iterationll) &&
-                    (fdlp_temp->viz_iterationll <= world->iterations) &&
-                    (fdlp_temp->viz_iterationll < (world->start_time + world->chkpt_iterations))){
-                   found = 1;
-                   break;
-                }
-         }
-         if(!found){
-             // this is the last frame 
-             time_to_write_master_header = 1; 
-          }
 
-
-        }
-        else if(next_iteration_step > (world->start_time + world->chkpt_iterations)) {
-             /* look forward to find out whether next_iteration_step
-                for other frames is less than 'world->start_time + world->chkpt_iterations'
-             */
-
-             for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
-
-                if((fdlp_temp->viz_iterationll >= fdlp->viz_iterationll) && (fdlp_temp->viz_iterationll < (world->start_time + world->chkpt_iterations))){
-                         found = 1;
-                         break;
-
-                }
-                         
-    
-             }  /* end for */
-
-             if(!found){
-                /* this is the last frame */
-                    time_to_write_master_header = 1; 
-             }
-        }
-
-    }  /* end if(world->chkpt_flag) */
-    else if((world->iterations < next_iteration_step) || (next_iteration_step == 0)){
-
-        /* look forward to find out whether there are 
-           other frames to be output */
+          /* look forward to find out whether there are 
+             other frames to be output */
         for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
                 
                 if((fdlp_temp->viz_iterationll >= fdlp->viz_iterationll) &&
                     (fdlp_temp->viz_iterationll <= world->iterations)){
-                   found = 1;
-                   break;
+                       found = 1;
+                       break;
                 }
          }
+        
+        /* this allows to look backwards */
+        if(next_iteration_step_this_frame != UINT_MAX){
+           if(next_iteration_step_previous_frame > next_iteration_step_this_frame){
+                found = 1;
+           }
+        }else{
+                if((next_iteration_step_previous_frame >= fdlp->viz_iterationll) && (next_iteration_step_previous_frame <= world->iterations)){
+                   found = 1;
+                }
+
+        }
+         
          if(!found){
              /* this is the last frame */
              time_to_write_master_header = 1; 
           }
-           
-    }
-    else if(world->it_time == final_iteration){
+
+     }
+
+    /* end if(world->chkpt_flag) */
+   } else if(world->it_time == final_iteration){
+
 
         /* look forward to find out whether there are 
            other frames to be output */
@@ -3318,13 +3366,52 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
           }
            
     }
+    else if((world->iterations < next_iteration_step_this_frame) || (next_iteration_step_this_frame == UINT_MAX)){
+
+        /* look forward to find out whether there are 
+           other frames to be output */
+        for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
+                
+                if((fdlp_temp->viz_iterationll >= fdlp->viz_iterationll) &&
+                    (fdlp_temp->viz_iterationll <= world->iterations)){
+                   found = 1;
+                   break;
+                }
+         }
+             
+        /* this allows to look backwards */
+        if(next_iteration_step_this_frame != UINT_MAX){
+           if(next_iteration_step_previous_frame > next_iteration_step_this_frame){
+                found = 1;
+           }
+        }else{
+                if((next_iteration_step_previous_frame >= fdlp->viz_iterationll) && (next_iteration_step_previous_frame <= world->iterations)){
+                   found = 1;
+                }
+
+        }
+
+         if(!found){
+             /* this is the last frame */
+             time_to_write_master_header = 1; 
+          }
+           
+    } /* end if-else(world->chkpt_flag) */
+
+
+    /* this allows to look backwards to the previous frames */
+    if(next_iteration_step_this_frame != UINT_MAX){
+          if(next_iteration_step_this_frame > next_iteration_step_previous_frame){
+             next_iteration_step_previous_frame = next_iteration_step_this_frame;         }
+     }
+
 
      if(time_to_write_master_header)
      {
-        u_int elem1;
         double t_value;
         int extra_elems;
-
+        int dummy = -1;
+         
      	
         ch_ptr = strrchr(world->file_prefix_name, '/');
         if(ch_ptr != NULL)
@@ -3368,51 +3455,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
            return(1);
         }
 
-        if(iteration_numbers_meshes_count > 0)
-        {
-           extra_elems = iteration_numbers_vol_mols_count - iteration_numbers_meshes_count;
-           if(extra_elems > 0){
-              /* pad the iteration_numbers_meshes array with the last 
-                 element so that it will have the same number of elements 
-                 as iteration_numbers_vol_mols array */
-              elem1 = ia_uint_get(&iteration_numbers_meshes, iteration_numbers_meshes_count - 1);
-              
-		for(ii = 0; ii < extra_elems; ii++){
-                   ia_uint_store(&iteration_numbers_meshes, iteration_numbers_meshes_count + ii, elem1);
-                }
-           }
-        }
-
-        if(iteration_numbers_vol_mols_count > 0)
-        {
-           extra_elems = iteration_numbers_meshes_count - iteration_numbers_vol_mols_count;
-           if(extra_elems > 0){
-              /* pad the iteration_numbers_vol_mols array with the last 
-                 element so that it will have the same number of elements 
-                 as iteration_numbers_meshes array */
-              elem1 = ia_uint_get(&iteration_numbers_vol_mols, iteration_numbers_vol_mols_count - 1);
-              
-		for(ii = 0; ii < extra_elems; ii++){
-                   ia_uint_store(&iteration_numbers_vol_mols, iteration_numbers_vol_mols_count + ii, elem1);
-                }
-           }
-        }
-
-        if(iteration_numbers_surf_mols_count > 0)
-        {
-           extra_elems = iteration_numbers_meshes_count - iteration_numbers_surf_mols_count;
-           if(extra_elems > 0){
-              /* pad the iteration_numbers_surf_mols array with the last 
-                 element so that it will have the same number of elements 
-                 as iteration_numbers_meshes array */
-              elem1 = ia_uint_get(&iteration_numbers_surf_mols, iteration_numbers_surf_mols_count - 1);
-              
-		for(ii = 0; ii < extra_elems; ii++){
-                   ia_uint_store(&iteration_numbers_surf_mols, iteration_numbers_surf_mols_count + ii, elem1);
-                }
-           }
-        }
-
       if(iteration_numbers_vol_mols_count > iteration_numbers_surf_mols_count){
          iteration_numbers_count = iteration_numbers_vol_mols_count;
       }else{
@@ -3421,6 +3463,74 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
       if(iteration_numbers_meshes_count > iteration_numbers_count){
          iteration_numbers_count = iteration_numbers_meshes_count;
       }
+      
+        if(iteration_numbers_meshes_count > 0)
+        {
+           extra_elems = iteration_numbers_count - iteration_numbers_meshes_count;
+           if(extra_elems > 0){
+              /* pad the iteration_numbers_meshes array with the last 
+                 element so that it will have the same number of elements 
+                 as the maximum length array */
+                 elem = iteration_numbers_meshes[iteration_numbers_meshes_count - 1];
+              
+		for(ii = 0; ii < extra_elems; ii++){
+                   iteration_numbers_meshes[iteration_numbers_meshes_count + ii] =  elem;
+                }
+            }
+            iteration_numbers_meshes_count += extra_elems;
+          
+        }else{
+            /* pad the 'iteration_numbers_meshes' array with UINT_MAX */
+            for(ii = 0; ii < iteration_numbers_count; ii++){
+               iteration_numbers_meshes[ii] = UINT_MAX;
+            }
+            iteration_numbers_meshes_count = iteration_numbers_count;
+        }
+
+        if(iteration_numbers_vol_mols_count > 0)
+        {
+           extra_elems = iteration_numbers_count - iteration_numbers_vol_mols_count;
+           if(extra_elems > 0){
+              /* pad the iteration_numbers_vol_mols array with the last 
+                 element so that it will have the same number of elements 
+                 as the maximum length array */
+              elem = iteration_numbers_vol_mols[iteration_numbers_vol_mols_count - 1];
+              
+		for(ii = 0; ii < extra_elems; ii++){
+                   iteration_numbers_vol_mols[iteration_numbers_vol_mols_count + ii] = elem;
+                }
+           }
+           iteration_numbers_vol_mols_count += extra_elems;
+        }else{
+            /* pad the 'iteration_numbers_vol_mols' array with UINT_MAX */
+            for(ii = 0; ii < iteration_numbers_count; ii++){
+               iteration_numbers_vol_mols[ii] = UINT_MAX;
+            }
+            iteration_numbers_vol_mols_count = iteration_numbers_count;
+        }
+
+        if(iteration_numbers_surf_mols_count > 0)
+        {
+           extra_elems = iteration_numbers_count - iteration_numbers_surf_mols_count;
+           if(extra_elems > 0){
+              /* pad the iteration_numbers_surf_mols array with the last 
+                 element so that it will have the same number of elements 
+                 as the maximum length array */
+              elem = iteration_numbers_surf_mols[iteration_numbers_surf_mols_count - 1];
+              
+		for(ii = 0; ii < extra_elems; ii++){
+                   iteration_numbers_surf_mols[iteration_numbers_surf_mols_count + ii] = elem;
+                }
+           }
+           iteration_numbers_surf_mols_count += extra_elems;
+        }else{
+            /* pad the 'iteration_numbers_surf_mols' array with UINT_MAX */
+            for(ii = 0; ii < iteration_numbers_count; ii++){
+               iteration_numbers_surf_mols[ii] = UINT_MAX;
+            }
+            iteration_numbers_surf_mols_count = iteration_numbers_count;
+
+        }
        
 
      /* Open master header file. */
@@ -3463,29 +3573,29 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
        fprintf(master_header,"\tattribute \"dreamm3mode\" number %d\t#%s#\n", dreamm3mode_number, dreamm3mode);
       
        for(ii = 0; ii < iteration_numbers_count; ii++){
-                elem1 = ia_uint_get(&iteration_numbers_meshes, ii);
-                if(elem1 == UINT_MAX) 
+                elem = iteration_numbers_meshes[ii];
+                if(elem == UINT_MAX) 
                 {
-                   fprintf(world->err_file, "File %s, Line %ld: ia_uint_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
-                   return 1;
+                   fwrite(&dummy, sizeof(dummy),1,iteration_numbers_data);
+                }else{
+                   fwrite(&elem, sizeof(elem),1,iteration_numbers_data);
                 }
-                fwrite(&elem1, sizeof(elem1),1,iteration_numbers_data);
 
-                elem1 = ia_uint_get(&iteration_numbers_vol_mols, ii);
-                if(elem1 == UINT_MAX) 
+                elem = iteration_numbers_vol_mols[ii];
+                if(elem == UINT_MAX) 
                 {
-                   fprintf(world->err_file, "File %s, Line %ld: ia_uint_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
-                   return 1;
+                   fwrite(&dummy, sizeof(dummy),1,iteration_numbers_data);
+                }else{
+                   fwrite(&elem, sizeof(elem),1,iteration_numbers_data);
                 }
-                fwrite(&elem1, sizeof(elem1),1,iteration_numbers_data);
 
-                elem1 = ia_uint_get(&iteration_numbers_surf_mols, ii);
-                if(elem1 == UINT_MAX) 
+                elem = iteration_numbers_surf_mols[ii];
+                if(elem == UINT_MAX) 
                 {
-                   fprintf(world->err_file, "File %s, Line %ld: ia_uint_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
-                   return 1;
+                   fwrite(&dummy, sizeof(dummy),1,iteration_numbers_data);
+                }else{
+                   fwrite(&elem, sizeof(elem),1,iteration_numbers_data);
                 }
-                fwrite(&elem1, sizeof(elem1),1,iteration_numbers_data);
 
         }
      	fprintf(master_header, "\n\n");
@@ -3498,14 +3608,11 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
         	fprintf(master_header,"object \"time_values\" class array  type double rank 0 items %u %s binary data file %s,%d\n",time_values_count, my_byte_order,time_values_name, time_values_byte_offset);
                 fprintf(master_header,"\tattribute \"dreamm3mode\" number %d\t#%s#\n", dreamm3mode_number, dreamm3mode);
 												for(ii = 0; ii < time_values_count; ii++){
-                	elem1 = ia_uint_get(&time_values, ii);
-                        if(elem1 == UINT_MAX) 
-                        {
-                          fprintf(world->err_file, "File %s, Line %ld: ia_uint_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
-                          return 1;
+                	elem = time_values[ii];
+                         {
+                           t_value = elem*world->time_unit;
+                           fwrite(&(t_value), sizeof(t_value),1,time_values_data);
                         }
-                        t_value = elem1*world->time_unit;
-                        fwrite(&(t_value), sizeof(t_value),1,time_values_data);
                  }
 		fprintf(master_header, "\n\n");
 	}
@@ -3625,8 +3732,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                 }  /* end else if */
             }else{  /* end if(status = stat()) */
                       fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
             }
 
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/surface_molecules_orientations.bin");    
@@ -3660,8 +3765,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
             
             }else{  /* end if(status = stat()) */
                       fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
             }
 	   
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/surface_molecules_positions.bin");    
@@ -3688,15 +3791,13 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                    if ((status = symlink(path_name_1, path_name_2)) == -1){
                       fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
                        chdir(buf); 
-                      return(1);
+                       return(1); 
                    }
 
                 }  /* end else if */
 
             }else{  /* end if(status = stat()) */
                       fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
             }
  
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/surface_molecules_states.bin");    
@@ -3730,8 +3831,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
             }else{  /* end if(status = stat()) */
                       fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
             }
             
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/volume_molecules.dx");    
@@ -3765,8 +3864,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                        
             }else{  /* end if(status = stat()) */
                       fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
             }
             
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/volume_molecules_orientations.bin");    
@@ -3800,8 +3897,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
             }else{  /* end if(status = stat()) */
                       fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
             }
 
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/volume_molecules_positions.bin");    
@@ -3835,8 +3930,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
             }else{  /* end if(status = stat()) */
                       fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
             }
 
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/volume_molecules_states.bin");    
@@ -3870,8 +3963,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
             }else{  /* end if(status = stat()) */
                       fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                      chdir(buf); 
-                      return(1);
             }
               
             chdir(buf);
@@ -3939,8 +4030,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
             }else{  /* end if(status = stat()) */
                       fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
             }
 
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_meshes_iteration, "/mesh_positions.bin");    
@@ -3974,8 +4063,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
             }else{  /* end if(status = stat()) */
                       fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
             }
 
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_meshes_iteration, "/region_indices.bin");    
@@ -4002,15 +4089,13 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                    if ((status = symlink(path_name_1, path_name_2)) == -1){
                       fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
                        chdir(buf); 
-                      return(1);
+                       return(1);  
                    }
 
                 }  /* end else if */
 
             }else{  /* end if(status = stat()) */
                       fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
             }
              
             chdir(buf);
@@ -4131,6 +4216,8 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
   int mol_pos_index = 0;
   int mol_orient_index = 0;
   int word;
+  static int viz_dir_depth = 0; /* points to the depth of viz_output 
+                            directory structure */
   byte *word_p;
   byte viz_mol_pos_flag = 0, viz_mol_states_flag = 0;	/* flags */
   byte viz_mol_orient_flag = 0, viz_region_data_flag = 0;   /* flags */
@@ -4147,19 +4234,18 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
   char mol_orient_name[1024]; /* molecule orientations data file name */
   char iteration_numbers_name[1024]; /* iteration numbers data file name */ 
   char time_values_name[1024]; /* time values data file name */
-  char buffer[100]; /* used to write 'frame_data' object information */
+  char *buf;       /* used to write 'frame_data' object information */
   /* used to write combined group information */
   static u_int member_meshes_iteration = UINT_MAX;
   static u_int member_molecules_iteration = UINT_MAX;
   static u_int member_effectors_iteration = UINT_MAX;
   /* linked list that stores data for the 'frame_data' object */
-  static struct infinite_string_array frame_data_series_list;
+   static char **frame_data_series_list = NULL;
   static u_int frame_data_series_count = 0; /* count elements in frame_data_series_list array.*/
-  /* linked lists that stores data for the 'iteration_numbers' object */
-  static struct infinite_uint_array iteration_numbers_meshes;
-  static struct infinite_uint_array iteration_numbers_vol_mols;
-  static struct infinite_uint_array iteration_numbers_surf_mols;
-  static struct infinite_uint_array time_values;
+  /* arrays that stores data for the 'iteration_numbers' object */
+  static u_int *iteration_numbers_meshes = NULL;
+  static u_int *iteration_numbers_vol_mols = NULL;
+  static u_int *iteration_numbers_surf_mols = NULL;
 
   static u_int iteration_numbers_meshes_count = 0; /* count elements in 
                                            iteration_numbers_meshes array  */
@@ -4169,6 +4255,8 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
                                            iteration_numbers_surf_mols array  */
   static u_int time_values_count = 0; /* count elements in 
                                            time_values array  */
+  /* keeps track of the last value written into 'time_values' array */
+  static u_int last_time_value_written = 0;
   char my_byte_order[8];  /* shows binary ordering ('lsb' or 'msb') */
   static int mesh_pos_byte_offset = 0;  /* defines position of the object data
                                   in the mesh positions binary data file */
@@ -4260,12 +4348,76 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
     sprintf(my_byte_order,"msb");
   }
   
-  /*initialize infinite arrays. */
-  ia_init(&iteration_numbers_meshes);
-  ia_init(&iteration_numbers_vol_mols);
-  ia_init(&iteration_numbers_surf_mols);
-  ia_init(&time_values);
-  ia_init(&frame_data_series_list);
+  /*initialize arrays. */
+
+  if(time_values == NULL){
+  
+     time_values = (u_int *)malloc(sizeof(u_int) * time_values_total);
+     if(time_values == NULL){
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+         		return (1);
+      }
+      
+      for(ii = 0; ii < time_values_total; ii++){
+        time_values[ii] = UINT_MAX;
+      }
+     
+   }
+
+  if(iteration_numbers_meshes == NULL){
+  
+     iteration_numbers_meshes = (u_int *)malloc(sizeof(u_int) * time_values_total);
+     if(iteration_numbers_meshes == NULL){
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+         		return (1);
+      }
+      
+      for(ii = 0; ii < time_values_total; ii++){
+        iteration_numbers_meshes[ii] = UINT_MAX;
+      }
+     
+   }
+
+  if(iteration_numbers_vol_mols == NULL){
+  
+     iteration_numbers_vol_mols = (u_int *)malloc(sizeof(u_int) * time_values_total);
+     if(iteration_numbers_vol_mols == NULL){
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+         		return (1);
+      }
+      
+      for(ii = 0; ii < time_values_total; ii++){
+        iteration_numbers_vol_mols[ii] = UINT_MAX;
+      }
+     
+   }
+
+  if(iteration_numbers_surf_mols == NULL){
+  
+     iteration_numbers_surf_mols = (u_int *)malloc(sizeof(u_int) * time_values_total);
+     if(iteration_numbers_surf_mols == NULL){
+                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+         		return (1);
+      }
+      
+      for(ii = 0; ii < time_values_total; ii++){
+        iteration_numbers_surf_mols[ii] = UINT_MAX;
+      }
+     
+   }
+
+   if(frame_data_series_list == NULL){
+     frame_data_series_list = (char **)malloc(sizeof(char *) *time_values_total);     
+     if(frame_data_series_list == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+      }
+      
+      for(ii = 0; ii < time_values_total; ii++){
+        frame_data_series_list[ii] = NULL;
+      }
+
+   }
 
   viz_iteration = (u_int)(fdlp->viz_iterationll);
   n_viz_iterations = (u_int)(fdlp->n_viz_iterations);
@@ -4571,6 +4723,21 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
      } /* end if (mol_to_show_number > 0) */
   }  /* end if(viz_mol_pos_flag || viz_mol_orient_flag) */
 
+     /* test whether a directory structure created by the user exists */
+     /* count the number of '/' */
+     if(viz_dir_depth == 0)
+     {
+        ii = 0;
+        while(world->file_prefix_name[ii] != '\0') 
+        {
+           if(world->file_prefix_name[ii] == '/'){
+              viz_dir_depth++;
+           }
+           ii++;
+        }
+     }
+
+
   /* Open master header file. */
   if(world->chkpt_flag){
     sprintf(file_name,"%s.%u.dx",world->file_prefix_name, world->chkpt_seq_num);
@@ -4601,10 +4768,15 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
        sprintf(file_name,"%s.molecule_positions.bin",world->file_prefix_name);
      }
      /* remove the folder name from the molecule_positions data file name */
-     ch_ptr = strrchr(file_name, '/');
-     ++ch_ptr;
-     strcpy(mol_pos_name, ch_ptr);
-     
+     if(viz_dir_depth > 1){
+        ch_ptr = strrchr(file_name, '/');
+        ++ch_ptr;
+        strcpy(mol_pos_name, ch_ptr);
+     }else{
+        strcpy(mol_pos_name, world->file_prefix_name);
+     }
+
+
      if (count_mol_pos_data == 0){
         if ((mol_pos_data=fopen(file_name,"wb"))==NULL) {
            fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
@@ -4628,9 +4800,13 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
       sprintf(file_name,"%s.molecule_orientations.bin",world->file_prefix_name);
     }
      /* remove the folder name from the molecule_positions data file name */
-     ch_ptr = strrchr(file_name, '/');
-     ++ch_ptr;
-     strcpy(mol_orient_name, ch_ptr);
+     if(viz_dir_depth > 1) {
+        ch_ptr = strrchr(file_name, '/');
+        ++ch_ptr;
+        strcpy(mol_orient_name, ch_ptr);
+     }else{
+        strcpy(mol_orient_name, world->file_prefix_name);
+     }
 
      if (count_mol_orient_data == 0){
         if ((mol_orient_data=fopen(file_name,"wb"))==NULL) {
@@ -4657,9 +4833,14 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
          sprintf(file_name,"%s.molecule_states.bin",world->file_prefix_name);
       }
        /* remove the folder name from the molecule_states data file name */
-       ch_ptr = strrchr(file_name, '/');
-       ++ch_ptr;
-       strcpy(mol_states_name, ch_ptr);
+       if(viz_dir_depth > 1)
+       {
+          ch_ptr = strrchr(file_name, '/');
+          ++ch_ptr;
+          strcpy(mol_states_name, ch_ptr);
+       }else{
+          strcpy(mol_states_name, world->file_prefix_name);
+       }
      
        if (count_mol_states_data == 0){
             if ((mol_states_data = fopen(file_name,"wb"))==NULL) {
@@ -4684,9 +4865,14 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
         }
      
      	/* remove the folder name from the mesh_positions data file name */
-     	ch_ptr = strrchr(file_name, '/');
-     	++ch_ptr;
-     	strcpy(mesh_pos_name, ch_ptr);
+        if(viz_dir_depth > 1)
+        {
+     	   ch_ptr = strrchr(file_name, '/');
+     	   ++ch_ptr;
+     	   strcpy(mesh_pos_name, ch_ptr);
+        }else{
+           strcpy(mesh_pos_name, world->file_prefix_name);
+        }
 
        if (count_mesh_pos_data == 0){
       	 if ((mesh_pos_data=fopen(file_name,"wb"))==NULL) {
@@ -4713,9 +4899,13 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
          }
      
         /* remove the folder name from the mesh_states data file name */
-        ch_ptr = strrchr(file_name, '/');
-        ++ch_ptr;
-        strcpy(mesh_states_name, ch_ptr);
+        if(viz_dir_depth > 1){
+           ch_ptr = strrchr(file_name, '/');
+           ++ch_ptr;
+           strcpy(mesh_states_name, ch_ptr);
+        }else{
+           strcpy(mesh_states_name, world->file_prefix_name);
+        }
 
        if (count_mesh_states_data == 0){
            if ((mesh_states_data=fopen(file_name,"wb"))==NULL) {
@@ -4740,9 +4930,13 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
          }
      
         /* remove the folder name from the region values data file name */
-        ch_ptr = strrchr(file_name, '/');
-        ++ch_ptr;
-        strcpy(region_viz_data_name, ch_ptr);
+        if(viz_dir_depth > 1){
+           ch_ptr = strrchr(file_name, '/');
+           ++ch_ptr;
+           strcpy(region_viz_data_name, ch_ptr);
+        }else{
+           strcpy(region_viz_data_name, world->file_prefix_name);
+        }
 
        if (count_region_data == 0){
           if ((region_data=fopen(file_name,"wb"))==NULL) {
@@ -5029,8 +5223,8 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
       	}  /* end (if vizp) */
 
         /* store iteration_number for meshes */
-        ia_uint_store(&iteration_numbers_meshes, iteration_numbers_meshes_count, viz_iteration);
-        iteration_numbers_meshes_count++;
+      iteration_numbers_meshes[iteration_numbers_meshes_count] = viz_iteration;
+      iteration_numbers_meshes_count++;
   
    } 
 
@@ -5485,7 +5679,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
           	}
                 main_index++;
             /* store iteration_number for volume molecules */
-            ia_uint_store(&iteration_numbers_vol_mols,iteration_numbers_vol_mols_count, viz_iteration);
+            iteration_numbers_vol_mols[iteration_numbers_vol_mols_count] = viz_iteration;
             iteration_numbers_vol_mols_count++;
       	}
 
@@ -5504,8 +5698,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
                }
                main_index++;
             /* store iteration_number for surface molecules */
-            ia_uint_store(&iteration_numbers_surf_mols,
-                      iteration_numbers_surf_mols_count, viz_iteration);
+            iteration_numbers_surf_mols[iteration_numbers_surf_mols_count] = viz_iteration;
             iteration_numbers_surf_mols_count++;
       	}
         fprintf(master_header, "\n"); 
@@ -5550,8 +5743,13 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
       if(show_combined_group){
 
         /* create an entry into a 'frame_data' object. */
-      	sprintf(buffer, "\tmember %d value %d position %u\n", series_index, combined_group_index, viz_iteration);
-	ia_string_store(&frame_data_series_list, frame_data_series_count, buffer);
+        buf = (char *)malloc(1024*sizeof(char));
+        if(buf == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+               return (1);
+        }
+      	sprintf(buf, "\tmember %d value %d position %u\n", series_index, combined_group_index, viz_iteration);
+        frame_data_series_list[frame_data_series_count] = buf;
         frame_data_series_count++;
       	series_index++;
       	main_index++;
@@ -5567,9 +5765,15 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
           
 
 	/* put value of viz_iteration into the time_values array */ 
-      ia_uint_store(&time_values, time_values_count,viz_iteration);  
-        time_values_count++;
-
+            if(time_values_count == 0){
+               time_values[time_values_count] = viz_iteration;  
+               time_values_count++;
+               last_time_value_written = viz_iteration;
+            }else if(viz_iteration > last_time_value_written){
+               time_values[time_values_count] = viz_iteration;  
+               time_values_count++;
+               last_time_value_written = viz_iteration;
+            }
      }
 
      /* flag that signals the need to write "footers" for 
@@ -5578,31 +5782,29 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
      /* flag pointing to another frame with certain condition */
      int found = 0;
      struct frame_data_list *fdlp_temp;
-     long long next_iteration_step = 0;  /* next iteration for this frame */
-     
+     long long next_iteration_step_this_frame = UINT_MAX;  /* next iteration for this frame */
+     static long long next_iteration_step_previous_frame = -1;  /* next iteration for previous frame */
 
      if(fdlp->curr_viz_iteration->next != NULL){
 	switch (fdlp->list_type) {
 	  case OUTPUT_BY_ITERATION_LIST:
-	  	  next_iteration_step=(long long)fdlp->curr_viz_iteration->next->value; 
+	  	  next_iteration_step_this_frame = (long long)fdlp->curr_viz_iteration->next->value; 
 	          break;
 	  case OUTPUT_BY_TIME_LIST:
-	          next_iteration_step=(long long)(fdlp->curr_viz_iteration->next->value/world->time_unit + ROUND_UP);
+	          next_iteration_step_this_frame = (long long)(fdlp->curr_viz_iteration->next->value/world->time_unit + ROUND_UP);
 	          break;
           default:
                   fprintf(log_file,"MCell: error - wrong frame_data_list list_type %d\n", fdlp->list_type);
                   break;
 	}
      }
-
-  /* check whether it is time to write footers */
+    
 
      found = 0;
      if(world->chkpt_flag){
         /* check whether it is the last frame */
-
                
-        if((world->it_time == (world->start_time + world->chkpt_iterations)) ||
+        if((world->it_time == world->iterations) ||
                  (world->it_time == final_iteration))
                
         { 
@@ -5610,7 +5812,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
              /* look forward to find out whether there are 
                 other frames to be output */
              for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
-                if((fdlp_temp->viz_iterationll == (world->start_time + world->chkpt_iterations)) || (fdlp_temp->viz_iterationll == final_iteration)){ 
+                if((fdlp_temp->viz_iterationll == world->iterations) || (fdlp_temp->viz_iterationll == final_iteration)){ 
                    found = 1;
                    break;
                 }
@@ -5622,68 +5824,42 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
              }
         }
         
-       else if((world->iterations < next_iteration_step) || (next_iteration_step == 0)){
+       else if(((world->iterations < next_iteration_step_this_frame) && (next_iteration_step_this_frame != UINT_MAX)) || (next_iteration_step_this_frame == UINT_MAX)){
         
-          // look forward to find out whether there are 
-          //   other frames to be output 
-        for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
-                
-                if((fdlp_temp->viz_iterationll >= fdlp->viz_iterationll) &&
-                    (fdlp_temp->viz_iterationll <= world->iterations) &&
-                    (fdlp_temp->viz_iterationll < (world->start_time + world->chkpt_iterations))){
-                   found = 1;
-                   break;
-                }
-         }
-         if(!found){
-             // this is the last frame 
-             time_to_write_footers = 1; 
-          }
 
-
-        }
-        else if(next_iteration_step > (world->start_time + world->chkpt_iterations)) {
-             /* look forward to find out whether next_iteration_step
-                for other frames is less than 'world->start_time + world->chkpt_iterations'
-             */
-
-             for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
-
-                if((fdlp_temp->viz_iterationll >= fdlp->viz_iterationll) && (fdlp_temp->viz_iterationll < (world->start_time + world->chkpt_iterations))){
-                         found = 1;
-                         break;
-
-                }
-                         
-    
-             }  /* end for */
-
-             if(!found){
-                /* this is the last frame */
-                    time_to_write_footers = 1; 
-             }
-        }
-
-    }  /* end if(world->chkpt_flag) */
-    else if((world->iterations < next_iteration_step) || (next_iteration_step == 0)){
-
-        /* look forward to find out whether there are 
-           other frames to be output */
+          /* look forward to find out whether there are 
+             other frames to be output */
         for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
                 
                 if((fdlp_temp->viz_iterationll >= fdlp->viz_iterationll) &&
                     (fdlp_temp->viz_iterationll <= world->iterations)){
-                   found = 1;
-                   break;
+                       found = 1;
+                       break;
                 }
          }
+        
+        /* this allows to look backwards */
+        if(next_iteration_step_this_frame != UINT_MAX){
+           if(next_iteration_step_previous_frame > next_iteration_step_this_frame){
+                found = 1;
+           }
+        }else{
+                if((next_iteration_step_previous_frame >= fdlp->viz_iterationll) && (next_iteration_step_previous_frame <= world->iterations)){
+                   found = 1;
+                }
+
+        }
+         
          if(!found){
              /* this is the last frame */
              time_to_write_footers = 1; 
           }
-           
-    }
-    else if(world->it_time == final_iteration){
+
+     }
+
+    /* end if(world->chkpt_flag) */
+   } else if(world->it_time == final_iteration){
+
 
         /* look forward to find out whether there are 
            other frames to be output */
@@ -5700,6 +5876,44 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
           }
            
     }
+    else if((world->iterations < next_iteration_step_this_frame) || (next_iteration_step_this_frame == UINT_MAX)){
+
+        /* look forward to find out whether there are 
+           other frames to be output */
+        for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
+                
+                if((fdlp_temp->viz_iterationll >= fdlp->viz_iterationll) &&
+                    (fdlp_temp->viz_iterationll <= world->iterations)){
+                   found = 1;
+                   break;
+                }
+         }
+             
+        /* this allows to look backwards */
+        if(next_iteration_step_this_frame != UINT_MAX){
+           if(next_iteration_step_previous_frame > next_iteration_step_this_frame){
+                found = 1;
+           }
+        }else{
+                if((next_iteration_step_previous_frame >= fdlp->viz_iterationll) && (next_iteration_step_previous_frame <= world->iterations)){
+                   found = 1;
+                }
+
+        }
+
+         if(!found){
+             /* this is the last frame */
+             time_to_write_footers = 1; 
+          }
+           
+    } /* end if-else(world->chkpt_flag) */
+
+
+    /* this allows to look backwards to the previous frames */
+    if(next_iteration_step_this_frame != UINT_MAX){
+          if(next_iteration_step_this_frame > next_iteration_step_previous_frame){
+             next_iteration_step_previous_frame = next_iteration_step_this_frame;         }
+     }
 
      if(time_to_write_footers)
      {
@@ -5708,6 +5922,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
         double t_value;
         int extra_elems;
         int iteration_numbers_count;
+        int dummy = -1;
 
 	/* write 'iteration_numbers' object. */
         if(world->chkpt_flag){
@@ -5717,9 +5932,13 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
         }
 
      /* remove the folder name from the iteration_numbers data file name */
-     	ch_ptr = strrchr(file_name, '/');
-     	++ch_ptr;
-     	strcpy(iteration_numbers_name, ch_ptr);
+        if(viz_dir_depth > 1){
+     	   ch_ptr = strrchr(file_name, '/');
+     	   ++ch_ptr;
+     	   strcpy(iteration_numbers_name, ch_ptr);
+        }else{
+           strcpy(iteration_numbers_name, world->file_prefix_name);
+        }
 
       	if ((iteration_numbers_data=fopen(file_name,"wb"))==NULL) {
             fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, file_name);
@@ -5734,60 +5953,18 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
         }
 
      	/* remove the folder name from the time_values data file name */
-     	ch_ptr = strrchr(file_name, '/');
-     	++ch_ptr;
-     	strcpy(time_values_name, ch_ptr);
+        if(viz_dir_depth > 1){
+     	   ch_ptr = strrchr(file_name, '/');
+     	   ++ch_ptr;
+     	   strcpy(time_values_name, ch_ptr);
+        }else{
+           strcpy(time_values_name, world->file_prefix_name);
+        }
 
       	if ((time_values_data=fopen(file_name,"wb"))==NULL) {
             fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, file_name);
             return(1);
         }
-
-        if(iteration_numbers_meshes_count > 0)
-        {
-           extra_elems = iteration_numbers_vol_mols_count - iteration_numbers_meshes_count;
-           if(extra_elems > 0){
-              /* pad the iteration_numbers_meshes array with the last 
-                 element so that it will have the same number of elements 
-                 as iteration_numbers_vol_mols array */
-              elem1 = ia_uint_get(&iteration_numbers_meshes, iteration_numbers_meshes_count - 1);
-              
-		for(ii = 0; ii < extra_elems; ii++){
-                   ia_uint_store(&iteration_numbers_meshes, iteration_numbers_meshes_count + ii, elem1);
-                }
-           }
-        }
-
-        if(iteration_numbers_vol_mols_count > 0)
-        {
-           extra_elems = iteration_numbers_meshes_count - iteration_numbers_vol_mols_count;
-           if(extra_elems > 0){
-              /* pad the iteration_numbers_vol_mols array with the last 
-                 element so that it will have the same number of elements 
-                 as iteration_numbers_meshes array */
-              elem1 = ia_uint_get(&iteration_numbers_vol_mols, iteration_numbers_vol_mols_count - 1);
-              
-		for(ii = 0; ii < extra_elems; ii++){
-                   ia_uint_store(&iteration_numbers_vol_mols, iteration_numbers_vol_mols_count + ii, elem1);
-                }
-           }
-        }
-
-        if(iteration_numbers_surf_mols_count > 0)
-        {
-           extra_elems = iteration_numbers_meshes_count - iteration_numbers_surf_mols_count;
-           if(extra_elems > 0){
-              /* pad the iteration_numbers_surf_mols array with the last 
-                 element so that it will have the same number of elements 
-                 as iteration_numbers_meshes array */
-              elem1 = ia_uint_get(&iteration_numbers_surf_mols, iteration_numbers_surf_mols_count - 1);
-              
-		for(ii = 0; ii < extra_elems; ii++){
-                   ia_uint_store(&iteration_numbers_surf_mols, iteration_numbers_surf_mols_count + ii, elem1);
-                }
-           }
-        }
-
 
       if(iteration_numbers_vol_mols_count > iteration_numbers_surf_mols_count){
          iteration_numbers_count = iteration_numbers_vol_mols_count;
@@ -5798,6 +5975,74 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
          iteration_numbers_count = iteration_numbers_meshes_count;
       }
       
+        if(iteration_numbers_meshes_count > 0)
+        {
+           extra_elems = iteration_numbers_count - iteration_numbers_meshes_count;
+           if(extra_elems > 0){
+              /* pad the iteration_numbers_meshes array with the last 
+                 element so that it will have the same number of elements 
+                 as the maximum length array */
+              elem1 = iteration_numbers_meshes[iteration_numbers_meshes_count - 1];
+              
+		for(ii = 0; ii < extra_elems; ii++){
+                   iteration_numbers_meshes[iteration_numbers_meshes_count + ii] =  elem1;
+                }
+            }
+            iteration_numbers_meshes_count += extra_elems;
+          
+        }else{
+            /* pad the 'iteration_numbers_meshes' array with UINT_MAX */
+            for(ii = 0; ii < iteration_numbers_count; ii++){
+               iteration_numbers_meshes[ii] = UINT_MAX;
+            }
+            iteration_numbers_meshes_count = iteration_numbers_count;
+        }
+
+        if(iteration_numbers_vol_mols_count > 0)
+        {
+           extra_elems = iteration_numbers_count - iteration_numbers_vol_mols_count;
+           if(extra_elems > 0){
+              /* pad the iteration_numbers_vol_mols array with the last 
+                 element so that it will have the same number of elements 
+                 as the maximum length array */
+              elem1 = iteration_numbers_vol_mols[iteration_numbers_vol_mols_count - 1];
+              
+		for(ii = 0; ii < extra_elems; ii++){
+                   iteration_numbers_vol_mols[iteration_numbers_vol_mols_count + ii] = elem1;
+                }
+           }
+           iteration_numbers_vol_mols_count += extra_elems;
+        }else{
+            /* pad the 'iteration_numbers_vol_mols' array with UINT_MAX */
+            for(ii = 0; ii < iteration_numbers_count; ii++){
+               iteration_numbers_vol_mols[ii] = UINT_MAX;
+            }
+            iteration_numbers_vol_mols_count = iteration_numbers_count;
+        }
+
+        if(iteration_numbers_surf_mols_count > 0)
+        {
+           extra_elems = iteration_numbers_count - iteration_numbers_surf_mols_count;
+           if(extra_elems > 0){
+              /* pad the iteration_numbers_surf_mols array with the last 
+                 element so that it will have the same number of elements 
+                 as the maximum length array */
+              elem1 = iteration_numbers_surf_mols[iteration_numbers_surf_mols_count - 1];
+              
+		for(ii = 0; ii < extra_elems; ii++){
+                   iteration_numbers_surf_mols[iteration_numbers_surf_mols_count + ii] = elem1;
+                }
+           }
+           iteration_numbers_surf_mols_count += extra_elems;
+        }else{
+            /* pad the 'iteration_numbers_surf_mols' array with UINT_MAX */
+            for(ii = 0; ii < iteration_numbers_count; ii++){
+               iteration_numbers_surf_mols[ii] = UINT_MAX;
+            }
+            iteration_numbers_surf_mols_count = iteration_numbers_count;
+
+        }
+
       int dreamm3mode_number = 0;
       char dreamm3mode[1024];
       if(world->viz_mode == DREAMM_V3_MODE){
@@ -5807,72 +6052,75 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
          dreamm3mode_number = 2;
          sprintf(dreamm3mode, "DREAMM_V3_GROUPED_MODE");
       }      
-       
+
       fprintf(master_header,"object \"iteration_numbers\" class array  type unsigned int rank 1 shape 3 items %u %s binary data file %s,%d\n",iteration_numbers_count, my_byte_order,iteration_numbers_name, iteration_numbers_byte_offset);
        fprintf(master_header,"\tattribute \"dreamm3mode\" number %d\t#%s#\n", dreamm3mode_number, dreamm3mode);
-      for(ii = 0; ii < iteration_numbers_count; ii++){
-                elem1 = ia_uint_get(&iteration_numbers_meshes, ii);
+        for(ii = 0; ii < iteration_numbers_count; ii++){
+                elem1 = iteration_numbers_meshes[ii];
                 if(elem1 == UINT_MAX) 
                 {
-                   fprintf(world->err_file, "File %s, Line %ld: ia_uint_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
-                   return 1;
+                   fwrite(&dummy, sizeof(dummy),1,iteration_numbers_data);
+                }else{
+                   fwrite(&elem1, sizeof(elem1),1,iteration_numbers_data);
                 }
-                fwrite(&elem1, sizeof(elem1),1,iteration_numbers_data);
+                elem1 = iteration_numbers_vol_mols[ii];
+                if(elem1 == UINT_MAX) 
+                {
+                   fwrite(&dummy, sizeof(dummy),1,iteration_numbers_data);
+                }else{
+                   fwrite(&elem1, sizeof(elem1),1,iteration_numbers_data);
+                }
 
-                elem1 = ia_uint_get(&iteration_numbers_vol_mols, ii);
+                elem1 = iteration_numbers_surf_mols[ii];
                 if(elem1 == UINT_MAX) 
                 {
-                   fprintf(world->err_file, "File %s, Line %ld: ia_uint_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
-                   return 1;
+                   fwrite(&dummy, sizeof(dummy),1,iteration_numbers_data);
+                }else{
+                   fwrite(&elem1, sizeof(elem1),1,iteration_numbers_data);
                 }
-                fwrite(&elem1, sizeof(elem1),1,iteration_numbers_data);
-
-                elem1 = ia_uint_get(&iteration_numbers_surf_mols, ii);
-                if(elem1 == UINT_MAX) 
-                {
-                   fprintf(world->err_file, "File %s, Line %ld: ia_uint_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
-                   return 1;
-                }
-                fwrite(&elem1, sizeof(elem1),1,iteration_numbers_data);
 
         }
      	fprintf(master_header, "\n\n");
-
-
 
         if(time_values_count > 0)
         {
         	fprintf(master_header,"object \"time_values\" class array  type double rank 0 items %u %s binary data file %s,%d\n",time_values_count, my_byte_order,time_values_name, time_values_byte_offset);
                 fprintf(master_header,"\tattribute \"dreamm3mode\" number %d\t#%s#\n", dreamm3mode_number, dreamm3mode);
 												for(ii = 0; ii < time_values_count; ii++){
-                	elem1 = ia_uint_get(&time_values, ii);
+                	elem1 = time_values[ii];
                         if(elem1 == UINT_MAX) 
                         {
-                          fprintf(world->err_file, "File %s, Line %ld: ia_uint_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
-                          return 1;
+                           fwrite(&(dummy), sizeof(dummy),1,time_values_data);
+                        }else{
+                           t_value = elem1*world->time_unit;
+                           fwrite(&(t_value), sizeof(t_value),1,time_values_data);
                         }
-                        t_value = elem1*world->time_unit;
-                        fwrite(&(t_value), sizeof(t_value),1,time_values_data);
-                 }
+
+                }
 		fprintf(master_header, "\n\n");
 	}
+
+
+
                 /* write 'frame_data' object. */
     		fprintf(master_header,"object \"%s\" class series\n", "frame_data");
         	if(frame_data_series_count > 0)
         	{
         	   char *elem;
 		   for(ii = 0; ii < frame_data_series_count; ii++){
-                       elem = ia_string_get(&frame_data_series_list, ii);
+                      elem = frame_data_series_list[ii];
                        if(elem == NULL){
-                          fprintf(world->err_file, "File %s, Line %ld: ia_string_get() tries to access uninitialized data.\n", __FILE__, (long)__LINE__);
+                          fprintf(world->err_file, "File %s, Line %ld:  attempt of access to uninitialized data.\n", __FILE__, (long)__LINE__);
                         }
 			fprintf(master_header, "\t%s", elem);
         	    }
                  }
 	         fprintf(master_header, "\n\n");
 
+
+
           /* check here if MESHES or MOLECULES blocks
-             are not supplied the corresponding files
+             are not supplied. In such case the corresponding files
              should be empty in order to prevent unintentional mixing of
              pre-existing and new files */
 

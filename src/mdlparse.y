@@ -7051,6 +7051,7 @@ list_all_meshes_specs: ALL_MESHES
   {
      mdlpvp->objp = o;
      mdlpvp->sym_name=o->sym->name;
+
      if ((mdlpvp->vizp = (struct viz_obj *)malloc
         (sizeof(struct viz_obj)))==NULL) {
         mdlerror("Out of memory while creating viz object");
@@ -7080,9 +7081,9 @@ list_all_meshes_specs: ALL_MESHES
      volp->viz_obj_head = mdlpvp->vizp;
   
      /* set viz_state value of INCLUDE_OBJ for the object */
-     if (mdlpvp->gp->sym_type == OBJ) {
          switch (mdlpvp->objp->object_type) {
            case META_OBJ:
+
              if (set_viz_state_value(mdlpvp->objp,INCLUDE_OBJ)) {
 	       sprintf(mdlpvp->mdl_err_msg,"Out of memory while creating viz state value for meta object %s",mdlpvp->gp->name);
                mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
@@ -7090,6 +7091,7 @@ list_all_meshes_specs: ALL_MESHES
              }
              break;
            case BOX_OBJ:
+
              mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
              if (mdlpvp->objp->viz_state==NULL) {
                 if ((mdlpvp->objp->viz_state=(int *)malloc
@@ -7104,6 +7106,7 @@ list_all_meshes_specs: ALL_MESHES
              }
              break;
            case POLY_OBJ:
+
              mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
              if (mdlpvp->objp->viz_state==NULL) {
                 if ((mdlpvp->objp->viz_state=(int *)malloc
@@ -7122,7 +7125,6 @@ list_all_meshes_specs: ALL_MESHES
              return(1);
              break;
          }
-     }
 
   }
 
