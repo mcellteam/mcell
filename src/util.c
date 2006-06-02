@@ -81,8 +81,7 @@ Parameters
 Returns
 	the value of the element
 
-Note: You can get an element that has not been previously stored.
-      The value of any unitialiazed element is LONG_MIN.
+Note: If the element was not previously stored the return value is undefined.
 **********************************************************************/
 double ia_double_get(struct infinite_double_array *array_ptr, int index)
 {
@@ -165,8 +164,7 @@ Parameters
 Returns
 	the value of the element
 
-Note: You can get an element that has not been previously stored.
-      The value of any unitialiazed element is INT_MIN.
+Note: If the element was not previously stored the return value is undefined.
 **********************************************************************/
 int ia_int_get(struct infinite_int_array *array_ptr, int index)
 {
@@ -249,8 +247,7 @@ Parameters
 Returns
 	the value of the element
 
-Note: You can get an element that has not been previously stored.
-      The value of any unitialiazed element is UINT_MAX.
+Note: If the element was not previously stored the return value is undefined.
 **********************************************************************/
 unsigned int ia_uint_get(struct infinite_uint_array *array_ptr, int index)
 {
@@ -334,8 +331,7 @@ Parameters
 Returns
 	the value of the element
 
-Note: You can get an element that has not been previously stored.
-      The value of any unitialiazed element is LONG_MIN.
+Note: If the element was not previously stored the return value is undefined.
 **********************************************************************/
 long long ia_longlong_get(struct infinite_longlong_array *array_ptr, long long index)
 {
@@ -427,8 +423,7 @@ Parameters
 Returns
 	the value of the element
 
-Note: You can get an element that has not been previously stored.
-      The value of any unitialiazed element is NULL.
+Note: If the element was not previously stored the return value is undefined.
 **********************************************************************/
 char * ia_string_get(struct infinite_string_array *array_ptr, int index)
 {
@@ -511,8 +506,7 @@ Parameters
 Returns
 	the value of the element
 
-Note: You can get an element that has not been previously stored.
-      The value of any unitialiazed element is NULL.
+Note: If the element was not previously stored the return value is undefined.
 **********************************************************************/
 void *ia_pointer_get(struct infinite_pointer_array *array_ptr, int index)
 {
