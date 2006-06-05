@@ -1070,6 +1070,8 @@ struct volume
   int use_expanded_list;
   int randomize_gmol_pos;
   double vacancy_search_dist2;
+  byte surface_reversibility;
+  byte volume_reversibility;
 
   /* MCell startup command line arguments */
   byte info_opt;

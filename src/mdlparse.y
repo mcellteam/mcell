@@ -222,6 +222,8 @@ struct release_evaluator *rev;
 %token <tok> MEAN_DIAMETER
 %token <tok> MEAN_NUMBER
 %token <tok> MESHES
+%token <tok> MICRO_REV_SURF_RX
+%token <tok> MICRO_REV_VOL_RX
 %token <tok> MIN_TOK
 %token <tok> MISSED_REACTIONS
 %token <tok> MISSED_REACTION_THRESHOLD
@@ -422,6 +424,9 @@ struct release_evaluator *rev;
 %type <tok> warnings_def
 %type <tok> warning_list
 %type <tok> warning_item_def
+%type <tok> reversibility_def
+%type <tok> surface_reversibility_def
+%type <tok> volume_reversibility_def
 %type <tok> end_of_mdl_file
 
 
@@ -625,6 +630,7 @@ mdl_stmt: time_def
 	| output_def
         | notification_def
         | warnings_def
+        | reversibility_def
 
 /*	
 	| parallel_partition_def
@@ -704,6 +710,18 @@ include_stmt: INCLUDE_FILE
   no_printf("Now parsing MDL file: %s\n",volp->curr_file);
   fflush(stderr);
   mdlpvp->include_flag = 0;
+};
+
+reversibility_def: surface_reversibility_def | volume_reversibility_def;
+
+surface_reversibility_def: MICRO_REV_SURF_RX '=' boolean
+{
+  mdlpvp->vol->surface_reversibility=$<tok>3;
+};
+
+volume_reversibility_def: MICRO_REV_VOL_RX '=' boolean
+{
+  mdlpvp->vol->volume_reversibility=$<tok>3;
 };
 
 notification_def: NOTIFICATIONS '{' notification_list '}';
@@ -2781,6 +2799,18 @@ surface_mol_quant: existing_surface_molecule '=' num_expr
   mdlpvp->effdp->quantity_type=mdlpvp->mol_quant_type;
   mdlpvp->effdp->quantity=$<dbl>3;
   mdlpvp->effdp->orientation=mdlpvp->orient_class;
+  if (mdlpvp->orient_specified==0)
+  {
+    if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
+    {
+      mdlerror("Error: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
+      return 1;
+    }
+    else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
+    {
+      mdlerror("Warning: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
+    }
+  }
 };
 
 

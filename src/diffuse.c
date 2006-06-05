@@ -3341,19 +3341,22 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
     return m;
   }
   
-  if (m->flags&ACT_CLAMPED) /* Pretend we were already moving */
+  if (!world->surface_reversibility)
   {
-    m->birthday -= 5*sm->time_step; /* Pretend to be old */
-  }
-  else
-  {
-    /* Newly created particles that have long time steps gradually increase */
-    /* their timestep to the full value */
-    if (sm->time_step > 1.0)
+    if (m->flags&ACT_CLAMPED) /* Pretend we were already moving */
     {
-      f = 1.0 + 0.2*(m->t - m->birthday);
-      if (f<1) printf("I don't think so.\n");
-      if (max_time > f) max_time=f;
+      m->birthday -= 5*sm->time_step; /* Pretend to be old */
+    }
+    else
+    {
+      /* Newly created particles that have long time steps gradually increase */
+      /* their timestep to the full value */
+      if (sm->time_step > 1.0)
+      {
+        f = 1.0 + 0.2*(m->t - m->birthday);
+        if (f<1) printf("I don't think so.\n");
+        if (max_time > f) max_time=f;
+      }
     }
   }
   

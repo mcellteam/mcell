@@ -282,19 +282,21 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       m->birthday = t;
       m->properties = p;
       p->population++;
+
+      m->flags = TYPE_3D | ACT_NEWBIE | IN_VOLUME | IN_SCHEDULE;
+      if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)m) != NULL) m->flags |= ACT_REACT;
+      if (p->space_step > 0.0) m->flags += ACT_DIFFUSE;
       if (reac_g != NULL)
       {
         m->previous_wall = reac_g->grid->surface;
         m->index = reac_g->grid_index;
+        if (world->surface_reversibility) m->flags |= ACT_CLAMPED;
       }
       else
       {
         m->previous_wall = NULL;
         m->index = -1;
       }
-      m->flags = TYPE_3D + ACT_NEWBIE + IN_VOLUME + IN_SCHEDULE;
-      if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)m) != NULL) m->flags |= ACT_REACT;
-      if (p->space_step > 0.0) m->flags += ACT_DIFFUSE;
       
       if (hitpt != NULL)
       {
