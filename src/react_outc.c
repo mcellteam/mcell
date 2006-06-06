@@ -289,7 +289,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       if (reac_g != NULL)
       {
         m->previous_wall = reac_g->grid->surface;
-        m->index = reac_g->grid_index;
+        m->index = reac_g->grid_index;  /* Overwrite this with orientation in CLAMPED case */
         if (world->surface_reversibility) m->flags |= ACT_CLAMPED;
       }
       else
@@ -401,6 +401,11 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
         m = (struct molecule*)plist[i-i0];
         if (porient[i-i0]>0) f = EPS_C;
         else f = -EPS_C;
+	
+	if ((m->flags&ACT_CLAMPED) && world->surface_reversibility)
+	{
+	  m->index = (porient[i-i0]>0)?1:-1; /* Which direction do we move? */
+	}
         	
         m->pos.x += f*w->normal.x;
         m->pos.y += f*w->normal.y;
