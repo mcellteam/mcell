@@ -1661,7 +1661,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
       for(ii = 0; ii < time_values_total; ii++){
         time_values[ii] = UINT_MAX;
       }
-     
    }
 
   if(iteration_numbers_meshes == NULL){
@@ -2788,7 +2787,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
          spec_id = species_list[ii]->species_id;
          viz_grid_mol_count[spec_id]=0;
 
-      } 
+      }
 
 
    for (ii = 0; ii < n_species; ii++)
@@ -4103,6 +4102,129 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
         } /* end if(!mesh_frame_found) ...  */
     }  /* end else if */
 
+
+    /* free allocated memory */
+    if(viz_grid_mol_count != NULL){
+      free(viz_grid_mol_count);
+    }
+    if(viz_mol_count != NULL){
+       free(viz_mol_count);
+    }
+    if (viz_molp != NULL) {
+      for (ii=0;ii<n_species;ii++) {
+         if (viz_molp[ii]!=NULL) {
+           free(viz_molp[ii]);
+         }
+      }
+    
+      free(viz_molp);
+    }
+   
+             
+    if(time_to_write_master_header)
+    {
+                
+      if(time_values != NULL){
+         free(time_values);
+      }
+      if(iteration_numbers_meshes != NULL){
+         free(iteration_numbers_meshes);
+      }
+      if(iteration_numbers_vol_mols != NULL){
+         free(iteration_numbers_vol_mols);
+      }
+      if(iteration_numbers_surf_mols != NULL){
+         free(iteration_numbers_surf_mols);
+      }
+      if(surf_states != NULL){
+         free(surf_states);
+      }
+      if(surf_pos != NULL){
+         free(surf_pos);
+      }
+      if(surf_con != NULL){
+         free(surf_con);
+      }
+      if(surf_field_indices != NULL){
+         free(surf_field_indices);
+      }
+      if(eff_pos != NULL){
+         free(eff_pos);
+      }
+      if(eff_orient != NULL){
+         free(eff_orient);
+      }
+      if(eff_states != NULL){
+         free(eff_states);
+      }
+      if(eff_field_indices != NULL){
+         free(eff_field_indices);
+      }
+      if(mol_pos != NULL){
+         free(mol_pos);
+      }
+      if(mol_orient != NULL){
+         free(mol_orient);
+      }
+      if(mol_states != NULL){
+         free(mol_states);
+      }
+      if(mol_field_indices != NULL){
+         free(mol_field_indices);
+      }
+
+      if (eff_names != NULL) {
+        for (ii = 0; ii < eff_to_show_number; ii++) {
+          if (eff_names[ii] != NULL) {
+            free(eff_names[ii]);
+          }
+        }
+    
+        free(eff_names);
+      }
+      if (mol_names != NULL) {
+        for (ii = 0; ii < mol_to_show_number; ii++) {
+          if (mol_names[ii] != NULL) {
+            free(mol_names[ii]);
+          }
+        }
+    
+        free(mol_names);
+      }
+      if (obj_names != NULL) {
+        for (ii = 0; ii < obj_to_show_number; ii++) {
+          if (obj_names[ii] != NULL) {
+            free(obj_names[ii]);
+          }
+        }
+    
+        free(obj_names);
+      }
+      if (surf_region_values != NULL) {
+        for(ii = 0; ii < obj_to_show_number; ii++){
+           if (surf_region_values[ii] != NULL) {
+              free(surf_region_values[ii]);
+           }
+        }
+    
+        free(surf_region_values);
+      }
+      if (region_names != NULL) {
+        for(ii = 0; ii < obj_to_show_number; ii++){
+           if (region_names[ii] != NULL) {
+              free(region_names[ii]);
+           }
+        } 
+        free(region_names);
+      }
+      if(obj_num_regions != NULL){
+         free(obj_num_regions);
+      }
+
+   }
+          
+
+    /* close opened files */
     if(iteration_numbers_data != NULL){
         fclose(iteration_numbers_data);
     }
@@ -6256,6 +6378,108 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
     free (viz_grid_mol_count);
   }
   
+             
+    if(time_to_write_footers)
+    {
+                
+      if(time_values != NULL){
+         free(time_values);
+      }
+      if(iteration_numbers_meshes != NULL){
+         free(iteration_numbers_meshes);
+      }
+      if(iteration_numbers_vol_mols != NULL){
+         free(iteration_numbers_vol_mols);
+      }
+      if(iteration_numbers_surf_mols != NULL){
+         free(iteration_numbers_surf_mols);
+      }
+      if(surf_states != NULL){
+         free(surf_states);
+      }
+      if(surf_pos != NULL){
+         free(surf_pos);
+      }
+      if(surf_con != NULL){
+         free(surf_con);
+      }
+      if(surf_field_indices != NULL){
+         free(surf_field_indices);
+      }
+      if(eff_pos != NULL){
+         free(eff_pos);
+      }
+      if(eff_orient != NULL){
+         free(eff_orient);
+      }
+      if(eff_states != NULL){
+         free(eff_states);
+      }
+      if(eff_field_indices != NULL){
+         free(eff_field_indices);
+      }
+      if(mol_pos != NULL){
+         free(mol_pos);
+      }
+      if(mol_orient != NULL){
+         free(mol_orient);
+      }
+      if(mol_states != NULL){
+         free(mol_states);
+      }
+      if(mol_field_indices != NULL){
+         free(mol_field_indices);
+      }
+
+      if (eff_names != NULL) {
+        for (ii = 0; ii < eff_to_show_number; ii++) {
+          if (eff_names[ii] != NULL) {
+            free(eff_names[ii]);
+          }
+        }
+    
+        free(eff_names);
+      }
+      if (mol_names != NULL) {
+        for (ii = 0; ii < mol_to_show_number; ii++) {
+          if (mol_names[ii] != NULL) {
+            free(mol_names[ii]);
+          }
+        }
+    
+        free(mol_names);
+      }
+      if (obj_names != NULL) {
+        for (ii = 0; ii < obj_to_show_number; ii++) {
+          if (obj_names[ii] != NULL) {
+            free(obj_names[ii]);
+          }
+        }
+    
+        free(obj_names);
+      }
+      if (surf_region_values != NULL) {
+        for(ii = 0; ii < obj_to_show_number; ii++){
+           if (surf_region_values[ii] != NULL) {
+              free(surf_region_values[ii]);
+           }
+        }
+    
+        free(surf_region_values);
+      }
+      if (region_names != NULL) {
+        for(ii = 0; ii < obj_to_show_number; ii++){
+           if (region_names[ii] != NULL) {
+              free(region_names[ii]);
+           }
+        } 
+        free(region_names);
+      }
+      if(obj_num_regions != NULL){
+         free(obj_num_regions);
+      }
+
+   }
     if(master_header != NULL){
     	fclose(master_header);
     }
