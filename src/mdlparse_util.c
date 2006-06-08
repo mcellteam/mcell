@@ -1014,20 +1014,20 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
             rx->players[kk] = prod->prod;
             
-            if ( (prod->orientation+path->orientation1)*(prod->orientation-path->orientation1) == 0)
+            if ( (prod->orientation+path->orientation1)*(prod->orientation-path->orientation1)==0 && prod->orientation*path->orientation1!=0 )
             {
               if (prod->orientation == path->orientation1) rx->geometries[kk] = 1;
               else rx->geometries[kk] = -1;
             }
             else if ( rx->n_reactants > 1 &&
-                      (prod->orientation+path->orientation2)*(prod->orientation-path->orientation2) == 0
+                      (prod->orientation+path->orientation2)*(prod->orientation-path->orientation2)==0 && prod->orientation*path->orientation2!=0
                     )
             {
               if (prod->orientation == path->orientation2) rx->geometries[kk] = 2;
               else rx->geometries[kk] = -2;
             }
             else if ( rx->n_reactants > 2 &&
-                      (prod->orientation+path->orientation3)*(prod->orientation-path->orientation3) == 0
+                      (prod->orientation+path->orientation3)*(prod->orientation-path->orientation3)==0 && prod->orientation*path->orientation3!=0
                     )
             {
               if (prod->orientation == path->orientation2) rx->geometries[kk] = 3;
@@ -1039,7 +1039,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               geom = 0;
               for (prod2=path->product_head ; prod2!=prod && prod2!=NULL && geom==0 ; prod2 = prod2->next)
               {
-                if ( (prod2->orientation+prod->orientation)*(prod2->orientation-prod->orientation) == 0 )
+                if ( (prod2->orientation+prod->orientation)*(prod2->orientation-prod->orientation)==0 && prod->orientation*prod2->orientation!=0)
                 {
                   if (prod2->orientation == prod->orientation) geom = 1;
                   else geom = -1;
@@ -1171,7 +1171,11 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	    if (D_tot<=0.0) pb_factor = 0; /* Reaction can't happen! */
 	    else pb_factor = 1.0e11*mpvp->vol->effector_grid_density/(2.0*N_AV)*sqrt( MY_PI * t_step / D_tot );
 	  
-            if ( (rx->geometries[0]+rx->geometries[1])*(rx->geometries[0]-rx->geometries[1]) == 0 ) pb_factor *= 2.0;
+            if ( (rx->geometries[0]+rx->geometries[1])*(rx->geometries[0]-rx->geometries[1]) == 0 &&
+	         rx->geometries[0]*rx->geometries[1] != 0 )
+	    {
+	      pb_factor *= 2.0;
+	    }
 	  }
 
 	  /* Watch out for automatic surface reactions; input rate will be GIGANTIC */

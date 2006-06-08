@@ -2087,12 +2087,7 @@ molecule_stmt: new_molecule '{'
     mdlpvp->specp->flags |= CANT_INITIATE;
   }
   
-  mdlpvp->specp->area = $<dbl>8;
-  if (mdlpvp->specp->area < 0.0)
-  {
-    mdlerror("Warning: Molecule should occupy an area of 0 or greater.");
-    mdlpvp->specp->area = 0.0;
-  }
+  mdlpvp->specp->area = 0.0;
   
   if (volp->r_step==NULL) {
     if ((volp->r_step=init_r_step(volp->radial_subdivisions))==NULL) {
@@ -3518,6 +3513,11 @@ release_site_def_new: new_object RELEASE_SITE '{'
 	'}'
 {
   no_printf("Release site %s defined:\n",mdlpvp->curr_obj->sym->name);
+  if (mdlpvp->rsop->release_shape!=SHAPE_LIST && mdlpvp->rsop->mol_type==NULL)
+  {
+    mdlerror("Must specify molecule to release using MOLECULE=molecule_name.");
+    return 1;
+  }
   if (mdlpvp->rsop->release_number_method==CCNNUM)
   {
     if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==0 && mdlpvp->rsop->release_number != -3)

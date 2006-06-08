@@ -345,9 +345,11 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
 */
   
   /* Finally, set orientations correctly */
-  bits = rng_uint( world->rng );
+  bits = 0;
   for (i=i0;i<iN;i++,bits>>=1)
   {
+    if (((i-i0)&0x1F)==0) bits = rng_uint( world->rng );
+
     if (rx->players[i]==NULL) continue;
     
     if ( ptype[i-i0] != 0 && (ptype[i-i0]!='m' || w!=NULL) )

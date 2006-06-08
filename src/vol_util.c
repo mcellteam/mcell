@@ -1594,6 +1594,10 @@ int set_partitions()
       world->y_partitions == NULL ||
       world->z_partitions == NULL)
   {
+    if (world->x_partitions!=NULL || world->y_partitions!=NULL || world->z_partitions!=NULL)
+    {
+      fprintf(world->err_file,"Warning: some but not all axes are manually partitioned.\n  Using automatic partitions instead--no manual partitions used.\n");
+    }
     if (steps_max / MAX_TARGET_TIMESTEP > MAX_COARSE_PER_AXIS)
     {
       world->nx_parts = world->ny_parts = world->nz_parts = MAX_COARSE_PER_AXIS;

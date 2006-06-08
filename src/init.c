@@ -2280,7 +2280,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
           if (world->chkpt_init) {  /* only needed for denovo initiliazation */
 	    if (effdp->orientation > 0) orientation = 1;
 	    else if (effdp->orientation < 0) orientation = -1;
-	    else orientation = (rng_uint(world->rng)&1)?1:-1;
+	    else orientation = 0;
   
             n_set=effdp->quantity;
             n_clear=n_free_eff-n_set;
@@ -2340,7 +2340,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   mol->grid_index=index[j];
 		  if (world->randomize_gmol_pos) grid2uv_random(walls[j]->effectors,index[j],&(mol->s_pos));
 		  else grid2uv(walls[j]->effectors,index[j],&(mol->s_pos));
-                  mol->orient=orientation;
+                  mol->orient = (orientation==0) ? ((rng_uint(world->rng)&1)?1:-1) : orientation;
                   mol->grid=walls[j]->effectors;
                   mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
 		  if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
@@ -2386,7 +2386,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     mol->grid_index=index[k];
 		    if (world->randomize_gmol_pos) grid2uv_random(walls[k]->effectors,index[k],&(mol->s_pos));
 		    else grid2uv(walls[k]->effectors,index[k],&(mol->s_pos));
-                    mol->orient=orientation;
+                    mol->orient = (orientation==0) ? ((rng_uint(world->rng)&1)?1:-1) : orientation;
                     mol->grid=walls[k]->effectors;
                     mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
 		    if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
