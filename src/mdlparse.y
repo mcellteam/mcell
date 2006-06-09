@@ -311,6 +311,7 @@ struct release_evaluator *rev;
 %token <tok> SHAPE
 %token <tok> SIN
 %token <tok> SITE_DIAMETER
+%token <tok> SITE_RADIUS
 %token <tok> SPACE_STEP
 %token <tok> SPECIFIED_EFFECTORS
 %token <tok> SPECIFIED_MOLECULES
@@ -401,6 +402,7 @@ struct release_evaluator *rev;
 %type <tok> surface_rxn_type
 %type <tok> chkpt_stmt
 %type <tok> release_pattern_def
+%type <tok> site_size_cmd
 %type <tok> physical_object_def
 %type <tok> existing_obj_define_surface_regions
 %type <tok> mod_surface_regions
@@ -3834,18 +3836,24 @@ release_site_cmd:
     return 1;
   }
 }
-	| SITE_DIAMETER '=' num_expr_only
+	| site_size_cmd '=' num_expr_only
 {
+  double scaling_factor = 1.0/volp->length_unit;
+  if ($<tok>1==SITE_RADIUS) scaling_factor*=2;
+  
   if ((mdlpvp->rsop->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
     mdlerror("Out of memory while storing release site diameter");
     return(1);
   }
-  mdlpvp->rsop->diameter->x = $<dbl>3 / volp->length_unit;
-  mdlpvp->rsop->diameter->y = $<dbl>3 / volp->length_unit;
-  mdlpvp->rsop->diameter->z = $<dbl>3 / volp->length_unit;
+  mdlpvp->rsop->diameter->x = $<dbl>3 * scaling_factor;
+  mdlpvp->rsop->diameter->y = $<dbl>3 * scaling_factor;
+  mdlpvp->rsop->diameter->z = $<dbl>3 * scaling_factor;
 }
-	| SITE_DIAMETER '=' array_expr_only
+	| site_size_cmd '=' array_expr_only
 {
+  double scaling_factor = 1.0/volp->length_unit;
+  if ($<tok>1==SITE_RADIUS) scaling_factor*=2;
+  
   if (mdlpvp->rsop->release_shape==SHAPE_LIST)
   {
     mdlerror("Release list diameters must be single valued.");
@@ -3858,7 +3866,7 @@ release_site_cmd:
   }
   mdlpvp->elp=mdlpvp->el_head;
   if (mdlpvp->elp!=NULL) {
-    mdlpvp->rsop->diameter->x=mdlpvp->elp->value / volp->length_unit;
+    mdlpvp->rsop->diameter->x=mdlpvp->elp->value * scaling_factor;
     mdlpvp->elp=mdlpvp->elp->next;
   }
   else {
@@ -3866,7 +3874,7 @@ release_site_cmd:
     return(1);
   }
   if (mdlpvp->elp!=NULL) {
-    mdlpvp->rsop->diameter->y=mdlpvp->elp->value / volp->length_unit;
+    mdlpvp->rsop->diameter->y=mdlpvp->elp->value * scaling_factor;
     mdlpvp->elp=mdlpvp->elp->next;
   }
   else {
@@ -3874,7 +3882,7 @@ release_site_cmd:
     return(1);
   }
   if (mdlpvp->elp!=NULL) {
-    mdlpvp->rsop->diameter->z=mdlpvp->elp->value / volp->length_unit;
+    mdlpvp->rsop->diameter->z=mdlpvp->elp->value * scaling_factor;
     mdlpvp->elp=mdlpvp->elp->next;
   }
   else {
@@ -3886,8 +3894,11 @@ release_site_cmd:
     return(1);
   }
 }
-	| SITE_DIAMETER '=' existing_num_or_array
+	| site_size_cmd '=' existing_num_or_array
 {
+  double scaling_factor = 1.0/volp->length_unit;
+  if ($<tok>1==SITE_RADIUS) scaling_factor *= 2;
+  
   mdlpvp->gp=$<sym>3;
   if ((mdlpvp->rsop->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
     mdlerror("Out of memory while storing release site diameter");
@@ -3896,9 +3907,9 @@ release_site_cmd:
   switch (mdlpvp->gp->sym_type) {
   case DBL:
     mdlpvp->tmp_dbl = *(double *)mdlpvp->gp->value;
-    mdlpvp->rsop->diameter->x = mdlpvp->tmp_dbl / volp->length_unit;
-    mdlpvp->rsop->diameter->y = mdlpvp->tmp_dbl / volp->length_unit;
-    mdlpvp->rsop->diameter->z = mdlpvp->tmp_dbl / volp->length_unit;
+    mdlpvp->rsop->diameter->x = mdlpvp->tmp_dbl * scaling_factor;
+    mdlpvp->rsop->diameter->y = mdlpvp->tmp_dbl * scaling_factor;
+    mdlpvp->rsop->diameter->z = mdlpvp->tmp_dbl * scaling_factor;
     break;
   case ARRAY:
     if (mdlpvp->rsop->release_shape==SHAPE_LIST)
@@ -3909,7 +3920,7 @@ release_site_cmd:
     mdlpvp->el_head=(struct num_expr_list *)mdlpvp->gp->value;
     mdlpvp->elp=mdlpvp->el_head;
     if (mdlpvp->elp!=NULL) {
-      mdlpvp->rsop->diameter->x=mdlpvp->elp->value / volp->length_unit;
+      mdlpvp->rsop->diameter->x=mdlpvp->elp->value * scaling_factor;
       mdlpvp->elp=mdlpvp->elp->next;
     }
     else {
@@ -3917,7 +3928,7 @@ release_site_cmd:
       return(1);
     }
     if (mdlpvp->elp!=NULL) {
-      mdlpvp->rsop->diameter->y=mdlpvp->elp->value / volp->length_unit;
+      mdlpvp->rsop->diameter->y=mdlpvp->elp->value * scaling_factor;
       mdlpvp->elp=mdlpvp->elp->next;
     }
     else {
@@ -3925,7 +3936,7 @@ release_site_cmd:
       return(1);
     }
     if (mdlpvp->elp!=NULL) {
-      mdlpvp->rsop->diameter->z=mdlpvp->elp->value / volp->length_unit;
+      mdlpvp->rsop->diameter->z=mdlpvp->elp->value * scaling_factor;
       mdlpvp->elp=mdlpvp->elp->next;
     }
     else {
@@ -3976,6 +3987,10 @@ release_site_cmd:
     mdlpvp->rsop->release_number++;
   }
 };
+
+site_size_cmd:
+	SITE_DIAMETER {$$=SITE_DIAMETER;}
+	| SITE_RADIUS {$$=SITE_RADIUS;};
 
 
 release_number_cmd: constant_release_number_cmd
