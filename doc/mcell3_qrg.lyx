@@ -681,8 +681,11 @@ filename
 
 \layout Standard
 
-Save the state of the simulation when CHECKPOINT_ITERATIONS (described below)
- is reached, and stop.
+Save the state of the simulation when 
+\family typewriter 
+CHECKPOINT_ITERATIONS
+\family default 
+ (described below) is reached, and stop.
 \end_inset 
 </cell>
 </row>
@@ -734,7 +737,7 @@ ITERATIONS
 
 
 \family typewriter 
-EFFECTOR_GRID_DENSITY = 
+SURFACE_GRID_DENSITY = 
 \family sans 
 \shape italic 
 N
@@ -753,6 +756,11 @@ N
 \shape default 
  different positions per square micron.
  The default is 10000.
+ For backwards compatability, 
+\family typewriter 
+EFFECTOR_GRID_DENSITY
+\family default 
+ works also.
 \end_inset 
 </cell>
 </row>
@@ -782,7 +790,15 @@ N
 \family default 
 \shape default 
  microns of each other.
- The default is 0.01.
+ The default is 
+\begin_inset Formula $1/\sqrt{\pi\cdot\sigma_{s}}$
+\end_inset 
+
+ where 
+\begin_inset Formula $\sigma_{s}$
+\end_inset 
+
+ is the surface density (default or user-specified).
 \end_inset 
 </cell>
 </row>
@@ -6505,10 +6521,33 @@ LIST
 
 
 \family typewriter 
+
+\begin_inset Minipage
+position 0
+inner_position 0
+height "0"
+width "30col%"
+collapsed false
+
+\layout Standard
+
+
+\family typewriter 
 SITE_DIAMETER = 
 \family sans 
 \shape italic 
 d
+\layout Standard
+
+
+\family typewriter 
+SITE_RADIUS = 
+\family sans 
+\shape italic 
+r
+\end_inset 
+
+
 \end_inset 
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
@@ -6521,6 +6560,12 @@ For a geometrical release site, this releases molecules uniformly within
 \family sans 
 \shape italic 
 d
+\family default 
+\shape default 
+ or a radius 
+\family sans 
+\shape italic 
+r
 \family default 
 \shape default 
 .
@@ -6547,6 +6592,18 @@ LIST
 
 
 \family typewriter 
+
+\begin_inset Minipage
+position 0
+inner_position 0
+height "0"
+width "30col%"
+collapsed false
+
+\layout Standard
+
+
+\family typewriter 
 SITE_DIAMETER = [
 \family sans 
 \shape italic 
@@ -6566,6 +6623,32 @@ z
 \family typewriter 
 \shape default 
 ]
+\layout Standard
+
+
+\family typewriter 
+SITE_RADIUS = [
+\family sans 
+\shape italic 
+x
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+y
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+z
+\family typewriter 
+\shape default 
+]
+\end_inset 
+
+
 \end_inset 
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
