@@ -3967,7 +3967,7 @@ MCell3 allows the user to specify properties of the surfaces of objects.
 
 \begin_inset  Tabular
 <lyxtabular version="3" rows="3" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
 <row topline="true" bottomline="true" endhead="true">
@@ -4062,7 +4062,7 @@ name
 \family default 
 \shape default 
 .
- The properties are specified by commands inside braces.
+ The properties are specified by zero or more commands inside braces.
 \end_inset 
 </cell>
 </row>
@@ -5269,7 +5269,7 @@ VERTEX_LIST
 
 \begin_inset  Tabular
 <lyxtabular version="3" rows="3" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
 <row topline="true" bottomline="true" endhead="true">
@@ -6525,7 +6525,7 @@ LIST
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0"
+height "0pt"
 width "30col%"
 collapsed false
 
@@ -6596,7 +6596,7 @@ LIST
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0"
+height "0pt"
 width "30col%"
 collapsed false
 
@@ -7149,17 +7149,17 @@ Repeat trains forever.
 
 \layout Subsubsection
 
-Instantiation of objects
+Instantiation, grouping, and modification of objects
 \layout Standard
 
 An object is a box, polygon, release site, or a metaobject which contains
  other objects.
- Metaobjects are defined using
+ Metaobjects are defined and modified using
 \layout Standard
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="3" columns="2">
+<lyxtabular version="3" rows="4" columns="2">
 <features islongtable="true" headBottomDL="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -7255,7 +7255,7 @@ name
 \end_inset 
 </cell>
 </row>
-<row topline="true" bottomline="true">
+<row topline="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
@@ -7290,6 +7290,134 @@ Same as above, except we also insert the object into the world.
 INSTANTIATE
 \family default 
 d object.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\begin_inset Minipage
+position 0
+inner_position 0
+height "0pt"
+width "35col%"
+collapsed false
+
+\layout Standard
+
+
+\family typewriter 
+MODIFY_SURFACE_REGIONS
+\layout Standard
+
+
+\family typewriter 
+{
+\layout Standard
+
+
+\family sans 
+\shape italic 
+\SpecialChar ~
+\SpecialChar ~
+nameA
+\family typewriter 
+\shape default 
+[
+\family sans 
+\shape italic 
+regA1
+\family typewriter 
+\shape default 
+] {
+\layout Standard
+
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+
+\family sans 
+\shape italic 
+regional surface commands
+\layout Standard
+
+\SpecialChar ~
+\SpecialChar ~
+
+\family typewriter 
+}
+\layout Standard
+
+
+\family sans 
+\shape italic 
+\SpecialChar ~
+\SpecialChar ~
+nameB
+\family typewriter 
+\shape default 
+[
+\family sans 
+\shape italic 
+regB1
+\family typewriter 
+\shape default 
+] { 
+\family sans 
+\shape italic 
+...
+
+\family typewriter 
+\shape default 
+ }
+\layout Standard
+
+
+\family sans 
+\shape italic 
+\SpecialChar ~
+\SpecialChar ~
+...
+\layout Standard
+
+
+\family typewriter 
+}
+\end_inset 
+
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+This modifies surface regions on existing objects via their name and region
+ name.
+ Element lists may not be changed, but otherwise all regional surface commands
+ are available.
+ The full name must be given in the case of separate objects (using 
+\family sans 
+\shape slanted 
+name1
+\family typewriter 
+\shape default 
+.
+\family sans 
+\shape slanted 
+name2
+\family default 
+\shape default 
+ to refer to objects inside metaobjects).
+ If an object is included in a metaobject, then has a surface region modified,
+ and is included in another metaobject, the surface regions will differ
+ in those the two metaobjects.
 \end_inset 
 </cell>
 </row>
