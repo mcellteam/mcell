@@ -700,6 +700,7 @@ include_stmt: INCLUDE_FILE
   mdlpvp->cval=NULL;
   mdlpvp->cval_2=NULL;
   mdlpvp->include_filename[mdlpvp->include_stack_ptr++]=volp->curr_file;
+  mdlpvp->line_num[mdlpvp->include_stack_ptr] = 1;
   volp->curr_file=my_strdup(mdlpvp->a_str);
   if(volp->curr_file == NULL){
     sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while switching to include file:",mdlpvp->a_str);
@@ -9762,6 +9763,7 @@ void mdlerror(char *s,...)
   if (mpvp->vol->procnum == 0) {
 	fprintf(log_file,"MCell: error on line: %d of file: %s\n  %s\n",\
 	        mpvp->line_num[mpvp->include_stack_ptr],mpvp->vol->curr_file,s);
+	
 	fflush(log_file);
   }
 	return;
