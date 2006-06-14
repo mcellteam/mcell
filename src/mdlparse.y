@@ -2336,6 +2336,7 @@ existing_one_or_multiple_molecules: VAR
    free((void *)mdlpvp->sym_name);
    free(wildcard_string);
    
+   mdlpvp->sym_table_list_head = sort_sym_list_by_name(mdlpvp->sym_table_list_head);
    $$=NULL;
 };
 
@@ -3358,6 +3359,8 @@ existing_one_or_multiple_objects: VAR
      free((void *)mdlpvp->sym_name);
      free(wildcard_string);
      fflush(stderr);
+     
+     mdlpvp->sym_table_list_head = sort_sym_list_by_name(mdlpvp->sym_table_list_head);
      
      $$=NULL; /* Means we need to look in list */
 };
@@ -5646,6 +5649,8 @@ existing_many_rxpns_or_molecules: WILDCARD_VAR
    }
    free((void *)mdlpvp->sym_name);
    free(wildcard_string);
+   
+   mdlpvp->sym_table_list_head = sort_sym_list_by_name(mdlpvp->sym_table_list_head);
 
    /* set a flag about wildcard presence */
    mdlpvp->count_flags |= WILDCARD_PRESENT;
@@ -8112,7 +8117,7 @@ output_def: REACTION_DATA_OUTPUT '{'
   mdlpvp->obp->curr_buf_index=0;
   mdlpvp->obp->chunk_count=0;
   mdlpvp->obp->output_item_head=NULL;
-  mdlpvp->header_comment="";
+  mdlpvp->header_comment=NULL;
 }
        output_buffer_size_def
        output_timer_def

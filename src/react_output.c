@@ -272,23 +272,22 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
    if(world->chkpt_seq_num == 1 && oi->header_comment!=NULL) 
     {
        oip = oi;
-//       if((n_cols > 1) && (oip->count_expr->column_title != NULL)){
-         if(obp->timer_type == OUTPUT_BY_ITERATION_LIST)
-         {
-            fprintf(fp,"%s%s",oip->header_comment,"Iteration_# ");
-         }else{
-            fprintf(fp,"%s%s",oip->header_comment,"Seconds ");
-         }
-         for (oip=oi ; oip!=NULL ; oip=oip->next_column)
-         {
-            if(oip->count_expr->column_title != NULL){
-              fprintf(fp,"%s ", oip->count_expr->column_title);
-            }
-	    else fprintf(fp,". ");
-         }
-         fprintf(fp,"\n");
 
-//       }
+       if(obp->timer_type == OUTPUT_BY_ITERATION_LIST)
+       {
+	  fprintf(fp,"%s%s",oip->header_comment,"Iteration_# ");
+       }else{
+	  fprintf(fp,"%s%s",oip->header_comment,"Seconds ");
+       }
+       for (oip=oi ; oip!=NULL ; oip=oip->next_column)
+       {
+	  if(oip->count_expr->column_title != NULL){
+	    fprintf(fp,"%s ", oip->count_expr->column_title);
+	  }
+	  else fprintf(fp,"untitled ");
+       }
+       fprintf(fp,"\n");
+
     }
 
 

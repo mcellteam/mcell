@@ -3939,3 +3939,15 @@ struct release_site_obj* duplicate_release_site(struct release_site_obj *old,str
 }
 
 
+
+int compare_sym_names(void *a,void *b)
+{
+  return strcmp( ((struct sym_table*)a)->name , ((struct sym_table*)b)->name ) <= 0;
+}
+
+struct sym_table_list* sort_sym_list_by_name(struct sym_table_list *unsorted)
+{
+  return (struct sym_table_list*)void_list_sort_by((struct void_list*)unsorted,compare_sym_names);
+}
+
+

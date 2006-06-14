@@ -98,5 +98,7 @@ int check_release_regions(struct release_evaluator *rel,struct object *parent,st
 struct region* find_corresponding_region(struct region *old_r,struct object *old_ob,struct object *new_ob,struct object *instance,struct sym_table **symhash);
 struct release_evaluator* duplicate_rel_region_expr(struct release_evaluator *expr,struct object *old_self,struct object *new_self,struct object *instance,struct sym_table **symhash);
 struct release_site_obj* duplicate_release_site(struct release_site_obj *old,struct object *new_self,struct object *instance,struct sym_table **symhash);
+
+struct sym_table_list* sort_sym_list_by_name(struct sym_table_list *unsorted);
                                      
 #endif
