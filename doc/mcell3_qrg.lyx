@@ -7862,6 +7862,8 @@ There are two forms of output in MCell3, visualization output and count
  Count output reports running totals of summary statistics such as the total
  number of molecules of a certain type in the world, the number of times
  a reaction has occurred inside some object in the world, and so on.
+ Count output can also be written when triggered by a specific event such
+ as a reaction taking place.
 \layout Standard
 
 
@@ -8022,7 +8024,7 @@ Each reaction data output block consists of the following commands:
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="8" columns="2">
+<lyxtabular version="3" rows="9" columns="2">
 <features islongtable="true" headBottomDL="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -8124,6 +8126,8 @@ t
 STEP
 \family default 
  or the following two commands should be used.
+ Triggered output ignores the values specified, but some value must still
+ be given.
 \end_inset 
 </cell>
 </row>
@@ -8229,6 +8233,12 @@ OFF
 ``//''
 \family default 
  would add a C++-style comment prefix to the line.
+ For 
+\family typewriter 
+TRIGGER
+\family default 
+ statements (see below), the column label (plus comment character if specified)
+ is appended to each line of output when headers are on.
 \end_inset 
 </cell>
 </row>
@@ -8282,8 +8292,76 @@ TIME_LIST
 ITERATION_LIST
 \family default 
  is used.
- The second will be the value listed.
- This command can be repeated to send different output to many files.
+ For count values, the second column will be the value listed.
+ For trigger values, the second through fourth columns will be the x,y,z
+ coordinates of the event.
+ This command, and the variants listed below, can be repeated to send different
+ output to many files.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+{ 
+\family sans 
+\shape italic 
+value
+\family typewriter 
+\shape default 
+ : ``
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+'' } => 
+\begin_inset Quotes eld
+\end_inset 
+
+
+\family sans 
+\shape italic 
+file
+\family typewriter 
+\shape default 
+
+\begin_inset Quotes erd
+\end_inset 
+
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Output the value in braces with the column header string 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+ to the filename 
+\family sans 
+\shape italic 
+file
+\family default 
+\shape default 
+.
+ Not valid if 
+\family sans 
+\shape italic 
+value
+\family default 
+\shape default 
+ is found using wildcards.
 \end_inset 
 </cell>
 </row>
@@ -8336,9 +8414,20 @@ file
 
 \layout Standard
 
-Output the list of values in braces, one to a column, in the order listed.
+For counts, output the list of values in braces, one to a column, in the
+ order listed.
  The first column will be the time/iteration number.
- This command can be repeated.
+ If headers are on, each column header can be customized by specifying 
+\family typewriter 
+: ``
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+''
+\family default 
+ after the value.
 \end_inset 
 </cell>
 </row>
@@ -8386,12 +8475,16 @@ cumulative
 \emph default 
 , and count the number of events that have occurred since the beginning
  of the simulation.
- The count statements themselves have the following syntax:
+ Alternatively, they can output the time and location of each reaction or
+ molecular collision of the type specified.
+\layout Standard
+
+The count statements themselves have the following syntax:
 \layout Standard
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="7" columns="2">
+<lyxtabular version="3" rows="9" columns="2">
 <features islongtable="true" headBottomDL="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -8466,7 +8559,10 @@ name
 \shape default 
 ''
 \family default 
- is in quotes, the string in quotes will be matched with wildcards.
+ is in quotes, in this command or any of the following commands, the string
+ in quotes can contain wildcards which will be matched to molecule and reaction
+ names.
+ Custom column headers cannot be given if wildcards are used.
 \end_inset 
 </cell>
 </row>
@@ -8709,7 +8805,7 @@ ESTIMATE_CONCENTRATION
 \end_inset 
 </cell>
 </row>
-<row topline="true" bottomline="true">
+<row topline="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
@@ -8777,6 +8873,82 @@ ALL_CROSSINGS
 \family default 
 .
  The count is cumulative.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+TRIGGER[
+\family sans 
+\shape italic 
+...
+\family typewriter 
+\shape default 
+]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Instead of counting, output the time and location each time an event happens.
+ This is only valid for reactions and for hits of molecules; counts of molecules
+ cannot be 
+\family typewriter 
+TRIGGER
+\family default 
+ed.
+ Output blocks can contain either 
+\family typewriter 
+COUNT
+\family default 
+ or 
+\family typewriter 
+TRIGGER
+\family default 
+ statements, but they cannot be mixed.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+EVALUATE[
+\family sans 
+\shape italic 
+expression
+\family typewriter 
+\shape default 
+]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Evaluate and output a mathematical expression.
+ This can be mixed with 
+\family typewriter 
+COUNT
+\family default 
+ statements but not with 
+\family typewriter 
+TRIGGER
+\family default 
+ statements.
 \end_inset 
 </cell>
 </row>

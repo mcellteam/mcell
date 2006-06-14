@@ -348,6 +348,7 @@ struct release_evaluator *rev;
 %token <tok> TRANSFORM
 %token <tok> TRANSLATE
 %token <tok> TRANSPARENT
+%token <tok> TRIGGER
 %token <tok> TRUE
 %token <tok> UNLIMITED
 %token <tok> USELESS_VOLUME_ORIENTATION
@@ -2334,7 +2335,8 @@ existing_one_or_multiple_molecules: VAR
    }
    free((void *)mdlpvp->sym_name);
    free(wildcard_string);
-
+   
+   $$=NULL;
 };
 
 
@@ -3356,8 +3358,8 @@ existing_one_or_multiple_objects: VAR
      free((void *)mdlpvp->sym_name);
      free(wildcard_string);
      fflush(stderr);
-
-
+     
+     $$=NULL; /* Means we need to look in list */
 };
 
 list_opt_object_cmds: /* empty */
@@ -5646,7 +5648,7 @@ existing_many_rxpns_or_molecules: WILDCARD_VAR
    free(wildcard_string);
 
    /* set a flag about wildcard presence */
-   mdlpvp->wildcard_present_flag = 1;
+   mdlpvp->count_flags |= WILDCARD_PRESENT;
 
 };
 
@@ -6232,7 +6234,7 @@ mol_name_spec: existing_one_or_multiple_molecules
 
   struct sym_table_list *stl; 
  
-  if(mdlpvp->sym_table_list_head == NULL)
+  if( ($<sym>1) != NULL )
   {
      /* here is just one molecule name */
   
@@ -6244,6 +6246,11 @@ mol_name_spec: existing_one_or_multiple_molecules
       /* here are several molecules names because of using wildcards */ 
       
       stl = mdlpvp->sym_table_list_head;
+      if (stl==NULL)
+      {
+	mdlerror("No molecules matching wildcard found.");
+	return 1;
+      }
       while(stl != NULL)
       {    
          mdlpvp->gp = stl->node;
@@ -6254,8 +6261,12 @@ mol_name_spec: existing_one_or_multiple_molecules
       }
   
       /* free allocated memory  */
-      free(mdlpvp->sym_table_list_head);
-      mdlpvp->sym_table_list_head = NULL;
+      while (mdlpvp->sym_table_list_head != NULL)
+      {
+	stl=mdlpvp->sym_table_list_head->next;
+	free(mdlpvp->sym_table_list_head);
+	mdlpvp->sym_table_list_head=stl;
+      }
 
   }
 
@@ -6793,7 +6804,7 @@ mesh_one_name_spec: existing_one_or_multiple_objects
   u_int i;
   struct sym_table_list *stl; 
  
-  if(mdlpvp->sym_table_list_head == NULL)
+  if(($<sym>1) != NULL)
   {
      /* here is just one mesh object name */
 
@@ -6880,6 +6891,11 @@ mesh_one_name_spec: existing_one_or_multiple_objects
       /* here are several mesh objects names because of using wildcards */ 
       
       stl = mdlpvp->sym_table_list_head;
+      if (stl==NULL)
+      {
+	mdlerror("No objects matching wildcard found.");
+	return 1;
+      }
       while(stl != NULL)
       {    
 
@@ -6962,8 +6978,12 @@ mesh_one_name_spec: existing_one_or_multiple_objects
       } /* end while(stl != NULL) */
 
       /* free allocated memory  */
-      free(mdlpvp->sym_table_list_head);
-      mdlpvp->sym_table_list_head = NULL;
+      while (mdlpvp->sym_table_list_head != NULL)
+      {
+	stl=mdlpvp->sym_table_list_head->next;
+	free(mdlpvp->sym_table_list_head);
+	mdlpvp->sym_table_list_head=stl;
+      }
 
    } /* end else */
 
@@ -8274,10 +8294,6 @@ count_cmd: '{'
   mdlpvp->oip->outfile_name=NULL;
   mdlpvp->oip->output_evaluator_head=NULL;
   mdlpvp->oip->count_expr=NULL;
-  mdlpvp->oip->column_title=NULL;
-  mdlpvp->oip->name1=NULL;
-  mdlpvp->oip->name2=NULL;
-  mdlpvp->oip->operand=NULL;
   mdlpvp->oip->next_column=NULL;
   
   if (mdlpvp->header_comment==NULL) mdlpvp->oip->header_comment = NULL;
@@ -8291,6 +8307,7 @@ count_cmd: '{'
       return 1;
     }
   }
+  mdlpvp->count_flags = 0;
 }
 	list_count_exprs '}' '=' '>' outfile_syntax
 {
@@ -8307,6 +8324,20 @@ count_cmd: '{'
   for (oi2=mdlpvp->obp->output_item_head ; oi2!=NULL ; oi2=oi2->next_column)
   {
     if (oi2!=oi) oi2->outfile_name = oi->outfile_name;
+  }
+  
+  if (mdlpvp->count_flags & TRIGGER_PRESENT)
+  {
+    if (mdlpvp->count_flags & COUNT_PRESENT)
+    {
+      mdlerror("Cannot mix TRIGGER and COUNT statements.  Use separate files.");
+      return 1;
+    }
+    if (mdlpvp->count_flags & EXPRESSION_PRESENT)
+    {
+      mdlerror("Cannot mix EXPRESSION and COUNT statements.  Use separate files.");
+      return 1;
+    }
   }
 };
 
@@ -8348,10 +8379,6 @@ single_count_expr:
     new_oi->output_evaluator_head=NULL;
     new_oi->count_expr=NULL;
     new_oi->next = mdlpvp->oip->next;
-    new_oi->column_title=NULL;
-    new_oi->name1=NULL;
-    new_oi->name2=NULL;
-    new_oi->operand=NULL;
     new_oi->next_column=NULL;
     mdlpvp->oip->next_column = new_oi;
     mdlpvp->oip=new_oi;
@@ -8359,9 +8386,12 @@ single_count_expr:
 }
 	count_expr
 {
-  if(!mdlpvp->wildcard_present_flag){
+  if((mdlpvp->count_flags&WILDCARD_PRESENT)==0){
      mdlpvp->oip->count_expr = $<cnt>2; 
   } 
+}
+	opt_custom_header
+{
 };
 
 count_expr: count_value
@@ -8371,15 +8401,43 @@ count_expr: count_value
 }
 	| '(' count_expr ')' 
 {
-       $$=$<cnt>2;
+  char *temp_str;
+  char *list[4] = { "(" , ($<cnt>2)->column_title , ")" , NULL };
+  
+  temp_str = my_strclump(list);
+  if (temp_str==NULL)
+  {
+    mdlerror("Out of memory while creating count column header.");
+    return 1;
+  }
+  free(($<cnt>2)->column_title);
+  ($<cnt>2)->column_title = temp_str;
+  
+  $$=$<cnt>2;
 }
 	| count_expr '+' count_expr
 {
-  if(mdlpvp->wildcard_present_flag){
-    mdlerror("Cannot perform arithmetic operations with wildcard names.\n");
-    return(1);
-  }
+  char *temp_str;
+  char *list[4] = { ($<cnt>1)->column_title , "+" , ($<cnt>3)->column_title , NULL };
   
+  temp_str = my_strclump(list);
+  if (temp_str==NULL)
+  {
+    mdlerror("Out of memory while creating count column header.");
+    return 1;
+  }
+
+  if (mdlpvp->count_flags & WILDCARD_PRESENT)
+  {
+    mdlerror("Cannot perform arithmetic operations with wildcard names.");
+    return 1;
+  }
+  if (mdlpvp->count_flags & TRIGGER_PRESENT)
+  {
+    mdlerror("Cannot perform arithmetic operations with triggered counts.");
+    return 1;
+  }
+
   if ((mdlpvp->oep=(struct output_evaluator *)malloc
        (sizeof(struct output_evaluator)))==NULL) {
     mdlerror("Out of memory while creating output evaluator");
@@ -8398,31 +8456,31 @@ count_expr: count_value
   mdlpvp->oep->operand1=$<cnt>1;
   mdlpvp->oep->operand2=$<cnt>3;
   mdlpvp->oep->oper='+';
+  mdlpvp->oep->column_title = temp_str;
 
-  mdlpvp->oip->operand = my_strdup(&(mdlpvp->oep->oper));
-  if(mdlpvp->oip->operand == NULL){
-    mdlerror("Memory allocation error.\n");
-    return(1);
-  }
-  mdlpvp->oip->column_title=my_strcat(mdlpvp->oip->name1, mdlpvp->oip->operand);
-  if(mdlpvp->oip->column_title == NULL){
-    mdlerror("Memory allocation error.\n");
-    return(1);
-  }
-  mdlpvp->oip->column_title=my_strcat(mdlpvp->oip->column_title, mdlpvp->oip->name2);
-  if(mdlpvp->oip->column_title == NULL){
-    mdlerror("Memory allocation error.\n");
-    return(1);
-  }
-
- 
   $$=mdlpvp->oep;
 }
         | count_expr '-' count_expr
 {
-  if(mdlpvp->wildcard_present_flag){
-    mdlerror("Cannot perform arithmetic operations with wildcard names.\n");
-    return(1);
+  char *temp_str;
+  char *list[4] = { ($<cnt>1)->column_title , "-" , ($<cnt>3)->column_title , NULL };
+  
+  temp_str = my_strclump(list);
+  if (temp_str==NULL)
+  {
+    mdlerror("Out of memory while creating count column header.");
+    return 1;
+  }
+  
+  if (mdlpvp->count_flags & WILDCARD_PRESENT)
+  {
+    mdlerror("Cannot perform arithmetic operations with wildcard names.");
+    return 1;
+  }
+  if (mdlpvp->count_flags & TRIGGER_PRESENT)
+  {
+    mdlerror("Cannot perform arithmetic operations with triggered counts.");
+    return 1;
   }
 
   if ((mdlpvp->oep=(struct output_evaluator *)malloc
@@ -8443,32 +8501,33 @@ count_expr: count_value
   mdlpvp->oep->operand1=$<cnt>1;
   mdlpvp->oep->operand2=$<cnt>3;
   mdlpvp->oep->oper='-';
+  mdlpvp->oep->column_title = temp_str;
 
-  mdlpvp->oip->operand = my_strdup(&(mdlpvp->oep->oper));
-  if(mdlpvp->oip->operand == NULL){
-    mdlerror("Memory allocation error.\n");
-    return(1);
-  }
-
-  mdlpvp->oip->column_title=my_strcat(mdlpvp->oip->name1, mdlpvp->oip->operand);
-  if(mdlpvp->oip->column_title == NULL){
-    mdlerror("Memory allocation error.\n");
-    return(1);
-  }
-  mdlpvp->oip->column_title=my_strcat(mdlpvp->oip->column_title, mdlpvp->oip->name2);
-  if(mdlpvp->oip->column_title == NULL){
-    mdlerror("Memory allocation error.\n");
-    return(1);
-  }
-  
   $$=mdlpvp->oep;
 }
         | count_expr '*' count_expr
 {
-  if(mdlpvp->wildcard_present_flag){
-    mdlerror("Cannot perform arithmetic operations with wildcard names.\n");
-    return(1);
+  char *temp_str;
+  char *list[4] = { ($<cnt>1)->column_title , "*" , ($<cnt>3)->column_title , NULL };
+  
+  temp_str = my_strclump(list);
+  if (temp_str==NULL)
+  {
+    mdlerror("Out of memory while creating count column header.");
+    return 1;
   }
+
+  if (mdlpvp->count_flags & WILDCARD_PRESENT)
+  {
+    mdlerror("Cannot perform arithmetic operations with wildcard names.");
+    return 1;
+  }
+  if (mdlpvp->count_flags & TRIGGER_PRESENT)
+  {
+    mdlerror("Cannot perform arithmetic operations with triggered counts.");
+    return 1;
+  }
+
   if ((mdlpvp->oep=(struct output_evaluator *)malloc
        (sizeof(struct output_evaluator)))==NULL) {
     mdlerror("Out of memory while creating output evaluator");
@@ -8487,32 +8546,33 @@ count_expr: count_value
   mdlpvp->oep->operand1=$<cnt>1;
   mdlpvp->oep->operand2=$<cnt>3;
   mdlpvp->oep->oper='*';
-
-  mdlpvp->oip->operand = my_strdup(&(mdlpvp->oep->oper));
-  if(mdlpvp->oip->operand == NULL){
-    mdlerror("Memory allocation error.\n");
-    return(1);
-  }
-
-  mdlpvp->oip->column_title=my_strcat(mdlpvp->oip->name1, mdlpvp->oip->operand);
-  if(mdlpvp->oip->column_title == NULL){
-    mdlerror("Memory allocation error.\n");
-    return(1);
-  }
-  mdlpvp->oip->column_title=my_strcat(mdlpvp->oip->column_title, mdlpvp->oip->name2);
-  if(mdlpvp->oip->column_title == NULL){
-    mdlerror("Memory allocation error.\n");
-    return(1);
-  }
+  mdlpvp->oep->column_title = temp_str;
   
   $$=mdlpvp->oep;
 }
         | count_expr '/' count_expr
 {
-  if(mdlpvp->wildcard_present_flag){
-    mdlerror("Cannot perform arithmetic operations with wildcard names.\n");
-    return(1);
+  char *temp_str;
+  char *list[4] = { ($<cnt>1)->column_title , "/" , ($<cnt>3)->column_title , NULL };
+  
+  temp_str = my_strclump(list);
+  if (temp_str==NULL)
+  {
+    mdlerror("Out of memory while creating count column header.");
+    return 1;
   }
+
+  if (mdlpvp->count_flags & WILDCARD_PRESENT)
+  {
+    mdlerror("Cannot perform arithmetic operations with wildcard names.");
+    return 1;
+  }
+  if (mdlpvp->count_flags & TRIGGER_PRESENT)
+  {
+    mdlerror("Cannot perform arithmetic operations with triggered counts.");
+    return 1;
+  }
+
   if ((mdlpvp->oep=(struct output_evaluator *)malloc
        (sizeof(struct output_evaluator)))==NULL) {
     mdlerror("Out of memory while creating output evaluator");
@@ -8531,31 +8591,33 @@ count_expr: count_value
   mdlpvp->oep->operand1=$<cnt>1;
   mdlpvp->oep->operand2=$<cnt>3;
   mdlpvp->oep->oper='/';
+  mdlpvp->oep->column_title = temp_str;
 
-  mdlpvp->oip->operand = my_strdup(&(mdlpvp->oep->oper));
-  if(mdlpvp->oip->operand == NULL){
-    mdlerror("Memory allocation error.\n");
-    return(1);
-  }
-
-  mdlpvp->oip->column_title=my_strcat(mdlpvp->oip->name1, mdlpvp->oip->operand);
-  if(mdlpvp->oip->column_title == NULL){
-    mdlerror("Memory allocation error.\n");
-    return(1);
-  }
-  mdlpvp->oip->column_title=my_strcat(mdlpvp->oip->column_title, mdlpvp->oip->name2);
-  if(mdlpvp->oip->column_title == NULL){
-    mdlerror("Memory allocation error.\n");
-    return(1);
-  }
   $$=mdlpvp->oep;
 }
         | '-' count_expr %prec UNARYMINUS
 {
-  if(mdlpvp->wildcard_present_flag){
-    mdlerror("Cannot perform arithmetic operations with wildcard names.\n");
-    return(1);
+  char *temp_str;
+  char *list[3] = { "-" , ($<cnt>2)->column_title , NULL };
+  
+  temp_str = my_strclump(list);
+  if (temp_str==NULL)
+  {
+    mdlerror("Out of memory while creating count column header.");
+    return 1;
   }
+
+  if (mdlpvp->count_flags & WILDCARD_PRESENT)
+  {
+    mdlerror("Cannot perform arithmetic operations with wildcard names.");
+    return 1;
+  }
+  if (mdlpvp->count_flags & TRIGGER_PRESENT)
+  {
+    mdlerror("Cannot perform arithmetic operations with triggered counts.");
+    return 1;
+  }
+
   if ((mdlpvp->oep=(struct output_evaluator *)malloc
        (sizeof(struct output_evaluator)))==NULL) {
     mdlerror("Out of memory while creating output evaluator");
@@ -8600,6 +8662,7 @@ count_expr: count_value
   mdlpvp->oep->operand1=mdlpvp->oep2;
   mdlpvp->oep->operand2=$<cnt>2;
   mdlpvp->oep->oper='*';
+  mdlpvp->oep->column_title = temp_str;
 
   $$=mdlpvp->oep;
 };
@@ -8607,10 +8670,12 @@ count_expr: count_value
 
 count_value: COUNT '[' count_value_init count_syntax ']'
 {
-        $$=$<cnt>3;
+  mdlpvp->count_flags |= COUNT_PRESENT;
+  $$=$<cnt>3;
 }
         | EXPRESSION '[' num_expr ']'
 {
+  mdlpvp->count_flags |= EXPRESSION_PRESENT;
   if ((mdlpvp->oep=(struct output_evaluator *)malloc
        (sizeof(struct output_evaluator)))==NULL) {
     mdlerror("Out of memory while creating output evaluator");
@@ -8636,9 +8701,17 @@ count_value: COUNT '[' count_value_init count_syntax ']'
   mdlpvp->oep->operand1=NULL;
   mdlpvp->oep->operand2=NULL;
   mdlpvp->oep->oper='\0';
-
   $$=mdlpvp->oep;
-}; 
+}
+	| TRIGGER '[' count_value_init
+{
+  mdlpvp->count_flags |= TRIGGER_PRESENT;
+  mdlpvp->oep->index_type=TRIGGER_VAL;
+}
+	count_syntax ']'
+{
+  $$=$<cnt>3;
+};
 
 
 count_value_init: /* empty */
@@ -8671,9 +8744,6 @@ outfile_syntax: file_name
 {
   mdlpvp->oip->outfile_name=$<str>1;
   no_printf("Counter output file set to %s\n",mdlpvp->oip->outfile_name);
-  if(mdlpvp->wildcard_present_flag == 1){
-         mdlpvp->wildcard_present_flag = 0;
-  } 
 };
 
 
@@ -8694,7 +8764,9 @@ many_rxpn_or_mol_count_syntax:  existing_many_rxpns_or_molecules ',' WORLD
   u_int i;
   byte report_type;
   struct sym_table_list *stl;
+  struct output_evaluator *old_oep;
 
+  old_oep = mdlpvp->oep;
   no_printf("\nWorld reaction or molecule wildcard count syntax:\n");
   fflush(stderr);
 
@@ -8705,12 +8777,25 @@ many_rxpn_or_mol_count_syntax:  existing_many_rxpns_or_molecules ',' WORLD
 
       /* here are several molecules/reactions names because of wildcards */ 
 
-      if (stl->node->sym_type == MOL) report_type = REPORT_CONTENTS + REPORT_WORLD;
-      else report_type = REPORT_RXNS + REPORT_WORLD;
+      if (stl->node->sym_type == MOL)
+      {
+	report_type = REPORT_CONTENTS | REPORT_WORLD;
+	if (old_oep->index_type==TRIGGER_VAL)
+	{
+          mdlerror("Cannot trigger on molecule counts.");
+	  return 1;
+	}
+      }
+      else
+      {
+	report_type = REPORT_RXNS | REPORT_WORLD;
+	if (old_oep->index_type==TRIGGER_VAL) report_type |= REPORT_TRIGGER;
+      }
        
-      mdlpvp->oip->column_title = my_strdup(stl->node->name);
-      if(mdlpvp->oip->column_title == NULL){
-            mdlerror("Cannot store output_item data.\n");
+      printf("Wildcard adding %s\n",stl->node->name);
+      mdlpvp->oep->column_title = my_strdup(stl->node->name);
+      if(mdlpvp->oep->column_title == NULL){
+            mdlerror("Out of memory storing count column header.");
             return(1);
       }
       
@@ -8726,60 +8811,55 @@ many_rxpn_or_mol_count_syntax:  existing_many_rxpns_or_molecules ',' WORLD
      /* create duplicates of COUNT statements for all involved mols/rxnps */
      if(stl->next != NULL)
      {
-        struct output_item *new_oi = (struct output_item*)malloc(sizeof(struct output_item));
- 
-        if (new_oi==NULL)
-        {
-          mdlerror("Cannot store output list data");
-          return 1;
-        }
-        new_oi->outfile_name=NULL;
-	new_oi->header_comment=NULL;
-        new_oi->output_evaluator_head=NULL;
-        new_oi->count_expr=NULL;
-        new_oi->column_title = NULL;
-        new_oi->name1 = NULL;
-        new_oi->name2 = NULL;
-        new_oi->operand = NULL;
-        new_oi->next_column=NULL;
-        new_oi->next = mdlpvp->oip->next;
-        mdlpvp->oip->next_column = new_oi;
-        mdlpvp->oip=new_oi;
-
-        if ((mdlpvp->oep=(struct output_evaluator *)malloc
-            (sizeof(struct output_evaluator)))==NULL) {
-                mdlerror("Cannot store output evaluator data");
-                return(1);
-        }
-        mdlpvp->oep->next=mdlpvp->oip->output_evaluator_head;
-        mdlpvp->oip->output_evaluator_head=mdlpvp->oep;
-
-        mdlpvp->oep->update_flag=1;
-        mdlpvp->oep->reset_flag=0;
-        mdlpvp->oep->index_type=TIME_STAMP_VAL;
-
-        mdlpvp->oep->data_type=INT;
-        mdlpvp->oep->n_data=0;
-        mdlpvp->oep->temp_data=NULL;
-        mdlpvp->oep->final_data=NULL;
-        mdlpvp->oep->operand1=NULL;
-        mdlpvp->oep->operand2=NULL;
-        mdlpvp->oep->oper='\0';
-
+      struct output_item *new_oi;
+      
+      mdlpvp->oep = (struct output_evaluator*)malloc(sizeof(struct output_evaluator));
+      new_oi = (struct output_item*)malloc(sizeof(struct output_item));
+      
+      if (mdlpvp->oep==NULL || new_oi==NULL)
+      {
+       mdlerror("Out of memory while expanding wildcard in count statement.");
+       return 1;
+      }
+     
+      mdlpvp->oep->next=NULL;
+      mdlpvp->oep->update_flag=1;
+      mdlpvp->oep->reset_flag=0;
+      mdlpvp->oep->index_type=old_oep->index_type;
+      mdlpvp->oep->data_type=INT;
+      mdlpvp->oep->n_data=0;
+      mdlpvp->oep->temp_data=NULL;
+      mdlpvp->oep->final_data=NULL;
+      mdlpvp->oep->operand1=NULL;
+      mdlpvp->oep->operand2=NULL;
+      mdlpvp->oep->oper='\0';
+      mdlpvp->oep->column_title=NULL;
+     
+      memcpy(new_oi,mdlpvp->oip,sizeof(struct output_item));
+      mdlpvp->oip->next_column = new_oi;
+      new_oi->output_evaluator_head = mdlpvp->oep;
+      new_oi->count_expr = NULL;
+      mdlpvp->oip=new_oi;
      }
      stl = stl->next;
   }
-      /* free allocated memory */ 
-      free(mdlpvp->sym_table_list_head);
-      mdlpvp->sym_table_list_head = NULL;
-
-
+  
+  /* free allocated memory */ 
+  while (mdlpvp->sym_table_list_head != NULL)
+  {
+    stl=mdlpvp->sym_table_list_head->next;
+    free(mdlpvp->sym_table_list_head);
+    mdlpvp->sym_table_list_head=stl;
+  }
 }
 	| existing_many_rxpns_or_molecules ',' existing_region
 {
   u_int i;
   byte report_type;
   struct sym_table_list *stl;
+  struct output_evaluator *old_oep;
+  
+  old_oep = mdlpvp->oep;
 
   no_printf("Region named reaction or molecule wildcard count syntax: \n");
   fflush(stderr);
@@ -8788,80 +8868,84 @@ many_rxpn_or_mol_count_syntax:  existing_many_rxpns_or_molecules ',' WORLD
 
   while(stl != NULL)
   {
-      if (stl->node->sym_type == MOL) report_type = REPORT_CONTENTS;
-      else report_type = REPORT_RXNS;
-      
-      mdlpvp->oip->column_title = my_strdup(stl->node->name);
-      if(mdlpvp->oip->column_title == NULL){
-            mdlerror("Cannot store output_item data.\n");
-            return(1);
-      }
-
-      mdlpvp->stp2=$<sym>3;
-      mdlpvp->rp=(struct region *)mdlpvp->stp2->value;
-
-  
-      i = handle_count_request(stl->node->sym_type, stl->node->value, mdlpvp->rp, NULL, report_type, mdlpvp);
-
-      if (i)
+    if (stl->node->sym_type == MOL)
+    {
+      report_type = REPORT_CONTENTS;
+      if (old_oep->index_type==TRIGGER_VAL)
       {
-         mdlerror("Failed to count requested items in the region");
-         return 1;
+	mdlerror("Cannot trigger on molecule counts.");
+	return 1;
       }
-     mdlpvp->oip->count_expr = mdlpvp->oep; 
-
-     /* create duplicates of COUNT statements for all involved mols/rxnps */
-     if(stl->next != NULL)
-     {
-        struct output_item *new_oi = (struct output_item*)malloc(sizeof(struct output_item));
- 
-        if (new_oi==NULL)
-        {
-          mdlerror("Cannot store output_item data.\n");
-          return 1;
-        }
-        new_oi->outfile_name=NULL;
-	new_oi->header_comment=NULL;
-        new_oi->output_evaluator_head=NULL;
-        new_oi->count_expr=NULL;
-        new_oi->next = mdlpvp->oip->next;
-        new_oi->column_title = NULL;
-        new_oi->name1 = NULL;
-        new_oi->name2 = NULL;
-        new_oi->operand = NULL;
-        new_oi->next_column=NULL;
-        mdlpvp->oip->next_column = new_oi;
-        mdlpvp->oip=new_oi;
-
-        if ((mdlpvp->oep=(struct output_evaluator *)malloc
-            (sizeof(struct output_evaluator)))==NULL) {
-                mdlerror("Cannot store output evaluator data");
-                return(1);
-        }
-        mdlpvp->oep->next=mdlpvp->oip->output_evaluator_head;
-        mdlpvp->oip->output_evaluator_head=mdlpvp->oep;
-
-        mdlpvp->oep->update_flag=1;
-        mdlpvp->oep->reset_flag=0;
-        mdlpvp->oep->index_type=TIME_STAMP_VAL;
-
-        mdlpvp->oep->data_type=INT;
-        mdlpvp->oep->n_data=0;
-        mdlpvp->oep->temp_data=NULL;
-        mdlpvp->oep->final_data=NULL;
-        mdlpvp->oep->operand1=NULL;
-        mdlpvp->oep->operand2=NULL;
-        mdlpvp->oep->oper='\0';
-
-     }
+    }
+    else
+    {
+      report_type = REPORT_RXNS;
+      if (old_oep->index_type==TRIGGER_VAL)  report_type |= REPORT_TRIGGER;
+    }
+    
+    mdlpvp->oep->column_title = my_strdup(stl->node->name);
+    if(mdlpvp->oep->column_title == NULL){
+	  mdlerror("Out of memory storing count column header.");
+	  return(1);
+    }
+    
+    mdlpvp->stp2=$<sym>3;
+    mdlpvp->rp=(struct region *)mdlpvp->stp2->value;
+    
+    
+    i = handle_count_request(stl->node->sym_type, stl->node->value, mdlpvp->rp, NULL, report_type, mdlpvp);
+    
+    if (i)
+    {
+       mdlerror("Failed to count requested items in the region");
+       return 1;
+    }
+    mdlpvp->oip->count_expr = mdlpvp->oep; 
+    
+    /* create duplicates of COUNT statements for all involved mols/rxnps */
+    if(stl->next != NULL)
+    {
+      struct output_item *new_oi;
       
-      stl = stl->next;
-   } /* end while */
+      mdlpvp->oep = (struct output_evaluator*)malloc(sizeof(struct output_evaluator));
+      new_oi = (struct output_item*)malloc(sizeof(struct output_item));
       
-      /* free allocated memory  */
-      free(mdlpvp->sym_table_list_head);
-      mdlpvp->sym_table_list_head = NULL;
-
+      if (mdlpvp->oep==NULL || new_oi==NULL)
+      {
+       mdlerror("Out of memory while expanding wildcard in count statement.");
+       return 1;
+      }
+     
+      mdlpvp->oep->next=NULL;
+      mdlpvp->oep->update_flag=1;
+      mdlpvp->oep->reset_flag=0;
+      mdlpvp->oep->index_type=old_oep->index_type;
+      mdlpvp->oep->data_type=INT;
+      mdlpvp->oep->n_data=0;
+      mdlpvp->oep->temp_data=NULL;
+      mdlpvp->oep->final_data=NULL;
+      mdlpvp->oep->operand1=NULL;
+      mdlpvp->oep->operand2=NULL;
+      mdlpvp->oep->oper='\0';
+      mdlpvp->oep->column_title=NULL;
+     
+      memcpy(new_oi,mdlpvp->oip,sizeof(struct output_item));
+      mdlpvp->oip->next_column = new_oi;
+      new_oi->output_evaluator_head = mdlpvp->oep;
+      new_oi->count_expr = NULL;
+      mdlpvp->oip=new_oi;
+    }
+      
+    stl = stl->next;
+  } /* end while */
+      
+  /* free allocated memory  */
+  while (mdlpvp->sym_table_list_head != NULL)
+  {
+    stl=mdlpvp->sym_table_list_head->next;
+    free(mdlpvp->sym_table_list_head);
+    mdlpvp->sym_table_list_head=stl;
+  }
 }
 	| existing_many_rxpns_or_molecules ',' existing_object
 {
@@ -8869,6 +8953,9 @@ many_rxpn_or_mol_count_syntax:  existing_many_rxpns_or_molecules ',' WORLD
   u_int i;
   byte report_type;
   struct sym_table_list *stl;
+  struct output_evaluator *old_oep;
+  
+  old_oep = mdlpvp->oep;
 
   no_printf("\nObject molecule count wildcard syntax:\n");
   fflush(stderr);
@@ -8878,84 +8965,84 @@ many_rxpn_or_mol_count_syntax:  existing_many_rxpns_or_molecules ',' WORLD
   while(stl != NULL)
   {
   
-     mdlpvp->stp2=$<sym>3;
-     mdlpvp->objp=(struct object *)mdlpvp->stp2->value;
-     mdlpvp->objp2=mdlpvp->top_objp;
-  
-     if (stl->node->sym_type == MOL) report_type = REPORT_CONTENTS;
-     else report_type = REPORT_RXNS;
-      
-     mdlpvp->oip->column_title = my_strdup(stl->node->name);
-     if(mdlpvp->oip->column_title == NULL){
-            mdlerror("Cannot store output_item data.\n");
-            return(1);
-     }
-
-     i = handle_count_request(stl->node->sym_type,
-			   stl->node->value,
-			   NULL,
-			   mdlpvp->objp,
-			   report_type,
-			   mdlpvp);
-     if (i)
-     {
-       mdlerror("Failed to count requested items in the object");
+    mdlpvp->stp2=$<sym>3;
+    mdlpvp->objp=(struct object *)mdlpvp->stp2->value;
+    mdlpvp->objp2=mdlpvp->top_objp;
+    
+    if (stl->node->sym_type == MOL)
+    {
+      report_type = REPORT_CONTENTS;
+      if (old_oep->index_type==TRIGGER_VAL)
+      {
+       mdlerror("Cannot trigger on molecule counts.");
        return 1;
-     }
+      }
+    }
+    else
+    {
+      report_type = REPORT_RXNS;
+      if (old_oep->index_type==TRIGGER_VAL) report_type |= REPORT_TRIGGER;
+    }
+    
+    mdlpvp->oep->column_title = my_strdup(stl->node->name);
+    if(mdlpvp->oep->column_title == NULL){
+	  mdlerror("Out of memory storing count column header.");
+	  return(1);
+    }
+    
+    i = handle_count_request(stl->node->sym_type,stl->node->value,NULL,mdlpvp->objp,report_type,mdlpvp);
+    
+    if (i)
+    {
+     mdlerror("Failed to count requested items in the object");
+     return 1;
+    }
+    
+    mdlpvp->oip->count_expr = mdlpvp->oep; 
+    
+    /* create duplicates of COUNT statements for all involved mols/rxnps */
+    if(stl->next != NULL)
+    {
+      struct output_item *new_oi;
+      
+      mdlpvp->oep = (struct output_evaluator*)malloc(sizeof(struct output_evaluator));
+      new_oi = (struct output_item*)malloc(sizeof(struct output_item));
+      
+      if (mdlpvp->oep==NULL || new_oi==NULL)
+      {
+       mdlerror("Out of memory while expanding wildcard in count statement.");
+       return 1;
+      }
      
-     mdlpvp->oip->count_expr = mdlpvp->oep; 
-
-     /* create duplicates of COUNT statements for all involved mols/rxnps */
-     if(stl->next != NULL)
-     {
-        struct output_item *new_oi = (struct output_item*)malloc(sizeof(struct output_item));
- 
-        if (new_oi==NULL)
-        {
-          mdlerror("Cannot store output list data");
-          return 1;
-        }
-        new_oi->outfile_name=NULL;
-	new_oi->header_comment=NULL;
-        new_oi->output_evaluator_head=NULL;
-        new_oi->count_expr=NULL;
-        new_oi->next = mdlpvp->oip->next;
-        new_oi->column_title = NULL;
-        new_oi->name1 = NULL;
-        new_oi->name2 = NULL;
-        new_oi->operand = NULL;
-        new_oi->next_column=NULL;
-        mdlpvp->oip->next_column = new_oi;
-        mdlpvp->oip=new_oi;
-
-        if ((mdlpvp->oep=(struct output_evaluator *)malloc
-            (sizeof(struct output_evaluator)))==NULL) {
-                mdlerror("Cannot store output evaluator data");
-                return(1);
-        }
-        mdlpvp->oep->next=mdlpvp->oip->output_evaluator_head;
-        mdlpvp->oip->output_evaluator_head=mdlpvp->oep;
-
-        mdlpvp->oep->update_flag=1;
-        mdlpvp->oep->reset_flag=0;
-        mdlpvp->oep->index_type=TIME_STAMP_VAL;
-
-        mdlpvp->oep->data_type=INT;
-        mdlpvp->oep->n_data=0;
-        mdlpvp->oep->temp_data=NULL;
-        mdlpvp->oep->final_data=NULL;
-        mdlpvp->oep->operand1=NULL;
-        mdlpvp->oep->operand2=NULL;
-        mdlpvp->oep->oper='\0';
-
-     }
-     stl = stl->next;
-   }
-
-      /* free allocated memory  */
-      free(mdlpvp->sym_table_list_head);
-      mdlpvp->sym_table_list_head = NULL;
-
+      mdlpvp->oep->next=NULL;
+      mdlpvp->oep->update_flag=1;
+      mdlpvp->oep->reset_flag=0;
+      mdlpvp->oep->index_type=old_oep->index_type;
+      mdlpvp->oep->data_type=INT;
+      mdlpvp->oep->n_data=0;
+      mdlpvp->oep->temp_data=NULL;
+      mdlpvp->oep->final_data=NULL;
+      mdlpvp->oep->operand1=NULL;
+      mdlpvp->oep->operand2=NULL;
+      mdlpvp->oep->oper='\0';
+      mdlpvp->oep->column_title=NULL;
+     
+      memcpy(new_oi,mdlpvp->oip,sizeof(struct output_item));
+      mdlpvp->oip->next_column = new_oi;
+      new_oi->output_evaluator_head = mdlpvp->oep;
+      new_oi->count_expr = NULL;
+      mdlpvp->oip=new_oi;
+    }
+    stl = stl->next;
+  }
+  
+  /* free allocated memory  */
+  while (mdlpvp->sym_table_list_head != NULL)
+  {
+    stl=mdlpvp->sym_table_list_head->next;
+    free(mdlpvp->sym_table_list_head);
+    mdlpvp->sym_table_list_head=stl;
+  }
 };
 
 
@@ -8963,34 +9050,34 @@ one_rxpn_or_mol_count_syntax: existing_rxpn_or_molecule ',' WORLD
 {
   u_int i;
   byte report_type;
-  char *name;
 
   no_printf("\nWorld reaction or molecule count syntax:\n");
   fflush(stderr);
 
   mdlpvp->stp1=$<sym>1;
   
-  if (mdlpvp->stp1->sym_type == MOL) report_type = REPORT_CONTENTS + REPORT_WORLD;
-  else report_type = REPORT_RXNS + REPORT_WORLD;
+  if (mdlpvp->stp1->sym_type == MOL)
+  {
+    report_type = REPORT_CONTENTS | REPORT_WORLD;
+    if (mdlpvp->oep->index_type==TRIGGER_VAL)
+    {
+      mdlerror("Cannot trigger on molecule counts.");
+      return 1;
+    }
+  }
+  else
+  {
+    report_type = REPORT_RXNS | REPORT_WORLD;
+    if (mdlpvp->oep->index_type==TRIGGER_VAL) report_type |= REPORT_TRIGGER;
+  }
   
-  name = my_strdup(mdlpvp->stp1->name);
-  if(name == NULL){
-      mdlerror("Cannot store output_item data.\n");
-      return(1);
+  mdlpvp->oep->column_title = my_strdup(mdlpvp->stp1->name);
+  if (mdlpvp->oep->column_title==NULL)
+  {
+    mdlerror("Out of memory storing count column header.");
+    return 1;
   }
-  if(mdlpvp->oip->name1 == NULL) {
-      mdlpvp->oip->name1 = name;
-  }else{
-      mdlpvp->oip->name2 = name;
-  }
-  mdlpvp->oip->column_title = my_strdup(mdlpvp->stp1->name);
-  if(mdlpvp->oip->column_title == NULL){
-      mdlerror("Cannot store output_item data.\n");
-      return(1);
-  }
- 
 
- 
   i = handle_count_request(mdlpvp->stp1->sym_type,
 			   mdlpvp->stp1->value,
 			   NULL,
@@ -9006,7 +9093,6 @@ one_rxpn_or_mol_count_syntax: existing_rxpn_or_molecule ',' WORLD
 	| existing_rxpn_or_molecule ',' existing_region
 {	  
   u_int i;
-  char *name;
   byte report_type;
 
   no_printf("Region named reaction or molecule count syntax: \n");
@@ -9016,25 +9102,24 @@ one_rxpn_or_mol_count_syntax: existing_rxpn_or_molecule ',' WORLD
   mdlpvp->stp2=$<sym>3;
   mdlpvp->rp=(struct region *)mdlpvp->stp2->value;
 
-  if (mdlpvp->stp1->sym_type==MOL) report_type = REPORT_CONTENTS;
+  if (mdlpvp->stp1->sym_type==MOL)
+  {
+    report_type = REPORT_CONTENTS;
+    if (mdlpvp->oep->index_type==TRIGGER_VAL)
+    {
+      mdlerror("Cannot trigger on molecule counts.");
+      return 1;
+    }
+  }
   else report_type = REPORT_RXNS;
   
-  name = my_strdup(mdlpvp->stp1->name);
-  if(name == NULL){
-      mdlerror("Cannot store output_item data.\n");
-      return(1);
+  mdlpvp->oep->column_title = my_strdup(mdlpvp->stp1->name);
+  if (mdlpvp->oep->column_title==NULL)
+  {
+    mdlerror("Out of memory storing count column header.");
+    return 1;
   }
-  if(mdlpvp->oip->name1 == NULL) {
-      mdlpvp->oip->name1 = name;
-  }else{
-      mdlpvp->oip->name2 = name;
-  }
-  mdlpvp->oip->column_title = my_strdup(mdlpvp->stp1->name);
-  if(mdlpvp->oip->column_title == NULL){
-      mdlerror("Cannot store output_item data.\n");
-      return(1);
-  }
-  
+
   i = handle_count_request(mdlpvp->stp1->sym_type,
 			   mdlpvp->stp1->value,
 			   mdlpvp->rp,
@@ -9050,7 +9135,6 @@ one_rxpn_or_mol_count_syntax: existing_rxpn_or_molecule ',' WORLD
 	| existing_rxpn_or_molecule ',' existing_object 
 {
   u_int i;
-  char *name;
   byte report_type;
 
   no_printf("\nObject molecule count syntax:\n");
@@ -9061,25 +9145,28 @@ one_rxpn_or_mol_count_syntax: existing_rxpn_or_molecule ',' WORLD
   mdlpvp->objp=(struct object *)mdlpvp->stp2->value;
   mdlpvp->objp2=mdlpvp->top_objp;
   
-  if (mdlpvp->stp1->sym_type==MOL) report_type = REPORT_CONTENTS;
-  else report_type = REPORT_RXNS;
+  if (mdlpvp->stp1->sym_type==MOL)
+  {
+    report_type = REPORT_CONTENTS;
+    if (mdlpvp->oep->index_type==TRIGGER_VAL)
+    {
+      mdlerror("Cannot trigger on molecule counts.");
+      return 1;
+    }
+  }
+  else
+  {
+    report_type = REPORT_RXNS;
+    if (mdlpvp->oep->index_type==TRIGGER_VAL) report_type |= REPORT_TRIGGER;
+  }
 
-  name = my_strdup(mdlpvp->stp1->name);
-  if(name == NULL){
-      mdlerror("Cannot store output_item data.\n");
-      return(1);
+  mdlpvp->oep->column_title = my_strdup(mdlpvp->stp1->name);
+  if (mdlpvp->oep->column_title==NULL)
+  {
+    mdlerror("Out of memory storing count column header.");
+    return 1;
   }
-  if(mdlpvp->oip->name1 == NULL) {
-      mdlpvp->oip->name1 = name;
-  }else{
-      mdlpvp->oip->name2 = name;
-  }
-  mdlpvp->oip->column_title = my_strdup(mdlpvp->stp1->name);
-  if(mdlpvp->oip->column_title == NULL){
-      mdlerror("Cannot store output_item data.\n");
-      return(1);
-  }
-  
+
   i = handle_count_request(mdlpvp->stp1->sym_type,
 			   mdlpvp->stp1->value,
 			   NULL,
@@ -9098,6 +9185,9 @@ many_mol_hit_count_syntax: existing_many_rxpns_or_molecules ',' existing_region 
   u_int i;
   byte report_type;
   struct sym_table_list *stl;
+  struct output_evaluator *old_oep;
+  
+  old_oep = mdlpvp->oep;
 
   no_printf("Region many molecules (wildcard) hit count syntax: \n");
   fflush(stderr);
@@ -9106,181 +9196,170 @@ many_mol_hit_count_syntax: existing_many_rxpns_or_molecules ',' existing_region 
 
   while(stl != NULL)
   {
-     mdlpvp->stp2=$<sym>3;
-     mdlpvp->rp=(struct region*)mdlpvp->stp2->value;
-     report_type = (byte)$<tok>5;
-  
-     if (report_type==REPORT_ENCLOSED)
-     {
-       if (stl->node->sym_type==MOL) report_type = REPORT_CONTENTS+REPORT_ENCLOSED;
-       else report_type = REPORT_RXNS+REPORT_ENCLOSED;
-     }
-     
-     mdlpvp->oip->column_title = my_strdup(stl->node->name);
-     if(mdlpvp->oip->column_title == NULL){
-            mdlerror("Cannot store output_item data.\n");
-            return(1);
-     }
-     
-     i = handle_count_request(stl->node->sym_type,
-			   stl->node->value,
-			   mdlpvp->rp,
-			   NULL,
-			   report_type,
-			   mdlpvp);
-     if (i)
-     {
-       mdlerror("Failed to count requested items in the world");
-       return 1;
-     }
-
-     mdlpvp->oip->count_expr = mdlpvp->oep; 
-
-     /* create duplicates of COUNT statements for all involved mols/rxnps */
-     if(stl->next != NULL)
-     {
-        struct output_item *new_oi = (struct output_item*)malloc(sizeof(struct output_item));
- 
-        if (new_oi==NULL)
-        {
-          mdlerror("Cannot store output list data");
-          return 1;
-        }
-        new_oi->outfile_name=NULL;
-	new_oi->header_comment=NULL;
-        new_oi->output_evaluator_head=NULL;
-        new_oi->count_expr=NULL;
-        new_oi->next = mdlpvp->oip->next;
-        new_oi->column_title = NULL;
-        new_oi->name1 = NULL;
-        new_oi->name2 = NULL;
-        new_oi->operand = NULL;
-        new_oi->next_column=NULL;
-        mdlpvp->oip->next_column = new_oi;
-        mdlpvp->oip=new_oi;
-
-        if ((mdlpvp->oep=(struct output_evaluator *)malloc
-            (sizeof(struct output_evaluator)))==NULL) {
-                mdlerror("Cannot store output evaluator data");
-                return(1);
-        }
-        mdlpvp->oep->next=mdlpvp->oip->output_evaluator_head;
-        mdlpvp->oip->output_evaluator_head=mdlpvp->oep;
-
-        mdlpvp->oep->update_flag=1;
-        mdlpvp->oep->reset_flag=0;
-        mdlpvp->oep->index_type=TIME_STAMP_VAL;
-
-        mdlpvp->oep->data_type=INT;
-        mdlpvp->oep->n_data=0;
-        mdlpvp->oep->temp_data=NULL;
-        mdlpvp->oep->final_data=NULL;
-        mdlpvp->oep->operand1=NULL;
-        mdlpvp->oep->operand2=NULL;
-        mdlpvp->oep->oper='\0';
-
-     }
+    mdlpvp->stp2=$<sym>3;
+    mdlpvp->rp=(struct region*)mdlpvp->stp2->value;
+    report_type = (byte)$<tok>5;
+    
+    if (report_type==REPORT_ENCLOSED)
+    {
+     if (stl->node->sym_type==MOL) report_type = REPORT_CONTENTS|REPORT_ENCLOSED;
+     else report_type = REPORT_RXNS|REPORT_ENCLOSED;
+    }
+    if (old_oep->index_type==TRIGGER_VAL) report_type |= REPORT_TRIGGER;
+    
+    mdlpvp->oep->column_title = my_strdup(stl->node->name);
+    if(mdlpvp->oep->column_title == NULL){
+	  mdlerror("Cannot store output_item data.\n");
+	  return(1);
+    }
+    
+    i = handle_count_request(stl->node->sym_type,stl->node->value,mdlpvp->rp,NULL,report_type,mdlpvp);
+    
+    if (i)
+    {
+     mdlerror("Failed to count requested items in the world");
+     return 1;
+    }
+    
+    mdlpvp->oip->count_expr = mdlpvp->oep; 
+    
+    /* create duplicates of COUNT statements for all involved mols/rxnps */
+    if(stl->next != NULL)
+    {
+      struct output_item *new_oi;
       
-      stl = stl->next;
+      mdlpvp->oep = (struct output_evaluator*)malloc(sizeof(struct output_evaluator));
+      new_oi = (struct output_item*)malloc(sizeof(struct output_item));
+      
+      if (mdlpvp->oep==NULL || new_oi==NULL)
+      {
+       mdlerror("Out of memory while expanding wildcard in count statement.");
+       return 1;
+      }
+     
+      mdlpvp->oep->next=NULL;
+      mdlpvp->oep->update_flag=1;
+      mdlpvp->oep->reset_flag=0;
+      mdlpvp->oep->index_type=old_oep->index_type;
+      mdlpvp->oep->data_type=INT;
+      mdlpvp->oep->n_data=0;
+      mdlpvp->oep->temp_data=NULL;
+      mdlpvp->oep->final_data=NULL;
+      mdlpvp->oep->operand1=NULL;
+      mdlpvp->oep->operand2=NULL;
+      mdlpvp->oep->oper='\0';
+      mdlpvp->oep->column_title=NULL;
+     
+      memcpy(new_oi,mdlpvp->oip,sizeof(struct output_item));
+      mdlpvp->oip->next_column = new_oi;
+      new_oi->output_evaluator_head = mdlpvp->oep;
+      new_oi->count_expr = NULL;
+      mdlpvp->oip=new_oi;
+    }
+    
+    stl = stl->next;
+    
+  } /* end while */
 
-   } /* end while */
+  while (mdlpvp->sym_table_list_head != NULL)
+  {
+    stl=mdlpvp->sym_table_list_head->next;
+    free(mdlpvp->sym_table_list_head);
+    mdlpvp->sym_table_list_head=stl;
+  }
 }
 	| existing_many_rxpns_or_molecules ',' existing_object ',' hit_spec
 {
   u_int i;
   byte report_type;
   struct sym_table_list *stl;
+  struct output_evaluator *old_oep;
+  
+  old_oep = mdlpvp->oep;
   
   stl = mdlpvp->sym_table_list_head;
 
   while(stl != NULL)
   {
 
-     mdlpvp->stp2=$<sym>3;
-     mdlpvp->objp=(struct object*)mdlpvp->stp2->value;
-     mdlpvp->objp2=mdlpvp->top_objp;
-     report_type = (byte)$<tok>5;
-  
-     if (report_type==REPORT_ENCLOSED)
-     {
-        if (stl->node->sym_type==MOL) report_type = REPORT_CONTENTS+REPORT_ENCLOSED;
-        else report_type = REPORT_RXNS+REPORT_ENCLOSED;
-     }
-     
-     mdlpvp->oip->column_title = my_strdup(stl->node->name);
-     if(mdlpvp->oip->column_title == NULL){
-            mdlerror("Cannot store output_item data.\n");
-            return(1);
-     }
-
-     i = handle_count_request(stl->node->sym_type,
-			   stl->node->value,
-			   NULL,
-			   mdlpvp->objp,
-			   report_type,
-			   mdlpvp);
-     if (i)
-     {
-        mdlerror("Failed to count requested items in the world");
-       return 1;
-     }
-     
-     mdlpvp->oip->count_expr = mdlpvp->oep; 
-
-     /* create duplicates of COUNT statements for all involved mols/rxnps */
-     if(stl->next != NULL)
-     {
-        struct output_item *new_oi = (struct output_item*)malloc(sizeof(struct output_item));
- 
-        if (new_oi==NULL)
-        {
-          mdlerror("Cannot store output list data");
-          return 1;
-        }
-        new_oi->outfile_name=NULL;
-	new_oi->header_comment=NULL;
-        new_oi->output_evaluator_head=NULL;
-        new_oi->count_expr=NULL;
-        new_oi->next = mdlpvp->oip->next;
-        new_oi->column_title = NULL;
-        new_oi->name1 = NULL;
-        new_oi->name2 = NULL;
-        new_oi->operand = NULL;
-        new_oi->next_column=NULL;
-        mdlpvp->oip->next_column = new_oi;
-        mdlpvp->oip=new_oi;
-
-        if ((mdlpvp->oep=(struct output_evaluator *)malloc
-            (sizeof(struct output_evaluator)))==NULL) {
-                mdlerror("Cannot store output evaluator data");
-                return(1);
-        }
-        mdlpvp->oep->next=mdlpvp->oip->output_evaluator_head;
-        mdlpvp->oip->output_evaluator_head=mdlpvp->oep;
-
-        mdlpvp->oep->update_flag=1;
-        mdlpvp->oep->reset_flag=0;
-        mdlpvp->oep->index_type=TIME_STAMP_VAL;
-
-        mdlpvp->oep->data_type=INT;
-        mdlpvp->oep->n_data=0;
-        mdlpvp->oep->temp_data=NULL;
-        mdlpvp->oep->final_data=NULL;
-        mdlpvp->oep->operand1=NULL;
-        mdlpvp->oep->operand2=NULL;
-        mdlpvp->oep->oper='\0';
-
-     }
-      stl = stl->next;
+    mdlpvp->stp2=$<sym>3;
+    mdlpvp->objp=(struct object*)mdlpvp->stp2->value;
+    mdlpvp->objp2=mdlpvp->top_objp;
+    report_type = (byte)$<tok>5;
+    
+    if (report_type==REPORT_ENCLOSED)
+    {
+      if (stl->node->sym_type==MOL) report_type = REPORT_CONTENTS|REPORT_ENCLOSED;
+      else report_type = REPORT_RXNS|REPORT_ENCLOSED;
+    }
+    if (old_oep->index_type==TRIGGER_VAL) report_type |= REPORT_TRIGGER;
+    
+    mdlpvp->oep->column_title = my_strdup(stl->node->name);
+    if (mdlpvp->oep->column_title==NULL)
+    {
+      mdlerror("Out of memory storing count column header.");
+      return 1;
+    }
+    
+    i = handle_count_request(stl->node->sym_type,stl->node->value,NULL,mdlpvp->objp,report_type,mdlpvp);
+    
+    if (i)
+    {
+      mdlerror("Failed to count requested items in the world");
+      return 1;
+    }
+    
+    mdlpvp->oip->count_expr = mdlpvp->oep; 
+    
+    /* create duplicates of COUNT statements for all involved mols/rxnps */
+    if(stl->next != NULL)
+    {
+      struct output_item *new_oi;
       
-   } /* end while */
+      mdlpvp->oep = (struct output_evaluator*)malloc(sizeof(struct output_evaluator));
+      new_oi = (struct output_item*)malloc(sizeof(struct output_item));
+      
+      if (mdlpvp->oep==NULL || new_oi==NULL)
+      {
+       mdlerror("Out of memory while expanding wildcard in count statement.");
+       return 1;
+      }
+     
+      mdlpvp->oep->next=NULL;
+      mdlpvp->oep->update_flag=1;
+      mdlpvp->oep->reset_flag=0;
+      mdlpvp->oep->index_type=old_oep->index_type;
+      mdlpvp->oep->data_type=INT;
+      mdlpvp->oep->n_data=0;
+      mdlpvp->oep->temp_data=NULL;
+      mdlpvp->oep->final_data=NULL;
+      mdlpvp->oep->operand1=NULL;
+      mdlpvp->oep->operand2=NULL;
+      mdlpvp->oep->oper='\0';
+      mdlpvp->oep->column_title=NULL;
+     
+      memcpy(new_oi,mdlpvp->oip,sizeof(struct output_item));
+      mdlpvp->oip->next_column = new_oi;
+      new_oi->output_evaluator_head = mdlpvp->oep;
+      new_oi->count_expr = NULL;
+      mdlpvp->oip=new_oi;
+    }
+    stl = stl->next;
+    
+  } /* end while */
+
+  while (mdlpvp->sym_table_list_head != NULL)
+  {
+    stl=mdlpvp->sym_table_list_head->next;
+    free(mdlpvp->sym_table_list_head);
+    mdlpvp->sym_table_list_head=stl;
+  }
 };
  
 
 one_mol_hit_count_syntax: existing_rxpn_or_molecule ',' existing_region ',' hit_spec
 {
   u_int i;
-  char *name;
   byte report_type;
 
   no_printf("Region molecule hit count syntax: \n");
@@ -9293,26 +9372,18 @@ one_mol_hit_count_syntax: existing_rxpn_or_molecule ',' existing_region ',' hit_
   
   if (report_type==REPORT_ENCLOSED)
   {
-    if (mdlpvp->stp1->sym_type==MOL) report_type = REPORT_CONTENTS+REPORT_ENCLOSED;
-    else report_type = REPORT_RXNS+REPORT_ENCLOSED;
+    if (mdlpvp->stp1->sym_type==MOL) report_type = REPORT_CONTENTS|REPORT_ENCLOSED;
+    else report_type = REPORT_RXNS|REPORT_ENCLOSED;
+  }
+  if (mdlpvp->oep->index_type==TRIGGER_VAL) report_type |= REPORT_TRIGGER;
+
+  mdlpvp->oep->column_title = my_strdup(mdlpvp->stp1->name);
+  if (mdlpvp->oep->column_title==NULL)
+  {
+    mdlerror("Out of memory storing count column header.");
+    return 1;
   }
 
-  name = my_strdup(mdlpvp->stp1->name);
-  if(name == NULL){
-      mdlerror("Cannot store output_item data.\n");
-      return(1);
-  }
-  if(mdlpvp->oip->name1 == NULL) {
-      mdlpvp->oip->name1 = name;
-  }else{
-      mdlpvp->oip->name2 = name;
-  }
-  
-  mdlpvp->oip->column_title = my_strdup(mdlpvp->stp1->name);
-  if(mdlpvp->oip->column_title == NULL){
-      mdlerror("Cannot store output_item data.\n");
-      return(1);
-  }
   i = handle_count_request(mdlpvp->stp1->sym_type,
 			   mdlpvp->stp1->value,
 			   mdlpvp->rp,
@@ -9328,7 +9399,6 @@ one_mol_hit_count_syntax: existing_rxpn_or_molecule ',' existing_region ',' hit_
 	| existing_rxpn_or_molecule ',' existing_object ',' hit_spec
 {
   u_int i;
-  char *name;
   byte report_type;
   
   mdlpvp->stp1=$<sym>1;
@@ -9339,24 +9409,16 @@ one_mol_hit_count_syntax: existing_rxpn_or_molecule ',' existing_region ',' hit_
   
   if (report_type==REPORT_ENCLOSED)
   {
-    if (mdlpvp->stp1->sym_type==MOL) report_type = REPORT_CONTENTS+REPORT_ENCLOSED;
-    else report_type = REPORT_RXNS+REPORT_ENCLOSED;
+    if (mdlpvp->stp1->sym_type==MOL) report_type = REPORT_CONTENTS|REPORT_ENCLOSED;
+    else report_type = REPORT_RXNS|REPORT_ENCLOSED;
   }
+  if (mdlpvp->oep->index_type==TRIGGER_VAL) report_type |= REPORT_TRIGGER;
   
-  name = my_strdup(mdlpvp->stp1->name);
-  if(name == NULL){
-      mdlerror("Cannot store output_item data.\n");
-      return(1);
-  }
-  if(mdlpvp->oip->name1 == NULL) {
-      mdlpvp->oip->name1 = name;
-  }else{
-      mdlpvp->oip->name2 = name;
-  }
-  mdlpvp->oip->column_title = my_strdup(mdlpvp->stp1->name);
-  if(mdlpvp->oip->column_title == NULL){
-      mdlerror("Cannot store output_item data.\n");
-      return(1);
+  mdlpvp->oep->column_title = my_strdup(mdlpvp->stp1->name);
+  if (mdlpvp->oep->column_title==NULL)
+  {
+    mdlerror("Out of memory storing count column header.");
+    return 1;
   }
 
   i = handle_count_request(mdlpvp->stp1->sym_type,
@@ -9382,6 +9444,19 @@ hit_spec: FRONT_HITS { $$ = REPORT_FRONT_HITS; }
 	| ESTIMATE_CONCENTRATION { $$ = REPORT_CONCENTRATION; }
 	| ALL_ENCLOSED { $$ = REPORT_ENCLOSED; }
 ;
+
+opt_custom_header:
+	| ':' str_expr
+{
+  if (mdlpvp->count_flags & WILDCARD_PRESENT)
+  {
+    mdlerror("Cannot rename column headers when wildcards are used.");
+    return 1;
+  }
+  free(mdlpvp->oip->count_expr->column_title);
+  mdlpvp->oip->count_expr->column_title = $<str>2;
+};
+
 
 
 io_stmt: fopen_stmt

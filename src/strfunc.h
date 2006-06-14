@@ -5,6 +5,7 @@
 
 char *my_strdup(char *s);
 char *my_strcat(char *s1, char *s2);
+char *my_strclump(char **slist);
 char *strip_quotes(char *s);
 
 #endif

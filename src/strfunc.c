@@ -30,6 +30,34 @@ char *my_strcat(char *s1, char *s2)
   return(temp);
 }
 
+char *my_strclump(char **slist)
+{
+  int i,j,n,len;
+  char **sp;
+  char *s;
+  char *temp;
+  
+  for (sp=slist,n=0 ; *sp!=NULL ; sp++,n++);
+  
+  for (i=0,len=0;i<n;i++) len += strlen(slist[i]);
+  
+  temp = (char*) malloc(len+1);
+  if (temp==NULL) return NULL;
+  
+  j=0;
+  for (sp=slist;*sp!=NULL;sp++)
+  {
+    for (s=*sp ; *s!=0 ; s++)
+    {
+      temp[j++] = *s;
+      if (j==len) { temp[j]=0; return temp; }
+    }
+  }
+  
+  temp[j]=0;
+  return temp;
+}
+
 char *strip_quotes(char *s)
 { 
   char *temp;

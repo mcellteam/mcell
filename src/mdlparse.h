@@ -9,6 +9,11 @@
 #define SINK 2
 #define WINDW 3
 
+#define WILDCARD_PRESENT   0x1
+#define TRIGGER_PRESENT    0x2
+#define COUNT_PRESENT      0x4
+#define EXPRESSION_PRESENT 0x8
+
 
 struct arg { 
   byte arg_type; /* DBL, STR */
@@ -30,9 +35,7 @@ struct mdlparse_vars {
   struct sym_table *stp3;
   /* used when parsing wildcard names for viz_output */
   struct sym_table_list *sym_table_list_head;
-  /* set to 1 when molecule/reaction name in the COUNT statement
-     contains a wildcard */
-  int wildcard_present_flag;
+  int count_flags; /* Keep track of wildcards and TRIGGER statements */
   char *sym_name;
 
 

@@ -33,11 +33,12 @@
 #define CAN_GRIDGRID     0x80
 #define CAN_GRIDWALL     0x100
 #define CANT_INITIATE    0x200
+#define COUNT_TRIGGER    0x800
 #define COUNT_CONTENTS   0x1000
 #define COUNT_HITS       0x2000
 #define COUNT_RXNS       0x4000
 #define COUNT_ENCLOSED   0x8000
-#define COUNT_SOME       0xF000
+#define COUNT_SOME       0xF800
 
 /* rxn/mol/region counter report types */
 /* Do not set both WORLD and ENCLOSED flags; ENCLOSED applies only to regions */
@@ -61,6 +62,7 @@
 /* the entire world or the volume enclosed by a region (set only one) */
 #define REPORT_WORLD           0x20
 #define REPORT_ENCLOSED        0x40
+#define REPORT_TRIGGER         0x80
 
 /* rxn/mol/region counter flags */
 /* Only set one of MOL_COUNTER or RXN_COUNTER */
@@ -68,6 +70,7 @@
 #define MOL_COUNTER 1
 #define RXN_COUNTER 2
 #define ENCLOSING_COUNTER 4
+#define TRIG_COUNTER 8
 
 #define MANIFOLD_UNCHECKED 0
 #define NOT_MANIFOLD       1
@@ -425,6 +428,9 @@
 /* temporary place-holder type for assignment statements: */
 #define TMP 15
 
+/* Used only for TRIGGER statements */
+#define TRIG_STRUCT 16
+
                                                                                 
 /* Object types */
 #define META_OBJ 0
@@ -471,13 +477,13 @@
 #define UNKNOWN 0
 #define TIME_STAMP_VAL 1
 #define INDEX_VAL 2
+#define TRIGGER_VAL 3
 
 
 /* Reaction and Viz data output timing */
 #define OUTPUT_BY_STEP 0 
 #define OUTPUT_BY_TIME_LIST 1
 #define OUTPUT_BY_ITERATION_LIST 2
-
 
 /* Region counter type.  INIT probably broken. */
 #define RX_STATE 0
@@ -919,11 +925,21 @@ struct move_counter_data
   int n_enclosed;                  /* # molecules inside closed region */
 };
 
+struct trig_counter_data
+{
+  void* trig_type;
+  double t;
+  struct vector3 loc;
+  u_int flags;
+  struct output_block *obp;
+};
+
 
 union counter_data
 {
   struct rxn_counter_data rx;
   struct move_counter_data move;
+  struct trig_counter_data trig;
 };
 
 
@@ -1318,11 +1334,6 @@ struct output_item {
 	struct output_evaluator *count_expr;  /**< root of count expression tree
                                                to be evaluated for this
                                                count output statement*/
-        char *column_title; /** column title in the output file */
-        char *name1; /** name of the mol/rxnp from first COUNT statement */
-        char *name2; /** name of the mol/rxnp from second COUNT statement */
-        char *operand; /** operand in the arithmetic expression between 
-                           COUNT statements */
 	struct output_item *next_column;
 };
 
@@ -1335,10 +1346,10 @@ struct output_evaluator {
 	byte update_flag;           /**< counter update necessary?*/
 	byte reset_flag;            /**< reset temp_data to 0 on each iteration?*/
 	byte index_type;            /**< flag indicating final_data is to be
-	                              indexed by either
-	                              TIME_STAMP_VAL or INDEX_VAL*/
+	                              indexed by either TIME_STAMP_VAL or INDEX_VAL
+				      or is output when triggered (TRIGGER_VAL) */
 	byte data_type;             /**< type of data to track:
-                                      EXPR INT DBL*/
+                                      EXPR INT DBL TRIG_STRUCT*/
 	u_int n_data;               /** buffer size */
 	void *temp_data;            /**< ptr to intermediate data
                                          specified by type*/
@@ -1347,6 +1358,7 @@ struct output_evaluator {
 	struct output_evaluator *operand1;
 	struct output_evaluator *operand2;
 	char oper;
+	char *column_title; /* Column title in output file */
 };
 
 

@@ -3336,6 +3336,11 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
   {
     count_flag |= COUNT_ENCLOSED;
   }
+  
+  if (report_type & REPORT_TRIGGER)
+  {
+    count_flag |= COUNT_TRIGGER;
+  }
 
   if (sym_type==MOL)
   {
@@ -3378,6 +3383,11 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
     mdlpvp->vol->place_waypoints_flag = 1;
     counter_type |= ENCLOSING_COUNTER;
     report_type |= REPORT_ENCLOSED;
+  }
+  if (count_flag & COUNT_TRIGGER)
+  {
+    report_type |= REPORT_TRIGGER;
+    counter_type |= TRIG_COUNTER;
   }
   
   if (mdlpvp->vol->iterations<0) {
