@@ -8203,8 +8203,8 @@ setting
 
 \layout Standard
 
-Output blocks will normally have one header line that states the output
- (name of molecule, reaction, etc.) in each column.
+Output blocks by default have no header but can optionally have a header
+ line that states the output (name of molecule, reaction, etc.) in each column.
  This command can set the behavior of that header line; it applies to all
  output files until the next 
 \family typewriter 
@@ -8561,8 +8561,9 @@ name
 \family default 
  is in quotes, in this command or any of the following commands, the string
  in quotes can contain wildcards which will be matched to molecule and reaction
- names.
- Custom column headers cannot be given if wildcards are used.
+ names and will be listed in alphabetical order.
+ It is usually a good idea to turn on headers so one can see which column
+ is which.
 \end_inset 
 </cell>
 </row>
