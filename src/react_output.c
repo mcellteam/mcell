@@ -198,7 +198,7 @@ int update_reaction_output(struct output_block *obp)
   {
     if ( write_reaction_output(obp,final_chunk_flag) )
     {
-      fprintf(world->err_file, "File %s, Line %ld: error writing reaction output./n", __FILE__, (long)__LINE__);
+      fprintf(world->err_file, "File %s, Line %ld: error writing reaction output.\n", __FILE__, (long)__LINE__);
       return 1;  
     }
   }

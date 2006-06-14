@@ -112,6 +112,7 @@ void set_bit_range(struct bit_array *ba,int idx1,int idx2,int value);
 void set_all_bits(struct bit_array *ba,int value);
 void bit_operation(struct bit_array *ba,struct bit_array *bb,char op);
 int count_bits(struct bit_array *ba);
+void print_bit_array(struct bit_array *ba);
 void free_bit_array(struct bit_array *ba);
 
 
