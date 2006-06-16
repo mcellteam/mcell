@@ -1644,7 +1644,8 @@ a feral string with a length delimiter. */
 
 char* feral_strstrn(char *tame_haystack,char *feral_needle,int n)
 {
-  char c,set[256];
+  char c = 0;
+  char set[256];
   int isset = 0;
   int i = 0;
   int scoot = 0;
@@ -1675,20 +1676,16 @@ char* feral_strstrn(char *tame_haystack,char *feral_needle,int n)
         if (i>=n) return NULL; /* Can't match broken pattern */
         c=feral_needle[i];
       }
-      set[c]=1;
+      set[(int)c]=1;
     }
     if (i>=n) return NULL; /* Can't match broken pattern */
   }
   else
   {
-    if (feral_needle[i]=='\\')
+    c=feral_needle[i++];
+    if (c=='\\')
     {
-      if (i+1>=n) return NULL; /* Can't match broken pattern */
-      c = feral_needle[i+1];
-      i+=2;
-    }
-    else
-    {
+      if (i>=n) return NULL; /* Can't match broken pattern */
       c = feral_needle[i++];
     }
     if (c=='\0') return NULL; /* Can't match broken pattern */
@@ -1698,7 +1695,7 @@ char* feral_strstrn(char *tame_haystack,char *feral_needle,int n)
   {
     if (isset)
     {
-      while (!set[*tame_haystack]) tame_haystack++;
+      while (!set[(int)*tame_haystack]) tame_haystack++;
       if (*tame_haystack=='\0') return NULL;
     }
     else
@@ -1811,15 +1808,15 @@ int is_wildcard_match(char *wild,char *tame)
     }
     
     /* And now we match all the pieces */
-    old_length = -1;
+    old_length = 0;
+    m = tame;
     for (i=0;i<nidx;i++)
     {
       idxB[i] -= idxA[i];
       
       if (idxB[i]==0) continue; /* Just more stars */
       
-      if (i==0) m = tame;
-      else m = m + old_length;
+      m = m + old_length;
       
       m = feral_strstrn(m , wild+idxA[i] , idxB[i]);
       if (m==NULL) return 0;  /* Couldn't find appropriate substring */
