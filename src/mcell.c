@@ -80,6 +80,7 @@ void run_sim(void)
   while (world->it_time <= world->iterations) 
   {
     not_yet = world->it_time + 1.0;
+
     
     if (world->it_time!=0) world->elapsed_time=world->it_time;
     else world->elapsed_time=1.0;
@@ -124,7 +125,7 @@ void run_sim(void)
       exit( EXIT_FAILURE );
     }
     
-    update_frame_data_list(world->frame_data_head);
+    update_frame_data_list(world->frame_data_head); 
     
     if ( (world->it_time % frequency) == 0 && world->notify->custom_iterations!=NOTIFY_NONE)
     {
@@ -243,7 +244,7 @@ void run_sim(void)
     
   if (world->notify->final_summary==NOTIFY_FULL)
   {
-    fprintf(world->log_file,"iterations = %lld ; elapsed time = %1.15g seconds; current_time = %1.15g seconds \n",world->it_time,world->chkpt_elapsed_real_time_start+((world->it_time - world->start_time)*world->time_unit), world->current_real_time);
+    fprintf(world->log_file,"iterations = %lld ; elapsed time = %1.15g seconds\n",world->it_time,world->chkpt_elapsed_real_time_start+((world->it_time - world->start_time)*world->time_unit));
     fflush(world->log_file);
 
     if(world->diffusion_number > 0)
@@ -270,6 +271,7 @@ int main(int argc, char **argv) {
   char hostname[64];
   u_int procnum;
   long long exec_iterations = 0; /* number of simulation iterations for this run */
+  time_t begin_time_of_day;  /* start time of the simulation */
 
 #if defined(__linux__)
   feenableexcept(FE_DIVBYZERO);
@@ -292,6 +294,11 @@ int main(int argc, char **argv) {
   world->chkpt_infile = NULL;
   world->chkpt_init = 1;
   world->log_freq = -1; /* Indicates that this value has not been set by user */
+    
+  /* get the present time */
+  time(&begin_time_of_day);
+
+
   /*
    * Parse the command line arguments and print out errors if necessary.
    */
@@ -300,8 +307,11 @@ int main(int argc, char **argv) {
       log_file=world->log_file;
     }
     fprintf(log_file,"\n");
+
+   
+
     fprintf(log_file,"MCell %s (build %s)\n",MCELL_VERSION,"(build date/CVS version date goes here)");
-    fprintf(log_file,"  Running on %s at %s\n\n",hostname,"(current time/date goes here)");
+    fprintf(log_file,"  Running on %s at %s\n\n",hostname, ctime(&begin_time_of_day));
     if (procnum == 0) {
       if (world->info_opt) {
         fprintf(log_file,"  -info option selected\n");
@@ -332,7 +342,7 @@ int main(int argc, char **argv) {
   {
     fprintf(log_file,"\n");
     fprintf(log_file,"MCell %s (build %s)\n",MCELL_VERSION,"(build date/CVS version date goes here)");
-    fprintf(log_file,"  Running on %s at %s\n\n",hostname,"(current time/date goes here)");
+    fprintf(log_file,"  Running on %s at %s\n\n",hostname, ctime(&begin_time_of_day));
     if (world->info_opt) {
       fprintf(log_file,"  -info option selected\n");
     }
