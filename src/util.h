@@ -150,11 +150,14 @@ unsigned char * byte_swap(unsigned char *b);
 /* FIXME--if we're not releasing under the GPL, we can't use GPLed code. */
 int wildcardfit (char *wildcard, char *test);
 
-
 /* This function analyzes the string and checks
    whether the string contains wildcards (*, ?,[,]).
    Returns 1 if wildcard is found, and 0 - otherwise). */
 int contain_wildcard(char *teststring);
 
+int feral_strlenn(char *feral,int n);
+int is_feral_nabbrev(char *feral,int n,char *tame);
+char* feral_strstrn(char *tame_haystack,char *feral_needle,int n);
+int is_wildcard_match(char *wild,char *tame);
 
 #endif
