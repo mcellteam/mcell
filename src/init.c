@@ -477,7 +477,7 @@ int init_sim(void)
     return(1);
   }
 
-  if (world->place_waypoints_flag) {
+  if (world->place_waypoints_flag || world->releases_on_regions_flag) {
     if (place_waypoints()) {
       fprintf(log_file,"MCell: error storing waypoints\n");
       return(1);

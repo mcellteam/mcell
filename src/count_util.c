@@ -402,19 +402,23 @@ int place_waypoints()
 #define W_Xb (1.0 - W_Xa)
 #define W_Yb (1.0 - W_Ya)
 #define W_Zb (1.0 - W_Za)
-  
-  for (i=0;i<world->n_species;i++)
+
+  /* Probably ought to check for whether you really need waypoints for releases */
+  if (!world->releases_on_regions_flag)
   {
-    if ((world->species_list[i]->flags & (NOT_FREE | COUNT_CONTENTS)) == COUNT_CONTENTS
-        || (world->species_list[i]->flags & COUNT_ENCLOSED)!=0 )
-      i_will_use_waypoints++;
-  }
-  
-  if (i_will_use_waypoints==0)
-  {
-    world->n_waypoints = 0;
-    world->waypoints = NULL;
-    return 0;  /* Waypoints not needed. */
+    for (i=0;i<world->n_species;i++)
+    {
+      if ((world->species_list[i]->flags & (NOT_FREE | COUNT_CONTENTS)) == COUNT_CONTENTS
+          || (world->species_list[i]->flags & COUNT_ENCLOSED)!=0 )
+        i_will_use_waypoints++;
+    }
+    
+    if (i_will_use_waypoints==0)
+    {
+      world->n_waypoints = 0;
+      world->waypoints = NULL;
+      return 0;  /* Waypoints not needed. */
+    }
   }
   
   world->n_waypoints = world->n_subvols;
