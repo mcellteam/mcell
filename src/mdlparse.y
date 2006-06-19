@@ -2303,7 +2303,7 @@ existing_one_or_multiple_molecules: VAR
     {
        for(sym_t = volp->main_sym_table[i]; sym_t != NULL; sym_t = sym_t->next)
        {
-         if(wildcardfit(wildcard_string, sym_t->name)){
+         if(is_wildcard_match(wildcard_string, sym_t->name)){ 
 
            if(sym_t->sym_type == MOL)
            {
@@ -3326,7 +3326,7 @@ existing_one_or_multiple_objects: VAR
     {
        for(sym_t = volp->main_sym_table[i]; sym_t != NULL; sym_t = sym_t->next)
        {
-         if(wildcardfit(wildcard_string, sym_t->name)){
+          if(is_wildcard_match(wildcard_string, sym_t->name)){ 
 
            if(sym_t->sym_type == OBJ)
            {
@@ -5617,7 +5617,7 @@ existing_many_rxpns_or_molecules: WILDCARD_VAR
     {
        for(sym_t = volp->main_sym_table[i]; sym_t != NULL; sym_t = sym_t->next)
        {
-         if(wildcardfit(wildcard_string, sym_t->name)){
+         if(is_wildcard_match(wildcard_string, sym_t->name)){ 
 
            if((sym_t->sym_type == MOL) || (sym_t->sym_type == RXPN))
            {

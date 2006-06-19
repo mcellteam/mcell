@@ -303,11 +303,12 @@ void init_frame_data_list(struct frame_data_list *fdlp)
         struct viz_child *vcp = vizp->viz_child_head;
         while(vcp != NULL){
 	   obj_to_show_number++;
-
+ 
            vcp = vcp->next;
         } /* end while (vcp) */
 	vizp = vizp->next;
   } /* end while (vizp) */
+
 
   /* fill the obj_num_regions array */
   if (obj_to_show_number==0) obj_num_regions = (int*)malloc(sizeof(int));
@@ -379,7 +380,6 @@ void init_frame_data_list(struct frame_data_list *fdlp)
 
      }    
   }
-
   return;
 }
 
@@ -3477,13 +3477,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                 }
             }
             iteration_numbers_meshes_count += extra_elems;
-          
-        }else{
-            /* pad the 'iteration_numbers_meshes' array with UINT_MAX */
-            for(ii = 0; ii < iteration_numbers_count; ii++){
-               iteration_numbers_meshes[ii] = UINT_MAX;
-            }
-            iteration_numbers_meshes_count = iteration_numbers_count;
         }
 
         if(iteration_numbers_vol_mols_count > 0)
@@ -3500,12 +3493,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                 }
            }
            iteration_numbers_vol_mols_count += extra_elems;
-        }else{
-            /* pad the 'iteration_numbers_vol_mols' array with UINT_MAX */
-            for(ii = 0; ii < iteration_numbers_count; ii++){
-               iteration_numbers_vol_mols[ii] = UINT_MAX;
-            }
-            iteration_numbers_vol_mols_count = iteration_numbers_count;
         }
 
         if(iteration_numbers_surf_mols_count > 0)
@@ -3522,15 +3509,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                 }
            }
            iteration_numbers_surf_mols_count += extra_elems;
-        }else{
-            /* pad the 'iteration_numbers_surf_mols' array with UINT_MAX */
-            for(ii = 0; ii < iteration_numbers_count; ii++){
-               iteration_numbers_surf_mols[ii] = UINT_MAX;
-            }
-            iteration_numbers_surf_mols_count = iteration_numbers_count;
-
         }
-       
 
      /* Open master header file. */
      strcpy(master_header_name,viz_data_dir_name);
@@ -4120,7 +4099,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
       free(viz_molp);
     }
    
-             
+           /*  
     if(time_to_write_master_header)
     {
                 
@@ -4222,7 +4201,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
       }
 
    }
-          
+          */
 
     /* close opened files */
     if(iteration_numbers_data != NULL){
