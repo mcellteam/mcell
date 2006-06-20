@@ -8297,6 +8297,11 @@ ITERATION_LIST
  coordinates of the event.
  This command, and the variants listed below, can be repeated to send different
  output to many files.
+ The output symbol 
+\family typewriter 
+=>
+\family default 
+ has several variants which are described below.
 \end_inset 
 </cell>
 </row>
@@ -8967,6 +8972,185 @@ ESTIMATE_CONC
 \family default 
 , but the other cumulative counts can be recovered by adding the last report
  before the checkpoint to the first one after the checkpoint.
+\layout Standard
+
+The following output symbols can be used in place of 
+\family typewriter 
+=>
+\family default 
+ and give the behaviors described below.
+ All output symbols will create files if none exist.
+ No output symbols will create directories---if the files that are referred
+ to cannot be created as specified, MCell3 will quit with an error message.
+ Output may create empty files if the simulation ends without producing
+ output (either because of an error condition or because the simulation
+ did not run long enough to reach the time/iteration of any reaction data
+ output).
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="6" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Output Symbol
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+=>
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+If a checkpoint file is not used, overwrite the existing file (with headers
+ if requested).
+ If a checkpoint file is used, discard any of the output file that appears
+ to be a later time than the start of the current run, and append to the
+ file from that point.
+ Headers are not written unless the file has to be created or is empty to
+ begin with.
+ This command generally does 
+\begin_inset Quotes eld
+\end_inset 
+
+what you expect
+\begin_inset Quotes erd
+\end_inset 
+
+---after the simulation has run, it will contain data from earlier in the
+ simulation that the current run, plus the data created in the current simulatio
+n.
+ If you switch between 
+\family typewriter 
+ITERATION_LIST
+\family default 
+ and other output time specifiers, this command won't know whether output
+ is by time or by iteration number, so don't use this command if you switch
+ from one to the other after checkpointing.
+\end_inset 
+</cell>
+</row>
+<row bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+>
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Always overwrite the file, whether or not a checkpoint is used.
+ If headers are requested, they will appear at the beginning of the file.
+\end_inset 
+</cell>
+</row>
+<row bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
++>
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Always create a new file, whether or not a checkpoint is used.
+ If a file of the given name already exists and is not empty, MCell3 will
+ print an error message and exit.
+ If headers are requested, they will appear at the beginning of the file.
+\end_inset 
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+>>
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Always append to an existing file without removing any previous data.
+ Headers are only written if the file starts out empty or has to be created.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+>>>
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Always append to an existing file without removing any previous data and
+ always write headers.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
 \layout Standard
 
 
