@@ -100,5 +100,7 @@ struct release_evaluator* duplicate_rel_region_expr(struct release_evaluator *ex
 struct release_site_obj* duplicate_release_site(struct release_site_obj *old,struct object *new_self,struct object *instance,struct sym_table **symhash);
 
 struct sym_table_list* sort_sym_list_by_name(struct sym_table_list *unsorted);
+
+int check_reaction_output_file(struct output_item *oi,FILE *err_file);
                                      
 #endif

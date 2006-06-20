@@ -5,6 +5,7 @@
 
 /* Header file for reaction output routines */
 
+int truncate_output_file(char *name,double start_value);
 int emergency_output();
 int update_reaction_output(struct output_block *obp);
 int write_reaction_output(struct output_block *obp,int final_chunk_flag);

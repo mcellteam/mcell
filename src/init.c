@@ -538,6 +538,53 @@ int init_sim(void)
     world->chkpt_seq_num=1;
   }
 
+  /* Cut off reaction data output files that go too late */  
+  if (world->output_block_head != NULL)
+  {
+    struct output_block *ob;
+    struct output_item *oi;
+    FILE *f;
+    int i;
+    
+    for (ob=world->output_block_head ; ob!=NULL ; ob=ob->next)
+    {
+      for (oi=ob->output_item_head ; oi!=NULL ; oi=oi->next)
+      {
+	if (oi->file_flags==FILE_SUBSTITUTE)
+	{
+	  if (world->chkpt_seq_num==1)
+	  {
+	    f = fopen(oi->outfile_name,"w");
+	    if (f==NULL)
+	    {
+	      fprintf(world->err_file,"Can't open output file %s\n",oi->outfile_name);
+	      return 1;
+	    }
+	    fclose(f);
+	  }
+	  else if (ob->timer_type==OUTPUT_BY_ITERATION_LIST)
+	  {
+	    i = truncate_output_file(oi->outfile_name,world->start_time);
+	    if (i)
+	    {
+	      fprintf(world->err_file,"Failed to prepare output file %s\n",oi->outfile_name);
+	      return 1;
+	    }
+	  }
+	  else
+	  {
+	    i = truncate_output_file(oi->outfile_name,world->current_start_real_time);
+	    if (i)
+	    {
+	      fprintf(world->err_file,"Failed to prepare output file %s\n",oi->outfile_name);
+	      return 1;
+	    }
+	  }
+	}
+      }
+    }
+  }
+
    /**
    *Initialize the frame data list for the visualization 
    *and reaction output.

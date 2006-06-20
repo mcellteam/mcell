@@ -312,6 +312,14 @@
 /* Stuff to set surface diffusion behavior */
 #define SURFACE_DIFFUSION_RETRIES 10
 
+/* Flags for different types of file output */
+#define FILE_UNDEFINED 0
+#define FILE_OVERWRITE 1
+#define FILE_SUBSTITUTE 2
+#define FILE_APPEND 3
+#define FILE_APPEND_HEADER 4
+#define FILE_CREATE 5
+
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
 /*********************************************************/
@@ -1327,6 +1335,7 @@ struct output_block {
 struct output_item {
 	struct output_item *next;  
 	char *outfile_name;               /**< name of file to contain output*/
+	int file_flags;            /* Append, overwrite, etc. */
 	char *header_comment;             /**< comment character(s) for header */
 	struct output_evaluator *output_evaluator_head;  /**< list of counters 
                                                   associated with this

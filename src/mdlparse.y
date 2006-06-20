@@ -458,6 +458,7 @@ struct release_evaluator *rev;
 %type <tok> viz_molecules_one_item
 %type <tok> viz_meshes_one_item
 %type <tok> custom_header
+%type <tok> file_arrow
 
 %type <tok> hit_spec
 
@@ -8297,6 +8298,7 @@ count_cmd: '{'
   mdlpvp->oip->next=mdlpvp->obp->output_item_head;
   mdlpvp->obp->output_item_head=mdlpvp->oip;
   mdlpvp->oip->outfile_name=NULL;
+  mdlpvp->oip->file_flags=FILE_UNDEFINED;
   mdlpvp->oip->output_evaluator_head=NULL;
   mdlpvp->oip->count_expr=NULL;
   mdlpvp->oip->next_column=NULL;
@@ -8314,9 +8316,11 @@ count_cmd: '{'
   }
   mdlpvp->count_flags = 0;
 }
-	list_count_exprs '}' '=' '>' outfile_syntax
+	list_count_exprs '}' file_arrow outfile_syntax
 {
   struct output_item *oi,*oi2;
+  int i;
+  
   for (oi=mdlpvp->obp->output_item_head ; oi!=NULL ; oi=oi->next_column)
   {
     if (oi->outfile_name!=NULL) break;
@@ -8328,6 +8332,7 @@ count_cmd: '{'
   }
   for (oi2=mdlpvp->obp->output_item_head ; oi2!=NULL ; oi2=oi2->next_column)
   {
+    oi2->file_flags = $<tok>5;
     if (oi2!=oi) oi2->outfile_name = oi->outfile_name;
   }
   
@@ -8343,6 +8348,13 @@ count_cmd: '{'
       mdlerror("Cannot mix EXPRESSION and COUNT statements.  Use separate files.");
       return 1;
     }
+  }
+  
+  i=check_reaction_output_file(oi,mdlpvp->vol->err_file);
+  if (i)
+  {
+    mdlerror("Unable to write data to output file.");
+    return 1;
   }
 };
 
@@ -8380,6 +8392,7 @@ single_count_expr:
       return 1;
     }
     new_oi->outfile_name=NULL;
+    new_oi->file_flags=FILE_UNDEFINED;
     new_oi->header_comment=NULL;
     new_oi->output_evaluator_head=NULL;
     new_oi->count_expr=NULL;
@@ -8744,6 +8757,27 @@ count_value_init: /* empty */
   $$=mdlpvp->oep;
 };
 
+
+file_arrow: '>'
+{
+  $$=FILE_OVERWRITE;
+}
+	| '=' '>'
+{
+  $$=FILE_SUBSTITUTE;
+}
+	| '>' '>'
+{
+  $$=FILE_APPEND;
+}
+	| '>' '>' '>'
+{
+  $$=FILE_APPEND_HEADER;
+}
+	| '+' '>'
+{
+  $$=FILE_CREATE;
+};
 
 outfile_syntax: file_name
 {

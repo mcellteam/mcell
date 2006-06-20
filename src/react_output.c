@@ -3,6 +3,11 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <ctype.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <errno.h>
 
 #include "sched_util.h"
 #include "mcell_structs.h"
@@ -10,6 +15,133 @@
 
 
 extern struct volume *world;
+
+
+/**************************************************************************
+truncate_output_file:
+  In: filename string
+      value that we will start outputting to the file
+  Out: 0 if file preparation is successful, 1 if not.  The file is
+       truncated at start of the line containing the first entry
+       greater than or equal to the value to be printed out.
+**************************************************************************/
+
+int truncate_output_file(char *name,double start_value)
+{
+  FILE *f;
+  struct stat fs;
+  char *buffer;
+  char *done;
+  char numbuf[1024];
+  int i,j,k,n,lf,where,start,ran_out;
+  int bsize,remaining;
+  double my_value;
+  
+  i = stat(name,&fs);
+  if (i==-1)
+  {
+    fprintf(world->err_file,"Error opening output file %s\n",name);
+    return 1;
+  }
+  if (fs.st_size==0) return 0; /* File already is empty */
+
+  if (fs.st_size < (1<<20))
+  {
+    bsize = fs.st_size;
+  }
+  else bsize = (1<<20);
+  
+  buffer = (char*)malloc(bsize);
+  if (buffer==NULL)
+  {
+    fprintf(world->err_file,"Out of memory while checking output file %s\n",name);
+    return 1;
+  }
+  
+  f = fopen(name,"r+");
+  if (!f)
+  {
+    fprintf(world->err_file,"Error opening output file %s\n",name);
+    return 1;
+  }
+  
+  remaining=fs.st_size;
+  where = 0; /* Byte offset in file */
+  start = 0; /* Byte offset in buffer */
+  while (remaining>0)
+  {
+    n = fread(buffer+start,1,bsize-start,f);
+    remaining -= n;
+    ran_out=0;
+    i=start;
+    n+=start;
+    lf = 0;
+    while (!ran_out)
+    {
+      while (i<n && (buffer[i]==' '||buffer[i]=='\t')) i++;
+      for (j=i; j<n && (isdigit(buffer[j])||strchr("eE-+.",buffer[j])!=NULL) ; j++) {}
+      if (j>i)
+      {
+	k=j-i;
+	if (k>1023) k=1023;
+	memcpy(numbuf,buffer+i,k);
+	numbuf[k]=0;
+	my_value = strtod(numbuf,&done);
+	if (done!=numbuf)
+	{
+	  if (my_value > start_value)
+	  {
+	    k = fseek(f,0,SEEK_SET);
+	    if (k)
+	    {
+	      fprintf(world->err_file,"Failed to prepare output file %s for writing\n",name);
+	      fclose(f);
+	      return 1;
+	    }
+	    k = ftruncate(fileno(f),where+lf+1);
+	    if (k)
+	    {
+	      fprintf(world->err_file,"Failed to prepare output file %s for writing (%d)\n",name,errno);
+	      fclose(f);
+	      return 1;
+	    }
+	    fclose(f);
+	    return 0;
+	  }
+	}
+      }
+      for (i=j ; i<n && buffer[i]!='\n' && buffer[i]!='\r' ; i++) {}
+      if (i<n)
+      {
+	for (j=i ; j<n && (buffer[j]=='\n' || buffer[j]=='\r') ; j++) {}
+	lf = j-1;
+	i=j; /* If we have run out, we'll catch it next time through */
+      }
+      else if (n<bsize-start)
+      {
+	ran_out=1;
+      }
+      else if (lf > start)
+      {
+	memmove(buffer,buffer+lf+1,bsize-(lf+1));
+	start = lf+1;
+	where += n-start;
+	lf = 0;
+	ran_out = 1;
+      }
+      else
+      {
+	where += n;
+	lf = 0;
+	start = 0;
+	ran_out = 1;
+      }
+    }
+  }
+  fclose(f);
+  return 0;
+}
+  
 
 /**************************************************************************
 emergency_output:
@@ -222,6 +354,7 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
   FILE *log_file,*fp;
   struct output_item *oip,*oi;
   struct output_evaluator *oep;
+  char *mode;
   u_int n_output;
   u_int i,stop_i,ii;
   u_int n_cols;  
@@ -233,24 +366,32 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
 
   for (oi=obp->output_item_head ; oi!=NULL ; oi=oi->next)
   {
+    switch(oi->file_flags)
+    {
+      case FILE_OVERWRITE:
+      case FILE_CREATE:
+        if (obp->chunk_count==0) mode = "w";
+	else mode = "a";
+	break;
+      case FILE_SUBSTITUTE:
+        if (world->chkpt_seq_num==1 && obp->chunk_count==0) mode = "w";
+	else mode = "a";
+	break;
+      case FILE_APPEND:
+      case FILE_APPEND_HEADER:
+	mode = "a";
+	break;
+      default:
+        fprintf(world->err_file,"Not sure what to do with output file %s (internal code #%d)\n",oi->outfile_name,oi->file_flags);
+	return 1;
+	break;
+    }
     
-    if (world->chkpt_seq_num==1 && obp->chunk_count==0) {
-      if ((fp=fopen(oi->outfile_name,"w"))==NULL) {
-	fprintf(log_file,"MCell: could not open output file %s\n",oi->outfile_name);
-	return (1);
-      }
-    }
-    else if (world->chkpt_seq_num>1){
-      if ((fp=fopen(oi->outfile_name,"a"))==NULL) {
-	fprintf(log_file,"MCell: could not open output file %s\n",oi->outfile_name);
-	return (1);
-      }
-    }
-    else {
-      if ((fp=fopen(oi->outfile_name,"a"))==NULL) {   
-	fprintf(log_file,"MCell: could not open output file %s\n",oi->outfile_name);
-	return (1);
-      }
+    fp = fopen(oi->outfile_name,mode);
+    if (fp==NULL)
+    {
+      fprintf(world->err_file,"Error: could not open output file %s\n",oi->outfile_name);
+      return 1;
     }
 
     if (world->notify->file_writes==NOTIFY_FULL)
@@ -269,7 +410,8 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
     }
     
     /* write headers */
-   if(world->chkpt_seq_num == 1 && oi->header_comment!=NULL) 
+   if( (world->chkpt_seq_num==1 || oi->file_flags==FILE_APPEND_HEADER || oi->file_flags==FILE_CREATE || oi->file_flags==FILE_OVERWRITE)
+       && oi->header_comment!=NULL && oi->file_flags!=FILE_APPEND) 
     {
        oip = oi;
 

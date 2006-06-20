@@ -6,6 +6,8 @@
 #include <float.h>
 #include <limits.h>
 #include <sys/errno.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "vector.h"
 #include "strfunc.h"
 #include "sym_table.h"
@@ -3950,4 +3952,141 @@ struct sym_table_list* sort_sym_list_by_name(struct sym_table_list *unsorted)
   return (struct sym_table_list*)void_list_sort_by((struct void_list*)unsorted,compare_sym_names);
 }
 
+
+
+
+/**************************************************************************
+check_reaction_output_file:
+  In: filename string
+      flags saying what to do with the filename
+  Out: 0 if file preparation is successful, 1 if not.  The file named
+       will be created and emptied or truncated as requested.
+**************************************************************************/
+
+int check_reaction_output_file(struct output_item *oi,FILE *err_file)
+{
+  FILE *f;
+  char *name;
+  int flags;
+  struct stat fs;
+  int i;
+  
+  name = oi->outfile_name;
+  flags = oi->file_flags;
+  
+  switch (flags)
+  {
+    case FILE_OVERWRITE:
+      f = fopen(name,"w");
+      if (!f)
+      {
+	switch (errno)
+	{
+	  case EACCES:
+	    fprintf(err_file,"Access to %s denied.\n",name);
+	    return 1;
+	  case ENOENT:
+	    fprintf(err_file,"Directory for %s does not exist\n",name);
+	    return 1;
+	  case EISDIR:
+	    fprintf(err_file,"%s already exists and is a directory\n",name);
+	    return 1;
+	  default:
+	    fprintf(err_file,"Unable to open %s for writing\n",name);
+	    return 1;
+	}
+      }
+      fclose(f);
+      break;
+    case FILE_SUBSTITUTE:
+      f = fopen(name,"a+");
+      if (!f)
+      {
+	switch (errno)
+	{
+	  case EACCES:
+	    fprintf(err_file,"Access to %s denied.\n",name);
+	    return 1;
+	  case ENOENT:
+	    fprintf(err_file,"Directory for %s does not exist\n",name);
+	    return 1;
+	  case EISDIR:
+	    fprintf(err_file,"%s already exists and is a directory\n",name);
+	    return 1;
+	  default:
+	    fprintf(err_file,"Unable to open %s for writing\n",name);
+	    return 1;
+	}
+      }
+      i = fstat(fileno(f),&fs);
+      if (!i && fs.st_size==0) oi->file_flags = FILE_OVERWRITE;
+      fclose(f);
+      break;
+    case FILE_APPEND:
+    case FILE_APPEND_HEADER:
+      f = fopen(name,"a");
+      if (!f)
+      {
+	switch (errno)
+	{
+	  case EACCES:
+	    fprintf(err_file,"Access to %s denied.\n",name);
+	    return 1;
+	  case ENOENT:
+	    fprintf(err_file,"Directory for %s does not exist\n",name);
+	    return 1;
+	  case EISDIR:
+	    fprintf(err_file,"%s already exists and is a directory\n",name);
+	    return 1;
+	  default:
+	    fprintf(err_file,"Unable to open %s for writing\n",name);
+	    return 1;
+	}
+      }
+      i = fstat(fileno(f),&fs);
+      if (!i && fs.st_size==0) oi->file_flags = FILE_APPEND_HEADER;
+      fclose(f);
+      break;
+    case FILE_CREATE:
+      i = access(name,F_OK);
+      if (!i)
+      {
+	i = stat(name,&fs);
+	if (!i && fs.st_size>0)
+	{
+	  fprintf(err_file,"Cannot create new file %s: it already exists\n",name);
+	  return 1;
+	}
+      }
+      f = fopen(name,"w");
+      if (f==NULL)
+      {
+	switch (errno)
+	{
+	  case EEXIST:
+	    fprintf(err_file,"Cannot create %s because it already exists\n",name);
+	    return 1;
+	  case EACCES:
+	    fprintf(err_file,"Access to %s denied.\n",name);
+	    return 1;
+	  case ENOENT:
+	    fprintf(err_file,"Directory for %s does not exist\n",name);
+	    return 1;
+	  case EISDIR:
+	    fprintf(err_file,"%s already exists and is a directory\n",name);
+	    return 1;
+	  default:
+	    fprintf(err_file,"Unable to open %s for writing\n",name);
+	    return 1;
+	}
+      }
+      fclose(f);
+      break;
+    default:
+      fprintf(err_file,"Not sure what to do with file %s (unknown internal operation #%d).\n",name,flags);
+      return 1;
+      break;
+  }
+  return 0;
+}
 
