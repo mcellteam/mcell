@@ -8931,7 +8931,7 @@ TRIGGER
 
 
 \family typewriter 
-EVALUATE[
+EXPRESSION[
 \family sans 
 \shape italic 
 expression
