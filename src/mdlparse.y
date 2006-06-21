@@ -8403,6 +8403,7 @@ single_count_expr:
     mdlpvp->oip->next_column = new_oi;
     mdlpvp->oip=new_oi;
   }
+  mdlpvp->count_flags &= TRIGGER_PRESENT;
 }
 	count_expr
 {
@@ -8695,14 +8696,18 @@ count_value: COUNT '[' count_value_init count_syntax ']'
 }
         | EXPRESSION '[' num_expr ']'
 {
+  char temp[512];
   mdlpvp->count_flags |= EXPRESSION_PRESENT;
   if ((mdlpvp->oep=(struct output_evaluator *)malloc
        (sizeof(struct output_evaluator)))==NULL) {
     mdlerror("Out of memory while creating output evaluator");
     return(1);
   }
+  sprintf(temp,"(%.20g)",$<dbl>3);
+  mdlpvp->oep->column_title = strdup(temp);
   mdlpvp->oep->next=mdlpvp->oip->output_evaluator_head;
   mdlpvp->oip->output_evaluator_head=mdlpvp->oep;
+  mdlpvp->oip->count_expr = mdlpvp->oep;
 
   if (!(mdlpvp->dblp=(double *)malloc
 	(sizeof(double)))) {
@@ -8813,6 +8818,11 @@ many_rxpn_or_mol_count_syntax:  existing_many_rxpns_or_molecules ',' WORLD
 
   stl = mdlpvp->sym_table_list_head;
 
+  if (stl==NULL)
+  {
+    mdlerror("Wildcard matching found no matches for count output.");
+    return 1;
+  }
   while(stl != NULL)
   {
 
@@ -8907,6 +8917,11 @@ many_rxpn_or_mol_count_syntax:  existing_many_rxpns_or_molecules ',' WORLD
 
   stl = mdlpvp->sym_table_list_head;
 
+  if (stl==NULL)
+  {
+    mdlerror("Wildcard matching found no matches for count output.");
+    return 1;
+  }
   while(stl != NULL)
   {
     if (stl->node->sym_type == MOL)
@@ -9003,6 +9018,11 @@ many_rxpn_or_mol_count_syntax:  existing_many_rxpns_or_molecules ',' WORLD
 
   stl = mdlpvp->sym_table_list_head;
 
+  if (stl==NULL)
+  {
+    mdlerror("Wildcard matching found no matches for count output.");
+    return 1;
+  }
   while(stl != NULL)
   {
   
@@ -9235,6 +9255,11 @@ many_mol_hit_count_syntax: existing_many_rxpns_or_molecules ',' existing_region 
 
   stl = mdlpvp->sym_table_list_head;
 
+  if (stl==NULL)
+  {
+    mdlerror("Wildcard matching found no matches for count output.");
+    return 1;
+  }
   while(stl != NULL)
   {
     mdlpvp->stp2=$<sym>3;
@@ -9320,6 +9345,11 @@ many_mol_hit_count_syntax: existing_many_rxpns_or_molecules ',' existing_region 
   
   stl = mdlpvp->sym_table_list_head;
 
+  if (stl==NULL)
+  {
+    mdlerror("Wildcard matching found no matches for count output.");
+    return 1;
+  }
   while(stl != NULL)
   {
 

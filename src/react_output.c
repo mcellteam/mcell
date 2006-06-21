@@ -248,7 +248,6 @@ int update_reaction_output(struct output_block *obp)
       /* copy temp_data into final_data[curr_buf_index] */
       for (oep=oip->output_evaluator_head ; oep!=NULL ; oep=oep->next)
       {
-
 	if (oep->update_flag) {
 	  switch (oep->data_type)
 	  {
@@ -262,7 +261,7 @@ int update_reaction_output(struct output_block *obp)
 	      if (oep->reset_flag) *(double*)oep->temp_data=0;
 	      break;
 	    default:
-	      printf("OMGWTFPWNED!\n");
+	      fprintf(world->err_file,"OMGWTFPWNED!\n");
 	      break;
 	  }
 	}
@@ -357,7 +356,7 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
   struct output_evaluator *oep;
   char *mode;
   u_int n_output;
-  u_int i,stop_i,ii;
+  u_int i,stop_i,ii,j;
   u_int n_cols;  
   
   log_file = world->log_file;
@@ -427,7 +426,10 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
 	  if(oip->count_expr->column_title != NULL){
 	    fprintf(fp,"%s ", oip->count_expr->column_title);
 	  }
-	  else fprintf(fp,"untitled ");
+	  else
+	  {
+	    fprintf(fp,"untitled ");
+	  }
        }
        fprintf(fp,"\n");
 
@@ -459,13 +461,16 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
 	  }
 	}
 	
+	j = i;
+	if (oep->n_data==1) j = 0;
+	
 	if (oep->data_type==DBL)
 	{
-	  fprintf(fp," %.9g",((double*)oep->final_data)[i]);
+	  fprintf(fp," %.9g",((double*)oep->final_data)[j]);
 	}
 	else if (oep->data_type==INT)
 	{
-	  fprintf(fp," %d",((int*)oep->final_data)[i]);
+	  fprintf(fp," %d",((int*)oep->final_data)[j]);
 	}
 	else
 	{
@@ -525,11 +530,12 @@ int eval_count_expr(struct output_evaluator *operand1,
                     struct output_evaluator *result)
 {
   FILE *log_file;
-  int i;                     /* counter */
+  int i;                   
   byte int_flag1,int_flag2,double_result_flag;  /* flags pointing to the data 
 						   type of the operands and
 						   result. */
   double op1,op2;				/* operands values */
+  double ans;
 
   log_file=world->log_file;
 
@@ -596,37 +602,30 @@ int eval_count_expr(struct output_evaluator *operand1,
       result->data_type=INT;
     }
   }
-  for (i=0;i<result->n_data;i++) {
-    if (operand1->n_data>1) {
-      if (int_flag1) {
-        op1=((int *)operand1->final_data)[i];
-      }
-      else {
-        op1=((double *)operand1->final_data)[i];
-      }
+  for (i=0;i<result->n_data;i++)
+  {
+    if (operand1->n_data>1)
+    {
+      if (int_flag1) op1=((int *)operand1->final_data)[i];
+      else op1=((double *)operand1->final_data)[i];
     }
-    if (operand2->n_data>1) {
-      if (int_flag2) {
-        op2=((int *)operand2->final_data)[i];
-      }
-      else {
-        op2=((double *)operand2->final_data)[i];
-      }
+
+    if (operand2->n_data>1)
+    {
+      if (int_flag2) op2=((int *)operand2->final_data)[i];
+      else op2=((double *)operand2->final_data)[i];
     }
-    if (double_result_flag) {
-      ((double *)result->final_data)[i]=eval_double(op1,op2,oper);
-      if(((double *)result->final_data)[i] == GIGANTIC){
-        fprintf(log_file,"MCell: division by zero error\n");
-        return(1);
-      }
+      
+    ans=eval_double(op1,op2,oper);
+    
+    if (ans==GIGANTIC)
+    {
+      fprintf(world->err_file,"Division by zero error in output.\n");
+      return 1;
     }
-    else {
-      ((int *)result->final_data)[i]=(int) eval_double(op1,op2,oper);
-      if(((int *)result->final_data)[i] == GIGANTIC){
-        fprintf(log_file,"MCell: division by zero error\n");
-        return(1);
-      }
-    }
+    
+    if (double_result_flag) ((double*)result->final_data)[i]=ans;
+    else ((int*)result->final_data)[i]=ans;
   }
   fflush(log_file);
   return(0);
