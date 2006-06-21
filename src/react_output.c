@@ -394,10 +394,6 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
       fprintf(world->err_file,"Error: could not open output file %s\n",oi->outfile_name);
       return 1;
     }
-   
-    if((strcmp(mode, "a") == 0)){
-        fseek(fp,0,SEEK_END);
-    }
 
     if (world->notify->file_writes==NOTIFY_FULL)
     {
