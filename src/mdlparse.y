@@ -8178,12 +8178,12 @@ step_time_def: STEP '=' num_expr
    **/
   if (volp->chkpt_iterations) {
     mdlpvp->n_output=(long long)(volp->chkpt_iterations/mdlpvp->output_freq+1);
-    mdlpvp->obp->buffersize=llmin3(volp->chkpt_iterations-volp->start_time,mdlpvp->n_output,mdlpvp->obp->buffersize);
+    mdlpvp->obp->buffersize=llmin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
   else
   {
     mdlpvp->n_output=(long long)(volp->iterations/mdlpvp->output_freq+1);
-    mdlpvp->obp->buffersize=llmin3(volp->iterations-volp->start_time,mdlpvp->n_output,mdlpvp->obp->buffersize);
+    mdlpvp->obp->buffersize=llmin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
 
   no_printf("Output step time definition:\n");
@@ -8215,11 +8215,11 @@ step_time_def: STEP '=' num_expr
    **/
   if (volp->chkpt_iterations) {
     mdlpvp->n_output=(long long)(volp->chkpt_iterations/mdlpvp->output_freq+1);
-    mdlpvp->obp->buffersize=llmin3(volp->chkpt_iterations-volp->start_time,mdlpvp->n_output,mdlpvp->obp->buffersize); 
+    mdlpvp->obp->buffersize=llmin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize); 
   }
   else {
     mdlpvp->n_output=(long long)(volp->iterations/mdlpvp->output_freq+1);
-    mdlpvp->obp->buffersize=llmin3(volp->iterations-volp->start_time,mdlpvp->n_output,mdlpvp->obp->buffersize);
+    mdlpvp->obp->buffersize=llmin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
 
   no_printf("Default output step time definition:\n");
@@ -8299,6 +8299,7 @@ count_cmd: '{'
   mdlpvp->obp->output_item_head=mdlpvp->oip;
   mdlpvp->oip->outfile_name=NULL;
   mdlpvp->oip->file_flags=FILE_UNDEFINED;
+  mdlpvp->oip->first_write=1;
   mdlpvp->oip->output_evaluator_head=NULL;
   mdlpvp->oip->count_expr=NULL;
   mdlpvp->oip->next_column=NULL;
@@ -8393,6 +8394,7 @@ single_count_expr:
     }
     new_oi->outfile_name=NULL;
     new_oi->file_flags=FILE_UNDEFINED;
+    new_oi->first_write=1;
     new_oi->header_comment=NULL;
     new_oi->output_evaluator_head=NULL;
     new_oi->count_expr=NULL;

@@ -83,7 +83,7 @@ sym_table.o: makedefs sym_table.c sym_table.h rng.h mcell_structs.h
 viz_output.o: makedefs viz_output.c viz_output.h rng.h mcell_structs.h sched_util.h grid_util.h util.h
 	$(CC) $(CFLAGS) -c viz_output.c
 
-react_output.o: makedefs react_output.c react_output.h rng.h mcell_structs.h sched_util.h
+react_output.o: makedefs react_output.c react_output.h rng.h mcell_structs.h sched_util.h util.h
 	$(CC) $(CFLAGS) -c react_output.c
 
 count_util.o: makedefs count_util.c count_util.h wall_util.h vol_util.h rng.h mcell_structs.h grid_util.h rng.h util.h

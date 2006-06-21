@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include "util.h"
 #include "sched_util.h"
 #include "mcell_structs.h"
 #include "react_output.h"
@@ -89,7 +90,7 @@ int truncate_output_file(char *name,double start_value)
 	my_value = strtod(numbuf,&done);
 	if (done!=numbuf)
 	{
-	  if (my_value > start_value)
+	  if (my_value > start_value && distinguishable(my_value,start_value,EPS_C))
 	  {
 	    k = fseek(f,0,SEEK_SET);
 	    if (k)
@@ -328,7 +329,6 @@ int update_reaction_output(struct output_block *obp)
 
   if (obp->curr_buf_index==obp->buffersize || final_chunk_flag)
   {
-
     if ( write_reaction_output(obp,final_chunk_flag) )
     {
       fprintf(world->err_file, "File %s, Line %ld: error writing reaction output.\n", __FILE__, (long)__LINE__);
@@ -411,9 +411,8 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
     }
     
     /* write headers */
- if(!final_chunk_flag){
    if( (world->chkpt_seq_num==1 || oi->file_flags==FILE_APPEND_HEADER || oi->file_flags==FILE_CREATE || oi->file_flags==FILE_OVERWRITE)
-       && oi->header_comment!=NULL && oi->file_flags!=FILE_APPEND) 
+       && oi->header_comment!=NULL && oi->file_flags!=FILE_APPEND && oi->first_write) 
     {
        oip = oi;
 
@@ -433,7 +432,6 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
        fprintf(fp,"\n");
 
     }
-  }
 
     for (i=0;i<stop_i;i++)
     {
@@ -474,6 +472,7 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
 	  fprintf(world->err_file,"Warning: non-numeric count for column %d of '%s' -- skipping column.\n",ii+2,oi->outfile_name);
 	  continue;
 	}
+	oip->first_write = 0;
       } /* end for (oip->next_column) */
       
       fprintf(fp,"\n");
