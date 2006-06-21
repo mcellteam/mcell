@@ -328,6 +328,7 @@ int update_reaction_output(struct output_block *obp)
 
   if (obp->curr_buf_index==obp->buffersize || final_chunk_flag)
   {
+
     if ( write_reaction_output(obp,final_chunk_flag) )
     {
       fprintf(world->err_file, "File %s, Line %ld: error writing reaction output.\n", __FILE__, (long)__LINE__);
@@ -386,19 +387,23 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
 	return 1;
 	break;
     }
-    
+ 
     fp = fopen(oi->outfile_name,mode);
     if (fp==NULL)
     {
       fprintf(world->err_file,"Error: could not open output file %s\n",oi->outfile_name);
       return 1;
     }
+   
+    if((strcmp(mode, "a") == 0)){
+        fseek(fp,0,SEEK_END);
+    }
 
     if (world->notify->file_writes==NOTIFY_FULL)
     {
       fprintf(world->log_file,"Writing %d lines to output file %s\n",n_output,oi->outfile_name);
+      fflush(log_file);
     }
-    fflush(log_file);
     
     stop_i=n_output;
    
@@ -410,6 +415,7 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
     }
     
     /* write headers */
+ if(!final_chunk_flag){
    if( (world->chkpt_seq_num==1 || oi->file_flags==FILE_APPEND_HEADER || oi->file_flags==FILE_CREATE || oi->file_flags==FILE_OVERWRITE)
        && oi->header_comment!=NULL && oi->file_flags!=FILE_APPEND) 
     {
@@ -431,7 +437,7 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
        fprintf(fp,"\n");
 
     }
-
+  }
 
     for (i=0;i<stop_i;i++)
     {
