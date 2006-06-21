@@ -9142,7 +9142,7 @@ Always append to an existing file without removing any previous data.
 \layout Standard
 
 Always append to an existing file without removing any previous data and
- always write headers.
+ if headers are requested, write them even into the middle of the file.
 \end_inset 
 </cell>
 </row>
