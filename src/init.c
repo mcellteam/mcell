@@ -2138,7 +2138,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
   }
 
   if (tot_density>world->effector_grid_density) {
-    fprintf(log_file,"\nMCell: Warning -- Total effector density too high: %f\n\n",tot_density);
+    fprintf(log_file,"\nMCell: Warning -- Total effector density too high: %f.  Filling all available effector sites.\n\n",tot_density);
     fflush(log_file);
 /*
     return(1);
@@ -2271,7 +2271,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 	    n_free_eff=n_free_eff+(sg->n_tiles-sg->n_occupied);
           }
         }
-        no_printf("Number of free effector tiles in region %s = %d\n",rp->sym->name,n_free_eff);
+        no_printf("Number of free effector tiles in region %s = %d\n",rp->sym->name,n_free_eff);  
         fflush(stdout);
       if (world->chkpt_init) {  /* only needed for denovo initiliazation */
         /* allocate memory to hold array of pointers to all free tiles */
@@ -2331,13 +2331,16 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
   
             n_set=effdp->quantity;
             n_clear=n_free_eff-n_set;
-            eff->population+=n_set;
 
             if (n_set > n_free_eff) {
-              fprintf(log_file,"\nMCell: Warning -- Number of %s effectors to place (%d) exceeds number of free effector tiles (%d) in region %s[%s]\n\n",eff->sym->name,n_set,n_free_eff,rp->parent->sym->name,rp->region_last_name);
+              fprintf(log_file,"\nMCell: Warning -- Number of %s effectors to place (%d) exceeds number of free effector tiles (%d) in region %s[%s].",eff->sym->name,n_set,n_free_eff,rp->parent->sym->name,rp->region_last_name);
+               fprintf(log_file, "  Effectors %s placed on all available effector sites.\n\n", eff->sym->name);
               n_set=n_free_eff;
               n_clear=0;
             }
+            
+            eff->population+=n_set;
+
             no_printf("distribute %d of effector %s\n",n_set,eff->sym->name);
             no_printf("n_set = %d  n_clear = %d  n_free_eff = %d\n",n_set,n_clear,n_free_eff);
             fflush(stdout);
@@ -3252,6 +3255,8 @@ int init_rel_region_data_2d(struct release_region_data *rrd)
     fprintf(world->err_file,"Error: cannot find any objects for region release\n");
     return 1;
   }
+  ////////////////////////////////////////////////////
+  printf("rrd->n_objects = %d\n", rrd->n_objects);
   
   rrd->in_release = (struct bit_array**)malloc(rrd->n_objects*sizeof(struct bit_array*));
   if (rrd->in_release==NULL)
