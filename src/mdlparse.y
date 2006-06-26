@@ -439,8 +439,6 @@ struct release_evaluator *rev;
 %type <tok> rxn
 %type <tok> list_rxns
 %type <tok> rx_group_def
-%type <tok> one_way_unimolecular_rxn
-%type <tok> one_way_bimolecular_rxn
 %type <tok> product
 %type <tok> list_products
 
@@ -512,13 +510,6 @@ struct release_evaluator *rev;
 %type <sym> new_rxn_pathname
 %type <sym> existing_rxpn_or_molecule
 %type <sym> existing_many_rxpns_or_molecules 
-
-%type <sym> reactant
-%type <sym> right_cat_arrow
-%type <sym> double_cat_arrow
-%type <sym> unidir_arrow
-%type <sym> bidir_arrow
-%type <sym> reaction_arrow
 
 %type <sym> new_file_stream
 %type <sym> existing_file_stream
@@ -5469,11 +5460,6 @@ list_rxns: rxn
 ;
 
 
-rxn: one_way_unimolecular_rxn
-	| one_way_bimolecular_rxn
-;
-
-
 list_dashes: '-'
 	| list_dashes '-'
 ;
@@ -5483,33 +5469,25 @@ right_arrow: list_dashes '>';
 left_arrow: '<' list_dashes;
 double_arrow: left_arrow '>';
 
-right_cat_arrow: list_dashes reactant right_arrow
+right_cat_arrow: list_dashes existing_molecule_opt_orient right_arrow
 {
-  $$=$<sym>2;
+  mdlpvp->pathp->reactant3 = (struct species*)( ($<sym>2)->value );
+  if (mdlpvp->orient_specified) mdlpvp->pathp->orientation3 = mdlpvp->orient_class;
+  else mdlpvp->pathp->orientation3 = ORIENT_NOT_SET;
 };
 
-double_cat_arrow: left_arrow reactant right_arrow
+double_cat_arrow: left_arrow existing_molecule_opt_orient right_arrow
 {
-  $$=$<sym>2;
+  mdlpvp->pathp->reactant3 = (struct species*)( ($<sym>2)->value );
+  if (mdlpvp->orient_specified) mdlpvp->pathp->orientation3 = mdlpvp->orient_class;
+  else mdlpvp->pathp->orientation3 = ORIENT_NOT_SET;
 };
 
 unidir_arrow: right_arrow
-{
-  $$=NULL;
-}
-	| right_cat_arrow
-{
-  $$=$<sym>1;
-};
+	| right_cat_arrow;
 
 bidir_arrow: double_arrow
-{
-  $$=NULL;
-}
-	| double_cat_arrow
-{
-  $$=$<sym>1;
-};
+	| double_cat_arrow;
 
 reaction_arrow: unidir_arrow
 {
@@ -5697,8 +5675,8 @@ existing_many_rxpns_or_molecules: WILDCARD_VAR
 
 };
 
-/*
-one_way_rxn:
+
+rxn:
 {
   mdlpvp->pathp = (struct pathway*)mem_get(mdlpvp->path_mem);
   if (mdlpvp->pathp==NULL)
@@ -5717,6 +5695,8 @@ one_way_rxn:
   reactant_list reaction_arrow
 {
   char *rx_name;
+  int num_surfaces;
+  int oriented_count;
   
   rx_name = create_rx_name(mdlpvp->pathp);
   if (rx_name==NULL)
@@ -5729,49 +5709,79 @@ one_way_rxn:
   if (mdlpvp->gp==NULL)
   {
     mdlpvp->gp = store_sym(rx_name,RX,volp->main_sym_table);
+    if (mdlpvp->gp==NULL)
+    {
+      mdlerror("Out of memory while creating reaction.");
+      return 1;
+    }
   }
   
-  nameset[0] = mdlpvp->pathp->reactant1->sym->name;
+  mdlpvp->rxnp = (struct rxn*)mdlpvp->gp->value;
+  mdlpvp->rxnp->n_pathways++;
+  mdlpvp->rxnp->n_reactants=1;
+  if (mdlpvp->pathp->reactant2!=NULL) mdlpvp->rxnp->n_reactants++;
+  if (mdlpvp->pathp->reactant3!=NULL) mdlpvp->rxnp->n_reactants++;
+  
+  mdlpvp->prod_all_3d=1;
+  num_surfaces = 0;
+  oriented_count = 0;
+  if ((mdlpvp->pathp->reactant1->flags&NOT_FREE)!=0)
+  {
+    if (mdlpvp->pathp->reactant1->flags&IS_SURFACE) num_surfaces++;
+    mdlpvp->prod_all_3d=0;
+  }
+  if (mdlpvp->pathp->orientation1 == ORIENT_NOT_SET) mdlpvp->pathp->orientation1 = 0;
+  else oriented_count++;
   if (mdlpvp->pathp->reactant2!=NULL)
   {
-    nameset[1] = "+"
-    nameset[2] = mdlpvp->pathp->reactant2->sym->name;
+    if ((mdlpvp->pathp->reactant2->flags&NOT_FREE)!=0)
+    {
+      if (mdlpvp->pathp->reactant2->flags&IS_SURFACE) num_surfaces++;
+      mdlpvp->prod_all_3d=0;
+    }
+    if (mdlpvp->pathp->orientation2 == ORIENT_NOT_SET) mdlpvp->pathp->orientation2 = 0;
+    else oriented_count++;      
   }
-}
-*/
-
-one_way_unimolecular_rxn: reactant reaction_arrow
-{
-  mdlpvp->gp=$<sym>1;
-  if ((mdlpvp->tp=retrieve_sym(mdlpvp->gp->name,RX,volp->main_sym_table))
-      !=NULL) {
-  }
-  else if ((mdlpvp->tp=store_sym(mdlpvp->gp->name,RX,volp->main_sym_table))
-      ==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s %s","Out of memory while creating reaction:",
-      mdlpvp->gp->name," -> ... ");
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-  if ((mdlpvp->pathp=(struct pathway *)mem_get(mdlpvp->path_mem))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s %s","Out of memory while creating reaction:",
-      mdlpvp->gp->name," -> ... ");
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-  mdlpvp->rxnp=(struct rxn *)mdlpvp->tp->value;
-  mdlpvp->rxnp->n_reactants=1;
-  mdlpvp->rxnp->n_pathways++;
-  mdlpvp->pathp->pathname=NULL;
-  mdlpvp->pathp->reactant1=(struct species *)mdlpvp->gp->value;
-  mdlpvp->pathp->reactant2=NULL;
-  mdlpvp->pathp->reactant3=NULL;
-  mdlpvp->pathp->km=0;
-  mdlpvp->pathp->kcat=0;
-  
-  if (mdlpvp->pathp->reactant1->flags&ON_GRID)
+  if (mdlpvp->pathp->reactant3!=NULL)
   {
-    if (!mdlpvp->orient_specified)
+    if ((mdlpvp->pathp->reactant3->flags&NOT_FREE)!=0)
+    {
+      if (mdlpvp->pathp->reactant3->flags&IS_SURFACE) num_surfaces++;
+      mdlpvp->prod_all_3d=0;
+    }
+    if (mdlpvp->pathp->orientation3 == ORIENT_NOT_SET) mdlpvp->pathp->orientation3 = 0;
+    else oriented_count++;      
+  }
+  
+  /* Check for invalid reaction specifications */
+  if (num_surfaces>1)
+  {
+    mdlerror("Too many surfaces--reactions can take place on at most one surface.");
+    return 1;
+  }
+  if (num_surfaces==mdlpvp->rxnp->n_reactants)
+  {
+    mdlerror("Reactants cannot consist entirely of surfaces.\n  Use a surface release site instead!");
+    return 1;
+  }
+  if (mdlpvp->prod_all_3d)
+  {
+    if (oriented_count!=0)
+    {
+      if (mdlpvp->vol->notify->useless_vol_orient==WARN_ERROR)
+      {
+	mdlerror("Error: orientation specified for molecule in reaction in volume");
+	return 1;
+      }
+      else if (mdlpvp->vol->notify->useless_vol_orient==WARN_WARN)
+      {
+	mdlerror("Warning: orientation specified for molecule in reaction in volume");
+      }
+    }
+  }
+  else
+  {
+    if (mdlpvp->rxnp->n_reactants != oriented_count)
     {
       if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
       {
@@ -5781,45 +5791,39 @@ one_way_unimolecular_rxn: reactant reaction_arrow
       else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
       {
 	mdlerror("Warning: orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
-      }
+      }      
     }
-    mdlpvp->prod_all_3d = 0;
-    mdlpvp->pathp->orientation1 = mdlpvp->orient_class;
-    mdlpvp->pathp->orientation2 = 0;
-    mdlpvp->pathp->orientation3 = 0;
   }
-  else if ((mdlpvp->pathp->reactant1->flags&NOT_FREE)==0)
+  
+  if (mdlpvp->pathp->reactant3!=NULL) /* Copy catalyst to products */
   {
-    if (mdlpvp->orient_specified)
+    mdlpvp->prodp = (struct product*)mem_get(mdlpvp->prod_mem);
+    if (mdlpvp->prodp==NULL)
     {
-      if (mdlpvp->vol->notify->useless_vol_orient==WARN_ERROR)
-      {
-	mdlerror("Error: orientation specified for molecule in reaction in volume");
-	return 1;
-      }
-      else if (mdlpvp->vol->notify->useless_vol_orient==WARN_WARN)
-      {
-	mdlerror("Warning: orientation specified for molecule in reaction at surface");
-      }
+      mdlerror("Out of memory while creating reaction.");
+      return 1;
     }
-    mdlpvp->prod_all_3d = 1;
-    mdlpvp->pathp->orientation1 = 0;
-    mdlpvp->pathp->orientation2 = 0;
-    mdlpvp->pathp->orientation3 = 0;
+    
+    mdlpvp->prodp->prod = mdlpvp->pathp->reactant3;
+    if (mdlpvp->prod_all_3d) mdlpvp->prodp->orientation=0;
+    else mdlpvp->prodp->orientation = mdlpvp->pathp->orientation3;
+    mdlpvp->prodp->next = mdlpvp->pathp->product_head;
+    mdlpvp->pathp->product_head = mdlpvp->prodp;
+    
+    if (mdlpvp->pathp->reactant2==NULL)
+    {
+      mdlpvp->pathp->reactant2 = mdlpvp->pathp->reactant3;
+      mdlpvp->pathp->orientation2 = mdlpvp->pathp->orientation3;
+      mdlpvp->pathp->reactant3 = NULL;
+      mdlpvp->pathp->orientation3 = 0;
+    }
   }
-  else
-  {
-    mdlerror("Error: surface types cannot undergo unimolecular reactions.");
-    return 1;
-  }
-
-  mdlpvp->pathp->product_head=NULL;
-  mdlpvp->pathp->pcr=NULL;
 }
 	list_products rx_rate_syntax new_rxn_pathname
 {
-  mdlpvp->gp=$<sym>6;
-  if (mdlpvp->gp!=NULL) {
+  mdlpvp->gp=$<sym>7;
+  if (mdlpvp->gp!=NULL)
+  {
     mdlpvp->rxpnp=(struct rxn_pathname *)mdlpvp->gp->value;
     mdlpvp->rxpnp->path=mdlpvp->pathp;
     mdlpvp->pathp->pathname=mdlpvp->rxpnp;
@@ -5852,28 +5856,8 @@ one_way_unimolecular_rxn: reactant reaction_arrow
     mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
     mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
   }
-
-#ifdef DEBUG
-  no_printf("Unimolecular reaction defined:\n");
-  no_printf("  %s[%d] ->",mdlpvp->rxnp->pathway_head->reactant1->sym->name,
-    mdlpvp->rxnp->pathway_head->orientation1);
-  for (mdlpvp->prodp=mdlpvp->rxnp->pathway_head->product_head;
-      mdlpvp->prodp!=NULL;mdlpvp->prodp=mdlpvp->prodp->next) {
-    if (mdlpvp->prodp!=mdlpvp->rxnp->pathway_head->product_head) {
-      no_printf(" +");
-    }
-    no_printf(" %s[%d]",mdlpvp->prodp->prod->sym->name,mdlpvp->prodp->orientation);
-  }
-  if (mdlpvp->pathp->km_filename == NULL)
-  {
-    no_printf(" [%.9g,%.9g]\n",mdlpvp->rxnp->pathway_head->km,mdlpvp->rxnp->pathway_head->kcat);
-  }
-  else
-  {
-    no_printf(" [(%s)]\n",mdlpvp->pathp->km_filename);
-  }
-#endif
   
+  /* Create reverse reaction if we need to */
   if (mdlpvp->bidirectional_arrow)
   {
     if (mdlpvp->bidirectional_arrow==1) /* Hack to notice if we got both rates */
@@ -5887,158 +5871,16 @@ one_way_unimolecular_rxn: reactant reaction_arrow
       return 1;
     }
   }
-};
-
-
-one_way_bimolecular_rxn: reactant '+'
-{
-  mdlpvp->orient_class1=mdlpvp->orient_class;
-  mdlpvp->prod_all_3d = (mdlpvp->orient_specified)?0:1;
-}
-	reactant reaction_arrow
-{
-  mdlpvp->stp1=$<sym>1;
-  mdlpvp->stp2=$<sym>4;
-  mdlpvp->orient_class2=mdlpvp->orient_class;
-  mdlpvp->sym_name=concat_rx_name(mdlpvp->stp1->name,mdlpvp->stp2->name);
-  if(mdlpvp->sym_name == NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s + %s -> ...",
-      "Out of memory while parsing reaction:",mdlpvp->stp1->name,mdlpvp->stp2->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-  if ((mdlpvp->stp3=retrieve_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
-      !=NULL) {
-    no_printf("Retrieved previous reaction.\n");
-  }
-  else if ((mdlpvp->stp3=store_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
-      ==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s + %s -> ...","Out of memory while creating reaction:",
-      mdlpvp->stp1->name,mdlpvp->stp2->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-  if ((mdlpvp->pathp=(struct pathway *)mem_get(mdlpvp->path_mem))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s + %s -> ...","Out of memory while creating reaction:",
-      mdlpvp->stp1->name,mdlpvp->stp2->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    return(1);
-  }
-  mdlpvp->rxnp=(struct rxn *)mdlpvp->stp3->value;
-  mdlpvp->rxnp->n_reactants=2;
-  mdlpvp->rxnp->n_pathways++;
-  mdlpvp->pathp->pathname=NULL;
-  mdlpvp->pathp->reactant1=(struct species *)mdlpvp->stp1->value;
-  mdlpvp->pathp->reactant2=(struct species *)mdlpvp->stp2->value;
-  mdlpvp->pathp->reactant3=NULL;
-  mdlpvp->pathp->km=0;
-  mdlpvp->pathp->kcat=0;
   
-  if ( (mdlpvp->pathp->reactant1->flags&NOT_FREE)==0 && (mdlpvp->pathp->reactant2->flags&NOT_FREE)==0 )
+  if (mdlpvp->rxnp->n_reactants==3)
   {
-    if (mdlpvp->orient_specified || !mdlpvp->prod_all_3d)
-    {
-      if (mdlpvp->vol->notify->useless_vol_orient==WARN_ERROR)
-      {
-	mdlerror("Error: orientation specified for molecule in reaction in volume");
-	return 1;
-      }
-      else if (mdlpvp->vol->notify->useless_vol_orient==WARN_WARN)
-      {
-	mdlerror("Warning: orientation specified for molecule in reaction in volume");
-      }
-    }
-    mdlpvp->prod_all_3d = 1;
-    mdlpvp->pathp->orientation1 = 0;
-    mdlpvp->pathp->orientation2 = 0;
-    mdlpvp->pathp->orientation3 = 0;
-  }    
-  else if ( (mdlpvp->pathp->reactant1->flags&IS_SURFACE)!=0 && (mdlpvp->pathp->reactant2->flags&IS_SURFACE)!=0 )
-  {
-    mdlerror("Surfaces cannot react with each other.");
+    mdlerror("Sorry, reactions with two reactants and one surface are not implemented yet.");
     return 1;
   }
-  else
-  {
-    if (!mdlpvp->orient_specified || mdlpvp->prod_all_3d)
-    {
-      if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
-      {
-	mdlerror("Error: orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
-	return 1;
-      }
-      else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
-      {
-	mdlerror("Warning: orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
-      }
-    }
-    mdlpvp->prod_all_3d = 0;
-    mdlpvp->pathp->orientation1 = mdlpvp->orient_class1;
-    mdlpvp->pathp->orientation2 = mdlpvp->orient_class2;
-    mdlpvp->pathp->orientation3 = 0;
-  }
-
-  mdlpvp->pathp->product_head=NULL;
-  mdlpvp->pathp->pcr=NULL;
-
-  mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
-  mdlpvp->rxnp->pathway_head=mdlpvp->pathp; 
-}
-	list_products rx_rate_syntax new_rxn_pathname
-{
-  mdlpvp->gp=$<sym>9;
-  if (mdlpvp->gp!=NULL) {
-    mdlpvp->rxpnp=(struct rxn_pathname *)mdlpvp->gp->value;
-    mdlpvp->rxpnp->path=mdlpvp->pathp;
-    mdlpvp->pathp->pathname=mdlpvp->rxpnp;
-  }
-  mdlpvp->pathp->km=mdlpvp->fwd_km;
-  mdlpvp->pathp->kcat=mdlpvp->fwd_kcat;
-  if (mdlpvp->fwd_rate_filename != NULL)
-  {
-    mdlpvp->pathp->km_filename = mdlpvp->fwd_rate_filename;
-    mdlpvp->fwd_rate_filename = NULL;
-  }
-
-#ifdef DEBUG
-  no_printf("Bimolecular reaction defined:\n");
-  no_printf("  %s[%d] + %s[%d] ->",
-    mdlpvp->rxnp->pathway_head->reactant1->sym->name,
-    mdlpvp->rxnp->pathway_head->orientation1,
-    mdlpvp->rxnp->pathway_head->reactant2->sym->name,
-    mdlpvp->rxnp->pathway_head->orientation2);
-  for (mdlpvp->prodp=mdlpvp->rxnp->pathway_head->product_head;
-      mdlpvp->prodp!=NULL;mdlpvp->prodp=mdlpvp->prodp->next) {
-    if (mdlpvp->prodp!=mdlpvp->rxnp->pathway_head->product_head) {
-      no_printf(" +");
-    }
-    no_printf(" %s[%d]",mdlpvp->prodp->prod->sym->name,mdlpvp->prodp->orientation);
-  }
-  if (mdlpvp->pathp->km_filename == NULL)
-  {
-    no_printf(" [%.9g,%.9g]\n",mdlpvp->rxnp->pathway_head->km,mdlpvp->rxnp->pathway_head->kcat);
-  }
-  else
-  {
-    no_printf(" [(%s)]\n",mdlpvp->pathp->km_filename);
-  }
-#endif
-
-  if (mdlpvp->bidirectional_arrow)
-  {
-    if (mdlpvp->bidirectional_arrow==1) /* Hack to notice if we got both rates */
-    {
-      mdlerror("Reversible reaction indicated but no reverse rate supplied.");
-      return 1;
-    }
-    if (invert_current_reaction_pathway(mdlpvp))
-    {
-      mdlerror("Error creating reverse reaction.");
-      return 1;
-    }
-  }
 };
 
+reactant_list: reactant |
+	reactant_list '+' reactant;
 
 reactant: existing_molecule
 {
@@ -6047,7 +5889,23 @@ reactant: existing_molecule
 }
 	orientation_class
 {
-  $$=$<sym>1;
+  if (mdlpvp->pathp->reactant1==NULL)
+  {
+    mdlpvp->pathp->reactant1 = (struct species*)( ($<sym>1)->value );
+    if (mdlpvp->orient_specified) mdlpvp->pathp->orientation1 = mdlpvp->orient_class;
+    else mdlpvp->pathp->orientation1 = ORIENT_NOT_SET;
+  }
+  else if (mdlpvp->pathp->reactant2==NULL)
+  {
+    mdlpvp->pathp->reactant2 = (struct species*)( ($<sym>1)->value );
+    if (mdlpvp->orient_specified) mdlpvp->pathp->orientation2 = mdlpvp->orient_class;
+    else mdlpvp->pathp->orientation2 = ORIENT_NOT_SET;    
+  }
+  else
+  {
+    mdlerror("Too many reactants--maximum number is two (plus one catalytic surface).");
+    return 1;
+  }
 };
 
 

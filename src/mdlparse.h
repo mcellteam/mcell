@@ -14,6 +14,8 @@
 #define COUNT_PRESENT      0x4
 #define EXPRESSION_PRESENT 0x8
 
+#define ORIENT_NOT_SET SHRT_MIN
+
 
 struct arg { 
   byte arg_type; /* DBL, STR */

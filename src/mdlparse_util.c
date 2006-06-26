@@ -487,6 +487,48 @@ int copy_object(struct volume *volp,struct object *curr_objp,
 }
 
 
+/* Assemble reactants alphabetically into a reaction name string */
+char *create_rx_name(struct pathway *p)
+{
+#define CRN_LIST_LEN 6
+  char *str_list[CRN_LIST_LEN];
+  char *swap;
+  int i,j;
+  
+  for (i=0;i<CRN_LIST_LEN;i++) str_list[i] = NULL; 
+  
+  str_list[0] = p->reactant1->sym->name;
+  i=0;
+  if (p->reactant2!=NULL)
+  {
+    str_list[1] = "+";
+    str_list[2] = p->reactant2->sym->name;
+    i=2;
+  }
+  if (p->reactant3!=NULL)
+  {
+    str_list[i+1] = "+";
+    str_list[i+2] = p->reactant3->sym->name;
+    i+=2;
+  }
+  while (i>0) /* Stupid sort */
+  {
+    for (j=i-2;j>=0;j-=2)
+    {
+      if (strcmp(str_list[i],str_list[j])<0)
+      {
+	swap = str_list[j];
+	str_list[j] = str_list[i];
+	str_list[i] = swap;
+      }
+    }
+    i-=2;
+  }
+  
+  return my_strclump(str_list);
+#undef CRN_LIST_LEN
+}
+
 char *concat_rx_name(char *name1, char *name2)
 {
   char *tmp_name;
