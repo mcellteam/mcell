@@ -935,11 +935,11 @@ struct move_counter_data
 
 struct trig_counter_data
 {
-  void* trig_type;
-  double t;
-  struct vector3 loc;
-  u_int flags;
-  struct output_block *obp;
+  void* trig_type;         /* Reaction or molecule */
+  double t;                /* Real time of event */
+  struct vector3 loc;      /* Real position of event */
+  char *name;              /* Name of involved mol/rxn */
+  struct output_item *oi;  /* Place to write the data */
 };
 
 

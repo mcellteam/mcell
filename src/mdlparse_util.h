@@ -26,6 +26,8 @@ char *concat_rx_name(char *name1, char *name2);
 
 int equivalent_geometry(struct pathway *p1,struct pathway *p2,int n);
 int prepare_reactions(struct mdlparse_vars *mpvp);
+int invert_current_reaction_pathway(struct mdlparse_vars *mpvp);
+
 
 int make_cuboid(struct vector3 *p1,
                 struct vector3 *p2,

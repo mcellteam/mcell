@@ -1482,6 +1482,131 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 }
 
 
+int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
+{
+  struct rxn *rx;
+  struct pathway *path;
+  struct product *prodp;
+  struct sym_table *sym;
+  char *inverse_name;
+  int nprods,all_3d;
+  
+  all_3d=1;
+  for (nprods=0,prodp=mpvp->pathp->product_head ; prodp!=NULL ; prodp=prodp->next)
+  {
+    nprods++;
+    if ((prodp->prod->flags&NOT_FREE)!=0) all_3d=0;
+  }
+  
+  if (nprods==0)
+  {
+    mdlerror("Can't create a reverse reaction with no products");
+    return 1;
+  }
+  if (nprods==1 && (mpvp->pathp->product_head->prod->flags&IS_SURFACE))
+  {
+    mdlerror("Can't create a reverse reaction starting from only a surface");
+    return 1;
+  }
+  if (nprods>2)
+  {
+    mdlerror("Can't create a reverse reaction involving more than two products");
+    return 1;
+  }
+  if (mpvp->pathp->pathname != NULL)
+  {
+    mdlerror("Can't name bidirectional reactions--write each reaction and name them separately");
+    return 1;
+  }
+  if (all_3d)
+  {
+    if ((mpvp->pathp->reactant1->flags&NOT_FREE)!=0) all_3d = 0;
+    if (mpvp->pathp->reactant2!=NULL && (mpvp->pathp->reactant2->flags&NOT_FREE)!=0) all_3d = 0;
+    
+    if (!all_3d)
+    {
+      mdlerror("Cannot reverse orientable reaction with only volume products");
+      return 1;
+    }
+  }
+  
+  prodp = mpvp->pathp->product_head;
+  if (nprods==1)
+  {
+    inverse_name = prodp->prod->sym->name;
+  }
+  else
+  {
+    inverse_name = concat_rx_name(prodp->prod->sym->name,prodp->next->prod->sym->name);
+    if (inverse_name==NULL)
+    {
+      mdlerror("Out of memory forming reaction name.");
+      return 1;
+    }
+  }
+  
+  sym = retrieve_sym(inverse_name,RX,mpvp->vol->main_sym_table);
+  if (sym==NULL)
+  {
+    sym = store_sym(inverse_name,RX,mpvp->vol->main_sym_table);
+    if (sym==NULL)
+    {
+      mdlerror("Out of memory while storing reaction pathway.");
+      return 1;
+    }
+  }
+  rx = (struct rxn*)sym->value;
+  rx->n_reactants = nprods;
+  rx->n_pathways++;
+  
+  path = (struct pathway*)mem_get(mpvp->path_mem);
+  if (path==NULL)
+  {
+    mdlerror("Out of memory while storing reaction pathway.");
+    return 1;
+  }
+  path->pathname=NULL;
+  path->reactant1=prodp->prod;
+  path->reactant2=NULL;
+  path->reactant3=NULL;
+  if (nprods==2) path->reactant2=prodp->next->prod;
+  path->km = mpvp->bkw_km;
+  path->kcat = mpvp->bkw_kcat;
+  path->km_filename = NULL;
+  if (mpvp->bkw_rate_filename!=NULL)
+  {
+    path->km_filename = mpvp->bkw_rate_filename;
+    mpvp->bkw_rate_filename = NULL;
+  }
+  
+  path->product_head = (struct product*)mem_get(mpvp->prod_mem);
+  if (path->product_head==NULL)
+  {
+    mdlerror("Out of memory while storing reaction pathway.");
+    return 1;
+  }
+  path->product_head->orientation = mpvp->pathp->orientation1;
+  path->product_head->prod = mpvp->pathp->reactant1;
+  path->product_head->next = NULL;
+  if (mpvp->pathp->reactant2!=NULL)
+  {
+    path->product_head->next = (struct product*)mem_get(mpvp->prod_mem);
+    if (path->product_head->next==NULL)
+    {
+      mdlerror("Out of memory while storing reaction pathway.");
+      return 1;
+    }
+    path->product_head->next->orientation = mpvp->pathp->orientation2;
+    path->product_head->next->prod = mpvp->pathp->reactant2;
+    path->product_head->next->next = NULL;
+  }
+  
+  path->next = rx->pathway_head;
+  rx->pathway_head = path;
+  return 0;
+}
+
+
 /**
  * Constructs the corners of the cuboid whose bounding box is
  * specified by the two points p1 and p2.

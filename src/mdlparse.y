@@ -514,6 +514,11 @@ struct release_evaluator *rev;
 %type <sym> existing_many_rxpns_or_molecules 
 
 %type <sym> reactant
+%type <sym> right_cat_arrow
+%type <sym> double_cat_arrow
+%type <sym> unidir_arrow
+%type <sym> bidir_arrow
+%type <sym> reaction_arrow
 
 %type <sym> new_file_stream
 %type <sym> existing_file_stream
@@ -5474,13 +5479,47 @@ list_dashes: '-'
 ;
 
 
-right_arrow: list_dashes '>'
-;
+right_arrow: list_dashes '>';
+left_arrow: '<' list_dashes;
+double_arrow: left_arrow '>';
 
-/*
-double_arrow: '<' list_dashes '>'
-;
-*/
+right_cat_arrow: list_dashes reactant right_arrow
+{
+  $$=$<sym>2;
+};
+
+double_cat_arrow: left_arrow reactant right_arrow
+{
+  $$=$<sym>2;
+};
+
+unidir_arrow: right_arrow
+{
+  $$=NULL;
+}
+	| right_cat_arrow
+{
+  $$=$<sym>1;
+};
+
+bidir_arrow: double_arrow
+{
+  $$=NULL;
+}
+	| double_cat_arrow
+{
+  $$=$<sym>1;
+};
+
+reaction_arrow: unidir_arrow
+{
+  mdlpvp->bidirectional_arrow=0;
+}
+	| bidir_arrow
+{
+  mdlpvp->bidirectional_arrow=1;
+};
+
 
 new_rxn_pathname: /* empty */
 {
@@ -5658,8 +5697,50 @@ existing_many_rxpns_or_molecules: WILDCARD_VAR
 
 };
 
+/*
+one_way_rxn:
+{
+  mdlpvp->pathp = (struct pathway*)mem_get(mdlpvp->path_mem);
+  if (mdlpvp->pathp==NULL)
+  {
+    mdlerror("Out of memory while creating reaction.");
+    return 1;
+  }
+  mdlpvp->pathp->pathname = NULL;
+  mdlpvp->pathp->reactant1=NULL;
+  mdlpvp->pathp->reactant2=NULL;
+  mdlpvp->pathp->reactant3=NULL;
+  mdlpvp->pathp->km=0;
+  mdlpvp->pathp->kcat=0;
+  mdlpvp->pathp->km_filename=NULL;
+}
+  reactant_list reaction_arrow
+{
+  char *rx_name;
+  
+  rx_name = create_rx_name(mdlpvp->pathp);
+  if (rx_name==NULL)
+  {
+    mdlerror("Out of memory while creating reaction.");
+    return 1;
+  }
+  
+  mdlpvp->gp = retrieve_sym(rx_name,RX,volp->main_sym_table);
+  if (mdlpvp->gp==NULL)
+  {
+    mdlpvp->gp = store_sym(rx_name,RX,volp->main_sym_table);
+  }
+  
+  nameset[0] = mdlpvp->pathp->reactant1->sym->name;
+  if (mdlpvp->pathp->reactant2!=NULL)
+  {
+    nameset[1] = "+"
+    nameset[2] = mdlpvp->pathp->reactant2->sym->name;
+  }
+}
+*/
 
-one_way_unimolecular_rxn: reactant right_arrow
+one_way_unimolecular_rxn: reactant reaction_arrow
 {
   mdlpvp->gp=$<sym>1;
   if ((mdlpvp->tp=retrieve_sym(mdlpvp->gp->name,RX,volp->main_sym_table))
@@ -5734,11 +5815,8 @@ one_way_unimolecular_rxn: reactant right_arrow
 
   mdlpvp->pathp->product_head=NULL;
   mdlpvp->pathp->pcr=NULL;
-
-  mdlpvp->fwd_km=0;
-  mdlpvp->fwd_kcat=0;
 }
-	list_products fwd_rx_rate1or2 new_rxn_pathname
+	list_products rx_rate_syntax new_rxn_pathname
 {
   mdlpvp->gp=$<sym>6;
   if (mdlpvp->gp!=NULL) {
@@ -5748,12 +5826,12 @@ one_way_unimolecular_rxn: reactant right_arrow
   }
   mdlpvp->pathp->km=mdlpvp->fwd_km;
   mdlpvp->pathp->kcat=mdlpvp->fwd_kcat;
-  if (mdlpvp->rate_filename != NULL)
+  if (mdlpvp->fwd_rate_filename != NULL)
   {
     struct pathway *tpp;
     
-    mdlpvp->pathp->km_filename = mdlpvp->rate_filename;
-    mdlpvp->rate_filename = NULL;
+    mdlpvp->pathp->km_filename = mdlpvp->fwd_rate_filename;
+    mdlpvp->fwd_rate_filename = NULL;
     
     if (mdlpvp->rxnp->pathway_head == NULL)
     {
@@ -5795,6 +5873,20 @@ one_way_unimolecular_rxn: reactant right_arrow
     no_printf(" [(%s)]\n",mdlpvp->pathp->km_filename);
   }
 #endif
+  
+  if (mdlpvp->bidirectional_arrow)
+  {
+    if (mdlpvp->bidirectional_arrow==1) /* Hack to notice if we got both rates */
+    {
+      mdlerror("Reversible reaction indicated but no reverse rate supplied.");
+      return 1;
+    }
+    if (invert_current_reaction_pathway(mdlpvp))
+    {
+      mdlerror("Error creating reverse reaction.");
+      return 1;
+    }
+  }
 };
 
 
@@ -5803,7 +5895,7 @@ one_way_bimolecular_rxn: reactant '+'
   mdlpvp->orient_class1=mdlpvp->orient_class;
   mdlpvp->prod_all_3d = (mdlpvp->orient_specified)?0:1;
 }
-	reactant right_arrow
+	reactant reaction_arrow
 {
   mdlpvp->stp1=$<sym>1;
   mdlpvp->stp2=$<sym>4;
@@ -5890,12 +5982,9 @@ one_way_bimolecular_rxn: reactant '+'
   mdlpvp->pathp->pcr=NULL;
 
   mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
-  mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
-  
-  mdlpvp->fwd_km=0;
-  mdlpvp->fwd_kcat=0;
+  mdlpvp->rxnp->pathway_head=mdlpvp->pathp; 
 }
-	list_products fwd_rx_rate1or2 new_rxn_pathname
+	list_products rx_rate_syntax new_rxn_pathname
 {
   mdlpvp->gp=$<sym>9;
   if (mdlpvp->gp!=NULL) {
@@ -5905,10 +5994,10 @@ one_way_bimolecular_rxn: reactant '+'
   }
   mdlpvp->pathp->km=mdlpvp->fwd_km;
   mdlpvp->pathp->kcat=mdlpvp->fwd_kcat;
-  if (mdlpvp->rate_filename != NULL)
+  if (mdlpvp->fwd_rate_filename != NULL)
   {
-    mdlpvp->pathp->km_filename = mdlpvp->rate_filename;
-    mdlpvp->rate_filename = NULL;
+    mdlpvp->pathp->km_filename = mdlpvp->fwd_rate_filename;
+    mdlpvp->fwd_rate_filename = NULL;
   }
 
 #ifdef DEBUG
@@ -5934,6 +6023,20 @@ one_way_bimolecular_rxn: reactant '+'
     no_printf(" [(%s)]\n",mdlpvp->pathp->km_filename);
   }
 #endif
+
+  if (mdlpvp->bidirectional_arrow)
+  {
+    if (mdlpvp->bidirectional_arrow==1) /* Hack to notice if we got both rates */
+    {
+      mdlerror("Reversible reaction indicated but no reverse rate supplied.");
+      return 1;
+    }
+    if (invert_current_reaction_pathway(mdlpvp))
+    {
+      mdlerror("Error creating reverse reaction.");
+      return 1;
+    }
+  }
 };
 
 
@@ -5993,6 +6096,11 @@ product: existing_molecule
     }
     else
     {
+      if ((mdlpvp->prodp->prod->flags&NOT_FREE)!=0)
+      {
+	mdlerror("Reaction has only volume reactants but is trying to create a surface product");
+	return 1;
+      }
       if (mdlpvp->orient_specified)
       {
 	if (mdlpvp->vol->notify->useless_vol_orient==WARN_ERROR)
@@ -6051,12 +6159,55 @@ orient_class_number: '{' num_expr '}'
 };
 
 
-fwd_rx_rate1or2:  fwd_rx_rate1
-	| fwd_rx_rate2
-;
+rx_rate_syntax:
+{
+  mdlpvp->fwd_km = mdlpvp->bkw_km = 0;
+  mdlpvp->fwd_kcat = mdlpvp->bkw_kcat = 0;
+  mdlpvp->fwd_rate_filename = mdlpvp->bkw_rate_filename = NULL;
+}
+	rx_rate1or2;
+	
+rx_rate1or2: rx_rate1
+	| rx_rate2;
 
+rx_rate1: '[' atomic_rate ']'
+{
+  if ( (mdlpvp->bkw_km!=0.0 || mdlpvp->bkw_rate_filename!=NULL) &&
+       (mdlpvp->fwd_km==0.0 && mdlpvp->fwd_rate_filename==NULL) )
+  {
+    mdlerror("Invalid reaction rate specification: must specify a forward rate.");
+    return 1;
+  }
+  if (mdlpvp->fwd_km<0)
+  {
+    mdlpvp->fwd_km=0.0;
+    if (volp->notify->neg_reaction==WARN_ERROR)
+    {
+      mdlerror("Error: reaction rates should be zero or positive.");
+      return 1;
+    }
+    else if (volp->notify->neg_reaction==WARN_WARN) mdlerror("Warning: negative reaction rate; setting to zero and continuing.");
+  }
+}
 
-fwd_rx_rate1: '[' atomic_rate ']'
+rx_rate2: '[' atomic_rate ',' atomic_rate ']'
+{
+  if (mdlpvp->fwd_km<0 || mdlpvp->bkw_km<0)
+  {
+    if (mdlpvp->fwd_km<0) mdlpvp->fwd_km=0.0;
+    if (mdlpvp->bkw_km<0) mdlpvp->bkw_km=0.0;
+    
+    if (volp->notify->neg_reaction==WARN_ERROR)
+    {
+      mdlerror("Error: reaction rates should be zero or positive.");
+      return 1;
+    }
+    else if (volp->notify->neg_reaction==WARN_WARN) mdlerror("Warning: negative reaction rate; setting to zero and continuing.");
+  }
+}
+
+/*
+rx_rate1: '[' atomic_rate ']'
 {
   mdlpvp->fwd_km=$<dbl>2;
   if (mdlpvp->fwd_km<0)
@@ -6136,33 +6287,152 @@ fwd_rx_rate2: '[' atomic_rate ',' num_expr ']'
     else if (volp->notify->neg_reaction==WARN_WARN) mdlerror("Warning: negative catalytic rate; setting to zero and continuing.");
   }
 };
+*/
 
 atomic_rate: num_expr_only
 {
-  $$ = $<dbl>1;
-  mdlpvp->rate_filename = NULL;
+  if (mdlpvp->fwd_km!=0 || mdlpvp->fwd_rate_filename!=NULL)
+  {
+    mdlerror("Forward reaction rate already specified--can't specify again.");
+    return 1;
+  }
+  mdlpvp->fwd_km = $<dbl>1;
+}
+	| '>' num_expr_only
+{
+  if (mdlpvp->fwd_km!=0 || mdlpvp->fwd_rate_filename!=NULL)
+  {
+    mdlerror("Forward reaction rate already specified--can't specify again.");
+    return 1;
+  }
+  mdlpvp->fwd_km = $<dbl>2;
+}
+	| '<' num_expr_only
+{
+  if (mdlpvp->bkw_km!=0 || mdlpvp->bkw_rate_filename!=NULL)
+  {
+    mdlerror("Reverse reaction rate already specified--can't specify again.");
+    return 1;
+  }
+  if (!mdlpvp->bidirectional_arrow)
+  {
+    mdlerror("Reverse rate specified but the reaction isn't reversible.");
+    return 1;
+  }
+  mdlpvp->bidirectional_arrow++; /* Hack to indicate we've read a rate */
+  mdlpvp->bkw_km = $<dbl>2;
 }
 	| str_expr_only
 {
-  $$=0;
-  mdlpvp->rate_filename = $<str>1;
+  if (mdlpvp->fwd_km!=0 || mdlpvp->fwd_rate_filename!=NULL)
+  {
+    mdlerror("Forward reaction rate already specified--can't specify again.");
+    return 1;
+  }
+  mdlpvp->fwd_rate_filename = $<str>1;
+}
+	| '>' str_expr_only
+{
+  if (mdlpvp->fwd_km!=0 || mdlpvp->fwd_rate_filename!=NULL)
+  {
+    mdlerror("Forward reaction rate already specified--can't specify again.");
+    return 1;
+  }
+  mdlpvp->fwd_rate_filename = $<str>2;
+}
+	| '<' str_expr_only
+{
+  if (mdlpvp->bkw_km!=0 || mdlpvp->bkw_rate_filename!=NULL)
+  {
+    mdlerror("Reverse reaction rate already specified--can't specify again.");
+    return 1;
+  }
+  if (!mdlpvp->bidirectional_arrow)
+  {
+    mdlerror("Reverse rate specified but the reaction isn't reversible.");
+    return 1;
+  }
+  mdlpvp->bidirectional_arrow++; /* Hack to indicate we've read a rate */
+  mdlpvp->bkw_rate_filename = $<str>2;
 }
 	| existing_var_only
 {
   struct sym_table *gp = $<sym>1;
+  if (mdlpvp->fwd_km!=0 || mdlpvp->fwd_rate_filename!=NULL)
+  {
+    mdlerror("Forward reaction rate already specified--can't specify again.");
+    return 1;
+  }
   switch (gp->sym_type)
   {
     case DBL:
-      $$ = *(double *)gp->value;
+      mdlpvp->fwd_km = *(double *)gp->value;
       break;
     case STR:
-      $$ = 0;
-      mdlpvp->rate_filename = my_strdup((char*)gp->value);
-      if(mdlpvp->rate_filename == NULL){
-    	sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing string:",
-          (char *)gp->value);
-    	mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-    	return(1);
+      mdlpvp->fwd_rate_filename = my_strdup((char*)gp->value);
+      if(mdlpvp->fwd_rate_filename == NULL)
+      {
+	mdlerror("Out of memory while storing reaction rate filename");
+	return 1;
+      }
+      break;
+    default:
+      mdlerror("Invalid variable used for rates: must be number or filename");
+      return(1);
+      break;
+  }
+}
+	| '>' existing_var_only
+{
+  struct sym_table *gp = $<sym>2;
+  if (mdlpvp->fwd_km!=0 || mdlpvp->fwd_rate_filename!=NULL)
+  {
+    mdlerror("Forward reaction rate already specified--can't specify again.");
+    return 1;
+  }
+  switch (gp->sym_type)
+  {
+    case DBL:
+      mdlpvp->fwd_km = *(double *)gp->value;
+      break;
+    case STR:
+      mdlpvp->fwd_rate_filename = my_strdup((char*)gp->value);
+      if(mdlpvp->fwd_rate_filename == NULL)
+      {
+	mdlerror("Out of memory while storing reaction rate filename");
+	return 1;
+      }
+      break;
+    default:
+      mdlerror("Invalid variable used for rates: must be number or filename");
+      return(1);
+      break;
+  }
+}	| '<' existing_var_only
+{
+  struct sym_table *gp = $<sym>2;
+  if (mdlpvp->bkw_km!=0 || mdlpvp->bkw_rate_filename!=NULL)
+  {
+    mdlerror("Reverse reaction rate already specified--can't specify again.");
+    return 1;
+  }
+  if (!mdlpvp->bidirectional_arrow)
+  {
+    mdlerror("Reverse rate specified but the reaction isn't reversible.");
+    return 1;
+  }
+  mdlpvp->bidirectional_arrow++; /* Hack to indicate we've read a rate */
+  switch (gp->sym_type)
+  {
+    case DBL:
+      mdlpvp->bkw_km = *(double *)gp->value;
+      break;
+    case STR:
+      mdlpvp->bkw_rate_filename = my_strdup((char*)gp->value);
+      if(mdlpvp->bkw_rate_filename == NULL)
+      {
+	mdlerror("Out of memory while storing reaction rate filename");
+	return 1;
       }
       break;
     default:
@@ -8732,6 +9002,7 @@ count_value: COUNT '[' count_value_init count_syntax ']'
 {
   mdlpvp->count_flags |= TRIGGER_PRESENT;
   mdlpvp->oep->index_type=TRIGGER_VAL;
+  /* Create these just like anything else, then fix everything up later */
 }
 	count_syntax ']'
 {

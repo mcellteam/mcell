@@ -538,7 +538,7 @@ int init_sim(void)
     world->chkpt_seq_num=1;
   }
 
-  /* Cut off reaction data output files that go too late */  
+  /* Truncate reaction data output files if necessary */  
   if (world->output_block_head != NULL)
   {
     struct output_block *ob;

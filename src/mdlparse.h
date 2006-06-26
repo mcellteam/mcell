@@ -148,9 +148,11 @@ struct mdlparse_vars {
   struct product *prodp;
   double fwd_km;
   double fwd_kcat;
-  double back_km;
-  double back_kcat;
-  char *rate_filename;
+  double bkw_km;
+  double bkw_kcat;
+  char *fwd_rate_filename;
+  char *bkw_rate_filename;
+  int bidirectional_arrow;
 
   short orient_specified;  
   short orient_class;
