@@ -2273,6 +2273,13 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
         }
         no_printf("Number of free effector tiles in region %s = %d\n",rp->sym->name,n_free_eff);  
         fflush(stdout);
+
+        if(n_free_eff == 0) {
+              fprintf(log_file,"\nMCell: Warning -- Number of free effector tiles in region %s = %d\n", rp->sym->name, n_free_eff);
+              rlp = rlp->next;   
+              continue;
+        }
+ 
       if (world->chkpt_init) {  /* only needed for denovo initiliazation */
         /* allocate memory to hold array of pointers to all free tiles */
         if ((tiles=(struct grid_molecule ***)malloc
@@ -2317,6 +2324,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
         }
       } /* end while(world->chkpt_init) */
 
+
       /* distribute desired number of effector sites */
       /* for each effector type to add */
       effdp=rp->eff_dat_head;
@@ -2340,7 +2348,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
             }
             
             eff->population+=n_set;
-
+            
             no_printf("distribute %d of effector %s\n",n_set,eff->sym->name);
             no_printf("n_set = %d  n_clear = %d  n_free_eff = %d\n",n_set,n_clear,n_free_eff);
             fflush(stdout);
@@ -2459,6 +2467,9 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                 }
               }
             }
+         
+      if(n_clear > 0)
+      { 
         /* allocate memory to hold array of pointers to remaining free tiles */
             if ((tiles_tmp=(struct grid_molecule ***)malloc
                  (n_clear*sizeof(struct grid_molecule **)))==NULL) {
@@ -2497,6 +2508,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
             index=index_tmp;
             walls=walls_tmp;
             n_free_eff=n_free_eff-n_set;
+         }
 
             /* update n_occupied for each effector grid */
 	    for (i=0;i<rp->membership->nbits;i++)
