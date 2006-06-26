@@ -2831,13 +2831,21 @@ Define a reaction that occurs between one or two
 reactants
 \family default 
 \shape default 
- and produces an arbitrary number of 
+ (names of molecules, separated by 
+\family typewriter 
++
+\family default 
+) and produces an arbitrary number of 
 \family sans 
 \shape italic 
 products
 \family default 
 \shape default 
-, with a specified 
+ (also separated by 
+\family typewriter 
++
+\family default 
+), with a specified 
 \family sans 
 \shape italic 
 rate
@@ -3563,7 +3571,7 @@ So far, all examples have used the first orientation class, specified with
  Therefore:
 \begin_inset  Tabular
 <lyxtabular version="3" rows="8" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
 <row topline="true" bottomline="true" endhead="true">
@@ -3943,6 +3951,237 @@ A{0}
 A;
 \family default 
 .
+\layout Standard
+
+There are several variants of the normal reaction arrow ->.
+ One can use an arbitrary number of dashes in the arrow; 
+\family typewriter 
+->
+\family default 
+ 
+\family typewriter 
+-->
+\family default 
+ and 
+\family typewriter 
+------>
+\family default 
+ all mean the same thing, for instance.
+ In addition, the following arrows have different meanings:
+\begin_inset  Tabular
+<lyxtabular version="3" rows="5" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Reaction Arrow
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+->
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+A unidirectional reaction going from reactants (on the left) to products
+ (on the right).
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+<->
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+A bidirectional reaction going in either direction; at most two molecule
+ names can appear on each side.
+ A rate must be given for each direction using the notation 
+\family typewriter 
+[>
+\family default 
+
+\begin_inset Formula $\mathsf{{k}}_{+}$
+\end_inset 
+
+
+\family typewriter 
+ , <
+\family default 
+
+\begin_inset Formula $\mathsf{{k}}_{-}$
+\end_inset 
+
+
+\family typewriter 
+]
+\family default 
+, where 
+\begin_inset Formula $\mathsf{{k}}_{+}$
+\end_inset 
+
+ is the forward rate constant and 
+\begin_inset Formula $\mathsf{{k}}_{-}$
+\end_inset 
+
+ is the backward rate constant.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+reactant
+\family typewriter 
+\shape default 
+ -- 
+\family sans 
+\shape italic 
+catalyst
+\family typewriter 
+\shape default 
+ -> 
+\family sans 
+\shape italic 
+products
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+This specifies a catalytic reaction where 
+\family sans 
+\shape italic 
+reactant
+\family default 
+\shape default 
+ is converted to 
+\family sans 
+\shape italic 
+products
+\family default 
+\shape default 
+ in the presence of 
+\family sans 
+\shape italic 
+catalyst
+\family default 
+\shape default 
+.
+ This is the same as the reaction 
+\family sans 
+\shape italic 
+catalyst
+\family default 
+\shape default 
+ + 
+\family sans 
+\shape italic 
+reactant
+\family default 
+\shape default 
+ -> 
+\family sans 
+\shape italic 
+catalyst
+\family default 
+\shape default 
+ + 
+\family sans 
+\shape italic 
+products
+\family default 
+\shape default 
+.
+ Presently, there can only be one reactant.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+reactant
+\family typewriter 
+\shape default 
+ <- 
+\family sans 
+\shape italic 
+catalyst
+\family typewriter 
+\shape default 
+ -> 
+\family sans 
+\shape italic 
+product
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+A bidirectional catalytic reaction.
+ There can only be one reactant and one product.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
 \layout Subsection
 
 Geometry definition commands
