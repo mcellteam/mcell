@@ -88,10 +88,6 @@ int read_chkpt(FILE *fs)
     fread(&cmd,sizeof cmd,1,fs);
     done = feof(fs);
     if (!done) {
-/*
-      fprintf(stderr,"***** next cmd = %d\n",cmd);
-      fflush(stderr);
-*/
       io_bytes+=sizeof cmd;
       switch (cmd) {
       case CURRENT_TIME_CMD:
@@ -170,12 +166,12 @@ int write_byte_order(FILE *fs)
    byte cmd = BYTE_ORDER_CMD;
 
    if (!fwrite(&cmd,sizeof cmd,1,fs)) {
-      fprintf(stderr,"MCell: write_byte_order error in 'chkpt.c'.\n");
+      fprintf(stderr,"File %s, Line %ld: write_byte_order error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
       return(1);
    }
    io_bytes+=sizeof cmd;
    if (!fwrite(&byte_order,sizeof (byte_order),1,fs)) {
-     fprintf(stderr,"MCell: write_byte_order error in 'chkpt.c'.\n");
+     fprintf(stderr,"File %s, Line %ld: write_byte_order error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      return(1);
    }
    io_bytes+=sizeof (byte_order);
@@ -207,7 +203,7 @@ int read_byte_order(FILE *fs)
    }
 
    if (!fread(&(byte_order_read),sizeof (byte_order_read),1,fs)) {
-      fprintf(stderr,"MCell: read_byte_order error in 'chkpt.c'.\n");
+      fprintf(stderr,"File %s, Line %ld: read_byte_order error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
       return(1);
    }
    io_bytes+=sizeof (byte_order_read);
@@ -218,11 +214,7 @@ int read_byte_order(FILE *fs)
 	world->chkpt_byte_order_mismatch = 1;
    }
 
-/*
-  fprintf(stderr,"read_byte_order io_bytes = %d\n",io_bytes);
-  fflush(stderr);
-*/
-  return(0);
+   return(0);
 
 
 }
@@ -240,21 +232,16 @@ int write_current_real_time(FILE *fs)
   byte cmd = CURRENT_TIME_CMD;
 
   if (!fwrite(&cmd,sizeof cmd,1,fs)) {
-    fprintf(stderr,"MCell: write_current_real_time error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: write_current_real_time error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
   io_bytes+=sizeof cmd;
   if (!fwrite(&(world->current_real_time),sizeof (world->current_real_time),1,fs)) {
-    fprintf(stderr,"MCell: write_current_real_time error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: write_current_real_time error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
   io_bytes+=sizeof (world->current_real_time);
 
-
-/*
-  fprintf(stderr,"write_current_real_time io_bytes = %d\n",io_bytes);
-  fflush(stderr);
-*/
   return(0);
 }
 
@@ -273,7 +260,7 @@ int read_current_real_time(FILE *fs)
 
   byte_array = NULL;
   if (!fread(&(tmp1),sizeof(tmp1),1,fs)) {
-    fprintf(stderr,"MCell: read_current_time error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: read_current_time error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
 
@@ -282,7 +269,7 @@ int read_current_real_time(FILE *fs)
      /* we need to swap bytes here. */
      byte_array = byte_swap((unsigned char *)&tmp1);
      if(byte_array == NULL) {
-    	fprintf(stderr,"MCell: read_current_time error in 'chkpt.c'.\n");
+    	fprintf(stderr,"File %s, Line %ld: read_current_time error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	return(1);
      }
      tmp2 = *(double *)byte_array;
@@ -312,7 +299,7 @@ int create_molecule_scheduler()
   
   start_time = world->current_start_real_time/world->time_unit;
   if((world->storage_head->store->timer = create_scheduler(1.0,100.0,100,start_time)) == NULL){
-     fprintf(stderr, "Out of memory while creating molecule scheduler.\n");
+     fprintf(stderr, "File %s, Line %ld: Out of memory while creating molecule scheduler.\n", __FILE__, (long)__LINE__);
      return 1;
   }
   world->storage_head->store->current_time = start_time;
@@ -337,12 +324,12 @@ int write_current_iteration(FILE *fs)
   }
   io_bytes+=sizeof cmd;
   if (!fwrite(&(world->it_time),sizeof (world->it_time),1,fs)) {
-    fprintf(stderr,"MCell: write_current_iteration error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: write_current_iteration error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
   io_bytes+=sizeof (world->it_time);
   if (!fwrite(&(world->chkpt_elapsed_real_time),sizeof (world->chkpt_elapsed_real_time),1,fs)) {
-    fprintf(stderr,"MCell: write_current_iteration error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: write_current_iteration error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
   io_bytes+=sizeof (world->chkpt_elapsed_real_time);
@@ -370,7 +357,7 @@ int read_current_iteration(FILE *fs)
   byte_array = NULL;
 
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
-    fprintf(stderr,"MCell: read_current_iteration error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: read_current_iteration error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
 
@@ -379,7 +366,7 @@ int read_current_iteration(FILE *fs)
      /* we need to swap bytes here. */
      byte_array = byte_swap((unsigned char *)&tmp1);
      if(byte_array == NULL) {
-    	fprintf(stderr,"MCell: read_current_iteration error in 'chkpt.c'.\n");
+    	fprintf(stderr,"File %s, Line %ld: read_current_iteration error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	return(1);
      }
      tmp2 = *(long long *)byte_array;
@@ -391,7 +378,7 @@ int read_current_iteration(FILE *fs)
 
   byte_array = NULL;
   if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
-    fprintf(stderr,"MCell: read_current_iteration error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: read_current_iteration error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
   if(world->chkpt_byte_order_mismatch == 1)
@@ -399,7 +386,7 @@ int read_current_iteration(FILE *fs)
      /* we need to swap bytes here. */
      byte_array = byte_swap((unsigned char *)&tmp3);
      if(byte_array == NULL) {
-    	fprintf(stderr,"MCell: read_current_iteration error in 'chkpt.c'.\n");
+    	fprintf(stderr,"File %s, Line %ld: read_current_iteration error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	return(1);
      }
      tmp4 = *(double *)byte_array;
@@ -430,12 +417,12 @@ int write_chkpt_seq_num(FILE *fs)
   byte cmd = CHKPT_SEQ_NUM_CMD;
 
   if (!fwrite(&cmd,sizeof cmd,1,fs)) {
-    fprintf(stderr,"MCell: write_chkpt_seq_number error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: write_chkpt_seq_number error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
   io_bytes+=sizeof cmd;
   if (!fwrite(&(world->chkpt_seq_num),sizeof (world->chkpt_seq_num),1,fs)) {
-    fprintf(stderr,"MCell: write_chkpt_seq_number error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: write_chkpt_seq_number error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
   io_bytes+=sizeof (world->chkpt_seq_num);
@@ -461,7 +448,7 @@ int read_chkpt_seq_num(FILE *fs)
 
   byte_array = NULL;
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
-    fprintf(stderr,"MCell: read_chkpt_seq_number error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: read_chkpt_seq_number error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
   if(world->chkpt_byte_order_mismatch == 1)
@@ -469,7 +456,7 @@ int read_chkpt_seq_num(FILE *fs)
      /* we need to swap bytes here. */
      byte_array = byte_swap((unsigned char *)&tmp1);
      if(byte_array == NULL) {
-    	fprintf(stderr,"MCell: read_chkpt_seq_number error in 'chkpt.c'.\n");
+    	fprintf(stderr,"File %s, Line %ld: read_chkpt_seq_number error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	return(1);
      }
      tmp2 = *(u_int *)byte_array;
@@ -491,7 +478,7 @@ int read_chkpt_seq_num(FILE *fs)
 /***************************************************************************
 write_rng_state:
 In:  fs - checkpoint file to write to.
-Out: Writes seed values to the checkpoint file. 
+Out: Writes random number generator state to the checkpoint file. 
      Returns 1 on error, and 0 - on success.
 
 ***************************************************************************/
@@ -501,28 +488,28 @@ int write_rng_state(FILE *fs)
   byte cmd = RNG_STATE_CMD;
   
   if (!fwrite(&cmd,sizeof cmd,1,fs)) {
-    fprintf(stderr,"MCell: write_rng_state error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: write_rng_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
   io_bytes+=sizeof cmd;
   if (!fwrite(&(world->rng->randcnt),sizeof (world->rng->randcnt),1,fs)) {
-    fprintf(stderr,"MCell: write_rng_state error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: write_rng_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
   io_bytes+=sizeof (world->rng->randcnt);
   if (!fwrite(&(world->rng->aa),sizeof (world->rng->aa),1,fs)) {
-    fprintf(stderr,"MCell: write_rng_state error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: write_rng_state error in 'chkpt.c'.\n",  __FILE__, (long)__LINE__);
     return(1);
   }
   io_bytes+=sizeof (world->rng->aa);
 
   if (!fwrite(&(world->rng->bb),sizeof (world->rng->bb),1,fs)) {
-    fprintf(stderr,"MCell: write_rng_state error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: write_rng_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
   io_bytes+=sizeof (world->rng->bb);
   if (!fwrite(&(world->rng->cc),sizeof (world->rng->cc),1,fs)) {
-    fprintf(stderr,"MCell: write_rng_state error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: write_rng_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
   io_bytes+=sizeof (world->rng->cc);
@@ -531,7 +518,7 @@ int write_rng_state(FILE *fs)
   for(i = 0; i < RANDSIZ; i++)
   {
   	if (!fwrite(&(world->rng->randrsl[i]),sizeof (world->rng->randrsl[i]),1,fs)) {
-    		fprintf(stderr,"MCell: write_rng_state error in 'chkpt.c'.\n");
+    		fprintf(stderr,"File %s, Line %ld: write_rng_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     		return(1);
   	}
   	io_bytes+=sizeof (world->rng->randrsl[i]);
@@ -540,7 +527,7 @@ int write_rng_state(FILE *fs)
   for(i = 0; i < RANDSIZ; i++)
   {
   	if (!fwrite(&(world->rng->mm[i]),sizeof (world->rng->mm[i]),1,fs)) {
-    		fprintf(stderr,"MCell: write_rng_state error in 'chkpt.c'.\n");
+    		fprintf(stderr,"File %s, Line %ld: write_rng_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     		return(1);
   	}
   	io_bytes+=sizeof (world->rng->mm[i]);
@@ -559,7 +546,7 @@ int write_rng_state(FILE *fs)
 /***************************************************************************
 read_rng_state:
 In:  fs - checkpoint file to read from.
-Out: Reads seed values from the checkpoint file. 
+Out: Reads random number generator state from the checkpoint file. 
      Returns 1 on error, and 0 - on success.
 
 ***************************************************************************/
@@ -573,7 +560,7 @@ int read_rng_state(FILE *fs)
 
   byte_array = NULL;
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
-    fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: read_rng_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
   if(world->chkpt_byte_order_mismatch == 1)
@@ -581,7 +568,7 @@ int read_rng_state(FILE *fs)
      /* we need to swap bytes here. */
      byte_array = byte_swap((unsigned char *)&tmp1);
      if(byte_array == NULL) {
-    	fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
+    	fprintf(stderr,"File %s, Line %ld: read_rng_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	return(1);
      }
      tmp2 = *(int *)byte_array;
@@ -593,7 +580,7 @@ int read_rng_state(FILE *fs)
   
   byte_array = NULL;
   if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
-    fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: read_rng_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
   if(world->chkpt_byte_order_mismatch == 1)
@@ -601,7 +588,7 @@ int read_rng_state(FILE *fs)
      /* we need to swap bytes here. */
      byte_array = byte_swap((unsigned char *)&tmp3);
      if(byte_array == NULL) {
-    	fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
+    	fprintf(stderr,"File %s, Line %ld: read_rng_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	return(1);
      }
      tmp4 = *(ub8 *)byte_array;
@@ -613,7 +600,7 @@ int read_rng_state(FILE *fs)
 
   byte_array = NULL;
   if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
-    fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: read_rng_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
   if(world->chkpt_byte_order_mismatch == 1)
@@ -621,7 +608,7 @@ int read_rng_state(FILE *fs)
      /* we need to swap bytes here. */
      byte_array = byte_swap((unsigned char *)&tmp3);
      if(byte_array == NULL) {
-    	fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
+    	fprintf(stderr,"File %s, Line %ld: read_rng_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	return(1);
      }
      tmp4 = *(ub8 *)byte_array;
@@ -633,7 +620,7 @@ int read_rng_state(FILE *fs)
 
   byte_array = NULL;
   if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
-    fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
+    fprintf(stderr,"File %s, Line %ld: read_rng_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
   if(world->chkpt_byte_order_mismatch == 1)
@@ -641,7 +628,7 @@ int read_rng_state(FILE *fs)
      /* we need to swap bytes here. */
      byte_array = byte_swap((unsigned char *)&tmp3);
      if(byte_array == NULL) {
-    	fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
+    	fprintf(stderr,"File %s, Line %ld: read_rng_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	return(1);
      }
      tmp4 = *(ub8 *)byte_array;
@@ -655,7 +642,7 @@ int read_rng_state(FILE *fs)
   for(i = 0; i < RANDSIZ; i++)
   {
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
-    		fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
+    		fprintf(stderr,"File %s, Line %ld: read_rng_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     		return(1);
   	}
         if(world->chkpt_byte_order_mismatch == 1)
@@ -663,7 +650,7 @@ int read_rng_state(FILE *fs)
           	/* we need to swap bytes here. */
      		byte_array = byte_swap((unsigned char *)&tmp3);
      		if(byte_array == NULL) {
-    			fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
+    			fprintf(stderr,"File %s, Line %ld: read_rng_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     			return(1);
      		}
      		tmp4 = *(ub8 *)byte_array;
@@ -679,7 +666,7 @@ int read_rng_state(FILE *fs)
   for(i = 0; i < RANDSIZ; i++)
   {
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
-    		fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
+    		fprintf(stderr,"File %s, Line %ld: read_rng_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     		return(1);
   	}
         if(world->chkpt_byte_order_mismatch == 1)
@@ -687,7 +674,7 @@ int read_rng_state(FILE *fs)
           	/* we need to swap bytes here. */
      		byte_array = byte_swap((unsigned char *)&tmp3);
      		if(byte_array == NULL) {
-    			fprintf(stderr,"MCell: read_rng_state error in 'chkpt.c'.\n");
+    			fprintf(stderr,"File %s, Line %ld: read_rng_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     			return(1);
      		}
      		tmp4 = *(ub8 *)byte_array;
@@ -695,7 +682,7 @@ int read_rng_state(FILE *fs)
   	}else{
      		world->rng->mm[i] = tmp3;
   	}
-  	io_bytes+=sizeof (world->rng->randrsl[i]);
+  	io_bytes+=sizeof (world->rng->mm[i]);
 	
   }  
 
@@ -725,7 +712,7 @@ int write_species_table(FILE *fs)
 
 
   if (!fwrite(&cmd,sizeof cmd,1,fs)) {
-     fprintf(stderr,"MCell: write_species_table error in 'chkpt.c'.\n");
+     fprintf(stderr,"FILE %s, Line %ld: write_species_table error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      return(1);
   }
   io_bytes+=sizeof cmd;
@@ -737,7 +724,7 @@ int write_species_table(FILE *fs)
         if(world->species_list[i]->population > 0) count++;
   }
   if (!fwrite(&(count),sizeof (count),1,fs)) {
-     	fprintf(stderr,"MCell: write_species_table error in 'chkpt.c'.\n");
+     	fprintf(stderr,"File %s, Line %ld: write_species_table error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      	return(1);
   }
   io_bytes+=sizeof(count);
@@ -753,7 +740,7 @@ int write_species_table(FILE *fs)
         
         /* write species name length. */
         if (!fwrite(&(species_name_length),sizeof (species_name_length),1,fs)) {
-     		fprintf(stderr,"MCell: write_species_table error in 'chkpt.c'.\n");
+     		fprintf(stderr,"File %s, Line %ld: write_species_table error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      		return(1);
   	}
         io_bytes+=sizeof(species_name_length);
@@ -762,7 +749,7 @@ int write_species_table(FILE *fs)
         for(j = 0; j < species_name_length; j++)
         {
    		if (!fwrite(&(species_name[j]),sizeof (char),1,fs)) 	{
-      			fprintf(stderr,"MCell: write_species_table error in 'chkpt.c'.\n");
+      			fprintf(stderr,"File %s, Line %ld: write_species_table error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
       			return(1);
    		}
    	}
@@ -770,7 +757,7 @@ int write_species_table(FILE *fs)
         
         /* write species ID. */
         if (!fwrite(&(sp_id),sizeof (sp_id),1,fs)) {
-     		fprintf(stderr,"MCell: write_species_table error in 'chkpt.c'.\n");
+     		fprintf(stderr,"File %s, Line %ld: write_species_table error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      		return(1);
   	}
         io_bytes+=sizeof(sp_id);
@@ -807,7 +794,7 @@ int read_species_table(FILE *fs)
   byte_array = NULL;
   /* read total number of species written. */
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
-     fprintf(stderr,"MCell: read_species_table error in 'chkpt.c'.\n");
+     fprintf(stderr,"File %s, Line %ld: read_species_table error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      return(1);
   }
   if(world->chkpt_byte_order_mismatch == 1)
@@ -815,7 +802,7 @@ int read_species_table(FILE *fs)
      /* we need to swap bytes here. */
      byte_array = byte_swap((unsigned char *)&tmp1);
      if(byte_array == NULL) {
-    	fprintf(stderr,"MCell: read_species_table error in 'chkpt.c'.\n");
+    	fprintf(stderr,"File %s, Line %ld: read_species_table error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	return(1);
      }
      tmp2 = *(u_int *)byte_array;
@@ -830,7 +817,7 @@ int read_species_table(FILE *fs)
       byte_array = NULL;
      /* read name length for this species */
      if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
-        fprintf(stderr,"MCell: read_species_table error in 'chkpt.c'.\n");
+        fprintf(stderr,"File %s, Line %ld: read_species_table error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
         return(1);
      }
      if(world->chkpt_byte_order_mismatch == 1)
@@ -838,7 +825,7 @@ int read_species_table(FILE *fs)
         /* we need to swap bytes here. */
         byte_array = byte_swap((unsigned char *)&tmp1);
         if(byte_array == NULL) {
-    	   fprintf(stderr,"MCell: read_species_table error in 'chkpt.c'.\n");
+    	   fprintf(stderr,"File %s, Line %ld: read_species_table error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	   return(1);
         }
         tmp2 = *(u_int *)byte_array;
@@ -854,7 +841,7 @@ int read_species_table(FILE *fs)
      for(j = 0; j < sp_name_length; j++)
      {
    	if (!fread(&(sp_name[j]),sizeof (char),1,fs)) 	{
-      		fprintf(stderr,"MCell: read_species_table error in 'chkpt.c'.\n");
+      		fprintf(stderr,"File %s, Line %ld: read_species_table error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
       		return(1);
    	}
      }
@@ -864,7 +851,7 @@ int read_species_table(FILE *fs)
      /* read the species id */
      byte_array = NULL;
      if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
-        fprintf(stderr,"MCell: read_species_table error in 'chkpt.c'.\n");
+        fprintf(stderr,"File %s, Line %ld: read_species_table error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
         return(1);
      }
      if(world->chkpt_byte_order_mismatch == 1)
@@ -872,7 +859,7 @@ int read_species_table(FILE *fs)
            /* we need to swap bytes here. */
            byte_array = byte_swap((unsigned char *)&tmp1);
            if(byte_array == NULL) {
-    	      fprintf(stderr,"MCell: read_species_table error in 'chkpt.c'.\n");
+    	      fprintf(stderr,"File %s, Line %ld: read_species_table error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	      return(1);
            }
            tmp2 = *(u_int *)byte_array;
@@ -923,7 +910,7 @@ int write_mol_scheduler_state(FILE *fs)
   int i;
 
   if (!fwrite(&cmd,sizeof cmd,1,fs)) {
-     fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     fprintf(stderr,"File %s, Line %ld: write_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      return(1);
   }
   io_bytes+=sizeof cmd;
@@ -947,7 +934,7 @@ int write_mol_scheduler_state(FILE *fs)
    }
     /* write total number of items in the scheduler */
     if (!fwrite(&(total_items),sizeof (total_items),1,fs)) {
-     	fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     	fprintf(stderr,"File %s, Line %ld: write_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      	return(1);
     }
     io_bytes+=sizeof(total_items);
@@ -967,7 +954,7 @@ int write_mol_scheduler_state(FILE *fs)
             {
 		mp = (struct molecule *)amp;
                 if(mp->previous_wall != NULL  && mp->index>=0) {
-                   fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\nThe value of 'previous_grid' is not NULL.\n");
+                   fprintf(stderr,"File %s, Line %ld: write_mol_scheduler_state error in 'chkpt.c'.\nThe value of 'previous_grid' is not NULL.\n", __FILE__, (long)__LINE__);
                 }
                 where.x = mp->pos.x;
                 where.y = mp->pos.y;
@@ -983,11 +970,11 @@ int write_mol_scheduler_state(FILE *fs)
           
             /* write chkpt_species ID. */
             if(amp->properties->chkpt_species_id == UINT_MAX){
-     		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     		fprintf(stderr,"File %s, Line %ld: write_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      		return(1);
   	    }
             if (!fwrite(&(amp->properties->chkpt_species_id),sizeof (amp->properties->chkpt_species_id),1,fs)) {
-     		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     		fprintf(stderr,"File %s, Line %ld: write_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      		return(1);
   	    }
             io_bytes+=sizeof(amp->properties->chkpt_species_id);
@@ -1000,52 +987,52 @@ int write_mol_scheduler_state(FILE *fs)
 		act_newbie_flag = HAS_NOT_ACT_NEWBIE;
             }
             if (!fwrite(&act_newbie_flag,sizeof (act_newbie_flag),1,fs)) {
-                fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+                fprintf(stderr,"File %s, Line %ld: write_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
                 return(1);
             }
             io_bytes+=sizeof (act_newbie_flag);
    
             /* write molecule schedule time */
             if (!fwrite(&(amp->t),sizeof (amp->t),1,fs)) {
-     		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     		fprintf(stderr,"File %s, Line %ld: write_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__,(long) __LINE__);
      		return(1);
   	    }
             io_bytes+=sizeof(amp->t);
             
             /* write molecule lifetime */
             if (!fwrite(&(amp->t2),sizeof (amp->t2),1,fs)) {
-     		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     		fprintf(stderr,"File %s, Line %ld: write_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      		return(1);
   	    }
             io_bytes+=sizeof(amp->t2);
 
             /* write molecule birthday */
             if (!fwrite(&(amp->birthday),sizeof (amp->birthday),1,fs)) {
-     		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     		fprintf(stderr,"File %s, Line %ld: write_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      		return(1);
   	    }
             io_bytes+=sizeof(amp->birthday);
 
             /* write molecule position */
             if (!fwrite(&(where.x),sizeof (where.x),1,fs)) {
-     		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     		fprintf(stderr,"File %s, Line %ld: write_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      		return(1);
   	    }
             io_bytes+=sizeof(where.x);
             if (!fwrite(&(where.y),sizeof (where.y),1,fs)) {
-     		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     		fprintf(stderr,"File %s, Line %ld: write_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      		return(1);
   	    }
             io_bytes+=sizeof(where.y);
             if (!fwrite(&(where.z),sizeof (where.z),1,fs)) {
-     		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     		fprintf(stderr,"File %s, Line %ld: write_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      		return(1);
   	    }
             io_bytes+=sizeof(where.z);
              
             /* write molecule orientation */
             if (!fwrite(&(orient),sizeof (orient),1,fs)) {
-     		fprintf(stderr,"MCell: write_mol_scheduler_state error in 'chkpt.c'.\n");
+     		fprintf(stderr,"File %s, Line %ld: write_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      		return(1);
   	    }
             io_bytes+=sizeof(orient);
@@ -1088,7 +1075,7 @@ int read_mol_scheduler_state(FILE *fs)
 
   /* read total number of items in the scheduler. */
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
-     fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+     fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      return(1);
   }
   if(world->chkpt_byte_order_mismatch == 1)
@@ -1096,7 +1083,7 @@ int read_mol_scheduler_state(FILE *fs)
      /* we need to swap bytes here. */
      byte_array = byte_swap((unsigned char *)&tmp1);
      if(byte_array == NULL) {
-    	fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+    	fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	return(1);
      }
      tmp2 = *(u_int *)byte_array;
@@ -1111,7 +1098,7 @@ int read_mol_scheduler_state(FILE *fs)
   {
   	/* read chkpt_species_id */
   	if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
-     	   fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+     	   fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      	   return(1);
   	}
   	if(world->chkpt_byte_order_mismatch == 1)
@@ -1119,7 +1106,7 @@ int read_mol_scheduler_state(FILE *fs)
      	   /* we need to swap bytes here. */
      	   byte_array = byte_swap((unsigned char *)&tmp1);
      	   if(byte_array == NULL) {
-              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+              fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	      return(1);
            }
            tmp2 = *(u_int *)byte_array;
@@ -1131,14 +1118,14 @@ int read_mol_scheduler_state(FILE *fs)
 
         /*read molecule ACT_NEWBIE flag */        
         if (!fread(&act_newbie_flag,sizeof (act_newbie_flag),1,fs)) {
-             fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+             fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
              return(1);
         }
         io_bytes+=sizeof (act_newbie_flag);
 
   	/* read molecule schedule time */
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
-     	   fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+     	   fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      	   return(1);
   	}
   	if(world->chkpt_byte_order_mismatch == 1)
@@ -1146,7 +1133,7 @@ int read_mol_scheduler_state(FILE *fs)
      	   /* we need to swap bytes here. */
      	   byte_array = byte_swap((unsigned char *)&tmp3);
      	   if(byte_array == NULL) {
-              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+              fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	      return(1);
            }
            tmp4 = *(double *)byte_array;
@@ -1158,7 +1145,7 @@ int read_mol_scheduler_state(FILE *fs)
 
   	/* read molecule lifetime */
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
-     	   fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+     	   fprintf(stderr,"FILE %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      	   return(1);
   	}
   	if(world->chkpt_byte_order_mismatch == 1)
@@ -1166,7 +1153,7 @@ int read_mol_scheduler_state(FILE *fs)
      	   /* we need to swap bytes here. */
      	   byte_array = byte_swap((unsigned char *)&tmp3);
      	   if(byte_array == NULL) {
-              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+              fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	      return(1);
            }
            tmp4 = *(double *)byte_array;
@@ -1178,7 +1165,7 @@ int read_mol_scheduler_state(FILE *fs)
   	
         /* read molecule birthday */
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
-     	   fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+     	   fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      	   return(1);
   	}
   	if(world->chkpt_byte_order_mismatch == 1)
@@ -1186,7 +1173,7 @@ int read_mol_scheduler_state(FILE *fs)
      	   /* we need to swap bytes here. */
      	   byte_array = byte_swap((unsigned char *)&tmp3);
      	   if(byte_array == NULL) {
-              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+              fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	      return(1);
            }
            tmp4 = *(double *)byte_array;
@@ -1198,7 +1185,7 @@ int read_mol_scheduler_state(FILE *fs)
 
   	/* read molecule x-coordinate */
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
-     	   fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+     	   fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      	   return(1);
   	}
   	if(world->chkpt_byte_order_mismatch == 1)
@@ -1206,7 +1193,7 @@ int read_mol_scheduler_state(FILE *fs)
      	   /* we need to swap bytes here. */
      	   byte_array = byte_swap((unsigned char *)&tmp3);
      	   if(byte_array == NULL) {
-              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+              fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	      return(1);
            }
            tmp4 = *(double *)byte_array;
@@ -1218,7 +1205,7 @@ int read_mol_scheduler_state(FILE *fs)
 
   	/* read molecule y-coordinate */
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
-     	   fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+     	   fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      	   return(1);
   	}
   	if(world->chkpt_byte_order_mismatch == 1)
@@ -1226,7 +1213,7 @@ int read_mol_scheduler_state(FILE *fs)
      	   /* we need to swap bytes here. */
      	   byte_array = byte_swap((unsigned char *)&tmp3);
      	   if(byte_array == NULL) {
-              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+              fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	      return(1);
            }
            tmp4 = *(double *)byte_array;
@@ -1238,7 +1225,7 @@ int read_mol_scheduler_state(FILE *fs)
 
   	/* read molecule z-coordinate */
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
-     	   fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+     	   fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      	   return(1);
   	}
   	if(world->chkpt_byte_order_mismatch == 1)
@@ -1246,7 +1233,7 @@ int read_mol_scheduler_state(FILE *fs)
      	   /* we need to swap bytes here. */
      	   byte_array = byte_swap((unsigned char *)&tmp3);
      	   if(byte_array == NULL) {
-              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+              fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	      return(1);
            }
            tmp4 = *(double *)byte_array;
@@ -1258,7 +1245,7 @@ int read_mol_scheduler_state(FILE *fs)
 
   	/* read molecule orientation */
   	if (!fread(&(tmp5),sizeof (tmp5),1,fs)) {
-     	   fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+     	   fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
      	   return(1);
   	}
   	if(world->chkpt_byte_order_mismatch == 1)
@@ -1266,7 +1253,7 @@ int read_mol_scheduler_state(FILE *fs)
      	   /* we need to swap bytes here. */
      	   byte_array = byte_swap((unsigned char *)&tmp5);
      	   if(byte_array == NULL) {
-              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\n");
+              fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     	      return(1);
            }
            tmp6 = *(short *)byte_array;
@@ -1285,7 +1272,7 @@ int read_mol_scheduler_state(FILE *fs)
            }           
         }
         if(properties == NULL){
-           fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\nCannot set up species type for the molecule.\n");
+           fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\nCannot set up species type for the molecule.\n", __FILE__, (long)__LINE__);
     	   return(1);
         }
 
@@ -1322,7 +1309,7 @@ int read_mol_scheduler_state(FILE *fs)
           guess = insert_molecule(mp, guess);  
           if(guess == NULL)
            {
-              fprintf(stderr,"MCell: read_mol_scheduler_state error in 'chkpt.c'.\nCannot insert copy of molecule into world.\n");
+              fprintf(stderr,"File %s, Line %ld: read_mol_scheduler_state error in 'chkpt.c'.\nCannot insert copy of molecule into world.\n", __FILE__, (long)__LINE__);
     	      return(1);
            }
         }else{    /* grid_molecule */
@@ -1367,7 +1354,7 @@ int write_mcell_version(FILE *fs)
    
    byte cmd = MCELL_VERSION_CMD;
    if (!fwrite(&cmd,sizeof cmd,1,fs)) {
-      fprintf(stderr,"MCell: write_mcell_version error in 'chkpt.c'.\n");
+      fprintf(stderr,"File %s, Line %ld: write_mcell_version error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
       return(1);
    }
    io_bytes+=sizeof cmd;
@@ -1375,7 +1362,7 @@ int write_mcell_version(FILE *fs)
    /* write number of characters in the MCell version string. */    
    version_length = (u_int)(strlen(world->mcell_version));
    if (!fwrite(&version_length,sizeof (version_length),1,fs)) {
-      fprintf(stderr,"MCell: write_mcell_version error in 'chkpt.c'.\n");
+      fprintf(stderr,"File %s, Line %ld: write_mcell_version error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
       return(1);
    }
    io_bytes+=sizeof (version_length);
@@ -1383,7 +1370,7 @@ int write_mcell_version(FILE *fs)
    for(i = 0; i < version_length; i++)
    {        
    	if (!fwrite(&(world->mcell_version[i]),sizeof (char),1,fs)) 	{
-      		fprintf(stderr,"MCell: write_mcell_version error in 'chkpt.c'.\n");
+      		fprintf(stderr,"File %s, Line %ld: write_mcell_version error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
       		return(1);
    	}
    }
@@ -1410,7 +1397,7 @@ int read_mcell_version(FILE *fs)
    
    /* read number of characters in the MCell version string. */    
    if (!fread(&version_length,sizeof (u_int),1,fs)) {
-      fprintf(stderr,"MCell: read_mcell_version error in 'chkpt.c'.\n");
+      fprintf(stderr,"File %s, Line %ld: read_mcell_version error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
       return(1);
    }
     
@@ -1423,7 +1410,7 @@ int read_mcell_version(FILE *fs)
    {
          
    	if (!fread(&(mcell_version_read[i]),sizeof (char), 1,fs)) {
-      		fprintf(stderr,"MCell: read_mcell_version error in 'chkpt.c'.\n");
+      		fprintf(stderr,"File %s, Line %ld: read_mcell_version error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
       		return(1);
    	}
            
