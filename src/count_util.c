@@ -212,7 +212,7 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
             nrl = (struct region_list*) mem_get(rmem);
 	    if (nrl==NULL)
 	    {
-	      fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+	      fprintf(stderr, "File '%s', Line %ld:  Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
 	      i = emergency_output();
 	      fprintf(stderr, "Fatal error: out of memory while finding enclosing regions.\nAttempt to write intermediate results had %d errors\n", i);
 	      exit(EXIT_FAILURE);
@@ -323,12 +323,12 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
       {
 	if ((delta.x*delta.x + delta.y*delta.y + delta.z*delta.z) < EPS_C*EPS_C)
 	{
-	  printf("Didn't quite reach waypoint target, fudging.\n");
+	  fprintf(world->log_file, "File '%s', Line %ld: Didn't quite reach waypoint target, fudging.\n", __FILE__, (long)__LINE__);
 	  traveling = 0;
 	}
 	else
 	{
-	  printf("Couldn't reach waypoint target.  What's wrong?\n");
+	  fprintf(world->log_file, "File '%s', Line %ld: Couldn't reach waypoint target.\n", __FILE__, (long)__LINE__);
 	  sv = find_subvolume(&outside , NULL);
 	}
       }
@@ -554,7 +554,7 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
     COUNT_flag = COUNT_CONTENTS;
   }
   
-  //printf("Counting %x by region (up by %d)!\n",(int)me,n);
+  /* printf("Counting %x by region (up by %d)!\n",(int)me,n); */
   
   if ((sp->flags & ON_GRID) != 0)
   {
@@ -767,7 +767,7 @@ int check_region_counters()
 	}
 	
 	if (rp->manifold_flag==NOT_MANIFOLD) {
-	  fprintf(log_file,"MCell: error, cannot count molecules or events inside non-manifold object region: %s\n",rp->sym->name); 
+	  fprintf(log_file,"File '%s', Line %ld: error, cannot count molecules or events inside non-manifold object region: %s\n", __FILE__, (long)__LINE__, rp->sym->name); 
 	  return (1);
 	}
       }

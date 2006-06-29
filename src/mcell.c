@@ -92,13 +92,13 @@ void run_sim(void)
       if (req==NULL) continue;
       if ( release_molecules(req) )
       {
-	fprintf(world->err_file,"Out of memory while releasing molecules of type %s\n",req->release_site->mol_type->sym->name);
+	fprintf(world->err_file,"File '%s', Line %ld: Out of memory while releasing molecules of type %s\n", __FILE__, (long)__LINE__, req->release_site->mol_type->sym->name);
 	return;
       }
     }
     if (world->releaser->error)
     {
-      fprintf(world->err_file,"Out of memory while scheduling molecule release. Trying to save intermediate results.\n");
+      fprintf(world->err_file,"File '%s', Line %ld: Out of memory while scheduling molecule release. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
       i = emergency_output();
       fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
       exit( EXIT_FAILURE );
@@ -111,7 +111,7 @@ void run_sim(void)
       if (obp==NULL) continue;
       if (update_reaction_output(obp))
       {
-	fprintf(world->err_file,"Error while updating reaction output. Trying to save intermediate results\n");
+	fprintf(world->err_file,"File '%s', Line %ld: Error while updating reaction output. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
 	i = emergency_output();
 	fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
 	exit( EXIT_FAILURE );
@@ -119,7 +119,7 @@ void run_sim(void)
     }
     if (world->count_scheduler->error)
     {
-      fprintf(world->err_file,"Out of memory while scheduling molecule release. Trying to save intermediate results.\n");
+      fprintf(world->err_file,"File '%s', Line %ld: Out of memory while scheduling molecule release. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
       i = emergency_output();
       fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
       exit( EXIT_FAILURE );
@@ -157,7 +157,7 @@ void run_sim(void)
   /* write output checkpoint file */
   if ((world->it_time - world->start_time)==world->chkpt_iterations && world->chkpt_outfile) {
     if ((world->chkpt_outfs=fopen(world->chkpt_outfile,"wb"))==NULL) {
-      fprintf(world->log_file,"MCell: fatal error cannot write checkpoint file %s\n",world->chkpt_outfile);
+      fprintf(world->err_file,"File '%s', Line %ld: fatal error cannot write checkpoint file %s\n", __FILE__, (long)__LINE__, world->chkpt_outfile);
       exit(1);
     }
     else {
@@ -165,7 +165,7 @@ void run_sim(void)
       world->chkpt_elapsed_real_time = world->chkpt_elapsed_real_time + world->chkpt_iterations*world->time_unit;
       world->current_real_time = world->it_time*world->time_unit;
       if (write_chkpt(world->chkpt_outfs)) {
-	fprintf(world->log_file,"MCell: error writing checkpoint file %s\n",world->chkpt_outfile);
+	fprintf(world->err_file,"File '%s', Line %ld: error writing checkpoint file %s\n", __FILE__, (long)__LINE__, world->chkpt_outfile);
 	exit(1);
       }
       fclose(world->chkpt_outfs);
@@ -281,7 +281,7 @@ int main(int argc, char **argv) {
   err_file=stderr;
 
   if ((world=(struct volume *)malloc(sizeof(struct volume)))==NULL) {
-    fprintf(err_file,"MCell: Out of memory while creating world volume data structure\n");
+    fprintf(err_file,"File '%s', Line %ld: Out of memory while creating world volume data structure.\n", __FILE__, (long)__LINE__);
     exit(EXIT_FAILURE);
   }
   world->log_file=log_file;
@@ -334,7 +334,7 @@ int main(int argc, char **argv) {
   
   if (init_notifications())
   {
-    fprintf(world->err_file,"Could not initialize user-notification data structures.\n");
+    fprintf(world->err_file,"File '%s', Line %ld: Could not initialize user-notification data structures.\n", __FILE__, (long)__LINE__);
     exit(1);
   }
   
@@ -360,7 +360,7 @@ int main(int argc, char **argv) {
 */
 
   if (init_sim()) {
-    fprintf(log_file,"MCell: error initializing simulation\n");
+    fprintf(world->err_file,"File '%s', Line %ld: error initializing simulation\n", __FILE__, (long)__LINE__);
     exit(EXIT_FAILURE);
   }
 

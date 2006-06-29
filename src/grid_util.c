@@ -263,7 +263,10 @@ int create_grid(struct wall *w,struct subvolume *guess)
   init_grid_geometry(sg);
   
   sg->mol = (struct grid_molecule**)malloc(sg->n_tiles*sizeof(struct grid_molecule*));
-  if (sg->mol == NULL) return 1;
+  if (sg->mol == NULL) {
+    fprintf(world->err_file, "File '%s', Line %ld: out of memory while creating grid.\n", __FILE__, (long)__LINE__);
+    return 1;
+  }
 
   for (i=0;i<sg->n_tiles;i++) sg->mol[i] = NULL;
   
