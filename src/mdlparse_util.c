@@ -72,6 +72,7 @@ double *double_dup(double value)
   double *dup_value;
 
   if ((dup_value=(double *)malloc(sizeof(double)))==NULL) {
+    fprintf(stderr, "File '%s', Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
     return(NULL);
   }
   *dup_value=value;
@@ -83,6 +84,7 @@ struct name_list *concat_obj_name(struct name_list *name_list_end,char *name)
 {
   struct name_list *np;
   char temp[1024];
+  char err_message[1024];
 
   if (name_list_end->name==NULL) {
     name_list_end->name=name;
@@ -97,7 +99,8 @@ struct name_list *concat_obj_name(struct name_list *name_list_end,char *name)
     strcat(temp,".");
     np->name=my_strcat(temp,name);
     if(np->name == NULL){
-	mdlerror_nested("Memory allocation error\n");
+        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	mdlerror_nested(err_message);
         return (NULL);
     }
     np->next=NULL;
@@ -112,7 +115,8 @@ struct name_list *concat_obj_name(struct name_list *name_list_end,char *name)
     strcat(temp,".");
     np->name=my_strcat(temp,name);
     if(np->name == NULL){
-	mdlerror_nested("Memory allocation error\n");
+        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	mdlerror_nested(err_message);
         return (NULL);
     }
     return(np);
@@ -125,16 +129,19 @@ struct name_list *concat_obj_name(struct name_list *name_list_end,char *name)
 char *get_first_name(char *obj_name)
 {
   char *first_name,*tmp_name;
+  char err_message[1024];
 
   tmp_name=my_strdup(obj_name);
   if(tmp_name == NULL){
-	mdlerror_nested("Memory allocation error\n");
+        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	mdlerror_nested(err_message);
 	return (NULL);
   } 
   first_name=strtok(tmp_name,"."); 
   first_name=my_strdup(tmp_name);
   if(first_name == NULL){
-	mdlerror_nested("Memory allocation error\n");
+        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	mdlerror_nested(err_message);
 	return (NULL);
   } 
   free((void *)tmp_name);
@@ -149,15 +156,18 @@ char *get_first_name(char *obj_name)
 char *get_prefix_name(char *obj_name)
 {
   char *prefix_name,*prev_name,*next_name,*tmp_name,*tmp_name2;
+  char err_message[1024];
 
   prefix_name=my_strdup("");
   if(prefix_name == NULL){
-	mdlerror_nested("Memory allocation error\n");
+        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	mdlerror_nested(err_message);
 	return (NULL);
   } 
   tmp_name=my_strdup(obj_name);
   if(tmp_name == NULL){
-	mdlerror_nested("Memory allocation error\n");
+        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	mdlerror_nested(err_message);
 	return (NULL);
   } 
   tmp_name2=strtok(tmp_name,"."); 
@@ -169,20 +179,23 @@ char *get_prefix_name(char *obj_name)
         free((void *)prefix_name);
         next_name=my_strdup("");
         if(next_name == NULL){
-		mdlerror_nested("Memory allocation error\n");
+                sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	        mdlerror_nested(err_message);
 		return (NULL);
   	} 
       }
       else {
         next_name=my_strcat(prefix_name,".");
         if(next_name == NULL){
-		mdlerror_nested("Memory allocation error\n");
-		return (NULL);
+            sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	    mdlerror_nested(err_message);
+            return (NULL);
   	} 
       }
       prefix_name=my_strcat(next_name,prev_name);
       if(prefix_name == NULL){
-	  mdlerror_nested("Memory allocation error\n");
+          sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	  mdlerror_nested(err_message);
 	  return (NULL);
       } 
       prev_name=tmp_name2;
@@ -201,25 +214,29 @@ struct object *find_full_name(struct object *objp,char *full_name,
 {
   struct object *child_objp;
   char *tmp_name;
+  char err_message[1024];
 
   if (sub_name!=NULL) {
     if (strcmp(sub_name,"")==0) {
       tmp_name=my_strdup("");
       if(tmp_name == NULL){
-	  mdlerror_nested("Memory allocation error\n");
-	  return (NULL);
+        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	mdlerror_nested(err_message);
+	return (NULL);
       } 
     }
     else {
       tmp_name=my_strcat(sub_name,".");
       if(tmp_name == NULL){
-	  mdlerror_nested("Memory allocation error\n");
+          sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	  mdlerror_nested(err_message);
 	  return (NULL);
       } 
     }
     sub_name=my_strcat(tmp_name,objp->last_name);
     if(sub_name == NULL){
-	  mdlerror_nested("Memory allocation error\n");
+          sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	  mdlerror_nested(err_message);
 	  return (NULL);
     } 
     free((void *)tmp_name);
@@ -227,7 +244,8 @@ struct object *find_full_name(struct object *objp,char *full_name,
   else {
     sub_name=my_strdup(objp->last_name);
     if(sub_name == NULL){
-	  mdlerror_nested("Memory allocation error\n");
+          sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	  mdlerror_nested(err_message);
 	  return (NULL);
     } 
   }
@@ -256,12 +274,12 @@ struct object *make_new_object(struct volume *volp,char *obj_name,char *err_msg)
 
   if ((gp=retrieve_sym(obj_name,OBJ,volp->main_sym_table))==NULL) {
     if ((gp=store_sym(obj_name,OBJ,volp->main_sym_table))==NULL) {
-      sprintf(err_msg,"%s %s","Out of memory while creating object:",obj_name);
+      sprintf(err_msg,"File '%s', Line %ld: Out of memory while creating object %s.\n.", __FILE__, (long)__LINE__, obj_name);
       return(NULL);
     }
   }
   else {
-    sprintf(err_msg,"%s %s","Object already defined:",obj_name);
+    sprintf(err_msg,"File '%s', Line %ld: Object already defined %s\n", __FILE__, (long)__LINE__, obj_name);
     return(NULL);
   }
 
@@ -285,13 +303,13 @@ struct region *make_new_region(struct volume *volp,char *obj_name,
   strcat(temp,",");   
   region_name=my_strcat(temp,region_last_name);
   if(region_name == NULL) {
-	mdlerror_nested("Memory allocation error\n");
+        sprintf(err_msg,"File '%s', Line %ld: Out of memory while creating region %s.\n", __FILE__, (long)__LINE__, region_name);
 	return (NULL);
   }
   
   if ((gp=retrieve_sym(region_name,REG,volp->main_sym_table))==NULL) {
     if ((gp=store_sym(region_name,REG,volp->main_sym_table))==NULL) {
-      sprintf(err_msg,"%s %s","Out of memory while creating region:",region_name);
+      sprintf(err_msg,"File '%s', Line %ld: Out of memory while creating region %s.\n", __FILE__, (long)__LINE__, region_name);
       return(NULL);
     }
   }
@@ -310,13 +328,15 @@ struct region *retrieve_old_region(struct volume *volp,char *obj_name,
   struct sym_table *gp;
   char temp[1024];
   char *region_name;
+  char err_message[1024];
 
   strncpy(temp,"",1024);
   strncpy(temp,obj_name,1022);
   strcat(temp,",");   
   region_name=my_strcat(temp,region_last_name);
   if(region_name == NULL) {
-	mdlerror_nested("Memory allocation error\n");
+        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	mdlerror_nested(err_message);
 	return (NULL);
   }
   
@@ -342,6 +362,7 @@ int copy_object(struct volume *volp,struct object *curr_objp,
   struct eff_dat *effdp,*effdp2;
   char temp[1024];
   char *sym_name,*child_obj_name;
+  char err_message[1024];
 
   sym_name=objp->sym->name;
 
@@ -358,7 +379,7 @@ int copy_object(struct volume *volp,struct object *curr_objp,
   rlp2=objp2->regions;
   while (rlp2!=NULL) {
     if ((rlp=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
-      sprintf(err_msg,"%s %s","Out of memory while creating object:",sym_name);
+      sprintf(err_msg,"File '%s', Line %ld: Out of memory while creating object %s.\n", __FILE__, (long)__LINE__, sym_name);
       return(1);
     }
     rlp->next=objp->regions;
@@ -370,8 +391,9 @@ int copy_object(struct volume *volp,struct object *curr_objp,
     rlp->reg=rp;
     rp->region_last_name=my_strdup(rp2->region_last_name);
     if(rp->region_last_name == NULL){
-	  mdlerror_nested("Memory allocation error\n");
-	  return (1);
+        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	mdlerror_nested(err_message);
+	return (1);
     } 
     rp->parent=objp;
     rp->reg_counter_ref_list=NULL;
@@ -392,8 +414,8 @@ int copy_object(struct volume *volp,struct object *curr_objp,
       /* FIXME: take this for loop out later, shouldn't be needed */
       if ((elp=(struct element_list *)malloc
            (sizeof(struct element_list)))==NULL) {
-        sprintf(err_msg,"%s %s","Out of memory while creating object:",sym_name);
-        return(1);
+           sprintf(err_msg,"File '%s', Line %ld: Out of memory while creating object %s.\n", __FILE__, (long)__LINE__, sym_name);
+           return(1);
       }
       elp->special=NULL;
       elp->next=rp->element_list_head;
@@ -407,16 +429,16 @@ int copy_object(struct volume *volp,struct object *curr_objp,
       rp->membership = duplicate_bit_array(rp2->membership);
       if (rp->membership==NULL)
       {
-	sprintf(err_msg,"%s %s","Out of memory while creating object:",sym_name);
-	return 1;
+           sprintf(err_msg,"File '%s', Line %ld: Out of memory while creating object %s.\n", __FILE__, (long)__LINE__, sym_name);
+	   return 1;
       }
     }
     else printf("No membership data for %s\n",rp2->sym->name);
     effdp2=rp2->eff_dat_head;
     while (effdp2!=NULL) {
       if ((effdp=(struct eff_dat *)malloc(sizeof(struct eff_dat)))==NULL) {
-        sprintf(err_msg,"%s %s","Out of memory while creating object:",sym_name);
-        return(1);
+           sprintf(err_msg,"File '%s', Line %ld: Out of memory while creating object %s.\n", __FILE__, (long)__LINE__, sym_name);
+           return(1);
       }
       effdp->next=rp->eff_dat_head;
       rp->eff_dat_head=effdp;
@@ -439,7 +461,8 @@ int copy_object(struct volume *volp,struct object *curr_objp,
         strcat(temp,".");   
         child_obj_name=my_strcat(temp,child_objp2->last_name);
         if(child_obj_name == NULL){
-	     mdlerror_nested("Memory allocation error\n");
+             sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	     mdlerror_nested(err_message);
 	     return (1);
         } 
         if ((child_objp=make_new_object(volp,child_obj_name,err_msg))==NULL) {
@@ -447,8 +470,9 @@ int copy_object(struct volume *volp,struct object *curr_objp,
         }
         child_objp->last_name=my_strdup(child_objp2->last_name);
         if(child_objp->last_name == NULL){
-	  mdlerror_nested("Memory allocation error\n");
-	  return (1);
+             sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	     mdlerror_nested(err_message);
+	     return (1);
         } 
 
         if (objp->first_child==NULL) {
@@ -533,28 +557,33 @@ char *concat_rx_name(char *name1, char *name2)
 {
   char *tmp_name;
   char *rx_name;
+  char err_message[1024];
 
   if (strcmp(name1,name2)<=0) {
     tmp_name=my_strcat(name1,"+");
     if(tmp_name == NULL){
-	mdlerror_nested("Memory allocation error.\n");
-        return (NULL);
+         sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	 mdlerror_nested(err_message);
+         return (NULL);
     }
     rx_name=my_strcat(tmp_name,name2);
     if(rx_name == NULL){
-	mdlerror_nested("Memory allocation error.\n");
+        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	mdlerror_nested(err_message);
         return (NULL);
     }
   }
   else {
     tmp_name=my_strcat(name2,"+");
     if(tmp_name == NULL){
-	mdlerror_nested("Memory allocation error.\n");
+        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	mdlerror_nested(err_message);
         return (NULL);
     }
     rx_name=my_strcat(tmp_name,name1);
     if(rx_name == NULL){
-	mdlerror_nested("Memory allocation error.\n");
+        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	mdlerror_nested(err_message);
         return (NULL);
     }
   }
@@ -648,6 +677,7 @@ Note: The file format is assumed to be two columns of numbers; the first
 int load_rate_file(struct rxn *rx , char *fname , int path, struct mdlparse_vars *mpvp)
 {
   int i;
+  char err_message[1024];
   FILE *f = fopen(fname,"r");
   
   if (!f) return 1;
@@ -679,7 +709,8 @@ int load_rate_file(struct rxn *rx , char *fname , int path, struct mdlparse_vars
         
         tp = mem_get(mpvp->vol->rxn_mem);
         if(tp == NULL){
-		mdlerror_nested("Memory allocation error.\n");
+                sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	        mdlerror_nested(err_message);
 		return (1);
         }
         tp->next = NULL;
@@ -837,7 +868,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         if (true_paths < rx->n_pathways)
         {
           rx->next = (struct rxn*)malloc(sizeof(struct rxn));
-          if (rx->next==NULL) return 1;
+          if (rx->next==NULL) {
+              fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n",                  __FILE__, (long)__LINE__);
+              return 1;
+          }
           
           rx->next->sym = rx->sym;
           rx->next->n_reactants = rx->n_reactants;
@@ -877,7 +911,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         rx->cat_probs = (double*)malloc(sizeof(double)*rx->n_pathways);
         
         if (rx->product_idx==NULL || rx->cum_probs==NULL ||
-            rx->cat_probs==NULL ) return 1;
+            rx->cat_probs==NULL ) {
+                fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+                return 1;
+        }
         
         
         n_prob_t_rxns = 0;
@@ -900,8 +937,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               ccd = (struct ccn_clamp_data*)malloc(sizeof(struct ccn_clamp_data));
               if (ccd==NULL)
               {
-                fprintf(mpvp->vol->err_file,"Out of memory creating concentration clamp for %s\n  (on surface class %s)\n",
-                        path->reactant1->sym->name,path->reactant2->sym->name);
+                fprintf(mpvp->vol->err_file,"File '%s', Line %ld: Out of memory creating concentration clamp for %s\n  (on surface class %s)\n", __FILE__, (long)__LINE__, path->reactant1->sym->name,path->reactant2->sym->name);
                 return 1;
               }
               
@@ -979,7 +1015,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         rx->players = (struct species**)malloc(sizeof(struct species*)*num_players);
         rx->geometries = (short*)malloc(sizeof(short)*num_players);
         
-        if (rx->players==NULL || rx->geometries==NULL) return 1;
+        if (rx->players==NULL || rx->geometries==NULL) {
+                fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+               return 1;
+        }
 
 	/* Load all the time-varying rates from disk (if any), merge them into */
 	/* a single sorted list, and pull off any updates for time zero. */
@@ -1393,7 +1432,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           struct pathway_count_request *pcr;
   
 	  rx->info = (struct pathway_info*) malloc(rx->n_pathways*sizeof(struct pathway_info));
-	  if (rx->info==NULL) return 1;
+	  if (rx->info==NULL) {
+             fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+             return 1;
+          }
 	    
 	  for ( j=0,path=rx->pathway_head ; path!=NULL ; j++,path=path->next )
 	  {
@@ -1412,6 +1454,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  struct pathway_count_request *pcr;
 	  
 	  rx->info = (struct pathway_info*)malloc(sizeof(struct pathway_info));
+          if(rx->info == NULL){
+             fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+             return 1;
+          }
 	  rx->info[0].count = 0;
 	  rx->info[0].count_flags = rx->pathway_head->count_flags;
 	  rx->info[0].pathname = rx->pathway_head->pathname;
@@ -1436,7 +1482,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   rx_hash -= 1;
   
   rx_tbl = (struct rxn**)malloc(sizeof(struct rxn*) * mpvp->vol->rx_hashsize);
-  if (rx_tbl==NULL) return 1;
+  if (rx_tbl==NULL) {
+     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     return 1;
+  }
   mpvp->vol->reaction_hash = rx_tbl;
   
   for (i=0;i<=rx_hash;i++) rx_tbl[i] = NULL;
@@ -1532,6 +1581,7 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   struct sym_table *sym;
   char *inverse_name;
   int nprods,all_3d;
+  char err_message[1024];
   
   all_3d=1;
   for (nprods=0,prodp=mpvp->pathp->product_head ; prodp!=NULL ; prodp=prodp->next)
@@ -1582,7 +1632,8 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
     inverse_name = concat_rx_name(prodp->prod->sym->name,prodp->next->prod->sym->name);
     if (inverse_name==NULL)
     {
-      mdlerror("Out of memory forming reaction name.");
+      sprintf(err_message, "Out of memory forming reaction name");
+      mdlerror(err_message);
       return 1;
     }
   }
@@ -1593,7 +1644,8 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
     sym = store_sym(inverse_name,RX,mpvp->vol->main_sym_table);
     if (sym==NULL)
     {
-      mdlerror("Out of memory while storing reaction pathway.");
+      sprintf(err_message, "Out of memory storing reaction pathway");
+      mdlerror(err_message);
       return 1;
     }
   }
@@ -1604,8 +1656,9 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   path = (struct pathway*)mem_get(mpvp->path_mem);
   if (path==NULL)
   {
-    mdlerror("Out of memory while storing reaction pathway.");
-    return 1;
+      sprintf(err_message, "Out of memory storing reaction pathway");
+      mdlerror(err_message);
+      return 1;
   }
   path->pathname=NULL;
   path->reactant1=prodp->prod;
@@ -1624,8 +1677,9 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   path->product_head = (struct product*)mem_get(mpvp->prod_mem);
   if (path->product_head==NULL)
   {
-    mdlerror("Out of memory while storing reaction pathway.");
-    return 1;
+      sprintf(err_message, "Out of memory storing reaction pathway");
+      mdlerror(err_message);
+      return 1;
   }
   path->product_head->orientation = mpvp->pathp->orientation1;
   path->product_head->prod = mpvp->pathp->reactant1;
@@ -1635,7 +1689,8 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
     path->product_head->next = (struct product*)mem_get(mpvp->prod_mem);
     if (path->product_head->next==NULL)
     {
-      mdlerror("Out of memory while storing reaction pathway.");
+      sprintf(err_message, "Out of memory storing reaction pathway");
+      mdlerror(err_message);
       return 1;
     }
     path->product_head->next->orientation = mpvp->pathp->orientation2;
@@ -1671,7 +1726,8 @@ int make_cuboid(struct vector3 *p1, struct vector3 *p2, struct ordered_poly *opp
 
   if ((edp=(struct element_data *)malloc
       (opp->n_walls*sizeof(struct element_data)))==NULL) {
-    return(1);
+         fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+         return(1);
   }
   opp->element=edp;
   
@@ -1780,6 +1836,7 @@ Out: returns a subdivided_box struct, with no subdivisions and corners
 struct subdivided_box* init_cuboid(struct vector3 *p1,struct vector3 *p2)
 {
   struct subdivided_box *b;
+
   
   if (p2->x-p1->x < EPS_C || p2->y-p1->y < EPS_C || p2->z-p1->z < EPS_C)
   {
@@ -1788,13 +1845,19 @@ struct subdivided_box* init_cuboid(struct vector3 *p1,struct vector3 *p2)
   }
 
   b = (struct subdivided_box*)malloc(sizeof(struct subdivided_box));
-  if (b==NULL) return NULL;
+  if (b==NULL) {
+     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     return NULL;
+  }
   
   b->nx = b->ny = b->nz = 2;
   b->x = (double*)malloc( b->nx * sizeof(double) );
   b->y = (double*)malloc( b->nx * sizeof(double) );
   b->z = (double*)malloc( b->nx * sizeof(double) );
-  if (b->x==NULL || b->y==NULL || b->z==NULL) return NULL;
+  if (b->x==NULL || b->y==NULL || b->z==NULL) {
+     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     return NULL;
+  }
   
   b->x[0] = p1->x;
   b->x[1] = p2->x;
@@ -1926,7 +1989,10 @@ int refine_cuboid(struct vector3 *p1,struct vector3 *p2,struct subdivided_box *b
     if (new_n > b->nx)
     {
       new_list = (double*)malloc(new_n * sizeof(double));
-      if (new_list==NULL) return 1;
+      if (new_list==NULL) {
+          fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+          return 1;
+      }
       
       for ( j=k=0 ; b->x[j]<p1->x ; j++ ) new_list[k++]=b->x[j];
       if (b->x[j]!=p1->x) new_list[k++]=p1->x;
@@ -1974,7 +2040,10 @@ int refine_cuboid(struct vector3 *p1,struct vector3 *p2,struct subdivided_box *b
     if (new_n > b->nz)
     {
       new_list = (double*)malloc(new_n * sizeof(double));
-      if (new_list==NULL) return 1;
+      if (new_list==NULL) {
+          fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+          return 1;
+      }
       
       for ( j=k=0 ; b->z[j]<p1->z ; j++ ) new_list[k++]=b->z[j];
       if (b->z[j]!=p1->z) new_list[k++]=p1->z;
@@ -2040,6 +2109,7 @@ int divide_cuboid(struct subdivided_box *b,int axis,int idx,int ndiv)
       old_n = b->nz;
       break;
     default:
+      fprintf(stderr, "File '%s', Line %ld: Unknown flag is used.\n", __FILE__, (long)__LINE__);
       return 1;
       break;
   }
@@ -2047,7 +2117,10 @@ int divide_cuboid(struct subdivided_box *b,int axis,int idx,int ndiv)
   new_n = old_n + ndiv - 1;
   new_list = (double*) malloc( new_n * sizeof(double) );
   
-  if (new_list==NULL) return 1;
+  if (new_list==NULL) {
+     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     return 1;
+  }
   
   for ( i=j=0 ; i<=idx ; i++,j++) new_list[j] = old_list[i];
   for (k=1;k<ndiv;k++) new_list[j++] = (((double)k/(double)ndiv))*(old_list[i]-old_list[i-1]) + old_list[i-1];
@@ -2371,7 +2444,10 @@ int normalize_elements(struct region *reg, int existing)
   if (reg->membership == NULL)
   {
     elt_array = new_bit_array(n_elts);
-    if (elt_array==NULL) { printf("Hie"); return 1; }
+    if (elt_array==NULL) { 
+        fprintf(stderr, "File '%s', Line %ld: Unexpected behavior.\n", __FILE__, (long)__LINE__); 
+        return 1; 
+    }
     reg->membership = elt_array;
   }
   else elt_array = reg->membership;
@@ -2427,13 +2503,14 @@ int normalize_elements(struct region *reg, int existing)
 	  el->end=n_elts-1;
 	  break;
 	default:
+          fprintf(stderr, "File '%s', Line %ld: Unknown coordinate axis is used.\n", __FILE__, (long)__LINE__);
 	  return 1;
 	  break;
       }
     }
     else if (el->begin < 0 || el->end >= n_elts)
     {
-      printf("Hii n_elts=%d but begin=%d end=%d\n",n_elts,el->begin,el->end);
+      fprintf(stderr, "File '%s', Line %ld: Hi n_elts=%d but begin=%d end=%d\n",__FILE__, (long)__LINE__, n_elts,el->begin,el->end);
       return 1;
     }
     
@@ -2448,7 +2525,7 @@ int normalize_elements(struct region *reg, int existing)
 	  if (el->special->referent->element_list_head != NULL)
 	  {
 	    i = normalize_elements(el->special->referent,existing);
-	    if (i) { printf("Hiy"); return i; }
+	    if (i) { return i; }
 	  }
 	}
 	if (el->special->referent->membership != NULL)
@@ -2563,11 +2640,15 @@ int polygonalize_cuboid(struct ordered_poly *opp,struct subdivided_box *sb)
   
   opp->n_verts = count_cuboid_vertices(sb);
   opp->vertex = (struct vector3*)malloc( opp->n_verts * sizeof(struct vector3) );
+
   opp->normal = NULL;
   opp->n_walls = count_cuboid_elements(sb);
   opp->element = (struct element_data*)malloc( opp->n_walls * sizeof(struct element_data) );
   
-  if (opp->vertex==NULL || opp->element==NULL) return 1;
+  if (opp->vertex==NULL || opp->element==NULL) {
+      fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+      return 1;
+  }
   
 /*  for (a=0;a<2;a++) for (b=0;b<2;b++) for (c=0;c<2;c++) printf("%d,%d,%d->%d\n",a,b,c,vertex_at_index(sb,a,b,c)); */
   
@@ -2804,6 +2885,7 @@ int set_viz_state_value(struct object *objp, int viz_state)
     case BOX_OBJ:
       if (objp->viz_state==NULL) {
         if ((objp->viz_state=(int *)malloc(objp->n_walls*sizeof(int)))==NULL) {
+          fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
           return(1);
         }
       }
@@ -2814,6 +2896,7 @@ int set_viz_state_value(struct object *objp, int viz_state)
     case POLY_OBJ:
       if (objp->viz_state==NULL) {
         if ((objp->viz_state=(int *)malloc(objp->n_walls*sizeof(int)))==NULL) {
+          fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
           return(1);
         }
       }
@@ -2822,6 +2905,7 @@ int set_viz_state_value(struct object *objp, int viz_state)
       }
       break;
     default:
+       fprintf(stderr, "File '%s', Line %ld: Unknown object type used.\n", __FILE__, (long)__LINE__);
        break;
   }
   return(0);
@@ -3073,6 +3157,7 @@ struct counter *store_reg_counter(struct volume *volp,
     }
 
     if ((cp=(struct counter *)malloc(sizeof(struct counter)))==NULL) {
+      fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
       return(NULL);
     }
 
@@ -3128,7 +3213,8 @@ struct output_evaluator *init_counter(byte report_type,
   }
   
   if ((oep=(struct output_evaluator *)malloc(sizeof(struct output_evaluator)))==NULL) {
-    return(NULL);
+      fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+      return(NULL);
   }
   oep->next=oip->output_evaluator_head;
   oip->output_evaluator_head=oep;
@@ -3144,7 +3230,8 @@ struct output_evaluator *init_counter(byte report_type,
   switch(report_type) {
     case REPORT_CONTENTS:
       if ((intp=(int *)malloc(buffersize*sizeof(int)))==NULL) {
-	return(NULL);
+         fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	 return(NULL);
       }
       for (i=0;i<buffersize;i++) {
 	intp[i]=0;
@@ -3157,7 +3244,8 @@ struct output_evaluator *init_counter(byte report_type,
       break;
     case REPORT_FRONT_HITS:
       if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
-	return(NULL);
+         fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	 return(NULL);
       }
       for (i=0;i<buffersize;i++) {
 	dblp[i]=0;
@@ -3169,7 +3257,8 @@ struct output_evaluator *init_counter(byte report_type,
       break;
     case REPORT_BACK_HITS:
       if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
-	return(NULL);
+         fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	 return(NULL);
       }
       for (i=0;i<buffersize;i++) {
 	dblp[i]=0;
@@ -3181,7 +3270,8 @@ struct output_evaluator *init_counter(byte report_type,
       break;
     case REPORT_FRONT_CROSSINGS:
       if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
-	return(NULL);
+         fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	 return(NULL);
       }
       for (i=0;i<buffersize;i++) {
 	dblp[i]=0;
@@ -3193,7 +3283,8 @@ struct output_evaluator *init_counter(byte report_type,
       break;
     case REPORT_BACK_CROSSINGS:
       if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
-	return(NULL);
+         fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	 return(NULL);
       }
       for (i=0;i<buffersize;i++) {
 	dblp[i]=0;
@@ -3205,6 +3296,7 @@ struct output_evaluator *init_counter(byte report_type,
       break;
     case REPORT_RXNS:
       if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
+         fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
 	return(NULL);
       }
       for (i=0;i<buffersize;i++) {
@@ -3220,6 +3312,7 @@ struct output_evaluator *init_counter(byte report_type,
       break;
     case REPORT_CONCENTRATION:
       if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
+         fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
 	return(NULL);
       }
       for (i=0;i<buffersize;i++) {
@@ -3232,6 +3325,7 @@ struct output_evaluator *init_counter(byte report_type,
       break;
     case REPORT_ELAPSED_TIME:
       if ((dblp=(double *)malloc(buffersize*sizeof(double)))==NULL) {
+         fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
 	return(NULL);
       }
       for (i=0;i<buffersize;i++) {
@@ -3242,7 +3336,7 @@ struct output_evaluator *init_counter(byte report_type,
       oep->temp_data=(void*)cp;  /* Horribly ugly way to pass in world->elapsed_time */
       break;
     default:
-      printf("Error: Unknown counter report type %d\n", report_type);
+      printf("File '%s', Line %ld: Error, unknown counter report type %d\n", __FILE__, (long)__LINE__, report_type);
       break;
   }
 
@@ -3263,6 +3357,7 @@ int insert_counter(byte report_type,
                        u_int buffersize)
 {
   struct output_evaluator *operand,*o1,*o2,*toep;
+  char err_message[1024];
 
   operand = oep;
   while (operand!=NULL) {
@@ -3280,7 +3375,9 @@ int insert_counter(byte report_type,
       }
       else {
         if (o2==NULL) {
-          mdlerror_nested("Oops 1, unexpected condition encountered while building molecule count tree\n");
+     
+          sprintf(err_message, "File '%s', Line %ld: unexpected condition encountered while building molecule count tree\n", __FILE__, (long)__LINE__);
+          mdlerror_nested(err_message);
 	  return(1);
         }
         if (o2->data_type==EXPR) {
@@ -3299,6 +3396,7 @@ int insert_counter(byte report_type,
             /* malloc space for new EXPR node in count tree at o2*/
             toep=o2;
             if ((o2=(struct output_evaluator *)malloc(sizeof(struct output_evaluator)))==NULL) {
+              fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
               return(1);
             }
             operand->operand2=o2;
@@ -3323,8 +3421,9 @@ int insert_counter(byte report_type,
       }
     }
     else {
-      mdlerror_nested("Oops 2, unexpected condition encountered while building molecule count tree\n");
-      return(1);
+          sprintf(err_message, "File '%s', Line %ld: unexpected condition encountered while building molecule count tree\n", __FILE__, (long)__LINE__);
+          mdlerror_nested(err_message);
+          return(1);
     }
   }
 
@@ -3351,6 +3450,7 @@ int build_count_tree(byte report_type,
   char temp_str[1024];
   char *tmp_name,*region_name;
   byte enclosed_count;
+  char err_message[1024];
   
   if ((report_type & REPORT_ENCLOSED) != 0)
   {
@@ -3362,21 +3462,25 @@ int build_count_tree(byte report_type,
   if (sub_name!=NULL) { 
     if (strcmp(sub_name,"")==0) {
       tmp_name=my_strdup("");
-      if(tmp_name == NULL){
-	mdlerror_nested("Memory allocation error\n");
+      if(tmp_name == NULL)
+      {
+        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+        mdlerror_nested(err_message);
 	return (1);
       }              
     }
     else {
       tmp_name=my_strcat(sub_name,".");              
       if(tmp_name == NULL){
-	mdlerror_nested("Memory allocation error\n");
+        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+        mdlerror_nested(err_message);
 	return (1);
       }              
     }
     sub_name=my_strcat(tmp_name,objp->last_name);    
     if(sub_name == NULL){
-	mdlerror_nested("Memory allocation error\n");
+        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+        mdlerror_nested(err_message);
 	return (1);
     }              
     free((void *)tmp_name);
@@ -3384,7 +3488,8 @@ int build_count_tree(byte report_type,
   else {
     sub_name=my_strdup(objp->last_name);    
     if(sub_name == NULL){
-	mdlerror_nested("Memory allocation error\n");
+        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+        mdlerror_nested(err_message);
 	return (1);
     }              
   }
@@ -3417,11 +3522,13 @@ int build_count_tree(byte report_type,
     strcat(temp_str,",");
     region_name=my_strcat(temp_str,"ALL");
     if(region_name == NULL){
-       mdlerror_nested("Memory allocation error.\n");
+        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+        mdlerror_nested(err_message);
        return (1);
     }
     if ((stp=retrieve_sym(region_name,REG,volp->main_sym_table))==NULL) {
-      mdlerror_nested("Unexpected error.  Cannot find default object region\n");
+      sprintf(err_message, "File '%s', Line %ld: Unexpected error.  Cannot find default object region\n", __FILE__, (long)__LINE__);
+      mdlerror_nested(err_message);
       return(1);
     }
     free((void *)region_name);
@@ -3607,7 +3714,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
     
     if (build_count_tree(report_type,mdlpvp->vol,obj,mdlpvp->oip,mdlpvp->oep,value,mdlpvp->obp->buffersize,mdlpvp->prefix_name))
     {
-      fprintf(mdlpvp->vol->err_file,"Out of memory while creating count evaluator for object %s\n",obj->sym->name);
+      fprintf(mdlpvp->vol->err_file,"File '%s', Line %ld: Out of memory while creating count evaluator for object %s\n",__FILE__, (long)__LINE__, obj->sym->name);
       return 1;
     }
     if (mdlpvp->oep->operand1==NULL)
@@ -3626,7 +3733,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
       i1=mdlpvp->obp->buffersize;
       if ((mdlpvp->intp=(int *)malloc(i1*sizeof(int)))==NULL)
       {
-	fprintf(mdlpvp->vol->err_file,"Out of memory while creating counter");
+	fprintf(mdlpvp->vol->err_file,"File '%s', Line %ld: Out of memory while creating counter.\n", __FILE__, (long)__LINE__);
 	return 1;
       }
 
@@ -3644,7 +3751,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
 	c = store_reg_counter(mdlpvp->vol,(void *)sp,r,counter_type);
 	if (c==NULL)
 	{
-	  fprintf(mdlpvp->vol->err_file,"Out of memory while creating counter");
+	  fprintf(mdlpvp->vol->err_file,"File '%s', Line %ld: Out of memory while creating counter.\n", __FILE__, (long)__LINE__);
 	  return 1;
 	}
 	
@@ -3659,7 +3766,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
       i1=mdlpvp->obp->buffersize;
       if ((mdlpvp->dblp=(double *)malloc(i1*sizeof(double)))==NULL)
       {
-	fprintf(mdlpvp->vol->err_file,"Out of memory while creating counter");
+	fprintf(mdlpvp->vol->err_file,"File '%s', Line %ld: Out of memory while creating counter.\n", __FILE__, (long)__LINE__);
 	return 1;
       }
       
@@ -3673,7 +3780,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
 	pcr = mem_get(mdlpvp->vol->pathway_requester);
 	if (pcr==NULL)
 	{
-	  fprintf(mdlpvp->vol->err_file,"Out of memory while trying to attach count to reaction\n");
+	  fprintf(mdlpvp->vol->err_file,"File '%s', Line %ld: Out of memory while trying to attach count to reaction\n", __FILE__, (long)__LINE__);
 	  return 1;
 	}
 	pcr->requester = mdlpvp->oep;
@@ -3688,7 +3795,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
 	else c = store_reg_counter(mdlpvp->vol,(void *)rxp,r,counter_type);
 	if (c==NULL)
 	{
-	  fprintf(mdlpvp->vol->err_file,"Out of memory while creating counter");
+	  fprintf(mdlpvp->vol->err_file,"File '%s', Line %ld: Out of memory while creating counter.\n", __FILE__, (long)__LINE__);
 	  return 1;
 	}
 	
@@ -3710,7 +3817,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
 	    pcr = mem_get(mdlpvp->vol->pathway_requester);
 	    if (pcr==NULL)
 	    {
-	      fprintf(mdlpvp->vol->err_file,"Out of memory while trying to attach count to reaction\n");
+	      fprintf(mdlpvp->vol->err_file,"File '%s', Line %ld: Out of memory while trying to attach count to reaction.\n", __FILE__, (long)__LINE__);
 	      return 1;
 	    }
 	    pcr->requester = mdlpvp->oep;
@@ -3728,6 +3835,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
 	    }
 	    break;
 	  default:
+            fprintf(stderr, "File '%s', Line %ld: Unknown report type %d.\n", __FILE__, (long)__LINE__, base_report_type);
 	    return 1;
 	    break;
 	}
@@ -3738,7 +3846,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
       c = store_reg_counter(mdlpvp->vol,(void *)sp,r,counter_type);
       if (c==NULL)
       {
-	fprintf(mdlpvp->vol->err_file,"Out of memory while creating counter");
+	fprintf(mdlpvp->vol->err_file,"File '%s', Line %ld: Out of memory while creating counter.\n", __FILE__, (long)__LINE__);
 	return 1;
       }
       
@@ -3758,22 +3866,22 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
 	case REPORT_ALL_HITS:
 	  if (insert_counter(REPORT_FRONT_HITS,mdlpvp->vol,mdlpvp->oip,mdlpvp->oep,c,mdlpvp->obp->buffersize))
 	  {
-	    fprintf(mdlpvp->vol->err_file,"Out of memory while creating molecule output evaluator");
+	    fprintf(mdlpvp->vol->err_file,"File '%s', Line %ld: Out of memory while creating molecule output evaluator.\n", __FILE__, (long)__LINE__);
 	    return 1;
 	  }
 	  if (insert_counter(REPORT_BACK_HITS,mdlpvp->vol,mdlpvp->oip,mdlpvp->oep,c,mdlpvp->obp->buffersize)) {
-	    fprintf(mdlpvp->vol->err_file,"Out of memory while creating molecule output evaluator");
+	    fprintf(mdlpvp->vol->err_file,"File '%s', Line %ld: Out of memory while creating molecule output evaluator.\n", __FILE__, (long)__LINE__);
 	    return 1;
 	  }
 	  break;
 	case REPORT_ALL_CROSSINGS:
 	  if (insert_counter(REPORT_FRONT_CROSSINGS,mdlpvp->vol,mdlpvp->oip,mdlpvp->oep,c,mdlpvp->obp->buffersize))
 	  {
-	    fprintf(mdlpvp->vol->err_file,"Out of memory while creating molecule output evaluator");
+	    fprintf(mdlpvp->vol->err_file,"File '%s', Line %ld: Out of memory while creating molecule output evaluator.\n", __FILE__, (long)__LINE__);
 	    return 1;
 	  }
 	  if (insert_counter(REPORT_BACK_CROSSINGS,mdlpvp->vol,mdlpvp->oip,mdlpvp->oep,c,mdlpvp->obp->buffersize)) {
-	    fprintf(mdlpvp->vol->err_file,"Out of memory while creating molecule output evaluator");
+	    fprintf(mdlpvp->vol->err_file,"File '%s', Line %ld: Out of memory while creating molecule output evaluator.\n", __FILE__, (long)__LINE__);
 	    return 1;
 	  }
 	  break;
@@ -3781,17 +3889,18 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
 	  mdlpvp->oep->oper='/';
 	  if (insert_counter(REPORT_CONCENTRATION,mdlpvp->vol,mdlpvp->oip,mdlpvp->oep,c,mdlpvp->obp->buffersize))
 	  {
-	    fprintf(mdlpvp->vol->err_file,"Out of memory while creating molecule output evaluator");
+	    fprintf(mdlpvp->vol->err_file,"File '%s', Line %ld: Out of memory while creating molecule output evaluator.\n", __FILE__, (long)__LINE__);
 	    return 1;
 	  }
 	  if (insert_counter(REPORT_ELAPSED_TIME,mdlpvp->vol,mdlpvp->oip,mdlpvp->oep,(struct counter*)&mdlpvp->vol->elapsed_time,mdlpvp->obp->buffersize)) {
-	    fprintf(mdlpvp->vol->err_file,"Out of memory while creating molecule output evaluator");
+	    fprintf(mdlpvp->vol->err_file,"File '%s', Line %ld: Out of memory while creating molecule output evaluator.\n", __FILE__, (long)__LINE__);
 	    return 1;
 	  }
 	  break;	  
 	default:
-	  return 1;
-	  break;
+            fprintf(stderr, "File '%s', Line %ld: Unknown report type %d.\n", __FILE__, (long)__LINE__, base_report_type);
+	    return 1;
+	    break;
       }
     }
   }
@@ -3814,6 +3923,7 @@ pack_release_expr:
 struct release_evaluator* pack_release_expr(struct release_evaluator *rel,struct release_evaluator *rer,byte op)
 {
   struct release_evaluator *re = NULL;
+  char err_message[1024];
   
   if ( (rer->op&REXP_MASK)==REXP_NO_OP && (rer->op&REXP_LEFT_REGION)!=0)
   {
@@ -3843,7 +3953,7 @@ struct release_evaluator* pack_release_expr(struct release_evaluator *rel,struct
     re = (struct release_evaluator*)malloc(sizeof(struct release_evaluator));
     if (re==NULL)
     {
-      mdlerror_nested("Out of memory while trying to parse region list for release site");
+      sprintf(err_message, "File '%s', Line %ld: Out of memory while trying to parse region list for release site.\n", __FILE__, (long)__LINE__);
       return NULL;
     }
     
@@ -4001,7 +4111,10 @@ struct release_evaluator* duplicate_rel_region_expr(struct release_evaluator *ex
   struct release_evaluator *nexp;
   
   nexp = (struct release_evaluator*)malloc(sizeof(struct release_evaluator));
-  if (nexp==NULL) return NULL;
+  if (nexp==NULL) {
+     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     return NULL;
+  }
   
   nexp->op = expr->op;
   
@@ -4068,7 +4181,10 @@ struct release_site_obj* duplicate_release_site(struct release_site_obj *old,str
   if (old->release_shape != SHAPE_REGION) return old;
   
   rso = (struct release_site_obj*)malloc(sizeof(struct release_site_obj));
-  if (rso==NULL) return NULL;
+  if (rso==NULL) {
+     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     return NULL;
+  }
   
   rso->release_shape = old->release_shape;
   rso->location = NULL;
@@ -4086,7 +4202,10 @@ struct release_site_obj* duplicate_release_site(struct release_site_obj *old,str
   rso->mol_list = old->mol_list;
   
   rrd = (struct release_region_data*)malloc(sizeof(struct release_region_data));
-  if (rrd==NULL) return NULL;
+  if (rrd==NULL) {
+     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     return NULL;
+  }
   
   memcpy(&(rrd->llf),&(old->region_data->llf),sizeof(struct vector3));
   memcpy(&(rrd->urb),&(old->region_data->urb),sizeof(struct vector3));
