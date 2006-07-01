@@ -131,7 +131,7 @@ void update_frame_data_list(struct frame_data_list *fdlp)
 	
               break;
           default:
-              fprintf(stderr,"MCell: error - wrong frame_data_list list_type %d\n", fdlp->list_type);
+              fprintf(world->err_file,"File '%s', Line %ld: error - wrong frame_data_list list_type %d\n", __FILE__, (long)__LINE__, fdlp->list_type);
               break;
        } /* end switch */
 
@@ -178,7 +178,7 @@ void update_frame_data_list(struct frame_data_list *fdlp)
 	          fdlp->viz_iterationll=(long long)(fdlp->curr_viz_iteration->value/world->time_unit + ROUND_UP);
 	          break;
           default:
-                  fprintf(log_file,"MCell: error - wrong frame_data_list list_type %d\n", fdlp->list_type);
+                  fprintf(world->err_file,"File '%s', Line %ld: error - wrong frame_data_list list_type %d\n", __FILE__, (long)__LINE__, fdlp->list_type);
                   break;
 	}
       }
@@ -255,7 +255,7 @@ void init_frame_data_list(struct frame_data_list *fdlp)
       }
       break;
      default:
-         fprintf(stderr,"MCell: error - wrong frame_data_list list_type %d\n", fdlp->list_type);
+         fprintf(world->err_file,"File '%s', Line %ld: error - wrong frame_data_list list_type %d\n", __FILE__, (long)__LINE__, fdlp->list_type);
          break;
     }
 
@@ -3283,7 +3283,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 	          next_iteration_step_this_frame = (long long)(fdlp->curr_viz_iteration->next->value/world->time_unit + ROUND_UP);
 	          break;
           default:
-                  fprintf(log_file,"MCell: error - wrong frame_data_list list_type %d\n", fdlp->list_type);
+                  fprintf(world->err_file,"File '%s', Line %ld: error - wrong frame_data_list list_type %d\n", __FILE__, (long)__LINE__, fdlp->list_type);
                   break;
 	}
      }
@@ -4099,109 +4099,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
       free(viz_molp);
     }
    
-           /*  
-    if(time_to_write_master_header)
-    {
-                
-      if(time_values != NULL){
-         free(time_values);
-      }
-      if(iteration_numbers_meshes != NULL){
-         free(iteration_numbers_meshes);
-      }
-      if(iteration_numbers_vol_mols != NULL){
-         free(iteration_numbers_vol_mols);
-      }
-      if(iteration_numbers_surf_mols != NULL){
-         free(iteration_numbers_surf_mols);
-      }
-      if(surf_states != NULL){
-         free(surf_states);
-      }
-      if(surf_pos != NULL){
-         free(surf_pos);
-      }
-      if(surf_con != NULL){
-         free(surf_con);
-      }
-      if(surf_field_indices != NULL){
-         free(surf_field_indices);
-      }
-      if(eff_pos != NULL){
-         free(eff_pos);
-      }
-      if(eff_orient != NULL){
-         free(eff_orient);
-      }
-      if(eff_states != NULL){
-         free(eff_states);
-      }
-      if(eff_field_indices != NULL){
-         free(eff_field_indices);
-      }
-      if(mol_pos != NULL){
-         free(mol_pos);
-      }
-      if(mol_orient != NULL){
-         free(mol_orient);
-      }
-      if(mol_states != NULL){
-         free(mol_states);
-      }
-      if(mol_field_indices != NULL){
-         free(mol_field_indices);
-      }
-
-      if (eff_names != NULL) {
-        for (ii = 0; ii < eff_to_show_number; ii++) {
-          if (eff_names[ii] != NULL) {
-            free(eff_names[ii]);
-          }
-        }
-    
-        free(eff_names);
-      }
-      if (mol_names != NULL) {
-        for (ii = 0; ii < mol_to_show_number; ii++) {
-          if (mol_names[ii] != NULL) {
-            free(mol_names[ii]);
-          }
-        }
-    
-        free(mol_names);
-      }
-      if (obj_names != NULL) {
-        for (ii = 0; ii < obj_to_show_number; ii++) {
-          if (obj_names[ii] != NULL) {
-            free(obj_names[ii]);
-          }
-        }
-    
-        free(obj_names);
-      }
-      if (surf_region_values != NULL) {
-        for(ii = 0; ii < obj_to_show_number; ii++){
-           if (surf_region_values[ii] != NULL) {
-              free(surf_region_values[ii]);
-           }
-        }
-    
-        free(surf_region_values);
-      }
-      if (region_names != NULL) {
-        for(ii = 0; ii < obj_to_show_number; ii++){
-           if (region_names[ii] != NULL) {
-              free(region_names[ii]);
-           }
-        } 
-        free(region_names);
-      }
-      if(obj_num_regions != NULL){
-         free(obj_num_regions);
-      }
-
-   }
-          */
 
     /* close opened files */
     if(iteration_numbers_data != NULL){
@@ -5895,7 +5792,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
 	          next_iteration_step_this_frame = (long long)(fdlp->curr_viz_iteration->next->value/world->time_unit + ROUND_UP);
 	          break;
           default:
-                  fprintf(log_file,"MCell: error - wrong frame_data_list list_type %d\n", fdlp->list_type);
+                  fprintf(world->err_file,"File '%s', Line %ld: error - wrong frame_data_list list_type %d\n", __FILE__, (long)__LINE__, fdlp->list_type);
                   break;
 	}
      }

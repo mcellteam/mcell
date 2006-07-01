@@ -2,14 +2,17 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "strfunc.h"
 
 char *my_strdup(char *s)
 { 
-  char *temp;
+  char *temp = NULL;
   
   if ((temp=(char *)malloc(strlen(s)+1))!=NULL) {
     strcpy(temp,s);
+  }else{
+    fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
   }
   return(temp);
 } 
@@ -17,7 +20,7 @@ char *my_strdup(char *s)
 
 char *my_strcat(char *s1, char *s2)
 { 
-  char *temp;
+  char *temp = NULL;
   size_t len1,len2;
 
   len1 = (s1==NULL) ? 0 : strlen(s1);
@@ -26,7 +29,10 @@ char *my_strcat(char *s1, char *s2)
     if (len1) strcpy(temp,s1);
     if (len2) strcpy(temp+len1,s2);
     temp[len1+len2] = '\0';
+  }else{
+    fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
   }
+   
   return(temp);
 }
 
@@ -42,7 +48,10 @@ char *my_strclump(char **slist)
   for (i=0,len=0;i<n;i++) len += strlen(slist[i]);
   
   temp = (char*) malloc(len+1);
-  if (temp==NULL) return NULL;
+  if (temp==NULL) {
+      fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+      return NULL;
+  }
   
   j=0;
   for (sp=slist;*sp!=NULL;sp++)
@@ -60,12 +69,15 @@ char *my_strclump(char **slist)
 
 char *strip_quotes(char *s)
 { 
-  char *temp;
+  char *temp = NULL;
   
   if ((temp=(char *)malloc(strlen(s)-1))!=NULL) {
     strncpy(temp,s+1,strlen(s)-2);
     strncpy(temp+strlen(s)-2,"",1);
+  }else{
+      fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
   }
+
   return(temp);
 } 
 

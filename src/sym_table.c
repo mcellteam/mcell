@@ -177,7 +177,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
   /* try to find sym in table */
   if ((sp=retrieve_sym(sym,sym_type,hashtab))==NULL) {  /* sym not found */
    if ((sp=(struct sym_table *)malloc(sizeof(struct sym_table)))==NULL) {
-  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+  	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
 	i = emergency_output();
   	fprintf(stderr, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
 	exit(EXIT_FAILURE);
@@ -195,7 +195,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
     switch (sym_type) {
     case DBL:
       if ((vp=(void *)malloc(sizeof(double)))==NULL) {
-  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+  	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
 	i = emergency_output();
   	fprintf(stderr, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
 	exit(EXIT_FAILURE);
@@ -213,7 +213,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       break;
     case MOL:
       if ((vp=(void *)malloc(sizeof(struct species)))==NULL) {
-  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+  	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
 	i = emergency_output();
   	fprintf(stderr, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
 	exit(EXIT_FAILURE);
@@ -246,7 +246,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       break;
     case OBJ:
       if ((vp=(void *)malloc(sizeof(struct object)))==NULL) {
-  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+  	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
 	i = emergency_output();
   	fprintf(stderr, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
 	exit(EXIT_FAILURE);
@@ -281,7 +281,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       break;
     case RPAT:
       if ((vp=(void *)malloc(sizeof(struct release_pattern)))==NULL) {
-  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+  	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
 	i = emergency_output();
   	fprintf(stderr, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
 	exit(EXIT_FAILURE);
@@ -296,7 +296,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       break;
     case RX:
       if ((vp=(void *)malloc(sizeof(struct rxn)))==NULL) {
-  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+  	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
 	i = emergency_output();
   	fprintf(stderr, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
 	exit(EXIT_FAILURE);
@@ -319,7 +319,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       break;
     case RXPN:
       if ((vp=(void *)malloc(sizeof(struct rxn_pathname)))==NULL) {
-  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+  	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
 	i = emergency_output();
   	fprintf(stderr, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
 	exit(EXIT_FAILURE);
@@ -331,7 +331,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       break;
     case REG:
       if ((vp=(void *)malloc(sizeof(struct region)))==NULL) {
-  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+  	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
 	i = emergency_output();
   	fprintf(stderr, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
 	exit(EXIT_FAILURE);
@@ -354,7 +354,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       break;
     case FSTRM:
       if ((vp=(void *)malloc(sizeof(struct file_stream)))==NULL) {
-  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+  	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
 	i = emergency_output();
   	fprintf(stderr, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
 	exit(EXIT_FAILURE);
@@ -368,7 +368,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       return(sp);
       break;
     default:
-       fprintf(stderr,"MCell symbol table error: unknown symbol type %d\n",sym_type);
+       fprintf(stderr,"File '%s', Line %ld: MCell symbol table error, unknown symbol type %d\n", __FILE__, (long)__LINE__, sym_type);
        break;
     }
     sp->value=vp;
@@ -386,7 +386,7 @@ struct sym_table **init_symtab(int size)
   int i;
   if ((symtab=(struct sym_table **)malloc(size*sizeof(struct sym_table *))) == NULL)
   {
-  	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+  	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
 	i = emergency_output();
   	fprintf(stderr, "Fatal error:out of memory during symbol table initialization.\nAttempt to write intermediate results had %d errors\n", i);
 	exit(EXIT_FAILURE);

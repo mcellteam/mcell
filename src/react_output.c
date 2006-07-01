@@ -55,7 +55,7 @@ int truncate_output_file(char *name,double start_value)
   buffer = (char*)malloc(bsize);
   if (buffer==NULL)
   {
-    fprintf(world->err_file,"Out of memory while checking output file %s\n",name);
+    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while checking output file %s\n", __FILE__, (long)__LINE__, name);
     return 1;
   }
   
@@ -95,14 +95,14 @@ int truncate_output_file(char *name,double start_value)
 	    k = fseek(f,0,SEEK_SET);
 	    if (k)
 	    {
-	      fprintf(world->err_file,"Failed to prepare output file %s for writing\n",name);
+	      fprintf(world->err_file,"File '%s', Line %ld:  Failed to prepare output file %s for writing\n", __FILE__, (long)__LINE__, name);
 	      fclose(f);
 	      return 1;
 	    }
 	    k = ftruncate(fileno(f),where+lf+1);
 	    if (k)
 	    {
-	      fprintf(world->err_file,"Failed to prepare output file %s for writing (%d)\n",name,errno);
+	      fprintf(world->err_file,"File '%s', Line %ld: Failed to prepare output file %s for writing (%d)\n", __FILE__, (long)__LINE__, name,errno);
 	      fclose(f);
 	      return 1;
 	    }
@@ -261,7 +261,7 @@ int update_reaction_output(struct output_block *obp)
 	      if (oep->reset_flag) *(double*)oep->temp_data=0;
 	      break;
 	    default:
-	      fprintf(world->err_file,"OMGWTFPWNED!\n");
+	      fprintf(world->err_file,"File '%s', Line %ld: Unknown data type while updating reaction output.\n", __FILE__, (long)__LINE__);
 	      break;
 	  }
 	}
@@ -282,7 +282,7 @@ int update_reaction_output(struct output_block *obp)
     }
     else {
       if(schedule_add(world->count_scheduler,obp) == 1){
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         int i = emergency_output();
         fprintf(stderr, "Fatal error: out of memory while updating reaction outputs.\nAttempt to write intermediate results had %d errors.\n", i);
 	exit(EXIT_FAILURE); 
@@ -301,7 +301,7 @@ int update_reaction_output(struct output_block *obp)
            final_chunk_flag=1;
         }else{
            if(schedule_add(world->count_scheduler,obp) == 1){
-	     fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+	     fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
              int i = emergency_output();
              fprintf(stderr, "Fatal error: out of memory while updating reaction outputs.\nAttempt to write intermediate results had %d errors.\n", i);
 	     exit(EXIT_FAILURE); 
@@ -313,7 +313,7 @@ int update_reaction_output(struct output_block *obp)
            final_chunk_flag=1;
         }else{
            if(schedule_add(world->count_scheduler,obp) == 1){
-	     fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+	     fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
              int i = emergency_output();
              fprintf(stderr, "Fatal error: out of memory while updating reaction outputs.\nAttempt to write intermediate results had %d errors.\n", i);
 	     exit(EXIT_FAILURE); 
@@ -382,7 +382,7 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
 	mode = "a";
 	break;
       default:
-        fprintf(world->err_file,"Not sure what to do with output file %s (internal code #%d)\n",oi->outfile_name,oi->file_flags);
+        fprintf(world->err_file,"File '%s', Line %ld: Not sure what to do with output file %s (internal code #%d)\n", __FILE__, (long)__LINE__, oi->outfile_name,oi->file_flags);
 	return 1;
 	break;
     }
@@ -445,7 +445,7 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
 	oep = oip->count_expr;
 	if (oep->index_type!=TIME_STAMP_VAL)
 	{
-	  fprintf(world->err_file,"Warning: no data (no geometry?) to count for column %d of '%s' -- skipping column.\n",ii+2,oi->outfile_name);
+	  fprintf(world->log_file,"Warning: no data (no geometry?) to count for column %d of '%s' -- skipping column.\n",ii+2,oi->outfile_name);
 	  continue;
 	}
 	
@@ -474,7 +474,7 @@ int write_reaction_output(struct output_block *obp,int final_chunk_flag)
 	}
 	else
 	{
-	  fprintf(world->err_file,"Warning: non-numeric count for column %d of '%s' -- skipping column.\n",ii+2,oi->outfile_name);
+	  fprintf(world->log_file,"Warning: non-numeric count for column %d of '%s' -- skipping column.\n",ii+2,oi->outfile_name);
 	  continue;
 	}
 	oip->first_write = 0;
@@ -501,7 +501,7 @@ int eval_count_expr_tree(struct output_evaluator *oep)
   if (oep->operand1!=NULL || oep->operand2!=NULL) {
     if (oep->operand1==NULL || oep->operand2==NULL)
     {
-      fprintf(world->err_file,"Evaluating a non-binary operation (not supported, have us fix this).\n");
+      fprintf(world->err_file,"File '%s', Line %ld: Evaluating a non-binary operation (not supported, have us fix this).\n", __FILE__, (long)__LINE__);
       return 1;
     }
     if(eval_count_expr_tree(oep->operand1)) return (1);
@@ -585,7 +585,7 @@ int eval_count_expr(struct output_evaluator *operand1,
   if (result->final_data==NULL) {
     if (double_result_flag) {
       if (!(result->final_data=(void *)malloc(result->n_data*sizeof(double)))) {
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         int i = emergency_output();
         fprintf(stderr, "Fatal error: out of memory while evaluating counter expressions.\nAttempt to write intermediate results had %d errors.\n", i);
 	exit(EXIT_FAILURE); 
@@ -594,7 +594,7 @@ int eval_count_expr(struct output_evaluator *operand1,
     }
     else {
       if (!(result->final_data=(void *)malloc(result->n_data*sizeof(int)))) {
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         int i = emergency_output();
         fprintf(stderr, "Fatal error: out of memory while evaluating counter expressions.\nAttempt to write intermediate results had %d errors.\n", i);
 	exit(EXIT_FAILURE); 

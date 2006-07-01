@@ -432,7 +432,7 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
   {
     if (create_grid(best_w,sv))
     {
-      fprintf(world->err_file,"Out of memory while trying to insert molecules\n");
+      fprintf(world->err_file,"File '%s', Line %ld: Out of memory while trying to insert molecules\n", __FILE__, (long)__LINE__);
       i = emergency_output();
       fprintf(world->err_file,"%d errors while attempting emergency output\n",i);
       exit(EXIT_FAILURE);
@@ -459,7 +459,7 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
   g = mem_get(sv->local_storage->gmol);
   if (g==NULL)
   {
-    fprintf(world->err_file,"Out of memory while trying to insert molecules\n");
+    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while trying to insert molecules\n", __FILE__, (long)__LINE__);
     i = emergency_output();
     fprintf(world->err_file,"%d errors while attempting emergency output\n",i);
     exit(EXIT_FAILURE);
@@ -490,7 +490,7 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
   
   if ( schedule_add(sv->local_storage->timer,g) )
   {
-    fprintf(world->err_file,"Out of memory while trying to insert molecules\n");
+    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while trying to insert molecules\n", __FILE__, (long)__LINE__);
     i = emergency_output();
     fprintf(world->err_file,"%d errors while attempting emergency output\n",i);
     exit(EXIT_FAILURE);    
@@ -519,7 +519,7 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
   
   new_m = mem_get(sv->local_storage->mol);
   if(new_m == NULL) {
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");        int i = emergency_output();
+	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);        int i = emergency_output();
         fprintf(stderr, "Fatal error: out of memory during inserting %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
         exit(EXIT_FAILURE);
   }
@@ -540,7 +540,7 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
   }
   
   if ( schedule_add(sv->local_storage->timer,new_m) ) {
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         int i = emergency_output();
         fprintf(stderr, "Fatal error: out of memory during inserting %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
         exit(EXIT_FAILURE);
@@ -586,7 +586,7 @@ int insert_molecule_list(struct molecule *m)
   {
     new_m = insert_molecule(m,guess);
     if(new_m == NULL) { 
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         int i = emergency_output();
         fprintf(stderr, "Fatal error: out of memory during inserting %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
         exit(EXIT_FAILURE);
@@ -613,11 +613,11 @@ struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv)
 
   new_m = mem_get(new_sv->local_storage->mol);
   if (new_m==NULL){ 
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");        int i = emergency_output();
+	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);        int i = emergency_output();
         fprintf(stderr, "Fatal error: out of memory during migrating  %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
         exit(EXIT_FAILURE);
   }
-  if (new_m==m) printf("Unsane!\n");
+  if (new_m==m) printf("File '%s', Line %ld: Unexpected behavior!\n", __FILE__, (long)__LINE__);
   
   memcpy(new_m,m,sizeof(struct molecule));
   new_m->birthplace = new_sv->local_storage->mol;
@@ -1108,7 +1108,7 @@ int release_molecules(struct release_event_queue *req)
     {
       if ( schedule_add(world->releaser,req) )
       {
-	fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
 	int i = emergency_output();
 	fprintf(stderr, "Fatal error: out of memory during release molecule event.\nAttempt to write intermediate results had %d errors.\n", i);
 	exit(EXIT_FAILURE);
@@ -1170,7 +1170,7 @@ int release_molecules(struct release_event_queue *req)
             vol = rso->diameter->x*rso->diameter->y*rso->diameter->z*(world->length_unit*world->length_unit*world->length_unit);
             break;
           default:
-            fprintf(world->err_file,"Can't release a concentration on a spherical shell\n");
+            fprintf(world->err_file,"File '%s', Line %ld: Can't release a concentration on a spherical shell\n", __FILE__, (long)__LINE__);
             vol = 0;
             break;
         }
@@ -1266,8 +1266,8 @@ int release_molecules(struct release_event_queue *req)
 	  gp = insert_grid_molecule(rsm->mol_type,&(m.pos),orient,diam,req->event_time);
 	  if (gp==NULL)
 	  {
-	    fprintf(world->err_file,"Warning: unable to find surface upon which to place molecule %s\n",rsm->mol_type->sym->name);
-	    fprintf(world->err_file,"  Perhaps you want to SITE_DIAMETER larger to increase search distance?\n");
+	    fprintf(world->log_file,"Warning: unable to find surface upon which to place molecule %s\n",rsm->mol_type->sym->name);
+	    fprintf(world->log_file,"  Perhaps you want to SITE_DIAMETER larger to increase search distance?\n");
 	  }
 	}
       }
@@ -1363,7 +1363,7 @@ int release_molecules(struct release_event_queue *req)
   if (req->train_counter <= rpat->number_of_trains && req->event_time < FOREVER)
   {
     if ( schedule_add(world->releaser,req) ){
-      fprintf(stderr, "Out of memory:trying to save intermediate results.\n");
+      fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
       int i = emergency_output();
       fprintf(stderr, "Fatal error: out of memory during release molecule event.\nAttempt to write intermediate results had %d errors.\n", i);
       exit(EXIT_FAILURE);
@@ -1447,7 +1447,7 @@ int set_partitions()
   if((world->x_fineparts == NULL) || (world->y_fineparts == NULL) ||
         (world->z_fineparts == NULL))
   {
-    fprintf(world->err_file, "Out of memory while trying to create partitions.\n");
+    fprintf(world->err_file, "File '%s', Line %ld: Out of memory while trying to create partitions.\n", __FILE__, (long)__LINE__);
     return 1;
   }
 
@@ -1623,7 +1623,7 @@ int set_partitions()
     if((world->x_partitions == NULL) || (world->y_partitions == NULL) ||
         (world->z_partitions == NULL))
     {
-      fprintf(world->err_file, "Out of memory while trying to create partitions.\n");
+      fprintf(world->err_file, "File '%s', Line %ld: Out of memory while trying to create partitions.\n", __FILE__, (long)__LINE__);
       return 1;
     }
 
@@ -1737,7 +1737,7 @@ int set_partitions()
 	dbl_array = (double*) malloc( sizeof(double)*(world->nx_parts+1) );
 	if (dbl_array == NULL)
 	{ 
-	  fprintf(world->err_file, "Out of memory while trying to create partitions.\n");
+	  fprintf(world->err_file, "File '%s', Line %ld: Out of memory while trying to create partitions.\n", __FILE__, (long)__LINE__);
 	  return 1;
 	}
   
@@ -1758,7 +1758,7 @@ int set_partitions()
 	dbl_array = (double*) malloc( sizeof(double)*(world->nx_parts+1) );
 	if (dbl_array == NULL)
 	{ 
-	  fprintf(world->err_file, "Out of memory while trying to create partitions.\n");
+	  fprintf(world->err_file, "File '%s', Line %ld: Out of memory while trying to create partitions.\n", __FILE__, (long)__LINE__);
 	  return 1;
 	}
   
@@ -1779,7 +1779,7 @@ int set_partitions()
 	dbl_array = (double*) malloc( sizeof(double)*(world->ny_parts+1) );
 	if (dbl_array==NULL)
 	{ 
-	  fprintf(world->err_file, "Out of memory while trying to create partitions.\n");
+	  fprintf(world->err_file, "File '%s', Line %ld: Out of memory while trying to create partitions.\n", __FILE__, (long)__LINE__);
 	  return 1;
 	}
   
@@ -1800,7 +1800,7 @@ int set_partitions()
 	dbl_array = (double*) malloc( sizeof(double)*(world->ny_parts+1) );
 	if (dbl_array==NULL)
 	{
-	  fprintf(world->err_file, "Out of memory while trying to create partitions.\n");
+	  fprintf(world->err_file, "File '%s', Line %ld: Out of memory while trying to create partitions.\n", __FILE__, (long)__LINE__);
 	  return 1;
 	}
   
@@ -1821,7 +1821,7 @@ int set_partitions()
 	dbl_array = (double*) malloc( sizeof(double)*(world->nz_parts+1) );
 	if (dbl_array==NULL)
 	{
-	  fprintf(world->err_file, "Out of memory while trying to create partitions.\n");
+	  fprintf(world->err_file, "File '%s', Line %ld: Out of memory while trying to create partitions.\n", __FILE__, (long)__LINE__);
 	  return 1;
 	} 
   
@@ -1841,7 +1841,7 @@ int set_partitions()
       {
 	dbl_array = (double*) malloc( sizeof(double)*(world->nz_parts+1) );
 	if (dbl_array==NULL){
-	  fprintf(world->err_file, "Out of memory while trying to create partitions.\n");
+	  fprintf(world->err_file, "File '%s', Line %ld: Out of memory while trying to create partitions.\n", __FILE__, (long)__LINE__);
 	  return 1;
 	} 
   

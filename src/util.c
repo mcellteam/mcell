@@ -36,7 +36,7 @@ static struct infinite_double_array *ia_double_locate(struct infinite_double_arr
 		if(current_ptr->next == NULL){
 		   current_ptr->next = malloc(sizeof(struct infinite_double_array));
 		   if(current_ptr->next == NULL){
-                       fprintf(stderr, "MCell: Out of memory while creating infinite array\n");
+                       fprintf(stderr, "File '%s', Line %ld: Out of memory while creating infinite array\n", __FILE__, (long)__LINE__);
 			exit(1);
                    }
                  /*  memset(current_ptr->next, '\0', sizeof(struct infinite_double_array)); */
@@ -119,7 +119,7 @@ static struct infinite_int_array *ia_int_locate(struct infinite_int_array *array
 		if(current_ptr->next == NULL){
 		   current_ptr->next = malloc(sizeof(struct infinite_int_array));
 		   if(current_ptr->next == NULL){
-                       fprintf(stderr, "MCell: Out of memory while creating infinite array\n");
+                       fprintf(stderr, "File '%s', Line %ld: Out of memory while creating infinite array\n", __FILE__, (long)__LINE__);
 			exit(1);
                    }
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_int_array)); */
@@ -202,7 +202,7 @@ static struct infinite_uint_array *ia_uint_locate(struct infinite_uint_array *ar
 		if(current_ptr->next == NULL){
 		   current_ptr->next = malloc(sizeof(struct infinite_uint_array));
 		   if(current_ptr->next == NULL){
-                       fprintf(stderr, "MCell: Out of memory while creating infinite array\n");
+                       fprintf(stderr, "File '%s', Line %ld: Out of memory while creating infinite array\n", __FILE__, (long)__LINE__);
 			exit(1);
                    }
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_int_array)); */
@@ -285,7 +285,7 @@ static struct infinite_longlong_array *ia_longlong_locate(struct infinite_longlo
 		if(current_ptr->next == NULL){
 		   current_ptr->next = malloc(sizeof(struct infinite_longlong_array));
 		   if(current_ptr->next == NULL){
-                       fprintf(stderr, "MCell: Out of memory while creating infinite array\n");
+                       fprintf(stderr, "File '%s', Line %ld: Out of memory while creating infinite array\n", __FILE__, (long)__LINE__);
 			exit(1);
                    }
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_longlong_array)); */
@@ -369,7 +369,7 @@ static struct infinite_string_array *ia_string_locate(struct infinite_string_arr
 		if(current_ptr->next == NULL){
 		   current_ptr->next = malloc(sizeof(struct infinite_string_array));
 		   if(current_ptr->next == NULL){
-                       fprintf(stderr, "MCell: Out of memory while creating infinite array\n");
+                       fprintf(stderr, "File '%s', Line %ld: Out of memory while creating infinite array\n", __FILE__, (long)__LINE__);
 			exit(1);
                    }
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_string_array)); */    
@@ -407,7 +407,7 @@ void ia_string_store(struct infinite_string_array *array_ptr, int index, char *d
 	current_ptr = ia_string_locate(array_ptr, index, &current_index);
         new_entry = my_strdup(data_to_store);
         if(new_entry == NULL){
-		fprintf(stderr, "MCell: Out of memory while creating infinite array\n");
+		fprintf(stderr, "File '%s', Line %ld: Out of memory while creating infinite array\n", __FILE__, (long)__LINE__);
         }else{
 		current_ptr->data[current_index] = new_entry;	
         }
@@ -461,7 +461,7 @@ static struct infinite_pointer_array *ia_pointer_locate(struct infinite_pointer_
 		if(current_ptr->next == NULL){
 		   current_ptr->next = malloc(sizeof(struct infinite_pointer_array));
 		   if(current_ptr->next == NULL){
-                       fprintf(stderr, "MCell: Out of memory while creating infinite array\n");
+                       fprintf(stderr, "File '%s', Line %ld: Out of memory while creating infinite array\n", __FILE__, (long)__LINE__);
 			exit(1);
                    }
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_pointer_array)); */
@@ -538,7 +538,10 @@ struct bit_array* new_bit_array(int bits)
   
   ba = (struct bit_array*) malloc(sizeof(struct bit_array) + sizeof(int)*n);
   
-  if (ba==NULL) return NULL;
+  if (ba==NULL) {
+     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     return NULL;
+  }
   
   ba->nbits = bits;
   ba->nints = n;
@@ -565,8 +568,10 @@ struct bit_array* duplicate_bit_array(struct bit_array *old)
   struct bit_array *ba;
   
   ba = (struct bit_array*) malloc(sizeof(struct bit_array) + sizeof(int)*old->nints);
-  if (ba==NULL) return NULL;
-  
+  if (ba==NULL) {
+     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+      return NULL;
+  }  
   memcpy(ba,old,sizeof(struct bit_array) + sizeof(int)*old->nints);
   
   return ba;
@@ -1353,8 +1358,9 @@ unsigned char *byte_swap(unsigned char *b)
            i++;
            j--;
         }
-    } 
-
+    }else{
+       fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__); 
+    }
     return tmp;
 }
 

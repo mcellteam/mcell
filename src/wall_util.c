@@ -74,6 +74,7 @@ inline double min_n(double *array, int n)
         }
 	return INT_MAX;
 }
+
 /**************************************************************************\
  ** Edge hash table section--finds common edges in polygons              **
 \**************************************************************************/
@@ -151,7 +152,7 @@ int ehtable_init(struct edge_hashtable *eht,int nkeys)
   eht->distinct = 0;
   eht->data = (struct poly_edge*) malloc( nkeys * sizeof(struct poly_edge) );
   if (eht->data == NULL){
-      fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+      fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
       int i = emergency_output();
       fprintf(stderr, "Fatal error: out of memory during ehtable_init operation.\nAttempt to write intermediate results had %d errors.\n", i);
       exit(EXIT_FAILURE);
@@ -222,7 +223,7 @@ int ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
         
         pei = (struct poly_edge*) malloc( sizeof(struct poly_edge) );
         if (pei==NULL) {
-      		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+      		fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
       		int i = emergency_output();
       		fprintf(stderr, "Fatal error: out of memory during ehtable_add operation.\nAttempt to write intermediate results had %d errors.\n", i);
       		exit(EXIT_FAILURE);
@@ -247,7 +248,7 @@ int ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
     {
       pei = (struct poly_edge*) malloc( sizeof(struct poly_edge) );
       if (pei==NULL){ 
-      		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+      		fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
       		int i = emergency_output();
       		fprintf(stderr, "Fatal error: out of memory during ehtable_add operation.\nAttempt to write intermediate results had %d errors.\n", i);
       		exit(EXIT_FAILURE);
@@ -540,7 +541,7 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
     between the faces of the edge in the linked_list. */
  double *aligns;
  if((aligns = (double *)malloc(count*sizeof(double))) == NULL){
-	fprintf(log_file, "Memory allocation error\n");
+	fprintf(world->err_file, "File '%s', Line %ld: Memory allocation error\n", __FILE__, (long)__LINE__);
 	return;
  }
 
@@ -727,7 +728,7 @@ int surface_net( struct wall **facelist, int nfaces )
           	facelist[pep->face2]->nb_walls[pep->edge2] = facelist[pep->face1];
           	e = (struct edge*) mem_get( facelist[pep->face1]->birthplace->join );
           	if (e==NULL) {
-			fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+			fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
 			int i = emergency_output();
 			fprintf(stderr, "Fatal error: out of memory during surface_net event.\nAttempt to write intermediate results had %d errors.\n", i);
                 	exit(EXIT_FAILURE);
@@ -747,7 +748,7 @@ int surface_net( struct wall **facelist, int nfaces )
         is_closed = 0;
         e = (struct edge*) mem_get( facelist[pep->face1]->birthplace->join );
         if (e==NULL) { 
-		fprintf(stderr, "Out of memory: trying to save intermediate results.\n");
+		fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
 		int i = emergency_output();
 		fprintf(stderr, "Fatal error: out of memory during surface_net event.\nAttempt to write intermediate results had %d errors.\n", i);
                 exit(EXIT_FAILURE);
@@ -765,7 +766,6 @@ int surface_net( struct wall **facelist, int nfaces )
   ehtable_kill(&eht);
   return -is_closed;  /* We use 1 to indicate malloc failure so return 0/-1 */
 
-		printf("I am at end of surface_net()\n");
 }
 
 
@@ -1114,7 +1114,7 @@ int is_manifold(struct region *r)
     {
       if (w->nb_walls[j] == NULL)
       {
-	printf("BARE EDGE on wall %d edge %d\n",i,j);
+	fprintf(world->log_file, "BARE EDGE on wall %d edge %d\n",i,j);
 	return 0; /* Bare edge--not a manifold */
       }
       
@@ -1124,7 +1124,7 @@ int is_manifold(struct region *r)
       }
       if (rl==NULL)
       {
-	printf("Wall %d edge %d leaves region!\n",i,j);
+	fprintf(world->log_file, "Wall %d edge %d leaves region!\n",i,j);
 	return 0;  /* Can leave region--not a manifold */
       }
     }
@@ -1972,14 +1972,12 @@ struct wall* distribute_wall(struct wall *w)
     if (wall_to_vol( where_am_i , &(world->subvol[h]) ) == NULL) return NULL;
 
     /*    if (!wall_in_box(w->vert,&(w->normal),w->d,&llf,&urb)) printf("This wall doesn't belong in the only box it intersects?!\n"); */
-
     if (world->use_expanded_list)
     {
       /* test whether this wall is within R_INT from the neighbor SV's 
 	 and if it is - add the wall to the wall_list of the neighbor SV */
       add_wall_to_neighbor_subvolumes(where_am_i, &llf, &urb, &(world->subvol[h]));
     }
-
     return where_am_i;
   }
 
@@ -2008,7 +2006,6 @@ struct wall* distribute_wall(struct wall *w)
         if (wall_in_box(w->vert,&(w->normal),w->d,&llf,&urb))
 	{
 	  if (wall_to_vol(where_am_i,&(world->subvol[h])) == NULL) return NULL;
-
           if (world->use_expanded_list)
 	  {
 	    /* test whether this wall is within R_INT from the neighbor SV's 
@@ -2050,7 +2047,7 @@ int distribute_object(struct object *parent)
 
       if (parent->wall_p[i]==NULL)
       {
-	fprintf(world->err_file,"Out of memory while initializing object %s\n",parent->sym->name);
+	fprintf(world->err_file,"File '%s', Line %ld: Out of memory while initializing object %s\n", __FILE__, (long)__LINE__, parent->sym->name);
 	return 1;
       }
     }
@@ -2427,7 +2424,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2452,7 +2449,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2477,7 +2474,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2503,7 +2500,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2529,7 +2526,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2555,7 +2552,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2584,7 +2581,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2611,7 +2608,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2639,7 +2636,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2666,7 +2663,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2695,7 +2692,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2723,7 +2720,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2749,7 +2746,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2775,7 +2772,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2804,7 +2801,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"iFile '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2856,7 +2853,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2882,7 +2879,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2910,7 +2907,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2936,7 +2933,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2962,7 +2959,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -2988,7 +2985,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -3014,7 +3011,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -3040,7 +3037,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -3066,7 +3063,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
@@ -3092,7 +3089,7 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
              /* include wall to this SV's wall_list */
              if (wall_to_vol( w, new_sv ) == NULL) 
              {
-	         fprintf(world->err_file,"Out of memory while adding wall to neighbor subvolume with index %d.\n", new_sv->index);
+	         fprintf(world->err_file,"File '%s', Line %ld: Out of memory while adding wall to neighbor subvolume with index %d.\n", __FILE__, (long)__LINE__, new_sv->index);
 	         exit(EXIT_FAILURE);
              }
          }
