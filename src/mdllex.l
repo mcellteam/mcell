@@ -388,7 +388,7 @@ I ([0-9]+)
 			     mpvp->cval=my_strdup(mdltext);
 			   }
                            if(mpvp->cval == NULL){
-                                fprintf(stderr,"MCell: Out of memory while parsing variable name: %s\n",mdltext);
+                                fprintf(stderr,"File '%s', Line %ld: Out of memory while parsing variable name: %s\n", __FILE__, (long)__LINE__, mdltext);
                                 exit(1);
                            }
 
@@ -404,7 +404,7 @@ I ([0-9]+)
 			     mpvp->cval=my_strdup(mdltext);
 			   }
                            if(mpvp->cval == NULL){
-                                fprintf(stderr,"MCell: Out of memory while parsing wildcard variable name: %s\n",mdltext);
+                                fprintf(stderr,"File '%s', Line %ld: Out of memory while parsing wildcard variable name: %s\n", __FILE__, (long)__LINE__, mdltext);
                                 exit(1);
                            }
 
@@ -413,7 +413,7 @@ I ([0-9]+)
 \"(([^\"]*)|((\\\")*))*\"  {
                              mpvp->strval=my_strdup(mdltext); 
 			     if(mpvp->strval == NULL){
-                                fprintf(stderr,"MCell: Out of memory while parsing string: %s\n",mdltext);
+                                fprintf(stderr,"File '%s', Line %ld: Out of memory while parsing string: %s\n", __FILE__, (long)__LINE__, mdltext);
                                 exit(1);
                              }
                              return(STR_VALUE);

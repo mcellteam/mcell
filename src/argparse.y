@@ -6,6 +6,7 @@
   #include <stdarg.h>
   #include <fcntl.h>
   #include "rng.h"
+  #include "util.h"
   #include "mcell_structs.h"
   #include "strfunc.h"
   #include "argparse.h"
@@ -103,7 +104,7 @@ mdl_infile_cmd: FILE_NAME
   }
   volp->mdl_infile_name=my_strdup(argpvp->cval);
   if (volp->mdl_infile_name == NULL) {
-    sprintf(argpvp->arg_err_msg,"Out of memory while parsing command line arguments: %s",argpvp->cval);
+    sprintf(argpvp->arg_err_msg,"File '%s', Line %ld: Out of memory while parsing command line arguments: %s",__FILE__, (long)__LINE__, argpvp->cval);
     argerror(argpvp->arg_err_msg,argpvp);
     return(1);
   }
@@ -140,7 +141,7 @@ checkpoint_cmd: CHECKPOINT_OPT FILE_NAME
 {
   volp->chkpt_infile = my_strdup(argpvp->cval);
   if (volp->chkpt_infile == NULL) {
-    sprintf(argpvp->arg_err_msg,"Out of memory while parsing command line arguments: %s",argpvp->cval);
+    sprintf(argpvp->arg_err_msg,"File '%s', LINE %ld: Out of memory while parsing command line arguments: %s",__FILE__, (long)__LINE__, argpvp->cval);
     argerror(argpvp->arg_err_msg,argpvp);
     return(1);
   }
@@ -161,7 +162,7 @@ log_file_cmd: LOG_FILE_OPT FILE_NAME
 {
   volp->log_file_name=my_strdup(argpvp->cval);
   if (volp->log_file_name == NULL) {
-    sprintf(argpvp->arg_err_msg,"Out of memory while parsing command line arguments: %s",argpvp->cval);
+    sprintf(argpvp->arg_err_msg,"File '%s', Line %ld: Out of memory while parsing command line arguments: %s", __FILE__, (long)__LINE__, argpvp->cval);
     argerror(argpvp->arg_err_msg,argpvp);
     return(1);
   }
@@ -304,21 +305,21 @@ int argparse_init(int argc, char *argv[], struct volume *vol)
     if (i==1) {
       free(arg_string);
       if ((arg_string=my_strdup(argv[i]))==NULL) {
-        fprintf(vol->err_file,"MCell: out of memory storing arg_string\n");
+        fprintf(vol->err_file,"File '%s', Line %ld: out of memory storing arg_string\n", __FILE__, (long)__LINE__);
         return(1);
       }
     }
     else {
       tempstr=arg_string; 
       if ((arg_string=my_strcat(arg_string," "))==NULL) {
-        fprintf(vol->err_file,"MCell: out of memory storing arg_string\n");
+        fprintf(vol->err_file,"File '%s', Line %ld: out of memory storing arg_string\n", __FILE__, (long)__LINE__);
         return(1);
       }
       free(tempstr);
 
       tempstr=arg_string; 
       if ((arg_string=my_strcat(arg_string,argv[i]))==NULL) {
-        fprintf(vol->err_file,"MCell: out of memory storing arg_string\n");
+        fprintf(vol->err_file,"File '%s', Line %ld: out of memory storing arg_string\n", __FILE__, (long)__LINE__);
         return(1);
       }
       free(tempstr);
