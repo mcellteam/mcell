@@ -4466,9 +4466,13 @@ struct output_expression* join_oexpr_tree(struct output_expression *left,struct 
     joined->left=(void*)left;
     joined->right=(void*)right;
     joined->oper=oper;
+    left->up=joined;
+    right->up=joined;
     
     learn_oexpr_flags(joined);
     if (joined->expr_flags&OEXPR_TYPE_CONST) eval_oexpr_tree(joined,0);
+    
+    return joined;
   }
   else if (left->oper==',')
   {
@@ -4492,11 +4496,11 @@ struct output_expression* join_oexpr_tree(struct output_expression *left,struct 
       if (joined==NULL) return NULL;
       if (leaf==up->left) up->left=joined;
       else up->right=joined;
-      learn_oexpr_flags(joined);
       if (joined->expr_flags&OEXPR_TYPE_CONST) eval_oexpr_tree(joined,0);
       learn_oexpr_flags(up);
       leaf=joined;
     }
+    return left;
   }
   else /* right->oper==',' */
   {
@@ -4518,14 +4522,15 @@ struct output_expression* join_oexpr_tree(struct output_expression *left,struct 
       if (joined==NULL) return NULL;
       if (leaf==up->left) up->left=joined;
       else up->right=joined;
-      learn_oexpr_flags(joined);
       if (joined->expr_flags&OEXPR_TYPE_CONST) eval_oexpr_tree(joined,0);
       learn_oexpr_flags(up);
       leaf=joined;
     }
+    
+    return right;
   }
   
-  return joined;
+  return NULL;  /* Should never get here */
 }
 
 
