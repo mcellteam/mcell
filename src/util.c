@@ -1658,7 +1658,7 @@ int is_feral_nabbrev(char *feral,int n,char *tame)
 
 /* Find a substring of a tame haystack string that matches the first n
 characters of the feral string needle (same syntax as strstr except using
-a feral string with a length delimiter. */
+a feral string with a length delimiter). */
 
 char* feral_strstrn(char *tame_haystack,char *feral_needle,int n)
 {

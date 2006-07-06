@@ -69,6 +69,7 @@ struct counter *store_reg_counter(struct volume *volp,
                                   struct region *rp,
                                   byte counter_type);
 
+#if 0
 struct output_evaluator *init_counter(byte report_type,
                                       struct output_item *oip,
                                       struct counter *cp,
@@ -94,7 +95,7 @@ int handle_count_request(unsigned short sym_type,
 			 struct object *obj,
 			 byte report_type,
 			 struct mdlparse_vars *mdlpvp);
-
+#endif
 
 struct release_evaluator *pack_release_expr(struct release_evaluator *rel,struct release_evaluator *rer,byte op);
 struct object* common_ancestor(struct object *a,struct object*b);
@@ -105,6 +106,14 @@ struct release_site_obj* duplicate_release_site(struct release_site_obj *old,str
 
 struct sym_table_list* sort_sym_list_by_name(struct sym_table_list *unsorted);
 
-int check_reaction_output_file(struct output_item *oi,FILE *err_file);
+int check_reaction_output_file(struct output_set *os,FILE *err_file);
+
+struct output_block* insert_new_output_block(struct mdlparse_vars *mpvp);
+struct output_set* insert_new_output_set(struct output_block *ob,char *comment);
+struct output_column* insert_new_output_column(struct output_set *os);
+
+struct output_expression* join_oexpr_tree(struct output_expression *left,struct output_expression *right,char oper,struct mem_helper *oexpr_mem);
+
+
                                      
 #endif

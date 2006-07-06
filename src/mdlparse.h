@@ -104,10 +104,8 @@ struct mdlparse_vars {
   struct output_block *obp;
   long long n_output;
   long long output_freq;
-  struct output_item *oip;
-  struct output_evaluator *oep;
-  struct output_evaluator *oep2;
   struct counter *cp;
+  struct mem_helper *sym_list_mem;
 
   struct polygon_object *pop;
   struct ordered_poly *opp;

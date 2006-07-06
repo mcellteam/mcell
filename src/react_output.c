@@ -9,10 +9,11 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "util.h"
 #include "sched_util.h"
 #include "mcell_structs.h"
 #include "react_output.h"
+#include "mdlparse_util.h"
+#include "strfunc.h"
 
 
 extern struct volume *world;
@@ -90,7 +91,7 @@ int truncate_output_file(char *name,double start_value)
 	my_value = strtod(numbuf,&done);
 	if (done!=numbuf)
 	{
-	  if (my_value > start_value && distinguishable(my_value,start_value,EPS_C))
+	  if (my_value > start_value)
 	  {
 	    k = fseek(f,0,SEEK_SET);
 	    if (k)
@@ -165,6 +166,7 @@ int emergency_output()
   struct storage_list *mem;
   struct schedule_helper *sh;
   struct output_block *ob;
+  struct output_set *os;
   int n_errors = 0;
   int i;
   
@@ -193,9 +195,9 @@ int emergency_output()
       
       for ( ; ob != NULL ; ob = ob->next )
       {
-	if ( write_reaction_output(ob,1) )
-	{
-	  n_errors++;
+        for (os=ob->data_set_head ; os!=NULL ; os=os->next)
+        {
+          if (write_reaction_output(os,1)) n_errors++;
 	}
       }
     } 
@@ -214,12 +216,12 @@ update_reaction_output:
        to an internal buffer, and written out when full.
 **************************************************************************/
 
-int update_reaction_output(struct output_block *obp)
+int update_reaction_output(struct output_block *block)
 {
   FILE *log_file;
-  struct output_item *oip,*oi;
-  struct output_evaluator *oep;
-  u_int curr_buf_index;
+  struct output_set *set;
+  struct output_column *column;
+  int i;
   int final_chunk_flag;		// flag signaling an end to the scheduled
                                 // reaction outputs. Takes values {0,1}.
                                 // 0 - end not reached yet,
@@ -232,110 +234,80 @@ int update_reaction_output(struct output_block *obp)
 
   /* update all counters */
 
-  curr_buf_index=obp->curr_buf_index;
-  if((obp->timer_type == OUTPUT_BY_STEP) || (obp->timer_type == OUTPUT_BY_TIME_LIST)){
-     obp->time_array[curr_buf_index]=obp->t*world->time_unit;
-  }else{
-     obp->time_array[curr_buf_index] = obp->t;
-  } 
-
-  for (oi=obp->output_item_head ; oi!=NULL ; oi=oi->next)  /* Each file */
+  i=block->buf_index;
+  if(block->timer_type==OUTPUT_BY_ITERATION_LIST) block->time_array[i] = block->t;
+  else block->time_array[i] = block->t*world->time_unit;
+  
+  for (set=block->data_set_head ; set!=NULL ; set=set->next) /* Each file */
   {
-
-    for (oip=oi ; oip!=NULL ; oip=oip->next_column)        /* Each column */
+    for (column=set->column_head ; column!=NULL ; column=column->next) /* Each column */
     {
-
-      /* copy temp_data into final_data[curr_buf_index] */
-      for (oep=oip->output_evaluator_head ; oep!=NULL ; oep=oep->next)
+      if (column->data_type != TRIG_STRUCT)
       {
-	if (oep->update_flag) {
-	  switch (oep->data_type)
-	  {
-	    case INT:
-	      ((int*)oep->final_data)[curr_buf_index]=*(int *)oep->temp_data;
-	      /* reset temp_data if necessary */
-	      if (oep->reset_flag) *(int *)oep->temp_data=0;
-	      break;
-	    case DBL:
-	      ((double*)oep->final_data)[curr_buf_index]=*(double*)oep->temp_data;
-	      if (oep->reset_flag) *(double*)oep->temp_data=0;
-	      break;
-	    default:
-	      fprintf(world->err_file,"File '%s', Line %ld: Unknown data type while updating reaction output.\n", __FILE__, (long)__LINE__);
-	      break;
-	  }
-	}
+        eval_oexpr_tree(column->expr,1);
+        switch(column->data_type)
+        {
+          case INT:
+            ((int*)column->buffer)[i] = (int)column->expr->value;
+            break;
+          case DBL:
+            ((double*)column->buffer)[i] = column->expr->value;
+            break;
+          default:
+            fprintf(world->err_file,"Error in file %s line %d.\n  Bad output data type.\n",__FILE__,__LINE__);
+            break;
+        }
       }
     }
-  } 
+  }
+  block->buf_index++;
 
-  obp->curr_buf_index++;
-
-
-  /* Schedule next output event */
-
+  /* Pick time of next output, if any */
   final_chunk_flag=0;
-  if (obp->timer_type==OUTPUT_BY_STEP) {
-    obp->t+=obp->step_time/world->time_unit;
-    if (obp->t >= world->iterations+1) {
-      final_chunk_flag=1;
-    }
-    else {
-      if(schedule_add(world->count_scheduler,obp) == 1){
-	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory while updating reaction outputs.\nAttempt to write intermediate results had %d errors.\n", i);
-	exit(EXIT_FAILURE); 
-      }
-    }
-  }
-  else {
-    obp->curr_time_ptr=obp->curr_time_ptr->next;
-    if (obp->curr_time_ptr==NULL) { 
-      final_chunk_flag=1;
-    }
-    else {
-      if (obp->timer_type==OUTPUT_BY_ITERATION_LIST) {
-        obp->t=obp->curr_time_ptr->value;
-        if (obp->t >= world->iterations + 1) {
-           final_chunk_flag=1;
-        }else{
-           if(schedule_add(world->count_scheduler,obp) == 1){
-	     fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-             int i = emergency_output();
-             fprintf(stderr, "Fatal error: out of memory while updating reaction outputs.\nAttempt to write intermediate results had %d errors.\n", i);
-	     exit(EXIT_FAILURE); 
-           }
-        }
-      }else {
-        obp->t=obp->curr_time_ptr->value/world->time_unit; 
-        if (obp->t >= world->iterations + 1) {
-           final_chunk_flag=1;
-        }else{
-           if(schedule_add(world->count_scheduler,obp) == 1){
-	     fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-             int i = emergency_output();
-             fprintf(stderr, "Fatal error: out of memory while updating reaction outputs.\nAttempt to write intermediate results had %d errors.\n", i);
-	     exit(EXIT_FAILURE); 
-           }
-        }
-      }
-    }
-  }
-
-
-  /* write data to outfile */
-
-  if (obp->curr_buf_index==obp->buffersize || final_chunk_flag)
+  if (block->timer_type==OUTPUT_BY_STEP) block->t+=block->step_time/world->time_unit;
+  else
   {
-    if ( write_reaction_output(obp,final_chunk_flag) )
+    block->time_now=block->time_now->next;
+    if (block->time_now==NULL) final_chunk_flag=1;
+    else
     {
-      fprintf(world->err_file, "File %s, Line %ld: error writing reaction output.\n", __FILE__, (long)__LINE__);
-      return 1;  
+      if (block->timer_type==OUTPUT_BY_ITERATION_LIST) block->t=block->time_now->value;
+      else block->t=block->time_now->value/world->time_unit;
     }
   }
-  no_printf("Done updating reaction output\n");
-  fflush(log_file);
+
+  if (block->t >= world->iterations+1) final_chunk_flag=1;
+  
+  /* Schedule next output event, if there is one */
+  if (!final_chunk_flag)
+  {
+    i = schedule_add(world->count_scheduler,block);
+    if (i)
+    {
+      i = emergency_output();
+      fprintf(world->err_file,"Fatal error: out of memory while updating reaction outputs\nAttempt to write intermediate results had %d errors.\n",i);
+      exit(EXIT_FAILURE); 
+    }
+  }
+
+  
+  /* write data to outfile */
+  if (block->buf_index==block->buffersize || final_chunk_flag)
+  {
+    for (set=block->data_set_head ; set!=NULL ; set=set->next)
+    {
+      if (set->column_head->data_type==TRIG_STRUCT) continue;
+      i = write_reaction_output(set,final_chunk_flag);
+      if (i)
+      {
+        fprintf(world->err_file,"Unable to write reaction output to filename %s\n",set->outfile_name);
+        return 1;
+      }
+    }
+    block->buf_index=0;
+    block->chunk_count++;
+    no_printf("Done updating reaction output\n");
+  }
   
   return 0;
 }
@@ -343,320 +315,414 @@ int update_reaction_output(struct output_block *obp)
 
 /**************************************************************************
 write_reaction_output:
-  In: the output_block we want to write to disk
+  In: the output_set we want to write to disk
       the flag that signals an end to the scheduled reaction outputs
   Out: 0 on success, 1 on failure.
        The reaction output buffer is flushed and written to disk.
+       If we're writing trigger data, the index will be set back to zero.
+       Otherwise, we're writing part of a block and the calling function
+       has to update things when we're done (since the whole block is
+       synchronized).
 **************************************************************************/  
   
-int write_reaction_output(struct output_block *obp,int final_chunk_flag)
+int write_reaction_output(struct output_set *set,int final_chunk_flag)
 {
-  FILE *log_file,*fp;
-  struct output_item *oip,*oi;
-  struct output_evaluator *oep;
+  FILE *fp;
+  struct output_column *column;
   char *mode;
   u_int n_output;
-  u_int i,stop_i,ii,j;
-  u_int n_cols;  
+  u_int i;
   
-  log_file = world->log_file;
-  
-  n_output=obp->buffersize;
-  if (obp->curr_buf_index<obp->buffersize) n_output=obp->curr_buf_index;
+  n_output=set->block->buffersize;
+  if (set->block->buf_index<set->block->buffersize) n_output=set->block->buf_index;
 
-  for (oi=obp->output_item_head ; oi!=NULL ; oi=oi->next)
+  switch(set->file_flags)
   {
-    switch(oi->file_flags)
-    {
-      case FILE_OVERWRITE:
-      case FILE_CREATE:
-        if (obp->chunk_count==0) mode = "w";
-	else mode = "a";
-	break;
-      case FILE_SUBSTITUTE:
-        if (world->chkpt_seq_num==1 && obp->chunk_count==0) mode = "w";
-	else mode = "a";
-	break;
-      case FILE_APPEND:
-      case FILE_APPEND_HEADER:
-	mode = "a";
-	break;
-      default:
-        fprintf(world->err_file,"File '%s', Line %ld: Not sure what to do with output file %s (internal code #%d)\n", __FILE__, (long)__LINE__, oi->outfile_name,oi->file_flags);
-	return 1;
-	break;
-    }
- 
-    fp = fopen(oi->outfile_name,mode);
-    if (fp==NULL)
-    {
-      fprintf(world->err_file,"Error: could not open output file %s\n",oi->outfile_name);
+    case FILE_OVERWRITE:
+    case FILE_CREATE:
+      if (set->block->chunk_count==0) mode = "w";
+      else mode = "a";
+      break;
+    case FILE_SUBSTITUTE:
+      if (world->chkpt_seq_num==1 && set->block->chunk_count==0) mode = "w";
+      else mode = "a";
+      break;
+    case FILE_APPEND:
+    case FILE_APPEND_HEADER:
+      mode = "a";
+      break;
+    default:
+      fprintf(world->err_file,"Error at file %s line %d\n",__FILE__,__LINE__);
+      fprintf(world->err_file,"  Bad file output code %d for output file %s\n",set->file_flags,set->outfile_name);
       return 1;
-    }
-
-    if (world->notify->file_writes==NOTIFY_FULL)
-    {
-      fprintf(world->log_file,"Writing %d lines to output file %s\n",n_output,oi->outfile_name);
-      fflush(log_file);
-    }
+      break;
+  }
     
-    stop_i=n_output;
-   
-    n_cols=0;
-    for (oip=oi ; oip!=NULL ; oip=oip->next_column)
-    {
-      if (eval_count_expr_tree(oip->count_expr)) return 1;
-      n_cols++;
-    }
-    
-    /* write headers */
-   if( (world->chkpt_seq_num==1 || oi->file_flags==FILE_APPEND_HEADER || oi->file_flags==FILE_CREATE || oi->file_flags==FILE_OVERWRITE)
-       && oi->header_comment!=NULL && oi->file_flags!=FILE_APPEND && oi->first_write) 
-    {
-       oip = oi;
+  fp = fopen(set->outfile_name,mode);
+  if (fp==NULL)
+  {
+    fprintf(world->err_file,"Error: could not open output file %s\n",set->outfile_name);
+    return 1;
+  }
 
-       if(obp->timer_type == OUTPUT_BY_ITERATION_LIST)
+  if (world->notify->file_writes==NOTIFY_FULL)
+  {
+    fprintf(world->log_file,"Writing %d lines to output file %s\n",n_output,set->outfile_name);
+  }
+  fflush(world->log_file);
+    
+  if (set->column_head->data_type!=TRIG_STRUCT)
+  {
+    /* Write headers */
+    if ( set->block->chunk_count==0 && set->header_comment!=NULL && set->file_flags!=FILE_APPEND &&
+         ( world->chkpt_seq_num==1 || set->file_flags==FILE_APPEND_HEADER ||
+           set->file_flags==FILE_CREATE || set->file_flags==FILE_OVERWRITE ) )
+    {
+      if (set->block->timer_type==OUTPUT_BY_ITERATION_LIST) fprintf(fp,"%sIteration_#",set->header_comment);
+      else fprintf(fp,"%sSeconds",set->header_comment);
+      
+       for (column=set->column_head ; column!=NULL ; column=column->next)
        {
-	  fprintf(fp,"%s%s",oip->header_comment,"Iteration_# ");
-       }else{
-	  fprintf(fp,"%s%s",oip->header_comment,"Seconds ");
-       }
-       for (oip=oi ; oip!=NULL ; oip=oip->next_column)
-       {
-	  if(oip->count_expr->column_title != NULL){
-	    fprintf(fp,"%s ", oip->count_expr->column_title);
-	  }
-	  else
-	  {
-	    fprintf(fp,"untitled ");
-	  }
+         if (column->expr->title==NULL) fprintf(fp," untitled");
+         else fprintf(fp," %s",column->expr->title);
        }
        fprintf(fp,"\n");
-
     }
-
-    for (i=0;i<stop_i;i++)
+    
+    /* Write data */
+    for (i=0;i<n_output;i++)
     {
-
-      fprintf(fp,"%.15g",obp->time_array[i]); 
+      fprintf(fp,"%.15g",set->block->time_array[i]);
       
-      for (ii=0,oip=oi ; oip!=NULL ; oip=oip->next_column,ii++)
+      for (column=set->column_head ; column!=NULL ; column=column->next)
       {
-	oep = oip->count_expr;
-	if (oep->index_type!=TIME_STAMP_VAL)
-	{
-	  fprintf(world->log_file,"Warning: no data (no geometry?) to count for column %d of '%s' -- skipping column.\n",ii+2,oi->outfile_name);
-	  continue;
-	}
-	
-	/* For the correct writing of the final_data to the output file
-	// the data_type field should be either DBL, or INT.
-	*/
-	if(oep->data_type == EXPR)
-	{
-	  oep->data_type=DBL;
-	  if((oep->operand1->data_type == INT) && (oep->operand2->data_type == INT))
-	  {
-	    oep->data_type = INT;
-	  }
-	}
-	
-	j = i;
-	if (oep->n_data==1) j = 0;
-	
-	if (oep->data_type==DBL)
-	{
-	  fprintf(fp," %.9g",((double*)oep->final_data)[j]);
-	}
-	else if (oep->data_type==INT)
-	{
-	  fprintf(fp," %d",((int*)oep->final_data)[j]);
-	}
-	else
-	{
-	  fprintf(world->log_file,"Warning: non-numeric count for column %d of '%s' -- skipping column.\n",ii+2,oi->outfile_name);
-	  continue;
-	}
-	oip->first_write = 0;
-      } /* end for (oip->next_column) */
-      
+        switch (column->data_type)
+        {
+          case INT:
+            fprintf(fp," %d",((int*)column->buffer)[i]);
+            break;
+          case DBL:
+            fprintf(fp," %.9g",((double*)column->buffer)[i]);
+            break;
+          default:
+            fprintf(world->err_file,"Unexpected data type in column titled %s--skipping.\n",(column->expr->title==NULL)?"":column->expr->title);
+            break;
+        }
+      }
       fprintf(fp,"\n");
-
-    } /* end for (oip->next) */
-    fclose(fp);
-  } 
-  obp->chunk_count++;
-  obp->curr_buf_index=0;
+    }  
+  }
+  else /* Write accumulated trigger data */
+  {
+    struct output_trigger_data *trig;
+    
+    n_output = (u_int)set->column_head->initial_value;
+    for (i=0;i<n_output;i++)
+    {
+      trig = &(((struct output_trigger_data*)set->column_head->buffer)[i]);
+      fprintf(fp,"%.15g %.9g %.9g %.9g %s\n",trig->t,trig->loc.x,trig->loc.y,trig->loc.z,(trig->name==NULL)?"":trig->name);
+    }
+    set->column_head->initial_value=0;
+  }
   
+  fclose(fp);
   return 0;
 }
+
+
+
+
+struct output_expression* new_output_expr(struct mem_helper *oexpr_mem)
+{
+  struct output_expression *oe;
+  
+  oe = (struct output_expression*)mem_get(oexpr_mem);
+  if (oe==NULL) return NULL;
+  
+  oe->column=NULL;
+  oe->expr_flags=0;
+  oe->up=NULL;
+  oe->left=NULL;
+  oe->right=NULL;
+  oe->oper='\0';
+  oe->value=0;
+  oe->title=NULL;
+  
+  return oe;
+}
+
+void set_oexpr_column(struct output_expression *oe,struct output_column *oc)
+{
+ for ( ; oe!=NULL ; oe=((oe->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_OEXPR)?(struct output_expression*)oe->right:NULL )
+ {
+   oe->column=oc;
+   if ((oe->expr_flags&OEXPR_LEFT_MASK)==OEXPR_LEFT_OEXPR) set_oexpr_column((struct output_expression*)oe->left,oc);
+ }
+}
+
+void learn_oexpr_flags(struct output_expression *oe)
+{
+  struct output_expression *oel,*oer;
+  
+  oel = (struct output_expression*)oe->left;
+  oer = (struct output_expression*)oe->right;
+  
+  if (oer==NULL)
+  {
+    if (oel==NULL) oe->expr_flags=OEXPR_TYPE_CONST|OEXPR_TYPE_DBL;
+    else
+    {
+      oe->expr_flags = (oel->expr_flags&(OEXPR_TYPE_MASK|OEXPR_TYPE_CONST)) | OEXPR_LEFT_OEXPR;
+      if (oel->expr_flags&OEXPR_TYPE_CONST) oe->expr_flags |= OEXPR_LEFT_CONST;
+    }
+  }
+  else
+  {
+    oer = (struct output_expression*)oe->right;
+    oe->expr_flags = OEXPR_LEFT_OEXPR | OEXPR_RIGHT_OEXPR;
+    if (oel->expr_flags&OEXPR_TYPE_CONST) oe->expr_flags |= OEXPR_LEFT_CONST;
+    if (oer->expr_flags&OEXPR_TYPE_CONST) oe->expr_flags |= OEXPR_RIGHT_CONST;
+    if (oel->expr_flags&oer->expr_flags&OEXPR_TYPE_CONST) oe->expr_flags |= OEXPR_TYPE_CONST;
+    if ((oel->expr_flags&OEXPR_TYPE_MASK)==(oer->expr_flags&OEXPR_TYPE_MASK)) oe->expr_flags |= oel->expr_flags&OEXPR_TYPE_MASK;
+    else
+    {
+      if ((oel->expr_flags&OEXPR_TYPE_MASK)==OEXPR_TYPE_TRIG) oe->expr_flags |= OEXPR_TYPE_TRIG;
+      else if ((oer->expr_flags&OEXPR_TYPE_MASK)==OEXPR_TYPE_TRIG) oe->expr_flags |= OEXPR_TYPE_TRIG;
+      else if ((oel->expr_flags&OEXPR_TYPE_MASK)==OEXPR_TYPE_DBL) oe->expr_flags |= OEXPR_TYPE_DBL;
+      else if ((oer->expr_flags&OEXPR_TYPE_MASK)==OEXPR_TYPE_DBL) oe->expr_flags |= OEXPR_TYPE_DBL;
+      else oe->expr_flags |= OEXPR_TYPE_INT;
+    }
+  }
+}
   
 
-
-/**
- * Evaluate counter arithmetic expression tree
- */
-int eval_count_expr_tree(struct output_evaluator *oep)
+struct output_expression* first_oexpr_tree(struct output_expression *root)
 {
-  if (oep->operand1!=NULL || oep->operand2!=NULL) {
-    if (oep->operand1==NULL || oep->operand2==NULL)
-    {
-      fprintf(world->err_file,"File '%s', Line %ld: Evaluating a non-binary operation (not supported, have us fix this).\n", __FILE__, (long)__LINE__);
-      return 1;
-    }
-    if(eval_count_expr_tree(oep->operand1)) return (1);
-    if(eval_count_expr_tree(oep->operand2)) return (1);
-    if(eval_count_expr(oep->operand1,oep->operand2,oep->oper,oep)){
-	return (1);
-    }
-    if (oep->operand1->index_type!=UNKNOWN) {
-      oep->index_type=oep->operand1->index_type;
-    }
-    else if (oep->operand2->index_type!=UNKNOWN) {
-      oep->index_type=oep->operand2->index_type;
-    }
-  }
-  return (0);
+  while (root->oper==',') root = (struct output_expression*)root->left;
+  return root;
 }
 
-
-
-/**
- * Evaluate a single counter arithmetic expression
- */
-int eval_count_expr(struct output_evaluator *operand1,
-                    struct output_evaluator *operand2,
-                    char oper,
-                    struct output_evaluator *result)
+struct output_expression* last_oexpr_tree(struct output_expression *root)
 {
-  FILE *log_file;
-  int i;                   
-  byte int_flag1,int_flag2,double_result_flag;  /* flags pointing to the data 
-						   type of the operands and
-						   result. */
-  double op1,op2;				/* operands values */
-  double ans;
+  while (root->oper==',') root = (struct output_expression*)root->right;
+  return root;
+}
 
-  log_file=world->log_file;
-
-  op1=0;
-  op2=0;
-  double_result_flag=0;
-  int_flag1=0;
-  int_flag2=0;
-
-  switch (operand1->data_type) {
-  	case INT:
-    		int_flag1=1;
-    		op1=((int *)operand1->final_data)[0];
-    		break;
-  	case DBL:
-    		double_result_flag=1;
-    		op1=((double *)operand1->final_data)[0];
-    		break;
-        default:
-        	fprintf(log_file,"MCell: Wrong operand data type.\n");
-        	return(1);
-                break;
-  }
-  switch (operand2->data_type) {
-  	case INT:
-    		int_flag2=1;
-    		op2=((int *)operand2->final_data)[0];
-    		break;
-  	case DBL:
-    		double_result_flag=1;
-    		op2=((double *)operand2->final_data)[0];
-    		break;
-        default:
-        	fprintf(log_file,"MCell: Wrong operand data type.\n");
-        	return(1);
-                break;
-  }
-  if (oper=='/') {
-    double_result_flag=1;
-  }
-  if (operand2->n_data>operand1->n_data) {
-    result->n_data=operand2->n_data;
-  }
-  else {
-    result->n_data=operand1->n_data;
-  }
-  if (result->final_data==NULL) {
-    if (double_result_flag) {
-      if (!(result->final_data=(void *)malloc(result->n_data*sizeof(double)))) {
-	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory while evaluating counter expressions.\nAttempt to write intermediate results had %d errors.\n", i);
-	exit(EXIT_FAILURE); 
-      }
-      result->data_type=DBL;
-    }
-    else {
-      if (!(result->final_data=(void *)malloc(result->n_data*sizeof(int)))) {
-	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory while evaluating counter expressions.\nAttempt to write intermediate results had %d errors.\n", i);
-	exit(EXIT_FAILURE); 
-      }
-      result->data_type=INT;
-    }
-  }
-  for (i=0;i<result->n_data;i++)
+struct output_expression* next_oexpr_tree(struct output_expression *leaf)
+{
+  for ( ; leaf->up!=NULL ; leaf=leaf->up)
   {
-    if (operand1->n_data>1)
-    {
-      if (int_flag1) op1=((int *)operand1->final_data)[i];
-      else op1=((double *)operand1->final_data)[i];
-    }
-
-    if (operand2->n_data>1)
-    {
-      if (int_flag2) op2=((int *)operand2->final_data)[i];
-      else op2=((double *)operand2->final_data)[i];
-    }
-      
-    ans=eval_double(op1,op2,oper);
-    
-    if (ans==GIGANTIC)
-    {
-      fprintf(world->err_file,"Division by zero error in output.\n");
-      return 1;
-    }
-    
-    if (double_result_flag) ((double*)result->final_data)[i]=ans;
-    else ((int*)result->final_data)[i]=ans;
+    if (leaf->up->left==leaf) return first_oexpr_tree((struct output_expression*)leaf->up->right);
   }
-  fflush(log_file);
-  return(0);
+  return NULL;
 }
 
-
-
-/**
- * Evaluate a double precision arithmetic expression
- */
-double eval_double(double op1, double op2, char oper)
+struct output_expression* prev_oexpr_tree(struct output_expression *leaf)
 {
-
-  switch (oper) {
-  case '+':
-    return(op1+op2);
-    break;
-  case '-':
-    return(op1-op2);
-    break;
-  case '*':
-    return(op1*op2);
-    break;
-  case '/':
-    if(op2 == 0){
-	return GIGANTIC;
-    }else{
-    	return(op1/op2);
-    }
-    break;
+  for ( ; leaf->up!=NULL ; leaf=leaf->up)
+  {
+    if (leaf->up->right==leaf) return last_oexpr_tree((struct output_expression*)leaf->up->left);
   }
-  return(0);
+  return NULL;
 }
+
+struct output_expression* dupl_oexpr_tree(struct output_expression *root, struct mem_helper *oexpr_mem)
+{
+  struct output_expression *sprout;
+  
+  sprout = (struct output_expression*)mem_get(oexpr_mem);
+  if (sprout==NULL) return NULL;
+  
+  memcpy(sprout,root,sizeof(struct output_expression));
+  if (root->left!=NULL && (root->expr_flags&OEXPR_LEFT_MASK)==OEXPR_LEFT_OEXPR)
+  {
+    sprout->left = dupl_oexpr_tree(root->left,oexpr_mem);
+    if (sprout->left==NULL) return NULL;
+  }
+  if (root->right!=NULL && (root->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_OEXPR)
+  {
+    sprout->right = dupl_oexpr_tree(root->right,oexpr_mem);
+    if (sprout->right==NULL) return NULL;
+  }
+  
+  return sprout;
+}
+
+void eval_oexpr_tree(struct output_expression *root,int skip_const)
+{
+  double lval=0.0;
+  double rval=0.0;
+  
+  if ((root->expr_flags&OEXPR_TYPE_CONST) && skip_const) return;
+  if (root->left!=NULL)
+  {
+    if ((root->expr_flags&OEXPR_LEFT_MASK)==OEXPR_LEFT_INT) lval = (double) *((int*)root->left);
+    else if ((root->expr_flags&OEXPR_LEFT_MASK)==OEXPR_LEFT_DBL) lval = *((double*)root->left);
+    else if ((root->expr_flags&OEXPR_LEFT_MASK)==OEXPR_LEFT_OEXPR)
+    {
+      eval_oexpr_tree((struct output_expression*)root->left,skip_const);
+      lval = ((struct output_expression*)root->left)->value;
+    }
+  }
+  if (root->right!=NULL)
+  {
+    if ((root->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_INT) rval = (double) *((int*)root->right);
+    else if ((root->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_DBL) rval = *((double*)root->right);
+    else if ((root->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_OEXPR)
+    {
+      eval_oexpr_tree((struct output_expression*)root->right,skip_const);
+      rval = ((struct output_expression*)root->right)->value;
+    }
+  }
+  switch (root->oper)
+  {
+    case '=':
+      break;
+    case '(':
+    case '#':
+      if (root->right!=NULL) root->value = lval+rval;
+      else root->value = lval;
+      break;
+    case '_':
+      root->value = -lval;
+      break;
+    case '+':
+      root->value = lval+rval;
+      break;
+    case '-':
+      root->value = lval-rval;
+      break;
+    case '*':
+      root->value = lval*rval;
+      break;
+    case '/':
+      root->value = (rval==0)?0:lval/rval;
+      break;
+    default:
+      break;
+  } 
+}
+
+void oexpr_flood_convert(struct output_expression *root,char old_oper,char new_oper)
+{
+  for ( ; root!=NULL ; root=((root->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_OEXPR)?(struct output_expression*)root->right:NULL )
+  {
+    if (root->oper!=old_oper) return;
+    root->oper=new_oper;
+    if ((root->expr_flags&OEXPR_LEFT_MASK)==OEXPR_LEFT_OEXPR) oexpr_flood_convert((struct output_expression*)root->left,old_oper,new_oper);
+  }
+}
+
+
+char* oexpr_title(struct output_expression *root)
+{
+  struct output_request *orq;
+  char *strings[4];
+  char *lstr,*rstr,*str;
+  char lbuf[256],rbuf[256];
+  char ostr[2];
+  
+  lstr=rstr=NULL;
+  lbuf[0]=rbuf[0]='\0';
+  
+  if (root->expr_flags&OEXPR_TYPE_CONST)
+  {
+    if ((root->expr_flags&OEXPR_TYPE_MASK)==OEXPR_LEFT_INT)
+    {
+      sprintf(lbuf,"%d",(int)root->value);
+      return my_strdup(lbuf);
+    }
+    else if ((root->expr_flags&OEXPR_TYPE_MASK)==OEXPR_TYPE_DBL)
+    {
+      sprintf(lbuf,"%.8g",root->value);
+      return my_strdup(lbuf);
+    }
+    else return NULL;
+  }
+  
+  if (root->left!=NULL)
+  {
+    if ((root->expr_flags&OEXPR_LEFT_MASK)==OEXPR_LEFT_INT)
+    {
+      sprintf(lbuf,"%d",*((int*)root->left));
+      lstr=my_strdup(lbuf);
+    }
+    else if ((root->expr_flags&OEXPR_LEFT_MASK)==OEXPR_LEFT_DBL)
+    {
+      sprintf(lbuf,"%.8g",*((double*)root->left));
+      lstr=my_strdup(lbuf);
+    }
+    else if ((root->expr_flags&OEXPR_LEFT_MASK)==OEXPR_LEFT_OEXPR)
+    {
+      lstr=oexpr_title((struct output_expression*)root->left);
+    }
+  }
+  if (root->right!=NULL)
+  {
+    if ((root->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_INT)
+    {
+      sprintf(rbuf,"%d",*((int*)root->right));
+      rstr=my_strdup(rbuf);
+    }
+    else if ((root->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_DBL)
+    {
+      sprintf(rbuf,"%.8g",*((double*)root->right));
+      rstr=my_strdup(rbuf);
+    }
+    else if ((root->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_OEXPR)
+    {
+      rstr=oexpr_title((struct output_expression*)root->right);
+    }
+  }
+  
+  switch (root->oper)
+  {
+    case '=':
+      return lstr;
+      break;
+    case '#':
+      if ((root->expr_flags&OEXPR_LEFT_MASK)!=OEXPR_LEFT_REQUEST) return NULL;
+      orq = (struct output_request*)root->left;
+      return my_strdup(orq->count_target->name);
+      break;
+    case '_':
+      if (lstr==NULL) return NULL;
+      strings[0] = "-";
+      strings[1] = lstr;
+      strings[2] = NULL;
+      str = my_strclump(strings);
+      free(lstr);
+      return str;     
+      break;
+    case '(':
+      if (lstr==NULL) return NULL;
+      strings[0] = "(";
+      strings[1] = lstr;
+      strings[2] = ")";
+      strings[3] = NULL;
+      str = my_strclump(strings);
+      free(lstr);
+      return str;     
+      break;
+    case '+':
+    case '-':
+    case '*':
+    case '/':
+      if (lstr==NULL || rstr==NULL) return NULL;
+      ostr[0] = root->oper; ostr[1] = '\0';
+      strings[0] = lstr;
+      strings[1] = ostr;
+      strings[2] = rstr;
+      strings[3] = NULL;
+      str = my_strclump(strings);
+      free(lstr);
+      free(rstr);
+      return str;
+      break;
+    default:
+      return NULL;
+      break;
+  }
+  return NULL;
+}  
 

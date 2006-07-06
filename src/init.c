@@ -174,7 +174,7 @@ int init_sim(void)
   struct sym_table *gp;
   struct output_block *obp,*obpn;
   int i;
-  int *intp;
+  double f;
   int reactants_3D_present = 0; /* flag to check whether there are 3D reactants
                              (participants in the reactions
                               between 3D molecules) in the simulation */
@@ -304,6 +304,18 @@ int init_sim(void)
     fprintf(world->err_file,"File '%s', Line %ld: Out of memory, could not create space to pair reactions with count requests\n", __FILE__, (long)__LINE__);
     exit(EXIT_FAILURE);
   }
+  world->oexpr_mem = create_mem(sizeof(struct output_expression),8192);
+  if (world->oexpr_mem==NULL)
+  {
+    fprintf(world->err_file,"Out of memory while getting ready to store output expressions");
+    return 1;
+  }
+  world->outp_request_mem = create_mem(sizeof(struct output_request),4096);
+  if (world->outp_request_mem==NULL)
+  {
+    fprintf(world->err_file,"Out of memory while getting ready to store lists of output commands");
+    return 1;
+  }
 
   if((world->main_sym_table=init_symtab(SYM_HASHSIZE)) == NULL){
     fprintf(world->err_file,"File '%s', Line %ld: initialization of symbol table failed\n", __FILE__, (long)__LINE__);
@@ -355,6 +367,7 @@ int init_sim(void)
   world->g_surf->flags=IS_SURFACE;
 
   world->output_block_head=NULL;
+  world->output_request_head=NULL;
   world->release_event_queue_head=NULL;
   world->tot_mols=0;
   world->viz_obj_head=NULL;
@@ -362,28 +375,6 @@ int init_sim(void)
   world->rk_mode_var=NULL;
   world->frame_data_head=NULL;
 
-  if ((world->count_zero=(struct output_evaluator *)malloc
-       (sizeof(struct output_evaluator)))==NULL) {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating zero counter.\n", __FILE__, (long)__LINE__);
-    exit(EXIT_FAILURE);
-  }
-  if (!(intp=(int *)malloc(sizeof(int)))) {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating zero counter.\n", __FILE__, (long)__LINE__);
-    exit(EXIT_FAILURE);
-  }
-  *intp=0;
-  world->count_zero->next=NULL;
-  world->count_zero->update_flag=0;
-  world->count_zero->reset_flag=0;
-  world->count_zero->index_type=TIME_STAMP_VAL;
-  world->count_zero->n_data=1;
-  world->count_zero->data_type=INT;
-  world->count_zero->temp_data=(void *)intp;
-  world->count_zero->final_data=(void *)intp;
-  world->count_zero->operand1=NULL;
-  world->count_zero->operand2=NULL;
-  world->count_zero->oper='\0';
-  
   world->releaser = create_scheduler(1.0,100.0,100,0.0);
   if(world->releaser == NULL){
 	fprintf(stderr, "File '%s', Line %ld: Out of memory while creating releaser.\n", __FILE__, (long)__LINE__);
@@ -475,9 +466,10 @@ int init_sim(void)
     return(1);
   }
   
-  if (check_region_counters()) {
-    fprintf(world->err_file,"File '%s', Line %ld: error in region count statement\n", __FILE__, (long)__LINE__);
-    return(1);
+  if (prepare_counters())
+  {
+    fprintf(world->err_file,"Error while preparing count statements.\n");
+    return 1;
   }
 
   if (world->place_waypoints_flag || world->releases_on_regions_flag) {
@@ -502,28 +494,6 @@ int init_sim(void)
     }
   }
 
-  /* Decompose the space into subvolumes */
-/*
-  if (decompose_volume(volume,wall_head)) {
-    fprintf(log_file,"MCell: error decomposing volume\n");
-    return(1);
-  }
-  resolve_contiguity(cmprt_head);
-  if (init_effector_table(wall_head)) {
-    fprintf(log_file,"MCell: error initializing effector table\n");
-    return(1);
-  }
-  fflush(log_file);
-  if (init_rx_table(rx_head)) {
-    fprintf(log_file,"MCell: error initializing rx table\n");
-    return(1);
-  }
-  if (init_release_event_table(release_event_queue_head)) {
-    fprintf(log_file,"MCell: error initializing release event table\n");
-    return(1);
-  }
-*/  
-
   if (world->chkpt_infile) {
     if ((world->chkpt_infs=fopen(world->chkpt_infile,"rb"))==NULL) {
       world->chkpt_seq_num=1;
@@ -544,42 +514,42 @@ int init_sim(void)
   /* Truncate reaction data output files if necessary */  
   if (world->output_block_head != NULL)
   {
-    struct output_block *ob;
-    struct output_item *oi;
+    struct output_block *block;
+    struct output_set *set;
     FILE *f;
     int i;
     
-    for (ob=world->output_block_head ; ob!=NULL ; ob=ob->next)
+    for (block=world->output_block_head ; block!=NULL ; block=block->next)
     {
-      for (oi=ob->output_item_head ; oi!=NULL ; oi=oi->next)
+      for (set=block->data_set_head ; set!=NULL ; set=set->next)
       {
-	if (oi->file_flags==FILE_SUBSTITUTE)
+	if (set->file_flags==FILE_SUBSTITUTE)
 	{
 	  if (world->chkpt_seq_num==1)
 	  {
-	    f = fopen(oi->outfile_name,"w");
+	    f = fopen(set->outfile_name,"w");
 	    if (f==NULL)
 	    {
-	      fprintf(world->err_file,"File '%s', Line %ld: Can't open output file %s\n", __FILE__, (long)__LINE__, oi->outfile_name);
+	      fprintf(world->err_file,"Can't open output file %s\n",set->outfile_name);
 	      return 1;
 	    }
 	    fclose(f);
 	  }
-	  else if (ob->timer_type==OUTPUT_BY_ITERATION_LIST)
+	  else if (block->timer_type==OUTPUT_BY_ITERATION_LIST)
 	  {
-	    i = truncate_output_file(oi->outfile_name,world->start_time);
+	    i = truncate_output_file(set->outfile_name,world->start_time);
 	    if (i)
 	    {
-	      fprintf(world->err_file,"File '%s', Line %ld: Failed to prepare output file %s\n", __FILE__, (long)__LINE__, oi->outfile_name);
+	      fprintf(world->err_file,"Failed to prepare output file %s to receive output\n",set->outfile_name);
 	      return 1;
 	    }
 	  }
 	  else
 	  {
-	    i = truncate_output_file(oi->outfile_name,world->current_start_real_time);
+	    i = truncate_output_file(set->outfile_name,world->current_start_real_time);
 	    if (i)
 	    {
-	      fprintf(world->err_file,"File '%s', Line %ld: Failed to prepare output file %s\n", __FILE__, (long)__LINE__, oi->outfile_name);
+	      fprintf(world->err_file,"Failed to prepare output file %s to receive output\n",set->outfile_name);
 	      return 1;
 	    }
 	  }
@@ -604,50 +574,47 @@ int init_sim(void)
         exit(EXIT_FAILURE);
   }
 
-/* Schedule the reaction data output events */
+  /* Schedule the reaction data output events */
   obp = world->output_block_head;
   while(obp != NULL)
   {
-    obpn = obp->next;
-    if(obp->timer_type == OUTPUT_BY_STEP)
+    obpn = obp->next; /* Save this--will be lost when we schedule obp */
+    
+    if (obp->timer_type==OUTPUT_BY_STEP)
     {
-       if(world->chkpt_seq_num > 1)
-       {
-          while((obp->t < world->iterations + 1) && (obp->t <= world->count_scheduler->now)){
-              obp->t += obp->step_time/world->time_unit;
-
-          }
-       }      
-    }else if(obp->timer_type != OUTPUT_BY_STEP && obp->curr_time_ptr == NULL){
-        obp->curr_time_ptr = obp->time_list_head;
-        if(world->chkpt_seq_num == 1){
-          if(obp->timer_type == OUTPUT_BY_ITERATION_LIST){
-             obp->t = obp->curr_time_ptr->value;
-          }else{
-             obp->t = obp->curr_time_ptr->value/world->time_unit;
-          }
-        }else{
-          if(obp->timer_type == OUTPUT_BY_ITERATION_LIST){
-             while((obp->t < world->iterations + 1) && (obp->t <= world->count_scheduler->now)){
-                 obp->curr_time_ptr = obp->curr_time_ptr->next;
-                 if(obp->curr_time_ptr == NULL) break;
-                 obp->t = obp->curr_time_ptr->value;
-              }
-          }else{
-             while((obp->t < world->iterations + 1) && (obp->t <= world->count_scheduler->now)){
-                 obp->curr_time_ptr = obp->curr_time_ptr->next;
-                 if(obp->curr_time_ptr == NULL) break;
-                 obp->t = obp->curr_time_ptr->value/world->time_unit;
-              }
-          }
-        }
+      if (world->chkpt_seq_num==1) obp->t=0.0;
+      else
+      {
+        f = obp->step_time/world->time_unit; /* Step time (internal units) */
+        obp->t = f*ceil(world->count_scheduler->now / f); /* Round up */
+      }      
     }
+    else if (obp->time_now==NULL) /* When would this be non-NULL?? */
+    {
+      /* Set time scaling factor depending on output type */
+      if (obp->timer_type==OUTPUT_BY_ITERATION_LIST) f=1.0;
+      else f=1.0/world->time_unit;
+      
+      /* Find the time of next output */
+      if (world->chkpt_seq_num == 1)
+      {
+        obp->time_now = obp->time_list_head;
+        obp->t = f*obp->time_now->value;
+      }
+      else /* Scan forward to find first output after checkpoint time */
+      {
+        for (obp->time_now=obp->time_list_head ; obp->time_now!=NULL ; obp->time_now=obp->time_now->next)
+        {
+          obp->t=f*obp->time_now->value;
+          if (!(obp->t < world->iterations+1 && obp->t <= world->count_scheduler->now)) break;
+        }
+      }
+    }
+    
     if (schedule_add(world->count_scheduler , obp))
     {
-      	fprintf(stderr,"File '%s', Line %ld: Out of memory, trying to save intermediate results\n", __FILE__, (long)__LINE__);
-      	int i = emergency_output();
-      	fprintf(stderr,"Fatal error: out of memory while scheduling output for count statements.\nAttempt to write intermediate results had %d errors\n", i);
-      	exit(EXIT_FAILURE);
+      fprintf(world->err_file,"File %s, Line %ld: Out of memory while setting up output.\n", __FILE__, (long)__LINE__);
+      return 1;
     }
     obp = obpn;
   }
@@ -1612,6 +1579,11 @@ void init_clamp_lists()
 }
 
 
+/**
+ * Traverse through metaobjects, placing regions on real objects as we find
+ * them.  "sub_name" contains the name of the parent object of the one we're
+ * instancing as we traverse down into the object hierarchy 
+ */
 int instance_obj_regions(struct object *objp,char *sub_name)
 {
   FILE *log_file;

@@ -3780,6 +3780,17 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 }
 
 
+
+/*************************************************************************
+diffuse_2D:
+  In: molecule that is moving
+      maximum time we can spend diffusing
+  Out: Pointer to the molecule, or NULL if there was an error (right now
+       there is no reallocation)
+       Position and time are updated, but molecule is not rescheduled,
+       nor does it react
+*************************************************************************/
+
 struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
 {
   struct species *sg;
@@ -3908,6 +3919,16 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
   return g;
 }
     
+
+/*************************************************************************
+react_2D:
+  In: molecule that may react
+      maximum duration we have to react
+  Out: Pointer to the molecule if it still exists (may have been
+       destroyed), NULL otherwise.
+  Note: Time is not updated--assume that's already taken care of
+        elsewhere.  Only nearest neighbors can react.
+*************************************************************************/
 
 struct grid_molecule* react_2D(struct grid_molecule *g,double t)
 {

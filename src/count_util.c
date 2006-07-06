@@ -78,7 +78,7 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
       
       for (hit_count=world->count_hash[j] ; hit_count!=NULL ; hit_count=hit_count->next)
       {
-        if (hit_count->reg_type == rl->reg && hit_count->data.move.mol_type == sp)
+        if (hit_count->reg_type == rl->reg && hit_count->target == sp)
         {
 #if 0
           if (crossed)
@@ -572,8 +572,8 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
         {
           if (c->reg_type == rl->reg && (c->counter_type&ENCLOSING_COUNTER)==0)
 	  {
-	    if (rxp==NULL && c->data.move.mol_type == sp) c->data.move.n_at += n;
-	    else if (c->data.rx.rxn_type == rxp) c->data.rx.n_rxn_at += n;
+	    if (rxp==NULL && c->target == sp) c->data.move.n_at += n;
+	    else if (c->target == rxp) c->data.rx.n_rxn_at += n;
 	  }
         }
       }
@@ -629,13 +629,12 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
         {
           if (c->reg_type==rl->reg && (my_wall==NULL || !region_listed(my_wall->counting_regions,rl->reg)))
 	  {
-	    if ( rxp==NULL && c->data.move.mol_type==sp &&
+	    if ( rxp==NULL && c->target==sp &&
 	         (g==NULL || (c->counter_type&ENCLOSING_COUNTER)!=0) )
 	    {
 	      c->data.move.n_enclosed += n;
 	    }
-	    else if ( c->data.rx.rxn_type==rxp && 
-	              (c->counter_type&ENCLOSING_COUNTER)!=0 )
+	    else if ( c->target==rxp && (c->counter_type&ENCLOSING_COUNTER)!=0 )
 	    {
 	      c->data.rx.n_rxn_enclosed += n;
 	    }
@@ -654,13 +653,12 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
         {
           if (c->reg_type==rl->reg && (my_wall==NULL || !region_listed(my_wall->counting_regions,rl->reg)))
 	  {
-	    if ( rxp==NULL && c->data.move.mol_type==sp &&
+	    if ( rxp==NULL && c->target==sp &&
 	         (g==NULL || (c->counter_type&ENCLOSING_COUNTER)!=0) )
 	    {
 	      c->data.move.n_enclosed -= n;
 	    }
-	    else if ( c->data.rx.rxn_type==rxp && 
-	              (c->counter_type&ENCLOSING_COUNTER)!=0 )
+	    else if ( c->target==rxp && (c->counter_type&ENCLOSING_COUNTER)!=0 )
 	    {
 	      c->data.rx.n_rxn_enclosed -= n;
 	    }
@@ -704,7 +702,7 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
                 {
                   if (c->reg_type==rl->reg && (my_wall==NULL || !region_listed(my_wall->counting_regions,rl->reg)))
 		  {
-		    if ( rxp==NULL && c->data.move.mol_type==sp &&
+		    if ( rxp==NULL && c->target==sp &&
 		         (g==NULL || (c->counter_type&ENCLOSING_COUNTER)!=0) )
 		    {
 		      if (j==COLLIDE_FRONT)
@@ -716,7 +714,7 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
 			c->data.move.n_enclosed -= n;
 		      }
 		    }
-		    else if (c->data.rx.rxn_type==rxp && (c->counter_type&ENCLOSING_COUNTER)!=0)
+		    else if (c->target==rxp && (c->counter_type&ENCLOSING_COUNTER)!=0)
 		    {
 		      if (j==COLLIDE_FRONT) c->data.rx.n_rxn_enclosed += n;
 		      else if (j==COLLIDE_BACK) c->data.rx.n_rxn_enclosed -=n;
@@ -734,21 +732,66 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
 
 
 /******************************************************************
-check_region_counters:
+prepare_counters:
   In: No arguments.
   Out: 0 if counter statements are correct, 1 otherwise.
   Note: A statement is incorrect if a non-closed manifold region
-        tries to count a freely diffusing molecule.
+        tries to count a freely diffusing molecule.  Fixes up all
+        count requests to point at the data we care about.
 ********************************************************************/
-int check_region_counters()
+int prepare_counters()
 {
-  FILE *log_file;
+  struct output_request *request;
   struct counter *cp;
   struct region *rp;
+  struct output_block *block;
+  struct output_set *set;
+  struct output_column *column;
   u_int i;
-
-  log_file=world->log_file;  
   
+  /* First give everything a sensible name, if needed */
+  for (block=world->output_block_head ; block!=NULL ; block=block->next)
+  {
+    for (set=block->data_set_head ; set!=NULL ; set=set->next)
+    {
+      if (set->header_comment==NULL) continue;
+      for (column=set->column_head ; column!=NULL ; column=column->next)
+      {
+        if (column->data_type==TRIG_STRUCT) continue;
+        if (column->expr->title==NULL) column->expr->title = oexpr_title(column->expr);
+        if (column->expr->title==NULL)
+        {
+          fprintf(world->err_file,"Out of memory: file %s, line %d\n  Unable to create title for data output.",__FILE__,__LINE__);
+          return 1;
+        }
+      }
+    }
+  }
+
+  /* Then convert all requests to real counts */
+  for (request=world->output_request_head ; request!=NULL ; request=request->next)
+  {
+    if (request->count_location!=NULL && request->count_location->sym_type==OBJ)
+    {
+      i = expand_object_output(request,(struct object*)request->count_location->value);
+      if (i)
+      {
+        fprintf(world->err_file,"Error: unable to expand request to count on object");
+        return 1;
+      }
+    }
+    
+    i = instantiate_request(request);
+    if (i)
+    {
+      fprintf(world->err_file,"Error: unable to count as requested");
+      return 1;
+    }
+  }
+  delete_mem(world->outp_request_mem);
+  world->output_request_head=NULL;
+  
+  /* Now check to make sure what we've created is geometrically sensible */
   for (i=0;i<world->count_hashmask+1;i++)
   {
     for (cp=world->count_hash[i];cp!=NULL;cp=cp->next)
@@ -757,17 +800,15 @@ int check_region_counters()
       {
         rp=cp->reg_type;
 	
-	if (rp->manifold_flag==MANIFOLD_UNCHECKED) {
-	  if (is_manifold(rp)) {
-	    rp->manifold_flag=IS_MANIFOLD;
-	  }
-	  else {
-	    rp->manifold_flag=NOT_MANIFOLD;
-	  }
+	if (rp->manifold_flag==MANIFOLD_UNCHECKED)
+        {
+	  if (is_manifold(rp)) rp->manifold_flag=IS_MANIFOLD;
+	  else rp->manifold_flag=NOT_MANIFOLD;
 	}
 	
-	if (rp->manifold_flag==NOT_MANIFOLD) {
-	  fprintf(log_file,"File '%s', Line %ld: error, cannot count molecules or events inside non-manifold object region: %s\n", __FILE__, (long)__LINE__, rp->sym->name); 
+	if (rp->manifold_flag==NOT_MANIFOLD)
+        {
+	  fprintf(world->err_file,"File '%s', Line %ld: error, cannot count molecules or events inside non-manifold object region: %s\n", __FILE__, (long)__LINE__, rp->sym->name); 
 	  return (1);
 	}
       }
@@ -775,5 +816,292 @@ int check_region_counters()
   }
 
   return(0);
+}
+
+
+int expand_object_output(struct output_request *request,struct object *obj)
+{
+  struct output_request *new_request;
+  struct output_expression *oe,*oel,*oer; /* Original expression and two children */
+  struct object *child;
+  struct region_list *rl;
+  int n_expanded;
+  
+  switch (obj->object_type)
+  {
+    case META_OBJ:
+      n_expanded=0;
+      for (child=obj->first_child ; child!=NULL ; child=child->next)
+      {
+        if (!object_has_geometry(child)) continue;  /* NOTE -- for objects nested N deep, we check this N+(N-1)+...+2+1 times (slow) */
+        if (n_expanded>0)
+        {
+          new_request = (struct output_request*)mem_get(world->outp_request_mem);
+          oe = request->requester;
+          oel = new_output_expr(world->oexpr_mem);
+          oer = new_output_expr(world->oexpr_mem);
+          if (new_request==NULL || oel==NULL || oer==NULL)
+          {
+            fprintf(world->err_file,"Out of memory while expanding count expression on object %s\n",obj->sym->name);
+            return 1;
+          }
+          oel->column=oer->column=oe->column;
+          oel->expr_flags=oer->expr_flags=oe->expr_flags;
+          oel->up=oer->up=oe;
+          oel->left=request;
+          oer->left=new_request;
+          oel->oper=oer->oper='#';
+          oe->expr_flags=(oe->expr_flags&OEXPR_TYPE_MASK)|OEXPR_LEFT_OEXPR|OEXPR_RIGHT_OEXPR;
+          oe->left=oel;
+          oe->right=oer;
+          oe->oper='+';
+          
+          new_request->report_type=request->report_type;
+          new_request->count_target=request->count_target;
+          new_request->requester=oer;
+          request->requester=oel;
+          new_request->next=request->next;
+          request->next=new_request;
+          request=new_request;
+        }
+        if (expand_object_output(request,child)) return 1;
+      }
+      if (n_expanded==0)
+      {
+        fprintf(world->err_file,"Error: trying to count on object %s but it has no geometry\n",obj->sym->name);
+        return 1;
+      }
+      break;
+    case BOX_OBJ:
+    case POLY_OBJ:
+      for (rl=obj->regions ; rl!=NULL ; rl=rl->next)
+      {
+        if (is_reverse_abbrev(",ALL",rl->reg->sym->name)) break;
+      }
+      if (rl==NULL)
+      {
+        fprintf(world->err_file,"All region missing on object %s?\n  File %s, line %d\n",obj->sym->name,__FILE__,__LINE__);
+        return 1;
+      }
+      request->count_location = rl->reg->sym;
+      break;
+    case REL_SITE_OBJ:
+      break;
+    default:
+      fprintf(world->err_file,"Bad object type in count on object expansion\n  File %s, line %d\n",__FILE__,__LINE__);
+      return 1;
+      break;
+  }
+  return 0;
+}
+
+
+int object_has_geometry(struct object *obj)
+{
+  struct object *child;
+  switch (obj->object_type)
+  {
+    case BOX_OBJ:
+    case POLY_OBJ:
+      return 1;
+      break;
+    case META_OBJ:
+      for (child=obj->first_child ; child!=NULL ; child=child->next)
+      {
+        if (object_has_geometry(child)) return 1;
+      }
+      break;
+    default:
+      return 0;
+      break;
+  }
+  return 0;
+}
+
+
+int instantiate_request(struct output_request *request)
+{
+  int request_hash;
+  struct rxn_pathname *rxpn_to_count;
+  struct rxn *rx_to_count;
+  struct species *mol_to_count;
+  void *to_count;
+  struct region *reg_of_count;
+  struct counter *count;
+  u_int report_type_only;
+  byte count_type;
+  int is_enclosed;
+  
+  
+  /* Set up and figure out hash value */
+  to_count=request->count_target->value;
+  switch (request->count_target->sym_type)
+  {
+    case MOL:
+      rxpn_to_count=NULL;
+      rx_to_count=NULL;
+      mol_to_count=(struct species*)to_count;
+      request_hash=mol_to_count->hashval;
+      break;
+    case RXPN:
+      rxpn_to_count=(struct rxn_pathname*)to_count;
+      rx_to_count=rxpn_to_count->rx;
+      mol_to_count=NULL;
+      request_hash=rxpn_to_count->hashval;
+      break;
+    default:
+      fprintf(world->err_file,"Error at file %s line %d\n  Invalid object type in count request.\n",__FILE__,__LINE__);
+      return 1;
+      break;
+  }
+  
+  if (request->count_location!=NULL)
+  {
+    if (request->count_location->sym_type!=REG)
+    {
+      fprintf(world->err_file,"Error at file %s line %d\n  Non-region location in count request.\n",__FILE__,__LINE__);
+      return 1;
+    }
+    reg_of_count=(struct region*)request->count_location->value;
+    if ((request_hash^reg_of_count->hashval) != 0) request_hash ^= reg_of_count->hashval;
+  }
+  else reg_of_count=NULL;
+  
+  /* Now create count structs and set output expression to point to data */
+  report_type_only=request->report_type&REPORT_TYPE_MASK;
+  request->requester->expr_flags-=OEXPR_LEFT_REQUEST;  
+  if ((request->report_type&REPORT_TRIGGER)==0 && request->count_location==NULL) /* World count is easy! */
+  {
+    switch (report_type_only)
+    {
+      case REPORT_CONTENTS:
+        request->requester->expr_flags|=OEXPR_LEFT_INT;
+        request->requester->left=(void*)&(mol_to_count->population);
+        break;
+      case REPORT_RXNS:
+        request->requester->expr_flags|=OEXPR_LEFT_DBL;
+        request->requester->left=(void*)&(rx_to_count->info[rxpn_to_count->path_num].count);
+        break;
+      default:
+        fprintf(world->err_file,"Error at file %s line %d\n  Invalid report type in count request.\n",__FILE__,__LINE__);
+        return 1;
+        break;
+    }
+  }
+  else /* Triggered count or count on region */
+  {
+    /* Set count type flags */
+    if (report_type_only==REPORT_RXNS) count_type=RXN_COUNTER;
+    else count_type=MOL_COUNTER;
+    if (request->report_type&REPORT_ENCLOSED) count_type|=ENCLOSING_COUNTER;
+    if (request->report_type&REPORT_TRIGGER) count_type|=TRIG_COUNTER;
+    
+    /* Find or add counter */
+    for (count=world->count_hash[request_hash] ; count!=NULL ; count=count->next)
+    {
+      if (count->reg_type==reg_of_count && count->target==to_count && count_type==count->counter_type) break;
+    }
+    if (count==NULL)
+    {
+      count=create_new_counter(request->count_target->value,reg_of_count,count_type);
+      if (count==NULL)
+      {
+        fprintf(world->err_file,"Error at file %s line %d\n  Out of memory allocating count request\n",__FILE__,__LINE__);
+        return 1;
+      }
+      
+      count->next=world->count_hash[request_hash];
+      world->count_hash[request_hash]=count;
+    }
+    
+    /* Point appropriately */
+    if (request->report_type&REPORT_TRIGGER)
+    {
+      fprintf(world->err_file,"Error at file %s line %d\n  Rex hasn't implemented triggered output yet.\n",__FILE__,__LINE__);
+      return 1;
+    }
+    else
+    {
+      is_enclosed = (mol_to_count==NULL || !(mol_to_count->flags&ON_GRID) || (request->report_type&REPORT_ENCLOSED));
+      request->requester->expr_flags|=OEXPR_LEFT_DBL; /* Assume double */
+      switch (report_type_only)
+      {
+        case REPORT_CONTENTS:
+          request->requester->expr_flags-=OEXPR_LEFT_DBL;
+          request->requester->expr_flags|=OEXPR_LEFT_INT;
+          if (!is_enclosed) request->requester->left=(void*)&(count->data.move.n_at);
+          else request->requester->left=(void*)&(count->data.move.n_enclosed);
+          break;
+        case REPORT_RXNS:
+          if (!is_enclosed) request->requester->left=(void*)&(count->data.rx.n_rxn_at);
+          else request->requester->left=(void*)&(count->data.rx.n_rxn_enclosed);
+          break;
+        case REPORT_FRONT_HITS:
+          request->requester->left=(void*)&(count->data.move.front_hits);
+          break;
+        case REPORT_BACK_HITS:
+          request->requester->left=(void*)&(count->data.move.back_hits);
+          break;
+        case REPORT_FRONT_CROSSINGS:
+          request->requester->left=(void*)&(count->data.move.front_to_back);
+          break;
+        case REPORT_BACK_CROSSINGS:
+          request->requester->left=(void*)&(count->data.move.back_to_front);
+          break;
+        case REPORT_ALL_HITS:
+          request->requester->expr_flags|=OEXPR_RIGHT_DBL;
+          request->requester->left=(void*)&(count->data.move.front_hits);
+          request->requester->right=(void*)&(count->data.move.back_hits);
+          break;
+        case REPORT_ALL_CROSSINGS:
+          request->requester->expr_flags|=OEXPR_RIGHT_DBL;
+          request->requester->left=(void*)&(count->data.move.front_to_back);
+          request->requester->right=(void*)&(count->data.move.back_to_front);
+          break;
+        case REPORT_CONCENTRATION:
+          request->requester->left=(void*)&(count->data.move.scaled_hits);
+          break;
+        default:
+          fprintf(world->err_file,"Error at file %s line %d\n  Bad report type %d when creating counts\n",__FILE__,__LINE__,report_type_only);
+          return 1;
+          break;
+      }
+    }
+  }
+  
+  return 0;
+}
+
+
+struct counter* create_new_counter(struct region *where,void *who,byte what)
+{
+  struct counter *c;
+  
+  c = (struct counter*)malloc(sizeof(struct counter));
+  if (c==NULL) return NULL;
+  
+  c->next=NULL;
+  c->reg_type=where;
+  c->target=who;
+  c->counter_type=what;
+  if (what&TRIG_COUNTER)
+  {
+    c->data.trig.t=0.0;
+    c->data.trig.loc.x = c->data.trig.loc.y = c->data.trig.loc.z = 0.0;
+    c->data.trig.sym=NULL;
+    c->data.trig.oc=NULL;
+  }
+  else if (what&RXN_COUNTER)
+  {
+    c->data.rx.n_rxn_at = c->data.rx.n_rxn_enclosed = 0.0;
+  }
+  else if (what&MOL_COUNTER)
+  {
+    c->data.move.n_at = c->data.move.n_enclosed = 0;
+    c->data.move.front_hits = c->data.move.back_hits = 0.0;
+    c->data.move.front_to_back = c->data.move.back_to_front = 0.0;
+    c->data.move.scaled_hits = 0.0;
+  }
+  return c;
 }
 

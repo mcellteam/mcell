@@ -16,6 +16,7 @@
 #include "mcell_structs.h"
 #include "mdlparse_util.h"
 #include "mdlparse.h"
+#include "react_output.h"
 
 /*
 #include "chkpt.h"
@@ -1429,8 +1430,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	/* Move counts from list into array */
 	if (rx->n_pathways > 0)
 	{
-          struct pathway_count_request *pcr;
-  
 	  rx->info = (struct pathway_info*) malloc(rx->n_pathways*sizeof(struct pathway_info));
 	  if (rx->info==NULL) {
              fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
@@ -1440,32 +1439,30 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  for ( j=0,path=rx->pathway_head ; path!=NULL ; j++,path=path->next )
 	  {
 	    rx->info[j].count = 0;
-	    rx->info[j].count_flags = path->count_flags;
+	    rx->info[j].count_flags = 0;
 	    rx->info[j].pathname = path->pathname;    /* Keep track of named rxns */
-  
-	    for (pcr=path->pcr ; pcr!=NULL ; pcr=pcr->next) /* Fix count references & set count-on-region flag */
-	    {
-	      if (pcr->requester->temp_data == &(path->count)) pcr->requester->temp_data = &(rx->info[j].count);
-	    }
+            if (path->pathname!=NULL)
+            {
+              rx->info[j].pathname->path_num = j;
+              rx->info[j].pathname->rx = rx;
+            }
 	  }
 	}
 	else /* Special reaction, only one exit pathway */
 	{
-	  struct pathway_count_request *pcr;
-	  
 	  rx->info = (struct pathway_info*)malloc(sizeof(struct pathway_info));
           if(rx->info == NULL){
              fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
              return 1;
           }
 	  rx->info[0].count = 0;
-	  rx->info[0].count_flags = rx->pathway_head->count_flags;
+	  rx->info[0].count_flags = 0;
 	  rx->info[0].pathname = rx->pathway_head->pathname;
-	  
-	  for (pcr=rx->pathway_head->pcr ; pcr!=NULL ; pcr=pcr->next) /* Fix count references */
-	  {
-	    if (pcr->requester->temp_data == &(rx->pathway_head->count)) pcr->requester->temp_data = &(rx->info[0].count);
-	  }
+          if (rx->pathway_head->pathname!=NULL)
+          {
+            rx->info[0].pathname->path_num = 0;
+            rx->info[0].pathname->rx = rx;
+          }
 	}
         
         rx = rx->next;
@@ -3078,7 +3075,7 @@ int my_sprintf(char *strp,char *format,struct arg *argp,u_int num_args)
         return(0);
 }
 
-
+#if 0
 struct counter *retrieve_reg_counter(struct volume *volp,
                                      void *vp,
                                      struct region *rp,
@@ -3194,8 +3191,9 @@ struct counter *store_reg_counter(struct volume *volp,
 
   return(cp);
 }
+#endif
 
-
+#if 0
 struct output_evaluator *init_counter(byte report_type,
                                       struct output_item *oip,
                                       struct counter *cp,
@@ -3906,6 +3904,7 @@ int handle_count_request(unsigned short sym_type,void *value,struct region *r,st
   }
   return 0;
 }
+#endif
 
 
 /*************************************************************************
@@ -4249,7 +4248,7 @@ check_reaction_output_file:
        will be created and emptied or truncated as requested.
 **************************************************************************/
 
-int check_reaction_output_file(struct output_item *oi,FILE *err_file)
+int check_reaction_output_file(struct output_set *os,FILE *err_file)
 {
   FILE *f;
   char *name;
@@ -4257,8 +4256,8 @@ int check_reaction_output_file(struct output_item *oi,FILE *err_file)
   struct stat fs;
   int i;
   
-  name = oi->outfile_name;
-  flags = oi->file_flags;
+  name = os->outfile_name;
+  flags = os->file_flags;
   
   switch (flags)
   {
@@ -4305,7 +4304,7 @@ int check_reaction_output_file(struct output_item *oi,FILE *err_file)
 	}
       }
       i = fstat(fileno(f),&fs);
-      if (!i && fs.st_size==0) oi->file_flags = FILE_OVERWRITE;
+      if (!i && fs.st_size==0) os->file_flags = FILE_OVERWRITE;
       fclose(f);
       break;
     case FILE_APPEND:
@@ -4330,7 +4329,7 @@ int check_reaction_output_file(struct output_item *oi,FILE *err_file)
 	}
       }
       i = fstat(fileno(f),&fs);
-      if (!i && fs.st_size==0) oi->file_flags = FILE_APPEND_HEADER;
+      if (!i && fs.st_size==0) os->file_flags = FILE_APPEND_HEADER;
       fclose(f);
       break;
     case FILE_CREATE:
@@ -4375,4 +4374,159 @@ int check_reaction_output_file(struct output_item *oi,FILE *err_file)
   }
   return 0;
 }
+
+
+
+struct output_block* insert_new_output_block(struct mdlparse_vars *mpvp)
+{
+  struct output_block *ob;
+  
+  ob = (struct output_block*)malloc(sizeof(struct output_block));
+  if (ob==NULL) return NULL;
+  
+  ob->t = 0.0;
+  ob->timer_type=OUTPUT_BY_STEP;
+  ob->step_time=FOREVER;
+  ob->time_list_head=NULL;
+  ob->time_now=NULL;
+  ob->buffersize=0;
+  ob->buf_index=0;
+  ob->chunk_count=0;
+  ob->data_set_head=NULL;
+  
+  ob->next = mpvp->vol->output_block_head;
+  mpvp->vol->output_block_head = ob;
+  
+  return ob;
+}
+
+struct output_set* insert_new_output_set(struct output_block *ob,char *comment)
+{
+  struct output_set *os;
+  
+  os = (struct output_set*)malloc(sizeof(struct output_set));
+  if (os==NULL) return NULL;
+  
+  os->outfile_name=NULL;
+  os->file_flags=FILE_UNDEFINED;
+  os->column_head=NULL;
+  
+  if (comment==NULL) os->header_comment=NULL;
+  else if (!strcmp(comment,"")) os->header_comment="";
+  else
+  {
+    os->header_comment=strdup(comment);
+    if (os->header_comment==NULL) return NULL;
+  }
+  
+  os->block=ob;
+  os->next=ob->data_set_head;
+  ob->data_set_head=os;
+  
+  return os;
+}
+
+struct output_column* insert_new_output_column(struct output_set *os)
+{
+  struct output_column *oc;
+  
+  oc = (struct output_column*)malloc(sizeof(struct output_column));
+  if (oc==NULL) return NULL;
+  
+  oc->data_type=0;
+  oc->initial_value=0.0;
+  oc->buffer=NULL;
+  oc->expr=NULL;
+  
+  oc->set=os;
+  oc->next=os->column_head;
+  os->column_head=oc;
+  
+  return oc;
+}
+
+struct output_expression* join_oexpr_tree(struct output_expression *left,struct output_expression *right,char oper,struct mem_helper *oexpr_mem)
+{
+  struct output_expression *joined;
+  struct output_expression *leaf,*new_oe,*up;
+  int first_leaf=1;    
+  
+  joined=NULL;
+  if (left->oper==',' && (right==NULL || right->oper==','))
+  {
+    mdlerror_nested("Can't do math on multiple wildcard expressions");
+    return NULL;
+  }
+  
+  if (left->oper!=',' && (right==NULL||right->oper!=','))
+  {
+    joined = new_output_expr(oexpr_mem);
+    if (joined==NULL) return NULL;
+    
+    joined->left=(void*)left;
+    joined->right=(void*)right;
+    joined->oper=oper;
+    
+    learn_oexpr_flags(joined);
+    if (joined->expr_flags&OEXPR_TYPE_CONST) eval_oexpr_tree(joined,0);
+  }
+  else if (left->oper==',')
+  {
+    for ( leaf=first_oexpr_tree(left) ; leaf!=NULL ; leaf=next_oexpr_tree(leaf) )
+    {
+      if (first_leaf)
+      {
+        new_oe=right;
+        first_leaf=0;
+      }
+      else if (right!=NULL)
+      {
+        new_oe=dupl_oexpr_tree(right,oexpr_mem);
+        if (new_oe==NULL) return NULL;
+      }
+      else new_oe=NULL;
+      
+      up=leaf->up;
+      joined=join_oexpr_tree(leaf,new_oe,oper,oexpr_mem);
+      joined->up=up;
+      if (joined==NULL) return NULL;
+      if (leaf==up->left) up->left=joined;
+      else up->right=joined;
+      learn_oexpr_flags(joined);
+      if (joined->expr_flags&OEXPR_TYPE_CONST) eval_oexpr_tree(joined,0);
+      learn_oexpr_flags(up);
+      leaf=joined;
+    }
+  }
+  else /* right->oper==',' */
+  {
+    for ( leaf=first_oexpr_tree(right) ; leaf!=NULL ; leaf=next_oexpr_tree(leaf) )
+    {
+      if (first_leaf)
+      {
+        new_oe=left;
+        first_leaf=0;
+      }
+      else
+      {
+        new_oe=dupl_oexpr_tree(left,oexpr_mem);
+        if (new_oe==NULL) return NULL;
+      }
+      up=leaf->up;
+      joined=join_oexpr_tree(new_oe,leaf,oper,oexpr_mem);
+      joined->up=up;
+      if (joined==NULL) return NULL;
+      if (leaf==up->left) up->left=joined;
+      else up->right=joined;
+      learn_oexpr_flags(joined);
+      if (joined->expr_flags&OEXPR_TYPE_CONST) eval_oexpr_tree(joined,0);
+      learn_oexpr_flags(up);
+      leaf=joined;
+    }
+  }
+  
+  return joined;
+}
+
+
 

@@ -322,6 +322,7 @@ I ([0-9]+)
 "STATE"			{return(STATE);}
 "STEP"			{return(STEP);}
 "STRING_TO_NUM"		{return(STRING_TO_NUM);}
+"SUM"                   {return(SUMMATION_OPERATOR);}
 "SUM_OVER_ALL_MOLECULES" |
 "SUM_OVER_ALL_LIGANDS"	{return(SUM_OVER_ALL_MOLECULES);}
 "SUM_OVER_ALL_EFFECTORS" {return(SUM_OVER_ALL_EFFECTORS);}

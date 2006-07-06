@@ -43,19 +43,20 @@
 /* rxn/mol/region counter report types */
 /* Do not set both WORLD and ENCLOSED flags; ENCLOSED applies only to regions */
 /* First set reports a single number */
-#define REPORT_CONTENTS        0
-#define REPORT_FRONT_HITS      1
-#define REPORT_BACK_HITS       2
-#define REPORT_FRONT_CROSSINGS 3
-#define REPORT_BACK_CROSSINGS  4
-#define REPORT_RXNS            5
+#define REPORT_NOTHING         0
+#define REPORT_CONTENTS        1
+#define REPORT_RXNS            2
+#define REPORT_FRONT_HITS      3
+#define REPORT_BACK_HITS       4
+#define REPORT_FRONT_CROSSINGS 5
+#define REPORT_BACK_CROSSINGS  6
 /* Anything >= REPORT_MULTIPLE reports some combination of the above */
-#define REPORT_MULTIPLE        6 
-#define REPORT_ALL_HITS        7
-#define REPORT_ALL_CROSSINGS   8
+#define REPORT_MULTIPLE        7
+#define REPORT_ALL_HITS        8
+#define REPORT_ALL_CROSSINGS   9
 /* Concentration is kind of special. */
-#define REPORT_CONCENTRATION   9
-#define REPORT_ELAPSED_TIME    10
+#define REPORT_CONCENTRATION   10
+#define REPORT_ELAPSED_TIME    11
 /* All basic report types can be masked with this value */
 #define REPORT_TYPE_MASK       0x0F
 /* And finally we have some flags to say whether we're to count over */
@@ -319,6 +320,33 @@
 #define FILE_APPEND 3
 #define FILE_APPEND_HEADER 4
 #define FILE_CREATE 5
+
+/* Flags for output expressions */
+
+#define OEXPR_TYPE_UNDEF 0x0
+#define OEXPR_TYPE_INT 0x1
+#define OEXPR_TYPE_DBL 0x2
+#define OEXPR_TYPE_TRIG 0x3
+#define OEXPR_TYPE_MASK 0x7
+#define OEXPR_TYPE_CONST 0x8
+
+#define OEXPR_LEFT_INT 0x10
+#define OEXPR_LEFT_DBL 0x20
+#define OEXPR_LEFT_TRIG 0x30
+#define OEXPR_LEFT_REQUEST 0x40
+#define OEXPR_LEFT_OEXPR 0x50
+#define OEXPR_LEFT_MASK 0x70
+#define OEXPR_LEFT_CONST 0x80
+
+#define OEXPR_RIGHT_INT 0x100
+#define OEXPR_RIGHT_DBL 0x200
+#define OEXPR_RIGHT_TRIG 0x300
+#define OEXPR_RIGHT_REQUEST 0x400
+#define OEXPR_RIGHT_OEXPR 0x500
+#define OEXPR_RIGHT_MASK 0x700
+#define OEXPR_RIGHT_CONST 0x800
+
+
 
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
@@ -622,7 +650,8 @@ is only needed during parsing. */
 struct rxn_pathname {
   struct sym_table *sym;
   u_int hashval;
-  struct pathway *path;
+  u_int path_num;
+  struct rxn *rx;
 };
 
 
@@ -642,8 +671,6 @@ struct pathway {
   short orientation2;            /* Orientation of second reactant */
   short orientation3;            /* Orientation of third reactant */
   struct product *product_head;  /* Linked lists of species created */
-  struct pathway_count_request *pcr;  /* Who is counting us? */
-  short count_flags;             /* How is this being counted? */
 };
 
 /* Parse-time structure for products of reaction pathways */
@@ -654,6 +681,7 @@ struct product {
 };
 
 /* Run-time info for each pathway */
+/* Always do basic counts--do more sophisticated stuff if pathname!=NULL */
 struct pathway_info
 {
   double count;
@@ -915,7 +943,6 @@ struct bsp_tree
 
 struct rxn_counter_data
 {
-  struct rxn_pathname *rxn_type;    /* named rxn we are counting */
   double n_rxn_at;                  /* # rxn occurrance on surface */
   double n_rxn_enclosed;            /* # rxn occurrance inside closed region */
 };
@@ -923,7 +950,6 @@ struct rxn_counter_data
 
 struct move_counter_data
 {
-  struct species *mol_type;         /* species we are counting */
   double front_hits;               /* # hits on front of region (normal up) */
   double back_hits;                /* # hits on back of region */
   double front_to_back;            /* # crossings from front to back */
@@ -935,11 +961,10 @@ struct move_counter_data
 
 struct trig_counter_data
 {
-  void* trig_type;         /* Reaction or molecule */
-  double t;                /* Real time of event */
-  struct vector3 loc;      /* Real position of event */
-  char *name;              /* Name of involved mol/rxn */
-  struct output_item *oi;  /* Place to write the data */
+  double t;                 /* Real time of event */
+  struct vector3 loc;       /* Real position of event */
+  struct sym_table *sym;    /* Name of involved mol/rxn */
+  struct output_column *oc; /* Place to write the data */
 };
 
 
@@ -958,9 +983,11 @@ struct counter
   struct counter *next;
   byte counter_type;               /* MOL_COUNTER or RXN_COUNTER */
   struct region *reg_type;         /* Region we are counting on */
-  union counter_data data;         /* data we are counting:
+  void *target;                    /* Mol or rxn pathname we're counting */
+  union counter_data data;         /* data for the count
                                       reference data.move for move counter
-                                      reference data.rx for rxn counter */
+                                      reference data.rx for rxn counter 
+                                      reference data.trig for trigger */
 };
 
 
@@ -1032,8 +1059,12 @@ struct volume
   struct object *root_instance;
   struct release_pattern *default_release_pattern;
   struct release_event_queue *release_event_queue_head;
-  struct output_evaluator *count_zero;
+  
   struct output_block *output_block_head;
+  struct output_request *output_request_head;
+  struct mem_helper *oexpr_mem;
+  struct mem_helper *outp_request_mem;
+  
   struct viz_obj *viz_obj_head;
   struct frame_data_list *frame_data_head;
   struct mem_helper *pathway_requester;
@@ -1298,10 +1329,80 @@ struct ccn_clamp_data
   struct ccn_clamp_data *next_obj; /* Next object for this class */
 };
 
+struct output_block
+{
+  struct output_block *next;            /* Next in world or scheduler */
+  double t;                             /* Scheduled time to update counters */
+  
+  byte timer_type;                      /* OUTPUT_BY_STEP, ...BY_TIME_LIST, ...BY_ITERATION_LIST */
+  
+  double step_time;                     /* Output interval (seconds) */
+  struct num_expr_list *time_list_head; /* List of output times/iteration numbers */
+  struct num_expr_list *time_now;       /* Current entry in list */
+  
+  u_int buffersize;                     /* Size of output buffer */
+  u_int buf_index;                      /* Index into buffer (for non-triggers) */
+  
+  double *time_array;                   /* Array of output times (for non-triggers) */
+  
+  u_int chunk_count;                    /* Number of chunks processed */
+  
+  struct output_set *data_set_head;     /* Linked list of data sets (separate files) */
+};
+
+struct output_set
+{
+  struct output_set *next;             /* Next data set */
+  struct output_block *block;          /* Which block do we belong to? */
+  char *outfile_name;                  /* Filename */
+  int file_flags;                      /* Tells us how to handle existing files */
+  char *header_comment;                /* Comment character(s) for header */
+  struct output_column *column_head;   /* Data for one output column */
+};
+
+struct output_column
+{
+  struct output_column *next;       /* Next column */
+  struct output_set *set;           /* Which set do we belong to? */
+  byte data_type;                   /* INT, DBL, TRIG_STRUCT */
+  double initial_value;             /* To continue existing cumulative counts--not implemented yet--and keep track of triggered data */
+  void *buffer;                     /* Output buffer array (cast based on column_type) */
+  struct output_expression *expr;   /* Evaluate this to calculate our value (NULL if trigger) */
+};
+
+struct output_expression
+{
+  struct output_column *column;     /* Which column are we going to? */
+  int expr_flags;                   /* What kinds of things are to the left and right? */
+  struct output_expression *up;     /* Parent output expression */
+  void *left;                       /* Item on the left */
+  void *right;                      /* Item on the right */
+  char oper;                        /* Operation to apply to items */
+  double value;                     /* Resulting value from operation */
+  char *title;                      /* String describing what we've got */
+};
+
+struct output_request
+{
+  struct output_request *next;          /* Next request in global list */
+  struct output_expression *requester;  /* Expression in which we appear */
+  struct sym_table *count_target;       /* Mol/rxn we're supposed to count */
+  struct sym_table *count_location;     /* Place we're supposed to count it */
+  byte report_type;                     /* Flags telling us how to count */
+};
+
+struct output_trigger_data
+{
+  double t;
+  struct vector3 loc;
+  char *name;
+};
+
 /******************************************************************/
 /**  Everything below this line has been copied from MCell 2.69  **/
 /******************************************************************/
 
+#if 0
 /**
  * Linked list of all reaction data output blocks
  */
@@ -1370,7 +1471,7 @@ struct output_evaluator {
 	char oper;
 	char *column_title; /* Column title in output file */
 };
-
+#endif
 
 struct lig_output_evaluator {
 	struct lig_output_evaluator *next;
