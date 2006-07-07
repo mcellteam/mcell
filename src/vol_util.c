@@ -486,7 +486,7 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
   g->grid->mol[ g->grid_index ] = g;
   
   if (g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-    count_me_by_region( (struct abstract_molecule*)g , 1 , NULL );
+    count_me_by_region( (struct abstract_molecule*)g , 1 , NULL , g->t );
   
   if ( schedule_add(sv->local_storage->timer,g) )
   {
@@ -536,7 +536,7 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
 
   if (new_m->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
   {
-    count_me_by_region( (struct abstract_molecule*)new_m , 1 , NULL );
+    count_me_by_region( (struct abstract_molecule*)new_m , 1 , NULL , new_m->t );
   }
   
   if ( schedule_add(sv->local_storage->timer,new_m) ) {
@@ -560,7 +560,7 @@ void excert_molecule(struct molecule *m)
 {
   if (m->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
   {
-    count_me_by_region( (struct abstract_molecule*)m , -1 , NULL );
+    count_me_by_region( (struct abstract_molecule*)m , -1 , NULL , m->t );
   }
   m->subvol->mol_count--;
   m->properties->n_deceased++;
@@ -868,7 +868,7 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct molecule *m,int n)
       mp->properties->population--;
       mp->subvol->mol_count--;
       if ((mp->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-        count_me_by_region((struct abstract_molecule*)mp,-1,NULL);
+        count_me_by_region((struct abstract_molecule*)mp,-1,NULL,mp->t);
       mp->properties = NULL;
       if (mp->flags & IN_SCHEDULE)
       {

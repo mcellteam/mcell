@@ -423,7 +423,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
     if (i >= i0+rx->n_reactants &&
         (plist[i-i0]->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      count_me_by_region(plist[i-i0],1,NULL);
+      count_me_by_region(plist[i-i0],1,NULL,t);
     }
   }
   
@@ -502,7 +502,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
 
     if ((reac->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      count_me_by_region(reac,-1,NULL);
+      count_me_by_region(reac,-1,NULL,t);
     }
     
     reac->properties->n_deceased++;
@@ -607,7 +607,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
       }
 
       if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-        count_me_by_region(reacB,-1,NULL);
+        count_me_by_region(reacB,-1,NULL,t);
       
       reacB->properties->n_deceased++;
       reacB->properties->cum_lifetime += t - reacB->birthday;
@@ -639,7 +639,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
       }
 
       if ((reacA->properties->flags&(COUNT_CONTENTS|COUNT_ENCLOSED))!=0 && (reacA->flags&COUNT_ME)!=0)
-	count_me_by_region(reacA,-1,NULL);
+	count_me_by_region(reacA,-1,NULL,t);
     
       reacA->properties->n_deceased++;
       reacA->properties->cum_lifetime += t - reacA->birthday;
@@ -675,7 +675,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
       }
 
       if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-        count_me_by_region(reacB,-1,NULL);
+        count_me_by_region(reacB,-1,NULL,t);
     
       reacB->properties->n_deceased++;
       reacB->properties->cum_lifetime += t - reacB->birthday;
@@ -707,7 +707,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
       }
 
       if ((reacA->properties->flags&(COUNT_CONTENTS|COUNT_ENCLOSED))!=0 && (reacA->flags&COUNT_ME)!=0)
-	count_me_by_region(reacA,-1,NULL);
+	count_me_by_region(reacA,-1,NULL,t);
     
       reacA->properties->n_deceased++;
       reacA->properties->cum_lifetime += t - reacA->birthday;
@@ -766,7 +766,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     {
       m->subvol->mol_count--;
       if ((reac->properties->flags&(COUNT_CONTENTS|COUNT_ENCLOSED))!=0 && (reac->flags&COUNT_ME)!=0)
-	count_me_by_region(reac,-1,NULL);
+	count_me_by_region(reac,-1,NULL,t);
       reac->properties->n_deceased++;
       reac->properties->cum_lifetime += t - reac->birthday;
       reac->properties->population--;

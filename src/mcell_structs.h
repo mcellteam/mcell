@@ -33,12 +33,11 @@
 #define CAN_GRIDGRID     0x80
 #define CAN_GRIDWALL     0x100
 #define CANT_INITIATE    0x200
-#define COUNT_TRIGGER    0x800
 #define COUNT_CONTENTS   0x1000
 #define COUNT_HITS       0x2000
 #define COUNT_RXNS       0x4000
 #define COUNT_ENCLOSED   0x8000
-#define COUNT_SOME       0xF800
+#define COUNT_SOME       0xF000
 
 /* rxn/mol/region counter report types */
 /* Do not set both WORLD and ENCLOSED flags; ENCLOSED applies only to regions */
@@ -961,10 +960,9 @@ struct move_counter_data
 
 struct trig_counter_data
 {
-  double t;                 /* Real time of event */
-  struct vector3 loc;       /* Real position of event */
-  struct sym_table *sym;    /* Name of involved mol/rxn */
-  struct output_column *oc; /* Place to write the data */
+  double t_event;                    /* Event time (exact) */
+  struct vector3 loc;                /* Real position of event */
+  struct trigger_request *listeners; /* Places waiting to be notified */
 };
 
 
@@ -981,13 +979,20 @@ union counter_data
 struct counter
 {
   struct counter *next;
-  byte counter_type;               /* MOL_COUNTER or RXN_COUNTER */
+  byte counter_type;               /* MOL_COUNTER or RXN_COUNTER, plus flags */
   struct region *reg_type;         /* Region we are counting on */
   void *target;                    /* Mol or rxn pathname we're counting */
   union counter_data data;         /* data for the count
                                       reference data.move for move counter
                                       reference data.rx for rxn counter 
                                       reference data.trig for trigger */
+};
+
+
+struct trigger_request
+{
+  struct trigger_request *next; /* Next request */
+  struct output_request *ear;   /* Who wants to hear about the trigger */
 };
 
 
@@ -1064,6 +1069,8 @@ struct volume
   struct output_request *output_request_head;
   struct mem_helper *oexpr_mem;
   struct mem_helper *outp_request_mem;
+  struct mem_helper *counter_mem;
+  struct mem_helper *trig_request_mem;
   
   struct viz_obj *viz_obj_head;
   struct frame_data_list *frame_data_head;
@@ -1158,6 +1165,9 @@ struct volume
   
   /* Concentration clamp at surfaces */
   struct ccn_clamp_data *clamp_list;
+  
+  /* Nifty pointers for debugging */
+  struct output_request *watch_orq;
 };
 
 
@@ -1345,8 +1355,6 @@ struct output_block
   
   double *time_array;                   /* Array of output times (for non-triggers) */
   
-  u_int chunk_count;                    /* Number of chunks processed */
-  
   struct output_set *data_set_head;     /* Linked list of data sets (separate files) */
 };
 
@@ -1356,6 +1364,7 @@ struct output_set
   struct output_block *block;          /* Which block do we belong to? */
   char *outfile_name;                  /* Filename */
   int file_flags;                      /* Tells us how to handle existing files */
+  u_int chunk_count;                    /* Number of chunks processed */  
   char *header_comment;                /* Comment character(s) for header */
   struct output_column *column_head;   /* Data for one output column */
 };
@@ -1393,9 +1402,11 @@ struct output_request
 
 struct output_trigger_data
 {
-  double t;
-  struct vector3 loc;
-  char *name;
+  double t_iteration;          /* Time of the iteration of triggering event */
+  double t_delta;              /* Offset of event time from iteration time */
+  struct vector3 loc;          /* Position of event */
+  int how_many;                /* Number of events */
+  char *name;                  /* Name to give event */
 };
 
 /******************************************************************/

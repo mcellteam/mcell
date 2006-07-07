@@ -3181,7 +3181,7 @@ int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule *g,int
       gp = p->grid->mol[ p->index ];
       gp->properties->population--;
       if ((gp->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-        count_me_by_region((struct abstract_molecule*)gp,-1,NULL);
+        count_me_by_region((struct abstract_molecule*)gp,-1,NULL,gp->t);
       gp->properties = NULL;
       p->grid->mol[ p->index ] = NULL;
       p->grid->n_occupied--;
@@ -3287,7 +3287,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
         w->effectors->n_occupied++;
         new_g->properties->population++;
         if (new_g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-          count_me_by_region((struct abstract_molecule*)new_g,1,NULL);
+          count_me_by_region((struct abstract_molecule*)new_g,1,NULL,new_g->t);
 
         k = schedule_add( w->effectors->subvol->local_storage->timer , new_g );
         if (k) return 1;
@@ -3364,7 +3364,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           p->grid->n_occupied++;
           new_g->properties->population++;
           if (new_g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-            count_me_by_region((struct abstract_molecule*)new_g,1,NULL);
+            count_me_by_region((struct abstract_molecule*)new_g,1,NULL,new_g->t);
 
           h = schedule_add( p->grid->subvol->local_storage->timer , new_g );
           if (h) return 1;

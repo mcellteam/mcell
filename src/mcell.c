@@ -153,6 +153,14 @@ void run_sim(void)
     world->it_time++;
     
   }
+  
+  i = flush_trigger_output();
+  if (i)
+  {
+    fprintf(world->err_file,"Error at file %s line %d\n",__FILE__,__LINE__);
+    fprintf(world->err_file,"  Could not write output for triggered reactions: %d errors\n",i);
+    fprintf(world->err_file,"  Simulation complete anyway--continuing as normal.\n");
+  }
 
   /* write output checkpoint file */
   if ((world->it_time - world->start_time)==world->chkpt_iterations && world->chkpt_outfile) {

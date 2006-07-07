@@ -207,6 +207,68 @@ int emergency_output()
 }
 
 
+void add_trigger_output(struct counter *c,struct output_request *ear,int n)
+{
+  struct output_column *first_column;
+  struct output_trigger_data *otd;
+  int idx;
+  
+  first_column=ear->requester->column->set->column_head;
+  
+  idx = (int)first_column->initial_value++;
+  otd = &(((struct output_trigger_data*)first_column->buffer)[idx]);
+  
+  otd->t_iteration = world->it_time*world->time_unit;
+  otd->t_delta = (c->data.trig.t_event - (double)world->it_time)*world->time_unit;
+  otd->loc.x = c->data.trig.loc.x*world->length_unit;
+  otd->loc.y = c->data.trig.loc.y*world->length_unit;
+  otd->loc.z = c->data.trig.loc.z*world->length_unit;
+  otd->how_many = n;
+  otd->name = ear->requester->column->expr->title;
+  
+  if (idx+1 >= first_column->set->block->buffersize)
+  {
+    if (write_reaction_output(first_column->set,0))
+    {
+      fprintf(world->err_file,"Error at file %s line %d\n",__FILE__,__LINE__);
+      fprintf(world->err_file,"  Failed to write triggered count output.\n  Hoping for the best and continuing anyway.\n");
+      first_column->initial_value=0;
+    }
+  }
+}
+
+int flush_trigger_output()
+{
+  struct schedule_helper *sh;
+  struct output_block *ob;
+  struct output_set *os;
+  int i;
+  int n_errors=0;
+
+  for (sh = world->count_scheduler ; sh != NULL ; sh = sh->next_scale)
+  {
+    for (i=0;i<=sh->buf_len;i++)
+    {
+      if (i==sh->buf_len) ob = (struct output_block*) sh->current;
+      else ob = (struct output_block*) sh->circ_buf_head[i];
+      
+      for ( ; ob != NULL ; ob = ob->next )
+      {
+        for (os=ob->data_set_head ; os!=NULL ; os=os->next)
+        {
+          if (os->column_head->data_type==TRIG_STRUCT)
+          {
+            if (write_reaction_output(os,1)) n_errors++;
+          }
+	}
+      }
+    } 
+  }
+  
+  return n_errors;
+}
+
+
 /**************************************************************************
 update_reaction_output:
   In: the output_block we want to update
@@ -276,21 +338,17 @@ int update_reaction_output(struct output_block *block)
     }
   }
 
-  if (block->t >= world->iterations+1) final_chunk_flag=1;
-  
-  /* Schedule next output event, if there is one */
-  if (!final_chunk_flag)
+  /* Schedule next output event--even if we're at the end, since triggers may not yet be written */
+  i = schedule_add(world->count_scheduler,block);
+  if (i)
   {
-    i = schedule_add(world->count_scheduler,block);
-    if (i)
-    {
-      i = emergency_output();
-      fprintf(world->err_file,"Fatal error: out of memory while updating reaction outputs\nAttempt to write intermediate results had %d errors.\n",i);
-      exit(EXIT_FAILURE); 
-    }
+    i = emergency_output();
+    fprintf(world->err_file,"Fatal error: out of memory while updating reaction outputs\nAttempt to write intermediate results had %d errors.\n",i);
+    exit(EXIT_FAILURE); 
   }
 
-  
+  if (block->t >= world->iterations+1) final_chunk_flag=1;
+    
   /* write data to outfile */
   if (block->buf_index==block->buffersize || final_chunk_flag)
   {
@@ -305,7 +363,6 @@ int update_reaction_output(struct output_block *block)
       }
     }
     block->buf_index=0;
-    block->chunk_count++;
     no_printf("Done updating reaction output\n");
   }
   
@@ -340,11 +397,11 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
   {
     case FILE_OVERWRITE:
     case FILE_CREATE:
-      if (set->block->chunk_count==0) mode = "w";
+      if (set->chunk_count==0) mode = "w";
       else mode = "a";
       break;
     case FILE_SUBSTITUTE:
-      if (world->chkpt_seq_num==1 && set->block->chunk_count==0) mode = "w";
+      if (world->chkpt_seq_num==1 && set->chunk_count==0) mode = "w";
       else mode = "a";
       break;
     case FILE_APPEND:
@@ -374,7 +431,7 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
   if (set->column_head->data_type!=TRIG_STRUCT)
   {
     /* Write headers */
-    if ( set->block->chunk_count==0 && set->header_comment!=NULL && set->file_flags!=FILE_APPEND &&
+    if ( set->chunk_count==0 && set->header_comment!=NULL && set->file_flags!=FILE_APPEND &&
          ( world->chkpt_seq_num==1 || set->file_flags==FILE_APPEND_HEADER ||
            set->file_flags==FILE_CREATE || set->file_flags==FILE_OVERWRITE ) )
     {
@@ -416,14 +473,18 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
   {
     struct output_trigger_data *trig;
     
+    
     n_output = (u_int)set->column_head->initial_value;
     for (i=0;i<n_output;i++)
     {
       trig = &(((struct output_trigger_data*)set->column_head->buffer)[i]);
-      fprintf(fp,"%.15g %.9g %.9g %.9g %s\n",trig->t,trig->loc.x,trig->loc.y,trig->loc.z,(trig->name==NULL)?"":trig->name);
+      fprintf(fp,"%.15g %.12g %.9g %.9g %.9g %d %s\n",trig->t_iteration,trig->t_delta,
+        trig->loc.x,trig->loc.y,trig->loc.z,trig->how_many,(trig->name==NULL)?"":trig->name);
     }
     set->column_head->initial_value=0;
   }
+  
+  set->chunk_count++;
   
   fclose(fp);
   return 0;

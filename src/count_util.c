@@ -10,6 +10,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "rng.h"
 #include "grid_util.h"
@@ -56,7 +57,7 @@ update_collision_count:
    Out: No return value.  Appropriate counters are updated.
 *************************************************************************/
 
-void update_collision_count(struct species *sp,struct region_list *rl,int direction,int crossed, double factor)
+void update_collision_count(struct species *sp,struct region_list *rl,int direction,int crossed, double factor,struct vector3 *loc,double t)
 {
   int j;
   struct counter *hit_count;
@@ -80,42 +81,69 @@ void update_collision_count(struct species *sp,struct region_list *rl,int direct
       {
         if (hit_count->reg_type == rl->reg && hit_count->target == sp)
         {
-#if 0
-          if (crossed)
-          {
-            hit_count->data.move.n_enclosed += direction;
-
-/*
-            printf("Counted %s (%x) on %s (%x); %x has n_inside = %.1f (up by %d).\n",
-                   sp->sym->name,sp->hashval,rl->reg->sym->name,rl->reg->hashval,
-                   (int)hit_count,hit_count->data.move.n_inside,direction);
-*/
-
-          }
-#endif  
           if (rl->reg->flags & sp->flags & COUNT_HITS)
           {
             if (crossed)
             {
               if (direction==1)
               {
-                hit_count->data.move.front_hits++;
-                hit_count->data.move.front_to_back++;
+                if (hit_count->counter_type&TRIG_COUNTER)
+                {
+                  hit_count->data.trig.t_event=t;
+                  fire_count_event(hit_count,1,NULL,loc,REPORT_FRONT_HITS|REPORT_TRIGGER);
+                  fire_count_event(hit_count,1,NULL,loc,REPORT_FRONT_CROSSINGS|REPORT_TRIGGER);
+                }
+                else
+                {
+                  hit_count->data.move.front_hits++;
+                  hit_count->data.move.front_to_back++;
+                }
               }
               else
               {
-                hit_count->data.move.back_hits++;
-                hit_count->data.move.back_to_front++;
+                if (hit_count->counter_type&TRIG_COUNTER)
+                {
+                  hit_count->data.trig.t_event=t;
+                  fire_count_event(hit_count,1,NULL,loc,REPORT_BACK_HITS|REPORT_TRIGGER);
+                  fire_count_event(hit_count,1,NULL,loc,REPORT_BACK_CROSSINGS|REPORT_TRIGGER);
+                }
+                else
+                {
+                  hit_count->data.move.back_hits++;
+                  hit_count->data.move.back_to_front++;
+                }
               }
             }
             else
             {
-              if (direction==1) hit_count->data.move.front_hits++;
-              else hit_count->data.move.back_hits++;
+              if (direction==1)
+              {
+                if (hit_count->counter_type&TRIG_COUNTER)
+                {
+                  hit_count->data.trig.t_event=t;
+                  fire_count_event(hit_count,1,NULL,loc,REPORT_FRONT_HITS|REPORT_TRIGGER);
+                }
+                else
+                {
+                  hit_count->data.move.front_hits++;
+                }
+              }
+              else
+              {
+                if (hit_count->counter_type&TRIG_COUNTER)
+                {
+                  hit_count->data.trig.t_event=t;
+                  fire_count_event(hit_count,1,NULL,loc,REPORT_BACK_HITS|REPORT_TRIGGER);
+                }
+                else hit_count->data.move.back_hits++;
+              }
             }
 	    if (rl->reg->area != 0.0)
 	    {
-	      hit_count->data.move.scaled_hits += factor*hits_to_ccn/rl->reg->area;
+	      if ((hit_count->counter_type&TRIG_COUNTER)==0)
+              {
+                hit_count->data.move.scaled_hits += factor*hits_to_ccn/rl->reg->area;
+              }
 	    }
           }
         }
@@ -526,6 +554,7 @@ count_me_by_region:
    In: abstract molecule we are supposed to count (or a representative one)
        number by which to update the counter (usually +1 or -1)
        named reaction pathway to count at location of abstract molecule
+       time of event (used for triggers)
    Out: No return value.  Appropriate counters are updated.
    Note: This handles all types of molecules, from grid to free.  Grid
          and free are implemented, surface is not.  If the reaction
@@ -533,7 +562,7 @@ count_me_by_region:
 	 reaction is counted at the location of the molecule.
 *************************************************************************/
 
-void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *rxp)
+void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *rxp,double t)
 {
   int i,j,k,h;
   struct region_list *rl;
@@ -554,7 +583,7 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
     COUNT_flag = COUNT_CONTENTS;
   }
   
-  /* printf("Counting %x by region (up by %d)!\n",(int)me,n); */
+  //printf("Counting %x by region (up by %d)!\n",(int)me,n);
   
   if ((sp->flags & ON_GRID) != 0)
   {
@@ -570,10 +599,17 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
         
         for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
         {
+          if (c->counter_type&TRIG_COUNTER) c->data.trig.t_event=t;
+          
           if (c->reg_type == rl->reg && (c->counter_type&ENCLOSING_COUNTER)==0)
 	  {
-	    if (rxp==NULL && c->target == sp) c->data.move.n_at += n;
-	    else if (c->target == rxp) c->data.rx.n_rxn_at += n;
+            if (c->counter_type&TRIG_COUNTER) fire_count_event(c,n,g,NULL,REPORT_CONTENTS|REPORT_TRIGGER);
+            else c->data.move.n_at += n;
+          }
+	  else if (c->target == rxp)
+          {
+            if (c->counter_type&TRIG_COUNTER) fire_count_event(c,n,g,NULL,REPORT_RXNS|REPORT_TRIGGER);            
+            c->data.rx.n_rxn_at += n;
 	  }
         }
       }
@@ -627,16 +663,20 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
         
         for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
         {
+          if (c->counter_type&TRIG_COUNTER) c->data.trig.t_event=t;
+          
           if (c->reg_type==rl->reg && (my_wall==NULL || !region_listed(my_wall->counting_regions,rl->reg)))
 	  {
 	    if ( rxp==NULL && c->target==sp &&
 	         (g==NULL || (c->counter_type&ENCLOSING_COUNTER)!=0) )
 	    {
-	      c->data.move.n_enclosed += n;
+              if (c->counter_type&TRIG_COUNTER) fire_count_event(c,n,NULL,&loc,REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER);
+	      else c->data.move.n_enclosed += n;
 	    }
 	    else if ( c->target==rxp && (c->counter_type&ENCLOSING_COUNTER)!=0 )
 	    {
-	      c->data.rx.n_rxn_enclosed += n;
+              if (c->counter_type&TRIG_COUNTER) fire_count_event(c,n,NULL,&loc,REPORT_RXNS|REPORT_ENCLOSED|REPORT_TRIGGER);
+	      else c->data.rx.n_rxn_enclosed += n;
 	    }
 	  }
         }
@@ -651,16 +691,20 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
         
         for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
         {
+          if (c->counter_type&TRIG_COUNTER) c->data.trig.t_event=t;
+          
           if (c->reg_type==rl->reg && (my_wall==NULL || !region_listed(my_wall->counting_regions,rl->reg)))
 	  {
 	    if ( rxp==NULL && c->target==sp &&
 	         (g==NULL || (c->counter_type&ENCLOSING_COUNTER)!=0) )
 	    {
-	      c->data.move.n_enclosed -= n;
+              if (c->counter_type&TRIG_COUNTER) fire_count_event(c,-n,NULL,&loc,REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER);
+	      else c->data.move.n_enclosed -= n;
 	    }
 	    else if ( c->target==rxp && (c->counter_type&ENCLOSING_COUNTER)!=0 )
 	    {
-	      c->data.rx.n_rxn_enclosed -= n;
+              if (c->counter_type&TRIG_COUNTER) fire_count_event(c,-n,NULL,&loc,REPORT_RXNS|REPORT_ENCLOSED|REPORT_TRIGGER);
+	      else c->data.rx.n_rxn_enclosed -= n;
 	    }
 	  }
         }
@@ -700,6 +744,8 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
                 
                 for ( c = world->count_hash[i] ; c != NULL ; c = c->next )
                 {
+                  if (c->counter_type&TRIG_COUNTER) c->data.trig.t_event=t;
+                  
                   if (c->reg_type==rl->reg && (my_wall==NULL || !region_listed(my_wall->counting_regions,rl->reg)))
 		  {
 		    if ( rxp==NULL && c->target==sp &&
@@ -707,17 +753,27 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
 		    {
 		      if (j==COLLIDE_FRONT)
 		      {
+                        if (c->counter_type&TRIG_COUNTER) fire_count_event(c,n,NULL,&loc,REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER);
 			c->data.move.n_enclosed += n;
 		      }
 		      else if (j==COLLIDE_BACK)
 		      {
+                        if (c->counter_type&TRIG_COUNTER) fire_count_event(c,-n,NULL,&loc,REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER);
 			c->data.move.n_enclosed -= n;
 		      }
 		    }
 		    else if (c->target==rxp && (c->counter_type&ENCLOSING_COUNTER)!=0)
 		    {
-		      if (j==COLLIDE_FRONT) c->data.rx.n_rxn_enclosed += n;
-		      else if (j==COLLIDE_BACK) c->data.rx.n_rxn_enclosed -=n;
+		      if (j==COLLIDE_FRONT)
+                      {
+                        if (c->counter_type&TRIG_COUNTER) fire_count_event(c,n,NULL,&loc,REPORT_RXNS|REPORT_ENCLOSED|REPORT_TRIGGER);
+                        c->data.rx.n_rxn_enclosed += n;
+                      }
+		      else if (j==COLLIDE_BACK)
+                      {
+                        if (c->counter_type&TRIG_COUNTER) fire_count_event(c,-n,NULL,&loc,REPORT_RXNS|REPORT_ENCLOSED|REPORT_TRIGGER);                        
+                        c->data.rx.n_rxn_enclosed -=n;
+                      }
 		    }
 		  }
                 }
@@ -784,12 +840,11 @@ int prepare_counters()
     i = instantiate_request(request);
     if (i)
     {
-      fprintf(world->err_file,"Error: unable to count as requested");
+      fprintf(world->err_file,"Error: unable to count as requested\n");
       return 1;
     }
   }
-  delete_mem(world->outp_request_mem);
-  world->output_request_head=NULL;
+  /* Need to keep all the requests for now...could repackage them to save memory */
   
   /* Now check to make sure what we've created is geometrically sensible */
   for (i=0;i<world->count_hashmask+1;i++)
@@ -928,6 +983,7 @@ int instantiate_request(struct output_request *request)
   void *to_count;
   struct region *reg_of_count;
   struct counter *count;
+  struct trigger_request *trig_req;
   u_int report_type_only;
   byte count_type;
   int is_enclosed;
@@ -967,6 +1023,8 @@ int instantiate_request(struct output_request *request)
   }
   else reg_of_count=NULL;
   
+  request_hash&=world->count_hashmask;
+  
   /* Now create count structs and set output expression to point to data */
   report_type_only=request->report_type&REPORT_TYPE_MASK;
   request->requester->expr_flags-=OEXPR_LEFT_REQUEST;  
@@ -983,7 +1041,7 @@ int instantiate_request(struct output_request *request)
         request->requester->left=(void*)&(rx_to_count->info[rxpn_to_count->path_num].count);
         break;
       default:
-        fprintf(world->err_file,"Error at file %s line %d\n  Invalid report type in count request.\n",__FILE__,__LINE__);
+        fprintf(world->err_file,"Error at file %s line %d\n  Invalid report type 0x%x in count request.\n",__FILE__,__LINE__,report_type_only);
         return 1;
         break;
     }
@@ -993,7 +1051,12 @@ int instantiate_request(struct output_request *request)
     /* Set count type flags */
     if (report_type_only==REPORT_RXNS) count_type=RXN_COUNTER;
     else count_type=MOL_COUNTER;
-    if (request->report_type&REPORT_ENCLOSED) count_type|=ENCLOSING_COUNTER;
+    if (request->report_type&REPORT_ENCLOSED)
+    {
+      reg_of_count->flags|=ENCLOSING_COUNTER;
+      count_type|=ENCLOSING_COUNTER;
+      if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_ENCLOSED;
+    }
     if (request->report_type&REPORT_TRIGGER) count_type|=TRIG_COUNTER;
     
     /* Find or add counter */
@@ -1003,7 +1066,7 @@ int instantiate_request(struct output_request *request)
     }
     if (count==NULL)
     {
-      count=create_new_counter(request->count_target->value,reg_of_count,count_type);
+      count=create_new_counter(reg_of_count,request->count_target->value,count_type);
       if (count==NULL)
       {
         fprintf(world->err_file,"Error at file %s line %d\n  Out of memory allocating count request\n",__FILE__,__LINE__);
@@ -1017,49 +1080,81 @@ int instantiate_request(struct output_request *request)
     /* Point appropriately */
     if (request->report_type&REPORT_TRIGGER)
     {
-      fprintf(world->err_file,"Error at file %s line %d\n  Rex hasn't implemented triggered output yet.\n",__FILE__,__LINE__);
-      return 1;
+      trig_req = (struct trigger_request*)mem_get(world->trig_request_mem);
+      if (trig_req==NULL)
+      {
+        fprintf(world->err_file,"Error at file %s line %d\n  Out of memory setting notifications for a trigger\n",__FILE__,__LINE__);
+        return 1;
+      }
+      
+      trig_req->next=count->data.trig.listeners;
+      count->data.trig.listeners=trig_req;
+      trig_req->ear=request;
+      
+      request->requester->expr_flags|=OEXPR_TYPE_TRIG;
     }
-    else
+    else /* Not trigger--set up for regular count */
     {
       is_enclosed = (mol_to_count==NULL || !(mol_to_count->flags&ON_GRID) || (request->report_type&REPORT_ENCLOSED));
-      request->requester->expr_flags|=OEXPR_LEFT_DBL; /* Assume double */
+      request->requester->expr_flags|=OEXPR_LEFT_DBL;          /* Assume double */
       switch (report_type_only)
       {
         case REPORT_CONTENTS:
           request->requester->expr_flags-=OEXPR_LEFT_DBL;
           request->requester->expr_flags|=OEXPR_LEFT_INT;
+          
+          if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_CONTENTS;
+          reg_of_count->flags|=COUNT_CONTENTS;
           if (!is_enclosed) request->requester->left=(void*)&(count->data.move.n_at);
           else request->requester->left=(void*)&(count->data.move.n_enclosed);
           break;
         case REPORT_RXNS:
+          if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_RXNS;
+          reg_of_count->flags|=COUNT_RXNS;
           if (!is_enclosed) request->requester->left=(void*)&(count->data.rx.n_rxn_at);
           else request->requester->left=(void*)&(count->data.rx.n_rxn_enclosed);
           break;
         case REPORT_FRONT_HITS:
+          if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_HITS;
+          reg_of_count->flags|=COUNT_HITS;
           request->requester->left=(void*)&(count->data.move.front_hits);
           break;
         case REPORT_BACK_HITS:
+          if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_HITS;
+          reg_of_count->flags|=COUNT_HITS;
           request->requester->left=(void*)&(count->data.move.back_hits);
           break;
         case REPORT_FRONT_CROSSINGS:
+          if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_HITS;
+          reg_of_count->flags|=COUNT_HITS;
           request->requester->left=(void*)&(count->data.move.front_to_back);
           break;
         case REPORT_BACK_CROSSINGS:
+          if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_HITS;
+          reg_of_count->flags|=COUNT_HITS;
           request->requester->left=(void*)&(count->data.move.back_to_front);
           break;
         case REPORT_ALL_HITS:
           request->requester->expr_flags|=OEXPR_RIGHT_DBL;
+          if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_HITS;
+          reg_of_count->flags|=COUNT_HITS;
           request->requester->left=(void*)&(count->data.move.front_hits);
           request->requester->right=(void*)&(count->data.move.back_hits);
           break;
         case REPORT_ALL_CROSSINGS:
           request->requester->expr_flags|=OEXPR_RIGHT_DBL;
+          reg_of_count->flags|=COUNT_HITS;
+          if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_HITS;
           request->requester->left=(void*)&(count->data.move.front_to_back);
           request->requester->right=(void*)&(count->data.move.back_to_front);
           break;
         case REPORT_CONCENTRATION:
+          request->requester->expr_flags|=OEXPR_RIGHT_DBL;
+          if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_HITS;
+          reg_of_count->flags|=COUNT_HITS;
           request->requester->left=(void*)&(count->data.move.scaled_hits);
+          request->requester->right=(void*)&(world->elapsed_time);
+          request->requester->oper='/';
           break;
         default:
           fprintf(world->err_file,"Error at file %s line %d\n  Bad report type %d when creating counts\n",__FILE__,__LINE__,report_type_only);
@@ -1077,7 +1172,7 @@ struct counter* create_new_counter(struct region *where,void *who,byte what)
 {
   struct counter *c;
   
-  c = (struct counter*)malloc(sizeof(struct counter));
+  c = (struct counter*)mem_get(world->counter_mem);
   if (c==NULL) return NULL;
   
   c->next=NULL;
@@ -1086,10 +1181,9 @@ struct counter* create_new_counter(struct region *where,void *who,byte what)
   c->counter_type=what;
   if (what&TRIG_COUNTER)
   {
-    c->data.trig.t=0.0;
+    c->data.trig.t_event=0.0;
     c->data.trig.loc.x = c->data.trig.loc.y = c->data.trig.loc.z = 0.0;
-    c->data.trig.sym=NULL;
-    c->data.trig.oc=NULL;
+    c->data.trig.listeners=NULL;
   }
   else if (what&RXN_COUNTER)
   {
@@ -1103,5 +1197,27 @@ struct counter* create_new_counter(struct region *where,void *who,byte what)
     c->data.move.scaled_hits = 0.0;
   }
   return c;
+}
+
+
+void fire_count_event(struct counter *event,int n,struct grid_molecule *g,struct vector3 *where,byte what)
+{
+  struct trigger_request *tr;
+  byte whatelse=what;
+  
+  if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_HITS) whatelse = (what-REPORT_FRONT_HITS)|REPORT_ALL_HITS;
+  else if ((what&REPORT_TYPE_MASK)==REPORT_BACK_HITS) whatelse = (what-REPORT_BACK_HITS)|REPORT_ALL_HITS;
+  else if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_CROSSINGS) whatelse = (what-REPORT_FRONT_CROSSINGS)|REPORT_ALL_CROSSINGS;
+  else if ((what&REPORT_TYPE_MASK)==REPORT_BACK_CROSSINGS) whatelse = (what-REPORT_BACK_CROSSINGS)|REPORT_ALL_CROSSINGS;
+  
+  for (tr=event->data.trig.listeners ; tr!=NULL ; tr=tr->next)
+  {
+    if (tr->ear->report_type==what || tr->ear->report_type==whatelse)
+    {
+      if (where!=NULL) memcpy(&(event->data.trig.loc),where,sizeof(struct vector3));
+      else uv2xyz(&(g->s_pos),g->grid->surface,&(event->data.trig.loc)); 
+      add_trigger_output(event,tr->ear,n);
+    }
+  }
 }
 

@@ -8596,7 +8596,7 @@ count_syntax:  existing_one_or_many_rxpns_or_mols ',' count_location_specifier o
     orq->next=NULL;
     orq->requester=oe;
     orq->count_target=stl->node;
-    orq->count_location=NULL;
+    orq->count_location=$<sym>3;
     orq->report_type=report_type|report_flags;
     
     oe->left=orq;

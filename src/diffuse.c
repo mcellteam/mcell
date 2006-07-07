@@ -3604,12 +3604,12 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 		  {
 		    if ( (sm->flags & w->flags & COUNT_HITS) )
 		    {
-		      update_collision_count(sm,w->counting_regions,k,1,rate_factor * w->effectors->binding_factor);
+		      update_collision_count(sm,w->counting_regions,k,1,rate_factor * w->effectors->binding_factor,&(smash->loc),smash->t);
 		    }
 		    if ((m->flags&COUNT_ME)!=0)
 		    {
 		      m->flags-=COUNT_ME;
-		      count_me_by_region((struct abstract_molecule*)m,-1,NULL);
+		      count_me_by_region((struct abstract_molecule*)m,-1,NULL,smash->t);
 		    }
 		    
 		    continue; /* pass through */
@@ -3617,7 +3617,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 		  else if (l==RX_DESTROY)
 		  {
 		    if ( (sm->flags & w->flags & COUNT_HITS) )
-		      update_collision_count(sm,w->counting_regions,k,0,rate_factor);
+		      update_collision_count(sm,w->counting_regions,k,0,rate_factor,&(smash->loc),smash->t);
 		    
 		    CLEAN_AND_RETURN(NULL);
 		  }
@@ -3642,12 +3642,12 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	      rx->n_occurred++;
 	      if ( (sm->flags & COUNT_HITS) )
 	      {
-		update_collision_count(sm,w->counting_regions,k,1,rate_factor);
+		update_collision_count(sm,w->counting_regions,k,1,rate_factor,&(smash->loc),smash->t);
 	      }
 	      if ((m->flags&COUNT_ME)!=0)
 	      {
 		m->flags-=COUNT_ME;
-		count_me_by_region((struct abstract_molecule*)m,-1,NULL);
+		count_me_by_region((struct abstract_molecule*)m,-1,NULL,smash->t);
 	      }
 
 	      continue; /* Ignore this wall and keep going */
@@ -3668,12 +3668,12 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 		{
 		  if ( (sm->flags & COUNT_HITS) )
 		  {
-		    update_collision_count(sm,w->counting_regions,k,1,rate_factor);
+		    update_collision_count(sm,w->counting_regions,k,1,rate_factor,&(smash->loc),smash->t);
 		  }
 		  if ((m->flags&COUNT_ME)!=0)
 		  {
 		    m->flags-=COUNT_ME;
-		    count_me_by_region((struct abstract_molecule*)m,-1,NULL);
+		    count_me_by_region((struct abstract_molecule*)m,-1,NULL,smash->t);
 		  }
   
 		  continue; /* pass through */
@@ -3681,7 +3681,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 		else if (j==RX_DESTROY)
 		{
 		  if ( (sm->flags & COUNT_HITS) )
-		    update_collision_count(sm,w->counting_regions,k,0,rate_factor);
+		    update_collision_count(sm,w->counting_regions,k,0,rate_factor,&(smash->loc),smash->t);
   
 		  CLEAN_AND_RETURN(NULL);
 		}
@@ -3693,11 +3693,11 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	
         /* default is to reflect */
         
-	if ( (sm->flags & COUNT_HITS)) update_collision_count(sm,w->counting_regions,k,0,rate_factor);
+	if ( (sm->flags & COUNT_HITS)) update_collision_count(sm,w->counting_regions,k,0,rate_factor,&(smash->loc),smash->t);
 	if (m->flags&COUNT_ME)
 	{
 	  m->flags -= COUNT_ME;
-	  count_me_by_region((struct abstract_molecule*)m,-1,NULL);
+	  count_me_by_region((struct abstract_molecule*)m,-1,NULL,smash->t);
 	}
 
 	m->pos.x = smash->loc.x;
@@ -3740,7 +3740,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                   sm->sym->name,m->pos.x*world->length_unit,
                   m->pos.y*world->length_unit,m->pos.z*world->length_unit);
           if ((sm->flags&COUNT_CONTENTS)!=0 && (m->flags&COUNT_ME)!=0)
-	    count_me_by_region((struct abstract_molecule*)m,-1,NULL);
+	    count_me_by_region((struct abstract_molecule*)m,-1,NULL,smash->t);
           sm->population--;
           m->properties = NULL;
 	  
@@ -3772,7 +3772,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   
   m->index = -1;
   m->previous_wall=NULL;
-  if ((sm->flags&COUNT_ENCLOSED)!=0 && (m->flags&COUNT_ME)==0) count_me_by_region((struct abstract_molecule*)m,1,NULL);
+  if ((sm->flags&COUNT_ENCLOSED)!=0 && (m->flags&COUNT_ME)==0) count_me_by_region((struct abstract_molecule*)m,1,NULL,m->t);
   
   if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
 
@@ -3870,17 +3870,17 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
 	  continue; /* Pick again--full here */
 	}
 	
-	count_me_by_region((struct abstract_molecule*)g,-1,NULL);
+	count_me_by_region((struct abstract_molecule*)g,-1,NULL,g->t);
 
 	g->grid->mol[g->grid_index]=NULL;
 	g->grid->mol[new_idx] = g;
 	g->grid_index = new_idx;
       }
-      else count_me_by_region((struct abstract_molecule*)g,-1,NULL);
+      else count_me_by_region((struct abstract_molecule*)g,-1,NULL,g->t);
       
       g->s_pos.u = new_loc.u;
       g->s_pos.v = new_loc.v;
-      count_me_by_region((struct abstract_molecule*)g,1,NULL);
+      count_me_by_region((struct abstract_molecule*)g,1,NULL,g->t);
       
       find_new_position = 0;
     }
@@ -3900,7 +3900,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
       if (new_idx < 0 || new_idx >= new_wall->effectors->n_tiles) fprintf(world->log_file, "File '%s', Line %ld: Unexpected behaviour, iteration %d.\n", __FILE__, (long)__LINE__, (int)world->it_time);
       if (new_wall->effectors->mol[new_idx] != NULL) continue; /* Pick again */
       
-      count_me_by_region((struct abstract_molecule*)g,-1,NULL);
+      count_me_by_region((struct abstract_molecule*)g,-1,NULL,g->t);
       g->grid->mol[g->grid_index]=NULL;
       g->grid->n_occupied--;
       g->grid = new_wall->effectors;
@@ -3909,7 +3909,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
 
       g->s_pos.u = new_loc.u;
       g->s_pos.v = new_loc.v;
-      count_me_by_region((struct abstract_molecule*)g,1,NULL);
+      count_me_by_region((struct abstract_molecule*)g,1,NULL,g->t);
       
       find_new_position=0;
     }

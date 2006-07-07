@@ -316,6 +316,18 @@ int init_sim(void)
     fprintf(world->err_file,"Out of memory while getting ready to store lists of output commands");
     return 1;
   }
+  world->counter_mem = create_mem(sizeof(struct counter),2048);
+  if (world->counter_mem==NULL)
+  {
+    fprintf(world->err_file,"Out of memory while getting ready to store reaction and molecule counts");
+    return 1;
+  }
+  world->trig_request_mem = create_mem(sizeof(struct trigger_request),1024);
+  if (world->trig_request_mem==NULL)
+  {
+    fprintf(world->err_file,"Out of memory while getting ready to store output triggers");
+    return 1;
+  }
 
   if((world->main_sym_table=init_symtab(SYM_HASHSIZE)) == NULL){
     fprintf(world->err_file,"File '%s', Line %ld: initialization of symbol table failed\n", __FILE__, (long)__LINE__);
@@ -2161,7 +2173,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
         }
 
         if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-          count_me_by_region((struct abstract_molecule*)mol,1,NULL);
+          count_me_by_region((struct abstract_molecule*)mol,1,NULL,mol->t);
       
         if (schedule_add(w->birthplace->timer,mol)){ 
 		fprintf(stderr,"File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
@@ -2382,7 +2394,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   }
                   
                   if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-                    count_me_by_region((struct abstract_molecule*)mol,1,NULL);
+                    count_me_by_region((struct abstract_molecule*)mol,1,NULL,mol->t);
       
                   if ( schedule_add(walls[j]->birthplace->timer,mol) ){ 
 			fprintf(stderr,"File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
@@ -2428,7 +2440,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     }
                   
                     if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-                      count_me_by_region((struct abstract_molecule*)mol,1,NULL);
+                      count_me_by_region((struct abstract_molecule*)mol,1,NULL,mol->t);
       
                     if ( schedule_add(walls[k]->birthplace->timer,mol) ){ 
 			fprintf(stderr,"File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
