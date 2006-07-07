@@ -583,7 +583,7 @@ void count_me_by_region(struct abstract_molecule *me,int n,struct rxn_pathname *
     COUNT_flag = COUNT_CONTENTS;
   }
   
-  //printf("Counting %x by region (up by %d)!\n",(int)me,n);
+  //printf("Counting %s by region (up by %d) iter %d!\n",me->properties->sym->name,n,(int)world->it_time);
   
   if ((sp->flags & ON_GRID) != 0)
   {
