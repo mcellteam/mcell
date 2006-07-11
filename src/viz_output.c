@@ -1468,24 +1468,37 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
   byte viz_mol_orient_flag = 0, viz_region_data_flag = 0;   /* flags */
   byte viz_mol_all_data_flag = 0, viz_surf_all_data_flag = 0;	/* flags */
   byte viz_surf_pos_flag = 0, viz_surf_states_flag = 0;	/* flags */
-  char file_name[1024];
-  char viz_data_dir_name[1024];
-  static char frame_data_dir_name[1024];
-  char master_header_name[1024];
+  char *filename = NULL;
+  static char *viz_data_dir_name = NULL;
+  static char *frame_data_dir_name = NULL; 
+  char *master_header_name;
   char iteration_number[1024];
-  char iteration_number_dir[1024];
-  char mesh_pos_name[1024]; /* meshes vertices data file name */
-  char mesh_states_name[1024]; /* meshes states data file name */
-  char region_viz_data_name[1024]; /* region_viz_data file name */
-  char meshes_header_name[1024]; /* meshes header name */
-  char vol_mol_pos_name[1024]; /* volume molecule positions data file name */
-  char vol_mol_states_name[1024]; /* volume molecule states data file name */
-  char vol_mol_orient_name[1024]; /* volume molecule orientations data file name */
-  char vol_mol_header_name[1024]; /* volume molecules header name */
-  char surf_mol_pos_name[1024]; /* surface molecule positions data file name */
-  char surf_mol_states_name[1024]; /* surface molecule states data file name */
-  char surf_mol_orient_name[1024]; /* surface molecule orientations data file name */
-  char surf_mol_header_name[1024]; /* surface molecules header name */
+  char chkpt_seq_num[1024];
+  char *iteration_number_dir = NULL;
+  char *mesh_pos_file_path = NULL; /* path to meshes vertices data file */
+  static char *mesh_pos_name = NULL; /* meshes vertices data file name */
+  char *mesh_states_file_path = NULL; /* meshes states data file path */
+  static char *mesh_states_name = NULL; /* meshes states data file name */
+  char *region_viz_data_file_path = NULL; /* path to region_viz_data file */
+  static char *region_viz_data_name = NULL; /* region_viz_data file name */
+  char *meshes_header_file_path = NULL; /* meshes header name */
+  static char *meshes_header_name = NULL; /* meshes header name */
+  char *vol_mol_pos_file_path = NULL; /* path to volume molecule positions data file */
+  static char *vol_mol_pos_name = NULL; /* volume molecule positions data file name */
+  char *vol_mol_states_file_path = NULL; /* path to volume molecule states data file  */
+  static char *vol_mol_states_name = NULL; /* volume molecule states data file name */
+  char *vol_mol_orient_file_path = NULL; /* path to volume molecule orientations data file  */
+  static char *vol_mol_orient_name = NULL; /* volume molecule orientations data file name */
+  char *vol_mol_header_file_path = NULL; /* path to volume molecules header  */
+  static char *vol_mol_header_name = NULL; /* volume molecules header name */
+  char *surf_mol_pos_file_path = NULL; /* path to surface molecule positions data file */
+  static char *surf_mol_pos_name = NULL; /* surface molecule positions data file name */
+  char *surf_mol_states_file_path = NULL; /* surface molecule states data file */
+  static char *surf_mol_states_name = NULL; /* surface molecule states data file name */
+  char *surf_mol_orient_file_path = NULL; /* path to surface molecule orientations data file  */
+  static char *surf_mol_orient_name = NULL; /* surface molecule orientations data file name */
+  char *surf_mol_header_file_path = NULL; /* path to surface molecules header */
+  static char *surf_mol_header_name = NULL; /* surface molecules header name */
   char *grid_mol_name = NULL; /* points to the name of the grid molecule */
   char path_name_1[1024]; /* used for creating file links */
   char path_name_2[1024]; /* used for creating file links */
@@ -1527,8 +1540,8 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
 
   char *dir_name_end = "_viz_data";
-  char iteration_numbers_name[1024]; /* iteration numbers data file name */ 
-  char time_values_name[1024]; /* time values data file name */
+  char *iteration_numbers_name = NULL; /* iteration numbers data file name */ 
+  char *time_values_name = NULL; /* time values data file name */
 
   /* points to the values of the current iteration steps
      for certain frame types. */
@@ -2010,10 +2023,18 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      } /* end if (mol_to_show_number > 0) */
   }  /* end if(viz_mol_pos_flag || viz_mol_orient_flag) */
 
-
-  strcpy(viz_data_dir_name, world->file_prefix_name);
-  strcat(viz_data_dir_name, dir_name_end);
-
+  if(viz_data_dir_name == NULL)
+  {
+     viz_data_dir_name = (char *)malloc((strlen(world->file_prefix_name) + strlen(dir_name_end) + 1)*sizeof(char));
+     if(viz_data_dir_name == NULL){
+         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+         return (1);
+     }
+     strcpy(viz_data_dir_name, world->file_prefix_name);
+     strcat(viz_data_dir_name, dir_name_end);
+  }
+  
+   
   if(!viz_data_dir_created)
   {
      /* test whether a directory structure created by the user exists */
@@ -2031,18 +2052,21 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      {
      	ch_ptr = strrchr(world->file_prefix_name, '/');
         num = ch_ptr - world->file_prefix_name;
-        strncpy(file_name, world->file_prefix_name, num);  
-        file_name[num] = '\0';
+        filename = (char *)malloc(sizeof(char) * (num + 1));
+        if(filename == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+        }
+        strncpy(filename, world->file_prefix_name, num);  
+        filename[num] = '\0';
 
-        status = stat(file_name, &f_stat);
+        status = stat(filename, &f_stat);
         if((status == -1) && (errno == ENOENT)){
-   	     fprintf(world->err_file, "File %s, Line %ld: Error ERROENT while looking for viz_output data directory '%s'.  Please create it.\n", __FILE__, (long)__LINE__, file_name);
+   	     fprintf(world->err_file, "File %s, Line %ld: Error ERROENT while looking for viz_output data directory '%s'.  Please create it.\n", __FILE__, (long)__LINE__, filename);
    	     exit (1);
         }
 
      } 
-     
-
 
      /* create folder for the visualization data */  
      status = mkdir(viz_data_dir_name, S_IRWXU | S_IRWXG | S_IRWXO);
@@ -2052,8 +2076,18 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      }
 
      /* create top level directory for "frame data" */
-     strcpy(frame_data_dir_name, viz_data_dir_name);
-     strcat(frame_data_dir_name, "/frame_data");
+     if(frame_data_dir_name == NULL)
+     {
+         frame_data_dir_name = (char *)malloc((strlen(viz_data_dir_name) + strlen("/frame_data") + 1)*sizeof(char));
+         if(frame_data_dir_name == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+         }
+
+        strcpy(frame_data_dir_name, viz_data_dir_name);
+        strcat(frame_data_dir_name, "/frame_data");
+     }
+
 
      status = mkdir(frame_data_dir_name, S_IRWXU | S_IRWXG | S_IRWXO);
      if((status != 0) && (errno != EEXIST)){
@@ -2067,10 +2101,16 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
   }
 
     /* create a subdirectory for the "iteration" data */
+    sprintf(iteration_number, "%d", viz_iteration);
+    iteration_number_dir = (char *)malloc((strlen(frame_data_dir_name) + strlen("/iteration_") + strlen(iteration_number) + 1));
+    if(iteration_number_dir == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+    }   
     strcpy(iteration_number_dir, frame_data_dir_name);
     strcat(iteration_number_dir, "/");
     strcat(iteration_number_dir, "iteration_");
-    sprintf(iteration_number, "%d", viz_iteration);
+
     strcat(iteration_number_dir, iteration_number);       
 
     /* searh for the directory 'iteration_number_dir' */
@@ -2092,21 +2132,32 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
        'meshes' files should be empty */
 
    if ((viz_surf_pos_flag) || (obj_to_show_number == 0)) {
-      	 
-        sprintf(file_name,"%s/mesh_positions.bin",iteration_number_dir);
+  	 
+        mesh_pos_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/mesh_positions.bin") + 1));
+        if(mesh_pos_file_path == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+        }
  
-     	/* remove the folder name from the mesh_positions data file name */
-     	ch_ptr = strrchr(file_name, '/');
-     	++ch_ptr;
-     	strcpy(mesh_pos_name, ch_ptr);
+        sprintf(mesh_pos_file_path,"%s/mesh_positions.bin",iteration_number_dir); 
+ 
+        if(mesh_pos_name == NULL)
+        {
+           mesh_pos_name = (char *)malloc(sizeof(char) * (strlen("mesh_positions.bin") + 1));
+          if(mesh_pos_name == NULL){
+              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+              return (1);
+          }
+     	  strcpy(mesh_pos_name, "mesh_positions.bin");
+        }
 
         /* if there are symbolic links present with this name - remove them */
-        status = stat(file_name, &f_stat);
+        status = stat(mesh_pos_file_path, &f_stat);
         if(status == 0){
            if(f_stat.st_mode | S_IFLNK) {
             
               /* remove the symbolic link */
-              status = unlink(file_name);
+              status = unlink(mesh_pos_file_path);
               if(status != 0) { 
                        fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, mesh_pos_name);
                        return(1);
@@ -2116,8 +2167,8 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
         }
  
 
-      	if ((mesh_pos_data = fopen(file_name,"wb"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+      	if ((mesh_pos_data = fopen(mesh_pos_file_path,"wb"))==NULL) {
+                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, mesh_pos_file_path);
                 return(1);
         }
 
@@ -2125,19 +2176,29 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
    }
 
    if ((viz_surf_states_flag) || (obj_to_show_number == 0)){
-           sprintf(file_name,"%s/mesh_states.bin", iteration_number_dir);
+       mesh_states_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/mesh_states.bin") + 1));
+        if(mesh_states_file_path == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+        }
+        sprintf(mesh_states_file_path,"%s/mesh_states.bin", iteration_number_dir);
      
-        /* remove the folder name from the mesh_states data file name */
-        ch_ptr = strrchr(file_name, '/');
-        ++ch_ptr;
-        strcpy(mesh_states_name, ch_ptr);
+        if(mesh_states_name == NULL)
+        {
+           mesh_states_name = (char *)malloc(sizeof(char) * (strlen("mesh_states.bin") + 1));
+          if(mesh_states_name == NULL){
+              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+              return (1);
+          }
+     	  strcpy(mesh_states_name, "mesh_states.bin");
+        }
 
         /* if there are symbolic links present with this name - remove them */
-        status = stat(file_name, &f_stat);
+        status = stat(mesh_states_file_path, &f_stat);
         if(status == 0){
            if(f_stat.st_mode | S_IFLNK) {
               /* remove the symbolic link */
-              status = unlink(file_name);
+              status = unlink(mesh_states_file_path);
               if(status != 0) { 
                        fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, mesh_states_name);
                        return(1);
@@ -2146,26 +2207,36 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
            }
         }
 
-        if ((mesh_states_data=fopen(file_name,"wb"))==NULL) {
-             fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+        if ((mesh_states_data=fopen(mesh_states_file_path,"wb"))==NULL) {
+             fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,filename);
              return(1);
         }
     }
 
     if ((viz_region_data_flag) || (obj_to_show_number == 0)) {
-         sprintf(file_name,"%s/region_indices.bin", iteration_number_dir);
+       region_viz_data_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/region_indices.bin") + 1));
+        if(region_viz_data_file_path == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+        }
+         sprintf(region_viz_data_file_path,"%s/region_indices.bin", iteration_number_dir);
      
-        /* remove the folder name from the region values data file name */
-        ch_ptr = strrchr(file_name, '/');
-        ++ch_ptr;
-        strcpy(region_viz_data_name, ch_ptr);
+        if(region_viz_data_name == NULL)
+        {
+           region_viz_data_name = (char *)malloc(sizeof(char) * (strlen("region_indices.bin") + 1));
+          if(region_viz_data_name == NULL){
+              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+              return (1);
+          }
+     	  strcpy(region_viz_data_name, "region_indices.bin");
+        }
 
         /* if there are symbolic links present with this name - remove them */
-        status = stat(file_name, &f_stat);
+        status = stat(region_viz_data_file_path, &f_stat);
         if(status == 0){
            if(f_stat.st_mode | S_IFLNK) {
               /* remove the symbolic link */
-              status = unlink(file_name);
+              status = unlink(region_viz_data_file_path);
               if(status != 0) { 
                        fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, region_viz_data_name);
                        return(1);
@@ -2174,26 +2245,36 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
            }
         }
 
-        if ((region_data=fopen(file_name,"wb"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+        if ((region_data=fopen(region_viz_data_file_path,"wb"))==NULL) {
+              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, region_viz_data_file_path);
               return(1);
         }
     }
 
     if (((viz_surf_pos_flag || viz_region_data_flag)) || (obj_to_show_number == 0)) {
-         sprintf(file_name,"%s/meshes.dx", iteration_number_dir);
+       meshes_header_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/meshes.dx") + 1));
+        if(meshes_header_file_path == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+        }
+         sprintf(meshes_header_file_path,"%s/meshes.dx", iteration_number_dir);
      
-        /* remove the folder name from the meshes header  file name */
-        ch_ptr = strrchr(file_name, '/');
-        ++ch_ptr;
-        strcpy(meshes_header_name, ch_ptr);
+        if(meshes_header_name == NULL)
+        {
+           meshes_header_name = (char *)malloc(sizeof(char) * (strlen("meshes.dx") + 1));
+          if(meshes_header_name == NULL){
+              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+              return (1);
+          }
+     	  strcpy(meshes_header_name, "meshes.dx");
+        }
          
         /* if there are symbolic links present with this name - remove them */
-        status = stat(file_name, &f_stat);
+        status = stat(meshes_header_file_path, &f_stat);
         if(status == 0){
            if(f_stat.st_mode | S_IFLNK) {
               /* remove the symbolic link */
-              status = unlink(file_name);
+              status = unlink(meshes_header_file_path);
               if(status != 0) { 
                        fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, meshes_header_name);
                        return(1);
@@ -2204,14 +2285,14 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
         
         if(count_meshes_header == 0)
         {
-           if ((meshes_header=fopen(file_name,"w"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+           if ((meshes_header=fopen(meshes_header_file_path,"w"))==NULL) {
+              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, meshes_header_file_path);
               return(1);
            }
            count_meshes_header++;
         }else{
-           if ((meshes_header=fopen(file_name,"a"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+           if ((meshes_header=fopen(meshes_header_file_path,"a"))==NULL) {
+              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, meshes_header_file_path);
               return(1);
            }
            count_meshes_header++;
@@ -2224,19 +2305,29 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
    if ((viz_mol_pos_flag) || ((mol_to_show_number == 0) && (eff_to_show_number == 0))) {
      
-        sprintf(file_name,"%s/volume_molecules_positions.bin",iteration_number_dir);
+       vol_mol_pos_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/volume_molecules_positions.bin") + 1));
+        if(vol_mol_pos_file_path == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+        }
+        sprintf(vol_mol_pos_file_path,"%s/volume_molecules_positions.bin",iteration_number_dir);
      
-     	/* remove the folder name from the volume_molecules_positions data file name */
-     	ch_ptr = strrchr(file_name, '/');
-     	++ch_ptr;
-     	strcpy(vol_mol_pos_name, ch_ptr);
+        if(vol_mol_pos_name == NULL)
+        {
+          vol_mol_pos_name = (char *)malloc(sizeof(char) * (strlen("volume_molecules_positions.bin") + 1));
+          if(vol_mol_pos_name == NULL){
+              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+              return (1);
+          }
+     	  strcpy(vol_mol_pos_name, "volume_molecules_positions.bin");
+        }
 
         /* if there are symbolic links present with this name - remove them */
-        status = stat(file_name, &f_stat);
+        status = stat(vol_mol_pos_file_path, &f_stat);
         if(status == 0){
            if(f_stat.st_mode | S_IFLNK) {
               /* remove the symbolic link */
-              status = unlink(file_name);
+              status = unlink(vol_mol_pos_file_path);
               if(status != 0) { 
                        fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, vol_mol_pos_name);
                        return(1);
@@ -2245,24 +2336,34 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
            }
         }
         
-      	if ((vol_mol_pos_data = fopen(file_name,"wb"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+      	if ((vol_mol_pos_data = fopen(vol_mol_pos_file_path,"wb"))==NULL) {
+                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, vol_mol_pos_file_path);
                 return(1);
         }
 
-        sprintf(file_name,"%s/surface_molecules_positions.bin",iteration_number_dir);
+       surf_mol_pos_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/surface_molecules_positions.bin") + 1));
+        if(surf_mol_pos_file_path == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+        }
+        sprintf(surf_mol_pos_file_path,"%s/surface_molecules_positions.bin",iteration_number_dir);
      
-     	/* remove the folder name from the surface_molecules_positions data file name */
-     	ch_ptr = strrchr(file_name, '/');
-     	++ch_ptr;
-     	strcpy(surf_mol_pos_name, ch_ptr);
+        if(surf_mol_pos_name == NULL)
+        {
+          surf_mol_pos_name = (char *)malloc(sizeof(char) * (strlen("surface_molecules_positions.bin") + 1));
+          if(surf_mol_pos_name == NULL){
+              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+              return (1);
+          }
+     	  strcpy(surf_mol_pos_name, "surface_molecules_positions.bin");
+        }
 
         /* if there are symbolic links present with this name - remove them */
-        status = stat(file_name, &f_stat);
+        status = stat(surf_mol_pos_file_path, &f_stat);
         if(status == 0){
            if(f_stat.st_mode | S_IFLNK) {
               /* remove the symbolic link */
-              status = unlink(file_name);
+              status = unlink(surf_mol_pos_file_path);
               if(status != 0) { 
                        fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, surf_mol_pos_name);
                        return(1);
@@ -2271,29 +2372,38 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
            }
         }
       	
-        if ((surf_mol_pos_data = fopen(file_name,"wb"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+        if ((surf_mol_pos_data = fopen(surf_mol_pos_file_path,"wb"))==NULL) {
+                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, surf_mol_pos_file_path);
                 return(1);
         }
 
    }
 
    if ((viz_mol_orient_flag) || ((mol_to_show_number == 0) && (eff_to_show_number == 0))){
-     
       	 
-        sprintf(file_name,"%s/volume_molecules_orientations.bin", iteration_number_dir);
+        vol_mol_orient_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/volume_molecules_orientations.bin") + 1));
+        if(vol_mol_orient_file_path == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+        }
+        sprintf(vol_mol_orient_file_path, "%s/volume_molecules_orientations.bin", iteration_number_dir);
      
-     	/* remove the folder name from the volume_molecules_orientations data file name */
-     	ch_ptr = strrchr(file_name, '/');
-     	++ch_ptr;
-     	strcpy(vol_mol_orient_name, ch_ptr);
+        if(vol_mol_orient_name == NULL)
+        {
+          vol_mol_orient_name = (char *)malloc(sizeof(char) * (strlen("volume_molecules_orientations.bin") + 1));
+          if(vol_mol_orient_name == NULL){
+              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+              return (1);
+          }
+     	  strcpy(vol_mol_orient_name, "volume_molecules_orientations.bin");
+        }
         
         /* if there are symbolic links present with this name - remove them */
-        status = stat(file_name, &f_stat);
+        status = stat(vol_mol_orient_file_path, &f_stat);
         if(status == 0){
            if(f_stat.st_mode | S_IFLNK) {
               /* remove the symbolic link */
-              status = unlink(file_name);
+              status = unlink(vol_mol_orient_file_path);
               if(status != 0) { 
                        fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, vol_mol_orient_name);
                        return(1);
@@ -2302,26 +2412,36 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
            }
         }
 
-      	if ((vol_mol_orient_data = fopen(file_name,"wb"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+      	if ((vol_mol_orient_data = fopen(vol_mol_orient_file_path,"wb"))==NULL) {
+                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, vol_mol_orient_file_path);
                 return(1);
         }
 
 
+       surf_mol_orient_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/surface_molecules_orientations.bin") + 1));
+        if(surf_mol_orient_file_path == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+        }
       	 
-        sprintf(file_name,"%s/surface_molecules_orientations.bin",iteration_number_dir);
+        sprintf(surf_mol_orient_file_path,"%s/surface_molecules_orientations.bin",iteration_number_dir);
      
-     	/* remove the folder name from the surface_molecules_orientations data file name */
-     	ch_ptr = strrchr(file_name, '/');
-     	++ch_ptr;
-     	strcpy(surf_mol_orient_name, ch_ptr);
+        if(surf_mol_orient_name == NULL)
+        {
+          surf_mol_orient_name = (char *)malloc(sizeof(char) * (strlen("surface_molecules_orientations.bin") + 1));
+          if(surf_mol_orient_name == NULL){
+              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+              return (1);
+          }
+     	  strcpy(surf_mol_orient_name, "surface_molecules_orientations.bin");
+        }
 
         /* if there are symbolic links present with this name - remove them */
-        status = stat(file_name, &f_stat);
+        status = stat(surf_mol_orient_file_path, &f_stat);
         if(status == 0){
            if(f_stat.st_mode | S_IFLNK) {
               /* remove the symbolic link */
-              status = unlink(file_name);
+              status = unlink(surf_mol_orient_file_path);
               if(status != 0) { 
                        fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, surf_mol_orient_name);
                        return(1);
@@ -2330,54 +2450,74 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
            }
         }
       	
-        if ((surf_mol_orient_data = fopen(file_name,"wb"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+        if ((surf_mol_orient_data = fopen(surf_mol_orient_file_path,"wb"))==NULL) {
+                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, surf_mol_orient_file_path);
                 return(1);
         }
    }
 
    if ((viz_mol_states_flag) || ((mol_to_show_number == 0) && (eff_to_show_number == 0))) {
       	 
-        sprintf(file_name,"%s/volume_molecules_states.bin", iteration_number_dir);
+       vol_mol_states_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/volume_molecules_states.bin") + 1));
+        if(vol_mol_states_file_path == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+        }
+        sprintf(vol_mol_states_file_path,"%s/volume_molecules_states.bin", iteration_number_dir);
      
-     	/* remove the folder name from the volume_molecules_states data file name */
-     	ch_ptr = strrchr(file_name, '/');
-     	++ch_ptr;
-     	strcpy(vol_mol_states_name, ch_ptr);
+        if(vol_mol_states_name == NULL)
+        {
+          vol_mol_states_name = (char *)malloc(sizeof(char) * (strlen("volume_molecules_states.bin") + 1));
+          if(vol_mol_states_name == NULL){
+              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+              return (1);
+          }
+     	  strcpy(vol_mol_states_name, "volume_molecules_states.bin");
+        }
         
         /* if there are symbolic links present with this name - remove them */
-        status = stat(file_name, &f_stat);
+        status = stat(vol_mol_states_file_path, &f_stat);
         if(status == 0){
            if(f_stat.st_mode | S_IFLNK) {
               /* remove the symbolic link */
-              status = unlink(file_name);
+              status = unlink(vol_mol_states_file_path);
               if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, vol_mol_states_name);
+                       fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, vol_mol_states_file_path);
                        return(1);
                }
  
            }
         }
 
-      	if ((vol_mol_states_data = fopen(file_name,"wb"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+      	if ((vol_mol_states_data = fopen(vol_mol_states_file_path,"wb"))==NULL) {
+                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, vol_mol_states_file_path);
                 return(1);
         }
 
       	 
-        sprintf(file_name,"%s/surface_molecules_states.bin", iteration_number_dir);
+       surf_mol_states_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) +  strlen("/surface_molecules_states.bin") + 1));
+        if(surf_mol_states_file_path == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+        }
+        sprintf(surf_mol_states_file_path, "%s/surface_molecules_states.bin", iteration_number_dir);
      
-     	/* remove the folder name from the surfcae_molecules_states data file name */
-     	ch_ptr = strrchr(file_name, '/');
-     	++ch_ptr;
-     	strcpy(surf_mol_states_name, ch_ptr);
+        if(surf_mol_states_name == NULL)
+        {
+          surf_mol_states_name = (char *)malloc(sizeof(char) * (strlen("surface_molecules_states.bin") + 1));
+          if(surf_mol_states_name == NULL){
+              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+              return (1);
+          }
+     	  strcpy(surf_mol_states_name, "surface_molecules_states.bin");
+        }
 
         /* if there are symbolic links present with this name - remove them */
-        status = stat(file_name, &f_stat);
+        status = stat(surf_mol_states_file_path, &f_stat);
         if(status == 0){
            if(f_stat.st_mode | S_IFLNK) {
               /* remove the symbolic link */
-              status = unlink(file_name);
+              status = unlink(surf_mol_states_file_path);
               if(status != 0) { 
                        fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, surf_mol_states_name);
                        return(1);
@@ -2386,27 +2526,37 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
            }
         }
       	
-        if ((surf_mol_states_data = fopen(file_name,"wb"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+        if ((surf_mol_states_data = fopen(surf_mol_states_file_path,"wb"))==NULL) {
+                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, surf_mol_states_file_path);
                 return(1);
         }
 
    }
 
     if ((viz_mol_pos_flag || viz_mol_orient_flag)  || ((mol_to_show_number == 0) && (eff_to_show_number == 0))){
-         sprintf(file_name,"%s/volume_molecules.dx", iteration_number_dir);
+       vol_mol_header_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/volume_molecules.dx") + 1));
+        if(vol_mol_header_file_path == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+        }
+         sprintf(vol_mol_header_file_path,"%s/volume_molecules.dx", iteration_number_dir);
      
-        /* remove the folder name from the volume molecules header  file name */
-        ch_ptr = strrchr(file_name, '/');
-        ++ch_ptr;
-        strcpy(vol_mol_header_name, ch_ptr);
+        if(vol_mol_header_name == NULL)
+        {
+          vol_mol_header_name = (char *)malloc(sizeof(char) * (strlen("volume_molecules.dx") + 1));
+          if(vol_mol_header_name == NULL){
+              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+              return (1);
+          }
+     	  strcpy(vol_mol_header_name, "volume_molecules.dx");
+        }
         
         /* if there are symbolic links present with this name - remove them */
-        status = stat(file_name, &f_stat);
+        status = stat(vol_mol_header_file_path, &f_stat);
         if(status == 0){
            if(f_stat.st_mode | S_IFLNK) {
               /* remove the symbolic link */
-              status = unlink(file_name);
+              status = unlink(vol_mol_header_file_path);
               if(status != 0) { 
                        fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, vol_mol_header_name);
                        return(1);
@@ -2417,32 +2567,42 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
         
         if(count_vol_mol_header == 0)
         {
-           if ((vol_mol_header=fopen(file_name,"w"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+           if ((vol_mol_header=fopen(vol_mol_header_file_path,"w"))==NULL) {
+              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, vol_mol_header_file_path);
               return(1);
            }
            count_vol_mol_header++;
         }else{
-           if ((vol_mol_header=fopen(file_name,"a"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+           if ((vol_mol_header=fopen(vol_mol_header_file_path,"a"))==NULL) {
+              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, vol_mol_header_file_path);
               return(1);
            }
            count_vol_mol_header++;
         }
 
-         sprintf(file_name,"%s/surface_molecules.dx", iteration_number_dir);
+       surf_mol_header_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/surface_molecules.dx") + 1));
+        if(surf_mol_header_file_path == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+        }
+         sprintf(surf_mol_header_file_path, "%s/surface_molecules.dx", iteration_number_dir);
      
-        /* remove the folder name from the surface molecules header  file name */
-        ch_ptr = strrchr(file_name, '/');
-        ++ch_ptr;
-        strcpy(surf_mol_header_name, ch_ptr);
+        if(surf_mol_header_name == NULL)
+        {
+          surf_mol_header_name = (char *)malloc(sizeof(char) * (strlen("surface_molecules.dx") + 1));
+          if(surf_mol_header_name == NULL){
+              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+              return (1);
+          }
+     	  strcpy(surf_mol_header_name, "surface_molecules.dx");
+        }
         
         /* if there are symbolic links present with this name - remove them */
-        status = stat(file_name, &f_stat);
+        status = stat(surf_mol_header_file_path, &f_stat);
         if(status == 0){
            if(f_stat.st_mode | S_IFLNK) {
               /* remove the symbolic link */
-              status = unlink(file_name);
+              status = unlink(surf_mol_header_file_path);
               if(status != 0) { 
                        fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, surf_mol_header_name);
                        return(1);
@@ -2453,14 +2613,14 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
         
         if(count_surf_mol_header == 0)
         {
-           if ((surf_mol_header=fopen(file_name,"w"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+           if ((surf_mol_header=fopen(surf_mol_header_file_path,"w"))==NULL) {
+              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, surf_mol_header_file_path);
               return(1);
            }
            count_surf_mol_header++;
         }else{
-           if ((surf_mol_header=fopen(file_name,"a"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+           if ((surf_mol_header=fopen(surf_mol_header_file_path, "a"))==NULL) {
+              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, surf_mol_header_file_path);
               return(1);
            }
            count_surf_mol_header++;
@@ -3416,40 +3576,101 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
         if(ch_ptr != NULL)
         {
      	   ++ch_ptr;
+           if(world->chkpt_flag){
+              sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
+              iteration_numbers_name = (char *)malloc(sizeof(char) * (strlen(ch_ptr) + strlen(".iteration_numbers.") + strlen(chkpt_seq_num) + strlen(".bin") + 1));
+              if(iteration_numbers_name == NULL){
+                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                 return (1);
+              }              
+      	      sprintf(iteration_numbers_name,"%s.iteration_numbers.%s.bin",                                    ch_ptr, chkpt_seq_num);
 
-           if(world->chkpt_flag){
-      	      sprintf(iteration_numbers_name,"%s.iteration_numbers.%u.bin",                                    ch_ptr, world->chkpt_seq_num);
-      	      sprintf(time_values_name,"%s.time_values.%u.bin",                                    ch_ptr, world->chkpt_seq_num);
+              time_values_name = (char *)malloc(sizeof(char) * (strlen(ch_ptr) + strlen(".time_values.") + strlen(chkpt_seq_num) + strlen(".bin") + 1));
+              if(time_values_name == NULL){
+                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                 return (1);
+              }              
+
+      	      sprintf(time_values_name,"%s.time_values.%s.bin",                                    ch_ptr, chkpt_seq_num);
            }else{
+              iteration_numbers_name = (char *)malloc(sizeof(char) * (strlen(ch_ptr) + strlen(".iteration_numbers.bin") + 1));
+              if(iteration_numbers_name == NULL){
+                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                 return (1);
+              }              
       	      sprintf(iteration_numbers_name,"%s.iteration_numbers.bin",ch_ptr);
-      	      sprintf(time_values_name,"%s.time_values.bin",ch_ptr);
+      	      
+              
+              time_values_name = (char *)malloc(sizeof(char) * (strlen(ch_ptr) + strlen(".time_values.bin") + 1));
+              if(time_values_name == NULL){
+                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                 return (1);
+              }              
+              sprintf(time_values_name,"%s.time_values.bin",ch_ptr);
            }
-        }else{
+        }else{ /* if (ch_ptr == NULL) */
            if(world->chkpt_flag){
-      	      sprintf(iteration_numbers_name,"%s.iteration_numbers.%u.bin",                                    world->file_prefix_name, world->chkpt_seq_num);
-      	      sprintf(time_values_name,"%s.time_values.%u.bin",                                    world->file_prefix_name, world->chkpt_seq_num);
+              sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
+              iteration_numbers_name = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".iteration_numbers.") + strlen(chkpt_seq_num) + strlen(".bin") + 1));
+              if(iteration_numbers_name == NULL){
+                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                 return (1);
+              }              
+      	      sprintf(iteration_numbers_name,"%s.iteration_numbers.%s.bin",                                    world->file_prefix_name, chkpt_seq_num);
+      	      
+
+              time_values_name = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".time_values.") + strlen(chkpt_seq_num) + strlen(".bin") + 1));
+              if(time_values_name == NULL){
+                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                 return (1);
+              }              
+              sprintf(time_values_name,"%s.time_values.%s.bin",                                    world->file_prefix_name, chkpt_seq_num);
            }else{
+              iteration_numbers_name = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".iteration_numbers.bin") + 1));
+              if(iteration_numbers_name == NULL){
+                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                 return (1);
+              }              
       	      sprintf(iteration_numbers_name,"%s.iteration_numbers.bin",world->file_prefix_name);
+
+
+              time_values_name = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".time_values.bin") + 1));
+              if(time_values_name == NULL){
+                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                 return (1);
+              }              
       	      sprintf(time_values_name,"%s.time_values.bin",world->file_prefix_name);
            }
 
 
         }
 
-        strcpy(file_name, viz_data_dir_name);
-        strcat(file_name, "/");
-     	strcat(file_name, iteration_numbers_name);
+        filename = (char *)malloc(sizeof(char) * (strlen(viz_data_dir_name) +
+            strlen("/") + strlen(iteration_numbers_name) + 1));
+        if(filename == NULL){
+                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                 return (1);
+        }
+        strcpy(filename, viz_data_dir_name);
+        strcat(filename, "/");
+     	strcat(filename, iteration_numbers_name);
 
-        if ((iteration_numbers_data=fopen(file_name,"wb"))==NULL) {
+        if ((iteration_numbers_data=fopen(filename,"wb"))==NULL) {
             fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, iteration_numbers_name);
            return(1);
         }
 
-        strcpy(file_name, viz_data_dir_name);
-        strcat(file_name, "/");
-     	strcat(file_name, time_values_name);
+        filename = (char *)malloc(sizeof(char) * (strlen(viz_data_dir_name) +
+            strlen("/") + strlen(time_values_name) + 1));
+        if(filename == NULL){
+                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                 return (1);
+        }
+        strcpy(filename, viz_data_dir_name);
+        strcat(filename, "/");
+     	strcat(filename, time_values_name);
 
-        if ((time_values_data=fopen(file_name,"wb"))==NULL) {
+        if ((time_values_data=fopen(filename,"wb"))==NULL) {
             fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, time_values_name);
            return(1);
         }
@@ -3512,22 +3733,42 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
         }
 
      /* Open master header file. */
-     strcpy(master_header_name,viz_data_dir_name);
-     strcat(master_header_name, "/");
-
      if(world->chkpt_flag){
-        sprintf(file_name,"%s.%u.dx",world->file_prefix_name, world->chkpt_seq_num);
+       sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
+       filename = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".") + strlen(chkpt_seq_num) + strlen (".") + 1));
+       if(filename == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+       }
+        sprintf(filename,"%s.%u.dx",world->file_prefix_name, world->chkpt_seq_num);
      }else{
-        sprintf(file_name,"%s.dx",world->file_prefix_name);
+           filename = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".dx") + 1));
+           if(filename == NULL){
+                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                return (1);
+            }
+
+            sprintf(filename,"%s.dx",world->file_prefix_name);
      }
 
-     ch_ptr = strrchr(file_name, '/');
+     ch_ptr = strrchr(filename, '/');
      if(ch_ptr != NULL)
      {
         ++ch_ptr;
-        strcat(master_header_name, ch_ptr);
+        master_header_name = (char *)malloc(sizeof(char) *(strlen(viz_data_dir_name) + strlen("/") + strlen(ch_ptr) + 1));
+        if(master_header_name == NULL){
+                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                return (1);
+        }
+        sprintf(master_header_name, "%s%s%s", viz_data_dir_name, "/", ch_ptr);
      }else{
-        strcat(master_header_name, file_name);
+        master_header_name = (char *)malloc(sizeof(char) *(strlen(viz_data_dir_name) + strlen("/") + strlen(filename) + 1));
+        if(master_header_name == NULL){
+                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                return (1);
+        }
+        sprintf(master_header_name, "%s%s%s", viz_data_dir_name, "/", filename);
+
      }
 
       if ((master_header=fopen(master_header_name,"w"))==NULL) {
@@ -3657,21 +3898,27 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
        
         if((!mesh_frame_found) && (!mol_frame_found) && (last_mols_iteration >= 0) && (fdlp->viz_iterationll > last_mols_iteration))
         {
-            sprintf(file_name, "%s%s%lld", frame_data_dir_name, "/iteration_", fdlp->viz_iterationll); 
+           sprintf(iteration_number, "%lld", fdlp->viz_iterationll);
+           filename = (char *)malloc(sizeof(char) * (strlen(frame_data_dir_name) + strlen("/iteration_") + strlen(iteration_number) + 1));
+           if(filename == NULL){
+                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                return (1);
+           }
+            sprintf(filename, "%s%s%s", frame_data_dir_name, "/iteration_", iteration_number); 
             
-            chdir(file_name);
+            chdir(filename);
            /* count the depth of the directory structure */
            ii = 0;
            viz_dir_depth = 0;
-           while(file_name[ii] != '\0') 
+           while(filename[ii] != '\0') 
            {
-        	if(file_name[ii] == '/'){
+        	if(filename[ii] == '/'){
            	   viz_dir_depth++;
                 }
                 ii++;
            }
           
-           if(file_name[0] != '.'){
+           if(filename[0] != '.'){
                viz_dir_depth++;
            } 
             sprintf(buf, "../");
@@ -3952,22 +4199,28 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
        
         if((!mesh_frame_found) && (!mol_frame_found) && (last_meshes_iteration >= 0) && (fdlp->viz_iterationll > last_meshes_iteration))
         {
-            sprintf(file_name, "%s%s%lld", frame_data_dir_name, "/iteration_", fdlp->viz_iterationll); 
+           sprintf(iteration_number, "%lld", fdlp->viz_iterationll);
+           filename = (char *)malloc(sizeof(char) * (strlen(frame_data_dir_name) + strlen("/iteration_") + strlen(iteration_number) + 1));
+           if(filename == NULL){
+                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                return (1);
+           }
+            sprintf(filename, "%s%s%s", frame_data_dir_name, "/iteration_", iteration_number); 
  
-            chdir(file_name);
+            chdir(filename);
            /* count the depth of the directory structure */
            ii = 0;
            viz_dir_depth = 0;
-           while(file_name[ii] != '\0') 
+           while(filename[ii] != '\0') 
            {
-        	if(file_name[ii] == '/'){
+        	if(filename[ii] == '/'){
            	   viz_dir_depth++;
                 }
                 ii++;
            }
          
  
-           if(file_name[0] != '.'){
+           if(filename[0] != '.'){
                viz_dir_depth++;
            } 
             sprintf(buf, "../");
@@ -4043,6 +4296,39 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                       fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
             }
 
+            sprintf(path_name_1,"%s%lld%s", "../iteration_", last_meshes_iteration, "/mesh_states.bin");    
+            status = stat(path_name_1, &f_stat);
+            if(status == 0){
+    	       sprintf(path_name_2,  "./mesh_states.bin");   
+               if (((status = symlink(path_name_1, path_name_2)) == -1) && 
+                    (errno != EEXIST)) 
+               { 
+                   fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
+                   chdir(buf); 
+                   return(1);
+               }else if (((status = symlink(path_name_1, path_name_2)) == -1) &&  (errno == EEXIST)) 
+               {
+                   /* remove the symbolic link */
+                   status = unlink(path_name_2);
+                   if(status != 0) { 
+                       fprintf(world->err_file, "File %s, Line %ld: error %d removing symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_2);
+                       chdir(buf); 
+                       return(1);
+                   
+                   }
+                   /* create a new symbolic link */
+                   if ((status = symlink(path_name_1, path_name_2)) == -1){
+                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
+                       chdir(buf); 
+                      return(1);
+                   }
+
+                }  /* end else if */
+
+            }else{  /* end if(status = stat()) */
+                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
+            }
+            
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_meshes_iteration, "/region_indices.bin");    
             status = stat(path_name_1, &f_stat);
             if(status == 0){
@@ -4147,6 +4433,17 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
       fclose(surf_mol_orient_data);
     }
 
+    if(mesh_pos_file_path != NULL) free(mesh_pos_file_path);
+    if(mesh_states_file_path != NULL) free(mesh_states_file_path);
+    if(region_viz_data_file_path != NULL) free(region_viz_data_file_path);
+    if(meshes_header_file_path != NULL) free(meshes_header_file_path);
+    if(vol_mol_pos_file_path != NULL) free(vol_mol_pos_file_path);
+    if(surf_mol_pos_file_path != NULL) free(surf_mol_pos_file_path);
+    if(vol_mol_orient_file_path != NULL) free(vol_mol_orient_file_path);
+    if(surf_mol_orient_file_path != NULL) free(surf_mol_orient_file_path);
+    if(vol_mol_states_file_path != NULL) free(vol_mol_states_file_path);
+    if(vol_mol_header_file_path != NULL) free(vol_mol_header_file_path);
+    if(surf_mol_header_file_path != NULL) free(surf_mol_header_file_path);
 
    return 0;
 }
@@ -4221,17 +4518,34 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
   byte viz_mol_orient_flag = 0, viz_region_data_flag = 0;   /* flags */
   byte viz_mol_all_data_flag = 0, viz_surf_all_data_flag = 0;	/* flags */
   byte viz_surf_pos_flag = 0, viz_surf_states_flag = 0;	/* flags */
-  char file_name[1024];
+  char *filename = NULL;
+  char chkpt_seq_num[1024];     /* holds checkpoint sequence number */
   char *ch_ptr = NULL; /* pointer used to extract data file name */
+  static char *master_header_file_path = NULL;
   char *grid_mol_name = NULL; /* points to the name of the grid molecule */
-  char mesh_pos_name[1024]; /* meshes vertices data file name */
-  char mesh_states_name[1024]; /* meshes states data file name */
-  char region_viz_data_name[1024]; /* region_viz_data file name */
-  char mol_pos_name[1024]; /* molecule positions data file name */
-  char mol_states_name[1024]; /* molecule states data file name */
-  char mol_orient_name[1024]; /* molecule orientations data file name */
-  char iteration_numbers_name[1024]; /* iteration numbers data file name */ 
-  char time_values_name[1024]; /* time values data file name */
+  static char *mesh_pos_file_path = NULL; /* path to the meshes vertices
+                                            data file */
+  static char *mesh_pos_name = NULL; /* meshes vertices data file name */
+  static char *mesh_states_file_path = NULL; /* path to the meshes states
+                                            data file */
+  static char *mesh_states_name = NULL; /* meshes states data file name */
+  
+  static char *region_viz_data_file_path = NULL; /* path to the region viz
+                                            data file */
+  static char *region_viz_data_name = NULL; /* region_viz_data file name */
+  static char *mol_pos_file_path = NULL; /* path to the molecule positions
+                                            data file */
+  static char *mol_pos_name = NULL; /* molecule positions data file name */
+  static char *mol_states_file_path = NULL; /* path to the molecule states
+                                            data file */
+  static char *mol_states_name = NULL; /* molecule states data file name */
+  static char *mol_orient_file_path = NULL; /* path to the molecule orientations
+                                            data file */
+  static char *mol_orient_name = NULL;/* molecule orientations data file name */
+  char *iteration_numbers_file_path = NULL; /* path to iteration numbers data file */ 
+  char *iteration_numbers_name = NULL; /* iteration numbers data file name */ 
+  char *time_values_file_path = NULL; /* path to time values data file */
+  char *time_values_name = NULL; /* time values data file name */
   char *buf;       /* used to write 'frame_data' object information */
   /* used to write combined group information */
   static u_int member_meshes_iteration = UINT_MAX;
@@ -4737,220 +5051,402 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
 
 
   /* Open master header file. */
-  if(world->chkpt_flag){
-    sprintf(file_name,"%s.%u.dx",world->file_prefix_name, world->chkpt_seq_num);
-  }else{
-    sprintf(file_name,"%s.dx",world->file_prefix_name);
+  if(master_header_file_path == NULL)
+  {
+    if(world->chkpt_flag){
+       sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
+       master_header_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) +  strlen(".") +  strlen(chkpt_seq_num) + 1));
+       if(master_header_file_path == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+       }
+    
+       sprintf(master_header_file_path,"%s.%s.dx",world->file_prefix_name, chkpt_seq_num);
+     }else{
+
+       master_header_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".dx")  + 1));
+       if(master_header_file_path == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+       }
+       sprintf(master_header_file_path, "%s.dx",world->file_prefix_name);
+     }
   }
 
   if(count_master_header == 0){
-      if ((master_header=fopen(file_name,"w"))==NULL) {
-           fprintf(world->err_file, "File %s, Line %ld: cannot open master header file %s.\n", __FILE__, (long)__LINE__,file_name);
+      if ((master_header=fopen(master_header_file_path, "w"))==NULL) {
+           fprintf(world->err_file, "File %s, Line %ld: cannot open master header file %s.\n", __FILE__, (long)__LINE__, master_header_file_path);
            return(1);
       }
       count_master_header++;
 
   }else{
-      if ((master_header=fopen(file_name,"a"))==NULL) {
-           fprintf(world->err_file, "File %s, Line %ld: cannot open master header file %s.\n", __FILE__, (long)__LINE__,file_name);
+      if ((master_header=fopen(master_header_file_path,"a"))==NULL) {
+           fprintf(world->err_file, "File %s, Line %ld: cannot open master header file %s.\n", __FILE__, (long)__LINE__, filename);
            return(1);
       }
       count_master_header++;
 
   }
+    
 
-  if (viz_mol_pos_flag) {
+  if ((viz_mol_pos_flag)|| ((mol_to_show_number == 0) && (eff_to_show_number == 0))) {
+   if(mol_pos_file_path == NULL){
      if(world->chkpt_flag){
-       sprintf(file_name,"%s.molecule_positions.%u.bin",world->file_prefix_name,               world->chkpt_seq_num);
+        sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
+        mol_pos_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".molecule_positions.") +  strlen(chkpt_seq_num) + strlen(".bin") + 1));
+        if(mol_pos_file_path == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+        }
+         sprintf(mol_pos_file_path,"%s.molecule_positions.%s.bin",world->file_prefix_name, chkpt_seq_num);
      }else{
-       sprintf(file_name,"%s.molecule_positions.bin",world->file_prefix_name);
+
+        mol_pos_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".molecule_positions.bin") + 1));
+        if(mol_pos_file_path == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+        }
+        sprintf(mol_pos_file_path,"%s.molecule_positions.bin",world->file_prefix_name);
      }
+
      /* remove the folder name from the molecule_positions data file name */
      if(viz_dir_depth > 1){
-        ch_ptr = strrchr(file_name, '/');
+        ch_ptr = strrchr(mol_pos_file_path, '/');
         ++ch_ptr;
+        mol_pos_name = malloc(sizeof(char) * (strlen(ch_ptr) + 1));
+        if(mol_pos_name == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+        }
         strcpy(mol_pos_name, ch_ptr);
      }else{
-        strcpy(mol_pos_name, world->file_prefix_name);
-     }
+        mol_pos_name = malloc(sizeof(char) * (strlen(mol_pos_file_path) + 1));
+        if(mol_pos_name == NULL){
+            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+            return (1);
+        }
 
+        strcpy(mol_pos_name, mol_pos_file_path);
+     }
+   } /* end if(mol_pos_file_path == NULL) */
 
      if (count_mol_pos_data == 0){
-        if ((mol_pos_data=fopen(file_name,"wb"))==NULL) {
-           fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+        if ((mol_pos_data=fopen(mol_pos_file_path,"wb"))==NULL) {
+           fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, mol_pos_file_path);
            return(1);
         }else{}
         count_mol_pos_data++;
      }else{
-        if ((mol_pos_data=fopen(file_name,"ab"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+        if ((mol_pos_data=fopen(mol_pos_file_path,"ab"))==NULL) {
+              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, mol_pos_file_path);
               return(1);
         }
         count_mol_pos_data++;
     }
-  }
+     
 
-  if(viz_mol_orient_flag)
+  } /* end if(viz_mol_pos_flag) */
+
+
+
+  if((viz_mol_orient_flag) || ((mol_to_show_number == 0) && (eff_to_show_number == 0))) 
   {
-    if(world->chkpt_flag){
-      sprintf(file_name,"%s.molecule_orientations.%u.bin",world->file_prefix_name, world->chkpt_seq_num);
-    }else{
-      sprintf(file_name,"%s.molecule_orientations.bin",world->file_prefix_name);
-    }
-     /* remove the folder name from the molecule_positions data file name */
-     if(viz_dir_depth > 1) {
-        ch_ptr = strrchr(file_name, '/');
-        ++ch_ptr;
-        strcpy(mol_orient_name, ch_ptr);
-     }else{
-        strcpy(mol_orient_name, world->file_prefix_name);
-     }
+    if(mol_orient_file_path == NULL)
+    {
+       if(world->chkpt_flag){
+           sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
+           mol_orient_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".molecule_orientations.") +  strlen(chkpt_seq_num) + strlen(".bin") + 1));
+           if(mol_orient_file_path == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+               return (1);
+           }
+           sprintf(mol_orient_file_path,"%s.molecule_orientations.%s.bin",world->file_prefix_name, chkpt_seq_num);
+        }else{
+           mol_orient_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".molecule_orientations.bin") + 1));
+           if(mol_orient_file_path == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+               return (1);
+           }
+           sprintf(mol_orient_file_path,"%s.molecule_orientations.bin",world->file_prefix_name);
+        }
+
+         /* remove the folder name from the molecule_orientations data file name */
+         if(viz_dir_depth > 1) {
+           ch_ptr = strrchr(mol_orient_file_path, '/');
+           ++ch_ptr;
+           mol_orient_name = malloc(sizeof(char) * (strlen(ch_ptr) + 1));
+           if(mol_orient_name == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+               return (1);
+           }
+           strcpy(mol_orient_name, ch_ptr);
+         }else{
+           mol_orient_name = malloc(sizeof(char) * (strlen(mol_orient_file_path) + 1));
+           if(mol_orient_name == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+               return (1);
+           }
+           strcpy(mol_orient_name, mol_orient_file_path);
+         }
+       } /* end if(mol_orient_file_path == NULL) */
 
      if (count_mol_orient_data == 0){
-        if ((mol_orient_data=fopen(file_name,"wb"))==NULL) {
-           fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+        if ((mol_orient_data=fopen(mol_orient_file_path,"wb"))==NULL) {
+           fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, mol_orient_file_path);
            return(1);
         }
         count_mol_orient_data++;
      }else{
-        if ((mol_orient_data=fopen(file_name,"ab"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+        if ((mol_orient_data=fopen(mol_orient_file_path,"ab"))==NULL) {
+              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, mol_orient_file_path);
               return(1);
         }
         count_mol_orient_data++;
 
      }
+     
    
-  }
+  } /* end if(viz_mol_orient_flag) */
 
 
-    if (viz_mol_states_flag) {
-      if(world->chkpt_flag){
-         sprintf(file_name,"%s.molecule_states.%u.bin",world->file_prefix_name, world->chkpt_seq_num);
-      }else{
-         sprintf(file_name,"%s.molecule_states.bin",world->file_prefix_name);
-      }
-       /* remove the folder name from the molecule_states data file name */
-       if(viz_dir_depth > 1)
-       {
-          ch_ptr = strrchr(file_name, '/');
-          ++ch_ptr;
-          strcpy(mol_states_name, ch_ptr);
-       }else{
-          strcpy(mol_states_name, world->file_prefix_name);
-       }
+    if ((viz_mol_states_flag) || ((mol_to_show_number == 0) && (eff_to_show_number =0))) {
+      if(mol_states_file_path == NULL)
+      {  
+         if(world->chkpt_flag){
+           sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
+           mol_states_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".molecule_states.") +  strlen(chkpt_seq_num) + strlen(".bin") + 1));
+           if(mol_states_file_path == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+               return (1);
+           }
+           sprintf(mol_states_file_path,"%s.molecule_states.%s.bin",world->file_prefix_name, chkpt_seq_num);
+         }else{
+           mol_states_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".molecule_states.bin") + 1));
+           if(mol_states_file_path == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+               return (1);
+           }
+           sprintf(mol_states_file_path,"%s.molecule_states.bin",world->file_prefix_name);
+         }
+          /* remove the folder name from the molecule_states data file name */
+         if(viz_dir_depth > 1)
+         {
+           ch_ptr = strrchr(mol_states_file_path, '/');
+           ++ch_ptr;
+           mol_states_name = malloc(sizeof(char) * (strlen(ch_ptr) + 1));
+           if(mol_states_name == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+               return (1);
+           }
+           strcpy(mol_states_name, ch_ptr);
+         }else{
+           mol_states_name = malloc(sizeof(char) * (strlen(mol_states_file_path) + 1));
+           if(mol_states_name == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+               return (1);
+           }
+           strcpy(mol_states_name, mol_states_file_path);
+         }
+       } /* end if(mol_states_file_path == NULL) */
      
        if (count_mol_states_data == 0){
-            if ((mol_states_data = fopen(file_name,"wb"))==NULL) {
-                   fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+            if ((mol_states_data = fopen(mol_states_file_path,"wb"))==NULL) {
+                   fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, mol_states_file_path);
            	   return(1);
             }
             count_mol_states_data++;
        }else{
-           if ((mol_states_data = fopen(file_name,"ab"))==NULL) {
-                   fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+           if ((mol_states_data = fopen(mol_states_file_path, "ab"))==NULL) {
+                   fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, mol_states_file_path);
            	   return(1);
             }
             count_mol_states_data++;
        }
-    }
+    } /* end if(viz_mol_states_flag) */
     
-      if (viz_surf_pos_flag) {
-        if(world->chkpt_flag){
-      	   sprintf(file_name,"%s.mesh_positions.%u.bin",world->file_prefix_name, world->chkpt_seq_num);
-        }else{
-      	   sprintf(file_name,"%s.mesh_positions.bin",world->file_prefix_name);
-        }
-     
-     	/* remove the folder name from the mesh_positions data file name */
-        if(viz_dir_depth > 1)
+          /* check here if MESHES or MOLECULES blocks
+             are not supplied. In such case the corresponding files
+             should be empty in order to prevent unintentional mixing of
+             pre-existing and new files */
+     if((mol_to_show_number == 0) && (eff_to_show_number == 0))
+     {
+          fprintf(world->log_file, "MOLECULES keyword is absent or commented.\nEmpty 'molecules' output files are created.\n");
+     }
+
+
+      if ((viz_surf_pos_flag) || (obj_to_show_number == 0)) {
+        if(mesh_pos_file_path == NULL)
         {
-     	   ch_ptr = strrchr(file_name, '/');
-     	   ++ch_ptr;
-     	   strcpy(mesh_pos_name, ch_ptr);
-        }else{
-           strcpy(mesh_pos_name, world->file_prefix_name);
-        }
+           if(world->chkpt_flag){
+              sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
+              mesh_pos_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".mesh_positions.") +  strlen(chkpt_seq_num) + strlen(".bin") + 1));
+              if(mesh_pos_file_path == NULL){
+                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                  return (1);
+              }
+              sprintf(mesh_pos_file_path,"%s.mesh_positions.%s.bin",world->file_prefix_name, chkpt_seq_num);
+           }else{
+              mesh_pos_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".mesh_positions.bin") + 1));
+              if(mesh_pos_file_path == NULL){
+                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                  return (1);
+              }
+              sprintf(mesh_pos_file_path,"%s.mesh_positions.bin",world->file_prefix_name);
+           }
+     
+     	   /* remove the folder name from the mesh_positions data file name */
+           if(viz_dir_depth > 1)
+           {
+              ch_ptr = strrchr(mesh_pos_file_path, '/');
+              ++ch_ptr;
+              mesh_pos_name = malloc(sizeof(char) * (strlen(ch_ptr) + 1));
+              if(mesh_pos_name == NULL){
+                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                  return (1);
+              }
+              strcpy(mesh_pos_name, ch_ptr);
+           }else{
+              mesh_pos_name = malloc(sizeof(char) * (strlen(mesh_pos_file_path) + 1));
+              if(mesh_pos_name == NULL){
+                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                  return (1);
+              }
+              strcpy(mesh_pos_name, mesh_pos_file_path);
+           }
+        } /* end if(mesh_pos_file_path == NULL) */
 
        if (count_mesh_pos_data == 0){
-      	 if ((mesh_pos_data=fopen(file_name,"wb"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+      	 if ((mesh_pos_data=fopen(mesh_pos_file_path,"wb"))==NULL) {
+                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, mesh_pos_file_path);
                 return(1);
           }
           count_mesh_pos_data++;
        }else{
-      	   if ((mesh_pos_data=fopen(file_name,"ab"))==NULL) {
-               fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+      	   if ((mesh_pos_data=fopen(mesh_pos_file_path,"ab"))==NULL) {
+               fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, mesh_pos_file_path);
                return(1);
            }
            count_mesh_pos_data++;
        }
 
-      }
+      } /* end if(viz_surf_pos_flag) */
 
 
-      if (viz_surf_states_flag) {
-         if(world->chkpt_flag){
-           sprintf(file_name,"%s.mesh_states.%u.bin", world->file_prefix_name, world->chkpt_seq_num);
-         }else{
-           sprintf(file_name,"%s.mesh_states.bin", world->file_prefix_name);
-         }
+      if ((viz_surf_states_flag) || (obj_to_show_number == 0)) {
+         if(mesh_states_file_path == NULL)
+         {
+            if(world->chkpt_flag){
+              sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
+              mesh_states_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".mesh_states.") +  strlen(chkpt_seq_num) + strlen(".bin") + 1));
+              if(mesh_states_file_path == NULL){
+                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                  return (1);
+              }
+              sprintf(mesh_states_file_path,"%s.mesh_states.%s.bin",world->file_prefix_name, chkpt_seq_num);
+            }else{
+              mesh_states_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".mesh_states.bin") + 1));
+              if(mesh_states_file_path == NULL){
+                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                  return (1);
+              }
+              sprintf(mesh_states_file_path,"%s.mesh_states.bin",world->file_prefix_name);
+            }
      
-        /* remove the folder name from the mesh_states data file name */
-        if(viz_dir_depth > 1){
-           ch_ptr = strrchr(file_name, '/');
-           ++ch_ptr;
-           strcpy(mesh_states_name, ch_ptr);
-        }else{
-           strcpy(mesh_states_name, world->file_prefix_name);
-        }
+           /* remove the folder name from the mesh_states data file name */
+           if(viz_dir_depth > 1){
+              ch_ptr = strrchr(mesh_states_file_path, '/');
+              ++ch_ptr;
+              mesh_states_name = malloc(sizeof(char) * (strlen(ch_ptr) + 1));
+              if(mesh_states_name == NULL){
+                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                  return (1);
+              }
+              strcpy(mesh_states_name, ch_ptr);
+           }else{
+              mesh_states_name = malloc(sizeof(char) * (strlen(mesh_states_file_path) + 1));
+              if(mesh_states_name == NULL){
+                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                  return (1);
+              }
+              strcpy(mesh_states_name, mesh_states_file_path);
+           }
+        } /* end if(mesh_states_file_path == NULL) */
 
        if (count_mesh_states_data == 0){
-           if ((mesh_states_data=fopen(file_name,"wb"))==NULL) {
-                  fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+           if ((mesh_states_data=fopen(mesh_states_file_path,"wb"))==NULL) {
+                  fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,mesh_states_file_path);
                   return(1);
             }
             count_mesh_states_data++;
        }else{
-          if ((mesh_states_data=fopen(file_name,"ab"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+          if ((mesh_states_data=fopen(mesh_states_file_path,"ab"))==NULL) {
+              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,mesh_states_file_path);
               return(1);
           }
           count_mesh_states_data++;
        }
-      }
+      }  /* end if(viz_surf_states_flag) */
 
-      if (viz_region_data_flag) {
-         if(world->chkpt_flag){
-            sprintf(file_name,"%s.region_indices.%u.bin", world->file_prefix_name, world->chkpt_seq_num);
-         }else{
-            sprintf(file_name,"%s.region_indices.bin", world->file_prefix_name);
-         }
+      if ((viz_region_data_flag) || (obj_to_show_number == 0)){
+         if(region_viz_data_file_path == NULL)
+         {         
+            if(world->chkpt_flag){
+              sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
+              region_viz_data_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".region_indices.") +  strlen(chkpt_seq_num) + strlen(".bin") + 1));
+              if(region_viz_data_file_path == NULL){
+                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                  return (1);
+              }
+              sprintf(region_viz_data_file_path,"%s.region_indices.%s.bin",world->file_prefix_name, chkpt_seq_num);
+            }else{
+              region_viz_data_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".region_indices.bin") + 1));
+              if(region_viz_data_file_path == NULL){
+                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                  return (1);
+              }
+              sprintf(region_viz_data_file_path,"%s.region_indices.bin",world->file_prefix_name);
+            }
      
-        /* remove the folder name from the region values data file name */
-        if(viz_dir_depth > 1){
-           ch_ptr = strrchr(file_name, '/');
-           ++ch_ptr;
-           strcpy(region_viz_data_name, ch_ptr);
-        }else{
-           strcpy(region_viz_data_name, world->file_prefix_name);
-        }
+            /* remove the folder name from the region values data file name */
+            if(viz_dir_depth > 1){
+              ch_ptr = strrchr(region_viz_data_file_path, '/');
+              ++ch_ptr;
+              region_viz_data_name = malloc(sizeof(char) * (strlen(ch_ptr) + 1));
+              if(region_viz_data_name == NULL){
+                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                  return (1);
+              }
+              strcpy(region_viz_data_name, ch_ptr);
+            }else{
+              region_viz_data_name = malloc(sizeof(char) * (strlen(region_viz_data_file_path) + 1));
+              if(region_viz_data_name == NULL){
+                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+                  return (1);
+              }
+              strcpy(region_viz_data_name, region_viz_data_file_path);
+            }
+        } /* end if(region_viz_data_file_path == NULL) */
 
        if (count_region_data == 0){
-          if ((region_data=fopen(file_name,"wb"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+          if ((region_data=fopen(region_viz_data_file_path,"wb"))==NULL) {
+              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, region_viz_data_file_path);
               return(1);
            }
            count_region_data++;
        }else{
-          if ((region_data=fopen(file_name,"ab"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
+          if ((region_data=fopen(region_viz_data_file_path,"ab"))==NULL) {
+                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, region_viz_data_file_path);
                 return(1);
           }
           count_region_data++;
        }
-      }
+      } /* end if(viz_region_data_flag) */
 
+       if(obj_to_show_number == 0)
+       {
+         fprintf(world->log_file, "MESHES keyword is absent or commented.\nEmpty 'meshes' output files are created.\n");
+       }
 
     /* find out the values of the current iteration steps for
        (GEOMETRY, REG_DATA),  
@@ -5924,43 +6420,86 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
 
 	/* write 'iteration_numbers' object. */
         if(world->chkpt_flag){
-      	   sprintf(file_name,"%s.iteration_numbers.%u.bin",                                    world->file_prefix_name, world->chkpt_seq_num);
+           sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
+           iteration_numbers_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".iteration_numbers.") +  strlen(chkpt_seq_num) + strlen(".bin") + 1));
+           if(iteration_numbers_file_path == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+               return (1);
+           }
+            sprintf(iteration_numbers_file_path,"%s.iteration_numbers.%s.bin",world->file_prefix_name, chkpt_seq_num);
         }else{
-      	   sprintf(file_name,"%s.iteration_numbers.bin",world->file_prefix_name);
+           iteration_numbers_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".iteration_numbers.bin") + 1));
+           if(iteration_numbers_file_path == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+               return (1);
+           }
+           sprintf(iteration_numbers_file_path,"%s.iteration_numbers.bin",world->file_prefix_name);
         }
 
      /* remove the folder name from the iteration_numbers data file name */
         if(viz_dir_depth > 1){
-     	   ch_ptr = strrchr(file_name, '/');
-     	   ++ch_ptr;
-     	   strcpy(iteration_numbers_name, ch_ptr);
+           ch_ptr = strrchr(iteration_numbers_file_path, '/');
+           ++ch_ptr;
+           iteration_numbers_name = malloc(sizeof(char) * (strlen(ch_ptr) + 1));
+           if(iteration_numbers_name == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+               return (1);
+           }
+           strcpy(iteration_numbers_name, ch_ptr);
         }else{
+           iteration_numbers_name = malloc(sizeof(char) * (strlen(iteration_numbers_file_path) + 1));
+           if(iteration_numbers_name == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+               return (1);
+           }
+
            strcpy(iteration_numbers_name, world->file_prefix_name);
         }
 
-      	if ((iteration_numbers_data=fopen(file_name,"wb"))==NULL) {
-            fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, file_name);
+      	if ((iteration_numbers_data=fopen(iteration_numbers_file_path,"wb"))==NULL) {
+            fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, iteration_numbers_file_path);
            return(1);
         }
 
         /* write "time_values" object. */
         if(world->chkpt_flag){
-     	    sprintf(file_name,"%s.time_values.%u.bin",world->file_prefix_name, world->chkpt_seq_num);
+           sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
+           time_values_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".time_values.") +  strlen(chkpt_seq_num) + strlen(".bin") + 1));
+           if(time_values_file_path == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+               return (1);
+           }
+            sprintf(time_values_file_path,"%s.time_values.%s.bin",world->file_prefix_name, chkpt_seq_num);
         }else{
-     	    sprintf(file_name,"%s.time_values.bin",world->file_prefix_name);
+           time_values_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".time_values.bin") + 1));
+           if(time_values_file_path == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+               return (1);
+           }
+           sprintf(time_values_file_path,"%s.time_values.bin",world->file_prefix_name);
         }
 
      	/* remove the folder name from the time_values data file name */
         if(viz_dir_depth > 1){
-     	   ch_ptr = strrchr(file_name, '/');
-     	   ++ch_ptr;
-     	   strcpy(time_values_name, ch_ptr);
+           ch_ptr = strrchr(time_values_file_path, '/');
+           ++ch_ptr;
+           time_values_name = malloc(sizeof(char) * (strlen(ch_ptr) + 1));
+           if(time_values_name == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+               return (1);
+           }
+           strcpy(time_values_name, ch_ptr);
         }else{
+           time_values_name = malloc(sizeof(char) * (strlen(time_values_file_path) + 1));
+           if(time_values_name == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+               return (1);
+           }
            strcpy(time_values_name, world->file_prefix_name);
         }
 
-      	if ((time_values_data=fopen(file_name,"wb"))==NULL) {
-            fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, file_name);
+      	if ((time_values_data=fopen(time_values_file_path,"wb"))==NULL) {
+            fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, time_values_file_path);
             return(1);
         }
 
@@ -6116,121 +6655,6 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
 	         fprintf(master_header, "\n\n");
 
 
-
-          /* check here if MESHES or MOLECULES blocks
-             are not supplied. In such case the corresponding files
-             should be empty in order to prevent unintentional mixing of
-             pre-existing and new files */
-
-          if(obj_to_show_number == 0)
-          {
-             fprintf(world->log_file, "MESHES keyword is absent or commented.\nEmpty 'meshes' output files are created.\n");
-
-
-             if(world->chkpt_flag){
-      	        sprintf(file_name,"%s.mesh_positions.%u.bin",world->file_prefix_name, world->chkpt_seq_num);
-             }else{
-      	        sprintf(file_name,"%s.mesh_positions.bin",world->file_prefix_name);
-             }
-     	     
-             ch_ptr = strrchr(file_name, '/');
-     	     ++ch_ptr;
-     	     strcpy(mesh_pos_name, ch_ptr);
-
-      	     if ((mesh_pos_data=fopen(file_name,"wb"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
-                return(1);
-             }
-
-             if(world->chkpt_flag){
-                sprintf(file_name,"%s.mesh_states.%u.bin", world->file_prefix_name, world->chkpt_seq_num);
-             }else{
-                sprintf(file_name,"%s.mesh_states.bin", world->file_prefix_name);
-             }
-
-             /* remove the folder name from the mesh_states data file name */
-             ch_ptr = strrchr(file_name, '/');
-             ++ch_ptr;
-             strcpy(mesh_states_name, ch_ptr);
-
-             if ((mesh_states_data=fopen(file_name,"wb"))==NULL) {
-                  fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
-                  return(1);
-             }
-
-             if(world->chkpt_flag){
-                sprintf(file_name,"%s.region_indices.%u.bin", world->file_prefix_name, world->chkpt_seq_num);
-             }else{
-                sprintf(file_name,"%s.region_indices.bin", world->file_prefix_name);
-             }
-
-             /* remove the folder name from the region values data file name */
-             ch_ptr = strrchr(file_name, '/');
-             ++ch_ptr;
-             strcpy(region_viz_data_name, ch_ptr);
-
-             if ((region_data=fopen(file_name,"wb"))==NULL) {
-                  fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
-                  return(1);
-              }
-
-          } /* end if(obj_to_show_number == 0) */
-
-          if((mol_to_show_number == 0) && (eff_to_show_number == 0))
-          {
-             fprintf(world->log_file, "MOLECULES keyword is absent or commented.\nEmpty 'molecules' output files are created.\n");
-
-             if(world->chkpt_flag){
-                sprintf(file_name,"%s.molecule_positions.%u.bin",world->file_prefix_name, world->chkpt_seq_num);
-             }else{
-                sprintf(file_name,"%s.molecule_positions.bin",world->file_prefix_name);
-             }
-
-             /* remove the folder name from the molecule_positions data file name */
-            ch_ptr = strrchr(file_name, '/');
-            ++ch_ptr;
-            strcpy(mol_pos_name, ch_ptr);
-     
-            if ((mol_pos_data=fopen(file_name,"wb"))==NULL) {
-               fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
-               return(1);
-            }
-
-            if(world->chkpt_flag){
-                sprintf(file_name,"%s.molecule_orientations.%u.bin",world->file_prefix_name, world->chkpt_seq_num);
-            }else{
-               sprintf(file_name,"%s.molecule_orientations.bin",world->file_prefix_name);
-            }
-            /* remove the folder name from the molecule_positions data file name */
-            ch_ptr = strrchr(file_name, '/');
-            ++ch_ptr;
-            strcpy(mol_orient_name, ch_ptr);
-
-            if ((mol_orient_data=fopen(file_name,"wb"))==NULL) {
-               fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
-               return(1);
-            }
-
-            if(world->chkpt_flag){
-               sprintf(file_name,"%s.molecule_states.%u.bin",world->file_prefix_name, world->chkpt_seq_num);
-            }else{
-               sprintf(file_name,"%s.molecule_states.bin",world->file_prefix_name);
-            }
-            /* remove the folder name from the molecule_states data file name */
-            ch_ptr = strrchr(file_name, '/');
-            ++ch_ptr;
-            strcpy(mol_states_name, ch_ptr);
-     
-            if ((mol_states_data = fopen(file_name,"wb"))==NULL) {
-                   fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,file_name);
-           	   return(1);
-            }
-
-
-
-        }  /* end if((mol_to_show_number==0)&&(eff_to_show_number==0)) */
-
-
     } /* end if(time_to_write_footers) */
 
  
@@ -6254,9 +6678,53 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
     free (viz_grid_mol_count);
   }
   
+    if(master_header != NULL){
+    	fclose(master_header);
+    }
+    if(mol_pos_data != NULL){
+    	fclose(mol_pos_data);
+    }
+    if(mol_orient_data != NULL){
+    	fclose(mol_orient_data);
+    }
+    if(mol_states_data != NULL){
+    	fclose(mol_states_data);
+    }
+    if(mesh_pos_data != NULL){
+    	fclose(mesh_pos_data);
+    }
+    if(mesh_states_data != NULL){
+    	fclose(mesh_states_data);
+    }
+    if(region_data != NULL){
+    	fclose(region_data);
+    }
+    if(iteration_numbers_data != NULL){
+        fclose(iteration_numbers_data);
+    }
+    if(time_values_data != NULL){
+        fclose(time_values_data);
+    }
              
     if(time_to_write_footers)
     {
+      if(master_header_file_path != NULL) free(master_header_file_path); 
+      if(mol_pos_name != NULL) free(mol_pos_name);
+      if(mol_pos_file_path != NULL) free(mol_pos_file_path);
+      if(mol_orient_name != NULL) free(mol_orient_name);
+      if(mol_orient_file_path != NULL) free(mol_orient_file_path);
+      if(mol_states_name != NULL) free(mol_states_name);
+      if(mol_states_file_path != NULL) free(mol_states_file_path);
+      if(mesh_pos_name != NULL) free(mesh_pos_name);
+      if(mesh_pos_file_path != NULL) free(mesh_pos_file_path);
+      if(mesh_states_name != NULL) free(mesh_states_name);
+      if(mesh_states_file_path != NULL) free(mesh_states_file_path);
+      if(region_viz_data_name != NULL) free(region_viz_data_name);
+      if(region_viz_data_file_path != NULL) free(region_viz_data_file_path);
+      if(iteration_numbers_name != NULL) free(iteration_numbers_name);
+      if(iteration_numbers_file_path != NULL) free(iteration_numbers_file_path);
+      if(time_values_name != NULL) free(time_values_name);
+      if(time_values_file_path != NULL) free(time_values_file_path);
                 
       if(time_values != NULL){
          free(time_values);
@@ -6356,33 +6824,6 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
       }
 
    }
-    if(master_header != NULL){
-    	fclose(master_header);
-    }
-    if(mol_pos_data != NULL){
-    	fclose(mol_pos_data);
-    }
-    if(mol_orient_data != NULL){
-    	fclose(mol_orient_data);
-    }
-    if(mol_states_data != NULL){
-    	fclose(mol_states_data);
-    }
-    if(mesh_pos_data != NULL){
-    	fclose(mesh_pos_data);
-    }
-    if(mesh_states_data != NULL){
-    	fclose(mesh_states_data);
-    }
-    if(region_data != NULL){
-    	fclose(region_data);
-    }
-    if(iteration_numbers_data != NULL){
-        fclose(iteration_numbers_data);
-    }
-    if(time_values_data != NULL){
-        fclose(time_values_data);
-    }
 
 
 
