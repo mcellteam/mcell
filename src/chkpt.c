@@ -3,7 +3,6 @@
 **
 ** Purpose: Writes and reads MCell checkpoint files.
 ** 
-** Testing status: partially tested.
 */
 
 
@@ -152,7 +151,7 @@ Out: Writes byte order of the machine that creates checkpoint file
 int write_byte_order(FILE *fs)
 {
    int word, byte_order;
-   byte *word_p;
+   byte *word_p = NULL;
 
    word = 0x04030201;
    word_p = (byte *)&word;
@@ -191,7 +190,7 @@ int read_byte_order(FILE *fs)
 {
 
    int byte_order_read, byte_order_present, word;
-   byte *word_p;
+   byte *word_p = NULL;
    
    word = 0x04030201;
    word_p = (byte *)&word;
@@ -256,9 +255,8 @@ Out: Reads current real time (in the terms of sec) from the checkpoint file.
 int read_current_real_time(FILE *fs)
 {
   double tmp1, tmp2;
-  unsigned char *byte_array; /*pointer to the byte array */
+  unsigned char *byte_array = NULL; /*pointer to the byte array */
 
-  byte_array = NULL;
   if (!fread(&(tmp1),sizeof(tmp1),1,fs)) {
     fprintf(stderr,"File '%s', Line %ld: read_current_time error.\n", __FILE__, (long)__LINE__);
     return(1);
@@ -352,9 +350,8 @@ int read_current_iteration(FILE *fs)
 {
   long long tmp1, tmp2;
   double tmp3, tmp4;
-  unsigned char *byte_array;
+  unsigned char *byte_array = NULL;
 
-  byte_array = NULL;
 
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
     fprintf(stderr,"File '%s', Line %ld: read_current_iteration error.\n", __FILE__, (long)__LINE__);
@@ -444,9 +441,8 @@ Out: Reads checkpoint sequence number from the checkpoint file.
 int read_chkpt_seq_num(FILE *fs)
 {
    u_int tmp1, tmp2;
-   unsigned char *byte_array;
+   unsigned char *byte_array = NULL;
 
-  byte_array = NULL;
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
     fprintf(stderr,"File '%s', Line %ld: read_chkpt_seq_number error.\n", __FILE__, (long)__LINE__);
     return(1);
@@ -555,10 +551,9 @@ int read_rng_state(FILE *fs)
    
    int tmp1, tmp2, i;
    ub8 tmp3, tmp4;
-   unsigned char *byte_array;
+   unsigned char *byte_array = NULL;
 
 
-  byte_array = NULL;
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
     fprintf(stderr,"File '%s', Line %ld: read_rng_state error.\n", __FILE__, (long)__LINE__);
     return(1);
@@ -705,7 +700,7 @@ int write_species_table(FILE *fs)
 {
   byte cmd = SPECIES_TABLE_CMD;
   int i, j;
-  char *species_name;
+  char *species_name = NULL;
   u_int species_name_length;
   u_int sp_id;       /* species id */
   u_int count;        /* number of existing species */
@@ -789,9 +784,8 @@ int read_species_table(FILE *fs)
 {
   int i, j;
   u_int sp_id, sp_name_length, total_species, tmp1, tmp2;
-  unsigned char *byte_array;
+  unsigned char *byte_array = NULL;
 
-  byte_array = NULL;
   /* read total number of species written. */
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
      fprintf(stderr,"File '%s', Line %ld: read_species_table error.\n", __FILE__, (long)__LINE__);
@@ -898,12 +892,12 @@ int write_mol_scheduler_state(FILE *fs)
 {
   byte cmd = MOL_SCHEDULER_STATE_CMD;
   byte act_newbie_flag;
-  struct storage_list *slp;
-  struct schedule_helper *shp;
-  struct abstract_element *aep;
-  struct abstract_molecule *amp;
-  struct molecule *mp;
-  struct grid_molecule *gmp;
+  struct storage_list *slp = NULL;
+  struct schedule_helper *shp = NULL;
+  struct abstract_element *aep = NULL;
+  struct abstract_molecule *amp = NULL;
+  struct molecule *mp = NULL;
+  struct grid_molecule *gmp = NULL;
   struct vector3 where;
   short orient = 0;
   u_int total_items = 0;
@@ -1057,14 +1051,14 @@ int read_mol_scheduler_state(FILE *fs)
   u_int tmp1, tmp2, total_items, chkpt_sp_id, i;
   double tmp3, tmp4, sched_time, lifetime, birthday, x_coord, y_coord, z_coord;
   short tmp5, tmp6, orient;
-  unsigned char *byte_array;
+  unsigned char *byte_array = NULL;
   struct molecule m;
-  struct molecule *mp;
-  struct grid_molecule *gmp;
-  struct abstract_molecule *ap;
+  struct molecule *mp = NULL;
+  struct grid_molecule *gmp = NULL;
+  struct abstract_molecule *ap = NULL;
   struct molecule *guess=NULL;
   struct vector3 where;             /* molecule location */
-  struct species *properties;
+  struct species *properties = NULL;
   byte act_newbie_flag;
   int j;
 
@@ -1390,7 +1384,7 @@ int read_mcell_version(FILE *fs)
 
    int i;
    u_int version_length;  /* length of the string MCELL_VERSION */
-   FILE *log_file;
+   FILE *log_file = NULL;
 
    log_file = world->log_file;
    

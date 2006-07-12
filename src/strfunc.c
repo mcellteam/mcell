@@ -58,9 +58,9 @@ my_strclump:
 char *my_strclump(char **slist)
 {
   int i,j,n,len;
-  char **sp;
-  char *s;
-  char *temp;
+  char **sp = NULL;
+  char *s = NULL;
+  char *temp = NULL;
   
   for (sp=slist,n=0 ; *sp!=NULL ; sp++,n++);
   

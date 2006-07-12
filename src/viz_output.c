@@ -76,7 +76,7 @@ update_frame_data_list:
 **************************************************************************/
 void update_frame_data_list(struct frame_data_list *fdlp)
 {
-  FILE *log_file;
+  FILE *log_file = NULL;
 
   log_file=world->log_file;
 
@@ -84,7 +84,7 @@ void update_frame_data_list(struct frame_data_list *fdlp)
   {
   /* this part of the code is used for creating symbolic links in viz_output */
 
-     struct frame_data_list *fdlp_temp;
+     struct frame_data_list *fdlp_temp = NULL;
      fdlp_temp = fdlp;
      while (fdlp_temp!=NULL) {
        if(world->it_time==fdlp_temp->viz_iterationll)
@@ -200,14 +200,14 @@ init_frame_data:
 ***********************************************************************/
 void init_frame_data_list(struct frame_data_list *fdlp)
 {
-  struct num_expr_list *nelp;
+  struct num_expr_list *nelp = NULL;
   int done, ii, jj;
-  struct species *sp;
+  struct species *sp = NULL;
   int mol_orient_frame_present = 0;
   int mol_pos_frame_present = 0;
   int reg_data_frame_present = 0;
   int mesh_geometry_frame_present = 0;
-  FILE *log_file;
+  FILE *log_file = NULL;
 
   log_file=world->log_file;
 
@@ -392,29 +392,29 @@ output_dx_objects:
 
 int output_dx_objects(struct frame_data_list *fdlp)
 {
-  FILE *log_file;
-  FILE *wall_verts_header;
-  FILE *wall_states_header;
-  FILE *eff_pos_header;
-  FILE *eff_states_header;
-  FILE *mol_pos_header;
-  FILE *mol_states_header;
-  struct viz_obj *vizp;
-  struct viz_child *vcp;
-  struct wall *w,**wp;
-  struct surface_grid *sg;
-  struct grid_molecule *gmol;
-  struct species **species_list;
-  struct object *objp;
-  struct polygon_object *pop;
-  struct ordered_poly *opp;
-  struct element_data *edp;
+  FILE *log_file = NULL;
+  FILE *wall_verts_header = NULL;
+  FILE *wall_states_header = NULL;
+  FILE *eff_pos_header = NULL;
+  FILE *eff_states_header = NULL;
+  FILE *mol_pos_header = NULL;
+  FILE *mol_states_header = NULL;
+  struct viz_obj *vizp = NULL;
+  struct viz_child *vcp = NULL;
+  struct wall *w = NULL,**wp = NULL;
+  struct surface_grid *sg = NULL;
+  struct grid_molecule *gmol = NULL;
+  struct species **species_list = NULL;
+  struct object *objp = NULL;
+  struct polygon_object *pop = NULL;
+  struct ordered_poly *opp = NULL;
+  struct element_data *edp = NULL;
   struct vector3 p0;
-  struct storage_list *slp;
-  struct storage *sp;
-  struct schedule_helper *shp;
-  struct abstract_molecule *amp;
-  struct molecule *molp,***viz_molp = NULL;
+  struct storage_list *slp = NULL;
+  struct storage *sp = NULL;
+  struct schedule_helper *shp = NULL;
+  struct abstract_molecule *amp = NULL;
+  struct molecule *molp = NULL,***viz_molp = NULL;
   float v1,v2,v3;
   u_int n_tiles,spec_id,*viz_mol_count = NULL;
   u_int mol_pos_index,mol_pos_field_index,mol_pos_group_index;
@@ -432,7 +432,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
   int viz_type;
   unsigned int index,n_eff;
   int word;
-  byte *word_p;
+  byte *word_p = NULL;
   byte viz_eff,viz_mol,viz_surf;
   byte viz_surf_or_eff;
   byte viz_eff_pos,viz_eff_states;
@@ -1405,13 +1405,16 @@ int output_dx_objects(struct frame_data_list *fdlp)
     for (ii=0;ii<n_species;ii++) {
       if (viz_molp[ii]!=NULL) {
         free(viz_molp[ii]);
+        viz_molp[ii] = NULL;
       }
     }
     
     free(viz_molp);
+    viz_molp = NULL;
   }
   if (viz_mol_count != NULL){
     free (viz_mol_count);
+    viz_mol_count = NULL;
   }
   return(0);
 }
@@ -1425,7 +1428,7 @@ output_dreamm_objects:
 
 int output_dreamm_objects(struct frame_data_list *fdlp)
 {
-  FILE *log_file;
+  FILE *log_file = NULL;
   FILE *master_header = NULL;
   FILE *meshes_header = NULL; /* header file for meshes */
   FILE *mesh_pos_data = NULL;  /* data file for wall vertices */
@@ -1443,27 +1446,27 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
   FILE *time_values_data = NULL; /* data file for time_values */
   struct viz_obj *vizp = NULL;
   struct viz_child *vcp = NULL;
-  struct surface_grid *sg;
-  struct wall *w,**wp;
-  struct species **species_list;
-  struct species *specp;
-  struct object *objp;
-  struct polygon_object *pop;
-  struct ordered_poly *opp;
-  struct element_data *edp;
+  struct surface_grid *sg = NULL;
+  struct wall *w = NULL, **wp = NULL;
+  struct species **species_list = NULL;
+  struct species *specp = NULL;
+  struct object *objp = NULL;
+  struct polygon_object *pop = NULL;
+  struct ordered_poly *opp = NULL;
+  struct element_data *edp = NULL;
   struct vector3 p0;
-  struct storage_list *slp;
-  struct storage *sp;
-  struct schedule_helper *shp;
-  struct abstract_molecule *amp;
-  struct grid_molecule *gmol;
-  struct molecule *molp,***viz_molp = NULL;       /* for 3D molecules */
-  struct region *rp;
-  struct region_list *rlp;
+  struct storage_list *slp = NULL;
+  struct storage *sp = NULL;
+  struct schedule_helper *shp = NULL;
+  struct abstract_molecule *amp = NULL;
+  struct grid_molecule *gmol = NULL;
+  struct molecule *molp = NULL, ***viz_molp = NULL;       /* for 3D molecules */
+  struct region *rp = NULL;
+  struct region_list *rlp = NULL;
   float v1,v2,v3;
   u_int spec_id = 0, *viz_mol_count = NULL, *viz_grid_mol_count = NULL;
   int word;
-  byte *word_p;
+  byte *word_p = NULL;
   byte viz_mol_pos_flag = 0, viz_mol_states_flag = 0;	/* flags */
   byte viz_mol_orient_flag = 0, viz_region_data_flag = 0;   /* flags */
   byte viz_mol_all_data_flag = 0, viz_surf_all_data_flag = 0;	/* flags */
@@ -1471,7 +1474,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
   char *filename = NULL;
   static char *viz_data_dir_name = NULL;
   static char *frame_data_dir_name = NULL; 
-  char *master_header_name;
+  char *master_header_name = NULL;
   char iteration_number[1024];
   char chkpt_seq_num[1024];
   char *iteration_number_dir = NULL;
@@ -4371,18 +4374,22 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
     /* free allocated memory */
     if(viz_grid_mol_count != NULL){
       free(viz_grid_mol_count);
+      viz_grid_mol_count = NULL;
     }
     if(viz_mol_count != NULL){
        free(viz_mol_count);
+       viz_mol_count = NULL;
     }
     if (viz_molp != NULL) {
       for (ii=0;ii<n_species;ii++) {
          if (viz_molp[ii]!=NULL) {
            free(viz_molp[ii]);
+           viz_molp[ii] = NULL;
          }
       }
     
       free(viz_molp);
+      viz_molp = NULL;
     }
    
 
@@ -4434,16 +4441,27 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
     }
 
     if(mesh_pos_file_path != NULL) free(mesh_pos_file_path);
+    mesh_pos_file_path = NULL;
     if(mesh_states_file_path != NULL) free(mesh_states_file_path);
+    mesh_states_file_path = NULL;
     if(region_viz_data_file_path != NULL) free(region_viz_data_file_path);
+    region_viz_data_file_path = NULL;
     if(meshes_header_file_path != NULL) free(meshes_header_file_path);
+    meshes_header_file_path = NULL;
     if(vol_mol_pos_file_path != NULL) free(vol_mol_pos_file_path);
+    vol_mol_pos_file_path = NULL;
     if(surf_mol_pos_file_path != NULL) free(surf_mol_pos_file_path);
+    surf_mol_pos_file_path = NULL;
     if(vol_mol_orient_file_path != NULL) free(vol_mol_orient_file_path);
+    vol_mol_orient_file_path = NULL;
     if(surf_mol_orient_file_path != NULL) free(surf_mol_orient_file_path);
+    surf_mol_orient_file_path = NULL;
     if(vol_mol_states_file_path != NULL) free(vol_mol_states_file_path);
+    vol_mol_states_file_path = NULL;
     if(vol_mol_header_file_path != NULL) free(vol_mol_header_file_path);
+    vol_mol_header_file_path = NULL;
     if(surf_mol_header_file_path != NULL) free(surf_mol_header_file_path);
+    surf_mol_header_file_path = NULL;
 
    return 0;
 }
@@ -4456,7 +4474,7 @@ output_dreamm_objects_grouped:
 
 int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
 {
-  FILE *log_file;
+  FILE *log_file = NULL;
   FILE *master_header = NULL;
   FILE *mesh_pos_data = NULL;  /* data file for wall vertices */
   FILE *mesh_states_data = NULL; /* data file for wall states */
@@ -4468,23 +4486,23 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
   FILE *time_values_data = NULL; /* data file for time_values */
   struct viz_obj *vizp = NULL;
   struct viz_child *vcp = NULL;
-  struct surface_grid *sg;
-  struct wall *w,**wp;
-  struct species **species_list;
-  struct species *specp;
-  struct object *objp;
-  struct polygon_object *pop;
-  struct ordered_poly *opp;
-  struct element_data *edp;
+  struct surface_grid *sg = NULL;
+  struct wall *w = NULL, **wp = NULL;
+  struct species **species_list = NULL;
+  struct species *specp = NULL;
+  struct object *objp = NULL;
+  struct polygon_object *pop = NULL;
+  struct ordered_poly *opp = NULL;
+  struct element_data *edp = NULL;
   struct vector3 p0;
-  struct storage_list *slp;
-  struct storage *sp;
-  struct schedule_helper *shp;
-  struct abstract_molecule *amp;
-  struct grid_molecule *gmol;
-  struct molecule *molp,***viz_molp = NULL;       /* for 3D molecules */
-  struct region *rp;
-  struct region_list *rlp;
+  struct storage_list *slp = NULL;
+  struct storage *sp = NULL;
+  struct schedule_helper *shp = NULL;
+  struct abstract_molecule *amp = NULL;
+  struct grid_molecule *gmol = NULL;
+  struct molecule *molp = NULL, ***viz_molp = NULL;       /* for 3D molecules */
+  struct region *rp = NULL;
+  struct region_list *rlp = NULL;
   float v1,v2,v3;
   u_int spec_id = 0, *viz_mol_count = NULL, *viz_grid_mol_count = NULL;
   static u_int main_index = 1;
@@ -4513,7 +4531,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
   int word;
   static int viz_dir_depth = 0; /* points to the depth of viz_output 
                             directory structure */
-  byte *word_p;
+  byte *word_p = NULL;
   byte viz_mol_pos_flag = 0, viz_mol_states_flag = 0;	/* flags */
   byte viz_mol_orient_flag = 0, viz_region_data_flag = 0;   /* flags */
   byte viz_mol_all_data_flag = 0, viz_surf_all_data_flag = 0;	/* flags */
@@ -6275,7 +6293,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
      int time_to_write_footers = 0;
      /* flag pointing to another frame with certain condition */
      int found = 0;
-     struct frame_data_list *fdlp_temp;
+     struct frame_data_list *fdlp_temp = NULL;
      long long next_iteration_step_this_frame = UINT_MAX;  /* next iteration for this frame */
      static long long next_iteration_step_previous_frame = -1;  /* next iteration for previous frame */
 
@@ -6663,19 +6681,23 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
     for (ii=0;ii<n_species;ii++) {
       if (viz_molp[ii]!=NULL) {
         free(viz_molp[ii]);
+        viz_molp[ii] = NULL;
       }
     }
     
     free(viz_molp);
+    viz_molp = NULL;
   }
    
   if (viz_mol_count != NULL) {
     free (viz_mol_count);
+    viz_mol_count = NULL;
   }
 
 
   if (viz_grid_mol_count != NULL) {
     free (viz_grid_mol_count);
+    viz_grid_mol_count = NULL;
   }
   
     if(master_header != NULL){
@@ -6710,117 +6732,161 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
     {
       if(master_header_file_path != NULL) free(master_header_file_path); 
       if(mol_pos_name != NULL) free(mol_pos_name);
+      mol_pos_name = NULL;
       if(mol_pos_file_path != NULL) free(mol_pos_file_path);
+      mol_pos_file_path = NULL;
       if(mol_orient_name != NULL) free(mol_orient_name);
+      mol_orient_name = NULL;
       if(mol_orient_file_path != NULL) free(mol_orient_file_path);
+      mol_orient_file_path = NULL;
       if(mol_states_name != NULL) free(mol_states_name);
+      mol_states_name = NULL;
       if(mol_states_file_path != NULL) free(mol_states_file_path);
+      mol_states_file_path = NULL;
       if(mesh_pos_name != NULL) free(mesh_pos_name);
+      mesh_pos_name = NULL;
       if(mesh_pos_file_path != NULL) free(mesh_pos_file_path);
+      mesh_pos_file_path = NULL;
       if(mesh_states_name != NULL) free(mesh_states_name);
+      mesh_states_name = NULL;
       if(mesh_states_file_path != NULL) free(mesh_states_file_path);
+      mesh_states_file_path = NULL;
       if(region_viz_data_name != NULL) free(region_viz_data_name);
+      region_viz_data_name = NULL;
       if(region_viz_data_file_path != NULL) free(region_viz_data_file_path);
+      region_viz_data_file_path = NULL;
       if(iteration_numbers_name != NULL) free(iteration_numbers_name);
+      iteration_numbers_name = NULL;
       if(iteration_numbers_file_path != NULL) free(iteration_numbers_file_path);
+      iteration_numbers_file_path = NULL;
       if(time_values_name != NULL) free(time_values_name);
+      time_values_name = NULL;
       if(time_values_file_path != NULL) free(time_values_file_path);
+      time_values_file_path = NULL;
                 
       if(time_values != NULL){
          free(time_values);
+         time_values = NULL;
       }
       if(iteration_numbers_meshes != NULL){
          free(iteration_numbers_meshes);
+         iteration_numbers_meshes = NULL;
       }
       if(iteration_numbers_vol_mols != NULL){
          free(iteration_numbers_vol_mols);
+         iteration_numbers_vol_mols = NULL;
       }
       if(iteration_numbers_surf_mols != NULL){
          free(iteration_numbers_surf_mols);
+         iteration_numbers_surf_mols = NULL;
       }
       if(surf_states != NULL){
          free(surf_states);
+         surf_states = NULL;
       }
       if(surf_pos != NULL){
          free(surf_pos);
+         surf_pos = NULL;
       }
       if(surf_con != NULL){
          free(surf_con);
+         surf_con = NULL;
       }
       if(surf_field_indices != NULL){
          free(surf_field_indices);
+         surf_field_indices = NULL;
       }
       if(eff_pos != NULL){
          free(eff_pos);
+         eff_pos = NULL;
+         
       }
       if(eff_orient != NULL){
          free(eff_orient);
+         eff_orient = NULL;
       }
       if(eff_states != NULL){
          free(eff_states);
+         eff_states = NULL;
       }
       if(eff_field_indices != NULL){
          free(eff_field_indices);
+         eff_field_indices = NULL;
       }
       if(mol_pos != NULL){
          free(mol_pos);
+         mol_pos = NULL;
       }
       if(mol_orient != NULL){
          free(mol_orient);
+         mol_orient = NULL;
       }
       if(mol_states != NULL){
          free(mol_states);
+         mol_states = NULL;
       }
       if(mol_field_indices != NULL){
          free(mol_field_indices);
+         mol_field_indices = NULL;
       }
 
       if (eff_names != NULL) {
         for (ii = 0; ii < eff_to_show_number; ii++) {
           if (eff_names[ii] != NULL) {
             free(eff_names[ii]);
+            eff_names[ii] = NULL;
           }
         }
     
         free(eff_names);
+        eff_names = NULL;
       }
       if (mol_names != NULL) {
         for (ii = 0; ii < mol_to_show_number; ii++) {
           if (mol_names[ii] != NULL) {
             free(mol_names[ii]);
+            mol_names[ii] = NULL;
           }
         }
     
         free(mol_names);
+        mol_names = NULL;
       }
       if (obj_names != NULL) {
         for (ii = 0; ii < obj_to_show_number; ii++) {
           if (obj_names[ii] != NULL) {
             free(obj_names[ii]);
+            obj_names[ii] = NULL;
           }
         }
     
         free(obj_names);
+        obj_names = NULL;
       }
       if (surf_region_values != NULL) {
         for(ii = 0; ii < obj_to_show_number; ii++){
            if (surf_region_values[ii] != NULL) {
               free(surf_region_values[ii]);
+              surf_region_values[ii] = NULL;
            }
         }
     
         free(surf_region_values);
+        surf_region_values = NULL;
       }
       if (region_names != NULL) {
         for(ii = 0; ii < obj_to_show_number; ii++){
            if (region_names[ii] != NULL) {
               free(region_names[ii]);
+              region_names[ii] = NULL;
            }
         } 
         free(region_names);
+        region_names = NULL;
       }
       if(obj_num_regions != NULL){
          free(obj_num_regions);
+         obj_num_regions = NULL;
       }
 
    }

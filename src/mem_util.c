@@ -78,16 +78,16 @@ create_counter:
 
 struct counter_helper* create_counter(int size,int length)
 {
-  struct counter_helper *ch;
+  struct counter_helper *ch = NULL;
   
   ch = (struct counter_helper*) Malloc( sizeof(struct counter_helper) );
   if(ch == NULL) {
-    	printf("Memory allocation error!\n");
+    	fprintf(stderr, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
 	return (NULL);
   }
   ch->mem = create_mem(size + sizeof(struct counter_header),length);
   if(ch->mem == NULL) {
-	printf("Memory allocation error!\n");
+    	fprintf(stderr, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
 	return (NULL);
   }
   ch->data_size = size;
@@ -110,7 +110,7 @@ counter_add:
 
 void counter_add(struct counter_helper *ch,void *data)
 {
-  struct counter_header *c,*new_c,*prev_c;
+  struct counter_header *c = NULL, *new_c = NULL, *prev_c = NULL;
   int i;
   
   if (ch->head == NULL)
@@ -118,7 +118,7 @@ void counter_add(struct counter_helper *ch,void *data)
     new_c = (struct counter_header*) mem_get(ch->mem);
     if(new_c == NULL)
     {
-	printf("Memory allocation error\n");
+    	fprintf(stderr, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
 	return;
     }
     new_c->next = NULL;
@@ -146,7 +146,7 @@ void counter_add(struct counter_helper *ch,void *data)
       {
         new_c = (struct counter_header*) mem_get(ch->mem);
         if(new_c == NULL){
-		printf("Memory allocation error\n");
+    	        fprintf(stderr, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
 		return;
         }
         new_c->next = c;
@@ -166,7 +166,7 @@ void counter_add(struct counter_helper *ch,void *data)
         {
           new_c = (struct counter_header*) mem_get(ch->mem);
           if(new_c == NULL){
-		printf("Memory allocation error\n");
+    	        fprintf(stderr, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
 		return;
           }
           new_c->next = NULL;
@@ -263,6 +263,7 @@ void delete_counter(struct counter_helper *ch)
 {
   delete_mem(ch->mem);
   free(ch);
+  ch = NULL;
 }
 
 
@@ -282,7 +283,7 @@ create_stack:
 
 struct stack_helper* create_stack(int size,int length)
 {
-  struct stack_helper *sh;
+  struct stack_helper *sh = NULL;
   
   sh = (struct stack_helper*) Malloc( sizeof(struct stack_helper) );
   if (sh == NULL) return NULL;
@@ -297,6 +298,7 @@ struct stack_helper* create_stack(int size,int length)
   if(sh->data == NULL)
   {
     free(sh);
+    sh = NULL;
     return NULL;
   }
 
@@ -317,12 +319,12 @@ stack_push:
 
 void* stack_push(struct stack_helper *sh,void *d)
 {
-  void* top_of_stack;
+  void* top_of_stack = NULL;
   
   if (sh->index >= sh->length)
   {
-    struct stack_helper *old_sh;
-    unsigned char *new_data;
+    struct stack_helper *old_sh = NULL;
+    unsigned char *new_data = NULL;
 
     if (sh->defunct==NULL)
     {
@@ -333,6 +335,7 @@ void* stack_push(struct stack_helper *sh,void *d)
       if(new_data == NULL)
       {
 	free(old_sh);
+        old_sh = NULL;
 	return NULL;
       }
     }
@@ -371,8 +374,8 @@ void stack_pop(struct stack_helper *sh, void *d)
 {
   if (sh->index == 0)
   {
-    struct stack_helper *old_sh;
-    unsigned char *temp;
+    struct stack_helper *old_sh = NULL;
+    unsigned char *temp = NULL;
     
     if (sh->next==NULL) return;
 
@@ -398,7 +401,7 @@ stack_dump:
 
 void stack_dump(struct stack_helper *sh)
 {
-  struct stack_helper *shp;
+  struct stack_helper *shp = NULL;
   
   sh->index = 0;
 
@@ -482,9 +485,9 @@ stack_semisort_pdouble:
 
 int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
 {
-  struct stack_helper *shp,*shq;
-  double *temp;
-  double **data,**data2,**space,**temp2;
+  struct stack_helper *shp = NULL,*shq = NULL;
+  double *temp = NULL;
+  double **data = NULL, **data2 = NULL, **space = NULL,**temp2 = NULL;
   int tail,head,span,good;
   int j,i,iL,iR,iLmin,iRmin;
   int nsorted = 0;
@@ -713,14 +716,16 @@ delete_stack:
 
 void delete_stack(struct stack_helper *sh)
 {
-  struct stack_helper *shp,*shpn;
+  struct stack_helper *shp = NULL, *shpn = NULL;
 
   shp = sh->next;
   while (shp != NULL)
   {
     shpn = shp->next;
     free(shp->data);
+    shp->data = NULL;
     free(shp);
+    shp = NULL;
     shp = shpn;
   }
 
@@ -729,12 +734,16 @@ void delete_stack(struct stack_helper *sh)
   {
     shpn = shp->next;
     free(shp->data);
+    shp->data = NULL;
     free(shp);
+    shp = NULL;
     shp = shpn;
   }
   
   free(sh->data);
+  sh->data = NULL;
   free(sh);
+  sh = NULL;
 }
 
 
@@ -755,7 +764,7 @@ create_mem:
 
 struct mem_helper* create_mem(int size,int length)
 {
-  struct mem_helper *mh;
+  struct mem_helper *mh = NULL;
   mh = (struct mem_helper*)Malloc( sizeof(struct mem_helper) );
   
   if (mh==NULL) return NULL;
@@ -771,6 +780,7 @@ struct mem_helper* create_mem(int size,int length)
   if (mh->heap_array==NULL)
   {
     free (mh);
+    mh = NULL;
     return NULL;
   }
   
@@ -789,7 +799,7 @@ void* mem_get(struct mem_helper *mh)
 {
   if (mh->defunct != NULL)
   {
-    struct abstract_list *retval;
+    struct abstract_list *retval = NULL;
     retval = mh->defunct;
     mh->defunct = retval->next;
     return (void*) retval;
@@ -803,7 +813,7 @@ void* mem_get(struct mem_helper *mh)
   else
   {
     struct mem_helper *mhnext;
-    unsigned char *temp;
+    unsigned char *temp = NULL;
     mhnext = create_mem(mh->record_size , mh->buf_len);
     if (mhnext==NULL) return NULL;
     
@@ -849,7 +859,7 @@ mem_put_list:
 void mem_put_list(struct mem_helper *mh,void *defunct)
 {
   struct abstract_list *data = (struct abstract_list*)defunct;
-  struct abstract_list *alp;
+  struct abstract_list *alp = NULL;
   
   for (alp=data; alp->next != NULL; alp=alp->next) {}
   
@@ -871,7 +881,9 @@ void delete_mem(struct mem_helper *mh)
   if(mh == NULL) return;
   if (mh->next_helper) delete_mem(mh->next_helper);
   free(mh->heap_array);
+  mh->heap_array = NULL;
   free(mh);
+  mh = NULL;
 }
 
 
@@ -898,6 +910,7 @@ struct temp_mem* create_temp(int length)
   if (new_mem->pointers == NULL)
   {
     free(new_mem);
+    new_mem = NULL;
     return NULL;
   }
 
@@ -915,7 +928,7 @@ temp_malloc:
 
 void *temp_malloc(size_t size, struct temp_mem *list)
 {
-  void *data,*record;
+  void *data = NULL, *record = NULL;
   
   data = Malloc(size);
   if (data==NULL) return NULL;
@@ -924,6 +937,7 @@ void *temp_malloc(size_t size, struct temp_mem *list)
   if (record==NULL)
   {
     free(data);
+    data = NULL;
     return NULL;
   }
   
@@ -942,13 +956,15 @@ free_temp:
 
 void free_temp(struct temp_mem *list)
 {
-  void *data;
+  void *data = NULL;
   if (list==NULL) return;
   while (stack_size(list->pointers))
   {
     stack_pop(list->pointers,&data);
     free(data);
+    data = NULL;
   }
   free(list);
+  list = NULL;
 }
 

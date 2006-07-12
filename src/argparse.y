@@ -109,6 +109,7 @@ mdl_infile_cmd: FILE_NAME
     return(1);
   }
   free((void *)argpvp->cval);
+  argpvp->cval = NULL;
 };
 
 
@@ -146,6 +147,7 @@ checkpoint_cmd: CHECKPOINT_OPT FILE_NAME
     return(1);
   }
   free((void *)argpvp->cval);
+  argpvp->cval = NULL;
   if ((volp->chkpt_signal_file_tmp=fopen(volp->chkpt_infile,"rb"))==NULL) {
     sprintf(argpvp->arg_err_msg,"Cannot open input checkpoint file (Resume from USR Signal) : %s",volp->chkpt_infile);
     argerror(argpvp->arg_err_msg,argpvp);
@@ -167,6 +169,7 @@ log_file_cmd: LOG_FILE_OPT FILE_NAME
     return(1);
   }
   free((void *)argpvp->cval);
+  argpvp->cval = NULL;
   if ((volp->log_file=fopen(volp->log_file_name,"w"))==NULL) {
     sprintf(argpvp->arg_err_msg,"Cannot open output log file: %s",
       volp->log_file_name);
@@ -205,11 +208,16 @@ num_arg: INTEGER {$$=(double)argpvp->ival;}
 void argerror(char *s,...)
 {
   va_list ap;
-  FILE *log_file;
-  struct argparse_vars *apvp;
+  FILE *log_file = NULL;
+  struct argparse_vars *apvp = NULL;
 
+  log_file=stderr;
   va_start(ap,s);
   apvp=va_arg(ap,struct argparse_vars *);
+  if(apvp == NULL){
+     fprintf(stderr,"\nFile '%s', Line %ld: error found.\n", __FILE__, (long)__LINE__);
+     return;
+  }
   va_end(ap);
 
   log_file=stderr;
@@ -280,8 +288,8 @@ int argparse_init(int argc, char *argv[], struct volume *vol)
 int argparse_init(int argc, char *argv[], struct volume *vol)
 {
   struct argparse_vars arg_var;
-  struct yy_buffer_state *arg_input_buffer;
-  char *tempstr,*arg_string;
+  struct yy_buffer_state *arg_input_buffer = NULL;
+  char *tempstr = NULL, *arg_string = NULL;
   int i;
 
 
@@ -296,7 +304,7 @@ int argparse_init(int argc, char *argv[], struct volume *vol)
   vol->mdl_infile_name=NULL;
 
   if ((arg_var.arg_err_msg=(char *)malloc(1024*sizeof(char)))==NULL) {
-    fprintf(vol->err_file,"MCell: out of memory storing arg_err_msg\n");
+    fprintf(vol->err_file, "File '%s', Line %ld: out of memory storing arg_err_msg\n", __FILE__, (long)__LINE__);
     return(1);
   }
 
@@ -304,6 +312,7 @@ int argparse_init(int argc, char *argv[], struct volume *vol)
   for (i=1;i<argc;i++) {
     if (i==1) {
       free(arg_string);
+      arg_string = NULL;
       if ((arg_string=my_strdup(argv[i]))==NULL) {
         fprintf(vol->err_file,"File '%s', Line %ld: out of memory storing arg_string\n", __FILE__, (long)__LINE__);
         return(1);
@@ -316,6 +325,7 @@ int argparse_init(int argc, char *argv[], struct volume *vol)
         return(1);
       }
       free(tempstr);
+      tempstr = NULL;
 
       tempstr=arg_string; 
       if ((arg_string=my_strcat(arg_string,argv[i]))==NULL) {
@@ -323,6 +333,7 @@ int argparse_init(int argc, char *argv[], struct volume *vol)
         return(1);
       }
       free(tempstr);
+      tempstr = NULL;
     }
   }
 

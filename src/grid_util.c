@@ -235,7 +235,7 @@ create_grid:
 
 int create_grid(struct wall *w,struct subvolume *guess)
 {
-  struct surface_grid *sg;
+  struct surface_grid *sg = NULL;
   struct vector3 center;
   int i;
 
@@ -469,14 +469,14 @@ search_nbhd_for_free:
 struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,double max_d2,int *found_idx,
                              int (*ok)(void*,struct wall*),void *context)
 {
-  struct wall *there;
+  struct wall *there = NULL;
   int i,j;
   double d2;
   struct vector2 pt,ed;
   struct vector2 vurt0,vurt1;
   int best_i;
   double best_d2;
-  struct wall *best_w;
+  struct wall *best_w = NULL;
   
   best_i = -1;
   best_d2 = 2.0*max_d2+1.0;

@@ -229,9 +229,9 @@ init_r_step:
 
 double* init_r_step(int radial_subdivisions)
 {   
-  FILE *log_file;
+  FILE *log_file = NULL;
   double inc,target,accum,r,r_max,delta_r,delta_r2;
-  double *r_step;
+  double *r_step = NULL;
   int j;
     
   log_file=world->err_file;
@@ -273,7 +273,7 @@ init_r_step_surface:
 
 double* init_r_step_surface(int radial_subdivisions)
 {
-  double *r_step_s;
+  double *r_step_s = NULL;
   double p,r_max,r_min,step,r,cdf;
   int i,j;
   static const double sqrt_pi = 1.7724538509055160273;
@@ -321,15 +321,15 @@ init_d_step:
 
 double* init_d_step(int radial_directions,unsigned int *actual_directions)
 {   
-  FILE *log_file;
+  FILE *log_file = NULL;
   double z;
   double d_phi,phi_mid,phi_edge_prev,phi_edge_approx,phi_factor,theta_mid;
-  double *phi_edge;
+  double *phi_edge = NULL;
   double x_bias,y_bias,z_bias;
   double x,y;
   int i,j,k,l,n_tot,n_edge,n_patches;
-  int *n;
-  double *d_step;
+  int *n = NULL;
+  double *d_step = NULL;
     
   log_file=world->log_file;
   n_edge=(int) sqrt(radial_directions*MY_PI/2.0);

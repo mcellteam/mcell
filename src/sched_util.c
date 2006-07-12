@@ -24,7 +24,7 @@ struct abstract_element* ae_list_sort(struct abstract_element *ae)
 {
   struct abstract_element *stack[64];
   int stack_n[64];
-  struct abstract_element *left,*right,*merge,*tail;
+  struct abstract_element *left = NULL,*right = NULL,*merge = NULL,*tail = NULL;
   int si = 0;
   
   while (ae != NULL)
@@ -148,7 +148,7 @@ create_scheduler:
 
 struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,double start_time)
 {
-  struct schedule_helper *sh;
+  struct schedule_helper *sh = NULL;
   double n_slots;
   int len;
   int i;
@@ -327,7 +327,7 @@ int schedule_advance(struct schedule_helper *sh,struct abstract_element **head,
                      struct abstract_element **tail)
 {                     
   int n;
-  struct abstract_element *p,*nextp;
+  struct abstract_element *p = NULL, *nextp = NULL;
   
   if (head!=NULL) *head = sh->circ_buf_head[sh->index];
   if (tail!=NULL) *tail = sh->circ_buf_tail[sh->index];
@@ -384,7 +384,7 @@ schedule_next:
 
 void* schedule_next(struct schedule_helper *sh)
 {
-  void *data;
+  void *data = NULL;
   if (sh->current==NULL)
   {
     sh->current_count = schedule_advance(sh,&sh->current,&sh->current_tail);
@@ -452,11 +452,11 @@ schedule_cleanup:
 
 struct abstract_element* schedule_cleanup(struct schedule_helper *sh,int (*is_defunct)(struct abstract_element *e))
 {
-  struct abstract_element* defunct_list;
-  struct abstract_element* ae;
-  struct abstract_element* temp;
-  struct schedule_helper* top;
-  struct schedule_helper* shp;
+  struct abstract_element* defunct_list = NULL;
+  struct abstract_element* ae = NULL;
+  struct abstract_element* temp = NULL;
+  struct schedule_helper* top = NULL;
+  struct schedule_helper* shp = NULL;
   int i;
   
   defunct_list=NULL;
@@ -557,8 +557,12 @@ void delete_scheduler(struct schedule_helper *sh)
 {
   if (sh->next_scale != NULL) delete_scheduler(sh->next_scale);
   free(sh->circ_buf_tail);
+  sh->circ_buf_tail = NULL;
   free(sh->circ_buf_head);
+  sh->circ_buf_head = NULL;
   free(sh->circ_buf_count);
+  sh->circ_buf_count = NULL;
   free(sh);
+  sh = NULL;
 }
 
