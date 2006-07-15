@@ -1292,7 +1292,6 @@ int read_mol_scheduler_state(FILE *fs)
 	      ap->flags |= ACT_DIFFUSE;
            }
  
-           mp->curr_cmprt = NULL;
            mp->previous_wall = NULL;
            mp->index = -1;
            mp->pos.x = x_coord;

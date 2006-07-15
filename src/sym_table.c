@@ -80,7 +80,7 @@ register ub1 *k;        /* the key */
 {
    register ub4 a,b,c,len,initval,length;
    /* Set up the internal state */
-   length=strlen((char*)k);	/* the length of the key */
+   length=(ub4) strlen((char*)k);	/* the length of the key */
    initval=0;		  
    len = length;
    a = b = 0x9e3779b9;  /* the golden ratio; an arbitrary value */
@@ -226,8 +226,6 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       specp->population=0;
       specp->D=0.0;
       specp->D_ref=0.0;
-      specp->radius=0.0;
-      specp->area=0.0;
       specp->space_step=0.0;
       specp->time_step=0.0;
       specp->flags=0;
@@ -242,7 +240,6 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       specp->transition_count_all=NULL;
       specp->region_transition_count_each=NULL;
 */
-      specp->checked=0;
       break;
     case OBJ:
       if ((vp=(void *)malloc(sizeof(struct object)))==NULL) {

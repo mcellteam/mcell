@@ -1,0 +1,28 @@
+
+Notes on MCell3
+
+
+
+check on usage of struct species->species_id in viz_output.c when we get there...
+  how do we use it, do we need it etc...
+
+in struct species, do we really need D_ref?
+  Ask Joel.
+
+
+in struct species, do we really need separate viz_state and region_viz_value?
+  Ask Joel and Boris.
+
+
+In react_cond.c, check_probs(), fix printfs (should they be fprintfs or deleted?)
+
+in mdlparse.y, will we ever need reaction groups?
+
+
+in struct rxn, fix comment on rxn->next according to actual usage in prepare_reactions().
+
+
+change struct molecule to struct volume_molecule !!!
+change struct grid_molecule to struct surface_molecule !
+
+

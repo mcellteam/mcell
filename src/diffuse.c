@@ -4073,6 +4073,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     
     a->flags -= IN_SCHEDULE;
     
+    /* Check for a unimolecular event */
     if (a->t2 < EPS_C || a->t2 < EPS_C*a->t)
     {
       if ((a->flags & (ACT_INERT+ACT_NEWBIE+ACT_CHANGE)) != 0)
@@ -4181,8 +4182,6 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       }
     }
     
-    if ( (a->flags&TYPE_GRID)!=0 && (a->flags&ACT_DIFFUSE)==0 && a->properties->D>0) printf("Need to set ACT_DIFFUSE\n");
-
     t = a->t;
 
     if ((a->flags & ACT_DIFFUSE) != 0)
@@ -4333,7 +4332,6 @@ void run_concentration_clamp(double t_now)
         m.birthplace=NULL;
         m.birthday = t_now;
         m.subvol=NULL;
-        m.curr_cmprt=NULL;
         m.previous_wall=NULL;
         m.index=0;
         mp = NULL;

@@ -913,7 +913,6 @@ int release_inside_regions(struct release_site_obj *rso,struct molecule *m,int n
   
   rrd = rso->region_data;
   new_m = NULL;
-  m->curr_cmprt = NULL;
   m->previous_wall = NULL;
   m->index = -1;
   
@@ -1227,7 +1226,6 @@ int release_molecules(struct release_event_queue *req)
   }
   else  /* Guaranteed to be 3D molecule or at least specified by 3D location if in list */
   {
-    m.curr_cmprt = NULL;
     m.previous_wall = NULL;
     m.index = -1;
     

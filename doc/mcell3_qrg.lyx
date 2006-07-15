@@ -46,7 +46,7 @@ Rex Kerr
 \layout Standard
 
 In this document, the main text is in a serif font.
- Command-line entries, mdl file commands, and code is in a 
+ Command-line entries, MDL file commands, and code is in a 
 \family typewriter 
 fixed-width
 \family default 
@@ -399,6 +399,19 @@ Some commands have a scope, delimited by
 DEFINE_MOLECULE
 \family default 
  block receive the title Define Molecule Commands.
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
 \layout Section
 
 MDL commands
@@ -1744,7 +1757,7 @@ ERROR
 
 
 \series bold 
-Warning Command
+Warning Policy Command
 \end_inset 
 </cell>
 <cell alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
@@ -2165,6 +2178,19 @@ WARNING
 </row>
 </lyxtabular>
 
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
 \end_inset 
 
 
@@ -2655,6 +2681,19 @@ This molecule will not initiate reactions when it runs into other molecules.
 </row>
 </lyxtabular>
 
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
 \end_inset 
 
 
@@ -3949,8 +3988,6 @@ A{0}
  is a synonym for 
 \family typewriter 
 A;
-\family default 
-.
 \layout Standard
 
 There are several variants of the normal reaction arrow ->.
@@ -4179,6 +4216,19 @@ A bidirectional catalytic reaction.
 </row>
 </lyxtabular>
 
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
 \end_inset 
 
 
@@ -6028,8 +6078,21 @@ Exclude the patch from this region.
 
 \layout Standard
 
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
+\layout Standard
+
 After element specifiers, regions can specify a surface type and add extra
- molecules using
+ molecules using:
 \layout Standard
 
 
@@ -6463,6 +6526,19 @@ Define a new release pattern according to the commands given.
 </row>
 </lyxtabular>
 
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
 \end_inset 
 
 
@@ -8088,6 +8164,19 @@ A
 \end_inset 
 
 
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
 \layout Subsection
 
 Output specification commands
@@ -9404,6 +9493,19 @@ VIZ_DATA
  
 \emph on 
 !!
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
 \layout Subsection
 
 Utility commands
@@ -10141,6 +10243,19 @@ filename
 
 Paths are relative to the location that MCell was run from, not relative
  to the MDL file being parsed.
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
 \layout Section
 
 Technical details affecting simulation speed and accuracy
@@ -10326,6 +10441,19 @@ SPHERICAL
 LIST
 \family default 
  release type.
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
 \layout Section
 
 Example models

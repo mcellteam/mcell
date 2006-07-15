@@ -678,7 +678,6 @@ int init_species(void)
         world->species_list[count]->species_id = count;
         world->species_list[count]->chkpt_species_id = UINT_MAX;
 /*        world->species_list[count]->hashval &= world->rx_hashsize-1; */
-        world->species_list[count]->radius = EPS_C;
         world->species_list[count]->population = 0;
 	world->species_list[count]->n_deceased = 0;
 	world->species_list[count]->cum_lifetime = 0;

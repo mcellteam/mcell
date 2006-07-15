@@ -18,6 +18,7 @@
 /* MCell version */
 #define MCELL_VERSION "3.001" 
 
+
 /* Species flags */
    /* Walls have IS_SURFACE set, molecules do not. */
    /* Grid molecules have ON_GRID set */
@@ -38,6 +39,42 @@
 #define COUNT_RXNS       0x4000
 #define COUNT_ENCLOSED   0x8000
 #define COUNT_SOME       0xF000
+
+
+/* Abstract Molecule Flags */
+
+/* RULES: only one of TYPE_GRID, TYPE_3D set. */
+/*   ACT_NEWBIE beats ACT_INERT beats ACT_REACT */
+/*   Can free up memory when nothing in IN_MASK */
+
+/* Molecule type--grid molecule, 3D molecule, or surface molecule */
+#define TYPE_GRID   0x001
+#define TYPE_3D   0x002
+#define TYPE_MASK 0x003
+
+/* NEWBIE molecules get scheduled before anything else happens to them. */
+/* INERT molecules don't react, REACT molecules do */
+/* CHANGE molecules have had their rate constant changed */
+/* DIFFUSE molecules diffuse (duh!) */
+/* CLAMPED molecules diffuse for part of a timestep and don't react with surfaces */
+#define ACT_DIFFUSE 0x008
+#define ACT_INERT   0x010
+#define ACT_REACT   0x020
+#define ACT_NEWBIE  0x040
+#define ACT_CHANGE  0x080
+#define ACT_CLAMPED 0x1000
+
+/* Flags telling us which linked lists the molecule appears in. */
+#define IN_SCHEDULE 0x100
+#define IN_SURFACE  0x200
+#define IN_VOLUME   0x400
+#define IN_MASK     0x700
+
+/* Flags telling us what our counting status is */
+#define COUNT_ME    0x800
+
+/* End of Abstract Molecule Flags. */
+
 
 /* rxn/mol/region counter report types */
 /* Do not set both WORLD and ENCLOSED flags; ENCLOSED applies only to regions */
@@ -63,6 +100,7 @@
 #define REPORT_WORLD           0x20
 #define REPORT_ENCLOSED        0x40
 #define REPORT_TRIGGER         0x80
+
 
 /* rxn/mol/region counter flags */
 /* Only set one of MOL_COUNTER or RXN_COUNTER */
@@ -194,39 +232,6 @@
 #define KCAT_RATE_TRANSPARENT -1.0
 #define KCAT_RATE_REFLECTIVE -2.0
 
-
-/* Abstract molecule flags */
-/* RULES: only one of TYPE_GRID, TYPE_3D set. */
-/*   ACT_NEWBIE beats ACT_INERT beats ACT_REACT */
-/*   Can free up memory when nothing in IN_MASK */
-
-/* Molecule type--grid molecule, 3D molecule, or surface molecule */
-#define TYPE_GRID   0x001
-#define TYPE_3D   0x002
-#define TYPE_MASK 0x003
-
-/* NEWBIE molecules get scheduled before anything else happens to them. */
-/* INERT molecules don't react, REACT molecules do */
-/* CHANGE molecules have had their rate constant changed */
-/* DIFFUSE molecules diffuse (duh!) */
-/* CLAMPED molecules diffuse for part of a timestep and don't react with surfaces */
-#define ACT_DIFFUSE 0x008
-#define ACT_INERT   0x010
-#define ACT_REACT   0x020
-#define ACT_NEWBIE  0x040
-#define ACT_CHANGE  0x080
-#define ACT_CLAMPED 0x1000
-
-/* Flags telling us which linked lists the molecule appears in. */
-#define IN_SCHEDULE 0x100
-#define IN_SURFACE  0x200
-#define IN_VOLUME   0x400
-#define IN_MASK     0x700
-
-/* Flags telling us what our counting status is */
-#define COUNT_ME    0x800
-
-/* End of abstract molecule flags. */
 
 
 /* How big will we let the reaction table get? */
@@ -582,11 +587,11 @@ typedef unsigned long u_long;
 struct species
 {
   u_int species_id;             /* Unique ID for this species */
-  u_int chkpt_species_id;        /* Unique ID for this species from the 
+  u_int chkpt_species_id;       /* Unique ID for this species from the 
                                    checkpoint file */
   u_int hashval;                /* Hash value (may be nonunique) */
   struct sym_table *sym;        /* Symbol table entry (name) */
-  struct eff_dat *eff_dat_head; /* if IS_SURFACE this points to head of
+  struct eff_dat *eff_dat_head; /* If IS_SURFACE this points to head of
                                    effector data list associated with 
                                    surface class */
   
@@ -594,33 +599,30 @@ struct species
   
   double D;                     /* Diffusion constant */
   double D_ref;                 /* Reference diffusion constant */
-  double radius;                /* Molecular radius */
-  double area;                  /* Surface area consumed */
   double space_step;            /* Characteristic step length */
   double time_step;             /* Minimum (maximum?) sensible timestep */
-/*short charge;*/               /* Electric charge. */
-  u_short flags;                /* Free?  Membrane bound?  Membrane? */
+  u_short flags;                /* Species Flags:  Vol Molecule? Surface Molecule?
+                                   Surface Class? Counting stuff, etc... */
   
   long long n_deceased;         /* Total number that have been destroyed. */
-  double cum_lifetime;          /* Timesteps lived by destroyed molecules */
+  double cum_lifetime;          /* Timesteps lived by now-destroyed molecules */
  
   int viz_state;                /* Visualization state for output */
   int region_viz_value;         /* Visualization state for surface class 
                                    for output */
-  byte checked;                 /* Bread crumb for graph traversal */
 };
 
 
 /* All pathways leading away from a given intermediate */
 struct rxn
 {
-  struct rxn *next;          /* Next reaction with these reactants
-                                but differing geometry */
-  struct sym_table *sym;     /* ptr to symbol table entry for this rxn */
+  struct rxn *next;          /* FIXME: what is next??? see prepare_reactions() */
+  struct sym_table *sym;     /* Ptr to symbol table entry for this rxn */
   
   u_int n_reactants;         /* How many reactants? (At least 1.) */
-  int n_pathways;            /* How many pathways lead away? (Negative = special reaction)*/
-  u_int *product_idx;        /* Index of 1st player for products of pathway */
+  int n_pathways;            /* How many pathways lead away?
+                                (Negative = special reaction, i.e. transparent etc...)*/
+  u_int *product_idx;        /* Index of 1st player for products of each pathway */
   double *cum_probs;         /* Cumulative probabilities for (entering) all pathways */
   double *cat_probs;         /* Probabilities of leaving all pathways (<=0.0 is instant) */
   
@@ -630,36 +632,28 @@ struct rxn
   long long n_occurred;      /* How many times has this reaction occurred? */
   double n_skipped;          /* How many reactions were skipped due to probability overflow? */
 
-  struct t_func *prob_t;     /* List of probabilities changing over time */
+  struct t_func *prob_t;     /* List of probabilities changing over time, by pathway */
   
-  struct pathway *pathway_head; /* list of pathways built at parse-time */
+  struct pathway *pathway_head; /* List of pathways built at parse-time */
   struct pathway_info *info; /* Counts and names for each pathway */
 };
 
 
-/* Sets of reactions grouped by...? */
-struct rxn_group
-{
-/* Someone else gets to fill this in. */
-};
 
-
-/* Named reaction.  Pathway may be NULL during running of simulation; it
-is only needed during parsing. */
+/* User-defined name of a reaction pathway */
 struct rxn_pathname {
-  struct sym_table *sym;
-  u_int hashval;
-  u_int path_num;
-  struct rxn *rx;
+  struct sym_table *sym;     /* Ptr to symbol table entry for this rxn name */
+  u_int hashval;             /* Hash value for counting named rxns on regions */
+  u_int path_num;            /* Pathway number in rxn */
+  struct rxn *rx;            /* The rxn associated with this name */
 };
 
 
 /* Parse-time structure for reaction pathways */
 /* Everything except pathname can be deallocated after prepare_reactions */
 struct pathway {
-  struct pathway *next;
-  struct rxn_pathname *pathname; /* data for named reaction pathway or NULL */
-  double count;                  /* How many times have we taken this path? */
+  struct pathway *next;          /* Next pathway for this reaction */
+  struct rxn_pathname *pathname; /* Data for named reaction pathway or NULL */
   struct species *reactant1;     /* First reactant in reaction pathway */
   struct species *reactant2;     /* Second reactant (NULL if none) */
   struct species *reactant3;     /* Third reactant--surface type or NULL */
@@ -683,9 +677,9 @@ struct product {
 /* Always do basic counts--do more sophisticated stuff if pathname!=NULL */
 struct pathway_info
 {
-  double count;
-  short count_flags;
-  struct rxn_pathname *pathname;
+  double count;                   /* How many times the pathway has been taken */
+  short count_flags;              /* FIXME: which flags??? */
+  struct rxn_pathname *pathname;  /* The name of the pathway or NULL */
 };
   
 
@@ -701,19 +695,20 @@ struct t_func
 
 
 /* Abstract structure that starts all molecule structures */
+/* Used to make C structs act like C++ objects */
 struct abstract_molecule
 {
   struct abstract_molecule *next;  /* Next molecule in scheduling queue */
   double t;                        /* Scheduling time. */
-  double t2;                       /* Dead time for catalysis & such. */
-  short flags;                     /* Who am I, what am I doing, etc. */
+  double t2;                       /* Time of next unimolecular reaction */
+  short flags;                     /* Abstract Molecule Flags: Who am I, what am I doing, etc. */
   struct species *properties;      /* What type of molecule are we? */
   struct mem_helper *birthplace;   /* What was I allocated from? */
   double birthday;                 /* Time at which this particle was born */
 };
 
 
-/* Freely diffusing or fixed molecules in solution */
+/* Volume molecules: freely diffusing or fixed in solution */
 struct molecule
 {
   struct abstract_molecule *next;
@@ -726,8 +721,6 @@ struct molecule
   
   struct vector3 pos;             /* Position in space */
   struct subvolume *subvol;       /* Partition we are in */
-  
-  struct cmprt_data *curr_cmprt;  /* Compartment we are in (for counting) */
   
   struct wall *previous_wall;     /* Wall we were released from */
   int index;                      /* Index on that wall (don't rebind) */

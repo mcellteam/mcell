@@ -2092,8 +2092,6 @@ molecule_stmt: new_molecule '{'
     mdlpvp->specp->flags |= CANT_INITIATE;
   }
   
-  mdlpvp->specp->area = 0.0;
-  
   if (volp->r_step==NULL) {
     if ((volp->r_step=init_r_step(volp->radial_subdivisions))==NULL) {
       mdlerror("Out of memory while creating r_step data for molecule");
