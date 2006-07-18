@@ -885,7 +885,6 @@ int init_partitions(void)
     h = k + (world->nz_parts-1)*(j + (world->ny_parts-1)*i);
     sv = & (world->subvol[ h ]);
     sv->wall_head = NULL;
-    sv->wall_tail = NULL;
     sv->wall_count = 0;
     sv->mol_head = NULL;
     sv->mol_count = 0;

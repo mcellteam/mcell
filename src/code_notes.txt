@@ -25,4 +25,20 @@ in struct rxn, fix comment on rxn->next according to actual usage in prepare_rea
 change struct molecule to struct volume_molecule !!!
 change struct grid_molecule to struct surface_molecule !
 
+change name of struct wall->effectors (to grid?)
+
+Label subset of species flags that pertain to counting as "Count Flags".
+
+check how we handle the lack of struct surface_grid->binding_factor during a
+  reaction between a volume molecule and a surface species.  Surface_grid is NULL until
+  a grid molecule is placed on the wall, but we need struct surface_grid->binding_factor
+  to calculate reaction probability.
+
+check how we initialize struct surface_grid->subvol (which subvol owns surface_grid?).
+
+Note: it would save ~40% of struct subvolume memory usage if we got rid of BSP trees and
+  therefore did not need struct subvolume->neighbor.  As the code is now written
+  we don't actually allocate a single struct bsp_tree anywhere.
+
+
 

@@ -1844,7 +1844,7 @@ iteration_def: ITERATIONS '=' num_expr
 if (volp->iterations==0) {
   volp->iterations=(long long) $<dbl>3;
 }
-no_printf("Iterations = %d\n",volp->iterations);
+no_printf("Iterations = %lld\n",volp->iterations);
 fflush(stderr);
 };
 

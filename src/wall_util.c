@@ -1830,16 +1830,9 @@ struct wall_list* wall_to_vol(struct wall *w, struct subvolume *sv)
   if(wl == NULL) return NULL;
   
   wl->this_wall = w;
-  if (sv->wall_tail==NULL)
-  {
-    sv->wall_head = sv->wall_tail = wl;
-    wl->next = NULL;
-  }
-  else
-  {
-    wl->next = sv->wall_head;
-    sv->wall_head = wl;
-  }
+  wl->next = sv->wall_head;
+  sv->wall_head = wl;
+
   sv->wall_count++;
   
   return wl;

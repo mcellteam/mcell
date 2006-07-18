@@ -141,6 +141,7 @@
 #define RX_GREATEST_VALID_PATHWAY ((1LL << RX_PATHWAY_BITS)-1) 
 
 
+/* BSP Flags */
 /* Flags for BSP trees to determine whether something is a node or a branch */
 /* Will either have BRANCH_XN through _ZP, or _L, _R, _X, _Y, _Z. */
 /* P is positive, N is negative. */
@@ -744,25 +745,21 @@ struct grid_molecule
   short orient;                /* Which way do we point? */
   struct surface_grid *grid;   /* Our grid (which tells us our surface) */
   struct vector2 s_pos;        /* Where are we in surface coordinates? */
-  
-  struct grid_molecule *prev_g; /* Doubly linked list of molecules */
-  struct grid_molecule *next_g; /* at this grid index */
 };
 
 
+/* Used to transform coordinates of grid molecules diffusing between adjacent walls */
 struct edge
 {
   struct wall *forward;     /* For which wall is this a forwards transform? */
   struct wall *backward;    /* For which wall is this a reverse transform? */
   
-  struct vector2 translate;  /* Translation vector */
-  double cos_theta;          /* Cosine of angle between bases */
-  double sin_theta;          /* Sine of angle between bases */
+  struct vector2 translate;  /* Translation vector between coordinate systems */
+  double cos_theta;          /* Cosine of angle between coordinate systems */
+  double sin_theta;          /* Sine of angle between coordinate systems */
   
-  double length;             /* Length of the edge */
-  double length_1;           /* Reciprocal of length of edge */
-  
-  int flags;
+  double length;             /* Length of the shared edge */
+  double length_1;           /* Reciprocal of length of shared edge */
 };
 
 
@@ -774,17 +771,13 @@ struct wall
 
   int side;                       /* index of this wall in its parent object */
 
-/*
-  int projection;
-*/
-
   struct vector3 *vert[3];        /* Array of pointers to vertices */
   
   double uv_vert1_u;              /* Surface u-coord of 2nd corner (v=0) */
   struct vector2 uv_vert2;        /* Surface coords of third corner */
 
   struct edge *edges[3];          /* Array of pointers to each edge. */
-  struct wall *nb_walls[3];       /* Array of pointers to neighboring walls */
+  struct wall *nb_walls[3];       /* Array of pointers to walls that share an edge*/
 
   double area;                    /* Area of this element */
   
@@ -796,7 +789,7 @@ struct wall
   struct surface_grid *effectors; /* Grid of effectors for this wall */
   
   int viz_state;                  /* For display purposes--is short enough? */
-  u_short flags;                  /* Flags for whether we need to count */
+  u_short flags;                  /* Count Flags: flags for whether and what we need to count */
 
   struct object *parent_object;   /* The object we are a part of */
   struct storage *birthplace;     /* Where we live in memory */
@@ -822,15 +815,13 @@ struct surface_grid
   double inv_strip_wid;    /* Reciprocal of the width of one strip */
   double vert2_slope;      /* Slope from vertex 0 to vertex 2 */
   double fullslope;        /* Slope of full width of triangle */
-  struct vector2 vert0;    /* 2D coordinates of vertex zero */
+  struct vector2 vert0;    /* Projection of vertex zero onto unit_u and unit_v of wall */
   
   double binding_factor;   /* Binding probability correction factor for surface area */
   
   u_int n_tiles;           /* Number of tiles in effector grid (triangle: grid_size^2, rectangle: 2*grid_size^2) */
   u_int n_occupied;        /* Number of tiles occupied by grid_molecules */
   struct grid_molecule **mol;  /* Array of pointers to grid_molecule for each tile */
-  
-  int index;               /* Unique index into effector_table */
   
   struct subvolume *subvol;/* Best match for which subvolume we're in */
   struct wall *surface;    /* The wall that we are in */
@@ -846,18 +837,19 @@ struct short3D
 };
 
 
-/* Point in space that will tell us which compartments we're in */
-
+/* Point in space that will tell us which compartments we're in
+   as determined by tracing from infinity */
 struct waypoint
 {
   struct vector3 loc;              /* This is where the waypoint is */
   struct region_list *regions;     /* We are inside these regions */
-  struct region_list *antiregions; /* We are out of these regions */
+  struct region_list *antiregions; /* We are outside of (but hit) these regions */
 };
 
 
 /* Vertices are stored in unbalanced ternary trees ordered by z-coord */
 /* Why do we need to bother?  Also, this is a weird tree structure. */
+/* Was supposed to be useful for local memory storage for Tarragon parallelism */
 struct vertex_tree
 {
   struct vertex_tree *next;         /* Vertices with same z (this is weird) */
@@ -868,7 +860,7 @@ struct vertex_tree
 };
 
 
-/* Contains space for molcules, walls, wall_lists, etc. */
+/* Contains space for molecules, walls, wall_lists, etc. */
 struct storage
 {
   struct mem_helper *list;  /* Wall lists */
@@ -880,7 +872,7 @@ struct storage
   struct mem_helper *effs;  /* Effector grids */
   struct mem_helper *coll;  /* Collision list */
   struct mem_helper *regl;  /* Region lists */
-  struct mem_helper *exdv;  /* Vertex lists for interaction disk area */
+  struct mem_helper *exdv;  /* Vertex lists for exact interaction disk area */
   
   struct wall *wall_head;              /* Locally stored walls */
   int wall_count;                      /* How many local walls? */
@@ -904,7 +896,6 @@ struct storage_list
 struct subvolume
 {
   struct wall_list *wall_head; /* Head of linked list of intersecting walls */
-  struct wall_list *wall_tail; /* Tail of list of walls */
   int wall_count;              /* How many walls intersect? */
   
   struct molecule *mol_head;   /* Head of linked list of molecules */
@@ -929,10 +920,11 @@ struct bsp_tree
   void *left;        /* The tree below the partition */
   void *right;       /* The tree above the partition */
   short partition;   /* The index of the partition */
-  short flags;       /* Coordinate that is split, plus terminal node flags */
+  short flags;       /* BSP Flags: coordinate that is split, plus terminal node flags */
 };
 
 
+/* Count data specific to named reaction pathways */
 struct rxn_counter_data
 {
   double n_rxn_at;                  /* # rxn occurrance on surface */
@@ -940,6 +932,7 @@ struct rxn_counter_data
 };
 
 
+/* Count data specific to molecules */
 struct move_counter_data
 {
   double front_hits;               /* # hits on front of region (normal up) */
@@ -951,6 +944,8 @@ struct move_counter_data
   int n_enclosed;                  /* # molecules inside closed region */
 };
 
+
+/* Counter data specific to trigger events */
 struct trig_counter_data
 {
   double t_event;                    /* Event time (exact) */
@@ -959,6 +954,15 @@ struct trig_counter_data
 };
 
 
+/* List of output items that need to know about this specific trigger event */
+struct trigger_request
+{
+  struct trigger_request *next; /* Next request */
+  struct output_request *ear;   /* Who wants to hear about the trigger */
+};
+
+
+/* Shared memory for appropriate counts */
 union counter_data
 {
   struct rxn_counter_data rx;
@@ -968,24 +972,17 @@ union counter_data
 
 
 /* Struct to count rxns or molecules within regions (where "within" includes */
-/* on the inside of a fully closed surface, for 3D molecules) */
+/* on the inside of a fully closed surface) */
 struct counter
 {
   struct counter *next;
-  byte counter_type;               /* MOL_COUNTER or RXN_COUNTER, plus flags */
+  byte counter_type;               /* Counter Type Flags (MOL_COUNTER etc.) */
   struct region *reg_type;         /* Region we are counting on */
-  void *target;                    /* Mol or rxn pathname we're counting */
-  union counter_data data;         /* data for the count
+  void *target;                    /* Mol or rxn pathname we're counting (as indicated by counter_type) */
+  union counter_data data;         /* data for the count:
                                       reference data.move for move counter
                                       reference data.rx for rxn counter 
                                       reference data.trig for trigger */
-};
-
-
-struct trigger_request
-{
-  struct trigger_request *next; /* Next request */
-  struct output_request *ear;   /* Who wants to hear about the trigger */
 };
 
 
