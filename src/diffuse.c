@@ -3479,8 +3479,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       }
     }
 
-    world->diffusion_number += 1.0;
-    world->diffusion_cumsteps += steps;
+    world->diffusion_number++;
+    world->diffusion_cumtime += steps;
   }
   
   reflectee = NULL;
@@ -3845,8 +3845,8 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
   if (steps==1.0) space_factor = sg->space_step;
   else space_factor = sg->space_step*sqrt(steps);
   
-  world->diffusion_number += 1.0;
-  world->diffusion_cumsteps += steps;
+  world->diffusion_number++;
+  world->diffusion_cumtime += steps;
   
   for (find_new_position=(SURFACE_DIFFUSION_RETRIES+1) ; find_new_position > 0 ; find_new_position--)
   {

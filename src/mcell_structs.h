@@ -860,7 +860,7 @@ struct vertex_tree
 };
 
 
-/* Contains space for molecules, walls, wall_lists, etc. */
+/* Contains local memory and scheduler for molecules, walls, wall_lists, etc. */
 struct storage
 {
   struct mem_helper *list;  /* Wall lists */
@@ -910,7 +910,7 @@ struct subvolume
 
   void *neighbor[6];           /* Subvolume or bsp_tree across each face */
   
-  struct storage *local_storage;         /* Local storage */
+  struct storage *local_storage; /* Local memory and scheduler */
 };
 
 
@@ -989,12 +989,9 @@ struct counter
 /* All data about the world */
 struct volume
 {
-/*  struct vector3 corner[8];*/  /* Corners of the world */
-#if 0
-  struct vector3 llf;           /* left lower front corner of world */
-  struct vector3 urb;           /* upper right back corner of world */
-#endif
-  
+  /* Coarse partitions are input by the user */
+  /* They may also be generated automagically */
+  /* They mark the positions of initial partition boundaries */
   int nx_parts;                 /* Number of coarse X partition boundaries */
   int ny_parts;                 /* Number of coarse Y partition boundaries */
   int nz_parts;                 /* Number of coarse Z partition boundaries */
@@ -1002,58 +999,50 @@ struct volume
   double *y_partitions;         /* Coarse Y partition boundaries */
   double *z_partitions;         /* Coarse Z partition boundaries */
   
-  int n_fineparts;        /* Number of fine partition boundaries (multiple of n_axis_partitions) */
-  double *x_fineparts;           /* Fine X partition boundaries */
-  double *y_fineparts;           /* Fine Y partition boundaries */
-  double *z_fineparts;           /* Fine Z partition boundaries */
+  /* Fine partitions are intended to allow subdivision of coarse partitions */
+  /* Subdivision is not yet implemented */
+  int n_fineparts;              /* Number of fine partition boundaries */
+  double *x_fineparts;          /* Fine X partition boundaries */
+  double *y_fineparts;          /* Fine Y partition boundaries */
+  double *z_fineparts;          /* Fine Z partition boundaries */
   
-  int n_waypoints;              /* How many of these = (n_axis_p-3)^3 */
-  struct waypoint *waypoints;   /* Contains compartment information */
-  byte place_waypoints_flag;         /* We need to place waypoints
-                                   if we count 3D diffusing molecules
-                                   in regions */
+  int n_waypoints;              /* How many waypoints (one per subvol) */
+  struct waypoint *waypoints;   /* Waypoints contain fully-closed region information */
+  byte place_waypoints_flag;    /* Used to save memory if waypoints not needed */
+
   byte releases_on_regions_flag; /* Triggers special release site initialization */
   
   int n_subvols;                /* How many coarse subvolumes? */
   struct subvolume *subvol;     /* Array containing all subvolumes */
    
-  int binning;                  /* How many real partitions per one in lookup? */
-  struct subvolume **lookup;     /* 3D lookup array pointing at subvolumes */
-  
   int n_walls;                  /* Total number of walls */
-  int n_verts;
+  int n_verts;                  /* Total number of vertices */
   
-  int rx_hashsize;                 /* How many entries in our reaction 
-                  			hash table? */
+  int rx_hashsize;              /* How many slots in our reaction hash table? */
   int n_reactions;              /* How many reactions are there, total? */
   struct rxn **reaction_hash;   /* A hash table of all reactions. */
   struct mem_helper *rxn_mem;   /* Memory to store time-varying reactions */
   
-  int count_hashmask;         /* Mask for looking up count hash table */
-  struct counter **count_hash;/* count hash table */
+  int count_hashmask;                      /* Mask for looking up count hash table */
+  struct counter **count_hash;             /* Count hash table */
+  struct schedule_helper *count_scheduler; /* When to generate reaction output */
   
-  int n_species;                /* How many different species (molecules)? */
+  int n_species;                 /* How many different species (molecules)? */
   struct species **species_list; /* Array of all species (molecules). */
   
-  struct schedule_helper *releaser;
+  struct schedule_helper *releaser; /* Scheduler for release events */
   
-  struct mem_helper *storage_allocator;      /* Storage for storage list */
-  struct storage_list *storage_head;   /* Linked list of all storage */
+  struct mem_helper *storage_allocator; /* Memory for storage list */
+  struct storage_list *storage_head;    /* Linked list of all local memory/schedulers */
   
   double speed_limit;           /* How far can the fastest particle get in one timestep? */
-  /*counts the number of times the molecules have had their positions updated */
-  double diffusion_number;
-  /* counts the number of timesteps that molecules have diffused for */
-  double diffusion_cumsteps;
 
-  struct schedule_helper *count_scheduler;
-  
-  /* Simulation initialization parameters  */
-  struct sym_table **main_sym_table;
-  struct object *root_object;
-  struct object *root_instance;
-  struct release_pattern *default_release_pattern;
-  struct release_event_queue *release_event_queue_head;
+  struct sym_table **main_sym_table;  /* Global MDL symbol hash table */
+
+  struct object *root_object;         /* Root of the object template tree */
+  struct object *root_instance;       /* Root of the instantiated object tree */
+
+  struct release_pattern *default_release_pattern;  /* release once at t=0 */
   
   struct output_block *output_block_head;
   struct output_request *output_request_head;
@@ -1064,51 +1053,58 @@ struct volume
   
   struct viz_obj *viz_obj_head;
   struct frame_data_list *frame_data_head;
+
   struct mem_helper *pathway_requester;
-  struct species *g_mol;
-  struct species *g_surf;
-  double time_unit;
-  double time_step_max;
-  double space_step;
-  double length_unit;
-  double effector_grid_density;
-  double rx_radius_3d;
-  double *r_step;
-  double *d_step;
-  double *r_step_surface;
-  double r_num_directions;
-  double sim_elapsed_time;
-  double chkpt_elapsed_real_time;    /** elapsed simulation time (in sec) for new 
-                                    checkpoint */
-  double chkpt_elapsed_real_time_start;  /**< start of the simulation time (in sec)
-                                        for new checkpoint */
-  double current_real_time;          /**< current simulation time in seconds */
-  double current_start_real_time;    /**< simulation start time (in seconds) */
-  double max_diffusion_step;
-  double random_number_use;
-  double ray_voxel_tests;
-  double ray_polygon_tests;
-  double ray_polygon_colls;
-  double mol_mol_colls;
-  double diffusion_steps;
-  struct vector3 bb_min;	/**< bounding box minimum size */
-  struct vector3 bb_max;	/**< bounding box maximum size */
-  u_int tot_mols;
+
+  struct species *g_mol;   /* A generic molecule */
+  struct species *g_surf;  /* A generic surface class */
+
+  double time_unit;        /* Duration of one global time step in real time */
+                           /* Used to convert between real time and internal time */
+  double time_step_max;    /* Maximum internal time that a molecule may diffuse */
+
+  double grid_density;     /* Density of grid for surface molecules, number per um^2 */
+  double length_unit;      /* Internal unit of distance, 1/sqrt(grid_density), in microns */
+  double rx_radius_3d;     /* Interaction radius for reactions between volume molecules */
+
+  double space_step;       /* User-supplied desired average diffusion distance for volume molecules */
+
+  double *r_step;          /* Lookup table of 3D diffusion step lengths */
+  double *d_step;          /* Lookup table of 3D diffusion direction vectors */
+  double *r_step_surface;  /* Lookup table of 2D diffusion step lengths */
+  u_int radial_subdivisions; /* Size of 2D and 3D step length lookup tables */
+  u_int radial_directions; /* Requested size of 3D direction lookup table */
+  u_int num_directions;    /* Actual size of 3D direction lookup table */
+  int directions_mask;     /* Mask to obtain RNG bits for direction lookup */
+  int fully_random;        /* If set, generate directions with trig functions instead of lookup table */
+
+  double chkpt_elapsed_real_time;    /* elapsed simulation time (in sec) for new checkpoint */
+  double chkpt_elapsed_real_time_start;  /* start of the simulation time (in sec) for new checkpoint */
+  double current_real_time;          /* current simulation time in seconds */
+  double current_start_real_time;    /* simulation start time (in seconds) */
+
+  long long diffusion_number;      /* Total number of times molecules have had their positions updated */
+  double diffusion_cumtime;     /* Total time spent diffusing by all molecules */
+  long long random_number_use;     /* How many random numbers have we used */
+  long long ray_voxel_tests;       /* How many ray-subvolume intersection tests have we performed */
+  long long ray_polygon_tests;     /* How many ray-polygon intersection tests have we performed */
+  long long ray_polygon_colls;     /* How many ray-polygon intersections have occured */
+  long long mol_mol_colls;         /* How many mol-mol collisions have occured */
+
+  struct vector3 bb_llf;	/* llf corner of world bounding box */
+  struct vector3 bb_urb;	/* urb corner of world bounding box */
+
   struct rng_state *rng;
-  u_int init_seed;              /**<  initial seed value for random function */
-  u_int chkpt_byte_order_mismatch;   /**< flag that defines whether mismatch
+  u_int init_seed;              /*  initial seed value for random function */
+
+  u_int chkpt_byte_order_mismatch;   /* flag that defines whether mismatch
                                       in byte order exists between machines
                                       that writes and reads checkpoint file.*/
 
   long long it_time;
-  double elapsed_time;    /**< number of iterations after simulation starts */
-  long long start_time;  /**< starting iteration number for the current run */
-  u_int radial_directions;
-  u_int radial_subdivisions;
-  u_int num_directions;
-  int directions_mask;
-  int fully_random;
-  int procnum;			/**< procedure number */
+  double elapsed_time;    /* number of iterations after simulation starts */
+  long long start_time;  /* starting iteration number for the current run */
+  int procnum;			/* procedure number */
   int viz_mode;
   struct rk_mode_data *rk_mode_var;
   byte voxel_image_mode;

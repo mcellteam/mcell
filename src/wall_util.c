@@ -3231,7 +3231,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
   
   if (rso->release_number_method == CCNNUM)
   {
-    n = (int)( rso->concentration * est_sites_avail / world->effector_grid_density);
+    n = (int)( rso->concentration * est_sites_avail / world->grid_density);
   }
   
   if (n<0) return vacuum_from_regions(rso,g,n);

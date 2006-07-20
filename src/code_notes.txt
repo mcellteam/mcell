@@ -2,6 +2,8 @@
 Notes on MCell3
 
 
+By convention "time" means time in internal simulation time units
+  and "real time" means time in seconds.
 
 check on usage of struct species->species_id in viz_output.c when we get there...
   how do we use it, do we need it etc...
@@ -36,9 +38,17 @@ check how we handle the lack of struct surface_grid->binding_factor during a
 
 check how we initialize struct surface_grid->subvol (which subvol owns surface_grid?).
 
-Note: it would save ~40% of struct subvolume memory usage if we got rid of BSP trees and
+It would save ~40% of struct subvolume memory usage if we got rid of BSP trees and
   therefore did not need struct subvolume->neighbor.  As the code is now written
   we don't actually allocate a single struct bsp_tree anywhere.
 
 
+Use struct volume->speed_limit to set safe time step.
 
+Change viz output to use scheduler.
+
+Revisit struct volume->output_* after Rex finishes new counting code
+
+Boris should comment struct volume viz_*
+
+Actually track and report random_number_use, ray_voxel_tests, etc...

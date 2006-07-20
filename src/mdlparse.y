@@ -1880,7 +1880,6 @@ radial_directions_def: RADIAL_DIRECTIONS '=' num_expr
     mdlerror("Out of memory while creating d_step data for molecule");
     return(1);
   }
-  volp->r_num_directions=1.0/volp->num_directions;
 
   /* Mask must contain at least every direction */
   for (volp->directions_mask = 1 ; volp->directions_mask < volp->num_directions ; volp->directions_mask <<= 1) {}
@@ -1927,15 +1926,15 @@ radial_subdivisions_def: RADIAL_SUBDIVISIONS '=' num_expr
 
 grid_density_def: EFFECTOR_GRID_DENSITY '=' num_expr
 {
-  volp->effector_grid_density=$<dbl>3;
-  no_printf("Max density = %f\n",volp->effector_grid_density);
+  volp->grid_density=$<dbl>3;
+  no_printf("Max density = %f\n",volp->grid_density);
   
   volp->space_step*=volp->length_unit;
-  volp->length_unit=1.0/sqrt(volp->effector_grid_density);
+  volp->length_unit=1.0/sqrt(volp->grid_density);
   volp->space_step/=volp->length_unit;
   
   no_printf("Length unit = %f\n",volp->length_unit);
-  mdlpvp->mc_factor=1.0e11*volp->effector_grid_density*sqrt(MY_PI*volp->time_unit)/N_AV;
+  mdlpvp->mc_factor=1.0e11*volp->grid_density*sqrt(MY_PI*volp->time_unit)/N_AV;
   mdlpvp->transport_mc_factor=6.2415e18*mdlpvp->mc_factor;
   fflush(stderr);
 };
@@ -2054,7 +2053,7 @@ molecule_stmt: new_molecule '{'
   if (mdlpvp->specp->D_ref==0) {
     mdlpvp->specp->D_ref=mdlpvp->specp->D;
   }
-  mdlpvp->mc_factor=1.0e11*volp->effector_grid_density*sqrt(MY_PI*volp->time_unit)/N_AV;
+  mdlpvp->mc_factor=1.0e11*volp->grid_density*sqrt(MY_PI*volp->time_unit)/N_AV;
   mdlpvp->transport_mc_factor=6.2415e18*mdlpvp->mc_factor;
 
   if (mdlpvp->specp->D==0) /* Immobile (boring) */
@@ -2121,11 +2120,6 @@ molecule_stmt: new_molecule '{'
     volp->directions_mask -= 1;
     
   }
-/*
-  if (mdlpvp->specp->space_step*r_step[volp->radial_subdivisions-1]>max_diffusion_step) {
-    max_diffusion_step=mdlpvp->specp->space_step*r_step[volp->radial_subdivisions-1];
-  }
-*/
   
   if (mdlpvp->specp->time_step==1.0)
   {
@@ -5119,7 +5113,7 @@ patch_statement: patch_type '=' point ',' point
   temp_urb = $<vec3>5;
   memcpy(&(mdlpvp->elmlp->special->corner1),temp_llf,sizeof(struct vector3));
   memcpy(&(mdlpvp->elmlp->special->corner2),temp_urb,sizeof(struct vector3));
-  if (refine_cuboid(temp_llf,temp_urb,mdlpvp->pop->sb,mdlpvp->vol->effector_grid_density))
+  if (refine_cuboid(temp_llf,temp_urb,mdlpvp->pop->sb,mdlpvp->vol->grid_density))
   {
     mdlerror("Could not refine box to include new patch");
     return 1;

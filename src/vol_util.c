@@ -1449,12 +1449,12 @@ int set_partitions()
     return 1;
   }
 
-  dfx = 1e-3 + (world->bb_max.x - world->bb_min.x)/8191.0;
-  dfy = 1e-3 + (world->bb_max.y - world->bb_min.y)/8191.0;
-  dfz = 1e-3 + (world->bb_max.z - world->bb_min.z)/8191.0;
+  dfx = 1e-3 + (world->bb_urb.x - world->bb_llf.x)/8191.0;
+  dfy = 1e-3 + (world->bb_urb.y - world->bb_llf.y)/8191.0;
+  dfz = 1e-3 + (world->bb_urb.z - world->bb_llf.z)/8191.0;
  
-  f_min = world->bb_min.x - dfx;
-  f_max = world->bb_max.x + dfx;
+  f_min = world->bb_llf.x - dfx;
+  f_max = world->bb_urb.x + dfx;
   if (f_max - f_min < smallest_spacing)
   {
     printf("Rescaling: was %.3f to %.3f, now ",f_min*world->length_unit,f_max*world->length_unit);
@@ -1476,8 +1476,8 @@ int set_partitions()
   for (i=1;i<=4096;i++) world->x_fineparts[4096+16383+i] = A*exp(i*k)+B;
   dfx = df;
 
-  f_min = world->bb_min.y - dfy;
-  f_max = world->bb_max.y + dfy;
+  f_min = world->bb_llf.y - dfy;
+  f_max = world->bb_urb.y + dfy;
   if (f_max - f_min < smallest_spacing)
   {
     printf("Rescaling: was %.3f to %.3f, now ",f_min*world->length_unit,f_max*world->length_unit);
@@ -1499,8 +1499,8 @@ int set_partitions()
   for (i=1;i<=4096;i++) world->y_fineparts[4096+16383+i] = A*exp(i*k)+B;
   dfy = df;
 
-  f_min = world->bb_min.z - dfz;
-  f_max = world->bb_max.z + dfz;
+  f_min = world->bb_llf.z - dfz;
+  f_max = world->bb_urb.z + dfz;
   if (f_max - f_min < smallest_spacing)
   {
     printf("Rescaling: was %.3f to %.3f, now ",f_min*world->length_unit,f_max*world->length_unit);
@@ -1726,10 +1726,10 @@ int set_partitions()
     dfy += 1e-3;
     dfz += 1e-3;
     
-    if (world->x_partitions[1] + dfx > world->bb_min.x)
+    if (world->x_partitions[1] + dfx > world->bb_llf.x)
     {
-      if (world->x_partitions[1] - dfx < world->bb_min.x)
-	world->x_partitions[1] = world->bb_min.x-dfx;
+      if (world->x_partitions[1] - dfx < world->bb_llf.x)
+	world->x_partitions[1] = world->bb_llf.x-dfx;
       else
       {
 	dbl_array = (double*) malloc( sizeof(double)*(world->nx_parts+1) );
@@ -1740,17 +1740,17 @@ int set_partitions()
 	}
   
 	dbl_array[0] = world->x_partitions[0];
-	dbl_array[1] = world->bb_min.x - dfx;
+	dbl_array[1] = world->bb_llf.x - dfx;
 	memcpy(&(dbl_array[2]),&(world->x_partitions[1]),sizeof(double)*(world->nx_parts-1));
 	free( world->x_partitions );
 	world->x_partitions = dbl_array;
 	world->nx_parts++;
       }
     }
-    if (world->x_partitions[world->nx_parts-2] - dfx < world->bb_max.x)
+    if (world->x_partitions[world->nx_parts-2] - dfx < world->bb_urb.x)
     {
-      if (world->x_partitions[world->nx_parts-2] + dfx > world->bb_max.x)
-	world->x_partitions[world->nx_parts-2] = world->bb_max.x + dfx;
+      if (world->x_partitions[world->nx_parts-2] + dfx > world->bb_urb.x)
+	world->x_partitions[world->nx_parts-2] = world->bb_urb.x + dfx;
       else
       {
 	dbl_array = (double*) malloc( sizeof(double)*(world->nx_parts+1) );
@@ -1761,17 +1761,17 @@ int set_partitions()
 	}
   
 	dbl_array[world->nx_parts] = world->x_partitions[world->nx_parts-1];
-	dbl_array[world->nx_parts-1] = world->bb_max.x + dfx;
+	dbl_array[world->nx_parts-1] = world->bb_urb.x + dfx;
 	memcpy(dbl_array,world->x_partitions,sizeof(double)*(world->nx_parts-1));
 	free( world->x_partitions );
 	world->x_partitions = dbl_array;
 	world->nx_parts++;
 	}
     }
-     if (world->y_partitions[1] + dfy > world->bb_min.y)
+     if (world->y_partitions[1] + dfy > world->bb_llf.y)
     {
-      if (world->y_partitions[1] - dfy < world->bb_min.y)
-	world->y_partitions[1] = world->bb_min.y-dfy;
+      if (world->y_partitions[1] - dfy < world->bb_llf.y)
+	world->y_partitions[1] = world->bb_llf.y-dfy;
       else
       {
 	dbl_array = (double*) malloc( sizeof(double)*(world->ny_parts+1) );
@@ -1782,17 +1782,17 @@ int set_partitions()
 	}
   
 	dbl_array[0] = world->y_partitions[0];
-	dbl_array[1] = world->bb_min.y - dfy;
+	dbl_array[1] = world->bb_llf.y - dfy;
 	memcpy(&(dbl_array[2]),&(world->y_partitions[1]),sizeof(double)*(world->ny_parts-1));
 	free( world->y_partitions );
 	world->y_partitions = dbl_array;
 	world->ny_parts++;
       }
     }
-    if (world->y_partitions[world->ny_parts-2] - dfy < world->bb_max.y)
+    if (world->y_partitions[world->ny_parts-2] - dfy < world->bb_urb.y)
     {
-      if (world->y_partitions[world->ny_parts-2] + dfy > world->bb_max.y)
-	world->y_partitions[world->ny_parts-2] = world->bb_max.y + dfy;
+      if (world->y_partitions[world->ny_parts-2] + dfy > world->bb_urb.y)
+	world->y_partitions[world->ny_parts-2] = world->bb_urb.y + dfy;
       else
       {
 	dbl_array = (double*) malloc( sizeof(double)*(world->ny_parts+1) );
@@ -1803,17 +1803,17 @@ int set_partitions()
 	}
   
 	dbl_array[world->ny_parts] = world->y_partitions[world->ny_parts-1];
-	dbl_array[world->ny_parts-1] = world->bb_max.y + dfy;
+	dbl_array[world->ny_parts-1] = world->bb_urb.y + dfy;
 	memcpy(dbl_array,world->y_partitions,sizeof(double)*(world->ny_parts-1));
 	free( world->y_partitions );
 	world->y_partitions = dbl_array;
 	world->ny_parts++;
       }
     }
-    if (world->z_partitions[1] + dfz > world->bb_min.z)
+    if (world->z_partitions[1] + dfz > world->bb_llf.z)
     {
-      if (world->z_partitions[1] - dfz < world->bb_min.z)
-	world->z_partitions[1] = world->bb_min.z-dfz;
+      if (world->z_partitions[1] - dfz < world->bb_llf.z)
+	world->z_partitions[1] = world->bb_llf.z-dfz;
       else
       {
 	dbl_array = (double*) malloc( sizeof(double)*(world->nz_parts+1) );
@@ -1824,17 +1824,17 @@ int set_partitions()
 	} 
   
 	dbl_array[0] = world->z_partitions[0];
-	dbl_array[1] = world->bb_min.z - dfz;
+	dbl_array[1] = world->bb_llf.z - dfz;
 	memcpy(&(dbl_array[2]),&(world->z_partitions[1]),sizeof(double)*(world->nz_parts-1));
 	free( world->z_partitions );
 	world->z_partitions = dbl_array;
 	world->nz_parts++;
       }
     }
-    if (world->z_partitions[world->nz_parts-2] - dfz < world->bb_max.z)
+    if (world->z_partitions[world->nz_parts-2] - dfz < world->bb_urb.z)
     {
-      if (world->z_partitions[world->nz_parts-2] + dfz > world->bb_max.z)
-	world->z_partitions[world->nz_parts-2] = world->bb_max.z + dfz;
+      if (world->z_partitions[world->nz_parts-2] + dfz > world->bb_urb.z)
+	world->z_partitions[world->nz_parts-2] = world->bb_urb.z + dfz;
       else
       {
 	dbl_array = (double*) malloc( sizeof(double)*(world->nz_parts+1) );
@@ -1844,7 +1844,7 @@ int set_partitions()
 	} 
   
 	dbl_array[world->nz_parts] = world->z_partitions[world->nz_parts-1];
-	dbl_array[world->nz_parts-1] = world->bb_max.z + dfz;
+	dbl_array[world->nz_parts-1] = world->bb_urb.z + dfz;
 	memcpy(dbl_array,world->z_partitions,sizeof(double)*(world->nz_parts-1));
 	free( world->z_partitions );
 	world->z_partitions = dbl_array;

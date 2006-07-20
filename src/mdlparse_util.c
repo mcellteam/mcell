@@ -814,7 +814,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   
   if (mpvp->vol->rx_radius_3d <= 0.0)
   {
-    mpvp->vol->rx_radius_3d = 1.0/sqrt( MY_PI*mpvp->vol->effector_grid_density );
+    mpvp->vol->rx_radius_3d = 1.0/sqrt( MY_PI*mpvp->vol->grid_density );
   }
   mpvp->vol->rxn_mem = create_mem( sizeof(struct t_func) , 100 );
   if (mpvp->vol->rxn_mem == NULL) return 1;
@@ -1222,9 +1222,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	    }
 	    else if ( (rx->players[0]->flags | rx->players[1]->flags) & CANT_INITIATE )
 	    {
-	      pb_factor = mpvp->vol->time_unit*mpvp->vol->effector_grid_density/3;
+	      pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/3;
 	    }
-	    else pb_factor = mpvp->vol->time_unit*mpvp->vol->effector_grid_density/6;
+	    else pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/6;
 	  }
 	  else if ( ((rx->players[0]->flags&IS_SURFACE)!=0 && (rx->players[1]->flags&ON_GRID)!=0) ||
 	            ((rx->players[1]->flags&IS_SURFACE)!=0 && (rx->players[0]->flags&ON_GRID)!=0) )
@@ -1252,7 +1252,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	    }
 	    
 	    if (D_tot<=0.0) pb_factor = 0; /* Reaction can't happen! */
-	    else pb_factor = 1.0e11*mpvp->vol->effector_grid_density/(2.0*N_AV)*sqrt( MY_PI * t_step / D_tot );
+	    else pb_factor = 1.0e11*mpvp->vol->grid_density/(2.0*N_AV)*sqrt( MY_PI * t_step / D_tot );
 	  
             if ( (rx->geometries[0]+rx->geometries[1])*(rx->geometries[0]-rx->geometries[1]) == 0 &&
 	         rx->geometries[0]*rx->geometries[1] != 0 )

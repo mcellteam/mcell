@@ -74,7 +74,8 @@ void run_sim(void)
     else                                       frequency = 100000;
   }
   
-  world->diffusion_number = world->diffusion_cumsteps = 0.0;
+  world->diffusion_number = 0;
+  world->diffusion_cumtime = 0.0;
   world->it_time = world->start_time;
  
   while (world->it_time <= world->iterations) 
@@ -257,9 +258,9 @@ void run_sim(void)
 
     if(world->diffusion_number > 0)
     { 
-      fprintf(world->log_file,"Average diffusion jump was %.2f timesteps\n",world->diffusion_cumsteps/world->diffusion_number);
+      fprintf(world->log_file,"Average diffusion jump was %.2f timesteps\n",world->diffusion_cumtime/(double)world->diffusion_number);
     }
-    fprintf(world->log_file,"Total number of molecule-molecule collisions: %g\n",world->mol_mol_colls);
+    fprintf(world->log_file,"Total number of molecule-molecule collisions: %lld\n",world->mol_mol_colls);
  
     t_final = time(NULL);
     getrusage(RUSAGE_SELF,&run_time);

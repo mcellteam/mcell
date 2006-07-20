@@ -216,8 +216,6 @@ int init_sim(void)
   world->ray_polygon_tests=0;
   world->ray_polygon_colls=0;
   world->mol_mol_colls=0;
-  world->diffusion_steps=0;
-  world->sim_elapsed_time=0;
   world->chkpt_elapsed_real_time=0;
   world->chkpt_elapsed_real_time_start=0;
   world->chkpt_byte_order_mismatch = 0;
@@ -228,15 +226,13 @@ int init_sim(void)
   world->start_time=0;
   world->current_real_time=0;
   world->current_start_real_time=0;
-  world->effector_grid_density=10000;
-  world->length_unit=1.0/sqrt(world->effector_grid_density);
+  world->grid_density=10000;
+  world->length_unit=1.0/sqrt(world->grid_density);
   world->rx_radius_3d = 0;
-  world->max_diffusion_step=0;
   world->radial_directions=16384;
   world->radial_subdivisions=1024;
   world->fully_random=0;
   world->num_directions=world->radial_directions;
-  world->r_num_directions=1.0/world->num_directions;
   world->r_step=NULL;
   world->r_step_surface=NULL;
   world->d_step=NULL;
@@ -380,8 +376,6 @@ int init_sim(void)
 
   world->output_block_head=NULL;
   world->output_request_head=NULL;
-  world->release_event_queue_head=NULL;
-  world->tot_mols=0;
   world->viz_obj_head=NULL;
   world->viz_mode=DREAMM_V3_MODE;
   world->rk_mode_var=NULL;
@@ -707,35 +701,35 @@ int init_partitions(void)
   struct subvolume *sv;
   struct storage *shared_mem;
   
-  if (world->bb_min.x >= world->bb_max.x)
+  if (world->bb_llf.x >= world->bb_urb.x)
   {
     part_lo.x = -10.0;
     part_hi.x = 10.0;
   }
   else
   {
-    part_lo.x = world->bb_min.x;
-    part_hi.x = world->bb_max.x;
+    part_lo.x = world->bb_llf.x;
+    part_hi.x = world->bb_urb.x;
   }
-  if (world->bb_min.y >= world->bb_max.y)
+  if (world->bb_llf.y >= world->bb_urb.y)
   {
     part_lo.y = -10.0;
     part_hi.y = 10.0;
   }
   else
   {
-    part_lo.y = world->bb_min.y;
-    part_hi.y = world->bb_max.y;
+    part_lo.y = world->bb_llf.y;
+    part_hi.y = world->bb_urb.y;
   }
-  if (world->bb_min.z >= world->bb_max.z)
+  if (world->bb_llf.z >= world->bb_urb.z)
   {
     part_lo.z = -10.0;
     part_hi.z = 10.0;
   }
   else
   {
-    part_lo.z = world->bb_min.z;
-    part_hi.z = world->bb_max.z;
+    part_lo.z = world->bb_llf.z;
+    part_hi.z = world->bb_urb.z;
   }
 
 /* Cheating for now. */  
@@ -921,9 +915,6 @@ int init_partitions(void)
     sv->local_storage = shared_mem;
   }
   
-  world->binning = 0;
-  world->lookup = NULL;
-  
   return 0;
 }
 
@@ -940,39 +931,38 @@ int init_geom(void)
   FILE *log_file;
   double tm[4][4];
   double vol_infinity;
-  struct release_event_queue *req,*rqn;
   
   no_printf("Initializing physical objects\n");
   log_file=world->log_file;
   vol_infinity=sqrt(DBL_MAX)/4;
-  world->bb_min.x=vol_infinity;
-  world->bb_min.y=vol_infinity;
-  world->bb_min.z=vol_infinity;
-  world->bb_max.x=-vol_infinity;
-  world->bb_max.y=-vol_infinity;
-  world->bb_max.z=-vol_infinity;
+  world->bb_llf.x=vol_infinity;
+  world->bb_llf.y=vol_infinity;
+  world->bb_llf.z=vol_infinity;
+  world->bb_urb.x=-vol_infinity;
+  world->bb_urb.y=-vol_infinity;
+  world->bb_urb.z=-vol_infinity;
   init_matrix(tm);
   
   compute_bb(world->root_instance,tm,NULL);
-  if (world->bb_min.x==vol_infinity 
-      && world->bb_min.y==vol_infinity
-      && world->bb_min.z==vol_infinity
-      && world->bb_max.x==-vol_infinity
-      && world->bb_max.y==-vol_infinity
-      && world->bb_max.z==-vol_infinity) {
-    world->bb_min.x=0;
-    world->bb_min.y=0;
-    world->bb_min.z=0;
-    world->bb_max.x=0;
-    world->bb_max.y=0;
-    world->bb_max.z=0;
+  if (world->bb_llf.x==vol_infinity 
+      && world->bb_llf.y==vol_infinity
+      && world->bb_llf.z==vol_infinity
+      && world->bb_urb.x==-vol_infinity
+      && world->bb_urb.y==-vol_infinity
+      && world->bb_urb.z==-vol_infinity) {
+    world->bb_llf.x=0;
+    world->bb_llf.y=0;
+    world->bb_llf.z=0;
+    world->bb_urb.x=0;
+    world->bb_urb.y=0;
+    world->bb_urb.z=0;
   }
   if (world->procnum == 0) {
     fprintf(log_file,"MCell: world bounding box in microns =\n");
     fprintf(log_file,"         [ %.9g %.9g %.9g ] [ %.9g %.9g %.9g ]\n",
-      world->bb_min.x*world->length_unit,world->bb_min.y*world->length_unit,
-      world->bb_min.z*world->length_unit,world->bb_max.x*world->length_unit,
-      world->bb_max.y*world->length_unit,world->bb_max.z*world->length_unit);
+      world->bb_llf.x*world->length_unit,world->bb_llf.y*world->length_unit,
+      world->bb_llf.z*world->length_unit,world->bb_urb.x*world->length_unit,
+      world->bb_urb.y*world->length_unit,world->bb_urb.z*world->length_unit);
   }
 
   world->n_walls=world->root_instance->n_walls;
@@ -982,20 +972,6 @@ int init_geom(void)
   
   if (instance_obj(world->root_instance,tm,NULL,NULL,NULL)) {
     return(1);
-  }
-  
-/* Stick the queue of release events in a scheduler */
-  req = world->release_event_queue_head;  
-  while(req != NULL)
-  {
-    rqn = req->next;
-    if (schedule_add(world->releaser , req)){ 
-	fprintf(stderr,"File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        int i = emergency_output();
-	fprintf(stderr,"Fatal error: out of memory while geometry initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-    }
-    req = rqn;
   }
 
   return(0);
@@ -1144,9 +1120,13 @@ int instance_release_site(struct object *objp, double (*im)[4])
   reqp->train_counter=0;
   reqp->train_high_time=rsop->pattern->delay;
   for (i=0;i<4;i++) for (j=0;j<4;j++) reqp->t_matrix[i][j]=im[i][j];
-  reqp->next=world->release_event_queue_head;
-  world->release_event_queue_head=reqp;
-  
+
+  /* Schedule the release event */
+  if (schedule_add(world->releaser,reqp))
+  {
+    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while scheduling releases.\n", __FILE__, (long)__LINE__);
+    return(1);
+  }
 
   if(rsop->pattern->train_duration > rsop->pattern->train_interval)
   {
@@ -1294,23 +1274,23 @@ int compute_bb_release_site(struct object *objp, double (*im)[4])
   }
 
 
-  if (location[0][0]  - diam_x < world->bb_min.x) {
-    world->bb_min.x=location[0][0] - diam_x;
+  if (location[0][0]  - diam_x < world->bb_llf.x) {
+    world->bb_llf.x=location[0][0] - diam_x;
   }
-  if (location[0][1] - diam_y < world->bb_min.y) {
-    world->bb_min.y=location[0][1] - diam_y;
+  if (location[0][1] - diam_y < world->bb_llf.y) {
+    world->bb_llf.y=location[0][1] - diam_y;
   }
-  if (location[0][2] - diam_z < world->bb_min.z) {
-    world->bb_min.z=location[0][2] - diam_z;
+  if (location[0][2] - diam_z < world->bb_llf.z) {
+    world->bb_llf.z=location[0][2] - diam_z;
   }
-  if (location[0][0] + diam_x > world->bb_max.x) {
-    world->bb_max.x=location[0][0] + diam_x;
+  if (location[0][0] + diam_x > world->bb_urb.x) {
+    world->bb_urb.x=location[0][0] + diam_x;
   }
-  if (location[0][1] + diam_y > world->bb_max.y) {
-    world->bb_max.y=location[0][1] + diam_y;
+  if (location[0][1] + diam_y > world->bb_urb.y) {
+    world->bb_urb.y=location[0][1] + diam_y;
   }
-  if (location[0][2] + diam_z > world->bb_max.z) {
-    world->bb_max.z=location[0][2] + diam_z;
+  if (location[0][2] + diam_z > world->bb_urb.z) {
+    world->bb_urb.z=location[0][2] + diam_z;
   }
 
   return(0);
@@ -1346,23 +1326,23 @@ int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_n
       p[0][2]=opp->vertex[i].z;
       p[0][3]=1.0;
       mult_matrix(p,im,p,l,m,n);
-      if (p[0][0]/world->length_unit<world->bb_min.x) {
-        world->bb_min.x=p[0][0]/world->length_unit;
+      if (p[0][0]/world->length_unit<world->bb_llf.x) {
+        world->bb_llf.x=p[0][0]/world->length_unit;
       }
-      if (p[0][1]/world->length_unit<world->bb_min.y) {
-        world->bb_min.y=p[0][1]/world->length_unit;
+      if (p[0][1]/world->length_unit<world->bb_llf.y) {
+        world->bb_llf.y=p[0][1]/world->length_unit;
       }
-      if (p[0][2]/world->length_unit<world->bb_min.z) {
-        world->bb_min.z=p[0][2]/world->length_unit;
+      if (p[0][2]/world->length_unit<world->bb_llf.z) {
+        world->bb_llf.z=p[0][2]/world->length_unit;
       }
-      if (p[0][0]/world->length_unit>world->bb_max.x) {
-        world->bb_max.x=p[0][0]/world->length_unit;
+      if (p[0][0]/world->length_unit>world->bb_urb.x) {
+        world->bb_urb.x=p[0][0]/world->length_unit;
       }
-      if (p[0][1]/world->length_unit>world->bb_max.y) {
-        world->bb_max.y=p[0][1]/world->length_unit;
+      if (p[0][1]/world->length_unit>world->bb_urb.y) {
+        world->bb_urb.y=p[0][1]/world->length_unit;
       }
-      if (p[0][2]/world->length_unit>world->bb_max.z) {
-        world->bb_max.z=p[0][2]/world->length_unit;
+      if (p[0][2]/world->length_unit>world->bb_urb.z) {
+        world->bb_urb.z=p[0][2]/world->length_unit;
       }
     }
 
@@ -1739,10 +1719,10 @@ int init_wall_regions(struct object *objp, char *full_name)
       }
     }
   } /*end loop over all regions in object */
-  no_printf("Total area of object %s = %.9g um^2\n",objp->sym->name,objp->total_area/world->effector_grid_density);
+  no_printf("Total area of object %s = %.9g um^2\n",objp->sym->name,objp->total_area/world->grid_density);
   no_printf("  number of tiles = %u\n",objp->n_tiles);
   no_printf("  number of occupied tiles = %u\n",objp->n_occupied_tiles);
-  no_printf("  grid molecule density = %.9g\n",objp->n_occupied_tiles*world->effector_grid_density/objp->total_area);
+  no_printf("  grid molecule density = %.9g\n",objp->n_occupied_tiles*world->grid_density/objp->total_area);
     
   /* Check to see if we need to generate virtual regions for */
   /* concentration clamps on this object */
@@ -2111,7 +2091,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
   effdp=effdp_head;
   while (effdp!=NULL) {
     no_printf("  Adding effector %s to wall at density %.9g\n",effdp->eff->sym->name,effdp->quantity);
-    tot_prob+=(area*effdp->quantity)/(n*world->effector_grid_density);
+    tot_prob+=(area*effdp->quantity)/(n*world->grid_density);
     prob[i]=tot_prob;
     if (effdp->orientation > 0) orientation[i] = 1;
     else if (effdp->orientation < 0) orientation[i] = -1;
@@ -2121,7 +2101,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
     effdp=effdp->next;
   }
 
-  if (tot_density>world->effector_grid_density) {
+  if (tot_density>world->grid_density) {
     fprintf(log_file,"\nMCell: Warning -- Total effector density too high: %f.  Filling all available effector sites.\n\n",tot_density);
     fflush(log_file);
 /*
