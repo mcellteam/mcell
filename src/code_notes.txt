@@ -52,3 +52,14 @@ Revisit struct volume->output_* after Rex finishes new counting code
 Boris should comment struct volume viz_*
 
 Actually track and report random_number_use, ray_voxel_tests, etc...
+
+
+Write a proper information message for "mcell3 -info",  i.e. struct volume->info_opt
+
+
+Let user set err_file_name from command line
+
+
+struct release_site_obj->release_number should be a double (for gaussian releases)
+
+

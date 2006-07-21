@@ -204,6 +204,7 @@
 #define COLLIDE_SUBVOL  0x40
 
 
+/* Target-type Flags */
 /* Types for things we can hit */
 #define VOL_COLLISION    1
 #define WALL_COLLISION   2   
@@ -253,7 +254,7 @@
 #define MIN_TARGET_TIMESTEP 10.0
 
 
-/* Shapes for release sites */
+/* Release Shape Flags */
 #define SHAPE_UNDEFINED -1
 #define SHAPE_SPHERICAL 0
 #define SHAPE_CUBIC 1
@@ -271,6 +272,7 @@
 #define Z_PARTS 2
 
 
+/* Exact Disk Flags */
 /* Flags for the exact disk computation */
 #define EXD_HEAD  0
 #define EXD_TAIL  1
@@ -278,10 +280,12 @@
 #define EXD_SPAN  3
 #define EXD_OTHER 4
 
+
 /* Negative numbers used for reaction disks */
 /* Note: TARGET_OCCLUDED is assumed for any negative number not defined here */
 #define TARGET_OCCLUDED    -1
 #define EXD_OUT_OF_MEMORY  -2
+
 
 /* Boolean set operations for releases on regions */
 /* Set only one of NO_OP, UNION, INTERSECTION, SUBTRACTION */
@@ -292,6 +296,7 @@
 #define REXP_MASK         0x0F
 #define REXP_LEFT_REGION  0x10
 #define REXP_RIGHT_REGION 0x20
+
 
 /* Distance in length units to search for a new site for a grid molecule */
 /* after checkpointing.  Current site might be full, so a value >1 is */
@@ -560,7 +565,7 @@
 #define ALL_MOL_DATA  10
 #define ALL_MESH_DATA 11
 
-/* release number methods */
+/* Release Number Flags */
 #define CONSTNUM 0
 #define GAUSSNUM 1
 #define VOLNUM 2
@@ -1050,6 +1055,7 @@ struct volume
   struct mem_helper *outp_request_mem;
   struct mem_helper *counter_mem;
   struct mem_helper *trig_request_mem;
+  double elapsed_time;    /* (Used for concentration measurement) */
   
   struct viz_obj *viz_obj_head;
   struct frame_data_list *frame_data_head;
@@ -1078,6 +1084,19 @@ struct volume
   int directions_mask;     /* Mask to obtain RNG bits for direction lookup */
   int fully_random;        /* If set, generate directions with trig functions instead of lookup table */
 
+  long long chkpt_iterations; /* Number of iterations to advance before checkpointing */
+  u_int chkpt_init; /* Set if this is the initial run of a simulation with no previous checkpoints */
+  u_int chkpt_flag; /* Set if there are any CHECKPOINT statements in "mdl" file */
+  u_int chkpt_seq_num;        /* Number of current run in checkpoint sequence */
+
+  char *chkpt_infile;         /* Name of checkpoint file to read from */
+  char *chkpt_outfile;        /* Name of checkpoint file to write to */
+  FILE *chkpt_infs;           /* Checkpoint input file */
+  FILE *chkpt_outfs;          /* Checkpoint output file */
+  u_int chkpt_byte_order_mismatch;   /* Flag that defines whether mismatch
+                                      in byte order exists between the saved
+                                      checkpoint file and the machine reading it */
+
   double chkpt_elapsed_real_time;    /* elapsed simulation time (in sec) for new checkpoint */
   double chkpt_elapsed_real_time_start;  /* start of the simulation time (in sec) for new checkpoint */
   double current_real_time;          /* current simulation time in seconds */
@@ -1094,65 +1113,49 @@ struct volume
   struct vector3 bb_llf;	/* llf corner of world bounding box */
   struct vector3 bb_urb;	/* urb corner of world bounding box */
 
-  struct rng_state *rng;
-  u_int init_seed;              /*  initial seed value for random function */
+  struct rng_state *rng;        /* State of the random number generator (currently isaac64) */
+  u_int init_seed;              /* Initial seed value for random number generator */
 
-  u_int chkpt_byte_order_mismatch;   /* flag that defines whether mismatch
-                                      in byte order exists between machines
-                                      that writes and reads checkpoint file.*/
+  long long it_time;      /* How many iterations have been run so far */
+  long long start_time;   /* Starting iteration number for the current run */
 
-  long long it_time;
-  double elapsed_time;    /* number of iterations after simulation starts */
-  long long start_time;  /* starting iteration number for the current run */
-  int procnum;			/* procedure number */
+  int procnum;            /* Processor number for a parallel run */
+
+  /* Old viz output stuff */
   int viz_mode;
   struct rk_mode_data *rk_mode_var;
   byte voxel_image_mode;
   byte voxel_volume_mode;
   char *molecule_prefix_name;
   char *file_prefix_name;
-  char *mcell_version; 
-  u_short viz_output_flag; /*takes  VIZ_ALL_MOLECULES  */
+  u_short viz_output_flag; /* Takes  VIZ_ALL_MOLECULES  */
+
+  char *mcell_version;     /* Current version number.
+                              Format is "3.XX.YY" where XX is major release number (for new features)
+                              and YY is minor release number (for patches) */
  
-  /* Optional stuff */
-  int use_expanded_list;
-  int randomize_gmol_pos;
-  double vacancy_search_dist2;
-  byte surface_reversibility;
-  byte volume_reversibility;
+  int use_expanded_list;       /* If set, check neighboring subvolumes for mol-mol interactions */
+  int randomize_gmol_pos;      /* If set, always place surface molecule at random location instead of center of grid */
+  double vacancy_search_dist2; /* Square of distance to search for free grid location to place surface product */
+  byte surface_reversibility;  /* If set, match unbinding diffusion distribution to binding distribution at surface */
+  byte volume_reversibility;   /* If set, match unbinding diffusion distribution to binding distribution in volume */
 
   /* MCell startup command line arguments */
-  byte info_opt;
-  u_int seed_seq;            /**< index in the seed_array */
-  long long iterations;
-  char *log_file_name;
-  FILE *log_file;
-  FILE *err_file;
-  u_int log_freq;
-  /* flag set to 0 if CHECKPOINT_INFILE can be opened for reading,
-     otherwise - if there is no such file or it can't be read it is set to 1 */
-  u_int chkpt_init;
-  /* flag set to 1 if there are any CHECKPOINT statements in "mdl" file */
-  u_int chkpt_flag;
-  /* value of the CHECKPOINT_ITERATIONS keyword */
-  long long chkpt_iterations;
-  u_int chkpt_seq_num;
-  char *chkpt_infile;
-  char *chkpt_outfile;
-  /* Handle for the file named "chkpt_infile" */
-  FILE *chkpt_infs;
-  FILE *chkpt_outfs;
-  FILE *chkpt_signal_file_tmp;
-  char *mdl_infile_name;
-  char *curr_file;
+  byte info_opt;             /* If set, print out infomation message and quit */
+  u_int seed_seq;            /* Seed for random number generator */
+  long long iterations;      /* How many iterations to run */
+  char *log_file_name;       /* Name of log file */
+  FILE *log_file;            /* Log file to use, default is stdout */
+  FILE *err_file;            /* Error log file to use, default is stderr */
+  u_int log_freq;            /* Interval between simulation progress reports, default scales as sqrt(iterations) */
+  char *mdl_infile_name;     /* Name of MDL file specified on command line */
+  char *curr_file;           /* Name of MDL file currently being parsed */
   
-  /* Notification/warning/output stuff */
-  struct notifications *notify;
+  struct notifications *notify; /* Notification/warning/output flags */
   
-  /* Concentration clamp at surfaces */
-  struct ccn_clamp_data *clamp_list;
+  struct ccn_clamp_data *clamp_list;  /* List of objects at which volume molecule concentrations should be clamped */
   
-  /* Nifty pointers for debugging */
+  /* Nifty pointers for debugging go here */
   struct output_request *watch_orq;
 };
 
@@ -1163,14 +1166,14 @@ struct collision
   struct collision *next;
   double t;                     /* Time of collision (may be slightly early) */
   
-  void *target;                 /* Thing that we hit */
-  int what;                     /* What kind of thing did we hit? */
+  void *target;                 /* Thing that we hit: wall, molecule, subvol etc */
+  int what;                     /* Target-type Flags: what kind of thing did we hit? */
   struct rxn *intermediate;     /* Reaction that told us we could hit it */
   struct vector3 loc;           /* Location of impact */
 };
 
 
-/* Data structures to store information about interaction disk geometry */
+/* Data structures to store information about exact interaction disk geometry */
 struct exd_vertex
 {
   struct exd_vertex *next;
@@ -1178,33 +1181,32 @@ struct exd_vertex
   double r2,zeta;          /* r,theta style coordinates */
   struct exd_vertex *e;    /* Edge to next vertex */
   struct exd_vertex *span; /* List of edges spanning this point */
-  int role;                /* Head, tail, whatever */
+  int role;                /* Exact Disk Flags: Head, tail, whatever */
 };
-
 
 
 /* Data structures to describe release events */
 struct release_event_queue {
   struct release_event_queue *next;
-  double event_time;			/**< time of the release */
-
-  struct release_site_obj *release_site;
-  double t_matrix[4][4];                /**< transformation matrix */
-  int train_counter;			/**< counts executed trains */
-  double train_high_time;		/**< time of the train's start */
+  double event_time;			/* Time of the release */
+  struct release_site_obj *release_site; /* What to release, where to release it, etc */
+  double t_matrix[4][4];                /* transformation matrix for location of release site */
+  int train_counter;			/* counts executed trains */
+  double train_high_time;		/* time of the train's start */
 };
 
 
+/* Release site information  */
 struct release_site_obj {
-	struct vector3 *location;	/**< location of release site */
-	struct species *mol_type;	/**< species to be released */
-	byte release_number_method;
-	byte release_shape;
-	short orientation;
-	int release_number;
-	int mean_number;
-	double mean_diameter;
-	double concentration;
+	struct vector3 *location;	/* location of release site */
+	struct species *mol_type;	/* species to be released */
+	byte release_number_method;     /* Release Number Flags: controls how release_number is used */
+	byte release_shape;             /* Release Shape Flags: controls shape over which to release */
+	short orientation;              /* Orientation of released surface molecules */
+	int release_number;             /* Number to release */
+	double mean_diameter;           /* Diameter for symmetric releases */
+	double concentration;           /* Concentration of molecules to release.
+	                                   Units are Molar for volume molecules, and number per um^2 for surface molecules. */
         double standard_deviation;
 	struct vector3 *diameter;
 	struct release_region_data *region_data;
@@ -1213,6 +1215,7 @@ struct release_site_obj {
 	double release_prob;
 	struct release_pattern *pattern;
 };
+
 
 /* Timing pattern for molecule release from a release site. */
 struct release_pattern {

@@ -3488,7 +3488,6 @@ release_site_def_new: new_object RELEASE_SITE '{'
   mdlpvp->rsop->release_shape = SHAPE_UNDEFINED;
   mdlpvp->rsop->orientation=0;
   mdlpvp->rsop->release_number=0;
-  mdlpvp->rsop->mean_number=0;
   mdlpvp->rsop->mean_diameter=0;
   mdlpvp->rsop->concentration=0;
   mdlpvp->rsop->standard_deviation=0;
@@ -3710,7 +3709,6 @@ release_site_def_old: new_object release_site_geom_old '{'
   mdlpvp->rsop->release_number_method=CONSTNUM;
   mdlpvp->rsop->release_shape = $<tok>2;
   mdlpvp->rsop->release_number=0;
-  mdlpvp->rsop->mean_number=0;
   mdlpvp->rsop->mean_diameter=0;
   mdlpvp->rsop->concentration=0;
   mdlpvp->rsop->standard_deviation=0;
@@ -4015,7 +4013,7 @@ gaussian_release_number_cmd: GAUSSIAN_RELEASE_NUMBER '{'
 	'}'
 {
   mdlpvp->rsop->release_number_method=GAUSSNUM;
-  mdlpvp->rsop->mean_number=(int) $<dbl>5;
+  mdlpvp->rsop->release_number=(int) $<dbl>5;
   mdlpvp->rsop->standard_deviation=$<dbl>8;
 };
 

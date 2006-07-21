@@ -3359,7 +3359,6 @@ struct release_site_obj* duplicate_release_site(struct release_site_obj *old,str
   rso->release_number_method = old->release_number_method;
   rso->orientation = old->orientation;
   rso->release_number = old->release_number;
-  rso->mean_number = old->release_number;
   rso->mean_diameter = old->mean_diameter;
   rso->concentration = old->concentration;
   rso->standard_deviation = old->standard_deviation;

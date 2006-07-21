@@ -148,15 +148,16 @@ checkpoint_cmd: CHECKPOINT_OPT FILE_NAME
   }
   free((void *)argpvp->cval);
   argpvp->cval = NULL;
-  if ((volp->chkpt_signal_file_tmp=fopen(volp->chkpt_infile,"rb"))==NULL) {
-    sprintf(argpvp->arg_err_msg,"Cannot open input checkpoint file (Resume from USR Signal) : %s",volp->chkpt_infile);
+  if ((volp->chkpt_infs=fopen(volp->chkpt_infile,"rb"))==NULL) {
+    sprintf(argpvp->arg_err_msg,"Cannot open input checkpoint file: %s",volp->chkpt_infile);
     argerror(argpvp->arg_err_msg,argpvp);
     volp->chkpt_init=1;
     return(1);  
   }
   volp->chkpt_init=0;
   volp->chkpt_flag = 1;
-  fclose(volp->chkpt_signal_file_tmp);
+  fclose(volp->chkpt_infs);
+  volp->chkpt_infs=NULL;
 
 };
 
