@@ -62,4 +62,9 @@ Let user set err_file_name from command line
 
 struct release_site_obj->release_number should be a double (for gaussian releases)
 
+Add comments to members of struct notifications (if needed, pretty self-explanatory)
+
+Add code to insure that each COUNT set outputs to a unique file.
+
+
 

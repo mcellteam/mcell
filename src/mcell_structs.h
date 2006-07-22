@@ -76,6 +76,7 @@
 /* End of Abstract Molecule Flags. */
 
 
+/* Output Report Flags */
 /* rxn/mol/region counter report types */
 /* Do not set both WORLD and ENCLOSED flags; ENCLOSED applies only to regions */
 /* First set reports a single number */
@@ -287,6 +288,7 @@
 #define EXD_OUT_OF_MEMORY  -2
 
 
+/* Region Expression Flags */
 /* Boolean set operations for releases on regions */
 /* Set only one of NO_OP, UNION, INTERSECTION, SUBTRACTION */
 #define REXP_NO_OP        1
@@ -309,20 +311,25 @@
 #define MIN_DEFUNCT_FOR_GC 1024
 #define MAX_DEFUNCT_FRAC 0.2
 
+
 /* Constants for notification levels */
 #define NOTIFY_NONE 0
 #define NOTIFY_BRIEF 1
 #define NOTIFY_FULL 2
 #define NOTIFY_CUSTOM 3
 
+
 /* Constants for warning levels */
 #define WARN_COPE 0
 #define WARN_WARN 1
 #define WARN_ERROR 2
 
+
 /* Stuff to set surface diffusion behavior */
 #define SURFACE_DIFFUSION_RETRIES 10
 
+
+/* Overwrite Policy Flags */
 /* Flags for different types of file output */
 #define FILE_UNDEFINED 0
 #define FILE_OVERWRITE 1
@@ -331,8 +338,8 @@
 #define FILE_APPEND_HEADER 4
 #define FILE_CREATE 5
 
-/* Flags for output expressions */
 
+/* Output Expression Flags */
 #define OEXPR_TYPE_UNDEF 0x0
 #define OEXPR_TYPE_INT 0x1
 #define OEXPR_TYPE_DBL 0x2
@@ -427,8 +434,8 @@
 #define COUNTBUFFERSIZE 10000
                                                                                 
 
+/* Symbol Table Types */
 /* Data types to be stored in MDL parser symbol table: */
-
 /* chemical reaction: */
 #define RX 1
 
@@ -1206,67 +1213,72 @@ struct release_site_obj {
 	int release_number;             /* Number to release */
 	double mean_diameter;           /* Diameter for symmetric releases */
 	double concentration;           /* Concentration of molecules to release.
-	                                   Units are Molar for volume molecules, and number per um^2 for surface molecules. */
-        double standard_deviation;
-	struct vector3 *diameter;
-	struct release_region_data *region_data;
-	struct release_single_molecule *mol_list;
+	                                   Units are Molar for volume molecules,
+                                           and number per um^2 for surface molecules. */
+        double standard_deviation;      /* Standard deviation of release_number for GAUSSNUM,
+                                           or of mean_diameter for VOLNUM */
+	struct vector3 *diameter;       /* x,y,z diameter for geometrical release shapes */
+	struct release_region_data *region_data; /* Information related to release on regions */
+	struct release_single_molecule *mol_list; /* Information related to release by list */
 
-	double release_prob;
-	struct release_pattern *pattern;
+	double release_prob;            /* Probability of releasing at scheduled time */
+	struct release_pattern *pattern;  /* Timing of releases by virtual function generator */
 };
 
 
 /* Timing pattern for molecule release from a release site. */
 struct release_pattern {
-        struct sym_table *sym;
-	double delay;			/**< delay between time 0 
-                                           and first release event. */
-	double release_interval;	/**< time between release events 
-                                           within a train. */
-	double train_interval;		/**< time from the start of one train 
-                                           to the start of the next one. */
-	double train_duration;		/**< length of the train. */
-	int number_of_trains;		/**< how many trains are produced. */
+        struct sym_table *sym;          /* Symbol hash table entry for the pattern */
+	double delay;			/* Delay between time 0 and first release event. */
+	double release_interval;	/* Time between release events within a train. */
+	double train_interval;		/* Time from the start of one train to the start of the next one. */
+	double train_duration;		/* Length of the train. */
+	int number_of_trains;		/* How many trains are produced. */
 };
 
-/* Extended data for complex releases on regions */
-/* Not all fields are used for all release types */
+
+/* Extended data for complex releases on regions,
+   including boolean combinations of regions.
+   Not all fields are used for all release types. */
 struct release_region_data
 {
-  struct vector3 llf;   /* One corner of bounding box for release area */
+  struct vector3 llf;   /* One corner of bounding box for release volume */
   struct vector3 urb;   /* Opposite corner */
 
   int n_walls_included;  /* How many walls total */
   double *cum_area_list; /* Cumulative area of all walls */
   int *wall_index;       /* Indices of each wall (by object) */
-  int *obj_index;        /* Indices for objects (in world list) */
+  int *obj_index;        /* Indices for objects (in owners array) */
   
   int n_objects;                  /* How many objects are there total */
   struct object **owners;         /* Array of pointers to each object */
-  struct bit_array **in_release;  /* Bit array saying which walls are in release for each object */
+  struct bit_array **in_release;  /* Array of bit arrays; each bit array says
+                                     which walls are in release for an object */
   int *walls_per_obj;             /* Number of walls in release for each object */
 
-  struct object *self;            /* A pointer to our own release object */
-  struct release_evaluator *expression;  /* A set construction expression combining regions to form this release site */
+  struct object *self;            /* A pointer to our own release site object */
+  struct release_evaluator *expression;  /* A set-construction expression combining regions to form this release site */
 };
+
+
+/* Data structure used to build boolean combinations of regions */
+struct release_evaluator
+{
+  byte op;       /* Region Expression Flags: the operation used */
+  void *left;    /* The left side of the expression--another evaluator or a region object depending on bitmask of op */
+  void *right;   /* The right side--same thing */
+};
+
 
 /* Data structure used to store LIST releases */
 struct release_single_molecule
 {
-  struct release_single_molecule *next;  /* Next in the list */
+  struct release_single_molecule *next;
   struct species *mol_type;              /* Species to release */
   struct vector3 loc;                    /* Position to release it */
   short orient;                          /* Orientation (for 2D species) */
 };
 
-/* Data structure used to hold combinations of regions */
-struct release_evaluator
-{
-  byte op;       /* The operation used (values are #def'ed as REXP_... */
-  void *left;    /* The left side of the expression--another evaluator or a region object depending on bitmask of op */
-  void *right;   /* The right side--same thing */
-};
 
 /* Holds information about a box with rectangular patches on it. */
 struct subdivided_box
@@ -1278,6 +1290,7 @@ struct subdivided_box
   double *y;  /* array of Y-coordinates of subdivisions */
   double *z;  /* array of Z-coordinates of subdivisions */
 };
+
 
 /* Holds information about what we want dumped to the screen */
 struct notifications
@@ -1311,23 +1324,27 @@ struct notifications
   byte useless_vol_orient;
 };
 
+
+/* Information related to concentration clamp surfaces, by object */
 struct ccn_clamp_data
 {
-  struct ccn_clamp_data *next;     /* The next concentration clamp */
-  struct species *surf_class;   /* Which surface class clamps? */
+  struct ccn_clamp_data *next;     /* The next concentration clamp, by surface class */
+  struct species *surf_class;      /* Which surface class clamps? */
   struct species *mol;             /* Which molecule does it clamp? */
   double concentration;            /* At which concentration? */
   short orient;                    /* On which side? */
   struct object *objp;             /* Which object are we clamping? */
-  struct bit_array *sides;         /* Which sides on that object? */
-  int n_sides;                     /* How many are set */
-  int *side_idx;                   /* Indices of the sides that are set */
-  double *cum_area;                /* Cumulative area of all the sides */
+  struct bit_array *sides;         /* Which walls in that object? */
+  int n_sides;                     /* How many walls? */
+  int *side_idx;                   /* Indices of the walls that are clamped */
+  double *cum_area;                /* Cumulative area of all the clamped walls */
   double scaling_factor;           /* Used to predict #mols/timestep */
-  struct ccn_clamp_data *next_mol; /* Next molecule for this class */
-  struct ccn_clamp_data *next_obj; /* Next object for this class */
+  struct ccn_clamp_data *next_mol; /* Next clamp, by molecule, for this class */
+  struct ccn_clamp_data *next_obj; /* Next clamp, by object, for this class */
 };
 
+
+/* Data for a single REACTION_DATA_OUTPUT block */
 struct output_block
 {
   struct output_block *next;            /* Next in world or scheduler */
@@ -1347,56 +1364,69 @@ struct output_block
   struct output_set *data_set_head;     /* Linked list of data sets (separate files) */
 };
 
+
+/* Data that controls what output is written to a single file */
 struct output_set
 {
-  struct output_set *next;             /* Next data set */
+  struct output_set *next;             /* Next data set in this block */
   struct output_block *block;          /* Which block do we belong to? */
   char *outfile_name;                  /* Filename */
-  int file_flags;                      /* Tells us how to handle existing files */
-  u_int chunk_count;                    /* Number of chunks processed */  
+  int file_flags;                      /* Overwrite Policy Flags: tells us how to handle existing files */
+  u_int chunk_count;                   /* Number of buffered output chunks processed */  
   char *header_comment;                /* Comment character(s) for header */
   struct output_column *column_head;   /* Data for one output column */
 };
 
+
+/* Data that controls what data is written to one column of output file */
 struct output_column
 {
-  struct output_column *next;       /* Next column */
+  struct output_column *next;       /* Next column in this set */
   struct output_set *set;           /* Which set do we belong to? */
-  byte data_type;                   /* INT, DBL, TRIG_STRUCT */
+  byte data_type;                   /* INT, DBL, or TRIG_STRUCT (from Symbol Table Types) */
   double initial_value;             /* To continue existing cumulative counts--not implemented yet--and keep track of triggered data */
-  void *buffer;                     /* Output buffer array (cast based on column_type) */
+  void *buffer;                     /* Output buffer array (cast based on data_type) */
   struct output_expression *expr;   /* Evaluate this to calculate our value (NULL if trigger) */
 };
 
+
+/* Expression evaluation tree to compute output value for one column */
 struct output_expression
 {
   struct output_column *column;     /* Which column are we going to? */
-  int expr_flags;                   /* What kinds of things are to the left and right? */
+  int expr_flags;                   /* Output Expression Flags: what are we and what is left and right? */
   struct output_expression *up;     /* Parent output expression */
   void *left;                       /* Item on the left */
   void *right;                      /* Item on the right */
   char oper;                        /* Operation to apply to items */
   double value;                     /* Resulting value from operation */
-  char *title;                      /* String describing what we've got */
+  char *title;                      /* String describing this expression for user */
 };
 
+
+/* Information about a requested COUNT or TRIGGER statement */
+/* Used during initialization to link output expressions with appropriate target,
+   and instruct MCell3 to collect appropriate statitics at the target. */
 struct output_request
 {
   struct output_request *next;          /* Next request in global list */
   struct output_expression *requester;  /* Expression in which we appear */
   struct sym_table *count_target;       /* Mol/rxn we're supposed to count */
-  struct sym_table *count_location;     /* Place we're supposed to count it */
-  byte report_type;                     /* Flags telling us how to count */
+  struct sym_table *count_location;     /* Object or region on which we're supposed to count it */
+  byte report_type;                     /* Output Report Flags telling us how to count */
 };
 
+
+/* Data stored when a trigger event happens */
 struct output_trigger_data
 {
-  double t_iteration;          /* Time of the iteration of triggering event */
+  double t_iteration;          /* Iteration of the triggering event */
   double t_delta;              /* Offset of event time from iteration time */
   struct vector3 loc;          /* Position of event */
   int how_many;                /* Number of events */
   char *name;                  /* Name to give event */
 };
+
 
 /******************************************************************/
 /**  Everything below this line has been copied from MCell 2.69  **/
