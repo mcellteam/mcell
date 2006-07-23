@@ -207,7 +207,7 @@ int emergency_output()
 }
 
 
-void add_trigger_output(struct counter *c,struct output_request *ear,int n)
+int add_trigger_output(struct counter *c,struct output_request *ear,int n)
 {
   struct output_column *first_column;
   struct output_trigger_data *otd;
@@ -231,10 +231,12 @@ void add_trigger_output(struct counter *c,struct output_request *ear,int n)
     if (write_reaction_output(first_column->set,0))
     {
       fprintf(world->err_file,"Error at file %s line %d\n",__FILE__,__LINE__);
-      fprintf(world->err_file,"  Failed to write triggered count output.\n  Hoping for the best and continuing anyway.\n");
-      first_column->initial_value=0;
+      fprintf(world->err_file,"  Failed to write triggered count output.\n");
+      return 1;
     }
+    first_column->initial_value=0;
   }
+  return 0;
 }
 
 int flush_trigger_output()

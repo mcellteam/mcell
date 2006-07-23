@@ -3382,7 +3382,7 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   
 /* Done housekeeping, now let's do something fun! */
 
-  if ((sm->flags&COUNT_ENCLOSED)!=0) m->flags |= COUNT_ME;
+  if (sm->flags&COUNT_SOME) m->flags|=COUNT_ME;
   else if ((m->flags&COUNT_ME)!=0) m->flags -= COUNT_ME;
   
 pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
@@ -3602,22 +3602,19 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 		  if (l==RX_NO_MEM) { ERROR_AND_QUIT; }
 		  if (l==RX_FLIP)
 		  {
-		    if ( (sm->flags & w->flags & COUNT_HITS) )
+		    if ((m->flags&COUNT_ME)!=0 && (sm->flags&w->flags&COUNT_SOME)!=0)
 		    {
-		      update_collision_count(sm,w->counting_regions,k,1,rate_factor * w->effectors->binding_factor,&(smash->loc),smash->t);
-		    }
-		    if ((m->flags&COUNT_ME)!=0)
-		    {
-		      m->flags-=COUNT_ME;
-		      count_me_by_region((struct abstract_molecule*)m,-1,NULL,smash->t);
+		      count_region_update(sm,w->counting_regions,k,1,rate_factor * w->effectors->binding_factor,&(smash->loc),smash->t);
 		    }
 		    
 		    continue; /* pass through */
 		  }
 		  else if (l==RX_DESTROY)
 		  {
-		    if ( (sm->flags & w->flags & COUNT_HITS) )
-		      update_collision_count(sm,w->counting_regions,k,0,rate_factor,&(smash->loc),smash->t);
+		    if ( (sm->flags & w->flags & COUNT_HITS)!=0 )
+		    {
+		      count_region_update(sm,w->counting_regions,k,0,rate_factor,&(smash->loc),smash->t);
+		    }
 		    
 		    CLEAN_AND_RETURN(NULL);
 		  }
@@ -3640,14 +3637,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	    if (rx->n_pathways == RX_TRANSP)
 	    {
 	      rx->n_occurred++;
-	      if ( (sm->flags & COUNT_HITS) )
+	      if ( (m->flags&COUNT_ME)!=0 && (sm->flags&w->flags&COUNT_SOME)!=0 )
 	      {
-		update_collision_count(sm,w->counting_regions,k,1,rate_factor,&(smash->loc),smash->t);
-	      }
-	      if ((m->flags&COUNT_ME)!=0)
-	      {
-		m->flags-=COUNT_ME;
-		count_me_by_region((struct abstract_molecule*)m,-1,NULL,smash->t);
+		count_region_update(sm,w->counting_regions,k,1,rate_factor,&(smash->loc),smash->t);
 	      }
 
 	      continue; /* Ignore this wall and keep going */
@@ -3666,22 +3658,17 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 		if (j==RX_NO_MEM) { ERROR_AND_QUIT; } 
 		if (j==RX_FLIP)
 		{
-		  if ( (sm->flags & COUNT_HITS) )
+		  if ( (sm->flags&w->flags&COUNT_HITS) )
 		  {
-		    update_collision_count(sm,w->counting_regions,k,1,rate_factor,&(smash->loc),smash->t);
-		  }
-		  if ((m->flags&COUNT_ME)!=0)
-		  {
-		    m->flags-=COUNT_ME;
-		    count_me_by_region((struct abstract_molecule*)m,-1,NULL,smash->t);
+		    count_region_update(sm,w->counting_regions,k,1,rate_factor,&(smash->loc),smash->t);
 		  }
   
 		  continue; /* pass through */
 		}
 		else if (j==RX_DESTROY)
 		{
-		  if ( (sm->flags & COUNT_HITS) )
-		    update_collision_count(sm,w->counting_regions,k,0,rate_factor,&(smash->loc),smash->t);
+		  if ( (sm->flags & w->flags & COUNT_HITS) )
+		    count_region_update(sm,w->counting_regions,k,0,rate_factor,&(smash->loc),smash->t);
   
 		  CLEAN_AND_RETURN(NULL);
 		}
@@ -3693,11 +3680,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	
         /* default is to reflect */
         
-	if ( (sm->flags & COUNT_HITS)) update_collision_count(sm,w->counting_regions,k,0,rate_factor,&(smash->loc),smash->t);
-	if (m->flags&COUNT_ME)
+	if ((m->flags&COUNT_ME)!=0 && (sm->flags&w->flags&COUNT_SOME)!=0)
 	{
-	  m->flags -= COUNT_ME;
-	  count_me_by_region((struct abstract_molecule*)m,-1,NULL,smash->t);
+	  count_region_update(sm,w->counting_regions,k,0,rate_factor,&(smash->loc),smash->t);
 	}
 
 	m->pos.x = smash->loc.x;
@@ -3739,8 +3724,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           fprintf(world->log_file,"Error: a %s molecule escaped the world at (%.2e,%.2e,%.2e)\n",
                   sm->sym->name,m->pos.x*world->length_unit,
                   m->pos.y*world->length_unit,m->pos.z*world->length_unit);
-          if ((sm->flags&COUNT_CONTENTS)!=0 && (m->flags&COUNT_ME)!=0)
-	    count_me_by_region((struct abstract_molecule*)m,-1,NULL,smash->t);
+          if (m->flags&COUNT_ME)
+	    count_region_from_scratch((struct abstract_molecule*)m,NULL,-1,&(m->pos),NULL,m->t);
           sm->population--;
           m->properties = NULL;
 	  
@@ -3772,7 +3757,6 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   
   m->index = -1;
   m->previous_wall=NULL;
-  if ((sm->flags&COUNT_ENCLOSED)!=0 && (m->flags&COUNT_ME)==0) count_me_by_region((struct abstract_molecule*)m,1,NULL,m->t);
   
   if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
 
@@ -3789,6 +3773,8 @@ diffuse_2D:
        there is no reallocation)
        Position and time are updated, but molecule is not rescheduled,
        nor does it react
+  To-do: This doesn't work with triggers.  Change style of counting code
+         so that it can update as we go, like with 3D diffusion.
 *************************************************************************/
 
 struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
@@ -3870,17 +3856,17 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
 	  continue; /* Pick again--full here */
 	}
 	
-	count_me_by_region((struct abstract_molecule*)g,-1,NULL,g->t);
+	count_region_from_scratch((struct abstract_molecule*)g,NULL,-1,NULL,g->grid->surface,g->t);
 
 	g->grid->mol[g->grid_index]=NULL;
 	g->grid->mol[new_idx] = g;
 	g->grid_index = new_idx;
       }
-      else count_me_by_region((struct abstract_molecule*)g,-1,NULL,g->t);
+      else count_region_from_scratch((struct abstract_molecule*)g,NULL,-1,NULL,g->grid->surface,g->t);
       
       g->s_pos.u = new_loc.u;
       g->s_pos.v = new_loc.v;
-      count_me_by_region((struct abstract_molecule*)g,1,NULL,g->t);
+      count_region_from_scratch((struct abstract_molecule*)g,NULL,1,NULL,g->grid->surface,g->t);
       
       find_new_position = 0;
     }
@@ -3900,7 +3886,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
       if (new_idx < 0 || new_idx >= new_wall->effectors->n_tiles) fprintf(world->log_file, "File '%s', Line %ld: Unexpected behaviour, iteration %d.\n", __FILE__, (long)__LINE__, (int)world->it_time);
       if (new_wall->effectors->mol[new_idx] != NULL) continue; /* Pick again */
       
-      count_me_by_region((struct abstract_molecule*)g,-1,NULL,g->t);
+      count_region_from_scratch((struct abstract_molecule*)g,NULL,-1,NULL,g->grid->surface,g->t);
       g->grid->mol[g->grid_index]=NULL;
       g->grid->n_occupied--;
       g->grid = new_wall->effectors;
@@ -3909,7 +3895,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
 
       g->s_pos.u = new_loc.u;
       g->s_pos.v = new_loc.v;
-      count_me_by_region((struct abstract_molecule*)g,1,NULL,g->t);
+      count_region_from_scratch((struct abstract_molecule*)g,NULL,1,NULL,g->grid->surface,g->t);
       
       find_new_position=0;
     }

@@ -71,6 +71,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
   int replace_p1 = 0;
   int replace_p2 = 0;
   struct vector2 uv_loc;
+  struct vector3 xyz_loc;
   
   struct abstract_molecule *plist[iN-i0];
   char ptype[iN-i0];
@@ -210,6 +211,10 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
   }
 
   /* We know there's space, so now actually create everyone */
+  if (hitpt!=NULL) memcpy(&xyz_loc,hitpt,sizeof(struct vector3));
+  else if (reac_g!=NULL) uv2xyz(&(reac_g->s_pos),reac_g->grid->surface,&xyz_loc);
+  else memcpy(&xyz_loc,&(reac_m->pos),sizeof(struct vector3));
+  
   for (i=i0+rx->n_reactants;i<iN;i++)
   {
     p = rx->players[i];
@@ -337,13 +342,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
     }
   }
   
-/*
-  if (rx->info[path].pathname != NULL)
-  {
-    count_rx_by_region(reacA,w,rx->info[path]->pathname,1);
-  }
-*/
-  
+
   /* Finally, set orientations correctly */
   bits = 0;
   for (i=i0;i<iN;i++,bits>>=1)
@@ -423,8 +422,15 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
     if (i >= i0+rx->n_reactants &&
         (plist[i-i0]->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      count_me_by_region(plist[i-i0],1,NULL,t);
+      j=count_region_from_scratch(plist[i-i0],NULL,1,&xyz_loc,w,t);
+      if (j) return RX_NO_MEM;
     }
+  }
+  
+  if (rx->info[path].pathname!=NULL)
+  {
+    j=count_region_from_scratch(NULL,rx->info[path].pathname,1,&xyz_loc,w,t);
+    if (j) return RX_NO_MEM;
   }
   
   return bounce;
@@ -456,16 +462,19 @@ int outcome_unimolecular(struct rxn *rx,int path,
   struct species *who_am_i;
   struct species *who_was_i = reac->properties;
   int result = RX_A_OK;
+  struct molecule *m=NULL;
+  struct grid_molecule *g=NULL;
+  int i;
   
   if ((reac->properties->flags & NOT_FREE) == 0)
   {
-    struct molecule *m = (struct molecule*)reac;
+    m = (struct molecule*)reac;
     result = outcome_products(NULL,m,NULL,rx,path,m->subvol->local_storage,
                               0,0,t,NULL,reac,NULL,NULL);
   }
   else
   {
-    struct grid_molecule *g = (struct grid_molecule*) reac;
+    g = (struct grid_molecule*) reac;
     result = outcome_products(g->grid->surface,NULL,g,rx,path,
                               g->grid->subvol->local_storage,
                               g->orient,0,t,NULL,reac,NULL,NULL);
@@ -481,30 +490,29 @@ int outcome_unimolecular(struct rxn *rx,int path,
   {
     if ((reac->properties->flags & NOT_FREE)==0)
     {
-      struct molecule *m = (struct molecule*)reac;
       m->subvol->mol_count--;
-      if (m->flags & IN_SCHEDULE)
+      if (m->flags & IN_SCHEDULE) m->subvol->local_storage->timer->defunct_count++;
+      if (m->flags&COUNT_ME)
       {
-	m->subvol->local_storage->timer->defunct_count++;
+	i = count_region_from_scratch((struct abstract_molecule*)m,NULL,-1,&(m->pos),NULL,m->t);
+	if (i) return RX_NO_MEM;
       }
     }
     else
     {
-      struct grid_molecule *g = (struct grid_molecule*) reac;
-      
       if (g->grid->mol[g->grid_index]==g) g->grid->mol[ g->grid_index ] = NULL;
       g->grid->n_occupied--;
       if (g->flags & IN_SCHEDULE)
       {
 	g->grid->subvol->local_storage->timer->defunct_count++;
       }
+      if (g->flags&COUNT_ME)
+      {
+	i = count_region_from_scratch((struct abstract_molecule*)g,NULL,-1,NULL,NULL,g->t);
+	if (i) return RX_NO_MEM;
+      }
     }
 
-    if ((reac->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-    {
-      count_me_by_region(reac,-1,NULL,t);
-    }
-    
     reac->properties->n_deceased++;
     reac->properties->cum_lifetime += t - reac->birthday;
     reac->properties->population--;
@@ -541,6 +549,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
   struct wall *w = NULL;
   struct storage *x;
   int result;
+  int i;
   
   if ((reacA->properties->flags & NOT_FREE) == 0)
   {
@@ -566,10 +575,6 @@ int outcome_bimolecular(struct rxn *rx,int path,
     if ((reacB->properties->flags & NOT_FREE) == 0)
     {
       m = (struct molecule*)reacB;
-    }
-    else /* Must be surface */
-    {
-      /* TODO: handle this case */
     }
   }
   
@@ -607,7 +612,10 @@ int outcome_bimolecular(struct rxn *rx,int path,
       }
 
       if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-        count_me_by_region(reacB,-1,NULL,t);
+      {
+        i = count_region_from_scratch(reacB,NULL,-1,NULL,NULL,t);
+	if (i) return RX_NO_MEM;
+      }
       
       reacB->properties->n_deceased++;
       reacB->properties->cum_lifetime += t - reacB->birthday;
@@ -638,8 +646,11 @@ int outcome_bimolecular(struct rxn *rx,int path,
 	}
       }
 
-      if ((reacA->properties->flags&(COUNT_CONTENTS|COUNT_ENCLOSED))!=0 && (reacA->flags&COUNT_ME)!=0)
-	count_me_by_region(reacA,-1,NULL,t);
+      if (reacA->flags&COUNT_ME)
+      {
+	i=count_region_from_scratch(reacA,NULL,-1,NULL,NULL,t);
+	if (i) return RX_NO_MEM;
+      }
     
       reacA->properties->n_deceased++;
       reacA->properties->cum_lifetime += t - reacA->birthday;
@@ -675,7 +686,10 @@ int outcome_bimolecular(struct rxn *rx,int path,
       }
 
       if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-        count_me_by_region(reacB,-1,NULL,t);
+      {
+        i = count_region_from_scratch(reacB,NULL,-1,NULL,NULL,t);
+	if (i) return RX_NO_MEM;
+      }
     
       reacB->properties->n_deceased++;
       reacB->properties->cum_lifetime += t - reacB->birthday;
@@ -706,8 +720,11 @@ int outcome_bimolecular(struct rxn *rx,int path,
 	}
       }
 
-      if ((reacA->properties->flags&(COUNT_CONTENTS|COUNT_ENCLOSED))!=0 && (reacA->flags&COUNT_ME)!=0)
-	count_me_by_region(reacA,-1,NULL,t);
+      if (reacA->flags&COUNT_ME)
+      {
+	i=count_region_from_scratch(reacA,NULL,-1,NULL,NULL,t);
+	if (i) return RX_NO_MEM;
+      }
     
       reacA->properties->n_deceased++;
       reacA->properties->cum_lifetime += t - reacA->birthday;
@@ -741,7 +758,7 @@ outcome_intersect:
 int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   struct abstract_molecule *reac,short orient,double t,struct vector3 *hitpt)
 {
-  int result,index;
+  int result,index,i;
   
   if (rx->n_pathways <= RX_SPECIAL)
   {
@@ -765,8 +782,10 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     if (rx->players[ index ] == NULL)
     {
       m->subvol->mol_count--;
-      if ((reac->properties->flags&(COUNT_CONTENTS|COUNT_ENCLOSED))!=0 && (reac->flags&COUNT_ME)!=0)
-	count_me_by_region(reac,-1,NULL,t);
+      if (reac->flags&COUNT_ME)
+      {
+	i=count_region_from_scratch(reac,NULL,-1,NULL,NULL,t);
+      }
       reac->properties->n_deceased++;
       reac->properties->cum_lifetime += t - reac->birthday;
       reac->properties->population--;

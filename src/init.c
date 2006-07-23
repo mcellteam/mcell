@@ -467,17 +467,24 @@ int init_sim(void)
   }
 
 /* Instantiation Pass #3: Initialize regions */
-  if (init_regions()) {
-    fprintf(world->err_file,"File '%s', Line %ld: error initializing object regions.\n", __FILE__, (long)__LINE__);
-    return(1);
-  }
-  
   if (prepare_counters())
   {
-    fprintf(world->err_file,"Error while preparing count statements.\n");
+    fprintf(world->err_file,"File '%s' line %d: error while preparing count statements.\n",__FILE__,(int)__LINE__);
     return 1;
   }
 
+  if (init_regions())
+  {
+    fprintf(world->err_file,"File '%s' line %d: error initializing object regions.\n",__FILE__,(int)__LINE__);
+    return(1);
+  }
+  
+  if (check_counter_geometry())
+  {
+    fprintf(world->err_file,"Count request did not have sensible geometry.\n");
+    return 1;
+  }
+  
   if (world->place_waypoints_flag || world->releases_on_regions_flag) {
     if (place_waypoints()) {
       fprintf(world->err_file,"File '%s', Line %ld: error storing waypoints.\n", __FILE__, (long)__LINE__);
@@ -2151,7 +2158,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
         }
 
         if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-          count_me_by_region((struct abstract_molecule*)mol,1,NULL,mol->t);
+          count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
       
         if (schedule_add(w->birthplace->timer,mol)){ 
 		fprintf(stderr,"File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
@@ -2372,7 +2379,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   }
                   
                   if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-                    count_me_by_region((struct abstract_molecule*)mol,1,NULL,mol->t);
+                    count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
       
                   if ( schedule_add(walls[j]->birthplace->timer,mol) ){ 
 			fprintf(stderr,"File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
@@ -2402,7 +2409,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     *tiles[k]=mol;
                     mol->t=0;
                     mol->t2=0;
-		    mol->birthday=0;
+		    mol->birthday=0;                                                                                    
                     mol->properties=eff;
                     mol->birthplace=walls[k]->birthplace->gmol;
                     mol->grid_index=index[k];
@@ -2418,7 +2425,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     }
                   
                     if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-                      count_me_by_region((struct abstract_molecule*)mol,1,NULL,mol->t);
+                      count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
       
                     if ( schedule_add(walls[k]->birthplace->timer,mol) ){ 
 			fprintf(stderr,"File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);

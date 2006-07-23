@@ -34,11 +34,12 @@
 #define CAN_GRIDGRID     0x80
 #define CAN_GRIDWALL     0x100
 #define CANT_INITIATE    0x200
+#define COUNT_TRIGGER    0x0800
 #define COUNT_CONTENTS   0x1000
 #define COUNT_HITS       0x2000
 #define COUNT_RXNS       0x4000
 #define COUNT_ENCLOSED   0x8000
-#define COUNT_SOME       0xF000
+#define COUNT_SOME       0xF800
 
 
 /* Abstract Molecule Flags */
