@@ -156,7 +156,7 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
 		  }
 		  if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
 		  {
-		    i=fire_count_event(hit_count,1,loc,REPORT_CONTENTS|REPORT_TRIGGER);
+		    i=fire_count_event(hit_count,1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER);
 		    if (i) return 1;
 		  }
                 }
@@ -187,7 +187,7 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
 		  }
 		  if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
 		  {
-		    i=fire_count_event(hit_count,-1,loc,REPORT_CONTENTS|REPORT_TRIGGER);
+		    i=fire_count_event(hit_count,-1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER);
 		    if (i) return 1;
 		  }
                 }
