@@ -138,7 +138,7 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
       {
         if (hit_count->reg_type == rl->reg && hit_count->target == sp)
         {
-          if (rl->reg->flags & sp->flags & (COUNT_HITS|COUNT_CONTENTS))
+          if (rl->reg->flags & sp->flags & (COUNT_HITS|COUNT_CONTENTS|COUNT_ENCLOSED))
           {
             if (crossed)
             {
@@ -402,7 +402,7 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
       {
 	if (wl->this_wall==my_wall) continue;  /* If we're on a wall, skip it */
 	
-	if (wl->this_wall->flags & COUNT_CONTENTS)
+	if (wl->this_wall->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
 	{
 	  j = collide_wall(&here,&delta,wl->this_wall,&t_hit,&hit);
 	  
@@ -411,7 +411,7 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 	  {
 	    for (rl=wl->this_wall->counting_regions ; rl!=NULL ; rl=rl->next)
 	    {
-	      if ( (rl->reg->flags & COUNT_CONTENTS) != 0 )
+	      if ( (rl->reg->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0 )
 	      {
 		i=(hashval^rl->reg->hashval)&world->count_hashmask;
 		if (i==0) i=hashval&world->count_hashmask;
@@ -636,13 +636,13 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
         wl = &dummy;
         continue;  /* Trick to restart for loop */
       }
-      else if (i==COLLIDE_MISS || !(t >= 0 && t < 1.0) || t > t_hit_sv || (wl->this_wall->flags & COUNT_CONTENTS) == 0 ||
+      else if (i==COLLIDE_MISS || !(t >= 0 && t < 1.0) || t > t_hit_sv || (wl->this_wall->flags & (COUNT_CONTENTS|COUNT_RXNS|COUNT_ENCLOSED)) == 0 ||
 	       (hit.x-outside.x)*delta.x + (hit.y-outside.y)*delta.y + (hit.z-outside.z)*delta.z < 0) continue;
       else
       {
         for (xrl=wl->this_wall->counting_regions ; xrl != NULL ; xrl = xrl->next)
         {
-          if ((xrl->reg->flags & COUNT_CONTENTS) != 0)
+          if ((xrl->reg->flags & (COUNT_CONTENTS|COUNT_RXNS|COUNT_ENCLOSED)) != 0)
           {
             nrl = (struct region_list*) mem_get(rmem);
 	    if (nrl==NULL)
@@ -789,7 +789,6 @@ place_waypoints:
 int place_waypoints()
 {
   int g,h,i,j,k;
-  int i_will_use_waypoints = 0;
   int waypoint_in_wall = 0;
   struct waypoint *wp;
   struct wall_list *wl;
@@ -805,25 +804,7 @@ int place_waypoints()
 #define W_Yb (1.0 - W_Ya)
 #define W_Zb (1.0 - W_Za)
 
-  /* Probably ought to check for whether you really need waypoints (but this code doesn't check reactions) */
-  #if 0
-  if (!world->releases_on_regions_flag)
-  {
-    for (i=0;i<world->n_species;i++)
-    {
-      if ((world->species_list[i]->flags & (NOT_FREE | COUNT_CONTENTS)) == COUNT_CONTENTS
-          || (world->species_list[i]->flags & COUNT_ENCLOSED)!=0 )
-        i_will_use_waypoints++;
-    }
-    
-    if (i_will_use_waypoints==0)
-    {
-      world->n_waypoints = 0;
-      world->waypoints = NULL;
-      return 0;  /* Waypoints not needed. */
-    }
-  }
-  #endif
+  /* Probably ought to check for whether you really need waypoints */
   
   world->n_waypoints = world->n_subvols;
   world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint)*world->n_waypoints);
@@ -930,7 +911,6 @@ int prepare_counters()
       if (set->header_comment==NULL) continue;
       for (column=set->column_head ; column!=NULL ; column=column->next)
       {
-        if (column->data_type==TRIG_STRUCT) continue;
         if (column->expr->title==NULL) column->expr->title = oexpr_title(column->expr);
         if (column->expr->title==NULL)
         {
@@ -1276,6 +1256,31 @@ int instantiate_request(struct output_request *request)
       request->requester->expr_flags|=OEXPR_TYPE_TRIG;
       
       if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_TRIGGER;
+      switch (report_type_only)
+      {
+        case REPORT_CONTENTS:
+          if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_CONTENTS;
+          reg_of_count->flags|=COUNT_CONTENTS;
+          break;
+        case REPORT_RXNS:
+          if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_RXNS;
+          reg_of_count->flags|=COUNT_RXNS;
+          break;
+        case REPORT_FRONT_HITS:
+        case REPORT_BACK_HITS:
+        case REPORT_FRONT_CROSSINGS:
+        case REPORT_BACK_CROSSINGS:
+        case REPORT_ALL_HITS:
+        case REPORT_ALL_CROSSINGS:
+        case REPORT_CONCENTRATION:
+          if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_HITS;
+          reg_of_count->flags|=COUNT_HITS;
+          break;
+        default:
+          fprintf(world->err_file,"Error at file %s line %d\n  Bad report type %d when creating counts\n",__FILE__,__LINE__,report_type_only);
+          return 1;
+          break;
+      }
     }
     else /* Not trigger--set up for regular count */
     {
