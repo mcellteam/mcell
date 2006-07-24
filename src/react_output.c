@@ -207,6 +207,17 @@ int emergency_output()
 }
 
 
+
+/*************************************************************************
+add_trigger_output:
+   In: counter of thing that just happened (trigger of some sort)
+       request structure saying who wanted to know that it happened
+       number of times that thing happened
+   Out: 0 on success, 1 on error (memory allocation or file I/O).
+        The event is added to the buffer of the requester, and the
+        buffer is written and flushed if the buffer is full.
+*************************************************************************/
+
 int add_trigger_output(struct counter *c,struct output_request *ear,int n)
 {
   struct output_column *first_column;
@@ -238,6 +249,16 @@ int add_trigger_output(struct counter *c,struct output_request *ear,int n)
   }
   return 0;
 }
+
+
+
+/*************************************************************************
+flush_trigger_output:
+   In: nothing
+   Out: 0 on success, 1 on error (memory allocation or file I/O).
+        Writes all remaining trigger events in buffers to disk.
+        (Do this before ending the simuation.)
+*************************************************************************/
 
 int flush_trigger_output()
 {
@@ -495,6 +516,11 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
 
 
 
+/*************************************************************************
+new_output_expr:
+   In: mem_helper used to allocate output_expressions  
+   Out: New, initialized output_expression, or NULL if out of memory.
+*************************************************************************/
 struct output_expression* new_output_expr(struct mem_helper *oexpr_mem)
 {
   struct output_expression *oe;
@@ -514,6 +540,13 @@ struct output_expression* new_output_expr(struct mem_helper *oexpr_mem)
   return oe;
 }
 
+/*************************************************************************
+set_oexpr_column:
+   In: output_expression who needs to have its column set (recursively)
+       output_column that owns this expression
+   Out: No return value.  Every output_expression in the tree gets its
+        column set.
+*************************************************************************/
 void set_oexpr_column(struct output_expression *oe,struct output_column *oc)
 {
  for ( ; oe!=NULL ; oe=((oe->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_OEXPR)?(struct output_expression*)oe->right:NULL )
@@ -523,6 +556,12 @@ void set_oexpr_column(struct output_expression *oe,struct output_column *oc)
  }
 }
 
+/*************************************************************************
+learn_oexpr_oexpr:
+   In: output_expression whose flags may not reflect its children properly
+   Out: No return value.  Flags are updated for output_expression passed
+        in.  (Not recursive.)
+*************************************************************************/
 void learn_oexpr_flags(struct output_expression *oe)
 {
   struct output_expression *oel,*oer;
@@ -559,18 +598,34 @@ void learn_oexpr_flags(struct output_expression *oe)
 }
   
 
+/*************************************************************************
+first_oexpr_tree:
+   In: expression tree 
+   Out: leftmost stem in that tree (joined by ',' operator) 
+*************************************************************************/
 struct output_expression* first_oexpr_tree(struct output_expression *root)
 {
   while (root->oper==',') root = (struct output_expression*)root->left;
   return root;
 }
 
+/*************************************************************************
+last_oexpr_tree:
+   In: expression tree 
+   Out: rightmost stem in that tree (joined by ',' operator) 
+*************************************************************************/
 struct output_expression* last_oexpr_tree(struct output_expression *root)
 {
   while (root->oper==',') root = (struct output_expression*)root->right;
   return root;
 }
 
+/*************************************************************************
+next_oexpr_tree:
+   In: stem in an expression tree that is joined by ',' operator 
+   Out: next stem to the right joined by ',' operator, or NULL if the
+        current stem is the rightmost
+*************************************************************************/
 struct output_expression* next_oexpr_tree(struct output_expression *leaf)
 {
   for ( ; leaf->up!=NULL ; leaf=leaf->up)
@@ -580,6 +635,12 @@ struct output_expression* next_oexpr_tree(struct output_expression *leaf)
   return NULL;
 }
 
+/*************************************************************************
+prev_oexpr_tree:
+   In: stem in an expression tree that is joined by ',' operator 
+   Out: next stem to the left joined by ',' operator, or NULL if the
+        current stem is the leftmost
+*************************************************************************/
 struct output_expression* prev_oexpr_tree(struct output_expression *leaf)
 {
   for ( ; leaf->up!=NULL ; leaf=leaf->up)
@@ -589,6 +650,13 @@ struct output_expression* prev_oexpr_tree(struct output_expression *leaf)
   return NULL;
 }
 
+/*************************************************************************
+dupl_oexpr_tree:
+   In: output_expression tree
+       place to allocate new output_expressions
+   Out: a copy of the tree, or NULL if there was a memory error.
+   Note: leaves are not copied, just the expression structure.
+*************************************************************************/
 struct output_expression* dupl_oexpr_tree(struct output_expression *root, struct mem_helper *oexpr_mem)
 {
   struct output_expression *sprout;
@@ -611,6 +679,14 @@ struct output_expression* dupl_oexpr_tree(struct output_expression *root, struct
   return sprout;
 }
 
+/*************************************************************************
+eval_oexpr_tree:
+   In: root of an output_expression tree
+       flag indicating whether to recalculate values marked CONST
+   Out: no return value.  The value member variable of each
+        output_expression in the tree is updated to be accurate given
+        current leaf values.
+*************************************************************************/
 void eval_oexpr_tree(struct output_expression *root,int skip_const)
 {
   double lval=0.0;
@@ -666,6 +742,15 @@ void eval_oexpr_tree(struct output_expression *root,int skip_const)
   } 
 }
 
+/*************************************************************************
+oexpr_flood_convert
+   In: root of an expression tree 
+       operator that we don't want any more
+       operator that we want to replace it
+   Out: no return value.  The old operator is replaced with the new
+        one recursively, but only as deep as the old operator remains
+        unbroken (so it's like a flood fill starting with the root).
+*************************************************************************/
 void oexpr_flood_convert(struct output_expression *root,char old_oper,char new_oper)
 {
   for ( ; root!=NULL ; root=((root->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_OEXPR)?(struct output_expression*)root->right:NULL )
@@ -677,6 +762,15 @@ void oexpr_flood_convert(struct output_expression *root,char old_oper,char new_o
 }
 
 
+/*************************************************************************
+oexpr_title:
+   In: root of an expression tree 
+   Out: text string that describes what is in that tree, or NULL if
+        there is a memory error.
+   Note: the value is recursively generated, but title member variables
+         of the expression are not set.  The function keeps track of
+         them on the fly.
+*************************************************************************/
 char* oexpr_title(struct output_expression *root)
 {
   struct output_request *orq;

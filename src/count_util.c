@@ -248,6 +248,24 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
 }
 
 
+
+/*************************************************************************
+count_region_from_scratch:
+   In: molecule to count, or NULL
+       reaction pathname to count, or NULL
+       number of these to count
+       location at which to count them (may be NULL)
+       wall at which this happened (may be NULL)
+       time of the hit (for triggers)
+   Out: No return value.  Appropriate counters are updated and triggers
+        are fired.
+   Note: At least one of molecule or rxn pathname must be non-NULL; if
+        other inputs are NULL, sensible values will be guessed (which
+        may themselves be NULL).  This routine is not super-fast for
+        volume counts (enclosed counts) since it has to dynamically create
+        and test lists of enclosing regions.
+*************************************************************************/
+
 int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *rxpn,int n,struct vector3 *loc,struct wall *my_wall,double t)
 {  
   int i,j,k,h;
@@ -506,6 +524,15 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 }
 
 
+
+/*************************************************************************
+fire_count_event:
+   In: counter of thing that just happened (trigger of some sort)
+       number of times that thing happened
+       location where it happened
+       what happened (Report Type Flags)   
+   Out: 0 on success, 1 on error (memory allocation or file I/O).
+*************************************************************************/
 
 int fire_count_event(struct counter *event,int n,struct vector3 *where,byte what)
 {
@@ -940,6 +967,16 @@ int prepare_counters()
 }
   
   
+
+/*************************************************************************
+check_counter_geometry:
+   In: nothing  
+   Out: 0 on success, 1 on failure.
+        Checks all counters to make sure that if they are ENCLOSING,
+        they count on closed regions.  If not, the function prints out
+        the offending region name and returns 1.
+*************************************************************************/
+
 int check_counter_geometry()
 {
   int i;
@@ -975,6 +1012,20 @@ int check_counter_geometry()
   return 0;
 }
 
+
+/*************************************************************************
+expand_object_output:
+   In: request for a count
+       object upon which the request is made.
+   Out: 0 on success, 1 on failure (memory allocation only?).
+        Request is split into a separate request for each BOX and POLY
+        object's ALL region that is a child of this object.  The result
+        is then added up here.
+   Note: This is probably broken for concentration.  It may also not be
+         the most intuitive interpretation when used inside a large
+         object with multiple layers of nesting--if one molecule is
+         inside three sub-objects, it will be counted three times!
+*************************************************************************/
 
 int expand_object_output(struct output_request *request,struct object *obj)
 {
@@ -1053,6 +1104,14 @@ int expand_object_output(struct output_request *request,struct object *obj)
 }
 
 
+
+/*************************************************************************
+object_has_geometry:
+   In: object (instantiated in world)  
+   Out: 0 if there are no geometrical objects within that object (and it
+        is not a geometrical object itself).  1 if there are such object.
+*************************************************************************/
+
 int object_has_geometry(struct object *obj)
 {
   struct object *child;
@@ -1075,6 +1134,15 @@ int object_has_geometry(struct object *obj)
   return 0;
 }
 
+
+
+/*************************************************************************
+instantiate_request:
+   In: request for a count  
+   Out: 0 on success, 1 on failure (memory allocation only?).
+        Requesting output tree gets appropriate node pointed to the
+        memory location where we will be collecting data.
+*************************************************************************/
 
 int instantiate_request(struct output_request *request)
 {
@@ -1282,6 +1350,17 @@ int instantiate_request(struct output_request *request)
   return 0;
 }
 
+
+/*************************************************************************
+create_new_counter:
+   In: region upon which to count
+       target we're going to count (species or rxn pathname)
+       what to count (*_COUNTER flags)   
+   Out: Newly allocated counter initialized with the given region and
+        target, or NULL if there is a memory allocation error.
+   Note: memory is allocated from world->counter_mem using mem_get,
+         not from the global heap using malloc.
+*************************************************************************/
 
 struct counter* create_new_counter(struct region *where,void *who,byte what)
 {
