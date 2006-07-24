@@ -8563,7 +8563,6 @@ count_syntax:  existing_one_or_many_rxpns_or_mols ',' count_location_specifier o
     {
       if (($<tok>4&REPORT_TYPE_MASK)==REPORT_NOTHING) report_type = REPORT_CONTENTS;
       else report_type=($<tok>4&REPORT_TYPE_MASK);
-      if ((((struct species*)stl->node->value)->flags&NOT_FREE)==0) report_type |= REPORT_ENCLOSED;
     }
     else
     {

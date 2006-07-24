@@ -547,10 +547,23 @@ int fire_count_event(struct counter *event,int n,struct vector3 *where,byte what
   
   for (tr=event->data.trig.listeners ; tr!=NULL ; tr=tr->next)
   {
-    if (tr->ear->report_type==what || tr->ear->report_type==whatelse)
+    if (tr->ear->report_type==what)
     {
       memcpy(&(event->data.trig.loc),where,sizeof(struct vector3));
       i=add_trigger_output(event,tr->ear,n);
+      if (i) return 1;
+    }
+    else if (tr->ear->report_type==whatelse)
+    {
+      memcpy(&(event->data.trig.loc),where,sizeof(struct vector3));
+      if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_HITS || (what&REPORT_TYPE_MASK)==REPORT_FRONT_CROSSINGS)
+      {
+        i=add_trigger_output(event,tr->ear,n);
+      }
+      else
+      {
+        i=add_trigger_output(event,tr->ear,-n);
+      }
       if (i) return 1;
     }
   }
@@ -1138,7 +1151,6 @@ int instantiate_request(struct output_request *request)
   byte count_type;
   int is_enclosed;
   
-  
   /* Set up and figure out hash value */
   to_count=request->count_target->value;
   switch (request->count_target->sym_type)
@@ -1147,7 +1159,10 @@ int instantiate_request(struct output_request *request)
       rxpn_to_count=NULL;
       rx_to_count=NULL;
       mol_to_count=(struct species*)to_count;
-      if ((mol_to_count->flags&NOT_FREE)==0) request->report_type|=REPORT_ENCLOSED;
+      if ((mol_to_count->flags&NOT_FREE)==0 && (request->report_type&REPORT_TYPE_MASK)==COUNT_CONTENTS)
+      {
+        request->report_type|=REPORT_ENCLOSED;
+      }
       request_hash=mol_to_count->hashval;
       break;
     case RXPN:
