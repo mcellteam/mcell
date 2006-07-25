@@ -294,12 +294,6 @@ int init_sim(void)
   }
   for (i=0;i<=world->count_hashmask;i++) world->count_hash[i] = NULL;
   
-  world->pathway_requester = create_mem(sizeof(struct pathway_count_request),64);
-  if (world->pathway_requester==NULL)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory, could not create space to pair reactions with count requests\n", __FILE__, (long)__LINE__);
-    exit(EXIT_FAILURE);
-  }
   world->oexpr_mem = create_mem(sizeof(struct output_expression),8192);
   if (world->oexpr_mem==NULL)
   {
@@ -931,7 +925,7 @@ int init_partitions(void)
  * Initializes the geometry of the world.
  * Calls instance_obj() to instantiate all physical objects.
  * (Meta objects, box objects, polygon objects and release sites)
- * Populates viz_obj list vizp and lig_count_ref list lcrp.
+ * Populates viz_obj list vizp
  */
 int init_geom(void)
 {
@@ -977,7 +971,7 @@ int init_geom(void)
   no_printf("World object contains %d walls and %d vertices\n",
     world->n_walls,world->n_verts);
   
-  if (instance_obj(world->root_instance,tm,NULL,NULL,NULL)) {
+  if (instance_obj(world->root_instance,tm,NULL,NULL)) {
     return(1);
   }
 
@@ -995,7 +989,7 @@ int init_geom(void)
  * instance_polygon_object() to handle the actual instantiation of
  * those objects.
  */
-int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp, struct lig_count_ref *lcrp, char *sub_name)
+int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp, char *sub_name)
 {
   FILE *log_file;
   struct object *child_objp;
@@ -1011,9 +1005,6 @@ int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp, str
   mult_matrix(objp->t_matrix,im,tm,l,m,n);
   if (vizp==NULL) {
     vizp=objp->viz_obj;
-  }
-  if (lcrp==NULL) {
-    lcrp=objp->lig_count_ref;
   }
 
   if (sub_name!=NULL) { 
@@ -1061,7 +1052,7 @@ int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp, str
     fflush(log_file);
     child_objp=objp->first_child;
     while (child_objp!=NULL) {
-      if (instance_obj(child_objp,tm,vizp,lcrp,sub_name)) {
+      if (instance_obj(child_objp,tm,vizp,sub_name)) {
         return(1);
       }
       child_objp=child_objp->next;
@@ -1077,14 +1068,14 @@ int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp, str
   case BOX_OBJ:
     no_printf("Box object %s instanced\n",sub_name);
     fflush(log_file);
-    if (instance_polygon_object(objp,tm,vizp,lcrp,sub_name)) {
+    if (instance_polygon_object(objp,tm,vizp,sub_name)) {
       return(1);
     }
     break;
   case POLY_OBJ:
     no_printf("Polygon list object %s instanced\n",sub_name);
     fflush(log_file);
-    if (instance_polygon_object(objp,tm,vizp,lcrp,sub_name)) {
+    if (instance_polygon_object(objp,tm,vizp,sub_name)) {
       return(1);
     }
     break;
@@ -1369,7 +1360,7 @@ int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_n
  * transformations (scaling, rotation and translation).
  * <br>
  */
-int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj *vizp, struct lig_count_ref *obj_lcrp, char *full_name)
+int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj *vizp, char *full_name)
 {
 // #define INIT_VERTEX_NORMALS
 // Uncomment to compute vertex normals
@@ -2517,506 +2508,6 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
     no_printf("Done initialize effectors by number.\n");
     return(0);
 }
-
-
-
-
-
-
-/* **************************************************************** */
-
-# if 0
-
-
-
-
-
-
-/**
- ** Initialize region counters for the RX_STATE and save 
- ** reg_counter_ref_list to the counter_hash_table of the object
- ** Start from MCell 2.68
- */
-int init_region_counter(struct polygon_object *pop, struct cmprt_data *cdp, struct region_list *reg_count_head)
-{
-  struct rx *rx;
-  struct region_list *rlp; 
-  struct region *rp;
-  struct element_list *elp;
-  struct effector *ep;
-  struct reg_counter_ref_list *rcrlp;
-  struct reg_counter_ref *rcrp;
-  int i,j;
-  
-    /* traverse region list and add effector sites by number to whole regions
-       as appropriate */
-    rlp=reg_count_head;
-    no_printf(" Initialzing region counter ...\n");
-    fflush(log_file);
-    while (rlp!=NULL) {
-      rp=rlp->region;
-      elp=rp->element_list_head;
-      /* check effector numbers for each region of the object*/
-      while (elp!=NULL) {
-	for (i=elp->begin;i<=elp->end;i++) {
-	  if (pop->side_stat[i]) {
-	    ep=cdp->wall[pop->cmprt_side_map[i]]->effectors;
-	    if (ep!=NULL) {
-	      for (j=0;j<ep->n_tiles;j++) {
-		rx=ep->tiles[j];
-		rcrlp=rp->reg_counter_ref_list;
-		while (rcrlp!=NULL) {
-		  rcrp=rcrlp->reg_counter_ref;
-		  if ((rx!=NULL)&&(rx==rcrp->state)&&(rcrp->count_type==RX_STATE)) {
-		    rcrp->counter++;
-		  }
-		  rcrlp=rcrlp->next;
-		}
-	      }
-	    }
-	  }
-	}
-	elp=elp->next;
-      }
-      rlp=rlp->next;
-    }
-    no_printf(" Done initializing region counter\n");
-    fflush(log_file);
-  return(0);
-}
-
-
-/* Initialize the region_list that contains this wall 
- * Add from MCell 2.68, designed for the region counters.
- */
-struct region_list  *init_region_list_for_wall(struct region_list *rlp, int index) {
-/*  struct element_list *elp; */
-  struct region *rp;
-  struct region_list *rlp1, *wall_region_head;
-  
-  wall_region_head=NULL;
-  
-  for ( ; rlp!=NULL ; rlp=rlp->next )
-  {
-    if (get_bit(rlp->region->membership,index)) {
-      if ((rlp1=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
-	mdlerror("Can not save region_list for wall");
-	return(NULL);
-      }
-      rlp1->region=rp;
-      rlp1->next=wall_region_head;
-      wall_region_head=rlp1;
-    }
-  }
-  return(wall_region_head);
-
-  /* free memory not needed any more*/  
-  if (wall_region_head!=NULL) {
-    rlp=wall_region_head;
-    while (rlp!=NULL) {
-      rlp1=rlp;
-      rlp=rlp->next;
-      free(rlp1);
-    }
-  }
-}
-
-
-/*
-   ** Initialize the counter_hash_table of the object if 
-   ** there are any reg_counters defined in this object, 
-   ** and save the reg_counter_ref_list to the table.
-   ** The table will be used for future counter searching.
-   ** Start from MCell 2.68
- */  
-
-int init_counter_hash_table (struct object *objp, struct region_list *reg_count_head) {
-
-  struct counter_hash_table **countertab;
-  struct counter_hash_table *chtp,*prev,*hash_table_head;
-  struct region_list *rlp;
-  struct region *rp;
-  struct reg_counter_ref_list *rcrlp, *rcrlp2, *rcrlp_tmp;
-  struct reg_counter_ref *rcrp, *rcrp2;
-  char *rx_name;
-  int col, done, i;
-  unsigned short hashval;
-
-  rlp=reg_count_head;
-  rcrlp2=NULL;
-  rcrp2=NULL;
-  hash_table_head=NULL;
-  no_printf("\t Initializing counter hash table for object %s\n",objp->sym->name);
-  fflush(log_file);
-  /* Initialize the object counter hash table if it is empty*/
-  if (objp->counter_hash_table==NULL) {
-    if ((countertab=(struct counter_hash_table **)malloc(COUNTER_HASH*sizeof(struct counter_hash_table *)))==NULL) {
-      mdlerror("Can not save counter table to object");
-      return(1);
-    }
-    countertab=init_countertab(COUNTER_HASH);
-    objp->counter_hash_table=countertab;
-  }
-  
-  /* save each reg_counter_ref_list to the table by the hash value of 
-   * the rx state of the counter and sort by the address of the region
-   */  
-  while (rlp!=NULL) {
-    rp=rlp->region;
-    rcrlp=rp->reg_counter_ref_list;
-    while (rcrlp!=NULL) {
-      rcrp=rcrlp->reg_counter_ref;
-      rx_name=rcrp->state->sym->name;
-      hashval=hash(rx_name)&0x0000000f;
-      /* Store counter in table, but check if it is already saved */
-      if ((chtp=retrieve_counter(rx_name,rcrp, objp->counter_hash_table))==NULL) {
-       if ((chtp=store_counter(rx_name,rcrlp, objp->counter_hash_table))==NULL) {
-	fprintf(log_file,"Cannot store counter in table: %s\n",rx_name);
-	return(NULL);
-      }
-      }
-      else {
-	warning(" Counter already defined");
-	return(NULL);
-      }
-      objp->counter_hash_table[hashval]=chtp;      
-      rcrlp=rcrlp->next;
-    }
-  rlp=rlp->next;
-  }
-  /*Print the counter_hash_table for debuging*/
-  /*  
-  for (i=0; i<COUNTER_HASH; i++) {
-    hash_table_head=objp->counter_hash_table[i];
-    while (hash_table_head!=NULL) {
-      rcrlp2=(struct reg_counter_ref_list *)hash_table_head->value;
-      if (rcrlp2!=NULL) {
-	rcrp2=rcrlp2->reg_counter_ref;
-	no_printf("\t\t col %d, counter %s, region %s = %d, type %d, counter %d;\n",i,rcrp2->state->sym->name,rcrp2->parent->sym->name,(int)rcrp2->parent, rcrp2->count_type,rcrp2->counter);
-	fflush(log_file);
-       }
-      hash_table_head=hash_table_head->next;
-     }
-  }
-  */  	
-  no_printf("\t end of counter hash table initializing\n");
-  fflush(log_file); 
-  return(0);
-}
-
-
-
-int init_effector_grid(struct wall *wp)
-{
-  struct effector *ep;
-  struct rx **tiles;
-  struct vector3 v1,u_axis,v_axis,p_b,p_c,p_d,i_axis,j_axis;
-  struct vector3 ab,bc,ac,step_u,step_v,diagonal,p0,p1,p2;
-  unsigned short *dsp,*psp;
-  signed char *orp;
-  int *tsp;
-  unsigned int i,j,k,l,m,n,p,nr,nl,ir,jr,n_ligs,n_occupied;
-  int p_index,rx_index,subvol;
-  int grid_size,uu,vv,vv_max;
-  byte grid_shape;
-  double area;
-  double diag_x,diag_y,r_slope,width,u_width;
-  double u_factor,u_factor_2,v_factor,v_val,binding_factor;
-
-  no_printf("Creating new effector grid...\n");
-
-  vectorize(wp->vert[0],wp->vert[1],&ab);
-  vectorize(wp->vert[1],wp->vert[2],&bc);
-  if (wp->wall_shape==RECT_POLY) {
-    grid_shape=RECTANGULAR;
-    area=wp->area;
-    no_printf("Area = %g\n",area);
-    grid_size=(int) ceil(sqrt(area/2));
-    if (grid_size==0 || grid_size>46340) {
-      fprintf(log_file,"MCell: too many tiles in effector grid: %d\n",grid_size);
-      fflush(log_file);
-      return(1);
-    }
-    n=2*grid_size*grid_size;
-    binding_factor=n/area;
-    printf("binding_factor = %g\n",binding_factor);
-    r_slope=(wp->length_first/wp->length_last);
-    diag_x=wp->length_first;
-    diag_y=wp->length_last;
-    u_factor=grid_size/wp->length_first;
-    u_factor_2=wp->length_first/grid_size;
-    v_factor=grid_size/wp->length_last;
-    u_axis.x=1;
-    u_axis.y=0;
-    u_axis.z=0;
-    v_axis.x=0;
-    v_axis.y=1;
-    v_axis.z=0;
-    vectorize(wp->vert[0],wp->vert[1],&i_axis);
-    normalize(&i_axis);
-    vectorize(wp->vert[0],wp->vert[3],&j_axis);
-    normalize(&j_axis);
-  }
-  else {
-    grid_shape=TRIANGULAR;
-    vectorize(wp->vert[0],wp->vert[2],&ac);
-    area=wp->area;
-    no_printf("Area = %g\n",area);
-    grid_size=(int) ceil(sqrt(area));
-    if (grid_size==0 || grid_size>65536) {
-      fprintf(log_file,"MCell: too many tiles in effector grid: %d\n",grid_size);
-      fflush(log_file);
-      return(1);
-    }
-    n=grid_size*grid_size;
-    binding_factor=n/area;
-    printf("binding_factor = %g\n",binding_factor);
-    p_b.x=wp->length_first;
-    p_b.y=0;
-    p_b.z=0;
-    width=dot_prod(&ab,&ac)/wp->length_first;
-    p_c.x=width;
-    p_c.y=2*area/wp->length_first;
-    p_c.z=0;
-    r_slope=(p_c.x/p_c.y);
-    diag_x=p_c.x;
-    diag_y=p_c.y;
-    p_d.x=wp->vert[0]->x+(width*ab.x/wp->length_first);
-    p_d.y=wp->vert[0]->y+(width*ab.y/wp->length_first);
-    p_d.z=wp->vert[0]->z+(width*ab.z/wp->length_first);
-    vectorize(wp->vert[0],wp->vert[1],&i_axis);
-    normalize(&i_axis);
-    vectorize(&p_d,wp->vert[2],&j_axis);
-    normalize(&j_axis);
-    u_axis.x=p_c.y-p_b.y;
-    u_axis.y=p_b.x-p_c.x;
-    u_axis.z=0;
-    normalize(&u_axis);
-    u_width=dot_prod(&p_b,&u_axis);
-    u_factor=grid_size/u_width;
-    u_factor_2=wp->length_first/grid_size;
-    v_factor=grid_size/p_c.y;
-    vectorize(&p_b,&p_c,&v_axis);
-    v_axis.x=v_axis.x/grid_size;
-    v_axis.y=v_axis.y/grid_size;
-    v_axis.z=0;
-
-  }
-  step_u.x=ab.x/grid_size;
-  step_u.y=ab.y/grid_size;
-  step_u.z=ab.z/grid_size;
-  step_v.x=bc.x/grid_size;
-  step_v.y=bc.y/grid_size;
-  step_v.z=bc.z/grid_size;
-  vectorize(&step_u,&step_v,&diagonal);
-
-  no_printf("Initializing effector grid size %d ...\n",n);
-  fflush(log_file);
-
-  if ((tiles=(struct rx **)malloc(n*sizeof(struct rx *)))==NULL) {
-    fprintf(log_file,"MCell: cannot store tiles for effector grid: %d\n",n);
-    fflush(log_file);
-    return(1);
-  }
-  if ((tsp=(int *)malloc(n*sizeof(int)))==NULL) {
-    fprintf(log_file,"MCell: cannot store time stamp data for effector grid: %d\n",n);
-    fflush(log_file);
-    return(1);
-  }
-  if ((dsp=(unsigned short *)malloc(n*sizeof(unsigned short)))==NULL) {
-    fprintf(log_file,"MCell: cannot store desired state data for effector grid: %d\n",n);
-    fflush(log_file);
-    return(1);
-  }
-  if ((orp=(signed char *)malloc(n*sizeof(signed char)))==NULL) {
-    fprintf(log_file,"MCell: cannot store orientation data\n");
-    fflush(log_file);
-    return(1);
-  }
-
-  for (i=0;i<n;i++) {
-    tiles[i]=NULL;
-    tsp[i]=(-INT_MAX);
-    dsp[i]=0;
-    orp[i]=0;
-  }
-
-  no_printf("Done initializing effector grid size %d\n",n);
-  fflush(log_file);
-
-  if ((ep=(struct effector *)malloc(sizeof(struct effector)))==NULL) {
-    return(1);
-  }
-  wp->effectors=ep;
-  wp->effectors->grid_shape=grid_shape;
-  wp->effectors->grid_size=grid_size;
-  wp->effectors->u_axis.x=u_axis.x;
-  wp->effectors->u_axis.y=u_axis.y;
-  wp->effectors->v_axis.x=v_axis.x;
-  wp->effectors->v_axis.y=v_axis.y;
-  wp->effectors->i_axis.x=i_axis.x;
-  wp->effectors->i_axis.y=i_axis.y;
-  wp->effectors->i_axis.z=i_axis.z;
-  wp->effectors->j_axis.x=j_axis.x;
-  wp->effectors->j_axis.y=j_axis.y;
-  wp->effectors->j_axis.z=j_axis.z;
-  wp->effectors->r_slope=r_slope;
-  wp->effectors->diag.x=diag_x;
-  wp->effectors->diag.y=diag_y;
-  wp->effectors->u_factor=u_factor;
-  wp->effectors->u_factor_2=u_factor_2;
-  wp->effectors->v_factor=v_factor;
-  wp->effectors->r_u_factor=1/u_factor;
-  wp->effectors->r_v_factor=1/v_factor;
-  wp->effectors->binding_factor=binding_factor;
-  wp->effectors->n_tiles=n;
-  wp->effectors->n_occupied=0;
-  
-  wp->effectors->i=0; /* deprecated */
-  wp->effectors->j=0; /* deprecated */
-
-  wp->effectors->tiles=tiles;
-  wp->effectors->time_stamp=tsp;
-  wp->effectors->desired_state=dsp;
-  wp->effectors->prev_state=NULL;
-  wp->effectors->index=n_effector_grids++;
-  wp->effectors->n_types=0;
-  wp->effectors->orient=orp;
-  wp->effectors->set=0;
-  wp->effectors->wall=wp;
-	
-  no_printf("Done creating new effector grid.\n");
-
-  return(0);
-}
-
-
-/**
- * Creates an array pointers to reference effector elements of the
- * wp linked list (walls) directly.
- * This effectively flattens the linked list.
- */
-int init_effector_table(struct wall *wp)
-{
-  if (n_effector_grids>0) {
-    if ((effector_table=(struct effector **)malloc
-	 ((n_effector_grids)*sizeof(struct effector *)))==NULL) {
-      return(1);
-    }
-    while (wp) {
-      if (wp->effectors) {
-	effector_table[wp->effectors->index]=wp->effectors;
-       }
-      wp=wp->next_wall;
-    }
-  }
-  return(0);
-}
-
-
-/**
- * Creates an array pointers to reference elements of the
- * parent_rx linked list directly.
- * This effectively flattens the linked list.
- */
-int init_rx_table(struct parent_rx *prxp)
-{
-  
-  if (n_rx_types>0) {
-    if ((rx_table=(struct parent_rx **)malloc
-         (n_rx_types*sizeof(struct parent_rx *)))==NULL) {
-      return(1);
-    }
-    while (prxp) {
-      rx_table[prxp->rx_index]=prxp;
-      prxp=prxp->next;
-    }
-  }
-  return(0);
-}
-
-/**
- * Creates an array pointers to reference elements of the
- * release_event_queue linked list directly.
- * This effectively flattens the linked list.
- */
-int init_release_event_table(struct release_event_queue *reqp)
-{
-  
-  if (n_release_events>0) {
-    if ((release_event_table=(struct release_event_queue **)malloc
-         (n_release_events*sizeof(struct release_event_queue *)))==NULL) {
-      return(1);
-    }
-    while (reqp) {
-      release_event_table[reqp->index]=reqp;
-      reqp=reqp->next;
-    }
-  }
-  return(0);
-}
-
-/**
- * Frees up the memory used by the value of a symbol table entry
- * after we're done with it.
- * Currently deals with OBJ::POLY_OBJ::{BOX_POLY|ORDERED_POLY} types.
- */
-void destroy_sym_value(struct sym_table *sym) {
-  struct object *objp;
-  struct polygon_object *pop;
-  struct ordered_poly *opp;
-  struct box_poly *bpp;
-  struct vector3 *vect3;
-  int i;
-
-no_printf("Starting GARBAGE COLLECTING\n");
-no_printf("sym: %s\n", sym->name);
-  switch (sym->sym_type) {
-	case OBJ:
-      objp = (struct object *)sym->value;
-
-      switch (objp->object_type) {
-		case POLY_OBJ:
-		  pop = (struct polygon_object *)objp->obj;
-		  switch (pop->list_type) {
-			case ORDERED_POLY:
-              opp = (struct ordered_poly *)pop->polygon_data;
-			  for (i=0;i<opp->n_verts;i++) {
-				free(opp->vertex[i]);
-			  }
-			  free(opp->vertex);
-			  if (opp->normal != NULL) {
-				  for (i=0;i<opp->n_verts;i++) {
-					free(opp->normal[i]);
-				  }
-				  free(opp->normal);
-			  }
-			  free(opp);
-			break;
-
-			case BOX_POLY:
-			  bpp = (struct box_poly *)pop->polygon_data;
-			  free(bpp->llf);
-			  free(bpp->urb);
-			  free(bpp);
-			break;
-		  }
-		  free(pop);
-		break;
-	  }
-	break;
-  }
-
-no_printf("Done GARBAGE COLLECTING\n");
-fflush(stdout);
-}
-
-
-
-
-/* **************************************************************** */
-
-#endif
 
 
 

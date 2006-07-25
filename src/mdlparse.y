@@ -4161,8 +4161,6 @@ polygon_list_def: new_object POLYGON_LIST '{'
     mdlerror("Out of memory while creating polygon list object");
     return(1);
   }
-  mdlpvp->pop->lig_count_ref=NULL;
-  mdlpvp->pop->viz_state_ref=NULL;
   mdlpvp->pop->polygon_data=NULL;
   mdlpvp->pop->n_walls=0;
   mdlpvp->pop->n_verts=0;
@@ -4253,7 +4251,6 @@ polygon_list_def: new_object POLYGON_LIST '{'
       mdlerror("All polygons must have three vertices.");
       return(1);
     }
-    mdlpvp->edp[i].n_verts=mdlpvp->eclp->n_verts;
     mdlpvp->elp=mdlpvp->eclp->connection_list;
     for (j=0;j<mdlpvp->eclp->n_verts;j++) {
       mdlpvp->edp[i].vertex_index[j]=(int)mdlpvp->elp->value;
@@ -4336,8 +4333,6 @@ voxel_list_def: new_object VOXEL_LIST '{'
     mdlerror("Out of memory while creating voxel list object");
     return(1);
   }
-  mdlpvp->vop->lig_count_ref=NULL;
-  mdlpvp->vop->viz_state_ref=NULL;
   mdlpvp->vop->voxel_data=NULL;
   mdlpvp->vop->n_voxels=0;
   mdlpvp->vop->n_verts=0;
@@ -4676,8 +4671,6 @@ box_def: new_object BOX '{'
     mdlerror("Out of memory while creating box object");
     return(1);
   }
-  mdlpvp->pop->lig_count_ref=NULL;
-  mdlpvp->pop->viz_state_ref=NULL;
   mdlpvp->pop->polygon_data=NULL;
   mdlpvp->pop->sb=NULL;
   mdlpvp->pop->n_walls=0;

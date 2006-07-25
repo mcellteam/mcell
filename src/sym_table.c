@@ -257,7 +257,6 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       objp->next=NULL;
       objp->first_child=NULL;
       objp->last_child=NULL;
-      objp->lig_count_ref=NULL;
       objp->num_regions=0;
       objp->regions=NULL;
       objp->counter_hash_table=NULL;

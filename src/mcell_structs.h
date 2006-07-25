@@ -404,8 +404,8 @@
 #define POLE POS_POLE
                                                                                 
 
-/* Grid molecule site placement types */
-/* Place either a certain density or an exact number of effectors */
+/* Placement Type Flags */
+/* Place either a certain density or an exact number of surface molecules */
 #define EFFDENS 0
 #define EFFNUM 1
 
@@ -1057,18 +1057,16 @@ struct volume
 
   struct release_pattern *default_release_pattern;  /* release once at t=0 */
   
-  struct output_block *output_block_head;
-  struct output_request *output_request_head;
-  struct mem_helper *oexpr_mem;
-  struct mem_helper *outp_request_mem;
-  struct mem_helper *counter_mem;
-  struct mem_helper *trig_request_mem;
-  double elapsed_time;    /* (Used for concentration measurement) */
+  struct output_block *output_block_head;     /* Global list of reaction data output blocks */
+  struct output_request *output_request_head; /* Global list linking COUNT statements to internal variables */
+  struct mem_helper *oexpr_mem;               /* Memory to store output_expressions */
+  struct mem_helper *outp_request_mem;        /* Memory to store output_requests */
+  struct mem_helper *counter_mem;             /* Memory to store counters (for counting molecules/reactions on regions) */
+  struct mem_helper *trig_request_mem;        /* Memory to store listeners for trigger events */
+  double elapsed_time;                        /* Used for concentration measurement */
   
   struct viz_obj *viz_obj_head;
   struct frame_data_list *frame_data_head;
-
-  struct mem_helper *pathway_requester;
 
   struct species *g_mol;   /* A generic molecule */
   struct species *g_surf;  /* A generic surface class */
@@ -1433,209 +1431,49 @@ struct output_trigger_data
 /**  Everything below this line has been copied from MCell 2.69  **/
 /******************************************************************/
 
-#if 0
-/**
- * Linked list of all reaction data output blocks
- */
-struct output_block {
-	struct output_block *next;   /**< next reaction data output block*/
-        double t;                   /**< scheduled time to update counters
-                                         associated with this output block*/
-	byte timer_type;    /**< output timer type: OUTPUT_BY_STEP,
-                                     OUTPUT_BY_TIME_LIST,
-                                     OUTPUT_BY_ITERATION_LIST */
-	double step_time;                     /**< output frequency (secs)*/
-        struct num_expr_list *time_list_head; /**< list of output times (secs)
-                                                   or list of iterations*/
-        struct num_expr_list *curr_time_ptr; /**< ptr to current position in
-                                                   output time list*/
-        u_int buffersize;                     /**< output chunk size*/
-        u_int curr_buf_index;              /**< index to current position
-                                                   in output buffers*/
-        double *time_array;                 /**< array of output times
-                                                 for current output chunk */
-        u_int chunk_count;                  /**< number of chunks processed*/
-	struct output_item *output_item_head; /**< list of count output
-                                                     statements associated with
-                                                     this output block*/
-};
 
 
-/**
- * Linked list of output statements associated with a given output block 
- */
-struct output_item {
-	struct output_item *next;  
-	char *outfile_name;               /**< name of file to contain output*/
-	int file_flags;            /* Append, overwrite, etc. */
-	int first_write;           /* Only write header on first write */
-	char *header_comment;             /**< comment character(s) for header */
-	struct output_evaluator *output_evaluator_head;  /**< list of counters 
-                                                  associated with this
-                                                  count output statement*/
-	struct output_evaluator *count_expr;  /**< root of count expression tree
-                                               to be evaluated for this
-                                               count output statement*/
-	struct output_item *next_column;
-};
-
-
-/**
- * Linked list of output evaluators to be evaluated at update time
- */
-struct output_evaluator {
-	struct output_evaluator *next;    /**< next item in count list*/
-	byte update_flag;           /**< counter update necessary?*/
-	byte reset_flag;            /**< reset temp_data to 0 on each iteration?*/
-	byte index_type;            /**< flag indicating final_data is to be
-	                              indexed by either TIME_STAMP_VAL or INDEX_VAL
-				      or is output when triggered (TRIGGER_VAL) */
-	byte data_type;             /**< type of data to track:
-                                      EXPR INT DBL TRIG_STRUCT*/
-	u_int n_data;               /** buffer size */
-	void *temp_data;            /**< ptr to intermediate data
-                                         specified by type*/
-	void *final_data;           /**< ptr to final outputable data
-                                         specified by type*/
-	struct output_evaluator *operand1;
-	struct output_evaluator *operand2;
-	char oper;
-	char *column_title; /* Column title in output file */
-};
-#endif
-
-struct lig_output_evaluator {
-	struct lig_output_evaluator *next;
-        struct output_evaluator *output_evaluator;
-};
-
-
-struct lig_count_ref {
-	struct lig_count_ref *next;
-	unsigned short type;
-        char *full_name;
-        struct output_evaluator *output_evaluator;
-};
-
-
-struct viz_state_ref {
-	struct viz_state_ref *next;
-	int viz_state;
-        char *full_name;
-};
-
-struct pathway_count_request
-{
-  struct pathway_count_request *next;
-  struct output_evaluator *requester;
-};
-
-
-
-
-/**
- * Compartment. [\todo need more info]
- */
-struct cmprt_data {
-	struct cmprt_data *next;
-	struct sym_table *sym;
-        char *full_name;
-        byte fully_closed;
-	int instance;
-	int *lig_count;
-	double *conc;
-	double volume;
-	double vm;
-        int n_corners;
-        int n_walls;
-	struct vector3 *corner;
-	struct vector3 *vertex_normal;
-	struct vector3 *normal;
-	struct wall_list *wall_list;
-	struct wall **wall;
-	struct cmprt_data **neighbor;
-};
-
-struct cmprt_data_list {
-	struct cmprt_data_list *next;
-	struct cmprt_data *cmprt_data;
-};
-
-/**
- * A polygon list object, part of a surface.
- */
+/* A polygon list object, part of a surface. */
 struct polygon_object {
-	struct lig_count_ref *lig_count_ref;
-					/**< ptr to list of lig_count_ref
-	                                   structures: one for each time polygon
-	                                   object is referenced in count stmt */
-	struct viz_state_ref *viz_state_ref;
-					/**< ptr to list of viz_state_ref
-	                                   structures: one for each time polygon
-	                                   object is referenced in
-					   STATE_VALUES block */
-        struct ordered_poly *polygon_data; /**< pointer to data structure
-                                                holding polygon vertices etc... */
-	struct subdivided_box *sb;      /**< Holds corners of box if necessary */
-	int n_walls;			/**< Number of polygons in
-                                             polygon object */
-        int n_verts;                    /**< Number of vertices in
-                                             polygon object */
-	byte fully_closed;		/**< flag indicating closure of object */
-        struct species **surf_class;    /** array of pointers to surface class, 
-                                            one for each polygon */
-	struct bit_array *side_removed; /**< Bit array; if bit is on, side is removed */
-/*        struct eff_dat **eff_prop;*/	/**< array of ptrs to eff_dat data
-					   structures, one for each polygon. */
+  struct ordered_poly *polygon_data; /* Holds polygon vertices etc... */
+  struct subdivided_box *sb;         /* Holds corners of box if necessary */
+  int n_walls;                       /* Number of polygons in polygon object */
+  int n_verts;                       /* Number of vertices in polygon object */
+  byte fully_closed;		     /* If set, indicates a closed object */
+  struct species **surf_class;       /* Array of pointers to surface class, one for each polygon */
+  struct bit_array *side_removed;    /* Bit array; if bit is set, side is removed */
 };
 
 
-/**
- * A general ordered polyhedron. 
- * That is, the vertices of each polygonal face are ordered according to
- * the right hand rule.
- */
+/* An ordered polyhedron made of triangular polygons. 
+   The vertices of each polygonal face are ordered according to the right hand rule. */
 struct ordered_poly {
-	struct vector3 *vertex;         /**< Array of polygon vertices */
-	struct vector3 *normal;         /**< Array of polygon normals */
-	struct element_data *element; /**< Array element_data
-                                              data structures */
-	int n_verts;                    /**< Number of vertices in polyhedron */
-	int n_walls;                    /**< Number of polygons in polyhedron */
+  int n_verts;                    /* Number of vertices in polyhedron */
+  struct vector3 *vertex;         /* Array of vertices */
+  int n_walls;                    /* Number of triangles in polyhedron */
+  struct element_data *element;   /* Array specifying the vertex connectivity of each triangle */
+  struct vector3 *normal;         /* Array of triangle normals */
 };
 
-/**
- * Data structure used to build one polygon.
- * This data structure is used to store the data from the MDL file
- * and to contruct each polygon of a polygon object.
- */
+
+/* Data structure used to build one triangular polygon
+  according to the connectivity in the MDL file. */
 struct element_data {
-        int vertex_index[3];              /**< Array of vertex indices forming a
-                                           polygon. */
-	int n_verts;                    /**< Number of vertices in polygon (always 3). */
+        int vertex_index[3];  /* Array of vertex indices forming a triangle */
 };
 
-/**
- * A voxel list object, part of a volume.
- */
+
+/* A voxel list object, part of a volume */
 struct voxel_object {
-	struct lig_count_ref *lig_count_ref;
-					/**< ptr to list of lig_count_ref
-	                                   structures: one for each time voxel 
-	                                   object is referenced in count stmt */
-	struct viz_state_ref *viz_state_ref;
-					/**< ptr to list of viz_state_ref
-	                                   structures: one for each time voxel 
-	                                   object is referenced in
-					   STATE_VALUES block */
         struct ordered_voxel *voxel_data; /**< pointer to data structure
                                                 holding voxel vertices etc... */
-	int n_voxels;			/**< Number of voxels in
+	int n_voxels;			  /**< Number of voxels in
                                              voxel object */
-        int n_verts;                    /**< Number of vertices in
+        int n_verts;                      /**< Number of vertices in
                                              voxel object */
-	byte fully_closed;		/**< flag indicating closure of object */
+	byte fully_closed;		  /**< flag indicating closure of object */
 };
+
 
 /**
  * A general ordered polyhedron consisting from tetrahedrons (voxels). 
@@ -1652,6 +1490,7 @@ struct ordered_voxel {
 	int n_voxels;                 /**< Number of voxels in polyhedron */
 };
 
+
 /**
  * Data structure used to build one tetrahedron.
  * This data structure is used to store the data from the MDL file
@@ -1663,6 +1502,7 @@ struct tet_element_data {
 	int n_verts;                    /**< Number of vertices in tetrahedron (always 4). */
 };
 
+
 /**
  * This data structure is used to store the data about neighbors
  * of each tetrahedron of a voxel object.
@@ -1673,37 +1513,16 @@ struct tet_neighbors_data {
 	int n_neighbors;               /**< Number of neighbors of tetrahedron (always 4). */
 };
 
-/**
- * A compartment.
- */
-struct cmprt {
-	struct sym_table *sym;
-        unsigned short type;
-	int inst_count;
-	struct lig_output_evaluator **lig_output_evaluator;  /**< array of ptrs to lig_output_evaluator
-	                                        structures: one for each
-	                                        ligand type */
-        byte a_zone_lig;
-        unsigned short side_stat[6];
-        struct vector3 *vert1;
-        struct vector3 *vert2;
-        struct vector3 *a_zone_loc;
-        byte *lig_prop[6];
-        struct eff_dat *eff_prop[6];
-	int *count_freq;
-        int color[6];
+
+/* Surface molecule placement data */
+struct eff_dat {
+  struct eff_dat *next;
+  struct species *eff; /* Species to place on surface */
+  byte quantity_type;  /* Placement Type Flags: either EFFDENS or EFFNUM */
+  double quantity;     /* Amount of surface molecules to place by density or number */
+  short orientation;   /* Orientation of molecules to place */
 };
 
-/**
- * Linked list of surface effector placement data.
- */
-struct eff_dat {
-        struct eff_dat *next;
-        struct species *eff; /* effector species to place on surface */
-        byte quantity_type;  /* type is either EFFDENS or EFFNUM */
-        double quantity; /* amount of effectors to place: density or number */
-	short orientation;
-};
 
 /**
  * Linked list of elements.
@@ -1716,6 +1535,7 @@ struct element_list {
 	struct element_special *special;
 };
 
+
 /* Elements can be patches on boxes or other regions */
 struct element_special
 {
@@ -1724,6 +1544,7 @@ struct element_special
   struct region *referent;
   byte exclude;
 };
+
 
 /**
  * Region of an object
@@ -1748,6 +1569,7 @@ struct region {
         byte manifold_flag;
 };
 
+
 /**
  * A list of regions
  */
@@ -1769,6 +1591,7 @@ struct reg_counter_ref {
 	struct rx *next_state;
 	struct lig_transition_count **transition_count_each; /**< array of pointers to transition counter structures on region. One array element per rx mechanism in simulation. Indexed by parent_rx.rx_index */
 };
+
 
 struct reg_counter_ref_list {
 	struct reg_counter_ref_list *next;
@@ -1797,10 +1620,6 @@ struct object {
         char *last_name;
         byte object_type;
         void *contents;			/**< ptr to actual physical object */
-	struct lig_count_ref *lig_count_ref;
-					/**< ptr to list of lig_count_ref
-	                                   structures: one for each time meta-
-	                                   object is referenced in count stmt */
         unsigned int num_regions;	/**< number of regions defined */
 	struct region_list *regions;    /**< ptr to list of regions for 
 					      this object */

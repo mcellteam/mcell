@@ -1712,7 +1712,6 @@ int make_cuboid(struct vector3 *p1, struct vector3 *p2, struct ordered_poly *opp
   struct vector3 *corner;
   struct element_data *edp;
   double dx,dy,dz;
-  int i;
 
   if ((corner=(struct vector3 *)malloc
       (opp->n_verts*sizeof(struct vector3)))==NULL) {
@@ -1726,10 +1725,6 @@ int make_cuboid(struct vector3 *p1, struct vector3 *p2, struct ordered_poly *opp
          return(1);
   }
   opp->element=edp;
-  
-  for(i=0;i<opp->n_walls;i++){
-    edp[i].n_verts=3;
-  }
 
   dx=p2->x-p1->x;
   dy=p2->y-p1->y;
@@ -2647,8 +2642,6 @@ int polygonalize_cuboid(struct ordered_poly *opp,struct subdivided_box *sb)
   }
   
 /*  for (a=0;a<2;a++) for (b=0;b<2;b++) for (c=0;c<2;c++) printf("%d,%d,%d->%d\n",a,b,c,vertex_at_index(sb,a,b,c)); */
-  
-  for (i=0;i<opp->n_walls;i++) opp->element[i].n_verts = 3;
   
   /* Set vertices and elements on X faces */
   ii = 0;
