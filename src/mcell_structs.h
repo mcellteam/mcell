@@ -1194,45 +1194,44 @@ struct exd_vertex
 /* Data structures to describe release events */
 struct release_event_queue {
   struct release_event_queue *next;
-  double event_time;			/* Time of the release */
+  double event_time;			 /* Time of the release */
   struct release_site_obj *release_site; /* What to release, where to release it, etc */
-  double t_matrix[4][4];                /* transformation matrix for location of release site */
-  int train_counter;			/* counts executed trains */
-  double train_high_time;		/* time of the train's start */
+  double t_matrix[4][4];                 /* transformation matrix for location of release site */
+  int train_counter;			 /* counts executed trains */
+  double train_high_time;		 /* time of the train's start */
 };
 
 
 /* Release site information  */
 struct release_site_obj {
-	struct vector3 *location;	/* location of release site */
-	struct species *mol_type;	/* species to be released */
-	byte release_number_method;     /* Release Number Flags: controls how release_number is used */
-	byte release_shape;             /* Release Shape Flags: controls shape over which to release */
-	short orientation;              /* Orientation of released surface molecules */
-	int release_number;             /* Number to release */
-	double mean_diameter;           /* Diameter for symmetric releases */
-	double concentration;           /* Concentration of molecules to release.
-	                                   Units are Molar for volume molecules,
-                                           and number per um^2 for surface molecules. */
-        double standard_deviation;      /* Standard deviation of release_number for GAUSSNUM,
-                                           or of mean_diameter for VOLNUM */
-	struct vector3 *diameter;       /* x,y,z diameter for geometrical release shapes */
-	struct release_region_data *region_data; /* Information related to release on regions */
-	struct release_single_molecule *mol_list; /* Information related to release by list */
+  struct vector3 *location;	  /* location of release site */
+  struct species *mol_type;	  /* species to be released */
+  byte release_number_method;     /* Release Number Flags: controls how release_number is used */
+  byte release_shape;             /* Release Shape Flags: controls shape over which to release */
+  short orientation;              /* Orientation of released surface molecules */
+  int release_number;             /* Number to release */
+  double mean_diameter;           /* Diameter for symmetric releases */
+  double concentration;           /* Concentration of molecules to release.
+				     Units are Molar for volume molecules, and number per um^2 for surface molecules. */
+  double standard_deviation;      /* Standard deviation of release_number for GAUSSNUM,
+				     or of mean_diameter for VOLNUM */
+  struct vector3 *diameter;       /* x,y,z diameter for geometrical release shapes */
+  struct release_region_data *region_data; /* Information related to release on regions */
+  struct release_single_molecule *mol_list; /* Information related to release by list */
 
-	double release_prob;            /* Probability of releasing at scheduled time */
-	struct release_pattern *pattern;  /* Timing of releases by virtual function generator */
+  double release_prob;            /* Probability of releasing at scheduled time */
+  struct release_pattern *pattern;  /* Timing of releases by virtual function generator */
 };
 
 
 /* Timing pattern for molecule release from a release site. */
 struct release_pattern {
-        struct sym_table *sym;          /* Symbol hash table entry for the pattern */
-	double delay;			/* Delay between time 0 and first release event. */
-	double release_interval;	/* Time between release events within a train. */
-	double train_interval;		/* Time from the start of one train to the start of the next one. */
-	double train_duration;		/* Length of the train. */
-	int number_of_trains;		/* How many trains are produced. */
+  struct sym_table *sym;        /* Symbol hash table entry for the pattern */
+  double delay;			/* Delay between time 0 and first release event. */
+  double release_interval;	/* Time between release events within a train. */
+  double train_interval;	/* Time from the start of one train to the start of the next one. */
+  double train_duration;	/* Length of the train. */
+  int number_of_trains;		/* How many trains are produced. */
 };
 
 
@@ -1249,13 +1248,12 @@ struct release_region_data
   int *wall_index;       /* Indices of each wall (by object) */
   int *obj_index;        /* Indices for objects (in owners array) */
   
-  int n_objects;                  /* How many objects are there total */
-  struct object **owners;         /* Array of pointers to each object */
-  struct bit_array **in_release;  /* Array of bit arrays; each bit array says
-                                     which walls are in release for an object */
-  int *walls_per_obj;             /* Number of walls in release for each object */
+  int n_objects;                 /* How many objects are there total */
+  struct object **owners;        /* Array of pointers to each object */
+  struct bit_array **in_release; /* Array of bit arrays; each bit array says which walls are in release for an object */
+  int *walls_per_obj;            /* Number of walls in release for each object */
 
-  struct object *self;            /* A pointer to our own release site object */
+  struct object *self;           /* A pointer to our own release site object */
   struct release_evaluator *expression;  /* A set-construction expression combining regions to form this release site */
 };
 
@@ -1459,7 +1457,7 @@ struct ordered_poly {
 /* Data structure used to build one triangular polygon
   according to the connectivity in the MDL file. */
 struct element_data {
-        int vertex_index[3];  /* Array of vertex indices forming a triangle */
+  int vertex_index[3];  /* Array of vertex indices forming a triangle */
 };
 
 
@@ -1529,10 +1527,10 @@ struct eff_dat {
  * [\todo what is this?]
  */
 struct element_list {
-        struct element_list *next;
-        u_int begin; /*first number in the list of numbers */
-        u_int end;   /* last number in the list of numbers */
-	struct element_special *special;
+  struct element_list *next;
+  u_int begin; /*first number in the list of numbers */
+  u_int end;   /* last number in the list of numbers */
+  struct element_special *special;
 };
 
 
@@ -1552,21 +1550,21 @@ struct element_special
  * Otherwise it can only be used as a surface region.
  */
 struct region {
-	struct sym_table *sym;
-	u_int hashval;
-        char *region_last_name;
-	struct object *parent;
-	struct element_list *element_list_head;
-	struct bit_array *membership;
-	struct reg_counter_ref_list *reg_counter_ref_list;
-	struct eff_dat *eff_dat_head;
-        struct species *surf_class;
-        struct vector3 *bbox;  /* Vector of length 2, may be null 
-                                 - NOT IMPLEMENTED yet*/
-        int region_viz_value; /* used for visualization */
-	double area; 
-        u_short flags;
-        byte manifold_flag;
+  struct sym_table *sym;
+  u_int hashval;
+  char *region_last_name;
+  struct object *parent;
+  struct element_list *element_list_head;
+  struct bit_array *membership;
+  struct reg_counter_ref_list *reg_counter_ref_list;
+  struct eff_dat *eff_dat_head;
+  struct species *surf_class;
+  struct vector3 *bbox;  /* Vector of length 2, may be null 
+			   - NOT IMPLEMENTED yet*/
+  int region_viz_value; /* used for visualization */
+  double area; 
+  u_short flags;
+  byte manifold_flag;
 };
 
 
@@ -1574,37 +1572,37 @@ struct region {
  * A list of regions
  */
 struct region_list {
-	struct region_list *next;
-	struct region *reg;
+  struct region_list *next;
+  struct region *reg;
 };
 
 /*
  *region counter reference, store all the info for counting reaction on regions
  */
 struct reg_counter_ref {
-	struct reg_counter_ref *next;  
-	unsigned int counter;
-	byte count_type; 	/*Three possible types:RX_STATE, TRANSITION, INIT_TRANS, MOL_TRANS*/
-	byte count_method;	/* Three types:DT, SUM, CUM */
-	struct region *parent;
-	struct rx *state;
-	struct rx *next_state;
-	struct lig_transition_count **transition_count_each; /**< array of pointers to transition counter structures on region. One array element per rx mechanism in simulation. Indexed by parent_rx.rx_index */
+  struct reg_counter_ref *next;  
+  unsigned int counter;
+  byte count_type; 	/*Three possible types:RX_STATE, TRANSITION, INIT_TRANS, MOL_TRANS*/
+  byte count_method;	/* Three types:DT, SUM, CUM */
+  struct region *parent;
+  struct rx *state;
+  struct rx *next_state;
+  struct lig_transition_count **transition_count_each; /**< array of pointers to transition counter structures on region. One array element per rx mechanism in simulation. Indexed by parent_rx.rx_index */
 };
 
 
 struct reg_counter_ref_list {
-	struct reg_counter_ref_list *next;
-	struct reg_counter_ref *reg_counter_ref;
+  struct reg_counter_ref_list *next;
+  struct reg_counter_ref *reg_counter_ref;
 };
 
 /*
  *counter hash table for counting on regions in each object
  */
 struct counter_hash_table {
-	struct counter_hash_table *next;
-	char *name;
-	void *value;
+  struct counter_hash_table *next;
+  char *name;
+  void *value;
 };
 
 
@@ -1612,33 +1610,33 @@ struct counter_hash_table {
  * Container data structure for all physical objects.
  */
 struct object {
-        struct object *next;		/**< ptr to next sibling object */
-        struct object *parent;		/**< ptr to parent meta object */
-        struct object *first_child;	/**< ptr to first child object */
-        struct object *last_child;	/**< ptr to last child object */
-        struct sym_table *sym;
-        char *last_name;
-        byte object_type;
-        void *contents;			/**< ptr to actual physical object */
-        unsigned int num_regions;	/**< number of regions defined */
-	struct region_list *regions;    /**< ptr to list of regions for 
-					      this object */
-	struct counter_hash_table **counter_hash_table;	/**<hash table for region counter in object*/
-        int n_walls;                  /**< Total number of walls in object */
-        int n_walls_actual;           /**< number of non-null walls in object */
-        struct wall *walls;           /**< array of walls in object */
-        struct wall **wall_p;         /**< array of ptrs to walls in object */
-        int n_verts;                  /**< Total number of vertices in object */
-        struct vector3 *verts;        /**< array of vertices in object */
-        struct vector3 **vert_p;      /**< array of ptrs to verts in object */
-        double total_area;            /**< area of object in length units */
-        u_int n_tiles;                /**< number of tiles on object */
-        u_int n_occupied_tiles;       /**< number of occupied tiles on object */
-        struct mem_helper *edgemem;   /**< Storage for edges of object */
-        struct viz_obj *viz_obj;
-        int *viz_state;			/**< array of viz state values.
-					   One for each element of object. */
-        double t_matrix[4][4];		/**< transformation matrix for object */
+  struct object *next;		/**< ptr to next sibling object */
+  struct object *parent;		/**< ptr to parent meta object */
+  struct object *first_child;	/**< ptr to first child object */
+  struct object *last_child;	/**< ptr to last child object */
+  struct sym_table *sym;
+  char *last_name;
+  byte object_type;
+  void *contents;			/**< ptr to actual physical object */
+  unsigned int num_regions;	/**< number of regions defined */
+  struct region_list *regions;    /**< ptr to list of regions for 
+					this object */
+  struct counter_hash_table **counter_hash_table;	/**<hash table for region counter in object*/
+  int n_walls;                  /**< Total number of walls in object */
+  int n_walls_actual;           /**< number of non-null walls in object */
+  struct wall *walls;           /**< array of walls in object */
+  struct wall **wall_p;         /**< array of ptrs to walls in object */
+  int n_verts;                  /**< Total number of vertices in object */
+  struct vector3 *verts;        /**< array of vertices in object */
+  struct vector3 **vert_p;      /**< array of ptrs to verts in object */
+  double total_area;            /**< area of object in length units */
+  u_int n_tiles;                /**< number of tiles on object */
+  u_int n_occupied_tiles;       /**< number of occupied tiles on object */
+  struct mem_helper *edgemem;   /**< Storage for edges of object */
+  struct viz_obj *viz_obj;
+  int *viz_state;			/**< array of viz state values.
+				     One for each element of object. */
+  double t_matrix[4][4];		/**< transformation matrix for object */
 };
 
 
@@ -1646,9 +1644,9 @@ struct object {
  * Doubly linked list of names.
  */
 struct name_list {
-        struct name_list *next;
-        char *name;
-        struct name_list *prev;
+  struct name_list *next;
+  char *name;
+  struct name_list *prev;
 };
 
 /**
@@ -1656,12 +1654,12 @@ struct name_list {
  */
 struct viz_obj 
 {
-	struct viz_obj *next;
-	char *name;            /* name taken from OBJECT_FILE_PREFIXES
-                  or FILENAME_PREFIXES or FILENAME assignment  */
-        char *full_name;       /* full name of the object, like A.B.C */
-	struct object *obj;
-	struct viz_child *viz_child_head;
+  struct viz_obj *next;
+  char *name;            /* name taken from OBJECT_FILE_PREFIXES
+	    or FILENAME_PREFIXES or FILENAME assignment  */
+  char *full_name;       /* full name of the object, like A.B.C */
+  struct object *obj;
+  struct viz_child *viz_child_head;
 };
 
 /**
@@ -1679,10 +1677,10 @@ struct viz_child {
  * Used to instantiate an object.
  */
 struct transformation {
-        struct vector3 translate;
-        struct vector3 scale;
-        struct vector3 rot_axis;
-        double rot_angle;
+  struct vector3 translate;
+  struct vector3 scale;
+  struct vector3 rot_axis;
+  double rot_angle;
 };
 
 /**
@@ -1695,17 +1693,17 @@ struct transformation {
  * [\todo better description.]
  */
 struct frame_data_list {
-	struct frame_data_list *next;
-        byte list_type;		/* data output timing type (OUTPUT_BY_TIME_LIST, etc) */
-	int type;               /* visualization frame data type 
-					(ALL_FRAME_DATA, etc.) */ 
-	long long viz_iterationll;	/* value of the current iteration step. */
-	long long n_viz_iterations;	/* number of iterations in the 
-					iteration_list. */
-	struct num_expr_list *iteration_list;   /* linked list of iteration 
-							steps values */
-	struct num_expr_list *curr_viz_iteration; /* points to the current
-						 iteration in the linked list */
+  struct frame_data_list *next;
+  byte list_type;		/* data output timing type (OUTPUT_BY_TIME_LIST, etc) */
+  int type;               /* visualization frame data type 
+				  (ALL_FRAME_DATA, etc.) */ 
+  long long viz_iterationll;	/* value of the current iteration step. */
+  long long n_viz_iterations;	/* number of iterations in the 
+				  iteration_list. */
+  struct num_expr_list *iteration_list;   /* linked list of iteration 
+						  steps values */
+  struct num_expr_list *curr_viz_iteration; /* points to the current
+					   iteration in the linked list */
 };
 
 
@@ -1725,8 +1723,8 @@ struct state_list {
  * Used for user defined file IO operations.
  */
 struct file_stream {
-	char *name;
-	FILE *stream;
+  char *name;
+  FILE *stream;
 };
 
 /**
@@ -1734,15 +1732,15 @@ struct file_stream {
  * Used to parse and store user defined symbols from the MDL input file.
  */
 struct sym_table {
-        struct sym_table *next;  /**< next symbol in symbol table*/
-        unsigned short sym_type; /**< type of symbol stored -
-                                   OBJ, RX, MOL, DBL, PNT ...*/
-        char *name;              /**< name of symbol*/
-        void *value;             /**< ptr to stored value*/
+  struct sym_table *next;  /**< next symbol in symbol table*/
+  unsigned short sym_type; /**< type of symbol stored -
+			     OBJ, RX, MOL, DBL, PNT ...*/
+  char *name;              /**< name of symbol*/
+  void *value;             /**< ptr to stored value*/
 #ifdef KELP
-		byte keep_alive;	/**< flag to indicate continued use of
-							  this symbol table entry during computation */
-		byte ref_count;		/**< number of times referenced in MDL file */
+  byte keep_alive;	/**< flag to indicate continued use of
+					    this symbol table entry during computation */
+  byte ref_count;		/**< number of times referenced in MDL file */
 #endif
 };
 
@@ -1755,7 +1753,6 @@ struct sym_table {
 struct sym_table_list {
   struct sym_table_list *next;
   struct sym_table *node;
-
 };
 
 /**
