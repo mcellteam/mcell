@@ -112,13 +112,12 @@
 #define ENCLOSING_COUNTER 4
 #define TRIG_COUNTER 8
 
+
+/* Manifold Flags */
 #define MANIFOLD_UNCHECKED 0
 #define NOT_MANIFOLD       1
 #define IS_MANIFOLD        2
 
-#define COUNT_RX_CONTENTS 1
-#define COUNT_RX_ENCLOSED 2
-#define COUNT_RX_SOME     3
 
 /* Reaction flags */
   /* RX_TRANSP signifies that a reaction is between a molecule and a TRANSPARENT wall */
@@ -486,7 +485,7 @@
 #define TRIG_STRUCT 16
 
                                                                                 
-/* Object types */
+/* Object Type Flags */
 #define META_OBJ 0
 #define BOX_OBJ 1
 #define POLY_OBJ 2
@@ -534,10 +533,12 @@
 #define TRIGGER_VAL 3
 
 
+/* Data Output Timing Type */
 /* Reaction and Viz data output timing */
 #define OUTPUT_BY_STEP 0 
 #define OUTPUT_BY_TIME_LIST 1
 #define OUTPUT_BY_ITERATION_LIST 2
+
 
 /* Region counter type.  INIT probably broken. */
 #define RX_STATE 0
@@ -557,7 +558,7 @@
 #define ASCII_MODE 5
 
 
-/* Visualization frame data types. */
+/* Visualization Frame Data Type */
 /* Used to select type of data to include in viz output files */
 /* Will probably change significantly when we redesign DReAMM output format */
 #define ALL_FRAME_DATA 0
@@ -572,6 +573,7 @@
 #define REG_DATA 9
 #define ALL_MOL_DATA  10
 #define ALL_MESH_DATA 11
+
 
 /* Release Number Flags */
 #define CONSTNUM 0
@@ -1347,7 +1349,7 @@ struct output_block
   struct output_block *next;            /* Next in world or scheduler */
   double t;                             /* Scheduled time to update counters */
   
-  byte timer_type;                      /* OUTPUT_BY_STEP, ...BY_TIME_LIST, ...BY_ITERATION_LIST */
+  byte timer_type;                      /* Data Output Timing Type (OUTPUT_BY_STEP, etc) */
   
   double step_time;                     /* Output interval (seconds) */
   struct num_expr_list *time_list_head; /* List of output times/iteration numbers */
@@ -1522,249 +1524,175 @@ struct eff_dat {
 };
 
 
-/**
- * Linked list of elements.
- * [\todo what is this?]
- */
+/* Linked list of wall index ranges for regions */
 struct element_list {
   struct element_list *next;
-  u_int begin; /*first number in the list of numbers */
-  u_int end;   /* last number in the list of numbers */
-  struct element_special *special;
+  u_int begin;                      /* First number in the range */
+  u_int end;                        /* Last number in the range */
+  struct element_special *special;  /* Pre-existing region or patch on box */
 };
 
 
-/* Elements can be patches on boxes or other regions */
+/* Elements can be patches on boxes or pre-existing regions */
 struct element_special
 {
-  struct vector3 corner1;
-  struct vector3 corner2;
-  struct region *referent;
-  byte exclude;
+  struct vector3 corner1;  /* Corner of patch on box */
+  struct vector3 corner2;  /* Opposite corner of patch on box */
+  struct region *referent; /* Points to pre-existing region on object */
+  byte exclude;            /* If set, remove elements rather than include them */
 };
 
 
-/**
- * Region of an object
- * If region is a manifold then it can be used as a volume and surface region.
- * Otherwise it can only be used as a surface region.
- */
+/* Region of an object */
+/* If region is a manifold then it can be used as both a volume and surface region.
+   Otherwise it can only be used as a surface region. */
 struct region {
-  struct sym_table *sym;
-  u_int hashval;
-  char *region_last_name;
-  struct object *parent;
-  struct element_list *element_list_head;
-  struct bit_array *membership;
-  struct reg_counter_ref_list *reg_counter_ref_list;
-  struct eff_dat *eff_dat_head;
-  struct species *surf_class;
-  struct vector3 *bbox;  /* Vector of length 2, may be null 
-			   - NOT IMPLEMENTED yet*/
-  int region_viz_value; /* used for visualization */
-  double area; 
-  u_short flags;
-  byte manifold_flag;
+  struct sym_table *sym;                  /* Symbol hash table entry for this region */
+  u_int hashval;                          /* Hash value for counter hash table */
+  char *region_last_name;                 /* Name of region without prepended object name */
+  struct object *parent;                  /* Parent of this region */
+  struct element_list *element_list_head; /* List of element ranges comprising this region (used at parse time) */
+  struct bit_array *membership;           /* Each bit indicates whether the corresponding wall is in the region */
+  struct eff_dat *eff_dat_head;           /* List of surface molecules to add to region */ 
+  struct species *surf_class;             /* Surface class of this region */
+  struct vector3 *bbox;                   /* Array of length 2 to hold corners of region bounding box
+                                             (used for release in region) */
+  int region_viz_value;                   /* Used for visualization */
+  double area;                            /* Area of region */
+  u_short flags;                          /* Counting subset of Species Flags */
+  byte manifold_flag;                     /* Manifold Flags: If IS_MANIFOLD, region is a closed manifold and thus defines a volume */
 };
 
 
-/**
- * A list of regions
- */
+/* A list of regions */
 struct region_list {
   struct region_list *next;
-  struct region *reg;
-};
-
-/*
- *region counter reference, store all the info for counting reaction on regions
- */
-struct reg_counter_ref {
-  struct reg_counter_ref *next;  
-  unsigned int counter;
-  byte count_type; 	/*Three possible types:RX_STATE, TRANSITION, INIT_TRANS, MOL_TRANS*/
-  byte count_method;	/* Three types:DT, SUM, CUM */
-  struct region *parent;
-  struct rx *state;
-  struct rx *next_state;
-  struct lig_transition_count **transition_count_each; /**< array of pointers to transition counter structures on region. One array element per rx mechanism in simulation. Indexed by parent_rx.rx_index */
+  struct region *reg;        /* A region */
 };
 
 
-struct reg_counter_ref_list {
-  struct reg_counter_ref_list *next;
-  struct reg_counter_ref *reg_counter_ref;
-};
-
-/*
- *counter hash table for counting on regions in each object
- */
-struct counter_hash_table {
-  struct counter_hash_table *next;
-  char *name;
-  void *value;
-};
-
-
-/**
- * Container data structure for all physical objects.
- */
+/* Container data structure for all physical objects */
 struct object {
-  struct object *next;		/**< ptr to next sibling object */
-  struct object *parent;		/**< ptr to parent meta object */
-  struct object *first_child;	/**< ptr to first child object */
-  struct object *last_child;	/**< ptr to last child object */
-  struct sym_table *sym;
-  char *last_name;
-  byte object_type;
-  void *contents;			/**< ptr to actual physical object */
-  unsigned int num_regions;	/**< number of regions defined */
-  struct region_list *regions;    /**< ptr to list of regions for 
-					this object */
-  struct counter_hash_table **counter_hash_table;	/**<hash table for region counter in object*/
-  int n_walls;                  /**< Total number of walls in object */
-  int n_walls_actual;           /**< number of non-null walls in object */
-  struct wall *walls;           /**< array of walls in object */
-  struct wall **wall_p;         /**< array of ptrs to walls in object */
-  int n_verts;                  /**< Total number of vertices in object */
-  struct vector3 *verts;        /**< array of vertices in object */
-  struct vector3 **vert_p;      /**< array of ptrs to verts in object */
-  double total_area;            /**< area of object in length units */
-  u_int n_tiles;                /**< number of tiles on object */
-  u_int n_occupied_tiles;       /**< number of occupied tiles on object */
-  struct mem_helper *edgemem;   /**< Storage for edges of object */
-  struct viz_obj *viz_obj;
-  int *viz_state;			/**< array of viz state values.
-				     One for each element of object. */
-  double t_matrix[4][4];		/**< transformation matrix for object */
+  struct object *next;          /* Next sibling object */
+  struct object *parent;        /* Parent meta object */
+  struct object *first_child;	/* First child object */
+  struct object *last_child;	/* Last child object */
+  struct sym_table *sym;        /* Symbol hash table entry for this object */
+  char *last_name;              /* Name of object without pre-pended parent object name */
+  byte object_type;             /* Object Type Flags */
+  void *contents;		/* Actual physical object, cast according to object_type */
+  u_int num_regions;	        /* Number of regions defined on object */
+  struct region_list *regions;  /* List of regions for this object */
+  int n_walls;                  /* Total number of walls in object */
+  int n_walls_actual;           /* Number of non-null walls in object */
+  struct wall *walls;           /* Array of walls in object */
+  struct wall **wall_p;         /* Array of ptrs to walls in object (used at run-time) */
+  int n_verts;                  /* Total number of vertices in object */
+  struct vector3 *verts;        /* Array of vertices in object */
+  struct vector3 **vert_p;      /* Array of ptrs to verts in object */
+  double total_area;            /* Area of object in length units */
+  u_int n_tiles;                /* Number of surface grid tiles on object */
+  u_int n_occupied_tiles;       /* Number of occupied tiles on object */
+  struct mem_helper *edgemem;   /* Storage for edges of object */
+  struct viz_obj *viz_obj;      /* Associates this object with a VIZ_OUTPUT block */
+  int *viz_state;		/* Array of viz state values, one for each element of object. */
+  double t_matrix[4][4];	/* Transformation matrix for object */
 };
 
 
-/**
- * Doubly linked list of names.
- */
+/* Doubly linked list of object names */
 struct name_list {
   struct name_list *next;
-  char *name;
   struct name_list *prev;
+  char *name;              /* An object name */
 };
 
-/**
- * Visualization objects.
- */
+
+/* Visualization objects */
 struct viz_obj 
 {
   struct viz_obj *next;
-  char *name;            /* name taken from OBJECT_FILE_PREFIXES
-	    or FILENAME_PREFIXES or FILENAME assignment  */
-  char *full_name;       /* full name of the object, like A.B.C */
-  struct object *obj;
-  struct viz_child *viz_child_head;
+  char *name;                        /* Name taken from OBJECT_FILE_PREFIXES
+	                                or FILENAME_PREFIXES or FILENAME assignment */
+  char *full_name;                   /* Full name of the object, like A.B.C */
+  struct object *obj;                /* The object being visualized */
+  struct viz_child *viz_child_head;  /* List of child objects to visualize */
 };
 
-/**
- * Linked list of pointers to objects.
- * Used to point to child polygon or box objects to be visualized.
- */
+
+/* Linked list of pointers to objects */
+/* Used to point to child polygon or box objects to be visualized */
 struct viz_child {
   struct viz_child *next;
-  struct object *obj;
+  struct object *obj;      /* An object to visualize*/
 };
 
 
-/**
- * Geometric transformation data for a physical object.
- * Used to instantiate an object.
- */
+/* Geometric transformation data for a physical object */
 struct transformation {
-  struct vector3 translate;
-  struct vector3 scale;
-  struct vector3 rot_axis;
-  double rot_angle;
+  struct vector3 translate;  /* X,Y,Z translation vector */
+  struct vector3 scale;      /* X,Y,Z scaling factors */
+  struct vector3 rot_axis;   /* Vector defining an axis of rotation */
+  double rot_angle;          /* Rotation angle in degrees */
 };
 
-/**
- * Molecule release pattern data.
- */
 
-
-/**
- * Linked list of data to be output.
- * [\todo better description.]
- */
+/* Linked list of viz data to be output */
 struct frame_data_list {
   struct frame_data_list *next;
-  byte list_type;		/* data output timing type (OUTPUT_BY_TIME_LIST, etc) */
-  int type;               /* visualization frame data type 
-				  (ALL_FRAME_DATA, etc.) */ 
-  long long viz_iterationll;	/* value of the current iteration step. */
-  long long n_viz_iterations;	/* number of iterations in the 
-				  iteration_list. */
-  struct num_expr_list *iteration_list;   /* linked list of iteration 
-						  steps values */
-  struct num_expr_list *curr_viz_iteration; /* points to the current
-					   iteration in the linked list */
+  byte list_type;		            /* Data Output Timing Type (OUTPUT_BY_TIME_LIST, etc) */
+  int type;                                 /* Visualization Frame Data Type (ALL_FRAME_DATA, etc) */ 
+  long long viz_iterationll;	            /* Value of the current iteration step. */
+  long long n_viz_iterations;	            /* Number of iterations in the iteration_list. */
+  struct num_expr_list *iteration_list;     /* Linked list of iteration steps values */
+  struct num_expr_list *curr_viz_iteration; /* Points to the current iteration in the linked list */
 };
 
 
-/**
- * Linked list of unique viz states.
- * required by certain viz output modes e.g. Renderman
- */
+/* Linked list of unique viz states */
+/* Required by certain viz output modes e.g. Renderman */
 struct state_list {
-  int state;
-  char *name;
   struct state_list *next;
+  int state;               /* The state value to assign */
+  char *name;              /* Name of item being visualized */
 };
 
 
-/**
- * A pointer to filehandle and it's real name.
- * Used for user defined file IO operations.
- */
+/* A pointer to filehandle and it's real name */
+/* Used for user defined file IO operations */
 struct file_stream {
-  char *name;
-  FILE *stream;
+  char *name;   /* File name */
+  FILE *stream; /* File handle structure */
 };
 
-/**
- * Linked list of symbols.
- * Used to parse and store user defined symbols from the MDL input file.
- */
+
+/* Symbol hash table entry */
+/* Used to parse and store user defined symbols from the MDL input file */
 struct sym_table {
-  struct sym_table *next;  /**< next symbol in symbol table*/
-  unsigned short sym_type; /**< type of symbol stored -
-			     OBJ, RX, MOL, DBL, PNT ...*/
-  char *name;              /**< name of symbol*/
-  void *value;             /**< ptr to stored value*/
-#ifdef KELP
-  byte keep_alive;	/**< flag to indicate continued use of
-					    this symbol table entry during computation */
-  byte ref_count;		/**< number of times referenced in MDL file */
-#endif
+  struct sym_table *next; 
+  unsigned short sym_type; /* Symbol Table Type: OBJ, RX, MOL, DBL, PNT, etc. */
+  char *name;              /* Name of symbol*/
+  void *value;             /* Stored value, cast by sym_type */
 };
 
 
-/**
- * Linked list of symbols.
- * Used to parse and store user defined symbols having wildcards
-   from the MDL input file.
- */
+/* Linked list of symbols */
+/* Used to parse and retrieve user defined symbols having wildcards from the MDL input file */
 struct sym_table_list {
   struct sym_table_list *next;
-  struct sym_table *node;
+  struct sym_table *node;      /* Symbol table entry matching a user input wildcard string */
 };
 
-/**
- * Linked list of numerical expressions.
- * Used for parsing MDL input file arithmetic expressions.
- */
+
+/* Linked list of numerical expressions */
+/* Used for parsing MDL input file arithmetic expressions */
 struct num_expr_list {
   struct num_expr_list *next;
-  double value;
+  double value;                /* Value of one element of the expression */
 };
  
 
+/* Histogram visualization output mode used by Rex */
 struct rk_mode_data
 {
   int n_bins;

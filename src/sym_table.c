@@ -259,7 +259,6 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       objp->last_child=NULL;
       objp->num_regions=0;
       objp->regions=NULL;
-      objp->counter_hash_table=NULL;
       objp->n_walls=0;
       objp->n_walls_actual=0;
       objp->walls=NULL;
@@ -343,7 +342,6 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       rp->eff_dat_head=NULL;
       rp->surf_class=NULL;
       rp->region_viz_value=EXCLUDE_OBJ;
-      rp->reg_counter_ref_list=NULL;
       rp->bbox=NULL;
       rp->area=0.0;
       rp->flags=0;

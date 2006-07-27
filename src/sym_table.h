@@ -17,10 +17,4 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
   struct sym_table **hashtab);
 struct sym_table **init_symtab(int size);
 
-struct counter_hash_table **init_countertab(int size);
-struct counter_hash_table *retrieve_counter(char *counter,
-  struct reg_counter_ref *rcrp, struct counter_hash_table **countertab);
-struct counter_hash_table *store_counter(char *counter,
-  struct reg_counter_ref_list *rcrlp, struct counter_hash_table **countertab);
-
 #endif

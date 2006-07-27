@@ -67,6 +67,11 @@ Add code to insure that each COUNT set outputs to a unique file.
 
 Talk to Joel and Boris about VOXEL_LIST object
 
-Fix eff_dat nomenclature some day when we don't have anything better to do
+Fix struct eff_dat nomenclature some day when we don't have anything better to do
+
+Switch notation on struct frame_data_list->viz_iterationll to not include "ll"
+  Note: viz_output.c uses local variables both with and without the "ll", confusing.
+
+
 
 

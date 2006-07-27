@@ -397,7 +397,6 @@ int copy_object(struct volume *volp,struct object *curr_objp,
 	return (1);
     } 
     rp->parent=objp;
-    rp->reg_counter_ref_list=NULL;
     rp->membership = NULL;
     rp->surf_class=rp2->surf_class;
     rp->flags=rp2->flags;

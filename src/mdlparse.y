@@ -4293,7 +4293,6 @@ polygon_list_def: new_object POLYGON_LIST '{'
   mdlpvp->n_walls_actual = mdlpvp->pop->n_walls;
   normalize_elements(mdlpvp->rp,0);
 
-  mdlpvp->rp->reg_counter_ref_list=NULL;
   mdlpvp->rp->surf_class=NULL;
   mdlpvp->rlp->reg=mdlpvp->rp;
   mdlpvp->rlp->next=mdlpvp->region_list_head;
@@ -4726,7 +4725,6 @@ box_def: new_object BOX '{'
   mdlpvp->elmlp->next=mdlpvp->rp->element_list_head;
   mdlpvp->rp->element_list_head=mdlpvp->elmlp;
 
-  mdlpvp->rp->reg_counter_ref_list=NULL;
   mdlpvp->rp->surf_class=NULL;
   mdlpvp->rlp->reg=mdlpvp->rp;
   mdlpvp->rlp->next=mdlpvp->region_list_head;
@@ -4869,7 +4867,6 @@ remove_side: REMOVE_ELEMENTS '{'
     }
     mdlpvp->rp->region_last_name="REMOVED";
     mdlpvp->rp->parent=mdlpvp->curr_obj;
-    mdlpvp->rp->reg_counter_ref_list=NULL;
     mdlpvp->rp->surf_class=(struct species*)&mdlpvp->rp->surf_class;
     mdlpvp->rlp->reg=mdlpvp->rp;
     mdlpvp->rlp->next = mdlpvp->region_list_head;
@@ -5279,7 +5276,6 @@ new_region: VAR
   }
   mdlpvp->rp->region_last_name=mdlpvp->sym_name;
   mdlpvp->rp->parent=mdlpvp->curr_obj;
-  mdlpvp->rp->reg_counter_ref_list=NULL;
   mdlpvp->rp->surf_class=NULL;
   mdlpvp->rlp->reg=mdlpvp->rp;
   mdlpvp->rlp->next=mdlpvp->region_list_head;
