@@ -1159,7 +1159,7 @@ int instantiate_request(struct output_request *request)
       rxpn_to_count=NULL;
       rx_to_count=NULL;
       mol_to_count=(struct species*)to_count;
-      if ((mol_to_count->flags&NOT_FREE)==0 && (request->report_type&REPORT_TYPE_MASK)==COUNT_CONTENTS)
+      if ((mol_to_count->flags&NOT_FREE)==0 && (request->report_type&REPORT_TYPE_MASK)==REPORT_CONTENTS)
       {
         request->report_type|=REPORT_ENCLOSED;
       }
