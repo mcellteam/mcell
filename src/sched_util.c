@@ -6,6 +6,7 @@
 ** Testing status: validated (see validate_sched_util.c).                 **
 \**************************************************************************/
 
+#include <float.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -413,14 +414,17 @@ schedule_anticipate:
 int schedule_anticipate(struct schedule_helper *sh,double *t)
 {
   int i,j;
+  double earliest_t=DBL_MAX;
+  
+  if (sh->current!=NULL)
+  {
+    *t=sh->now;
+    return 1;
+  }
 
   for ( ; sh!=NULL ; sh = sh->next_scale )
   {
-    if (sh->current != NULL)
-    {
-      *t = sh->now;
-      return 1;
-    }
+    if (earliest_t<sh->now) break;
     
     for (i=0;i<sh->buf_len;i++)
     {
@@ -428,13 +432,18 @@ int schedule_anticipate(struct schedule_helper *sh,double *t)
       if (j >= sh->buf_len) j -= sh->buf_len;
       if (sh->circ_buf_count[j] > 0)
       {
-        *t = sh->now + sh->dt*i;
-        return 1;
+        earliest_t = sh->now + sh->dt*i;
+	break;
       }
     }
   }
   
-  return 0;
+  if (earliest_t<DBL_MAX)
+  {
+    *t=earliest_t;
+    return 1;
+  }
+  else return 0;
 }
 
 

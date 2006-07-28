@@ -1213,7 +1213,7 @@ int instantiate_request(struct output_request *request)
         request->requester->left=(void*)&(rx_to_count->info[rxpn_to_count->path_num].count);
         break;
       default:
-        fprintf(world->err_file,"Error at file %s line %d\n  Invalid report type 0x%x in count request.\n",__FILE__,__LINE__,report_type_only);
+        fprintf(world->err_file,"Internal error at file %s line %d\n  Invalid report type 0x%x in count request.\n",__FILE__,__LINE__,report_type_only);
         return 1;
         break;
     }
