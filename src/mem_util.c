@@ -14,7 +14,9 @@
 
 #include "mem_util.h"
 
+#ifdef DEBUG
 #include "mcell_structs.h"
+#endif
 
 #define INSERTION_MAX 16
 #define INSERTION_MIN 4
@@ -29,7 +31,9 @@ void nullprintf(char *whatever,...) {}
 #define Malloc malloc
 #endif
 
+#ifdef DEBUG
 extern struct volume *world;
+#endif
 
 
 #ifdef DEBUG
@@ -807,6 +811,8 @@ void* mem_get(struct mem_helper *mh)
     mhnext = create_mem(mh->record_size , mh->buf_len);
     if (mhnext==NULL) return NULL;
     
+    /* Swap contents of this mem_helper with new one */
+    /* Keeps mh at top of list but with freshly allocated space */
     mhnext->next_helper = mh->next_helper;
     temp = mhnext->heap_array;
     mhnext->heap_array = mh->heap_array;

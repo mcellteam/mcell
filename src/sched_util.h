@@ -2,36 +2,40 @@
 #define SCHED_UTIL
 
 
+/* Everything managed by scheduler must begin as if it were derived from abstract_element */
 struct abstract_element
 {
   struct abstract_element *next;
-  double t;
+  double t;                       /* Time at which the element is scheduled */
 };
 
 
+/* Implements a multi-scale, discretized event scheduler */
 struct schedule_helper
 {
-  double dt;				/* timestep per slot */
+  struct schedule_helper *next_scale;   /* Next coarser time scale */
+
+  double dt;				/* Timestep per slot */
   double dt_1;				/* dt_1 = 1/dt */
-  double now;				/* start time of the scheduler */
-  int buf_len;				/* number of slots in the scheduler */
-  int index;				/* points to the next time block */
-  int count;				/* number of future items */
-  int *circ_buf_count;			/* array of counts of items that will
-					   happen at time equal to the index 
-					   value of the array */
-  struct abstract_element **circ_buf_head;   /* array of the heads of the linked
-						lists for future items */
-  struct abstract_element **circ_buf_tail;   /* array of the tails of the linked
-						lists for future items */
-  struct abstract_element *current;	   /* points to the current item */
-  struct abstract_element *current_tail;   /* points to the tail of the linked
-					      list of the current items */
-  int current_count;			   /* number of current items */
-  int defunct_count;                       /* number of defunct items (set by user)*/
-  struct schedule_helper *next_scale;
-  int error;				   /* error code (1 - on error, 0 -
-						no errors) */
+  double now;				/* Start time of the scheduler */
+
+  /* Items scheduled now or after now */
+  int count;				     /* Total number of items scheduled now or after */
+  int buf_len;				     /* Number of slots in the scheduler */
+  int index;				     /* Index of the next time block */
+  int *circ_buf_count;			     /* How many items are scheduled in each slot */
+  struct abstract_element **circ_buf_head;   /* Array of linked lists of scheduled items for each slot*/
+  struct abstract_element **circ_buf_tail;   /* Array of tails of the linked lists */
+
+  /* Items scheduled before now */
+  /* These events must be serviced before simulation can advance to now */
+  int current_count;			   /* Number of current items */
+  struct abstract_element *current;	   /* List of items scheduled now */
+  struct abstract_element *current_tail;   /* Tail of list of items */
+
+  int defunct_count;                       /* Number of defunct items (set by user)*/
+  int error;				   /* Error code (1 - on error, 0 - no errors) */
+
 };
 
 struct abstract_element* ae_list_sort(struct abstract_element *ae);

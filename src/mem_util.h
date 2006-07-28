@@ -1,12 +1,14 @@
 #ifndef MEM_UTIL
 #define MEM_UTIL
 
+/* counter_header and counter_helper not used by MCell3 */
 struct counter_header
 {
   struct counter_header *next;
   struct counter_header *prev;
   int n;
 };
+
 
 struct counter_helper
 {
@@ -17,6 +19,7 @@ struct counter_helper
 };
 
 
+/* stack_helper not used by MCell3 */
 struct stack_helper
 {
   int index;
@@ -28,26 +31,32 @@ struct stack_helper
 };
 
 
+/* temp_mem not used by MCell3 */
+struct temp_mem
+{
+  struct stack_helper *pointers;
+};
+
+
+/* Everything allocated by a mem_helper must start with a next pointer
+   as if it were derived from an abstract_list */
 struct abstract_list
 {
   struct abstract_list *next;
 };
 
+
+/* Data structure to allocate blocks of memory for a specific size of struct */
 struct mem_helper
 {
-  int buf_len;   /* number of elements to allocate at once  */ 
-  int buf_index; /* index of the next unused element in the array */
-  int record_size; /* size of the element to allocate */
-  unsigned char *heap_array; /* pointer to the array of elements */
-  struct abstract_list *defunct; /* linked list of the elements
-                                    that may be reused for memory request */
-  struct mem_helper *next_helper;
+  int buf_len;                    /* Number of elements to allocate at once  */ 
+  int buf_index;                  /* Index of the next unused element in the array */
+  int record_size;                /* Size of the element to allocate */
+  unsigned char *heap_array;      /* Block of memory for elements */
+  struct abstract_list *defunct;  /* Linked list of elements that may be reused for next memory request */
+  struct mem_helper *next_helper; /* Next (fully-used) mem_helper */
 };
 
-struct temp_mem
-{
-  struct stack_helper *pointers;
-};
 
 
 struct mem_helper* create_mem(int size,int length);

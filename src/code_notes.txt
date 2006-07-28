@@ -73,5 +73,10 @@ Switch notation on struct frame_data_list->viz_iterationll to not include "ll"
   Note: viz_output.c uses local variables both with and without the "ll", confusing.
 
 
+**** Important **** fix schedule_anticipate to look for events at next coarser time scale
+before returning time of next event.
+
+
+
 
 

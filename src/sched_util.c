@@ -161,10 +161,7 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
   if (len<2) len=2;
   
   sh = (struct schedule_helper*) malloc( sizeof( struct schedule_helper ) );
-  if(sh == NULL) {
-     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
-     return NULL;
-  }
+  if(sh == NULL) return NULL;
   
   sh->dt = dt_min;
   sh->dt_1 = 1/dt_min;
@@ -176,22 +173,13 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
   sh->error = 0;
 
   sh->circ_buf_count = (int*) malloc( sizeof(int) * len );
-  if (sh->circ_buf_count == NULL) {
-       fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
-       return NULL;
-  }
+  if (sh->circ_buf_count == NULL) return NULL;
 
   sh->circ_buf_head = (struct abstract_element**) malloc( sizeof( void* ) * len );
-  if (sh->circ_buf_head == NULL) {
-       fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
-       return NULL;
-  }
+  if (sh->circ_buf_head == NULL) return NULL;
 
   sh->circ_buf_tail = (struct abstract_element**) malloc( sizeof( void* ) * len );
-  if (sh->circ_buf_tail == NULL) {
-       fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
-       return NULL;
-  }
+  if (sh->circ_buf_tail == NULL) return NULL;
   
   sh->next_scale = NULL;
   sh->current = sh->current_tail = NULL;
@@ -202,9 +190,6 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
     sh->circ_buf_head[i] = sh->circ_buf_tail[i] = NULL;
     sh->circ_buf_count[i] = 0;
   }
-  
-//    printf("dt_min=%f dt_max=%f maxlen=%d start_time=%f\n",dt_min,dt_max,maxlen,start_time);
-//    printf("len=%d n_slots=%f\n",len,n_slots);
 
   if (sh->dt * sh->buf_len < dt_max)
   {
@@ -224,9 +209,8 @@ schedule_insert:
       data to schedule (assumed to start with abstract_element struct)
       flag to indicate whether times in the "past" go into the list
          of current events (if 0, go into next event, not current).
-      the current time
   Out: 0 on success, 1 on memory allocation failure.  Data item is
-       placed in scheduler.
+       placed in scheduler at end of list for its time slot.
 *************************************************************************/
 
 int schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_current)
@@ -237,6 +221,8 @@ int schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_current
   
   if (put_neg_in_current && ae->t < sh->now)
   {
+    /* insert item into current list */
+
     sh->current_count++;
     if (sh->current_tail==NULL)
     {
@@ -251,10 +237,15 @@ int schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_current
     }
     return 0;
   }
+
+  /* insert item into future lists */
   sh->count++;
   nsteps = (ae->t - sh->now) * sh->dt_1 ;
+
   if ( nsteps < ((double)sh->buf_len) )
   {
+    /* item fits in array for this scale */
+
     if (nsteps < 0.0) i = sh->index;
     else i = (int) nsteps + sh->index;
     if (i >= sh->buf_len) i -= sh->buf_len;
@@ -275,6 +266,8 @@ int schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_current
   }
   else
   {
+    /* item fits in array for coarser scale */
+
     if (sh->next_scale == NULL)
     {
       sh->next_scale = create_scheduler(sh->dt*sh->buf_len,
@@ -284,8 +277,11 @@ int schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_current
 				       );
       if(sh->next_scale == NULL) return 1;
     }
-    if ( schedule_insert(sh->next_scale,data,0) ) return 1;
+
+    /* insert item at coarser scale and insist that item is not placed in "current" list */
+    return schedule_insert(sh->next_scale,data,0);
   }
+
   return 0;
 }
 
@@ -327,7 +323,7 @@ int schedule_advance(struct schedule_helper *sh,struct abstract_element **head,
                      struct abstract_element **tail)
 {                     
   int n;
-  struct abstract_element *p = NULL, *nextp = NULL;
+  struct abstract_element *p, *nextp;
   
   if (head!=NULL) *head = sh->circ_buf_head[sh->index];
   if (tail!=NULL) *tail = sh->circ_buf_tail[sh->index];
@@ -341,6 +337,8 @@ int schedule_advance(struct schedule_helper *sh,struct abstract_element **head,
   
   if (sh->index >= sh->buf_len)
   {
+    /* Move events from coarser time scale to this time scale */
+
     sh->index = 0;
     if (sh->next_scale != NULL)
     {
@@ -352,6 +350,8 @@ int schedule_advance(struct schedule_helper *sh,struct abstract_element **head,
         if ( schedule_insert(sh,(void*)p,0) )  return -1;
         p = nextp;
       }
+
+      /* moved items were already counted when originally scheduled so don't count again */
       sh->count = conservecount;
     }
   }
@@ -384,7 +384,8 @@ schedule_next:
 
 void* schedule_next(struct schedule_helper *sh)
 {
-  void *data = NULL;
+  void *data;
+
   if (sh->current==NULL)
   {
     sh->current_count = schedule_advance(sh,&sh->current,&sh->current_tail);
@@ -405,20 +406,19 @@ void* schedule_next(struct schedule_helper *sh)
 /*************************************************************************
 schedule_anticipate:
   In: scheduler that we are using
-      pointer to double to store the anticipated time
+      pointer to double to store the anticipated time of next event
   Out: 1 if there is an event anticipated, 0 otherwise
 *************************************************************************/
 
 int schedule_anticipate(struct schedule_helper *sh,double *t)
 {
   int i,j;
-  double dt = 0.0;
 
   for ( ; sh!=NULL ; sh = sh->next_scale )
   {
     if (sh->current != NULL)
     {
-      *t = sh->now + dt;
+      *t = sh->now;
       return 1;
     }
     
@@ -428,12 +428,10 @@ int schedule_anticipate(struct schedule_helper *sh,double *t)
       if (j >= sh->buf_len) j -= sh->buf_len;
       if (sh->circ_buf_count[j] > 0)
       {
-        *t = sh->now + sh->dt*i + dt;
+        *t = sh->now + sh->dt*i;
         return 1;
       }
     }
-    
-    dt += sh->dt;
   }
   
   return 0;
@@ -452,11 +450,11 @@ schedule_cleanup:
 
 struct abstract_element* schedule_cleanup(struct schedule_helper *sh,int (*is_defunct)(struct abstract_element *e))
 {
-  struct abstract_element* defunct_list = NULL;
-  struct abstract_element* ae = NULL;
-  struct abstract_element* temp = NULL;
-  struct schedule_helper* top = NULL;
-  struct schedule_helper* shp = NULL;
+  struct abstract_element* defunct_list;
+  struct abstract_element* ae;
+  struct abstract_element* temp;
+  struct schedule_helper* top;
+  struct schedule_helper* shp;
   int i;
   
   defunct_list=NULL;
@@ -557,12 +555,8 @@ void delete_scheduler(struct schedule_helper *sh)
 {
   if (sh->next_scale != NULL) delete_scheduler(sh->next_scale);
   free(sh->circ_buf_tail);
-  sh->circ_buf_tail = NULL;
   free(sh->circ_buf_head);
-  sh->circ_buf_head = NULL;
   free(sh->circ_buf_count);
-  sh->circ_buf_count = NULL;
   free(sh);
-  sh = NULL;
 }
 
