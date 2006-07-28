@@ -427,7 +427,8 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
     }
   }
   
-  if (rx->info[path].pathname!=NULL)
+  /* No flags for reactions so we have to check regions if we have waypoints! Fix to be more efficient for WORLD-only counts? */
+  if (rx->info[path].pathname!=NULL && world->place_waypoints_flag)
   {
     j=count_region_from_scratch(NULL,rx->info[path].pathname,1,&xyz_loc,w,t);
     if (j) return RX_NO_MEM;

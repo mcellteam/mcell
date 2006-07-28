@@ -1201,6 +1201,7 @@ int instantiate_request(struct output_request *request)
   request->requester->expr_flags-=OEXPR_LEFT_REQUEST;  
   if ((request->report_type&REPORT_TRIGGER)==0 && request->count_location==NULL) /* World count is easy! */
   {
+    if (request->report_type&REPORT_ENCLOSED) request->report_type -= REPORT_ENCLOSED;
     switch (report_type_only)
     {
       case REPORT_CONTENTS:
