@@ -451,7 +451,7 @@ int schedule_anticipate(struct schedule_helper *sh,double *t)
 schedule_cleanup:
   In: scheduler that we are using
       pointer to a function that will return 0 if an abstract_element is
-      okay, or 1 if it is defunct
+        okay, or 1 if it is defunct
   Out: all defunct items are removed from the scheduler and returned as
        a linked list (so appropriate action can be taken, such as
        deallocation)
@@ -468,10 +468,12 @@ struct abstract_element* schedule_cleanup(struct schedule_helper *sh,int (*is_de
   
   defunct_list=NULL;
   
-  for (top=sh ; sh!=NULL ; sh=sh->next_scale)
+  top=sh;
+  for ( ; sh!=NULL ; sh=sh->next_scale)
   {
     sh->defunct_count=0;
 
+#if 0
     /* Do current list only for inner levels of scheduler */
     if (top!=sh)
     {
@@ -509,9 +511,11 @@ struct abstract_element* schedule_cleanup(struct schedule_helper *sh,int (*is_de
 	}
       }
     }
+#endif
     
     for (i=0;i<sh->buf_len;i++)
     {
+      /* Remove defunct elements from beginning of list */
       while (sh->circ_buf_head[i]!=NULL && (*is_defunct)(sh->circ_buf_head[i]))
       {
 	temp = sh->circ_buf_head[i]->next;
@@ -522,12 +526,14 @@ struct abstract_element* schedule_cleanup(struct schedule_helper *sh,int (*is_de
 	sh->count--;
 	for (shp=top;shp!=sh;shp=shp->next_scale) shp->count--;
       }
+
       if (sh->circ_buf_head[i]==NULL)
       {
 	sh->circ_buf_tail[i]=NULL;
       }
       else
       {
+        /* Now remove defunct elements from later in list */
 	for (ae=sh->circ_buf_head[i] ; ae!=NULL ; ae=ae->next)
 	{
 	  while( ae->next!=NULL && (*is_defunct)(ae->next) )

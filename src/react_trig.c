@@ -14,7 +14,8 @@ extern struct volume *world;
 
 /*************************************************************************
 trigger_unimolecular:
-   In: hash value of molecule's species, pointer to a molecule
+   In: hash value of molecule's species
+       pointer to a molecule
    Out: NULL if there are no unimolecular reactions for this species
         pointer to the reaction if there are
    Note: This is only tested on molecules that have just been created
@@ -127,10 +128,9 @@ struct rxn* trigger_bimolecular(int hashA,int hashB,
           /* short orientW = 1;  Walls always have orientation 1 */
 
           /* If we are oriented, one of us is a surface or grid mol. */
-          /* Try target first.  Moving molecule can't be grid mol. */
+          /* Wall that matters is the target's wall */
           if ((reacB->properties->flags & ON_GRID) != 0)
             w = (((struct grid_molecule*) reacB)->grid)->surface;
-	  /* TODO: add grid-grid case */
             
           /* If a wall was found, we keep going to check.... */
           if (w != NULL)
@@ -173,6 +173,7 @@ struct rxn* trigger_bimolecular(int hashA,int hashB,
   
   return inter;
 }
+
 
 
 /*************************************************************************
@@ -224,8 +225,6 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
 /* TODO: fix generics to allow wall to come first */  
   hashGW = world->g_surf->hashval & (world->rx_hashsize-1);
   
-  if (hashW != hashGW)
-  {
   
   if (hashA == hashGW) hash=hashA;
   else hash = hashA ^ hashGW;
@@ -239,13 +238,14 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
       if (reacA->properties==inter->players[0] &&
           world->g_surf==inter->players[1])
       {
-        return inter;
-        /* No geometry possible with generic surfaces! */
+        geom1 = inter->geometries[0];
+        if (geom1 == 0) return inter;
+        geom2 = inter->geometries[1];
+        if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0) return inter;
+        if (orientA*geom1*geom2 > 0) return inter;
       }
     }
     inter = inter->next;
-  }
-  
   }
   
   
@@ -274,3 +274,4 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
 
   return inter;
 }
+

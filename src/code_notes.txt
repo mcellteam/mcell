@@ -73,3 +73,8 @@ Switch notation on struct frame_data_list->viz_iterationll to not include "ll"
   Note: viz_output.c uses local variables both with and without the "ll", confusing.
 
 
+Change name of struct abstract_molecule->properties (which is a species) to something
+more sensible.
+
+Make sure that prepare_reactions always puts molecules before surfaces in reactant array.
+  If it does then we can delete TODO comment in trigger_intersect function.
