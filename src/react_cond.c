@@ -15,11 +15,13 @@
 extern struct volume *world;
 
 
+
 /*************************************************************************
 test_unimolecular:
   In: the reaction we're testing
   Out: -1 if no reaction occurs in one timestep
        int containing the number of the outward pathway if it does
+  Note: Not used in MCell3, timeof_unimolecular() is used instead.
 *************************************************************************/
 
 int test_unimolecular(struct rxn *rx)
@@ -27,9 +29,10 @@ int test_unimolecular(struct rxn *rx)
   int m,M,avg;
   double p = rng_dbl( world->rng );
   
+  /* Perform binary search for reaction pathway */
   m = 0;
   M = rx->n_pathways-1;
-  if (p > rx->cum_probs[ rx->n_pathways-1 ]) return RX_NO_RX;
+  if (p > rx->cum_probs[ M ]) return RX_NO_RX;
 
   while (M-m > 1)
   {
@@ -42,6 +45,7 @@ int test_unimolecular(struct rxn *rx)
   if (p > rx->cum_probs[m]) return M;
   else return m;
 }
+
 
 
 /*************************************************************************
@@ -58,6 +62,7 @@ double timeof_unimolecular(struct rxn *rx)
   if (k_tot<=0 || p==0) return FOREVER;
   return -log( p )/k_tot;
 }
+
 
 
 /*************************************************************************
@@ -78,6 +83,7 @@ double timeof_special_unimol(struct rxn *rxuni,struct rxn *rxsurf)
 }
 
 
+
 /*************************************************************************
 which_unimolecular:
   In: the reaction we're testing
@@ -89,10 +95,11 @@ int which_unimolecular(struct rxn *rx)
   int m,M,avg;
   double p = rng_dbl( world->rng );
   
+  /* Perform binary search for reaction pathway */
   m = 0;
   M = rx->n_pathways-1;
   
-  p = p * rx->cum_probs[ rx->n_pathways-1 ];
+  p = p * rx->cum_probs[ M ];
   
   while (M-m > 1)
   {
@@ -105,6 +112,7 @@ int which_unimolecular(struct rxn *rx)
   if (p > rx->cum_probs[m]) return M;
   else return m;
 }
+
 
 
 /*************************************************************************
@@ -123,15 +131,16 @@ int is_surface_unimol(struct rxn *rxuni,struct rxn *rxsurf)
 }
 
 
+
 /*************************************************************************
 test_bimolecular
   In: the reaction we're testing
       a scaling coefficient depending on how many timesteps we've
         moved at once (1.0 means one timestep) and/or missing interaction area
   Out: RX_NO_RX if no reaction occurs
-       int containing which reaction occurs if one does occur
-  Note: If this reaction does not return RX_NO_RX, it is assumed that the
-        reaction does take place, and counters are updated appropriately.
+       int containing which reaction pathway to take if one does occur
+  Note: If this reaction does not return RX_NO_RX, then we update
+        counters appropriately assuming that the reaction does take place.
 *************************************************************************/
 
 int test_bimolecular(struct rxn *rx, double scaling)
@@ -141,7 +150,7 @@ int test_bimolecular(struct rxn *rx, double scaling)
 
   if(rx->cum_probs[rx->n_pathways - 1] > scaling) /* Cannot scale enough */
   {
-    /* How may reactions did we miss? */
+    /* How may reactions will we miss? */
     if (scaling==0.0) rx->n_skipped += GIGANTIC;
     else rx->n_skipped += (rx->cum_probs[rx->n_pathways -1] / scaling) - 1.0;
     
@@ -157,7 +166,8 @@ int test_bimolecular(struct rxn *rx, double scaling)
     if (p > rx->cum_probs[rx->n_pathways - 1]) return RX_NO_RX;
     rx->n_occurred++;
   }
-  
+   
+  /* Perform binary search for reaction pathway */
   m = 0;
   M = rx->n_pathways-1;
   
@@ -174,6 +184,7 @@ int test_bimolecular(struct rxn *rx, double scaling)
 }
 
 
+
 /*************************************************************************
 test_many_bimolecular
   In: an array of reactions we're testing
@@ -184,16 +195,17 @@ test_many_bimolecular
        long long containing which reaction occurs if one does occur
           first RX_PATHWAY_BITS indicate the pathway
 	  remaining bits indicate which reaction to follow
-  Note: If this reaction does not return RX_NO_RX, it is assumed that the
-        reaction does take place, and counters are updated appropriately.
+  Note: The long long return value is used to work limitation in C 
+  Note: If this reaction does not return RX_NO_RX, then we update
+        counters appropriately assuming that the reaction does take place.
   Note: this uses only one call to get a random double, so you can't
-        effectively sample events that happen less than 10^-15 of the
-	time.
+        effectively sample events that happen less than 10^-9 of the
+	time (for 32 bit random number).
 *************************************************************************/
 
 long long test_many_bimolecular(struct rxn **rx,double *scaling, int n)
 {
-  double rxp[n];
+  double rxp[n]; /* array of cumulative rxn probabilities */
   struct rxn *my_rx;
   int i;
   int m,M,avg;
@@ -236,7 +248,8 @@ long long test_many_bimolecular(struct rxn **rx,double *scaling, int n)
   else i = m;
   
   my_rx = rx[i];
-  if (p>0) p = (p - rxp[i-1]);
+  if (i>0) p = (p - rxp[i-1]);
+  p = p*scaling[i];
   my_rx->n_occurred++;
   
   /* Now pick the pathway within that reaction */
@@ -252,6 +265,7 @@ long long test_many_bimolecular(struct rxn **rx,double *scaling, int n)
   
   return (long long)m + (((long long)i) << RX_PATHWAY_BITS);
 }
+
 
 
 /*************************************************************************
@@ -276,7 +290,7 @@ int test_intersect(struct rxn *rx,double scaling)
   if (rx->cum_probs[rx->n_pathways-1] > scaling)
   {
     if (scaling<=0.0) rx->n_skipped += GIGANTIC;
-    else rx->n_skipped += rx->cum_probs[rx->n_pathways-1] / scaling;
+    else rx->n_skipped += rx->cum_probs[rx->n_pathways-1] / scaling - 1.0;
     p = rng_dbl( world->rng ) * rx->cum_probs[rx->n_pathways-1];
     rx->n_occurred++;
   }
@@ -288,6 +302,7 @@ int test_intersect(struct rxn *rx,double scaling)
     rx->n_occurred++;
   }
 
+  /* Perform binary search for reaction pathway */
   m = 0;
   M = rx->n_pathways-1;
   
@@ -304,6 +319,7 @@ int test_intersect(struct rxn *rx,double scaling)
   if (p > rx->cum_probs[m]) return M;
   else return m;
 }
+
 
 
 /*************************************************************************
@@ -364,4 +380,5 @@ void check_probs(struct rxn *rx,double t)
     printf("\n");
   }
 }
+
 

@@ -78,3 +78,20 @@ more sensible.
 
 Make sure that prepare_reactions always puts molecules before surfaces in reactant array.
   If it does then we can delete TODO comment in trigger_intersect function.
+
+Might be able to make which_unimolecular() faster by avoiding unnecessary rng usage when
+rx->npathways == 1.
+
+Might be able to combine is_surface_unimol() with which_unimolecular() to save rng usage.
+
+Change test_many_bimolecular() to return a data structure rather than a packed long long
+  containing the result.  C99 apparently now supports functions that return data structures.
+
+Make sure that rx->n_occurred is properly updated when test_bimolecular() and test_intersect()succeed but outcome_products() fails due to lack of space for products.
+
+Control output of check_probs() using flag in notifications block and change printf() to fprintf()
+
+
+
+
+

@@ -3,10 +3,6 @@
 **                                                                        **
 ** Purpose: Implements specific reaction outcome pathways.                **
 **                                                                        **
-** Testing status: compiles.                                              **
-**                                                                        **
-** Note: Compartment entry/exit not implemented for flipping (will be)    **
-** Note: Counting of reaction paths not implemented (simple, will be)     **
 \**************************************************************************/
 
 #include <string.h>
@@ -532,6 +528,7 @@ outcome_bimolecular:
       two molecules that are reacting (first is moving one)
       orientations of the two molecules
       time that the reaction is occurring
+      location of collision between molecules
   Out: Value based on outcome:
 	 RX_BLOCKED if there was no room to put products on grid
 	 RX_FLIP if the molecule goes across the membrane
@@ -747,6 +744,7 @@ outcome_intersect:
       molecule that is hitting the wall
       orientation of the molecule
       time that the reaction is occurring
+      location of collision with wall
   Out: Value depending on outcome:
 	 RX_A_OK if the molecule reflects
 	 RX_FLIP if the molecule passes through
@@ -776,7 +774,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     result = outcome_products(surface,m,NULL,rx,path,m->subvol->local_storage,orient,0,t,hitpt,reac,NULL,reac);
 
     if (result==RX_NO_MEM) return RX_NO_MEM;
-    else if (result == RX_BLOCKED) return RX_A_OK;
+    else if (result == RX_BLOCKED) return RX_A_OK; /* reflect the molecule */
 
     rx->info[path].count++;
     
@@ -800,9 +798,9 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     }
     else return result; /* RX_A_OK or RX_FLIP */
   }
-  else /* Grid can't intersect, so this must be a surface molecule */
+  else
   {
-    /* TODO: write this for grid molecule case. */
+    /* Should really be an error because we should never call outcome_intersect() on a grid molecule */
     return RX_A_OK;
   }
 }
