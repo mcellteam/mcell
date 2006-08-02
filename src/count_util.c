@@ -459,7 +459,7 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 	parl=&pre_antisentry;
 	
 	/* If we cross a region both ways, throw both out (once) */
-	for (rl=all_regs,arl=all_antiregs,prl=NULL ; rl!=NULL && arl!=NULL ; prl=rl,rl=rl->next,parl=arl,arl=arl->next)
+	for (rl=all_regs,arl=all_antiregs ; rl!=NULL && arl!=NULL ; prl=rl,rl=rl->next,parl=arl,arl=arl->next)
 	{
 	  if (rl->reg==arl->reg) /* Mutual annihilation */
 	  {
