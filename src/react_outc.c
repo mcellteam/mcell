@@ -27,17 +27,20 @@ int is_compatible_surface(void *req_species,struct wall *w)
 }
 
 
+
 /*************************************************************************
 outcome_products:
-   In: relevant wall in the interaction
+   In: relevant wall in the interaction, if any
        first free molecule in the interaction, if any
        first surface molecule in the interaction, if any
-       first grid molecule in the interaction, if any
        reaction that is occuring
        path that the reaction is taking
        local storage for creating new molecules
        orientations of the molecules in the reaction
        time that the reaction is occurring
+       location of the reaction (may be NULL)
+       the reactants
+       molecule that is moving, if any
    Out: Value depending on how orientations changed--
           RX_BLOCKED reaction blocked by full grid
           RX_FLIP moving molecule passed through membrane
@@ -112,6 +115,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       if ( (reacB->properties->flags&ON_GRID)!=0 ) ptype[1] = 'g';
       else if ( (reacB->properties->flags&NOT_FREE)==0 ) ptype[1] = 'm';
       else ptype[1] = '!';
+      /* FIXME--initialize ptype for reactions with two molecules and a wall here*/
     }
   }
   
@@ -268,14 +272,14 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
 	
 	if ( schedule_add(local->timer,g) ) return RX_NO_MEM;
       }
-      else
+      else /* Should never happen, but it doesn't hurt to be safe */
       {
         plist[i-i0] = NULL;
         ptype[i-i0] = 0;
         continue;
       }
     }
-    else
+    else /* volume molecule */
     {
       m = mem_get(local->mol);
       if (m==NULL) return RX_NO_MEM;
@@ -286,7 +290,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
 
       m->flags = TYPE_3D | ACT_NEWBIE | IN_VOLUME | IN_SCHEDULE;
       if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)m) != NULL) m->flags |= ACT_REACT;
-      if (p->space_step > 0.0) m->flags += ACT_DIFFUSE;
+      if (p->space_step > 0.0) m->flags |= ACT_DIFFUSE;
       if (reac_g != NULL)
       {
         m->previous_wall = reac_g->grid->surface;
@@ -316,12 +320,13 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
         }
         m->subvol = reac_m->subvol;
         
-        if (w==NULL)
+        if (w==NULL) /* place product of non-orientable reaction in volume */
         {
           m->next_v = m->subvol->mol_head;
           m->subvol->mol_head = m;
           m->subvol->mol_count++;
         }
+        /* oriented case handled below after orientation is set */
       }
       else if (reac_g != NULL)
       {
@@ -330,8 +335,8 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       }
       plist[i-i0] = (struct abstract_molecule*)m;
       ptype[i-i0] = 'm';
-      m->t2 = 0.0;
       m->t = t;
+      m->t2 = 0.0;
 
       if ( schedule_add( local->timer , m ) ) return RX_NO_MEM;
       
@@ -343,6 +348,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
   bits = 0;
   for (i=i0;i<iN;i++,bits>>=1)
   {
+    /* generate 32 random bits every 32 times through this loop */
     if (((i-i0)&0x1F)==0) bits = rng_uint( world->rng );
 
     if (rx->players[i]==NULL) continue;
@@ -374,8 +380,6 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
         
       }
       
-//      if (i-i0 < rx->n_reactants && porient[i-i0]==0) continue;
-
       if (ptype[i-i0]=='g')
       {
         ((struct grid_molecule*)plist[i-i0])->orient = porient[i-i0];
@@ -404,6 +408,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
 	  m->index = (porient[i-i0]>0)?1:-1; /* Which direction do we move? */
 	}
         	
+        /* Note: no raytracing here so it is rarely possible to jump through closely spaced surfaces */
         m->pos.x += f*w->normal.x;
         m->pos.y += f*w->normal.y;
         m->pos.z += f*w->normal.z;
@@ -418,7 +423,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
     if (i >= i0+rx->n_reactants &&
         (plist[i-i0]->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      j=count_region_from_scratch(plist[i-i0],NULL,1,&xyz_loc,w,t);
+      j=count_region_from_scratch(plist[i-i0],NULL,1,NULL,w,t);
       if (j) return RX_NO_MEM;
     }
   }
