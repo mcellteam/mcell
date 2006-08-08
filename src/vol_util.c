@@ -1233,7 +1233,7 @@ int release_molecules(struct release_event_queue *req)
     rsm = rso->mol_list;
     if (rsm != NULL)
     {
-      for ( ; rsm!=NULL ; rsm=rsm->next)
+      for (i=0 ; rsm!=NULL ; rsm=rsm->next,i++)
       {
 	location[0][0] = rsm->loc.x + rso->location->x;
 	location[0][1] = rsm->loc.y + rso->location->y;
@@ -1268,6 +1268,11 @@ int release_molecules(struct release_event_queue *req)
 	    fprintf(world->log_file,"  Perhaps you want to SITE_DIAMETER larger to increase search distance?\n");
 	  }
 	}
+      }
+      if (world->notify->release_events==NOTIFY_FULL)
+      {
+        fprintf(world->log_file, "Releasing %d molecules from list at iteration %lld\n",
+            i,world->it_time);
       }
     }
     else if (diam_xyz != NULL)
