@@ -324,7 +324,7 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 	  if (c->counter_type&TRIG_COUNTER)
 	  {
 	    c->data.trig.t_event=t;
-	    k=fire_count_event(c,n,loc,count_flags);
+	    k=fire_count_event(c,n,loc,count_flags|REPORT_TRIGGER);
 	    if (k) return 1;
 	  }
 	  else if (rxpn==NULL) c->data.move.n_at+=n;

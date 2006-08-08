@@ -14,6 +14,7 @@
 #include "react_output.h"
 #include "mdlparse_util.h"
 #include "strfunc.h"
+#include "util.h"
 
 
 extern struct volume *world;
@@ -216,6 +217,9 @@ add_trigger_output:
    Out: 0 on success, 1 on error (memory allocation or file I/O).
         The event is added to the buffer of the requester, and the
         buffer is written and flushed if the buffer is full.
+   Note: Unlike normal output, we fill the buffer first, and flush
+         before adding a new item so that we can detect and remove
+         uninteresting diffusion-related addition/subtraction.
 *************************************************************************/
 
 int add_trigger_output(struct counter *c,struct output_request *ear,int n)
@@ -226,7 +230,44 @@ int add_trigger_output(struct counter *c,struct output_request *ear,int n)
   
   first_column=ear->requester->column->set->column_head;
   
-  idx = (int)first_column->initial_value++;
+  idx = ((int)first_column->initial_value)-1;
+  
+  if (idx>=0)
+  {
+    otd = &(((struct output_trigger_data*)first_column->buffer)[idx]);
+    if (otd->how_many==-n && n>0 && otd->name==ear->requester->column->expr->title)
+    {
+      if ( !distinguishable(otd->t_iteration,world->it_time*world->time_unit,EPS_C) &&
+           !distinguishable(otd->t_delta,(c->data.trig.t_event-(double)world->it_time)*world->time_unit,EPS_C) )
+      {
+        if (otd->loc.x!=c->data.trig.loc.x*world->length_unit ||
+            otd->loc.y!=c->data.trig.loc.y*world->length_unit ||
+            otd->loc.z!=c->data.trig.loc.z*world->length_unit)
+        {
+          /* Same thing at same time but different place--must be diffusion */
+          /* No reason to actually trigger, so back up over previous entry 
+             instead of adding a new one */
+          first_column->initial_value-=1.0;
+          return 0;
+        }
+      }
+    }
+  }
+  
+  idx=(int)first_column->initial_value;
+  
+  if (idx >= first_column->set->block->buffersize)
+  {
+    if (write_reaction_output(first_column->set,0))
+    {
+      fprintf(world->err_file,"Error at file %s line %d\n",__FILE__,__LINE__);
+      fprintf(world->err_file,"  Failed to write triggered count output.\n");
+      return 1;
+    }
+    first_column->initial_value=0;
+    idx = 0;
+  }
+  
   otd = &(((struct output_trigger_data*)first_column->buffer)[idx]);
   
   otd->t_iteration = world->it_time*world->time_unit;
@@ -236,17 +277,8 @@ int add_trigger_output(struct counter *c,struct output_request *ear,int n)
   otd->loc.z = c->data.trig.loc.z*world->length_unit;
   otd->how_many = n;
   otd->name = ear->requester->column->expr->title;
+  first_column->initial_value+=1.0;
   
-  if (idx+1 >= first_column->set->block->buffersize)
-  {
-    if (write_reaction_output(first_column->set,0))
-    {
-      fprintf(world->err_file,"Error at file %s line %d\n",__FILE__,__LINE__);
-      fprintf(world->err_file,"  Failed to write triggered count output.\n");
-      return 1;
-    }
-    first_column->initial_value=0;
-  }
   return 0;
 }
 
@@ -306,6 +338,7 @@ int update_reaction_output(struct output_block *block)
   FILE *log_file;
   struct output_set *set;
   struct output_column *column;
+  double actual_t;
   int i;
   int final_chunk_flag;		// flag signaling an end to the scheduled
                                 // reaction outputs. Takes values {0,1}.
@@ -350,7 +383,7 @@ int update_reaction_output(struct output_block *block)
   /* Pick time of next output, if any */
   final_chunk_flag=0;
   if (block->timer_type==OUTPUT_BY_STEP) block->t+=block->step_time/world->time_unit;
-  else
+  else if (block->time_now!=NULL)
   {
     block->time_now=block->time_now->next;
     if (block->time_now==NULL) final_chunk_flag=1;
@@ -360,8 +393,15 @@ int update_reaction_output(struct output_block *block)
       else block->t=block->time_now->value/world->time_unit;
     }
   }
+  else final_chunk_flag=1;
 
   /* Schedule next output event--even if we're at the end, since triggers may not yet be written */
+  if (final_chunk_flag==1)
+  {
+    actual_t=block->t;
+    block->t=FOREVER;
+  }
+  else actual_t=-1;
   i = schedule_add(world->count_scheduler,block);
   if (i)
   {
@@ -369,6 +409,8 @@ int update_reaction_output(struct output_block *block)
     fprintf(world->err_file,"Fatal error: out of memory while updating reaction outputs\nAttempt to write intermediate results had %d errors.\n",i);
     exit(EXIT_FAILURE); 
   }
+  if (actual_t!=-1) block->t=actual_t;  /* Fix time for output */
+  
 
   if (block->t >= world->iterations+1) final_chunk_flag=1;
     
@@ -388,6 +430,8 @@ int update_reaction_output(struct output_block *block)
     block->buf_index=0;
     no_printf("Done updating reaction output\n");
   }
+  
+  if (actual_t!=-1) block->t=FOREVER;  /* Back to infinity if we're done */
   
   return 0;
 }
