@@ -52,6 +52,7 @@ struct infinite_longlong_array{
 	/* pointer to the next array. */
 	struct infinite_longlong_array *next;
 };
+
 /** struct infinite_string_array
     Used to hold information for an infinite array of strings.
 */
@@ -141,14 +142,6 @@ int void_array_search(void **array,int n,void *to_find);
 int poisson_dist(double lambda,double p);
 
 unsigned char * byte_swap(unsigned char *b);
-
-/* this function implements the UN*X wildcards and returns  */
-/* 0  if *wildcard does not match *test                     */
-/* 1  if *wildcard matches *test                            */
-/* Written by Florian Schintke.                             */
-/* Distributed as free software according to the GNU General Public License. */
-/* FIXME--if we're not releasing under the GPL, we can't use GPLed code. */
-int wildcardfit (char *wildcard, char *test);
 
 /* This function analyzes the string and checks
    whether the string contains wildcards (*, ?,[,]).

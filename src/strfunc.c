@@ -50,7 +50,7 @@ char *my_strcat(char *s1, char *s2)
 
 /*************************************************************************
 my_strclump:
-  In: an array of strings, NULL-terminated
+  In: a NULL-terminated array of strings
   Out: all of the strings concatenated, in a newly malloced block of
        memory, or NULL if there isn't enough memory.
   Note: the calling function is responsible for freeing the memory.
@@ -87,7 +87,7 @@ char *my_strclump(char **slist)
 strip_quotes:
   In: a string that must be at least two characters long
   Out: a copy of the string, newly malloced, missing the first and
-       last characters (assumed to be quotes); NULL is returned if
+       last characters (might even be quotes!); NULL is returned if
        malloc fails.
   Note: this function does NOT do any error checking!
 *************************************************************************/

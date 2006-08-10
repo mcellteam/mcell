@@ -102,4 +102,10 @@ undergoing surface diffusion will not behave properly when they participate in a
 Check logic of "if (reac_g==NULL || sg->mol[j]!=reac_g) sg->n_occupied++;" in
 outcome_products() of react_outc.c
 
+Look at src of libc's strdup and determine if we can use it instead of my_strdup.
+
+
+Add comment to poisson_dist() which points at detailed description of mathematical derivation
+of algorithm.  Also write such a description. 
+
 

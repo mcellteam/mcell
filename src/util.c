@@ -1,15 +1,17 @@
-/* Infinite array - routines to handle infinite arrays *
-* An infinite array of doubles can grow as needed.
-*******************************************************/
-#include "util.h"
 #include <float.h>
 #include <math.h>
 #include <stdint.h>
 #include <memory.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "strfunc.h"
 #include <limits.h>
+#include "strfunc.h"
+#include "util.h"
+
+/********************************************************************
+Infinite array - routines to handle infinite arrays.
+Infinite arrays can grow as needed.
+*********************************************************************/
 
 /********************************************************************
 ia_double_locate -- Gets the location of an element of infinite array
@@ -18,7 +20,8 @@ ia_double_locate -- Gets the location of an element of infinite array
 Parameters
 	array_ptr -- Pointer to the array to use
 	index -- Index into the array.
-	current_index_ptr -- Pointer to the index into this bucket (returned)
+	current_index_ptr -- Pointer to the index into this bucket
+                             (value of index is stored on return)
 
 Returns
 	Pointer to the current bucket
@@ -53,6 +56,7 @@ static struct infinite_double_array *ia_double_locate(struct infinite_double_arr
 
 }
 
+
 /*************************************************************************
 ia_double_store  -- Stores an element into an infinite array of doubles
 
@@ -70,6 +74,7 @@ void ia_double_store(struct infinite_double_array *array_ptr, int index, double 
 	current_ptr = ia_double_locate(array_ptr, index, &current_index);
 	current_ptr->data[current_index] = data_to_store;
 }
+
 
 /*********************************************************************
 ia_double_get -- Gets an element from an infinite array of doubles.
@@ -93,6 +98,8 @@ double ia_double_get(struct infinite_double_array *array_ptr, int index)
 	current_ptr = ia_double_locate(array_ptr, index, &current_index);
 	return (current_ptr->data[current_index]); 
 }
+
+
 
 /********************************************************************
 ia_int_locate -- Gets the location of an element of infinite array
@@ -136,6 +143,7 @@ static struct infinite_int_array *ia_int_locate(struct infinite_int_array *array
 
 }
 
+
 /*************************************************************************
 ia_int_store  -- Stores an element into an infinite array of integers
 
@@ -153,6 +161,7 @@ void ia_int_store(struct infinite_int_array *array_ptr, int index, int data_to_s
 	current_ptr = ia_int_locate(array_ptr, index, &current_index);
 	current_ptr->data[current_index] = data_to_store;
 }
+
 
 /*********************************************************************
 ia_int_get -- Gets an element from an infinite array of integers.
@@ -176,6 +185,8 @@ int ia_int_get(struct infinite_int_array *array_ptr, int index)
 	current_ptr = ia_int_locate(array_ptr, index, &current_index);
 	return (current_ptr->data[current_index]); 
 }
+
+
 
 /********************************************************************
 ia_uint_locate -- Gets the location of an element of infinite array
@@ -219,6 +230,7 @@ static struct infinite_uint_array *ia_uint_locate(struct infinite_uint_array *ar
 
 }
 
+
 /*************************************************************************
 ia_uint_store  -- Stores an element into an infinite array of unsigned integers
 
@@ -236,6 +248,7 @@ void ia_uint_store(struct infinite_uint_array *array_ptr, int index, unsigned in
 	current_ptr = ia_uint_locate(array_ptr, index, &current_index);
 	current_ptr->data[current_index] = data_to_store;
 }
+
 
 /*********************************************************************
 ia_uint_get -- Gets an element from an infinite array of integers.
@@ -259,6 +272,8 @@ unsigned int ia_uint_get(struct infinite_uint_array *array_ptr, int index)
 	current_ptr = ia_uint_locate(array_ptr, index, &current_index);
 	return (current_ptr->data[current_index]); 
 }
+
+
 
 /********************************************************************
 ia_longlong_locate -- Gets the location of an element of infinite array
@@ -302,6 +317,7 @@ static struct infinite_longlong_array *ia_longlong_locate(struct infinite_longlo
 
 }
 
+
 /*************************************************************************
 ia_longlong_store  -- Stores an element into an infinite array of integers
 
@@ -319,6 +335,7 @@ void ia_longlong_store(struct infinite_longlong_array *array_ptr, long long inde
 	current_ptr = ia_longlong_locate(array_ptr, index, &current_index);
 	current_ptr->data[current_index] = data_to_store;
 }
+
 
 /*********************************************************************
 ia_longlong_get -- Gets an element from an infinite array of longlong 
@@ -343,6 +360,8 @@ long long ia_longlong_get(struct infinite_longlong_array *array_ptr, long long i
 	current_ptr = ia_longlong_locate(array_ptr, index, &current_index);
 	return (current_ptr->data[current_index]); 
 }
+
+
 
 /********************************************************************
 ia_string_locate -- Gets the location of an element in the infinite 
@@ -413,6 +432,7 @@ void ia_string_store(struct infinite_string_array *array_ptr, int index, char *d
         }
 }
 
+
 /*********************************************************************
 ia_string_get -- Gets an element from an infinite array of strings.
 
@@ -435,6 +455,8 @@ char * ia_string_get(struct infinite_string_array *array_ptr, int index)
 	current_ptr = ia_string_locate(array_ptr, index, &current_index);
 	return (current_ptr->data[current_index]); 
 }
+
+
 
 /********************************************************************
 ia_pointer_locate -- Gets the location of an element of infinite array
@@ -478,6 +500,7 @@ static struct infinite_pointer_array *ia_pointer_locate(struct infinite_pointer_
 
 }
 
+
 /*************************************************************************
 ia_pointer_store  -- Stores an element into an infinite array of pointers 
 
@@ -495,6 +518,7 @@ void ia_pointer_store(struct infinite_pointer_array *array_ptr, int index, void 
 	current_ptr = ia_pointer_locate(array_ptr, index, &current_index);
 	current_ptr->data[current_index] = data_to_store;
 }
+
 
 /*********************************************************************
 ia_pointer_get -- Gets an element from an infinite array of pointers.
@@ -520,6 +544,8 @@ void *ia_pointer_get(struct infinite_pointer_array *array_ptr, int index)
 }
 
 
+
+
 /*******************************************************************
 new_bit_array -- mallocs an array of the desired number of bits
 
@@ -533,21 +559,14 @@ Returns
 struct bit_array* new_bit_array(int bits)
 {
   struct bit_array *ba;
-  int *data;
   int n = (bits + 8*sizeof(int)-1)/(8*sizeof(int));
   
+  /* Allocate contiguous memory for struct bit_array and its associated bits */
   ba = (struct bit_array*) malloc(sizeof(struct bit_array) + sizeof(int)*n);
-  
-  if (ba==NULL) {
-     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
-     return NULL;
-  }
+  if (ba==NULL) return NULL;
   
   ba->nbits = bits;
   ba->nints = n;
-  
-  data = &(ba->nints);
-  data++;
   
   return ba;
 }
@@ -568,10 +587,8 @@ struct bit_array* duplicate_bit_array(struct bit_array *old)
   struct bit_array *ba;
   
   ba = (struct bit_array*) malloc(sizeof(struct bit_array) + sizeof(int)*old->nints);
-  if (ba==NULL) {
-     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
-      return NULL;
-  }  
+  if (ba==NULL) return NULL;
+
   memcpy(ba,old,sizeof(struct bit_array) + sizeof(int)*old->nints);
   
   return ba;
@@ -637,7 +654,7 @@ void set_bit(struct bit_array *ba, int idx, int value)
 
 
 /*******************************************************************
-set_bit_range -- set a value in a bit array
+set_bit_range -- set many bits to a value in a bit array
 
 Parameters
 	ba -- pointer to a bit_array struct
@@ -692,6 +709,7 @@ void set_bit_range(struct bit_array *ba,int idx1,int idx2,int value)
   }
 }
 
+
 /*******************************************************************
 set_all_bits -- sets all values in a bit array
 
@@ -707,13 +725,14 @@ void set_all_bits(struct bit_array *ba,int value)
   int *data;
   int i;
   
-  if (value) value = -1;
+  if (value) value = ~0;
   
   data = &(ba->nints);
   data++;  /* At start of bit array memory */
 
   for (i=0;i<ba->nints;i++) data[i] = value;  
 }
+
 
 /*******************************************************************
 bit operation -- performs a logical operation on two bit arrays
@@ -729,7 +748,6 @@ Parameters
 		'&' -- ba = ba AND bb
 		'^' -- ba = ba XOR bb
 		'-' -- ba = ba AND NOT bb
-	value -- 0 = turn bits off; nonzero = turn bits on
 
 Returns
 	Nothing
@@ -830,7 +848,15 @@ int count_bits(struct bit_array *ba)
 }
 
 
-/* Prints a bit array to stdout */
+/**********************************************************************
+print_bit_array -- prints a bit array to stdout
+
+Parameters
+	ba -- pointer to a bit_array struct
+
+Returns
+	Nothing
+**********************************************************************/
 void print_bit_array(struct bit_array *ba)
 {
   int i;
@@ -870,6 +896,7 @@ bisect:
 int bisect(double *list,int n,double val)
 {
   int lo,hi,mid;
+
   lo = 0;
   hi = n;
   while (hi-lo > 1)
@@ -893,6 +920,7 @@ bisect_near:
 int bisect_near(double *list,int n,double val)
 {
   int lo,hi,mid;
+
   lo = 0;
   hi = n-1;
   while (hi-lo > 1)
@@ -918,6 +946,7 @@ bisect_high:
 int bisect_high(double *list,int n,double val)
 {
   int lo,hi,mid;
+
   lo = 0;
   hi = n-1;
   while (hi-lo > 1)
@@ -931,15 +960,12 @@ int bisect_high(double *list,int n,double val)
 }
 
 
-
-
-
 /*************************************************************************
 bin:
   In: array of doubles, sorted low to high
       int saying how many doubles there are
       double we are trying to put into a bin
-  Out: which bin the double falls into, where
+  Out: which bin the double falls into, where:
          bin zero is smaller than the first element in the array
 	 bin n is larger than the last element in the array
 	 bin k is larger than element k but smaller than k+1
@@ -948,6 +974,7 @@ bin:
 int bin(double *list,int n,double val)
 {
   int lo,hi,mid;
+
   lo = 0;
   hi = n-1;
   while (hi-lo > 1)
@@ -977,11 +1004,20 @@ Returns
 
 int distinguishable(double a,double b,double eps)
 {
+  double c;
+
+  c=a-b;
+
+  if (c<0) c=-c;
   if (a<0) a=-a;
+  if (a<1) a=1;
   if (b<0) b=-b;
-  if (a>b) return ((a-b)>a*eps);
-  else return ((b-a) > b*eps);
+
+  if (b<a) eps*=a;
+  else eps*=b;
+  return (c>eps);
 }
+
 
 
 /**********************************************************************
@@ -990,9 +1026,10 @@ is_abbrev: reports whether the first string is an abbrevation of the
 **********************************************************************/
 int is_abbrev(char *abbrev,char *full)
 {
-  while (*abbrev++ == *full++) {}
+  for ( ; (*abbrev==*full) && (*abbrev) && (*full) ; abbrev++,full++) {}
   return *abbrev==0;
 }
+
 
 /**********************************************************************
 is_reverse_abbrev: reports whether the first string is a reverse
@@ -1002,12 +1039,12 @@ is_reverse_abbrev: reports whether the first string is a reverse
 int is_reverse_abbrev(char *abbrev,char *full)
 {
   int na,nf;
+
   na = strlen(abbrev);
   nf = strlen(full);
   if (na>nf) return 0;
   return (strcmp(abbrev,full+(nf-na))==0);
 }
-
 
 
 
@@ -1133,7 +1170,7 @@ struct void_list* void_list_sort(struct void_list *vl)
 
 /*************************************************************************
 void_list_sort_by:
-  In: linked list contining void pointers
+  In: linked list containing void pointers
       comparison function that compares two void pointers
   Out: linked list is mergesorted according to function
   Note: function should implement "less than or equal to", i.e., it
@@ -1288,8 +1325,7 @@ int void_array_search(void **array,int n,void *to_find)
 poisson_dist:
   In: mean value
       random number distributed uniformly between 0 and 1
-  Out: integer of an exact number of events taken from the Poisson
-       distribution.
+  Out: integer sampled from the Poisson distribution.
   Note: This does not sample the CDF.  Instead, it works its way outwards
         from the peak of the PDF.  Kinda weird.  It is not the case
         that low values of the random number will give low values.  It
@@ -1300,11 +1336,6 @@ int poisson_dist(double lambda,double p)
   int i,lo,hi;
   double plo,phi,pctr;
   double lambda_i;
-  
-//  i=(int)lambda;
-//  pctr=lambda-i;
-//  if (p<pctr) return i+1;
-//  else return i;
   
   i = (int)lambda;
   pctr = exp( -lambda + i*log(lambda) - lgamma(i+1) );
@@ -1364,157 +1395,6 @@ unsigned char *byte_swap(unsigned char *b)
     return tmp;
 }
 
-
-  
-/*   Implementation of the UN*X wildcards in C. So they are         */
-/*   available in a portable way and can be used whereever          */
-/*   needed.                                                        */
-/*                                                                  */
-/* Version:                                                         */
-/*   1.2                                                            */
-/* Author(s):                                                       */
-/*   Florian Schintke (schintke@gmx.de)                             */
-/* Tester:                                                          */
-/*   Florian Schintke (schintke@gmx.de)                             */
-/*                                                                  */
-
-/* Scans a set of characters and returns 0 if the set mismatches at this */
-/* position in the teststring and 1 if it is matching                    */
-/* wildcard is set to the closing ] and test is unmodified if mismatched */
-/* and otherwise the char pointer is pointing to the next character      */
-int set (char **wildcard, char **test);
-
-/* scans an asterisk */
-int asterisk (char **wildcard, char **test);
-
-int wildcardfit (char *wildcard, char *test)
-{
-  int fit = 1;
-  
-  for (; ('\000' != *wildcard) && (1 == fit) && ('\000' != *test); wildcard++)
-    {
-      switch (*wildcard)
-        {
-        case '[':
-	  wildcard++; /* leave out the opening square bracket */ 
-          fit = set (&wildcard, &test);
-	  /* we don't need to decrement the wildcard as in case */
-	  /* of asterisk because the closing ] is still there */
-          break;
-        case '?':
-          test++;
-          break;
-        case '*':
-          fit = asterisk (&wildcard, &test);
-	  /* the asterisk was skipped by asterisk() but the loop will */
-	  /* increment by itself. So we have to decrement */
-	  wildcard--;
-          break;
-        default:
-          fit = (int) (*wildcard == *test);
-          test++;
-        }
-    }
-  while ((*wildcard == '*') && (1 == fit)) 
-    /* here the teststring is empty otherwise you cannot */
-    /* leave the previous loop */ 
-    wildcard++;
-  return (int) ((1 == fit) && ('\0' == *test) && ('\0' == *wildcard));
-}
-
-int set (char **wildcard, char **test)
-{
-  int fit = 0;
-  int negation = 0;
-  int at_beginning = 1;
-
-  if ('!' == **wildcard)
-    {
-      negation = 1;
-      (*wildcard)++;
-    }
-  while ((']' != **wildcard) || (1 == at_beginning))
-    {
-      if (0 == fit)
-        {
-          if (('-' == **wildcard) 
-              && ((*(*wildcard - 1)) < (*(*wildcard + 1)))
-              && (']' != *(*wildcard + 1))
-	      && (0 == at_beginning))
-            {
-              if (((**test) >= (*(*wildcard - 1)))
-                  && ((**test) <= (*(*wildcard + 1))))
-                {
-                  fit = 1;
-                  (*wildcard)++;
-                }
-            }
-          else if ((**wildcard) == (**test))
-            {
-              fit = 1;
-            }
-        }
-      (*wildcard)++;
-      at_beginning = 0;
-    }
-  if (1 == negation)
-    /* change from zero to one and vice versa */
-    fit = 1 - fit;
-  if (1 == fit) 
-    (*test)++;
-
-  return (fit);
-}
-
-int asterisk (char **wildcard, char **test)
-{
-  /* Warning: uses multiple returns */
-  int fit = 1;
-
-  /* erase the leading asterisk */
-  (*wildcard)++; 
-  while (('\000' != (**test))
-	 && (('?' == **wildcard) 
-	     || ('*' == **wildcard)))
-    {
-      if ('?' == **wildcard) 
-	(*test)++;
-      (*wildcard)++;
-    }
-  /* Now it could be that test is empty and wildcard contains */
-  /* aterisks. Then we delete them to get a proper state */
-  while ('*' == (**wildcard))
-    (*wildcard)++;
-
-  if (('\0' == (**test)) && ('\0' != (**wildcard)))
-    return (fit = 0);
-  if (('\0' == (**test)) && ('\0' == (**wildcard)))
-    return (fit = 1); 
-  else
-    {
-      /* Neither test nor wildcard are empty!          */
-      /* the first character of wildcard isn't in [*?] */
-      if (0 == wildcardfit(*wildcard, (*test)))
-	{
-	  do 
-	    {
-	      (*test)++;
-	      /* skip as much characters as possible in the teststring */
-	      /* stop if a character match occurs */
-	      while (((**wildcard) != (**test)) 
-		     && ('['  != (**wildcard))
-		     && ('\0' != (**test)))
-		(*test)++;
-	    }
-	  while ((('\0' != **test))? 
-		 (0 == wildcardfit (*wildcard, (*test))) 
-		 : (0 != (fit = 0)));
-	}
-      if (('\0' == **test) && ('\0' == **wildcard))
-	fit = 1;
-      return (fit);
-    }
-}
 
 
 /* This function analyzes the string and checks
