@@ -1397,15 +1397,19 @@ unsigned char *byte_swap(unsigned char *b)
 
 
 
-/* This function analyzes the string and checks
+/*************************************************************************
+contain_wildcard:
+  In: a string
+  Out: This function analyzes the string and checks
    whether it contains wildcards (*,?,[,]).
-   Returns 1 if wildcard is found and 0 - otherwise. */
+   Returns 1 if wildcard is found and 0 - otherwise.
+*************************************************************************/
 int contain_wildcard(char * teststring)
 {
    int found = 0;
    int i, len;
    
-   len = strlen(teststring) + 1; /* length of the string */
+   len = strlen(teststring); 
    for(i = 0; i < len; i++)
    {
        if((teststring[i] == '*') ||
@@ -1420,7 +1424,6 @@ int contain_wildcard(char * teststring)
    }
    
    return found;
-
 }
 
 
@@ -1435,7 +1438,7 @@ int contain_wildcard(char * teststring)
   tame strings don't have any wildcard characters
 *************************************************************************/
 
-/* Count the real number of characters in a feral string of length<=n*/
+/* Measure the length of the tame string matched by a feral string of length<=n*/
 int feral_strlenn(char *feral,int n)
 {
   int real_n=0;
@@ -1452,8 +1455,16 @@ int feral_strlenn(char *feral,int n)
       while (i<n && feral[i]!=']')
       {
         if (feral[i]=='\0') return real_n;
-        if (feral[i]=='\\') i+=2;
-	else if (feral[i]=='-') i+=2;
+        if (feral[i]=='\\') 
+        {
+          i+=2;
+          if (i>n || feral[i-1]=='\0') return real_n;
+        }
+	else if (feral[i]=='-')
+        {
+          i+=2;
+          if (i>n || feral[i-1]=='\0') return real_n;
+        }
         else i++;
       }
     }
@@ -1474,47 +1485,56 @@ int is_feral_nabbrev(char *feral,int n,char *tame)
   char c,cc;
   int i=0;
   int nfound = 0;
+  int ok;
   
-  if (n<=0) return 1;
+  if (n<=0) return 0;
   
   while (*tame!='\0')
   {
     if (feral[i]=='[') /* Try to match character set */
     {
       i++;
+      ok=0;
       while (i<n && feral[i]!=']')
       {
         c = feral[i++];
+	if (c=='\0') return 0; /* Malformed feral string */
         if (c=='\\')
         {
-          if (i>=n) return 0; /* Broken */
+          if (i>=n) return 0; /* Malformed feral string */
           c = feral[i++];
+	  if (c=='\0') return 0; /* Malformed feral string */
         }
 	if (i<n && feral[i]=='-')
 	{
 	  i++;
-	  if (i>=n) return 0; /* Broken */
+	  if (i>=n) return 0; /* Malformed feral string */
 	  cc=feral[i++];
-	  if (cc=='\0') return 0; /* Broken */
+	  if (cc=='\0') return 0; /* Malformed feral string */
 	  if (cc=='\\')
 	  {
-	    if (i>=n) return 0; /* Broken */
+	    if (i>=n) return 0; /* Malformed feral string */
 	    cc = feral[i++];
-	    if (cc=='\0') return 0; /* Broken */
+	    if (cc=='\0') return 0; /* Malformed feral string */
 	  }
-	  if (c<=*tame && *tame<=cc) { i--; break; }
+	  if (c<=*tame && *tame<=cc) { ok=1; break; }
 	}
-        else if (c==*tame) { i--; break; }
+        else if (c==*tame) { ok=1; break; }
       }
-      if (i>=n) return 0; /* Broken */
-      if (feral[i]==']') return 0; /* Set never matched */
+      if (i>=n) return 0; /* Malformed feral string */
+      if (!ok) return 0; /* Set never matched */
       tame++; /* Matched */
       while (i<n && feral[i]!=']') /* Find trailing ] */
       {
-        if (feral[i]=='\\') i+=2;
+        if (feral[i]=='\0') return 0;  /* Malformed feral string */
+        if (feral[i]=='\\')
+        {
+          i+=2;
+          if (i>n || feral[i-1]=='\0') return 0;  /* Malformed feral string */
+        }
         else i++;
       }
-      if (i>=n) return 0; /* Broken */
+      if (i>=n) return 0; /* Malformed feral string */
       i++;
     }
     else /* Match single possibly escaped character */
@@ -1522,11 +1542,11 @@ int is_feral_nabbrev(char *feral,int n,char *tame)
       c = feral[i++];
       if (c=='\\')
       {
-        if (i>=n) return 0; /* Broken */
+        if (i>=n) return 0; /* Malformed feral string */
         c=feral[i++];
+        if (c!=*tame++) return 0; /* Mismatch */
       }
-      
-      if (c!=*tame++ && c!='?') return 0; /* Mismatch */
+      else if (c!=*tame++ && c!='?') return 0; /* Mismatch */
     }
     nfound++;
     if (i>=n) return nfound; /* Ran out of feral string--it's an abbreviation! */
@@ -1538,7 +1558,7 @@ int is_feral_nabbrev(char *feral,int n,char *tame)
 
 /* Find a substring of a tame haystack string that matches the first n
 characters of the feral string needle (same syntax as strstr except using
-a feral string with a length delimiter). */
+a feral string with a length delimiter). Returns NULL if matching substring not found. */
 
 char* feral_strstrn(char *tame_haystack,char *feral_needle,int n)
 {
@@ -1546,11 +1566,15 @@ char* feral_strstrn(char *tame_haystack,char *feral_needle,int n)
   char cc;
   char set[256];
   int isset = 0;
-  int i = 0;
-  int j;
+  int i, j;
   int scoot = 0;
   
+  
+  for (i=0; i<n; i++) if (feral_needle[i]=='\0') break;
+  n=i;
+
   /* Toss leading ?'s */
+  i=0;
   while (feral_needle[i]=='?' && i<n && *tame_haystack!='\0')
   {
     i++;
@@ -1560,6 +1584,7 @@ char* feral_strstrn(char *tame_haystack,char *feral_needle,int n)
   
   if (i>=n) return tame_haystack-scoot;
   
+  /* Beginning of needle is either a single character to match or a set of characters */
   /* Efficiently search character set if it's first */
   if (feral_needle[i]=='[')
   {
@@ -1606,20 +1631,23 @@ char* feral_strstrn(char *tame_haystack,char *feral_needle,int n)
     if (c=='\0') return NULL; /* Can't match broken pattern */
   }
   
+  /* Match needle with haystack */
   while (*tame_haystack != '\0')
   {
-    if (isset)
+    /* Try to match the first non-'?' character in needle with haystack */
+    if (isset) /* Find next position in haystack that matches a set of characters */
     {
       while (!set[(int)*tame_haystack]) tame_haystack++;
       if (*tame_haystack=='\0') return NULL;
     }
-    else
+    else /* Find next position in haystack that matches a single character */
     {
       while (*tame_haystack!=c && *tame_haystack!='\0') tame_haystack++;
       if (*tame_haystack=='\0') return NULL;
     }
+
     if (i==n) return tame_haystack-scoot;
-    else if (is_feral_nabbrev(feral_needle+i,n-i,tame_haystack+1))
+    else if (is_feral_nabbrev(feral_needle+i,n-i,tame_haystack+1)) /* Try to match the rest of the needle */
     {
       return tame_haystack-scoot;
     }
@@ -1650,16 +1678,16 @@ int is_wildcard_match(char *wild,char *tame)
         if (wild[n]=='\\')
         {
           n++;
-          if (wild[n]=='\0') return 0; /* Broken */
+          if (wild[n]=='\0') return 0; /* Malformed wild string */
         }
         n++;
       }
-      if (wild[n]=='\0') return 0; /* Broken */
+      if (wild[n]=='\0') return 0; /* Malformed wild string */
     }
     else if (wild[n]=='\\')
     {
       n++;
-      if (wild[n]=='\0') return 0; /* Broken */
+      if (wild[n]=='\0') return 0; /* Malformed wild string */
     }
     else if (wild[n]=='*') nstars++;
   }
@@ -1689,9 +1717,9 @@ int is_wildcard_match(char *wild,char *tame)
       else if (wild[n]=='*') staridx[i++] = n;
     }
     
-    for (i=0; i<nstars && staridx[i]==i ; i++) {}
+    for (i=0; i<nstars && staridx[i]==i ; i++) {}  /* Skip over '*'s at the beginning of wild string */
     
-    if (i>=nstars) return 1;  /* All stars, nothing to match */
+    if (i>=nstars) return 1;  /* All stars, of course it matches */
     
     if (i==0) /* First character is not a star */
     {
@@ -1729,7 +1757,7 @@ int is_wildcard_match(char *wild,char *tame)
     m = tame;
     for (i=0;i<nidx;i++)
     {
-      idxB[i] -= idxA[i];
+      idxB[i] -= idxA[i];  /* Calculate length of feral string */
       
       if (idxB[i]==0) continue; /* Just more stars */
       
