@@ -202,6 +202,7 @@ void grid2uv_random(struct surface_grid *g,int index,struct vector2 *v)
 }
 
 
+
 /*************************************************************************
 init_grid_geometry: 
   In: a surface grid with correct # of divisions/edge and wall pointer
@@ -251,8 +252,6 @@ int create_grid(struct wall *w,struct subvolume *guess)
   sg->surface = w;
   sg->subvol = find_subvolume(&center , guess);
   
-  /* sg->n = sqrt( w->area ); */
-  /* sg->n = 0.5 + sqrt( w->area ); */
   sg->n = (int) ceil(sqrt( w->area ));
   if (sg->n<1) sg->n=1;
 
@@ -303,6 +302,7 @@ void grid_neighbors(struct surface_grid *grid,int idx,struct surface_grid **nb_g
   struct vector2 near_2d;
   double d;
   
+  /* Calculate strip (k), stripe (j), and flip (i) indices from idx */
   root = (int)( sqrt((double)idx) );
   rootrem = idx - root*root;
   k = root;
@@ -310,12 +310,12 @@ void grid_neighbors(struct surface_grid *grid,int idx,struct surface_grid **nb_g
   i = rootrem - 2*j;
   
   /* First look "left" (towards edge 2) */
-  if (j>0 || i>0)
+  if (j>0 || i>0) /* all tiles except upright tiles in stripe 0 */
   {
     nb_grid[2] = grid;
     nb_idx[2] = idx-1;
   }
-  else
+  else /* upright tiles in stripe 0 */
   {
     if (grid->surface->nb_walls[2]==NULL) nb_grid[2] = NULL;
     else if (grid->surface->nb_walls[2]->effectors==NULL) nb_grid[2] = NULL;
@@ -334,12 +334,12 @@ void grid_neighbors(struct surface_grid *grid,int idx,struct surface_grid **nb_g
   }
   
   /* Then "right" (towards edge 1) */
-  if (j < root)
+  if (j < k) /* all tiles except upright tiles in last stripe */
   {
     nb_grid[1] = grid;
     nb_idx[1] = idx+1;
   }
-  else
+  else  /* upright tiles in last stripe */
   {
     if (grid->surface->nb_walls[1]==NULL) nb_grid[1] = NULL;
     else if (grid->surface->nb_walls[1]->effectors==NULL) nb_grid[1] = NULL;
@@ -359,13 +359,13 @@ void grid_neighbors(struct surface_grid *grid,int idx,struct surface_grid **nb_g
 
     
   /* Finally "up/down" (towards edge 0 if not flipped) */
-  if (i || k+1 < grid->n)
+  if (i || k+1 < grid->n)  /* all tiles except upright tiles in last strip */
   {
     nb_grid[0] = grid;
-    if (i) nb_idx[0] = 2*j+(k-1)*(k-1);    /* Flip->prev strip, no flip */
-    else nb_idx[0] = 1 + 2*j+(k+1)*(k+1);  /* No flip->next strip, flip */
+    if (i) nb_idx[0] = 2*j+(k-1)*(k-1);    /* unflip and goto previous strip */
+    else nb_idx[0] = 1 + 2*j+(k+1)*(k+1);  /* flip and goto next strip */
   }
-  else
+  else  /* upright tiles in last strip */
   {
     if (grid->surface->nb_walls[0]==NULL) nb_grid[0] = NULL;
     else if (grid->surface->nb_walls[0]->effectors==NULL) nb_grid[0] = NULL;
@@ -394,6 +394,8 @@ nearest_free:
        to the vector, or -1 if no unoccupied points are found in range
   Note: we assume you've already checked the grid element that contains
         the point, so we don't bother looking there first.
+  Note: if no unoccupied tile is found, found_dist2 contains distance to
+        closest occupied tile.
 *************************************************************************/
 
 int nearest_free(struct surface_grid *g,struct vector2 *v,double max_d2,double *found_dist2)
