@@ -4,7 +4,6 @@
  ** Purpose: Build walls and surfaces, create edges from vertices and    **
  **    polygons.  All wall elements are assumed to be triangles.         **
  **                                                                      **
- ** Testing status: previously tested, compiles after changes.           **
 \**************************************************************************/
 
 
@@ -17,13 +16,13 @@
 #include "vector.h"
 #include "util.h"
 #include "mem_util.h"
-#include "wall_util.h"
 #include "vol_util.h"
 #include "mcell_structs.h"
 #include "react_output.h"
 #include "mdlparse_util.h"
 #include "grid_util.h"
 #include "count_util.h"
+#include "wall_util.h"
 
 #ifdef DEBUG
 #define no_printf printf
@@ -46,34 +45,44 @@ extern struct volume *world;
 #define max(x,y) ((x)>(y)) ? (x): (y)
 #define min(x,y) ((x)<(y)) ? (x): (y)
 
+
 inline double abs_max_2vec(struct vector3 *v1,struct vector3 *v2)
 {
-    return max( max( fabs(v1->x) , fabs(v1->y) ) ,
-                max( max( fabs(v1->z) , fabs(v2->z) ) ,
-                     max( fabs(v2->y) , fabs(v2->x) ) ) );
+  return max( max( fabs(v1->x) , fabs(v1->y) ) ,
+              max( max( fabs(v1->z) , fabs(v2->z) ) ,
+                   max( fabs(v2->y) , fabs(v2->x) ) ) );
 }
+
 
 inline double max3(double f1, double f2, double f3)
 {
   return (max(f1,max(f2,f3)));
 }
 
+
 inline double min3(double f1, double f2, double f3)
 {
   return (min(f1,min(f2,f3)));
 }
 
+
 inline double min_n(double *array, int n)
 {
-	if(n == 1) {
-		return array[0];
-        }else if(n == 2){
-		return min(array[0], array[1]);
-        }else{
-		return min(array[0], min_n((array+1), n-1));
-        }
-	return INT_MAX;
+  if (n == 1) return array[0];
+  else if (n == 2) return min(array[0], array[1]);
+  else
+  {
+    double smallest;
+    n-=2;
+    for (smallest = array[n+1]; n >= 0; n--)
+    {
+      if (array[n] < smallest) smallest=array[n];
+    }
+    return smallest;
+  }
 }
+
+
 
 /**************************************************************************\
  ** Edge hash table section--finds common edges in polygons              **
@@ -115,9 +124,11 @@ edge_hash:
 
 int edge_hash(struct poly_edge *pe,int nkeys)
 {
-  unsigned short *a = (unsigned short*) &(pe->v1x);
+  unsigned short *a;
   unsigned int hashL=1 , hashR=1;
   int i,j;
+
+  a = (unsigned short*) &(pe->v1x);
   for (i=j=0;i<12;i++)
   {
     j += 3;
@@ -151,12 +162,7 @@ int ehtable_init(struct edge_hashtable *eht,int nkeys)
   eht->stored = 0;
   eht->distinct = 0;
   eht->data = (struct poly_edge*) malloc( nkeys * sizeof(struct poly_edge) );
-  if (eht->data == NULL){
-      fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-      int i = emergency_output();
-      fprintf(stderr, "Fatal error: out of memory during ehtable_init operation.\nAttempt to write intermediate results had %d errors.\n", i);
-      exit(EXIT_FAILURE);
-  } 
+  if (eht->data == NULL) return 1;
   
   for (i=0;i<nkeys;i++)
   {
@@ -222,12 +228,7 @@ int ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
         }
         
         pei = (struct poly_edge*) malloc( sizeof(struct poly_edge) );
-        if (pei==NULL) {
-      		fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-      		int i = emergency_output();
-      		fprintf(stderr, "Fatal error: out of memory during ehtable_add operation.\nAttempt to write intermediate results had %d errors.\n", i);
-      		exit(EXIT_FAILURE);
-        }
+        if (pei==NULL) return 1;
 
         pep->n++;
         pei->next = pep->next;
@@ -247,12 +248,7 @@ int ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
     else  /* Hit end of list, so make space for use next loop. */
     {
       pei = (struct poly_edge*) malloc( sizeof(struct poly_edge) );
-      if (pei==NULL){ 
-      		fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-      		int i = emergency_output();
-      		fprintf(stderr, "Fatal error: out of memory during ehtable_add operation.\nAttempt to write intermediate results had %d errors.\n", i);
-      		exit(EXIT_FAILURE);
-      }
+      if (pei==NULL) return 1;
       pei->next = pep->next;
       pep->next = pei;
       pei->n = 0;
@@ -279,6 +275,7 @@ void ehtable_kill(struct edge_hashtable *eht)
 {
   struct poly_edge *pe;
   int i;
+
   for (i=0;i<eht->nkeys;i++)
   {
     while (eht->data[i].next != NULL)
@@ -317,6 +314,7 @@ compatible_edges:
 int compatible_edges(struct wall **faces,int wA,int eA,int wB,int eB)
 {
   struct vector3 *vA0,*vA1,*vA2,*vB0,*vB1,*vB2;
+
   if((wA < 0) || (eA < 0) || (wB < 0) || (eB < 0)) return 0;
 
   vA0 = faces[wA]->vert[eA];

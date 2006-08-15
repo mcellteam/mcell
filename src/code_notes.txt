@@ -109,3 +109,6 @@ Add comment to poisson_dist() which points at detailed description of mathematic
 of algorithm.  Also write such a description. 
 
 
+Convert edge_hash() in wall_util to use jenkins hash function to compute hashL and hashR.
+
+

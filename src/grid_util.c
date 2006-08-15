@@ -465,6 +465,9 @@ search_nbhd_for_free:
       context for that function passed in by whatever called us
   Out: pointer to the wall that has the free slot, or NULL if no wall
        exist in range.
+  Note: usually the calling function will create a grid if needed and
+        check the grid element at u,v; if that is not done this function
+        will return the correct result but not efficiently.
   Note: This is not recursive.  It should be made recursive.
 *************************************************************************/
 
@@ -489,6 +492,8 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
     if (create_grid(origin,NULL)) return NULL;  /* FIXME: handle out of memory properly */
   }
   
+
+  /* Find index and distance of nearest free grid element on origin wall */
   i = nearest_free(origin->effectors,point,max_d2,&d2);
 
   if (i != -1)
@@ -498,6 +503,7 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
     best_w = origin;
   }
   
+  /* Check for closer free grid elements on neighboring walls */
   for (j=0 ; j<3 ; j++)
   {
     if (origin->edges[j]==NULL || origin->edges[j]->backward==NULL) continue;
@@ -507,6 +513,7 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
     
     if (ok!=NULL && !(*ok)(context,there) ) continue;  /* Calling function doesn't like this wall */
     
+    /* Calculate distance between point and edge j of origin wall */
     switch (j)
     {
       case 0:
@@ -531,6 +538,7 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
     d2 = pt.u*ed.u + pt.v*ed.v;
     d2 = (pt.u*pt.u + pt.v*pt.v) - d2*d2/(ed.u*ed.u+ed.v*ed.v); /* Distance squared to line */
     
+    /* Check for free grid element on neighbor if point to edge distance is closer than best_d2  */
     if (d2<best_d2)
     {
       if (there->effectors==NULL)
@@ -552,3 +560,4 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
   *found_idx = best_i;
   return best_w;
 } 
+
