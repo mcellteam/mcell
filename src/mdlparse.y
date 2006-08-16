@@ -3001,7 +3001,7 @@ existing_release_pattern_xor_rxpn: VAR
     mdlerror("Cannot find named release pattern.");
     return 1;
   }
-  else if (rpat!=NULL && rxpn==NULL)
+  else if (rpat!=NULL && rxpn!=NULL)
   {
     mdlerror("Named release pattern might be a pattern or a reaction pathway.  Please change one name.");
     return 1;
