@@ -566,6 +566,8 @@ int outcome_bimolecular(struct rxn *rx,int path,
   struct storage *x;
   int result;
   int i;
+  int reacB_was_free=0;
+  int killA,killB;
   
   if ((reacA->properties->flags & NOT_FREE) == 0)
   {
@@ -601,155 +603,115 @@ int outcome_bimolecular(struct rxn *rx,int path,
   
   rx->info[path].count++;
   
+  /* Figure out if either of the reactants was destroyed */
   if (rx->players[0]==reacA->properties)
   {
-    if (rx->players[ rx->product_idx[path]+1 ] == NULL)
-    {
-      if ((reacB->properties->flags & ON_GRID) != 0)
-      {
-        g = (struct grid_molecule*)reacB;
-
-        if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
-        g->grid->n_occupied--;
-	if (g->flags&IN_SURFACE) g->flags -= IN_SURFACE;
-	if (g->flags & IN_SCHEDULE)
-	{
-	  g->grid->subvol->local_storage->timer->defunct_count++;
-	}
-      }
-      else if ((reacB->properties->flags & NOT_FREE) == 0)
-      {
-        m = (struct molecule*)reacB;
-        m->subvol->mol_count--;
-	if (m->flags & IN_SCHEDULE)
-	{
-	  m->subvol->local_storage->timer->defunct_count++;
-	}
-      }
-
-      if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-      {
-        i = count_region_from_scratch(reacB,NULL,-1,NULL,NULL,t);
-	if (i) return RX_NO_MEM;
-      }
-      
-      reacB->properties->n_deceased++;
-      reacB->properties->cum_lifetime += t - reacB->birthday;
-      reacB->properties->population--;
-      reacB->properties = NULL;
-      if ((reacB->flags&IN_MASK)==0) mem_put(reacB->birthplace,reacB);
-    }
-    if (rx->players[ rx->product_idx[path] ] == NULL)
-    {
-      if ((reacA->properties->flags & ON_GRID) != 0)
-      {
-        g = (struct grid_molecule*)reacA;
-
-        if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
-        g->grid->n_occupied--;
-	if (g->flags & IN_SCHEDULE)
-	{
-	  g->grid->subvol->local_storage->timer->defunct_count++;
-	}
-      }
-      else if ((reacA->properties->flags & NOT_FREE) == 0)
-      {
-        m = (struct molecule*)reacA;
-        m->subvol->mol_count--;
-	if (m->flags & IN_SCHEDULE)
-	{
-	  m->subvol->local_storage->timer->defunct_count++;
-	}
-      }
-
-      if (reacA->flags&COUNT_ME)
-      {
-	i=count_region_from_scratch(reacA,NULL,-1,NULL,NULL,t);
-	if (i) return RX_NO_MEM;
-      }
-    
-      reacA->properties->n_deceased++;
-      reacA->properties->cum_lifetime += t - reacA->birthday;
-      reacA->properties->population--;
-      reacA->properties = NULL;
-      return RX_DESTROY;
-    }
+    killB = (rx->players[ rx->product_idx[path]+1 ] == NULL);
+    killA = (rx->players[ rx->product_idx[path] ] == NULL);
   }
   else
   {
-    if (rx->players[ rx->product_idx[path] ] == NULL)
-    {
-      if ((reacB->properties->flags & ON_GRID) != 0)
-      {
-        g = (struct grid_molecule*)reacB;
-
-        if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
-        g->grid->n_occupied--;
-	if (g->flags&IN_SURFACE) g->flags -= IN_SURFACE;
-	if (g->flags & IN_SCHEDULE)
-	{
-	  g->grid->subvol->local_storage->timer->defunct_count++;
-	}
-      }
-      else if ((reacB->properties->flags & NOT_FREE) == 0)
-      {
-        m = (struct molecule*)reacB;
-        m->subvol->mol_count--;
-	if (m->flags & IN_SCHEDULE)
-	{
-	  m->subvol->local_storage->timer->defunct_count++;
-	}
-      }
-
-      if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-      {
-        i = count_region_from_scratch(reacB,NULL,-1,NULL,NULL,t);
-	if (i) return RX_NO_MEM;
-      }
-    
-      reacB->properties->n_deceased++;
-      reacB->properties->cum_lifetime += t - reacB->birthday;
-      reacB->properties->population--;
-      reacB->properties = NULL;
-      if ((reacB->flags&IN_MASK)==0) mem_put(reacB->birthplace,reacB);
-    }
-    if (rx->players[ rx->product_idx[path]+1 ] == NULL)
-    {
-      if ((reacA->properties->flags & ON_GRID) != 0)
-      {
-        g = (struct grid_molecule*)reacA;
-
-        if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
-        g->grid->n_occupied--;
-	if (g->flags & IN_SCHEDULE)
-	{
-	  g->grid->subvol->local_storage->timer->defunct_count++;
-	}
-      }
-      else if ((reacA->properties->flags & NOT_FREE) == 0)
-      {
-        m = (struct molecule*)reacA;
-        m->subvol->mol_count--;
-	if (m->flags & IN_SCHEDULE)
-	{
-	  m->subvol->local_storage->timer->defunct_count++;
-	}
-      }
-
-      if (reacA->flags&COUNT_ME)
-      {
-	i=count_region_from_scratch(reacA,NULL,-1,NULL,NULL,t);
-	if (i) return RX_NO_MEM;
-      }
-    
-      reacA->properties->n_deceased++;
-      reacA->properties->cum_lifetime += t - reacA->birthday;
-      reacA->properties->population--;
-      reacA->properties = NULL;
-      return RX_DESTROY;
-    }
+    killB = (rx->players[ rx->product_idx[path] ] == NULL);
+    killA = (rx->players[ rx->product_idx[path]+1 ] == NULL);
   }
   
+  if (killB)
+  {
+    if ((reacB->properties->flags & ON_GRID) != 0)
+    {
+      g = (struct grid_molecule*)reacB;
+
+      if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
+      g->grid->n_occupied--;
+      if (g->flags&IN_SURFACE) g->flags -= IN_SURFACE;
+      if (g->flags & IN_SCHEDULE)
+      {
+	g->grid->subvol->local_storage->timer->defunct_count++;
+      }
+    }
+    else if ((reacB->properties->flags & NOT_FREE) == 0)
+    {
+      m = (struct molecule*)reacB;
+      m->subvol->mol_count--;
+      if (m->flags & IN_SCHEDULE)
+      {
+	m->subvol->local_storage->timer->defunct_count++;
+      }
+      reacB_was_free=1;
+    }
+
+    if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
+    {
+      i = count_region_from_scratch(reacB,NULL,-1,NULL,NULL,t);
+      if (i) return RX_NO_MEM;
+    }
+    
+    reacB->properties->n_deceased++;
+    reacB->properties->cum_lifetime += t - reacB->birthday;
+    reacB->properties->population--;
+    reacB->properties = NULL;
+    if ((reacB->flags&IN_MASK)==0) mem_put(reacB->birthplace,reacB);
+  }
+
+  if (killA)
+  {
+    if ((reacA->properties->flags & ON_GRID) != 0)
+    {
+      g = (struct grid_molecule*)reacA;
+
+      if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
+      g->grid->n_occupied--;
+      if (g->flags & IN_SCHEDULE)
+      {
+	g->grid->subvol->local_storage->timer->defunct_count++;
+      }
+    }
+    else if ((reacA->properties->flags & NOT_FREE) == 0)
+    {
+      m = (struct molecule*)reacA;
+      m->subvol->mol_count--;
+      if (m->flags & IN_SCHEDULE)
+      {
+	m->subvol->local_storage->timer->defunct_count++;
+      }
+    }
+
+    if (reacA->flags&COUNT_ME)
+    {
+      /* Subtlety: we made it up to hitpt, but our position is wherever we were before that! */
+      
+      if ((reacA->properties->flags&ON_GRID)!=0)  /* Grid molecule is OK where it is */
+      {
+	i=count_region_from_scratch(reacA,NULL,-1,NULL,NULL,t);	  
+      }
+      if (hitpt==NULL || reacB_was_free || (reacB->properties!=NULL && (reacB->properties->flags&NOT_FREE)!=0))
+      {
+	/* Vol-vol rx should be counted at hitpt */
+	i=count_region_from_scratch(reacA,NULL,-1,hitpt,NULL,t);
+      }
+      else /* Vol-surf but don't want to count exactly on a wall or we might count on the wrong side */
+      {
+	struct vector3 fake_hitpt;
+	
+	m = (struct molecule*)reacA;
+	
+	/* Halfway in between where we were and where we react should be a safe away-from-wall place to remove us */
+	fake_hitpt.x = 0.5*hitpt->x + 0.5*m->pos.x;
+	fake_hitpt.y = 0.5*hitpt->y + 0.5*m->pos.y;
+	fake_hitpt.z = 0.5*hitpt->z + 0.5*m->pos.z;
+	
+	i=count_region_from_scratch(reacA,NULL,-1,&fake_hitpt,NULL,t);
+      }
+      if (i) return RX_NO_MEM;
+    }
+  
+    reacA->properties->n_deceased++;
+    reacA->properties->cum_lifetime += t - reacA->birthday;
+    reacA->properties->population--;
+    reacA->properties = NULL;
+    return RX_DESTROY;
+  }
+
   return result;
 }
 
@@ -801,7 +763,19 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
       m->subvol->mol_count--;
       if (reac->flags&COUNT_ME)
       {
-	i=count_region_from_scratch(reac,NULL,-1,NULL,NULL,t);
+	if (hitpt==NULL) i=count_region_from_scratch(reac,NULL,-1,NULL,NULL,t);
+	else
+	{
+	  struct vector3 fake_hitpt;
+	  
+	  /* Halfway in between where we were and where we react should be a safe away-from-wall place to remove us */
+	  fake_hitpt.x = 0.5*hitpt->x + 0.5*m->pos.x;
+	  fake_hitpt.y = 0.5*hitpt->y + 0.5*m->pos.y;
+	  fake_hitpt.z = 0.5*hitpt->z + 0.5*m->pos.z;
+	  
+	  i=count_region_from_scratch(reac,NULL,-1,&fake_hitpt,NULL,t);
+	}
+	if (i) return RX_NO_MEM;
       }
       reac->properties->n_deceased++;
       reac->properties->cum_lifetime += t - reac->birthday;

@@ -3543,8 +3543,15 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 		  if (l==RX_FLIP)
 		  {
 		    if ((m->flags&COUNT_ME)!=0 && (sm->flags&w->flags&COUNT_SOME)!=0)
-		    {
+		    {		      
 		      count_region_update(sm,w->counting_regions,k,1,rate_factor * w->effectors->binding_factor,&(smash->loc),smash->t);
+
+		      /* Need to update our position if we're counting so we don't get confused */
+		      m->pos.x = smash->loc.x;
+		      m->pos.y = smash->loc.y;
+		      m->pos.z = smash->loc.z;
+		      m->t += t_steps*smash->t;
+		      t_steps *= (1.0-smash->t);
 		    }
 		    
 		    continue; /* pass through */
@@ -3580,6 +3587,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	      if ( (m->flags&COUNT_ME)!=0 && (sm->flags&w->flags&COUNT_SOME)!=0 )
 	      {
 		count_region_update(sm,w->counting_regions,k,1,rate_factor,&(smash->loc),smash->t);
+
+		/* Need to update our position if we're counting so we don't get confused */
+		m->pos.x = smash->loc.x;
+		m->pos.y = smash->loc.y;
+		m->pos.z = smash->loc.z;
+		m->t += t_steps*smash->t;
+		t_steps *= (1.0-smash->t);
 	      }
 
 	      continue; /* Ignore this wall and keep going */
@@ -3598,9 +3612,16 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 		if (j==RX_NO_MEM) { ERROR_AND_QUIT; } 
 		if (j==RX_FLIP)
 		{
-		  if ( (sm->flags&w->flags&COUNT_HITS) )
+		  if ( (m->flags&COUNT_ME)!=0 && (sm->flags&w->flags&COUNT_SOME)!=0 )
 		  {
 		    count_region_update(sm,w->counting_regions,k,1,rate_factor,&(smash->loc),smash->t);
+
+		    /* Need to update our position if we're counting so we don't get confused */
+		    m->pos.x = smash->loc.x;
+		    m->pos.y = smash->loc.y;
+		    m->pos.z = smash->loc.z;
+		    m->t += t_steps*smash->t;
+		    t_steps *= (1.0-smash->t);
 		  }
   
 		  continue; /* pass through */
