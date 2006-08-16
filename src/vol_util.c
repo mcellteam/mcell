@@ -43,12 +43,12 @@ int inside_subvolume(struct vector3 *point,struct subvolume *subvol)
 
 
 /*************************************************************************
-find_course_subvolume:
+find_coarse_subvolume:
   In: pointer to vector3
-  Out: pointer to the course subvolume that the vector is within
+  Out: pointer to the coarse subvolume that the vector is within
 *************************************************************************/
 
-struct subvolume* find_course_subvol(struct vector3 *loc)
+struct subvolume* find_coarse_subvol(struct vector3 *loc)
 {
   int i,j,k;
   i = bisect(world->x_partitions,world->nx_parts,loc->x);
@@ -242,12 +242,29 @@ find_subvolume:
 
 struct subvolume* find_subvolume(struct vector3 *loc,struct subvolume *guess)
 {
+#if 1
+  /* This code is faster if coarse subvolumes are always used */
+  
+  if (guess==NULL) return find_coarse_subvol(loc);
+  else
+  {
+    if (world->x_fineparts[guess->llf.x] <= loc->x && loc->x <= world->x_fineparts[guess->urb.x] &&
+        world->y_fineparts[guess->llf.y] <= loc->y && loc->y <= world->y_fineparts[guess->urb.y] &&
+        world->z_fineparts[guess->llf.z] <= loc->z && loc->z <= world->z_fineparts[guess->urb.z])
+    {
+      return guess;
+    }
+    else return find_coarse_subvol(loc);
+  }
+#else
+  /* This code should be used if we ever subdivide subvolumes */
+  
   struct subvolume *sv;
   struct vector3 center;
   
-  if (guess == NULL) sv = find_course_subvol(loc);
+  if (guess == NULL) sv = find_coarse_subvol(loc);
   else sv = guess;
-  
+
   center.x = 0.5*(world->x_fineparts[ sv->llf.x ] + world->x_fineparts[ sv->urb.x ]);
   center.y = 0.5*(world->y_fineparts[ sv->llf.y ] + world->y_fineparts[ sv->urb.y ]);
   center.z = 0.5*(world->z_fineparts[ sv->llf.z ] + world->z_fineparts[ sv->urb.z ]);
@@ -289,6 +306,7 @@ struct subvolume* find_subvolume(struct vector3 *loc,struct subvolume *guess)
   center.z = loc->z;
   
   return sv;
+#endif
 }  
 
 
