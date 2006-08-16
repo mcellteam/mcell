@@ -493,7 +493,8 @@ struct release_evaluator *rev;
 %type <sym> new_surface_class
 %type <sym> existing_surface_class
 %type <sym> new_release_pattern
-%type <sym> existing_release_pattern
+/* %type <sym> existing_release_pattern */
+%type <sym> existing_release_pattern_xor_rxpn
 %type <sym> object_def
 %type <sym> new_object
 %type <sym> existing_object
@@ -2943,7 +2944,7 @@ new_release_pattern: VAR
   $$=mdlpvp->gp;
 };
 
-
+/*
 existing_release_pattern: VAR
 {
   if (mdlpvp->cval_2!=NULL) {
@@ -2975,6 +2976,42 @@ existing_release_pattern: VAR
   mdlpvp->gp->ref_count++;
   no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
 #endif
+  $$=mdlpvp->gp;
+};
+*/
+
+existing_release_pattern_xor_rxpn: VAR
+{
+  struct sym_table *rpat;
+  struct sym_table *rxpn;
+  
+  if (mdlpvp->cval_2!=NULL) mdlpvp->sym_name=mdlpvp->cval_2;
+  else mdlpvp->sym_name=mdlpvp->cval;
+  
+  rpat=retrieve_sym(mdlpvp->sym_name,RPAT,volp->main_sym_table);
+  rxpn=retrieve_sym(mdlpvp->sym_name,RXPN,volp->main_sym_table);
+  
+  if (mdlpvp->sym_name==mdlpvp->cval) mdlpvp->cval=NULL;
+  else mdlpvp->cval_2=NULL;
+  free(mdlpvp->sym_name);
+  mdlpvp->sym_name=NULL;
+
+  if (rpat==NULL && rxpn==NULL)
+  {
+    mdlerror("Cannot find named release pattern.");
+    return 1;
+  }
+  else if (rpat!=NULL && rxpn==NULL)
+  {
+    mdlerror("Named release pattern might be a pattern or a reaction pathway.  Please change one name.");
+    return 1;
+  }
+  else
+  {
+    if (rpat!=NULL) mdlpvp->gp=rpat;
+    else mdlpvp->gp=rxpn;
+  }
+  
   $$=mdlpvp->gp;
 };
 
@@ -3948,12 +3985,38 @@ release_site_cmd:
 }
 	| RELEASE_PROBABILITY '=' num_expr
 {
-  mdlpvp->rsop->release_prob=$<dbl>3;
+  if (mdlpvp->rsop->release_prob==MAGIC_PATTERN_PROBABILITY)
+  {
+    mdlerror("Ignoring release probability for reaction-triggered releases.");
+  }
+  else
+  {
+    mdlpvp->rsop->release_prob=$<dbl>3;
+    if (mdlpvp->rsop->release_prob<0)
+    {
+      mdlerror("Release probability cannot be less than 0.");
+      return 1;
+    }
+    if (mdlpvp->rsop->release_prob>1)
+    {
+      mdlerror("Release probability cannot be greater than 1.");
+      return 1;
+    }
+  }
 }
-	| RELEASE_PATTERN '=' existing_release_pattern
+	| RELEASE_PATTERN '=' existing_release_pattern_xor_rxpn
 {
   mdlpvp->gp=$<sym>3;
   mdlpvp->rsop->pattern=(struct release_pattern *)mdlpvp->gp->value;
+  
+  if (mdlpvp->gp->sym_type==RXPN) /* Careful!  We've put a rxn_pathname into the "pattern" pointer! */
+  {
+    if (mdlpvp->rsop->release_prob!=1.0)
+    {
+      mdlerror("Ignoring release probability for reaction-triggered releases.");
+    }
+    mdlpvp->rsop->release_prob = MAGIC_PATTERN_PROBABILITY;   /* Magic number indicating a reaction-triggered release */
+  }
 }
 	| MOLECULE_POSITIONS
 {

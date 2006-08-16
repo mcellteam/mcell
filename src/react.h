@@ -39,5 +39,6 @@ int outcome_bimolecular(struct rxn *rx,int path,
   short orientA,short orientB,double t,struct vector3 *hitpt);
 int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   struct abstract_molecule *reac,short orient,double t,struct vector3 *hitpt);
+int reaction_wizardry(struct magic_list *incantation,struct wall *surface,struct vector3 *hitpt,double t);
 
 #endif

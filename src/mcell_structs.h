@@ -364,6 +364,11 @@
 #define OEXPR_RIGHT_CONST 0x800
 
 
+/* Magic value to indicate that a release pattern is actually a reaction */
+/* Should be some number not between 0 and 1 that is also not -1 */
+#define MAGIC_PATTERN_PROBABILITY 1.101001000100001
+
+
 
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
@@ -662,6 +667,7 @@ struct rxn_pathname {
   u_int hashval;             /* Hash value for counting named rxns on regions */
   u_int path_num;            /* Pathway number in rxn */
   struct rxn *rx;            /* The rxn associated with this name */
+  struct magic_list *magic;  /* A list of stuff that magically happens when the reaction happens */
 };
 
 
@@ -1001,6 +1007,16 @@ struct counter
 };
 
 
+enum magic_types { magic_undefined,magic_release };
+
+struct magic_list
+{
+  struct magic_list *next;
+  void *data;
+  enum magic_types type;
+};
+
+
 /* All data about the world */
 struct volume
 {
@@ -1065,6 +1081,7 @@ struct volume
   struct mem_helper *outp_request_mem;        /* Memory to store output_requests */
   struct mem_helper *counter_mem;             /* Memory to store counters (for counting molecules/reactions on regions) */
   struct mem_helper *trig_request_mem;        /* Memory to store listeners for trigger events */
+  struct mem_helper *magic_mem;               /* Memory used to store magic lists for reaction-triggered releases and such */
   double elapsed_time;                        /* Used for concentration measurement */
   
   struct viz_obj *viz_obj_head;

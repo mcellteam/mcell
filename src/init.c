@@ -297,25 +297,31 @@ int init_sim(void)
   world->oexpr_mem = create_mem(sizeof(struct output_expression),8192);
   if (world->oexpr_mem==NULL)
   {
-    fprintf(world->err_file,"Out of memory while getting ready to store output expressions");
+    fprintf(world->err_file,"Out of memory while getting ready to store output expressions\n");
     return 1;
   }
   world->outp_request_mem = create_mem(sizeof(struct output_request),4096);
   if (world->outp_request_mem==NULL)
   {
-    fprintf(world->err_file,"Out of memory while getting ready to store lists of output commands");
+    fprintf(world->err_file,"Out of memory while getting ready to store lists of output commands\n");
     return 1;
   }
   world->counter_mem = create_mem(sizeof(struct counter),2048);
   if (world->counter_mem==NULL)
   {
-    fprintf(world->err_file,"Out of memory while getting ready to store reaction and molecule counts");
+    fprintf(world->err_file,"Out of memory while getting ready to store reaction and molecule counts\n");
     return 1;
   }
   world->trig_request_mem = create_mem(sizeof(struct trigger_request),1024);
   if (world->trig_request_mem==NULL)
   {
-    fprintf(world->err_file,"Out of memory while getting ready to store output triggers");
+    fprintf(world->err_file,"Out of memory while getting ready to store output triggers\n");
+    return 1;
+  }
+  world->magic_mem = create_mem(sizeof(struct magic_list),1024);
+  if (world->magic_mem==NULL)
+  {
+    fprintf(world->err_file,"Out of memory while getting ready to store reaction-release list.\n");
     return 1;
   }
 
@@ -1106,31 +1112,53 @@ int instance_release_site(struct object *objp, double (*im)[4])
   
   no_printf("Instancing release site object %s\n",objp->sym->name);
   fflush(log_file);
-  reqp = (struct release_event_queue*)malloc(sizeof(struct release_event_queue));
-  if (reqp==NULL)
+  if (rsop->release_prob==MAGIC_PATTERN_PROBABILITY)
   {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while instantiating release site.\n", __FILE__, (long)__LINE__);
-    return 1;
+    struct magic_list *ml;
+    struct rxn_pathname *rxpn;
+    
+    ml = (struct magic_list*)mem_get(world->magic_mem);
+    if (ml==NULL)
+    {
+      fprintf(world->err_file,"Internal error in source file %s on line %d\n  Out of memory while preparing release site.\n",__FILE__,__LINE__);
+      return 1;
+    }
+    
+    ml->data = rsop;
+    ml->type = magic_release;
+    
+    rxpn = (struct rxn_pathname*)rsop->pattern;
+    ml->next=rxpn->magic;
+    rxpn->magic=ml;
   }
-
-  reqp->release_site=rsop;
-  reqp->event_time=rsop->pattern->delay;
-  reqp->train_counter=0;
-  reqp->train_high_time=rsop->pattern->delay;
-  for (i=0;i<4;i++) for (j=0;j<4;j++) reqp->t_matrix[i][j]=im[i][j];
-
-  /* Schedule the release event */
-  if (schedule_add(world->releaser,reqp))
+  else
   {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while scheduling releases.\n", __FILE__, (long)__LINE__);
-    return(1);
+    reqp = (struct release_event_queue*)malloc(sizeof(struct release_event_queue));
+    if (reqp==NULL)
+    {
+      fprintf(world->err_file,"File '%s', Line %ld: Out of memory while instantiating release site.\n", __FILE__, (long)__LINE__);
+      return 1;
+    }
+  
+    reqp->release_site=rsop;
+    reqp->event_time=rsop->pattern->delay;
+    reqp->train_counter=0;
+    reqp->train_high_time=rsop->pattern->delay;
+    for (i=0;i<4;i++) for (j=0;j<4;j++) reqp->t_matrix[i][j]=im[i][j];
+  
+    /* Schedule the release event */
+    if (schedule_add(world->releaser,reqp))
+    {
+      fprintf(world->err_file,"File '%s', Line %ld: Out of memory while scheduling releases.\n", __FILE__, (long)__LINE__);
+      return(1);
+    }
+  
+    if(rsop->pattern->train_duration > rsop->pattern->train_interval)
+    {
+      fprintf(world->err_file,"File '%s', Line %ld: Error - Release pattern train duration is greater than train interval\n", __FILE__, (long)__LINE__);
+      return 1;
+    }
   }
-
-  if(rsop->pattern->train_duration > rsop->pattern->train_interval)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Error - Release pattern train duration is greater than train interval\n", __FILE__, (long)__LINE__);
-    return 1;
-  } 
   
   no_printf("Done instancing release site object %s\n",objp->sym->name);
 

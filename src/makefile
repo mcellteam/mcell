@@ -104,7 +104,7 @@ react_trig.o: makedefs react_trig.c react.h rng.h mcell_structs.h
 react_cond.o: makedefs react_cond.c react.h rng.h mcell_structs.h
 	$(CC) $(CFLAGS) -c react_cond.c
 
-react_outc.o: makedefs react_outc.c react.h rng.h mcell_structs.h
+react_outc.o: makedefs react_outc.c react.h rng.h mcell_structs.h util.h
 	$(CC) $(CFLAGS) -c react_outc.c
 	
 diffuse.o: makedefs diffuse.c diffuse.h mem_util.h sched_util.h rng.h mcell_structs.h count_util.h grid_util.h vol_util.h wall_util.h react.h util.h

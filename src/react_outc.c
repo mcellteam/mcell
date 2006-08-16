@@ -6,8 +6,10 @@
 \**************************************************************************/
 
 #include <string.h>
+#include <math.h>
 
 #include "rng.h"
+#include "util.h"
 #include "grid_util.h"
 #include "mcell_structs.h"
 #include "count_util.h"
@@ -428,11 +430,22 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
     }
   }
   
-  /* No flags for reactions so we have to check regions if we have waypoints! Fix to be more efficient for WORLD-only counts? */
-  if (rx->info[path].pathname!=NULL && world->place_waypoints_flag)
+  /* Handle events triggered off of named reactions */
+  if (rx->info[path].pathname!=NULL)
   {
-    j=count_region_from_scratch(NULL,rx->info[path].pathname,1,&xyz_loc,w,t);
-    if (j) return RX_NO_MEM;
+    /* No flags for reactions so we have to check regions if we have waypoints! Fix to be more efficient for WORLD-only counts? */
+    if (world->place_waypoints_flag)
+    {
+      j=count_region_from_scratch(NULL,rx->info[path].pathname,1,&xyz_loc,w,t);
+      if (j) return RX_NO_MEM;
+    }
+    
+    /* Other magical stuff.  For now, can only trigger releases. */
+    if (rx->info[path].pathname->magic!=NULL)
+    {
+      j=reaction_wizardry(rx->info[path].pathname->magic,w,&xyz_loc,t);
+      if (j) return RX_NO_MEM;
+    }
   }
   
   return bounce;
@@ -808,5 +821,94 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     /* Should really be an error because we should never call outcome_intersect() on a grid molecule */
     return RX_A_OK;
   }
+}
+
+
+/*************************************************************************
+reaction_wizardry:
+  In: a list of releases to magically cause
+      the wall associated with the release, if any
+      the location of the release
+      the time of the release
+  Out: 0 if successful, 1 on failure (usually out of memory).
+       Each release event in the list is triggered at a location that
+       is relative to the location of the release and the surface normal
+       of the wall.  The surface normal of the wall is considered to be
+       the +Z direction.  Other coordinates are rotated in the "natural"
+       way (i.e. the XYZ coordinate system has the Z-axis rotated directly
+       to the direction of the normal and the other coordinates follow
+       along naturally; if the normal is in the -Z direction, the rotation
+       is about the X-axis.)
+  Note: this function isn't all that cheap computationally because of
+        all the math required to compute the right coordinate transform.
+	If this gets really really heavily used, we should store the
+	coordinate transform off of the wall data structure.
+  Note: it would be more efficient to skip calculating the transform if
+        the release type didn't use it (e.g. release by region).
+  Note: if we wanted to be extra-super clever, we could actually schedule
+        this event instead of running it and somehow have it start a
+	time-shifted release pattern (so we could have delays and stuff).
+*************************************************************************/
+
+int reaction_wizardry(struct magic_list *incantation,struct wall *surface,struct vector3 *hitpt,double t)
+{
+  struct release_event_queue req; /* Create a release event on the fly */
+  int i;
+  
+  /* Release event happens "now" */
+  req.next=NULL;
+  req.event_time=t;
+  req.train_counter=0;
+  req.train_high_time=t;
+  
+  /* Set up transform to place products at site of reaction */
+  if (hitpt==NULL)
+  {
+    init_matrix(req.t_matrix);
+  }
+  else if (surface==NULL) /* Just need a translation */
+  {
+    init_matrix(req.t_matrix);
+    req.t_matrix[3][0] = hitpt->x;
+    req.t_matrix[3][1] = hitpt->y;
+    req.t_matrix[3][2] = hitpt->z;
+  }
+  else /* Set up transform that will translate and then rotate Z axis to align with surface normal */
+  {
+    struct vector3 scale = {1.0,1.0,1.0};  /* No scaling */
+    struct vector3 axis = {1.0,0.0,0.0};   /* X-axis is default */
+    double cos_theta;
+    double degrees;
+    
+    cos_theta = surface->normal.z;   /* (0,0,1) . surface->normal */
+    if (!distinguishable(cos_theta,-1.0,EPS_C))
+    {
+      degrees=180.0;  /* Upside-down */
+    }
+    else
+    {
+      /* (0,0,1) x surface->normal */
+      axis.x = -surface->normal.y;
+      axis.y = surface->normal.x;
+      axis.z = 0.0;
+      
+      degrees = acos(cos_theta)*180.0/MY_PI;
+      
+      tform_matrix(&scale,hitpt,&axis,degrees,req.t_matrix);
+    }
+  }
+  
+  /* Now we're ready to cast our spell! */
+  for ( ; incantation!=NULL ; incantation=incantation->next )
+  {
+    if (incantation->type != magic_release) continue;  /* Only know how to magically release stuff */
+    
+    req.release_site = (struct release_site_obj*)incantation->data;
+    
+    i = release_molecules(&req);
+    if (i) return i;
+  }
+  
+  return 0;
 }
 

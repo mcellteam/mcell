@@ -324,6 +324,7 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
       rxpnp->hashval=hash(sym);
       rxpnp->path_num=-1;
       rxpnp->rx=NULL;
+      rxpnp->magic=NULL;
       break;
     case REG:
       if ((vp=(void *)malloc(sizeof(struct region)))==NULL) {

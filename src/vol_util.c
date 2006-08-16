@@ -1029,6 +1029,10 @@ release_molecules:
   In: pointer to a release event
   Out: 0 on success, 1 on failure; next event is scheduled and molecule(s)
        are released into the world as specified.
+  Note: if a release is triggered by a reaction, there isn't anything
+        to schedule.  Also, in that case, rpat isn't really a release
+	pattern (it's a rxn_pathname in disguise) so be sure to not
+	dereference it!
 *************************************************************************/
 int release_molecules(struct release_event_queue *req)
 {
@@ -1076,8 +1080,8 @@ int release_molecules(struct release_event_queue *req)
   
   guess = NULL;
 
-/* This part of the code is added for checkpointing. */
-  if( req->event_time < world->it_time)
+  /* Skip events that happened in the past (delay<0 or after checkpoint) */
+  if( req->event_time < world->it_time && rso->release_prob!=MAGIC_PATTERN_PROBABILITY)
   {
     do
     {
@@ -1344,11 +1348,16 @@ int release_molecules(struct release_event_queue *req)
  
   
   /* Schedule next release event. */
+  if (rso->release_prob==MAGIC_PATTERN_PROBABILITY) return 0;  /* Triggered by reaction, don't schedule */
   if (rso->release_prob < 1.0)
   {
     k = -log( 1.0 - rso->release_prob );
     t = -log( rng_dbl(world->rng) ) / k;  /* Poisson dist. */
     req->event_time += rpat->release_interval * (ceil(t)-1.0); /* Rounded to integers */
+  }
+  else if (rso->release_prob==MAGIC_PATTERN_PROBABILITY)
+  {
+    req->event_time += FOREVER;
   }
   else
   {
