@@ -7009,6 +7009,17 @@ p
 .
  (If omitted, the default is to release without fail.) Either the whole release
  occurs or none of it does; the probability does not apply molecule-by-molecule.
+ 
+\family sans 
+\shape italic 
+p
+\family default 
+\shape default 
+ must be in the interval 
+\begin_inset Formula $[0,1]$
+\end_inset 
+
+.
 \end_inset 
 </cell>
 </row>
@@ -7214,6 +7225,21 @@ name
 Use the named release pattern instead of the default.
  The default is to release the specified number of molecules at the beginning
  of the simulation.
+ If 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+ is the name of a reaction pathway, the release event will happen every
+ time that reaction happens.
+ The location will then be relative to the site of the reaction, and the
+ z-axis will be rotated to align with the surface normal if the reaction
+ was at a surface.
+ This is much slower than creating products within a reaction, so only use
+ it for special cases (e.g.
+ synaptic vesicle release with a random or very large number of neurotransmitter
+ molecules).
 \end_inset 
 </cell>
 </row>
