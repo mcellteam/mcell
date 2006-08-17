@@ -7,9 +7,9 @@
 /* In react_trig.c */
 struct rxn* trigger_unimolecular(int hash,struct abstract_molecule *reac);
 struct rxn* trigger_surface_unimol(struct abstract_molecule *reac,struct wall *w);
-struct rxn* trigger_bimolecular(int hashA,int hashB,
+int trigger_bimolecular(int hashA,int hashB,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,
-  short orientA,short orientB);
+  short orientA,short orientB, struct rxn **matching_rxns);
 struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
   short orientA,struct wall *w);
 

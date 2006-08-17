@@ -352,33 +352,42 @@ void check_probs(struct rxn *rx,double t)
   }
   
   rx->prob_t = tv;
-  
+       
   if (!did_something) return;
   
-  if (rx->n_reactants==1)
-  {
-    printf("Probability %.4e set for %s[%d] -> ",rx->cum_probs[0],
-           rx->players[0]->sym->name,rx->geometries[0]);
 
-    for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
-    {
-      if (rx->players[k]==NULL) printf("NIL ");
-      else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
-    }
-    printf("\n");
-  }
-  else
+  for(j = rx->prob_t->path; j < rx->n_pathways; j++)
   {
-    printf("Probability %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_probs[0],
+
+     if (rx->n_reactants==1)
+     {
+       fprintf(world->log_file, "Probability %.4e set for %s[%d] -> ",rx->cum_probs[j],
+           rx->players[0]->sym->name,rx->geometries[0]);
+     }else if(rx->n_reactants==2){
+       fprintf(world->log_file, "Probability %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_probs[j],
            rx->players[0]->sym->name,rx->geometries[0],
            rx->players[1]->sym->name,rx->geometries[1]);
-    for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
-    {
-      if (rx->players[k]==NULL) printf("NIL ");
-      else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
-    }
-    printf("\n");
-  }
+     }
+     else
+     {
+       fprintf(world->log_file, "Probability %.4e (s) set for %s[%d] + %s[%d] + %s[%d] -> ",rx->cum_probs[0], rx->players[0]->sym->name,rx->geometries[0],
+           rx->players[1]->sym->name,rx->geometries[1],
+           rx->players[2]->sym->name,rx->geometries[2]);
+
+     }
+     
+      for (k = rx->product_idx[j] ; k < rx->product_idx[j+1] ; k++)
+      {
+         if (rx->players[k]==NULL) printf("NIL ");
+         else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+      }
+      printf("\n");
+
+
+  } /* end for */
+
+  return;
+
 }
 
 

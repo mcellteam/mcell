@@ -68,33 +68,33 @@ trigger_bimolecular:
          both zero away from a surface
          both nonzero (+-1) at a surface
        A is the moving molecule and B is the target
-   Out: NULL if there are no bimolecular reactions for these species
-        NULL if the orientations do not match the specified orientations
-        pointer to the reaction if a valid reaction exists
+       array of pointers to the possible reactions
+   Out: number of possible reactions for molecules reacA and reacB
+        Also the first 'number' slots in the 'matching_rxns'
+        array are filled with pointers to the possible reactions objects.
    Note: The target molecule is already scheduled and can be destroyed
          but not rescheduled.  Assume we have or will check separately that
          the moving molecule is not inert!
 *************************************************************************/
-
-struct rxn* trigger_bimolecular(int hashA,int hashB,
+int trigger_bimolecular(int hashA,int hashB,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,
-  short orientA,short orientB)
+  short orientA,short orientB, struct rxn ** matching_rxns )
 {
-  int hash;
-  int test_wall;
+  int hash;  /* index in the reaction hash table */
+  int test_wall;  /* flag */
+  int num_matching_rxns = 0; /* number of matching reactions */
   short geomA,geomB;
   struct rxn *inter;
+               
   
   hash = (hashA ^ hashB) & (world->rx_hashsize-1);
   if (hash==0) hash = hashA & (world->rx_hashsize-1);
-  
   inter = world->reaction_hash[hash];
-  
+ 
   while (inter != NULL)
   {
     if (inter->n_reactants >= 2)  /* Enough reactants? (3=>wall also) */
     {
-    
       /* Check that we have the right players */
       if ( (reacA->properties == inter->players[0] &&
             reacB->properties == inter->players[1]) ||
@@ -104,20 +104,34 @@ struct rxn* trigger_bimolecular(int hashA,int hashB,
         test_wall = 0;
         geomA = inter->geometries[0];
         geomB = inter->geometries[1];
-      
+                    
         /* Check to see if orientation classes are zero/different */
         if ( geomA==0 || geomB==0 || (geomA+geomB)*(geomA-geomB)!=0 )
         {
-          if (inter->n_reactants==2) return inter;
-          else test_wall=1;
+          if (inter->n_reactants==2) 
+          {
+             matching_rxns[num_matching_rxns] = inter;
+             num_matching_rxns++;
+             inter = inter->next;
+             continue;
+          }
+          else {
+              test_wall=1;
+          }
         }
 
         /* Same class, is the orientation correct? */
         else if ( orientA != 0 &&
                   orientA*orientB*geomA*geomB > 0 )
         {
-          if (inter->n_reactants==2) return inter;
-          else test_wall = 1;
+          if (inter->n_reactants==2) {
+             matching_rxns[num_matching_rxns] = inter;
+             num_matching_rxns++;
+             inter = inter->next;
+             continue;
+          }else {
+              test_wall = 1;
+          }
         }
 
         /* See if we need to check a wall (fails if we're in free space) */        
@@ -141,8 +155,13 @@ struct rxn* trigger_bimolecular(int hashA,int hashB,
             {
               geomW = inter->geometries[2];
               
-              if (geomW==0) return inter;
-              
+              if (geomW==0) {
+                 matching_rxns[num_matching_rxns] = inter;
+                 num_matching_rxns++;
+                 inter = inter->next;
+                 continue;
+              }
+ 
               /* We now care whether A and B corespond to [0] and [1] or */
               /* vice versa, so make sure A==[0] and B==[1] so W can */
               /* match with the right one! */
@@ -155,29 +174,49 @@ struct rxn* trigger_bimolecular(int hashA,int hashB,
               
               if (geomA==0 || (geomA+geomW)*(geomA-geomW)!=0)  /* W not in A's class */
               {
-                if (geomB==0 || (geomB+geomW)*(geomB-geomW)!=0) return inter;
-                if (orientB*geomB*geomW > 0) return inter;
+                if (geomB==0 || (geomB+geomW)*(geomB-geomW)!=0) {
+                     matching_rxns[num_matching_rxns] = inter;
+                     num_matching_rxns++;
+                     inter = inter->next;
+                     continue;
+                }
+                if (orientB*geomB*geomW > 0) {
+                     matching_rxns[num_matching_rxns] = inter;
+                     num_matching_rxns++;
+                     inter = inter->next;
+                     continue;
+                }
               }
               else  /* W & A in same class */
               {
-                if (orientA*geomA*geomW > 0) return inter;
+                if (orientA*geomA*geomW > 0) {
+                     matching_rxns[num_matching_rxns] = inter;
+                     num_matching_rxns++;
+                     inter = inter->next;
+                     continue;
+                }
               }
-            }
-          }
-        }
+            } 
+          } /* end if(w != NULL) */
+        }   /* end if(test_wal && orientA != NULL) */
       }
-    }
+    } /* end if(inter->n_reactants >= 2) */
     
     inter=inter->next;
+  } /* end while (inter != NULL) */
+ 
+  if(num_matching_rxns > MAX_MATCHING_RXNS){
+     fprintf(world->log_file, "Number of matching reactions exceeds the \
+           maximum allowed number MAX_MATCHING_RXNS.\n");
   }
-  
-  return inter;
+
+  return num_matching_rxns;
 }
 
 
 
 /*************************************************************************
-trigger_intersection:
+trigger_intersect:
    In: hash value of molecule's species
        pointer to a molecule
        orientation of that molecule

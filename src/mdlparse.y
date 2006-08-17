@@ -5742,6 +5742,7 @@ rxn:
 {
   char *rx_name;
   int num_surfaces;
+  int num_vol_mols;
   int oriented_count;
   
   rx_name = create_rx_name(mdlpvp->pathp);
@@ -5770,11 +5771,15 @@ rxn:
   
   mdlpvp->prod_all_3d=1;
   num_surfaces = 0;
+  num_vol_mols = 0;  
+
   oriented_count = 0;
   if ((mdlpvp->pathp->reactant1->flags&NOT_FREE)!=0)
   {
     if (mdlpvp->pathp->reactant1->flags&IS_SURFACE) num_surfaces++;
     mdlpvp->prod_all_3d=0;
+  }else{
+    num_vol_mols++;
   }
   if (mdlpvp->pathp->orientation1 == ORIENT_NOT_SET) mdlpvp->pathp->orientation1 = 0;
   else oriented_count++;
@@ -5784,6 +5789,8 @@ rxn:
     {
       if (mdlpvp->pathp->reactant2->flags&IS_SURFACE) num_surfaces++;
       mdlpvp->prod_all_3d=0;
+    }else{
+       num_vol_mols++;
     }
     if (mdlpvp->pathp->orientation2 == ORIENT_NOT_SET) mdlpvp->pathp->orientation2 = 0;
     else oriented_count++;      
@@ -5794,6 +5801,8 @@ rxn:
     {
       if (mdlpvp->pathp->reactant3->flags&IS_SURFACE) num_surfaces++;
       mdlpvp->prod_all_3d=0;
+    }else{
+      num_vol_mols++;
     }
     if (mdlpvp->pathp->orientation3 == ORIENT_NOT_SET) mdlpvp->pathp->orientation3 = 0;
     else oriented_count++;      
@@ -5808,6 +5817,10 @@ rxn:
   if (num_surfaces==mdlpvp->rxnp->n_reactants)
   {
     mdlerror("Reactants cannot consist entirely of surfaces.\n  Use a surface release site instead!");
+    return 1;
+  }
+  if((num_vol_mols == 2) && (num_surfaces == 1)){
+    mdlerror("Reaction between two volume molecules and a surface is not defined.\n");
     return 1;
   }
   if (mdlpvp->prod_all_3d)
@@ -5840,8 +5853,15 @@ rxn:
       }      
     }
   }
-  
-  if (mdlpvp->pathp->reactant3!=NULL) /* Copy catalyst to products */
+  if ((mdlpvp->rxnp->n_reactants==3) && (num_surfaces == 0))
+  {
+       mdlerror("Sorry, only reactions with two reactants and one surface are implemented yet.");
+       return 1;
+  }
+ 
+  /* Copy catalyst to products */ 
+           /*
+  if (mdlpvp->pathp->reactant3!=NULL) 
   {
     mdlpvp->prodp = (struct product*)mem_get(mdlpvp->prod_mem);
     if (mdlpvp->prodp==NULL)
@@ -5864,6 +5884,7 @@ rxn:
       mdlpvp->pathp->orientation3 = 0;
     }
   }
+             */
 }
 	list_products rx_rate_syntax new_rxn_pathname
 {
@@ -5918,11 +5939,6 @@ rxn:
     }
   }
   
-  if (mdlpvp->rxnp->n_reactants==3)
-  {
-    mdlerror("Sorry, reactions with two reactants and one surface are not implemented yet.");
-    return 1;
-  }
 };
 
 reactant_list: reactant |
@@ -5947,9 +5963,15 @@ reactant: existing_molecule
     if (mdlpvp->orient_specified) mdlpvp->pathp->orientation2 = mdlpvp->orient_class;
     else mdlpvp->pathp->orientation2 = ORIENT_NOT_SET;    
   }
+  else if (mdlpvp->pathp->reactant3==NULL)
+  {
+    mdlpvp->pathp->reactant3 = (struct species*)( ($<sym>1)->value );
+    if (mdlpvp->orient_specified) mdlpvp->pathp->orientation3 = mdlpvp->orient_class;
+    else mdlpvp->pathp->orientation3 = ORIENT_NOT_SET;    
+  }
   else
   {
-    mdlerror("Too many reactants--maximum number is two (plus one catalytic surface).");
+    mdlerror("Too many reactants--maximum number is three.");
     return 1;
   }
 };
@@ -6057,7 +6079,7 @@ tail_mark: ','
 
 orient_class_number: '{' num_expr '}'
 {
-  printf("!!oc = %d\n",(int)$<dbl>2);
+  /* printf("!!oc = %d\n",(int)$<dbl>2); */
   mdlpvp->orient_class=(short)$<dbl>2;
   mdlpvp->orient_specified=1;
 };

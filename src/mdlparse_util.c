@@ -548,7 +548,7 @@ char *create_rx_name(struct pathway *p)
     }
     i-=2;
   }
-  
+    
   return my_strclump(str_list);
 #undef CRN_LIST_LEN
 }
@@ -601,57 +601,192 @@ Out: Returns 1 if the two pathways are the same (i.e. have equivalent
 *************************************************************************/
 int equivalent_geometry(struct pathway *p1,struct pathway *p2,int n)
 {
-  short o11,o12,o13,o21,o22,o23;
+
+  short o11,o12,o13,o21,o22,o23; /* orientations of individual reactants */
+  /* flags signaling that corresponding reactants are in the same
+     orientation class */
+  short react_1_class, react_2_class, react_3_class;
   
-  if (p1->orientation1 == 0) o11 = 0;
-  else if (p1->orientation1 < 0) o11 = -1;
-  else o11 = 1;
-  if (p2->orientation1 == 0) o21 = 0;
-  else if (p1->orientation1 < 0) o21 = -1;
-  else o21 = 1;
+  if(n < 2){ 
+     /* one reactant case */
+     
+     if (p1->orientation1 == 0) o11 = 0;
+     else if (p1->orientation1 < 0) o11 = -1;
+     else o11 = 1;
+     if (p2->orientation1 == 0) o21 = 0;
+     else if (p2->orientation1 < 0) o21 = -1;
+     else o21 = 1;
+    
+     o12 = o13 = o22 = o23 = 0;
+
+    if((o11 == o21) || (o11 = -o21)) {
+       return 1;
+    }else{
+       return 0;
+    }
+
+  }else if (n < 3){
+    /* two reactants case */
+    
+    if (p1->orientation1 == 0) o11 = 0;
+    else if (p1->orientation1 < -2) o11 = -2;
+    else if (p1->orientation1 < 0) o11 = p1->orientation1;
+    else if (p1->orientation1 > 2) o11 = 2;
+    else  o11 = p1->orientation1;
   
-  if (n<2)
-  {
-    o12 = o13 = o22 = o23 = 0;
-  }
-  else
-  {
+    if (p2->orientation1 == 0) o21 = 0;
+    else if (p2->orientation1 < -2) o21 = -2;
+    else if (p2->orientation1 < 0) o21 = p2->orientation1;
+    else if (p2->orientation1 > 2) o21 = 2;
+    else  o21 = p2->orientation1;
+
     if (p1->orientation2 == p1->orientation1) o12 = o11;
     else if (p1->orientation2 == -p1->orientation1) o12 = -o11;
     else if (p1->orientation2 == 0) o12 = 0;
-    else if (p1->orientation2 < 0) o12 = -2;
-    else o12 = 2;
+    else if (p1->orientation2 < -2) o12 = -2;
+    else if (p1->orientation2 < 0) o12 = p1->orientation2;
+    else if (p1->orientation2 > 2) o12 = 2;
+    else o12 = p1->orientation2;
+
     if (p2->orientation2 == p2->orientation1) o22 = o21;
     else if (p2->orientation2 == -p2->orientation1) o22 = -o21;
     else if (p2->orientation2 == 0) o22 = 0;
-    else if (p2->orientation2 < 0) o22 = -2;
-    else o22 = 2;
-    
-    if (n<3)
-    {
-      o13 = o23 = 0;
-    }
-    else
-    {
-      if (p1->orientation3 == p1->orientation1) o13 = o11;
-      else if (p1->orientation3 == -p1->orientation1) o13 = -o11;
-      else if (p1->orientation3 == p1->orientation2) o13 = o12;
-      else if (p1->orientation3 == -p1->orientation2) o13 = -o12;
-      else if (p1->orientation3 == 0) o13 = 0;
-      else if (p1->orientation3 < 0) o13 = -3;
-      else o13 = 3;
-      if (p2->orientation3 == p2->orientation1) o23 = o21;
-      else if (p1->orientation3 == -p1->orientation1) o23 = -o21;
-      else if (p1->orientation3 == p1->orientation2) o23 = o22;
-      else if (p1->orientation3 == -p1->orientation2) o23 = -o22;
-      else if (p1->orientation3 == 0) o23 = 0;
-      else if (p1->orientation3 < 0) o23 = -3;
-      else o23 = 3;
-    }
-  }
+    else if (p2->orientation2 < -2) o22 = -2;
+    else if (p2->orientation2 < 0) o22 = p2->orientation2;
+    else if (p2->orientation2 > 2) o22 = 2;
+    else o22 = p2->orientation2;
   
-  if (o11==o21 && o12==o22 && o13==o23) return 1;
-  if (o11==-o21 && o12==-o22 && o13==-o23) return 1;
+    o13 = o23 = 0;  
+
+    if((o11 == 0) && (o21 == 0)){
+       /* effectively one reactant case */
+       if((o12 == o22) || (o12 == -o22)) return 1;
+    }else if((o12 == 0) && (o22 == 0)){
+       /* effectively one reactant case */
+       if((o11 == o21) || (o11 = -o21)) return 1;
+    }else if((o11 == o21) && (o12 == o22)) {
+       return 1;
+    }else if((o11 == -o21) && (o12 == -o22)) {
+       return 1;
+    }else if((abs(o12) == 2) && (abs(o22) == 2)){
+   /*if second reactant is in different orientation class than the first one*/
+       if((o11 == o21) || (o11 == -o21)) return 1;
+    }else if((abs(o11) == 2) && (abs(o21) == 2)){
+   /*if first reactant is in different orientation class than the second one*/
+       if((o12 == o22) || (o12 == -o22)) return 1;
+    }else{
+       return 0;
+    }
+  }else if (n < 4){
+     /* three reactants case */
+
+    if (p1->orientation1 == 0) o11 = 0;
+    else if (p1->orientation1 < -3) o11 = -3;
+    else if (p1->orientation1 < 0) o11 = p1->orientation1;
+    else if (p1->orientation1 > 3) o11 = 3;
+    else  o11 = p1->orientation1;
+  
+    if (p2->orientation1 == 0) o21 = 0;
+    else if (p2->orientation1 < -3) o21 = -3;
+    else if (p2->orientation1 < 0) o21 = p2->orientation1;
+    else if (p2->orientation1 > 3) o21 = 3;
+    else  o21 = p2->orientation1;
+
+    if (p1->orientation2 == 0) o12 = 0;
+    else if (p1->orientation2 < -3) o12 = -3;
+    else if (p1->orientation2 < 0) o12 = p1->orientation2;
+    else if (p1->orientation2 > 3) o12 = 3;
+    else o12 = p1->orientation2;
+
+    if (p2->orientation2 == 0) o22 = 0;
+    else if (p2->orientation2 < -3) o22 = -3;
+    else if (p2->orientation2 < 0) o22 = p2->orientation2;
+    else if (p2->orientation2 > 3) o22 = 3;
+    else o22 = p2->orientation2;
+
+    if (p1->orientation3 == 0) o13 = 0;
+    else if (p1->orientation3 < -3) o13 = -3;
+    else if (p1->orientation3 < 0) o13 = p1->orientation3;
+    else if (p1->orientation3 > 3) o13 = 3;
+    else o13 = p1->orientation3;
+
+    if (p2->orientation3 == 0) o23 = 0;
+    else if (p2->orientation3 < -3) o23 = -3;
+    else if (p2->orientation3 < 0) o23 = p2->orientation3;
+    else if (p2->orientation3 > 3) o23 = 3;
+    else o23 = p2->orientation3;
+
+    if(abs(o11) == abs(o21)){
+       react_1_class = abs(o11);
+    }else{
+       react_1_class = SHRT_MIN;
+    }
+  
+    if(abs(o12) == abs(o22)){
+       react_2_class = abs(o12);
+    }else{
+       react_2_class = SHRT_MIN + 1;
+    }
+    if(abs(o13) == abs(o23)){
+      react_3_class = abs(o13);
+    }else{
+       react_3_class = SHRT_MIN + 2;
+    }
+    
+    if((react_2_class == 0) && (react_3_class == 0)){
+       /* effectively one reactant case */
+       if((o11 == o21) || (o11 == -o21)) return 1;
+    }
+    if((react_1_class == 0) && (react_3_class == 0)){
+       /* effectively one reactant case */
+       if((o12 == o22) || (o12 == -o22)) return 1;
+    }
+    if((react_1_class == 0) && (react_2_class == 0)){
+       /* effectively one reactant case */
+       if((o13 == o23) || (o13 == -o23)) return 1;
+    }
+
+    if((react_1_class == react_2_class) &&
+        (react_1_class == react_3_class))
+    {
+       /* all three reactants are in the same class */
+       if((o11 == o21) && (o12 == o22) &&
+             (o13 == o23)) {
+           return 1;
+       }
+       if((o11 == -o21) && (o12 == -o22) &&
+             (o13 == -o23)) {
+           return 1;
+       }
+
+    }
+    else if(react_1_class == react_2_class){
+      /* only two reactants are in the same orientation class */
+      if((o11 == o21) && (o12 == o22)) return 1;
+      if((o11 == -o21) && (o12 == -o22)) return 1;
+
+    }else if(react_1_class == react_3_class){
+      /* only two reactants are in the same orientation class */
+       if((o11 == o21) && (o13 == o23)) return 1;
+       if((o11 == -o21) && (o13 == -o23)) return 1;
+
+    }else if(react_2_class == react_3_class){
+      /* only two reactants are in the same orientation class */
+      if((o12 == o22) && (o13 == o23)) return 1;
+      if((o12 == -o22) && (o13 == -o23)) return 1;
+
+    }else{
+      /* all three reactants are in different orientation classes */
+       if(abs(o11) == abs(o21) &&
+          (abs(o12) == abs(o22)) &&
+          (abs(o13) == abs(o23))){
+             return 1;
+       }
+
+    } /* and else */
+    
+  } /* end if (n < 4) */
+
   return 0;
 }
 
@@ -760,6 +895,575 @@ int load_rate_file(struct rxn *rx , char *fname , int path, struct mdlparse_vars
 #undef RATE_SEPARATORS
 
 
+
+/*************************************************************************
+split_reaction:
+In:  reaction with a number of pathways
+Out: Returns head of the linked list of reactions where each reaction
+     contains only geometrically equivalent pathways
+*************************************************************************/
+struct rxn * split_reaction(struct rxn *rx)
+{
+
+   struct pathway *temp = NULL, *twin_1 = NULL, *twin_2, *twin_3, *twin_4, *twin_5, *twin_6, *twin_7, *twin_8;
+   struct pathway *curr_ptr = NULL, *prev_ptr = NULL, *twin_1_prev = NULL, *twin_2_prev, *twin_3_prev, *twin_4_prev, *twin_5_prev,  *twin_6_prev, *twin_7_prev, *twin_8_prev;
+   struct rxn *temp_rxn = NULL, *curr_rxn_ptr = NULL, *prev_prev_last = NULL, *t_last = NULL, *t_last_prev = NULL, *head = NULL, *reaction = NULL;
+  
+   int found; /* flag */
+   int i;
+   int nodes_count = 0; /* number of the nodes in the reaction linked_list */
+           
+    /* keep reference to the head of the future linked_list */
+    head = rx;
+    reaction = rx;
+
+    while(reaction != NULL)
+    { 
+           found = 0;
+
+       /* move to the last reaction in the linked_list */
+       for(curr_rxn_ptr = head; curr_rxn_ptr != NULL; curr_rxn_ptr = curr_rxn_ptr->next)
+       {
+          nodes_count++;
+          if(curr_rxn_ptr->next == NULL){
+             reaction = curr_rxn_ptr;
+             break;
+          }
+       }
+  
+      /* quick test whether all pathways in the reaction are twins */           
+      if(reaction->n_pathways == 1){
+          return head;
+      }else if(reaction->n_pathways == 2){
+            twin_1 = reaction->pathway_head;
+            twin_2 = reaction->pathway_head->next;
+            if (equivalent_geometry(twin_1, twin_2, reaction->n_reactants)){
+               return head;
+            }
+      }else if(reaction->n_pathways == 3){
+            twin_1 = reaction->pathway_head;
+            twin_2 = reaction->pathway_head->next;
+            twin_3 = reaction->pathway_head->next->next;
+            if (equivalent_geometry(twin_1, twin_2, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_3, reaction->n_reactants))){
+                   return head;
+            }
+      }else if(reaction->n_pathways == 4){
+            twin_1 = reaction->pathway_head;
+            twin_2 = reaction->pathway_head->next;
+            twin_3 = reaction->pathway_head->next->next;
+            twin_4 = reaction->pathway_head->next->next->next;
+            if (equivalent_geometry(twin_1, twin_2, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_3, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_4, reaction->n_reactants)))){
+                   return head;
+            }
+      }else if(reaction->n_pathways == 5){
+            twin_1 = reaction->pathway_head;
+            twin_2 = reaction->pathway_head->next;
+            twin_3 = reaction->pathway_head->next->next;
+            twin_4 = reaction->pathway_head->next->next->next;
+            twin_5 = reaction->pathway_head->next->next->next->next;
+            if (equivalent_geometry(twin_1, twin_2, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_3, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_4, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_5, reaction->n_reactants))))){
+                   return head;
+            }
+      }else if(reaction->n_pathways == 6){
+            twin_1 = reaction->pathway_head;
+            twin_2 = reaction->pathway_head->next;
+            twin_3 = reaction->pathway_head->next->next;
+            twin_4 = reaction->pathway_head->next->next->next;
+            twin_5 = reaction->pathway_head->next->next->next->next;
+            twin_6 = reaction->pathway_head->next->next->next->next->next;
+            if (equivalent_geometry(twin_1, twin_2, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_3, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_4, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_5, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_6, reaction->n_reactants)))))){
+                   return head;
+            }
+
+      }else if(reaction->n_pathways == 7){
+            twin_1 = reaction->pathway_head;
+            twin_2 = reaction->pathway_head->next;
+            twin_3 = reaction->pathway_head->next->next;
+            twin_4 = reaction->pathway_head->next->next->next;
+            twin_5 = reaction->pathway_head->next->next->next->next;
+            twin_6 = reaction->pathway_head->next->next->next->next->next;
+            twin_7 = reaction->pathway_head->next->next->next->next->next->next;
+            if (equivalent_geometry(twin_1, twin_2, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_3, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_4, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_5, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_6, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_7, reaction->n_reactants))))))){
+                   return head;
+            }
+
+      }else if(reaction->n_pathways == 8){
+            twin_1 = reaction->pathway_head;
+            twin_2 = reaction->pathway_head->next;
+            twin_3 = reaction->pathway_head->next->next;
+            twin_4 = reaction->pathway_head->next->next->next;
+            twin_5 = reaction->pathway_head->next->next->next->next;
+            twin_6 = reaction->pathway_head->next->next->next->next->next;
+            twin_7 = reaction->pathway_head->next->next->next->next->next->next;
+            twin_8 = reaction->pathway_head->next->next->next->next->next->next->next;
+            if (equivalent_geometry(twin_1, twin_2, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_3, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_4, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_5, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_6, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_7, reaction->n_reactants) &&
+              (equivalent_geometry(twin_1, twin_8, reaction->n_reactants)))))))){
+                   return head;
+            }
+
+      }
+
+      twin_1 = reaction->pathway_head;
+      twin_1_prev = twin_1;
+      while(!found)
+      {
+
+        if(twin_1 == NULL) break; /* twin not found */
+        twin_2 = NULL;
+        twin_2_prev = NULL;
+        twin_3 = NULL;
+        twin_3_prev = NULL;
+        twin_4 = NULL;
+        twin_4_prev = NULL;
+        twin_5 = NULL;
+        twin_5_prev = NULL;
+        twin_6 = NULL;
+        twin_6_prev = NULL;
+        twin_7 = NULL;
+        twin_8_prev = NULL;
+        twin_8 = NULL;
+        twin_7_prev = NULL;
+
+        for(curr_ptr = twin_1->next, prev_ptr = twin_1; curr_ptr != NULL; prev_ptr = curr_ptr, curr_ptr = curr_ptr->next)
+        {
+            if (equivalent_geometry(twin_1, curr_ptr, reaction->n_reactants)){
+               found = 1;
+               if(twin_2 == NULL){
+                  twin_2 = curr_ptr;
+                  twin_2_prev = prev_ptr;
+               }else if(twin_3 == NULL){
+                  twin_3 = curr_ptr;
+                  twin_3_prev = prev_ptr;
+               }else if(twin_4 == NULL){
+                  twin_4 = curr_ptr;
+                  twin_4_prev = prev_ptr;
+               }else if(twin_5 == NULL){
+                  twin_5 = curr_ptr;
+                  twin_5_prev = prev_ptr;
+               }else if(twin_6 == NULL){
+                  twin_6 = curr_ptr;
+                  twin_6_prev = prev_ptr;
+               }else if(twin_7 == NULL){
+                  twin_7 = curr_ptr;
+                  twin_7_prev = prev_ptr;
+               }else if(twin_8 == NULL){
+                  twin_8 = curr_ptr;
+                  twin_8_prev = prev_ptr;
+               }
+            }  
+        }
+     
+        if(!found) {
+           twin_1_prev = twin_1;
+           twin_1 = twin_1->next;
+        }
+
+      } /* end while(!found) */
+
+      if(!found)
+      {
+         /* split reaction into the linked_list of reactions
+            each holding just one pathway 
+            since all pathways are not equivalent */
+
+        int count_pathways = head->n_pathways;
+
+         for(i = 0; i < count_pathways -1; i++)
+         {
+             /* create new reaction */
+             reaction->next = (struct rxn*)malloc(sizeof(struct rxn));
+             if (reaction->next==NULL) {
+                 fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+                 return NULL;
+             }
+
+             reaction->next->next = NULL;                 
+             reaction->next->sym = rx->sym;
+             reaction->next->n_reactants = rx->n_reactants;
+             reaction->next->n_pathways = 0;
+             reaction->next->product_idx = NULL;
+             reaction->next->cum_probs = NULL;
+             reaction->next->cat_probs = NULL;
+             reaction->next->players = NULL;
+             reaction->next->geometries = NULL;
+             reaction->next->n_occurred = 0;
+             reaction->next->n_skipped = 0;
+             reaction->next->prob_t = NULL;
+             reaction->next->pathway_head = NULL;
+             reaction->next->info = NULL;
+
+             temp = head->pathway_head;
+             head->pathway_head = temp->next;
+             reaction->next->pathway_head = temp;
+             reaction->next->pathway_head->next = NULL;
+             head->n_pathways--;
+             reaction->next->n_pathways++;
+
+             reaction = reaction->next;
+         } /* end for */
+         
+         return head;
+      } /* end if (!found) */
+
+
+      /* if twins found put them into another linked reaction */
+      if(found)
+      {
+          /* create new reaction - link the previous one */
+          reaction->next = (struct rxn*)malloc(sizeof(struct rxn));
+          if (reaction->next==NULL) {
+              fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n",                  __FILE__, (long)__LINE__);
+              return NULL;
+          }
+          reaction->next->next = NULL;                 
+          reaction->next->sym = rx->sym;
+          reaction->next->n_reactants = rx->n_reactants;
+          reaction->next->n_pathways = 0;
+          reaction->next->product_idx = NULL;
+          reaction->next->cum_probs = NULL;
+          reaction->next->cat_probs = NULL;
+          reaction->next->players = NULL;
+          reaction->next->geometries = NULL;
+          reaction->next->n_occurred = 0;
+          reaction->next->n_skipped = 0;
+          reaction->next->prob_t = NULL;
+          reaction->next->pathway_head = NULL;
+          reaction->next->info = NULL;
+
+          nodes_count++;
+
+          /* There can be up to 8 pathways twins in the 3-reactant reaction */
+        
+          /* first remove twin_8 from the original pathways
+             linked list */
+        if(twin_8_prev != NULL){
+          for(curr_ptr = reaction->pathway_head; curr_ptr != NULL; curr_ptr = curr_ptr->next){
+              if (curr_ptr == twin_8_prev)
+              {
+                 if(twin_8->next == NULL)
+                 {
+                    /* it is the last node */
+                    /* move twin to rx->next->pathway_head */
+                   twin_8->next = reaction->next->pathway_head;
+                   reaction->next->pathway_head = twin_8;
+                   /* remove twin */
+                   curr_ptr->next = NULL;
+                   if(twin_7 == twin_8_prev){
+                      /* now twin_7 is the last node */
+                      twin_7->next = NULL;
+                   }
+                 }else{
+                    /* move twin to rx->next->pathway_head */
+                    temp = curr_ptr->next->next;
+                    curr_ptr->next->next = reaction->next->pathway_head;
+                    reaction->next->pathway_head = curr_ptr->next;
+                    /* remove twin */
+                    curr_ptr->next = temp;
+                 }
+                 reaction->next->n_pathways++;
+                 reaction->n_pathways--;
+              } /* end if(curr_ptr == twin_8_prev) */
+          } /* end for */
+        } /* end if (twin_8_prev != NULL) */
+
+          /* now remove twin_7 from the original pathways
+             linked list */
+        if(twin_7_prev != NULL){
+          for(curr_ptr = reaction->pathway_head; curr_ptr != NULL; curr_ptr = curr_ptr->next){
+              if (curr_ptr == twin_7_prev)
+              {
+                 if(twin_7->next == NULL)
+                 {
+                    /* it is the last node */
+                    /* move twin to rx->next->pathway_head */
+                   twin_7->next = reaction->next->pathway_head;
+                   reaction->next->pathway_head = twin_7;
+                   /* remove twin */
+                   curr_ptr->next = NULL;
+                   if(twin_6 == twin_7_prev){
+                      /* now twin_6 is the last node */
+                      twin_6->next = NULL;
+                   }
+                 }else{
+                    /* move twin to rx->next->pathway_head */
+                    temp = curr_ptr->next->next;
+                    curr_ptr->next->next = reaction->next->pathway_head;
+                    reaction->next->pathway_head = curr_ptr->next;
+                    /* remove twin */
+                    curr_ptr->next = temp;
+                 }
+                 reaction->next->n_pathways++;
+                 reaction->n_pathways--;
+              } /* end if(curr_ptr == twin_7_prev) */
+          } /* end for */
+        } /* end if (twin_7_prev != NULL) */
+
+          /* now remove twin_6 from the original pathways
+             linked list */
+        if(twin_6_prev != NULL){
+          for(curr_ptr = reaction->pathway_head; curr_ptr != NULL; curr_ptr = curr_ptr->next){
+              if (curr_ptr == twin_6_prev)
+              {
+                 if(twin_6->next == NULL)
+                 {
+                    /* it is the last node */
+                    /* move twin to rx->next->pathway_head */
+                   twin_6->next = reaction->next->pathway_head;
+                   reaction->next->pathway_head = twin_6;
+                   /* remove twin */
+                   curr_ptr->next = NULL;
+                   if(twin_5 == twin_6_prev){
+                      /* now twin_5 is the last node */
+                      twin_5->next = NULL;
+                   }
+                 }else{
+                    /* move twin to rx->next->pathway_head */
+                    temp = curr_ptr->next->next;
+                    curr_ptr->next->next = reaction->next->pathway_head;
+                    reaction->next->pathway_head = curr_ptr->next;
+                    /* remove twin */
+                    curr_ptr->next = temp;
+                 }
+                 reaction->next->n_pathways++;
+                 reaction->n_pathways--;
+              } /* end if(curr_ptr == twin_6_prev) */
+          } /* end for */
+        } /* end if (twin_6_prev != NULL) */
+
+          /* now remove twin_5 from the original pathways
+             linked list */
+        if(twin_5_prev != NULL){
+          for(curr_ptr = reaction->pathway_head; curr_ptr != NULL; curr_ptr = curr_ptr->next){
+              if (curr_ptr == twin_5_prev)
+              {
+                 if(twin_5->next == NULL)
+                 {
+                    /* it is the last node */
+                    /* move twin to rx->next->pathway_head */
+                   twin_5->next = reaction->next->pathway_head;
+                   reaction->next->pathway_head = twin_5;
+                   /* remove twin */
+                   curr_ptr->next = NULL;
+                   if(twin_4 == twin_5_prev){
+                      /* now twin_4 is the last node */
+                      twin_4->next = NULL;
+                   }
+                 }else{
+                    /* move twin to rx->next->pathway_head */
+                    temp = curr_ptr->next->next;
+                    curr_ptr->next->next = reaction->next->pathway_head;
+                    reaction->next->pathway_head = curr_ptr->next;
+                    /* remove twin */
+                    curr_ptr->next = temp;
+                 }
+                 reaction->next->n_pathways++;
+                 reaction->n_pathways--;
+              } /* end if(curr_ptr == twin_5_prev) */
+          } /* end for */
+        } /* end if (twin_5_prev != NULL) */
+
+          /* now remove twin_4 from the original pathways
+             linked list */
+        if(twin_4_prev != NULL){
+          for(curr_ptr = reaction->pathway_head; curr_ptr != NULL; curr_ptr = curr_ptr->next){
+              if (curr_ptr == twin_4_prev)
+              {
+                 if(twin_4->next == NULL)
+                 {
+                    /* it is the last node */
+                    /* move twin to rx->next->pathway_head */
+                   twin_4->next = reaction->next->pathway_head;
+                   reaction->next->pathway_head = twin_4;
+                   /* remove twin */
+                   curr_ptr->next = NULL;
+                   if(twin_3 == twin_4_prev){
+                      /* now twin_3 is the last node */
+                      twin_3->next = NULL;
+                   }
+                 }else{
+                    /* move twin to rx->next->pathway_head */
+                    temp = curr_ptr->next->next;
+                    curr_ptr->next->next = reaction->next->pathway_head;
+                    reaction->next->pathway_head = curr_ptr->next;
+                    /* remove twin */
+                    curr_ptr->next = temp;
+                 }
+                 reaction->next->n_pathways++;
+                 reaction->n_pathways--;
+              } /* end if(curr_ptr == twin_4_prev) */
+          } /* end for */
+        } /* end if (twin_4_prev != NULL) */
+
+          /* now remove twin_3 from the original pathways
+             linked list */
+        if(twin_3_prev != NULL){
+          for(curr_ptr = reaction->pathway_head; curr_ptr != NULL; curr_ptr = curr_ptr->next){
+              if (curr_ptr == twin_3_prev)
+              {
+                 if(twin_3->next == NULL)
+                 {
+                    /* it is the last node */
+                    /* move twin to rx->next->pathway_head */
+                   twin_3->next = reaction->next->pathway_head;
+                   reaction->next->pathway_head = twin_3;
+                   /* remove twin */
+                   curr_ptr->next = NULL;
+                   if(twin_2 == twin_3_prev){
+                      /* now twin_2 is the last node */
+                      twin_2->next = NULL;
+                   }
+                 }else{
+                    /* move twin to rx->next->pathway_head */
+                    temp = curr_ptr->next->next;
+                    curr_ptr->next->next = reaction->next->pathway_head;
+                    reaction->next->pathway_head = curr_ptr->next;
+                    /* remove twin */
+                    curr_ptr->next = temp;
+                 }
+                 reaction->next->n_pathways++;
+                 reaction->n_pathways--;
+              } /* end if(curr_ptr == twin_3_prev) */
+          } /* end for */
+        } /* end if (twin_3_prev != NULL) */
+
+          /* now remove twin_2 from the original pathways
+             linked list */
+        if(twin_2_prev != NULL){
+          for(curr_ptr = reaction->pathway_head; curr_ptr != NULL; curr_ptr = curr_ptr->next){
+              if (curr_ptr == twin_2_prev)
+              {
+                 if(twin_2->next == NULL)
+                 {
+                    /* it is the last node */
+                    /* move twin to rx->next->pathway_head */
+                   twin_2->next = reaction->next->pathway_head;
+                   reaction->next->pathway_head = twin_2;
+                   /* remove twin */
+                   curr_ptr->next = NULL;
+                   if(twin_1 == twin_2_prev){
+                      /* now twin_1 is the last node */
+                      twin_1->next = NULL;
+                   }
+                 }else{
+                    /* move twin to rx->next->pathway_head */
+                    temp = curr_ptr->next->next;
+                    curr_ptr->next->next = reaction->next->pathway_head;
+                    reaction->next->pathway_head = curr_ptr->next;
+                    /* remove twin */
+                    curr_ptr->next = temp;
+                 }
+                 reaction->next->n_pathways++;
+                 reaction->n_pathways--;
+              } /* end if(curr_ptr == twin_2_prev) */
+          } /* end for */
+        } /* end if (twin_2_prev != NULL) */
+
+          /* now remove twin_1 from the original pathways
+             linked list */
+        if(twin_1_prev != NULL){
+          for(curr_ptr = reaction->pathway_head; curr_ptr != NULL; curr_ptr = curr_ptr->next){
+              if (curr_ptr == twin_1_prev)
+              {
+                 if(twin_1->next == NULL)
+                 {
+                    /* it is the last node */
+                    /* move twin to rx->next->pathway_head */
+                   twin_1->next = reaction->next->pathway_head;
+                   reaction->next->pathway_head = twin_1;
+                   /* remove twin */
+                   curr_ptr->next = NULL;
+                 }else if(twin_1_prev == twin_1){
+                    /* This is the first node */
+                    temp = curr_ptr->next;
+                    curr_ptr->next = reaction->next->pathway_head;
+                    reaction->next->pathway_head = curr_ptr;
+                    /* remove twin */
+                    reaction->pathway_head = temp;
+                 }else{
+                    /* move twin to rx->next->pathway_head */
+                    temp = curr_ptr->next->next;
+                    curr_ptr->next->next = reaction->next->pathway_head;
+                    reaction->next->pathway_head = curr_ptr->next;
+                    /* remove twin */
+                    curr_ptr->next = temp;
+                 }
+                 reaction->next->n_pathways++;
+                 reaction->n_pathways--;
+              } /* end if(curr_ptr == twin_1_prev) */
+          } /* end for */
+        } /* end if (twin_1_prev != NULL) */
+
+
+       /* switch the places of the last and previous-to-last reaction nodes */
+             if(nodes_count == 2){
+                 /* switch the two nodes */
+                 temp_rxn = reaction;
+                 reaction = reaction->next;
+                 reaction->next = temp_rxn;
+                 head = reaction;
+                 head->next->next = NULL;
+                 reaction = head;
+             }else if(nodes_count > 2){ 
+               /* find previous_to_previous_to_last node */
+               for(curr_rxn_ptr = head; curr_rxn_ptr != NULL; curr_rxn_ptr = curr_rxn_ptr->next)
+               {
+                  if(curr_rxn_ptr->next->next->next == NULL){
+                       prev_prev_last = curr_rxn_ptr;
+                       break;
+                  }
+               }
+ 
+               for(curr_rxn_ptr = head; curr_rxn_ptr != NULL; curr_rxn_ptr = curr_rxn_ptr->next)
+               {
+                  if(curr_rxn_ptr == prev_prev_last){
+                      t_last = curr_rxn_ptr->next->next;
+                      t_last_prev = curr_rxn_ptr->next;
+                      curr_rxn_ptr->next = t_last;
+                      t_last->next = t_last_prev;
+                      curr_rxn_ptr->next->next->next = NULL;
+                      reaction = curr_rxn_ptr->next;
+                      break;
+                  }
+                }
+
+             } /* end else */
+
+            /* if all pathways in the present reaction are twins */
+            if(reaction->next->n_pathways == 0){
+                free (reaction->next);
+                reaction->next = NULL;
+            }
+
+
+      } /* end if(found) */
+      reaction = reaction->next;
+
+    } /* end while(reaction != NULL) */       
+
+   return head;
+
+}
+
 /*************************************************************************
 prepare_reactions:
 In: Global parse structure with all user-defined reactions collected
@@ -784,7 +1488,7 @@ PostPostNote: Before prepare_reactions is called, pathway_head is a
 int prepare_reactions(struct mdlparse_vars *mpvp)
 {
   struct sym_table *sym;
-  struct pathway *path,*last_path;
+  struct pathway *path;
   struct product *prod,*prod2;
   struct rxn *rx;
   struct rxn **rx_tbl;
@@ -792,14 +1496,16 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   double pb_factor,D_tot,rate,t_step;
   short geom;
   int i,j,k,kk,k2;
+  /* flags that tell whether reactant_1 is also on the product list,
+     same for reactant_2 and reactant_3 */
   int recycled1,recycled2,recycled3;
   int num_rx,num_players;
-  int true_paths;
   int rx_hash;
   struct species *temp_sp;
-  int n_prob_t_rxns;
+  int n_prob_t_rxns; /* # of pathways with time-varying rates */
   int is_gigantic;
   FILE *warn_file;
+  struct rxn *reaction;
   
   num_rx = 0;
   
@@ -809,8 +1515,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
   {
     fprintf(mpvp->vol->log_file,"\nReaction probabilities generated for the following reactions:\n");
-  }
-  
+  } 
+ 
   if (mpvp->vol->rx_radius_3d <= 0.0)
   {
     mpvp->vol->rx_radius_3d = 1.0/sqrt( MY_PI*mpvp->vol->grid_density );
@@ -823,22 +1529,17 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     for ( sym = mpvp->vol->main_sym_table[i] ; sym!=NULL ; sym = sym->next )
     {
       if (sym->sym_type != RX) continue;
-      rx = (struct rxn*)sym->value;
-      
-      
-      rx->next = NULL;
-      
-      while (rx != NULL)
-      {
-        num_rx++;
-      
-        /* First we find how many reactions have the same geometry as the current one */
-        /* Also, shove any surfaces to the end of the reactants list. */
-        true_paths=0;
-        for (path=rx->pathway_head ; path != NULL ; path = path->next)
+         
+      reaction = (struct rxn*)sym->value;
+      reaction->next = NULL; 
+ 
+             /* if one of the reactants is a surface,
+                move it to the last reactant. 
+                Also arrange reactant1 and reactant2
+               in alphabetical order */
+        for (path=reaction->pathway_head ; path != NULL ; path = path->next)
         {
-          if (equivalent_geometry(rx->pathway_head,path,rx->n_reactants)) true_paths++;
-          if (rx->n_reactants>1)
+          if (reaction->n_reactants>1)
           {
             if ((path->reactant1->flags & IS_SURFACE) != 0)
             {
@@ -849,7 +1550,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               path->orientation1 = path->orientation2;
               path->orientation2 = geom;
             }
-            if (rx->n_reactants>2)
+            if (reaction->n_reactants>2)
             {
               if ((path->reactant2->flags & IS_SURFACE) != 0)
               {
@@ -861,47 +1562,32 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 path->orientation2 = geom;
               }
             }
-          }
-        }
-        
-        /* If they're not all our geometry, stuff the non-matching ones into rx->next */      
-        if (true_paths < rx->n_pathways)
-        {
-          rx->next = (struct rxn*)malloc(sizeof(struct rxn));
-          if (rx->next==NULL) {
-              fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n",                  __FILE__, (long)__LINE__);
-              return 1;
-          }
-          
-          rx->next->sym = rx->sym;
-          rx->next->n_reactants = rx->n_reactants;
-
-          rx->next->n_pathways = rx->n_pathways - true_paths;
-          rx->n_pathways = true_paths;
-          
-          rx->next->product_idx = NULL;
-          rx->next->cum_probs = NULL;
-          rx->next->cat_probs = NULL;
-          rx->next->players = NULL;
-          rx->next->geometries = NULL;
-
-          rx->next->prob_t = NULL;
-          
-          rx->next->pathway_head = NULL;
-	  rx->next->info = NULL;
-          
-          last_path = rx->pathway_head;
-          for (path=rx->pathway_head->next ; path != NULL ; last_path = path , path = path->next)
-          {
-            if (!equivalent_geometry(rx->pathway_head,path,rx->n_reactants))
-            {
-              last_path->next = path->next;
-              path->next = rx->next->pathway_head;
-              rx->next->pathway_head = path;
-              path = last_path;
+            if(strcmp(path->reactant1->sym->name, path->reactant2->sym->name) > 0){
+                temp_sp = path->reactant1;
+                path->reactant1 = path->reactant2;
+                path->reactant2 = temp_sp;
+                geom = path->orientation1;
+                path->orientation1 = path->orientation2;
+                path->orientation2 = geom;
+                
             }
-          }
-        }
+
+          } /* end if(n_reactants > 1) */
+        }  /* end for(path = reaction->pathway_head; ...) */
+           
+        
+        /* if reaction contains equivalent pathways split
+           this reaction into a linked list of reactions
+           each containing only equivalent pathways. */
+         
+        rx = split_reaction(reaction); 
+        /* set the symbol value to the head of the linked list of reactions */
+        sym->value = (void *)rx; 
+
+      while (rx != NULL)
+      {
+        num_rx++;
+
         /* At this point we have reactions of the same geometry and can collapse them */
 
 	/* Search for reactants that appear as products--they aren't listed twice. */
@@ -915,8 +1601,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
                 return 1;
         }
-        
-        
+ 
         n_prob_t_rxns = 0;
         for (j=0 , path=rx->pathway_head ; path!=NULL ; j++ , path = path->next)
         {
@@ -969,7 +1654,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             {
               rx->cat_probs[j] = path->kcat;
             }
-          }
+          } /* end if(path->kcat >= 0) */ 
           else
           {
 	    if (path->kcat==KCAT_RATE_TRANSPARENT) rx->n_pathways = RX_TRANSP;
@@ -978,11 +1663,11 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             {
               fprintf(mpvp->vol->err_file,"Warning: mixing surface modes with other surface reactions.  Please don't.\n");
             }
-          }
+          } /* end if-else(path->kcat >= 0) */
 
           if (path->km_filename == NULL) rx->cum_probs[j] = path->km;
           else n_prob_t_rxns++;
-          
+   
           recycled1 = 0;
           recycled2 = 0;
           recycled3 = 0;
@@ -994,7 +1679,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             else if (recycled3 == 0 && prod->prod == path->reactant3) recycled3 = 1;
             else rx->product_idx[j]++;
           }
-        }
+
+
+        } /* end for(j=0,path=rx->pathway_head; ...) */
+
 
 	/* Now that we know how many products there really are, set the index array */
 	/* and malloc space for the products and geometries. */
@@ -1010,7 +1698,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           num_players += k;
         }
         rx->product_idx[j] = num_players;
-        
+  
         rx->players = (struct species**)malloc(sizeof(struct species*)*num_players);
         rx->geometries = (short*)malloc(sizeof(short)*num_players);
         
@@ -1018,6 +1706,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
                return 1;
         }
+
 
 	/* Load all the time-varying rates from disk (if any), merge them into */
 	/* a single sorted list, and pull off any updates for time zero. */
@@ -1043,7 +1732,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             rx->cum_probs[ rx->prob_t->path ] = rx->prob_t->value;
             rx->prob_t = rx->prob_t->next;
           }
-        }
+        } /* end if(n_prob_t_rxns > 0) */
         
 
 	/* Set the geometry of the reactants.  These are used for triggering. */
@@ -1166,8 +1855,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           if (recycled1==0) rx->players[k] = NULL;
           if (recycled2==0 && rx->n_reactants>1) rx->players[k+1] = NULL;
           if (recycled3==0 && rx->n_reactants>2) rx->players[k+2] = NULL;
-        }
-        
+        } /* end for(j = 0, ...) */
+
 
 	/* Whew, done with the geometry.  We now just have to compute appropriate */
 	/* reaction rates based on the type of reaction. */
@@ -1206,13 +1895,15 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               return 1;
             }
           }
-        }
+        } /* end if(rx->reactants == 1) */
         else if (((rx->players[0]->flags & (IS_SURFACE | ON_GRID)) != 0 ||
                   (rx->players[1]->flags & (IS_SURFACE | ON_GRID)) != 0) &&
-                 rx->n_reactants == 2)
+                ((rx->n_reactants == 2) || (rx->n_reactants == 3)))
         {
 	  if ((rx->players[0]->flags&ON_GRID)!=0 && (rx->players[1]->flags&ON_GRID)!=0)
 	  {
+
+          /* this is a reaction between two surface molecules */
 	    if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
 	    {
 	      fprintf(mpvp->vol->err_file,"Error: Reaction between %s and %s listed, but both marked TARGET_ONLY\n",
@@ -1225,14 +1916,18 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	    }
 	    else pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/6;
 	  }
-	  else if ( ((rx->players[0]->flags&IS_SURFACE)!=0 && (rx->players[1]->flags&ON_GRID)!=0) ||
+	  else if ((((rx->players[0]->flags&IS_SURFACE)!=0 && (rx->players[1]->flags&ON_GRID)!=0) ||
 	            ((rx->players[1]->flags&IS_SURFACE)!=0 && (rx->players[0]->flags&ON_GRID)!=0) )
+                 && (rx->n_reactants == 2))
 	  {
 	    /* This is actually a unimolecular reaction in disguise! */
-	    pb_factor = mpvp->vol->time_unit;
+	       pb_factor = mpvp->vol->time_unit;
 	  }
 	  else
 	  {
+
+             /* this is a reaction between "vol_mol" and "surf_mol" 
+                or reaction between "vol_mol" and SURFACE */
 	    if ((rx->players[0]->flags & NOT_FREE)==0)
 	    {
 	      D_tot = rx->players[0]->D_ref;
@@ -1258,12 +1953,12 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	    {
 	      pb_factor *= 2.0;
 	    }
-	  }
+	  } /* end else */
 
 	  /* Watch out for automatic surface reactions; input rate will be GIGANTIC */
 	  if (rx->cum_probs[0]==GIGANTIC) is_gigantic=1;
 	  else is_gigantic=0;
-	  
+ 
           rx->cum_probs[0] = pb_factor * rx->cum_probs[0];
 
           if ( (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_notify
@@ -1283,10 +1978,19 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               else fprintf(warn_file,"\t");
             }
             else fprintf(warn_file,"\t");
-              
-            fprintf(warn_file,"Probability %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_probs[0],
+            
+            if(rx->n_reactants > 2) {
+               fprintf(warn_file,"Probability %.4e (s) set for %s[%d] + %s[%d] + %s[%d] -> ",rx->cum_probs[0],
+                   rx->players[0]->sym->name,rx->geometries[0],
+                   rx->players[1]->sym->name,rx->geometries[1],
+                   rx->players[2]->sym->name,rx->geometries[2]);
+            }else{
+               fprintf(warn_file,"Probability %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_probs[0],
                    rx->players[0]->sym->name,rx->geometries[0],
                    rx->players[1]->sym->name,rx->geometries[1]);
+            }
+
+
             if (rx->n_pathways <= RX_SPECIAL)
             {
               if (rx->n_pathways == RX_TRANSP) fprintf(warn_file,"(TRANSPARENT)");
@@ -1311,6 +2015,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         }
         else
         {
+            /* This is the reaction between two "vol_mols" */
+                    
 	  double eff_vel_a = rx->players[0]->space_step/rx->players[0]->time_step;
 	  double eff_vel_b = rx->players[1]->space_step/rx->players[1]->time_step;
 	  double eff_vel;
@@ -1394,9 +2100,16 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               
             fprintf(warn_file,"Probability %.3e set for ",rate);
             if (rx->n_reactants==1) fprintf(warn_file,"%s[%d] -> ",rx->players[0]->sym->name,rx->geometries[0]);
-            else fprintf(warn_file,"%s[%d] + %s[%d] -> ",
+            else if(rx->n_reactants == 2){ 
+                fprintf(warn_file,"%s[%d] + %s[%d] -> ",
                         rx->players[0]->sym->name,rx->geometries[0],
                         rx->players[1]->sym->name,rx->geometries[1]);
+            }else{
+                fprintf(warn_file,"%s[%d] + %s[%d]  + %s[%d] -> ",
+                        rx->players[0]->sym->name,rx->geometries[0],
+                        rx->players[1]->sym->name,rx->geometries[1],
+                        rx->players[2]->sym->name,rx->geometries[2]);
+            }
             for (k = rx->product_idx[j] ; k < rx->product_idx[j+1] ; k++)
             {
               if (rx->players[k]==NULL) fprintf(warn_file,"NIL ");
@@ -1467,10 +2180,13 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       }
     }
   }
-  
+ 
+ 
   /* And, finally, we just have to move all the reactions from the */
   /* symbol table into the reaction hash table (of appropriate size). */
+
   for (rx_hash=2 ; rx_hash<=num_rx ; rx_hash <<= 1) {}
+
   if (rx_hash > MAX_RX_HASH) rx_hash = MAX_RX_HASH;
   
   mpvp->vol->rx_hashsize = rx_hash;
@@ -1493,20 +2209,20 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       if (sym->sym_type != RX) continue;
       
       rx = (struct rxn*)sym->value;
-      
-      if (rx->n_reactants==1) j = rx->players[0]->hashval & rx_hash;
-      else
+      if (rx->n_reactants==1) {
+        j = rx->players[0]->hashval & rx_hash;
+      }else /* if(rx->n_reactants >= 2) */
       {
         j = (rx->players[0]->hashval ^ rx->players[1]->hashval) & rx_hash;
         if (j==0)  j = rx->players[0]->hashval & rx_hash;
+                    
       }
-      
       while (rx->next != NULL) rx = rx->next;
       rx->next = rx_tbl[j];
       rx_tbl[j] = (struct rxn*)sym->value;
     }
   }
-  
+
   mpvp->vol->rx_radius_3d /= mpvp->vol->length_unit; /* Convert into length units */
   
   for (i=0;i<=rx_hash;i++)
@@ -1556,10 +2272,29 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	          (rx->players[0]->flags & IS_SURFACE) != 0 )
 	{
 	  rx->players[1]->flags |= CAN_GRIDWALL;
-	}
-      }
-    }
-  }
+	} /* end if-else */
+      }else if(rx->n_reactants == 3){
+        if ( (rx->players[0]->flags & NOT_FREE)==0 &&
+                  (rx->players[1]->flags & (ON_GRID))!= 0 )
+        {
+          rx->players[0]->flags |= CAN_MOLGRID;
+        }
+        else if ( (rx->players[1]->flags & NOT_FREE)==0 &&
+                  (rx->players[0]->flags & (ON_GRID))!= 0 )
+        {
+          rx->players[1]->flags |= CAN_MOLGRID;
+        }
+	else if ( (rx->players[0]->flags & ON_GRID) != 0 &&
+	          (rx->players[1]->flags & ON_GRID) != 0 )
+	{
+	  rx->players[0]->flags |= CAN_GRIDGRID;
+	  rx->players[1]->flags |= CAN_GRIDGRID;
+	} /* end if-else */
+
+      } /* end if-else */
+    } /* end for */
+  }  /* end for */
+
   if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
   {
     fprintf(mpvp->vol->log_file,"\n");

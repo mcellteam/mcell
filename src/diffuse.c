@@ -1882,7 +1882,7 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
   struct molecule *mp;
   /* neighbors of the current subvolume */
   struct subvolume *new_sv;
-  struct rxn *rx;
+ /* struct rxn *rx; */
   /* lower left and upper_right corners of the molecule path
      bounding box expanded by R. */
   struct vector3 path_llf, path_urb;
@@ -1894,7 +1894,15 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
   int i;
   double d, d1, d2;  /* distance */
   double R, R2;  /* molecule interaction radius */
-  
+   /* array of pointers to the possible reactions */
+  struct rxn *matching_rxns[MAX_MATCHING_RXNS]; 
+  int num_matching_rxns = 0;
+
+
+  for(i = 0; i < MAX_MATCHING_RXNS; i++)
+  {
+     matching_rxns[i] = NULL;
+  }
  
   R = (world->rx_radius_3d); 
   R2 = R*R;
@@ -1921,13 +1929,15 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if(d > R) continue; 
                      
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0, matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                  for(i = 0; i < num_matching_rxns; i++)
+                  {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -1937,16 +1947,24 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
-      		}
-    	     }
+                   } /* end for */
+      		} /* end if(num_matching_rxns > 0) */
+    	     } /* end for */
 
 
-          }
+          } /* if(test_bounding_boxes ... ) */
+     } /* end if (new_sv != NULL) */
+
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
      }
+
      new_sv = (struct subvolume *)(sv->neighbor[X_NEG]);
      if(new_sv != NULL)
      {
@@ -1966,13 +1984,15 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if(d > R) continue; 
                   
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0, matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -1982,16 +2002,24 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}								
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
 
           }
      }
+     
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+     
      new_sv = (struct subvolume *)(sv->neighbor[Z_POS]);
      if(new_sv != NULL)
      {
@@ -2011,13 +2039,15 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if(d > R) continue; 
                   
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0, matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2027,10 +2057,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
@@ -2038,6 +2069,12 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
        }
      }
 
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+     
      new_sv = (struct subvolume *)(sv->neighbor[Z_NEG]);
      if(new_sv != NULL)
      {
@@ -2057,13 +2094,15 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if(d > R) continue; 
                   
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0, matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2073,15 +2112,22 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
 
        }
+     }
+
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
      }
 
      new_sv = (struct subvolume *)(sv->neighbor[Y_POS]);
@@ -2103,13 +2149,15 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if(d > R) continue; 
                   
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0, matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2119,15 +2167,22 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
 
           }
+     }
+
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
      }
 
      new_sv = (struct subvolume *)(sv->neighbor[Y_NEG]);
@@ -2149,13 +2204,15 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if(d > R) continue; 
                   
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0, matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2165,15 +2222,22 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
 
           }
+     }
+     
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
      }
 
    /* let's reach subvolumes located "edge-to-edge" from the top face
@@ -2201,13 +2265,15 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if((d1 > R) && (d2 > R)) continue; 
                   
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0, matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2217,10 +2283,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
@@ -2228,6 +2295,14 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
           }
    
    	}
+
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
+
    /* go (+Y and +Z) */
       neighbor_index = sv->index  + (world->nz_parts-1) + 1;
       if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
@@ -2251,13 +2326,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if((d1 > R) && (d2 > R)) continue;
   
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                         matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2267,10 +2345,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                    }
       		}
     	     }
 
@@ -2278,6 +2357,13 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
           }
       } 
    
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
+
    /* go (+X and +Z) */
       neighbor_index = sv->index  + (world->nz_parts-1)*(world->ny_parts-1) + 1;
       if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
@@ -2301,13 +2387,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if((d1 > R) && (d2 > R)) continue; 
                   
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                         matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2317,10 +2406,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
@@ -2328,6 +2418,13 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
           }
    
       }
+     
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
    /* go (-Y and +Z) */
       neighbor_index = sv->index  - (world->nz_parts-1) + 1;
       if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
@@ -2350,13 +2447,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if((d1 > R) && (d2 > R)) continue;
                 
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                         matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2366,10 +2466,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
@@ -2377,6 +2478,13 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
           }
    
       }
+     
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
    /* let's reach subvolumes located "edge-to-edge" from the bottom face
       of the current subvolume. */
    /* go (-X and -Z) */
@@ -2401,13 +2509,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if((d1 > R) && (d2 > R)) continue; 
                   
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                         matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2417,10 +2528,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
@@ -2428,6 +2540,14 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
           }
    
       }
+     
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
+
    /* go (+Y and -Z) */
       neighbor_index = sv->index  + (world->nz_parts-1) - 1;
       if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
@@ -2450,13 +2570,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if((d1 > R) && (d2 > R)) continue; 
                 
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                         matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2466,10 +2589,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                    }
       		}
     	     }
 
@@ -2477,6 +2601,13 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
           }
    
       }
+      
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
    /* go (+X and -Z) */
       neighbor_index = sv->index  + (world->nz_parts-1)*(world->ny_parts-1) - 1;
       if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
@@ -2499,13 +2630,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if((d1 > R) && (d2 > R)) continue; 
                   
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                        matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2515,10 +2649,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                    }
       		}
     	     }
 
@@ -2526,6 +2661,13 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
           }
    
       }
+     
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
    /* go (-Y and -Z) */
       neighbor_index = sv->index  - (world->nz_parts-1) - 1;
       if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
@@ -2548,13 +2690,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if((d1 > R) && (d2 > R)) continue;
                   
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                        matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2564,10 +2709,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
@@ -2575,6 +2721,13 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
           }
    
       }
+     
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
    /* let's reach subvolumes located "edge-to-edge" from the vertical edges
       of the current subvolume. */
    /* go (-Y and -X) */
@@ -2599,13 +2752,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if((d1 > R) && (d2 > R)) continue; 
                   
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                         matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2615,10 +2771,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
@@ -2626,6 +2783,13 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
           }
    
       }
+     
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
    /* go (+Y and -X) */
       neighbor_index = sv->index  + (world->nz_parts-1) - (world->nz_parts-1)*(world->ny_parts-1);
       if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
@@ -2648,13 +2812,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if((d1 > R) && (d2 > R)) continue; 
                   
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                         matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2664,10 +2831,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
@@ -2675,6 +2843,13 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
           }
    
       }
+      
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
    /* go (+Y and +X) */
       neighbor_index = sv->index  + (world->nz_parts-1) + (world->nz_parts-1)*(world->ny_parts-1);
       if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
@@ -2697,13 +2872,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if((d1 > R) && (d2 > R)) continue; 
                   
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                         matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2713,10 +2891,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
@@ -2724,6 +2903,13 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
           }
    
       }
+     
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
    /* go (-Y and +X) */
       neighbor_index = sv->index  - (world->nz_parts-1) + (world->nz_parts-1)*(world->ny_parts-1);
       if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
@@ -2746,13 +2932,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if((d1 > R) && (d2 > R)) continue; 
                   
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                         matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2762,10 +2951,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
@@ -2773,6 +2963,13 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
           }
    
       }
+     
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
 
    /* let's reach subvolumes located "corner-to-corner" from the top face
       of the current subvolume. */
@@ -2805,13 +3002,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if (d > R) continue;
  
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                          matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2821,10 +3021,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                    }
       		}
     	     }
 
@@ -2832,6 +3033,14 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
         }
    
       }
+     
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
+
    /* go (-X and +Y and +Z) */
       neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) + 1;
       if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
@@ -2861,13 +3070,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if (d > R) continue;
                   
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                          matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2877,10 +3089,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
@@ -2888,6 +3101,13 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
         }
    
       }
+     
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
   /* go (+X and +Y and +Z) */
       neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) + 1;
       if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
@@ -2917,13 +3137,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if (d > R) continue;
 
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                         matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2933,10 +3156,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
@@ -2944,6 +3168,14 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
         }
    
       }
+     
+
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
   /* go (+X and -Y and +Z) */
       neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) + 1;
       if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
@@ -2973,13 +3205,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if (d > R) continue;
                   
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                         matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -2989,10 +3224,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
@@ -3000,6 +3236,13 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
         }
    
       }
+     
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
    /* go (-X and -Y and -Z) */
       neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) - 1;
       if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
@@ -3029,13 +3272,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if (d > R) continue;
 
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                         matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -3045,10 +3291,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
@@ -3056,6 +3303,13 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
         }
    
       }
+     
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
    /* go (-X and +Y and -Z) */
       neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) - 1;
       if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
@@ -3085,13 +3339,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if (d > R) continue;
 
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                         matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -3101,10 +3358,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                    }
       		}
     	     }
 
@@ -3112,6 +3370,14 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
         }
    
       }
+     
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
+
   /* go (+X and +Y and -Z) */
       neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) - 1;
       if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
@@ -3141,13 +3407,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if (d > R) continue;
 
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                         matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -3157,10 +3426,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                   }
       		}
     	     }
 
@@ -3168,6 +3438,14 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
         }
    
       }
+     
+
+     /* perform cleanup */
+     for(i = 0; i < MAX_MATCHING_RXNS; i++)
+     {
+        matching_rxns[i] = NULL;
+     }
+
   /* go (+X and -Y and -Z) */
       neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) - 1;
       if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
@@ -3198,13 +3476,16 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
                 if (d > R) continue;
                   
       		/* check for the possible reaction. */
-      		rx = trigger_bimolecular(
+      		num_matching_rxns = trigger_bimolecular(
                		m->properties->hashval,mp->properties->hashval,
                		(struct abstract_molecule*)m,
-                        (struct abstract_molecule*)mp,0,0);
+                        (struct abstract_molecule*)mp,0,0,
+                         matching_rxns);
       
-      		if (rx != NULL)
+      		if (num_matching_rxns > 0)
       		{
+                   for(i = 0; i < num_matching_rxns; i++)
+                   {
         		smash = mem_get(sv->local_storage->coll);
         		if (smash == NULL)
 			{
@@ -3214,10 +3495,11 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 	  			exit( EXIT_FAILURE );
         		}
         		smash->target = (void*) mp;
-        		smash->intermediate = rx;
+        		smash->intermediate = matching_rxns[i];
         		smash->next = shead1;
         		smash->what = COLLIDE_MOL;
         		shead1 = smash;
+                    }
       		}
     	     }
 
@@ -3266,9 +3548,21 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   /* this flag is set to 1 only after reflection from a wall and only with expanded lists. */
   int redo_expand_collision_list_flag = 0; 
 
-  int i,j,k,l;
+  int i,j,k,l,ii,jj;
+  long long ll;
     
   int calculate_displacement = 1;
+   
+  /* array of pointers to the possible reactions */
+  struct rxn *matching_rxns[MAX_MATCHING_RXNS]; 
+  int num_matching_rxns = 0;
+  double scaling_coef[MAX_MATCHING_RXNS];
+
+  for(i = 0; i < MAX_MATCHING_RXNS; i++)
+  {
+     matching_rxns[i] = NULL;
+     scaling_coef[i] = 0;
+  }
   
   sm = m->properties;
   if (sm==NULL) {
@@ -3353,31 +3647,40 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         else goto continue_special_diffuse_3D;  /*continue without incrementing pointer*/
       }
       
-      rx = trigger_bimolecular(
+      num_matching_rxns = trigger_bimolecular(
                sm->hashval,mp->properties->hashval,
-               (struct abstract_molecule*)m,(struct abstract_molecule*)mp,0,0
-             );
+               (struct abstract_molecule*)m,(struct abstract_molecule*)mp,0,0,
+                 matching_rxns);
       
-      if (rx != NULL)
+      if (num_matching_rxns > 0)
       {
-        smash = mem_get(sv->local_storage->coll);
-        if (smash == NULL)
-	{
-	  fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
-	  i = emergency_output();
-	  fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
-	  exit( EXIT_FAILURE );
+        for(i = 0; i < num_matching_rxns; i++)
+        {
+           smash = mem_get(sv->local_storage->coll);
+           if (smash == NULL)
+	   {
+	      fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
+	      i = emergency_output();
+	      fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+	      exit( EXIT_FAILURE );
+           }
+           smash->target = (void*) mp;
+           smash->what = COLLIDE_MOL;
+           smash->intermediate = matching_rxns[i];
+           smash->next = shead;
+           shead = smash;
         }
-        smash->target = (void*) mp;
-        smash->what = COLLIDE_MOL;
-        smash->intermediate = rx;
-        smash->next = shead;
-        shead = smash;
       }
 /*      else printf("Rx between %s and %s is NULL\n",sm->sym->name,mp->properties->sym->name); */
     }
   }
-  
+         /* perform cleanup */  
+  for(i = 0; i < MAX_MATCHING_RXNS; i++)
+  {
+     matching_rxns[i] = NULL;
+     scaling_coef[i] = 0;
+  }
+
   if (calculate_displacement)
   {
     if (m->flags&ACT_CLAMPED)
@@ -3426,7 +3729,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   reflectee = NULL;
   
   if(world->use_expanded_list && (m->properties->flags & CAN_MOLMOL) != 0)
-  { 
+  {
     shead = expand_collision_list(m, &displacement, sv, shead);
   }   
 
@@ -3519,58 +3822,121 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	    if (m->index != j || m->previous_wall != w )
 	    {
 	      g = w->effectors->mol[j];
-	      rx = trigger_bimolecular(
+	      num_matching_rxns = trigger_bimolecular(
 		sm->hashval,g->properties->hashval,
 		(struct abstract_molecule*)m,(struct abstract_molecule*)g,
-		k,g->orient
+		k,g->orient, matching_rxns
 	      );
-	      if (rx!=NULL)
-	      {
-		if (rx->prob_t != NULL) check_probs(rx,m->t);
-                scaling = 1.0 / (rate_factor * w->effectors->binding_factor);
-		
-		i = test_bimolecular(rx, scaling);
-		
-                if (i >= RX_LEAST_VALID_PATHWAY)
-		{
-		  l = outcome_bimolecular(
-		    rx,i,(struct abstract_molecule*)m,
-		    (struct abstract_molecule*)g,
-		    k,g->orient,m->t+t_steps*smash->t,&(smash->loc)
-		  );
-		  
-		  if (l==RX_NO_MEM) { ERROR_AND_QUIT; }
-		  if (l==RX_FLIP)
-		  {
-		    if ((m->flags&COUNT_ME)!=0 && (sm->flags&w->flags&COUNT_SOME)!=0)
-		    {		      
-		      count_region_update(sm,w->counting_regions,k,1,rate_factor * w->effectors->binding_factor,&(smash->loc),smash->t);
+	      if (num_matching_rxns > 0)
+              {
+                for(l = 0; l < num_matching_rxns; l++)
+                {
+		  if (matching_rxns[l]->prob_t != NULL) check_probs(matching_rxns[l],m->t);
+                  scaling_coef[l] = 1.0 / (rate_factor * w->effectors->binding_factor);
 
-		      /* Need to update our position if we're counting so we don't get confused */
-		      m->pos.x = smash->loc.x;
-		      m->pos.y = smash->loc.y;
-		      m->pos.z = smash->loc.z;
-		      m->t += t_steps*smash->t;
-		      t_steps *= (1.0-smash->t);
-		    }
+                }
+	
+                if(num_matching_rxns == 1){
+		   i = test_bimolecular(matching_rxns[0], scaling_coef[0]); 
+                   
+                   if (i >= RX_LEAST_VALID_PATHWAY)
+		   {
+		     l = outcome_bimolecular(
+		        matching_rxns[0],i,(struct abstract_molecule*)m,
+		       (struct abstract_molecule*)g,
+		       k,g->orient,m->t+t_steps*smash->t,&(smash->loc)
+		       );
+		  
+		       if (l==RX_NO_MEM) { ERROR_AND_QUIT; }
+		       if (l==RX_FLIP)
+		       {
+		         if ((m->flags&COUNT_ME)!=0 && (sm->flags&w->flags&COUNT_SOME)!=0)
+		         {
+		           count_region_update(sm,w->counting_regions,k,1,rate_factor * w->effectors->binding_factor,&(smash->loc),smash->t);
+                           /* Need to update our position if we're counting so we don't get confused */
+		           m->pos.x = smash->loc.x;
+		           m->pos.y = smash->loc.y;
+		           m->pos.z = smash->loc.z;
+		           m->t += t_steps*smash->t;
+		           t_steps *= (1.0-smash->t);
+		         }
 		    
-		    continue; /* pass through */
-		  }
-		  else if (l==RX_DESTROY)
-		  {
-		    if ( (sm->flags & w->flags & COUNT_HITS)!=0 )
-		    {
-		      count_region_update(sm,w->counting_regions,k,0,rate_factor,&(smash->loc),smash->t);
-		    }
+		         continue; /* pass through */
+		       }
+		       else if (l==RX_DESTROY)
+		       {
+		         if ( (sm->flags & w->flags & COUNT_HITS)!=0 )
+		         {
+		           count_region_update(sm,w->counting_regions,k,0,rate_factor,&(smash->loc),smash->t);
+		         }
 		    
-		    CLEAN_AND_RETURN(NULL);
-		  }
-		}
-	      }
-	    }
+		         CLEAN_AND_RETURN(NULL);
+		       } /* end if (l == ...) */
+		   } /* end if (i >= RX_LEAST_VALID_PATHWAY) */
+
+                }else{
+                   ll = test_many_bimolecular(matching_rxns, scaling_coef, num_matching_rxns);
+                   if(ll >= RX_LEAST_VALID_PATHWAY)
+                   {
+                     ii = (int)(ll & RX_GREATEST_VALID_PATHWAY);
+                     jj = (int)(ll >> RX_PATHWAY_BITS);
+                   }else{	
+                      ii = (int)ll;
+                      jj = 0;
+                   }
+
+                   if(ii >= RX_LEAST_VALID_PATHWAY)
+                   {
+		     l = outcome_bimolecular(
+		        matching_rxns[jj],ii,(struct abstract_molecule*)m,
+		       (struct abstract_molecule*)g,
+		       k,g->orient,m->t+t_steps*smash->t,&(smash->loc)
+		       );
+
+		       if (l==RX_NO_MEM) { ERROR_AND_QUIT; }
+		       if (l==RX_FLIP)
+		       {
+		         if ((m->flags&COUNT_ME)!=0 && (sm->flags&w->flags&COUNT_SOME)!=0)
+		         {
+		           count_region_update(sm,w->counting_regions,k,1,rate_factor * w->effectors->binding_factor,&(smash->loc),smash->t);
+		      
+                           /* Need to update our position if we're counting so we don't get confused */
+		           m->pos.x = smash->loc.x;
+		           m->pos.y = smash->loc.y;
+		           m->pos.z = smash->loc.z;
+		           m->t += t_steps*smash->t;
+		           t_steps *= (1.0-smash->t);
+		         }
+		    
+		         continue; /* pass through */
+		       }
+		       else if (l==RX_DESTROY)
+		       {
+		         if ( (sm->flags & w->flags & COUNT_HITS)!=0 )
+		         {
+		           count_region_update(sm,w->counting_regions,k,0,rate_factor,&(smash->loc),smash->t);
+		         }
+		    
+		         CLEAN_AND_RETURN(NULL);
+		       } /* end if (l == ...) */
+
+                   } /* end if (ii >= RX_LEAST_VALID_PATHWAY) */
+
+                } /* end if-else (num_matching_rxns ==1) */
+                
+	      } /* end if (num_matching_rxns > 0) */
+                   
+                   /* perform cleanup */
+                  for(i = 0; i < MAX_MATCHING_RXNS; i++)
+                  {
+                     matching_rxns[i] = NULL;
+                     scaling_coef[i] = 0;
+                  }
+
+	    } /* end if(m->index ...) */
 	    else m->index = -1; /* Avoided rebinding, but next time it's OK */
-	  }
-	}
+	  } /* end if(w->effectors->mol[j] ... ) */
+	} /* end if (w->effectors != NULL ... ) */
 	
 	if ( (sm->flags&CAN_MOLWALL) != 0 )
 	{
@@ -3883,28 +4249,50 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
   int si[3];                     /* Indices on those grids of neighbor molecules */
   struct grid_molecule *gm[3];   /* Neighboring molecules */
   struct rxn *rx[3];             /* Reactions we can perform with those molecules */
-  double cf[3];                  /* Correction factor for area for those molecules */
-  int i,j,k,n;
+  int i,j,k,n = 0, l = 0, kk;
   long long ii;
-  
+  int num_matching_rxns = 0;
+  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+  int matches[3];  /* array of number of matching rxns for 3 neighbor mols */
+  int max_size = 3*MAX_MATCHING_RXNS; /* maximum size of rxn_array */
+  struct rxn * rxn_array[max_size]; /* array of reaction objects with neighbor
+                                       molecules */
+  double cf[max_size];  /* Correction factors for area for those molecules */
+
+  for(i = 0; i < max_size; i++)
+  {
+    rxn_array[i] = NULL;
+    cf[i] = 0;
+  }
+
   grid_neighbors(g->grid,g->grid_index,sg,si);
   
-  for (i=n=0 ; i<3 ; i++)
+  for (i=0; i<3 ; i++)
   {
     if (sg[i]!=NULL)
     {
-      gm[n] = sg[i]->mol[ si[i] ];
-      if (gm[n]!=NULL)
+      gm[i] = sg[i]->mol[ si[i] ];
+      if (gm[i]!=NULL)
       {
-	rx[n] = trigger_bimolecular(
-	  g->properties->hashval,gm[n]->properties->hashval,
-	  (struct abstract_molecule*)g,(struct abstract_molecule*)gm[n],
-	  g->orient,gm[n]->orient
+	num_matching_rxns = trigger_bimolecular(
+	  g->properties->hashval,gm[i]->properties->hashval,
+	  (struct abstract_molecule*)g,(struct abstract_molecule*)gm[i],
+	  g->orient,gm[i]->orient, matching_rxns
 	);
-	if (rx[n]!=NULL)
+	if (num_matching_rxns > 0) 
 	{
-	  cf[n] = sg[i]->binding_factor/t;
-	  n++;
+          matches[i] = num_matching_rxns;
+          
+          for( kk=0; kk < num_matching_rxns; kk++){
+             if(matching_rxns[kk] != NULL){
+               rxn_array[l] = matching_rxns[kk];
+               l++;
+             }
+	     cf[l] = sg[i]->binding_factor/t; 
+          }
+          
+
+	  n += num_matching_rxns;
 	}
       }
     }
@@ -3913,12 +4301,12 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
   if (n==0) return g;  /* Nobody to react with */
   else if (n==1)
   {
-    i = test_bimolecular(rx[0],cf[0]);
+    i = test_bimolecular(rxn_array[0],cf[0]);
     j = 0;
   }
   else
   {
-    ii = test_many_bimolecular(rx,cf,n);
+    ii = test_many_bimolecular(rxn_array,cf,n);
     if (ii>=RX_LEAST_VALID_PATHWAY)
     {
       i = (int)(ii & RX_GREATEST_VALID_PATHWAY);
@@ -3933,11 +4321,25 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
   
   if (i<RX_LEAST_VALID_PATHWAY) return g;  /* No reaction */
   
-  k = outcome_bimolecular(
-    rx[j],i,
-    (struct abstract_molecule*)g,(struct abstract_molecule*)gm[j],
-    g->orient,gm[j]->orient,g->t,NULL
-  );
+  if(j < matches[0]){
+      k = outcome_bimolecular(
+         rxn_array[j],i,
+         (struct abstract_molecule*)g,(struct abstract_molecule*)gm[0],
+         g->orient,gm[0]->orient,g->t,NULL
+      );
+   }else if(j < matches[0] + matches[1]){
+      k = outcome_bimolecular(
+         rxn_array[j],i,
+         (struct abstract_molecule*)g,(struct abstract_molecule*)gm[1],
+         g->orient,gm[1]->orient,g->t,NULL
+      );
+   }else{
+      k = outcome_bimolecular(
+         rxn_array[j],i,
+         (struct abstract_molecule*)g,(struct abstract_molecule*)gm[2],
+         g->orient,gm[2]->orient,g->t,NULL
+      );
+   }
 
   if (k==RX_NO_MEM)
   {
