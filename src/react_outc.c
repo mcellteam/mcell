@@ -840,7 +840,7 @@ int reaction_wizardry(struct magic_list *incantation,struct wall *surface,struct
   {
     init_matrix(req.t_matrix);
   }
-  else if (surface==NULL) /* Just need a translation */
+  else if (surface==NULL || !distinguishable(surface->normal.z,1.0,EPS_C)) /* Just need a translation */
   {
     init_matrix(req.t_matrix);
     req.t_matrix[3][0] = hitpt->x;
@@ -867,9 +867,8 @@ int reaction_wizardry(struct magic_list *incantation,struct wall *surface,struct
       axis.z = 0.0;
       
       degrees = acos(cos_theta)*180.0/MY_PI;
-      
-      tform_matrix(&scale,hitpt,&axis,degrees,req.t_matrix);
     }
+    tform_matrix(&scale,hitpt,&axis,degrees,req.t_matrix);
   }
   
   /* Now we're ready to cast our spell! */
