@@ -110,6 +110,7 @@ int trigger_bimolecular(int hashA,int hashB,
         {
           if (inter->n_reactants==2) 
           {
+             if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
              matching_rxns[num_matching_rxns] = inter;
              num_matching_rxns++;
              inter = inter->next;
@@ -125,6 +126,7 @@ int trigger_bimolecular(int hashA,int hashB,
                   orientA*orientB*geomA*geomB > 0 )
         {
           if (inter->n_reactants==2) {
+             if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
              matching_rxns[num_matching_rxns] = inter;
              num_matching_rxns++;
              inter = inter->next;
@@ -156,13 +158,14 @@ int trigger_bimolecular(int hashA,int hashB,
               geomW = inter->geometries[2];
               
               if (geomW==0) {
+                 if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
                  matching_rxns[num_matching_rxns] = inter;
                  num_matching_rxns++;
                  inter = inter->next;
                  continue;
               }
  
-              /* We now care whether A and B corespond to [0] and [1] or */
+              /* We now care whether A and B corespond to player [0] and [1] or */
               /* vice versa, so make sure A==[0] and B==[1] so W can */
               /* match with the right one! */
               if (reacA->properties != inter->players[0])
@@ -175,12 +178,14 @@ int trigger_bimolecular(int hashA,int hashB,
               if (geomA==0 || (geomA+geomW)*(geomA-geomW)!=0)  /* W not in A's class */
               {
                 if (geomB==0 || (geomB+geomW)*(geomB-geomW)!=0) {
+                     if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
                      matching_rxns[num_matching_rxns] = inter;
                      num_matching_rxns++;
                      inter = inter->next;
                      continue;
                 }
                 if (orientB*geomB*geomW > 0) {
+                     if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
                      matching_rxns[num_matching_rxns] = inter;
                      num_matching_rxns++;
                      inter = inter->next;
@@ -190,6 +195,7 @@ int trigger_bimolecular(int hashA,int hashB,
               else  /* W & A in same class */
               {
                 if (orientA*geomA*geomW > 0) {
+                     if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
                      matching_rxns[num_matching_rxns] = inter;
                      num_matching_rxns++;
                      inter = inter->next;
@@ -198,18 +204,19 @@ int trigger_bimolecular(int hashA,int hashB,
               }
             } 
           } /* end if(w != NULL) */
-        }   /* end if(test_wal && orientA != NULL) */
+        }   /* end if(test_wall && orientA != NULL) */
       }
     } /* end if(inter->n_reactants >= 2) */
     
     inter=inter->next;
   } /* end while (inter != NULL) */
- 
-  if(num_matching_rxns > MAX_MATCHING_RXNS){
-     fprintf(world->log_file, "Number of matching reactions exceeds the \
-           maximum allowed number MAX_MATCHING_RXNS.\n");
+
+  if (inter != NULL)
+  {
+    fprintf(world->err_file, "Number of matching reactions exceeds the maximum allowed number MAX_MATCHING_RXNS.\n");
   }
 
+ 
   return num_matching_rxns;
 }
 

@@ -347,175 +347,6 @@ refine_edge_pairs:
        is traversed in different directions by each face, and that the
        normals of the two faces are as divergent as possible.
 ***************************************************************************/
-#if 0
-void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
-{
-#define TSWAP(x,y) temp=(x); (x)=(y); (y)=temp
-  struct poly_edge *p1,*p2,*best_p1,*best_p2;
-  int n1,n2,best_n1,best_n2;
-  double align,best_align;
-  int wA,wB,eA,eB;
-  int temp;
-
-  best_align = 2;
-  best_p1 = best_p2 = p;
-  best_n1 = 1;
-  best_n2 = 2;
-  
-  p1 = p;
-  n1 = 1;
-  while (p1->n >= n1 && p1 != NULL)
-  {
-    if (n1==1)
-    { 
-      wA = p1->face1;
-      eA = p1->edge1; 
-    }
-    else
-    {
-      wA = p1->face2;
-      eA = p1->face2;  /* possibly wrong ?? */
-    }
-    
-    if (n1==1) { n2 = n1+1; p2 = p1; }
-    else { n2 = 1; p2 = p1->next; }
-    while (p2->n >= n1 && p2 != NULL)
-    {
-      if (n2==1)
-      {
-        wB = p2->face1;
-        eB = p2->edge1; 
-      }
-      else
-      {
-        wB = p2->face2;         
-        eB = p2->face2;       /* possibly wrong ?? */		
-      }
-
-      if (compatible_edges(faces,wA,eA,wB,eB))
-      {
-        align = faces[wA]->normal.x * faces[wB]->normal.x +
-                faces[wA]->normal.y * faces[wB]->normal.y +
-                faces[wA]->normal.z * faces[wB]->normal.z;
-
-        if (align < best_align)
-        {
-          best_p1 = p1;
-          best_p2 = p2;
-          best_n1 = n1;
-          best_n2 = n2;
-          best_align = align;
-        }
-      }
-      
-      if (n1==1) n1++;
-      else { p1=p1->next; n1=1; } /* possibly wrong ?? */
-    }
-    
-    if (n1==1) n1++;
-    else { p1=p1->next; n1=1; }
-  }
- 			
-  /* Now lots of boring logic to swap the values into the right spots.  Yawn. */
-  
-  if (best_align > 1.0) return;  /* No good pairs. */
-  
-  if (best_p1 == best_p2)
-  {
-    if (best_p1==p) return;  /* Best pair is already first */
-   
-    TSWAP(best_p1->face1,p->face1);
-    TSWAP(best_p1->face2,p->face2);
-    TSWAP(best_p1->edge1,p->edge1);
-    TSWAP(best_p1->edge2,p->edge2);
-    
-    return;
-  }
-  
-  if (best_p1==p1)
-  {
-    if (best_n1==1)
-    {
-      if (best_n2==1)
-      {
-        TSWAP(best_p2->face1,p->face2);
-        TSWAP(best_p2->edge1,p->edge2);
-      }
-      else
-      {
-        TSWAP(best_p2->face2,p->face2);
-        TSWAP(best_p2->edge2,p->edge2);
-      }
-    }
-    else
-    {
-      if (best_n2==1)
-      {
-        TSWAP(best_p2->face1,p->face1);
-        TSWAP(best_p2->edge1,p->edge1);
-      }
-      else
-      {
-        TSWAP(best_p2->face2,p->face1);
-        TSWAP(best_p2->edge2,p->edge1);        
-      }
-    }
-  }
-  else if (best_p2==p1)
-  {
-    if (best_n1==1)
-    {
-      if (best_n2==1)
-      {
-        TSWAP(best_p1->face1,p->face2);
-        TSWAP(best_p1->edge1,p->edge2);
-      }
-      else
-      {
-        TSWAP(best_p1->face2,p->face2);
-        TSWAP(best_p1->edge2,p->edge2);
-      }
-    }
-    else
-    {
-      if (best_n2==1)
-      {
-        TSWAP(best_p1->face1,p->face1);
-        TSWAP(best_p1->edge1,p->edge1);
-      }
-      else
-      {
-        TSWAP(best_p1->face2,p->face1);
-        TSWAP(best_p1->edge2,p->edge1);        
-      }
-    }
-  }
-  else
-  {
-    if (best_n1==1)
-    {
-      TSWAP(best_p1->face1,p->face1);
-      TSWAP(best_p1->edge1,p->edge1);        
-    }
-    else
-    {
-      TSWAP(best_p1->face2,p->face1);
-      TSWAP(best_p1->edge2,p->edge1);        
-    }
-    if (best_n2==1)
-    {
-      TSWAP(best_p2->face1,p->face2);
-      TSWAP(best_p2->edge1,p->edge2);        
-    }
-    else
-    {
-      TSWAP(best_p2->face2,p->face2);
-      TSWAP(best_p2->edge2,p->edge2);        
-    }
-  }
-#undef TSWAP
-}
-#endif
 
 void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
 {
@@ -524,8 +355,9 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
   int count = 0; /* length of the linked_list of edges */
   int ii = 0;
   struct poly_edge *pe_curr = NULL, *pe_ptr_index_0 = NULL, *pe_ptr_index_1=NULL;
-
   double min_value_0, min_value_1;
+  double *aligns;
+
   /* find out the number of nodes in the linked_list. */
   pe_curr = p;
   while(pe_curr != NULL) {
@@ -535,24 +367,24 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
   /* for one node there is no need for rearrangement. */
   if(count == 1) return;
 
- /* create an array that will store the angle 
-    between the faces of the edge in the linked_list. */
- double *aligns;
- if((aligns = (double *)malloc(count*sizeof(double))) == NULL){
-	fprintf(world->err_file, "File '%s', Line %ld: Memory allocation error\n", __FILE__, (long)__LINE__);
-	return;
- }
+  /* create an array that will store the angle 
+     between the faces of the edge in the linked_list. */
+  if((aligns = (double *)malloc(count*sizeof(double))) == NULL){
+    fprintf(world->err_file, "File '%s', Line %ld: Out of memory while preparing adjacent polygons for surface diffusion\n", __FILE__, (long)__LINE__);
+    exit(EXIT_FAILURE);
+  }
 
-   pe_curr = p;
 
-   /* put values into an angles array */
+  /* put values into an angles array */
+  pe_curr = p;
   while(pe_curr != NULL) {
         if((pe_curr->face1 >= 0) && (pe_curr->edge1 >= 0) && (pe_curr->face2 >=0) && (pe_curr->edge2 >=0)){
            if(compatible_edges(faces,pe_curr->face1, pe_curr->edge1, pe_curr->face2, pe_curr->edge2)){
                      aligns[ii] = faces[pe_curr->face1]->normal.x * faces[pe_curr->face2]->normal.x + faces[pe_curr->face1]->normal.y * faces[pe_curr->face2]->normal.y + faces[pe_curr->face1]->normal.z * faces[pe_curr->face2]->normal.z;
-            }else{
+           }
+           else{
 		     aligns[ii] = INT_MAX;
-            }       
+           }       
         }
 	pe_curr = pe_curr->next;
         ii++;
@@ -652,10 +484,10 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
 
 }
 
+
 /***************************************************************************
 surface_net:
   In: array of pointers to walls
-      pointer to storage for the edges
       integer length of array
   Out: -1 if the surface is a manifold, 0 if it is not, 1 on malloc failure
        Walls end up connected across their edges.
@@ -679,16 +511,17 @@ int surface_net( struct wall **facelist, int nfaces )
   int nedge;
   int nkeys;
   int is_closed = 1;
-  nkeys = (3*nfaces)/2;
 
+  nkeys = (3*nfaces)/2;
   if ( ehtable_init(&eht,nkeys) ) return 1;
  			 
   for (i=0;i<nfaces;i++)
   {
+    if (facelist[i]==NULL) continue;
+
     nedge = 3;
     for (j=0;j<nedge;j++)
     {
-      if (facelist[i]==NULL) continue;
       
       if (j+1 < nedge) k = j+1;
       else k = 0;
@@ -726,10 +559,8 @@ int surface_net( struct wall **facelist, int nfaces )
           	facelist[pep->face2]->nb_walls[pep->edge2] = facelist[pep->face1];
           	e = (struct edge*) mem_get( facelist[pep->face1]->birthplace->join );
           	if (e==NULL) {
-			fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-			int i = emergency_output();
-			fprintf(stderr, "Fatal error: out of memory during surface_net event.\nAttempt to write intermediate results had %d errors.\n", i);
-                	exit(EXIT_FAILURE);
+			fprintf(stderr, "File '%s', Line %ld: Out of memory while connecting walls along shared edge.\n", __FILE__, (long)__LINE__);
+                	return 1;
           	} 
           	e->forward = facelist[pep->face1];
           	e->backward = facelist[pep->face2];
@@ -739,17 +570,16 @@ int surface_net( struct wall **facelist, int nfaces )
           	no_printf("  Edge: %d on %d and %d on %d\n",pep->edge1,pep->face1,pep->edge2,pep->face2);
               }
 
-       } else{ is_closed = 0;}
+        }
+        else is_closed = 0;
       }
       else if (pep->n==1)
       {
         is_closed = 0;
         e = (struct edge*) mem_get( facelist[pep->face1]->birthplace->join );
         if (e==NULL) { 
-		fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-		int i = emergency_output();
-		fprintf(stderr, "Fatal error: out of memory during surface_net event.\nAttempt to write intermediate results had %d errors.\n", i);
-                exit(EXIT_FAILURE);
+	  fprintf(stderr, "File '%s', Line %ld: Out of memory while connecting walls along shared edge.\n", __FILE__, (long)__LINE__);
+          return 1;
         }
         e->forward = facelist[pep->face1];
         e->backward = NULL;
@@ -770,9 +600,9 @@ int surface_net( struct wall **facelist, int nfaces )
 /***************************************************************************
 init_edge_transform
   In: pointer to an edge
-      integer telling the which edge (0-2) of the "forward" face we are
+      integer telling which edge (0-2) of the "forward" face we are
   Out: No return value.  Coordinate transform in edge struct is set.
-  Note: Don't call this on a free edge.
+  Note: Don't call this on a non-shared edge.
 ***************************************************************************/
 
 void init_edge_transform(struct edge *e,int edgenum)
