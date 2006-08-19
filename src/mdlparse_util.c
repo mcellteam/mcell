@@ -904,565 +904,246 @@ Out: Returns head of the linked list of reactions where each reaction
 *************************************************************************/
 struct rxn * split_reaction(struct rxn *rx)
 {
+  struct pathway *temp = NULL, *curr_ptr = NULL, *prev_ptr = NULL, *twin_1, *twin_2;
+  struct rxn  *curr_rxn_ptr = NULL,  *head = NULL, *end = NULL, *rxn_equi_node = NULL, *temp_rxn = NULL;
 
-   struct pathway *temp = NULL, *twin_1 = NULL, *twin_2, *twin_3, *twin_4, *twin_5, *twin_6, *twin_7, *twin_8;
-   struct pathway *curr_ptr = NULL, *prev_ptr = NULL, *twin_1_prev = NULL, *twin_2_prev, *twin_3_prev, *twin_4_prev, *twin_5_prev,  *twin_6_prev, *twin_7_prev, *twin_8_prev;
-   struct rxn *temp_rxn = NULL, *curr_rxn_ptr = NULL, *prev_prev_last = NULL, *t_last = NULL, *t_last_prev = NULL, *head = NULL, *reaction = NULL;
-  
-   int found; /* flag */
-   int i;
-   int nodes_count = 0; /* number of the nodes in the reaction linked_list */
-           
+   int found_twins, found_non_twins; /* flags */
+
     /* keep reference to the head of the future linked_list */
-    head = rx;
-    reaction = rx;
+    head = end = rx;
+   struct rxn *new_reaction;
+   int no_more_to_test = 0, found_equivalent_node = 0; /* flags */
 
-    while(reaction != NULL)
+    while(!no_more_to_test)
     { 
-           found = 0;
+        found_non_twins = 0;
 
-       /* move to the last reaction in the linked_list */
-       for(curr_rxn_ptr = head; curr_rxn_ptr != NULL; curr_rxn_ptr = curr_rxn_ptr->next)
-       {
-          nodes_count++;
-          if(curr_rxn_ptr->next == NULL){
-             reaction = curr_rxn_ptr;
-             break;
-          }
-       }
-  
-      /* quick test whether all pathways in the reaction are twins */           
-      if(reaction->n_pathways == 1){
-          return head;
-      }else if(reaction->n_pathways == 2){
-            twin_1 = reaction->pathway_head;
-            twin_2 = reaction->pathway_head->next;
-            if (equivalent_geometry(twin_1, twin_2, reaction->n_reactants)){
+      /* quick test whether all pathways in the reaction are twins */    
+      if(head->next == NULL)
+      {       
+         if(head->n_pathways == 1){
+             return head;
+         }else if(head->n_pathways == 2){
+            twin_1 = head->pathway_head;
+            twin_2 = head->pathway_head->next;
+            if (equivalent_geometry(twin_1, twin_2, head->n_reactants)){
                return head;
             }
-      }else if(reaction->n_pathways == 3){
-            twin_1 = reaction->pathway_head;
-            twin_2 = reaction->pathway_head->next;
-            twin_3 = reaction->pathway_head->next->next;
-            if (equivalent_geometry(twin_1, twin_2, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_3, reaction->n_reactants))){
-                   return head;
+         }else{
+            twin_1 = head->pathway_head;
+            for(twin_2 = twin_1->next; twin_2 != NULL; twin_2 = twin_2->next)
+            {
+              if(!equivalent_geometry(twin_1, twin_2, head->n_reactants)){
+                  found_non_twins = 1;
+                  break;
+              }
             }
-      }else if(reaction->n_pathways == 4){
-            twin_1 = reaction->pathway_head;
-            twin_2 = reaction->pathway_head->next;
-            twin_3 = reaction->pathway_head->next->next;
-            twin_4 = reaction->pathway_head->next->next->next;
-            if (equivalent_geometry(twin_1, twin_2, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_3, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_4, reaction->n_reactants)))){
-                   return head;
+            if(!found_non_twins){
+               return head;
             }
-      }else if(reaction->n_pathways == 5){
-            twin_1 = reaction->pathway_head;
-            twin_2 = reaction->pathway_head->next;
-            twin_3 = reaction->pathway_head->next->next;
-            twin_4 = reaction->pathway_head->next->next->next;
-            twin_5 = reaction->pathway_head->next->next->next->next;
-            if (equivalent_geometry(twin_1, twin_2, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_3, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_4, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_5, reaction->n_reactants))))){
-                   return head;
-            }
-      }else if(reaction->n_pathways == 6){
-            twin_1 = reaction->pathway_head;
-            twin_2 = reaction->pathway_head->next;
-            twin_3 = reaction->pathway_head->next->next;
-            twin_4 = reaction->pathway_head->next->next->next;
-            twin_5 = reaction->pathway_head->next->next->next->next;
-            twin_6 = reaction->pathway_head->next->next->next->next->next;
-            if (equivalent_geometry(twin_1, twin_2, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_3, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_4, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_5, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_6, reaction->n_reactants)))))){
-                   return head;
-            }
-
-      }else if(reaction->n_pathways == 7){
-            twin_1 = reaction->pathway_head;
-            twin_2 = reaction->pathway_head->next;
-            twin_3 = reaction->pathway_head->next->next;
-            twin_4 = reaction->pathway_head->next->next->next;
-            twin_5 = reaction->pathway_head->next->next->next->next;
-            twin_6 = reaction->pathway_head->next->next->next->next->next;
-            twin_7 = reaction->pathway_head->next->next->next->next->next->next;
-            if (equivalent_geometry(twin_1, twin_2, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_3, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_4, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_5, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_6, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_7, reaction->n_reactants))))))){
-                   return head;
-            }
-
-      }else if(reaction->n_pathways == 8){
-            twin_1 = reaction->pathway_head;
-            twin_2 = reaction->pathway_head->next;
-            twin_3 = reaction->pathway_head->next->next;
-            twin_4 = reaction->pathway_head->next->next->next;
-            twin_5 = reaction->pathway_head->next->next->next->next;
-            twin_6 = reaction->pathway_head->next->next->next->next->next;
-            twin_7 = reaction->pathway_head->next->next->next->next->next->next;
-            twin_8 = reaction->pathway_head->next->next->next->next->next->next->next;
-            if (equivalent_geometry(twin_1, twin_2, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_3, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_4, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_5, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_6, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_7, reaction->n_reactants) &&
-              (equivalent_geometry(twin_1, twin_8, reaction->n_reactants)))))))){
-                   return head;
-            }
-
-      }
-
-      twin_1 = reaction->pathway_head;
-      twin_1_prev = twin_1;
-      while(!found)
-      {
-
-        if(twin_1 == NULL) break; /* twin not found */
-        twin_2 = NULL;
-        twin_2_prev = NULL;
-        twin_3 = NULL;
-        twin_3_prev = NULL;
-        twin_4 = NULL;
-        twin_4_prev = NULL;
-        twin_5 = NULL;
-        twin_5_prev = NULL;
-        twin_6 = NULL;
-        twin_6_prev = NULL;
-        twin_7 = NULL;
-        twin_8_prev = NULL;
-        twin_8 = NULL;
-        twin_7_prev = NULL;
-
-        for(curr_ptr = twin_1->next, prev_ptr = twin_1; curr_ptr != NULL; prev_ptr = curr_ptr, curr_ptr = curr_ptr->next)
-        {
-            if (equivalent_geometry(twin_1, curr_ptr, reaction->n_reactants)){
-               found = 1;
-               if(twin_2 == NULL){
-                  twin_2 = curr_ptr;
-                  twin_2_prev = prev_ptr;
-               }else if(twin_3 == NULL){
-                  twin_3 = curr_ptr;
-                  twin_3_prev = prev_ptr;
-               }else if(twin_4 == NULL){
-                  twin_4 = curr_ptr;
-                  twin_4_prev = prev_ptr;
-               }else if(twin_5 == NULL){
-                  twin_5 = curr_ptr;
-                  twin_5_prev = prev_ptr;
-               }else if(twin_6 == NULL){
-                  twin_6 = curr_ptr;
-                  twin_6_prev = prev_ptr;
-               }else if(twin_7 == NULL){
-                  twin_7 = curr_ptr;
-                  twin_7_prev = prev_ptr;
-               }else if(twin_8 == NULL){
-                  twin_8 = curr_ptr;
-                  twin_8_prev = prev_ptr;
-               }
-            }  
-        }
+         }
+      } /* end if(head->next == NULL) */
      
-        if(!found) {
-           twin_1_prev = twin_1;
-           twin_1 = twin_1->next;
+      /* now we know that there are possibly some non-equivalent pathways 
+         in the reaction, so let's first extract all equivalent
+         pathways to the new_reaction->pathway_head, and then 
+         continue with this procedure */
+        
+        found_twins = 0;
+
+        for(curr_ptr = head->pathway_head->next, prev_ptr = head->pathway_head; curr_ptr != NULL; prev_ptr = curr_ptr, curr_ptr = curr_ptr->next)
+        {
+            if (equivalent_geometry(head->pathway_head, curr_ptr, head->n_reactants)){
+               found_twins = 1;
+               break;
+            }
         }
 
-      } /* end while(!found) */
+        if(!found_twins){
+           
+            /* extract pathway_head into new_reaction->pathway_head */
+           if(head->n_pathways > 1){
 
-      if(!found)
-      {
-         /* split reaction into the linked_list of reactions
-            each holding just one pathway 
-            since all pathways are not equivalent */
-
-        int count_pathways = head->n_pathways;
-
-         for(i = 0; i < count_pathways -1; i++)
-         {
-             /* create new reaction */
-             reaction->next = (struct rxn*)malloc(sizeof(struct rxn));
-             if (reaction->next==NULL) {
-                 fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
-                 return NULL;
-             }
-
-             reaction->next->next = NULL;                 
-             reaction->next->sym = rx->sym;
-             reaction->next->n_reactants = rx->n_reactants;
-             reaction->next->n_pathways = 0;
-             reaction->next->product_idx = NULL;
-             reaction->next->cum_probs = NULL;
-             reaction->next->cat_probs = NULL;
-             reaction->next->players = NULL;
-             reaction->next->geometries = NULL;
-             reaction->next->n_occurred = 0;
-             reaction->next->n_skipped = 0;
-             reaction->next->prob_t = NULL;
-             reaction->next->pathway_head = NULL;
-             reaction->next->info = NULL;
-
-             temp = head->pathway_head;
-             head->pathway_head = temp->next;
-             reaction->next->pathway_head = temp;
-             reaction->next->pathway_head->next = NULL;
-             head->n_pathways--;
-             reaction->next->n_pathways++;
-
-             reaction = reaction->next;
-         } /* end for */
-         
-         return head;
-      } /* end if (!found) */
-
-
-      /* if twins found put them into another linked reaction */
-      if(found)
-      {
-          /* create new reaction - link the previous one */
-          reaction->next = (struct rxn*)malloc(sizeof(struct rxn));
-          if (reaction->next==NULL) {
-              fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n",                  __FILE__, (long)__LINE__);
-              return NULL;
-          }
-          reaction->next->next = NULL;                 
-          reaction->next->sym = rx->sym;
-          reaction->next->n_reactants = rx->n_reactants;
-          reaction->next->n_pathways = 0;
-          reaction->next->product_idx = NULL;
-          reaction->next->cum_probs = NULL;
-          reaction->next->cat_probs = NULL;
-          reaction->next->players = NULL;
-          reaction->next->geometries = NULL;
-          reaction->next->n_occurred = 0;
-          reaction->next->n_skipped = 0;
-          reaction->next->prob_t = NULL;
-          reaction->next->pathway_head = NULL;
-          reaction->next->info = NULL;
-
-          nodes_count++;
-
-          /* There can be up to 8 pathways twins in the 3-reactant reaction */
-        
-          /* first remove twin_8 from the original pathways
-             linked list */
-        if(twin_8_prev != NULL){
-          for(curr_ptr = reaction->pathway_head; curr_ptr != NULL; curr_ptr = curr_ptr->next){
-              if (curr_ptr == twin_8_prev)
-              {
-                 if(twin_8->next == NULL)
-                 {
-                    /* it is the last node */
-                    /* move twin to rx->next->pathway_head */
-                   twin_8->next = reaction->next->pathway_head;
-                   reaction->next->pathway_head = twin_8;
-                   /* remove twin */
-                   curr_ptr->next = NULL;
-                   if(twin_7 == twin_8_prev){
-                      /* now twin_7 is the last node */
-                      twin_7->next = NULL;
-                   }
-                 }else{
-                    /* move twin to rx->next->pathway_head */
-                    temp = curr_ptr->next->next;
-                    curr_ptr->next->next = reaction->next->pathway_head;
-                    reaction->next->pathway_head = curr_ptr->next;
-                    /* remove twin */
-                    curr_ptr->next = temp;
+                 /* create new reaction - link the previous one */
+                 new_reaction = (struct rxn*)malloc(sizeof(struct rxn));
+                 if (new_reaction == NULL) {
+                    fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n",                  __FILE__, (long)__LINE__);
+                    return NULL;
                  }
-                 reaction->next->n_pathways++;
-                 reaction->n_pathways--;
-              } /* end if(curr_ptr == twin_8_prev) */
-          } /* end for */
-        } /* end if (twin_8_prev != NULL) */
+                 new_reaction->next = NULL;                 
+                 new_reaction->sym = rx->sym;
+                 new_reaction->n_reactants = rx->n_reactants;
+                 new_reaction->n_pathways = 0;
+                 new_reaction->product_idx = NULL;
+                 new_reaction->cum_probs = NULL;
+                 new_reaction->cat_probs = NULL;
+                 new_reaction->players = NULL;
+                 new_reaction->geometries = NULL;
+                 new_reaction->n_occurred = 0;
+                 new_reaction->n_skipped = 0;
+                 new_reaction->prob_t = NULL;
+                 new_reaction->pathway_head = NULL;
+                 new_reaction->info = NULL;
+             
+              
+               temp = head->pathway_head;
+               head->pathway_head = head->pathway_head->next; 
+               temp->next = new_reaction->pathway_head;
+               new_reaction->pathway_head = temp;
+               head->n_pathways--;
+               new_reaction->n_pathways++;
 
-          /* now remove twin_7 from the original pathways
-             linked list */
-        if(twin_7_prev != NULL){
-          for(curr_ptr = reaction->pathway_head; curr_ptr != NULL; curr_ptr = curr_ptr->next){
-              if (curr_ptr == twin_7_prev)
-              {
-                 if(twin_7->next == NULL)
-                 {
-                    /* it is the last node */
-                    /* move twin to rx->next->pathway_head */
-                   twin_7->next = reaction->next->pathway_head;
-                   reaction->next->pathway_head = twin_7;
-                   /* remove twin */
-                   curr_ptr->next = NULL;
-                   if(twin_6 == twin_7_prev){
-                      /* now twin_6 is the last node */
-                      twin_6->next = NULL;
-                   }
-                 }else{
-                    /* move twin to rx->next->pathway_head */
-                    temp = curr_ptr->next->next;
-                    curr_ptr->next->next = reaction->next->pathway_head;
-                    reaction->next->pathway_head = curr_ptr->next;
-                    /* remove twin */
-                    curr_ptr->next = temp;
-                 }
-                 reaction->next->n_pathways++;
-                 reaction->n_pathways--;
-              } /* end if(curr_ptr == twin_7_prev) */
-          } /* end for */
-        } /* end if (twin_7_prev != NULL) */
-
-          /* now remove twin_6 from the original pathways
-             linked list */
-        if(twin_6_prev != NULL){
-          for(curr_ptr = reaction->pathway_head; curr_ptr != NULL; curr_ptr = curr_ptr->next){
-              if (curr_ptr == twin_6_prev)
-              {
-                 if(twin_6->next == NULL)
-                 {
-                    /* it is the last node */
-                    /* move twin to rx->next->pathway_head */
-                   twin_6->next = reaction->next->pathway_head;
-                   reaction->next->pathway_head = twin_6;
-                   /* remove twin */
-                   curr_ptr->next = NULL;
-                   if(twin_5 == twin_6_prev){
-                      /* now twin_5 is the last node */
-                      twin_5->next = NULL;
-                   }
-                 }else{
-                    /* move twin to rx->next->pathway_head */
-                    temp = curr_ptr->next->next;
-                    curr_ptr->next->next = reaction->next->pathway_head;
-                    reaction->next->pathway_head = curr_ptr->next;
-                    /* remove twin */
-                    curr_ptr->next = temp;
-                 }
-                 reaction->next->n_pathways++;
-                 reaction->n_pathways--;
-              } /* end if(curr_ptr == twin_6_prev) */
-          } /* end for */
-        } /* end if (twin_6_prev != NULL) */
-
-          /* now remove twin_5 from the original pathways
-             linked list */
-        if(twin_5_prev != NULL){
-          for(curr_ptr = reaction->pathway_head; curr_ptr != NULL; curr_ptr = curr_ptr->next){
-              if (curr_ptr == twin_5_prev)
-              {
-                 if(twin_5->next == NULL)
-                 {
-                    /* it is the last node */
-                    /* move twin to rx->next->pathway_head */
-                   twin_5->next = reaction->next->pathway_head;
-                   reaction->next->pathway_head = twin_5;
-                   /* remove twin */
-                   curr_ptr->next = NULL;
-                   if(twin_4 == twin_5_prev){
-                      /* now twin_4 is the last node */
-                      twin_4->next = NULL;
-                   }
-                 }else{
-                    /* move twin to rx->next->pathway_head */
-                    temp = curr_ptr->next->next;
-                    curr_ptr->next->next = reaction->next->pathway_head;
-                    reaction->next->pathway_head = curr_ptr->next;
-                    /* remove twin */
-                    curr_ptr->next = temp;
-                 }
-                 reaction->next->n_pathways++;
-                 reaction->n_pathways--;
-              } /* end if(curr_ptr == twin_5_prev) */
-          } /* end for */
-        } /* end if (twin_5_prev != NULL) */
-
-          /* now remove twin_4 from the original pathways
-             linked list */
-        if(twin_4_prev != NULL){
-          for(curr_ptr = reaction->pathway_head; curr_ptr != NULL; curr_ptr = curr_ptr->next){
-              if (curr_ptr == twin_4_prev)
-              {
-                 if(twin_4->next == NULL)
-                 {
-                    /* it is the last node */
-                    /* move twin to rx->next->pathway_head */
-                   twin_4->next = reaction->next->pathway_head;
-                   reaction->next->pathway_head = twin_4;
-                   /* remove twin */
-                   curr_ptr->next = NULL;
-                   if(twin_3 == twin_4_prev){
-                      /* now twin_3 is the last node */
-                      twin_3->next = NULL;
-                   }
-                 }else{
-                    /* move twin to rx->next->pathway_head */
-                    temp = curr_ptr->next->next;
-                    curr_ptr->next->next = reaction->next->pathway_head;
-                    reaction->next->pathway_head = curr_ptr->next;
-                    /* remove twin */
-                    curr_ptr->next = temp;
-                 }
-                 reaction->next->n_pathways++;
-                 reaction->n_pathways--;
-              } /* end if(curr_ptr == twin_4_prev) */
-          } /* end for */
-        } /* end if (twin_4_prev != NULL) */
-
-          /* now remove twin_3 from the original pathways
-             linked list */
-        if(twin_3_prev != NULL){
-          for(curr_ptr = reaction->pathway_head; curr_ptr != NULL; curr_ptr = curr_ptr->next){
-              if (curr_ptr == twin_3_prev)
-              {
-                 if(twin_3->next == NULL)
-                 {
-                    /* it is the last node */
-                    /* move twin to rx->next->pathway_head */
-                   twin_3->next = reaction->next->pathway_head;
-                   reaction->next->pathway_head = twin_3;
-                   /* remove twin */
-                   curr_ptr->next = NULL;
-                   if(twin_2 == twin_3_prev){
-                      /* now twin_2 is the last node */
-                      twin_2->next = NULL;
-                   }
-                 }else{
-                    /* move twin to rx->next->pathway_head */
-                    temp = curr_ptr->next->next;
-                    curr_ptr->next->next = reaction->next->pathway_head;
-                    reaction->next->pathway_head = curr_ptr->next;
-                    /* remove twin */
-                    curr_ptr->next = temp;
-                 }
-                 reaction->next->n_pathways++;
-                 reaction->n_pathways--;
-              } /* end if(curr_ptr == twin_3_prev) */
-          } /* end for */
-        } /* end if (twin_3_prev != NULL) */
-
-          /* now remove twin_2 from the original pathways
-             linked list */
-        if(twin_2_prev != NULL){
-          for(curr_ptr = reaction->pathway_head; curr_ptr != NULL; curr_ptr = curr_ptr->next){
-              if (curr_ptr == twin_2_prev)
-              {
-                 if(twin_2->next == NULL)
-                 {
-                    /* it is the last node */
-                    /* move twin to rx->next->pathway_head */
-                   twin_2->next = reaction->next->pathway_head;
-                   reaction->next->pathway_head = twin_2;
-                   /* remove twin */
-                   curr_ptr->next = NULL;
-                   if(twin_1 == twin_2_prev){
-                      /* now twin_1 is the last node */
-                      twin_1->next = NULL;
-                   }
-                 }else{
-                    /* move twin to rx->next->pathway_head */
-                    temp = curr_ptr->next->next;
-                    curr_ptr->next->next = reaction->next->pathway_head;
-                    reaction->next->pathway_head = curr_ptr->next;
-                    /* remove twin */
-                    curr_ptr->next = temp;
-                 }
-                 reaction->next->n_pathways++;
-                 reaction->n_pathways--;
-              } /* end if(curr_ptr == twin_2_prev) */
-          } /* end for */
-        } /* end if (twin_2_prev != NULL) */
-
-          /* now remove twin_1 from the original pathways
-             linked list */
-        if(twin_1_prev != NULL){
-          for(curr_ptr = reaction->pathway_head; curr_ptr != NULL; curr_ptr = curr_ptr->next){
-              if (curr_ptr == twin_1_prev)
-              {
-                 if(twin_1->next == NULL)
-                 {
-                    /* it is the last node */
-                    /* move twin to rx->next->pathway_head */
-                   twin_1->next = reaction->next->pathway_head;
-                   reaction->next->pathway_head = twin_1;
-                   /* remove twin */
-                   curr_ptr->next = NULL;
-                 }else if(twin_1_prev == twin_1){
-                    /* This is the first node */
-                    temp = curr_ptr->next;
-                    curr_ptr->next = reaction->next->pathway_head;
-                    reaction->next->pathway_head = curr_ptr;
-                    /* remove twin */
-                    reaction->pathway_head = temp;
-                 }else{
-                    /* move twin to rx->next->pathway_head */
-                    temp = curr_ptr->next->next;
-                    curr_ptr->next->next = reaction->next->pathway_head;
-                    reaction->next->pathway_head = curr_ptr->next;
-                    /* remove twin */
-                    curr_ptr->next = temp;
-                 }
-                 reaction->next->n_pathways++;
-                 reaction->n_pathways--;
-              } /* end if(curr_ptr == twin_1_prev) */
-          } /* end for */
-        } /* end if (twin_1_prev != NULL) */
-
-
-       /* switch the places of the last and previous-to-last reaction nodes */
-             if(nodes_count == 2){
-                 /* switch the two nodes */
-                 temp_rxn = reaction;
-                 reaction = reaction->next;
-                 reaction->next = temp_rxn;
-                 head = reaction;
-                 head->next->next = NULL;
-                 reaction = head;
-             }else if(nodes_count > 2){ 
-               /* find previous_to_previous_to_last node */
-               for(curr_rxn_ptr = head; curr_rxn_ptr != NULL; curr_rxn_ptr = curr_rxn_ptr->next)
-               {
-                  if(curr_rxn_ptr->next->next->next == NULL){
-                       prev_prev_last = curr_rxn_ptr;
-                       break;
-                  }
-               }
+               end->next = new_reaction;
+               end = new_reaction;
  
-               for(curr_rxn_ptr = head; curr_rxn_ptr != NULL; curr_rxn_ptr = curr_rxn_ptr->next)
+            } /* end if(reaction->n_pathways > 1) */
+            else{
+                no_more_to_test = 1;
+            }
+
+        } /* end if(!not_found_twins_this_scan)   */
+       
+     /* extract found twins pathways to the "new_reaction->pathway_head" */
+        if(found_twins){ 
+            /*
+              first check whether we should create "new_reaction" or
+              put twins in one if the existing reactions
+              in the existing linked list of reactions
+            */
+            if(head->next != NULL)
+            {
+               found_equivalent_node = 0;
+               rxn_equi_node = NULL;
+
+               for(curr_rxn_ptr = head->next; curr_rxn_ptr != NULL; curr_rxn_ptr = curr_rxn_ptr->next)
                {
-                  if(curr_rxn_ptr == prev_prev_last){
-                      t_last = curr_rxn_ptr->next->next;
-                      t_last_prev = curr_rxn_ptr->next;
-                      curr_rxn_ptr->next = t_last;
-                      t_last->next = t_last_prev;
-                      curr_rxn_ptr->next->next->next = NULL;
-                      reaction = curr_rxn_ptr->next;
-                      break;
-                  }
+                  if (equivalent_geometry(curr_rxn_ptr->pathway_head, prev_ptr->next, head->n_reactants)){
+                         found_equivalent_node = 1;
+                         rxn_equi_node = curr_rxn_ptr;
+                   }
+               }
+            }
+           
+            if(!found_equivalent_node)
+            { 
+                /* create new reaction - link the previous one */
+                new_reaction = (struct rxn*)malloc(sizeof(struct rxn));
+                if (new_reaction == NULL) {
+                   fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n",                  __FILE__, (long)__LINE__);
+                   return NULL;
+                }
+                new_reaction->next = NULL;                 
+                new_reaction->sym = rx->sym;
+                new_reaction->n_reactants = rx->n_reactants;
+                new_reaction->n_pathways = 0;
+                new_reaction->product_idx = NULL;
+                new_reaction->cum_probs = NULL;
+                new_reaction->cat_probs = NULL;
+                new_reaction->players = NULL;
+                new_reaction->geometries = NULL;
+                new_reaction->n_occurred = 0;
+                new_reaction->n_skipped = 0;
+                new_reaction->prob_t = NULL;
+                new_reaction->pathway_head = NULL;
+                new_reaction->info = NULL;
+
+       
+                for(curr_ptr = head->pathway_head; curr_ptr != NULL; curr_ptr = curr_ptr->next){
+                  if (curr_ptr == prev_ptr)
+                  {
+                    if(curr_ptr->next->next == NULL)
+                    {
+                       /* twin is the last node */
+                       /* move twin to rx->next->pathway_head */
+                       temp = curr_ptr->next;
+                       temp->next = new_reaction->pathway_head;
+                       new_reaction->pathway_head = temp;
+                       curr_ptr->next = NULL;
+                    }else{
+                       temp = curr_ptr->next->next;
+                       curr_ptr->next->next = new_reaction->pathway_head;
+                       new_reaction->pathway_head = curr_ptr->next;
+                       /* remove twin */
+                       curr_ptr->next = temp;
+                    }
+                    new_reaction->n_pathways++;
+                    head->n_pathways--;
+                  } /* end if(curr_ptr == prev_ptr) */
+                } /* end for */
+         
+                /* now put the first of twins to "new_reaction->pathway_head" */
+                temp = head->pathway_head;
+                head->pathway_head = head->pathway_head->next; 
+                temp->next = new_reaction->pathway_head;
+                new_reaction->pathway_head = temp;
+                head->n_pathways--;
+                new_reaction->n_pathways++;
+
+                end->next = new_reaction;
+                end = new_reaction;
+
+                if(head->n_pathways == 0){
+                  temp_rxn = head;
+                  head = head->next;
+                  no_more_to_test = 1;
+                  free(temp_rxn);
+                }
+                
+            } /* end if!found_equivalent_node) */
+
+            if(found_equivalent_node)
+            {
+               /* we will move found twins from "head->pathway_head" to the "curr_rxn_ptr->pathway_head" */
+
+                for(curr_ptr = head->pathway_head; curr_ptr != NULL; curr_ptr = curr_ptr->next){
+                  if (curr_ptr == prev_ptr)
+                  {
+                    if(curr_ptr->next->next == NULL)
+                    {
+                       /* twin is the last node */
+                       /* move twin to rx->next->pathway_head */
+                       temp = curr_ptr->next;
+                       temp->next = rxn_equi_node->pathway_head;
+                       rxn_equi_node->pathway_head = temp;
+                       curr_ptr->next = NULL;
+                    }else{
+                       temp = curr_ptr->next->next;
+                       curr_ptr->next->next = rxn_equi_node->pathway_head;
+                       rxn_equi_node->pathway_head = curr_ptr->next;
+                       /* remove twin */
+                       curr_ptr->next = temp;
+                    }
+                    rxn_equi_node->n_pathways++;
+                    head->n_pathways--;
+                  } /* end if(curr_ptr == prev_ptr) */
+                } /* end for */
+         
+                /* now put the first of twins to "new_reaction->pathway_head" */
+                temp = head->pathway_head;
+                head->pathway_head = head->pathway_head->next; 
+                temp->next = rxn_equi_node->pathway_head;
+                rxn_equi_node->pathway_head = temp;
+                head->n_pathways--;
+                rxn_equi_node->n_pathways++;
+                
+                if(head->n_pathways == 0){
+                  temp_rxn = head;
+                  head = head->next;
+                  no_more_to_test = 1;
+                  free(temp_rxn);
                 }
 
-             } /* end else */
-
-            /* if all pathways in the present reaction are twins */
-            if(reaction->next->n_pathways == 0){
-                free (reaction->next);
-                reaction->next = NULL;
-            }
+            } /* end if(found_equivalent_node) */
 
 
-      } /* end if(found) */
-      reaction = reaction->next;
+        } /* end if(found_twins_this_scan) */
 
-    } /* end while(reaction != NULL) */       
-
-   return head;
-
+    } /* end while(!no_more_to_test) */
+   
+    return head;
+   
 }
+
 
 /*************************************************************************
 prepare_reactions:
@@ -1579,8 +1260,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         /* if reaction contains equivalent pathways split
            this reaction into a linked list of reactions
            each containing only equivalent pathways. */
-         
-        rx = split_reaction(reaction); 
+ 
+        rx = split_reaction(reaction);
+
         /* set the symbol value to the head of the linked list of reactions */
         sym->value = (void *)rx; 
 
@@ -2211,6 +1893,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       rx = (struct rxn*)sym->value;
       if (rx->n_reactants==1) {
         j = rx->players[0]->hashval & rx_hash;
+      /*  printf("I am here: 1\n");
+        printf("rx->n_pathways = %d\n", rx->n_pathways);*/
+
       }else /* if(rx->n_reactants >= 2) */
       {
         j = (rx->players[0]->hashval ^ rx->players[1]->hashval) & rx_hash;
