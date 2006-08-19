@@ -1898,11 +1898,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
   struct rxn *matching_rxns[MAX_MATCHING_RXNS]; 
   int num_matching_rxns = 0;
 
-
-  for(i = 0; i < MAX_MATCHING_RXNS; i++)
-  {
-     matching_rxns[i] = NULL;
-  }
  
   R = (world->rx_radius_3d); 
   R2 = R*R;
@@ -1959,12 +1954,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
           } /* if(test_bounding_boxes ... ) */
      } /* end if (new_sv != NULL) */
 
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
-
      new_sv = (struct subvolume *)(sv->neighbor[X_NEG]);
      if(new_sv != NULL)
      {
@@ -2012,12 +2001,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
 
 
           }
-     }
-     
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
      }
      
      new_sv = (struct subvolume *)(sv->neighbor[Z_POS]);
@@ -2069,11 +2052,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
        }
      }
 
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
      
      new_sv = (struct subvolume *)(sv->neighbor[Z_NEG]);
      if(new_sv != NULL)
@@ -2124,11 +2102,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
        }
      }
 
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
 
      new_sv = (struct subvolume *)(sv->neighbor[Y_POS]);
      if(new_sv != NULL)
@@ -2179,11 +2152,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
           }
      }
 
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
 
      new_sv = (struct subvolume *)(sv->neighbor[Y_NEG]);
      if(new_sv != NULL)
@@ -2234,11 +2202,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
           }
      }
      
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
 
    /* let's reach subvolumes located "edge-to-edge" from the top face
       of the current subvolume. */
@@ -2296,12 +2259,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
    
    	}
 
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
-
 
    /* go (+Y and +Z) */
       neighbor_index = sv->index  + (world->nz_parts-1) + 1;
@@ -2357,12 +2314,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
           }
       } 
    
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
-
 
    /* go (+X and +Z) */
       neighbor_index = sv->index  + (world->nz_parts-1)*(world->ny_parts-1) + 1;
@@ -2419,11 +2370,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
    
       }
      
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
 
    /* go (-Y and +Z) */
       neighbor_index = sv->index  - (world->nz_parts-1) + 1;
@@ -2479,11 +2425,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
    
       }
      
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
 
    /* let's reach subvolumes located "edge-to-edge" from the bottom face
       of the current subvolume. */
@@ -2541,12 +2482,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
    
       }
      
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
-
 
    /* go (+Y and -Z) */
       neighbor_index = sv->index  + (world->nz_parts-1) - 1;
@@ -2602,11 +2537,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
    
       }
       
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
 
    /* go (+X and -Z) */
       neighbor_index = sv->index  + (world->nz_parts-1)*(world->ny_parts-1) - 1;
@@ -2662,11 +2592,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
    
       }
      
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
 
    /* go (-Y and -Z) */
       neighbor_index = sv->index  - (world->nz_parts-1) - 1;
@@ -2722,11 +2647,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
    
       }
      
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
 
    /* let's reach subvolumes located "edge-to-edge" from the vertical edges
       of the current subvolume. */
@@ -2784,11 +2704,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
    
       }
      
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
 
    /* go (+Y and -X) */
       neighbor_index = sv->index  + (world->nz_parts-1) - (world->nz_parts-1)*(world->ny_parts-1);
@@ -2844,11 +2759,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
    
       }
       
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
 
    /* go (+Y and +X) */
       neighbor_index = sv->index  + (world->nz_parts-1) + (world->nz_parts-1)*(world->ny_parts-1);
@@ -2904,11 +2814,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
    
       }
      
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
 
    /* go (-Y and +X) */
       neighbor_index = sv->index  - (world->nz_parts-1) + (world->nz_parts-1)*(world->ny_parts-1);
@@ -2964,12 +2869,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
    
       }
      
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
-
 
    /* let's reach subvolumes located "corner-to-corner" from the top face
       of the current subvolume. */
@@ -3034,11 +2933,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
    
       }
      
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
 
 
    /* go (-X and +Y and +Z) */
@@ -3102,11 +2996,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
    
       }
      
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
 
   /* go (+X and +Y and +Z) */
       neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) + 1;
@@ -3170,11 +3059,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
       }
      
 
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
 
   /* go (+X and -Y and +Z) */
       neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) + 1;
@@ -3237,11 +3121,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
    
       }
      
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
 
    /* go (-X and -Y and -Z) */
       neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) - 1;
@@ -3304,11 +3183,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
    
       }
      
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
 
    /* go (-X and +Y and -Z) */
       neighbor_index = sv->index - (world->nz_parts-1)*(world->ny_parts-1) + (world->nz_parts-1) - 1;
@@ -3371,11 +3245,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
    
       }
      
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
 
 
   /* go (+X and +Y and -Z) */
@@ -3439,12 +3308,6 @@ struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, 
    
       }
      
-
-     /* perform cleanup */
-     for(i = 0; i < MAX_MATCHING_RXNS; i++)
-     {
-        matching_rxns[i] = NULL;
-     }
 
   /* go (+X and -Y and -Z) */
       neighbor_index = sv->index + (world->nz_parts-1)*(world->ny_parts-1) - (world->nz_parts-1) - 1;
@@ -3558,12 +3421,6 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   int num_matching_rxns = 0;
   double scaling_coef[MAX_MATCHING_RXNS];
 
-  for(i = 0; i < MAX_MATCHING_RXNS; i++)
-  {
-     matching_rxns[i] = NULL;
-     scaling_coef[i] = 0;
-  }
-  
   sm = m->properties;
   if (sm==NULL) {
 	fprintf(world->err_file,"File '%s', Line %ld: This molecule should not diffuse!\n", __FILE__, (long)__LINE__);
@@ -3673,12 +3530,6 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       }
 /*      else printf("Rx between %s and %s is NULL\n",sm->sym->name,mp->properties->sym->name); */
     }
-  }
-         /* perform cleanup */  
-  for(i = 0; i < MAX_MATCHING_RXNS; i++)
-  {
-     matching_rxns[i] = NULL;
-     scaling_coef[i] = 0;
   }
 
   if (calculate_displacement)
@@ -3926,13 +3777,6 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                 
 	      } /* end if (num_matching_rxns > 0) */
                    
-                   /* perform cleanup */
-                  for(i = 0; i < MAX_MATCHING_RXNS; i++)
-                  {
-                     matching_rxns[i] = NULL;
-                     scaling_coef[i] = 0;
-                  }
-
 	    } /* end if(m->index ...) */
 	    else m->index = -1; /* Avoided rebinding, but next time it's OK */
 	  } /* end if(w->effectors->mol[j] ... ) */
