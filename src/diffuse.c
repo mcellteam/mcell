@@ -31,7 +31,7 @@
 #define MULTISTEP_WORTHWHILE 2
 #define MULTISTEP_PERCENTILE 0.99
 #define MULTISTEP_FRACTION 0.9
-#define MAX_UNI_TIMESKIP 5000
+#define MAX_UNI_TIMESKIP 100000
 
 
 /* EXD_TIME_CALC is a local #define in exact_disk */
@@ -3388,11 +3388,12 @@ diffuse_3D:
 
 struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
 {
-  /*const double TOL = 10.0*EPS_C;*//* Two walls are coincident if this close */
-  struct vector3 displacement;           /* Molecule moves along this vector */
-  struct collision *smash;     /* Thing we've hit that's under consideration */
-  struct collision *shead = NULL;        /* Things we might hit (can interact with) */
-  struct collision *shead2 = NULL;     /* Things that we will hit, given our motion */ 
+  /*const double TOL = 10.0*EPS_C;*/  /* Two walls are coincident if this close */
+  struct vector3 displacement;             /* Molecule moves along this vector */
+  struct collision *smash;       /* Thing we've hit that's under consideration */
+  struct collision *shead;          /* Things we might hit (can interact with) */
+  struct collision *shead2;       /* Things that we will hit, given our motion */
+  struct collision *tentative;/* Things we already hit but haven't yet counted */
   struct subvolume *sv;
   struct wall *w;
   struct wall *reflectee;        /* Bounced off this one, don't hit it again */
@@ -3403,10 +3404,12 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   struct species *sm;
   double steps=1.0;
   double t_steps=1.0;
-  double factor;           /* return value from 'exact_disk()' function */
-  double scaling = 1.0;          /* scales reaction cumulative_probabilitities array */
+  double factor;                /* return value from 'exact_disk()' function */
+  double scaling = 1.0;  /* scales reaction cumulative_probabilitities array */
   double rate_factor=1.0;
   double f;
+  double t_confident;     /* We're sure we can count things up til this time */
+  struct vector3 *loc_certain;          /* We've counted up to this location */
 
   /* this flag is set to 1 only after reflection from a wall and only with expanded lists. */
   int redo_expand_collision_list_flag = 0; 
@@ -3605,6 +3608,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 /*      shead2 = gather_walls_first(shead2,TOL); */
     }
     
+    loc_certain=NULL;
+    tentative=shead2;
     for (smash = shead2; smash != NULL; smash = smash->next)
     {
       
@@ -3648,17 +3653,34 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	
         j = outcome_bimolecular(
                 rx,i,(struct abstract_molecule*)m,
-                am,0,0,m->t+t_steps*smash->t,&(smash->loc)
+                am,0,0,m->t+t_steps*smash->t,&(smash->loc),loc_certain
               );
 	      
 	if (j==RX_NO_MEM) { ERROR_AND_QUIT; }
 	if (j!=RX_DESTROY) continue;
-        else { CLEAN_AND_RETURN( NULL ); }
+        else
+        {
+          /* Count the hits up until we were destroyed */
+          for ( ; tentative!=NULL && tentative->t<=smash->t ; tentative=tentative->next )
+          {
+            if (!(tentative->what&COLLIDE_WALL)) continue;
+            if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME)) continue;
+            count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
+                                 ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
+                                 0 , rate_factor , &(tentative->loc) , tentative->t );
+            if (tentative==smash) break;
+          }
+          CLEAN_AND_RETURN( NULL );
+        }
       }
 
       else if ( (smash->what & COLLIDE_WALL) != 0 )
       {
 	w = (struct wall*) smash->target;
+        
+        if (smash->next==NULL) t_confident = smash->t;
+        else if (smash->next->t*(1.0-EPS_C) > smash->t) t_confident=smash->t;
+        else t_confident=smash->t*(1.0-EPS_C);
 	
 	world->ray_polygon_colls++;
 	
@@ -3680,105 +3702,85 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	      );
 	      if (num_matching_rxns > 0)
               {
-                for(l = 0; l < num_matching_rxns; l++)
+                for (l = 0; l < num_matching_rxns; l++)
                 {
 		  if (matching_rxns[l]->prob_t != NULL) check_probs(matching_rxns[l],m->t);
                   scaling_coef[l] = 1.0 / (rate_factor * w->effectors->binding_factor);
-
                 }
 	
-                if(num_matching_rxns == 1){
-		   i = test_bimolecular(matching_rxns[0], scaling_coef[0]); 
+                if (num_matching_rxns == 1)
+                {
+		  ii = test_bimolecular(matching_rxns[0], scaling_coef[0]);
+                  jj = 0;
+                }
+                else
+                {
+                  ll = test_many_bimolecular(matching_rxns,scaling_coef,num_matching_rxns);
+                  if(ll >= RX_LEAST_VALID_PATHWAY)
+                  {
+                    ii = (int)(ll & RX_GREATEST_VALID_PATHWAY);
+                    jj = (int)(ll >> RX_PATHWAY_BITS);
+                  }
+                  else
+                  {	
+                    ii = (int)ll;
+                    jj = 0;
+                  }                  
+                }
                    
-                   if (i >= RX_LEAST_VALID_PATHWAY)
-		   {
-		     l = outcome_bimolecular(
-		        matching_rxns[0],i,(struct abstract_molecule*)m,
-		       (struct abstract_molecule*)g,
-		       k,g->orient,m->t+t_steps*smash->t,&(smash->loc)
-		       );
-		  
-		       if (l==RX_NO_MEM) { ERROR_AND_QUIT; }
-		       if (l==RX_FLIP)
-		       {
-		         if ((m->flags&COUNT_ME)!=0 && (sm->flags&w->flags&COUNT_SOME)!=0)
-		         {
-		           count_region_update(sm,w->counting_regions,k,1,rate_factor * w->effectors->binding_factor,&(smash->loc),smash->t);
-                           /* Need to update our position if we're counting so we don't get confused */
-		           m->pos.x = smash->loc.x;
-		           m->pos.y = smash->loc.y;
-		           m->pos.z = smash->loc.z;
-		           m->t += t_steps*smash->t;
-		           t_steps *= (1.0-smash->t);
-		         }
-		    
-		         continue; /* pass through */
-		       }
-		       else if (l==RX_DESTROY)
-		       {
-		         if ( (sm->flags & w->flags & COUNT_HITS)!=0 )
-		         {
-		           count_region_update(sm,w->counting_regions,k,0,rate_factor,&(smash->loc),smash->t);
-		         }
-		    
-		         CLEAN_AND_RETURN(NULL);
-		       } /* end if (l == ...) */
-		   } /* end if (i >= RX_LEAST_VALID_PATHWAY) */
-
-                }else{
-                   ll = test_many_bimolecular(matching_rxns, scaling_coef, num_matching_rxns);
-                   if(ll >= RX_LEAST_VALID_PATHWAY)
-                   {
-                     ii = (int)(ll & RX_GREATEST_VALID_PATHWAY);
-                     jj = (int)(ll >> RX_PATHWAY_BITS);
-                   }else{	
-                      ii = (int)ll;
-                      jj = 0;
-                   }
-
-                   if(ii >= RX_LEAST_VALID_PATHWAY)
-                   {
-		     l = outcome_bimolecular(
-		        matching_rxns[jj],ii,(struct abstract_molecule*)m,
-		       (struct abstract_molecule*)g,
-		       k,g->orient,m->t+t_steps*smash->t,&(smash->loc)
-		       );
-
-		       if (l==RX_NO_MEM) { ERROR_AND_QUIT; }
-		       if (l==RX_FLIP)
-		       {
-		         if ((m->flags&COUNT_ME)!=0 && (sm->flags&w->flags&COUNT_SOME)!=0)
-		         {
-		           count_region_update(sm,w->counting_regions,k,1,rate_factor * w->effectors->binding_factor,&(smash->loc),smash->t);
-		      
-                           /* Need to update our position if we're counting so we don't get confused */
-		           m->pos.x = smash->loc.x;
-		           m->pos.y = smash->loc.y;
-		           m->pos.z = smash->loc.z;
-		           m->t += t_steps*smash->t;
-		           t_steps *= (1.0-smash->t);
-		         }
-		    
-		         continue; /* pass through */
-		       }
-		       else if (l==RX_DESTROY)
-		       {
-		         if ( (sm->flags & w->flags & COUNT_HITS)!=0 )
-		         {
-		           count_region_update(sm,w->counting_regions,k,0,rate_factor,&(smash->loc),smash->t);
-		         }
-		    
-		         CLEAN_AND_RETURN(NULL);
-		       } /* end if (l == ...) */
-
-                   } /* end if (ii >= RX_LEAST_VALID_PATHWAY) */
-
-                } /* end if-else (num_matching_rxns ==1) */
+                if (ii >= RX_LEAST_VALID_PATHWAY)
+                {
+                  l=outcome_bimolecular(
+                      matching_rxns[jj],ii,(struct abstract_molecule*)m,
+                      (struct abstract_molecule*)g,
+                      k,g->orient,m->t+t_steps*smash->t,&(smash->loc),loc_certain
+                    );
                 
+                  if (l==RX_NO_MEM) { ERROR_AND_QUIT; }
+                  if (l==RX_FLIP)
+                  {
+                    if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME)!=0)
+                    {
+                      /* Count as far up as we can unambiguously */
+                      for ( ; tentative!=NULL && tentative->t<=t_confident ; tentative=tentative->next )
+                      {
+                        if (!(tentative->what&COLLIDE_WALL)) continue;
+                        if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME)) continue;
+                        loc_certain = &(tentative->loc);
+                        count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
+                                             ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
+                                             1 , rate_factor , loc_certain , tentative->t );
+                                             
+                      }
+                    }
+                
+                    continue; /* pass through */
+                  }
+                  else if (l==RX_DESTROY)
+                  {
+                    if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
+                    {
+                      /* Count the hits up until we were destroyed */
+                      for ( ; tentative!=NULL && tentative->t<=smash->t ; tentative=tentative->next )
+                      {
+                        if (!(tentative->what&COLLIDE_WALL)) continue;
+                        if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME)) continue;
+                        count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
+                                             ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
+                                             0 , rate_factor , &(tentative->loc) , tentative->t );
+                        if (tentative==smash) break;
+                      }
+                    }
+                
+                    CLEAN_AND_RETURN(NULL);
+                  } /* end if (l == ...) */
+                } /* end if (ii >= RX_LEAST_VALID_PATHWAY) */
 	      } /* end if (num_matching_rxns > 0) */
-                   
-	    } /* end if(m->index ...) */
-	    else m->index = -1; /* Avoided rebinding, but next time it's OK */
+	    }
+	    else /* Matched previous wall and index--don't rebind */
+            {
+              m->index = -1; /* Avoided rebinding, but next time it's OK */
+            }
 	  } /* end if(w->effectors->mol[j] ... ) */
 	} /* end if (w->effectors != NULL ... ) */
 	
@@ -3794,16 +3796,18 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	    if (rx->n_pathways == RX_TRANSP)
 	    {
 	      rx->n_occurred++;
-	      if ( (m->flags&COUNT_ME)!=0 && (sm->flags&w->flags&COUNT_SOME)!=0 )
+	      if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME)!=0 )
 	      {
-		count_region_update(sm,w->counting_regions,k,1,rate_factor,&(smash->loc),smash->t);
-
-		/* Need to update our position if we're counting so we don't get confused */
-		m->pos.x = smash->loc.x;
-		m->pos.y = smash->loc.y;
-		m->pos.z = smash->loc.z;
-		m->t += t_steps*smash->t;
-		t_steps *= (1.0-smash->t);
+                /* Count as far up as we can unambiguously */
+                for ( ; tentative!=NULL && tentative->t<=t_confident ; tentative=tentative->next )
+                {
+                  if (!(tentative->what&COLLIDE_WALL)) continue;
+                  if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME)) continue;
+                  loc_certain = &(tentative->loc);
+                  count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
+                                       ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
+                                       1 , rate_factor , loc_certain , tentative->t );
+                }
 	      }
 
 	      continue; /* Ignore this wall and keep going */
@@ -3816,30 +3820,43 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	      {
 		j = outcome_intersect(
 			rx,i,w,(struct abstract_molecule*)m,
-			k,m->t + t_steps*smash->t,&(smash->loc)
+			k,m->t + t_steps*smash->t,&(smash->loc),loc_certain
 		      );
 		      
 		if (j==RX_NO_MEM) { ERROR_AND_QUIT; } 
 		if (j==RX_FLIP)
 		{
-		  if ( (m->flags&COUNT_ME)!=0 && (sm->flags&w->flags&COUNT_SOME)!=0 )
+		  if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME)!=0 )
 		  {
-		    count_region_update(sm,w->counting_regions,k,1,rate_factor,&(smash->loc),smash->t);
-
-		    /* Need to update our position if we're counting so we don't get confused */
-		    m->pos.x = smash->loc.x;
-		    m->pos.y = smash->loc.y;
-		    m->pos.z = smash->loc.z;
-		    m->t += t_steps*smash->t;
-		    t_steps *= (1.0-smash->t);
+                    /* Count as far up as we can unambiguously */
+                    for ( ; tentative!=NULL && tentative->t<=t_confident ; tentative=tentative->next )
+                    {
+                      if (!(tentative->what&COLLIDE_WALL)) continue;
+                      if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME)) continue;
+                      loc_certain = &(tentative->loc);
+                      count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
+                                           ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
+                                           1 , rate_factor , loc_certain , tentative->t );
+                    }
 		  }
   
 		  continue; /* pass through */
 		}
 		else if (j==RX_DESTROY)
 		{
-		  if ( (sm->flags & w->flags & COUNT_HITS) )
-		    count_region_update(sm,w->counting_regions,k,0,rate_factor,&(smash->loc),smash->t);
+                  if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
+                  {
+                    /* Count the hits up until we were destroyed */
+                    for ( ; tentative!=NULL && tentative->t<=smash->t ; tentative=tentative->next )
+                    {
+                      if (!(tentative->what&COLLIDE_WALL)) continue;
+                      if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME)) continue;
+                      count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
+                                           ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
+                                           0 , rate_factor , &(tentative->loc) , tentative->t );
+                      if (tentative==smash) break;
+                    }
+                  }
   
 		  CLEAN_AND_RETURN(NULL);
 		}
@@ -3851,9 +3868,18 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	
         /* default is to reflect */
         
-	if ((m->flags&COUNT_ME)!=0 && (sm->flags&w->flags&COUNT_SOME)!=0)
+	if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME)!=0)
 	{
-	  count_region_update(sm,w->counting_regions,k,0,rate_factor,&(smash->loc),smash->t);
+          /* We reflected, so we hit but didn't cross things we tentatively hit earlier */
+          for ( ; tentative!=NULL && tentative->t<=smash->t ; tentative=tentative->next )
+          {
+            if (!(tentative->what&COLLIDE_WALL)) continue;
+            if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME)) continue;
+            count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
+                                 ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
+                                 0 , rate_factor , &(tentative->loc) , tentative->t );
+            if (tentative==smash) break;
+          }
 	}
 
 	m->pos.x = smash->loc.x;
@@ -3876,6 +3902,20 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       else if ((smash->what & COLLIDE_SUBVOL) != 0)
       {
         struct subvolume *nsv;
+        
+        if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME)!=0)
+        {
+          /* We're leaving the SV so we actually crossed everything we thought we might have crossed */
+          for ( ; tentative!=NULL && tentative!=smash ; tentative=tentative->next )
+          {
+            if (!(tentative->what&COLLIDE_WALL)) continue;
+            if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME)) continue;
+            count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
+                                 ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
+                                 1 , rate_factor * ((struct wall*)tentative->target)->effectors->binding_factor ,
+                                 &(tentative->loc) , tentative->t );
+          }
+        }
 
         m->pos.x = smash->loc.x;
         m->pos.y = smash->loc.y;
@@ -4169,19 +4209,19 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
       k = outcome_bimolecular(
          rxn_array[j],i,
          (struct abstract_molecule*)g,(struct abstract_molecule*)gm[0],
-         g->orient,gm[0]->orient,g->t,NULL
+         g->orient,gm[0]->orient,g->t,NULL,NULL
       );
    }else if(j < matches[0] + matches[1]){
       k = outcome_bimolecular(
          rxn_array[j],i,
          (struct abstract_molecule*)g,(struct abstract_molecule*)gm[1],
-         g->orient,gm[1]->orient,g->t,NULL
+         g->orient,gm[1]->orient,g->t,NULL,NULL
       );
    }else{
       k = outcome_bimolecular(
          rxn_array[j],i,
          (struct abstract_molecule*)g,(struct abstract_molecule*)gm[2],
-         g->orient,gm[2]->orient,g->t,NULL
+         g->orient,gm[2]->orient,g->t,NULL,NULL
       );
    }
 

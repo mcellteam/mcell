@@ -36,9 +36,11 @@ int outcome_unimolecular(struct rxn *rx,int path,
   struct abstract_molecule *reac,double t);
 int outcome_bimolecular(struct rxn *rx,int path,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,
-  short orientA,short orientB,double t,struct vector3 *hitpt);
+  short orientA,short orientB,double t,struct vector3 *hitpt,
+  struct vector3 *loc_okay);
 int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
-  struct abstract_molecule *reac,short orient,double t,struct vector3 *hitpt);
+  struct abstract_molecule *reac,short orient,double t,struct vector3 *hitpt,
+  struct vector3 *loc_okay);
 int reaction_wizardry(struct magic_list *incantation,struct wall *surface,struct vector3 *hitpt,double t);
 
 #endif

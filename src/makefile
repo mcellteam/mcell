@@ -101,7 +101,7 @@ vol_util.o: makedefs vol_util.c vol_util.h count_util.h rng.h react.h rng.h mcel
 react_trig.o: makedefs react_trig.c react.h rng.h mcell_structs.h
 	$(CC) $(CFLAGS) -c react_trig.c
 
-react_cond.o: makedefs react_cond.c react.h rng.h mcell_structs.h
+react_cond.o: makedefs react_cond.c react.h rng.h mcell_structs.h react_output.h
 	$(CC) $(CFLAGS) -c react_cond.c
 
 react_outc.o: makedefs react_outc.c react.h rng.h mcell_structs.h util.h

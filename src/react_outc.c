@@ -558,7 +558,8 @@ outcome_bimolecular:
 
 int outcome_bimolecular(struct rxn *rx,int path,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,
-  short orientA,short orientB,double t,struct vector3 *hitpt)
+  short orientA,short orientB,double t,struct vector3 *hitpt,
+  struct vector3 *loc_okay)
 {
   struct grid_molecule *g = NULL;
   struct molecule *m = NULL;
@@ -696,9 +697,10 @@ int outcome_bimolecular(struct rxn *rx,int path,
 	m = (struct molecule*)reacA;
 	
 	/* Halfway in between where we were and where we react should be a safe away-from-wall place to remove us */
-	fake_hitpt.x = 0.5*hitpt->x + 0.5*m->pos.x;
-	fake_hitpt.y = 0.5*hitpt->y + 0.5*m->pos.y;
-	fake_hitpt.z = 0.5*hitpt->z + 0.5*m->pos.z;
+        if (loc_okay==NULL) loc_okay=&(m->pos);
+	fake_hitpt.x = 0.5*hitpt->x + 0.5*loc_okay->x;
+	fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
+	fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 	
 	i=count_region_from_scratch(reacA,NULL,-1,&fake_hitpt,NULL,t);
       }
@@ -735,7 +737,8 @@ outcome_intersect:
 *************************************************************************/
 
 int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
-  struct abstract_molecule *reac,short orient,double t,struct vector3 *hitpt)
+  struct abstract_molecule *reac,short orient,double t,struct vector3 *hitpt,
+  struct vector3 *loc_okay)
 {
   int result,index,i;
   
@@ -769,9 +772,10 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
 	  struct vector3 fake_hitpt;
 	  
 	  /* Halfway in between where we were and where we react should be a safe away-from-wall place to remove us */
-	  fake_hitpt.x = 0.5*hitpt->x + 0.5*m->pos.x;
-	  fake_hitpt.y = 0.5*hitpt->y + 0.5*m->pos.y;
-	  fake_hitpt.z = 0.5*hitpt->z + 0.5*m->pos.z;
+          if (loc_okay==NULL) loc_okay=&(m->pos);
+	  fake_hitpt.x = 0.5*hitpt->x + 0.5*loc_okay->x;
+	  fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
+	  fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 	  
 	  i=count_region_from_scratch(reac,NULL,-1,&fake_hitpt,NULL,t);
 	}

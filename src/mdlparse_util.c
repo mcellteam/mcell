@@ -1222,6 +1222,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         {
           if (reaction->n_reactants>1)
           {
+            /* Put surface last */
             if ((path->reactant1->flags & IS_SURFACE) != 0)
             {
               temp_sp = path->reactant1;
@@ -1243,16 +1244,18 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 path->orientation2 = geom;
               }
             }
-            if(strcmp(path->reactant1->sym->name, path->reactant2->sym->name) > 0){
-                temp_sp = path->reactant1;
-                path->reactant1 = path->reactant2;
-                path->reactant2 = temp_sp;
-                geom = path->orientation1;
-                path->orientation1 = path->orientation2;
-                path->orientation2 = geom;
-                
+            
+            /* Alphabetize if we have two molecules */
+            if( (path->reactant2->flags&IS_SURFACE)==0 &&
+                 strcmp(path->reactant1->sym->name, path->reactant2->sym->name) > 0)
+            {
+              temp_sp = path->reactant1;
+              path->reactant1 = path->reactant2;
+              path->reactant2 = temp_sp;
+              geom = path->orientation1;
+              path->orientation1 = path->orientation2;
+              path->orientation2 = geom;
             }
-
           } /* end if(n_reactants > 1) */
         }  /* end for(path = reaction->pathway_head; ...) */
            

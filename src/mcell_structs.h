@@ -1315,6 +1315,7 @@ struct notifications
   byte progress_report;
   byte diffusion_constants;
   byte reaction_probabilities;
+  byte time_varying_reactions;
   double reaction_prob_notify;
   byte partition_location;
   byte box_triangulation;

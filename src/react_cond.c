@@ -8,9 +8,11 @@
 
 
 #include <math.h>
+#include <stdlib.h>
 
 #include "rng.h"
 #include "mcell_structs.h"
+#include "react_output.h"
 
 extern struct volume *world;
 
@@ -340,6 +342,7 @@ void check_probs(struct rxn *rx,double t)
   double dprob;
   struct t_func *tv;
   int did_something = 0;
+  double new_prob;
   
   for ( tv = rx->prob_t ; tv!= NULL && tv->time < t ; tv = tv->next )
   {
@@ -349,45 +352,85 @@ void check_probs(struct rxn *rx,double t)
 
     for (k = tv->path ; k < rx->n_pathways ; k++) rx->cum_probs[k] += dprob;
     did_something++;
-  }
-  
-  rx->prob_t = tv;
+    
+    /* Changing probabilities is easy.  Now lots of logic to notify user, or not. */
+    if (world->notify->time_varying_reactions==NOTIFY_FULL && rx->cum_probs[j]>=world->notify->reaction_prob_notify)
+    {
+      if (j==0) new_prob = rx->cum_probs[0];
+      else new_prob=rx->cum_probs[j]-rx->cum_probs[j-1];
+      
+      if (rx->n_reactants==1)
+      {
+        fprintf(world->log_file, "Probability %.4e set for %s[%d] -> ",new_prob,
+            rx->players[0]->sym->name,rx->geometries[0]);
+      }
+      else if(rx->n_reactants==2)
+      {
+        fprintf(world->log_file, "Probability %.4e set for %s[%d] + %s[%d] -> ",new_prob,
+            rx->players[0]->sym->name,rx->geometries[0],rx->players[1]->sym->name,rx->geometries[1]);
+      }
+      else
+      {
+        fprintf(world->log_file, "Probability %.4e set for %s[%d] + %s[%d] + %s[%d] -> ",new_prob,
+            rx->players[0]->sym->name,rx->geometries[0],rx->players[1]->sym->name,rx->geometries[1],
+            rx->players[2]->sym->name,rx->geometries[2]);
+      }
        
-  if (!did_something) return;
-  
-
-  for(j = rx->prob_t->path; j < rx->n_pathways; j++)
-  {
-
-     if (rx->n_reactants==1)
-     {
-       fprintf(world->log_file, "Probability %.4e set for %s[%d] -> ",rx->cum_probs[j],
-           rx->players[0]->sym->name,rx->geometries[0]);
-     }else if(rx->n_reactants==2){
-       fprintf(world->log_file, "Probability %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_probs[j],
-           rx->players[0]->sym->name,rx->geometries[0],
-           rx->players[1]->sym->name,rx->geometries[1]);
-     }
-     else
-     {
-       fprintf(world->log_file, "Probability %.4e (s) set for %s[%d] + %s[%d] + %s[%d] -> ",rx->cum_probs[0], rx->players[0]->sym->name,rx->geometries[0],
-           rx->players[1]->sym->name,rx->geometries[1],
-           rx->players[2]->sym->name,rx->geometries[2]);
-
-     }
-     
       for (k = rx->product_idx[j] ; k < rx->product_idx[j+1] ; k++)
       {
          if (rx->players[k]==NULL) printf("NIL ");
          else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
       }
       printf("\n");
+    }
+  }
+  
+  rx->prob_t = tv;
+       
+  if (!did_something) return;
+  
+  /* Now we have to see if we need to warn the user. */
+  if (rx->cum_probs[rx->n_pathways-1] > world->notify->reaction_prob_warn)
+  {
+    FILE *warn_file = world->log_file;
+    
+    if (world->notify->high_reaction_prob != WARN_COPE)
+    {
+      if (world->notify->high_reaction_prob==WARN_ERROR)
+      {
+        warn_file = world->err_file;
+        fprintf(warn_file,"Error: High ");
+      }
+      else fprintf(warn_file,"Warning: High ");
 
-
-  } /* end for */
+      if (rx->n_reactants==1)
+      {
+        fprintf(warn_file, "total probability %.4e for %s[%d] -> ...\n",rx->cum_probs[rx->n_pathways-1],
+            rx->players[0]->sym->name,rx->geometries[0]);
+      }
+      else if(rx->n_reactants==2)
+      {
+        fprintf(warn_file, "total probability %.4e for %s[%d] + %s[%d] -> ...\n",rx->cum_probs[rx->n_pathways-1],
+            rx->players[0]->sym->name,rx->geometries[0],rx->players[1]->sym->name,rx->geometries[1]);
+      }
+      else
+      {
+        fprintf(warn_file, "total probability %.4e for %s[%d] + %s[%d] + %s[%d] -> ...\n",rx->cum_probs[rx->n_pathways-1],
+            rx->players[0]->sym->name,rx->geometries[0],rx->players[1]->sym->name,rx->geometries[1],
+            rx->players[2]->sym->name,rx->geometries[2]);
+      }
+    }
+    
+    if (world->notify->high_reaction_prob==WARN_ERROR)
+    {
+      j = emergency_output();
+      if (!j) fprintf(world->err_file,"Successfully wrote reaction data output.\n");
+      else fprintf(world->err_file,"Failed to write all pending reaction data output (%d errors).\n",j);
+      exit(EXIT_FAILURE);
+    }
+  }
 
   return;
-
 }
 
 

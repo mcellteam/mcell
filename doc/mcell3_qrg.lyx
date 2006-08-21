@@ -1258,7 +1258,7 @@ OFF
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="12" columns="2">
+<lyxtabular version="3" rows="13" columns="2">
 <features islongtable="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="left" valignment="top" leftline="true" rightline="true" width="4in">
@@ -1613,6 +1613,46 @@ p
 
 
 \family typewriter 
+VARYING_PROBABILITY_REPORT = 
+\family sans 
+\shape italic 
+policy
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+If 
+\family sans 
+\shape italic 
+policy
+\family default 
+\shape default 
+ is 
+\family typewriter 
+ON
+\family default 
+, MCell3 will print out the reaction probabilities when a time-varying reaction
+ updates its reaction rate (regardless of the old or new probability).
+ Default is 
+\family typewriter 
+ON
+\family default 
+.
+ 
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
 PROGRESS_REPORT = 
 \family sans 
 \shape italic 
@@ -1825,6 +1865,8 @@ Generate warnings or errors if reaction probabilities exceed a certain threshold
 IGNORED
 \family default 
 .
+ The warnings or errors will be generated both at parse time and during
+ runtime if there are time varying reaction rates that exceed the threshold.
 \end_inset 
 </cell>
 </row>

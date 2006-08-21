@@ -123,6 +123,7 @@ int init_notifications()
   world->notify->progress_report = NOTIFY_FULL;
   world->notify->diffusion_constants = NOTIFY_BRIEF;
   world->notify->reaction_probabilities = NOTIFY_FULL;
+  world->notify->time_varying_reactions = NOTIFY_FULL;
   world->notify->reaction_prob_notify = 0.0;
   world->notify->partition_location = NOTIFY_NONE;
   world->notify->box_triangulation = NOTIFY_NONE;

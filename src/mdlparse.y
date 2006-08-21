@@ -148,7 +148,7 @@ struct release_evaluator *rev;
 %token <tok> DEGENERATE_POLYGONS
 %token <tok> DELAY
 %token <tok> DENSITY
-%token <tok> DIFFUSION_CONSTANT_REPORTS
+%token <tok> DIFFUSION_CONSTANT_REPORT
 %token <tok> DX
 %token <tok> DREAMM_V3
 %token <tok> DREAMM_V3_GROUPED
@@ -356,6 +356,7 @@ struct release_evaluator *rev;
 %token <tok> USELESS_VOLUME_ORIENTATION
 %token <tok> VAR
 %token <tok> VACANCY_SEARCH_DISTANCE
+%token <tok> VARYING_PROBABILITY_REPORT
 %token <tok> VERTEX_LIST
 %token <tok> VIZ_DATA_OUTPUT
 %token <tok> VIZ_OUTPUT
@@ -745,6 +746,7 @@ notification_item_def:
   mdlpvp->vol->notify->progress_report = notify_value;
   mdlpvp->vol->notify->diffusion_constants = notify_value;
   mdlpvp->vol->notify->reaction_probabilities = notify_value;
+  mdlpvp->vol->notify->time_varying_reactions = notify_value;
   mdlpvp->vol->notify->partition_location = notify_value;
   mdlpvp->vol->notify->box_triangulation = notify_value;
   mdlpvp->vol->notify->custom_iterations = notify_value;
@@ -757,7 +759,7 @@ notification_item_def:
   if ($<tok>3==1) mdlpvp->vol->notify->progress_report = NOTIFY_FULL;
   else mdlpvp->vol->notify->progress_report = NOTIFY_NONE;
 }
-        | DIFFUSION_CONSTANT_REPORTS '=' notify_level
+        | DIFFUSION_CONSTANT_REPORT '=' notify_level
 {
   mdlpvp->vol->notify->diffusion_constants = $<tok>3;
 }
@@ -765,6 +767,11 @@ notification_item_def:
 {
   if ($<tok>3==1) mdlpvp->vol->notify->reaction_probabilities = NOTIFY_FULL;
   else mdlpvp->vol->notify->reaction_probabilities = NOTIFY_NONE;
+}
+        | VARYING_PROBABILITY_REPORT '=' boolean
+{
+  if ($<tok>3==1) mdlpvp->vol->notify->time_varying_reactions = NOTIFY_FULL;
+  else mdlpvp->vol->notify->time_varying_reactions = NOTIFY_NONE;
 }
         | PROBABILITY_REPORT_THRESHOLD '=' num_expr
 {
