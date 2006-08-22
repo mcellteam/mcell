@@ -350,6 +350,192 @@ refine_edge_pairs:
 
 void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
 {
+#define TSWAP(x,y) temp=(x); (x)=(y); (y)=temp
+  struct poly_edge *p1,*p2,*best_p1,*best_p2;
+  int n1,n2,best_n1,best_n2;
+  double align,best_align;
+  int wA,wB,eA,eB;
+  int temp;
+
+  best_align = 2;
+  best_p1 = best_p2 = p;
+  best_n1 = 1;
+  best_n2 = 2;
+
+  p1 = p;
+  n1 = 1;
+  while (p1 != NULL && p1->n >= n1)
+  {
+    if (n1==1)
+    {
+      wA = p1->face1;
+      eA = p1->edge1;
+    }
+    else
+    {
+      wA = p1->face2;
+      eA = p1->edge2;
+    }
+
+    if (n1==1)
+    {
+      n2 = n1+1;
+      p2 = p1;
+    }
+    else
+    {
+      n2 = 1;
+      p2 = p1->next;
+    }
+    while (p2 != NULL && p2->n >= n2)
+    {
+      if (n2==1)
+      {
+        wB = p2->face1;
+        eB = p2->edge1;
+      }
+      else
+      {
+        wB = p2->face2;
+        eB = p2->edge2;
+      }
+
+      if (compatible_edges(faces,wA,eA,wB,eB))
+      {
+        align = faces[wA]->normal.x * faces[wB]->normal.x +
+                faces[wA]->normal.y * faces[wB]->normal.y +
+                faces[wA]->normal.z * faces[wB]->normal.z;
+
+        if (align < best_align)
+        {
+          best_p1 = p1;
+          best_p2 = p2;
+          best_n1 = n1;
+          best_n2 = n2;
+          best_align = align;
+        }
+      }
+
+      if (n2==1) n2++;
+      else
+      {
+        p2=p2->next;
+        n2=1;
+      }
+    }
+
+    if (n1==1) n1++;
+    else
+    {
+      p1=p1->next;
+      n1=1;
+    }
+  }
+
+  /* Now lots of boring logic to swap the values into the right spots.  Yawn. */
+
+  if (best_align > 1.0) return;  /* No good pairs. */
+
+  if (best_p1 == best_p2)
+  {
+    if (best_p1==p) return;  /* Best pair is already first */
+
+    TSWAP(best_p1->face1,p->face1);
+    TSWAP(best_p1->face2,p->face2);
+    TSWAP(best_p1->edge1,p->edge1);
+    TSWAP(best_p1->edge2,p->edge2);
+
+    return;
+  }
+
+  if (best_p1==p)
+  {
+    if (best_n1==1)
+    {
+      if (best_n2==1)
+      {
+        TSWAP(best_p2->face1,p->face2);
+        TSWAP(best_p2->edge1,p->edge2);
+      }
+      else
+      {
+        TSWAP(best_p2->face2,p->face2);
+        TSWAP(best_p2->edge2,p->edge2);
+      }
+    }
+    else
+    {
+      if (best_n2==1)
+      {
+        TSWAP(best_p2->face1,p->face1);
+        TSWAP(best_p2->edge1,p->edge1);
+      }
+      else
+      {
+        TSWAP(best_p2->face2,p->face1);
+        TSWAP(best_p2->edge2,p->edge1);
+      }
+    }
+  }
+  else if (best_p2==p)
+  {
+    if (best_n1==1)
+    {
+      if (best_n2==1)
+      {
+        TSWAP(best_p1->face1,p->face2);
+        TSWAP(best_p1->edge1,p->edge2);
+      }
+      else
+      {
+        TSWAP(best_p1->face2,p->face2);
+        TSWAP(best_p1->edge2,p->edge2);
+      }
+    }
+    else
+    {
+      if (best_n2==1)
+      {
+        TSWAP(best_p1->face1,p->face1);
+        TSWAP(best_p1->edge1,p->edge1);
+      }
+      else
+      {
+        TSWAP(best_p1->face2,p->face1);
+        TSWAP(best_p1->edge2,p->edge1);
+      }
+    }
+  }
+  else
+  {
+    if (best_n1==1)
+    {
+      TSWAP(best_p1->face1,p->face1);
+      TSWAP(best_p1->edge1,p->edge1);
+    }
+    else
+    {
+      TSWAP(best_p1->face2,p->face1);
+      TSWAP(best_p1->edge2,p->edge1);
+    }
+    if (best_n2==1)
+    {
+      TSWAP(best_p2->face1,p->face2);
+      TSWAP(best_p2->edge1,p->edge2);
+    }
+    else
+    {
+      TSWAP(best_p2->face2,p->face2);
+      TSWAP(best_p2->edge2,p->edge2);
+    }
+  }
+#undef TSWAP
+}
+
+
+#if 0
+void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
+{
   FILE *log_file;
   log_file = world->log_file;
   int count = 0; /* length of the linked_list of edges */
@@ -483,6 +669,7 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
   free (aligns);
 
 }
+#endif /* if 0 */
 
 
 /***************************************************************************
@@ -558,10 +745,8 @@ int surface_net( struct wall **facelist, int nfaces )
           	facelist[pep->face1]->nb_walls[pep->edge1] = facelist[pep->face2];
           	facelist[pep->face2]->nb_walls[pep->edge2] = facelist[pep->face1];
           	e = (struct edge*) mem_get( facelist[pep->face1]->birthplace->join );
-          	if (e==NULL) {
-			fprintf(stderr, "File '%s', Line %ld: Out of memory while connecting walls along shared edge.\n", __FILE__, (long)__LINE__);
-                	return 1;
-          	} 
+          	if (e==NULL) return 1;
+
           	e->forward = facelist[pep->face1];
           	e->backward = facelist[pep->face2];
           	init_edge_transform(e,pep->edge1);
@@ -577,10 +762,8 @@ int surface_net( struct wall **facelist, int nfaces )
       {
         is_closed = 0;
         e = (struct edge*) mem_get( facelist[pep->face1]->birthplace->join );
-        if (e==NULL) { 
-	  fprintf(stderr, "File '%s', Line %ld: Out of memory while connecting walls along shared edge.\n", __FILE__, (long)__LINE__);
-          return 1;
-        }
+        if (e==NULL) return 1;
+
         e->forward = facelist[pep->face1];
         e->backward = NULL;
         /* Don't call init_edge_transform unless both edges are set */
@@ -692,7 +875,6 @@ void init_edge_transform(struct edge *e,int edgenum)
 /***************************************************************************
 sharpen_object:
   In: pointer to an object
-      pointer to storage for edges
   Out: 0 on success, 1 on failure.
        Adds edges to the object and all its children.
 ***************************************************************************/
@@ -705,7 +887,12 @@ int sharpen_object(struct object *parent)
   if (parent->object_type == POLY_OBJ || parent->object_type == BOX_OBJ)
   {
     i = surface_net(parent->wall_p , parent->n_walls);
-    if (i==1) return 1;
+    if (i==1)
+    {
+      fprintf(world->err_file, "File '%s', Line %ld: Out of memory while connecting walls along shared edges in object %s.\n",
+              __FILE__, (long)__LINE__, parent->sym->name);
+      return 1;
+    }
   }
   else if (parent->object_type == META_OBJ)
   {
@@ -721,8 +908,8 @@ int sharpen_object(struct object *parent)
 
 /***************************************************************************
 sharpen_world:
-  In: nothing.  Assumes there are polygon objects in the world in their
-      correct memory locations.
+  In: nothing.  Assumes if there are polygon objects then they have been 
+      initialized and placed in the world in their correct memory locations.
   Out: 0 on success, 1 on failure.  Adds edges to every object.
 ***************************************************************************/
 
@@ -750,7 +937,8 @@ closest_interior_point:
       a wall
       the surface coordinates of the closest interior point on the wall
       how far away the point can be before we give up
-  Out: return the distance between the input point and closest point.
+  Out: return the distance^2 between the input point and closest point.
+       Sets closest interior point.
   Note: the search distance currently isn't used.  This function is just
         a wrapper for closest_pt_point_triangle.  If the closest point is
 	on an edge or corner, we scoot the point towards the centroid of
@@ -766,7 +954,8 @@ double closest_interior_point(struct vector3 *pt,struct wall *w,struct vector2 *
   xyz2uv(&v,w,ip);
   
   /* Check to see if we're lying on an edge; if so, scoot towards centroid. */
-  
+  /* ip lies on edge of wall if cross products are zero */
+
   a1 = ip->u*w->uv_vert2.v-ip->v*w->uv_vert2.u;
   a2 = w->uv_vert1_u*ip->v;
   while (!distinguishable(ip->v,0,EPS_C) ||
@@ -780,7 +969,7 @@ double closest_interior_point(struct vector3 *pt,struct wall *w,struct vector2 *
     a1 = ip->u*w->uv_vert2.v-ip->v*w->uv_vert2.u;
     a2 = w->uv_vert1_u*ip->v;
   }
-  return (v.x-pt->x)*(v.x-pt->x) + (v.y-pt->y)*(v.y-pt->y) +(v.z-pt->z)*(v.z-pt->z);
+  return (v.x-pt->x)*(v.x-pt->x) + (v.y-pt->y)*(v.y-pt->y) + (v.z-pt->z)*(v.z-pt->z);
 }
 
 
@@ -789,8 +978,8 @@ find_edge_point:
   In: a wall
       a point in the coordinate system of that wall where we are now
          (assumed to be on or inside triangle)
-      a displacement vector to move
-      a place to store the coordinate of the edge, if we hit it
+      a 2D displacement vector to move
+      a place to store the coordinate on the edge, if we hit it
   Out: index of the edge we hit (0, 1, or 2), or -1 if the new location
        is within the wall, or -2 if we can't tell.  If the result is
        0, 1, or 2, edgept is set to the new location.
@@ -867,8 +1056,9 @@ int find_edge_point(struct wall *here,struct vector2 *loc,struct vector2 *disp,s
     }
   }
   
-  return -2;  /* Couldn't tell whether we hit or not--pick another number */
+  return -2;  /* Couldn't tell whether we hit or not--calling function should pick another displacement */
 }
+
 
 /***************************************************************************
 traverse_surface:
@@ -876,8 +1066,8 @@ traverse_surface:
       a point in the coordinate system of that wall
       which edge to travel off of
       a vector to set for the new wall
-  Out: NULL if the edge is bare, or a pointer to the wall in that direction
-       if not.  newloc is set to loc in the coordinate system of the new
+  Out: NULL if the edge is not shared, or a pointer to the wall in that direction
+       if it is shared.  newloc is set to loc in the coordinate system of the new
        wall (after flattening the walls along their shared edge)
 ***************************************************************************/
 
@@ -893,11 +1083,14 @@ struct wall* traverse_surface(struct wall *here,struct vector2 *loc,int which,st
   
   if (e->forward == here)
   {
+    /* Apply forward transform to loc */
     there = e->backward;
     
+    /* rotation */
     u =  e->cos_theta*loc->u + e->sin_theta*loc->v;
     v = -e->sin_theta*loc->u + e->cos_theta*loc->v;
     
+    /* translation */
     newloc->u = u + e->translate.u;
     newloc->v = v + e->translate.v;
 
@@ -905,11 +1098,14 @@ struct wall* traverse_surface(struct wall *here,struct vector2 *loc,int which,st
   }
   else
   {
+    /* Apply inverse transform to loc */
     there = e->forward;
     
+    /* inverse translation */
     u = loc->u - e->translate.u;
     v = loc->v - e->translate.v;
     
+    /* inverse rotation */
     newloc->u =  e->cos_theta*u - e->sin_theta*v;
     newloc->v =  e->sin_theta*u + e->cos_theta*v;
     
@@ -936,7 +1132,7 @@ int is_manifold(struct region *r)
   wall_array = r->parent->wall_p;
   for (i=0;i<r->parent->n_walls;i++)
   {
-    if (!get_bit(r->membership,i)) continue;  /* Skip removed wall */
+    if (!get_bit(r->membership,i)) continue;  /* Skip wall not in region */
     w = wall_array[i];
     for (j=0;j<2;j++)
     {
