@@ -5867,8 +5867,8 @@ rxn:
   }
  
   /* Copy catalyst to products */ 
-           /*
-  if (mdlpvp->pathp->reactant3!=NULL) 
+          //////////////////////////////////////////////////////////// 
+  if ((mdlpvp->pathp->reactant3!=NULL) && (mdlpvp->pathp->reactant2 == NULL))
   {
     mdlpvp->prodp = (struct product*)mem_get(mdlpvp->prod_mem);
     if (mdlpvp->prodp==NULL)
@@ -5891,7 +5891,7 @@ rxn:
       mdlpvp->pathp->orientation3 = 0;
     }
   }
-             */
+            ///////////////////////////////////////////////////
 }
 	list_products rx_rate_syntax new_rxn_pathname
 {
