@@ -141,7 +141,7 @@ int void_array_search(void **array,int n,void *to_find);
 
 int poisson_dist(double lambda,double p);
 
-unsigned char * byte_swap(unsigned char *b);
+void byte_swap(void *data, int size);
 
 /* This function analyzes the string and checks
    whether the string contains wildcards (*, ?,[,]).

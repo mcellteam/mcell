@@ -254,8 +254,7 @@ Out: Reads current real time (in the terms of sec) from the checkpoint file.
 ***************************************************************************/
 int read_current_real_time(FILE *fs)
 {
-  double tmp1, tmp2;
-  unsigned char *byte_array = NULL; /*pointer to the byte array */
+  double tmp1;
 
   if (!fread(&(tmp1),sizeof(tmp1),1,fs)) {
     fprintf(stderr,"File '%s', Line %ld: read_current_time error.\n", __FILE__, (long)__LINE__);
@@ -265,17 +264,9 @@ int read_current_real_time(FILE *fs)
   if(world->chkpt_byte_order_mismatch == 1)
   {
      /* we need to swap bytes here. */
-     byte_array = byte_swap((unsigned char *)&tmp1);
-     if(byte_array == NULL) {
-    	fprintf(stderr,"File '%s', Line %ld: read_current_time error.\n", __FILE__, (long)__LINE__);
-    	return(1);
-     }
-     tmp2 = *(double *)byte_array;
-     world->current_start_real_time = tmp2;
-
-  }else{
-     world->current_start_real_time = tmp1;
+     byte_swap(&tmp1, sizeof(tmp1));
   }
+  world->current_start_real_time = tmp1;
   io_bytes+=sizeof (world->current_start_real_time);
 /*
   fprintf(stderr,"read_current_real_time io_bytes = %d\n",io_bytes);
@@ -348,9 +339,8 @@ Out: Reads current iteration number from the checkpoint file.
 ***************************************************************************/
 int read_current_iteration(FILE *fs)
 {
-  long long tmp1, tmp2;
-  double tmp3, tmp4;
-  unsigned char *byte_array = NULL;
+  long long tmp1;
+  double tmp3;
 
 
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
@@ -361,19 +351,11 @@ int read_current_iteration(FILE *fs)
   if(world->chkpt_byte_order_mismatch == 1)
   {
      /* we need to swap bytes here. */
-     byte_array = byte_swap((unsigned char *)&tmp1);
-     if(byte_array == NULL) {
-    	fprintf(stderr,"File '%s', Line %ld: read_current_iteration error.\n", __FILE__, (long)__LINE__);
-    	return(1);
-     }
-     tmp2 = *(long long *)byte_array;
-     world->start_time = tmp2;
-  }else{
-     world->start_time = tmp1;
+     byte_swap(&tmp1, sizeof(tmp1));
   }
+  world->start_time = tmp1;
   io_bytes+=sizeof (world->start_time);
 
-  byte_array = NULL;
   if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
     fprintf(stderr,"File '%s', Line %ld: read_current_iteration error.\n", __FILE__, (long)__LINE__);
     return(1);
@@ -381,17 +363,9 @@ int read_current_iteration(FILE *fs)
   if(world->chkpt_byte_order_mismatch == 1)
   {
      /* we need to swap bytes here. */
-     byte_array = byte_swap((unsigned char *)&tmp3);
-     if(byte_array == NULL) {
-    	fprintf(stderr,"File '%s', Line %ld: read_current_iteration error.\n", __FILE__, (long)__LINE__);
-    	return(1);
-     }
-     tmp4 = *(double *)byte_array;
-     world->chkpt_elapsed_real_time_start = tmp4;
-  }else{
-     world->chkpt_elapsed_real_time_start = tmp3;
+     byte_swap(&tmp3, sizeof(tmp3));
   }
-
+  world->chkpt_elapsed_real_time_start = tmp3;
   io_bytes+=sizeof (world->chkpt_elapsed_real_time_start);
   world->chkpt_elapsed_real_time=world->chkpt_elapsed_real_time_start;
 /*
@@ -440,8 +414,7 @@ Out: Reads checkpoint sequence number from the checkpoint file.
 ***************************************************************************/
 int read_chkpt_seq_num(FILE *fs)
 {
-   u_int tmp1, tmp2;
-   unsigned char *byte_array = NULL;
+   u_int tmp1;
 
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
     fprintf(stderr,"File '%s', Line %ld: read_chkpt_seq_number error.\n", __FILE__, (long)__LINE__);
@@ -450,16 +423,10 @@ int read_chkpt_seq_num(FILE *fs)
   if(world->chkpt_byte_order_mismatch == 1)
   {
      /* we need to swap bytes here. */
-     byte_array = byte_swap((unsigned char *)&tmp1);
-     if(byte_array == NULL) {
-    	fprintf(stderr,"File '%s', Line %ld: read_chkpt_seq_number error.\n", __FILE__, (long)__LINE__);
-    	return(1);
-     }
-     tmp2 = *(u_int *)byte_array;
-     world->chkpt_seq_num = tmp2;
-  }else{
-     world->chkpt_seq_num = tmp1;
+     byte_swap(&tmp1, sizeof(tmp1));
   }
+  world->chkpt_seq_num = tmp1;
+  
 
   io_bytes+=sizeof (world->chkpt_seq_num);
   world->chkpt_seq_num++;
@@ -549,9 +516,8 @@ Out: Reads random number generator state from the checkpoint file.
 int read_rng_state(FILE *fs)
 {
    
-   int tmp1, tmp2, i;
-   ub8 tmp3, tmp4;
-   unsigned char *byte_array = NULL;
+   int tmp1,i;
+   ub8 tmp3;
 
 
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
@@ -561,19 +527,12 @@ int read_rng_state(FILE *fs)
   if(world->chkpt_byte_order_mismatch == 1)
   {
      /* we need to swap bytes here. */
-     byte_array = byte_swap((unsigned char *)&tmp1);
-     if(byte_array == NULL) {
-    	fprintf(stderr,"File '%s', Line %ld: read_rng_state.\n", __FILE__, (long)__LINE__);
-    	return(1);
-     }
-     tmp2 = *(int *)byte_array;
-     world->rng->randcnt = tmp2;
-  }else{
-     world->rng->randcnt = tmp1;
+     byte_swap(&tmp1, sizeof(tmp1));
   }
+  world->rng->randcnt = tmp1;
+  
   io_bytes+=sizeof (world->rng->randcnt);
   
-  byte_array = NULL;
   if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
     fprintf(stderr,"File '%s', Line %ld: read_rng_state error.\n", __FILE__, (long)__LINE__);
     return(1);
@@ -581,19 +540,12 @@ int read_rng_state(FILE *fs)
   if(world->chkpt_byte_order_mismatch == 1)
   {
      /* we need to swap bytes here. */
-     byte_array = byte_swap((unsigned char *)&tmp3);
-     if(byte_array == NULL) {
-    	fprintf(stderr,"File '%s', Line %ld: read_rng_state error.\n", __FILE__, (long)__LINE__);
-    	return(1);
-     }
-     tmp4 = *(ub8 *)byte_array;
-     world->rng->aa = tmp4;
-  }else{
-     world->rng->aa = tmp3;
+     byte_swap(&tmp3, sizeof(tmp3));
   }
+  world->rng->aa = tmp3;
+  
   io_bytes+=sizeof (world->rng->aa);
 
-  byte_array = NULL;
   if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
     fprintf(stderr,"File '%s', Line %ld: read_rng_state error.\n", __FILE__, (long)__LINE__);
     return(1);
@@ -601,19 +553,11 @@ int read_rng_state(FILE *fs)
   if(world->chkpt_byte_order_mismatch == 1)
   {
      /* we need to swap bytes here. */
-     byte_array = byte_swap((unsigned char *)&tmp3);
-     if(byte_array == NULL) {
-    	fprintf(stderr,"File '%s', Line %ld: read_rng_state error.\n", __FILE__, (long)__LINE__);
-    	return(1);
-     }
-     tmp4 = *(ub8 *)byte_array;
-     world->rng->bb = tmp4;
-  }else{
-     world->rng->bb = tmp3;
+     byte_swap(&tmp3, sizeof(tmp3));
   }
+  world->rng->bb = tmp3;
   io_bytes+=sizeof (world->rng->bb);
 
-  byte_array = NULL;
   if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
     fprintf(stderr,"File '%s', Line %ld: read_rng_state error.\n", __FILE__, (long)__LINE__);
     return(1);
@@ -621,19 +565,12 @@ int read_rng_state(FILE *fs)
   if(world->chkpt_byte_order_mismatch == 1)
   {
      /* we need to swap bytes here. */
-     byte_array = byte_swap((unsigned char *)&tmp3);
-     if(byte_array == NULL) {
-    	fprintf(stderr,"File '%s', Line %ld: read_rng_state error.\n", __FILE__, (long)__LINE__);
-    	return(1);
-     }
-     tmp4 = *(ub8 *)byte_array;
-     world->rng->cc = tmp4;
-  }else{
-     world->rng->cc = tmp3;
+     byte_swap(&tmp3, sizeof(tmp3));
   }
+  world->rng->cc = tmp3;
+  
   io_bytes+=sizeof (world->rng->cc);
   
-  byte_array = NULL;
   for(i = 0; i < RANDSIZ; i++)
   {
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
@@ -642,22 +579,14 @@ int read_rng_state(FILE *fs)
   	}
         if(world->chkpt_byte_order_mismatch == 1)
         {
-          	/* we need to swap bytes here. */
-     		byte_array = byte_swap((unsigned char *)&tmp3);
-     		if(byte_array == NULL) {
-    			fprintf(stderr,"File '%s', Line %ld: read_rng_state error.\n", __FILE__, (long)__LINE__);
-    			return(1);
-     		}
-     		tmp4 = *(ub8 *)byte_array;
-     		world->rng->randrsl[i] = tmp4;
-  	}else{
-     		world->rng->randrsl[i] = tmp3;
+            /* we need to swap bytes here. */
+            byte_swap(&tmp3, sizeof(tmp3));
   	}
+        world->rng->randrsl[i] = tmp3;
   	io_bytes+=sizeof (world->rng->randrsl[i]);
 	
   }  
   
-  byte_array = NULL;
   for(i = 0; i < RANDSIZ; i++)
   {
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
@@ -666,17 +595,10 @@ int read_rng_state(FILE *fs)
   	}
         if(world->chkpt_byte_order_mismatch == 1)
         {
-          	/* we need to swap bytes here. */
-     		byte_array = byte_swap((unsigned char *)&tmp3);
-     		if(byte_array == NULL) {
-    			fprintf(stderr,"File '%s', Line %ld: read_rng_state error.\n", __FILE__, (long)__LINE__);
-    			return(1);
-     		}
-     		tmp4 = *(ub8 *)byte_array;
-     		world->rng->mm[i] = tmp4;
-  	}else{
-     		world->rng->mm[i] = tmp3;
+            /* we need to swap bytes here. */
+            byte_swap(&tmp3, sizeof(tmp3));
   	}
+        world->rng->mm[i] = tmp3;
   	io_bytes+=sizeof (world->rng->mm[i]);
 	
   }  
@@ -783,8 +705,7 @@ Out: Reads species data from the checkpoint file.
 int read_species_table(FILE *fs)
 {
   int i, j;
-  u_int sp_id, sp_name_length, total_species, tmp1, tmp2;
-  unsigned char *byte_array = NULL;
+  u_int sp_id, sp_name_length, total_species, tmp1;
 
   /* read total number of species written. */
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
@@ -794,21 +715,13 @@ int read_species_table(FILE *fs)
   if(world->chkpt_byte_order_mismatch == 1)
   {
      /* we need to swap bytes here. */
-     byte_array = byte_swap((unsigned char *)&tmp1);
-     if(byte_array == NULL) {
-    	fprintf(stderr,"File '%s', Line %ld: read_species_table error.\n", __FILE__, (long)__LINE__);
-    	return(1);
-     }
-     tmp2 = *(u_int *)byte_array;
-     total_species = tmp2;
-  }else{
-     total_species = tmp1;
+     byte_swap(&tmp1, sizeof(tmp1));
   }
+  total_species = tmp1;
   io_bytes+=sizeof(total_species);
 
   for(i = 0; i < total_species; i++)
   {
-      byte_array = NULL;
      /* read name length for this species */
      if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
         fprintf(stderr,"File '%s', Line %ld: read_species_table error.\n", __FILE__, (long)__LINE__);
@@ -817,16 +730,9 @@ int read_species_table(FILE *fs)
      if(world->chkpt_byte_order_mismatch == 1)
      {
         /* we need to swap bytes here. */
-        byte_array = byte_swap((unsigned char *)&tmp1);
-        if(byte_array == NULL) {
-    	   fprintf(stderr,"File '%s', Line %ld: read_species_table error.\n", __FILE__, (long)__LINE__);
-    	   return(1);
-        }
-        tmp2 = *(u_int *)byte_array;
-        sp_name_length = tmp2;
-     }else{
-        sp_name_length = tmp1;
+        byte_swap(&tmp1, sizeof(tmp1));
      }
+     sp_name_length = tmp1;
      io_bytes+=sizeof(sp_name_length);
 
      char sp_name[sp_name_length +1];
@@ -843,7 +749,6 @@ int read_species_table(FILE *fs)
      io_bytes += sp_name_length; 
 
      /* read the species id */
-     byte_array = NULL;
      if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
         fprintf(stderr,"File '%s', Line %ld: read_species_table error.\n", __FILE__, (long)__LINE__);
         return(1);
@@ -851,16 +756,10 @@ int read_species_table(FILE *fs)
      if(world->chkpt_byte_order_mismatch == 1)
      {
            /* we need to swap bytes here. */
-           byte_array = byte_swap((unsigned char *)&tmp1);
-           if(byte_array == NULL) {
-    	      fprintf(stderr,"File '%s', Line %ld: read_species_table error.\n", __FILE__, (long)__LINE__);
-    	      return(1);
-           }
-           tmp2 = *(u_int *)byte_array;
-           sp_id = tmp2;
-      }else{
-           sp_id = tmp1;
+           byte_swap(&tmp1, sizeof(tmp1));
       }
+      sp_id = tmp1;
+      
       io_bytes+=sizeof(sp_id);
 
       /* find this species among world->species */
@@ -1048,10 +947,9 @@ Out: Reads molecule scheduler data from the checkpoint file.
 ***************************************************************************/
 int read_mol_scheduler_state(FILE *fs)
 {
-  u_int tmp1, tmp2, total_items, chkpt_sp_id, i;
-  double tmp3, tmp4, sched_time, lifetime, birthday, x_coord, y_coord, z_coord;
-  short tmp5, tmp6, orient;
-  unsigned char *byte_array = NULL;
+  u_int tmp1, total_items, chkpt_sp_id, i;
+  double tmp3, sched_time, lifetime, birthday, x_coord, y_coord, z_coord;
+  short tmp5, orient;
   struct molecule m;
   struct molecule *mp = NULL;
   struct grid_molecule *gmp = NULL;
@@ -1063,7 +961,6 @@ int read_mol_scheduler_state(FILE *fs)
   int j;
 
 
-  byte_array = NULL;
   mp = &m; 
   ap = (struct abstract_molecule *)mp;  
 
@@ -1075,17 +972,9 @@ int read_mol_scheduler_state(FILE *fs)
   if(world->chkpt_byte_order_mismatch == 1)
   {
      /* we need to swap bytes here. */
-     byte_array = byte_swap((unsigned char *)&tmp1);
-     if(byte_array == NULL) {
-    	fprintf(stderr,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
-    	return(1);
-     }
-     tmp2 = *(u_int *)byte_array;
-     total_items = tmp2;
-     byte_array = NULL;
-  }else{
-     total_items = tmp1;
+      byte_swap(&tmp1, sizeof(tmp1));
   }
+  total_items = tmp1;
   io_bytes+=sizeof(total_items);
   
   for(i = 0; i < total_items; i++)
@@ -1098,16 +987,9 @@ int read_mol_scheduler_state(FILE *fs)
   	if(world->chkpt_byte_order_mismatch == 1)
   	{
      	   /* we need to swap bytes here. */
-     	   byte_array = byte_swap((unsigned char *)&tmp1);
-     	   if(byte_array == NULL) {
-              fprintf(stderr,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
-    	      return(1);
-           }
-           tmp2 = *(u_int *)byte_array;
-           chkpt_sp_id = tmp2;
-        }else{
-           chkpt_sp_id = tmp1;
+           byte_swap(&tmp1, sizeof(tmp1));
         }
+        chkpt_sp_id = tmp1;
         io_bytes+=sizeof(chkpt_sp_id);
 
         /*read molecule ACT_NEWBIE flag */        
@@ -1125,16 +1007,9 @@ int read_mol_scheduler_state(FILE *fs)
   	if(world->chkpt_byte_order_mismatch == 1)
   	{
      	   /* we need to swap bytes here. */
-     	   byte_array = byte_swap((unsigned char *)&tmp3);
-     	   if(byte_array == NULL) {
-              fprintf(stderr,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
-    	      return(1);
-           }
-           tmp4 = *(double *)byte_array;
-           sched_time = tmp4;
-        }else{
-           sched_time = tmp3;
+           byte_swap(&tmp3, sizeof(tmp3));
         }
+        sched_time = tmp3;
         io_bytes+=sizeof(sched_time);
 
   	/* read molecule lifetime */
@@ -1145,16 +1020,9 @@ int read_mol_scheduler_state(FILE *fs)
   	if(world->chkpt_byte_order_mismatch == 1)
   	{
      	   /* we need to swap bytes here. */
-     	   byte_array = byte_swap((unsigned char *)&tmp3);
-     	   if(byte_array == NULL) {
-              fprintf(stderr,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
-    	      return(1);
-           }
-           tmp4 = *(double *)byte_array;
-           lifetime = tmp4;
-        }else{
-           lifetime = tmp3;
+           byte_swap(&tmp3, sizeof(tmp3));
         }
+        lifetime = tmp3;
         io_bytes+=sizeof(lifetime);
   	
         /* read molecule birthday */
@@ -1165,16 +1033,9 @@ int read_mol_scheduler_state(FILE *fs)
   	if(world->chkpt_byte_order_mismatch == 1)
   	{
      	   /* we need to swap bytes here. */
-     	   byte_array = byte_swap((unsigned char *)&tmp3);
-     	   if(byte_array == NULL) {
-              fprintf(stderr,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
-    	      return(1);
-           }
-           tmp4 = *(double *)byte_array;
-           birthday = tmp4;
-        }else{
-           birthday = tmp3;
+           byte_swap(&tmp3, sizeof(tmp3));
         }
+        birthday = tmp3;
         io_bytes+=sizeof(birthday);
 
   	/* read molecule x-coordinate */
@@ -1185,16 +1046,9 @@ int read_mol_scheduler_state(FILE *fs)
   	if(world->chkpt_byte_order_mismatch == 1)
   	{
      	   /* we need to swap bytes here. */
-     	   byte_array = byte_swap((unsigned char *)&tmp3);
-     	   if(byte_array == NULL) {
-              fprintf(stderr,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
-    	      return(1);
-           }
-           tmp4 = *(double *)byte_array;
-           x_coord = tmp4;
-        }else{
-           x_coord = tmp3;
+           byte_swap(&tmp3, sizeof(tmp3));
         }
+        x_coord = tmp3;
         io_bytes+=sizeof(x_coord);
 
   	/* read molecule y-coordinate */
@@ -1205,16 +1059,9 @@ int read_mol_scheduler_state(FILE *fs)
   	if(world->chkpt_byte_order_mismatch == 1)
   	{
      	   /* we need to swap bytes here. */
-     	   byte_array = byte_swap((unsigned char *)&tmp3);
-     	   if(byte_array == NULL) {
-              fprintf(stderr,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
-    	      return(1);
-           }
-           tmp4 = *(double *)byte_array;
-           y_coord = tmp4;
-        }else{
-           y_coord = tmp3;
+           byte_swap(&tmp3, sizeof(tmp3));
         }
+        y_coord = tmp3;
         io_bytes+=sizeof(y_coord);
 
   	/* read molecule z-coordinate */
@@ -1225,16 +1072,9 @@ int read_mol_scheduler_state(FILE *fs)
   	if(world->chkpt_byte_order_mismatch == 1)
   	{
      	   /* we need to swap bytes here. */
-     	   byte_array = byte_swap((unsigned char *)&tmp3);
-     	   if(byte_array == NULL) {
-              fprintf(stderr,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
-    	      return(1);
-           }
-           tmp4 = *(double *)byte_array;
-           z_coord = tmp4;
-        }else{
-           z_coord = tmp3;
+           byte_swap(&tmp3, sizeof(tmp3));
         }
+        z_coord = tmp3;
         io_bytes+=sizeof(z_coord);
 
   	/* read molecule orientation */
@@ -1245,16 +1085,9 @@ int read_mol_scheduler_state(FILE *fs)
   	if(world->chkpt_byte_order_mismatch == 1)
   	{
      	   /* we need to swap bytes here. */
-     	   byte_array = byte_swap((unsigned char *)&tmp5);
-     	   if(byte_array == NULL) {
-              fprintf(stderr,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
-    	      return(1);
-           }
-           tmp6 = *(short *)byte_array;
-           orient = tmp6;
-        }else{
-           orient = tmp5;
+           byte_swap(&tmp5, sizeof(tmp5));
         }
+        orient = tmp5;
         io_bytes+=sizeof(orient);
 
         properties = NULL;

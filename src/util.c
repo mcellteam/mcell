@@ -1369,32 +1369,26 @@ int poisson_dist(double lambda,double p)
 /*************************************************************************
 byte_swap:
   In: array of bytes to be swapped
+      size of this array
   Out: array of bytes swapped so that the last byte becomes the first one, etc.
-       NULL on memory allocation error       
+       No return value       
 *************************************************************************/
-unsigned char *byte_swap(unsigned char *b)
+void byte_swap(void *data, int size)
 {
-   int i,j, n;
-   unsigned char *tmp;  /* pointer to the byte array to be returned */
+   int i,j;
+   unsigned char temp;
+   unsigned char *c = (unsigned char *)data; 
+   
+   if(size < 2) return;
 
-   i = 0;
-   n = sizeof(b);
-   j = n - 1;
+   for(i = 0, j = size - 1; i < j; i++, j--)
+   {
+      temp = c[i];
+      c[i] = c[j];
+      c[j] = temp;
+   }
 
-   tmp = (unsigned char *)malloc(n);
-   if (tmp != NULL){
-	while (i < n)
-        {
-	   tmp[i] = b[j];
-           i++;
-           j--;
-        }
-    }else{
-       fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__); 
-    }
-    return tmp;
 }
-
 
 
 /*************************************************************************
