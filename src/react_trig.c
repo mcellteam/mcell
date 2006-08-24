@@ -268,7 +268,6 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
     inter = inter->next;
   }
 
-/* TODO: fix generics to allow wall to come first */  
   hashGW = world->g_surf->hashval & (world->rx_hashsize-1);
   
   
