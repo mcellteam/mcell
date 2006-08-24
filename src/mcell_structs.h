@@ -619,7 +619,8 @@ struct species
   u_int population;             /* How many of this species exist? */
   
   double D;                     /* Diffusion constant */
-  double D_ref;                 /* Reference diffusion constant */
+  double D_ref;                 /* Reference diffusion constant. 
+                                   For now - a placeholder for the future use */
   double space_step;            /* Characteristic step length */
   double time_step;             /* Minimum (maximum?) sensible timestep */
   u_short flags;                /* Species Flags:  Vol Molecule? Surface Molecule?
@@ -637,7 +638,8 @@ struct species
 /* All pathways leading away from a given intermediate */
 struct rxn
 {
-  struct rxn *next;          /* FIXME: what is next??? see prepare_reactions() */
+  struct rxn *next;          /* next node in the reaction linked list where                                     each node contains only pathways with 
+                                equivalent geometry  */
   struct sym_table *sym;     /* Ptr to symbol table entry for this rxn */
   
   u_int n_reactants;         /* How many reactants? (At least 1.) */
@@ -1084,7 +1086,8 @@ struct volume
   struct mem_helper *magic_mem;               /* Memory used to store magic lists for reaction-triggered releases and such */
   double elapsed_time;                        /* Used for concentration measurement */
   
-  struct viz_obj *viz_obj_head;
+  struct viz_obj *viz_obj_head;            /* head of the linked list of mesh
+                                           objects assigned for visualization */
   struct frame_data_list *frame_data_head;
 
   struct species *g_mol;   /* A generic molecule */
