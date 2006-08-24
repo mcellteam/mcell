@@ -392,11 +392,11 @@ int init_sim(void)
   no_printf("Node %d parsing MDL file %s\n",world->procnum,world->mdl_infile_name);
   fflush(stderr);
   if (mdlparse_init(world)) {
-    fprintf(world->err_file,"File '%s', Line %ld: error parsing file: %s\n",  __FILE__, (long)__LINE__, world->curr_file);
     return(1);
   }
   no_printf("Done parsing MDL file: %s\n",world->mdl_infile_name);
   fflush(stderr);
+
 
   /* Set up the array of species */
   if (init_species())

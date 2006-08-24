@@ -369,7 +369,6 @@ int main(int argc, char **argv) {
 */
 
   if (init_sim()) {
-    fprintf(world->err_file,"File '%s', Line %ld: error initializing simulation\n", __FILE__, (long)__LINE__);
     exit(EXIT_FAILURE);
   }
 
