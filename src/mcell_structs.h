@@ -733,7 +733,7 @@ struct abstract_molecule
 
 
 /* Volume molecules: freely diffusing or fixed in solution */
-struct molecule
+struct volume_molecule
 {
   struct abstract_molecule *next;
   double t;
@@ -749,7 +749,7 @@ struct molecule
   struct wall *previous_wall;     /* Wall we were released from */
   int index;                      /* Index on that wall (don't rebind) */
   
-  struct molecule *next_v;        /* Next molecule in this subvolume */
+  struct volume_molecule *next_v;        /* Next molecule in this subvolume */
 };
 
 
@@ -921,7 +921,7 @@ struct subvolume
   struct wall_list *wall_head; /* Head of linked list of intersecting walls */
   int wall_count;              /* How many walls intersect? */
   
-  struct molecule *mol_head;   /* Head of linked list of molecules */
+  struct volume_molecule *mol_head;   /* Head of linked list of molecules */
   int mol_count;               /* How many molecules are here? */
 
   int index;                   /* Index of subvolume (parallelization?) */

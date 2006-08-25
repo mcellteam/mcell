@@ -51,7 +51,7 @@ outcome_products:
         Products are created as necessary and scheduled.
 *************************************************************************/
 
-int outcome_products(struct wall *w,struct molecule *reac_m,
+int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   struct grid_molecule *reac_g,struct rxn *rx,int path,struct storage *local,
   short orientA,short orientB,double t,struct vector3 *hitpt,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,
@@ -60,7 +60,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
   int bounce = RX_A_OK;
 
   int i;
-  struct molecule *m;
+  struct volume_molecule *m;
   struct grid_molecule *g;
   struct species *p;
   struct surface_grid *sg;
@@ -401,7 +401,7 @@ int outcome_products(struct wall *w,struct molecule *reac_m,
       }
       else if (ptype[i-i0]=='m')
       {
-        m = (struct molecule*)plist[i-i0];
+        m = (struct volume_molecule*)plist[i-i0];
         if (porient[i-i0]>0) f = EPS_C;
         else f = -EPS_C;
 	
@@ -477,13 +477,13 @@ int outcome_unimolecular(struct rxn *rx,int path,
   struct species *who_am_i;
   struct species *who_was_i = reac->properties;
   int result = RX_A_OK;
-  struct molecule *m=NULL;
+  struct volume_molecule *m=NULL;
   struct grid_molecule *g=NULL;
   int i;
   
   if ((reac->properties->flags & NOT_FREE) == 0)
   {
-    m = (struct molecule*)reac;
+    m = (struct volume_molecule*)reac;
     result = outcome_products(NULL,m,NULL,rx,path,m->subvol->local_storage,
                               0,0,t,NULL,reac,NULL,NULL);
   }
@@ -562,7 +562,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
   struct vector3 *loc_okay)
 {
   struct grid_molecule *g = NULL;
-  struct molecule *m = NULL;
+  struct volume_molecule *m = NULL;
   struct wall *w = NULL;
   struct storage *x;
   int result;
@@ -572,7 +572,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
   
   if ((reacA->properties->flags & NOT_FREE) == 0)
   {
-    m = (struct molecule*) reacA;
+    m = (struct volume_molecule*) reacA;
     x = m->subvol->local_storage;
     if ((reacB->properties->flags & ON_GRID) != 0)
     {
@@ -581,7 +581,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
     }
     else /* Prefer to use target */
     {
-      m = (struct molecule*) reacB;
+      m = (struct volume_molecule*) reacB;
       x = m->subvol->local_storage;
     }
   }
@@ -593,7 +593,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
     
     if ((reacB->properties->flags & NOT_FREE) == 0)
     {
-      m = (struct molecule*)reacB;
+      m = (struct volume_molecule*)reacB;
     }
   }
   
@@ -632,7 +632,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
     }
     else if ((reacB->properties->flags & NOT_FREE) == 0)
     {
-      m = (struct molecule*)reacB;
+      m = (struct volume_molecule*)reacB;
       m->subvol->mol_count--;
       if (m->flags & IN_SCHEDULE)
       {
@@ -669,7 +669,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
     }
     else if ((reacA->properties->flags & NOT_FREE) == 0)
     {
-      m = (struct molecule*)reacA;
+      m = (struct volume_molecule*)reacA;
       m->subvol->mol_count--;
       if (m->flags & IN_SCHEDULE)
       {
@@ -694,7 +694,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
       {
 	struct vector3 fake_hitpt;
 	
-	m = (struct molecule*)reacA;
+	m = (struct volume_molecule*)reacA;
 	
 	/* Halfway in between where we were and where we react should be a safe away-from-wall place to remove us */
         if (loc_okay==NULL) loc_okay=&(m->pos);
@@ -752,7 +752,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
 
   if ((reac->properties->flags & NOT_FREE) == 0)
   {
-    struct molecule *m = (struct molecule*) reac;
+    struct volume_molecule *m = (struct volume_molecule*) reac;
     
     result = outcome_products(surface,m,NULL,rx,path,m->subvol->local_storage,orient,0,t,hitpt,reac,NULL,reac);
 

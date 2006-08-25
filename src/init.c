@@ -812,7 +812,7 @@ int init_partitions(void)
   }
   
   shared_mem->list = create_mem(sizeof(struct wall_list),128);
-  shared_mem->mol  = create_mem(sizeof(struct molecule),128);
+  shared_mem->mol  = create_mem(sizeof(struct volume_molecule),128);
   shared_mem->gmol  = create_mem(sizeof(struct grid_molecule),128);
   shared_mem->face = create_mem(sizeof(struct wall),128);
   shared_mem->join = create_mem(sizeof(struct edge),128);

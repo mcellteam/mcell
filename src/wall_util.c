@@ -1422,7 +1422,7 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
   
   if ((a->properties->flags & ON_GRID)!=0) return COLLIDE_MISS; /* Should never call on grid molecule! */
   
-  pos = &( ((struct molecule*)a)->pos );
+  pos = &( ((struct volume_molecule*)a)->pos );
   
   sigma2 = world->rx_radius_3d*world->rx_radius_3d; 
 
@@ -1469,7 +1469,7 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
  
   if ((a->properties->flags & ON_GRID)!=0) return COLLIDE_MISS; /* Should never call on grid molecule! */
   
-  if ((a->properties->flags & ON_SURFACE)==0) pos = &( ((struct molecule*)a)->pos );
+  if ((a->properties->flags & ON_SURFACE)==0) pos = &( ((struct volume_molecule*)a)->pos );
   else pos = &( ((struct surface_molecule*)a)->pos );
 
   move_length = vect_length(move);

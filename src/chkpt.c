@@ -795,7 +795,7 @@ int write_mol_scheduler_state(FILE *fs)
   struct schedule_helper *shp = NULL;
   struct abstract_element *aep = NULL;
   struct abstract_molecule *amp = NULL;
-  struct molecule *mp = NULL;
+  struct volume_molecule *mp = NULL;
   struct grid_molecule *gmp = NULL;
   struct vector3 where;
   short orient = 0;
@@ -845,7 +845,7 @@ int write_mol_scheduler_state(FILE *fs)
 	    
             if((amp->properties->flags & NOT_FREE) == 0)
             {
-		mp = (struct molecule *)amp;
+		mp = (struct volume_molecule *)amp;
                 if(mp->previous_wall != NULL  && mp->index>=0) {
                    fprintf(stderr,"File '%s', Line %ld: write_mol_scheduler_state error.\nThe value of 'previous_grid' is not NULL.\n", __FILE__, (long)__LINE__);
                 }
@@ -950,11 +950,11 @@ int read_mol_scheduler_state(FILE *fs)
   u_int tmp1, total_items, chkpt_sp_id, i;
   double tmp3, sched_time, lifetime, birthday, x_coord, y_coord, z_coord;
   short tmp5, orient;
-  struct molecule m;
-  struct molecule *mp = NULL;
+  struct volume_molecule m;
+  struct volume_molecule *mp = NULL;
   struct grid_molecule *gmp = NULL;
   struct abstract_molecule *ap = NULL;
-  struct molecule *guess=NULL;
+  struct volume_molecule *guess=NULL;
   struct vector3 where;             /* molecule location */
   struct species *properties = NULL;
   byte act_newbie_flag;
@@ -1132,7 +1132,7 @@ int read_mol_scheduler_state(FILE *fs)
            mp->pos.z = z_coord;
           
            /* Insert copy of m into world */ 
-          guess = insert_molecule(mp, guess);  
+          guess = insert_volume_molecule(mp, guess);  
           if(guess == NULL)
            {
               fprintf(stderr,"File '%s', Line %ld: read_mol_scheduler_state error.\nCannot insert copy of molecule into world.\n", __FILE__, (long)__LINE__);

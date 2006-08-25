@@ -519,16 +519,15 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
 
 
 /*************************************************************************
-insert_molecule
-  In: pointer to a molecule that we're going to place in local storage
-      pointer to a molecule that may be nearby
-  Out: pointer to the new molecule (copies data from molecule passed in),
-       or NULL if out of memory.  Molecule is placed in scheduler also.
+insert_volume_molecule
+  In: pointer to a volume_molecule that we're going to place in local storage
+      pointer to a volume_molecule that may be nearby
+  Out: pointer to the new volume_molecule (copies data from volume molecule            passed in), or NULL if out of memory.                                           Molecule is placed in scheduler also.
 *************************************************************************/
 
-struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
+struct volume_molecule* insert_volume_molecule(struct volume_molecule *m,struct volume_molecule *guess)
 {
-  struct molecule *new_m;
+  struct volume_molecule *new_m;
   struct subvolume *sv;
   
   if (guess == NULL) sv = find_subvolume(&(m->pos),NULL);
@@ -542,7 +541,7 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
         exit(EXIT_FAILURE);
   }
 
-  memcpy(new_m,m,sizeof(struct molecule));
+  memcpy(new_m,m,sizeof(struct volume_molecule));
 
   new_m->birthplace = sv->local_storage->mol;
   new_m->next = NULL;
@@ -569,12 +568,12 @@ struct molecule* insert_molecule(struct molecule *m,struct molecule *guess)
 
 
 /*************************************************************************
-excert_molecule:
-  In: pointer to a molecule that we're going to remove from local storage
+excert_volume_molecule:
+  In: pointer to a volume_molecule that we're going to remove from local storage
   Out: no return value; molecule is marked for removal.
 *************************************************************************/
 
-void excert_molecule(struct molecule *m)
+void excert_volume_molecule(struct volume_molecule *m)
 {
   if (m->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
   {
@@ -589,20 +588,20 @@ void excert_molecule(struct molecule *m)
 
 
 /*************************************************************************
-insert_molecule_list:
-  In: pointer to a linked list of molecules to copy into subvolumes.
+insert_volume_molecule_list:
+  In: pointer to a linked list of volume_molecules to copy into subvolumes.
   Out: 0 on success, 1 on memory allocation error; molecules are placed
        in their subvolumes.
 *************************************************************************/
 
-int insert_molecule_list(struct molecule *m)
+int insert_volume_molecule_list(struct volume_molecule *m)
 {
-  struct molecule *new_m,*guess;
+  struct volume_molecule *new_m,*guess;
   
   guess=NULL;
   while (m != NULL)
   {
-    new_m = insert_molecule(m,guess);
+    new_m = insert_volume_molecule(m,guess);
     if(new_m == NULL) { 
 	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         int i = emergency_output();
@@ -610,7 +609,7 @@ int insert_molecule_list(struct molecule *m)
         exit(EXIT_FAILURE);
     }
     guess = new_m;
-    m = (struct molecule*)m->next;
+    m = (struct volume_molecule*)m->next;
   }
   
   return 0;
@@ -618,16 +617,16 @@ int insert_molecule_list(struct molecule *m)
 
 
 /*************************************************************************
-migrate_molecule:
-  In: pointer to a molecule already in a subvolume
+migrate_volume_molecule:
+  In: pointer to a volume_molecule already in a subvolume
       pointer to the new subvolume to move it to
   Out: pointer to moved molecule.  The molecule's position is updated
        but it is not rescheduled.  Returns NULL if out of memory.
 *************************************************************************/
 
-struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv)
+struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,struct subvolume *new_sv)
 {
-  struct molecule *new_m;
+  struct volume_molecule *new_m;
 
   new_m = mem_get(new_sv->local_storage->mol);
   if (new_m==NULL){ 
@@ -637,7 +636,7 @@ struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv)
   }
   if (new_m==m) printf("File '%s', Line %ld: Unexpected behavior!\n", __FILE__, (long)__LINE__);
   
-  memcpy(new_m,m,sizeof(struct molecule));
+  memcpy(new_m,m,sizeof(struct volume_molecule));
   new_m->birthplace = new_sv->local_storage->mol;
   
   new_m->next = NULL;
@@ -763,9 +762,9 @@ vacuum_inside_regions:
         existing molecules of the specified type are removed.
 *************************************************************************/
 
-int vacuum_inside_regions(struct release_site_obj *rso,struct molecule *m,int n)
+int vacuum_inside_regions(struct release_site_obj *rso,struct volume_molecule *m,int n)
 {
-  struct molecule *mp;
+  struct volume_molecule *mp;
   struct release_region_data *rrd;
   struct region_list *extra_in,*extra_out;
   struct region_list *rl,*rl2;
@@ -882,7 +881,7 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct molecule *m,int n)
   {
     if ( rng_dbl(world->rng) < ((double)(-n))/((double)vl_num) )
     {
-      mp = (struct molecule*)vl->data;
+      mp = (struct volume_molecule*)vl->data;
       mp->properties->population--;
       mp->subvol->mol_count--;
       if ((mp->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
@@ -913,9 +912,9 @@ release_inside_regions:
         passed in is ignored.
 *************************************************************************/
 
-int release_inside_regions(struct release_site_obj *rso,struct molecule *m,int n)
+int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *m,int n)
 {
-  struct molecule *new_m;
+  struct volume_molecule *new_m;
   struct release_region_data *rrd;
   struct region_list *extra_in,*extra_out;
   struct region_list *rl,*rl2;
@@ -1031,7 +1030,7 @@ int release_inside_regions(struct release_site_obj *rso,struct molecule *m,int n
     }
     
     m->subvol = sv;
-    new_m =  insert_molecule(m,new_m);
+    new_m =  insert_volume_molecule(m,new_m);
     
     if (new_m==NULL) return 1;
     
@@ -1056,12 +1055,12 @@ int release_molecules(struct release_event_queue *req)
 {
   struct release_site_obj *rso;
   struct release_pattern *rpat;
-  struct molecule m;
+  struct volume_molecule m;
   struct grid_molecule g;
   struct abstract_molecule *ap;
-  struct molecule *mp;
+  struct volume_molecule *mp;
   struct grid_molecule *gp;
-  struct molecule *guess;
+  struct volume_molecule *guess;
   int i,number;
   short orient;
   struct vector3 *diam_xyz;
@@ -1209,7 +1208,7 @@ int release_molecules(struct release_event_queue *req)
     int pop_before = ap->properties->population;
     if (ap->flags & TYPE_3D)
     {
-      i = release_inside_regions(rso,(struct molecule*)ap,number);
+      i = release_inside_regions(rso,(struct volume_molecule*)ap,number);
       if (i) return 1;
       
       if (world->notify->release_events==NOTIFY_FULL)
@@ -1271,7 +1270,7 @@ int release_molecules(struct release_event_queue *req)
 	if ((rsm->mol_type->flags & NOT_FREE)==0)
 	{
 	  m.properties = rsm->mol_type;
-	  guess = insert_molecule(&m,guess);
+	  guess = insert_volume_molecule(&m,guess);
 	  if (guess==NULL) return 1;
 	}
 	else
@@ -1329,7 +1328,7 @@ int release_molecules(struct release_event_queue *req)
         m.pos.y = location[0][1];
         m.pos.z = location[0][2];
         
-        guess = insert_molecule(&m,guess);  /* Insert copy of m into world */
+        guess = insert_volume_molecule(&m,guess);  /* Insert copy of m into world */
         if (guess == NULL) return 1;
       }
       if (world->notify->release_events==NOTIFY_FULL)
@@ -1353,7 +1352,7 @@ int release_molecules(struct release_event_queue *req)
       
       for (i=0;i<number;i++)
       {
-         guess = insert_molecule(&m,guess);
+         guess = insert_volume_molecule(&m,guess);
          if (guess == NULL) return 1;
       }
       if (world->notify->release_events==NOTIFY_FULL)

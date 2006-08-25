@@ -414,7 +414,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
   struct storage *sp = NULL;
   struct schedule_helper *shp = NULL;
   struct abstract_molecule *amp = NULL;
-  struct molecule *molp = NULL,***viz_molp = NULL;
+  struct volume_molecule *molp = NULL,***viz_molp = NULL;
   float v1,v2,v3;
   u_int n_tiles,spec_id,*viz_mol_count = NULL;
   u_int mol_pos_index,mol_pos_field_index,mol_pos_group_index;
@@ -1229,7 +1229,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
     species_list=world->species_list;
     n_species=world->n_species;
 
-    if ((viz_molp=(struct molecule ***)malloc(n_species*sizeof(struct molecule **)))==NULL) {
+    if ((viz_molp=(struct volume_molecule ***)malloc(n_species*sizeof(struct volume_molecule **)))==NULL) {
         fprintf(world->err_file,"File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
       return(1);
     }
@@ -1247,8 +1247,8 @@ int output_dx_objects(struct frame_data_list *fdlp)
       if (species_list[ii]->viz_state!=EXCLUDE_OBJ) {
         num=species_list[ii]->population;
         if (num>0) {
-          if ((viz_molp[spec_id]=(struct molecule **)malloc
-            (num*sizeof(struct molecule *)))==NULL) {
+          if ((viz_molp[spec_id]=(struct volume_molecule **)malloc
+            (num*sizeof(struct volume_molecule *)))==NULL) {
                 fprintf(world->err_file,"File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
                 return(1);
           }
@@ -1266,7 +1266,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
           amp=(struct abstract_molecule *)shp->circ_buf_head[ii];
           while (amp!=NULL) {
             if ((amp->properties!=NULL) && (amp->flags&TYPE_3D)==TYPE_3D) {
-              molp=(struct molecule *)amp;
+              molp=(struct volume_molecule *)amp;
               if (molp->properties->viz_state!=EXCLUDE_OBJ) {
                 spec_id=molp->properties->species_id;
                 if (viz_mol_count[spec_id]<molp->properties->population) {
@@ -1285,7 +1285,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
         amp=(struct abstract_molecule *)shp->current;
         while (amp!=NULL) {
           if ((amp->properties!=NULL) && (amp->flags&TYPE_3D)==TYPE_3D) {
-            molp=(struct molecule *)amp;
+            molp=(struct volume_molecule *)amp;
             if (molp->properties->viz_state!=EXCLUDE_OBJ) {
               spec_id=molp->properties->species_id;
               if (viz_mol_count[spec_id]<molp->properties->population) {
@@ -1456,7 +1456,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
   struct schedule_helper *shp = NULL;
   struct abstract_molecule *amp = NULL;
   struct grid_molecule *gmol = NULL;
-  struct molecule *molp = NULL, ***viz_molp = NULL;       /* for 3D molecules */
+  struct volume_molecule *molp = NULL, ***viz_molp = NULL;       /* for 3D molecules */
   struct region *rp = NULL;
   struct region_list *rlp = NULL;
   float v1,v2,v3;
@@ -3132,7 +3132,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
  if(viz_mol_pos_flag || viz_mol_orient_flag){	 
    
         /* create references to the molecules. */
-        if ((viz_molp=(struct molecule ***)malloc(n_species*sizeof(struct molecule **)))==NULL) {
+        if ((viz_molp=(struct volume_molecule ***)malloc(n_species*sizeof(struct volume_molecule **)))==NULL) {
                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
       		return(1);
     	}
@@ -3152,8 +3152,8 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
       num=species_list[ii]->population;
       if ((num>0) && (species_list[ii]->flags & NOT_FREE) == 0) {
           /* create references for 3D molecules */
-          if ((viz_molp[spec_id]=(struct molecule **)malloc
-            (num*sizeof(struct molecule *)))==NULL) {
+          if ((viz_molp[spec_id]=(struct volume_molecule **)malloc
+            (num*sizeof(struct volume_molecule *)))==NULL) {
                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
                 return(1);
           }
@@ -3170,7 +3170,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
           amp=(struct abstract_molecule *)shp->circ_buf_head[ii];
           while (amp!=NULL) {
             if ((amp->properties!=NULL) && (amp->flags & TYPE_3D) == TYPE_3D){
-              molp=(struct molecule *)amp;
+              molp=(struct volume_molecule *)amp;
               if (molp->properties->viz_state!=EXCLUDE_OBJ) {
                 spec_id=molp->properties->species_id;
                 if (viz_mol_count[spec_id]<molp->properties->population) {
@@ -3189,7 +3189,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
         amp=(struct abstract_molecule *)shp->current;
         while (amp!=NULL) {
           if ((amp->properties!=NULL) && (amp->flags & TYPE_3D) == TYPE_3D) {
-            molp=(struct molecule *)amp;
+            molp=(struct volume_molecule *)amp;
             if (molp->properties->viz_state!=EXCLUDE_OBJ) {
               spec_id=molp->properties->species_id;
               if (viz_mol_count[spec_id]<molp->properties->population) {
@@ -4494,7 +4494,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
   struct schedule_helper *shp = NULL;
   struct abstract_molecule *amp = NULL;
   struct grid_molecule *gmol = NULL;
-  struct molecule *molp = NULL, ***viz_molp = NULL;       /* for 3D molecules */
+  struct volume_molecule *molp = NULL, ***viz_molp = NULL;       /* for 3D molecules */
   struct region *rp = NULL;
   struct region_list *rlp = NULL;
   float v1,v2,v3;
@@ -5948,7 +5948,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
  if(viz_mol_pos_flag || viz_mol_orient_flag){	 
    
         /* create references to the molecules. */
-        if ((viz_molp=(struct molecule ***)malloc(n_species*sizeof(struct molecule **)))==NULL) {
+        if ((viz_molp=(struct volume_molecule ***)malloc(n_species*sizeof(struct volume_molecule **)))==NULL) {
                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
       		return(1);
     	}
@@ -5968,8 +5968,8 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
       num=species_list[ii]->population;
       if ((num>0) && (species_list[ii]->flags & NOT_FREE) == 0) {
           /* create references for 3D molecules */
-          if ((viz_molp[spec_id]=(struct molecule **)malloc
-            (num*sizeof(struct molecule *)))==NULL) {
+          if ((viz_molp[spec_id]=(struct volume_molecule **)malloc
+            (num*sizeof(struct volume_molecule *)))==NULL) {
                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
                 return(1);
           }
@@ -5986,7 +5986,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
           amp=(struct abstract_molecule *)shp->circ_buf_head[ii];
           while (amp!=NULL) {
             if ((amp->properties!=NULL) && (amp->flags & TYPE_3D) == TYPE_3D){
-              molp=(struct molecule *)amp;
+              molp=(struct volume_molecule *)amp;
               if (molp->properties->viz_state!=EXCLUDE_OBJ) {
                 spec_id=molp->properties->species_id;
                 if (viz_mol_count[spec_id]<molp->properties->population) {
@@ -6005,7 +6005,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
         amp=(struct abstract_molecule *)shp->current;
         while (amp!=NULL) {
           if ((amp->properties!=NULL) && (amp->flags & TYPE_3D) == TYPE_3D) {
-            molp=(struct molecule *)amp;
+            molp=(struct volume_molecule *)amp;
             if (molp->properties->viz_state!=EXCLUDE_OBJ) {
               spec_id=molp->properties->species_id;
               if (viz_mol_count[spec_id]<molp->properties->population) {
@@ -6904,7 +6904,7 @@ int output_rk_custom(struct frame_data_list *fdlp)
   struct schedule_helper *shp;
   struct abstract_element *aep;
   struct abstract_molecule *amp;
-  struct molecule *mp;
+  struct volume_molecule *mp;
   struct grid_molecule *gmp;
   short orient = 0;
   struct species *target;
@@ -6959,7 +6959,7 @@ int output_rk_custom(struct frame_data_list *fdlp)
   
 	      if ((amp->properties->flags & NOT_FREE)==0)
 	      {
-		mp = (struct molecule*)amp;
+		mp = (struct volume_molecule*)amp;
 		where.x = mp->pos.x;
 		where.y = mp->pos.y;
 		where.z = mp->pos.z;
@@ -7009,7 +7009,7 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
   struct schedule_helper *shp;
   struct abstract_element *aep;
   struct abstract_molecule *amp;
-  struct molecule *mp;
+  struct volume_molecule *mp;
   struct grid_molecule *gmp;
   short orient = 0;
   
@@ -7055,7 +7055,7 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
             
             if ((amp->properties->flags & NOT_FREE)==0)
             {
-              mp = (struct molecule*)amp;
+              mp = (struct volume_molecule*)amp;
               where.x = mp->pos.x;
               where.y = mp->pos.y;
               where.z = mp->pos.z;

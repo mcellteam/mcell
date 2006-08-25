@@ -89,7 +89,7 @@ pick_clamped_displacement:
         m->index is the orientation we came off with
 *************************************************************************/
 
-void pick_clamped_displacement(struct vector3 *v,struct molecule *m)
+void pick_clamped_displacement(struct vector3 *v,struct volume_molecule *m)
 {
   double p;
   double r_n;
@@ -302,7 +302,7 @@ ray_trace:
        memory error.
 *************************************************************************/
 
-struct collision* ray_trace(struct molecule *m, struct collision *c,
+struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
                             struct subvolume *sv, struct vector3 *v,
 			    struct wall *reflectee)
 {
@@ -496,7 +496,7 @@ estimate_disk:
        integration, or TARGET_OCCLUDED if the target is not accessible.
 *************************************************************************/
 
-double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv,struct molecule *moving,struct molecule *target)
+double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv,struct volume_molecule *moving,struct volume_molecule *target)
 {
   int rpt,idx,bits;
   double area;
@@ -849,7 +849,7 @@ exact_disk:
        blocked.  If there is a memory error, it returns EXD_OUT_OF_MEMORY.
 *************************************************************************/
 
-double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv,struct molecule *moving,struct molecule *target)
+double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv,struct volume_molecule *moving,struct volume_molecule *target)
 {
 #define EXD_SPAN_CALC(v1,v2,p) ((v1)->u - (p)->u)*((v2)->v - (p)->v)  -  ((v2)->u - (p)->u)*((v1)->v - (p)->v)
 #define EXD_TIME_CALC(v1,v2,p) ((p)->u*(v1)->v - (p)->v*(v1)->u) / ((p)->v*((v2)->u-(v1)->u) - (p)->u*((v2)->v-(v1)->v))
@@ -1624,7 +1624,7 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
 
 #ifdef DEBUG
 /* Debugging function searching for misplaced molecules in the Min simulation */
-void scream_if_misplaced(struct molecule *m)
+void scream_if_misplaced(struct volume_molecule *m)
 {
   if (m->pos.x*world->length_unit > 4.0 || m->pos.x < 0.0)
   {
@@ -1641,7 +1641,7 @@ void scream_if_misplaced(struct molecule *m)
 }
 
 /* Debugging function: print a string and some details about a molecule. */
-void tell_loc(struct molecule *m,char *s)
+void tell_loc(struct volume_molecule *m,char *s)
 {
   if (0 || s[0] == '\0')
   printf("%sMy name is %x and I live at %.3f,%.3f,%.3f\n",
@@ -1687,7 +1687,7 @@ int search_memory_for_me(struct mem_helper *mh,struct abstract_list *al)
 /* Debugging function: see if we got a circular molecule list inside a SV */
 int test_subvol_for_circular(struct subvolume *sv)
 {
-  struct molecule *mp,*smp,*psmp;
+  struct volume_molecule *mp,*smp,*psmp;
   int warned = 0;
   
   psmp = NULL;
@@ -1794,7 +1794,7 @@ safe_diffusion_step:
 	*FIXME*: Add a flag to make this be very conservative or to turn
 	this off entirely, aside from the TIME_STEP_MAX= directive.
 ****************************************************************************/
-double safe_diffusion_step(struct molecule *m,struct collision *shead)
+double safe_diffusion_step(struct volume_molecule *m,struct collision *shead)
 {
   double d2;
   double d2_nearmax;
@@ -1804,7 +1804,7 @@ double safe_diffusion_step(struct molecule *m,struct collision *shead)
   struct wall_list *wl;
   struct collision *smash;
   double steps;
-  struct molecule *mp;
+  struct volume_molecule *mp;
   
   d2_nearmax = m->properties->space_step * world->r_step[ (int)(world->radial_subdivisions * MULTISTEP_PERCENTILE) ];
   d2_nearmax *= d2_nearmax;
@@ -1813,7 +1813,7 @@ double safe_diffusion_step(struct molecule *m,struct collision *shead)
   {
     for (smash = shead ; smash != NULL ; smash = smash->next)
     {
-      mp = (struct molecule*)smash->target;
+      mp = (struct volume_molecule*)smash->target;
       d2 = (m->pos.x - mp->pos.x)*(m->pos.x - mp->pos.x) +
 	   (m->pos.y - mp->pos.y)*(m->pos.y - mp->pos.y) +
 	   (m->pos.z - mp->pos.z)*(m->pos.z - mp->pos.z);
@@ -1876,10 +1876,10 @@ expand_collision_list:
        Returns new list of collisions.
 	
 ****************************************************************************/
-struct collision* expand_collision_list(struct molecule *m, struct vector3 *mv, struct subvolume *sv, struct collision *shead1)
+struct collision* expand_collision_list(struct volume_molecule *m, struct vector3 *mv, struct subvolume *sv, struct collision *shead1)
 {
   struct collision *smash;
-  struct molecule *mp;
+  struct volume_molecule *mp;
   /* neighbors of the current subvolume */
   struct subvolume *new_sv;
  /* struct rxn *rx; */
@@ -3386,7 +3386,7 @@ diffuse_3D:
        Position and time are updated, but molecule is not rescheduled.
 *************************************************************************/
 
-struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
+struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int inert)
 {
   /*const double TOL = 10.0*EPS_C;*/  /* Two walls are coincident if this close */
   struct vector3 displacement;             /* Molecule moves along this vector */
@@ -3398,7 +3398,7 @@ struct molecule* diffuse_3D(struct molecule *m,double max_time,int inert)
   struct wall *w;
   struct wall *reflectee;        /* Bounced off this one, don't hit it again */
   struct rxn *rx;
-  struct molecule *mp,*old_mp;
+  struct volume_molecule *mp,*old_mp;
   struct grid_molecule *g;
   struct abstract_molecule *am;
   struct species *sm;
@@ -3635,7 +3635,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         }  
 	factor = exact_disk(
           &(smash->loc),&displacement,world->rx_radius_3d,m->subvol,m,
-	  (struct molecule*)am
+	  (struct volume_molecule*)am
         );
       
 	if (factor<0) /* Probably hit a wall, might have run out of memory */
@@ -3942,7 +3942,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	  
 	  CLEAN_AND_RETURN(NULL);
         }
-        else m = migrate_molecule(m,nsv);
+        else m = migrate_volume_molecule(m,nsv);
 
         if (shead2 != NULL) mem_put_list(sv->local_storage->coll,shead2);
         if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
@@ -4426,7 +4426,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       if ((a->flags & TYPE_3D) != 0)
       {
         if (max_time > release_time - a->t) max_time = release_time - a->t;
-        a = (struct abstract_molecule*)diffuse_3D((struct molecule*)a , max_time , a->flags & ACT_INERT);
+        a = (struct abstract_molecule*)diffuse_3D((struct volume_molecule*)a , max_time , a->flags & ACT_INERT);
         if (a!=NULL) /* We still exist */
         {
           a->t2 -= a->t - t;
@@ -4498,7 +4498,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     if (!distinguishable(t,a->t,EPS_C)) a->t=t;
     
     if (a->flags & TYPE_GRID) err = schedule_add(local->timer,a);
-    else err = schedule_add(((struct molecule*)a)->subvol->local_storage->timer,a);
+    else err = schedule_add(((struct volume_molecule*)a)->subvol->local_storage->timer,a);
     
     if (err)
     {
@@ -4539,8 +4539,8 @@ void run_concentration_clamp(double t_now)
   struct wall *w;
   struct vector3 v;
   double s1,s2,eps;
-  struct molecule m;
-  struct molecule *mp;
+  struct volume_molecule m;
+  struct volume_molecule *mp;
   
   int this_count = 0;
   static int total_count = 0;
@@ -4603,7 +4603,7 @@ void run_concentration_clamp(double t_now)
           
           if (mp==NULL)
           {
-            mp = insert_molecule(&m,mp);
+            mp = insert_volume_molecule(&m,mp);
             if (mp==NULL)
             {
               i = emergency_output();
@@ -4619,7 +4619,7 @@ void run_concentration_clamp(double t_now)
           }
           else
           {
-            mp=insert_molecule(&m,mp);
+            mp=insert_volume_molecule(&m,mp);
             if (mp==NULL)
             {
               i = emergency_output();

@@ -27,7 +27,7 @@ void check_probs(struct rxn *rx,double t);
 
 
 /* In react_outc.c */
-int outcome_products(struct wall *w,struct molecule *reac_m,
+int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   struct grid_molecule *reac_g,struct rxn *rx,int path,struct storage *local,
   short orientA,short orientB,double t,struct vector3 *hitpt,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,

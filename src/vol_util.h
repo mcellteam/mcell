@@ -12,13 +12,13 @@ double collide_sv_time(struct vector3 *point,struct vector3 *move,struct subvolu
 
 int is_defunct_molecule(struct abstract_element *e);
 struct grid_molecule *insert_grid_molecule(struct species *s,struct vector3 *loc,short orient,double search_diam,double t);
-struct molecule* insert_molecule(struct molecule *m,struct molecule *guess);
-void excert_molecule(struct molecule *m);
-int insert_molecule_list(struct molecule *m);
-struct molecule* migrate_molecule(struct molecule *m,struct subvolume *new_sv);
+struct volume_molecule *insert_volume_molecule(struct volume_molecule *m,struct volume_molecule *guess);
+void excert_volume_molecule(struct volume_molecule *m);
+int insert_volume_molecule_list(struct volume_molecule *m);
+struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,struct subvolume *new_sv);
 
 int eval_rel_region_3d(struct release_evaluator *expr,struct waypoint *wp,struct region_list *in_regions,struct region_list *out_regions);
-int release_inside_regions(struct release_site_obj *rso,struct molecule *m,int n);
+int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *m,int n);
 int release_molecules(struct release_event_queue *req);
 
 int set_partitions();

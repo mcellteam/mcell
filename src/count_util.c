@@ -302,7 +302,7 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
         uv2xyz(&(((struct grid_molecule*)am)->s_pos),((struct grid_molecule*)am)->grid->surface,&xyz_loc);
         loc=&xyz_loc;
       }
-      else loc=&(((struct molecule*)am)->pos);
+      else loc=&(((struct volume_molecule*)am)->pos);
     }
     if (my_wall==NULL && (am->properties->flags&ON_GRID)!=0)
     {
