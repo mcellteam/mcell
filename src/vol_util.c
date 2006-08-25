@@ -446,7 +446,7 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
   
   d2 = search_d2 - best_d2;  /* We can look this far around the surface we hit for an empty spot */
   
-  if (best_w->effectors==NULL)
+  if (best_w->grid==NULL)
   {
     if (create_grid(best_w,sv))
     {
@@ -455,12 +455,12 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
       fprintf(world->err_file,"%d errors while attempting emergency output\n",i);
       exit(EXIT_FAILURE);
     }
-    i = uv2grid(&best_uv,best_w->effectors);
+    i = uv2grid(&best_uv,best_w->grid);
   }
   else
   {
-    i = uv2grid(&best_uv,best_w->effectors);
-    if (best_w->effectors->mol[i]!=NULL)
+    i = uv2grid(&best_uv,best_w->grid);
+    if (best_w->grid->mol[i]!=NULL)
     {
       if (d2 <= EPS_C*EPS_C) return NULL;
       else
@@ -468,8 +468,8 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
 	best_w = search_nbhd_for_free(best_w,&best_uv,d2,&i,NULL,NULL);
 	if (best_w==NULL) return NULL;
 	
-	if (world->randomize_gmol_pos) grid2uv_random(best_w->effectors,i,&best_uv);
-	else grid2uv(best_w->effectors,i,&best_uv);
+	if (world->randomize_gmol_pos) grid2uv_random(best_w->grid,i,&best_uv);
+	else grid2uv(best_w->grid,i,&best_uv);
       }
     }
   }
@@ -493,7 +493,7 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
   
   g->t = t;
   g->t2 = 0.0;
-  g->grid = best_w->effectors;
+  g->grid = best_w->grid;
   g->grid_index = i;
   g->s_pos.u = best_uv.u;
   g->s_pos.v = best_uv.v;

@@ -3687,14 +3687,14 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
 	else k = -1;
 	
-	if ( w->effectors != NULL && (sm->flags&CAN_MOLGRID) != 0)
+	if ( w->grid != NULL && (sm->flags&CAN_MOLGRID) != 0)
 	{
-	  j = xyz2grid( &(smash->loc) , w->effectors );
-	  if (w->effectors->mol[j] != NULL)
+	  j = xyz2grid( &(smash->loc) , w->grid );
+	  if (w->grid->mol[j] != NULL)
 	  {
 	    if (m->index != j || m->previous_wall != w )
 	    {
-	      g = w->effectors->mol[j];
+	      g = w->grid->mol[j];
 	      num_matching_rxns = trigger_bimolecular(
 		sm->hashval,g->properties->hashval,
 		(struct abstract_molecule*)m,(struct abstract_molecule*)g,
@@ -3705,7 +3705,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                 for (l = 0; l < num_matching_rxns; l++)
                 {
 		  if (matching_rxns[l]->prob_t != NULL) check_probs(matching_rxns[l],m->t);
-                  scaling_coef[l] = 1.0 / (rate_factor * w->effectors->binding_factor);
+                  scaling_coef[l] = 1.0 / (rate_factor * w->grid->binding_factor);
                 }
 	
                 if (num_matching_rxns == 1)
@@ -3781,8 +3781,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             {
               m->index = -1; /* Avoided rebinding, but next time it's OK */
             }
-	  } /* end if(w->effectors->mol[j] ... ) */
-	} /* end if (w->effectors != NULL ... ) */
+	  } /* end if(w->grid->mol[j] ... ) */
+	} /* end if (w->grid != NULL ... ) */
 	
 	if ( (sm->flags&CAN_MOLWALL) != 0 )
 	{
@@ -3912,7 +3912,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME)) continue;
             count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                  ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                 1 , rate_factor * ((struct wall*)tentative->target)->effectors->binding_factor ,
+                                 1 , rate_factor * ((struct wall*)tentative->target)->grid->binding_factor ,
                                  &(tentative->loc) , tentative->t );
           }
         }
@@ -4055,7 +4055,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
     
     if (new_wall == g->grid->surface)
     {
-      new_idx = uv2grid(&new_loc,new_wall->effectors);
+      new_idx = uv2grid(&new_loc,new_wall->grid);
       if (new_idx < 0 || new_idx >= g->grid->n_tiles)
       {
 	fprintf(world->log_file, "File '%s', Line %ld: Unexpected behaviour, iteration %d.\n", __FILE__, (long)__LINE__, (int)world->it_time);
@@ -4083,7 +4083,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
     }
     else 
     {
-      if (new_wall->effectors==NULL)
+      if (new_wall->grid==NULL)
       { 
 	if (create_grid(new_wall,NULL))
 	{
@@ -4093,14 +4093,14 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
       }
 
       /* Move to new tile */
-      new_idx = uv2grid(&new_loc,new_wall->effectors);
-      if (new_idx < 0 || new_idx >= new_wall->effectors->n_tiles) fprintf(world->log_file, "File '%s', Line %ld: Unexpected behaviour, iteration %d.\n", __FILE__, (long)__LINE__, (int)world->it_time);
-      if (new_wall->effectors->mol[new_idx] != NULL) continue; /* Pick again */
+      new_idx = uv2grid(&new_loc,new_wall->grid);
+      if (new_idx < 0 || new_idx >= new_wall->grid->n_tiles) fprintf(world->log_file, "File '%s', Line %ld: Unexpected behaviour, iteration %d.\n", __FILE__, (long)__LINE__, (int)world->it_time);
+      if (new_wall->grid->mol[new_idx] != NULL) continue; /* Pick again */
       
       count_region_from_scratch((struct abstract_molecule*)g,NULL,-1,NULL,g->grid->surface,g->t);
       g->grid->mol[g->grid_index]=NULL;
       g->grid->n_occupied--;
-      g->grid = new_wall->effectors;
+      g->grid = new_wall->grid;
       g->grid_index=new_idx;
       g->grid->mol[new_idx] = g;
 

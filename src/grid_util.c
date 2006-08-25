@@ -29,10 +29,10 @@ xyz2uv and uv2xyz:
 *************************************************************************/
 void xyz2uv(struct vector3 *a,struct wall *w,struct vector2 *b)
 {
-  if (w->effectors)
+  if (w->grid)
   {
-    b->u = a->x * w->unit_u.x + a->y * w->unit_u.y + a->z * w->unit_u.z - w->effectors->vert0.u;
-    b->v = a->x * w->unit_v.x + a->y * w->unit_v.y + a->z * w->unit_v.z - w->effectors->vert0.v;
+    b->u = a->x * w->unit_u.x + a->y * w->unit_u.y + a->z * w->unit_u.z - w->grid->vert0.u;
+    b->v = a->x * w->unit_v.x + a->y * w->unit_v.y + a->z * w->unit_v.z - w->grid->vert0.v;
   }
   else
   {
@@ -240,7 +240,7 @@ int create_grid(struct wall *w,struct subvolume *guess)
   struct vector3 center;
   int i;
 
-  if (w->effectors != NULL) return 0;
+  if (w->grid != NULL) return 0;
   
   sg = (struct surface_grid *) mem_get(w->birthplace->effs);
   if (sg == NULL) return 1;
@@ -269,7 +269,7 @@ int create_grid(struct wall *w,struct subvolume *guess)
 
   for (i=0;i<sg->n_tiles;i++) sg->mol[i] = NULL;
   
-  w->effectors = sg;
+  w->grid = sg;
 
   return 0;
 }
@@ -318,7 +318,7 @@ void grid_neighbors(struct surface_grid *grid,int idx,struct surface_grid **nb_g
   else /* upright tiles in stripe 0 */
   {
     if (grid->surface->nb_walls[2]==NULL) nb_grid[2] = NULL;
-    else if (grid->surface->nb_walls[2]->effectors==NULL) nb_grid[2] = NULL;
+    else if (grid->surface->nb_walls[2]->grid==NULL) nb_grid[2] = NULL;
     else
     {
       if (grid->mol[idx]!=NULL) uv2xyz(&grid->mol[idx]->s_pos,grid->surface,&loc_3d);
@@ -327,7 +327,7 @@ void grid_neighbors(struct surface_grid *grid,int idx,struct surface_grid **nb_g
       if (d==GIGANTIC) nb_grid[2]=NULL;
       else
       {
-	nb_grid[2] = grid->surface->nb_walls[2]->effectors;
+	nb_grid[2] = grid->surface->nb_walls[2]->grid;
 	nb_idx[2] = uv2grid(&near_2d,nb_grid[2]);
       }
     }
@@ -342,7 +342,7 @@ void grid_neighbors(struct surface_grid *grid,int idx,struct surface_grid **nb_g
   else  /* upright tiles in last stripe */
   {
     if (grid->surface->nb_walls[1]==NULL) nb_grid[1] = NULL;
-    else if (grid->surface->nb_walls[1]->effectors==NULL) nb_grid[1] = NULL;
+    else if (grid->surface->nb_walls[1]->grid==NULL) nb_grid[1] = NULL;
     else
     {
       if (grid->mol[idx]!=NULL) uv2xyz(&grid->mol[idx]->s_pos,grid->surface,&loc_3d);
@@ -351,7 +351,7 @@ void grid_neighbors(struct surface_grid *grid,int idx,struct surface_grid **nb_g
       if (d==GIGANTIC) nb_grid[1]=NULL;
       else
       {
-	nb_grid[1] = grid->surface->nb_walls[1]->effectors;
+	nb_grid[1] = grid->surface->nb_walls[1]->grid;
 	nb_idx[1] = uv2grid(&near_2d,nb_grid[1]);
       }
     }
@@ -368,7 +368,7 @@ void grid_neighbors(struct surface_grid *grid,int idx,struct surface_grid **nb_g
   else  /* upright tiles in last strip */
   {
     if (grid->surface->nb_walls[0]==NULL) nb_grid[0] = NULL;
-    else if (grid->surface->nb_walls[0]->effectors==NULL) nb_grid[0] = NULL;
+    else if (grid->surface->nb_walls[0]->grid==NULL) nb_grid[0] = NULL;
     else
     {
       if (grid->mol[idx]!=NULL) uv2xyz(&grid->mol[idx]->s_pos,grid->surface,&loc_3d);
@@ -377,7 +377,7 @@ void grid_neighbors(struct surface_grid *grid,int idx,struct surface_grid **nb_g
       if (d==GIGANTIC) nb_grid[0]=NULL;
       else
       {
-	nb_grid[0] = grid->surface->nb_walls[0]->effectors;
+	nb_grid[0] = grid->surface->nb_walls[0]->grid;
 	nb_idx[0] = uv2grid(&near_2d,nb_grid[0]);
       }
     }
@@ -487,14 +487,14 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
   best_d2 = 2.0*max_d2+1.0;
   best_w = NULL;
   
-  if (origin->effectors==NULL)
+  if (origin->grid==NULL)
   {
     if (create_grid(origin,NULL)) return NULL;  /* FIXME: handle out of memory properly */
   }
   
 
   /* Find index and distance of nearest free grid element on origin wall */
-  i = nearest_free(origin->effectors,point,max_d2,&d2);
+  i = nearest_free(origin->grid, point, max_d2,&d2);
 
   if (i != -1)
   {
@@ -541,12 +541,12 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
     /* Check for free grid element on neighbor if point to edge distance is closer than best_d2  */
     if (d2<best_d2)
     {
-      if (there->effectors==NULL)
+      if (there->grid==NULL)
       {
 	if (create_grid(there,NULL)) return NULL;  /* FIXME: handle out of memory properly */
       }
       traverse_surface(origin,point,j,&pt);
-      i = nearest_free(there->effectors,&pt,max_d2,&d2);
+      i = nearest_free(there->grid,&pt,max_d2,&d2);
       
       if (i!=-1 && d2 < best_d2)
       {

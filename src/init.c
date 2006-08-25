@@ -2069,7 +2069,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
   if (create_grid(w,NULL)) {
     return(1);
   }
-  sg=w->effectors;
+  sg=w->grid;
   objp=w->parent_object;
 
   nr=0;
@@ -2258,7 +2258,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 	    if (create_grid(w,NULL)) {
 	      return(1);
 	    }
-	    sg=w->effectors;
+	    sg=w->grid;
 	    n_free_eff=n_free_eff+(sg->n_tiles-sg->n_occupied);
           }
         }
@@ -2301,7 +2301,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 	  if (get_bit(rp->membership,i))
 	  {
 	    w=objp->wall_p[i];
-	    sg=w->effectors;
+	    sg=w->grid;
 	    if (sg!=NULL) {
 	      for (j=0;j<sg->n_tiles;j++) {
 		if (sg->mol[j]==NULL) {
@@ -2387,10 +2387,10 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   mol->properties=eff;
                   mol->birthplace=walls[j]->birthplace->gmol;
                   mol->grid_index=index[j];
-		  if (world->randomize_gmol_pos) grid2uv_random(walls[j]->effectors,index[j],&(mol->s_pos));
-		  else grid2uv(walls[j]->effectors,index[j],&(mol->s_pos));
+		  if (world->randomize_gmol_pos) grid2uv_random(walls[j]->grid,index[j],&(mol->s_pos));
+		  else grid2uv(walls[j]->grid,index[j],&(mol->s_pos));
                   mol->orient = (orientation==0) ? ((rng_uint(world->rng)&1)?1:-1) : orientation;
-                  mol->grid=walls[j]->effectors;
+                  mol->grid=walls[j]->grid;
                   mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
 		  if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
                   if (trigger_unimolecular(eff->hashval,(struct abstract_molecule *)mol)!=NULL
@@ -2433,10 +2433,10 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     mol->properties=eff;
                     mol->birthplace=walls[k]->birthplace->gmol;
                     mol->grid_index=index[k];
-		    if (world->randomize_gmol_pos) grid2uv_random(walls[k]->effectors,index[k],&(mol->s_pos));
-		    else grid2uv(walls[k]->effectors,index[k],&(mol->s_pos));
+		    if (world->randomize_gmol_pos) grid2uv_random(walls[k]->grid, index[k], &(mol->s_pos));
+		    else grid2uv(walls[k]->grid,index[k],&(mol->s_pos));
                     mol->orient = (orientation==0) ? ((rng_uint(world->rng)&1)?1:-1) : orientation;
-                    mol->grid=walls[k]->effectors;
+                    mol->grid=walls[k]->grid;
                     mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
 		    if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
                       if (trigger_unimolecular(eff->hashval,(struct abstract_molecule *)mol)!=NULL
@@ -2506,7 +2506,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 	    {
 	      if (get_bit(rp->membership,i))
 	      {
-		sg=objp->wall_p[i]->effectors;
+		sg=objp->wall_p[i]->grid;
 		if (sg!=NULL)
 		{
 		  sg->n_occupied=0;

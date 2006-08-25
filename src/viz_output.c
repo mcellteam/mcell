@@ -917,7 +917,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
         for (ii=0;ii<objp->n_walls;ii++) {
           w = wp[ii];
           if (w!=NULL) {
-	    sg = w->effectors;
+	    sg = w->grid;
             if (sg!=NULL) {
               for (index=0;index<sg->n_tiles;index++) {
 	        gmol=sg->mol[index];
@@ -976,7 +976,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
       for (ii=0;ii<objp->n_walls;ii++) {
         w = wp[ii];
         if (w!=NULL) {
-	  sg = w->effectors;
+	  sg = w->grid;
 
           /* dump the effectors */
           if (viz_eff) {
@@ -2976,7 +2976,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
              for (jj=0;jj<objp->n_walls;jj++) {
                 w = wp[jj];
                 if (w!=NULL) {
-	           sg = w->effectors;
+	           sg = w->grid;
                    if (sg!=NULL) {
                      for (index=0;index<sg->n_tiles;index++) {
                         grid2xyz(sg,index,&p0);
@@ -5790,7 +5790,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
              for (jj=0;jj<objp->n_walls;jj++) {
                 w = wp[jj];
                 if (w!=NULL) {
-	           sg = w->effectors;
+	           sg = w->grid;
                    if (sg!=NULL) {
                      for (index=0;index<sg->n_tiles;index++) {
                         grid2xyz(sg,index,&p0);

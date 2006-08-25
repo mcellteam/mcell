@@ -1738,7 +1738,7 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   	w->uv_vert2.u = 0; 
   	w->uv_vert2.v = 0;
 
-  	w->effectors = NULL;
+  	w->grid = NULL;
   	w->viz_state = EXCLUDE_OBJ; 
   	if (objp->viz_state!=NULL) {
     		w->viz_state=objp->viz_state[side];
@@ -1789,7 +1789,7 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
                   (w->vert[2]->y - w->vert[0]->y)*w->unit_v.y +
                   (w->vert[2]->z - w->vert[0]->z)*w->unit_v.z;
   
-  w->effectors = NULL;
+  w->grid = NULL;
   w->viz_state = EXCLUDE_OBJ; 
   if (objp->viz_state!=NULL) {
     w->viz_state=objp->viz_state[side];
@@ -3167,11 +3167,11 @@ int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule *g,int
       
       w = rrd->owners[i]->wall_p[j];
       
-      if (w->effectors==NULL) continue;
+      if (w->grid==NULL) continue;
       
-      for (k=0;k<w->effectors->n_tiles;k++)
+      for (k=0;k<w->grid->n_tiles;k++)
       {
-        gp = w->effectors->mol[k];
+        gp = w->grid->mol[k];
         if (gp!=NULL)
         {
           if (gp->properties == g->properties)
@@ -3180,7 +3180,7 @@ int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule *g,int
             if (p==NULL) return 1;
             
             p->next = rrhd_head;
-            p->grid = w->effectors;
+            p->grid = w->grid;
             p->index = k;
             rrhd_head = p;
 
@@ -3272,41 +3272,41 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
       i = bisect_high( rrd->cum_area_list , rrd->n_walls_included , A );
       w = rrd->owners[rrd->obj_index[i]]->wall_p[ rrd->wall_index[i] ];
       
-      if (w->effectors==NULL)
+      if (w->grid==NULL)
       {
         j = create_grid(w,NULL);
         if (j) return 1;
       }
       if (i) A -= rrd->cum_area_list[i-1];
-      j = w->effectors->n;
+      j = w->grid->n;
       j = (int)((j*j)*(A/w->area));
-      if (j>=w->effectors->n_tiles) j=w->effectors->n_tiles-1;
+      if (j>=w->grid->n_tiles) j=w->grid->n_tiles-1;
       
-      if (w->effectors->mol[j] != NULL) failure++;
+      if (w->grid->mol[j] != NULL) failure++;
       else
       {
-        new_g = (struct grid_molecule*)mem_get( w->effectors->subvol->local_storage->gmol );
+        new_g = (struct grid_molecule*)mem_get( w->grid->subvol->local_storage->gmol );
         if (new_g==NULL) return 1;
         memcpy(new_g,g,sizeof(struct grid_molecule));
-        new_g->birthplace = w->effectors->subvol->local_storage->gmol;
+        new_g->birthplace = w->grid->subvol->local_storage->gmol;
         new_g->grid_index = j;
-	if (world->randomize_gmol_pos) grid2uv_random(w->effectors,j,&(new_g->s_pos));
-	else grid2uv(w->effectors,j,&(new_g->s_pos));
+	if (world->randomize_gmol_pos) grid2uv_random(w->grid,j,&(new_g->s_pos));
+	else grid2uv(w->grid,j,&(new_g->s_pos));
 	
 	if (rso->orientation > 0) new_g->orient = 1;
 	else if (rso->orientation < 0) new_g->orient = -1;
 	else new_g->orient = (rng_uint(world->rng)&1)?1:-1;
         
-	new_g->grid = w->effectors;
+	new_g->grid = w->grid;
         
-        w->effectors->mol[j] = new_g;
+        w->grid->mol[j] = new_g;
 
-        w->effectors->n_occupied++;
+        w->grid->n_occupied++;
         new_g->properties->population++;
         if (new_g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
           count_region_from_scratch((struct abstract_molecule*)new_g,NULL,1,NULL,new_g->grid->surface,new_g->t);
 
-        k = schedule_add( w->effectors->subvol->local_storage->timer , new_g );
+        k = schedule_add( w->grid->subvol->local_storage->timer , new_g );
         if (k) return 1;
         
         success++;
@@ -3328,24 +3328,24 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           
           w = rrd->owners[i]->wall_p[j];
           
-          if (w->effectors==NULL)
+          if (w->grid==NULL)
           {
             k = create_grid(w,NULL);
             if (k) return 1;
           }
-          else if (w->effectors->n_occupied == w->effectors->n_tiles) continue;
+          else if (w->grid->n_occupied == w->grid->n_tiles) continue;
           
-          A = w->area / (w->effectors->n_tiles);
+          A = w->area / (w->grid->n_tiles);
           
-          for (k=0;k<w->effectors->n_tiles;k++)
+          for (k=0;k<w->grid->n_tiles;k++)
           {
-            if (w->effectors->mol[k]==NULL)
+            if (w->grid->mol[k]==NULL)
             {
               p = mem_get(mh);
               if (p==NULL) return 1;
               
               p->next = rrhd_head;
-              p->grid = w->effectors;
+              p->grid = w->grid;
               p->index = k;
               p->my_area = A;
               max_A += A;

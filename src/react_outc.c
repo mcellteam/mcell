@@ -152,12 +152,12 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
 	  replace_p2=0;
 	  continue;
 	}
-	else if (w->effectors==NULL)
+	else if (w->grid==NULL)
 	{
 	  if (create_grid(w,reac_m->subvol)) return RX_NO_MEM;  /* No effectors means it must be a 3d mol/surface rx */
 	  fake_idx = j - (i0+rx->n_reactants);
-	  glist[fake_idx] = w->effectors;
-	  xlist[fake_idx] = uv2grid(&uv_loc,w->effectors);
+	  glist[fake_idx] = w->grid;
+	  xlist[fake_idx] = uv2grid(&uv_loc,w->grid);
 	  flist[fake_idx] = FLAG_USE_UV_LOC;
 	  continue;
 	}
@@ -170,10 +170,10 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
           fake_idx = j - (i0+rx->n_reactants);
 	  if (k==-1)
 	  {
-	    k = uv2grid(&uv_loc,w->effectors);
-	    if (w->effectors->mol[k]==NULL)
+	    k = uv2grid(&uv_loc,w->grid);
+	    if (w->grid->mol[k]==NULL)
 	    {
-	      glist[fake_idx] = w->effectors;
+	      glist[fake_idx] = w->grid;
 	      xlist[fake_idx] = k;
 	      flist[fake_idx] = FLAG_USE_UV_LOC;
 	      continue;
@@ -187,7 +187,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
             
 	    if (temp_w != NULL)
 	    {
-	      glist[fake_idx] = temp_w->effectors;
+	      glist[fake_idx] = temp_w->grid;
 	      xlist[fake_idx] = k;
 	      flist[fake_idx] = FLAG_USE_RANDOM;
 	      continue;

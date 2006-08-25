@@ -809,7 +809,7 @@ struct wall
   struct vector3 unit_v;          /* V basis vector for this wall */
   double d;                       /* Distance to origin (point normal form) */
   
-  struct surface_grid *effectors; /* Grid of effectors for this wall */
+  struct surface_grid *grid; /* Grid of effectors for this wall */
   
   int viz_state;                  /* For display purposes--is short enough? */
   u_short flags;                  /* Count Flags: flags for whether and what we need to count */
