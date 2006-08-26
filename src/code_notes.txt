@@ -91,8 +91,6 @@ Change test_many_bimolecular() to return a data structure rather than a packed l
 
 Make sure that rx->n_occurred is properly updated when test_bimolecular() and test_intersect()succeed but outcome_products() fails due to lack of space for products.
 
-Control output of check_probs() using flag in notifications block and change printf() to fprintf()
-
 
 Default value of world->randomize_gmol_pos is 0 (i.e. FALSE) which means that molecules
 undergoing surface diffusion will not behave properly when they participate in a reaction
@@ -110,5 +108,16 @@ of algorithm.  Also write such a description.
 
 
 Convert edge_hash() in wall_util to use jenkins hash function to compute hashL and hashR.
+
+Bimolecular reactions between two surface molecules of the same species that preserve only 
+one of the two reactants will always destroy the second reactant even if orientation marks
+suggest otherwise (this is because the "NULL" keyword does not act as a product placeholder
+in the parser).  The orientation mark on the product is respected, however.
+
+
+Rate constants for reactions between volume molecules and surfaces (I mean surfaces, not surface molecules!) are currently in units of M^-1*s^-1 just like bimolecular reactions.  
+This probably doesn't make sense so we should look into things like permeability and 
+partitioning into membranes for a more sensible way to think about this.
+
 
 

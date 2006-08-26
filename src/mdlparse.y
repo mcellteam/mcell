@@ -3426,6 +3426,11 @@ transformation:
         | ROTATE '=' point ',' num_expr
 {
         mdlpvp->pntp1=$<vec3>3;
+        if (!distinguishable(vect_length(mdlpvp->pntp1),0.0,EPSILON))
+        {
+          mdlerror("Rotation vector has zero length.");
+          return(1);
+        }
         init_matrix(mdlpvp->tm);
         rotate_matrix(mdlpvp->tm,mdlpvp->tm,mdlpvp->pntp1,$<dbl>5);
         mult_matrix(mdlpvp->curr_obj->t_matrix,mdlpvp->tm,mdlpvp->curr_obj->t_matrix,4,4,4);
@@ -5510,16 +5515,34 @@ double_arrow: left_arrow '>';
 
 right_cat_arrow: list_dashes existing_molecule_opt_orient right_arrow
 {
-  mdlpvp->pathp->reactant3 = (struct species*)( ($<sym>2)->value );
-  if (mdlpvp->orient_specified) mdlpvp->pathp->orientation3 = mdlpvp->orient_class;
-  else mdlpvp->pathp->orientation3 = ORIENT_NOT_SET;
+  if (mdlpvp->pathp->reactant3 == NULL)
+  {
+    mdlpvp->pathp->reactant3 = (struct species*)( ($<sym>2)->value );
+    if (mdlpvp->orient_specified) mdlpvp->pathp->orientation3 = mdlpvp->orient_class;
+    else mdlpvp->pathp->orientation3 = ORIENT_NOT_SET;
+  }
+  else
+  {
+    mdlerror("Too many reactants--maximum number is three.");
+    return 1;
+  }
+  mdlpvp->catalytic_arrow=1;
 };
 
 double_cat_arrow: left_arrow existing_molecule_opt_orient right_arrow
 {
-  mdlpvp->pathp->reactant3 = (struct species*)( ($<sym>2)->value );
-  if (mdlpvp->orient_specified) mdlpvp->pathp->orientation3 = mdlpvp->orient_class;
-  else mdlpvp->pathp->orientation3 = ORIENT_NOT_SET;
+  if (mdlpvp->pathp->reactant3 == NULL)
+  {
+    mdlpvp->pathp->reactant3 = (struct species*)( ($<sym>2)->value );
+    if (mdlpvp->orient_specified) mdlpvp->pathp->orientation3 = mdlpvp->orient_class;
+    else mdlpvp->pathp->orientation3 = ORIENT_NOT_SET;
+  }
+  else
+  {
+    mdlerror("Too many reactants--maximum number is three.");
+    return 1;
+  }
+  mdlpvp->catalytic_arrow=1;
 };
 
 unidir_arrow: right_arrow
@@ -5531,10 +5554,12 @@ bidir_arrow: double_arrow
 reaction_arrow: unidir_arrow
 {
   mdlpvp->bidirectional_arrow=0;
+  mdlpvp->catalytic_arrow=0;
 }
 	| bidir_arrow
 {
   mdlpvp->bidirectional_arrow=1;
+  mdlpvp->catalytic_arrow=0;
 };
 
 
@@ -5862,12 +5887,12 @@ rxn:
   }
   if ((mdlpvp->rxnp->n_reactants==3) && (num_surfaces == 0))
   {
-       mdlerror("Sorry, only reactions with two reactants and one surface are implemented yet.");
+       mdlerror("Reactions with three reactants must include exactly one surface class as a reactant.");
        return 1;
   }
  
   /* Copy catalyst to products */ 
-  if ((mdlpvp->pathp->reactant3!=NULL) && (mdlpvp->pathp->reactant2 == NULL))
+  if (mdlpvp->catalytic_arrow)
   {
     mdlpvp->prodp = (struct product*)mem_get(mdlpvp->prod_mem);
     if (mdlpvp->prodp==NULL)

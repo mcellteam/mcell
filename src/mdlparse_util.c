@@ -842,7 +842,7 @@ int load_rate_file(struct rxn *rx , char *fname , int path, struct mdlparse_vars
         rate = strtod( (buf+i) , &cp );
         if (cp == (buf+i)) continue;  /* Conversion error */
         
-        tp = mem_get(mpvp->vol->rxn_mem);
+        tp = mem_get(mpvp->vol->tv_rxn_mem);
         if(tp == NULL){
                 sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
 	        mdlerror_nested(err_message);
@@ -1219,8 +1219,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   {
     mpvp->vol->rx_radius_3d = 1.0/sqrt( MY_PI*mpvp->vol->grid_density );
   }
-  mpvp->vol->rxn_mem = create_mem( sizeof(struct t_func) , 100 );
-  if (mpvp->vol->rxn_mem == NULL) return 1;
+  mpvp->vol->tv_rxn_mem = create_mem( sizeof(struct t_func) , 100 );
+  if (mpvp->vol->tv_rxn_mem == NULL) return 1;
   
   for (i=0;i<SYM_HASHSIZE;i++)
   {
@@ -1276,7 +1276,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           } /* end if(n_reactants > 1) */
         }  /* end for(path = reaction->pathway_head; ...) */
  
-        /* if reaction contains equivalent pathways split
+        /* if reaction contains equivalent pathways, split
            this reaction into a linked list of reactions
            each containing only equivalent pathways. */
  
@@ -1289,9 +1289,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       {
         num_rx++;
 
-        /* At this point we have reactions of the same geometry and can collapse them */
+        /* At this point we have reactions of the same geometry and can collapse them
+           and count how many non-reactant products are in each pathway. */
 
-	/* Search for reactants that appear as products--they aren't listed twice. */
+	/* Search for reactants that appear as products */
 	/* Any reactants that don't appear are set to be destroyed. */
         rx->product_idx = (u_int*)malloc(sizeof(u_int)*(rx->n_pathways+1));
         rx->cum_probs = (double*)malloc(sizeof(double)*rx->n_pathways);
@@ -1307,6 +1308,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         for (j=0 , path=rx->pathway_head ; path!=NULL ; j++ , path = path->next)
         {
           rx->product_idx[j] = 0;
+          /* FIXME: use flags instead of magic kcat values to indicate surface properties such as transparency and concentration clamp */
           if (path->kcat >= 0.0)
           {
             /* Look for hack that indicates concentration clamp */
@@ -1404,7 +1406,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         rx->geometries = (short*)malloc(sizeof(short)*num_players);
         
         if (rx->players==NULL || rx->geometries==NULL) {
-                fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+                fprintf(mpvp->vol->err_file, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
                return 1;
         }
 
@@ -1507,7 +1509,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
             else
             {
-              k2 = 2*rx->n_reactants + 1;
+              k2 = 2*rx->n_reactants + 1;  /* Geometry index of first non-reactant product, counting from 1. */
               geom = 0;
               for (prod2=path->product_head ; prod2!=prod && prod2!=NULL && geom==0 ; prod2 = prod2->next)
               {
@@ -1603,8 +1605,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         {
 	  if ((rx->players[0]->flags&ON_GRID)!=0 && (rx->players[1]->flags&ON_GRID)!=0)
 	  {
+            /* this is a reaction between two surface molecules */
 
-          /* this is a reaction between two surface molecules */
 	    if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
 	    {
 	      fprintf(mpvp->vol->err_file,"Error: Reaction between %s and %s listed, but both marked TARGET_ONLY\n",
@@ -1613,9 +1615,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	    }
 	    else if ( (rx->players[0]->flags | rx->players[1]->flags) & CANT_INITIATE )
 	    {
-	      pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/3;
+	      pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/3; /* 3 neighbors */
 	    }
-	    else pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/6;
+	    else pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/6; /* 2 molecules, 3 neighbors each */
 	  }
 	  else if ((((rx->players[0]->flags&IS_SURFACE)!=0 && (rx->players[1]->flags&ON_GRID)!=0) ||
 	            ((rx->players[1]->flags&IS_SURFACE)!=0 && (rx->players[0]->flags&ON_GRID)!=0) )
@@ -1626,9 +1628,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  }
 	  else
 	  {
-
              /* this is a reaction between "vol_mol" and "surf_mol" 
                 or reaction between "vol_mol" and SURFACE */
+
 	    if ((rx->players[0]->flags & NOT_FREE)==0)
 	    {
 	      D_tot = rx->players[0]->D_ref;

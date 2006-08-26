@@ -1051,10 +1051,10 @@ struct volume
   int n_walls;                  /* Total number of walls */
   int n_verts;                  /* Total number of vertices */
   
-  int rx_hashsize;              /* How many slots in our reaction hash table? */
-  int n_reactions;              /* How many reactions are there, total? */
-  struct rxn **reaction_hash;   /* A hash table of all reactions. */
-  struct mem_helper *rxn_mem;   /* Memory to store time-varying reactions */
+  int rx_hashsize;                 /* How many slots in our reaction hash table? */
+  int n_reactions;                 /* How many reactions are there, total? */
+  struct rxn **reaction_hash;      /* A hash table of all reactions. */
+  struct mem_helper *tv_rxn_mem;   /* Memory to store time-varying reactions */
   
   int count_hashmask;                      /* Mask for looking up count hash table */
   struct counter **count_hash;             /* Count hash table */
