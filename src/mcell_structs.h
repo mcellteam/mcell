@@ -892,7 +892,7 @@ struct storage
   struct mem_helper *face;  /* Walls */
   struct mem_helper *join;  /* Edges */
   struct mem_helper *tree;  /* Vertices */
-  struct mem_helper *effs;  /* Effector grids */
+  struct mem_helper *grids;  /* Effector grids */
   struct mem_helper *coll;  /* Collision list */
   struct mem_helper *regl;  /* Region lists */
   struct mem_helper *exdv;  /* Vertex lists for exact interaction disk area */

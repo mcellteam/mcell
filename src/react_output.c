@@ -180,7 +180,7 @@ int emergency_output()
     delete_mem( mem->store->face );
     delete_mem( mem->store->join );
     delete_mem( mem->store->tree );
-    delete_mem( mem->store->effs );
+    delete_mem( mem->store->grids );
     delete_mem( mem->store->coll );
     delete_mem( mem->store->regl );
   }

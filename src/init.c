@@ -817,7 +817,7 @@ int init_partitions(void)
   shared_mem->face = create_mem(sizeof(struct wall),128);
   shared_mem->join = create_mem(sizeof(struct edge),128);
   shared_mem->tree = create_mem(sizeof(struct vertex_tree),128);
-  shared_mem->effs = create_mem(sizeof(struct surface_grid),128);
+  shared_mem->grids = create_mem(sizeof(struct surface_grid),128);
   shared_mem->coll = create_mem(sizeof(struct collision),128);
   shared_mem->regl = create_mem(sizeof(struct region_list),128);
   shared_mem->exdv = create_mem(sizeof(struct exd_vertex),64);
@@ -825,7 +825,7 @@ int init_partitions(void)
   if (shared_mem->list==NULL ||
       shared_mem->mol==NULL  || shared_mem->gmol==NULL ||
       shared_mem->face==NULL || shared_mem->join==NULL ||
-      shared_mem->tree==NULL || shared_mem->effs==NULL ||
+      shared_mem->tree==NULL || shared_mem->grids==NULL ||
       shared_mem->coll==NULL || shared_mem->regl==NULL ||
       shared_mem->exdv==NULL)
   {

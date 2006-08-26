@@ -242,7 +242,7 @@ int create_grid(struct wall *w,struct subvolume *guess)
 
   if (w->grid != NULL) return 0;
   
-  sg = (struct surface_grid *) mem_get(w->birthplace->effs);
+  sg = (struct surface_grid *) mem_get(w->birthplace->grids);
   if (sg == NULL) return 1;
   
   center.x = 0.33333333333*(w->vert[0]->x + w->vert[1]->x + w->vert[2]->x);
