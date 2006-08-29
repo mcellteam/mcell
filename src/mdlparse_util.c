@@ -3298,7 +3298,6 @@ int set_viz_state_value(struct object *objp, int viz_state)
 {
   struct object *child_objp;
   int i;
-
   switch (objp->object_type) {
     case META_OBJ:
       child_objp=objp->first_child;
@@ -3332,7 +3331,8 @@ int set_viz_state_value(struct object *objp, int viz_state)
       }
       break;
     default:
-       fprintf(stderr, "File '%s', Line %ld: Unknown object type used.\n", __FILE__, (long)__LINE__);
+       /* just do nothing */
+      /* fprintf(stderr, "File '%s', Line %ld: Unknown object type used.\n", __FILE__, (long)__LINE__); */
        break;
   }
   return(0);

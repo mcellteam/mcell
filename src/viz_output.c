@@ -3859,7 +3859,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
       is MOLS type check whether there are frames ahead for the same
       "viz_iteration" but MESHES type and if there are no such -
       create link in this "frame_#" folder to the last existing
-      "meshes" files.  Do the similar if this frame is of MESHES type.
+      "meshes" files.  Do the same if this frame is of MESHES type.
       In fact the links are created only when e.g. the current frame is the 
       last one of MOLS type and there are no MESHES type frames for this
       iteration.
@@ -3952,9 +3952,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                    }
 
                 }  /* end else if */
-            }else{  /* end if(status = stat()) */
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-            }
+            }  /* end if(status = stat()) */
 
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/surface_molecules_orientations.bin");    
             status = stat(path_name_1, &f_stat);
@@ -3985,9 +3983,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
                 }  /* end else if */
             
-            }else{  /* end if(status = stat()) */
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-            }
+            }  /* end if(status = stat()) */
 	   
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/surface_molecules_positions.bin");    
             status = stat(path_name_1, &f_stat);
@@ -4018,9 +4014,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
                 }  /* end else if */
 
-            }else{  /* end if(status = stat()) */
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-            }
+            }  /* end if(status = stat()) */
  
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/surface_molecules_states.bin");    
             status = stat(path_name_1, &f_stat);
@@ -4051,9 +4045,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
                 }  /* end else if */
 
-            }else{  /* end if(status = stat()) */
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-            }
+            }  /* end if(status = stat()) */
             
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/volume_molecules.dx");    
             status = stat(path_name_1, &f_stat);
@@ -4084,9 +4076,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
                 }  /* end else if */
                        
-            }else{  /* end if(status = stat()) */
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-            }
+            }  /* end if(status = stat()) */
             
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/volume_molecules_orientations.bin");    
             status = stat(path_name_1, &f_stat);
@@ -4117,9 +4107,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
                 }  /* end else if */
 
-            }else{  /* end if(status = stat()) */
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-            }
+            }  /* end if(status = stat()) */
 
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/volume_molecules_positions.bin");    
             status = stat(path_name_1, &f_stat);
@@ -4150,9 +4138,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
                 }  /* end else if */
 
-            }else{  /* end if(status = stat()) */
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-            }
+            }  /* end if(status = stat()) */
 
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/volume_molecules_states.bin");    
             status = stat(path_name_1, &f_stat);
@@ -4183,9 +4169,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
                 }  /* end else if */
 
-            }else{  /* end if(status = stat()) */
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-            }
+            }  /* end if(status = stat()) */
               
             chdir(buf);
         }
@@ -4256,9 +4240,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
                 }  /* end else if */
 
-            }else{  /* end if(status = stat()) */
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-            }
+            }  /* end if(status = stat()) */
 
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_meshes_iteration, "/mesh_positions.bin");    
             status = stat(path_name_1, &f_stat);
@@ -4289,9 +4271,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
                 }  /* end else if */
 
-            }else{  /* end if(status = stat()) */
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-            }
+            }  /* end if(status = stat()) */
 
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_meshes_iteration, "/mesh_states.bin");    
             status = stat(path_name_1, &f_stat);
@@ -4322,10 +4302,8 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
                 }  /* end else if */
 
-            }else{  /* end if(status = stat()) */
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-            }
-            
+            }  /* end if(status = stat()) */
+
             sprintf(path_name_1,"%s%lld%s", "../iteration_", last_meshes_iteration, "/region_indices.bin");    
             status = stat(path_name_1, &f_stat);
             if(status == 0){
@@ -4355,9 +4333,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
                 }  /* end else if */
 
-            }else{  /* end if(status = stat()) */
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-            }
+            }  /* end if(status = stat()) */
              
             chdir(buf);
 
