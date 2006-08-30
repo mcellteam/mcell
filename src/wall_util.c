@@ -2423,9 +2423,11 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
  
   R = (world->rx_radius_3d); 
 
-  new_sv = (struct subvolume *)(sv->neighbor[X_POS]);
-  if(new_sv != NULL)
+  /* go in the direction X_POS */
+  neighbor_index = sv->index + (world->nz_parts - 1)*(world->ny_parts - 1);
+  if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
   {
+      new_sv = &(world->subvol[neighbor_index]); 
       new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
       new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
       new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2448,9 +2450,12 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
       }
 
    }
-   new_sv = (struct subvolume *)(sv->neighbor[X_NEG]);
-   if(new_sv != NULL)
+   
+   /* go in the direction X_NEG */
+   neighbor_index = sv->index - (world->nz_parts - 1)*(world->ny_parts - 1);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
    {
+       new_sv = &(world->subvol[neighbor_index]); 
        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2473,9 +2478,12 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
       }
 
    }
-   new_sv = (struct subvolume *)(sv->neighbor[Z_POS]);
-   if(new_sv != NULL)
+
+   /* go in the direction Z_POS */
+   neighbor_index = sv->index + 1;
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
    {
+       new_sv = &(world->subvol[neighbor_index]); 
        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2499,9 +2507,11 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
 
    }
 
-     new_sv = (struct subvolume *)(sv->neighbor[Z_NEG]);
-     if(new_sv != NULL)
-     {
+   /* go in the direction Z_NEG */
+   neighbor_index = sv->index - 1;
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+   {
+       new_sv = &(world->subvol[neighbor_index]); 
        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2525,9 +2535,11 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
 
      }
 
-     new_sv = (struct subvolume *)(sv->neighbor[Y_POS]);
-     if(new_sv != NULL)
-     {
+   /* go in the direction Y_POS */
+   neighbor_index = sv->index + (world->nz_parts - 1);
+   if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
+   {
+        new_sv = &(world->subvol[neighbor_index]); 
         new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
         new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
         new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2551,9 +2563,11 @@ void  add_wall_to_neighbor_subvolumes(struct wall *w, struct vector3 *wall_llf, 
      
      }
 
-     new_sv = (struct subvolume *)(sv->neighbor[Y_NEG]);
-     if(new_sv != NULL)
+     /* go in the direction Y_NEG */
+     neighbor_index = sv->index - (world->nz_parts - 1);
+     if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
      {
+       new_sv = &(world->subvol[neighbor_index]); 
        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];

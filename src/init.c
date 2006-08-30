@@ -899,9 +899,12 @@ int init_partitions(void)
     sv->urb.x = bisect_near( world->x_fineparts , world->n_fineparts , world->x_partitions[i+1] );
     sv->urb.y = bisect_near( world->y_fineparts , world->n_fineparts , world->y_partitions[j+1] );
     sv->urb.z = bisect_near( world->z_fineparts , world->n_fineparts , world->z_partitions[k+1] );
-    
-    sv->is_bsp = 0;
-
+   
+    /* This part is commented because we are not using
+       bsp_trees at this time */ 
+   /*
+     sv->is_bsp = 0; 
+         
     if (i==0) sv->neighbor[X_NEG] = NULL;
     else sv->neighbor[X_NEG] = &(world->subvol[ h - (world->nz_parts-1)*(world->ny_parts-1) ]);
     
@@ -919,7 +922,8 @@ int init_partitions(void)
     
     if (k==world->nz_parts-2) sv->neighbor[Z_POS] = NULL;
     else sv->neighbor[Z_POS] = &(world->subvol[ h + 1 ]);
-    
+       */
+
     sv->local_storage = shared_mem;
   }
   

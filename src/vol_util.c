@@ -69,16 +69,49 @@ traverse_subvol:
       pointer to a vector3 of where we want to be
       which direction we're traveling to get there
   Out: subvolume that's closest to where we want to be in our direction
-  Note: have to traverse BSP trees to do this
+  Note: BSP trees traverse is not yet implemented
 *************************************************************************/
-
 struct subvolume* traverse_subvol(struct subvolume *here,struct vector3 *point,int which)
 {
+    int new_index;
+
+    switch(which)
+    {
+      case X_NEG:
+          new_index = here->index - (world->nz_parts - 1)*(world->ny_parts - 1);
+          break;
+      case X_POS:
+          new_index = here->index + (world->nz_parts - 1)*(world->ny_parts - 1);
+          break;
+      case Y_NEG:
+          new_index = here->index - (world->nz_parts - 1);
+          break;
+      case Y_POS:
+          new_index = here->index + (world->nz_parts - 1);
+          break;
+      case Z_NEG:
+          new_index = here->index - 1;
+          break;
+      case Z_POS:
+          new_index = here->index + 1;
+          break;
+      default: 
+          fprintf(world->err_file, "Wrong direction calculated in %s, %ld\n", __FILE__, (long)__LINE__);
+          break;
+
+    } /* end switch */
+
+    if((new_index > 0) && (new_index < world->n_subvols)){
+        return &(world->subvol[new_index]);
+    }else{
+        return NULL;
+    }
+    /*
   int flag = 1<<which;
   int left_path;
   struct bsp_tree *branch;
   
-  if ((here->is_bsp & flag) == 0) return (struct subvolume*)here->neighbor[which];
+  if ((here->is_bsp & flag) == 0) return (struct subvolume*)here->neighbor[which]; 
   else
   {
     branch = (struct bsp_tree*) here->neighbor[which];
@@ -96,7 +129,7 @@ struct subvolume* traverse_subvol(struct subvolume *here,struct vector3 *point,i
           if ( point->y <= world->y_fineparts[ branch->partition ] ) left_path = 1;
           else left_path = 0;
         }
-        else /* Must be Z_AXIS */
+        else // Must be Z_AXIS 
         {
           if ( point->z <= world->z_fineparts[ branch->partition ] ) left_path = 1;
           else left_path = 0;
@@ -114,11 +147,10 @@ struct subvolume* traverse_subvol(struct subvolume *here,struct vector3 *point,i
       }
     }
   }
-  
+
   return NULL;
+  */
 }
-
-
 
 /*************************************************************************
 collide_sv_time:
@@ -227,7 +259,7 @@ struct subvolume* next_subvol(struct vector3 *here,struct vector3 *move,struct s
     move->y *= t;
     move->z *= t;
     
-    return traverse_subvol(sv,here,which);
+    return traverse_subvol(sv,here,which); 
   }
 }
   
@@ -258,7 +290,6 @@ struct subvolume* find_subvolume(struct vector3 *loc,struct subvolume *guess)
   }
 #else
   /* This code should be used if we ever subdivide subvolumes */
-  
   struct subvolume *sv;
   struct vector3 center;
   

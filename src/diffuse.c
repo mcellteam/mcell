@@ -1905,9 +1905,11 @@ struct collision* expand_collision_list(struct volume_molecule *m, struct vector
   /* find the molecule path bounding box. */
   path_bounding_box(&(m->pos), mv, &path_llf, &path_urb);
   
-     new_sv = (struct subvolume *)(sv->neighbor[X_POS]);
-     if(new_sv != NULL)
+     /* go in the direction X_POS */
+     neighbor_index = sv->index + (world->nz_parts - 1)*(world->ny_parts - 1);
+     if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
      {
+          new_sv = &(world->subvol[neighbor_index]);
           new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
           new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
           new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -1954,9 +1956,11 @@ struct collision* expand_collision_list(struct volume_molecule *m, struct vector
           } /* if(test_bounding_boxes ... ) */
      } /* end if (new_sv != NULL) */
 
-     new_sv = (struct subvolume *)(sv->neighbor[X_NEG]);
-     if(new_sv != NULL)
+     /* go in the direction X_NEG */
+     neighbor_index = sv->index - (world->nz_parts - 1)*(world->ny_parts - 1);
+     if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
      {
+          new_sv = &(world->subvol[neighbor_index]);
           new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
           new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
           new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2003,9 +2007,11 @@ struct collision* expand_collision_list(struct volume_molecule *m, struct vector
           }
      }
      
-     new_sv = (struct subvolume *)(sv->neighbor[Z_POS]);
-     if(new_sv != NULL)
+     /* go in the direction Z_POS */
+     neighbor_index = sv->index + 1;
+     if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
      {
+       new_sv = &(world->subvol[neighbor_index]);
        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2053,9 +2059,11 @@ struct collision* expand_collision_list(struct volume_molecule *m, struct vector
      }
 
      
-     new_sv = (struct subvolume *)(sv->neighbor[Z_NEG]);
-     if(new_sv != NULL)
+     /* go in the direction Z_NEG */
+     neighbor_index = sv->index - 1;
+     if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
      {
+       new_sv = &(world->subvol[neighbor_index]);
        new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
        new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
        new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2103,9 +2111,11 @@ struct collision* expand_collision_list(struct volume_molecule *m, struct vector
      }
 
 
-     new_sv = (struct subvolume *)(sv->neighbor[Y_POS]);
-     if(new_sv != NULL)
+     /* go in the direction Y_POS */
+     neighbor_index = sv->index + (world->nz_parts - 1);
+     if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
      {
+          new_sv = &(world->subvol[neighbor_index]);
           new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
           new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
           new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -2153,9 +2163,11 @@ struct collision* expand_collision_list(struct volume_molecule *m, struct vector
      }
 
 
-     new_sv = (struct subvolume *)(sv->neighbor[Y_NEG]);
-     if(new_sv != NULL)
+     /* go in the direction Y_NEG */
+     neighbor_index = sv->index - (world->nz_parts - 1);
+     if((neighbor_index > 0) && (neighbor_index < world->n_subvols))
      {
+          new_sv = &(world->subvol[neighbor_index]);
           new_sv_llf.x = world->x_fineparts[new_sv->llf.x];
           new_sv_llf.y = world->y_fineparts[new_sv->llf.y];
           new_sv_llf.z = world->z_fineparts[new_sv->llf.z];
@@ -3929,7 +3941,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         t_steps *= (1.0-smash->t);
         if (t_steps < EPS_C) t_steps = EPS_C;
 
-        nsv = traverse_subvol(sv,&(m->pos),smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL);
+        nsv = traverse_subvol(sv,&(m->pos),smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL); 
         if (nsv==NULL)
         {
           fprintf(world->log_file,"Error: a %s molecule escaped the world at (%.2e,%.2e,%.2e)\n",
