@@ -78,34 +78,38 @@ struct subvolume* traverse_subvol(struct subvolume *here,struct vector3 *point,i
     switch(which)
     {
       case X_NEG:
+          if (here->world_edge&X_NEG_BIT) return NULL;
           new_index = here->index - (world->nz_parts - 1)*(world->ny_parts - 1);
           break;
       case X_POS:
+          if (here->world_edge&X_POS_BIT) return NULL;
           new_index = here->index + (world->nz_parts - 1)*(world->ny_parts - 1);
           break;
       case Y_NEG:
+          if (here->world_edge&Y_NEG_BIT) return NULL;
           new_index = here->index - (world->nz_parts - 1);
           break;
       case Y_POS:
+          if (here->world_edge&Y_POS_BIT) return NULL;
           new_index = here->index + (world->nz_parts - 1);
           break;
       case Z_NEG:
+          if (here->world_edge&Z_NEG_BIT) return NULL;
           new_index = here->index - 1;
           break;
       case Z_POS:
+          if (here->world_edge&Z_POS_BIT) return NULL;
           new_index = here->index + 1;
           break;
       default: 
-          fprintf(world->err_file, "Wrong direction calculated in %s, %ld\n", __FILE__, (long)__LINE__);
+          fprintf(world->err_file, "Wrong direction caculated in %s, %ld\n", __FILE__, (long)__LINE__);
+	  return NULL;
           break;
 
     } /* end switch */
 
-    if((new_index > 0) && (new_index < world->n_subvols)){
-        return &(world->subvol[new_index]);
-    }else{
-        return NULL;
-    }
+    return &(world->subvol[new_index]);
+    
     /*
   int flag = 1<<which;
   int left_path;

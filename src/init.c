@@ -899,6 +899,15 @@ int init_partitions(void)
     sv->urb.x = bisect_near( world->x_fineparts , world->n_fineparts , world->x_partitions[i+1] );
     sv->urb.y = bisect_near( world->y_fineparts , world->n_fineparts , world->y_partitions[j+1] );
     sv->urb.z = bisect_near( world->z_fineparts , world->n_fineparts , world->z_partitions[k+1] );
+    
+    /* Set flags so we know which directions to not go (we will fall off the world!) */
+    sv->world_edge=0;  /* Assume we're not at the edge of the world in any direction */
+    if (i==0) sv->world_edge |= X_NEG_BIT;
+    if (i==world->nx_parts-2) sv->world_edge |= X_POS_BIT;
+    if (j==0) sv->world_edge |= Y_NEG_BIT;
+    if (j==world->ny_parts-2) sv->world_edge |= Y_POS_BIT;
+    if (k==0) sv->world_edge |= Z_NEG_BIT;
+    if (k==world->nz_parts-2) sv->world_edge |= Z_POS_BIT;
    
     /* This part is commented because we are not using
        bsp_trees at this time */ 

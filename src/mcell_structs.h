@@ -161,10 +161,12 @@
 
 
 /* Constants equating integers with coordinates */
+/* Axis Values */
 #define X_AXIS 0
 #define Y_AXIS 1
 #define Z_AXIS 2
 
+/* Direction Values */
 #define X_NEG 0
 #define X_POS 1
 #define Y_NEG 2
@@ -173,6 +175,7 @@
 #define Z_POS 5
 #define NODIR 6
 
+/* Direction Bit Flags */
 #define X_NEG_BIT 0x01
 #define X_POS_BIT 0x02
 #define Y_NEG_BIT 0x04
@@ -924,11 +927,12 @@ struct subvolume
   struct volume_molecule *mol_head;   /* Head of linked list of molecules */
   int mol_count;               /* How many molecules are here? */
 
-  int index;                   /* Index of subvolume (parallelization?) */
+  int index;                   /* Index of subvolume in world list */
   
   struct short3D llf;          /* Indices of left lower front corner */
   struct short3D urb;          /* Indices of upper right back corner */
   
+  short world_edge;            /* Direction Bit Flags that are set for SSVs at edge of world */ 
 /*  short is_bsp;   */             /* Flags saying what the void pointers are */
 
   /* void *neighbor[6];   */        /* Subvolume or bsp_tree across each face */

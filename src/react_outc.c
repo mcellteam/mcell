@@ -507,7 +507,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
     {
       m->subvol->mol_count--;
       if (m->flags & IN_SCHEDULE) m->subvol->local_storage->timer->defunct_count++;
-      if (m->flags&COUNT_ME)
+      if (m->properties->flags&COUNT_SOME)
       {
 	i = count_region_from_scratch((struct abstract_molecule*)m,NULL,-1,&(m->pos),NULL,m->t);
 	if (i) return RX_NO_MEM;
@@ -521,7 +521,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
       {
 	g->grid->subvol->local_storage->timer->defunct_count++;
       }
-      if (g->flags&COUNT_ME)
+      if (g->properties->flags&COUNT_SOME)
       {
 	i = count_region_from_scratch((struct abstract_molecule*)g,NULL,-1,NULL,NULL,g->t);
 	if (i) return RX_NO_MEM;
