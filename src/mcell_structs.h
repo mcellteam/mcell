@@ -22,8 +22,15 @@
 /* Species flags */
    /* Walls have IS_SURFACE set, molecules do not. */
    /* Grid molecules have ON_GRID set */
-   /* COUNT_ENCLOSED set if you count what happens inside closed region */
-   /* (otherwise only count stuff happening at the surface) */
+   /* Volume molecules have NOT_FREE clear (i.e. flags&NOT_FREE==0) */
+   /* CAN_ flags specify what types of reactions this molecule can undergo */
+   /* CANT_INITIATE means that this molecule may not trigger a reaction with another molecule */
+   /* COUNT_TRIGGER means that someone wants to output a TRIGGER statement when something happens to this molecule */
+   /* COUNT_CONTENTS is set if you're counting numbers of molecules in/on regions */
+   /* COUNT_HITS is set if you're counting when the molecules hit regions */
+   /* COUNT_RXNS is set if you're counting reactions involving this molecule.  TODO: check--is this really used? */
+   /* COUNT_ENCLOSED set if you count what happens inside closed region (vol molecules, or surface mols treated as if they were vol mols) */
+   /* COUNT_SOME is a bitmask which is nonzero if any counting happens */
 #define ON_GRID          0x01
 #define IS_SURFACE       0x02
 #define NOT_FREE         0x03
@@ -69,6 +76,7 @@
 #define IN_SCHEDULE 0x100
 #define IN_SURFACE  0x200
 #define IN_VOLUME   0x400
+/* And a mask to pick off all three IN_ flags */
 #define IN_MASK     0x700
 
 /* Flags telling us what our counting status is */
@@ -143,6 +151,7 @@
 #define MAX_MATCHING_RXNS 64
 
 /* BSP Flags */
+/* (Currently unused--these are for self-subdividing subvolumes.) */
 /* Flags for BSP trees to determine whether something is a node or a branch */
 /* Will either have BRANCH_XN through _ZP, or _L, _R, _X, _Y, _Z. */
 /* P is positive, N is negative. */
@@ -185,24 +194,28 @@
 
 
 /* Collision types for rays striking surfaces */
+/* First a bunch of target types */
+/* REDO happens if you can't tell whether you hit or not (hit near an edge, for example */
 #define COLLIDE_REDO    -1
+/* MISS means we hit nothing */
 #define COLLIDE_MISS    0
+/* FRONT and BACK are for surfaces */
 #define COLLIDE_FRONT   1
 #define COLLIDE_BACK    2
-
+/* MOL_M is a volume molecule, _SP and _SN are for surface molecules.  TODO: are _SP, _SN used and if so what do they mean? */
 #define COLLIDE_MOL_M   3
 #define COLLIDE_MOL_SP  4
 #define COLLIDE_MOL_SN  5
-
+/* SV_?? is for collisions with subvolumes (negative and positive for each coordinate axis */
 #define COLLIDE_SV_NX   6
 #define COLLIDE_SV_PX   7
 #define COLLIDE_SV_NY   8
 #define COLLIDE_SV_PY   9
 #define COLLIDE_SV_NZ   10
 #define COLLIDE_SV_PZ   11
-
+/* A mask to pick off all of the collision target types */
 #define COLLIDE_MASK    0x0F
-
+/* Bitmasks for each of the major types of collision */
 #define COLLIDE_WALL    0x10
 #define COLLIDE_MOL     0x20
 #define COLLIDE_SUBVOL  0x40
@@ -252,6 +265,7 @@
 #define COUNT_HASHMASK 0xffff
 
 /* What's the upper bound on the number of coarse partitions? */
+/* Not used for user-defined partitions */
 #define MAX_COARSE_PER_AXIS 16
 #define MIN_COARSE_PER_AXIS 6
 #define MAX_TARGET_TIMESTEP 1.0e6
@@ -270,7 +284,6 @@
 
 
 /* Flags for parser to indicate which axis we are partitioning */
-
 #define X_PARTS 0
 #define Y_PARTS 1
 #define Z_PARTS 2
@@ -285,7 +298,7 @@
 #define EXD_OTHER 4
 
 
-/* Negative numbers used for reaction disks */
+/* Negative numbers used as flags for reaction disks */
 /* Note: TARGET_OCCLUDED is assumed for any negative number not defined here */
 #define TARGET_OCCLUDED    -1
 #define EXD_OUT_OF_MEMORY  -2
@@ -316,6 +329,10 @@
 
 
 /* Constants for notification levels */
+/* NONE means that there is no output */
+/* BRIEF is only defined for some types of notification, and tries to give a compact description of what is going on */
+/* FULL prints out appropriate messages */
+/* TODO: what is CUSTOM for? */
 #define NOTIFY_NONE 0
 #define NOTIFY_BRIEF 1
 #define NOTIFY_FULL 2
@@ -323,17 +340,25 @@
 
 
 /* Constants for warning levels */
+/* COPE means to do something sensible and continue silently */
+/* WARN means to do something sensible but emit a warning message */
+/* ERROR means to treat the warning and an error and stop */
 #define WARN_COPE 0
 #define WARN_WARN 1
 #define WARN_ERROR 2
 
 
-/* Stuff to set surface diffusion behavior */
+/* Number of times to try diffusing on a surface before we give up (we might fail if the target grid is full) */
 #define SURFACE_DIFFUSION_RETRIES 10
 
 
 /* Overwrite Policy Flags */
 /* Flags for different types of file output */
+/* OVERWRITE means that the file is always overwritten, even after checkpointing */
+/* SUBSTITUTE is the default--append to entries earlier in time than "now", but overwrite later entries */
+/* APPEND means that the file is always appended to, even when starting a new run */
+/* APPEND_HEADER means that the file is always appended to, and the header is inserted each time */
+/* CREATE means that the output file is created; it is an error if it already exists (prevents overwriting) */
 #define FILE_UNDEFINED 0
 #define FILE_OVERWRITE 1
 #define FILE_SUBSTITUTE 2
@@ -343,6 +368,11 @@
 
 
 /* Output Expression Flags */
+/* INT means that this expression is an integer */
+/* DBL means that this expression is a double */
+/* TRIG means that this expression will actually be handled by a triggering event */
+/* MASK lets us pick off the INT/DBL/TRIG flags */
+/* CONST means that this expression will not change during runtime (compute at parse time and store) */
 #define OEXPR_TYPE_UNDEF 0x0
 #define OEXPR_TYPE_INT 0x1
 #define OEXPR_TYPE_DBL 0x2
@@ -350,6 +380,9 @@
 #define OEXPR_TYPE_MASK 0x7
 #define OEXPR_TYPE_CONST 0x8
 
+/* Same things for sub-expressions to the left, plus */
+/* REQUEST means that the expression contains a request for a count statement, not real count data yet (needs to be initialized) */
+/* OEXPR means that the expression is itself an expression that needs to be evaluated (not data) */
 #define OEXPR_LEFT_INT 0x10
 #define OEXPR_LEFT_DBL 0x20
 #define OEXPR_LEFT_TRIG 0x30
@@ -358,6 +391,7 @@
 #define OEXPR_LEFT_MASK 0x70
 #define OEXPR_LEFT_CONST 0x80
 
+/* Same things again for sub-expressions to the right */
 #define OEXPR_RIGHT_INT 0x100
 #define OEXPR_RIGHT_DBL 0x200
 #define OEXPR_RIGHT_TRIG 0x300
@@ -380,8 +414,10 @@
 
 /* Generic numerical constants */
 #define EPSILON 1e-14
-                                                                                
+
+/* 1/2^32 */
 #define R_UINT_MAX 2.3283064365386962890625e-10
+
 #define MY_PI 3.14159265358979323846
 #define N_AV 6.0221415e23
 #define ROUND_UP 0.5
@@ -421,9 +457,9 @@
 #define VIZ_MOLECULES_STATES 0x02
 #define VIZ_SURFACE_STATES 0x04
 
-/*******************************************************/
-/**  Old constants copied from MCell2, may be broken  **/
-/*******************************************************/
+/************************************************************/
+/**  Old constants copied from MCell2, some may be broken  **/
+/************************************************************/
 
 /* Parser parameters.  Probably need to be revisited. */
 /* size of symbol hash table 0x100000 = 1M */
@@ -502,6 +538,7 @@
                                                                                 
 
 /* Box sides */
+/* Note that there are two triangles per side, so we count up by two */
 #define TP 0
 #define BOT 2
 #define FRNT 4
@@ -516,31 +553,6 @@
 #define INCLUDE_OBJ INT_MAX /*object is visualized but state value is not set*/
 
 
-/* output evaluator specifications. Broken until we finish rxn counting */
-#define OVER_E 0
-#define EACH_E 1
-#define SPEC_E 2
-                                                                                
-#define OVER_L 0
-#define EACH_L 1
-#define SPEC_L 2
-                                                                                
-#define SUM 0
-#define DT 1
-#define CUM 2
-                                                                                
-#define A_EVENTS 0
-#define INIT_EVENTS 1
-#define INTER_EVENTS 2
-
-
-/* Output evaluator index types. */
-#define UNKNOWN 0
-#define TIME_STAMP_VAL 1
-#define INDEX_VAL 2
-#define TRIGGER_VAL 3
-
-
 /* Data Output Timing Type */
 /* Reaction and Viz data output timing */
 #define OUTPUT_BY_STEP 0 
@@ -548,16 +560,8 @@
 #define OUTPUT_BY_ITERATION_LIST 2
 
 
-/* Region counter type.  INIT probably broken. */
-#define RX_STATE 0
-#define INIT_TRANS 1
-#define TRANSITIONS 2
-#define MOL_TRANS_EACH 3
-#define MOL_TRANS_ALL 4
-
-
 /* Visualization stuff. */
-/* Visualization modes. */
+/* Visualization modes (old style). */
 #define NO_VIZ_MODE 0
 #define DX_MODE 1
 #define DREAMM_V3_MODE 2
