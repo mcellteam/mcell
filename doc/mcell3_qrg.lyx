@@ -40,9 +40,6 @@
 \layout Title
 
 MCell3 Quick Tutorial and Reference Guide
-\layout Author
-
-Rex Kerr
 \layout Standard
 
 In this document, the main text is in a serif font.
@@ -1110,7 +1107,7 @@ r
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "35col%"
 collapsed false
 
@@ -1180,7 +1177,7 @@ This block of commands lets you set the informational messages that MCell3
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "35col%"
 collapsed false
 
@@ -2298,7 +2295,7 @@ Explanation
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "35col%"
 collapsed false
 
@@ -2374,7 +2371,7 @@ name
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "35col%"
 collapsed false
 
@@ -2785,7 +2782,7 @@ Explanation
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "35col%"
 collapsed false
 
@@ -4333,7 +4330,7 @@ Explanation
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "35col%"
 collapsed false
 
@@ -4407,7 +4404,7 @@ name
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "35col%"
 collapsed false
 
@@ -4695,7 +4692,7 @@ CLAMP_CONC
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "30col%"
 collapsed false
 
@@ -4819,7 +4816,7 @@ A,
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "30col%"
 collapsed false
 
@@ -4993,7 +4990,7 @@ Explanation
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "30col%"
 collapsed false
 
@@ -5077,7 +5074,7 @@ name
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "30col%"
 collapsed false
 
@@ -5330,7 +5327,7 @@ Explanation
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "30col%"
 collapsed false
 
@@ -5462,7 +5459,7 @@ ELEMENT_CONNECTIONS
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "30col%"
 collapsed false
 
@@ -5635,7 +5632,7 @@ Explanation
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "35col%"
 collapsed false
 
@@ -5751,7 +5748,7 @@ Define regions on the object.
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "35col%"
 collapsed false
 
@@ -6306,7 +6303,7 @@ Explanation
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "30col%"
 collapsed false
 
@@ -6518,7 +6515,7 @@ RELEASE_SITE
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "35col%"
 collapsed false
 
@@ -6762,7 +6759,7 @@ LIST
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "30col%"
 collapsed false
 
@@ -6882,7 +6879,7 @@ LIST
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "30col%"
 collapsed false
 
@@ -6953,7 +6950,7 @@ LIST
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "30col%"
 collapsed false
 
@@ -7126,7 +7123,7 @@ LIST
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "30col%"
 collapsed false
 
@@ -7191,9 +7188,9 @@ DENSITY
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "30col%"
-collapsed true
+collapsed false
 
 \layout Standard
 
@@ -7578,7 +7575,7 @@ Explanation
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "30col%"
 collapsed false
 
@@ -7686,7 +7683,7 @@ d object.
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "35col%"
 collapsed false
 
@@ -7853,7 +7850,7 @@ Explanation
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "30col%"
 collapsed false
 
@@ -8260,14 +8257,17 @@ There are two forms of output in MCell3, visualization output and count
  a reaction has occurred inside some object in the world, and so on.
  Count output can also be written when triggered by a specific event such
  as a reaction taking place.
+\layout Subsubsection
+
+Visualization Output
 \layout Standard
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="4" columns="2">
-<features islongtable="true" headBottomDL="true">
-<column alignment="left" valignment="top" leftline="true" width="0">
-<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<lyxtabular version="3" rows="2" columns="2">
+<features islongtable="true">
+<column alignment="block" valignment="top" leftline="true" width="2in">
+<column alignment="left" valignment="top" leftline="true" rightline="true" width="4in">
 <row topline="true" bottomline="true" endhead="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -8279,7 +8279,7 @@ There are two forms of output in MCell3, visualization output and count
 Command
 \end_inset 
 </cell>
-<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell multicolumn="1" alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none" width="3.5in">
 \begin_inset Text
 
 \layout Standard
@@ -8297,15 +8297,44 @@ Explanation
 \layout Standard
 
 
-\family typewriter 
-VIZ_DATA_OUTPUT { 
-\family sans 
-\shape italic 
-...
+\begin_inset Minipage
+position 0
+inner_position 1
+height "1in"
+width "100col%"
+collapsed false
+
+\layout Standard
+
 
 \family typewriter 
+VIZ_OUTPUT 
+\layout Standard
+
+
+\family typewriter 
+{ 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+
+\family sans 
+\shape italic 
+viz data output commands
+\family typewriter 
 \shape default 
- }
+ 
+\layout Standard
+
+
+\family typewriter 
+}
+\end_inset 
+
+
 \end_inset 
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
@@ -8313,18 +8342,54 @@ VIZ_DATA_OUTPUT {
 
 \layout Standard
 
-Define a new visualization data output block (which contains commands that
- are not yet described in this document).
- Each MDL file can have only one 
+Define a new visualization output block.
+ MDL files can have multiple 
 \family typewriter 
-VIZ_DATA_OUTPUT
+VIZ_OUTPUT
 \family default 
- block.
- This command is used mostly for historical/compatability purposes.
+ blocks.
 \end_inset 
 </cell>
 </row>
-<row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+Each viz data output block consists of the following commands:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="5" columns="2">
+<features islongtable="true">
+<column alignment="block" valignment="top" leftline="true" width="2in">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="3in">
+<row topline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Viz Data Output Command
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
@@ -8332,14 +8397,12 @@ VIZ_DATA_OUTPUT
 
 
 \family typewriter 
-VIZ_OUTPUT { 
+MODE 
+\family default 
+= 
 \family sans 
 \shape italic 
-...
-
-\family typewriter 
-\shape default 
- }
+viz_mode
 \end_inset 
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
@@ -8347,12 +8410,2314 @@ VIZ_OUTPUT {
 
 \layout Standard
 
-Define a new visualization output block (also not described yet).
- MDL files can have multiple 
+
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+Specifies the mode of the visualization output.
+ The mode defines the directory structure and number of files comprising
+ the visualization output.
+   The valid values for are
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+\color default
+ 
+\color none
+DREAMM_V3
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+, 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+DREAMM_V3_GROUPED
+\family default 
+\color default
+,
+\family typewriter 
+ 
+\family default 
+and
+\family typewriter 
+ 
+\color none
+DX
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+.
+ The 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+DX 
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+mode request
+\family default 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+\color default
+s
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+ the old MCell2 style of output format for compatibility purposes.
+
+\family default 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+\color default
+ The default is 
+\family typewriter 
+\color none
+DREAMM_V3
+\color default
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+FILENAME 
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+= file_name_specifier
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+Name of the master header file containing all information for DREAMM and
+ references to the multiple binary data files.
+  If 
+\begin_inset Quotes eld
+\end_inset 
+
+file_name_specifier
+\begin_inset Quotes erd
+\end_inset 
+
+ contains a path, the relevant directory structure pointed to has to be
+ created by the user before the start of the simulation.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\begin_inset Minipage
+position 0
+inner_position 1
+height "1in"
+width "100col%"
+collapsed false
+
+\layout Standard
+
+
+\family typewriter 
+MESHES 
+\layout Standard
+
+{ 
+\layout Standard
+
+\SpecialChar ~
+\SpecialChar ~
+
+\family sans 
+\shape italic 
+data output block 
+\layout Standard
+
+}
+\end_inset 
+
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+Defines meshes visualization data output block.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\begin_inset Minipage
+position 0
+inner_position 1
+height "1in"
+width "100col%"
+collapsed false
+
+\layout Standard
+
+
+\family typewriter 
+MOLECULES 
+\layout Standard
+
+{ 
+\layout Standard
+
+\SpecialChar ~
+\SpecialChar ~
+
+\family sans 
+\shape italic 
+data output block
+\family default 
+\shape default 
+ 
+\layout Standard
+
+}
+\end_inset 
+
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+Defines molecules visualization data output block.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+Each data output block consists of the following commands:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="4" columns="2">
+<features islongtable="true">
+<column alignment="block" valignment="top" leftline="true" width="2in">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="3in">
+<row topline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Data Output Block Commands
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explantation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\begin_inset Minipage
+position 0
+inner_position 1
+height "1in"
+width "100col%"
+collapsed false
+
+\layout Standard
+
+
+\family typewriter 
+NAME_LIST 
+\layout Standard
+
+
+\family typewriter 
+{ 
+\layout Standard
+
+
+\family sans 
+\shape italic 
+\SpecialChar ~
+\SpecialChar ~
+name list commands
+\family default 
+\shape default 
+ 
+\layout Standard
+
+
+\family typewriter 
+}
+\end_inset 
+
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+Defines a valid name list.
+ The valid values are either names separated by any type of whitespace or
+ name list commands.
+ All children of the named objects are included by default.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\begin_inset Minipage
+position 0
+inner_position 1
+height "1in"
+width "100col%"
+collapsed false
+
+\layout Standard
+
+
+\family typewriter 
+TIME_POINTS
+\family default 
+ 
+\layout Standard
+
+
+\family typewriter 
+{
+\family default 
+ 
+\layout Standard
+
+
+\family sans 
+\shape italic 
+\SpecialChar ~
+\SpecialChar ~
+data type
+\family default 
+\shape default 
+ 
+\family typewriter 
+@
+\family default 
+ 
+\family sans 
+\shape italic 
+time_points_list
+\family default 
+\shape default 
+ 
+\layout Standard
+
+
+\family typewriter 
+}
+\end_inset 
+
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+Defines what data should be output at what times.
+ The data types are given below and valid notations for time_points_list
+ are [time1], or [time1, time2, ..., time_end], or [time1, time2, [time3 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+TO
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+ time_end 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+STEP
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+ time4]], or 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+ALL_TIMES.
+
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+ 
+\family default 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+\color default
+Mutually exclusive with 
+\family typewriter 
+ITERATION_NUMBERS
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\begin_inset Minipage
+position 0
+inner_position 1
+height "1in"
+width "100col%"
+collapsed false
+
+\layout Standard
+
+
+\family typewriter 
+ITERATION_NUMBERS 
+\layout Standard
+
+
+\family typewriter 
+{ 
+\layout Standard
+
+
+\family sans 
+\shape italic 
+\SpecialChar ~
+\SpecialChar ~
+data type
+\family default 
+\shape default 
+ 
+\family typewriter 
+@
+\family default 
+ 
+\family sans 
+\shape italic 
+iterations_numbers_list
+\family default 
+\shape default 
+ 
+\layout Standard
+
+
+\family typewriter 
+}
+\end_inset 
+
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+Defines what data should be output at what iterations.
+ The data types are given below and valid notations for iteration_numbers_list
+ are [iteration1], or [iteration1, iteration2, ..., iteration_end], or [iteration1,
+ iteration2, [iteration3 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+TO
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+ iteration_end 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+STEP
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+ iteration4]], or 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+ALL_ITERATIONS.
+
+\family default 
+\color default
+ Mutually exclusive with 
+\family typewriter 
+TIME_POINTS
+\family default 
+.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+The following name list commands for 
+\family typewriter 
+MESHES
+\family default 
+ and 
+\family typewriter 
+MOLECULES
+\family default 
+ are available:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="2" columns="2">
+<features islongtable="true">
+<column alignment="block" valignment="top" leftline="true" width="2.2in">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="3in">
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Name list Commands 
+\series default 
+(
+\family typewriter 
+MESHES
+\family default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ALL_MESHES 
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+A
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+ll mesh object names should be include
+\family default 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+\color default
+d
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+ in the 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+NAME_LIST
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+ sub-block inside a 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+MESHES 
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+block.
+  
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+ALL_MESHES
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+ is equivalent to naming the top-level mesh object (assuming that only a
+ single 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+INSTANTIATE 
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+block is present).
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="2" columns="2">
+<features islongtable="true">
+<column alignment="block" valignment="top" leftline="true" width="2.2in">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="3in">
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Name list Commands 
+\series default 
+(
+\family typewriter 
+MOLECULES
+\family default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ALL_MOLECULES
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+A
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+ll molecule names should be included in the 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+NAME_LIST
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+ sub-block inside 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+MOLECULES
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+ block.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+The following data type commands for 
+\family typewriter 
+MESHES
+\family default 
+ and 
+\family typewriter 
+MOLECULES
+\family default 
+ are available:
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="4" columns="2">
+<features islongtable="true">
+<column alignment="block" valignment="top" leftline="true" width="2in">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="3in">
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Data types 
+\series default 
+(
+\family typewriter 
+MESHES
+\family default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+GEOMETRY
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+M
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+esh
+\family default 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+\color default
+ vertex and connectivity
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+ information should be written at the specified time/iteration.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+REGION_DATA
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Mesh 
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+region
+\family default 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+\color default
+ 
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+information should be written at the specified time/iteration.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ALL_DATA
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+E
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+quivalent to 
+\family default 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+\color default
+using 
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+both 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+GEOMETRY
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+ and 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+REGION_DATA
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="4" columns="2">
+<features islongtable="true">
+<column alignment="block" valignment="top" leftline="true" width="2in">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="3in">
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Data types 
+\series default 
+(
+\family typewriter 
+MOLECULES
+\family default 
+)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+POSITIONS
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Molecule position
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+ information should be written at the specified time/iteration.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ORIENTATIONS
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Molecule orientation
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+ information should be written at the specified time/iteration.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+ALL_DATA
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+E
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+quivalent to 
+\family default 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+\color default
+using 
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+both 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+POSITIONS
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+ and 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+ORIENTATION
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+There are two possible visualization output file formats.
+ 
+\family typewriter 
+DREAMM_V3
+\family default 
+ mode is the default, and creates files in native 
+\family typewriter 
+DX
+\family default 
+ format.
+ This mode is optimized for speed of visualization, but creates many individual
+ files.
+ It has a directory structure with the top-level directory given by adding
+ 
+\shape italic 
+_viz_data
+\shape default 
+ to the filename
+\shape italic 
+, i.e.
+ filename_viz_data
+\shape default 
+.
+ For example if 
+\family typewriter 
+FILENAME
+\family default 
+ = 
+\begin_inset Quotes eld
+\end_inset 
+
+./viz_data/diffusion_box
+\begin_inset Quotes erd
+\end_inset 
+
+ then the directory 
+\shape italic 
+diffusion_box_viz_data
+\shape default 
+ will be created inside the 
+\shape italic 
+./viz_data
+\shape default 
+ directory.
+ Please note that any directory structure above 
+\shape italic 
+diffusion_box_viz_data
+\shape default 
+ if specified has to be created manually by the user before the beginning
+ of the simulation.
+ Inside the 
+\shape italic 
+filename_viz_data
+\shape default 
+ directory there is the data directory called 
+\shape italic 
+frame_data
+\shape default 
+ and three files: 
+\layout Itemize
+
+filename.dx (the header file) 
+\layout Itemize
+
+filename.iteration_numbers.bin 
+\layout Itemize
+
+filename.time_values.bin 
+\layout Standard
+
+The directory 
+\shape italic 
+frame_data
+\shape default 
+ contains a number of sub-directories named by combining the word 
+\shape italic 
+iteration_
+\shape default 
+ with the iteration number of the simulation, such as 
+\shape italic 
+iteration_0
+\shape default 
+, 
+\shape italic 
+iteration_20
+\shape default 
+, etc.
+ Each of these iteration sub-directories by itself contains up to nine files:
+ 
+\layout Itemize
+
+meshes.dx (header file for meshes) 
+\layout Itemize
+
+mesh_positions.bin 
+\layout Itemize
+
+mesh_states.bin (
+\shape italic 
+optional
+\shape default 
+) 
+\layout Itemize
+
+region_indices.bin 
+\layout Itemize
+
+surface_molecules.dx (header file for surface molecules) 
+\layout Itemize
+
+surface_molecules_orientations.bin 
+\layout Itemize
+
+surface_molecules_positions.bin 
+\layout Itemize
+
+surface_molecules_states.bin (
+\shape italic 
+optional
+\shape default 
+) 
+\layout Itemize
+
+volume_molecules.dx (header file for volume molecules) 
+\layout Itemize
+
+volume_molecules_orientations.bin 
+\layout Itemize
+
+volume_molecules_positions.bin 
+\layout Itemize
+
+volume_molecules_states.bin (
+\shape italic 
+optional
+\shape default 
+)
+\layout Standard
+
+Visualization data output for the 
+\family typewriter 
+DREAMM_V3_GROUPED
+\family default 
+ mode is in native 
+\family typewriter 
+DX
+\family default 
+ format and includes one master header file and eight binary data files:
+\layout Itemize
+
+filename.dx (the master header file) 
+\layout Itemize
+
+filename.mesh_positions.bin 
+\layout Itemize
+
+filename.mesh_states.bin (
+\shape italic 
+optional
+\shape default 
+) 
+\layout Itemize
+
+filename.region_indices.bin 
+\layout Itemize
+
+filename.molecule_positions.bin 
+\layout Itemize
+
+filename.molecule_orientations.bin 
+\layout Itemize
+
+filename.molecule_states.bin (
+\shape italic 
+optional
+\shape default 
+) 
+\layout Itemize
+
+filename.iteration_numbers.bin 
+\layout Itemize
+
+filename.time_values.bin
+\layout Standard
+
+Because the 
+\family typewriter 
+DREAMM_V3_GROUPED
+\family default 
+ mode produces a small number of files, they each may become very large.
+ Hence, reading the files may be slow, but this mode may be best for use
+ on production (supercomputer) machines to avoid transfering large number
+ of files.
+\layout Standard
+
+All of the keywords in the 
 \family typewriter 
 VIZ_OUTPUT
 \family default 
- blocks with a variety of modes, or will be able to once they're written.
+ block are optional except 
+\family typewriter 
+FILENAME.
+
+\family default 
+ If the user does not specify the 
+\family typewriter 
+FILENAME
+\family default 
+ keyword an error message is printed and the simulation aborted.
+ Some of the binary files for both formats may be empty.
+ For example, if no regions are defined the file 
+\shape italic 
+region_indices.bin
+\shape default 
+ will be empty.
+ Similarly, if no meshes or molecules are defined the corresponding 
+\shape italic 
+mesh_positions.bin
+\shape default 
+ or all molecules related binary files will be empty.
+ This avoids unintentional mixing of pre-existing and new files that could
+ result during several runs if incomplete file sets were to be generated
+ with the same names.
+ In DReAMM, the user will only need to point to the 
+\shape italic 
+filename.dx
+\shape default 
+ file, and the data from the binary files will be imported as needed for
+ different frames.
+ While using checkpointing in case of the 
+\family typewriter 
+DREAMM_V3_GROUPED
+\family default 
+ format the resulting 
+\shape italic 
+viz_output
+\shape default 
+ files add the checkpoint sequence number to their names, like 
+\shape italic 
+filename.mesh_positions.1.bin
+\shape default 
+.
+ In the case of the 
+\family typewriter 
+DREAMM_V3
+\family default 
+ format only three files - 
+\shape italic 
+filename.dx
+\shape default 
+, 
+\shape italic 
+filename.iteration_numbers.bin
+\shape default 
+ and 
+\shape italic 
+filename.time_values.bin
+\shape default 
+ will add the checkpoint sequence number to their names since all the data
+ for each iteration is stored separately in the corresponding 
+\shape italic 
+iteration_#
+\shape default 
+ subdirectory.
+\layout Standard
+
+Examples of 
+\family typewriter 
+VIZ_OUTPUT
+\family default 
+ statements are given below.
+\layout Standard
+
+
+\series bold 
+Short-hand #1 (time style): 
+\layout Standard
+
+
+\family typewriter 
+VIZ_OUTPUT { 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+FILENAME = file_name_specifier 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+MESHES { 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+NAME_LIST { name_list or ALL_MESHES} 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+TIME_POINTS { 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+ALL_DATA @ [0] 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+} 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+} 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+MOLECULES { 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+NAME_LIST { name_list or ALL_MOLECULES } 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+TIME_POINTS { 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+ALL_DATA @ ALL_TIMES 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+} 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+} 
+\layout Standard
+
+
+\family typewriter 
+}
+\layout Standard
+
+
+\series bold 
+Short-hand #2 (iterations style):
+\series default 
+ 
+\layout Standard
+
+
+\family typewriter 
+VIZ_OUTPUT { 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+FILENAME = file_name_specifier 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+MESHES { 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+NAME_LIST { name_list or ALL_MESHES} 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+ITERATION_NUMBERS { 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+ALL_DATA @ [0] 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+} 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+} 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+MOLECULES { 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+NAME_LIST { name_list or ALL_MOLECULES} 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+ITERATION_NUMBERS { 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+ALL_DATA @ ALL_ITERATIONS 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+} 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+} 
+\layout Standard
+
+
+\family typewriter 
+}
+\layout Standard
+
+
+\series bold 
+Expanded case:
+\series default 
+ 
+\layout Standard
+
+
+\family typewriter 
+VIZ_OUTPUT { 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+FILENAME = file_name_specifier 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+MOLECULES { 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+NAME_LIST { name_list or ALL_MOLECULES } 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+TIME_POINTS { 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+POSITIONS @ ALL_TIMES 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+ORIENTATIONS @ ALL_TIMES 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+} 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+} 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+MESHES { 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+NAME_LIST { name_list or ALL_MESHES } 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+TIME_POINTS { 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+GEOMETRY @ [0] 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+REGION_DATA@ [0] 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+} 
+\layout Standard
+
+
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+} 
+\layout Standard
+
+
+\family typewriter 
+}
+\layout Standard
+
+Usual UNIX-style wildcards like 
+\begin_inset Quotes eld
+\end_inset 
+
+*
+\begin_inset Quotes erd
+\end_inset 
+
+ and 
+\begin_inset Quotes eld
+\end_inset 
+
+?
+\begin_inset Quotes erd
+\end_inset 
+
+ are allowed in the 
+\shape italic 
+name_list
+\shape default 
+.
+ For example in the case of 
+\family typewriter 
+MOLECULES
+\family default 
+ the possible 
+\family typewriter 
+NAME_LIST
+\family default 
+ statement may be as follows: 
+\family typewriter 
+NAME_LIST{A B C1 C2 C3} 
+\layout Standard
+
+or
+\family typewriter 
+ 
+\layout Standard
+
+
+\family typewriter 
+NAME_LIST{A B C*} 
+\layout Standard
+
+or
+\family typewriter 
+ 
+\layout Standard
+
+
+\family typewriter 
+NAME_LIST{A B C?}
+\layout Standard
+
+
+\shape italic 
+Iteration or time specifier
+\shape default 
+ is a single iteration number or time value, a list of iteration numbers
+ or time values, or the keyword 
+\family typewriter 
+ALL_ITERATIONS
+\family default 
+ or 
+\family typewriter 
+ALL_TIMES
+\family default 
+.
+\layout Standard
+
+Each 
+\family typewriter 
+MESHES / NAME_LIST
+\family default 
+ statement may contain a single mesh object name or multiple mesh object
+ names with optional state values.
+ It is left to the user to avoid possible confusion arising from overlapping
+ object trees within a single master header file and its associated data
+ files.
+\layout Standard
+
+
+\begin_inset ERT
+status Open
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
+\layout Subsubsection
+
+Reaction Data Output
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="2" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="2in">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Command
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
 \end_inset 
 </cell>
 </row>
@@ -8366,7 +10731,7 @@ VIZ_OUTPUT
 \begin_inset Minipage
 position 0
 inner_position 0
-height "0pt"
+height "1pt"
 width "35col%"
 collapsed false
 
@@ -9550,22 +11915,8 @@ Always append to an existing file without removing any previous data and
 \layout Standard
 
 
-\emph on 
-!!
-\emph default 
- Need to describe 
-\family typewriter 
-VIZ_DATA
-\family default 
- blocks.
- 
-\emph on 
-!!
-\layout Standard
-
-
 \begin_inset ERT
-status Collapsed
+status Open
 
 \layout Standard
 
