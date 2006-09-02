@@ -4354,7 +4354,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	  
 	  r2=NULL;
 	  if (a->properties->flags&CAN_GRIDWALL) r2=trigger_surface_unimol(a,NULL);
-	  if ( r2!=NULL )
+	  if ( r2!=NULL && r2->n_pathways>RX_SPECIAL)
 	  {
 	    if (r2->prob_t != NULL) check_probs(r2,(a->t + a->t2)*(1.0+EPS_C));
 	    a->t2 = (r==NULL) ? timeof_unimolecular(r2) : timeof_special_unimol(r,r2);
