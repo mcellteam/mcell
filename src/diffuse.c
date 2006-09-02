@@ -4018,7 +4018,6 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
   double steps,t_steps;
   double space_factor;
   int find_new_position,new_idx;
-  
   sg = g->properties;
   
   if (sg==NULL)
@@ -4134,6 +4133,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
   }
   
   g->t += t_steps;
+                          /*       printf("Leaving\n");   */
   return g;
 }
     
@@ -4154,20 +4154,24 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
   int si[3];                     /* Indices on those grids of neighbor molecules */
   struct grid_molecule *gm[3];   /* Neighboring molecules */
   struct rxn *rx[3];             /* Reactions we can perform with those molecules */
-  int i,j,k,n = 0, l = 0, kk;
+  int i; /* points to the pathway of the reaction */
+  int j; /* points to the the reaction */
+  int n = 0; /* total number of possible reactions for a given molecules
+                with all three its neighbors */
+  int k;     /* return value from "outcome_bimolecular()" */
+  int l = 0, kk;
   long long ii;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
-  int matches[3];  /* array of number of matching rxns for 3 neighbor mols */
+  int matches[3];  /* array of numbers of matching rxns for 3 neighbor mols */
   int max_size = 3*MAX_MATCHING_RXNS; /* maximum size of rxn_array */
   struct rxn * rxn_array[max_size]; /* array of reaction objects with neighbor
                                        molecules */
   double cf[max_size];  /* Correction factors for area for those molecules */
 
-  for(i = 0; i < max_size; i++)
+  for(i = 0; i < 3; i++)
   {
-    rxn_array[i] = NULL;
-    cf[i] = 0;
+       matches[i] = 0;
   }
 
   grid_neighbors(g->grid,g->grid_index,sg,si);
@@ -4191,9 +4195,9 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
           for( kk=0; kk < num_matching_rxns; kk++){
              if(matching_rxns[kk] != NULL){
                rxn_array[l] = matching_rxns[kk];
+	       cf[l] = sg[i]->binding_factor/t; 
                l++;
              }
-	     cf[l] = sg[i]->binding_factor/t; 
           }
           
 
@@ -4202,7 +4206,7 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
       }
     }
   }
-  
+ 
   if (n==0) return g;  /* Nobody to react with */
   else if (n==1)
   {
@@ -4211,40 +4215,45 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
   }
   else
   {
-    ii = test_many_bimolecular(rxn_array,cf,n);
-    if (ii>=RX_LEAST_VALID_PATHWAY)
-    {
-      i = (int)(ii & RX_GREATEST_VALID_PATHWAY);
-      j = (int)(ii >> RX_PATHWAY_BITS);
-    }
-    else
-    {
-      i = (int)ii;
-      j = 0;
-    }
+
+     ii = test_many_bimolecular(rxn_array,cf,n);
+     if (ii>=RX_LEAST_VALID_PATHWAY)
+     {
+       i = (int)(ii & RX_GREATEST_VALID_PATHWAY);
+       j = (int)(ii >> RX_PATHWAY_BITS);
+     }
+     else
+     {
+       i = (int)ii;
+       j = 0;
+     }
   }
   
   if (i<RX_LEAST_VALID_PATHWAY) return g;  /* No reaction */
-  
-  if(j < matches[0]){
+                  
+  if((matches[0] > 0) && (j < matches[0])){
       k = outcome_bimolecular(
          rxn_array[j],i,
          (struct abstract_molecule*)g,(struct abstract_molecule*)gm[0],
          g->orient,gm[0]->orient,g->t,NULL,NULL
       );
-   }else if(j < matches[0] + matches[1]){
-      k = outcome_bimolecular(
-         rxn_array[j],i,
-         (struct abstract_molecule*)g,(struct abstract_molecule*)gm[1],
-         g->orient,gm[1]->orient,g->t,NULL,NULL
-      );
-   }else{
+            
+   }else if(matches[1] > 0){
+      if((j >= matches[0]) && (j < matches[0] + matches[1])){
+         k = outcome_bimolecular(
+             rxn_array[j],i,
+             (struct abstract_molecule*)g,(struct abstract_molecule*)gm[1],
+             g->orient,gm[1]->orient,g->t,NULL,NULL
+         );
+      }
+   }else if(matches[2] > 0){
       k = outcome_bimolecular(
          rxn_array[j],i,
          (struct abstract_molecule*)g,(struct abstract_molecule*)gm[2],
          g->orient,gm[2]->orient,g->t,NULL,NULL
       );
    }
+                
 
   if (k==RX_NO_MEM)
   {
@@ -4255,7 +4264,7 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
     exit( EXIT_FAILURE );
   }
   
-  if (j==RX_DESTROY)
+  if (k==RX_DESTROY)
   {
     mem_put(g->birthplace,g);
     return NULL;
@@ -4493,7 +4502,6 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       else max_time = a->t - t;
        
       a = (struct abstract_molecule*)react_2D((struct grid_molecule*)a , max_time );
-      
       if (a==NULL) continue;
       
       if ((a->flags&ACT_DIFFUSE)==0) /* Advance time if diffusion hasn't already done it */
