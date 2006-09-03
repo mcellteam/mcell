@@ -400,8 +400,12 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
   
       for (wl = sv->wall_head ; wl != NULL ; wl = wl->next)
       {
-	if (wl->this_wall==my_wall) continue;  /* If we're on a wall, skip it */
-	
+        /* Skip wall that we are on unless we're a volume molecule */
+        if (my_wall==wl->this_wall && (am==NULL || (am->properties->flags&NOT_FREE)))
+        {
+          continue;
+        }
+            
 	if (wl->this_wall->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
 	{
 	  j = collide_wall(&here,&delta,wl->this_wall,&t_hit,&hit);
@@ -500,7 +504,9 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 	{
 	  if ( c->target==target && c->reg_type==rl->reg &&
 	       ((c->counter_type&ENCLOSING_COUNTER)!=0 || (am!=NULL && (am->properties->flags&ON_GRID)==0)) &&
-	       (my_wall==NULL || !region_listed(my_wall->counting_regions,rl->reg)) )
+	       (my_wall==NULL || 
+	        (am!=NULL && (am->properties->flags&NOT_FREE)==0) ||
+	        !region_listed(my_wall->counting_regions,rl->reg)) )
 	  {
 	    if (c->counter_type&TRIG_COUNTER)
 	    {
