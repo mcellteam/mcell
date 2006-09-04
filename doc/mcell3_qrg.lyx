@@ -6,6 +6,7 @@
 \widowpenalty=1000
 \clubpenalty=1000
 \def\need#1{\vskip0pt plus #1 \penalty-60 \vskip 0pt plus-#1\relax}
+\newcommand{\comment}[1]{}
 \end_preamble
 \language english
 \inputencoding auto
@@ -8323,7 +8324,7 @@ VIZ_OUTPUT
 
 \family sans 
 \shape italic 
-viz data output commands
+viz output commands
 \family typewriter 
 \shape default 
  
@@ -8358,7 +8359,7 @@ VIZ_OUTPUT
 
 \layout Standard
 
-Each viz data output block consists of the following commands:
+Each viz output block consists of the following commands:
 \layout Standard
 
 
@@ -8366,7 +8367,7 @@ Each viz data output block consists of the following commands:
 <lyxtabular version="3" rows="5" columns="2">
 <features islongtable="true">
 <column alignment="block" valignment="top" leftline="true" width="2in">
-<column alignment="block" valignment="top" leftline="true" rightline="true" width="3in">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
 <row topline="true" endhead="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -8375,7 +8376,7 @@ Each viz data output block consists of the following commands:
 
 
 \series bold 
-Viz Data Output Command
+Viz Output Command
 \end_inset 
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
@@ -8530,16 +8531,21 @@ DREAMM_V3
 
 
 \family typewriter 
-FILENAME 
-\family roman 
-\series medium 
-\shape up 
-\size normal 
-\emph off 
-\bar no 
-\noun off 
-\color none
-= file_name_specifier
+FILENAME = 
+\begin_inset Quotes eld
+\end_inset 
+
+
+\family sans 
+\shape italic 
+filename_specifier
+\family typewriter 
+\shape default 
+
+\begin_inset Quotes erd
+\end_inset 
+
+
 \end_inset 
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
@@ -8559,13 +8565,23 @@ FILENAME
 Name of the master header file containing all information for DREAMM and
  references to the multiple binary data files.
   If 
-\begin_inset Quotes eld
-\end_inset 
-
-file_name_specifier
-\begin_inset Quotes erd
-\end_inset 
-
+\family sans 
+\series default 
+\shape italic 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+\color default
+filename_specifier
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
  contains a path, the relevant directory structure pointed to has to be
  created by the user before the start of the simulation.
 \end_inset 
@@ -8701,7 +8717,7 @@ Each data output block consists of the following commands:
 <lyxtabular version="3" rows="4" columns="2">
 <features islongtable="true">
 <column alignment="block" valignment="top" leftline="true" width="2in">
-<column alignment="block" valignment="top" leftline="true" rightline="true" width="3in">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
 <row topline="true" endhead="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -8784,9 +8800,45 @@ name list commands
 \noun off 
 \color none
 Defines a valid name list.
- The valid values are either names separated by any type of whitespace or
- name list commands.
+ The valid values are either names separated by any type of whitespace
+\family default 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+\color default
+, strings with wildcards (in quotes) that match names, or keywords defined
+ below
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+.
  All children of the named objects are included by default.
+
+\family default 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+\color default
+ If this statement occurs in a 
+\family typewriter 
+MESHES
+\family default 
+ block, the names should be names of objects; in a 
+\family typewriter 
+MOLECULES
+\family default 
+ block they should be names of molecules.
 \end_inset 
 </cell>
 </row>
@@ -8864,16 +8916,19 @@ time_points_list
 \noun off 
 \color none
 Defines what data should be output at what times.
- The data types are given below and valid notations for time_points_list
- are [time1], or [time1, time2, ..., time_end], or [time1, time2, [time3 
-\family typewriter 
+ The data types are given below and valid notations fo
+\family default 
 \series default 
 \shape default 
 \size default 
 \emph default 
 \bar default 
 \noun default 
-TO
+\color default
+r 
+\family sans 
+\shape italic 
+time_points_list
 \family roman 
 \series medium 
 \shape up 
@@ -8881,7 +8936,8 @@ TO
 \emph off 
 \bar no 
 \noun off 
- time_end 
+\color none
+ are 
 \family typewriter 
 \series default 
 \shape default 
@@ -8889,7 +8945,14 @@ TO
 \emph default 
 \bar default 
 \noun default 
-STEP
+\color default
+[
+\family sans 
+\shape italic 
+time1
+\family typewriter 
+\shape default 
+]
 \family roman 
 \series medium 
 \shape up 
@@ -8897,7 +8960,97 @@ STEP
 \emph off 
 \bar no 
 \noun off 
- time4]], or 
+\color none
+, or 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+\color default
+[
+\family sans 
+\shape italic 
+time1
+\family typewriter 
+\shape default 
+, 
+\family sans 
+\shape italic 
+time2
+\family typewriter 
+\shape default 
+, 
+\family default 
+\SpecialChar \ldots{}
+
+\family typewriter 
+, 
+\family sans 
+\shape italic 
+time_end
+\family typewriter 
+\shape default 
+]
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+, or 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+\color default
+[
+\family sans 
+\shape italic 
+time1
+\family typewriter 
+\shape default 
+, 
+\family sans 
+\shape italic 
+time2
+\family typewriter 
+\shape default 
+, [
+\family sans 
+\shape italic 
+time3
+\family typewriter 
+\shape default 
+ TO 
+\family sans 
+\shape italic 
+time_end
+\family typewriter 
+\shape default 
+ STEP 
+\family sans 
+\shape italic 
+delta_time
+\family typewriter 
+\shape default 
+]]
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+, or 
 \family typewriter 
 \series default 
 \shape default 
@@ -9001,17 +9154,16 @@ iterations_numbers_list
 \noun off 
 \color none
 Defines what data should be output at what iterations.
- The data types are given below and valid notations for iteration_numbers_list
- are [iteration1], or [iteration1, iteration2, ..., iteration_end], or [iteration1,
- iteration2, [iteration3 
-\family typewriter 
+ The data types are given below and valid notations for 
+\family sans 
 \series default 
-\shape default 
+\shape italic 
 \size default 
 \emph default 
 \bar default 
 \noun default 
-TO
+\color default
+iteration_numbers_list
 \family roman 
 \series medium 
 \shape up 
@@ -9019,7 +9171,8 @@ TO
 \emph off 
 \bar no 
 \noun off 
- iteration_end 
+\color none
+ are 
 \family typewriter 
 \series default 
 \shape default 
@@ -9027,7 +9180,14 @@ TO
 \emph default 
 \bar default 
 \noun default 
-STEP
+\color default
+[
+\family sans 
+\shape italic 
+iteration1
+\family typewriter 
+\shape default 
+]
 \family roman 
 \series medium 
 \shape up 
@@ -9035,7 +9195,97 @@ STEP
 \emph off 
 \bar no 
 \noun off 
- iteration4]], or 
+\color none
+, or 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+\color default
+[
+\family sans 
+\shape italic 
+iteration1
+\family typewriter 
+\shape default 
+, 
+\family sans 
+\shape italic 
+iteration2
+\family typewriter 
+\shape default 
+, 
+\family default 
+\SpecialChar \ldots{}
+
+\family typewriter 
+, 
+\family sans 
+\shape italic 
+iteration_end
+\family typewriter 
+\shape default 
+]
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+, or 
+\family typewriter 
+\series default 
+\shape default 
+\size default 
+\emph default 
+\bar default 
+\noun default 
+\color default
+[
+\family sans 
+\shape italic 
+iteration1
+\family typewriter 
+\shape default 
+, 
+\family sans 
+\shape italic 
+iteration2
+\family typewriter 
+\shape default 
+, [
+\family sans 
+\shape italic 
+iteration3
+\family typewriter 
+\shape default 
+ TO 
+\family sans 
+\shape italic 
+iteration_end
+\family typewriter 
+\shape default 
+ STEP 
+\family sans 
+\shape italic 
+delta_iteration
+\family typewriter 
+\shape default 
+]]
+\family roman 
+\series medium 
+\shape up 
+\size normal 
+\emph off 
+\bar no 
+\noun off 
+\color none
+, or 
 \family typewriter 
 \series default 
 \shape default 
@@ -9078,7 +9328,7 @@ MOLECULES
 <lyxtabular version="3" rows="2" columns="2">
 <features islongtable="true">
 <column alignment="block" valignment="top" leftline="true" width="2.2in">
-<column alignment="block" valignment="top" leftline="true" rightline="true" width="3in">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
 <row topline="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -9232,7 +9482,7 @@ block is present).
 <lyxtabular version="3" rows="2" columns="2">
 <features islongtable="true">
 <column alignment="block" valignment="top" leftline="true" width="2.2in">
-<column alignment="block" valignment="top" leftline="true" rightline="true" width="3in">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
 <row topline="true" bottomline="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -9345,7 +9595,7 @@ MOLECULES
 <lyxtabular version="3" rows="4" columns="2">
 <features islongtable="true">
 <column alignment="block" valignment="top" leftline="true" width="2in">
-<column alignment="block" valignment="top" leftline="true" rightline="true" width="3in">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
 <row topline="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -9559,7 +9809,7 @@ REGION_DATA
 <lyxtabular version="3" rows="4" columns="2">
 <features islongtable="true">
 <column alignment="block" valignment="top" leftline="true" width="2in">
-<column alignment="block" valignment="top" leftline="true" rightline="true" width="3in">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
 <row topline="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -9746,20 +9996,23 @@ DX
  files.
  It has a directory structure with the top-level directory given by adding
  
-\shape italic 
+\family typewriter 
 _viz_data
-\shape default 
+\family default 
  to the filename
 \shape italic 
 , i.e.
- filename_viz_data
+ 
+\family sans 
+filename
+\family typewriter 
 \shape default 
+_viz_data
+\family default 
 .
  For example if 
 \family typewriter 
-FILENAME
-\family default 
- = 
+FILENAME = 
 \begin_inset Quotes eld
 \end_inset 
 
@@ -9767,104 +10020,192 @@ FILENAME
 \begin_inset Quotes erd
 \end_inset 
 
+
+\family default 
  then the directory 
-\shape italic 
+\family typewriter 
 diffusion_box_viz_data
-\shape default 
+\family default 
  will be created inside the 
-\shape italic 
+\family typewriter 
 ./viz_data
-\shape default 
+\family default 
  directory.
  Please note that any directory structure above 
-\shape italic 
+\family typewriter 
 diffusion_box_viz_data
-\shape default 
+\family default 
  if specified has to be created manually by the user before the beginning
  of the simulation.
  Inside the 
+\family sans 
 \shape italic 
-filename_viz_data
+filename
+\family typewriter 
 \shape default 
+_viz_data
+\family default 
  directory there is the data directory called 
-\shape italic 
+\family typewriter 
 frame_data
-\shape default 
+\family default 
  and three files: 
 \layout Itemize
 
-filename.dx (the header file) 
+
+\family sans 
+\shape italic 
+filename
+\family typewriter 
+\shape default 
+.dx
+\family default 
+ (the header file) 
 \layout Itemize
 
-filename.iteration_numbers.bin 
-\layout Itemize
 
-filename.time_values.bin 
-\layout Standard
-
-The directory 
+\family sans 
 \shape italic 
-frame_data
+filename
+\family typewriter 
 \shape default 
- contains a number of sub-directories named by combining the word 
-\shape italic 
-iteration_
-\shape default 
- with the iteration number of the simulation, such as 
-\shape italic 
-iteration_0
-\shape default 
-, 
-\shape italic 
-iteration_20
-\shape default 
-, etc.
- Each of these iteration sub-directories by itself contains up to nine files:
+.iteration_numbers.bin
+\family default 
  
 \layout Itemize
 
-meshes.dx (header file for meshes) 
+
+\family sans 
+\shape italic 
+filename
+\family typewriter 
+\shape default 
+.time_values.bin
+\family default 
+ 
+\layout Standard
+
+The directory 
+\family typewriter 
+frame_data
+\family default 
+ contains a number of sub-directories named by combining the word 
+\family typewriter 
+iteration_
+\family default 
+ with the iteration number of the simulation, such as 
+\family typewriter 
+iteration_0
+\family default 
+, 
+\family typewriter 
+iteration_20
+\family default 
+, etc.
+ Each of these iteration sub-directories by itself contains up to nine files:
+ 
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+comment{There are twelve files here.  Why do we say that there are up to nine?}
+\end_inset 
+
+
 \layout Itemize
 
-mesh_positions.bin 
+
+\family typewriter 
+meshes.dx
+\family default 
+ (header file for meshes) 
 \layout Itemize
 
-mesh_states.bin (
+
+\family typewriter 
+mesh_positions.bin
+\family default 
+ 
+\layout Itemize
+
+
+\family typewriter 
+mesh_states.bin
+\family default 
+ (
 \shape italic 
 optional
 \shape default 
 ) 
 \layout Itemize
 
-region_indices.bin 
+
+\family typewriter 
+region_indices.bin
+\family default 
+ 
 \layout Itemize
 
-surface_molecules.dx (header file for surface molecules) 
+
+\family typewriter 
+surface_molecules.dx
+\family default 
+ (header file for surface molecules) 
 \layout Itemize
 
-surface_molecules_orientations.bin 
+
+\family typewriter 
+surface_molecules_orientations.bin
+\family default 
+ 
 \layout Itemize
 
-surface_molecules_positions.bin 
+
+\family typewriter 
+surface_molecules_positions.bin
+\family default 
+ 
 \layout Itemize
 
-surface_molecules_states.bin (
+
+\family typewriter 
+surface_molecules_states.bin
+\family default 
+ (
 \shape italic 
 optional
 \shape default 
 ) 
 \layout Itemize
 
-volume_molecules.dx (header file for volume molecules) 
+
+\family typewriter 
+volume_molecules.dx
+\family default 
+ (header file for volume molecules) 
 \layout Itemize
 
-volume_molecules_orientations.bin 
+
+\family typewriter 
+volume_molecules_orientations.bin
+\family default 
+ 
 \layout Itemize
 
-volume_molecules_positions.bin 
+
+\family typewriter 
+volume_molecules_positions.bin
+\family default 
+ 
 \layout Itemize
 
-volume_molecules_states.bin (
+
+\family typewriter 
+volume_molecules_states.bin
+\family default 
+ (
 \shape italic 
 optional
 \shape default 
@@ -9879,42 +10220,118 @@ DREAMM_V3_GROUPED
 \family typewriter 
 DX
 \family default 
- format and includes one master header file and eight binary data files:
+ format and includes one master header file and seven binary data files,
+ plus up to two optional data files if state values are specified in the
+ 
+\family typewriter 
+NAME_LIST
+\family default 
+ blocks:
 \layout Itemize
 
-filename.dx (the master header file) 
+
+\family sans 
+\shape italic 
+filename
+\family typewriter 
+\shape default 
+.dx
+\family default 
+ (the master header file) 
 \layout Itemize
 
-filename.mesh_positions.bin 
+
+\family sans 
+\shape italic 
+filename
+\family typewriter 
+\shape default 
+.mesh_positions.bin
+\family default 
+ 
 \layout Itemize
 
-filename.mesh_states.bin (
+
+\family sans 
+\shape italic 
+filename
+\family typewriter 
+\shape default 
+.mesh_states.bin
+\family default 
+ (
 \shape italic 
 optional
 \shape default 
 ) 
 \layout Itemize
 
-filename.region_indices.bin 
+
+\family sans 
+\shape italic 
+filename
+\family typewriter 
+\shape default 
+.region_indices.bin
+\family default 
+ 
 \layout Itemize
 
-filename.molecule_positions.bin 
+
+\family sans 
+\shape italic 
+filename
+\family typewriter 
+\shape default 
+.molecule_positions.bin
+\family default 
+ 
 \layout Itemize
 
-filename.molecule_orientations.bin 
+
+\family sans 
+\shape italic 
+filename
+\family typewriter 
+\shape default 
+.molecule_orientations.bin
+\family default 
+ 
 \layout Itemize
 
-filename.molecule_states.bin (
+
+\family sans 
+\shape italic 
+filename
+\family typewriter 
+\shape default 
+.molecule_states.bin
+\family default 
+ (
 \shape italic 
 optional
 \shape default 
 ) 
 \layout Itemize
 
-filename.iteration_numbers.bin 
+
+\family sans 
+\shape italic 
+filename
+\family typewriter 
+\shape default 
+.iteration_numbers.bin
+\family default 
+ 
 \layout Itemize
 
-filename.time_values.bin
+
+\family sans 
+\shape italic 
+filename
+\family typewriter 
+\shape default 
+.time_values.bin
 \layout Standard
 
 Because the 
@@ -9943,57 +10360,78 @@ FILENAME
  keyword an error message is printed and the simulation aborted.
  Some of the binary files for both formats may be empty.
  For example, if no regions are defined the file 
-\shape italic 
+\family typewriter 
 region_indices.bin
-\shape default 
+\family default 
  will be empty.
  Similarly, if no meshes or molecules are defined the corresponding 
-\shape italic 
+\family typewriter 
 mesh_positions.bin
-\shape default 
+\family default 
  or all molecules related binary files will be empty.
  This avoids unintentional mixing of pre-existing and new files that could
  result during several runs if incomplete file sets were to be generated
  with the same names.
  In DReAMM, the user will only need to point to the 
+\family sans 
 \shape italic 
-filename.dx
+filename
+\family typewriter 
 \shape default 
+.dx
+\family default 
  file, and the data from the binary files will be imported as needed for
  different frames.
  While using checkpointing in case of the 
 \family typewriter 
 DREAMM_V3_GROUPED
 \family default 
- format the resulting 
+ format the resulting visualization output files add the checkpoint sequence
+ number to their names, like 
+\family sans 
 \shape italic 
-viz_output
+filename
+\family typewriter 
 \shape default 
- files add the checkpoint sequence number to their names, like 
-\shape italic 
-filename.mesh_positions.1.bin
-\shape default 
+.mesh_positions.1.bin
+\family default 
 .
  In the case of the 
 \family typewriter 
 DREAMM_V3
 \family default 
  format only three files - 
+\family sans 
 \shape italic 
-filename.dx
+filename
+\family typewriter 
 \shape default 
+.dx
+\family default 
 , 
+\family sans 
 \shape italic 
-filename.iteration_numbers.bin
+filename
+\family typewriter 
 \shape default 
+.iteration_numbers.bin
+\family default 
  and 
+\family sans 
 \shape italic 
-filename.time_values.bin
+filename
+\family typewriter 
 \shape default 
+.time_values.bin
+\family default 
  will add the checkpoint sequence number to their names since all the data
  for each iteration is stored separately in the corresponding 
+\family typewriter 
+iteration_
+\family sans 
 \shape italic 
-iteration_#
+#
+\family default 
 \shape default 
  subdirectory.
 \layout Standard
@@ -10008,185 +10446,56 @@ VIZ_OUTPUT
 
 \series bold 
 Short-hand #1 (time style): 
+\layout LyX-Code
+
+
+\begin_inset ERT
+status Collapsed
+
 \layout Standard
 
+\backslash 
+vspace{-3mm}
+\end_inset 
 
-\family typewriter 
-VIZ_OUTPUT { 
-\layout Standard
+VIZ_OUTPUT {
+\layout LyX-Code
 
+  FILENAME = 
+\begin_inset Quotes eld
+\end_inset 
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-FILENAME = file_name_specifier 
-\layout Standard
-
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-MESHES { 
-\layout Standard
+viz_data/output_example
+\begin_inset Quotes erd
+\end_inset 
 
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-NAME_LIST { name_list or ALL_MESHES} 
-\layout Standard
+\layout LyX-Code
 
+  MESHES {
+\layout LyX-Code
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-TIME_POINTS { 
-\layout Standard
+    NAME_LIST { ALL_MESHES /* or list of object names */ }
+\layout LyX-Code
 
+    TIME_POINTS { ALL_DATA @ [0] }
+\layout LyX-Code
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-ALL_DATA @ [0] 
-\layout Standard
+  }
+\layout LyX-Code
 
+  MOLECULES {
+\layout LyX-Code
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-} 
-\layout Standard
+    NAME_LIST { ALL_MOLECULES /* or list of molecule names */ }
+\layout LyX-Code
 
+    TIME_POINTS { ALL_DATA @ ALL_TIMES }
+\layout LyX-Code
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-} 
-\layout Standard
+  }
+\layout LyX-Code
 
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-MOLECULES { 
-\layout Standard
-
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-NAME_LIST { name_list or ALL_MOLECULES } 
-\layout Standard
-
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-TIME_POINTS { 
-\layout Standard
-
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-ALL_DATA @ ALL_TIMES 
-\layout Standard
-
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-} 
-\layout Standard
-
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-} 
-\layout Standard
-
-
-\family typewriter 
 }
 \layout Standard
 
@@ -10195,182 +10504,56 @@ ALL_DATA @ ALL_TIMES
 Short-hand #2 (iterations style):
 \series default 
  
+\layout LyX-Code
+
+
+\begin_inset ERT
+status Collapsed
+
 \layout Standard
 
+\backslash 
+vspace{-3mm}
+\end_inset 
 
-\family typewriter 
-VIZ_OUTPUT { 
-\layout Standard
+VIZ_OUTPUT {
+\layout LyX-Code
 
+  FILENAME = 
+\begin_inset Quotes eld
+\end_inset 
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-FILENAME = file_name_specifier 
-\layout Standard
-
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-MESHES { 
-\layout Standard
+viz_data/output_example
+\begin_inset Quotes erd
+\end_inset 
 
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-NAME_LIST { name_list or ALL_MESHES} 
-\layout Standard
+\layout LyX-Code
 
+  MESHES {
+\layout LyX-Code
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-ITERATION_NUMBERS { 
-\layout Standard
+    NAME_LIST { ALL_MESHES /* or list of object names */ }
+\layout LyX-Code
 
+    ITERATION_NUMBERS { ALL_DATA @ [0] }
+\layout LyX-Code
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-ALL_DATA @ [0] 
-\layout Standard
+  }
+\layout LyX-Code
 
+  MOLECULES {
+\layout LyX-Code
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-} 
-\layout Standard
+    NAME_LIST { ALL_MOLECULES /* or list of molecule names */ }
+\layout LyX-Code
 
+    ITERATION_NUMBERS { ALL_DATA @ ALL_ITERATIONS }
+\layout LyX-Code
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-} 
-\layout Standard
+  }
+\layout LyX-Code
 
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-MOLECULES { 
-\layout Standard
-
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-NAME_LIST { name_list or ALL_MOLECULES} 
-\layout Standard
-
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-ITERATION_NUMBERS { 
-\layout Standard
-
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-ALL_DATA @ ALL_ITERATIONS 
-\layout Standard
-
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-} 
-\layout Standard
-
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-} 
-\layout Standard
-
-
-\family typewriter 
 }
 \layout Standard
 
@@ -10379,220 +10562,74 @@ ALL_DATA @ ALL_ITERATIONS
 Expanded case:
 \series default 
  
+\layout LyX-Code
+
+
+\begin_inset ERT
+status Collapsed
+
 \layout Standard
 
+\backslash 
+vspace{-3mm}
+\end_inset 
 
-\family typewriter 
-VIZ_OUTPUT { 
-\layout Standard
+VIZ_OUTPUT {
+\layout LyX-Code
 
+  FILENAME = 
+\begin_inset Quotes eld
+\end_inset 
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-FILENAME = file_name_specifier 
-\layout Standard
-
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-MOLECULES { 
-\layout Standard
+viz_data/output_example
+\begin_inset Quotes erd
+\end_inset 
 
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-NAME_LIST { name_list or ALL_MOLECULES } 
-\layout Standard
+\layout LyX-Code
 
+  MESHES {
+\layout LyX-Code
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-TIME_POINTS { 
-\layout Standard
+    NAME_LIST { ALL_MESHES /* or list of object names */ }
+\layout LyX-Code
 
+    TIME_POINTS {
+\layout LyX-Code
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-POSITIONS @ ALL_TIMES 
-\layout Standard
+      GEOMETRY @ [0]
+\layout LyX-Code
 
+      REGION_DATA @ [0]
+\layout LyX-Code
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-ORIENTATIONS @ ALL_TIMES 
-\layout Standard
+    }
+\layout LyX-Code
 
+  }
+\layout LyX-Code
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-} 
-\layout Standard
+  MOLECULES {
+\layout LyX-Code
 
+    NAME_LIST { ALL_MOLECULES /* or list of molecule names */ }
+\layout LyX-Code
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-} 
-\layout Standard
+    TIME_POINTS {
+\layout LyX-Code
 
+      POSITIONS @ ALL_TIMES
+\layout LyX-Code
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-MESHES { 
-\layout Standard
+      ORIENTATIONS @ ALL_TIMES
+\layout LyX-Code
 
+    }
+\layout LyX-Code
 
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-NAME_LIST { name_list or ALL_MESHES } 
-\layout Standard
+  }
+\layout LyX-Code
 
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-TIME_POINTS { 
-\layout Standard
-
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-GEOMETRY @ [0] 
-\layout Standard
-
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-REGION_DATA@ [0] 
-\layout Standard
-
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-} 
-\layout Standard
-
-
-\family typewriter 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
-} 
-\layout Standard
-
-
-\family typewriter 
 }
 \layout Standard
 
@@ -10613,57 +10650,46 @@ Usual UNIX-style wildcards like
 \end_inset 
 
  are allowed in the 
+\family sans 
 \shape italic 
 name_list
+\family default 
 \shape default 
-.
+ but must be enclosed in quotes.
  For example in the case of 
 \family typewriter 
 MOLECULES
 \family default 
- the possible 
+ the following 
 \family typewriter 
 NAME_LIST
 \family default 
- statement may be as follows: 
-\family typewriter 
+ statements are all valid: 
+\layout LyX-Code
+
 NAME_LIST{A B C1 C2 C3} 
-\layout Standard
+\layout LyX-Code
 
-or
-\family typewriter 
- 
-\layout Standard
+NAME_LIST{A B 
+\begin_inset Quotes eld
+\end_inset 
 
+C*
+\begin_inset Quotes erd
+\end_inset 
 
-\family typewriter 
-NAME_LIST{A B C*} 
-\layout Standard
+} 
+\layout LyX-Code
 
-or
-\family typewriter 
- 
-\layout Standard
+NAME_LIST{A B 
+\begin_inset Quotes eld
+\end_inset 
 
+C?
+\begin_inset Quotes erd
+\end_inset 
 
-\family typewriter 
-NAME_LIST{A B C?}
-\layout Standard
-
-
-\shape italic 
-Iteration or time specifier
-\shape default 
- is a single iteration number or time value, a list of iteration numbers
- or time values, or the keyword 
-\family typewriter 
-ALL_ITERATIONS
-\family default 
- or 
-\family typewriter 
-ALL_TIMES
-\family default 
-.
+}
 \layout Standard
 
 Each 
@@ -10679,7 +10705,7 @@ MESHES / NAME_LIST
 
 
 \begin_inset ERT
-status Open
+status Collapsed
 
 \layout Standard
 
@@ -11328,8 +11354,8 @@ name
  is in quotes, in this command or any of the following commands, the string
  in quotes can contain wildcards which will be matched to molecule and reaction
  names and will be listed in alphabetical order.
- It is usually a good idea to turn on headers so one can see which column
- is which.
+ It is usually a good idea when using wildcards to turn on headers so one
+ can see which column is which.
 \end_inset 
 </cell>
 </row>
@@ -11912,6 +11938,19 @@ Always append to an existing file without removing any previous data and
 \end_inset 
 
 
+\layout Subsubsection
+
+Other Output Commands
+\layout Standard
+
+The MCell 2 style 
+\family typewriter 
+VIZ_DATA_OUTPUT
+\family default 
+ block is also supported (a maximum of one per MDL file) for backwards compatabi
+lity.
+ It is no longer explicitly supported, however, so the format is not described
+ here.
 \layout Standard
 
 
@@ -13191,15 +13230,21 @@ REACTION_DATA_OUTPUT
 \layout LyX-Code
 
 }
+\layout Section
+
+Authors
 \layout Standard
 
+The following authors have contributed to this document, as described.
+\layout Itemize
 
-\emph on 
-!!
-\emph default 
-That's all, folks
-\emph on 
-!!
-\layout LyX-Code
+Rex Kerr: Initial layout and design, first draft of document, editing of
+ later drafts.
+\layout Itemize
 
+Markus Dittrich: 
+\family typewriter 
+VIZ_DATA
+\family default 
+ section.
 \the_end
