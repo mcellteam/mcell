@@ -4159,8 +4159,8 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
   int n = 0; /* total number of possible reactions for a given molecules
                 with all three its neighbors */
   int k;     /* return value from "outcome_bimolecular()" */
-  int l = 0, kk;
-  long long ii;
+  int l = 0, kk, jj;
+  long long ii;        /* return value from "test_many_bimolecular()" */
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
   int matches[3];  /* array of numbers of matching rxns for 3 neighbor mols */
@@ -4169,33 +4169,34 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
                                        molecules */
   double cf[max_size];  /* Correction factors for area for those molecules */
 
-  for(i = 0; i < 3; i++)
+  for(kk = 0; kk < 3; kk++)
   {
-       matches[i] = 0;
+       matches[kk] = 0;
   }
-
+  
+  /* find neighbor molecules to react with */
   grid_neighbors(g->grid,g->grid_index,sg,si);
   
-  for (i=0; i<3 ; i++)
+  for (kk=0; kk<3 ; kk++)
   {
-    if (sg[i]!=NULL)
+    if (sg[kk]!=NULL)
     {
-      gm[i] = sg[i]->mol[ si[i] ];
-      if (gm[i]!=NULL)
+      gm[kk] = sg[kk]->mol[ si[kk] ];
+      if (gm[kk]!=NULL)
       {
 	num_matching_rxns = trigger_bimolecular(
-	  g->properties->hashval,gm[i]->properties->hashval,
-	  (struct abstract_molecule*)g,(struct abstract_molecule*)gm[i],
-	  g->orient,gm[i]->orient, matching_rxns
+	  g->properties->hashval,gm[kk]->properties->hashval,
+	  (struct abstract_molecule*)g,(struct abstract_molecule*)gm[kk],
+	  g->orient,gm[kk]->orient, matching_rxns
 	);
 	if (num_matching_rxns > 0) 
 	{
-          matches[i] = num_matching_rxns;
+          matches[kk] = num_matching_rxns;
           
-          for( kk=0; kk < num_matching_rxns; kk++){
-             if(matching_rxns[kk] != NULL){
-               rxn_array[l] = matching_rxns[kk];
-	       cf[l] = sg[i]->binding_factor/t; 
+          for( jj = 0; jj < num_matching_rxns; jj++){
+             if(matching_rxns[jj] != NULL){
+               rxn_array[l] = matching_rxns[jj];
+	       cf[l] = sg[kk]->binding_factor/t; 
                l++;
              }
           }
@@ -4230,30 +4231,32 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
   }
   
   if (i<RX_LEAST_VALID_PATHWAY) return g;  /* No reaction */
-                  
-  if((matches[0] > 0) && (j < matches[0])){
+      
+    /* run the reaction */
+  if(j < matches[0]){
+        /* react with gm[0] molecule */
       k = outcome_bimolecular(
          rxn_array[j],i,
          (struct abstract_molecule*)g,(struct abstract_molecule*)gm[0],
          g->orient,gm[0]->orient,g->t,NULL,NULL
       );
             
-   }else if(matches[1] > 0){
-      if((j >= matches[0]) && (j < matches[0] + matches[1])){
+   }else if(j < matches[0] + matches[1]){
+        /* react with gm[1] molecule */
          k = outcome_bimolecular(
              rxn_array[j],i,
              (struct abstract_molecule*)g,(struct abstract_molecule*)gm[1],
              g->orient,gm[1]->orient,g->t,NULL,NULL
          );
-      }
-   }else if(matches[2] > 0){
+   }else{
+        /* react with gm[2] molecule */
       k = outcome_bimolecular(
          rxn_array[j],i,
          (struct abstract_molecule*)g,(struct abstract_molecule*)gm[2],
          g->orient,gm[2]->orient,g->t,NULL,NULL
       );
    }
-                
+
 
   if (k==RX_NO_MEM)
   {
