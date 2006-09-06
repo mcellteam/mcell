@@ -1497,10 +1497,12 @@ int set_partitions()
   double A,B,k;
   struct vector3 part_min,part_max;
   double smallest_spacing;
-  
+
+  /* Set sensible bounds for spacing between fine partitions (minimum size of subdivision) */  
   smallest_spacing = 0.1/world->length_unit;  /* 100nm */
   if (2*world->rx_radius_3d > smallest_spacing) smallest_spacing=2*world->rx_radius_3d;
 
+  /* We have 2^15 possible fine partitions; we'll use 24k of them */
   if (world->n_fineparts != 4096 + 16384 + 4096)
   {
     world->n_fineparts = 4096 + 16384 + 4096;
@@ -1515,10 +1517,13 @@ int set_partitions()
     return 1;
   }
 
+  /* Something like the maximum expected error--not sure exactly what this is */
   dfx = 1e-3 + (world->bb_urb.x - world->bb_llf.x)/8191.0;
   dfy = 1e-3 + (world->bb_urb.y - world->bb_llf.y)/8191.0;
   dfz = 1e-3 + (world->bb_urb.z - world->bb_llf.z)/8191.0;
  
+  /* Not sure how this is supposed to work--looks like two ideas mixed, probably broken */
+  /* Was supposed to make sure that the fine partitions would still obey the 2*reaction radius rule */
   f_min = world->bb_llf.x - dfx;
   f_max = world->bb_urb.x + dfx;
   if (f_max - f_min < smallest_spacing)
@@ -1529,19 +1534,24 @@ int set_partitions()
     f_min -= 0.5*f;
     printf("%.3f to %.3f\n",f_min*world->length_unit,f_max*world->length_unit);
   }
+  /* Set bounds over which to do linear subdivision (world bounding box) */
   part_min.x = f_min;
   part_max.x = f_max;
   df = (f_max - f_min)/16383.0;
+  /* Subdivide world bounding box */
   for (i=0;i<16384;i++)
   {
     world->x_fineparts[ 4096 + i ] = f_min + df*((double)i);
   }
+  /* Create an exponentially increasing fine partition size as we go to -infinity */
   find_exponential_params(-f_min,1e12,df,4096,&A,&B,&k);
   for (i=1;i<=4096;i++) world->x_fineparts[4096-i] = -(A*exp(i*k)+B);
+  /* And again as we go to +infinity */
   find_exponential_params(f_max,1e12,df,4096,&A,&B,&k);
   for (i=1;i<=4096;i++) world->x_fineparts[4096+16383+i] = A*exp(i*k)+B;
   dfx = df;
 
+  /* Same thing for y as we just did for x */
   f_min = world->bb_llf.y - dfy;
   f_max = world->bb_urb.y + dfy;
   if (f_max - f_min < smallest_spacing)
@@ -1565,6 +1575,7 @@ int set_partitions()
   for (i=1;i<=4096;i++) world->y_fineparts[4096+16383+i] = A*exp(i*k)+B;
   dfy = df;
 
+  /* And same again for z */
   f_min = world->bb_llf.z - dfz;
   f_max = world->bb_urb.z + dfz;
   if (f_max - f_min < smallest_spacing)
@@ -1588,6 +1599,7 @@ int set_partitions()
   for (i=1;i<=4096;i++) world->z_fineparts[4096+16383+i] = A*exp(i*k)+B;
   dfz = df;
   
+  /* Try to figure out how many timesteps our fastest particle can make in the whole world (along longest and shortest axes) */
   f = part_max.x - part_min.x;
   f_min = f_max = f;
   f = part_max.y - part_min.y;
@@ -1653,7 +1665,8 @@ int set_partitions()
   }
   
 
-  /* go with automatic partitioning */
+  /* Use automatic partitioning if some of the partitions are not set */
+  /* FIXME: should probably be an error, not just a warning, if only some are set */
   if (world->x_partitions == NULL ||
       world->y_partitions == NULL ||
       world->z_partitions == NULL)
@@ -1662,6 +1675,7 @@ int set_partitions()
     {
       fprintf(world->err_file,"Warning: some but not all axes are manually partitioned.\n  Using automatic partitions instead--no manual partitions used.\n");
     }
+    /* Guess how big to make partitions--nothing really clever about what's done here */
     if (steps_max / MAX_TARGET_TIMESTEP > MAX_COARSE_PER_AXIS)
     {
       world->nx_parts = world->ny_parts = world->nz_parts = MAX_COARSE_PER_AXIS;
@@ -1680,6 +1694,7 @@ int set_partitions()
       world->ny_parts = world->nz_parts = world->nx_parts;
     }
     
+    /* Allocate memory for our automatically created partitions */
     world->x_partitions = (double*) malloc( sizeof(double) * world->nx_parts );
     world->y_partitions = (double*) malloc( sizeof(double) * world->ny_parts );
     world->z_partitions = (double*) malloc( sizeof(double) * world->nz_parts );
@@ -1691,6 +1706,7 @@ int set_partitions()
       return 1;
     }
 
+    /* Calculate aspect ratios so that subvolumes are approximately cubic */
     x_aspect = (part_max.x - part_min.x) / f_max;
     y_aspect = (part_max.y - part_min.y) / f_max;
     z_aspect = (part_max.z - part_min.z) / f_max;
@@ -1702,6 +1718,7 @@ int set_partitions()
     if (y_in < 2) y_in = 2;
     if (z_in < 2) z_in = 2;
     
+    /* If we've violated our 2*reaction radius criterion, fix it */
     smallest_spacing = 2*world->rx_radius_3d;
     if ( (part_max.x-part_min.x)/(x_in-1) < smallest_spacing )
     {
@@ -1716,6 +1733,7 @@ int set_partitions()
       z_in = 1 + floor((part_max.z-part_min.z)/smallest_spacing);
     }
     
+    /* Set up to walk symmetrically out from the center of the world, dropping partitions on the way */
     if (x_in < 2) x_in = 2;
     if (y_in < 2) y_in = 2;
     if (z_in < 2) z_in = 2;
@@ -1726,8 +1744,10 @@ int set_partitions()
     if (y_start < 1) y_start = 1;
     if (z_start < 1) z_start = 1;
     
+    /* Now go through and drop partitions in each direction (picked from sensibly close fine partitions) */
     f = (part_max.x - part_min.x) / (x_in - 1);
     world->x_partitions[0] = world->x_fineparts[1];
+    /* Dunno how this actually works! */
     for (i=x_start;i<x_start+x_in;i++)
     {
       world->x_partitions[i] = world->x_fineparts[4096 + (i-x_start)*16384/(x_in-1)];
@@ -1744,6 +1764,7 @@ int set_partitions()
     }
     world->x_partitions[world->nx_parts-1] = world->x_fineparts[4096+16384+4096-2];
     
+    /* Same thing for y axis */
     f = (part_max.y - part_min.y) / (y_in - 1);
     world->y_partitions[0] = world->y_fineparts[1];
     for (i=y_start;i<y_start+y_in;i++)
@@ -1762,6 +1783,7 @@ int set_partitions()
     }
     world->y_partitions[world->ny_parts-1] = world->y_fineparts[4096+16384+4096-2];
     
+    /* Again for z axis */
     f = (part_max.z - part_min.z) / (z_in - 1);
     world->z_partitions[0] = world->z_fineparts[1];
     for (i=z_start;i<z_start+z_in;i++)
@@ -1781,21 +1803,22 @@ int set_partitions()
     world->z_partitions[world->nz_parts-1] = world->z_fineparts[4096+16384+4096-2];
 
   }
-  else
+  else /* User-supplied partitions */
   {
 
     double *dbl_array;
 
-/* We need to keep the outermost partition away from the world bounding box */
-
+    /* We need to keep the outermost partition away from the world bounding box */
+    /* We do this by adding a larger outermost partition, calculated somehow or other */
     dfx += 1e-3;
     dfy += 1e-3;
     dfz += 1e-3;
-    
+
+    /* All this code just adds extra outermost partitions if they might be too close to the outermost objects in the world */
+    /* Don't ask me how it actually does it (or if it does it successfully....) */    
     if (world->x_partitions[1] + dfx > world->bb_llf.x)
     {
-      if (world->x_partitions[1] - dfx < world->bb_llf.x)
-	world->x_partitions[1] = world->bb_llf.x-dfx;
+      if (world->x_partitions[1] - dfx < world->bb_llf.x) world->x_partitions[1] = world->bb_llf.x-dfx;
       else
       {
 	dbl_array = (double*) malloc( sizeof(double)*(world->nx_parts+1) );
@@ -1918,6 +1941,7 @@ int set_partitions()
       }
     }
    
+    /* Now that we've added outermost partitions, we find the closest fine partition along each axis */
     world->x_partitions[0] = world->x_fineparts[1];
     for (i=1;i<world->nx_parts-1;i++)
     {
@@ -1958,6 +1982,7 @@ int set_partitions()
     world->z_partitions[world->nz_parts-1] = world->z_fineparts[4096+16384+4096-2];
   }
   
+  /* And finally we tell the user what happened */
   if (world->notify->partition_location==NOTIFY_FULL)
   {
     printf("X partitions: ");
