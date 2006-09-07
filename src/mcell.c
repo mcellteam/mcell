@@ -260,7 +260,13 @@ void run_sim(void)
     { 
       fprintf(world->log_file,"Average diffusion jump was %.2f timesteps\n",world->diffusion_cumtime/(double)world->diffusion_number);
     }
-    fprintf(world->log_file,"Total number of molecule-molecule collisions: %lld\n",world->mol_mol_colls);
+    if(world->notify->final_summary == NOTIFY_FULL){
+       fprintf(world->log_file,"Total number of random number use: %lld\n",world->random_number_use);
+       fprintf(world->log_file,"Total number of ray-subvolume intersection tests: %lld\n",world->ray_voxel_tests);
+       fprintf(world->log_file,"Total number of ray-polygon intersection tests: %lld\n",world->ray_polygon_tests);
+       fprintf(world->log_file,"Total number of ray-polygon intersections: %lld\n",world->ray_polygon_colls);
+       fprintf(world->log_file,"Total number of molecule-molecule collisions: %lld\n",world->mol_mol_colls);
+    }
  
     t_final = time(NULL);
     getrusage(RUSAGE_SELF,&run_time);

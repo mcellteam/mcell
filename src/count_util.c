@@ -409,7 +409,11 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 	if (wl->this_wall->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
 	{
 	  j = collide_wall(&here,&delta,wl->this_wall,&t_hit,&hit);
-	  
+          if((j != COLLIDE_MISS) && (world->notify->final_summary == NOTIFY_FULL)){
+              world->ray_polygon_colls++;
+          }	 
+
+ 
 	  if (j!=COLLIDE_MISS && t_hit <= t_sv_hit &&
 	    (hit.x-loc->x)*delta.x + (hit.y-loc->y)*delta.y + (hit.z-loc->z)*delta.z < 0)
 	  {
@@ -637,6 +641,11 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
     for (wl = sv->wall_head ; wl != NULL ; wl = wl->next)
     {
       i = collide_wall(&outside , &delta , wl->this_wall , &t , &hit);
+      
+      if((i != COLLIDE_MISS) && (world->notify->final_summary == NOTIFY_FULL)){
+          world->ray_polygon_colls++;
+      }	 
+
       if (i==COLLIDE_REDO)
       {
         while (trl != NULL)
@@ -855,6 +864,9 @@ int place_waypoints()
             { 
               waypoint_in_wall++;
               d = EPS_C * (double)((rng_uint(world->rng)&0xF) - 8);
+              if(world->notify->final_summary == NOTIFY_FULL){
+                  world->random_number_use++;
+              }
               if (d==0) d = 8*EPS_C;
               wp->loc.x += d * wl->this_wall->normal.x;
               wp->loc.y += d * wl->this_wall->normal.y;

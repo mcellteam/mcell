@@ -2135,7 +2135,12 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
     prob[i]=tot_prob;
     if (effdp->orientation > 0) orientation[i] = 1;
     else if (effdp->orientation < 0) orientation[i] = -1;
-    else orientation[i] = (rng_uint(world->rng)&1)?1:-1;
+    else{ 
+       orientation[i] = (rng_uint(world->rng)&1)?1:-1;
+       if(world->notify->final_summary == NOTIFY_FULL){
+           world->random_number_use++;
+       }
+    }
     eff[i++]=effdp->eff;
     tot_density+=effdp->quantity;
     effdp=effdp->next;
@@ -2155,6 +2160,9 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
       j=0;
       p_index=-1;
       rand = rng_dbl(world->rng);
+      if(world->notify->final_summary == NOTIFY_FULL){
+         world->random_number_use++;
+      }
       while (j<nr && p_index==-1) {
         if (rand<=prob[j++]) {
           p_index=j-1;
@@ -2374,6 +2382,9 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                 done=0;
                 while (!done) {
 		  k = (int) (rng_dbl(world->rng)*n_free_eff);
+                  if(world->notify->final_summary == NOTIFY_FULL){
+                      world->random_number_use++;
+                  }
                   if (*tiles[k]==bread_crumb) {
                     *tiles[k]=NULL;
                     done=1;
@@ -2402,7 +2413,19 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   mol->grid_index=index[j];
 		  if (world->randomize_gmol_pos) grid2uv_random(walls[j]->grid,index[j],&(mol->s_pos));
 		  else grid2uv(walls[j]->grid,index[j],&(mol->s_pos));
-                  mol->orient = (orientation==0) ? ((rng_uint(world->rng)&1)?1:-1) : orientation;
+                  /*mol->orient = (orientation==0) ? ((rng_uint(world->rng)&1)?1:-1) : orientation; */
+                  if(orientation == 0){
+                     if((rng_uint(world->rng)&1)){
+                        mol->orient = 1;
+                     }else{
+                        mol->orient = -1;
+                     }
+                     if(world->notify->final_summary == NOTIFY_FULL){
+                        world->random_number_use++;
+                     }
+                  }else{
+                     mol->orient = orientation;
+                  }
                   mol->grid=walls[j]->grid;
                   mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
 		  if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
@@ -2430,6 +2453,9 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                 done=0;
                 while (!done) {
 		  k = (int) (rng_dbl(world->rng)*n_free_eff);
+                  if(world->notify->final_summary == NOTIFY_FULL){
+                      world->random_number_use++;
+                  }
                   if (*tiles[k]==NULL) {
                     mol=(struct grid_molecule *)mem_get
                       (walls[k]->birthplace->gmol);
@@ -2448,7 +2474,20 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     mol->grid_index=index[k];
 		    if (world->randomize_gmol_pos) grid2uv_random(walls[k]->grid, index[k], &(mol->s_pos));
 		    else grid2uv(walls[k]->grid,index[k],&(mol->s_pos));
-                    mol->orient = (orientation==0) ? ((rng_uint(world->rng)&1)?1:-1) : orientation;
+                    /* mol->orient = (orientation==0) ? ((rng_uint(world->rng)&1)?1:-1) : orientation; */
+                    if(orientation == 0){
+                       if((rng_uint(world->rng)&1)){
+                          mol->orient = 1;
+                       }else{
+                          mol->orient = -1;
+                       }
+                       if(world->notify->final_summary == NOTIFY_FULL){
+                          world->random_number_use++;
+                       }
+                    }else{
+                       mol->orient = orientation;
+                    }
+
                     mol->grid=walls[k]->grid;
                     mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
 		    if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;

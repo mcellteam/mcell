@@ -1372,7 +1372,11 @@ num_expr: num_value
 }
 	| RAND_UNIFORM
 {
+  if(mdlpvp->vol->notify->final_summary == NOTIFY_FULL){
+    mdlpvp->vol->random_number_use++;
+  }
   $$=rng_dbl(mdlpvp->vol->rng);
+  
 }
 	| RAND_GAUSSIAN
 {
@@ -1516,6 +1520,9 @@ num_expr_only: intOrReal
 }
 	| RAND_UNIFORM
 {
+  if(mdlpvp->vol->notify->final_summary == NOTIFY_FULL){
+    mdlpvp->vol->random_number_use++;
+  }
   $$=rng_dbl(mdlpvp->vol->rng);
 }
 	| RAND_GAUSSIAN

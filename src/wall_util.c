@@ -1195,8 +1195,13 @@ void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
   f.z = n->x*e.y - n->y*e.x;
   
   tiny = EPS_C * (abs_max_2vec(p,v) + 1.0) / (k * max3(fabs(f.x),fabs(f.y),fabs(f.z)));
-  if ( (rng_uint(world->rng) & 1) == 0 ) tiny = -tiny;
-  
+  if ( (rng_uint(world->rng) & 1) == 0 ) {
+     tiny = -tiny;
+     if(world->notify->final_summary == NOTIFY_FULL)
+     {
+        world->random_number_use++;
+     }
+  }
   v->x -= tiny*f.x;
   v->y -= tiny*f.y;
   v->z -= tiny*f.z;
@@ -1292,6 +1297,10 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
   double f,g,h;
   double d_eps;
   struct vector3 local;
+
+  if(world->notify->final_summary == NOTIFY_FULL){
+      world->ray_polygon_tests++;
+  }
   
   nx = face->normal.x;
   ny = face->normal.y;
@@ -1324,7 +1333,13 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
   if (dd==0.0 && dv==0.0)
   {
     a = (abs_max_2vec( point , move ) + 1.0) * EPS_C;
-    if ((rng_uint(world->rng)&1)==0) a = -a;
+    if ((rng_uint(world->rng)&1)==0){ 
+       a = -a;
+       if(world->notify->final_summary == NOTIFY_FULL)
+       {
+          world->random_number_use++;
+       }
+    }
     if (dd==0.0)
     {
       move->x -= a*nx;
@@ -3351,6 +3366,10 @@ int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule *g,int
   {
     if (rng_dbl(world->rng) < ((double)(-n))/((double)n_rrhd))
     {
+      if(world->notify->final_summary == NOTIFY_FULL)
+      {
+         world->random_number_use++;
+      }
       gp = p->grid->mol[ p->index ];
       gp->properties->population--;
       if ((gp->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
@@ -3425,6 +3444,10 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
     if (seek_cost < pick_cost)
     {
       A = rng_dbl( world->rng )*max_A;
+      if(world->notify->final_summary == NOTIFY_FULL)
+      {
+         world->random_number_use++;
+      }
       i = bisect_high( rrd->cum_area_list , rrd->n_walls_included , A );
       w = rrd->owners[rrd->obj_index[i]]->wall_p[ rrd->wall_index[i] ];
       
@@ -3451,7 +3474,13 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
 	
 	if (rso->orientation > 0) new_g->orient = 1;
 	else if (rso->orientation < 0) new_g->orient = -1;
-	else new_g->orient = (rng_uint(world->rng)&1)?1:-1;
+	else {
+            new_g->orient = (rng_uint(world->rng)&1)?1:-1;
+            if(world->notify->final_summary == NOTIFY_FULL)
+            {
+               world->random_number_use++;
+            }
+        }
         
 	new_g->grid = w->grid;
         
@@ -3518,6 +3547,9 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
       {
         if (n>=n_rrhd || rng_dbl(world->rng)<(p->my_area/max_A)*((double)n))
         {
+          if((n < n_rrhd) && (world->notify->final_summary == NOTIFY_FULL)){
+               world->random_number_use++;
+          }
           new_g = (struct grid_molecule*)mem_get( p->grid->subvol->local_storage->gmol );
           if (new_g==NULL) return 1;
           memcpy(new_g,g,sizeof(struct grid_molecule));
@@ -3528,8 +3560,13 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
 	  
 	  if (rso->orientation>0) new_g->orient=1;
 	  else if (rso->orientation<0) new_g->orient=-1;
-	  else new_g->orient = (rng_uint(world->rng)&1)?1:-1;
-	  
+	  else{ 
+            new_g->orient = (rng_uint(world->rng)&1)?1:-1;
+            if(world->notify->final_summary == NOTIFY_FULL)
+            {
+               world->random_number_use++;
+            }
+	  }
           new_g->grid = p->grid;
           
           p->grid->mol[ p->index ] = new_g;

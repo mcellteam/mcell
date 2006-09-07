@@ -854,6 +854,10 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct volume_molecule *m
               
               if (l!=COLLIDE_MISS)
               {
+                if(world->notify->final_summary == NOTIFY_FULL) {
+                   world->ray_polygon_colls++;
+                }
+                
                 for (rl=wl->this_wall->counting_regions ; rl!=NULL ; rl=rl->next)
                 {
                   if (l==COLLIDE_FRONT || l==COLLIDE_BACK)
@@ -916,6 +920,9 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct volume_molecule *m
   {
     if ( rng_dbl(world->rng) < ((double)(-n))/((double)vl_num) )
     {
+      if(world->notify->final_summary == NOTIFY_FULL){
+         world->random_number_use++;
+      }
       mp = (struct volume_molecule*)vl->data;
       mp->properties->population--;
       mp->subvol->mol_count--;
@@ -979,8 +986,17 @@ int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *
   while (n>0)
   {
     m->pos.x = rrd->llf.x + (rrd->urb.x-rrd->llf.x)*rng_dbl(world->rng);
+    if(world->notify->final_summary == NOTIFY_FULL){
+       world->random_number_use++;
+    }
     m->pos.y = rrd->llf.y + (rrd->urb.y-rrd->llf.y)*rng_dbl(world->rng);
+    if(world->notify->final_summary == NOTIFY_FULL){
+       world->random_number_use++;
+    }
     m->pos.z = rrd->llf.z + (rrd->urb.z-rrd->llf.z)*rng_dbl(world->rng);
+    if(world->notify->final_summary == NOTIFY_FULL){
+       world->random_number_use++;
+    }
     
     if (sv == NULL) sv = find_subvolume(&(m->pos),NULL);
     else if ( !inside_subvolume(&(m->pos),sv) )
@@ -1003,6 +1019,10 @@ int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *
       
       if (i!=COLLIDE_MISS)
       {
+        if(world->notify->final_summary == NOTIFY_FULL) {
+            world->ray_polygon_colls++;
+        }
+
         if ( (t>-EPS_C && t<EPS_C) || (t>1.0-EPS_C && t<1.0+EPS_C) )
         {
           bad_location = 1;
@@ -1143,6 +1163,9 @@ int release_molecules(struct release_event_queue *req)
       {
 	k = -log( 1.0 - rso->release_prob );
 	t = -log( rng_dbl(world->rng) ) / k;  /* Poisson dist. */
+        if(world->notify->final_summary == NOTIFY_FULL){
+           world->random_number_use++;
+        }
 	req->event_time += rpat->release_interval * (ceil(t)-1.0); /* Rounded to integers */
       }
       else
@@ -1315,8 +1338,13 @@ int release_molecules(struct release_event_queue *req)
 	  
 	  if (rsm->orient>0) orient=1;
 	  else if (rsm->orient<0) orient=-1;
-	  else orient = (rng_uint(world->rng)&1)?1:-1;
-	  
+	  else {
+             orient = (rng_uint(world->rng)&1)?1:-1;
+             if(world->notify->final_summary == NOTIFY_FULL){
+                world->random_number_use++;
+             }
+          }
+
 	  gp = insert_grid_molecule(rsm->mol_type,&(m.pos),orient,diam,req->event_time);
 	  if (gp==NULL)
 	  {
@@ -1339,8 +1367,17 @@ int release_molecules(struct release_event_queue *req)
 	do /* Pick values in unit square, toss if not in unit circle */
 	{
 	  pos.x = (rng_dbl(world->rng)-0.5);
+          if(world->notify->final_summary == NOTIFY_FULL){
+             world->random_number_use++;
+          }
 	  pos.y = (rng_dbl(world->rng)-0.5);
+          if(world->notify->final_summary == NOTIFY_FULL){
+             world->random_number_use++;
+          }
 	  pos.z = (rng_dbl(world->rng)-0.5);
+          if(world->notify->final_summary == NOTIFY_FULL){
+             world->random_number_use++;
+          }
 	} while ( (rso->release_shape == SHAPE_SPHERICAL || rso->release_shape == SHAPE_ELLIPTIC || rso->release_shape == SHAPE_SPHERICAL_SHELL)
 		  && pos.x*pos.x + pos.y*pos.y + pos.z*pos.z >= 0.25 );
 	
@@ -1405,6 +1442,9 @@ int release_molecules(struct release_event_queue *req)
   {
     k = -log( 1.0 - rso->release_prob );
     t = -log( rng_dbl(world->rng) ) / k;  /* Poisson dist. */
+    if(world->notify->final_summary == NOTIFY_FULL){
+        world->random_number_use++;
+    }
     req->event_time += rpat->release_interval * (ceil(t)-1.0); /* Rounded to integers */
   }
   else if (rso->release_prob==MAGIC_PATTERN_PROBABILITY)

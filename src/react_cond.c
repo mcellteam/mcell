@@ -30,7 +30,10 @@ int test_unimolecular(struct rxn *rx)
 {
   int m,M,avg;
   double p = rng_dbl( world->rng );
-  
+  if(world->notify->final_summary == NOTIFY_FULL){
+     world->random_number_use++;
+  } 
+ 
   /* Perform binary search for reaction pathway */
   m = 0;
   M = rx->n_pathways-1;
@@ -59,6 +62,9 @@ timeof_unimolecular:
 double timeof_unimolecular(struct rxn *rx)
 {
   double p = rng_dbl( world->rng );
+  if(world->notify->final_summary == NOTIFY_FULL){
+     world->random_number_use++;
+  } 
   double k_tot = rx->cum_probs[ rx->n_pathways - 1 ];
   
   if (k_tot<=0 || p==0) return FOREVER;
@@ -78,6 +84,9 @@ timeof_special_unimol:
 double timeof_special_unimol(struct rxn *rxuni,struct rxn *rxsurf)
 {
   double p = rng_dbl( world->rng );
+  if(world->notify->final_summary == NOTIFY_FULL){
+     world->random_number_use++;
+  } 
   double k_tot = rxuni->cum_probs[rxuni->n_pathways - 1] + rxsurf->cum_probs[rxsurf->n_pathways - 1];
   
   if (k_tot<=0 || p==0) return FOREVER;
@@ -96,6 +105,9 @@ int which_unimolecular(struct rxn *rx)
 {
   int m,M,avg;
   double p = rng_dbl( world->rng );
+  if(world->notify->final_summary == NOTIFY_FULL){
+     world->random_number_use++;
+  } 
   
   /* Perform binary search for reaction pathway */
   m = 0;
@@ -128,8 +140,17 @@ int is_surface_unimol(struct rxn *rxuni,struct rxn *rxsurf)
 {
   double k_tot = rxuni->cum_probs[rxuni->n_pathways - 1] + rxsurf->cum_probs[rxsurf->n_pathways - 1];
 
-  if (rng_dbl(world->rng)*k_tot < rxuni->cum_probs[rxuni->n_pathways - 1]) return 0;
-  else return 1;
+  if (rng_dbl(world->rng)*k_tot < rxuni->cum_probs[rxuni->n_pathways - 1]) {
+     if(world->notify->final_summary == NOTIFY_FULL){
+        world->random_number_use++;
+     } 
+     return 0;
+  }else {
+     if(world->notify->final_summary == NOTIFY_FULL){
+        world->random_number_use++;
+     } 
+     return 1;
+  }
 }
 
 
@@ -158,12 +179,18 @@ int test_bimolecular(struct rxn *rx, double scaling)
     
     /* Keep the proportions of outbound pathways the same. */
     p = rng_dbl( world->rng ) * rx->cum_probs[rx->n_pathways - 1];
+    if(world->notify->final_summary == NOTIFY_FULL){
+        world->random_number_use++;
+    } 
     rx->n_occurred++;
   }
   else
   {
     /* Instead of scaling rx->cum_probs array we scale random probability */
     p = rng_dbl( world->rng ) * scaling;
+    if(world->notify->final_summary == NOTIFY_FULL){
+        world->random_number_use++;
+    } 
     
     if (p > rx->cum_probs[rx->n_pathways - 1]) return RX_NO_RX;
     rx->n_occurred++;
@@ -230,10 +257,16 @@ long long test_many_bimolecular(struct rxn **rx,double *scaling, int n)
       rx[i]->n_skipped += f * (rx[i]->cum_probs[rx[i]->n_pathways-1])/rxp[n-1];
     }
     p = rng_dbl( world->rng ) * rxp[n-1];
+    if(world->notify->final_summary == NOTIFY_FULL){
+        world->random_number_use++;
+    } 
   }
   else
   {
     p = rng_dbl(world->rng);
+    if(world->notify->final_summary == NOTIFY_FULL){
+        world->random_number_use++;
+    } 
     if (p > rxp[n-1]) return RX_NO_RX;
   }
   
@@ -294,11 +327,17 @@ int test_intersect(struct rxn *rx,double scaling)
     if (scaling<=0.0) rx->n_skipped += GIGANTIC;
     else rx->n_skipped += rx->cum_probs[rx->n_pathways-1] / scaling - 1.0;
     p = rng_dbl( world->rng ) * rx->cum_probs[rx->n_pathways-1];
+    if(world->notify->final_summary == NOTIFY_FULL){
+        world->random_number_use++;
+    } 
     rx->n_occurred++;
   }
   else
   {
     p = rng_dbl( world->rng ) * scaling;
+    if(world->notify->final_summary == NOTIFY_FULL){
+        world->random_number_use++;
+    } 
   
     if ( p > rx->cum_probs[ rx->n_pathways-1 ] ) return RX_NO_RX;
     rx->n_occurred++;

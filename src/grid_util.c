@@ -194,7 +194,13 @@ void grid2uv_random(struct surface_grid *g,int index,struct vector2 *v)
   over_n = 1.0 / (double) (g->n);
   
   u_ran = rng_dbl(world->rng);
+  if(world->notify->final_summary == NOTIFY_FULL){
+     world->random_number_use++;
+  }
   v_ran = 1.0 - sqrt(rng_dbl(world->rng));
+  if(world->notify->final_summary == NOTIFY_FULL){
+     world->random_number_use++;
+  }
   
   v->u = ((double)(j+i) + (1-2*i)*(1.0-v_ran)*u_ran)*over_n*g->surface->uv_vert1_u + 
           ((double)(k+i) + (1-2*i)*v_ran)*over_n*g->surface->uv_vert2.u;

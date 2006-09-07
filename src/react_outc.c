@@ -351,7 +351,12 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   for (i=i0;i<iN;i++,bits>>=1)
   {
     /* generate 32 random bits every 32 times through this loop */
-    if (((i-i0)&0x1F)==0) bits = rng_uint( world->rng );
+    if (((i-i0)&0x1F)==0) {
+        bits = rng_uint( world->rng );
+        if(world->notify->final_summary == NOTIFY_FULL){
+           world->random_number_use++;
+        }
+    }
 
     if (rx->players[i]==NULL) continue;
     
@@ -569,7 +574,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
   int i;
   int reacB_was_free=0;
   int killA,killB;
-  
+                          /*   printf("Enter\n");  */
   if ((reacA->properties->flags & NOT_FREE) == 0)
   {
     m = (struct volume_molecule*) reacA;
@@ -596,9 +601,9 @@ int outcome_bimolecular(struct rxn *rx,int path,
       m = (struct volume_molecule*)reacB;
     }
   }
-  
+
   result = outcome_products(w,m,g,rx,path,x,orientA,orientB,t,hitpt,reacA,reacB,reacA);
-  
+                  /*   printf("result = %d\n", result); */
   if (result==RX_NO_MEM) return RX_NO_MEM;
   else if (result==RX_BLOCKED) return RX_BLOCKED;
   
@@ -618,6 +623,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
   
   if (killB)
   {
+          /*    printf("killB = 1\n"); */
     if ((reacB->properties->flags & ON_GRID) != 0)
     {
       g = (struct grid_molecule*)reacB;
@@ -656,6 +662,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
 
   if (killA)
   {
+            /*  printf("killA = 1\n");  */
     if ((reacA->properties->flags & ON_GRID) != 0)
     {
       g = (struct grid_molecule*)reacA;
@@ -676,22 +683,27 @@ int outcome_bimolecular(struct rxn *rx,int path,
 	m->subvol->local_storage->timer->defunct_count++;
       }
     }
+               /* printf("I am here: 1\n"); */
 
     if (reacA->flags&COUNT_ME)
     {
+              /*     printf("Inside reacA->flags&COUNT_ME \n"); */
       /* Subtlety: we made it up to hitpt, but our position is wherever we were before that! */
       
       if ((reacA->properties->flags&ON_GRID)!=0)  /* Grid molecule is OK where it is */
       {
+                     /*  printf("I am here: 2\n"); */
 	i=count_region_from_scratch(reacA,NULL,-1,NULL,NULL,t);	  
       }
       if (hitpt==NULL || reacB_was_free || (reacB->properties!=NULL && (reacB->properties->flags&NOT_FREE)!=0))
       {
+                     /*  printf("I am here: 3\n"); */
 	/* Vol-vol rx should be counted at hitpt */
 	i=count_region_from_scratch(reacA,NULL,-1,hitpt,NULL,t);
       }
       else /* Vol-surf but don't want to count exactly on a wall or we might count on the wrong side */
       {
+                     /*   printf("I am here: 4\n"); */
 	struct vector3 fake_hitpt;
 	
 	m = (struct volume_molecule*)reacA;
@@ -711,9 +723,11 @@ int outcome_bimolecular(struct rxn *rx,int path,
     reacA->properties->cum_lifetime += t - reacA->birthday;
     reacA->properties->population--;
     reacA->properties = NULL;
+                 /*  printf("After reacA->flags&COUNT_ME \n"); */
     return RX_DESTROY;
   }
 
+                        /*     printf("Leave\n");   */
   return result;
 }
 

@@ -64,11 +64,20 @@ void pick_2d_displacement(struct vector2 *v,double scale)
   do
   {
     a.u = 2.0*rng_dbl(world->rng)-1.0;
+    if(world->notify->final_summary == NOTIFY_FULL){
+       world->random_number_use++;
+    }
     a.v = 2.0*rng_dbl(world->rng)-1.0;
+    if(world->notify->final_summary == NOTIFY_FULL){
+       world->random_number_use++;
+    }
     f = a.u*a.u + a.v*a.v;
   } while (f<0.01 || f>1.0);
   
   f = (1.0/f) * sqrt(log( 1/(1-rng_dbl(world->rng)) )) * scale;
+  if(world->notify->final_summary == NOTIFY_FULL){
+     world->random_number_use++;
+  }
   
   v->u = (a.u*a.u-a.v*a.v)*f;
   v->v = (2.0*a.u*a.v)*f;
@@ -97,11 +106,17 @@ void pick_clamped_displacement(struct vector3 *v,struct volume_molecule *m)
   struct wall *w = m->previous_wall;
   
   p = rng_dbl(world->rng);
+  if(world->notify->final_summary == NOTIFY_FULL){
+     world->random_number_use++;
+  }
   
   /* Correct distribution along normal from surface (from lookup table) */
   r_n = m->index * m->properties->space_step * 
         world->r_step_surface[ rng_uint(world->rng) & (world->radial_subdivisions-1) ];
   
+  if(world->notify->final_summary == NOTIFY_FULL){
+     world->random_number_use++;
+  }
   /* This is just a guess at an appropriate approximate planar distribution */
   pick_2d_displacement(&r_uv,sqrt(p)*m->properties->space_step); 
   
@@ -130,8 +145,18 @@ void pick_displacement(struct vector3 *v,double scale)
     double h,r_sin_phi,theta;
     
     r = scale * world->r_step[ rng_uint(world->rng) & (world->radial_subdivisions-1) ];
+    if(world->notify->final_summary == NOTIFY_FULL){
+        world->random_number_use++;
+    }
+
     h = 2.0*rng_dbl(world->rng) - 1.0;
+    if(world->notify->final_summary == NOTIFY_FULL){
+       world->random_number_use++;
+    }
     theta = 2.0*MY_PI*rng_dbl(world->rng);
+    if(world->notify->final_summary == NOTIFY_FULL){
+       world->random_number_use++;
+    }
     
     r_sin_phi = r * sqrt(1.0 - h*h);
     
@@ -147,6 +172,9 @@ void pick_displacement(struct vector3 *v,double scale)
     u_int idx;
     
     bits = rng_uint(world->rng);
+    if(world->notify->final_summary == NOTIFY_FULL){
+       world->random_number_use++;
+    }
     
     x_bit =        (bits & 0x80000000);
     y_bit =        (bits & 0x40000000);
@@ -160,6 +188,9 @@ void pick_displacement(struct vector3 *v,double scale)
     while ( idx >= world->num_directions)
     {
       idx = ( rng_uint(world->rng) & world->directions_mask);
+      if(world->notify->final_summary == NOTIFY_FULL){
+         world->random_number_use++;
+      }
     }
     
     idx *= 3;
@@ -316,9 +347,16 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
   double tx,ty,tz;
   int i,j,k;
   
+  if(world->notify->final_summary == NOTIFY_FULL){
+      world->ray_voxel_tests++;
+  }
+
   shead = NULL;
   smash = (struct collision*) mem_get(sv->local_storage->coll);
-  if(smash == NULL) return NULL;
+  if(smash == NULL) {
+     fprintf(world->err_file, "File %s, Line %ld: out of memory error.\n", __FILE__, (long)__LINE__);
+     return NULL;
+  }
 
   fake_wlp.next = sv->wall_head;
     
@@ -337,6 +375,11 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
     }
     else if (i!=COLLIDE_MISS)
     {
+
+      if(world->notify->final_summary == NOTIFY_FULL){
+          world->ray_polygon_colls++;
+      }
+
       smash->what = COLLIDE_WALL + i;
       smash->target = (void*) wlp->this_wall;
       smash->next = shead;
@@ -524,6 +567,9 @@ double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subv
   do
   {
     bits = rng_uint(world->rng);
+    if(world->notify->final_summary == NOTIFY_FULL){
+       world->random_number_use++;
+    }
     idx = bits & world->directions_mask;
   } while (idx >= world->num_directions);
   
@@ -3561,6 +3607,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
     if (m->flags&ACT_CLAMPED)
     {
       steps = rng_dbl(world->rng);
+      if(world->notify->final_summary == NOTIFY_FULL){
+         world->random_number_use++;
+      }
       t_steps = sm->time_step;
       pick_clamped_displacement(&displacement,m);
       m->flags-=ACT_CLAMPED;
@@ -3646,8 +3695,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       if ( (smash->what & COLLIDE_MOL) != 0 && !inert )
       {
 	if (smash->t < EPS_C) continue;
-	
-	world->mol_mol_colls++;
+         
+        if(world->notify->final_summary == NOTIFY_FULL){	
+	   world->mol_mol_colls++;
+        }
 
         am = (struct abstract_molecule*)smash->target;
         if ((am->flags & ACT_INERT) != 0)  /* FIXME */
@@ -4587,6 +4638,9 @@ void run_concentration_clamp(double t_now)
         n_collisions = ccdo->scaling_factor * ccdm->mol->space_step * 
                        ccdm->concentration / ccdm->mol->time_step;
         n_emitted = poisson_dist( n_collisions , rng_dbl(world->rng) );
+        if(world->notify->final_summary == NOTIFY_FULL){
+           world->random_number_use++;
+        }
         
         if (n_emitted==0) continue;
         
@@ -4605,10 +4659,19 @@ void run_concentration_clamp(double t_now)
         while (n_emitted>0)
         {
           idx = bisect_high(ccdo->cum_area,ccdo->n_sides,rng_dbl(world->rng)*ccdo->cum_area[ccd->n_sides-1]);
+          if(world->notify->final_summary == NOTIFY_FULL){
+              world->random_number_use++;
+          }
           w = ccdo->objp->wall_p[ ccdo->side_idx[idx] ];
           
           s1 = sqrt(rng_dbl(world->rng));
+          if(world->notify->final_summary == NOTIFY_FULL){
+             world->random_number_use++;
+          }
           s2 = rng_dbl(world->rng)*s1;
+          if(world->notify->final_summary == NOTIFY_FULL){
+             world->random_number_use++;
+          }
           
           v.x = w->vert[0]->x + s1*(w->vert[1]->x - w->vert[0]->x) + s2*(w->vert[2]->x - w->vert[1]->x);
           v.y = w->vert[0]->y + s1*(w->vert[1]->y - w->vert[0]->y) + s2*(w->vert[2]->y - w->vert[1]->y);
@@ -4616,8 +4679,12 @@ void run_concentration_clamp(double t_now)
           
           if (ccdm->orient==1) m.index=1;
           else if (ccdm->orient==-1) m.index=-1;
-          else if (rng_uint(world->rng)&1) m.index=-1;
-          else m.index=1;
+          else if (rng_uint(world->rng)&1) {
+              m.index=-1;
+              if(world->notify->final_summary == NOTIFY_FULL){
+                 world->random_number_use++;
+              }
+          }else m.index=1;
           
           eps = EPS_C*m.index;
           
