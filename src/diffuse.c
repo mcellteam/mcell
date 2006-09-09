@@ -3754,7 +3754,6 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         else if (smash->next->t*(1.0-EPS_C) > smash->t) t_confident=smash->t;
         else t_confident=smash->t*(1.0-EPS_C);
 	
-	world->ray_polygon_colls++;
 	
 	if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
 	else k = -1;
