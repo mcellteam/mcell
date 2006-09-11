@@ -683,27 +683,21 @@ int outcome_bimolecular(struct rxn *rx,int path,
 	m->subvol->local_storage->timer->defunct_count++;
       }
     }
-               /* printf("I am here: 1\n"); */
 
     if (reacA->flags&COUNT_ME)
     {
-              /*     printf("Inside reacA->flags&COUNT_ME \n"); */
       /* Subtlety: we made it up to hitpt, but our position is wherever we were before that! */
-      
       if ((reacA->properties->flags&ON_GRID)!=0)  /* Grid molecule is OK where it is */
       {
-                     /*  printf("I am here: 2\n"); */
 	i=count_region_from_scratch(reacA,NULL,-1,NULL,NULL,t);	  
       }
-      if (hitpt==NULL || reacB_was_free || (reacB->properties!=NULL && (reacB->properties->flags&NOT_FREE)!=0))
+      else if (hitpt==NULL || reacB_was_free || (reacB->properties!=NULL && (reacB->properties->flags&NOT_FREE)!=0))
       {
-                     /*  printf("I am here: 3\n"); */
 	/* Vol-vol rx should be counted at hitpt */
 	i=count_region_from_scratch(reacA,NULL,-1,hitpt,NULL,t);
       }
       else /* Vol-surf but don't want to count exactly on a wall or we might count on the wrong side */
       {
-                     /*   printf("I am here: 4\n"); */
 	struct vector3 fake_hitpt;
 	
 	m = (struct volume_molecule*)reacA;
