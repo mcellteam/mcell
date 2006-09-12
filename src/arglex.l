@@ -39,6 +39,7 @@ I ([0-9]+)
 "-info"			{return(INFO_OPT);}
 "-logfile"		{return(LOG_FILE_OPT);}
 "-logfreq"		{return(LOG_FREQ_OPT);}
+"-errfile"		{return(ERR_FILE_OPT);}
 "-seed"			{return(SEED_OPT);}
 "-iterations"		{return(ITERATIONS_OPT);}
 "-checkpoint_infile"	{return(CHECKPOINT_OPT);}

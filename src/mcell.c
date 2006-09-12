@@ -339,6 +339,7 @@ int main(int argc, char **argv) {
       fprintf(log_file,"       [-iterations n]           override iterations in mdl_file_name\n");
       fprintf(log_file,"       [-logfile log_file_name]  send output log to file (default: stderr)\n");
       fprintf(log_file,"       [-logfreq n]              output log frequency (default: 100)\n");
+      fprintf(log_file,"       [-errfile err_file_name]  send errors log to file (default: stderr)\n");
       fprintf(log_file,"       [-checkpoint_infile checkpoint_file_name]  read checkpoint file \n\n");
     }
 

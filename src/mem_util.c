@@ -14,9 +14,7 @@
 
 #include "mem_util.h"
 
-#ifdef DEBUG
 #include "mcell_structs.h"
-#endif
 
 #define INSERTION_MAX 16
 #define INSERTION_MIN 4
@@ -31,9 +29,7 @@ void nullprintf(char *whatever,...) {}
 #define Malloc malloc
 #endif
 
-#ifdef DEBUG
 extern struct volume *world;
-#endif
 
 
 #ifdef DEBUG
@@ -86,12 +82,12 @@ struct counter_helper* create_counter(int size,int length)
   
   ch = (struct counter_helper*) Malloc( sizeof(struct counter_helper) );
   if(ch == NULL) {
-    	fprintf(stderr, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
+    	fprintf(world->err_file, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
 	return (NULL);
   }
   ch->mem = create_mem(size + sizeof(struct counter_header),length);
   if(ch->mem == NULL) {
-    	fprintf(stderr, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
+    	fprintf(world->err_file, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
 	return (NULL);
   }
   ch->data_size = size;
@@ -122,7 +118,7 @@ void counter_add(struct counter_helper *ch,void *data)
     new_c = (struct counter_header*) mem_get(ch->mem);
     if(new_c == NULL)
     {
-    	fprintf(stderr, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
+    	fprintf(world->err_file, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
 	return;
     }
     new_c->next = NULL;
@@ -150,7 +146,7 @@ void counter_add(struct counter_helper *ch,void *data)
       {
         new_c = (struct counter_header*) mem_get(ch->mem);
         if(new_c == NULL){
-    	        fprintf(stderr, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
+    	        fprintf(world->err_file, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
 		return;
         }
         new_c->next = c;
@@ -170,7 +166,7 @@ void counter_add(struct counter_helper *ch,void *data)
         {
           new_c = (struct counter_header*) mem_get(ch->mem);
           if(new_c == NULL){
-    	        fprintf(stderr, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
+    	        fprintf(world->err_file, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
 		return;
           }
           new_c->next = NULL;

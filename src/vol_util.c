@@ -571,8 +571,8 @@ struct volume_molecule* insert_volume_molecule(struct volume_molecule *m,struct 
   
   new_m = mem_get(sv->local_storage->mol);
   if(new_m == NULL) {
-	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);        int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory during inserting %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
+	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);        int i = emergency_output();
+        fprintf(world->err_file, "Fatal error: out of memory during inserting %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
         exit(EXIT_FAILURE);
   }
 
@@ -592,9 +592,9 @@ struct volume_molecule* insert_volume_molecule(struct volume_molecule *m,struct 
   }
   
   if ( schedule_add(sv->local_storage->timer,new_m) ) {
-	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
+	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory during inserting %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
+        fprintf(world->err_file, "Fatal error: out of memory during inserting %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
         exit(EXIT_FAILURE);
 
   } 
@@ -638,9 +638,9 @@ int insert_volume_molecule_list(struct volume_molecule *m)
   {
     new_m = insert_volume_molecule(m,guess);
     if(new_m == NULL) { 
-	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
+	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory during inserting %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
+        fprintf(world->err_file, "Fatal error: out of memory during inserting %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
         exit(EXIT_FAILURE);
     }
     guess = new_m;
@@ -665,8 +665,8 @@ struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,struct
 
   new_m = mem_get(new_sv->local_storage->mol);
   if (new_m==NULL){ 
-	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);        int i = emergency_output();
-        fprintf(stderr, "Fatal error: out of memory during migrating  %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
+	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);        int i = emergency_output();
+        fprintf(world->err_file, "Fatal error: out of memory during migrating  %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
         exit(EXIT_FAILURE);
   }
   if (new_m==m) printf("File '%s', Line %ld: Unexpected behavior!\n", __FILE__, (long)__LINE__);
@@ -1186,9 +1186,9 @@ int release_molecules(struct release_event_queue *req)
     {
       if ( schedule_add(world->releaser,req) )
       {
-	fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
+	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
 	int i = emergency_output();
-	fprintf(stderr, "Fatal error: out of memory during release molecule event.\nAttempt to write intermediate results had %d errors.\n", i);
+	fprintf(world->err_file, "Fatal error: out of memory during release molecule event.\nAttempt to write intermediate results had %d errors.\n", i);
 	exit(EXIT_FAILURE);
       } 
     }
@@ -1467,9 +1467,9 @@ int release_molecules(struct release_event_queue *req)
   if (req->train_counter <= rpat->number_of_trains && req->event_time < FOREVER)
   {
     if ( schedule_add(world->releaser,req) ){
-      fprintf(stderr, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
+      fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
       int i = emergency_output();
-      fprintf(stderr, "Fatal error: out of memory during release molecule event.\nAttempt to write intermediate results had %d errors.\n", i);
+      fprintf(world->err_file, "Fatal error: out of memory during release molecule event.\nAttempt to write intermediate results had %d errors.\n", i);
       exit(EXIT_FAILURE);
     } 
   }
@@ -1540,6 +1540,7 @@ int set_partitions()
 
   /* Set sensible bounds for spacing between fine partitions (minimum size of subdivision) */  
   smallest_spacing = 0.1/world->length_unit;  /* 100nm */
+
   if (2*world->rx_radius_3d > smallest_spacing) smallest_spacing=2*world->rx_radius_3d;
 
   /* We have 2^15 possible fine partitions; we'll use 24k of them */
@@ -1561,7 +1562,7 @@ int set_partitions()
   dfx = 1e-3 + (world->bb_urb.x - world->bb_llf.x)/8191.0;
   dfy = 1e-3 + (world->bb_urb.y - world->bb_llf.y)/8191.0;
   dfz = 1e-3 + (world->bb_urb.z - world->bb_llf.z)/8191.0;
- 
+
   /* Not sure how this is supposed to work--looks like two ideas mixed, probably broken */
   /* Was supposed to make sure that the fine partitions would still obey the 2*reaction radius rule */
   f_min = world->bb_llf.x - dfx;

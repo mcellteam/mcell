@@ -651,7 +651,7 @@ end_of_mdl_file: EOF_TOK
 	if (mdlpvp->include_stack_ptr==0) {
           no_printf("terminal end of file.  curr_file = %s\n",volp->curr_file); 
           no_printf("include_flag = %d\n",mdlpvp->include_flag); 
-          fflush(stderr);
+          fflush(mdlpvp->vol->err_file);
           if (!mdlpvp->include_flag) {
              if (prepare_reactions(mdlpvp))
 	     {
@@ -671,7 +671,7 @@ end_of_mdl_file: EOF_TOK
           no_printf("intermediate end of file.  curr_file = %s\n",
             volp->curr_file); 
           no_printf("include_flag = %d\n",mdlpvp->include_flag); 
-          fflush(stderr);
+          fflush(mdlpvp->vol->err_file);
 	  mdl_switch_to_buffer(mdlpvp->include_stack[--mdlpvp->include_stack_ptr]);
 	  volp->curr_file=mdlpvp->include_filename[mdlpvp->include_stack_ptr];
           mdlpvp->cval=mdlpvp->cval_stack[mdlpvp->include_stack_ptr]=mdlpvp->cval;
@@ -715,7 +715,7 @@ include_stmt: INCLUDE_FILE
   yyclearin;
   mdl_switch_to_buffer(mdl_create_buffer(mdlin,YY_BUF_SIZE));
   no_printf("Now parsing MDL file: %s\n",volp->curr_file);
-  fflush(stderr);
+  fflush(mdlpvp->vol->err_file);
   mdlpvp->include_flag = 0;
 };
 
@@ -949,7 +949,7 @@ assignment_stmt: assign_var '=' num_expr_only
   mdlpvp->dblp=(double *)mdlpvp->gp->value;
   *mdlpvp->dblp=$<dbl>3;
   no_printf("\n%s is equal to: %f\n",mdlpvp->gp->name,*(double *)mdlpvp->gp->value);
-  fflush(stderr);
+  fflush(mdlpvp->vol->err_file);
 }
 	| assign_var '=' str_expr_only
 {
@@ -962,7 +962,7 @@ assignment_stmt: assign_var '=' num_expr_only
     return(1);
   }
   no_printf("\n%s is equal to: %s\n",mdlpvp->gp->name,(char *)mdlpvp->gp->value);
-  fflush(stderr);
+  fflush(mdlpvp->vol->err_file);
 }
 	| assign_var '=' existing_var_only
 {
@@ -979,7 +979,7 @@ assignment_stmt: assign_var '=' num_expr_only
     mdlpvp->dblp=(double *)mdlpvp->gp->value;
     *mdlpvp->dblp=*(double *)mdlpvp->tp->value;
     no_printf("\n%s is equal to: %f\n",mdlpvp->gp->name,*(double *)mdlpvp->gp->value);
-    fflush(stderr);
+    fflush(mdlpvp->vol->err_file);
     break;
   case STR:
     mdlpvp->gp->sym_type=STR;
@@ -991,7 +991,7 @@ assignment_stmt: assign_var '=' num_expr_only
     	return(1);
     }
     no_printf("\n%s is equal to: %s\n",mdlpvp->gp->name,(char *)mdlpvp->gp->value);
-    fflush(stderr);
+    fflush(mdlpvp->vol->err_file);
     break;
   case ARRAY:
     mdlpvp->gp->sym_type=ARRAY;
@@ -999,18 +999,18 @@ assignment_stmt: assign_var '=' num_expr_only
 #ifdef DEBUG
     mdlpvp->elp=(struct num_expr_list *)mdlpvp->gp->value;
     no_printf("\n%s is equal to: [",mdlpvp->gp->name);
-    fflush(stderr);
+    fflush(mdlpvp->vol->err_file);
     while (mdlpvp->elp!=NULL) {
       no_printf("%f",mdlpvp->elp->value);
-      fflush(stderr);
+      fflush(mdlpvp->vol->err_file);
       mdlpvp->elp=mdlpvp->elp->next;
       if (mdlpvp->elp!=NULL) {
         no_printf(",");
-        fflush(stderr);
+        fflush(mdlpvp->vol->err_file);
       }
     }
     no_printf("]\n");
-    fflush(stderr);
+    fflush(mdlpvp->vol->err_file);
 #endif
     break;
   }
@@ -1029,18 +1029,18 @@ array_expr ']'
 #ifdef DEBUG
   mdlpvp->elp=(struct num_expr_list *)mdlpvp->gp->value;
   no_printf("\n%s is equal to: [",mdlpvp->gp->name);
-  fflush(stderr);
+  fflush(mdlpvp->vol->err_file);
   while (mdlpvp->elp!=NULL) {
     no_printf("%f",mdlpvp->elp->value);
-    fflush(stderr);
+    fflush(mdlpvp->vol->err_file);
     mdlpvp->elp=mdlpvp->elp->next;
     if (mdlpvp->elp!=NULL) {
       no_printf(",");
-      fflush(stderr);
+      fflush(mdlpvp->vol->err_file);
     }
   }
   no_printf("]\n");
-  fflush(stderr);
+  fflush(mdlpvp->vol->err_file);
 #endif
 };
 
@@ -1826,7 +1826,7 @@ if (volp->time_unit<0) {
   volp->time_unit=-volp->time_unit;
 }
 no_printf("Time unit = %g\n",volp->time_unit);
-fflush(stderr);
+fflush(mdlpvp->vol->err_file);
 };
 
 space_def: SPACE_STEP '=' num_expr
@@ -1839,7 +1839,7 @@ if (volp->space_step<0) {
 }
 no_printf("Space step = %g\n",volp->space_step);
 volp->space_step *= 0.5*sqrt(MY_PI) / volp->length_unit; /* Use internal units, convert from mean to characterstic length */
-fflush(stderr);
+fflush(mdlpvp->vol->err_file);
 };
 
 time_max_def: TIME_STEP_MAX '=' num_expr
@@ -1851,7 +1851,7 @@ if (volp->time_step_max<0) {
   volp->time_step_max=-volp->time_step_max;
 }
 no_printf("Maximum time step = %g\n",volp->time_step_max);
-fflush(stderr);
+fflush(mdlpvp->vol->err_file);
 };
 
 iteration_def: ITERATIONS '=' num_expr
@@ -1860,7 +1860,7 @@ if (volp->iterations==0) {
   volp->iterations=(long long) $<dbl>3;
 }
 no_printf("Iterations = %lld\n",volp->iterations);
-fflush(stderr);
+fflush(mdlpvp->vol->err_file);
 };
 
 optional_flag_def: optional_flag_randomgrid_def 
@@ -1951,7 +1951,7 @@ grid_density_def: EFFECTOR_GRID_DENSITY '=' num_expr
   no_printf("Length unit = %f\n",volp->length_unit);
   mdlpvp->mc_factor=1.0e11*volp->grid_density*sqrt(MY_PI*volp->time_unit)/N_AV;
   mdlpvp->transport_mc_factor=6.2415e18*mdlpvp->mc_factor;
-  fflush(stderr);
+  fflush(mdlpvp->vol->err_file);
 };
 
 interact_radius_def: INTERACTION_RADIUS '=' num_expr
@@ -3189,7 +3189,7 @@ new_object: VAR
   mdlpvp->objp=(struct object *)mdlpvp->gp->value;
   mdlpvp->objp->last_name=mdlpvp->sym_name;
   no_printf("Creating new object: %s\n",mdlpvp->obj_name);
-  fflush(stderr);
+  fflush(mdlpvp->vol->err_file);
   $$=mdlpvp->gp;
 };
 
@@ -3248,8 +3248,7 @@ existing_object: VAR
   no_printf("found existing object %s\n",mdlpvp->objp->sym->name);
   no_printf("first name of existing object %s is %s\n",mdlpvp->sym_name,get_first_name(mdlpvp->sym_name));
   no_printf("prefix name of existing object %s is %s\n",mdlpvp->sym_name,mdlpvp->prefix_name);
-  fflush(stderr);
-  fflush(stderr);
+  fflush(mdlpvp->vol->err_file);
 #ifdef KELP
   mdlpvp->objp->sym->ref_count++;
   no_printf("ref_count: %d\n",mdlpvp->objp->sym->ref_count);
@@ -3312,7 +3311,7 @@ existing_one_or_multiple_objects: VAR
      no_printf("found existing object %s\n",mdlpvp->objp->sym->name);
      no_printf("first name of existing object %s is %s\n",mdlpvp->sym_name,get_first_name(mdlpvp->sym_name));
      no_printf("prefix name of existing object %s is %s\n",mdlpvp->sym_name,mdlpvp->prefix_name);
-     fflush(stderr);
+     fflush(mdlpvp->vol->err_file);
 #ifdef KELP
      mdlpvp->objp->sym->ref_count++;
      no_printf("ref_count: %d\n",mdlpvp->objp->sym->ref_count);
@@ -3325,7 +3324,7 @@ existing_one_or_multiple_objects: VAR
      else {
        mdlpvp->cval_2=NULL;
      }
-     fflush(stderr);
+     fflush(mdlpvp->vol->err_file);
 }
      | WILDCARD_VAR
 {
@@ -3398,7 +3397,7 @@ existing_one_or_multiple_objects: VAR
      }
      free((void *)mdlpvp->sym_name);
      free(wildcard_string);
-     fflush(stderr);
+     fflush(mdlpvp->vol->err_file);
      
      mdlpvp->sym_table_list_head = sort_sym_list_by_name(mdlpvp->sym_table_list_head);
      
@@ -5363,7 +5362,7 @@ new_region: VAR
   mdlpvp->rlp->next=mdlpvp->region_list_head;
   mdlpvp->region_list_head=mdlpvp->rlp;
   no_printf("Creating new region: %s\n",mdlpvp->rp->sym->name);
-  fflush(stderr);
+  fflush(mdlpvp->vol->err_file);
   $$=mdlpvp->rp->sym;
 };
 
@@ -7393,8 +7392,7 @@ meshes_time_points_range_cmd: viz_meshes_one_item '@' '['
      volp->frame_data_head = mdlpvp->fdlp; 
   }else if((volp->viz_mode == DX_MODE) && (temp == REG_DATA)){
       /* do nothing */
-      fprintf(stderr, "REGION_DATA cannot be displayed in DX_MODE, please use \
-                 DREAMM_V3_GROUPED (or DREAMM_V3) mode.\n");
+      fprintf(mdlpvp->vol->err_file, "REGION_DATA cannot be displayed in DX_MODE, please use DREAMM_V3_GROUPED (or DREAMM_V3) mode.\n");
   }else if(volp->viz_mode == DX_MODE){ 
      if((temp == MESH_GEOMETRY) || (temp == ALL_MESH_DATA)){
         /* create two frames - SURF_POS and SURF_STATES */
@@ -7475,8 +7473,7 @@ meshes_time_points_all_times_cmd: viz_meshes_one_item '@' ALL_TIMES
      volp->frame_data_head = mdlpvp->fdlp;  
   }else if((volp->viz_mode == DX_MODE) && (temp == REG_DATA)){
       /* do nothing */
-      fprintf(stderr, "REGION_DATA cannot be dispalyed in DX_MODE, please use \
-               DREAMM_V3_GROUPED (or DREAMM_V3) mode.\n");
+      fprintf(mdlpvp->vol->err_file, "REGION_DATA cannot be dispalyed in DX_MODE, please use DREAMM_V3_GROUPED (or DREAMM_V3) mode.\n");
   }else if(volp->viz_mode == DX_MODE){
      if((temp == MESH_GEOMETRY) || (temp == ALL_MESH_DATA))
      {
@@ -7552,8 +7549,7 @@ meshes_iteration_numbers_range_cmd: viz_meshes_one_item '@' '['
      volp->frame_data_head = mdlpvp->fdlp;  
   }else if((volp->viz_mode == DX_MODE) && (temp == REG_DATA)){
       /* do nothing */
-      fprintf(stderr, "REGION_DATA cannot be displayed in DX_MODE, please use \
-       DREAMM_V3_GROUPED (or DREAMM_V3) mode.\n");   
+      fprintf(mdlpvp->vol->err_file, "REGION_DATA cannot be displayed in DX_MODE, please use DREAMM_V3_GROUPED (or DREAMM_V3) mode.\n");   
   }else if(volp->viz_mode == DX_MODE){
      if((temp == MESH_GEOMETRY) || (temp == ALL_MESH_DATA)){
         /* create two frames - SURF_POS and SURF_STATES */
@@ -7638,8 +7634,7 @@ meshes_iteration_numbers_all_iterations_cmd: viz_meshes_one_item '@'
      volp->frame_data_head = mdlpvp->fdlp;  
   }else if((volp->viz_mode == DX_MODE) && (temp == REG_DATA)){
       /* do nothing */
-      fprintf(stderr, "REGION_DATA cannot be displayed in DX_MODE, please use \
-         DREAMM_V3_GROUPED (or DREAMM_V3) mode.\n");
+      fprintf(mdlpvp->vol->err_file, "REGION_DATA cannot be displayed in DX_MODE, please use DREAMM_V3_GROUPED (or DREAMM_V3) mode.\n");
   }else if(volp->viz_mode == DX_MODE) {
      if((temp == MESH_GEOMETRY) || (temp == ALL_MESH_DATA))
      {
@@ -8930,8 +8925,8 @@ existing_file_stream: VAR
 printf_stmt: PRINTF arg_list_init '(' format_string ',' list_args ')'
 {
   mdlpvp->a_str=$<str>4;
-  if (my_fprintf(stderr,mdlpvp->a_str,mdlpvp->arg_list,mdlpvp->num_args)) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to stderr:",mdlpvp->a_str);
+  if (my_fprintf(mdlpvp->vol->err_file, mdlpvp->a_str,mdlpvp->arg_list,mdlpvp->num_args)) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to err_file:",mdlpvp->a_str);
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
     return(1);
   }
@@ -8939,8 +8934,8 @@ printf_stmt: PRINTF arg_list_init '(' format_string ',' list_args ')'
 	| PRINTF arg_list_init '(' format_string ')'
 {
   mdlpvp->a_str=$<str>4;
-  if (my_fprintf(stderr,mdlpvp->a_str,NULL,mdlpvp->num_args)) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to stderr:",mdlpvp->a_str);
+  if (my_fprintf(mdlpvp->vol->err_file, mdlpvp->a_str,NULL,mdlpvp->num_args)) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to err_file:",mdlpvp->a_str);
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
     return(1);
   }
@@ -9124,7 +9119,7 @@ print_time_stmt: PRINT_TIME '(' format_string ')'
   mdlpvp->a_str=$<str>3;
   the_time=time(NULL);
   strftime(mdlpvp->time_str,128,mdlpvp->a_str,localtime(&the_time));
-  if (volp->procnum == 0) fprintf(stderr,"%s",mdlpvp->time_str);
+  if (volp->procnum == 0) fprintf(mdlpvp->vol->err_file,"%s",mdlpvp->time_str);
 };
 
 
@@ -9310,7 +9305,7 @@ int mdlparse_init(struct volume *vol)
   }
 
   no_printf("Opening file %s\n",vol->mdl_infile_name);
-  fflush(stderr);
+  fflush(mpvp->vol->err_file);
   if ((mdl_infile=fopen(vol->mdl_infile_name,"r"))==NULL) {
     fprintf(vol->log_file,"MCell: error opening file: %s\n",
       vol->mdl_infile_name);

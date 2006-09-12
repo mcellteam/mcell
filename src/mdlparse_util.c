@@ -71,9 +71,11 @@ void swap_int(int *x, int *y)
 double *double_dup(double value)
 {
   double *dup_value;
+  char *err_message = NULL;
 
   if ((dup_value=(double *)malloc(sizeof(double)))==NULL) {
-    fprintf(stderr, "File '%s', Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    sprintf(err_message, "File '%s', Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    mdlerror_nested(err_message);
     return(NULL);
   }
   *dup_value=value;
@@ -902,7 +904,7 @@ In:  reaction with a number of pathways
 Out: Returns head of the linked list of reactions where each reaction
      contains only geometrically equivalent pathways
 *************************************************************************/
-struct rxn * split_reaction(struct rxn *rx)
+struct rxn * split_reaction(struct rxn *rx, struct mdlparse_vars *mpvp)
 {
   struct pathway *temp = NULL, *curr_ptr = NULL, *prev_ptr = NULL, *twin_1, *twin_2;
   struct rxn  *curr_rxn_ptr = NULL,  *head = NULL, *end = NULL, *rxn_equi_node = NULL, *temp_rxn = NULL;
@@ -979,7 +981,7 @@ struct rxn * split_reaction(struct rxn *rx)
                  /* create new reaction - link the previous one */
                   new_reaction = (struct rxn*)malloc(sizeof(struct rxn));
                   if (new_reaction == NULL) {
-                     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n",                  __FILE__, (long)__LINE__);
+                     fprintf(mpvp->vol->err_file, "File '%s', Line %ld: Memory allocation error.\n",                  __FILE__, (long)__LINE__);
                      return NULL;
                   }
                   new_reaction->next = NULL;                 
@@ -1059,7 +1061,7 @@ struct rxn * split_reaction(struct rxn *rx)
                 /* create new reaction - link the previous one */
                 new_reaction = (struct rxn*)malloc(sizeof(struct rxn));
                 if (new_reaction == NULL) {
-                   fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n",                  __FILE__, (long)__LINE__);
+                   fprintf(mpvp->vol->err_file, "File '%s', Line %ld: Memory allocation error.\n",  __FILE__, (long)__LINE__);
                    return NULL;
                 }
                 new_reaction->next = NULL;                 
@@ -1280,7 +1282,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
            this reaction into a linked list of reactions
            each containing only equivalent pathways. */
  
-        rx = split_reaction(reaction);
+        rx = split_reaction(reaction, mpvp);
 
         /* set the symbol value to the head of the linked list of reactions */
         sym->value = (void *)rx; 
@@ -1300,7 +1302,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         
         if (rx->product_idx==NULL || rx->cum_probs==NULL ||
             rx->cat_probs==NULL ) {
-                fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+                fprintf(mpvp->vol->err_file, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
                 return 1;
         }
  
@@ -1846,7 +1848,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	{
 	  rx->info = (struct pathway_info*) malloc(rx->n_pathways*sizeof(struct pathway_info));
 	  if (rx->info==NULL) {
-             fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+             fprintf(mpvp->vol->err_file, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
              return 1;
           }
 	    
@@ -1866,7 +1868,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	{
 	  rx->info = (struct pathway_info*)malloc(sizeof(struct pathway_info));
           if(rx->info == NULL){
-             fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+             fprintf(mpvp->vol->err_file, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
              return 1;
           }
 	  rx->info[0].count = 0;
@@ -1897,7 +1899,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   
   rx_tbl = (struct rxn**)malloc(sizeof(struct rxn*) * mpvp->vol->rx_hashsize);
   if (rx_tbl==NULL) {
-     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     fprintf(mpvp->vol->err_file, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
      return 1;
   }
   mpvp->vol->reaction_hash = rx_tbl;
@@ -2150,6 +2152,7 @@ int make_cuboid(struct vector3 *p1, struct vector3 *p2, struct ordered_poly *opp
   struct vector3 *corner;
   struct element_data *edp;
   double dx,dy,dz;
+  char *err_message = NULL;
 
   if ((corner=(struct vector3 *)malloc
       (opp->n_verts*sizeof(struct vector3)))==NULL) {
@@ -2159,7 +2162,8 @@ int make_cuboid(struct vector3 *p1, struct vector3 *p2, struct ordered_poly *opp
 
   if ((edp=(struct element_data *)malloc
       (opp->n_walls*sizeof(struct element_data)))==NULL) {
-         fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+         sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+         mdlerror_nested(err_message);
          return(1);
   }
   opp->element=edp;
@@ -2265,6 +2269,7 @@ Out: returns a subdivided_box struct, with no subdivisions and corners
 struct subdivided_box* init_cuboid(struct vector3 *p1,struct vector3 *p2)
 {
   struct subdivided_box *b;
+  char *err_message = NULL;
 
   
   if (p2->x-p1->x < EPS_C || p2->y-p1->y < EPS_C || p2->z-p1->z < EPS_C)
@@ -2275,7 +2280,8 @@ struct subdivided_box* init_cuboid(struct vector3 *p1,struct vector3 *p2)
 
   b = (struct subdivided_box*)malloc(sizeof(struct subdivided_box));
   if (b==NULL) {
-     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     mdlerror_nested(err_message);
      return NULL;
   }
   
@@ -2284,7 +2290,8 @@ struct subdivided_box* init_cuboid(struct vector3 *p1,struct vector3 *p2)
   b->y = (double*)malloc( b->nx * sizeof(double) );
   b->z = (double*)malloc( b->nx * sizeof(double) );
   if (b->x==NULL || b->y==NULL || b->z==NULL) {
-     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     mdlerror_nested(err_message);
      return NULL;
   }
   
@@ -2398,6 +2405,7 @@ int refine_cuboid(struct vector3 *p1,struct vector3 *p2,struct subdivided_box *b
   int i,j,k;
   double *new_list;
   int new_n;
+  char *err_message = NULL;
   
   i = check_patch(b,p1,p2,egd);
   
@@ -2419,7 +2427,8 @@ int refine_cuboid(struct vector3 *p1,struct vector3 *p2,struct subdivided_box *b
     {
       new_list = (double*)malloc(new_n * sizeof(double));
       if (new_list==NULL) {
-          fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+          sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+          mdlerror_nested(err_message);
           return 1;
       }
       
@@ -2470,7 +2479,8 @@ int refine_cuboid(struct vector3 *p1,struct vector3 *p2,struct subdivided_box *b
     {
       new_list = (double*)malloc(new_n * sizeof(double));
       if (new_list==NULL) {
-          fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+          sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+          mdlerror_nested(err_message);
           return 1;
       }
       
@@ -2520,6 +2530,7 @@ int divide_cuboid(struct subdivided_box *b,int axis,int idx,int ndiv)
   int old_n;
   int new_n;
   int i,j,k;
+  char *err_message = NULL;
   
   if (ndiv<2) ndiv=2;
   
@@ -2538,7 +2549,8 @@ int divide_cuboid(struct subdivided_box *b,int axis,int idx,int ndiv)
       old_n = b->nz;
       break;
     default:
-      fprintf(stderr, "File '%s', Line %ld: Unknown flag is used.\n", __FILE__, (long)__LINE__);
+      sprintf(err_message, "File '%s', Line %ld: Unknown flag is used.\n", __FILE__, (long)__LINE__);
+      mdlerror_nested(err_message);
       return 1;
       break;
   }
@@ -2547,7 +2559,8 @@ int divide_cuboid(struct subdivided_box *b,int axis,int idx,int ndiv)
   new_list = (double*) malloc( new_n * sizeof(double) );
   
   if (new_list==NULL) {
-     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     mdlerror_nested(err_message);
      return 1;
   }
   
@@ -2860,6 +2873,7 @@ int normalize_elements(struct region *reg, int existing)
   char op;
   int n_elts;
   int i = 0;
+  char *err_message = NULL;
   
   if (reg->element_list_head==NULL) return 0;
   
@@ -2874,7 +2888,8 @@ int normalize_elements(struct region *reg, int existing)
   {
     elt_array = new_bit_array(n_elts);
     if (elt_array==NULL) { 
-        fprintf(stderr, "File '%s', Line %ld: Unexpected behavior.\n", __FILE__, (long)__LINE__); 
+        sprintf(err_message, "File '%s', Line %ld: Unexpected behavior.\n", __FILE__, (long)__LINE__); 
+        mdlerror_nested(err_message);
         return 1; 
     }
     reg->membership = elt_array;
@@ -2932,14 +2947,16 @@ int normalize_elements(struct region *reg, int existing)
 	  el->end=n_elts-1;
 	  break;
 	default:
-          fprintf(stderr, "File '%s', Line %ld: Unknown coordinate axis is used.\n", __FILE__, (long)__LINE__);
+          sprintf(err_message, "File '%s', Line %ld: Unknown coordinate axis is used.\n", __FILE__, (long)__LINE__);
+          mdlerror_nested(err_message);
 	  return 1;
 	  break;
       }
     }
     else if (el->begin < 0 || el->end >= n_elts)
     {
-      fprintf(stderr, "File '%s', Line %ld: Hi n_elts=%d but begin=%d end=%d\n",__FILE__, (long)__LINE__, n_elts,el->begin,el->end);
+      sprintf(err_message, "File '%s', Line %ld: Hi n_elts=%d but begin=%d end=%d\n",__FILE__, (long)__LINE__, n_elts,el->begin,el->end);
+      mdlerror_nested(err_message);
       return 1;
     }
     
@@ -3066,7 +3083,8 @@ int polygonalize_cuboid(struct ordered_poly *opp,struct subdivided_box *sb)
   struct element_data *e;
   int i,j,a,b,c;
   int ii,bb,cc;
-  
+  char *err_message = NULL; 
+ 
   opp->n_verts = count_cuboid_vertices(sb);
   opp->vertex = (struct vector3*)malloc( opp->n_verts * sizeof(struct vector3) );
 
@@ -3075,7 +3093,8 @@ int polygonalize_cuboid(struct ordered_poly *opp,struct subdivided_box *sb)
   opp->element = (struct element_data*)malloc( opp->n_walls * sizeof(struct element_data) );
   
   if (opp->vertex==NULL || opp->element==NULL) {
-      fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+      sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+      mdlerror_nested(err_message);
       return 1;
   }
   
@@ -3298,6 +3317,8 @@ int set_viz_state_value(struct object *objp, int viz_state)
 {
   struct object *child_objp;
   int i;
+  char *err_message = NULL;
+
   switch (objp->object_type) {
     case META_OBJ:
       child_objp=objp->first_child;
@@ -3311,7 +3332,8 @@ int set_viz_state_value(struct object *objp, int viz_state)
     case BOX_OBJ:
       if (objp->viz_state==NULL) {
         if ((objp->viz_state=(int *)malloc(objp->n_walls*sizeof(int)))==NULL) {
-          fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+          sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+          mdlerror_nested(err_message);
           return(1);
         }
       }
@@ -3322,7 +3344,8 @@ int set_viz_state_value(struct object *objp, int viz_state)
     case POLY_OBJ:
       if (objp->viz_state==NULL) {
         if ((objp->viz_state=(int *)malloc(objp->n_walls*sizeof(int)))==NULL) {
-          fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+          sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+          mdlerror_nested(err_message);
           return(1);
         }
       }
@@ -3707,10 +3730,13 @@ struct release_evaluator* duplicate_rel_region_expr(struct release_evaluator *ex
 {
   struct region *r;
   struct release_evaluator *nexp;
+  char *err_message = NULL;
+
   
   nexp = (struct release_evaluator*)malloc(sizeof(struct release_evaluator));
   if (nexp==NULL) {
-     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     mdlerror_nested(err_message);
      return NULL;
   }
   
@@ -3775,12 +3801,14 @@ struct release_site_obj* duplicate_release_site(struct release_site_obj *old,str
 {
   struct release_site_obj *rso;
   struct release_region_data *rrd;
+  char *err_message = NULL;
   
   if (old->release_shape != SHAPE_REGION) return old;
   
   rso = (struct release_site_obj*)malloc(sizeof(struct release_site_obj));
   if (rso==NULL) {
-     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     mdlerror_nested(err_message);
      return NULL;
   }
   
@@ -3800,7 +3828,8 @@ struct release_site_obj* duplicate_release_site(struct release_site_obj *old,str
   
   rrd = (struct release_region_data*)malloc(sizeof(struct release_region_data));
   if (rrd==NULL) {
-     fprintf(stderr, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+     mdlerror_nested(err_message);
      return NULL;
   }
   

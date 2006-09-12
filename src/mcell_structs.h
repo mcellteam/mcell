@@ -1183,6 +1183,7 @@ struct volume
   u_int seed_seq;            /* Seed for random number generator */
   long long iterations;      /* How many iterations to run */
   char *log_file_name;       /* Name of log file */
+  char *err_file_name;       /* Name of err_file */
   FILE *log_file;            /* Log file to use, default is stdout */
   FILE *err_file;            /* Error log file to use, default is stderr */
   u_int log_freq;            /* Interval between simulation progress reports, default scales as sqrt(iterations) */

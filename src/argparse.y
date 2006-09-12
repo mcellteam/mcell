@@ -37,7 +37,7 @@ double dbl;
 %output="argparse.bison.c"
 
 %token <tok> REAL INTEGER HELP_OPT LOG_FILE_OPT LOG_FREQ_OPT FILE_NAME
-%token <tok> INFO_OPT SEED_OPT ITERATIONS_OPT CHECKPOINT_OPT
+%token <tok> INFO_OPT SEED_OPT ITERATIONS_OPT CHECKPOINT_OPT ERR_FILE_OPT
 %token <tok> EOF_TOK
 %type <dbl> int_arg
 /*
@@ -83,6 +83,9 @@ option: HELP_OPT
 {
 }
 	| log_freq_cmd
+{
+}
+	| err_file_cmd
 {
 }
 	| EOF_TOK
@@ -177,7 +180,9 @@ log_file_cmd: LOG_FILE_OPT FILE_NAME
     argerror(argpvp->arg_err_msg,argpvp);
     return(1);
   }
-  volp->err_file = volp->log_file;
+  if(volp->err_file == NULL){
+     volp->err_file = volp->log_file;
+  }
 };
 
 log_freq_cmd: LOG_FREQ_OPT int_arg
@@ -187,6 +192,24 @@ log_freq_cmd: LOG_FREQ_OPT int_arg
   {
     argerror("Iteration report update interval must be at least 1 iteration.");
     return 1;
+  }
+};
+
+err_file_cmd: ERR_FILE_OPT FILE_NAME
+{
+  volp->err_file_name=my_strdup(argpvp->cval);
+  if (volp->err_file_name == NULL) {
+    sprintf(argpvp->arg_err_msg,"File '%s', Line %ld: Out of memory while parsing command line arguments: %s", __FILE__, (long)__LINE__, argpvp->cval);
+    argerror(argpvp->arg_err_msg,argpvp);
+    return(1);
+  }
+  free((void *)argpvp->cval);
+  argpvp->cval = NULL;
+  if ((volp->err_file=fopen(volp->err_file_name,"w"))==NULL) {
+    sprintf(argpvp->arg_err_msg,"Cannot open output error file: %s",
+      volp->err_file_name);
+    argerror(argpvp->arg_err_msg,argpvp);
+    return(1);
   }
 };
 
@@ -221,7 +244,6 @@ void argerror(char *s,...)
   }
   va_end(ap);
 
-  log_file=stderr;
   if (apvp->vol->log_file!=NULL) {
     log_file=apvp->vol->log_file;
   }
@@ -298,6 +320,7 @@ int argparse_init(int argc, char *argv[], struct volume *vol)
 
   vol->log_freq=-1; /* No user-specified value */
   vol->log_file_name=NULL;
+  vol->err_file_name=NULL;
   vol->log_file=stdout;
   vol->err_file=stderr;
   vol->seed_seq=1;
