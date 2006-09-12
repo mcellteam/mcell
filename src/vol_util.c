@@ -1211,17 +1211,17 @@ int release_molecules(struct release_event_queue *req)
   switch(rso->release_number_method)
   {
     case CONSTNUM:
-      number = rso->release_number;
+      number = (int)(rso->release_number);
       break;
     case GAUSSNUM:
       if (rso->standard_deviation > 0)
       {
-	number = (int) rng_gauss(world->rng)*rso->standard_deviation + rso->release_number;
+	number = (int) (rng_gauss(world->rng)*rso->standard_deviation + rso->release_number);
       }
       else
       {
         rso->release_number_method = CONSTNUM;
-        number = rso->release_number;
+        number = (int)(rso->release_number);
       }
       break;
     case VOLNUM:

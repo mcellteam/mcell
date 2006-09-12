@@ -4077,14 +4077,14 @@ release_number_cmd: constant_release_number_cmd
 constant_release_number_cmd: NUMBER_TO_RELEASE '=' num_expr
 {
   mdlpvp->rsop->release_number_method=CONSTNUM;
-  mdlpvp->rsop->release_number=(int) $<dbl>3;
+  mdlpvp->rsop->release_number= $<dbl>3;
 }
 	| GAUSSIAN_RELEASE_NUMBER '{'
 	MEAN_NUMBER '=' num_expr
 	'}'
 {
   mdlpvp->rsop->release_number_method=CONSTNUM;
-  mdlpvp->rsop->release_number=(int) $<dbl>5;
+  mdlpvp->rsop->release_number= $<dbl>5;
 };
 
 
@@ -4094,7 +4094,7 @@ gaussian_release_number_cmd: GAUSSIAN_RELEASE_NUMBER '{'
 	'}'
 {
   mdlpvp->rsop->release_number_method=GAUSSNUM;
-  mdlpvp->rsop->release_number=(int) $<dbl>5;
+  mdlpvp->rsop->release_number= $<dbl>5;
   mdlpvp->rsop->standard_deviation=$<dbl>8;
 };
 

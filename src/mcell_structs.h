@@ -1242,7 +1242,7 @@ struct release_site_obj {
   byte release_number_method;     /* Release Number Flags: controls how release_number is used */
   byte release_shape;             /* Release Shape Flags: controls shape over which to release */
   short orientation;              /* Orientation of released surface molecules */
-  int release_number;             /* Number to release */
+  double release_number;             /* Number to release */
   double mean_diameter;           /* Diameter for symmetric releases */
   double concentration;           /* Concentration of molecules to release.
 				     Units are Molar for volume molecules, and number per um^2 for surface molecules. */
