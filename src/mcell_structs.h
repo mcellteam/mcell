@@ -1676,7 +1676,7 @@ struct frame_data_list {
   struct frame_data_list *next;
   byte list_type;		            /* Data Output Timing Type (OUTPUT_BY_TIME_LIST, etc) */
   int type;                                 /* Visualization Frame Data Type (ALL_FRAME_DATA, etc) */ 
-  long long viz_iterationll;	            /* Value of the current iteration step. */
+  long long viz_iteration;	            /* Value of the current iteration step. */
   long long n_viz_iterations;	            /* Number of iterations in the iteration_list. */
   struct num_expr_list *iteration_list;     /* Linked list of iteration steps values */
   struct num_expr_list *curr_viz_iteration; /* Points to the current iteration in the linked list */

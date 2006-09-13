@@ -87,7 +87,7 @@ void update_frame_data_list(struct frame_data_list *fdlp)
      struct frame_data_list *fdlp_temp = NULL;
      fdlp_temp = fdlp;
      while (fdlp_temp!=NULL) {
-       if(world->it_time==fdlp_temp->viz_iterationll)
+       if(world->it_time==fdlp_temp->viz_iteration)
        {
      
        switch (fdlp_temp->list_type) {
@@ -98,15 +98,15 @@ void update_frame_data_list(struct frame_data_list *fdlp)
                    (fdlp_temp->type == MESH_GEOMETRY))
                {
 
-                  if(fdlp_temp->viz_iterationll > last_meshes_iteration){
-                     last_meshes_iteration = fdlp_temp->viz_iterationll;
+                  if(fdlp_temp->viz_iteration > last_meshes_iteration){
+                     last_meshes_iteration = fdlp_temp->viz_iteration;
                    }
                }else if((fdlp_temp->type == ALL_MOL_DATA) ||
                    (fdlp_temp->type == MOL_POS) ||
                    (fdlp_temp->type == MOL_ORIENT))
                {
-                   if(fdlp_temp->viz_iterationll > last_mols_iteration){
-                     last_mols_iteration = fdlp_temp->viz_iterationll;
+                   if(fdlp_temp->viz_iteration > last_mols_iteration){
+                     last_mols_iteration = fdlp_temp->viz_iteration;
                    }
                }
          
@@ -117,15 +117,15 @@ void update_frame_data_list(struct frame_data_list *fdlp)
                    (fdlp_temp->type == REG_DATA) ||
                    (fdlp_temp->type == MESH_GEOMETRY))
                {
-                  if(fdlp_temp->viz_iterationll > last_meshes_iteration){
-                      last_meshes_iteration = fdlp_temp->viz_iterationll;
+                  if(fdlp_temp->viz_iteration > last_meshes_iteration){
+                      last_meshes_iteration = fdlp_temp->viz_iteration;
                    }
               }else if((fdlp_temp->type == ALL_MOL_DATA) ||
                    (fdlp_temp->type == MOL_POS) ||
                    (fdlp_temp->type == MOL_ORIENT))
                {
-                  if(fdlp_temp->viz_iterationll > last_mols_iteration){
-                        last_mols_iteration = fdlp_temp->viz_iterationll;
+                  if(fdlp_temp->viz_iteration > last_mols_iteration){
+                        last_mols_iteration = fdlp_temp->viz_iteration;
                    }
                }
 	
@@ -135,7 +135,7 @@ void update_frame_data_list(struct frame_data_list *fdlp)
               break;
        } /* end switch */
 
-     } /* end if (world->it_time == fdlp_temp->viz_iterationll) */
+     } /* end if (world->it_time == fdlp_temp->viz_iteration) */
     fdlp_temp = fdlp_temp->next;
     
    } /* end while */
@@ -143,7 +143,7 @@ void update_frame_data_list(struct frame_data_list *fdlp)
 
 
   while (fdlp!=NULL) {
-    if(world->it_time==fdlp->viz_iterationll)
+    if(world->it_time==fdlp->viz_iteration)
     {
  
       switch (world->viz_mode)
@@ -172,10 +172,10 @@ void update_frame_data_list(struct frame_data_list *fdlp)
       if (fdlp->curr_viz_iteration!=NULL) {
 	switch (fdlp->list_type) {
 	  case OUTPUT_BY_ITERATION_LIST:
-	  	  fdlp->viz_iterationll=(long long)fdlp->curr_viz_iteration->value; 
+	  	  fdlp->viz_iteration=(long long)fdlp->curr_viz_iteration->value; 
 	          break;
 	  case OUTPUT_BY_TIME_LIST:
-	          fdlp->viz_iterationll=(long long)(fdlp->curr_viz_iteration->value/world->time_unit + ROUND_UP);
+	          fdlp->viz_iteration=(long long)(fdlp->curr_viz_iteration->value/world->time_unit + ROUND_UP);
 	          break;
           default:
                   fprintf(world->err_file,"File '%s', Line %ld: error - wrong frame_data_list list_type %d\n", __FILE__, (long)__LINE__, fdlp->list_type);
@@ -213,7 +213,7 @@ void init_frame_data_list(struct frame_data_list *fdlp)
 
   while (fdlp!=NULL) {
  
-    fdlp->viz_iterationll=-1;
+    fdlp->viz_iteration=-1;
     fdlp->n_viz_iterations=0;
     nelp=fdlp->iteration_list;
     done=0;
@@ -224,7 +224,7 @@ void init_frame_data_list(struct frame_data_list *fdlp)
 
 	if (!done) {
 	  if (nelp->value>=world->start_time) {
-             fdlp->viz_iterationll=(long long)nelp->value;
+             fdlp->viz_iteration=(long long)nelp->value;
              fdlp->curr_viz_iteration=nelp;
              done=1;
 	  }
@@ -243,7 +243,7 @@ void init_frame_data_list(struct frame_data_list *fdlp)
 
         if (!done) {
 	  if (nelp->value>=world->current_start_real_time) {
-	    fdlp->viz_iterationll=(long long)(nelp->value/world->time_unit+ROUND_UP);
+	    fdlp->viz_iteration=(long long)(nelp->value/world->time_unit+ROUND_UP);
 	    fdlp->curr_viz_iteration=nelp;
 	    done=1;
 	  }
@@ -423,7 +423,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
   int vi1,vi2,vi3;
   /*int vi4;*/
   int num;
-  long long viz_iterationll;
+  long long viz_iteration;
   long long n_viz_iterations;
   /* int first_viz_iteration; */
   int pos_count,state_count,element_data_count;
@@ -456,7 +456,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
     sprintf(my_byte_order,"msb");
   }
 
-  viz_iterationll=fdlp->viz_iterationll;
+  viz_iteration=fdlp->viz_iteration;
   n_viz_iterations=fdlp->n_viz_iterations;
   /* first_viz_iteration=(viz_iteration==fdlp->iteration_list->value); */
   
@@ -465,7 +465,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
    */
   if((world->chkpt_flag) && (world->start_time > 0)){
      if (world->it_time == world->start_time){
-         if(viz_iterationll % (world->chkpt_iterations) == 0){
+         if(viz_iteration % (world->chkpt_iterations) == 0){
              return 0;
          }
      }
@@ -501,7 +501,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
 
     if (viz_surf_pos) {
       sprintf(file_name,"%s.mesh_elements.%lld.dx",
-               vizp->name,viz_iterationll);
+               vizp->name,viz_iteration);
       if ((wall_verts_header=fopen(file_name,"wb"))==NULL) {
         fprintf(world->err_file,"File %s, Line %ld: error cannot open mesh elements file %s\n", __FILE__, (long)__LINE__, file_name);
         return(1);
@@ -510,7 +510,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
 
     if (viz_surf_states) {
       sprintf(file_name,"%s.mesh_element_states.%lld.dx",
-               vizp->name,viz_iterationll);
+               vizp->name,viz_iteration);
       if ((wall_states_header=fopen(file_name,"wb"))==NULL) {
         fprintf(world->err_file,"File %s, Line %ld: error cannot open mesh element states file %s\n", __FILE__, (long)__LINE__, file_name);
         return(1);
@@ -518,7 +518,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
     }
 
     if (viz_eff_pos) {
-      sprintf(file_name,"%s.effector_site_positions.%lld.dx",vizp->name,viz_iterationll);
+      sprintf(file_name,"%s.effector_site_positions.%lld.dx",vizp->name,viz_iteration);
       if ((eff_pos_header=fopen(file_name,"wb"))==NULL) {
         fprintf(world->err_file,"File %s, Line %ld: error cannot open effector position file %s\n", __FILE__, (long)__LINE__, file_name);
         return(1);
@@ -526,7 +526,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
     }
   
     if (viz_eff_states) {
-      sprintf(file_name,"%s.effector_site_states.%lld.dx",vizp->name,viz_iterationll);
+      sprintf(file_name,"%s.effector_site_states.%lld.dx",vizp->name,viz_iteration);
       if ((eff_states_header=fopen(file_name,"wb"))==NULL) {
         fprintf(world->err_file,"File %s, Line %ld: error cannot open effector states file %s\n", __FILE__, (long)__LINE__, file_name);
         return(1);
@@ -1212,14 +1212,14 @@ int output_dx_objects(struct frame_data_list *fdlp)
     pos_count=0;
     state_count=0;
     if (viz_mol_pos) {
-      sprintf(file_name,"%s.molecule_positions.%lld.dx",world->molecule_prefix_name,viz_iterationll);
+      sprintf(file_name,"%s.molecule_positions.%lld.dx",world->molecule_prefix_name,viz_iteration);
       if ((mol_pos_header=fopen(file_name,"wb"))==NULL) {
         fprintf(world->err_file,"File %s, Line %ld: error cannot open molecule positions header file %s\n", __FILE__, (long)__LINE__, file_name);
         return(1);
       }
     }
     if (viz_mol_states) {
-      sprintf(file_name,"%s.molecule_states.%lld.dx",world->molecule_prefix_name,viz_iterationll);
+      sprintf(file_name,"%s.molecule_states.%lld.dx",world->molecule_prefix_name,viz_iteration);
       if ((mol_states_header=fopen(file_name,"wb"))==NULL) {
         fprintf(world->err_file,"File %s, Line %ld: error cannot open molecule states header file %s\n", __FILE__, (long)__LINE__, file_name);
         return(1);
@@ -1717,7 +1717,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      
    }
 
-  viz_iteration = (u_int)(fdlp->viz_iterationll);
+  viz_iteration = (u_int)(fdlp->viz_iteration);
   n_viz_iterations = (u_int)(fdlp->n_viz_iterations);
 
   viz_type=fdlp->type;
@@ -2634,20 +2634,20 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
     fdl_ptr = world->frame_data_head;
     while(fdl_ptr != NULL){
         if(fdl_ptr->type == MESH_GEOMETRY){
-             curr_surf_pos_iteration_step = fdl_ptr->viz_iterationll;
+             curr_surf_pos_iteration_step = fdl_ptr->viz_iteration;
         }if(fdl_ptr->type == REG_DATA){
-             curr_region_data_iteration_step = fdl_ptr->viz_iterationll;
+             curr_region_data_iteration_step = fdl_ptr->viz_iteration;
         }if(fdl_ptr->type == ALL_MESH_DATA){
-             curr_surf_pos_iteration_step = fdl_ptr->viz_iterationll;
-             curr_region_data_iteration_step = fdl_ptr->viz_iterationll;
+             curr_surf_pos_iteration_step = fdl_ptr->viz_iteration;
+             curr_region_data_iteration_step = fdl_ptr->viz_iteration;
         }else if(fdl_ptr->type == MOL_POS){
-             curr_mol_pos_iteration_step = fdl_ptr->viz_iterationll;
+             curr_mol_pos_iteration_step = fdl_ptr->viz_iteration;
 	}else if(fdl_ptr->type == MOL_ORIENT) 
         {
-             curr_mol_orient_iteration_step = fdl_ptr->viz_iterationll;
+             curr_mol_orient_iteration_step = fdl_ptr->viz_iteration;
         }else if(fdl_ptr->type == ALL_MOL_DATA){
-             curr_mol_pos_iteration_step = fdl_ptr->viz_iterationll;
-             curr_mol_orient_iteration_step = fdl_ptr->viz_iterationll;
+             curr_mol_pos_iteration_step = fdl_ptr->viz_iteration;
+             curr_mol_orient_iteration_step = fdl_ptr->viz_iteration;
         }	
         fdl_ptr = fdl_ptr->next;
     }
@@ -2668,14 +2668,14 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
     
     /* check for the special_iteration_step  */  
     if(viz_surf_pos_flag || viz_region_data_flag){	    
-	    if(fdlp->viz_iterationll == special_surf_iteration_step){
+	    if(fdlp->viz_iteration == special_surf_iteration_step){
 		special_surf_frames_counter++;
             }
     }
 
     /* check for the special_iteration_step  */ 
     if(viz_mol_pos_flag || viz_mol_orient_flag){	    
-	    if(fdlp->viz_iterationll == special_mol_iteration_step){
+	    if(fdlp->viz_iteration == special_mol_iteration_step){
 		special_mol_frames_counter++;
             }
     }
@@ -3458,7 +3458,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
              /* look forward to find out whether there are 
                 other frames to be output */
              for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
-                if((fdlp_temp->viz_iterationll == world->iterations) || (fdlp_temp->viz_iterationll == final_iteration)){ 
+                if((fdlp_temp->viz_iteration == world->iterations) || (fdlp_temp->viz_iteration == final_iteration)){ 
                    found = 1;
                    break;
                 }
@@ -3477,8 +3477,8 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
              other frames to be output */
         for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
                 
-                if((fdlp_temp->viz_iterationll >= fdlp->viz_iterationll) &&
-                    (fdlp_temp->viz_iterationll <= world->iterations)){
+                if((fdlp_temp->viz_iteration >= fdlp->viz_iteration) &&
+                    (fdlp_temp->viz_iteration <= world->iterations)){
                        found = 1;
                        break;
                 }
@@ -3490,7 +3490,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                 found = 1;
            }
         }else{
-                if((next_iteration_step_previous_frame >= fdlp->viz_iterationll) && (next_iteration_step_previous_frame <= world->iterations)){
+                if((next_iteration_step_previous_frame >= fdlp->viz_iteration) && (next_iteration_step_previous_frame <= world->iterations)){
                    found = 1;
                 }
 
@@ -3511,7 +3511,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
            other frames to be output */
         for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
           
-                if(fdlp_temp->viz_iterationll == final_iteration) {
+                if(fdlp_temp->viz_iteration == final_iteration) {
                    found = 1;
                    break;
                 }
@@ -3528,8 +3528,8 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
            other frames to be output */
         for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
                 
-                if((fdlp_temp->viz_iterationll >= fdlp->viz_iterationll) &&
-                    (fdlp_temp->viz_iterationll <= world->iterations)){
+                if((fdlp_temp->viz_iteration >= fdlp->viz_iteration) &&
+                    (fdlp_temp->viz_iteration <= world->iterations)){
                    found = 1;
                    break;
                 }
@@ -3541,7 +3541,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                 found = 1;
            }
         }else{
-                if((next_iteration_step_previous_frame >= fdlp->viz_iterationll) && (next_iteration_step_previous_frame <= world->iterations)){
+                if((next_iteration_step_previous_frame >= fdlp->viz_iteration) && (next_iteration_step_previous_frame <= world->iterations)){
                    found = 1;
                 }
 
@@ -3872,7 +3872,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
     
     /* check whether this frame type is the last one for the current iteration */
     for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
-           if(fdlp_temp->viz_iterationll != fdlp->viz_iterationll){
+           if(fdlp_temp->viz_iteration != fdlp->viz_iteration){
                break;
            }else{
                if((fdlp_temp->type == ALL_MOL_DATA) ||
@@ -3893,9 +3893,9 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
     if(viz_surf_all_data_flag || viz_surf_pos_flag || viz_region_data_flag)
     {
        
-        if((!mesh_frame_found) && (!mol_frame_found) && (last_mols_iteration >= 0) && (fdlp->viz_iterationll > last_mols_iteration))
+        if((!mesh_frame_found) && (!mol_frame_found) && (last_mols_iteration >= 0) && (fdlp->viz_iteration > last_mols_iteration))
         {
-           sprintf(iteration_number, "%lld", fdlp->viz_iterationll);
+           sprintf(iteration_number, "%lld", fdlp->viz_iteration);
            filename = (char *)malloc(sizeof(char) * (strlen(frame_data_dir_name) + strlen("/iteration_") + strlen(iteration_number) + 1));
            if(filename == NULL){
                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
@@ -4178,9 +4178,9 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
     else if(viz_mol_all_data_flag || viz_mol_pos_flag || viz_mol_orient_flag)
     {
        
-        if((!mesh_frame_found) && (!mol_frame_found) && (last_meshes_iteration >= 0) && (fdlp->viz_iterationll > last_meshes_iteration))
+        if((!mesh_frame_found) && (!mol_frame_found) && (last_meshes_iteration >= 0) && (fdlp->viz_iteration > last_meshes_iteration))
         {
-           sprintf(iteration_number, "%lld", fdlp->viz_iterationll);
+           sprintf(iteration_number, "%lld", fdlp->viz_iteration);
            filename = (char *)malloc(sizeof(char) * (strlen(frame_data_dir_name) + strlen("/iteration_") + strlen(iteration_number) + 1));
            if(filename == NULL){
                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
@@ -4719,7 +4719,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
 
    }
 
-  viz_iteration = (u_int)(fdlp->viz_iterationll);
+  viz_iteration = (u_int)(fdlp->viz_iteration);
   n_viz_iterations = (u_int)(fdlp->n_viz_iterations);
 
   viz_type=fdlp->type;
@@ -5443,20 +5443,20 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
     fdl_ptr = world->frame_data_head;
     while(fdl_ptr != NULL){
         if(fdl_ptr->type == MESH_GEOMETRY){
-             curr_surf_pos_iteration_step = fdl_ptr->viz_iterationll;
+             curr_surf_pos_iteration_step = fdl_ptr->viz_iteration;
         }if(fdl_ptr->type == REG_DATA){
-             curr_region_data_iteration_step = fdl_ptr->viz_iterationll;
+             curr_region_data_iteration_step = fdl_ptr->viz_iteration;
         }if(fdl_ptr->type == ALL_MESH_DATA){
-             curr_surf_pos_iteration_step = fdl_ptr->viz_iterationll;
-             curr_region_data_iteration_step = fdl_ptr->viz_iterationll;
+             curr_surf_pos_iteration_step = fdl_ptr->viz_iteration;
+             curr_region_data_iteration_step = fdl_ptr->viz_iteration;
         }else if(fdl_ptr->type == MOL_POS){
-             curr_mol_pos_iteration_step = fdl_ptr->viz_iterationll;
+             curr_mol_pos_iteration_step = fdl_ptr->viz_iteration;
 	}else if(fdl_ptr->type == MOL_ORIENT) 
         {
-             curr_mol_orient_iteration_step = fdl_ptr->viz_iterationll;
+             curr_mol_orient_iteration_step = fdl_ptr->viz_iteration;
         }else if(fdl_ptr->type == ALL_MOL_DATA){
-             curr_mol_pos_iteration_step = fdl_ptr->viz_iterationll;
-             curr_mol_orient_iteration_step = fdl_ptr->viz_iterationll;
+             curr_mol_pos_iteration_step = fdl_ptr->viz_iteration;
+             curr_mol_orient_iteration_step = fdl_ptr->viz_iteration;
         }	
         fdl_ptr = fdl_ptr->next;
     }
@@ -5477,7 +5477,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
     
     /* check for the special_iteration_step  */  
     if(viz_surf_pos_flag || viz_region_data_flag){	    
-	    if(fdlp->viz_iterationll == special_surf_iteration_step){
+	    if(fdlp->viz_iteration == special_surf_iteration_step){
 		special_surf_frames_counter++;
             }
     }
@@ -5716,7 +5716,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
 /* dump grid molecules. */
     /* check for the special_iteration_step  */ 
     if(viz_mol_pos_flag || viz_mol_orient_flag){	    
-	    if(fdlp->viz_iterationll == special_mol_iteration_step){
+	    if(fdlp->viz_iteration == special_mol_iteration_step){
 		special_mol_frames_counter++;
             }
     }
@@ -6185,14 +6185,14 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
 
       /* create combined group object for meshes and molecules */
       int show_combined_group = 1;
-      if(((fdlp->viz_iterationll == curr_surf_pos_iteration_step) ||
-	  (fdlp->viz_iterationll == curr_region_data_iteration_step)) && 
+      if(((fdlp->viz_iteration == curr_surf_pos_iteration_step) ||
+	  (fdlp->viz_iteration == curr_region_data_iteration_step)) && 
         (mesh_group_index == 0)) 
       {
             	show_combined_group = 0;
       }
-      if(((fdlp->viz_iterationll == curr_mol_pos_iteration_step) ||
-	 (fdlp->viz_iterationll == curr_mol_orient_iteration_step))
+      if(((fdlp->viz_iteration == curr_mol_pos_iteration_step) ||
+	 (fdlp->viz_iteration == curr_mol_orient_iteration_step))
              && ((mol_group_index == 0) && (eff_group_index == 0))){ 
             	show_combined_group = 0;
       }
@@ -6292,7 +6292,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
              /* look forward to find out whether there are 
                 other frames to be output */
              for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
-                if((fdlp_temp->viz_iterationll == world->iterations) || (fdlp_temp->viz_iterationll == final_iteration)){ 
+                if((fdlp_temp->viz_iteration == world->iterations) || (fdlp_temp->viz_iteration == final_iteration)){ 
                    found = 1;
                    break;
                 }
@@ -6311,8 +6311,8 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
              other frames to be output */
         for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
                 
-                if((fdlp_temp->viz_iterationll >= fdlp->viz_iterationll) &&
-                    (fdlp_temp->viz_iterationll <= world->iterations)){
+                if((fdlp_temp->viz_iteration >= fdlp->viz_iteration) &&
+                    (fdlp_temp->viz_iteration <= world->iterations)){
                        found = 1;
                        break;
                 }
@@ -6324,7 +6324,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
                 found = 1;
            }
         }else{
-                if((next_iteration_step_previous_frame >= fdlp->viz_iterationll) && (next_iteration_step_previous_frame <= world->iterations)){
+                if((next_iteration_step_previous_frame >= fdlp->viz_iteration) && (next_iteration_step_previous_frame <= world->iterations)){
                    found = 1;
                 }
 
@@ -6345,7 +6345,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
            other frames to be output */
         for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
           
-                if(fdlp_temp->viz_iterationll == final_iteration) {
+                if(fdlp_temp->viz_iteration == final_iteration) {
                    found = 1;
                    break;
                 }
@@ -6362,8 +6362,8 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
            other frames to be output */
         for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
                 
-                if((fdlp_temp->viz_iterationll >= fdlp->viz_iterationll) &&
-                    (fdlp_temp->viz_iterationll <= world->iterations)){
+                if((fdlp_temp->viz_iteration >= fdlp->viz_iteration) &&
+                    (fdlp_temp->viz_iteration <= world->iterations)){
                    found = 1;
                    break;
                 }
@@ -6375,7 +6375,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
                 found = 1;
            }
         }else{
-                if((next_iteration_step_previous_frame >= fdlp->viz_iterationll) && (next_iteration_step_previous_frame <= world->iterations)){
+                if((next_iteration_step_previous_frame >= fdlp->viz_iteration) && (next_iteration_step_previous_frame <= world->iterations)){
                    found = 1;
                 }
 
@@ -6908,7 +6908,7 @@ int output_rk_custom(struct frame_data_list *fdlp)
     else no_printf("Writing to file %s\n",cf_name);
     
     world->rk_mode_var->n_written++;
-    fprintf(custom_file,"%lld",fdlp->viz_iterationll);
+    fprintf(custom_file,"%lld",fdlp->viz_iteration);
     for (j=0;j<world->n_species;j++)
     {
       target = world->species_list[j];
@@ -7003,7 +7003,7 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
     lli = 10;
     for (ndigits = 1 ; lli <= world->iterations && ndigits<20 ; lli*=10 , ndigits++) {}
     sprintf(cf_format,"%%s.ascii.%%0%dlld.dat",ndigits);
-    sprintf(cf_name,cf_format,world->molecule_prefix_name,fdlp->viz_iterationll);
+    sprintf(cf_name,cf_format,world->molecule_prefix_name,fdlp->viz_iteration);
     custom_file = fopen(cf_name,"w");
     if (!custom_file)
     {

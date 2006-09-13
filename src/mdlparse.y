@@ -6505,7 +6505,7 @@ molecules_time_points_range_cmd: viz_molecules_one_item '@' '['
       }
       mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
       mdlpvp->fdlp->type=$<tok>1;
-      mdlpvp->fdlp->viz_iterationll=-1;
+      mdlpvp->fdlp->viz_iteration=-1;
       mdlpvp->fdlp->n_viz_iterations=0;
       mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
       mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6521,7 +6521,7 @@ molecules_time_points_range_cmd: viz_molecules_one_item '@' '['
          }
          mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
          mdlpvp->fdlp->type=EFF_POS;
-         mdlpvp->fdlp->viz_iterationll=-1;
+         mdlpvp->fdlp->viz_iteration=-1;
          mdlpvp->fdlp->n_viz_iterations=0;
          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6535,7 +6535,7 @@ molecules_time_points_range_cmd: viz_molecules_one_item '@' '['
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
           mdlpvp->fdlp->type=EFF_STATES;
-          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->viz_iteration=-1;
           mdlpvp->fdlp->n_viz_iterations=0;
           mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
           mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6549,7 +6549,7 @@ molecules_time_points_range_cmd: viz_molecules_one_item '@' '['
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
           mdlpvp->fdlp->type=MOL_POS;
-          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->viz_iteration=-1;
           mdlpvp->fdlp->n_viz_iterations=0;
           mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
           mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6563,7 +6563,7 @@ molecules_time_points_range_cmd: viz_molecules_one_item '@' '['
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
           mdlpvp->fdlp->type=MOL_STATES;
-          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->viz_iteration=-1;
           mdlpvp->fdlp->n_viz_iterations=0;
           mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
           mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6615,7 +6615,7 @@ molecules_time_points_all_times_cmd: viz_molecules_one_item '@' ALL_TIMES
      }
      mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
      mdlpvp->fdlp->type=$<tok>1;
-     mdlpvp->fdlp->viz_iterationll=-1;
+     mdlpvp->fdlp->viz_iteration=-1;
      mdlpvp->fdlp->n_viz_iterations=0;
      mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
      mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6631,7 +6631,7 @@ molecules_time_points_all_times_cmd: viz_molecules_one_item '@' ALL_TIMES
          }
          mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
          mdlpvp->fdlp->type=EFF_POS;
-         mdlpvp->fdlp->viz_iterationll=-1;
+         mdlpvp->fdlp->viz_iteration=-1;
          mdlpvp->fdlp->n_viz_iterations=0;
          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6645,7 +6645,7 @@ molecules_time_points_all_times_cmd: viz_molecules_one_item '@' ALL_TIMES
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
           mdlpvp->fdlp->type=EFF_STATES;
-          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->viz_iteration=-1;
           mdlpvp->fdlp->n_viz_iterations=0;
           mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
           mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6659,7 +6659,7 @@ molecules_time_points_all_times_cmd: viz_molecules_one_item '@' ALL_TIMES
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
           mdlpvp->fdlp->type=MOL_POS;
-          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->viz_iteration=-1;
           mdlpvp->fdlp->n_viz_iterations=0;
           mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
           mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6673,7 +6673,7 @@ molecules_time_points_all_times_cmd: viz_molecules_one_item '@' ALL_TIMES
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
           mdlpvp->fdlp->type=MOL_STATES;
-          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->viz_iteration=-1;
           mdlpvp->fdlp->n_viz_iterations=0;
           mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
           mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6719,7 +6719,7 @@ molecules_iteration_numbers_range_cmd: viz_molecules_one_item '@' '['
       }
       mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
       mdlpvp->fdlp->type=$<tok>1;
-      mdlpvp->fdlp->viz_iterationll=-1;
+      mdlpvp->fdlp->viz_iteration=-1;
       mdlpvp->fdlp->n_viz_iterations=0;
       mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
       mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6735,7 +6735,7 @@ molecules_iteration_numbers_range_cmd: viz_molecules_one_item '@' '['
          }
          mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
          mdlpvp->fdlp->type=EFF_POS;
-         mdlpvp->fdlp->viz_iterationll=-1;
+         mdlpvp->fdlp->viz_iteration=-1;
          mdlpvp->fdlp->n_viz_iterations=0;
          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6749,7 +6749,7 @@ molecules_iteration_numbers_range_cmd: viz_molecules_one_item '@' '['
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
           mdlpvp->fdlp->type=EFF_STATES;
-          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->viz_iteration=-1;
           mdlpvp->fdlp->n_viz_iterations=0;
           mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
           mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6763,7 +6763,7 @@ molecules_iteration_numbers_range_cmd: viz_molecules_one_item '@' '['
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
           mdlpvp->fdlp->type=MOL_POS;
-          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->viz_iteration=-1;
           mdlpvp->fdlp->n_viz_iterations=0;
           mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
           mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6777,7 +6777,7 @@ molecules_iteration_numbers_range_cmd: viz_molecules_one_item '@' '['
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
           mdlpvp->fdlp->type=MOL_STATES;
-          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->viz_iteration=-1;
           mdlpvp->fdlp->n_viz_iterations=0;
           mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
           mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6831,7 +6831,7 @@ molecules_iteration_numbers_all_iterations_cmd: viz_molecules_one_item '@'
      }
      mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
      mdlpvp->fdlp->type=$<tok>1;
-     mdlpvp->fdlp->viz_iterationll=-1;
+     mdlpvp->fdlp->viz_iteration=-1;
      mdlpvp->fdlp->n_viz_iterations=0;
      mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
      mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6847,7 +6847,7 @@ molecules_iteration_numbers_all_iterations_cmd: viz_molecules_one_item '@'
          }
          mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
          mdlpvp->fdlp->type=EFF_POS;
-         mdlpvp->fdlp->viz_iterationll=-1;
+         mdlpvp->fdlp->viz_iteration=-1;
          mdlpvp->fdlp->n_viz_iterations=0;
          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6861,7 +6861,7 @@ molecules_iteration_numbers_all_iterations_cmd: viz_molecules_one_item '@'
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
           mdlpvp->fdlp->type=EFF_STATES;
-          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->viz_iteration=-1;
           mdlpvp->fdlp->n_viz_iterations=0;
           mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
           mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6875,7 +6875,7 @@ molecules_iteration_numbers_all_iterations_cmd: viz_molecules_one_item '@'
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
           mdlpvp->fdlp->type=MOL_POS;
-          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->viz_iteration=-1;
           mdlpvp->fdlp->n_viz_iterations=0;
           mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
           mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -6889,7 +6889,7 @@ molecules_iteration_numbers_all_iterations_cmd: viz_molecules_one_item '@'
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
           mdlpvp->fdlp->type=MOL_STATES;
-          mdlpvp->fdlp->viz_iterationll=-1;
+          mdlpvp->fdlp->viz_iteration=-1;
           mdlpvp->fdlp->n_viz_iterations=0;
           mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
           mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -7384,7 +7384,7 @@ meshes_time_points_range_cmd: viz_meshes_one_item '@' '['
      }
      mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
      mdlpvp->fdlp->type=$<tok>1;
-     mdlpvp->fdlp->viz_iterationll=-1;
+     mdlpvp->fdlp->viz_iteration=-1;
      mdlpvp->fdlp->n_viz_iterations=0;
      mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
      mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -7403,7 +7403,7 @@ meshes_time_points_range_cmd: viz_meshes_one_item '@' '['
         }
         mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
         mdlpvp->fdlp->type=SURF_POS;
-        mdlpvp->fdlp->viz_iterationll=-1;
+        mdlpvp->fdlp->viz_iteration=-1;
         mdlpvp->fdlp->n_viz_iterations=0;
         mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
         mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -7417,7 +7417,7 @@ meshes_time_points_range_cmd: viz_meshes_one_item '@' '['
         }
         mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
         mdlpvp->fdlp->type=SURF_STATES;
-        mdlpvp->fdlp->viz_iterationll=-1;
+        mdlpvp->fdlp->viz_iteration=-1;
         mdlpvp->fdlp->n_viz_iterations=0;
         mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
         mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -7465,7 +7465,7 @@ meshes_time_points_all_times_cmd: viz_meshes_one_item '@' ALL_TIMES
      }
      mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
      mdlpvp->fdlp->type=$<tok>1;
-     mdlpvp->fdlp->viz_iterationll=-1;
+     mdlpvp->fdlp->viz_iteration=-1;
      mdlpvp->fdlp->n_viz_iterations=0;
      mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
      mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -7485,7 +7485,7 @@ meshes_time_points_all_times_cmd: viz_meshes_one_item '@' ALL_TIMES
         }
         mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
         mdlpvp->fdlp->type=SURF_POS;
-        mdlpvp->fdlp->viz_iterationll=-1;
+        mdlpvp->fdlp->viz_iteration=-1;
         mdlpvp->fdlp->n_viz_iterations=0;
         mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
         mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -7499,7 +7499,7 @@ meshes_time_points_all_times_cmd: viz_meshes_one_item '@' ALL_TIMES
         }
         mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
         mdlpvp->fdlp->type=SURF_STATES;
-        mdlpvp->fdlp->viz_iterationll=-1;
+        mdlpvp->fdlp->viz_iteration=-1;
         mdlpvp->fdlp->n_viz_iterations=0;
         mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
         mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -7541,7 +7541,7 @@ meshes_iteration_numbers_range_cmd: viz_meshes_one_item '@' '['
      }
      mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
      mdlpvp->fdlp->type=$<tok>1;
-     mdlpvp->fdlp->viz_iterationll=-1;
+     mdlpvp->fdlp->viz_iteration=-1;
      mdlpvp->fdlp->n_viz_iterations=0;
      mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
      mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -7560,7 +7560,7 @@ meshes_iteration_numbers_range_cmd: viz_meshes_one_item '@' '['
         }
         mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
         mdlpvp->fdlp->type=SURF_POS;
-        mdlpvp->fdlp->viz_iterationll=-1;
+        mdlpvp->fdlp->viz_iteration=-1;
         mdlpvp->fdlp->n_viz_iterations=0;
         mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
         mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -7574,7 +7574,7 @@ meshes_iteration_numbers_range_cmd: viz_meshes_one_item '@' '['
         }
         mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
         mdlpvp->fdlp->type=SURF_STATES;
-        mdlpvp->fdlp->viz_iterationll=-1;
+        mdlpvp->fdlp->viz_iteration=-1;
         mdlpvp->fdlp->n_viz_iterations=0;
         mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
         mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -7626,7 +7626,7 @@ meshes_iteration_numbers_all_iterations_cmd: viz_meshes_one_item '@'
      }
      mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
      mdlpvp->fdlp->type=$<tok>1;
-     mdlpvp->fdlp->viz_iterationll=-1;
+     mdlpvp->fdlp->viz_iteration=-1;
      mdlpvp->fdlp->n_viz_iterations=0;
      mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
      mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -7647,7 +7647,7 @@ meshes_iteration_numbers_all_iterations_cmd: viz_meshes_one_item '@'
         }
         mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
         mdlpvp->fdlp->type=SURF_POS;
-        mdlpvp->fdlp->viz_iterationll=-1;
+        mdlpvp->fdlp->viz_iteration=-1;
         mdlpvp->fdlp->n_viz_iterations=0;
         mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
         mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -7661,7 +7661,7 @@ meshes_iteration_numbers_all_iterations_cmd: viz_meshes_one_item '@'
         }
         mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
         mdlpvp->fdlp->type=SURF_STATES;
-        mdlpvp->fdlp->viz_iterationll=-1;
+        mdlpvp->fdlp->viz_iteration=-1;
         mdlpvp->fdlp->n_viz_iterations=0;
         mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
         mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -7821,7 +7821,7 @@ viz_iteration_def: ITERATION_LIST '='
   }
   mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
   mdlpvp->fdlp->type=ALL_FRAME_DATA;
-  mdlpvp->fdlp->viz_iterationll=-1;
+  mdlpvp->fdlp->viz_iteration=-1;
   mdlpvp->fdlp->n_viz_iterations=0;
   mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
   mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -7922,7 +7922,7 @@ viz_time_def: TIME_LIST '='
   }
   mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
   mdlpvp->fdlp->type=ALL_FRAME_DATA;
-  mdlpvp->fdlp->viz_iterationll=-1;
+  mdlpvp->fdlp->viz_iteration=-1;
   mdlpvp->fdlp->n_viz_iterations=0;
   mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
   mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
@@ -7958,7 +7958,7 @@ iteration_frame_data_spec: iteration_frame_data_item '='
   }
   mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
   mdlpvp->fdlp->type=$<tok>1;
-  mdlpvp->fdlp->viz_iterationll=-1;
+  mdlpvp->fdlp->viz_iteration=-1;
   mdlpvp->fdlp->n_viz_iterations=0;
   mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
   mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
