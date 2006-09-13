@@ -8629,8 +8629,19 @@ file_arrow: '>'
 
 outfile_syntax: file_name
 {
+  char *name = $<str>1;
+  struct output_set *os;
+  
+  for(os = mdlpvp->obp->data_set_head->next; os != NULL; os = os->next){
+    if(strcmp(os->outfile_name, name) == 0){
+       mdlerror("COUNT statements in the same reaction data output block should have unique output file names\n");
+       return 1;
+    }
+  } 
+  
   mdlpvp->obp->data_set_head->outfile_name=$<str>1;
   no_printf("Counter output file set to %s\n",mdlpvp->obp->data_set_head->outfile_name);
+
 };
 
 
