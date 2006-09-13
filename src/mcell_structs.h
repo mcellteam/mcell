@@ -1325,34 +1325,36 @@ struct subdivided_box
 /* Holds information about what we want dumped to the screen */
 struct notifications
 {
-  /* Informational stuff */
-  byte progress_report;
-  byte diffusion_constants;
-  byte reaction_probabilities;
-  byte time_varying_reactions;
-  double reaction_prob_notify;
-  byte partition_location;
-  byte box_triangulation;
-  byte custom_iterations;
-  long long custom_iteration_value;
-  byte release_events;
-  byte file_writes;
-  byte final_summary;
+  /* Informational stuff, most possible values NOTIFY_FULL or NOTIFY_NONE */
+  /* see corresponding keywords */
+  byte progress_report;              /* PROGRESS_REPORT */
+  byte diffusion_constants;          /* DIFFUSION_CONSTANT_REPORT */    
+  byte reaction_probabilities;       /* PROBABILITY_REPORT */
+  byte time_varying_reactions;       /* VARYING_PROBABILITY_REPORT */
+  double reaction_prob_notify;       /* PROBABILITY_REPORT_THRESHOLD */
+  byte partition_location;           /* PARTITION_LOCATION_REPORT */
+  byte box_triangulation;            /* BOX_TRIANGULATION_REPORT */
+  byte custom_iterations;            /* ITERATION_REPORT */
+  long long custom_iteration_value;  /* ITERATION_REPORT */
+  byte release_events;               /* RELEASE_EVENT_REPORT */
+  byte file_writes;                  /* FILE_OUTPUT_REPORT */
+  byte final_summary;                /* FINAL_SUMMARY */
   
-  /* Warning stuff */
-  byte neg_diffusion;
-  byte neg_reaction;
-  byte high_reaction_prob;
-  double reaction_prob_warn;
-  byte close_partitions;
-  byte degenerate_polys;
-  byte overwritten_file;
-  byte short_lifetime;
-  long long short_lifetime_value;
-  byte missed_reactions;
-  double missed_reaction_value;
-  byte missed_surf_orient;
-  byte useless_vol_orient;
+  /* Warning stuff, possible values IGNORED, WARNING, ERROR */
+  /* see corresponding keywords */
+  byte neg_diffusion;          /* NEGATIVE_DIFFUSION_CONSTANT */
+  byte neg_reaction;           /* NEGATIVE_REACTION_RATE */
+  byte high_reaction_prob;     /* HIGH_REACTION_PROBABILITY */
+  double reaction_prob_warn;   /* HIGH_PROBABILITY_THRESHOLD */
+  byte close_partitions;       /* CLOSE_PARTITION_SPACING */
+  byte degenerate_polys;       /* DEGENERATE_POLYGONS */
+  byte overwritten_file;       /* OVERWRITTEN_OUTPUT_FILE */
+  byte short_lifetime;         /* LIFETIME_TOO_SHORT */
+  long long short_lifetime_value;  /* LIFETIME_THRESHOLD */
+  byte missed_reactions;         /* MISSED_REACTIONS */
+  double missed_reaction_value;  /* MISSED_REACTION_THRESHOLD */
+  byte missed_surf_orient;      /* MISSING_SURFACE_ORIENTATION */
+  byte useless_vol_orient;      /* USELESS_VOLUME_ORIENTATION */
 };
 
 
