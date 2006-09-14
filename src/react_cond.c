@@ -104,6 +104,11 @@ which_unimolecular:
 int which_unimolecular(struct rxn *rx)
 {
   int m,M,avg;
+
+  if(rx->n_pathways == 1){
+    return 0;
+  }
+
   double p = rng_dbl( world->rng );
   if(world->notify->final_summary == NOTIFY_FULL){
      world->random_number_use++;
@@ -182,7 +187,6 @@ int test_bimolecular(struct rxn *rx, double scaling)
     if(world->notify->final_summary == NOTIFY_FULL){
         world->random_number_use++;
     } 
-    rx->n_occurred++;
   }
   else
   {
@@ -193,7 +197,6 @@ int test_bimolecular(struct rxn *rx, double scaling)
     } 
     
     if (p > rx->cum_probs[rx->n_pathways - 1]) return RX_NO_RX;
-    rx->n_occurred++;
   }
    
   /* Perform binary search for reaction pathway */
@@ -285,7 +288,6 @@ long long test_many_bimolecular(struct rxn **rx,double *scaling, int n)
   my_rx = rx[i];
   if (i>0) p = (p - rxp[i-1]);
   p = p*scaling[i];
-  my_rx->n_occurred++;
   
   /* Now pick the pathway within that reaction */
   m=0;
@@ -330,7 +332,6 @@ int test_intersect(struct rxn *rx,double scaling)
     if(world->notify->final_summary == NOTIFY_FULL){
         world->random_number_use++;
     } 
-    rx->n_occurred++;
   }
   else
   {
@@ -340,7 +341,6 @@ int test_intersect(struct rxn *rx,double scaling)
     } 
   
     if ( p > rx->cum_probs[ rx->n_pathways-1 ] ) return RX_NO_RX;
-    rx->n_occurred++;
   }
 
   /* Perform binary search for reaction pathway */

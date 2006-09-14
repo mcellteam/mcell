@@ -502,7 +502,10 @@ int outcome_unimolecular(struct rxn *rx,int path,
   
   if (result==RX_NO_MEM) return RX_NO_MEM;
   
-  if (result != RX_BLOCKED) rx->info[path].count++;
+  if (result != RX_BLOCKED) {
+     rx->info[path].count++;
+     rx->n_occurred++;
+  }
 
   who_am_i = rx->players[rx->product_idx[path]];
   
@@ -603,10 +606,12 @@ int outcome_bimolecular(struct rxn *rx,int path,
   }
 
   result = outcome_products(w,m,g,rx,path,x,orientA,orientB,t,hitpt,reacA,reacB,reacA);
-                  /*   printf("result = %d\n", result); */
+ 
+   
   if (result==RX_NO_MEM) return RX_NO_MEM;
   else if (result==RX_BLOCKED) return RX_BLOCKED;
   
+  rx->n_occurred++;
   rx->info[path].count++;
   
   /* Figure out if either of the reactants was destroyed */
@@ -717,11 +722,10 @@ int outcome_bimolecular(struct rxn *rx,int path,
     reacA->properties->cum_lifetime += t - reacA->birthday;
     reacA->properties->population--;
     reacA->properties = NULL;
-                 /*  printf("After reacA->flags&COUNT_ME \n"); */
+    
     return RX_DESTROY;
   }
 
-                        /*     printf("Leave\n");   */
   return result;
 }
 
@@ -752,6 +756,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   
   if (rx->n_pathways <= RX_SPECIAL)
   {
+    rx->n_occurred++;
     if (rx->n_pathways==RX_REFLEC) return RX_A_OK;
     else return RX_FLIP; /* Flip = transparent is default special case */
   }
@@ -768,6 +773,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     else if (result == RX_BLOCKED) return RX_A_OK; /* reflect the molecule */
 
     rx->info[path].count++;
+    rx->n_occurred++;
     
     if (rx->players[ index ] == NULL)
     {
