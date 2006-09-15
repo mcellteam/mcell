@@ -3482,7 +3482,6 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
   int redo_expand_collision_list_flag = 0; 
 
   int i,j,k,l,ii,jj;
-  long long ll;
     
   int calculate_displacement = 1;
    
@@ -3786,20 +3785,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                 }
                 else
                 {
-                  ll = test_many_bimolecular(matching_rxns,scaling_coef,num_matching_rxns);
-                  if(ll >= RX_LEAST_VALID_PATHWAY)
-                  {
-                    ii = (int)(ll & RX_GREATEST_VALID_PATHWAY);
-                    jj = (int)(ll >> RX_PATHWAY_BITS);
-                  }
-                  else
-                  {	
-                    ii = (int)ll;
-                    jj = 0;
-                  }                  
+                  jj = test_many_bimolecular(matching_rxns,scaling_coef,num_matching_rxns, &(ii));
+
                 }
-                   
-                if (ii >= RX_LEAST_VALID_PATHWAY)
+                if((jj > RX_NO_RX) && (ii >= RX_LEAST_VALID_PATHWAY))
                 {
                   l=outcome_bimolecular(
                       matching_rxns[jj],ii,(struct abstract_molecule*)m,
@@ -4210,7 +4199,6 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
                 with all three its neighbors */
   int k;     /* return value from "outcome_bimolecular()" */
   int l = 0, kk, jj;
-  long long ii;        /* return value from "test_many_bimolecular()" */
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
   int matches[3];  /* array of numbers of matching rxns for 3 neighbor mols */
@@ -4266,21 +4254,11 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
   }
   else
   {
+     j = test_many_bimolecular(rxn_array,cf,n, &(i));
 
-     ii = test_many_bimolecular(rxn_array,cf,n);
-     if (ii>=RX_LEAST_VALID_PATHWAY)
-     {
-       i = (int)(ii & RX_GREATEST_VALID_PATHWAY);
-       j = (int)(ii >> RX_PATHWAY_BITS);
-     }
-     else
-     {
-       i = (int)ii;
-       j = 0;
-     }
   }
   
-  if (i<RX_LEAST_VALID_PATHWAY) return g;  /* No reaction */
+  if((j == RX_NO_RX) || (i<RX_LEAST_VALID_PATHWAY)) return g;  /* No reaction */
       
     /* run the reaction */
   if(j < matches[0]){

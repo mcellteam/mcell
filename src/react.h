@@ -21,7 +21,7 @@ double timeof_special_unimol(struct rxn *rxuni,struct rxn *rxsurf);
 int which_unimolecular(struct rxn *rx);
 int is_surface_unimol(struct rxn *rxuni,struct rxn *rxsurf);
 int test_bimolecular(struct rxn *rx,double scaling);
-long long test_many_bimolecular(struct rxn **rx,double *scaling, int n);
+int test_many_bimolecular(struct rxn **rx,double *scaling, int n, int *chosen_pathway);
 int test_intersect(struct rxn *rx,double scaling);
 void check_probs(struct rxn *rx,double t);
 

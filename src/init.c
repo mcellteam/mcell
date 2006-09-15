@@ -252,7 +252,7 @@ int init_sim(void)
   
   world->viz_output_flag = 0; 
   world->use_expanded_list=1;
-  world->randomize_gmol_pos=0;
+  world->randomize_gmol_pos=1;
   world->vacancy_search_dist2=0;
   world->surface_reversibility=0;
   world->volume_reversibility=0;

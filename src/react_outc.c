@@ -67,18 +67,24 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   u_int bits;
   int j,k;
   double f;
-  int i0 = rx->product_idx[path];
-  int iN = rx->product_idx[path+1];
-  int replace_p1 = 0;
-  int replace_p2 = 0;
-  struct vector2 uv_loc;
+  int i0 = rx->product_idx[path]; /*index of the first product for the pathway*/
+  int iN = rx->product_idx[path+1];/*index of the last product for the pathway*/
+  int replace_p1 = 0; /* flag for the product to replace position of reactant1 */
+  int replace_p2 = 0; /* flag for the product to replace position of reactant2 */
+  struct vector2 uv_loc;  /* where reaction happened */
   struct vector3 xyz_loc;
-  
-  struct abstract_molecule *plist[iN-i0];
+ 
+   
+  struct abstract_molecule *plist[iN-i0]; /* array of products */
+  /* array that decodes the type of each product */
   char ptype[iN-i0];
+  /* array of orientations for each product */
   short porient[iN-i0];
+  /* array of surface_grids for products (if they are grid_molecules) */
   struct surface_grid *glist[iN-i0];
+  /* array of grid_indices for products (if they are grid_molecules) */
   int xlist[iN-i0];
+  /* array of flags for products */
   byte flist[iN-i0];
   struct grid_molecule fake;
   int fake_idx = -1;
@@ -88,7 +94,10 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
 #define FLAG_USE_REACA_UV 2
 #define FLAG_USE_REACB_UV 3
 #define FLAG_USE_RANDOM 4
-  
+ 
+
+  /* make sure that reacA correponds to rx->players[0], and
+     reacB - to rx->players[1] */ 
   if (reacA->properties == rx->players[1] && reacA->properties != rx->players[0])
   {
     plist[0] = reacA;
@@ -101,9 +110,11 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   }
   
   plist[0] = reacA;
+  
   if ( (reacA->properties->flags&ON_GRID)!=0 ) ptype[0] = 'g';
   else if ( (reacA->properties->flags&NOT_FREE)==0 ) ptype[0] = 'm';
   else ptype[0] = '!';
+  
   if (rx->n_reactants > 1)
   {
     if (reacB == NULL)
@@ -124,8 +135,10 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   /* Make sure there's space for the reaction to occur */
   /* FIXME--could speed this up with some pre-computation of reactions to at least see if we need to bother */
   k = -1;
+  
   if (ptype[0]=='g' && rx->players[i0]==NULL) replace_p1=1;
   if (rx->n_reactants>1 && ptype[1]=='g' && rx->players[i0+1]==NULL) replace_p2=1;
+  
   if (reac_g!=NULL || (reac_m!=NULL && w!=NULL))  /* Surface involved */
   {
     if (reac_g!=NULL) memcpy(&uv_loc , &(reac_g->s_pos) , sizeof(struct vector2));
@@ -265,7 +278,11 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
 	  }
 	}
 	else grid2uv(sg,j,&(g->s_pos));
-
+        
+        /* we increment number of tiles occupied by grid molecules
+           only when the reaction is between 3D molecule and a wall
+           or in the case when the product is not replacing 
+           the reactant at its position */
 	if (reac_g==NULL || sg->mol[j]!=reac_g) sg->n_occupied++;
 	sg->mol[j] = g;
 	
@@ -577,7 +594,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
   int i;
   int reacB_was_free=0;
   int killA,killB;
-                          /*   printf("Enter\n");  */
+  
   if ((reacA->properties->flags & NOT_FREE) == 0)
   {
     m = (struct volume_molecule*) reacA;
@@ -628,7 +645,6 @@ int outcome_bimolecular(struct rxn *rx,int path,
   
   if (killB)
   {
-          /*    printf("killB = 1\n"); */
     if ((reacB->properties->flags & ON_GRID) != 0)
     {
       g = (struct grid_molecule*)reacB;
@@ -667,7 +683,6 @@ int outcome_bimolecular(struct rxn *rx,int path,
 
   if (killA)
   {
-            /*  printf("killA = 1\n");  */
     if ((reacA->properties->flags & ON_GRID) != 0)
     {
       g = (struct grid_molecule*)reacA;

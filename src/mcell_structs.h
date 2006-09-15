@@ -146,8 +146,6 @@
 #define RX_DESTROY  0
 #define RX_A_OK     1
 #define RX_NO_MEM   3
-#define RX_PATHWAY_BITS 32
-#define RX_GREATEST_VALID_PATHWAY ((1LL << RX_PATHWAY_BITS)-1) 
 #define MAX_MATCHING_RXNS 64
 
 /* BSP Flags */

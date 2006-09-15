@@ -223,11 +223,11 @@ test_many_bimolecular
       scaling coefficients depending on how many timesteps we've moved
         at once (1.0 means one timestep) and/or missing interaction areas
       the number of elements in the array
+      placeholder for the chosen pathway in the reaction (works as return
+          value)
   Out: RX_NO_RX if no reaction occurs
-       long long containing which reaction occurs if one does occur
-          first RX_PATHWAY_BITS indicate the pathway
-	  remaining bits indicate which reaction to follow
-  Note: The long long return value is used to work limitation in C 
+       index inthe reaction array corresponding to which reaction occurs 
+          if one does occur
   Note: If this reaction does not return RX_NO_RX, then we update
         counters appropriately assuming that the reaction does take place.
   Note: this uses only one call to get a random double, so you can't
@@ -235,11 +235,11 @@ test_many_bimolecular
 	time (for 32 bit random number).
 *************************************************************************/
 
-long long test_many_bimolecular(struct rxn **rx,double *scaling, int n)
+int test_many_bimolecular(struct rxn **rx,double *scaling, int n, int *chosen_pathway)
 {
   double rxp[n]; /* array of cumulative rxn probabilities */
   struct rxn *my_rx;
-  int i;
+  int i;         /* index in the array of reactions - return value */
   int m,M,avg;
   double p,f;
   
@@ -299,8 +299,11 @@ long long test_many_bimolecular(struct rxn **rx,double *scaling, int n)
     else M=avg;
   }
   if (p>my_rx->cum_probs[m]) m=M;
+
+  *chosen_pathway = m;
+
+  return i;
   
-  return (long long)m + (((long long)i) << RX_PATHWAY_BITS);
 }
 
 
