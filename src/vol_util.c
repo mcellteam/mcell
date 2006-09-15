@@ -1278,7 +1278,7 @@ int release_molecules(struct release_event_queue *req)
         }
         else
         {
-          fprintf(world->log_file, "Unreleasing %d %s at iteration %lld\n",
+          fprintf(world->log_file, "Releasing %d %s at iteration %lld\n",
             ap->properties->population-pop_before,req->release_site->mol_type->sym->name,world->it_time);
         }
       }
@@ -1297,7 +1297,7 @@ int release_molecules(struct release_event_queue *req)
         }
         else
         {
-          fprintf(world->log_file, "Unreleasing %d %s at iteration %lld\n",
+          fprintf(world->log_file, "Releasing %d %s at iteration %lld\n",
             ap->properties->population-pop_before,req->release_site->mol_type->sym->name,world->it_time);
         }
       }
