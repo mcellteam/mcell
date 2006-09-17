@@ -4094,7 +4094,7 @@ struct output_expression* join_oexpr_tree(struct output_expression *left,struct 
     joined->right=(void*)right;
     joined->oper=oper;
     left->up=joined;
-    right->up=joined;
+    if (right!=NULL) right->up=joined;
     
     learn_oexpr_flags(joined);
     if (joined->expr_flags&OEXPR_TYPE_CONST) eval_oexpr_tree(joined,0);
