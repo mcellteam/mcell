@@ -110,6 +110,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   }
   
   plist[0] = reacA;
+
   
   if ( (reacA->properties->flags&ON_GRID)!=0 ) ptype[0] = 'g';
   else if ( (reacA->properties->flags&NOT_FREE)==0 ) ptype[0] = 'm';
@@ -143,7 +144,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   {
     if (reac_g!=NULL) memcpy(&uv_loc , &(reac_g->s_pos) , sizeof(struct vector2));
     else xyz2uv(hitpt,w,&uv_loc);
-    
+ 
     for (j=i0+rx->n_reactants;j<iN;j++)
     {
       if (rx->players[j]->flags&ON_GRID)
@@ -238,7 +239,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
     {
       if (reac_g!=NULL || (reac_m!=NULL && w!=NULL))
       {
-	k = i-(i0+rx->n_reactants);
+        k = i-(i0+rx->n_reactants); 
 	
 	g = mem_get(local->gmol);
 	if (g==NULL) return RX_NO_MEM;
@@ -255,9 +256,9 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
 	sg = g->grid = glist[k];
 	j = g->grid_index = xlist[k];
 	
-	if (world->randomize_gmol_pos)
+        if (world->randomize_gmol_pos)
 	{
-	  switch (flist[k])
+	  switch (flist[k]) 
 	  {
 	    case FLAG_USE_REACA_UV:
 	      memcpy(&(g->s_pos),&(((struct grid_molecule*)reacA)->s_pos),sizeof(struct vector2));
@@ -267,9 +268,12 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
 	      break;
 	    case FLAG_USE_UV_LOC:
 	      memcpy(&(g->s_pos),&(uv_loc),sizeof(struct vector2));
+             /*  sg->n_occupied++;  */
 	      break;
 	    case FLAG_USE_RANDOM:
-	      grid2uv_random(glist[k],xlist[k],&(g->s_pos));
+	      /* grid2uv_random(glist[k],xlist[k],&(g->s_pos)); */
+	      grid2uv_random(glist[i],xlist[i],&(g->s_pos)); 
+              /*  sg->n_occupied++; */
 	      break;
 	    default:
 	      fprintf(world->err_file,"Screwed up surface molecule placement badly!\n  Aborting execution (guessing out of memory?).\n");
@@ -278,12 +282,9 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
 	  }
 	}
 	else grid2uv(sg,j,&(g->s_pos));
-        
-        /* we increment number of tiles occupied by grid molecules
-           only when the reaction is between 3D molecule and a wall
-           or in the case when the product is not replacing 
-           the reactant at its position */
-	if (reac_g==NULL || sg->mol[j]!=reac_g) sg->n_occupied++;
+               
+        sg->n_occupied++;
+                 
 	sg->mol[j] = g;
 	
 	plist[i-i0] = (struct abstract_molecule*)g;
