@@ -2098,9 +2098,13 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   }
   path->pathname=NULL;
   path->reactant1=prodp->prod;
+  path->orientation1 = prodp->orientation;
   path->reactant2=NULL;
   path->reactant3=NULL;
-  if (nprods==2) path->reactant2=prodp->next->prod;
+  if (nprods==2) {
+      path->reactant2 = prodp->next->prod;
+      path->orientation2 = prodp->next->orientation;
+  }
   path->km = mpvp->bkw_km;
   path->kcat = mpvp->bkw_kcat;
   path->km_filename = NULL;
