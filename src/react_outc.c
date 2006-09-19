@@ -268,13 +268,10 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
 	      break;
 	    case FLAG_USE_UV_LOC:
 	      memcpy(&(g->s_pos),&(uv_loc),sizeof(struct vector2));
-             /*  sg->n_occupied++;  */
 	      break;
 	    case FLAG_USE_RANDOM:
-	      /* grid2uv_random(glist[k],xlist[k],&(g->s_pos)); */
-	      grid2uv_random(glist[i],xlist[i],&(g->s_pos)); 
-              /*  sg->n_occupied++; */
-	      break;
+	       grid2uv_random(glist[k],xlist[k],&(g->s_pos)); 
+	       break;
 	    default:
 	      fprintf(world->err_file,"Screwed up surface molecule placement badly!\n  Aborting execution (guessing out of memory?).\n");
 	      return RX_NO_MEM;
