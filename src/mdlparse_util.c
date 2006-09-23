@@ -28,8 +28,11 @@
 #define no_printf printf
 #endif
 
-
-
+/*************************************************************************
+mdl_warning:
+In:  Global parse structure
+Out: Warning message is printed in the log_file
+*************************************************************************/
 void mdl_warning(struct mdlparse_vars *mpvp)
 {
 
@@ -44,9 +47,11 @@ void mdl_warning(struct mdlparse_vars *mpvp)
 }
 
 
-/**
- * Swaps two doubles.  
- */
+/************************************************************************
+ swap_double:
+In:  Takes references to two double values.
+Out: Swaps references to two double values.
+ ***********************************************************************/
 void swap_double(double *x, double *y)
 {
   double temp;
@@ -56,9 +61,11 @@ void swap_double(double *x, double *y)
   *y=temp;
 }
 
-/**
- * Swaps two integers.
-*/
+/************************************************************************
+swap_int:
+In:  Takes references to two integer values.
+Out: Swaps references to two integer values.
+ ***********************************************************************/
 void swap_int(int *x, int *y)
 {
   int temp;
@@ -68,6 +75,11 @@ void swap_int(int *x, int *y)
   *y=temp;
 }
 
+/**************************************************************************
+double_dup:
+In:  double value
+Out: new double value that is copy of the input double value
+**************************************************************************/
 double *double_dup(double value)
 {
   double *dup_value;
@@ -82,7 +94,12 @@ double *double_dup(double value)
   return(dup_value);
 }
 
-
+/*************************************************************************
+concat_obj_name:
+In:  End member of the linked_list of structs "name_list"
+     new name
+Out: New name is concatenated with the "name" field of the struct "name_list"
+*************************************************************************/
 struct name_list *concat_obj_name(struct name_list *name_list_end,char *name)
 {
   struct name_list *np;
@@ -126,9 +143,12 @@ struct name_list *concat_obj_name(struct name_list *name_list_end,char *name)
   }
 }
 
-/** Returns the first name in the object naming hierarchy.
+/************************************************************************
+get_first_name:
+In: Name of the object that may have a complicated structure like "A.B.C"
+Out: Returns the first name in the object naming hierarchy.
     E.g. for the object named "A.B.C" and last_name "C" returns "A". 
-*/
+************************************************************************/
 char *get_first_name(char *obj_name)
 {
   char *first_name,*tmp_name;
@@ -152,10 +172,12 @@ char *get_first_name(char *obj_name)
   return(first_name);
 }
 
-
-/** Returns the prefix name in the object naming hierarchy.
-    E.g. for the object named "A.B.C" and last_name "C" returns "A.B". 
-*/
+/**************************************************************************
+get_prefix_name:
+In:  Name of the object that may have a complicated structure like "A.B.C"
+Out: Returns the prefix name in the object naming hierarchy.
+     E.g. for the object named "A.B.C" and last_name "C" returns "A.B". 
+***************************************************************************/
 char *get_prefix_name(char *obj_name)
 {
   char *prefix_name,*prev_name,*next_name,*tmp_name,*tmp_name2;
@@ -228,7 +250,7 @@ struct object *find_full_name(struct object *objp,char *full_name,
 	return (NULL);
       } 
     }
-    else {
+    else {   
       tmp_name=my_strcat(sub_name,".");
       if(tmp_name == NULL){
           sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
@@ -553,6 +575,88 @@ char *create_rx_name(struct pathway *p)
     
   return my_strclump(str_list);
 #undef CRN_LIST_LEN
+}
+
+/*************************************************************************
+create_prod_signature:
+In: linked list of the products of the pathway
+Out: Linked list of products is sorted in alphabetical order. 
+     In case of identical names the products are sorted in descending order
+     by "orientation" field. 
+     Returns string containg all products names in sorted order (like "A+B")
+     on success, and NULL - otherwise.
+*************************************************************************/
+char *create_prod_signature(struct product **product_head)
+{
+   struct product *current;
+   struct product *next;
+   struct product *iter; /* iterator in the linked list */
+   /* points to the head of the sorted alphabetically list of products */
+   struct product *result = NULL; 
+   char *prod_signature = NULL;
+   char err_message[1024];
+
+   current = *product_head;
+   while(current != NULL) {
+       next = current->next;
+
+       /* put the 'current' node in the sorted order in 'result' */
+       if(result == NULL || (strcmp(result->prod->sym->name, current->prod->sym->name) > 0)){
+        current->next = result;
+        result = current;
+      }else if(strcmp(result->prod->sym->name, current->prod->sym->name) == 0){
+         /* now sort according to the "orientation" field */
+        if(result->orientation <= current->orientation){
+              current->next = result;
+              result = current;
+         }else{
+              /* locate the node before the point of insertion */
+              iter = result;
+              while(iter->next != NULL && (strcmp(iter->next->prod->sym->name, current->prod->sym->name) == 0) && (iter->next->orientation > current->orientation)){
+                 iter = iter->next;
+              }
+              current->next = iter->next;
+              iter->next = current;
+         }
+      }else{
+         /* locate the node before the point of insertion */
+         iter = result;
+         while(iter->next != NULL && (strcmp(iter->next->prod->sym->name, current->prod->sym->name) < 0)){
+            iter = iter->next;
+         }
+         current->next = iter->next;
+         iter->next = current;
+      }
+
+      current = next;
+
+   } /* end while */
+   
+
+    *product_head = result;
+
+    /* create prod_signature string */
+    current = *product_head;
+    prod_signature = current->prod->sym->name;
+ 
+    while(current->next != NULL)
+    { 
+      prod_signature = my_strcat(prod_signature, "+");
+      if(prod_signature == NULL){
+         sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	 mdlerror_nested(err_message);
+         return (NULL);
+      }
+      prod_signature = my_strcat(prod_signature, current->next->prod->sym->name);
+      if(prod_signature == NULL){
+         sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+	 mdlerror_nested(err_message);
+         return (NULL);
+      }
+      current = current->next;
+    }
+     
+    return prod_signature;
 }
 
 char *concat_rx_name(char *name1, char *name2)
@@ -1165,6 +1269,83 @@ struct rxn * split_reaction(struct rxn *rx, struct mdlparse_vars *mpvp)
 
 
 /*************************************************************************
+check_reaction_for_duplicate_pathways:
+In:  Linked list of pathways
+Out: Sorts linked list of pathways in alphabetical order
+     according to the "prod_signature" field.
+     Checks for the pathways duplicates. 
+     Prints error message and exits simulation if duplicates found.
+*************************************************************************/
+void check_reaction_for_duplicate_pathways(struct pathway **head, struct mdlparse_vars *mpvp)
+{
+   struct pathway *result = NULL; /* build the sorted list here */
+   struct pathway *current;
+   struct pathway *next;
+   struct product *iter1, *iter2;
+   int products_identical = 1;
+
+   current = *head;
+
+  /* sort the linked list of pathways */
+  while(current != NULL){
+     next = current->next;
+     
+     /* insert in sorted order into the "result" */
+     if(result == NULL || (strcmp(result->prod_signature, current->prod_signature) >= 0)){
+        current->next = result;
+        result = current;
+     }else{
+        struct pathway *iter = result;
+        while(iter->next != NULL && (strcmp(iter->next->prod_signature, current->prod_signature) < 0)){
+             iter = iter->next;
+        }
+        current->next = iter->next;
+        iter->next = current; 
+     }     
+
+     /* move along the original list */
+     current = next;
+  } 
+
+  *head = result;
+
+   /* Now check for the duplicate pathways */
+   /* Since the list is sorted we can proceed down the list 
+      and compare the adjacent nodes */
+
+   current = *head;
+   if(current == NULL) return;
+
+   while(current->next != NULL){
+      if(strcmp(current->prod_signature, current->next->prod_signature) == 0){
+         /* now check whether orientations of products are identical */ 
+         iter1 = current->product_head;
+         iter2 = current->next->product_head;
+         while(iter1 != NULL && iter2 != NULL)
+         {
+             if(iter1->orientation != iter2->orientation){
+                products_identical = 0;
+                break;
+             }
+             iter1 = iter1->next;
+             iter2 = iter2->next;
+         }
+         if(products_identical)
+         {    
+            if(current->reactant3 == NULL){
+               fprintf(mpvp->vol->err_file, "Exact duplicates of reaction %s + %s  ----> %s are not allowed.  Please verify that products are not identical.\n", current->reactant1->sym->name, current->reactant2->sym->name, current->prod_signature);
+            }else{
+               fprintf(mpvp->vol->err_file, "Exact duplicates of reaction %s + %s + %s  ----> %s are not allowed.  Please verify that products are not identical.\n", current->reactant1->sym->name, current->reactant2->sym->name, current->reactant3->sym->name, current->prod_signature);
+            }
+            exit(EXIT_FAILURE);
+          }
+      }
+      current = current->next;
+   }
+
+}
+
+/*************************************************************************
 prepare_reactions:
 In: Global parse structure with all user-defined reactions collected
     into a linked list off of rx->pathway_head.
@@ -1182,8 +1363,6 @@ Note: The user inputs _geometric equivalence classes_, but here we
       the reactants (NULL = destroyed), and the rest are real products.
 PostNote: The reactants are used for triggering, and those have
       equivalence class geometry even in here.
-PostPostNote: Before prepare_reactions is called, pathway_head is a
-       linked list.  Afterwards, it is an array.
 *************************************************************************/
 int prepare_reactions(struct mdlparse_vars *mpvp)
 {
@@ -1289,6 +1468,14 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
       while (rx != NULL)
       {
+
+        /*  Check whether reaction contains pathways with equivalent
+            product lists.  Also sort pathways in alphabetical order
+            according to the  "prod_signature" field. */
+        if(rx->pathway_head->prod_signature != NULL){
+           check_reaction_for_duplicate_pathways(&rx->pathway_head, mpvp);
+        } 
+
         num_rx++;
 
         /* At this point we have reactions of the same geometry and can collapse them
@@ -2005,10 +2192,20 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   {
     fprintf(mpvp->vol->log_file,"\n");
   }
+
   return 0;
 }
 
-
+/***********************************************************************
+invert_current_reaction_pathway:
+In:  Global parse structure
+Out: Takes the current reaction pathway.
+     Creates a new reversed pathway, where the reactants of new pathway
+     are the products of the current pathway, and the products of new
+     pathway are the reactants of the current pathway. The new pathway
+     is added to the linked list of the pathways for the current reaction.
+     Returns 1 on error and 0 - on success.
+***********************************************************************/
 int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
 {
   struct rxn *rx;
@@ -2101,6 +2298,7 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   path->orientation1 = prodp->orientation;
   path->reactant2=NULL;
   path->reactant3=NULL;
+  path->prod_signature = NULL;
   if (nprods==2) {
       path->reactant2 = prodp->next->prod;
       path->orientation2 = prodp->next->orientation;
@@ -2137,7 +2335,13 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
     path->product_head->next->prod = mpvp->pathp->reactant2;
     path->product_head->next->next = NULL;
   }
-  
+  path->prod_signature = create_prod_signature(&path->product_head);  
+  if(path->prod_signature == NULL){
+      sprintf(err_message, "Error creating 'prod_signature' field for reaction pathway.\n");
+      mdlerror(err_message);
+      return 1;
+  } 
+ 
   path->next = rx->pathway_head;
   rx->pathway_head = path;
   return 0;

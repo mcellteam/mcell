@@ -2601,6 +2601,7 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
   mdlpvp->pathp->km=GIGANTIC;
   mdlpvp->pathp->kcat=0;
   mdlpvp->pathp->km_filename=NULL;
+  mdlpvp->pathp->prod_signature = NULL;
 
   if (mdlpvp->orient_class==0)
   {
@@ -2628,6 +2629,12 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
       mdlpvp->prodp->orientation=1;
       mdlpvp->prodp->next=NULL;
       mdlpvp->pathp->product_head=mdlpvp->prodp;
+      mdlpvp->pathp->prod_signature = create_prod_signature(&mdlpvp->pathp->product_head);
+      if(mdlpvp->pathp->prod_signature == NULL){
+         sprintf(mdlpvp->mdl_err_msg, "Error creating 'prod_signature' field for the reaction pathway.\n");
+         mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+         return(1);
+      }
       break;
     case TRANSP:
       if ((mdlpvp->prodp=(struct product *)mem_get(mdlpvp->prod_mem))==NULL) {
@@ -2641,6 +2648,12 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
       mdlpvp->prodp->orientation=-1;
       mdlpvp->prodp->next=NULL;
       mdlpvp->pathp->product_head=mdlpvp->prodp;
+      mdlpvp->pathp->prod_signature = create_prod_signature(&mdlpvp->pathp->product_head);
+      if(mdlpvp->pathp->prod_signature == NULL){
+         sprintf(mdlpvp->mdl_err_msg, "Error creating 'prod_signature' field for the reaction pathway.\n");
+         mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+         return(1);
+      }
       break;
     case SINK:
       mdlpvp->pathp->product_head=NULL;
@@ -2748,6 +2761,7 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
     mdlpvp->pathp->orientation3=0;
   }
   mdlpvp->pathp->product_head=NULL;
+  mdlpvp->pathp->prod_signature = NULL;
 
   mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
   mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
@@ -5560,12 +5574,10 @@ bidir_arrow: double_arrow
 reaction_arrow: unidir_arrow
 {
   mdlpvp->bidirectional_arrow=0;
-  mdlpvp->catalytic_arrow=0;
 }
 	| bidir_arrow
 {
   mdlpvp->bidirectional_arrow=1;
-  mdlpvp->catalytic_arrow=0;
 };
 
 
@@ -5775,6 +5787,9 @@ rxn:
   mdlpvp->pathp->km=0;
   mdlpvp->pathp->kcat=0;
   mdlpvp->pathp->km_filename=NULL;
+  mdlpvp->pathp->prod_signature = NULL;
+  
+  mdlpvp->catalytic_arrow=0; /* set default value */ 
 }
   reactant_list reaction_arrow
 {
@@ -5806,7 +5821,7 @@ rxn:
   mdlpvp->rxnp->n_reactants=1;
   if (mdlpvp->pathp->reactant2!=NULL) mdlpvp->rxnp->n_reactants++;
   if (mdlpvp->pathp->reactant3!=NULL) mdlpvp->rxnp->n_reactants++;
-  
+
   mdlpvp->prod_all_3d=1;
   num_surfaces = 0;
   num_vol_mols = 0;  
@@ -5933,6 +5948,13 @@ rxn:
   }
   mdlpvp->pathp->km=mdlpvp->fwd_km;
   mdlpvp->pathp->kcat=mdlpvp->fwd_kcat;
+  mdlpvp->pathp->prod_signature = create_prod_signature(&mdlpvp->pathp->product_head);
+  if(mdlpvp->pathp->prod_signature == NULL){
+      sprintf(mdlpvp->mdl_err_msg, "Error creating 'prod_signature' field for the reaction pathway.\n");
+      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      return(1);
+  }
+
   if (mdlpvp->fwd_rate_filename != NULL)
   {
     struct pathway *tpp;
