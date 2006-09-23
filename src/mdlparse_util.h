@@ -24,7 +24,8 @@ int copy_object(struct volume *volp,struct object *curr_objp,
 		struct object *objp,struct object *objp2, char *err_msg);
 char *concat_rx_name(char *name1, char *name2);
 char *create_rx_name(struct pathway *p);
-
+char *create_prod_signature(struct product **p);
+void check_reaction_for_duplicate_pathways(struct pathway **head, struct mdlparse_vars *mpvp);
 
 int equivalent_geometry(struct pathway *p1,struct pathway *p2,int n);
 int prepare_reactions(struct mdlparse_vars *mpvp);
