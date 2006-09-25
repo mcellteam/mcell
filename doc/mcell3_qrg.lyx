@@ -1037,11 +1037,9 @@ FALSE
 , the molecules will be randomly located when placed, and reactions will
  take place at the location of the target (or the site of impact in the
  case of 3D molecule/surface reactions).
- The default is currently 
+ The default is 
 \family typewriter 
-TRUE
-\family default 
-, but this should probably be changed.
+FALSE.
 \end_inset 
 </cell>
 </row>
