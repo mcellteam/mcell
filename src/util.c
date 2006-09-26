@@ -1338,31 +1338,32 @@ int poisson_dist(double lambda,double p)
   double lambda_i;
   
   i = (int)lambda;
-  pctr = exp( -lambda + i*log(lambda) - lgamma(i+1) );
+  pctr = exp( -lambda + i*log(lambda) - lgamma(i+1) ); /* Highest probability bin */
 
   if (p<pctr) return i;
   
   lo=hi=i;
-  plo=phi=pctr;
+  plo=phi=pctr; /* Start at highest-probability bin and work outwards */
   
   p-=pctr;
   lambda_i = 1.0/lambda;
-  while (p>0)
+  while (p>0) /* Keep going until we exhaust probabilities */
   {
-    if (lo>0)
+    if (lo>0) /* We still have a low tail, test it */
     {
-      plo *= lo*lambda_i;
+      plo *= lo*lambda_i; /* Recursive formula for p for this bin */
       lo--;
       if (p<plo) return lo;
       p-=plo;
     }
+    /* Always test the high tail (it's infinite) */
     hi++;
-    phi = phi*lambda/hi;
+    phi = phi*lambda/hi; /* Recursive formula for p for this bin */
     if (p<phi) return hi;
     p-=phi+DBL_EPSILON; /* Avoid infinite loop from poor roundoff */
   }
   
-  return phi;
+  return phi; /* Should never get here */
 }
 
 

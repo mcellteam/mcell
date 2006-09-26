@@ -92,7 +92,7 @@ count_util.o: makedefs count_util.c count_util.h wall_util.h vol_util.h rng.h mc
 
 # core
 
-wall_util.o: makedefs wall_util.c wall_util.h vector.h vol_util.h rng.h mcell_structs.h mem_util.h util.h grid_util.h count_util.h
+wall_util.o: makedefs wall_util.c wall_util.h vector.h vol_util.h rng.h mcell_structs.h mem_util.h util.h grid_util.h count_util.h sym_table.h
 	$(CC) $(CFLAGS) -c wall_util.c
 
 vol_util.o: makedefs vol_util.c vol_util.h count_util.h rng.h react.h rng.h mcell_structs.h mem_util.h util.h wall_util.h grid_util.h

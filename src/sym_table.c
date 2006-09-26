@@ -76,13 +76,13 @@ Use for hash table lookup, or anything where one collision in 2^^32 is
 acceptable.  Do NOT use for cryptographic purposes.
 --------------------------------------------------------------------*/
 
-ub4 jenkins_hash(k)
+ub4 jenkins_hash(k,length)
 register ub1 *k;        /* the key */
+ub4 length;
 
 {
-   register ub4 a,b,c,len,initval,length;
+   register ub4 a,b,c,len,initval;
    /* Set up the internal state */
-   length=(ub4) strlen((char*)k);	/* the length of the key */
    initval=0;		  
    len = length;
    a = b = 0x9e3779b9;  /* the golden ratio; an arbitrary value */
@@ -128,7 +128,7 @@ unsigned long hash(char *sym)
 {
   ub4 hashval;
 
-  hashval=jenkins_hash(sym);
+  hashval=jenkins_hash((ub1*)sym,(ub4)strlen(sym));
 
   return(hashval);
 } 

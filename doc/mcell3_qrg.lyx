@@ -2952,6 +2952,11 @@ products
  the second is the rate, while the first is the time at which that rate
  should start being used.
  This allows variable reaction rates.
+ If you want no products, use the 
+\family typewriter 
+NULL
+\family default 
+ keyword as a placeholder.
 \end_inset 
 </cell>
 </row>
@@ -3018,7 +3023,7 @@ This notation is perhaps best explained through examples.
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="6" columns="2">
+<lyxtabular version="3" rows="7" columns="2">
 <features islongtable="true" headBottomDL="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -3101,6 +3106,34 @@ A
 B
 \family default 
  at a rate of 
+\begin_inset Formula $100\,\mathrm{{s}^{-1}}$
+\end_inset 
+
+.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A -> NULL [100]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Molecule 
+\family typewriter 
+A
+\family default 
+ is destroyed at a rate of 
 \begin_inset Formula $100\,\mathrm{{s}^{-1}}$
 \end_inset 
 
@@ -3730,9 +3763,13 @@ B
 
 \family typewriter 
 A
-\begin_inset Formula ${,}{,}$
+\family default 
+
+\begin_inset Formula $\texttt{{,}{,}}$
 \end_inset 
 
+
+\family typewriter 
  + B, -> C' [1e5]
 \end_inset 
 </cell>
@@ -3759,9 +3796,13 @@ A
 
 \family typewriter 
 A
-\begin_inset Formula ${,}{,}$
+\family default 
+
+\begin_inset Formula $\texttt{{,}{,}}$
 \end_inset 
 
+
+\family typewriter 
  + B' -> C, [1e5]
 \end_inset 
 </cell>
@@ -3791,9 +3832,13 @@ C
 
 \family typewriter 
 A, + B' -> C
-\begin_inset Formula ${,}{,}$
+\family default 
+
+\begin_inset Formula $\texttt{{,}{,}}$
 \end_inset 
 
+
+\family typewriter 
  [1e5]
 \end_inset 
 </cell>

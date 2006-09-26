@@ -15,6 +15,7 @@
 #include "rng.h"
 #include "vector.h"
 #include "util.h"
+#include "sym_table.h"
 #include "mem_util.h"
 #include "vol_util.h"
 #include "mcell_structs.h"
@@ -122,6 +123,18 @@ edge_hash:
         will be the same.
 ***************************************************************************/
 
+int edge_hash (struct poly_edge *pe,int nkeys)
+{
+  /* Get hash of X,Y,Z set of doubles for 1st and 2nd points */
+  /* (Assume they're laid out consecutively in memory) */
+  unsigned int hashL = jenkins_hash( (ub1*) &(pe->v1x) , 3*sizeof(double) );
+  unsigned int hashR = jenkins_hash( (ub1*) &(pe->v2x) , 3*sizeof(double) );
+  
+  if (hashL==hashR) return hashL%nkeys;  /* Don't xor with self or we'll always get 0 */
+  else return (hashL^hashR)%nkeys;  /* ^ is symmetric so doesn't matter which is L and which is R */
+}
+
+#if 0
 int edge_hash(struct poly_edge *pe,int nkeys)
 {
   unsigned short *a;
@@ -143,7 +156,7 @@ int edge_hash(struct poly_edge *pe,int nkeys)
   }
   return ( (hashL ^ hashR) % nkeys );
 }
-
+#endif
 
 /***************************************************************************
 ehtable_init:

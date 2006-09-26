@@ -702,14 +702,17 @@ int outcome_bimolecular(struct rxn *rx,int path,
       }
     }
 
-    if (reacA->flags&COUNT_ME)
+    if ((reacA->properties->flags&ON_GRID)!=0)  /* Grid molecule is OK where it is, doesn't obey COUNT_ME */
+    {
+      if (reacA->properties->flags&COUNT_SOME)  /* If we're ever counted, try to count us now */
+      {
+        i=count_region_from_scratch(reacA,NULL,-1,NULL,NULL,t);	  
+      }
+    }
+    else if (reacA->flags&COUNT_ME)
     {
       /* Subtlety: we made it up to hitpt, but our position is wherever we were before that! */
-      if ((reacA->properties->flags&ON_GRID)!=0)  /* Grid molecule is OK where it is */
-      {
-	i=count_region_from_scratch(reacA,NULL,-1,NULL,NULL,t);	  
-      }
-      else if (hitpt==NULL || reacB_was_free || (reacB->properties!=NULL && (reacB->properties->flags&NOT_FREE)!=0))
+      if (hitpt==NULL || reacB_was_free || (reacB->properties!=NULL && (reacB->properties->flags&NOT_FREE)!=0))
       {
 	/* Vol-vol rx should be counted at hitpt */
 	i=count_region_from_scratch(reacA,NULL,-1,hitpt,NULL,t);
