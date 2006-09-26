@@ -2629,11 +2629,14 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
       mdlpvp->prodp->orientation=1;
       mdlpvp->prodp->next=NULL;
       mdlpvp->pathp->product_head=mdlpvp->prodp;
-      mdlpvp->pathp->prod_signature = create_prod_signature(&mdlpvp->pathp->product_head);
-      if(mdlpvp->pathp->prod_signature == NULL){
-         sprintf(mdlpvp->mdl_err_msg, "Error creating 'prod_signature' field for the reaction pathway.\n");
-         mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-         return(1);
+      if(mdlpvp->pathp->product_head != NULL)
+      {
+         mdlpvp->pathp->prod_signature = create_prod_signature(&mdlpvp->pathp->product_head);
+         if(mdlpvp->pathp->prod_signature == NULL){
+            sprintf(mdlpvp->mdl_err_msg, "Error creating 'prod_signature' field for the reaction pathway.\n");
+            mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+            return(1);
+         }
       }
       break;
     case TRANSP:
@@ -2648,11 +2651,13 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
       mdlpvp->prodp->orientation=-1;
       mdlpvp->prodp->next=NULL;
       mdlpvp->pathp->product_head=mdlpvp->prodp;
-      mdlpvp->pathp->prod_signature = create_prod_signature(&mdlpvp->pathp->product_head);
-      if(mdlpvp->pathp->prod_signature == NULL){
-         sprintf(mdlpvp->mdl_err_msg, "Error creating 'prod_signature' field for the reaction pathway.\n");
-         mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-         return(1);
+      if(mdlpvp->pathp->product_head != NULL){
+         mdlpvp->pathp->prod_signature = create_prod_signature(&mdlpvp->pathp->product_head);
+         if(mdlpvp->pathp->prod_signature == NULL){
+            sprintf(mdlpvp->mdl_err_msg, "Error creating 'prod_signature' field for the reaction pathway.\n");
+            mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+            return(1);
+         }
       }
       break;
     case SINK:
@@ -5948,11 +5953,13 @@ rxn:
   }
   mdlpvp->pathp->km=mdlpvp->fwd_km;
   mdlpvp->pathp->kcat=mdlpvp->fwd_kcat;
-  mdlpvp->pathp->prod_signature = create_prod_signature(&mdlpvp->pathp->product_head);
-  if(mdlpvp->pathp->prod_signature == NULL){
-      sprintf(mdlpvp->mdl_err_msg, "Error creating 'prod_signature' field for the reaction pathway.\n");
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-      return(1);
+  if(mdlpvp->pathp->product_head != NULL){
+     mdlpvp->pathp->prod_signature = create_prod_signature(&mdlpvp->pathp->product_head);
+     if(mdlpvp->pathp->prod_signature == NULL){
+         sprintf(mdlpvp->mdl_err_msg, "Error creating 'prod_signature' field for the reaction pathway.\n");
+         mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+         return(1);
+     }
   }
 
   if (mdlpvp->fwd_rate_filename != NULL)
