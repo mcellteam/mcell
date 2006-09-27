@@ -1332,7 +1332,9 @@ void check_reaction_for_duplicate_pathways(struct pathway **head, struct mdlpars
          }
          if(products_identical)
          {    
-            if(current->reactant3 == NULL){
+            if(current->reactant2 == NULL){
+               fprintf(mpvp->vol->err_file, "Exact duplicates of reaction %s  ----> %s are not allowed.  Please verify that products are not identical.\n", current->reactant1->sym->name, current->prod_signature);
+           }else if(current->reactant3 == NULL){
                fprintf(mpvp->vol->err_file, "Exact duplicates of reaction %s + %s  ----> %s are not allowed.  Please verify that products are not identical.\n", current->reactant1->sym->name, current->reactant2->sym->name, current->prod_signature);
             }else{
                fprintf(mpvp->vol->err_file, "Exact duplicates of reaction %s + %s + %s  ----> %s are not allowed.  Please verify that products are not identical.\n", current->reactant1->sym->name, current->reactant2->sym->name, current->reactant3->sym->name, current->prod_signature);
