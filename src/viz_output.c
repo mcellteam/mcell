@@ -1830,7 +1830,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      	        while(vizp != NULL){
 		   vcp = vizp->viz_child_head;
         	   while(vcp != NULL){
-         	       obj_names[ii] = my_strdup(vcp->obj->sym->name);
+         	       obj_names[ii] = strdup(vcp->obj->sym->name);
                        if(obj_names[ii] == NULL){
                             fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		    return (1);
@@ -1853,7 +1853,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
                             rp = rlp->reg;
                             if(strcmp(rp->region_last_name, "ALL") == 0) continue;
                             
-                            region_names[ii][jj] = my_strdup(rp->region_last_name);
+                            region_names[ii][jj] = strdup(rp->region_last_name);
                             if(region_names[ii][jj] == NULL)
                             { 
                                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
@@ -1937,7 +1937,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      	           if((specp->flags & IS_SURFACE) != 0) continue;
      	           if(strcmp(specp->sym->name, "GENERIC_MOLECULE") == 0) continue;
                    if(((specp->flags & ON_GRID) == ON_GRID) && (specp->viz_state > 0)){ 
-                      eff_names[index] = my_strdup(specp->sym->name);
+                      eff_names[index] = strdup(specp->sym->name);
                       if(eff_names[index] == NULL){
                          fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
                          return (1);
@@ -2008,7 +2008,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
      	   	   if((specp->flags & IS_SURFACE) != 0) continue;
      	   	   if(strcmp(specp->sym->name, "GENERIC_MOLECULE") == 0) continue;
            	   if(((specp->flags & NOT_FREE) == 0) && (specp->viz_state > 0)){ 
-                       mol_names[index] = my_strdup(specp->sym->name);
+                       mol_names[index] = strdup(specp->sym->name);
                        if(mol_names[index] == NULL){
                          fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
                          return (1);
@@ -4831,7 +4831,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
      	        while(vizp != NULL){
 		   vcp = vizp->viz_child_head;
         	   while(vcp != NULL){
-         	       obj_names[ii] = my_strdup(vcp->obj->sym->name);
+         	       obj_names[ii] = strdup(vcp->obj->sym->name);
                        if(obj_names[ii] == NULL){
                             fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
          		    return (1);
@@ -4854,7 +4854,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
                             rp = rlp->reg;
                             if(strcmp(rp->region_last_name, "ALL") == 0) continue;
                             
-                            region_names[ii][jj] = my_strdup(rp->region_last_name);
+                            region_names[ii][jj] = strdup(rp->region_last_name);
                             if(region_names[ii][jj] == NULL)
                             { 
                                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
@@ -4938,7 +4938,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
      	           if((specp->flags & IS_SURFACE) != 0) continue;
      	           if(strcmp(specp->sym->name, "GENERIC_MOLECULE") == 0) continue;
                    if(((specp->flags & ON_GRID) == ON_GRID) && (specp->viz_state > 0)){ 
-                      eff_names[index] = my_strdup(specp->sym->name);
+                      eff_names[index] = strdup(specp->sym->name);
                       if(eff_names[index] == NULL){
                          fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
                          return (1);
@@ -5009,7 +5009,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
      	   	   if((specp->flags & IS_SURFACE) != 0) continue;
      	   	   if(strcmp(specp->sym->name, "GENERIC_MOLECULE") == 0) continue;
            	   if(((specp->flags & NOT_FREE) == 0) && (specp->viz_state > 0)){ 
-                       mol_names[index] = my_strdup(specp->sym->name);
+                       mol_names[index] = strdup(specp->sym->name);
                        if(mol_names[index] == NULL){
                          fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
                          return (1);

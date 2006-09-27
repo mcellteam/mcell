@@ -383,11 +383,11 @@ I ([0-9]+)
 [A-Za-z][A-Za-z0-9\_\.]* {
 			   if (mpvp->cval==NULL) {
 			     mpvp->cval_2=NULL;
-			     mpvp->cval=my_strdup(mdltext);
+			     mpvp->cval=strdup(mdltext);
 			   }
 			   else {
 			     mpvp->cval_2=mpvp->cval;
-			     mpvp->cval=my_strdup(mdltext);
+			     mpvp->cval=strdup(mdltext);
 			   }
                            if(mpvp->cval == NULL){
                                 fprintf(stderr,"File '%s', Line %ld: Out of memory while parsing variable name: %s\n", __FILE__, (long)__LINE__, mdltext);
@@ -399,11 +399,11 @@ I ([0-9]+)
 \"[A-Za-z\[\]\-\*\?][A-Za-z0-9\_\.\[\]\-\*\?]*\" {
 			   if (mpvp->cval==NULL) {
 			     mpvp->cval_2=NULL;
-			     mpvp->cval=my_strdup(mdltext);
+			     mpvp->cval=strdup(mdltext);
 			   }
 			   else {
 			     mpvp->cval_2=mpvp->cval;
-			     mpvp->cval=my_strdup(mdltext);
+			     mpvp->cval=strdup(mdltext);
 			   }
                            if(mpvp->cval == NULL){
                                 fprintf(stderr,"File '%s', Line %ld: Out of memory while parsing wildcard variable name: %s\n", __FILE__, (long)__LINE__, mdltext);
@@ -413,7 +413,7 @@ I ([0-9]+)
 			   return(WILDCARD_VAR);
 			 }
 \"(([^\"]*)|((\\\")*))*\"  {
-                             mpvp->strval=my_strdup(mdltext); 
+                             mpvp->strval=strdup(mdltext); 
 			     if(mpvp->strval == NULL){
                                 fprintf(stderr,"File '%s', Line %ld: Out of memory while parsing string: %s\n", __FILE__, (long)__LINE__, mdltext);
                                 exit(1);

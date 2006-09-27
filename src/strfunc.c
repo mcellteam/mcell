@@ -7,25 +7,6 @@
 
 
 /*************************************************************************
-my_strdup:
-  In: a string (\0 terminated array of characters)
-  Out: a copy of the string, newly malloced, or NULL if out of memory       
-  Note: the calling function is responsible for freeing the memory.
-        This works just like strdup.  Why not use strdup?
-*************************************************************************/
-char *my_strdup(char *s)
-{ 
-  char *temp = NULL;
-  
-  if ((temp=(char *)malloc(strlen(s)+1))!=NULL) {
-    strcpy(temp,s);
-  }
-
-  return(temp);
-} 
-  
-
-/*************************************************************************
 my_strcat:
   In: two strings
   Out: the two strings concatenated, in a newly malloced block of memory,

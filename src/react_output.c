@@ -831,12 +831,12 @@ char* oexpr_title(struct output_expression *root)
     if ((root->expr_flags&OEXPR_TYPE_MASK)==OEXPR_LEFT_INT)
     {
       sprintf(lbuf,"%d",(int)root->value);
-      return my_strdup(lbuf);
+      return strdup(lbuf);
     }
     else if ((root->expr_flags&OEXPR_TYPE_MASK)==OEXPR_TYPE_DBL)
     {
       sprintf(lbuf,"%.8g",root->value);
-      return my_strdup(lbuf);
+      return strdup(lbuf);
     }
     else return NULL;
   }
@@ -846,12 +846,12 @@ char* oexpr_title(struct output_expression *root)
     if ((root->expr_flags&OEXPR_LEFT_MASK)==OEXPR_LEFT_INT)
     {
       sprintf(lbuf,"%d",*((int*)root->left));
-      lstr=my_strdup(lbuf);
+      lstr=strdup(lbuf);
     }
     else if ((root->expr_flags&OEXPR_LEFT_MASK)==OEXPR_LEFT_DBL)
     {
       sprintf(lbuf,"%.8g",*((double*)root->left));
-      lstr=my_strdup(lbuf);
+      lstr=strdup(lbuf);
     }
     else if ((root->expr_flags&OEXPR_LEFT_MASK)==OEXPR_LEFT_OEXPR)
     {
@@ -863,12 +863,12 @@ char* oexpr_title(struct output_expression *root)
     if ((root->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_INT)
     {
       sprintf(rbuf,"%d",*((int*)root->right));
-      rstr=my_strdup(rbuf);
+      rstr=strdup(rbuf);
     }
     else if ((root->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_DBL)
     {
       sprintf(rbuf,"%.8g",*((double*)root->right));
-      rstr=my_strdup(rbuf);
+      rstr=strdup(rbuf);
     }
     else if ((root->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_OEXPR)
     {
@@ -884,7 +884,7 @@ char* oexpr_title(struct output_expression *root)
     case '#':
       if ((root->expr_flags&OEXPR_LEFT_MASK)!=OEXPR_LEFT_REQUEST) return NULL;
       orq = (struct output_request*)root->left;
-      return my_strdup(orq->count_target->name);
+      return strdup(orq->count_target->name);
       break;
     case '_':
       if (lstr==NULL) return NULL;

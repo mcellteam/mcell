@@ -79,16 +79,16 @@ void init_credits(void)
   ran4_init(&rng,seed);
   for (i=0;i<100;i++) ran4_uint32(&rng);
   if (ran4_dbl32(&rng)<0.5) {
-    institute[0]=my_strdup("The Salk Institute");
-    institute[1]=my_strdup("& Cornell University");
-    author[0]=my_strdup("Thomas M. Bartol Jr.");
-    author[1]=my_strdup("& Joel R. Stiles");
+    institute[0]=strdup("The Salk Institute");
+    institute[1]=strdup("& Cornell University");
+    author[0]=strdup("Thomas M. Bartol Jr.");
+    author[1]=strdup("& Joel R. Stiles");
   }
   else {
-    institute[0]=my_strdup("Cornell University");
-    institute[1]=my_strdup("& The Salk Institute");
-    author[0]=my_strdup("Joel R. Stiles");
-    author[1]=my_strdup("& Thomas M. Bartol Jr.");
+    institute[0]=strdup("Cornell University");
+    institute[1]=strdup("& The Salk Institute");
+    author[0]=strdup("Joel R. Stiles");
+    author[1]=strdup("& Thomas M. Bartol Jr.");
   }
   if((institute[0] == NULL) || (institute[1] == NULL) ||
      (author[0] == NULL) || (author[1] == NULL))
@@ -1029,7 +1029,7 @@ int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp, cha
 
   if (sub_name!=NULL) { 
     if (strcmp(sub_name,"")==0) {
-      tmp_name=my_strdup("");
+      tmp_name=strdup("");
       if(tmp_name == NULL){
 	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         i = emergency_output();
@@ -1057,7 +1057,7 @@ int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp, cha
     free((void *)tmp_name);
   }
   else {
-    sub_name=my_strdup(objp->last_name);    
+    sub_name=strdup(objp->last_name);    
     if(sub_name == NULL){
 	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         i = emergency_output();
@@ -1203,7 +1203,7 @@ int compute_bb(struct object *objp, double (*im)[4], char *sub_name)
 
   if (sub_name!=NULL) { 
     if (strcmp(sub_name,"")==0) {
-      tmp_name=my_strdup("");
+      tmp_name=strdup("");
       if(tmp_name == NULL){
 		fprintf(world->err_file,"File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         	i = emergency_output();
@@ -1230,7 +1230,7 @@ int compute_bb(struct object *objp, double (*im)[4], char *sub_name)
     free((void *)tmp_name);
   }
   else {
-    sub_name=my_strdup(objp->last_name);    
+    sub_name=strdup(objp->last_name);    
     if(sub_name == NULL){
 		fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         	i = emergency_output();
@@ -1433,7 +1433,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
   n=4;
   total_area=0;
 
-  obj_name=my_strdup(full_name);
+  obj_name=strdup(full_name);
   if(obj_name == NULL)
   {
 		fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
@@ -1624,7 +1624,7 @@ int instance_obj_regions(struct object *objp,char *sub_name)
 
   if (sub_name!=NULL) { 
     if (strcmp(sub_name,"")==0) {
-      tmp_name=my_strdup("");
+      tmp_name=strdup("");
       if (tmp_name == NULL) {
 		fprintf(world->err_file, "File %s, Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         	int i = emergency_output();
@@ -1651,7 +1651,7 @@ int instance_obj_regions(struct object *objp,char *sub_name)
     free((void *)tmp_name);
   }
   else {
-    sub_name=my_strdup(objp->last_name);    
+    sub_name=strdup(objp->last_name);    
     if (sub_name == NULL) {
 		fprintf(world->err_file, "File %s, Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         	int i = emergency_output();

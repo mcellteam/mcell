@@ -105,7 +105,7 @@ mdl_infile_cmd: FILE_NAME
     argerror(argpvp->arg_err_msg,argpvp);
     return(1);
   }
-  volp->mdl_infile_name=my_strdup(argpvp->cval);
+  volp->mdl_infile_name=strdup(argpvp->cval);
   if (volp->mdl_infile_name == NULL) {
     sprintf(argpvp->arg_err_msg,"File '%s', Line %ld: Out of memory while parsing command line arguments: %s",__FILE__, (long)__LINE__, argpvp->cval);
     argerror(argpvp->arg_err_msg,argpvp);
@@ -143,7 +143,7 @@ iterations_cmd: ITERATIONS_OPT int_arg
 
 checkpoint_cmd: CHECKPOINT_OPT FILE_NAME
 {
-  volp->chkpt_infile = my_strdup(argpvp->cval);
+  volp->chkpt_infile = strdup(argpvp->cval);
   if (volp->chkpt_infile == NULL) {
     sprintf(argpvp->arg_err_msg,"File '%s', LINE %ld: Out of memory while parsing command line arguments: %s",__FILE__, (long)__LINE__, argpvp->cval);
     argerror(argpvp->arg_err_msg,argpvp);
@@ -166,7 +166,7 @@ checkpoint_cmd: CHECKPOINT_OPT FILE_NAME
 
 log_file_cmd: LOG_FILE_OPT FILE_NAME
 {
-  volp->log_file_name=my_strdup(argpvp->cval);
+  volp->log_file_name=strdup(argpvp->cval);
   if (volp->log_file_name == NULL) {
     sprintf(argpvp->arg_err_msg,"File '%s', Line %ld: Out of memory while parsing command line arguments: %s", __FILE__, (long)__LINE__, argpvp->cval);
     argerror(argpvp->arg_err_msg,argpvp);
@@ -197,7 +197,7 @@ log_freq_cmd: LOG_FREQ_OPT int_arg
 
 err_file_cmd: ERR_FILE_OPT FILE_NAME
 {
-  volp->err_file_name=my_strdup(argpvp->cval);
+  volp->err_file_name=strdup(argpvp->cval);
   if (volp->err_file_name == NULL) {
     sprintf(argpvp->arg_err_msg,"File '%s', Line %ld: Out of memory while parsing command line arguments: %s", __FILE__, (long)__LINE__, argpvp->cval);
     argerror(argpvp->arg_err_msg,argpvp);
@@ -332,12 +332,12 @@ int argparse_init(int argc, char *argv[], struct volume *vol)
     return(1);
   }
 
-  arg_string=my_strdup("");
+  arg_string=strdup("");
   for (i=1;i<argc;i++) {
     if (i==1) {
       free(arg_string);
       arg_string = NULL;
-      if ((arg_string=my_strdup(argv[i]))==NULL) {
+      if ((arg_string=strdup(argv[i]))==NULL) {
         fprintf(vol->err_file,"File '%s', Line %ld: out of memory storing arg_string\n", __FILE__, (long)__LINE__);
         return(1);
       }

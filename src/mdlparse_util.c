@@ -154,14 +154,14 @@ char *get_first_name(char *obj_name)
   char *first_name,*tmp_name;
   char err_message[1024];
 
-  tmp_name=my_strdup(obj_name);
+  tmp_name=strdup(obj_name);
   if(tmp_name == NULL){
         sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
 	mdlerror_nested(err_message);
 	return (NULL);
   } 
   first_name=strtok(tmp_name,"."); 
-  first_name=my_strdup(tmp_name);
+  first_name=strdup(tmp_name);
   if(first_name == NULL){
         sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
 	mdlerror_nested(err_message);
@@ -183,13 +183,13 @@ char *get_prefix_name(char *obj_name)
   char *prefix_name,*prev_name,*next_name,*tmp_name,*tmp_name2;
   char err_message[1024];
 
-  prefix_name=my_strdup("");
+  prefix_name=strdup("");
   if(prefix_name == NULL){
         sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
 	mdlerror_nested(err_message);
 	return (NULL);
   } 
-  tmp_name=my_strdup(obj_name);
+  tmp_name=strdup(obj_name);
   if(tmp_name == NULL){
         sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
 	mdlerror_nested(err_message);
@@ -202,7 +202,7 @@ char *get_prefix_name(char *obj_name)
     if (tmp_name2!=NULL) {
       if (strcmp(prefix_name,"")==0) {
         free((void *)prefix_name);
-        next_name=my_strdup("");
+        next_name=strdup("");
         if(next_name == NULL){
                 sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
 	        mdlerror_nested(err_message);
@@ -243,7 +243,7 @@ struct object *find_full_name(struct object *objp,char *full_name,
 
   if (sub_name!=NULL) {
     if (strcmp(sub_name,"")==0) {
-      tmp_name=my_strdup("");
+      tmp_name=strdup("");
       if(tmp_name == NULL){
         sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
 	mdlerror_nested(err_message);
@@ -267,7 +267,7 @@ struct object *find_full_name(struct object *objp,char *full_name,
     free((void *)tmp_name);
   }
   else {
-    sub_name=my_strdup(objp->last_name);
+    sub_name=strdup(objp->last_name);
     if(sub_name == NULL){
           sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
 	  mdlerror_nested(err_message);
@@ -414,7 +414,7 @@ int copy_object(struct volume *volp,struct object *curr_objp,
       return(1);
     }
     rlp->reg=rp;
-    rp->region_last_name=my_strdup(rp2->region_last_name);
+    rp->region_last_name=strdup(rp2->region_last_name);
     if(rp->region_last_name == NULL){
         sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
 	mdlerror_nested(err_message);
@@ -492,7 +492,7 @@ int copy_object(struct volume *volp,struct object *curr_objp,
         if ((child_objp=make_new_object(volp,child_obj_name,err_msg))==NULL) {
           return(1);
         }
-        child_objp->last_name=my_strdup(child_objp2->last_name);
+        child_objp->last_name=strdup(child_objp2->last_name);
         if(child_objp->last_name == NULL){
              sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
 	     mdlerror_nested(err_message);
@@ -1565,14 +1565,15 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           recycled1 = 0;
           recycled2 = 0;
           recycled3 = 0;
-          
+                     
           for (prod=path->product_head ; prod != NULL ; prod = prod->next)
           {
-            if (recycled1 == 0 && prod->prod == path->reactant1) recycled1 = 1;
-            else if (recycled2 == 0 && prod->prod == path->reactant2) recycled2 = 1;
-            else if (recycled3 == 0 && prod->prod == path->reactant3) recycled3 = 1;
-            else rx->product_idx[j]++;
-          }
+               if (recycled1 == 0 && prod->prod == path->reactant1) recycled1 = 1;
+               else if (recycled2 == 0 && prod->prod == path->reactant2) recycled2 = 1;
+               else if (recycled3 == 0 && prod->prod == path->reactant3) recycled3 = 1;
+               else rx->product_idx[j]++;
+          } 
+                  
 
 
         } /* end for(j=0,path=rx->pathway_head; ...) */
@@ -1600,7 +1601,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 fprintf(mpvp->vol->err_file, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
                return 1;
         }
-
 
 	/* Load all the time-varying rates from disk (if any), merge them into */
 	/* a single sorted list, and pull off any updates for time zero. */

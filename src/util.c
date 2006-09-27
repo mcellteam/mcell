@@ -424,7 +424,7 @@ void ia_string_store(struct infinite_string_array *array_ptr, int index, char *d
 	int current_index;	/* Index into the current bucket */
 
 	current_ptr = ia_string_locate(array_ptr, index, &current_index);
-        new_entry = my_strdup(data_to_store);
+        new_entry = strdup(data_to_store);
         if(new_entry == NULL){
 		fprintf(stderr, "File '%s', Line %ld: Out of memory while creating infinite array\n", __FILE__, (long)__LINE__);
         }else{

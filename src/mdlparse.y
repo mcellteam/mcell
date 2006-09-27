@@ -705,7 +705,7 @@ include_stmt: INCLUDE_FILE
   mdlpvp->cval_2=NULL;
   mdlpvp->include_filename[mdlpvp->include_stack_ptr++]=volp->curr_file;
   mdlpvp->line_num[mdlpvp->include_stack_ptr] = 1;
-  volp->curr_file=my_strdup(mdlpvp->a_str);
+  volp->curr_file=strdup(mdlpvp->a_str);
   if(volp->curr_file == NULL){
     sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while switching to include file:",mdlpvp->a_str);
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
@@ -955,7 +955,7 @@ assignment_stmt: assign_var '=' num_expr_only
 {
   mdlpvp->gp=$<sym>1;
   mdlpvp->gp->sym_type=STR;
-  mdlpvp->gp->value=(void *)my_strdup($<str>3);
+  mdlpvp->gp->value=(void *)strdup($<str>3);
   if(mdlpvp->gp->value == NULL){
     sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while assigning string:",($<str>3));
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
@@ -983,7 +983,7 @@ assignment_stmt: assign_var '=' num_expr_only
     break;
   case STR:
     mdlpvp->gp->sym_type=STR;
-    mdlpvp->gp->value=(void *)my_strdup((char *)mdlpvp->tp->value);
+    mdlpvp->gp->value=(void *)strdup((char *)mdlpvp->tp->value);
     if(mdlpvp->gp->value == NULL){
     	sprintf(mdlpvp->mdl_err_msg,"%s %s",
           "Out of memory while assigning string:",(char *)mdlpvp->tp->value);
@@ -6277,7 +6277,7 @@ atomic_rate: num_expr_only
       mdlpvp->fwd_km = *(double *)gp->value;
       break;
     case STR:
-      mdlpvp->fwd_rate_filename = my_strdup((char*)gp->value);
+      mdlpvp->fwd_rate_filename = strdup((char*)gp->value);
       if(mdlpvp->fwd_rate_filename == NULL)
       {
 	mdlerror("Out of memory while storing reaction rate filename");
@@ -6304,7 +6304,7 @@ atomic_rate: num_expr_only
       mdlpvp->fwd_km = *(double *)gp->value;
       break;
     case STR:
-      mdlpvp->fwd_rate_filename = my_strdup((char*)gp->value);
+      mdlpvp->fwd_rate_filename = strdup((char*)gp->value);
       if(mdlpvp->fwd_rate_filename == NULL)
       {
 	mdlerror("Out of memory while storing reaction rate filename");
@@ -6336,7 +6336,7 @@ atomic_rate: num_expr_only
       mdlpvp->bkw_km = *(double *)gp->value;
       break;
     case STR:
-      mdlpvp->bkw_rate_filename = my_strdup((char*)gp->value);
+      mdlpvp->bkw_rate_filename = strdup((char*)gp->value);
       if(mdlpvp->bkw_rate_filename == NULL)
       {
 	mdlerror("Out of memory while storing reaction rate filename");
@@ -7003,7 +7003,7 @@ mesh_one_name_spec: existing_one_or_multiple_objects
      }
   
      mdlpvp->objp->viz_obj = mdlpvp->vizp;
-     mdlpvp->vizp->name = my_strdup(volp->file_prefix_name);
+     mdlpvp->vizp->name = strdup(volp->file_prefix_name);
      if(mdlpvp->vizp->name == NULL){
          sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",
           (char *)mdlpvp->sym_name);
@@ -7011,7 +7011,7 @@ mesh_one_name_spec: existing_one_or_multiple_objects
          return(1);
      }
   
-     mdlpvp->vizp->full_name = my_strdup(mdlpvp->full_name);
+     mdlpvp->vizp->full_name = strdup(mdlpvp->full_name);
      if(mdlpvp->vizp->full_name == NULL){
         sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",
           (char *)mdlpvp->sym_name);
@@ -7100,7 +7100,7 @@ mesh_one_name_spec: existing_one_or_multiple_objects
          } 
 
          mdlpvp->objp->viz_obj = mdlpvp->vizp;
-         mdlpvp->vizp->name = my_strdup(volp->file_prefix_name);
+         mdlpvp->vizp->name = strdup(volp->file_prefix_name);
          if(mdlpvp->vizp->name == NULL){
              sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",
                 (char *)mdlpvp->sym_name);
@@ -7108,7 +7108,7 @@ mesh_one_name_spec: existing_one_or_multiple_objects
                 return(1);
          }
   
-         mdlpvp->vizp->full_name = my_strdup(mdlpvp->sym_name); 
+         mdlpvp->vizp->full_name = strdup(mdlpvp->sym_name); 
          if(mdlpvp->vizp->full_name == NULL){
              sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",
                   (char *)mdlpvp->sym_name);
@@ -7195,7 +7195,7 @@ mesh_one_name_spec_state_value: existing_object '=' num_expr
   }
   
   mdlpvp->objp->viz_obj = mdlpvp->vizp;
-  mdlpvp->vizp->name = my_strdup(volp->file_prefix_name);
+  mdlpvp->vizp->name = strdup(volp->file_prefix_name);
   if(mdlpvp->vizp->name == NULL){
     sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",
           (char *)mdlpvp->sym_name);
@@ -7203,7 +7203,7 @@ mesh_one_name_spec_state_value: existing_object '=' num_expr
     return(1);
   }
   
-  mdlpvp->vizp->full_name = my_strdup(mdlpvp->full_name);
+  mdlpvp->vizp->full_name = strdup(mdlpvp->full_name);
   if(mdlpvp->vizp->full_name == NULL){
     sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",
           (char *)mdlpvp->sym_name);
@@ -7309,7 +7309,7 @@ list_all_meshes_specs: ALL_MESHES
      }
   
      mdlpvp->objp->viz_obj = mdlpvp->vizp;
-     mdlpvp->vizp->name = my_strdup(volp->file_prefix_name);
+     mdlpvp->vizp->name = strdup(volp->file_prefix_name);
      if(mdlpvp->vizp->name == NULL){
         sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",
           (char *)mdlpvp->sym_name);
@@ -7317,7 +7317,7 @@ list_all_meshes_specs: ALL_MESHES
        return(1);
      }
   
-     mdlpvp->vizp->full_name = my_strdup(o->sym->name);
+     mdlpvp->vizp->full_name = strdup(o->sym->name);
      if(mdlpvp->vizp->full_name == NULL){
         sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",
           (char *)mdlpvp->sym_name);
@@ -8053,7 +8053,7 @@ viz_object_prefix: existing_object '=' str_expr
   }
   mdlpvp->objp->viz_obj = mdlpvp->vizp;
   mdlpvp->vizp->name = $<str>3;
-  mdlpvp->vizp->full_name = my_strdup(mdlpvp->full_name);
+  mdlpvp->vizp->full_name = strdup(mdlpvp->full_name);
   if(mdlpvp->vizp->full_name == NULL){
     sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",
           (char *)mdlpvp->full_name);
@@ -9125,7 +9125,7 @@ sprintf_stmt: SPRINTF arg_list_init '(' assign_var ',' format_string ',' list_ar
     return(1);
   }
   mdlpvp->gp->sym_type=STR;
-  mdlpvp->gp->value=(void *)my_strdup(mdlpvp->str_buf2);
+  mdlpvp->gp->value=(void *)strdup(mdlpvp->str_buf2);
   if(mdlpvp->gp->value == NULL){
     sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing string:",
           (char *)mdlpvp->str_buf2);
@@ -9143,7 +9143,7 @@ sprintf_stmt: SPRINTF arg_list_init '(' assign_var ',' format_string ',' list_ar
     return(1);
   }
   mdlpvp->gp->sym_type=STR;
-  mdlpvp->gp->value=(void *)my_strdup(mdlpvp->str_buf);
+  mdlpvp->gp->value=(void *)strdup(mdlpvp->str_buf);
   if(mdlpvp->gp->value == NULL){
     sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing string:",
           mdlpvp->str_buf);

@@ -45,7 +45,7 @@ I ([0-9]+)
 "-checkpoint_infile"	{return(CHECKPOINT_OPT);}
 {R}			{sscanf((const char *)argtext,"%lf",&apvp->rval); return(REAL);}
 {I}			{sscanf((const char *)argtext,"%d",&apvp->ival); return(INTEGER);}
-[[:alnum:][:punct:]]+	 {apvp->cval=my_strdup(argtext); 
+[[:alnum:][:punct:]]+	 {apvp->cval=strdup(argtext); 
 			  if(apvp->cval == NULL){
                             fprintf(stderr,"File '%s', Line %ld: Out of memory while parsing command line arguments.\n", __FILE__, (long)__LINE__);
                             exit(1);
