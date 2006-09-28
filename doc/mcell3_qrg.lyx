@@ -94,8 +94,8 @@ A brief summary of MCell3 optional command-line arguments is given below.
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="8" columns="2">
-<features islongtable="true" headBottomDL="true">
+<lyxtabular version="3" rows="9" columns="2">
+<features islongtable="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
 <row topline="true" bottomline="true" endhead="true">
@@ -246,6 +246,35 @@ filename
 \family default 
 \shape default 
  instead of stdout/stderr
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+-errfile 
+\family sans 
+\shape italic 
+filename
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Send error messages to 
+\family sans 
+\shape italic 
+filename
+\family default 
+\shape default 
+ instead of stderr
 \end_inset 
 </cell>
 </row>
