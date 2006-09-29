@@ -3700,10 +3700,16 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         }
 
         am = (struct abstract_molecule*)smash->target;
-        if ((am->flags & ACT_INERT) != 0)  /* FIXME */
+          /* ACT_INERT  represent molecules in a catalytic
+             dead-time. At present the behavior for them is
+             not specified and the flag ACT_INERT is not set
+             anywhere. */
+              /*
+        if ((am->flags & ACT_INERT) != 0)  
         {
-          /*if (smash->t < am->t + am->t2) continue;*/
-        }  
+          if (smash->t < am->t + am->t2) continue; 
+        } 
+               */ 
 	factor = exact_disk(
           &(smash->loc),&displacement,world->rx_radius_3d,m->subvol,m,
 	  (struct volume_molecule*)am

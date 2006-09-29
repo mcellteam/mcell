@@ -62,6 +62,7 @@
 
 /* NEWBIE molecules get scheduled before anything else happens to them. */
 /* INERT molecules don't react, REACT molecules do */
+/* ACT_INERT represent molecules in a catalytic dead-time */
 /* CHANGE molecules have had their rate constant changed */
 /* DIFFUSE molecules diffuse (duh!) */
 /* CLAMPED molecules diffuse for part of a timestep and don't react with surfaces */
