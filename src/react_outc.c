@@ -530,7 +530,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
     {
       m->subvol->mol_count--;
       if (m->flags & IN_SCHEDULE) m->subvol->local_storage->timer->defunct_count++;
-      if (m->properties->flags&COUNT_SOME)
+      if (m->properties->flags&COUNT_SOME_MASK)
       {
 	i = count_region_from_scratch((struct abstract_molecule*)m,NULL,-1,&(m->pos),NULL,m->t);
 	if (i) return RX_NO_MEM;
@@ -544,7 +544,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
       {
 	g->grid->subvol->local_storage->timer->defunct_count++;
       }
-      if (g->properties->flags&COUNT_SOME)
+      if (g->properties->flags&COUNT_SOME_MASK)
       {
 	i = count_region_from_scratch((struct abstract_molecule*)g,NULL,-1,NULL,NULL,g->t);
 	if (i) return RX_NO_MEM;
@@ -704,7 +704,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
 
     if ((reacA->properties->flags&ON_GRID)!=0)  /* Grid molecule is OK where it is, doesn't obey COUNT_ME */
     {
-      if (reacA->properties->flags&COUNT_SOME)  /* If we're ever counted, try to count us now */
+      if (reacA->properties->flags&COUNT_SOME_MASK)  /* If we're ever counted, try to count us now */
       {
         i=count_region_from_scratch(reacA,NULL,-1,NULL,NULL,t);	  
       }

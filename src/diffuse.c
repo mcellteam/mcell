@@ -3542,7 +3542,7 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
   
 /* Done housekeeping, now let's do something fun! */
 
-  if (sm->flags&COUNT_SOME) m->flags|=COUNT_ME;
+  if (sm->flags&COUNT_SOME_MASK) m->flags|=COUNT_ME;
   else if ((m->flags&COUNT_ME)!=0) m->flags -= COUNT_ME;
   
 pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
@@ -3735,7 +3735,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           for ( ; tentative!=NULL && tentative->t<=smash->t ; tentative=tentative->next )
           {
             if (!(tentative->what&COLLIDE_WALL)) continue;
-            if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME)) continue;
+            if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
             count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                  ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
                                  0 , rate_factor , &(tentative->loc) , tentative->t );
@@ -3799,13 +3799,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                   if (l==RX_NO_MEM) { ERROR_AND_QUIT; }
                   if (l==RX_FLIP)
                   {
-                    if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME)!=0)
+                    if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME_MASK)!=0)
                     {
                       /* Count as far up as we can unambiguously */
                       for ( ; tentative!=NULL && tentative->t<=t_confident ; tentative=tentative->next )
                       {
                         if (!(tentative->what&COLLIDE_WALL)) continue;
-                        if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME)) continue;
+                        if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
                         loc_certain = &(tentative->loc);
                         count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                              ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
@@ -3824,7 +3824,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                       for ( ; tentative!=NULL && tentative->t<=smash->t ; tentative=tentative->next )
                       {
                         if (!(tentative->what&COLLIDE_WALL)) continue;
-                        if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME)) continue;
+                        if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
                         count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                              ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
                                              0 , rate_factor , &(tentative->loc) , tentative->t );
@@ -3856,13 +3856,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	    if (rx->n_pathways == RX_TRANSP)
 	    {
 	      rx->n_occurred++;
-	      if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME)!=0 )
+	      if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME_MASK)!=0 )
 	      {
                 /* Count as far up as we can unambiguously */
                 for ( ; tentative!=NULL && tentative->t<=t_confident ; tentative=tentative->next )
                 {
                   if (!(tentative->what&COLLIDE_WALL)) continue;
-                  if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME)) continue;
+                  if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
                   loc_certain = &(tentative->loc);
                   count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                        ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
@@ -3886,13 +3886,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 		if (j==RX_NO_MEM) { ERROR_AND_QUIT; } 
 		if (j==RX_FLIP)
 		{
-		  if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME)!=0 )
+		  if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME_MASK)!=0 )
 		  {
                     /* Count as far up as we can unambiguously */
                     for ( ; tentative!=NULL && tentative->t<=t_confident ; tentative=tentative->next )
                     {
                       if (!(tentative->what&COLLIDE_WALL)) continue;
-                      if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME)) continue;
+                      if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
                       loc_certain = &(tentative->loc);
                       count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                            ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
@@ -3910,7 +3910,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     for ( ; tentative!=NULL && tentative->t<=smash->t ; tentative=tentative->next )
                     {
                       if (!(tentative->what&COLLIDE_WALL)) continue;
-                      if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME)) continue;
+                      if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
                       count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                            ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
                                            0 , rate_factor , &(tentative->loc) , tentative->t );
@@ -3928,13 +3928,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	
         /* default is to reflect */
         
-	if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME)!=0)
+	if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME_MASK)!=0)
 	{
           /* We reflected, so we hit but didn't cross things we tentatively hit earlier */
           for ( ; tentative!=NULL && tentative->t<=smash->t ; tentative=tentative->next )
           {
             if (!(tentative->what&COLLIDE_WALL)) continue;
-            if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME)) continue;
+            if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
             count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                  ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
                                  0 , rate_factor , &(tentative->loc) , tentative->t );
@@ -3963,13 +3963,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       {
         struct subvolume *nsv;
         
-        if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME)!=0)
+        if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME_MASK)!=0)
         {
           /* We're leaving the SV so we actually crossed everything we thought we might have crossed */
           for ( ; tentative!=NULL && tentative!=smash ; tentative=tentative->next )
           {
             if (!(tentative->what&COLLIDE_WALL)) continue;
-            if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME)) continue;
+            if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
             count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                  ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
                                  1 , rate_factor * ((struct wall*)tentative->target)->grid->binding_factor ,

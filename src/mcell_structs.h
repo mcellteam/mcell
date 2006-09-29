@@ -28,9 +28,9 @@
    /* COUNT_TRIGGER means that someone wants to output a TRIGGER statement when something happens to this molecule */
    /* COUNT_CONTENTS is set if you're counting numbers of molecules in/on regions */
    /* COUNT_HITS is set if you're counting when the molecules hit regions */
-   /* COUNT_RXNS is set if you're counting reactions involving this molecule.  TODO: check--is this really used? */
+   /* COUNT_RXNS is set if you're counting reactions involving this molecule */
    /* COUNT_ENCLOSED set if you count what happens inside closed region (vol molecules, or surface mols treated as if they were vol mols) */
-   /* COUNT_SOME is a bitmask which is nonzero if any counting happens */
+   /* COUNT_SOME_MASK is a bitmask which is nonzero if any counting happens */
 #define ON_GRID          0x01
 #define IS_SURFACE       0x02
 #define NOT_FREE         0x03
@@ -46,7 +46,7 @@
 #define COUNT_HITS       0x2000
 #define COUNT_RXNS       0x4000
 #define COUNT_ENCLOSED   0x8000
-#define COUNT_SOME       0xF800
+#define COUNT_SOME_MASK  0xF800
 
 
 /* Abstract Molecule Flags */
@@ -200,17 +200,15 @@
 /* FRONT and BACK are for surfaces */
 #define COLLIDE_FRONT   1
 #define COLLIDE_BACK    2
-/* MOL_M is a volume molecule, _SP and _SN are for surface molecules.  TODO: are _SP, _SN used and if so what do they mean? */
+/* MOL_M is collision with a volume molecule */
 #define COLLIDE_MOL_M   3
-#define COLLIDE_MOL_SP  4
-#define COLLIDE_MOL_SN  5
 /* SV_?? is for collisions with subvolumes (negative and positive for each coordinate axis */
-#define COLLIDE_SV_NX   6
-#define COLLIDE_SV_PX   7
-#define COLLIDE_SV_NY   8
-#define COLLIDE_SV_PY   9
-#define COLLIDE_SV_NZ   10
-#define COLLIDE_SV_PZ   11
+#define COLLIDE_SV_NX   4 
+#define COLLIDE_SV_PX   5
+#define COLLIDE_SV_NY   6
+#define COLLIDE_SV_PY   7
+#define COLLIDE_SV_NZ   8
+#define COLLIDE_SV_PZ   9
 /* A mask to pick off all of the collision target types */
 #define COLLIDE_MASK    0x0F
 /* Bitmasks for each of the major types of collision */
@@ -330,7 +328,9 @@
 /* NONE means that there is no output */
 /* BRIEF is only defined for some types of notification, and tries to give a compact description of what is going on */
 /* FULL prints out appropriate messages */
-/* TODO: what is CUSTOM for? */
+/* CUSTOM is defined only when "logfreq" command line option is used
+   for running simulation.  In such case ITERATION_REPORT is printed after
+   number of iterations specified in the command line option have finished */
 #define NOTIFY_NONE 0
 #define NOTIFY_BRIEF 1
 #define NOTIFY_FULL 2
@@ -708,8 +708,7 @@ struct product {
 /* Always do basic counts--do more sophisticated stuff if pathname!=NULL */
 struct pathway_info
 {
-  double count;                   /* How many times the pathway has been taken */
-  short count_flags;              /* FIXME: which flags??? */
+  double count;                 /* How many times the pathway has been taken */
   struct rxn_pathname *pathname;  /* The name of the pathway or NULL */
 };
   

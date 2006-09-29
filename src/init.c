@@ -1743,7 +1743,7 @@ int init_wall_regions(struct object *objp, char *full_name)
 	rp->area += w->area;
 	if (rp->surf_class!=NULL) w->surf_class = rp->surf_class;
 
-	if ((rp->flags & COUNT_SOME) != 0)
+	if ((rp->flags & COUNT_SOME_MASK) != 0)
 	{  
 	  wrlp = (struct region_list *)mem_get(w->birthplace->regl);
 	  if (wrlp==NULL)

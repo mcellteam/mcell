@@ -2044,7 +2044,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  for ( j=0,path=rx->pathway_head ; path!=NULL ; j++,path=path->next )
 	  {
 	    rx->info[j].count = 0;
-	    rx->info[j].count_flags = 0;
 	    rx->info[j].pathname = path->pathname;    /* Keep track of named rxns */
             if (path->pathname!=NULL)
             {
@@ -2061,7 +2060,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
              return 1;
           }
 	  rx->info[0].count = 0;
-	  rx->info[0].count_flags = 0;
 	  rx->info[0].pathname = rx->pathway_head->pathname;
           if (rx->pathway_head->pathname!=NULL)
           {

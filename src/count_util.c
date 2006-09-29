@@ -129,7 +129,7 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
   hit_count = NULL;  
   for ( ; rl != NULL ; rl = rl->next)
   {
-    if (rl->reg->flags & COUNT_SOME)
+    if (rl->reg->flags & COUNT_SOME_MASK)
     {
       j = (rl->reg->hashval ^ sp->hashval)&world->count_hashmask;
       if (j==0) j = sp->hashval & world->count_hashmask;
