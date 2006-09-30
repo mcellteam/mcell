@@ -1949,8 +1949,6 @@ grid_density_def: EFFECTOR_GRID_DENSITY '=' num_expr
   volp->space_step/=volp->length_unit;
   
   no_printf("Length unit = %f\n",volp->length_unit);
-  mdlpvp->mc_factor=1.0e11*volp->grid_density*sqrt(MY_PI*volp->time_unit)/N_AV;
-  mdlpvp->transport_mc_factor=6.2415e18*mdlpvp->mc_factor;
   fflush(mdlpvp->vol->err_file);
 };
 
@@ -2068,8 +2066,6 @@ molecule_stmt: new_molecule '{'
   if (mdlpvp->specp->D_ref==0) {
     mdlpvp->specp->D_ref=mdlpvp->specp->D;
   }
-  mdlpvp->mc_factor=1.0e11*volp->grid_density*sqrt(MY_PI*volp->time_unit)/N_AV;
-  mdlpvp->transport_mc_factor=6.2415e18*mdlpvp->mc_factor;
 
   if (mdlpvp->specp->D==0) /* Immobile (boring) */
   {
