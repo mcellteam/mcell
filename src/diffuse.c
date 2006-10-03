@@ -4403,7 +4403,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	    a->t2 = timeof_unimolecular(r);
 	    if (r->prob_t!=NULL) tt = r->prob_t->time;
 	  }
-	  else a->t2 = FOREVER;
+	  else a->t2 = FOREVER;  
 	  
 	  if (a->t + a->t2 > tt)
 	  {
@@ -4494,9 +4494,12 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       {
         if (max_time > release_time - a->t) max_time = release_time - a->t;
         a = (struct abstract_molecule*)diffuse_3D((struct volume_molecule*)a , max_time , a->flags & ACT_INERT);
-        if (a!=NULL) /* We still exist */
+        if (a!=NULL)     /* We still exist */
         {
-          a->t2 -= a->t - t;
+           /* perform only for unimolecular reactions */
+          if (a->t2 > 0){ 
+             a->t2 -= a->t - t;
+          }  
         }
         else continue;
       }
