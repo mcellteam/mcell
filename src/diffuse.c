@@ -4497,9 +4497,10 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         if (a!=NULL)     /* We still exist */
         {
            /* perform only for unimolecular reactions */
-          if (a->t2 > 0){ 
+           if((a->flags & ACT_REACT) != 0){
              a->t2 -= a->t - t;
-          }  
+             if(a->t2 < 0) a->t2 = 0;
+           }
         }
         else continue;
       }
@@ -4514,11 +4515,19 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	  if ( (a->properties->flags&CAN_GRIDWALL)==0 ||
 	       w==((struct grid_molecule*)a)->grid->surface )
 	  {
-	    a->t2 -= a->t - t;
+              /* perform only for unimolecular reactions */
+              if((a->flags & ACT_REACT) != 0){
+                a->t2 -= a->t - t;
+                if(a->t2 < 0) a->t2 = 0;
+              }
 	  }
 	  else if (w->surf_class==((struct grid_molecule*)a)->grid->surface->surf_class)
 	  {
-	    a->t2 -= a->t - t;
+              /* perform only for unimolecular reactions */
+              if((a->flags & ACT_REACT) != 0){
+                a->t2 -= a->t - t;
+                if(a->t2 < 0) a->t2 = 0;
+              }
 	  }
 	  else
 	  {

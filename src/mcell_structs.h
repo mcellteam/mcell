@@ -61,7 +61,9 @@
 #define TYPE_MASK 0x003
 
 /* NEWBIE molecules get scheduled before anything else happens to them. */
-/* INERT molecules don't react, REACT molecules do */
+/* INERT molecules don't react. */
+/* ACT_REACT is set for molecules taking part in unimolecular reaction, or
+   reaction with a surface */
 /* ACT_INERT represent molecules in a catalytic dead-time */
 /* CHANGE molecules have had their rate constant changed */
 /* DIFFUSE molecules diffuse (duh!) */
