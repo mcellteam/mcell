@@ -8280,7 +8280,6 @@ output_def: REACTION_DATA_OUTPUT '{'
   }
 
   mdlpvp->header_comment=NULL;
-  mdlpvp->count_flags = 0; 
 }
        output_buffer_size_def
 {
@@ -8427,6 +8426,7 @@ count_cmd: '{'
     mdlerror("Out of memory while creating output list");
     return 1;
   }
+  mdlpvp->count_flags = 0; 
 }
 	list_count_exprs '}' file_arrow outfile_syntax
 {
