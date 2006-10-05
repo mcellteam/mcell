@@ -11770,15 +11770,20 @@ Instead of counting, output the time and location each time an event happens.
 TRIGGER
 \family default 
 ed.
- Output blocks can contain either 
-\family typewriter 
-COUNT
-\family default 
- or 
+ Within output statements pointing to the same output file, there can only
+ be a single 
 \family typewriter 
 TRIGGER
 \family default 
- statements, but they cannot be mixed.
+ command, i.e., it can not be mixed with other 
+\family typewriter 
+TRIGGER
+\family default 
+ or
+\family typewriter 
+ COUNT
+\family default 
+ statements.
 \end_inset 
 </cell>
 </row>
