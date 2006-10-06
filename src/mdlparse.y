@@ -8692,6 +8692,11 @@ count_syntax:  existing_one_or_many_rxpns_or_mols ',' count_location_specifier o
     {
       mdlerror("Invalid combination of WORLD with other counting options");
       return 1;
+    }else{
+      if(mdlpvp->count_flags&TRIGGER_PRESENT){
+         mdlerror("Invalid combination of WORLD with TRIGGER option");
+         return 1;
+      }
     }
   }
   else report_flags=0;
