@@ -5582,6 +5582,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
                   
                   for(jj = 0; jj < objp->n_walls; jj++)
                   {
+                    if(objp->wall_p[jj] == NULL) continue;
                     int n = objp->wall_p[jj]->side;
                     if(get_bit(rp->membership,n))
                     {
