@@ -238,7 +238,7 @@ int add_trigger_output(struct counter *c,struct output_request *ear,int n)
     if (otd->how_many==-n && n>0 && otd->name==ear->requester->column->expr->title)
     {
       if ( !distinguishable(otd->t_iteration,world->it_time*world->time_unit,EPS_C) &&
-           !distinguishable(otd->t_delta,(c->data.trig.t_event-(double)world->it_time)*world->time_unit,EPS_C) )
+           !distinguishable(otd->event_time, c->data.trig.t_event, EPS_C) )
       {
         if (otd->loc.x!=c->data.trig.loc.x*world->length_unit ||
             otd->loc.y!=c->data.trig.loc.y*world->length_unit ||
@@ -255,7 +255,6 @@ int add_trigger_output(struct counter *c,struct output_request *ear,int n)
   }
   
   idx=(int)first_column->initial_value;
-  
   if (idx >= first_column->set->block->buffersize)
   {
     if (write_reaction_output(first_column->set,0))
@@ -271,11 +270,12 @@ int add_trigger_output(struct counter *c,struct output_request *ear,int n)
   otd = &(((struct output_trigger_data*)first_column->buffer)[idx]);
   
   otd->t_iteration = world->it_time*world->time_unit;
-  otd->t_delta = (c->data.trig.t_event - (double)world->it_time)*world->time_unit;
+  otd->event_time = c->data.trig.t_event*world->time_unit;
   otd->loc.x = c->data.trig.loc.x*world->length_unit;
   otd->loc.y = c->data.trig.loc.y*world->length_unit;
   otd->loc.z = c->data.trig.loc.z*world->length_unit;
   otd->how_many = n;
+  otd->orient = c->data.trig.orient;
   otd->name = ear->requester->column->expr->title;
   first_column->initial_value+=1.0;
   
@@ -545,8 +545,14 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
     for (i=0;i<n_output;i++)
     {
       trig = &(((struct output_trigger_data*)set->column_head->buffer)[i]);
-      fprintf(fp,"%.15g %.12g %.9g %.9g %.9g %d %s\n",trig->t_iteration,trig->t_delta,
-        trig->loc.x,trig->loc.y,trig->loc.z,trig->how_many,(trig->name==NULL)?"":trig->name);
+      if(trig->orient == SHRT_MIN){
+            /* reactions triggering */
+            fprintf(fp,"%.15g %.12g %.9g %.9g %.9g %d %s\n",trig->t_iteration,trig->event_time, trig->loc.x,trig->loc.y,trig->loc.z,trig->how_many,(trig->name==NULL)?"":trig->name);
+       }else{
+            /* molecules triggering */
+            fprintf(fp,"%.15g %.12g %.9g %.9g %.9g %d %d %s\n",trig->t_iteration,trig->event_time, trig->loc.x,trig->loc.y,trig->loc.z,trig->how_many,trig->orient, (trig->name==NULL)?"":trig->name);
+
+       }
     }
     set->column_head->initial_value=0;
   }

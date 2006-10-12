@@ -365,7 +365,6 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
     if (wlp->this_wall==reflectee) continue;
     
     i = collide_wall(&(m->pos),v,wlp->this_wall,&(smash->t),&(smash->loc));
-
     if (i==COLLIDE_REDO)
     {
       if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
@@ -4168,6 +4167,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
       g->grid = new_wall->grid;
       g->grid_index=new_idx;
       g->grid->mol[new_idx] = g;
+      g->grid->n_occupied++;
 
       g->s_pos.u = new_loc.u;
       g->s_pos.v = new_loc.v;

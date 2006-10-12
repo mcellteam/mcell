@@ -108,7 +108,8 @@ count_region_update:
        scaling factor for reaction probabilities (for estimating ccn)
        location of the hit (for triggers)
        time of the hit (for triggers)
-   Out: No return value.  Appropriate counters are updated, that is,
+   Out: Returns zero on success, and 1 on failure.  
+        Appropriate counters are updated, that is,
         hit counters are updated according to which side was hit,
 	and crossings counters and counts within enclosed regions are
 	updated if the surface was crossed.
@@ -119,7 +120,8 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
   int i,j;
   struct counter *hit_count;
   double hits_to_ccn=0;
-  
+ 
+ 
   if (sp->flags&COUNT_HITS)
   {
     hits_to_ccn = sp->time_step * 2.9432976599069717358e-3 /  /* 1e6*sqrt(MY_PI)/(1e-15*N_AV) */ 
@@ -146,7 +148,8 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
               {
                 if (hit_count->counter_type&TRIG_COUNTER)
                 {
-                  hit_count->data.trig.t_event=t;
+                  hit_count->data.trig.t_event = (double)world->it_time + t; 
+                  hit_count->data.trig.orient = 0; 
 		  if (rl->reg->flags&sp->flags&COUNT_HITS)
 		  {
                     i=fire_count_event(hit_count,1,loc,REPORT_FRONT_HITS|REPORT_TRIGGER);
@@ -177,7 +180,8 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
               {
                 if (hit_count->counter_type&TRIG_COUNTER)
                 {
-                  hit_count->data.trig.t_event=t;
+                  hit_count->data.trig.t_event = (double)world->it_time + t; 
+                  hit_count->data.trig.orient = 0; 
 		  if (rl->reg->flags&sp->flags&COUNT_HITS)
 		  {
                     i=fire_count_event(hit_count,1,loc,REPORT_BACK_HITS|REPORT_TRIGGER);
@@ -211,7 +215,8 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
               {
                 if (hit_count->counter_type&TRIG_COUNTER)
                 {
-                  hit_count->data.trig.t_event=t;
+                  hit_count->data.trig.t_event = (double)world->it_time + t; 
+                  hit_count->data.trig.orient = 0; 
                   i=fire_count_event(hit_count,1,loc,REPORT_FRONT_HITS|REPORT_TRIGGER);
 		  if (i) return 1;
                 }
@@ -224,7 +229,8 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
               {
                 if (hit_count->counter_type&TRIG_COUNTER)
                 {
-                  hit_count->data.trig.t_event=t;
+                  hit_count->data.trig.t_event = (double)world->it_time + t; 
+                  hit_count->data.trig.orient = 0; 
                   i=fire_count_event(hit_count,1,loc,REPORT_BACK_HITS|REPORT_TRIGGER);
 		  if (i) return 1;
                 }
@@ -257,8 +263,8 @@ count_region_from_scratch:
        location at which to count them (may be NULL)
        wall at which this happened (may be NULL)
        time of the hit (for triggers)
-   Out: No return value.  Appropriate counters are updated and triggers
-        are fired.
+   Out: Returns zero on success and 1 on failure.  
+        Appropriate counters are updated and triggers are fired.
    Note: At least one of molecule or rxn pathname must be non-NULL; if
         other inputs are NULL, sensible values will be guessed (which
         may themselves be NULL).  This routine is not super-fast for
@@ -282,7 +288,10 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
   struct vector3 xyz_loc;         /* Computed location of mol if loc==NULL */
   byte count_flags;
   int pos_or_neg;                 /* Sign of count (neg for antiregions) */
-  
+  int orient = SHRT_MIN;          /* orientation of the molecule 
+                                     also serves as a flag for 
+                                     triggering reactions  */ 
+ 
   /* Set up values and fill in things the calling function left out */
   if (rxpn!=NULL)
   {
@@ -304,10 +313,18 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
       }
       else loc=&(((struct volume_molecule*)am)->pos);
     }
+    
     if (my_wall==NULL && (am->properties->flags&ON_GRID)!=0)
     {
       my_wall=((struct grid_molecule*)am)->grid->surface;
     }
+
+    if (am->properties->flags&ON_GRID)
+    {
+        orient = ((struct grid_molecule *)am)->orient;
+    }else{
+        orient = 0;
+    } 
   }
   
   /* Count grid molecules and reactions on surfaces--easy */
@@ -322,8 +339,9 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 	if (c->target==target && c->reg_type==rl->reg && (c->counter_type&ENCLOSING_COUNTER)==0)
 	{
 	  if (c->counter_type&TRIG_COUNTER)
-	  {
+	  { 
 	    c->data.trig.t_event=t;
+	    c->data.trig.orient = orient;
 	    k=fire_count_event(c,n,loc,count_flags|REPORT_TRIGGER);
 	    if (k) return 1;
 	  }
@@ -515,6 +533,7 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 	    if (c->counter_type&TRIG_COUNTER)
 	    {
 	      c->data.trig.t_event=t;
+	      c->data.trig.orient = orient;
 	      k = fire_count_event(c,n*pos_or_neg,loc,count_flags|REPORT_TRIGGER);
 	      if (k) return 1;
 	    }
@@ -549,7 +568,7 @@ int fire_count_event(struct counter *event,int n,struct vector3 *where,byte what
   struct trigger_request *tr;
   byte whatelse=what;
   int i;
-  
+ 
   if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_HITS) whatelse = (what-REPORT_FRONT_HITS)|REPORT_ALL_HITS;
   else if ((what&REPORT_TYPE_MASK)==REPORT_BACK_HITS) whatelse = (what-REPORT_BACK_HITS)|REPORT_ALL_HITS;
   else if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_CROSSINGS) whatelse = (what-REPORT_FRONT_CROSSINGS)|REPORT_ALL_CROSSINGS;
@@ -1036,19 +1055,27 @@ expand_object_output:
          the most intuitive interpretation when used inside a large
          object with multiple layers of nesting--if one molecule is
          inside three sub-objects, it will be counted three times!
+   PostNote: Checks that COUNT/TRIGGER statements are not allowed for
+             metaobjects and release objects.
 *************************************************************************/
 
 int expand_object_output(struct output_request *request,struct object *obj)
 {
-  struct output_request *new_request;
-  struct output_expression *oe,*oel,*oer; /* Original expression and two children */
-  struct object *child;
+   
+ /* struct output_request *new_request; */
+ /* struct output_expression *oe,*oel,*oer; */ /* Original expression and two children */
+ /* struct object *child; */
   struct region_list *rl;
-  int n_expanded;
-  
+ /* int n_expanded; */
+
   switch (obj->object_type)
   {
     case META_OBJ:
+    case REL_SITE_OBJ:
+        fprintf(world->err_file,"Error: COUNT and TRIGGER statements on metaobject or release object '%s' are not allowed.\n",obj->sym->name);
+        return 1;
+
+#if 0
       n_expanded=0;
       for (child=obj->first_child ; child!=NULL ; child=child->next)
       {
@@ -1091,6 +1118,8 @@ int expand_object_output(struct output_request *request,struct object *obj)
         return 1;
       }
       break;
+#endif
+
     case BOX_OBJ:
     case POLY_OBJ:
       for (rl=obj->regions ; rl!=NULL ; rl=rl->next)
@@ -1103,8 +1132,6 @@ int expand_object_output(struct output_request *request,struct object *obj)
         return 1;
       }
       request->count_location = rl->reg->sym;
-      break;
-    case REL_SITE_OBJ:
       break;
     default:
       fprintf(world->err_file,"Bad object type in count on object expansion\n  File %s, line %d\n",__FILE__,__LINE__);
@@ -1157,7 +1184,7 @@ instantiate_request:
 
 int instantiate_request(struct output_request *request)
 {
-  int request_hash;
+  int request_hash = 0;
   struct rxn_pathname *rxpn_to_count;
   struct rxn *rx_to_count = NULL;
   struct species *mol_to_count = NULL;
@@ -1168,7 +1195,7 @@ int instantiate_request(struct output_request *request)
   u_int report_type_only;
   byte count_type;
   int is_enclosed;
-  
+ 
   /* Set up and figure out hash value */
   to_count=request->count_target->value;
   switch (request->count_target->sym_type)
@@ -1208,10 +1235,11 @@ int instantiate_request(struct output_request *request)
       return 1;
     }
     reg_of_count=(struct region*)request->count_location->value;
+
     if ((request_hash^reg_of_count->hashval) != 0) request_hash ^= reg_of_count->hashval;
+   
   }
   else reg_of_count=NULL;
-  
   request_hash&=world->count_hashmask;
   
   /* Now create count structs and set output expression to point to data */
@@ -1416,6 +1444,7 @@ struct counter* create_new_counter(struct region *where,void *who,byte what)
   {
     c->data.trig.t_event=0.0;
     c->data.trig.loc.x = c->data.trig.loc.y = c->data.trig.loc.z = 0.0;
+    c->data.trig.orient = SHRT_MIN;
     c->data.trig.listeners=NULL;
   }
   else if (what&RXN_COUNTER)

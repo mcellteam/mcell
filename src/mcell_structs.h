@@ -985,6 +985,7 @@ struct trig_counter_data
 {
   double t_event;                    /* Event time (exact) */
   struct vector3 loc;                /* Real position of event */
+  short orient;                      /* For MOL_COUNTER: molecule orientation */
   struct trigger_request *listeners; /* Places waiting to be notified */
 };
 
@@ -1455,11 +1456,12 @@ struct output_request
 /* Data stored when a trigger event happens */
 struct output_trigger_data
 {
-  double t_iteration;          /* Iteration of the triggering event */
-  double t_delta;              /* Offset of event time from iteration time */
-  struct vector3 loc;          /* Position of event */
-  int how_many;                /* Number of events */
-  char *name;                  /* Name to give event */
+  double t_iteration;      /* Iteration time of the triggering event (in sec) */
+  double event_time;          /* Exact time of the  event */
+  struct vector3 loc;      /* Position of event */
+  int how_many;            /* Number of events */
+  short orient;            /* Orientation information */
+  char *name;              /* Name to give event */
 };
 
 
