@@ -8283,7 +8283,11 @@ output_def: REACTION_DATA_OUTPUT '{'
 }
        output_buffer_size_def
 {
-  mdlpvp->obp->buffersize=$<dbl>4;
+  /* COUNT buffer size might get modified later if there isn't that much to output */
+  /* TRIGGER buffer size won't get modified since we can't know what to expect */
+  mdlpvp->obp->buffersize=(int)$<dbl>4;
+  mdlpvp->obp->trig_bufsize=mdlpvp->obp->buffersize;
+  
   mdlpvp->obp->time_array=(double*)malloc(mdlpvp->obp->buffersize*sizeof(double));
   if (mdlpvp->obp->time_array==NULL)
   {
@@ -8525,7 +8529,7 @@ single_count_expr:
         break;
       case OEXPR_TYPE_TRIG:
         oc->data_type=TRIG_STRUCT;
-        oc->buffer = (struct output_trigger_data*)malloc(os->block->buffersize*sizeof(struct output_trigger_data));
+        oc->buffer = (struct output_trigger_data*)malloc(os->block->trig_bufsize*sizeof(struct output_trigger_data));
         break;
       default:
         mdlerror("Could not figure out what type of count data to store");

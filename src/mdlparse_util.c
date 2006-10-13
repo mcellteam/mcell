@@ -4225,6 +4225,7 @@ struct output_block* insert_new_output_block(struct mdlparse_vars *mpvp)
   ob->time_list_head=NULL;
   ob->time_now=NULL;
   ob->buffersize=0;
+  ob->trig_bufsize=0;
   ob->buf_index=0;
   ob->data_set_head=NULL;
   

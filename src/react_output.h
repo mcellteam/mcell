@@ -7,7 +7,7 @@
 
 int truncate_output_file(char *name,double start_value);
 int emergency_output();
-int add_trigger_output(struct counter *c,struct output_request *ear,int n);
+int add_trigger_output(struct counter *c,struct output_request *ear,int n,short flags);
 int flush_trigger_output();
 int update_reaction_output(struct output_block *block);
 int write_reaction_output(struct output_set *set,int final_chunk_flag);

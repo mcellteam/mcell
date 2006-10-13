@@ -4126,22 +4126,17 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
       }
       if (new_idx != g->grid_index)
       {
-	if (g->grid->mol[new_idx]!=NULL)
-	{
-	  continue; /* Pick again--full here */
-	}
+	if (g->grid->mol[new_idx]!=NULL) continue; /* Pick again--full here */
 	
-	count_region_from_scratch((struct abstract_molecule*)g,NULL,-1,NULL,g->grid->surface,g->t);
-
+        count_moved_grid_mol(g,g->grid,new_idx,&new_loc);
 	g->grid->mol[g->grid_index]=NULL;
 	g->grid->mol[new_idx] = g;
 	g->grid_index = new_idx;
       }
-      else count_region_from_scratch((struct abstract_molecule*)g,NULL,-1,NULL,g->grid->surface,g->t);
+      else count_moved_grid_mol(g,g->grid,g->grid_index,&new_loc);
       
       g->s_pos.u = new_loc.u;
       g->s_pos.v = new_loc.v;
-      count_region_from_scratch((struct abstract_molecule*)g,NULL,1,NULL,g->grid->surface,g->t);
       
       find_new_position = 0;
     }
@@ -4161,7 +4156,8 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
       if (new_idx < 0 || new_idx >= new_wall->grid->n_tiles) fprintf(world->log_file, "File '%s', Line %ld: Unexpected behaviour, iteration %d.\n", __FILE__, (long)__LINE__, (int)world->it_time);
       if (new_wall->grid->mol[new_idx] != NULL) continue; /* Pick again */
       
-      count_region_from_scratch((struct abstract_molecule*)g,NULL,-1,NULL,g->grid->surface,g->t);
+      count_moved_grid_mol(g,new_wall->grid,new_idx,&new_loc);
+      
       g->grid->mol[g->grid_index]=NULL;
       g->grid->n_occupied--;
       g->grid = new_wall->grid;
@@ -4171,7 +4167,6 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
 
       g->s_pos.u = new_loc.u;
       g->s_pos.v = new_loc.v;
-      count_region_from_scratch((struct abstract_molecule*)g,NULL,1,NULL,g->grid->surface,g->t);
       
       find_new_position=0;
     }

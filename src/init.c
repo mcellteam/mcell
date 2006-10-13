@@ -1759,6 +1759,16 @@ int init_wall_regions(struct object *objp, char *full_name)
       }
     }
   } /*end loop over all regions in object */
+  for (i=0;i<n_walls;i++)
+  {
+    if (get_bit(pop->side_removed,i)) continue;
+     w=objp->wall_p[i];
+    if (w->counting_regions!=NULL)
+    {
+      w->counting_regions = (struct region_list*)void_list_sort((struct void_list*)w->counting_regions); /* Helpful for comparisons */
+    }
+  }
+      
   no_printf("Total area of object %s = %.9g um^2\n",objp->sym->name,objp->total_area/world->grid_density);
   no_printf("  number of tiles = %u\n",objp->n_tiles);
   no_printf("  number of occupied tiles = %u\n",objp->n_occupied_tiles);

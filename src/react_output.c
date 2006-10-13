@@ -217,12 +217,12 @@ add_trigger_output:
    Out: 0 on success, 1 on error (memory allocation or file I/O).
         The event is added to the buffer of the requester, and the
         buffer is written and flushed if the buffer is full.
-   Note: Unlike normal output, we fill the buffer first, and flush
-         before adding a new item so that we can detect and remove
-         uninteresting diffusion-related addition/subtraction.
+   Note: Hits are assumed to happen with only one molecule; positive
+        means the front face was hit, negative means the back was hit.
+        This is reported as orientation instead.
 *************************************************************************/
 
-int add_trigger_output(struct counter *c,struct output_request *ear,int n)
+int add_trigger_output(struct counter *c,struct output_request *ear,int n,short flags)
 {
   struct output_column *first_column;
   struct output_trigger_data *otd;
@@ -230,42 +230,7 @@ int add_trigger_output(struct counter *c,struct output_request *ear,int n)
   
   first_column=ear->requester->column->set->column_head;
   
-  idx = ((int)first_column->initial_value)-1;
-  
-  if (idx>=0)
-  {
-    otd = &(((struct output_trigger_data*)first_column->buffer)[idx]);
-    if (otd->how_many==-n && n>0 && otd->name==ear->requester->column->expr->title)
-    {
-      if ( !distinguishable(otd->t_iteration,world->it_time*world->time_unit,EPS_C) &&
-           !distinguishable(otd->event_time, c->data.trig.t_event, EPS_C) )
-      {
-        if (otd->loc.x!=c->data.trig.loc.x*world->length_unit ||
-            otd->loc.y!=c->data.trig.loc.y*world->length_unit ||
-            otd->loc.z!=c->data.trig.loc.z*world->length_unit)
-        {
-          /* Same thing at same time but different place--must be diffusion */
-          /* No reason to actually trigger, so back up over previous entry 
-             instead of adding a new one */
-          first_column->initial_value-=1.0;
-          return 0;
-        }
-      }
-    }
-  }
-  
-  idx=(int)first_column->initial_value;
-  if (idx >= first_column->set->block->buffersize)
-  {
-    if (write_reaction_output(first_column->set,0))
-    {
-      fprintf(world->err_file,"Error at file %s line %d\n",__FILE__,__LINE__);
-      fprintf(world->err_file,"  Failed to write triggered count output.\n");
-      return 1;
-    }
-    first_column->initial_value=0;
-    idx = 0;
-  }
+  idx = (int)first_column->initial_value;
   
   otd = &(((struct output_trigger_data*)first_column->buffer)[idx]);
   
@@ -274,10 +239,32 @@ int add_trigger_output(struct counter *c,struct output_request *ear,int n)
   otd->loc.x = c->data.trig.loc.x*world->length_unit;
   otd->loc.y = c->data.trig.loc.y*world->length_unit;
   otd->loc.z = c->data.trig.loc.z*world->length_unit;
-  otd->how_many = n;
-  otd->orient = c->data.trig.orient;
+  if (flags&TRIG_IS_HIT)
+  {
+    otd->how_many=1;
+    if (n>0) otd->orient=1;
+    else otd->orient=-1;
+  }
+  else
+  {
+    otd->how_many = n;
+    otd->orient = c->data.trig.orient;
+  }
+  otd->flags = flags;
   otd->name = ear->requester->column->expr->title;
-  first_column->initial_value+=1.0;
+  
+  idx=(int)first_column->initial_value;
+  if (idx+1 >= first_column->set->block->trig_bufsize)
+  {
+    if (write_reaction_output(first_column->set,0))
+    {
+      fprintf(world->err_file,"Error at file %s line %d\n",__FILE__,__LINE__);
+      fprintf(world->err_file,"  Failed to write triggered count output.\n");
+      return 1;
+    }
+    first_column->initial_value = 0;
+  }  
+  else first_column->initial_value=idx+1;
   
   return 0;
 }
@@ -443,10 +430,7 @@ write_reaction_output:
       the flag that signals an end to the scheduled reaction outputs
   Out: 0 on success, 1 on failure.
        The reaction output buffer is flushed and written to disk.
-       If we're writing trigger data, the index will be set back to zero.
-       Otherwise, we're writing part of a block and the calling function
-       has to update things when we're done (since the whole block is
-       synchronized).
+       Indices are not reset; that's the job of the calling function.
 **************************************************************************/  
   
 int write_reaction_output(struct output_set *set,int final_chunk_flag)
@@ -457,9 +441,6 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
   u_int n_output;
   u_int i;
   
-  n_output=set->block->buffersize;
-  if (set->block->buf_index<set->block->buffersize) n_output=set->block->buf_index;
-
   switch(set->file_flags)
   {
     case FILE_OVERWRITE:
@@ -489,14 +470,17 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
     return 1;
   }
 
-  if (world->notify->file_writes==NOTIFY_FULL)
-  {
-    fprintf(world->log_file,"Writing %d lines to output file %s\n",n_output,set->outfile_name);
-  }
-  fflush(world->log_file);
-    
   if (set->column_head->data_type!=TRIG_STRUCT)
   {
+    n_output=set->block->buffersize;
+    if (set->block->buf_index<set->block->buffersize) n_output=set->block->buf_index;
+  
+    if (world->notify->file_writes==NOTIFY_FULL)
+    {
+      fprintf(world->log_file,"Writing %d lines to output file %s\n",n_output,set->outfile_name);
+    }
+    fflush(world->log_file);
+      
     /* Write headers */
     if ( set->chunk_count==0 && set->header_comment!=NULL && set->file_flags!=FILE_APPEND &&
          ( world->chkpt_seq_num==1 || set->file_flags==FILE_APPEND_HEADER ||
@@ -540,21 +524,33 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
   {
     struct output_trigger_data *trig;
     
-    
     n_output = (u_int)set->column_head->initial_value;
     for (i=0;i<n_output;i++)
     {
       trig = &(((struct output_trigger_data*)set->column_head->buffer)[i]);
-      if(trig->orient == SHRT_MIN){
-            /* reactions triggering */
-            fprintf(fp,"%.15g %.12g %.9g %.9g %.9g %d %s\n",trig->t_iteration,trig->event_time, trig->loc.x,trig->loc.y,trig->loc.z,trig->how_many,(trig->name==NULL)?"":trig->name);
-       }else{
-            /* molecules triggering */
-            fprintf(fp,"%.15g %.12g %.9g %.9g %.9g %d %d %s\n",trig->t_iteration,trig->event_time, trig->loc.x,trig->loc.y,trig->loc.z,trig->how_many,trig->orient, (trig->name==NULL)?"":trig->name);
-
-       }
+      
+      if(trig->flags & TRIG_IS_RXN)  /* Just need time, pos, name */
+      {
+        fprintf(fp,"%.15g %.12g %.9g %.9g %.9g %s\n",
+                trig->t_iteration,trig->event_time,
+                trig->loc.x,trig->loc.y,trig->loc.z,
+                (trig->name==NULL)?"":trig->name);
+      }
+      else if (trig->flags & TRIG_IS_HIT) /* Need orientation also */
+      {
+        fprintf(fp,"%.15g %.12g %.9g %.9g %.9g %d %s\n",
+                trig->t_iteration,trig->event_time,
+                trig->loc.x,trig->loc.y,trig->loc.z,
+                trig->orient,(trig->name==NULL)?"":trig->name);
+      }
+      else /* Molecule count -- need both number and orientation */
+      {
+        fprintf(fp,"%.15g %.12g %.9g %.9g %.9g %d %d %s\n",
+                trig->t_iteration,trig->event_time,
+                trig->loc.x,trig->loc.y,trig->loc.z,
+                trig->orient,trig->how_many,(trig->name==NULL)?"":trig->name);
+      }
     }
-    set->column_head->initial_value=0;
   }
   
   set->chunk_count++;
@@ -563,6 +559,12 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
   return 0;
 }
 
+
+/*************************************************************************
+accept_tentative_triggers:
+   In: mem_helper used to allocate output_expressions  
+   Out: New, initialized output_expression, or NULL if out of memory.
+*************************************************************************/
 
 
 

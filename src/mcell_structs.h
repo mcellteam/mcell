@@ -407,6 +407,12 @@
 #define MAGIC_PATTERN_PROBABILITY 1.101001000100001
 
 
+/* Output Trigger Flags */
+/* Don't set both RXN and HIT flags */
+#define TRIG_IS_RXN       0x1
+#define TRIG_IS_HIT       0x2
+
+
 
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
@@ -1393,6 +1399,7 @@ struct output_block
   struct num_expr_list *time_now;       /* Current entry in list */
   
   u_int buffersize;                     /* Size of output buffer */
+  u_int trig_bufsize;                   /* Size of output buffer for triggers */
   u_int buf_index;                      /* Index into buffer (for non-triggers) */
   
   double *time_array;                   /* Array of output times (for non-triggers) */
@@ -1461,8 +1468,10 @@ struct output_trigger_data
   struct vector3 loc;      /* Position of event */
   int how_many;            /* Number of events */
   short orient;            /* Orientation information */
+  short flags;             /* Output Trigger Flags */
   char *name;              /* Name to give event */
 };
+
 
 
 /******************************************************************/

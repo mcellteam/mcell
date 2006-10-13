@@ -427,10 +427,8 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 	if (wl->this_wall->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
 	{
 	  j = collide_wall(&here,&delta,wl->this_wall,&t_hit,&hit);
-          if((j != COLLIDE_MISS) && (world->notify->final_summary == NOTIFY_FULL)){
-              world->ray_polygon_colls++;
-          }	 
-
+          
+          if (j!=COLLIDE_MISS) world->ray_polygon_colls++;
  
 	  if (j!=COLLIDE_MISS && t_hit <= t_sv_hit &&
 	    (hit.x-loc->x)*delta.x + (hit.y-loc->y)*delta.y + (hit.z-loc->z)*delta.z < 0)
@@ -553,6 +551,252 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 }
 
 
+/*************************************************************************
+count_moved_grid_mol:
+   In: molecule to count
+       new grid for molecule
+       new index on that grid
+       new location on that grid
+   Out: Returns zero on success and 1 on failure.  
+        Appropriate counters are updated and triggers are fired.
+   Note: This routine is not super-fast for enclosed counts for
+         surface molecules since it raytraces without using waypoints.
+*************************************************************************/
+
+int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int index,struct vector2 *loc)
+{
+  struct region_list *rl,*prl,*nrl,*pos_regs,*neg_regs;
+  struct storage *stor;
+  struct counter *c;
+  struct vector3 origin;
+  struct vector3 target;
+  struct vector3 *where;
+  int delete_me;
+  int i,n;
+  int origin_loaded=0;
+  int target_loaded=0;
+  
+  pos_regs = neg_regs = NULL;
+  stor = g->grid->surface->birthplace;
+  
+  
+  if (g->grid != sg) /* Different grids implies different walls, so we might have changed regions */
+  {
+    delete_me=0;
+    if ((g->grid->surface->flags&COUNT_CONTENTS)!=0 && (sg->surface->flags&COUNT_CONTENTS)!=0)
+    {
+      delete_me=1;
+      nrl = g->grid->surface->counting_regions;
+      prl = sg->surface->counting_regions;
+      while (prl!=NULL && nrl!=NULL)
+      {
+        if (prl->reg == nrl->reg) /* Skip identical regions */
+        {
+          prl=prl->next;
+          nrl=nrl->next;
+          continue;
+        }
+        while (prl!=NULL && prl->reg < nrl->reg) /* Entering these regions */
+        {
+          rl = (struct region_list*)mem_get(stor->regl);
+          rl->next=pos_regs;
+          rl->reg=prl->reg;
+          pos_regs=rl;
+          prl=prl->next;
+        }
+        while (nrl!=NULL && (prl==NULL || nrl->reg < prl->reg)) /* Leaving these regions */
+        {
+          rl = (struct region_list*)mem_get(stor->regl);
+          rl->next=neg_regs;
+          rl->reg=nrl->reg;
+          neg_regs=rl;
+          nrl=nrl->next;
+        }
+      }
+    }
+    else if (g->grid->surface->flags&COUNT_CONTENTS) neg_regs = g->grid->surface->counting_regions;
+    else if (sg->surface->flags&COUNT_CONTENTS) pos_regs = sg->surface->counting_regions;
+    
+    /* Sneaky way to go through both lists in one loop */
+    n=1;
+    if (pos_regs!=NULL)
+    {
+      uv2xyz(loc,sg->surface,&target);
+      where = &target;
+      target_loaded=1;
+    }
+    for (rl=(pos_regs!=NULL)?pos_regs:neg_regs ; rl!=NULL ; rl=(rl->next==NULL && n>0)?neg_regs:rl->next)
+    {
+      if (rl==neg_regs)
+      {
+        uv2xyz(&(g->s_pos),g->grid->surface,&origin);
+        where = &origin;
+        origin_loaded=1;
+        n=-1;
+      }
+      i = (g->properties->hashval^rl->reg->hashval) & world->count_hashmask;
+      if (i==0) i = g->properties->hashval & world->count_hashmask;
+      for (c=world->count_hash[i] ; c!=NULL ; c=c->next)
+      {
+        if (c->target==g->properties && c->reg_type==rl->reg && (c->counter_type&ENCLOSING_COUNTER)==0)
+        {
+          if (c->counter_type&TRIG_COUNTER)
+          {
+            c->data.trig.t_event = g->t;
+            c->data.trig.orient = g->orient;
+            i = fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_TRIGGER);
+            if (i) return 1;
+          }
+          else c->data.move.n_at+=n;
+        }
+      }
+    }
+    
+    
+    if (delete_me)
+    {
+      if (pos_regs!=NULL) mem_put_list(stor->regl,pos_regs);
+      if (neg_regs!=NULL) mem_put_list(stor->regl,neg_regs);
+    }
+  }
+
+  if (g->properties->flags&COUNT_ENCLOSED) /* Have to raytrace */
+  {
+    struct vector3 delta;
+    struct vector3 here;
+    struct vector3 hit;
+    struct subvolume *sv;
+    struct wall_list *wl;
+    double t_sv_hit,t;
+    int j;
+    
+    pos_regs=neg_regs=NULL;
+    
+    if (!origin_loaded) uv2xyz(&(g->s_pos),g->grid->surface,&origin);
+    if (!target_loaded) uv2xyz(loc,sg->surface,&target);
+    delta.x = target.x-origin.x;
+    delta.y = target.y-origin.y;
+    delta.z = target.z-origin.z;
+    
+    here=origin;
+    
+    /* Collect all the relevant regions we pass through */
+    for ( sv=find_subvolume(&origin,NULL) ; sv!=NULL ; sv = next_subvol(&here,&delta,sv) )
+    {
+      t_sv_hit = collide_sv_time(&here,&delta,sv);
+      if (t_sv_hit>1.0) t_sv_hit=1.0;
+      
+      for (wl=sv->wall_head ; wl!=NULL ; wl=wl->next)
+      {
+        if (wl->this_wall==g->grid->surface || wl->this_wall==sg->surface) continue;  /* Don't count our own wall */
+        
+        j = collide_wall(&here,&delta,wl->this_wall,&t,&hit);
+        
+        if (j!=COLLIDE_MISS) world->ray_polygon_colls++;
+        
+        if (j!=COLLIDE_MISS && t<t_sv_hit && (hit.x-target.x)*delta.x + (hit.y-target.y)*delta.y + (hit.z-target.z)*delta.z < 0)
+        {
+          for (rl=wl->this_wall->counting_regions ; rl!=NULL ; rl=rl->next)
+          {
+            if ((rl->reg->flags&COUNT_ENCLOSED)==0) continue;  /* Only ENCLOSED counted here */
+            
+            if (j==COLLIDE_FRONT)
+            {
+              prl = (struct region_list*)mem_get(stor->regl);
+              prl->reg = rl->reg;
+              prl->next=pos_regs;
+              pos_regs=prl;
+            }
+            else if (j==COLLIDE_BACK)
+            {
+              nrl = (struct region_list*)mem_get(stor->regl);
+              nrl->reg = rl->reg;
+              nrl->next=neg_regs;
+              neg_regs=nrl;
+            }
+          }
+        }
+      }
+    }
+    
+    if (pos_regs != NULL)
+    {
+      pos_regs = (struct region_list*)void_list_sort((struct void_list*)pos_regs);
+    }
+    if (neg_regs != NULL)
+    {
+      neg_regs = (struct region_list*)void_list_sort((struct void_list*)neg_regs);
+    }
+    
+    prl = pos_regs;
+    nrl = neg_regs;
+    while (prl!=NULL || nrl!=NULL)
+    {
+      if (prl==NULL)
+      {
+        rl=nrl;
+        nrl=nrl->next;
+        n=-1;
+        where=&origin;
+      }
+      else if (nrl==NULL)
+      {
+        rl=prl;
+        prl=prl->next;
+        n=1;
+        where=&target;
+      }
+      else if (prl->reg < nrl->reg)
+      {
+        rl = prl;
+        prl=prl->next;
+        n=1;
+        where=&origin;
+      }
+      else if (nrl->reg < prl->reg)
+      {
+        rl = nrl;
+        nrl=nrl->next;
+        n=-1;
+        where=&target;
+      }
+      else
+      {
+        rl = NULL;
+        prl = prl->next;
+        nrl = nrl->next;
+      }
+      
+      if (rl!=NULL)
+      {
+        i = (g->properties->hashval^rl->reg->hashval) & world->count_hashmask;
+        if (i==0) i = g->properties->hashval & world->count_hashmask;
+        for (c=world->count_hash[i] ; c!=NULL ; c=c->next)
+        {
+          if (c->target==g->properties && c->reg_type==rl->reg && (c->counter_type&ENCLOSING_COUNTER)!=0 &&
+              !region_listed(g->grid->surface->counting_regions,rl->reg) && !region_listed(sg->surface->counting_regions,rl->reg))
+          {
+            if (c->counter_type&TRIG_COUNTER)
+            {
+              c->data.trig.t_event = g->t;
+              c->data.trig.orient = g->orient;
+              i = fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER);
+              if (i) return 1;
+            }
+            else c->data.move.n_at+=n;
+          }
+        }
+      }
+    }
+    
+    if (pos_regs!=NULL) mem_put_list(stor->regl,pos_regs);
+    if (neg_regs!=NULL) mem_put_list(stor->regl,neg_regs);
+  }
+  
+  return 0;
+}
+
+
 
 /*************************************************************************
 fire_count_event:
@@ -568,6 +812,11 @@ int fire_count_event(struct counter *event,int n,struct vector3 *where,byte what
   struct trigger_request *tr;
   byte whatelse=what;
   int i;
+  short flags;
+  
+  if ((what&REPORT_TYPE_MASK)==REPORT_RXNS) flags = TRIG_IS_RXN;
+  else if ((what&REPORT_TYPE_MASK)==REPORT_CONTENTS) flags = 0;
+  else flags = TRIG_IS_HIT;
  
   if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_HITS) whatelse = (what-REPORT_FRONT_HITS)|REPORT_ALL_HITS;
   else if ((what&REPORT_TYPE_MASK)==REPORT_BACK_HITS) whatelse = (what-REPORT_BACK_HITS)|REPORT_ALL_HITS;
@@ -579,7 +828,7 @@ int fire_count_event(struct counter *event,int n,struct vector3 *where,byte what
     if (tr->ear->report_type==what)
     {
       memcpy(&(event->data.trig.loc),where,sizeof(struct vector3));
-      i=add_trigger_output(event,tr->ear,n);
+      i=add_trigger_output(event,tr->ear,n,flags);
       if (i) return 1;
     }
     else if (tr->ear->report_type==whatelse)
@@ -587,11 +836,11 @@ int fire_count_event(struct counter *event,int n,struct vector3 *where,byte what
       memcpy(&(event->data.trig.loc),where,sizeof(struct vector3));
       if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_HITS || (what&REPORT_TYPE_MASK)==REPORT_FRONT_CROSSINGS)
       {
-        i=add_trigger_output(event,tr->ear,n);
+        i=add_trigger_output(event,tr->ear,n,flags);
       }
       else
       {
-        i=add_trigger_output(event,tr->ear,-n);
+        i=add_trigger_output(event,tr->ear,-n,flags);
       }
       if (i) return 1;
     }
