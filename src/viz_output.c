@@ -76,6 +76,8 @@ update_frame_data_list:
 **************************************************************************/
 void update_frame_data_list(struct frame_data_list *fdlp)
 {
+  if(fdlp == NULL) return;
+  
   FILE *log_file = NULL;
 
   log_file=world->log_file;
@@ -209,6 +211,8 @@ void init_frame_data_list(struct frame_data_list *fdlp)
   int mesh_geometry_frame_present = 0;
   FILE *log_file = NULL;
 
+  if(fdlp == NULL) return;
+  
   log_file=world->log_file;
 
   while (fdlp!=NULL) {
