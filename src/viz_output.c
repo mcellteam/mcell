@@ -309,6 +309,16 @@ void init_frame_data_list(struct frame_data_list *fdlp)
 	vizp = vizp->next;
   } /* end while (vizp) */
 
+   /* 
+        check here if MESHES or MOLECULES blocks
+        are not supplied the corresponding files
+        should be empty in order to prevent unintentional mixing of
+        pre-existing and new files 
+   */
+   if(obj_to_show_number == 0)
+   {
+      fprintf(world->log_file, "\nMESHES keyword is absent or commented.\nEmpty 'meshes' output files are created.\n\n");
+   }
 
   /* fill the obj_num_regions array */
   if (obj_to_show_number==0) obj_num_regions = (int*)malloc(sizeof(int));
@@ -380,6 +390,12 @@ void init_frame_data_list(struct frame_data_list *fdlp)
 
      }    
   }
+
+   if((mol_to_show_number == 0) && (eff_to_show_number == 0))
+   {
+       fprintf(world->log_file, "\nMOLECULES keyword is absent or commented.\nEmpty 'molecules' output files are created.\n\n");
+   }
+
   return;
 }
 
@@ -3834,21 +3850,6 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 	}
      
 
-       /* check here if MESHES or MOLECULES blocks
-        are not supplied the corresponding files
-        should be empty in order to prevent unintentional mixing of
-        pre-existing and new files */
-
-        if(obj_to_show_number == 0)
-        {
-           fprintf(world->log_file, "MESHES keyword is absent or commented.\nEmpty 'meshes' output files are created.\n");
-        }
-        if((mol_to_show_number == 0) && (eff_to_show_number == 0))
-        {
-           fprintf(world->log_file, "MOLECULES keyword is absent or commented.\nEmpty 'molecules' output files are created.\n");
-        }
-
-
    } /* end if(time_to_write_master_header) */
 
 
@@ -5253,15 +5254,6 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
        }
     } /* end if(viz_mol_states_flag) */
     
-          /* check here if MESHES or MOLECULES blocks
-             are not supplied. In such case the corresponding files
-             should be empty in order to prevent unintentional mixing of
-             pre-existing and new files */
-     if((mol_to_show_number == 0) && (eff_to_show_number == 0))
-     {
-          fprintf(world->log_file, "MOLECULES keyword is absent or commented.\nEmpty 'molecules' output files are created.\n");
-     }
-
 
       if ((viz_surf_pos_flag) || (obj_to_show_number == 0)) {
         if(mesh_pos_file_path == NULL)
@@ -5430,11 +5422,6 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
           count_region_data++;
        }
       } /* end if(viz_region_data_flag) */
-
-       if(obj_to_show_number == 0)
-       {
-         fprintf(world->log_file, "MESHES keyword is absent or commented.\nEmpty 'meshes' output files are created.\n");
-       }
 
     /* find out the values of the current iteration steps for
        (GEOMETRY, REG_DATA),  
