@@ -8374,7 +8374,7 @@ Explanation
 position 0
 inner_position 1
 height "1in"
-width "100col%"
+width "30col%"
 collapsed false
 
 \layout Standard
@@ -8389,8 +8389,6 @@ VIZ_OUTPUT
 { 
 \layout Standard
 
-
-\family typewriter 
 \SpecialChar ~
 \SpecialChar ~
 
@@ -11138,22 +11136,15 @@ file
 \layout Standard
 
 Output the value in braces to the filename in quotes.
- The first column will be the time (in seconds) if 
-\family typewriter 
-STEP
-\family default 
- or 
-\family typewriter 
-TIME_LIST
-\family default 
- is used, and the iteration number if 
+ The first column will be the time (in seconds) of the iteration unless
+ the 
 \family typewriter 
 ITERATION_LIST
 \family default 
- is used.
- For count values, the second column will be the value listed.
- For trigger values, the second through fourth columns will be the x,y,z
- coordinates of the event.
+ specifier is used, in which case the first column will be the iteration
+ number.
+ For count values, the second column will be the value listed; other possibiliti
+es appear later in this document.
  This command, and the variants listed below, can be repeated to send different
  output to many files.
  The output symbol 
@@ -11226,6 +11217,8 @@ value
 \family default 
 \shape default 
  is found using wildcards.
+ Trigger outputs put this header in the rightmost column on each line; count
+ outputs put the name at the top of the appropriate column.
 \end_inset 
 </cell>
 </row>
@@ -11280,7 +11273,8 @@ file
 
 For counts, output the list of values in braces, one to a column, in the
  order listed.
- The first column will be the time/iteration number.
+ The first column will be the time/iteration number; successive columns
+ will be the values in the order listed.
  If headers are on, each column header can be customized by specifying 
 \family typewriter 
 : ``
@@ -11292,6 +11286,7 @@ name
 ''
 \family default 
  after the value.
+ For triggers, all the specified events will be combined into one file.
 \end_inset 
 </cell>
 </row>
@@ -11764,12 +11759,15 @@ TRIGGER[
 \layout Standard
 
 Instead of counting, output the time and location each time an event happens.
- This is only valid for reactions and for hits of molecules; counts of molecules
- cannot be 
+ This is not compatible with 
 \family typewriter 
-TRIGGER
+WORLD
 \family default 
-ed.
+ counts or the 
+\family typewriter 
+ESTIMATE_CONC
+\family default 
+ directive.
  Within output statements pointing to the same output file, there can only
  be a single 
 \family typewriter 
@@ -11836,6 +11834,30 @@ ESTIMATE_CONC
 \family default 
 , but the other cumulative counts can be recovered by adding the last report
  before the checkpoint to the first one after the checkpoint.
+\layout Standard
+
+Trigger statements produce output with a characteristic format.
+ If headers are on, the custom name string (or the molecule or reaction
+ name, if no custom name is given) will be printed in the rightmost column
+ of each line of output corresponding to that trigger.
+ The first column is the time of the iteration during which the event happened,
+ as usual.
+ The second column is the exact time the event was scheduled.
+ The third through fifth columns are the X, Y, and Z coordinates of the
+ event.
+ When triggering on molecules in regions, the sixth column is orientation
+ and the 7th is number, usually either 1 or -1 (for appearance or disappearance
+ of the molecule from the region.
+ Hits omit the 7th column; orientation denotes the face of the surface that
+ was hit (1 means the front surface was hit, -1 means the back surface).
+ Reactions omit both the 6th and 7th columns.
+ Also, note that trigger outputs are not guaranteed to specify a point on
+ the boundary of a region when a molecule diffuses out.
+ Surface molecules diffuse by hopping, not raytracing, so when they leave
+ a region, the last point occupied is printed.
+ Volume molecules that cross boundaries will typically have their positions
+ reported as slightly inside the boundary.
+ Locations of reactions and hits are exact, however.
 \layout Standard
 
 The following output symbols can be used in place of 
