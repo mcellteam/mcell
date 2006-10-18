@@ -129,10 +129,14 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
       if ( (reacB->properties->flags&ON_GRID)!=0 ) ptype[1] = 'g';
       else if ( (reacB->properties->flags&NOT_FREE)==0 ) ptype[1] = 'm';
       else ptype[1] = '!';
-      /* FIXME--initialize ptype for reactions with two molecules and a wall here*/
+      if(rx->n_reactants > 2){
+         ptype[2] = 'w';
+      }
+
     }
   }
-  
+ 
+ 
   /* Make sure there's space for the reaction to occur */
   /* FIXME--could speed this up with some pre-computation of reactions to at least see if we need to bother */
   k = -1;
@@ -234,7 +238,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   for (i=i0+rx->n_reactants;i<iN;i++)
   {
     p = rx->players[i];
-  
+    
     if ( (p->flags & ON_GRID) != 0 )
     {
       if (reac_g!=NULL || (reac_m!=NULL && w!=NULL))
@@ -359,12 +363,13 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
       
     }
   }
-  
 
   /* Finally, set orientations correctly */
   bits = 0;
   for (i=i0;i<iN;i++,bits>>=1)
   {
+     if (rx->players[i]==NULL) continue; 
+    
     /* generate 32 random bits every 32 times through this loop */
     if (((i-i0)&0x1F)==0) {
         bits = rng_uint( world->rng );
@@ -373,8 +378,6 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
         }
     }
 
-    if (rx->players[i]==NULL) continue;
-    
     if ( ptype[i-i0] != 0 && (ptype[i-i0]!='m' || w!=NULL) )
     {
       if (rx->geometries[i] == 0)
@@ -621,7 +624,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
   }
 
   result = outcome_products(w,m,g,rx,path,x,orientA,orientB,t,hitpt,reacA,reacB,reacA);
- 
+          
    
   if (result==RX_NO_MEM) return RX_NO_MEM;
   else if (result==RX_BLOCKED) return RX_BLOCKED;

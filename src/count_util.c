@@ -570,7 +570,7 @@ int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int ind
   struct counter *c;
   struct vector3 origin;
   struct vector3 target;
-  struct vector3 *where;
+  struct vector3 *where = NULL;
   int delete_me;
   int i,n;
   int origin_loaded=0;
