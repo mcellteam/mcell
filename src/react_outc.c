@@ -110,7 +110,6 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   }
   
   plist[0] = reacA;
-
   
   if ( (reacA->properties->flags&ON_GRID)!=0 ) ptype[0] = 'g';
   else if ( (reacA->properties->flags&NOT_FREE)==0 ) ptype[0] = 'm';
@@ -143,7 +142,8 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   
   if (ptype[0]=='g' && rx->players[i0]==NULL) replace_p1=1;
   if (rx->n_reactants>1 && ptype[1]=='g' && rx->players[i0+1]==NULL) replace_p2=1;
-  
+   
+
   if (reac_g!=NULL || (reac_m!=NULL && w!=NULL))  /* Surface involved */
   {
     if (reac_g!=NULL) memcpy(&uv_loc , &(reac_g->s_pos) , sizeof(struct vector2));
@@ -153,9 +153,20 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
     {
       if (rx->players[j]->flags&ON_GRID)
       {
-	/* FIXME: decide on a policy for who is replaced first in grid-grid reactions */
-	if (replace_p1)
-	{
+        if(replace_p1 && replace_p2){
+	     glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)moving)->grid;
+	     xlist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)moving)->grid_index;
+             if(moving == reacA){
+	        flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
+	        replace_p1=0;
+	        continue;
+             }else{
+	        flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACB_UV;
+	        replace_p2=0;
+	        continue;
+             }
+
+        }else if (replace_p1){
 	  glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid;
 	  xlist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid_index;
 	  flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
