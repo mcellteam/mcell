@@ -154,15 +154,17 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
       if (rx->players[j]->flags&ON_GRID)
       {
         if(replace_p1 && replace_p2){
-	     glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)moving)->grid;
-	     xlist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)moving)->grid_index;
              if(moving == reacA){
-	        flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
-	        replace_p1=0;
-	        continue;
-             }else{
+	        glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacB)->grid;
+	        xlist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacB)->grid_index;
 	        flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACB_UV;
 	        replace_p2=0;
+	        continue;
+             }else{
+	        glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid;
+	        xlist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid_index;
+	        flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
+	        replace_p1=0;
 	        continue;
              }
 
