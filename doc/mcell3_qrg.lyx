@@ -12446,11 +12446,15 @@ Z
  Reactions and hits always report their coordinates precisely.
  Volume molecules that disappear at a surface will report their final position
  as slightly inside the surface along their last trajectory (so that it
- is possible to tell which side of the surface they were on).
+ is possible to tell which side of the surface they were on); if they react
+ with another volume molecule they will report the position they reached
+ when their interaction disk intersected the target molecule, not the position
+ of the target.
  Surface molecules diffuse by hopping rather than raytracing, so when a
- surface molecule leaves a region of interest, the last position reported
- is the last position inside the region where it stayed, not the boundary
- of the region where it crossed.
+ surface molecule leaves a region of interest, the position reported is
+ the last position where the molecule was located inside the region, not
+ the boundary of the region where it crossed out (and conversely, when entering,
+ it's the first position where the molecule stopped at the end of its timestep).
 \layout Standard
 
 
@@ -12476,11 +12480,7 @@ Name
 \shape default 
  is the name of the molecule or a user-defined string, and present in the
  last column (6, 7, or 8 depending on which type of trigger is used) if
- 
-\family typewriter 
-HEADERS
-\family default 
- are on.
+ headers are on.
 \layout Standard
 
 The following output symbols can be used in place of 
@@ -13967,6 +13967,14 @@ Rex Kerr: Initial layout and design, first draft of document, editing of
 Markus Dittrich: 
 \family typewriter 
 VIZ_DATA
+\family default 
+ section, editing of 
+\family typewriter 
+COUNT
+\family default 
+/
+\family typewriter 
+TRIGGER
 \family default 
  section.
 \the_end

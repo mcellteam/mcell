@@ -593,6 +593,7 @@ outcome_bimolecular:
 	 RX_A_OK if everything proceeded smoothly
 	 RX_NO_MEM on an out-of-memory error
        Products are created as needed.
+  Note: reacA is the triggering molecule (e.g. moving)
 *************************************************************************/
 
 int outcome_bimolecular(struct rxn *rx,int path,
