@@ -1417,6 +1417,7 @@ struct output_set
   int file_flags;                      /* Overwrite Policy Flags: tells us how to handle existing files */
   u_int chunk_count;                   /* Number of buffered output chunks processed */  
   char *header_comment;                /* Comment character(s) for header */
+  int exact_time_flag;                 /* Boolean value; nonzero means print exact time in TRIGGER statements */
   struct output_column *column_head;   /* Data for one output column */
 };
 

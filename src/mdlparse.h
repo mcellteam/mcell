@@ -174,6 +174,7 @@ struct mdlparse_vars {
   struct volume *vol;
   
   char *header_comment;
+  byte exact_time_flag;
 };
 
 

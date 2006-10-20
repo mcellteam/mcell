@@ -10881,7 +10881,7 @@ Each reaction data output block consists of the following commands:
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="9" columns="2">
+<lyxtabular version="3" rows="10" columns="2">
 <features islongtable="true" headBottomDL="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
@@ -11107,6 +11107,49 @@ TRIGGER
 
 
 \family typewriter 
+SHOW_EXACT_TIME = 
+\family sans 
+\shape italic 
+setting
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+TRIGGER
+\family default 
+ statements (see below) can report timing information more precisely than
+ by iteration.
+ However, if only iteration timing is of interest, this can be set 
+\family typewriter 
+OFF
+\family default 
+.
+ The default is 
+\family typewriter 
+ON
+\family default 
+.
+ It applies to all output files until the next 
+\family typewriter 
+SHOW_EXACT_TIME
+\family default 
+ line.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
 { 
 \family sans 
 \shape italic 
@@ -11143,8 +11186,12 @@ ITERATION_LIST
 \family default 
  specifier is used, in which case the first column will be the iteration
  number.
- For count values, the second column will be the value listed; other possibiliti
-es appear later in this document.
+ For 
+\family typewriter 
+COUNT
+\family default 
+ values, the second column will be the value of the count; other possibilities
+ appear later in this document.
  This command, and the variants listed below, can be repeated to send different
  output to many files.
  The output symbol 
@@ -11271,7 +11318,7 @@ file
 
 \layout Standard
 
-cFor counts, output the list of values in braces, one to a column, in the
+For counts, output the list of values in braces, one to a column, in the
  order listed.
  The first column will be the time/iteration number; successive columns
  will be the values in the order listed.
@@ -11327,10 +11374,18 @@ COUNT
 *
 \family default 
  can be used to match any single character and any sequence of characters,
- respectively; internally, this will generate one count statement per matching
- name (and therefore will create multiple columns of output).
+ respectively; internally, this will generate one count/trigger statement
+ per matching name.
  Having headers on is convenient in this case, so one can tell which column
- corresponds to which name.
+ (for 
+\family typewriter 
+COUNT
+\family default 
+ statements) or row (for 
+\family typewriter 
+TRIGGER
+\family default 
+ statements) corresponds to which name.
 \layout Standard
 
 If a simulation starts from a checkpoint file, it will add to any existing
@@ -11355,6 +11410,8 @@ cumulative
  of the simulation.
  Alternatively, they can output the time and location of each reaction or
  molecular collision of the type specified.
+ In all cases, if a region or object is referred to, it should be the fully
+ qualified name starting with the name of the instantiated object.
 \layout Standard
 
 The 
@@ -11477,8 +11534,7 @@ object
 
 \layout Standard
 
-Count molecules (reactions not implemented yet) inside the object called
- 
+Count molecules or reactions inside the object called 
 \family sans 
 \shape italic 
 object
@@ -11512,7 +11568,7 @@ my_world.my_box
 object
 \family default 
 \shape default 
- will be counted (not those inside).
+ will be counted (not those inside which are on a different object).
  Molecules with a 3D diffusion constant will be counted inside the object,
  but the object must be closed.
  All counts are instantaneous.
@@ -11547,7 +11603,7 @@ region
 
 \layout Standard
 
-Count molecules (reactions not implemented) inside the named region.
+Count molecules or reactions inside the named region.
  It must be referenced fully.
  E.g.
  if 
@@ -11564,6 +11620,8 @@ my_world.my_box[my_region]
 \family default 
 .
  The count is instantaneous.
+ As with the object syntax, molecules and reactions on surfaces must be
+ on the named region, while volume molecules and reactions must be inside.
 \end_inset 
 </cell>
 </row>
@@ -11595,13 +11653,22 @@ region
 
 \layout Standard
 
-Count all molecules (reactions not implemented) that occur inside this region
+Count all molecules or reactions that occur in the area enclosed by region
  (not counting those that occur on the surface of the region).
  This lets you count surface molecules contained on surfaces that lie within
  a box, for example.
  This will work with object names as well as region names, but the object
  or region must be closed.
- It is only useful for surface molecules.
+ It is only useful for surface molecules and reactions at surfaces; adding
+ 
+\family typewriter 
+ALL_ENCLOSED
+\family default 
+ is valid for volume molecules and reactions, but 
+\family typewriter 
+ALL_ENCLOSED
+\family default 
+ is the default behavior.
  The count is instantaneous.
 \end_inset 
 </cell>
@@ -11617,7 +11684,7 @@ Count all molecules (reactions not implemented) that occur inside this region
 COUNT[
 \family sans 
 \shape italic 
-name
+molecule
 \family typewriter 
 \shape default 
 ,
@@ -11699,7 +11766,7 @@ ESTIMATE_CONCENTRATION
 COUNT[
 \family sans 
 \shape italic 
-name
+molecule
 \family typewriter 
 \shape default 
 ,
@@ -11816,7 +11883,15 @@ TRIGGER
 \family default 
  statements output the time and location each time the number of molecules
  changes or a reaction happens.
- 
+ Most 
+\family typewriter 
+COUNT
+\family default 
+ statements have a corresponding 
+\family typewriter 
+TRIGGER
+\family default 
+, but 
 \family typewriter 
 TRIGGER
 \family default 
@@ -11830,39 +11905,33 @@ ESTIMATE_CONC
 \family default 
  directives.
  Within output statements pointing to the same output file, there can only
- be a single 
+ be 
 \family typewriter 
 TRIGGER
 \family default 
- command, i.e., it can not be mixed with other 
+ commands, i.e., they cannot be mixed with 
 \family typewriter 
-TRIGGER
+COUNT
 \family default 
  or
 \family typewriter 
- COUNT
+ EXPRESSION
 \family default 
  statements.
- Please note that trigger outputs are not guaranteed to specify a point
- on the boundary of a region when a molecule diffuses out.
- Surface molecules diffuse by hopping, not raytracing, so when they leave
- a region, the last point occupied is printed.
- Volume molecules that cross boundaries will typically have their positions
- reported as slightly inside the boundary.
- Locations of reactions and hits are exact, however.
+ 
 \layout Standard
 
 
 \family typewriter 
 TRIGGER
 \family default 
- statements obey the following syntax 
+ statements obey the following syntax:
 \layout Standard
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="4" columns="2">
-<features islongtable="true">
+<lyxtabular version="3" rows="6" columns="2">
+<features islongtable="true" headBottomDL="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
 <row topline="true" bottomline="true" endhead="true">
@@ -11920,75 +11989,27 @@ Generates output each time the number of molecules inside the specified
  The output has the format
 \family sans 
 \shape italic 
- iteration time
+ iteration_time exact_time X Y Z orientation number [name]
 \family default 
 \shape default 
-\SpecialChar ~
-\SpecialChar ~
-
-\family sans 
-\shape italic 
-exact time
-\family default 
-\shape default 
-\SpecialChar ~
-\SpecialChar ~
-
-\family sans 
-\shape italic 
-X
-\family default 
-\shape default 
-\SpecialChar ~
-\SpecialChar ~
-
-\family sans 
-\shape italic 
-Y
-\family default 
-\shape default 
-\SpecialChar ~
-\SpecialChar ~
-
-\family sans 
-\shape italic 
-Z
-\family default 
-\shape default 
-\SpecialChar ~
-\SpecialChar ~
-
+ as described below.
+ The sixth column, 
 \family sans 
 \shape italic 
 orientation
 \family default 
 \shape default 
-\SpecialChar ~
-\SpecialChar ~
-
+, gives the molecule orientation, i.e., it is 0 for volume molecules and +/-1
+ for surface molecules according to their orientation with respect to the
+ surface containing them.
+ The seventh column, 
 \family sans 
 \shape italic 
 number
 \family default 
 \shape default 
-\SpecialChar ~
-\SpecialChar ~
-
-\family sans 
-\shape italic 
- [name].
-
-\family default 
-\shape default 
- Here, the first column gives the time of the iteration during which the
- event happened and the second column the exact time the event was scheduled.
- The third through fifth columns are the x, y, and z coordinates of the
- location where the event took place.
- The sixth column gives the molecule orientation, i.e., it is 0 for volume
- molecules and +/-1 for surface molecules according to their orientation
- with respect to the surface containing them.
- The seventh column can take on values of +/-1 depending on if the molecule
- was added or removed, respectively.
+, can take on values of +/-1 depending on if the molecule was added or removed,
+ respectively, from the region.
  If 
 \family typewriter 
 HEADER
@@ -12018,7 +12039,7 @@ reaction
 region
 \family typewriter 
 \shape default 
-,ALL_ENCLOSED]
+]
 \end_inset 
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
@@ -12026,61 +12047,18 @@ region
 
 \layout Standard
 
-Generates output each time the specifed reaction takes place inside the
- named closed region.
- In the case of reactions involving surface molecules, the region needs
- to enclose the surface containing the molecules and can not be the surface
- that contains the molecules itself.
+Generates output each time the named reaction takes place inside the specified
+ closed region.
  The output has the format 
 \family sans 
 \shape italic 
-iteration time
-\family default 
-\shape default 
-\SpecialChar ~
-\SpecialChar ~
-
-\family sans 
-\shape italic 
-exact time
-\family default 
-\shape default 
-\SpecialChar ~
-\SpecialChar ~
-
-\family sans 
-\shape italic 
-X
-\family default 
-\shape default 
-\SpecialChar ~
-\SpecialChar ~
-
-\family sans 
-\shape italic 
-Y
-\family default 
-\shape default 
-\SpecialChar ~
-\SpecialChar ~
-
-\family sans 
-\shape italic 
-Z
-\family default 
-\shape default 
-\SpecialChar ~
-\SpecialChar ~
-
-\family sans 
-\shape italic 
-[name].
+iteration_time exact_time X Y Z [name].
 
 \family default 
 \shape default 
- The fields present have the same meaning as explained above.
- Since reactions do not have an orientation and always occur one at a time
- the corresponding 
+ The fields are described below.
+ Note that since reactions do not have an orientation and always occur one
+ at a time the 
 \family sans 
 \shape italic 
 orientation
@@ -12098,11 +12076,84 @@ orientation
 HEADER
 \family default 
  is on, the sixth column lists the reaction name.
- For reactions with volume molecules, the 
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
 \family typewriter 
-ALL_ENCLOSED
+TRIGGER[
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+object
+\family typewriter 
+\shape default 
+]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+This is equivalent to specifying a list of 
+\family typewriter 
+TRIGGER
 \family default 
- keyword is optional.
+ statements which consist of all regions in that object.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+TRIGGER[
+\family sans 
+\shape italic 
+name
+\family typewriter 
+\shape default 
+,
+\family sans 
+\shape italic 
+region
+\family typewriter 
+\shape default 
+,ALL_ENCLOSED]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Generates output each time the named reaction takes place, or number of
+ named molecules changes, inside the specified closed region.
+ As with 
+\family typewriter 
+COUNT
+\family default 
+ statements, this is only useful for surface reactions and molecules, and
+ does not include the surface of the named region, only events wholly inside
+ it.
+ The output has the format appropriate for molecules or reactions.
+ 
 \end_inset 
 </cell>
 </row>
@@ -12175,65 +12226,10 @@ ALL_CROSSINGS
  The output has the format
 \family sans 
 \shape italic 
- iteration time
-\family default 
-\shape default 
-\SpecialChar ~
-\SpecialChar ~
-
-\family sans 
-\shape italic 
-exact time
-\family default 
-\shape default 
-\SpecialChar ~
-\SpecialChar ~
-
-\family sans 
-\shape italic 
-X
-\family default 
-\shape default 
-\SpecialChar ~
-\SpecialChar ~
-
-\family sans 
-\shape italic 
-Y
-\family default 
-\shape default 
-\SpecialChar ~
-\SpecialChar ~
-
-\family sans 
-\shape italic 
-Z
-\family default 
-\shape default 
-\SpecialChar ~
-\SpecialChar ~
-
-\family sans 
-\shape italic 
-orientation
-\family default 
-\shape default 
-\SpecialChar ~
-\SpecialChar ~
-
-\family sans 
-\shape italic 
- [name].
+ iteration_time exact_time X Y Z orientation [name].
 
 \family default 
 \shape default 
- All entries besides the 
-\family sans 
-\shape italic 
-orientation
-\family default 
-\shape default 
- field have the same meaning as explained above.
  The 
 \family sans 
 \shape italic 
@@ -12241,14 +12237,15 @@ orientation
 \family default 
 \shape default 
  column can take on values of +/-1 depending on if the region was hit or
- crossed from the front or the back, respectively.
- The 
+ crossed from the front or the back, respectively; other columns are described
+ below.
+ Note that the 
 \family sans 
 \shape italic 
 number 
 \family default 
 \shape default 
-column is omitted here.
+column is omitted.
  If 
 \family typewriter 
 HEADER
@@ -12262,6 +12259,228 @@ HEADER
 \end_inset 
 
 
+\layout Standard
+
+The output contains one row of data for each even that happened.
+ The format of the columns is:
+\layout Standard
+\align center 
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="1" columns="8">
+<features>
+<column alignment="center" valignment="top" leftline="true" width="0">
+<column alignment="center" valignment="top" leftline="true" width="0">
+<column alignment="center" valignment="top" leftline="true" width="0">
+<column alignment="center" valignment="top" leftline="true" width="0">
+<column alignment="center" valignment="top" leftline="true" width="0">
+<column alignment="center" valignment="top" leftline="true" width="0">
+<column alignment="center" valignment="top" leftline="true" width="0">
+<column alignment="center" valignment="top" leftline="true" rightline="true" width="0">
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+iteration_time
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+exact_time
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+X
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+Y
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+Z
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+[orientation]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+[number]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+[name]
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+Iteration_time
+\family default 
+\shape default 
+ is the time of the iteration during which the event happened, or the iteration
+ number if 
+\family typewriter 
+ITERATION_LIST
+\family default 
+ was specified for the block.
+\layout Standard
+
+
+\family sans 
+\shape italic 
+Exact_time
+\family default 
+\shape default 
+ is the time at which the event was scheduled, between 
+\family sans 
+\shape italic 
+iteration_time
+\family default 
+\shape default 
+ and the time of the next iteration.
+ Since events within one iteration are not ordered precisely, 
+\family sans 
+\shape italic 
+exact_time
+\family default 
+\shape default 
+ values will not always increase.
+ This column can be turned off by using the 
+\family typewriter 
+SHOW_EXACT_TIME=OFF
+\family default 
+ directive inside the 
+\family typewriter 
+REACTION_DATA_OUTPUT
+\family default 
+ block.
+ These values are always times, even if 
+\family typewriter 
+ITERATION_LIST
+\family default 
+ is specified for the block.
+\layout Standard
+
+
+\family sans 
+\shape italic 
+X
+\family default 
+\shape default 
+, 
+\family sans 
+\shape italic 
+Y
+\family default 
+\shape default 
+, and 
+\family sans 
+\shape italic 
+Z
+\family default 
+\shape default 
+ are the coordinates at which the event took place.
+ Reactions and hits always report their coordinates precisely.
+ Volume molecules that disappear at a surface will report their final position
+ as slightly inside the surface along their last trajectory (so that it
+ is possible to tell which side of the surface they were on).
+ Surface molecules diffuse by hopping rather than raytracing, so when a
+ surface molecule leaves a region of interest, the last position reported
+ is the last position inside the region where it stayed, not the boundary
+ of the region where it crossed.
+\layout Standard
+
+
+\family sans 
+\shape italic 
+Orientation
+\family default 
+\shape default 
+ and 
+\family sans 
+\shape italic 
+number
+\family default 
+\shape default 
+ are only provided for certain types of triggers and are described above.
+\layout Standard
+
+
+\family sans 
+\shape italic 
+Name
+\family default 
+\shape default 
+ is the name of the molecule or a user-defined string, and present in the
+ last column (6, 7, or 8 depending on which type of trigger is used) if
+ 
+\family typewriter 
+HEADERS
+\family default 
+ are on.
 \layout Standard
 
 The following output symbols can be used in place of 
@@ -12281,7 +12500,7 @@ The following output symbols can be used in place of
 
 \begin_inset  Tabular
 <lyxtabular version="3" rows="6" columns="2">
-<features islongtable="true">
+<features islongtable="true" headBottomDL="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
 <row topline="true" bottomline="true" endhead="true">

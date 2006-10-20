@@ -234,7 +234,9 @@ int add_trigger_output(struct counter *c,struct output_request *ear,int n,short 
   
   otd = &(((struct output_trigger_data*)first_column->buffer)[idx]);
   
-  otd->t_iteration = world->it_time*world->time_unit;
+  if (first_column->set->block->timer_type==OUTPUT_BY_ITERATION_LIST) otd->t_iteration=world->it_time;
+  else otd->t_iteration = world->it_time*world->time_unit;
+  
   otd->event_time = c->data.trig.t_event*world->time_unit;
   otd->loc.x = c->data.trig.loc.x*world->length_unit;
   otd->loc.y = c->data.trig.loc.y*world->length_unit;
@@ -253,8 +255,9 @@ int add_trigger_output(struct counter *c,struct output_request *ear,int n,short 
   otd->flags = flags;
   otd->name = ear->requester->column->expr->title;
   
+  first_column->initial_value += 1.0;
   idx=(int)first_column->initial_value;
-  if (idx+1 >= first_column->set->block->trig_bufsize)
+  if (idx >= first_column->set->block->trig_bufsize)
   {
     if (write_reaction_output(first_column->set,0))
     {
@@ -264,7 +267,6 @@ int add_trigger_output(struct counter *c,struct output_request *ear,int n,short 
     }
     first_column->initial_value = 0;
   }  
-  else first_column->initial_value=idx+1;
   
   return 0;
 }
@@ -523,30 +525,34 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
   else /* Write accumulated trigger data */
   {
     struct output_trigger_data *trig;
+    char event_time_string[1024];   /* Wouldn't run out of space even if we printed out DBL_MAX in non-exponential notation! */
     
     n_output = (u_int)set->column_head->initial_value;
     for (i=0;i<n_output;i++)
     {
       trig = &(((struct output_trigger_data*)set->column_head->buffer)[i]);
       
+      if (set->exact_time_flag) sprintf(event_time_string,"%.12g ",trig->event_time);
+      else strcpy(event_time_string,"");
+      
       if(trig->flags & TRIG_IS_RXN)  /* Just need time, pos, name */
       {
-        fprintf(fp,"%.15g %.12g %.9g %.9g %.9g %s\n",
-                trig->t_iteration,trig->event_time,
+        fprintf(fp,"%.15g %s%.9g %.9g %.9g %s\n",
+                trig->t_iteration,event_time_string,
                 trig->loc.x,trig->loc.y,trig->loc.z,
                 (trig->name==NULL)?"":trig->name);
       }
       else if (trig->flags & TRIG_IS_HIT) /* Need orientation also */
       {
-        fprintf(fp,"%.15g %.12g %.9g %.9g %.9g %d %s\n",
-                trig->t_iteration,trig->event_time,
+        fprintf(fp,"%.15g %s%.9g %.9g %.9g %d %s\n",
+                trig->t_iteration,event_time_string,
                 trig->loc.x,trig->loc.y,trig->loc.z,
                 trig->orient,(trig->name==NULL)?"":trig->name);
       }
       else /* Molecule count -- need both number and orientation */
       {
-        fprintf(fp,"%.15g %.12g %.9g %.9g %.9g %d %d %s\n",
-                trig->t_iteration,trig->event_time,
+        fprintf(fp,"%.15g %s%.9g %.9g %.9g %d %d %s\n",
+                trig->t_iteration,event_time_string,
                 trig->loc.x,trig->loc.y,trig->loc.z,
                 trig->orient,trig->how_many,(trig->name==NULL)?"":trig->name);
       }

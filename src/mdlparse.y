@@ -310,6 +310,7 @@ struct release_evaluator *rev;
 %token <tok> SCALE
 %token <tok> SEED
 %token <tok> SHAPE
+%token <tok> SHOW_EXACT_TIME
 %token <tok> SIN
 %token <tok> SITE_DIAMETER
 %token <tok> SITE_RADIUS
@@ -458,6 +459,7 @@ struct release_evaluator *rev;
 %type <tok> viz_molecules_one_item
 %type <tok> viz_meshes_one_item
 %type <tok> custom_header
+%type <tok> exact_time_toggle
 %type <tok> file_arrow
 
 %type <tok> hit_spec
@@ -8279,7 +8281,8 @@ output_def: REACTION_DATA_OUTPUT '{'
     return 1;
   }
 
-  mdlpvp->header_comment=NULL;
+  mdlpvp->header_comment=NULL;  /* No header by default */
+  mdlpvp->exact_time_flag=1;    /* Print exact_time column in TRIGGER output by default */
 }
        output_buffer_size_def
 {
@@ -8418,6 +8421,7 @@ list_count_cmds:
 	count_cmd 
 	| list_count_cmds count_cmd
 	| custom_header
+        | exact_time_toggle
 	| list_count_cmds custom_header;
 
 count_cmd: '{'
@@ -8430,6 +8434,7 @@ count_cmd: '{'
     mdlerror("Out of memory while creating output list");
     return 1;
   }
+  os->exact_time_flag = mdlpvp->exact_time_flag;
   mdlpvp->count_flags = 0; 
 }
 	list_count_exprs '}' file_arrow outfile_syntax
@@ -8478,6 +8483,12 @@ custom_header:
 	| HEADER '=' str_expr
 {
   mdlpvp->header_comment = $<str>3;
+}
+
+
+exact_time_toggle: SHOW_EXACT_TIME '=' boolean
+{
+  mdlpvp->exact_time_flag = ($<tok>3!=0);
 }
 
 

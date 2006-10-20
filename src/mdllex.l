@@ -305,6 +305,7 @@ I ([0-9]+)
 "SCALE"			{return(SCALE);}
 "SEED"			{return(SEED);}
 "SHAPE"			{return(SHAPE);}
+"SHOW_EXACT_TIME"       {return(SHOW_EXACT_TIME);}
 "SIN"			{return(SIN);}
 "SITE_DIAMETER"		{return(SITE_DIAMETER);}
 "SITE_RADIUS"		{return(SITE_RADIUS);}
