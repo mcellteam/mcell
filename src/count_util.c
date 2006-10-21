@@ -1200,6 +1200,8 @@ int prepare_counters()
   struct output_block *block;
   struct output_set *set;
   struct output_column *column;
+  struct object *o;
+  int found = 0; /* flag to detect instantiated object or region */
   int i;
   
   /* First give everything a sensible name, if needed */
@@ -1223,6 +1225,22 @@ int prepare_counters()
   /* Then convert all requests to real counts */
   for (request=world->output_request_head ; request!=NULL ; request=request->next)
   {
+     /* check whether the "count_location" refers to the instantiated
+        object or region */ 
+    if(request->count_location != NULL ){
+       for (o = world->root_instance; o != NULL; o = o->next)
+       {
+            if(is_object_instantiated(o, request->count_location)){
+              found = 1;
+              break;
+            }
+       }
+       if(!found){
+          fprintf(world->err_file,"Name of the object/region '%s' in the COUNT/TRIGGER statement is not fully referenced.\n", request->count_location->name);
+          return 1;
+       }
+    }
+
     if (request->count_location!=NULL && request->count_location->sym_type==OBJ)
     {
       i = expand_object_output(request,(struct object*)request->count_location->value);
@@ -1245,6 +1263,47 @@ int prepare_counters()
   return 0;
 }
   
+
+/******************************************************************
+is_object_instantiated:
+  In: object
+      symbol_table entry against which the object is tested 
+  Out: 1 if the name of the object or one of its descendants matches the name 
+       of the symbol passed, 0 otherwise.
+  Note: Checking is performed for all instantiated objects
+********************************************************************/
+int is_object_instantiated(struct object *parent, struct sym_table *entry)
+{
+
+   struct object *o;
+   struct region_list *rl;
+
+   if(parent->object_type == POLY_OBJ || parent->object_type == BOX_OBJ){
+
+      if(strcmp(parent->sym->name, entry->name) == 0){
+          return 1;
+      }
+      if(parent->num_regions > 0)
+      {
+         for(rl = parent->regions; rl != NULL; rl = rl->next)
+         {
+            if(strcmp(rl->reg->sym->name, entry->name) == 0){
+               return 1;
+            }
+         }
+      }
+
+   }else if(parent->object_type == META_OBJ){
+       for(o = parent->first_child; o != NULL; o = o->next)
+       {
+          if(is_object_instantiated(o, entry)) return 1;
+
+       }
+
+  }            
+
+   return 0;
+}
   
 
 /*************************************************************************
