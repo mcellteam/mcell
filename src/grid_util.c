@@ -491,11 +491,13 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
   
   best_i = -1;
   best_d2 = 2.0*max_d2+1.0;
-  best_w = NULL;
   
   if (origin->grid==NULL)
   {
-    if (create_grid(origin,NULL)) return NULL;  /* FIXME: handle out of memory properly */
+    if (create_grid(origin,NULL)){ 
+      /* this is an out_of_memory error */
+      exit(EXIT_FAILURE);
+    }
   }
   
 
@@ -508,61 +510,69 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
     best_d2 = d2;
     best_w = origin;
   }
-  
-  /* Check for closer free grid elements on neighboring walls */
-  for (j=0 ; j<3 ; j++)
+ 
+  /* if there are free slots on the origin wall - look around */
+  if(best_w == NULL)
   {
-    if (origin->edges[j]==NULL || origin->edges[j]->backward==NULL) continue;
+   
+     /* Check for closer free grid elements on neighboring walls */
+     for (j=0 ; j<3 ; j++)
+     {
+       if (origin->edges[j]==NULL || origin->edges[j]->backward==NULL) continue;
     
-    if (origin->edges[j]->forward==origin) there = origin->edges[j]->backward;
-    else there = origin->edges[j]->forward;
+       if (origin->edges[j]->forward==origin) there = origin->edges[j]->backward;
+       else there = origin->edges[j]->forward;
     
-    if (ok!=NULL && !(*ok)(context,there) ) continue;  /* Calling function doesn't like this wall */
+       if (ok!=NULL && !(*ok)(context,there) ) continue;  /* Calling function doesn't like this wall */
+   
+       /* Calculate distance between point and edge j of origin wall */
+       switch (j)
+       {
+         case 0:
+           vurt0.u = vurt0.v = 0.0;
+	   vurt1.u = origin->uv_vert1_u; vurt1.v = 0;
+	   break;
+         case 1:
+      	   vurt0.u = origin->uv_vert1_u; vurt0.v = 0;
+           memcpy(&vurt1,&(origin->uv_vert2),sizeof(struct vector2));
+	   break;
+         case 2:
+           memcpy(&vurt0,&(origin->uv_vert2),sizeof(struct vector2));
+	   vurt1.u = vurt1.v = 0.0;
+           break;
+         /* No default case since 0<=j<=2 */
+       }
+       ed.u = vurt1.u - vurt0.u;
+       ed.v = vurt1.v - vurt0.v;
+       pt.u = point->u - vurt0.u;
+       pt.v = point->v - vurt0.v;
     
-    /* Calculate distance between point and edge j of origin wall */
-    switch (j)
-    {
-      case 0:
-        vurt0.u = vurt0.v = 0.0;
-	vurt1.u = origin->uv_vert1_u; vurt1.v = 0;
-	break;
-      case 1:
-      	vurt0.u = origin->uv_vert1_u; vurt0.v = 0;
-        memcpy(&vurt1,&(origin->uv_vert2),sizeof(struct vector2));
-	break;
-      case 2:
-        memcpy(&vurt0,&(origin->uv_vert2),sizeof(struct vector2));
-	vurt1.u = vurt1.v = 0.0;
-        break;
-      /* No default case since 0<=j<=2 */
-    }
-    ed.u = vurt1.u - vurt0.u;
-    ed.v = vurt1.v - vurt0.v;
-    pt.u = point->u - vurt0.u;
-    pt.v = point->v - vurt0.v;
+       d2 = pt.u*ed.u + pt.v*ed.v;
+       d2 = (pt.u*pt.u + pt.v*pt.v) - d2*d2/(ed.u*ed.u+ed.v*ed.v); /* Distance squared to line */
     
-    d2 = pt.u*ed.u + pt.v*ed.v;
-    d2 = (pt.u*pt.u + pt.v*pt.v) - d2*d2/(ed.u*ed.u+ed.v*ed.v); /* Distance squared to line */
-    
-    /* Check for free grid element on neighbor if point to edge distance is closer than best_d2  */
-    if (d2<best_d2)
-    {
-      if (there->grid==NULL)
-      {
-	if (create_grid(there,NULL)) return NULL;  /* FIXME: handle out of memory properly */
-      }
-      traverse_surface(origin,point,j,&pt);
-      i = nearest_free(there->grid,&pt,max_d2,&d2);
+       /* Check for free grid element on neighbor if point to edge distance is closer than best_d2  */
+       if (d2<best_d2)
+       {
+          if (there->grid==NULL)
+         {
+	   if (create_grid(there,NULL)) {
+              /* this is an out_of_memory error */
+              exit(EXIT_FAILURE);
+           }
+         }
+         traverse_surface(origin,point,j,&pt);
+         i = nearest_free(there->grid,&pt,max_d2,&d2);
       
-      if (i!=-1 && d2 < best_d2)
-      {
-	best_i = i;
-	best_d2 = d2;
-	best_w = there;
-      }
-    }
-  }
-  
+         if (i!=-1 && d2 < best_d2)
+         {
+	   best_i = i;
+	   best_d2 = d2;
+	   best_w = there;
+         }
+       }
+     }
+  }  
+
   *found_idx = best_i;
   return best_w;
 } 

@@ -42,5 +42,6 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   struct abstract_molecule *reac,short orient,double t,struct vector3 *hitpt,
   struct vector3 *loc_okay);
 int reaction_wizardry(struct magic_list *incantation,struct wall *surface,struct vector3 *hitpt,double t);
+int is_compatible_surface(void *req_species, struct wall *w);
 
 #endif

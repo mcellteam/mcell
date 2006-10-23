@@ -140,7 +140,7 @@ int edge_hash(struct poly_edge *pe,int nkeys)
   unsigned short *a;
   unsigned int hashL=1 , hashR=1;
   int i,j;
-
+  
   a = (unsigned short*) &(pe->v1x);
   for (i=j=0;i<12;i++)
   {
@@ -154,6 +154,7 @@ int edge_hash(struct poly_edge *pe,int nkeys)
     if (j>=14) j-=14;
     hashR += ((int)a[i])<<j;
   }
+  
   return ( (hashL ^ hashR) % nkeys );
 }
 #endif
@@ -1138,11 +1139,17 @@ is_manifold:
 
 int is_manifold(struct region *r)
 {
-  struct wall **wall_array,*w;
+  struct wall **wall_array = NULL, *w = NULL;
   int i,j;
-  struct region_list *rl;
-  
+  struct region_list *rl = NULL;
+
   wall_array = r->parent->wall_p;
+  
+  if(wall_array == NULL){
+	fprintf(world->log_file, "Error in the region declaration.\n");
+	return 0; 
+  }
+   
   for (i=0;i<r->parent->n_walls;i++)
   {
     if (!get_bit(r->membership,i)) continue;  /* Skip wall not in region */

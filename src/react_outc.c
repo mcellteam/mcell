@@ -148,26 +148,23 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   {
     if (reac_g!=NULL) memcpy(&uv_loc , &(reac_g->s_pos) , sizeof(struct vector2));
     else xyz2uv(hitpt,w,&uv_loc);
+
  
     for (j=i0+rx->n_reactants;j<iN;j++)
     {
       if (rx->players[j]->flags&ON_GRID)
       {
         if(replace_p1 && replace_p2){
-             if(moving == reacA){
-	        glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacB)->grid;
-	        xlist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacB)->grid_index;
-	        flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACB_UV;
-	        replace_p2=0;
-	        continue;
-             }else{
-	        glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid;
-	        xlist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid_index;
-	        flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
-	        replace_p1=0;
-	        continue;
-             }
-
+	      glist[j - (i0+rx->n_reactants)] = reac_g->grid;
+	      xlist[j - (i0+rx->n_reactants)] = reac_g->grid_index;
+              if((struct abstract_molecule *)reac_g == reacA){
+	           flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
+	           replace_p1=0;
+              }else{
+	           flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACB_UV;
+	           replace_p2=0;
+              }
+	      continue;
         }else if (replace_p1){
 	  glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid;
 	  xlist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid_index;
@@ -194,7 +191,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
 	}
 	else
 	{
-	  struct wall *temp_w;
+	  struct wall *temp_w = NULL;
 	  
 	  if (fake_idx > -1) glist[fake_idx]->mol[ xlist[fake_idx] ] = &fake; /* Assumed empty! */
 
@@ -213,8 +210,8 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
 	  
 	  if (world->vacancy_search_dist2 > 0)
 	  {
-	    /* FIXME: only do this for surfaces compatible with the reaction! */
-    	    temp_w = search_nbhd_for_free(w,&uv_loc,world->vacancy_search_dist2,&k,&is_compatible_surface,NULL);
+               
+    	    temp_w = search_nbhd_for_free(w,&uv_loc,world->vacancy_search_dist2,&k,&is_compatible_surface,(void *)w->surf_class);
             
 	    if (temp_w != NULL)
 	    {
