@@ -222,11 +222,11 @@ test_many_bimolecular
   In: an array of reactions we're testing
       scaling coefficients depending on how many timesteps we've moved
         at once (1.0 means one timestep) and/or missing interaction areas
-      the number of elements in the array
+      the number of elements in the array of reactions
       placeholder for the chosen pathway in the reaction (works as return
           value)
   Out: RX_NO_RX if no reaction occurs
-       index inthe reaction array corresponding to which reaction occurs 
+       index in the reaction array corresponding to which reaction occurs 
           if one does occur
   Note: If this reaction does not return RX_NO_RX, then we update
         counters appropriately assuming that the reaction does take place.
@@ -245,7 +245,8 @@ int test_many_bimolecular(struct rxn **rx,double *scaling, int n, int *chosen_pa
   
   if (n==1) return test_bimolecular(rx[0],scaling[0]);
 
-  /* FIXME: lots of division here, can we convert to multiplication? */
+  /* Note: lots of division here, if we're CPU-bound,could invert the
+     definition of scaling_coefficients */
   rxp[0] = rx[0]->cum_probs[ rx[0]->n_pathways - 1 ]/scaling[0];
   for (i=1;i<n;i++)
   {
