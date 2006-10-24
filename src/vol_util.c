@@ -1715,16 +1715,24 @@ int set_partitions()
   }
   
 
-  /* Use automatic partitioning if some of the partitions are not set */
-  /* FIXME: should probably be an error, not just a warning, if only some are set */
+  /* Use automatic partitioning only when there are no user-specified partitions */
   if (world->x_partitions == NULL ||
       world->y_partitions == NULL ||
       world->z_partitions == NULL)
   {
     if (world->x_partitions!=NULL || world->y_partitions!=NULL || world->z_partitions!=NULL)
     {
-      fprintf(world->err_file,"Warning: some but not all axes are manually partitioned.\n  Using automatic partitions instead--no manual partitions used.\n");
+      fprintf(world->err_file,"Error: some but not all axes are manually partitioned.\n");
+      return 1;
     }
+   }
+
+  if (world->x_partitions == NULL &&
+      world->y_partitions == NULL &&
+      world->z_partitions == NULL)
+  {
+     /* perform automatic partitioning */
+
     /* Guess how big to make partitions--nothing really clever about what's done here */
     if (steps_max / MAX_TARGET_TIMESTEP > MAX_COARSE_PER_AXIS)
     {
