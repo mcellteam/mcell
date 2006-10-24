@@ -1533,8 +1533,6 @@ set_partitions:
   In: nothing.  Uses struct volume *world, assumes bounding box is set.
   Out: 0 on success, 1 on error; coarse and fine partitions are set.
 *************************************************************************/
-
-/*FIXME: I am impossible to understand.  Comprehensibilize this function!*/
 int set_partitions()
 {
   double f_min,f_max,f,df,dfx,dfy,dfz;
