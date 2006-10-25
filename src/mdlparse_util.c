@@ -383,7 +383,6 @@ int copy_object(struct volume *volp,struct object *curr_objp,
   struct object *child_objp,*child_objp2;
   struct region_list *rlp,*rlp2;
   struct region *rp,*rp2;
-  struct element_list *elp,*elp2;
   struct eff_dat *effdp,*effdp2;
   char temp[1024];
   char *sym_name,*child_obj_name;
@@ -432,22 +431,7 @@ int copy_object(struct volume *volp,struct object *curr_objp,
     }else if (rp2->region_viz_value > 0){
         rp->region_viz_value = rp2->region_viz_value; 
     }
-   
-    for ( elp2=rp2->element_list_head ; elp2!=NULL ; elp2=elp2->next)
-    { 
-      /* FIXME: take this for loop out later, shouldn't be needed */
-      if ((elp=(struct element_list *)malloc
-           (sizeof(struct element_list)))==NULL) {
-           sprintf(err_msg,"File '%s', Line %ld: Out of memory while creating object %s.\n", __FILE__, (long)__LINE__, sym_name);
-           return(1);
-      }
-      elp->special=NULL;
-      elp->next=rp->element_list_head;
-      rp->element_list_head=elp;
-      elp->begin=elp2->begin;
-      elp->end=elp2->end;
-      if (elp2->special!=NULL) elp->begin = elp->end = 0;
-    }
+
     if (rp2->membership != NULL)
     {
       rp->membership = duplicate_bit_array(rp2->membership);
