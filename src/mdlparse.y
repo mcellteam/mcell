@@ -2597,9 +2597,9 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
   mdlpvp->pathp->reactant2=(struct species *)mdlpvp->stp2->value;
   mdlpvp->pathp->reactant3=NULL;
   mdlpvp->pathp->km=GIGANTIC;
-  mdlpvp->pathp->kcat=0;
   mdlpvp->pathp->km_filename=NULL;
   mdlpvp->pathp->prod_signature = NULL;
+  mdlpvp->pathp->flags=0;
 
   if (mdlpvp->orient_class==0)
   {
@@ -2622,7 +2622,7 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
         mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
         return(1);
       }
-      mdlpvp->pathp->kcat = KCAT_RATE_REFLECTIVE;
+      mdlpvp->pathp->flags |= PATHW_REFLEC;
       mdlpvp->prodp->prod=mdlpvp->pathp->reactant2;
       mdlpvp->prodp->orientation=1;
       mdlpvp->prodp->next=NULL;
@@ -2644,7 +2644,7 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
         mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
         return(1);
       }
-      mdlpvp->pathp->kcat = KCAT_RATE_TRANSPARENT;
+      mdlpvp->pathp->flags |= PATHW_TRANSP;
       mdlpvp->prodp->prod=mdlpvp->pathp->reactant2;
       mdlpvp->prodp->orientation=-1;
       mdlpvp->prodp->next=NULL;
@@ -2684,7 +2684,7 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
     }
     no_printf(" %s[%d]",mdlpvp->prodp->prod->sym->name,mdlpvp->prodp->orientation);
   }
-  no_printf(" [%.9g,%.9g]\n",mdlpvp->rxnp->pathway_head->km,mdlpvp->rxnp->pathway_head->kcat);
+  no_printf(" [%.9g]\n",mdlpvp->rxnp->pathway_head->km);
 #endif
 }
         | CLAMP_CONCENTRATION existing_molecule_opt_orient '=' num_expr
@@ -2745,10 +2745,9 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
   mdlpvp->pathp->reactant2=(struct species *)mdlpvp->stp2->value;
   mdlpvp->pathp->reactant3=NULL;
   
-  mdlpvp->pathp->km=GIGANTIC;
+  mdlpvp->pathp->flags |= PATHW_CLAMP_CONC;
   
-  /* Hack: kcat doesn't make sense for surfaces, so store CCN here! */
-  mdlpvp->pathp->kcat=$<dbl>4;
+  mdlpvp->pathp->km=$<dbl>4;
   mdlpvp->pathp->km_filename=NULL;
   
   if (mdlpvp->orient_class==0)
@@ -3223,7 +3222,6 @@ existing_object: VAR
   else {
     mdlpvp->sym_name=mdlpvp->cval;
   }
-
   if ((mdlpvp->gp=retrieve_sym(get_first_name(mdlpvp->sym_name),OBJ,volp->main_sym_table))==NULL) {
     sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined object:",mdlpvp->sym_name);
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
@@ -5788,9 +5786,9 @@ rxn:
   mdlpvp->pathp->reactant2=NULL;
   mdlpvp->pathp->reactant3=NULL;
   mdlpvp->pathp->km=0;
-  mdlpvp->pathp->kcat=0;
   mdlpvp->pathp->km_filename=NULL;
   mdlpvp->pathp->prod_signature = NULL;
+  mdlpvp->pathp->flags |= 0;
   
   mdlpvp->catalytic_arrow=0; /* set default value */ 
 }
@@ -5950,7 +5948,6 @@ rxn:
     mdlpvp->pathp->pathname=mdlpvp->rxpnp;
   }
   mdlpvp->pathp->km=mdlpvp->fwd_km;
-  mdlpvp->pathp->kcat=mdlpvp->fwd_kcat;
   if(mdlpvp->pathp->product_head != NULL){
      mdlpvp->pathp->prod_signature = create_prod_signature(&mdlpvp->pathp->product_head);
      if(mdlpvp->pathp->prod_signature == NULL){
@@ -6151,7 +6148,6 @@ orient_class_number: '{' num_expr '}'
 rx_rate_syntax:
 {
   mdlpvp->fwd_km = mdlpvp->bkw_km = 0;
-  mdlpvp->fwd_kcat = mdlpvp->bkw_kcat = 0;
   mdlpvp->fwd_rate_filename = mdlpvp->bkw_rate_filename = NULL;
 }
 	rx_rate1or2;
@@ -9332,7 +9328,7 @@ int mdlparse_init(struct volume *vol)
   mpvp->pathp->reactant2=vol->g_mol;
   mpvp->pathp->reactant3=NULL;
   mpvp->pathp->km=GIGANTIC;
-  mpvp->pathp->kcat=0;
+  mpvp->pathp->flags=0;
   mpvp->pathp->orientation1=0;
   mpvp->pathp->orientation2=1;
   mpvp->pathp->orientation3=0;

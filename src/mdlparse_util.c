@@ -1483,12 +1483,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         for (j=0 , path=rx->pathway_head ; path!=NULL ; j++ , path = path->next)
         {
           rx->product_idx[j] = 0;
-          /* FIXME: use flags instead of magic kcat values to indicate surface properties such as transparency and concentration clamp */
-          if (path->kcat >= 0.0)
-          {
-            /* Look for hack that indicates concentration clamp */
+          
+            /* Look for concentration clamp */
             if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE)!=0 &&
-                path->km==GIGANTIC && path->product_head==NULL && path->kcat>0.0)
+                path->km > 0.0 && path->product_head==NULL && ((path->flags & PATHW_CLAMP_CONC) != 0))
             {
               struct ccn_clamp_data *ccd;
               
@@ -1506,7 +1504,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               
               ccd->surf_class = path->reactant2;
               ccd->mol = path->reactant1;
-              ccd->concentration = path->kcat;
+              ccd->concentration = path->km;
               if (path->orientation1*path->orientation2==0)
               {
                 ccd->orient = 0;
@@ -1528,20 +1526,15 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               
               rx->cat_probs[0] = 0;
             }
+            else if ((path->flags & PATHW_TRANSP) != 0) {
+               rx->n_pathways = RX_TRANSP;
+            }else if ((path->flags & PATHW_REFLEC) != 0) {
+               rx->n_pathways = RX_REFLEC;
+            }
             else
             {
-              rx->cat_probs[j] = path->kcat;
+              rx->cat_probs[j] = 0;
             }
-          } /* end if(path->kcat >= 0) */ 
-          else
-          {
-	    if (path->kcat==KCAT_RATE_TRANSPARENT) rx->n_pathways = RX_TRANSP;
-	    else if (path->kcat==KCAT_RATE_REFLECTIVE) rx->n_pathways = RX_REFLEC;
-            if (j!=0 || path->next!=NULL)
-            {
-              fprintf(mpvp->vol->err_file,"Warning: mixing surface modes with other surface reactions.  Please don't.\n");
-            }
-          } /* end if-else(path->kcat >= 0) */
 
           if (path->km_filename == NULL) rx->cum_probs[j] = path->km;
           else n_prob_t_rxns++;
@@ -2288,7 +2281,6 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
       path->orientation2 = prodp->next->orientation;
   }
   path->km = mpvp->bkw_km;
-  path->kcat = mpvp->bkw_kcat;
   path->km_filename = NULL;
   if (mpvp->bkw_rate_filename!=NULL)
   {

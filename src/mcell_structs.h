@@ -131,6 +131,7 @@
 
 
 /* Reaction flags */
+  /* RX_REFLEC signifies that a reaction is between a molecule and a REFLECTIVE  wall */
   /* RX_TRANSP signifies that a reaction is between a molecule and a TRANSPARENT wall */
   /* Any value equal to or less than RX_SPECIAL refers to a special wall type */
   /* RX_BLOCKED signals a reaction that cannot take place because the grid is full */
@@ -150,6 +151,16 @@
 #define RX_A_OK     1
 #define RX_NO_MEM   3
 #define MAX_MATCHING_RXNS 64
+
+
+/* Pathway flags */
+/* TRANSPARENT means surface reaction between the molecule and TRANSPARENT wall */
+/* REFLECTIVE means surface reaction between the molecule and REFLECTIVE wall */
+/* CLAMP_CONC means surface reaction of CLAMP_CONCENTRATION type */
+#define PATHW_TRANSP      0x0001
+#define PATHW_REFLEC      0x0002
+#define PATHW_CLAMP_CONC  0x0004   
+
 
 /* BSP Flags */
 /* (Currently unused--these are for self-subdividing subvolumes.) */
@@ -245,11 +256,6 @@
 #define EPS_C 1e-12
 #define GIGANTIC 1e140
 #define FOREVER 1e20
-
-/* Special rate constants used to define unusual reactions */
-#define KCAT_RATE_TRANSPARENT -1.0
-#define KCAT_RATE_REFLECTIVE -2.0
-
 
 
 /* How big will we let the reaction table get? */
@@ -696,7 +702,6 @@ struct pathway {
   struct species *reactant2;     /* Second reactant (NULL if none) */
   struct species *reactant3;     /* Third reactant--surface type or NULL */
   double km;                     /* Rate constant */
-  double kcat;                   /* Catalytic dead time */
   char* km_filename;             /* Filename for time-varying rates */
   short orientation1;            /* Orientation of first reactant */
   short orientation2;            /* Orientation of second reactant */
@@ -704,6 +709,9 @@ struct pathway {
   struct product *product_head;  /* Linked lists of species created */
   char *prod_signature;         /* string created from the names of
                                    products put in alphabetical order */
+  short flags;                  /* flags describing special reactions -
+                                REFLECTIVE, TRANSPARENT, CLAMP_CONCENTRATION */
+
 };
 
 /* Parse-time structure for products of reaction pathways */
