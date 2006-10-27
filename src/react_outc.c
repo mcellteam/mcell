@@ -94,7 +94,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
 #define FLAG_USE_REACA_UV 2
 #define FLAG_USE_REACB_UV 3
 #define FLAG_USE_RANDOM 4
- 
+     
 
   /* make sure that reacA correponds to rx->players[0], and
      reacB - to rx->players[1] */ 
@@ -155,7 +155,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
       if (rx->players[j]->flags&ON_GRID)
       {
         if(replace_p1 && replace_p2){
-	      glist[j - (i0+rx->n_reactants)] = reac_g->grid;
+              glist[j - (i0+rx->n_reactants)] = reac_g->grid;
 	      xlist[j - (i0+rx->n_reactants)] = reac_g->grid_index;
               if((struct abstract_molecule *)reac_g == reacA){
 	           flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
@@ -166,7 +166,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
               }
 	      continue;
         }else if (replace_p1){
-	  glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid;
+          glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid;
 	  xlist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid_index;
 	  flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
 	  replace_p1=0;
@@ -191,6 +191,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
 	}
 	else
 	{
+
 	  struct wall *temp_w = NULL;
 	  
 	  if (fake_idx > -1) glist[fake_idx]->mol[ xlist[fake_idx] ] = &fake; /* Assumed empty! */
@@ -210,7 +211,6 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
 	  
 	  if (world->vacancy_search_dist2 > 0)
 	  {
-               
     	    temp_w = search_nbhd_for_free(w,&uv_loc,world->vacancy_search_dist2,&k,&is_compatible_surface,(void *)w->surf_class);
             
 	    if (temp_w != NULL)
@@ -481,13 +481,15 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
     }
   }
   
-  return bounce;
-  
+
 #undef FLAG_NOT_SET
 #undef FLAG_USE_UV_LOC
 #undef FLAG_USE_REACA_UV
 #undef FLAG_USE_REACB_UV
 #undef FLAG_USE_RANDOM
+  
+  return bounce;
+  
 }
 
 
@@ -498,6 +500,7 @@ outcome_unimolecular:
       the molecule that is taking that path
       time that the reaction is occurring
   Out: Value based on outcome:
+	 RX_BLOCKED if there was no room to put products on grid
 	 RX_DESTROY if molecule no longer exists.
 	 RX_A_OK if it does.
 	 RX_NO_MEM on an out-of-memory error.
@@ -513,7 +516,8 @@ int outcome_unimolecular(struct rxn *rx,int path,
   struct volume_molecule *m=NULL;
   struct grid_molecule *g=NULL;
   int i;
-  
+ 
+ 
   if ((reac->properties->flags & NOT_FREE) == 0)
   {
     m = (struct volume_molecule*)reac;
@@ -529,6 +533,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
   }
   
   if (result==RX_NO_MEM) return RX_NO_MEM;
+  else if (result==RX_BLOCKED) return RX_BLOCKED;
   
   if (result != RX_BLOCKED) {
      rx->info[path].count++;
