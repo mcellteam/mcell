@@ -413,6 +413,12 @@ int nearest_free(struct surface_grid *g,struct vector2 *v,double max_d2,double *
   double d2;
   double f,ff,fff;
   double over3n = 0.333333333333333/(double)(g->n);
+
+  /* check whether the grid is fully occupied */
+  if(g->n_occupied >= g->n_tiles){
+    *found_dist2 = 0;
+     return -1;
+  }
   
   idx = -1;
   d2 = 2*max_d2 + 1.0;
@@ -481,7 +487,7 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
                              int (*ok)(void*,struct wall*),void *context)
 {
   struct wall *there = NULL;
-  int i,j;
+  int i, j;
   double d2;
   struct vector2 pt,ed;
   struct vector2 vurt0,vurt1;
@@ -500,9 +506,12 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
     }
   }
   
+  i = -1; /* default return value */
 
   /* Find index and distance of nearest free grid element on origin wall */
-  i = nearest_free(origin->grid, point, max_d2,&d2);
+  if(origin->grid->n_occupied < origin->grid->n_tiles){
+     i = nearest_free(origin->grid, point, max_d2,&d2);
+  }
 
   if (i != -1)
   {
@@ -511,10 +520,10 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
     best_w = origin;
   }
  
-  /* if there are free slots on the origin wall - look around */
+  /* if there are no free slots on the origin wall - look around */
+
   if(best_w == NULL)
   {
-   
      /* Check for closer free grid elements on neighboring walls */
      for (j=0 ; j<3 ; j++)
      {
@@ -524,7 +533,15 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
        else there = origin->edges[j]->forward;
     
        if (ok!=NULL && !(*ok)(context,there) ) continue;  /* Calling function doesn't like this wall */
-   
+  
+       /* check whether there are any available spots on the neighbor wall */   
+         if (there->grid != NULL)
+         {
+             if(there->grid->n_occupied >= there->grid->n_tiles){
+                   continue;
+             }
+         }
+ 
        /* Calculate distance between point and edge j of origin wall */
        switch (j)
        {
@@ -553,16 +570,19 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
        /* Check for free grid element on neighbor if point to edge distance is closer than best_d2  */
        if (d2<best_d2)
        {
-          if (there->grid==NULL)
+               
+         if (there->grid==NULL)
          {
 	   if (create_grid(there,NULL)) {
-              /* this is an out_of_memory error */
+              // this is an out_of_memory error 
               exit(EXIT_FAILURE);
            }
          }
+             
+
          traverse_surface(origin,point,j,&pt);
          i = nearest_free(there->grid,&pt,max_d2,&d2);
-      
+         
          if (i!=-1 && d2 < best_d2)
          {
 	   best_i = i;
