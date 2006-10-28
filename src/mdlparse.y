@@ -5826,12 +5826,17 @@ rxn:
   mdlpvp->prod_all_3d=1;
   num_surfaces = 0;
   num_vol_mols = 0;  
-
+  mdlpvp->num_grid_mols = 0;
+  mdlpvp->num_surf_products = 0;
   oriented_count = 0;
+
   if ((mdlpvp->pathp->reactant1->flags&NOT_FREE)!=0)
   {
     if (mdlpvp->pathp->reactant1->flags&IS_SURFACE) num_surfaces++;
+    if (mdlpvp->pathp->reactant1->flags&ON_GRID) mdlpvp->num_grid_mols++;
+    
     mdlpvp->prod_all_3d=0;
+    
   }else{
     num_vol_mols++;
   }
@@ -5842,6 +5847,7 @@ rxn:
     if ((mdlpvp->pathp->reactant2->flags&NOT_FREE)!=0)
     {
       if (mdlpvp->pathp->reactant2->flags&IS_SURFACE) num_surfaces++;
+      if (mdlpvp->pathp->reactant2->flags&ON_GRID) mdlpvp->num_grid_mols++;
       mdlpvp->prod_all_3d=0;
     }else{
        num_vol_mols++;
@@ -5854,6 +5860,7 @@ rxn:
     if ((mdlpvp->pathp->reactant3->flags&NOT_FREE)!=0)
     {
       if (mdlpvp->pathp->reactant3->flags&IS_SURFACE) num_surfaces++;
+      if (mdlpvp->pathp->reactant3->flags&ON_GRID) mdlpvp->num_grid_mols++;
       mdlpvp->prod_all_3d=0;
     }else{
       num_vol_mols++;
@@ -5998,7 +6005,15 @@ rxn:
       return 1;
     }
   }
-  
+            
+   if((mdlpvp->vol->vacancy_search_dist2 == 0)  && 
+             (mdlpvp->num_surf_products > mdlpvp->num_grid_mols)){
+      mdlerror("Error: number of surface products exceeds number of surface reactants, but VACANCY_SEARCH_DISTANCE is set to zero.\n");
+      return 1;
+   }
+   mdlpvp->num_surf_products = 0;
+   mdlpvp->num_grid_mols = 0;
+             
 };
 
 reactant_list: reactant |
@@ -6062,6 +6077,10 @@ product: existing_molecule
 
   mdlpvp->prodp->next=mdlpvp->pathp->product_head;
   mdlpvp->pathp->product_head=mdlpvp->prodp;
+
+  if((mdlpvp->prodp->prod->flags & ON_GRID) != 0){
+      mdlpvp->num_surf_products++;
+  }
 
   if ((mdlpvp->prodp->prod->flags&IS_SURFACE)==0) /* Surfaces can be omitted, so ignore them */
   {

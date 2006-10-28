@@ -150,6 +150,8 @@ struct mdlparse_vars {
   char *bkw_rate_filename;
   int bidirectional_arrow;
   int catalytic_arrow;
+  int num_surf_products;
+  int num_grid_mols;
 
   short orient_specified;  
   short orient_class;
