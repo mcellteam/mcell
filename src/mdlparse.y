@@ -2508,7 +2508,7 @@ list_surface_class_stmts: surface_class_stmt
 	| list_surface_class_stmts surface_class_stmt
 ;
 
-
+/*
 surface_class_stmt: new_surface_class '{'
 {
   mdlpvp->stp1=$<sym>1;
@@ -2518,7 +2518,32 @@ surface_class_stmt: new_surface_class '{'
 	list_surface_prop_stmts
 	'}'
 ;
+*/
 
+surface_class_stmt: real_surface_class_stmt 
+                    | empty_surface_class_stmt
+;
+
+
+real_surface_class_stmt: new_surface_class '{'
+{
+  mdlpvp->stp1=$<sym>1;
+  mdlpvp->specp=(struct species *)mdlpvp->gp->value;
+  mdlpvp->eff_dat_head=NULL;
+}
+
+	list_surface_prop_stmts
+	'}'
+;
+
+empty_surface_class_stmt: new_surface_class '{'
+{
+  mdlpvp->stp1=$<sym>1;
+  mdlpvp->specp=(struct species *)mdlpvp->gp->value;
+  mdlpvp->eff_dat_head=NULL;
+}
+'}'
+;
 
 new_surface_class: new_molecule
 {
@@ -2547,7 +2572,6 @@ existing_surface_class: existing_molecule
 list_surface_prop_stmts: surface_prop_stmt
 	| list_surface_prop_stmts surface_prop_stmt
 ;
-
 
 surface_prop_stmt: surface_rxn_stmt
 	| surface_class_mol_stmt
