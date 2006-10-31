@@ -152,6 +152,7 @@ struct mdlparse_vars {
   int catalytic_arrow;
   int num_surf_products;
   int num_grid_mols;
+  int num_vol_mols;
 
   short orient_specified;  
   short orient_class;

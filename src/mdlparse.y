@@ -5796,7 +5796,6 @@ rxn:
 {
   char *rx_name;
   int num_surfaces;
-  int num_vol_mols;
   int oriented_count;
   
   rx_name = create_rx_name(mdlpvp->pathp);
@@ -5825,7 +5824,7 @@ rxn:
 
   mdlpvp->prod_all_3d=1;
   num_surfaces = 0;
-  num_vol_mols = 0;  
+  mdlpvp->num_vol_mols = 0;  
   mdlpvp->num_grid_mols = 0;
   mdlpvp->num_surf_products = 0;
   oriented_count = 0;
@@ -5838,7 +5837,7 @@ rxn:
     mdlpvp->prod_all_3d=0;
     
   }else{
-    num_vol_mols++;
+    mdlpvp->num_vol_mols++;
   }
   if (mdlpvp->pathp->orientation1 == ORIENT_NOT_SET) mdlpvp->pathp->orientation1 = 0;
   else oriented_count++;
@@ -5850,7 +5849,7 @@ rxn:
       if (mdlpvp->pathp->reactant2->flags&ON_GRID) mdlpvp->num_grid_mols++;
       mdlpvp->prod_all_3d=0;
     }else{
-       num_vol_mols++;
+       mdlpvp->num_vol_mols++;
     }
     if (mdlpvp->pathp->orientation2 == ORIENT_NOT_SET) mdlpvp->pathp->orientation2 = 0;
     else oriented_count++;      
@@ -5863,7 +5862,7 @@ rxn:
       if (mdlpvp->pathp->reactant3->flags&ON_GRID) mdlpvp->num_grid_mols++;
       mdlpvp->prod_all_3d=0;
     }else{
-      num_vol_mols++;
+      mdlpvp->num_vol_mols++;
     }
     if (mdlpvp->pathp->orientation3 == ORIENT_NOT_SET) mdlpvp->pathp->orientation3 = 0;
     else oriented_count++;      
@@ -5880,7 +5879,7 @@ rxn:
     mdlerror("Reactants cannot consist entirely of surfaces.\n  Use a surface release site instead!");
     return 1;
   }
-  if((num_vol_mols == 2) && (num_surfaces == 1)){
+  if((mdlpvp->num_vol_mols == 2) && (num_surfaces == 1)){
     mdlerror("Reaction between two volume molecules and a surface is not defined.\n");
     return 1;
   }
@@ -5990,6 +5989,20 @@ rxn:
     mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
     mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
   }
+   
+  if((mdlpvp->vol->vacancy_search_dist2 == 0)  && 
+             (mdlpvp->num_surf_products > mdlpvp->num_grid_mols)){
+      /* the case with one volume molecule reacting with the surface
+         and producing one grid molecule is excluded */
+        
+      if(!((mdlpvp->num_grid_mols == 0) && (mdlpvp->num_vol_mols == 1))) { 
+         mdlerror("Error: number of surface products exceeds number of surface reactants, but VACANCY_SEARCH_DISTANCE is not specified or set to zero.\n");
+         return 1;
+      }  
+  }
+   mdlpvp->num_surf_products = 0;
+   mdlpvp->num_grid_mols = 0;
+   mdlpvp->num_vol_mols = 0;
   
   /* Create reverse reaction if we need to */
   if (mdlpvp->bidirectional_arrow)
@@ -6006,13 +6019,6 @@ rxn:
     }
   }
             
-   if((mdlpvp->vol->vacancy_search_dist2 == 0)  && 
-             (mdlpvp->num_surf_products > mdlpvp->num_grid_mols)){
-      mdlerror("Error: number of surface products exceeds number of surface reactants, but VACANCY_SEARCH_DISTANCE is set to zero.\n");
-      return 1;
-   }
-   mdlpvp->num_surf_products = 0;
-   mdlpvp->num_grid_mols = 0;
              
 };
 

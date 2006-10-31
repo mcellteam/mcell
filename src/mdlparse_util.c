@@ -2192,6 +2192,11 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   char *inverse_name;
   int nprods,all_3d;
   char err_message[1024];
+
+  mpvp->num_surf_products = 0;
+  mpvp->num_grid_mols = 0;
+  mpvp->num_vol_mols = 0;
+
   
   all_3d=1;
   for (nprods=0,prodp=mpvp->pathp->product_head ; prodp!=NULL ; prodp=prodp->next)
@@ -2272,12 +2277,26 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   }
   path->pathname=NULL;
   path->reactant1=prodp->prod;
+  if((path->reactant1->flags & NOT_FREE) == 0){
+         mpvp->num_vol_mols++;
+  }else{
+     if(path->reactant1->flags & ON_GRID){
+         mpvp->num_grid_mols++;
+     }
+  }
   path->orientation1 = prodp->orientation;
   path->reactant2=NULL;
   path->reactant3=NULL;
   path->prod_signature = NULL;
   if (nprods==2) {
       path->reactant2 = prodp->next->prod;
+      if((path->reactant2->flags & NOT_FREE) == 0){
+         mpvp->num_vol_mols++;
+      }else{
+         if(path->reactant2->flags & ON_GRID){
+            mpvp->num_grid_mols++;
+         }
+      }
       path->orientation2 = prodp->next->orientation;
   }
   path->km = mpvp->bkw_km;
@@ -2298,6 +2317,10 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   path->product_head->orientation = mpvp->pathp->orientation1;
   path->product_head->prod = mpvp->pathp->reactant1;
   path->product_head->next = NULL;
+  if(path->product_head->prod->flags & ON_GRID){
+      mpvp->num_surf_products++;
+  }
+
   if (mpvp->pathp->reactant2!=NULL)
   {
     path->product_head->next = (struct product*)mem_get(mpvp->prod_mem);
@@ -2309,6 +2332,9 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
     }
     path->product_head->next->orientation = mpvp->pathp->orientation2;
     path->product_head->next->prod = mpvp->pathp->reactant2;
+    if(path->product_head->next->prod->flags & ON_GRID){
+        mpvp->num_surf_products++;
+    }
     path->product_head->next->next = NULL;
   }
   path->prod_signature = create_prod_signature(&path->product_head);  
@@ -2317,7 +2343,21 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
       mdlerror(err_message);
       return 1;
   } 
- 
+
+  if((mpvp->vol->vacancy_search_dist2 == 0) &&
+     (mpvp->num_surf_products > mpvp->num_grid_mols)){
+      /* the case with one volume molecule reacting with the surface
+         and producing one grid molecule is exclude */
+      if(!((mpvp->num_grid_mols == 0) && (mpvp->num_vol_mols == 1))) {
+          mdlerror("Error: number of surface products exceeds number of surface reactants, but VACANCY_SEARCH_DISTANCE is not specified or set to zero.\n");
+           return 1;
+      }
+  } 
+  
+  mpvp->num_surf_products = 0;
+  mpvp->num_grid_mols = 0;
+  mpvp->num_vol_mols = 0;
+
   path->next = rx->pathway_head;
   rx->pathway_head = path;
   return 0;
