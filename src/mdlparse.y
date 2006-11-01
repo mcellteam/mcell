@@ -3706,6 +3706,14 @@ release_site_geom: SHAPE '=' release_region_expr
   struct release_region_data *rrd;
   struct release_evaluator *re;
 
+  if((mdlpvp->objp->object_type == META_OBJ) ||
+     (mdlpvp->objp->object_type == REL_SITE_OBJ))
+  {
+    sprintf(mdlpvp->mdl_err_msg,"Error: only BOX or POLYGON_LIST objects may be assigned to the SHAPE keyword in the RELEASE_SITE definition.  Metaobjects or release objects are not allowed here.\n");
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+
   mdlpvp->obj_name=mdlpvp->objp->sym->name;
   strncpy(mdlpvp->temp_str,"",1024);
   strncpy(mdlpvp->temp_str,mdlpvp->obj_name,1022);
