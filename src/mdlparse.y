@@ -3701,6 +3701,64 @@ release_site_geom: SHAPE '=' release_region_expr
     return 1;
   }
 }
+        | SHAPE '=' existing_object
+{
+  struct release_region_data *rrd;
+  struct release_evaluator *re;
+
+  mdlpvp->obj_name=mdlpvp->objp->sym->name;
+  strncpy(mdlpvp->temp_str,"",1024);
+  strncpy(mdlpvp->temp_str,mdlpvp->obj_name,1022);
+  strcat(mdlpvp->temp_str,",ALL");   
+  mdlpvp->region_name=strdup(mdlpvp->temp_str);
+  if(mdlpvp->region_name == NULL){
+    sprintf(mdlpvp->mdl_err_msg,"%s ","Out of memory while parsing region");
+    mdlerror(mdlpvp->mdl_err_msg);
+    return(1);
+  }
+  if ((mdlpvp->gp=retrieve_sym(mdlpvp->region_name,REG,volp->main_sym_table))==NULL) {
+    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined region:",mdlpvp->region_name);
+    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    return(1);
+  }
+  
+  re = (struct release_evaluator*)malloc(sizeof(struct release_evaluator));
+  if (re==NULL)
+  {
+    mdlerror("Out of memory while trying to create release site on region");
+    return 1;
+  }
+  
+  re->op = REXP_NO_OP | REXP_LEFT_REGION;
+  re->left = mdlpvp->gp->value;
+  re->right = NULL;
+  
+  ((struct region*)re->left)->flags |= COUNT_CONTENTS;
+  
+  mdlpvp->rsop->release_shape = SHAPE_REGION;
+  mdlpvp->vol->releases_on_regions_flag = 1;
+  
+  rrd = (struct release_region_data*)malloc(sizeof(struct release_region_data));
+  if (rrd==NULL)
+  {
+    mdlerror("Out of memory while trying to create release site on region");
+    return 1;
+  }
+  
+  rrd->n_walls_included = -1; /* Indicates uninitialized state */
+  rrd->cum_area_list = NULL;
+  rrd->wall_index = NULL;
+  rrd->obj_index = NULL;
+  rrd->n_objects = -1;
+  rrd->owners = NULL;
+  rrd->in_release = NULL;
+  rrd->self = mdlpvp->curr_obj;
+  rrd->expression = re;
+  mdlpvp->rsop->region_data = rrd;
+
+  free((void *)mdlpvp->region_name);
+
+}
 	| SHAPE '=' SPHERICAL
 {
   mdlpvp->rsop->release_shape = SHAPE_SPHERICAL;
@@ -5452,6 +5510,7 @@ existing_region: existing_object '[' VAR ']'
     mdlerror(mdlpvp->mdl_err_msg);
     return(1);
   }
+
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->region_name,REG,volp->main_sym_table))==NULL) {
     sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined region:",mdlpvp->region_name);
     mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
@@ -5478,7 +5537,6 @@ existing_region: existing_object '[' VAR ']'
 #endif
   $$=mdlpvp->gp;
 };
-
 
 instance_def: INSTANTIATE new_object OBJECT '{'
 {
