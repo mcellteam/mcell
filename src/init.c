@@ -1713,14 +1713,15 @@ int init_wall_regions(struct object *objp, char *full_name)
   struct region *rp;
   struct region_list *rlp,*wrlp;
   int i,n_walls;
+  int is_degenerate = 1; /* flag to signal that region is degenerate 
+                            (no walls inside) */
 
   log_file=world->log_file;
 
   pop=(struct polygon_object *)objp->contents;
   n_walls=pop->n_walls;
 
-   
-  no_printf("Processing %d regions in polygon list object: %s\n",objp->num_regions,full_name);
+  no_printf("Processing %d regions in polygon list object: %s\n",objp->num_regions,full_name);  
 
   /* prepend a copy of eff_dat for each element referenced in each region
      of this object to the eff_prop list for the referenced element */
@@ -1734,10 +1735,14 @@ int init_wall_regions(struct object *objp, char *full_name)
       fprintf(world->err_file,"File '%s', Line %ld: Internal error. incomplete region information for %s\n", __FILE__, (long)__LINE__, rp->sym->name);
       return 1;
     }
+    is_degenerate = 1; 
+
     for (i=0;i<rp->membership->nbits;i++)
     {
       if (get_bit(rp->membership,i))
       {
+           if(is_degenerate) is_degenerate = 0; 
+
 	/* prepend this region to wall region list of i_th wall only if the region is used in counting */
 	w=objp->wall_p[i];
 	rp->area += w->area;
@@ -1758,11 +1763,16 @@ int init_wall_regions(struct object *objp, char *full_name)
 	}
       }
     }
+     if(is_degenerate && (strcmp(rp->region_last_name, "REMOVED") != 0)){
+	    fprintf(world->log_file,"\nWARNING: region '%s' of the object '%s' is degenerate - contains no walls.\n\n", rp->region_last_name, rp->parent->sym->name);
+     }
+
   } /*end loop over all regions in object */
   for (i=0;i<n_walls;i++)
   {
-    if (get_bit(pop->side_removed,i)) continue;
-     w=objp->wall_p[i];
+    if (get_bit(pop->side_removed,i)) continue; 
+     
+    w=objp->wall_p[i];
     if (w->counting_regions!=NULL)
     {
       w->counting_regions = (struct region_list*)void_list_sort((struct void_list*)w->counting_regions); /* Helpful for comparisons */
