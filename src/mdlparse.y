@@ -4477,7 +4477,11 @@ polygon_list_def: new_object POLYGON_LIST '{'
   mdlpvp->curr_obj->n_walls=mdlpvp->pop->n_walls;
   mdlpvp->curr_obj->n_verts=mdlpvp->pop->n_verts;
   mdlpvp->n_walls_actual = mdlpvp->pop->n_walls;
-  normalize_elements(mdlpvp->rp,0);
+  if(normalize_elements(mdlpvp->rp,0)){
+      mdlerror("Error setting up elements in default 'ALL' region in the polygon object '%s'. \n", mdlpvp->obj_name);
+      return 1;
+
+  }
 
   mdlpvp->rp->surf_class=NULL;
   mdlpvp->rlp->reg=mdlpvp->rp;
@@ -4498,6 +4502,41 @@ polygon_list_def: new_object POLYGON_LIST '{'
   mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
   mdlpvp->curr_obj->parent->n_walls_actual+=mdlpvp->curr_obj->n_walls_actual;
   mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
+
+  /* check for a degenerate (empty) object and regions */
+  struct region_list *rl;
+  struct region *rp;
+  int i;
+  int is_degenerate;  /* flag */
+  char err_msg[1024];
+  for(rl = mdlpvp->curr_obj->regions; rl != NULL; rl = rl->next)
+  {
+    rp = rl->reg;
+    is_degenerate = 1;
+    for(i = 0; i < rp->membership->nbits;i++)
+    {
+      if(get_bit(rp->membership,i)){
+         is_degenerate = 0;
+         break;
+      }
+    }
+    if(is_degenerate && (strcmp(rp->region_last_name, "ALL") == 0)){
+        sprintf(err_msg, "ERROR: polygon object ' ");
+        strcat(err_msg, mdlpvp->obj_name);
+        strcat(err_msg, "' is degenerate - no walls.\n");
+        mdlerror(err_msg);
+        return 1;
+    }else if(is_degenerate && (strcmp(rp->region_last_name, "REMOVED") != 0)){
+        sprintf(err_msg, "ERROR: region '");
+        strcat(err_msg, rp->region_last_name);
+        strcat(err_msg, "' of object '");
+        strcat(err_msg, mdlpvp->obj_name);
+        strcat(err_msg, "' is degenerate - no walls.\n");
+        mdlerror(err_msg);
+        return 1;
+    }
+  }
+  
   mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
   if (mdlpvp->object_name_list_end->prev!=NULL) {
     mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
@@ -4991,6 +5030,42 @@ box_def: new_object BOX '{'
   mdlpvp->curr_obj->regions=mdlpvp->region_list_head;
   remove_gaps_from_regions(mdlpvp->curr_obj);
   mdlpvp->n_walls_actual = mdlpvp->curr_obj->n_walls_actual;
+
+
+  /* check for a degenerate (empty) object and regions */
+  struct region_list *rl;
+  struct region *rp;
+  int i;
+  int is_degenerate;  /* flag */
+  char err_msg[1024];
+  for(rl = mdlpvp->curr_obj->regions; rl != NULL; rl = rl->next)
+  {
+    rp = rl->reg;
+    is_degenerate = 1;
+    for(i = 0; i < rp->membership->nbits;i++)
+    {
+      if(get_bit(rp->membership,i)){
+         is_degenerate = 0;
+         break;
+      }
+    }
+    if(is_degenerate && (strcmp(rp->region_last_name, "ALL") == 0)){
+        sprintf(err_msg, "ERROR: box object ' ");
+        strcat(err_msg, mdlpvp->obj_name);
+        strcat(err_msg, "' is degenerate - no walls.\n");
+        mdlerror(err_msg);
+        return 1;
+    }else if(is_degenerate && (strcmp(rp->region_last_name, "REMOVED") != 0)){
+        sprintf(err_msg, "ERROR: region '");
+        strcat(err_msg, rp->region_last_name);
+        strcat(err_msg, "' of object '");
+        strcat(err_msg, mdlpvp->obj_name);
+        strcat(err_msg, "' is degenerate - no walls.\n");
+        mdlerror(err_msg);
+        return 1;
+    }
+  }
+
 #ifdef DEBUG
   no_printf("Box %s defined:\n",mdlpvp->curr_obj->sym->name);
   no_printf("    LLF Corner = [ %f, %f, %f ]\n",mdlpvp->llf->x,mdlpvp->llf->y,mdlpvp->llf->z);
