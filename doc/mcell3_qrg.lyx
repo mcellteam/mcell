@@ -5807,7 +5807,19 @@ Define regions on the object.
  overlap if you wish.
  Molecules added to overlapping regions accumulate; surface properties are
  those of the last region applied.
- 
+ Every 
+\family typewriter 
+BOX
+\family default 
+ and 
+\family typewriter 
+POLYGON_LIST
+\family default 
+ object has a pre-defined 
+\family typewriter 
+ALL
+\family default 
+ region which consists of the entire object and has no special properties.
 \end_inset 
 </cell>
 </row>
@@ -5865,6 +5877,7 @@ Remove the portion of the object specified by the element specifiers.
  You can use a list of element numbers/names instead of element specifiers
  if you wish, but you cannot mix a list of element numbers/names with the
  element specifier syntax.
+ It is an error to remove all elements in an object or region.
 \end_inset 
 </cell>
 </row>
@@ -6751,6 +6764,19 @@ OBJECT
  Volume molecules will be released in the volume bounded by the regions
  (each region must be closed); surface molecules will be released on the
  surface (and regions need not be closed).
+ If the region name is omitted and only the name of a 
+\family typewriter 
+BOX
+\family default 
+ or 
+\family typewriter 
+POLYGON_LIST
+\family default 
+ object is specified, the object's 
+\family typewriter 
+ALL
+\family default 
+ region will be used.
 \end_inset 
 </cell>
 </row>
@@ -13298,6 +13324,11 @@ my_lucky_number=13
  would be a valid (if unusual) way to define a variable.
  Variables can take numeric, array, or string values.
  String values consist of text between double quotes.
+ Strings can be combined with the 
+\family typewriter 
+&
+\family default 
+ operator.
  Array values are lists of numbers inside brackets separated by commas,
  or starting and ending values plus a step size, as exemplified below (note
  the double brackets):
@@ -13320,6 +13351,14 @@ la la la, la la la
 \begin_inset Quotes erd
 \end_inset 
 
+ & 
+\begin_inset Quotes eld
+\end_inset 
+
+, la la
+\begin_inset Quotes erd
+\end_inset 
+
 
 \layout Standard
 
@@ -13332,7 +13371,41 @@ printf
 sprintf
 \family default 
  commands work too, pretty much the way you'd expect them to.
- MCell3 comments are delimited by 
+ Note that MCell3 variables are doubles, so the integer formats may not
+ give the expected results.
+ To turn the random number generator seed into a string that you can use
+ as part of a filename, use 
+\family typewriter 
+sprintf(my_string_name,
+\begin_inset Quotes erd
+\end_inset 
+
+%g
+\begin_inset Quotes erd
+\end_inset 
+
+,SEED)
+\family default 
+.
+ If you want it to be a fixed width, e.g.
+ 3 characters padded with zeros, use the appropriate format string, e.g.
+ 
+\family typewriter 
+
+\begin_inset Quotes eld
+\end_inset 
+
+%03g
+\begin_inset Quotes erd
+\end_inset 
+
+
+\family default 
+.
+ 
+\layout Standard
+
+MCell3 comments are delimited by 
 \family typewriter 
 /*
 \family default 
@@ -13340,7 +13413,7 @@ sprintf
 \family typewriter 
 */
 \family default 
-.
+ and can be nested.
 \layout Standard
 
 MDL files can include other MDL files using the following syntax:
