@@ -1328,12 +1328,12 @@ int release_molecules(struct release_event_queue *req)
 	if ((rsm->mol_type->flags & NOT_FREE)==0)
 	{
 	  m.properties = rsm->mol_type;
-          
+           
           /* Have to set flags, since insert_volume_molecule doesn't */
-          if (trigger_unimolecular(m.properties->hashval , (struct abstract_molecule*)&m) != NULL ||
-              (m.properties->flags&CAN_GRIDWALL)!=0)
+          if (trigger_unimolecular(ap->properties->hashval , ap) != NULL ||
+              (ap->properties->flags&CAN_GRIDWALL)!=0)
           {
-            m.flags |= ACT_REACT;
+             ap->flags |= ACT_REACT; 
           }
           if (m.properties->space_step > 0.0) ap->flags |= ACT_DIFFUSE;
 	  guess = insert_volume_molecule(&m,guess);
