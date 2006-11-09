@@ -3650,7 +3650,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   
   reflectee = NULL;
   
-  if(world->use_expanded_list && (m->properties->flags & CAN_MOLMOL) != 0)
+  if(world->use_expanded_list && ((m->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL))
   {
     shead = expand_collision_list(m, &displacement, sv, shead);
   }   
@@ -3661,7 +3661,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   {
     if(world->use_expanded_list && redo_expand_collision_list_flag)
     {
-      if((m->properties->flags & CAN_MOLMOL) != 0){ 
+      if ((m->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL) {
     	  shead = expand_collision_list(m, &displacement, sv, shead);
       }  
     }
