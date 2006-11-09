@@ -762,6 +762,7 @@ int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int ind
       }
       else
       {
+        n = 1;              /* dummy init to silence compiler */
         rl = NULL;
         prl = prl->next;
         nrl = nrl->next;
