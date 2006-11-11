@@ -350,7 +350,7 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
           {
              if (am->properties->flags&ON_GRID)
              {
-                if((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient)){  
+                if((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient) || (c->orientation == 0)){  
                    c->data.move.n_at+=n;
                 }
              }else{
@@ -550,7 +550,7 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 	    else if (rxpn==NULL) {
                if (am->properties->flags&ON_GRID)
                {
-                  if((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient)){  
+                  if((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient) || (c->orientation == 0)){  
                      c->data.move.n_enclosed += n*pos_or_neg;
                   }
                }else{
