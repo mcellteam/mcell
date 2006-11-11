@@ -1029,6 +1029,7 @@ struct counter
   byte counter_type;               /* Counter Type Flags (MOL_COUNTER etc.) */
   struct region *reg_type;         /* Region we are counting on */
   void *target;                    /* Mol or rxn pathname we're counting (as indicated by counter_type) */
+  short orientation;               /* requested grid molecule orientation */
   union counter_data data;         /* data for the count:
                                       reference data.move for move counter
                                       reference data.rx for rxn counter 
@@ -1458,12 +1459,14 @@ struct output_expression
 
 /* Information about a requested COUNT or TRIGGER statement */
 /* Used during initialization to link output expressions with appropriate target,
-   and instruct MCell3 to collect appropriate statitics at the target. */
+   and instruct MCell3 to collect appropriate statistics at the target. */
 struct output_request
 {
   struct output_request *next;          /* Next request in global list */
   struct output_expression *requester;  /* Expression in which we appear */
   struct sym_table *count_target;       /* Mol/rxn we're supposed to count */
+  short count_orientation;              /* orientation of the molecule
+                                           we are supposed to count */
   struct sym_table *count_location;     /* Object or region on which we're supposed to count it */
   byte report_type;                     /* Output Report Flags telling us how to count */
 };

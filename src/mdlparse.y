@@ -19,7 +19,7 @@
   #include "mdlparse.h"
   #include "util.h"
   #include "react_output.h"
-
+  
 /*
   #include "chkpt.h"
   #include "init.h"
@@ -356,6 +356,7 @@ struct release_evaluator *rev;
 %token <tok> UNLIMITED
 %token <tok> USELESS_VOLUME_ORIENTATION
 %token <tok> VAR
+%token <tok> VAR_ORIENT
 %token <tok> VACANCY_SEARCH_DISTANCE
 %token <tok> VARYING_PROBABILITY_REPORT
 %token <tok> VERTEX_LIST
@@ -464,6 +465,7 @@ struct release_evaluator *rev;
 
 %type <tok> hit_spec
 %type <tok> opt_hit_spec
+%type <tok> existing_many_rxpns_or_molecules
 
 %type <sym> assign_var
 %type <sym> existing_var_only
@@ -516,7 +518,8 @@ struct release_evaluator *rev;
 %type <sym> existing_region
 %type <sym> existing_logicalOrPhysical
 %type <sym> new_rxn_pathname
-%type <sym> existing_rxpn_or_molecule
+%type <sym> existing_rxpn_or_molecule 
+%type <sym> existing_molecule_required_orient 
 %type <sym> count_location_specifier
 
 %type <sym> new_file_stream
@@ -533,6 +536,9 @@ struct release_evaluator *rev;
 %type <cnt> count_expr
 %type <cnt> count_value
 %type <cnt> count_syntax
+%type <cnt> count_syntax_1
+%type <cnt> count_syntax_2
+%type <cnt> count_syntax_3
 
 %type <rev> release_region_expr
 
@@ -2694,6 +2700,10 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
   mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
   mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
 
+  /* restore default values */
+  mdlpvp->orient_specified = 0;
+  mdlpvp->orient_class = ORIENT_NOT_SET;
+
 #ifdef DEBUG
   no_printf("Surface reaction defined:\n");
   no_printf("  %s[%d] -%s[%d]->",
@@ -2791,6 +2801,10 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
 
   mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
   mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
+  
+  /* restore default values */
+  mdlpvp->orient_specified = 0;
+  mdlpvp->orient_class = ORIENT_NOT_SET;
 };
 
 
@@ -2856,6 +2870,10 @@ surface_mol_quant: existing_surface_molecule '=' num_expr
       mdlerror("Warning: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
     }
   }
+
+  /* restore default values */
+  mdlpvp->orient_specified = 0;
+  mdlpvp->orient_class = ORIENT_NOT_SET;
 };
 
 
@@ -3980,6 +3998,10 @@ release_site_cmd:
     mdlerror("Error: cannot release a surface class instead of a molecule.");
     return 1;
   }
+  /* restore default values */
+  mdlpvp->orient_specified = 0;
+  mdlpvp->orient_class = ORIENT_NOT_SET;
+
 }
 	| release_number_cmd
 {
@@ -4293,6 +4315,11 @@ molecule_release_pos:
 
   rsm->next = mdlpvp->rsop->mol_list;
   mdlpvp->rsop->mol_list = rsm;        /* Acquire list in reverse order */
+
+  /* restore default values */
+  mdlpvp->orient_specified = 0;
+  mdlpvp->orient_class = ORIENT_NOT_SET;
+
 };
 
 point: array_value
@@ -5713,6 +5740,11 @@ right_cat_arrow: list_dashes existing_molecule_opt_orient right_arrow
     return 1;
   }
   mdlpvp->catalytic_arrow=1;
+  
+  /* restore default_values */
+  mdlpvp->orient_specified = 0;
+  mdlpvp->orient_class = ORIENT_NOT_SET;
+
 };
 
 double_cat_arrow: left_arrow existing_molecule_opt_orient right_arrow
@@ -5729,6 +5761,11 @@ double_cat_arrow: left_arrow existing_molecule_opt_orient right_arrow
     return 1;
   }
   mdlpvp->catalytic_arrow=1;
+  
+  /* restore default_values */
+  mdlpvp->orient_specified = 0;
+  mdlpvp->orient_class = ORIENT_NOT_SET;
+
 };
 
 unidir_arrow: right_arrow
@@ -5812,9 +5849,9 @@ new_rxn_pathname: /* empty */
 };
 
 
-existing_rxpn_or_molecule: VAR
+existing_rxpn_or_molecule: VAR 
 {
-
+            /* this is a copy */
   if (mdlpvp->cval_2!=NULL) {  
     mdlpvp->sym_name=mdlpvp->cval_2;
   }   
@@ -5847,6 +5884,124 @@ existing_rxpn_or_molecule: VAR
   mdlpvp->gp->ref_count++;
   no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
 #endif
+  
+  mdlpvp->sym_table_list_head = (struct sym_table_list*)mem_get(mdlpvp->sym_list_mem);
+  if (mdlpvp->sym_table_list_head==NULL)
+  {
+    mdlerror("Out of memory trying to retrieve a molecule or reaction pathway name");
+    return 1;
+  }
+  mdlpvp->sym_table_list_head->next=NULL;
+  mdlpvp->sym_table_list_head->node= mdlpvp->gp;
+  
+  $$=mdlpvp->gp;
+};
+
+
+existing_molecule_required_orient: VAR_ORIENT 
+{
+  char *temp_1, *temp_2;
+  char end_letter;
+  int len_1; /* length of the string temp_1 */
+  int len_2; /* length of the string temp_2 */
+   
+  if (mdlpvp->cval_2!=NULL) {  
+    mdlpvp->sym_name=mdlpvp->cval_2;
+  }   
+  else {
+    mdlpvp->sym_name=mdlpvp->cval;
+  } 
+
+  if(strip_quotes(mdlpvp->sym_name) != NULL){
+      temp_1 = strip_quotes(mdlpvp->sym_name);
+  }else{
+      sprintf(mdlpvp->mdl_err_msg,"%s ","Memory allocation error\n");
+      mdlerror(mdlpvp->mdl_err_msg);
+      free((void *)mdlpvp->sym_name);
+    
+      return (1);
+  }
+  
+  len_1 = strlen(temp_1);
+
+  end_letter = temp_1[len_1 - 1];
+
+  len_2 = strcspn(temp_1, &end_letter);
+
+  if(len_2 != 0){
+     if((temp_2 = (char *)malloc(len_2 + 1)) != NULL){
+        strncpy(temp_2, temp_1, len_2);
+        temp_2[len_2] = '\0';
+     }else{
+        sprintf(mdlpvp->mdl_err_msg,"%s ","Memory allocation error\n");
+        mdlerror(mdlpvp->mdl_err_msg);
+        free((void *)mdlpvp->sym_name);
+    
+        return (1);
+     } 
+  
+  }else{
+        sprintf(mdlpvp->mdl_err_msg,"%s ","Internal error: orientaion information is not found.\n");
+        mdlerror(mdlpvp->mdl_err_msg);
+        free((void *)mdlpvp->sym_name);
+    
+        return (1);
+
+  }
+
+    switch(end_letter)
+    {
+       case ';':  mdlpvp->orient_specified = 1;
+                  mdlpvp->orient_class = 0;
+                  break;
+       case '\'': mdlpvp->orient_specified = 1;
+                  mdlpvp->orient_class = 1;
+                  break;
+       case ',': mdlpvp->orient_specified = 1;
+                  mdlpvp->orient_class = -1;
+                  break;
+       default:  sprintf(mdlpvp->mdl_err_msg,"%s ","Internal error: wrong orientation specification found.\n");
+                 mdlerror(mdlpvp->mdl_err_msg);
+                 free((void *)mdlpvp->sym_name);
+                 return (1);
+    }
+
+  
+    if ((mdlpvp->gp=retrieve_sym(temp_2,MOL,volp->main_sym_table))==NULL) 
+  {
+      sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined molecule name:",mdlpvp->sym_name);
+      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      if (mdlpvp->sym_name==mdlpvp->cval) {
+        mdlpvp->cval=NULL;
+      }
+      else {
+        mdlpvp->cval_2=NULL;
+      }
+      free((void *)mdlpvp->sym_name);
+      return(1);
+  }
+
+  if (mdlpvp->sym_name==mdlpvp->cval) {
+    mdlpvp->cval=NULL;
+  }
+  else {
+    mdlpvp->cval_2=NULL;
+  }
+  free((void *)mdlpvp->sym_name);
+#ifdef KELP
+  mdlpvp->gp->ref_count++;
+  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
+#endif
+  
+  mdlpvp->sym_table_list_head = (struct sym_table_list*)mem_get(mdlpvp->sym_list_mem);
+  if (mdlpvp->sym_table_list_head==NULL)
+  {
+    mdlerror("Out of memory trying to retrieve a molecule or reaction pathway name");
+    return 1;
+  }
+  mdlpvp->sym_table_list_head->next=NULL;
+  mdlpvp->sym_table_list_head->node= mdlpvp->gp;
+  
   $$=mdlpvp->gp;
 };
 
@@ -5922,20 +6077,6 @@ existing_many_rxpns_or_molecules: WILDCARD_VAR
    mdlpvp->count_flags |= WILDCARD_PRESENT;
 
 };
-
-existing_one_or_many_rxpns_or_mols: existing_rxpn_or_molecule
-{
-  mdlpvp->sym_table_list_head = (struct sym_table_list*)mem_get(mdlpvp->sym_list_mem);
-  if (mdlpvp->sym_table_list_head==NULL)
-  {
-    mdlerror("Out of memory trying to retrieve a molecule or reaction pathway name");
-    return 1;
-  }
-  
-  mdlpvp->sym_table_list_head->next=NULL;
-  mdlpvp->sym_table_list_head->node=$<sym>1;
-}
-        | existing_many_rxpns_or_molecules;
 
 
 rxn:
@@ -6220,6 +6361,10 @@ reactant: existing_molecule
     mdlerror("Too many reactants--maximum number is three.");
     return 1;
   }
+
+  /* restore default values */
+  mdlpvp->orient_specified = 0;
+  mdlpvp->orient_class = ORIENT_NOT_SET;
 };
 
 
@@ -6291,6 +6436,10 @@ product: existing_molecule
       }
     }
   }
+
+   /* restore default values */
+   mdlpvp->orient_specified = 0;
+   mdlpvp->orient_class = ORIENT_NOT_SET;
 }
 	| NO_SPECIES
 {
@@ -6306,6 +6455,7 @@ orientation_class: /* empty */
   mdlpvp->orient_specified=1;
 }
 ;
+
 
 list_orient_marks:
         head_mark
@@ -8871,7 +9021,12 @@ outfile_syntax: file_name
 };
 
 
-count_syntax:  existing_one_or_many_rxpns_or_mols ',' count_location_specifier opt_hit_spec
+count_syntax: count_syntax_1
+              | count_syntax_2
+              | count_syntax_3
+;
+
+count_syntax_1:  existing_rxpn_or_molecule  ',' count_location_specifier opt_hit_spec 
 {
   byte report_type,report_flags;
   struct sym_table_list *stl;
@@ -8882,7 +9037,7 @@ count_syntax:  existing_one_or_many_rxpns_or_mols ',' count_location_specifier o
 
   if (mdlpvp->sym_table_list_head==NULL)
   {
-    mdlerror("Wildcard matching found no matches for count output.");
+    mdlerror("No molecules or reactions specified for count output.");
     return 1;
   }
   
@@ -8934,6 +9089,10 @@ count_syntax:  existing_one_or_many_rxpns_or_mols ',' count_location_specifier o
     orq->next=NULL;
     orq->requester=oe;
     orq->count_target=stl->node;
+    if(mdlpvp->orient_specified){
+      mdlerror("Internal error: Orientation set for the COUNT statement without orientation  specified.\n");
+    }
+    orq->count_orientation = ORIENT_NOT_SET;
     orq->count_location=$<sym>3;
     orq->report_type=report_type|report_flags;
     
@@ -8992,7 +9151,251 @@ count_syntax:  existing_one_or_many_rxpns_or_mols ',' count_location_specifier o
   }
   
   $$=oe_head;
-};
+};                      
+
+count_syntax_2:  existing_molecule_required_orient ',' count_location_specifier opt_hit_spec 
+{
+
+  byte report_type,report_flags;
+  struct sym_table_list *stl;
+  struct output_expression *oe,*oet;
+  struct output_expression *oe_head=NULL,*oe_tail=NULL;
+  struct output_request *orq;
+  struct output_request *or_head=NULL,*or_tail=NULL;
+ 
+  if ($<sym>3==NULL)
+  {
+       mdlerror("Counting of an oriented molecule in the WORLD is not implemented.\nOnly counting of an oriented molecule on the regions is allowed.\n");
+       return 1;
+  }
+  else report_flags=0;
+  
+  if (mdlpvp->count_flags & TRIGGER_PRESENT) report_flags|=REPORT_TRIGGER;
+  if ($<tok>4 & REPORT_ENCLOSED) report_flags|=REPORT_ENCLOSED;
+  
+  for (stl=mdlpvp->sym_table_list_head ; stl!=NULL ; stl=stl->next)
+  {
+    if (stl->node->sym_type==MOL)
+    {
+       if (($<tok>4&REPORT_TYPE_MASK)==REPORT_NOTHING) report_type = REPORT_CONTENTS;
+       else report_type=($<tok>4 & REPORT_TYPE_MASK);
+    }else{
+       mdlerror("Orientations in count output can be specified only for molecules\n");
+       return 1;
+    }
+    
+    orq = (struct output_request*)mem_get(mdlpvp->vol->outp_request_mem);
+    oe = new_output_expr(mdlpvp->vol->oexpr_mem);
+    if (orq==NULL || oe==NULL)
+    {
+      mdlerror("Out of memory storing requested counts");
+      return 1;
+    }
+    orq->next=NULL;
+    orq->requester=oe;
+    orq->count_target=stl->node;
+    if(mdlpvp->orient_class < 0){
+         orq->count_orientation = -1;
+    }else if(mdlpvp->orient_class > 0){
+         orq->count_orientation = 1;
+    }else{
+         orq->count_orientation = 0;
+    }
+    orq->count_location=$<sym>3;
+    orq->report_type=report_type|report_flags;
+    
+    oe->left=orq;
+    oe->oper='#';
+    oe->expr_flags=OEXPR_LEFT_REQUEST;
+    if (orq->report_type & REPORT_TRIGGER) oe->expr_flags|=OEXPR_TYPE_TRIG;
+    else if ((orq->report_type & REPORT_TYPE_MASK)!=REPORT_CONTENTS) oe->expr_flags|=OEXPR_TYPE_DBL;
+    else oe->expr_flags|=OEXPR_TYPE_INT;
+    
+    if (oe_tail==NULL)
+    {
+      oe_head=oe_tail=oe;
+      or_head=or_tail=orq;
+    }
+    else
+    {
+      or_tail->next=orq;
+      or_tail=orq;
+      
+      oet = new_output_expr(mdlpvp->vol->oexpr_mem);
+      if (oet==NULL)
+      {
+        mdlerror("Out of memory storing requested counts");
+        return 1;
+      }
+      if (oe_tail->up==NULL)
+      {
+        oe_head=oet;
+      }
+      else
+      {
+        oet->up = oe_tail->up;
+        if (oet->up->left==oe_tail) oet->up->left=oet;
+        else oet->up->right=oet;
+      }
+      oet->left=oe_tail;
+      oe_tail->up=oet;
+      oet->right=oe;
+      oe->up=oet;
+      oet->oper=',';
+      oet->expr_flags = OEXPR_LEFT_OEXPR|OEXPR_RIGHT_OEXPR|(oe->expr_flags&OEXPR_TYPE_MASK);
+      oe_tail=oe;
+    }
+  }
+  
+  or_tail->next=mdlpvp->vol->output_request_head;
+  mdlpvp->vol->output_request_head=or_head;
+  
+  /* free allocated memory */
+  while (mdlpvp->sym_table_list_head != NULL)
+  {
+    stl=mdlpvp->sym_table_list_head->next;
+    mem_put(mdlpvp->sym_list_mem,mdlpvp->sym_table_list_head);
+    mdlpvp->sym_table_list_head=stl;
+  }
+   
+  /* restore default values */
+  mdlpvp->orient_specified = 0;
+  mdlpvp->orient_class = ORIENT_NOT_SET;
+  
+  $$=oe_head;
+
+};  
+
+
+count_syntax_3:  existing_many_rxpns_or_molecules  ',' count_location_specifier opt_hit_spec 
+{
+  byte report_type,report_flags;
+  struct sym_table_list *stl;
+  struct output_expression *oe,*oet;
+  struct output_expression *oe_head=NULL,*oe_tail=NULL;
+  struct output_request *orq;
+  struct output_request *or_head=NULL,*or_tail=NULL;
+                    
+
+  if (mdlpvp->sym_table_list_head==NULL)
+  {
+    mdlerror("Wildcard matching found no matches for count output.");
+    return 1;
+  }
+  
+  if ($<sym>3==NULL)
+  {
+    report_flags=REPORT_WORLD;
+    if ($<tok>4 != REPORT_NOTHING)
+    {
+      mdlerror("Invalid combination of WORLD with other counting options");
+      return 1;
+    }else{
+      if(mdlpvp->count_flags&TRIGGER_PRESENT){
+         mdlerror("Invalid combination of WORLD with TRIGGER option");
+         return 1;
+      }
+    }
+  }
+  else report_flags=0;
+  
+  if (mdlpvp->count_flags&TRIGGER_PRESENT) report_flags|=REPORT_TRIGGER;
+  if ($<tok>4&REPORT_ENCLOSED) report_flags|=REPORT_ENCLOSED;
+  
+  for (stl=mdlpvp->sym_table_list_head ; stl!=NULL ; stl=stl->next)
+  {
+    if (stl->node->sym_type==MOL)
+    {
+      if (($<tok>4&REPORT_TYPE_MASK)==REPORT_NOTHING) report_type = REPORT_CONTENTS;
+      else report_type=($<tok>4&REPORT_TYPE_MASK);
+    }
+    else
+    {
+      report_type = REPORT_RXNS;
+      if (($<tok>4&REPORT_TYPE_MASK)!=REPORT_NOTHING)
+      {
+        char error_message[strlen(stl->node->name)+256];
+        sprintf(error_message,"Invalid counting options used with reaction pathway %s",stl->node->name);
+        mdlerror(error_message);
+        return 1;
+      }
+    }
+    
+    orq = (struct output_request*)mem_get(mdlpvp->vol->outp_request_mem);
+    oe = new_output_expr(mdlpvp->vol->oexpr_mem);
+    if (orq==NULL || oe==NULL)
+    {
+      mdlerror("Out of memory storing requested counts");
+      return 1;
+    }
+    orq->next=NULL;
+    orq->requester=oe;
+    orq->count_target=stl->node;
+    if(mdlpvp->orient_specified){
+      mdlerror("Internal error: Orientation set for the COUNT statement without orientation  specified.\n");
+    }
+    orq->count_orientation = ORIENT_NOT_SET;
+    orq->count_location=$<sym>3;
+    orq->report_type=report_type|report_flags;
+    
+    oe->left=orq;
+    oe->oper='#';
+    oe->expr_flags=OEXPR_LEFT_REQUEST;
+    if (orq->report_type&REPORT_TRIGGER) oe->expr_flags|=OEXPR_TYPE_TRIG;
+    else if ((orq->report_type&REPORT_TYPE_MASK)!=REPORT_CONTENTS) oe->expr_flags|=OEXPR_TYPE_DBL;
+    else oe->expr_flags|=OEXPR_TYPE_INT;
+    
+    if (oe_tail==NULL)
+    {
+      oe_head=oe_tail=oe;
+      or_head=or_tail=orq;
+    }
+    else
+    {
+      or_tail->next=orq;
+      or_tail=orq;
+      
+      oet = new_output_expr(mdlpvp->vol->oexpr_mem);
+      if (oet==NULL)
+      {
+        mdlerror("Out of memory storing requested counts");
+        return 1;
+      }
+      if (oe_tail->up==NULL)
+      {
+        oe_head=oet;
+      }
+      else
+      {
+        oet->up = oe_tail->up;
+        if (oet->up->left==oe_tail) oet->up->left=oet;
+        else oet->up->right=oet;
+      }
+      oet->left=oe_tail;
+      oe_tail->up=oet;
+      oet->right=oe;
+      oe->up=oet;
+      oet->oper=',';
+      oet->expr_flags = OEXPR_LEFT_OEXPR|OEXPR_RIGHT_OEXPR|(oe->expr_flags&OEXPR_TYPE_MASK);
+      oe_tail=oe;
+    }
+  }
+  
+  or_tail->next=mdlpvp->vol->output_request_head;
+  mdlpvp->vol->output_request_head=or_head;
+  
+  /* free allocated memory */
+  while (mdlpvp->sym_table_list_head != NULL)
+  {
+    stl=mdlpvp->sym_table_list_head->next;
+    mem_put(mdlpvp->sym_list_mem,mdlpvp->sym_table_list_head);
+    mdlpvp->sym_table_list_head=stl;
+  }
+  
+  $$=oe_head;
+};                      
+
+
 
 count_location_specifier: WORLD
 {

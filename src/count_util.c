@@ -20,6 +20,7 @@
 #include "vol_util.h"
 #include "count_util.h"
 #include "react_output.h"
+#include "mdlparse.h"
 
 extern struct volume *world;
 
@@ -345,7 +346,18 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 	    k=fire_count_event(c,n,loc,count_flags|REPORT_TRIGGER);
 	    if (k) return 1;
 	  }
-	  else if (rxpn==NULL) c->data.move.n_at+=n;
+	  else if (rxpn==NULL) 
+          {
+             if (am->properties->flags&ON_GRID)
+             {
+                if((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient)){  
+                   c->data.move.n_at+=n;
+                }
+             }else{
+                  c->data.move.n_at+=n;
+
+             }  
+          }
 	  else c->data.rx.n_rxn_at+=n;
 	}
       }
@@ -535,7 +547,17 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 	      k = fire_count_event(c,n*pos_or_neg,loc,count_flags|REPORT_TRIGGER);
 	      if (k) return 1;
 	    }
-	    else if (rxpn==NULL) c->data.move.n_enclosed += n*pos_or_neg;
+	    else if (rxpn==NULL) {
+               if (am->properties->flags&ON_GRID)
+               {
+                  if((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient)){  
+                     c->data.move.n_enclosed += n*pos_or_neg;
+                  }
+               }else{
+                     c->data.move.n_enclosed += n*pos_or_neg;
+
+               }
+            }
 	    else c->data.rx.n_rxn_enclosed += n*pos_or_neg;
 	  }
 	}
@@ -578,7 +600,7 @@ int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int ind
   
   pos_regs = neg_regs = NULL;
   stor = g->grid->surface->birthplace;
-  
+ 
   
   if (g->grid != sg) /* Different grids implies different walls, so we might have changed regions */
   {
@@ -647,7 +669,9 @@ int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int ind
             i = fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_TRIGGER);
             if (i) return 1;
           }
-          else c->data.move.n_at+=n;
+          else{
+                c->data.move.n_at+=n;
+          }
         }
       }
     }
@@ -784,7 +808,7 @@ int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int ind
               i = fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER);
               if (i) return 1;
             }
-            else c->data.move.n_at+=n;
+            else  c->data.move.n_at+=n;
           }
         }
       }
@@ -1201,6 +1225,7 @@ int prepare_counters()
   struct output_block *block;
   struct output_set *set;
   struct output_column *column;
+  struct species *sp;
   struct object *o;
   int found = 0; /* flag to detect instantiated object or region */
   int i;
@@ -1242,6 +1267,17 @@ int prepare_counters()
        }
     }
 
+    /* check whether orientation is specified only for the grid molecule */
+    if((request->count_orientation != ORIENT_NOT_SET) && (request->count_target->sym_type == MOL))
+    {
+        sp = (struct species *)(request->count_target->value);
+        if((sp->flags & ON_GRID) == 0){
+          fprintf(world->err_file,"In the COUNT statement orientation is specified for the molecule '%s'  which is not a grid molecule.\n", request->count_target->name);
+          return 1;
+        }
+
+    }
+ 
     if (request->count_location!=NULL && request->count_location->sym_type==OBJ)
     {
       i = expand_object_output(request,(struct object*)request->count_location->value);
@@ -1499,12 +1535,13 @@ int instantiate_request(struct output_request *request)
   struct species *mol_to_count = NULL;
   void *to_count;
   struct region *reg_of_count;
-  struct counter *count;
+  struct counter *count = NULL;
   struct trigger_request *trig_req;
   u_int report_type_only;
   byte count_type;
   int is_enclosed;
  
+
   /* Set up and figure out hash value */
   to_count=request->count_target->value;
   switch (request->count_target->sym_type)
@@ -1593,7 +1630,7 @@ int instantiate_request(struct output_request *request)
     /* Find or add counter */
     for (count=world->count_hash[request_hash] ; count!=NULL ; count=count->next)
     {
-      if (count->reg_type==reg_of_count && count->target==to_count && count_type==count->counter_type) break;
+      if (count->reg_type==reg_of_count && count->target==to_count && count_type==count->counter_type && count->orientation == request->count_orientation) break;
     }
     if (count==NULL)
     {
@@ -1603,6 +1640,10 @@ int instantiate_request(struct output_request *request)
         fprintf(world->err_file,"Error at file %s line %d\n  Out of memory allocating count request\n",__FILE__,__LINE__);
         return 1;
       }
+      if(request->count_orientation != ORIENT_NOT_SET)
+      {
+           count->orientation = request->count_orientation;
+      }      
       
       count->next=world->count_hash[request_hash];
       world->count_hash[request_hash]=count;
@@ -1748,6 +1789,7 @@ struct counter* create_new_counter(struct region *where,void *who,byte what)
   c->next=NULL;
   c->reg_type=where;
   c->target=who;
+  c->orientation = ORIENT_NOT_SET;
   c->counter_type=what;
   if (what&TRIG_COUNTER)
   {
