@@ -850,13 +850,11 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct volume_molecule *m
             
             for (wl=sv->wall_head ; wl!=NULL ; wl=wl->next)
             {
-              l = collide_wall(origin,&delta,wl->this_wall,&t,&hit);
+              l = collide_wall(origin,&delta,wl->this_wall,&t,&hit,0);
               
               if (l!=COLLIDE_MISS)
               {
-                if(world->notify->final_summary == NOTIFY_FULL) {
-                   world->ray_polygon_colls++;
-                }
+                world->ray_polygon_colls++;
                 
                 for (rl=wl->this_wall->counting_regions ; rl!=NULL ; rl=rl->next)
                 {
@@ -1015,13 +1013,11 @@ int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *
     
     for (wl=sv->wall_head ; wl!=NULL ; wl=wl->next)
     {
-      i = collide_wall(origin,&delta,wl->this_wall,&t,&hit);
+      i = collide_wall(origin,&delta,wl->this_wall,&t,&hit,0);
       
       if (i!=COLLIDE_MISS)
       {
-        if(world->notify->final_summary == NOTIFY_FULL) {
-            world->ray_polygon_colls++;
-        }
+        world->ray_polygon_colls++;
 
         if ( (t>-EPS_C && t<EPS_C) || (t>1.0-EPS_C && t<1.0+EPS_C) )
         {

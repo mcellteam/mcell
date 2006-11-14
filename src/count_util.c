@@ -438,7 +438,7 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
             
 	if (wl->this_wall->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
 	{
-	  j = collide_wall(&here,&delta,wl->this_wall,&t_hit,&hit);
+	  j = collide_wall(&here,&delta,wl->this_wall,&t_hit,&hit,0);
           
           if (j!=COLLIDE_MISS) world->ray_polygon_colls++;
  
@@ -714,7 +714,7 @@ int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int ind
       {
         if (wl->this_wall==g->grid->surface || wl->this_wall==sg->surface) continue;  /* Don't count our own wall */
         
-        j = collide_wall(&here,&delta,wl->this_wall,&t,&hit);
+        j = collide_wall(&here,&delta,wl->this_wall,&t,&hit,0);
         
         if (j!=COLLIDE_MISS) world->ray_polygon_colls++;
         
@@ -936,7 +936,7 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
     
     for (wl = sv->wall_head ; wl != NULL ; wl = wl->next)
     {
-      i = collide_wall(&outside , &delta , wl->this_wall , &t , &hit);
+      i = collide_wall(&outside , &delta , wl->this_wall , &t , &hit , 0);
       
       if((i != COLLIDE_MISS) && (world->notify->final_summary == NOTIFY_FULL)){
           world->ray_polygon_colls++;

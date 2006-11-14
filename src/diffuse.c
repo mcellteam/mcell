@@ -364,7 +364,7 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
   {
     if (wlp->this_wall==reflectee) continue;
     
-    i = collide_wall(&(m->pos),v,wlp->this_wall,&(smash->t),&(smash->loc));
+    i = collide_wall(&(m->pos),v,wlp->this_wall,&(smash->t),&(smash->loc),1);
     if (i==COLLIDE_REDO)
     {
       if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);

@@ -1295,6 +1295,9 @@ collide_wall:
       wall we're checking for a collision
       double to store time of collision
       vector to store the location of the collision
+      flag to signal whether we should modify the movement vector in an
+        ambiguous case (i.e. if we hit an edge or corner); if not, any
+        ambiguous cases are treated as a miss.
   Out: Integer value indicating what happened
          COLLIDE_MISS  missed
          COLLIDE_FRONT hit the front face (face normal points out of)
@@ -1309,7 +1312,7 @@ collide_wall:
 ***************************************************************************/
 
 int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
-                 double *t,struct vector3 *hitpt)
+                 double *t,struct vector3 *hitpt,int update_move)
 {
   double dp,dv,dd;
   double nx,ny,nz;
@@ -1352,27 +1355,26 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
   
   if (dd==0.0 && dv==0.0)
   {
-    a = (abs_max_2vec( point , move ) + 1.0) * EPS_C;
-    if ((rng_uint(world->rng)&1)==0){ 
-       a = -a;
-       if(world->notify->final_summary == NOTIFY_FULL)
-       {
-          world->random_number_use++;
-       }
-    }
-    if (dd==0.0)
+    if (update_move)
     {
-      move->x -= a*nx;
-      move->y -= a*ny;
-      move->z -= a*nz;
+      a = (abs_max_2vec( point , move ) + 1.0) * EPS_C;
+      if ((rng_uint(world->rng)&1)==0) a = -a;
+      world->random_number_use++;
+      if (dd==0.0)
+      {
+        move->x -= a*nx;
+        move->y -= a*ny;
+        move->z -= a*nz;
+      }
+      else
+      {
+        move->x *= (1.0-a);
+        move->y *= (1.0-a);
+        move->z *= (1.0-a);
+      }
+      return COLLIDE_REDO;
     }
-    else
-    {
-      move->x *= (1.0-a);
-      move->y *= (1.0-a);
-      move->z *= (1.0-a);
-    }
-    return COLLIDE_REDO;
+    else return COLLIDE_MISS;
   }
   
   a = 1.0/dv;
@@ -1410,22 +1412,34 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
       }
       else if (c*face->uv_vert1_u + g == h + face->uv_vert1_u*face->uv_vert2.v)
       {
-        jump_away_line(point,move,a,face->vert[1],face->vert[2],&(face->normal));
-        return COLLIDE_REDO;
+        if (update_move)
+        {
+          jump_away_line(point,move,a,face->vert[1],face->vert[2],&(face->normal));
+          return COLLIDE_REDO;
+        }
+        else return COLLIDE_MISS;
       }
       else return COLLIDE_MISS;
     }
     else if (g == h)
     {
-      jump_away_line(point,move,a,face->vert[2],face->vert[0],&(face->normal));
-      return COLLIDE_REDO;
+      if (update_move)
+      {
+        jump_away_line(point,move,a,face->vert[2],face->vert[0],&(face->normal));
+        return COLLIDE_REDO;
+      }
+      else return COLLIDE_MISS;
     }
     else return COLLIDE_MISS;
   }
   else if (c == 0) /* Hit first edge! */
   {
-    jump_away_line(point,move,a,face->vert[0],face->vert[1],&(face->normal));
-    return COLLIDE_REDO;
+    if (update_move)
+    {
+      jump_away_line(point,move,a,face->vert[0],face->vert[1],&(face->normal));
+      return COLLIDE_REDO;
+    }
+    else return COLLIDE_MISS;
   }
   else return COLLIDE_MISS;
 }
