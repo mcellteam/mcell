@@ -1931,6 +1931,16 @@ radial_subdivisions_def: RADIAL_SUBDIVISIONS '=' num_expr
     return 1;
   }
 
+  /* 'x & (x-1)' clears the lowest-order bit of x.  thus, only for 0 or a  */
+  /* power of 2 will the expression be zero.  we've eliminated the case of */
+  /* zero in the previous test.  (this condition is required so that we    */
+  /* use 'x & (RSD - 1)' as an optimized form of 'x % RSD'.)               */
+  if ((volp->radial_subdivisions & (volp->radial_subdivisions - 1)) != 0)
+  {
+    mdlerror("Radial subdivisions must be a power of two");
+    return 1;
+  }
+
   if (volp->r_step!=NULL) free(volp->r_step);
   if (volp->r_step_surface!=NULL) free(volp->r_step_surface);
 
