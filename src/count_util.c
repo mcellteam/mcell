@@ -1232,7 +1232,8 @@ int prepare_counters()
   struct object *o;
   int found = 0; /* flag to detect instantiated object or region */
   int i;
-  
+ 
+ 
   /* First give everything a sensible name, if needed */
   for (block=world->output_block_head ; block!=NULL ; block=block->next)
   {
@@ -1278,8 +1279,21 @@ int prepare_counters()
           fprintf(world->err_file,"In the COUNT statement orientation is specified for the molecule '%s'  which is not a grid molecule.\n", request->count_target->name);
           return 1;
         }
-
     }
+    /* check - hits specifier is valid only for volume molecules */
+    sp = (struct species *)(request->count_target->value);
+    if((sp->flags & ON_GRID) != 0) 
+    { 
+       if (((request->report_type & REPORT_TYPE_MASK) == REPORT_FRONT_HITS)
+           || ((request->report_type & REPORT_TYPE_MASK) == REPORT_BACK_HITS)
+           || ((request->report_type & REPORT_TYPE_MASK) == REPORT_ALL_HITS)
+           || ((request->report_type & REPORT_TYPE_MASK) == REPORT_FRONT_CROSSINGS)
+           || ((request->report_type & REPORT_TYPE_MASK) == REPORT_BACK_CROSSINGS)
+           || ((request->report_type & REPORT_TYPE_MASK) == REPORT_ALL_CROSSINGS)){
+              fprintf(world->err_file,"In the COUNT statement hits specification is valid only for the volume molecules while '%s'  is a grid molecule.\n", request->count_target->name);
+              return 1;
+       }
+     }
  
     if (request->count_location!=NULL && request->count_location->sym_type==OBJ)
     {
