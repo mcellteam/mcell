@@ -2372,6 +2372,8 @@ int test_segment_plane(struct vector3 *a, struct vector3 *b, struct plane *p, do
     n_a = dot_prod(&(p->n), a);
     n_ab = dot_prod(&(p->n), &ab);
 
+    if(n_ab == 0) return 0; /* segment is parallel to the plane */
+
     *t = (p->d - n_a) / n_ab;
 
     /* If t in [0..1] compute and return intersection point */
