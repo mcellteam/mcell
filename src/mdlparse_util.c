@@ -693,43 +693,38 @@ int equivalent_geometry(struct pathway *p1,struct pathway *p2,int n)
 {
 
   short o11,o12,o13,o21,o22,o23; /* orientations of individual reactants */
-  /* flags signaling that corresponding reactants are in the same
-     orientation class */
-  short react_1_class, react_2_class, react_3_class;
-  
+  /* flags for 3-reactant reactions signaling whether molecules orientations are     parallel one another and molecule and surface orientaions are parallel 
+     one another */
+  int mols_parallel_1 = SHRT_MIN + 1; /* for first pathway */
+  int mols_parallel_2 = SHRT_MIN + 2; /* for second pathway */
+  int mol_surf_parallel_1 = SHRT_MIN + 3; /* for first pathway */
+  int mol_surf_parallel_2 = SHRT_MIN + 4; /* for second pathway */
+
   if(n < 2){ 
      /* one reactant case */
-     
-     if (p1->orientation1 == 0) o11 = 0;
-     else if (p1->orientation1 < 0) o11 = -1;
-     else o11 = 1;
-     if (p2->orientation1 == 0) o21 = 0;
-     else if (p2->orientation1 < 0) o21 = -1;
-     else o21 = 1;
-    
-     o12 = o13 = o22 = o23 = 0;
-
-    if((o11 == o21) || (o11 = -o21)) {
-       return 1;
-    }else{
-       return 0;
-    }
+     /* RULE: all one_reactant pathway geometries are equivalent */ 
+       
+      return 1;
 
   }else if (n < 3){
     /* two reactants case */
-    
+   
+    /* RULE:
+       1) Both pathways have exactly the same number of reactants;
+       2) There exists an identity mapping between reactants from Pathway 1 and Pathway 2 such that for each pair of reactants, r1a and r1b from Pathway 1, and r2a, and r2b from Pathway 2:
+         - r1a is the same species as r2a (likewise for r1b and r2b);
+         - r1a and r1b have the same orientation in the same orientation class if and only if r2a and r2b do;
+         - r1a and r1b have the opposite orientation in the same orientation class if and only if r2a and r2b do;
+         - r1a and r1b are not in the same orientation class, either because they have different orientation classes or both are in the zero orientation class, if and only if r2a and r2b are not in the same orientation class or both are in the zero orientation class 
+     */
+
+ 
     if (p1->orientation1 == 0) o11 = 0;
     else if (p1->orientation1 < -2) o11 = -2;
     else if (p1->orientation1 < 0) o11 = p1->orientation1;
     else if (p1->orientation1 > 2) o11 = 2;
     else  o11 = p1->orientation1;
   
-    if (p2->orientation1 == 0) o21 = 0;
-    else if (p2->orientation1 < -2) o21 = -2;
-    else if (p2->orientation1 < 0) o21 = p2->orientation1;
-    else if (p2->orientation1 > 2) o21 = 2;
-    else  o21 = p2->orientation1;
-
     if (p1->orientation2 == p1->orientation1) o12 = o11;
     else if (p1->orientation2 == -p1->orientation1) o12 = -o11;
     else if (p1->orientation2 == 0) o12 = 0;
@@ -737,6 +732,12 @@ int equivalent_geometry(struct pathway *p1,struct pathway *p2,int n)
     else if (p1->orientation2 < 0) o12 = p1->orientation2;
     else if (p1->orientation2 > 2) o12 = 2;
     else o12 = p1->orientation2;
+    
+    if (p2->orientation1 == 0) o21 = 0;
+    else if (p2->orientation1 < -2) o21 = -2;
+    else if (p2->orientation1 < 0) o21 = p2->orientation1;
+    else if (p2->orientation1 > 2) o21 = 2;
+    else  o21 = p2->orientation1;
 
     if (p2->orientation2 == p2->orientation1) o22 = o21;
     else if (p2->orientation2 == -p2->orientation1) o22 = -o21;
@@ -748,39 +749,16 @@ int equivalent_geometry(struct pathway *p1,struct pathway *p2,int n)
   
     o13 = o23 = 0;  
 
-    if((o11 == 0) && (o21 == 0)){
-       /* effectively one reactant case */
-       if((o12 == o22) || (o12 == -o22)) return 1;
-    }else if((o12 == 0) && (o22 == 0)){
-       /* effectively one reactant case */
-       if((o11 == o21) || (o11 = -o21)) return 1;
-    }else if((o11 == o21) && (o12 == o22)) {
-       return 1;
-    }else if((o11 == -o21) && (o12 == -o22)) {
-       return 1;
-    }else if((abs(o12) == 2) && (abs(o22) == 2)){
-   /*if second reactant is in different orientation class than the first one*/
-       if((o11 == o21) || (o11 == -o21)) return 1;
-    }else if((abs(o11) == 2) && (abs(o21) == 2)){
-   /*if first reactant is in different orientation class than the second one*/
-       if((o12 == o22) || (o12 == -o22)) return 1;
-    }else{
-       return 0;
-    }
+    return equivalent_geometry_for_two_reactants(o11, o12, o21, o22);
+
   }else if (n < 4){
      /* three reactants case */
-
+                
     if (p1->orientation1 == 0) o11 = 0;
     else if (p1->orientation1 < -3) o11 = -3;
     else if (p1->orientation1 < 0) o11 = p1->orientation1;
     else if (p1->orientation1 > 3) o11 = 3;
     else  o11 = p1->orientation1;
-  
-    if (p2->orientation1 == 0) o21 = 0;
-    else if (p2->orientation1 < -3) o21 = -3;
-    else if (p2->orientation1 < 0) o21 = p2->orientation1;
-    else if (p2->orientation1 > 3) o21 = 3;
-    else  o21 = p2->orientation1;
 
     if (p1->orientation2 == 0) o12 = 0;
     else if (p1->orientation2 < -3) o12 = -3;
@@ -788,17 +766,23 @@ int equivalent_geometry(struct pathway *p1,struct pathway *p2,int n)
     else if (p1->orientation2 > 3) o12 = 3;
     else o12 = p1->orientation2;
 
-    if (p2->orientation2 == 0) o22 = 0;
-    else if (p2->orientation2 < -3) o22 = -3;
-    else if (p2->orientation2 < 0) o22 = p2->orientation2;
-    else if (p2->orientation2 > 3) o22 = 3;
-    else o22 = p2->orientation2;
-
     if (p1->orientation3 == 0) o13 = 0;
     else if (p1->orientation3 < -3) o13 = -3;
     else if (p1->orientation3 < 0) o13 = p1->orientation3;
     else if (p1->orientation3 > 3) o13 = 3;
     else o13 = p1->orientation3;
+  
+    if (p2->orientation1 == 0) o21 = 0;
+    else if (p2->orientation1 < -3) o21 = -3;
+    else if (p2->orientation1 < 0) o21 = p2->orientation1;
+    else if (p2->orientation1 > 3) o21 = 3;
+    else  o21 = p2->orientation1;
+
+    if (p2->orientation2 == 0) o22 = 0;
+    else if (p2->orientation2 < -3) o22 = -3;
+    else if (p2->orientation2 < 0) o22 = p2->orientation2;
+    else if (p2->orientation2 > 3) o22 = 3;
+    else o22 = p2->orientation2;
 
     if (p2->orientation3 == 0) o23 = 0;
     else if (p2->orientation3 < -3) o23 = -3;
@@ -806,80 +790,120 @@ int equivalent_geometry(struct pathway *p1,struct pathway *p2,int n)
     else if (p2->orientation3 > 3) o23 = 3;
     else o23 = p2->orientation3;
 
-    if(abs(o11) == abs(o21)){
-       react_1_class = abs(o11);
-    }else{
-       react_1_class = SHRT_MIN;
-    }
-  
-    if(abs(o12) == abs(o22)){
-       react_2_class = abs(o12);
-    }else{
-       react_2_class = SHRT_MIN + 1;
-    }
-    if(abs(o13) == abs(o23)){
-      react_3_class = abs(o13);
-    }else{
-       react_3_class = SHRT_MIN + 2;
+    /* special case: two identical reactants */
+      if((strcmp(p1->reactant1->sym->name, p1->reactant2->sym->name) == 0)
+          && (strcmp(p2->reactant1->sym->name, p2->reactant2->sym->name) == 0))
+      {
+
+       /* Case 1: two molecules and surface are in the same orientation class */
+        if((abs(o11) == abs(o12)) && (abs(o11) == abs(o13))){
+          if(o11 == o12) mols_parallel_1 = 1;
+          else mols_parallel_1 = 0;
+         
+          if(mols_parallel_1){
+            if((o11 == -o13) || (o12 == -o13)){
+               mol_surf_parallel_1 = 0;
+            }else{
+               mol_surf_parallel_1 = 1;
+            }
+          }else{
+               mol_surf_parallel_1 = 0;
+          }
+        
+          if((abs(o21) == abs(o22)) && (abs(o21) == abs(o23))){
+             if(o21 == o22) mols_parallel_2 = 1;
+             else mols_parallel_2 = 0;
+         
+             if(mols_parallel_2){
+               if((o21 == -o23) || (o22 == -o23)){
+                  mol_surf_parallel_2 = 0;
+               }else{
+                  mol_surf_parallel_2 = 1;
+               }
+             }else{
+                  mol_surf_parallel_2 = 0;
+             }
+          
+          }
+        
+          if((mols_parallel_1 == mols_parallel_2) &&
+              (mol_surf_parallel_1 == mol_surf_parallel_2)){
+                 return 1;
+          }
+
+       } /* end case 1 */
+      
+       /* Case 2: one molecule and surface are in the same orientation class */
+       else if((abs(o11) == abs(o13)) || (abs(o12) == abs(o13))){
+          if((o11 == o13) || (o12 == o13)) mol_surf_parallel_1 = 1;
+          else mol_surf_parallel_1 = 0;
+           
+          if((abs(o21) == abs(o23)) || (abs(o22) == abs(o23))){
+             if((o21 == o23) || (o22 == o23)) mol_surf_parallel_2 = 1;
+             else mol_surf_parallel_2 = 0;
+      
+             if(mol_surf_parallel_1 == mol_surf_parallel_2) {
+                 return 1;
+             }
+          }
+
+       } /* end case 2 */
+
+       /* Case 3: all molecules and surface are in different orientation classes */
+       else if((abs(o11) != abs(o13)) && (abs(o12) != abs(o13)) && 
+                 (abs(o11) != abs(o12))){
+       
+          if((abs(o21) != abs(o23)) && (abs(o22) != abs(o23)) &&
+                 (abs(o21) != abs(o22))){
+               return 1;
+          }
+       } /* end all cases */
+
+    }else{ /* no identical reactants */
+          
+       if((equivalent_geometry_for_two_reactants(o11, o12, o21, o22))
+           && (equivalent_geometry_for_two_reactants(o12, o13, o22, o23))
+           && (equivalent_geometry_for_two_reactants(o11, o13, o21, o23))){
+                return 1;
+       }
+        
     }
     
-    if((react_2_class == 0) && (react_3_class == 0)){
-       /* effectively one reactant case */
-       if((o11 == o21) || (o11 == -o21)) return 1;
-    }
-    if((react_1_class == 0) && (react_3_class == 0)){
-       /* effectively one reactant case */
-       if((o12 == o22) || (o12 == -o22)) return 1;
-    }
-    if((react_1_class == 0) && (react_2_class == 0)){
-       /* effectively one reactant case */
-       if((o13 == o23) || (o13 == -o23)) return 1;
-    }
+  } // end if (n < 4) 
 
-    if((react_1_class == react_2_class) &&
-        (react_1_class == react_3_class))
-    {
-       /* all three reactants are in the same class */
-       if((o11 == o21) && (o12 == o22) &&
-             (o13 == o23)) {
-           return 1;
-       }
-       if((o11 == -o21) && (o12 == -o22) &&
-             (o13 == -o23)) {
-           return 1;
-       }
-
-    }
-    else if(react_1_class == react_2_class){
-      /* only two reactants are in the same orientation class */
-      if((o11 == o21) && (o12 == o22)) return 1;
-      if((o11 == -o21) && (o12 == -o22)) return 1;
-
-    }else if(react_1_class == react_3_class){
-      /* only two reactants are in the same orientation class */
-       if((o11 == o21) && (o13 == o23)) return 1;
-       if((o11 == -o21) && (o13 == -o23)) return 1;
-
-    }else if(react_2_class == react_3_class){
-      /* only two reactants are in the same orientation class */
-      if((o12 == o22) && (o13 == o23)) return 1;
-      if((o12 == -o22) && (o13 == -o23)) return 1;
-
-    }else{
-      /* all three reactants are in different orientation classes */
-       if(abs(o11) == abs(o21) &&
-          (abs(o12) == abs(o22)) &&
-          (abs(o13) == abs(o23))){
-             return 1;
-       }
-
-    } /* and else */
-    
-  } /* end if (n < 4) */
 
   return 0;
 }
 
+
+/*************************************************************************
+equivalent_geometry_for_two_reactants:
+In: o1a - orientation of the first reactant from first reaction
+    o1b - orientation of the second reactant from first reaction
+    o2a - orientation of the first reactant from second reaction
+    o2b - orientation of the second reactant from second reaction
+Out: Returns 1 if the two pathways (defined by pairs o1a-o1b and o2a-o2b) 
+     have equivalent geometry, 0 otherwise.
+*************************************************************************/
+int equivalent_geometry_for_two_reactants(int o1a, int o1b, int o2a, int o2b)
+{
+    if((o1a == o1b) && (o2a == o2b)){
+       return 1;
+    }else if((o1a == -o1b) && (o2a == -o2b)){
+       return 1;
+    }else if (o1a != o1b) {
+       if((o2a != o2b) || ((o2a == 0) && (o2b == 0))){
+          return 1;
+       }
+    }else if (o2a != o2b){
+       if((o1a != o1b) || ((o1a == 0) && (o1b == 0))){
+          return 1;
+       }
+    }
+
+    return 0;
+
+}
 
 /*************************************************************************
 load_rate_file:
@@ -1027,7 +1051,8 @@ struct rxn * split_reaction(struct rxn *rx, struct mdlparse_vars *mpvp)
             }
          }
       } /* end if(head->next == NULL) */
-     
+                    
+ 
       /* The procedure is to extract two equivalent
          pathways to the "new_reaction->pathway_head" or to the 
          "existing_reaction->pathway_head", and then 
