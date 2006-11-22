@@ -738,8 +738,8 @@ int equivalent_geometry(struct pathway *p1,struct pathway *p2,int n)
     o23 = p2->orientation3;
 
     /* special case: two identical reactants */
-      if((strcmp(p1->reactant1->sym->name, p1->reactant2->sym->name) == 0)
-          && (strcmp(p2->reactant1->sym->name, p2->reactant2->sym->name) == 0))
+      if((p1->reactant1 == p1->reactant2)
+          && (p2->reactant1 == p2->reactant2))
       {
 
        /* Case 1: two molecules and surface are in the same orientation class */
@@ -784,19 +784,38 @@ int equivalent_geometry(struct pathway *p1,struct pathway *p2,int n)
        else if((abs(o11) == abs(o13)) || (abs(o12) == abs(o13))){
           if((o11 == o13) || (o12 == o13)) mol_surf_parallel_1 = 1;
           else mol_surf_parallel_1 = 0;
-           
-          if((abs(o21) == abs(o23)) || (abs(o22) == abs(o23))){
-             if((o21 == o23) || (o22 == o23)) mol_surf_parallel_2 = 1;
-             else mol_surf_parallel_2 = 0;
+          
+          /* check that pathway2 is also in the case2 */
+          
+          if((abs(o21) != abs(o23)) || (abs(o22) != abs(o23))){
+             if((abs(o21) == abs(o23)) || (abs(o22) == abs(o23))){
+                if((o21 == o23) || (o22 == o23)) mol_surf_parallel_2 = 1;
+                else mol_surf_parallel_2 = 0;
       
-             if(mol_surf_parallel_1 == mol_surf_parallel_2) {
-                 return 1;
              }
+          }
+          if(mol_surf_parallel_1 == mol_surf_parallel_2) {
+             return 1;
           }
 
        } /* end case 2 */
 
-       /* Case 3: all molecules and surface are in different orientation classes */
+       /* Case 3: two molecules but not surface are in the same
+                  orientation class */
+       else if((abs(o11) == abs(o12)) && (abs(o11) != abs(o13))){
+          if(o11 == o12) mols_parallel_1 = 1;
+          else mols_parallel_1 = 0;
+         
+          if((abs(o21) == abs(o22)) && (abs(o21) != abs(o23))){
+             if(o21 == o22) mols_parallel_2 = 1;
+             else mols_parallel_2 = 0;
+          }
+          if(mols_parallel_1 == mols_parallel_2){ 
+                 return 1;
+          }
+
+       }
+       /* Case 4: all molecules and surface are in different orientation classes */
        else if((abs(o11) != abs(o13)) && (abs(o12) != abs(o13)) && 
                  (abs(o11) != abs(o12))){
        
@@ -834,16 +853,24 @@ Out: Returns 1 if the two pathways (defined by pairs o1a-o1b and o2a-o2b)
 *************************************************************************/
 int equivalent_geometry_for_two_reactants(int o1a, int o1b, int o2a, int o2b)
 {
+
+    /* both reactants for each pathway are in the same
+       orientation class and parallel one another */
     if((o1a == o1b) && (o2a == o2b)){
        return 1;
+    /* both reactants for each pathway are in the same
+       orientation class and opposite one another */
     }else if((o1a == -o1b) && (o2a == -o2b)){
        return 1;
-    }else if (o1a != o1b) {
-       if((o2a != o2b) || ((o2a == 0) && (o2b == 0))){
+    }
+    /* reactants are not in the same orientation class */ 
+    if (abs(o1a) != abs(o1b)) {
+       if((abs(o2a) != abs(o2b)) || ((o2a == 0) && (o2b == 0))){
           return 1;
        }
-    }else if (o2a != o2b){
-       if((o1a != o1b) || ((o1a == 0) && (o1b == 0))){
+    }
+    if (abs(o2a) != abs(o2b)){
+       if((abs(o1a) != abs(o1b)) || ((o1a == 0) && (o1b == 0))){
           return 1;
        }
     }
@@ -998,8 +1025,7 @@ struct rxn * split_reaction(struct rxn *rx, struct mdlparse_vars *mpvp)
             }
          }
       } /* end if(head->next == NULL) */
-                    
-
+      
  
       /* The procedure is to extract two equivalent
          pathways to the "new_reaction->pathway_head" or to the 
@@ -1419,9 +1445,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         /* if reaction contains equivalent pathways, split
            this reaction into a linked list of reactions
            each containing only equivalent pathways. */
-
  
         rx = split_reaction(reaction, mpvp);
+
 
         /* set the symbol value to the head of the linked list of reactions */
         sym->value = (void *)rx; 
