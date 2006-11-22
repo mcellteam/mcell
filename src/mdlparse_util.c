@@ -718,77 +718,24 @@ int equivalent_geometry(struct pathway *p1,struct pathway *p2,int n)
          - r1a and r1b are not in the same orientation class, either because they have different orientation classes or both are in the zero orientation class, if and only if r2a and r2b are not in the same orientation class or both are in the zero orientation class 
      */
 
- 
-    if (p1->orientation1 == 0) o11 = 0;
-    else if (p1->orientation1 < -2) o11 = -2;
-    else if (p1->orientation1 < 0) o11 = p1->orientation1;
-    else if (p1->orientation1 > 2) o11 = 2;
-    else  o11 = p1->orientation1;
-  
-    if (p1->orientation2 == p1->orientation1) o12 = o11;
-    else if (p1->orientation2 == -p1->orientation1) o12 = -o11;
-    else if (p1->orientation2 == 0) o12 = 0;
-    else if (p1->orientation2 < -2) o12 = -2;
-    else if (p1->orientation2 < 0) o12 = p1->orientation2;
-    else if (p1->orientation2 > 2) o12 = 2;
-    else o12 = p1->orientation2;
-    
-    if (p2->orientation1 == 0) o21 = 0;
-    else if (p2->orientation1 < -2) o21 = -2;
-    else if (p2->orientation1 < 0) o21 = p2->orientation1;
-    else if (p2->orientation1 > 2) o21 = 2;
-    else  o21 = p2->orientation1;
+    o11 = p1->orientation1;
+    o12 = p1->orientation2;
+    o21 = p2->orientation1;
+    o22 = p2->orientation2;
 
-    if (p2->orientation2 == p2->orientation1) o22 = o21;
-    else if (p2->orientation2 == -p2->orientation1) o22 = -o21;
-    else if (p2->orientation2 == 0) o22 = 0;
-    else if (p2->orientation2 < -2) o22 = -2;
-    else if (p2->orientation2 < 0) o22 = p2->orientation2;
-    else if (p2->orientation2 > 2) o22 = 2;
-    else o22 = p2->orientation2;
-  
     o13 = o23 = 0;  
 
     return equivalent_geometry_for_two_reactants(o11, o12, o21, o22);
 
   }else if (n < 4){
      /* three reactants case */
-                
-    if (p1->orientation1 == 0) o11 = 0;
-    else if (p1->orientation1 < -3) o11 = -3;
-    else if (p1->orientation1 < 0) o11 = p1->orientation1;
-    else if (p1->orientation1 > 3) o11 = 3;
-    else  o11 = p1->orientation1;
 
-    if (p1->orientation2 == 0) o12 = 0;
-    else if (p1->orientation2 < -3) o12 = -3;
-    else if (p1->orientation2 < 0) o12 = p1->orientation2;
-    else if (p1->orientation2 > 3) o12 = 3;
-    else o12 = p1->orientation2;
-
-    if (p1->orientation3 == 0) o13 = 0;
-    else if (p1->orientation3 < -3) o13 = -3;
-    else if (p1->orientation3 < 0) o13 = p1->orientation3;
-    else if (p1->orientation3 > 3) o13 = 3;
-    else o13 = p1->orientation3;
-  
-    if (p2->orientation1 == 0) o21 = 0;
-    else if (p2->orientation1 < -3) o21 = -3;
-    else if (p2->orientation1 < 0) o21 = p2->orientation1;
-    else if (p2->orientation1 > 3) o21 = 3;
-    else  o21 = p2->orientation1;
-
-    if (p2->orientation2 == 0) o22 = 0;
-    else if (p2->orientation2 < -3) o22 = -3;
-    else if (p2->orientation2 < 0) o22 = p2->orientation2;
-    else if (p2->orientation2 > 3) o22 = 3;
-    else o22 = p2->orientation2;
-
-    if (p2->orientation3 == 0) o23 = 0;
-    else if (p2->orientation3 < -3) o23 = -3;
-    else if (p2->orientation3 < 0) o23 = p2->orientation3;
-    else if (p2->orientation3 > 3) o23 = 3;
-    else o23 = p2->orientation3;
+    o11 = p1->orientation1;
+    o12 = p1->orientation2;
+    o13 = p1->orientation3;
+    o21 = p2->orientation1;
+    o22 = p2->orientation2;
+    o23 = p2->orientation3;
 
     /* special case: two identical reactants */
       if((strcmp(p1->reactant1->sym->name, p1->reactant2->sym->name) == 0)
@@ -1052,6 +999,7 @@ struct rxn * split_reaction(struct rxn *rx, struct mdlparse_vars *mpvp)
          }
       } /* end if(head->next == NULL) */
                     
+
  
       /* The procedure is to extract two equivalent
          pathways to the "new_reaction->pathway_head" or to the 
@@ -1471,6 +1419,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         /* if reaction contains equivalent pathways, split
            this reaction into a linked list of reactions
            each containing only equivalent pathways. */
+
  
         rx = split_reaction(reaction, mpvp);
 
