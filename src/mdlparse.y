@@ -356,7 +356,8 @@ struct release_evaluator *rev;
 %token <tok> UNLIMITED
 %token <tok> USELESS_VOLUME_ORIENTATION
 %token <tok> VAR
-%token <tok> VAR_ORIENT
+%token <tok> VAR_ORIENT_IN_QUOTES
+%token <tok> VAR_ORIENT_IN_BRACES
 %token <tok> VACANCY_SEARCH_DISTANCE
 %token <tok> VARYING_PROBABILITY_REPORT
 %token <tok> VERTEX_LIST
@@ -519,7 +520,8 @@ struct release_evaluator *rev;
 %type <sym> existing_logicalOrPhysical
 %type <sym> new_rxn_pathname
 %type <sym> existing_rxpn_or_molecule 
-%type <sym> existing_molecule_required_orient 
+%type <sym> existing_molecule_required_orient_quotes 
+%type <sym> existing_molecule_required_orient_braces 
 %type <sym> count_location_specifier
 
 %type <sym> new_file_stream
@@ -5908,7 +5910,13 @@ existing_rxpn_or_molecule: VAR
 };
 
 
-existing_molecule_required_orient: VAR_ORIENT 
+existing_molecule_required_orient: existing_molecule_required_orient_quotes
+                           | existing_molecule_required_orient_braces
+;
+
+
+
+existing_molecule_required_orient_quotes: VAR_ORIENT_IN_QUOTES 
 {
   char *temp_1, *temp_2;
   char end_letter;
@@ -6014,6 +6022,119 @@ existing_molecule_required_orient: VAR_ORIENT
   
   $$=mdlpvp->gp;
 };
+
+existing_molecule_required_orient_braces: VAR_ORIENT_IN_BRACES 
+{
+  char *temp_1, *temp_2, *orient_string, *sym_name;
+  int len_1; /* length of the substring up to the '{' */
+  int len_2; /* length of the substring up to the '}' */
+  int len; /* length of the substring describing orientation */  
+  short orientation; /* orientation of the molecule */               
+
+ 
+  if (mdlpvp->cval_2!=NULL) {  
+    mdlpvp->sym_name=mdlpvp->cval_2;
+  }   
+  else {
+    mdlpvp->sym_name=mdlpvp->cval;
+  } 
+
+  temp_1 = strchr(mdlpvp->sym_name, '{');
+  temp_2 = strchr(mdlpvp->sym_name, '}');
+  
+  if((temp_1 == NULL) || (temp_2 == NULL)){
+        sprintf(mdlpvp->mdl_err_msg,"Error in specifying orientation in '%s'.\n", mdlpvp->sym_name);
+        mdlerror(mdlpvp->mdl_err_msg);
+        free((void *)mdlpvp->sym_name);
+        return (1);
+  }
+
+   len_1 = temp_1 - mdlpvp->sym_name; 
+   len_2 = temp_2 - mdlpvp->sym_name;
+   len = len_2 - len_1 -1; /* length of the string describing orientation */
+  
+     /* extract symbol name */           
+     if((sym_name = (char *)malloc(len_1 + 1)) != NULL){
+        strncpy(sym_name, mdlpvp->sym_name, len_1);
+        sym_name[len_1] = '\0';
+     }else{
+        sprintf(mdlpvp->mdl_err_msg,"%s ","Memory allocation error\n");
+        mdlerror(mdlpvp->mdl_err_msg);
+        free((void *)mdlpvp->sym_name);
+        return (1);
+     } 
+                   
+
+     temp_1++; /* move past the '{' */
+
+     /* extract orientation information */           
+     if((orient_string = (char *)malloc(len + 1)) != NULL){
+        strncpy(orient_string, temp_1, len);
+        orient_string[len] = '\0';
+     }else{
+        sprintf(mdlpvp->mdl_err_msg,"%s ","Memory allocation error\n");
+        mdlerror(mdlpvp->mdl_err_msg);
+        free((void *)mdlpvp->sym_name);
+        return (1);
+     } 
+
+     orientation = (short)atoi(orient_string);
+      
+     if(orientation == 0)
+     {
+         mdlpvp->orient_specified = 1;
+         mdlpvp->orient_class = 0;
+     }else if(orientation > 0){
+         mdlpvp->orient_specified = 1;
+         mdlpvp->orient_class = 1;
+     }else{
+         mdlpvp->orient_specified = 1;
+         mdlpvp->orient_class = -1;
+     }
+
+
+    if ((mdlpvp->gp=retrieve_sym(sym_name, MOL, volp->main_sym_table))==NULL) 
+  {
+      sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined molecule name:", sym_name);
+      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      if (mdlpvp->sym_name==mdlpvp->cval) {
+        mdlpvp->cval=NULL;
+      }
+      else {
+        mdlpvp->cval_2=NULL;
+      }
+      free(sym_name);
+      free(orient_string); 
+      free((void *)mdlpvp->sym_name);
+      return(1);
+  }
+
+  if (mdlpvp->sym_name==mdlpvp->cval) {
+    mdlpvp->cval=NULL;
+  }
+  else {
+    mdlpvp->cval_2=NULL;
+  }
+  free(sym_name);
+  free(orient_string);  
+  free((void *)mdlpvp->sym_name);
+#ifdef KELP
+  mdlpvp->gp->ref_count++;
+  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
+#endif
+  
+  mdlpvp->sym_table_list_head = (struct sym_table_list*)mem_get(mdlpvp->sym_list_mem);
+  if (mdlpvp->sym_table_list_head==NULL)
+  {
+    mdlerror("Out of memory trying to retrieve a molecule or reaction pathway name");
+    return 1;
+  }
+  mdlpvp->sym_table_list_head->next=NULL;
+  mdlpvp->sym_table_list_head->node= mdlpvp->gp;
+
+  $$=mdlpvp->gp;
+};
+
 
 existing_many_rxpns_or_molecules: WILDCARD_VAR
 {

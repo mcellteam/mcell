@@ -413,9 +413,24 @@ I ([0-9]+)
                                 exit(1);
                            }
 
-			   return(VAR_ORIENT);
+			   return(VAR_ORIENT_IN_QUOTES);
 			 }
+[A-Za-z][A-Za-z0-9\_\.]*\{-?[0-9]+\} {
+			   if (mpvp->cval==NULL) {
+			     mpvp->cval_2=NULL;
+			     mpvp->cval=strdup(mdltext);
+			   }
+			   else {
+			     mpvp->cval_2=mpvp->cval;
+			     mpvp->cval=strdup(mdltext);
+			   }
+                           if(mpvp->cval == NULL){
+                                fprintf(stderr,"File '%s', Line %ld: Out of memory while parsing variable name: %s\n", __FILE__, (long)__LINE__, mdltext);
+                                exit(1);
+                           }
 
+			   return(VAR_ORIENT_IN_BRACES);
+                         }
 \"[A-Za-z\[\]\-\*\?][A-Za-z0-9\_\.\[\]\-\*\?]*\" {
 			   if (mpvp->cval==NULL) {
 			     mpvp->cval_2=NULL;
