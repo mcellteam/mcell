@@ -11630,7 +11630,75 @@ region
 \layout Standard
 
 Count molecules or reactions inside the named region.
- It must be referenced fully.
+ For a grid molecule, 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+ can also specify its surface orientation and in such a case has to be enclosed
+ in quotes, e.g., 
+\begin_inset Quotes eld
+\end_inset 
+
+
+\family typewriter 
+A,
+\family default 
+
+\begin_inset Quotes erd
+\end_inset 
+
+.
+ The surface orientation may be given by an arbitrary number of either 
+\family typewriter 
+'
+\family default 
+,
+\family typewriter 
+ ,
+\family default 
+ or
+\family typewriter 
+ ;
+\family sans 
+\shape italic 
+.
+
+\family default 
+\shape default 
+ Mixing is not possible.
+ Equivalently, the numerical orientation specifiers 
+\family typewriter 
+{-1},{0},
+\family default 
+ or
+\family typewriter 
+{1}
+\family default 
+ can be used.
+ Clearly, the specification 
+\family typewriter 
+A;
+\family default 
+ or
+\family typewriter 
+ A{0}
+\family default 
+ is equivalent to 
+\family typewriter 
+A
+\family default 
+ since 
+\family typewriter 
+;
+\family default 
+ and
+\family typewriter 
+ {0}
+\family default 
+ both specify no orientation.
+ The named region must be referenced fully.
  E.g.
  if 
 \family typewriter 
@@ -11681,8 +11749,80 @@ region
 
 Count all molecules or reactions that occur in the area enclosed by region
  (not counting those that occur on the surface of the region).
- This lets you count surface molecules contained on surfaces that lie within
- a box, for example.
+ For a grid molecule, 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+ can also specify its surface orientation and in such a case has to be enclosed
+ in quotes, e.g., 
+\begin_inset Quotes eld
+\end_inset 
+
+
+\family typewriter 
+A,
+\family default 
+
+\begin_inset Quotes erd
+\end_inset 
+
+.
+ The surface orientation may be given by an arbitrary number of either 
+\family typewriter 
+'
+\family default 
+,
+\family typewriter 
+ ,
+\family default 
+ or
+\family typewriter 
+ ;
+\family sans 
+\shape italic 
+.
+
+\family default 
+\shape default 
+ Mixing is not possible.
+ Equivalently, the numerical orientation specifiers 
+\family typewriter 
+{-1},{0},
+\family default 
+ or
+\family typewriter 
+{1}
+\family default 
+ can be used.
+ Clearly, the specification 
+\family typewriter 
+A;
+\family default 
+ or
+\family typewriter 
+ A{0}
+\family default 
+ is equivalent to 
+\family typewriter 
+A
+\family default 
+ since 
+\family typewriter 
+;
+\family default 
+ and
+\family typewriter 
+ {0}
+\family default 
+ both specify no orientation.
+ This 
+\family typewriter 
+COUNT
+\family default 
+ statement lets you count surface molecules contained on surfaces that lie
+ within a box, for example.
  This will work with object names as well as region names, but the object
  or region must be closed.
  It is only useful for surface molecules and reactions at surfaces; adding
