@@ -6933,25 +6933,7 @@ mol_name_specs_state_value: existing_molecule '=' num_expr
   /* set the 'viz_state' value */ 
   mdlpvp->viz_state=(int) $<dbl>3;
   if (mdlpvp->gp->sym_type == MOL) {
-      mdlpvp->existing_state=0;  
-      mdlpvp->slp=mdlpvp->mol_state_head;
-      while (mdlpvp->slp!=NULL && !mdlpvp->existing_state) {
-        mdlpvp->existing_state=mdlpvp->existing_state||(mdlpvp->viz_state==mdlpvp->slp->state);
-        mdlpvp->slp=mdlpvp->slp->next;
-      }
-      if (!mdlpvp->existing_state) {
-        if ((mdlpvp->slp=(struct state_list *)malloc 
-            (sizeof(struct state_list)))==NULL) {
-          mdlerror("Out of memory while creating state list");
-          return(1);
-        }
-        mdlpvp->slp->state=mdlpvp->viz_state;
-        mdlpvp->slp->name=mdlpvp->gp->name;
-        mdlpvp->slp->next=mdlpvp->mol_state_head;
-        mdlpvp->mol_state_head=mdlpvp->slp;
-      }
       mdlpvp->specp->viz_state=mdlpvp->viz_state;
-
   }
   if((volp->viz_output_flag & VIZ_MOLECULES_STATES) == 0){
       volp->viz_output_flag |= VIZ_MOLECULES_STATES;
@@ -7687,23 +7669,6 @@ mesh_one_name_spec_state_value: existing_object '=' num_expr
  
   /* set viz_state value for the object */
   if (mdlpvp->gp->sym_type == OBJ) {
-      mdlpvp->existing_state=0;  
-      mdlpvp->slp=mdlpvp->surf_state_head;
-      while (mdlpvp->slp!=NULL && !mdlpvp->existing_state) {
-        mdlpvp->existing_state=mdlpvp->existing_state||(mdlpvp->viz_state==mdlpvp->slp->state);
-        mdlpvp->slp=mdlpvp->slp->next;
-      }
-      if (!mdlpvp->existing_state) {
-        if ((mdlpvp->slp=(struct state_list *)malloc 
-            (sizeof(struct state_list)))==NULL) {
-          mdlerror("Out of memory while creating viz state list");
-          return(1);
-        }
-        mdlpvp->slp->state=mdlpvp->viz_state;
-        mdlpvp->slp->name=mdlpvp->gp->name;
-        mdlpvp->slp->next=mdlpvp->surf_state_head;
-        mdlpvp->surf_state_head=mdlpvp->slp;
-      }
       switch (mdlpvp->objp->object_type) {
         case META_OBJ:
           if (set_viz_state_value(mdlpvp->objp,mdlpvp->viz_state)) {
@@ -8551,23 +8516,6 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
   mdlpvp->viz_state=(int) $<dbl>3;
   switch (mdlpvp->gp->sym_type) {
     case OBJ:
-      mdlpvp->existing_state=0;  
-      mdlpvp->slp=mdlpvp->surf_state_head;
-      while (mdlpvp->slp!=NULL && !mdlpvp->existing_state) {
-        mdlpvp->existing_state=mdlpvp->existing_state||(mdlpvp->viz_state==mdlpvp->slp->state);
-        mdlpvp->slp=mdlpvp->slp->next;
-      }
-      if (!mdlpvp->existing_state) {
-        if ((mdlpvp->slp=(struct state_list *)malloc 
-            (sizeof(struct state_list)))==NULL) {
-          mdlerror("Out of memory while creating state list");
-          return(1);
-        }
-        mdlpvp->slp->state=mdlpvp->viz_state;
-        mdlpvp->slp->name=mdlpvp->gp->name;
-        mdlpvp->slp->next=mdlpvp->surf_state_head;
-        mdlpvp->surf_state_head=mdlpvp->slp;
-      }
       mdlpvp->objp=(struct object *)mdlpvp->gp->value;
       switch (mdlpvp->objp->object_type) {
         case META_OBJ:
@@ -8612,23 +8560,6 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
       }
       break;
     case MOL:
-      mdlpvp->existing_state=0;  
-      mdlpvp->slp=mdlpvp->mol_state_head;
-      while (mdlpvp->slp!=NULL && !mdlpvp->existing_state) {
-        mdlpvp->existing_state=mdlpvp->existing_state||(mdlpvp->viz_state==mdlpvp->slp->state);
-        mdlpvp->slp=mdlpvp->slp->next;
-      }
-      if (!mdlpvp->existing_state) {
-        if ((mdlpvp->slp=(struct state_list *)malloc 
-            (sizeof(struct state_list)))==NULL) {
-          mdlerror("Out of memory while creating state list");
-          return(1);
-        }
-        mdlpvp->slp->state=mdlpvp->viz_state;
-        mdlpvp->slp->name=mdlpvp->gp->name;
-        mdlpvp->slp->next=mdlpvp->mol_state_head;
-        mdlpvp->mol_state_head=mdlpvp->slp;
-      }
       mdlpvp->specp=(struct species *)mdlpvp->gp->value;
       mdlpvp->specp->viz_state=mdlpvp->viz_state;
       break;
@@ -8641,23 +8572,6 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
   mdlpvp->gp=$<sym>1;
   mdlpvp->viz_state=(int) $<dbl>3;
 
-  mdlpvp->existing_state=0;  
-  mdlpvp->slp=mdlpvp->surf_state_head;
-  while (mdlpvp->slp!=NULL && !mdlpvp->existing_state) {
-    mdlpvp->existing_state=mdlpvp->existing_state||(mdlpvp->viz_state==mdlpvp->slp->state);
-    mdlpvp->slp=mdlpvp->slp->next;
-  }
-  if (!mdlpvp->existing_state) {
-    if ((mdlpvp->slp=(struct state_list *)malloc 
-        (sizeof(struct state_list)))==NULL) {
-      mdlerror("Out of memory while creating state list");
-      return(1);
-    }
-    mdlpvp->slp->state=mdlpvp->viz_state;
-    mdlpvp->slp->name=mdlpvp->gp->name;
-    mdlpvp->slp->next=mdlpvp->surf_state_head;
-    mdlpvp->surf_state_head=mdlpvp->slp;
-  }
   mdlpvp->objp=(struct object *)mdlpvp->gp->value;
 
   mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;

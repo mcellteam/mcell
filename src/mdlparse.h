@@ -95,11 +95,6 @@ struct mdlparse_vars {
   struct viz_obj *vizp;
   struct frame_data_list *fdlp;
   int viz_state;
-  int existing_state;
-  struct state_list *surf_state_head;
-  struct state_list *eff_state_head;
-  struct state_list *mol_state_head;
-  struct state_list *slp;
 
   struct output_block *obp;
   long long n_output;
