@@ -1258,6 +1258,32 @@ Out: Sorts linked list of pathways in alphabetical order
      according to the "prod_signature" field.
      Checks for the pathways duplicates. 
      Prints error message and exits simulation if duplicates found.
+Note: This function is called after  'split_reaction()' function 
+      so all pathways have equivalent geometry from the reactant side.
+      Here we check whether relative orientation of all players (both
+      reactants and products) is the same for the two seemingly identical
+      pathways.
+RULE: Two reactions pathways are duplicates if and only if
+       (a) they both have the same number and species of reactants;
+       (b) they both have the same number and species of products;
+       (c) there exists a bijective mapping between the reactants and products
+           of the two pathways such that reactants map to reactants, 
+           products map to products, and the two pathways have equivalent 
+           geometry under mapping.
+           Two pathways R1 and R2 have an equivalent geometry under a mapping M
+           if and only if for every pair of players "i" and "j" in R1, the 
+           corresponding players M(i) and M(j) in R2 have the same orientation
+           relation as do "i" and "j" in R1.
+           Two players "i" and "j" in a reaction pathawy have the following
+           orientation:
+             parallel - if both "i" and "j" are in the same nonzero orientation
+             class with the same sign;
+             antiparallel (opposite) - if they are both in the same nonzero 
+             orientation class but have opposite sign;
+             independent - if they are in different orientation classes or both              in the zero orientation class.
+PostNote: In this function we check only the validity of Rule (c) since
+          conditions of Rule (a) and (b) are already satisfied when 
+          the function is called. 
 *************************************************************************/
 void check_reaction_for_duplicate_pathways(struct pathway **head, struct mdlparse_vars *mpvp)
 {
@@ -1265,7 +1291,13 @@ void check_reaction_for_duplicate_pathways(struct pathway **head, struct mdlpars
    struct pathway *current;
    struct pathway *next;
    struct product *iter1, *iter2;
-   int products_identical = 1;
+   int pathways_equivalent;  /* flag */ 
+   int i, j;
+   int num_reactants; /* number of reactants in the pathway */
+   int num_products; /* number of products in the pathway */
+   int num_players; /* total number of reactants and products in the pathway */
+   int *orient_players_1, *orient_players_2; /* array of orientations of players */
+   int o1a, o1b, o2a,o2b;
 
    current = *head;
 
@@ -1301,30 +1333,94 @@ void check_reaction_for_duplicate_pathways(struct pathway **head, struct mdlpars
 
    while(current->next != NULL){
       if(strcmp(current->prod_signature, current->next->prod_signature) == 0){
-         /* now check whether orientations of products are identical */ 
+       
+         pathways_equivalent  = 0;
+         /* find total number of players in the pathways */
+         num_reactants = 0;
+         num_products = 0;
+         num_players = 0;
+         if(current->reactant1 != NULL) num_reactants++;
+         if(current->reactant2 != NULL) num_reactants++;
+         if(current->reactant3 != NULL) num_reactants++;
+
+         iter1 = current->product_head;
+         while(iter1 != NULL)
+         {
+            num_products++;
+            iter1 = iter1->next;
+         }
+         
+         num_players = num_reactants + num_products;
+         /* create arrays of players orientations */
+         orient_players_1 = (int *)malloc(sizeof(int)*(num_players));
+         orient_players_2 = (int *)malloc(sizeof(int)*(num_players));
+         if (orient_players_1 == NULL || orient_players_2 == NULL){
+                fprintf(mpvp->vol->err_file, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+                exit(EXIT_FAILURE);
+         }
+
+         if(current->reactant1!=NULL) orient_players_1[0]=current->orientation1;
+         if(current->reactant2!=NULL) orient_players_1[1]=current->orientation2;
+         if(current->reactant3!=NULL) orient_players_1[2]=current->orientation3;
+         if(current->next->reactant1!=NULL) orient_players_2[0]=current->next->orientation1;
+         if(current->next->reactant2!=NULL) orient_players_2[1]=current->next->orientation2;
+         if(current->next->reactant3!=NULL) orient_players_2[2]=current->next->orientation3;
+ 
+                
          iter1 = current->product_head;
          iter2 = current->next->product_head;
-         while(iter1 != NULL && iter2 != NULL)
+         
+         for(i = num_reactants; i < num_players; i++)
          {
-             if(iter1->orientation != iter2->orientation){
-                products_identical = 0;
-                break;
-             }
-             iter1 = iter1->next;
-             iter2 = iter2->next;
+            orient_players_1[i] = iter1->orientation;
+            orient_players_2[i] = iter2->orientation;
+            iter1 = iter1->next;
+            iter2 = iter2->next;
          }
-         if(products_identical)
+         
+         /* below we will compare only reactant-product
+            and product-product combinations
+            because reactant-reactant combinations 
+            were compared previously in the function
+            "equivalent_geometry()"
+         */
+           
+         i = 0;
+         while((i < num_players) && (!pathways_equivalent))
+         { 
+            if(i < num_reactants){
+               j = num_reactants;
+            }else{
+               j = i + 1;
+            }
+            for(; j < num_players; j++)
+            {
+               o1a = orient_players_1[i];
+               o1b = orient_players_1[j];            
+               o2a = orient_players_2[i];
+               o2b = orient_players_2[j];
+               if(!equivalent_geometry_for_two_reactants(o1a, o1b, o2a, o2b)){
+                  pathways_equivalent = 1;
+                  break;
+               }
+            }
+            i++;
+         }
+
+         if(pathways_equivalent)
          {    
             if(current->reactant2 == NULL){
-               fprintf(mpvp->vol->err_file, "Exact duplicates of reaction %s  ----> %s are not allowed.  Please verify that products are not identical.\n", current->reactant1->sym->name, current->prod_signature);
-           }else if(current->reactant3 == NULL){
-               fprintf(mpvp->vol->err_file, "Exact duplicates of reaction %s + %s  ----> %s are not allowed.  Please verify that products are not identical.\n", current->reactant1->sym->name, current->reactant2->sym->name, current->prod_signature);
+               fprintf(mpvp->vol->err_file, "Exact duplicates of reaction %s  ----> %s are not allowed.  Please verify that orientations of reactants and products are not equivalent.\n", current->reactant1->sym->name, current->prod_signature);
+            }else if(current->reactant3 == NULL){
+               fprintf(mpvp->vol->err_file, "Exact duplicates of reaction %s + %s  ----> %s are not allowed.  Please verify that orientations of reactants and products are not equivalent.\n", current->reactant1->sym->name, current->reactant2->sym->name, current->prod_signature);
             }else{
-               fprintf(mpvp->vol->err_file, "Exact duplicates of reaction %s + %s + %s  ----> %s are not allowed.  Please verify that products are not identical.\n", current->reactant1->sym->name, current->reactant2->sym->name, current->reactant3->sym->name, current->prod_signature);
+               fprintf(mpvp->vol->err_file, "Exact duplicates of reaction %s + %s + %s  ----> %s are not allowed.  Please verify that orientations of reactants and products are not equivalent.\n", current->reactant1->sym->name, current->reactant2->sym->name, current->reactant3->sym->name, current->prod_signature);
             }
             exit(EXIT_FAILURE);
           }
+               
       }
+
       current = current->next;
    }
 
@@ -1458,6 +1554,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         /*  Check whether reaction contains pathways with equivalent
             product lists.  Also sort pathways in alphabetical order
             according to the  "prod_signature" field. */
+                                   
         if(rx->pathway_head->prod_signature != NULL){
            check_reaction_for_duplicate_pathways(&rx->pathway_head, mpvp);
         } 
