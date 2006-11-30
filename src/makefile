@@ -54,7 +54,7 @@ util.o: makedefs util.c util.h
 # parsing
 
 arglex.flex.c: arglex.l strfunc.h argparse.h
-	flex -Cfra arglex.l
+	flex -Crema arglex.l
 
 argparse.bison.c: argparse.y argparse.h rng.h mcell_structs.h arglex.flex.c
 	bison argparse.y
@@ -63,7 +63,7 @@ argparse.bison.o: makedefs argparse.bison.c arglex.flex.c
 	$(CC) $(CFLAGS) -c argparse.bison.c
 
 mdllex.flex.c: mdllex.l strfunc.h mdlparse.h
-	flex -Cfra mdllex.l
+	flex -Crema mdllex.l
 
 mdlparse.bison.c: mdlparse.y mdlparse.h mdllex.flex.c mdlparse_util.h rng.h mcell_structs.h vector.h strfunc.h mem_util.h sym_table.h diffuse_util.h util.h react_output.h
 	bison -v mdlparse.y
