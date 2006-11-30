@@ -83,7 +83,7 @@ Out: new double value that is copy of the input double value
 double *double_dup(double value)
 {
   double *dup_value;
-  char *err_message = NULL;
+  char err_message[1024];
 
   if ((dup_value=(double *)malloc(sizeof(double)))==NULL) {
     sprintf(err_message, "File '%s', Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
@@ -2473,7 +2473,7 @@ int make_cuboid(struct vector3 *p1, struct vector3 *p2, struct ordered_poly *opp
   struct vector3 *corner;
   struct element_data *edp;
   double dx,dy,dz;
-  char *err_message = NULL;
+  char err_message[1024];
 
   if ((corner=(struct vector3 *)malloc
       (opp->n_verts*sizeof(struct vector3)))==NULL) {
@@ -2590,7 +2590,7 @@ Out: returns a subdivided_box struct, with no subdivisions and corners
 struct subdivided_box* init_cuboid(struct vector3 *p1,struct vector3 *p2)
 {
   struct subdivided_box *b;
-  char *err_message = NULL;
+  char err_message[1024];
 
   
   if (p2->x-p1->x < EPS_C || p2->y-p1->y < EPS_C || p2->z-p1->z < EPS_C)
@@ -2726,7 +2726,7 @@ int refine_cuboid(struct vector3 *p1,struct vector3 *p2,struct subdivided_box *b
   int i,j,k;
   double *new_list;
   int new_n;
-  char *err_message = NULL;
+  char err_message[1024];
   
   i = check_patch(b,p1,p2,egd);
   
@@ -2851,7 +2851,7 @@ int divide_cuboid(struct subdivided_box *b,int axis,int idx,int ndiv)
   int old_n;
   int new_n;
   int i,j,k;
-  char *err_message = NULL;
+  char err_message[1024];
   
   if (ndiv<2) ndiv=2;
   
@@ -3194,7 +3194,7 @@ int normalize_elements(struct region *reg, int existing)
   char op;
   int n_elts;
   int i = 0;
-  char *err_message = NULL;
+  char err_message[1024];
   
   if (reg->element_list_head==NULL) return 0;
   
@@ -3404,7 +3404,7 @@ int polygonalize_cuboid(struct ordered_poly *opp,struct subdivided_box *sb)
   struct element_data *e;
   int i,j,a,b,c;
   int ii,bb,cc;
-  char *err_message = NULL; 
+  char err_message[1024];
  
   opp->n_verts = count_cuboid_vertices(sb);
   opp->vertex = (struct vector3*)malloc( opp->n_verts * sizeof(struct vector3) );
@@ -3638,7 +3638,7 @@ int set_viz_state_value(struct object *objp, int viz_state)
 {
   struct object *child_objp;
   int i;
-  char *err_message = NULL;
+  char err_message[1024];
 
   switch (objp->object_type) {
     case META_OBJ:
@@ -4051,7 +4051,7 @@ struct release_evaluator* duplicate_rel_region_expr(struct release_evaluator *ex
 {
   struct region *r;
   struct release_evaluator *nexp;
-  char *err_message = NULL;
+  char err_message[1024];
 
   
   nexp = (struct release_evaluator*)malloc(sizeof(struct release_evaluator));
@@ -4122,7 +4122,7 @@ struct release_site_obj* duplicate_release_site(struct release_site_obj *old,str
 {
   struct release_site_obj *rso;
   struct release_region_data *rrd;
-  char *err_message = NULL;
+  char err_message[1024];
   
   if (old->release_shape != SHAPE_REGION) return old;
   
