@@ -217,7 +217,7 @@ fold_template OBJECT {
         ELEMENT_LIST = [LEFT]
         SURFACE_CLASS = basal_lamina
         MOLECULE_DENSITY {
-          AChE.E = ache_d_fold*ache_d_factor
+          AChE.E' = ache_d_fold*ache_d_factor
         }
       }
     }
@@ -250,7 +250,7 @@ ache_primary_sheet BOX {
       ELEMENT_LIST = [BOTTOM]
       SURFACE_CLASS = basal_lamina
       MOLECULE_DENSITY {
-        AChE.E = ache_d*ache_d_factor
+        AChE.E' = ache_d*ache_d_factor
       }
     }
   }
