@@ -87,6 +87,7 @@ struct counter_helper* create_counter(int size,int length)
   }
   ch->mem = create_mem(size + sizeof(struct counter_header),length);
   if(ch->mem == NULL) {
+        free(ch);
     	fprintf(world->err_file, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
 	return (NULL);
   }
@@ -135,7 +136,7 @@ void counter_add(struct counter_helper *ch,void *data)
     c = ch->head;
     while (c != NULL)
     {
-      i = memcmp(c+sizeof(struct counter_header),data,ch->data_size);
+      i = memcmp((void *)((intptr_t)c)+sizeof(struct counter_header),data,ch->data_size);
 
       if (i==0)
       { 
@@ -155,6 +156,7 @@ void counter_add(struct counter_helper *ch,void *data)
         memcpy((void*)(((intptr_t)new_c)+sizeof(struct counter_header)),data,ch->data_size);
         
         if (prev_c != NULL) prev_c->next = new_c;
+        else ch->head = new_c;
         c->prev = new_c;
         
         ch->n_unique++;
@@ -198,6 +200,7 @@ void counter_reset(struct counter_helper *ch)
 {
   ch->n_unique = 0;
   if (ch->head != NULL) mem_put_list(ch->mem , ch->head);
+  ch->head = NULL;
 }
 
 
