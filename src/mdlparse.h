@@ -30,6 +30,8 @@ struct mdlparse_vars {
   int ival;
   double rval;
 
+  int comment_started;
+
   struct sym_table *gp;
   struct sym_table *tp;
   struct sym_table *stp1;

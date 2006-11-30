@@ -8,8 +8,6 @@
 
   #define YY_DECL int mdllex( YYSTYPE *mdllval, struct mdlparse_vars *mpvp )
 
-  #define YY_NO_UNPUT
-
   #ifdef __cplusplus
   #define INPUT_FUNC yyinput
   #else
@@ -17,15 +15,22 @@
   #endif
 %}
 
+/* Define state for parsing comments */
+%x IN_COMMENT
+
+/* Set up function name prefixes and output file name */
 %option prefix="mdl"
 %option outfile="mdllex.flex.c"
+
+/* Enable condition state stack */
+%option stack
+
+/* Disable yywrap feature */
 %option noyywrap
 
-%p 10000
-%a 10000 
-%o 10000
-%e 2000
-%n 1000
+/* Eliminate unused symbols to eliminate compiler warnings */
+%option nounput
+%option noyy_top_state
 
 R ([0-9]+\.)|([0-9]*\.[0-9]+)|([0-9]+[eE][+-]?[0-9]+)|([0-9]+\.[0-9]*[eE][+-]?[0-9]+)|([0-9]*\.[0-9]+[eE][+-]?[0-9]+)
 I ([0-9]+)
@@ -33,46 +38,22 @@ I ([0-9]+)
 %%
 
 
-"/*"            {
-	                /* handle comments and nested comments */
-                        int     c1, c2;
-                        int     comline, incomment = 1;
- 
-                        comline = mpvp->line_num[mpvp->include_stack_ptr];
- 
-                        do {
-                          while ((c1 = INPUT_FUNC()) != '*' 
-	                          && c1 != '/' && c1 != EOF) {
-                            if (c1 == '\n') {
-                              mpvp->line_num[mpvp->include_stack_ptr]++;
-	                    }
-	                  }
- 
-                          c2 = INPUT_FUNC();
-                          if (c2 == '\n') {
-                            mpvp->line_num[mpvp->include_stack_ptr]++;
-	                  }
- 
-	                  if (c1 == '*' && c2 == '/') {
-	                    incomment--;
-	                  }
-   
-                          if (c1 == '/' && c2 == '*') {
-                            incomment++;
-                            comline = mpvp->line_num[mpvp->include_stack_ptr];
-                          }
- 
-                        } while (incomment && c2 != EOF);
- 
-                        if (c1 == EOF || c2 == EOF) {
-                          sprintf(mpvp->mdl_err_msg,
-	                    "Unterminated comment started on line %d",
-	                     comline);
-	                  mpvp->line_num[mpvp->include_stack_ptr]--;
-                          mdlerror(mpvp->mdl_err_msg);
-	                  return(1);
-                        }
+<INITIAL>"/*"   { mpvp->comment_started = mpvp->line_num[mpvp->include_stack_ptr]; yy_push_state(IN_COMMENT); }
+<IN_COMMENT>{
+[^*/\n]*        { }
+"/"[^*\n]       { }
+"*"+[^*/\n]*    { }
+"/*"            { yy_push_state(YY_START); }
+"*"+"/"         { yy_pop_state(); }
+<<EOF>>         {
+                  mpvp->line_num[mpvp->include_stack_ptr]--;
+                  sprintf(mpvp->mdl_err_msg, "Unterminated comment started on line %d",
+                          mpvp->comment_started);
+                  mdlerror(mpvp->mdl_err_msg);
+                  return(1);
                 }
+}
+
 [ \t]+			;
 "ABS"			{return(ABS);}
 "ABSORPTIVE"		{return(ABSORPTIVE);}
@@ -379,7 +360,7 @@ I ([0-9]+)
 "=fopen"		{return(FOPEN);}
 "= fopen"		{return(FOPEN);}
 "fclose"		{return(FCLOSE);}
-{R}		       {sscanf((const char *)mdltext,"%lf",&mpvp->rval); return(REAL);}
+{R}			{sscanf((const char *)mdltext,"%lf",&mpvp->rval); return(REAL);}
 {I}			{sscanf((const char *)mdltext,"%d",&mpvp->ival); return(INTEGER);}
 [A-Za-z][A-Za-z0-9\_\.]* {
 			   if (mpvp->cval==NULL) {
@@ -458,5 +439,5 @@ I ([0-9]+)
 
 [\'\,\(\)\/\-\+\=\^\[\]\{\}\|\<\>\*\#\~\@\:\&\;] {return(mdltext[0]);}
 .			;
-\n			{mpvp->line_num[mpvp->include_stack_ptr]++;}
+<INITIAL,IN_COMMENT>\n+ {mpvp->line_num[mpvp->include_stack_ptr] += yyleng; }
 <<EOF>>			{return(EOF_TOK);}
