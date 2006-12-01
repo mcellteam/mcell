@@ -1144,6 +1144,28 @@ int instance_release_site(struct object *objp, double (*im)[4])
     rxpn = (struct rxn_pathname*)rsop->pattern;
     ml->next=rxpn->magic;
     rxpn->magic=ml;
+    
+    /* Region releases need to be in release queue to get initialized */
+    /* Release code itself is smart enough to ignore MAGIC_PATTERNs */
+    if (rsop->release_shape==SHAPE_REGION) 
+    {
+      reqp = (struct release_event_queue*)malloc(sizeof(struct release_event_queue));
+      if (reqp==NULL)
+      {
+        fprintf(world->err_file,"File '%s', Line %ld: Out of memory while instantiating release site.\n", __FILE__, (long)__LINE__);
+        return 1;
+      }
+    
+      reqp->release_site=rsop;
+      reqp->event_time=0;
+      reqp->train_counter=0;
+      reqp->train_high_time=0;
+      if (schedule_add(world->releaser,reqp))
+      {
+        fprintf(world->err_file,"File '%s', Line %ld: Out of memory while scheduling releases.\n", __FILE__, (long)__LINE__);
+        return(1);
+      }
+    }
   }
   else
   {

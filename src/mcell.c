@@ -90,7 +90,7 @@ void run_sim(void)
           req!=NULL || not_yet>=world->releaser->now ;
 	  req=schedule_next(world->releaser)) 
     {
-      if (req==NULL) continue;
+      if (req==NULL || req->release_site->release_prob==MAGIC_PATTERN_PROBABILITY) continue;
       if ( release_molecules(req) )
       {
 	fprintf(world->err_file,"File '%s', Line %ld: Out of memory while releasing molecules of type %s\n", __FILE__, (long)__LINE__, req->release_site->mol_type->sym->name);
