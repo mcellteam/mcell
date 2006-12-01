@@ -1764,7 +1764,8 @@ struct rk_mode_data
 #ifdef DEBUG
 #define no_printf printf
 #else
-void no_printf(const char *,...);
+#define no_printf(...) /* empty */
+/* void no_printf(const char *,...); */
 #endif
 
 
