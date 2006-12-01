@@ -454,12 +454,6 @@
 #define OUTWRD 1
 #define INWRD -1
 
-/* Relative to a molecule */
-#define POS_POLE 1
-#define NEG_POLE -1
-#define POLE POS_POLE
-                                                                                
-
 /* Placement Type Flags */
 /* Place either a certain density or an exact number of surface molecules */
 #define EFFDENS 0
