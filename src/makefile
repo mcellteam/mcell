@@ -6,11 +6,11 @@ SHELL = /bin/sh
 MCELL_VERSION = `head -1 ./mcell.h | cut -d " " -f 6`
 
 UTILITY_OBJS = strfunc.o vector.o ran4.o isaac64.o rng.o diffuse_util.o mem_util.o sched_util.o grid_util.o util.o 
-PARSE_OBJS = argparse.bison.o mdlparse.bison.o mdlparse_util.o sym_table.o 
+PARSE_OBJS = argparse.o mdlparse.bison.o mdlparse_util.o sym_table.o 
 COUNT_VIZ_OBJS = viz_output.o react_output.o count_util.o
 CORE_OBJS = react_cond.o react_outc.o react_trig.o wall_util.o vol_util.o diffuse.o init.o chkpt.o 
 MCELL_OBJS = $(PARSE_OBJS) $(COUNT_VIZ_OBJS) $(UTILITY_OBJS) $(CORE_OBJS) mcell.o
-EXTRAS = arglex.flex.c argparse.bison.c mdllex.flex.c mdlparse.bison.c mdlparse.bison.output
+EXTRAS = mdllex.flex.c mdlparse.bison.c mdlparse.bison.output
 
 
 
@@ -53,14 +53,8 @@ util.o: makedefs util.c util.h
 
 # parsing
 
-arglex.flex.c: arglex.l strfunc.h argparse.h
-	flex -Crema arglex.l
-
-argparse.bison.c: argparse.y argparse.h rng.h mcell_structs.h arglex.flex.c
-	bison argparse.y
-
-argparse.bison.o: makedefs argparse.bison.c arglex.flex.c
-	$(CC) $(CFLAGS) -c argparse.bison.c
+argparse.o: makedefs argparse.c argparse.h mcell_structs.h rng.h vector.h mem_util.h sched_util.h
+	$(CC) $(CFLAGS) -c argparse.c
 
 mdllex.flex.c: mdllex.l strfunc.h mdlparse.h
 	flex -Crema mdllex.l
@@ -135,7 +129,7 @@ clean:
 ################################
 
 distclean:
-	rm -f $(OBJS) arglex.c argparse.c mdllex.c mdlparse.c $(MCELL_EXEC) \
+	rm -f $(OBJS) mdllex.flex.c mdlparse.bison.c $(MCELL_EXEC) \
 	  config.cache config.log config.status configure makedefs
 
 install: $(MCELL_EXEC)
@@ -149,11 +143,11 @@ install: $(MCELL_EXEC)
 	fi
 
 tar:
-	tar -cvf mcell.tar arglex.l argparse.y argparse.h mdllex.l mdlparse.y mdlparse.h sym_table.c sym_table.h init.c init.h diffuse_util.c geom_util.c geom_util.h diffuse.c diffuse.h react.c release.c release.h viz_output.c mcell.c mcell.h vector.c vector.h strfunc.c strfunc.h chkpt.c chkpt.h ran4.c ran4.h seed_array.h maindoc.h doxygen.conf l_calc.c config config_no_flex configure.in arch_type lab_names create_license_codes.pl release_batch link_src makedefs.in makefile makefile.common makefile.common.no_flex makefile_machines doc examples no_flex
+	tar -cvf mcell.tar argparse.c argparse.h mdllex.l mdlparse.y mdlparse.h sym_table.c sym_table.h init.c init.h diffuse_util.c geom_util.c geom_util.h diffuse.c diffuse.h react.c release.c release.h viz_output.c mcell.c mcell.h vector.c vector.h strfunc.c strfunc.h chkpt.c chkpt.h ran4.c ran4.h seed_array.h maindoc.h doxygen.conf l_calc.c config config_no_flex configure.in arch_type lab_names create_license_codes.pl release_batch link_src makedefs.in makefile makefile.common makefile.common.no_flex makefile_machines doc examples no_flex
 
-gzip: arglex.c argparse.c mdllex.c mdlparse.c
-	cp arglex.c argparse.c mdllex.c mdlparse.c no_flex
-	tar -cvf - arglex.l argparse.y argparse.h mdllex.l mdlparse.y mdlparse.h sym_table.c sym_table.h init.c init.h diffuse_util.c geom_util.c geom_util.h diffuse.c diffuse.h react.c release.c release.h viz_output.c mcell.c mcell.h vector.c vector.h strfunc.c strfunc.h chkpt.c chkpt.h ran4.c ran4.h seed_array.h maindoc.h doxygen.conf l_calc.c config config_no_flex configure.in arch_type lab_names create_license_codes.pl release_batch link_src makedefs.in makefile makefile.common makefile.common.no_flex makefile_machines doc examples no_flex | gzip -9c > mcell.tar.gz
+gzip: mdllex.c mdlparse.c
+	cp mdllex.c mdlparse.c no_flex
+	tar -cvf - argparse.c argparse.h mdllex.l mdlparse.y mdlparse.h sym_table.c sym_table.h init.c init.h diffuse_util.c geom_util.c geom_util.h diffuse.c diffuse.h react.c release.c release.h viz_output.c mcell.c mcell.h vector.c vector.h strfunc.c strfunc.h chkpt.c chkpt.h ran4.c ran4.h seed_array.h maindoc.h doxygen.conf l_calc.c config config_no_flex configure.in arch_type lab_names create_license_codes.pl release_batch link_src makedefs.in makefile makefile.common makefile.common.no_flex makefile_machines doc examples no_flex | gzip -9c > mcell.tar.gz
 
 doc: *.c
 	doxygen doxygen.conf
