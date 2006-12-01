@@ -43,34 +43,36 @@ extern struct volume *world;
 /**** largest (absolute) value found among two vectors (useful for ****/
 /**** properly handling floating-point rounding error).            ****/
 
-#define max(x,y) ((x)>(y)) ? (x): (y)
-#define min(x,y) ((x)<(y)) ? (x): (y)
-
-
-inline double abs_max_2vec(struct vector3 *v1,struct vector3 *v2)
+static inline double my_min(double x, double y)
 {
-  return max( max( fabs(v1->x) , fabs(v1->y) ) ,
-              max( max( fabs(v1->z) , fabs(v2->z) ) ,
-                   max( fabs(v2->y) , fabs(v2->x) ) ) );
+  return (x < y) ? x : y;
 }
 
-
-inline double max3(double f1, double f2, double f3)
+static inline double my_max(double x, double y)
 {
-  return (max(f1,max(f2,f3)));
+  return (x > y) ? x : y;
 }
 
-
-inline double min3(double f1, double f2, double f3)
+static inline double min3(double f1, double f2, double f3)
 {
-  return (min(f1,min(f2,f3)));
+  return (my_min(f1, my_min(f2, f3)));
 }
 
+static inline double max3(double f1, double f2, double f3)
+{
+  return (my_max(f1, my_max(f2, f3)));
+}
 
-inline double min_n(double *array, int n)
+static inline double abs_max_2vec(struct vector3 *v1,struct vector3 *v2)
+{
+  return my_max(max3(fabs(v1->x), fabs(v1->y), fabs(v1->z)),
+                max3(fabs(v2->x), fabs(v2->y), fabs(v2->z)));
+}
+
+static inline double min_n(double *array, int n)
 {
   if (n == 1) return array[0];
-  else if (n == 2) return min(array[0], array[1]);
+  else if (n == 2) return my_min(array[0], array[1]);
   else
   {
     double smallest;
