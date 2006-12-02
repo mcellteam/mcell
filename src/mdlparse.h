@@ -161,7 +161,6 @@ struct mdlparse_vars {
 
   FILE *file;
 
-  char mdl_err_msg[1024];
   u_int line_num[MAX_INCLUDE_DEPTH];
   struct yy_buffer_state *include_stack[MAX_INCLUDE_DEPTH];
   char *include_filename[MAX_INCLUDE_DEPTH];
@@ -193,12 +192,24 @@ struct vertex_list {
         struct vertex_list *next;         /**< pointer to next vertex_list */
 };
 
+#ifndef __GNUC__
+#ifndef __attribute__
+#define __attribute__(x) /* empty */
+#endif
+#endif
+
+#if __GNUC__ < 3
+#ifndef __attribute__
+#define __attribute__(x) /* empty */
+#endif
+#endif
 
 
-
-int mdlparse(void *p);
-void mdlerror(char *s,...);
-void mdlerror_nested(char *s);
+int mdlparse(struct mdlparse_vars *mdlpvp);
+void mdlerror(struct mdlparse_vars *mpvp, char const *str);
+void mdlerror_fmt(struct mdlparse_vars *mpvp, char const *fmt, ...)
+  __attribute__((format (printf, 2, 3)));
+void mdlerror_nested(char const *str);
 int mdlparse_init(struct volume *vol);
 
 #endif

@@ -26,27 +26,10 @@
   #include "geom_util.h"
 */
 
-  #define YYPARSE_PARAM mdlparse_params
-  #define YYLEX_PARAM mdlparse_params
-
-  #define mdlpvp ((struct mdlparse_vars *)YYPARSE_PARAM)
   #define volp mdlpvp->vol
-
-  #ifdef DEBUG
-  #define no_printf printf
-  #endif
-
 
   #define min(x,y) ((x)<(y)) ? (x): (y)
   
-  #define min3(x,y,z) ((x)<(y)) ? (((x)<(z))?(x):(z)) : (((y)<(z))?(y):(z))
-
-
-  int imin3(int f1, int f2, int f3)
-  {
-    return (min(f1,min(f2,f3)));
-  }
-
   long long llmin3(long long f1,long long f2,long long f3)
   {
     return min(f1,min(f2,f3));
@@ -78,6 +61,8 @@ struct release_evaluator *rev;
 
 %pure_parser
 
+%lex-param {struct mdlparse_vars *mdlpvp}
+%parse-param {struct mdlparse_vars *mdlpvp}
 %name-prefix="mdl"
 %output="mdlparse.bison.c"
 
@@ -665,7 +650,7 @@ end_of_mdl_file: EOF_TOK
           if (!mdlpvp->include_flag) {
              if (prepare_reactions(mdlpvp))
 	     {
-	       mdlerror("Failed to initialize reactions",mdlpvp);
+	       mdlerror(mdlpvp, "Failed to initialize reactions");
 	       return(1);
 	     }
 /*
@@ -699,13 +684,11 @@ include_stmt: INCLUDE_FILE
 {
   mdlpvp->a_str=$<str>4;
   if (mdlpvp->include_stack_ptr>=MAX_INCLUDE_DEPTH) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Includes nested too deeply:",mdlpvp->a_str);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Includes nested too deeply: %s", mdlpvp->a_str);
     return(1);
   }
   if ((mdlin=fopen(mdlpvp->a_str,"r"))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot open include file:",mdlpvp->a_str);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Cannot open include file: %s", mdlpvp->a_str);
     return(1);
   }
   mdlpvp->include_stack[mdlpvp->include_stack_ptr]=YY_CURRENT_BUFFER;
@@ -717,8 +700,7 @@ include_stmt: INCLUDE_FILE
   mdlpvp->line_num[mdlpvp->include_stack_ptr] = 1;
   volp->curr_file=strdup(mdlpvp->a_str);
   if(volp->curr_file == NULL){
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while switching to include file:",mdlpvp->a_str);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Out of memory while switching to include file: %s", mdlpvp->a_str);
     return(1);
   }
   yyless(0);
@@ -827,7 +809,7 @@ notification_item_def:
     mdlpvp->vol->notify->custom_iterations = NOTIFY_CUSTOM;
     if ($<dbl>3 < 1.0)
     {
-      mdlerror("Invalid iteration number reporting interval: use value >= 1");
+      mdlerror(mdlpvp, "Invalid iteration number reporting interval: use value >= 1");
       return 1;
     }
     else mdlpvp->vol->notify->custom_iteration_value = (long long)$<dbl>3;
@@ -904,7 +886,7 @@ warning_item_def:
   double lifetime = $<dbl>3;
   if (lifetime < 0.0)
   {
-    mdlerror("Molecule lifetimes are measured in iterations and cannot be negative");
+    mdlerror(mdlpvp, "Molecule lifetimes are measured in iterations and cannot be negative");
     return 1;
   }
   mdlpvp->vol->notify->short_lifetime_value = (long long)lifetime;
@@ -918,7 +900,7 @@ warning_item_def:
   double rxfrac = $<dbl>3;
   if (rxfrac < 0.0 || rxfrac > 1.0)
   {
-    mdlerror("Values for fraction of reactions missed should be between 0 and 1");
+    mdlerror(mdlpvp, "Values for fraction of reactions missed should be between 0 and 1");
     return 1;
   }
   mdlpvp->vol->notify->missed_reaction_value = rxfrac;
@@ -951,8 +933,7 @@ assignment_stmt: assign_var '=' num_expr_only
 {
   mdlpvp->gp=$<sym>1;
   if ((mdlpvp->gp->value=(void *)malloc(sizeof(double)))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while assigning variable:",mdlpvp->gp->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Out of memory while assigning variable: %s", mdlpvp->gp->name);
     return(1);
   }
   mdlpvp->gp->sym_type=DBL;
@@ -967,8 +948,7 @@ assignment_stmt: assign_var '=' num_expr_only
   mdlpvp->gp->sym_type=STR;
   mdlpvp->gp->value=(void *)strdup($<str>3);
   if(mdlpvp->gp->value == NULL){
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while assigning string:",($<str>3));
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Out of memory while assigning string: %s", ($<str>3));
     return(1);
   }
   no_printf("\n%s is equal to: %s\n",mdlpvp->gp->name,(char *)mdlpvp->gp->value);
@@ -981,8 +961,7 @@ assignment_stmt: assign_var '=' num_expr_only
   switch (mdlpvp->tp->sym_type) {
   case DBL:
     if ((mdlpvp->gp->value=(void *)malloc(sizeof(double)))==NULL) {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while assigning variable:",mdlpvp->gp->name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      mdlerror_fmt(mdlpvp, "Out of memory while assigning variable: %s", mdlpvp->gp->name);
       return(1);
     }
     mdlpvp->gp->sym_type=DBL;
@@ -995,9 +974,7 @@ assignment_stmt: assign_var '=' num_expr_only
     mdlpvp->gp->sym_type=STR;
     mdlpvp->gp->value=(void *)strdup((char *)mdlpvp->tp->value);
     if(mdlpvp->gp->value == NULL){
-    	sprintf(mdlpvp->mdl_err_msg,"%s %s",
-          "Out of memory while assigning string:",(char *)mdlpvp->tp->value);
-    	mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    	mdlerror_fmt(mdlpvp, "Out of memory while assigning string: %s", (char const *) mdlpvp->tp->value);
     	return(1);
     }
     no_printf("\n%s is equal to: %s\n",mdlpvp->gp->name,(char *)mdlpvp->gp->value);
@@ -1093,8 +1070,7 @@ existing_array: VAR
     mdlpvp->sym_name=mdlpvp->cval;
   }
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,ARRAY,volp->main_sym_table))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined array variable:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Undefined array variable: %s", mdlpvp->sym_name);
     if (mdlpvp->sym_name==mdlpvp->cval) {
       mdlpvp->cval=NULL;
     }
@@ -1153,8 +1129,7 @@ existing_num_or_array: VAR
   }
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,ARRAY,volp->main_sym_table))==NULL) {
     if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,DBL,volp->main_sym_table))==NULL) {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined numeric or array variable:",mdlpvp->sym_name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      mdlerror_fmt(mdlpvp, "Undefined numeric or array variable: %s", mdlpvp->sym_name);
       if (mdlpvp->sym_name==mdlpvp->cval) {
         mdlpvp->cval=NULL;
       }
@@ -1192,8 +1167,7 @@ assign_var: VAR
     if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,STR,volp->main_sym_table))==NULL) {
       if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,ARRAY,volp->main_sym_table))==NULL) {
         if ((mdlpvp->gp=store_sym(mdlpvp->sym_name,TMP,volp->main_sym_table))==NULL) {
-          sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while assigning variable:",mdlpvp->sym_name);
-          mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+          mdlerror_fmt(mdlpvp, "Out of memory while assigning variable: %s", mdlpvp->sym_name);
 	  if (mdlpvp->sym_name==mdlpvp->cval) {
 	    mdlpvp->cval=NULL;
           }
@@ -1254,8 +1228,7 @@ existing_var_only: VAR
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,DBL,volp->main_sym_table))==NULL) {
     if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,STR,volp->main_sym_table))==NULL) {
       if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,ARRAY,volp->main_sym_table))==NULL) {
-        sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined variable:",mdlpvp->sym_name);
-        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+        mdlerror_fmt(mdlpvp, "Undefined variable: %s", mdlpvp->sym_name);
         if (mdlpvp->sym_name==mdlpvp->cval) {
           mdlpvp->cval=NULL;
         }
@@ -1400,8 +1373,7 @@ num_expr: num_value
 {
   $$=strtod($<str>3,(char **)NULL);
   if (errno==ERANGE) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Error converting string to number:",$<str>3);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Error converting string to number: %s", $<str>3);
   }
 }
 	| num_expr '+' num_expr
@@ -1547,8 +1519,7 @@ num_expr_only: intOrReal
 {
   $$=strtod($<str>3,(char **)NULL);
   if (errno==ERANGE) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Error converting string to number:",$<str>3);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Error converting string to number: %s", $<str>3);
   }
 }
 	| num_expr '+' num_expr
@@ -1594,8 +1565,7 @@ existing_num_var: VAR
     mdlpvp->sym_name=mdlpvp->cval;
   }
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,DBL,volp->main_sym_table))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined numeric variable:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Undefined numeric variable: %s", mdlpvp->sym_name);
     if (mdlpvp->sym_name==mdlpvp->cval) {
       mdlpvp->cval=NULL;
     }
@@ -1640,8 +1610,7 @@ str_expr: str_value
   if(my_strcat($<str>1,$<str>3) != NULL){
       $$=my_strcat($<str>1,$<str>3);
   }else{
-    sprintf(mdlpvp->mdl_err_msg,"%s ","Out of memory while parsing string");
-    mdlerror(mdlpvp->mdl_err_msg);
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing string");
     return (1);
   }
 };
@@ -1652,8 +1621,7 @@ str_value: STR_VALUE
   if(strip_quotes(mdlpvp->strval) != NULL){
   	$$=strip_quotes(mdlpvp->strval);
   }else{
-    sprintf(mdlpvp->mdl_err_msg,"%s ","Out of memory while parsing string");
-    mdlerror(mdlpvp->mdl_err_msg);
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing string");
     return (1);
   }
   free(mdlpvp->strval);
@@ -1670,8 +1638,7 @@ str_value: STR_VALUE
   if(strip_quotes(mdlpvp->strval) != NULL){
       $$ = strip_quotes(mdlpvp->strval);
   }else{
-      sprintf(mdlpvp->mdl_err_msg,"%s ","Out of memory while parsing string");
-      mdlerror(mdlpvp->mdl_err_msg);
+      mdlerror_fmt(mdlpvp, "Out of memory while parsing string");
       free((void *)mdlpvp->strval);
     
       return (1);
@@ -1706,8 +1673,7 @@ existing_str_var: VAR
     mdlpvp->sym_name=mdlpvp->cval;
   }
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,STR,volp->main_sym_table))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined text variable:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Undefined text variable: %s", mdlpvp->sym_name);
     if (mdlpvp->sym_name==mdlpvp->cval) {
       mdlpvp->cval=NULL;
     }
@@ -1737,8 +1703,7 @@ str_expr_only: STR_VALUE
   if(strip_quotes(mdlpvp->strval) != NULL){
       $$=strip_quotes(mdlpvp->strval);
   }else{
-    sprintf(mdlpvp->mdl_err_msg,"%s ","Out of memory while parsing string");
-    mdlerror(mdlpvp->mdl_err_msg);
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing string");
     return (1);
   }
   free(mdlpvp->strval);
@@ -1755,8 +1720,7 @@ str_expr_only: STR_VALUE
   if(strip_quotes(mdlpvp->strval) != NULL){
       $$ = strip_quotes(mdlpvp->strval);
   }else{
-      sprintf(mdlpvp->mdl_err_msg,"%s ","Out of memory while parsing string");
-      mdlerror(mdlpvp->mdl_err_msg);
+      mdlerror_fmt(mdlpvp, "Out of memory while parsing string");
       free((void *)mdlpvp->strval);
     
       return (1);
@@ -1780,8 +1744,7 @@ str_expr_only: STR_VALUE
   if(my_strcat($<str>1,$<str>3) != NULL){
       $$=my_strcat($<str>1,$<str>3);
   }else{
-    sprintf(mdlpvp->mdl_err_msg,"%s ","Out of memory while parsing string");
-    mdlerror(mdlpvp->mdl_err_msg);
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing string");
     return (1);
   }
 };
@@ -1791,7 +1754,7 @@ array_expr:  num_expr
 {
   if ((mdlpvp->elp=(struct num_expr_list *)malloc
       (sizeof(struct num_expr_list)))==NULL) {
-    mdlerror("Out of memory while creating numerical array");
+    mdlerror(mdlpvp, "Out of memory while creating numerical array");
     return(1);
   }
   mdlpvp->elp->value=$<dbl>1;
@@ -1810,7 +1773,7 @@ array_expr:  num_expr
 {
   if ((mdlpvp->elp=(struct num_expr_list *)malloc
       (sizeof(struct num_expr_list)))==NULL) {
-    mdlerror("Out of memory while creating numerical array");
+    mdlerror(mdlpvp, "Out of memory while creating numerical array");
     return(1);
   }
   mdlpvp->elp->value=$<dbl>3;
@@ -1831,8 +1794,7 @@ time_def: TIME_STEP '=' num_expr
 {
 volp->time_unit=$<dbl>3;
 if (volp->time_unit<0) {
-  sprintf(mdlpvp->mdl_err_msg,"Time unit = %g\n\tSetting to %g\n",volp->time_unit,-volp->time_unit);
-  mdl_warning(mdlpvp);
+  mdl_warning(mdlpvp, "Time unit = %g\n\tSetting to %g\n",volp->time_unit,-volp->time_unit);
   volp->time_unit=-volp->time_unit;
 }
 no_printf("Time unit = %g\n",volp->time_unit);
@@ -1843,8 +1805,7 @@ space_def: SPACE_STEP '=' num_expr
 {
 volp->space_step=$<dbl>3;
 if (volp->space_step<0) {
-  sprintf(mdlpvp->mdl_err_msg,"Space step = %g\n\tSetting to %g\n",volp->space_step,-volp->space_step);
-  mdl_warning(mdlpvp);
+  mdl_warning(mdlpvp, "Space step = %g\n\tSetting to %g\n",volp->space_step,-volp->space_step);
   volp->space_step = -volp->space_step;
 }
 no_printf("Space step = %g\n",volp->space_step);
@@ -1856,8 +1817,7 @@ time_max_def: TIME_STEP_MAX '=' num_expr
 {
 volp->time_step_max = $<dbl>3;
 if (volp->time_step_max<0) {
-  sprintf(mdlpvp->mdl_err_msg,"Maximum time step = %g\n\tSetting to %g\n",volp->time_step_max,-volp->time_step_max);
-  mdl_warning(mdlpvp);
+  mdl_warning(mdlpvp, "Maximum time step = %g\n\tSetting to %g\n",volp->time_step_max,-volp->time_step_max);
   volp->time_step_max=-volp->time_step_max;
 }
 no_printf("Maximum time step = %g\n",volp->time_step_max);
@@ -1902,7 +1862,7 @@ radial_directions_def: RADIAL_DIRECTIONS '=' num_expr
     free(volp->d_step);
   }
   if ((volp->d_step=init_d_step(volp->radial_directions,&volp->num_directions))==NULL) {
-    mdlerror("Out of memory while creating d_step data for molecule");
+    mdlerror(mdlpvp, "Out of memory while creating d_step data for molecule");
     return(1);
   }
 
@@ -1910,7 +1870,7 @@ radial_directions_def: RADIAL_DIRECTIONS '=' num_expr
   for (volp->directions_mask = 1 ; volp->directions_mask < volp->num_directions ; volp->directions_mask <<= 1) {}
   if (volp->directions_mask > (1<<18))
   {
-    mdlerror("Too many RADIAL_DIRECTIONS requested (max 131072).\n");
+    mdlerror(mdlpvp, "Too many RADIAL_DIRECTIONS requested (max 131072).\n");
     return(1);
   }
   volp->directions_mask -= 1;
@@ -1929,7 +1889,7 @@ radial_subdivisions_def: RADIAL_SUBDIVISIONS '=' num_expr
   volp->radial_subdivisions = (int) $<dbl>3;
   if (volp->radial_subdivisions <= 0)
   {
-    mdlerror("Must choose a positive number of radial subdivisions.");
+    mdlerror(mdlpvp, "Must choose a positive number of radial subdivisions.");
     return 1;
   }
 
@@ -1939,7 +1899,7 @@ radial_subdivisions_def: RADIAL_SUBDIVISIONS '=' num_expr
   /* use 'x & (RSD - 1)' as an optimized form of 'x % RSD'.)               */
   if ((volp->radial_subdivisions & (volp->radial_subdivisions - 1)) != 0)
   {
-    mdlerror("Radial subdivisions must be a power of two");
+    mdlerror(mdlpvp, "Radial subdivisions must be a power of two");
     return 1;
   }
 
@@ -1951,7 +1911,7 @@ radial_subdivisions_def: RADIAL_SUBDIVISIONS '=' num_expr
   
   if (volp->r_step==NULL || volp->r_step_surface==NULL)
   {
-    mdlerror("Out of memory while creating r_step data for molecule");
+    mdlerror(mdlpvp, "Out of memory while creating r_step data for molecule");
     return(1);
   }
   
@@ -1989,7 +1949,7 @@ partition_def: partition_dimension '='
 {
   int i;
   if ((mdlpvp->dblp=(double *)malloc((mdlpvp->num_pos+2)*sizeof(double)))==NULL) {
-    mdlerror("Out of memory while creating volume partition data");
+    mdlerror(mdlpvp, "Out of memory while creating volume partition data");
     return(1);
   }
   sort_num_expr_list(mdlpvp->el_head);
@@ -2079,8 +2039,7 @@ molecule_stmt: new_molecule '{'
   mdlpvp->specp->D=$<dbl>5;
   mdlpvp->specp->time_step=$<dbl>6;
   if (volp->time_unit==0) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","TIME_STEP not yet specified.  Cannot define molecule:",mdlpvp->specp->sym->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "TIME_STEP not yet specified.  Cannot define molecule: %s", mdlpvp->specp->sym->name);
     return(1);
   }
   if (mdlpvp->specp->D_ref==0) {
@@ -2124,7 +2083,7 @@ molecule_stmt: new_molecule '{'
   
   if (volp->r_step==NULL) {
     if ((volp->r_step=init_r_step(volp->radial_subdivisions))==NULL) {
-      mdlerror("Out of memory while creating r_step data for molecule");
+      mdlerror(mdlpvp, "Out of memory while creating r_step data for molecule");
       return(1);
     }
   }
@@ -2133,19 +2092,19 @@ molecule_stmt: new_molecule '{'
     volp->r_step_surface = init_r_step_surface(volp->radial_subdivisions);
     if (volp->r_step_surface==NULL)
     {
-      mdlerror("Cannot store r_step_surface data.");
+      mdlerror(mdlpvp, "Cannot store r_step_surface data.");
       return 1;
     }
   }
   if (volp->d_step==NULL) {
     if ((volp->d_step=init_d_step(volp->radial_directions,&volp->num_directions))==NULL) {
-      mdlerror("Out of memory while creating d_step data for molecule");
+      mdlerror(mdlpvp, "Out of memory while creating d_step data for molecule");
       return(1);
     }
     for (volp->directions_mask = 1 ; volp->directions_mask < volp->num_directions ; volp->directions_mask <<= 1) {}
     if (volp->directions_mask > (1<<18))
     {
-      mdlerror("Internal error: bad number of default RADIAL_DIRECTIONS (max 131072).\n");
+      mdlerror(mdlpvp, "Internal error: bad number of default RADIAL_DIRECTIONS (max 131072).\n");
       return(1);
     }
     volp->directions_mask -= 1;
@@ -2205,8 +2164,7 @@ new_molecule: VAR
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
     if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,RXPN,volp->main_sym_table))==NULL) {
       if ((mdlpvp->gp=store_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
-        sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while creating molecule:",mdlpvp->sym_name);
-        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+        mdlerror_fmt(mdlpvp, "Out of memory while creating molecule: %s", mdlpvp->sym_name);
         if (mdlpvp->sym_name==mdlpvp->cval) {
           mdlpvp->cval=NULL;
         }
@@ -2221,8 +2179,7 @@ new_molecule: VAR
       }
     }
     else {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s","Molecule already defined as a named reaction pathway:",mdlpvp->sym_name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      mdlerror_fmt(mdlpvp, "Molecule already defined as a named reaction pathway: %s", mdlpvp->sym_name);
       if (mdlpvp->sym_name==mdlpvp->cval) {
         mdlpvp->cval=NULL;
       }
@@ -2234,8 +2191,7 @@ new_molecule: VAR
     }
   }
   else {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Molecule already defined:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Molecule already defined: %s", mdlpvp->sym_name);
     if (mdlpvp->sym_name==mdlpvp->cval) {
       mdlpvp->cval=NULL;
     }
@@ -2269,8 +2225,7 @@ existing_one_or_multiple_molecules: VAR
     /* here is just one molecule */
   
     if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
-       sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined molecule:",mdlpvp->sym_name);
-       mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+       mdlerror_fmt(mdlpvp, "Undefined molecule: %s", mdlpvp->sym_name);
        if (mdlpvp->sym_name==mdlpvp->cval) {
          mdlpvp->cval=NULL;
        }
@@ -2311,8 +2266,7 @@ existing_one_or_multiple_molecules: VAR
   if(strip_quotes(mdlpvp->sym_name) != NULL){
       wildcard_string = strip_quotes(mdlpvp->sym_name);
   }else{
-      sprintf(mdlpvp->mdl_err_msg,"%s ","Out of memory while parsing wildcard variable");
-      mdlerror(mdlpvp->mdl_err_msg);
+      mdlerror_fmt(mdlpvp, "Out of memory while parsing wildcard variable");
       free((void *)mdlpvp->sym_name);
     
       return (1);
@@ -2333,7 +2287,7 @@ existing_one_or_multiple_molecules: VAR
            {
                stl = (struct sym_table_list *)mem_get(mdlpvp->sym_list_mem);
                 if(stl == NULL){
-                  mdlerror("Out of memory while parsing wildcard variable", mdlpvp);
+                  mdlerror(mdlpvp, "Out of memory while parsing wildcard variable");
                   return 1;
                 }
                 stl->node = sym_t;
@@ -2375,8 +2329,7 @@ existing_molecule: VAR
   } 
 
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined molecule:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Undefined molecule: %s", mdlpvp->sym_name);
     if (mdlpvp->sym_name==mdlpvp->cval) {
       mdlpvp->cval=NULL;
     }
@@ -2413,7 +2366,7 @@ diffusion_def: DIFFUSION_CONSTANT_3D '=' num_expr
   {
     if ($<dbl>3 < 0)
     {
-      mdlerror("Negative diffusion constant found, setting to zero and continuing.");
+      mdlerror_fmt(mdlpvp, "Negative diffusion constant found, setting to zero and continuing.");
       $$ = 0;
     }
     else $$=$<dbl>3;
@@ -2422,7 +2375,7 @@ diffusion_def: DIFFUSION_CONSTANT_3D '=' num_expr
   {
     if ($<dbl>3 < 0)
     {
-      mdlerror("Error: diffusion constants should be zero or positive.");
+      mdlerror(mdlpvp, "Error: diffusion constants should be zero or positive.");
       return 1;
     }
     else $$=$<dbl>3;
@@ -2440,7 +2393,7 @@ diffusion_def: DIFFUSION_CONSTANT_3D '=' num_expr
   {
     if ($<dbl>3 < 0)
     {
-      mdlerror("Negative diffusion constant found, setting to zero and continuing.");
+      mdlerror_fmt(mdlpvp, "Negative diffusion constant found, setting to zero and continuing.");
       $$ = 0;
     }
     else $$=$<dbl>3;
@@ -2449,7 +2402,7 @@ diffusion_def: DIFFUSION_CONSTANT_3D '=' num_expr
   {
     if ($<dbl>3 < 0)
     {
-      mdlerror("Error: diffusion constants should be zero or positive.");
+      mdlerror(mdlpvp, "Error: diffusion constants should be zero or positive.");
       return 1;
     }
     else $$=$<dbl>3;
@@ -2479,7 +2432,7 @@ mol_timestep_def: /* empty */
   }
   else
   {
-    mdlerror("Zero or negative custom time step is disallowed (ignoring).");
+    mdlerror(mdlpvp, "Zero or negative custom time step is disallowed (ignoring).");
     $$ = 0.0;
   }
 }
@@ -2491,7 +2444,7 @@ mol_timestep_def: /* empty */
   }
   else
   {
-    mdlerror("Zero or negative custom space step is disallowed (ignoring).");
+    mdlerror(mdlpvp, "Zero or negative custom space step is disallowed (ignoring).");
     $$ = 0.0;
   }
 };
@@ -2579,8 +2532,7 @@ existing_surface_class: existing_molecule
   mdlpvp->specp=(struct species *)mdlpvp->gp->value;
   mdlpvp->sym_name=mdlpvp->gp->name;
   if (mdlpvp->specp->flags!=IS_SURFACE) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined surface type:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Undefined surface type: %s", mdlpvp->sym_name);
     return(1);
   }
   $$=mdlpvp->gp;
@@ -2602,17 +2554,16 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
   mdlpvp->stp2=$<sym>3;
   mdlpvp->specp=(struct species *)mdlpvp->stp2->value;
   if (mdlpvp->specp->flags==IS_SURFACE) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
-      "Illegal reaction between two surfaces in surface reaction:",
+    mdlerror_fmt(mdlpvp,
+      "Illegal reaction between two surfaces in surface reaction: %s -%s-> ...",
       mdlpvp->stp2->name,mdlpvp->stp1->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
     return(1);
   }
   mdlpvp->sym_name=concat_rx_name(mdlpvp->stp1->name,mdlpvp->stp2->name);
   if(mdlpvp->sym_name == NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
-      "Out of memory while parsing surface reaction:",mdlpvp->stp1->name,mdlpvp->stp2->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp,
+      "Out of memory while parsing surface reaction: %s -%s-> ...",
+      mdlpvp->stp1->name,mdlpvp->stp2->name);
     return(1);
   }
   if ((mdlpvp->stp3=retrieve_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
@@ -2620,15 +2571,15 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
   }
   else if ((mdlpvp->stp3=store_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
       ==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
-      "Out of memory while creating surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp,
+      "Out of memory while creating surface reaction: %s -%s-> ...",
+      mdlpvp->stp2->name,mdlpvp->stp1->name);
     return(1);
   }
   if ((mdlpvp->pathp=(struct pathway *)mem_get(mdlpvp->path_mem))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
-      "Out of memory while creating surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp,
+      "Out of memory while creating surface reaction: %s -%s-> ...",
+      mdlpvp->stp2->name,mdlpvp->stp1->name);
     return(1);
   }
   mdlpvp->rxnp=(struct rxn *)mdlpvp->stp3->value;
@@ -2659,9 +2610,9 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
   switch ($<tok>1) {
     case RFLCT:
       if ((mdlpvp->prodp=(struct product *)mem_get(mdlpvp->prod_mem))==NULL) {
-        sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
-          "Out of memory while creating surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
-        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+        mdlerror_fmt(mdlpvp,
+          "Out of memory while creating surface reaction: %s -%s-> ...",
+          mdlpvp->stp2->name,mdlpvp->stp1->name);
         return(1);
       }
       mdlpvp->pathp->flags |= PATHW_REFLEC;
@@ -2673,17 +2624,16 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
       {
          mdlpvp->pathp->prod_signature = create_prod_signature(&mdlpvp->pathp->product_head);
          if(mdlpvp->pathp->prod_signature == NULL){
-            sprintf(mdlpvp->mdl_err_msg, "Error creating 'prod_signature' field for the reaction pathway.\n");
-            mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+            mdlerror(mdlpvp, "Error creating 'prod_signature' field for the reaction pathway.\n");
             return(1);
          }
       }
       break;
     case TRANSP:
       if ((mdlpvp->prodp=(struct product *)mem_get(mdlpvp->prod_mem))==NULL) {
-        sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
-          "Out of memory while creating surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
-        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+        mdlerror_fmt(mdlpvp,
+          "Out of memory while creating surface reaction: %s -%s-> ...",
+          mdlpvp->stp2->name,mdlpvp->stp1->name);
         return(1);
       }
       mdlpvp->pathp->flags |= PATHW_TRANSP;
@@ -2694,8 +2644,7 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
       if(mdlpvp->pathp->product_head != NULL){
          mdlpvp->pathp->prod_signature = create_prod_signature(&mdlpvp->pathp->product_head);
          if(mdlpvp->pathp->prod_signature == NULL){
-            sprintf(mdlpvp->mdl_err_msg, "Error creating 'prod_signature' field for the reaction pathway.\n");
-            mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+            mdlerror(mdlpvp, "Error creating 'prod_signature' field for the reaction pathway.\n");
             return(1);
          }
       }
@@ -2704,7 +2653,7 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
       mdlpvp->pathp->product_head=NULL;
       break;
     default:
-      mdlerror("Unknown special surface type.");
+      mdlerror(mdlpvp, "Unknown special surface type.");
       return 1;
       break;
   }
@@ -2738,33 +2687,32 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
   mdlpvp->stp2=$<sym>2;
   mdlpvp->specp=(struct species *)mdlpvp->stp2->value;
   if (mdlpvp->specp->flags==IS_SURFACE) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
-      "Illegal reaction between two surfaces in surface reaction:",
+    mdlerror_fmt(mdlpvp,
+      "Illegal reaction between two surfaces in surface reaction: %s -%s-> ...",
       mdlpvp->stp2->name,mdlpvp->stp1->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
     return(1);
   }
   if (mdlpvp->specp->flags&ON_GRID)
   {
-    mdlerror("Concentration clamp does not work on surface molecules.");
+    mdlerror(mdlpvp, "Concentration clamp does not work on surface molecules.");
     return 1;
   }
   if (mdlpvp->specp->flags&NOT_FREE || mdlpvp->specp->D <= 0.0)
   {
-    mdlerror("Concentration clamp must be applied to molecule diffusing in 3D");
+    mdlerror(mdlpvp, "Concentration clamp must be applied to molecule diffusing in 3D");
     return 1;
    }
    if (($<dbl>4)<0)
    {
-     mdlerror("Concentration can only be clamped to positive values.");
+     mdlerror(mdlpvp, "Concentration can only be clamped to positive values.");
      return 1;
    }
     
   mdlpvp->sym_name=concat_rx_name(mdlpvp->stp1->name,mdlpvp->stp2->name);
   if(mdlpvp->sym_name == NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
-      "Memory allocation error:",mdlpvp->stp1->name,mdlpvp->stp2->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp,
+      "Memory allocation error: %s -%s-> ...",
+      mdlpvp->stp1->name,mdlpvp->stp2->name);
     return(1);
   }
   if ((mdlpvp->stp3=retrieve_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
@@ -2772,15 +2720,15 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
   }
   else if ((mdlpvp->stp3=store_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
       ==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
-      "Cannot store surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp,
+      "Cannot store surface reaction: %s -%s-> ...",
+      mdlpvp->stp2->name,mdlpvp->stp1->name);
     return(1);
   }
   if ((mdlpvp->pathp=(struct pathway *)mem_get(mdlpvp->path_mem))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s -%s-> ...",
-      "Cannot store surface reaction:",mdlpvp->stp2->name,mdlpvp->stp1->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp,
+      "Cannot store surface reaction: %s -%s-> ...",
+      mdlpvp->stp2->name,mdlpvp->stp1->name);
     return(1);
   }
   mdlpvp->rxnp=(struct rxn *)mdlpvp->stp3->value;
@@ -2861,7 +2809,7 @@ surface_mol_quant: existing_surface_molecule '=' num_expr
   mdlpvp->stp2=$<sym>1;
   mdlpvp->specp=(struct species *)mdlpvp->stp2->value;
   if ((mdlpvp->effdp=(struct eff_dat *)malloc(sizeof(struct eff_dat)))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while storing data for surface molecule:",mdlpvp->stp2->name);
+    mdlerror_fmt(mdlpvp, "Out of memory while storing data for surface molecule: %s", mdlpvp->stp2->name);
     return(1);
   }
   mdlpvp->effdp->next=mdlpvp->eff_dat_head;
@@ -2874,12 +2822,12 @@ surface_mol_quant: existing_surface_molecule '=' num_expr
   {
     if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
     {
-      mdlerror("Error: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
+      mdlerror_fmt(mdlpvp, "Error: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
       return 1;
     }
     else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
     {
-      mdlerror("Warning: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
+      mdlerror_fmt(mdlpvp, "Warning: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
     }
   }
 
@@ -2906,8 +2854,7 @@ existing_surface_molecule: existing_molecule
   mdlpvp->specp=(struct species *)mdlpvp->stp2->value;
   if ((mdlpvp->specp->flags & ON_GRID) == 0)
   {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Invalid surface molecule specified:",mdlpvp->stp2->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Invalid surface molecule specified: %s", mdlpvp->stp2->name);
     return(1);
   }
   $$=mdlpvp->stp2;
@@ -2960,22 +2907,22 @@ release_pattern_def: DEFINE_RELEASE_PATTERN new_release_pattern '{'
 {
   if (mdlpvp->rpatp->release_interval<=0)
   {
-    mdlerror("Release interval must be set to a positive number.");
+    mdlerror(mdlpvp, "Release interval must be set to a positive number.");
     return 1;
   }
   if (mdlpvp->rpatp->train_interval<=0)
   {
-    mdlerror("Train interval must be set to a positive number.");
+    mdlerror(mdlpvp, "Train interval must be set to a positive number.");
     return 1;
   }
   if (mdlpvp->rpatp->train_duration > mdlpvp->rpatp->train_interval)
   {
-    mdlerror("Train duration must not be longer than the train interval.");
+    mdlerror(mdlpvp, "Train duration must not be longer than the train interval.");
     return 1;
   }
   if (mdlpvp->rpatp->train_duration <= 0)
   {
-    mdlerror("Train duration must be set to a positive number.");
+    mdlerror(mdlpvp, "Train duration must be set to a positive number.");
   }
   no_printf("Release pattern %s defined:\n",mdlpvp->gp->name);
   no_printf("\tdelay = %f\n",mdlpvp->rpatp->delay);
@@ -2995,8 +2942,7 @@ new_release_pattern: VAR
   }
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,RPAT,volp->main_sym_table))==NULL) {
     if ((mdlpvp->gp=store_sym(mdlpvp->sym_name,RPAT,volp->main_sym_table))==NULL) {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while creating release pattern:",mdlpvp->sym_name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      mdlerror_fmt(mdlpvp, "Out of memory while creating release pattern: %s", mdlpvp->sym_name);
       if (mdlpvp->sym_name==mdlpvp->cval) {
         mdlpvp->cval=NULL;
       }
@@ -3008,8 +2954,7 @@ new_release_pattern: VAR
     }
   }
   else {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Release pattern already defined:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Release pattern already defined: %s", mdlpvp->sym_name);
     if (mdlpvp->sym_name==mdlpvp->cval) {
       mdlpvp->cval=NULL;
     }
@@ -3038,8 +2983,7 @@ existing_release_pattern: VAR
     mdlpvp->sym_name=mdlpvp->cval;
   }
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,RPAT,volp->main_sym_table))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined release pattern:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Undefined release pattern: %s", mdlpvp->sym_name);
     if (mdlpvp->sym_name==mdlpvp->cval) {
       mdlpvp->cval=NULL;
     }
@@ -3082,12 +3026,12 @@ existing_release_pattern_xor_rxpn: VAR
 
   if (rpat==NULL && rxpn==NULL)
   {
-    mdlerror("Cannot find named release pattern.");
+    mdlerror(mdlpvp, "Cannot find named release pattern.");
     return 1;
   }
   else if (rpat!=NULL && rxpn!=NULL)
   {
-    mdlerror("Named release pattern might be a pattern or a reaction pathway.  Please change one name.");
+    mdlerror(mdlpvp, "Named release pattern might be a pattern or a reaction pathway.  Please change one name.");
     return 1;
   }
   else
@@ -3210,8 +3154,7 @@ new_object: VAR
   if (mdlpvp->object_name_list==NULL) {
     if ((mdlpvp->object_name_list=(struct name_list *)malloc
         (sizeof(struct name_list)))==NULL) {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while creating object:",mdlpvp->sym_name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      mdlerror_fmt(mdlpvp, "Out of memory while creating object: %s", mdlpvp->sym_name);
       return(1);
     }
     mdlpvp->object_name_list->name=NULL;
@@ -3220,14 +3163,13 @@ new_object: VAR
     mdlpvp->object_name_list_end=mdlpvp->object_name_list;
   }
   if ((mdlpvp->object_name_list_end=concat_obj_name(mdlpvp->object_name_list_end,mdlpvp->sym_name))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while creating object:",mdlpvp->sym_name);
+    mdlerror_fmt(mdlpvp, "Out of memory while creating object: %s", mdlpvp->sym_name);
     return(1);
   }
   mdlpvp->obj_name=mdlpvp->object_name_list_end->name;
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->obj_name,OBJ,volp->main_sym_table))==NULL) {
     if ((mdlpvp->gp=store_sym(mdlpvp->obj_name,OBJ,volp->main_sym_table))==NULL) {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while creating object:",mdlpvp->obj_name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      mdlerror_fmt(mdlpvp, "Out of memory while creating object: %s", mdlpvp->obj_name);
       if (mdlpvp->sym_name==mdlpvp->cval) {
         mdlpvp->cval=NULL;
       }
@@ -3239,8 +3181,7 @@ new_object: VAR
     }
   }
   else {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Object already defined:",mdlpvp->obj_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Object already defined: %s", mdlpvp->obj_name);
     if (mdlpvp->sym_name==mdlpvp->cval) {
       mdlpvp->cval=NULL;
     }
@@ -3277,8 +3218,7 @@ existing_object: VAR
     mdlpvp->sym_name=mdlpvp->cval;
   }
   if ((mdlpvp->gp=retrieve_sym(get_first_name(mdlpvp->sym_name),OBJ,volp->main_sym_table))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined object:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Undefined object: %s", mdlpvp->sym_name);
     if (mdlpvp->sym_name==mdlpvp->cval) {
       mdlpvp->cval=NULL;
     }
@@ -3290,8 +3230,7 @@ existing_object: VAR
   }
   mdlpvp->top_objp=(struct object *)mdlpvp->gp->value;
   if ((mdlpvp->objp=find_full_name(mdlpvp->top_objp,mdlpvp->sym_name,NULL))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined object:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Undefined object: %s", mdlpvp->sym_name);
     if (mdlpvp->sym_name==mdlpvp->cval) {
       mdlpvp->cval=NULL;
     }
@@ -3307,11 +3246,10 @@ existing_object: VAR
   else {
     mdlpvp->cval_2=NULL;
   }
-  sprintf(mdlpvp->full_name,"%s",mdlpvp->sym_name);
+  strcpy(mdlpvp->full_name, mdlpvp->sym_name);
   mdlpvp->prefix_name=get_prefix_name(mdlpvp->sym_name);
   if(mdlpvp->prefix_name == NULL){
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing object: %s", mdlpvp->sym_name);
     return (1);
   }
   no_printf("found existing object %s\n",mdlpvp->objp->sym->name);
@@ -3340,8 +3278,7 @@ existing_one_or_multiple_objects: VAR
   }
 
      if ((mdlpvp->gp=retrieve_sym(get_first_name(mdlpvp->sym_name),OBJ,volp->main_sym_table))==NULL) {
-       sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined object:",mdlpvp->sym_name);
-       mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+       mdlerror_fmt(mdlpvp, "Undefined object: %s", mdlpvp->sym_name);
        if (mdlpvp->sym_name==mdlpvp->cval) {
          mdlpvp->cval=NULL;
        }
@@ -3353,8 +3290,7 @@ existing_one_or_multiple_objects: VAR
      }
      mdlpvp->top_objp=(struct object *)mdlpvp->gp->value;
      if ((mdlpvp->objp=find_full_name(mdlpvp->top_objp,mdlpvp->sym_name,NULL))==NULL) {
-       sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined object:",mdlpvp->sym_name);
-       mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+       mdlerror_fmt(mdlpvp, "Undefined object: %s", mdlpvp->sym_name);
        if (mdlpvp->sym_name==mdlpvp->cval) {
           mdlpvp->cval=NULL;
        }
@@ -3370,11 +3306,10 @@ existing_one_or_multiple_objects: VAR
      else {
        mdlpvp->cval_2=NULL;
      }
-     sprintf(mdlpvp->full_name,"%s",mdlpvp->sym_name);
+     strcpy(mdlpvp->full_name, mdlpvp->sym_name);
      mdlpvp->prefix_name=get_prefix_name(mdlpvp->sym_name);
      if(mdlpvp->prefix_name == NULL){
-        sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",mdlpvp->sym_name);
-        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+        mdlerror_fmt(mdlpvp, "Out of memory while parsing object: %s", mdlpvp->sym_name);
         return (1);
      }
      no_printf("found existing object %s\n",mdlpvp->objp->sym->name);
@@ -3418,8 +3353,7 @@ existing_one_or_multiple_objects: VAR
   if(strip_quotes(mdlpvp->sym_name) != NULL){
       wildcard_string = strip_quotes(mdlpvp->sym_name);
   }else{
-      sprintf(mdlpvp->mdl_err_msg,"%s ","Out of memory while parsing wildcard variable");
-      mdlerror(mdlpvp->mdl_err_msg);
+      mdlerror_fmt(mdlpvp, "Out of memory while parsing wildcard variable");
       free((void *)mdlpvp->sym_name);
     
       return (1);
@@ -3440,7 +3374,7 @@ existing_one_or_multiple_objects: VAR
            {
                stl = (struct sym_table_list *)mem_get(mdlpvp->sym_list_mem);
                 if(stl == NULL){
-                  mdlerror("Out of memory while parsing wildcard variable", mdlpvp);
+                  mdlerror(mdlpvp, "Out of memory while parsing wildcard variable");
                   return 1;
                 }
                 stl->node = sym_t;
@@ -3503,7 +3437,7 @@ transformation:
         mdlpvp->pntp1=$<vec3>3;
         if (!distinguishable(vect_length(mdlpvp->pntp1),0.0,EPSILON))
         {
-          mdlerror("Rotation vector has zero length.");
+          mdlerror(mdlpvp, "Rotation vector has zero length.");
           return(1);
         }
         init_matrix(mdlpvp->tm);
@@ -3557,14 +3491,15 @@ object_ref:
 existing_object_ref:
         new_object OBJECT existing_object '{'
 {
+  char mdl_err_msg[1024];
   mdlpvp->gp=$<sym>1;
   mdlpvp->tp=$<sym>3;
   mdlpvp->objp=(struct object *)mdlpvp->gp->value;
   mdlpvp->objp2=(struct object *)mdlpvp->tp->value;
   mdlpvp->objp->object_type=mdlpvp->objp2->object_type;
   /* replicate all of object tree rooted at mdlpvp->objp2 */
-  if (copy_object(volp,mdlpvp->curr_obj,mdlpvp->objp,mdlpvp->objp2,mdlpvp->mdl_err_msg)) {
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+  if (copy_object(volp,mdlpvp->curr_obj,mdlpvp->objp,mdlpvp->objp2,mdl_err_msg)) {
+    mdlerror(mdlpvp, mdl_err_msg);
     return(1);
   }
   mdlpvp->objp->parent=mdlpvp->curr_obj;
@@ -3603,7 +3538,7 @@ release_site_def_new: new_object RELEASE_SITE '{'
   mdlpvp->objp=(struct object *)mdlpvp->gp->value;
   if ((mdlpvp->rsop=(struct release_site_obj *)malloc
               (sizeof(struct release_site_obj)))==NULL) {
-    mdlerror("Out of memory while creating release site");
+    mdlerror(mdlpvp, "Out of memory while creating release site");
     return(1);
   }
   mdlpvp->rsop->location=NULL;
@@ -3635,26 +3570,26 @@ release_site_def_new: new_object RELEASE_SITE '{'
   no_printf("Release site %s defined:\n",mdlpvp->curr_obj->sym->name);
   if (mdlpvp->rsop->release_shape!=SHAPE_LIST && mdlpvp->rsop->mol_type==NULL)
   {
-    mdlerror("Must specify molecule to release using MOLECULE=molecule_name.");
+    mdlerror(mdlpvp, "Must specify molecule to release using MOLECULE=molecule_name.");
     return 1;
   }
   if (mdlpvp->rsop->release_number_method==CCNNUM)
   {
     if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==0 && mdlpvp->rsop->release_number != -3)
     {
-      mdlerror("CONCENTRATION must be used with molecules that can diffuse in 3D");
+      mdlerror(mdlpvp, "CONCENTRATION must be used with molecules that can diffuse in 3D");
       if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==ON_GRID)
       {
-	mdlerror("  (Use DENSITY for molecules diffusing in 2D.)");
+	mdlerror(mdlpvp, "  (Use DENSITY for molecules diffusing in 2D.)");
       }
       return 1;
     }
     else if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==ON_GRID && mdlpvp->rsop->release_number != -2)
     {
-      mdlerror("DENSITY must be used with molecules that can diffuse in 2D");
+      mdlerror(mdlpvp, "DENSITY must be used with molecules that can diffuse in 2D");
       if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==0)
       {
-	mdlerror("  (Use CONCENTRATION for molecules diffusing in 3D.)");
+	mdlerror(mdlpvp, "  (Use CONCENTRATION for molecules diffusing in 3D.)");
       }
       return 1;
     }
@@ -3665,7 +3600,7 @@ release_site_def_new: new_object RELEASE_SITE '{'
     {
       if (mdlpvp->rsop->release_shape!=SHAPE_LIST || mdlpvp->rsop->mol_list==NULL)
       {
-        mdlerror("Release site is missing location.\n");
+        mdlerror(mdlpvp, "Release site is missing location.\n");
         return 1;
       }
       else
@@ -3673,7 +3608,7 @@ release_site_def_new: new_object RELEASE_SITE '{'
 	mdlpvp->rsop->location = (struct vector3*)malloc(sizeof(struct vector3));
 	if (mdlpvp->rsop->location==NULL)
 	{
-	  mdlerror("Out of memory storing region location");
+	  mdlerror(mdlpvp, "Out of memory storing region location");
 	  return 1;
 	}
 	mdlpvp->rsop->location->x = 0;
@@ -3709,7 +3644,7 @@ release_site_geom: SHAPE '=' release_region_expr
   rrd = (struct release_region_data*)malloc(sizeof(struct release_region_data));
   if (rrd==NULL)
   {
-    mdlerror("Out of memory while trying to create release site on region");
+    mdlerror(mdlpvp, "Out of memory while trying to create release site on region");
     return 1;
   }
   
@@ -3727,7 +3662,7 @@ release_site_geom: SHAPE '=' release_region_expr
   
   if (check_release_regions(re,mdlpvp->curr_obj,mdlpvp->vol->root_instance))
   {
-    mdlerror("Trying to release on a region that the release site cannot see!\n  Try grouping the release site and the corresponding geometry with an OBJECT.");
+    mdlerror(mdlpvp, "Trying to release on a region that the release site cannot see!\n  Try grouping the release site and the corresponding geometry with an OBJECT.");
     return 1;
   }
 }
@@ -3739,8 +3674,7 @@ release_site_geom: SHAPE '=' release_region_expr
   if((mdlpvp->objp->object_type == META_OBJ) ||
      (mdlpvp->objp->object_type == REL_SITE_OBJ))
   {
-    sprintf(mdlpvp->mdl_err_msg,"Error: only BOX or POLYGON_LIST objects may be assigned to the SHAPE keyword in the RELEASE_SITE definition.  Metaobjects or release objects are not allowed here.\n");
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror(mdlpvp, "Error: only BOX or POLYGON_LIST objects may be assigned to the SHAPE keyword in the RELEASE_SITE definition.  Metaobjects or release objects are not allowed here.\n");
     return(1);
   }
 
@@ -3750,20 +3684,18 @@ release_site_geom: SHAPE '=' release_region_expr
   strcat(mdlpvp->temp_str,",ALL");   
   mdlpvp->region_name=strdup(mdlpvp->temp_str);
   if(mdlpvp->region_name == NULL){
-    sprintf(mdlpvp->mdl_err_msg,"%s ","Out of memory while parsing region");
-    mdlerror(mdlpvp->mdl_err_msg);
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing region");
     return(1);
   }
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->region_name,REG,volp->main_sym_table))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined region:",mdlpvp->region_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Undefined region: %s", mdlpvp->region_name);
     return(1);
   }
   
   re = (struct release_evaluator*)malloc(sizeof(struct release_evaluator));
   if (re==NULL)
   {
-    mdlerror("Out of memory while trying to create release site on region");
+    mdlerror(mdlpvp, "Out of memory while trying to create release site on region");
     return 1;
   }
   
@@ -3779,7 +3711,7 @@ release_site_geom: SHAPE '=' release_region_expr
   rrd = (struct release_region_data*)malloc(sizeof(struct release_region_data));
   if (rrd==NULL)
   {
-    mdlerror("Out of memory while trying to create release site on region");
+    mdlerror(mdlpvp, "Out of memory while trying to create release site on region");
     return 1;
   }
   
@@ -3834,7 +3766,7 @@ release_region_expr:
   re = (struct release_evaluator*)malloc(sizeof(struct release_evaluator));
   if (re==NULL)
   {
-    mdlerror("Out of memory while trying to create release site on region");
+    mdlerror(mdlpvp, "Out of memory while trying to create release site on region");
     return 1;
   }
   
@@ -3856,7 +3788,7 @@ release_region_expr:
   re = pack_release_expr($<rev>1,$<rev>3,REXP_UNION);
   if (re==NULL)
   {
-    mdlerror("Out of memory while trying to create release site on region");
+    mdlerror(mdlpvp, "Out of memory while trying to create release site on region");
     return 1;
   }
   $$ = re;
@@ -3867,7 +3799,7 @@ release_region_expr:
   re = pack_release_expr($<rev>1,$<rev>3,REXP_SUBTRACTION);
   if (re==NULL)
   {
-    mdlerror("Out of memory while trying to create release site on region");
+    mdlerror(mdlpvp, "Out of memory while trying to create release site on region");
     return 1;
   }
   $$ = re;
@@ -3878,7 +3810,7 @@ release_region_expr:
   re = pack_release_expr($<rev>1,$<rev>3,REXP_INTERSECTION);
   if (re==NULL)
   {
-    mdlerror("Out of memory while trying to create release site on region");
+    mdlerror(mdlpvp, "Out of memory while trying to create release site on region");
     return 1;
   }
   $$ = re;
@@ -3891,7 +3823,7 @@ release_site_def_old: new_object release_site_geom_old '{'
   mdlpvp->objp=(struct object *)mdlpvp->gp->value;
   if ((mdlpvp->rsop=(struct release_site_obj *)malloc
               (sizeof(struct release_site_obj)))==NULL) {
-    mdlerror("Out of memory while creating release site");
+    mdlerror(mdlpvp, "Out of memory while creating release site");
     return(1);
   }
   mdlpvp->rsop->location=NULL;
@@ -3981,12 +3913,12 @@ release_site_cmd:
     {
       if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
       {
-	mdlerror("Error: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
+	mdlerror_fmt(mdlpvp, "Error: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
 	return 1;
       }
       else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
       {
-	mdlerror("Warning: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
+	mdlerror_fmt(mdlpvp, "Warning: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
       }
     }
   }
@@ -3996,18 +3928,18 @@ release_site_cmd:
     {
       if (mdlpvp->vol->notify->useless_vol_orient==WARN_ERROR)
       {
-	mdlerror("Error: orientation not used for released volume molecule");
+	mdlerror(mdlpvp, "Error: orientation not used for released volume molecule");
 	return 1;
       }
       else if (mdlpvp->vol->notify->useless_vol_orient==WARN_WARN)
       {
-	mdlerror("Warning: orientation not used for released volume molecule");
+	mdlerror(mdlpvp, "Warning: orientation not used for released volume molecule");
       }
     }
   }
   else
   {
-    mdlerror("Error: cannot release a surface class instead of a molecule.");
+    mdlerror(mdlpvp, "Error: cannot release a surface class instead of a molecule.");
     return 1;
   }
   /* restore default values */
@@ -4019,7 +3951,7 @@ release_site_cmd:
 {
   if (mdlpvp->rsop->release_shape==SHAPE_LIST)
   {
-    mdlerror("Molecules are already specified in a list--cannot set number or density.");
+    mdlerror(mdlpvp, "Molecules are already specified in a list--cannot set number or density.");
     return 1;
   }
 }
@@ -4029,7 +3961,7 @@ release_site_cmd:
   if ($<tok>1==SITE_RADIUS) scaling_factor*=2;
   
   if ((mdlpvp->rsop->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
-    mdlerror("Out of memory while storing release site diameter");
+    mdlerror(mdlpvp, "Out of memory while storing release site diameter");
     return(1);
   }
   mdlpvp->rsop->diameter->x = $<dbl>3 * scaling_factor;
@@ -4043,12 +3975,12 @@ release_site_cmd:
   
   if (mdlpvp->rsop->release_shape==SHAPE_LIST)
   {
-    mdlerror("Release list diameters must be single valued.");
+    mdlerror(mdlpvp, "Release list diameters must be single valued.");
     return 1;
   }
   mdlpvp->el_head=$<nel>3;
   if ((mdlpvp->rsop->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
-    mdlerror("Out of memory while storing release site diameter");
+    mdlerror(mdlpvp, "Out of memory while storing release site diameter");
     return(1);
   }
   mdlpvp->elp=mdlpvp->el_head;
@@ -4057,7 +3989,7 @@ release_site_cmd:
     mdlpvp->elp=mdlpvp->elp->next;
   }
   else {
-    mdlerror("Three dimensional value required");
+    mdlerror(mdlpvp, "Three dimensional value required");
     return(1);
   }
   if (mdlpvp->elp!=NULL) {
@@ -4065,7 +3997,7 @@ release_site_cmd:
     mdlpvp->elp=mdlpvp->elp->next;
   }
   else {
-    mdlerror("Three dimensional value required");
+    mdlerror(mdlpvp, "Three dimensional value required");
     return(1);
   }
   if (mdlpvp->elp!=NULL) {
@@ -4073,11 +4005,11 @@ release_site_cmd:
     mdlpvp->elp=mdlpvp->elp->next;
   }
   else {
-    mdlerror("Three dimensional value required");
+    mdlerror(mdlpvp, "Three dimensional value required");
     return(1);
   }
   if (mdlpvp->elp!=NULL) {
-    mdlerror("Three dimensional value required");
+    mdlerror(mdlpvp, "Three dimensional value required");
     return(1);
   }
 }
@@ -4088,7 +4020,7 @@ release_site_cmd:
   
   mdlpvp->gp=$<sym>3;
   if ((mdlpvp->rsop->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
-    mdlerror("Out of memory while storing release site diameter");
+    mdlerror(mdlpvp, "Out of memory while storing release site diameter");
     return(1);
   }
   switch (mdlpvp->gp->sym_type) {
@@ -4101,7 +4033,7 @@ release_site_cmd:
   case ARRAY:
     if (mdlpvp->rsop->release_shape==SHAPE_LIST)
     {
-      mdlerror("Release list diameters must be single valued.");
+      mdlerror(mdlpvp, "Release list diameters must be single valued.");
       return 1;
     }
     mdlpvp->el_head=(struct num_expr_list *)mdlpvp->gp->value;
@@ -4111,7 +4043,7 @@ release_site_cmd:
       mdlpvp->elp=mdlpvp->elp->next;
     }
     else {
-      mdlerror("Three dimensional value required");
+      mdlerror(mdlpvp, "Three dimensional value required");
       return(1);
     }
     if (mdlpvp->elp!=NULL) {
@@ -4119,7 +4051,7 @@ release_site_cmd:
       mdlpvp->elp=mdlpvp->elp->next;
     }
     else {
-      mdlerror("Three dimensional value required");
+      mdlerror(mdlpvp, "Three dimensional value required");
       return(1);
     }
     if (mdlpvp->elp!=NULL) {
@@ -4127,16 +4059,16 @@ release_site_cmd:
       mdlpvp->elp=mdlpvp->elp->next;
     }
     else {
-      mdlerror("Three dimensional value required");
+      mdlerror(mdlpvp, "Three dimensional value required");
       return(1);
     }
     if (mdlpvp->elp!=NULL) {
-      mdlerror("Three dimensional value required");
+      mdlerror(mdlpvp, "Three dimensional value required");
       return(1);
     }
     break;
   default:
-    mdlerror("Diameter must either be a number or a 3-valued vector.");
+    mdlerror(mdlpvp, "Diameter must either be a number or a 3-valued vector.");
     return 1;
   }
 }
@@ -4144,19 +4076,19 @@ release_site_cmd:
 {
   if (mdlpvp->rsop->release_prob==MAGIC_PATTERN_PROBABILITY)
   {
-    mdlerror("Ignoring release probability for reaction-triggered releases.");
+    mdlerror(mdlpvp, "Ignoring release probability for reaction-triggered releases.");
   }
   else
   {
     mdlpvp->rsop->release_prob=$<dbl>3;
     if (mdlpvp->rsop->release_prob<0)
     {
-      mdlerror("Release probability cannot be less than 0.");
+      mdlerror(mdlpvp, "Release probability cannot be less than 0.");
       return 1;
     }
     if (mdlpvp->rsop->release_prob>1)
     {
-      mdlerror("Release probability cannot be greater than 1.");
+      mdlerror(mdlpvp, "Release probability cannot be greater than 1.");
       return 1;
     }
   }
@@ -4170,7 +4102,7 @@ release_site_cmd:
   {
     if (mdlpvp->rsop->release_prob!=1.0)
     {
-      mdlerror("Ignoring release probability for reaction-triggered releases.");
+      mdlerror(mdlpvp, "Ignoring release probability for reaction-triggered releases.");
     }
     mdlpvp->rsop->release_prob = MAGIC_PATTERN_PROBABILITY;   /* Magic number indicating a reaction-triggered release */
   }
@@ -4179,7 +4111,7 @@ release_site_cmd:
 {
   if (mdlpvp->rsop->release_shape != SHAPE_LIST)
   {
-    mdlerror("You must use the LIST shape to specify molecule positions in a release.");
+    mdlerror(mdlpvp, "You must use the LIST shape to specify molecule positions in a release.");
     return 1;
   }
 }
@@ -4279,7 +4211,7 @@ molecule_release_pos:
   
   if (rsm==NULL)
   {
-    mdlerror("Out of memory reading molecule positions");
+    mdlerror(mdlpvp, "Out of memory reading molecule positions");
     return 1;
   }
   
@@ -4295,12 +4227,12 @@ molecule_release_pos:
     {
       if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
       {
-	mdlerror("Error: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
+	mdlerror_fmt(mdlpvp, "Error: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
 	return 1;
       }
       else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
       {
-	mdlerror("Warning: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
+	mdlerror_fmt(mdlpvp, "Warning: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
       }
     }
   }
@@ -4310,18 +4242,18 @@ molecule_release_pos:
     {
       if (mdlpvp->vol->notify->useless_vol_orient==WARN_ERROR)
       {
-	mdlerror("Error: orientation not used for released volume molecule");
+	mdlerror(mdlpvp, "Error: orientation not used for released volume molecule");
 	return 1;
       }
       else if (mdlpvp->vol->notify->useless_vol_orient==WARN_WARN)
       {
-	mdlerror("Warning: orientation not used for released volume molecule");
+	mdlerror(mdlpvp, "Warning: orientation not used for released volume molecule");
       }
     }
   }
   else
   {
-    mdlerror("Error: cannot release a surface class instead of a molecule.");
+    mdlerror(mdlpvp, "Error: cannot release a surface class instead of a molecule.");
     return 1;
   }
 
@@ -4338,7 +4270,7 @@ point: array_value
 {
   mdlpvp->el_head=$<nel>1;
   if ((mdlpvp->pntp1=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
-    mdlerror("Out of memory while creating points");
+    mdlerror(mdlpvp, "Out of memory while creating points");
     return(1);
   }
   mdlpvp->pntp1->x=0;
@@ -4350,7 +4282,7 @@ point: array_value
     mdlpvp->elp=mdlpvp->elp->next;
   }
   else {
-    mdlerror("Three dimensional value required");
+    mdlerror(mdlpvp, "Three dimensional value required");
     return(1);
   }
   if (mdlpvp->elp!=NULL) {
@@ -4358,7 +4290,7 @@ point: array_value
     mdlpvp->elp=mdlpvp->elp->next;
   }
   else {
-    mdlerror("Three dimensional value required");
+    mdlerror(mdlpvp, "Three dimensional value required");
     return(1);
   }
   if (mdlpvp->elp!=NULL) {
@@ -4366,11 +4298,11 @@ point: array_value
     mdlpvp->elp=mdlpvp->elp->next;
   }
   else {
-    mdlerror("Three dimensional value required");
+    mdlerror(mdlpvp, "Three dimensional value required");
     return(1);
   }
   if (mdlpvp->elp!=NULL) {
-    mdlerror("Three dimensional value required");
+    mdlerror(mdlpvp, "Three dimensional value required");
     return(1);
   }
   $$=mdlpvp->pntp1;
@@ -4383,7 +4315,7 @@ polygon_list_def: new_object POLYGON_LIST '{'
   mdlpvp->objp=(struct object *)mdlpvp->gp->value;
   if ((mdlpvp->pop=(struct polygon_object *)malloc
               (sizeof(struct polygon_object)))==NULL) {
-    mdlerror("Out of memory while creating polygon list object");
+    mdlerror(mdlpvp, "Out of memory while creating polygon list object");
     return(1);
   }
   mdlpvp->pop->polygon_data=NULL;
@@ -4395,7 +4327,7 @@ polygon_list_def: new_object POLYGON_LIST '{'
 
   if ((mdlpvp->opp=(struct ordered_poly *)malloc
               (sizeof(struct ordered_poly)))==NULL) {
-    mdlerror("Out of memory while creating polygon list object");
+    mdlerror(mdlpvp, "Out of memory while creating polygon list object");
     return(1);
   }
   mdlpvp->opp->vertex=NULL;
@@ -4416,6 +4348,7 @@ polygon_list_def: new_object POLYGON_LIST '{'
         element_connection_cmd
 {
   u_int i,j;
+  char mdl_err_msg[1024];
 
   mdlpvp->pop->n_walls=mdlpvp->n_walls;
   mdlpvp->pop->n_verts=mdlpvp->n_verts;
@@ -4423,20 +4356,20 @@ polygon_list_def: new_object POLYGON_LIST '{'
   mdlpvp->opp->n_verts=mdlpvp->n_verts;
   if ((mdlpvp->pop->surf_class=(struct species **)malloc
               (mdlpvp->pop->n_walls*sizeof(struct species *)))==NULL) {
-    mdlerror("Out of memory while creating polygon list object");
+    mdlerror(mdlpvp, "Out of memory while creating polygon list object");
     return(1);
   }
   for (i=0;i<mdlpvp->pop->n_walls;i++) mdlpvp->pop->surf_class[i]=volp->g_surf;
   mdlpvp->pop->side_removed = new_bit_array(mdlpvp->pop->n_walls);
   if (mdlpvp->pop->side_removed==NULL) {
-    mdlerror("Out of memory while creating polygon list object");
+    mdlerror(mdlpvp, "Out of memory while creating polygon list object");
     return(1);
   }
   set_all_bits(mdlpvp->pop->side_removed,0);
 
   if ((mdlpvp->opp->vertex=(struct vector3 *)malloc
               (mdlpvp->opp->n_verts*sizeof(struct vector3)))==NULL) {
-    mdlerror("Out of memory while creating polygon list object");
+    mdlerror(mdlpvp, "Out of memory while creating polygon list object");
     return(1);
   }
 
@@ -4444,7 +4377,7 @@ polygon_list_def: new_object POLYGON_LIST '{'
   if (mdlpvp->vlp->normal!=NULL) {
     if ((mdlpvp->opp->normal=(struct vector3 *)malloc
                 (mdlpvp->opp->n_verts*sizeof(struct vector3)))==NULL) {
-      mdlerror("Out of memory while creating polygon list object");
+      mdlerror(mdlpvp, "Out of memory while creating polygon list object");
       return(1);
     }
   }
@@ -4465,7 +4398,7 @@ polygon_list_def: new_object POLYGON_LIST '{'
   }
   if ((mdlpvp->edp=(struct element_data *)malloc
               (mdlpvp->opp->n_walls*sizeof(struct element_data)))==NULL) {
-    mdlerror("Out of memory while creating polygon list object");
+    mdlerror(mdlpvp, "Out of memory while creating polygon list object");
     return(1);
   }
   mdlpvp->opp->element=mdlpvp->edp;
@@ -4473,7 +4406,7 @@ polygon_list_def: new_object POLYGON_LIST '{'
   for (i=0;i<mdlpvp->opp->n_walls;i++) {
     if (mdlpvp->eclp->n_verts != 3)
     {
-      mdlerror("All polygons must have three vertices.");
+      mdlerror(mdlpvp, "All polygons must have three vertices.");
       return(1);
     }
     mdlpvp->elp=mdlpvp->eclp->connection_list;
@@ -4489,14 +4422,14 @@ polygon_list_def: new_object POLYGON_LIST '{'
   }
 
   /* Create object default region on polygon list object: */
-  if ((mdlpvp->rp=make_new_region(volp,mdlpvp->obj_name,"ALL",mdlpvp->mdl_err_msg))==NULL) {
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+  if ((mdlpvp->rp=make_new_region(volp,mdlpvp->obj_name,"ALL",mdl_err_msg))==NULL) {
+    mdlerror(mdlpvp, mdl_err_msg);
     return(1);
   }
   if ((mdlpvp->rlp=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s",
-      "Out of memory while creating object default region name:",mdlpvp->rp->sym->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, 
+                 "Out of memory while creating object default region name: %s",
+                 mdlpvp->rp->sym->name);
     return(1);
   }
   mdlpvp->rp->region_last_name="ALL";
@@ -4505,7 +4438,7 @@ polygon_list_def: new_object POLYGON_LIST '{'
 
   if ((mdlpvp->elmlp=(struct element_list *)malloc
              (sizeof(struct element_list)))==NULL) {
-    mdlerror("Out of memory while creating element list for object default region");
+    mdlerror(mdlpvp, "Out of memory while creating element list for object default region");
     return(1);
   }
   mdlpvp->elmlp->begin=0;
@@ -4517,7 +4450,7 @@ polygon_list_def: new_object POLYGON_LIST '{'
   mdlpvp->curr_obj->n_verts=mdlpvp->pop->n_verts;
   mdlpvp->n_walls_actual = mdlpvp->pop->n_walls;
   if(normalize_elements(mdlpvp->rp,0)){
-      mdlerror("Error setting up elements in default 'ALL' region in the polygon object '%s'. \n", mdlpvp->obj_name);
+      mdlerror_fmt(mdlpvp, "Error setting up elements in default 'ALL' region in the polygon object '%s'. \n", mdlpvp->obj_name);
       return 1;
 
   }
@@ -4547,7 +4480,6 @@ polygon_list_def: new_object POLYGON_LIST '{'
   struct region *rp;
   int i;
   int is_degenerate;  /* flag */
-  char err_msg[1024];
   for(rl = mdlpvp->curr_obj->regions; rl != NULL; rl = rl->next)
   {
     rp = rl->reg;
@@ -4560,18 +4492,15 @@ polygon_list_def: new_object POLYGON_LIST '{'
       }
     }
     if(is_degenerate && (strcmp(rp->region_last_name, "ALL") == 0)){
-        sprintf(err_msg, "ERROR: polygon object ' ");
-        strcat(err_msg, mdlpvp->obj_name);
-        strcat(err_msg, "' is degenerate - no walls.\n");
-        mdlerror(err_msg);
+        mdlerror_fmt(mdlpvp,
+                     "ERROR: polygon object '%s' is degenerate - no walls.\n",
+                     mdlpvp->obj_name);
         return 1;
     }else if(is_degenerate && (strcmp(rp->region_last_name, "REMOVED") != 0)){
-        sprintf(err_msg, "ERROR: region '");
-        strcat(err_msg, rp->region_last_name);
-        strcat(err_msg, "' of object '");
-        strcat(err_msg, mdlpvp->obj_name);
-        strcat(err_msg, "' is degenerate - no walls.\n");
-        mdlerror(err_msg);
+        mdlerror_fmt(mdlpvp, 
+                     "ERROR: region '%s' of object '%s' is degenerate - no walls.\n",
+                     rp->region_last_name,
+                     mdlpvp->obj_name);
         return 1;
     }
   }
@@ -4593,7 +4522,7 @@ voxel_list_def: new_object VOXEL_LIST '{'
   mdlpvp->objp=(struct object *)mdlpvp->gp->value;
   if ((mdlpvp->vop=(struct voxel_object *)malloc
               (sizeof(struct voxel_object)))==NULL) {
-    mdlerror("Out of memory while creating voxel list object");
+    mdlerror(mdlpvp, "Out of memory while creating voxel list object");
     return(1);
   }
   mdlpvp->vop->voxel_data=NULL;
@@ -4604,7 +4533,7 @@ voxel_list_def: new_object VOXEL_LIST '{'
   
   if ((mdlpvp->ovp=(struct ordered_voxel *)malloc
               (sizeof(struct ordered_voxel)))==NULL) {
-    mdlerror("Out of memory while creating voxel list object");
+    mdlerror(mdlpvp, "Out of memory while creating voxel list object");
     return(1);
   }
   mdlpvp->ovp->vertex=NULL;
@@ -4633,7 +4562,7 @@ voxel_list_def: new_object VOXEL_LIST '{'
 
   if ((mdlpvp->ovp->vertex=(struct vector3 *)malloc
               (mdlpvp->ovp->n_verts*sizeof(struct vector3)))==NULL) {
-    mdlerror("Out of memory while creating voxel list object");
+    mdlerror(mdlpvp, "Out of memory while creating voxel list object");
     return(1);
   }
 
@@ -4649,7 +4578,7 @@ voxel_list_def: new_object VOXEL_LIST '{'
   }
   if ((mdlpvp->tedp=(struct tet_element_data *)malloc
               (mdlpvp->ovp->n_voxels*sizeof(struct tet_element_data)))==NULL) {
-    mdlerror("Out of memory while creating voxel list object");
+    mdlerror(mdlpvp, "Out of memory while creating voxel list object");
     return(1);
   }
   mdlpvp->ovp->element=mdlpvp->tedp;
@@ -4657,7 +4586,7 @@ voxel_list_def: new_object VOXEL_LIST '{'
   for (i=0;i<mdlpvp->ovp->n_voxels;i++) {
     if (mdlpvp->eclp->n_verts != 4)
     {
-      mdlerror("All voxels must have four vertices.");
+      mdlerror(mdlpvp, "All voxels must have four vertices.");
       return(1);
     }
     mdlpvp->tedp[i].n_verts=mdlpvp->eclp->n_verts;
@@ -4703,7 +4632,7 @@ list_points: point
 {
   mdlpvp->pntp1=$<vec3>1;
   if ((mdlpvp->vlp=(struct vertex_list *)malloc(sizeof(struct vertex_list)))==NULL) {
-    mdlerror("Out of memory while creating vertices");
+    mdlerror(mdlpvp, "Out of memory while creating vertices");
     return(1);
   }
   mdlpvp->n_verts++;
@@ -4724,7 +4653,7 @@ list_points: point
   mdlpvp->pntp1=$<vec3>1;
   mdlpvp->pntp2=$<vec3>3;
   if ((mdlpvp->vlp=(struct vertex_list *)malloc(sizeof(struct vertex_list)))==NULL) {
-    mdlerror("Out of memory while creating normals");
+    mdlerror(mdlpvp, "Out of memory while creating normals");
     return(1);
   }
   mdlpvp->n_verts++;
@@ -4744,7 +4673,7 @@ list_points: point
 {
   mdlpvp->pntp1=$<vec3>2;
   if ((mdlpvp->vlp=(struct vertex_list *)malloc(sizeof(struct vertex_list)))==NULL) {
-    mdlerror("Out of memory while creating vertices");
+    mdlerror(mdlpvp, "Out of memory while creating vertices");
     return(1);
   }
   mdlpvp->n_verts++;
@@ -4765,7 +4694,7 @@ list_points: point
   mdlpvp->pntp1=$<vec3>2;
   mdlpvp->pntp2=$<vec3>4;
   if ((mdlpvp->vlp=(struct vertex_list *)malloc(sizeof(struct vertex_list)))==NULL) {
-    mdlerror("Out of memory while creating normals");
+    mdlerror(mdlpvp, "Out of memory while creating normals");
     return(1);
   }
   mdlpvp->n_verts++;
@@ -4811,7 +4740,7 @@ list_arrays: array_value
   mdlpvp->elp=$<nel>1;
   if ((mdlpvp->eclp=(struct element_connection_list *)malloc
               (sizeof(struct element_connection_list)))==NULL) {
-    mdlerror("Out of memory while creating element connections");
+    mdlerror(mdlpvp, "Out of memory while creating element connections");
     return(1);
   }
   mdlpvp->n_walls++;
@@ -4822,7 +4751,7 @@ list_arrays: array_value
     mdlpvp->elp=mdlpvp->elp->next;
   }
   if (mdlpvp->eclp->n_verts!=3) {
-    mdlerror("Non-triangular element found in polygon list object");
+    mdlerror(mdlpvp, "Non-triangular element found in polygon list object");
     return(1);
   }
   if (mdlpvp->connection_tail==NULL) {
@@ -4840,7 +4769,7 @@ list_arrays: array_value
   mdlpvp->elp=$<nel>2;
   if ((mdlpvp->eclp=(struct element_connection_list *)malloc
               (sizeof(struct element_connection_list)))==NULL) {
-    mdlerror("Out of memory while creating element connections");
+    mdlerror(mdlpvp, "Out of memory while creating element connections");
     return(1);
   }
   mdlpvp->n_walls++;
@@ -4866,7 +4795,7 @@ list_tet_arrays: array_value
   mdlpvp->elp=$<nel>1;
   if ((mdlpvp->eclp=(struct element_connection_list *)malloc
               (sizeof(struct element_connection_list)))==NULL) {
-    mdlerror("Out of memory while creating element connections");
+    mdlerror(mdlpvp, "Out of memory while creating element connections");
     return(1);
   }
   mdlpvp->n_voxels++;
@@ -4877,7 +4806,7 @@ list_tet_arrays: array_value
     mdlpvp->elp=mdlpvp->elp->next;
   }
   if (mdlpvp->eclp->n_verts!=4) {
-    mdlerror("Non-tetrahedron element found in voxel list object");
+    mdlerror(mdlpvp, "Non-tetrahedron element found in voxel list object");
     return(1);
   }
   if (mdlpvp->connection_tail==NULL) {
@@ -4895,7 +4824,7 @@ list_tet_arrays: array_value
   mdlpvp->elp=$<nel>2;
   if ((mdlpvp->eclp=(struct element_connection_list *)malloc
               (sizeof(struct element_connection_list)))==NULL) {
-    mdlerror("Out of memory while creating element connections");
+    mdlerror(mdlpvp, "Out of memory while creating element connections");
     return(1);
   }
   mdlpvp->n_voxels++;
@@ -4927,11 +4856,12 @@ boolean: TRUE { $$=1; }
 
 box_def: new_object BOX '{'
 {
+  char mdl_err_msg[1024];
   mdlpvp->gp=$<sym>1;
   mdlpvp->objp=(struct object *)mdlpvp->gp->value;
   if ((mdlpvp->pop=(struct polygon_object *)malloc
               (sizeof(struct polygon_object)))==NULL) {
-    mdlerror("Out of memory while creating box object");
+    mdlerror(mdlpvp, "Out of memory while creating box object");
     return(1);
   }
   mdlpvp->pop->polygon_data=NULL;
@@ -4943,7 +4873,7 @@ box_def: new_object BOX '{'
 
   if ((mdlpvp->opp=(struct ordered_poly *)malloc
               (sizeof(struct ordered_poly)))==NULL) {
-    mdlerror("Out of memory while creating box object");
+    mdlerror(mdlpvp, "Out of memory while creating box object");
     return(1);
   }
   mdlpvp->opp->vertex=NULL;
@@ -4964,14 +4894,14 @@ box_def: new_object BOX '{'
   mdlpvp->region_list_head=mdlpvp->objp->regions;
 
   /* Create object default region on box object: */
-  if ((mdlpvp->rp=make_new_region(volp,mdlpvp->obj_name,"ALL",mdlpvp->mdl_err_msg))==NULL) {
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+  if ((mdlpvp->rp=make_new_region(volp,mdlpvp->obj_name,"ALL",mdl_err_msg))==NULL) {
+    mdlerror(mdlpvp, mdl_err_msg);
     return(1);
   }
   if ((mdlpvp->rlp=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s",
-      "Out of memory while creating object default region name:",mdlpvp->rp->sym->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, 
+                 "Out of memory while creating object default region name: %s",
+                 mdlpvp->rp->sym->name);
     return(1);
   }
   mdlpvp->rp->region_last_name="ALL";
@@ -4980,7 +4910,7 @@ box_def: new_object BOX '{'
 
   if ((mdlpvp->elmlp=(struct element_list *)malloc
              (sizeof(struct element_list)))==NULL) {
-    mdlerror("Out of memory while creating element list for object default region");
+    mdlerror(mdlpvp, "Out of memory while creating element list for object default region");
     return(1);
   }
   mdlpvp->elmlp->begin=ALL_SIDES;
@@ -5005,7 +4935,7 @@ box_def: new_object BOX '{'
   mdlpvp->llf = mdlpvp->urb = NULL;
   if (mdlpvp->pop->sb == NULL)
   {
-    mdlerror("Out of memory while storing box corners");
+    mdlerror(mdlpvp, "Out of memory while storing box corners");
     return 1;
   }
   mdlpvp->box_aspect_ratio = 0.0;
@@ -5020,7 +4950,7 @@ box_def: new_object BOX '{'
     i = reaspect_cuboid(mdlpvp->pop->sb,mdlpvp->box_aspect_ratio);
     if (i)
     {
-      mdlerror("Error setting up box geometry");
+      mdlerror(mdlpvp, "Error setting up box geometry");
       return 1;
     }
   }
@@ -5029,14 +4959,14 @@ box_def: new_object BOX '{'
     i = normalize_elements(mdlpvp->rlp->reg,0);
     if (i)
     {
-      mdlerror("Error setting up elements in box regions");
+      mdlerror(mdlpvp, "Error setting up elements in box regions");
       return 1;
     }
   }
   i = polygonalize_cuboid(mdlpvp->opp,mdlpvp->pop->sb);
   if (i)
   {
-    mdlerror("Could not turn box object into polygons");
+    mdlerror(mdlpvp, "Could not turn box object into polygons");
     return 1;
   }
   else if (volp->notify->box_triangulation==NOTIFY_FULL)
@@ -5052,13 +4982,13 @@ box_def: new_object BOX '{'
   
   if ((mdlpvp->pop->surf_class=(struct species **)malloc
               (mdlpvp->pop->n_walls*sizeof(struct species *)))==NULL) {
-    mdlerror("Out of memory while creating box object");
+    mdlerror(mdlpvp, "Out of memory while creating box object");
     return(1);
   }
   for (i=0;i<mdlpvp->pop->n_walls;i++) mdlpvp->pop->surf_class[i]=volp->g_surf;
   mdlpvp->pop->side_removed = new_bit_array(mdlpvp->pop->n_walls);
   if (mdlpvp->pop->side_removed==NULL) {
-    mdlerror("Out of memory while creating box object");
+    mdlerror(mdlpvp, "Out of memory while creating box object");
     return(1);
   }
   set_all_bits(mdlpvp->pop->side_removed,0);
@@ -5076,7 +5006,6 @@ box_def: new_object BOX '{'
   struct region *rp;
   int i;
   int is_degenerate;  /* flag */
-  char err_msg[1024];
   for(rl = mdlpvp->curr_obj->regions; rl != NULL; rl = rl->next)
   {
     rp = rl->reg;
@@ -5089,18 +5018,15 @@ box_def: new_object BOX '{'
       }
     }
     if(is_degenerate && (strcmp(rp->region_last_name, "ALL") == 0)){
-        sprintf(err_msg, "ERROR: box object ' ");
-        strcat(err_msg, mdlpvp->obj_name);
-        strcat(err_msg, "' is degenerate - no walls.\n");
-        mdlerror(err_msg);
+        mdlerror_fmt(mdlpvp, 
+                     "ERROR: box object '%s' is degenerate - no walls.\n",
+                     mdlpvp->obj_name);
         return 1;
     }else if(is_degenerate && (strcmp(rp->region_last_name, "REMOVED") != 0)){
-        sprintf(err_msg, "ERROR: region '");
-        strcat(err_msg, rp->region_last_name);
-        strcat(err_msg, "' of object '");
-        strcat(err_msg, mdlpvp->obj_name);
-        strcat(err_msg, "' is degenerate - no walls.\n");
-        mdlerror(err_msg);
+        mdlerror_fmt(mdlpvp, 
+                     "ERROR: region '%s' of object '%s' is degenerate - no walls.\n",
+                     rp->region_last_name,
+                     mdlpvp->obj_name);
         return 1;
     }
   }
@@ -5134,7 +5060,7 @@ aspect_ratio_def: ASPECT_RATIO '=' num_expr
   mdlpvp->box_aspect_ratio = $<dbl>3;
   if (!(mdlpvp->box_aspect_ratio >= 2.0))
   {
-    mdlerror("Invalid aspect ratio selected (must be greater than or equal to 2.0)");
+    mdlerror(mdlpvp, "Invalid aspect ratio selected (must be greater than or equal to 2.0)");
     return 1;
   }
 }
@@ -5152,17 +5078,18 @@ opt_polygon_object_cmd:
 
 remove_side: REMOVE_ELEMENTS '{'
 {
-  mdlpvp->rp = retrieve_old_region(volp,mdlpvp->obj_name,"REMOVED",mdlpvp->mdl_err_msg);
+  char mdl_err_msg[1024];
+  mdlpvp->rp = retrieve_old_region(volp,mdlpvp->obj_name,"REMOVED",mdl_err_msg);
   if (mdlpvp->rp==NULL)
   {
-    if ((mdlpvp->rp=make_new_region(volp,mdlpvp->obj_name,"REMOVED",mdlpvp->mdl_err_msg))==NULL) {
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    if ((mdlpvp->rp=make_new_region(volp,mdlpvp->obj_name,"REMOVED",mdl_err_msg))==NULL) {
+      mdlerror(mdlpvp, mdl_err_msg);
       return(1);
     }
     if ((mdlpvp->rlp=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s",
-	"Out of memory while creating object default region name:",mdlpvp->rp->sym->name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      mdlerror_fmt(mdlpvp,
+                   "Out of memory while creating object default region name: %s",
+                   mdlpvp->rp->sym->name);
       return(1);
     }
     mdlpvp->rp->region_last_name="REMOVED";
@@ -5187,7 +5114,7 @@ remove_side: REMOVE_ELEMENTS '{'
   {
     if (normalize_elements(mdlpvp->rp,0))
     {
-      mdlerror("Improper element specification: out of range or out of memory");
+      mdlerror(mdlpvp, "Improper element specification: out of range or out of memory");
       return 1;
     }
   }
@@ -5246,7 +5173,7 @@ element_spec: num_expr
 {
   if ((mdlpvp->elmlp=(struct element_list *)malloc
              (sizeof(struct element_list)))==NULL) {
-    mdlerror("Out of memory while creating element list item");
+    mdlerror(mdlpvp, "Out of memory while creating element list item");
     return(1);
   }
   mdlpvp->elmlp->begin=(unsigned int) ($<dbl>1);
@@ -5260,7 +5187,7 @@ element_spec: num_expr
 {
   if ((mdlpvp->elmlp=(struct element_list *)malloc
              (sizeof(struct element_list)))==NULL) {
-    mdlerror("Out of memory while creating element list item");
+    mdlerror(mdlpvp, "Out of memory while creating element list item");
     return(1);
   }
   mdlpvp->elmlp->begin=(unsigned int) ($<dbl>1);
@@ -5274,7 +5201,7 @@ element_spec: num_expr
 {
   if ((mdlpvp->elmlp=(struct element_list *)malloc
              (sizeof(struct element_list)))==NULL) {
-    mdlerror("Out of memory while creating element list item");
+    mdlerror(mdlpvp, "Out of memory while creating element list item");
     return(1);
   }
   mdlpvp->elmlp->next=mdlpvp->element_list_head;
@@ -5287,7 +5214,7 @@ element_spec: num_expr
     mdlpvp->elmlp->end=mdlpvp->pop->n_walls-1;
   }
   else if (mdlpvp->objp->object_type==POLY_OBJ) {
-    mdlerror("Illegal reference to polygon list element by side-name");
+    mdlerror(mdlpvp, "Illegal reference to polygon list element by side-name");
     return(1);
   }
   else {
@@ -5306,13 +5233,13 @@ prev_region_stmt: prev_region_type '=' VAR
   mdlpvp->elmlp = (struct element_list*)malloc(sizeof(struct element_list));
   if (mdlpvp->elmlp==NULL)
   {
-    mdlerror("Out of memory while creating element list item");
+    mdlerror(mdlpvp, "Out of memory while creating element list item");
     return 1;
   }
   mdlpvp->elmlp->special = (struct element_special*)malloc(sizeof(struct element_special));
   if (mdlpvp->elmlp->special==NULL)
   {
-    mdlerror("Out of memory while creating element list item");
+    mdlerror(mdlpvp, "Out of memory while creating element list item");
     return 1;
   }
   mdlpvp->elmlp->begin = 0;
@@ -5333,7 +5260,7 @@ prev_region_stmt: prev_region_type '=' VAR
   full_reg_name = (char*)malloc( strlen(reg_name) + strlen(mdlpvp->curr_obj->sym->name) + 2 );
   if (full_reg_name==NULL)
   {
-    mdlerror("Out of memory while creating element list item");
+    mdlerror(mdlpvp, "Out of memory while creating element list item");
     return 1;
   }
   
@@ -5348,8 +5275,7 @@ prev_region_stmt: prev_region_type '=' VAR
   
   if (stp==NULL)
   {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined region:",full_reg_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Undefined region: %s", full_reg_name);
     return 1;
   }
    
@@ -5357,7 +5283,7 @@ prev_region_stmt: prev_region_type '=' VAR
   
   if (mdlpvp->elmlp->special->referent==mdlpvp->rp)
   {
-    mdlerror("Self-referential region include.  No paradoxes, please.");
+    mdlerror_fmt(mdlpvp, "Self-referential region include.  No paradoxes, please.");
     return 1;
   }
   free(full_reg_name);
@@ -5377,20 +5303,20 @@ patch_statement: patch_type '=' point ',' point
   
   if (mdlpvp->objp->object_type!=BOX_OBJ)
   {
-    mdlerror("Must use PATCH specifier on a BOX object only.");
+    mdlerror(mdlpvp, "Must use PATCH specifier on a BOX object only.");
     return 1;
   }
   
   mdlpvp->elmlp = (struct element_list*)malloc(sizeof(struct element_list));
   if (mdlpvp->elmlp==NULL)
   {
-    mdlerror("Out of memory while creating element list item");
+    mdlerror(mdlpvp, "Out of memory while creating element list item");
     return 1;
   }
   mdlpvp->elmlp->special = (struct element_special*)malloc(sizeof(struct element_special));
   if (mdlpvp->elmlp->special==NULL)
   {
-    mdlerror("Out of memory while creating element list item");
+    mdlerror(mdlpvp, "Out of memory while creating element list item");
     return 1;
   }
   mdlpvp->elmlp->begin = 0;
@@ -5403,7 +5329,7 @@ patch_statement: patch_type '=' point ',' point
   memcpy(&(mdlpvp->elmlp->special->corner2),temp_urb,sizeof(struct vector3));
   if (refine_cuboid(temp_llf,temp_urb,mdlpvp->pop->sb,mdlpvp->vol->grid_density))
   {
-    mdlerror("Could not refine box to include new patch");
+    mdlerror(mdlpvp, "Could not refine box to include new patch");
     return 1;
   }
   free(temp_llf);
@@ -5440,8 +5366,7 @@ existing_obj_surface_region_def: existing_object
   mdlpvp->objp=(struct object *)mdlpvp->gp->value;
   mdlpvp->obj_name=mdlpvp->objp->sym->name;
   if (mdlpvp->objp->object_type!=BOX_OBJ && mdlpvp->objp->object_type!=POLY_OBJ) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot define region on non-surface object:",mdlpvp->objp->sym->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Cannot define region on non-surface object: %s", mdlpvp->objp->sym->name);
     return(1);
   }
   mdlpvp->pop=mdlpvp->objp->contents;
@@ -5460,7 +5385,7 @@ existing_obj_surface_region_def: existing_object
   mdlpvp->rp->element_list_head = mdlpvp->element_list_head;
   if (normalize_elements(mdlpvp->rp,1))
   {
-    mdlerror("Improper element specification: out of range, out of memory,\n  or using patch specifier in already-created box");
+    mdlerror_fmt(mdlpvp, "Improper element specification: out of range, out of memory,\n  or using patch specifier in already-created box");
     return 1;
   }
 }
@@ -5504,8 +5429,7 @@ surface_region_viz_value_stmt: VIZ_VALUE '=' num_expr
   /* if surface_class->region_viz_value is already defined print warning */
   if(mdlpvp->rp->surf_class != NULL){
      if(mdlpvp->rp->surf_class->region_viz_value > 0){
-         sprintf(mdlpvp->mdl_err_msg,"ATTENTION: region_viz_value defined both through SURFACE_CLASS and VIZ_VALUE statements.\n");
-         mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+         mdlerror(mdlpvp, "ATTENTION: region_viz_value defined both through SURFACE_CLASS and VIZ_VALUE statements.\n");
      }
    }
    /*this statement overwrites the results of the 'set_surface_class_stmt' */
@@ -5532,7 +5456,7 @@ in_obj_surface_region_def: new_region '{'
   {
     if (normalize_elements(mdlpvp->rp,0))
     {
-      mdlerror("Improper element specification: out of range or out of memory");
+      mdlerror(mdlpvp, "Improper element specification: out of range or out of memory");
       return 1;
     }
   }
@@ -5553,19 +5477,19 @@ in_obj_surface_region_def: new_region '{'
 
 new_region: VAR
 {
+  char mdl_err_msg[1024];
   if (mdlpvp->cval_2!=NULL) {
     mdlpvp->sym_name=mdlpvp->cval_2;
   }
   else {
     mdlpvp->sym_name=mdlpvp->cval;
   }
-  if ((mdlpvp->rp=make_new_region(volp,mdlpvp->obj_name,mdlpvp->sym_name,mdlpvp->mdl_err_msg))==NULL) {
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+  if ((mdlpvp->rp=make_new_region(volp,mdlpvp->obj_name,mdlpvp->sym_name,mdl_err_msg))==NULL) {
+    mdlerror(mdlpvp, mdl_err_msg);
     return(1);
   }
   if ((mdlpvp->rlp=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while creating region name:",mdlpvp->rp->sym->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Out of memory while creating region name: %s", mdlpvp->rp->sym->name);
     return(1);
   }
   if (mdlpvp->sym_name==mdlpvp->cval) {
@@ -5628,14 +5552,12 @@ existing_region: existing_object '[' VAR ']'
   strcat(mdlpvp->temp_str,",");   
   mdlpvp->region_name=my_strcat(mdlpvp->temp_str,mdlpvp->sym_name);
   if(mdlpvp->region_name == NULL){
-    sprintf(mdlpvp->mdl_err_msg,"%s ","Out of memory while parsing region");
-    mdlerror(mdlpvp->mdl_err_msg);
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing region");
     return(1);
   }
 
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->region_name,REG,volp->main_sym_table))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined region:",mdlpvp->region_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Undefined region: %s", mdlpvp->region_name);
     if (mdlpvp->sym_name==mdlpvp->cval) {
       mdlpvp->cval=NULL;
     }
@@ -5748,7 +5670,7 @@ right_cat_arrow: list_dashes existing_molecule_opt_orient right_arrow
   }
   else
   {
-    mdlerror("Too many reactants--maximum number is three.");
+    mdlerror(mdlpvp, "Too many reactants--maximum number is three.");
     return 1;
   }
   mdlpvp->catalytic_arrow=1;
@@ -5769,7 +5691,7 @@ double_cat_arrow: left_arrow existing_molecule_opt_orient right_arrow
   }
   else
   {
-    mdlerror("Too many reactants--maximum number is three.");
+    mdlerror(mdlpvp, "Too many reactants--maximum number is three.");
     return 1;
   }
   mdlpvp->catalytic_arrow=1;
@@ -5811,8 +5733,7 @@ new_rxn_pathname: /* empty */
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,RXPN,volp->main_sym_table))==NULL) {
     if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
       if ((mdlpvp->gp=store_sym(mdlpvp->sym_name,RXPN,volp->main_sym_table))==NULL) {
-        sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while creating reaction name:",mdlpvp->sym_name);
-        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+        mdlerror_fmt(mdlpvp, "Out of memory while creating reaction name: %s", mdlpvp->sym_name);
         if (mdlpvp->sym_name==mdlpvp->cval) {
           mdlpvp->cval=NULL;
         }
@@ -5827,8 +5748,7 @@ new_rxn_pathname: /* empty */
       }
     }
     else {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s","Named reaction pathway already defined as a molecule:",mdlpvp->sym_name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      mdlerror_fmt(mdlpvp, "Named reaction pathway already defined as a molecule: %s", mdlpvp->sym_name);
       if (mdlpvp->sym_name==mdlpvp->cval) {
         mdlpvp->cval=NULL;
       }
@@ -5840,8 +5760,7 @@ new_rxn_pathname: /* empty */
     }
   }
   else {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Named reaction pathway already defined:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Named reaction pathway already defined: %s", mdlpvp->sym_name);
     if (mdlpvp->sym_name==mdlpvp->cval) {
       mdlpvp->cval=NULL;
     }
@@ -5873,8 +5792,7 @@ existing_rxpn_or_molecule: VAR
 
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,RXPN,volp->main_sym_table))==NULL) {
     if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined reaction or molecule name:",mdlpvp->sym_name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      mdlerror_fmt(mdlpvp, "Undefined reaction or molecule name: %s", mdlpvp->sym_name);
       if (mdlpvp->sym_name==mdlpvp->cval) {
         mdlpvp->cval=NULL;
       }
@@ -5900,7 +5818,7 @@ existing_rxpn_or_molecule: VAR
   mdlpvp->sym_table_list_head = (struct sym_table_list*)mem_get(mdlpvp->sym_list_mem);
   if (mdlpvp->sym_table_list_head==NULL)
   {
-    mdlerror("Out of memory trying to retrieve a molecule or reaction pathway name");
+    mdlerror(mdlpvp, "Out of memory trying to retrieve a molecule or reaction pathway name");
     return 1;
   }
   mdlpvp->sym_table_list_head->next=NULL;
@@ -5933,8 +5851,7 @@ existing_molecule_required_orient_quotes: VAR_ORIENT_IN_QUOTES
   if(strip_quotes(mdlpvp->sym_name) != NULL){
       temp_1 = strip_quotes(mdlpvp->sym_name);
   }else{
-      sprintf(mdlpvp->mdl_err_msg,"%s ","Memory allocation error\n");
-      mdlerror(mdlpvp->mdl_err_msg);
+      mdlerror_fmt(mdlpvp, "Memory allocation error\n");
       free((void *)mdlpvp->sym_name);
     
       return (1);
@@ -5951,16 +5868,14 @@ existing_molecule_required_orient_quotes: VAR_ORIENT_IN_QUOTES
         strncpy(temp_2, temp_1, len_2);
         temp_2[len_2] = '\0';
      }else{
-        sprintf(mdlpvp->mdl_err_msg,"%s ","Memory allocation error\n");
-        mdlerror(mdlpvp->mdl_err_msg);
+        mdlerror_fmt(mdlpvp, "Memory allocation error\n");
         free((void *)mdlpvp->sym_name);
     
         return (1);
      } 
   
   }else{
-        sprintf(mdlpvp->mdl_err_msg,"%s ","Internal error: orientaion information is not found.\n");
-        mdlerror(mdlpvp->mdl_err_msg);
+        mdlerror_fmt(mdlpvp, "Internal error: orientaion information is not found.\n");
         free((void *)mdlpvp->sym_name);
     
         return (1);
@@ -5978,8 +5893,7 @@ existing_molecule_required_orient_quotes: VAR_ORIENT_IN_QUOTES
        case ',': mdlpvp->orient_specified = 1;
                   mdlpvp->orient_class = -1;
                   break;
-       default:  sprintf(mdlpvp->mdl_err_msg,"%s ","Internal error: wrong orientation specification found.\n");
-                 mdlerror(mdlpvp->mdl_err_msg);
+                 mdlerror_fmt(mdlpvp, "Internal error: wrong orientation specification found.\n");
                  free((void *)mdlpvp->sym_name);
                  return (1);
     }
@@ -5987,8 +5901,7 @@ existing_molecule_required_orient_quotes: VAR_ORIENT_IN_QUOTES
   
     if ((mdlpvp->gp=retrieve_sym(temp_2,MOL,volp->main_sym_table))==NULL) 
   {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined molecule name:",mdlpvp->sym_name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      mdlerror_fmt(mdlpvp, "Undefined molecule name: %s", mdlpvp->sym_name);
       if (mdlpvp->sym_name==mdlpvp->cval) {
         mdlpvp->cval=NULL;
       }
@@ -6014,7 +5927,7 @@ existing_molecule_required_orient_quotes: VAR_ORIENT_IN_QUOTES
   mdlpvp->sym_table_list_head = (struct sym_table_list*)mem_get(mdlpvp->sym_list_mem);
   if (mdlpvp->sym_table_list_head==NULL)
   {
-    mdlerror("Out of memory trying to retrieve a molecule or reaction pathway name");
+    mdlerror(mdlpvp, "Out of memory trying to retrieve a molecule or reaction pathway name");
     return 1;
   }
   mdlpvp->sym_table_list_head->next=NULL;
@@ -6043,8 +5956,7 @@ existing_molecule_required_orient_braces: VAR_ORIENT_IN_BRACES
   temp_2 = strchr(mdlpvp->sym_name, '}');
   
   if((temp_1 == NULL) || (temp_2 == NULL)){
-        sprintf(mdlpvp->mdl_err_msg,"Error in specifying orientation in '%s'.\n", mdlpvp->sym_name);
-        mdlerror(mdlpvp->mdl_err_msg);
+        mdlerror_fmt(mdlpvp, "Error in specifying orientation in '%s'.\n", mdlpvp->sym_name);
         free((void *)mdlpvp->sym_name);
         return (1);
   }
@@ -6058,8 +5970,7 @@ existing_molecule_required_orient_braces: VAR_ORIENT_IN_BRACES
         strncpy(sym_name, mdlpvp->sym_name, len_1);
         sym_name[len_1] = '\0';
      }else{
-        sprintf(mdlpvp->mdl_err_msg,"%s ","Memory allocation error\n");
-        mdlerror(mdlpvp->mdl_err_msg);
+        mdlerror_fmt(mdlpvp, "Memory allocation error\n");
         free((void *)mdlpvp->sym_name);
         return (1);
      } 
@@ -6072,8 +5983,7 @@ existing_molecule_required_orient_braces: VAR_ORIENT_IN_BRACES
         strncpy(orient_string, temp_1, len);
         orient_string[len] = '\0';
      }else{
-        sprintf(mdlpvp->mdl_err_msg,"%s ","Memory allocation error\n");
-        mdlerror(mdlpvp->mdl_err_msg);
+        mdlerror_fmt(mdlpvp, "Memory allocation error\n");
         free((void *)mdlpvp->sym_name);
         return (1);
      } 
@@ -6095,8 +6005,7 @@ existing_molecule_required_orient_braces: VAR_ORIENT_IN_BRACES
 
     if ((mdlpvp->gp=retrieve_sym(sym_name, MOL, volp->main_sym_table))==NULL) 
   {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined molecule name:", sym_name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      mdlerror_fmt(mdlpvp, "Undefined molecule name: %s", sym_name);
       if (mdlpvp->sym_name==mdlpvp->cval) {
         mdlpvp->cval=NULL;
       }
@@ -6126,7 +6035,7 @@ existing_molecule_required_orient_braces: VAR_ORIENT_IN_BRACES
   mdlpvp->sym_table_list_head = (struct sym_table_list*)mem_get(mdlpvp->sym_list_mem);
   if (mdlpvp->sym_table_list_head==NULL)
   {
-    mdlerror("Out of memory trying to retrieve a molecule or reaction pathway name");
+    mdlerror(mdlpvp, "Out of memory trying to retrieve a molecule or reaction pathway name");
     return 1;
   }
   mdlpvp->sym_table_list_head->next=NULL;
@@ -6153,8 +6062,7 @@ existing_many_rxpns_or_molecules: WILDCARD_VAR
   if(strip_quotes(mdlpvp->sym_name) != NULL){
       wildcard_string = strip_quotes(mdlpvp->sym_name);
   }else{
-      sprintf(mdlpvp->mdl_err_msg,"%s ","Memory allocation error\n");
-      mdlerror(mdlpvp->mdl_err_msg);
+      mdlerror_fmt(mdlpvp, "Memory allocation error\n");
       free((void *)mdlpvp->sym_name);
     
       return (1);
@@ -6175,7 +6083,7 @@ existing_many_rxpns_or_molecules: WILDCARD_VAR
            {
                stl = (struct sym_table_list *)mem_get(mdlpvp->sym_list_mem);
                 if(stl == NULL){
-                  mdlerror("Memory allocation error.\n", mdlpvp);
+                  mdlerror(mdlpvp, "Memory allocation error.\n");
                   return 1;
                 }
                 stl->node = sym_t;
@@ -6215,7 +6123,7 @@ rxn:
   mdlpvp->pathp = (struct pathway*)mem_get(mdlpvp->path_mem);
   if (mdlpvp->pathp==NULL)
   {
-    mdlerror("Out of memory while creating reaction.");
+    mdlerror(mdlpvp, "Out of memory while creating reaction.");
     return 1;
   }
   mdlpvp->pathp->pathname = NULL;
@@ -6238,7 +6146,7 @@ rxn:
   rx_name = create_rx_name(mdlpvp->pathp);
   if (rx_name==NULL)
   {
-    mdlerror("Out of memory while creating reaction.");
+    mdlerror(mdlpvp, "Out of memory while creating reaction.");
     return 1;
   }
   
@@ -6248,7 +6156,7 @@ rxn:
     mdlpvp->gp = store_sym(rx_name,RX,volp->main_sym_table);
     if (mdlpvp->gp==NULL)
     {
-      mdlerror("Out of memory while creating reaction.");
+      mdlerror(mdlpvp, "Out of memory while creating reaction.");
       return 1;
     }
   }
@@ -6308,16 +6216,16 @@ rxn:
   /* Check for invalid reaction specifications */
   if (num_surfaces>1)
   {
-    mdlerror("Too many surfaces--reactions can take place on at most one surface.");
+    mdlerror(mdlpvp, "Too many surfaces--reactions can take place on at most one surface.");
     return 1;
   }
   if (num_surfaces==mdlpvp->rxnp->n_reactants)
   {
-    mdlerror("Reactants cannot consist entirely of surfaces.\n  Use a surface release site instead!");
+    mdlerror(mdlpvp, "Reactants cannot consist entirely of surfaces.\n  Use a surface release site instead!");
     return 1;
   }
   if((mdlpvp->num_vol_mols == 2) && (num_surfaces == 1)){
-    mdlerror("Reaction between two volume molecules and a surface is not defined.\n");
+    mdlerror(mdlpvp, "Reaction between two volume molecules and a surface is not defined.\n");
     return 1;
   }
   if (mdlpvp->prod_all_3d)
@@ -6326,12 +6234,12 @@ rxn:
     {
       if (mdlpvp->vol->notify->useless_vol_orient==WARN_ERROR)
       {
-	mdlerror("Error: orientation specified for molecule in reaction in volume");
+	mdlerror(mdlpvp, "Error: orientation specified for molecule in reaction in volume");
 	return 1;
       }
       else if (mdlpvp->vol->notify->useless_vol_orient==WARN_WARN)
       {
-	mdlerror("Warning: orientation specified for molecule in reaction in volume");
+	mdlerror(mdlpvp, "Warning: orientation specified for molecule in reaction in volume");
       }
     }
   }
@@ -6341,18 +6249,18 @@ rxn:
     {
       if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
       {
-	mdlerror("Error: orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
+	mdlerror_fmt(mdlpvp, "Error: orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
 	return 1;
       }
       else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
       {
-	mdlerror("Warning: orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
+	mdlerror_fmt(mdlpvp, "Warning: orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
       }      
     }
   }
   if ((mdlpvp->rxnp->n_reactants==3) && (num_surfaces == 0))
   {
-       mdlerror("Reactions with three reactants must include exactly one surface class as a reactant.");
+       mdlerror(mdlpvp, "Reactions with three reactants must include exactly one surface class as a reactant.");
        return 1;
   }
  
@@ -6362,7 +6270,7 @@ rxn:
     mdlpvp->prodp = (struct product*)mem_get(mdlpvp->prod_mem);
     if (mdlpvp->prodp==NULL)
     {
-      mdlerror("Out of memory while creating reaction.");
+      mdlerror(mdlpvp, "Out of memory while creating reaction.");
       return 1;
     }
     
@@ -6394,8 +6302,7 @@ rxn:
   if(mdlpvp->pathp->product_head != NULL){
      mdlpvp->pathp->prod_signature = create_prod_signature(&mdlpvp->pathp->product_head);
      if(mdlpvp->pathp->prod_signature == NULL){
-         sprintf(mdlpvp->mdl_err_msg, "Error creating 'prod_signature' field for the reaction pathway.\n");
-         mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+         mdlerror(mdlpvp, "Error creating 'prod_signature' field for the reaction pathway.\n");
          return(1);
      }
   }
@@ -6433,7 +6340,7 @@ rxn:
          and producing one grid molecule is excluded */
         
       if(!((mdlpvp->num_grid_mols == 0) && (mdlpvp->num_vol_mols == 1))) { 
-         mdlerror("Error: number of surface products exceeds number of surface reactants, but VACANCY_SEARCH_DISTANCE is not specified or set to zero.\n");
+         mdlerror_fmt(mdlpvp, "Error: number of surface products exceeds number of surface reactants, but VACANCY_SEARCH_DISTANCE is not specified or set to zero.\n");
          return 1;
       }  
   }
@@ -6446,12 +6353,12 @@ rxn:
   {
     if (mdlpvp->bidirectional_arrow==1) /* Hack to notice if we got both rates */
     {
-      mdlerror("Reversible reaction indicated but no reverse rate supplied.");
+      mdlerror(mdlpvp, "Reversible reaction indicated but no reverse rate supplied.");
       return 1;
     }
     if (invert_current_reaction_pathway(mdlpvp))
     {
-      mdlerror("Error creating reverse reaction.");
+      mdlerror(mdlpvp, "Error creating reverse reaction.");
       return 1;
     }
   }
@@ -6489,7 +6396,7 @@ reactant: existing_molecule
   }
   else
   {
-    mdlerror("Too many reactants--maximum number is three.");
+    mdlerror(mdlpvp, "Too many reactants--maximum number is three.");
     return 1;
   }
 
@@ -6513,9 +6420,8 @@ product: existing_molecule
 {
   mdlpvp->gp=$<sym>1;
   if ((mdlpvp->prodp=(struct product *)mem_get(mdlpvp->prod_mem))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s %s","Out of memory while creating reaction:",
-      mdlpvp->rxnp->sym->name," -> ... ");
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Out of memory while creating reaction: %s -> ... ",
+      mdlpvp->rxnp->sym->name);
     return(1);
   }
   mdlpvp->prodp->prod=(struct species *)mdlpvp->gp->value;
@@ -6537,12 +6443,12 @@ product: existing_molecule
       {
 	if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
 	{
-	  mdlerror("Error: product orientation not specified in reaction with orientation\n  (use ; or ', or ,' for random orientation)");
+	  mdlerror_fmt(mdlpvp, "Error: product orientation not specified in reaction with orientation\n  (use ; or ', or ,' for random orientation)");
 	  return 1;
 	}
 	else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
 	{
-	  mdlerror("Warning: product orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
+	  mdlerror_fmt(mdlpvp, "Warning: product orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
 	}
       }
     }
@@ -6550,19 +6456,19 @@ product: existing_molecule
     {
       if ((mdlpvp->prodp->prod->flags&NOT_FREE)!=0)
       {
-	mdlerror("Reaction has only volume reactants but is trying to create a surface product");
+	mdlerror(mdlpvp, "Reaction has only volume reactants but is trying to create a surface product");
 	return 1;
       }
       if (mdlpvp->orient_specified)
       {
 	if (mdlpvp->vol->notify->useless_vol_orient==WARN_ERROR)
 	{
-	  mdlerror("Error: orientation specified for molecule in reaction in volume");
+	  mdlerror(mdlpvp, "Error: orientation specified for molecule in reaction in volume");
 	  return 1;
 	}
 	else if (mdlpvp->vol->notify->useless_vol_orient==WARN_WARN)
 	{
-	  mdlerror("Warning: orientation specified for molecule in reaction at surface");
+	  mdlerror(mdlpvp, "Warning: orientation specified for molecule in reaction at surface");
 	}
       }
     }
@@ -6631,7 +6537,7 @@ rx_rate1: '[' atomic_rate ']'
   if ( (mdlpvp->bkw_km!=0.0 || mdlpvp->bkw_rate_filename!=NULL) &&
        (mdlpvp->fwd_km==0.0 && mdlpvp->fwd_rate_filename==NULL) )
   {
-    mdlerror("Invalid reaction rate specification: must specify a forward rate.");
+    mdlerror(mdlpvp, "Invalid reaction rate specification: must specify a forward rate.");
     return 1;
   }
   if (mdlpvp->fwd_km<0)
@@ -6639,10 +6545,10 @@ rx_rate1: '[' atomic_rate ']'
     mdlpvp->fwd_km=0.0;
     if (volp->notify->neg_reaction==WARN_ERROR)
     {
-      mdlerror("Error: reaction rates should be zero or positive.");
+      mdlerror(mdlpvp, "Error: reaction rates should be zero or positive.");
       return 1;
     }
-    else if (volp->notify->neg_reaction==WARN_WARN) mdlerror("Warning: negative reaction rate; setting to zero and continuing.");
+    else if (volp->notify->neg_reaction==WARN_WARN) mdlerror(mdlpvp, "Warning: negative reaction rate; setting to zero and continuing.");
   }
 }
 
@@ -6655,10 +6561,10 @@ rx_rate2: '[' atomic_rate ',' atomic_rate ']'
     
     if (volp->notify->neg_reaction==WARN_ERROR)
     {
-      mdlerror("Error: reaction rates should be zero or positive.");
+      mdlerror(mdlpvp, "Error: reaction rates should be zero or positive.");
       return 1;
     }
-    else if (volp->notify->neg_reaction==WARN_WARN) mdlerror("Warning: negative reaction rate; setting to zero and continuing.");
+    else if (volp->notify->neg_reaction==WARN_WARN) mdlerror(mdlpvp, "Warning: negative reaction rate; setting to zero and continuing.");
   }
 }
 
@@ -6666,7 +6572,7 @@ atomic_rate: num_expr_only
 {
   if (mdlpvp->fwd_km!=0 || mdlpvp->fwd_rate_filename!=NULL)
   {
-    mdlerror("Forward reaction rate already specified--can't specify again.");
+    mdlerror(mdlpvp, "Forward reaction rate already specified--can't specify again.");
     return 1;
   }
   mdlpvp->fwd_km = $<dbl>1;
@@ -6675,7 +6581,7 @@ atomic_rate: num_expr_only
 {
   if (mdlpvp->fwd_km!=0 || mdlpvp->fwd_rate_filename!=NULL)
   {
-    mdlerror("Forward reaction rate already specified--can't specify again.");
+    mdlerror(mdlpvp, "Forward reaction rate already specified--can't specify again.");
     return 1;
   }
   mdlpvp->fwd_km = $<dbl>2;
@@ -6684,12 +6590,12 @@ atomic_rate: num_expr_only
 {
   if (mdlpvp->bkw_km!=0 || mdlpvp->bkw_rate_filename!=NULL)
   {
-    mdlerror("Reverse reaction rate already specified--can't specify again.");
+    mdlerror(mdlpvp, "Reverse reaction rate already specified--can't specify again.");
     return 1;
   }
   if (!mdlpvp->bidirectional_arrow)
   {
-    mdlerror("Reverse rate specified but the reaction isn't reversible.");
+    mdlerror(mdlpvp, "Reverse rate specified but the reaction isn't reversible.");
     return 1;
   }
   mdlpvp->bidirectional_arrow++; /* Hack to indicate we've read a rate */
@@ -6699,7 +6605,7 @@ atomic_rate: num_expr_only
 {
   if (mdlpvp->fwd_km!=0 || mdlpvp->fwd_rate_filename!=NULL)
   {
-    mdlerror("Forward reaction rate already specified--can't specify again.");
+    mdlerror(mdlpvp, "Forward reaction rate already specified--can't specify again.");
     return 1;
   }
   mdlpvp->fwd_rate_filename = $<str>1;
@@ -6708,7 +6614,7 @@ atomic_rate: num_expr_only
 {
   if (mdlpvp->fwd_km!=0 || mdlpvp->fwd_rate_filename!=NULL)
   {
-    mdlerror("Forward reaction rate already specified--can't specify again.");
+    mdlerror(mdlpvp, "Forward reaction rate already specified--can't specify again.");
     return 1;
   }
   mdlpvp->fwd_rate_filename = $<str>2;
@@ -6717,12 +6623,12 @@ atomic_rate: num_expr_only
 {
   if (mdlpvp->bkw_km!=0 || mdlpvp->bkw_rate_filename!=NULL)
   {
-    mdlerror("Reverse reaction rate already specified--can't specify again.");
+    mdlerror(mdlpvp, "Reverse reaction rate already specified--can't specify again.");
     return 1;
   }
   if (!mdlpvp->bidirectional_arrow)
   {
-    mdlerror("Reverse rate specified but the reaction isn't reversible.");
+    mdlerror(mdlpvp, "Reverse rate specified but the reaction isn't reversible.");
     return 1;
   }
   mdlpvp->bidirectional_arrow++; /* Hack to indicate we've read a rate */
@@ -6733,7 +6639,7 @@ atomic_rate: num_expr_only
   struct sym_table *gp = $<sym>1;
   if (mdlpvp->fwd_km!=0 || mdlpvp->fwd_rate_filename!=NULL)
   {
-    mdlerror("Forward reaction rate already specified--can't specify again.");
+    mdlerror(mdlpvp, "Forward reaction rate already specified--can't specify again.");
     return 1;
   }
   switch (gp->sym_type)
@@ -6745,12 +6651,12 @@ atomic_rate: num_expr_only
       mdlpvp->fwd_rate_filename = strdup((char*)gp->value);
       if(mdlpvp->fwd_rate_filename == NULL)
       {
-	mdlerror("Out of memory while storing reaction rate filename");
+	mdlerror(mdlpvp, "Out of memory while storing reaction rate filename");
 	return 1;
       }
       break;
     default:
-      mdlerror("Invalid variable used for rates: must be number or filename");
+      mdlerror(mdlpvp, "Invalid variable used for rates: must be number or filename");
       return(1);
       break;
   }
@@ -6760,7 +6666,7 @@ atomic_rate: num_expr_only
   struct sym_table *gp = $<sym>2;
   if (mdlpvp->fwd_km!=0 || mdlpvp->fwd_rate_filename!=NULL)
   {
-    mdlerror("Forward reaction rate already specified--can't specify again.");
+    mdlerror(mdlpvp, "Forward reaction rate already specified--can't specify again.");
     return 1;
   }
   switch (gp->sym_type)
@@ -6772,12 +6678,12 @@ atomic_rate: num_expr_only
       mdlpvp->fwd_rate_filename = strdup((char*)gp->value);
       if(mdlpvp->fwd_rate_filename == NULL)
       {
-	mdlerror("Out of memory while storing reaction rate filename");
+	mdlerror(mdlpvp, "Out of memory while storing reaction rate filename");
 	return 1;
       }
       break;
     default:
-      mdlerror("Invalid variable used for rates: must be number or filename");
+      mdlerror(mdlpvp, "Invalid variable used for rates: must be number or filename");
       return(1);
       break;
   }
@@ -6786,12 +6692,12 @@ atomic_rate: num_expr_only
   struct sym_table *gp = $<sym>2;
   if (mdlpvp->bkw_km!=0 || mdlpvp->bkw_rate_filename!=NULL)
   {
-    mdlerror("Reverse reaction rate already specified--can't specify again.");
+    mdlerror(mdlpvp, "Reverse reaction rate already specified--can't specify again.");
     return 1;
   }
   if (!mdlpvp->bidirectional_arrow)
   {
-    mdlerror("Reverse rate specified but the reaction isn't reversible.");
+    mdlerror(mdlpvp, "Reverse rate specified but the reaction isn't reversible.");
     return 1;
   }
   mdlpvp->bidirectional_arrow++; /* Hack to indicate we've read a rate */
@@ -6804,12 +6710,12 @@ atomic_rate: num_expr_only
       mdlpvp->bkw_rate_filename = strdup((char*)gp->value);
       if(mdlpvp->bkw_rate_filename == NULL)
       {
-	mdlerror("Out of memory while storing reaction rate filename");
+	mdlerror(mdlpvp, "Out of memory while storing reaction rate filename");
 	return 1;
       }
       break;
     default:
-      mdlerror("Invalid variable used for rates: must be number or filename");
+      mdlerror(mdlpvp, "Invalid variable used for rates: must be number or filename");
       return(1);
       break;
   }
@@ -6877,7 +6783,7 @@ list_mol_name_specs: mol_name_spec
 mol_name_spec: existing_one_or_multiple_molecules
 {
   if(volp->viz_mode == DX_MODE){
-    mdlerror("In DX MODE the state value for the molecule should be specified.\n");
+    mdlerror(mdlpvp, "In DX MODE the state value for the molecule should be specified.\n");
     return(1);
   }
 
@@ -6897,7 +6803,7 @@ mol_name_spec: existing_one_or_multiple_molecules
       stl = mdlpvp->sym_table_list_head;
       if (stl==NULL)
       {
-	mdlerror("No molecules matching wildcard found.");
+	mdlerror(mdlpvp, "No molecules matching wildcard found.");
 	return 1;
       }
       while(stl != NULL)
@@ -6943,7 +6849,7 @@ mol_name_specs_state_value: existing_molecule '=' num_expr
 list_all_mols_specs: ALL_MOLECULES
 {
   if(volp->viz_mode == DX_MODE){
-    mdlerror("In DX MODE the state value for the molecule should be specified.\n");
+    mdlerror(mdlpvp, "In DX MODE the state value for the molecule should be specified.\n");
     return(1);
   }
   volp->viz_output_flag |= VIZ_ALL_MOLECULES;
@@ -6976,7 +6882,7 @@ molecules_time_points_range_cmd: viz_molecules_one_item '@' '['
   if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE)){
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror("Out of memory while creating time points");
+                mdlerror(mdlpvp, "Out of memory while creating time points");
                 return(1);
       }
       mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
@@ -6992,7 +6898,7 @@ molecules_time_points_range_cmd: viz_molecules_one_item '@' '['
         /* create four frames */
         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror("Out of memory while creating time points");
+                mdlerror(mdlpvp, "Out of memory while creating time points");
                 return(1);
          }
          mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
@@ -7006,7 +6912,7 @@ molecules_time_points_range_cmd: viz_molecules_one_item '@' '['
 
          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror("Out of memory while creating time points");
+                mdlerror(mdlpvp, "Out of memory while creating time points");
                 return(1);
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
@@ -7020,7 +6926,7 @@ molecules_time_points_range_cmd: viz_molecules_one_item '@' '['
 
           if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
                 (sizeof(struct frame_data_list)))==NULL) {
-                   mdlerror("Out of memory while creating time points");
+                   mdlerror(mdlpvp, "Out of memory while creating time points");
                    return(1);
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
@@ -7034,7 +6940,7 @@ molecules_time_points_range_cmd: viz_molecules_one_item '@' '['
      
           if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
                (sizeof(struct frame_data_list)))==NULL) {
-                    mdlerror("Out of memory while creating time points");
+                    mdlerror(mdlpvp, "Out of memory while creating time points");
                     return(1);
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
@@ -7063,7 +6969,7 @@ molecules_time_points_all_times_cmd: viz_molecules_one_item '@' ALL_TIMES
   {
   	if ((mdlpvp->elp=(struct num_expr_list *)malloc
            (sizeof(struct num_expr_list)))==NULL) {
-    		mdlerror("Out of memory while creating time points");
+    		mdlerror(mdlpvp, "Out of memory while creating time points");
                 return(1);
         }
  
@@ -7086,7 +6992,7 @@ molecules_time_points_all_times_cmd: viz_molecules_one_item '@' ALL_TIMES
   {
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-              mdlerror("Out of memory while creating time points");
+              mdlerror(mdlpvp, "Out of memory while creating time points");
               return(1);
      }
      mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
@@ -7102,7 +7008,7 @@ molecules_time_points_all_times_cmd: viz_molecules_one_item '@' ALL_TIMES
         /* create four frames */
         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror("Out of memory while creating time points");
+                mdlerror(mdlpvp, "Out of memory while creating time points");
                 return(1);
          }
          mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
@@ -7116,7 +7022,7 @@ molecules_time_points_all_times_cmd: viz_molecules_one_item '@' ALL_TIMES
 
          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror("Out of memory while creating time points");
+                mdlerror(mdlpvp, "Out of memory while creating time points");
                 return(1);
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
@@ -7130,7 +7036,7 @@ molecules_time_points_all_times_cmd: viz_molecules_one_item '@' ALL_TIMES
 
           if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
                 (sizeof(struct frame_data_list)))==NULL) {
-                   mdlerror("Out of memory while creating time points");
+                   mdlerror(mdlpvp, "Out of memory while creating time points");
                    return(1);
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
@@ -7144,7 +7050,7 @@ molecules_time_points_all_times_cmd: viz_molecules_one_item '@' ALL_TIMES
      
           if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
                (sizeof(struct frame_data_list)))==NULL) {
-                    mdlerror("Out of memory while creating time points");
+                    mdlerror(mdlpvp, "Out of memory while creating time points");
                     return(1);
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
@@ -7190,7 +7096,7 @@ molecules_iteration_numbers_range_cmd: viz_molecules_one_item '@' '['
   {
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-              mdlerror("Out of memory while creating iteration numbers");
+              mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
               return(1);
       }
       mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
@@ -7206,7 +7112,7 @@ molecules_iteration_numbers_range_cmd: viz_molecules_one_item '@' '['
         /* create four frames */
         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror("Out of memory while creating time points");
+                mdlerror(mdlpvp, "Out of memory while creating time points");
                 return(1);
          }
          mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
@@ -7220,7 +7126,7 @@ molecules_iteration_numbers_range_cmd: viz_molecules_one_item '@' '['
 
          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror("Out of memory while creating time points");
+                mdlerror(mdlpvp, "Out of memory while creating time points");
                 return(1);
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
@@ -7234,7 +7140,7 @@ molecules_iteration_numbers_range_cmd: viz_molecules_one_item '@' '['
 
           if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
                 (sizeof(struct frame_data_list)))==NULL) {
-                   mdlerror("Out of memory while creating time points");
+                   mdlerror(mdlpvp, "Out of memory while creating time points");
                    return(1);
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
@@ -7248,7 +7154,7 @@ molecules_iteration_numbers_range_cmd: viz_molecules_one_item '@' '['
      
           if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
                (sizeof(struct frame_data_list)))==NULL) {
-                    mdlerror("Out of memory while creating time points");
+                    mdlerror(mdlpvp, "Out of memory while creating time points");
                     return(1);
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
@@ -7279,7 +7185,7 @@ molecules_iteration_numbers_all_iterations_cmd: viz_molecules_one_item '@'
   {
   	if ((mdlpvp->elp=(struct num_expr_list *)malloc
            (sizeof(struct num_expr_list)))==NULL) {
-    		mdlerror("Out of memory while creating iteration numbers");
+    		mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
                 return(1);
         }
  
@@ -7302,7 +7208,7 @@ molecules_iteration_numbers_all_iterations_cmd: viz_molecules_one_item '@'
   {
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-              mdlerror("Out of memory while creating iteration numbers");
+              mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
               return(1);
      }
      mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
@@ -7318,7 +7224,7 @@ molecules_iteration_numbers_all_iterations_cmd: viz_molecules_one_item '@'
         /* create four frames */
         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror("Out of memory while creating time points");
+                mdlerror(mdlpvp, "Out of memory while creating time points");
                 return(1);
          }
          mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
@@ -7332,7 +7238,7 @@ molecules_iteration_numbers_all_iterations_cmd: viz_molecules_one_item '@'
 
          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror("Out of memory while creating time points");
+                mdlerror(mdlpvp, "Out of memory while creating time points");
                 return(1);
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
@@ -7346,7 +7252,7 @@ molecules_iteration_numbers_all_iterations_cmd: viz_molecules_one_item '@'
 
           if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
                 (sizeof(struct frame_data_list)))==NULL) {
-                   mdlerror("Out of memory while creating time points");
+                   mdlerror(mdlpvp, "Out of memory while creating time points");
                    return(1);
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
@@ -7360,7 +7266,7 @@ molecules_iteration_numbers_all_iterations_cmd: viz_molecules_one_item '@'
      
           if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
                (sizeof(struct frame_data_list)))==NULL) {
-                    mdlerror("Out of memory while creating time points");
+                    mdlerror(mdlpvp, "Out of memory while creating time points");
                     return(1);
           }
           mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
@@ -7424,11 +7330,11 @@ list_meshes_name_specs: mesh_one_name_spec
 mesh_one_name_spec: existing_one_or_multiple_objects
 {
   if(volp->viz_mode == DX_MODE){
-    mdlerror("In DX MODE the state value for the object should be specified.\n");
+    mdlerror(mdlpvp, "In DX MODE the state value for the object should be specified.\n");
     return(1);
   }
   if(volp->file_prefix_name == NULL){
-    mdlerror("The keyword FILENAME should be specified.\n");
+    mdlerror(mdlpvp, "The keyword FILENAME should be specified.\n");
     return(1);
   }
   
@@ -7445,24 +7351,24 @@ mesh_one_name_spec: existing_one_or_multiple_objects
      mdlpvp->sym_name=mdlpvp->gp->name;
      if ((mdlpvp->vizp = (struct viz_obj *)malloc
         (sizeof(struct viz_obj)))==NULL) {
-           mdlerror("Out of memory while creating viz object");
+           mdlerror(mdlpvp, "Out of memory while creating viz object");
            return(1);
      }
   
      mdlpvp->objp->viz_obj = mdlpvp->vizp;
      mdlpvp->vizp->name = strdup(volp->file_prefix_name);
      if(mdlpvp->vizp->name == NULL){
-         sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",
-          (char *)mdlpvp->sym_name);
-         mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+         mdlerror_fmt(mdlpvp, 
+                      "Out of memory while parsing object: %s",
+                      mdlpvp->sym_name);
          return(1);
      }
   
      mdlpvp->vizp->full_name = strdup(mdlpvp->full_name);
      if(mdlpvp->vizp->full_name == NULL){
-        sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",
-          (char *)mdlpvp->sym_name);
-        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+        mdlerror_fmt(mdlpvp, 
+                     "Out of memory while parsing object: %s", 
+                     mdlpvp->sym_name);
         return(1);
      }
   
@@ -7476,8 +7382,7 @@ mesh_one_name_spec: existing_one_or_multiple_objects
          switch (mdlpvp->objp->object_type) {
             case META_OBJ:
               if (set_viz_state_value(mdlpvp->objp,INCLUDE_OBJ)) {
-	         sprintf(mdlpvp->mdl_err_msg,"Out of memory while creating viz state value for meta object %s",mdlpvp->gp->name);
-                 mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+                 mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for meta object %s",mdlpvp->gp->name);
                  return(1);
               }
               break;
@@ -7486,8 +7391,7 @@ mesh_one_name_spec: existing_one_or_multiple_objects
                 if (mdlpvp->objp->viz_state==NULL) {
                     if ((mdlpvp->objp->viz_state=(int *)malloc
                          (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-	                 sprintf(mdlpvp->mdl_err_msg,"Out of memory while creating viz state value for box object %s",mdlpvp->gp->name);
-                         mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+                         mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for box object %s",mdlpvp->gp->name);
                          return(1);
                     }
                  }
@@ -7500,8 +7404,7 @@ mesh_one_name_spec: existing_one_or_multiple_objects
                  if (mdlpvp->objp->viz_state==NULL) {
                      if ((mdlpvp->objp->viz_state=(int *)malloc
                         (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-	                   sprintf(mdlpvp->mdl_err_msg,"Out of memory while creating viz state value for polygon list object %s",mdlpvp->gp->name);
-                           mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+                           mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for polygon list object %s",mdlpvp->gp->name);
                            return(1);
                      }
                   }
@@ -7510,7 +7413,7 @@ mesh_one_name_spec: existing_one_or_multiple_objects
                   }
                   break;
              default:
-                  mdlerror("Cannot set viz state value of this type of object");
+                  mdlerror(mdlpvp, "Cannot set viz state value of this type of object");
                   return(1);
                   break;
 
@@ -7524,7 +7427,7 @@ mesh_one_name_spec: existing_one_or_multiple_objects
       stl = mdlpvp->sym_table_list_head;
       if (stl==NULL)
       {
-	mdlerror("No objects matching wildcard found.");
+	mdlerror(mdlpvp, "No objects matching wildcard found.");
 	return 1;
       }
       while(stl != NULL)
@@ -7542,25 +7445,25 @@ mesh_one_name_spec: existing_one_or_multiple_objects
 
          if ((mdlpvp->vizp = (struct viz_obj *)malloc
             (sizeof(struct viz_obj)))==NULL) {
-                mdlerror("Out of memory while creating viz object");
+                mdlerror(mdlpvp, "Out of memory while creating viz object");
                 return(1);
          } 
 
          mdlpvp->objp->viz_obj = mdlpvp->vizp;
          mdlpvp->vizp->name = strdup(volp->file_prefix_name);
-         if(mdlpvp->vizp->name == NULL){
-             sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",
-                (char *)mdlpvp->sym_name);
-                mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-                return(1);
+         if (mdlpvp->vizp->name == NULL){
+           mdlerror_fmt(mdlpvp, 
+                        "Out of memory while parsing object: %s", 
+                         mdlpvp->sym_name);
+           return(1);
          }
   
          mdlpvp->vizp->full_name = strdup(mdlpvp->sym_name); 
-         if(mdlpvp->vizp->full_name == NULL){
-             sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",
-                  (char *)mdlpvp->sym_name);
-                  mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
-                  return(1);
+         if (mdlpvp->vizp->full_name == NULL){
+           mdlerror_fmt(mdlpvp,
+                        "Out of memory while parsing object: %s", 
+                        mdlpvp->sym_name);
+           return(1);
          }
   
          mdlpvp->vizp->viz_child_head = NULL;
@@ -7575,8 +7478,7 @@ mesh_one_name_spec: existing_one_or_multiple_objects
                   if (mdlpvp->objp->viz_state==NULL) {
                     if ((mdlpvp->objp->viz_state=(int *)malloc
                          (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-	                 sprintf(mdlpvp->mdl_err_msg,"Out of memory while creating viz state value for box object %s",mdlpvp->gp->name);
-                         mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+                         mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for box object %s",mdlpvp->gp->name);
                          return(1);
                     }
                    }
@@ -7589,8 +7491,7 @@ mesh_one_name_spec: existing_one_or_multiple_objects
                    if (mdlpvp->objp->viz_state==NULL) {
                      if ((mdlpvp->objp->viz_state=(int *)malloc
                         (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-	                   sprintf(mdlpvp->mdl_err_msg,"Out of memory while creating viz state value for polygon list object %s",mdlpvp->gp->name);
-                           mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+                           mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for polygon list object %s",mdlpvp->gp->name);
                            return(1);
                      }
                    }
@@ -7599,7 +7500,7 @@ mesh_one_name_spec: existing_one_or_multiple_objects
                    }
                    break;
                 default:
-                    mdlerror("Cannot set viz state value of this type of object");
+                    mdlerror(mdlpvp, "Cannot set viz state value of this type of object");
                     return(1);
                     break;
 
@@ -7637,24 +7538,24 @@ mesh_one_name_spec_state_value: existing_object '=' num_expr
   mdlpvp->sym_name=mdlpvp->gp->name;
   if ((mdlpvp->vizp = (struct viz_obj *)malloc
         (sizeof(struct viz_obj)))==NULL) {
-    mdlerror("Out of memory while creating viz object");
+    mdlerror(mdlpvp, "Out of memory while creating viz object");
     return(1);
   }
   
   mdlpvp->objp->viz_obj = mdlpvp->vizp;
   mdlpvp->vizp->name = strdup(volp->file_prefix_name);
   if(mdlpvp->vizp->name == NULL){
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",
-          (char *)mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, 
+                 "Out of memory while parsing object: %s", 
+                 mdlpvp->sym_name);
     return(1);
   }
   
   mdlpvp->vizp->full_name = strdup(mdlpvp->full_name);
   if(mdlpvp->vizp->full_name == NULL){
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",
-          (char *)mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, 
+                 "Out of memory while parsing object: %s", 
+                 mdlpvp->sym_name);
     return(1);
   }
   
@@ -7672,8 +7573,7 @@ mesh_one_name_spec_state_value: existing_object '=' num_expr
       switch (mdlpvp->objp->object_type) {
         case META_OBJ:
           if (set_viz_state_value(mdlpvp->objp,mdlpvp->viz_state)) {
-	    sprintf(mdlpvp->mdl_err_msg,"Out of memory while creating viz state value for meta object %s",mdlpvp->gp->name);
-            mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+            mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for meta object %s",mdlpvp->gp->name);
             return(1);
           }
           break;
@@ -7682,8 +7582,7 @@ mesh_one_name_spec_state_value: existing_object '=' num_expr
           if (mdlpvp->objp->viz_state==NULL) {
             if ((mdlpvp->objp->viz_state=(int *)malloc
                  (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-	      sprintf(mdlpvp->mdl_err_msg,"Out of memory while creating viz state value for box object %s",mdlpvp->gp->name);
-              mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+              mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for box object %s",mdlpvp->gp->name);
               return(1);
             }
           }
@@ -7696,8 +7595,7 @@ mesh_one_name_spec_state_value: existing_object '=' num_expr
           if (mdlpvp->objp->viz_state==NULL) {
             if ((mdlpvp->objp->viz_state=(int *)malloc
                  (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-	      sprintf(mdlpvp->mdl_err_msg,"Out of memory while creating viz state value for polygon list object %s",mdlpvp->gp->name);
-              mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+              mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for polygon list object %s",mdlpvp->gp->name);
               return(1);
             }
           }
@@ -7706,7 +7604,7 @@ mesh_one_name_spec_state_value: existing_object '=' num_expr
           }
           break;
         default:
-          mdlerror("Cannot set viz state value of this type of object");
+          mdlerror(mdlpvp, "Cannot set viz state value of this type of object");
           return(1);
           break;
       }
@@ -7717,11 +7615,11 @@ mesh_one_name_spec_state_value: existing_object '=' num_expr
 list_all_meshes_specs: ALL_MESHES
 {
   if(volp->viz_mode == DX_MODE){
-    mdlerror("The keyword ALL_MESHES cannot be used in DX MODE.\n");
+    mdlerror(mdlpvp, "The keyword ALL_MESHES cannot be used in DX MODE.\n");
     return(1);
   }
   if(volp->file_prefix_name == NULL){
-    mdlerror("The keyword FILENAME should be specified.\n");
+    mdlerror(mdlpvp, "The keyword FILENAME should be specified.\n");
     return(1);
   }
 
@@ -7734,24 +7632,24 @@ list_all_meshes_specs: ALL_MESHES
 
      if ((mdlpvp->vizp = (struct viz_obj *)malloc
         (sizeof(struct viz_obj)))==NULL) {
-        mdlerror("Out of memory while creating viz object");
+        mdlerror(mdlpvp, "Out of memory while creating viz object");
       return(1);
      }
   
      mdlpvp->objp->viz_obj = mdlpvp->vizp;
      mdlpvp->vizp->name = strdup(volp->file_prefix_name);
      if(mdlpvp->vizp->name == NULL){
-        sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",
-          (char *)mdlpvp->sym_name);
-        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+        mdlerror_fmt(mdlpvp, 
+                     "Out of memory while parsing object: %s", 
+                     mdlpvp->sym_name);
        return(1);
      }
   
      mdlpvp->vizp->full_name = strdup(o->sym->name);
      if(mdlpvp->vizp->full_name == NULL){
-        sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",
-          (char *)mdlpvp->sym_name);
-        mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+        mdlerror_fmt(mdlpvp, 
+                     "Out of memory while parsing object: %s", 
+                     mdlpvp->sym_name);
         return(1);
      }
   
@@ -7765,8 +7663,7 @@ list_all_meshes_specs: ALL_MESHES
            case META_OBJ:
 
              if (set_viz_state_value(mdlpvp->objp,INCLUDE_OBJ)) {
-	       sprintf(mdlpvp->mdl_err_msg,"Out of memory while creating viz state value for meta object %s",mdlpvp->gp->name);
-               mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+               mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for meta object %s",mdlpvp->gp->name);
                return(1);
              }
              break;
@@ -7776,8 +7673,7 @@ list_all_meshes_specs: ALL_MESHES
              if (mdlpvp->objp->viz_state==NULL) {
                 if ((mdlpvp->objp->viz_state=(int *)malloc
                     (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-	          sprintf(mdlpvp->mdl_err_msg,"Out of memory while creating viz state value for box object %s",mdlpvp->gp->name);
-                  mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+                  mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for box object %s",mdlpvp->gp->name);
                   return(1);
                 }
              }
@@ -7791,8 +7687,7 @@ list_all_meshes_specs: ALL_MESHES
              if (mdlpvp->objp->viz_state==NULL) {
                 if ((mdlpvp->objp->viz_state=(int *)malloc
                       (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-	        sprintf(mdlpvp->mdl_err_msg,"Out of memory while creating viz state value for polygon list object %s",mdlpvp->gp->name);
-                mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+                mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for polygon list object %s",mdlpvp->gp->name);
                 return(1);
               }
             }
@@ -7801,7 +7696,7 @@ list_all_meshes_specs: ALL_MESHES
             }
             break;
           default:
-             mdlerror("Cannot set viz state value of this type of object");
+             mdlerror(mdlpvp, "Cannot set viz state value of this type of object");
              return(1);
              break;
          }
@@ -7838,7 +7733,7 @@ meshes_time_points_range_cmd: viz_meshes_one_item '@' '['
   if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE)){
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-              mdlerror("Out of memory while creating time points");
+              mdlerror(mdlpvp, "Out of memory while creating time points");
               return(1);
      }
      mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
@@ -7857,7 +7752,7 @@ meshes_time_points_range_cmd: viz_meshes_one_item '@' '['
         /* create two frames - SURF_POS and SURF_STATES */
         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
               (sizeof(struct frame_data_list)))==NULL) {
-                 mdlerror("Out of memory while creating time points");
+                 mdlerror(mdlpvp, "Out of memory while creating time points");
                  return(1);
         }
         mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
@@ -7871,7 +7766,7 @@ meshes_time_points_range_cmd: viz_meshes_one_item '@' '['
 
         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-              mdlerror("Out of memory while creating time points");
+              mdlerror(mdlpvp, "Out of memory while creating time points");
               return(1);
         }
         mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
@@ -7896,7 +7791,7 @@ meshes_time_points_all_times_cmd: viz_meshes_one_item '@' ALL_TIMES
   {
   	if ((mdlpvp->elp=(struct num_expr_list *)malloc
            (sizeof(struct num_expr_list)))==NULL) {
-    		mdlerror("Out of memory while creating time points");
+    		mdlerror(mdlpvp, "Out of memory while creating time points");
                 return(1);
         }
  
@@ -7919,7 +7814,7 @@ meshes_time_points_all_times_cmd: viz_meshes_one_item '@' ALL_TIMES
      
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
         (sizeof(struct frame_data_list)))==NULL) {
-           mdlerror("Out of memory while creating time points");
+           mdlerror(mdlpvp, "Out of memory while creating time points");
            return(1);
      }
      mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
@@ -7939,7 +7834,7 @@ meshes_time_points_all_times_cmd: viz_meshes_one_item '@' ALL_TIMES
         /* create two frames - SURF_POS and SURF_STATES */
         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-              mdlerror("Out of memory while creating time points");
+              mdlerror(mdlpvp, "Out of memory while creating time points");
               return(1);
         }
         mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
@@ -7953,7 +7848,7 @@ meshes_time_points_all_times_cmd: viz_meshes_one_item '@' ALL_TIMES
 
         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-              mdlerror("Out of memory while creating time points");
+              mdlerror(mdlpvp, "Out of memory while creating time points");
               return(1);
         }
         mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
@@ -7995,7 +7890,7 @@ meshes_iteration_numbers_range_cmd: viz_meshes_one_item '@' '['
   if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE)){
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror("Out of memory while creating iteration numbers");
+                mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
                 return(1);
      }
      mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
@@ -8014,7 +7909,7 @@ meshes_iteration_numbers_range_cmd: viz_meshes_one_item '@' '['
         /* create two frames - SURF_POS and SURF_STATES */
         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror("Out of memory while creating iteration numbers");
+                mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
                 return(1);
         }
         mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
@@ -8028,7 +7923,7 @@ meshes_iteration_numbers_range_cmd: viz_meshes_one_item '@' '['
 
         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror("Out of memory while creating iteration numbers");
+                mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
                 return(1);
         }
         mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
@@ -8057,7 +7952,7 @@ meshes_iteration_numbers_all_iterations_cmd: viz_meshes_one_item '@'
   {
   	if ((mdlpvp->elp=(struct num_expr_list *)malloc
            (sizeof(struct num_expr_list)))==NULL) {
-    		mdlerror("Out of memory while creating iteration numbers");
+    		mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
                 return(1);
         }
  
@@ -8080,7 +7975,7 @@ meshes_iteration_numbers_all_iterations_cmd: viz_meshes_one_item '@'
  
      if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
         (sizeof(struct frame_data_list)))==NULL) {
-            mdlerror("Out of memory while creating iteration numbers");
+            mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
             return(1);
      }
      mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
@@ -8101,7 +7996,7 @@ meshes_iteration_numbers_all_iterations_cmd: viz_meshes_one_item '@'
 
         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-               mdlerror("Out of memory while creating iteration numbers");
+               mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
                return(1);
         }
         mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
@@ -8115,7 +8010,7 @@ meshes_iteration_numbers_all_iterations_cmd: viz_meshes_one_item '@'
 
         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
            (sizeof(struct frame_data_list)))==NULL) {
-               mdlerror("Out of memory while creating iteration numbers");
+               mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
                return(1);
         }
         mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
@@ -8211,7 +8106,7 @@ viz_mode_def: MODE '=' NONE
   bins_array = (int*)malloc( (mdlpvp->num_pos+1) * sizeof(int) );
   if (volp->rk_mode_var==NULL || parts_array==NULL || bins_array==NULL)
   {
-    mdlerror("out of memory while setting up for visualization\n");
+    mdlerror(mdlpvp, "out of memory while setting up for visualization\n");
     return 1;
   }
   
@@ -8236,7 +8131,7 @@ viz_mode_def: MODE '=' NONE
   volp->rk_mode_var->direction = $<vec3>9;
   if (vect_length(volp->rk_mode_var->direction)==0)
   {
-    mdlerror("Cannot bin along a zero-length vector.\n");
+    mdlerror(mdlpvp, "Cannot bin along a zero-length vector.\n");
     return 1;
   }
   normalize(volp->rk_mode_var->direction);
@@ -8275,7 +8170,7 @@ viz_iteration_def: ITERATION_LIST '='
   sort_num_expr_list(mdlpvp->el_head);
   if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
         (sizeof(struct frame_data_list)))==NULL) {
-    mdlerror("Out of memory while creating iteration list");
+    mdlerror(mdlpvp, "Out of memory while creating iteration list");
     return(1);
   }
   mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
@@ -8298,7 +8193,7 @@ range_spec: num_expr
 {
   if ((mdlpvp->elp=(struct num_expr_list *)malloc
       (sizeof(struct num_expr_list)))==NULL) {
-    mdlerror("Out of memory while creating iteration list");
+    mdlerror(mdlpvp, "Out of memory while creating iteration list");
     return(1);
   }
  
@@ -8322,7 +8217,7 @@ range_spec: num_expr
   {
     if ((mdlpvp->elp=(struct num_expr_list *)malloc
         (sizeof(struct num_expr_list)))==NULL) {
-      mdlerror("Out of memory while creating iteration list");
+      mdlerror(mdlpvp, "Out of memory while creating iteration list");
       return(1);
     }
   
@@ -8346,7 +8241,7 @@ range_spec: num_expr
   if (fabs($<dbl>4-mdlpvp->tmp_dbl)<=EPSILON) {
     if ((mdlpvp->elp=(struct num_expr_list *)malloc
         (sizeof(struct num_expr_list)))==NULL) {
-      mdlerror("Out of memory while creating iteration list");
+      mdlerror(mdlpvp, "Out of memory while creating iteration list");
       return(1);
     }
   
@@ -8376,7 +8271,7 @@ viz_time_def: TIME_LIST '='
   sort_num_expr_list(mdlpvp->el_head);
   if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
         (sizeof(struct frame_data_list)))==NULL) {
-    mdlerror("Out of memory while creating iteration list");
+    mdlerror(mdlpvp, "Out of memory while creating iteration list");
     return(1);
   }
   mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
@@ -8412,7 +8307,7 @@ iteration_frame_data_spec: iteration_frame_data_item '='
   sort_num_expr_list(mdlpvp->el_head);
   if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
         (sizeof(struct frame_data_list)))==NULL) {
-    mdlerror("Out of memory while creating iteration frame data");
+    mdlerror(mdlpvp, "Out of memory while creating iteration frame data");
     return(1);
   }
   mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
@@ -8478,16 +8373,16 @@ viz_object_prefix: existing_object '=' str_expr
   mdlpvp->gp=$<sym>1;
   mdlpvp->objp=(struct object *)mdlpvp->gp->value;
   if ((mdlpvp->vizp=(struct viz_obj *)malloc(sizeof(struct viz_obj)))==NULL) {
-    mdlerror("Out of memory while creating viz object");
+    mdlerror(mdlpvp, "Out of memory while creating viz object");
     return(1);
   }
   mdlpvp->objp->viz_obj = mdlpvp->vizp;
   mdlpvp->vizp->name = $<str>3;
   mdlpvp->vizp->full_name = strdup(mdlpvp->full_name);
   if(mdlpvp->vizp->full_name == NULL){
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing object:",
-          (char *)mdlpvp->full_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, 
+                 "Out of memory while parsing object: %s", 
+                 mdlpvp->full_name);
     return(1);
   }
   mdlpvp->vizp->obj = mdlpvp->objp;
@@ -8520,8 +8415,7 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
       switch (mdlpvp->objp->object_type) {
         case META_OBJ:
           if (set_viz_state_value(mdlpvp->objp,mdlpvp->viz_state)) {
-	    sprintf(mdlpvp->mdl_err_msg,"Out of memory while creating viz state value for meta object %s",mdlpvp->gp->name);
-            mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+            mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for meta object %s",mdlpvp->gp->name);
             return(1);
           }
           break;
@@ -8530,8 +8424,7 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
           if (mdlpvp->objp->viz_state==NULL) {
             if ((mdlpvp->objp->viz_state=(int *)malloc
                  (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-	      sprintf(mdlpvp->mdl_err_msg,"Out of memory while creating viz state value for box object %s",mdlpvp->gp->name);
-              mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+              mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for box object %s",mdlpvp->gp->name);
               return(1);
             }
           }
@@ -8544,8 +8437,7 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
           if (mdlpvp->objp->viz_state==NULL) {
             if ((mdlpvp->objp->viz_state=(int *)malloc
                  (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-	      sprintf(mdlpvp->mdl_err_msg,"Out of memory while creating viz state value for polygon list object %s",mdlpvp->gp->name);
-              mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+              mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for polygon list object %s",mdlpvp->gp->name);
               return(1);
             }
           }
@@ -8554,7 +8446,7 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
           }
           break;
         default:
-          mdlerror("Cannot set viz state value of this type of object");
+          mdlerror(mdlpvp, "Cannot set viz state value of this type of object");
           return(1);
           break;
       }
@@ -8578,8 +8470,7 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
   if (mdlpvp->objp->viz_state==NULL) {
     if ((mdlpvp->objp->viz_state=(int *)malloc
         (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-      sprintf(mdlpvp->mdl_err_msg,"Out of memory while creating viz state value for elements of object %s",mdlpvp->gp->name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for elements of object %s",mdlpvp->gp->name);
       return(1);
     }
     for (i=0;i<mdlpvp->pop->n_walls;i++) {
@@ -8590,7 +8481,7 @@ viz_state_value: existing_logicalOrPhysical '=' num_expr
   while (mdlpvp->elmlp!=NULL) {
     if (mdlpvp->elmlp->begin < 0
         || mdlpvp->elmlp->end > mdlpvp->pop->n_walls-1) {
-      mdlerror("Cannot set viz state value -- element out of range");
+      mdlerror(mdlpvp, "Cannot set viz state value -- element out of range");
       return(1);
     }
     for (i=mdlpvp->elmlp->begin;i<=mdlpvp->elmlp->end;i++) {
@@ -8612,8 +8503,7 @@ existing_logicalOrPhysical: VAR
 
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
     if ((mdlpvp->gp=retrieve_sym(get_first_name(mdlpvp->sym_name),OBJ,volp->main_sym_table))==NULL) {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined object:",mdlpvp->sym_name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      mdlerror_fmt(mdlpvp, "Undefined object: %s", mdlpvp->sym_name);
       if (mdlpvp->sym_name==mdlpvp->cval) {
         mdlpvp->cval=NULL;
       }
@@ -8625,8 +8515,7 @@ existing_logicalOrPhysical: VAR
     }
     mdlpvp->top_objp=(struct object *)mdlpvp->gp->value;
     if ((mdlpvp->objp=find_full_name(mdlpvp->top_objp,mdlpvp->sym_name,NULL))==NULL) {
-      sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined object:",mdlpvp->sym_name);
-      mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+      mdlerror_fmt(mdlpvp, "Undefined object: %s", mdlpvp->sym_name);
       if (mdlpvp->sym_name==mdlpvp->cval) {
         mdlpvp->cval=NULL;
       }
@@ -8658,7 +8547,7 @@ output_def: REACTION_DATA_OUTPUT '{'
   mdlpvp->obp = insert_new_output_block(mdlpvp);
   if (mdlpvp->obp==NULL)
   {
-    mdlerror("Out of memory creating reaction data output");
+    mdlerror(mdlpvp, "Out of memory creating reaction data output");
     return 1;
   }
 
@@ -8675,7 +8564,7 @@ output_def: REACTION_DATA_OUTPUT '{'
   mdlpvp->obp->time_array=(double*)malloc(mdlpvp->obp->buffersize*sizeof(double));
   if (mdlpvp->obp->time_array==NULL)
   {
-    mdlerror("Out of memory creating output buffer.");
+    mdlerror(mdlpvp, "Out of memory creating output buffer.");
     return 1;
   }
 }
@@ -8686,7 +8575,7 @@ output_buffer_size_def: OUTPUT_BUFFER_SIZE '=' num_expr
   double temp_value = $<dbl>3;
   if (!(temp_value >= 1.0 && temp_value < UINT_MAX))
   {
-    mdlerror("Buffer size invalid.  Suggested range is 100-1000000.\n");
+    mdlerror(mdlpvp, "Buffer size invalid.  Suggested range is 100-1000000.\n");
     return 1;
   }
   $$=$<dbl>3;
@@ -8728,15 +8617,13 @@ step_time_def: STEP '=' num_expr
   {
     mdlpvp->output_freq=(volp->iterations>1)?volp->iterations:1;
     mdlpvp->obp->step_time=mdlpvp->output_freq*volp->time_unit;
-    sprintf(mdlpvp->mdl_err_msg,"Output step time too long\n\tSetting output step time to %g microseconds\n",mdlpvp->obp->step_time*1.0e6);
-    mdl_warning(mdlpvp);
+    mdl_warning(mdlpvp, "Output step time too long\n\tSetting output step time to %g microseconds\n",mdlpvp->obp->step_time*1.0e6);
   }
   else if (mdlpvp->output_freq<1)
   {
     mdlpvp->output_freq=1;
     mdlpvp->obp->step_time=mdlpvp->output_freq*volp->time_unit;
-    sprintf(mdlpvp->mdl_err_msg,"Output step time too short\n\tSetting output step time to %g microseconds\n",mdlpvp->obp->step_time*1.0e-6);
-    mdl_warning(mdlpvp);
+    mdl_warning(mdlpvp, "Output step time too short\n\tSetting output step time to %g microseconds\n",mdlpvp->obp->step_time*1.0e-6);
   }
 }
         | /* empty */
@@ -8812,7 +8699,7 @@ count_cmd: '{'
   os = insert_new_output_set(mdlpvp->obp,mdlpvp->header_comment);
   if (os==NULL)
   {
-    mdlerror("Out of memory while creating output list");
+    mdlerror(mdlpvp, "Out of memory while creating output list");
     return 1;
   }
   os->exact_time_flag = mdlpvp->exact_time_flag;
@@ -8829,14 +8716,14 @@ count_cmd: '{'
   
   if ((mdlpvp->count_flags & (TRIGGER_PRESENT|COUNT_PRESENT)) == (TRIGGER_PRESENT|COUNT_PRESENT))
   {
-    mdlerror("Cannot mix TRIGGER and COUNT statements.  Use separate files.");
+    mdlerror(mdlpvp, "Cannot mix TRIGGER and COUNT statements.  Use separate files.");
     return 1;
   }
   
   i=check_reaction_output_file(os,mdlpvp->vol->err_file);
   if (i)
   {
-    mdlerror("Unable to write data to output file.");
+    mdlerror(mdlpvp, "Unable to write data to output file.");
     return 1;
   }
   
@@ -8890,7 +8777,7 @@ single_count_expr:
   
   if (oer->oper==',' && ($<str>2)!=NULL)
   {
-    mdlerror("Cannot use custom column headers with wildcard expansion");
+    mdlerror(mdlpvp, "Cannot use custom column headers with wildcard expansion");
     return 1;
   }
   
@@ -8902,7 +8789,7 @@ single_count_expr:
     oc = insert_new_output_column(os);
     if (oc==NULL)
     {
-      mdlerror("Out of memory setting out output column");
+      mdlerror(mdlpvp, "Out of memory setting out output column");
       return 1;
     }
     
@@ -8924,13 +8811,13 @@ single_count_expr:
         oc->buffer = (struct output_trigger_data*)malloc(os->block->trig_bufsize*sizeof(struct output_trigger_data));
         break;
       default:
-        mdlerror("Could not figure out what type of count data to store");
+        mdlerror(mdlpvp, "Could not figure out what type of count data to store");
         return 1;
         break;
     }
     if (oc->buffer==NULL)
     {
-      mdlerror("Out of memory creating buffer to store output data");
+      mdlerror(mdlpvp, "Out of memory creating buffer to store output data");
       return 1;
     }
   }
@@ -8941,7 +8828,7 @@ count_expr: num_value
   struct output_expression *oe = new_output_expr(mdlpvp->vol->oexpr_mem);
   if (oe==NULL)
   {
-    mdlerror("Out of memory creating output expression");
+    mdlerror(mdlpvp, "Out of memory creating output expression");
     return 1;
   }
   oe->expr_flags=OEXPR_TYPE_DBL | OEXPR_TYPE_CONST;
@@ -8989,7 +8876,7 @@ count_value: COUNT
 {
   if (mdlpvp->count_flags&TRIGGER_PRESENT)
   {
-    mdlerror("Can't put TRIGGER and COUNT statements in the same output file");
+    mdlerror(mdlpvp, "Can't put TRIGGER and COUNT statements in the same output file");
     return 1;
   }
   mdlpvp->count_flags |= COUNT_PRESENT;
@@ -9003,7 +8890,7 @@ count_value: COUNT
   struct output_expression *oe = new_output_expr(mdlpvp->vol->oexpr_mem);
   if (oe==NULL)
   {
-    mdlerror("Out of memory creating output expression");
+    mdlerror(mdlpvp, "Out of memory creating output expression");
     return 1;
   }
   oe->expr_flags=OEXPR_TYPE_DBL | OEXPR_TYPE_CONST;
@@ -9015,7 +8902,7 @@ count_value: COUNT
 {
   if (mdlpvp->count_flags&COUNT_PRESENT) 
   {
-    mdlerror("Can't put TRIGGER and COUNT statements in the same output file");
+    mdlerror(mdlpvp, "Can't put TRIGGER and COUNT statements in the same output file");
     return 1;
   }
   mdlpvp->count_flags |= TRIGGER_PRESENT;
@@ -9055,7 +8942,7 @@ outfile_syntax: file_name
   
   for(os = mdlpvp->obp->data_set_head->next; os != NULL; os = os->next){
     if(strcmp(os->outfile_name, name) == 0){
-       mdlerror("COUNT statements in the same reaction data output block should have unique output file names\n");
+       mdlerror(mdlpvp, "COUNT statements in the same reaction data output block should have unique output file names\n");
        return 1;
     }
   } 
@@ -9082,7 +8969,7 @@ count_syntax_1:  existing_rxpn_or_molecule  ',' count_location_specifier opt_hit
 
   if (mdlpvp->sym_table_list_head==NULL)
   {
-    mdlerror("No molecules or reactions specified for count output.");
+    mdlerror(mdlpvp, "No molecules or reactions specified for count output.");
     return 1;
   }
   
@@ -9091,11 +8978,11 @@ count_syntax_1:  existing_rxpn_or_molecule  ',' count_location_specifier opt_hit
     report_flags=REPORT_WORLD;
     if ($<tok>4 != REPORT_NOTHING)
     {
-      mdlerror("Invalid combination of WORLD with other counting options");
+      mdlerror(mdlpvp, "Invalid combination of WORLD with other counting options");
       return 1;
     }else{
       if(mdlpvp->count_flags&TRIGGER_PRESENT){
-         mdlerror("Invalid combination of WORLD with TRIGGER option");
+         mdlerror(mdlpvp, "Invalid combination of WORLD with TRIGGER option");
          return 1;
       }
     }
@@ -9117,9 +9004,7 @@ count_syntax_1:  existing_rxpn_or_molecule  ',' count_location_specifier opt_hit
       report_type = REPORT_RXNS;
       if (($<tok>4&REPORT_TYPE_MASK)!=REPORT_NOTHING)
       {
-        char error_message[strlen(stl->node->name)+256];
-        sprintf(error_message,"Invalid counting options used with reaction pathway %s",stl->node->name);
-        mdlerror(error_message);
+        mdlerror_fmt(mdlpvp, "Invalid counting options used with reaction pathway %s",stl->node->name);
         return 1;
       }
     }
@@ -9128,14 +9013,14 @@ count_syntax_1:  existing_rxpn_or_molecule  ',' count_location_specifier opt_hit
     oe = new_output_expr(mdlpvp->vol->oexpr_mem);
     if (orq==NULL || oe==NULL)
     {
-      mdlerror("Out of memory storing requested counts");
+      mdlerror(mdlpvp, "Out of memory storing requested counts");
       return 1;
     }
     orq->next=NULL;
     orq->requester=oe;
     orq->count_target=stl->node;
     if(mdlpvp->orient_specified){
-      mdlerror("Internal error: Orientation set for the COUNT statement without orientation  specified.\n");
+      mdlerror(mdlpvp, "Internal error: Orientation set for the COUNT statement without orientation  specified.\n");
     }
     orq->count_orientation = ORIENT_NOT_SET;
     orq->count_location=$<sym>3;
@@ -9161,7 +9046,7 @@ count_syntax_1:  existing_rxpn_or_molecule  ',' count_location_specifier opt_hit
       oet = new_output_expr(mdlpvp->vol->oexpr_mem);
       if (oet==NULL)
       {
-        mdlerror("Out of memory storing requested counts");
+        mdlerror(mdlpvp, "Out of memory storing requested counts");
         return 1;
       }
       if (oe_tail->up==NULL)
@@ -9210,7 +9095,7 @@ count_syntax_2:  existing_molecule_required_orient ',' count_location_specifier 
  
   if ($<sym>3==NULL)
   {
-       mdlerror("Counting of an oriented molecule in the WORLD is not implemented.\nOnly counting of an oriented molecule on the regions is allowed.\n");
+       mdlerror(mdlpvp, "Counting of an oriented molecule in the WORLD is not implemented.\nOnly counting of an oriented molecule on the regions is allowed.\n");
        return 1;
   }
   else report_flags=0;
@@ -9225,7 +9110,7 @@ count_syntax_2:  existing_molecule_required_orient ',' count_location_specifier 
        if (($<tok>4&REPORT_TYPE_MASK)==REPORT_NOTHING) report_type = REPORT_CONTENTS;
        else report_type=($<tok>4 & REPORT_TYPE_MASK);
     }else{
-       mdlerror("Orientations in count output can be specified only for molecules\n");
+       mdlerror(mdlpvp, "Orientations in count output can be specified only for molecules\n");
        return 1;
     }
     
@@ -9233,7 +9118,7 @@ count_syntax_2:  existing_molecule_required_orient ',' count_location_specifier 
     oe = new_output_expr(mdlpvp->vol->oexpr_mem);
     if (orq==NULL || oe==NULL)
     {
-      mdlerror("Out of memory storing requested counts");
+      mdlerror(mdlpvp, "Out of memory storing requested counts");
       return 1;
     }
     orq->next=NULL;
@@ -9269,7 +9154,7 @@ count_syntax_2:  existing_molecule_required_orient ',' count_location_specifier 
       oet = new_output_expr(mdlpvp->vol->oexpr_mem);
       if (oet==NULL)
       {
-        mdlerror("Out of memory storing requested counts");
+        mdlerror(mdlpvp, "Out of memory storing requested counts");
         return 1;
       }
       if (oe_tail->up==NULL)
@@ -9324,7 +9209,7 @@ count_syntax_3:  existing_many_rxpns_or_molecules  ',' count_location_specifier 
 
   if (mdlpvp->sym_table_list_head==NULL)
   {
-    mdlerror("Wildcard matching found no matches for count output.");
+    mdlerror(mdlpvp, "Wildcard matching found no matches for count output.");
     return 1;
   }
   
@@ -9333,11 +9218,11 @@ count_syntax_3:  existing_many_rxpns_or_molecules  ',' count_location_specifier 
     report_flags=REPORT_WORLD;
     if ($<tok>4 != REPORT_NOTHING)
     {
-      mdlerror("Invalid combination of WORLD with other counting options");
+      mdlerror(mdlpvp, "Invalid combination of WORLD with other counting options");
       return 1;
     }else{
       if(mdlpvp->count_flags&TRIGGER_PRESENT){
-         mdlerror("Invalid combination of WORLD with TRIGGER option");
+         mdlerror(mdlpvp, "Invalid combination of WORLD with TRIGGER option");
          return 1;
       }
     }
@@ -9359,9 +9244,7 @@ count_syntax_3:  existing_many_rxpns_or_molecules  ',' count_location_specifier 
       report_type = REPORT_RXNS;
       if (($<tok>4&REPORT_TYPE_MASK)!=REPORT_NOTHING)
       {
-        char error_message[strlen(stl->node->name)+256];
-        sprintf(error_message,"Invalid counting options used with reaction pathway %s",stl->node->name);
-        mdlerror(error_message);
+        mdlerror_fmt(mdlpvp, "Invalid counting options used with reaction pathway %s",stl->node->name);
         return 1;
       }
     }
@@ -9370,14 +9253,14 @@ count_syntax_3:  existing_many_rxpns_or_molecules  ',' count_location_specifier 
     oe = new_output_expr(mdlpvp->vol->oexpr_mem);
     if (orq==NULL || oe==NULL)
     {
-      mdlerror("Out of memory storing requested counts");
+      mdlerror(mdlpvp, "Out of memory storing requested counts");
       return 1;
     }
     orq->next=NULL;
     orq->requester=oe;
     orq->count_target=stl->node;
     if(mdlpvp->orient_specified){
-      mdlerror("Internal error: Orientation set for the COUNT statement without orientation  specified.\n");
+      mdlerror(mdlpvp, "Internal error: Orientation set for the COUNT statement without orientation  specified.\n");
     }
     orq->count_orientation = ORIENT_NOT_SET;
     orq->count_location=$<sym>3;
@@ -9403,7 +9286,7 @@ count_syntax_3:  existing_many_rxpns_or_molecules  ',' count_location_specifier 
       oet = new_output_expr(mdlpvp->vol->oexpr_mem);
       if (oet==NULL)
       {
-        mdlerror("Out of memory storing requested counts");
+        mdlerror(mdlpvp, "Out of memory storing requested counts");
         return 1;
       }
       if (oe_tail->up==NULL)
@@ -9502,8 +9385,7 @@ fopen_stmt: new_file_stream FOPEN '(' file_name ',' file_mode ')'
   mdlpvp->filep->name=$<str>4;
   mdlpvp->a_str=$<str>6;
   if ((mdlpvp->filep->stream=fopen(mdlpvp->filep->name,mdlpvp->a_str))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Cannot open file:",mdlpvp->filep->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Cannot open file: %s", mdlpvp->filep->name);
     return(1);
   }
 };
@@ -9519,8 +9401,7 @@ new_file_stream: VAR
   }
 
   if ((mdlpvp->gp=store_sym(mdlpvp->sym_name,FSTRM,volp->main_sym_table))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while creating file stream:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Out of memory while creating file stream: %s", mdlpvp->sym_name);
     if (mdlpvp->sym_name==mdlpvp->cval) {
       mdlpvp->cval=NULL;
     }
@@ -9551,8 +9432,7 @@ file_mode: str_expr
   if (c!='r' 
       && c!='w'
       && c!='a') {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Invalid file mode:",mdlpvp->a_str);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Invalid file mode: %s", mdlpvp->a_str);
     free((void *)mdlpvp->cval);
     mdlpvp->cval=NULL;
     return(1);
@@ -9566,8 +9446,7 @@ fclose_stmt: FCLOSE '(' existing_file_stream ')'
   mdlpvp->gp=$<sym>3;
   mdlpvp->filep=(struct file_stream *)mdlpvp->gp->value;
   if (fclose(mdlpvp->filep->stream)!=0) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Error closing file:",mdlpvp->filep->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Error closing file: %s", mdlpvp->filep->name);
     return(1);
   }
 };
@@ -9583,8 +9462,7 @@ existing_file_stream: VAR
   }
 
   if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,FSTRM,volp->main_sym_table))==NULL) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Undefined file stream:",mdlpvp->sym_name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Undefined file stream: %s", mdlpvp->sym_name);
     if (mdlpvp->sym_name==mdlpvp->cval) {
       mdlpvp->cval=NULL;
     }
@@ -9616,8 +9494,7 @@ printf_stmt: PRINTF arg_list_init '(' format_string ',' list_args ')'
 {
   mdlpvp->a_str=$<str>4;
   if (my_fprintf(mdlpvp->vol->err_file, mdlpvp->a_str,mdlpvp->arg_list,mdlpvp->num_args)) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to err_file:",mdlpvp->a_str);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Could not print to err_file: %s", mdlpvp->a_str);
     return(1);
   }
 }
@@ -9625,8 +9502,7 @@ printf_stmt: PRINTF arg_list_init '(' format_string ',' list_args ')'
 {
   mdlpvp->a_str=$<str>4;
   if (my_fprintf(mdlpvp->vol->err_file, mdlpvp->a_str,NULL,mdlpvp->num_args)) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to err_file:",mdlpvp->a_str);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Could not print to err_file: %s", mdlpvp->a_str);
     return(1);
   }
 };
@@ -9680,8 +9556,7 @@ format_string: str_expr
 list_args: num_expr_only
 {
         if ((mdlpvp->arg_list[mdlpvp->num_args].arg_value=(void *)double_dup($<dbl>1))==NULL) {
-          sprintf(mdlpvp->mdl_err_msg,"%s","Out of memory while creating format argument");
-          mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+          mdlerror_fmt(mdlpvp, "Out of memory while creating format argument");
           return(1);
         }
         mdlpvp->arg_list[mdlpvp->num_args++].arg_type=DBL;
@@ -9689,8 +9564,7 @@ list_args: num_expr_only
 	| list_args ',' num_expr_only
 {
         if ((mdlpvp->arg_list[mdlpvp->num_args].arg_value=(void *)double_dup($<dbl>3))==NULL) {
-          sprintf(mdlpvp->mdl_err_msg,"%s","Out of memory while creating format argument");
-          mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+          mdlerror_fmt(mdlpvp, "Out of memory while creating format argument");
           return(1);
         }
         mdlpvp->arg_list[mdlpvp->num_args++].arg_type=DBL;
@@ -9717,7 +9591,7 @@ list_args: num_expr_only
     mdlpvp->arg_list[mdlpvp->num_args++].arg_type=STR;
     break;
   default:
-    mdlerror("Invalid variable type referenced");
+    mdlerror(mdlpvp, "Invalid variable type referenced");
     return(1);
     break;
   }
@@ -9734,7 +9608,7 @@ list_args: num_expr_only
     mdlpvp->arg_list[mdlpvp->num_args++].arg_type=STR;
     break;
   default:
-    mdlerror("Invalid variable type referenced");
+    mdlerror(mdlpvp, "Invalid variable type referenced");
     return(1);
     break;
   }
@@ -9747,8 +9621,7 @@ fprintf_stmt: FPRINTF arg_list_init '(' existing_file_stream ',' format_string '
   mdlpvp->filep=(struct file_stream *)mdlpvp->gp->value;
   mdlpvp->a_str=$<str>6;
   if (my_fprintf(mdlpvp->filep->stream,mdlpvp->a_str,mdlpvp->arg_list,mdlpvp->num_args)) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to file:",mdlpvp->filep->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Could not print to file: %s", mdlpvp->filep->name);
     return(1);
   }
 }
@@ -9758,8 +9631,7 @@ fprintf_stmt: FPRINTF arg_list_init '(' existing_file_stream ',' format_string '
   mdlpvp->filep=(struct file_stream *)mdlpvp->gp->value;
   mdlpvp->a_str=$<str>6;
   if (my_fprintf(mdlpvp->filep->stream,mdlpvp->a_str,NULL,mdlpvp->num_args)) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to file:",mdlpvp->filep->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Could not print to file: %s", mdlpvp->filep->name);
     return(1);
   }
 };
@@ -9770,16 +9642,15 @@ sprintf_stmt: SPRINTF arg_list_init '(' assign_var ',' format_string ',' list_ar
   mdlpvp->gp=$<sym>4;
   mdlpvp->a_str=$<str>6;
   if (my_sprintf(mdlpvp->str_buf2,mdlpvp->a_str,mdlpvp->arg_list,mdlpvp->num_args)) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not sprintf to variable:",mdlpvp->gp->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Could not sprintf to variable: %s", mdlpvp->gp->name);
     return(1);
   }
   mdlpvp->gp->sym_type=STR;
   mdlpvp->gp->value=(void *)strdup(mdlpvp->str_buf2);
   if(mdlpvp->gp->value == NULL){
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing string:",
-          (char *)mdlpvp->str_buf2);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, 
+                 "Out of memory while parsing string: %s", 
+                 mdlpvp->str_buf2);
     return(1);
   }
 }
@@ -9788,16 +9659,14 @@ sprintf_stmt: SPRINTF arg_list_init '(' assign_var ',' format_string ',' list_ar
   mdlpvp->gp=$<sym>4;
   mdlpvp->a_str=$<str>6;
   if (my_sprintf(mdlpvp->str_buf,mdlpvp->a_str,NULL,mdlpvp->num_args)) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not sprintf to variable:",mdlpvp->gp->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+    mdlerror_fmt(mdlpvp, "Could not sprintf to variable: %s", mdlpvp->gp->name);
     return(1);
   }
   mdlpvp->gp->sym_type=STR;
   mdlpvp->gp->value=(void *)strdup(mdlpvp->str_buf);
   if(mdlpvp->gp->value == NULL){
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Out of memory while parsing string:",
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing string: %s", 
           mdlpvp->str_buf);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
     return(1);
   }
 };
@@ -9809,7 +9678,7 @@ print_time_stmt: PRINT_TIME '(' format_string ')'
   mdlpvp->a_str=$<str>3;
   the_time=time(NULL);
   strftime(mdlpvp->time_str,128,mdlpvp->a_str,localtime(&the_time));
-  if (volp->procnum == 0) fprintf(mdlpvp->vol->err_file,"%s",mdlpvp->time_str);
+  if (volp->procnum == 0) fprintf(mdlpvp->vol->err_file, "%s", mdlpvp->time_str);
 };
 
 
@@ -9822,9 +9691,8 @@ fprint_time_stmt: FPRINT_TIME '(' existing_file_stream ',' format_string ')'
   mdlpvp->a_str=$<str>5;
   the_time=time(NULL);
   strftime(mdlpvp->time_str,128,mdlpvp->a_str,localtime(&the_time));
-  if (fprintf(mdlpvp->filep->stream,"%s",mdlpvp->time_str)==EOF) {
-    sprintf(mdlpvp->mdl_err_msg,"%s %s","Could not print to file:",mdlpvp->filep->name);
-    mdlerror(mdlpvp->mdl_err_msg,mdlpvp);
+  if (fprintf(mdlpvp->filep->stream, "%s", mdlpvp->time_str)==EOF) {
+    mdlerror_fmt(mdlpvp, "Could not print to file: %s", mdlpvp->filep->name);
     return(1);
   }
 };
@@ -9844,33 +9712,43 @@ fprint_time_stmt: FPRINT_TIME '(' existing_file_stream ',' format_string ')'
 
 struct mdlparse_vars *clunky_mpvp_for_errors;
 
-void mdlerror(char *s,...)
+void mdlerror(struct mdlparse_vars *mpvp, char const *str)
 {
-/*  va_list ap; */
-  FILE *log_file;
-  struct mdlparse_vars *mpvp = clunky_mpvp_for_errors;
-
-/*
-  va_start(ap,s);
-  mpvp=va_arg(ap,struct mdlparse_vars *);  
-  va_end(ap);
-*/
-
-  log_file=stderr;
-  if (mpvp->vol->err_file!=NULL) {
-    log_file=mpvp->vol->err_file;
-  }
-
-  if (mpvp->vol->procnum == 0) {
-	fprintf(log_file,"MCell: error on line: %d of file: %s\n  %s\n",\
-	        mpvp->line_num[mpvp->include_stack_ptr],mpvp->vol->curr_file,s);
-	
-	fflush(log_file);
-  }
-	return;
+  mdlerror_fmt(mpvp, "%s", str);
 }
 
-void mdlerror_nested(char *s)
+/* mdlerror_fmt: Print a formatted error message regarding an error in the MDL
+ *               file.
+ *
+ *   mpvp: the parser state variables
+ *   fmt:  the printf-style format string
+ */
+void mdlerror_fmt(struct mdlparse_vars *mpvp, char const *fmt, ...)
+{
+  va_list arglist;
+  FILE *log_file = stderr;
+  if (mpvp->vol->err_file != NULL)
+    log_file = mpvp->vol->err_file;
+
+  if (mpvp->vol->procnum != 0)
+    return;
+
+  /* print error location */
+  fprintf(log_file,
+          "MCell: error on line: %d of file: %s\n  ",
+          mpvp->line_num[mpvp->include_stack_ptr], mpvp->vol->curr_file);
+
+  /* format error message */
+  va_start(arglist, fmt);
+  vfprintf(log_file, fmt, arglist);
+  va_end(arglist);
+
+  /* terminate error message and flush */
+  fprintf(log_file, "\n");
+  fflush(log_file);
+}
+
+void mdlerror_nested(char const *s)
 {
   FILE *log_file;
   struct mdlparse_vars *mpvp = clunky_mpvp_for_errors;
@@ -9925,14 +9803,12 @@ int mdlparse_init(struct volume *vol)
   /* create default reflective surface reaction */
   if ((mpvp->path_mem=create_mem(sizeof(struct pathway),4096))==NULL)
   {
-    sprintf(mpvp->mdl_err_msg,"Out of memory while creating reaction pathways\n");
-    fprintf(vol->log_file,mpvp->mdl_err_msg);
+    fprintf(vol->log_file, "Out of memory while creating reaction pathways\n");
     return(1);
   } 
   if ((mpvp->prod_mem=create_mem(sizeof(struct product),4096))==NULL) {
-    sprintf(mpvp->mdl_err_msg,"Out of memory while creating reaction products\n");
-    fprintf(vol->log_file,mpvp->mdl_err_msg);
-      return(1);
+    fprintf(vol->log_file, "Out of memory while creating reaction products\n");
+    return(1);
   } 
   mpvp->sym_list_mem = create_mem(sizeof(struct sym_table_list),4096);
   if (mpvp->sym_list_mem==NULL)
@@ -9947,15 +9823,13 @@ int mdlparse_init(struct volume *vol)
   }
   else if ((mpvp->gp=store_sym(mpvp->sym_name,RX,vol->main_sym_table))
       ==NULL) {
-    sprintf(mpvp->mdl_err_msg,"%s %s -%s-> ...",
-      "Out of memory while creating surface reaction:",vol->g_mol->sym->name,vol->g_surf->sym->name);
-    fprintf(vol->log_file,mpvp->mdl_err_msg);
+    fprintf(vol->log_file,
+      "Out of memory while creating surface reaction: %s -%s-> ...",vol->g_mol->sym->name,vol->g_surf->sym->name);
     return(1);
   }
   if ((mpvp->pathp=(struct pathway *)mem_get(mpvp->path_mem))==NULL) {
-    sprintf(mpvp->mdl_err_msg,"%s %s -%s-> ...",
-      "Out of memory while creating surface reaction:",vol->g_mol->sym->name,vol->g_surf->sym->name);
-    fprintf(vol->log_file,mpvp->mdl_err_msg);
+    fprintf(vol->log_file,
+      "Out of memory while creating surface reaction: %s -%s-> ...",vol->g_mol->sym->name,vol->g_surf->sym->name);
     return(1);
   }
   mpvp->rxnp=(struct rxn *)mpvp->gp->value;
@@ -9973,9 +9847,8 @@ int mdlparse_init(struct volume *vol)
   mpvp->pathp->pcr=NULL;
 
   if ((mpvp->prodp=(struct product *)mem_get(mpvp->prod_mem))==NULL) {
-    sprintf(mpvp->mdl_err_msg,"%s %s -%s-> ...",
-      "Out of memory while creating surface reaction:",vol->g_mol->sym->name,vol->g_surf->sym->name);
-    fprintf(vol->log_file,mpvp->mdl_err_msg);
+    fprintf(vol->log_file,
+      "Out of memory while creating surface reaction: %s -%s-> ...",vol->g_mol->sym->name,vol->g_surf->sym->name);
     return(1);
   }
   mpvp->prodp->prod=mpvp->pathp->reactant2;
@@ -10012,5 +9885,3 @@ int mdlparse_init(struct volume *vol)
 
   return(0);
 }
-
-

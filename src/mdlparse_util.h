@@ -5,7 +5,20 @@
 #include "mcell_structs.h"
 #include "mdlparse.h"
 
-void mdl_warning(struct mdlparse_vars *mpvp);
+#ifndef __GNUC__
+#ifndef __attribute__
+#define __attribute__(x) /* empty */
+#endif
+#endif
+
+#if __GNUC__ < 3
+#ifndef __attribute__
+#define __attribute__(x) /* empty */
+#endif
+#endif
+
+void mdl_warning(struct mdlparse_vars *mpvp, char const *fmt, ...)
+  __attribute__((format (printf, 2, 3)));
 void swap_double(double *x, double *y);
 void swap_int(int *x, int *y);
 double *double_dup(double value);

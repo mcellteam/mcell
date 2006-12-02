@@ -8,6 +8,7 @@
 #include <sys/errno.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdarg.h>
 #include "vector.h"
 #include "strfunc.h"
 #include "sym_table.h"
@@ -31,19 +32,26 @@
 /*************************************************************************
 mdl_warning:
 In:  Global parse structure
+     Format string and arguments for error message
 Out: Warning message is printed in the log_file
 *************************************************************************/
-void mdl_warning(struct mdlparse_vars *mpvp)
+void mdl_warning(struct mdlparse_vars *mpvp, char const *fmt, ...)
 {
+  va_list arglist;
+  if (mpvp->vol->procnum != 0)
+    return;
 
-  if (mpvp->vol->procnum == 0){
-    fprintf(mpvp->vol->log_file,
-      "MCell: Warning on line: %d of file: %s  %s\n",
-      mpvp->line_num[mpvp->include_stack_ptr],
-      mpvp->vol->curr_file,mpvp->mdl_err_msg);
-    fflush(mpvp->vol->log_file);
-  }
-  return;
+  fprintf(mpvp->vol->log_file,
+          "MCell: Warning on line: %d of file: %s  ",
+          mpvp->line_num[mpvp->include_stack_ptr],
+          mpvp->vol->curr_file);
+
+  va_start(arglist, fmt);
+  vfprintf(mpvp->vol->log_file, fmt, arglist);
+  va_end(arglist);
+
+  fprintf(mpvp->vol->log_file, "\n");
+  fflush(mpvp->vol->log_file);
 }
 
 
@@ -2288,7 +2296,6 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   struct sym_table *sym;
   char *inverse_name;
   int nprods,all_3d;
-  char err_message[1024];
 
   mpvp->num_surf_products = 0;
   mpvp->num_grid_mols = 0;
@@ -2304,22 +2311,22 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   
   if (nprods==0)
   {
-    mdlerror("Can't create a reverse reaction with no products");
+    mdlerror(mpvp, "Can't create a reverse reaction with no products");
     return 1;
   }
   if (nprods==1 && (mpvp->pathp->product_head->prod->flags&IS_SURFACE))
   {
-    mdlerror("Can't create a reverse reaction starting from only a surface");
+    mdlerror(mpvp, "Can't create a reverse reaction starting from only a surface");
     return 1;
   }
   if (nprods>2)
   {
-    mdlerror("Can't create a reverse reaction involving more than two products");
+    mdlerror(mpvp, "Can't create a reverse reaction involving more than two products");
     return 1;
   }
   if (mpvp->pathp->pathname != NULL)
   {
-    mdlerror("Can't name bidirectional reactions--write each reaction and name them separately");
+    mdlerror(mpvp, "Can't name bidirectional reactions--write each reaction and name them separately");
     return 1;
   }
   if (all_3d)
@@ -2329,7 +2336,7 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
     
     if (!all_3d)
     {
-      mdlerror("Cannot reverse orientable reaction with only volume products");
+      mdlerror(mpvp, "Cannot reverse orientable reaction with only volume products");
       return 1;
     }
   }
@@ -2344,8 +2351,7 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
     inverse_name = concat_rx_name(prodp->prod->sym->name,prodp->next->prod->sym->name);
     if (inverse_name==NULL)
     {
-      sprintf(err_message, "Out of memory forming reaction name");
-      mdlerror(err_message);
+      mdlerror(mpvp, "Out of memory forming reaction name");
       return 1;
     }
   }
@@ -2356,8 +2362,7 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
     sym = store_sym(inverse_name,RX,mpvp->vol->main_sym_table);
     if (sym==NULL)
     {
-      sprintf(err_message, "Out of memory storing reaction pathway");
-      mdlerror(err_message);
+      mdlerror(mpvp, "Out of memory storing reaction pathway");
       return 1;
     }
   }
@@ -2368,8 +2373,7 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   path = (struct pathway*)mem_get(mpvp->path_mem);
   if (path==NULL)
   {
-      sprintf(err_message, "Out of memory storing reaction pathway");
-      mdlerror(err_message);
+      mdlerror(mpvp, "Out of memory storing reaction pathway");
       return 1;
   }
   path->pathname=NULL;
@@ -2407,8 +2411,7 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   path->product_head = (struct product*)mem_get(mpvp->prod_mem);
   if (path->product_head==NULL)
   {
-      sprintf(err_message, "Out of memory storing reaction pathway");
-      mdlerror(err_message);
+      mdlerror(mpvp, "Out of memory storing reaction pathway");
       return 1;
   }
   path->product_head->orientation = mpvp->pathp->orientation1;
@@ -2423,8 +2426,7 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
     path->product_head->next = (struct product*)mem_get(mpvp->prod_mem);
     if (path->product_head->next==NULL)
     {
-      sprintf(err_message, "Out of memory storing reaction pathway");
-      mdlerror(err_message);
+      mdlerror(mpvp, "Out of memory storing reaction pathway");
       return 1;
     }
     path->product_head->next->orientation = mpvp->pathp->orientation2;
@@ -2436,8 +2438,7 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   }
   path->prod_signature = create_prod_signature(&path->product_head);  
   if(path->prod_signature == NULL){
-      sprintf(err_message, "Error creating 'prod_signature' field for reaction pathway.\n");
-      mdlerror(err_message);
+      mdlerror(mpvp, "Error creating 'prod_signature' field for reaction pathway.\n");
       return 1;
   } 
 
@@ -2446,7 +2447,7 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
       /* the case with one volume molecule reacting with the surface
          and producing one grid molecule is exclude */
       if(!((mpvp->num_grid_mols == 0) && (mpvp->num_vol_mols == 1))) {
-          mdlerror("Error: number of surface products exceeds number of surface reactants, but VACANCY_SEARCH_DISTANCE is not specified or set to zero.\n");
+          mdlerror(mpvp, "Error: number of surface products exceeds number of surface reactants, but VACANCY_SEARCH_DISTANCE is not specified or set to zero.\n");
            return 1;
       }
   } 

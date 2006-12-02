@@ -38,7 +38,10 @@ I ([0-9]+)
 %%
 
 
-<INITIAL>"/*"   { mpvp->comment_started = mpvp->line_num[mpvp->include_stack_ptr]; yy_push_state(IN_COMMENT); }
+<INITIAL>"/*"   {
+                  mpvp->comment_started = mpvp->line_num[mpvp->include_stack_ptr];
+                  yy_push_state(IN_COMMENT);
+                }
 <IN_COMMENT>{
 [^*/\n]*        { }
 "/"[^*\n]       { }
@@ -47,9 +50,9 @@ I ([0-9]+)
 "*"+"/"         { yy_pop_state(); }
 <<EOF>>         {
                   mpvp->line_num[mpvp->include_stack_ptr]--;
-                  sprintf(mpvp->mdl_err_msg, "Unterminated comment started on line %d",
-                          mpvp->comment_started);
-                  mdlerror(mpvp->mdl_err_msg);
+                  mdlerror_fmt(mpvp,
+                               "Unterminated comment started on line %d",
+                               mpvp->comment_started);
                   return(1);
                 }
 }
