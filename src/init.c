@@ -2703,7 +2703,7 @@ struct object** find_unique_rev_objects(struct release_evaluator *root,int *n)
   struct mem_helper *voidmem;
   int i;
   
-  voidmem = create_mem(1024,sizeof(struct void_list));
+  voidmem = create_mem(sizeof(struct void_list), 1024);
   
   vp = rel_expr_grab_obj(root,voidmem);
   if (vp==NULL) return NULL;
