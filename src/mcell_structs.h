@@ -1191,7 +1191,6 @@ struct volume
   byte volume_reversibility;   /* If set, match unbinding diffusion distribution to binding distribution in volume */
 
   /* MCell startup command line arguments */
-  byte info_opt;             /* If set, print out infomation message and quit */
   u_int seed_seq;            /* Seed for random number generator */
   long long iterations;      /* How many iterations to run */
   char *log_file_name;       /* Name of log file */

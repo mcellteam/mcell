@@ -73,7 +73,6 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
   vol->log_file = stdout;
   vol->err_file = stderr;
   vol->seed_seq = 1;
-  vol->info_opt = 0;
   vol->mdl_infile_name = NULL;
 
   /* Loop over all arguments */
@@ -87,10 +86,6 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
 
     switch (c)
     {
-      case 'I':  /* -info */
-        vol->info_opt = 1;
-        break;
-
       case '?':
       case 'h':  /* -help */
         return 1;

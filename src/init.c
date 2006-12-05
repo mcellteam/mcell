@@ -46,67 +46,48 @@ extern struct volume *world;
 #define MICROSEC_PER_YEAR 365.25*86400.0*1e6
 
 /**
- * Prints out author and grant credits.
+ * Prints out author's institutions.
  * When invoked with the -info option, this function prints to log_file
  * a header like:
 
  <pre>
-  MCell (tm) Version 2.50x  06/05/2001  Running on dalton.salk.edu
+   MCell 3.001  11/30/2006  Running on machine_name
 
-  Copyright (C) 1997,1998,1999 by The Salk Institute & Cornell University
-  Co-authored by Thomas M. Bartol Jr. & Joel R. Stiles
-  Acknowledgements:
-    The authors thank Edwin E. Salpeter for input on theory and
-    algorithm design, Terrence J. Sejnowski for development input
-    and support (NSF Grant IBN-9603611), and Miriam M. Salpeter
-    for fostering quantitative experimental applications.
-    Additional support from NIH Grant K08NS01776 (Joel R. Stiles).
+   Copyright (C) 2006 by The Salk Institute for Biological Studies and Pittsburgh Supercomputing Center, Carnegie Mellon University
+ 
  </pre>
 
  */
 void init_credits(void)
 {
+        
   FILE *log_file;
+  char *institute[2];
   unsigned int seed;
-  time_t the_time;
-  char *institute[2],*author[2];
-  int i;
-  struct ran4_state rng;
- 
-  log_file=world->log_file;
-  time(&the_time);
-  seed=(unsigned int)the_time;
-  ran4_init(&rng,seed);
-  for (i=0;i<100;i++) ran4_uint32(&rng);
-  if (ran4_dbl32(&rng)<0.5) {
-    institute[0]=strdup("The Salk Institute");
-    institute[1]=strdup("& Cornell University");
-    author[0]=strdup("Thomas M. Bartol Jr.");
-    author[1]=strdup("& Joel R. Stiles");
+  long ltime;
+
+  log_file = world->log_file;
+
+  ltime = time(NULL);
+  seed = (unsigned int)ltime/2;
+  srand(seed);
+      
+  if(rand()%2 != 0){
+    institute[0]=strdup("The Salk Institute for Biological Studies");
+    institute[1]=strdup("Pittsburgh Supercomputing Center, Carnegie Mellon University");
+  }else{
+    institute[0]=strdup("Pittsburgh Supercomputing Center, Carnegie Mellon University");
+    institute[1]=strdup("The Salk Institute for Biological Studies");
   }
-  else {
-    institute[0]=strdup("Cornell University");
-    institute[1]=strdup("& The Salk Institute");
-    author[0]=strdup("Joel R. Stiles");
-    author[1]=strdup("& Thomas M. Bartol Jr.");
-  }
-  if((institute[0] == NULL) || (institute[1] == NULL) ||
-     (author[0] == NULL) || (author[1] == NULL))
+  if((institute[0] == NULL) || (institute[1] == NULL)) 
   {
      fprintf(world->err_file, "File '%s', Line  %ld: Out of memory.\n", __FILE__, (long)__LINE__);
      return;
   }	
-  
-    fprintf(log_file,"  Copyright (C) 1997,1998,1999 by %s %s\n",institute[0],institute[1]);
-    fprintf(log_file,"  Co-authored by %s %s\n",author[0],author[1]);
-    fprintf(log_file,"  Acknowledgements:\n");
-    fprintf(log_file,"    The authors thank Edwin E. Salpeter for input on theory and\n");
-    fprintf(log_file,"    algorithm design, Terrence J. Sejnowski for development input\n");
-    fprintf(log_file,"    and support (NSF Grant IBN-9603611), and Miriam M. Salpeter\n");
-    fprintf(log_file,"    for fostering quantitative experimental applications.\n");
-    fprintf(log_file,"    Additional support from NIH Grant K08NS01776 (Joel R. Stiles).\n\n");
 
-  return;
+    fprintf(log_file,"  Copyright (C) 2006 by %s and %s\n\n",institute[0],institute[1]);
+
+    return;
 }
 
 

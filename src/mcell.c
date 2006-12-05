@@ -150,7 +150,7 @@ void run_sim(void)
         run_timestep( local->store , next_release_time , (double)world->iterations+1.0 );
       }
     }
-    
+
     world->it_time++;
     
   }
@@ -204,7 +204,6 @@ void run_sim(void)
           }
                
           if(do_not_print == 1) continue;
-  
         if (rxp->n_occurred*world->notify->missed_reaction_value < rxp->n_skipped)
         {
           if (first_report)
@@ -323,18 +322,15 @@ int main(int argc, char **argv) {
     }
     fprintf(log_file,"\n");
 
-   
 
     fprintf(log_file,"MCell %s (build %s)\n",MCELL_VERSION,"(build date/CVS version date goes here)");
     fprintf(log_file,"  Running on %s at %s\n\n",hostname, ctime(&begin_time_of_day));
     if (procnum == 0) {
-      if (world->info_opt) {
-        fprintf(log_file,"  -info option selected\n");
-      }
+      init_credits();
+
       fprintf(log_file,"Usage: %s [options] mdl_file_name\n\n",argv[0]);
       fprintf(log_file,"    options:\n");
       fprintf(log_file,"       [-help]                   print this help message\n");
-      fprintf(log_file,"       [-info]                   print MCell info message\n");
       fprintf(log_file,"       [-seed n]                 choose random sequence number (default: 1)\n");
       fprintf(log_file,"       [-iterations n]           override iterations in mdl_file_name\n");
       fprintf(log_file,"       [-logfile log_file_name]  send output log to file (default: stderr)\n");
@@ -359,9 +355,8 @@ int main(int argc, char **argv) {
     fprintf(log_file,"\n");
     fprintf(log_file,"MCell %s (build %s)\n",MCELL_VERSION,"(build date/CVS version date goes here)");
     fprintf(log_file,"  Running on %s at %s\n\n",hostname, ctime(&begin_time_of_day));
-    if (world->info_opt) {
-      fprintf(log_file,"  -info option selected\n");
-    }
+      
+    init_credits();
   }
 
 /*
