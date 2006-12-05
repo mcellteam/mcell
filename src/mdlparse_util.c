@@ -1282,7 +1282,7 @@ RULE: Two reactions pathways are duplicates if and only if
            if and only if for every pair of players "i" and "j" in R1, the 
            corresponding players M(i) and M(j) in R2 have the same orientation
            relation as do "i" and "j" in R1.
-           Two players "i" and "j" in a reaction pathawy have the following
+           Two players "i" and "j" in a reaction pathway have the following
            orientation:
              parallel - if both "i" and "j" are in the same nonzero orientation
              class with the same sign;
@@ -1342,7 +1342,7 @@ void check_reaction_for_duplicate_pathways(struct pathway **head, struct mdlpars
    while(current->next != NULL){
       if(strcmp(current->prod_signature, current->next->prod_signature) == 0){
        
-         pathways_equivalent  = 0;
+         pathways_equivalent  = 1;
          /* find total number of players in the pathways */
          num_reactants = 0;
          num_products = 0;
@@ -1359,6 +1359,7 @@ void check_reaction_for_duplicate_pathways(struct pathway **head, struct mdlpars
          }
          
          num_players = num_reactants + num_products;
+
          /* create arrays of players orientations */
          orient_players_1 = (int *)malloc(sizeof(int)*(num_players));
          orient_players_2 = (int *)malloc(sizeof(int)*(num_players));
@@ -1385,6 +1386,7 @@ void check_reaction_for_duplicate_pathways(struct pathway **head, struct mdlpars
             iter1 = iter1->next;
             iter2 = iter2->next;
          }
+
          
          /* below we will compare only reactant-product
             and product-product combinations
@@ -1392,9 +1394,14 @@ void check_reaction_for_duplicate_pathways(struct pathway **head, struct mdlpars
             were compared previously in the function
             "equivalent_geometry()"
          */
+
+         /* Initial assumption - pathways are equivalent.
+            We check whether this assumption is 
+            valid by  compairing pairs as decsribed
+            above */ 
            
          i = 0;
-         while((i < num_players) && (!pathways_equivalent))
+         while((i < num_players) && (pathways_equivalent))
          { 
             if(i < num_reactants){
                j = num_reactants;
@@ -1408,7 +1415,7 @@ void check_reaction_for_duplicate_pathways(struct pathway **head, struct mdlpars
                o2a = orient_players_2[i];
                o2b = orient_players_2[j];
                if(!equivalent_geometry_for_two_reactants(o1a, o1b, o2a, o2b)){
-                  pathways_equivalent = 1;
+                  pathways_equivalent = 0;
                   break;
                }
             }
@@ -1531,20 +1538,34 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 path->orientation2 = geom;
               }
             }
-            
+         
             /* Alphabetize if we have two molecules */
-            if( (path->reactant2->flags&IS_SURFACE)==0 &&
-                 strcmp(path->reactant1->sym->name, path->reactant2->sym->name) > 0)
+            if( (path->reactant2->flags&IS_SURFACE)==0)
             {
-              temp_sp = path->reactant1;
-              path->reactant1 = path->reactant2;
-              path->reactant2 = temp_sp;
-              geom = path->orientation1;
-              path->orientation1 = path->orientation2;
-              path->orientation2 = geom;
+
+                if( strcmp(path->reactant1->sym->name, path->reactant2->sym->name) > 0)
+                {
+
+                   temp_sp = path->reactant1;
+                   path->reactant1 = path->reactant2;
+                   path->reactant2 = temp_sp;
+                   geom = path->orientation1;
+                   path->orientation1 = path->orientation2;
+                   path->orientation2 = geom;
+                }else if(strcmp(path->reactant1->sym->name, path->reactant2->sym->name) == 0){
+                if(path->orientation1 < path->orientation2){
+                  geom = path->orientation1;
+                  path->orientation1 = path->orientation2;
+                  path->orientation2 = geom;
+                }
+             }
             }
+
+
           } /* end if(n_reactants > 1) */
         }  /* end for(path = reaction->pathway_head; ...) */
+                 
+
  
         /* if reaction contains equivalent pathways, split
            this reaction into a linked list of reactions
