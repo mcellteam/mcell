@@ -21,7 +21,6 @@
  */
 static struct option long_options[] = {
   {"help",              0, 0, 'h'},
-  {"info",              0, 0, 'I'},
   {"seed",              1, 0, 's'},
   {"iterations",        1, 0, 'i'},
   {"checkpoint_infile", 1, 0, 'c'},
@@ -80,7 +79,7 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
   {
 
     /* get the next argument */
-    int c = getopt_long_only(argc, argv, "?hIs:i:c:l:f:e:", long_options, NULL);
+    int c = getopt_long_only(argc, argv, "?hs:i:c:l:f:e:", long_options, NULL);
     if (c == -1)
         break;
 
