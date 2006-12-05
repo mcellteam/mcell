@@ -5933,9 +5933,9 @@ existing_molecule_required_orient_quotes: VAR_ORIENT_IN_QUOTES
   $$=mdlpvp->gp;
 };
 
-existing_molecule_required_orient_braces: VAR '{' INTEGER '}'
+existing_molecule_required_orient_braces: VAR '{' num_expr '}'
 {
-  short orientation = (short) mdlpvp->ival;
+  short orientation = (short) $3;
 
   if (mdlpvp->cval_2!=NULL) {  
     mdlpvp->sym_name=mdlpvp->cval_2;
