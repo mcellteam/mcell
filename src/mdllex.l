@@ -34,6 +34,7 @@
 
 R ([0-9]+\.)|([0-9]*\.[0-9]+)|([0-9]+[eE][+-]?[0-9]+)|([0-9]+\.[0-9]*[eE][+-]?[0-9]+)|([0-9]*\.[0-9]+[eE][+-]?[0-9]+)
 I ([0-9]+)
+IDENT [A-Za-z][A-Za-z0-9\_\.]*
 
 %%
 
@@ -365,7 +366,7 @@ I ([0-9]+)
 "fclose"		{return(FCLOSE);}
 {R}			{sscanf((const char *)mdltext,"%lf",&mpvp->rval); return(REAL);}
 {I}			{sscanf((const char *)mdltext,"%d",&mpvp->ival); return(INTEGER);}
-[A-Za-z][A-Za-z0-9\_\.]* {
+{IDENT} {
 			   if (mpvp->cval==NULL) {
 			     mpvp->cval_2=NULL;
 			     mpvp->cval=strdup(mdltext);
@@ -381,9 +382,9 @@ I ([0-9]+)
 
 			   return(VAR);
 			 }
-\"[A-Za-z][A-Za-z0-9\_\.]*;\" | 
-\"[A-Za-z][A-Za-z0-9\_\.]*(\,)+\" | 
-\"[A-Za-z][A-Za-z0-9\_\.]*(\')+\" {
+\"{IDENT};\" | 
+\"{IDENT}*(\,)+\" | 
+\"{IDENT}*(\')+\" {
 			   if (mpvp->cval==NULL) {
 			     mpvp->cval_2=NULL;
 			     mpvp->cval=strdup(mdltext);
@@ -399,22 +400,6 @@ I ([0-9]+)
 
 			   return(VAR_ORIENT_IN_QUOTES);
 			 }
-[A-Za-z][A-Za-z0-9\_\.]*\{-?[0-9]+\} {
-			   if (mpvp->cval==NULL) {
-			     mpvp->cval_2=NULL;
-			     mpvp->cval=strdup(mdltext);
-			   }
-			   else {
-			     mpvp->cval_2=mpvp->cval;
-			     mpvp->cval=strdup(mdltext);
-			   }
-                           if(mpvp->cval == NULL){
-                                fprintf(stderr,"File '%s', Line %ld: Out of memory while parsing variable name: %s\n", __FILE__, (long)__LINE__, mdltext);
-                                exit(1);
-                           }
-
-			   return(VAR_ORIENT_IN_BRACES);
-                         }
 \"[A-Za-z\[\]\-\*\?][A-Za-z0-9\_\.\[\]\-\*\?]*\" {
 			   if (mpvp->cval==NULL) {
 			     mpvp->cval_2=NULL;
