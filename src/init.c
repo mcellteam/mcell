@@ -45,19 +45,20 @@ extern struct volume *world;
 
 #define MICROSEC_PER_YEAR 365.25*86400.0*1e6
 
-/**
- * Prints out author's institutions.
- * When invoked with the -info option, this function prints to log_file
- * a header like:
+
+/*
+ Prints out author's institutions.
 
  <pre>
    MCell 3.001  11/30/2006  Running on machine_name
 
-   Copyright (C) 2006 by The Salk Institute for Biological Studies and Pittsburgh Supercomputing Center, Carnegie Mellon University
+   Copyright (C) 2006 by
+     The Salk Institute for Biological Studies and
+     Pittsburgh Supercomputing Center, Carnegie Mellon University
  
  </pre>
 
- */
+*/
 void init_credits(void)
 {
         
@@ -72,20 +73,18 @@ void init_credits(void)
   seed = (unsigned int)ltime/2;
   srand(seed);
       
-  if(rand()%2 != 0){
-    institute[0]=strdup("The Salk Institute for Biological Studies");
-    institute[1]=strdup("Pittsburgh Supercomputing Center, Carnegie Mellon University");
-  }else{
-    institute[0]=strdup("Pittsburgh Supercomputing Center, Carnegie Mellon University");
-    institute[1]=strdup("The Salk Institute for Biological Studies");
-  }
-  if((institute[0] == NULL) || (institute[1] == NULL)) 
+  if (rand()%2 != 0)
   {
-     fprintf(world->err_file, "File '%s', Line  %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-     return;
-  }	
+    institute[0]="The Salk Institute for Biological Studies";
+    institute[1]="Pittsburgh Supercomputing Center, Carnegie Mellon University";
+  }
+  else
+  {
+    institute[0]="Pittsburgh Supercomputing Center, Carnegie Mellon University";
+    institute[1]="The Salk Institute for Biological Studies";
+  }
 
-    fprintf(log_file,"  Copyright (C) 2006 by %s and %s\n\n",institute[0],institute[1]);
+    fprintf(log_file,"  Copyright (C) 2006 by\n    %s and\n    %s\n\n",institute[0],institute[1]);
 
     return;
 }

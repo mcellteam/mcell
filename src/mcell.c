@@ -324,7 +324,7 @@ int main(int argc, char **argv) {
 
 
     fprintf(log_file,"MCell %s (build %s)\n",MCELL_VERSION,"(build date/CVS version date goes here)");
-    fprintf(log_file,"  Running on %s at %s\n\n",hostname, ctime(&begin_time_of_day));
+    fprintf(log_file,"  Running on %s at %s\n",hostname, ctime(&begin_time_of_day));
     if (procnum == 0) {
       init_credits();
 
@@ -354,7 +354,7 @@ int main(int argc, char **argv) {
   {
     fprintf(log_file,"\n");
     fprintf(log_file,"MCell %s (build %s)\n",MCELL_VERSION,"(build date/CVS version date goes here)");
-    fprintf(log_file,"  Running on %s at %s\n\n",hostname, ctime(&begin_time_of_day));
+    fprintf(log_file,"  Running on %s at %s\n",hostname, ctime(&begin_time_of_day));
       
     init_credits();
   }
