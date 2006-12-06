@@ -4505,4 +4505,162 @@ struct output_expression* join_oexpr_tree(struct output_expression *left,struct 
 }
 
 
+/*
+ * Concatenate two lists.  One list header will be destroyed and the still
+ * valid one will be returned.
+ */
+struct list_head *list_concat(struct mdlparse_vars *mpvp,
+                              struct list_head *l1,
+                              struct list_head *l2)
+{
+  l1->tail->next = l2->head;
+  l1->tail = l2->tail;
+  l1->count += l2->count;
+  mem_put(mpvp->list_head_mem, l2);
+  return l1;
+}
+
+/*
+ * Append an item to a list.
+ */
+struct list_head *list_append(struct mdlparse_vars *mpvp,
+                              struct list_head *l1,
+                              struct list_item *i)
+{
+  if (l1->head == NULL) l1->head = i;
+  if (l1->tail != NULL) l1->tail->next = i;
+  l1->tail = i;
+  i->next = NULL;
+  ++ l1->count;
+  return l1;
+}
+
+/*
+ * Create an empty list.
+ */
+struct list_head *list_create_empty(struct mdlparse_vars *mpvp)
+{
+  struct list_head *h = (struct list_head *) mem_get(mpvp->list_head_mem);
+  if (h == NULL)
+    return NULL;
+
+  h->head = NULL;
+  h->tail = NULL;
+  h->count = 0;
+  return h;
+}
+
+/*
+ * Create a list containing a single item.
+ */
+struct list_head *list_create(struct mdlparse_vars *mpvp,
+                              struct list_item *i)
+{
+  struct list_head *h = list_create_empty(mpvp);
+  if (h == NULL)
+    return NULL;
+  list_append(mpvp, h, i);
+  return h;
+}
+
+/*
+ * Free a list.  freefunc will be called on each listitem, and may be used to
+ * specially deallocate items.  To just use 'free', pass std_list_free as the
+ * third argument.
+ */
+void list_free(struct mdlparse_vars *mpvp, struct list_head *l, listitem_freefunc freefunc)
+{
+  struct list_item *i, *next;
+  for (i = l->head; i != NULL; i = next) {
+    next = i->next;
+    (*freefunc)(mpvp, i);
+  }
+  mem_put(mpvp->list_head_mem, l);
+}
+
+/*
+ * Create a pointer list containing a single item.  Note that this is a naked
+ * list -- no head or tail pointers.
+ */
+struct ptr_list *ptr_list_singleton(struct mdlparse_vars *mpvp, void *ptr)
+{
+  struct ptr_list *ptrl = (struct ptr_list *) mem_get(mpvp->ptr_list_mem);
+  ptrl->ptr = ptr;
+  ptrl->next = NULL;
+  return ptrl;
+}
+
+/*
+ * Free a single node in a pointer list.  These are block allocated and
+ * recycled during parsing and then bulk-flushed at the end of parsing.
+ */
+void ptr_list_free(struct mdlparse_vars *mpvp, struct ptr_list *p)
+{
+  mem_put(mpvp->ptr_list_mem, p);
+}
+
+/*
+ * Free a node in a pointer list which was allocated using malloc.
+ */
+void std_list_free(struct mdlparse_vars *mpvp, struct list_item *p)
+{
+  free(p);
+}
+
+/*
+ * Convert a numeric list into an array.  The list count will be stored into
+ * the count pointer, if it is not NULL.
+ */
+double *num_expr_list_to_array(struct list_head *lh, int *count)
+{
+  double *arr = NULL, *ptr = NULL;
+  struct num_expr_list *i;
+
+  if (count != NULL)
+    *count = lh->count;
+
+  if (lh->count == 0)
+    return NULL;
+
+  arr = (double *) malloc(lh->count * sizeof(double));
+  for (i = (struct num_expr_list *) lh->head, ptr = arr; i != NULL; i = i->next)
+    *ptr++ = i->value;
+  return arr;
+}
+
+/*
+ * Convert a pointer list into an array.  The list count will be stored into
+ * the count pointer, if it is not NULL.
+ */
+void **ptr_list_to_array(struct list_head *lh, int *count)
+{
+  void **arr = NULL, **ptr = NULL;
+  struct ptr_list *i;
+
+  if (count != NULL)
+    *count = lh->count;
+
+  if (lh->count == 0)
+    return NULL;
+
+  arr = (void **) malloc(lh->count * sizeof(void *));
+  for (i = (struct ptr_list *) lh->head, ptr = arr; i != NULL; i = i->next)
+    *ptr++ = i->ptr;
+  return arr;
+}
+
+/*
+ * Utility function to allow sorting an array of pointers by address.
+ */
+int ptr_compare(void const *v1, void const *v2)
+{
+  void const **v1p = (void const **) v1;
+  void const **v2p = (void const **) v2;
+  intptr_t i1 = (intptr_t) *v1p, i2 = (intptr_t) *v2p;
+  if (i1 < i2)
+    return -1;
+  else if (i1 > i2)
+    return 1;
+  return 0;
+}
 

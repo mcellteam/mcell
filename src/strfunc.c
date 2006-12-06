@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include "strfunc.h"
 
 
@@ -92,4 +93,28 @@ void no_printf(const char *format, ...)
 {
 }
 #endif
+
+/*
+ * Format a string into an allocated buffer.
+ */
+char *alloc_sprintf(char const *fmt, ...)
+{
+  va_list args;
+  char stack_buffer[256];
+  int len;
+  char *retval = NULL;
+
+  va_start(args, fmt);
+  len = vsnprintf(stack_buffer, sizeof(stack_buffer), fmt, args);
+  if (len >= sizeof(stack_buffer))
+  {
+    retval = malloc(len + 1);
+    vsnprintf(retval, len + 1, fmt, args);
+  }
+  else
+    retval = strdup(stack_buffer);
+  va_end(args);
+
+  return retval;
+}
 

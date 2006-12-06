@@ -22,6 +22,12 @@ struct arg {
   void *arg_value;
 };
 
+struct output_times {
+  int     timer_type;
+  double  step_time;
+  int     num_times;
+  double *times;
+};
 
 struct mdlparse_vars {
   char *cval;
@@ -172,6 +178,13 @@ struct mdlparse_vars {
   
   char *header_comment;
   byte exact_time_flag;
+
+  /* Allocators for temporary data structures to be thrown away after the
+   * parse
+   */
+  struct mem_helper *list_head_mem;
+  struct mem_helper *ptr_list_mem;
+  struct mem_helper *output_times_mem;
 };
 
 

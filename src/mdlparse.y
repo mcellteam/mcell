@@ -35,7 +35,6 @@
     return min(f1,min(f2,f3));
   }
 
-
 %}
 
 
@@ -51,6 +50,8 @@ struct object *obj;
 struct object_list *objl;
 struct output_expression *cnt;
 struct release_evaluator *rev;
+struct list_head *lst;
+struct output_times *otimes;
 } 
 
 
@@ -158,6 +159,7 @@ struct release_evaluator *rev;
 %token <tok> FALSE
 %token <tok> FCLOSE
 %token <tok> FILENAME
+%token       FILENAME_PREFIX
 %token <tok> FILE_OUTPUT_REPORT
 %token <tok> FINAL_SUMMARY
 %token <tok> FLOOR
@@ -348,9 +350,12 @@ struct release_evaluator *rev;
 %token <tok> VIZ_DATA_OUTPUT
 %token <tok> VIZ_OUTPUT
 %token <tok> VIZ_VALUE
+%token       VOLUME_DATA_OUTPUT
 %token <tok> VOLUME_DEPENDENT_RELEASE_NUMBER
+%token       VOXEL_COUNT
 %token <tok> VOXEL_IMAGE_MODE
 %token <tok> VOXEL_LIST
+%token       VOXEL_SIZE
 %token <tok> VOXEL_VOLUME_MODE
 %token <tok> WARNING
 %token <tok> WARNINGS
@@ -365,63 +370,13 @@ struct release_evaluator *rev;
 %token <tok> YZ_TOK
 %token <tok> Z_TOK
 
-
-%type <tok> mdl_format
-%type <tok> mdl_stmt_list
-%type <tok> mdl_stmt
-%type <tok> time_def
-%type <tok> time_max_def
-%type <tok> space_def
-%type <tok> iteration_def
-%type <tok> grid_density_def
-%type <tok> interact_radius_def
-%type <tok> radial_directions_def
-%type <tok> radial_subdivisions_def
-%type <tok> optional_flag_def
-%type <tok> optional_flag_randomgrid_def
-%type <tok> optional_flag_expandlist_def
-%type <tok> optional_vacancy_search_def
-%type <tok> assignment_stmt
-%type <tok> equals_or_to
-%type <tok> partition_def
-%type <tok> molecules_def
-%type <tok> define_one_molecule
-%type <tok> define_multiple_molecules
-%type <tok> surface_classes_def
-%type <tok> define_one_surface_class
-%type <tok> define_multiple_surface_classes
 %type <tok> surface_rxn_type
-%type <tok> chkpt_stmt
-%type <tok> release_pattern_def
 %type <tok> site_size_cmd
-%type <tok> physical_object_def
-%type <tok> existing_obj_define_surface_regions
-%type <tok> mod_surface_regions
 %type <tok> partition_dimension
-%type <tok> instance_def
-%type <tok> include_stmt
-%type <tok> viz_data_output_def
-%type <tok> viz_output_def 
-%type <tok> output_def
-%type <tok> io_stmt
-%type <tok> fopen_stmt
-%type <tok> fclose_stmt
-%type <tok> printf_stmt
-%type <tok> fprintf_stmt
-%type <tok> print_time_stmt
-%type <tok> fprint_time_stmt
-%type <tok> sprintf_stmt
-%type <tok> notification_def
 %type <tok> notification_list
 %type <tok> notification_item_def
-%type <tok> warnings_def
 %type <tok> warning_list
 %type <tok> warning_item_def
-%type <tok> reversibility_def
-%type <tok> surface_reversibility_def
-%type <tok> volume_reversibility_def
-%type <tok> end_of_mdl_file
-
 
 %type <tok> rx_net_def
 %type <tok> rx_stmt
@@ -518,6 +473,7 @@ struct release_evaluator *rev;
 %type <nel> array_expr_only
 
 %type <vec3> point
+%type <vec3> point_or_num
 
 %type <cnt> count_expr
 %type <cnt> count_value
@@ -527,6 +483,18 @@ struct release_evaluator *rev;
 %type <cnt> count_syntax_3
 
 %type <rev> release_region_expr
+
+%type <str>  volume_output_filename_prefix
+%type <lst>  volume_output_molecule_list
+%type <lst>  volume_output_molecule_decl
+%type <lst>  volume_output_molecules
+%type <vec3> volume_output_location
+%type <vec3> volume_output_voxel_size
+%type <vec3> volume_output_voxel_count
+%type <otimes> volume_output_times_def
+
+%type <lst> list_range_specs_new
+%type <lst> range_spec_new
 
 /**********************
 
@@ -628,6 +596,7 @@ mdl_stmt: time_def
 	| viz_data_output_def
 	| viz_output_def
 	| output_def
+        | volume_output_def
         | notification_def
         | warnings_def
         | reversibility_def
@@ -2772,7 +2741,7 @@ surface_rxn_type: REFLECTIVE {$$=RFLCT;}
 	| ABSORPTIVE {$$=SINK;}
 ;
 
-equals_or_to: '=' {$$=TO} | TO;
+equals_or_to: '=' | TO;
 
 
 surface_class_mol_stmt: surface_mol_stmt
@@ -4307,6 +4276,20 @@ point: array_value
   $$=mdlpvp->pntp1;
 };
 
+point_or_num: point
+            | num_expr_only
+{
+  struct vector3 *vec;
+  if ((vec=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
+    mdlerror(mdlpvp, "Out of memory while creating point");
+    return(1);
+  }
+  vec->x = $1;
+  vec->y = $1;
+  vec->z = $1;
+  $$ = vec;
+}
+;
 
 polygon_list_def: new_object POLYGON_LIST '{'
 {
@@ -8136,7 +8119,6 @@ list_range_specs: range_spec
 	| list_range_specs ',' range_spec
 ;
 
-
 range_spec: num_expr
 {
   if ((mdlpvp->elp=(struct num_expr_list *)malloc
@@ -8207,6 +8189,73 @@ range_spec: num_expr
   }
 };
 
+/* List of range specifications using more idiomatic parsing */
+list_range_specs_new: range_spec_new
+	| list_range_specs_new ',' range_spec_new
+{
+  $$ = list_concat(mdlpvp, $1, $3);
+}
+;
+
+/* Single range specification using more idiomatic parsing */
+range_spec_new: num_expr
+{
+  struct list_head *lh = NULL;
+  struct num_expr_list *elp = NULL;
+  if ((elp=(struct num_expr_list *)malloc(sizeof(struct num_expr_list))) == NULL) {
+    mdlerror(mdlpvp, "Out of memory while creating iteration list");
+    return 1;
+  }
+  elp->value = $1;
+
+  if ((lh = list_create(mdlpvp, (struct list_item *) elp)) == NULL) {
+    mdlerror(mdlpvp, "Out of memory while creating iteration list");
+    free(elp);
+    return 1;
+  }
+
+  $$ = lh;
+}
+	| '[' num_expr TO num_expr STEP num_expr ']'
+{
+  double d;
+  struct list_head *lh = NULL;
+  struct num_expr_list *elp = NULL;
+  if ((lh = list_create_empty(mdlpvp)) == NULL) {
+    mdlerror(mdlpvp, "Out of memory while creating iteration list");
+    return 1;
+  }
+
+  for (d = $2; d < $4 || ! distinguishable(d, $4, EPSILON); d += $6)
+  {
+    if ((elp=(struct num_expr_list *)malloc
+        (sizeof(struct num_expr_list)))==NULL) {
+      list_free(mdlpvp, lh, (listitem_freefunc) &std_list_free);
+      mdlerror(mdlpvp, "Out of memory while creating iteration list");
+      return(1);
+    }
+    elp->value = d;
+    list_append(mdlpvp, lh, (struct list_item *) elp);
+  }
+
+  /*
+   * If we're within EPSILON of the endpoint, we've probably encountered
+   * roundoff error.  Throw it in.
+   */
+  if (fabs($4 - d) <= EPSILON) {
+    if ((elp = (struct num_expr_list *)malloc
+        (sizeof(struct num_expr_list)))==NULL) {
+      list_free(mdlpvp, lh, (listitem_freefunc) &std_list_free);
+      mdlerror(mdlpvp, "Out of memory while creating iteration list");
+      return(1);
+    }
+  
+    elp->value = d;
+    list_append(mdlpvp, lh, (struct list_item *) elp);
+  }
+
+  $$ = lh;
+};
 
 viz_time_def: TIME_LIST '='
 {
@@ -8489,6 +8538,288 @@ existing_logicalOrPhysical: VAR
   $$=mdlpvp->gp;
 };
 
+volume_output_def: VOLUME_DATA_OUTPUT '{'
+                     volume_output_filename_prefix
+                     volume_output_molecule_list
+                     volume_output_location
+                     volume_output_voxel_size
+                     volume_output_voxel_count
+                     volume_output_times_def
+                 '}'
+{
+  char *filename_prefix       = $3;
+  struct list_head *molecules = $4;
+  struct vector3 *location    = $5;
+  struct vector3 *voxel_size  = $6;
+  struct vector3 *voxel_count = $7;
+  struct output_times *ot     = $8;
+  struct volume_output_item *vo = (struct volume_output_item *) malloc(sizeof(struct volume_output_item));
+  if (vo == NULL) {
+    free(filename_prefix);
+    list_free(mdlpvp, molecules, (listitem_freefunc) ptr_list_free);
+    free(location);
+    free(voxel_size);
+    free(voxel_count);
+    if (ot->times != NULL) free(ot->times);
+    mem_put(mdlpvp->output_times_mem, ot);
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing volume output statement");
+    return 1;
+  }
+  memset(vo, 0, sizeof(struct volume_output_item));
+
+  vo->filename_prefix = filename_prefix;
+  vo->molecules = (struct species **) ptr_list_to_array(molecules, &vo->num_molecules);
+  qsort(vo->molecules, vo->num_molecules, sizeof(void *), & ptr_compare);
+
+  memcpy(& vo->location, location, sizeof(struct vector3));
+  free(location);
+  vo->location.x /= mdlpvp->vol->length_unit;
+  vo->location.y /= mdlpvp->vol->length_unit;
+  vo->location.z /= mdlpvp->vol->length_unit;
+
+  memcpy(& vo->voxel_size, voxel_size, sizeof(struct vector3));
+  free(voxel_size);
+  vo->voxel_size.x /= mdlpvp->vol->length_unit;
+  vo->voxel_size.y /= mdlpvp->vol->length_unit;
+  vo->voxel_size.z /= mdlpvp->vol->length_unit;
+
+  vo->nvoxels_x = (int) (voxel_count->x + 0.5);
+  vo->nvoxels_y = (int) (voxel_count->y + 0.5);
+  vo->nvoxels_z = (int) (voxel_count->z + 0.5);
+  free(voxel_count);
+
+  vo->timer_type = ot->timer_type;
+  vo->step_time = ot->step_time;
+  vo->num_times = ot->num_times;
+  vo->times = ot->times;
+  mem_put(mdlpvp->output_times_mem, ot);
+
+  if (vo->timer_type == OUTPUT_BY_ITERATION_LIST  ||
+      vo->timer_type == OUTPUT_BY_TIME_LIST)
+    vo->next_time = vo->times;
+  else
+    vo->next_time = NULL;
+
+  vo->next = mdlpvp->vol->volume_output_head;
+  mdlpvp->vol->volume_output_head = vo;
+}
+;
+
+/* Filename prefix for volume output */
+volume_output_filename_prefix: FILENAME_PREFIX '=' str_expr
+{
+  $$ = $3;
+}
+;
+
+/* List of 'MOLECULES = a + b + c' statements for volume output */
+volume_output_molecule_list: volume_output_molecule_list volume_output_molecule_decl
+{
+  $$ = list_concat(mdlpvp, $1, $2);
+}
+                           | volume_output_molecule_decl
+;
+
+/* Single 'MOLECULES = a + b + c' statements for volume output */
+volume_output_molecule_decl: MOLECULES '=' volume_output_molecules { $$ = $3; }
+;
+
+/* 'a + b + c' clause for MOLECULES statement in volume output */
+volume_output_molecules: VAR
+{
+  char *str = mdlpvp->cval_2 ? mdlpvp->cval_2 : mdlpvp->cval;
+  struct sym_table *sp;
+  struct species *specp;
+  struct ptr_list *ptrl;
+
+  sp = retrieve_sym(str, MOL, mdlpvp->vol->main_sym_table);
+  if (sp == NULL) {
+    mdlerror_fmt(mdlpvp, "The molecule '%s' does not exist", str);
+    if (str == mdlpvp->cval_2) mdlpvp->cval_2 = NULL;
+    else mdlpvp->cval = NULL;
+    free(str);
+    return 1;
+  }
+  specp = (struct species *) sp->value;
+
+  ptrl = ptr_list_singleton(mdlpvp, specp);
+  if (ptrl == NULL) {
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing molecule list");
+    if (str == mdlpvp->cval_2) mdlpvp->cval_2 = NULL;
+    else mdlpvp->cval = NULL;
+    free(str);
+    return 1;
+  }
+
+  $$ = list_create(mdlpvp, (struct list_item *) ptrl);
+  if ($$ == NULL) {
+    mem_put(mdlpvp->ptr_list_mem, ptrl);
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing molecule list");
+    if (str == mdlpvp->cval_2) mdlpvp->cval_2 = NULL;
+    else mdlpvp->cval = NULL;
+    free(str);
+    return 1;
+  }
+
+  if (str == mdlpvp->cval_2) mdlpvp->cval_2 = NULL;
+  else mdlpvp->cval = NULL;
+  free(str);
+}
+                       | volume_output_molecules '+' VAR
+{
+  char *str = mdlpvp->cval_2 ? mdlpvp->cval_2 : mdlpvp->cval;
+  struct sym_table *sp;
+  struct species *specp;
+  struct ptr_list *ptrl;
+
+  sp = retrieve_sym(str, MOL, mdlpvp->vol->main_sym_table);
+  if (sp == NULL) {
+    mdlerror_fmt(mdlpvp, "The molecule '%s' does not exist", str);
+    if (str == mdlpvp->cval_2) mdlpvp->cval_2 = NULL;
+    else mdlpvp->cval = NULL;
+    free(str);
+    return 1;
+  }
+  specp = (struct species *) sp->value;
+
+  ptrl = ptr_list_singleton(mdlpvp, specp);
+  if (ptrl == NULL) {
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing molecule list");
+    if (str == mdlpvp->cval_2) mdlpvp->cval_2 = NULL;
+    else mdlpvp->cval = NULL;
+    free(str);
+    return 1;
+  }
+
+  $$ = list_append(mdlpvp, $1, (struct list_item *) ptrl);
+  if ($$ == NULL) {
+    mem_put(mdlpvp->ptr_list_mem, ptrl);
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing molecule list");
+    if (str == mdlpvp->cval_2) mdlpvp->cval_2 = NULL;
+    else mdlpvp->cval = NULL;
+    free(str);
+    return 1;
+  }
+
+  if (str == mdlpvp->cval_2) mdlpvp->cval_2 = NULL;
+  else mdlpvp->cval = NULL;
+  free(str);
+}
+;
+
+/* LLF-corner definition for volume output statement */
+volume_output_location: LOCATION '=' point              { $$ = $3; }
+;
+
+/* Voxel size definition for volume output statement */
+volume_output_voxel_size: VOXEL_SIZE '=' point_or_num   { $$ = $3; }
+;
+
+/* Voxel count definition for volume output statement */
+volume_output_voxel_count: VOXEL_COUNT '=' point_or_num
+{
+  if ($3->x < 1.0) {
+    mdl_warning(mdlpvp, "Voxel count (x dimension) too small.  Setting x count to 1.");
+    $3->x = 1.0;
+  }
+  if ($3->y < 1.0) {
+    mdl_warning(mdlpvp, "Voxel count (y dimension) too small.  Setting y count to 1.");
+    $3->y = 1.0;
+  }
+  if ($3->z < 1.0) {
+    mdl_warning(mdlpvp, "Voxel count (z dimension) too small.  Setting z count to 1.");
+    $3->z = 1.0;
+  }
+  $$ = $3;
+}
+;
+
+/* Output times definition for volume output statement */
+volume_output_times_def: /* empty */
+{
+  struct output_times *ot = mem_get(mdlpvp->output_times_mem);
+  if (ot == NULL) {
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing volume output statement");
+    return 1;
+  }
+  memset(ot, 0, sizeof(struct output_times));
+
+  ot->timer_type = OUTPUT_BY_STEP;
+  ot->step_time = mdlpvp->vol->time_unit;
+  $$ = ot;
+}
+                       | STEP '=' num_expr
+{
+  long long output_freq;
+  struct output_times *ot = mem_get(mdlpvp->output_times_mem);
+  if (ot == NULL) {
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing volume output statement");
+    return 1;
+  }
+  memset(ot, 0, sizeof(struct output_times));
+
+  ot->timer_type = OUTPUT_BY_STEP;
+  ot->step_time = $3;
+
+  /* Clip step_time to a reasonable range */
+  output_freq = ot->step_time / mdlpvp->vol->time_unit;
+  if (output_freq > mdlpvp->vol->iterations  &&  output_freq > 1)
+  {
+    output_freq = (mdlpvp->vol->iterations > 1) ? mdlpvp->vol->iterations : 1;
+    ot->step_time = output_freq * mdlpvp->vol->time_unit;
+    mdl_warning(mdlpvp, "Output step time too long\n\tSetting output step time to %g microseconds\n", ot->step_time * 1.0e6);
+  }
+  else if (output_freq < 1)
+  {
+    ot->step_time = volp->time_unit;
+    mdl_warning(mdlpvp, "Output step time too short\n\tSetting output step time to %g microseconds\n", ot->step_time * 1.0e6);
+  }
+  $$ = ot;
+}
+                       | ITERATION_LIST '=' '[' list_range_specs_new ']'
+{
+  struct output_times *ot = mem_get(mdlpvp->output_times_mem);
+  if (ot == NULL) {
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing volume output statement");
+    list_free(mdlpvp, $4, std_list_free);
+    return 1;
+  }
+  memset(ot, 0, sizeof(struct output_times));
+
+  sort_num_expr_list((struct num_expr_list *) $4->head);
+  ot->timer_type = OUTPUT_BY_ITERATION_LIST;
+  ot->times = num_expr_list_to_array($4, &ot->num_times);
+  list_free(mdlpvp, $4, std_list_free);
+  if (ot->num_times != 0  &&  ot->times == NULL) {
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing volume output statement");
+    mem_put(mdlpvp->output_times_mem, ot);
+    return 1;
+  }
+
+  $$ = ot;
+}
+                       | TIME_LIST '=' '[' list_range_specs_new ']'
+{
+  struct output_times *ot = mem_get(mdlpvp->output_times_mem);
+  if (ot == NULL) {
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing volume output statement");
+    list_free(mdlpvp, $4, std_list_free);
+    return 1;
+  }
+  memset(ot, 0, sizeof(struct output_times));
+
+  sort_num_expr_list((struct num_expr_list *) $4->head);
+  ot->timer_type = OUTPUT_BY_TIME_LIST;
+  ot->times = num_expr_list_to_array($4, &ot->num_times);
+  list_free(mdlpvp, $4, std_list_free);
+  if (ot->num_times != 0  &&  ot->times == NULL) {
+    mdlerror_fmt(mdlpvp, "Out of memory while parsing volume output statement");
+    mem_put(mdlpvp->output_times_mem, ot);
+    return 1;
+  }
+
+  $$ = ot;
+};
 
 output_def: REACTION_DATA_OUTPUT '{'
 {
@@ -9764,6 +10095,24 @@ int mdlparse_init(struct volume *vol)
     fprintf(vol->err_file,"Out of memory while getting ready to store lists of molecules and reactions");
     return 1;
   }
+  mpvp->list_head_mem = create_mem(sizeof(struct list_head), 1024);
+  if (mpvp->list_head_mem == NULL)
+  {
+    fprintf(vol->err_file,"Out of memory while allocating temporary space for list parsing");
+    return 1;
+  }
+  mpvp->ptr_list_mem = create_mem(sizeof(struct ptr_list), 1024);
+  if (mpvp->ptr_list_mem == NULL)
+  {
+    fprintf(vol->err_file,"Out of memory while allocating temporary space for list parsing");
+    return 1;
+  }
+  mpvp->output_times_mem = create_mem(sizeof(struct output_times), 1024);
+  if (mpvp->output_times_mem == NULL)
+  {
+    fprintf(vol->err_file,"Out of memory while allocating temporary space for volume output parsing");
+    return 1;
+  }
 #if 0
   mpvp->sym_name=concat_rx_name(vol->g_surf->sym->name,vol->g_mol->sym->name);
   if ((mpvp->gp=retrieve_sym(mpvp->sym_name,RX,vol->main_sym_table))
@@ -9829,6 +10178,9 @@ int mdlparse_init(struct volume *vol)
   }
   fclose(mdl_infile);
 
+  delete_mem(mpvp->list_head_mem);
+  delete_mem(mpvp->ptr_list_mem);
+  delete_mem(mpvp->output_times_mem);
   free(mpvp);
 
   return(0);

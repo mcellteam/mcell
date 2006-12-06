@@ -129,6 +129,62 @@ struct output_column* insert_new_output_column(struct output_set *os);
 
 struct output_expression* join_oexpr_tree(struct output_expression *left,struct output_expression *right,char oper,struct mem_helper *oexpr_mem);
 
+/*******************************************************/
+/* Generic list handling utilities for parsing.        */
 
-                                     
+/*
+ * Structure for generic linked lists.  The beginning of any structure which
+ * wants to make use of the generic linked-list code should begin exactly like
+ * this one, with the exception of a different 'next' pointer type.
+ */
+struct list_item {
+  struct list_item *next;
+};
+
+/* Temporary linked list heads.  These will be thrown away after the parse. */
+struct list_head {
+  struct list_item *head;
+  struct list_item *tail;
+  int count;
+};
+
+/* Temporary linked list of pointers */
+struct ptr_list {
+  struct ptr_list *next;
+  void *ptr;
+};
+
+typedef void (*listitem_freefunc)(struct mdlparse_vars *mpvp, struct list_item *li);
+void std_list_free(struct mdlparse_vars *mpvp, struct list_item *p);
+
+struct list_head *list_concat(struct mdlparse_vars *mpvp,
+                              struct list_head *l1,
+                              struct list_head *l2);
+
+struct list_head *list_append(struct mdlparse_vars *mpvp,
+                              struct list_head *l1,
+                              struct list_item *i);
+
+struct list_head *list_create_empty(struct mdlparse_vars *mpvp);
+
+struct list_head *list_create(struct mdlparse_vars *mpvp,
+                              struct list_item *i);
+
+void list_free(struct mdlparse_vars *mpvp,
+               struct list_head *l,
+               listitem_freefunc freefunc);
+
+double *num_expr_list_to_array(struct list_head *lh,
+                               int *count);
+
+void **ptr_list_to_array(struct list_head *lh,
+                         int *count);
+
+struct ptr_list *ptr_list_singleton(struct mdlparse_vars *mpvp, void *ptr);
+
+void ptr_list_free(struct mdlparse_vars *mpvp, struct ptr_list *p);
+
+int ptr_compare(void const *v1,
+                void const *v2);
+
 #endif

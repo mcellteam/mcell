@@ -157,6 +157,7 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "EXPRESSION"		{return(EXPRESSION);}
 "FALSE"			{return(FALSE);}
 "FILENAME"	        {return(FILENAME);}
+"FILENAME_PREFIX"       {return FILENAME_PREFIX;}
 "FILE_OUTPUT_REPORT"    {return(FILE_OUTPUT_REPORT);}
 "FINAL_SUMMARY"         {return(FINAL_SUMMARY);}
 "FLOOR"			{return(FLOOR);}
@@ -341,9 +342,12 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "VIZ_DATA_OUTPUT"	{return(VIZ_DATA_OUTPUT);}
 "VIZ_OUTPUT"	        {return(VIZ_OUTPUT);}
 "VIZ_VALUE"	        {return(VIZ_VALUE);}
+"VOLUME_DATA_OUTPUT"    {return VOLUME_DATA_OUTPUT; }
 "VOLUME_DEPENDENT_RELEASE_NUMBER" {return(VOLUME_DEPENDENT_RELEASE_NUMBER);}
+"VOXEL_COUNT"           {return VOXEL_COUNT; }
 "VOXEL_IMAGE_MODE"	{return(VOXEL_IMAGE_MODE);}
 "VOXEL_LIST"            {return(VOXEL_LIST);}
+"VOXEL_SIZE"            {return VOXEL_SIZE; }
 "VOXEL_VOLUME_MODE"	{return(VOXEL_VOLUME_MODE);}
 "WARNING"               {return(WARNING);}
 "WARNINGS"              {return(WARNINGS);}

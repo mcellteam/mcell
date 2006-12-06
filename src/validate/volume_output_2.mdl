@@ -1,0 +1,97 @@
+iterations = 10000
+timestep = 1e-6
+boxdims = 1.0 
+voldiffconst = 1e-6
+numtorelease = 1000
+
+ITERATIONS = iterations
+TIME_STEP = timestep
+
+PARTITION_X = [[-5.2 TO 5.2 STEP .1]] 
+PARTITION_Y = [[-5.2 TO 5.2 STEP .1]]
+PARTITION_Z = [[-5.2 TO 5.2 STEP .1]]
+
+DEFINE_MOLECULES
+{
+    D {DIFFUSION_CONSTANT_3D = voldiffconst}  
+    E {DIFFUSION_CONSTANT_3D = voldiffconst} 
+    F {DIFFUSION_CONSTANT_3D = voldiffconst} 
+}
+
+DEFINE_REACTIONS
+{
+    D + E -> F [2e8]
+}
+
+DEFINE_RELEASE_PATTERN release_pattern_1 {
+    DELAY = 0.0
+    RELEASE_INTERVAL = 3 * timestep
+    TRAIN_INTERVAL = 1 * timestep
+    TRAIN_DURATION = 1 * timestep
+    NUMBER_OF_TRAINS = 1
+}
+
+all_release_sites OBJECT {
+    release_site_1 SPHERICAL_RELEASE_SITE {
+        LOCATION = [-0.8*boxdims, -0.8*boxdims, -0.8*boxdims]
+        MOLECULE = D
+        NUMBER_TO_RELEASE = 1000
+        SITE_DIAMETER = 0
+        RELEASE_PATTERN = release_pattern_1
+    }
+
+    release_site_2 SPHERICAL_RELEASE_SITE {
+        LOCATION = [0.8*boxdims, 0.8*boxdims, 0.8*boxdims]
+        MOLECULE = E
+        NUMBER_TO_RELEASE = 1000
+        SITE_DIAMETER = 0
+        RELEASE_PATTERN = release_pattern_1
+    }
+}
+
+main_box BOX 
+{
+    CORNERS = [-boxdims, -boxdims, -boxdims], [boxdims, boxdims, boxdims]
+}
+
+outer_box BOX
+{
+    CORNERS = [-4,-4,-4], [4,4,4] 
+}
+
+INSTANTIATE world OBJECT 
+{
+    main_box OBJECT main_box {} 
+    outer_box OBJECT outer_box{}  
+    release_sites OBJECT all_release_sites { }
+}
+
+VOLUME_DATA_OUTPUT
+{
+    FILENAME_PREFIX = "volume_output/d_loc"
+    MOLECULES = D
+    LOCATION = [-boxdims, -boxdims, -boxdims]
+    VOXEL_SIZE = [boxdims/5, boxdims/5, boxdims/5]
+    VOXEL_COUNT = [10, 10, 10]
+    STEP = 500*timestep
+}
+
+VOLUME_DATA_OUTPUT
+{
+    FILENAME_PREFIX = "volume_output/e_loc"
+    MOLECULES = E
+    LOCATION = [-boxdims, -boxdims, -boxdims]
+    VOXEL_SIZE = [boxdims/5, boxdims/5, boxdims/5]
+    VOXEL_COUNT = [10, 10, 10]
+    STEP = 500*timestep
+}
+
+VOLUME_DATA_OUTPUT
+{
+    FILENAME_PREFIX = "volume_output/f_loc"
+    MOLECULES = F
+    LOCATION = [-boxdims, -boxdims, -boxdims]
+    VOXEL_SIZE = [boxdims/5, boxdims/5, boxdims/5]
+    VOXEL_COUNT = [10, 10, 10]
+    STEP = 500*timestep
+}

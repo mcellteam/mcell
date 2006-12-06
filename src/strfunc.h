@@ -3,6 +3,7 @@
 
 /*  Header file for character string handling functions */
 
+char *alloc_sprintf(char const *fmt, ...);
 char *my_strcat(char *s1, char *s2);
 char *my_strclump(char **slist);
 char *strip_quotes(char *s);

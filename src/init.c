@@ -136,7 +136,69 @@ int init_notifications()
   return 0;
 }
 
+/*
+ * Initialize the volume data output.  This will create a scheduler for the
+ * volume data, and add volume data output items to the scheduler.
+ */
+static void init_volume_data_output(struct volume *wrld)
+{
+  struct volume_output_item *vo, *vonext;
 
+  wrld->volume_output_scheduler = create_scheduler(1.0, 100.0, 100, wrld->current_start_real_time / wrld->time_unit);
+  if (wrld->volume_output_scheduler == NULL) {
+    fprintf(wrld->err_file,"File '%s', Line %ld: Out of memory while creating volume_output_scheduler.\n", __FILE__, (long)__LINE__);
+    exit(EXIT_FAILURE);
+  }
+
+  double r_time_unit = 1.0 / world->time_unit;
+  for (vo = wrld->volume_output_head; vo != NULL; vo = vonext)
+  {
+    vonext = vo->next;  /* schedule_add overwrites 'next' */
+
+    if (vo->timer_type==OUTPUT_BY_STEP)
+    {
+      if (world->chkpt_seq_num == 1) vo->t=0.0;
+      else
+      {
+        /* Get step time in internal units, find next scheduled output time */
+        double f = vo->step_time * r_time_unit;
+        vo->t = f * ceil(wrld->volume_output_scheduler->now / f);
+      }
+    }
+    else if (vo->num_times > 0)
+    {
+      /* Set time scaling factor depending on output type */
+      double time_scale = 0.0;
+      if (vo->timer_type==OUTPUT_BY_ITERATION_LIST) time_scale = 1.0;
+      else time_scale = r_time_unit;
+
+      /* Find the time of next output */
+      if (world->chkpt_seq_num == 1) {
+        vo->next_time = vo->times;
+        vo->t = time_scale * *vo->next_time;
+      }
+      else /* Scan forward to find first output after checkpoint time */
+      {
+        int idx = bisect_high(vo->times, vo->num_times, world->volume_output_scheduler->now / time_scale);
+
+        /* If we've already passed the last time for this one, skip it! */
+        if (idx < 0 || idx >= vo->num_times)
+          continue;
+
+        vo->t = vo->times[idx] * time_scale;
+        vo->next_time = vo->times + idx;
+      }
+
+      /* Advance the next_time pointer */
+      ++ vo->next_time;
+    }
+
+    if (schedule_add(world->volume_output_scheduler, vo)) {
+      fprintf(world->err_file,"File %s, Line %ld: Out of memory while setting up volume output.\n", __FILE__, (long)__LINE__);
+      exit(EXIT_FAILURE);
+    }
+  }
+}
 
 /**
  * Initializes the parameters required for the simulation (duh!).
@@ -220,6 +282,7 @@ int init_sim(void)
   world->place_waypoints_flag=0;
   world->releases_on_regions_flag=0;
   world->count_scheduler = NULL;
+  world->volume_output_scheduler = NULL;
   world->storage_head = NULL;
   world->storage_allocator = NULL;
   world->x_partitions = NULL;
@@ -354,6 +417,8 @@ int init_sim(void)
   }
   world->g_surf=(struct species *)gp->value;
   world->g_surf->flags=IS_SURFACE;
+
+  world->volume_output_head = NULL;
 
   world->output_block_head=NULL;
   world->output_request_head=NULL;
@@ -561,6 +626,8 @@ int init_sim(void)
   init_reaction_list(reaction_data_head);
 */
 
+  /* Initialize the volume output */
+  init_volume_data_output(world);
 
   world->count_scheduler = create_scheduler(1.0,100.0,100,world->current_start_real_time/world->time_unit);
   if(world->count_scheduler == NULL){

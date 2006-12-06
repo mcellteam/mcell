@@ -21,11 +21,31 @@
 #include "vol_util.h"
 #include "react_output.h"
 #include "viz_output.h"
+#include "volume_output.h"
 #include "diffuse.h"
 #include "init.h"
 #include "chkpt.h"
 
 struct volume *world;
+
+static void process_volume_output(struct volume *wrld, double not_yet)
+{
+  int i;            /* for emergency output */
+  struct volume_output_item *vo;
+  for (vo = (struct volume_output_item *) schedule_next(world->volume_output_scheduler);
+       vo != NULL  ||  not_yet >= world->volume_output_scheduler->now;
+       vo = (struct volume_output_item *) schedule_next(world->volume_output_scheduler))
+  {
+    if (vo == NULL) continue;
+    if (update_volume_output(world, vo))
+    {
+      fprintf(world->err_file,"File '%s', Line %ld: Error while updating volume output. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
+      i = emergency_output();
+      fprintf(world->err_file, "%d error%s while saving intermediate results.\n", i, (i==1) ? "": "s");
+      exit(EXIT_FAILURE);
+    }
+  }
+}
 
 void run_sim(void)
 {
@@ -125,7 +145,9 @@ void run_sim(void)
       fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
       exit( EXIT_FAILURE );
     }
-    
+
+    process_volume_output(world, not_yet);
+
     update_frame_data_list(world->frame_data_head); 
     
     if ( (world->it_time % frequency) == 0 && world->notify->custom_iterations!=NOTIFY_NONE)

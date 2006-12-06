@@ -1081,6 +1081,8 @@ struct volume
   int count_hashmask;                      /* Mask for looking up count hash table */
   struct counter **count_hash;             /* Count hash table */
   struct schedule_helper *count_scheduler; /* When to generate reaction output */
+
+  struct schedule_helper *volume_output_scheduler; /* When to generate volume output */
   
   int n_species;                 /* How many different species (molecules)? */
   struct species **species_list; /* Array of all species (molecules). */
@@ -1098,6 +1100,8 @@ struct volume
   struct object *root_instance;       /* Root of the instantiated object tree */
 
   struct release_pattern *default_release_pattern;  /* release once at t=0 */
+
+  struct volume_output_item *volume_output_head; /* List of all volume data output items */
   
   struct output_block *output_block_head;     /* Global list of reaction data output blocks */
   struct output_request *output_request_head; /* Global list linking COUNT statements to internal variables */
@@ -1387,6 +1391,33 @@ struct ccn_clamp_data
   struct ccn_clamp_data *next_obj; /* Next clamp, by object, for this class */
 };
 
+/* Structure for a VOLUME_DATA_OUTPUT item */
+struct volume_output_item
+{
+  /* Do not move or reorder these 2 items.  scheduler depends upon them */
+  struct volume_output_item    *next;
+  double                        t;
+
+  char                         *filename_prefix;
+
+  /* what? */
+  int                           num_molecules;
+  struct species              **molecules;          /* sorted by address */
+
+  /* where? */
+  struct vector3                location;
+  struct vector3                voxel_size;
+  int                           nvoxels_x;
+  int                           nvoxels_y;
+  int                           nvoxels_z;
+
+  /* when? */
+  int                           timer_type;
+  double                        step_time;
+  int                           num_times;
+  double                       *times;              /* in numeric order  */
+  double                       *next_time;          /* points into times */
+};
 
 /* Data for a single REACTION_DATA_OUTPUT block */
 struct output_block
