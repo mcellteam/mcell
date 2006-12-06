@@ -5933,9 +5933,8 @@ existing_molecule_required_orient_quotes: VAR_ORIENT_IN_QUOTES
   $$=mdlpvp->gp;
 };
 
-existing_molecule_required_orient_braces: VAR '{' num_expr '}'
+existing_molecule_required_orient_braces: VAR orient_class_number
 {
-  short orientation = (short) $3;
 
   if (mdlpvp->cval_2!=NULL) {  
     mdlpvp->sym_name=mdlpvp->cval_2;
@@ -5944,14 +5943,9 @@ existing_molecule_required_orient_braces: VAR '{' num_expr '}'
     mdlpvp->sym_name=mdlpvp->cval;
   } 
 
-  if (orientation == 0) {
-    mdlpvp->orient_specified = 1;
-    mdlpvp->orient_class = 0;
-  } else if (orientation > 0) {
-    mdlpvp->orient_specified = 1;
+  if (mdlpvp->orient_class > 0) {
     mdlpvp->orient_class = 1;
-  } else {
-    mdlpvp->orient_specified = 1;
+  } else if (mdlpvp->orient_class < 0) {
     mdlpvp->orient_class = -1;
   }
 
@@ -6463,8 +6457,15 @@ tail_mark: ','
 
 orient_class_number: '{' num_expr '}'
 {
-  /* printf("!!oc = %d\n",(int)$<dbl>2); */
-  mdlpvp->orient_class=(short)$<dbl>2;
+  double orient_value = $<dbl>2;  
+
+  mdlpvp->orient_class = (short)orient_value;
+
+  if(mdlpvp->orient_class != orient_value){
+     mdlerror(mdlpvp, "Error: Molecule orientation specified inside braces should be a short integer\n");
+     return 1;
+  }
+
   mdlpvp->orient_specified=1;
 };
 
