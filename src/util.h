@@ -139,6 +139,9 @@ struct void_list* void_list_sort_by(struct void_list *vl,int (*leq)(void*,void*)
 
 int void_array_search(void **array,int n,void *to_find);
 
+double erfcinv(double v);
+#define erfinv(x) erfcinv(1-(x))
+
 int poisson_dist(double lambda,double p);
 
 void byte_swap(void *data, int size);

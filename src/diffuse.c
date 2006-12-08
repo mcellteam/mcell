@@ -57,32 +57,26 @@ pick_2d_displacement:
 
 void pick_2d_displacement(struct vector2 *v,double scale)
 {
+  static const double one_over_2_to_16th = 1.52587890625e-5;
   struct vector2 a;
   double f;
   
   /* TODO: this is exact case only--see if lookup is faster. */
   do
   {
-    a.u = 2.0*rng_dbl(world->rng)-1.0;
-    if(world->notify->final_summary == NOTIFY_FULL){
-       world->random_number_use++;
-    }
-    a.v = 2.0*rng_dbl(world->rng)-1.0;
-    if(world->notify->final_summary == NOTIFY_FULL){
-       world->random_number_use++;
-    }
+    unsigned int n = rng_uint(world->rng);
+    world->random_number_use++;
+    
+    a.u = 2.0*one_over_2_to_16th*(n&0xFFFF)-1.0;
+    a.v = 2.0*one_over_2_to_16th*(n>>16)-1.0;
     f = a.u*a.u + a.v*a.v;
   } while (f<0.01 || f>1.0);
   
   f = (1.0/f) * sqrt(log( 1/(1-rng_dbl(world->rng)) )) * scale;
-  if(world->notify->final_summary == NOTIFY_FULL){
-     world->random_number_use++;
-  }
+  world->random_number_use++;
   
   v->u = (a.u*a.u-a.v*a.v)*f;
   v->v = (2.0*a.u*a.v)*f;
-  
-//  printf("Disp %.8f %.8f %.8f\n",v->u,v->v,scale);
 }
 
 
@@ -100,26 +94,25 @@ pick_clamped_displacement:
 
 void pick_clamped_displacement(struct vector3 *v,struct volume_molecule *m)
 {
-  double p;
+  static const double one_over_2_to_20th = 9.5367431640625e-7;
+  static const double one_over_sqrt_pi = 0.5641895835477563;
+  double p,t;
+  unsigned int n;
   double r_n;
   struct vector2 r_uv;
   struct wall *w = m->previous_wall;
   
-  p = rng_dbl(world->rng);
-  if(world->notify->final_summary == NOTIFY_FULL){
-     world->random_number_use++;
-  }
+  n = rng_uint(world->rng);
+  world->random_number_use++;
   
   /* Correct distribution along normal from surface (from lookup table) */
-  r_n = m->index * m->properties->space_step * 
-        world->r_step_surface[ rng_uint(world->rng) & (world->radial_subdivisions-1) ];
+  r_n = world->r_step_surface[ n & (world->radial_subdivisions-1) ];
   
-  if(world->notify->final_summary == NOTIFY_FULL){
-     world->random_number_use++;
-  }
-  /* This is just a guess at an appropriate approximate planar distribution */
-  pick_2d_displacement(&r_uv,sqrt(p)*m->properties->space_step); 
+  p = one_over_2_to_20th*((n>>12)+0.5);
+  t = r_n/erfcinv(p*one_over_sqrt_pi*erfc(r_n));
+  pick_2d_displacement(&r_uv,sqrt(t)*m->properties->space_step); 
   
+  r_n *= m->index * m->properties->space_step;
   v->x = r_n*w->normal.x + r_uv.u*w->unit_u.x + r_uv.v*w->unit_v.x;
   v->y = r_n*w->normal.y + r_uv.u*w->unit_u.y + r_uv.v*w->unit_v.y;
   v->z = r_n*w->normal.z + r_uv.u*w->unit_u.z + r_uv.v*w->unit_v.z;
@@ -347,9 +340,7 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
   double tx,ty,tz;
   int i,j,k;
   
-  if(world->notify->final_summary == NOTIFY_FULL){
-      world->ray_voxel_tests++;
-  }
+  world->ray_voxel_tests++;
 
   shead = NULL;
   smash = (struct collision*) mem_get(sv->local_storage->coll);
@@ -374,10 +365,7 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
     }
     else if (i!=COLLIDE_MISS)
     {
-
-      if(world->notify->final_summary == NOTIFY_FULL){
-          world->ray_polygon_colls++;
-      }
+      world->ray_polygon_colls++;
 
       smash->what = COLLIDE_WALL + i;
       smash->target = (void*) wlp->this_wall;
@@ -429,30 +417,81 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
     k = 1;
   }
   
-  if (i+j+k < -15) /* Two or three vectors are zero */
+  if (i+j+k < 0) /* At least one vector is zero */
   {
-    if (i >= 0) /* X is the nonzero one */
+    if (i+j+k < -15) /* Two or three vectors are zero */
     {
-      smash->t = dx / v->x;
-      smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NX + i;
+      if (i >= 0) /* X is the nonzero one */
+      {
+        smash->t = dx / v->x;
+        smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NX + i;
+      }
+      else if (j>=0) /* Y is nonzero */
+      {
+        smash->t = dy / v->y;
+        smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NY + j;
+      }
+      else if (k>=0) /* Z is nonzero */
+      {
+        smash->t = dz / v->z;
+        smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NZ + k;
+      }
+      else
+      {
+        smash->t = FOREVER;
+        smash->what = COLLIDE_SUBVOL; /*Wrong, but we'll never hit it, so it's ok*/
+      }
     }
-    else if (j>=0) /* Y is nonzero */
+    else  /* One vector is zero; throw out other two */
     {
-      smash->t = dy / v->y;
-      smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NY + j;
-    }
-    else if (k>=0) /* Z is nonzero */
-    {
-      smash->t = dz / v->z;
-      smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NZ + k;
-    }
-    else
-    {
-      smash->t = FOREVER;
-      smash->what = COLLIDE_SUBVOL; /*Wrong, but we'll never hit it, so it's ok*/
+      if (i<0)
+      {
+        ty=dy*v->z;
+        tz=v->y*dz;
+        if (ty<tz)
+        {
+          smash->t = dy / v->y;
+          smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NY + j;
+        }
+        else
+        {
+          smash->t = dz / v->z;
+          smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NZ + k;
+        }
+      }
+      else if (j<0)
+      {
+        tx=dx*v->z;
+        tz=v->x*dz;
+        if (tx<tz)
+        {
+          smash->t = dx / v->x;
+          smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NX + i;
+        }
+        else
+        {
+          smash->t = dz / v->z;
+          smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NZ + k;
+        }
+      }
+      else /* k<0 */
+      {
+        tx=dx*v->z;
+        ty=v->y*dy;
+        if (tx<ty)
+        {
+          smash->t = dx / v->x;
+          smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NX + i;
+        }
+        else
+        {
+          smash->t = dy / v->y;
+          smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NY + j;
+        }        
+      }
     }
   }
-  else /* Zero or one vectors zero--use alternate method */
+  else /* No vectors are zero--use alternate method */
   {
     tx = dx * v->y * v->z;
     ty = v->x * dy * v->z;
@@ -3483,12 +3522,12 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
   int i,j,k,l,ii,jj;
     
   int calculate_displacement = 1;
-   
+  
   /* array of pointers to the possible reactions */
   struct rxn *matching_rxns[MAX_MATCHING_RXNS]; 
   int num_matching_rxns = 0;
   double scaling_coef[MAX_MATCHING_RXNS];
-
+  
   sm = m->properties;
   if (sm==NULL) {
 	fprintf(world->err_file,"File '%s', Line %ld: This molecule should not diffuse!\n", __FILE__, (long)__LINE__);

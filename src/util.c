@@ -1321,6 +1321,77 @@ int void_array_search(void **array,int n,void *to_find)
 }
 
 
+
+/*************************************************************************
+erfcinv:
+  In: a value between 0 and 1 (not including endpoints)
+  Out: the value y such that erfc(y) = input value
+*************************************************************************/
+
+/* Fast rational function approximation to inverse of the error function,
+based upon algorithm for inverse of Normal cumulative distribution
+function at http://home.online.no/~pjacklam/notes/invnorm/index.html
+by Peter J. Acklam. Accurate to about 4e-9 in absolute value. */
+double erfcinv(double x)
+{
+  /* Misc constants */
+  static const double tail_cutoff = 0.0485;
+  static const double neg_twice_log_half = 1.386294361119891;
+//  static const double sqrt_half_pi = 1.253314137315501;  /* For refinement */
+  static const double scaling_const = -0.7071067811865475;
+
+  /* Tail numerator */
+  static const double tn0 =  2.938163982698783;
+  static const double tn1 =  4.374664141464968;
+  static const double tn2 = -2.549732539343734;
+  static const double tn3 = -2.400758277161838;
+  static const double tn4 = -3.223964580411365e-1;
+  static const double tn5 = -7.784894002430293e-3;
+  /* Tail denominator */
+  static const double td1 =  3.754408661907416;
+  static const double td2 =  2.445134137142996;
+  static const double td3 =  3.224671290700398e-1;
+  static const double td4 =  7.784695709041462e-3;
+
+  /* Central numerator */
+  static const double cn0 =  2.506628277459239;
+  static const double cn1 = -3.066479806614716e1;
+  static const double cn2 =  1.383577518672690e2;
+  static const double cn3 = -2.759285104469687e2;
+  static const double cn4 =  2.209460984245205e2;
+  static const double cn5 = -3.969683028665376e1;
+  /* Central denominator */
+  static const double cd1 = -1.328068155288572e1;
+  static const double cd2 =  6.680131188771972e1;
+  static const double cd3 = -1.556989798598866e2;
+  static const double cd4 =  1.615858368580409e2;
+  static const double cd5 = -5.447609879822406e1;
+
+  double p,q,r;
+
+  if (x<tail_cutoff)
+  {
+    p = sqrt(-2*log(x)+neg_twice_log_half);
+    r = (tn0+p*(tn1+p*(tn2+p*(tn3+p*(tn4+p*tn5)))))
+        / (1.0+p*(td1+p*(td2+p*(td3+p*td4))));
+  }
+  else
+  {
+    p = 0.5*x-0.5;
+    q = p*p;
+    r = p * (cn0+q*(cn1+q*(cn2+q*(cn3+q*(cn4+q*cn5)))))
+            / (1.0+q*(cd1+q*(cd2+q*(cd3+q*(cd4+q*cd5)))));
+  }
+  return scaling_const*r;
+  /*
+  Use the code below to refine to macine precision.  Rather slow, though.
+  p = (erfc(scaling_const*r)-x)*sqrt_half_pi*exp(0.5*r*r);
+  return scaling_const*(r - p/(1 + r*p/2));
+  */
+}
+
+
+
 /*************************************************************************
 poisson_dist:
   In: mean value
