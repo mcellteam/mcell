@@ -154,7 +154,7 @@ keep_counting:
 
           /* Skip molecules outside our domain */
           if (curmol->pos.x < x  ||  curmol->pos.x >= x_lim  ||
-              curmol->pos.x < y  ||  curmol->pos.y >= y_lim)
+              curmol->pos.y < y  ||  curmol->pos.y >= y_lim)
             continue;
 
           /* See if we're interested in this molecule */
