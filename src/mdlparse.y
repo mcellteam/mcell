@@ -210,8 +210,7 @@ struct output_times *otimes;
 %token <tok> MEAN_DIAMETER
 %token <tok> MEAN_NUMBER
 %token <tok> MESHES
-%token <tok> MICRO_REV_SURF_RX
-%token <tok> MICRO_REV_VOL_RX
+%token <tok> MICROSCOPIC_REVERSIBILITY
 %token <tok> MIN_TOK
 %token <tok> MISSED_REACTIONS
 %token <tok> MISSED_REACTION_THRESHOLD
@@ -322,6 +321,7 @@ struct output_times *otimes;
 %token <tok> SUM_OVER_ALL_TIME_STEPS
 %token <tok> SURFACE_CLASS
 %token <tok> SURFACE_MOLECULE_AREA
+%token <tok> SURFACE_ONLY
 %token <tok> SURFACE_POSITIONS
 %token <tok> SURFACE_STATES
 %token <tok> TAN
@@ -352,6 +352,7 @@ struct output_times *otimes;
 %token <tok> VIZ_VALUE
 %token       VOLUME_DATA_OUTPUT
 %token <tok> VOLUME_DEPENDENT_RELEASE_NUMBER
+%token <tok> VOLUME_ONLY
 %token       VOXEL_COUNT
 %token <tok> VOXEL_IMAGE_MODE
 %token <tok> VOXEL_LIST
@@ -679,17 +680,21 @@ include_stmt: INCLUDE_FILE
   mdlpvp->include_flag = 0;
 };
 
-reversibility_def: surface_reversibility_def | volume_reversibility_def;
-
-surface_reversibility_def: MICRO_REV_SURF_RX '=' boolean
+reversibility_def: MICROSCOPIC_REVERSIBILITY '=' boolean
 {
   mdlpvp->vol->surface_reversibility=$<tok>3;
-};
-
-volume_reversibility_def: MICRO_REV_VOL_RX '=' boolean
-{
   mdlpvp->vol->volume_reversibility=$<tok>3;
-};
+}
+        | MICROSCOPIC_REVERSIBILITY '=' SURFACE_ONLY
+{
+  mdlpvp->vol->surface_reversibility=1;
+  mdlpvp->vol->volume_reversibility=0;
+}
+        | MICROSCOPIC_REVERSIBILITY '=' VOLUME_ONLY
+{
+  mdlpvp->vol->surface_reversibility=0;
+  mdlpvp->vol->volume_reversibility=1;
+}
 
 notification_def: NOTIFICATIONS '{' notification_list '}';
 
@@ -1873,11 +1878,13 @@ radial_subdivisions_def: RADIAL_SUBDIVISIONS '=' num_expr
 
   if (volp->r_step!=NULL) free(volp->r_step);
   if (volp->r_step_surface!=NULL) free(volp->r_step_surface);
+  if (volp->r_step_release!=NULL) free(volp->r_step_release);
 
   volp->r_step = init_r_step(volp->radial_subdivisions);
   volp->r_step_surface = init_r_step_surface(volp->radial_subdivisions);
+  volp->r_step_release = init_r_step_3d_release(volp->radial_subdivisions);
   
-  if (volp->r_step==NULL || volp->r_step_surface==NULL)
+  if (volp->r_step==NULL || volp->r_step_surface==NULL || volp->r_step_release)
   {
     mdlerror(mdlpvp, "Out of memory while creating r_step data for molecule");
     return(1);
@@ -2075,8 +2082,7 @@ molecule_stmt: new_molecule '{'
       mdlerror(mdlpvp, "Internal error: bad number of default RADIAL_DIRECTIONS (max 131072).\n");
       return(1);
     }
-    volp->directions_mask -= 1;
-    
+    volp->directions_mask -= 1;    
   }
   
   if (mdlpvp->specp->time_step==1.0)
@@ -6230,6 +6236,17 @@ rxn:
          return(1);
      }
   }
+  
+  /* If we're doing 3D releases, set up array so we can release reversibly */
+  if (volp->r_step_release==NULL && mdlpvp->prod_all_3d && mdlpvp->pathp->product_head!=NULL)
+  {
+    volp->r_step_release=init_r_step_3d_release(volp->radial_directions);
+    if (volp->r_step_release==NULL)
+    {
+      mdlerror(mdlpvp,"Out of memory building r_step array.");
+      return(1);
+    }
+  }
 
   if (mdlpvp->fwd_rate_filename != NULL)
   {
@@ -6268,9 +6285,9 @@ rxn:
          return 1;
       }  
   }
-   mdlpvp->num_surf_products = 0;
-   mdlpvp->num_grid_mols = 0;
-   mdlpvp->num_vol_mols = 0;
+  mdlpvp->num_surf_products = 0;
+  mdlpvp->num_grid_mols = 0;
+  mdlpvp->num_vol_mols = 0;
   
   /* Create reverse reaction if we need to */
   if (mdlpvp->bidirectional_arrow)

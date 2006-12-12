@@ -278,7 +278,9 @@ int init_sim(void)
   world->num_directions=world->radial_directions;
   world->r_step=NULL;
   world->r_step_surface=NULL;
+  world->r_step_release=NULL;
   world->d_step=NULL;
+  world->dissociation_index = DISSOCIATION_MAX;
   world->place_waypoints_flag=0;
   world->releases_on_regions_flag=0;
   world->count_scheduler = NULL;

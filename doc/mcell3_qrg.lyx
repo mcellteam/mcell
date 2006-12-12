@@ -533,7 +533,7 @@ The following initialization commands are optional.
 
 
 \begin_inset  Tabular
-<lyxtabular version="3" rows="16" columns="2">
+<lyxtabular version="3" rows="17" columns="2">
 <features islongtable="true" headBottomDL="true">
 <column alignment="left" valignment="top" leftline="true" width="0">
 <column alignment="left" valignment="top" leftline="true" rightline="true" width="4in">
@@ -1098,6 +1098,68 @@ r
 , and will place those products as close as possible to the place where
  the reaction occurs (deterministically, so small-scale directional bias
  is possible).
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+MICROSCOPIC_REVERSIBILITY = 
+\family sans 
+\shape italic 
+value
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+If 
+\family sans 
+\shape italic 
+value
+\family default 
+\shape default 
+ is set to 
+\family typewriter 
+OFF
+\family default 
+, then binding-unbinding reactions between molecules will be somewhat more
+ efficient but may not be accurate if the probability of binding is high
+ (close to 1).
+ If 
+\family typewriter 
+ON
+\family default 
+, a more computationally demanding routine will be used to make sure binding-unb
+inding is more similar in both directions.
+ If 
+\family sans 
+\shape italic 
+value
+\family default 
+\shape default 
+ is set to 
+\family typewriter 
+SURFACE_ONLY
+\family default 
+ or 
+\family typewriter 
+VOLUME_ONLY
+\family default 
+, the more accurate routines will be used only for reactions at surfaces
+ or only for those in the volume.
+ 
+\family typewriter 
+OFF
+\family default 
+ is the default.
 \end_inset 
 </cell>
 </row>

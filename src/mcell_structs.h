@@ -419,6 +419,9 @@
 #define TRIG_IS_HIT       0x2
 
 
+/* Range of molecule indices used to avoid self-reactions for 3D unbinding */
+#define DISSOCIATION_MAX -1000
+#define DISSOCIATION_MIN -1000000000
 
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
@@ -1132,11 +1135,13 @@ struct volume
   double *r_step;          /* Lookup table of 3D diffusion step lengths */
   double *d_step;          /* Lookup table of 3D diffusion direction vectors */
   double *r_step_surface;  /* Lookup table of 2D diffusion step lengths */
+  double *r_step_release;  /* Lookup table of diffusion lengths for 3D release */
   u_int radial_subdivisions; /* Size of 2D and 3D step length lookup tables */
   u_int radial_directions; /* Requested size of 3D direction lookup table */
   u_int num_directions;    /* Actual size of 3D direction lookup table */
   int directions_mask;     /* Mask to obtain RNG bits for direction lookup */
   int fully_random;        /* If set, generate directions with trig functions instead of lookup table */
+  int dissociation_index;  /* Used to keep 3D products from reacting with each other too soon */
 
   long long chkpt_iterations; /* Number of iterations to advance before checkpointing */
   u_int chkpt_init; /* Set if this is the initial run of a simulation with no previous checkpoints */

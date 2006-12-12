@@ -301,7 +301,48 @@ double* init_r_step_surface(int radial_subdivisions)
   }
   
   return r_step_s;
-}  
+}
+
+
+/***************************************************************************
+init_r_step_surface:
+  In: number of desired radial subdivisions
+  Out: pointer to array of doubles containing those subdivisions
+       returns NULL on malloc failure
+  Note: This is for 3D molecules emitted from a plane
+***************************************************************************/
+
+double* init_r_step_3d_release(int radial_subdivisions)
+{
+  double *r_step_r = NULL;
+  double p,r_max,r_min,step,r,cdf;
+  int i,j;
+  static const double sqrt_pi_over_2 = 0.886226925452758015;
+  
+  r_step_r = (double*)malloc(radial_subdivisions*sizeof(double));
+  if (r_step_r==NULL)
+  {
+    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while storing radial step length table\n", __FILE__, (long)__LINE__);
+    return NULL;
+  }
+  
+  step = 1.0/radial_subdivisions;
+  for (i=0,p=step*0.5 ; i<radial_subdivisions ; p+=step,i++)
+  {
+    r_min=0;
+    r_max=3.5; /* 17 bit high-end CDF cutoff */
+    for (j=0;j<20;j++) /* 20 bits accuracy */
+    {
+      r = 0.5*(r_min+r_max);
+      cdf = 1.0-exp(-r*r)+sqrt_pi_over_2*erfc(r);
+      if (cdf>p) r_max=r;
+      else r_min=r;
+    }
+    r_step_r[i] = r;
+  }
+    
+  return r_step_r;
+}
 
 
 

@@ -74,7 +74,6 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   struct vector2 uv_loc;  /* where reaction happened */
   struct vector3 xyz_loc;
  
-   
   struct abstract_molecule *plist[iN-i0]; /* array of products */
   /* array that decodes the type of each product */
   char ptype[iN-i0];
@@ -88,6 +87,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   byte flist[iN-i0];
   struct grid_molecule fake;
   int fake_idx = -1;
+  int vol_rev_flag = 0;
   
 #define FLAG_NOT_SET 0
 #define FLAG_USE_UV_LOC 1
@@ -454,6 +454,13 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
         m->subvol->mol_count++;
       }
     }
+    else if (world->volume_reversibility && reac_g==NULL && w==NULL && ptype[i-i0]=='m') /* Not orientable */
+    {
+      m = (struct volume_molecule*)plist[i-i0];
+      m->index = world->dissociation_index;
+      m->flags |= ACT_CLAMPED;
+      vol_rev_flag=1;
+    }
     
     if (i >= i0+rx->n_reactants &&
         (plist[i-i0]->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
@@ -461,6 +468,12 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
       j=count_region_from_scratch(plist[i-i0],NULL,1,NULL,w,t);
       if (j) return RX_NO_MEM;
     }
+  }
+  
+  if (vol_rev_flag)
+  {
+    world->dissociation_index--;
+    if (world->dissociation_index < DISSOCIATION_MIN) world->dissociation_index=DISSOCIATION_MAX;
   }
   
   /* Handle events triggered off of named reactions */

@@ -119,6 +119,87 @@ void pick_clamped_displacement(struct vector3 *v,struct volume_molecule *m)
 }
 
 
+/*************************************************************************
+pick_release_displacement:
+  In: vector3 to store the position on interaction disk to go to
+      vector3 along which to travel away from the disk
+  Out: No return value.  Vectors are set to random orientation with
+         distances chosen from the probability distribution matching
+         the binding of a 3D molecule (distance and direction to
+         interaction disk and distance along disk).
+*************************************************************************/
+
+void pick_release_displacement(struct vector3 *in_disk,struct vector3 *away,double scale)
+{
+  u_int x_bit,y_bit,z_bit;
+  u_int thetaphi_bits,r_bits;
+  u_int bits;
+  u_int idx;
+  double r,f;
+  
+  bits = rng_uint(world->rng);
+  world->random_number_use++;
+  
+  x_bit =       (bits & 0x80000000);
+  y_bit =       (bits & 0x40000000);
+  z_bit =       (bits & 0x20000000);
+  thetaphi_bits=(bits & 0x1FFFF000)>>12;
+  r_bits =       (bits & 0x00000FFF);
+  
+  r = scale * world->r_step_release[ r_bits & (world->radial_subdivisions-1) ];
+  
+  idx = thetaphi_bits&world->directions_mask;
+  while (idx >= world->num_directions)
+  {
+    idx = rng_uint(world->rng) & world->directions_mask;
+    world->random_number_use++;
+  }
+  
+  if (x_bit) away->x = world->d_step[idx];
+  else away->x = -world->d_step[idx];
+  if (y_bit) away->y = world->d_step[idx+1];
+  else away->y = -world->d_step[idx+1];
+  if (z_bit) away->z = world->d_step[idx+2];
+  else away->z = -world->d_step[idx+2];
+  
+  do
+  {
+    bits = rng_uint(world->rng);
+    world->random_number_use++;
+    
+    x_bit = (bits & 0x80000000);
+    y_bit = (bits & 0x40000000);
+    z_bit = (bits & 0x20000000);
+    idx =   (bits & world->directions_mask);
+    while (idx >= world->num_directions)
+    {
+      idx = rng_uint(world->rng) & world->directions_mask;
+      world->random_number_use++;
+    }
+    if (x_bit) in_disk->x = world->d_step[idx];
+    else in_disk->x = -world->d_step[idx];
+    if (y_bit) in_disk->y = world->d_step[idx+1];
+    else in_disk->y = -world->d_step[idx+1];
+    if (z_bit) in_disk->z = world->d_step[idx+2];
+    else in_disk->z = -world->d_step[idx+2];
+    
+    f = dot_prod(away,in_disk);
+  }
+  while (f*f > 0.9);
+  
+  in_disk->x -= f*away->x;
+  in_disk->y -= f*away->y;
+  in_disk->z -= f*away->z;
+  f = world->rx_radius_3d * sqrt(dot_prod(in_disk,in_disk));
+  
+  in_disk->x *= f;
+  in_disk->y *= f;
+  in_disk->z *= f;
+  away->x *= r;
+  away->y *= r;
+  away->z *= r;
+}
+
 
 /*************************************************************************
 pick_displacement:
@@ -138,18 +219,9 @@ void pick_displacement(struct vector3 *v,double scale)
     double h,r_sin_phi,theta;
     
     r = scale * world->r_step[ rng_uint(world->rng) & (world->radial_subdivisions-1) ];
-    if(world->notify->final_summary == NOTIFY_FULL){
-        world->random_number_use++;
-    }
-
     h = 2.0*rng_dbl(world->rng) - 1.0;
-    if(world->notify->final_summary == NOTIFY_FULL){
-       world->random_number_use++;
-    }
     theta = 2.0*MY_PI*rng_dbl(world->rng);
-    if(world->notify->final_summary == NOTIFY_FULL){
-       world->random_number_use++;
-    }
+    world->random_number_use+=3;
     
     r_sin_phi = r * sqrt(1.0 - h*h);
     
@@ -3495,6 +3567,7 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
 {
   /*const double TOL = 10.0*EPS_C;*/  /* Two walls are coincident if this close */
   struct vector3 displacement;             /* Molecule moves along this vector */
+  struct vector3 displacement2;               /* Used for 3D mol-mol unbinding */
   struct collision *smash;       /* Thing we've hit that's under consideration */
   struct collision *shead;          /* Things we might hit (can interact with) */
   struct collision *shead2;       /* Things that we will hit, given our motion */
@@ -3515,7 +3588,7 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
   double f;
   double t_confident;     /* We're sure we can count things up til this time */
   struct vector3 *loc_certain;          /* We've counted up to this location */
-
+  
   /* this flag is set to 1 only after reflection from a wall and only with expanded lists. */
   int redo_expand_collision_list_flag = 0; 
 
@@ -3528,6 +3601,10 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
   int num_matching_rxns = 0;
   double scaling_coef[MAX_MATCHING_RXNS];
   
+  int inertness = 0;
+  static const int inert_to_mol = 1;
+  static const int inert_to_all = 2;
+  
   sm = m->properties;
   if (sm==NULL) {
 	fprintf(world->err_file,"File '%s', Line %ld: This molecule should not diffuse!\n", __FILE__, (long)__LINE__);
@@ -3539,21 +3616,30 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
     return m;
   }
   
-  if (!world->surface_reversibility)
+  if (m->index <= DISSOCIATION_MAX) /* Only set if volume_reversibility is */
   {
-    if (m->flags&ACT_CLAMPED) /* Pretend we were already moving */
+    if ((m->flags&ACT_CLAMPED)!=0) inertness=2;
+    else m->index=-1;
+    if (!world->volume_reversibility) fprintf(world->err_file,"Error in volume reversibility code!\n");
+  }
+  else
+  {
+    if (!world->surface_reversibility)
     {
-      m->birthday -= 5*sm->time_step; /* Pretend to be old */
-    }
-    else
-    {
-      /* Newly created particles that have long time steps gradually increase */
-      /* their timestep to the full value */
-      if (sm->time_step > 1.0)
+      if (m->flags&ACT_CLAMPED) /* Pretend we were already moving */
       {
-        f = 1.0 + 0.2*(m->t - m->birthday);
-        if (f<1) printf("I don't think so.\n");
-        if (max_time > f) max_time=f;
+        m->birthday -= 5*sm->time_step; /* Pretend to be old */
+      }
+      else if (!world->volume_reversibility)
+      {
+        /* Newly created particles that have long time steps gradually increase */
+        /* their timestep to the full value */
+        if (sm->time_step > 1.0)
+        {
+          f = 1.0 + 0.2*(m->t - m->birthday);
+          if (f<1) printf("I don't think so.\n");
+          if (max_time > f) max_time=f;
+        }
       }
     }
   }
@@ -3589,7 +3675,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   
   shead = NULL;
   old_mp = NULL;
-  if ( (sm->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL )
+  if ( (sm->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL && inertness<inert_to_all )
   {
     for (mp = sv->mol_head ; mp != NULL ; old_mp = mp , mp = mp->next_v)
     {
@@ -3610,6 +3696,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         if (mp==NULL) break;
         else goto continue_special_diffuse_3D;  /*continue without incrementing pointer*/
       }
+      
+      if (inertness==inert_to_mol && m->index==mp->index) continue;
       
       num_matching_rxns = trigger_bimolecular(
                sm->hashval,mp->properties->hashval,
@@ -3641,18 +3729,23 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
   if (calculate_displacement)
   {
-    if (m->flags&ACT_CLAMPED)
+    if (m->flags&ACT_CLAMPED) /* Surface clamping and microscopic reversibility */
     {
-      steps = rng_dbl(world->rng);
-      if(world->notify->final_summary == NOTIFY_FULL){
-         world->random_number_use++;
+      if (m->index <= DISSOCIATION_MAX) /* Volume microscopic reversibility */
+      {
+        pick_release_displacement(&displacement,&displacement2,sm->space_step);
+        t_steps = 0;
       }
-      t_steps = sm->time_step;
-      pick_clamped_displacement(&displacement,m);
+      else /* Clamping or surface microscopic reversibility */
+      {
+        pick_clamped_displacement(&displacement,m);
+        t_steps = sm->time_step;
+        m->previous_wall=NULL;
+        m->index=-1;
+      }
       m->flags-=ACT_CLAMPED;
-      m->previous_wall=NULL;
-      m->index=-1;
       rate_factor=1.0;
+      steps = 1.0;
     }
     else
     {
@@ -3689,7 +3782,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   
   reflectee = NULL;
   
-  if(world->use_expanded_list && ((m->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL))
+  if(world->use_expanded_list && ((m->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL) && !inertness)
   {
     shead = expand_collision_list(m, &displacement, sv, shead);
   }   
@@ -3709,10 +3802,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
     
     if (shead2==NULL) { ERROR_AND_QUIT; }
 
-    if (shead2->next!=NULL)  /* Could be sped up/combined */
+    if (shead2->next!=NULL)
     {
       shead2 = (struct collision*)ae_list_sort((struct abstract_element*)shead2);
-/*      shead2 = gather_walls_first(shead2,TOL); */
     }
     
     loc_certain=NULL;
@@ -3801,7 +3893,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
 	else k = -1;
 	
-	if ( w->grid != NULL && (sm->flags&CAN_MOLGRID) != 0)
+	if ( w->grid != NULL && (sm->flags&CAN_MOLGRID) != 0 && inertness<inert_to_all )
 	{
 	  j = xyz2grid( &(smash->loc) , w->grid );
 	  if (w->grid->mol[j] != NULL)
@@ -3916,7 +4008,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
 	      continue; /* Ignore this wall and keep going */
 	    }
-	    else if (rx->n_pathways != RX_REFLEC)
+	    else if (rx->n_pathways != RX_REFLEC && inertness<inert_to_all)
 	    {
 	      if (rx->prob_t != NULL) check_probs(rx,m->t);
 	      i = test_intersect(rx,1.0/rate_factor);
@@ -4069,6 +4161,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   m->pos.y += displacement.y;
   m->pos.z += displacement.z;
   m->t += t_steps;
+  
+  if (inertness==inert_to_all) /* Done with traversing disk, now do real motion */
+  {
+    inertness=inert_to_mol;
+    t_steps = sm->time_step;
+    goto pretend_to_call_diffuse_3D;
+  }
   
   m->index = -1;
   m->previous_wall=NULL;
