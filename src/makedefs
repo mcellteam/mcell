@@ -1,12 +1,11 @@
 CC = gcc
-#CC = gcc-3.4
 # CFLAGS = -Wall -O3 -march=pentium4
 # CFLAGS = -Wall -O3 -march=pentiumpro
 CFLAGS = -Wall -O3 -march=athlon-xp
 # CFLAGS = -Wall -march=athlon-xp
 # CFLAGS = -Wall -O3 -march=athlon-mp
 # CFLAGS = -Wall -O3
-# CFLAGS = -Wall -fast
+#CFLAGS = -Wall -fast
 #CFLAGS = -Wall -ggdb3 -O0 -fno-strict-aliasing -pg
 # CFLAGS = -Wall -ggdb3 -O0 -fno-strict-aliasing -pg -DDEBUG
 LIBS =  -lm

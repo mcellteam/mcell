@@ -51,7 +51,6 @@ int write_chkpt(FILE *fs)
   if (write_chkpt_seq_num(fs)) {
     return(1);
   }
-  
   if (write_rng_state(fs)) {
     return(1);
   }
@@ -140,6 +139,7 @@ int read_chkpt(FILE *fs)
   return(0);
 }
 
+
 /***************************************************************************
 write_byte_order:
 In:  fs - checkpoint file to write to.
@@ -177,6 +177,8 @@ int write_byte_order(FILE *fs)
 
    return 0;
 }
+
+
 /***************************************************************************
 read_byte_order:
 In:  fs - checkpoint file to read from.
@@ -214,8 +216,6 @@ int read_byte_order(FILE *fs)
    }
 
    return(0);
-
-
 }
 
 
@@ -274,6 +274,7 @@ int read_current_real_time(FILE *fs)
 */
   return(0);
 }
+
 
 /***************************************************************************
 create_molecule_scheduler:
@@ -455,6 +456,11 @@ int write_rng_state(FILE *fs)
     return(1);
   }
   io_bytes+=sizeof cmd;
+  if (!fwrite(&(world->seed_seq),sizeof (world->seed_seq),1,fs)) {
+    fprintf(world->err_file,"File '%s', Line %ld: write_rng_state error.\n", __FILE__, (long)__LINE__);
+    return(1);
+  }
+  io_bytes+=sizeof (world->seed_seq);
   if (!fwrite(&(world->rng->randcnt),sizeof (world->rng->randcnt),1,fs)) {
     fprintf(world->err_file,"File '%s', Line %ld: write_rng_state error.\n", __FILE__, (long)__LINE__);
     return(1);
@@ -517,9 +523,38 @@ int read_rng_state(FILE *fs)
 {
    
    int tmp1,i;
+   u_int tmp2;
    ub8 tmp3;
+   byte rng_reinit;
 
 
+  if (!fread(&(tmp2),sizeof (tmp2),1,fs)) {
+    fprintf(world->err_file,"File '%s', Line %ld: read_rng_state error.\n", __FILE__, (long)__LINE__);
+    return(1);
+  }
+  if(world->chkpt_byte_order_mismatch == 1)
+  {
+     /* we need to swap bytes here. */
+     byte_swap(&tmp2, sizeof(tmp2));
+  }
+
+  /* Compare seed_seq in chkpt file with seed_seq from command line.
+     If seeds match, continue with sequence from chkpt file,
+     otherwise, reinitialize rng to beginning of new seed sequence.
+     Note that in either case we need to fread the rng data from
+     the chkpt file to advance to the next cmd in the chkpt file. */
+  if (tmp2==world->seed_seq)
+  {
+    rng_reinit=0;
+  }
+  else
+  {
+    world->seed_seq=tmp2;
+    rng_reinit=1;
+  }
+  
+  io_bytes+=sizeof (world->seed_seq);
+  
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
     fprintf(world->err_file,"File '%s', Line %ld: read_rng_state error.\n", __FILE__, (long)__LINE__);
     return(1);
@@ -602,6 +637,12 @@ int read_rng_state(FILE *fs)
   	io_bytes+=sizeof (world->rng->mm[i]);
 	
   }  
+
+  /* Reinitialize rng to beginning of new seed sequence, if necessary */
+  if (rng_reinit)
+  {
+    rng_init(world->rng,world->seed_seq);
+  }
 
 /*
   fprintf(world->err_file,"read_rng_state io_bytes = %d\n",io_bytes);
@@ -779,6 +820,7 @@ int read_species_table(FILE *fs)
 */
   return(0);
 }
+
 
 /***************************************************************************
 write_mol_scheduler_state:
@@ -1164,6 +1206,7 @@ int read_mol_scheduler_state(FILE *fs)
   return 0;
 }
 
+
 /***************************************************************************
 write_mcell_version:
 In:  fs - checkpoint file to write to.
@@ -1203,6 +1246,7 @@ int write_mcell_version(FILE *fs)
  
    return 0;
 }
+
 
 /***************************************************************************
 read_mcell_version:
