@@ -95,7 +95,6 @@ pick_clamped_displacement:
 void pick_clamped_displacement(struct vector3 *v,struct volume_molecule *m)
 {
   static const double one_over_2_to_20th = 9.5367431640625e-7;
-  static const double one_over_sqrt_pi = 0.5641895835477563;
   double p,t;
   unsigned int n;
   double r_n;
@@ -109,7 +108,7 @@ void pick_clamped_displacement(struct vector3 *v,struct volume_molecule *m)
   r_n = world->r_step_surface[ n & (world->radial_subdivisions-1) ];
   
   p = one_over_2_to_20th*((n>>12)+0.5);
-  t = r_n/erfcinv(p*one_over_sqrt_pi*erfc(r_n));
+  t = r_n/erfcinv((p+1)*erfc(r_n));
   pick_2d_displacement(&r_uv,sqrt(t)*m->properties->space_step); 
   
   r_n *= m->index * m->properties->space_step;
