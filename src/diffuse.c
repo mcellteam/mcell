@@ -130,10 +130,13 @@ pick_release_displacement:
 
 void pick_release_displacement(struct vector3 *in_disk,struct vector3 *away,double scale)
 {
+  static const double one_over_2_to_16th = 1.52587890625e-5;
   u_int x_bit,y_bit,z_bit;
   u_int thetaphi_bits,r_bits;
   u_int bits;
   u_int idx;
+  struct vector2 disk;
+  struct vector3 orth,axo;
   double r,f;
   
   bits = rng_uint(world->rng);
@@ -161,39 +164,43 @@ void pick_release_displacement(struct vector3 *in_disk,struct vector3 *away,doub
   if (z_bit) away->z = world->d_step[idx+2];
   else away->z = -world->d_step[idx+2];
   
+  if (world->d_step[idx]<world->d_step[idx+1])
+  {
+    if (world->d_step[idx]<world->d_step[idx+2])
+    {
+      orth.x=0; orth.y=away->z; orth.z=-away->y;
+    }
+    else
+    {
+      orth.x=away->y; orth.y=-away->x; orth.z=0;
+    }
+  }
+  else if (world->d_step[idx+1]<world->d_step[idx+2])
+  {
+    orth.x=away->z; orth.y=0; orth.z=-away->x;
+  }
+  else
+  {
+    orth.x=away->y; orth.y=-away->x; orth.z=0;
+  }
+  
+  normalize(&orth);
+  cross_prod(away,&orth,&axo);
+  
   do
   {
     bits = rng_uint(world->rng);
     world->random_number_use++;
     
-    x_bit = (bits & 0x80000000);
-    y_bit = (bits & 0x40000000);
-    z_bit = (bits & 0x20000000);
-    idx =   (bits & world->directions_mask);
-    while (idx >= world->num_directions)
-    {
-      idx = rng_uint(world->rng) & world->directions_mask;
-      world->random_number_use++;
-    }
-    if (x_bit) in_disk->x = world->d_step[idx];
-    else in_disk->x = -world->d_step[idx];
-    if (y_bit) in_disk->y = world->d_step[idx+1];
-    else in_disk->y = -world->d_step[idx+1];
-    if (z_bit) in_disk->z = world->d_step[idx+2];
-    else in_disk->z = -world->d_step[idx+2];
-    
-    f = dot_prod(away,in_disk);
-  }
-  while (f*f > 0.9);
+    disk.u = 2.0*one_over_2_to_16th*(bits&0xFFFF)-1.0;
+    disk.v = 2.0*one_over_2_to_16th*(bits>>16)-1.0;
+    f = disk.u*disk.u + disk.v*disk.v;
+  } while (f<0.01 || f>1.0);
   
-  in_disk->x -= f*away->x;
-  in_disk->y -= f*away->y;
-  in_disk->z -= f*away->z;
-  f = world->rx_radius_3d * sqrt(dot_prod(in_disk,in_disk));
+  in_disk->x = (disk.u*orth.x + disk.v*axo.x)*world->rx_radius_3d;
+  in_disk->y = (disk.u*orth.y + disk.v*axo.y)*world->rx_radius_3d;
+  in_disk->z = (disk.u*orth.z + disk.v*axo.z)*world->rx_radius_3d;
   
-  in_disk->x *= f;
-  in_disk->y *= f;
-  in_disk->z *= f;
   away->x *= r;
   away->y *= r;
   away->z *= r;
@@ -4165,6 +4172,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   {
     inertness=inert_to_mol;
     t_steps = sm->time_step;
+    displacement=displacement2;
+    calculate_displacement=0;
     goto pretend_to_call_diffuse_3D;
   }
   

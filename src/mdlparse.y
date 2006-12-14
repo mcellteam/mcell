@@ -6240,7 +6240,7 @@ rxn:
   /* If we're doing 3D releases, set up array so we can release reversibly */
   if (volp->r_step_release==NULL && mdlpvp->prod_all_3d && mdlpvp->pathp->product_head!=NULL)
   {
-    volp->r_step_release=init_r_step_3d_release(volp->radial_directions);
+    volp->r_step_release=init_r_step_3d_release(volp->radial_subdivisions);
     if (volp->r_step_release==NULL)
     {
       mdlerror(mdlpvp,"Out of memory building r_step array.");

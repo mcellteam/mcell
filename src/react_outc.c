@@ -387,7 +387,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
            world->random_number_use++;
         }
     }
-
+    
     if ( ptype[i-i0] != 0 && (ptype[i-i0]!='m' || w!=NULL) )
     {
       if (rx->geometries[i] == 0)
@@ -458,7 +458,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
     {
       m = (struct volume_molecule*)plist[i-i0];
       m->index = world->dissociation_index;
-      m->flags |= ACT_CLAMPED;
+      if (i-i0 >= rx->n_reactants) m->flags |= ACT_CLAMPED;
       vol_rev_flag=1;
     }
     

@@ -330,11 +330,11 @@ double* init_r_step_3d_release(int radial_subdivisions)
   for (i=0,p=step*0.5 ; i<radial_subdivisions ; p+=step,i++)
   {
     r_min=0;
-    r_max=3.5; /* 17 bit high-end CDF cutoff */
+    r_max=3.5; /* 18 bit high-end CDF cutoff */
     for (j=0;j<20;j++) /* 20 bits accuracy */
     {
       r = 0.5*(r_min+r_max);
-      cdf = 1.0-exp(-r*r)+sqrt_pi_over_2*erfc(r);
+      cdf = 1.0-exp(-r*r)+sqrt_pi_over_2*r*erfc(r);
       if (cdf>p) r_max=r;
       else r_min=r;
     }
