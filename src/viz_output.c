@@ -485,7 +485,7 @@ int output_dx_objects(struct frame_data_list *fdlp)
    */
   if((world->chkpt_flag) && (world->start_time > 0)){
      if (world->it_time == world->start_time){
-         if(viz_iteration % (world->chkpt_iterations) == 0){
+         if(world->chkpt_iterations != 0  &&  viz_iteration % (world->chkpt_iterations) == 0){
              return 0;
          }
      }
@@ -1747,7 +1747,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
    */
   if((world->chkpt_flag) && (world->start_time > 0)){
      if (world->it_time == world->start_time){
-         if(viz_iteration % (world->chkpt_iterations) == 0){
+         if(world->chkpt_iterations != 0  &&  viz_iteration % (world->chkpt_iterations) == 0){
              return 0;
          }
      }
@@ -4734,7 +4734,7 @@ int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
    */
   if((world->chkpt_flag) && (world->start_time > 0)){
      if (world->it_time == world->start_time){
-         if(viz_iteration % (world->chkpt_iterations) == 0){
+         if(world->chkpt_iterations != 0  &&  viz_iteration % (world->chkpt_iterations) == 0){
              return 0;
          }
      }
