@@ -1484,7 +1484,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   
   num_rx = 0;
   
-  mpvp->vol->vacancy_search_dist2 /= mpvp->vol->length_unit;           /* Convert units */
+  mpvp->vol->vacancy_search_dist2 *= mpvp->vol->r_length_unit;         /* Convert units */
   mpvp->vol->vacancy_search_dist2 *= mpvp->vol->vacancy_search_dist2;  /* Take square */
   
   if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
@@ -2219,7 +2219,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     }
   }
 
-  mpvp->vol->rx_radius_3d /= mpvp->vol->length_unit; /* Convert into length units */
+  mpvp->vol->rx_radius_3d *= mpvp->vol->r_length_unit; /* Convert into length units */
   
   for (i=0;i<=rx_hash;i++)
   {

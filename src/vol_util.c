@@ -1237,11 +1237,11 @@ int release_molecules(struct release_event_queue *req)
         {
           case SHAPE_SPHERICAL:
           case SHAPE_ELLIPTIC:
-            vol = (1.0/6.0)*MY_PI*rso->diameter->x*rso->diameter->y*rso->diameter->z*(world->length_unit*world->length_unit*world->length_unit);
+            vol = (1.0/6.0)*MY_PI*rso->diameter->x*rso->diameter->y*rso->diameter->z;
             break;
           case SHAPE_RECTANGULAR:
           case SHAPE_CUBIC:
-            vol = rso->diameter->x*rso->diameter->y*rso->diameter->z*(world->length_unit*world->length_unit*world->length_unit);
+            vol = rso->diameter->x*rso->diameter->y*rso->diameter->z;
             break;
           default:
             fprintf(world->err_file,"File '%s', Line %ld: Can't release a concentration on a spherical shell\n", __FILE__, (long)__LINE__);
@@ -1317,9 +1317,9 @@ int release_molecules(struct release_event_queue *req)
 	
 	mult_matrix(location,req->t_matrix,location,1,4,4);
 	
-	m.pos.x = location[0][0];
-	m.pos.y = location[0][1];
-	m.pos.z = location[0][2];
+	m.pos.x = location[0][0] * world->r_length_unit;
+	m.pos.y = location[0][1] * world->r_length_unit;
+	m.pos.z = location[0][2] * world->r_length_unit;
 	  
 	if ((rsm->mol_type->flags & NOT_FREE)==0)
 	{
@@ -1401,9 +1401,9 @@ int release_molecules(struct release_event_queue *req)
         
         mult_matrix(location,req->t_matrix,location,1,4,4);
         
-        m.pos.x = location[0][0];
-        m.pos.y = location[0][1];
-        m.pos.z = location[0][2];
+        m.pos.x = location[0][0] * world->r_length_unit;
+        m.pos.y = location[0][1] * world->r_length_unit;
+        m.pos.z = location[0][2] * world->r_length_unit;
         
         guess = insert_volume_molecule(&m,guess);  /* Insert copy of m into world */
         if (guess == NULL) return 1;
@@ -1423,9 +1423,9 @@ int release_molecules(struct release_event_queue *req)
       
       mult_matrix(location,req->t_matrix,location,1,4,4);
       
-      m.pos.x = location[0][0];
-      m.pos.y = location[0][1];
-      m.pos.z = location[0][2];
+      m.pos.x = location[0][0] * world->r_length_unit;
+      m.pos.y = location[0][1] * world->r_length_unit;
+      m.pos.z = location[0][2] * world->r_length_unit;
       
       for (i=0;i<number;i++)
       {
@@ -1542,7 +1542,7 @@ int set_partitions()
   double smallest_spacing;
 
   /* Set sensible bounds for spacing between fine partitions (minimum size of subdivision) */  
-  smallest_spacing = 0.1/world->length_unit;  /* 100nm */
+  smallest_spacing = 0.1 * world->r_length_unit;  /* 100nm */
 
   if (2*world->rx_radius_3d > smallest_spacing) smallest_spacing=2*world->rx_radius_3d;
 

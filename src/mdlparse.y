@@ -1782,7 +1782,7 @@ if (volp->space_step<0) {
   volp->space_step = -volp->space_step;
 }
 no_printf("Space step = %g\n",volp->space_step);
-volp->space_step *= 0.5*sqrt(MY_PI) / volp->length_unit; /* Use internal units, convert from mean to characterstic length */
+volp->space_step *= 0.5*sqrt(MY_PI) * volp->r_length_unit; /* Use internal units, convert from mean to characterstic length */
 fflush(mdlpvp->vol->err_file);
 };
 
@@ -1899,9 +1899,10 @@ grid_density_def: EFFECTOR_GRID_DENSITY '=' num_expr
   volp->grid_density=$<dbl>3;
   no_printf("Max density = %f\n",volp->grid_density);
   
-  volp->space_step*=volp->length_unit;
-  volp->length_unit=1.0/sqrt(volp->grid_density);
-  volp->space_step/=volp->length_unit;
+  volp->space_step *= volp->length_unit;
+  volp->r_length_unit = sqrt(volp->grid_density);
+  volp->length_unit = 1.0/volp->r_length_unit;
+  volp->space_step *= volp->r_length_unit;
   
   no_printf("Length unit = %f\n",volp->length_unit);
   fflush(mdlpvp->vol->err_file);
@@ -1931,7 +1932,7 @@ partition_def: partition_dimension '='
   i=1;
   mdlpvp->elp=mdlpvp->el_head;
   while(mdlpvp->elp!=NULL) {
-    mdlpvp->dblp[i++]=mdlpvp->elp->value/volp->length_unit;
+    mdlpvp->dblp[i++]=mdlpvp->elp->value*volp->r_length_unit;
     mdlpvp->elp=mdlpvp->elp->next;
   }
   mdlpvp->dblp[0]=-GIGANTIC;
@@ -2032,17 +2033,17 @@ molecule_stmt: new_molecule '{'
     {
       mdlpvp->specp->space_step = -mdlpvp->specp->time_step;
       mdlpvp->specp->time_step = (mdlpvp->specp->space_step*mdlpvp->specp->space_step)*MY_PI/(16.0 * 1.0e8 * mdlpvp->specp->D)/volp->time_unit;
-      mdlpvp->specp->space_step /= volp->length_unit;
+      mdlpvp->specp->space_step *= volp->r_length_unit;
     }
     else
     {
-      mdlpvp->specp->space_step = sqrt( 4.0 * 1.0e8 * mdlpvp->specp->D * mdlpvp->specp->time_step ) / volp->length_unit;
+      mdlpvp->specp->space_step = sqrt( 4.0 * 1.0e8 * mdlpvp->specp->D * mdlpvp->specp->time_step ) * volp->r_length_unit;
       mdlpvp->specp->time_step /= volp->time_unit;
     }
   }
   else if (volp->space_step==0) /* Global timestep */
   {
-    mdlpvp->specp->space_step=sqrt(4.0*1.0e8*mdlpvp->specp->D*volp->time_unit)/volp->length_unit;
+    mdlpvp->specp->space_step=sqrt(4.0*1.0e8*mdlpvp->specp->D*volp->time_unit) * volp->r_length_unit;
     mdlpvp->specp->time_step=1.0;
   }
   else /* Global spacestep */
@@ -3591,9 +3592,6 @@ release_site_def_new: new_object RELEASE_SITE '{'
       }
     }
     no_printf("\tLocation = [%f,%f,%f]\n",mdlpvp->rsop->location->x,mdlpvp->rsop->location->y,mdlpvp->rsop->location->z);
-    mdlpvp->rsop->location->x/=mdlpvp->vol->length_unit;
-    mdlpvp->rsop->location->y/=mdlpvp->vol->length_unit;
-    mdlpvp->rsop->location->z/=mdlpvp->vol->length_unit;
   }
   mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
   if (mdlpvp->object_name_list_end->prev!=NULL) {
@@ -3824,9 +3822,6 @@ release_site_def_old: new_object release_site_geom_old '{'
 {
   no_printf("Release site %s defined:\n",mdlpvp->curr_obj->sym->name);
   no_printf("\tLocation = [%f,%f,%f]\n",mdlpvp->rsop->location->x,mdlpvp->rsop->location->y,mdlpvp->rsop->location->z);
-  mdlpvp->rsop->location->x/=mdlpvp->vol->length_unit;
-  mdlpvp->rsop->location->y/=mdlpvp->vol->length_unit;
-  mdlpvp->rsop->location->z/=mdlpvp->vol->length_unit;
 
   mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
   if (mdlpvp->object_name_list_end->prev!=NULL) {
@@ -3931,8 +3926,8 @@ release_site_cmd:
 }
 	| site_size_cmd '=' num_expr_only
 {
-  double scaling_factor = 1.0/volp->length_unit;
-  if ($<tok>1==SITE_RADIUS) scaling_factor*=2;
+  double scaling_factor = 1.0;
+  if ($1==SITE_RADIUS) scaling_factor*=2;
   
   if ((mdlpvp->rsop->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
     mdlerror(mdlpvp, "Out of memory while storing release site diameter");
@@ -3944,8 +3939,8 @@ release_site_cmd:
 }
 	| site_size_cmd '=' array_expr_only
 {
-  double scaling_factor = 1.0/volp->length_unit;
-  if ($<tok>1==SITE_RADIUS) scaling_factor*=2;
+  double scaling_factor = 1.0;
+  if ($1==SITE_RADIUS) scaling_factor*=2;
   
   if (mdlpvp->rsop->release_shape==SHAPE_LIST)
   {
@@ -3989,8 +3984,8 @@ release_site_cmd:
 }
 	| site_size_cmd '=' existing_num_or_array
 {
-  double scaling_factor = 1.0/volp->length_unit;
-  if ($<tok>1==SITE_RADIUS) scaling_factor *= 2;
+  double scaling_factor = 1.0;
+  if ($1==SITE_RADIUS) scaling_factor *= 2;
   
   mdlpvp->gp=$<sym>3;
   if ((mdlpvp->rsop->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
@@ -4190,9 +4185,9 @@ molecule_release_pos:
   }
   
   rsm->orient = mdlpvp->orient_class;
-  rsm->loc.x = temp_v3.x / mdlpvp->vol->length_unit;
-  rsm->loc.y = temp_v3.y / mdlpvp->vol->length_unit;
-  rsm->loc.z = temp_v3.z / mdlpvp->vol->length_unit;
+  rsm->loc.x = temp_v3.x;
+  rsm->loc.y = temp_v3.y;
+  rsm->loc.z = temp_v3.z;
   rsm->mol_type = (struct species*)( ($<sym>1)->value );
   
   if (rsm->mol_type->flags&ON_GRID)
@@ -8060,7 +8055,7 @@ viz_mode_def: MODE '=' NONE
   
   for (i=0,nel=mdlpvp->el_head ; nel!=NULL ; nel=nel->next,i++)
   {
-    parts_array[i] = nel->value/volp->length_unit;
+    parts_array[i] = nel->value * volp->r_length_unit;
   }
   for ( ; mdlpvp->el_head != NULL ; mdlpvp->el_head = nel )
   {
@@ -8590,15 +8585,15 @@ volume_output_def: VOLUME_DATA_OUTPUT '{'
 
   memcpy(& vo->location, location, sizeof(struct vector3));
   free(location);
-  vo->location.x /= mdlpvp->vol->length_unit;
-  vo->location.y /= mdlpvp->vol->length_unit;
-  vo->location.z /= mdlpvp->vol->length_unit;
+  vo->location.x *= mdlpvp->vol->r_length_unit;
+  vo->location.y *= mdlpvp->vol->r_length_unit;
+  vo->location.z *= mdlpvp->vol->r_length_unit;
 
   memcpy(& vo->voxel_size, voxel_size, sizeof(struct vector3));
   free(voxel_size);
-  vo->voxel_size.x /= mdlpvp->vol->length_unit;
-  vo->voxel_size.y /= mdlpvp->vol->length_unit;
-  vo->voxel_size.z /= mdlpvp->vol->length_unit;
+  vo->voxel_size.x *= mdlpvp->vol->r_length_unit;
+  vo->voxel_size.y *= mdlpvp->vol->r_length_unit;
+  vo->voxel_size.z *= mdlpvp->vol->r_length_unit;
 
   vo->nvoxels_x = (int) (voxel_count->x + 0.5);
   vo->nvoxels_y = (int) (voxel_count->y + 0.5);

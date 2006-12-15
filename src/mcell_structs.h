@@ -1128,6 +1128,7 @@ struct volume
 
   double grid_density;     /* Density of grid for surface molecules, number per um^2 */
   double length_unit;      /* Internal unit of distance, 1/sqrt(grid_density), in microns */
+  double r_length_unit;    /* Reciprocal of length_unit to avoid division */
   double rx_radius_3d;     /* Interaction radius for reactions between volume molecules */
 
   double space_step;       /* User-supplied desired average diffusion distance for volume molecules */

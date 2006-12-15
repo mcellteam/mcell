@@ -270,7 +270,8 @@ int init_sim(void)
   world->current_real_time=0;
   world->current_start_real_time=0;
   world->grid_density=10000;
-  world->length_unit=1.0/sqrt(world->grid_density);
+  world->r_length_unit=sqrt(world->grid_density);
+  world->length_unit=1.0/world->r_length_unit;
   world->rx_radius_3d = 0;
   world->radial_directions=16384;
   world->radial_subdivisions=1024;
@@ -797,12 +798,12 @@ int init_partitions(void)
   part_lo.z = -1.1;
   part_hi.z = 1.01;
 
-  part_lo.x *= (1.0+EPS_C)/world->length_unit;
-  part_lo.y *= (1.0+EPS_C)/world->length_unit;
-  part_lo.z *= (1.0+EPS_C)/world->length_unit;
-  part_hi.x *= (1.0+EPS_C)/world->length_unit;
-  part_hi.y *= (1.0+EPS_C)/world->length_unit;
-  part_hi.z *= (1.0+EPS_C)/world->length_unit;
+  part_lo.x *= (1.0+EPS_C) * world->r_length_unit;
+  part_lo.y *= (1.0+EPS_C) * world->r_length_unit;
+  part_lo.z *= (1.0+EPS_C) * world->r_length_unit;
+  part_hi.x *= (1.0+EPS_C) * world->r_length_unit;
+  part_hi.y *= (1.0+EPS_C) * world->r_length_unit;
+  part_hi.z *= (1.0+EPS_C) * world->r_length_unit;
   
   
 #if 0
@@ -1437,23 +1438,23 @@ int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_n
       p[0][2]=opp->vertex[i].z;
       p[0][3]=1.0;
       mult_matrix(p,im,p,l,m,n);
-      if (p[0][0]/world->length_unit<world->bb_llf.x) {
-        world->bb_llf.x=p[0][0]/world->length_unit;
+      if (p[0][0] * world->r_length_unit<world->bb_llf.x) {
+        world->bb_llf.x=p[0][0] * world->r_length_unit;
       }
-      if (p[0][1]/world->length_unit<world->bb_llf.y) {
-        world->bb_llf.y=p[0][1]/world->length_unit;
+      if (p[0][1] * world->r_length_unit<world->bb_llf.y) {
+        world->bb_llf.y=p[0][1] * world->r_length_unit;
       }
-      if (p[0][2]/world->length_unit<world->bb_llf.z) {
-        world->bb_llf.z=p[0][2]/world->length_unit;
+      if (p[0][2] * world->r_length_unit<world->bb_llf.z) {
+        world->bb_llf.z=p[0][2] * world->r_length_unit;
       }
-      if (p[0][0]/world->length_unit>world->bb_urb.x) {
-        world->bb_urb.x=p[0][0]/world->length_unit;
+      if (p[0][0] * world->r_length_unit>world->bb_urb.x) {
+        world->bb_urb.x=p[0][0] * world->r_length_unit;
       }
-      if (p[0][1]/world->length_unit>world->bb_urb.y) {
-        world->bb_urb.y=p[0][1]/world->length_unit;
+      if (p[0][1] * world->r_length_unit>world->bb_urb.y) {
+        world->bb_urb.y=p[0][1] * world->r_length_unit;
       }
-      if (p[0][2]/world->length_unit>world->bb_urb.z) {
-        world->bb_urb.z=p[0][2]/world->length_unit;
+      if (p[0][2] * world->r_length_unit>world->bb_urb.z) {
+        world->bb_urb.z=p[0][2] * world->r_length_unit;
       }
     }
 
@@ -1565,9 +1566,9 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
     p[0][2]=opp->vertex[i].z;
     p[0][3]=1.0;
     mult_matrix(p,im,p,l,m,n);
-    v[i].x=p[0][0]/world->length_unit;
-    v[i].y=p[0][1]/world->length_unit;
-    v[i].z=p[0][2]/world->length_unit;
+    v[i].x=p[0][0] * world->r_length_unit;
+    v[i].y=p[0][1] * world->r_length_unit;
+    v[i].z=p[0][2] * world->r_length_unit;
 
 #ifdef INIT_VERTEX_NORMALS
     if (compute_vertex_normals) {
