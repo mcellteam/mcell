@@ -549,7 +549,6 @@ int read_rng_state(FILE *fs)
   }
   else
   {
-    world->seed_seq=tmp2;
     rng_reinit=1;
   }
   
