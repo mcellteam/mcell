@@ -1767,8 +1767,25 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
   /* Finally, let's clean up the mess we made! */
   
   /* Deallocate lists */
+  /* Note: vertex_head points to a circular list at this point. */
+  /*       We delete starting with vertex_head->next, and nil   */
+  /*       that pointer to break the cycle in the list.         */
   ppa = vertex_head->next;
   vertex_head->next = NULL;
+
+  /* Flatten out lists so that "span" elements are included... */
+  for (ppb = ppa; ppb != NULL; ppb = ppb->next)
+  {
+    if (ppb->span != NULL)
+    {
+      struct exd_vertex *next = ppb->next;
+      ppb->next = ppb->span;
+      ppb->span = NULL;
+      while (ppb->next != NULL)
+        ppb = ppb->next;
+      ppb->next = next;
+    }
+  }
   mem_put_list( sv->local_storage->exdv , ppa );
   
   /* Return fractional area */

@@ -636,7 +636,9 @@ end_of_mdl_file: EOF_TOK
             volp->curr_file); 
           no_printf("include_flag = %d\n",mdlpvp->include_flag); 
           fflush(mdlpvp->vol->err_file);
+          mdl_delete_buffer(YY_CURRENT_BUFFER);
 	  mdl_switch_to_buffer(mdlpvp->include_stack[--mdlpvp->include_stack_ptr]);
+          free(volp->curr_file);
 	  volp->curr_file=mdlpvp->include_filename[mdlpvp->include_stack_ptr];
           mdlpvp->cval=mdlpvp->cval_stack[mdlpvp->include_stack_ptr]=mdlpvp->cval;
           mdlpvp->cval_2=mdlpvp->cval_2_stack[mdlpvp->include_stack_ptr]=mdlpvp->cval_2;
@@ -1601,6 +1603,7 @@ str_value: STR_VALUE
 }
         | WILDCARD_VAR
 {
+  char *q = NULL;
   if (mdlpvp->cval_2!=NULL) {  
     mdlpvp->strval=mdlpvp->cval_2;
   }   
@@ -1608,12 +1611,12 @@ str_value: STR_VALUE
     mdlpvp->strval=mdlpvp->cval;
   } 
 
-  if(strip_quotes(mdlpvp->strval) != NULL){
-      $$ = strip_quotes(mdlpvp->strval);
+  q = strip_quotes(mdlpvp->strval);
+  if (q != NULL) {
+      $$ = q;
   }else{
       mdlerror_fmt(mdlpvp, "Out of memory while parsing string");
       free((void *)mdlpvp->strval);
-    
       return (1);
   }
    if (mdlpvp->strval==mdlpvp->cval) {
@@ -6085,6 +6088,8 @@ rxn:
       return 1;
     }
   }
+  else
+    free(rx_name);
   
   mdlpvp->rxnp = (struct rxn*)mdlpvp->gp->value;
   mdlpvp->rxnp->n_pathways++;
@@ -10067,6 +10072,7 @@ int mdlparse_init(struct volume *vol)
     fprintf(vol->log_file,"MCell: out of memory storing mdlparse vars\n");
     return(1);
   }
+  memset(mpvp, 0, sizeof(struct mdlparse_vars));
   clunky_mpvp_for_errors = mpvp;
 
   mpvp->vol=vol;

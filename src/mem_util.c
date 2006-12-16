@@ -748,7 +748,6 @@ void delete_stack(struct stack_helper *sh)
  **   lists. Each element is assumed to start with a "next" pointer.     **
 \**************************************************************************/
 
-
 /*************************************************************************
 create_mem:
    In: Size of a single element (including the leading "next" pointer)
@@ -764,7 +763,7 @@ struct mem_helper* create_mem(int size,int length)
   if (mh==NULL) return NULL;
   
   mh->buf_len = (length>0) ? length : 128;
-  mh->record_size = (size>0) ? size : sizeof(void*);
+  mh->record_size = (size>sizeof(void*)) ? size : sizeof(void*);
   mh->buf_index = 0;
   mh->defunct = NULL;
   mh->next_helper = NULL;

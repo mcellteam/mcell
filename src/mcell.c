@@ -324,6 +324,7 @@ int main(int argc, char **argv) {
     fprintf(err_file,"File '%s', Line %ld: Out of memory while creating world volume data structure.\n", __FILE__, (long)__LINE__);
     exit(EXIT_FAILURE);
   }
+  memset(world, 0, sizeof(struct volume));
   world->log_file=log_file;
   world->err_file=err_file;
 

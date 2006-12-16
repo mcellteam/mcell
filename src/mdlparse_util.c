@@ -631,6 +631,7 @@ char *create_prod_signature(struct product **product_head)
     current = *product_head;
     prod_signature = current->prod->sym->name;
  
+    char *temp_str = NULL;
     while(current->next != NULL)
     { 
       prod_signature = my_strcat(prod_signature, "+");
@@ -639,12 +640,18 @@ char *create_prod_signature(struct product **product_head)
 	 mdlerror_nested(err_message);
          return (NULL);
       }
+      if (temp_str != NULL) free(temp_str);
+      temp_str = prod_signature;
+
       prod_signature = my_strcat(prod_signature, current->next->prod->sym->name);
       if(prod_signature == NULL){
          sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
 	 mdlerror_nested(err_message);
          return (NULL);
       }
+      if (temp_str != NULL) free(temp_str);
+      temp_str = prod_signature;
+
       current = current->next;
     }
      

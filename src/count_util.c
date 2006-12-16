@@ -1130,6 +1130,7 @@ int place_waypoints()
 
   /* Probably ought to check for whether you really need waypoints */
   
+  if (world->waypoints != NULL) free(world->waypoints);
   world->n_waypoints = world->n_subvols;
   world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint)*world->n_waypoints);
   if (!world->waypoints) return 1;
