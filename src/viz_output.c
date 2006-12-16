@@ -286,7 +286,7 @@ void init_frame_data_list(struct frame_data_list *fdlp)
   if(world->iterations < time_values_total - 1){
       time_values_total = world->iterations + 1;
   }
-  if(world->chkpt_flag){
+  if(world->chkpt_flag  &&  world->chkpt_iterations != 0){
     
     if((world->start_time + world->chkpt_iterations) < time_values_total -1){
         time_values_total = world->start_time + world->chkpt_iterations + 1;
@@ -2081,7 +2081,7 @@ int output_dreamm_objects(struct frame_data_list *fdlp)
 
         status = stat(filename, &f_stat);
         if((status == -1) && (errno == ENOENT)){
-   	     fprintf(world->err_file, "File %s, Line %ld: Error ERROENT while looking for viz_output data directory '%s'.  Please create it.\n", __FILE__, (long)__LINE__, filename);
+   	     fprintf(world->err_file, "File %s, Line %ld: viz_output data directory '%s' does not exist.  Please create it.\n", __FILE__, (long)__LINE__, filename);
    	     exit (1);
         }
 
