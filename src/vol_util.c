@@ -2241,3 +2241,136 @@ void path_bounding_box(struct vector3 *loc, struct vector3 * displacement,
    urb->z += R;
 }
 
+/***************************************************************************
+ This function puts all existing volume molecules
+ in the random positions in the world.
+ It is a research function that should not be called
+ during regular MCell3 execution.
+***************************************************************************/
+void randomize_vol_mols_in_world()
+{
+   struct volume_molecule *mp, *new_mp;
+   struct abstract_molecule *amp;
+   double num; /* random number */
+   struct subvolume *old_sv, *new_sv;
+   double size_x, size_y, size_z; /* dimensions of the world bounding  box 
+                                     in X,Y,Z directions */
+   struct storage_list *slp;
+   struct storage *sp;
+   struct schedule_helper *shp;
+   struct vector3 low_end;
+   struct vector3 loc;
+
+   int ii;
+   
+   size_x = world->bb_urb.x - world->bb_llf.x;
+   if(size_x < 0) {
+       size_x = - size_x;
+       low_end.x = world->bb_urb.x;
+   }else{
+       low_end.x = world->bb_llf.x;
+   }
+   size_y = world->bb_urb.y - world->bb_llf.y;
+   if(size_y < 0) {
+      size_y = - size_y;
+      low_end.y = world->bb_urb.y;
+   }else{
+       low_end.y = world->bb_llf.y;
+   }
+   size_z = world->bb_urb.z - world->bb_llf.z;
+   if(size_z < 0) {
+       size_z = - size_z;
+       low_end.z = world->bb_urb.z;
+   }else{
+       low_end.z = world->bb_llf.z;
+   }
+
+    
+  slp = world->storage_head;
+  while(slp != NULL){
+    sp = slp->store;
+    shp = sp->timer;
+    while(shp != NULL){
+     for (ii = 0; ii < shp->buf_len;ii++) {
+       amp = (struct abstract_molecule *)shp->circ_buf_head[ii];
+       while (amp != NULL) {
+          if((amp->properties != NULL) && (amp->flags & TYPE_3D) == TYPE_3D){
+            mp = (struct volume_molecule *)amp;
+            
+            /* find future molecule position */
+            num = rng_dbl(world->rng);
+            if(world->notify->final_summary == NOTIFY_FULL){
+              world->random_number_use++;
+            }
+            loc.x = low_end.x + num*size_x;
+            num = rng_dbl(world->rng);
+            if(world->notify->final_summary == NOTIFY_FULL){
+              world->random_number_use++;
+            }
+            loc.y = low_end.y + num*size_y;
+            num = rng_dbl(world->rng);
+            if(world->notify->final_summary == NOTIFY_FULL){
+              world->random_number_use++;
+            }
+            loc.z = low_end.z + num*size_z;
+            /* find new subvolume after reshuffling */ 
+            new_sv = find_subvolume(&loc, NULL);
+
+            /* now remove molecule from old subvolume
+               and place it into the new location into new one */
+            mp->pos.x = loc.x;
+            mp->pos.y = loc.y;
+            mp->pos.z = loc.z;
+            new_mp = migrate_volume_molecule(mp, new_sv);
+
+          } /* end if */
+          amp = amp->next;
+       } /* end while (amp != NULL) */
+     } /* end for */
+
+     amp = (struct abstract_molecule *)shp->current;
+     while(amp != NULL) {
+        if((amp->properties != NULL) && (amp->flags & TYPE_3D) == TYPE_3D) {
+            mp = (struct volume_molecule *)amp;
+            
+            /* find future molecule position */
+            num = rng_dbl(world->rng);
+            if(world->notify->final_summary == NOTIFY_FULL){
+              world->random_number_use++;
+            }
+            loc.x = low_end.x + num*size_x;
+            num = rng_dbl(world->rng);
+            if(world->notify->final_summary == NOTIFY_FULL){
+              world->random_number_use++;
+            }
+            loc.y = low_end.y + num*size_y;
+            num = rng_dbl(world->rng);
+            if(world->notify->final_summary == NOTIFY_FULL){
+              world->random_number_use++;
+            }
+            loc.z = low_end.z + num*size_z;
+            /* find new subvolume after reshuffling */ 
+            new_sv = find_subvolume(&loc, NULL);
+
+            /* now remove molecule from old subvolume
+               and place it into the new location into new one */
+            mp->pos.x = loc.x;
+            mp->pos.y = loc.y;
+            mp->pos.z = loc.z;
+            new_mp = migrate_volume_molecule(mp, new_sv);
+
+          } /* end if */
+        amp = amp->next;
+
+     }
+     shp = shp->next_scale;
+
+
+    } /* end while (shp != NULL)  */  
+
+    slp = slp->next;
+
+
+  } /* end while (slp != NULL) */
+
+}
