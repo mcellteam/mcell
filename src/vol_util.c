@@ -2252,7 +2252,7 @@ void randomize_vol_mols_in_world()
    struct volume_molecule *mp, *new_mp;
    struct abstract_molecule *amp;
    double num; /* random number */
-   struct subvolume *old_sv, *new_sv;
+   struct subvolume *new_sv;
    double size_x, size_y, size_z; /* dimensions of the world bounding  box 
                                      in X,Y,Z directions */
    struct storage_list *slp;
