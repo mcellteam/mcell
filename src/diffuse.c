@@ -1183,7 +1183,9 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
     if (pa.r2 > R2 || pb.r2 > R2)
     {
       pa_pb = pa.u*pb.u + pa.v*pb.v;
-      a = 1.0/(pa.r2 + pb.r2 - 2*pa_pb);
+      a = (pa.r2 + pb.r2 - 2*pa_pb);
+      if (a < EPS_C) continue;
+      a = 1.0 / a;
       b = (pa_pb - pa.r2)*a;
       c = (R2 - pa.r2)*a;
       d = b*b+c;
