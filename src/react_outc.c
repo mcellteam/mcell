@@ -28,8 +28,6 @@ int is_compatible_surface(void *req_species,struct wall *w)
   return (w->surf_class == rs);
 }
 
-
-
 /*************************************************************************
 outcome_products:
    In: relevant wall in the interaction, if any
@@ -744,7 +742,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
     else if (reacA->flags&COUNT_ME)
     {
       /* Subtlety: we made it up to hitpt, but our position is wherever we were before that! */
-      if (hitpt==NULL || reacB_was_free || (reacB->properties!=NULL && (reacB->properties->flags&NOT_FREE)!=0))
+      if (hitpt==NULL || reacB_was_free || (reacB->properties!=NULL && (reacB->properties->flags&NOT_FREE)==0))
       {
 	/* Vol-vol rx should be counted at hitpt */
 	i=count_region_from_scratch(reacA,NULL,-1,hitpt,NULL,t);
