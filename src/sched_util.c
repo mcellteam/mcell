@@ -13,7 +13,6 @@
 
 #include "sched_util.h"
 
-
 /*************************************************************************
 ae_list_sort:
   In: head of a linked list of abstract_elements
@@ -152,8 +151,7 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
   struct schedule_helper *sh = NULL;
   double n_slots;
   int len;
-  int i;
-  
+
   n_slots = dt_max / dt_min;
   
   if (n_slots < (double)(maxlen-1)) len = (int)n_slots + 1;
@@ -162,45 +160,37 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
   if (len<2) len=2;
   
   sh = (struct schedule_helper*) malloc( sizeof( struct schedule_helper ) );
-  if(sh == NULL) return NULL;
-  
+  if (sh == NULL) return NULL;
+  memset(sh, 0, sizeof(struct schedule_helper));
+
   sh->dt = dt_min;
   sh->dt_1 = 1/dt_min;
   
   sh->now = start_time;
   sh->buf_len = len;
-  sh->index = 0;
-  sh->count = 0;
-  sh->error = 0;
 
   sh->circ_buf_count = (int*) malloc( sizeof(int) * len );
-  if (sh->circ_buf_count == NULL) return NULL;
+  if (sh->circ_buf_count == NULL) goto failure;
+  memset(sh->circ_buf_count, 0, sizeof(int) * len);
 
-  sh->circ_buf_head = (struct abstract_element**) malloc( sizeof( void* ) * len );
-  if (sh->circ_buf_head == NULL) return NULL;
-
-  sh->circ_buf_tail = (struct abstract_element**) malloc( sizeof( void* ) * len );
-  if (sh->circ_buf_tail == NULL) return NULL;
-  
-  sh->next_scale = NULL;
-  sh->current = sh->current_tail = NULL;
-  sh->current_count = 0;
-  
-  for (i=0;i<len;i++)
-  {
-    sh->circ_buf_head[i] = sh->circ_buf_tail[i] = NULL;
-    sh->circ_buf_count[i] = 0;
-  }
+  sh->circ_buf_head = (struct abstract_element**) malloc( sizeof( void* ) * len * 2 );
+  if (sh->circ_buf_head == NULL) goto failure;
+  sh->circ_buf_tail = sh->circ_buf_head + len;
+  memset(sh->circ_buf_head, 0, sizeof(struct abstract_element**) * len * 2);
 
   if (sh->dt * sh->buf_len < dt_max)
   {
     sh->next_scale = create_scheduler(dt_min*len,dt_max,maxlen,sh->now+dt_min*len);
-    if (sh->next_scale == NULL) return NULL;
+    if (sh->next_scale == NULL) goto failure;
+    sh->next_scale->depth = sh->depth + 1;
   }
   
-  sh->defunct_count = 0;
-  
   return sh;
+
+failure:
+  if (sh != NULL)
+    delete_scheduler(sh);
+  return NULL;
 }
 
 
@@ -219,13 +209,13 @@ int schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_current
   struct abstract_element *ae = (struct abstract_element*)data;
   double nsteps;
   int i;
-  
+
   if (put_neg_in_current && ae->t < sh->now)
   {
     /* insert item into current list */
 
     sh->current_count++;
-    if (sh->current_tail==NULL)
+    if (sh->current_tail == NULL)
     {
       sh->current = sh->current_tail = ae;
       ae->next = NULL;
@@ -251,7 +241,7 @@ int schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_current
     else i = (int) nsteps + sh->index;
     if (i >= sh->buf_len) i -= sh->buf_len;
 
-    if (sh->circ_buf_tail[i]==NULL)
+    if (sh->circ_buf_tail[i] == NULL)
     {
       sh->circ_buf_count[i] = 1;
       sh->circ_buf_head[i] = sh->circ_buf_tail[i] = ae;
@@ -260,9 +250,21 @@ int schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_current
     else
     {
       sh->circ_buf_count[i]++;
-      sh->circ_buf_tail[i]->next = ae;
-      ae->next = NULL;
-      sh->circ_buf_tail[i] = ae;
+
+      /* For schedulers other than the first tier, maintain a LIFO ordering */
+      if (sh->depth)
+      {
+          ae->next = sh->circ_buf_head[i];
+          sh->circ_buf_head[i] = ae;
+      }
+
+      /* For first-tier scheduler, maintain FIFO ordering */
+      else
+      {
+          sh->circ_buf_tail[i]->next = ae;
+          ae->next = NULL;
+          sh->circ_buf_tail[i] = ae;
+      }
     }
   }
   else
@@ -273,10 +275,11 @@ int schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_current
     {
       sh->next_scale = create_scheduler(sh->dt*sh->buf_len,
                                         sh->dt*sh->buf_len*sh->buf_len,
-					sh->buf_len+1,
-					sh->now+sh->dt*sh->buf_len
-				       );
-      if(sh->next_scale == NULL) return 1;
+                                        sh->buf_len,
+                                        sh->now+sh->dt*(sh->buf_len - sh->index)
+                                       );
+      if (sh->next_scale == NULL) return 1;
+      sh->next_scale->depth = sh->depth + 1;
     }
 
     /* insert item at coarser scale and insist that item is not placed in "current" list */
@@ -343,17 +346,36 @@ int schedule_advance(struct schedule_helper *sh,struct abstract_element **head,
     sh->index = 0;
     if (sh->next_scale != NULL)
     {
+      /* Save our depth */
+      int old_depth = sh->depth;
       int conservecount = sh->count;
-      if ( schedule_advance(sh->next_scale,&p,NULL) == -1 ) return -1;
+
+      /* Hack: Toggle the non-zero-ness of our depth to toggle FIFO/LIFO
+       * behavior
+       */
+      sh->depth = old_depth ? 0 : -1;
+
+      if ( schedule_advance(sh->next_scale,&p,NULL) == -1 )
+      {
+        sh->depth = old_depth;
+        return -1;
+      }
       while (p != NULL)
       {
         nextp = p->next;
-        if ( schedule_insert(sh,(void*)p,0) )  return -1;
+        if (schedule_insert(sh, (void*) p, 0))
+        {
+          sh->depth = old_depth;
+          return -1;
+        }
         p = nextp;
       }
 
       /* moved items were already counted when originally scheduled so don't count again */
       sh->count = conservecount;
+
+      /* restore our depth */
+      sh->depth = old_depth;
     }
   }
   
@@ -568,10 +590,12 @@ delete_scheduler:
 
 void delete_scheduler(struct schedule_helper *sh)
 {
-  if (sh->next_scale != NULL) delete_scheduler(sh->next_scale);
-  free(sh->circ_buf_tail);
-  free(sh->circ_buf_head);
-  free(sh->circ_buf_count);
-  free(sh);
+  if (sh)
+  {
+    if (sh->next_scale != NULL) delete_scheduler(sh->next_scale);
+    if (sh->circ_buf_head) free(sh->circ_buf_head);
+    if (sh->circ_buf_count) free(sh->circ_buf_count);
+    free(sh);
+  }
 }
 

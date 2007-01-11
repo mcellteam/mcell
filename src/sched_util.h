@@ -35,7 +35,7 @@ struct schedule_helper
 
   int defunct_count;                       /* Number of defunct items (set by user)*/
   int error;				   /* Error code (1 - on error, 0 - no errors) */
-
+  int depth;                               /* "Tier" of scheduler in timescale hierarchy, 0-based */
 };
 
 struct abstract_element* ae_list_sort(struct abstract_element *ae);
