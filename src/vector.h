@@ -28,4 +28,6 @@ void cross_prod(struct vector3 *v1, struct vector3 *v2, struct vector3 *v3);
 void vect_sum(struct vector3 *v1, struct vector3 *v2, struct vector3 *v3);
 void scalar_prod(struct vector3 *v1, double a, struct vector3 *result);
 
+int distinguishable_vec3(struct vector3 *a,struct vector3 *b,double eps);
+
 #endif

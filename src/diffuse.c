@@ -1029,6 +1029,7 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
   
   double R2;
   int uncoordinated;
+  int direct_hit;
   struct vector3 m,u,v;
   struct exd_vector3 Lmuv;
   struct exd_vertex g;
@@ -1046,6 +1047,7 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
   R2 = R*R;
   m2_i = 1.0/(mv->x*mv->x + mv->y*mv->y + mv->z*mv->z);
   uncoordinated = 1;
+  direct_hit=0;
   Lmuv.m = Lmuv.u = Lmuv.v = 0.0;  /* Keep compiler happy */
   g.u = g.v = g.r2 = g.zeta = 0.0; /* More compiler happiness */
 
@@ -1125,10 +1127,18 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
       Lmuv.u = loc->x*u.x + loc->y*u.y + loc->z*u.z;    
       Lmuv.v = loc->x*v.x + loc->y*v.y + loc->z*v.z;
       
-      g.u = (target->pos.x - loc->x)*u.x + (target->pos.y - loc->y)*u.y + (target->pos.z - loc->z)*u.z;
-      g.v = (target->pos.x - loc->x)*v.x + (target->pos.y - loc->y)*v.y + (target->pos.z - loc->z)*v.z;
-      g.r2 = g.u*g.u+g.v*g.v;
-      g.zeta = exd_zetize(g.v,g.u);
+      if (!distinguishable_vec3(loc,&(target->pos),EPS_C)) /* Hit target exactly! */ 
+      {
+	direct_hit=1;
+	g.u = g.v = g.r2 = g.zeta = 0.0;
+      }
+      else /* Find location of target in moving-molecule-centric coords */
+      {
+	g.u = (target->pos.x - loc->x)*u.x + (target->pos.y - loc->y)*u.y + (target->pos.z - loc->z)*u.z;
+	g.v = (target->pos.x - loc->x)*v.x + (target->pos.y - loc->y)*v.y + (target->pos.z - loc->z)*v.z;
+	g.r2 = g.u*g.u+g.v*g.v;
+	g.zeta = exd_zetize(g.v,g.u);
+      }
       
       uncoordinated=0;
     }
@@ -1175,17 +1185,39 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
       pb.v = v2muv.v + (v0muv.v-v2muv.v)*t;
     }
     
-    /* Intersect line with circle; skip this wall if no intersection */
+    /* Check to make sure endpoints are sensible */
     pa.r2 = pa.u*pa.u + pa.v*pa.v;
     pb.r2 = pb.u*pb.u + pb.v*pb.v;
-    t=0; s=1;
-    
+    if (pa.r2<EPS_C*R2 || pb.r2<EPS_C*R2) /* Can't tell where origin is relative to wall endpoints */
+    {
+      if (vertex_head!=NULL) mem_put_list( sv->local_storage->exdv , vertex_head );      
+      return TARGET_OCCLUDED; 
+    }
+    if (!distinguishable(pa.u*pb.v,pb.u*pa.v,EPS_C) && pa.u*pb.u+pa.v*pb.v<0) /* Antiparallel, can't tell which side of wall origin is on */
+    {
+      if (vertex_head!=NULL) mem_put_list( sv->local_storage->exdv , vertex_head );
+      return TARGET_OCCLUDED; 
+    }
+
+    /* Intersect line with circle; skip this wall if no intersection */
+    t=0; s=1;    
     if (pa.r2 > R2 || pb.r2 > R2)
     {
       pa_pb = pa.u*pb.u + pa.v*pb.v;
-      a = (pa.r2 + pb.r2 - 2*pa_pb);
-      if (a < EPS_C) continue;
-      a = 1.0 / a;
+      if (!distinguishable(pa.r2+pb.r2,2*pa_pb,EPS_C)) /* Wall endpoints are basically on top of each other */
+      {
+	/* Might this tiny bit of wall block the target?  If not, continue, otherwise return TARGET_OCCLUDED */
+	/* Safe if we're clearly closer; in danger if we're even remotely parallel, otherwise surely safe */
+	/* Note: use SQRT_EPS_C for cross products since previous test vs. EPS_C was on squared values (linear difference term cancels) */
+	if (g.r2<pa.r2 && g.r2<pb.r2 && distinguishable(g.r2,pa.r2,EPS_C) && distinguishable(g.r2,pa.r2,EPS_C)) continue;
+	if (!distinguishable(g.u*pa.v,g.v*pa.u,SQRT_EPS_C) || !distinguishable(g.u*pb.v,g.v*pb.u,SQRT_EPS_C))
+	{
+	  if (vertex_head!=NULL) mem_put_list( sv->local_storage->exdv , vertex_head );
+	  return TARGET_OCCLUDED;
+	}
+	continue;
+      }
+      a = 1.0/(pa.r2 + pb.r2 - 2*pa_pb);
       b = (pa_pb - pa.r2)*a;
       c = (R2 - pa.r2)*a;
       d = b*b+c;
@@ -1247,7 +1279,7 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
     if (b<a)
     {
       c = (ppa->u-g.u)*(ppb->v-g.v)-(ppa->v-g.v)*(ppb->u-g.u);
-      if (c<=0) /* Blocked!! */
+      if (c<0 || !distinguishable((ppa->u-g.u)*(ppb->v-g.v),(ppa->v-g.v)*(ppb->u-g.u),EPS_C)) /* Blocked! */
       {
 	ppa->next=ppb; ppb->next=vertex_head;
 	mem_put_list( sv->local_storage->exdv , ppa );

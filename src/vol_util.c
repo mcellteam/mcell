@@ -1248,7 +1248,7 @@ int release_molecules(struct release_event_queue *req)
             vol = 0;
             break;
         }
-        number = (int)(N_AV * 1e-15 * rso->concentration * vol + 0.5);
+        number = (int)(N_AV * 1e-15 * rso->concentration * vol * world->length_unit*world->length_unit*world->length_unit + 0.5);
       }
       break;
     
@@ -1317,9 +1317,9 @@ int release_molecules(struct release_event_queue *req)
 	
 	mult_matrix(location,req->t_matrix,location,1,4,4);
 	
-	m.pos.x = location[0][0] * world->r_length_unit;
-	m.pos.y = location[0][1] * world->r_length_unit;
-	m.pos.z = location[0][2] * world->r_length_unit;
+	m.pos.x = location[0][0];
+	m.pos.y = location[0][1];
+	m.pos.z = location[0][2];
 	  
 	if ((rsm->mol_type->flags & NOT_FREE)==0)
 	{
@@ -1401,9 +1401,9 @@ int release_molecules(struct release_event_queue *req)
         
         mult_matrix(location,req->t_matrix,location,1,4,4);
         
-        m.pos.x = location[0][0] * world->r_length_unit;
-        m.pos.y = location[0][1] * world->r_length_unit;
-        m.pos.z = location[0][2] * world->r_length_unit;
+        m.pos.x = location[0][0];
+        m.pos.y = location[0][1];
+        m.pos.z = location[0][2];
         
         guess = insert_volume_molecule(&m,guess);  /* Insert copy of m into world */
         if (guess == NULL) return 1;
@@ -1423,9 +1423,9 @@ int release_molecules(struct release_event_queue *req)
       
       mult_matrix(location,req->t_matrix,location,1,4,4);
       
-      m.pos.x = location[0][0] * world->r_length_unit;
-      m.pos.y = location[0][1] * world->r_length_unit;
-      m.pos.z = location[0][2] * world->r_length_unit;
+      m.pos.x = location[0][0];
+      m.pos.y = location[0][1];
+      m.pos.z = location[0][2];
       
       for (i=0;i<number;i++)
       {

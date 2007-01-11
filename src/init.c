@@ -1430,38 +1430,22 @@ int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_n
   m=4;
   n=4;
 
-    opp=(struct ordered_poly *)pop->polygon_data;
-    n_verts=opp->n_verts;
- 
-    for (i=0;i<n_verts;i++) {
-      p[0][0]=opp->vertex[i].x;
-      p[0][1]=opp->vertex[i].y;
-      p[0][2]=opp->vertex[i].z;
-      p[0][3]=1.0;
-      mult_matrix(p,im,p,l,m,n);
-      if (p[0][0] * world->r_length_unit<world->bb_llf.x) {
-        world->bb_llf.x=p[0][0] * world->r_length_unit;
-      }
-      if (p[0][1] * world->r_length_unit<world->bb_llf.y) {
-        world->bb_llf.y=p[0][1] * world->r_length_unit;
-      }
-      if (p[0][2] * world->r_length_unit<world->bb_llf.z) {
-        world->bb_llf.z=p[0][2] * world->r_length_unit;
-      }
-      if (p[0][0] * world->r_length_unit>world->bb_urb.x) {
-        world->bb_urb.x=p[0][0] * world->r_length_unit;
-      }
-      if (p[0][1] * world->r_length_unit>world->bb_urb.y) {
-        world->bb_urb.y=p[0][1] * world->r_length_unit;
-      }
-      if (p[0][2] * world->r_length_unit>world->bb_urb.z) {
-        world->bb_urb.z=p[0][2] * world->r_length_unit;
-      }
-    }
+  opp=(struct ordered_poly *)pop->polygon_data;
+  n_verts=opp->n_verts;
 
-/*
-    fprintf(log_file,"MCell: Total area of physical object %s = %.9g microns^2\n",objp->sym->name,total_area*world->length_unit*world->length_unit);
-*/
+  for (i=0;i<n_verts;i++) {
+    p[0][0]=opp->vertex[i].x;
+    p[0][1]=opp->vertex[i].y;
+    p[0][2]=opp->vertex[i].z;
+    p[0][3]=1.0;
+    mult_matrix(p,im,p,l,m,n);
+    if (p[0][0]<world->bb_llf.x) world->bb_llf.x = p[0][0];
+    if (p[0][1]<world->bb_llf.y) world->bb_llf.y = p[0][1];
+    if (p[0][2]<world->bb_llf.z) world->bb_llf.z = p[0][2];
+    if (p[0][0]>world->bb_urb.x) world->bb_urb.x = p[0][0];
+    if (p[0][1]>world->bb_urb.y) world->bb_urb.y = p[0][1];
+    if (p[0][2]>world->bb_urb.z) world->bb_urb.z = p[0][2];
+  }
 
   return(0);
 }
@@ -1562,14 +1546,14 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
 
   for (i=0;i<n_verts;i++) {
     vp[i]=&v[i];
-    p[0][0]=opp->vertex[i].x;
-    p[0][1]=opp->vertex[i].y;
-    p[0][2]=opp->vertex[i].z;
+    p[0][0]=opp->vertex[i].x * world->r_length_unit;
+    p[0][1]=opp->vertex[i].y * world->r_length_unit;
+    p[0][2]=opp->vertex[i].z * world->r_length_unit;
     p[0][3]=1.0;
     mult_matrix(p,im,p,l,m,n);
-    v[i].x=p[0][0] * world->r_length_unit;
-    v[i].y=p[0][1] * world->r_length_unit;
-    v[i].z=p[0][2] * world->r_length_unit;
+    v[i].x=p[0][0];
+    v[i].y=p[0][1];
+    v[i].z=p[0][2];
 
 #ifdef INIT_VERTEX_NORMALS
     if (compute_vertex_normals) {

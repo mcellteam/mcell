@@ -3399,6 +3399,9 @@ transformation:
         TRANSLATE '=' point
 {
         mdlpvp->pntp1=$<vec3>3;
+        mdlpvp->pntp1->x *= mdlpvp->vol->r_length_unit;
+        mdlpvp->pntp1->y *= mdlpvp->vol->r_length_unit;
+        mdlpvp->pntp1->z *= mdlpvp->vol->r_length_unit;
         init_matrix(mdlpvp->tm);
         translate_matrix(mdlpvp->tm,mdlpvp->tm,mdlpvp->pntp1);
         mult_matrix(mdlpvp->curr_obj->t_matrix,mdlpvp->tm,mdlpvp->curr_obj->t_matrix,4,4,4);
@@ -3868,6 +3871,9 @@ release_site_cmd:
 	LOCATION '=' point
 {
   mdlpvp->rsop->location=$<vec3>3;
+  mdlpvp->rsop->location->x *= mdlpvp->vol->r_length_unit;
+  mdlpvp->rsop->location->y *= mdlpvp->vol->r_length_unit;
+  mdlpvp->rsop->location->z *= mdlpvp->vol->r_length_unit;
 }
 	| MOLECULE '=' existing_molecule_opt_orient
 {
@@ -3929,7 +3935,7 @@ release_site_cmd:
 }
 	| site_size_cmd '=' num_expr_only
 {
-  double scaling_factor = 1.0;
+  double scaling_factor = mdlpvp->vol->r_length_unit;
   if ($1==SITE_RADIUS) scaling_factor*=2;
   
   if ((mdlpvp->rsop->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
@@ -3942,7 +3948,7 @@ release_site_cmd:
 }
 	| site_size_cmd '=' array_expr_only
 {
-  double scaling_factor = 1.0;
+  double scaling_factor = mdlpvp->vol->r_length_unit;
   if ($1==SITE_RADIUS) scaling_factor*=2;
   
   if (mdlpvp->rsop->release_shape==SHAPE_LIST)
@@ -3987,7 +3993,7 @@ release_site_cmd:
 }
 	| site_size_cmd '=' existing_num_or_array
 {
-  double scaling_factor = 1.0;
+  double scaling_factor = mdlpvp->vol->r_length_unit;
   if ($1==SITE_RADIUS) scaling_factor *= 2;
   
   mdlpvp->gp=$<sym>3;
@@ -4188,9 +4194,9 @@ molecule_release_pos:
   }
   
   rsm->orient = mdlpvp->orient_class;
-  rsm->loc.x = temp_v3.x;
-  rsm->loc.y = temp_v3.y;
-  rsm->loc.z = temp_v3.z;
+  rsm->loc.x = temp_v3.x * mdlpvp->vol->r_length_unit;
+  rsm->loc.y = temp_v3.y * mdlpvp->vol->r_length_unit;
+  rsm->loc.z = temp_v3.z * mdlpvp->vol->r_length_unit;
   rsm->mol_type = (struct species*)( ($<sym>1)->value );
   
   if (rsm->mol_type->flags&ON_GRID)
@@ -8983,10 +8989,11 @@ real_time_def: TIME_LIST '='
 
 list_count_cmds:
 	count_cmd 
-	| list_count_cmds count_cmd
 	| custom_header
         | exact_time_toggle
-	| list_count_cmds custom_header;
+	| list_count_cmds count_cmd
+	| list_count_cmds custom_header
+        | list_count_cmds exact_time_toggle;
 
 count_cmd: '{'
 {

@@ -456,4 +456,64 @@ void scalar_prod(struct vector3 *v1, double a, struct vector3 *result)
   result->y = a*v1->y;
   result->z = a*v1->z;
 } 
+
+
+/***************************************************************************
+distinguishable_vec3 -- reports whether two vectors are measurably different
+  (vector analog of distinguishable() in util.c)
+
+Parameters
+	a -- first vector
+	b -- second vector
+	eps -- fractional difference that we think is different
+
+Returns
+	1 if the vectors are different, 0 otherwise
+***************************************************************************/
+
+int distinguishable_vec3(struct vector3 *a,struct vector3 *b,double eps)
+{
+  double c,cc,d;
+  
+  /* Find largest coordinate */
+  c=a->x;
+  if (c<0) c=-c;
+  
+  d=a->y;
+  if (d<0) d=-d;
+  if (d>c) c=d;
+  
+  d=a->z;
+  if (d<0) d=-d;
+  if (d>c) c=d;
+
+  d=b->x;
+  if (d<0) d=-d;
+  if (d>c) c=d;
+  
+  d=b->y;
+  if (d<0) d=-d;
+  if (d>c) c=d;
+  
+  d=b->z;
+  if (d<0) d=-d;
+  if (d>c) c=d;
+  
+  /* Find largest difference */
+  cc=a->x-b->x;
+  if (cc<0) cc=-cc;
+  
+  d=a->y-b->y;
+  if (d<0) d=-d;
+  if (d>cc) cc=d;
+  
+  d=a->z-b->z;
+  if (d<0) d=-d;
+  if (d>cc) cc=d;
+  
+  /* Make sure fractional difference is at least eps and absolute difference is at least (eps*eps) */
+  if (d<eps) d=eps;
+  return (d*eps < c);
+}
+
 #undef MY_PI

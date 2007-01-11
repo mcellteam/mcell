@@ -254,6 +254,7 @@
 /* GIGANTIC is a distance that is larger than any possible simulation */
 /* FOREVER is a time that cannot be reached within one simulation (too many timesteps) */
 #define EPS_C 1e-12
+#define SQRT_EPS_C 1e-6
 #define GIGANTIC 1e140
 #define FOREVER 1e20
 

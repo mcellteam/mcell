@@ -892,14 +892,6 @@ int reaction_wizardry(struct magic_list *incantation,struct wall *surface,struct
 {
   struct release_event_queue req; /* Create a release event on the fly */
   int i;
-  struct vector3 ihitpt;
-
-  if (hitpt != NULL)
-  {
-    ihitpt.x = hitpt->x * world->length_unit;
-    ihitpt.y = hitpt->y * world->length_unit;
-    ihitpt.z = hitpt->z * world->length_unit;
-  }
   
   /* Release event happens "now" */
   req.next=NULL;
@@ -915,9 +907,9 @@ int reaction_wizardry(struct magic_list *incantation,struct wall *surface,struct
   else if (surface==NULL || !distinguishable(surface->normal.z,1.0,EPS_C)) /* Just need a translation */
   {
     init_matrix(req.t_matrix);
-    req.t_matrix[3][0] = ihitpt.x;
-    req.t_matrix[3][1] = ihitpt.y;
-    req.t_matrix[3][2] = ihitpt.z;
+    req.t_matrix[3][0] = hitpt->x;
+    req.t_matrix[3][1] = hitpt->y;
+    req.t_matrix[3][2] = hitpt->z;
   }
   else /* Set up transform that will translate and then rotate Z axis to align with surface normal */
   {
@@ -940,7 +932,7 @@ int reaction_wizardry(struct magic_list *incantation,struct wall *surface,struct
       
       degrees = acos(cos_theta)*180.0/MY_PI;
     }
-    tform_matrix(&scale,&ihitpt,&axis,degrees,req.t_matrix);
+    tform_matrix(&scale,hitpt,&axis,degrees,req.t_matrix);
   }
   
   /* Now we're ready to cast our spell! */
