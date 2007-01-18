@@ -109,7 +109,8 @@ char *alloc_sprintf(char const *fmt, ...)
   if (len >= sizeof(stack_buffer))
   {
     retval = malloc(len + 1);
-    vsnprintf(retval, len + 1, fmt, args);
+    if (retval != NULL)
+      vsnprintf(retval, len + 1, fmt, args);
   }
   else
     retval = strdup(stack_buffer);
