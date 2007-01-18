@@ -383,6 +383,7 @@ double* init_d_step(int radial_directions,unsigned int *actual_directions)
   } 
   if ((n=(int *)malloc(n_edge*sizeof(int)))==NULL) {
     fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating directional step table\n", __FILE__, (long)__LINE__);
+    free(phi_edge);
     return NULL;
   } 
   for (i=0;i<n_edge;i++) {
@@ -423,6 +424,8 @@ double* init_d_step(int radial_directions,unsigned int *actual_directions)
 
   if ((d_step=(double *)malloc(3*n_tot*sizeof(double)))==NULL) {
     fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating directional step table\n", __FILE__, (long)__LINE__);
+    free(n);
+    free(phi_edge);
     return NULL;
   } 
   k=0;
@@ -465,8 +468,10 @@ double* init_d_step(int radial_directions,unsigned int *actual_directions)
   }
 #endif
 
+  free(n);
+  free(phi_edge);
   return d_step;
-}   
+}
 
 #undef DEG_2_RAD
 #undef RAD_2_DEG
