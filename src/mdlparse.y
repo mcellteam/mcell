@@ -1582,9 +1582,9 @@ str_expr: str_value
 }
 	| str_expr '&' str_expr
 {
-  if(my_strcat($<str>1,$<str>3) != NULL){
-      $$=my_strcat($<str>1,$<str>3);
-  }else{
+  $$=my_strcat($1,$3);
+  if ($$ == NULL)
+  {
     mdlerror_fmt(mdlpvp, "Out of memory while parsing string");
     return (1);
   }
@@ -1593,13 +1593,15 @@ str_expr: str_value
 
 str_value: STR_VALUE
 {
-  if(strip_quotes(mdlpvp->strval) != NULL){
-  	$$=strip_quotes(mdlpvp->strval);
-  }else{
+  char *q = strip_quotes(mdlpvp->strval);
+  free(mdlpvp->strval);
+  if (q != NULL)
+    $$ = q;
+  else
+  {
     mdlerror_fmt(mdlpvp, "Out of memory while parsing string");
     return (1);
   }
-  free(mdlpvp->strval);
 }
         | WILDCARD_VAR
 {
@@ -1676,13 +1678,15 @@ existing_str_var: VAR
 
 str_expr_only: STR_VALUE
 {
-  if(strip_quotes(mdlpvp->strval) != NULL){
-      $$=strip_quotes(mdlpvp->strval);
-  }else{
+  char *q = strip_quotes(mdlpvp->strval);
+  free(mdlpvp->strval);
+  if (q != NULL)
+      $$ = q;
+  else
+  {
     mdlerror_fmt(mdlpvp, "Out of memory while parsing string");
     return (1);
   }
-  free(mdlpvp->strval);
 }
 	| WILDCARD_VAR
 {
@@ -1693,12 +1697,13 @@ str_expr_only: STR_VALUE
     mdlpvp->strval=mdlpvp->cval;
   } 
 
-  if(strip_quotes(mdlpvp->strval) != NULL){
-      $$ = strip_quotes(mdlpvp->strval);
-  }else{
+  char *q = strip_quotes(mdlpvp->strval);
+  if (q != NULL)
+    $$ = q;
+  else
+  {
       mdlerror_fmt(mdlpvp, "Out of memory while parsing string");
       free((void *)mdlpvp->strval);
-    
       return (1);
   }
    if (mdlpvp->strval==mdlpvp->cval) {
@@ -1708,7 +1713,6 @@ str_expr_only: STR_VALUE
        mdlpvp->cval_2=NULL;
    }
    free(mdlpvp->strval);
-
 }
 	| INPUT_FILE
 {
@@ -2241,12 +2245,11 @@ existing_one_or_multiple_molecules: VAR
     mdlpvp->sym_name=mdlpvp->cval;
   } 
 
-  if(strip_quotes(mdlpvp->sym_name) != NULL){
-      wildcard_string = strip_quotes(mdlpvp->sym_name);
-  }else{
+  wildcard_string = strip_quotes(mdlpvp->sym_name);
+  if (wildcard_string == NULL)
+  {
       mdlerror_fmt(mdlpvp, "Out of memory while parsing wildcard variable");
       free((void *)mdlpvp->sym_name);
-    
       return (1);
   }
 
@@ -2716,9 +2719,10 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
   mdlpvp->pathp->reactant1=(struct species *)mdlpvp->stp1->value;
   mdlpvp->pathp->reactant2=(struct species *)mdlpvp->stp2->value;
   mdlpvp->pathp->reactant3=NULL;
-  
+  mdlpvp->pathp->flags = 0;
+
   mdlpvp->pathp->flags |= PATHW_CLAMP_CONC;
-  
+
   mdlpvp->pathp->km=$<dbl>4;
   mdlpvp->pathp->km_filename=NULL;
   
@@ -3328,12 +3332,11 @@ existing_one_or_multiple_objects: VAR
     mdlpvp->sym_name=mdlpvp->cval;
   }
 
-  if(strip_quotes(mdlpvp->sym_name) != NULL){
-      wildcard_string = strip_quotes(mdlpvp->sym_name);
-  }else{
+  wildcard_string = strip_quotes(mdlpvp->sym_name);
+  if (wildcard_string == NULL)
+  {
       mdlerror_fmt(mdlpvp, "Out of memory while parsing wildcard variable");
       free((void *)mdlpvp->sym_name);
-    
       return (1);
   }
 
@@ -5838,12 +5841,11 @@ existing_molecule_required_orient_quotes: VAR_ORIENT_IN_QUOTES
     mdlpvp->sym_name=mdlpvp->cval;
   } 
 
-  if(strip_quotes(mdlpvp->sym_name) != NULL){
-      temp_1 = strip_quotes(mdlpvp->sym_name);
-  }else{
+  temp_1 = strip_quotes(mdlpvp->sym_name);
+  if (temp_1 == NULL)
+  {
       mdlerror_fmt(mdlpvp, "Memory allocation error\n");
       free((void *)mdlpvp->sym_name);
-    
       return (1);
   }
   
@@ -5993,12 +5995,11 @@ existing_many_rxpns_or_molecules: WILDCARD_VAR
     mdlpvp->sym_name=mdlpvp->cval;
   } 
 
-  if(strip_quotes(mdlpvp->sym_name) != NULL){
-      wildcard_string = strip_quotes(mdlpvp->sym_name);
-  }else{
+  wildcard_string = strip_quotes(mdlpvp->sym_name);
+  if (wildcard_string == NULL)
+  {
       mdlerror_fmt(mdlpvp, "Memory allocation error\n");
       free((void *)mdlpvp->sym_name);
-    
       return (1);
   }
 
@@ -6060,15 +6061,8 @@ rxn:
     mdlerror(mdlpvp, "Out of memory while creating reaction.");
     return 1;
   }
-  mdlpvp->pathp->pathname = NULL;
-  mdlpvp->pathp->reactant1=NULL;
-  mdlpvp->pathp->reactant2=NULL;
-  mdlpvp->pathp->reactant3=NULL;
-  mdlpvp->pathp->km=0;
-  mdlpvp->pathp->km_filename=NULL;
-  mdlpvp->pathp->prod_signature = NULL;
-  mdlpvp->pathp->flags |= 0;
-  
+  memset(mdlpvp->pathp, 0, sizeof(struct pathway));
+
   mdlpvp->catalytic_arrow=0; /* set default value */ 
 }
   reactant_list reaction_arrow
@@ -10101,8 +10095,6 @@ int mdlparse_init(struct volume *vol)
   mpvp->include_stack_ptr=0;
   mpvp->include_flag=0;
   mpvp->curr_obj=vol->root_object;
-  mpvp->path_mem=NULL;
-  mpvp->prod_mem=NULL;
 
   /* create default reflective surface reaction */
   if ((mpvp->path_mem=create_mem(sizeof(struct pathway),4096))==NULL)
@@ -10202,6 +10194,13 @@ int mdlparse_init(struct volume *vol)
      return(1);
   }
   fclose(mdl_infile);
+
+  while (mpvp->object_name_list)
+  {
+    struct name_list *l = mpvp->object_name_list->next;
+    free(mpvp->object_name_list);
+    mpvp->object_name_list = l;
+  }
 
   delete_mem(mpvp->list_head_mem);
   delete_mem(mpvp->ptr_list_mem);
