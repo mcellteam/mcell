@@ -187,60 +187,27 @@ Out: Returns the prefix name in the object naming hierarchy.
      E.g. for the object named "A.B.C" and last_name "C" returns "A.B". 
 ***************************************************************************/
 char *get_prefix_name(char *obj_name)
-{
-  char *prefix_name,*prev_name,*next_name,*tmp_name,*tmp_name2;
+ {
   char err_message[1024];
+  char *end = strrchr(obj_name, '.');
 
-  prefix_name=strdup("");
-  if(prefix_name == NULL){
-        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
-	mdlerror_nested(err_message);
-	return (NULL);
-  } 
-  tmp_name=strdup(obj_name);
-  if(tmp_name == NULL){
-        sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
-	mdlerror_nested(err_message);
-	return (NULL);
-  } 
-  tmp_name2=strtok(tmp_name,"."); 
-  prev_name=tmp_name2;
-  while (tmp_name2!=NULL) {
-    tmp_name2=strtok(NULL,"."); 
-    if (tmp_name2!=NULL) {
-      if (strcmp(prefix_name,"")==0) {
-        free((void *)prefix_name);
-        next_name=strdup("");
-        if(next_name == NULL){
-                sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
-	        mdlerror_nested(err_message);
-		return (NULL);
-  	} 
-      }
-      else {
-        next_name=my_strcat(prefix_name,".");
-        if(next_name == NULL){
-            sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
-	    mdlerror_nested(err_message);
-            return (NULL);
-  	} 
-      }
-      prefix_name=my_strcat(next_name,prev_name);
-      if(prefix_name == NULL){
-          sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
-	  mdlerror_nested(err_message);
-	  return (NULL);
-      } 
-      prev_name=tmp_name2;
-      free((void *)next_name);
-    }
+  if (end == NULL)
+    return strdup("");
+  else
+  {
+    char *prefix_name = (char *) malloc(end - obj_name + 1);
+    if (prefix_name == NULL)
+    {
+      sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
+      mdlerror_nested(err_message);
+      return (NULL);
+    } 
+
+    memcpy(prefix_name, obj_name, end - obj_name);
+    prefix_name[end - obj_name] = '\0';
+    return prefix_name;
   }
-
-  free((void *)tmp_name);
-
-  return(prefix_name);
 }
-
 
 struct object *find_full_name(struct object *objp,char *full_name,
 		char *sub_name)
@@ -2405,6 +2372,7 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
       return 1;
   }
   path->pathname=NULL;
+  path->flags = 0;
   path->reactant1=prodp->prod;
   if((path->reactant1->flags & NOT_FREE) == 0){
          mpvp->num_vol_mols++;
