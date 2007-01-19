@@ -295,7 +295,6 @@ int init_sim(void)
   world->y_fineparts = NULL;
   world->z_fineparts = NULL;
   world->n_fineparts = 0;
-  world->iterations = 0;
   
   world->viz_output_flag = 0; 
   world->use_expanded_list=1;

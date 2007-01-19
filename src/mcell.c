@@ -332,6 +332,7 @@ int main(int argc, char **argv) {
   procnum=world->procnum;
   gethostname(hostname,64);
 
+  world->iterations=0;
   world->chkpt_infile = NULL;
   world->chkpt_init = 1;
   world->log_freq = -1; /* Indicates that this value has not been set by user */
