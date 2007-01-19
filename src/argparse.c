@@ -26,7 +26,8 @@ static struct option long_options[] = {
   {"checkpoint_infile", 1, 0, 'c'},
   {"logfile",           1, 0, 'l'},
   {"logfreq",           1, 0, 'f'},
-  {"errfile",           1, 0, 'e'}
+  {"errfile",           1, 0, 'e'},
+  {NULL,                0, 0, 0}
 };
 
 /* argerror: Display a message about an error which occurred during the
@@ -79,7 +80,7 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
   {
 
     /* get the next argument */
-    int c = getopt_long_only(argc, argv, "?hs:i:c:l:f:e:", long_options, NULL);
+    int c = getopt_long_only(argc, argv, "?h", long_options, NULL);
     if (c == -1)
         break;
 
@@ -219,6 +220,7 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
 
   /* Handle any left-over arguments, which we assume to be MDL files. */
   if (optind < argc) {
+    FILE *f;
     if (argc - optind > 1) {
       argerror(vol, "%d MDL file names specified: %s, %s, ...", argc - optind, argv[optind], argv[optind+1]);
       return 1;
@@ -229,6 +231,13 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
       argerror(vol, "File '%s', Line %ld: Out of memory while parsing command line arguments: %s", __FILE__, (long)__LINE__, argv[optind]);
       return 1;
     }
+
+    if ((f = fopen(argv[optind], "r")) == NULL)
+    {
+      argerror(vol, "Cannot read MDL file: %s", argv[optind]);
+      return 1;
+    }
+    fclose(f);
   }
   else {
     argerror(vol, "No MDL file name specified");
