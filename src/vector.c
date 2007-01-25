@@ -512,8 +512,9 @@ int distinguishable_vec3(struct vector3 *a,struct vector3 *b,double eps)
   if (d>cc) cc=d;
   
   /* Make sure fractional difference is at least eps and absolute difference is at least (eps*eps) */
-  if (d<eps) d=eps;
-  return (d*eps < c);
+  if (c<eps) c=eps;
+  return (c*eps < cc);
 }
 
 #undef MY_PI
+
