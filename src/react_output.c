@@ -29,17 +29,15 @@ truncate_output_file:
        greater than or equal to the value to be printed out.
 **************************************************************************/
 
-int truncate_output_file(char *name,double start_value)
+int truncate_output_file(char *name, double start_value)
 {
-  FILE *f;
+  FILE *f = NULL;
   struct stat fs;
   char *buffer;
-  char *done;
-  char numbuf[1024];
-  int i,j,k,n,lf,where,start,ran_out;
+  int i,j,n,lf,where,start,ran_out;
   int bsize,remaining;
-  double my_value;
-  
+
+  /* Check if the file exists */
   i = stat(name,&fs);
   if (i==-1)
   {
@@ -48,101 +46,130 @@ int truncate_output_file(char *name,double start_value)
   }
   if (fs.st_size==0) return 0; /* File already is empty */
 
+  /* Set the buffer size */
   if (fs.st_size < (1<<20))
   {
     bsize = fs.st_size;
   }
   else bsize = (1<<20);
-  
+
+  /* Allocate a buffer for the file */
   buffer = (char*)malloc(bsize);
   if (buffer==NULL)
   {
     fprintf(world->err_file,"File '%s', Line %ld: Out of memory while checking output file %s\n", __FILE__, (long)__LINE__, name);
-    return 1;
+    goto failure;
   }
-  
+
+  /* Open the file */
   f = fopen(name,"r+");
   if (!f)
   {
     fprintf(world->err_file,"Error opening output file %s\n",name);
-    return 1;
+    goto failure;
   }
-  
+
+  /* Iterate over the entire file */
   remaining=fs.st_size;
   where = 0; /* Byte offset in file */
   start = 0; /* Byte offset in buffer */
   while (remaining>0)
   {
+    /* Refill the buffer */
     n = fread(buffer+start,1,bsize-start,f);
     remaining -= n;
+
+    /* Until the current buffer runs dry */
     ran_out=0;
-    i=start;
+    i = 0;
     n+=start;
     lf = 0;
     while (!ran_out)
     {
+      /* Skip leading horizontal whitespace */
       while (i<n && (buffer[i]==' '||buffer[i]=='\t')) i++;
+
+      /* Scan over leading numeric characters */
       for (j=i; j<n && (isdigit(buffer[j])||strchr("eE-+.",buffer[j])!=NULL) ; j++) {}
+
+      /* If we had a leading number... */
       if (j>i)
       {
-	k=j-i;
-	if (k>1023) k=1023;
-	memcpy(numbuf,buffer+i,k);
-	numbuf[k]=0;
-	my_value = strtod(numbuf,&done);
-	if (done!=numbuf)
-	{
-	  if (my_value > start_value)
-	  {
-	    k = fseek(f,0,SEEK_SET);
-	    if (k)
-	    {
-	      fprintf(world->err_file,"File '%s', Line %ld:  Failed to prepare output file %s for writing\n", __FILE__, (long)__LINE__, name);
-	      fclose(f);
-	      return 1;
-	    }
-	    k = ftruncate(fileno(f),where+lf+1);
-	    if (k)
-	    {
-	      fprintf(world->err_file,"File '%s', Line %ld: Failed to prepare output file %s for writing (%d)\n", __FILE__, (long)__LINE__, name,errno);
-	      fclose(f);
-	      return 1;
-	    }
-	    fclose(f);
-	    return 0;
-	  }
-	}
+        double my_value = 0.0;
+        char *done = NULL;
+
+        /* Parse and validate the number */
+        buffer[j] = '\0';
+        my_value = strtod(buffer+i,&done);
+        printf("%.15g vs. %.15g\n", my_value, start_value);
+
+        /* If it was a valid number and it was >= our start time */
+        if (done != buffer+i  &&  my_value >= start_value)
+        {
+          if (fseek(f, 0, SEEK_SET))
+          {
+            fprintf(world->err_file,"File '%s', Line %ld:  Failed to prepare output file %s for writing\n", __FILE__, (long)__LINE__, name);
+            goto failure;
+          }
+
+          if (ftruncate(fileno(f), where+lf))
+          {
+            fprintf(world->err_file,"File '%s', Line %ld: Failed to prepare output file %s for writing (%d)\n", __FILE__, (long)__LINE__, name,errno);
+            goto failure;
+          }
+          fclose(f);
+          return 0;
+        }
       }
+
+      /* We will keep this line.  Scan until we hit a newline */
       for (i=j ; i<n && buffer[i]!='\n' && buffer[i]!='\r' ; i++) {}
+
+      /* If we're not at the end of the buffer, scan over all crs/lfs. */
       if (i<n)
       {
 	for (j=i ; j<n && (buffer[j]=='\n' || buffer[j]=='\r') ; j++) {}
-	lf = j-1;
+        lf = j;
 	i=j; /* If we have run out, we'll catch it next time through */
       }
-      else if (n<bsize-start)
+
+      /* If we hit 'n' and the last read was only partial (i.e. EOF), break out */
+      else if (n < bsize)
       {
 	ran_out=1;
       }
-      else if (lf > start)
-      {
-	memmove(buffer,buffer+lf+1,bsize-(lf+1));
-	start = lf+1;
-	where += n-start;
-	lf = 0;
-	ran_out = 1;
-      }
+
+      /* Last read was a full read and we've scanned the whole buffer */
       else
       {
-	where += n;
-	lf = 0;
-	start = 0;
-	ran_out = 1;
+        /* If we need to keep some data, resituate it in the buffer */
+        if (lf > start)
+        {
+          /* discard all but n - lf bytes */
+          memmove(buffer, buffer+lf, n-lf);
+          where += lf;
+          start = n - lf;
+        }
+        else
+        {
+          /* discard all bytes */
+          where += n;
+          start = 0;
+        }
+        lf = 0;
+        ran_out = 1;
       }
     }
   }
   fclose(f);
   return 0;
+
+failure:
+  if (f != NULL)
+    fclose(f);
+  if (buffer != NULL)
+    free(buffer);
+  return 1;
 }
   
 
