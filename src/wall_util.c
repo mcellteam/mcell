@@ -1347,10 +1347,10 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
   }
   
   
-  if ( (dd*dv>0.0) ||              /* Traveling away from plane */
+  if ( (dd==0.0 && dv!=0.0)    ||  /* Start beside plane, end above or below */
        (dd>0.0 && dd+dv>d_eps) ||  /* Start & end above plane */
        (dd<0.0 && dd+dv<d_eps) ||  /* Start & end below plane */
-       (dd==0.0 && dv!=0.0) )    /* Start beside plane, end above or below */
+       (dd*dv>0.0) )               /* Traveling away from plane */
   {
     return COLLIDE_MISS;
   }
