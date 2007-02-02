@@ -1335,28 +1335,28 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
   dv = nx*move->x + ny*move->y + nz*move->z;
   dd = dp - face->d;
 
-  if (dd >= 0.0)
+  if (dd > 0.0)
   {
     d_eps = EPS_C;
     if (dd < d_eps) d_eps = 0.5*dd;
+
+    /* Start & end above plane */
+    if (dd+dv > d_eps) return COLLIDE_MISS;
   }
   else
   {
     d_eps = -EPS_C;
     if (dd > d_eps) d_eps = 0.5*dd;
+
+    /* Start & end below plane */
+    if (dd<0.0 && dd+dv<d_eps) return COLLIDE_MISS;
   }
   
-  
-  if ( (dd==0.0 && dv!=0.0)    ||  /* Start beside plane, end above or below */
-       (dd>0.0 && dd+dv>d_eps) ||  /* Start & end above plane */
-       (dd<0.0 && dd+dv<d_eps) ||  /* Start & end below plane */
-       (dd*dv>0.0) )               /* Traveling away from plane */
+  if (dd==0.0)
   {
-    return COLLIDE_MISS;
-  }
-  
-  if (dd==0.0 && dv==0.0)
-  {
+    /* Start beside plane, end above or below */
+    if (dv != 0.0) return COLLIDE_MISS;
+
     if (update_move)
     {
       a = (abs_max_2vec( point , move ) + 1.0) * EPS_C;
