@@ -302,6 +302,8 @@ int init_sim(void)
   world->vacancy_search_dist2=0;
   world->surface_reversibility=0;
   world->volume_reversibility=0;
+
+  memset(&world->viz_state_info, 0, sizeof(world->viz_state_info));
   
   world->mcell_version = MCELL_VERSION;
   
@@ -426,7 +428,7 @@ int init_sim(void)
   world->output_block_head=NULL;
   world->output_request_head=NULL;
   world->viz_obj_head=NULL;
-  world->viz_mode=DREAMM_V3_MODE;
+  world->viz_mode=-1;
   world->rk_mode_var=NULL;
   world->frame_data_head=NULL;
 
@@ -620,14 +622,12 @@ int init_sim(void)
     }
   }
 
-   /**
-   *Initialize the frame data list for the visualization 
-   *and reaction output.
-   **/
-  init_frame_data_list(world->frame_data_head); 
-/*
-  init_reaction_list(reaction_data_head);
-*/
+  /* Initialize the frame data for the visualization and reaction output. */
+  if (init_frame_data_list(&world->frame_data_head))
+  {
+    fprintf(world->err_file,"File '%s', Line %ld: Failed to initialize viz output.\n", __FILE__, (long)__LINE__);
+    return 1;
+  }
 
   /* Initialize the volume output */
   init_volume_data_output(world);

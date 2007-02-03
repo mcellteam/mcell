@@ -1,6 +1,8 @@
 #ifndef MCELL_UTIL
 #define MCELL_UTIL
 
+#include <stdio.h>
+
 /**********************************************************************
 * Definitions for the infinite array whose size may grow. *
 *
@@ -138,6 +140,24 @@ struct void_list* void_list_sort(struct void_list *vl);
 struct void_list* void_list_sort_by(struct void_list *vl,int (*leq)(void*,void*));
 
 int void_array_search(void **array,int n,void *to_find);
+int void_ptr_compare(void const *v1, void const *v2);
+
+unsigned int *allocate_uint_array(int size, unsigned int value);
+void **allocate_ptr_array(int size);
+void free_ptr_array(void **pa, int count);
+
+struct num_expr_list;
+void free_num_expr_list(struct num_expr_list *nel);
+void uniq_num_expr_list(struct num_expr_list *nel);
+
+int is_dir(char const *path);
+int is_writable_dir(char const *path);
+int mkdirs(char const *path, FILE *err_file);
+int make_parent_dir(char const *path, FILE *err_file);
+
+FILE *open_file(char const *fname, char const *mode);
+int get_basename(char const *filepath, char **basename);
+int get_dirname(char const *filepath, char **dirname);
 
 double erfcinv(double v);
 #define erfinv(x) erfcinv(1-(x))

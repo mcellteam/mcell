@@ -40,6 +40,10 @@ char *create_rx_name(struct pathway *p);
 char *create_prod_signature(struct product **p);
 void check_reaction_for_duplicate_pathways(struct pathway **head, struct mdlparse_vars *mpvp);
 
+char *find_include_file(struct mdlparse_vars  *mpvp,
+                        char const *path,
+                        char const *cur_path);
+
 int equivalent_geometry(struct pathway *p1,struct pathway *p2,int n);
 int equivalent_geometry_for_two_reactants(int o1a, int o1b, int o2a, int o2b);
 int prepare_reactions(struct mdlparse_vars *mpvp);

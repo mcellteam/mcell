@@ -54,6 +54,46 @@ void mdl_warning(struct mdlparse_vars *mpvp, char const *fmt, ...)
   fflush(mpvp->vol->log_file);
 }
 
+/************************************************************************
+ find_include_file:
+      Find the path for an include file.  For an absolute include path, the
+      file path is unmodified, but for a relative path, the resultant path will
+      be relative to the currently parsed file.
+
+        In:  char const *path - path from include statement
+             char const *cur_path - path of current include file
+        Out: allocated buffer containing path of the include file, or NULL if
+             the file path couldn't be allocated.  If we ever use a more
+             complex mechanism for locating include files, we may also return
+             NULL if no file could be located.
+ ***********************************************************************/
+char *find_include_file(struct mdlparse_vars *mpvp,
+                        char const *path,
+                        char const *cur_path)
+{
+    char *candidate = NULL;
+    if (path[0] == '/')
+        candidate = strdup(path);
+    else
+    {
+        char *last_slash = strrchr(cur_path, '/');
+        if (last_slash == NULL)
+            candidate = strdup(path);
+        else
+            candidate = alloc_sprintf("%.*s/%s",
+                                      last_slash - cur_path,
+                                      cur_path,
+                                      path);
+    }
+
+    if (candidate == NULL)
+    {
+        mdlerror_fmt(mpvp, "Out of memory while building include file path\n");
+        return NULL;
+    }
+
+    return candidate;
+}
 
 /************************************************************************
  swap_double:
@@ -170,12 +210,12 @@ char *get_first_name(char *obj_name)
   } 
   first_name=strtok(tmp_name,"."); 
   first_name=strdup(tmp_name);
+  free((void *)tmp_name);
   if(first_name == NULL){
         sprintf(err_message, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
 	mdlerror_nested(err_message);
 	return (NULL);
   } 
-  free((void *)tmp_name);
 
   return(first_name);
 }
@@ -2185,7 +2225,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       {
         j = (rx->players[0]->hashval ^ rx->players[1]->hashval) & rx_hash;
         if (j==0)  j = rx->players[0]->hashval & rx_hash;
-                    
+
       }
       while (rx->next != NULL) rx = rx->next;
       rx->next = rx_tbl[j];
@@ -2400,7 +2440,8 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   path->km_filename = NULL;
   if (mpvp->bkw_rate_filename!=NULL)
   {
-    path->km_filename = mpvp->bkw_rate_filename;
+    path->km_filename = find_include_file(mpvp, mpvp->bkw_rate_filename, mpvp->vol->curr_file);
+    free(mpvp->bkw_rate_filename);
     mpvp->bkw_rate_filename = NULL;
   }
   
@@ -4203,6 +4244,12 @@ int check_reaction_output_file(struct output_set *os,FILE *err_file)
   
   name = os->outfile_name;
   flags = os->file_flags;
+
+  if (make_parent_dir(name, err_file))
+  {
+    fprintf(err_file,"Directory for %s does not exist and could not be created.\n",name);
+    return 1;
+  }
   
   switch (flags)
   {
@@ -4622,20 +4669,5 @@ void **ptr_list_to_array(struct list_head *lh, int *count)
   for (i = (struct ptr_list *) lh->head, ptr = arr; i != NULL; i = i->next)
     *ptr++ = i->ptr;
   return arr;
-}
-
-/*
- * Utility function to allow sorting an array of pointers by address.
- */
-int ptr_compare(void const *v1, void const *v2)
-{
-  void const **v1p = (void const **) v1;
-  void const **v2p = (void const **) v2;
-  intptr_t i1 = (intptr_t) *v1p, i2 = (intptr_t) *v2p;
-  if (i1 < i2)
-    return -1;
-  else if (i1 > i2)
-    return 1;
-  return 0;
 }
 

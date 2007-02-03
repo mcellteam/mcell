@@ -3,6 +3,7 @@
 #include "sched_util.h"
 #include "vol_util.h"
 #include "strfunc.h"
+#include "util.h"
 
 #include <errno.h>
 #include <math.h>
@@ -43,6 +44,13 @@ int update_volume_output(struct volume *wrld, struct volume_output_item *vo)
   filename = alloc_sprintf("%s.%lld.dat", vo->filename_prefix, wrld->it_time);
   if (filename == NULL) {
     fprintf(wrld->err_file,"File '%s', Line %ld: Out of memory while formatting volume output filename '%s'\n", __FILE__, (long)__LINE__, vo->filename_prefix);
+    return 1;
+  }
+
+  /* Try to make the directory if it doesn't exist */
+  if (make_parent_dir(filename, wrld->err_file))
+  {
+    free(filename);
     return 1;
   }
 
@@ -296,9 +304,16 @@ static int reschedule_volume_output_item(struct volume *wrld,
  */
 static void ioerror(FILE *err_file, char const *fmt, ...)
 {
+/* Grrr... GNU strerror_r is broken by design for glibc 2.3.2... */
+#if 0
   va_list args;
   char buffer[1024];
-  if (strerror_r(errno, buffer, sizeof(buffer)) == 0)
+
+  /* strerror_r return value should be compared to -1, not 0, as this will at
+   * least give a warning if we attempt to compile against the old (GNU-style)
+   * version of strerror_r...
+   */
+  if (strerror_r(errno, buffer, sizeof(buffer)) != -1)
   {
     va_start(args, fmt);
     vfprintf(err_file, fmt, args);
@@ -312,5 +327,12 @@ static void ioerror(FILE *err_file, char const *fmt, ...)
     fprintf(err_file, "\n");
     va_end(args);
   }
+#else
+  int err = errno;
+  va_list args;
+  va_start(args, fmt);
+  vfprintf(err_file, fmt, args);
+  fprintf(err_file, ": %s\n", strerror(err));
+  va_end(args);
+#endif
 }
-

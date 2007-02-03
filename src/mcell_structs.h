@@ -1044,6 +1044,64 @@ struct magic_list
   enum magic_types type;
 };
 
+struct iteration_counter
+{
+    long long *iterations;
+    int max_iterations;
+    int n_iterations;
+};
+
+struct string_buffer
+{
+    char **strings;
+    int max_strings;
+    int n_strings;
+};
+
+struct visualization_state
+{
+  /* Iteration numbers */
+  long long final_iteration;
+  long long last_meshes_iteration;
+  long long last_mols_iteration;
+
+  /* Tokenized filename prefix */
+  char *filename_prefix_basename;
+  char *filename_prefix_dirname;
+
+  /* All visualized objects */
+  int n_viz_objects;
+  struct object **viz_objects;
+
+  /* All visualized volume molecule species */
+  int n_vol_species;
+  struct species **vol_species;
+
+  /* All visualized grid molecule species */
+  int n_grid_species;
+  struct species **grid_species;
+
+  /* Iteration numbers and times of outputs */
+  struct iteration_counter output_times;
+  struct iteration_counter mesh_output_iterations;
+  struct iteration_counter vol_mol_output_iterations;
+  struct iteration_counter grid_mol_output_iterations;
+
+  /* For DREAMM V3 Grouped output, combined group member strings */
+  struct string_buffer combined_group_members;
+
+  /* For DREAMM V3 Grouped output, the current object number */
+  int dx_main_object_index;
+
+  /* For DREAMM V3 Grouped output, the last iteration for certain outputs */
+  long long dreamm_last_iteration_meshes;
+  long long dreamm_last_iteration_vol_mols;
+  long long dreamm_last_iteration_surf_mols;
+
+  /* For DREAMM V3 Ungrouped output, path of 'frame data dir' and iter dir */
+  char *frame_data_dir;
+  char *iteration_number_dir;
+};
 
 /* All data about the world */
 struct volume
@@ -1115,10 +1173,11 @@ struct volume
   struct mem_helper *trig_request_mem;        /* Memory to store listeners for trigger events */
   struct mem_helper *magic_mem;               /* Memory used to store magic lists for reaction-triggered releases and such */
   double elapsed_time;                        /* Used for concentration measurement */
-  
-  struct viz_obj *viz_obj_head;            /* head of the linked list of mesh
-                                           objects assigned for visualization */
-  struct frame_data_list *frame_data_head;
+
+  /* Visualization state */
+  struct viz_obj *viz_obj_head;               /* head of the linked list of mesh objects assigned for visualization */
+  struct frame_data_list *frame_data_head;    /* head of the linked list of viz frames to output */
+  struct visualization_state viz_state_info;  /* miscellaneous state for viz_output code */
 
   struct species *g_mol;   /* A generic molecule */
   struct species *g_surf;  /* A generic surface class */
@@ -1190,6 +1249,8 @@ struct volume
   char *molecule_prefix_name;
   char *file_prefix_name;
   u_short viz_output_flag; /* Takes  VIZ_ALL_MOLECULES  */
+
+  /* VIZ state transplanted from global vars */
 
   char *mcell_version;     /* Current version number.
                               Format is "3.XX.YY" where XX is major release number (for new features)
@@ -1739,16 +1800,7 @@ struct frame_data_list {
 };
 
 
-/* Linked list of unique viz states */
-/* Required by certain viz output modes e.g. Renderman */
-struct state_list {
-  struct state_list *next;
-  int state;               /* The state value to assign */
-  char *name;              /* Name of item being visualized */
-};
-
-
-/* A pointer to filehandle and it's real name */
+/* A pointer to filehandle and its real name */
 /* Used for user defined file IO operations */
 struct file_stream {
   char *name;   /* File name */

@@ -5,8 +5,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <errno.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "strfunc.h"
 #include "util.h"
+#include "mcell_structs.h"
+
+extern struct volume *world;
 
 /********************************************************************
 Infinite array - routines to handle infinite arrays.
@@ -1309,7 +1315,7 @@ int void_array_search(void **array,int n,void *to_find)
   
   while (hi-lo > 1)
   {
-    m = (hi-lo)/2;
+    m = (hi+lo)/2;
     if (to_find==array[m]) return m;
     else if ((intptr_t)to_find > (intptr_t)array[m]) lo=m;
     else hi=m;
@@ -1320,6 +1326,328 @@ int void_array_search(void **array,int n,void *to_find)
   return -1;
 }
 
+/*************************************************************************
+void_ptr_compare:
+    Utility function to allow sorting an array of pointers by address.
+    Conventions are appropriate for use with qsort.
+
+  In: void const *v1 - first pointer
+      void const *v2 - second pointer
+  Out: -1, 0, or 1 as *(void **)v1 <, =, or > *(void **)v2 resp.
+*************************************************************************/
+int void_ptr_compare(void const *v1, void const *v2)
+{
+  void const **v1p = (void const **) v1;
+  void const **v2p = (void const **) v2;
+  intptr_t i1 = (intptr_t) *v1p, i2 = (intptr_t) *v2p;
+  if (i1 < i2)
+    return -1;
+  else if (i1 > i2)
+    return 1;
+  return 0;
+}
+
+/********************************************************************* 
+allocate_uint_array:
+   In: int size - length of the array to allocate
+       u_int value - value with which to initialize elements
+   Out: the newly allocated array, with all elements initialized to 'value'
+***********************************************************************/
+u_int *allocate_uint_array(int size, u_int value)
+{
+  u_int *arr;
+  int i;
+
+  if ((arr = (u_int *) malloc(size * sizeof(u_int))) == NULL)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    return NULL;
+  }
+
+  for (i=0; i<size; ++i)
+    arr[i] = value;
+
+  return arr;
+}
+
+/********************************************************************* 
+allocate_ptr_array:
+    Allocate an array of pointers.  Use free_ptr_array to free if you want the
+    pointers in the array to be freed as well.
+
+        In: int size - length of the array to allocate
+        Out: the newly allocated array, with all elements initialized to NULL.
+***********************************************************************/
+void **allocate_ptr_array(int size)
+{
+  void **arr;
+
+  if (size == 0)
+    size = 1;
+
+  if ((arr = (void **) malloc(size * sizeof(void *))) == NULL)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    return NULL;
+  }
+
+  memset(arr, 0, size * sizeof(void *));
+  return arr;
+}
+
+/*************************************************************************
+free_ptr_array:
+    Free an array of pointers, freeing any non-NULL pointers within the array.
+
+        In:  void **pa - pointer array to free
+             int count - length of pointer array
+        Out: All non-NULL pointers in the array are freed, as is the array
+             itself.
+**************************************************************************/
+void free_ptr_array(void **pa, int count)
+{
+  int i;
+  for (i=0; i<count; ++i)
+    if (pa[i] != NULL)
+      free(pa[i]);
+  free(pa);
+}
+
+/*************************************************************************
+free_num_expr_list:
+    Free a num_expr_list.
+
+        In:  struct num_expr_list *nlist - the list to free
+        Out: All elements in the list are freed.
+**************************************************************************/
+void free_num_expr_list(struct num_expr_list *nlist)
+{
+  struct num_expr_list *nnext;
+  while (nlist != NULL)
+  {
+    nnext = nlist->next;
+    free(nlist);
+    nlist = nnext;
+  }
+}
+
+/*************************************************************************
+uniq_num_expr_list:
+    Scans a num_expr_list, removing adjacent duplicate values.
+
+        In:  struct num_expr_list *nlist - the list to uniq
+        Out: All runs of identical items in the list are reduced to single
+             items, and excess items are freed.
+**************************************************************************/
+void uniq_num_expr_list(struct num_expr_list *nlist)
+{
+  if (nlist == NULL)
+    return;
+
+  struct num_expr_list *nel, *nelPrev = nlist;
+
+  for (nel = nelPrev->next; nel != NULL; nel = nel->next)
+  {
+    if (fabs(nel->value - nelPrev->value) < EPS_C)
+    {
+      nelPrev->next = nel->next;
+      free(nel);
+      nel = nelPrev;
+    }
+  }
+}
+
+/*************************************************************************
+is_dir:
+    Utility to check if a given directory exists.
+
+        In:  char const *path - absolute or relative path of dir
+        Out: 1 if it's a directory, 0 if not
+**************************************************************************/
+int is_dir(char const *path)
+{
+  struct stat sb;
+  if (stat(path, &sb) == 0  &&
+      S_ISDIR(sb.st_mode))
+    return 1;
+  else
+    return 0;
+}
+
+/*************************************************************************
+is_writable_dir:
+    Utility to check if a given directory exists and is readable/writable.
+
+        In:  char const *path - absolute or relative path of dir
+        Out: 1 if writable, 0 if not
+**************************************************************************/
+int is_writable_dir(char const *path)
+{
+  if (! is_dir(path))
+    return 0;
+
+  if (! access(path, R_OK | W_OK | X_OK))
+    return 1;
+  else
+    return 0;
+}
+
+/*************************************************************************
+make_parent_dir:
+    Utility to make the (possibly nested) parent directory of a file.  Will
+    attempt to create a directory with full rwx permission.  If the directory
+    already exists and has rwx permission for the user, this function will
+    return success.  Essentially, this works like mkdirs, but it strips off the
+    last path element first.
+
+        In:  char const *path - absolute or relative path of file
+             FILE *err_file - output file for error messages
+        Out: 0 on success, 1 on failure
+**************************************************************************/
+int make_parent_dir(char const *path, FILE *err_file)
+{
+  char *pathtmp = strdup(path);
+  char *last_slash = strrchr(pathtmp, '/');
+  if (last_slash)
+  {
+    *last_slash = '\0';
+    if (mkdirs(pathtmp, err_file))
+    {
+      free(pathtmp);
+      return 1;
+    }
+  }
+
+  free(pathtmp);
+  return 0;
+}
+
+/*************************************************************************
+mkdirs:
+    Utility to make a (possibly nested) directory.  Will attempt to create a
+    directory with full rwx permission.  If the directory already exists and
+    has rwx permission for the user, this function will return success.
+
+        In:  char const *path - absolute or relative path for dir
+             FILE *err_file - output file for error messages
+        Out: 0 on success, 1 on failure
+**************************************************************************/
+int mkdirs(char const *path, FILE *err_file)
+{
+  char *pathtmp = strdup(path);
+  char *curpos = pathtmp;
+  while (curpos != NULL)
+  {
+    /* Find next '/', turn it into '\0' */
+    char *nextel = strchr(curpos, '/');
+    if (nextel != NULL)
+      *nextel = '\0';
+
+    /* Make the directory */
+    if (! is_writable_dir(pathtmp))
+      if (mkdir(pathtmp, 0777) != 0)
+      {
+        fprintf(err_file, "Failed to create directory '%s': %s\n", path, strerror(errno));
+        free(pathtmp);
+        return 1;
+      }
+
+    /* Turn '\0' back to '/' */
+    if (nextel)
+    {
+      *nextel = '/';
+      curpos = nextel + 1;
+    }
+    else
+      curpos = NULL;
+  }
+
+  free(pathtmp);
+  return 0;
+}
+
+/*************************************************************************
+open_file:
+    Utility to open a file, printing a sensible error message if the open
+    fails.
+        In: char const *fname - filename for new file
+            char const *mode - mode for file access
+        Out: file handle for file, NULL on error
+**************************************************************************/
+FILE *open_file(char const *fname, char const *mode)
+{
+  FILE *f;
+  if ((f = fopen(fname, mode)) == NULL)
+  {
+    int err = errno;
+    fprintf(world->err_file, "File %s, Line %ld: cannot open file %s: %s\n", __FILE__, (long) __LINE__, fname, strerror(err));
+    return NULL;
+  }
+
+  return f;
+}
+
+/*************************************************************************
+get_basename:
+    Utility to get the basename of a file.
+        In: char const *filepath - filename for file
+            char **basename - ptr to ptr to hold allocated basename
+        Out: On success, the basename in a newly allocated buffer is stored in
+             *basename and 0 is returned. On failure 1 is returned and
+             *basename is unmodified.
+**************************************************************************/
+int get_basename(char const *filepath, char **basename)
+{
+  char *bn;
+  char *pos = strrchr(filepath, '/');
+
+  /* Duplicate the appropriate section of the string */
+  if (pos == NULL)
+    bn = strdup(filepath);
+  else
+    bn = strdup(pos+1);
+
+  /* If the allocation failed... */
+  if (bn == NULL)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    return 1;
+  }
+
+  *basename = bn;
+  return 0;
+}
+
+/*************************************************************************
+get_dirname:
+    Utility to get the dirname of a file.
+        In: char const *filepath - filename for file
+            char **dirname - output pointer for pointer to dirname
+        Out: On success, the dirname (or NULL if the filename contained no '/')
+             is stored in *dirname, and 0 is returned.  On failure, 1 is
+             returned and *dirname is unmodified.
+**************************************************************************/
+int get_dirname(char const *filepath, char **dirname)
+{
+  char *pos = strrchr(filepath, '/');
+  if (pos == NULL)
+  {
+    *dirname = NULL;
+    return 0;
+  }
+  else
+  {
+    char *s = alloc_sprintf("%.*s", (pos - filepath), filepath);
+    if (s == NULL)
+    {
+      fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+      return 1;
+    }
+
+    *dirname = s;
+    return 0;
+  }
+}
 
 
 /*************************************************************************

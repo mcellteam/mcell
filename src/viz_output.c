@@ -1,7 +1,4 @@
-
-
-#include <fnmatch.h>
-#include <ftw.h>
+#include <stdarg.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6842 +18,4957 @@
 #include "strfunc.h"
 #include "util.h"
 
+static const int endian_test_word = 0x04030201;
 
 extern struct volume *world;
-/* final iteration number in the simulation */
-static long long final_iteration = 0; 
-static int obj_to_show_number; /* number of viz_obj objects in the world */
-static int eff_to_show_number; /* number of types of effectors */ 
-static int mol_to_show_number; /* number of types of 3D mol's */
 
-/* these arrays are used to hold values of main_index for objects */
-u_int *surf_states = NULL;
-u_int *surf_pos = NULL;
-u_int *surf_con = NULL;
-u_int *surf_field_indices = NULL;
-u_int *eff_pos = NULL;
-u_int *eff_orient = NULL;
-u_int *eff_states = NULL;
-u_int *eff_field_indices = NULL;
-u_int *mol_pos = NULL;
-u_int *mol_orient = NULL;
-u_int *mol_states = NULL;
-u_int *mol_field_indices = NULL;
-/* array of viz_objects names */
-char **obj_names = NULL;
-/* array of volume_molecule names */
-char **mol_names = NULL;
-/* array of surface_molecule (effectors) names */
-char **eff_names = NULL;
-/* 2-dimensional array of regions names for each object. 
-   First index refers to the object, second - to the regions. */
-char  ***region_names = NULL; 
-/* array that holds number of regions for each object */
-int *obj_num_regions = NULL;
-/* 2-dimensional array of regions indices for each object. 
-   First index refers to the object, second - to the regions indices. */
-int  **surf_region_values = NULL; 
+/* == Generic Utilities == */
 
-  /* used for creating links to the files */
-  static long long last_meshes_iteration = -1;
-  static long long last_mols_iteration = -1;
+/*************************************************************************
+dir_exists:
+    Check whether a given directory exists.
 
-  /* used in 'time_values' and 'iteration_numbers' arrays */
-  /* total number of non-equal values of "viz_iteration"
-     combined for all frames */
-  static  u_int time_values_total = 0;
-  u_int *time_values = NULL;
-
-/**************************************************************************
-update_frame_data_list:
-	In: struct frame_data_list * fdlp
-        Out: Nothing. Calls output visualization functions if necessary.
-	     Updates value of the current iteration step and pointer
-             to the current iteration in the linked list
+        In:  char const *filename - directory name
+        Out: 1 if the dir exists, 0 if it does not exist, -1 if an error
+             occurs.  An error message will be printed if an error occurs or if
+             the file is not a directory.
 **************************************************************************/
-void update_frame_data_list(struct frame_data_list *fdlp)
+static int dir_exists(char const *filename)
 {
-  if(fdlp == NULL) return;
-  
-  FILE *log_file = NULL;
+  struct stat f_stat;
 
-  log_file=world->log_file;
-
-  if(world->viz_mode == DREAMM_V3_MODE)
+  if (! stat(filename, &f_stat))
   {
-  /* this part of the code is used for creating symbolic links in viz_output */
-
-     struct frame_data_list *fdlp_temp = NULL;
-     fdlp_temp = fdlp;
-     while (fdlp_temp!=NULL) {
-       if(world->it_time==fdlp_temp->viz_iteration)
-       {
-     
-       switch (fdlp_temp->list_type) {
-         case OUTPUT_BY_ITERATION_LIST:
-      
-               if((fdlp_temp->type == ALL_MESH_DATA) ||
-                   (fdlp_temp->type == REG_DATA) ||
-                   (fdlp_temp->type == MESH_GEOMETRY))
-               {
-
-                  if(fdlp_temp->viz_iteration > last_meshes_iteration){
-                     last_meshes_iteration = fdlp_temp->viz_iteration;
-                   }
-               }else if((fdlp_temp->type == ALL_MOL_DATA) ||
-                   (fdlp_temp->type == MOL_POS) ||
-                   (fdlp_temp->type == MOL_ORIENT))
-               {
-                   if(fdlp_temp->viz_iteration > last_mols_iteration){
-                     last_mols_iteration = fdlp_temp->viz_iteration;
-                   }
-               }
-         
-            break;
-         case OUTPUT_BY_TIME_LIST:
-        
-               if((fdlp_temp->type == ALL_MESH_DATA) ||
-                   (fdlp_temp->type == REG_DATA) ||
-                   (fdlp_temp->type == MESH_GEOMETRY))
-               {
-                  if(fdlp_temp->viz_iteration > last_meshes_iteration){
-                      last_meshes_iteration = fdlp_temp->viz_iteration;
-                   }
-              }else if((fdlp_temp->type == ALL_MOL_DATA) ||
-                   (fdlp_temp->type == MOL_POS) ||
-                   (fdlp_temp->type == MOL_ORIENT))
-               {
-                  if(fdlp_temp->viz_iteration > last_mols_iteration){
-                        last_mols_iteration = fdlp_temp->viz_iteration;
-                   }
-               }
-	
-              break;
-          default:
-              fprintf(world->err_file,"File '%s', Line %ld: error - wrong frame_data_list list_type %d\n", __FILE__, (long)__LINE__, fdlp->list_type);
-              break;
-       } /* end switch */
-
-     } /* end if (world->it_time == fdlp_temp->viz_iteration) */
-    fdlp_temp = fdlp_temp->next;
-    
-   } /* end while */
-  } /* if (world->viz_mode) */
-
-
-  while (fdlp!=NULL) {
-    if(world->it_time==fdlp->viz_iteration)
+    if (S_ISDIR(f_stat.st_mode))
+      return 1;
+    else
     {
- 
-      switch (world->viz_mode)
-      {
-	case DX_MODE:
-          output_dx_objects(fdlp);
-	  break;
-	case DREAMM_V3_MODE:
-          output_dreamm_objects(fdlp);
-	  break;
-	case DREAMM_V3_GROUPED_MODE:
-          output_dreamm_objects_grouped(fdlp);
-	  break;
-	case RK_MODE:
-          output_rk_custom(fdlp);
-	  break;
-	case ASCII_MODE:
-	  output_ascii_molecules(fdlp);
-	  break;
-	case NO_VIZ_MODE:
-	default:
-	  /* Do nothing for vizualization */
-	  break;
-      }
-      fdlp->curr_viz_iteration=fdlp->curr_viz_iteration->next;
-      if (fdlp->curr_viz_iteration!=NULL) {
-	switch (fdlp->list_type) {
-	  case OUTPUT_BY_ITERATION_LIST:
-	  	  fdlp->viz_iteration=(long long)fdlp->curr_viz_iteration->value; 
-	          break;
-	  case OUTPUT_BY_TIME_LIST:
-	          fdlp->viz_iteration=(long long)(fdlp->curr_viz_iteration->value/world->time_unit + ROUND_UP);
-	          break;
-          default:
-                  fprintf(world->err_file,"File '%s', Line %ld: error - wrong frame_data_list list_type %d\n", __FILE__, (long)__LINE__, fdlp->list_type);
-                  break;
-	}
-      }
-    }
-
-    fdlp=fdlp->next;
-  }
-  return;
-}
-
-/********************************************************************* 
-init_frame_data:
-   In: struct frame_data_list* fdlp
-   Out: nothing.  Initializes  frame_data_list structure. 
-   	Sets the value of the current iteration step to the start value.
-   	Sets the number of iterations. 
-        Initializes parameters used in 
-       'output_dreamm_objects()' and 'output_dreamm_objects_grouped()'. 
-***********************************************************************/
-void init_frame_data_list(struct frame_data_list *fdlp)
-{
-  struct num_expr_list *nelp = NULL;
-  int done, ii, jj;
-  struct species *sp = NULL;
-  int mol_orient_frame_present = 0;
-  int mol_pos_frame_present = 0;
-  int reg_data_frame_present = 0;
-  int mesh_geometry_frame_present = 0;
-  FILE *log_file = NULL;
-
-  if(fdlp == NULL) return;
-  
-  log_file=world->log_file;
-
-  while (fdlp!=NULL) {
- 
-    fdlp->viz_iteration=-1;
-    fdlp->n_viz_iterations=0;
-    nelp=fdlp->iteration_list;
-    done=0;
-    switch (fdlp->list_type) {
-    case OUTPUT_BY_ITERATION_LIST:
-      while (nelp!=NULL) {
-	fdlp->n_viz_iterations++;
-
-	if (!done) {
-	  if (nelp->value>=world->start_time) {
-             fdlp->viz_iteration=(long long)nelp->value;
-             fdlp->curr_viz_iteration=nelp;
-             done=1;
-	  }
-	}
-        
-        if((long long)(nelp->value) > final_iteration){
-             final_iteration = (long long)(nelp->value);
-        }
-         
-	nelp=nelp->next;
-      }
-      break;
-    case OUTPUT_BY_TIME_LIST:
-      while (nelp!=NULL) {
-	fdlp->n_viz_iterations++;
-
-        if (!done) {
-	  if (nelp->value>=world->current_start_real_time) {
-	    fdlp->viz_iteration=(long long)(nelp->value/world->time_unit+ROUND_UP);
-	    fdlp->curr_viz_iteration=nelp;
-	    done=1;
-	  }
-        }
-        if((long long)(nelp->value/world->time_unit + ROUND_UP) > final_iteration){
-             final_iteration = (long long)(nelp->value/world->time_unit + ROUND_UP);
-        }
-	nelp=nelp->next;
-      }
-      break;
-     default:
-         fprintf(world->err_file,"File '%s', Line %ld: error - wrong frame_data_list list_type %d\n", __FILE__, (long)__LINE__, fdlp->list_type);
-         break;
-    }
-
-    if(fdlp->type == MOL_ORIENT) {
-        mol_orient_frame_present = 1;
-    }
-    if(fdlp->type == MOL_POS) {
-        mol_pos_frame_present = 1;
-    }
-    if(fdlp->type == MESH_GEOMETRY) {
-        mesh_geometry_frame_present = 1;
-    }
-    if(fdlp->type == REG_DATA) {
-        reg_data_frame_present = 1;
-    }
-
-    if(fdlp->n_viz_iterations > time_values_total){
-        time_values_total = fdlp->n_viz_iterations;
-    }
-
-    fdlp=fdlp->next;
-  } /* end while */
-
-  if(world->iterations < time_values_total - 1){
-      time_values_total = world->iterations + 1;
-  }
-  if(world->chkpt_flag  &&  world->chkpt_iterations != 0){
-    
-    if((world->start_time + world->chkpt_iterations) < time_values_total -1){
-        time_values_total = world->start_time + world->chkpt_iterations + 1;
+      fprintf(world->err_file, "File %s, Line %ld: file '%s' is not a directory\n", __FILE__, (long)__LINE__, filename);
+      return -1;
     }
   }
-
-  
-  if((mol_orient_frame_present) & (!mol_pos_frame_present)){
-     fprintf(log_file, "The input file contains ORIENTATIONS but not POSITIONS statement in the MOLECULES block. The molecules cannot be visualized.\n");
-  }
-  if((reg_data_frame_present) & (!mesh_geometry_frame_present)){
-     fprintf(log_file, "The input file contains REGION_DATA but not GEOMETRY statement in the MESHES block. The meshes cannot be visualized.\n");
-  }
-
-  /* find out the number of objects to visualize. */
-  struct viz_obj *vizp = world->viz_obj_head;
-  while(vizp != NULL){
-        struct viz_child *vcp = vizp->viz_child_head;
-        while(vcp != NULL){
-	   obj_to_show_number++;
- 
-           vcp = vcp->next;
-        } /* end while (vcp) */
-	vizp = vizp->next;
-  } /* end while (vizp) */
-
-   /* 
-        check here if MESHES or MOLECULES blocks
-        are not supplied the corresponding files
-        should be empty in order to prevent unintentional mixing of
-        pre-existing and new files 
-   */
-   if(obj_to_show_number == 0)
-   {
-      fprintf(world->log_file, "\nMESHES keyword is absent or commented.\nEmpty 'meshes' output files are created.\n\n");
-   }
-
-  /* fill the obj_num_regions array */
-  if (obj_to_show_number==0) obj_num_regions = (int*)malloc(sizeof(int));
-  else obj_num_regions = (int *)malloc(obj_to_show_number * sizeof(int)); 
-  if(obj_num_regions == NULL){
-     fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-     exit(1);
-  }
-  vizp = world->viz_obj_head;
-  ii = 0;
-  while(vizp != NULL){
-        struct viz_child *vcp = vizp->viz_child_head;
-        while(vcp != NULL){
-           /* find out the number of regions in the object */ 
-           obj_num_regions[ii] = vcp->obj->num_regions - 1;
-           ii++;
-           vcp = vcp->next;
-        } /* end while (vcp) */
-	vizp = vizp->next;
-  } /* end while (vizp) */
-
-  
-  /* declare and initialize 2-dimensional array that will hold
-     indices of the "region_data" objects which are components
-     of the field object.
-     Here first index points to the object and the second index
-     - to the array of indices for this object regions */
-  if (obj_to_show_number==0) surf_region_values = (int**)malloc(sizeof(int*));
-  else surf_region_values = (int **)malloc(obj_to_show_number * sizeof(int*));
-  if(surf_region_values == NULL){
-     fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-       exit(1);
-  }
-  /* initialize the array */
-  for(ii = 0; ii < obj_to_show_number; ii++)
+  else
   {
-     surf_region_values[ii] = NULL;
-
-  }
-  int n_regs; /* number of regions for the object */
-  for(ii = 0; ii < obj_to_show_number; ii++)
-  {
-    n_regs = obj_num_regions[ii];
-    if(n_regs > 0){
-       surf_region_values[ii] = (int *)malloc(n_regs*sizeof(int));
-       if(surf_region_values[ii] == NULL){
-          fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-          exit(1);
-       }
-       for(jj = 0; jj < n_regs; jj++)
-       {
-          surf_region_values[ii][jj] = 0;
-       }
+    int err = errno;
+    if (err == ENOENT)
+      return 0;
+    else
+    {
+      fprintf(world->err_file, "File %s, Line %ld: cannot stat directory '%s': %s\n", __FILE__, (long)__LINE__, filename, strerror(err));
+      return -1;
     }
-      
   }
-
-
-  /* find out number of effectors and 3D molecules to visualize */
-  for(ii = 0; ii < world->n_species; ii++)
-  {
-     sp = world->species_list[ii];
-     if((sp->flags & IS_SURFACE) != 0) continue;
-     if(strcmp(sp->sym->name, "GENERIC_MOLECULE") == 0) continue;
-     if(((sp->flags & ON_GRID) == ON_GRID) && (sp->viz_state > 0)){ 
-	  eff_to_show_number++;
-     }else if(((sp->flags & NOT_FREE) == 0) && (sp->viz_state > 0)) {
-          mol_to_show_number++;
-
-     }    
-  }
-
-   if((mol_to_show_number == 0) && (eff_to_show_number == 0))
-   {
-       fprintf(world->log_file, "\nMOLECULES keyword is absent or commented.\nEmpty 'molecules' output files are created.\n\n");
-   }
-
-  return;
 }
 
 /*************************************************************************
-output_dx_objects:
-	In: struct frame_data_list *fdlp
-	Out: 0 on success, 1 on error; output visualization files (*.dx)
-             are written.
-**************************************************************************/
+initialize_iteration_counter:
+    Initialize the state of an iteration counter.
 
-int output_dx_objects(struct frame_data_list *fdlp)
+        In: struct iteration_counter *cntr - the iteration counter
+            int max_iters - maximum number of iterations allowed in the buffer
+        Out: 0 on success; 1 if allocation fails.  All fields in the iteration
+             counter are filled in.
+**************************************************************************/
+int initialize_iteration_counter(struct iteration_counter *cntr, int max_iters)
 {
-  FILE *log_file = NULL;
+  if (max_iters > 0)
+  {
+    if ((cntr->iterations = (long long *) malloc(sizeof(long long) * max_iters)) == NULL)
+      return 1;
+  }
+  else
+    cntr->iterations = NULL;
+
+  cntr->max_iterations = max_iters;
+  cntr->n_iterations = 0;
+  return 0;
+}
+
+/*************************************************************************
+destroy_iteration_counter:
+    Destroy the state of an iteration counter.
+
+        In: struct iteration_counter *cntr - the iteration counter
+        Out: Iteration counter fields are destroyed.  Iteration counter itself
+             is not freed.
+**************************************************************************/
+int destroy_iteration_counter(struct iteration_counter *cntr)
+{
+  if (cntr->iterations != NULL)
+    free(cntr->iterations);
+  cntr->iterations = NULL;
+  return 0;
+}
+
+/*************************************************************************
+add_to_iteration_counter_monotonic:
+    Add an iteration number to the iteration counter iff it is later than the
+    most recently added iteration number.
+
+        In: struct iteration_counter *cntr - the iteration counter
+            long long iter - the iteration number
+        Out: 0 if the number is stored, or if the number is not stored because
+             it is earlier than or equal to the last iteration; 1 if the number
+             is not stored because the buffer is full of iteration numbers
+             already.
+**************************************************************************/
+int add_to_iteration_counter_monotonic(struct iteration_counter *cntr, long long iter)
+{
+  /* Don't store a time if it's earlier than the last time we received */
+  if (cntr->n_iterations != 0  &&  cntr->iterations[cntr->n_iterations - 1] >= iter)
+    return 0;
+
+  /* Don't store times beyond the end of the buffer! */
+  if (cntr->n_iterations >= cntr->max_iterations)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: Attempt to overrun iterations buffer (max fill is %d).\n", __FILE__, (long)__LINE__, cntr->max_iterations);
+    return 1;
+  }
+
+  /* Store the time */
+  cntr->iterations[cntr->n_iterations ++] = iter;
+  return 0;
+}
+
+/*************************************************************************
+add_to_iteration_counter:
+    Add an iteration number to the iteration counter.
+
+        In: struct iteration_counter *cntr - the iteration counter
+            long long iter - the iteration number
+        Out: 0 on success; 1 if the number is not stored because the buffer is
+             full of iteration numbers already.
+**************************************************************************/
+int add_to_iteration_counter(struct iteration_counter *cntr, long long iter)
+{
+  /* Don't store times beyond the end of the buffer! */
+  if (cntr->n_iterations >= cntr->max_iterations)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: Attempt to overrun iterations buffer (max fill is %d).\n", __FILE__, (long)__LINE__, cntr->max_iterations);
+    return 1;
+  }
+
+  /* Store the time */
+  cntr->iterations[cntr->n_iterations ++] = iter;
+  return 0;
+}
+
+/*************************************************************************
+initialize_string_buffer:
+    Initialize the state of a string buffer.
+
+        In: struct string_buffer *sb - the string buffer
+            int maxstr - the maximum number of strings to add to this buffer
+        Out: 0 on success; 1 if allocation fails.  All fields in the buffer are
+             filled in.
+**************************************************************************/
+int initialize_string_buffer(struct string_buffer *sb, int maxstr)
+{
+  if (maxstr > 0)
+  {
+    if ((sb->strings = (char **) allocate_ptr_array(maxstr)) == NULL)
+      return 1;
+  }
+
+  sb->max_strings = maxstr;
+  sb->n_strings = 0;
+  return 0;
+}
+
+/*************************************************************************
+destroy_string_buffer:
+    Destroy the state of a string buffer.
+
+        In: struct string_buffer *sb - the string buffer
+        Out: The fields of the string buffer are freed, as are all strings
+             added to the string buffer.  The string buffer itself is not
+             freed.
+**************************************************************************/
+int destroy_string_buffer(struct string_buffer *sb)
+{
+  if (sb->strings)
+    free_ptr_array((void **) sb->strings, sb->max_strings);
+  sb->strings = NULL;
+  sb->max_strings = 0;
+  return 0;
+}
+
+/*************************************************************************
+add_string_to_buffer:
+    Add a string to the string buffer.  The string becomes "owned" by the
+    buffer if this function is successful.  If this function fails, it is the
+    caller's responsibility to free it.
+
+        In: struct string_buffer *sb - the string buffer
+            char *str - the string to add
+        Out: 0 on success; 1 if the string is not stored because the buffer is
+             full already.
+**************************************************************************/
+int add_string_to_buffer(struct string_buffer *sb, char *str)
+{
+  if (sb->n_strings >= sb->max_strings)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: Attempt to overrun string buffer (max fill is %d).\n", __FILE__, (long)__LINE__, sb->max_strings);
+    return 1;
+  }
+
+  sb->strings[sb->n_strings ++] = str;
+  return 0;
+}
+
+/* == viz-specific Utilities == */
+
+/*************************************************************************
+frame_time:
+    Gets the iteration number for a given time/iteration value and "type".
+
+        In:  double iterval - the time/iteration value
+             int type - the type of value
+        Out: the frame time as an iteration number
+**************************************************************************/
+static long long frame_time(double iterval, int type)
+{
+  switch (type)
+  {
+    case OUTPUT_BY_ITERATION_LIST:
+      return (long long) iterval;
+
+    case OUTPUT_BY_TIME_LIST:
+      return (long long) (iterval / world->time_unit + ROUND_UP);
+
+    default:
+      fprintf(world->err_file, "File '%s', Line %ld: error - wrong frame_data_list list_type %d\n", __FILE__, (long)__LINE__, type);
+      return -1;
+  }
+}
+
+/*************************************************************************
+sort_molecules_by_species:
+    Scans over all molecules, sorting them into arrays by species.
+
+        In:  struct abstract_molecule ****viz_molpp
+             u_int  **viz_mol_countp
+             int include_volume - should the lists include vol mols?
+             int include_grid - should the lists include grid mols?
+        Out: 0 on success, 1 on error; viz_molpp and viz_mol_countp arrays are
+             allocated and filled with sorted data.
+**************************************************************************/
+static int sort_molecules_by_species(struct abstract_molecule ****viz_molpp,
+                                     u_int **viz_mol_countp,
+                                     int include_volume,
+                                     int include_grid)
+{
+  struct storage_list *slp;
+  u_int *counts;
+  int species_index;
+
+  /* XXX: May leave memory allocated on failure */
+  if ((*viz_molpp = (struct abstract_molecule ***) allocate_ptr_array(world->n_species)) == NULL)
+    return 1;
+  if ((counts = *viz_mol_countp = allocate_uint_array(world->n_species, 0)) == NULL)
+    return 1;
+
+  /* Walk through the species allocating arrays for all molecules of that species */
+  for (species_index = 0; species_index < world->n_species; ++ species_index)
+  {
+    int mol_count;
+    u_int spec_id = world->species_list[species_index]->species_id;
+
+    if (world->species_list[species_index]->viz_state == EXCLUDE_OBJ)
+      continue;
+
+    if (world->species_list[species_index]->flags & IS_SURFACE)
+      continue;
+
+    if (! include_grid  &&  (world->species_list[species_index]->flags & ON_GRID))
+      continue;
+
+    if (! include_volume  &&  ! (world->species_list[species_index]->flags & ON_GRID))
+      continue;
+
+    mol_count = world->species_list[species_index]->population;
+    if (mol_count <= 0)
+      continue;
+
+    if (((*viz_molpp)[spec_id] = (struct abstract_molecule **) allocate_ptr_array(mol_count)) == NULL)
+      return 1;
+  }
+
+  /* Sort molecules by species id */
+  for (slp = world->storage_head;
+       slp != NULL;
+       slp = slp->next)
+  {
+    struct storage *sp = slp->store;
+    struct schedule_helper *shp;
+    struct abstract_molecule *amp;
+    int sched_slot_index;
+    for (shp = sp->timer;
+         shp != NULL;
+         shp = shp->next_scale)
+    {
+      for (sched_slot_index = -1; sched_slot_index < shp->buf_len; ++ sched_slot_index)
+      {
+        for (amp = (struct abstract_molecule *) ((sched_slot_index < 0) ? shp->current : shp->circ_buf_head[sched_slot_index]);
+             amp != NULL;
+             amp = amp->next)
+        {
+          u_int spec_id;
+          if (amp->properties == NULL)
+            continue;
+
+          if (amp->properties->viz_state == EXCLUDE_OBJ)
+            continue;
+
+          if (! include_grid  &&  (amp->flags & TYPE_MASK) != TYPE_3D)
+            continue;
+
+          if (! include_volume  &&  (amp->flags & TYPE_MASK) == TYPE_3D)
+            continue;
+
+          spec_id = amp->properties->species_id;
+          if (counts[spec_id] < amp->properties->population)
+            (*viz_molpp)[spec_id][counts[spec_id]++] = amp;
+          else {
+            fprintf(world->log_file,"MCell: molecule count disagreement!!\n");
+            fprintf(world->log_file,"  Species %s  population = %d  count = %d\n",
+                    amp->properties->sym->name,
+                    amp->properties->population,
+                    counts[spec_id]);
+          }
+        }
+      }
+    }
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+active_this_iteration:
+    Check if any visualization is to be done this iteration.
+
+        In: struct frame_data_list *fdlp - the list of frame data
+        Out: 0 on success, 1 on failure
+**************************************************************************/
+static int active_this_iteration(struct frame_data_list *fdlp)
+{
+  for (; fdlp != NULL; fdlp = fdlp->next)
+  {
+    if (fdlp->viz_iteration == world->it_time)
+      return 1;
+  }
+  return 0;
+}
+
+/*************************************************************************
+reset_time_values:
+    Scan over all frame data elements, resetting the "next" iteration state to
+    the soonest iteration following or equal to the specified iteration.
+
+        In:  struct frame_data_list *fdlp - the head of the frame data list
+             long long curiter - the minimum iteration number
+        Out: num bytes written
+**************************************************************************/
+static int reset_time_values(struct frame_data_list *fdlp,
+                             long long curiter)
+{
+  for (; fdlp != NULL; fdlp = fdlp->next)
+  {
+    fdlp->curr_viz_iteration = fdlp->iteration_list;
+    fdlp->viz_iteration = -1;
+
+    /* Scan for first iteration >= curiter */
+    while (fdlp->curr_viz_iteration != NULL)
+    {
+      if (frame_time(fdlp->curr_viz_iteration->value, fdlp->list_type) >= curiter)
+        break;
+      fdlp->curr_viz_iteration = fdlp->curr_viz_iteration->next;
+    }
+
+    /* If we had an iteration, use it to set viz_iteration */
+    if (fdlp->curr_viz_iteration != NULL)
+      fdlp->viz_iteration = frame_time(fdlp->curr_viz_iteration->value, fdlp->list_type);
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+count_time_values:
+    Scan over all frame data elements, counting iterations.  The number of
+    distinct iterations on which viz data will be output is returned.  In the
+    process, each frame data elements n_viz_iterations is set, as is the "final
+    viz iteration".  The total number of distinct iterations is returned.
+
+        In:  struct frame_data_list *fdlp - the head of the frame data list
+        Out: num distinct iterations
+**************************************************************************/
+static int count_time_values(struct frame_data_list * const fdlp)
+{
+  int time_values = 0;
+  long long curiter = -1;
+  struct frame_data_list *fdlpcur = NULL;
+  for (fdlpcur = fdlp; fdlpcur != NULL; fdlpcur = fdlpcur->next)
+  {
+    fdlpcur->curr_viz_iteration = fdlpcur->iteration_list;
+    fdlpcur->n_viz_iterations = 0;
+    fdlpcur->viz_iteration = -1;
+  }
+
+  while (1)
+  {
+    curiter = -1;
+
+    /* Find the next iteration */
+    for (fdlpcur = fdlp; fdlpcur != NULL; fdlpcur = fdlpcur->next)
+    {
+      long long thisiter;
+      if (fdlpcur->curr_viz_iteration == NULL)
+        continue;
+
+      thisiter = frame_time(fdlpcur->curr_viz_iteration->value, fdlpcur->list_type);
+
+      if (curiter == -1)
+        curiter = thisiter;
+      else if (thisiter < curiter)
+        curiter = thisiter;
+    }
+
+    /* If we found no new iteration, quit */
+    if (curiter == -1)
+      break;
+
+    /* We won't create any more output frames after the apocalypse. */
+    if (curiter > world->iterations)
+      break;
+
+    /* We also won't create any more output after we checkpoint */
+    if (world->chkpt_flag  &&  world->chkpt_iterations != 0  &&  curiter >= world->chkpt_iterations)
+      break;
+
+    /* Optimistically, store this as the "final" iteration */
+    if (curiter > world->viz_state_info.final_iteration)
+      world->viz_state_info.final_iteration = curiter;
+
+    /* We found at least one more */
+    if (curiter >= world->start_time)
+      ++ time_values;
+
+    /* Advance any frame data items which are set to this iteration */
+    for (fdlpcur = fdlp; fdlpcur != NULL; fdlpcur = fdlpcur->next)
+    {
+      if (fdlpcur->curr_viz_iteration == NULL)
+        continue;
+
+      if (curiter >= world->start_time)
+      {
+        if (frame_time(fdlpcur->curr_viz_iteration->value, fdlpcur->list_type) == curiter)
+          ++ fdlpcur->n_viz_iterations;
+      }
+
+      while (fdlpcur->curr_viz_iteration  &&
+             frame_time(fdlpcur->curr_viz_iteration->value, fdlpcur->list_type) == curiter)
+        fdlpcur->curr_viz_iteration = fdlpcur->curr_viz_iteration->next;
+    }
+  }
+
+  return time_values;
+}
+
+/*************************************************************************
+initialize_iteration_counters:
+    Sets up iteration counter buffers, allocating space for iteration and time
+    data, which is needed for DREAMM output.
+
+        In:  int time_values_total - the maximum number of time/iteration
+                                     elements
+        Out: 0 if successful, 1 if failed
+**************************************************************************/
+static int initialize_iteration_counters(int time_values_total)
+{
+  memset(&world->viz_state_info.output_times, 0, sizeof(world->viz_state_info.output_times));
+  memset(&world->viz_state_info.mesh_output_iterations, 0, sizeof(world->viz_state_info.mesh_output_iterations));
+  memset(&world->viz_state_info.vol_mol_output_iterations, 0, sizeof(world->viz_state_info.vol_mol_output_iterations));
+  memset(&world->viz_state_info.grid_mol_output_iterations, 0, sizeof(world->viz_state_info.grid_mol_output_iterations));
+
+  if (initialize_iteration_counter(&world->viz_state_info.output_times, time_values_total))
+    goto failure;
+  if (initialize_iteration_counter(&world->viz_state_info.mesh_output_iterations, time_values_total))
+    goto failure;
+  if (initialize_iteration_counter(&world->viz_state_info.vol_mol_output_iterations, time_values_total))
+    goto failure;
+  if (initialize_iteration_counter(&world->viz_state_info.grid_mol_output_iterations, time_values_total))
+    goto failure;
+
+  return 0;
+
+failure:
+  destroy_iteration_counter(&world->viz_state_info.output_times);
+  destroy_iteration_counter(&world->viz_state_info.mesh_output_iterations);
+  destroy_iteration_counter(&world->viz_state_info.vol_mol_output_iterations);
+  destroy_iteration_counter(&world->viz_state_info.grid_mol_output_iterations);
+  return 1;
+}
+
+/*************************************************************************
+collect_objects:
+    Collect all objects being visualized.  Pointers to objects will be sorted
+    by address so that a binary search may be used on them.
+
+        In:  struct viz_obj *root - the head of the viz_obj linked list
+             struct object ***objs - pointer to receive array of object *s
+             int *num_objects - int to receive object count
+        Out: 0 if successful, 1 if failed
+**************************************************************************/
+static int collect_objects(struct viz_obj *root,
+                           struct object ***objs,
+                           int *num_objects)
+{
+  struct viz_obj *vizp;
+
+  /* Count up the objects */
+  int count = 0;
+  for (vizp = root; vizp != NULL; vizp = vizp->next)
+  {
+    struct viz_child *vcp;
+    for (vcp = vizp->viz_child_head;
+         vcp != NULL;
+         vcp = vcp->next)
+      ++ count;
+  }
+
+  /* Allocate a flattened array for the objects */
+  if ((*objs = (struct object **) allocate_ptr_array(count)) == NULL)
+    return 1;
+
+  *num_objects = count;
+
+  /* Traverse the tree again and fill the objects array */
+  struct object **curobjptr = *objs;
+  for (vizp = root;
+       vizp != NULL  &&  count > 0;
+       vizp = vizp->next)
+  {
+    struct viz_child *vcp;
+    for (vcp = vizp->viz_child_head;
+         vcp != NULL;
+         vcp = vcp->next)
+    {
+      *(curobjptr++) = vcp->obj;
+      if (-- count == 0)
+        break;
+    }
+  }
+
+  qsort(*objs, *num_objects, sizeof(struct object *), &void_ptr_compare);
+
+  return 0;
+}
+
+/*************************************************************************
+collect_species:
+    Collect all objects being visualized.
+
+        In:  struct species ***vol_species - pointer to receive array of
+                                             species *s for vol mols
+             int *n_vol_species - int to receive vol mol species count
+             struct species ***grid_species - pointer to receive array of
+                                              species *s for grid mols
+             int *n_grid_species - int to receive grid mol species count
+        Out: 0 if successful, 1 if failed
+**************************************************************************/
+static int collect_species(struct species ***vol_species,
+                           int *n_vol_species,
+                           struct species ***grid_species,
+                           int *n_grid_species)
+{
+  int vcount=0, gcount=0;
+
+  /* Count species */
+  int spec_id;
+  for (spec_id = 0; spec_id < world->n_species; ++ spec_id)
+  {
+    struct species *specp = world->species_list[spec_id];
+    if ((specp->flags & IS_SURFACE) != 0) continue;
+    if (strcmp(specp->sym->name, "GENERIC_MOLECULE") == 0) continue;
+    if (specp->viz_state <= 0) continue;
+
+    if (((specp->flags & NOT_FREE) != 0))
+      ++ gcount;
+    else
+      ++ vcount;
+  }
+
+  /* Allocate arrays */
+  if ((*vol_species = (struct species **) allocate_ptr_array(vcount)) == NULL)
+    goto failure;
+  if ((*grid_species = (struct species **) allocate_ptr_array(gcount)) == NULL)
+    goto failure;
+  *n_vol_species = vcount;
+  *n_grid_species = gcount;
+
+  /* Sort species into arrays */
+  struct species **vol_cur = *vol_species, **grid_cur = *grid_species;
+  for (spec_id = 0;
+       spec_id < world->n_species  &&  (vcount || gcount);
+       ++ spec_id)
+  {
+    struct species *specp = world->species_list[spec_id];
+    if ((specp->flags & IS_SURFACE) != 0) continue;
+    if (strcmp(specp->sym->name, "GENERIC_MOLECULE") == 0) continue;
+    if (specp->viz_state <= 0) continue;
+
+    if (((specp->flags & NOT_FREE) != 0))
+    {
+      *(grid_cur++) = specp;
+      -- gcount;
+    }
+    else
+    {
+      *(vol_cur++) = specp;
+      -- vcount;
+    }
+  }
+
+  return 0;
+
+failure:
+  if (*vol_species) free(*vol_species);
+  if (*grid_species) free(*grid_species);
+  *vol_species = NULL;
+  *grid_species = NULL;
+  *n_vol_species = *n_grid_species = -1;
+  return 1;
+}
+
+/*************************************************************************
+convert_frame_data_to_iterations:
+    Converts time-indexed frame to an iteration-indexed frame.
+
+        In:  struct frame_data_list *fdlp - the frame to convert
+        Out: 0 if successful
+**************************************************************************/
+static int convert_frame_data_to_iterations(struct frame_data_list *fdlp)
+{
+  struct num_expr_list *nel;
+  for (nel = fdlp->iteration_list; nel != NULL; nel = nel->next)
+    nel->value = (double) (long long)(nel->value / world->time_unit + ROUND_UP);
+  fdlp->list_type = OUTPUT_BY_ITERATION_LIST;
+  return 0;
+}
+
+/* == DX/DREAMM Utilities == */
+
+/*************************************************************************
+dx_output_worldfloat
+    Writes a floating point world coordinate to the specified file.
+
+        In:  FILE *f - file handle to receive output
+             float fval - floating point value to write
+        Out: num bytes written
+**************************************************************************/
+static int dx_output_worldfloat(FILE *f, double fval)
+{
+  float v = (float) (fval * world->length_unit);
+  fwrite(&v, sizeof(v), 1, f);
+  return sizeof(float);
+}
+
+/*************************************************************************
+dx_output_vector3
+    Writes a 3d vector to a DX output file in binary format.
+
+        In:  FILE *f - file handle to receive output
+             struct vector3 *v3 - vector to write
+        Out: num bytes written
+**************************************************************************/
+static int dx_output_vector3(FILE *f, struct vector3 const *v3)
+{
+  int size = 0;
+  size += dx_output_worldfloat(f, v3->x);
+  size += dx_output_worldfloat(f, v3->y);
+  size += dx_output_worldfloat(f, v3->z);
+  return size;
+}
+
+/*************************************************************************
+dx_output_oriented_normal
+    Writes a 3d oriented normal vector to a DX output file in binary format.
+
+        In:  FILE *f - file handle to receive output
+             struct vector3 *v3 - vector to write
+             short orient - the orientation of the normal (+1/-1)
+        Out: num bytes written
+**************************************************************************/
+static int dx_output_oriented_normal(FILE *f, struct vector3 const *v3, short orient)
+{
+  float f1 = (float) (v3->x * (float) orient);
+  float f2 = (float) (v3->y * (float) orient);
+  float f3 = (float) (v3->z * (float) orient);
+  fwrite(&f1, sizeof(f1), 1, f);
+  fwrite(&f2, sizeof(f2), 1, f);
+  fwrite(&f3, sizeof(f3), 1, f);
+  return 3*sizeof(float);
+}
+
+/*************************************************************************
+dx_output_vertices
+    Writes the vertices for an object out to a DX output file in binary format.
+
+        In:  FILE *f - file handle to receive output
+             struct object *objp - the object whose vertices to write
+        Out: num bytes written
+**************************************************************************/
+static int dx_output_vertices(FILE *f, struct object const *objp)
+{
+  int size = 0;
+  int i;
+  for (i=0; i<objp->n_verts; ++i)
+    size += dx_output_vector3(f, &objp->verts[i]);
+  return size;
+}
+
+/*************************************************************************
+dx_output_wall_vertices
+    Writes the vertex indices for a wall to a DX output file in binary format.
+
+    XXX: Is this right?  sizeof(int) can vary between platforms...
+
+        In:  FILE *f - file handle to receive output
+             struct element_data *edp - the wall vertices to write
+        Out: num bytes written
+**************************************************************************/
+static int dx_output_wall_vertices(FILE *f, struct element_data const *edp)
+{
+  int i;
+  for (i=0; i<3; ++i)
+  {
+    int vi = edp->vertex_index[i];
+    fwrite(&vi, sizeof(int), 1, f);
+  }
+  return 3*sizeof(int);
+}
+
+/*************************************************************************
+dx_output_gridpt_and_normal
+    Writes the point and oriented normal for a location on a grid.
+
+        In:  FILE *f - file handle to receive output
+             struct wall *w - the wall of the surface grid
+             int grid_index - the grid triangle index
+             short orient - the orientation (+1/-1)
+        Out: num bytes written
+**************************************************************************/
+static int dx_output_gridpt_and_normal(FILE *f,
+                                       struct wall *w,
+                                       int grid_index,
+                                       short orient)
+{
+  int size = 0;
+  struct vector3 p0;
+
+  grid2xyz(w->grid, grid_index, &p0);
+  size += dx_output_vector3(f, &p0);
+  size += dx_output_oriented_normal(f, &w->normal, orient);
+
+  return size;
+}
+
+/* == DX output == */
+
+/*************************************************************************
+dx_open_file:
+    Opens a DX output file.
+
+        In:  char const *cls  - class of file (second part of filename)
+             char const *prefix - prefix of file (first part of filename)
+             long long iteration - iteration number
+        Out: file handle on success, NULL on failure
+**************************************************************************/
+static FILE *dx_open_file(char const *cls,
+                          char const *prefix,
+                          long long iteration)
+{
+  char *filename_buffer = alloc_sprintf("%s.%s.%lld.dx",
+                                        prefix,
+                                        cls,
+                                        iteration);
+  if (filename_buffer == NULL)
+  {
+    fprintf(world->err_file,"File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    return NULL;
+  }
+
+  FILE *f = open_file(filename_buffer, "wb");
+  free(filename_buffer);
+  return f;
+}
+
+/*************************************************************************
+dx_output_walls
+    Outputs all wall data for a given object to the specified files.
+
+        In:  FILE *wall_verts_header
+             FILE *wall_states_header
+             struct object *objp
+        Out: 0 on success, 1 on error; on success, the objects are written to
+             the files
+**************************************************************************/
+static int dx_output_walls(FILE *wall_verts_header,
+                           FILE *wall_states_header,
+                           struct object const *objp)
+{
+  char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
+
+  struct polygon_object *pop = (struct polygon_object *) objp->contents;
+  struct ordered_poly *opp = (struct ordered_poly *) pop->polygon_data;
+  struct element_data *edp = opp->element;
+  int element_data_count = objp->n_walls_actual;
+  int wall_index;
+
+  if (wall_verts_header)
+  {
+    fprintf(wall_verts_header,
+            "object \"%s.positions\" class array type float rank 1 shape 3 items %d %s binary data follows\n",
+            objp->sym->name,
+            objp->n_verts,
+            my_byte_order);
+
+    /* output polyhedron vertices */
+    (void) dx_output_vertices(wall_verts_header, objp);
+    fprintf(wall_verts_header,
+            "\nattribute \"dep\" string \"positions\"\n#\n");
+
+    fprintf(wall_verts_header,
+            "object \"%s.connections\" class array type int rank 1 shape 3 items %d %s binary data follows\n",
+            objp->sym->name, element_data_count, my_byte_order);
+  }
+
+  if (wall_states_header)
+    fprintf(wall_states_header,
+            "object \"%s.states\" class array type int rank 0 items %d ascii data follows\n",
+            objp->sym->name, element_data_count);
+
+  /* output polygon element connections */
+  for (wall_index = 0; wall_index < objp->n_walls; ++ wall_index)
+  {
+    if (get_bit(pop->side_removed,wall_index))
+      continue;
+
+    if (wall_verts_header)
+      dx_output_wall_vertices(wall_verts_header, &edp[wall_index]);
+
+    if (wall_states_header)
+      fprintf(wall_states_header, "%d\n", objp->viz_state[wall_index]);
+  }
+
+  if (wall_verts_header)
+  {
+    fprintf(wall_verts_header, "\nattribute \"ref\" string \"positions\"\n");
+    fprintf(wall_verts_header, "attribute \"element type\" string \"triangles\"\n#\n");
+
+    /* XXX: The following used to be wall_states_header, but I don't think that
+     * was right...
+     */
+    fprintf(wall_verts_header,"\nattribute \"dep\" string \"connections\"\n#\n");
+  }
+
+  if (wall_states_header)
+    fprintf(wall_states_header,"\nattribute \"dep\" string \"states\"\n#\n");
+
+  return 0;
+}
+
+/*************************************************************************
+dx_output_count_effectors
+    Counts the total number of (non-excluded) effectors in a given object.
+
+        In:  struct object *objp
+        Out: 0 on success, 1 on error; on success, the objects are written to
+             the files
+**************************************************************************/
+static int dx_output_count_effectors(struct object *objp)
+{
+  int wall_index;
+  int n_eff = 0;
+  for (wall_index = 0; wall_index < objp->n_walls; ++ wall_index)
+  {
+    int nremain;
+    unsigned int tile_index;
+    struct wall *w = objp->wall_p[wall_index];
+    if (w == NULL  ||  w->grid == NULL)
+      continue;
+
+    nremain = w->grid->n_occupied;
+    for (tile_index = 0; tile_index < w->grid->n_tiles  &&  nremain != 0; ++ tile_index)
+    {
+      if (w->grid->mol[tile_index] == NULL)
+        continue;
+
+      -- nremain;
+      if (w->grid->mol[tile_index]->properties->viz_state != EXCLUDE_OBJ)
+        ++ n_eff;
+    }
+  }
+
+  return n_eff;
+}
+
+/*************************************************************************
+dx_output_effectors_on_wall
+    Writes effector data for a specific wall to the specified output files.
+
+        In:  FILE *eff_pos_header
+             FILE *eff_states_header
+             struct wall *w
+        Out: 0 on success, 1 on error; on success, the objects are written to
+             the files
+**************************************************************************/
+static int dx_output_effectors_on_wall(FILE *eff_pos_header,
+                                       FILE *eff_states_header,
+                                       struct wall *w)
+{
+  int nremain;
+  unsigned int tile_index;
+
+  nremain = w->grid->n_occupied;
+  for (tile_index = 0; tile_index<w->grid->n_tiles && nremain != 0; ++ tile_index)
+  {
+    struct grid_molecule *gmol=w->grid->mol[tile_index];
+    if (gmol == NULL)
+      continue;
+
+    if (gmol->properties->viz_state == EXCLUDE_OBJ)
+      continue;
+
+    -- nremain;
+
+    if (eff_states_header)
+      fprintf(eff_states_header, "%d\n", gmol->properties->viz_state);
+
+    if (eff_pos_header)
+      (void) dx_output_gridpt_and_normal(eff_pos_header,
+                                         w,
+                                         tile_index,
+                                         gmol->orient);
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dx_output_effectors
+    writes effector data to effector position/state files
+
+        In:  FILE *eff_pos_header
+             FILE *eff_states_header
+             struct object *objp
+        out: 0 on success, 1 on error; on success, the objects are written to
+             the files
+**************************************************************************/
+static int dx_output_effectors(FILE *eff_pos_header,
+                               FILE *eff_states_header,
+                               struct object *objp)
+{
+  char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
+  int n_eff=0;
+  int wall_index;
+
+  no_printf("Traversing walls in object %s\n", objp->sym->name);
+
+  n_eff = dx_output_count_effectors(objp);
+
+  no_printf("Dumping %d effectors...\n", n_eff);
+  fflush(world->log_file);
+
+  if (eff_pos_header) {
+    if (n_eff) {
+      fprintf(eff_pos_header,
+              "object \"%s.pos_and_norm\" class array type float rank 2 shape 2 3 items %d %s binary data follows\n",
+              objp->sym->name,
+              n_eff,
+              my_byte_order);
+    }
+    else {
+      fprintf(eff_pos_header,
+              "object \"%s.pos_and_norm\" array",
+              objp->sym->name);
+    }
+  }
+
+  if (eff_states_header) {
+    if (n_eff) {
+      fprintf(eff_states_header,
+              "object \"%s.states\" class array type int rank 0 items %d ascii data follows\n",
+              objp->sym->name,
+              n_eff);
+    }
+    else {
+      fprintf(eff_states_header,
+              "object \"%s.states\" array\n",
+              objp->sym->name);
+    }
+  }
+
+  /* dump the effectors */
+  for (wall_index = 0; wall_index < objp->n_walls; ++ wall_index)
+  {
+    struct wall *w = objp->wall_p[wall_index];
+    if (w == NULL)
+      continue;
+
+    if (w->grid == NULL)
+      continue;
+
+    if (dx_output_effectors_on_wall(eff_pos_header, eff_states_header, w))
+      return 1;
+  }
+
+  if (eff_pos_header)
+    fprintf(eff_pos_header, "\n#\n");
+
+  if (eff_states_header)
+    fprintf(eff_states_header,
+            "attribute \"dep\" string \"positions\"\n#\n");
+  return 0;
+}
+
+/*************************************************************************
+dx_output_walls_groups
+    Writes group objects for walls
+
+        In:  FILE *wall_verts_header
+             FILE *wall_states_header
+             struct viz_obj *vizp
+        Out: 0 on success, 1 on error; on success, the objects are written to
+             the files
+**************************************************************************/
+static int dx_output_walls_groups(FILE *wall_verts_header,
+                                  FILE *wall_states_header,
+                                  struct viz_obj *vizp)
+{
+  struct viz_child *vcp;
+
+  /* output surface positions null objects and group objects */
+  if (wall_verts_header) {
+    fprintf(wall_verts_header, "object \"%s\" group\n", vizp->full_name);
+    fprintf(wall_verts_header, "  member \"null_object (default)\" \"null_object\"\n");
+  }
+
+  /* surface states */
+  if (wall_states_header) {
+    fprintf(wall_states_header, "object \"%s\" group\n", vizp->full_name);
+    fprintf(wall_states_header, "  member \"null_object (default)\" \"null_object\"\n");
+  }
+
+  /* output group object members */
+  /* member name is full MCell child object name */
+  for (vcp = vizp->viz_child_head;
+       vcp != NULL;
+       vcp = vcp->next)
+  {
+    struct object *objp = vcp->obj;
+
+    /* surface positions */
+    if (wall_verts_header) {
+      fprintf(wall_verts_header,
+              "  member \"%s\" \"%s.field\"\n",
+              objp->sym->name,
+              objp->sym->name);
+    }
+
+    /* surface states */
+    if (wall_states_header) {
+      fprintf(wall_states_header,
+              "  member \"%s.states\" \"%s.states\"\n",
+              objp->sym->name,
+              objp->sym->name);
+    }
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dx_output_effectors_groups
+    Writes group objects for effectors
+
+        In:  FILE *eff_pos_header
+             FILE *eff_states_header
+             struct viz_obj *vizp
+        Out: 0 on success, 1 on error; on success, the objects are written to
+             the files
+**************************************************************************/
+static int dx_output_effectors_groups(FILE *eff_pos_header,
+                                      FILE *eff_states_header,
+                                      struct viz_obj *vizp)
+{
+  struct viz_child *vcp;
+  /* output effector positions null objects and group objects */
+  if (eff_pos_header) {
+    fprintf(eff_pos_header, "object \"%s\" group\n", vizp->full_name);
+    fprintf(eff_pos_header, "  member \"null_object (default)\" \"null_object\"\n");
+  }
+
+  /* effector states */
+  if (eff_states_header) {
+    fprintf(eff_states_header, "object \"%s\" group\n", vizp->full_name);
+    fprintf(eff_states_header, "  member \"null_object (default)\" \"null_object\"\n");
+  }
+
+  /* output group object members */
+  /* member name is full MCell child object name */
+  for (vcp = vizp->viz_child_head;
+       vcp != NULL;
+       vcp = vcp->next)
+  {
+    struct object *objp = vcp->obj;
+
+    /* effector positions */
+    if (eff_pos_header) {
+      fprintf(eff_pos_header,
+              "  member \"%s\" \"%s.field\"\n",
+              objp->sym->name,
+              objp->sym->name);
+    }
+
+    /* effector states */
+    if (eff_states_header) {
+      fprintf(eff_states_header,
+              "  member \"%s.states\" \"%s.states\"\n",
+              objp->sym->name,
+              objp->sym->name);
+    }
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dx_output_walls_null
+    Writes null objects for walls
+
+        In:  FILE *wall_verts_header
+             FILE *wall_states_header
+        Out: 0 on success, 1 on error; on success, the objects are written to
+             the files
+**************************************************************************/
+static void dx_output_walls_null(FILE *wall_verts_header, FILE *wall_states_header)
+{
+  if (wall_verts_header)
+  {
+    fprintf(wall_verts_header, "object \"null_positions\" array\n\n");
+    fprintf(wall_verts_header, "object \"null_connections\" array\n\n");
+    fprintf(wall_verts_header, "object \"null_object\" field\n");
+    fprintf(wall_verts_header, "  component \"positions\" \"null_positions\"\n");
+    fprintf(wall_verts_header, "  component \"connections\" \"null_connections\"\n\n");
+  }
+
+  if (wall_states_header)
+  {
+    fprintf(wall_states_header, "object \"null_object\" array\n");
+    fprintf(wall_states_header, "  attribute \"dep\" string \"connections\"\n\n");
+  }
+}
+
+/*************************************************************************
+dx_output_effectors_null
+    Writes null objects for effectors
+
+        In:  FILE *eff_pos_header
+             FILE *eff_states_header
+        Out: 0 on success, 1 on error; on success, objects are written to the
+             files
+**************************************************************************/
+static void dx_output_effectors_null(FILE *eff_pos_header, FILE *eff_states_header)
+{
+  if (eff_pos_header)
+  {
+    fprintf(eff_pos_header, "object \"null_pos_and_norm\" array\n\n");
+    fprintf(eff_pos_header, "object \"null_object\" field\n");
+    fprintf(eff_pos_header, "  component \"data\" \"null_pos_and_norm\"\n\n");
+  }
+
+  if (eff_states_header)
+  {
+    fprintf(eff_states_header, "object \"null_object\" array\n");
+    fprintf(eff_states_header, "  attribute \"dep\" string \"positions\"\n\n");
+  }
+}
+
+/*************************************************************************
+dx_output_walls_and_effectors_fields
+    Writes field descriptors for wall/effector DX output files
+
+        In:  FILE *wall_verts_header
+             FILE *eff_pos_header
+             struct viz_child *vcp
+        Out: 0 on success, 1 on error; on success, the objects are written to
+             the file
+**************************************************************************/
+static void dx_output_walls_and_effectors_fields(FILE *wall_verts_header,
+                                                 FILE *eff_pos_header,
+                                                 struct viz_child *vcp)
+{
+  while (vcp != NULL)
+  {
+    struct object *objp = vcp->obj;
+
+    /* effector positions */
+    if (eff_pos_header) {
+      fprintf(eff_pos_header, "object \"%s.field\" field\n", objp->sym->name);
+      fprintf(eff_pos_header, "  component \"data\" \"%s.pos_and_norm\"\n\n", objp->sym->name);
+    }
+
+    /* surface positions */
+    if (wall_verts_header) {
+      fprintf(wall_verts_header, "object \"%s.field\" field\n", objp->sym->name);
+      fprintf(wall_verts_header, "  component \"positions\" \"%s.positions\"\n", objp->sym->name);
+      fprintf(wall_verts_header, "  component \"connections\" \"%s.connections\"\n\n", objp->sym->name);
+    }
+
+    vcp = vcp->next;
+  }
+}
+
+/*************************************************************************
+dx_output_walls_and_effectors_single
+    Writes a single set of wall/effector DX output files
+
+        In:  struct frame_data_list *fdlp
+             struct viz_obj *vizp
+        Out: 0 on success, 1 on error; on success, all output files are created
+**************************************************************************/
+static int dx_output_walls_and_effectors_single(struct frame_data_list *fdlp,
+                                                struct viz_obj *vizp)
+{
+  int viz_surf_pos     = ((fdlp->type == ALL_FRAME_DATA) || (fdlp->type == SURF_POS));
+  int viz_surf_states  = ((fdlp->type == ALL_FRAME_DATA) || (fdlp->type == SURF_STATES));
+  int viz_eff_pos      = ((fdlp->type == ALL_FRAME_DATA) || (fdlp->type == EFF_POS));
+  int viz_eff_states   = ((fdlp->type == ALL_FRAME_DATA) || (fdlp->type == EFF_STATES));
+
   FILE *wall_verts_header = NULL;
   FILE *wall_states_header = NULL;
   FILE *eff_pos_header = NULL;
   FILE *eff_states_header = NULL;
+
+  struct viz_child *vcp = NULL;
+
+  /* XXX: May leave file handles open on failure */
+
+  if (viz_surf_pos  &&
+      (wall_verts_header = dx_open_file("mesh_elements", vizp->name, fdlp->viz_iteration)) == NULL)
+    goto failure;
+
+  if (viz_surf_states  &&
+      (wall_states_header = dx_open_file("mesh_element_states", vizp->name, fdlp->viz_iteration)) == NULL)
+    goto failure;
+
+  if (viz_eff_pos  &&
+      (eff_pos_header = dx_open_file("effector_site_positions", vizp->name, fdlp->viz_iteration)) == NULL)
+    goto failure;
+
+  if (viz_eff_states  &&
+      (eff_states_header = dx_open_file("effector_site_states", vizp->name, fdlp->viz_iteration)) == NULL)
+    goto failure;
+
+  for (vcp = vizp->viz_child_head;
+       vcp != NULL;
+       vcp = vcp->next)
+  {
+    struct object *objp = vcp->obj;
+
+    if ((viz_surf_pos || viz_surf_states)  &&
+        (objp->object_type==POLY_OBJ || objp->object_type==BOX_OBJ))
+    {
+      if (dx_output_walls(wall_verts_header,
+                          wall_states_header,
+                          objp))
+        goto failure;
+    }
+
+    if (viz_eff_pos  ||  viz_eff_states) {
+      if (dx_output_effectors(eff_pos_header,
+                              eff_states_header,
+                              objp))
+        goto failure;
+    }
+  }
+
+  /* Output null objects */
+  if (viz_surf_states || viz_surf_pos)
+    dx_output_walls_null(wall_verts_header, wall_states_header);
+  if (viz_eff_states || viz_eff_pos)
+    dx_output_effectors_null(eff_pos_header, eff_states_header);
+
+  /* output effector and surface positions field objects */
+  if (viz_eff_pos  ||  viz_surf_pos)
+  {
+    dx_output_walls_and_effectors_fields(wall_verts_header,
+                                         eff_pos_header,
+                                         vizp->viz_child_head);
+  }
+
+  if (viz_eff_pos  ||  viz_eff_states)
+    if (dx_output_effectors_groups(eff_pos_header, eff_states_header, vizp))
+      goto failure;
+
+  if (viz_surf_pos  ||  viz_surf_states)
+    if (dx_output_walls_groups(wall_verts_header, wall_states_header, vizp))
+      goto failure;
+
+  if (wall_verts_header != NULL)  fclose(wall_verts_header);
+  if (wall_states_header != NULL) fclose(wall_states_header);
+  if (eff_pos_header != NULL)     fclose(eff_pos_header);
+  if (eff_states_header != NULL)  fclose(eff_states_header);
+  return 0;
+
+failure:
+  if (wall_verts_header != NULL)  fclose(wall_verts_header);
+  if (wall_states_header != NULL) fclose(wall_states_header);
+  if (eff_pos_header != NULL)     fclose(eff_pos_header);
+  if (eff_states_header != NULL)  fclose(eff_states_header);
+  return 1;
+}
+
+/*************************************************************************
+dx_output_walls_and_effectors
+    Writes wall and/or effector output files for the old DX output format.
+
+        In:  struct frame_data_list *fdlp
+        Out: 0 on success, 1 on error; on success, all output files are created
+**************************************************************************/
+static int dx_output_walls_and_effectors(struct frame_data_list *fdlp)
+{
+  struct viz_obj *vizp;
+  for (vizp = world->viz_obj_head;
+       vizp != NULL;
+       vizp = vizp->next)
+  {
+    if (dx_output_walls_and_effectors_single(fdlp, vizp))
+      return 1;
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dx_output_molecules_position_fields_and_groups
+    Writes field and group information for molecule positions output file in
+    the old DX output format.
+
+        In:  FILE *mol_pos_header
+             int   mol_pos_index
+        Out: 0 on success, 1 on error; data is appended to the provided file
+             handle.
+**************************************************************************/
+static int dx_output_molecules_position_fields_and_groups(FILE *mol_pos_header, int mol_pos_index)
+{
+  int mol_pos_field_index = 0;
+  int mol_pos_group_index = 0;
+  int species_index;
+
+  for (species_index = 0; species_index < world->n_species; ++ species_index)
+  {
+    if ((world->species_list[species_index]->flags & NOT_FREE)!=0)
+      continue;
+
+    fprintf(mol_pos_header,
+            "object \"%d\" field\n",mol_pos_index+mol_pos_field_index);
+    fprintf(mol_pos_header,
+            "  component \"positions\" \"%d\"\n\n",1+mol_pos_field_index);
+    ++ mol_pos_field_index;
+  }
+  fprintf(mol_pos_header, "object \"null_positions\" array\n\n");
+  fprintf(mol_pos_header, "object \"null_object\" field\n");
+  fprintf(mol_pos_header, "  component \"positions\" \"null_positions\"\n\n");
+  fprintf(mol_pos_header, "object \"%d\" group\n", 2*mol_pos_index-1);
+  fprintf(mol_pos_header, "  member \"null_object (default)\" \"null_object\"\n");
+
+  for (species_index = 0; species_index < world->n_species; ++ species_index)
+  {
+    if ((world->species_list[species_index]->flags & NOT_FREE)!=0)
+      continue;
+
+    fprintf(mol_pos_header, "  member \"%s\" \"%d\"\n",
+                            world->species_list[species_index]->sym->name,
+                            mol_pos_index+mol_pos_group_index);
+    ++ mol_pos_group_index;
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dx_output_molecules_states_groups:
+    Writes group information for molecule state output file in the old DX
+    output format.
+
+        In:  FILE *mol_states_header
+             int   mol_states_index
+        Out: 0 on success, 1 on error; data is appended to the provided file
+             handle.
+**************************************************************************/
+static int dx_output_molecules_states_groups(FILE *mol_states_header, int mol_states_index)
+{
+  int mol_states_group_index = 0;
+  int species_index;
+
+  fprintf(mol_states_header, "object \"null_object\" array\n");
+  fprintf(mol_states_header, "  attribute \"dep\" string \"positions\"\n\n");
+  fprintf(mol_states_header, "object \"%d\" group\n", mol_states_index);
+  fprintf(mol_states_header, "  member \"null_object (default)\" \"null_object\"\n");
+
+  for (species_index = 0; species_index < world->n_species; ++ species_index)
+  {
+    if ((world->species_list[species_index]->flags & NOT_FREE) != 0)
+      continue;
+
+    fprintf(mol_states_header, "  member \"%s\" \"%d\"\n",
+                               world->species_list[species_index]->sym->name,
+                               mol_states_group_index + 1);
+    ++ mol_states_group_index;
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dx_output_molecules_position:
+    Writes molecule positions to the molecule position DX file.
+
+        In:  FILE *mol_pos_header
+             struct volume_molecule **viz_molp
+             u_int mol_count
+             int   *mol_pos_index
+        Out: 0 on success, 1 on error; data is appended to the provided file
+             handle, and mol_states_index is incremented.
+**************************************************************************/
+static int dx_output_molecules_position(FILE *mol_pos_header, struct volume_molecule **viz_molp, u_int mol_count, int *mol_pos_index)
+{
+  char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
+
+  if (mol_count > 0)
+  {
+    unsigned int mol_index;
+    fprintf(mol_pos_header, "object \"%d\" class array type float rank 1 shape 3 items %d %s binary data follows\n",
+            *mol_pos_index,
+            mol_count,
+            my_byte_order);
+
+    for (mol_index = 0; mol_index<mol_count; ++ mol_index)
+    {
+      struct volume_molecule *molp = viz_molp[mol_index];
+      dx_output_vector3(mol_pos_header, &molp->pos);
+    }
+    fprintf(mol_pos_header, "\n#\n");
+  }
+  else /* mol_count == 0 */
+    fprintf(mol_pos_header, "object \"%d\" array\n\n", *mol_pos_index);
+  ++ *mol_pos_index;
+  return 0;
+}
+
+/*************************************************************************
+dx_output_molecules_state:
+    Writes state info to the molecule state DX file.
+
+        In:  FILE *mol_states_header
+             u_int mol_count
+             int   state
+             int   *mol_states_index
+        Out: 0 on success, 1 on error; data is appended to the provided file
+             handle, and mol_states_index is incremented.
+**************************************************************************/
+static int dx_output_molecules_state(FILE *mol_states_header, u_int mol_count, int state, int *mol_states_index)
+{
+  if (mol_count > 0)
+  {
+    fprintf(mol_states_header, "object \"%d\"\n  constantarray type int items %d\n",
+                               *mol_states_index,
+                               mol_count);
+    fprintf(mol_states_header, "  data follows %d\n",
+                               state);
+  }
+  else /* mol_count == 0 */
+    fprintf(mol_states_header, "object \"%d\" array\n",
+                               *mol_states_index);
+  fprintf(mol_states_header, "  attribute \"dep\" string \"positions\"\n\n");
+  ++ *mol_states_index;
+  return 0;
+}
+
+/*************************************************************************
+dx_output_molecules:
+    Write out molecules for the old DX output format.
+
+        In: struct frame_data_list *fdlp
+        Out: 0 on success, 1 on error; output visualization files (*.dx)
+             are written.
+**************************************************************************/
+static int dx_output_molecules(struct frame_data_list *fdlp)
+{
+  int retcode = 0;
   FILE *mol_pos_header = NULL;
   FILE *mol_states_header = NULL;
-  struct viz_obj *vizp = NULL;
-  struct viz_child *vcp = NULL;
-  struct wall *w = NULL,**wp = NULL;
-  struct surface_grid *sg = NULL;
-  struct grid_molecule *gmol = NULL;
-  struct species **species_list = NULL;
-  struct object *objp = NULL;
-  struct polygon_object *pop = NULL;
-  struct ordered_poly *opp = NULL;
-  struct element_data *edp = NULL;
-  struct vector3 p0;
-  struct storage_list *slp = NULL;
-  struct storage *sp = NULL;
-  struct schedule_helper *shp = NULL;
-  struct abstract_molecule *amp = NULL;
-  struct volume_molecule *molp = NULL,***viz_molp = NULL;
-  float v1,v2,v3;
-  u_int n_tiles,spec_id,*viz_mol_count = NULL;
-  u_int mol_pos_index,mol_pos_field_index,mol_pos_group_index;
-  u_int mol_states_index,mol_states_group_index;
-  int ii,jj;
-  int vi1,vi2,vi3;
-  /*int vi4;*/
-  int num;
-  long long viz_iteration;
-  long long n_viz_iterations;
-  /* int first_viz_iteration; */
-  int pos_count,state_count,element_data_count;
-  int effector_state_pos_count;
-  int state;
-  int viz_type;
-  unsigned int index,n_eff;
-  int word;
-  byte *word_p = NULL;
-  byte viz_eff,viz_mol,viz_surf;
-  byte viz_surf_or_eff;
-  byte viz_eff_pos,viz_eff_states;
-  byte viz_mol_pos,viz_mol_states;
-  byte viz_surf_pos,viz_surf_states;
-  char file_name[1024];
-  char my_byte_order[8];
+  byte viz_mol_pos=((fdlp->type==ALL_FRAME_DATA) || (fdlp->type==MOL_POS));
+  byte viz_mol_states=((fdlp->type==ALL_FRAME_DATA) || (fdlp->type==MOL_STATES));
+  int mol_pos_index=1;
+  int mol_states_index=1;
+  struct volume_molecule ***viz_molp = NULL;
+  u_int *viz_mol_count = NULL;
+  int species_index;
 
-  u_int n_species = world->n_species;
-  
-  log_file=world->log_file;
+  /* XXX: May leave file handles open on failure */
+  if (viz_mol_pos  &&
+      (mol_pos_header = dx_open_file("molecule_positions",
+                                     world->molecule_prefix_name,
+                                     fdlp->viz_iteration)) == NULL)
+    goto failure;
+
+  if (viz_mol_states  &&
+      (mol_states_header = dx_open_file("molecule_states",
+                                        world->molecule_prefix_name,
+                                        fdlp->viz_iteration)) == NULL)
+      goto failure;
+
+  if (sort_molecules_by_species((struct abstract_molecule ****) (void *) &viz_molp,
+                                &viz_mol_count,
+                                1, 0))
+    goto failure;
+
+  /* Iterate over species */
+  for (species_index = 0; species_index<world->n_species; ++ species_index)
+  {
+    u_int spec_id = world->species_list[species_index]->species_id;
+    int mol_count = viz_mol_count[spec_id];
+    int state = world->species_list[species_index]->viz_state;
+    if ((world->species_list[species_index]->flags & NOT_FREE) != 0)
+      continue;
+
+    if (viz_mol_pos  &&  dx_output_molecules_position(mol_pos_header,
+                                                      viz_molp[spec_id],
+                                                      mol_count,
+                                                      &mol_pos_index))
+      goto failure;
+
+    if (viz_mol_states  &&  dx_output_molecules_state(mol_states_header,
+                                                      mol_count,
+                                                      state,
+                                                      &mol_states_index))
+      goto failure;
+  }
+
+  /* build fields and groups here */
+  if (viz_mol_pos  &&  dx_output_molecules_position_fields_and_groups(mol_pos_header, mol_pos_index))
+    goto failure;
+
+  if (viz_mol_states  &&  dx_output_molecules_states_groups(mol_states_header, mol_states_index))
+    goto failure;
+
+  goto success;
+
+failure:
+  retcode = 1;
+
+success:
+  /* clean up */
+  if (mol_states_header)
+    fclose(mol_states_header);
+  mol_states_header = NULL;
+
+  if (mol_pos_header)
+    fclose(mol_pos_header);
+  mol_pos_header = NULL;
+
+  if (viz_molp != NULL)
+    free_ptr_array((void **) viz_molp, world->n_species);
+  viz_molp = NULL;
+
+  if (viz_mol_count != NULL)
+    free (viz_mol_count);
+  viz_mol_count = NULL;
+
+  return retcode;
+}
+
+/*************************************************************************
+output_dx_objects:
+    Write out a frame of data in the old DX output format.
+
+        In: struct frame_data_list *fdlp
+        Out: 0 on success, 1 on error; output visualization files (*.dx)
+             are written.
+**************************************************************************/
+int output_dx_objects(struct frame_data_list *fdlp)
+{
+  int viz_type;
+  byte viz_eff, viz_mol, viz_surf;
+
   no_printf("Viz output in DX mode...\n");
 
-  word_p=(unsigned char *)&word;
-  word=0x04030201;
+ /* Don't write viz data if we're about to checkpoint -- it'll be written upon
+  * resume
+  */
+  if (world->chkpt_iterations != 0  &&  world->it_time == world->chkpt_iterations)
+    return 0;
 
-  if (word_p[0]==1) {
-    sprintf(my_byte_order,"lsb");
-  }
-  else {
-    sprintf(my_byte_order,"msb");
+  viz_type = fdlp->type;
+  viz_eff  = ((viz_type==ALL_FRAME_DATA) || (viz_type==EFF_POS)  || (viz_type==EFF_STATES));
+  viz_mol  = ((viz_type==ALL_FRAME_DATA) || (viz_type==MOL_POS)  || (viz_type==MOL_STATES));
+  viz_surf = ((viz_type==ALL_FRAME_DATA) || (viz_type==SURF_POS) || (viz_type==SURF_STATES));
+
+  /* dump walls and effectors: */
+  if (viz_surf  ||  viz_eff)
+    if (dx_output_walls_and_effectors(fdlp))
+      return 1;
+
+  /* dump diffusible molecules: */
+  if (viz_mol)
+    if (dx_output_molecules(fdlp))
+      return 1;
+
+  return 0;
+}
+
+static const struct vector3 v3_unit_z = { 0.0, 0.0, 1.0 };
+
+/* == DREAMM Generic Utilities == */
+
+/*************************************************************************
+dreamm_v3_generic_open_file:
+    Open a file in a given directory, being careful to remove symlinks before
+    doing so.
+
+        In: char const *dir - directory name for file
+            char const *fname - filename for file
+            char const *mode - file access mode, as to fopen
+        Out: file handle for file, NULL on error
+**************************************************************************/
+static FILE *dreamm_v3_generic_open_file(char const *dir, char const *fname, char const *mode)
+{
+  struct stat f_stat;
+  FILE *f;
+
+  /* concatenate dir and fname to get the mesh states file path */
+  char *path = NULL;
+  if (dir != NULL)
+    path = alloc_sprintf("%s/%s", dir, fname);
+  else
+    path = strdup(fname);
+  if (path == NULL)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    goto failure;
   }
 
-  viz_iteration=fdlp->viz_iteration;
-  n_viz_iterations=fdlp->n_viz_iterations;
-  /* first_viz_iteration=(viz_iteration==fdlp->iteration_list->value); */
-  
- /* here is the check to prevent writing twice the same info 
-    - at the end of one checkpoint and the beginning of the next checkpoint.
+  /* If the file exists and is a symlink, remove it */
+  if (stat(path, &f_stat) == 0  &&
+      (f_stat.st_mode & S_IFLNK) == S_IFLNK)
+  {
+    /* remove the symbolic link */
+    if (unlink(path) != 0)
+    {
+      fprintf(world->err_file, "File %s, Line %ld: error %d removing file %s.\n", __FILE__, (long)__LINE__, errno, fname);
+      goto failure;
+    }
+  }
+
+  f = open_file(path, mode);
+  free(path);
+  return f;
+
+failure:
+  if (path) free(path);
+  return NULL;
+}
+
+/*************************************************************************
+dreamm_v3_generic_init:
+    Initialize state which is common to both forms of DREAMM output.
+
+        In:  Nothing
+        Out: 0 if successful, 1 if failed
+**************************************************************************/
+static int dreamm_v3_generic_init()
+{
+  /* Break file prefix name into basename and dirname */
+  if (get_basename(world->file_prefix_name,
+                   &world->viz_state_info.filename_prefix_basename))
+    return 1;
+  if (get_dirname(world->file_prefix_name,
+                  &world->viz_state_info.filename_prefix_dirname))
+    return 1;
+
+  /* test whether a directory structure created by the user exists */
+  if (world->viz_state_info.filename_prefix_dirname)
+  {
+    switch (dir_exists(world->viz_state_info.filename_prefix_dirname))
+    {
+      case 0:
+        if (mkdirs(world->viz_state_info.filename_prefix_dirname, world->err_file))
+        {
+          fprintf(world->err_file, "File %s, Line %ld: viz_output data directory '%s' could not be created.\n", __FILE__, (long)__LINE__, world->viz_state_info.filename_prefix_dirname);
+          return 1;
+        }
+        break;
+
+      case -1:
+        return 1;
+
+      case 1:
+        /* All's well */
+        break;
+    }
+  }
+
+  /* Collect all mesh objects to be visualized */
+  if (collect_objects(world->viz_obj_head,
+                      &world->viz_state_info.viz_objects,
+                      &world->viz_state_info.n_viz_objects))
+    return 1;
+
+  /* Collect all species to be visualized */
+  if (collect_species(&world->viz_state_info.vol_species,
+                      &world->viz_state_info.n_vol_species,
+                      &world->viz_state_info.grid_species,
+                      &world->viz_state_info.n_grid_species))
+    return 1;
+
+  /*
+   * Check here if MESHES or MOLECULES blocks are not supplied.  The
+   * corresponding files should be empty in order to prevent unintentional
+   * mixing of pre-existing and new files.
    */
-  if((world->chkpt_flag) && (world->start_time > 0)){
-     if (world->it_time == world->start_time){
-         if(world->chkpt_iterations != 0  &&  viz_iteration % (world->chkpt_iterations) == 0){
-             return 0;
-         }
-     }
+  if (world->viz_state_info.n_viz_objects == 0)
+    fprintf(world->log_file, "\nMESHES keyword is absent or commented.\nEmpty 'meshes' output files are created.\n\n");
+  if ((world->viz_state_info.n_vol_species == 0) && (world->viz_state_info.n_grid_species == 0))
+    fprintf(world->log_file, "\nMOLECULES keyword is absent or commented.\nEmpty 'molecules' output files are created.\n\n");
+
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_generic_merge_frame_data:
+    Merges the data frame 'src' into 'dest'.  No checking is done, so it's
+    important to make sure that src and dest are the same type of frame before
+    calling this.  It's used before DREAMM output to merge frames of the same
+    type so that we can convert paired MOL_POS and MOL_ORIENT frames into
+    ALL_MOL_DATA frames.  The source frame is not freed, but its iteration list
+    will be NULL after this method is called.
+
+        In:  struct frame_data_list *dest - destination frame
+             struct frame_data_list *src - source frame
+        Out: 0 if successful, 1 if failed
+**************************************************************************/
+static int dreamm_v3_generic_merge_frame_data(struct frame_data_list *dest,
+                                              struct frame_data_list *src)
+{
+  struct num_expr_list *nelSrc = src->iteration_list,
+                       *nelDest = dest->iteration_list,
+                       *outTail = NULL;
+  src->iteration_list = NULL;
+  dest->iteration_list = NULL;
+
+  while (nelSrc != NULL  &&  nelDest != NULL)
+  {
+    if (nelSrc->value < nelDest->value)
+    {
+      if (outTail)
+        outTail->next = nelSrc;
+      else
+        dest->iteration_list = nelSrc;
+      outTail = nelSrc;
+      nelSrc = nelSrc->next;
+      outTail->next = NULL;
+    }
+    else
+    {
+      if (outTail)
+        outTail->next = nelDest;
+      else
+        dest->iteration_list = nelDest;
+      outTail = nelDest;
+      nelDest = nelDest->next;
+      outTail->next = NULL;
+    }
   }
 
-  viz_type=fdlp->type;
-  viz_eff=((viz_type==ALL_FRAME_DATA) || (viz_type==EFF_POS)
-               || (viz_type==EFF_STATES));
-  viz_mol=((viz_type==ALL_FRAME_DATA) || (viz_type==MOL_POS)
-               || (viz_type==MOL_STATES));
-  viz_surf=((viz_type==ALL_FRAME_DATA) || (viz_type==SURF_POS)
-               || (viz_type==SURF_STATES));
-  viz_surf_or_eff=(viz_surf || viz_eff);
+  if (nelSrc)
+  {
+    if (outTail)
+      outTail->next = nelSrc;
+    else
+      dest->iteration_list = nelSrc;
+  }
+  else if (nelDest)
+  {
+    if (outTail)
+      outTail->next = nelSrc;
+    else
+      dest->iteration_list = nelSrc;
+  }
 
+  return 0;
+}
 
-  viz_eff_pos=((viz_type==ALL_FRAME_DATA) || (viz_type==EFF_POS));
-  viz_eff_states=((viz_type==ALL_FRAME_DATA) || (viz_type==EFF_STATES));
-  viz_mol_pos=((viz_type==ALL_FRAME_DATA) || (viz_type==MOL_POS));
-  viz_mol_states=((viz_type==ALL_FRAME_DATA) || (viz_type==MOL_STATES));
-  viz_surf_pos=((viz_type==ALL_FRAME_DATA) || (viz_type==SURF_POS));
-  viz_surf_states=((viz_type==ALL_FRAME_DATA) || (viz_type==SURF_STATES));
+/*************************************************************************
+dreamm_v3_generic_merge_coincident_frames:
+    Merges coincident frames from two lists into a third list.  This is used to
+    turn MOL_POS+MOL_ORIENT into ALL_MOL_DATA, or MESH_GEOMETRY+REG_DATA into
+    ALL_MESH_DATA.  This greatly simplifies DREAMM processing.
 
+        In:  struct frame_data_list **both - target list for merged frames
+             struct frame_data_list **first - first list to merge
+             struct frame_data_list **second - second list to merge
+             struct frame_data_list **discard - any empty frames are put here
+        Out: 0 if successful, 1 if failed
+**************************************************************************/
+static int dreamm_v3_generic_merge_coincident_frames(struct frame_data_list **both,
+                                                     struct frame_data_list **first,
+                                                     struct frame_data_list **second,
+                                                     struct frame_data_list **discard)
+{
+  struct num_expr_list **nelBoth, **nelFirst, **nelSecond;
+  nelBoth = &(*both)->iteration_list;
+  nelFirst = &(*first)->iteration_list;
+  nelSecond = &(*second)->iteration_list;
 
-/* dump walls and effectors: */
-  if (viz_surf_or_eff) {
-  vizp = world->viz_obj_head;
-  while(vizp!=NULL) {
+  while (*nelFirst != NULL  &&  *nelSecond != NULL)
+  {
+    if (fabs((*nelFirst)->value - (*nelSecond)->value) < EPS_C)
+    {
+      struct num_expr_list *temp;
 
-    wall_verts_header=NULL;
-    wall_states_header=NULL;
-    eff_pos_header=NULL;
-    eff_states_header=NULL;
+      /* Find insertion point */
+      while ((*nelBoth)  &&  (*nelBoth)->value < (*nelFirst)->value)
+        nelBoth = &(*nelBoth)->next;
 
-    if (viz_surf_pos) {
-      sprintf(file_name,"%s.mesh_elements.%lld.dx",
-               vizp->name,viz_iteration);
-      if ((wall_verts_header=fopen(file_name,"wb"))==NULL) {
-        fprintf(world->err_file,"File %s, Line %ld: error cannot open mesh elements file %s\n", __FILE__, (long)__LINE__, file_name);
-        return(1);
-      }
+      /* Splice time into "both" list */
+      temp = *nelFirst;
+      *nelFirst = (*nelFirst)->next;
+      temp->next = *nelBoth;
+      *nelBoth = temp;
+
+      /* Elide time from "second" list" */
+      temp = (*nelSecond);
+      *nelSecond = (*nelSecond)->next;
     }
 
-    if (viz_surf_states) {
-      sprintf(file_name,"%s.mesh_element_states.%lld.dx",
-               vizp->name,viz_iteration);
-      if ((wall_states_header=fopen(file_name,"wb"))==NULL) {
-        fprintf(world->err_file,"File %s, Line %ld: error cannot open mesh element states file %s\n", __FILE__, (long)__LINE__, file_name);
-        return(1);
-      }
-    }
+    /* Advance list 1 */
+    else if ((*nelFirst)->value < (*nelSecond)->value)
+      nelFirst = &(*nelFirst)->next;
 
-    if (viz_eff_pos) {
-      sprintf(file_name,"%s.effector_site_positions.%lld.dx",vizp->name,viz_iteration);
-      if ((eff_pos_header=fopen(file_name,"wb"))==NULL) {
-        fprintf(world->err_file,"File %s, Line %ld: error cannot open effector position file %s\n", __FILE__, (long)__LINE__, file_name);
-        return(1);
-      }
-    }
-  
-    if (viz_eff_states) {
-      sprintf(file_name,"%s.effector_site_states.%lld.dx",vizp->name,viz_iteration);
-      if ((eff_states_header=fopen(file_name,"wb"))==NULL) {
-        fprintf(world->err_file,"File %s, Line %ld: error cannot open effector states file %s\n", __FILE__, (long)__LINE__, file_name);
-        return(1);
-      }
-    }
+    /* Advance list 2 */
+    else
+      nelSecond = &(*nelSecond)->next;
+  }
 
-    /* Traverse all visualized compartments */
-    /* output mesh element positions and connections */
-    /* output effector positions */
-    /* output effector states */
-    /* do not output effector normals header or normals data yet */
-/*
-    wall_verts_index = 1;
-    wall_states_index = 1;
-    wall_data_index = 1;
-*/
-/*
-    poly_pos_count = 0;
-*/
-/*
-    eff_pos_index = 1;
-    eff_states_index = 1;
-*/
-    pos_count = 0;
-    state_count = 0;
-    effector_state_pos_count = 0;
-    vcp = vizp->viz_child_head;
-    while(vcp!=NULL) {
-      objp = vcp->obj;
-      pop=(struct polygon_object *)objp->contents;
-      if (objp->object_type==BOX_OBJ) {
-#if 0
-        if (viz_surf_pos || viz_surf_states)
+  if ((*first)->iteration_list == NULL)
+  {
+    (*first)->next = *discard;
+    *discard = *first;
+    *first = NULL;
+  }
+
+  if ((*second)->iteration_list == NULL)
+  {
+    (*second)->next = *discard;
+    *discard = *second;
+    *second = NULL;
+  }
+
+  if ((*both)->iteration_list == NULL)
+  {
+    (*both)->next = *discard;
+    *discard = *both;
+    *both = NULL;
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_generic_discard_frames:
+    Discards all frames in the list, freeing any memory associated with them.
+
+        In:  struct frame_data_list *discard - frame discard pile
+        Out: 0 if successful, 1 if failed
+**************************************************************************/
+static int dreamm_v3_generic_discard_frames(struct frame_data_list *discard)
+{
+  struct frame_data_list *dnext;
+  while (discard != NULL)
+  {
+    dnext = discard->next;
+    free_num_expr_list(discard->iteration_list);
+    free(discard);
+    discard = dnext;
+  }
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_generic_new_frame:
+    Allocates a new frame of a given type.  This is used when merging molecule
+    frames into ALL_MOL_DATA frames or mesh frames into ALL_MESH_DATA frames.
+
+        In:  int type - the frame type (ALL_MOL_DATA, etc.)
+        Out: the frame, or NULL if allocation failed
+**************************************************************************/
+static struct frame_data_list *dreamm_v3_generic_new_frame(int type)
+{
+  struct frame_data_list *fdlp = (struct frame_data_list *) malloc(sizeof(struct frame_data_list));
+  if (fdlp == NULL)
+  {
+    fprintf(world->err_file,"File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    return NULL;
+  }
+
+  fdlp->next = NULL;
+  fdlp->list_type = OUTPUT_BY_ITERATION_LIST;
+  fdlp->type = type;
+  fdlp->viz_iteration = 0;
+  fdlp->n_viz_iterations = 0;
+  fdlp->iteration_list = NULL;
+  fdlp->curr_viz_iteration = NULL;
+  return fdlp;
+}
+
+/*************************************************************************
+dreamm_v3_generic_preprocess_frame_data:
+    Preprocesses the frame data, normalizing it before the frames begin to be
+    rendered.  This greatly simplifies the output logic.  The normalizations
+    that are done are:
+
+        1. Convert all frames to use iteration number rather than a mixture of
+           iteration numbers and times
+
+        2. Coalesce different frames of the same type into individual frames.
+
+        3. Merge coincident MOL_POS and MOL_ORIENT frames into ALL_MOL_DATA
+           frames, and coincident MESH_GEOMETRY and REG_DATA frames into
+           ALL_MESH_DATA frames.
+
+        4. Remove duplicated iteration numbers from all lists.
+
+        5. Discard any frames which have no iterations.
+
+        In:  int type - the frame type (ALL_MOL_DATA, etc.)
+        Out: the frame, or NULL if allocation failed
+**************************************************************************/
+static int dreamm_v3_generic_preprocess_frame_data(struct frame_data_list **fdlpp)
+{
+  struct frame_data_list *mol_pos = NULL,
+                         *mol_orient = NULL,
+                         *all_mol_data = NULL,
+                         *surf_pos = NULL,
+                         *region_data = NULL,
+                         *all_mesh_data = NULL,
+                         *discard = NULL;
+  struct frame_data_list *fdlp, *fdlpnext;
+
+  /* Parse out all frames */
+  for (fdlp = *fdlpp;
+       fdlp != NULL;
+       fdlp = fdlpnext)
+  {
+    fdlpnext = fdlp->next;
+    fdlp->next = NULL;
+
+    /* Convert frames to output by iteration list */
+    if (fdlp->list_type == OUTPUT_BY_TIME_LIST)
+      convert_frame_data_to_iterations(fdlp);
+
+    /* Sort frames into one of our 6 lists */
+    switch (fdlp->type)
+    {
+      case MOL_POS:
+        if (mol_pos == NULL)
+          mol_pos = fdlp;
+        else
         {
-          element_data_count=0.5*objp->n_walls_actual;
-        
-          if (viz_surf_pos && !viz_surf_states) {
-            fprintf(wall_verts_header,
-              "object \"%s.positions\" class array type float rank 1 shape 3 items %d %s binary data follows\n",
-              objp->sym->name,objp->n_verts,my_byte_order);
-            /* output box vertices */
-            for (ii=0;ii<objp->n_verts;ii++) {
-              v1 = world->length_unit*objp->verts[ii].x;
-              v2 = world->length_unit*objp->verts[ii].y;
-              v3 = world->length_unit*objp->verts[ii].z;
-              fwrite(&v1,sizeof v1,1,wall_verts_header);
-              fwrite(&v2,sizeof v2,1,wall_verts_header);
-              fwrite(&v3,sizeof v3,1,wall_verts_header);
-            }
-            fprintf(wall_verts_header,
-              "\nattribute \"dep\" string \"positions\"\n#\n");
-/*
-            wall_verts_index++;
-*/
-    
-            /* output box wall connections */
-            fprintf(wall_verts_header,
-              "object \"%s.connections\" class array type int rank 1 shape 4 items %d %s binary data follows\n",
-              objp->sym->name,element_data_count,my_byte_order);
-            for (ii=0;ii<objp->n_walls;ii+=2) {
-              if (pop->side_stat[ii]) {
-                switch (ii) {
-                  case TP:
-                    vi1=3;
-                    vi2=7;
-                    vi3=1;
-                    vi4=5;
-                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                  break;
-                  case BOT:
-                    vi1=0;
-                    vi2=4;
-                    vi3=2;
-                    vi4=6;
-                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                  break;
-                  case FRNT:
-                    vi1=4;
-                    vi2=0;
-                    vi3=5;
-                    vi4=1;
-                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                  break;
-                  case BCK:
-                    vi1=2;
-                    vi2=6;
-                    vi3=3;
-                    vi4=7;
-                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                  break;
-                  case LFT:
-                    vi1=0;
-                    vi2=2;
-                    vi3=1;
-                    vi4=3;
-                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                  break;
-                  case RT:
-                    vi1=6;
-                    vi2=4;
-                    vi3=7;
-                    vi4=5;
-                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                  break;
-                }
-              }
-            }
-            fprintf(wall_verts_header,
-              "\nattribute \"ref\" string \"positions\"\n");
-            fprintf(wall_verts_header,
-              "attribute \"element type\" string \"quads\"\n#\n");
-/*
-            wall_verts_index++;
-*/
-          }
-
-          if (viz_surf_pos && viz_surf_states) {
-            fprintf(wall_verts_header,
-              "object \"%s.positions\" class array type float rank 1 shape 3 items %d %s binary data follows\n",
-              objp->sym->name,objp->n_verts,my_byte_order);
-            /* output box vertices */
-            for (ii=0;ii<objp->n_verts;ii++) {
-              v1 = world->length_unit*objp->verts[ii].x;
-              v2 = world->length_unit*objp->verts[ii].y;
-              v3 = world->length_unit*objp->verts[ii].z;
-              fwrite(&v1,sizeof v1,1,wall_verts_header);
-              fwrite(&v2,sizeof v2,1,wall_verts_header);
-              fwrite(&v3,sizeof v3,1,wall_verts_header);
-            }
-            fprintf(wall_verts_header,
-              "\nattribute \"dep\" string \"positions\"\n#\n");
-/*
-            wall_verts_index++;
-*/
-    
-            /* output box wall connections */
-            fprintf(wall_verts_header,
-              "object \"%s.connections\" class array type int rank 1 shape 4 items %d %s binary data follows\n",
-              objp->sym->name,element_data_count,my_byte_order);
-            fprintf(wall_states_header,
-              "object \"%s.states\" class array type int rank 0 items %d ascii data follows\n",
-              objp->sym->name,element_data_count);
-            for (ii=0;ii<objp->n_walls;ii+=2) {
-              if (pop->side_stat[ii]) {
-                switch (ii) {
-                  case TP:
-                    vi1=3;
-                    vi2=7;
-                    vi3=1;
-                    vi4=5;
-                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                  break;
-                  case BOT:
-                    vi1=0;
-                    vi2=4;
-                    vi3=2;
-                    vi4=6;
-                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                  break;
-                  case FRNT:
-                    vi1=4;
-                    vi2=0;
-                    vi3=5;
-                    vi4=1;
-                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                  break;
-                  case BCK:
-                    vi1=2;
-                    vi2=6;
-                    vi3=3;
-                    vi4=7;
-                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                  break;
-                  case LFT:
-                    vi1=0;
-                    vi2=2;
-                    vi3=1;
-                    vi4=3;
-                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                  break;
-                  case RT:
-                    vi1=6;
-                    vi2=4;
-                    vi3=7;
-                    vi4=5;
-                    fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-                    fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-                    fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-                    fwrite(&vi4,sizeof vi4,1,wall_verts_header);
-                  break;
-                }
-                state=objp->viz_state[ii];
-                fprintf(wall_states_header,"%d\n",state);
-              }
-            }
-            fprintf(wall_verts_header,
-              "\nattribute \"ref\" string \"positions\"\n");
-            fprintf(wall_verts_header,
-              "attribute \"element type\" string \"quads\"\n#\n");
-/*
-            wall_verts_index++;
-*/
-            fprintf(wall_states_header,"\nattribute \"dep\" string \"connections\"\n#\n");
-/*
-            wall_states_index++;
-*/
-
-          }
-
-          if (viz_surf_states && !viz_surf_pos) {
-            fprintf(wall_states_header,
-              "object \"%s.states\" class array type int rank 0 items %d ascii data follows\n",
-              objp->sym->name,element_data_count);
-            for (ii=0;ii<objp->n_walls;ii+=2) {
-              if (!get_bit(pop->side_removed,ii)) {
-                state=objp->viz_state[ii];
-                fprintf(wall_states_header,"%d\n",state);
-              }
-            }
-          
-          }
-          fprintf(wall_states_header,"\nattribute \"dep\" string \"connections\"\n#\n");
-/*
-          wall_states_index++;
-*/
+          dreamm_v3_generic_merge_frame_data(mol_pos, fdlp);
+          fdlp->next = discard;
+          discard = fdlp;
         }
-#endif
-      }
+        break;
 
-      if (objp->object_type==POLY_OBJ || objp->object_type==BOX_OBJ) {
-        if (viz_surf && (viz_surf_pos || viz_surf_states))
+      case MOL_ORIENT:
+        if (mol_orient == NULL)
+          mol_orient = fdlp;
+        else
         {
-          opp=(struct ordered_poly *)pop->polygon_data;
-          edp=opp->element;
-          element_data_count=objp->n_walls_actual;
-
-          if (viz_surf_pos && !viz_surf_states) {
-
-	    fprintf(wall_verts_header,
-              "object \"%s.positions\" class array type float rank 1 shape 3 items %d %s binary data follows\n",
-              objp->sym->name,objp->n_verts,my_byte_order);
-            /* output polyhedron vertices */
-            for (ii=0;ii<objp->n_verts;ii++) {
-              v1 = world->length_unit*objp->verts[ii].x;
-              v2 = world->length_unit*objp->verts[ii].y;
-              v3 = world->length_unit*objp->verts[ii].z;
-	      fwrite(&v1,sizeof v1,1,wall_verts_header);
-	      fwrite(&v2,sizeof v2,1,wall_verts_header);
-	      fwrite(&v3,sizeof v3,1,wall_verts_header);
-            }
-            fprintf(wall_verts_header,
-              "\nattribute \"dep\" string \"positions\"\n#\n");
-/*
-	    wall_verts_index++;
-*/
-
-            /* output polygon element connections */
-	    fprintf(wall_verts_header,
-              "object \"%s.connections\" class array type int rank 1 shape 3 items %d %s binary data follows\n",
-              objp->sym->name,element_data_count,my_byte_order);
-            for (ii=0;ii<objp->n_walls;ii++) {
-              if (!get_bit(pop->side_removed,ii)) {
-                vi1=edp[ii].vertex_index[0];
-                vi2=edp[ii].vertex_index[1];
-                vi3=edp[ii].vertex_index[2];
-	        fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-	        fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-	        fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-              }
-            }
-            fprintf(wall_verts_header,
-              "\nattribute \"ref\" string \"positions\"\n");
-            fprintf(wall_verts_header,
-              "attribute \"element type\" string \"triangles\"\n#\n");
-/*
-	    wall_verts_index++;
-*/
-
-
-          }
-    
-          if (viz_surf_pos && viz_surf_states) {
-	    fprintf(wall_verts_header,
-              "object \"%s.positions\" class array type float rank 1 shape 3 items %d %s binary data follows\n",
-              objp->sym->name,objp->n_verts,my_byte_order);
-            /* output polyhedron vertices */
-            for (ii=0;ii<objp->n_verts;ii++) {
-              v1 = world->length_unit*objp->verts[ii].x;
-              v2 = world->length_unit*objp->verts[ii].y;
-              v3 = world->length_unit*objp->verts[ii].z;
-	      fwrite(&v1,sizeof v1,1,wall_verts_header);
-	      fwrite(&v2,sizeof v2,1,wall_verts_header);
-	      fwrite(&v3,sizeof v3,1,wall_verts_header);
-            }
-            fprintf(wall_verts_header,
-              "\nattribute \"dep\" string \"positions\"\n#\n");
-/*
-	    wall_verts_index++;
-*/
-
-            /* output polygon element connections */
-	    fprintf(wall_verts_header,
-              "object \"%s.connections\" class array type int rank 1 shape 3 items %d %s binary data follows\n",
-              objp->sym->name,element_data_count,my_byte_order);
-            fprintf(wall_states_header,
-              "object \"%s.states\" class array type int rank 0 items %d ascii data follows\n",
-              objp->sym->name,element_data_count);
-            for (ii=0;ii<objp->n_walls;ii++) {
-              if (!get_bit(pop->side_removed,ii)) {
-                vi1=edp[ii].vertex_index[0];
-                vi2=edp[ii].vertex_index[1];
-                vi3=edp[ii].vertex_index[2];
-	        fwrite(&vi1,sizeof vi1,1,wall_verts_header);
-	        fwrite(&vi2,sizeof vi2,1,wall_verts_header);
-	        fwrite(&vi3,sizeof vi3,1,wall_verts_header);
-		state=objp->viz_state[ii];
-		fprintf(wall_states_header,"%d\n",state);
-              }
-            }
-            fprintf(wall_verts_header,
-              "\nattribute \"ref\" string \"positions\"\n");
-            fprintf(wall_verts_header,
-              "attribute \"element type\" string \"triangles\"\n#\n");
-/*
-	    wall_verts_index++;
-*/
-            fprintf(wall_states_header,"\nattribute \"dep\" string \"connections\"\n#\n");
-/*
-            wall_states_index++;
-*/
-          }
-
-          if (viz_surf_states && !viz_surf_pos) {
-          fprintf(wall_states_header,
-            "object \"%s.states\" class array type int rank 0 items %d ascii data follows\n",
-            objp->sym->name,element_data_count);
-          for (ii=0;ii<objp->n_walls;ii++) {
-            if (!get_bit(pop->side_removed,ii)) {
-              state=objp->viz_state[ii];
-              fprintf(wall_states_header,"%d\n",state);
-            }
-          }
-          fprintf(wall_states_header,"\nattribute \"dep\" string \"connections\"\n#\n");
-/*
-          wall_states_index++;
-*/
-          }
+          dreamm_v3_generic_merge_frame_data(mol_orient, fdlp);
+          fdlp->next = discard;
+          discard = fdlp;
         }
-      }
+        break;
 
-      wp = objp->wall_p;
-      no_printf("Traversing walls in object %s\n",objp->sym->name);
-      if (viz_eff) {
-        n_eff=0;
-        for (ii=0;ii<objp->n_walls;ii++) {
-          w = wp[ii];
-          if (w!=NULL) {
-	    sg = w->grid;
-            if (sg!=NULL) {
-              for (index=0;index<sg->n_tiles;index++) {
-	        gmol=sg->mol[index];
-	        if (gmol!=NULL) {
-	          state=sg->mol[index]->properties->viz_state;
-	        }
-	        else {
-	          state=EXCLUDE_OBJ;
-	        }
-                if (state!=EXCLUDE_OBJ) {
-                  n_eff++;
-                }
-              }
-            }
-          }
+      case ALL_MOL_DATA:
+        if (all_mol_data == NULL)
+          all_mol_data = fdlp;
+        else
+        {
+          dreamm_v3_generic_merge_frame_data(all_mol_data, fdlp);
+          fdlp->next = discard;
+          discard = fdlp;
         }
-        no_printf("Dumping %d effectors...\n",n_eff);
-        fflush(log_file);
-        if (viz_eff_pos) {
-          if (n_eff) {
-            fprintf(eff_pos_header,
-              "object \"%s.pos_and_norm\" class array type float rank 2 shape 2 3 items %d %s binary data follows\n",
-              objp->sym->name,n_eff,my_byte_order);
-/*
-            eff_pos_index++;
-*/
-          }
-          else {
-            fprintf(eff_pos_header,
-              "object \"%s.pos_and_norm\" array",objp->sym->name);
-/*
-            eff_pos_index++;
-*/
-          }
+        break;
+
+      case MESH_GEOMETRY:
+        if (surf_pos == NULL)
+          surf_pos = fdlp;
+        else
+        {
+          dreamm_v3_generic_merge_frame_data(surf_pos, fdlp);
+          fdlp->next = discard;
+          discard = fdlp;
         }
+        break;
 
-        if (viz_eff_states) {
-          if (n_eff) {
-            fprintf(eff_states_header,
-              "object \"%s.states\" class array type int rank 0 items %d ascii data follows\n",
-              objp->sym->name,n_eff);
-/*
-            eff_states_index++;
-*/
-          }
-          else {
-            fprintf(eff_states_header,
-              "object \"%s.states\" array\n",objp->sym->name);
-/*
-            eff_states_index++;
-*/
-          }
+      case REG_DATA:
+        if (region_data == NULL)
+          region_data = fdlp;
+        else
+        {
+          dreamm_v3_generic_merge_frame_data(region_data, fdlp);
+          fdlp->next = discard;
+          discard = fdlp;
         }
-      }
-      wp = objp->wall_p;
-      for (ii=0;ii<objp->n_walls;ii++) {
-        w = wp[ii];
-        if (w!=NULL) {
-	  sg = w->grid;
+        break;
 
-          /* dump the effectors */
-          if (viz_eff) {
-            if (sg!=NULL) {
-              n_tiles=sg->n_tiles;
-              for (index=0;index<n_tiles;index++) {
-                grid2xyz(sg,index,&p0);
-	        gmol=sg->mol[index];
-	        if (gmol!=NULL) {
-	          state=sg->mol[index]->properties->viz_state;
-	        }
-	        else {
-	          state=EXCLUDE_OBJ;
-	        }
-      
-                if (state!=EXCLUDE_OBJ) {
-                  if (viz_eff_states) {
-                   fprintf(eff_states_header,"%d\n",state);
-                  }
-                  if (viz_eff_pos) {
-	           v1=world->length_unit*p0.x;
-	           v2=world->length_unit*p0.y;
-	           v3=world->length_unit*p0.z;
-	           fwrite(&v1,sizeof v1,1,eff_pos_header);
-	           fwrite(&v2,sizeof v2,1,eff_pos_header);
-	           fwrite(&v3,sizeof v3,1,eff_pos_header);
-                   v1=(float)((w->normal.x)*(gmol->orient));
-                   v2=(float)((w->normal.y)*(gmol->orient));
-                   v3=(float)((w->normal.z)*(gmol->orient));
-                   fwrite(&v1,sizeof v1,1,eff_pos_header);
-                   fwrite(&v2,sizeof v2,1,eff_pos_header);
-                   fwrite(&v3,sizeof v3,1,eff_pos_header);
-                  }
-                }
-              }
-            }
-          }
+      case ALL_MESH_DATA:
+        if (all_mesh_data == NULL)
+          all_mesh_data = fdlp;
+        else
+        {
+          dreamm_v3_generic_merge_frame_data(all_mesh_data, fdlp);
+          fdlp->next = discard;
+          discard = fdlp;
         }
-      }
-      if (viz_eff_pos) {
-        fprintf(eff_pos_header,
-          "\n#\n");
-      }
-      if (viz_eff_states) {
-        fprintf(eff_states_header,
-          "attribute \"dep\" string \"positions\"\n#\n");
-      }
-      vcp = vcp->next;
-    }
+        break;
 
-    /* output effector states null object */
-    if (viz_eff) {
-      if (viz_eff_states) {
-        fprintf(eff_states_header,"object \"null_object\" array\n");
-        fprintf(eff_states_header,
-          "  attribute \"dep\" string \"positions\"\n\n");
-      }
+      default:
+        /* Unrecognized frame type.  Leave it in the original list */
+        *fdlpp = fdlp;
+        fdlpp = &fdlp->next;
     }
+  }
+  *fdlpp = NULL;
 
-    /* output surface states null object */
-    if (viz_surf_states) {
-      if (wall_states_header!=NULL) {
-        fprintf(wall_states_header,"object \"null_object\" array\n");
-        fprintf(wall_states_header,
-          "  attribute \"dep\" string \"connections\"\n\n");
-      }
-    }
-
-    /* output effector and surface positions field objects */
-    vcp = vizp->viz_child_head;
-    while(vcp!=NULL) {
-      objp = vcp->obj;
-
-      /* effectors */
-      if (viz_eff) {
-        /* effector positions */
-        if (viz_eff_pos) {
-          fprintf(eff_pos_header,"object \"%s.field\" field\n",objp->sym->name);
-/*
-          fprintf(eff_pos_header,
-            "  component \"positions\" \"%s.positions\"\n",objp->sym->name);
-*/
-          fprintf(eff_pos_header,
-            "  component \"data\" \"%s.pos_and_norm\"\n\n",objp->sym->name);
-        }
-      }
-
-      /* surfaces */
-      if (viz_surf) {
-        /* surface positions */
-        if (viz_surf_pos) {
-          if (wall_verts_header!=NULL) {
-            fprintf(wall_verts_header,
-              "object \"%s.field\" field\n",objp->sym->name);
-            fprintf(wall_verts_header,
-              "  component \"positions\" \"%s.positions\"\n",objp->sym->name);
-            fprintf(wall_verts_header,
-              "  component \"connections\" \"%s.connections\"\n\n",
-              objp->sym->name);
-          }
-        }
-      }
-      vcp = vcp->next;
-    }
-
-    /* output effector positions null objects */
-    if (viz_eff) {
-      if (viz_eff_pos) {
-        fprintf(eff_pos_header,"object \"null_pos_and_norm\" array\n\n");
-/*
-        fprintf(eff_pos_header,"object \"null_data\" array\n\n");
-*/
-        fprintf(eff_pos_header,"object \"null_object\" field\n");
-/*
-        fprintf(eff_pos_header,"  component \"positions\" \"null_positions\"\n");
-*/
-        fprintf(eff_pos_header,"  component \"data\" \"null_pos_and_norm\"\n\n");
-      }
-    }
-
-    /* output surface positions null objects */
-    if (viz_surf_pos) {
-      if (wall_verts_header!=NULL) {
-        fprintf(wall_verts_header,"object \"null_positions\" array\n\n");
-        fprintf(wall_verts_header,"object \"null_connections\" array\n\n");
-        fprintf(wall_verts_header,"object \"null_object\" field\n");
-        fprintf(wall_verts_header,"  component \"positions\" \"null_positions\"\n");
-        fprintf(wall_verts_header,"  component \"connections\" \"null_connections\"\n\n");
-      }
-    }
-
-    /* output effector group objects and null members*/
-    /* group object name is full MCell parent object name */
-    if (viz_eff) {
-      /* effector positions */
-      if (viz_eff_pos) {
-        fprintf(eff_pos_header,"object \"%s\" group\n",vizp->full_name);
-        fprintf(eff_pos_header,
-          "  member \"null_object (default)\" \"null_object\"\n");
-      }
-      /* effector states */
-      if (viz_eff_states) {
-        fprintf(eff_states_header,"object \"%s\" group\n",vizp->full_name);
-        fprintf(eff_states_header,
-          "  member \"null_object (default)\" \"null_object\"\n");
-      }
-    }
-
-    /* output surface group objects and null members*/
-    /* group object name is full MCell parent object name */
-    if (viz_surf) {
-      /* surface positions */
-      if (viz_surf_pos) {
-        if (wall_verts_header!=NULL) {
-          fprintf(wall_verts_header,"object \"%s\" group\n",vizp->full_name);
-          fprintf(wall_verts_header,
-            "  member \"null_object (default)\" \"null_object\"\n");
-        }
-      }
-      /* surface states */
-      if (viz_surf_states) {
-        if (wall_states_header!=NULL) {
-          fprintf(wall_states_header,"object \"%s\" group\n",vizp->full_name);
-          fprintf(wall_states_header,
-            "  member \"null_object (default)\" \"null_object\"\n");
-        }
-      }
-    }
-
-    /* output group object members */
-    /* member name is full MCell child object name */
-    vcp = vizp->viz_child_head;
-    while(vcp!=NULL) {
-      objp = vcp->obj;
-
-      /* effectors */
-      if (viz_eff) {
-        /* effector positions */
-        if (viz_eff_pos) {
-          fprintf(eff_pos_header,
-            "  member \"%s\" \"%s.field\"\n",objp->sym->name,objp->sym->name);
-        }
-        /* effector states */
-        if (viz_eff_states) {
-          fprintf(eff_states_header,
-            "  member \"%s.states\" \"%s.states\"\n",objp->sym->name,objp->sym->name);
-        }
-      }
-
-      /* surfaces */
-      if (viz_surf) {
-        /* surface positions */
-        if (viz_surf_pos) {
-          if (wall_verts_header!=NULL) {
-            fprintf(wall_verts_header,
-              "  member \"%s\" \"%s.field\"\n",objp->sym->name,objp->sym->name);
-          }
-        }
-        /* surface states */
-        if (viz_surf_states) {
-          if (wall_states_header!=NULL) {
-            fprintf(wall_states_header,
-              "  member \"%s.states\" \"%s.states\"\n",objp->sym->name,objp->sym->name);
-          }
-        }
-      }
-      vcp = vcp->next;
-    }
-
-    if (wall_verts_header!=NULL) {
-      fclose(wall_verts_header);
-    }
-    if (wall_states_header!=NULL) {
-      fclose(wall_states_header);
-    }
-    if (eff_pos_header!=NULL) {
-      fclose(eff_pos_header);
-    }
-    if (eff_states_header!=NULL) {
-      fclose(eff_states_header);
-    }
-    vizp = vizp->next;
+  /* Merge coincident frames  */
+  if (mol_pos  &&  mol_orient)
+  {
+    if (all_mol_data == NULL)
+      if ((all_mol_data = dreamm_v3_generic_new_frame(ALL_MOL_DATA)) == NULL)
+        return 1;
+    dreamm_v3_generic_merge_coincident_frames(&all_mol_data, &mol_pos, &mol_orient, &discard);
+  }
+  if (surf_pos  &&  region_data)
+  {
+    if (all_mesh_data == NULL)
+      if ((all_mesh_data = dreamm_v3_generic_new_frame(ALL_MESH_DATA)) == NULL)
+        return 1;
+    dreamm_v3_generic_merge_coincident_frames(&all_mesh_data, &surf_pos, &region_data, &discard);
   }
 
-  } /* end viz_surf_or_eff */
+  /* Remove duplicated iteration numbers */
+  if (all_mol_data) uniq_num_expr_list(all_mol_data->iteration_list);
+  if (mol_pos) uniq_num_expr_list(mol_pos->iteration_list);
+  if (mol_orient) uniq_num_expr_list(mol_orient->iteration_list);
+  if (all_mesh_data) uniq_num_expr_list(all_mesh_data->iteration_list);
+  if (surf_pos) uniq_num_expr_list(surf_pos->iteration_list);
+  if (region_data) uniq_num_expr_list(region_data->iteration_list);
 
-/* dump diffusible molecules: */
-  if (viz_mol) {
-    mol_pos_header = NULL;
-    mol_states_header = NULL;
-    mol_pos_index=1;
-    mol_states_index=1;
-    pos_count=0;
-    state_count=0;
-    if (viz_mol_pos) {
-      sprintf(file_name,"%s.molecule_positions.%lld.dx",world->molecule_prefix_name,viz_iteration);
-      if ((mol_pos_header=fopen(file_name,"wb"))==NULL) {
-        fprintf(world->err_file,"File %s, Line %ld: error cannot open molecule positions header file %s\n", __FILE__, (long)__LINE__, file_name);
-        return(1);
-      }
-    }
-    if (viz_mol_states) {
-      sprintf(file_name,"%s.molecule_states.%lld.dx",world->molecule_prefix_name,viz_iteration);
-      if ((mol_states_header=fopen(file_name,"wb"))==NULL) {
-        fprintf(world->err_file,"File %s, Line %ld: error cannot open molecule states header file %s\n", __FILE__, (long)__LINE__, file_name);
-        return(1);
-      }
-    }
+  /* Discard now-empty frames */
+  if (discard)
+    dreamm_v3_generic_discard_frames(discard);
 
-    species_list=world->species_list;
-    n_species=world->n_species;
-
-    if ((viz_molp=(struct volume_molecule ***)malloc(n_species*sizeof(struct volume_molecule **)))==NULL) {
-        fprintf(world->err_file,"File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-      return(1);
-    }
-    if ((viz_mol_count=(u_int *)malloc(n_species*sizeof(u_int)))==NULL) {
-        fprintf(world->err_file,"File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-      return(1);
-    }
-
-    for (ii=0;ii<n_species;ii++) {
-
-      spec_id=species_list[ii]->species_id;
-      viz_molp[spec_id]=NULL;
-      viz_mol_count[spec_id]=0;
-
-      if (species_list[ii]->viz_state!=EXCLUDE_OBJ) {
-        num=species_list[ii]->population;
-        if (num>0) {
-          if ((viz_molp[spec_id]=(struct volume_molecule **)malloc
-            (num*sizeof(struct volume_molecule *)))==NULL) {
-                fprintf(world->err_file,"File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                return(1);
-          }
-        }
-      }
-    }
-
-    slp=world->storage_head;
-    while (slp!=NULL) {
-      sp=slp->store;
-      shp=sp->timer;
-      while (shp!=NULL) {
-
-        for (ii=0;ii<shp->buf_len;ii++) {
-          amp=(struct abstract_molecule *)shp->circ_buf_head[ii];
-          while (amp!=NULL) {
-            if ((amp->properties!=NULL) && (amp->flags&TYPE_3D)==TYPE_3D) {
-              molp=(struct volume_molecule *)amp;
-              if (molp->properties->viz_state!=EXCLUDE_OBJ) {
-                spec_id=molp->properties->species_id;
-                if (viz_mol_count[spec_id]<molp->properties->population) {
-                  viz_molp[spec_id][viz_mol_count[spec_id]++]=molp;
-                }
-                else {
-                  fprintf(log_file,"MCell: molecule count disagreement!!\n");
-                  fprintf(log_file,"  Species %s  population = %d  count = %d\n",molp->properties->sym->name,molp->properties->population,viz_mol_count[spec_id]);
-                }
-              }
-            }
-            amp=amp->next;
-          }
-        }
-
-        amp=(struct abstract_molecule *)shp->current;
-        while (amp!=NULL) {
-          if ((amp->properties!=NULL) && (amp->flags&TYPE_3D)==TYPE_3D) {
-            molp=(struct volume_molecule *)amp;
-            if (molp->properties->viz_state!=EXCLUDE_OBJ) {
-              spec_id=molp->properties->species_id;
-              if (viz_mol_count[spec_id]<molp->properties->population) {
-                viz_molp[spec_id][viz_mol_count[spec_id]++]=molp;
-              }
-              else {
-                fprintf(log_file,"MCell: molecule count disagreement!!\n");
-                fprintf(log_file,"  Species %s  population = %d  count = %d\n",molp->properties->sym->name,molp->properties->population,viz_mol_count[spec_id]);
-              }
-            }
-          }
-          amp=amp->next;
-        }
-        
-        shp=shp->next_scale;
-      }
-
-      slp=slp->next;
-    }
-
-    for (ii=0;ii<n_species;ii++) {
-      spec_id=species_list[ii]->species_id;
-      num=viz_mol_count[spec_id];
-      state=species_list[ii]->viz_state;
-      if (state!=EXCLUDE_OBJ
-          && num!=species_list[ii]->population
-          && ((species_list[ii]->flags & NOT_FREE)==0)) {
-        fprintf(log_file,"MCell: molecule count disagreement!!\n");
-        fprintf(log_file,"  Species %s  population = %d  count = %d\n",species_list[ii]->sym->name,species_list[ii]->population,num);
-      }
-
-      if (num>0 && ((species_list[ii]->flags & NOT_FREE)==0)) {
-        if (viz_mol_pos) {
-          fprintf(mol_pos_header,"object \"%d\" class array type float rank 1 shape 3 items %d %s binary data follows\n",mol_pos_index,num,my_byte_order);
-          for (jj=0;jj<num;jj++) {
-            molp=viz_molp[spec_id][jj];
-	    v1=world->length_unit*molp->pos.x;
-	    v2=world->length_unit*molp->pos.y;
-	    v3=world->length_unit*molp->pos.z;
-	    fwrite(&v1,sizeof v1,1,mol_pos_header);
-	    fwrite(&v2,sizeof v2,1,mol_pos_header);
-	    fwrite(&v3,sizeof v3,1,mol_pos_header);
-          }
-          fprintf(mol_pos_header,"\n#\n");
-          mol_pos_index++;
-        }
-        if (viz_mol_states) {
-          fprintf(mol_states_header,"object \"%d\"\n  constantarray type int items %d\n",mol_states_index,num);
-          fprintf(mol_states_header,"  data follows %d\n",state);
-          fprintf(mol_states_header,"  attribute \"dep\" string \"positions\"\n\n");
-          mol_states_index++;
-        }
-      }
-/* output empty arrays for zero molecule counts here */
-      else if (num==0 && ((species_list[ii]->flags & NOT_FREE)==0)) {
-        if (viz_mol_pos) {
-          fprintf(mol_pos_header,"object \"%d\" array\n\n",mol_pos_index);
-          mol_pos_index++;
-        }
-        if (viz_mol_states) {
-          fprintf(mol_states_header,"object \"%d\" array\n",mol_states_index);
-          fprintf(mol_states_header,"  attribute \"dep\" string \"positions\"\n\n");
-          mol_states_index++;
-        }
-      }
-    }
-
-/* build fields and groups here */
-    if (viz_mol_pos) {
-      mol_pos_field_index=0;
-      for (ii=0;ii<n_species;ii++) {
-        if ((species_list[ii]->flags & NOT_FREE)==0) {
-          fprintf(mol_pos_header,
-            "object \"%d\" field\n",mol_pos_index+mol_pos_field_index);
-          fprintf(mol_pos_header,
-            "  component \"positions\" \"%d\"\n\n",1+mol_pos_field_index);
-          mol_pos_field_index++;
-        }
-      }
-      fprintf(mol_pos_header,"object \"null_positions\" array\n\n");
-      fprintf(mol_pos_header,"object \"null_object\" field\n");
-      fprintf(mol_pos_header,"  component \"positions\" \"null_positions\"\n\n");
-      fprintf(mol_pos_header,"object \"%d\" group\n",
-        2*mol_pos_index-1);
-      fprintf(mol_pos_header,"  member \"null_object (default)\" \"null_object\"\n");
-      mol_pos_group_index=0;
-      for (ii=0;ii<n_species;ii++) {
-        if ((species_list[ii]->flags & NOT_FREE)==0) {
-          fprintf(mol_pos_header,"  member \"%s\" \"%d\"\n",species_list[ii]->sym->name,mol_pos_index+mol_pos_group_index);
-          mol_pos_group_index++;
-        }
-      }
-      fclose(mol_pos_header);
-    }
-    if (viz_mol_states) {
-      fprintf(mol_states_header,"object \"null_object\" array\n");
-      fprintf(mol_states_header,"  attribute \"dep\" string \"positions\"\n\n");
-      fprintf(mol_states_header,"object \"%d\" group\n",mol_states_index);
-      fprintf(mol_states_header,"  member \"null_object (default)\" \"null_object\"\n");
-      mol_states_group_index=0;
-      for (ii=0;ii<n_species;ii++) {
-        if ((species_list[ii]->flags & NOT_FREE)==0) {
-          fprintf(mol_states_header,"  member \"%s\" \"%d\"\n",species_list[ii]->sym->name,1+mol_states_group_index);
-          mol_states_group_index++;
-        }
-      }
-      fclose(mol_states_header);
-    }
-
+  /* Chain remaining frames together */
+  if (all_mesh_data)
+  {
+    *fdlpp = all_mesh_data;
+    fdlpp = &all_mesh_data->next;
+  }
+  if (surf_pos)
+  {
+    *fdlpp = surf_pos;
+    fdlpp = &surf_pos->next;
+  }
+  if (region_data)
+  {
+    *fdlpp = region_data;
+    fdlpp = &region_data->next;
+  }
+  if (all_mol_data)
+  {
+    *fdlpp = all_mol_data;
+    fdlpp = &all_mol_data->next;
+  }
+  if (mol_pos)
+  {
+    *fdlpp = mol_pos;
+    fdlpp = &mol_pos->next;
+  }
+  if (mol_orient)
+  {
+    *fdlpp = mol_orient;
+    fdlpp = &mol_orient->next;
   }
 
-  if (viz_molp != NULL) {
-    for (ii=0;ii<n_species;ii++) {
-      if (viz_molp[ii]!=NULL) {
-        free(viz_molp[ii]);
-        viz_molp[ii] = NULL;
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_generic_scan_for_frame
+    Scan a list of frame data objects to see if there is an upcoming mesh frame
+    for the specified iteration number.
+
+        In: struct frame_data_list *fdlp - the list to scan
+            long long iterno - the iteration number
+        Out: 1 if a matching frame is found, 0 otherwise.
+**************************************************************************/
+static int dreamm_v3_generic_scan_for_frame(struct frame_data_list *fdlp, long long iterno)
+{
+  for (; fdlp != NULL; fdlp = fdlp->next)
+    if (fdlp->viz_iteration == iterno)
+      return 1;
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_generic_dump_time_values:
+    Writes the time values to the time values data file.
+
+        In:  char const *viz_data_dir - directory to receive time data
+             char const *time_values_name - name of time data file
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_generic_dump_time_values(char const *viz_data_dir,
+                                              char const *time_values_name)
+{
+  FILE *time_values_data = NULL;
+  int time_value_index;
+
+  /* Open time values data file */
+  if ((time_values_data = dreamm_v3_generic_open_file(viz_data_dir, time_values_name, "wb")) == NULL)
+    return 1;
+
+  /* Write out time values */
+  for (time_value_index = 0;
+       time_value_index < world->viz_state_info.output_times.n_iterations;
+       ++ time_value_index)
+  {
+    double t_value = world->viz_state_info.output_times.iterations[time_value_index] * world->time_unit;
+    fwrite(&t_value, sizeof(t_value), 1, time_values_data);
+  }
+
+  fclose(time_values_data);
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_generic_dump_iteration_numbers:
+    Writes the iteration numbers to the iteration numbers data file.
+
+        In:  char const *viz_data_dir - directory to receive time data
+             char const *iteration_numbers_name - name of iteration data
+             u_int iteration_numbers_count - maximum number of iterations in
+                                   any of the data
+
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_generic_dump_iteration_numbers(char const *viz_data_dir,
+                                                    char const *iteration_numbers_name,
+                                                    u_int iteration_numbers_count)
+{
+  FILE *iteration_numbers_data = NULL;
+  long long iteration_index;
+
+  /* Open iteration numbers data file */
+  if ((iteration_numbers_data = dreamm_v3_generic_open_file(viz_data_dir, iteration_numbers_name, "wb")) == NULL)
+    return 1;
+
+  /* Write out iteration data */
+  int last_mesh = -1, last_vol_mol = -1, last_surf_mol = -1;
+  for (iteration_index = 0; iteration_index < iteration_numbers_count; iteration_index++)
+  {
+    /* Write meshes iteration */
+    if (iteration_index < world->viz_state_info.mesh_output_iterations.n_iterations)
+      last_mesh = world->viz_state_info.mesh_output_iterations.iterations[iteration_index];
+    fwrite(&last_mesh, sizeof(last_mesh), 1, iteration_numbers_data);
+
+    /* Write vol mols iteration */
+    if (iteration_index < world->viz_state_info.vol_mol_output_iterations.n_iterations)
+      last_vol_mol = world->viz_state_info.vol_mol_output_iterations.iterations[iteration_index];
+    fwrite(&last_vol_mol, sizeof(last_vol_mol), 1, iteration_numbers_data);
+
+    /* Write surface mols iteration */
+    if (iteration_index < world->viz_state_info.grid_mol_output_iterations.n_iterations)
+      last_surf_mol = world->viz_state_info.grid_mol_output_iterations.iterations[iteration_index];
+    fwrite(&last_surf_mol, sizeof(last_surf_mol), 1, iteration_numbers_data);
+  }
+
+  fclose(iteration_numbers_data);
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_generic_write_time_info:
+    Writes the timing info to the master header file.
+
+        In:  FILE *master_header - the master header to receive index info
+             char const *iteration_numbers_name - name of iteration data
+             char const *time_values_name - name of time data
+             char const *dreamm3mode - the dreamm3mode as a string
+             int dreamm3mode_number - the dreamm3mode as an integer
+             u_int iteration_numbers_count - number of iteration data
+             u_int time_values_count - number of time data
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_generic_write_time_info(FILE *master_header,
+                                             char const *iteration_numbers_name,
+                                             char const *time_values_name,
+                                             char const *dreamm3mode,
+                                             int dreamm3mode_number,
+                                             u_int iteration_numbers_count,
+                                             u_int time_values_count)
+{
+  char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
+
+  /* Write iteration object to header */
+  fprintf(master_header,
+          "object \"iteration_numbers\" class array "
+          "type unsigned int "
+          "rank 1 shape 3 items %u "
+          "%s binary data "
+          "file %s,0\n",
+          iteration_numbers_count,
+          my_byte_order,
+          iteration_numbers_name);
+  fprintf(master_header,
+          "\tattribute \"dreamm3mode\" number %d\t#%s#\n",
+          dreamm3mode_number,
+          dreamm3mode);
+  fprintf(master_header, "\n\n");
+
+  /* If we have time data, write time object to header file */
+  if (time_values_count > 0)
+  {
+    fprintf(master_header,
+            "object \"time_values\" class array "
+            "type double "
+            "rank 0 items %u "
+            "%s binary data "
+            "file %s,0\n",
+            time_values_count,
+            my_byte_order,
+            time_values_name);
+    fprintf(master_header,
+            "\tattribute \"dreamm3mode\" number %d\t#%s#\n",
+            dreamm3mode_number,
+            dreamm3mode);
+    fprintf(master_header, "\n\n");
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_generic_write_mesh_fields:
+    Writes the mesh fields to the header file.
+
+        In:  FILE *meshes_header - the header to receive index info
+             int field_index_base - base index for field objects
+             int surf_index - base index for mesh data object numbers
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_generic_write_mesh_fields(struct frame_data_list const * const fdlp,
+                                               FILE *meshes_header,
+                                               int field_index_base,
+                                               int surf_index)
+{
+  byte viz_surf_pos_flag    = (fdlp->type == ALL_MESH_DATA || fdlp->type == MESH_GEOMETRY);
+  byte viz_surf_states_flag = (viz_surf_pos_flag  &&  (world->viz_output_flag & VIZ_SURFACE_STATES) != 0);
+  byte viz_region_data_flag = (fdlp->type == ALL_MESH_DATA || fdlp->type == REG_DATA);
+
+  int obj_index;
+  for (obj_index = 0; obj_index < world->viz_state_info.n_viz_objects; obj_index++)
+  {
+    fprintf(meshes_header,
+            "object %d field # %s #\n",
+            field_index_base ++,
+            world->viz_state_info.viz_objects[obj_index]->sym->name);
+    if (viz_surf_pos_flag)
+      fprintf(meshes_header,
+              "\tcomponent \"positions\" value %d\n",
+              surf_index ++);
+    if (viz_surf_pos_flag)
+      fprintf(meshes_header,
+              "\tcomponent \"connections\" value %d\n",
+              surf_index ++);
+    if (viz_surf_states_flag)
+      fprintf(meshes_header,
+              "\tcomponent \"state_values\" value %d\n",
+              surf_index ++);
+    if (viz_region_data_flag)
+    {
+      struct region_list *rlp;
+      for (rlp = world->viz_state_info.viz_objects[obj_index]->regions;
+           rlp != NULL;
+           rlp = rlp->next)
+      {
+        if (! strcmp(rlp->reg->region_last_name, "ALL"))
+          continue;
+
+        fprintf(meshes_header,
+                "\tcomponent \"%s\" value %d\n",
+                rlp->reg->region_last_name,
+                surf_index ++);
       }
     }
-    
-    free(viz_molp);
-    viz_molp = NULL;
+    fprintf(meshes_header, "\n");
   }
-  if (viz_mol_count != NULL){
-    free (viz_mol_count);
-    viz_mol_count = NULL;
+
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_generic_write_rank0_int_array_index:
+    Writes index info for a rank 0 integer array to a header file.
+
+        In:  FILE *header - the header to receive index info
+             int obj_index - the index number for the object
+             int array_length - number of items in array
+             char const *filename - filename with data
+             long file_offset - offset within file for data
+             char const *symname - name for symbol
+             char const *objtype - type of object (for comment)
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_generic_write_rank0_int_array_index(FILE *header,
+                                                         int obj_index,
+                                                         int array_length,
+                                                         char const *filename,
+                                                         long file_offset,
+                                                         char const *symname,
+                                                         char const *objtype)
+{
+  char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
+
+  fprintf(header,
+          "object %d class array type int "
+          "rank 0 items %d "
+          "%s binary data "
+          "file %s,%ld # %s.%s #\n",
+          obj_index,
+          array_length,
+          my_byte_order,
+          filename,
+          file_offset,
+          symname,
+          objtype);
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_generic_write_rank1_int_array_index:
+    Writes index info for a rank 1 integer array to a header file.
+
+        In:  FILE *header - the header to receive index info
+             int obj_index - the index number for the object
+             int array_length - number of items in array
+             char const *filename - filename with data
+             long file_offset - offset within file for data
+             char const *symname - name for symbol
+             char const *objtype - type of object (for comment)
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_generic_write_rank1_int_array_index(FILE *header,
+                                                         int obj_index,
+                                                         int array_length,
+                                                         char const *filename,
+                                                         long file_offset,
+                                                         char const *symname,
+                                                         char const *objtype)
+{
+  char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
+
+  fprintf(header,
+          "object %d class array type int "
+          "rank 1 shape 3 items %d "
+          "%s binary data "
+          "file %s,%ld # %s.%s #\n",
+          obj_index,
+          array_length,
+          my_byte_order,
+          filename,
+          file_offset,
+          symname,
+          objtype);
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_generic_write_float_array_index:
+    Writes index info for a float array to a header file.
+
+        In:  FILE *header - the header to receive index info
+             int obj_index - the index number for the object
+             int array_length - number of items in array
+             char const *filename - filename with data
+             long file_offset - offset within file for data
+             char const *symname - name for symbol
+             char const *objtype - type of object (for comment)
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_generic_write_float_array_index(FILE *header,
+                                                     int obj_index,
+                                                     int array_length,
+                                                     char const *filename,
+                                                     long file_offset,
+                                                     char const *symname,
+                                                     char const *objtype)
+{
+  char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
+
+  if (array_length <= 0)
+    fprintf(header, "object %d array # %s.%s #\n",
+            obj_index,
+            symname,
+            objtype);
+  else
+    fprintf(header,
+            "object %d class array type float "
+            "rank 1 shape 3 items %d "
+            "%s binary data "
+            "file %s,%ld # %s.%s #\n",
+            obj_index,
+            array_length,
+            my_byte_order,
+            filename,
+            file_offset,
+            symname,
+            objtype);
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_generic_dump_mesh_data:
+    Writes the mesh data to mesh data files, and appropriate index info to the
+    header file.  Mesh object indices are assigned, in order, to position,
+    connections, states, and region info, omitting whichever indices are not
+    needed.
+
+        In:  struct frame_data_list const * const fdlp - the frame to write
+             FILE *meshes_header - the header to receive index info
+             char const *dirname - the directory to receive data
+             char const *mesh_pos_filename - filename for mesh pos data
+             char const *mesh_states_filename - filename for mesh state data
+             char const *region_data_filename - filename for region data
+             int *main_index_base - ptr to index for allocating obj numbers
+             int *surf_index_base - ptr to rcv index for mesh data objects
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_generic_dump_mesh_data(struct frame_data_list const * const fdlp,
+                                            FILE *meshes_header,
+                                            char const *dirname,
+                                            char const *mesh_pos_filename,
+                                            char const *mesh_states_filename,
+                                            char const *region_data_filename,
+                                            int *meshes_main_index)
+{
+  /* File handles */
+  FILE *mesh_pos_data = NULL;
+  FILE *mesh_states_data = NULL;
+  FILE *region_data = NULL;
+
+  /* Index for iteration over all mesh objects */
+  int obj_index;
+
+  /* Control flags */
+  byte viz_surf_pos_flag    = (fdlp->type == ALL_MESH_DATA || fdlp->type == MESH_GEOMETRY);
+  byte viz_surf_states_flag = (viz_surf_pos_flag  &&  (world->viz_output_flag & VIZ_SURFACE_STATES) != 0);
+  byte viz_region_data_flag = (fdlp->type == ALL_MESH_DATA || fdlp->type == REG_DATA);
+
+  /* Open Surface Positions file, if necessary */
+  if (viz_surf_pos_flag  &&  (mesh_pos_data = dreamm_v3_generic_open_file(dirname, mesh_pos_filename, "ab")) == NULL)
+    goto failure;
+
+  /* Open Surface States file, if necessary */
+  if (viz_surf_states_flag  &&  (mesh_states_data = dreamm_v3_generic_open_file(dirname, mesh_states_filename, "ab")) == NULL)
+    goto failure;
+
+  /* Open Region Data file, if necessary */
+  if (viz_region_data_flag  &&  (region_data = dreamm_v3_generic_open_file(dirname, region_data_filename, "ab")) == NULL)
+    goto failure;
+
+  /* Traverse all visualized objects and output mesh/region data */
+  for (obj_index = 0; obj_index < world->viz_state_info.n_viz_objects; ++ obj_index)
+  {
+    struct object *objp = world->viz_state_info.viz_objects[obj_index];
+    if (objp->viz_state == NULL) continue;
+
+    if (objp->object_type != POLY_OBJ  &&  objp->object_type != BOX_OBJ)
+      continue;
+
+    struct polygon_object *pop = (struct polygon_object *) objp->contents;
+    struct ordered_poly *opp = (struct ordered_poly *) pop->polygon_data;
+    struct element_data *edp = opp->element;
+    int element_data_count = objp->n_walls_actual;
+
+    if (viz_surf_pos_flag)
+    {
+      int wall_index;
+      dreamm_v3_generic_write_float_array_index(meshes_header,
+                                                (*meshes_main_index) ++,
+                                                objp->n_verts,
+                                                mesh_pos_filename,
+                                                ftell(mesh_pos_data),
+                                                objp->sym->name,
+                                                "positions");
+      fprintf(meshes_header,
+              "\tattribute \"dep\" string \"positions\"\n\n");
+
+      /* output polyhedron vertices */
+      dx_output_vertices(mesh_pos_data, objp);
+
+      /* output polygon element connections */
+      dreamm_v3_generic_write_rank1_int_array_index(meshes_header,
+                                                    (*meshes_main_index) ++,
+                                                    element_data_count,
+                                                    mesh_pos_filename,
+                                                    ftell(mesh_pos_data),
+                                                    objp->sym->name,
+                                                    "connections");
+      fprintf(meshes_header,
+              "\tattribute \"ref\" string \"positions\"\n");
+      fprintf(meshes_header,
+              "\tattribute \"element type\" string \"triangles\"\n\n");
+
+      for (wall_index = 0; wall_index < objp->n_walls; ++ wall_index)
+        if (! get_bit(pop->side_removed, wall_index))
+          dx_output_wall_vertices(mesh_pos_data, &edp[ wall_index]);
+    }
+
+    if (viz_surf_states_flag)
+    {
+      int wall_index;
+      dreamm_v3_generic_write_rank0_int_array_index(meshes_header,
+                                                    (*meshes_main_index) ++,
+                                                    element_data_count,
+                                                    mesh_states_filename,
+                                                    ftell(mesh_states_data),
+                                                    objp->sym->name,
+                                                    "states");
+      fprintf(meshes_header,
+              "\tattribute \"dep\" string \"connections\"\n\n");
+
+      /* XXX: Why write this as binary? */
+      for (wall_index = 0; wall_index < objp->n_walls; ++ wall_index)
+      {
+        if (! get_bit(pop->side_removed, wall_index))
+        {
+          int state=objp->viz_state[wall_index];
+          fwrite(&state, sizeof (state), 1, mesh_states_data);
+        }
+      }
+    }
+
+    if (viz_region_data_flag && (objp->num_regions > 1))
+    {
+      struct region_list *rlp;
+
+      for(rlp = objp->regions; rlp != NULL; rlp = rlp->next)
+      {
+        int wall_index;
+        struct region *rp = rlp->reg;
+        if (strcmp(rp->region_last_name, "ALL") == 0) continue; 
+
+        /* number of walls in the region */
+        int region_walls_number = 0; 
+        long pos = ftell(region_data);
+
+        for(wall_index = 0; wall_index < objp->n_walls; ++ wall_index)
+        {
+          int n = objp->wall_p[wall_index]->side;
+          if (get_bit(rp->membership,n))
+          {
+            fwrite(&n, sizeof (n), 1, region_data);
+            region_walls_number++;
+          }
+        }
+
+        dreamm_v3_generic_write_rank0_int_array_index(meshes_header,
+                                                      (*meshes_main_index) ++,
+                                                      region_walls_number,
+                                                      region_data_filename,
+                                                      pos,
+                                                      objp->sym->name,
+                                                      "region_data");
+        fprintf(meshes_header,
+                "\tattribute \"ref\" string \"connections\"\n");
+        fprintf(meshes_header,
+                "\tattribute \"identity\" string \"region_indices\"\n");
+        fprintf(meshes_header,
+                "\tattribute \"name\" string \"%s\"\n",
+                rp->region_last_name);
+        if (rp->region_viz_value > 0)
+          fprintf(meshes_header,
+                  "\tattribute \"viz_value\" number %d\n",
+                  rp->region_viz_value);
+
+        fprintf(meshes_header, "\n\n");
+      } /* end for */
+    } /* end if (region_data_flag) */
   }
-  return(0);
+
+  if (mesh_pos_data) fclose(mesh_pos_data);
+  if (mesh_states_data) fclose(mesh_states_data);
+  if (region_data) fclose(region_data);
+  return 0;
+
+failure:
+  if (mesh_pos_data) fclose(mesh_pos_data);
+  if (mesh_states_data) fclose(mesh_states_data);
+  if (region_data) fclose(region_data);
+  return 1;
+}
+
+/*************************************************************************
+dreamm_v3_generic_write_molecule_fields:
+    Writes the molecule fields to the header file.
+
+        In:  FILE *mol_header - the header to receive index info
+             struct species **specs - all relevant species
+             int num_molecules - num relevant species
+             int field_index - base index for field objects
+             int mol_data_index - base index for mol data objects
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_generic_write_molecule_fields(struct frame_data_list const * const fdlp,
+                                                   FILE *mol_header,
+                                                   struct species **specs,
+                                                   int num_molecules,
+                                                   int field_idx,
+                                                   int mol_data_index)
+{
+  /* Control flags */
+  byte viz_mol_pos_flag = (fdlp->type == ALL_MOL_DATA  ||  fdlp->type == MOL_POS);
+  byte viz_mol_orient_flag = (fdlp->type == ALL_MOL_DATA  ||  fdlp->type == MOL_ORIENT);
+  byte viz_mol_states_flag = (viz_mol_pos_flag  &&  (world->viz_output_flag & VIZ_MOLECULES_STATES));
+
+  int mol_index;
+  /* Build fields for molecules here */
+  for (mol_index=0; mol_index < num_molecules; ++ mol_index)
+  {
+    fprintf(mol_header,
+            "object %d field # %s #\n",
+            field_idx ++,
+            specs[mol_index]->sym->name);
+    if (viz_mol_pos_flag)
+      fprintf(mol_header,
+              "\tcomponent \"positions\" value %d\n",
+              mol_data_index ++);
+    if (viz_mol_orient_flag)
+      fprintf(mol_header,
+              "\tcomponent \"data\" value %d # orientations #\n",
+              mol_data_index ++);
+    if (viz_mol_states_flag)
+      fprintf(mol_header,
+              "\tcomponent \"state_values\" value %d\n",
+              mol_data_index ++);
+    fprintf(mol_header, "\n");
+  }
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_generic_write_vol_orientations_index:
+    Write the orientations constant array for volume molecules to the index.
+
+        In:  FILE *mol_header - the header to receive index info
+             int obj_index - object index number
+             int count - number of molecules
+             char const *filename - filename for data
+             long file_offset - offset within file for data
+             char const *symname - symbol name for molecule
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_generic_write_vol_orientations_index(FILE *mol_header,
+                                                          int obj_index,
+                                                          int count,
+                                                          char const *filename,
+                                                          long file_offset,
+                                                          char const *symname)
+{
+  char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
+
+  if (count > 0)
+  {
+    fprintf(mol_header,
+            "object %d class constantarray type float "
+            "rank 1 shape 3 items %d "
+            "%s binary data "
+            "file %s,%ld # %s.orientations #\n",
+            obj_index,
+            count,
+            my_byte_order,
+            filename,
+            file_offset,
+            symname);
+    fprintf(mol_header,
+            "\tattribute \"dep\" string \"positions\"\n\n");
+  }
+  else
+    fprintf(mol_header,
+            "object %d array # %s.orientations #\n",
+            obj_index,
+            symname);
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_generic_write_state_array_index:
+    Write the state index constant array to the header
+
+        In:  FILE *mol_header - the header to receive index info
+             int obj_index - object index number
+             int count - number of molecules
+             char const *filename - filename for data
+             long file_offset - offset within file for data
+             char const *symname - symbol name for molecule
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_generic_write_state_array_index(FILE *mol_header,
+                                                     int obj_index,
+                                                     int count,
+                                                     char const *filename,
+                                                     long file_offset,
+                                                     char const *symname)
+{
+  char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
+
+  if (count > 0)
+  {
+    fprintf(mol_header,
+            "object %d class constantarray type int "
+            "items %d "
+            "%s binary data "
+            "file %s,%ld # %s.states #\n",
+            obj_index,
+            count,
+            my_byte_order,
+            filename,
+            file_offset,
+            symname);
+    fprintf(mol_header,
+            "\tattribute \"dep\" string \"positions\"\n\n");
+  }
+  else
+    fprintf(mol_header,
+            "object %d array # %s.states #\n",
+            obj_index,
+            symname);
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_generic_dump_grid_molecule_data:
+    Writes the grid molecule data to appropriate data files and index info to
+    the header file.  Object numbers are assigned first to position, then to
+    orientation, and finally to state data objects.
+
+        In:  struct frame_data_list const * const fdlp - frame to write
+             FILE *surf_mol_header - the header to receive index info
+             char const *dirname - directory for data files
+             char const *mol_pos_name - name for position data file
+             char const *mol_orient_name - name for orientation data file
+             char const *mol_states_name - name for state data file
+             int *main_index - ptr to index for allocating obj numbers
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_generic_dump_grid_molecule_data(struct frame_data_list const * const fdlp,
+                                                     FILE *surf_mol_header,
+                                                     char const *dirname,
+                                                     char const *mol_pos_name,
+                                                     char const *mol_orient_name,
+                                                     char const *mol_states_name,
+                                                     int *main_index)
+{
+  /* File handles */
+  FILE *surf_mol_pos_data = NULL;
+  FILE *surf_mol_states_data = NULL;
+  FILE *surf_mol_orient_data = NULL;
+
+  /* Grid molecules, sorted into species */
+  struct grid_molecule ***grid_mols_by_species = NULL;
+  u_int *grid_mol_counts_by_species = NULL;
+
+  /* Iteration variables */
+  int species_index;
+
+  /* Control flags */
+  byte viz_mol_pos_flag = (fdlp->type == ALL_MOL_DATA  ||  fdlp->type == MOL_POS);
+  byte viz_mol_orient_flag = (fdlp->type == ALL_MOL_DATA  ||  fdlp->type == MOL_ORIENT);
+  byte viz_mol_states_flag = (viz_mol_pos_flag  &&  (world->viz_output_flag & VIZ_MOLECULES_STATES));
+
+  /* Open surface molecules position data file */
+  if (viz_mol_pos_flag  &&  (surf_mol_pos_data = dreamm_v3_generic_open_file(dirname, mol_pos_name, "ab")) == NULL)
+    goto failure;
+
+  /* Open surface molecules orientation data file */
+  if (viz_mol_orient_flag  &&  (surf_mol_orient_data =  dreamm_v3_generic_open_file(dirname, mol_orient_name, "ab")) == NULL)
+    goto failure;
+
+  /* Open surface molecules states data file */
+  if (viz_mol_states_flag  &&  (surf_mol_orient_data =  dreamm_v3_generic_open_file(dirname, mol_states_name, "ab")) == NULL)
+    goto failure;
+
+  /* Get a list of molecules sorted by species. */
+  if (sort_molecules_by_species((struct abstract_molecule ****) (void *) &grid_mols_by_species,
+                                &grid_mol_counts_by_species,
+                                0, 1))
+    goto failure;
+
+  /* Emit all molecules for each species */
+  for (species_index = 0; species_index < world->n_species; ++ species_index)
+  {
+    long fpos_pos = 0;
+    long fpos_orient = 0;
+    long fpos_states = 0;
+    struct species *specp = world->species_list[species_index];
+
+    /* Skip objects marked for exclusion and non-grid molecules */
+    if (specp->viz_state == EXCLUDE_OBJ  ||  ! (specp->flags & ON_GRID))
+      continue;
+
+    /* Save offsets of data for current species */
+    if (grid_mol_counts_by_species[species_index] > 0)
+    {
+      if (viz_mol_pos_flag) fpos_pos = ftell(surf_mol_pos_data);
+      if (viz_mol_orient_flag) fpos_orient = ftell(surf_mol_orient_data);
+      if (viz_mol_states_flag) fpos_states = ftell(surf_mol_states_data);
+    }
+
+    /* Iterate over specific molecules in this species */
+    int count = 0;
+    unsigned int mol_index;
+    for (mol_index = 0; mol_index < grid_mol_counts_by_species[species_index]; ++ mol_index)
+    {
+      struct grid_molecule *gmol = (grid_mols_by_species[species_index])[mol_index];
+      struct wall *w = gmol->grid->surface;
+      int objidx = void_array_search((void **) world->viz_state_info.viz_objects,
+                                     world->viz_state_info.n_viz_objects,
+                                     w->parent_object);
+
+      /* If the molecule is on an object we don't care about, skip it */
+      if (objidx == -1)
+        continue;
+
+      /* Keep count of the items we write */
+      ++ count;
+
+      /* Write positions information */
+      if (viz_mol_pos_flag)
+      {
+        struct vector3 p0;
+        grid2xyz(gmol->grid, gmol->grid_index, &p0);
+        dx_output_vector3(surf_mol_pos_data, &p0);
+      }
+
+      /* Write orientations information */
+      if (viz_mol_orient_flag)
+        dx_output_oriented_normal(surf_mol_orient_data, &w->normal, gmol->orient);
+    }
+
+    /* Write data for surface molecule states */
+    if (viz_mol_states_flag  &&  count > 0)
+    {
+      int state = specp->viz_state;
+      fwrite(&state, sizeof state, 1, surf_mol_states_data);
+    }
+
+    /* Emit array of mol positions */
+    if (viz_mol_pos_flag)
+    {
+      dreamm_v3_generic_write_float_array_index(surf_mol_header,
+                                                (*main_index) ++,
+                                                count,
+                                                mol_pos_name,
+                                                fpos_pos,
+                                                specp->sym->name,
+                                                "positions");
+      if (count > 0) fprintf(surf_mol_header, "\tattribute \"dep\" string \"positions\"\n\n");
+    }
+
+    /* Emit array of mol orientations */
+    if (viz_mol_orient_flag)
+    {
+      dreamm_v3_generic_write_float_array_index(surf_mol_header,
+                                                (*main_index) ++,
+                                                count,
+                                                mol_orient_name,
+                                                fpos_orient,
+                                                specp->sym->name,
+                                                "orientations");
+      if (count > 0) fprintf(surf_mol_header, "\tattribute \"dep\" string \"positions\"\n\n");
+    }
+
+    /* Emit array of mol states */
+    if (viz_mol_states_flag)
+    {
+      dreamm_v3_generic_write_state_array_index(surf_mol_header,
+                                                (*main_index) ++,
+                                                count,
+                                                mol_states_name,
+                                                fpos_states,
+                                                specp->sym->name);
+    }
+
+    /* For readability, add an extra newline */
+    if (count <= 0)
+      fprintf(surf_mol_header, "\n");
+  }
+
+  free_ptr_array((void **) grid_mols_by_species, world->n_species);
+  free(grid_mol_counts_by_species);
+  if (surf_mol_pos_data) fclose(surf_mol_pos_data);
+  if (surf_mol_orient_data) fclose(surf_mol_orient_data);
+  if (surf_mol_states_data) fclose(surf_mol_states_data);
+  return 0;
+
+failure:
+  if (grid_mols_by_species) free_ptr_array((void **) grid_mols_by_species, world->n_species);
+  if (grid_mol_counts_by_species) free(grid_mol_counts_by_species);
+  if (surf_mol_pos_data) fclose(surf_mol_pos_data);
+  if (surf_mol_orient_data) fclose(surf_mol_orient_data);
+  if (surf_mol_states_data) fclose(surf_mol_states_data);
+  return 1;
+}
+
+/*************************************************************************
+dreamm_v3_generic_dump_volume_molecule_data:
+    Writes the volume molecule data to appropriate data files and index info to
+    the header file.  Object id numbers are allocated, for each molecule, first
+    to position, then to orientation, then to state, omitting any which are not
+    desired in this output frame.
+
+        In:  struct frame_data_list const * const fdlp - frame to write
+             FILE *vol_mol_header - the header to receive index info
+             char const *dirname - directory for data files
+             char const *mol_pos_name - name for position data file
+             char const *mol_orient_name - name for orientation data file
+             char const *mol_states_name - name for state data file
+             int *main_index - ptr to index for allocating obj numbers
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_generic_dump_volume_molecule_data(struct frame_data_list const * const fdlp,
+                                                       FILE *vol_mol_header,
+                                                       char const *dirname,
+                                                       char const *mol_pos_name,
+                                                       char const *mol_orient_name,
+                                                       char const *mol_states_name,
+                                                       int *main_index)
+{
+  /* File handles */
+  FILE *vol_mol_pos_data = NULL;
+  FILE *vol_mol_states_data = NULL;
+  FILE *vol_mol_orient_data = NULL;
+
+  /* All volume molecules, sorted into species */
+  struct volume_molecule ***viz_molp = NULL;
+  u_int *viz_mol_count = NULL;
+
+  /* Iteration variables */
+  int species_index;
+
+  /* Control flags */
+  byte viz_mol_pos_flag = (fdlp->type == ALL_MOL_DATA  ||  fdlp->type == MOL_POS);
+  byte viz_mol_orient_flag = (fdlp->type == ALL_MOL_DATA  ||  fdlp->type == MOL_ORIENT);
+  byte viz_mol_states_flag = (viz_mol_pos_flag  &&  (world->viz_output_flag & VIZ_MOLECULES_STATES));
+
+  /* Prepare for position output */
+  if (viz_mol_pos_flag  &&  (vol_mol_pos_data = dreamm_v3_generic_open_file(dirname, mol_pos_name, "ab")) == NULL)
+    goto failure;
+
+  /* Prepare for orientation output */
+  if (viz_mol_orient_flag  &&  (vol_mol_orient_data = dreamm_v3_generic_open_file(dirname, mol_orient_name, "ab")) == NULL)
+    goto failure;
+
+  /* Prepare for states output */
+  if (viz_mol_states_flag  &&  (vol_mol_states_data = dreamm_v3_generic_open_file(dirname, mol_states_name, "ab")) == NULL)
+    goto failure;
+
+  /* Get a list of molecules sorted by species. */
+  if (sort_molecules_by_species((struct abstract_molecule ****) (void *) &viz_molp,
+                                &viz_mol_count,
+                                1, 0))
+    goto failure;
+
+  /* Process all volume mols */
+  for (species_index=0; species_index<world->n_species; ++ species_index)
+  {
+    struct species *specp = world->species_list[species_index];
+
+    /* Skip this species if it is marked as excluded, or not a vol mol */
+    if (specp->viz_state == EXCLUDE_OBJ  ||  (specp->flags & NOT_FREE))
+      continue;
+
+    /* Check that our molecule count agrees with the species population count */
+    if (viz_mol_count[species_index] != specp->population)
+    {
+      fprintf(world->log_file, "MCell: molecule count disagreement!!\n");
+      fprintf(world->log_file, "  Species %s  population = %d  count = %d\n",
+              specp->sym->name,
+              specp->population,
+              viz_mol_count[species_index]);
+    }
+
+    /* Emit an array of molecule positions */
+    if (viz_mol_pos_flag)
+    {
+      unsigned int mol_index;
+      dreamm_v3_generic_write_float_array_index(vol_mol_header,
+                                                (*main_index) ++,
+                                                viz_mol_count[species_index],
+                                                mol_pos_name,
+                                                ftell(vol_mol_pos_data),
+                                                specp->sym->name,
+                                                "positions");
+      if (viz_mol_count[species_index] > 0)
+      {
+        fprintf(vol_mol_header,
+                "\tattribute \"dep\" string \"positions\"\n\n");
+        for (mol_index = 0; mol_index < viz_mol_count[species_index]; ++ mol_index)
+          dx_output_vector3(vol_mol_pos_data, &(viz_molp[species_index][mol_index])->pos);
+      }
+    }
+
+    /* Emit a constantarray of molecule orientations (constant [0, 0, 1]) */
+    if (viz_mol_orient_flag)
+    {
+      dreamm_v3_generic_write_vol_orientations_index(vol_mol_header,
+                                                     (*main_index) ++,
+                                                     viz_mol_count[species_index],
+                                                     mol_orient_name,
+                                                     ftell(vol_mol_orient_data),
+                                                     specp->sym->name);
+      if (viz_mol_count[species_index] > 0)
+        dx_output_oriented_normal(vol_mol_orient_data, &v3_unit_z, 1);
+    }
+
+    /* Emit molecule state */
+    if (viz_mol_states_flag)
+    {
+        /* write molecule states information. */ 
+        dreamm_v3_generic_write_state_array_index(vol_mol_header,
+                                                  (*main_index) ++,
+                                                  viz_mol_count[species_index],
+                                                  mol_states_name,
+                                                  ftell(vol_mol_states_data),
+                                                  specp->sym->name);
+      if (viz_mol_count[species_index] > 0)
+      {
+        int state = specp->viz_state;
+        fwrite(&state,sizeof state,1,vol_mol_states_data);
+      }
+    }
+
+    /* For readability, add an extra newline */
+    if (viz_mol_count[species_index] <= 0)
+      fprintf(vol_mol_header, "\n");
+  }
+
+  free_ptr_array((void **) viz_molp, world->n_species);
+  free(viz_mol_count);
+  if (vol_mol_pos_data) fclose(vol_mol_pos_data);
+  if (vol_mol_orient_data) fclose(vol_mol_orient_data);
+  if (vol_mol_states_data) fclose(vol_mol_states_data);
+  return 0;
+
+failure:
+  if (viz_molp != NULL) free_ptr_array((void **) viz_molp, world->n_species);
+  if (viz_mol_count != NULL) free(viz_mol_count);
+  if (vol_mol_pos_data) fclose(vol_mol_pos_data);
+  if (vol_mol_orient_data) fclose(vol_mol_orient_data);
+  if (vol_mol_states_data) fclose(vol_mol_states_data);
+  return 1;
+}
+
+/* == DREAMM V3 Output (non-grouped) == */
+
+/* Filenames for DREAMM V3 (non-grouped) output */
+static char const * const DREAMM_MESH_POS_NAME = "mesh_positions.bin";
+static char const * const DREAMM_MESH_STATES_NAME = "mesh_states.bin";
+static char const * const DREAMM_REGION_VIZ_DATA_NAME = "region_indices.bin";
+static char const * const DREAMM_MESHES_HEADER_NAME = "meshes.dx";
+static char const * const DREAMM_VOL_MOL_POS_NAME = "volume_molecules_positions.bin";
+static char const * const DREAMM_SURF_MOL_POS_NAME = "surface_molecules_positions.bin";
+static char const * const DREAMM_VOL_MOL_ORIENT_NAME = "volume_molecules_orientations.bin";
+static char const * const DREAMM_SURF_MOL_ORIENT_NAME = "surface_molecules_orientations.bin";
+static char const * const DREAMM_VOL_MOL_STATES_NAME = "volume_molecules_states.bin";
+static char const * const DREAMM_SURF_MOL_STATES_NAME = "surface_molecules_states.bin";
+static char const * const DREAMM_VOL_MOL_HEADER_NAME = "volume_molecules.dx";
+static char const * const DREAMM_SURF_MOL_HEADER_NAME = "surface_molecules.dx";
+
+
+/*************************************************************************
+dreamm_v3_init:
+    Initialize state for DREAMM_V3 output.
+
+        In:  struct frame_data_list *fdlp - the head of the frame data list
+        Out: 0 if successful, 1 if failed
+**************************************************************************/
+static int dreamm_v3_init(struct frame_data_list *fdlp)
+{
+  if (dreamm_v3_generic_init())
+    return 1;
+
+  /* create viz_data dir filename */  
+  char *viz_data_dir = my_strcat(world->file_prefix_name, "_viz_data");
+  if (viz_data_dir == NULL)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    return 1;
+  }
+
+  /* make viz_data dir */  
+  if (mkdirs(viz_data_dir, world->err_file))
+  {
+    free(viz_data_dir);
+    return 1;
+  }
+
+  /* create frame data dir filename */  
+  world->viz_state_info.frame_data_dir = my_strcat(viz_data_dir, "/frame_data");
+  free(viz_data_dir);
+  if (world->viz_state_info.frame_data_dir == NULL)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    return 1;
+  }
+
+  /* make directory for "frame data" */
+  if (mkdirs(world->viz_state_info.frame_data_dir, world->err_file))
+    return 1;
+
+  /* Prepare iteration counters and timing info for frame_data_list */
+  int time_values_total = count_time_values(fdlp);
+  reset_time_values(fdlp, world->start_time);
+  return initialize_iteration_counters(time_values_total);
+}
+
+/*************************************************************************
+dreamm_v3_remove_file:
+    Remove a file in the DREAMM V3 output directory.  Used by DREAMM V3 output
+    to get rid of files at the beginning of each iteration.  We eliminate files
+    which we are going to write to because some of these files may be symlinks.
+
+        In:  char const *fname - filename for file
+        Out: 0 on success, 1 on failure
+**************************************************************************/
+static int dreamm_v3_remove_file(char const *fname)
+{
+  struct stat f_stat;
+
+  /* concatenate dir and fname to get the mesh states file path */
+  char *path = alloc_sprintf("%s/%s", world->viz_state_info.iteration_number_dir, fname);
+  if (path == NULL)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    goto failure;
+  }
+
+  /* If the file exists, remove it */
+  if (stat(path, &f_stat) == 0)
+  {
+    if (unlink(path) != 0)
+    {
+      fprintf(world->err_file, "File %s, Line %ld: error %d removing file %s.\n", __FILE__, (long)__LINE__, errno, fname);
+      goto failure;
+    }
+  }
+
+  free(path);
+  return 0;
+
+failure:
+  if (path) free(path);
+  return 1;
+}
+
+/*************************************************************************
+dreamm_v3_clean_files:
+    Clean up any files which are going to be created during this iteration.  We
+    need to remove these files because an old run may have created symlinks
+    here, which will cause the files to overwrite data in older iterations.
+
+        In: struct frame_data_list *fdlp - the frame data list
+        Out: 0 on success, 1 on failure
+**************************************************************************/
+static int dreamm_v3_clean_files(struct frame_data_list *fdlp)
+{
+  if (! active_this_iteration(fdlp))
+    return 0;
+
+  /* Free old directory */
+  if (world->viz_state_info.iteration_number_dir)
+    free(world->viz_state_info.iteration_number_dir);
+  world->viz_state_info.iteration_number_dir = NULL;
+
+  /* Make new directory name */
+  world->viz_state_info.iteration_number_dir = alloc_sprintf("%s/iteration_%lld",
+                                                             world->viz_state_info.frame_data_dir,
+                                                             world->it_time);
+  if (world->viz_state_info.iteration_number_dir == NULL)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    return 1;
+  }
+
+  /* If new directory doesn't exist, create it and return */
+  if (! is_dir(world->viz_state_info.iteration_number_dir))
+    return mkdirs(world->viz_state_info.iteration_number_dir, world->err_file);
+
+  /* Directory already existed.  Clear out any files we're going to write */
+  for (; fdlp != NULL; fdlp = fdlp->next)
+  {
+    if (fdlp->viz_iteration != world->it_time)
+      continue;
+
+    switch (fdlp->type)
+    {
+      case ALL_MOL_DATA:
+        dreamm_v3_remove_file(DREAMM_VOL_MOL_POS_NAME);
+        dreamm_v3_remove_file(DREAMM_VOL_MOL_ORIENT_NAME);
+        dreamm_v3_remove_file(DREAMM_VOL_MOL_STATES_NAME);
+        dreamm_v3_remove_file(DREAMM_SURF_MOL_POS_NAME);
+        dreamm_v3_remove_file(DREAMM_SURF_MOL_ORIENT_NAME);
+        dreamm_v3_remove_file(DREAMM_SURF_MOL_STATES_NAME);
+        break;
+
+      case MOL_POS:
+        dreamm_v3_remove_file(DREAMM_VOL_MOL_POS_NAME);
+        dreamm_v3_remove_file(DREAMM_VOL_MOL_STATES_NAME);
+        dreamm_v3_remove_file(DREAMM_SURF_MOL_POS_NAME);
+        dreamm_v3_remove_file(DREAMM_SURF_MOL_STATES_NAME);
+        break;
+
+      case MOL_ORIENT:
+        dreamm_v3_remove_file(DREAMM_VOL_MOL_ORIENT_NAME);
+        dreamm_v3_remove_file(DREAMM_SURF_MOL_ORIENT_NAME);
+        break;
+
+      case ALL_MESH_DATA:
+        dreamm_v3_remove_file(DREAMM_MESH_POS_NAME);
+        dreamm_v3_remove_file(DREAMM_MESH_STATES_NAME);
+        dreamm_v3_remove_file(DREAMM_REGION_VIZ_DATA_NAME);
+        break;
+
+      case MESH_GEOMETRY:
+        dreamm_v3_remove_file(DREAMM_MESH_POS_NAME);
+        dreamm_v3_remove_file(DREAMM_MESH_STATES_NAME);
+        break;
+
+      case REG_DATA:
+        dreamm_v3_remove_file(DREAMM_REGION_VIZ_DATA_NAME);
+        break;
+    }
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_update_last_iteration_info:
+    Update the "last iteration" information for meshes and molecules.  This
+    information is used to create the symlinks needed in the DREAMM V3 output
+    format.
+
+        In: struct frame_data_list *fdlp - the frame data list
+        Out: 0 on success, 1 on failure
+**************************************************************************/
+static int dreamm_v3_update_last_iteration_info(struct frame_data_list *fdlp)
+{
+  for (;
+       fdlp != NULL;
+       fdlp = fdlp->next)
+  {
+    if (world->it_time !=fdlp->viz_iteration)
+      continue;
+
+    if ((fdlp->type == ALL_MESH_DATA) ||
+        (fdlp->type == REG_DATA) ||
+        (fdlp->type == MESH_GEOMETRY))
+    {
+      if (fdlp->viz_iteration > world->viz_state_info.last_meshes_iteration)
+        world->viz_state_info.last_meshes_iteration = fdlp->viz_iteration;
+    }
+    else if ((fdlp->type == ALL_MOL_DATA) ||
+             (fdlp->type == MOL_POS) ||
+             (fdlp->type == MOL_ORIENT))
+    {
+      if (fdlp->viz_iteration > world->viz_state_info.last_mols_iteration)
+        world->viz_state_info.last_mols_iteration = fdlp->viz_iteration;
+    }
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_create_empty_file:
+    Create an empty file in the DREAMM V3 output directory.  This may be
+    redundant now, since I'm explicitly removing files which, if left over from
+    a previous run, would cause trouble.
+
+        In: char const *fname - filename for new file
+        Out: 0 upon success, 1 upon failure
+**************************************************************************/
+static int dreamm_v3_create_empty_file(char const *fname)
+{
+  FILE *f = NULL;
+  char *path = NULL;
+  if (dreamm_v3_remove_file(fname))
+    return 1;
+
+  if ((path = alloc_sprintf("%s/%s", world->viz_state_info.iteration_number_dir, fname)) == NULL)
+    return 1;
+
+  if ((f = fopen(path, "w")) == NULL)
+  {
+    free(path);
+    return 1;
+  }
+
+  fclose(f);
+  free(path);
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_create_symlink:
+    Create a symlink to a previous iteration appropriate for the DREAMM data
+    format.
+
+        In:  long long newiter - iteration needing symlink
+             long long lastiter - iteration to which to make symlink
+             char const *filename - filename to link from old dir
+        Out: 0 upon succes, 1 upon failure.
+**************************************************************************/
+static int dreamm_v3_create_symlink(long long newiter,
+                                    long long lastiter,
+                                    char const *filename)
+{
+  char *newpath = NULL;
+  char *oldpath = NULL;
+  char *effoldpath = NULL;
+  struct stat f_stat;
+
+  /* Create old path for 'stat' */
+  effoldpath = alloc_sprintf("%s/iteration_%lld/%s", world->viz_state_info.frame_data_dir, lastiter, filename);
+  if (effoldpath == NULL)
+    goto failure;
+
+  /* If the old file doesn't exist, don't make the symlink. */
+  if (stat(effoldpath, &f_stat) != 0)
+  {
+    free(effoldpath);
+    return 0;
+  }
+
+  /* Old path name is a relative path */
+  oldpath = alloc_sprintf("../iteration_%lld/%s", lastiter, filename);
+  if (oldpath == NULL)
+    goto failure;
+
+  /* New path name is in new iteration directory */
+  newpath = alloc_sprintf("%s/iteration_%lld/%s", world->viz_state_info.frame_data_dir, newiter, filename);
+  if (newpath == NULL)
+    goto failure;
+
+  /* Try to create symlink */
+  if (symlink(oldpath, newpath) == -1)
+  {
+    /* If we failed because the file exists */
+    if (errno == EEXIST)
+    {
+      /* Remove the symlink and try again */
+      if (unlink(newpath) == -1)
+      {
+        fprintf(world->err_file, "File %s, Line %ld: error %d removing symlink %s.\n", __FILE__, (long)__LINE__, errno, newpath);
+        goto failure;
+      }
+
+      /* Try again to create symlink */
+      if (symlink(oldpath, newpath) == -1)
+      {
+        fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink %s.\n", __FILE__, (long)__LINE__, errno, newpath);
+        goto failure;
+      }
+    }
+
+    /* If we failed to make the symlink for some other reason */
+    else
+    {
+      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink %s.\n", __FILE__, (long)__LINE__, errno, newpath);
+      goto failure;
+    }
+  }
+
+  /* Clean up and return success */
+  free(effoldpath);
+  free(oldpath);
+  free(newpath);
+  return 0;
+
+failure:
+  if (effoldpath != NULL) free(effoldpath);
+  if (oldpath != NULL) free(oldpath);
+  if (newpath != NULL) free(newpath);
+  return 1;
+}
+
+/*************************************************************************
+dreamm_v3_scan_for_mol_frames
+    Scan a list of frame data objects to see if there is an upcoming mol frame
+    for the specified iteration number.
+
+        In: struct frame_data_list *fdlp - the list to scan
+            long long iterno - the iteration number
+        Out: 1 if a matching frame is found, 0 otherwise.
+**************************************************************************/
+static int dreamm_v3_scan_for_mol_frames(struct frame_data_list *fdlp,
+                                         long long iterno)
+{
+  for (; fdlp != NULL; fdlp = fdlp->next)
+  {
+    /* XXX: This used to return as soon as it found an fdlp->viz_iteration
+     * unequal to iterno...  I think that was incorrect.
+     */
+    if (fdlp->viz_iteration != iterno)
+      continue;
+
+    if ((fdlp->type == ALL_MOL_DATA) ||
+        (fdlp->type == MOL_POS)      ||
+        (fdlp->type == MOL_ORIENT))
+      return 1;
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_create_molecule_symlinks:
+    If appropriate, creates molecule symlinks for a given iteration of DREAMM
+    V3 output.
+
+        In:  struct frame_data_list const *fdlp - the frame for which to create
+                                                 links
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_create_molecule_symlinks(struct frame_data_list const *fdlp)
+{
+  long long lastiter = world->viz_state_info.last_mols_iteration;
+  int mol_frame_found  = dreamm_v3_scan_for_mol_frames(fdlp->next, fdlp->viz_iteration);
+
+  if (!mol_frame_found         &&                   /* No upcoming mol frames this iteration */
+      lastiter >= 0            &&                   /* There is an old mol frame */
+      fdlp->viz_iteration > lastiter)               /* The old mol frame was not created during this iteration */
+  {
+    /* Create a whole mess of symlinks */
+    if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_SURF_MOL_HEADER_NAME)
+        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_SURF_MOL_ORIENT_NAME)
+        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_SURF_MOL_POS_NAME)
+        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_SURF_MOL_STATES_NAME)
+        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_VOL_MOL_HEADER_NAME)
+        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_VOL_MOL_ORIENT_NAME)
+        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_VOL_MOL_POS_NAME)
+        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_VOL_MOL_STATES_NAME))
+      return 1;
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_scan_for_mesh_frames
+    Scan a list of frame data objects to see if there is an upcoming mesh frame
+    for the specified iteration number.
+
+        In: struct frame_data_list *fdlp - the list to scan
+            long long iterno - the iteration number
+        Out: 1 if a matching frame is found, 0 otherwise.
+**************************************************************************/
+static int dreamm_v3_scan_for_mesh_frames(struct frame_data_list *fdlp,
+                                          long long iterno)
+{
+  for (; fdlp != NULL; fdlp = fdlp->next)
+  {
+    if (fdlp->viz_iteration != iterno)
+      continue;
+
+    if ((fdlp->type == ALL_MESH_DATA) ||
+        (fdlp->type == MESH_GEOMETRY) ||
+        (fdlp->type == REG_DATA))
+      return 1;
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_create_mesh_symlinks:
+    If appropriate, creates mesh symlinks for a given iteration of DREAMM V3
+    output.
+
+        In:  struct frame_data_list const *fdlp - the frame for which to create
+                                                 links
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_create_mesh_symlinks(struct frame_data_list const *fdlp)
+{
+  long long lastiter = world->viz_state_info.last_meshes_iteration;
+  int mesh_frame_found = dreamm_v3_scan_for_mesh_frames(fdlp->next, fdlp->viz_iteration);
+
+  if (! mesh_frame_found        &&                  /* No more mesh frames this iteration */
+      lastiter >= 0 &&                              /* There is an old meshes frame */
+      fdlp->viz_iteration > lastiter)               /* The old meshes frame was not created during this iteration */
+  {
+    /* Create a whole mess of symlinks */
+    if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_MESHES_HEADER_NAME)
+        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_MESH_POS_NAME)
+        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_MESH_STATES_NAME)
+        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_REGION_VIZ_DATA_NAME))
+      return 1;
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_write_time_info:
+    Writes the master header on the very last frame of the very last iteration
+    of a DREAMM V3 viz output run.
+
+        In:  char const *viz_data_dir - dir for master header
+             char const *master_header_name - name of master header
+             char const *iteration_numbers_name - name of iteration data
+             char const *time_values_name - name of time data
+             u_int iteration_numbers_count - number of iteration data
+             u_int time_values_count - number of time data
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_write_time_info(char const *viz_data_dir,
+                                     char const *master_header_name,
+                                     char const *iteration_numbers_name,
+                                     char const *time_values_name,
+                                     u_int iteration_numbers_count,
+                                     u_int time_values_count)
+{
+  FILE *master_header = NULL;
+
+  /* Open master header file. */
+  if ((master_header = dreamm_v3_generic_open_file(viz_data_dir, master_header_name, "w")) == NULL)
+    goto failure;
+
+  if (dreamm_v3_generic_write_time_info(master_header,
+                                        iteration_numbers_name,
+                                        time_values_name,
+                                        "DREAMM_V3_MODE",
+                                        1,
+                                        iteration_numbers_count,
+                                        time_values_count))
+    goto failure;
+
+  if (master_header) fclose(master_header);
+  return 0;
+
+failure:
+  if (master_header) fclose(master_header);
+  return 1;
+}
+
+/*************************************************************************
+dreamm_v3_make_time_info_filename:
+    Make output filename for DREAMM V3 (ungrouped) time/iteration data.
+
+        In:  char const *typename - "iteration_numbers" or "time_values"
+        Out: the filename, or NULL if allocation fails
+**************************************************************************/
+static char *dreamm_v3_make_time_info_filename(char const *typename)
+{
+  char *filename = NULL;
+  if (world->chkpt_flag)
+    filename = alloc_sprintf("%s.%s.%d.bin",
+                             world->viz_state_info.filename_prefix_basename,
+                             typename,
+                             world->chkpt_seq_num);
+  else
+    filename = alloc_sprintf("%s.%s.bin",
+                             typename,
+                             world->viz_state_info.filename_prefix_basename);
+  if (filename == NULL)
+    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+
+  return filename;
+}
+
+/*************************************************************************
+dreamm_v3_dump_time_info:
+    Writes the master header, as well as the iteration and time data files on
+    the very last frame of the very last iteration of a DREAMM V3 viz output
+    run.
+
+        In:  None
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_dump_time_info(void)
+{
+  char *time_values_name = NULL;
+  char *iteration_numbers_name = NULL;
+  char *master_header_name = NULL;
+  long long iteration_numbers_count = 0;
+
+  /* Build viz data dir name */
+  char *viz_data_dir = my_strcat(world->file_prefix_name, "_viz_data");
+  if (viz_data_dir == NULL)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    goto failure;
+  }
+
+  /* Build iteration numbers filename */
+  if ((iteration_numbers_name = dreamm_v3_make_time_info_filename("iteration_numbers")) == NULL)
+    goto failure;
+
+  /* Build time values filename */
+  if ((time_values_name = dreamm_v3_make_time_info_filename("time_values")) == NULL)
+    goto failure;
+
+  /* Build master header filename */
+  if (world->chkpt_flag)
+    master_header_name = alloc_sprintf("%s.%u.dx",
+                                       world->viz_state_info.filename_prefix_basename,
+                                       world->chkpt_seq_num);
+  else
+    master_header_name = alloc_sprintf("%s.dx",
+                                       world->viz_state_info.filename_prefix_basename);
+  if (master_header_name == NULL)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    goto failure;
+  }
+
+  /* Find maximum iteration numbers count */
+  if (world->viz_state_info.mesh_output_iterations.n_iterations >
+      world->viz_state_info.grid_mol_output_iterations.n_iterations)
+    iteration_numbers_count = world->viz_state_info.mesh_output_iterations.n_iterations;
+  else
+    iteration_numbers_count = world->viz_state_info.grid_mol_output_iterations.n_iterations;
+  if (world->viz_state_info.vol_mol_output_iterations.n_iterations > iteration_numbers_count)
+    iteration_numbers_count = world->viz_state_info.vol_mol_output_iterations.n_iterations;
+
+  /* Write iteration numbers file */
+  if (dreamm_v3_generic_dump_iteration_numbers(viz_data_dir,
+                                               iteration_numbers_name,
+                                               iteration_numbers_count))
+    goto failure;
+
+  /* write "time_values" object. */
+  if (world->viz_state_info.output_times.n_iterations > 0  &&
+      dreamm_v3_generic_dump_time_values(viz_data_dir, time_values_name))
+    goto failure;
+  if (dreamm_v3_write_time_info(viz_data_dir,
+                                master_header_name,
+                                iteration_numbers_name,
+                                time_values_name,
+                                iteration_numbers_count,
+                                world->viz_state_info.output_times.n_iterations))
+    goto failure;
+
+  free(viz_data_dir);
+  free(iteration_numbers_name);
+  free(time_values_name);
+  free(master_header_name);
+  return 0;
+
+failure:
+  if (viz_data_dir) free(viz_data_dir);
+  if (iteration_numbers_name) free(iteration_numbers_name);
+  if (time_values_name) free(time_values_name);
+  if (master_header_name) free(master_header_name);
+  return 1;
+}
+
+/*************************************************************************
+dreamm_v3_write_mesh_group:
+    Write a group containing all meshes to the header file.
+
+        In:  FILE *master_header - file to which to write group
+             int groupidx - the group index
+             int field_idx_base - object number for first field
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_write_mesh_group(FILE *header,
+                                      int groupidx,
+                                      int fieldsidx)
+{
+  int obj_index;
+
+  /* Create group object */
+  fprintf(header,
+          "object %d group # meshes #\n",
+          groupidx);
+
+  /* Add member declarations to group */
+  for (obj_index = 0; obj_index < world->viz_state_info.n_viz_objects; ++ obj_index)
+  {
+    fprintf(header,
+            "\tmember \"%s\" value %d\n",
+            world->viz_state_info.viz_objects[obj_index]->sym->name,
+            fieldsidx ++);
+  }
+  fprintf(header, "\n");
+
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_dump_mesh_data:
+    Dump all mesh data to the mesh output files for this iteration, writing
+    index information to the header.
+
+        In:  struct frame_data_list *fdlp - frame for which to write meshes
+             FILE *meshes_header - header to receive index info
+             char const *iteration_dir - directory for this iteration
+             int *meshes_main_index - ptr to index for allocating obj numbers
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_dump_mesh_data(struct frame_data_list const * const fdlp,
+                                    FILE *meshes_header,
+                                    char const *iteration_dir,
+                                    int *meshes_main_index)
+{
+  return dreamm_v3_generic_dump_mesh_data(fdlp,
+                                          meshes_header,
+                                          iteration_dir,
+                                          DREAMM_MESH_POS_NAME,
+                                          DREAMM_MESH_STATES_NAME,
+                                          DREAMM_REGION_VIZ_DATA_NAME,
+                                          meshes_main_index);
+}
+
+/*************************************************************************
+dreamm_v3_dump_meshes:
+    Dump all mesh data to the mesh output files for this iteration.
+
+        In:  struct frame_data_list *fdlp - frame for which to write meshes
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_dump_meshes(struct frame_data_list const * const fdlp)
+{
+  int meshes_main_index = 1;
+  FILE *meshes_header = NULL;
+
+  /* If desired, open meshes header */
+  if ((meshes_header = dreamm_v3_generic_open_file(world->viz_state_info.iteration_number_dir,
+                                                   DREAMM_MESHES_HEADER_NAME, "w")) == NULL)
+    return 1;
+
+  /* Dump mesh info */
+  if (dreamm_v3_dump_mesh_data(fdlp,
+                               meshes_header,
+                               world->viz_state_info.iteration_number_dir,
+                               &meshes_main_index))
+    goto failure;
+
+  /* Create field objects for meshes */
+  if (world->viz_state_info.n_viz_objects > 0)
+  {
+    int field_idx_base = meshes_main_index;
+    meshes_main_index += world->viz_state_info.n_viz_objects;
+
+    int group_idx = meshes_main_index ++;
+
+    if (dreamm_v3_generic_write_mesh_fields(fdlp,
+                                            meshes_header,
+                                            field_idx_base,
+                                            1))
+      goto failure;
+
+    /* Create a group object for all meshes */
+    if (dreamm_v3_write_mesh_group(meshes_header, group_idx, field_idx_base))
+      goto failure;
+
+    /* Store iteration_number for meshes */
+    if (add_to_iteration_counter(&world->viz_state_info.mesh_output_iterations, fdlp->viz_iteration))
+      goto failure;
+
+    /* Put value of viz_iteration into the time values */
+    if (add_to_iteration_counter_monotonic(&world->viz_state_info.output_times, fdlp->viz_iteration))
+      goto failure;
+  }
+
+  if (meshes_header) fclose(meshes_header);
+  return 0;
+
+failure:
+  if (meshes_header) fclose(meshes_header);
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_write_molecule_group:
+    Write a group containing all molecules of the specified "type" (either
+    "surface" or "volume") to the header file.
+
+        In:  FILE *master_header - file to which to write group
+             char const *desc - type of mol ("surface molecules" or "volume
+                                molecules")
+             struct species **all_species - species in group
+             int n_species - number of species in group
+             int field_idx_base - object number for first field
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_write_molecule_group(FILE *header,
+                                          char const *desc,
+                                          struct species **specs,
+                                          int num_specs,
+                                          int groupidx,
+                                          int fieldsidx)
+{
+  int species_index;
+
+  /* Create group object */
+  fprintf(header,
+          "object %d group # %s #\n",
+          groupidx,
+          desc);
+
+  /* Add member declarations to group */
+  for (species_index = 0; species_index < num_specs; ++ species_index)
+    fprintf(header,
+            "\tmember \"%s\" value %d\n",
+            specs[species_index]->sym->name,
+            fieldsidx ++);
+  fprintf(header, "\n");
+
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_dump_grid_molecule_data:
+    Dump desired data for all grid molecules to grid molecule files, writing
+    index information to the header file for this iteration.
+
+        In:  struct frame_data_list *fdlp - frame for which to write mols
+             FILE *surf_mol_header - the header file for grid molecules
+             char const *iteration_number_dir - directory for this iteration
+             int *surf_mol_main_index - pointer to counter of object numbers
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_dump_grid_molecule_data(struct frame_data_list const * const fdlp,
+                                             FILE *surf_mol_header,
+                                             char const *iteration_number_dir,
+                                             int *surf_mol_main_index)
+{
+  return dreamm_v3_generic_dump_grid_molecule_data(fdlp,
+                                                   surf_mol_header,
+                                                   iteration_number_dir,
+                                                   DREAMM_SURF_MOL_POS_NAME,
+                                                   DREAMM_SURF_MOL_ORIENT_NAME,
+                                                   DREAMM_SURF_MOL_STATES_NAME,
+                                                   surf_mol_main_index);
+}
+
+/*************************************************************************
+dreamm_v3_dump_grid_molecules:
+    Write the desired grid molecule data to the grid molecule data files for
+    this iteration.
+
+        In:  struct frame_data_list *fdlp - frame for which to write mols
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_dump_grid_molecules(struct frame_data_list const * const fdlp)
+{
+  int surf_mol_main_index = 1;
+
+  FILE  *surf_mol_header = NULL;
+
+  /* Open surface molecules header file */
+  if ((surf_mol_header = dreamm_v3_generic_open_file(world->viz_state_info.iteration_number_dir,
+                                                     DREAMM_SURF_MOL_HEADER_NAME, "w")) == NULL)
+    return 1;
+
+  if (dreamm_v3_dump_grid_molecule_data(fdlp,
+                                        surf_mol_header,
+                                        world->viz_state_info.iteration_number_dir,
+                                        &surf_mol_main_index))
+    goto failure;
+
+  if (world->viz_state_info.n_grid_species > 0)
+  {
+    int field_idx_base = surf_mol_main_index;
+    surf_mol_main_index += world->viz_state_info.n_grid_species;
+
+    int group_idx = surf_mol_main_index ++;
+
+    /* Build fields for grid molecules here */
+    if (dreamm_v3_generic_write_molecule_fields(fdlp,
+                                                surf_mol_header,
+                                                world->viz_state_info.grid_species,
+                                                world->viz_state_info.n_grid_species,
+                                                field_idx_base,
+                                                1))
+      goto failure;
+    if (dreamm_v3_write_molecule_group(surf_mol_header,
+                                       "surface molecules",
+                                       world->viz_state_info.grid_species,
+                                       world->viz_state_info.n_grid_species,
+                                       group_idx,
+                                       field_idx_base))
+      goto failure;
+
+    /* Store iteration_number for surface molecules */
+    if (add_to_iteration_counter(&world->viz_state_info.grid_mol_output_iterations, fdlp->viz_iteration))
+      goto failure;
+
+    /* Put value of viz_iteration into the time values */
+    if (add_to_iteration_counter_monotonic(&world->viz_state_info.output_times, fdlp->viz_iteration))
+      goto failure;
+  }
+
+  if (surf_mol_header) fclose(surf_mol_header);
+  return 0;
+
+failure:
+  if (surf_mol_header) fclose(surf_mol_header);
+  return 1;
+}
+
+/*************************************************************************
+dreamm_v3_dump_volume_molecule_data:
+    Dump desired data for all volume molecules to volume molecule files,
+    writing index information to the header file for this iteration.
+
+        In:  struct frame_data_list *fdlp - frame for which to write mols
+             FILE *vol_mol_header - the header file for volume molecules
+             char const *iteration_number_dir - directory for this iteration
+             int *vol_mol_main_index - pointer to counter of object numbers
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_dump_volume_molecule_data(struct frame_data_list const * const fdlp,
+                                               FILE *vol_mol_header,
+                                               char const *iteration_number_dir,
+                                               int *vol_mol_main_index)
+{
+  return dreamm_v3_generic_dump_volume_molecule_data(fdlp,
+                                                     vol_mol_header,
+                                                     iteration_number_dir,
+                                                     DREAMM_VOL_MOL_POS_NAME,
+                                                     DREAMM_VOL_MOL_ORIENT_NAME,
+                                                     DREAMM_VOL_MOL_STATES_NAME,
+                                                     vol_mol_main_index);
+}
+
+/*************************************************************************
+dreamm_v3_dump_volume_molecules:
+    Write the desired volume molecule data to the volume molecule data files
+    for this iteration.
+
+        In:  struct frame_data_list *fdlp - frame for which to write mols
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_dump_volume_molecules(struct frame_data_list const * const fdlp)
+{
+  int vol_mol_main_index = 1;
+  FILE *vol_mol_header = NULL;
+
+  /* Open volume molecules header */
+  if ((vol_mol_header = dreamm_v3_generic_open_file(world->viz_state_info.iteration_number_dir,
+                                                    DREAMM_VOL_MOL_HEADER_NAME, "w")) == NULL)
+    return 1;
+
+  if (dreamm_v3_dump_volume_molecule_data(fdlp,
+                                          vol_mol_header,
+                                          world->viz_state_info.iteration_number_dir,
+                                          &vol_mol_main_index))
+    goto failure;
+
+  if (world->viz_state_info.n_vol_species > 0)
+  {
+    int field_idx_base = vol_mol_main_index;
+    vol_mol_main_index += world->viz_state_info.n_vol_species;
+
+    int group_idx = vol_mol_main_index ++;
+
+    /* Build fields for grid molecules here */
+    if (dreamm_v3_generic_write_molecule_fields(fdlp,
+                                                vol_mol_header,
+                                                world->viz_state_info.vol_species,
+                                                world->viz_state_info.n_vol_species,
+                                                field_idx_base,
+                                                1))
+      goto failure;
+
+    /* Create group objects for molecules */
+    if (dreamm_v3_write_molecule_group(vol_mol_header,
+                                       "volume molecules",
+                                       world->viz_state_info.vol_species,
+                                       world->viz_state_info.n_vol_species,
+                                       group_idx,
+                                       field_idx_base))
+      goto failure;
+
+    /* Store iteration_number for volume_molecules */
+    if (add_to_iteration_counter(&world->viz_state_info.vol_mol_output_iterations, fdlp->viz_iteration))
+      goto failure;
+
+    /* Put value of viz_iteration into the time values */
+    if (add_to_iteration_counter_monotonic(&world->viz_state_info.output_times, fdlp->viz_iteration))
+      goto failure;
+  }
+
+  if (vol_mol_header) fclose(vol_mol_header);
+  return 0;
+
+failure:
+  if (vol_mol_header) fclose(vol_mol_header);
+  return 1;
 }
 
 /*************************************************************************
 output_dreamm_objects:
-	In: struct frame_data_list *fdlp
-	Out: 0 on success, 1 on error; output visualization files (*.dx)
+        In: struct frame_data_list *fdlp
+        Out: 0 on success, 1 on error; output visualization files (*.dx)
              in dreamm group format are written.
 **************************************************************************/
-
-int output_dreamm_objects(struct frame_data_list *fdlp)
+int output_dreamm_objects(struct frame_data_list const * const fdlp)
 {
-  FILE *log_file = NULL;
-  FILE *master_header = NULL;
-  FILE *meshes_header = NULL; /* header file for meshes */
-  FILE *mesh_pos_data = NULL;  /* data file for wall vertices */
-  FILE *mesh_states_data = NULL; /* data file for wall states */
-  FILE *region_data = NULL; /* data file for region's data */
-  FILE *vol_mol_header = NULL; /* header file for volume_molecules */
-  FILE *vol_mol_pos_data = NULL; /* data file for volume_molecule positions */
-  FILE *vol_mol_states_data = NULL; /* data file for volume_molecule states */
-  FILE *vol_mol_orient_data = NULL; /* data file for volume_molecule orientations */
-  FILE *surf_mol_header = NULL; /* header file for volume_molecules */
-  FILE *surf_mol_pos_data = NULL; /* data file for volume_molecule positions */
-  FILE *surf_mol_states_data = NULL; /* data file for volume_molecule states */
-  FILE *surf_mol_orient_data = NULL; /* data file for volume_molecule orientations */
-  FILE *iteration_numbers_data = NULL; /* data file for iteration numbers */
-  FILE *time_values_data = NULL; /* data file for time_values */
-  struct viz_obj *vizp = NULL;
-  struct viz_child *vcp = NULL;
-  struct surface_grid *sg = NULL;
-  struct wall *w = NULL, **wp = NULL;
-  struct species **species_list = NULL;
-  struct species *specp = NULL;
-  struct object *objp = NULL;
-  struct polygon_object *pop = NULL;
-  struct ordered_poly *opp = NULL;
-  struct element_data *edp = NULL;
-  struct vector3 p0;
-  struct storage_list *slp = NULL;
-  struct storage *sp = NULL;
-  struct schedule_helper *shp = NULL;
-  struct abstract_molecule *amp = NULL;
-  struct grid_molecule *gmol = NULL;
-  struct volume_molecule *molp = NULL, ***viz_molp = NULL;       /* for 3D molecules */
-  struct region *rp = NULL;
-  struct region_list *rlp = NULL;
-  float v1,v2,v3;
-  u_int spec_id = 0, *viz_mol_count = NULL, *viz_grid_mol_count = NULL;
-  int word;
-  byte *word_p = NULL;
-  byte viz_mol_pos_flag = 0, viz_mol_states_flag = 0;	/* flags */
-  byte viz_mol_orient_flag = 0, viz_region_data_flag = 0;   /* flags */
-  byte viz_mol_all_data_flag = 0, viz_surf_all_data_flag = 0;	/* flags */
-  byte viz_surf_pos_flag = 0, viz_surf_states_flag = 0;	/* flags */
-  char *filename = NULL;
-  static char *viz_data_dir_name = NULL;
-  static char *frame_data_dir_name = NULL; 
-  char *master_header_name = NULL;
-  char iteration_number[1024];
-  char chkpt_seq_num[1024];
-  char *iteration_number_dir = NULL;
-  char *mesh_pos_file_path = NULL; /* path to meshes vertices data file */
-  static char *mesh_pos_name = NULL; /* meshes vertices data file name */
-  char *mesh_states_file_path = NULL; /* meshes states data file path */
-  static char *mesh_states_name = NULL; /* meshes states data file name */
-  char *region_viz_data_file_path = NULL; /* path to region_viz_data file */
-  static char *region_viz_data_name = NULL; /* region_viz_data file name */
-  char *meshes_header_file_path = NULL; /* meshes header name */
-  static char *meshes_header_name = NULL; /* meshes header name */
-  char *vol_mol_pos_file_path = NULL; /* path to volume molecule positions data file */
-  static char *vol_mol_pos_name = NULL; /* volume molecule positions data file name */
-  char *vol_mol_states_file_path = NULL; /* path to volume molecule states data file  */
-  static char *vol_mol_states_name = NULL; /* volume molecule states data file name */
-  char *vol_mol_orient_file_path = NULL; /* path to volume molecule orientations data file  */
-  static char *vol_mol_orient_name = NULL; /* volume molecule orientations data file name */
-  char *vol_mol_header_file_path = NULL; /* path to volume molecules header  */
-  static char *vol_mol_header_name = NULL; /* volume molecules header name */
-  char *surf_mol_pos_file_path = NULL; /* path to surface molecule positions data file */
-  static char *surf_mol_pos_name = NULL; /* surface molecule positions data file name */
-  char *surf_mol_states_file_path = NULL; /* surface molecule states data file */
-  static char *surf_mol_states_name = NULL; /* surface molecule states data file name */
-  char *surf_mol_orient_file_path = NULL; /* path to surface molecule orientations data file  */
-  static char *surf_mol_orient_name = NULL; /* surface molecule orientations data file name */
-  char *surf_mol_header_file_path = NULL; /* path to surface molecules header */
-  static char *surf_mol_header_name = NULL; /* surface molecules header name */
-  char *grid_mol_name = NULL; /* points to the name of the grid molecule */
-  char path_name_1[1024]; /* used for creating file links */
-  char path_name_2[1024]; /* used for creating file links */
-  char buf[1024];
-  char *ch_ptr = NULL; /* pointer used to extract data file name */
-  char my_byte_order[8];  /* shows binary ordering ('lsb' or 'msb') */
-  u_int viz_iteration;
-  u_int n_viz_iterations;
-  int element_data_count;
-  int state;
-  int viz_type;
-  unsigned int index; 
-  static u_int meshes_main_index = 1;
-  static u_int vol_mol_main_index = 1;
-  static u_int surf_mol_main_index = 1;
-  /* indices used in arrays "u_int *surf_pos", etc. */
-  int surf_pos_index = 0; 
-  int surf_con_index = 0;
-  int surf_states_index = 0;
-  int surf_region_values_index = 0;
-  int surf_obj_region_values_index = 0;
-  int eff_states_index = 0;
-  int eff_pos_index = 0;
-  int eff_orient_index = 0;
-  int mol_states_index = 0;
-  int mol_pos_index = 0;
-  int mol_orient_index = 0;
-  
-  int status, ii, jj;
-  int vi1,vi2,vi3;
-  u_int num = 0;
-  int time_to_write_master_header = 0; /* flag */
-  /* flag pointing to another frame with certain condition 
-     used with 'time_to_write_master_header' flag*/
-  int found = 0;
-  /* used when checking for the existence of directory */
-  struct stat f_stat;
-  int errno;  /* error code of the function */
+  /* What do we output? */
+  byte viz_meshes = 0;
+  byte viz_mols = 0;
 
-
-  char *dir_name_end = "_viz_data";
-  char *iteration_numbers_name = NULL; /* iteration numbers data file name */ 
-  char *time_values_name = NULL; /* time values data file name */
-
-  /* points to the values of the current iteration steps
-     for certain frame types. */
-  static long long curr_surf_pos_iteration_step = -1;
-  static long long curr_region_data_iteration_step = -1;
-  static long long curr_mol_pos_iteration_step = -1;
-  static long long curr_mol_orient_iteration_step = -1;
-  
-  /* points to the special case in iteration steps
-     when both values for GEOMETRY and REGION_VIZ_VALUES
-     are equal.  E.g. for the cases when GEOMETRY = [0,200], 
-     REGION_VIZ_VALUES = [0,100, 200,300] 
-     special_surf_iteration_step = [0,200].Same for (MOL_POS,MOL_ORIENT). 
-  */
-   
-  static long long special_surf_iteration_step = -1;
-   
-  static long long special_mol_iteration_step = -1;
-
-  /* linked lists that stores data for the 'iteration_numbers' object */
-  static u_int *iteration_numbers_meshes;
-  static u_int *iteration_numbers_vol_mols;
-  static u_int *iteration_numbers_surf_mols;
-  u_int elem; /* element of the above arrays */
-
-
-  /* counts number of times header files were opened.*/
-  static int count_meshes_header = 0;
-  static int count_vol_mol_header = 0;
-  static int count_surf_mol_header = 0;
-
-  static u_int iteration_numbers_meshes_count = 0; /* count elements in 
-                                           iteration_numbers_meshes array  */
-  static u_int iteration_numbers_vol_mols_count = 0; /* count elements in 
-                                           iteration_numbers_vol_mols array  */
-  static u_int iteration_numbers_surf_mols_count = 0; /* count elements in 
-                                           iteration_numbers_surf_mols array  */
-  static u_int time_values_count = 0; /* count elements in 
-                                           time_values array  */
-  int iteration_numbers_count; /* count elements in the iteration_numbers
-                                          array */
-
-  static int iteration_numbers_byte_offset = 0; /* defines position of the 
-                 iteration numbers data in the iteration_numbers binary file */
-  static int time_values_byte_offset = 0; /* defines position of the time 
-                          values data in the time_values binary file */
-  int mesh_pos_byte_offset = 0;  /* defines position of the object data
-                                  in the mesh positions binary data file */
-  int mesh_states_byte_offset = 0; /* defines position of the object data
-                                    in the mesh states binary file */
-  int region_data_byte_offset = 0; /* defines position of the 
-                            object data in the region_data binary file */
-  int region_data_byte_offset_prev = 0; /* defines position of the 
-                            object data in the region_data binary file */
-  int vol_mol_pos_byte_offset = 0; /*defines position of the object data 
-                     in the volume_molecules positions binary file */
-  int vol_mol_orient_byte_offset = 0; /*defines position of the object 
-            data in the volume molecules orientations binary file */
-  int vol_mol_states_byte_offset = 0; /* defines position of the object 
-               data in the volume molecules states binary file. */
-  int vol_mol_pos_byte_offset_prev = 0; /* used when defining position  
-               in the volume molecules positions binary file */
-  int vol_mol_orient_byte_offset_prev = 0; /* used when defining position                      in the volume molecules orientations binary file */
-  int vol_mol_states_byte_offset_prev = 0; /* used when defining position                      in the volume molecules states binary file. */
-
-  int surf_mol_pos_byte_offset = 0; /*defines position of the object data                    in the surface_molecules positions binary file */
-  int surf_mol_orient_byte_offset = 0; /*defines position of the object 
-            data in the surface molecules orientations binary file */
-  int surf_mol_states_byte_offset = 0; /* defines position of the object 
-               data in the surface molecules states binary file. */
-  int surf_mol_pos_byte_offset_prev = 0; /* used when defining position  
-               in the surface molecules positions binary file */
-  int surf_mol_orient_byte_offset_prev = 0; /* used when defining position                      in the surface molecules orientations binary file */
-  int surf_mol_states_byte_offset_prev = 0; /* used when defining position                      in the surface molecules states binary file. */
-  
-
-  /* flag that signals the creation of the main data directory.*/
-  static int viz_data_dir_created = 0;
-  /* depth of the user specified viz_output directory structure */
-  int viz_dir_depth = 0;
-  /* keeps track of the last value written into 'time_values' array */
-  static u_int last_time_value_written = 0;
-  
-  /* counts number of this function executions
-     for special_surf_iteration_step/special_mol_iteration_step cases. */
-  
-  static int special_surf_frames_counter = 0;
-  static int special_mol_frames_counter = 0;
-
-  /* flags that signal when meshes/vol_mols/surf_mols data is written */
-  int show_meshes = 0;
-  int show_molecules = 0;
-  int show_effectors = 0;
-
-  struct frame_data_list * fdl_ptr; 
-  u_int n_species = world->n_species;
-  species_list=world->species_list;
-
-  log_file=world->log_file;
   no_printf("Viz output in DREAMM_V3 mode...\n");
 
+ /* Don't write viz data if we're about to checkpoint -- it'll be written upon
+  * resume
+  */
+  if (world->chkpt_iterations != 0  &&  world->it_time == world->chkpt_iterations)
+    return 0;
 
+  /* Set flags based on fdlp->type */
+  if (fdlp->type == ALL_MOL_DATA  ||  fdlp->type == MOL_POS  ||  fdlp->type == MOL_ORIENT)
+    viz_mols = 1;
+  if (fdlp->type == ALL_MESH_DATA  ||  fdlp->type == MESH_GEOMETRY  ||  fdlp->type == REG_DATA)
+    viz_meshes = 1;
 
-  if(world->file_prefix_name == NULL) {
-   	fprintf(world->err_file, "File %s, Line %ld: Inside VIZ_OUTPUT block the required keyword FILENAME is missing.\n", __FILE__, (long)__LINE__);
-   	exit(1);
+  /* Create empty files, if appropriate */
+  /* XXX: Do we still need to do this?  We're not creating links to these files, so... */
+  if (world->viz_state_info.n_viz_objects == 0)
+  {
+    dreamm_v3_create_empty_file(DREAMM_MESH_POS_NAME);
+    dreamm_v3_create_empty_file(DREAMM_MESH_STATES_NAME);
+    dreamm_v3_create_empty_file(DREAMM_REGION_VIZ_DATA_NAME);
+    dreamm_v3_create_empty_file(DREAMM_MESHES_HEADER_NAME);
+  }
+  if (world->viz_state_info.n_vol_species == 0  &&  world->viz_state_info.n_grid_species == 0)
+  {
+    dreamm_v3_create_empty_file(DREAMM_VOL_MOL_POS_NAME);
+    dreamm_v3_create_empty_file(DREAMM_VOL_MOL_ORIENT_NAME);
+    dreamm_v3_create_empty_file(DREAMM_VOL_MOL_STATES_NAME);
+    dreamm_v3_create_empty_file(DREAMM_VOL_MOL_HEADER_NAME);
+
+    dreamm_v3_create_empty_file(DREAMM_SURF_MOL_POS_NAME);
+    dreamm_v3_create_empty_file(DREAMM_SURF_MOL_ORIENT_NAME);
+    dreamm_v3_create_empty_file(DREAMM_SURF_MOL_STATES_NAME);
+    dreamm_v3_create_empty_file(DREAMM_SURF_MOL_HEADER_NAME);
   }
 
-  word_p=(unsigned char *)&word;
-  word=0x04030201;
+  /* Dump meshes */
+  if (viz_meshes  &&  dreamm_v3_dump_meshes(fdlp))
+      return 1;
 
-  if (word_p[0]==1) {
-    sprintf(my_byte_order,"lsb");
+  /* Dump molecules */
+  if (viz_mols)
+  {
+    /* Dump grid molecules. */
+    if (dreamm_v3_dump_grid_molecules(fdlp))
+      return 1;
+
+    /* dump 3D molecules: */
+    if (dreamm_v3_dump_volume_molecules(fdlp))
+      return 1;
   }
-  else {
-    sprintf(my_byte_order,"msb");
+
+  /* If we're on the final iteration... */
+  if (world->it_time == world->viz_state_info.final_iteration)
+  {
+    /* Check for other frames this iteration */
+    if (! dreamm_v3_generic_scan_for_frame(fdlp->next, fdlp->viz_iteration) &&
+        dreamm_v3_dump_time_info())
+      return 1;
   }
 
- 
-  /*initialize  arrays. */
-  
-  if(time_values == NULL){
-  
-     time_values = (u_int *)malloc(sizeof(u_int) * time_values_total);
-     if(time_values == NULL){
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-      }
-      
-      for(ii = 0; ii < time_values_total; ii++){
-        time_values[ii] = UINT_MAX;
-      }
-   }
-
-  if(iteration_numbers_meshes == NULL){
-  
-     iteration_numbers_meshes = (u_int *)malloc(sizeof(u_int) * time_values_total);
-     if(iteration_numbers_meshes == NULL){
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-      }
-      
-      for(ii = 0; ii < time_values_total; ii++){
-        iteration_numbers_meshes[ii] = UINT_MAX;
-      }
-     
-   }
-
-  if(iteration_numbers_vol_mols == NULL){
-  
-     iteration_numbers_vol_mols = (u_int *)malloc(sizeof(u_int) * time_values_total);
-     if(iteration_numbers_vol_mols == NULL){
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-      }
-      
-      for(ii = 0; ii < time_values_total; ii++){
-        iteration_numbers_vol_mols[ii] = UINT_MAX;
-      }
-     
-   }
-  
-   if(iteration_numbers_surf_mols == NULL){
-  
-     iteration_numbers_surf_mols = (u_int *)malloc(sizeof(u_int) * time_values_total);
-     if(iteration_numbers_surf_mols == NULL){
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-      }
-      
-      for(ii = 0; ii < time_values_total; ii++){
-        iteration_numbers_surf_mols[ii] = UINT_MAX;
-      }
-     
-   }
-
-  viz_iteration = (u_int)(fdlp->viz_iteration);
-  n_viz_iterations = (u_int)(fdlp->n_viz_iterations);
-
-  viz_type=fdlp->type;
-
-  /* here is the check to prevent writing twice the same info 
-    - at the end of one checkpoint and the beginning of the next checkpoint.
+  /*
+   * Now check whether there is a need to create symlinks to the
+   * meshes/molecules files saved previously in the previous frame directories.
+   * Create link in this "frame_#" folder to the last existing "meshes" files.
    */
-  if((world->chkpt_flag) && (world->start_time > 0)){
-     if (world->it_time == world->start_time){
-         if(world->chkpt_iterations != 0  &&  viz_iteration % (world->chkpt_iterations) == 0){
-             return 0;
-         }
-     }
-  }
+  if (viz_meshes  &&  dreamm_v3_create_molecule_symlinks(fdlp))
+    return 1;
 
+  if (viz_mols  &&  dreamm_v3_create_mesh_symlinks(fdlp))
+    return 1;
 
-  /* initialize flags */
-  viz_mol_pos_flag = (viz_type==MOL_POS);
-  viz_mol_orient_flag = (viz_type==MOL_ORIENT);
-  viz_mol_all_data_flag = (viz_type==ALL_MOL_DATA);
-  if(viz_mol_all_data_flag){
-       viz_mol_pos_flag = viz_mol_orient_flag = 1;
-  }
-  if(viz_mol_pos_flag){
-     if((world->viz_output_flag & VIZ_MOLECULES_STATES) != 0){
-     	viz_mol_states_flag = 1;
-     }
-  } 
-  
-  viz_surf_pos_flag = (viz_type==MESH_GEOMETRY);
-  viz_region_data_flag = (viz_type==REG_DATA);
-  viz_surf_all_data_flag = (viz_type==ALL_MESH_DATA);
-  if(viz_surf_all_data_flag){
-     viz_surf_pos_flag = viz_region_data_flag = 1;
-  }
-  if(viz_surf_pos_flag){
-     if((world->viz_output_flag & VIZ_SURFACE_STATES) != 0){
-     	viz_surf_states_flag = 1;
-     }
-  }
-
-
-  /* these arrays are used to hold values of main_index for objects */
-  if((viz_surf_pos_flag) || (viz_region_data_flag))
-  {
-     if(obj_to_show_number > 0)
-     {
-  	if((surf_states == NULL) && (viz_surf_states_flag)){ 
-     		if ((surf_states=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL)      {
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-        	for(ii = 0; ii < obj_to_show_number; ii++){
-			surf_states[ii] = 0;
-     		}
-   	}
-   	if((surf_pos == NULL) && (viz_surf_pos_flag)){
-     		if ((surf_pos=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL) {
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-     		for(ii = 0; ii < obj_to_show_number; ii++){
-			surf_pos[ii] = 0;
-     		}
-   	}
-   	if((surf_con == NULL) && (viz_surf_pos_flag)){
-      		if ((surf_con=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL) {
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-      		}
-      		for(ii = 0; ii < obj_to_show_number; ii++){
-			surf_con[ii] = 0;
-      		}
-        }
-   	if(surf_field_indices == NULL){
-      		if ((surf_field_indices=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL) {
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-      		}
-      		for(ii = 0; ii < obj_to_show_number; ii++){
-			surf_field_indices[ii] = 0;
-      		}
-        }
-    
-
-   	/* initialize array of viz_objects names */
-   	if(obj_names == NULL){
-      		if ((obj_names = (char **)malloc(obj_to_show_number*sizeof(char *)))==NULL) {
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-      		}
-      		for(ii = 0; ii < obj_to_show_number; ii++){
-			obj_names[ii] = NULL;
-      		}
-                /* create an array of region names */
-   	        if(region_names == NULL){
-      	            if ((region_names = (char ***)malloc(obj_to_show_number*sizeof(char **)))==NULL) { 
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         	        return (1);
-      	            }
-                    /* initialize it */
-                    for(ii = 0; ii < obj_to_show_number; ii++)
-                    {
-                       region_names[ii] = NULL;
-                    }
-                 }          
-      
-     	        ii = 0;
-     	        vizp = world->viz_obj_head;
-     	        while(vizp != NULL){
-		   vcp = vizp->viz_child_head;
-        	   while(vcp != NULL){
-         	       obj_names[ii] = strdup(vcp->obj->sym->name);
-                       if(obj_names[ii] == NULL){
-                            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		    return (1);
-         	        }
-                
-                        int n_regs;   /* number of regions in the object */
-                        /* subtract the default region ALL */
-                        n_regs = vcp->obj->num_regions - 1;
-                        if(n_regs > 0){
-		            region_names[ii] = (char **)malloc(n_regs*sizeof(char *));
-                            if(region_names[ii] == NULL){ 
-                               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		       return (1);
-      		            }
-                        }
-
-                        jj = 0;
- 
-                        for(rlp = vcp->obj->regions; rlp != NULL; rlp = rlp->next){
-                            rp = rlp->reg;
-                            if(strcmp(rp->region_last_name, "ALL") == 0) continue;
-                            
-                            region_names[ii][jj] = strdup(rp->region_last_name);
-                            if(region_names[ii][jj] == NULL)
-                            { 
-                               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		       return (1);
-      		            }
-                            jj++;
-                             
-                        }
-                        
-                        ii++;
-         		vcp = vcp->next;
-       		    } /* end while (vcp) */
-       		    vizp = vizp->next;
-    	         } /* end while (vizp) */
-
-   	}
-       
-       } /* end if (obj_to_show_number > 0) */
-    }  /* end if (viz_surf_pos_flag  || viz_region_data_flag) */
-
-
-
-     /* these arrays are used to hold values of main_index for effectors 
-      and 3D molecules */
-   if(viz_mol_pos_flag || viz_mol_orient_flag)
-   {
-     if(eff_to_show_number > 0)
-     {
-     	if((eff_states == NULL) && (viz_mol_states_flag)){ 
-     		if((eff_states=(u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL)        {
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-     		for(ii = 0; ii < eff_to_show_number; ii++){
-			eff_states[ii] = 0;
-     		}
-     	}
-     	if((eff_pos == NULL) && (viz_mol_pos_flag)){
-     		if ((eff_pos=(u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL) 	{
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-     		for(ii = 0; ii < eff_to_show_number; ii++){
-			eff_pos[ii] = 0;
-     		}
-     	}
-     	if((eff_orient == NULL) && (viz_mol_orient_flag)){
-     		if ((eff_orient = (u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL) 	{
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-     		for(ii = 0; ii < eff_to_show_number; ii++){
-			eff_orient[ii] = 0;
-     		}
-     	}
-     	if(eff_field_indices == NULL){
-     		if ((eff_field_indices = (u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL) 	{
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-     		for(ii = 0; ii < eff_to_show_number; ii++){
-			eff_field_indices[ii] = 0;
-     		}
-     	}
-   	/* initialize array of grid_mol's names */
-   	if(eff_names == NULL){
-
-      		if ((eff_names = (char **)malloc(eff_to_show_number*sizeof(char *)))==NULL) {
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-      		}
-      		for(ii = 0; ii < eff_to_show_number; ii++){
-			eff_names[ii] = NULL;
-      		}
-   	
-                index = 0;
-        
-                for(ii = 0; ii < world->n_species; ii++)
-                {
-     	           specp = world->species_list[ii];
-     	           if((specp->flags & IS_SURFACE) != 0) continue;
-     	           if(strcmp(specp->sym->name, "GENERIC_MOLECULE") == 0) continue;
-                   if(((specp->flags & ON_GRID) == ON_GRID) && (specp->viz_state > 0)){ 
-                      eff_names[index] = strdup(specp->sym->name);
-                      if(eff_names[index] == NULL){
-                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                         return (1);
-                      }
-                      index++;
-                    } 
-                 }
-        }
-        index = 0;
-     } /* end if (eff_to_show_number > 0) */
-   }  /* end if(viz_eff_pos_flag  */
-   
-   if(viz_mol_pos_flag || viz_mol_orient_flag)
-   {
-     if(mol_to_show_number > 0)
-     {
-     	if((mol_states == NULL) && (viz_mol_states_flag)){ 
-     		if((mol_states=(u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL)        {
-                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-     		for(ii = 0; ii < mol_to_show_number; ii++){
-			mol_states[ii] = 0;
-     		}
-     	}
-     	if((mol_pos == NULL) && (viz_mol_pos_flag)) {
-     		if ((mol_pos=(u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL) 	{
-                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-     		for(ii = 0; ii < mol_to_show_number; ii++){
-			mol_pos[ii] = 0;
-     		}
-     	}
-     	if((mol_orient == NULL) && (viz_mol_orient_flag)){
-     		if ((mol_orient = (u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL) 	{
-                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-     		for(ii = 0; ii < mol_to_show_number; ii++){
-			mol_orient[ii] = 0;
-     		}
-     	}
-     	if(mol_field_indices == NULL){
-     		if ((mol_field_indices = (u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL) 	{
-                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-     		for(ii = 0; ii < mol_to_show_number; ii++){
-			mol_field_indices[ii] = 0;
-     		}
-     	}
-        
-   	/* initialize array of mol's names */
-   	if(mol_names == NULL){
-      		if ((mol_names = (char **)malloc(mol_to_show_number*sizeof(char *)))==NULL) {
-                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-      		}
-      		for(ii = 0; ii < mol_to_show_number; ii++){
-			mol_names[ii] = NULL;
-      		}
-   	
-        	index = 0;
-        	for(ii = 0; ii < world->n_species; ii++)
-        	{
-     	   	   specp = world->species_list[ii];
-     	   	   if((specp->flags & IS_SURFACE) != 0) continue;
-     	   	   if(strcmp(specp->sym->name, "GENERIC_MOLECULE") == 0) continue;
-           	   if(((specp->flags & NOT_FREE) == 0) && (specp->viz_state > 0)){ 
-                       mol_names[index] = strdup(specp->sym->name);
-                       if(mol_names[index] == NULL){
-                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                         return (1);
-                       }
-                       index++;
-                   } 
-                }
-        }
-        index = 0;
-
-     } /* end if (mol_to_show_number > 0) */
-  }  /* end if(viz_mol_pos_flag || viz_mol_orient_flag) */
-
-  if(viz_data_dir_name == NULL)
-  {
-     viz_data_dir_name = (char *)malloc((strlen(world->file_prefix_name) + strlen(dir_name_end) + 1)*sizeof(char));
-     if(viz_data_dir_name == NULL){
-         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         return (1);
-     }
-     strcpy(viz_data_dir_name, world->file_prefix_name);
-     strcat(viz_data_dir_name, dir_name_end);
-  }
-  
-   
-  if(!viz_data_dir_created)
-  {
-     /* test whether a directory structure created by the user exists */
-     /* count the number of '/' */
-     ii = 0;
-     while(world->file_prefix_name[ii] != '\0') 
-     {
-        if(world->file_prefix_name[ii] == '/'){
-           viz_dir_depth++;
-        }
-        ii++;
-     }
-
-     if(viz_dir_depth > 1)
-     {
-     	ch_ptr = strrchr(world->file_prefix_name, '/');
-        num = ch_ptr - world->file_prefix_name;
-        filename = (char *)malloc(sizeof(char) * (num + 1));
-        if(filename == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-        }
-        strncpy(filename, world->file_prefix_name, num);  
-        filename[num] = '\0';
-
-        status = stat(filename, &f_stat);
-        if((status == -1) && (errno == ENOENT)){
-   	     fprintf(world->err_file, "File %s, Line %ld: viz_output data directory '%s' does not exist.  Please create it.\n", __FILE__, (long)__LINE__, filename);
-   	     exit (1);
-        }
-
-     } 
-
-     /* create folder for the visualization data */  
-     status = mkdir(viz_data_dir_name, S_IRWXU | S_IRWXG | S_IRWXO);
-     if((status != 0) && (errno != EEXIST)){
-   	fprintf(world->err_file, "File %s, Line %ld: Error while creating viz_output data directory '%s'.\n", __FILE__, (long)__LINE__, viz_data_dir_name);
-   	return (1);
-     }
-
-     /* create top level directory for "frame data" */
-     if(frame_data_dir_name == NULL)
-     {
-         frame_data_dir_name = (char *)malloc((strlen(viz_data_dir_name) + strlen("/frame_data") + 1)*sizeof(char));
-         if(frame_data_dir_name == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-         }
-
-        strcpy(frame_data_dir_name, viz_data_dir_name);
-        strcat(frame_data_dir_name, "/frame_data");
-     }
-
-
-     status = mkdir(frame_data_dir_name, S_IRWXU | S_IRWXG | S_IRWXO);
-     if((status != 0) && (errno != EEXIST)){
-   	fprintf(world->err_file, "File %s, Line %ld: Error while creating frame data directory '%s'.\n", __FILE__, (long)__LINE__, frame_data_dir_name);
-   	return (1);
-     }
-
-     viz_data_dir_created = 1;
-
-
-  }
-
-    /* create a subdirectory for the "iteration" data */
-    sprintf(iteration_number, "%d", viz_iteration);
-    iteration_number_dir = (char *)malloc((strlen(frame_data_dir_name) + strlen("/iteration_") + strlen(iteration_number) + 1));
-    if(iteration_number_dir == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-    }   
-    strcpy(iteration_number_dir, frame_data_dir_name);
-    strcat(iteration_number_dir, "/");
-    strcat(iteration_number_dir, "iteration_");
-
-    strcat(iteration_number_dir, iteration_number);       
-
-    /* searh for the directory 'iteration_number_dir' */
-    status = stat(iteration_number_dir, &f_stat);
-
-    if((status == -1) && (errno != ENOENT)){
-         fprintf(world->err_file, "File %s, Line %ld: error %d searching for the directory %s.\n", __FILE__, (long)__LINE__, errno, iteration_number_dir);
-     }else if((status == -1) && (errno == ENOENT)){
-         /* directory not found - create one */
-         status = mkdir(iteration_number_dir, S_IRWXU | S_IRWXG | S_IRWXO);
-         if((status != 0) && (errno != EEXIST)){
-   	     fprintf(world->err_file, "File %s, Line %ld: Error %d while creating viz_output data directory '%s'.\n", __FILE__, (long)__LINE__, errno, iteration_number_dir);
-   	     return (1);
-         }
-
-     }
- 
-    /* if MESHES keyword is absent (commented) the corresponding 
-       'meshes' files should be empty */
-
-   if ((viz_surf_pos_flag) || (obj_to_show_number == 0)) {
-  	 
-        mesh_pos_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/mesh_positions.bin") + 1));
-        if(mesh_pos_file_path == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-        }
- 
-        sprintf(mesh_pos_file_path,"%s/mesh_positions.bin",iteration_number_dir); 
- 
-        if(mesh_pos_name == NULL)
-        {
-           mesh_pos_name = (char *)malloc(sizeof(char) * (strlen("mesh_positions.bin") + 1));
-          if(mesh_pos_name == NULL){
-              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-              return (1);
-          }
-     	  strcpy(mesh_pos_name, "mesh_positions.bin");
-        }
-
-        /* if there are symbolic links present with this name - remove them */
-        status = stat(mesh_pos_file_path, &f_stat);
-        if(status == 0){
-           if(f_stat.st_mode | S_IFLNK) {
-            
-              /* remove the symbolic link */
-              status = unlink(mesh_pos_file_path);
-              if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, mesh_pos_name);
-                       return(1);
-               }
- 
-           }
-        }
- 
-
-      	if ((mesh_pos_data = fopen(mesh_pos_file_path,"wb"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, mesh_pos_file_path);
-                return(1);
-        }
-
-
-   }
-
-   if ((viz_surf_states_flag) || (obj_to_show_number == 0)){
-       mesh_states_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/mesh_states.bin") + 1));
-        if(mesh_states_file_path == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-        }
-        sprintf(mesh_states_file_path,"%s/mesh_states.bin", iteration_number_dir);
-     
-        if(mesh_states_name == NULL)
-        {
-           mesh_states_name = (char *)malloc(sizeof(char) * (strlen("mesh_states.bin") + 1));
-          if(mesh_states_name == NULL){
-              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-              return (1);
-          }
-     	  strcpy(mesh_states_name, "mesh_states.bin");
-        }
-
-        /* if there are symbolic links present with this name - remove them */
-        status = stat(mesh_states_file_path, &f_stat);
-        if(status == 0){
-           if(f_stat.st_mode | S_IFLNK) {
-              /* remove the symbolic link */
-              status = unlink(mesh_states_file_path);
-              if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, mesh_states_name);
-                       return(1);
-               }
- 
-           }
-        }
-
-        if ((mesh_states_data=fopen(mesh_states_file_path,"wb"))==NULL) {
-             fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,filename);
-             return(1);
-        }
-    }
-
-    if ((viz_region_data_flag) || (obj_to_show_number == 0)) {
-       region_viz_data_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/region_indices.bin") + 1));
-        if(region_viz_data_file_path == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-        }
-         sprintf(region_viz_data_file_path,"%s/region_indices.bin", iteration_number_dir);
-     
-        if(region_viz_data_name == NULL)
-        {
-           region_viz_data_name = (char *)malloc(sizeof(char) * (strlen("region_indices.bin") + 1));
-          if(region_viz_data_name == NULL){
-              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-              return (1);
-          }
-     	  strcpy(region_viz_data_name, "region_indices.bin");
-        }
-
-        /* if there are symbolic links present with this name - remove them */
-        status = stat(region_viz_data_file_path, &f_stat);
-        if(status == 0){
-           if(f_stat.st_mode | S_IFLNK) {
-              /* remove the symbolic link */
-              status = unlink(region_viz_data_file_path);
-              if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, region_viz_data_name);
-                       return(1);
-               }
- 
-           }
-        }
-
-        if ((region_data=fopen(region_viz_data_file_path,"wb"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, region_viz_data_file_path);
-              return(1);
-        }
-    }
-
-    if (((viz_surf_pos_flag || viz_region_data_flag)) || (obj_to_show_number == 0)) {
-       meshes_header_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/meshes.dx") + 1));
-        if(meshes_header_file_path == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-        }
-         sprintf(meshes_header_file_path,"%s/meshes.dx", iteration_number_dir);
-     
-        if(meshes_header_name == NULL)
-        {
-           meshes_header_name = (char *)malloc(sizeof(char) * (strlen("meshes.dx") + 1));
-          if(meshes_header_name == NULL){
-              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-              return (1);
-          }
-     	  strcpy(meshes_header_name, "meshes.dx");
-        }
-         
-        /* if there are symbolic links present with this name - remove them */
-        status = stat(meshes_header_file_path, &f_stat);
-        if(status == 0){
-           if(f_stat.st_mode | S_IFLNK) {
-              /* remove the symbolic link */
-              status = unlink(meshes_header_file_path);
-              if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, meshes_header_name);
-                       return(1);
-               }
- 
-           }
-        }
-        
-        if(count_meshes_header == 0)
-        {
-           if ((meshes_header=fopen(meshes_header_file_path,"w"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, meshes_header_file_path);
-              return(1);
-           }
-           count_meshes_header++;
-        }else{
-           if ((meshes_header=fopen(meshes_header_file_path,"a"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, meshes_header_file_path);
-              return(1);
-           }
-           count_meshes_header++;
-        }
-    }
-
-
-   /* If MOLECULES keyword is absent or commented 
-      create empty 'molecules' output files. */
-
-   if ((viz_mol_pos_flag) || ((mol_to_show_number == 0) && (eff_to_show_number == 0))) {
-     
-       vol_mol_pos_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/volume_molecules_positions.bin") + 1));
-        if(vol_mol_pos_file_path == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-        }
-        sprintf(vol_mol_pos_file_path,"%s/volume_molecules_positions.bin",iteration_number_dir);
-     
-        if(vol_mol_pos_name == NULL)
-        {
-          vol_mol_pos_name = (char *)malloc(sizeof(char) * (strlen("volume_molecules_positions.bin") + 1));
-          if(vol_mol_pos_name == NULL){
-              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-              return (1);
-          }
-     	  strcpy(vol_mol_pos_name, "volume_molecules_positions.bin");
-        }
-
-        /* if there are symbolic links present with this name - remove them */
-        status = stat(vol_mol_pos_file_path, &f_stat);
-        if(status == 0){
-           if(f_stat.st_mode | S_IFLNK) {
-              /* remove the symbolic link */
-              status = unlink(vol_mol_pos_file_path);
-              if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, vol_mol_pos_name);
-                       return(1);
-               }
- 
-           }
-        }
-        
-      	if ((vol_mol_pos_data = fopen(vol_mol_pos_file_path,"wb"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, vol_mol_pos_file_path);
-                return(1);
-        }
-
-       surf_mol_pos_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/surface_molecules_positions.bin") + 1));
-        if(surf_mol_pos_file_path == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-        }
-        sprintf(surf_mol_pos_file_path,"%s/surface_molecules_positions.bin",iteration_number_dir);
-     
-        if(surf_mol_pos_name == NULL)
-        {
-          surf_mol_pos_name = (char *)malloc(sizeof(char) * (strlen("surface_molecules_positions.bin") + 1));
-          if(surf_mol_pos_name == NULL){
-              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-              return (1);
-          }
-     	  strcpy(surf_mol_pos_name, "surface_molecules_positions.bin");
-        }
-
-        /* if there are symbolic links present with this name - remove them */
-        status = stat(surf_mol_pos_file_path, &f_stat);
-        if(status == 0){
-           if(f_stat.st_mode | S_IFLNK) {
-              /* remove the symbolic link */
-              status = unlink(surf_mol_pos_file_path);
-              if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, surf_mol_pos_name);
-                       return(1);
-               }
- 
-           }
-        }
-      	
-        if ((surf_mol_pos_data = fopen(surf_mol_pos_file_path,"wb"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, surf_mol_pos_file_path);
-                return(1);
-        }
-
-   }
-
-   if ((viz_mol_orient_flag) || ((mol_to_show_number == 0) && (eff_to_show_number == 0))){
-      	 
-        vol_mol_orient_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/volume_molecules_orientations.bin") + 1));
-        if(vol_mol_orient_file_path == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-        }
-        sprintf(vol_mol_orient_file_path, "%s/volume_molecules_orientations.bin", iteration_number_dir);
-     
-        if(vol_mol_orient_name == NULL)
-        {
-          vol_mol_orient_name = (char *)malloc(sizeof(char) * (strlen("volume_molecules_orientations.bin") + 1));
-          if(vol_mol_orient_name == NULL){
-              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-              return (1);
-          }
-     	  strcpy(vol_mol_orient_name, "volume_molecules_orientations.bin");
-        }
-        
-        /* if there are symbolic links present with this name - remove them */
-        status = stat(vol_mol_orient_file_path, &f_stat);
-        if(status == 0){
-           if(f_stat.st_mode | S_IFLNK) {
-              /* remove the symbolic link */
-              status = unlink(vol_mol_orient_file_path);
-              if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, vol_mol_orient_name);
-                       return(1);
-               }
- 
-           }
-        }
-
-      	if ((vol_mol_orient_data = fopen(vol_mol_orient_file_path,"wb"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, vol_mol_orient_file_path);
-                return(1);
-        }
-
-
-       surf_mol_orient_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/surface_molecules_orientations.bin") + 1));
-        if(surf_mol_orient_file_path == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-        }
-      	 
-        sprintf(surf_mol_orient_file_path,"%s/surface_molecules_orientations.bin",iteration_number_dir);
-     
-        if(surf_mol_orient_name == NULL)
-        {
-          surf_mol_orient_name = (char *)malloc(sizeof(char) * (strlen("surface_molecules_orientations.bin") + 1));
-          if(surf_mol_orient_name == NULL){
-              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-              return (1);
-          }
-     	  strcpy(surf_mol_orient_name, "surface_molecules_orientations.bin");
-        }
-
-        /* if there are symbolic links present with this name - remove them */
-        status = stat(surf_mol_orient_file_path, &f_stat);
-        if(status == 0){
-           if(f_stat.st_mode | S_IFLNK) {
-              /* remove the symbolic link */
-              status = unlink(surf_mol_orient_file_path);
-              if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, surf_mol_orient_name);
-                       return(1);
-               }
- 
-           }
-        }
-      	
-        if ((surf_mol_orient_data = fopen(surf_mol_orient_file_path,"wb"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, surf_mol_orient_file_path);
-                return(1);
-        }
-   }
-
-   if ((viz_mol_states_flag) || ((mol_to_show_number == 0) && (eff_to_show_number == 0))) {
-      	 
-       vol_mol_states_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/volume_molecules_states.bin") + 1));
-        if(vol_mol_states_file_path == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-        }
-        sprintf(vol_mol_states_file_path,"%s/volume_molecules_states.bin", iteration_number_dir);
-     
-        if(vol_mol_states_name == NULL)
-        {
-          vol_mol_states_name = (char *)malloc(sizeof(char) * (strlen("volume_molecules_states.bin") + 1));
-          if(vol_mol_states_name == NULL){
-              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-              return (1);
-          }
-     	  strcpy(vol_mol_states_name, "volume_molecules_states.bin");
-        }
-        
-        /* if there are symbolic links present with this name - remove them */
-        status = stat(vol_mol_states_file_path, &f_stat);
-        if(status == 0){
-           if(f_stat.st_mode | S_IFLNK) {
-              /* remove the symbolic link */
-              status = unlink(vol_mol_states_file_path);
-              if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, vol_mol_states_file_path);
-                       return(1);
-               }
- 
-           }
-        }
-
-      	if ((vol_mol_states_data = fopen(vol_mol_states_file_path,"wb"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, vol_mol_states_file_path);
-                return(1);
-        }
-
-      	 
-       surf_mol_states_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) +  strlen("/surface_molecules_states.bin") + 1));
-        if(surf_mol_states_file_path == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-        }
-        sprintf(surf_mol_states_file_path, "%s/surface_molecules_states.bin", iteration_number_dir);
-     
-        if(surf_mol_states_name == NULL)
-        {
-          surf_mol_states_name = (char *)malloc(sizeof(char) * (strlen("surface_molecules_states.bin") + 1));
-          if(surf_mol_states_name == NULL){
-              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-              return (1);
-          }
-     	  strcpy(surf_mol_states_name, "surface_molecules_states.bin");
-        }
-
-        /* if there are symbolic links present with this name - remove them */
-        status = stat(surf_mol_states_file_path, &f_stat);
-        if(status == 0){
-           if(f_stat.st_mode | S_IFLNK) {
-              /* remove the symbolic link */
-              status = unlink(surf_mol_states_file_path);
-              if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, surf_mol_states_name);
-                       return(1);
-               }
- 
-           }
-        }
-      	
-        if ((surf_mol_states_data = fopen(surf_mol_states_file_path,"wb"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, surf_mol_states_file_path);
-                return(1);
-        }
-
-   }
-
-    if ((viz_mol_pos_flag || viz_mol_orient_flag)  || ((mol_to_show_number == 0) && (eff_to_show_number == 0))){
-       vol_mol_header_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/volume_molecules.dx") + 1));
-        if(vol_mol_header_file_path == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-        }
-         sprintf(vol_mol_header_file_path,"%s/volume_molecules.dx", iteration_number_dir);
-     
-        if(vol_mol_header_name == NULL)
-        {
-          vol_mol_header_name = (char *)malloc(sizeof(char) * (strlen("volume_molecules.dx") + 1));
-          if(vol_mol_header_name == NULL){
-              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-              return (1);
-          }
-     	  strcpy(vol_mol_header_name, "volume_molecules.dx");
-        }
-        
-        /* if there are symbolic links present with this name - remove them */
-        status = stat(vol_mol_header_file_path, &f_stat);
-        if(status == 0){
-           if(f_stat.st_mode | S_IFLNK) {
-              /* remove the symbolic link */
-              status = unlink(vol_mol_header_file_path);
-              if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, vol_mol_header_name);
-                       return(1);
-               }
- 
-           }
-        }
-        
-        if(count_vol_mol_header == 0)
-        {
-           if ((vol_mol_header=fopen(vol_mol_header_file_path,"w"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, vol_mol_header_file_path);
-              return(1);
-           }
-           count_vol_mol_header++;
-        }else{
-           if ((vol_mol_header=fopen(vol_mol_header_file_path,"a"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, vol_mol_header_file_path);
-              return(1);
-           }
-           count_vol_mol_header++;
-        }
-
-       surf_mol_header_file_path = (char *)malloc(sizeof(char) * (strlen(iteration_number_dir) + strlen("/surface_molecules.dx") + 1));
-        if(surf_mol_header_file_path == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-        }
-         sprintf(surf_mol_header_file_path, "%s/surface_molecules.dx", iteration_number_dir);
-     
-        if(surf_mol_header_name == NULL)
-        {
-          surf_mol_header_name = (char *)malloc(sizeof(char) * (strlen("surface_molecules.dx") + 1));
-          if(surf_mol_header_name == NULL){
-              fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-              return (1);
-          }
-     	  strcpy(surf_mol_header_name, "surface_molecules.dx");
-        }
-        
-        /* if there are symbolic links present with this name - remove them */
-        status = stat(surf_mol_header_file_path, &f_stat);
-        if(status == 0){
-           if(f_stat.st_mode | S_IFLNK) {
-              /* remove the symbolic link */
-              status = unlink(surf_mol_header_file_path);
-              if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing file link to the file %s.\n", __FILE__, (long)__LINE__, errno, surf_mol_header_name);
-                       return(1);
-               }
- 
-           }
-        }
-        
-        if(count_surf_mol_header == 0)
-        {
-           if ((surf_mol_header=fopen(surf_mol_header_file_path,"w"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, surf_mol_header_file_path);
-              return(1);
-           }
-           count_surf_mol_header++;
-        }else{
-           if ((surf_mol_header=fopen(surf_mol_header_file_path, "a"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, surf_mol_header_file_path);
-              return(1);
-           }
-           count_surf_mol_header++;
-        }
-    }
-
-
-    /* find out the values of the current iteration steps for
-       (GEOMETRY, REG_DATA),  
-       (MOL_POS, MOL_ORIENT) frames combinations */
-   
-    fdl_ptr = world->frame_data_head;
-    while(fdl_ptr != NULL){
-        if(fdl_ptr->type == MESH_GEOMETRY){
-             curr_surf_pos_iteration_step = fdl_ptr->viz_iteration;
-        }if(fdl_ptr->type == REG_DATA){
-             curr_region_data_iteration_step = fdl_ptr->viz_iteration;
-        }if(fdl_ptr->type == ALL_MESH_DATA){
-             curr_surf_pos_iteration_step = fdl_ptr->viz_iteration;
-             curr_region_data_iteration_step = fdl_ptr->viz_iteration;
-        }else if(fdl_ptr->type == MOL_POS){
-             curr_mol_pos_iteration_step = fdl_ptr->viz_iteration;
-	}else if(fdl_ptr->type == MOL_ORIENT) 
-        {
-             curr_mol_orient_iteration_step = fdl_ptr->viz_iteration;
-        }else if(fdl_ptr->type == ALL_MOL_DATA){
-             curr_mol_pos_iteration_step = fdl_ptr->viz_iteration;
-             curr_mol_orient_iteration_step = fdl_ptr->viz_iteration;
-        }	
-        fdl_ptr = fdl_ptr->next;
-    }
-  
-    /* If the values of the current iteration steps for REG_VIZ_VALUES and
-       MESH_GEOMETRY are equal set this value to the 
-       special_surf_iteration_step.
-       Do the same for the (MOL_POS,MOL_ORIENT).
-    */
-     
-    if(curr_region_data_iteration_step == curr_surf_pos_iteration_step){
-	special_surf_iteration_step = curr_surf_pos_iteration_step;
-    }
-    
-    if(curr_mol_orient_iteration_step == curr_mol_pos_iteration_step){
-	special_mol_iteration_step = curr_mol_orient_iteration_step;
-    }
-    
-    /* check for the special_iteration_step  */  
-    if(viz_surf_pos_flag || viz_region_data_flag){	    
-	    if(fdlp->viz_iteration == special_surf_iteration_step){
-		special_surf_frames_counter++;
-            }
-    }
-
-    /* check for the special_iteration_step  */ 
-    if(viz_mol_pos_flag || viz_mol_orient_flag){	    
-	    if(fdlp->viz_iteration == special_mol_iteration_step){
-		special_mol_frames_counter++;
-            }
-    }
-
-  /* dump walls */
-  if((viz_surf_pos_flag) || (viz_region_data_flag)) {
-     vizp = world->viz_obj_head;
-     
-     while(vizp!=NULL) {
-
-
-    /* Traverse all visualized compartments 
-       output mesh element positions and connections */
-    vcp = vizp->viz_child_head;
-
-    while(vcp!=NULL) {
-
-      objp = vcp->obj;
-      if(objp->viz_state == NULL) continue;
-      pop=(struct polygon_object *)objp->contents;
-
-      if (objp->object_type==POLY_OBJ || objp->object_type==BOX_OBJ) {
-          opp=(struct ordered_poly *)pop->polygon_data;
-          edp=opp->element;
-          element_data_count=objp->n_walls_actual;
-
-          if (viz_surf_pos_flag) {
-            fprintf(meshes_header,
-              "object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d # %s.positions #\n",
-              meshes_main_index,objp->n_verts,my_byte_order,mesh_pos_name, mesh_pos_byte_offset, objp->sym->name);
-            fprintf(meshes_header,
-              "\tattribute \"dep\" string \"positions\"\n\n");
-            surf_pos[surf_pos_index] = meshes_main_index;
-            surf_pos_index++;
-            meshes_main_index++;
-
-            /* output polyhedron vertices */
-            for (ii=0;ii<objp->n_verts;ii++) {
-              v1 = (float)(world->length_unit*objp->verts[ii].x);
-              v2 = (float)(world->length_unit*objp->verts[ii].y);
-              v3 = (float)(world->length_unit*objp->verts[ii].z);
-              fwrite(&v1,sizeof v1,1,mesh_pos_data);
-              fwrite(&v2,sizeof v2,1,mesh_pos_data);
-              fwrite(&v3,sizeof v3,1,mesh_pos_data);
-              mesh_pos_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-            }
-
-            /* output polygon element connections */
-            fprintf(meshes_header,
-              "object %d class array type int rank 1 shape 3 items %d %s binary data file %s,%d # %s.connections #\n",
-              meshes_main_index,element_data_count,my_byte_order, mesh_pos_name, mesh_pos_byte_offset, objp->sym->name);
-            fprintf(meshes_header,
-              "\tattribute \"ref\" string \"positions\"\n");
-            fprintf(meshes_header,
-              "\tattribute \"element type\" string \"triangles\"\n\n");
-
-            for (ii=0;ii<objp->n_walls;ii++) {
-              if (!get_bit(pop->side_removed,ii)) {
-                vi1=edp[ii].vertex_index[0];
-                vi2=edp[ii].vertex_index[1];
-                vi3=edp[ii].vertex_index[2];
-	        fwrite(&vi1,sizeof vi1,1,mesh_pos_data);
-	        fwrite(&vi2,sizeof vi2,1,mesh_pos_data);
-	        fwrite(&vi3,sizeof vi3,1,mesh_pos_data);
-                mesh_pos_byte_offset += (sizeof(vi1) + sizeof(vi2) + sizeof(vi3));
-              }
-            }
-            surf_con[surf_con_index] = meshes_main_index;
-            meshes_main_index++;
-            surf_con_index++;
-
-          } /* end viz_surf_pos_flag for POLY_OBJ */
- 
-
-          if (viz_surf_states_flag) {
-            fprintf(meshes_header,
-              "object %d class array type int rank 0 items %d %s binary data file %s,%d # %s.states #\n", meshes_main_index, element_data_count, my_byte_order, mesh_states_name, mesh_states_byte_offset, objp->sym->name);
-            fprintf(meshes_header,"\tattribute \"dep\" string \"connections\"\n\n");
-           surf_states[surf_states_index] = meshes_main_index;
-           surf_states_index++;
-           meshes_main_index++;
-
-            for (ii=0;ii<objp->n_walls;ii++) {
-               if (!get_bit(pop->side_removed,ii)) {
-                 state=objp->viz_state[ii];
-                 fwrite(&state,sizeof (state),1,mesh_states_data);
-                 mesh_states_byte_offset += sizeof(state);
-               }
-            }
-
-          } 	/* end viz_surf_states_flag for POLY_OBJ */
-
-
-          if(viz_region_data_flag && (objp->num_regions > 1))
-          {
-              surf_region_values_index = 0;
-
-              for(rlp = objp->regions; rlp != NULL; rlp = rlp->next)
-              {
-                  rp = rlp->reg;
-                  if(strcmp(rp->region_last_name, "ALL") == 0) continue; 
-                  
-                  /* number of walls in the region */
-                  int region_walls_number = 0; 
-                  
-                  for(jj = 0; jj < objp->n_walls; jj++)
-                  {
-                    int n = objp->wall_p[jj]->side;
-                    if(get_bit(rp->membership,n))
-                    {
-                        fwrite(&n,sizeof (n),1,region_data);
-                        region_data_byte_offset += sizeof(n);
-                        region_walls_number++;
-                    }
-
-                  }
-
-                  fprintf(meshes_header,
-                        "object %d class array type int rank 0 items %d %s binary data file %s,%d # %s.region_data #\n", meshes_main_index, region_walls_number, my_byte_order, region_viz_data_name, region_data_byte_offset_prev, objp->sym->name);
-                  fprintf(meshes_header,"\tattribute \"ref\" string \"connections\"\n");  
-                  fprintf(meshes_header,"\tattribute \"identity\" string \"region_indices\"\n");
-                  fprintf(meshes_header,"\tattribute \"name\" string \"%s\"\n", rp->region_last_name);
-                  if(rp->region_viz_value > 0){
-                      fprintf(meshes_header,"\tattribute \"viz_value\" number %d\n", rp->region_viz_value);
-                  }
-
-                  region_data_byte_offset_prev = region_data_byte_offset;
-                  surf_region_values[surf_obj_region_values_index][surf_region_values_index] = meshes_main_index;
-                  surf_region_values_index++;
-                  meshes_main_index++;
-                  fprintf(meshes_header, "\n\n");
-
-              } /* end for */
-              
-
-           } /* end if(region_data_flag) */
-
-
-       }	/* end POLY_OBJ */
-
-       surf_obj_region_values_index++; 
-
-      vcp = vcp->next;
-      }
-      
-      vizp = vizp->next;
-      }
-    } /* end (viz_surf_pos_flag || viz_surf_states_flag || viz_region_data_flag) for vizp */
-    
-
-    /* build fields here */
-   if(obj_to_show_number > 0)
-   {
-      if(fdlp->type == ALL_MESH_DATA) {
-           show_meshes = 1;
-      }
-      else if((viz_surf_pos_flag || viz_region_data_flag) && ((special_surf_frames_counter == 0) || (special_surf_frames_counter == 2))){
-		show_meshes = 1;
-      }
-    }
-
-    /* create field objects */
-    if(show_meshes)
-    {
-         for(ii = 0; ii < obj_to_show_number; ii++)
-         {
-             if(obj_names[ii] != NULL){
-                fprintf(meshes_header,
-                    "object %d field   # %s #\n",meshes_main_index, obj_names[ii]);
-             }
-             if(surf_pos[ii] > 0){
-             	fprintf(meshes_header,
-                 "\tcomponent \"positions\" value %d\n",surf_pos[ii]);
-             }
-             if(surf_con[ii] > 0){
-             	fprintf(meshes_header,
-                 "\tcomponent \"connections\" value %d\n",surf_con[ii]);
-             }
-             if(surf_states != NULL){
-                if(surf_states[ii] > 0){
-             	   fprintf(meshes_header,
-                	"\tcomponent \"state_values\" value %d\n",surf_states[ii]);
-	        }
-             }
-             if(surf_region_values[ii] != NULL)
-             {
-                for(jj = 0; jj < obj_num_regions[ii]; jj++)
-                {
-                   if(surf_region_values[ii][jj] > 0){
-             	      fprintf(meshes_header,
-                	"\tcomponent \"%s\" value %d\n",region_names[ii][jj], surf_region_values[ii][jj]);
-	           }
-                }
-             }
-             fprintf(meshes_header, "\n");
-             surf_field_indices[ii] = meshes_main_index;
-
-             meshes_main_index++;
-           }     
-     }
-
-
-
-
-
-   /* create a group object for all meshes */       
-    if(show_meshes)
-    {
-
-        vizp = world->viz_obj_head;
-        if(vizp != NULL){
-
-        	fprintf(meshes_header,"object %d group # %s #\n",meshes_main_index, "meshes");
-        	meshes_main_index++;
-
-                ii = 0;
-        	while(vizp != NULL) {
-         		vcp = vizp->viz_child_head;
-         		while(vcp != NULL){
-                          if(surf_field_indices[ii] > 0){
-             			fprintf(meshes_header,"\tmember \"%s\" value %d\n",vcp->obj->sym->name,surf_field_indices[ii]);
-                          }
-                          ii++;
-		       	  vcp = vcp->next;
-         		}
-         		vizp = vizp->next;
-        	}       
-        	fprintf(meshes_header, "\n"); 
-      	}  /* end (if vizp) */
-        
-        /* reset meshes object indexing */
-        meshes_main_index = 1;
-        count_meshes_header = 0;
-        special_surf_frames_counter = 0;
-
-        /* store iteration_number for meshes */
-      iteration_numbers_meshes[iteration_numbers_meshes_count] = viz_iteration;
-      iteration_numbers_meshes_count++;
-
-	/* put value of viz_iteration into the time_values array */
-            if(time_values_count == 0){
-               time_values[time_values_count] = viz_iteration;  
-               time_values_count++;
-               last_time_value_written = viz_iteration;
-            }else if(viz_iteration > last_time_value_written){
-               time_values[time_values_count] = viz_iteration;  
-               time_values_count++;
-               last_time_value_written = viz_iteration;
-            } 
-          
-    } /* end if(show_meshes) */
-
-    /* Visualize molecules. */
-
-/* dump grid molecules. */
-
- if(viz_mol_pos_flag || viz_mol_orient_flag){	    
-
-       /* create references to the numbers of grid molecules of each name. */
-       if ((viz_grid_mol_count=(u_int *)malloc(n_species*sizeof(u_int)))==NULL) {
-         return(1);
-       }
-
-       /* perform initialization */
-      for (ii = 0; ii < n_species; ii++){
-         spec_id = species_list[ii]->species_id;
-         viz_grid_mol_count[spec_id]=0;
-
-      }
-
-
-   for (ii = 0; ii < n_species; ii++)
-   {
-     specp = species_list[ii];
-     if((specp->flags & ON_GRID) == 0) continue; 
-     if(specp->viz_state == EXCLUDE_OBJ) continue; 
- 
-        grid_mol_name = specp->sym->name;
-        spec_id = specp->species_id; 
-
-        if(viz_mol_pos_flag){
-      	   surf_mol_pos_byte_offset_prev = surf_mol_pos_byte_offset;
-        }
-        if(viz_mol_orient_flag){
-      	   surf_mol_orient_byte_offset_prev = surf_mol_orient_byte_offset;
-        }
-        if(viz_mol_states_flag){
-      	   surf_mol_states_byte_offset_prev = surf_mol_states_byte_offset;
-        }
-        /* Write binary data files. */
-        vizp = world->viz_obj_head;
-        while(vizp != NULL) {
-         vcp = vizp->viz_child_head;
-         while(vcp != NULL){
-	     objp = vcp->obj;
-             wp = objp->wall_p;
-             no_printf("Traversing walls in object %s\n",objp->sym->name);
-             for (jj=0;jj<objp->n_walls;jj++) {
-                w = wp[jj];
-                if (w!=NULL) {
-	           sg = w->grid;
-                   if (sg!=NULL) {
-                     for (index=0;index<sg->n_tiles;index++) {
-                        grid2xyz(sg,index,&p0);
-	                gmol=sg->mol[index];
-	                if ((gmol!=NULL) && (viz_mol_states_flag)){
-	                   state=sg->mol[index]->properties->viz_state;
-                        }
-                        if (gmol != NULL) {
-                             if(spec_id == gmol->properties->species_id){
-                                 if(viz_grid_mol_count[spec_id] < specp->population){
-                                     viz_grid_mol_count[spec_id]++;
-                                 }else{
-                                     fprintf(log_file,"MCell: molecule count disagreement!!\n");
-                                     fprintf(log_file,"  Species %s  population = %d  count = %d\n",grid_mol_name,specp->population,viz_grid_mol_count[spec_id]);
-
-                                 }
-
-                               if(viz_mol_pos_flag){
-                                   /* write positions information */
-	           		   v1=(float)(world->length_unit*p0.x);
-	           		   v2=(float)(world->length_unit*p0.y);
-	           		   v3=(float)(world->length_unit*p0.z);
-	           		   fwrite(&v1,sizeof v1,1,surf_mol_pos_data);
-	               		   fwrite(&v2,sizeof v2,1,surf_mol_pos_data);
-	           		   fwrite(&v3,sizeof v3,1,surf_mol_pos_data);
-                                   surf_mol_pos_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-                               }
-                               if(viz_mol_orient_flag){
-                                   /* write orientations information */
-                   		   v1=(float)((w->normal.x)*(gmol->orient));
-                   		   v2=(float)((w->normal.y)*(gmol->orient));
-                   		   v3=(float)((w->normal.z)*(gmol->orient));
-                   		   fwrite(&v1,sizeof v1,1,surf_mol_orient_data);
-                   		   fwrite(&v2,sizeof v2,1,surf_mol_orient_data);
-                   		   fwrite(&v3,sizeof v3,1,surf_mol_orient_data);
-                                   surf_mol_orient_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-                  		}
-                          } /* end if strcmp */
-                           
-                        } /* end if (gmol)*/
-                     } /* end for */
-                   } /* end if (sg) */
-                 } /* end if (w)*/
-              } /* end for */
-              vcp = vcp->next;
-            } /* end while (vcp) */
-                                              
-            vizp = vizp->next;
-         } /* end while (vzp) */
-
-        num = viz_grid_mol_count[spec_id];
-        
-        if(viz_mol_pos_flag)
-        {
-           if(num > 0)
-           {   
-        	fprintf(surf_mol_header,"object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d # %s positions #\n", surf_mol_main_index,num,my_byte_order, surf_mol_pos_name, surf_mol_pos_byte_offset_prev, grid_mol_name);
-        	fprintf(surf_mol_header,"\tattribute \"dep\" string \"positions\"\n\n");
-            }else{
-                /* output empty arrays for zero molecule counts here */
-                fprintf(surf_mol_header,"object %d array   # %s positions #\n",surf_mol_main_index, grid_mol_name);
-            }
-            eff_pos[eff_pos_index] = surf_mol_main_index;
-            eff_pos_index++;
-            surf_mol_main_index++;
-         }
-         
-         if(viz_mol_orient_flag)
-         {
-           if(num > 0)
-           {
-        	fprintf(surf_mol_header,"object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d   # %s orientations #\n",surf_mol_main_index,num,my_byte_order, surf_mol_orient_name, surf_mol_orient_byte_offset_prev, grid_mol_name);
-        	fprintf(surf_mol_header,"\tattribute \"dep\" string \"positions\"\n\n");
-            }else{
-                /* output empty arrays for zero molecule counts here */
-                fprintf(surf_mol_header,"object %d array   # %s orientations #\n",surf_mol_main_index, grid_mol_name);
-            }
-            eff_orient[eff_orient_index] = surf_mol_main_index;
-            eff_orient_index++;
-            surf_mol_main_index++;
-        }
-
-        if (viz_mol_states_flag) {
-          if(num > 0)
-          {
-            /* write states information. */
-            fwrite(&state,sizeof state,1,surf_mol_states_data);
-            surf_mol_states_byte_offset += (sizeof state);
-        
-	    fprintf(surf_mol_header,"object %d class constantarray type int items %d %s binary data file %s,%d  # %s states #\n",surf_mol_main_index,num, my_byte_order,surf_mol_states_name,surf_mol_states_byte_offset_prev, grid_mol_name);
-
-            fprintf(surf_mol_header,"\tattribute \"dep\" string \"positions\"\n\n");
-	  }else{
-             /* output empty arrays for zero molecule counts here */
-             fprintf(surf_mol_header,"object %d array   # %s states #\n",surf_mol_main_index, grid_mol_name);
-          }
-          eff_states[eff_states_index] = surf_mol_main_index;
-          eff_states_index++;
-          surf_mol_main_index++;
-       }
-       if(num == 0){
-         fprintf(surf_mol_header, "\n");
-       }
-   } /* end for loop */
-
- } /* end if(viz_mol_pos_flag || viz_mol_orient_flag) */
-
-/* build fields for grid molecules here */
-
-  if(eff_to_show_number > 0){
-      if(fdlp->type == ALL_MOL_DATA) {
-           show_effectors = 1;
-      }
-      else if((viz_mol_pos_flag || viz_mol_orient_flag) && ((special_mol_frames_counter ==0) || (special_mol_frames_counter == 2))){
-		show_effectors = 1;
-      }
-  }
- 
-  if(show_effectors){
-
-       for(ii = 0; ii < eff_to_show_number; ii++)
-       {
-             if(eff_names[ii] != NULL){
-                fprintf(surf_mol_header,
-                    "object %d field   # %s #\n",surf_mol_main_index, eff_names[ii]);
-             }
-             if(eff_pos[ii] > 0){
-             	fprintf(surf_mol_header,
-                 "\tcomponent \"positions\" value %d\n",eff_pos[ii]);
-             }
-             if(eff_orient[ii] > 0){     
-             	fprintf(surf_mol_header,
-                 	"\tcomponent \"data\" value %d # orientations #\n",eff_orient[ii]);
-             }
-             if(viz_mol_states_flag)
-             {
-                if(eff_states[ii] > 0){
-             	   fprintf(surf_mol_header,
-                	"\tcomponent \"state_values\" value %d\n",eff_states[ii]);
-                }
-             }
-             fprintf(surf_mol_header, "\n");
-             eff_field_indices[ii] = surf_mol_main_index;
-             surf_mol_main_index++;
-      }
-  }
-
-
-
-
-/* dump 3D molecules: */
-
- if(viz_mol_pos_flag || viz_mol_orient_flag){	 
-   
-        /* create references to the molecules. */
-        if ((viz_molp=(struct volume_molecule ***)malloc(n_species*sizeof(struct volume_molecule **)))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-      		return(1);
-    	}
-    	if ((viz_mol_count=(u_int *)malloc(n_species*sizeof(u_int)))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-      		return(1);
-    	}
-  
-    for (ii=0;ii<n_species;ii++) {
-      /* perform initialization */
-      spec_id=species_list[ii]->species_id;
-      viz_molp[spec_id]=NULL;
-      viz_mol_count[spec_id]=0;
-
-      if (species_list[ii]->viz_state == EXCLUDE_OBJ)  continue;
-
-      num=species_list[ii]->population;
-      if ((num>0) && (species_list[ii]->flags & NOT_FREE) == 0) {
-          /* create references for 3D molecules */
-          if ((viz_molp[spec_id]=(struct volume_molecule **)malloc
-            (num*sizeof(struct volume_molecule *)))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                return(1);
-          }
-      }
-    } /* end for */
-
-    slp=world->storage_head;
-    while (slp!=NULL) {
-      sp=slp->store;
-      shp=sp->timer;
-      while (shp!=NULL) {
-        
-        for (ii=0;ii<shp->buf_len;ii++) {
-          amp=(struct abstract_molecule *)shp->circ_buf_head[ii];
-          while (amp!=NULL) {
-            if ((amp->properties!=NULL) && (amp->flags & TYPE_3D) == TYPE_3D){
-              molp=(struct volume_molecule *)amp;
-              if (molp->properties->viz_state!=EXCLUDE_OBJ) {
-                spec_id=molp->properties->species_id;
-                if (viz_mol_count[spec_id]<molp->properties->population) {
-                  viz_molp[spec_id][viz_mol_count[spec_id]++]=molp;
-                }
-                else {
-                  fprintf(log_file,"MCell: molecule count disagreement!!\n");
-                  fprintf(log_file,"  Species %s  population = %d  count = %d\n",molp->properties->sym->name,molp->properties->population,viz_mol_count[spec_id]);
-                } /* end if/else */
-              }  /* end if(molp) */
-            } /* end if(amp) */
-            amp=amp->next;
-          } /* end while  (amp) */
-        } /* end for */
-        
-        amp=(struct abstract_molecule *)shp->current;
-        while (amp!=NULL) {
-          if ((amp->properties!=NULL) && (amp->flags & TYPE_3D) == TYPE_3D) {
-            molp=(struct volume_molecule *)amp;
-            if (molp->properties->viz_state!=EXCLUDE_OBJ) {
-              spec_id=molp->properties->species_id;
-              if (viz_mol_count[spec_id]<molp->properties->population) {
-                viz_molp[spec_id][viz_mol_count[spec_id]++]=molp;
-              }
-              else {
-                fprintf(log_file,"MCell: molecule count disagreement!!\n");
-                fprintf(log_file,"  Species %s  population = %d  count = %d\n",molp->properties->sym->name,molp->properties->population,viz_mol_count[spec_id]);
-              }
-            }
-
-           }
-          amp=amp->next;
-        }
-        
-        shp=shp->next_scale;
-      } /* end (while (shp) */
-
-      slp=slp->next;
-    } /* end (while slp) */
-
-
-    for (ii=0;ii<n_species;ii++) {
-      
-      if(species_list[ii]->viz_state == EXCLUDE_OBJ) continue; 
-      spec_id=species_list[ii]->species_id;
-      
-      if(viz_mol_count[spec_id] > 0)
-      {
-         num=viz_mol_count[spec_id];
-         if(num!=species_list[ii]->population
-             && ((species_list[ii]->flags & NOT_FREE)==0)) {
-             fprintf(log_file,"MCell: molecule count disagreement!!\n");
-             fprintf(log_file,"  Species %s  population = %d  count = %d\n",species_list[ii]->sym->name,species_list[ii]->population,num);
-         }
-      }
-
-      if (viz_mol_count[spec_id]>0 && ((species_list[ii]->flags & NOT_FREE) == 0)) {
-        /* here are 3D diffusing molecules */
-        num = viz_mol_count[spec_id];
-       if(viz_mol_pos_flag)
-       { 	  
-	  vol_mol_pos_byte_offset_prev = vol_mol_pos_byte_offset;
-          for (jj=0;jj<num;jj++) {
-            molp=viz_molp[spec_id][jj];
-	    v1=(float)(world->length_unit*molp->pos.x);
-	    v2=(float)(world->length_unit*molp->pos.y);
-	    v3=(float)(world->length_unit*molp->pos.z);
-	    fwrite(&v1,sizeof v1,1,vol_mol_pos_data);
-	    fwrite(&v2,sizeof v2,1,vol_mol_pos_data);
-	    fwrite(&v3,sizeof v3,1,vol_mol_pos_data);
-            vol_mol_pos_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-          }
-          fprintf(vol_mol_header,"object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d  # %s positions #\n",vol_mol_main_index,num,my_byte_order, vol_mol_pos_name, vol_mol_pos_byte_offset_prev, species_list[ii]->sym->name);
-          fprintf(vol_mol_header,"\tattribute \"dep\" string \"positions\"\n\n");
-          mol_pos[mol_pos_index] = vol_mol_main_index;
-          mol_pos_index++;
-          vol_mol_main_index++;
-        }
-
-        if(viz_mol_orient_flag)
-        {  
-          /* write molecule orientations information. 
-             for 3D molecules we use default orientation [0,0,1] */
-      	  vol_mol_orient_byte_offset_prev = vol_mol_orient_byte_offset;
-          v1 = 0;
-          v2 = 0;
-          v3 = 1;
-          fwrite(&v1,sizeof v1,1,vol_mol_orient_data);
-          fwrite(&v2,sizeof v2,1,vol_mol_orient_data);
-          fwrite(&v3,sizeof v3,1,vol_mol_orient_data);
-          vol_mol_orient_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-          fprintf(vol_mol_header,"object %d class constantarray type float rank 1 shape 3 items %d %s binary data file %s,%d # %s orientations #\n",vol_mol_main_index,num, my_byte_order, vol_mol_orient_name, vol_mol_orient_byte_offset_prev, species_list[ii]->sym->name);
-          fprintf(vol_mol_header,"\tattribute \"dep\" string \"positions\"\n\n");
-          mol_orient[mol_orient_index] = vol_mol_main_index;
-          mol_orient_index++;
-          vol_mol_main_index++;
-        }
-
-        if(viz_mol_states_flag)
-        {
-          /* write molecule states information. */ 
-      	  vol_mol_states_byte_offset_prev = vol_mol_states_byte_offset;
-          fwrite(&state,sizeof state,1,vol_mol_states_data);
-          vol_mol_states_byte_offset += (sizeof state);
-          fprintf(vol_mol_header,"object %d class constantarray type int items %d %s binary data file %s,%d  # %s states #\n",vol_mol_main_index,num, my_byte_order,vol_mol_states_name,vol_mol_states_byte_offset_prev, species_list[ii]->sym->name);
-          fprintf(vol_mol_header,"\tattribute \"dep\" string \"positions\"\n\n");
-          mol_states[mol_states_index] = vol_mol_main_index;
-          mol_states_index++;
-          vol_mol_main_index++;
-        }
-      }
-      /* output empty arrays for zero molecule counts here */
-      else if ((viz_mol_count[spec_id]==0) && ((species_list[ii]->flags & NOT_FREE) == 0)) {
-        if(viz_mol_pos_flag)
-        {
-          fprintf(vol_mol_header,"object %d array   # %s positions #\n",vol_mol_main_index, species_list[ii]->sym->name);
-          mol_pos[mol_pos_index] = vol_mol_main_index;
-          mol_pos_index++;
-          vol_mol_main_index++;
-        }
-        if(viz_mol_orient_flag)
-        {
-          fprintf(vol_mol_header,"object %d array   # %s orientations #\n",vol_mol_main_index, species_list[ii]->sym->name);
-          mol_orient[mol_orient_index] = vol_mol_main_index;
-          mol_orient_index++;
-          vol_mol_main_index++;
-        }
-       
-       if(viz_mol_states_flag)
-       {
-          fprintf(vol_mol_header,"object %d array   # %s states #\n",vol_mol_main_index, species_list[ii]->sym->name);
-          mol_states[mol_states_index] = vol_mol_main_index;
-          mol_states_index++;
-          vol_mol_main_index++;
-          
-       }
-	 fprintf(vol_mol_header,"\n");
-      } /* end else if */
-    }
-  } /* end if((viz_mol_pos_flag) || (viz_mol_orient_flag)) */
-
-
-/* build fields here */
-   if(mol_to_show_number > 0)
-   {
-      if(fdlp->type == ALL_MOL_DATA) {
-           show_molecules = 1;
-      }
-      else if((viz_mol_pos_flag || viz_mol_orient_flag) && ((special_mol_frames_counter ==0) || (special_mol_frames_counter == 2))){
-		show_molecules = 1;
-      }
-   }
-
-    if(show_molecules)
-    {
-      for (ii=0; ii<mol_to_show_number; ii++) {
-               if(mol_names[ii] != NULL){
-                  fprintf(vol_mol_header,
-                      "object %d field   # %s #\n",vol_mol_main_index, mol_names[ii]);
-                }
-                if(mol_pos[ii] > 0) {
-             	   fprintf(vol_mol_header,
-                 	"\tcomponent \"positions\" value %d\n",mol_pos[ii]);
-                }
-                if(mol_orient[ii] > 0){
-             	   fprintf(vol_mol_header,
-                 	"\tcomponent \"data\" value %d # orientations #\n",mol_orient[ii]);
-                }
-             if(viz_mol_states_flag)
-             {
-                if(mol_states[ii] > 0){ 
-             	   fprintf(vol_mol_header,
-                	"\tcomponent \"state_values\" value %d\n",mol_states[ii]);
-                }
-             }
-             fprintf(vol_mol_header, "\n");
-             mol_field_indices[ii] = vol_mol_main_index;
-             vol_mol_main_index++;
-      }
-    }
-
-   
-
-   /* create group objects for molecules/effectors */
-
-   if(show_molecules)
-   {
-
-         fprintf(vol_mol_header,"object %d group # %s #\n", vol_mol_main_index, "volume molecules"); 
-         for (ii=0;ii<mol_to_show_number;ii++) {
-             if(mol_field_indices[ii] > 0){
-          	 fprintf(vol_mol_header,"\tmember \"%s\" value %d\n",mol_names[ii], mol_field_indices[ii]);
-             }
-         }
-
-        /* reset volume_molecules object and binary data indexing */
-        vol_mol_main_index = 1;
-        count_vol_mol_header = 0;
-        special_mol_frames_counter = 0;
-
-        /* store iteration_number for volume molecules */
-      iteration_numbers_vol_mols[iteration_numbers_vol_mols_count] =  viz_iteration;
-      iteration_numbers_vol_mols_count++;
-
-
-        /* put value of viz_iteration into the time_values array */
-            if(time_values_count == 0){
-               time_values[time_values_count] = viz_iteration;  
-               time_values_count++;
-               last_time_value_written = viz_iteration;
-            }else if(viz_iteration > last_time_value_written){
-               time_values[time_values_count] = viz_iteration;  
-               time_values_count++;
-               last_time_value_written = viz_iteration;
-            } 
-
-   }
-
-
-  
-  if(show_effectors)
-  {
-         fprintf(surf_mol_header,"object %d group # %s #\n",surf_mol_main_index, "surface molecules");
-      	 for (ii=0;ii<eff_to_show_number;ii++) {
-              if(eff_field_indices[ii] > 0){
-                   fprintf(surf_mol_header,"\tmember \"%s\" value %d\n",eff_names[ii], eff_field_indices[ii]);
-              }
-          }
-
-
-        /* reset surface molecules object and binary data indexing */
-        surf_mol_main_index = 1;
-        count_surf_mol_header = 0;
-        special_mol_frames_counter = 0;
-       
-
-       /* store iteration_number for surface molecules */
-    iteration_numbers_surf_mols[iteration_numbers_surf_mols_count] = viz_iteration;
-    iteration_numbers_surf_mols_count++;
-
-
-        /* put value of viz_iteration into the time_values array */
-            if(time_values_count == 0){
-               time_values[time_values_count] = viz_iteration;  
-               time_values_count++;
-               last_time_value_written = viz_iteration;
-            }else if(viz_iteration > last_time_value_written){
-               time_values[time_values_count] = viz_iteration;  
-               time_values_count++;
-               last_time_value_written = viz_iteration;
-            } 
-
-  }
-   
-
-  /* check whether it is time to write data into the master_header file */
-     struct frame_data_list *fdlp_temp;
-     long long next_iteration_step_this_frame = UINT_MAX;  /* next iteration for this frame */
-     static long long next_iteration_step_previous_frame = -1;  /* next iteration for previous frame */
-
-     if(fdlp->curr_viz_iteration->next != NULL){
-	switch (fdlp->list_type) {
-	  case OUTPUT_BY_ITERATION_LIST:
-	  	  next_iteration_step_this_frame = (long long)fdlp->curr_viz_iteration->next->value; 
-	          break;
-	  case OUTPUT_BY_TIME_LIST:
-	          next_iteration_step_this_frame = (long long)(fdlp->curr_viz_iteration->next->value/world->time_unit + ROUND_UP);
-	          break;
-          default:
-                  fprintf(world->err_file,"File '%s', Line %ld: error - wrong frame_data_list list_type %d\n", __FILE__, (long)__LINE__, fdlp->list_type);
-                  break;
-	}
-     }
-    
-
-     found = 0;
-     if(world->chkpt_flag){
-        /* check whether it is the last frame */
-               
-        if((world->it_time == world->iterations) ||
-                 (world->it_time == final_iteration))
-               
-        { 
-
-             /* look forward to find out whether there are 
-                other frames to be output */
-             for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
-                if((fdlp_temp->viz_iteration == world->iterations) || (fdlp_temp->viz_iteration == final_iteration)){ 
-                   found = 1;
-                   break;
-                }
-             }
-             
-             if(!found){
-                /* this is the last frame */
-                    time_to_write_master_header = 1; 
-             }
-        }
-        
-       else if(((world->iterations < next_iteration_step_this_frame) && (next_iteration_step_this_frame != UINT_MAX)) || (next_iteration_step_this_frame == UINT_MAX)){
-        
-
-          /* look forward to find out whether there are 
-             other frames to be output */
-        for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
-                
-                if((fdlp_temp->viz_iteration >= fdlp->viz_iteration) &&
-                    (fdlp_temp->viz_iteration <= world->iterations)){
-                       found = 1;
-                       break;
-                }
-         }
-        
-        /* this allows to look backwards */
-        if(next_iteration_step_this_frame != UINT_MAX){
-           if(next_iteration_step_previous_frame > next_iteration_step_this_frame){
-                found = 1;
-           }
-        }else{
-                if((next_iteration_step_previous_frame >= fdlp->viz_iteration) && (next_iteration_step_previous_frame <= world->iterations)){
-                   found = 1;
-                }
-
-        }
-         
-         if(!found){
-             /* this is the last frame */
-             time_to_write_master_header = 1; 
-          }
-
-     }
-
-    /* end if(world->chkpt_flag) */
-   } else if(world->it_time == final_iteration){
-
-
-        /* look forward to find out whether there are 
-           other frames to be output */
-        for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
-          
-                if(fdlp_temp->viz_iteration == final_iteration) {
-                   found = 1;
-                   break;
-                }
-         }
-         if(!found){
-             /* this is the last frame */
-             time_to_write_master_header = 1; 
-          }
-           
-    }
-    else if((world->iterations < next_iteration_step_this_frame) || (next_iteration_step_this_frame == UINT_MAX)){
-
-        /* look forward to find out whether there are 
-           other frames to be output */
-        for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
-                
-                if((fdlp_temp->viz_iteration >= fdlp->viz_iteration) &&
-                    (fdlp_temp->viz_iteration <= world->iterations)){
-                   found = 1;
-                   break;
-                }
-         }
-             
-        /* this allows to look backwards */
-        if(next_iteration_step_this_frame != UINT_MAX){
-           if(next_iteration_step_previous_frame > next_iteration_step_this_frame){
-                found = 1;
-           }
-        }else{
-                if((next_iteration_step_previous_frame >= fdlp->viz_iteration) && (next_iteration_step_previous_frame <= world->iterations)){
-                   found = 1;
-                }
-
-        }
-
-         if(!found){
-             /* this is the last frame */
-             time_to_write_master_header = 1; 
-          }
-           
-    } /* end if-else(world->chkpt_flag) */
-
-
-    /* this allows to look backwards to the previous frames */
-    if(next_iteration_step_this_frame != UINT_MAX){
-          if(next_iteration_step_this_frame > next_iteration_step_previous_frame){
-             next_iteration_step_previous_frame = next_iteration_step_this_frame;         }
-     }
-
-
-     if(time_to_write_master_header)
-     {
-        double t_value;
-        int extra_elems;
-        int dummy = -1;
-         
-     	
-        ch_ptr = strrchr(world->file_prefix_name, '/');
-        if(ch_ptr != NULL)
-        {
-     	   ++ch_ptr;
-           if(world->chkpt_flag){
-              sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
-              iteration_numbers_name = (char *)malloc(sizeof(char) * (strlen(ch_ptr) + strlen(".iteration_numbers.") + strlen(chkpt_seq_num) + strlen(".bin") + 1));
-              if(iteration_numbers_name == NULL){
-                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                 return (1);
-              }              
-      	      sprintf(iteration_numbers_name,"%s.iteration_numbers.%s.bin",                                    ch_ptr, chkpt_seq_num);
-
-              time_values_name = (char *)malloc(sizeof(char) * (strlen(ch_ptr) + strlen(".time_values.") + strlen(chkpt_seq_num) + strlen(".bin") + 1));
-              if(time_values_name == NULL){
-                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                 return (1);
-              }              
-
-      	      sprintf(time_values_name,"%s.time_values.%s.bin",                                    ch_ptr, chkpt_seq_num);
-           }else{
-              iteration_numbers_name = (char *)malloc(sizeof(char) * (strlen(ch_ptr) + strlen(".iteration_numbers.bin") + 1));
-              if(iteration_numbers_name == NULL){
-                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                 return (1);
-              }              
-      	      sprintf(iteration_numbers_name,"%s.iteration_numbers.bin",ch_ptr);
-      	      
-              
-              time_values_name = (char *)malloc(sizeof(char) * (strlen(ch_ptr) + strlen(".time_values.bin") + 1));
-              if(time_values_name == NULL){
-                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                 return (1);
-              }              
-              sprintf(time_values_name,"%s.time_values.bin",ch_ptr);
-           }
-        }else{ /* if (ch_ptr == NULL) */
-           if(world->chkpt_flag){
-              sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
-              iteration_numbers_name = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".iteration_numbers.") + strlen(chkpt_seq_num) + strlen(".bin") + 1));
-              if(iteration_numbers_name == NULL){
-                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                 return (1);
-              }              
-      	      sprintf(iteration_numbers_name,"%s.iteration_numbers.%s.bin",                                    world->file_prefix_name, chkpt_seq_num);
-      	      
-
-              time_values_name = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".time_values.") + strlen(chkpt_seq_num) + strlen(".bin") + 1));
-              if(time_values_name == NULL){
-                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                 return (1);
-              }              
-              sprintf(time_values_name,"%s.time_values.%s.bin",                                    world->file_prefix_name, chkpt_seq_num);
-           }else{
-              iteration_numbers_name = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".iteration_numbers.bin") + 1));
-              if(iteration_numbers_name == NULL){
-                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                 return (1);
-              }              
-      	      sprintf(iteration_numbers_name,"%s.iteration_numbers.bin",world->file_prefix_name);
-
-
-              time_values_name = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".time_values.bin") + 1));
-              if(time_values_name == NULL){
-                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                 return (1);
-              }              
-      	      sprintf(time_values_name,"%s.time_values.bin",world->file_prefix_name);
-           }
-
-
-        }
-
-        filename = (char *)malloc(sizeof(char) * (strlen(viz_data_dir_name) +
-            strlen("/") + strlen(iteration_numbers_name) + 1));
-        if(filename == NULL){
-                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                 return (1);
-        }
-        strcpy(filename, viz_data_dir_name);
-        strcat(filename, "/");
-     	strcat(filename, iteration_numbers_name);
-
-        if ((iteration_numbers_data=fopen(filename,"wb"))==NULL) {
-            fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, iteration_numbers_name);
-           return(1);
-        }
-
-        filename = (char *)malloc(sizeof(char) * (strlen(viz_data_dir_name) +
-            strlen("/") + strlen(time_values_name) + 1));
-        if(filename == NULL){
-                 fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                 return (1);
-        }
-        strcpy(filename, viz_data_dir_name);
-        strcat(filename, "/");
-     	strcat(filename, time_values_name);
-
-        if ((time_values_data=fopen(filename,"wb"))==NULL) {
-            fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, time_values_name);
-           return(1);
-        }
-
-      if(iteration_numbers_vol_mols_count > iteration_numbers_surf_mols_count){
-         iteration_numbers_count = iteration_numbers_vol_mols_count;
-      }else{
-         iteration_numbers_count = iteration_numbers_surf_mols_count;
-      }
-      if(iteration_numbers_meshes_count > iteration_numbers_count){
-         iteration_numbers_count = iteration_numbers_meshes_count;
-      }
-      
-        if(iteration_numbers_meshes_count > 0)
-        {
-           extra_elems = iteration_numbers_count - iteration_numbers_meshes_count;
-           if(extra_elems > 0){
-              /* pad the iteration_numbers_meshes array with the last 
-                 element so that it will have the same number of elements 
-                 as the maximum length array */
-                 elem = iteration_numbers_meshes[iteration_numbers_meshes_count - 1];
-              
-		for(ii = 0; ii < extra_elems; ii++){
-                   iteration_numbers_meshes[iteration_numbers_meshes_count + ii] =  elem;
-                }
-            }
-            iteration_numbers_meshes_count += extra_elems;
-        }
-
-        if(iteration_numbers_vol_mols_count > 0)
-        {
-           extra_elems = iteration_numbers_count - iteration_numbers_vol_mols_count;
-           if(extra_elems > 0){
-              /* pad the iteration_numbers_vol_mols array with the last 
-                 element so that it will have the same number of elements 
-                 as the maximum length array */
-              elem = iteration_numbers_vol_mols[iteration_numbers_vol_mols_count - 1];
-              
-		for(ii = 0; ii < extra_elems; ii++){
-                   iteration_numbers_vol_mols[iteration_numbers_vol_mols_count + ii] = elem;
-                }
-           }
-           iteration_numbers_vol_mols_count += extra_elems;
-        }
-
-        if(iteration_numbers_surf_mols_count > 0)
-        {
-           extra_elems = iteration_numbers_count - iteration_numbers_surf_mols_count;
-           if(extra_elems > 0){
-              /* pad the iteration_numbers_surf_mols array with the last 
-                 element so that it will have the same number of elements 
-                 as the maximum length array */
-              elem = iteration_numbers_surf_mols[iteration_numbers_surf_mols_count - 1];
-              
-		for(ii = 0; ii < extra_elems; ii++){
-                   iteration_numbers_surf_mols[iteration_numbers_surf_mols_count + ii] = elem;
-                }
-           }
-           iteration_numbers_surf_mols_count += extra_elems;
-        }
-
-     /* Open master header file. */
-     if(world->chkpt_flag){
-       sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
-       filename = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".") + strlen(chkpt_seq_num) + strlen (".") + 1));
-       if(filename == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-       }
-        sprintf(filename,"%s.%u.dx",world->file_prefix_name, world->chkpt_seq_num);
-     }else{
-           filename = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".dx") + 1));
-           if(filename == NULL){
-                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                return (1);
-            }
-
-            sprintf(filename,"%s.dx",world->file_prefix_name);
-     }
-
-     ch_ptr = strrchr(filename, '/');
-     if(ch_ptr != NULL)
-     {
-        ++ch_ptr;
-        master_header_name = (char *)malloc(sizeof(char) *(strlen(viz_data_dir_name) + strlen("/") + strlen(ch_ptr) + 1));
-        if(master_header_name == NULL){
-                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                return (1);
-        }
-        sprintf(master_header_name, "%s%s%s", viz_data_dir_name, "/", ch_ptr);
-     }else{
-        master_header_name = (char *)malloc(sizeof(char) *(strlen(viz_data_dir_name) + strlen("/") + strlen(filename) + 1));
-        if(master_header_name == NULL){
-                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                return (1);
-        }
-        sprintf(master_header_name, "%s%s%s", viz_data_dir_name, "/", filename);
-
-     }
-
-      if ((master_header=fopen(master_header_name,"w"))==NULL) {
-           fprintf(world->err_file, "File %s, Line %ld: cannot open master header file %s.\n", __FILE__, (long)__LINE__,master_header_name);
-           return(1);
-      }
-
-	/* write 'iteration_numbers' object. */
-      int dreamm3mode_number = 0;
-      char dreamm3mode[1024];
-      if(world->viz_mode == DREAMM_V3_MODE){
-         dreamm3mode_number = 1;
-         sprintf(dreamm3mode, "DREAMM_V3_MODE");
-      }else if(world->viz_mode == DREAMM_V3_GROUPED_MODE){
-         dreamm3mode_number = 2;
-         sprintf(dreamm3mode, "DREAMM_V3_GROUPED_MODE");
-      }      
-
-
-      fprintf(master_header,"object \"iteration_numbers\" class array  type unsigned int rank 1 shape 3 items %u %s binary data file %s,%d\n",iteration_numbers_count, my_byte_order,iteration_numbers_name, iteration_numbers_byte_offset);
-       fprintf(master_header,"\tattribute \"dreamm3mode\" number %d\t#%s#\n", dreamm3mode_number, dreamm3mode);
-      
-       for(ii = 0; ii < iteration_numbers_count; ii++){
-                elem = iteration_numbers_meshes[ii];
-                if(elem == UINT_MAX) 
-                {
-                   fwrite(&dummy, sizeof(dummy),1,iteration_numbers_data);
-                }else{
-                   fwrite(&elem, sizeof(elem),1,iteration_numbers_data);
-                }
-
-                elem = iteration_numbers_vol_mols[ii];
-                if(elem == UINT_MAX) 
-                {
-                   fwrite(&dummy, sizeof(dummy),1,iteration_numbers_data);
-                }else{
-                   fwrite(&elem, sizeof(elem),1,iteration_numbers_data);
-                }
-
-                elem = iteration_numbers_surf_mols[ii];
-                if(elem == UINT_MAX) 
-                {
-                   fwrite(&dummy, sizeof(dummy),1,iteration_numbers_data);
-                }else{
-                   fwrite(&elem, sizeof(elem),1,iteration_numbers_data);
-                }
-
-        }
-     	fprintf(master_header, "\n\n");
-
-
-
-        /* write "time_values" object. */
-        if(time_values_count > 0)
-        {
-        	fprintf(master_header,"object \"time_values\" class array  type double rank 0 items %u %s binary data file %s,%d\n",time_values_count, my_byte_order,time_values_name, time_values_byte_offset);
-                fprintf(master_header,"\tattribute \"dreamm3mode\" number %d\t#%s#\n", dreamm3mode_number, dreamm3mode);
-												for(ii = 0; ii < time_values_count; ii++){
-                	elem = time_values[ii];
-                         {
-                           t_value = elem*world->time_unit;
-                           fwrite(&(t_value), sizeof(t_value),1,time_values_data);
-                        }
-                 }
-		fprintf(master_header, "\n\n");
-	}
-     
-
-   } /* end if(time_to_write_master_header) */
-
-
-   /* 
-      Now check whether there is a need to create symlinks
-      to the meshes/molecules files saved previously
-      in the previous frame directories. E.g. if this frame
-      is MOLS type check whether there are frames ahead for the same
-      "viz_iteration" but MESHES type and if there are no such -
-      create link in this "frame_#" folder to the last existing
-      "meshes" files.  Do the same if this frame is of MESHES type.
-      In fact the links are created only when e.g. the current frame is the 
-      last one of MOLS type and there are no MESHES type frames for this
-      iteration.
-  
-   */
-
-
-    int mesh_frame_found = 0;
-    int mol_frame_found = 0;
-    
-    /* check whether this frame type is the last one for the current iteration */
-    for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
-           if(fdlp_temp->viz_iteration != fdlp->viz_iteration){
-               break;
-           }else{
-               if((fdlp_temp->type == ALL_MOL_DATA) ||
-                  (fdlp_temp->type == MOL_POS) ||
-                  (fdlp_temp->type == MOL_ORIENT))
-               {
-		   mol_frame_found = 1;
-               }else if((fdlp_temp->type == ALL_MESH_DATA) ||
-                  (fdlp_temp->type == MESH_GEOMETRY) ||
-                  (fdlp_temp->type == REG_DATA))
-               {
-		   mesh_frame_found = 1;
-               }    
-           }
-    }
-
-
-    if(viz_surf_all_data_flag || viz_surf_pos_flag || viz_region_data_flag)
-    {
-       
-        if((!mesh_frame_found) && (!mol_frame_found) && (last_mols_iteration >= 0) && (fdlp->viz_iteration > last_mols_iteration))
-        {
-           sprintf(iteration_number, "%lld", fdlp->viz_iteration);
-           filename = (char *)malloc(sizeof(char) * (strlen(frame_data_dir_name) + strlen("/iteration_") + strlen(iteration_number) + 1));
-           if(filename == NULL){
-                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                return (1);
-           }
-            sprintf(filename, "%s%s%s", frame_data_dir_name, "/iteration_", iteration_number); 
-            
-            chdir(filename);
-           /* count the depth of the directory structure */
-           ii = 0;
-           viz_dir_depth = 0;
-           while(filename[ii] != '\0') 
-           {
-        	if(filename[ii] == '/'){
-           	   viz_dir_depth++;
-                }
-                ii++;
-           }
-          
-           if(filename[0] != '.'){
-               viz_dir_depth++;
-           } 
-            sprintf(buf, "../");
-            for(ii = 0; ii < viz_dir_depth - 1; ii++)
-            {
-              strcat(buf, "../");
-            }
-
-  
-            sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/surface_molecules.dx");    
-            status = stat(path_name_1, &f_stat);
-            if(status == 0){
-    	       sprintf(path_name_2,  "./surface_molecules.dx");   
-               if (((status = symlink(path_name_1, path_name_2)) == -1) && 
-                    (errno != EEXIST)) 
-               { 
-                   fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                   chdir(buf); 
-                   return(1);
-               }else if (((status = symlink(path_name_1, path_name_2)) == -1) &&  (errno == EEXIST)) 
-               {
-                   /* remove the symbolic link */
-                   status = unlink(path_name_2);
-                   if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_2);
-                       chdir(buf); 
-                       return(1);
-                   }
-                   /* create a new symbolic link */
-                   if ((status = symlink(path_name_1, path_name_2)) == -1){
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
-                   }
-
-                }  /* end else if */
-            }  /* end if(status = stat()) */
-
-            sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/surface_molecules_orientations.bin");    
-            status = stat(path_name_1, &f_stat);
-            if(status == 0){
-    	         sprintf(path_name_2,  "./surface_molecules_orientations.bin");    
-               if (((status = symlink(path_name_1, path_name_2)) == -1) && 
-                    (errno != EEXIST)) 
-               { 
-                   fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                   chdir(buf); 
-                   return(1);
-               }else if (((status = symlink(path_name_1, path_name_2)) == -1) &&  (errno == EEXIST)) 
-               {
-                   /* remove the symbolic link */
-                   status = unlink(path_name_2);
-                   if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_2);
-                       chdir(buf); 
-                       return(1);
-                   
-                   }
-                   /* create a new symbolic link */
-                   if ((status = symlink(path_name_1, path_name_2)) == -1){
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
-                   }
-
-                }  /* end else if */
-            
-            }  /* end if(status = stat()) */
-	   
-            sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/surface_molecules_positions.bin");    
-            status = stat(path_name_1, &f_stat);
-            if(status == 0){
-    	       sprintf(path_name_2,  "./surface_molecules_positions.bin");    
-               if (((status = symlink(path_name_1, path_name_2)) == -1) && 
-                    (errno != EEXIST)) 
-               { 
-                   fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                   chdir(buf); 
-                   return(1);
-               }else if (((status = symlink(path_name_1, path_name_2)) == -1) &&  (errno == EEXIST)) 
-               {
-                   /* remove the symbolic link */
-                   status = unlink(path_name_2);
-                   if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_2);
-                       chdir(buf); 
-                       return(1);
-                   
-                   }
-                   /* create a new symbolic link */
-                   if ((status = symlink(path_name_1, path_name_2)) == -1){
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                       return(1); 
-                   }
-
-                }  /* end else if */
-
-            }  /* end if(status = stat()) */
- 
-            sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/surface_molecules_states.bin");    
-            status = stat(path_name_1, &f_stat);
-            if(status == 0){
-    	       sprintf(path_name_2,  "./surface_molecules_states.bin");  
-               if (((status = symlink(path_name_1, path_name_2)) == -1) && 
-                    (errno != EEXIST)) 
-               { 
-                   fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                   chdir(buf); 
-                   return(1);
-               }else if (((status = symlink(path_name_1, path_name_2)) == -1) &&  (errno == EEXIST)) 
-               {
-                   /* remove the symbolic link */
-                   status = unlink(path_name_2);
-                   if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_2);
-                       chdir(buf); 
-                       return(1);
-                   
-                   }
-                   /* create a new symbolic link */
-                   if ((status = symlink(path_name_1, path_name_2)) == -1){
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
-                   }
-
-                }  /* end else if */
-
-            }  /* end if(status = stat()) */
-            
-            sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/volume_molecules.dx");    
-            status = stat(path_name_1, &f_stat);
-            if(status == 0){
-    	       sprintf(path_name_2,  "./volume_molecules.dx");  
-               if (((status = symlink(path_name_1, path_name_2)) == -1) && 
-                    (errno != EEXIST)) 
-               { 
-                   fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                   chdir(buf); 
-                   return(1);
-               }else if (((status = symlink(path_name_1, path_name_2)) == -1) &&  (errno == EEXIST)) 
-               {
-                   /* remove the symbolic link */
-                   status = unlink(path_name_2);
-                   if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_2);
-                       chdir(buf); 
-                       return(1);
-                   
-                   }
-                   /* create a new symbolic link */
-                   if ((status = symlink(path_name_1, path_name_2)) == -1){
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
-                   }
-
-                }  /* end else if */
-                       
-            }  /* end if(status = stat()) */
-            
-            sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/volume_molecules_orientations.bin");    
-            status = stat(path_name_1, &f_stat);
-            if(status == 0){
-    	       sprintf(path_name_2,  "./volume_molecules_orientations.bin");    
-               if (((status = symlink(path_name_1, path_name_2)) == -1) && 
-                    (errno != EEXIST)) 
-               { 
-                   fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                   chdir(buf); 
-                   return(1);
-               }else if (((status = symlink(path_name_1, path_name_2)) == -1) &&  (errno == EEXIST)) 
-               {
-                   /* remove the symbolic link */
-                   status = unlink(path_name_2);
-                   if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_2);
-                       chdir(buf); 
-                       return(1);
-                   
-                   }
-                   /* create a new symbolic link */
-                   if ((status = symlink(path_name_1, path_name_2)) == -1){
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating file link to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
-                   }
-
-                }  /* end else if */
-
-            }  /* end if(status = stat()) */
-
-            sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/volume_molecules_positions.bin");    
-            status = stat(path_name_1, &f_stat);
-            if(status == 0){
-    	       sprintf(path_name_2,  "./volume_molecules_positions.bin");   
-               if (((status = symlink(path_name_1, path_name_2)) == -1) && 
-                    (errno != EEXIST)) 
-               { 
-                   fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                   chdir(buf); 
-                   return(1);
-               }else if (((status = symlink(path_name_1, path_name_2)) == -1) &&  (errno == EEXIST)) 
-               {
-                   /* remove the symbolic link */
-                   status = unlink(path_name_2);
-                   if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_2);
-                       chdir(buf); 
-                       return(1);
-                   
-                   }
-                   /* create a new symbolic link */
-                   if ((status = symlink(path_name_1, path_name_2)) == -1){
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
-                   }
-
-                }  /* end else if */
-
-            }  /* end if(status = stat()) */
-
-            sprintf(path_name_1,"%s%lld%s", "../iteration_", last_mols_iteration, "/volume_molecules_states.bin");    
-            status = stat(path_name_1, &f_stat);
-            if(status == 0){
-    	       sprintf(path_name_2,  "./volume_molecules_states.bin");   
-               if (((status = symlink(path_name_1, path_name_2)) == -1) && 
-                    (errno != EEXIST)) 
-               { 
-                   fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                   chdir(buf); 
-                   return(1);
-               }else if (((status = symlink(path_name_1, path_name_2)) == -1) &&  (errno == EEXIST)) 
-               {
-                   /* remove the symbolic link */
-                   status = unlink(path_name_2);
-                   if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_2);
-                       chdir(buf); 
-                       return(1);
-                   
-                   }
-                   /* create a new symbolic link */
-                   if ((status = symlink(path_name_1, path_name_2)) == -1){
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
-                   }
-
-                }  /* end else if */
-
-            }  /* end if(status = stat()) */
-              
-            chdir(buf);
-        }
-
-    }
-    else if(viz_mol_all_data_flag || viz_mol_pos_flag || viz_mol_orient_flag)
-    {
-       
-        if((!mesh_frame_found) && (!mol_frame_found) && (last_meshes_iteration >= 0) && (fdlp->viz_iteration > last_meshes_iteration))
-        {
-           sprintf(iteration_number, "%lld", fdlp->viz_iteration);
-           filename = (char *)malloc(sizeof(char) * (strlen(frame_data_dir_name) + strlen("/iteration_") + strlen(iteration_number) + 1));
-           if(filename == NULL){
-                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                return (1);
-           }
-            sprintf(filename, "%s%s%s", frame_data_dir_name, "/iteration_", iteration_number); 
- 
-            chdir(filename);
-           /* count the depth of the directory structure */
-           ii = 0;
-           viz_dir_depth = 0;
-           while(filename[ii] != '\0') 
-           {
-        	if(filename[ii] == '/'){
-           	   viz_dir_depth++;
-                }
-                ii++;
-           }
-         
- 
-           if(filename[0] != '.'){
-               viz_dir_depth++;
-           } 
-            sprintf(buf, "../");
-            for(ii = 0; ii < viz_dir_depth - 1; ii++)
-            {
-              strcat(buf, "../");
-            }
-           
-
-            sprintf(path_name_1,"%s%lld%s", "../iteration_", last_meshes_iteration, "/meshes.dx");    
-            status = stat(path_name_1, &f_stat);
-            if(status == 0){
-    	       sprintf(path_name_2,  "./meshes.dx");   
-               if (((status = symlink(path_name_1, path_name_2)) == -1) && 
-                    (errno != EEXIST)) 
-               { 
-                   fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                   chdir(buf); 
-                   return(1);
-               }else if (((status = symlink(path_name_1, path_name_2)) == -1) &&  (errno == EEXIST)) 
-               {
-                   /* remove the symbolic link */
-                   status = unlink(path_name_2);
-                   if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_2);
-                       chdir(buf); 
-                       return(1);
-                   
-                   }
-                   /* create a new symbolic link */
-                   if ((status = symlink(path_name_1, path_name_2)) == -1){
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
-                   }
-
-                }  /* end else if */
-
-            }  /* end if(status = stat()) */
-
-            sprintf(path_name_1,"%s%lld%s", "../iteration_", last_meshes_iteration, "/mesh_positions.bin");    
-            status = stat(path_name_1, &f_stat);
-            if(status == 0){
-    	       sprintf(path_name_2,  "./mesh_positions.bin");    
-               if (((status = symlink(path_name_1, path_name_2)) == -1) && 
-                    (errno != EEXIST)) 
-               { 
-                   fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                   chdir(buf); 
-                   return(1);
-               }else if (((status = symlink(path_name_1, path_name_2)) == -1) &&  (errno == EEXIST)) 
-               {
-                   /* remove the symbolic link */
-                   status = unlink(path_name_2);
-                   if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_2);
-                       chdir(buf); 
-                       return(1);
-                   
-                   }
-                   /* create a new symbolic link */
-                   if ((status = symlink(path_name_1, path_name_2)) == -1){
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
-                   }
-
-                }  /* end else if */
-
-            }  /* end if(status = stat()) */
-
-            sprintf(path_name_1,"%s%lld%s", "../iteration_", last_meshes_iteration, "/mesh_states.bin");    
-            status = stat(path_name_1, &f_stat);
-            if(status == 0){
-    	       sprintf(path_name_2,  "./mesh_states.bin");   
-               if (((status = symlink(path_name_1, path_name_2)) == -1) && 
-                    (errno != EEXIST)) 
-               { 
-                   fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                   chdir(buf); 
-                   return(1);
-               }else if (((status = symlink(path_name_1, path_name_2)) == -1) &&  (errno == EEXIST)) 
-               {
-                   /* remove the symbolic link */
-                   status = unlink(path_name_2);
-                   if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_2);
-                       chdir(buf); 
-                       return(1);
-                   
-                   }
-                   /* create a new symbolic link */
-                   if ((status = symlink(path_name_1, path_name_2)) == -1){
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                      return(1);
-                   }
-
-                }  /* end else if */
-
-            }  /* end if(status = stat()) */
-
-            sprintf(path_name_1,"%s%lld%s", "../iteration_", last_meshes_iteration, "/region_indices.bin");    
-            status = stat(path_name_1, &f_stat);
-            if(status == 0){
-    	       sprintf(path_name_2,  "./region_indices.bin");  
-               if (((status = symlink(path_name_1, path_name_2)) == -1) && 
-                    (errno != EEXIST)) 
-               { 
-                   fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                   chdir(buf); 
-                   return(1);
-               }else if (((status = symlink(path_name_1, path_name_2)) == -1) &&  (errno == EEXIST)) 
-               {
-                   /* remove the symbolic link */
-                   status = unlink(path_name_2);
-                   if(status != 0) { 
-                       fprintf(world->err_file, "File %s, Line %ld: error %d removing symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_2);
-                       chdir(buf); 
-                       return(1);
-                   
-                   }
-                   /* create a new symbolic link */
-                   if ((status = symlink(path_name_1, path_name_2)) == -1){
-                      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink to the file %s.\n", __FILE__, (long)__LINE__, errno, path_name_1);
-                       chdir(buf); 
-                       return(1);  
-                   }
-
-                }  /* end else if */
-
-            }  /* end if(status = stat()) */
-             
-            chdir(buf);
-
-        } /* end if(!mesh_frame_found) ...  */
-    }  /* end else if */
-
-
-    /* free allocated memory */
-    if(viz_grid_mol_count != NULL){
-      free(viz_grid_mol_count);
-      viz_grid_mol_count = NULL;
-    }
-    if(viz_mol_count != NULL){
-       free(viz_mol_count);
-       viz_mol_count = NULL;
-    }
-    if (viz_molp != NULL) {
-      for (ii=0;ii<n_species;ii++) {
-         if (viz_molp[ii]!=NULL) {
-           free(viz_molp[ii]);
-           viz_molp[ii] = NULL;
-         }
-      }
-    
-      free(viz_molp);
-      viz_molp = NULL;
-    }
-   
-
-    /* close opened files */
-    if(iteration_numbers_data != NULL){
-        fclose(iteration_numbers_data);
-    }
-    if(time_values_data != NULL){
-        fclose(time_values_data);
-    }
-    if(master_header != NULL){
-        fclose(master_header);
-    }
-    if(meshes_header != NULL){
-      fclose(meshes_header);
-    }
-    if(mesh_pos_data != NULL){
-      fclose(mesh_pos_data);
-    }
-    if(mesh_states_data != NULL){
-      fclose(mesh_states_data);
-    }
-    if(region_data != NULL){
-      fclose(region_data);
-    }
-    if(vol_mol_header != NULL){
-      fclose(vol_mol_header);
-    }
-    if(vol_mol_pos_data != NULL){
-      fclose(vol_mol_pos_data);
-    }
-    if(vol_mol_states_data != NULL){
-      fclose(vol_mol_states_data);
-    }
-    if(vol_mol_orient_data != NULL){
-      fclose(vol_mol_orient_data);
-    }
-    if(surf_mol_header != NULL){
-      fclose(surf_mol_header);
-    }
-    if(surf_mol_pos_data != NULL){
-      fclose(surf_mol_pos_data);
-    }
-    if(surf_mol_states_data != NULL){
-      fclose(surf_mol_states_data);
-    }
-    if(surf_mol_orient_data != NULL){
-      fclose(surf_mol_orient_data);
-    }
-
-    if(mesh_pos_file_path != NULL) free(mesh_pos_file_path);
-    mesh_pos_file_path = NULL;
-    if(mesh_states_file_path != NULL) free(mesh_states_file_path);
-    mesh_states_file_path = NULL;
-    if(region_viz_data_file_path != NULL) free(region_viz_data_file_path);
-    region_viz_data_file_path = NULL;
-    if(meshes_header_file_path != NULL) free(meshes_header_file_path);
-    meshes_header_file_path = NULL;
-    if(vol_mol_pos_file_path != NULL) free(vol_mol_pos_file_path);
-    vol_mol_pos_file_path = NULL;
-    if(surf_mol_pos_file_path != NULL) free(surf_mol_pos_file_path);
-    surf_mol_pos_file_path = NULL;
-    if(vol_mol_orient_file_path != NULL) free(vol_mol_orient_file_path);
-    vol_mol_orient_file_path = NULL;
-    if(surf_mol_orient_file_path != NULL) free(surf_mol_orient_file_path);
-    surf_mol_orient_file_path = NULL;
-    if(vol_mol_states_file_path != NULL) free(vol_mol_states_file_path);
-    vol_mol_states_file_path = NULL;
-    if(vol_mol_header_file_path != NULL) free(vol_mol_header_file_path);
-    vol_mol_header_file_path = NULL;
-    if(surf_mol_header_file_path != NULL) free(surf_mol_header_file_path);
-    surf_mol_header_file_path = NULL;
-
-   return 0;
+  return 0;
 }
+
+/* == DREAMM V3 Output (grouped) == */
+
+/* Filename base for DREAMM V3 (grouped) output */
+static char const * const DREAMM_GROUPED_MOL_POS_NAME = "molecule_positions";
+static char const * const DREAMM_GROUPED_MOL_ORIENT_NAME = "molecule_orientations";
+static char const * const DREAMM_GROUPED_MOL_STATES_NAME = "molecule_states";
+static char const * const DREAMM_GROUPED_MESH_POS_NAME = "mesh_positions";
+static char const * const DREAMM_GROUPED_MESH_STATES_NAME = "mesh_states";
+static char const * const DREAMM_GROUPED_REGION_VIZ_DATA_NAME = "region_indices";
+
+/*************************************************************************
+dreamm_v3_grouped_get_master_header_name:
+    Get the name of the master header file for DREAMM V3 grouped output.
+
+        In:  None
+        Out: The path, or NULL if an error occurs
+**************************************************************************/
+static char *dreamm_v3_grouped_get_master_header_name()
+{
+  char *master_header_file_path = NULL;
+  if (world->chkpt_flag)
+    master_header_file_path = alloc_sprintf("%s.%d.dx", world->file_prefix_name, world->chkpt_seq_num);
+  else
+    master_header_file_path = alloc_sprintf("%s.dx", world->file_prefix_name);
+
+  if (master_header_file_path == NULL)
+    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+
+  return master_header_file_path;
+}
+
+/*************************************************************************
+dreamm_v3_grouped_create_filepath:
+    Creates a filepath for a given type of output file.
+
+        In:  char const *kind - the type of output file
+             char **path - pointer to receive allocated filepath
+        Out: 0 if successful, 1 if failed
+**************************************************************************/
+static int dreamm_v3_grouped_create_filepath(char const *kind,
+                                             char **path)
+{
+  if (world->chkpt_flag)
+    *path = alloc_sprintf("%s.%s.%d.bin",
+                          world->file_prefix_name,
+                          kind,
+                          world->chkpt_seq_num);
+  else
+    *path = alloc_sprintf("%s.%s.bin",
+                          world->file_prefix_name,
+                          kind);
+
+  if (*path == NULL)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    return 1;
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_grouped_create_filename:
+    Creates a filename for a given type of output file.
+
+        In:  char const *kind - the type of output file
+             char **path - pointer to receive allocated filename
+        Out: 0 if successful, 1 if failed
+**************************************************************************/
+static int dreamm_v3_grouped_create_filename(char const *kind,
+                                             char **name)
+{
+  if (world->chkpt_flag)
+    *name = alloc_sprintf("%s.%s.%d.bin",
+                          world->viz_state_info.filename_prefix_basename,
+                          kind,
+                          world->chkpt_seq_num);
+  else
+    *name = alloc_sprintf("%s.%s.bin",
+                          world->viz_state_info.filename_prefix_basename,
+                          kind);
+
+  if (*name == NULL)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    return 1;
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_grouped_remove_file:
+    Remove a file for DREAMM V3 Grouped output.
+
+        In:  char const *kind - the "type" of file to remove (used to build
+                                filename)
+        Out: 0 if successful, 1 if failed
+**************************************************************************/
+static int dreamm_v3_grouped_remove_file(char const *kind)
+{
+  char *filename = NULL;
+  if (dreamm_v3_grouped_create_filepath(kind, &filename))
+    return 1;
+
+  if (unlink(filename)  &&  errno != ENOENT)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: failed to unlink %s file: %s\n", __FILE__, (long)__LINE__, kind, filename);
+    free(filename);
+    return 1;
+  }
+
+  free(filename);
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_grouped_clean_files:
+    Clean files for DREAMM V3 Grouped output.  This will remove files which are
+    going to be created by the DREAMM V3 Grouped output routines.  This should
+    be called before the first frame of output is processed.
+
+        In:  struct frame_data_list *fdlp - the head of the frame data list
+        Out: 0 if successful, 1 if failed
+**************************************************************************/
+static int dreamm_v3_grouped_clean_files(struct frame_data_list *fdlp)
+{
+  /* Delete master header */
+  char *filename = dreamm_v3_grouped_get_master_header_name();
+  if (filename == NULL)
+    return 1;
+  if (unlink(filename)  &&  errno != ENOENT)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: failed to unlink master header file: %s\n", __FILE__, (long)__LINE__, filename);
+    free(filename);
+    return 1;
+  }
+  free(filename);
+
+  /* Delete any subfiles which we'll be creating */
+  for (; fdlp != NULL; fdlp = fdlp->next)
+  {
+    switch (fdlp->type)
+    {
+      case ALL_MOL_DATA:
+        if (dreamm_v3_grouped_remove_file(DREAMM_GROUPED_MOL_POS_NAME)     ||
+            dreamm_v3_grouped_remove_file(DREAMM_GROUPED_MOL_ORIENT_NAME)  ||
+            dreamm_v3_grouped_remove_file(DREAMM_GROUPED_MOL_STATES_NAME))
+          return 1;
+        break;
+
+      case MOL_POS:
+        if (dreamm_v3_grouped_remove_file(DREAMM_GROUPED_MOL_POS_NAME)  ||
+            dreamm_v3_grouped_remove_file(DREAMM_GROUPED_MOL_STATES_NAME))
+          return 1;
+        break;
+
+      case MOL_ORIENT:
+        if (dreamm_v3_grouped_remove_file(DREAMM_GROUPED_MOL_ORIENT_NAME))
+          return 1;
+        break;
+
+      case ALL_MESH_DATA:
+        if (dreamm_v3_grouped_remove_file(DREAMM_GROUPED_MESH_POS_NAME)  ||
+            dreamm_v3_grouped_remove_file(DREAMM_GROUPED_MESH_STATES_NAME)     ||
+            dreamm_v3_grouped_remove_file(DREAMM_GROUPED_REGION_VIZ_DATA_NAME))
+          return 1;
+        break;
+
+      case MESH_GEOMETRY:
+        if (dreamm_v3_grouped_remove_file(DREAMM_GROUPED_MESH_POS_NAME)  ||
+            dreamm_v3_grouped_remove_file(DREAMM_GROUPED_MESH_STATES_NAME))
+          return 1;
+        break;
+
+      case REG_DATA:
+        if (dreamm_v3_grouped_remove_file(DREAMM_GROUPED_REGION_VIZ_DATA_NAME))
+          return 1;
+        break;
+    }
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_grouped_init:
+    Initialize state for DREAMM_V3_GROUPED output.
+
+        In:  struct frame_data_list *fdlp - the head of the frame data list
+        Out: 0 if successful, 1 if failed
+**************************************************************************/
+static int dreamm_v3_grouped_init(struct frame_data_list *fdlp)
+{
+  if (dreamm_v3_generic_init())
+    return 1;
+
+  if (dreamm_v3_grouped_clean_files(fdlp))
+    return 1;
+
+  world->viz_state_info.dx_main_object_index = 1;
+  world->viz_state_info.dreamm_last_iteration_meshes = -1;
+  world->viz_state_info.dreamm_last_iteration_vol_mols = -1;
+  world->viz_state_info.dreamm_last_iteration_surf_mols = -1;
+
+  int time_values_total = count_time_values(fdlp);
+  reset_time_values(fdlp, world->start_time);
+  if (initialize_iteration_counters(time_values_total))
+    return 1;
+
+  if (initialize_string_buffer(&world->viz_state_info.combined_group_members,
+                               time_values_total))
+    return 1;
+
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_grouped_write_time_info:
+    Writes time index information to the master header on the very last frame
+    of the very last iteration of a DREAMM V3 Grouped viz output run.
+
+        In:  FILE *master_header - header file for time index info
+             char const *iteration_numbers_name - name of iteration data
+             char const *time_values_name - name of time data
+             u_int iteration_numbers_count - number of iteration data
+             u_int time_values_count - number of time data
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_grouped_write_time_info(FILE *master_header,
+                                             char const *iteration_numbers_name,
+                                             char const *time_values_name,
+                                             u_int iteration_numbers_count,
+                                             u_int time_values_count)
+{
+  return dreamm_v3_generic_write_time_info(master_header,
+                                           iteration_numbers_name,
+                                           time_values_name,
+                                           "DREAMM_V3_GROUPED_MODE",
+                                           2,
+                                           iteration_numbers_count,
+                                           time_values_count);
+}
+
+/*************************************************************************
+dreamm_v3_grouped_dump_time_info:
+    Writes time info to the master header, and creates the iteration and time
+    data files on the very last frame of the very last iteration of a DREAMM V3
+    Grouped viz output run.
+
+        In:  FILE *master_header - the master header file
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_grouped_dump_time_info(FILE *master_header)
+{
+  char *time_values_name = NULL;
+  char *iteration_numbers_name = NULL;
+  long long iteration_numbers_count = 0;
+
+  /* Create filenames */
+  if (dreamm_v3_grouped_create_filename("iteration_numbers",
+                                        &iteration_numbers_name))
+    goto failure;
+  if (dreamm_v3_grouped_create_filename("time_values",
+                                        &time_values_name))
+    goto failure;
+
+  /* Find maximum iteration numbers count */
+  if (world->viz_state_info.mesh_output_iterations.n_iterations > world->viz_state_info.grid_mol_output_iterations.n_iterations)
+    iteration_numbers_count = world->viz_state_info.mesh_output_iterations.n_iterations;
+  else
+    iteration_numbers_count = world->viz_state_info.grid_mol_output_iterations.n_iterations;
+  if (world->viz_state_info.vol_mol_output_iterations.n_iterations > iteration_numbers_count)
+    iteration_numbers_count = world->viz_state_info.vol_mol_output_iterations.n_iterations;
+
+  /* Write iteration numbers file */
+  if (dreamm_v3_generic_dump_iteration_numbers(world->viz_state_info.filename_prefix_dirname,
+                                               iteration_numbers_name,
+                                               iteration_numbers_count))
+    goto failure;
+
+  /* write "time_values" object. */
+  if (world->viz_state_info.output_times.n_iterations > 0  &&
+      dreamm_v3_generic_dump_time_values(world->viz_state_info.filename_prefix_dirname, time_values_name))
+    goto failure;
+
+  /* Write header details */
+  if (dreamm_v3_grouped_write_time_info(master_header,
+                                        iteration_numbers_name,
+                                        time_values_name,
+                                        iteration_numbers_count,
+                                        world->viz_state_info.output_times.n_iterations))
+    goto failure;
+
+  if (iteration_numbers_name) free(iteration_numbers_name);
+  if (time_values_name) free(time_values_name);
+  return 0;
+
+failure:
+  if (iteration_numbers_name) free(iteration_numbers_name);
+  if (time_values_name) free(time_values_name);
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_grouped_write_mesh_group:
+    Write a group containing all meshes to the header file.
+
+        In:  FILE *master_header - file to which to write group
+             struct frame_data_list *fdlp - frame for which to write group
+             int field_idx_base - object number for first field
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_grouped_write_mesh_group(FILE *master_header,
+                                              struct frame_data_list const * const fdlp,
+                                              int field_idx_base)
+{
+  int obj_index;
+  fprintf(master_header, "object \"meshes_%lld\" group # meshes #\n", fdlp->viz_iteration);
+  for (obj_index = 0; obj_index < world->viz_state_info.n_viz_objects; ++obj_index)
+    fprintf(master_header,
+            "\tmember \"%s\" value %d\n",
+            world->viz_state_info.viz_objects[obj_index]->sym->name,
+            field_idx_base ++);
+  fprintf(master_header, "\n");
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_grouped_dump_mesh_data:
+    Dump all mesh data to appropriate output files, storing index information
+    in the header file.
+
+        In:  struct frame_data_list *fdlp - frame for which to write meshes
+             FILE *master_header - file to which to write group
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_grouped_dump_mesh_data(struct frame_data_list const * const fdlp,
+                                            FILE *master_header)
+{
+  /* Control flags */
+  byte viz_surf_pos_flag    = (fdlp->type == ALL_MESH_DATA || fdlp->type == MESH_GEOMETRY);
+  byte viz_region_data_flag = (fdlp->type == ALL_MESH_DATA || fdlp->type == REG_DATA);
+  byte viz_surf_states_flag = (viz_surf_pos_flag  &&  (world->viz_output_flag & VIZ_SURFACE_STATES) != 0);
+
+  /* Filenames */
+  char *mesh_pos_name = NULL;
+  char *mesh_states_name = NULL;
+  char *region_viz_data_name = NULL;
+
+  /* Build filenames */
+  if (viz_surf_pos_flag  &&  dreamm_v3_grouped_create_filename(DREAMM_GROUPED_MESH_POS_NAME,
+                                                               &mesh_pos_name))
+    goto failure;
+  if (viz_surf_states_flag  &&  dreamm_v3_grouped_create_filename(DREAMM_GROUPED_MESH_STATES_NAME,
+                                                                  &mesh_states_name))
+    goto failure;
+  if (viz_region_data_flag  &&  dreamm_v3_grouped_create_filename(DREAMM_GROUPED_REGION_VIZ_DATA_NAME,
+                                                                  &region_viz_data_name))
+    goto failure;
+
+  /* Output mesh info */
+  if (dreamm_v3_generic_dump_mesh_data(fdlp,
+                                       master_header,
+                                       world->viz_state_info.filename_prefix_dirname,
+                                       mesh_pos_name,
+                                       mesh_states_name,
+                                       region_viz_data_name,
+                                       &world->viz_state_info.dx_main_object_index))
+    goto failure;
+
+  if (mesh_pos_name) free(mesh_pos_name);
+  if (mesh_states_name) free(mesh_states_name);
+  if (region_viz_data_name) free(region_viz_data_name);
+  return 0;
+
+failure:
+  if (mesh_pos_name) free(mesh_pos_name);
+  if (mesh_states_name) free(mesh_states_name);
+  if (region_viz_data_name) free(region_viz_data_name);
+  return 1;
+}
+
+/*************************************************************************
+dreamm_v3_grouped_dump_meshes:
+    Dump all mesh data to appropriate output files and write index information
+    into the header file, creating fields and groups as appropriate.
+
+        In:  struct frame_data_list *fdlp - frame for which to write meshes
+             FILE *master_header - file to which to write group
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_grouped_dump_meshes(struct frame_data_list const * const fdlp, FILE *master_header)
+{
+  int surf_index = world->viz_state_info.dx_main_object_index;
+
+  if (dreamm_v3_grouped_dump_mesh_data(fdlp,
+                                       master_header))
+    return 1;
+
+  if (world->viz_state_info.n_viz_objects > 0)
+  {
+    /* Allocate ids for fields */
+    int field_idx_base = world->viz_state_info.dx_main_object_index;
+    world->viz_state_info.dx_main_object_index += world->viz_state_info.n_viz_objects;
+
+    /* Create field objects */
+    if (dreamm_v3_generic_write_mesh_fields(fdlp,
+                                            master_header,
+                                            field_idx_base,
+                                            surf_index))
+      return 1;
+
+    /* Create a group object for all meshes */
+    world->viz_state_info.dreamm_last_iteration_meshes = fdlp->viz_iteration;
+    if (dreamm_v3_grouped_write_mesh_group(master_header, fdlp, field_idx_base))
+      return 1;
+
+    /* Store iteration_number for meshes */
+    if (add_to_iteration_counter(&world->viz_state_info.mesh_output_iterations,
+                                 fdlp->viz_iteration))
+      return 1;
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_grouped_write_molecule_group:
+    Write a group containing all molecules of the specified "type" (either
+    "surface" or "volume") to the header file.
+
+        In:  FILE *master_header - file to which to write group
+             struct frame_data_list *fdlp - frame for which to write group
+             char const *moltype - type of mol ("surface" or "volume")
+             struct species **all_species - species in group
+             int n_species - number of species in group
+             int field_idx_base - object number for first field
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_grouped_write_molecule_group(FILE *master_header,
+                                                  struct frame_data_list const * const fdlp,
+                                                  char const *moltype,
+                                                  struct species **all_species,
+                                                  int n_species,
+                                                  int field_idx_base)
+{
+  int mol_index;
+  fprintf(master_header,
+          "object \"%s_molecules_%lld\" group # %s molecules #\n",
+          moltype,
+          fdlp->viz_iteration,
+          moltype);
+  for (mol_index = 0; mol_index < n_species; ++ mol_index)
+    fprintf(master_header,
+            "\tmember \"%s\" value %d\n",
+            all_species[mol_index]->sym->name,
+            field_idx_base++);
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_grouped_dump_grid_molecule_data:
+    Dump desired data for all grid molecules to grid molecule files, writing
+    index information to the header file for this iteration.
+
+        In:  struct frame_data_list *fdlp - frame for which to write mols
+             FILE *master_header - the header file for index info
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_grouped_dump_grid_molecule_data(struct frame_data_list const * const fdlp,
+                                                     FILE *master_header)
+{
+
+  /* Control flags */
+  byte viz_mol_pos_flag = (fdlp->type == ALL_MOL_DATA  ||  fdlp->type == MOL_POS);
+  byte viz_mol_orient_flag = (fdlp->type == ALL_MOL_DATA  ||  fdlp->type == MOL_ORIENT);
+  byte viz_mol_states_flag = (viz_mol_pos_flag  &&  (world->viz_output_flag & VIZ_MOLECULES_STATES));
+
+  /* Filenames */
+  char *mol_pos_name = NULL;
+  char *mol_orient_name = NULL;
+  char *mol_states_name = NULL;
+
+  /* Build filenames */
+  if (viz_mol_pos_flag  &&  dreamm_v3_grouped_create_filename(DREAMM_GROUPED_MOL_POS_NAME,
+                                                              &mol_pos_name))
+    goto failure;
+  if (viz_mol_orient_flag  &&  dreamm_v3_grouped_create_filename(DREAMM_GROUPED_MOL_ORIENT_NAME,
+                                                                 &mol_orient_name))
+    goto failure;
+  if (viz_mol_states_flag  &&  dreamm_v3_grouped_create_filename(DREAMM_GROUPED_MOL_STATES_NAME,
+                                                                 &mol_states_name))
+    goto failure;
+
+  /* Output molecule info */
+  if (dreamm_v3_generic_dump_grid_molecule_data(fdlp,
+                                                master_header,
+                                                world->viz_state_info.filename_prefix_dirname,
+                                                mol_pos_name,
+                                                mol_orient_name,
+                                                mol_states_name,
+                                                &world->viz_state_info.dx_main_object_index))
+    goto failure;
+
+  if (mol_pos_name) free(mol_pos_name);
+  if (mol_orient_name) free(mol_orient_name);
+  if (mol_states_name) free(mol_states_name);
+  return 0;
+
+failure:
+  if (mol_pos_name) free(mol_pos_name);
+  if (mol_orient_name) free(mol_orient_name);
+  if (mol_states_name) free(mol_states_name);
+  return 1;
+}
+
+/*************************************************************************
+dreamm_v3_grouped_dump_grid_molecules:
+    Write the desired grid molecule data to the volume molecule data files and
+    write appropriate index information into the master header.
+
+        In:  struct frame_data_list *fdlp - frame for which to write mols
+             FILE *master_header - file to which to write group
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_grouped_dump_grid_molecules(struct frame_data_list const * const fdlp,
+                                                 FILE *master_header)
+{
+  int eff_index_base = world->viz_state_info.dx_main_object_index;
+  if (dreamm_v3_grouped_dump_grid_molecule_data(fdlp,
+                                                master_header))
+    return 1;
+
+  if (world->viz_state_info.n_grid_species > 0)
+  {
+    /* Allocate field indices for grid molecule data */
+    int field_idx_base = world->viz_state_info.dx_main_object_index;
+    world->viz_state_info.dx_main_object_index += world->viz_state_info.n_grid_species;
+
+    /* Build fields for grid molecules here */
+    if (dreamm_v3_generic_write_molecule_fields(fdlp,
+                                                master_header,
+                                                world->viz_state_info.grid_species,
+                                                world->viz_state_info.n_grid_species,
+                                                field_idx_base,
+                                                eff_index_base))
+      return 1;
+
+    /* Create groups for effectors */
+    world->viz_state_info.dreamm_last_iteration_surf_mols = fdlp->viz_iteration;
+    if (dreamm_v3_grouped_write_molecule_group(master_header,
+                                               fdlp,
+                                               "surface",
+                                               world->viz_state_info.grid_species,
+                                               world->viz_state_info.n_grid_species,
+                                               field_idx_base))
+      return 1;
+
+    /* Store iteration_number for surface molecules */
+    if (add_to_iteration_counter(&world->viz_state_info.grid_mol_output_iterations,
+                                 fdlp->viz_iteration))
+      return 1;
+  }
+  fprintf(master_header, "\n"); 
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_grouped_dump_volume_molecule_data:
+    Dump desired data for all volume molecules to volume molecule files,
+    writing index information to the header file for this iteration.  Object id
+    numbers are allocated first to pos, then to orientation, then to state for
+    each object.
+
+        In:  struct frame_data_list *fdlp - frame for which to write mols
+             FILE *master_header - the header file for index info
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_grouped_dump_volume_molecule_data(struct frame_data_list const * const fdlp,
+                                                       FILE *master_header)
+{
+  /* Control flags */
+  byte viz_mol_pos_flag = (fdlp->type == ALL_MOL_DATA  ||  fdlp->type == MOL_POS);
+  byte viz_mol_orient_flag = (fdlp->type == ALL_MOL_DATA  ||  fdlp->type == MOL_ORIENT);
+  byte viz_mol_states_flag = (viz_mol_pos_flag  &&  (world->viz_output_flag & VIZ_MOLECULES_STATES));
+
+  /* Filenames */
+  char *mol_pos_name = NULL;
+  char *mol_orient_name = NULL;
+  char *mol_states_name = NULL;
+
+  /* Build filenames */
+  if (viz_mol_pos_flag  &&  dreamm_v3_grouped_create_filename(DREAMM_GROUPED_MOL_POS_NAME,
+                                                              &mol_pos_name))
+    goto failure;
+  if (viz_mol_orient_flag  &&  dreamm_v3_grouped_create_filename(DREAMM_GROUPED_MOL_ORIENT_NAME,
+                                                                 &mol_orient_name))
+    goto failure;
+  if (viz_mol_states_flag  &&  dreamm_v3_grouped_create_filename(DREAMM_GROUPED_MOL_STATES_NAME,
+                                                                 &mol_states_name))
+    goto failure;
+
+  /* Output molecule info */
+  if (dreamm_v3_generic_dump_volume_molecule_data(fdlp,
+                                                  master_header,
+                                                  world->viz_state_info.filename_prefix_dirname,
+                                                  mol_pos_name,
+                                                  mol_orient_name,
+                                                  mol_states_name,
+                                                  &world->viz_state_info.dx_main_object_index))
+    goto failure;
+
+  if (mol_pos_name) free(mol_pos_name);
+  if (mol_orient_name) free(mol_orient_name);
+  if (mol_states_name) free(mol_states_name);
+  return 0;
+
+failure:
+  if (mol_pos_name) free(mol_pos_name);
+  if (mol_orient_name) free(mol_orient_name);
+  if (mol_states_name) free(mol_states_name);
+  return 1;
+}
+
+/*************************************************************************
+dreamm_v3_grouped_dump_volume_molecules:
+    Write the desired volume molecule data to the volume molecule data files
+    and write appropriate index information into the master header.
+
+        In:  struct frame_data_list *fdlp - frame for which to write mols
+             FILE *master_header - file to which to write group
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_grouped_dump_volume_molecules(struct frame_data_list const * const fdlp,
+                                                   FILE *master_header)
+{
+  int mol_index_base = world->viz_state_info.dx_main_object_index;
+  if (dreamm_v3_grouped_dump_volume_molecule_data(fdlp,
+                                                  master_header))
+    return 1;
+
+  if (world->viz_state_info.n_vol_species > 0)
+  {
+    int field_idx_base = world->viz_state_info.dx_main_object_index;
+    world->viz_state_info.dx_main_object_index += world->viz_state_info.n_vol_species;
+
+    /* Build fields for volume mols here */
+    if (dreamm_v3_generic_write_molecule_fields(fdlp,
+                                                master_header,
+                                                world->viz_state_info.vol_species,
+                                                world->viz_state_info.n_vol_species,
+                                                field_idx_base,
+                                                mol_index_base))
+      return 1;
+
+    /* Create group objects for volume molecules */
+    world->viz_state_info.dreamm_last_iteration_vol_mols = fdlp->viz_iteration;
+    if (dreamm_v3_grouped_write_molecule_group(master_header,
+                                               fdlp,
+                                               "volume",
+                                               world->viz_state_info.vol_species,
+                                               world->viz_state_info.n_vol_species,
+                                               field_idx_base))
+      return 1;
+
+    /* Store iteration_number for volume_molecules */
+    if (add_to_iteration_counter(&world->viz_state_info.vol_mol_output_iterations,
+                                 fdlp->viz_iteration))
+      return 1;
+  }
+  fprintf(master_header, "\n"); 
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_grouped_write_combined_group:
+    Write a "combined group" to the header file.  The combined group will
+    contain the most recent version of both the mesh and the molecule data, as
+    of the current iteration.  Also updates the combined_group_members data
+    structure so that the combined group will be properly written into the
+    frame_data series object.
+
+        In: FILE *master_header - file to which to write group
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_grouped_write_combined_group(FILE *master_header,
+                                                  long long viz_iteration)
+{
+  int combined_group_index = world->viz_state_info.dx_main_object_index ++;
+
+  fprintf(master_header, "object %d group\n", combined_group_index);
+
+  if (world->viz_state_info.dreamm_last_iteration_meshes != -1)
+    fprintf(master_header,
+            "\tmember \"meshes\" value \"meshes_%lld\"\n",
+            world->viz_state_info.dreamm_last_iteration_meshes);
+
+  if (world->viz_state_info.dreamm_last_iteration_vol_mols != -1)
+    fprintf(master_header,
+            "\tmember \"volume_molecules\" value \"volume_molecules_%lld\"\n",
+            world->viz_state_info.dreamm_last_iteration_vol_mols); 
+
+  if (world->viz_state_info.dreamm_last_iteration_surf_mols != -1)
+    fprintf(master_header,
+            "\tmember \"surface_molecules\" value \"surface_molecules_%lld\"\n",
+            world->viz_state_info.dreamm_last_iteration_surf_mols);
+
+  fprintf(master_header,"\n");
+
+  /* create an entry into a 'frame_data' object. */
+  char *str = alloc_sprintf("\tmember %d value %d position %lld\n",
+                            world->viz_state_info.combined_group_members.n_strings,
+                            combined_group_index,
+                            viz_iteration);
+  if (str == NULL)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    return 1;
+  }
+
+  if (add_string_to_buffer(&world->viz_state_info.combined_group_members, str))
+  {
+    free(str);
+    return 1;
+  }
+
+  fprintf(master_header, "\n\n");
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_grouped_write_frame_series:
+    Write the frame_data series object into the file.  The frame_data series
+    object ties together all of the combined groups which have been created at
+    the end of each iteration.
+
+        In: FILE *master_header - file to which to write series
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_grouped_write_frame_series(FILE *master_header)
+{
+  fprintf(master_header, "object \"frame_data\" class series\n");
+  int frame_data_index;
+  for (frame_data_index = 0;
+       frame_data_index < world->viz_state_info.combined_group_members.n_strings;
+       ++ frame_data_index)
+    fprintf(master_header,
+            "\t%s",
+            world->viz_state_info.combined_group_members.strings[frame_data_index]);
+  fprintf(master_header, "\n\n");
+  return 0;
+}
+
 /*************************************************************************
 output_dreamm_objects_grouped:
-	In: struct frame_data_list *fdlp
-	Out: 0 on success, 1 on error; output visualization files (*.dx)
+        In: struct frame_data_list *fdlp
+        Out: 0 on success, 1 on error; output visualization files (*.dx)
              in dreamm  group format are written.
 **************************************************************************/
-
-int output_dreamm_objects_grouped(struct frame_data_list *fdlp)
+int output_dreamm_objects_grouped(struct frame_data_list const * const fdlp)
 {
-  FILE *log_file = NULL;
   FILE *master_header = NULL;
-  FILE *mesh_pos_data = NULL;  /* data file for wall vertices */
-  FILE *mesh_states_data = NULL; /* data file for wall states */
-  FILE *region_data = NULL; /* data file for region's data */
-  FILE *mol_pos_data = NULL;	/* data file for molecule positions */
-  FILE *mol_states_data = NULL; /* data file for molecule states */
-  FILE *mol_orient_data = NULL; /* data file for molecule orientations */
-  FILE *iteration_numbers_data = NULL; /* data file for iteration numbers */
-  FILE *time_values_data = NULL; /* data file for time_values */
-  struct viz_obj *vizp = NULL;
-  struct viz_child *vcp = NULL;
-  struct surface_grid *sg = NULL;
-  struct wall *w = NULL, **wp = NULL;
-  struct species **species_list = NULL;
-  struct species *specp = NULL;
-  struct object *objp = NULL;
-  struct polygon_object *pop = NULL;
-  struct ordered_poly *opp = NULL;
-  struct element_data *edp = NULL;
-  struct vector3 p0;
-  struct storage_list *slp = NULL;
-  struct storage *sp = NULL;
-  struct schedule_helper *shp = NULL;
-  struct abstract_molecule *amp = NULL;
-  struct grid_molecule *gmol = NULL;
-  struct volume_molecule *molp = NULL, ***viz_molp = NULL;       /* for 3D molecules */
-  struct region *rp = NULL;
-  struct region_list *rlp = NULL;
-  float v1,v2,v3;
-  u_int spec_id = 0, *viz_mol_count = NULL, *viz_grid_mol_count = NULL;
-  static u_int main_index = 1;
-  static u_int series_index = 0;
-  int ii,jj;
-  int vi1,vi2,vi3;
-  u_int num;
-  u_int viz_iteration;
-  u_int n_viz_iterations;
-  int element_data_count;
-  int state;
-  int viz_type;
-  unsigned int index; 
-  /* indices used in arrays "u_int *surf_pos", etc. */
-  int surf_pos_index = 0; 
-  int surf_con_index = 0;
-  int surf_states_index = 0;
-  int surf_region_values_index = 0;
-  int surf_obj_region_values_index = 0;
-  int eff_states_index = 0;
-  int eff_pos_index = 0;
-  int eff_orient_index = 0;
-  int mol_states_index = 0;
-  int mol_pos_index = 0;
-  int mol_orient_index = 0;
-  int word;
-  static int viz_dir_depth = 0; /* points to the depth of viz_output 
-                            directory structure */
-  byte *word_p = NULL;
-  byte viz_mol_pos_flag = 0, viz_mol_states_flag = 0;	/* flags */
-  byte viz_mol_orient_flag = 0, viz_region_data_flag = 0;   /* flags */
-  byte viz_mol_all_data_flag = 0, viz_surf_all_data_flag = 0;	/* flags */
-  byte viz_surf_pos_flag = 0, viz_surf_states_flag = 0;	/* flags */
-  char *filename = NULL;
-  char chkpt_seq_num[1024];     /* holds checkpoint sequence number */
-  char *ch_ptr = NULL; /* pointer used to extract data file name */
-  static char *master_header_file_path = NULL;
-  char *grid_mol_name = NULL; /* points to the name of the grid molecule */
-  static char *mesh_pos_file_path = NULL; /* path to the meshes vertices
-                                            data file */
-  static char *mesh_pos_name = NULL; /* meshes vertices data file name */
-  static char *mesh_states_file_path = NULL; /* path to the meshes states
-                                            data file */
-  static char *mesh_states_name = NULL; /* meshes states data file name */
-  
-  static char *region_viz_data_file_path = NULL; /* path to the region viz
-                                            data file */
-  static char *region_viz_data_name = NULL; /* region_viz_data file name */
-  static char *mol_pos_file_path = NULL; /* path to the molecule positions
-                                            data file */
-  static char *mol_pos_name = NULL; /* molecule positions data file name */
-  static char *mol_states_file_path = NULL; /* path to the molecule states
-                                            data file */
-  static char *mol_states_name = NULL; /* molecule states data file name */
-  static char *mol_orient_file_path = NULL; /* path to the molecule orientations
-                                            data file */
-  static char *mol_orient_name = NULL;/* molecule orientations data file name */
-  char *iteration_numbers_file_path = NULL; /* path to iteration numbers data file */ 
-  char *iteration_numbers_name = NULL; /* iteration numbers data file name */ 
-  char *time_values_file_path = NULL; /* path to time values data file */
-  char *time_values_name = NULL; /* time values data file name */
-  char *buf;       /* used to write 'frame_data' object information */
-  /* used to write combined group information */
-  static u_int member_meshes_iteration = UINT_MAX;
-  static u_int member_molecules_iteration = UINT_MAX;
-  static u_int member_effectors_iteration = UINT_MAX;
-  /* linked list that stores data for the 'frame_data' object */
-   static char **frame_data_series_list = NULL;
-  static u_int frame_data_series_count = 0; /* count elements in frame_data_series_list array.*/
-  /* arrays that stores data for the 'iteration_numbers' object */
-  static u_int *iteration_numbers_meshes = NULL;
-  static u_int *iteration_numbers_vol_mols = NULL;
-  static u_int *iteration_numbers_surf_mols = NULL;
 
-  static u_int iteration_numbers_meshes_count = 0; /* count elements in 
-                                           iteration_numbers_meshes array  */
-  static u_int iteration_numbers_vol_mols_count = 0; /* count elements in 
-                                           iteration_numbers_vol_mols array  */
-  static u_int iteration_numbers_surf_mols_count = 0; /* count elements in 
-                                           iteration_numbers_surf_mols array  */
-  static u_int time_values_count = 0; /* count elements in 
-                                           time_values array  */
-  /* keeps track of the last value written into 'time_values' array */
-  static u_int last_time_value_written = 0;
-  char my_byte_order[8];  /* shows binary ordering ('lsb' or 'msb') */
-  static int mesh_pos_byte_offset = 0;  /* defines position of the object data
-                                  in the mesh positions binary data file */
-  static int mesh_states_byte_offset = 0; /* defines position of the object data
-                                    in the mesh states binary file */
-  static int region_data_byte_offset = 0; /* defines position of the 
-                            object data in the region_data binary file */
-  static int region_data_byte_offset_prev = 0; /* defines position of the 
-                            object data in the region_data binary file */
-  static int mol_pos_byte_offset = 0; /*defines position of the object data 
-                           in the molecule positions binary file */
-  static int mol_orient_byte_offset = 0; /*defines position of the object data 
-                           in the molecule orientations binary file */
-  static int mol_states_byte_offset = 0; /* defines position of the object data
-                              in the molecule states binary file. */
-  static int iteration_numbers_byte_offset = 0; /* defines position of the 
-                 iteration numbers data in the iteration_numbers binary file */
-  static int time_values_byte_offset = 0; /* defines position of the time 
-                          values data in the time_values binary file */
-  int mol_pos_byte_offset_prev = 0; /* used when defining position  
-                           in the molecule positions binary file */
-  int mol_orient_byte_offset_prev = 0; /* used when defining position                               in the molecule orientations binary file */
-  int mol_states_byte_offset_prev = 0; /* used when defining position                                  in the molecule states binary file. */
-  /* placeholders for the members of the combined group */
-  static long long mesh_group_index = 0;
-  static long long mol_group_index = 0;
-  static long long eff_group_index = 0;
-  int combined_group_index = 0;
+  /* Flags */
+  byte viz_mols = 0;
+  byte viz_meshes = 0;
 
-  /* counts number of times master_header file was opened.*/
-  static int count_master_header = 0;
-  /* counts number of times mol_pos_data file was opened.*/
-  static int count_mol_pos_data = 0;
-  /* counts number of times mol_orient_data file was opened. */
-  static int count_mol_orient_data = 0;
-  /* counts number of times mol_states_data file was opened. */
-  static int count_mol_states_data = 0;
-  /* counts number of times mesh_pos_data file was opened.*/
-  static int count_mesh_pos_data = 0;
-  /* counts number of times mesh_states_data file was opened. */
-  static int count_mesh_states_data = 0;
-  /* counts number of times region_values_data file was opened. */
-  static int count_region_data = 0;
-
-  /* points to the values of the current iteration steps
-     for certain frame types. */
-  static long long curr_surf_pos_iteration_step = -1;
-  static long long curr_region_data_iteration_step = -1;
-  static long long curr_mol_pos_iteration_step = -1;
-  static long long curr_mol_orient_iteration_step = -1;
-
-  /* points to the special case in iteration steps
-     when both values for GEOMETRY and REGION_VIZ_VALUES
-     are equal.  E.g. for the cases when GEOMETRY = [0,200], 
-     REGION_VIZ_VALUES = [0,100, 200,300] 
-     special_surf_iteration_step = [0,200].Same for (MOL_POS,MOL_ORIENT). 
-  */
-   
-  static long long special_surf_iteration_step = -1;
-   
-  static long long special_mol_iteration_step = -1;
-  
-  /* counts number of this function executions
-     for special_surf_iteration_step/special_mol_iteration_step cases. */
-  
-  static int special_surf_frames_counter = 0;
-  
-  static int special_mol_frames_counter = 0;
-
-  struct frame_data_list * fdl_ptr; 
-  u_int n_species = world->n_species;
-  species_list=world->species_list;
-
-  log_file=world->log_file;
   no_printf("Viz output in DREAMM_V3_GROUPED mode...\n");
-  
-  if(world->file_prefix_name == NULL) {
-   	fprintf(world->err_file, "File %s, Line %ld: Inside VIZ_OUTPUT block the required keyword FILENAME is missing.\n", __FILE__, (long)__LINE__);
-   	exit(1);
-  }
 
-  word_p=(unsigned char *)&word;
-  word=0x04030201;
+ /* Don't write viz data if we're about to checkpoint -- it'll be written upon
+  * resume
+  */
+  if (world->chkpt_iterations != 0  &&  world->it_time == world->chkpt_iterations)
+    return 0;
 
-  if (word_p[0]==1) {
-    sprintf(my_byte_order,"lsb");
-  }
-  else {
-    sprintf(my_byte_order,"msb");
-  }
-  
-  /*initialize arrays. */
-
-  if(time_values == NULL){
-  
-     time_values = (u_int *)malloc(sizeof(u_int) * time_values_total);
-     if(time_values == NULL){
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-      }
-      
-      for(ii = 0; ii < time_values_total; ii++){
-        time_values[ii] = UINT_MAX;
-      }
-     
-   }
-
-  if(iteration_numbers_meshes == NULL){
-  
-     iteration_numbers_meshes = (u_int *)malloc(sizeof(u_int) * time_values_total);
-     if(iteration_numbers_meshes == NULL){
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-      }
-      
-      for(ii = 0; ii < time_values_total; ii++){
-        iteration_numbers_meshes[ii] = UINT_MAX;
-      }
-     
-   }
-
-  if(iteration_numbers_vol_mols == NULL){
-  
-     iteration_numbers_vol_mols = (u_int *)malloc(sizeof(u_int) * time_values_total);
-     if(iteration_numbers_vol_mols == NULL){
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-      }
-      
-      for(ii = 0; ii < time_values_total; ii++){
-        iteration_numbers_vol_mols[ii] = UINT_MAX;
-      }
-     
-   }
-
-  if(iteration_numbers_surf_mols == NULL){
-  
-     iteration_numbers_surf_mols = (u_int *)malloc(sizeof(u_int) * time_values_total);
-     if(iteration_numbers_surf_mols == NULL){
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-      }
-      
-      for(ii = 0; ii < time_values_total; ii++){
-        iteration_numbers_surf_mols[ii] = UINT_MAX;
-      }
-     
-   }
-
-   if(frame_data_series_list == NULL){
-     frame_data_series_list = (char **)malloc(sizeof(char *) *time_values_total);     
-     if(frame_data_series_list == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-      }
-      
-      for(ii = 0; ii < time_values_total; ii++){
-        frame_data_series_list[ii] = NULL;
-      }
-
-   }
-
-  viz_iteration = (u_int)(fdlp->viz_iteration);
-  n_viz_iterations = (u_int)(fdlp->n_viz_iterations);
-
-  viz_type=fdlp->type;
-
-  /* here is the check to prevent writing twice the same info 
-    - at the end of one checkpoint and the beginning of the next checkpoint.
-   */
-  if((world->chkpt_flag) && (world->start_time > 0)){
-     if (world->it_time == world->start_time){
-         if(world->chkpt_iterations != 0  &&  viz_iteration % (world->chkpt_iterations) == 0){
-             return 0;
-         }
-     }
-  }
-
-  /* initialize flags */
-  viz_mol_pos_flag = (viz_type==MOL_POS);
-  viz_mol_orient_flag = (viz_type==MOL_ORIENT);
-  viz_mol_all_data_flag = (viz_type==ALL_MOL_DATA);
-  if(viz_mol_all_data_flag){
-       viz_mol_pos_flag = viz_mol_orient_flag = 1;
-  }
-  if(viz_mol_pos_flag){
-     if((world->viz_output_flag & VIZ_MOLECULES_STATES) != 0){
-     	viz_mol_states_flag = 1;
-     }
-  } 
-  
-  viz_surf_pos_flag = (viz_type==MESH_GEOMETRY);
-  viz_region_data_flag = (viz_type==REG_DATA);
-  viz_surf_all_data_flag = (viz_type==ALL_MESH_DATA);
-  if(viz_surf_all_data_flag){
-     viz_surf_pos_flag = viz_region_data_flag = 1;
-  }
-  if(viz_surf_pos_flag){
-     if((world->viz_output_flag & VIZ_SURFACE_STATES) != 0){
-     	viz_surf_states_flag = 1;
-     }
-  }
-
-
-  /* these arrays are used to hold values of main_index for objects */
-  if((viz_surf_pos_flag) || (viz_region_data_flag))
-  {
-     if(obj_to_show_number > 0)
-     {
-  	if((surf_states == NULL) && (viz_surf_states_flag)){ 
-     		if ((surf_states=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL)      {
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-        	for(ii = 0; ii < obj_to_show_number; ii++){
-			surf_states[ii] = 0;
-     		}
-   	}
-   	if((surf_pos == NULL) && (viz_surf_pos_flag)){
-     		if ((surf_pos=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL) {
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-     		for(ii = 0; ii < obj_to_show_number; ii++){
-			surf_pos[ii] = 0;
-     		}
-   	}
-   	if((surf_con == NULL) && (viz_surf_pos_flag)){
-      		if ((surf_con=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL) {
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-      		}
-      		for(ii = 0; ii < obj_to_show_number; ii++){
-			surf_con[ii] = 0;
-      		}
-        }
-   	if(surf_field_indices == NULL){
-      		if ((surf_field_indices=(u_int *)malloc(obj_to_show_number*sizeof(u_int)))==NULL) {
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-      		}
-      		for(ii = 0; ii < obj_to_show_number; ii++){
-			surf_field_indices[ii] = 0;
-      		}
-        }
-    
-
-   	/* initialize array of viz_objects names */
-   	if(obj_names == NULL){
-      		if ((obj_names = (char **)malloc(obj_to_show_number*sizeof(char *)))==NULL) {
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-      		}
-      		for(ii = 0; ii < obj_to_show_number; ii++){
-			obj_names[ii] = NULL;
-      		}
-                /* create an array of region names */
-   	        if(region_names == NULL){
-      	            if ((region_names = (char ***)malloc(obj_to_show_number*sizeof(char **)))==NULL) { 
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         	        return (1);
-      	            }
-                    /* initialize it */
-                    for(ii = 0; ii < obj_to_show_number; ii++)
-                    {
-                       region_names[ii] = NULL;
-                    }
-                 }          
-      
-     	        ii = 0;
-     	        vizp = world->viz_obj_head;
-     	        while(vizp != NULL){
-		   vcp = vizp->viz_child_head;
-        	   while(vcp != NULL){
-         	       obj_names[ii] = strdup(vcp->obj->sym->name);
-                       if(obj_names[ii] == NULL){
-                            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		    return (1);
-         	        }
-                
-                        int n_regs;   /* number of regions in the object */
-                        /* subtract the default region ALL */
-                        n_regs = vcp->obj->num_regions - 1;
-                        if(n_regs > 0){
-		            region_names[ii] = (char **)malloc(n_regs*sizeof(char *));
-                            if(region_names[ii] == NULL){ 
-                               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		       return (1);
-      		            }
-                        }
-
-                        jj = 0;
- 
-                        for(rlp = vcp->obj->regions; rlp != NULL; rlp = rlp->next){
-                            rp = rlp->reg;
-                            if(strcmp(rp->region_last_name, "ALL") == 0) continue;
-                            
-                            region_names[ii][jj] = strdup(rp->region_last_name);
-                            if(region_names[ii][jj] == NULL)
-                            { 
-                               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		       return (1);
-      		            }
-                            jj++;
-                             
-                        }
-                        
-                        ii++;
-         		vcp = vcp->next;
-       		    } /* end while (vcp) */
-       		    vizp = vizp->next;
-    	         } /* end while (vizp) */
-
-   	}
-       
-       } /* end if (obj_to_show_number > 0) */
-    }  /* end if (viz_surf_pos_flag  || viz_region_data_flag) */
-
-
-
-     /* these arrays are used to hold values of main_index for effectors 
-      and 3D molecules */
-   if(viz_mol_pos_flag || viz_mol_orient_flag)
-   {
-     if(eff_to_show_number > 0)
-     {
-     	if((eff_states == NULL) && (viz_mol_states_flag)){ 
-     		if((eff_states=(u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL)        {
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-     		for(ii = 0; ii < eff_to_show_number; ii++){
-			eff_states[ii] = 0;
-     		}
-     	}
-     	if((eff_pos == NULL) && (viz_mol_pos_flag)){
-     		if ((eff_pos=(u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL) 	{
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-     		for(ii = 0; ii < eff_to_show_number; ii++){
-			eff_pos[ii] = 0;
-     		}
-     	}
-     	if((eff_orient == NULL) && (viz_mol_orient_flag)){
-     		if ((eff_orient = (u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL) 	{
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-     		for(ii = 0; ii < eff_to_show_number; ii++){
-			eff_orient[ii] = 0;
-     		}
-     	}
-     	if(eff_field_indices == NULL){
-     		if ((eff_field_indices = (u_int *)malloc(eff_to_show_number*sizeof(u_int)))==NULL) 	{
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-     		for(ii = 0; ii < eff_to_show_number; ii++){
-			eff_field_indices[ii] = 0;
-     		}
-     	}
-   	/* initialize array of grid_mol's names */
-   	if(eff_names == NULL){
-
-      		if ((eff_names = (char **)malloc(eff_to_show_number*sizeof(char *)))==NULL) {
-                        fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-      		}
-      		for(ii = 0; ii < eff_to_show_number; ii++){
-			eff_names[ii] = NULL;
-      		}
-   	
-                index = 0;
-        
-                for(ii = 0; ii < world->n_species; ii++)
-                {
-     	           specp = world->species_list[ii];
-     	           if((specp->flags & IS_SURFACE) != 0) continue;
-     	           if(strcmp(specp->sym->name, "GENERIC_MOLECULE") == 0) continue;
-                   if(((specp->flags & ON_GRID) == ON_GRID) && (specp->viz_state > 0)){ 
-                      eff_names[index] = strdup(specp->sym->name);
-                      if(eff_names[index] == NULL){
-                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                         return (1);
-                      }
-                      index++;
-                    } 
-                 }
-        }
-        index = 0;
-     } /* end if (eff_to_show_number > 0) */
-   }  /* end if(viz_eff_pos_flag  */
-   
-   if(viz_mol_pos_flag || viz_mol_orient_flag)
-   {
-     if(mol_to_show_number > 0)
-     {
-     	if((mol_states == NULL) && (viz_mol_states_flag)){ 
-     		if((mol_states=(u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL)        {
-                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-     		for(ii = 0; ii < mol_to_show_number; ii++){
-			mol_states[ii] = 0;
-     		}
-     	}
-     	if((mol_pos == NULL) && (viz_mol_pos_flag)) {
-     		if ((mol_pos=(u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL) 	{
-                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-     		for(ii = 0; ii < mol_to_show_number; ii++){
-			mol_pos[ii] = 0;
-     		}
-     	}
-     	if((mol_orient == NULL) && (viz_mol_orient_flag)){
-     		if ((mol_orient = (u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL) 	{
-                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-     		for(ii = 0; ii < mol_to_show_number; ii++){
-			mol_orient[ii] = 0;
-     		}
-     	}
-     	if(mol_field_indices == NULL){
-     		if ((mol_field_indices = (u_int *)malloc(mol_to_show_number*sizeof(u_int)))==NULL) 	{
-                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-     		}
-     		for(ii = 0; ii < mol_to_show_number; ii++){
-			mol_field_indices[ii] = 0;
-     		}
-     	}
-        
-   	/* initialize array of mol's names */
-   	if(mol_names == NULL){
-      		if ((mol_names = (char **)malloc(mol_to_show_number*sizeof(char *)))==NULL) {
-                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-         		return (1);
-      		}
-      		for(ii = 0; ii < mol_to_show_number; ii++){
-			mol_names[ii] = NULL;
-      		}
-   	
-        	index = 0;
-        	for(ii = 0; ii < world->n_species; ii++)
-        	{
-     	   	   specp = world->species_list[ii];
-     	   	   if((specp->flags & IS_SURFACE) != 0) continue;
-     	   	   if(strcmp(specp->sym->name, "GENERIC_MOLECULE") == 0) continue;
-           	   if(((specp->flags & NOT_FREE) == 0) && (specp->viz_state > 0)){ 
-                       mol_names[index] = strdup(specp->sym->name);
-                       if(mol_names[index] == NULL){
-                         fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                         return (1);
-                       }
-                       index++;
-                   } 
-                }
-        }
-        index = 0;
-
-     } /* end if (mol_to_show_number > 0) */
-  }  /* end if(viz_mol_pos_flag || viz_mol_orient_flag) */
-
-     /* test whether a directory structure created by the user exists */
-     /* count the number of '/' */
-     if(viz_dir_depth == 0)
-     {
-        ii = 0;
-        while(world->file_prefix_name[ii] != '\0') 
-        {
-           if(world->file_prefix_name[ii] == '/'){
-              viz_dir_depth++;
-           }
-           ii++;
-        }
-     }
-
+  /* Initialize flags */
+  if (fdlp->type == ALL_MOL_DATA  ||  fdlp->type == MOL_POS  ||  fdlp->type == MOL_ORIENT)
+    viz_mols = 1;
+  if (fdlp->type == ALL_MESH_DATA  ||  fdlp->type == MESH_GEOMETRY  ||  fdlp->type == REG_DATA)
+    viz_meshes = 1;
 
   /* Open master header file. */
-  if(master_header_file_path == NULL)
   {
-    if(world->chkpt_flag){
-       sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
-       master_header_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) +  strlen(".") +  strlen(chkpt_seq_num) + 1));
-       if(master_header_file_path == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-       }
-    
-       sprintf(master_header_file_path,"%s.%s.dx",world->file_prefix_name, chkpt_seq_num);
-     }else{
+    char *master_header_file_path = dreamm_v3_grouped_get_master_header_name();
+    if (master_header_file_path == NULL)
+      return 1;
 
-       master_header_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".dx")  + 1));
-       if(master_header_file_path == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-       }
-       sprintf(master_header_file_path, "%s.dx",world->file_prefix_name);
-     }
-  }
-
-  if(count_master_header == 0){
-      if ((master_header=fopen(master_header_file_path, "w"))==NULL) {
-           fprintf(world->err_file, "File %s, Line %ld: cannot open master header file %s.\n", __FILE__, (long)__LINE__, master_header_file_path);
-           return(1);
-      }
-      count_master_header++;
-
-  }else{
-      if ((master_header=fopen(master_header_file_path,"a"))==NULL) {
-           fprintf(world->err_file, "File %s, Line %ld: cannot open master header file %s.\n", __FILE__, (long)__LINE__, filename);
-           return(1);
-      }
-      count_master_header++;
-
-  }
-    
-
-  if ((viz_mol_pos_flag)|| ((mol_to_show_number == 0) && (eff_to_show_number == 0))) {
-   if(mol_pos_file_path == NULL){
-     if(world->chkpt_flag){
-        sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
-        mol_pos_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".molecule_positions.") +  strlen(chkpt_seq_num) + strlen(".bin") + 1));
-        if(mol_pos_file_path == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-        }
-         sprintf(mol_pos_file_path,"%s.molecule_positions.%s.bin",world->file_prefix_name, chkpt_seq_num);
-     }else{
-
-        mol_pos_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".molecule_positions.bin") + 1));
-        if(mol_pos_file_path == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-        }
-        sprintf(mol_pos_file_path,"%s.molecule_positions.bin",world->file_prefix_name);
-     }
-
-     /* remove the folder name from the molecule_positions data file name */
-     if(viz_dir_depth > 1){
-        ch_ptr = strrchr(mol_pos_file_path, '/');
-        ++ch_ptr;
-        mol_pos_name = malloc(sizeof(char) * (strlen(ch_ptr) + 1));
-        if(mol_pos_name == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-        }
-        strcpy(mol_pos_name, ch_ptr);
-     }else{
-        mol_pos_name = malloc(sizeof(char) * (strlen(mol_pos_file_path) + 1));
-        if(mol_pos_name == NULL){
-            fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-            return (1);
-        }
-
-        strcpy(mol_pos_name, mol_pos_file_path);
-     }
-   } /* end if(mol_pos_file_path == NULL) */
-
-     if (count_mol_pos_data == 0){
-        if ((mol_pos_data=fopen(mol_pos_file_path,"wb"))==NULL) {
-           fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, mol_pos_file_path);
-           return(1);
-        }else{}
-        count_mol_pos_data++;
-     }else{
-        if ((mol_pos_data=fopen(mol_pos_file_path,"ab"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, mol_pos_file_path);
-              return(1);
-        }
-        count_mol_pos_data++;
+    if ((master_header = open_file(master_header_file_path, "a")) == NULL)
+    {
+      free(master_header_file_path);
+      return 1;
     }
-     
+    free(master_header_file_path);
+  }
 
-  } /* end if(viz_mol_pos_flag) */
+  /* dump walls */
+  if (viz_meshes)
+    if (dreamm_v3_grouped_dump_meshes(fdlp, master_header))
+      goto failure;
 
-
-
-  if((viz_mol_orient_flag) || ((mol_to_show_number == 0) && (eff_to_show_number == 0))) 
+  if (viz_mols)
   {
-    if(mol_orient_file_path == NULL)
-    {
-       if(world->chkpt_flag){
-           sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
-           mol_orient_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".molecule_orientations.") +  strlen(chkpt_seq_num) + strlen(".bin") + 1));
-           if(mol_orient_file_path == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-               return (1);
-           }
-           sprintf(mol_orient_file_path,"%s.molecule_orientations.%s.bin",world->file_prefix_name, chkpt_seq_num);
-        }else{
-           mol_orient_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".molecule_orientations.bin") + 1));
-           if(mol_orient_file_path == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-               return (1);
-           }
-           sprintf(mol_orient_file_path,"%s.molecule_orientations.bin",world->file_prefix_name);
-        }
-
-         /* remove the folder name from the molecule_orientations data file name */
-         if(viz_dir_depth > 1) {
-           ch_ptr = strrchr(mol_orient_file_path, '/');
-           ++ch_ptr;
-           mol_orient_name = malloc(sizeof(char) * (strlen(ch_ptr) + 1));
-           if(mol_orient_name == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-               return (1);
-           }
-           strcpy(mol_orient_name, ch_ptr);
-         }else{
-           mol_orient_name = malloc(sizeof(char) * (strlen(mol_orient_file_path) + 1));
-           if(mol_orient_name == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-               return (1);
-           }
-           strcpy(mol_orient_name, mol_orient_file_path);
-         }
-       } /* end if(mol_orient_file_path == NULL) */
-
-     if (count_mol_orient_data == 0){
-        if ((mol_orient_data=fopen(mol_orient_file_path,"wb"))==NULL) {
-           fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, mol_orient_file_path);
-           return(1);
-        }
-        count_mol_orient_data++;
-     }else{
-        if ((mol_orient_data=fopen(mol_orient_file_path,"ab"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, mol_orient_file_path);
-              return(1);
-        }
-        count_mol_orient_data++;
-
-     }
-     
-   
-  } /* end if(viz_mol_orient_flag) */
-
-
-    if ((viz_mol_states_flag) || ((mol_to_show_number == 0) && (eff_to_show_number =0))) {
-      if(mol_states_file_path == NULL)
-      {  
-         if(world->chkpt_flag){
-           sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
-           mol_states_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".molecule_states.") +  strlen(chkpt_seq_num) + strlen(".bin") + 1));
-           if(mol_states_file_path == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-               return (1);
-           }
-           sprintf(mol_states_file_path,"%s.molecule_states.%s.bin",world->file_prefix_name, chkpt_seq_num);
-         }else{
-           mol_states_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".molecule_states.bin") + 1));
-           if(mol_states_file_path == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-               return (1);
-           }
-           sprintf(mol_states_file_path,"%s.molecule_states.bin",world->file_prefix_name);
-         }
-          /* remove the folder name from the molecule_states data file name */
-         if(viz_dir_depth > 1)
-         {
-           ch_ptr = strrchr(mol_states_file_path, '/');
-           ++ch_ptr;
-           mol_states_name = malloc(sizeof(char) * (strlen(ch_ptr) + 1));
-           if(mol_states_name == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-               return (1);
-           }
-           strcpy(mol_states_name, ch_ptr);
-         }else{
-           mol_states_name = malloc(sizeof(char) * (strlen(mol_states_file_path) + 1));
-           if(mol_states_name == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-               return (1);
-           }
-           strcpy(mol_states_name, mol_states_file_path);
-         }
-       } /* end if(mol_states_file_path == NULL) */
-     
-       if (count_mol_states_data == 0){
-            if ((mol_states_data = fopen(mol_states_file_path,"wb"))==NULL) {
-                   fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, mol_states_file_path);
-           	   return(1);
-            }
-            count_mol_states_data++;
-       }else{
-           if ((mol_states_data = fopen(mol_states_file_path, "ab"))==NULL) {
-                   fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, mol_states_file_path);
-           	   return(1);
-            }
-            count_mol_states_data++;
-       }
-    } /* end if(viz_mol_states_flag) */
-    
-
-      if ((viz_surf_pos_flag) || (obj_to_show_number == 0)) {
-        if(mesh_pos_file_path == NULL)
-        {
-           if(world->chkpt_flag){
-              sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
-              mesh_pos_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".mesh_positions.") +  strlen(chkpt_seq_num) + strlen(".bin") + 1));
-              if(mesh_pos_file_path == NULL){
-                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                  return (1);
-              }
-              sprintf(mesh_pos_file_path,"%s.mesh_positions.%s.bin",world->file_prefix_name, chkpt_seq_num);
-           }else{
-              mesh_pos_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".mesh_positions.bin") + 1));
-              if(mesh_pos_file_path == NULL){
-                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                  return (1);
-              }
-              sprintf(mesh_pos_file_path,"%s.mesh_positions.bin",world->file_prefix_name);
-           }
-     
-     	   /* remove the folder name from the mesh_positions data file name */
-           if(viz_dir_depth > 1)
-           {
-              ch_ptr = strrchr(mesh_pos_file_path, '/');
-              ++ch_ptr;
-              mesh_pos_name = malloc(sizeof(char) * (strlen(ch_ptr) + 1));
-              if(mesh_pos_name == NULL){
-                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                  return (1);
-              }
-              strcpy(mesh_pos_name, ch_ptr);
-           }else{
-              mesh_pos_name = malloc(sizeof(char) * (strlen(mesh_pos_file_path) + 1));
-              if(mesh_pos_name == NULL){
-                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                  return (1);
-              }
-              strcpy(mesh_pos_name, mesh_pos_file_path);
-           }
-        } /* end if(mesh_pos_file_path == NULL) */
-
-       if (count_mesh_pos_data == 0){
-      	 if ((mesh_pos_data=fopen(mesh_pos_file_path,"wb"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, mesh_pos_file_path);
-                return(1);
-          }
-          count_mesh_pos_data++;
-       }else{
-      	   if ((mesh_pos_data=fopen(mesh_pos_file_path,"ab"))==NULL) {
-               fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, mesh_pos_file_path);
-               return(1);
-           }
-           count_mesh_pos_data++;
-       }
-
-      } /* end if(viz_surf_pos_flag) */
-
-
-      if ((viz_surf_states_flag) || (obj_to_show_number == 0)) {
-         if(mesh_states_file_path == NULL)
-         {
-            if(world->chkpt_flag){
-              sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
-              mesh_states_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".mesh_states.") +  strlen(chkpt_seq_num) + strlen(".bin") + 1));
-              if(mesh_states_file_path == NULL){
-                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                  return (1);
-              }
-              sprintf(mesh_states_file_path,"%s.mesh_states.%s.bin",world->file_prefix_name, chkpt_seq_num);
-            }else{
-              mesh_states_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".mesh_states.bin") + 1));
-              if(mesh_states_file_path == NULL){
-                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                  return (1);
-              }
-              sprintf(mesh_states_file_path,"%s.mesh_states.bin",world->file_prefix_name);
-            }
-     
-           /* remove the folder name from the mesh_states data file name */
-           if(viz_dir_depth > 1){
-              ch_ptr = strrchr(mesh_states_file_path, '/');
-              ++ch_ptr;
-              mesh_states_name = malloc(sizeof(char) * (strlen(ch_ptr) + 1));
-              if(mesh_states_name == NULL){
-                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                  return (1);
-              }
-              strcpy(mesh_states_name, ch_ptr);
-           }else{
-              mesh_states_name = malloc(sizeof(char) * (strlen(mesh_states_file_path) + 1));
-              if(mesh_states_name == NULL){
-                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                  return (1);
-              }
-              strcpy(mesh_states_name, mesh_states_file_path);
-           }
-        } /* end if(mesh_states_file_path == NULL) */
-
-       if (count_mesh_states_data == 0){
-           if ((mesh_states_data=fopen(mesh_states_file_path,"wb"))==NULL) {
-                  fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,mesh_states_file_path);
-                  return(1);
-            }
-            count_mesh_states_data++;
-       }else{
-          if ((mesh_states_data=fopen(mesh_states_file_path,"ab"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__,mesh_states_file_path);
-              return(1);
-          }
-          count_mesh_states_data++;
-       }
-      }  /* end if(viz_surf_states_flag) */
-
-      if ((viz_region_data_flag) || (obj_to_show_number == 0)){
-         if(region_viz_data_file_path == NULL)
-         {         
-            if(world->chkpt_flag){
-              sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
-              region_viz_data_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".region_indices.") +  strlen(chkpt_seq_num) + strlen(".bin") + 1));
-              if(region_viz_data_file_path == NULL){
-                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                  return (1);
-              }
-              sprintf(region_viz_data_file_path,"%s.region_indices.%s.bin",world->file_prefix_name, chkpt_seq_num);
-            }else{
-              region_viz_data_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".region_indices.bin") + 1));
-              if(region_viz_data_file_path == NULL){
-                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                  return (1);
-              }
-              sprintf(region_viz_data_file_path,"%s.region_indices.bin",world->file_prefix_name);
-            }
-     
-            /* remove the folder name from the region values data file name */
-            if(viz_dir_depth > 1){
-              ch_ptr = strrchr(region_viz_data_file_path, '/');
-              ++ch_ptr;
-              region_viz_data_name = malloc(sizeof(char) * (strlen(ch_ptr) + 1));
-              if(region_viz_data_name == NULL){
-                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                  return (1);
-              }
-              strcpy(region_viz_data_name, ch_ptr);
-            }else{
-              region_viz_data_name = malloc(sizeof(char) * (strlen(region_viz_data_file_path) + 1));
-              if(region_viz_data_name == NULL){
-                  fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                  return (1);
-              }
-              strcpy(region_viz_data_name, region_viz_data_file_path);
-            }
-        } /* end if(region_viz_data_file_path == NULL) */
-
-       if (count_region_data == 0){
-          if ((region_data=fopen(region_viz_data_file_path,"wb"))==NULL) {
-              fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, region_viz_data_file_path);
-              return(1);
-           }
-           count_region_data++;
-       }else{
-          if ((region_data=fopen(region_viz_data_file_path,"ab"))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, region_viz_data_file_path);
-                return(1);
-          }
-          count_region_data++;
-       }
-      } /* end if(viz_region_data_flag) */
-
-    /* find out the values of the current iteration steps for
-       (GEOMETRY, REG_DATA),  
-       (MOL_POS, MOL_ORIENT) frames combinations */
-   
-    fdl_ptr = world->frame_data_head;
-    while(fdl_ptr != NULL){
-        if(fdl_ptr->type == MESH_GEOMETRY){
-             curr_surf_pos_iteration_step = fdl_ptr->viz_iteration;
-        }if(fdl_ptr->type == REG_DATA){
-             curr_region_data_iteration_step = fdl_ptr->viz_iteration;
-        }if(fdl_ptr->type == ALL_MESH_DATA){
-             curr_surf_pos_iteration_step = fdl_ptr->viz_iteration;
-             curr_region_data_iteration_step = fdl_ptr->viz_iteration;
-        }else if(fdl_ptr->type == MOL_POS){
-             curr_mol_pos_iteration_step = fdl_ptr->viz_iteration;
-	}else if(fdl_ptr->type == MOL_ORIENT) 
-        {
-             curr_mol_orient_iteration_step = fdl_ptr->viz_iteration;
-        }else if(fdl_ptr->type == ALL_MOL_DATA){
-             curr_mol_pos_iteration_step = fdl_ptr->viz_iteration;
-             curr_mol_orient_iteration_step = fdl_ptr->viz_iteration;
-        }	
-        fdl_ptr = fdl_ptr->next;
-    }
-  
-    /* If the values of the current iteration steps for REG_VIZ_VALUES and
-       MESH_GEOMETRY are equal set this value to the 
-       special_surf_iteration_step.
-       Do the same for the (MOL_POS,MOL_ORIENT).
-    */
-     
-    if(curr_region_data_iteration_step == curr_surf_pos_iteration_step){
-	special_surf_iteration_step = curr_surf_pos_iteration_step;
-    }
-    
-    if(curr_mol_orient_iteration_step == curr_mol_pos_iteration_step){
-	special_mol_iteration_step = curr_mol_orient_iteration_step;
-    }
-    
-    /* check for the special_iteration_step  */  
-    if(viz_surf_pos_flag || viz_region_data_flag){	    
-	    if(fdlp->viz_iteration == special_surf_iteration_step){
-		special_surf_frames_counter++;
-            }
-    }
-
-
-/* dump walls */
-  if((viz_surf_pos_flag) || (viz_region_data_flag)) {
-     vizp = world->viz_obj_head;
-     
-     while(vizp!=NULL) {
-
-    /* Traverse all visualized compartments 
-       output mesh element positions and connections */
-    vcp = vizp->viz_child_head;
-
-    while(vcp!=NULL) {
-      objp = vcp->obj;
-      if(objp->viz_state == NULL) continue;
-      pop=(struct polygon_object *)objp->contents;
-
-      if (objp->object_type==POLY_OBJ || objp->object_type==BOX_OBJ) {
-          opp=(struct ordered_poly *)pop->polygon_data;
-          edp=opp->element;
-          element_data_count=objp->n_walls_actual;
-
-          if (viz_surf_pos_flag) {
-            fprintf(master_header,
-              "object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d # %s.positions #\n",
-              main_index,objp->n_verts,my_byte_order,mesh_pos_name, mesh_pos_byte_offset, objp->sym->name);
-            fprintf(master_header,
-              "\tattribute \"dep\" string \"positions\"\n\n");
-            surf_pos[surf_pos_index] = main_index;
-            surf_pos_index++;
-            main_index++;
-
-            /* output polyhedron vertices */
-            for (ii=0;ii<objp->n_verts;ii++) {
-              v1 = (float)(world->length_unit*objp->verts[ii].x);
-              v2 = (float)(world->length_unit*objp->verts[ii].y);
-              v3 = (float)(world->length_unit*objp->verts[ii].z);
-              fwrite(&v1,sizeof v1,1,mesh_pos_data);
-              fwrite(&v2,sizeof v2,1,mesh_pos_data);
-              fwrite(&v3,sizeof v3,1,mesh_pos_data);
-              mesh_pos_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-            }
-
-            /* output polygon element connections */
-            fprintf(master_header,
-              "object %d class array type int rank 1 shape 3 items %d %s binary data file %s,%d # %s.connections #\n",
-              main_index,element_data_count,my_byte_order, mesh_pos_name, mesh_pos_byte_offset, objp->sym->name);
-            fprintf(master_header,
-              "\tattribute \"ref\" string \"positions\"\n");
-            fprintf(master_header,
-              "\tattribute \"element type\" string \"triangles\"\n\n");
-
-            for (ii=0;ii<objp->n_walls;ii++) {
-              if (!get_bit(pop->side_removed,ii)) {
-                vi1=edp[ii].vertex_index[0];
-                vi2=edp[ii].vertex_index[1];
-                vi3=edp[ii].vertex_index[2];
-	        fwrite(&vi1,sizeof vi1,1,mesh_pos_data);
-	        fwrite(&vi2,sizeof vi2,1,mesh_pos_data);
-	        fwrite(&vi3,sizeof vi3,1,mesh_pos_data);
-                mesh_pos_byte_offset += (sizeof(vi1) + sizeof(vi2) + sizeof(vi3));
-              }
-            }
-            surf_con[surf_con_index] = main_index;
-            main_index++;
-            surf_con_index++;
-
-          } /* end viz_surf_pos_flag for POLY_OBJ */
- 
-          if (viz_surf_states_flag) {
-            fprintf(master_header,
-              "object %d class array type int rank 0 items %d %s binary data file %s,%d # %s.states #\n", main_index, element_data_count, my_byte_order, mesh_states_name, mesh_states_byte_offset, objp->sym->name);
-            fprintf(master_header,"\tattribute \"dep\" string \"connections\"\n\n");
-           surf_states[surf_states_index] = main_index;
-           surf_states_index++;
-           main_index++;
-
-            for (ii=0;ii<objp->n_walls;ii++) {
-               if (!get_bit(pop->side_removed,ii)) {
-                 state=objp->viz_state[ii];
-                 fwrite(&state,sizeof (state),1,mesh_states_data);
-                 mesh_states_byte_offset += sizeof(state);
-               }
-            }
-
-          } 	/* end viz_surf_states_flag for POLY_OBJ */
-
-          if(viz_region_data_flag && (objp->num_regions > 1))
-          {
-              surf_region_values_index = 0;
-
-              for(rlp = objp->regions; rlp != NULL; rlp = rlp->next)
-              {
-                  rp = rlp->reg;
-                  if(strcmp(rp->region_last_name, "ALL") == 0) continue; 
-                  
-                  /* number of walls in the region */
-                  int region_walls_number = 0; 
-                  
-                  for(jj = 0; jj < objp->n_walls; jj++)
-                  {
-                    if(objp->wall_p[jj] == NULL) continue;
-                    int n = objp->wall_p[jj]->side;
-                    if(get_bit(rp->membership,n))
-                    {
-                        fwrite(&n,sizeof (n),1,region_data);
-                        region_data_byte_offset += sizeof(n);
-                        region_walls_number++;
-                    }
-
-                  }
-
-                  fprintf(master_header,
-                        "object %d class array type int rank 0 items %d %s binary data file %s,%d # %s.region_data #\n", main_index, region_walls_number, my_byte_order, region_viz_data_name, region_data_byte_offset_prev, objp->sym->name);
-                  fprintf(master_header,"\tattribute \"ref\" string \"connections\"\n");  
-                  fprintf(master_header,"\tattribute \"identity\" string \"region_indices\"\n");
-                  fprintf(master_header,"\tattribute \"name\" string \"%s\"\n", rp->region_last_name);
-                  if(rp->region_viz_value > 0){
-                      fprintf(master_header,"\tattribute \"viz_value\" number %d\n", rp->region_viz_value);
-                  }
-
-                  region_data_byte_offset_prev = region_data_byte_offset;
-                  surf_region_values[surf_obj_region_values_index][surf_region_values_index] = main_index;
-                  surf_region_values_index++;
-                  main_index++;
-                  fprintf(master_header, "\n\n");
-
-              } /* end for */
-              
-
-           } /* end if(region_data_flag) */
-
-
-       }	/* end POLY_OBJ */
-
-       surf_obj_region_values_index++; 
-
-      vcp = vcp->next;
-      }
-      
-      vizp = vizp->next;
-      }
-    } /* end (viz_surf_pos_flag || viz_surf_states_flag || viz_region_data_flag) for vizp */
-    
-    /* build fields here */
-      int show_meshes = 0;
-   if(obj_to_show_number > 0)
-   {
-      if(fdlp->type == ALL_MESH_DATA) {
-           show_meshes = 1;
-      }
-      else if((viz_surf_pos_flag || viz_region_data_flag) && ((special_surf_frames_counter == 0) || (special_surf_frames_counter == 2))){
-		show_meshes = 1;
-      }
-    }
-
-
-    if(show_meshes)
-    {
-         for(ii = 0; ii < obj_to_show_number; ii++)
-         {
-             if(obj_names[ii] != NULL){
-                fprintf(master_header,
-                    "object %d field   # %s #\n",main_index, obj_names[ii]);
-             }
-             if(surf_pos[ii] > 0){
-             	fprintf(master_header,
-                 "\tcomponent \"positions\" value %d\n",surf_pos[ii]);
-             }
-             if(surf_con[ii] > 0){
-             	fprintf(master_header,
-                 "\tcomponent \"connections\" value %d\n",surf_con[ii]);
-             }
-             if(surf_states != NULL){
-                if(surf_states[ii] > 0){
-             	   fprintf(master_header,
-                	"\tcomponent \"state_values\" value %d\n",surf_states[ii]);
-	        }
-             }
-             if(surf_region_values[ii] != NULL)
-             {
-                for(jj = 0; jj < obj_num_regions[ii]; jj++)
-                {
-                   if(surf_region_values[ii][jj] > 0){
-             	      fprintf(master_header,
-                	"\tcomponent \"%s\" value %d\n",region_names[ii][jj], surf_region_values[ii][jj]);
-	           }
-                }
-             }
-             fprintf(master_header, "\n");
-             surf_field_indices[ii] = main_index;
-
-             main_index++;
-           }     
-     }
-    
-    /* create a group object for all meshes. */
-    if(show_meshes)
-    {
-        vizp = world->viz_obj_head;
-        if(vizp != NULL){
-
-        	fprintf(master_header,"object \"%s%u\" group # %s #\n","meshes_", viz_iteration, "meshes");
-        	mesh_group_index = main_index;
-        	main_index++;
-                member_meshes_iteration = viz_iteration;
-
-                ii = 0;
-        	while(vizp != NULL) {
-         		vcp = vizp->viz_child_head;
-         		while(vcp != NULL){
-                          if(surf_field_indices[ii] > 0){
-             			fprintf(master_header,"\tmember \"%s\" value %d\n",vcp->obj->sym->name,surf_field_indices[ii]);
-                          }
-                          ii++;
-		       	  vcp = vcp->next;
-         		}
-         		vizp = vizp->next;
-        	}       
-        	fprintf(master_header, "\n"); 
-      	}  /* end (if vizp) */
-
-        /* store iteration_number for meshes */
-      iteration_numbers_meshes[iteration_numbers_meshes_count] = viz_iteration;
-      iteration_numbers_meshes_count++;
-  
-   } 
-
-      
-    /* Visualize molecules. */
-
-
-
-/* dump grid molecules. */
-    /* check for the special_iteration_step  */ 
-    if(viz_mol_pos_flag || viz_mol_orient_flag){	    
-	    if(fdlp->viz_iteration == special_mol_iteration_step){
-		special_mol_frames_counter++;
-            }
-    }
-
-
- if(viz_mol_pos_flag || viz_mol_orient_flag){	    
-
-       /* create references to the numbers of grid molecules of each name. */
-       if ((viz_grid_mol_count=(u_int *)malloc(n_species*sizeof(u_int)))==NULL) {
-         return(1);
-       }
-
-       /* perform initialization */
-      for (ii = 0; ii < n_species; ii++){
-         spec_id = species_list[ii]->species_id;
-         viz_grid_mol_count[spec_id]=0;
-
-      } 
-
-
-   for (ii = 0; ii < n_species; ii++)
-   {
-     specp = species_list[ii];
-     if((specp->flags & ON_GRID) == 0) continue; 
-     if(specp->viz_state == EXCLUDE_OBJ) continue; 
- 
-        grid_mol_name = specp->sym->name;
-        spec_id = specp->species_id; 
-
-        if(viz_mol_pos_flag){
-      	   mol_pos_byte_offset_prev = mol_pos_byte_offset;
-        }
-        if(viz_mol_orient_flag){
-      	   mol_orient_byte_offset_prev = mol_orient_byte_offset;
-        }
-        if(viz_mol_states_flag){
-      	   mol_states_byte_offset_prev = mol_states_byte_offset;
-        }
-        /* Write binary data files. */
-        vizp = world->viz_obj_head;
-        while(vizp != NULL) {
-         vcp = vizp->viz_child_head;
-         while(vcp != NULL){
-	     objp = vcp->obj;
-             wp = objp->wall_p;
-             no_printf("Traversing walls in object %s\n",objp->sym->name);
-             for (jj=0;jj<objp->n_walls;jj++) {
-                w = wp[jj];
-                if (w!=NULL) {
-	           sg = w->grid;
-                   if (sg!=NULL) {
-                     for (index=0;index<sg->n_tiles;index++) {
-                        grid2xyz(sg,index,&p0);
-	                gmol=sg->mol[index];
-	                if ((gmol!=NULL) && (viz_mol_states_flag)){
-	                   state=sg->mol[index]->properties->viz_state;
-                        }
-                        if (gmol != NULL) {
-                             if(spec_id == gmol->properties->species_id){
-                                 if(viz_grid_mol_count[spec_id] < specp->population){
-                                     viz_grid_mol_count[spec_id]++;
-                                 }else{
-                                     fprintf(log_file,"MCell: molecule count disagreement!!\n");
-                                     fprintf(log_file,"  Species %s  population = %d  count = %d\n",grid_mol_name,specp->population,viz_grid_mol_count[spec_id]);
-
-                                 }
-
-                               if(viz_mol_pos_flag){
-                                   /* write positions information */
-	           		   v1=(float)(world->length_unit*p0.x);
-	           		   v2=(float)(world->length_unit*p0.y);
-	           		   v3=(float)(world->length_unit*p0.z);
-	           		   fwrite(&v1,sizeof v1,1,mol_pos_data);
-	               		   fwrite(&v2,sizeof v2,1,mol_pos_data);
-	           		   fwrite(&v3,sizeof v3,1,mol_pos_data);
-                                   mol_pos_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-                               }
-                               if(viz_mol_orient_flag){
-                                   /* write orientations information */
-                   		   v1=(float)((w->normal.x)*(gmol->orient));
-                   		   v2=(float)((w->normal.y)*(gmol->orient));
-                   		   v3=(float)((w->normal.z)*(gmol->orient));
-                   		   fwrite(&v1,sizeof v1,1,mol_orient_data);
-                   		   fwrite(&v2,sizeof v2,1,mol_orient_data);
-                   		   fwrite(&v3,sizeof v3,1,mol_orient_data);
-                                   mol_orient_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-                  		}
-                          } /* end if strcmp */
-                           
-                        } /* end if (gmol)*/
-                     } /* end for */
-                   } /* end if (sg) */
-                 } /* end if (w)*/
-              } /* end for */
-              vcp = vcp->next;
-            } /* end while (vcp) */
-                                              
-            vizp = vizp->next;
-         } /* end while (vzp) */
-
-        num = viz_grid_mol_count[spec_id];
-        
-        if(viz_mol_pos_flag)
-        {
-           if(num > 0)
-           {   
-        	fprintf(master_header,"object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d # %s positions #\n",main_index,num,my_byte_order, mol_pos_name, mol_pos_byte_offset_prev, grid_mol_name);
-        	fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
-            }else{
-                /* output empty arrays for zero molecule counts here */
-                fprintf(master_header,"object %d array   # %s positions #\n",main_index, grid_mol_name);
-            }
-            eff_pos[eff_pos_index] = main_index;
-            eff_pos_index++;
-            main_index++;
-         }
-         
-         if(viz_mol_orient_flag)
-         {
-           if(num > 0)
-           {
-        	fprintf(master_header,"object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d   # %s orientations #\n",main_index,num,my_byte_order, mol_orient_name, mol_orient_byte_offset_prev, grid_mol_name);
-        	fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
-            }else{
-                /* output empty arrays for zero molecule counts here */
-                fprintf(master_header,"object %d array   # %s orientations #\n",main_index, grid_mol_name);
-            }
-            eff_orient[eff_orient_index] = main_index;
-            eff_orient_index++;
-            main_index++;
-        }
-
-        if (viz_mol_states_flag) {
-          if(num > 0)
-          {
-            /* write states information. */
-            fwrite(&state,sizeof state,1,mol_states_data);
-            mol_states_byte_offset += (sizeof state);
-        
-	    fprintf(master_header,"object %d class constantarray type int items %d %s binary data file %s,%d  # %s states #\n",main_index,num, my_byte_order,mol_states_name,mol_states_byte_offset_prev, grid_mol_name);
-
-            fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
-	  }else{
-             /* output empty arrays for zero molecule counts here */
-             fprintf(master_header,"object %d array   # %s states #\n",main_index, grid_mol_name);
-          }
-          eff_states[eff_states_index] = main_index;
-          eff_states_index++;
-          main_index++;
-       }
-       if(num == 0){
-         fprintf(master_header, "\n");
-       }
-   } /* end for loop */
-
- } /* end if(viz_mol_pos_flag || viz_mol_orient_flag) */
-
-/* build fields for grid molecules here */
-  int show_effectors = 0;
-
-  if(eff_to_show_number > 0){
-      if(fdlp->type == ALL_MOL_DATA) {
-           show_effectors = 1;
-      }
-      else if((viz_mol_pos_flag || viz_mol_orient_flag) && ((special_mol_frames_counter ==0) || (special_mol_frames_counter == 2))){
-		show_effectors = 1;
-      }
-  }
- 
-  if(show_effectors){
-
-
-       for(ii = 0; ii < eff_to_show_number; ii++)
-       {
-             if(eff_names[ii] != NULL){
-                fprintf(master_header,
-                    "object %d field   # %s #\n",main_index, eff_names[ii]);
-             }
-             if(eff_pos[ii] > 0){
-             	fprintf(master_header,
-                 "\tcomponent \"positions\" value %d\n",eff_pos[ii]);
-             }
-             if(eff_orient[ii] > 0){     
-             	fprintf(master_header,
-                 	"\tcomponent \"data\" value %d # orientations #\n",eff_orient[ii]);
-             }
-             if(viz_mol_states_flag)
-             {
-                if(eff_states[ii] > 0){
-             	   fprintf(master_header,
-                	"\tcomponent \"state_values\" value %d\n",eff_states[ii]);
-                }
-             }
-             fprintf(master_header, "\n");
-             eff_field_indices[ii] = main_index;
-             main_index++;
-      }
+    /* Dump grid molecules. */
+    if (dreamm_v3_grouped_dump_grid_molecules(fdlp, master_header))
+      goto failure;
+
+    /* Dump 3D molecules: */
+    if (dreamm_v3_grouped_dump_volume_molecules(fdlp, master_header))
+      goto failure;
   }
 
+  /* Create combined group if we're the last frame this iteration */
+  if (! dreamm_v3_generic_scan_for_frame(fdlp->next, fdlp->viz_iteration))
+  {
+    if (dreamm_v3_grouped_write_combined_group(master_header, fdlp->viz_iteration))
+      goto failure;
 
+    /* Put value of viz_iteration into the time values */
+    if (add_to_iteration_counter_monotonic(&world->viz_state_info.output_times,
+                                           fdlp->viz_iteration))
+      goto failure;
 
-
-/* dump 3D molecules: */
-
- if(viz_mol_pos_flag || viz_mol_orient_flag){	 
-   
-        /* create references to the molecules. */
-        if ((viz_molp=(struct volume_molecule ***)malloc(n_species*sizeof(struct volume_molecule **)))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-      		return(1);
-    	}
-    	if ((viz_mol_count=(u_int *)malloc(n_species*sizeof(u_int)))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-      		return(1);
-    	}
-  
-    for (ii=0;ii<n_species;ii++) {
-      /* perform initialization */
-      spec_id=species_list[ii]->species_id;
-      viz_molp[spec_id]=NULL;
-      viz_mol_count[spec_id]=0;
-
-      if (species_list[ii]->viz_state == EXCLUDE_OBJ)  continue;
-
-      num=species_list[ii]->population;
-      if ((num>0) && (species_list[ii]->flags & NOT_FREE) == 0) {
-          /* create references for 3D molecules */
-          if ((viz_molp[spec_id]=(struct volume_molecule **)malloc
-            (num*sizeof(struct volume_molecule *)))==NULL) {
-                fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-                return(1);
-          }
-      }
-    } /* end for */
-
-    slp=world->storage_head;
-    while (slp!=NULL) {
-      sp=slp->store;
-      shp=sp->timer;
-      while (shp!=NULL) {
-        
-        for (ii=0;ii<shp->buf_len;ii++) {
-          amp=(struct abstract_molecule *)shp->circ_buf_head[ii];
-          while (amp!=NULL) {
-            if ((amp->properties!=NULL) && (amp->flags & TYPE_3D) == TYPE_3D){
-              molp=(struct volume_molecule *)amp;
-              if (molp->properties->viz_state!=EXCLUDE_OBJ) {
-                spec_id=molp->properties->species_id;
-                if (viz_mol_count[spec_id]<molp->properties->population) {
-                  viz_molp[spec_id][viz_mol_count[spec_id]++]=molp;
-                }
-                else {
-                  fprintf(log_file,"MCell: molecule count disagreement!!\n");
-                  fprintf(log_file,"  Species %s  population = %d  count = %d\n",molp->properties->sym->name,molp->properties->population,viz_mol_count[spec_id]);
-                } /* end if/else */
-              }  /* end if(molp) */
-            } /* end if(amp) */
-            amp=amp->next;
-          } /* end while  (amp) */
-        } /* end for */
-        
-        amp=(struct abstract_molecule *)shp->current;
-        while (amp!=NULL) {
-          if ((amp->properties!=NULL) && (amp->flags & TYPE_3D) == TYPE_3D) {
-            molp=(struct volume_molecule *)amp;
-            if (molp->properties->viz_state!=EXCLUDE_OBJ) {
-              spec_id=molp->properties->species_id;
-              if (viz_mol_count[spec_id]<molp->properties->population) {
-                viz_molp[spec_id][viz_mol_count[spec_id]++]=molp;
-              }
-              else {
-                fprintf(log_file,"MCell: molecule count disagreement!!\n");
-                fprintf(log_file,"  Species %s  population = %d  count = %d\n",molp->properties->sym->name,molp->properties->population,viz_mol_count[spec_id]);
-              }
-            }
-
-           }
-          amp=amp->next;
-        }
-        
-        shp=shp->next_scale;
-      } /* end (while (shp) */
-
-      slp=slp->next;
-    } /* end (while slp) */
-
-
-    for (ii=0;ii<n_species;ii++) {
-      
-      if(species_list[ii]->viz_state == EXCLUDE_OBJ) continue; 
-      spec_id=species_list[ii]->species_id;
-      
-      if(viz_mol_count[spec_id] > 0)
-      {
-         num=viz_mol_count[spec_id];
-         if(num!=species_list[ii]->population
-             && ((species_list[ii]->flags & NOT_FREE)==0)) {
-             fprintf(log_file,"MCell: molecule count disagreement!!\n");
-             fprintf(log_file,"  Species %s  population = %d  count = %d\n",species_list[ii]->sym->name,species_list[ii]->population,num);
-         }
-      }
-
-      if (viz_mol_count[spec_id]>0 && ((species_list[ii]->flags & NOT_FREE) == 0)) {
-        /* here are 3D diffusing molecules */
-        num = viz_mol_count[spec_id];
-       if(viz_mol_pos_flag)
-       { 	  
-	  mol_pos_byte_offset_prev = mol_pos_byte_offset;
-          for (jj=0;jj<num;jj++) {
-            molp=viz_molp[spec_id][jj];
-	    v1=(float)(world->length_unit*molp->pos.x);
-	    v2=(float)(world->length_unit*molp->pos.y);
-	    v3=(float)(world->length_unit*molp->pos.z);
-	    fwrite(&v1,sizeof v1,1,mol_pos_data);
-	    fwrite(&v2,sizeof v2,1,mol_pos_data);
-	    fwrite(&v3,sizeof v3,1,mol_pos_data);
-            mol_pos_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-          }
-          fprintf(master_header,"object %d class array type float rank 1 shape 3 items %d %s binary data file %s,%d  # %s positions #\n",main_index,num,my_byte_order, mol_pos_name, mol_pos_byte_offset_prev, species_list[ii]->sym->name);
-          fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
-          mol_pos[mol_pos_index] = main_index;
-          mol_pos_index++;
-          main_index++;
-        }
-
-        if(viz_mol_orient_flag)
-        {  
-          /* write molecule orientations information. 
-             for 3D molecules we use default orientation [0,0,1] */
-      	  mol_orient_byte_offset_prev = mol_orient_byte_offset;
-          v1 = 0;
-          v2 = 0;
-          v3 = 1;
-          fwrite(&v1,sizeof v1,1,mol_orient_data);
-          fwrite(&v2,sizeof v2,1,mol_orient_data);
-          fwrite(&v3,sizeof v3,1,mol_orient_data);
-          mol_orient_byte_offset += (sizeof(v1) + sizeof(v2) + sizeof(v3));
-          fprintf(master_header,"object %d class constantarray type float rank 1 shape 3 items %d %s binary data file %s,%d # %s orientations #\n",main_index,num, my_byte_order, mol_orient_name, mol_orient_byte_offset_prev, species_list[ii]->sym->name);
-          fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
-          mol_orient[mol_orient_index] = main_index;
-          mol_orient_index++;
-          main_index++;
-        }
-
-        if(viz_mol_states_flag)
-        {
-          /* write molecule states information. */ 
-      	  mol_states_byte_offset_prev = mol_states_byte_offset;
-          fwrite(&state,sizeof state,1,mol_states_data);
-          mol_states_byte_offset += (sizeof state);
-          fprintf(master_header,"object %d class constantarray type int items %d %s binary data file %s,%d  # %s states #\n",main_index,num, my_byte_order,mol_states_name,mol_states_byte_offset_prev, species_list[ii]->sym->name);
-          fprintf(master_header,"\tattribute \"dep\" string \"positions\"\n\n");
-          mol_states[mol_states_index] = main_index;
-          mol_states_index++;
-          main_index++;
-        }
-      }
-      /* output empty arrays for zero molecule counts here */
-      else if ((viz_mol_count[spec_id]==0) && ((species_list[ii]->flags & NOT_FREE) == 0)) {
-        if(viz_mol_pos_flag)
-        {
-          fprintf(master_header,"object %d array   # %s positions #\n",main_index, species_list[ii]->sym->name);
-          mol_pos[mol_pos_index] = main_index;
-          mol_pos_index++;
-          main_index++;
-        }
-        if(viz_mol_orient_flag)
-        {
-          fprintf(master_header,"object %d array   # %s orientations #\n",main_index, species_list[ii]->sym->name);
-          mol_orient[mol_orient_index] = main_index;
-          mol_orient_index++;
-          main_index++;
-        }
-       
-       if(viz_mol_states_flag)
-       {
-          fprintf(master_header,"object %d array   # %s states #\n",main_index, species_list[ii]->sym->name);
-          mol_states[mol_states_index] = main_index;
-          mol_states_index++;
-          main_index++;
-          
-       }
-	 fprintf(master_header,"\n");
-      } /* end else if */
-    }
-  } /* end if((viz_mol_pos_flag) || (viz_mol_orient_flag)) */
- 
-
-/* build fields here */
-      int show_molecules = 0;
-   if(mol_to_show_number > 0)
-   {
-      if(fdlp->type == ALL_MOL_DATA) {
-           show_molecules = 1;
-      }
-      else if((viz_mol_pos_flag || viz_mol_orient_flag) && ((special_mol_frames_counter ==0) || (special_mol_frames_counter == 2))){
-		show_molecules = 1;
-      }
-   }
-
-    if(show_molecules)
+    /* If we're on the final iteration... */
+    if (world->it_time == world->viz_state_info.final_iteration)
     {
-      for (ii=0; ii<mol_to_show_number; ii++) {
-               if(mol_names[ii] != NULL){
-                  fprintf(master_header,
-                      "object %d field   # %s #\n",main_index, mol_names[ii]);
-                }
-                if(mol_pos[ii] > 0) {
-             	   fprintf(master_header,
-                 	"\tcomponent \"positions\" value %d\n",mol_pos[ii]);
-                }
-                if(mol_orient[ii] > 0){
-             	   fprintf(master_header,
-                 	"\tcomponent \"data\" value %d # orientations #\n",mol_orient[ii]);
-                }
-             if(viz_mol_states_flag)
-             {
-                if(mol_states[ii] > 0){ 
-             	   fprintf(master_header,
-                	"\tcomponent \"state_values\" value %d\n",mol_states[ii]);
-                }
-             }
-             fprintf(master_header, "\n");
-             mol_field_indices[ii] = main_index;
-             main_index++;
-      }
+      if (dreamm_v3_grouped_dump_time_info(master_header))
+        goto failure;
+
+      if (dreamm_v3_grouped_write_frame_series(master_header))
+        goto failure;
     }
-
-      /* create group objects for molecules/effectors */
-
-        if(show_molecules)
-        {
-                fprintf(master_header,"object \"%s%u\" group # %s #\n", "volume_molecules_", viz_iteration, "volume molecules"); 
-        	mol_group_index = main_index;
-                member_molecules_iteration = viz_iteration;
-      		for (ii=0;ii<mol_to_show_number;ii++) {
-                   if(mol_field_indices[ii] > 0){
-          		fprintf(master_header,"\tmember \"%s\" value %d\n",mol_names[ii], mol_field_indices[ii]);
-                    }
-          	}
-                main_index++;
-            /* store iteration_number for volume molecules */
-            iteration_numbers_vol_mols[iteration_numbers_vol_mols_count] = viz_iteration;
-            iteration_numbers_vol_mols_count++;
-      	}
-
-        fprintf(master_header, "\n"); 
-
- 
-        if(show_effectors)
-        {
-                fprintf(master_header,"object \"%s%u\" group # %s #\n","surface_molecules_", viz_iteration, "surface molecules");
-               eff_group_index = main_index;
-               member_effectors_iteration = viz_iteration;
-      	       for (ii=0;ii<eff_to_show_number;ii++) {
-                   if(eff_field_indices[ii] > 0){
-                       fprintf(master_header,"\tmember \"%s\" value %d\n",eff_names[ii], eff_field_indices[ii]);
-                   }
-               }
-               main_index++;
-            /* store iteration_number for surface molecules */
-            iteration_numbers_surf_mols[iteration_numbers_surf_mols_count] = viz_iteration;
-            iteration_numbers_surf_mols_count++;
-      	}
-        fprintf(master_header, "\n"); 
-
-      /* create combined group object for meshes and molecules */
-      int show_combined_group = 1;
-      if(((fdlp->viz_iteration == curr_surf_pos_iteration_step) ||
-	  (fdlp->viz_iteration == curr_region_data_iteration_step)) && 
-        (mesh_group_index == 0)) 
-      {
-            	show_combined_group = 0;
-      }
-      if(((fdlp->viz_iteration == curr_mol_pos_iteration_step) ||
-	 (fdlp->viz_iteration == curr_mol_orient_iteration_step))
-             && ((mol_group_index == 0) && (eff_group_index == 0))){ 
-            	show_combined_group = 0;
-      }
-
-      if(show_combined_group)
-      {
-        fprintf(master_header,"object %d group\n",main_index);
-        combined_group_index = main_index;
-        if(member_meshes_iteration != UINT_MAX){  
-          	fprintf(master_header,"\tmember \"meshes\" value \"%s%u\"\n", "meshes_",member_meshes_iteration);
-	     	mesh_group_index = 0; 
-
-      	}
-        if(member_molecules_iteration != UINT_MAX) {  
-          	fprintf(master_header,"\tmember \"volume_molecules\" value \"%s%u\"\n",  "volume_molecules_", member_molecules_iteration); 
-		mol_group_index = 0; 
-        }
-       if(member_effectors_iteration != UINT_MAX) {  
-          	fprintf(master_header,"\tmember \"surface_molecules\" value \"%s%u\"\n",  "surface_molecules_", member_effectors_iteration);
-		eff_group_index = 0; 
-        }
-      	
-        fprintf(master_header,"\n");
-      }
-
-
-     /* create entry into "frame_data" object. */
-      if(show_combined_group){
-
-        /* create an entry into a 'frame_data' object. */
-        buf = (char *)malloc(1024*sizeof(char));
-        if(buf == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-               return (1);
-        }
-      	sprintf(buf, "\tmember %d value %d position %u\n", series_index, combined_group_index, viz_iteration);
-        frame_data_series_list[frame_data_series_count] = buf;
-        frame_data_series_count++;
-      	series_index++;
-      	main_index++;
-
-      	fprintf(master_header, "\n\n");
-
-        if(special_surf_frames_counter == 2){
-		special_surf_frames_counter = 0;
-        }
-        if(special_mol_frames_counter == 2){
-		special_mol_frames_counter = 0;
-        }
-          
-
-	/* put value of viz_iteration into the time_values array */ 
-            if(time_values_count == 0){
-               time_values[time_values_count] = viz_iteration;  
-               time_values_count++;
-               last_time_value_written = viz_iteration;
-            }else if(viz_iteration > last_time_value_written){
-               time_values[time_values_count] = viz_iteration;  
-               time_values_count++;
-               last_time_value_written = viz_iteration;
-            }
-     }
-
-     /* flag that signals the need to write "footers" for 
-        the master file */
-     int time_to_write_footers = 0;
-     /* flag pointing to another frame with certain condition */
-     int found = 0;
-     struct frame_data_list *fdlp_temp = NULL;
-     long long next_iteration_step_this_frame = UINT_MAX;  /* next iteration for this frame */
-     static long long next_iteration_step_previous_frame = -1;  /* next iteration for previous frame */
-
-     if(fdlp->curr_viz_iteration->next != NULL){
-	switch (fdlp->list_type) {
-	  case OUTPUT_BY_ITERATION_LIST:
-	  	  next_iteration_step_this_frame = (long long)fdlp->curr_viz_iteration->next->value; 
-	          break;
-	  case OUTPUT_BY_TIME_LIST:
-	          next_iteration_step_this_frame = (long long)(fdlp->curr_viz_iteration->next->value/world->time_unit + ROUND_UP);
-	          break;
-          default:
-                  fprintf(world->err_file,"File '%s', Line %ld: error - wrong frame_data_list list_type %d\n", __FILE__, (long)__LINE__, fdlp->list_type);
-                  break;
-	}
-     }
-    
-
-     found = 0;
-     if(world->chkpt_flag){
-        /* check whether it is the last frame */
-               
-        if((world->it_time == world->iterations) ||
-                 (world->it_time == final_iteration))
-               
-        { 
-
-             /* look forward to find out whether there are 
-                other frames to be output */
-             for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
-                if((fdlp_temp->viz_iteration == world->iterations) || (fdlp_temp->viz_iteration == final_iteration)){ 
-                   found = 1;
-                   break;
-                }
-             }
-             
-             if(!found){
-                /* this is the last frame */
-                    time_to_write_footers = 1; 
-             }
-        }
-        
-       else if(((world->iterations < next_iteration_step_this_frame) && (next_iteration_step_this_frame != UINT_MAX)) || (next_iteration_step_this_frame == UINT_MAX)){
-        
-
-          /* look forward to find out whether there are 
-             other frames to be output */
-        for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
-                
-                if((fdlp_temp->viz_iteration >= fdlp->viz_iteration) &&
-                    (fdlp_temp->viz_iteration <= world->iterations)){
-                       found = 1;
-                       break;
-                }
-         }
-        
-        /* this allows to look backwards */
-        if(next_iteration_step_this_frame != UINT_MAX){
-           if(next_iteration_step_previous_frame > next_iteration_step_this_frame){
-                found = 1;
-           }
-        }else{
-                if((next_iteration_step_previous_frame >= fdlp->viz_iteration) && (next_iteration_step_previous_frame <= world->iterations)){
-                   found = 1;
-                }
-
-        }
-         
-         if(!found){
-             /* this is the last frame */
-             time_to_write_footers = 1; 
-          }
-
-     }
-
-    /* end if(world->chkpt_flag) */
-   } else if(world->it_time == final_iteration){
-
-
-        /* look forward to find out whether there are 
-           other frames to be output */
-        for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
-          
-                if(fdlp_temp->viz_iteration == final_iteration) {
-                   found = 1;
-                   break;
-                }
-         }
-         if(!found){
-             /* this is the last frame */
-             time_to_write_footers = 1; 
-          }
-           
-    }
-    else if((world->iterations < next_iteration_step_this_frame) || (next_iteration_step_this_frame == UINT_MAX)){
-
-        /* look forward to find out whether there are 
-           other frames to be output */
-        for(fdlp_temp = fdlp->next; fdlp_temp != NULL; fdlp_temp = fdlp_temp->next){
-                
-                if((fdlp_temp->viz_iteration >= fdlp->viz_iteration) &&
-                    (fdlp_temp->viz_iteration <= world->iterations)){
-                   found = 1;
-                   break;
-                }
-         }
-             
-        /* this allows to look backwards */
-        if(next_iteration_step_this_frame != UINT_MAX){
-           if(next_iteration_step_previous_frame > next_iteration_step_this_frame){
-                found = 1;
-           }
-        }else{
-                if((next_iteration_step_previous_frame >= fdlp->viz_iteration) && (next_iteration_step_previous_frame <= world->iterations)){
-                   found = 1;
-                }
-
-        }
-
-         if(!found){
-             /* this is the last frame */
-             time_to_write_footers = 1; 
-          }
-           
-    } /* end if-else(world->chkpt_flag) */
-
-
-    /* this allows to look backwards to the previous frames */
-    if(next_iteration_step_this_frame != UINT_MAX){
-          if(next_iteration_step_this_frame > next_iteration_step_previous_frame){
-             next_iteration_step_previous_frame = next_iteration_step_this_frame;         }
-     }
-
-     if(time_to_write_footers)
-     {
-       
-        u_int elem1;
-        double t_value;
-        int extra_elems;
-        int iteration_numbers_count;
-        int dummy = -1;
-
-	/* write 'iteration_numbers' object. */
-        if(world->chkpt_flag){
-           sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
-           iteration_numbers_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".iteration_numbers.") +  strlen(chkpt_seq_num) + strlen(".bin") + 1));
-           if(iteration_numbers_file_path == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-               return (1);
-           }
-            sprintf(iteration_numbers_file_path,"%s.iteration_numbers.%s.bin",world->file_prefix_name, chkpt_seq_num);
-        }else{
-           iteration_numbers_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".iteration_numbers.bin") + 1));
-           if(iteration_numbers_file_path == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-               return (1);
-           }
-           sprintf(iteration_numbers_file_path,"%s.iteration_numbers.bin",world->file_prefix_name);
-        }
-
-     /* remove the folder name from the iteration_numbers data file name */
-        if(viz_dir_depth > 1){
-           ch_ptr = strrchr(iteration_numbers_file_path, '/');
-           ++ch_ptr;
-           iteration_numbers_name = malloc(sizeof(char) * (strlen(ch_ptr) + 1));
-           if(iteration_numbers_name == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-               return (1);
-           }
-           strcpy(iteration_numbers_name, ch_ptr);
-        }else{
-           iteration_numbers_name = malloc(sizeof(char) * (strlen(iteration_numbers_file_path) + 1));
-           if(iteration_numbers_name == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-               return (1);
-           }
-
-           strcpy(iteration_numbers_name, world->file_prefix_name);
-        }
-
-      	if ((iteration_numbers_data=fopen(iteration_numbers_file_path,"wb"))==NULL) {
-            fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, iteration_numbers_file_path);
-           return(1);
-        }
-
-        /* write "time_values" object. */
-        if(world->chkpt_flag){
-           sprintf(chkpt_seq_num, "%d", world->chkpt_seq_num);
-           time_values_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".time_values.") +  strlen(chkpt_seq_num) + strlen(".bin") + 1));
-           if(time_values_file_path == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-               return (1);
-           }
-            sprintf(time_values_file_path,"%s.time_values.%s.bin",world->file_prefix_name, chkpt_seq_num);
-        }else{
-           time_values_file_path = (char *)malloc(sizeof(char) * (strlen(world->file_prefix_name) + strlen(".time_values.bin") + 1));
-           if(time_values_file_path == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-               return (1);
-           }
-           sprintf(time_values_file_path,"%s.time_values.bin",world->file_prefix_name);
-        }
-
-     	/* remove the folder name from the time_values data file name */
-        if(viz_dir_depth > 1){
-           ch_ptr = strrchr(time_values_file_path, '/');
-           ++ch_ptr;
-           time_values_name = malloc(sizeof(char) * (strlen(ch_ptr) + 1));
-           if(time_values_name == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-               return (1);
-           }
-           strcpy(time_values_name, ch_ptr);
-        }else{
-           time_values_name = malloc(sizeof(char) * (strlen(time_values_file_path) + 1));
-           if(time_values_name == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-               return (1);
-           }
-           strcpy(time_values_name, world->file_prefix_name);
-        }
-
-      	if ((time_values_data=fopen(time_values_file_path,"wb"))==NULL) {
-            fprintf(world->err_file, "File %s, Line %ld: cannot open file %s.\n", __FILE__, (long)__LINE__, time_values_file_path);
-            return(1);
-        }
-
-      if(iteration_numbers_vol_mols_count > iteration_numbers_surf_mols_count){
-         iteration_numbers_count = iteration_numbers_vol_mols_count;
-      }else{
-         iteration_numbers_count = iteration_numbers_surf_mols_count;
-      }
-      if(iteration_numbers_meshes_count > iteration_numbers_count){
-         iteration_numbers_count = iteration_numbers_meshes_count;
-      }
-      
-        if(iteration_numbers_meshes_count > 0)
-        {
-           extra_elems = iteration_numbers_count - iteration_numbers_meshes_count;
-           if(extra_elems > 0){
-              /* pad the iteration_numbers_meshes array with the last 
-                 element so that it will have the same number of elements 
-                 as the maximum length array */
-              elem1 = iteration_numbers_meshes[iteration_numbers_meshes_count - 1];
-              
-		for(ii = 0; ii < extra_elems; ii++){
-                   iteration_numbers_meshes[iteration_numbers_meshes_count + ii] =  elem1;
-                }
-            }
-            iteration_numbers_meshes_count += extra_elems;
-          
-        }else{
-            /* pad the 'iteration_numbers_meshes' array with UINT_MAX */
-            for(ii = 0; ii < iteration_numbers_count; ii++){
-               iteration_numbers_meshes[ii] = UINT_MAX;
-            }
-            iteration_numbers_meshes_count = iteration_numbers_count;
-        }
-
-        if(iteration_numbers_vol_mols_count > 0)
-        {
-           extra_elems = iteration_numbers_count - iteration_numbers_vol_mols_count;
-           if(extra_elems > 0){
-              /* pad the iteration_numbers_vol_mols array with the last 
-                 element so that it will have the same number of elements 
-                 as the maximum length array */
-              elem1 = iteration_numbers_vol_mols[iteration_numbers_vol_mols_count - 1];
-              
-		for(ii = 0; ii < extra_elems; ii++){
-                   iteration_numbers_vol_mols[iteration_numbers_vol_mols_count + ii] = elem1;
-                }
-           }
-           iteration_numbers_vol_mols_count += extra_elems;
-        }else{
-            /* pad the 'iteration_numbers_vol_mols' array with UINT_MAX */
-            for(ii = 0; ii < iteration_numbers_count; ii++){
-               iteration_numbers_vol_mols[ii] = UINT_MAX;
-            }
-            iteration_numbers_vol_mols_count = iteration_numbers_count;
-        }
-
-        if(iteration_numbers_surf_mols_count > 0)
-        {
-           extra_elems = iteration_numbers_count - iteration_numbers_surf_mols_count;
-           if(extra_elems > 0){
-              /* pad the iteration_numbers_surf_mols array with the last 
-                 element so that it will have the same number of elements 
-                 as the maximum length array */
-              elem1 = iteration_numbers_surf_mols[iteration_numbers_surf_mols_count - 1];
-              
-		for(ii = 0; ii < extra_elems; ii++){
-                   iteration_numbers_surf_mols[iteration_numbers_surf_mols_count + ii] = elem1;
-                }
-           }
-           iteration_numbers_surf_mols_count += extra_elems;
-        }else{
-            /* pad the 'iteration_numbers_surf_mols' array with UINT_MAX */
-            for(ii = 0; ii < iteration_numbers_count; ii++){
-               iteration_numbers_surf_mols[ii] = UINT_MAX;
-            }
-            iteration_numbers_surf_mols_count = iteration_numbers_count;
-
-        }
-
-      int dreamm3mode_number = 0;
-      char dreamm3mode[1024];
-      if(world->viz_mode == DREAMM_V3_MODE){
-         dreamm3mode_number = 1;
-         sprintf(dreamm3mode, "DREAMM_V3_MODE");
-      }else if(world->viz_mode == DREAMM_V3_GROUPED_MODE){
-         dreamm3mode_number = 2;
-         sprintf(dreamm3mode, "DREAMM_V3_GROUPED_MODE");
-      }      
-
-      fprintf(master_header,"object \"iteration_numbers\" class array  type unsigned int rank 1 shape 3 items %u %s binary data file %s,%d\n",iteration_numbers_count, my_byte_order,iteration_numbers_name, iteration_numbers_byte_offset);
-       fprintf(master_header,"\tattribute \"dreamm3mode\" number %d\t#%s#\n", dreamm3mode_number, dreamm3mode);
-        for(ii = 0; ii < iteration_numbers_count; ii++){
-                elem1 = iteration_numbers_meshes[ii];
-                if(elem1 == UINT_MAX) 
-                {
-                   fwrite(&dummy, sizeof(dummy),1,iteration_numbers_data);
-                }else{
-                   fwrite(&elem1, sizeof(elem1),1,iteration_numbers_data);
-                }
-                elem1 = iteration_numbers_vol_mols[ii];
-                if(elem1 == UINT_MAX) 
-                {
-                   fwrite(&dummy, sizeof(dummy),1,iteration_numbers_data);
-                }else{
-                   fwrite(&elem1, sizeof(elem1),1,iteration_numbers_data);
-                }
-
-                elem1 = iteration_numbers_surf_mols[ii];
-                if(elem1 == UINT_MAX) 
-                {
-                   fwrite(&dummy, sizeof(dummy),1,iteration_numbers_data);
-                }else{
-                   fwrite(&elem1, sizeof(elem1),1,iteration_numbers_data);
-                }
-
-        }
-     	fprintf(master_header, "\n\n");
-
-        if(time_values_count > 0)
-        {
-        	fprintf(master_header,"object \"time_values\" class array  type double rank 0 items %u %s binary data file %s,%d\n",time_values_count, my_byte_order,time_values_name, time_values_byte_offset);
-                fprintf(master_header,"\tattribute \"dreamm3mode\" number %d\t#%s#\n", dreamm3mode_number, dreamm3mode);
-												for(ii = 0; ii < time_values_count; ii++){
-                	elem1 = time_values[ii];
-                        if(elem1 == UINT_MAX) 
-                        {
-                           fwrite(&(dummy), sizeof(dummy),1,time_values_data);
-                        }else{
-                           t_value = elem1*world->time_unit;
-                           fwrite(&(t_value), sizeof(t_value),1,time_values_data);
-                        }
-
-                }
-		fprintf(master_header, "\n\n");
-	}
-
-
-
-                /* write 'frame_data' object. */
-    		fprintf(master_header,"object \"%s\" class series\n", "frame_data");
-        	if(frame_data_series_count > 0)
-        	{
-        	   char *elem;
-		   for(ii = 0; ii < frame_data_series_count; ii++){
-                      elem = frame_data_series_list[ii];
-                       if(elem == NULL){
-                          fprintf(world->err_file, "File %s, Line %ld:  attempt of access to uninitialized data.\n", __FILE__, (long)__LINE__);
-                        }
-			fprintf(master_header, "\t%s", elem);
-        	    }
-                 }
-	         fprintf(master_header, "\n\n");
-
-
-    } /* end if(time_to_write_footers) */
-
- 
-   /* free allocated memory */
-   if (viz_molp != NULL) {
-    for (ii=0;ii<n_species;ii++) {
-      if (viz_molp[ii]!=NULL) {
-        free(viz_molp[ii]);
-        viz_molp[ii] = NULL;
-      }
-    }
-    
-    free(viz_molp);
-    viz_molp = NULL;
-  }
-   
-  if (viz_mol_count != NULL) {
-    free (viz_mol_count);
-    viz_mol_count = NULL;
   }
 
+  if (master_header != NULL) fclose(master_header);
+  return 0;
 
-  if (viz_grid_mol_count != NULL) {
-    free (viz_grid_mol_count);
-    viz_grid_mol_count = NULL;
-  }
-  
-    if(master_header != NULL){
-    	fclose(master_header);
-    }
-    if(mol_pos_data != NULL){
-    	fclose(mol_pos_data);
-    }
-    if(mol_orient_data != NULL){
-    	fclose(mol_orient_data);
-    }
-    if(mol_states_data != NULL){
-    	fclose(mol_states_data);
-    }
-    if(mesh_pos_data != NULL){
-    	fclose(mesh_pos_data);
-    }
-    if(mesh_states_data != NULL){
-    	fclose(mesh_states_data);
-    }
-    if(region_data != NULL){
-    	fclose(region_data);
-    }
-    if(iteration_numbers_data != NULL){
-        fclose(iteration_numbers_data);
-    }
-    if(time_values_data != NULL){
-        fclose(time_values_data);
-    }
-             
-    if(time_to_write_footers)
-    {
-      if(master_header_file_path != NULL) free(master_header_file_path); 
-      if(mol_pos_name != NULL) free(mol_pos_name);
-      mol_pos_name = NULL;
-      if(mol_pos_file_path != NULL) free(mol_pos_file_path);
-      mol_pos_file_path = NULL;
-      if(mol_orient_name != NULL) free(mol_orient_name);
-      mol_orient_name = NULL;
-      if(mol_orient_file_path != NULL) free(mol_orient_file_path);
-      mol_orient_file_path = NULL;
-      if(mol_states_name != NULL) free(mol_states_name);
-      mol_states_name = NULL;
-      if(mol_states_file_path != NULL) free(mol_states_file_path);
-      mol_states_file_path = NULL;
-      if(mesh_pos_name != NULL) free(mesh_pos_name);
-      mesh_pos_name = NULL;
-      if(mesh_pos_file_path != NULL) free(mesh_pos_file_path);
-      mesh_pos_file_path = NULL;
-      if(mesh_states_name != NULL) free(mesh_states_name);
-      mesh_states_name = NULL;
-      if(mesh_states_file_path != NULL) free(mesh_states_file_path);
-      mesh_states_file_path = NULL;
-      if(region_viz_data_name != NULL) free(region_viz_data_name);
-      region_viz_data_name = NULL;
-      if(region_viz_data_file_path != NULL) free(region_viz_data_file_path);
-      region_viz_data_file_path = NULL;
-      if(iteration_numbers_name != NULL) free(iteration_numbers_name);
-      iteration_numbers_name = NULL;
-      if(iteration_numbers_file_path != NULL) free(iteration_numbers_file_path);
-      iteration_numbers_file_path = NULL;
-      if(time_values_name != NULL) free(time_values_name);
-      time_values_name = NULL;
-      if(time_values_file_path != NULL) free(time_values_file_path);
-      time_values_file_path = NULL;
-                
-      if(time_values != NULL){
-         free(time_values);
-         time_values = NULL;
-      }
-      if(iteration_numbers_meshes != NULL){
-         free(iteration_numbers_meshes);
-         iteration_numbers_meshes = NULL;
-      }
-      if(iteration_numbers_vol_mols != NULL){
-         free(iteration_numbers_vol_mols);
-         iteration_numbers_vol_mols = NULL;
-      }
-      if(iteration_numbers_surf_mols != NULL){
-         free(iteration_numbers_surf_mols);
-         iteration_numbers_surf_mols = NULL;
-      }
-      if(surf_states != NULL){
-         free(surf_states);
-         surf_states = NULL;
-      }
-      if(surf_pos != NULL){
-         free(surf_pos);
-         surf_pos = NULL;
-      }
-      if(surf_con != NULL){
-         free(surf_con);
-         surf_con = NULL;
-      }
-      if(surf_field_indices != NULL){
-         free(surf_field_indices);
-         surf_field_indices = NULL;
-      }
-      if(eff_pos != NULL){
-         free(eff_pos);
-         eff_pos = NULL;
-         
-      }
-      if(eff_orient != NULL){
-         free(eff_orient);
-         eff_orient = NULL;
-      }
-      if(eff_states != NULL){
-         free(eff_states);
-         eff_states = NULL;
-      }
-      if(eff_field_indices != NULL){
-         free(eff_field_indices);
-         eff_field_indices = NULL;
-      }
-      if(mol_pos != NULL){
-         free(mol_pos);
-         mol_pos = NULL;
-      }
-      if(mol_orient != NULL){
-         free(mol_orient);
-         mol_orient = NULL;
-      }
-      if(mol_states != NULL){
-         free(mol_states);
-         mol_states = NULL;
-      }
-      if(mol_field_indices != NULL){
-         free(mol_field_indices);
-         mol_field_indices = NULL;
-      }
-
-      if (eff_names != NULL) {
-        for (ii = 0; ii < eff_to_show_number; ii++) {
-          if (eff_names[ii] != NULL) {
-            free(eff_names[ii]);
-            eff_names[ii] = NULL;
-          }
-        }
-    
-        free(eff_names);
-        eff_names = NULL;
-      }
-      if (mol_names != NULL) {
-        for (ii = 0; ii < mol_to_show_number; ii++) {
-          if (mol_names[ii] != NULL) {
-            free(mol_names[ii]);
-            mol_names[ii] = NULL;
-          }
-        }
-    
-        free(mol_names);
-        mol_names = NULL;
-      }
-      if (obj_names != NULL) {
-        for (ii = 0; ii < obj_to_show_number; ii++) {
-          if (obj_names[ii] != NULL) {
-            free(obj_names[ii]);
-            obj_names[ii] = NULL;
-          }
-        }
-    
-        free(obj_names);
-        obj_names = NULL;
-      }
-      if (surf_region_values != NULL) {
-        for(ii = 0; ii < obj_to_show_number; ii++){
-           if (surf_region_values[ii] != NULL) {
-              free(surf_region_values[ii]);
-              surf_region_values[ii] = NULL;
-           }
-        }
-    
-        free(surf_region_values);
-        surf_region_values = NULL;
-      }
-      if (region_names != NULL) {
-        for(ii = 0; ii < obj_to_show_number; ii++){
-           if (region_names[ii] != NULL) {
-              free(region_names[ii]);
-              region_names[ii] = NULL;
-           }
-        } 
-        free(region_names);
-        region_names = NULL;
-      }
-      if(obj_num_regions != NULL){
-         free(obj_num_regions);
-         obj_num_regions = NULL;
-      }
-
-   }
-
-
-
-  return(0);
-
+failure:
+  if (master_header != NULL) fclose(master_header);
+  return 1;
 }
-
 
 /************************************************************************ 
 output_rk_custom:
@@ -6865,7 +4977,6 @@ Rex Kerr's personal visualization mode output function
 
 int output_rk_custom(struct frame_data_list *fdlp)
 {
-  FILE *log_file;
   FILE *custom_file;
   char cf_name[1024];
   struct storage_list *slp;
@@ -6884,7 +4995,6 @@ int output_rk_custom(struct frame_data_list *fdlp)
   struct vector3 where;
   
   no_printf("Output in CUSTOM_RK mode...\n");
-  log_file = world->log_file;
   
   if (world->rk_mode_var==NULL) return output_ascii_molecules(fdlp);
   
@@ -6894,10 +5004,10 @@ int output_rk_custom(struct frame_data_list *fdlp)
     custom_file = fopen(cf_name,(world->rk_mode_var->n_written)?"a+":"w");
     if (!custom_file)
     {
-      fprintf(log_file,"Couldn't open file %s for viz output.\n",cf_name);
+      fprintf(world->log_file,"Couldn't open file %s for viz output.\n",cf_name);
       return 1;
     }
-    else no_printf("Writing to file %s\n",cf_name);
+    else { no_printf("Writing to file %s\n",cf_name); }
     
     world->rk_mode_var->n_written++;
     fprintf(custom_file,"%lld",fdlp->viz_iteration);
@@ -6969,7 +5079,6 @@ Out: 0 on success, 1 on failure.  The positions of molecules are output
 
 int output_ascii_molecules(struct frame_data_list *fdlp)
 {
-  FILE *log_file;
   FILE *custom_file;
   char cf_name[1024];
   char cf_format[256];
@@ -6988,7 +5097,6 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
   struct vector3 where;
   
   no_printf("Output in ASCII mode (molecules only)...\n");
-  log_file = world->log_file;
   
   if ((fdlp->type==ALL_FRAME_DATA) || (fdlp->type==MOL_POS) || (fdlp->type==MOL_STATES))
   {
@@ -6999,10 +5107,10 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
     custom_file = fopen(cf_name,"w");
     if (!custom_file)
     {
-      fprintf(log_file,"Couldn't open file %s for viz output.\n",cf_name);
+      fprintf(world->log_file,"Couldn't open file %s for viz output.\n",cf_name);
       return 1;
     }
-    else no_printf("Writing to file %s\n",cf_name);
+    else { no_printf("Writing to file %s\n",cf_name); }
     
     for (slp = world->storage_head ; slp != NULL ; slp = slp->next)
     {
@@ -7050,4 +5158,156 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
   return 0;
 }
 
+/********************************************************************* 
+init_frame_data_list:
+   In: struct frame_data_list* fdlp
+   Out: 0 on success, 1 on error.
+        Initializes frame_data_list structure. 
+        Sets the value of the current iteration step to the start value.
+        Sets the number of iterations. 
+        Initializes state used in output_dreamm_objects and
+                     output_dreamm_objects_grouped
+***********************************************************************/
+int init_frame_data_list(struct frame_data_list **fdlpp)
+{
+  int mol_orient_frame_present = 0;
+  int mol_pos_frame_present = 0;
+  int reg_data_frame_present = 0;
+  int mesh_geometry_frame_present = 0;
+  struct frame_data_list *fdlp;
+
+  if (fdlpp == NULL) return 0;
+
+  fdlp = *fdlpp;
+  if (fdlp == NULL) return 0;
+
+  switch (world->viz_mode)
+  {
+    case DREAMM_V3_MODE:
+      if (dreamm_v3_generic_preprocess_frame_data(fdlpp))
+        return 1;
+      fdlp = *fdlpp;
+      if (dreamm_v3_init(fdlp))
+        return 1;
+      break;
+
+    case DREAMM_V3_GROUPED_MODE:
+      if (dreamm_v3_generic_preprocess_frame_data(fdlpp))
+        return 1;
+      fdlp = *fdlpp;
+      if (dreamm_v3_grouped_init(fdlp))
+        return 1;
+      break;
+
+    default:
+      count_time_values(fdlp);
+      reset_time_values(fdlp, world->start_time);
+      break;
+  }
+
+  while (fdlp!=NULL)
+  {
+    if (fdlp->curr_viz_iteration == NULL)
+      continue;
+
+    switch (fdlp->type)
+    {
+      case MOL_ORIENT:
+        mol_orient_frame_present = 1;
+        break;
+
+      case MOL_POS:
+        mol_pos_frame_present = 1;
+        break;
+
+      case ALL_MOL_DATA:
+        mol_pos_frame_present = 1;
+        mol_orient_frame_present = 1;
+        break;
+
+      case MESH_GEOMETRY:
+        mesh_geometry_frame_present = 1;
+        break;
+
+      case REG_DATA:
+        reg_data_frame_present = 1;
+        break;
+
+      case ALL_MESH_DATA:
+        mesh_geometry_frame_present = 1;
+        reg_data_frame_present = 1;
+        break;
+    }
+
+    fdlp = fdlp->next;
+  } /* end while */
+
+  /* Check that the user hasn't selected a useless set of output info */
+  if ((mol_orient_frame_present) & (!mol_pos_frame_present))
+    fprintf(world->log_file, "The input file contains ORIENTATIONS but not POSITIONS statement in the MOLECULES block. The molecules cannot be visualized.\n");
+  if ((reg_data_frame_present) & (!mesh_geometry_frame_present))
+    fprintf(world->log_file, "The input file contains REGION_DATA but not GEOMETRY statement in the MESHES block. The meshes cannot be visualized.\n");
+
+  return 0;
+}
+
+/**************************************************************************
+update_frame_data_list:
+        In: struct frame_data_list * fdlp
+        Out: Nothing. Calls output visualization functions if necessary.
+             Updates value of the current iteration step and pointer
+             to the current iteration in the linked list
+**************************************************************************/
+void update_frame_data_list(struct frame_data_list *fdlp)
+{
+  if (fdlp == NULL) return;
+
+  /* These statements need to precede handling of any frames to make sure
+   * symlinks are created properly.
+   */
+  if (world->viz_mode == DREAMM_V3_MODE)
+  {
+    dreamm_v3_clean_files(fdlp);
+    dreamm_v3_update_last_iteration_info(fdlp);
+  }
+
+  /* Scan over all frames, producing appropriate output. */
+  for (; fdlp != NULL; fdlp = fdlp->next)
+  {
+    if (world->it_time!=fdlp->viz_iteration)
+      continue;
+
+    switch (world->viz_mode)
+    {
+      case DX_MODE:
+        output_dx_objects(fdlp);
+        break;
+
+      case DREAMM_V3_MODE:
+        output_dreamm_objects(fdlp);
+        break;
+
+      case DREAMM_V3_GROUPED_MODE:
+        output_dreamm_objects_grouped(fdlp);
+        break;
+
+      case RK_MODE:
+        output_rk_custom(fdlp);
+        break;
+
+      case ASCII_MODE:
+        output_ascii_molecules(fdlp);
+        break;
+
+      case NO_VIZ_MODE:
+      default:
+        /* Do nothing for vizualization */
+        break;
+    }
+
+    fdlp->curr_viz_iteration = fdlp->curr_viz_iteration->next;
+    if (fdlp->curr_viz_iteration != NULL)
+      fdlp->viz_iteration = frame_time(fdlp->curr_viz_iteration->value, fdlp->list_type);
+  }
+}
 

@@ -653,11 +653,12 @@ include_stmt: INCLUDE_FILE
 }
 	'=' file_name 
 {
-  mdlpvp->a_str=$<str>4;
   if (mdlpvp->include_stack_ptr>=MAX_INCLUDE_DEPTH) {
-    mdlerror_fmt(mdlpvp, "Includes nested too deeply: %s", mdlpvp->a_str);
+    mdlerror_fmt(mdlpvp, "Includes nested too deeply: %s", $4);
     return(1);
   }
+  mdlpvp->a_str = find_include_file(mdlpvp, $4, volp->curr_file);
+  free($4);
   if ((mdlin=fopen(mdlpvp->a_str,"r"))==NULL) {
     mdlerror_fmt(mdlpvp, "Cannot open include file: %s", mdlpvp->a_str);
     return(1);
@@ -3189,10 +3190,6 @@ new_object: VAR
 
 existing_object: VAR
 {
-  if (mdlpvp->prefix_name!=NULL) {
-    free((void *)mdlpvp->prefix_name);
-    mdlpvp->prefix_name=NULL;
-  }
   if (mdlpvp->cval_2!=NULL) {
     mdlpvp->sym_name=mdlpvp->cval_2;
   }
@@ -3229,14 +3226,8 @@ existing_object: VAR
     mdlpvp->cval_2=NULL;
   }
   strcpy(mdlpvp->full_name, mdlpvp->sym_name);
-  mdlpvp->prefix_name=get_prefix_name(mdlpvp->sym_name);
-  if(mdlpvp->prefix_name == NULL){
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing object: %s", mdlpvp->sym_name);
-    return (1);
-  }
   no_printf("found existing object %s\n",mdlpvp->objp->sym->name);
   no_printf("first name of existing object %s is %s\n",mdlpvp->sym_name,get_first_name(mdlpvp->sym_name));
-  no_printf("prefix name of existing object %s is %s\n",mdlpvp->sym_name,mdlpvp->prefix_name);
   fflush(mdlpvp->vol->err_file);
 #ifdef KELP
   mdlpvp->objp->sym->ref_count++;
@@ -3248,10 +3239,6 @@ existing_object: VAR
 existing_one_or_multiple_objects: VAR
 {
 
-  if (mdlpvp->prefix_name!=NULL) {
-    free((void *)mdlpvp->prefix_name);
-    mdlpvp->prefix_name=NULL;
-  }
   if (mdlpvp->cval_2!=NULL) {
     mdlpvp->sym_name=mdlpvp->cval_2;
   }
@@ -3289,14 +3276,8 @@ existing_one_or_multiple_objects: VAR
        mdlpvp->cval_2=NULL;
      }
      strcpy(mdlpvp->full_name, mdlpvp->sym_name);
-     mdlpvp->prefix_name=get_prefix_name(mdlpvp->sym_name);
-     if(mdlpvp->prefix_name == NULL){
-        mdlerror_fmt(mdlpvp, "Out of memory while parsing object: %s", mdlpvp->sym_name);
-        return (1);
-     }
      no_printf("found existing object %s\n",mdlpvp->objp->sym->name);
      no_printf("first name of existing object %s is %s\n",mdlpvp->sym_name,get_first_name(mdlpvp->sym_name));
-     no_printf("prefix name of existing object %s is %s\n",mdlpvp->sym_name,mdlpvp->prefix_name);
      fflush(mdlpvp->vol->err_file);
 #ifdef KELP
      mdlpvp->objp->sym->ref_count++;
@@ -3321,10 +3302,6 @@ existing_one_or_multiple_objects: VAR
   struct sym_table_list *stl;
   char *wildcard_string;
 
-  if (mdlpvp->prefix_name!=NULL) {
-    free((void *)mdlpvp->prefix_name);
-    mdlpvp->prefix_name=NULL;
-  }
   if (mdlpvp->cval_2!=NULL) {
     mdlpvp->sym_name=mdlpvp->cval_2;
   }
@@ -6055,7 +6032,7 @@ existing_many_rxpns_or_molecules: WILDCARD_VAR
 
 rxn:
 {
-  mdlpvp->pathp = (struct pathway*)mem_get(mdlpvp->path_mem);
+  mdlpvp->pathp = (struct pathway*) mem_get(mdlpvp->path_mem);
   if (mdlpvp->pathp==NULL)
   {
     mdlerror(mdlpvp, "Out of memory while creating reaction.");
@@ -6252,7 +6229,8 @@ rxn:
   {
     struct pathway *tpp;
     
-    mdlpvp->pathp->km_filename = mdlpvp->fwd_rate_filename;
+    mdlpvp->pathp->km_filename = find_include_file(mdlpvp, mdlpvp->fwd_rate_filename, mdlpvp->vol->curr_file);
+    free(mdlpvp->fwd_rate_filename);
     mdlpvp->fwd_rate_filename = NULL;
     
     if (mdlpvp->rxnp->pathway_head == NULL)
@@ -6671,16 +6649,34 @@ atomic_rate: num_expr_only
   
 
 viz_output_def: VIZ_OUTPUT '{'
+        viz_output_maybe_mode_cmd
 	list_viz_output_cmds
 	'}'
+{ /* Error checking transplanted from the viz_output module */
+  if (volp->viz_mode == DREAMM_V3_MODE  ||  volp->viz_mode == DREAMM_V3_GROUPED_MODE)
+  {
+    if (volp->file_prefix_name == NULL) {
+      mdlerror(mdlpvp, "Inside VIZ_OUTPUT block the required keyword FILENAME is missing.\n");
+      return 1;
+    }
+  }
+}
 ;
 
 list_viz_output_cmds: viz_output_cmd
 	| list_viz_output_cmds viz_output_cmd
 ;
 
-viz_output_cmd: viz_mode_def
-    	| viz_filename_prefix_def 
+viz_output_maybe_mode_cmd: /* empty */
+{
+  if (volp->viz_mode == -1)
+    volp->viz_mode = DREAMM_V3_MODE;
+}
+                         | viz_mode_def
+;
+
+viz_output_cmd:
+          viz_filename_prefix_def 
 	| viz_molecules_block_def
 	| viz_meshes_block_def 
 	| viz_output_block_def
@@ -7991,6 +7987,7 @@ viz_meshes_one_item: ALL_DATA
 
 /* old viz_output style */
 viz_data_output_def: VIZ_DATA_OUTPUT '{'
+        viz_output_maybe_mode_cmd
 	list_viz_data_output_cmds
 	'}'
 ;
@@ -8002,8 +7999,7 @@ list_viz_data_output_cmds: viz_data_output_cmd
 
 
 viz_data_output_cmd:
-	viz_mode_def
-	| voxel_image_mode_def
+	  voxel_image_mode_def
 	| voxel_volume_mode_def
 	| viz_output_block_def
 	| viz_iteration_frame_data_def
@@ -8015,27 +8011,57 @@ viz_data_output_cmd:
 
 viz_mode_def: MODE '=' NONE
 {
+  if (volp->viz_mode != -1  &&  volp->viz_mode != NO_VIZ_MODE)
+  {
+    mdlerror_fmt(mdlpvp, "Only one visualization mode is allowed in a given MDL file");
+    return 1;
+  }
   volp->viz_mode = NO_VIZ_MODE; 
 }
 	| MODE '=' DX
 {
+  if (volp->viz_mode != -1  &&  volp->viz_mode != DX_MODE)
+  {
+    mdlerror_fmt(mdlpvp, "Only one visualization mode is allowed in a given MDL file");
+    return 1;
+  }
   volp->viz_mode = DX_MODE; 
 }
 	| MODE '=' DREAMM_V3
 {
+  if (volp->viz_mode != -1  &&  volp->viz_mode != DREAMM_V3_MODE)
+  {
+    mdlerror_fmt(mdlpvp, "Only one visualization mode is allowed in a given MDL file");
+    return 1;
+  }
   volp->viz_mode = DREAMM_V3_MODE; 
 }
 	| MODE '=' DREAMM_V3_GROUPED
 {
+  if (volp->viz_mode != -1  &&  volp->viz_mode != DREAMM_V3_GROUPED_MODE)
+  {
+    mdlerror_fmt(mdlpvp, "Only one visualization mode is allowed in a given MDL file");
+    return 1;
+  }
   volp->viz_mode = DREAMM_V3_GROUPED_MODE; 
 }
 	| MODE '=' CUSTOM_RK
 {
+  if (volp->viz_mode != -1  &&  volp->viz_mode != RK_MODE)
+  {
+    mdlerror_fmt(mdlpvp, "Only one visualization mode is allowed in a given MDL file");
+    return 1;
+  }
   volp->viz_mode = RK_MODE;
   volp->rk_mode_var = NULL;
 }
 	| MODE '=' CUSTOM_RK '['
 {
+  if (volp->viz_mode != -1  &&  volp->viz_mode != RK_MODE)
+  {
+    mdlerror_fmt(mdlpvp, "Only one visualization mode is allowed in a given MDL file");
+    return 1;
+  }
   mdlpvp->el_head=NULL;
   mdlpvp->el_tail=NULL;
   mdlpvp->num_pos=0;
@@ -8086,6 +8112,11 @@ viz_mode_def: MODE '=' NONE
 }
 	| MODE '=' ASCII
 {
+  if (volp->viz_mode != -1  &&  volp->viz_mode != ASCII_MODE)
+  {
+    mdlerror_fmt(mdlpvp, "Only one visualization mode is allowed in a given MDL file");
+    return 1;
+  }
   volp->viz_mode = ASCII_MODE;
 };
 
@@ -8586,7 +8617,7 @@ volume_output_def: VOLUME_DATA_OUTPUT '{'
 
   vo->filename_prefix = filename_prefix;
   vo->molecules = (struct species **) ptr_list_to_array(molecules, &vo->num_molecules);
-  qsort(vo->molecules, vo->num_molecules, sizeof(void *), & ptr_compare);
+  qsort(vo->molecules, vo->num_molecules, sizeof(void *), & void_ptr_compare);
 
   memcpy(& vo->location, location, sizeof(struct vector3));
   free(location);
@@ -10130,48 +10161,6 @@ int mdlparse_init(struct volume *vol)
     fprintf(vol->err_file,"Out of memory while allocating temporary space for volume output parsing");
     return 1;
   }
-#if 0
-  mpvp->sym_name=concat_rx_name(vol->g_surf->sym->name,vol->g_mol->sym->name);
-  if ((mpvp->gp=retrieve_sym(mpvp->sym_name,RX,vol->main_sym_table))
-      !=NULL) {
-  }
-  else if ((mpvp->gp=store_sym(mpvp->sym_name,RX,vol->main_sym_table))
-      ==NULL) {
-    fprintf(vol->log_file,
-      "Out of memory while creating surface reaction: %s -%s-> ...",vol->g_mol->sym->name,vol->g_surf->sym->name);
-    return(1);
-  }
-  if ((mpvp->pathp=(struct pathway *)mem_get(mpvp->path_mem))==NULL) {
-    fprintf(vol->log_file,
-      "Out of memory while creating surface reaction: %s -%s-> ...",vol->g_mol->sym->name,vol->g_surf->sym->name);
-    return(1);
-  }
-  mpvp->rxnp=(struct rxn *)mpvp->gp->value;
-  mpvp->rxnp->n_reactants=2;
-  mpvp->rxnp->n_pathways++;
-  mpvp->pathp->pathname=NULL;
-  mpvp->pathp->reactant1=vol->g_surf;
-  mpvp->pathp->reactant2=vol->g_mol;
-  mpvp->pathp->reactant3=NULL;
-  mpvp->pathp->km=GIGANTIC;
-  mpvp->pathp->flags=0;
-  mpvp->pathp->orientation1=0;
-  mpvp->pathp->orientation2=1;
-  mpvp->pathp->orientation3=0;
-  mpvp->pathp->pcr=NULL;
-
-  if ((mpvp->prodp=(struct product *)mem_get(mpvp->prod_mem))==NULL) {
-    fprintf(vol->log_file,
-      "Out of memory while creating surface reaction: %s -%s-> ...",vol->g_mol->sym->name,vol->g_surf->sym->name);
-    return(1);
-  }
-  mpvp->prodp->prod=mpvp->pathp->reactant2;
-  mpvp->prodp->orientation=1;
-  mpvp->prodp->next=NULL;
-  mpvp->pathp->product_head=mpvp->prodp;
-  mpvp->pathp->next=mpvp->rxnp->pathway_head;
-  mpvp->rxnp->pathway_head=mpvp->pathp;
-#endif
 
   mpvp->gp=NULL;
   mpvp->tp=NULL;

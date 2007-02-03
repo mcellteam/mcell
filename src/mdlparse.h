@@ -92,7 +92,6 @@ struct mdlparse_vars {
   struct vector3 *pntp2;
   double tm[4][4];
   char *obj_name;
-  char *prefix_name;
   char full_name[1024];
 
   struct release_site_obj *rsop;
