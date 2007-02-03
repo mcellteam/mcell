@@ -1645,6 +1645,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               ccd->surf_class = path->reactant2;
               ccd->mol = path->reactant1;
               ccd->concentration = path->km;
+              path->km = GIGANTIC;
               if (path->orientation1*path->orientation2==0)
               {
                 ccd->orient = 0;
