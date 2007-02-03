@@ -1477,7 +1477,6 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
   int i,n_verts,n_walls,index_0,index_1,index_2;
   unsigned int degenerate_count;
   unsigned short l,m,n;
-  char *obj_name;
   byte compute_vertex_normals;
 
   log_file=world->log_file;
@@ -1488,15 +1487,6 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
   m=4;
   n=4;
   total_area=0;
-
-  obj_name=strdup(full_name);
-  if(obj_name == NULL)
-  {
-		fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        	int i = emergency_output();
-		fprintf(world->err_file, "Fatal error: out of memory while instantiation of polygon object.\nAttempt to write intermediate results had %d errors.\n", i);
-        	exit(EXIT_FAILURE);
-  }
 
 /* Allocate and initialize walls and vertices */
     w=(struct wall *)malloc(n_walls*sizeof(struct wall));
