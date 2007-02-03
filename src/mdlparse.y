@@ -4354,9 +4354,9 @@ polygon_list_def: new_object POLYGON_LIST '{'
     }
   }
   for (i=0;i<mdlpvp->opp->n_verts;i++) {
-    mdlpvp->opp->vertex[i].x=mdlpvp->vlp->vertex->x;
-    mdlpvp->opp->vertex[i].y=mdlpvp->vlp->vertex->y;
-    mdlpvp->opp->vertex[i].z=mdlpvp->vlp->vertex->z;
+    mdlpvp->opp->vertex[i].x=mdlpvp->vlp->vertex->x * mdlpvp->vol->r_length_unit;
+    mdlpvp->opp->vertex[i].y=mdlpvp->vlp->vertex->y * mdlpvp->vol->r_length_unit;
+    mdlpvp->opp->vertex[i].z=mdlpvp->vlp->vertex->z * mdlpvp->vol->r_length_unit;
     mdlpvp->vlp_temp=mdlpvp->vlp;
     free(mdlpvp->vlp_temp->vertex);
     if (mdlpvp->opp->normal!=NULL) {
@@ -4901,6 +4901,12 @@ box_def: new_object BOX '{'
 {
   mdlpvp->llf=$<vec3>7;
   mdlpvp->urb=$<vec3>9;
+  mdlpvp->llf->x *= mdlpvp->vol->r_length_unit;
+  mdlpvp->llf->y *= mdlpvp->vol->r_length_unit;
+  mdlpvp->llf->z *= mdlpvp->vol->r_length_unit;
+  mdlpvp->urb->x *= mdlpvp->vol->r_length_unit;
+  mdlpvp->urb->y *= mdlpvp->vol->r_length_unit;
+  mdlpvp->urb->z *= mdlpvp->vol->r_length_unit;
   mdlpvp->pop->sb = init_cuboid(mdlpvp->llf,mdlpvp->urb);
   free(mdlpvp->llf);
   free(mdlpvp->urb);
