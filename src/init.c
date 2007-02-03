@@ -1535,9 +1535,9 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
 
   for (i=0;i<n_verts;i++) {
     vp[i]=&v[i];
-    p[0][0]=opp->vertex[i].x * world->r_length_unit;
-    p[0][1]=opp->vertex[i].y * world->r_length_unit;
-    p[0][2]=opp->vertex[i].z * world->r_length_unit;
+    p[0][0]=opp->vertex[i].x;
+    p[0][1]=opp->vertex[i].y;
+    p[0][2]=opp->vertex[i].z;
     p[0][3]=1.0;
     mult_matrix(p,im,p,l,m,n);
     v[i].x=p[0][0];
