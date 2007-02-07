@@ -526,6 +526,8 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
       {
         ty=dy*v->z;
         tz=v->y*dz;
+        if (ty < 0.0) ty = -ty;
+        if (tz < 0.0) tz = -tz;
         if (ty<tz)
         {
           smash->t = dy / v->y;
@@ -541,6 +543,8 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
       {
         tx=dx*v->z;
         tz=v->x*dz;
+        if (tx < 0.0) tx = -tx;
+        if (tz < 0.0) tz = -tz;
         if (tx<tz)
         {
           smash->t = dx / v->x;
@@ -556,6 +560,8 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
       {
         tx=dx*v->z;
         ty=v->y*dy;
+        if (tx < 0.0) tx = -tx;
+        if (ty < 0.0) ty = -ty;
         if (tx<ty)
         {
           smash->t = dx / v->x;
