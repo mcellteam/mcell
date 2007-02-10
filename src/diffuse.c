@@ -558,8 +558,8 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
       }
       else /* k<0 */
       {
-        tx=dx*v->z;
-        ty=v->y*dy;
+        tx=dx*v->y;
+        ty=v->x*dy;
         if (tx < 0.0) tx = -tx;
         if (ty < 0.0) ty = -ty;
         if (tx<ty)
