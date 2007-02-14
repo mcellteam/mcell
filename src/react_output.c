@@ -101,7 +101,6 @@ int truncate_output_file(char *name, double start_value)
         /* Parse and validate the number */
         buffer[j] = '\0';
         my_value = strtod(buffer+i,&done);
-        printf("%.15g vs. %.15g\n", my_value, start_value);
 
         /* If it was a valid number and it was >= our start time */
         if (done != buffer+i  &&  my_value >= start_value)
