@@ -5205,7 +5205,7 @@ int init_frame_data_list(struct frame_data_list **fdlpp)
       break;
   }
 
-  while (fdlp!=NULL)
+  for (; fdlp != NULL; fdlp = fdlp->next)
   {
     if (fdlp->curr_viz_iteration == NULL)
       continue;
@@ -5238,8 +5238,6 @@ int init_frame_data_list(struct frame_data_list **fdlpp)
         reg_data_frame_present = 1;
         break;
     }
-
-    fdlp = fdlp->next;
   } /* end while */
 
   /* Check that the user hasn't selected a useless set of output info */
