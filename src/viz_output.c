@@ -373,6 +373,10 @@ reset_time_values:
 static int reset_time_values(struct frame_data_list *fdlp,
                              long long curiter)
 {
+  /* If we've loaded a checkpoint, don't output on the first iter */
+  if (curiter != 0)
+    ++ curiter;
+
   for (; fdlp != NULL; fdlp = fdlp->next)
   {
     fdlp->curr_viz_iteration = fdlp->iteration_list;
@@ -443,16 +447,21 @@ static int count_time_values(struct frame_data_list * const fdlp)
     if (curiter > world->iterations)
       break;
 
-    /* We also won't create any more output after we checkpoint */
-    if (world->chkpt_flag  &&  world->chkpt_iterations != 0  &&  curiter >= world->chkpt_iterations)
+    /* We won't create any more output frames after we checkpoint. */
+    if (curiter > world->start_time + world->chkpt_iterations)
       break;
 
     /* Optimistically, store this as the "final" iteration */
     if (curiter > world->viz_state_info.final_iteration)
       world->viz_state_info.final_iteration = curiter;
 
-    /* We found at least one more */
-    if (curiter >= world->start_time)
+    /* We found at least one more.  Note that the only time we will output at
+     * iteration == start_time is when start_time is zero.  This is because we
+     * do not output on the first iteration after we resume.
+     */
+    if (curiter > world->start_time)
+      ++ time_values;
+    else if ((world->start_time | curiter) == 0)
       ++ time_values;
 
     /* Advance any frame data items which are set to this iteration */
@@ -461,7 +470,7 @@ static int count_time_values(struct frame_data_list * const fdlp)
       if (fdlpcur->curr_viz_iteration == NULL)
         continue;
 
-      if (curiter >= world->start_time)
+      if (curiter > world->start_time  ||  (world->start_time | curiter) == 0)
       {
         if (frame_time(fdlpcur->curr_viz_iteration->value, fdlpcur->list_type) == curiter)
           ++ fdlpcur->n_viz_iterations;
@@ -1607,12 +1616,6 @@ int output_dx_objects(struct frame_data_list *fdlp)
   byte viz_eff, viz_mol, viz_surf;
 
   no_printf("Viz output in DX mode...\n");
-
- /* Don't write viz data if we're about to checkpoint -- it'll be written upon
-  * resume
-  */
-  if (world->chkpt_iterations != 0  &&  world->it_time == world->chkpt_iterations)
-    return 0;
 
   viz_type = fdlp->type;
   viz_eff  = ((viz_type==ALL_FRAME_DATA) || (viz_type==EFF_POS)  || (viz_type==EFF_STATES));
@@ -4055,12 +4058,6 @@ int output_dreamm_objects(struct frame_data_list const * const fdlp)
 
   no_printf("Viz output in DREAMM_V3 mode...\n");
 
- /* Don't write viz data if we're about to checkpoint -- it'll be written upon
-  * resume
-  */
-  if (world->chkpt_iterations != 0  &&  world->it_time == world->chkpt_iterations)
-    return 0;
-
   /* Set flags based on fdlp->type */
   if (fdlp->type == ALL_MOL_DATA  ||  fdlp->type == MOL_POS  ||  fdlp->type == MOL_ORIENT)
     viz_mols = 1;
@@ -4897,12 +4894,6 @@ int output_dreamm_objects_grouped(struct frame_data_list const * const fdlp)
   byte viz_meshes = 0;
 
   no_printf("Viz output in DREAMM_V3_GROUPED mode...\n");
-
- /* Don't write viz data if we're about to checkpoint -- it'll be written upon
-  * resume
-  */
-  if (world->chkpt_iterations != 0  &&  world->it_time == world->chkpt_iterations)
-    return 0;
 
   /* Initialize flags */
   if (fdlp->type == ALL_MOL_DATA  ||  fdlp->type == MOL_POS  ||  fdlp->type == MOL_ORIENT)
