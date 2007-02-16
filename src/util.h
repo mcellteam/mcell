@@ -83,8 +83,19 @@ struct infinite_pointer_array{
    separately to the value corresponding to the data type of the field array*/
 #define ia_init(array_ptr)	{(array_ptr)->next = NULL;}
 
+struct iteration_counter
+{
+    long long *iterations;
+    int max_iterations;
+    int n_iterations;
+};
 
-
+struct string_buffer
+{
+    char **strings;
+    int max_strings;
+    int n_strings;
+};
 
 double ia_double_get(struct infinite_double_array *array_ptr, int index);
 void ia_double_store(struct infinite_double_array *array_ptr, int index, double data_to_store);
@@ -175,5 +186,14 @@ int feral_strlenn(char *feral,int n);
 int is_feral_nabbrev(char *feral,int n,char *tame);
 char* feral_strstrn(char *tame_haystack,char *feral_needle,int n);
 int is_wildcard_match(char *wild,char *tame);
+
+int dir_exists(char const *filename);
+int initialize_iteration_counter(struct iteration_counter *cntr, int max_iters);
+int destroy_iteration_counter(struct iteration_counter *cntr);
+int add_to_iteration_counter_monotonic(struct iteration_counter *cntr, long long iter);
+int add_to_iteration_counter(struct iteration_counter *cntr, long long iter);
+int initialize_string_buffer(struct string_buffer *sb, int maxstr);
+int destroy_string_buffer(struct string_buffer *sb);
+int add_string_to_buffer(struct string_buffer *sb, char *str);
 
 #endif

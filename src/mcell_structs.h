@@ -9,6 +9,7 @@
 #include "vector.h"
 #include "mem_util.h"
 #include "sched_util.h"
+#include "util.h"
 
 /*****************************************************/
 /**  Brand new constants created for use in MCell3  **/
@@ -1042,20 +1043,6 @@ struct magic_list
   struct magic_list *next;
   void *data;
   enum magic_types type;
-};
-
-struct iteration_counter
-{
-    long long *iterations;
-    int max_iterations;
-    int n_iterations;
-};
-
-struct string_buffer
-{
-    char **strings;
-    int max_strings;
-    int n_strings;
 };
 
 struct visualization_state
