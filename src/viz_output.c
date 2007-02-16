@@ -69,7 +69,7 @@ initialize_iteration_counter:
         Out: 0 on success; 1 if allocation fails.  All fields in the iteration
              counter are filled in.
 **************************************************************************/
-int initialize_iteration_counter(struct iteration_counter *cntr, int max_iters)
+static int initialize_iteration_counter(struct iteration_counter *cntr, int max_iters)
 {
   if (max_iters > 0)
   {
@@ -92,11 +92,13 @@ destroy_iteration_counter:
         Out: Iteration counter fields are destroyed.  Iteration counter itself
              is not freed.
 **************************************************************************/
-int destroy_iteration_counter(struct iteration_counter *cntr)
+static int destroy_iteration_counter(struct iteration_counter *cntr)
 {
   if (cntr->iterations != NULL)
     free(cntr->iterations);
   cntr->iterations = NULL;
+  cntr->max_iterations = 0;
+  cntr->n_iterations = 0;
   return 0;
 }
 
@@ -112,7 +114,7 @@ add_to_iteration_counter_monotonic:
              is not stored because the buffer is full of iteration numbers
              already.
 **************************************************************************/
-int add_to_iteration_counter_monotonic(struct iteration_counter *cntr, long long iter)
+static int add_to_iteration_counter_monotonic(struct iteration_counter *cntr, long long iter)
 {
   /* Don't store a time if it's earlier than the last time we received */
   if (cntr->n_iterations != 0  &&  cntr->iterations[cntr->n_iterations - 1] >= iter)
@@ -139,7 +141,7 @@ add_to_iteration_counter:
         Out: 0 on success; 1 if the number is not stored because the buffer is
              full of iteration numbers already.
 **************************************************************************/
-int add_to_iteration_counter(struct iteration_counter *cntr, long long iter)
+static int add_to_iteration_counter(struct iteration_counter *cntr, long long iter)
 {
   /* Don't store times beyond the end of the buffer! */
   if (cntr->n_iterations >= cntr->max_iterations)
@@ -162,7 +164,7 @@ initialize_string_buffer:
         Out: 0 on success; 1 if allocation fails.  All fields in the buffer are
              filled in.
 **************************************************************************/
-int initialize_string_buffer(struct string_buffer *sb, int maxstr)
+static int initialize_string_buffer(struct string_buffer *sb, int maxstr)
 {
   if (maxstr > 0)
   {
@@ -190,6 +192,7 @@ int destroy_string_buffer(struct string_buffer *sb)
     free_ptr_array((void **) sb->strings, sb->max_strings);
   sb->strings = NULL;
   sb->max_strings = 0;
+  sb->n_strings = 0;
   return 0;
 }
 
@@ -204,7 +207,7 @@ add_string_to_buffer:
         Out: 0 on success; 1 if the string is not stored because the buffer is
              full already.
 **************************************************************************/
-int add_string_to_buffer(struct string_buffer *sb, char *str)
+static int add_string_to_buffer(struct string_buffer *sb, char *str)
 {
   if (sb->n_strings >= sb->max_strings)
   {
@@ -219,14 +222,14 @@ int add_string_to_buffer(struct string_buffer *sb, char *str)
 /* == viz-specific Utilities == */
 
 /*************************************************************************
-frame_time:
+frame_iteration:
     Gets the iteration number for a given time/iteration value and "type".
 
         In:  double iterval - the time/iteration value
              int type - the type of value
         Out: the frame time as an iteration number
 **************************************************************************/
-static long long frame_time(double iterval, int type)
+static long long frame_iteration(double iterval, int type)
 {
   switch (type)
   {
@@ -385,14 +388,14 @@ static int reset_time_values(struct frame_data_list *fdlp,
     /* Scan for first iteration >= curiter */
     while (fdlp->curr_viz_iteration != NULL)
     {
-      if (frame_time(fdlp->curr_viz_iteration->value, fdlp->list_type) >= curiter)
+      if (frame_iteration(fdlp->curr_viz_iteration->value, fdlp->list_type) >= curiter)
         break;
       fdlp->curr_viz_iteration = fdlp->curr_viz_iteration->next;
     }
 
     /* If we had an iteration, use it to set viz_iteration */
     if (fdlp->curr_viz_iteration != NULL)
-      fdlp->viz_iteration = frame_time(fdlp->curr_viz_iteration->value, fdlp->list_type);
+      fdlp->viz_iteration = frame_iteration(fdlp->curr_viz_iteration->value, fdlp->list_type);
   }
 
   return 0;
@@ -431,7 +434,7 @@ static int count_time_values(struct frame_data_list * const fdlp)
       if (fdlpcur->curr_viz_iteration == NULL)
         continue;
 
-      thisiter = frame_time(fdlpcur->curr_viz_iteration->value, fdlpcur->list_type);
+      thisiter = frame_iteration(fdlpcur->curr_viz_iteration->value, fdlpcur->list_type);
 
       if (curiter == -1)
         curiter = thisiter;
@@ -472,12 +475,12 @@ static int count_time_values(struct frame_data_list * const fdlp)
 
       if (curiter > world->start_time  ||  (world->start_time | curiter) == 0)
       {
-        if (frame_time(fdlpcur->curr_viz_iteration->value, fdlpcur->list_type) == curiter)
+        if (frame_iteration(fdlpcur->curr_viz_iteration->value, fdlpcur->list_type) == curiter)
           ++ fdlpcur->n_viz_iterations;
       }
 
       while (fdlpcur->curr_viz_iteration  &&
-             frame_time(fdlpcur->curr_viz_iteration->value, fdlpcur->list_type) == curiter)
+             frame_iteration(fdlpcur->curr_viz_iteration->value, fdlpcur->list_type) == curiter)
         fdlpcur->curr_viz_iteration = fdlpcur->curr_viz_iteration->next;
     }
   }
@@ -5296,7 +5299,7 @@ void update_frame_data_list(struct frame_data_list *fdlp)
 
     fdlp->curr_viz_iteration = fdlp->curr_viz_iteration->next;
     if (fdlp->curr_viz_iteration != NULL)
-      fdlp->viz_iteration = frame_time(fdlp->curr_viz_iteration->value, fdlp->list_type);
+      fdlp->viz_iteration = frame_iteration(fdlp->curr_viz_iteration->value, fdlp->list_type);
   }
 }
 
