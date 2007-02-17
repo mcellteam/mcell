@@ -254,7 +254,7 @@ static int count_time_values(struct frame_data_list * const fdlp)
       break;
 
     /* We won't create any more output frames after we checkpoint. */
-    if (curiter > world->start_time + world->chkpt_iterations)
+    if (world->chkpt_iterations != 0  &&  curiter > world->start_time + world->chkpt_iterations)
       break;
 
     /* Optimistically, store this as the "final" iteration */
