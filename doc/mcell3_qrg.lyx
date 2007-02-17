@@ -8700,26 +8700,7 @@ filename_specifier
 \color none
 Name of the master header file containing all information for DREAMM and
  references to the multiple binary data files.
-  If 
-\family sans 
-\series default 
-\shape italic 
-\size default 
-\emph default 
-\bar default 
-\noun default 
-\color default
-filename_specifier
-\family roman 
-\series medium 
-\shape up 
-\size normal 
-\emph off 
-\bar no 
-\noun off 
-\color none
- contains a path, the relevant directory structure pointed to has to be
- created by the user before the start of the simulation.
+ 
 \end_inset 
 </cell>
 </row>
@@ -10167,13 +10148,7 @@ diffusion_box_viz_data
 ./viz_data
 \family default 
  directory.
- Please note that any directory structure above 
-\family typewriter 
-diffusion_box_viz_data
-\family default 
- if specified has to be created manually by the user before the beginning
- of the simulation.
- Inside the 
+  Inside the 
 \family sans 
 \shape italic 
 filename
