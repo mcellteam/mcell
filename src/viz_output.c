@@ -174,7 +174,7 @@ reset_time_values:
 
         In:  struct frame_data_list *fdlp - the head of the frame data list
              long long curiter - the minimum iteration number
-        Out: num bytes written
+        Out: 0 on success, 1 on failure
 **************************************************************************/
 static int reset_time_values(struct frame_data_list *fdlp,
                              long long curiter)
@@ -1529,6 +1529,10 @@ static int dreamm_v3_generic_init()
       case 1:
         /* All's well */
         break;
+
+      default:
+        fprintf(world->err_file, "File %s, Line %ld: unexpected return value from dir_exists (internal error).\n", __FILE__, (long)__LINE__);
+        return 1;
     }
   }
 
@@ -1764,8 +1768,8 @@ dreamm_v3_generic_preprocess_frame_data:
 
         5. Discard any frames which have no iterations.
 
-        In:  int type - the frame type (ALL_MOL_DATA, etc.)
-        Out: the frame, or NULL if allocation failed
+        In:  struct frame_data_list *fdlpp - pointer to head of frame_data_list
+        Out: 0 on success, 1 on failure.  *fdlpp will be updated if successful
 **************************************************************************/
 static int dreamm_v3_generic_preprocess_frame_data(struct frame_data_list **fdlpp)
 {
@@ -1932,8 +1936,8 @@ static int dreamm_v3_generic_preprocess_frame_data(struct frame_data_list **fdlp
 
 /*************************************************************************
 dreamm_v3_generic_scan_for_frame
-    Scan a list of frame data objects to see if there is an upcoming mesh frame
-    for the specified iteration number.
+    Scan a list of frame data objects to see if there is an upcoming frame for
+    the specified iteration number.
 
         In: struct frame_data_list *fdlp - the list to scan
             long long iterno - the iteration number
@@ -2966,7 +2970,8 @@ static int dreamm_v3_init(struct frame_data_list *fdlp)
 
   /* Prepare iteration counters and timing info for frame_data_list */
   int time_values_total = count_time_values(fdlp);
-  reset_time_values(fdlp, world->start_time);
+  if (reset_time_values(fdlp, world->start_time))
+    return 1;
   return initialize_iteration_counters(time_values_total);
 }
 
@@ -3085,6 +3090,10 @@ static int dreamm_v3_clean_files(struct frame_data_list *fdlp)
       case REG_DATA:
         dreamm_v3_remove_file(DREAMM_REGION_VIZ_DATA_NAME);
         break;
+
+      default:
+        fprintf(world->err_file, "File %s, Line %ld: Unexpected frame type in DREAMM V3 output mode (type=%d).\n", __FILE__, (long)__LINE__, fdlp->type);
+        return 1;
     }
   }
 
@@ -4110,6 +4119,10 @@ static int dreamm_v3_grouped_clean_files(struct frame_data_list *fdlp)
         if (dreamm_v3_grouped_remove_file(DREAMM_GROUPED_REGION_VIZ_DATA_NAME))
           return 1;
         break;
+
+      default:
+        fprintf(world->err_file, "File %s, Line %ld: Unexpected frame type in DREAMM V3 grouped output mode (type=%d).\n", __FILE__, (long)__LINE__, fdlp->type);
+        return 1;
     }
   }
 
@@ -4137,7 +4150,8 @@ static int dreamm_v3_grouped_init(struct frame_data_list *fdlp)
   world->viz_state_info.dreamm_last_iteration_surf_mols = -1;
 
   int time_values_total = count_time_values(fdlp);
-  reset_time_values(fdlp, world->start_time);
+  if (reset_time_values(fdlp, world->start_time))
+    return 1;
   if (initialize_iteration_counters(time_values_total))
     return 1;
 
@@ -4998,7 +5012,8 @@ int init_frame_data_list(struct frame_data_list **fdlpp)
 
     default:
       count_time_values(fdlp);
-      reset_time_values(fdlp, world->start_time);
+      if (reset_time_values(fdlp, world->start_time))
+        return 1;
       break;
   }
 
@@ -5034,6 +5049,10 @@ int init_frame_data_list(struct frame_data_list **fdlpp)
         mesh_geometry_frame_present = 1;
         reg_data_frame_present = 1;
         break;
+
+      default:
+        /* Do nothing */
+        ;
     }
   } /* end while */
 
