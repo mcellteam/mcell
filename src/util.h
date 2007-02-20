@@ -85,16 +85,17 @@ struct infinite_pointer_array{
 
 struct iteration_counter
 {
-    long long *iterations;
-    int max_iterations;
-    int n_iterations;
+    long long *iterations; /* array of iteration numbers, should be 
+                              memory allocated */
+    int max_iterations; /* size of the above array */
+    int n_iterations;   /* number of the filled positions in an above array */
 };
 
 struct string_buffer
 {
-    char **strings;
-    int max_strings;
-    int n_strings;
+    char **strings;   /* array of strings, should be memory allocated */
+    int max_strings;  /* size of the above array */
+    int n_strings;    /* number of the filled positions in an above array */
 };
 
 double ia_double_get(struct infinite_double_array *array_ptr, int index);
