@@ -1494,13 +1494,13 @@ failure:
 }
 
 /*************************************************************************
-dreamm_v3_generic_init:
-    Initialize state which is common to both forms of DREAMM output.
-
+check_output_directory_structure:
+        Check defined in "mdl" file file output structure and 
+        create directories if necessary.
         In:  Nothing
         Out: 0 if successful, 1 if failed
 **************************************************************************/
-static int dreamm_v3_generic_init()
+static int check_output_directory_structure()
 {
   /* Break file prefix name into basename and dirname */
   if (get_basename(world->file_prefix_name,
@@ -1535,7 +1535,19 @@ static int dreamm_v3_generic_init()
         return 1;
     }
   }
+  
+  return 0;
+}
 
+/*************************************************************************
+dreamm_v3_generic_init:
+    Initialize state which is common to both forms of DREAMM output.
+
+        In:  Nothing
+        Out: 0 if successful, 1 if failed
+**************************************************************************/
+static int dreamm_v3_generic_init()
+{
   /* Collect all mesh objects to be visualized */
   if (collect_objects(world->viz_obj_head,
                       &world->viz_state_info.viz_objects,
@@ -1560,7 +1572,9 @@ static int dreamm_v3_generic_init()
     fprintf(world->log_file, "\nMOLECULES keyword is absent or commented.\nEmpty 'molecules' output files are created.\n\n");
 
   return 0;
+
 }
+
 
 /*************************************************************************
 dreamm_v3_generic_merge_frame_data:
@@ -2937,6 +2951,8 @@ dreamm_v3_init:
 **************************************************************************/
 static int dreamm_v3_init(struct frame_data_list *fdlp)
 {
+  if(check_output_directory_structure())
+    return 1;
   if (dreamm_v3_generic_init())
     return 1;
 
@@ -4138,6 +4154,8 @@ dreamm_v3_grouped_init:
 **************************************************************************/
 static int dreamm_v3_grouped_init(struct frame_data_list *fdlp)
 {
+  if(check_output_directory_structure())
+    return 1;
   if (dreamm_v3_generic_init())
     return 1;
 
@@ -5010,11 +5028,18 @@ int init_frame_data_list(struct frame_data_list **fdlpp)
         return 1;
       break;
 
-    default:
+    case DX_MODE:
+      if(check_output_directory_structure())
+        return 1;
       count_time_values(fdlp);
       if (reset_time_values(fdlp, world->start_time))
         return 1;
       break;
+
+    default:
+      /* should never happen */
+      fprintf(world->log_file, "Unknown mode for viz_output\n");
+      return 1;
   }
 
   for (; fdlp != NULL; fdlp = fdlp->next)
