@@ -97,6 +97,18 @@ void run_sim(void)
   world->diffusion_number = 0;
   world->diffusion_cumtime = 0.0;
   world->it_time = world->start_time;
+
+  /* If we're reloading a checkpoint, we want to skip all of the processing
+   * which happened on the last iteration before checkpointing.  To do this, we
+   * skip the first part of the loop using a goto.  This is primarily relevant
+   * to release events which occur on the final iteration.
+   */
+  if (world->start_time != 0)
+  {
+    not_yet = world->it_time + 1.0;
+    world->elapsed_time = world->it_time;
+    goto resume_after_checkpoint;
+  }
  
   while (world->it_time <= world->iterations) 
   {
@@ -157,6 +169,8 @@ void run_sim(void)
     }
 
     if (world->it_time>=world->iterations) break; /* Output only on last loop */
+
+resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     
     run_concentration_clamp(world->it_time);
 
