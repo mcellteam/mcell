@@ -1409,7 +1409,7 @@ double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolu
 	  }
 	  else if (b==0)
 	  {
-	    t = d/b;
+	    t = d/a;
 	    if (t*t>R2)
 	    {
 	      fprintf(world->log_file, "File '%s', Line %ld: MCell should not come to this point.  Please report this message.\n", __FILE__, (long)__LINE__); 
