@@ -20,8 +20,7 @@ struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,struct
 int eval_rel_region_3d(struct release_evaluator *expr,struct waypoint *wp,struct region_list *in_regions,struct region_list *out_regions);
 int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *m,int n);
 int release_molecules(struct release_event_queue *req);
-void randomize_vol_mols_in_world();
-
+void randomize_vol_mol_position(struct volume_molecule *mp, struct vector3 *low_end, double size_x, double size_y, double size_z);
 int set_partitions();
 double distance_point_line(struct vector3 *q, struct vector3 *v0, struct vector3 *v1);
 int navigate_world(int curr_index, int direction);

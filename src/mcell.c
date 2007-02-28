@@ -186,10 +186,6 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
         run_timestep( local->store , next_release_time , (double)world->iterations+1.0 );
       }
     }
-    /* it is a reseach function that should be commented 
-       for regular MCell runs */ 
-       /* randomize_vol_mols_in_world(); */  
-
 
     world->it_time++;
     

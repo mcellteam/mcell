@@ -33,6 +33,14 @@
 #define MULTISTEP_FRACTION 0.9
 #define MAX_UNI_TIMESKIP 100000
 
+/* This macro defines the condition under which
+   at the end of the "run_timestep()" function
+   the positions of the volume molecules are
+   randomized in the world.  It is a research
+   macro and should be commented during regular
+   MCell use. 
+*/
+/* #define RANDOMIZE_VOL_MOLS_IN_WORLD */
 
 /* EXD_TIME_CALC is a local #define in exact_disk */
 /* EXD_SPAN_CALC is a local #define in exact_disk */
@@ -4411,6 +4419,7 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
                                        molecules */
   double cf[max_size];  /* Correction factors for area for those molecules */
 
+
   for(kk = 0; kk < 3; kk++)
   {
        matches[kk] = 0;
@@ -4529,7 +4538,37 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
   double t,tt;
   double max_time;
   int i,j,err,special;
+
   
+#ifdef RANDOMIZE_VOL_MOLS_IN_WORLD
+   struct vector3 low_end;
+   double size_x, size_y, size_z; /* dimensions of the world bounding box
+                                     in X, Y, Z directions */
+
+   size_x = world->bb_urb.x - world->bb_llf.x;
+   if(size_x < 0) {
+       size_x = - size_x;
+       low_end.x = world->bb_urb.x;
+   }else{
+       low_end.x = world->bb_llf.x;
+   }
+   size_y = world->bb_urb.y - world->bb_llf.y;
+   if(size_y < 0) {
+      size_y = - size_y;
+      low_end.y = world->bb_urb.y;
+   }else{
+       low_end.y = world->bb_llf.y;
+   }
+   size_z = world->bb_urb.z - world->bb_llf.z;
+   if(size_z < 0) {
+       size_z = - size_z;
+       low_end.z = world->bb_urb.z;
+   }else{
+       low_end.z = world->bb_llf.z;
+   }
+
+#endif
+
   /* Check for garbage collection first */
   if ( local->timer->defunct_count > MIN_DEFUNCT_FOR_GC &&
        MAX_DEFUNCT_FRAC*(local->timer->count) < local->timer->defunct_count )
@@ -4551,7 +4590,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       }
       else temp->flags -= IN_SCHEDULE;
     }
-/*    fprintf(world->log_file,"Cleaning up memory: removed %d (actually only %d) unused molecules.\n",i,j); */
+    /* fprintf(world->log_file,"Cleaning up memory: removed %d (actually only %d) unused molecules.\n",i,j); */
   }
   /* Now run the timestep */
   while ( (a = (struct abstract_molecule*)schedule_next(local->timer)) != NULL )
@@ -4643,7 +4682,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	    exit( EXIT_FAILURE );
 	  }
 	}
-	else j=RX_NO_RX;
+	else j=RX_NO_RX; 
 	
         if (j!=RX_DESTROY) /* We still exist */
         {
@@ -4664,7 +4703,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	    a->t2 = timeof_unimolecular(r);
 	    if (r->prob_t != NULL) tt=r->prob_t->time;
 	  }
-	  else a->t2 = FOREVER;
+	  else a->t2 = FOREVER; 
 	  
 	  if (a->t + a->t2 > tt)
 	  {
@@ -4772,6 +4811,14 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     /* If we're near an integer boundary, advance to the next integer */
     t = ceil(a->t)*(1.0+0.1*EPS_C);
     if (!distinguishable(t,a->t,EPS_C)) a->t=t;
+
+#ifdef RANDOMIZE_VOL_MOLS_IN_WORLD
+    
+  if ((a->flags & TYPE_3D) != 0){
+     randomize_vol_mol_position((struct volume_molecule *)a, &low_end, size_x, size_y, size_z);
+  }
+#endif
+
     
     if (a->flags & TYPE_GRID) err = schedule_add(local->timer,a);
     else err = schedule_add(((struct volume_molecule*)a)->subvol->local_storage->timer,a);
