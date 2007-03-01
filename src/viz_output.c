@@ -287,7 +287,7 @@ static int count_time_values(struct frame_data_list * const fdlp)
         fdlpcur->curr_viz_iteration = fdlpcur->curr_viz_iteration->next;
     }
   }
-
+               
   return time_values;
 }
 
@@ -3933,15 +3933,6 @@ int output_dreamm_objects(struct frame_data_list const * const fdlp)
       return 1;
   }
 
-  /* If we're on the final iteration... */
-  if (world->it_time == world->viz_state_info.final_iteration)
-  {
-    /* Check for other frames this iteration */
-    if (! dreamm_v3_generic_scan_for_frame(fdlp->next, fdlp->viz_iteration) &&
-        dreamm_v3_dump_time_info())
-      return 1;
-  }
-
   /*
    * Now check whether there is a need to create symlinks to the
    * meshes/molecules files saved previously in the previous frame directories.
@@ -4780,15 +4771,7 @@ int output_dreamm_objects_grouped(struct frame_data_list const * const fdlp)
                                            fdlp->viz_iteration))
       goto failure;
 
-    /* If we're on the final iteration... */
-    if (world->it_time == world->viz_state_info.final_iteration)
-    {
-      if (dreamm_v3_grouped_dump_time_info(master_header))
-        goto failure;
 
-      if (dreamm_v3_grouped_write_frame_series(master_header))
-        goto failure;
-    }
   }
 
   if (master_header != NULL) fclose(master_header);
@@ -5150,3 +5133,73 @@ void update_frame_data_list(struct frame_data_list *fdlp)
   }
 }
 
+
+
+/**************************************************************************
+finalize_viz_output:
+        In: struct frame_data_list * fdlp
+        Out: Returns 1 on error and zero otherwise. Writes final information
+             into visualization output files.
+**************************************************************************/
+int finalize_viz_output(struct frame_data_list  *fdlp)
+{
+   FILE *master_header = NULL;
+   char *master_header_file_path;
+
+   long long final_iteration = world->viz_state_info.final_iteration;
+
+  if (fdlp == NULL) return 1;
+
+  /* Scan over all frames, producing appropriate output. */
+  for (; fdlp != NULL; fdlp = fdlp->next)
+  {
+     switch (world->viz_mode)
+     {
+        case DREAMM_V3_MODE:
+        
+           /* Check for other frames this iteration */
+           if (! dreamm_v3_generic_scan_for_frame(fdlp->next, final_iteration) && dreamm_v3_dump_time_info()) {
+              return 1;
+           }
+           break;
+
+         case DREAMM_V3_GROUPED_MODE:
+            if (! dreamm_v3_generic_scan_for_frame(fdlp->next, final_iteration))
+            {
+
+                /* Open master header file. */
+                master_header_file_path = dreamm_v3_grouped_get_master_header_name();
+                if (master_header_file_path == NULL) return 1;
+
+                 if ((master_header = open_file(master_header_file_path, "a")) == NULL)
+                 {
+                    free(master_header_file_path);
+                    return 1;
+                 }
+                 free(master_header_file_path);
+                 if (dreamm_v3_grouped_dump_time_info(master_header))
+                 {
+                    if (master_header != NULL) fclose(master_header);
+                    return 1;
+                 }
+                 if (dreamm_v3_grouped_write_frame_series(master_header)){
+                     if (master_header != NULL) fclose(master_header);
+                     return 1;
+                 }
+                 if (master_header != NULL) fclose(master_header);
+               }
+               break;
+      
+         case NO_VIZ_MODE:
+         case ASCII_MODE:
+         case RK_MODE:
+         case DX_MODE:
+         default:
+           /* Do nothing for vizualization */
+           break;
+
+     }
+  }
+
+  return 0;
+}

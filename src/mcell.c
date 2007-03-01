@@ -440,6 +440,30 @@ int main(int argc, char **argv) {
 
   printf("Running...\n");
   run_sim();
+
+
+  /* If we are on the final iteration - write final information
+     into viz_output files */
+            
+   if(world->chkpt_flag){
+      if(world->it_time == world->start_time + world->chkpt_iterations){
+         if(finalize_viz_output(world->frame_data_head)){
+             fprintf(world->err_file,"File '%s', Line %ld: Error in finalizing viz_output.\n", __FILE__, (long)__LINE__);
+             exit(1);
+         }
+      }
+
+   }else{
+      if(world->it_time == world->viz_state_info.final_iteration){ 
+
+         if(finalize_viz_output(world->frame_data_head)){
+             fprintf(world->err_file,"File '%s', Line %ld: Error in finalizing viz_output.\n", __FILE__, (long)__LINE__);
+             exit(1);
+         }
+      }   
+
+  } 
+ 
   printf("Done running.\n");
 
   exit(0);
