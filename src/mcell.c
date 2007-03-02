@@ -454,7 +454,7 @@ int main(int argc, char **argv) {
       }
 
    }else{
-      if(world->it_time == world->viz_state_info.final_iteration){ 
+      if(world->it_time >= world->viz_state_info.final_iteration){ 
 
          if(finalize_viz_output(world->frame_data_head)){
              fprintf(world->err_file,"File '%s', Line %ld: Error in finalizing viz_output.\n", __FILE__, (long)__LINE__);
