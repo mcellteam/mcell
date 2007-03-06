@@ -2413,13 +2413,15 @@ static int dreamm_v3_generic_dump_mesh_data(struct frame_data_list const * const
         int wall_index;
         struct region *rp = rlp->reg;
         if (strcmp(rp->region_last_name, "ALL") == 0) continue; 
-
+        if (strcmp(rp->region_last_name, "REMOVED") == 0) continue; 
+ 
         /* number of walls in the region */
         int region_walls_number = 0; 
         long pos = ftell(region_data);
 
         for(wall_index = 0; wall_index < objp->n_walls; ++ wall_index)
         {
+          if(objp->wall_p[wall_index] == NULL) continue; 
           int n = objp->wall_p[wall_index]->side;
           if (get_bit(rp->membership,n))
           {
