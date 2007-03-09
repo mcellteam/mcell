@@ -2228,6 +2228,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         if (j==0)  j = rx->players[0]->hashval & rx_hash;
 
       }
+      mpvp->vol->n_reactions++;
       while (rx->next != NULL) rx = rx->next;
       rx->next = rx_tbl[j];
       rx_tbl[j] = (struct rxn*)sym->value;
