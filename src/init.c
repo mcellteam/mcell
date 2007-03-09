@@ -302,6 +302,7 @@ int init_sim(void)
   world->vacancy_search_dist2=0;
   world->surface_reversibility=0;
   world->volume_reversibility=0;
+  world->n_reactions = 0;
 
   memset(&world->viz_state_info, 0, sizeof(world->viz_state_info));
   
