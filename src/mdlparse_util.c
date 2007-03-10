@@ -1556,10 +1556,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             /* Alphabetize if we have two molecules */
             if( (path->reactant2->flags&IS_SURFACE)==0)
             {
-
                 if( strcmp(path->reactant1->sym->name, path->reactant2->sym->name) > 0)
                 {
-
                    temp_sp = path->reactant1;
                    path->reactant1 = path->reactant2;
                    path->reactant2 = temp_sp;
@@ -1567,12 +1565,40 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                    path->orientation1 = path->orientation2;
                    path->orientation2 = geom;
                 }else if(strcmp(path->reactant1->sym->name, path->reactant2->sym->name) == 0){
-                if(path->orientation1 < path->orientation2){
-                  geom = path->orientation1;
-                  path->orientation1 = path->orientation2;
-                  path->orientation2 = geom;
+                  if(path->orientation1 < path->orientation2){
+                     geom = path->orientation1;
+                     path->orientation1 = path->orientation2;
+                     path->orientation2 = geom;
+                  }
+               }
+            }
+            /* Alphabetize if we have three volume molecules */
+            if(reaction->n_reactants == 3)
+            {
+              if( (path->reactant3->flags&IS_SURFACE)==0)
+              {
+                if( strcmp(path->reactant1->sym->name, path->reactant3->sym->name) > 0)
+                {
+                   /* put reactant3 at the beginning */
+                   temp_sp = path->reactant1;
+                   path->reactant1 = path->reactant3;
+                   path->reactant3 = temp_sp;
+                   geom = path->orientation1;
+                   path->orientation1 = path->orientation3;
+                   path->orientation3 = geom;
+                
+                } else if( strcmp(path->reactant2->sym->name, path->reactant3->sym->name) > 0){
+
+                   /* put reactant3 after reactant1 */
+                   temp_sp = path->reactant2;
+                   path->reactant2 = path->reactant3;
+                   path->reactant3 = temp_sp;
+                   geom = path->orientation2;
+                   path->orientation2 = path->orientation3;
+                   path->orientation3 = geom;
+
                 }
-             }
+              } /*end */
             }
 
 
@@ -1612,7 +1638,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         rx->product_idx = (u_int*)malloc(sizeof(u_int)*(rx->n_pathways+1));
         rx->cum_probs = (double*)malloc(sizeof(double)*rx->n_pathways);
         rx->cat_probs = (double*)malloc(sizeof(double)*rx->n_pathways);
-        
+       
+        /* Note, that the last member of the array "rx->product_idx"
+           contains size of the array "rx->players" */
+      
         if (rx->product_idx==NULL || rx->cum_probs==NULL ||
             rx->cat_probs==NULL ) {
                 fprintf(mpvp->vol->err_file, "File '%s', Line %ld: Memory allocation error.\n", __FILE__, (long)__LINE__);
@@ -1693,10 +1722,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           } 
                   
 
-
         } /* end for(j=0,path=rx->pathway_head; ...) */
-
-
+           
 	/* Now that we know how many products there really are, set the index array */
 	/* and malloc space for the products and geometries. */
         path = rx->pathway_head;
@@ -2025,7 +2052,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
           }
         }
-        else
+        else if((rx->n_reactants == 2) && 
+         ((rx->players[0]->flags & NOT_FREE) == 0 &&
+                  (rx->players[1]->flags & NOT_FREE) == 0)) 
         {
             /* This is the reaction between two "vol_mols" */
                     
@@ -2086,7 +2115,74 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               return 1;
             }
           }
+        }else{
+            /* This is the reaction between three "vol_mols" */
+
+	  double eff_vel_a = rx->players[0]->space_step/rx->players[0]->time_step;
+	  double eff_vel_b = rx->players[1]->space_step/rx->players[1]->time_step;
+	  double eff_vel_c = rx->players[2]->space_step/rx->players[2]->time_step;
+	  double eff_vel;
+
+          pb_factor=0;
+	  
+	  if (rx->players[0]->flags & rx->players[1]->flags & rx->players[2]->flags & CANT_INITIATE)
+	  {
+	    fprintf(mpvp->vol->err_file,"Error: Reaction between %s and %s and %s listed, but all marked TARGET_ONLY\n", rx->players[0]->sym->name,rx->players[1]->sym->name, rx->players[2]->sym->name);
+            return 1;
+	  }
+	  else if (rx->players[0]->flags & CANT_INITIATE) eff_vel_a = 0;
+	  else if (rx->players[1]->flags & CANT_INITIATE) eff_vel_b = 0;
+	  else if (rx->players[2]->flags & CANT_INITIATE) eff_vel_c = 0;
+
+	  if (eff_vel_a + eff_vel_b + eff_vel_c > 0)
+	  {
+	    eff_vel = (eff_vel_a + eff_vel_b + eff_vel_c) * mpvp->vol->length_unit / mpvp->vol->time_unit;   /* Units=um/sec */
+	    pb_factor = 1.0 / (2.0 * sqrt(MY_PI) * mpvp->vol->rx_radius_3d * mpvp->vol->rx_radius_3d * eff_vel);
+	    pb_factor *= 1.0e15 / N_AV;                                      /* Convert L/mol.s to um^3/number.s */
+	  }
+	  else pb_factor = 0.0;  /* No rxn possible */
+
+          rx->cum_probs[0]=pb_factor*rx->cum_probs[0];
+
+          if ( (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_notify)
+               || (mpvp->vol->notify->high_reaction_prob != WARN_COPE && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn) )
+          {
+            warn_file = mpvp->vol->log_file;
+            if (rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn)
+            {
+              if (mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
+              {
+                warn_file = mpvp->vol->err_file;
+                fprintf(warn_file,"\tError: High ");
+              }
+              else if (mpvp->vol->notify->high_reaction_prob==WARN_WARN) fprintf(warn_file,"\tWarning: High ");
+              else fprintf(warn_file,"\t");
+            }
+            else fprintf(warn_file,"\t");
+              
+
+            fprintf(warn_file,"Probability %.4e (l) set for %s[%d] + %s[%d] + %s[%d] -> ",
+                   rx->cum_probs[0],
+                   rx->players[0]->sym->name,rx->geometries[0],
+                   rx->players[1]->sym->name,rx->geometries[1],
+                   rx->players[2]->sym->name,rx->geometries[2]);
+
+
+            for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
+            {
+              if (rx->players[k]==NULL) fprintf(warn_file,"NIL ");
+              else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+            }
+            fprintf(warn_file,"\n");
+            
+            if (rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn && mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
+            {
+              return 1;
+            }
+          }
+
         }
+        
 
         for (j=1;j<rx->n_pathways;j++)
         {
@@ -2301,6 +2397,14 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	{
 	  rx->players[0]->flags |= CAN_GRIDGRID;
 	  rx->players[1]->flags |= CAN_GRIDGRID;
+        }else if ( (rx->players[0]->flags & NOT_FREE)==0 &&
+             (rx->players[1]->flags & NOT_FREE)==0 &&
+             (rx->players[2]->flags & NOT_FREE)==0)
+        {
+          rx->players[0]->flags |= CAN_MOLMOL;
+          rx->players[1]->flags |= CAN_MOLMOL;
+          rx->players[2]->flags |= CAN_MOLMOL;
+       
 	} /* end if-else */
 
       } /* end if-else */

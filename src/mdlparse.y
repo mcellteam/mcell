@@ -6174,8 +6174,11 @@ rxn:
   }
   if ((mdlpvp->rxnp->n_reactants==3) && (num_surfaces == 0))
   {
+    /* In case of three reactants we will allow now 2 volume molecules */
+    if(!mdlpvp->prod_all_3d){
        mdlerror(mdlpvp, "Reactions with three reactants must include exactly one surface class as a reactant.");
        return 1;
+    }
   }
  
   /* Copy catalyst to products */ 
