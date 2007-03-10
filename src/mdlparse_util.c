@@ -1483,14 +1483,14 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   struct rxn **rx_tbl;
   struct t_func *tp;
   double pb_factor,D_tot,rate,t_step;
-  short geom;
+  short geom, geom2;
   int i,j,k,kk,k2;
   /* flags that tell whether reactant_1 is also on the product list,
      same for reactant_2 and reactant_3 */
   int recycled1,recycled2,recycled3;
   int num_rx,num_players;
   int rx_hash;
-  struct species *temp_sp;
+  struct species *temp_sp, *temp_sp2;
   int n_prob_t_rxns; /* # of pathways with time-varying rates */
   int is_gigantic;
   FILE *warn_file;
@@ -1581,11 +1581,19 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 {
                    /* put reactant3 at the beginning */
                    temp_sp = path->reactant1;
+                   geom = path->orientation1; 
                    path->reactant1 = path->reactant3;
-                   path->reactant3 = temp_sp;
-                   geom = path->orientation1;
                    path->orientation1 = path->orientation3;
-                   path->orientation3 = geom;
+                   
+                   /* put former reactant1 in place of reactant2 */
+                   temp_sp2 = path->reactant2;
+                   geom2 = path->orientation2;
+                   path->reactant2 = temp_sp;
+                   path->orientation2 = geom;
+
+                   /* put former reactant2 in place of reactant3 */
+                   path->reactant3 = temp_sp2;
+                   path->orientation3 = geom2;
                 
                 } else if( strcmp(path->reactant2->sym->name, path->reactant3->sym->name) > 0){
 
@@ -1603,8 +1611,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
 
           } /* end if(n_reactants > 1) */
+
         }  /* end for(path = reaction->pathway_head; ...) */
                  
+
 
  
         /* if reaction contains equivalent pathways, split
