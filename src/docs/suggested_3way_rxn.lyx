@@ -1,0 +1,138 @@
+#LyX 1.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 221
+\textclass article
+\language english
+\inputencoding auto
+\fontscheme pslatex
+\graphics default
+\paperfontsize 12
+\spacing single 
+\papersize letterpaper
+\paperpackage a4
+\use_geometry 1
+\use_amsmath 0
+\use_natbib 0
+\use_numerical_citations 0
+\paperorientation portrait
+\leftmargin 1in
+\topmargin 1in
+\rightmargin 1in
+\bottommargin 1in
+\headheight 0in
+\headsep 0in
+\footskip 0in
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation skip
+\defskip medskip
+\quotes_language english
+\quotes_times 2
+\papercolumns 1
+\papersides 1
+\paperpagestyle empty
+
+\layout Subsubsection*
+
+Three-way reactions in MCell
+\layout Standard
+
+The rate of reaction of a molecule that can engage in a three-way reaction
+ with reactants 
+\begin_inset Formula $I$
+\end_inset 
+
+ and 
+\begin_inset Formula $J$
+\end_inset 
+
+ at concentrations 
+\begin_inset Formula $\rho_{I}$
+\end_inset 
+
+ and 
+\begin_inset Formula $\rho_{J}$
+\end_inset 
+
+ is 
+\begin_inset Formula $\kappa\rho_{I}\rho_{J}$
+\end_inset 
+
+.
+ Suppose that a single molecules moves a distance 
+\begin_inset Formula $R$
+\end_inset 
+
+ while sweeping out an interaction area of 
+\begin_inset Formula $\delta A$
+\end_inset 
+
+.
+ Then the expected number of hits, assuming that the concentration of 
+\begin_inset Formula $I$
+\end_inset 
+
+ and 
+\begin_inset Formula $J$
+\end_inset 
+
+ is low, is 
+\begin_inset Formula \[
+n_{\mathrm{{hits}}}=R\,\delta A\,\rho_{I}\cdot R\,\delta A\,\rho_{J}\]
+
+\end_inset 
+
+ Thus, the expected number of hits for a molecule with a diffusion length
+ constant of 
+\begin_inset Formula $\lambda$
+\end_inset 
+
+ is 
+\begin_inset Formula \[
+n=\int_{0}^{\infty}\rho_{I}\rho_{J}\delta A^{2}R^{2}\frac{4\pi R^{2}}{\pi^{3/2}\lambda^{3}}e^{-R^{2}/\lambda^{2}}dR=\frac{3}{2}\rho_{I}\rho_{J}\delta A^{2}\lambda^{2}\]
+
+\end_inset 
+
+ If we let 
+\begin_inset Formula $p$
+\end_inset 
+
+ be the probability of reaction, then
+\begin_inset Formula \[
+\kappa\rho_{I}\rho_{J}\Delta t=p\cdot n=p\cdot\frac{3}{2}\rho_{I}\rho_{J}\delta A^{2}\lambda^{2}\]
+
+\end_inset 
+
+ Solving for 
+\begin_inset Formula $p$
+\end_inset 
+
+ gives 
+\begin_inset Formula \[
+p=\frac{\kappa}{6D\delta A^{2}}\]
+
+\end_inset 
+
+ If we let all three reactants move and react---let us number them 1, 2,
+ and 3---then we matching the total rate gives 
+\begin_inset Formula \[
+\kappa\rho_{1}\rho_{2}\rho_{3}\Delta t=\frac{3}{2}\rho_{1}\rho_{2}\rho_{3}\delta A^{2}\left(p_{1}\lambda_{1}^{2}+p_{2}\lambda_{2}^{2}+p_{3}\lambda_{3}^{2}\right)\]
+
+\end_inset 
+
+ and we can decide to let 
+\begin_inset Formula $p_{1}=p_{2}=p_{3}=p$
+\end_inset 
+
+ to give 
+\begin_inset Formula \[
+p=\frac{\kappa}{6\left(D_{1}+D_{2}+D_{3}\right)\delta A^{2}}\]
+
+\end_inset 
+
+ This solution also works for the cases where some of the reactants can't
+ move (as 
+\begin_inset Formula $D_{i}$
+\end_inset 
+
+ will be zero and will drop out of the equation).
+\the_end
