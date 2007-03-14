@@ -2128,10 +2128,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         }else{
             /* This is the reaction between three "vol_mols" */
 
-	  double eff_vel_a = rx->players[0]->space_step/rx->players[0]->time_step;
-	  double eff_vel_b = rx->players[1]->space_step/rx->players[1]->time_step;
-	  double eff_vel_c = rx->players[2]->space_step/rx->players[2]->time_step;
-	  double eff_vel;
+	  double eff_dif_a, eff_dif_b, eff_dif_c, eff_dif; /* effective diffusion constants*/
+          eff_dif_a = rx->players[0]->D;
+          eff_dif_b = rx->players[1]->D;
+          eff_dif_c = rx->players[2]->D;
 
           pb_factor=0;
 	  
@@ -2140,15 +2140,16 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	    fprintf(mpvp->vol->err_file,"Error: Reaction between %s and %s and %s listed, but all marked TARGET_ONLY\n", rx->players[0]->sym->name,rx->players[1]->sym->name, rx->players[2]->sym->name);
             return 1;
 	  }
-	  else if (rx->players[0]->flags & CANT_INITIATE) eff_vel_a = 0;
-	  else if (rx->players[1]->flags & CANT_INITIATE) eff_vel_b = 0;
-	  else if (rx->players[2]->flags & CANT_INITIATE) eff_vel_c = 0;
+	  else if (rx->players[0]->flags & CANT_INITIATE) eff_dif_a = 0;
+	  else if (rx->players[1]->flags & CANT_INITIATE) eff_dif_b = 0;
+	  else if (rx->players[2]->flags & CANT_INITIATE) eff_dif_c = 0;
 
-	  if (eff_vel_a + eff_vel_b + eff_vel_c > 0)
+	  if (eff_dif_a + eff_dif_b + eff_dif_c > 0)
 	  {
-	    eff_vel = (eff_vel_a + eff_vel_b + eff_vel_c) * mpvp->vol->length_unit / mpvp->vol->time_unit;   /* Units=um/sec */
-	    pb_factor = 1.0 / (2.0 * sqrt(MY_PI) * mpvp->vol->rx_radius_3d * mpvp->vol->rx_radius_3d * eff_vel);
-	    pb_factor *= 1.0e15 / N_AV;                                      /* Convert L/mol.s to um^3/number.s */
+	    eff_dif = (eff_dif_a + eff_dif_b + eff_dif_c) * 1.0e8;   /* convert from cm^2/sec to um^2/sec */
+
+	    pb_factor = 1.0 / (6.0 * (MY_PI) * mpvp->vol->rx_radius_3d * mpvp->vol->rx_radius_3d * eff_dif);
+	    pb_factor *= 1.0e30 / (N_AV*N_AV);                                               /* Convert (L/mol)^2/s to (um^3/number)^2/s */
 	  }
 	  else pb_factor = 0.0;  /* No rxn possible */
 
@@ -2170,7 +2171,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
             else fprintf(warn_file,"\t");
               
-
             fprintf(warn_file,"Probability %.4e (l) set for %s[%d] + %s[%d] + %s[%d] -> ",
                    rx->cum_probs[0],
                    rx->players[0]->sym->name,rx->geometries[0],
