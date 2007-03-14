@@ -2148,7 +2148,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  {
 	    eff_dif = (eff_dif_a + eff_dif_b + eff_dif_c) * 1.0e8;   /* convert from cm^2/sec to um^2/sec */
 
-	    pb_factor = 1.0 / (6.0 * (MY_PI) * mpvp->vol->rx_radius_3d * mpvp->vol->rx_radius_3d * eff_dif);
+	    pb_factor = 1.0 / (6.0 * (MY_PI) * mpvp->vol->rx_radius_3d * mpvp->vol->rx_radius_3d * (MY_PI) * mpvp->vol->rx_radius_3d * mpvp->vol->rx_radius_3d * eff_dif);
 	    pb_factor *= 1.0e30 / (N_AV*N_AV);                                               /* Convert (L/mol)^2/s to (um^3/number)^2/s */
 	  }
 	  else pb_factor = 0.0;  /* No rxn possible */
