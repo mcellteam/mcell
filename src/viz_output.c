@@ -2149,6 +2149,8 @@ static int dreamm_v3_generic_write_mesh_fields(struct frame_data_list const * co
       {
         if (! strcmp(rlp->reg->region_last_name, "ALL"))
           continue;
+        if (! strcmp(rlp->reg->region_last_name, "REMOVED"))
+          continue;
 
         fprintf(meshes_header,
                 "\tcomponent \"%s\" value %d\n",
@@ -2419,13 +2421,18 @@ static int dreamm_v3_generic_dump_mesh_data(struct frame_data_list const * const
         int region_walls_number = 0; 
         long pos = ftell(region_data);
 
+        /* the valid number for the region_index should always be 
+           in the range of [0, n-1], where n - the valid number
+           of polygons.  After REMOVE_ELEMENTS command n may not be
+           equal to the number of polygons of the object initially
+           created. */
         for(wall_index = 0; wall_index < objp->n_walls; ++ wall_index)
         {
           if(objp->wall_p[wall_index] == NULL) continue; 
           int n = objp->wall_p[wall_index]->side;
           if (get_bit(rp->membership,n))
           {
-            fwrite(&n, sizeof (n), 1, region_data);
+            fwrite(&region_walls_number, sizeof (n), 1, region_data);
             region_walls_number++;
           }
         }
