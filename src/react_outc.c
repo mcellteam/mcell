@@ -66,7 +66,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   int j,k;
   double f;
   int i0 = rx->product_idx[path]; /*index of the first product for the pathway*/
-  int iN = rx->product_idx[path+1];/*index of the last product for the pathway*/
+  int iN = rx->product_idx[path+1];/*index of the first product for the next pathway*/
   int replace_p1 = 0; /* flag for the product to replace position of reactant1 */
   int replace_p2 = 0; /* flag for the product to replace position of reactant2 */
   struct vector2 uv_loc;  /* where reaction happened */
@@ -93,8 +93,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
 #define FLAG_USE_REACB_UV 3
 #define FLAG_USE_RANDOM 4
      
-
-  /* make sure that reacA correponds to rx->players[0], and
+  /* make sure that reacA corresponds to rx->players[0], and
      reacB - to rx->players[1] */ 
   if (reacA->properties == rx->players[1] && reacA->properties != rx->players[0])
   {
@@ -374,22 +373,18 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
 
   /* Finally, set orientations correctly */
   bits = 0;
-  for (i=i0;i<iN;i++,bits>>=1)
+  for (i=i0;i<iN;i++)
   {
-     if (rx->players[i]==NULL) continue; 
-    
-    /* generate 32 random bits every 32 times through this loop */
-    if (((i-i0)&0x1F)==0) {
-        bits = rng_uint( world->rng );
-        if(world->notify->final_summary == NOTIFY_FULL){
-           world->random_number_use++;
-        }
-    }
-    
+    if (rx->players[i]==NULL) continue; 
+   
     if ( ptype[i-i0] != 0 && (ptype[i-i0]!='m' || w!=NULL) )
     {
       if (rx->geometries[i] == 0)
       {
+        bits = rng_uint( world->rng );
+        if(world->notify->final_summary == NOTIFY_FULL){
+           world->random_number_use++;
+        }
         if ((bits&1)==0) porient[i-i0] = 1;
         else porient[i-i0] = -1;
       }
