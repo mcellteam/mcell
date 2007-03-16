@@ -15,9 +15,9 @@
 \use_numerical_citations 0
 \paperorientation portrait
 \leftmargin 1in
-\topmargin 1in
+\topmargin 0.85in
 \rightmargin 1in
-\bottommargin 1in
+\bottommargin 0.85in
 \headheight 0in
 \headsep 0in
 \footskip 0in
@@ -58,7 +58,7 @@ The rate of reaction of a molecule that can engage in a three-way reaction
 \end_inset 
 
 .
- Suppose that a single molecules moves a distance 
+ Suppose that a single molecule moves a distance 
 \begin_inset Formula $R$
 \end_inset 
 
@@ -135,4 +135,63 @@ p=\frac{\kappa}{6\left(D_{1}+D_{2}+D_{3}\right)\delta A^{2}}\]
 \end_inset 
 
  will be zero and will drop out of the equation).
+\layout Standard
+
+Now suppose that the reaction takes place near a surface such that for a
+ fraction 
+\begin_inset Formula $a$
+\end_inset 
+
+ of the distance, the molecule sweeps out 
+\begin_inset Formula $\delta A^{\star}<\delta A$
+\end_inset 
+
+ of area instead of 
+\begin_inset Formula $\delta A$
+\end_inset 
+
+.
+ The expected number of hits is then 
+\begin_inset Formula \[
+n_{\mathrm{{hits}}}^{\star}=R\,\rho_{I}\,\left((1-a)\delta A+a\delta A^{\star}\right)\, R\,\rho_{J}\,\left((1-a)\delta A+a\delta A^{\star}\right)\]
+
+\end_inset 
+
+ which we can rewrite as 
+\begin_inset Formula \[
+n_{\mathrm{{hits}}}^{\star}=n_{\mathrm{{hits}}}\left((1-a)^{2}+2a(1-a)\frac{\delta A^{\star}}{\delta A}+a^{2}\left(\frac{\delta A^{\star}}{\delta A}\right)^{2}\right)\]
+
+\end_inset 
+
+ where the first term occurs when both hits are in the unconstrained space,
+ the second when one target molecule is in the unconstrained space and one
+ is in the constrained space, and the third when both targets are in the
+ constrained space.
+ If we multiply the probability of reaction by the inverse of the fractional
+ areas for each target, i.e., by 
+\begin_inset Formula $\delta A/\delta A^{\star}$
+\end_inset 
+
+ if one target is in the constrained space and 
+\begin_inset Formula $\left(\delta A/\delta A^{\star}\right)^{2}$
+\end_inset 
+
+ when both are in the constrained space, we then find that the total rate
+ of reaction is 
+\begin_inset Formula \[
+pn_{\mathrm{{hits}}}\left((1-a)^{2}\cdot1\cdot1+2a(1-a)\frac{\delta A^{\star}}{\delta A}\cdot1\cdot\frac{\delta A}{\delta A^{\star}}+a^{2}\left(\frac{\delta A^{\star}}{\delta A}\right)^{2}\cdot\frac{\delta A}{\delta A^{\star}}\cdot\frac{\delta A}{\delta A^{\star}}\right)=pn_{\mathrm{{hits}}}\]
+
+\end_inset 
+
+ That is, the reaction rate is unchanged, which is exactly what we want.
+ Since 
+\begin_inset Formula $a$
+\end_inset 
+
+ is arbitrary, we can make 
+\begin_inset Formula $a$
+\end_inset 
+
+ differentially small and thus the result holds for arbitrary restrictions
+ of the swept area.
 \the_end
