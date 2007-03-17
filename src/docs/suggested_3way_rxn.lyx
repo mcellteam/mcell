@@ -88,7 +88,7 @@ n_{\mathrm{{hits}}}=R\,\delta A\,\rho_{I}\cdot R\,\delta A\,\rho_{J}\]
 
  is 
 \begin_inset Formula \[
-n=\int_{0}^{\infty}\rho_{I}\rho_{J}\delta A^{2}R^{2}\frac{4\pi R^{2}}{\pi^{3/2}\lambda^{3}}e^{-R^{2}/\lambda^{2}}dR=\frac{3}{2}\rho_{I}\rho_{J}\delta A^{2}\lambda^{2}\]
+n_{\mathrm{{hits}}}=\int_{0}^{\infty}\rho_{I}\rho_{J}\delta A^{2}R^{2}\frac{4\pi R^{2}}{\pi^{3/2}\lambda^{3}}e^{-R^{2}/\lambda^{2}}dR=\frac{3}{2}\rho_{I}\rho_{J}\delta A^{2}\lambda^{2}\]
 
 \end_inset 
 
@@ -112,14 +112,25 @@ p=\frac{\kappa}{6D\delta A^{2}}\]
 
 \end_inset 
 
+ assuming that 
+\begin_inset Formula $\Delta t$
+\end_inset 
+
+ is the time step for the moving molecule.
  If we let all three reactants move and react---let us number them 1, 2,
  and 3---then we matching the total rate gives 
 \begin_inset Formula \[
-\kappa\rho_{1}\rho_{2}\rho_{3}\Delta t=\frac{3}{2}\rho_{1}\rho_{2}\rho_{3}\delta A^{2}\left(p_{1}\lambda_{1}^{2}+p_{2}\lambda_{2}^{2}+p_{3}\lambda_{3}^{2}\right)\]
+\kappa\rho_{1}\rho_{2}\rho_{3}\Delta t=\frac{3}{2}\rho_{1}\rho_{2}\rho_{3}\delta A^{2}\left(p_{1}\frac{\Delta t}{\Delta t_{1}}\lambda_{1}^{2}+p_{2}\frac{\Delta t}{\Delta t_{2}}\lambda_{2}^{2}+p_{3}\frac{\Delta t}{\Delta t_{3}}\lambda_{3}^{2}\right)\]
 
 \end_inset 
 
- and we can decide to let 
+ where in general the individual molecules may move with custom timesteps
+ 
+\begin_inset Formula $\Delta t_{i}$
+\end_inset 
+
+.
+ We let 
 \begin_inset Formula $p_{1}=p_{2}=p_{3}=p$
 \end_inset 
 
@@ -194,4 +205,73 @@ pn_{\mathrm{{hits}}}\left((1-a)^{2}\cdot1\cdot1+2a(1-a)\frac{\delta A^{\star}}{\
 
  differentially small and thus the result holds for arbitrary restrictions
  of the swept area.
+\layout Subsubsection*
+
+N-way reactions in MCell
+\layout Standard
+
+Generalizing to 
+\begin_inset Formula $N+1$
+\end_inset 
+
+ reactants (one moving and 
+\begin_inset Formula $N$
+\end_inset 
+
+ targets), where 
+\begin_inset Formula $N$
+\end_inset 
+
+ is a positive integer, we find that the collision rate is 
+\begin_inset Formula \[
+n_{\mathrm{{hits}}}=\int_{0}^{\infty}dR\cdot\prod_{i=1}^{N}\rho_{i}\cdot\left(R\delta A\right)^{N}\cdot\frac{4\pi R^{2}}{\pi^{3/2}\lambda^{3}}e^{-R^{2}/\lambda^{2}}=\prod_{i=1}^{N}\rho_{i}\cdot\frac{2\lambda^{N}\delta A^{N}}{\sqrt{\pi}}\Gamma\left(\frac{N+3}{2}\right)\]
+
+\end_inset 
+
+ and the bulk rate is 
+\begin_inset Formula $\kappa\cdot\prod_{i=1}^{N}\rho_{i}\cdot\Delta t$
+\end_inset 
+
+, so equating probabilities gives 
+\begin_inset Formula \[
+p=\frac{\kappa\sqrt{\pi}\Delta t}{2\lambda^{N}\delta A^{N}\Gamma\left(\frac{N+3}{2}\right)}\]
+
+\end_inset 
+
+ Note that 
+\begin_inset Formula $\Gamma(N)=(N-1)!$
+\end_inset 
+
+ and 
+\begin_inset Formula $\Gamma(N+\frac{1}{2})=\sqrt{\pi}\cdot2^{-2N}\cdot(2N)!/N!=\sqrt{\pi}\cdot\prod_{i=1}^{N}\frac{2i-1}{2}$
+\end_inset 
+
+.
+ If we have multiple moving molecules, 
+\begin_inset Formula \[
+\kappa\cdot\prod_{i=1}^{N+1}\rho_{i}\cdot\Delta t=\prod_{i=1}^{N+1}\rho_{i}\cdot\frac{2\delta A^{N}}{\sqrt{\pi}}\Gamma\left(\frac{N+3}{2}\right)\cdot\sum_{i=1}^{N+1}p_{i}\frac{\Delta t}{\Delta t_{i}}\lambda_{i}^{N}\]
+
+\end_inset 
+
+ so that, if we set all the 
+\begin_inset Formula $p_{i}$
+\end_inset 
+
+to be equal, 
+\begin_inset Formula \[
+p=\frac{\kappa\sqrt{\pi}}{2\Gamma\left(\frac{N+3}{2}\right)\delta A^{N}\sum\frac{\lambda_{i}^{N}}{\Delta t_{i}}}\]
+
+\end_inset 
+
+ By induction on the result for pairs of targets in the 3-way case, we also
+ see that if a target 
+\begin_inset Formula $i$
+\end_inset 
+
+ is hit in a restricted space, the reaction probability should be multiplied
+ by 
+\begin_inset Formula $\delta A/\delta A_{i}^{\star}$
+\end_inset 
+
+.
 \the_end
