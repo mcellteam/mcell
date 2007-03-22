@@ -4209,7 +4209,16 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	  
 	  CLEAN_AND_RETURN(NULL);
         }
-        else m = migrate_volume_molecule(m,nsv);
+        else
+        {
+          struct volume_molecule *old_m = m;
+          m = migrate_volume_molecule(m,nsv);
+          if (old_m == sv->mol_head)
+          {
+            sv->mol_head = sv->mol_head->next_v;
+            mem_put(old_m->birthplace, old_m);
+          }
+        }
 
         if (shead2 != NULL) mem_put_list(sv->local_storage->coll,shead2);
         if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
