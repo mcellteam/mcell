@@ -6049,7 +6049,7 @@ rxn:
 
   mdlpvp->catalytic_arrow=0; /* set default value */ 
 }
-  reactant_list reaction_arrow
+  reactant_list  opt_reactant_surface_class reaction_arrow
 {
   char *rx_name;
   int num_surfaces;
@@ -6180,35 +6180,37 @@ rxn:
        return 1;
     }
   }
- 
-  /* Copy catalyst to products */ 
-  if (mdlpvp->catalytic_arrow)
-  {
-    mdlpvp->prodp = (struct product*)mem_get(mdlpvp->prod_mem);
-    if (mdlpvp->prodp==NULL)
+  /* For unidirectional catalytic reactions - copy catalyst to products only if catalyst is not a surface_clas.
+     For bidirectional catalytic reactions always copy catalyst to products and take care that surface_class will not appear in the products later after inverting the reaction */ 
+  if (mdlpvp->catalytic_arrow){
+    if((mdlpvp->bidirectional_arrow) || (!(mdlpvp->pathp->reactant3->flags & IS_SURFACE)))
     {
-      mdlerror(mdlpvp, "Out of memory while creating reaction.");
-      return 1;
-    }
+       mdlpvp->prodp = (struct product*)mem_get(mdlpvp->prod_mem);
+       if (mdlpvp->prodp==NULL)
+       {
+         mdlerror(mdlpvp, "Out of memory while creating reaction.");
+         return 1;
+       }
     
-    mdlpvp->prodp->prod = mdlpvp->pathp->reactant3;
-    if (mdlpvp->prod_all_3d) mdlpvp->prodp->orientation=0;
-    else mdlpvp->prodp->orientation = mdlpvp->pathp->orientation3;
-    mdlpvp->prodp->next = mdlpvp->pathp->product_head;
-    mdlpvp->pathp->product_head = mdlpvp->prodp;
-    
-    if (mdlpvp->pathp->reactant2==NULL)
-    {
-      mdlpvp->pathp->reactant2 = mdlpvp->pathp->reactant3;
-      mdlpvp->pathp->orientation2 = mdlpvp->pathp->orientation3;
-      mdlpvp->pathp->reactant3 = NULL;
-      mdlpvp->pathp->orientation3 = 0;
+       mdlpvp->prodp->prod = mdlpvp->pathp->reactant3;
+       if (mdlpvp->prod_all_3d) mdlpvp->prodp->orientation=0;
+       else mdlpvp->prodp->orientation = mdlpvp->pathp->orientation3;
+       mdlpvp->prodp->next = mdlpvp->pathp->product_head;
+       mdlpvp->pathp->product_head = mdlpvp->prodp;
     }
-  }
+       if (mdlpvp->pathp->reactant2==NULL)
+       {
+         mdlpvp->pathp->reactant2 = mdlpvp->pathp->reactant3;
+         mdlpvp->pathp->orientation2 = mdlpvp->pathp->orientation3;
+         mdlpvp->pathp->reactant3 = NULL;
+         mdlpvp->pathp->orientation3 = 0;
+       }
+     
+  } 
 }
 	list_products rx_rate_syntax new_rxn_pathname
 {
-  mdlpvp->gp=$<sym>7;
+  mdlpvp->gp=$<sym>8;
   if (mdlpvp->gp!=NULL)
   {
     mdlpvp->rxpnp=(struct rxn_pathname *)mdlpvp->gp->value;
@@ -6262,12 +6264,12 @@ rxn:
     mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
     mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
   }
-   
+ 
   if((mdlpvp->vol->vacancy_search_dist2 == 0)  && 
              (mdlpvp->num_surf_products > mdlpvp->num_grid_mols)){
       /* the case with one volume molecule reacting with the surface
          and producing one grid molecule is excluded */
-        
+
       if(!((mdlpvp->num_grid_mols == 0) && (mdlpvp->num_vol_mols == 1))) { 
          mdlerror_fmt(mdlpvp, "Error: number of surface products exceeds number of surface reactants, but VACANCY_SEARCH_DISTANCE is not specified or set to zero.\n");
          return 1;
@@ -6280,11 +6282,42 @@ rxn:
   /* Create reverse reaction if we need to */
   if (mdlpvp->bidirectional_arrow)
   {
+        
     if (mdlpvp->bidirectional_arrow==1) /* Hack to notice if we got both rates */
     {
       mdlerror(mdlpvp, "Reversible reaction indicated but no reverse rate supplied.");
       return 1;
     }
+
+    /* if "surface_class" is present on the reactant side of the reaction
+       copy it to the product side of the reaction. 
+       Reversible reaction of the type A' @ surf' <---> C''[r1,r2]
+       is equivalent now to the two reactions
+           A'@ surf' ---> C'' [r1]
+ 
+    */
+    if(!(mdlpvp->catalytic_arrow))
+    {
+        /* since at most two names may appear on the reactant side
+           of the reaction and "surface_class" is always the last one */
+        if(mdlpvp->pathp->reactant2->flags & IS_SURFACE)
+        {
+           mdlpvp->prodp = (struct product *)mem_get(mdlpvp->prod_mem);
+           if(mdlpvp->prodp == NULL){
+             mdlerror(mdlpvp, "Out of memory while creating reaction.\n");
+             return 1;
+           }
+
+           mdlpvp->prodp->prod = mdlpvp->pathp->reactant2;
+           mdlpvp->prodp->orientation = mdlpvp->pathp->orientation2;
+           mdlpvp->prodp->next = mdlpvp->pathp->product_head;
+           mdlpvp->pathp->product_head = mdlpvp->prodp;
+
+        }
+
+    }  
+  
+
     if (invert_current_reaction_pathway(mdlpvp))
     {
       mdlerror(mdlpvp, "Error creating reverse reaction.");
@@ -6308,8 +6341,61 @@ reactant: existing_molecule
   if (mdlpvp->pathp->reactant1==NULL)
   {
     mdlpvp->pathp->reactant1 = (struct species*)( ($<sym>1)->value );
+    if(mdlpvp->pathp->reactant1->flags == IS_SURFACE){
+       mdlerror(mdlpvp, "Surface_class can be listed only as the last one on the left-hand side of the reaction with the preceding '&' sign.\n.");
+       return 1;
+    }
     if (mdlpvp->orient_specified) mdlpvp->pathp->orientation1 = mdlpvp->orient_class;
     else mdlpvp->pathp->orientation1 = ORIENT_NOT_SET;
+  }
+  else if (mdlpvp->pathp->reactant2==NULL)
+  {
+    mdlpvp->pathp->reactant2 = (struct species*)( ($<sym>1)->value );
+    if(mdlpvp->pathp->reactant2->flags == IS_SURFACE){
+       mdlerror(mdlpvp, "Surface_class can be listed only as the last one on the left-hand side of the reaction with the preceding '&' sign.\n.");
+       return 1;
+    }
+    if (mdlpvp->orient_specified) mdlpvp->pathp->orientation2 = mdlpvp->orient_class;
+    else mdlpvp->pathp->orientation2 = ORIENT_NOT_SET;    
+  }
+  else if (mdlpvp->pathp->reactant3==NULL)
+  {
+    mdlpvp->pathp->reactant3 = (struct species*)( ($<sym>1)->value );
+    if(mdlpvp->pathp->reactant3->flags == IS_SURFACE){
+       mdlerror(mdlpvp, "Surface_class can be listed only as the last one on the left-hand side of the reaction with the preceding '&' sign.\n.");
+       return 1;
+    }
+   if (mdlpvp->orient_specified) mdlpvp->pathp->orientation3 = mdlpvp->orient_class;
+    else mdlpvp->pathp->orientation3 = ORIENT_NOT_SET;    
+  }
+  else
+  {
+    mdlerror(mdlpvp, "Too many reactants--maximum number is three.");
+    return 1;
+  }
+
+  /* restore default values */
+  mdlpvp->orient_specified = 0;
+  mdlpvp->orient_class = ORIENT_NOT_SET;
+};
+
+
+opt_reactant_surface_class: /* empty */
+             | '@' reactant_surface_class
+;
+
+reactant_surface_class: existing_surface_class
+{
+  mdlpvp->orient_specified=0;
+  mdlpvp->orient_class=0;
+}
+	orientation_class
+{
+  if (mdlpvp->pathp->reactant1==NULL)
+  {
+    mdlerror(mdlpvp, "Before defining reaction surface class at least one reactant should be defined.\n");
+    return 1;
+
   }
   else if (mdlpvp->pathp->reactant2==NULL)
   {
@@ -6325,13 +6411,14 @@ reactant: existing_molecule
   }
   else
   {
-    mdlerror(mdlpvp, "Too many reactants--maximum number is three.");
+    mdlerror(mdlpvp, "Too many reactants--maximum number is two plus reaction surface class.\n");
     return 1;
   }
 
   /* restore default values */
   mdlpvp->orient_specified = 0;
   mdlpvp->orient_class = ORIENT_NOT_SET;
+
 };
 
 
@@ -6354,6 +6441,15 @@ product: existing_molecule
     return(1);
   }
   mdlpvp->prodp->prod=(struct species *)mdlpvp->gp->value;
+  /* only for non bidirectional and catalytic reactions */
+  if(!(mdlpvp->bidirectional_arrow))
+  {
+     if(mdlpvp->prodp->prod->flags & IS_SURFACE){
+         mdlerror_fmt(mdlpvp, "Surface_class '%s' is not allowed to be on the product side of the reaction.\n ",
+            mdlpvp->prodp->prod->sym->name);
+         return(1);
+      }
+  }
   if (mdlpvp->prod_all_3d) mdlpvp->prodp->orientation=0;
   else mdlpvp->prodp->orientation=mdlpvp->orient_class;
 

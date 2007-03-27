@@ -747,6 +747,7 @@ int equivalent_geometry(struct pathway *p1,struct pathway *p2,int n)
 
     o13 = o23 = 0;  
 
+
     return equivalent_geometry_for_two_reactants(o11, o12, o21, o22);
 
   }else if (n < 4){
@@ -1017,24 +1018,83 @@ struct rxn * split_reaction(struct rxn *rx, struct mdlparse_vars *mpvp)
   struct pathway *temp = NULL, *curr_ptr = NULL, *prev_ptr = NULL, *twin_1, *twin_2;
   struct rxn  *curr_rxn_ptr = NULL,  *head = NULL, *end = NULL, *rxn_equi_node = NULL, *temp_rxn = NULL;
 
-   int found_twins, found_non_twins; /* flags */
+   int found_twins, found_non_twins, quick_test; /* flags */
 
     /* keep reference to the head of the future linked_list */
     head = end = rx;
    struct rxn *new_reaction;
    int no_more_to_test = 0; /* flags */
+ 
+   if(head->n_pathways == 1){ 
+      return head;
+    }else{
+      
+    /* extract special reactions pathways (TRANSP and REFLEC) into separate
+       links if such are present */
+       for(curr_ptr = head->pathway_head->next, prev_ptr = head->pathway_head; curr_ptr != NULL; prev_ptr = curr_ptr, curr_ptr = curr_ptr->next)
+           {
+          if((curr_ptr->flags & PATHW_TRANSP) || (curr_ptr->flags & PATHW_REFLEC)){
+                /* create new reaction - link the previous one */
+                new_reaction = (struct rxn*)malloc(sizeof(struct rxn));
+                if (new_reaction == NULL) {
+                   fprintf(mpvp->vol->err_file, "File '%s', Line %ld: Memory allocation error.\n",  __FILE__, (long)__LINE__);
+                   return NULL;
+                }
+                new_reaction->next = NULL;                 
+                new_reaction->sym = rx->sym;
+                new_reaction->n_reactants = rx->n_reactants;
+                new_reaction->n_pathways = 0;
+                new_reaction->product_idx = NULL;
+                new_reaction->cum_probs = NULL;
+                new_reaction->cat_probs = NULL;
+                new_reaction->players = NULL;
+                new_reaction->geometries = NULL;
+                new_reaction->n_occurred = 0;
+                new_reaction->n_skipped = 0;
+                new_reaction->prob_t = NULL;
+                new_reaction->pathway_head = NULL;
+                new_reaction->info = NULL;
+
+                if(prev_ptr->next->next == NULL)
+                {
+                    /* special_reaction pathway is the last node */
+                    /* move it to new_reaction->pathway_head */
+                    temp = prev_ptr->next;
+                    temp->next = new_reaction->pathway_head;
+                    new_reaction->pathway_head = temp;
+                    prev_ptr->next = NULL;
+                 }else{
+                    temp = prev_ptr->next->next;
+                    prev_ptr->next->next = new_reaction->pathway_head;
+                    new_reaction->pathway_head = prev_ptr->next;
+                    /* remove twin */
+                    prev_ptr->next = temp;
+                }
+                new_reaction->n_pathways++;
+                head->n_pathways--;
+
+                end->next = new_reaction;
+                end = new_reaction;
+
+          }
+
+       }
+
+    }
+
+
+    quick_test = 0;
 
     while(!no_more_to_test)
     { 
 
-      /* quick test whether all pathways in the reaction are twins */    
-      if(head->next == NULL)
+      /* quick test whether all pathways in the reactions are twins */    
+      if(!quick_test)
       {       
-         if(head->n_pathways == 1){
-             return head;
-         }else{
-            found_non_twins = 0;
-            twin_1 = head->pathway_head;
+         found_non_twins = 0;
+         for(curr_rxn_ptr = head; curr_rxn_ptr != NULL; curr_rxn_ptr = curr_rxn_ptr->next){   
+            twin_1 = curr_rxn_ptr->pathway_head;
+
             for(twin_2 = twin_1->next; twin_2 != NULL; twin_2 = twin_2->next)
             {
               if(!equivalent_geometry(twin_1, twin_2, head->n_reactants)){
@@ -1042,12 +1102,14 @@ struct rxn * split_reaction(struct rxn *rx, struct mdlparse_vars *mpvp)
                   break;
               }
             }
-            if(!found_non_twins){
-               return head;
-            }
+            if(found_non_twins) break;
          }
+         if(!found_non_twins){
+            return head;
+         }
+         quick_test = 1;
       } /* end if(head->next == NULL) */
-      
+
  
       /* The procedure is to extract two equivalent
          pathways to the "new_reaction->pathway_head" or to the 
@@ -1147,7 +1209,7 @@ struct rxn * split_reaction(struct rxn *rx, struct mdlparse_vars *mpvp)
        
        }else{                             /*  found twins  */
            /* extract found twins pathways to the "new_reaction->pathway_head" 
-              or put twins in one if the existing reactions
+              or put twins in one of the existing reactions
               in the existing linked list of reactions
             */
               
@@ -1518,7 +1580,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     for ( sym = mpvp->vol->main_sym_table[i] ; sym!=NULL ; sym = sym->next )
     {
       if (sym->sym_type != RX) continue;
-         
       reaction = (struct rxn*)sym->value;
       reaction->next = NULL;
 
@@ -1609,8 +1670,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               } /*end */
             }
 
-
           } /* end if(n_reactants > 1) */
+
 
         }  /* end for(path = reaction->pathway_head; ...) */
                  
@@ -1661,6 +1722,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         n_prob_t_rxns = 0;
         for (j=0 , path=rx->pathway_head ; path!=NULL ; j++ , path = path->next)
         {
+
           rx->product_idx[j] = 0;
           
             /* Look for concentration clamp */
@@ -1725,6 +1787,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                      
           for (prod=path->product_head ; prod != NULL ; prod = prod->next)
           {
+
                if (recycled1 == 0 && prod->prod == path->reactant1) recycled1 = 1;
                else if (recycled2 == 0 && prod->prod == path->reactant2) recycled2 = 1;
                else if (recycled3 == 0 && prod->prod == path->reactant3) recycled3 = 1;
@@ -1733,7 +1796,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                   
 
         } /* end for(j=0,path=rx->pathway_head; ...) */
-           
+          
+ 
 	/* Now that we know how many products there really are, set the index array */
 	/* and malloc space for the products and geometries. */
         path = rx->pathway_head;
@@ -2029,14 +2093,27 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             else fprintf(warn_file,"\t");
             
             if(rx->n_reactants > 2) {
-               fprintf(warn_file,"Probability %.4e (s) set for %s[%d] + %s[%d] + %s[%d] -> ",rx->cum_probs[0],
+              if(rx->players[2]->flags & IS_SURFACE){
+                fprintf(warn_file,"Probability %.4e (s) set for %s[%d] + %s[%d] @ %s[%d] -> ",rx->cum_probs[0],
                    rx->players[0]->sym->name,rx->geometries[0],
                    rx->players[1]->sym->name,rx->geometries[1],
                    rx->players[2]->sym->name,rx->geometries[2]);
+              }else{
+                fprintf(warn_file,"Probability %.4e (s) set for %s[%d] + %s[%d] + %s[%d] -> ",rx->cum_probs[0],
+                   rx->players[0]->sym->name,rx->geometries[0],
+                   rx->players[1]->sym->name,rx->geometries[1],
+                   rx->players[2]->sym->name,rx->geometries[2]);
+              }
             }else{
-               fprintf(warn_file,"Probability %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_probs[0],
+              if(rx->players[1]->flags & IS_SURFACE){
+                 fprintf(warn_file,"Probability %.4e (s) set for %s[%d] @ %s[%d] -> ",rx->cum_probs[0],
                    rx->players[0]->sym->name,rx->geometries[0],
                    rx->players[1]->sym->name,rx->geometries[1]);
+              }else{
+                 fprintf(warn_file,"Probability %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_probs[0],
+                   rx->players[0]->sym->name,rx->geometries[0],
+                   rx->players[1]->sym->name,rx->geometries[1]);
+              }
             }
 
 
@@ -2218,15 +2295,29 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               
             fprintf(warn_file,"Probability %.3e set for ",rate);
             if (rx->n_reactants==1) fprintf(warn_file,"%s[%d] -> ",rx->players[0]->sym->name,rx->geometries[0]);
-            else if(rx->n_reactants == 2){ 
-                fprintf(warn_file,"%s[%d] + %s[%d] -> ",
+            else if(rx->n_reactants == 2){
+                if(rx->players[1]->flags & IS_SURFACE){ 
+                   fprintf(warn_file,"%s[%d] @ %s[%d] -> ",
                         rx->players[0]->sym->name,rx->geometries[0],
                         rx->players[1]->sym->name,rx->geometries[1]);
+                 }else{
+                   fprintf(warn_file,"%s[%d] + %s[%d] -> ",
+                        rx->players[0]->sym->name,rx->geometries[0],
+                        rx->players[1]->sym->name,rx->geometries[1]);
+                 }
             }else{
-                fprintf(warn_file,"%s[%d] + %s[%d]  + %s[%d] -> ",
+                if(rx->players[2]->flags & IS_SURFACE){ 
+                   fprintf(warn_file,"%s[%d] + %s[%d]  @ %s[%d] -> ",
                         rx->players[0]->sym->name,rx->geometries[0],
                         rx->players[1]->sym->name,rx->geometries[1],
                         rx->players[2]->sym->name,rx->geometries[2]);
+                }else{
+                   fprintf(warn_file,"%s[%d] + %s[%d]  + %s[%d] -> ",
+                        rx->players[0]->sym->name,rx->geometries[0],
+                        rx->players[1]->sym->name,rx->geometries[1],
+                        rx->players[2]->sym->name,rx->geometries[2]);
+
+                }
             }
             for (k = rx->product_idx[j] ; k < rx->product_idx[j+1] ; k++)
             {
@@ -2297,7 +2388,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     }
   }
  
- 
   /* And, finally, we just have to move all the reactions from the */
   /* symbol table into the reaction hash table (of appropriate size). */
 
@@ -2342,7 +2432,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   }
 
   mpvp->vol->rx_radius_3d *= mpvp->vol->r_length_unit; /* Convert into length units */
-  
+ 
   for (i=0;i<=rx_hash;i++)
   {
     for (rx = rx_tbl[i] ; rx != NULL ; rx = rx->next)
@@ -2448,18 +2538,25 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   char *inverse_name;
   int nprods,all_3d;
 
+  /* flag that tells whether there is a surface_class
+     among products in the direct reaction */
+  int is_surf_class = 0;
+
+
   mpvp->num_surf_products = 0;
   mpvp->num_grid_mols = 0;
   mpvp->num_vol_mols = 0;
-
   
   all_3d=1;
   for (nprods=0,prodp=mpvp->pathp->product_head ; prodp!=NULL ; prodp=prodp->next)
   {
     nprods++;
     if ((prodp->prod->flags&NOT_FREE)!=0) all_3d=0;
+    if((prodp->prod->flags & IS_SURFACE) != 0){
+           is_surf_class = 1;
+    }
   }
-  
+ 
   if (nprods==0)
   {
     mdlerror(mpvp, "Can't create a reverse reaction with no products");
@@ -2506,7 +2603,7 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
       return 1;
     }
   }
-  
+ 
   sym = retrieve_sym(inverse_name,RX,mpvp->vol->main_sym_table);
   if (sym==NULL)
   {
@@ -2574,7 +2671,7 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
       mpvp->num_surf_products++;
   }
 
-  if (mpvp->pathp->reactant2!=NULL)
+  if ((mpvp->pathp->reactant2!=NULL) && ((mpvp->pathp->reactant2->flags & IS_SURFACE) == 0))
   {
     path->product_head->next = (struct product*)mem_get(mpvp->prod_mem);
     if (path->product_head->next==NULL)
@@ -2595,6 +2692,7 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
       return 1;
   } 
 
+
   if((mpvp->vol->vacancy_search_dist2 == 0) &&
      (mpvp->num_surf_products > mpvp->num_grid_mols)){
       /* the case with one volume molecule reacting with the surface
@@ -2604,7 +2702,26 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
            return 1;
       }
   } 
-  
+
+  /* Now go back to the original reaction and if there is a "surface_class"
+     among products - remove it.  We do not need it now on the product side
+     of the reaction */
+   if(is_surf_class){
+
+     prodp = mpvp->pathp->product_head;
+     if(prodp->prod->flags & IS_SURFACE) { /* remove it */
+       mpvp->pathp->product_head = prodp->next;
+       prodp->next = NULL;
+       mem_put(mpvp->prod_mem, (void *)prodp);
+     }else{
+       prodp = prodp->next;
+       /* remove it */
+       mpvp->pathp->product_head->next = NULL;
+       mem_put(mpvp->prod_mem, (void *)prodp);
+     }
+
+   }
+
   mpvp->num_surf_products = 0;
   mpvp->num_grid_mols = 0;
   mpvp->num_vol_mols = 0;
