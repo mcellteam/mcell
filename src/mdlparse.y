@@ -6294,13 +6294,14 @@ rxn:
        Reversible reaction of the type A' @ surf' <---> C''[r1,r2]
        is equivalent now to the two reactions
            A'@ surf' ---> C'' [r1]
- 
+           C'' @ surf' ---->A'[r2]
     */
     if(!(mdlpvp->catalytic_arrow))
     {
         /* since at most two names may appear on the reactant side
            of the reaction and "surface_class" is always the last one */
-        if(mdlpvp->pathp->reactant2->flags & IS_SURFACE)
+     
+        if((mdlpvp->pathp->reactant2 != NULL) &&   (mdlpvp->pathp->reactant2->flags & IS_SURFACE))
         {
            mdlpvp->prodp = (struct product *)mem_get(mdlpvp->prod_mem);
            if(mdlpvp->prodp == NULL){
