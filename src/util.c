@@ -1454,6 +1454,8 @@ void uniq_num_expr_list(struct num_expr_list *nlist)
       free(nel);
       nel = nelPrev;
     }
+    else
+      nelPrev = nel;
   }
 }
 
