@@ -10,7 +10,7 @@
 \papersize letterpaper
 \paperpackage a4
 \use_geometry 1
-\use_amsmath 0
+\use_amsmath 1
 \use_natbib 0
 \use_numerical_citations 0
 \paperorientation portrait
@@ -274,4 +274,212 @@ p=\frac{\kappa\sqrt{\pi}}{2\Gamma\left(\frac{N+3}{2}\right)\delta A^{N}\sum\frac
 \end_inset 
 
 .
+\layout Subsubsection*
+
+Converting 3-way reactions to 2-way reactions
+\layout Standard
+
+Suppose we have a three-way reaction 
+\begin_inset Formula \[
+A_{1}+A_{2}+A_{3}\overset{k}{\longrightarrow}A_{123}\]
+
+\end_inset 
+
+ which we wish to approximate by nine bimolecular reactions: 
+\begin_inset Formula \[
+\begin{array}{rcl}
+A_{1}+A_{2} & \overset{k_{12}}{\longrightarrow} & A_{12}\\
+A_{1}+A_{3} & \overset{k_{13}}{\longrightarrow} & A_{13}\\
+A_{2}+A_{3} & \overset{k_{23}}{\longrightarrow} & A_{23}\\
+A_{12} & \overset{k_{-12}}{\longrightarrow} & A_{1}+A_{2}\\
+A_{13} & \overset{k_{-13}}{\longrightarrow} & A_{1}+A_{3}\\
+A_{23} & \overset{k_{-23}}{\longrightarrow} & A_{2}+A_{3}\\
+A_{3}+A_{12} & \overset{k_{3}}{\longrightarrow} & A_{123}\\
+A_{2}+A_{13} & \overset{k_{2}}{\longrightarrow} & A_{123}\\
+A_{1}+A_{23} & \overset{k_{1}}{\longrightarrow} & A_{123}\end{array}\]
+
+\end_inset 
+
+ At quasi-steady state, we want to match rate of entry in to the 
+\begin_inset Formula $A_{123}$
+\end_inset 
+
+ state: 
+\begin_inset Formula \begin{equation}
+kA_{1}A_{2}A_{3}=k_{1}A_{1}A_{23}+k_{2}A_{2}A_{13}+k_{3}A_{3}A_{12}\label{eqn_qss_match}\end{equation}
+
+\end_inset 
+
+ And we also wish to keep the quasi-steady state concentrations of the intermedi
+ates 
+\begin_inset Formula $A_{12}$
+\end_inset 
+
+, 
+\begin_inset Formula $A_{13}$
+\end_inset 
+
+, and 
+\begin_inset Formula $A_{23}$
+\end_inset 
+
+ low compared to the starting materials.
+ In general, we will have 
+\begin_inset Formula \[
+\frac{d}{dt}A_{hi}=-k_{j}A_{j}A_{hi}-k_{-hi}A_{hi}+k_{hi}A_{h}A_{i}\approx0\]
+
+\end_inset 
+
+ so that 
+\begin_inset Formula \[
+A_{hi}\approx\frac{k_{hi}A_{h}A_{i}}{k_{-hi}+k_{j}A_{j}}\]
+
+\end_inset 
+
+ If we want this to be roughly independent of the concentration of 
+\begin_inset Formula $A_{j}$
+\end_inset 
+
+ then we require 
+\begin_inset Formula $k_{-hi}\gg k_{j}A_{j}$
+\end_inset 
+
+ and can rewrite this as 
+\begin_inset Formula \[
+A_{hi}\approx\frac{k_{hi}}{k_{-hi}}A_{h}A_{i}\left(1-\frac{k_{j}A_{j}}{k_{-hi}}\right)\]
+
+\end_inset 
+
+If we further require that 
+\begin_inset Formula $A_{hi}$
+\end_inset 
+
+ be small compared to 
+\begin_inset Formula $A_{h}$
+\end_inset 
+
+ and 
+\begin_inset Formula $A_{i}$
+\end_inset 
+
+, we also require 
+\begin_inset Formula $\frac{k_{hi}}{k_{-hi}}\ll\frac{1}{\max(A_{h},A_{i})}$
+\end_inset 
+
+.
+ Let 
+\begin_inset Formula $A_{+}$
+\end_inset 
+
+ be the largest value of any of the 
+\begin_inset Formula $A_{i}$
+\end_inset 
+
+ during a simulation.
+ Furthermore, let us set all 
+\begin_inset Formula $k_{j}$
+\end_inset 
+
+ to be 
+\begin_inset Formula $k^{\star}$
+\end_inset 
+
+, all 
+\begin_inset Formula $k_{hi}$
+\end_inset 
+
+ to be 
+\begin_inset Formula $k^{\dagger}$
+\end_inset 
+
+ and all 
+\begin_inset Formula $k_{-hi}$
+\end_inset 
+
+ to be 
+\begin_inset Formula $k^{\ddagger}$
+\end_inset 
+
+.
+ Then our constraints require that 
+\begin_inset Formula $k^{\ddagger}\gg k^{\star}A_{+}$
+\end_inset 
+
+ and 
+\begin_inset Formula $k^{\dagger}\ll k^{\ddagger}\frac{1}{A_{+}}$
+\end_inset 
+
+; taken together, 
+\begin_inset Formula $k^{\dagger}\approx k^{\star}$
+\end_inset 
+
+ is a valid solution, so we may as well make the two the same, 
+\begin_inset Formula $k^{\prime}$
+\end_inset 
+
+.
+ Thus, we have a forward reaction rate 
+\begin_inset Formula $k^{\prime}$
+\end_inset 
+
+ for all binding reactions and a backward reaction rate 
+\begin_inset Formula $k^{\ddagger}$
+\end_inset 
+
+ for dissociation of the intermediates.
+\layout Standard
+
+Thus, equation (
+\begin_inset LatexCommand \ref{eqn_qss_match}
+
+\end_inset 
+
+) becomes 
+\begin_inset Formula \[
+kA_{1}A_{2}A_{3}\approx k^{\prime}A_{1}\frac{k^{\prime}}{k^{\ddagger}}A_{2}A_{3}+k^{\prime}A_{2}\frac{k^{\prime}}{k^{\ddagger}}A_{1}A_{3}+k^{\prime}A_{3}\frac{k^{\prime}}{k^{\ddagger}}A_{1}A_{2}=3\frac{{k^{\prime}}^{2}}{k^{\ddagger}}A_{1}A_{2}A_{3}\]
+
+\end_inset 
+
+ with a first-order error term 
+\begin_inset Formula \[
+-\frac{{k^{\prime}}^{3}}{{k^{\ddagger}}^{2}}A_{1}A_{2}A_{3}\left(A_{1}+A_{2}+A_{3}\right)\]
+
+\end_inset 
+
+ If we let 
+\begin_inset Formula $k^{\ddagger}=\alpha k^{\prime}$
+\end_inset 
+
+, where 
+\begin_inset Formula $\alpha\gg A_{+}$
+\end_inset 
+
+, we then have 
+\begin_inset Formula \[
+k\approx\frac{3}{\alpha}k^{\prime}-\frac{A_{1}+A_{2}+A_{3}}{\alpha^{2}}k^{\prime}\]
+
+\end_inset 
+
+ Thus, 
+\begin_inset Formula \[
+k_{1}=k_{2}=k_{3}=k_{12}=k_{13}=k_{23}=k^{\prime}\approx\frac{1}{3}\alpha k\]
+
+\end_inset 
+
+ and 
+\begin_inset Formula \[
+k_{-12}=k_{-13}=k_{-23}=k^{\ddagger}\approx\frac{1}{3}\alpha^{2}k\]
+
+\end_inset 
+
+ Note that our fractional error is approximately 
+\begin_inset Formula $1/\alpha$
+\end_inset 
+
+, i.e.
+ if we let 
+\begin_inset Formula $\alpha=100\, A_{+}$
+\end_inset 
+
+ our fractional error would be under 1%.
 \the_end
