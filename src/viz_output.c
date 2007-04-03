@@ -5021,7 +5021,7 @@ int init_frame_data_list(struct frame_data_list **fdlpp)
       break;
 
     case DX_MODE:
-      if(check_output_directory_structure())
+      if(world->file_prefix_name!=NULL && check_output_directory_structure())
         return 1;
       count_time_values(fdlp);
       if (reset_time_values(fdlp, world->start_time))
