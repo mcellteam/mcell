@@ -1892,7 +1892,7 @@ radial_subdivisions_def: RADIAL_SUBDIVISIONS '=' num_expr
   volp->r_step_surface = init_r_step_surface(volp->radial_subdivisions);
   volp->r_step_release = init_r_step_3d_release(volp->radial_subdivisions);
   
-  if (volp->r_step==NULL || volp->r_step_surface==NULL || volp->r_step_release)
+  if (volp->r_step==NULL || volp->r_step_surface==NULL || volp->r_step_release==NULL)
   {
     mdlerror(mdlpvp, "Out of memory while creating r_step data for molecule");
     return(1);
