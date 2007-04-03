@@ -1779,7 +1779,11 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
 
           if (path->km_filename == NULL) rx->cum_probs[j] = path->km;
-          else n_prob_t_rxns++;
+          else
+	  {
+	    rx->cum_probs[j]=0;
+	    n_prob_t_rxns++;
+	  }
    
           recycled1 = 0;
           recycled2 = 0;
