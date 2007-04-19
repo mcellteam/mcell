@@ -2094,18 +2094,16 @@ expand_collision_list:
   In: molecule that is moving
       displacement to the new location
       subvolume that we start in
-      linked list of potential collisions with molecules from the 
-                starting subvolume
-  Out: To the current collision list of molecules we may react with in our 
-       subvolume the molecules from the neighbor subvolumes are added.
+  Out: Returns list of collisions with molecules from neighbor subvolumes
+       that are located within "interaction_radius" from the subvolume border.
        The molecules are added only when the molecule displacement bounding box 
        intersects with the subvolume bounding box.
-       Returns new list of collisions.
 	
 ****************************************************************************/
-struct collision* expand_collision_list(struct volume_molecule *m, struct vector3 *mv, struct subvolume *sv, struct collision *shead1)
+struct collision* expand_collision_list(struct volume_molecule *m, struct vector3 *mv, struct subvolume *sv)
 {
   struct collision *smash;
+  struct collision *shead1 = NULL;
   struct volume_molecule *mp;
   /* neighbors of the current subvolume */
   struct subvolume *new_sv;
@@ -3641,6 +3639,7 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
   struct vector3 displacement2;               /* Used for 3D mol-mol unbinding */
   struct collision *smash;       /* Thing we've hit that's under consideration */
   struct collision *shead;          /* Things we might hit (can interact with) */
+  struct collision *shead_exp = NULL;      /* Things we might hit (can interact with)                                       from neighbor subvolumes */
   struct collision *shead2;       /* Things that we will hit, given our motion */
   struct collision *tentative;/* Things we already hit but haven't yet counted */
   struct subvolume *sv;
@@ -3855,8 +3854,16 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   
   if(world->use_expanded_list && ((m->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL) && !inertness)
   {
-    shead = expand_collision_list(m, &displacement, sv, shead);
+    shead_exp = expand_collision_list(m, &displacement, sv);
   }   
+
+  /* combine two collision lists */
+  if((shead != NULL) && (shead_exp != NULL)){
+      for(smash = shead; smash->next != NULL; smash = smash->next) {}
+      smash->next = shead_exp;
+  }else if(shead_exp != NULL){
+      shead = shead_exp;
+  }
 
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
 #define ERROR_AND_QUIT fprintf(world->err_file,"File '%s', Line %ld: out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
@@ -3864,9 +3871,35 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   {
     if(world->use_expanded_list && redo_expand_collision_list_flag)
     {
+      /* split the combined collision list into two original lists 
+         and remove old "shead_exp" */
+      if(shead == shead_exp){
+         if (shead_exp != NULL) {
+            mem_put_list(sv->local_storage->coll,shead_exp);  
+            shead_exp = NULL;
+            shead = NULL;
+         }
+         
+      }else if((shead != NULL) && (shead_exp != NULL)){
+         for(smash = shead; smash->next != shead_exp; smash = smash->next) {}
+         smash->next = NULL;
+         if (shead_exp != NULL) {
+            mem_put_list(sv->local_storage->coll,shead_exp); 
+            shead_exp = NULL;
+         }
+      }
+
       if ((m->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL) {
-    	  shead = expand_collision_list(m, &displacement, sv, shead);
-      }  
+    	  shead_exp = expand_collision_list(m, &displacement, sv);
+      }
+
+      /* combine two collision lists */
+      if((shead != NULL) && (shead_exp != NULL)){
+         for(smash = shead; smash->next != NULL; smash = smash->next) {}
+         smash->next = shead_exp;
+      }else if(shead_exp != NULL){
+         shead = shead_exp;
+      }
     }
  
     shead2 = ray_trace(m,shead,sv,&displacement,reflectee);
@@ -4162,7 +4195,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         displacement.y = (displacement.y + factor*w->normal.y) * (1.0-smash->t);
         displacement.z = (displacement.z + factor*w->normal.z) * (1.0-smash->t);
 
-        redo_expand_collision_list_flag = 0; /* Only useful if we're using expanded lists, but easier to always set it */
+        redo_expand_collision_list_flag = 1; /* Only useful if we're using expanded lists, but easier to always set it */
         
         break;
       }
