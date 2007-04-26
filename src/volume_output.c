@@ -175,7 +175,7 @@ keep_counting:
           }
 
           /* We've got a winner!  Add one to the appropriate voxel. */
-          ++ counters[((int) floor((curmol->pos.y - y) * r_voxsz_y)) * vo->nvoxels_y +
+          ++ counters[((int) floor((curmol->pos.y - y) * r_voxsz_y)) * vo->nvoxels_x +
                        (int) floor((curmol->pos.x - x) * r_voxsz_x)];
         }
 
