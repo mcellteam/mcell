@@ -3638,7 +3638,7 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
   struct vector3 displacement;             /* Molecule moves along this vector */
   struct vector3 displacement2;               /* Used for 3D mol-mol unbinding */
   struct collision *smash;       /* Thing we've hit that's under consideration */
-  struct collision *shead;          /* Things we might hit (can interact with) */
+  struct collision *shead = NULL;          /* Things we might hit (can interact with) */
   struct collision *shead_exp = NULL;      /* Things we might hit (can interact with)                                       from neighbor subvolumes */
   struct collision *shead2;       /* Things that we will hit, given our motion */
   struct collision *tentative;/* Things we already hit but haven't yet counted */
@@ -3702,6 +3702,7 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
       }
       else if (!world->volume_reversibility)
       {
+
         /* Newly created particles that have long time steps gradually increase */
         /* their timestep to the full value */
         if (sm->time_step > 1.0)
@@ -3747,6 +3748,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   old_mp = NULL;
   if ( (sm->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL && inertness<inert_to_all )
   {
+
     for (mp = sv->mol_head ; mp != NULL ; old_mp = mp , mp = mp->next_v)
     {
 continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp already set */
@@ -3865,12 +3867,14 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       shead = shead_exp;
   }
 
+
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
 #define ERROR_AND_QUIT fprintf(world->err_file,"File '%s', Line %ld: out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
   do
   {
     if(world->use_expanded_list && redo_expand_collision_list_flag)
     {
+
       /* split the combined collision list into two original lists 
          and remove old "shead_exp" */
       if(shead == shead_exp){
@@ -3889,7 +3893,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
          }
       }
 
-      if ((m->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL) {
+      if (((m->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL)             && !inertness){
     	  shead_exp = expand_collision_list(m, &displacement, sv);
       }
 
