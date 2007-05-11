@@ -1980,8 +1980,13 @@ static int dreamm_v3_generic_dump_time_values(char const *viz_data_dir,
   int time_value_index;
 
   /* Open time values data file */
-  if ((time_values_data = dreamm_v3_generic_open_file(viz_data_dir, time_values_name, "wb")) == NULL)
-    return 1;
+  if((world->viz_mode == DREAMM_V3_MODE) && (world->chkpt_flag)){
+     if ((time_values_data = dreamm_v3_generic_open_file(viz_data_dir, time_values_name, "ab")) == NULL)
+       return 1;
+  }else{
+     if ((time_values_data = dreamm_v3_generic_open_file(viz_data_dir, time_values_name, "wb")) == NULL)
+       return 1;
+  }
 
   /* Write out time values */
   for (time_value_index = 0;
@@ -1990,6 +1995,7 @@ static int dreamm_v3_generic_dump_time_values(char const *viz_data_dir,
   {
     double t_value = world->viz_state_info.output_times.iterations[time_value_index] * world->time_unit;
     fwrite(&t_value, sizeof(t_value), 1, time_values_data);
+
   }
 
   fclose(time_values_data);
@@ -2006,42 +2012,110 @@ dreamm_v3_generic_dump_iteration_numbers:
                                    any of the data
 
         Out: 0 on success, 1 on error
+        Note: Used in DREAMM_V3_GROUPED mode and in DREAMM_V3 without
+              checkpointing mode
 **************************************************************************/
 static int dreamm_v3_generic_dump_iteration_numbers(char const *viz_data_dir,
                                                     char const *iteration_numbers_name,
                                                     u_int iteration_numbers_count)
 {
   FILE *iteration_numbers_data = NULL;
-  long long iteration_index;
+  u_int iteration_index;
 
   /* Open iteration numbers data file */
   if ((iteration_numbers_data = dreamm_v3_generic_open_file(viz_data_dir, iteration_numbers_name, "wb")) == NULL)
-    return 1;
+       return 1;
 
   /* Write out iteration data */
   int last_mesh = -1, last_vol_mol = -1, last_surf_mol = -1;
   for (iteration_index = 0; iteration_index < iteration_numbers_count; iteration_index++)
   {
     /* Write meshes iteration */
-    if (iteration_index < world->viz_state_info.mesh_output_iterations.n_iterations)
+    if (iteration_index < world->viz_state_info.mesh_output_iterations.n_iterations){
       last_mesh = world->viz_state_info.mesh_output_iterations.iterations[iteration_index];
+    }
     fwrite(&last_mesh, sizeof(last_mesh), 1, iteration_numbers_data);
 
     /* Write vol mols iteration */
-    if (iteration_index < world->viz_state_info.vol_mol_output_iterations.n_iterations)
+    if (iteration_index < world->viz_state_info.vol_mol_output_iterations.n_iterations){
       last_vol_mol = world->viz_state_info.vol_mol_output_iterations.iterations[iteration_index];
+    }
     fwrite(&last_vol_mol, sizeof(last_vol_mol), 1, iteration_numbers_data);
 
     /* Write surface mols iteration */
-    if (iteration_index < world->viz_state_info.grid_mol_output_iterations.n_iterations)
+    if (iteration_index < world->viz_state_info.grid_mol_output_iterations.n_iterations){
       last_surf_mol = world->viz_state_info.grid_mol_output_iterations.iterations[iteration_index];
+    }
     fwrite(&last_surf_mol, sizeof(last_surf_mol), 1, iteration_numbers_data);
   }
-
+  
   fclose(iteration_numbers_data);
   return 0;
 }
 
+
+/*************************************************************************
+dreamm_v3_dump_iteration_numbers:
+    Writes the iteration numbers to the iteration numbers data file.
+
+        In:  char const *viz_data_dir - directory to receive time data
+             char const *iteration_numbers_name - name of iteration data
+             u_int iteration_numbers_count - maximum number of iterations in
+                                   any of the data
+             int old_last_mesh - the maximum value of the meshes 
+                       iteration number from the previous checkpoint run
+             int old_last_vol_mol - the maximum value of the volume 
+                molecules iteration number from the previous checkpoint run
+             int old_last_surf_mol - the maximum value of the surface
+                molecules iteration number from the previous checkpoint run
+
+        Out: 0 on success, 1 on error
+        Note: Used only in DREAMM_V3 mode with checkpointing
+**************************************************************************/
+static int dreamm_v3_dump_iteration_numbers(char const *viz_data_dir,
+       char const *iteration_numbers_name, u_int iteration_numbers_count, 
+       int old_last_mesh, int old_last_vol_mol, 
+       int old_last_surf_mol)
+{
+  FILE *iteration_numbers_data = NULL;
+  u_int iteration_index;
+
+  /* Open iteration numbers data file */
+  if ((iteration_numbers_data = dreamm_v3_generic_open_file(viz_data_dir, iteration_numbers_name, "ab")) == NULL)
+       return 1;
+
+
+  /* Write out iteration data */
+
+  int last_mesh = -1, last_vol_mol = -1, last_surf_mol = -1;
+  for (iteration_index = 0; iteration_index < iteration_numbers_count; iteration_index++)
+  {
+    /* Write meshes iteration */
+    if (iteration_index < world->viz_state_info.mesh_output_iterations.n_iterations){
+      last_mesh = world->viz_state_info.mesh_output_iterations.iterations[iteration_index];
+    }
+    if(old_last_mesh > last_mesh) last_mesh = old_last_mesh;
+    fwrite(&last_mesh, sizeof(last_mesh), 1, iteration_numbers_data);
+
+    /* Write vol mols iteration */
+    if (iteration_index < world->viz_state_info.vol_mol_output_iterations.n_iterations){
+      last_vol_mol = world->viz_state_info.vol_mol_output_iterations.iterations[iteration_index];
+    }
+    if(old_last_vol_mol > last_vol_mol) last_vol_mol = old_last_vol_mol;
+    fwrite(&last_vol_mol, sizeof(last_vol_mol), 1, iteration_numbers_data);
+
+    /* Write surface mols iteration */
+    if (iteration_index < world->viz_state_info.grid_mol_output_iterations.n_iterations){
+      last_surf_mol = world->viz_state_info.grid_mol_output_iterations.iterations[iteration_index];
+    }
+    if(old_last_surf_mol > last_surf_mol) last_surf_mol = old_last_surf_mol;
+    fwrite(&last_surf_mol, sizeof(last_surf_mol), 1, iteration_numbers_data);
+  
+  }
+  
+  fclose(iteration_numbers_data);
+  return 0;
+}
 /*************************************************************************
 dreamm_v3_generic_write_time_info:
     Writes the timing info to the master header file.
@@ -3445,20 +3519,196 @@ dreamm_v3_make_time_info_filename:
 static char *dreamm_v3_make_time_info_filename(char const *typename)
 {
   char *filename = NULL;
-  if (world->chkpt_flag)
-    filename = alloc_sprintf("%s.%s.%d.bin",
+  filename = alloc_sprintf("%s.%s.bin",
                              world->viz_state_info.filename_prefix_basename,
-                             typename,
-                             world->chkpt_seq_num);
-  else
-    filename = alloc_sprintf("%s.%s.bin",
-                             typename,
-                             world->viz_state_info.filename_prefix_basename);
+                             typename);
   if (filename == NULL)
     fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
 
   return filename;
 }
+  
+
+
+/*************************************************************************
+dreamm_v3_find_old_iteration_numbers_count:
+        If file "viz_data_dir/iterations_numbers_name" already exists
+        it is parsed to find from the previous checkpoint run
+        the maximum of three values (mesh_output_iterations.n_iterations,
+        vol_mol_output_iterations.n_iterations, 
+        grid_mol_output_iterations.n_iterations).
+
+        In:  char const *viz_data_dir - name of the directory with 
+                                        viz_output data 
+             char const * iteration_numbers_name - name of the binary file 
+                          containing iteration_numbers information
+             u_int *old_iteration_numbers_count - result from the previous 
+                          checkpoint run
+             int *old_last_mesh - maximum meshes iteration number 
+                          from the previous checkpoint run
+             int *old_last_vol_mol - maximum volume molecules 
+                          iteration number from the previous checkpoint run
+             int *old_last_surf_mol - maximum surface molecules 
+                          iteration number from the previous checkpoint run
+
+        Out: 0 on success, 1 on error
+**************************************************************************/
+int dreamm_v3_find_old_iteration_numbers_count(char const *viz_data_dir, char const *iteration_numbers_name, u_int *old_iteration_numbers_count, int *old_last_mesh, int *old_last_vol_mol, int *old_last_surf_mol)
+{
+
+  struct stat f_stat;
+  FILE *fp;
+  int count_read = 0;
+
+  struct last_iter_row{
+    int mesh;
+    int vol_mol;
+    int surf_mol;
+  } data;
+
+  int tmp_mesh = -1, tmp_vol_mol = -1, tmp_surf_mol = -1;
+  int read_size;
+  
+  /* concatenate dir and fname to get the iteration_numbers file path */
+  char *path = NULL;
+  if (viz_data_dir != NULL)
+    path = alloc_sprintf("%s/%s", viz_data_dir, iteration_numbers_name);
+  else
+    path = strdup(iteration_numbers_name);
+  if (path == NULL)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    goto failure;
+  }
+
+
+  /* If file exists, parse it */
+  if (!stat(path, &f_stat))
+  {
+
+    fp = open_file(path, "rb");
+    if (fp == NULL)
+    {
+      fprintf(world->err_file, "File %s, Line %ld: error opening file %s.\n", __FILE__, (long)__LINE__,  path);
+      goto failure;
+    }
+
+    while(1){
+      read_size = fread(&data, 1, sizeof(data), fp);
+
+      if(feof(fp)) break;
+
+      if(read_size != sizeof(data)){
+         fprintf(world->err_file, "File %s, Line %ld: error reading file %s.\n", __FILE__, (long)__LINE__, path);
+         goto failure;
+      }
+
+      if(data.mesh > tmp_mesh) tmp_mesh = data.mesh;
+      if(data.vol_mol > tmp_vol_mol) tmp_vol_mol = data.vol_mol;
+      if(data.surf_mol > tmp_surf_mol) tmp_surf_mol = data.surf_mol;
+      
+      count_read++;
+
+    }
+    *old_iteration_numbers_count = count_read;
+    *old_last_mesh = tmp_mesh;
+    *old_last_vol_mol = tmp_vol_mol;
+    *old_last_surf_mol = tmp_surf_mol;
+
+    fclose(fp);
+
+  }else{
+     *old_iteration_numbers_count = 0;
+     *old_last_mesh = -1;
+     *old_last_vol_mol = -1;
+     *old_last_surf_mol = -1;
+  }
+ 
+ 
+  if (path) free(path);
+  return 0;
+
+failure:
+  if (path) free(path);
+  return 1;
+
+}
+
+/*************************************************************************
+dreamm_v3_find_old_time_values_count:
+        If file "viz_data_dir/time_values_name" already exists
+        it is parsed to find from the previous checkpoint run
+        the value of output_times.n_iterations
+
+        In:  char const *viz_data_dir - name of the output directory
+             char const *time_values_name - name of the binary file containing 
+                       time_values information
+             int *old_time_values_count - placeholder for the return value
+        Out: 0 on success, 1 on error
+**************************************************************************/
+int dreamm_v3_find_old_time_values_count(char const *viz_data_dir, char const *time_values_name, int *old_time_values_count )
+{
+
+  struct stat f_stat;
+  FILE *f;
+  double read_size;
+  double tmp;
+  int count = 0;
+
+  /* concatenate dir and fname to get the iteration_numbers file path */
+  char *path = NULL;
+  if (viz_data_dir != NULL)
+    path = alloc_sprintf("%s/%s", viz_data_dir, time_values_name);
+  else
+    path = strdup(time_values_name);
+  if (path == NULL)
+  {
+    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    goto failure;
+  }
+
+  /* If the file exists, parse it */
+  if(!stat(path, &f_stat))
+  {
+
+    f = open_file(path, "rb");
+    if (f == NULL)
+    {
+      fprintf(world->err_file, "File %s, Line %ld: error opening file %s.\n", __FILE__, (long)__LINE__,  path);
+      goto failure;
+    }
+
+    while(1){
+      read_size = fread(&tmp, 1, sizeof(tmp), f);
+      if(feof(f)) break;
+
+      if(read_size != sizeof(tmp)){
+         fprintf(world->err_file, "File %s, Line %ld: error reading file %s.\n", __FILE__, (long)__LINE__, path);
+         goto failure;
+      }
+  
+      count++;
+    }
+
+    *old_time_values_count = count;
+    fclose(f);
+
+  }else{
+    *old_time_values_count = 0;
+
+  }
+  
+ 
+  if (path) free(path);
+  return 0;
+
+failure:
+  if (path) free(path);
+  return 1;
+
+}
+
+
 
 /*************************************************************************
 dreamm_v3_dump_time_info:
@@ -3474,7 +3724,14 @@ static int dreamm_v3_dump_time_info(void)
   char *time_values_name = NULL;
   char *iteration_numbers_name = NULL;
   char *master_header_name = NULL;
-  long long iteration_numbers_count = 0;
+  u_int iteration_numbers_count = 0;
+  /* here we put the data from the previously written checkpoint files */
+  u_int old_iteration_numbers_count = 0;
+  int old_last_mesh = -1;
+  int old_last_vol_mol = -1;
+  int old_last_surf_mol = -1;
+
+  u_int old_time_values_count = 0;
 
   /* Build viz data dir name */
   char *viz_data_dir = my_strcat(world->file_prefix_name, "_viz_data");
@@ -3492,14 +3749,27 @@ static int dreamm_v3_dump_time_info(void)
   if ((time_values_name = dreamm_v3_make_time_info_filename("time_values")) == NULL)
     goto failure;
 
-  /* Build master header filename */
-  if (world->chkpt_flag)
-    master_header_name = alloc_sprintf("%s.%u.dx",
-                                       world->viz_state_info.filename_prefix_basename,
-                                       world->chkpt_seq_num);
-  else
-    master_header_name = alloc_sprintf("%s.dx",
-                                       world->viz_state_info.filename_prefix_basename);
+
+  /* Find old_iteration_numbers_count */
+  if(world->chkpt_flag)
+  {
+     if(dreamm_v3_find_old_iteration_numbers_count(viz_data_dir, iteration_numbers_name, &old_iteration_numbers_count, &old_last_mesh, &old_last_vol_mol, &old_last_surf_mol))
+        goto failure;
+  }
+
+  /* Find old_time_values_count */
+  if(world->chkpt_flag)
+  {
+     if(dreamm_v3_find_old_time_values_count(viz_data_dir, time_values_name, &old_time_values_count))
+        goto failure;
+
+  }
+  
+
+      /* Build master header filename */
+  master_header_name = alloc_sprintf("%s.dx",
+                          world->viz_state_info.filename_prefix_basename);
+
   if (master_header_name == NULL)
   {
     fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
@@ -3516,21 +3786,33 @@ static int dreamm_v3_dump_time_info(void)
     iteration_numbers_count = world->viz_state_info.vol_mol_output_iterations.n_iterations;
 
   /* Write iteration numbers file */
-  if (dreamm_v3_generic_dump_iteration_numbers(viz_data_dir,
-                                               iteration_numbers_name,
-                                               iteration_numbers_count))
-    goto failure;
+  if(world->chkpt_flag){
+      if (dreamm_v3_dump_iteration_numbers(viz_data_dir,
+                                              iteration_numbers_name,
+                                              iteration_numbers_count,
+                                              old_last_mesh, 
+                                              old_last_vol_mol,
+                                              old_last_surf_mol))
+            goto failure;
+   }else{
+      if (dreamm_v3_generic_dump_iteration_numbers(viz_data_dir,
+                                              iteration_numbers_name,
+                                              iteration_numbers_count))
+            goto failure;
+
+   }
+
 
   /* write "time_values" object. */
   if (world->viz_state_info.output_times.n_iterations > 0  &&
       dreamm_v3_generic_dump_time_values(viz_data_dir, time_values_name))
     goto failure;
   if (dreamm_v3_write_time_info(viz_data_dir,
-                                master_header_name,
-                                iteration_numbers_name,
-                                time_values_name,
-                                iteration_numbers_count,
-                                world->viz_state_info.output_times.n_iterations))
+       master_header_name,
+       iteration_numbers_name,
+       time_values_name,
+       iteration_numbers_count + old_iteration_numbers_count,
+       world->viz_state_info.output_times.n_iterations + old_time_values_count))
     goto failure;
 
   free(viz_data_dir);
@@ -5155,60 +5437,49 @@ int finalize_viz_output(struct frame_data_list  *fdlp)
    FILE *master_header = NULL;
    char *master_header_file_path;
 
-   long long final_iteration = world->viz_state_info.final_iteration;
-
   if (fdlp == NULL) return 1;
 
-  /* Scan over all frames, producing appropriate output. */
-  for (; fdlp != NULL; fdlp = fdlp->next)
+  switch (world->viz_mode)
   {
-     switch (world->viz_mode)
-     {
-        case DREAMM_V3_MODE:
+     case DREAMM_V3_MODE:
         
-           /* Check for other frames this iteration */
-           if (! dreamm_v3_generic_scan_for_frame(fdlp->next, final_iteration) && dreamm_v3_dump_time_info()) {
-              return 1;
+        if (dreamm_v3_dump_time_info()) return 1;
+        break;
+
+      case DREAMM_V3_GROUPED_MODE:
+
+          /* Open master header file. */
+          master_header_file_path = dreamm_v3_grouped_get_master_header_name();
+          if (master_header_file_path == NULL) return 1;
+
+          if ((master_header = open_file(master_header_file_path, "a")) == NULL)
+          {
+                free(master_header_file_path);
+                return 1;
            }
-           break;
-
-         case DREAMM_V3_GROUPED_MODE:
-            if (! dreamm_v3_generic_scan_for_frame(fdlp->next, final_iteration))
-            {
-
-                /* Open master header file. */
-                master_header_file_path = dreamm_v3_grouped_get_master_header_name();
-                if (master_header_file_path == NULL) return 1;
-
-                 if ((master_header = open_file(master_header_file_path, "a")) == NULL)
-                 {
-                    free(master_header_file_path);
-                    return 1;
-                 }
-                 free(master_header_file_path);
-                 if (dreamm_v3_grouped_dump_time_info(master_header))
-                 {
-                    if (master_header != NULL) fclose(master_header);
-                    return 1;
-                 }
-                 if (dreamm_v3_grouped_write_frame_series(master_header)){
-                     if (master_header != NULL) fclose(master_header);
-                     return 1;
-                 }
+           if (dreamm_v3_grouped_dump_time_info(master_header))
+           {
+                if (master_header != NULL) fclose(master_header);
+                return 1;
+            }
+            if (dreamm_v3_grouped_write_frame_series(master_header)){
                  if (master_header != NULL) fclose(master_header);
-               }
-               break;
+                 return 1;
+             }
+             if (master_header != NULL) fclose(master_header);
+               
+             free(master_header_file_path);
+             break;
       
-         case NO_VIZ_MODE:
-         case ASCII_MODE:
-         case RK_MODE:
-         case DX_MODE:
-         default:
+      case NO_VIZ_MODE:
+      case ASCII_MODE:
+      case RK_MODE:
+      case DX_MODE:
+      default:
            /* Do nothing for vizualization */
            break;
 
-     }
-  }
+   }
 
   return 0;
 }
