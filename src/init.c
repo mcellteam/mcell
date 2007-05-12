@@ -439,6 +439,7 @@ int init_sim(void)
         exit(EXIT_FAILURE);
   }
 
+
   /* Parse the MDL file: */
   no_printf("Node %d parsing MDL file %s\n",world->procnum,world->mdl_infile_name);
   fflush(world->err_file);
@@ -448,7 +449,6 @@ int init_sim(void)
   no_printf("Done parsing MDL file: %s\n",world->mdl_infile_name);
   fflush(world->err_file);
 
-
   /* Set up the array of species */
   if (init_species())
   {
@@ -456,7 +456,7 @@ int init_sim(void)
     return(1);
   }
   no_printf("Done setting up species.\n");
-  
+
 
   /* Visualize all molecules if asked in "mdl" file */
   if((world->viz_mode == DREAMM_V3_MODE) || (world->viz_mode == DREAMM_V3_GROUPED_MODE))
@@ -479,17 +479,22 @@ int init_sim(void)
     }
   }
 
-
  /* If there are no 3D molecules-reactants in the simulation
     set up the"use_expanded_list" flag to zero. */
   for(i = 0; i < world->n_species; i++)
   {
+                        
         struct	species *sp = world->species_list[i];
+        if(strcmp(sp->sym->name, "GENERIC_MOLECULE") == 0) continue;  
+        if(strcmp(sp->sym->name, "GENERIC_SURFACE") == 0) continue;  
+        
         if((sp->flags & CAN_MOLMOL) != 0){
 		reactants_3D_present = 1;
                 break;
         }
+                      
   }
+
   if(reactants_3D_present == 0){
 	world->use_expanded_list = 0;
   }
@@ -550,13 +555,16 @@ int init_sim(void)
     return 1;
   }
   
-  if (world->releases_on_regions_flag)
+  if (init_releases())
   {
-    if (init_releases())
-    {
-      fprintf(world->err_file,"File '%s', Line %ld: Error initializing releases on regions\n", __FILE__, (long)__LINE__);
-      return 1;
-    }
+     if (world->releases_on_regions_flag)
+     {
+         fprintf(world->err_file,"File '%s', Line %ld: Error initializing releases on regions\n", __FILE__, (long)__LINE__);
+         return 1;
+     }else{
+         fprintf(world->err_file,"File '%s', Line %ld: Error initializing releases.\n", __FILE__, (long)__LINE__);
+         return 1;
+     }
   }
 
   if (world->chkpt_infile) {
@@ -877,8 +885,8 @@ int init_partitions(void)
       shared_mem->mol==NULL  || shared_mem->gmol==NULL ||
       shared_mem->face==NULL || shared_mem->join==NULL ||
       shared_mem->tree==NULL || shared_mem->grids==NULL ||
-      shared_mem->coll==NULL || shared_mem->regl==NULL ||
-      shared_mem->exdv==NULL)
+      shared_mem->coll==NULL || shared_mem->tri_coll==NULL ||
+      shared_mem->regl==NULL || shared_mem->exdv==NULL)
   {
     fprintf(world->err_file,"File '%s', Line %ld: out of memory while initializing partitions.\n", __FILE__, (long)__LINE__);
     exit(EXIT_FAILURE);
@@ -1015,7 +1023,9 @@ int init_geom(void)
   world->bb_urb.z=-vol_infinity;
   init_matrix(tm);
   
-  compute_bb(world->root_instance,tm,NULL);
+  if(compute_bb(world->root_instance,tm,NULL)){
+     return 1;
+  }
   if (world->bb_llf.x==vol_infinity 
       && world->bb_llf.y==vol_infinity
       && world->bb_llf.z==vol_infinity
@@ -1372,6 +1382,12 @@ int compute_bb_release_site(struct object *objp, double (*im)[4])
   l=1;
   m=4;
   n=4;
+
+  if(rsop->location == NULL){
+     fprintf(world->err_file, "ERROR: location is not specified for the geometrical shape release site.\n");
+     return 1;
+  }
+
   location[0][0]=rsop->location->x;
   location[0][1]=rsop->location->y;
   location[0][2]=rsop->location->z;
@@ -3232,6 +3248,10 @@ int init_releases()
         req = (struct release_event_queue*)ae;
         if (req->release_site->release_shape == SHAPE_REGION)
         {
+          if (req->release_site->mol_type == NULL){
+              fprintf(world->err_file,"ERROR: molecule name is not specified for the region release site.\n");
+
+          }
           if ((req->release_site->mol_type->flags & NOT_FREE) == 0)
           {
             j = init_rel_region_data_3d(req->release_site->region_data);
@@ -3259,6 +3279,27 @@ int init_releases()
 	      return 1;
 	    }
           }
+        }else if (req->release_site->release_shape != SHAPE_LIST){
+            if(req->release_site->mol_type == NULL){
+               fprintf(world->err_file, "ERROR: molecule name is not specified for the release site.\n");
+               return 1;
+            }
+            if(req->release_site->release_number == 0){
+               fprintf(world->err_file, "ERROR: molecule release number for the release site is either zero or not specified.\n");
+               return 1;
+            }
+            if(req->release_site->diameter == NULL){
+               fprintf(world->err_file, "ERROR: diameter for the geometrical shape release site is not specified.\n");
+               return 1;
+            }
+        }else{
+           /* this check should be for SHAPE_LIST release only */
+            if(req->release_site->mol_list == NULL){
+               fprintf(world->err_file, "ERROR: molecule positions for the SHAPE_LIST release site are not specified.\n");
+               return 1;
+            }
+  
+
         }
       }
     }
