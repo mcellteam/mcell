@@ -3638,7 +3638,8 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
   struct vector3 displacement;             /* Molecule moves along this vector */
   struct vector3 displacement2;               /* Used for 3D mol-mol unbinding */
   struct collision *smash;       /* Thing we've hit that's under consideration */
-  struct collision *shead = NULL;          /* Things we might hit (can interact with) */
+  struct collision *shead = NULL;          /* Things we might hit (can interact                                   with - head of the collision linked list) */
+  struct collision *stail = NULL;          /* Things we might hit (tail of the collision linked list) */
   struct collision *shead_exp = NULL;      /* Things we might hit (can interact with)                                       from neighbor subvolumes */
   struct collision *shead2;       /* Things that we will hit, given our motion */
   struct collision *tentative;/* Things we already hit but haven't yet counted */
@@ -3798,6 +3799,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 /*      else printf("Rx between %s and %s is NULL\n",sm->sym->name,mp->properties->sym->name); */
     }
   }
+   
+  stail = shead;
 
   if (calculate_displacement)
   {
@@ -3857,15 +3860,15 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   if(world->use_expanded_list && ((m->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL) && !inertness)
   {
     shead_exp = expand_collision_list(m, &displacement, sv);
-  }   
 
-  /* combine two collision lists */
-  if((shead != NULL) && (shead_exp != NULL)){
-      for(smash = shead; smash->next != NULL; smash = smash->next) {}
-      smash->next = shead_exp;
-  }else if(shead_exp != NULL){
+    /* combine two collision lists */
+    if((shead != NULL) && (shead_exp != NULL)){
+      for(stail = shead; stail->next != NULL; stail = stail->next) {}
+      stail->next = shead_exp; 
+    }else if(shead_exp != NULL){
       shead = shead_exp;
-  }
+    }
+  }   
 
 
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
@@ -3874,7 +3877,6 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   {
     if(world->use_expanded_list && redo_expand_collision_list_flag)
     {
-
       /* split the combined collision list into two original lists 
          and remove old "shead_exp" */
       if(shead == shead_exp){
@@ -3885,8 +3887,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
          }
          
       }else if((shead != NULL) && (shead_exp != NULL)){
-         for(smash = shead; smash->next != shead_exp; smash = smash->next) {}
-         smash->next = NULL;
+         stail->next = NULL; 
          if (shead_exp != NULL) {
             mem_put_list(sv->local_storage->coll,shead_exp); 
             shead_exp = NULL;
@@ -3899,8 +3900,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
       /* combine two collision lists */
       if((shead != NULL) && (shead_exp != NULL)){
-         for(smash = shead; smash->next != NULL; smash = smash->next) {}
-         smash->next = shead_exp;
+         stail->next = shead_exp; 
       }else if(shead_exp != NULL){
          shead = shead_exp;
       }

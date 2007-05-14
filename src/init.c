@@ -885,8 +885,8 @@ int init_partitions(void)
       shared_mem->mol==NULL  || shared_mem->gmol==NULL ||
       shared_mem->face==NULL || shared_mem->join==NULL ||
       shared_mem->tree==NULL || shared_mem->grids==NULL ||
-      shared_mem->coll==NULL || shared_mem->tri_coll==NULL ||
-      shared_mem->regl==NULL || shared_mem->exdv==NULL)
+      shared_mem->coll==NULL || shared_mem->regl==NULL 
+      || shared_mem->exdv==NULL)
   {
     fprintf(world->err_file,"File '%s', Line %ld: out of memory while initializing partitions.\n", __FILE__, (long)__LINE__);
     exit(EXIT_FAILURE);
