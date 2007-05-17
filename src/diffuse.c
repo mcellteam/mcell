@@ -3870,7 +3870,6 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
     }
   }   
 
-
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
 #define ERROR_AND_QUIT fprintf(world->err_file,"File '%s', Line %ld: out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
   do
@@ -3904,6 +3903,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       }else if(shead_exp != NULL){
          shead = shead_exp;
       }
+
+       /* reset the flag */
+       redo_expand_collision_list_flag = 0; 
     }
  
     shead2 = ray_trace(m,shead,sv,&displacement,reflectee);
@@ -3914,7 +3916,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
     {
       shead2 = (struct collision*)ae_list_sort((struct abstract_element*)shead2);
     }
-    
+
     loc_certain=NULL;
     tentative=shead2;
     for (smash = shead2; smash != NULL; smash = smash->next)
