@@ -3284,10 +3284,6 @@ int init_releases()
                fprintf(world->err_file, "ERROR: molecule name is not specified for the release site.\n");
                return 1;
             }
-            if(req->release_site->release_number == 0){
-               fprintf(world->err_file, "ERROR: molecule release number for the release site is either zero or not specified.\n");
-               return 1;
-            }
             if(req->release_site->diameter == NULL){
                fprintf(world->err_file, "ERROR: diameter for the geometrical shape release site is not specified.\n");
                return 1;
