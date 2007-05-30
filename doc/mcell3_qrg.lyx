@@ -350,8 +350,8 @@ Commands fall into five general groups, which usually should be given in
 \layout Enumerate
 
 Initialization.
- These commands set global parameters such as the timestep, spatial partitioning
-, and duration of the simulation.
+ These commands set global parameters such as the time-step, spatial partitionin
+g, and duration of the simulation.
 \layout Enumerate
 
 Molecule definitions.
@@ -3011,17 +3011,11 @@ products
 \family default 
 \shape default 
  list, it is destroyed in the reaction.
- One reactant may be a surface type (see section 
-\begin_inset LatexCommand \ref{sec_surfprop}
-
-\end_inset 
-
-).
  The rate can also be a filename, in quotes, that contains two columns:
  the second is the rate, while the first is the time at which that rate
  should start being used.
  This allows variable reaction rates.
- If you want no products, use the 
+ If you do not want products, use the 
 \family typewriter 
 NULL
 \family default 
@@ -3321,38 +3315,40 @@ C
 
 \layout Standard
 
-Orientation classes are a fundamentally new concept introduced in MCell3.
- They replace the MCell 2 idea of 
-\family typewriter 
-POSITIVE_POLE
-\family default 
-, 
-\family typewriter 
-NEGATIVE_POLE
-\family default 
-, and 
-\family typewriter 
-BOTH_POLES
-\family default 
- specifications for receptors.
-\layout Standard
-
-Molecules in a surface (hereafter surface molecules) have an orientation:
- up if they point in the direction of the surface normal, down otherwise..
- Molecules in 3D (hereafter, volume molecules) that strike or come off a
- surface also have an orientation: up if the surface normal points towards
- them, down if it points away.
+Reactions can take place on surfaces or involve molecules contained therein
+ (surface molecules).
+ Surfaces possess a front and a back side defined by the direction of the
+ surface normal which points from the back toward the front.
+ Surface molecules have an orientation in the form of a top and a bottom
+ domain and are positioned on surfaces with their top domain either on the
+ surfaces' front or back side, or top-front and top-back for short.
  
 \layout Standard
 
-Reactions normally do not specify absolute orientation.
- Instead, a reaction lists the required relative orientation of the reactants,
- and specifies the relative orientation of the products.
- This allows you to write general reactions that do not depend on the direction
- of insertion of a molecule into a membrane.
+Reactions that explicitly involve surfaces are said to occur with an absolute
+ orientation regarding the surface.
+ When reactions involving surface molecules take place in the absence of
+ explicit surfaces they are said to occur without an absolute orientation.
+ Below, we will illustrate both cases.
+\layout Subsubsection
+
+Reactions without absolute orientation
+\begin_inset LatexCommand \label{sub:react-no-orient}
+
+\end_inset 
+
+
 \layout Standard
 
-The two orientations are specified by 
+For reactions without an absolute orientation, the reaction specification
+ lists the required relative orientation of the reactants and products.
+ This allows one to write general reactions that do not depend on the way
+ in which molecules are inserted into surfaces, i.e., either top-front or
+ top-back.
+ 
+\layout Standard
+
+The two possible orientations are specified by 
 \family typewriter 
 '
 \family default 
@@ -3361,11 +3357,11 @@ The two orientations are specified by
 ,
 \family default 
  (apostrophe and comma) after the molecule's name.
- For example, a surface-bound molecule 
+ Hence, a surface-bound molecule 
 \family typewriter 
 B
 \family default 
- has the orientations 
+ can have the orientations 
 \family typewriter 
 B'
 \family default 
@@ -3374,7 +3370,7 @@ B'
 B,
 \family default 
 .
- For example:
+ The table below provides a few example reactions
 \layout Standard
 
 
@@ -3426,7 +3422,7 @@ Molecule
 B
 \family default 
  flips (changes its orientation) at a rate of 
-\begin_inset Formula $10\mathrm{{s}^{-1}}$
+\begin_inset Formula $10\,\mathrm{{s}^{-1}}$
 \end_inset 
 
 .
@@ -3462,7 +3458,7 @@ A
 C
 \family default 
  on the other side, at a rate of 
-\begin_inset Formula $10\mathrm{{s}^{-1}}$
+\begin_inset Formula $10\,\mathrm{{s}^{-1}}$
 \end_inset 
 
 
@@ -3527,16 +3523,16 @@ after
 \end_inset 
 
  picture with each product facing in the direction of the tick mark.
- Since you can always turn your picture upside-down and still have the same
- picture, you can also always flip all tick marks and get the same reaction.
- You can thus use tick marks that are consistent with your mental picture.
+ Clearly, inverting this picture by flipping all tick marks results in the
+ same reaction.
+ One can thus use tick marks that are consistent with ones mental picture.
 \layout Standard
 
-If 
+Below are additional reaction examples involving a molecule 
 \family typewriter 
 A
 \family default 
- diffuses in 3D but 
+ diffusing in 3D and surface molecules 
 \family typewriter 
 B
 \family default 
@@ -3544,7 +3540,7 @@ B
 \family typewriter 
 C
 \family default 
- are on a surface:
+:
 \layout Standard
 
 
@@ -3740,14 +3736,28 @@ So far, all examples have used the first orientation class, specified with
 \end_inset 
 
  and so on.
- A molecule can be in only one orientation class, and molecules in different
- classes do not pay attention to each others' orientation.
- In a reaction where orientation may be a factor, every molecule must be
- explicitly given an orientation class; by default it is an error to omit
- orientation (although this behavior can be adjusted to generate warnings
- or no messages instead; in this case, molecules without an orientation
- class act without regard to orientation).
- Therefore:
+ Molecules in different orientation classes do not pay attention to each
+ other's orientation.
+ In a reaction with orientation, every molecule must be explicitly given
+ an orientation class otherwise an error is generated.
+ This behavior can be adjusted to generate warnings or no messages instead;
+ in this case, molecules without an orientation class act without regard
+ to orientation.
+ Orientation classes are a fundamentally new concept introduced in MCell3.
+ They replace the MCell2 idea of 
+\family typewriter 
+POSITIVE_POLE
+\family default 
+, 
+\family typewriter 
+NEGATIVE_POLE
+\family default 
+, and 
+\family typewriter 
+BOTH_POLES
+\family default 
+ specifications for receptors.
+ Several examples follow:
 \begin_inset  Tabular
 <lyxtabular version="3" rows="8" columns="2">
 <features islongtable="true">
@@ -4016,7 +4026,7 @@ A
 \family typewriter 
 B
 \family default 
- to tumbles to a random orientation, at a rate of 
+ tumbles to a random orientation, at a rate of 
 \begin_inset Formula $10^{5}\,\mathrm{{M}}^{-1}\cdot\mathrm{{s}^{-1}}$
 \end_inset 
 
@@ -4093,8 +4103,486 @@ D
 
 \layout Standard
 
-There are examples of how one would use this syntax to model well-known
- biological reactions at the end of this file.
+There are more examples of how one would use this syntax to model well-known
+ biological reactions at the end of this document in section 
+\begin_inset LatexCommand \ref{sec:Example-models}
+
+\end_inset 
+
+.
+\layout Subsubsection
+
+Reactions with absolute orientation
+\layout Standard
+
+Reactions can specify an absolute orientation with respect to the surface
+ on which they take place via including a surface class specification in
+ the reaction definition.
+ The general form for defining reactions with absolute orientations is accomplis
+hed via the 
+\begin_inset Quotes eld
+\end_inset 
+
+@
+\begin_inset Quotes erd
+\end_inset 
+
+ character as shown below
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="3" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="3.5in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Reaction Command
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+reactants
+\family typewriter 
+\shape default 
+ @ 
+\family sans 
+\shape italic 
+surf_class_name 
+\family typewriter 
+\shape default 
+-> 
+\family sans 
+\shape italic 
+products
+\family typewriter 
+\shape default 
+ [
+\family sans 
+\shape italic 
+rate
+\family typewriter 
+\shape default 
+]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Define a reaction that occurs between one or two oriented 
+\family sans 
+\shape italic 
+reactants
+\family default 
+\shape default 
+ (names of molecules, separated by 
+\family typewriter 
++
+\family default 
+) on a set of surface regions identified by 
+\family sans 
+\shape italic 
+surf_class_name.
+ 
+\family default 
+\shape default 
+The reaction produces an arbitrary number of oriented 
+\family sans 
+\shape italic 
+products
+\family default 
+\shape default 
+ (also separated by 
+\family typewriter 
++
+\family default 
+), with a specified 
+\family sans 
+\shape italic 
+rate
+\family default 
+\shape default 
+.
+ If a molecule is in the 
+\family sans 
+\shape italic 
+reactants
+\family default 
+\shape default 
+ list and not in the 
+\family sans 
+\shape italic 
+products
+\family default 
+\shape default 
+ list, it is destroyed in the reaction.
+ The rate can also be a filename, in quotes, that contains two columns:
+ the second is the rate, while the first is the time at which that rate
+ should start being used.
+ This allows variable reaction rates.
+ If you do not want products, use the 
+\family typewriter 
+NULL
+\family default 
+ keyword as a placeholder.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family sans 
+\shape italic 
+reactants
+\family typewriter 
+\shape default 
+ @ 
+\family sans 
+\shape italic 
+surf_class_name
+\family typewriter 
+\shape default 
+ -> 
+\family sans 
+\shape italic 
+products
+\family typewriter 
+\shape default 
+ [
+\family sans 
+\shape italic 
+rate
+\family typewriter 
+\shape default 
+]:
+\family sans 
+\shape italic 
+name
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+As above, and call the reaction 
+\family sans 
+\shape italic 
+name
+\family default 
+\shape default 
+ so it can be referred to by count statements.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+A reaction defined in this way takes place on all surface regions which
+ specify 
+\family typewriter 
+SURFACE_CLASS
+\family sans 
+\shape italic 
+ = surf_class_name.
+
+\family default 
+\shape default 
+ The relative orientation of reactants and products is specified as explained
+ in 
+\begin_inset LatexCommand \ref{sub:react-no-orient}
+
+\end_inset 
+
+ but now the reaction takes place with respect to the orientation given
+ for 
+\family sans 
+\shape italic 
+surf_class_name
+\family default 
+\shape default 
+ indicating the front or back of the selected surface regions.
+ Please note that all reactants have to be listed to the left of 
+\family sans 
+\shape italic 
+surf_class_name
+\family default 
+\shape default 
+ and no surface class specifications can occur on the product side of the
+ reaction definition.
+ Furthermore, for bi-molecular reactions at least one of the two reactants
+ has to be a surface molecule.
+\layout Standard
+
+The table below lists several examples of oriented reactions involving a
+ surface class 
+\family typewriter 
+SURF
+\family default 
+, a 3D molecule 
+\family typewriter 
+A
+\family default 
+, and surface molecules 
+\family typewriter 
+B
+\family default 
+ and 
+\family typewriter 
+C
+\family default 
+.
+\layout Standard
+
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="5" columns="2">
+<features islongtable="true">
+<column alignment="left" valignment="top" leftline="true" width="0">
+<column alignment="block" valignment="top" leftline="true" rightline="true" width="4in">
+<row topline="true" bottomline="true" endhead="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Example
+\end_inset 
+</cell>
+<cell multicolumn="1" alignment="block" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\series bold 
+Explanation
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A' + B' @ SURF' -> C, [1e5]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+The reaction affects surface molecules 
+\family typewriter 
+B
+\family default 
+ located on surface regions identified by surface class 
+\family typewriter 
+SURF
+\family default 
+ which have their top domain at the front of the surface.
+ 
+\family typewriter 
+B
+\family default 
+ reacts with 
+\family typewriter 
+A
+\family default 
+ approaching from the front at a rate of 
+\begin_inset Formula $10^{5}\,\mathrm{{M}}^{-1}\cdot\mathrm{{s}^{-1}}$
+\end_inset 
+
+to yield surface molecule 
+\family typewriter 
+C
+\family default 
+ whose orientation is flipped with respect to 
+\family typewriter 
+B
+\family default 
+, i.e., 
+\family typewriter 
+C 
+\family default 
+has its top domain aligned to the back of the surface regions.
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A' + B, @ SURF' -> C, [1e5]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Same as above, but 
+\family typewriter 
+B
+\family default 
+ now has its top domain at the back of the surface and reaction product
+ 
+\family typewriter 
+C
+\family default 
+ assumes the same orientation.
+ 
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A
+\family default 
+
+\begin_inset Formula $\texttt{{,}{,}}$
+\end_inset 
+
+
+\family typewriter 
+ + B, @ SURF' -> C' [1e5]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Since 
+\family typewriter 
+A
+\family default 
+ is in an orientation class different from both 
+\family typewriter 
+B
+\family default 
+ and 
+\family typewriter 
+SURF
+\family default 
+, 
+\family typewriter 
+A
+\family default 
+ can react from both sides.
+ 
+\family typewriter 
+B
+\family default 
+ has its top domain at the back of the surface and the reaction product
+ 
+\family typewriter 
+C
+\family default 
+ has its orientation flipped, i.e., its top domain is at the front of the
+ surface.
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\family typewriter 
+A' + B' @ SURF' -> C
+\begin_inset Formula $\texttt{{,}{,}}$
+\end_inset 
+
+ [1e5]
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Same as the the first reaction, but since product 
+\family typewriter 
+C
+\family default 
+ is in a orientation class different from either 
+\family typewriter 
+A
+\family default 
+, 
+\family typewriter 
+B
+\family default 
+, and 
+\family typewriter 
+SURF
+\family default 
+, its orientation is random with respect to the surface regions, i.e., its
+ top domain can be either on the front or back
+\family typewriter 
+.
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
 \layout Standard
 
 Tick marks add, so that 
@@ -4105,8 +4593,9 @@ Tick marks add, so that
 \family typewriter 
 ,'
 \family default 
- mean no orientation (orientation class 0): reactions will occur from either
- orientation when given no orientation class, and products will orient randomly.
+ mean no orientation.
+ Reactions will occur from either orientation when given reactants with
+ no orientation, and products will orient randomly.
  A semicolon, 
 \family typewriter 
 ;
@@ -4139,23 +4628,23 @@ A{0}
 \family default 
  is a synonym for 
 \family typewriter 
-A;
+A;.
 \layout Standard
 
 There are several variants of the normal reaction arrow ->.
- One can use an arbitrary number of dashes in the arrow; 
+ One can use an arbitrary number of dashes in the arrow, i.e., 
 \family typewriter 
-->
+->,
 \family default 
  
 \family typewriter 
--->
+-->,
 \family default 
  and 
 \family typewriter 
 ------>
 \family default 
- all mean the same thing, for instance.
+ all mean the same thing.
  In addition, the following arrows have different meanings:
 \begin_inset  Tabular
 <lyxtabular version="3" rows="5" columns="2">
@@ -4371,6 +4860,69 @@ A bidirectional catalytic reaction.
 \end_inset 
 
 
+\layout Standard
+
+Finally, a few special cases deserve particular mention
+\layout Itemize
+
+For catalytic reactions, if a catalyst is a surface class, the latter is
+ not copied to the list of products, i.e.: 
+\newline 
+
+\family typewriter 
+A' -- SURF' -> C, [rate] 
+\family default 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+is equivalent to 
+\newline 
+
+\family typewriter 
+A' \SpecialChar ~
+@ SURF' -> C, [rate]
+\layout Itemize
+
+Reversible reactions of the form\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+
+\family typewriter 
+A' @ SURF' <--> C, [>rate1,<rate2]\SpecialChar ~
+\SpecialChar ~
+
+\family default 
+or
+\newline 
+
+\family typewriter 
+A' <-- SURF'--> C, [>rate1,<rate2]
+\family default 
+\SpecialChar ~
+\SpecialChar ~
+are equivalent to the following two reactions
+\family typewriter 
+:
+\newline 
+
+\family default 
+(i)
+\family typewriter 
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+A' @ SURF' -> C, [rate1] 
+\newline 
+
+\family default 
+(ii)\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+
+\family typewriter 
+C, @ SURF' -> A' [rate2]
 \layout Standard
 
 
@@ -10451,7 +11003,7 @@ DREAMM_V3_GROUPED
 \family default 
  mode produces a small number of files, they each may become very large.
  Hence, reading the files may be slow, but this mode may be best for use
- on production (supercomputer) machines to avoid transfering large number
+ on production (supercomputer) machines to avoid transferring large number
  of files.
 \layout Standard
 
@@ -12635,7 +13187,7 @@ Z
  surface molecule leaves a region of interest, the position reported is
  the last position where the molecule was located inside the region, not
  the boundary of the region where it crossed out (and conversely, when entering,
- it's the first position where the molecule stopped at the end of its timestep).
+ it's the first position where the molecule stopped at the end of its time-step).
 \layout Standard
 
 
@@ -12850,7 +13402,7 @@ The MCell 2 style
 \family typewriter 
 VIZ_DATA_OUTPUT
 \family default 
- block is also supported (a maximum of one per MDL file) for backwards compatabi
+ block is also supported (a maximum of one per MDL file) for backwards compatibi
 lity.
  It is no longer explicitly supported, however, so the format is not described
  here.
@@ -13722,7 +14274,7 @@ Mean diffusion distance
 Diffusion in MCell3 (and in earlier versions of MCell) is modeled as a series
  of motions in a straight line.
  This is a good approximation around geometry that is of a larger scale
- than the mean diffusion length for the timestep of the molecule in question.
+ than the mean diffusion length for the time-step of the molecule in question.
  For accurate results around intricate geometry, it may be necessary to
  reduce the time step (or space step).
 \layout Subsection
@@ -13865,6 +14417,11 @@ newpage
 \layout Section
 
 Example models
+\begin_inset LatexCommand \label{sec:Example-models}
+
+\end_inset 
+
+
 \layout Subsection
 
 Ligand-gated ion channel
@@ -14051,7 +14608,7 @@ DEFINE_MOLECULES
 
 \layout LyX-Code
 
-/* Your basic reversable binding reaction */
+/* Your basic reversible binding reaction */
 \layout LyX-Code
 
 DEFINE_REACTIONS
@@ -14188,21 +14745,8 @@ Authors
 The following authors have contributed to this document, as described.
 \layout Itemize
 
-Rex Kerr: Initial layout and design, first draft of document, editing of
- later drafts.
+Rex Kerr
 \layout Itemize
 
-Markus Dittrich: 
-\family typewriter 
-VIZ_DATA
-\family default 
- section, editing of 
-\family typewriter 
-COUNT
-\family default 
-/
-\family typewriter 
-TRIGGER
-\family default 
- section.
+Markus Dittrich
 \the_end
