@@ -1963,7 +1963,7 @@ p
 \shape default 
 .
  The default value is 
-\begin_inset Formula $1.0+10^{-12}$
+\begin_inset Formula $1.0$
 \end_inset 
 
 .
@@ -14742,7 +14742,7 @@ REACTION_DATA_OUTPUT
 Authors
 \layout Standard
 
-The following authors have contributed to this document, as described.
+The following authors have contributed to this document:
 \layout Itemize
 
 Rex Kerr
