@@ -2777,6 +2777,7 @@ struct object** find_unique_rev_objects(struct release_evaluator *root,int *n)
 }
 
 
+
 /***************************************************************************
 eval_rel_region_expr:
   In: release expression for a 2D region release
@@ -2789,73 +2790,82 @@ eval_rel_region_expr:
        this release site.
 ***************************************************************************/
 
-int eval_rel_region_expr(struct release_evaluator *expr,int n,struct object **objs,struct bit_array **result)
+int eval_rel_region_expr(struct release_evaluator *expr,int n,struct object **objs,struct bit_array **result,int *n_refinements)
 {
   int i;
   char bit_op;
   
   if (expr->left!=NULL)
   {
-    if (expr->op&REXP_LEFT_REGION)
+    if (expr->op&REXP_INCLUSION)
     {
-      i = void_array_search((void**)objs,n,((struct region*)(expr->left))->parent);
-      result[i] = duplicate_bit_array( ((struct region*)(expr->left))->membership );
-      if (result[i]==NULL) return 1;
+      if (expr->right==NULL) return 1;  /* Should always have two arguments */
+      i=eval_rel_region_expr(expr->left,n,objs,result,n_refinements);
+      if (i==1) return 1;
+      *n_refinements += 1;
+      /* Just ignore right-hand argument; we'll mark that we should look at it later */
     }
     else
     {
-      i = eval_rel_region_expr(expr->left,n,objs,result);
-      if (i) return 1;
-    }
-    
-    if (expr->right==NULL)
-    {
-      if (expr->op&REXP_NO_OP) return 0;
-      else return 1;
-    }
-    
-    if (expr->op&REXP_RIGHT_REGION)
-    {
-      i = void_array_search((void**)objs,n,((struct region*)(expr->right))->parent);
-      if (result[i]==NULL)
+      if (expr->op&REXP_LEFT_REGION)
       {
-        result[i] = duplicate_bit_array( ((struct region*)(expr->right))->membership );
-        if (result[i]==NULL) return 1;
+	i = void_array_search((void**)objs,n,((struct region*)(expr->left))->parent);
+	result[i] = duplicate_bit_array( ((struct region*)(expr->left))->membership );
+	if (result[i]==NULL) return 1;
       }
       else
       {
-        if (expr->op&REXP_UNION) bit_op = '|';
-        else if (expr->op&REXP_SUBTRACTION) bit_op = '-';
-        else if (expr->op&REXP_INTERSECTION) bit_op = '&';
-        else return 1;
-
-        bit_operation(result[i],((struct region*)(expr->right))->membership,bit_op);
+	i = eval_rel_region_expr(expr->left,n,objs,result,n_refinements);
+	if (i) return 1;
       }
-    }
-    else
-    {
-      struct bit_array *res2[n];
-      for (i=0;i<n;i++) res2[i]=NULL;
       
-      i = eval_rel_region_expr(expr->right,n,objs,result);
-      if (i) return 1;
-      
-      for (i=0;i<n;i++)
+      if (expr->right==NULL)
       {
-        if (res2[i]!=NULL)
-        {
-          if (result[i]==NULL) result[i] = res2[i];
-          else
-          {
-            if (expr->op&REXP_UNION) bit_op = '|';
-            else if (expr->op&REXP_SUBTRACTION) bit_op = '-';
-            else if (expr->op&REXP_INTERSECTION) bit_op = '&';
-            else return 1;
-            
-            bit_operation(result[i],res2[i],bit_op);
-            free_bit_array(res2[i]);
-          }
-        }
+	if (expr->op&REXP_NO_OP) return 0;
+	else return 1;
+      }
+      
+      if (expr->op&REXP_RIGHT_REGION)
+      {
+	i = void_array_search((void**)objs,n,((struct region*)(expr->right))->parent);
+	if (result[i]==NULL)
+	{
+	  result[i] = duplicate_bit_array( ((struct region*)(expr->right))->membership );
+	  if (result[i]==NULL) return 1;
+	}
+	else
+	{
+	  if (expr->op&REXP_UNION) bit_op = '|';
+	  else if (expr->op&REXP_SUBTRACTION) bit_op = '-';
+	  else if (expr->op&REXP_INTERSECTION) bit_op = '&';
+	  else return 1;
+  
+	  bit_operation(result[i],((struct region*)(expr->right))->membership,bit_op);
+	}
+      }
+      else
+      {
+	struct bit_array *res2[n];
+	for (i=0;i<n;i++) res2[i]=NULL;
+	
+	i = eval_rel_region_expr(expr->right,n,objs,res2,n_refinements);
+	if (i) return 1;
+	
+	for (i=0;i<n;i++)
+	{
+	  if (res2[i]==NULL) continue;
+	  if (result[i]==NULL) result[i] = res2[i];
+	  else
+	  {
+	    if (expr->op&REXP_UNION) bit_op = '|';
+	    else if (expr->op&REXP_SUBTRACTION) bit_op = '-';
+	    else if (expr->op&REXP_INTERSECTION) bit_op = '&';
+	    else return 1;
+	    
+	    bit_operation(result[i],res2[i],bit_op);
+	    free_bit_array(res2[i]);
+	  }
+	}
       }
     }
   }
@@ -2894,7 +2904,8 @@ int init_rel_region_data_2d(struct release_region_data *rrd)
   }
   for (i=0;i<rrd->n_objects;i++) rrd->in_release[i]=NULL;
   
-  i = eval_rel_region_expr(rrd->expression,rrd->n_objects,rrd->owners,rrd->in_release);
+  rrd->refinement = 0;
+  i = eval_rel_region_expr(rrd->expression,rrd->n_objects,rrd->owners,rrd->in_release,&rrd->refinement);
   if (i)
   {
     fprintf(world->err_file,"File '%s', Line %ld: Error, could not evaluate region expression.\n", __FILE__, (long)__LINE__);
@@ -2902,14 +2913,9 @@ int init_rel_region_data_2d(struct release_region_data *rrd)
   }
   for (i=0;i<rrd->n_objects;i++)
   {
-    if (rrd->in_release[i]==NULL) 
+    if (rrd->owners[i]==NULL)
     {
-      if (rrd->owners[i]==NULL)
-      {
-	fprintf(world->err_file,"File '%s', Line %ld: Object %d of %d in region expression was not found!\n", __FILE__, (long)__LINE__, i+1,rrd->n_objects);
-	return 1;
-      }
-      fprintf(world->err_file,"File '%s', Line %ld: Error, could not generate region data on object %s\n(Out of memory?)\n",__FILE__, (long)__LINE__, rrd->owners[i]->sym->name);
+      fprintf(world->err_file,"File '%s', Line %ld: Object %d of %d in region expression was not found!\n", __FILE__, (long)__LINE__, i+1,rrd->n_objects);
       return 1;
     }
   }
@@ -2924,7 +2930,8 @@ int init_rel_region_data_2d(struct release_region_data *rrd)
   rrd->n_walls_included=0;
   for (i=0;i<rrd->n_objects;i++)
   {
-    rrd->walls_per_obj[i] = count_bits(rrd->in_release[i]);
+    if (rrd->in_release[i]==NULL) rrd->walls_per_obj[i]=0;
+    else rrd->walls_per_obj[i] = count_bits(rrd->in_release[i]);
     rrd->n_walls_included += rrd->walls_per_obj[i];
   }
   
@@ -2940,6 +2947,7 @@ int init_rel_region_data_2d(struct release_region_data *rrd)
   j = 0;
   for (i=0;i<rrd->n_objects;i++)
   {
+    if (rrd->walls_per_obj[i]==0) continue;
     k = rrd->owners[i]->object_type;
     if (k != POLY_OBJ && k != BOX_OBJ)
     {
@@ -3118,7 +3126,7 @@ int eval_rel_region_bbox(struct release_evaluator *expr,struct vector3 *llf,stru
         if (urb->y < urb2.y) urb->y = urb2.y;
         if (urb->z < urb2.z) urb->z = urb2.z;
       }
-      else if (expr->op&REXP_INTERSECTION)
+      else if (expr->op&(REXP_INTERSECTION|REXP_INCLUSION))
       {
         if (llf->x < llf2.x) llf->x = llf2.x;
         if (llf->y < llf2.y) llf->y = llf2.y;
@@ -3209,6 +3217,7 @@ void output_relreg_eval_tree(FILE *f,char *prefix,char cA,char cB,struct release
     if (expr->op & REXP_UNION) my_op = '+';
     else if (expr->op & REXP_INTERSECTION) my_op = '*';
     else if (expr->op & REXP_SUBTRACTION) my_op = '-';
+    else if (expr->op & REXP_INCLUSION) my_op = ':';
     
     fprintf(f,"%s%c\n",prefix,my_op);
     

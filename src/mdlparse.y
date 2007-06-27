@@ -554,7 +554,7 @@ struct output_times *otimes;
 
 
 %right '='
-%left '&'
+%left '&' ':'
 %left '+' '-'
 %left '*' '/'
 %left '^'
@@ -3766,6 +3766,17 @@ release_region_expr:
 {
   struct release_evaluator *re;
   re = pack_release_expr($<rev>1,$<rev>3,REXP_INTERSECTION);
+  if (re==NULL)
+  {
+    mdlerror(mdlpvp, "Out of memory while trying to create release site on region");
+    return 1;
+  }
+  $$ = re;
+}
+	| release_region_expr '&' release_region_expr
+{
+  struct release_evaluator *re;
+  re = pack_release_expr($<rev>1,$<rev>3,REXP_INCLUSION);
   if (re==NULL)
   {
     mdlerror(mdlpvp, "Out of memory while trying to create release site on region");

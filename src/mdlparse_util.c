@@ -4142,7 +4142,7 @@ struct release_evaluator* pack_release_expr(struct release_evaluator *rel,struct
   struct release_evaluator *re = NULL;
   char err_message[1024];
   
-  if ( (rer->op&REXP_MASK)==REXP_NO_OP && (rer->op&REXP_LEFT_REGION)!=0)
+  if (!(op&REXP_INCLUSION) && (rer->op&REXP_MASK)==REXP_NO_OP && (rer->op&REXP_LEFT_REGION)!=0)
   {
     if ( (rel->op&REXP_MASK)==REXP_NO_OP && (rel->op&REXP_LEFT_REGION)!=0)
     {
@@ -4159,7 +4159,7 @@ struct release_evaluator* pack_release_expr(struct release_evaluator *rel,struct
       re->op = op | REXP_RIGHT_REGION;
     }
   }
-  else if ( (rel->op&REXP_MASK)==REXP_NO_OP && (rel->op&REXP_LEFT_REGION)!=0 )
+  else if ( !(op&REXP_INCLUSION) && (rel->op&REXP_MASK)==REXP_NO_OP && (rel->op&REXP_LEFT_REGION)!=0 )
   {
     re = rel;
     re->right = (void*)rer;

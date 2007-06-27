@@ -21,4 +21,6 @@ int nearest_free(struct surface_grid *g,struct vector2 *v,double max_d2,double *
 struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,double max_d2,int *found_idx,
                              int (*ok)(void*,struct wall*),void *context);
 
+			     
+int grid_release_check(struct release_region_data *rrd,int obj_n,int wall_n,int grid_n, struct release_evaluator *expr);
 #endif

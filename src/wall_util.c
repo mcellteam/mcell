@@ -2399,7 +2399,8 @@ test_bounding_boxes:
        llf2 - lower left corner of the 2nd box
        urb2 - upper right back corner of the 2nd box
   Out: Returns 1 if boxes intersect, 0 - otherwise
-       The code is adapted from "Real-time Collision Detection" by Christer Ericson, ISBN 1-55860-732-3, p.79.
+       The code is adapted from "Real-time Collision Detection"
+       by Christer Ericson, ISBN 1-55860-732-3, p.79.
        
 ***************************************************************************/
 int test_bounding_boxes(struct vector3 *llf1, struct vector3 *urb1, struct vector3 *llf2, struct vector3 *urb2)
@@ -2416,6 +2417,70 @@ int test_bounding_boxes(struct vector3 *llf1, struct vector3 *urb1, struct vecto
   return 1;
 }
 
+
+
+/***************************************************************************
+surface_point_in_region:
+  In: object upon which the point is
+      index of the wall on that object
+      vector of the actual point
+      expression for where we should release
+  Out: Returns 1 if the surface point is in the release specification,
+       0 otherwise.
+***************************************************************************/
+int surface_point_in_region(struct object *ob,int wall_n,struct vector3 *v,struct release_evaluator *expr)
+{
+  struct subvolume *sv = find_subvolume(v,NULL);
+  struct waypoint *wp = &(world->waypoints[sv->index]);
+  struct wall_list *wl;
+  struct wall_list pre_wall,my_wall;
+  struct vector3 delta,hit;
+  struct region_list *irl,*trl,*ttrl,*rl,*arl,**qrl,**prl;
+  double t;
+  int i;
+  
+  rl = arl = NULL;
+  delta.x = v->x - wp->loc.x;
+  delta.y = v->y - wp->loc.y;
+  delta.z = v->z - wp->loc.z;
+  pre_wall.next = &my_wall;
+  my_wall.next = NULL;
+  my_wall.this_wall = ob->wall_p[wall_n];
+  
+  for (wl=sv->wall_head ; wl!=NULL ; wl=wl->next)
+  {
+    if (wl!=&my_wall)
+    {
+      if (wl->this_wall==my_wall.this_wall) continue;  /* Don't try to collide with the wall the point is on */
+      i = collide_wall(&(wp->loc) , &delta , wl->this_wall , &t , &hit , 0);
+      if (i==COLLIDE_MISS || i==COLLIDE_REDO || !(t >= 0 && t < 1.0)) continue;
+    }
+    else i = COLLIDE_FRONT;
+    
+    for (irl = wl->this_wall->parent_object->regions ; irl!=NULL ; irl=irl->next)
+    {
+      if (!get_bit(irl->reg->membership,wl->this_wall->side)) continue;
+      if (i==COLLIDE_FRONT) { prl=&rl; qrl=&arl; }
+      else { qrl=&rl; prl=&arl; }
+
+      if (*prl==irl) { trl=(*prl)->next; mem_put(sv->local_storage->regl,*prl); (*prl)=trl; }
+      else if (*prl!=NULL)
+      {
+	for (trl=*prl; trl->next!=NULL && trl->next!=irl ; trl=trl->next) {}
+	if (trl->next!=NULL) { ttrl = trl->next; trl->next=ttrl->next; mem_put(sv->local_storage->regl,ttrl); }
+	else { trl = (struct region_list*)mem_get(sv->local_storage->regl); trl->reg=irl->reg; trl->next=*qrl; *qrl=trl; }
+      }
+    }
+    if (wl->next==NULL && wl!=&my_wall) wl=&pre_wall; /* Cheat to go through loop one extra time with the wall on which the point is */
+  }
+  
+  i = eval_rel_region_3d(expr,wp,rl,arl);
+  
+  if (rl!=NULL) mem_put_list(sv->local_storage->regl,rl);
+  if (arl!=NULL) mem_put_list(sv->local_storage->regl,arl);
+  
+  return i;
+}
 
 
 /* Helper struct for release_onto_regions and vacuum_from_regions */
@@ -2461,6 +2526,7 @@ int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule *g,int
   
   for (i=0;i<rrd->n_objects;i++)
   {
+    if (rrd->walls_per_obj[i]==0) continue;
     for (j=0;j<rrd->in_release[i]->nbits;j++)
     {
       if (!get_bit(rrd->in_release[i],j)) continue;
@@ -2476,6 +2542,7 @@ int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule *g,int
         {
           if (gp->properties == g->properties)
           {
+	    if (rrd->refinement && !grid_release_check(rrd,i,j,k,NULL)) continue;
             p = mem_get(mh);
             if (p==NULL) return 1;
             
@@ -2590,7 +2657,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
       j = (int)((j*j)*(A/w->area));
       if (j>=w->grid->n_tiles) j=w->grid->n_tiles-1;
       
-      if (w->grid->mol[j] != NULL) failure++;
+      if (w->grid->mol[j] != NULL || (rrd->refinement && !grid_release_check(rrd,rrd->obj_index[i],rrd->wall_index[i],j,NULL))) failure++;
       else
       {
         new_g = (struct grid_molecule*)mem_get( w->grid->subvol->local_storage->gmol );
@@ -2636,6 +2703,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
       max_A=0;
       for (i=0;i<rrd->n_objects;i++)
       {
+	if (rrd->walls_per_obj[i]==0) continue;
         for (j=0;j<rrd->in_release[i]->nbits;j++)
         {
           if (!get_bit(rrd->in_release[i],j)) continue;
@@ -2653,7 +2721,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           
           for (k=0;k<w->grid->n_tiles;k++)
           {
-            if (w->grid->mol[k]==NULL)
+            if (w->grid->mol[k]==NULL && !(rrd->refinement && !grid_release_check(rrd,i,j,k,NULL)))
             {
               p = mem_get(mh);
               if (p==NULL) return 1;

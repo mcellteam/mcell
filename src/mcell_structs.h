@@ -313,14 +313,15 @@
 
 /* Region Expression Flags */
 /* Boolean set operations for releases on regions */
-/* Set only one of NO_OP, UNION, INTERSECTION, SUBTRACTION */
-#define REXP_NO_OP        1
-#define REXP_UNION        2
-#define REXP_INTERSECTION 4
-#define REXP_SUBTRACTION  8
-#define REXP_MASK         0x0F
-#define REXP_LEFT_REGION  0x10
-#define REXP_RIGHT_REGION 0x20
+/* Set only one of NO_OP, UNION, INTERSECTION, SUBTRACTION, INCLUSION */
+#define REXP_NO_OP        0x01
+#define REXP_UNION        0x02
+#define REXP_INTERSECTION 0x04
+#define REXP_SUBTRACTION  0x08
+#define REXP_INCLUSION    0x10
+#define REXP_MASK         0x1F
+#define REXP_LEFT_REGION  0x20
+#define REXP_RIGHT_REGION 0x40
 
 
 /* Distance in length units to search for a new site for a grid molecule */
@@ -1354,6 +1355,7 @@ struct release_region_data
   int n_objects;                 /* How many objects are there total */
   struct object **owners;        /* Array of pointers to each object */
   struct bit_array **in_release; /* Array of bit arrays; each bit array says which walls are in release for an object */
+  int refinement;                /* Number of volume-inclusion checks to do (2d releases only) */
   int *walls_per_obj;            /* Number of walls in release for each object */
 
   struct object *self;           /* A pointer to our own release site object */
