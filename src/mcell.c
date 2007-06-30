@@ -301,6 +301,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
        fprintf(world->log_file,"Total number of ray-polygon intersection tests: %lld\n",world->ray_polygon_tests);
        fprintf(world->log_file,"Total number of ray-polygon intersections: %lld\n",world->ray_polygon_colls);
        fprintf(world->log_file,"Total number of molecule-molecule collisions: %lld\n",world->mol_mol_colls);
+       fprintf(world->log_file,"Total number of molecule-molecule_molecule collisions: %lld\n",world->mol_mol_mol_colls);
     }
  
     t_final = time(NULL);
@@ -457,7 +458,6 @@ int main(int argc, char **argv) {
 
       }else{
          if(world->it_time >= world->viz_state_info.final_iteration){ 
-
             if(finalize_viz_output(world->frame_data_head)){
                 fprintf(world->err_file,"File '%s', Line %ld: Error in finalizing viz_output.\n", __FILE__, (long)__LINE__);
                 exit(1);

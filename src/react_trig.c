@@ -9,6 +9,7 @@
 
 #include "mcell_structs.h"
 #include "react.h"
+#include <string.h>
 
 extern struct volume *world;
 
@@ -221,7 +222,142 @@ int trigger_bimolecular(int hashA,int hashB,
 }
 
 
+/*************************************************************************
+trigger_trimolecular:
+   In: hash values of the three colliding molecules
+       pointers to the species of three colliding molecules
+       reacA is the moving molecule and reacB and reacC are the targets
+       array of pointers to the possible reactions
+   Out: number of possible reactions for species reacA, reacB, and reacC
+        Also the first 'number' slots in the 'matching_rxns'
+        array are filled with pointers to the possible reactions objects.
+   Note: The target molecules are already scheduled and can be destroyed
+         but not rescheduled.  Assume we have or will check separately that
+         the moving molecule is not inert!
+*************************************************************************/
+int trigger_trimolecular(int hashA,int hashB, int hashC,
+  struct species *reacA,struct species *reacB,
+  struct species *reacC, struct rxn ** matching_rxns )
+{
+  int hash = 0;  /* index in the reaction hash table */
+  int num_matching_rxns = 0; /* number of matching reactions */
+  short geomA, geomB, geomC;
+  struct rxn *inter;
+  int right_players_flag;
+  /* flags */
+  int use_hashA = 0;
+  int use_hashB = 0;
+  int use_hashC = 0;
+  /* hash value of the 1st of the three reactants arranged
+     in alphabetical order */
+  int first_reactant_hash_val = 0; 
 
+  /* in the function "prepare_reactions()" the reaction
+     hash table is built using only hashvalues of reactant1
+     and reactant2 arranged in the alphabetical order.
+     So we have to find out now what hashvalues to use.  */
+
+     /* find the first hashvalue to use */
+  if((strcmp(reacA->sym->name, reacB->sym->name) <= 0)     && (strcmp(reacA->sym->name, reacC->sym->name) <= 0)){
+               use_hashA = 1;
+               first_reactant_hash_val = hashA;
+      
+   }else if((strcmp(reacB->sym->name, reacA->sym->name) <= 0)     && (strcmp(reacB->sym->name, reacC->sym->name) <= 0)){
+               use_hashB = 1;
+               first_reactant_hash_val = hashB;
+     }else if((strcmp(reacC->sym->name, reacA->sym->name) <= 0)  && (strcmp(reacC->sym->name, reacB->sym->name) <= 0)){
+               use_hashC = 1;
+               first_reactant_hash_val = hashC;
+    }
+    
+    /* find the 2nd hashvalue */
+    if(use_hashA){
+      if(strcmp(reacB->sym->name, reacC->sym->name) <= 0)      {
+           use_hashB = 1;
+      }else{
+           use_hashC = 1;
+      }
+    }else if(use_hashB){
+      if(strcmp(reacA->sym->name, reacC->sym->name) <= 0)      {
+           use_hashA = 1;
+      }else{
+           use_hashC = 1;
+      }
+    }else if (use_hashC){
+      if(strcmp(reacA->sym->name, reacB->sym->name) <= 0)      {
+           use_hashA = 1;
+      }else{
+           use_hashB = 1;
+      }
+    }
+
+    if(use_hashA && use_hashB){
+      hash = (hashA ^ hashB) & (world->rx_hashsize-1);
+      if (hash==0) hash = first_reactant_hash_val & (world->rx_hashsize-1);
+    }else if(use_hashA && use_hashC){
+      hash = (hashA ^ hashC) & (world->rx_hashsize-1);
+      if (hash==0) hash = first_reactant_hash_val & (world->rx_hashsize-1);
+    }else if(use_hashB && use_hashC){
+      hash = (hashB ^ hashC) & (world->rx_hashsize-1);
+      if (hash==0) hash = first_reactant_hash_val & (world->rx_hashsize-1);
+    }
+
+
+  inter = world->reaction_hash[hash];
+
+   while (inter != NULL)
+   {
+    if (inter->n_reactants == 3)  /* Enough reactants?  */
+    {
+       right_players_flag = 0;
+
+      /* Check that we have the right players */
+      if (reacA == inter->players[0]) {
+        if((reacB == inter->players[1] &&
+           reacC == inter->players[2])
+           || (reacB == inter->players[2] &&
+              reacC == inter->players[1])){
+                   right_players_flag = 1;
+        } 
+      }
+      if (reacA == inter->players[1]) {
+        if((reacB == inter->players[0] &&
+           reacC == inter->players[2])
+           || (reacB == inter->players[2] &&
+              reacC == inter->players[0])){
+                   right_players_flag = 1;
+        } 
+      }
+      if (reacA == inter->players[2]) {
+        if((reacB == inter->players[0] &&
+           reacC == inter->players[1])
+           || (reacB == inter->players[1] &&
+              reacC == inter->players[0])){
+                   right_players_flag = 1;
+        } 
+      }
+      geomA = inter->geometries[0];
+      geomB = inter->geometries[1];
+      geomC = inter->geometries[2];
+
+      /* Check to see if orientation classes are zero */
+      if (right_players_flag &&  (geomA==0) && (geomB==0) && (geomC==0))
+      {
+         if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
+         matching_rxns[num_matching_rxns] = inter;
+         num_matching_rxns++;
+      }
+    }
+    inter = inter->next;
+   }
+  
+   if (inter != NULL)
+   {
+      fprintf(world->err_file, "Number of matching reactions exceeds the maximum allowed number MAX_MATCHING_RXNS.\n");
+   }
+
+   return num_matching_rxns;
+ }
 /*************************************************************************
 trigger_intersect:
    In: hash value of molecule's species

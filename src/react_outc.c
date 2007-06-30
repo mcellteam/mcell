@@ -15,6 +15,7 @@
 #include "count_util.h"
 #include "react.h"
 #include "vol_util.h"
+#include <stdlib.h>
 
 extern struct volume *world;
 
@@ -498,6 +499,131 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   
 }
 
+/*************************************************************************
+outcome_products_trimol_reaction:
+   In: relevant wall in the interaction, if any
+       reaction that is occuring
+       path that the reaction is taking
+       local storage for creating new molecules
+       time that the reaction is occurring
+       location of the reaction (may be NULL)
+       the reactants (the last one is also the furthest
+            one from the moving molecule)
+   Out: Value depending on how orientations changed--
+          RX_FLIP moving molecule passed through membrane
+          RX_A_OK everything went fine, nothing extra to do
+	  RX_NO_MEM out of memory error
+        Products are created as necessary and scheduled.
+*************************************************************************/
+
+int outcome_products_trimol_reaction(struct wall *w,
+  struct rxn *rx,int path, struct storage *local,
+  double t, struct vector3 *hitpt,
+  struct abstract_molecule *reacA, struct abstract_molecule *reacB,
+  struct abstract_molecule *reacC)
+{
+  int bounce = RX_A_OK;
+
+  int i;
+  struct volume_molecule *m;
+  struct species *p;
+  int j;
+  int i0 = rx->product_idx[path]; /*index of the first product for the pathway*/
+  int iN = rx->product_idx[path+1];/*index of the first product for the next pathway*/
+ 
+  struct abstract_molecule *plist[iN-i0]; /* array of products */
+  
+
+  if(w != NULL){
+    fprintf(world->err_file, "At present trimolecular reactions are implemented only for volume molecules.\n");
+    exit(1);
+  }  
+
+  if (hitpt == NULL) {
+    fprintf(world->err_file, "ERROR: Location of trimolecular reaction is not specified.\n");
+    exit(1);
+  }
+
+  
+  for (i=i0+rx->n_reactants;i<iN;i++)
+  {
+    p = rx->players[i];
+    
+    if ( (p->flags & ON_GRID) != 0 )
+    {
+       fprintf(world->err_file, "At present trimolecular reactions are implemented only for volume molecules products.\n");
+       exit(1);
+    }
+    else /* volume molecule */
+    {
+      m = mem_get(local->mol);
+      if (m==NULL) return RX_NO_MEM;
+      m->birthplace = local->mol;
+      m->birthday = t;
+      m->properties = p;
+      p->population++;
+
+      m->flags = TYPE_3D | ACT_NEWBIE | IN_VOLUME | IN_SCHEDULE;
+      if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)m) != NULL) m->flags |= ACT_REACT;
+      if (p->space_step > 0.0) m->flags |= ACT_DIFFUSE;
+      m->previous_wall = NULL;
+      m->index = -1;
+      
+      m->pos.x = hitpt->x;
+      m->pos.y = hitpt->y;
+      m->pos.z = hitpt->z;
+      /* the products are placed at the location of the target furthest
+         from the moving molecule */
+      m->subvol = ((struct volume_molecule *)reacC)->subvol;
+        
+      m->next_v = m->subvol->mol_head;
+      m->subvol->mol_head = m;
+      m->subvol->mol_count++;
+
+      plist[i-i0] = (struct abstract_molecule*)m;
+      m->t = t;
+      m->t2 = 0.0;
+
+      if ( schedule_add( local->timer , m ) ) return RX_NO_MEM;
+      
+    }
+  }
+
+  for (i=i0;i<iN;i++)
+  {
+    if (rx->players[i]==NULL) continue; 
+    
+    if (i >= i0+rx->n_reactants &&
+        (plist[i-i0]->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
+    {
+      j=count_region_from_scratch(plist[i-i0],NULL,1,NULL,w,t);
+      if (j) return RX_NO_MEM;
+    }
+  }
+  
+  
+  /* Handle events triggered off of named reactions */
+  if (rx->info[path].pathname!=NULL)
+  {
+    /* No flags for reactions so we have to check regions if we have waypoints! Fix to be more efficient for WORLD-only counts? */
+    if (world->place_waypoints_flag)
+    {
+      j=count_region_from_scratch(NULL,rx->info[path].pathname,1,hitpt,w,t);
+      if (j) return RX_NO_MEM;
+    }
+    
+    /* Other magical stuff.  For now, can only trigger releases. */
+    if (rx->info[path].pathname->magic!=NULL)
+    {
+      j=reaction_wizardry(rx->info[path].pathname->magic,w,hitpt,t);
+      if (j) return RX_NO_MEM;
+    }
+  }
+
+  
+  return bounce;
+  
+}
 
 /*************************************************************************
 outcome_unimolecular:
@@ -770,6 +896,171 @@ int outcome_bimolecular(struct rxn *rx,int path,
   return result;
 }
 
+/*************************************************************************
+outcome_trimolecular:
+  In: reaction that's occurring
+      path the reaction's taking
+      three molecules that are reacting (first is moving one
+          and the last one is the furthest from the moving molecule)
+      time that the reaction is occurring
+      location of collision between moving molecule and the furthest target
+  Out: Value based on outcome:
+	 RX_FLIP if the molecule goes across the membrane
+	 RX_DESTROY if the molecule no longer exists
+	 RX_A_OK if everything proceeded smoothly
+	 RX_NO_MEM on an out-of-memory error
+       Products are created as needed.
+  Note: reacA is the triggering molecule (e.g. moving)
+*************************************************************************/
+
+int outcome_trimolecular(struct rxn *rx,int path,
+  struct abstract_molecule *reacA,struct abstract_molecule *reacB,
+  struct abstract_molecule *reacC, double t,struct vector3 *hitpt)
+{
+  struct wall *w = NULL;
+  struct volume_molecule *m;
+  struct storage *x;
+  int result;
+  int i;
+  int killA = 0,killB = 0, killC = 0;
+  
+
+    if ((((reacA->properties->flags & NOT_FREE) != 0) || (reacB->properties->flags & NOT_FREE) != 0) || (reacC->properties->flags & NOT_FREE) != 0)
+    {
+      fprintf(world->err_file, "Trimolecular reactions with grid molecules are not implemented yet.\n");
+      return RX_NO_MEM;
+    }
+
+    /* we will use storage of the SV where the furthest target is located
+       and products be placed  */
+    x = ((struct volume_molecule *)reacC)->subvol->local_storage; 
+
+     result = outcome_products_trimol_reaction(w,rx,path,x,t,hitpt,reacA,reacB,reacC);  
+          
+     
+  if (result==RX_NO_MEM) return RX_NO_MEM;
+  else if (result==RX_BLOCKED) return RX_BLOCKED;
+             
+
+  rx->n_occurred++;
+  rx->info[path].count++;
+  
+  /* Figure out if either of the reactants was destroyed */
+
+  if (rx->players[0]==reacA->properties)
+  {
+    if(rx->players[1] == reacB->properties)
+    {
+      killC = (rx->players[ rx->product_idx[path]+2 ] == NULL);
+      killB = (rx->players[ rx->product_idx[path]+1 ] == NULL);
+      killA = (rx->players[ rx->product_idx[path] ] == NULL);
+    }else{
+      killB = (rx->players[ rx->product_idx[path]+2 ] == NULL);
+      killC = (rx->players[ rx->product_idx[path]+1 ] == NULL);
+      killA = (rx->players[ rx->product_idx[path] ] == NULL);
+    }
+  }
+  else if (rx->players[0]==reacB->properties)
+  {
+    if(rx->players[1] == reacA->properties)
+    {
+      killC = (rx->players[ rx->product_idx[path]+2 ] == NULL);
+      killA = (rx->players[ rx->product_idx[path]+1 ] == NULL);
+      killB = (rx->players[ rx->product_idx[path] ] == NULL);
+    }else{
+      killA = (rx->players[ rx->product_idx[path]+2 ] == NULL);
+      killC = (rx->players[ rx->product_idx[path]+1 ] == NULL);
+      killB = (rx->players[ rx->product_idx[path] ] == NULL);
+    }
+  }else if (rx->players[0]==reacC->properties)
+  {
+    if(rx->players[1] == reacA->properties)
+    {
+      killB = (rx->players[ rx->product_idx[path]+2 ] == NULL);
+      killA = (rx->players[ rx->product_idx[path]+1 ] == NULL);
+      killC = (rx->players[ rx->product_idx[path] ] == NULL);
+    }else{
+      killA = (rx->players[ rx->product_idx[path]+2 ] == NULL);
+      killB = (rx->players[ rx->product_idx[path]+1 ] == NULL);
+      killC = (rx->players[ rx->product_idx[path] ] == NULL);
+    }
+  }
+
+
+  if (killC)
+  {
+    m = (struct volume_molecule*)reacC;
+    m->subvol->mol_count--;
+    if (m->flags & IN_SCHEDULE)
+    {
+       m->subvol->local_storage->timer->defunct_count++;
+    }
+
+    if ((reacC->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
+    {
+      i = count_region_from_scratch(reacC,NULL,-1,NULL,NULL,t);
+      if (i) return RX_NO_MEM;
+    }
+    
+    reacC->properties->n_deceased++;
+    reacC->properties->cum_lifetime += t - reacC->birthday;
+    reacC->properties->population--;
+    reacC->properties = NULL;
+    if ((reacC->flags&IN_MASK)==0) mem_put(reacC->birthplace,reacC);
+  }
+ 
+  if (killB)
+  {
+    m = (struct volume_molecule*)reacB;
+    m->subvol->mol_count--;
+    if (m->flags & IN_SCHEDULE)
+    {
+       m->subvol->local_storage->timer->defunct_count++;
+    }
+
+    if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
+    {
+      i = count_region_from_scratch(reacB,NULL,-1,NULL,NULL,t);
+      if (i) return RX_NO_MEM;
+    }
+    
+    reacB->properties->n_deceased++;
+    reacB->properties->cum_lifetime += t - reacB->birthday;
+    reacB->properties->population--;
+    reacB->properties = NULL;
+    if ((reacB->flags&IN_MASK)==0) mem_put(reacB->birthplace,reacB);
+  }
+
+  if (killA)
+  {
+                              
+    m = (struct volume_molecule*)reacA;
+    m->subvol->mol_count--;
+    if (m->flags & IN_SCHEDULE)
+    {
+       m->subvol->local_storage->timer->defunct_count++;
+    }
+                
+    if ((reacA->flags&COUNT_ME) && (world->place_waypoints_flag|world->releases_on_regions_flag))
+    {
+      /* Subtlety: we made it up to hitpt, but our position is wherever we were before that! */
+	/* Vol-vol rx should be counted at hitpt */
+                
+      i=count_region_from_scratch(reacA,NULL,-1,hitpt,NULL,t);
+      if (i) return RX_NO_MEM;
+    }
+                     
+     reacA->properties->n_deceased++;
+     reacA->properties->cum_lifetime += t - reacA->birthday;
+     reacA->properties->population--;
+     reacA->properties = NULL; 
+               
+
+    return RX_DESTROY;
+  }
+
+  return result;
+}
 
 /*************************************************************************
 outcome_intersect:

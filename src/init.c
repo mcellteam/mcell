@@ -259,6 +259,7 @@ int init_sim(void)
   world->ray_polygon_tests=0;
   world->ray_polygon_colls=0;
   world->mol_mol_colls=0;
+  world->mol_mol_mol_colls=0;
   world->chkpt_elapsed_real_time=0;
   world->chkpt_elapsed_real_time_start=0;
   world->chkpt_byte_order_mismatch = 0;
@@ -488,6 +489,10 @@ int init_sim(void)
         if(strcmp(sp->sym->name, "GENERIC_MOLECULE") == 0) continue;  
         if(strcmp(sp->sym->name, "GENERIC_SURFACE") == 0) continue;  
         
+        if((sp->flags & CAN_MOLMOLMOL) != 0){
+		reactants_3D_present = 1;
+                break;
+        }
         if((sp->flags & CAN_MOLMOL) != 0){
 		reactants_3D_present = 1;
                 break;
@@ -542,6 +547,7 @@ int init_sim(void)
     return 1;
   }
   
+
   if (world->place_waypoints_flag || world->releases_on_regions_flag) {
     if (place_waypoints()) {
       fprintf(world->err_file,"File '%s', Line %ld: error storing waypoints.\n", __FILE__, (long)__LINE__);
@@ -878,6 +884,8 @@ int init_partitions(void)
   shared_mem->tree = create_mem(sizeof(struct vertex_tree),128);
   shared_mem->grids = create_mem(sizeof(struct surface_grid),128);
   shared_mem->coll = create_mem(sizeof(struct collision),128);
+  shared_mem->sp_coll = create_mem(sizeof(struct sp_collision),128);
+  shared_mem->tri_coll = create_mem(sizeof(struct tri_collision),128);
   shared_mem->regl = create_mem(sizeof(struct region_list),128);
   shared_mem->exdv = create_mem(sizeof(struct exd_vertex),64);
   
@@ -885,8 +893,9 @@ int init_partitions(void)
       shared_mem->mol==NULL  || shared_mem->gmol==NULL ||
       shared_mem->face==NULL || shared_mem->join==NULL ||
       shared_mem->tree==NULL || shared_mem->grids==NULL ||
-      shared_mem->coll==NULL || shared_mem->regl==NULL 
-      || shared_mem->exdv==NULL)
+      shared_mem->coll==NULL || shared_mem->sp_coll==NULL ||
+      shared_mem->tri_coll==NULL ||shared_mem->regl==NULL || 
+      shared_mem->exdv==NULL)
   {
     fprintf(world->err_file,"File '%s', Line %ld: out of memory while initializing partitions.\n", __FILE__, (long)__LINE__);
     exit(EXIT_FAILURE);
@@ -3291,6 +3300,10 @@ int init_releases()
         }else if (req->release_site->release_shape != SHAPE_LIST){
             if(req->release_site->mol_type == NULL){
                fprintf(world->err_file, "ERROR: molecule name is not specified for the release site.\n");
+               return 1;
+            }
+            if(req->release_site->release_number == 0){
+               fprintf(world->err_file, "ERROR: molecule release number for the release site is either zero or not specified.\n");
                return 1;
             }
             if(req->release_site->diameter == NULL){

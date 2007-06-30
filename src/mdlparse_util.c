@@ -2422,7 +2422,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       if (rx->n_reactants==1) {
         j = rx->players[0]->hashval & rx_hash;
 
-      }else /* if(rx->n_reactants >= 2) */
+      }else /* if(rx->n_reactants >= 2)  */ 
       {
         j = (rx->players[0]->hashval ^ rx->players[1]->hashval) & rx_hash;
         if (j==0)  j = rx->players[0]->hashval & rx_hash;
@@ -2505,9 +2505,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
              (rx->players[1]->flags & NOT_FREE)==0 &&
              (rx->players[2]->flags & NOT_FREE)==0)
         {
-          rx->players[0]->flags |= CAN_MOLMOL;
-          rx->players[1]->flags |= CAN_MOLMOL;
-          rx->players[2]->flags |= CAN_MOLMOL;
+          rx->players[0]->flags |= CAN_MOLMOLMOL;
+          rx->players[1]->flags |= CAN_MOLMOLMOL;
+          rx->players[2]->flags |= CAN_MOLMOLMOL;
        
 	} /* end if-else */
 
@@ -2546,11 +2546,10 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
      among products in the direct reaction */
   int is_surf_class = 0;
 
-
   mpvp->num_surf_products = 0;
   mpvp->num_grid_mols = 0;
   mpvp->num_vol_mols = 0;
-  
+
   all_3d=1;
   for (nprods=0,prodp=mpvp->pathp->product_head ; prodp!=NULL ; prodp=prodp->next)
   {
@@ -2560,7 +2559,8 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
            is_surf_class = 1;
     }
   }
- 
+
+
   if (nprods==0)
   {
     mdlerror(mpvp, "Can't create a reverse reaction with no products");
@@ -2571,10 +2571,19 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
     mdlerror(mpvp, "Can't create a reverse reaction starting from only a surface");
     return 1;
   }
-  if (nprods>2)
+  if (nprods>3)
   {
-    mdlerror(mpvp, "Can't create a reverse reaction involving more than two products");
+    mdlerror(mpvp, "Can't create a reverse reaction involving more than three products");
     return 1;
+  }
+  if (nprods == 3)
+  {
+     if(!all_3d){ 
+       if( !is_surf_class) { 
+          mdlerror(mpvp, "Reverse reaction can be created when three products of the direct reaction either contain a surface_class or all products are volume molecules");
+          return 1;
+       }
+     }
   }
   if (mpvp->pathp->pathname != NULL)
   {
@@ -2598,9 +2607,19 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   {
     inverse_name = prodp->prod->sym->name;
   }
+  else if(nprods == 2)
+  {
+    inverse_name = concat_rx_name(prodp->prod->sym->name,prodp->next->prod->sym->name);
+    if (inverse_name==NULL)
+    {
+      mdlerror(mpvp, "Out of memory forming reaction name");
+      return 1;
+    }
+  }
   else
   {
     inverse_name = concat_rx_name(prodp->prod->sym->name,prodp->next->prod->sym->name);
+    inverse_name = concat_rx_name(inverse_name, prodp->next->next->prod->sym->name);
     if (inverse_name==NULL)
     {
       mdlerror(mpvp, "Out of memory forming reaction name");
@@ -2642,7 +2661,7 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   path->reactant2=NULL;
   path->reactant3=NULL;
   path->prod_signature = NULL;
-  if (nprods==2) {
+  if (nprods > 1) {
       path->reactant2 = prodp->next->prod;
       if((path->reactant2->flags & NOT_FREE) == 0){
          mpvp->num_vol_mols++;
@@ -2652,6 +2671,18 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
          }
       }
       path->orientation2 = prodp->next->orientation;
+  }
+  if(nprods > 2)
+  {
+      path->reactant3 = prodp->next->next->prod;
+      if((path->reactant3->flags & NOT_FREE) == 0){
+         mpvp->num_vol_mols++;
+      }else{
+         if(path->reactant3->flags & ON_GRID){
+            mpvp->num_grid_mols++;
+         }
+      }
+      path->orientation3 = prodp->next->next->orientation;
   }
   path->km = mpvp->bkw_km;
   path->km_filename = NULL;
@@ -2668,6 +2699,8 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
       mdlerror(mpvp, "Out of memory storing reaction pathway");
       return 1;
   }
+
+
   path->product_head->orientation = mpvp->pathp->orientation1;
   path->product_head->prod = mpvp->pathp->reactant1;
   path->product_head->next = NULL;
@@ -2677,7 +2710,7 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
 
   if ((mpvp->pathp->reactant2!=NULL) && ((mpvp->pathp->reactant2->flags & IS_SURFACE) == 0))
   {
-    path->product_head->next = (struct product*)mem_get(mpvp->prod_mem);
+    path->product_head->next = (struct product*)mem_get(mpvp->prod_mem); 
     if (path->product_head->next==NULL)
     {
       mdlerror(mpvp, "Out of memory storing reaction pathway");
@@ -2690,6 +2723,27 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
     }
     path->product_head->next->next = NULL;
   }
+
+  if((mpvp->pathp->reactant3 != NULL) && ((mpvp->pathp->reactant3->flags & NOT_FREE) == 0))
+  {
+     if(((mpvp->pathp->reactant1->flags & NOT_FREE) == 0)  &&
+        ((mpvp->pathp->reactant2->flags & NOT_FREE) == 0))
+     {
+       path->product_head->next->next = (struct product*)mem_get(mpvp->prod_mem);
+       if (path->product_head->next->next == NULL)
+       {
+         mdlerror(mpvp, "Out of memory storing reaction pathway");
+         return 1;
+       }
+       path->product_head->next->next->orientation = mpvp->pathp->orientation3;
+       path->product_head->next->next->prod = mpvp->pathp->reactant3;
+       if(path->product_head->next->next->prod->flags & ON_GRID){
+          mpvp->num_surf_products++;
+       }
+       path->product_head->next->next->next = NULL;
+     }
+  }
+
   path->prod_signature = create_prod_signature(&path->product_head);  
   if(path->prod_signature == NULL){
       mdlerror(mpvp, "Error creating 'prod_signature' field for reaction pathway.\n");
@@ -2717,11 +2771,15 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
        mpvp->pathp->product_head = prodp->next;
        prodp->next = NULL;
        mem_put(mpvp->prod_mem, (void *)prodp);
+     }else if(prodp->next->prod->flags & IS_SURFACE){
+       struct product *temp = prodp->next->next;
+       prodp->next->next = NULL;
+       mem_put(mpvp->prod_mem, (void *)prodp->next);
+       prodp->next = temp;
      }else{
-       prodp = prodp->next;
-       /* remove it */
-       mpvp->pathp->product_head->next = NULL;
-       mem_put(mpvp->prod_mem, (void *)prodp);
+       struct product *temp = prodp->next->next;
+       prodp->next->next->next = NULL;
+       mem_put(mpvp->prod_mem, (void *)temp);
      }
 
    }

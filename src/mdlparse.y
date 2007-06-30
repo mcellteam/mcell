@@ -6185,9 +6185,9 @@ rxn:
   }
   if ((mdlpvp->rxnp->n_reactants==3) && (num_surfaces == 0))
   {
-    /* In case of three reactants we will allow now 2 volume molecules */
+    /* In case of three reactants we will allow now 3 volume molecules */
     if(!mdlpvp->prod_all_3d){
-       mdlerror(mdlpvp, "Reactions with three reactants must include exactly one surface class as a reactant.");
+       mdlerror(mdlpvp, "Reactions with three reactants must include exactly one surface class as a reactant unless all reactants are volume molecules");
        return 1;
     }
   }
@@ -6302,28 +6302,49 @@ rxn:
 
     /* if "surface_class" is present on the reactant side of the reaction
        copy it to the product side of the reaction. 
-       Reversible reaction of the type A' @ surf' <---> C''[r1,r2]
+       Reversible reaction of the type A' @ surf' <---> C''[>r1,<r2]
        is equivalent now to the two reactions
            A'@ surf' ---> C'' [r1]
            C'' @ surf' ---->A'[r2]
+       Reversible reaction of the type A' + B' surf' <---> C'' + D''[>r1,<r2]
+       is equivalent now to the two reactions
+           A'+ B @ surf' ---> C'' + D''[r1]
+           C'' + D'' @ surf' ---->A' + B'[r2]
     */
     if(!(mdlpvp->catalytic_arrow))
     {
-        /* since at most two names may appear on the reactant side
-           of the reaction and "surface_class" is always the last one */
-     
-        if((mdlpvp->pathp->reactant2 != NULL) &&   (mdlpvp->pathp->reactant2->flags & IS_SURFACE))
-        {
-           mdlpvp->prodp = (struct product *)mem_get(mdlpvp->prod_mem);
-           if(mdlpvp->prodp == NULL){
-             mdlerror(mdlpvp, "Out of memory while creating reaction.\n");
-             return 1;
-           }
+        /* since at most two molecule names may appear on the reactant side
+           of the reaction and "surface_class" always appears after molecules */
+        if(mdlpvp->pathp->reactant3 == NULL)
+        {     
+          if((mdlpvp->pathp->reactant2 != NULL) &&   (mdlpvp->pathp->reactant2->flags & IS_SURFACE))
+          {
+              mdlpvp->prodp = (struct product *)mem_get(mdlpvp->prod_mem);
+              if(mdlpvp->prodp == NULL){
+                mdlerror(mdlpvp, "Out of memory while creating reaction.\n");
+                return 1;
+              }
 
-           mdlpvp->prodp->prod = mdlpvp->pathp->reactant2;
-           mdlpvp->prodp->orientation = mdlpvp->pathp->orientation2;
-           mdlpvp->prodp->next = mdlpvp->pathp->product_head;
-           mdlpvp->pathp->product_head = mdlpvp->prodp;
+              mdlpvp->prodp->prod = mdlpvp->pathp->reactant2;
+              mdlpvp->prodp->orientation = mdlpvp->pathp->orientation2;
+              mdlpvp->prodp->next = mdlpvp->pathp->product_head;
+              mdlpvp->pathp->product_head = mdlpvp->prodp;
+
+          }
+        }else{
+          if(mdlpvp->pathp->reactant3->flags & IS_SURFACE)
+          {
+              mdlpvp->prodp = (struct product *)mem_get(mdlpvp->prod_mem);
+              if(mdlpvp->prodp == NULL){
+                mdlerror(mdlpvp, "Out of memory while creating reaction.\n");
+                return 1;
+              }
+
+              mdlpvp->prodp->prod = mdlpvp->pathp->reactant3;
+              mdlpvp->prodp->orientation = mdlpvp->pathp->orientation3;
+              mdlpvp->prodp->next = mdlpvp->pathp->product_head;
+              mdlpvp->pathp->product_head = mdlpvp->prodp;
+          }
 
         }
 

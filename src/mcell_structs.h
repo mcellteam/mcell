@@ -36,6 +36,7 @@
 #define IS_SURFACE       0x02
 #define NOT_FREE         0x03
 #define TIME_VARY        0x04
+#define CAN_MOLMOLMOL    0x08
 #define CAN_MOLMOL       0x10
 #define CAN_MOLGRID      0x20
 #define CAN_MOLWALL      0x40
@@ -230,6 +231,7 @@
 #define COLLIDE_WALL    0x10
 #define COLLIDE_MOL     0x20
 #define COLLIDE_SUBVOL  0x40
+#define COLLIDE_MOL_MOL 0x80
 
 
 /* Target-type Flags */
@@ -700,7 +702,7 @@ struct pathway {
   struct rxn_pathname *pathname; /* Data for named reaction pathway or NULL */
   struct species *reactant1;     /* First reactant in reaction pathway */
   struct species *reactant2;     /* Second reactant (NULL if none) */
-  struct species *reactant3;     /* Third reactant--surface type or NULL */
+  struct species *reactant3;     /* Third reactant (NULL if none) */
   double km;                     /* Rate constant */
   char* km_filename;             /* Filename for time-varying rates */
   short orientation1;            /* Orientation of first reactant */
@@ -917,6 +919,8 @@ struct storage
   struct mem_helper *tree;  /* Vertices */
   struct mem_helper *grids;  /* Effector grids */
   struct mem_helper *coll;  /* Collision list */
+  struct mem_helper *sp_coll;  /* Collision list - helps in trimolecular reactions*/
+  struct mem_helper *tri_coll;  /* Collision list for trimolecular collisions */
   struct mem_helper *regl;  /* Region lists */
   struct mem_helper *exdv;  /* Vertex lists for exact interaction disk area */
   
@@ -1217,6 +1221,7 @@ struct volume
   long long ray_polygon_tests;     /* How many ray-polygon intersection tests have we performed */
   long long ray_polygon_colls;     /* How many ray-polygon intersections have occured */
   long long mol_mol_colls;         /* How many mol-mol collisions have occured */
+  long long mol_mol_mol_colls;     /* How many mol-mol_mol collisions have occured */
 
   struct vector3 bb_llf;	/* llf corner of world bounding box */
   struct vector3 bb_urb;	/* urb corner of world bounding box */
@@ -1250,6 +1255,7 @@ struct volume
   byte surface_reversibility;  /* If set, match unbinding diffusion distribution to binding distribution at surface */
   byte volume_reversibility;   /* If set, match unbinding diffusion distribution to binding distribution in volume */
 
+
   /* MCell startup command line arguments */
   u_int seed_seq;            /* Seed for random number generator */
   long long iterations;      /* How many iterations to run */
@@ -1282,6 +1288,42 @@ struct collision
   struct vector3 loc;           /* Location of impact */
 };
 
+/* Special type of collision - used when moving molecule
+   can engage in tri-molecular  collisions */
+struct sp_collision
+{
+  struct sp_collision *next;
+  double t;                     /* Time of collision (may be slightly early) */
+  double t_start;                /* Start time of random walk */
+  struct vector3 pos_start;      /* Start position of random walk */
+  struct subvolume *sv_start;    /* Start subvolume */
+  
+  struct species *moving;       /* Species of the moving molecule */
+  void *target;                 /* Thing that we hit: wall, molecule, subvol etc */
+  int what;                     /* Target-type Flags: what kind of thing did we hit? */
+  struct vector3 disp;          /* Random walk displacement for the moving molecule */
+  struct vector3 loc;           /* Location of impact */
+};
+
+
+
+/* Data structure to store information about trimolecular and bimolecular 
+   collisions. */
+struct tri_collision
+{
+  struct tri_collision *next;
+  double t;                     /* Time of collision (may be slightly early) */
+  
+  void *target1;                 /* First thing that we hit: wall, molecule, subvol etc */
+  void *target2;                 /* Second thing that we hit: wall, molecule, subvol etc - always the furthest from the moving molecule */
+  int what;                     /* Target-type Flags: what kind of thing did we hit? */
+  struct rxn *intermediate;     /* Reaction that told us we could hit                                    target1 and/or target2  */
+  struct vector3 loc;           /* Assumed location of impact */
+  struct vector3 loc1;           /* Location of impact with first target */
+  struct vector3 loc2;           /* Location of impact with second target */
+  double factor;                /* Result of "exact_disk()" with both targets
+                                   or scaling coef. for MOL_WALL interaction */
+};
 
 /* Data structures to store information about exact interaction disk geometry */
 struct exd_vertex
