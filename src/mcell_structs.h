@@ -1118,8 +1118,6 @@ struct volume
   int n_waypoints;              /* How many waypoints (one per subvol) */
   struct waypoint *waypoints;   /* Waypoints contain fully-closed region information */
   byte place_waypoints_flag;    /* Used to save memory if waypoints not needed */
-
-  byte releases_on_regions_flag; /* Triggers special release site initialization */
   
   int n_subvols;                /* How many coarse subvolumes? */
   struct subvolume *subvol;     /* Array containing all subvolumes */

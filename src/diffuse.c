@@ -6460,7 +6460,7 @@ struct volume_molecule* diffuse_3D_big_list(struct volume_molecule *m,double max
   struct rxn *rx;
   struct volume_molecule *mp,*old_mp, *new_mp;
   struct grid_molecule *g; 
-  struct abstract_molecule  *am1, *am2;
+  struct abstract_molecule  *am1, *am2 = NULL; 
   struct species *sm;
   double steps=1.0;
   double t_steps=1.0;
@@ -6474,7 +6474,7 @@ struct volume_molecule* diffuse_3D_big_list(struct volume_molecule *m,double max
   /* this flag is set to 1 only after reflection from a wall and only with expanded lists. */
   int redo_expand_collision_list_flag = 0; 
 
-   int i,j,k, l,ii; 
+  int i,j = INT_MIN,k,l,ii; 
     
   int calculate_displacement = 1;
   
@@ -7011,7 +7011,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
          if (num_matching_rxns > 0)
          {
-           for(i= 0; i< num_matching_rxns; i++)
+           for(i = 0; i< num_matching_rxns; i++)
            {
                tri_smash = mem_get(sv->local_storage->tri_coll);
                if (tri_smash == NULL)

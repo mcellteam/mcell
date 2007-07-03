@@ -1041,7 +1041,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
        m->subvol->local_storage->timer->defunct_count++;
     }
                 
-    if ((reacA->flags&COUNT_ME) && (world->place_waypoints_flag|world->releases_on_regions_flag))
+    if ((reacA->flags&COUNT_ME) && world->place_waypoints_flag)
     {
       /* Subtlety: we made it up to hitpt, but our position is wherever we were before that! */
 	/* Vol-vol rx should be counted at hitpt */

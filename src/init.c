@@ -284,7 +284,6 @@ int init_sim(void)
   world->d_step=NULL;
   world->dissociation_index = DISSOCIATION_MAX;
   world->place_waypoints_flag=0;
-  world->releases_on_regions_flag=0;
   world->count_scheduler = NULL;
   world->volume_output_scheduler = NULL;
   world->storage_head = NULL;
@@ -548,7 +547,7 @@ int init_sim(void)
   }
   
 
-  if (world->place_waypoints_flag || world->releases_on_regions_flag) {
+  if (world->place_waypoints_flag) {
     if (place_waypoints()) {
       fprintf(world->err_file,"File '%s', Line %ld: error storing waypoints.\n", __FILE__, (long)__LINE__);
       return(1);
@@ -563,7 +562,7 @@ int init_sim(void)
   
   if (init_releases())
   {
-     if (world->releases_on_regions_flag)
+     if (world->place_waypoints_flag)
      {
          fprintf(world->err_file,"File '%s', Line %ld: Error initializing releases on regions\n", __FILE__, (long)__LINE__);
          return 1;

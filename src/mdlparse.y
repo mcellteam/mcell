@@ -3597,7 +3597,7 @@ release_site_geom: SHAPE '=' release_region_expr
   mdlpvp->objp = mdlpvp->curr_obj;
   
   mdlpvp->rsop->release_shape = SHAPE_REGION;
-  mdlpvp->vol->releases_on_regions_flag = 1;
+  mdlpvp->vol->place_waypoints_flag = 1;
   
   rrd = (struct release_region_data*)malloc(sizeof(struct release_region_data));
   if (rrd==NULL)
@@ -3664,7 +3664,7 @@ release_site_geom: SHAPE '=' release_region_expr
   ((struct region*)re->left)->flags |= COUNT_CONTENTS;
   
   mdlpvp->rsop->release_shape = SHAPE_REGION;
-  mdlpvp->vol->releases_on_regions_flag = 1;
+  mdlpvp->vol->place_waypoints_flag = 1;
   
   rrd = (struct release_region_data*)malloc(sizeof(struct release_region_data));
   if (rrd==NULL)
