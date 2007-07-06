@@ -2488,11 +2488,17 @@ static int dreamm_v3_generic_dump_mesh_data(struct frame_data_list const * const
       {
         int wall_index;
         struct region *rp = rlp->reg;
+         
+
         if (strcmp(rp->region_last_name, "ALL") == 0) continue; 
         if (strcmp(rp->region_last_name, "REMOVED") == 0) continue; 
  
         /* number of walls in the region */
-        int region_walls_number = 0; 
+        int region_walls_number = 0;
+        /* number of null_walls in the object */
+        int null_wall_number = 0; 
+        /* valid index to write in the region_data file */
+        int valid_index;
         long pos = ftell(region_data);
 
         /* the valid number for the region_index should always be 
@@ -2500,14 +2506,18 @@ static int dreamm_v3_generic_dump_mesh_data(struct frame_data_list const * const
            of polygons.  After REMOVE_ELEMENTS command n may not be
            equal to the number of polygons of the object initially
            created. */
-        for(wall_index = 0; wall_index < objp->n_walls; ++ wall_index)
+        for(wall_index = 0; wall_index < objp->n_walls; ++ wall_index) 
         {
-          if(objp->wall_p[wall_index] == NULL) continue; 
+          if(objp->wall_p[wall_index] == NULL) {
+              null_wall_number++;
+              continue; 
+          }
           int n = objp->wall_p[wall_index]->side;
           if (get_bit(rp->membership,n))
           {
-            fwrite(&region_walls_number, sizeof (n), 1, region_data);
-            region_walls_number++;
+            valid_index = n - null_wall_number;
+            fwrite(&(valid_index), sizeof (valid_index), 1, region_data);
+            region_walls_number++; 
           }
         }
 
