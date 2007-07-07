@@ -1,18 +1,19 @@
-#LyX 1.3 created this file. For more info see http://www.lyx.org/
-\lyxformat 221
+#LyX 1.4.2 created this file. For more info see http://www.lyx.org/
+\lyxformat 245
+\begin_document
+\begin_header
 \textclass article
 \language english
 \inputencoding auto
 \fontscheme pslatex
 \graphics default
 \paperfontsize 12
-\spacing single 
+\spacing single
 \papersize letterpaper
-\paperpackage a4
-\use_geometry 1
-\use_amsmath 1
-\use_natbib 0
-\use_numerical_citations 0
+\use_geometry true
+\use_amsmath 2
+\cite_engine basic
+\use_bibtopic false
 \paperorientation portrait
 \leftmargin 1in
 \topmargin 0.85in
@@ -26,95 +27,99 @@
 \paragraph_separation skip
 \defskip medskip
 \quotes_language english
-\quotes_times 2
 \papercolumns 1
 \papersides 1
 \paperpagestyle empty
+\tracking_changes false
+\output_changes true
+\end_header
 
-\layout Subsubsection*
+\begin_body
 
+\begin_layout Subsubsection*
 Three-way reactions in MCell
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 The rate of reaction of a molecule that can engage in a three-way reaction
  with reactants 
 \begin_inset Formula $I$
-\end_inset 
+\end_inset
 
  and 
 \begin_inset Formula $J$
-\end_inset 
+\end_inset
 
  at concentrations 
 \begin_inset Formula $\rho_{I}$
-\end_inset 
+\end_inset
 
  and 
 \begin_inset Formula $\rho_{J}$
-\end_inset 
+\end_inset
 
  is 
 \begin_inset Formula $\kappa\rho_{I}\rho_{J}$
-\end_inset 
+\end_inset
 
 .
  Suppose that a single molecule moves a distance 
 \begin_inset Formula $R$
-\end_inset 
+\end_inset
 
  while sweeping out an interaction area of 
 \begin_inset Formula $\delta A$
-\end_inset 
+\end_inset
 
 .
  Then the expected number of hits, assuming that the concentration of 
 \begin_inset Formula $I$
-\end_inset 
+\end_inset
 
  and 
 \begin_inset Formula $J$
-\end_inset 
+\end_inset
 
  is low, is 
 \begin_inset Formula \[
 n_{\mathrm{{hits}}}=R\,\delta A\,\rho_{I}\cdot R\,\delta A\,\rho_{J}\]
 
-\end_inset 
+\end_inset
 
  Thus, the expected number of hits for a molecule with a diffusion length
  constant of 
 \begin_inset Formula $\lambda$
-\end_inset 
+\end_inset
 
  is 
 \begin_inset Formula \[
 n_{\mathrm{{hits}}}=\int_{0}^{\infty}\rho_{I}\rho_{J}\delta A^{2}R^{2}\frac{4\pi R^{2}}{\pi^{3/2}\lambda^{3}}e^{-R^{2}/\lambda^{2}}dR=\frac{3}{2}\rho_{I}\rho_{J}\delta A^{2}\lambda^{2}\]
 
-\end_inset 
+\end_inset
 
  If we let 
 \begin_inset Formula $p$
-\end_inset 
+\end_inset
 
  be the probability of reaction, then
 \begin_inset Formula \[
 \kappa\rho_{I}\rho_{J}\Delta t=p\cdot n=p\cdot\frac{3}{2}\rho_{I}\rho_{J}\delta A^{2}\lambda^{2}\]
 
-\end_inset 
+\end_inset
 
  Solving for 
 \begin_inset Formula $p$
-\end_inset 
+\end_inset
 
  gives 
 \begin_inset Formula \[
 p=\frac{\kappa}{6D\delta A^{2}}\]
 
-\end_inset 
+\end_inset
 
  assuming that 
 \begin_inset Formula $\Delta t$
-\end_inset 
+\end_inset
 
  is the time step for the moving molecule.
  If we let all three reactants move and react---let us number them 1, 2,
@@ -122,57 +127,58 @@ p=\frac{\kappa}{6D\delta A^{2}}\]
 \begin_inset Formula \[
 \kappa\rho_{1}\rho_{2}\rho_{3}\Delta t=\frac{3}{2}\rho_{1}\rho_{2}\rho_{3}\delta A^{2}\left(p_{1}\frac{\Delta t}{\Delta t_{1}}\lambda_{1}^{2}+p_{2}\frac{\Delta t}{\Delta t_{2}}\lambda_{2}^{2}+p_{3}\frac{\Delta t}{\Delta t_{3}}\lambda_{3}^{2}\right)\]
 
-\end_inset 
+\end_inset
 
  where in general the individual molecules may move with custom timesteps
  
 \begin_inset Formula $\Delta t_{i}$
-\end_inset 
+\end_inset
 
 .
  We let 
 \begin_inset Formula $p_{1}=p_{2}=p_{3}=p$
-\end_inset 
+\end_inset
 
  to give 
 \begin_inset Formula \[
 p=\frac{\kappa}{6\left(D_{1}+D_{2}+D_{3}\right)\delta A^{2}}\]
 
-\end_inset 
+\end_inset
 
  This solution also works for the cases where some of the reactants can't
  move (as 
 \begin_inset Formula $D_{i}$
-\end_inset 
+\end_inset
 
  will be zero and will drop out of the equation).
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Now suppose that the reaction takes place near a surface such that for a
  fraction 
 \begin_inset Formula $a$
-\end_inset 
+\end_inset
 
  of the distance, the molecule sweeps out 
 \begin_inset Formula $\delta A^{\star}<\delta A$
-\end_inset 
+\end_inset
 
  of area instead of 
 \begin_inset Formula $\delta A$
-\end_inset 
+\end_inset
 
 .
  The expected number of hits is then 
 \begin_inset Formula \[
 n_{\mathrm{{hits}}}^{\star}=R\,\rho_{I}\,\left((1-a)\delta A+a\delta A^{\star}\right)\, R\,\rho_{J}\,\left((1-a)\delta A+a\delta A^{\star}\right)\]
 
-\end_inset 
+\end_inset
 
  which we can rewrite as 
 \begin_inset Formula \[
 n_{\mathrm{{hits}}}^{\star}=n_{\mathrm{{hits}}}\left((1-a)^{2}+2a(1-a)\frac{\delta A^{\star}}{\delta A}+a^{2}\left(\frac{\delta A^{\star}}{\delta A}\right)^{2}\right)\]
 
-\end_inset 
+\end_inset
 
  where the first term occurs when both hits are in the unconstrained space,
  the second when one target molecule is in the unconstrained space and one
@@ -181,109 +187,121 @@ n_{\mathrm{{hits}}}^{\star}=n_{\mathrm{{hits}}}\left((1-a)^{2}+2a(1-a)\frac{\del
  If we multiply the probability of reaction by the inverse of the fractional
  areas for each target, i.e., by 
 \begin_inset Formula $\delta A/\delta A^{\star}$
-\end_inset 
+\end_inset
 
  if one target is in the constrained space and 
 \begin_inset Formula $\left(\delta A/\delta A^{\star}\right)^{2}$
-\end_inset 
+\end_inset
 
  when both are in the constrained space, we then find that the total rate
  of reaction is 
 \begin_inset Formula \[
 pn_{\mathrm{{hits}}}\left((1-a)^{2}\cdot1\cdot1+2a(1-a)\frac{\delta A^{\star}}{\delta A}\cdot1\cdot\frac{\delta A}{\delta A^{\star}}+a^{2}\left(\frac{\delta A^{\star}}{\delta A}\right)^{2}\cdot\frac{\delta A}{\delta A^{\star}}\cdot\frac{\delta A}{\delta A^{\star}}\right)=pn_{\mathrm{{hits}}}\]
 
-\end_inset 
+\end_inset
 
  That is, the reaction rate is unchanged, which is exactly what we want.
  Since 
 \begin_inset Formula $a$
-\end_inset 
+\end_inset
 
  is arbitrary, we can make 
 \begin_inset Formula $a$
-\end_inset 
+\end_inset
 
  differentially small and thus the result holds for arbitrary restrictions
  of the swept area.
-\layout Subsubsection*
+\end_layout
 
+\begin_layout Subsubsection*
 N-way reactions in MCell
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Generalizing to 
 \begin_inset Formula $N+1$
-\end_inset 
+\end_inset
 
  reactants (one moving and 
 \begin_inset Formula $N$
-\end_inset 
+\end_inset
 
  targets), where 
 \begin_inset Formula $N$
-\end_inset 
+\end_inset
 
  is a positive integer, we find that the collision rate is 
 \begin_inset Formula \[
 n_{\mathrm{{hits}}}=\int_{0}^{\infty}dR\cdot\prod_{i=1}^{N}\rho_{i}\cdot\left(R\delta A\right)^{N}\cdot\frac{4\pi R^{2}}{\pi^{3/2}\lambda^{3}}e^{-R^{2}/\lambda^{2}}=\prod_{i=1}^{N}\rho_{i}\cdot\frac{2\lambda^{N}\delta A^{N}}{\sqrt{\pi}}\Gamma\left(\frac{N+3}{2}\right)\]
 
-\end_inset 
+\end_inset
 
  and the bulk rate is 
 \begin_inset Formula $\kappa\cdot\prod_{i=1}^{N}\rho_{i}\cdot\Delta t$
-\end_inset 
+\end_inset
 
 , so equating probabilities gives 
 \begin_inset Formula \[
 p=\frac{\kappa\sqrt{\pi}\Delta t}{2\lambda^{N}\delta A^{N}\Gamma\left(\frac{N+3}{2}\right)}\]
 
-\end_inset 
+\end_inset
 
  Note that 
 \begin_inset Formula $\Gamma(N)=(N-1)!$
-\end_inset 
+\end_inset
 
  and 
 \begin_inset Formula $\Gamma(N+\frac{1}{2})=\sqrt{\pi}\cdot2^{-2N}\cdot(2N)!/N!=\sqrt{\pi}\cdot\prod_{i=1}^{N}\frac{2i-1}{2}$
-\end_inset 
+\end_inset
 
 .
  If we have multiple moving molecules, 
 \begin_inset Formula \[
 \kappa\cdot\prod_{i=1}^{N+1}\rho_{i}\cdot\Delta t=\prod_{i=1}^{N+1}\rho_{i}\cdot\frac{2\delta A^{N}}{\sqrt{\pi}}\Gamma\left(\frac{N+3}{2}\right)\cdot\sum_{i=1}^{N+1}p_{i}\frac{\Delta t}{\Delta t_{i}}\lambda_{i}^{N}\]
 
-\end_inset 
+\end_inset
 
  so that, if we set all the 
 \begin_inset Formula $p_{i}$
-\end_inset 
+\end_inset
 
 to be equal, 
 \begin_inset Formula \[
 p=\frac{\kappa\sqrt{\pi}}{2\Gamma\left(\frac{N+3}{2}\right)\delta A^{N}\sum\frac{\lambda_{i}^{N}}{\Delta t_{i}}}\]
 
-\end_inset 
+\end_inset
 
  By induction on the result for pairs of targets in the 3-way case, we also
  see that if a target 
 \begin_inset Formula $i$
-\end_inset 
+\end_inset
 
  is hit in a restricted space, the reaction probability should be multiplied
  by 
 \begin_inset Formula $\delta A/\delta A_{i}^{\star}$
-\end_inset 
+\end_inset
 
 .
-\layout Subsubsection*
+\end_layout
 
+\begin_layout Subsubsection*
+N-way reactions plus a surface in MCell
+\end_layout
+
+\begin_layout Standard
+<write stuff here>
+\end_layout
+
+\begin_layout Subsubsection*
 Converting 3-way reactions to 2-way reactions
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Suppose we have a three-way reaction 
 \begin_inset Formula \[
 A_{1}+A_{2}+A_{3}\overset{k}{\longrightarrow}A_{123}\]
 
-\end_inset 
+\end_inset
 
  which we wish to approximate by nine bimolecular reactions: 
 \begin_inset Formula \[
@@ -298,188 +316,192 @@ A_{3}+A_{12} & \overset{k_{3}}{\longrightarrow} & A_{123}\\
 A_{2}+A_{13} & \overset{k_{2}}{\longrightarrow} & A_{123}\\
 A_{1}+A_{23} & \overset{k_{1}}{\longrightarrow} & A_{123}\end{array}\]
 
-\end_inset 
+\end_inset
 
  At quasi-steady state, we want to match rate of entry in to the 
 \begin_inset Formula $A_{123}$
-\end_inset 
+\end_inset
 
  state: 
 \begin_inset Formula \begin{equation}
 kA_{1}A_{2}A_{3}=k_{1}A_{1}A_{23}+k_{2}A_{2}A_{13}+k_{3}A_{3}A_{12}\label{eqn_qss_match}\end{equation}
 
-\end_inset 
+\end_inset
 
  And we also wish to keep the quasi-steady state concentrations of the intermedi
 ates 
 \begin_inset Formula $A_{12}$
-\end_inset 
+\end_inset
 
 , 
 \begin_inset Formula $A_{13}$
-\end_inset 
+\end_inset
 
 , and 
 \begin_inset Formula $A_{23}$
-\end_inset 
+\end_inset
 
  low compared to the starting materials.
  In general, we will have 
 \begin_inset Formula \[
 \frac{d}{dt}A_{hi}=-k_{j}A_{j}A_{hi}-k_{-hi}A_{hi}+k_{hi}A_{h}A_{i}\approx0\]
 
-\end_inset 
+\end_inset
 
  so that 
 \begin_inset Formula \[
 A_{hi}\approx\frac{k_{hi}A_{h}A_{i}}{k_{-hi}+k_{j}A_{j}}\]
 
-\end_inset 
+\end_inset
 
  If we want this to be roughly independent of the concentration of 
 \begin_inset Formula $A_{j}$
-\end_inset 
+\end_inset
 
  then we require 
 \begin_inset Formula $k_{-hi}\gg k_{j}A_{j}$
-\end_inset 
+\end_inset
 
  and can rewrite this as 
 \begin_inset Formula \[
 A_{hi}\approx\frac{k_{hi}}{k_{-hi}}A_{h}A_{i}\left(1-\frac{k_{j}A_{j}}{k_{-hi}}\right)\]
 
-\end_inset 
+\end_inset
 
 If we further require that 
 \begin_inset Formula $A_{hi}$
-\end_inset 
+\end_inset
 
  be small compared to 
 \begin_inset Formula $A_{h}$
-\end_inset 
+\end_inset
 
  and 
 \begin_inset Formula $A_{i}$
-\end_inset 
+\end_inset
 
 , we also require 
 \begin_inset Formula $\frac{k_{hi}}{k_{-hi}}\ll\frac{1}{\max(A_{h},A_{i})}$
-\end_inset 
+\end_inset
 
 .
  Let 
 \begin_inset Formula $A_{+}$
-\end_inset 
+\end_inset
 
  be the largest value of any of the 
 \begin_inset Formula $A_{i}$
-\end_inset 
+\end_inset
 
  during a simulation.
  Furthermore, let us set all 
 \begin_inset Formula $k_{j}$
-\end_inset 
+\end_inset
 
  to be 
 \begin_inset Formula $k^{\star}$
-\end_inset 
+\end_inset
 
 , all 
 \begin_inset Formula $k_{hi}$
-\end_inset 
+\end_inset
 
  to be 
 \begin_inset Formula $k^{\dagger}$
-\end_inset 
+\end_inset
 
  and all 
 \begin_inset Formula $k_{-hi}$
-\end_inset 
+\end_inset
 
  to be 
 \begin_inset Formula $k^{\ddagger}$
-\end_inset 
+\end_inset
 
 .
  Then our constraints require that 
 \begin_inset Formula $k^{\ddagger}\gg k^{\star}A_{+}$
-\end_inset 
+\end_inset
 
  and 
 \begin_inset Formula $k^{\dagger}\ll k^{\ddagger}\frac{1}{A_{+}}$
-\end_inset 
+\end_inset
 
 ; taken together, 
 \begin_inset Formula $k^{\dagger}\approx k^{\star}$
-\end_inset 
+\end_inset
 
  is a valid solution, so we may as well make the two the same, 
 \begin_inset Formula $k^{\prime}$
-\end_inset 
+\end_inset
 
 .
  Thus, we have a forward reaction rate 
 \begin_inset Formula $k^{\prime}$
-\end_inset 
+\end_inset
 
  for all binding reactions and a backward reaction rate 
 \begin_inset Formula $k^{\ddagger}$
-\end_inset 
+\end_inset
 
  for dissociation of the intermediates.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Thus, equation (
 \begin_inset LatexCommand \ref{eqn_qss_match}
 
-\end_inset 
+\end_inset
 
 ) becomes 
 \begin_inset Formula \[
 kA_{1}A_{2}A_{3}\approx k^{\prime}A_{1}\frac{k^{\prime}}{k^{\ddagger}}A_{2}A_{3}+k^{\prime}A_{2}\frac{k^{\prime}}{k^{\ddagger}}A_{1}A_{3}+k^{\prime}A_{3}\frac{k^{\prime}}{k^{\ddagger}}A_{1}A_{2}=3\frac{{k^{\prime}}^{2}}{k^{\ddagger}}A_{1}A_{2}A_{3}\]
 
-\end_inset 
+\end_inset
 
  with a first-order error term 
 \begin_inset Formula \[
 -\frac{{k^{\prime}}^{3}}{{k^{\ddagger}}^{2}}A_{1}A_{2}A_{3}\left(A_{1}+A_{2}+A_{3}\right)\]
 
-\end_inset 
+\end_inset
 
  If we let 
 \begin_inset Formula $k^{\ddagger}=\alpha k^{\prime}$
-\end_inset 
+\end_inset
 
 , where 
 \begin_inset Formula $\alpha\gg A_{+}$
-\end_inset 
+\end_inset
 
 , we then have 
 \begin_inset Formula \[
 k\approx\frac{3}{\alpha}k^{\prime}-\frac{A_{1}+A_{2}+A_{3}}{\alpha^{2}}k^{\prime}\]
 
-\end_inset 
+\end_inset
 
  Thus, 
 \begin_inset Formula \[
 k_{1}=k_{2}=k_{3}=k_{12}=k_{13}=k_{23}=k^{\prime}\approx\frac{1}{3}\alpha k\]
 
-\end_inset 
+\end_inset
 
  and 
 \begin_inset Formula \[
 k_{-12}=k_{-13}=k_{-23}=k^{\ddagger}\approx\frac{1}{3}\alpha^{2}k\]
 
-\end_inset 
+\end_inset
 
  Note that our fractional error is approximately 
 \begin_inset Formula $1/\alpha$
-\end_inset 
+\end_inset
 
 , i.e.
  if we let 
 \begin_inset Formula $\alpha=100\, A_{+}$
-\end_inset 
+\end_inset
 
  our fractional error would be under 1%.
-\the_end
+\end_layout
+
+\end_body
+\end_document

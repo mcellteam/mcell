@@ -2514,6 +2514,22 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       } /* end if-else */
     } /* end for */
   }  /* end for */
+  
+  /* Add flags for any generic 3D molecule reactions */
+  if (mpvp->vol->g_mol->flags & (CAN_MOLWALL|CAN_MOLMOL))
+  {
+    k = mpvp->vol->g_mol->flags & (CAN_MOLWALL|CAN_MOLMOL);
+    for (i=0;i<rx_hash;i++)
+    {
+      for (rx=rx_tbl[i] ; rx!=NULL ; rx=rx->next)
+      {
+	for (j=0;j<rx->n_reactants;j++)
+	{
+	  if ((rx->players[j]->flags & NOT_FREE)==0) rx->players[j]->flags |= k;
+	}
+      }
+    }
+  }
 
   if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
   {

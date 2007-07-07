@@ -430,7 +430,7 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
   }
   
   
-  hashGM = world->g_surf->hashval & (world->rx_hashsize-1);
+  hashGM = world->g_mol->hashval & (world->rx_hashsize-1);
   if (hashW == hashGM) hash = hashW;
   else hash = hashW ^ hashGM;
   
