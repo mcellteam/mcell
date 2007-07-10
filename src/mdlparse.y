@@ -5315,6 +5315,13 @@ patch_statement: patch_type '=' point ',' point
   mdlpvp->elmlp->special->exclude = (byte)$<tok>1;
   temp_llf = $<vec3>3;
   temp_urb = $<vec3>5;
+  temp_llf->x *= volp->r_length_unit;
+  temp_llf->y *= volp->r_length_unit;
+  temp_llf->z *= volp->r_length_unit;
+  temp_urb->x *= volp->r_length_unit;
+  temp_urb->y *= volp->r_length_unit;
+  temp_urb->z *= volp->r_length_unit;
+  
   memcpy(&(mdlpvp->elmlp->special->corner1),temp_llf,sizeof(struct vector3));
   memcpy(&(mdlpvp->elmlp->special->corner2),temp_urb,sizeof(struct vector3));
   if (refine_cuboid(temp_llf,temp_urb,mdlpvp->pop->sb,mdlpvp->vol->grid_density))

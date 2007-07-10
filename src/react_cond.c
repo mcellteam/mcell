@@ -328,6 +328,8 @@ int test_intersect(struct rxn *rx,double scaling)
   
   if (rx->n_pathways <= RX_SPECIAL) return rx->n_pathways;
   
+  if (rx->cum_probs[rx->n_pathways-1] < EPS_C) printf("This isn't happening between %s and %s\n",rx->players[0]->sym->name,rx->players[1]->sym->name);
+  
   if (rx->cum_probs[rx->n_pathways-1] > scaling)
   {
     if (scaling<=0.0) rx->n_skipped += GIGANTIC;

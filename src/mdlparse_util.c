@@ -2077,6 +2077,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  else is_gigantic=0;
  
           rx->cum_probs[0] = pb_factor * rx->cum_probs[0];
+	  if (is_gigantic) rx->cum_probs[0] = 2.0; /* More than always happens (in case of area mismatch) */
 
           if ( (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_notify
 	        && (!is_gigantic || mpvp->vol->notify->reaction_prob_notify==0.0) )
