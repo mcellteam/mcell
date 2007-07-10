@@ -7343,7 +7343,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	      {
 		j = outcome_intersect(
 			rx,i,w,(struct abstract_molecule*)m,
-			k,m->t + t_steps*smash->t,&(smash->loc),NULL);
+			k,m->t + t_steps*tri_smash->t,&(tri_smash->loc),NULL);
 		      
 		if (j==RX_NO_MEM) { ERROR_AND_QUIT; } 
 		if (j==RX_FLIP)
