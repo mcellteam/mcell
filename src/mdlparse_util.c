@@ -2077,7 +2077,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  else is_gigantic=0;
  
           rx->cum_probs[0] = pb_factor * rx->cum_probs[0];
-	  if (is_gigantic) rx->cum_probs[0] = 2.0; /* More than always happens (in case of area mismatch) */
+	  if (is_gigantic) rx->cum_probs[0] = 2.0; /* Over 1.0 so it will remain >=1.0 in case of area mismatch */
 
           if ( (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_notify
 	        && (!is_gigantic || mpvp->vol->notify->reaction_prob_notify==0.0) )
@@ -2519,14 +2519,16 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   /* Add flags for any generic 3D molecule reactions */
   if (mpvp->vol->g_mol->flags & (CAN_MOLWALL|CAN_MOLMOL))
   {
+    struct sym_table *gp;
     k = mpvp->vol->g_mol->flags & (CAN_MOLWALL|CAN_MOLMOL);
-    for (i=0;i<rx_hash;i++)
+    for (i=0;i<SYM_HASHSIZE;i++)
     {
-      for (rx=rx_tbl[i] ; rx!=NULL ; rx=rx->next)
-      {
-	for (j=0;j<rx->n_reactants;j++)
+      for (gp = mpvp->vol->main_sym_table[i] ; gp != NULL ; gp = gp->next)
+      {    
+	if (gp->sym_type==MOL)
 	{
-	  if ((rx->players[j]->flags & NOT_FREE)==0) rx->players[j]->flags |= k;
+	  temp_sp = (struct species*)gp->value;
+	  if ((temp_sp->flags & NOT_FREE) == 0) temp_sp->flags |= k;
 	}
       }
     }

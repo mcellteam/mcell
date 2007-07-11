@@ -5686,6 +5686,11 @@ name
  is destroyed if it touches this surface.
  Tick marks allow destruction from only one side for volume molecules, or
  destruction of only one orientation of surface molecules.
+ 
+\family typewriter
+GENERIC_MOLECULE
+\family default
+ works here also.
 \end_layout
 
 \end_inset
@@ -9858,10 +9863,7 @@ Specifies the mode of the visualization output.
 \emph default
 \bar default
 \noun default
-\color default
- 
-\color none
-DREAMM_V3
+ DREAMM_V3
 \family roman
 \series medium
 \shape up
@@ -9879,16 +9881,13 @@ DREAMM_V3
 \noun default
 DREAMM_V3_GROUPED
 \family default
-\color default
 ,
 \family typewriter
  
 \family default
 and
 \family typewriter
- 
-\color none
-DX
+ DX
 \family roman
 \series medium
 \shape up
@@ -9921,7 +9920,6 @@ mode request
 \emph default
 \bar default
 \noun default
-\color default
 s
 \family roman
 \series medium
@@ -9930,7 +9928,6 @@ s
 \emph off
 \bar no
 \noun off
-\color none
  the old MCell2 style of output format for compatibility purposes.
 
 \family default
@@ -9940,13 +9937,9 @@ s
 \emph default
 \bar default
 \noun default
-\color default
  The default is 
 \family typewriter
-\color none
-DREAMM_V3
-\color default
-.
+DREAMM_V3.
 \end_layout
 
 \end_inset
@@ -10251,7 +10244,6 @@ Defines a valid name list.
 \emph default
 \bar default
 \noun default
-\color default
 , strings with wildcards (in quotes) that match names, or keywords defined
  below
 \family roman
@@ -10261,7 +10253,6 @@ Defines a valid name list.
 \emph off
 \bar no
 \noun off
-\color none
 .
  All children of the named objects are included by default.
 
@@ -10272,7 +10263,6 @@ Defines a valid name list.
 \emph default
 \bar default
 \noun default
-\color default
  If this statement occurs in a 
 \family typewriter
 MESHES
@@ -10377,7 +10367,6 @@ Defines what data should be output at what times.
 \emph default
 \bar default
 \noun default
-\color default
 r 
 \family sans
 \shape italic
@@ -10389,7 +10378,6 @@ time_points_list
 \emph off
 \bar no
 \noun off
-\color none
  are 
 \family typewriter
 \series default
@@ -10398,7 +10386,6 @@ time_points_list
 \emph default
 \bar default
 \noun default
-\color default
 [
 \family sans
 \shape italic
@@ -10413,7 +10400,6 @@ time1
 \emph off
 \bar no
 \noun off
-\color none
 , or 
 \family typewriter
 \series default
@@ -10422,7 +10408,6 @@ time1
 \emph default
 \bar default
 \noun default
-\color default
 [
 \family sans
 \shape italic
@@ -10454,7 +10439,6 @@ time_end
 \emph off
 \bar no
 \noun off
-\color none
 , or 
 \family typewriter
 \series default
@@ -10463,7 +10447,6 @@ time_end
 \emph default
 \bar default
 \noun default
-\color default
 [
 \family sans
 \shape italic
@@ -10502,7 +10485,6 @@ delta_time
 \emph off
 \bar no
 \noun off
-\color none
 , or 
 \family typewriter
 \series default
@@ -10528,7 +10510,6 @@ ALL_TIMES.
 \emph default
 \bar default
 \noun default
-\color default
 Mutually exclusive with 
 \family typewriter
 ITERATION_NUMBERS
@@ -10625,7 +10606,6 @@ Defines what data should be output at what iterations.
 \emph default
 \bar default
 \noun default
-\color default
 iteration_numbers_list
 \family roman
 \series medium
@@ -10634,7 +10614,6 @@ iteration_numbers_list
 \emph off
 \bar no
 \noun off
-\color none
  are 
 \family typewriter
 \series default
@@ -10643,7 +10622,6 @@ iteration_numbers_list
 \emph default
 \bar default
 \noun default
-\color default
 [
 \family sans
 \shape italic
@@ -10658,7 +10636,6 @@ iteration1
 \emph off
 \bar no
 \noun off
-\color none
 , or 
 \family typewriter
 \series default
@@ -10667,7 +10644,6 @@ iteration1
 \emph default
 \bar default
 \noun default
-\color default
 [
 \family sans
 \shape italic
@@ -10699,7 +10675,6 @@ iteration_end
 \emph off
 \bar no
 \noun off
-\color none
 , or 
 \family typewriter
 \series default
@@ -10708,7 +10683,6 @@ iteration_end
 \emph default
 \bar default
 \noun default
-\color default
 [
 \family sans
 \shape italic
@@ -10747,7 +10721,6 @@ delta_iteration
 \emph off
 \bar no
 \noun off
-\color none
 , or 
 \family typewriter
 \series default
@@ -10759,7 +10732,6 @@ delta_iteration
 ALL_ITERATIONS.
 
 \family default
-\color default
  Mutually exclusive with 
 \family typewriter
 TIME_POINTS
@@ -10858,7 +10830,6 @@ ll mesh object names should be include
 \emph default
 \bar default
 \noun default
-\color default
 d
 \family roman
 \series medium
@@ -10867,7 +10838,6 @@ d
 \emph off
 \bar no
 \noun off
-\color none
  in the 
 \family typewriter
 \series default
@@ -11134,7 +11104,6 @@ esh
 \emph default
 \bar default
 \noun default
-\color default
  vertex and connectivity
 \family roman
 \series medium
@@ -11143,7 +11112,6 @@ esh
 \emph off
 \bar no
 \noun off
-\color none
  information should be written at the specified time/iteration.
 \end_layout
 
@@ -11183,7 +11151,6 @@ region
 \emph default
 \bar default
 \noun default
-\color default
  
 \family roman
 \series medium
@@ -11192,7 +11159,6 @@ region
 \emph off
 \bar no
 \noun off
-\color none
 information should be written at the specified time/iteration.
 \end_layout
 
@@ -11232,7 +11198,6 @@ quivalent to
 \emph default
 \bar default
 \noun default
-\color default
 using 
 \family roman
 \series medium
@@ -11241,7 +11206,6 @@ using
 \emph off
 \bar no
 \noun off
-\color none
 both 
 \family typewriter
 \series default
@@ -11418,7 +11382,6 @@ quivalent to
 \emph default
 \bar default
 \noun default
-\color default
 using 
 \family roman
 \series medium
@@ -11427,7 +11390,6 @@ using
 \emph off
 \bar no
 \noun off
-\color none
 both 
 \family typewriter
 \series default
