@@ -161,7 +161,8 @@
 /* CLAMP_CONC means surface reaction of CLAMP_CONCENTRATION type */
 #define PATHW_TRANSP      0x0001
 #define PATHW_REFLEC      0x0002
-#define PATHW_CLAMP_CONC  0x0004   
+#define PATHW_ABSORP      0x0004
+#define PATHW_CLAMP_CONC  0x0008   
 
 
 /* BSP Flags */

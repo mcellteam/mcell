@@ -2558,6 +2558,7 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
       mdlpvp->stp2->name,mdlpvp->stp1->name);
     return(1);
   }
+
   if ((mdlpvp->pathp=(struct pathway *)mem_get(mdlpvp->path_mem))==NULL) {
     mdlerror_fmt(mdlpvp,
       "Out of memory while creating surface reaction: %s -%s-> ...",
@@ -2632,6 +2633,7 @@ surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
       }
       break;
     case SINK:
+      mdlpvp->pathp->flags |= PATHW_ABSORP; 
       mdlpvp->pathp->product_head=NULL;
       break;
     default:
