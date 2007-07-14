@@ -5321,9 +5321,9 @@ int init_frame_data_list(struct frame_data_list **fdlpp)
       break;
 
     default:
-      /* should never happen */
-      fprintf(world->log_file, "Unknown mode for viz_output\n");
-      return 1;
+      count_time_values(fdlp);
+      if (reset_time_values(fdlp,world->start_time)) return 1;
+      break;
   }
 
   for (; fdlp != NULL; fdlp = fdlp->next)
@@ -5397,9 +5397,8 @@ void update_frame_data_list(struct frame_data_list *fdlp)
   /* Scan over all frames, producing appropriate output. */
   for (; fdlp != NULL; fdlp = fdlp->next)
   {
-    if (world->it_time!=fdlp->viz_iteration)
-      continue;
-
+    if (world->it_time!=fdlp->viz_iteration) continue;
+    
     switch (world->viz_mode)
     {
       case DX_MODE:
