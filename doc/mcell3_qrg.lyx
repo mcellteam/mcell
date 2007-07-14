@@ -75,6 +75,14 @@ This document was created with LyX 1.3.4 and is being maintained with Lyx
 .
 \end_layout
 
+\begin_layout Standard
+\begin_inset LatexCommand \tableofcontents{}
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
 Running MCell3
 \end_layout
