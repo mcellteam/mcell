@@ -1830,7 +1830,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           
             /* Look for concentration clamp */
             if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE)!=0 &&
-                path->km > 0.0 && path->product_head==NULL && ((path->flags & PATHW_CLAMP_CONC) != 0))
+                path->km >= 0.0 && path->product_head==NULL && ((path->flags & PATHW_CLAMP_CONC) != 0))
             {
               struct ccn_clamp_data *ccd;
               
@@ -1838,37 +1838,40 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               {
                 fprintf(mpvp->vol->err_file,"Warning: mixing surface modes with other surface reactions.  Please don't.\n");
               }
+	     
+	      if (path->km>0)
+	      { 
+		ccd = (struct ccn_clamp_data*)malloc(sizeof(struct ccn_clamp_data));
+		if (ccd==NULL)
+		{
+		  fprintf(mpvp->vol->err_file,"File '%s', Line %ld: Out of memory creating concentration clamp for %s\n  (on surface class %s)\n", __FILE__, (long)__LINE__, path->reactant1->sym->name,path->reactant2->sym->name);
+		  return 1;
+		}
+		
+		ccd->surf_class = path->reactant2;
+		ccd->mol = path->reactant1;
+		ccd->concentration = path->km;
+		if (path->orientation1*path->orientation2==0)
+		{
+		  ccd->orient = 0;
+		}
+		else
+		{
+		  ccd->orient = (path->orientation1==path->orientation2) ? 1 : -1;
+		}
+		ccd->sides = NULL;
+		ccd->next_mol = NULL;
+		ccd->next_obj = NULL;
+		ccd->objp = NULL;
+		ccd->n_sides = 0;
+		ccd->side_idx = NULL;
+		ccd->cum_area = NULL;
+		ccd->scaling_factor = 0.0;
+		ccd->next = mpvp->vol->clamp_list;
+		mpvp->vol->clamp_list = ccd;
+	      }
               
-              ccd = (struct ccn_clamp_data*)malloc(sizeof(struct ccn_clamp_data));
-              if (ccd==NULL)
-              {
-                fprintf(mpvp->vol->err_file,"File '%s', Line %ld: Out of memory creating concentration clamp for %s\n  (on surface class %s)\n", __FILE__, (long)__LINE__, path->reactant1->sym->name,path->reactant2->sym->name);
-                return 1;
-              }
-              
-              ccd->surf_class = path->reactant2;
-              ccd->mol = path->reactant1;
-              ccd->concentration = path->km;
               path->km = GIGANTIC;
-              if (path->orientation1*path->orientation2==0)
-              {
-                ccd->orient = 0;
-              }
-              else
-              {
-                ccd->orient = (path->orientation1==path->orientation2) ? 1 : -1;
-              }
-              ccd->sides = NULL;
-              ccd->next_mol = NULL;
-              ccd->next_obj = NULL;
-              ccd->objp = NULL;
-              ccd->n_sides = 0;
-              ccd->side_idx = NULL;
-              ccd->cum_area = NULL;
-              ccd->scaling_factor = 0.0;
-              ccd->next = mpvp->vol->clamp_list;
-              mpvp->vol->clamp_list = ccd;
-              
               rx->cat_probs[0] = 0;
             }
             else if ((path->flags & PATHW_TRANSP) != 0) {
