@@ -2314,7 +2314,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               return 1;
             }
           }
-        }else{
+        }else if((rx->n_reactants == 3) && 
+         ((rx->players[0]->flags & NOT_FREE) == 0) &&
+                  ((rx->players[1]->flags & NOT_FREE) == 0) && 
+                  ((rx->players[2]->flags & NOT_FREE) == 0)) {
             /* This is the reaction between three "vol_mols" */
 
 	  double eff_dif_a, eff_dif_b, eff_dif_c, eff_dif; /* effective diffusion constants*/
@@ -2378,7 +2381,141 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             {
               return 1;
             }
-          }
+          } /* end if(mdlpvp->vol->notify ...) */
+
+        }else{
+          /* This is a reaction between 2 volume_molecules and
+             one surface_molecule */
+           
+            
+             /* find out what reactants are volume_molecules 
+                and what is surface_molecule */
+             struct species *vol_reactant1 = NULL, *vol_reactant2 = NULL;
+             struct species *surf_reactant = NULL;
+             /* geometries of the reactants */
+             int vol_react1_geom = 0, vol_react2_geom = 0, surf_react_geom = 0;
+             if((rx->players[0]->flags & NOT_FREE) == 0)
+             {
+                vol_reactant1 = rx->players[0];
+                vol_react1_geom = rx->geometries[0];
+                if((rx->players[1]->flags & NOT_FREE) == 0){
+                    vol_reactant2 = rx->players[1];
+                    vol_react2_geom = rx->geometries[1];
+                    surf_reactant = rx->players[2];
+                    surf_react_geom = rx->geometries[2];
+                }else if((rx->players[2]->flags & NOT_FREE) == 0){
+                    vol_reactant2 = rx->players[2];
+                    vol_react2_geom = rx->geometries[2];
+                    surf_reactant = rx->players[1];
+                    surf_react_geom = rx->geometries[1];
+                }
+             }else if((rx->players[1]->flags & NOT_FREE) == 0)
+             {
+                vol_reactant1 = rx->players[1];
+                vol_react1_geom = rx->geometries[1];
+                if((rx->players[0]->flags & NOT_FREE) == 0){
+                    vol_reactant2 = rx->players[0];
+                    vol_react2_geom = rx->geometries[0];
+                    surf_reactant = rx->players[2];
+                    surf_react_geom = rx->geometries[2];
+                }else if((rx->players[2]->flags & NOT_FREE) == 0){
+                    vol_reactant2 = rx->players[2];
+                    vol_react2_geom = rx->geometries[2];
+                    surf_reactant = rx->players[0];
+                    surf_react_geom = rx->geometries[0];
+                }
+             }
+
+             /* volume reactants should be aligned - it means that
+                they should be in the same orientation class and have
+                the same sign */
+             if(vol_react1_geom != vol_react2_geom){
+	         fprintf(mpvp->vol->err_file,"Error: In 3-way reaction %s + %s + %s ---> [...] volume reactants %s and %s are either in different orientation classes or have opposite orientation sign.\n", rx->players[0]->sym->name, rx->players[1]->sym->name, rx->players[2]->sym->name, vol_reactant1->sym->name,vol_reactant2->sym->name);
+                 return 1;
+             }
+
+	     double eff_dif_1, eff_dif_2, eff_dif; /* effective diffusion constants*/
+             eff_dif_1 = vol_reactant1->D;
+             eff_dif_2 = vol_reactant2->D;
+	  
+	     if (vol_reactant1->flags & vol_reactant2->flags & surf_reactant->flags & CANT_INITIATE)
+	     {
+	       fprintf(mpvp->vol->err_file,"Error: Reaction between %s and %s and %s listed, but all marked TARGET_ONLY\n", vol_reactant1->sym->name, vol_reactant2->sym->name, surf_reactant->sym->name);
+               return 1;
+	     }
+	     else if (vol_reactant1->flags & CANT_INITIATE) eff_dif_1 = 0;
+	     else if (vol_reactant2->flags & CANT_INITIATE) eff_dif_2 = 0;
+
+
+             if ((eff_dif_1 + eff_dif_2) > 0)
+	     {
+                eff_dif = (eff_dif_1 + eff_dif_2) * 1.0e8;   /* convert from cm^2/sec to um^2/sec */
+
+	        pb_factor = 2.0 * mpvp->vol->grid_density / (3.0 * (MY_PI) * mpvp->vol->rx_radius_3d * mpvp->vol->rx_radius_3d * eff_dif);
+	         pb_factor *= 1.0e30 / (N_AV*N_AV);                                               /* Convert (L/mol)^2/s to (um^3/number)^2/s */
+	     }
+	     else pb_factor = 0.0;  /* No rxn possible */
+
+            /* The value of pb_factor above is calculated for the case
+               when surface_molecule can be hit from either side 
+               Otherwise the reaction_rate should be doubled.
+               So we check whether both of the volume_molecules
+               are in the same orientation class as surface_molecule.
+            */
+  
+            /* flags that show whether volume reactants are in the same
+               orientation classes as surface reactant */
+            int vol_react1_and_surf_react = 0, vol_react2_and_surf_react = 0;
+            if((vol_react1_geom + surf_react_geom)*(vol_react1_geom - surf_react_geom) == 0 && vol_react1_geom*surf_react_geom != 0){
+                 vol_react1_and_surf_react = 1;
+            }
+            if((vol_react2_geom + surf_react_geom)*(vol_react2_geom - surf_react_geom) == 0 && vol_react2_geom*surf_react_geom != 0){
+                 vol_react2_and_surf_react = 1;
+            }
+
+            if(vol_react1_and_surf_react && vol_react2_and_surf_react){
+	      pb_factor *= 2.0;
+            }
+
+	    
+             rx->cum_probs[0]=pb_factor*rx->cum_probs[0];
+
+             if ( (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_notify)
+               || (mpvp->vol->notify->high_reaction_prob != WARN_COPE && rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn) )
+             {
+                warn_file = mpvp->vol->log_file;
+                if (rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn)
+                {
+                  if (mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
+                  {
+                    warn_file = mpvp->vol->err_file;
+                    fprintf(warn_file,"\tError: High ");
+                  }
+                  else if (mpvp->vol->notify->high_reaction_prob==WARN_WARN) fprintf(warn_file,"\tWarning: High ");
+                  else fprintf(warn_file,"\t");
+                }
+                else fprintf(warn_file,"\t");
+              
+                fprintf(warn_file,"Probability %.4e (l) set for %s[%d] + %s[%d] + %s[%d] -> ",
+                   rx->cum_probs[0],
+                   rx->players[0]->sym->name,rx->geometries[0],
+                   rx->players[1]->sym->name,rx->geometries[1],
+                   rx->players[2]->sym->name,rx->geometries[2]);
+
+
+                for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
+                {
+                  if (rx->players[k]==NULL) fprintf(warn_file,"NIL ");
+                  else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+                }
+                fprintf(warn_file,"\n");
+            
+                if (rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn && mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
+                {
+                  return 1;
+                }
+              } /* end if(mdlpvp->vol->notify ...) */
+
 
         }
         
@@ -2594,30 +2731,56 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  rx->players[1]->flags |= CAN_GRIDWALL;
 	} /* end if-else */
       }else if(rx->n_reactants == 3){
-        if ( (rx->players[0]->flags & NOT_FREE)==0 &&
+        if((rx->players[2]->flags & IS_SURFACE) != 0)
+        {
+           /* two molecules and surface  */
+        
+           if ( (rx->players[0]->flags & NOT_FREE)==0 &&
                   (rx->players[1]->flags & (ON_GRID))!= 0 )
-        {
-          rx->players[0]->flags |= CAN_MOLGRID;
-        }
-        else if ( (rx->players[1]->flags & NOT_FREE)==0 &&
+           {
+              rx->players[0]->flags |= CAN_MOLGRID;
+           }
+           else if ( (rx->players[1]->flags & NOT_FREE)==0 &&
                   (rx->players[0]->flags & (ON_GRID))!= 0 )
-        {
-          rx->players[1]->flags |= CAN_MOLGRID;
-        }
-	else if ( (rx->players[0]->flags & ON_GRID) != 0 &&
+           {
+              rx->players[1]->flags |= CAN_MOLGRID;
+           }
+	   else if ( (rx->players[0]->flags & ON_GRID) != 0 &&
 	          (rx->players[1]->flags & ON_GRID) != 0 )
-	{
-	  rx->players[0]->flags |= CAN_GRIDGRID;
-	  rx->players[1]->flags |= CAN_GRIDGRID;
-        }else if ( (rx->players[0]->flags & NOT_FREE)==0 &&
+	   {
+	      rx->players[0]->flags |= CAN_GRIDGRID;
+	      rx->players[1]->flags |= CAN_GRIDGRID;
+           }
+        }else{
+           if ( (rx->players[0]->flags & NOT_FREE)==0 &&
              (rx->players[1]->flags & NOT_FREE)==0 &&
              (rx->players[2]->flags & NOT_FREE)==0)
-        {
-          rx->players[0]->flags |= CAN_MOLMOLMOL;
-          rx->players[1]->flags |= CAN_MOLMOLMOL;
-          rx->players[2]->flags |= CAN_MOLMOLMOL;
-       
-	} /* end if-else */
+           {
+               /* three volume molecules */
+                rx->players[0]->flags |= CAN_MOLMOLMOL;
+                rx->players[1]->flags |= CAN_MOLMOLMOL;
+                rx->players[2]->flags |= CAN_MOLMOLMOL;
+           }else if ( (rx->players[0]->flags & NOT_FREE)==0 &&
+             (rx->players[1]->flags & NOT_FREE)==0 &&
+             (rx->players[2]->flags & ON_GRID) !=0)
+           {
+                rx->players[0]->flags |= CAN_MOLMOLGRID;
+                rx->players[1]->flags |= CAN_MOLMOLGRID;
+           }else if ( (rx->players[0]->flags & NOT_FREE)==0 &&
+             (rx->players[1]->flags & ON_GRID)!=0 &&
+             (rx->players[2]->flags & NOT_FREE)==0)
+           {
+                rx->players[0]->flags |= CAN_MOLMOLGRID;
+                rx->players[2]->flags |= CAN_MOLMOLGRID;
+           }else if ( (rx->players[0]->flags & ON_GRID)!=0 &&
+             (rx->players[1]->flags & NOT_FREE)==0 &&
+             (rx->players[2]->flags & NOT_FREE)==0)
+           {
+                rx->players[1]->flags |= CAN_MOLMOLGRID;
+                rx->players[2]->flags |= CAN_MOLMOLGRID;
+           }
+
+       } /* end if-else */
 
       } /* end if-else */
     } /* end for */
@@ -2681,11 +2844,11 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   {
     nprods++;
     if ((prodp->prod->flags&NOT_FREE)!=0) all_3d=0;
+    if ((prodp->prod->flags&ON_GRID)!=0) mpvp->num_surf_products++;
     if((prodp->prod->flags & IS_SURFACE) != 0){
            is_surf_class = 1;
     }
   }
-
 
   if (nprods==0)
   {
@@ -2699,14 +2862,15 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
   }
   if (nprods>3)
   {
-    mdlerror(mpvp, "Can't create a reverse reaction involving more than three products");
+    mdlerror(mpvp, "Can't create a reverse reaction involving more than three products. Please note that surface_class from the reaction reactant side also counts as a product.\n");
     return 1;
   }
   if (nprods == 3)
   {
-     if(!all_3d){ 
-       if( !is_surf_class) { 
-          mdlerror(mpvp, "Reverse reaction can be created when three products of the direct reaction either contain a surface_class or all products are volume molecules");
+
+     if(!all_3d){
+       if(mpvp->num_surf_products > 1){ 
+          mdlerror(mpvp, "Reverse reaction can be created when three products of the direct reaction satisfy conditions: a) all products are volume molecules or b) just one of the products is a grid molecule");
           return 1;
        }
      }
@@ -2728,6 +2892,8 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
     }
   }
   
+  mpvp->num_surf_products = 0;
+
   prodp = mpvp->pathp->product_head;
   if (nprods==1)
   {
@@ -2850,24 +3016,20 @@ int invert_current_reaction_pathway(struct mdlparse_vars *mpvp)
     path->product_head->next->next = NULL;
   }
 
-  if((mpvp->pathp->reactant3 != NULL) && ((mpvp->pathp->reactant3->flags & NOT_FREE) == 0))
+  if ((mpvp->pathp->reactant3!=NULL) && ((mpvp->pathp->reactant3->flags & IS_SURFACE) == 0))
   {
-     if(((mpvp->pathp->reactant1->flags & NOT_FREE) == 0)  &&
-        ((mpvp->pathp->reactant2->flags & NOT_FREE) == 0))
-     {
        path->product_head->next->next = (struct product*)mem_get(mpvp->prod_mem);
        if (path->product_head->next->next == NULL)
        {
-         mdlerror(mpvp, "Out of memory storing reaction pathway");
-         return 1;
-       }
-       path->product_head->next->next->orientation = mpvp->pathp->orientation3;
-       path->product_head->next->next->prod = mpvp->pathp->reactant3;
-       if(path->product_head->next->next->prod->flags & ON_GRID){
-          mpvp->num_surf_products++;
-       }
-       path->product_head->next->next->next = NULL;
-     }
+          mdlerror(mpvp, "Out of memory storing reaction pathway");
+          return 1;
+        }
+        path->product_head->next->next->orientation = mpvp->pathp->orientation3;
+        path->product_head->next->next->prod = mpvp->pathp->reactant3;
+        if(path->product_head->next->next->prod->flags & ON_GRID){
+           mpvp->num_surf_products++;
+        }
+        path->product_head->next->next->next = NULL;
   }
 
   path->prod_signature = create_prod_signature(&path->product_head);  

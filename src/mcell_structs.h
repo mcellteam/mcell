@@ -42,7 +42,8 @@
 #define CAN_MOLWALL      0x40
 #define CAN_GRIDGRID     0x80
 #define CAN_GRIDWALL     0x100
-#define CANT_INITIATE    0x200
+#define CAN_MOLMOLGRID   0x200
+#define CANT_INITIATE    0x400
 #define COUNT_TRIGGER    0x0800
 #define COUNT_CONTENTS   0x1000
 #define COUNT_HITS       0x2000
@@ -233,6 +234,7 @@
 #define COLLIDE_MOL     0x20
 #define COLLIDE_SUBVOL  0x40
 #define COLLIDE_MOL_MOL 0x80
+#define COLLIDE_MOL_GRID 0x100
 
 
 /* Target-type Flags */
@@ -1315,6 +1317,8 @@ struct tri_collision
   
   void *target1;                 /* First thing that we hit: wall, molecule, subvol etc */
   void *target2;                 /* Second thing that we hit: wall, molecule, subvol etc - always the furthest from the moving molecule */
+  short orient;                  /* orientation of the moving volume_molecule
+                                    when it hits the surface_molecule */
   int what;                     /* Target-type Flags: what kind of thing did we hit? */
   struct rxn *intermediate;     /* Reaction that told us we could hit                                    target1 and/or target2  */
   struct vector3 loc;           /* Assumed location of impact */

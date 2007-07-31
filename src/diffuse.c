@@ -3932,13 +3932,14 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
   double d, d1, d2;  /* distance */
   double R, R2;  /* molecule interaction radius */
 
-  int moving_tri_molecular_flag = 0, moving_bi_molecular_flag = 0; 
-  int target_tri_molecular_flag = 0, target_bi_molecular_flag = 0;
+  int moving_tri_molecular_flag = 0, moving_bi_molecular_flag = 0, moving_mol_mol_grid_flag = 0; 
+  int target_tri_molecular_flag = 0, target_bi_molecular_flag = 0, target_mol_mol_grid_flag = 0;
 
   struct species *sm = m->properties; 
  
   moving_tri_molecular_flag =  ((sm->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
   moving_bi_molecular_flag =  ((sm->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+  moving_mol_mol_grid_flag =  ((sm->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
   
   R = (world->rx_radius_3d); 
   R2 = R*R;
@@ -3964,16 +3965,16 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* if molecule is farther than R from the shared SV plane */ 
                    d = mp->pos.x - world->x_fineparts[sv->urb.x];
                    if(d > R) continue; 
                    
                    target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
                    target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -4003,6 +4004,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -4030,16 +4034,16 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* if molecule is farther than R from the shared SV plane */ 
                    d = world->x_fineparts[sv->llf.x] - mp->pos.x;
                    if(d > R) continue; 
                
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -4069,6 +4073,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -4096,16 +4103,16 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* if molecule is farther than R from the shared SV plane */ 
                    d = mp->pos.z - world->z_fineparts[sv->urb.z];
                    if(d > R) continue; 
                   
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -4135,6 +4142,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -4162,16 +4172,16 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* if molecule is farther than R from the shared SV plane */ 
                    d = world->z_fineparts[sv->llf.z] - mp->pos.z;
                    if(d > R) continue; 
                    
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -4201,6 +4211,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -4228,16 +4241,16 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* if molecule is farther than R from the shared SV plane */ 
                    d = mp->pos.y - world->y_fineparts[sv->urb.y];
                    if(d > R) continue; 
                   
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -4267,6 +4280,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -4294,16 +4310,16 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* if molecule is farther than R from the shared SV plane */ 
                    d = world->y_fineparts[sv->llf.y] - mp->pos.y;
                    if(d > R) continue; 
                   
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -4333,6 +4349,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -4363,17 +4382,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	    for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	    {
       		if (mp->properties == NULL) continue;  
-                if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                 /* if molecule is farther than R from the shared SV edge */ 
                 d1 = mp->pos.z - world->z_fineparts[sv->urb.z];
                 d2 = world->x_fineparts[sv->llf.x] - mp->pos.x;
                 if((d1 > R) && (d2 > R)) continue; 
                   
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -4404,6 +4423,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
                     }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
+                    }
                     smash->next = shead1;
                     shead1 = smash;
                 }
@@ -4431,17 +4453,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* if molecule is farther than R from the shared SV edge */ 
                    d1 = mp->pos.z - world->z_fineparts[sv->urb.z];
                    d2 = mp->pos.y -world->y_fineparts[sv->urb.y];                
                    if((d1 > R) && (d2 > R)) continue;
 
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
     	        
                     smash = mem_get(sv->local_storage->sp_coll);
@@ -4473,6 +4495,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
                     }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
+                    }
                     smash->next = shead1;
                     shead1 = smash;
                  }
@@ -4500,17 +4525,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* if molecule is farther than R from the shared SV edge */ 
                    d1 = mp->pos.z - world->z_fineparts[sv->urb.z];
                    d2 = mp->pos.x - world->x_fineparts[sv->urb.x]; 
                    if((d1 > R) && (d2 > R)) continue; 
 
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -4540,6 +4565,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -4567,17 +4595,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue; 
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* if molecule is farther than R from the shared SV edge */ 
                    d1 = mp->pos.z - world->z_fineparts[sv->urb.z];
                    d2 = world->y_fineparts[sv->llf.y] - mp->pos.y;
                    if((d1 > R) && (d2 > R)) continue;
                 
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -4607,6 +4635,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -4636,17 +4667,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue; 
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* if molecule is farther than R from the shared SV edge */ 
                    d1 = world->z_fineparts[sv->llf.z] - mp->pos.z;
                    d2 = world->x_fineparts[sv->llf.x] - mp->pos.x;
                    if((d1 > R) && (d2 > R)) continue; 
 
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -4676,6 +4707,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -4703,17 +4737,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* if molecule is farther than R from the shared SV edge */ 
                    d1 = world->z_fineparts[sv->llf.z] - mp->pos.z;
                    d2 = mp->pos.y - world->y_fineparts[sv->urb.y];
                    if((d1 > R) && (d2 > R)) continue; 
                 
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -4743,6 +4777,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -4770,17 +4807,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* if molecule is farther than R from the shared SV edge */ 
                    d1 = world->z_fineparts[sv->llf.z] - mp->pos.z;
                    d2 = mp->pos.x - world->x_fineparts[sv->urb.x];
                    if((d1 > R) && (d2 > R)) continue; 
 
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -4810,6 +4847,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -4837,17 +4877,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* if molecule is farther than R from the shared SV edge */ 
                    d1 = world->z_fineparts[sv->llf.z] - mp->pos.z;
                    d2 = world->y_fineparts[sv->llf.y] - mp->pos.y;
                    if((d1 > R) && (d2 > R)) continue;
                   
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -4877,6 +4917,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -4906,17 +4949,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue; 
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* if molecule is farther than R from the shared SV edge */ 
                    d1 = world->y_fineparts[sv->llf.y] - mp->pos.y;
                    d2 = world->x_fineparts[sv->llf.x] - mp->pos.x;
                    if((d1 > R) && (d2 > R)) continue; 
                   
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -4947,6 +4990,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
                     }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
+                    }
                     smash->next = shead1;
                     shead1 = smash;
                  }
@@ -4973,17 +5019,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* if molecule is farther than R from the shared SV edge */ 
                    d1 = mp->pos.y - world->y_fineparts[sv->urb.y];
                    d2 = world->x_fineparts[sv->llf.x] - mp->pos.x;  
                    if((d1 > R) && (d2 > R)) continue; 
                   
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -5014,6 +5060,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
                     }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
+                    }
                     smash->next = shead1;
                     shead1 = smash;
                  }
@@ -5040,17 +5089,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue; 
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* if molecule is farther than R from the shared SV edge */
                    d1 = mp->pos.y - world->y_fineparts[sv->urb.y];
                    d2 = mp->pos.x - world->x_fineparts[sv->llf.x];  
                    if((d1 > R) && (d2 > R)) continue; 
                   
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -5080,6 +5129,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -5107,17 +5159,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* if molecule is farther than R from the shared SV edge */ 
                    d1 = world->y_fineparts[sv->llf.y] - mp->pos.y; 
                    d2 = mp->pos.x - world->x_fineparts[sv->llf.x];  
                    if((d1 > R) && (d2 > R)) continue; 
                   
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -5147,6 +5199,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -5183,17 +5238,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* check for the distance from the shared corner */
                    vectorize(&(mp->pos), &v0,&v1);
                    d = vect_length(&v1);
                    if (d > R) continue;
  
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -5222,6 +5277,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -5256,17 +5314,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* check for the distance from the shared corner */
                    vectorize(&(mp->pos), &v0,&v1);
                    d = vect_length(&v1);
                    if (d > R) continue;
                   
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -5295,6 +5353,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -5329,17 +5390,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* check for the distance from the shared corner */
                    vectorize(&(mp->pos), &v0,&v1);
                    d = vect_length(&v1);
                    if (d > R) continue;
 
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -5368,6 +5429,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -5402,18 +5466,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
-                
                    /* check for the distance from the shared corner */
                    vectorize(&(mp->pos), &v0,&v1);
                    d = vect_length(&v1);
                    if (d > R) continue;
 
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -5442,6 +5505,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -5476,17 +5542,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* check for the distance from the shared corner */
                    vectorize(&(mp->pos), &v0,&v1);
                    d = vect_length(&v1);
                    if (d > R) continue;
 
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -5516,6 +5582,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -5550,17 +5619,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	        for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	        {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* check for the distance from the shared corner */
                    vectorize(&(mp->pos), &v0,&v1);
                    d = vect_length(&v1);
                    if (d > R) continue;
 
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -5590,6 +5659,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -5624,17 +5696,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* check for the distance from the shared corner */
                    vectorize(&(mp->pos), &v0,&v1);
                    d = vect_length(&v1);
                    if (d > R) continue;
 
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -5664,6 +5736,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -5699,17 +5774,17 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
     	       for (mp = new_sv->mol_head ; mp != NULL ; mp = mp->next_v)
     	       {
       		   if (mp->properties == NULL) continue;  
-                   if((mp->flags & CAN_MOLMOLMOL) == 0) continue; 
                    /* check for the distance from the shared corner */
                    vectorize(&(mp->pos), &v0,&v1);
                    d = vect_length(&v1);
                    if (d > R) continue;
                   
-                   target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-                   target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_tri_molecular_flag = ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+                   target_bi_molecular_flag = ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+                   target_mol_mol_grid_flag = ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
                  if((moving_bi_molecular_flag && target_bi_molecular_flag)
-                     || (moving_tri_molecular_flag && target_tri_molecular_flag))
+                     || (moving_tri_molecular_flag && target_tri_molecular_flag)                     || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
                  {
                     smash = mem_get(sv->local_storage->sp_coll);
                     if (smash == NULL)
@@ -5739,6 +5814,9 @@ struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, s
                     }
                     if(moving_tri_molecular_flag && target_tri_molecular_flag){
                        smash->what |= COLLIDE_MOL_MOL;
+                    }
+                    if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+                       smash->what |= COLLIDE_MOL_GRID;
                     }
                     smash->next = shead1;
                     shead1 = smash;
@@ -6436,7 +6514,6 @@ diffuse_3D_big_list:
         Position and time are updated, but molecule is not rescheduled.
   Note: This version takes into account both 2-way and 3-way reactions
 ***************************************************************************/
-
 struct volume_molecule* diffuse_3D_big_list(struct volume_molecule *m,double max_time,int inert)
 {
   /*const double TOL = 10.0*EPS_C;*/  /* Two walls are coincident if this close */
@@ -6487,10 +6564,10 @@ struct volume_molecule* diffuse_3D_big_list(struct volume_molecule *m,double max
   static const int inert_to_mol = 1;
   static const int inert_to_all = 2;
   /* flags that tell whether moving and target molecules
-     can participate in the MOL_MOL and MOL_MOL_MOL
+     can participate in the MOL_MOL_MOL, MOL_MOL or MOL_MOL_GRID
      interactions */
-  int moving_tri_molecular_flag = 0, moving_bi_molecular_flag = 0; 
-  int target_tri_molecular_flag = 0, target_bi_molecular_flag = 0;
+  int moving_tri_molecular_flag = 0, moving_bi_molecular_flag = 0, moving_mol_mol_grid_flag = 0; 
+  int target_tri_molecular_flag = 0, target_bi_molecular_flag = 0, target_mol_mol_grid_flag;
  
   sm = m->properties;
 
@@ -6620,9 +6697,10 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
    moving_tri_molecular_flag =  ((sm->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
    moving_bi_molecular_flag =  ((sm->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
+   moving_mol_mol_grid_flag =  ((sm->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
 
-  if ((moving_tri_molecular_flag || moving_bi_molecular_flag)  && inertness<inert_to_all ) 
+  if ((moving_tri_molecular_flag || moving_bi_molecular_flag || moving_mol_mol_grid_flag)  && inertness<inert_to_all ) 
   {
     for (mp = sv->mol_head ; mp != NULL ; old_mp = mp , mp = mp->next_v)
     {
@@ -6648,11 +6726,11 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
       target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL); 
       target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
-           
-
+      target_mol_mol_grid_flag =  ((mp->properties->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
 
       if((moving_bi_molecular_flag && target_bi_molecular_flag)
-            || (moving_tri_molecular_flag && target_tri_molecular_flag))
+            || (moving_tri_molecular_flag && target_tri_molecular_flag)
+           || (moving_mol_mol_grid_flag && target_mol_mol_grid_flag))
       {
             smash = mem_get(sv->local_storage->sp_coll);
             if (smash == NULL)
@@ -6682,6 +6760,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
             }
             if(moving_tri_molecular_flag && target_tri_molecular_flag){
                smash->what |= COLLIDE_MOL_MOL;
+            }
+            if(moving_mol_mol_grid_flag && target_mol_mol_grid_flag){
+               smash->what |= COLLIDE_MOL_GRID;
             }
 
             smash->next = shead;
@@ -6715,7 +6796,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   }
 
 
-#define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->sp_coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->sp_coll,shead); return (x)
+#define CLEAN_AND_RETURN(x) if(main_shead2 != NULL) mem_put_list(sv->local_storage->sp_coll, main_shead2); if (shead2!=NULL) mem_put_list(sv->local_storage->sp_coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->sp_coll,shead); return (x)
 #define TRI_CLEAN_AND_RETURN(x) if (main_tri_shead!=NULL) mem_put_list(sv->local_storage->tri_coll,main_tri_shead); if (main_shead2 != NULL) mem_put_list(sv->local_storage->sp_coll,main_shead2); return(x) 
 #define ERROR_AND_QUIT fprintf(world->err_file,"File '%s', Line %ld: out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
 
@@ -6740,7 +6821,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
          shead_exp = NULL;
       }
 
-      if((moving_tri_molecular_flag || moving_bi_molecular_flag) && !inertness)
+      if((moving_tri_molecular_flag || moving_bi_molecular_flag || moving_mol_mol_grid_flag) && !inertness)
       {
           shead_exp = expand_collision_partner_list(m, &displacement, sv); 
       }
@@ -6770,7 +6851,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       
       if (smash->t >= 1.0 || smash->t < 0.0)
       {
-        if(((smash->what & COLLIDE_MOL) != 0) || ((smash->what & COLLIDE_MOL_MOL) != 0)){
+        if(((smash->what & COLLIDE_MOL) != 0) || ((smash->what & COLLIDE_MOL_MOL) != 0) || ((smash->what & COLLIDE_MOL_GRID) != 0)){
           printf("File '%s', Line %ld: Unexpected behavior. Iteration %lld, time of collision %.8e\n", __FILE__, (long)__LINE__,  world->it_time,smash->t);
         }
         smash = NULL;
@@ -6778,10 +6859,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       }
 
 
-        /* copy the collision objects of the type COLLIDE_MOL, COLLIDE_MOL_MOL 
-           and COLLIDE_WALL to the main collision list */
+        /* copy the collision objects of the type COLLIDE_MOL, COLLIDE_MOL_MOL, 
+           COLLIDE_MOL_GRID and COLLIDE_WALL to the main collision list */
 
-      if((((smash->what & COLLIDE_MOL) != 0) || ((smash->what & COLLIDE_MOL_MOL) != 0))   && !inert){
+      if((((smash->what & COLLIDE_MOL) != 0) || ((smash->what & COLLIDE_MOL_MOL) != 0) || ((smash->what & COLLIDE_MOL_GRID) != 0))  && !inert){
 
            new_coll = mem_get(sv->local_storage->sp_coll);
            if (new_coll == NULL)
@@ -6938,6 +7019,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
    {
       smash->t += smash->t_start;
    }
+
    if (main_shead2 != NULL)
    {
       if(main_shead2->next != NULL){
@@ -6949,7 +7031,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   /* build main_tri_shead list */
   for(smash = main_shead2; smash != NULL; smash = smash->next) 
   {
-    if(((smash->what & COLLIDE_MOL) != 0) || ((smash->what & COLLIDE_MOL_MOL) != 0)){
+    if(((smash->what & COLLIDE_MOL) != 0) || ((smash->what & COLLIDE_MOL_MOL) != 0) || ((smash->what & COLLIDE_MOL_GRID) != 0)){
 
        mp = (struct volume_molecule *)smash->target;
 
@@ -6975,6 +7057,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                tri_smash->t = smash->t;
                tri_smash->target1 = (void*) mp;
                tri_smash->target2 = NULL;
+               tri_smash->orient = 0; /* default value */
                tri_smash->what = COLLIDE_MOL;
                tri_smash->loc = smash->loc;
                tri_smash->loc1 = smash->loc;
@@ -7007,7 +7090,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                smash->moving->hashval, mp->properties->hashval,                
                new_mp->properties->hashval,
                smash->moving, mp->properties,
-               new_mp->properties, matching_rxns);
+               new_mp->properties, 0,0,matching_rxns);
 
          if (num_matching_rxns > 0)
          {
@@ -7021,21 +7104,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
                     exit( EXIT_FAILURE );
                }
-               if(smash->t >= new_smash->t){
-                   tri_smash->loc = smash->loc;
-                   tri_smash->t = smash->t;
-                   tri_smash->target2 = (void*) mp;
-                   tri_smash->loc2 = smash->loc;
-                   tri_smash->target1 = (void*) new_mp;
-                   tri_smash->loc1 = new_smash->loc;
-               }else{
-                   tri_smash->loc = new_smash->loc;
-                   tri_smash->t = new_smash->t;
-                   tri_smash->target2 = (void*) new_mp;
-                   tri_smash->loc2 = new_smash->loc;
-                   tri_smash->target1 = (void*) mp;
-                   tri_smash->loc1 = smash->loc;
-               }
+               tri_smash->loc = new_smash->loc;
+               tri_smash->t = new_smash->t;
+               tri_smash->target2 = (void*) new_mp;
+               tri_smash->loc2 = new_smash->loc;
+               tri_smash->target1 = (void*) mp;
+               tri_smash->loc1 = smash->loc;
+               tri_smash->orient = 0; /* default value */
 
                factor1 = exact_disk(
                  &(smash->pos_start), &(smash->disp), world->rx_radius_3d,
@@ -7067,6 +7142,74 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
            } /* end if(...) */
 
         } /* end for (new_smash...) */
+       } /* end if(...) */
+       if(moving_mol_mol_grid_flag && ((smash->what & COLLIDE_MOL_GRID) != 0))
+       {
+        for(new_smash = smash->next; new_smash != NULL; new_smash = new_smash->next)
+        {
+           if((new_smash->what & COLLIDE_WALL) == 0) continue;
+
+	   w = (struct wall *) new_smash->target;
+
+	   if ( (new_smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
+	   else k = -1;
+
+	   if ( w->grid != NULL  && inertness<inert_to_all )
+	   {
+	      j = xyz2grid( &(new_smash->loc) , w->grid );
+	      if (w->grid->mol[j] != NULL)
+	      {
+	        if (m->index != j || m->previous_wall != w )
+	        {
+	           g = w->grid->mol[j];
+                   num_matching_rxns = trigger_trimolecular(
+                       smash->moving->hashval, mp->properties->hashval,                                g->properties->hashval,
+                       smash->moving, mp->properties,
+                       g->properties, k, g->orient, matching_rxns);
+
+                   
+	          if (num_matching_rxns > 0)
+                  {
+                     for (l = 0; l < num_matching_rxns; l++)
+                     {
+		        if (matching_rxns[l]->prob_t != NULL) check_probs(matching_rxns[l],m->t);
+                        scaling_coef[l] = 1.0 / (rate_factor * w->grid->binding_factor);
+                     }
+
+                     for(i = 0; i< num_matching_rxns; i++)
+                     {
+                        tri_smash = mem_get(sv->local_storage->tri_coll);
+                        if (tri_smash == NULL)
+                        {
+                          fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
+                          i = emergency_output();
+                          fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+                          exit( EXIT_FAILURE );
+                        }
+                        tri_smash->t = new_smash->t;
+                        tri_smash->target1 = (void*) mp;
+                        tri_smash->target2 = (void*)g;
+                        tri_smash->orient = k;
+                        tri_smash->what = smash->what;
+                        tri_smash->loc = new_smash->loc;
+                        tri_smash->loc1 = smash->loc;
+                        tri_smash->loc2 = new_smash->loc;
+                        tri_smash->intermediate = matching_rxns[i];
+                        tri_smash->factor = scaling_coef[i];
+               
+                        tri_smash->next = main_tri_shead;
+                        main_tri_shead = tri_smash;
+                     }
+	           } /* end if (num_matching_rxns > 0) */
+	        }
+	        else /* Matched previous wall and index--don't rebind */
+                {
+                  m->index = -1;    /* Avoided rebinding, but next time it's OK */
+                }
+	      } /* end if(w->grid->mol[j] ... ) */
+	   } /* end if (w->grid != NULL ... ) */
+
+        } /* end for (new_smash...) */
       } /* end if(...) */
 
     } /* end if(...) */
@@ -7075,7 +7218,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
 	if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
 	else k = -1;
-
+        
+        /* first look for the bimolecular reactions between moving and
+           grid molecules */
 	if ( w->grid != NULL && (sm->flags&CAN_MOLGRID) != 0 && inertness<inert_to_all )
 	{
 	  j = xyz2grid( &(smash->loc) , w->grid );
@@ -7110,6 +7255,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     tri_smash->t = smash->t;
                     tri_smash->target1 = (void*) w;
                     tri_smash->target2 = (void*)g;
+                    tri_smash->orient = 0; /* default value */
                     tri_smash->what = smash->what;
                     tri_smash->loc = smash->loc;
                     tri_smash->loc1 = smash->loc;
@@ -7121,15 +7267,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     main_tri_shead = tri_smash;
                 }
 	      } /* end if (num_matching_rxns > 0) */
-	    }
-	    else /* Matched previous wall and index--don't rebind */
+	    }else /* Matched previous wall and index--don't rebind */
             {
               m->index = -1;    /* Avoided rebinding, but next time it's OK */
             }
 	  } /* end if(w->grid->mol[j] ... ) */
 	} /* end if (w->grid != NULL ... ) */
 
-	
           if ( (sm->flags&CAN_MOLWALL) != 0 )
 	  {
 	     m->index = -1;  
@@ -7150,6 +7294,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     tri_smash->t = smash->t;
                     tri_smash->target1 = (void*) w;
                     tri_smash->target2 = NULL;
+                    tri_smash->orient = 0; /* default value */
                     tri_smash->what = smash->what;
                     tri_smash->loc = smash->loc;
                     tri_smash->loc1 = smash->loc;
@@ -7177,22 +7322,27 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   /* now check for the reactions going through the 'main_tri_shead' list */
   for(tri_smash = main_tri_shead; tri_smash != NULL; tri_smash = tri_smash->next){
 
-      if((((tri_smash->what & COLLIDE_MOL) != 0) || ((tri_smash->what & COLLIDE_MOL_MOL) != 0))   && !inert){
+      if((((tri_smash->what & COLLIDE_MOL) != 0) || ((tri_smash->what & COLLIDE_MOL_MOL) != 0) || ((tri_smash->what & COLLIDE_MOL_GRID) != 0))   && !inert){
         rx = tri_smash->intermediate;
 	if (tri_smash->t < EPS_C) continue;
 
         am1 = (struct abstract_molecule*)tri_smash->target1;
-        if(tri_smash->target2 != NULL){
-           am2 = (struct abstract_molecule*)tri_smash->target2;
-        }
+        am2 = (struct abstract_molecule*)tri_smash->target2;
+        k = tri_smash->orient;
       
 	if ((tri_smash->factor<0)) /* Probably hit a wall */
 	{
 	  continue; /* Reaction blocked by a wall */
 	}
         
-        
-        scaling = tri_smash->factor / rate_factor;  
+        /* if one of the targets was already destroyed
+           - move on  */
+          
+        if((am1->properties == NULL) ||
+           (am2->properties == NULL)) continue; 
+
+        scaling = tri_smash->factor / rate_factor; 
+ 
         if (rx->prob_t != NULL) check_probs(rx,m->t);
 
         i = test_bimolecular(rx,scaling);
@@ -7209,14 +7359,28 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	      world->mol_mol_colls++;
            }
         }
-        if((tri_smash->what & COLLIDE_MOL_MOL) != 0)
+        else if((tri_smash->what & COLLIDE_MOL_MOL) != 0) 
         {
            j = outcome_trimolecular(
                 rx,i,(struct abstract_molecule*)m,
-                am1,am2,m->t + tri_smash->t,&(tri_smash->loc));
+                am1,am2,0,0,0,m->t + tri_smash->t,&(tri_smash->loc));
            if(world->notify->final_summary == NOTIFY_FULL){	
-	      world->mol_mol_mol_colls++;
+	       world->mol_mol_mol_colls++;
            }
+        }else{
+           /* this is ((tri_smash->what & COLLIDE_MOL_GRID) != 0) */
+             short orient_target = 0;
+             if((am1->properties->flags & ON_GRID) != 0){
+               orient_target = ((struct grid_molecule *)am1)->orient;
+             }else{
+               orient_target = ((struct grid_molecule *)am2)->orient;
+
+             }             
+             j = outcome_trimolecular(
+                 rx,i,(struct abstract_molecule*)m,
+                 am1,am2,k,k,orient_target, m->t + tri_smash->t,
+                 &(tri_smash->loc));
+      
         }
 
 	if (j==RX_NO_MEM) { ERROR_AND_QUIT; }
@@ -7301,7 +7465,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                       }
                     }
                 
-                    CLEAN_AND_RETURN(NULL);
+                    TRI_CLEAN_AND_RETURN(NULL);
                } /* end if (l == ...) */
            } /* end if (ii >= RX_LEAST_VALID_PATHWAY) */
 
@@ -7381,7 +7545,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     }
                   }
   
-		  CLEAN_AND_RETURN(NULL);
+		  TRI_CLEAN_AND_RETURN(NULL);
 		}
 	      }
 	    }
@@ -7436,7 +7600,6 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
   return m;
 }
-
 /*************************************************************************
 diffuse_2D:
   In: molecule that is moving
@@ -7915,7 +8078,8 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       if ((a->flags & TYPE_3D) != 0)
       {
          if(max_time > release_time - a->t) max_time = release_time - a->t;
-         if((a->properties->flags & CAN_MOLMOLMOL) != 0){
+         if(((a->properties->flags & CAN_MOLMOLMOL) != 0) || 
+            ((a->properties->flags &CAN_MOLMOLGRID) != 0)){
             a = (struct abstract_molecule*)diffuse_3D_big_list((struct volume_molecule*)a , max_time , a->flags & ACT_INERT);    
          }else{
             a = (struct abstract_molecule*)diffuse_3D((struct volume_molecule*)a , max_time , a->flags & ACT_INERT); 

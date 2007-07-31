@@ -6194,12 +6194,17 @@ rxn:
   }
   if ((mdlpvp->rxnp->n_reactants==3) && (num_surfaces == 0))
   {
-    /* In case of three reactants we will allow now 3 volume molecules */
-    if(!mdlpvp->prod_all_3d){
-       mdlerror(mdlpvp, "Reactions with three reactants must include exactly one surface class as a reactant unless all reactants are volume molecules");
+    /* In case of three reactants we will allow now:
+       a) 3 volume molecules,
+       b) 2 volume molecules and 1 surface molecule.
+    */
+    if((mdlpvp->num_grid_mols == 3)  || ((mdlpvp->num_vol_mols == 1) && (mdlpvp->num_grid_mols == 2))) {
+       mdlerror(mdlpvp, "Reactions with three reactants without surface_class must include either all volume molecules or two volume molecules + one grid molecule\n");
        return 1;
     }
   }
+
+
   /* For unidirectional catalytic reactions - copy catalyst to products only if catalyst is not a surface_clas.
      For bidirectional catalytic reactions always copy catalyst to products and take care that surface_class will not appear in the products later after inverting the reaction */ 
   if (mdlpvp->catalytic_arrow){
@@ -6315,7 +6320,7 @@ rxn:
        is equivalent now to the two reactions
            A'@ surf' ---> C'' [r1]
            C'' @ surf' ---->A'[r2]
-       Reversible reaction of the type A' + B' surf' <---> C'' + D''[>r1,<r2]
+       Reversible reaction of the type A' + B' @ surf' <---> C'' + D''[>r1,<r2]
        is equivalent now to the two reactions
            A'+ B @ surf' ---> C'' + D''[r1]
            C'' + D'' @ surf' ---->A' + B'[r2]

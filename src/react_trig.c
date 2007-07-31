@@ -10,6 +10,7 @@
 #include "mcell_structs.h"
 #include "react.h"
 #include <string.h>
+#include <stdlib.h>
 
 extern struct volume *world;
 
@@ -226,7 +227,8 @@ int trigger_bimolecular(int hashA,int hashB,
 trigger_trimolecular:
    In: hash values of the three colliding molecules
        pointers to the species of three colliding molecules
-       reacA is the moving molecule and reacB and reacC are the targets
+       (reacA is the moving molecule and reacB and reacC are the targets)
+       orientations of the three molecules
        array of pointers to the possible reactions
    Out: number of possible reactions for species reacA, reacB, and reacC
         Also the first 'number' slots in the 'matching_rxns'
@@ -234,16 +236,19 @@ trigger_trimolecular:
    Note: The target molecules are already scheduled and can be destroyed
          but not rescheduled.  Assume we have or will check separately that
          the moving molecule is not inert!
+   PostNote1: If one of the targets is a grid_molecule - it is reacC
 *************************************************************************/
 int trigger_trimolecular(int hashA,int hashB, int hashC,
   struct species *reacA,struct species *reacB,
-  struct species *reacC, struct rxn ** matching_rxns )
+  struct species *reacC, int orientA, int orientC, 
+  struct rxn ** matching_rxns )
 {
   int hash = 0;  /* index in the reaction hash table */
   int num_matching_rxns = 0; /* number of matching reactions */
   short geomA, geomB, geomC;
   struct rxn *inter;
-  int right_players_flag;
+  int correct_players_flag;
+  int correct_orientation_flag;
   /* flags */
   int use_hashA = 0;
   int use_hashB = 0;
@@ -309,46 +314,92 @@ int trigger_trimolecular(int hashA,int hashB, int hashC,
    {
     if (inter->n_reactants == 3)  /* Enough reactants?  */
     {
-       right_players_flag = 0;
+       correct_players_flag = 0;
+       correct_orientation_flag = 0;
 
       /* Check that we have the right players */
-      if (reacA == inter->players[0]) {
+      if (reacA == inter->players[0]) 
+      {
         if((reacB == inter->players[1] &&
-           reacC == inter->players[2])
-           || (reacB == inter->players[2] &&
-              reacC == inter->players[1])){
-                   right_players_flag = 1;
-        } 
-      }
-      if (reacA == inter->players[1]) {
-        if((reacB == inter->players[0] &&
-           reacC == inter->players[2])
-           || (reacB == inter->players[2] &&
-              reacC == inter->players[0])){
-                   right_players_flag = 1;
+           reacC == inter->players[2]))
+         {
+            geomA = inter->geometries[0];
+            geomB = inter->geometries[1];
+            geomC = inter->geometries[2];
+            correct_players_flag = 1;
+         }
+         if((reacB == inter->players[2] &&
+              reacC == inter->players[1]))
+          {
+            geomA = inter->geometries[0];
+            geomB = inter->geometries[2];
+            geomC = inter->geometries[1];
+            correct_players_flag = 1;
+          }
+      } 
+      if (reacA == inter->players[1]) 
+      {
+        if((reacB == inter->players[0]) &&
+           (reacC == inter->players[2]))
+        {
+            geomA = inter->geometries[1];
+            geomB = inter->geometries[0];
+            geomC = inter->geometries[2];
+            correct_players_flag = 1;
+        }
+        if ((reacB == inter->players[2]) &&
+              (reacC == inter->players[0]))
+        {
+            geomA = inter->geometries[1];
+            geomB = inter->geometries[2];
+            geomC = inter->geometries[0];
+            correct_players_flag = 1;
         } 
       }
       if (reacA == inter->players[2]) {
-        if((reacB == inter->players[0] &&
-           reacC == inter->players[1])
-           || (reacB == inter->players[1] &&
-              reacC == inter->players[0])){
-                   right_players_flag = 1;
+        if((reacB == inter->players[0]) &&
+           (reacC == inter->players[1]))
+        {
+            geomA = inter->geometries[2];
+            geomB = inter->geometries[0];
+            geomC = inter->geometries[1];
+            correct_players_flag = 1;
+        }
+        if((reacB == inter->players[1]) &&
+              (reacC == inter->players[0]))
+        {
+            geomA = inter->geometries[2];
+            geomB = inter->geometries[1];
+            geomC = inter->geometries[0];
+            correct_players_flag = 1;
         } 
       }
-      geomA = inter->geometries[0];
-      geomB = inter->geometries[1];
-      geomC = inter->geometries[2];
 
-      /* Check to see if orientation classes are zero */
-      if (right_players_flag &&  (geomA==0) && (geomB==0) && (geomC==0))
+      /* Check to see if orientation classes are zero or different. 
+         In such case we do not care about relative orientations of the
+         volume and surface reactants. 
+      */
+      if((geomA==0) && (geomB==0) && (geomC==0)){
+          correct_orientation_flag = 1;
+      }
+      /* since geomA = geomB we will test only for geomA */
+      else if((geomA + geomC)*(geomA - geomC) != 0){
+          correct_orientation_flag = 1;
+      }
+      /* Same class, is the orientation correct? */
+      else if ( orientA != 0 && orientA*orientC*geomA*geomC > 0 )
+      {
+          correct_orientation_flag = 1;
+      }
+
+      if (correct_players_flag &&  correct_orientation_flag)
       {
          if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
          matching_rxns[num_matching_rxns] = inter;
          num_matching_rxns++;
       }
     }
-    inter = inter->next;
+     inter = inter->next;
    }
   
    if (inter != NULL)
@@ -358,6 +409,8 @@ int trigger_trimolecular(int hashA,int hashB, int hashC,
 
    return num_matching_rxns;
  }
+
+
 /*************************************************************************
 trigger_intersect:
    In: hash value of molecule's species

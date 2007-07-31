@@ -12,7 +12,7 @@ int trigger_bimolecular(int hashA,int hashB,
   short orientA,short orientB, struct rxn **matching_rxns);
 int trigger_trimolecular(int hashA,int hashB, int hashC,
   struct species *reacA,struct species *reacB,
-  struct species *reacC, struct rxn **matching_rxns);
+  struct species *reacC, int orientA, int orientC, struct rxn **matching_rxns);
 struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
   short orientA,struct wall *w);
 
@@ -36,10 +36,12 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,
   struct abstract_molecule *moving);
 int outcome_products_trimol_reaction(struct wall *w,
+  struct volume_molecule *reac_m, struct grid_molecule *reac_g,
   struct rxn *rx,int path,struct storage *local,
+  short orientA, short orientB, short orientC,
   double t,struct vector3 *hitpt,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,
-  struct abstract_molecule *reacC);
+  struct abstract_molecule *reacC, struct abstract_molecule *moving);
 int outcome_unimolecular(struct rxn *rx,int path,
   struct abstract_molecule *reac,double t);
 int outcome_bimolecular(struct rxn *rx,int path,
@@ -48,7 +50,8 @@ int outcome_bimolecular(struct rxn *rx,int path,
   struct vector3 *loc_okay);
 int outcome_trimolecular(struct rxn *rx,int path,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,
-  struct abstract_molecule *reacC, double t,struct vector3 *hitpt);
+  struct abstract_molecule *reacC, short orientA, short orientB, short orientC, 
+  double t,struct vector3 *hitpt);
 int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   struct abstract_molecule *reac,short orient,double t,struct vector3 *hitpt,
   struct vector3 *loc_okay);
