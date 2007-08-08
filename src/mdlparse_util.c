@@ -2104,13 +2104,16 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
             else fprintf(warn_file,"\t");
               
-            fprintf(warn_file,"Probability %.4e set for %s[%d] -> ",rx->cum_probs[0],
+            fprintf(warn_file,"Probability %.4e set for %s{%d} -> ",rx->cum_probs[0],
                    rx->players[0]->sym->name,rx->geometries[0]);
-  
-            for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
-            {
-              if (rx->players[k]==NULL) fprintf(mpvp->vol->log_file,"NIL ");
-              else fprintf(warn_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+            path = rx->pathway_head;
+            if(path->product_head == NULL){
+               fprintf(warn_file, "NULL ");
+            }else{
+              for (prod = path->product_head ; prod != NULL ; prod = prod->next)
+              {
+                 fprintf(warn_file,"%s{%d} ",prod->prod->sym->name, prod->orientation);
+              }
             }
             fprintf(warn_file,"\n");
             
@@ -2206,23 +2209,23 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             
             if(rx->n_reactants > 2) {
               if(rx->players[2]->flags & IS_SURFACE){
-                fprintf(warn_file,"Probability %.4e (s) set for %s[%d] + %s[%d] @ %s[%d] -> ",rx->cum_probs[0],
+                fprintf(warn_file,"Probability %.4e set for %s{%d} + %s{%d} @ %s{%d} -> ",rx->cum_probs[0],
                    rx->players[0]->sym->name,rx->geometries[0],
                    rx->players[1]->sym->name,rx->geometries[1],
                    rx->players[2]->sym->name,rx->geometries[2]);
               }else{
-                fprintf(warn_file,"Probability %.4e (s) set for %s[%d] + %s[%d] + %s[%d] -> ",rx->cum_probs[0],
+                fprintf(warn_file,"Probability %.4e set for %s{%d} + %s{%d} + %s{%d} -> ",rx->cum_probs[0],
                    rx->players[0]->sym->name,rx->geometries[0],
                    rx->players[1]->sym->name,rx->geometries[1],
                    rx->players[2]->sym->name,rx->geometries[2]);
               }
             }else{
               if(rx->players[1]->flags & IS_SURFACE){
-                 fprintf(warn_file,"Probability %.4e (s) set for %s[%d] @ %s[%d] -> ",rx->cum_probs[0],
+                 fprintf(warn_file,"Probability %.4e set for %s{%d} @ %s{%d} -> ",rx->cum_probs[0],
                    rx->players[0]->sym->name,rx->geometries[0],
                    rx->players[1]->sym->name,rx->geometries[1]);
               }else{
-                 fprintf(warn_file,"Probability %.4e (s) set for %s[%d] + %s[%d] -> ",rx->cum_probs[0],
+                 fprintf(warn_file,"Probability %.4e  set for %s{%d} + %s{%d} -> ",rx->cum_probs[0],
                    rx->players[0]->sym->name,rx->geometries[0],
                    rx->players[1]->sym->name,rx->geometries[1]);
               }
@@ -2236,11 +2239,16 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
             else
             {
-              for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
-              {
-                if (rx->players[k]==NULL) fprintf(warn_file,"NIL ");
-                else fprintf(warn_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+              path = rx->pathway_head;
+              if(path->product_head == NULL){
+                fprintf(warn_file,"NULL ");
+              }else{
+                for (prod = path->product_head ; prod != NULL ; prod = prod->next)
+                {
+                  fprintf(warn_file,"%s{%d} ",prod->prod->sym->name, prod->orientation);
+                }
               }
+              fprintf(warn_file,"\n");
             }
             fprintf(warn_file,"\n");
             
@@ -2298,15 +2306,22 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
             else fprintf(warn_file,"\t");
               
-            fprintf(warn_file,"Probability %.4e (l) set for %s[%d] + %s[%d] -> ",
+            fprintf(warn_file,"Probability %.4e set for %s{%d} + %s{%d] -> ",
                    rx->cum_probs[0],
                    rx->players[0]->sym->name,rx->geometries[0],
                    rx->players[1]->sym->name,rx->geometries[1]);
-            for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
-            {
-              if (rx->players[k]==NULL) fprintf(warn_file,"NIL ");
-              else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
-            }
+              path = rx->pathway_head;
+              if(path->product_head == NULL){
+                fprintf(warn_file,"NULL ");
+              }else{
+                for (prod = path->product_head ; prod != NULL ; prod = prod->next)
+                {
+                   fprintf(warn_file,"%s{%d} ",prod->prod->sym->name, prod->orientation);
+                }
+              }
+              fprintf(warn_file,"\n");
+
+
             fprintf(warn_file,"\n");
             
             if (rx->cum_probs[0]>=mpvp->vol->notify->reaction_prob_warn && mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
@@ -2363,17 +2378,20 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
             else fprintf(warn_file,"\t");
               
-            fprintf(warn_file,"Probability %.4e (l) set for %s[%d] + %s[%d] + %s[%d] -> ",
+            fprintf(warn_file,"Probability %.4e set for %s{%d} + %s{%d} + %s{%d} -> ",
                    rx->cum_probs[0],
                    rx->players[0]->sym->name,rx->geometries[0],
                    rx->players[1]->sym->name,rx->geometries[1],
                    rx->players[2]->sym->name,rx->geometries[2]);
 
-
-            for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
-            {
-              if (rx->players[k]==NULL) fprintf(warn_file,"NIL ");
-              else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+            path = rx->pathway_head;
+            if(path->product_head == NULL){
+               fprintf(warn_file,"NULL ");
+            }else{
+               for (prod = path->product_head ; prod != NULL ; prod = prod->next)
+               {
+                 fprintf(warn_file,"%s{%d} ",prod->prod->sym->name, prod->orientation);
+               }
             }
             fprintf(warn_file,"\n");
             
@@ -2496,17 +2514,20 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 }
                 else fprintf(warn_file,"\t");
               
-                fprintf(warn_file,"Probability %.4e (l) set for %s[%d] + %s[%d] + %s[%d] -> ",
+                fprintf(warn_file,"Probability %.4e set for %s{%d} + %s{%d} + %s{%d} -> ",
                    rx->cum_probs[0],
                    rx->players[0]->sym->name,rx->geometries[0],
                    rx->players[1]->sym->name,rx->geometries[1],
                    rx->players[2]->sym->name,rx->geometries[2]);
 
-
-                for (k = rx->product_idx[0] ; k < rx->product_idx[1] ; k++)
-                {
-                  if (rx->players[k]==NULL) fprintf(warn_file,"NIL ");
-                  else fprintf(mpvp->vol->log_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+                path = rx->pathway_head;
+                if(path->product_head == NULL){
+                   fprintf(warn_file,"NULL ");
+                }else{
+                   for (prod = path->product_head ; prod != NULL ; prod = prod->next)
+                   {
+                      fprintf(warn_file,"%s{%d} ",prod->prod->sym->name, prod->orientation);
+                   }
                 }
                 fprintf(warn_file,"\n");
             
@@ -2520,6 +2541,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         }
         
 
+        path = rx->pathway_head->next;
         for (j=1;j<rx->n_pathways;j++)
         {
           if (rx->n_reactants==1) rate = mpvp->vol->time_unit*rx->cum_probs[j];
@@ -2543,35 +2565,38 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             else fprintf(warn_file,"\t");
               
             fprintf(warn_file,"Probability %.3e set for ",rate);
-            if (rx->n_reactants==1) fprintf(warn_file,"%s[%d] -> ",rx->players[0]->sym->name,rx->geometries[0]);
+            if (rx->n_reactants==1) fprintf(warn_file,"%s{%d} -> ",rx->players[0]->sym->name,rx->geometries[0]);
             else if(rx->n_reactants == 2){
                 if(rx->players[1]->flags & IS_SURFACE){ 
-                   fprintf(warn_file,"%s[%d] @ %s[%d] -> ",
+                   fprintf(warn_file,"%s{%d} @ %s{%d} -> ",
                         rx->players[0]->sym->name,rx->geometries[0],
                         rx->players[1]->sym->name,rx->geometries[1]);
                  }else{
-                   fprintf(warn_file,"%s[%d] + %s[%d] -> ",
+                   fprintf(warn_file,"%s{%d} + %s{%d} -> ",
                         rx->players[0]->sym->name,rx->geometries[0],
                         rx->players[1]->sym->name,rx->geometries[1]);
                  }
             }else{
                 if(rx->players[2]->flags & IS_SURFACE){ 
-                   fprintf(warn_file,"%s[%d] + %s[%d]  @ %s[%d] -> ",
+                   fprintf(warn_file,"%s{%d} + %s{%d}  @ %s{%d} -> ",
                         rx->players[0]->sym->name,rx->geometries[0],
                         rx->players[1]->sym->name,rx->geometries[1],
                         rx->players[2]->sym->name,rx->geometries[2]);
                 }else{
-                   fprintf(warn_file,"%s[%d] + %s[%d]  + %s[%d] -> ",
+                   fprintf(warn_file,"%s{%d} + %s{%d}  + %s{%d} -> ",
                         rx->players[0]->sym->name,rx->geometries[0],
                         rx->players[1]->sym->name,rx->geometries[1],
                         rx->players[2]->sym->name,rx->geometries[2]);
 
                 }
             }
-            for (k = rx->product_idx[j] ; k < rx->product_idx[j+1] ; k++)
-            {
-              if (rx->players[k]==NULL) fprintf(warn_file,"NIL ");
-              else fprintf(warn_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+            if(path->product_head == NULL){
+               fprintf(warn_file,"NULL ");
+            }else{
+               for (prod = path->product_head ; prod != NULL ; prod = prod->next)
+               {
+                  fprintf(warn_file,"%s{%d} ",prod->prod->sym->name, prod->orientation);
+               }
             }
             fprintf(warn_file,"\n");
             
@@ -2580,6 +2605,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               return 1;
             }
           }
+          path = path->next;
         }
         
         if (n_prob_t_rxns > 0)
