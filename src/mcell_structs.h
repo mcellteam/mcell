@@ -1370,6 +1370,7 @@ struct release_site_obj {
 
   double release_prob;            /* Probability of releasing at scheduled time */
   struct release_pattern *pattern;  /* Timing of releases by virtual function generator */
+  char *name; /* Fully referenced name of the instantiated release_site */
 };
 
 

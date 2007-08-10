@@ -3481,6 +3481,7 @@ existing_object_ref:
   else {
     mdlpvp->object_name_list_end->name=NULL;
   }
+
   $$=$<sym>1;
 };
 
@@ -3518,6 +3519,7 @@ release_site_def_new: new_object RELEASE_SITE '{'
   mdlpvp->rsop->mol_list=NULL;
   mdlpvp->rsop->release_prob=1.0;
   mdlpvp->rsop->pattern=volp->default_release_pattern;
+  mdlpvp->rsop->name=NULL;
 
   mdlpvp->objp->object_type=REL_SITE_OBJ;
   mdlpvp->objp->contents=mdlpvp->rsop;
@@ -3588,6 +3590,7 @@ release_site_def_new: new_object RELEASE_SITE '{'
   else {
     mdlpvp->object_name_list_end->name=NULL;
   }
+ 
   $$=$<sym>1;
 };
 
@@ -3810,6 +3813,7 @@ release_site_def_old: new_object release_site_geom_old '{'
   mdlpvp->rsop->mol_list=NULL;
   mdlpvp->rsop->release_prob=1.0;
   mdlpvp->rsop->pattern=volp->default_release_pattern;
+  mdlpvp->rsop->name=NULL;
   mdlpvp->objp->object_type=REL_SITE_OBJ;
   mdlpvp->objp->contents=mdlpvp->rsop;
   mdlpvp->objp->parent=mdlpvp->curr_obj;

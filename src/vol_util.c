@@ -686,7 +686,6 @@ struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,struct
   return new_m;    
 }
 
-
 /*************************************************************************
 eval_rel_region_3d:
   In: an expression tree containing regions to release on
@@ -1112,7 +1111,7 @@ int release_molecules(struct release_event_queue *req)
   struct volume_molecule *mp;
   struct grid_molecule *gp;
   struct volume_molecule *guess;
-  int i,number;
+  int i,i_failed,number;
   short orient;
   struct vector3 *diam_xyz;
   struct vector3 pos;
@@ -1269,13 +1268,7 @@ int release_molecules(struct release_event_queue *req)
       {
         if (number>0 || (rso->release_number_method==CCNNUM && rso->concentration>0))
         {
-          fprintf(world->log_file, "Releasing %d %s at iteration %lld\n",
-            ap->properties->population-pop_before,req->release_site->mol_type->sym->name,world->it_time);
-        }
-        else
-        {
-          fprintf(world->log_file, "Releasing %d %s at iteration %lld\n",
-            ap->properties->population-pop_before,req->release_site->mol_type->sym->name,world->it_time);
+          fprintf(world->log_file, "Releasing %d %s from \"%s\" at iteration %lld\n", ap->properties->population-pop_before,rso->mol_type->sym->name, rso->name, world->it_time);
         }
       }
     }
@@ -1288,13 +1281,7 @@ int release_molecules(struct release_event_queue *req)
       {
         if (number>0)
         {
-          fprintf(world->log_file, "Releasing %d %s at iteration %lld\n",
-            ap->properties->population-pop_before,req->release_site->mol_type->sym->name,world->it_time);
-        }
-        else
-        {
-          fprintf(world->log_file, "Releasing %d %s at iteration %lld\n",
-            ap->properties->population-pop_before,req->release_site->mol_type->sym->name,world->it_time);
+          fprintf(world->log_file, "Releasing %d %s from \"%s\" at iteration %lld\n", ap->properties->population-pop_before,rso->mol_type->sym->name, rso->name, world->it_time);
         }
       }
     }
@@ -1308,7 +1295,9 @@ int release_molecules(struct release_event_queue *req)
     rsm = rso->mol_list;
     if (rsm != NULL)
     {
-      for (i=0 ; rsm!=NULL ; rsm=rsm->next,i++)
+      i = 0; /* serves as counter for released molecules */
+      i_failed = 0; /* serves as counted for the failed to release molecules */
+      for (; rsm!=NULL ; rsm=rsm->next)
       {
 	location[0][0] = rsm->loc.x + rso->location->x;
 	location[0][1] = rsm->loc.y + rso->location->y;
@@ -1333,6 +1322,7 @@ int release_molecules(struct release_event_queue *req)
           }
           if (m.properties->space_step > 0.0) ap->flags |= ACT_DIFFUSE;
 	  guess = insert_volume_molecule(&m,guess);
+          i++;
 	  if (guess==NULL) return 1;
 	}
 	else
@@ -1353,15 +1343,20 @@ int release_molecules(struct release_event_queue *req)
 	  gp = insert_grid_molecule(rsm->mol_type,&(m.pos),orient,diam,req->event_time);
 	  if (gp==NULL)
 	  {
-	    fprintf(world->log_file,"Warning: unable to find surface upon which to place molecule %s\n",rsm->mol_type->sym->name);
+	    fprintf(world->log_file,"Molecule Release Warning: unable to find surface upon which to place molecule %s\n",rsm->mol_type->sym->name);
 	    fprintf(world->log_file,"  Perhaps you want to SITE_DIAMETER larger to increase search distance?\n");
-	  }
+             i_failed++;
+	  }else{
+             i++;
+          }
 	}
       }
       if (world->notify->release_events==NOTIFY_FULL)
       {
-        fprintf(world->log_file, "Releasing %d molecules from list at iteration %lld\n",
-            i,world->it_time);
+          fprintf(world->log_file, "Releasing %d molecules from list \"%s\" at iteration %lld\n", i, rso->name, world->it_time);
+      }
+      if(i_failed > 0){
+          fprintf(world->log_file, "Failed to release %d molecules from list \"%s\" at iteration %lld\n", i_failed, rso->name, world->it_time);
       }
     }
     else if (diam_xyz != NULL)
@@ -1410,8 +1405,7 @@ int release_molecules(struct release_event_queue *req)
       }
       if (world->notify->release_events==NOTIFY_FULL)
       {
-        fprintf(world->log_file, "Releasing %d %s at iteration %lld\n",
-            number,req->release_site->mol_type->sym->name,world->it_time);
+          fprintf(world->log_file, "Releasing %d %s from \"%s\" at iteration %lld\n", number,rso->mol_type->sym->name, rso->name, world->it_time);
       }
     }
     else
@@ -1434,8 +1428,7 @@ int release_molecules(struct release_event_queue *req)
       }
       if (world->notify->release_events==NOTIFY_FULL)
       {
-        fprintf(world->log_file, "Releasing %d %s at iteration %lld\n",
-            number,req->release_site->mol_type->sym->name,world->it_time);
+          fprintf(world->log_file, "Releasing %d %s from \"%s\" at iteration %lld\n", number,rso->mol_type->sym->name, rso->name, world->it_time);
       }
     }
   }

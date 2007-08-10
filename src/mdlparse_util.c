@@ -517,6 +517,8 @@ int copy_object(struct volume *volp,struct object *curr_objp,
     case REL_SITE_OBJ:
       objp->contents=duplicate_release_site(objp2->contents,objp,volp->root_instance,volp->main_sym_table);
       if (objp->contents==NULL) return 1;
+      struct release_site_obj *rso = (struct release_site_obj *)(objp->contents);
+      rso->name = my_strcat(objp->sym->name, NULL);
       break;
     case BOX_OBJ:
       objp->contents=objp2->contents;
