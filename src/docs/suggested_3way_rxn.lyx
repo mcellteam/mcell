@@ -1,4 +1,4 @@
-#LyX 1.4.2 created this file. For more info see http://www.lyx.org/
+#LyX 1.4.3 created this file. For more info see http://www.lyx.org/
 \lyxformat 245
 \begin_document
 \begin_header
@@ -364,6 +364,82 @@ p_{\mathrm{rx}}^{\prime}=\frac{2\,\kappa}{3\, A\, B\,(D_{1}+D_{2})}\]
 \end_layout
 
 \begin_layout Subsubsection*
+Three-way reactions with two surface components
+\end_layout
+
+\begin_layout Standard
+The standard computation for the number of hits against a single surface
+ is 
+\begin_inset Formula \[
+n_{\mathrm{hit}}=\frac{\rho_{1}A\lambda}{2\sqrt{\pi}}\]
+
+\end_inset
+
+ and the probability that a grid element is filled with an appropriate surface
+ molecule is 
+\begin_inset Formula $\sigma_{i}A$
+\end_inset
+
+ so that if we demand that we strike the first surface molecule directly
+ and the second is adjacent, then the productive hit rate is (keeping in
+ mind that either of the two surface molecules can be the initial target)
+ 
+\begin_inset Formula \[
+n_{\mathrm{productive}}=\frac{3\rho_{1}\sigma_{2}\sigma_{3}A^{3}\lambda}{\sqrt{\pi}}\]
+
+\end_inset
+
+ The desired number of reactions is 
+\begin_inset Formula $\kappa\rho_{1}\sigma_{2}\sigma_{3}\Delta t$
+\end_inset
+
+ (if appropriate units are used for the rate constant), so that 
+\begin_inset Formula \[
+p_{\mathrm{rx}}=\kappa\frac{\sqrt{\pi}}{3A^{3}v}\]
+
+\end_inset
+
+ If hybrid units are used, one factor of 
+\begin_inset Formula $A$
+\end_inset
+
+ may drop out (as it does for the standard single-surface-molecule case).
+ In contrast, if one of the components is the surface itself and the other
+ is the molecule, the number of productive collisions drops by a factor
+ of six (no neighbors, and only one target), giving 
+\begin_inset Formula \[
+p_{\mathrm{rx}}^{\prime}=\kappa\frac{2\sqrt{\pi}}{A^{3}v}\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection*
+Three-way reactions with all surface components
+\end_layout
+
+\begin_layout Standard
+If all components are in the surface, the total number of reactions per
+ timestep for a single molecule should be 
+\begin_inset Formula $\kappa\sigma_{2}\sigma_{3}\Delta T$
+\end_inset
+
+ and the actual probability of finding the appropriate neighbors is 
+\begin_inset Formula $3\sigma_{2}A\cdot2\sigma_{3}A$
+\end_inset
+
+.
+ Thus the reaction probability should be 
+\begin_inset Formula \[
+p_{\mathrm{rx}}=\frac{\kappa}{6A^{2}}\Delta t\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection*
 N-way reactions in MCell
 \end_layout
 
@@ -435,7 +511,7 @@ p=\frac{\kappa\sqrt{\pi}}{2\Gamma\left(\frac{N+3}{2}\right)A^{N}\sum\frac{\lambd
 \end_layout
 
 \begin_layout Subsubsection*
-Higher order reactions with surfaces
+Higher order reactions with single surfaces
 \end_layout
 
 \begin_layout Standard
@@ -499,6 +575,52 @@ n_{\mathrm{hit}}^{(N=7)} & = & \frac{6}{\sqrt{\pi}}\lambda^{6}A^{5}B\prod_{i=1}^
 \end_inset
 
  in Maple 10, but these formulae have not been proven.
+\end_layout
+
+\begin_layout Subsubsection*
+Higher order reactions with multiple surface components
+\end_layout
+
+\begin_layout Standard
+Each time one adds a molecular surface component, one adds a factor of 
+\begin_inset Formula $\frac{1}{A}$
+\end_inset
+
+ the first time (if one is already hitting a surface and a molecule needs
+ to be there also), 
+\begin_inset Formula $\frac{1}{3A}$
+\end_inset
+
+ the second time, 
+\begin_inset Formula $\frac{1}{2A}$
+\end_inset
+
+ the third time, and 
+\begin_inset Formula $\frac{1}{A}$
+\end_inset
+
+ the fourth time.
+ More than four molecules cannot be found by adjacent search; if this is
+ generalized to a wider search, then if the extra partner can be found in
+ one of 
+\begin_inset Formula $n$
+\end_inset
+
+ places, the reaction probability changes by 
+\begin_inset Formula $\frac{1}{nA}$
+\end_inset
+
+.
+ In addition, if there are 
+\begin_inset Formula $k$
+\end_inset
+
+ possible surface targets total, the reaction probability should be multiplied
+ by an additional 
+\begin_inset Formula $\frac{1}{k}$
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Subsubsection*
