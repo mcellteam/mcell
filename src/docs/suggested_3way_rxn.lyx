@@ -36,6 +36,10 @@
 
 \begin_body
 
+\begin_layout Subsection*
+Reactions with More than Two Components
+\end_layout
+
 \begin_layout Subsubsection*
 Three-way reactions in MCell
 \end_layout
@@ -390,25 +394,32 @@ n_{\mathrm{productive}}=\frac{3\rho_{1}\sigma_{2}\sigma_{3}A^{3}\lambda}{\sqrt{\
 \end_inset
 
  The desired number of reactions is 
-\begin_inset Formula $\kappa\rho_{1}\sigma_{2}\sigma_{3}\Delta t$
+\begin_inset Formula $\kappa\rho_{1}\sigma_{2}\sigma_{3}A\Delta t$
 \end_inset
 
  (if appropriate units are used for the rate constant), so that 
 \begin_inset Formula \[
-p_{\mathrm{rx}}=\kappa\frac{\sqrt{\pi}}{3A^{3}v}\]
+p_{\mathrm{rx}}=\kappa\frac{\sqrt{\pi}}{3A^{2}v}\]
 
 \end_inset
 
- If hybrid units are used, one factor of 
-\begin_inset Formula $A$
+In contrast, if one of the components is the surface itself (let's assign
+ it to 
+\begin_inset Formula $\mathrm{\sigma_{3}}$
 \end_inset
 
- may drop out (as it does for the standard single-surface-molecule case).
- In contrast, if one of the components is the surface itself and the other
- is the molecule, the number of productive collisions drops by a factor
- of six (no neighbors, and only one target), giving 
+) and the other is the molecule, the number of productive collisions drops
+ by a factor of six (no neighbors, and only one target), 
+\begin_inset Formula $\sigma_{3}A=1$
+\end_inset
+
+ in the probability calculation and 
+\begin_inset Formula $\sigma_{3}$
+\end_inset
+
+ is typically omitted entirely from the bulk equation, giving 
 \begin_inset Formula \[
-p_{\mathrm{rx}}^{\prime}=\kappa\frac{2\sqrt{\pi}}{A^{3}v}\]
+p_{\mathrm{rx}}^{\prime}=\kappa\frac{2\sqrt{\pi}}{Av}\]
 
 \end_inset
 
@@ -832,6 +843,288 @@ k_{-12}=k_{-13}=k_{-23}=k^{\ddagger}\approx\frac{1}{3}\alpha^{2}k\]
 \end_inset
 
  our fractional error would be under 1%.
+\end_layout
+
+\begin_layout Subsubsection*
+Notes on Units
+\end_layout
+
+\begin_layout Standard
+When rates are measured for bimolecular reactions between a volume molecule
+ and a surface molecule, one can lay down a surface with known (or measurable)
+ area 
+\begin_inset Formula $\mathcal{A}$
+\end_inset
+
+ in a solution of volume 
+\begin_inset Formula $\mathcal{V}$
+\end_inset
+
+.
+ You then add 
+\begin_inset Formula $n_{1}$
+\end_inset
+
+ volume molecules (concentration 
+\begin_inset Formula $\rho_{1}=n_{1}/\mathcal{V}$
+\end_inset
+
+ in units of #/unit volume) and 
+\begin_inset Formula $n_{2}$
+\end_inset
+
+ surface molecules (at density 
+\begin_inset Formula $\sigma_{2}=n_{2}/\mathcal{A}$
+\end_inset
+
+) and measure 
+\begin_inset Formula \[
+\frac{d\rho_{1}}{dt}=-k_{\rho}\rho_{1}\sigma_{2}\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+where 
+\begin_inset Formula $k_{\rho}$
+\end_inset
+
+ is the rate constant with units of 
+\begin_inset Formula $\mathrm{area}\cdot\#^{-1}\cdot\mathrm{s}^{-1}$
+\end_inset
+
+.
+ One can equally well write this as 
+\begin_inset Formula \[
+\frac{d\sigma_{2}}{dt}=-k_{\sigma}\rho_{1}\sigma_{2}\]
+
+\end_inset
+
+ where 
+\begin_inset Formula $k_{\sigma}$
+\end_inset
+
+ has units of 
+\begin_inset Formula $\mathrm{volume}\cdot\#^{-1}\cdot\mathrm{s}^{-1}$
+\end_inset
+
+.
+ Of course, the numbers of molecules reacting are the same, so that 
+\begin_inset Formula \[
+-k_{\sigma}\mathcal{V}^{-1}n_{1}n_{2}=\mathcal{A}\frac{d\sigma_{2}}{dt}=\frac{dn_{2}}{dt}=\frac{dn_{1}}{dt}=\mathcal{V}\frac{d\rho_{1}}{dt}=-k_{\rho}\mathcal{A}^{-1}n_{1}n_{2}\]
+
+\end_inset
+
+ We can now let 
+\begin_inset Formula $k_{n}=k_{\sigma}\mathcal{V}^{-1}=k_{\rho}\mathcal{A}^{-1}$
+\end_inset
+
+ and write 
+\begin_inset Formula \[
+\frac{dn_{\star}}{dt}=-k_{n}n_{1}n_{2}\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+But one can also define 
+\begin_inset Formula $\rho_{2}=\sigma_{2}\cdot\frac{\mathcal{A}}{\mathcal{V}}$
+\end_inset
+
+, that is, treat the surface molecule as if it were a volume molecule, and
+ then 
+\begin_inset Formula \[
+\frac{d\rho_{\star}}{dt}=\frac{dn_{\diamond}}{dt}\mathcal{V}^{-1}=-k_{n}\rho_{1}\rho_{2}\mathcal{V}^{-1}=-k_{\star}\rho_{1}\rho_{2}\]
+
+\end_inset
+
+ where 
+\begin_inset Formula $k_{\star}=k_{n}\cdot\mathcal{V}^{-1}$
+\end_inset
+
+; here 
+\begin_inset Formula $\star$
+\end_inset
+
+ stands for one of 
+\begin_inset Formula $1$
+\end_inset
+
+ or 
+\begin_inset Formula $2$
+\end_inset
+
+, while 
+\begin_inset Formula $\diamond$
+\end_inset
+
+ stands for the other.
+\end_layout
+
+\begin_layout Standard
+If one is performing a stochastic calculation, the total number of hits
+ on all surface molecules in a short time 
+\begin_inset Formula $\Delta t$
+\end_inset
+
+ is 
+\begin_inset Formula \[
+n_{2}\frac{\rho_{1}A\lambda}{2\sqrt{\pi}}\Delta t\]
+
+\end_inset
+
+ where 
+\begin_inset Formula $A$
+\end_inset
+
+ is the area of a single surface molecule.
+ From the well-mixed continuum approximation, the probability should be
+ scaled such that 
+\begin_inset Formula \[
+-p_{\mathrm{rx}}\cdot n_{2}\frac{\rho_{1}A\lambda}{2\sqrt{\pi}}=\frac{dn_{\diamond}}{dt}\Delta t=\mathcal{V}\frac{d\rho_{\star}}{dt}\Delta t=-k_{\star}n_{2}\rho_{1}\Delta t\]
+
+\end_inset
+
+ so that 
+\begin_inset Formula $p_{\mathrm{rx}}=k_{\star}\cdot2\sqrt{\pi}/Av$
+\end_inset
+
+ where 
+\begin_inset Formula $v=\lambda/\Delta t$
+\end_inset
+
+.
+ Thus, we can use the volumetric rate constant 
+\begin_inset Formula $k_{\star}$
+\end_inset
+
+ where we need only convert from molarity to #/unit volume---we need not
+ know the original volume of the test sample or the area of membrane in
+ it, as long as the value of 
+\begin_inset Formula $k_{\mathrm{\star}}$
+\end_inset
+
+ is reported.
+ Conveniently, one can measure 
+\begin_inset Formula $k_{\star}$
+\end_inset
+
+ without even knowing the area of the membrane.
+\end_layout
+
+\begin_layout Standard
+However, if we add a second surface component at density 
+\begin_inset Formula $\sigma_{3}$
+\end_inset
+
+, the above is no longer true since the reaction rate is no longer proportional
+ to the numbers of each molecule.
+ In particular, 
+\begin_inset Formula \[
+\frac{d\rho_{1}}{dt}=-k_{\rho}\rho_{1}\sigma_{2}\sigma_{3}\]
+
+\end_inset
+
+ 
+\begin_inset Formula \[
+\frac{d\sigma_{i\in\{2,3\}}}{dt}=-k_{\sigma}\rho_{1}\sigma_{2}\sigma_{3}\]
+
+\end_inset
+
+ defines the reactions, but now 
+\begin_inset Formula \[
+\frac{dn_{1}}{dt}=\mathcal{V}\frac{d\rho_{1}}{dt}=-k_{\rho}n_{1}n_{2}n_{3}\mathcal{A}^{-2}\]
+
+\end_inset
+
+ 
+\begin_inset Formula \[
+\frac{dn_{i}}{dt}=\mathcal{A}\frac{d\sigma_{i}}{dt}=-k_{\sigma}n_{1}n_{2}n_{3}\mathcal{A}^{-1}\mathcal{V}^{-1}\]
+
+\end_inset
+
+ so that 
+\begin_inset Formula $k_{n}=k_{\sigma}\mathcal{A}^{-1}\mathcal{V}^{-1}=k_{\rho}\mathcal{A}^{-2}$
+\end_inset
+
+.
+ If we try the same trick of converting 
+\begin_inset Formula $\sigma_{2}$
+\end_inset
+
+ and 
+\begin_inset Formula $\sigma_{3}$
+\end_inset
+
+ to volumes, we find that -k
+\begin_inset Formula \[
+-k_{\star}\rho_{1}\rho_{2}\rho_{3}=\frac{d\rho_{\star}}{dt}=\mathcal{V}^{-1}\frac{dn_{\star}}{dt}=-k_{n}n_{1}n_{2}n_{3}\mathcal{V}^{-1}=-k_{n}\rho_{1}\rho_{2}\rho_{3}\mathcal{V}^{2}\]
+
+\end_inset
+
+ so that 
+\begin_inset Formula $k_{n}=k_{\star}\mathcal{V}^{-2}$
+\end_inset
+
+.
+ When we try to match total numbers of molecules reacting, we find that
+ there are 
+\begin_inset Formula \[
+p_{\mathrm{rx}}\frac{3\rho_{1}\sigma_{2}\sigma_{3}A^{3}\lambda}{\sqrt{\pi}}\cdot\frac{\mathcal{A}}{A}\]
+
+\end_inset
+
+ total reactions in time 
+\begin_inset Formula $\Delta t$
+\end_inset
+
+ in a stochastic treatment (the factor of 
+\begin_inset Formula $\mathcal{A}/A$
+\end_inset
+
+ arises from the difference between the per-receptor area and the total
+ surface area), and 
+\begin_inset Formula \[
+\frac{dn_{\star}}{dt}\Delta t=\mathcal{V}\frac{d\rho_{\star}}{dt}\Delta t=-k_{\star}\rho_{1}\rho_{2}\rho_{3}\mathcal{V}\Delta t=-k_{\star}\rho_{1}\sigma_{2}\sigma_{3}\frac{\mathcal{A}^{2}}{\mathcal{V}}\Delta t\]
+
+\end_inset
+
+ from the deterministic continuum equations.
+ Equating the two (with the correct sign) gives 
+\begin_inset Formula \[
+p_{rx}=k_{\star}\frac{\sqrt{\pi}}{3A^{2}v}\cdot\frac{\mathcal{A}}{\mathcal{V}}\]
+
+\end_inset
+
+ This is problematic because the probability of reaction now depends on
+ the surface to volume ratio 
+\begin_inset Formula $\mathcal{A}/\mathcal{V}$
+\end_inset
+
+; what we need is 
+\begin_inset Formula $k_{\star}\frac{\mathcal{A}}{\mathcal{V}}$
+\end_inset
+
+.
+ Fortunately, 
+\begin_inset Formula $k_{\sigma}=k_{n}\mathcal{A}\mathcal{V}=k_{\star}\frac{\mathcal{A}}{\mathcal{V}}$
+\end_inset
+
+.
+ Thus, the only appropriate rate constant for three-molecule reactions is
+ 
+\begin_inset Formula $k_{\sigma}$
+\end_inset
+
+, which has units of 
+\begin_inset Formula $\mathrm{volume}\cdot\mathrm{area}\cdot\#^{-2}\cdot s^{-1}$
+\end_inset
+
+.
 \end_layout
 
 \end_body
