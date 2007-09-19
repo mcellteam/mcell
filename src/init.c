@@ -213,8 +213,9 @@ static void init_volume_data_output(struct volume *wrld)
  */
 int init_sim(void)
 {
-  FILE *log_file;
+  FILE *log_file, *file;
   struct sym_table *gp;
+  struct output_set *set;
   struct output_block *obp,*obpn;
   int i;
   double f;
@@ -589,53 +590,6 @@ int init_sim(void)
     world->chkpt_seq_num=1;
   }
 
-  /* Truncate reaction data output files if necessary */  
-  if (world->output_block_head != NULL)
-  {
-    struct output_block *block;
-    struct output_set *set;
-    FILE *f;
-    int i;
-    
-    for (block=world->output_block_head ; block!=NULL ; block=block->next)
-    {
-      for (set=block->data_set_head ; set!=NULL ; set=set->next)
-      {
-	if (set->file_flags==FILE_SUBSTITUTE)
-	{
-	  if (world->chkpt_seq_num==1)
-	  {
-	    f = fopen(set->outfile_name,"w");
-	    if (f==NULL)
-	    {
-	      fprintf(world->err_file,"Can't open output file %s\n",set->outfile_name);
-	      return 1;
-	    }
-	    fclose(f);
-	  }
-	  else if (block->timer_type==OUTPUT_BY_ITERATION_LIST)
-	  {
-	    i = truncate_output_file(set->outfile_name,world->start_time);
-	    if (i)
-	    {
-	      fprintf(world->err_file,"Failed to prepare output file %s to receive output\n",set->outfile_name);
-	      return 1;
-	    }
-	  }
-	  else
-	  {
-	    i = truncate_output_file(set->outfile_name,world->current_start_real_time);
-	    if (i)
-	    {
-	      fprintf(world->err_file,"Failed to prepare output file %s to receive output\n",set->outfile_name);
-	      return 1;
-	    }
-	  }
-	}
-      }
-    }
-  }
-
   /* Initialize the frame data for the visualization and reaction output. */
   if (init_frame_data_list(&world->frame_data_head))
   {
@@ -664,7 +618,7 @@ int init_sim(void)
       else
       {
         f = obp->step_time/world->time_unit; /* Step time (internal units) */
-        obp->t = f*ceil(world->count_scheduler->now / f); /* Round up */
+        obp->t = f*ceil(world->count_scheduler->now / f) + f;  /* Round up */
       }      
     }
     else if (obp->time_now==NULL) /* When would this be non-NULL?? */
@@ -684,11 +638,45 @@ int init_sim(void)
         for (obp->time_now=obp->time_list_head ; obp->time_now!=NULL ; obp->time_now=obp->time_now->next)
         {
           obp->t=f*obp->time_now->value;
-          if (!(obp->t < world->iterations+1 && obp->t <= world->count_scheduler->now)) break;
+          if (!(obp->t < world->iterations+1 && obp->t <= world->count_scheduler->now)) break;  
         }
       }
     }
-    
+      for (set=obp->data_set_head ; set!=NULL ; set=set->next)
+      {
+	if (set->file_flags==FILE_SUBSTITUTE)
+	{
+	  if (world->chkpt_seq_num==1)
+	  {
+	    file = fopen(set->outfile_name,"w");
+	    if (file==NULL)
+	    {
+	      fprintf(world->err_file,"Can't open output file %s\n",set->outfile_name);
+	      return 1;
+	    }
+	    fclose(file);
+	  }
+	  else if (obp->timer_type==OUTPUT_BY_ITERATION_LIST)
+	  {
+	    i = truncate_output_file(set->outfile_name,obp->t);
+	    if (i)
+	    {
+	      fprintf(world->err_file,"Failed to prepare output file %s to receive output\n",set->outfile_name);
+	      return 1;
+	    }
+	  }
+	  else
+	  {
+	    i = truncate_output_file(set->outfile_name,obp->t*world->time_unit);
+	    if (i)
+	    {
+	      fprintf(world->err_file,"Failed to prepare output file %s to receive output\n",set->outfile_name);
+	      return 1;
+	    }
+	  }
+	}
+      }
+ 
     if (schedule_add(world->count_scheduler , obp))
     {
       fprintf(world->err_file,"File %s, Line %ld: Out of memory while setting up output.\n", __FILE__, (long)__LINE__);
