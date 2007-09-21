@@ -100,7 +100,7 @@ int truncate_output_file(char *name, double start_value)
 
         /* Parse and validate the number */
         buffer[j] = '\0';
-        my_value = strtod(buffer+i,&done);
+        my_value = strtod(buffer+i,&done) + EPS_C;
 
         /* If it was a valid number and it was >= our start time */
         if (done != buffer+i  &&  my_value >= start_value)
