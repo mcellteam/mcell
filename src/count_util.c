@@ -381,10 +381,20 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
     
     all_regs=NULL;
     all_antiregs=NULL;
-    
+   
+/* 
+    if(wp->regions == NULL){
+       printf("wp->regions = NULL, h = %d\n", h);
+    }else{
+       printf("h = %d\n", h);
+    }
+*/
+ 
     /* Copy all the potentially relevant regions from the nearest waypoint */
     for ( rl=wp->regions ; rl!=NULL ; rl=rl->next)
     {
+      if(rl == NULL) continue;
+      if(rl->reg == NULL) continue;
       i=(hashval^rl->reg->hashval)&world->count_hashmask;
       if (i==0) i=hashval&world->count_hashmask;
       if (world->count_hash[i]==NULL) continue; /* Won't count on this region so ignore it */
@@ -1118,6 +1128,7 @@ int place_waypoints()
   struct wall_list *wl;
   struct subvolume *sv;
   double d;
+
   
 /* Being exactly in the center of a subdivision can be bad. */
 /* Define "almost center" positions for X, Y, Z */
@@ -1393,7 +1404,7 @@ int check_counter_geometry()
 	
 	if (rp->manifold_flag==NOT_MANIFOLD)
         {
-	  fprintf(world->err_file,"Cannot count molecules or events inside non-manifold object region: %s\n", rp->sym->name); 
+	  fprintf(world->err_file,"Cannot count molecules or events inside non-manifold object region: %s.  Please make sure that all objects/regions used to count 3D molecules are closed/watertight.\n", rp->sym->name); 
 	  return (1);
 	}
 	
