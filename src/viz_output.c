@@ -40,14 +40,24 @@ static long long frame_iteration(double iterval, int type)
       return (long long) iterval;
 
     case OUTPUT_BY_TIME_LIST:
-      return (long long) (iterval / world->time_unit + ROUND_UP);
+      if(world->chkpt_seq_num == 1)
+      {
+         return (long long) (iterval / world->time_unit + ROUND_UP);
+      }else{
+        if(iterval >= world->current_start_real_time){
+           return (long long) (world->start_time + ((iterval - world->current_start_real_time)/world->time_unit + ROUND_UP));
+        }else{
+           /* This iteration_time was in the past - just return flag.
+              We do this because TIME_STEP may have been changed between checkpoints */
+           return INT_MIN;
+        }
+      }
 
     default:
       fprintf(world->err_file, "File '%s', Line %ld: error - wrong frame_data_list list_type %d\n", __FILE__, (long)__LINE__, type);
       return -1;
   }
 }
-
 /*************************************************************************
 sort_molecules_by_species:
     Scans over all molecules, sorting them into arrays by species.
@@ -287,7 +297,7 @@ static int count_time_values(struct frame_data_list * const fdlp)
         fdlpcur->curr_viz_iteration = fdlpcur->curr_viz_iteration->next;
     }
   }
-               
+                
   return time_values;
 }
 
@@ -467,8 +477,22 @@ convert_frame_data_to_iterations:
 static int convert_frame_data_to_iterations(struct frame_data_list *fdlp)
 {
   struct num_expr_list *nel;
-  for (nel = fdlp->iteration_list; nel != NULL; nel = nel->next)
-    nel->value = (double) (long long)(nel->value / world->time_unit + ROUND_UP);
+
+  if(fdlp->list_type != OUTPUT_BY_TIME_LIST) return 0;
+
+  for (nel = fdlp->iteration_list; nel != NULL; nel = nel->next){
+    if(world->chkpt_seq_num == 1){
+        nel->value = (double) (long long)(nel->value / world->time_unit + ROUND_UP);
+    }else{
+      if(nel->value >= world->current_start_real_time){
+         nel->value = (double) (long long)(world->start_time + ((nel->value - world->current_start_real_time)/ world->time_unit + ROUND_UP));
+      }else{
+         /* this iteration was in the past */
+         nel->value = INT_MIN; 
+      }
+    }
+  }
+
   fdlp->list_type = OUTPUT_BY_ITERATION_LIST;
   return 0;
 }
@@ -1978,6 +2002,7 @@ static int dreamm_v3_generic_dump_time_values(char const *viz_data_dir,
 {
   FILE *time_values_data = NULL;
   int time_value_index;
+  double t_value;
 
   /* Open time values data file */
   if((world->viz_mode == DREAMM_V3_MODE) && (world->chkpt_flag)){
@@ -1993,7 +2018,11 @@ static int dreamm_v3_generic_dump_time_values(char const *viz_data_dir,
        time_value_index < world->viz_state_info.output_times.n_iterations;
        ++ time_value_index)
   {
-    double t_value = world->viz_state_info.output_times.iterations[time_value_index] * world->time_unit;
+    if(world->chkpt_seq_num == 1){
+        t_value = world->viz_state_info.output_times.iterations[time_value_index] * world->time_unit; 
+    }else{
+       t_value = world->current_start_real_time + (world->viz_state_info.output_times.iterations[time_value_index] - world->start_time) * world->time_unit;
+    }
     fwrite(&t_value, sizeof(t_value), 1, time_values_data);
 
   }

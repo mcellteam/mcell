@@ -365,12 +365,25 @@ int update_reaction_output(struct output_block *block)
   no_printf("Updating reaction output at time %lld of %lld\n",world->it_time,world->iterations);
   fflush(log_file);
 
+
   /* update all counters */
 
   i=block->buf_index;
-  if(block->timer_type==OUTPUT_BY_ITERATION_LIST) block->time_array[i] = block->t;
-  else block->time_array[i] = block->t*world->time_unit;
-  
+  if(world->chkpt_seq_num == 1){
+     if(block->timer_type==OUTPUT_BY_ITERATION_LIST) block->time_array[i] = block->t;
+     else block->time_array[i] = block->t*world->time_unit;
+  }else{
+     if(block->timer_type==OUTPUT_BY_ITERATION_LIST) {
+        block->time_array[i] = block->t;
+     }else if(block->timer_type == OUTPUT_BY_TIME_LIST){
+            block->time_array[i] = block->time_now->value;     
+     }
+     else{
+               /* OUTPUT_BY_STEP */           
+           block->time_array[i] = world->current_start_real_time + (block->t - world->start_time)*world->time_unit;       
+     }
+  }
+
   for (set=block->data_set_head ; set!=NULL ; set=set->next) /* Each file */
   {
     for (column=set->column_head ; column!=NULL ; column=column->next) /* Each column */
@@ -405,7 +418,15 @@ int update_reaction_output(struct output_block *block)
     else
     {
       if (block->timer_type==OUTPUT_BY_ITERATION_LIST) block->t=block->time_now->value;
-      else block->t=block->time_now->value/world->time_unit;
+      else{
+               /* OUTPUT_BY_TIME_LIST */
+         if(world->chkpt_seq_num == 1){
+            block->t = block->time_now->value/world->time_unit;
+         }else{
+           block->t = world->start_time + (block->time_now->value - world->current_start_real_time)/world->time_unit;
+         }
+      }
+
     }
   }
   else final_chunk_flag=1;

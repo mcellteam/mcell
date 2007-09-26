@@ -600,7 +600,7 @@ int init_sim(void)
   /* Initialize the volume output */
   init_volume_data_output(world);
 
-  world->count_scheduler = create_scheduler(1.0,100.0,100,world->current_start_real_time/world->time_unit);
+  world->count_scheduler = create_scheduler(1.0,100.0,100,world->start_time);
   if(world->count_scheduler == NULL){
 	fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating count_scheduler.\n", __FILE__, (long)__LINE__);
         exit(EXIT_FAILURE);
@@ -637,8 +637,15 @@ int init_sim(void)
       {
         for (obp->time_now=obp->time_list_head ; obp->time_now!=NULL ; obp->time_now=obp->time_now->next)
         {
-          obp->t=f*obp->time_now->value;
-          if (!(obp->t < world->iterations+1 && obp->t <= world->count_scheduler->now)) break;  
+          if(obp->timer_type == OUTPUT_BY_ITERATION_LIST){
+            obp->t=f*obp->time_now->value;
+            if (!(obp->t < world->iterations+1 && obp->t <= world->count_scheduler->now)) break;  
+          }else if(obp->timer_type == OUTPUT_BY_TIME_LIST){
+            if (!(obp->time_now->value <= world->current_start_real_time)){
+             obp->t = world->count_scheduler->now + (obp->time_now->value - world->current_start_real_time)/world->time_unit;
+             break;  
+            }          
+          }
         }
       }
     }

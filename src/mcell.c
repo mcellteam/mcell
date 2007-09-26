@@ -106,6 +106,8 @@ void run_sim(void)
   if (world->start_time != 0)
   {
     not_yet = world->it_time + 1.0;
+    /* TIME_STEP may have been changed between checkpoints */
+    world->current_real_time = world->current_start_real_time + (world->it_time - world->start_time)*world->time_unit;
     world->elapsed_time = world->it_time;
     goto resume_after_checkpoint;
   }
@@ -113,6 +115,7 @@ void run_sim(void)
   while (world->it_time <= world->iterations) 
   {
     not_yet = world->it_time + 1.0;
+    world->current_real_time = world->current_start_real_time + (world->it_time - world->start_time)*world->time_unit;
 
     
     if (world->it_time!=0) world->elapsed_time=world->it_time;
@@ -136,12 +139,13 @@ void run_sim(void)
       fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
       exit( EXIT_FAILURE );
     }
-  
+
     for ( obp=schedule_next(world->count_scheduler) ;
           obp!=NULL || not_yet>=world->count_scheduler->now ;
 	  obp=schedule_next(world->count_scheduler) )
     {
       if (obp==NULL) continue;
+                      
       if (update_reaction_output(obp))
       {
 	fprintf(world->err_file,"File '%s', Line %ld: Error while updating reaction output. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
@@ -208,7 +212,6 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     else {
       fprintf(world->log_file,"MCell: time = %lld, writing to checkpoint file %s\n",world->it_time, world->chkpt_outfile);
       world->chkpt_elapsed_real_time = world->chkpt_elapsed_real_time + world->chkpt_iterations*world->time_unit;
-      world->current_real_time = world->it_time*world->time_unit;
       if (write_chkpt(world->chkpt_outfs)) {
 	fprintf(world->err_file,"File '%s', Line %ld: error writing checkpoint file %s\n", __FILE__, (long)__LINE__, world->chkpt_outfile);
 	exit(1);
