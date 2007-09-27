@@ -551,9 +551,9 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
     for (i=0;i<n_output;i++)
     {
       if (set->block->time_array[i] < 1.0)
-        fprintf(fp,"%.11g",set->block->time_array[i]);
+        fprintf(fp,"%.10g",set->block->time_array[i]);
       else
-        fprintf(fp,"%.*g", 11 - (int) ceil(log10(set->block->time_array[i])), set->block->time_array[i]);
+        fprintf(fp,"%.*g", 10 - (int) ceil(log10(set->block->time_array[i])), set->block->time_array[i]);
       
       for (column=set->column_head ; column!=NULL ; column=column->next)
       {
