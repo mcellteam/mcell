@@ -438,6 +438,7 @@ int update_reaction_output(struct output_block *block)
     block->t=FOREVER;
   }
   else actual_t=-1;
+  block->t *= (1. + EPS_C);
   i = schedule_add(world->count_scheduler,block);
   if (i)
   {
@@ -549,7 +550,7 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
     /* Write data */
     for (i=0;i<n_output;i++)
     {
-      fprintf(fp,"%.15g",set->block->time_array[i]);
+      fprintf(fp,"%.11g",set->block->time_array[i]);
       
       for (column=set->column_head ; column!=NULL ; column=column->next)
       {
