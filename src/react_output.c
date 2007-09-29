@@ -376,7 +376,11 @@ int update_reaction_output(struct output_block *block)
      if(block->timer_type==OUTPUT_BY_ITERATION_LIST) {
         block->time_array[i] = block->t;
      }else if(block->timer_type == OUTPUT_BY_TIME_LIST){
-            block->time_array[i] = block->time_now->value;     
+         if(block->time_now == NULL){
+           return 0;
+         }else{         
+           block->time_array[i] = block->time_now->value; 
+         }    
      }
      else{
                /* OUTPUT_BY_STEP */           

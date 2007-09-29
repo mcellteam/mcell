@@ -623,6 +623,7 @@ int init_sim(void)
     }
     else if (obp->time_now==NULL) /* When would this be non-NULL?? */
     {
+
       /* Set time scaling factor depending on output type */
       if (obp->timer_type==OUTPUT_BY_ITERATION_LIST) f=1.0;
       else f=1.0/world->time_unit;
@@ -641,14 +642,15 @@ int init_sim(void)
             obp->t=f*obp->time_now->value;
             if (!(obp->t < world->iterations+1 && obp->t <= world->count_scheduler->now)) break;  
           }else if(obp->timer_type == OUTPUT_BY_TIME_LIST){
-            if (!(obp->time_now->value <= world->current_start_real_time)){
-             obp->t = world->count_scheduler->now + (obp->time_now->value - world->current_start_real_time)/world->time_unit;
-             break;  
-            }          
+            if (obp->time_now->value > world->current_start_real_time){
+               obp->t = world->count_scheduler->now + (obp->time_now->value - world->current_start_real_time)/world->time_unit;
+               break;  
+            }
           }
         }
       }
     }
+
       for (set=obp->data_set_head ; set!=NULL ; set=set->next)
       {
 	if (set->file_flags==FILE_SUBSTITUTE)
@@ -665,6 +667,7 @@ int init_sim(void)
 	  }
 	  else if (obp->timer_type==OUTPUT_BY_ITERATION_LIST)
 	  {
+            if(obp->time_now == NULL) continue;
 	    i = truncate_output_file(set->outfile_name,obp->t);
 	    if (i)
 	    {
@@ -674,6 +677,7 @@ int init_sim(void)
 	  }
 	  else
 	  {
+            if(obp->time_now == NULL) continue;
 	    i = truncate_output_file(set->outfile_name,obp->t*world->time_unit);
 	    if (i)
 	    {
