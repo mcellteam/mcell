@@ -11082,36 +11082,11 @@ filename
 .mesh_positions.1.bin
 \family default 
 .
- In the case of the 
+ When checkpointing using the 
 \family typewriter 
 DREAMM_V3
 \family default 
- format only three files - 
-\family sans 
-\shape italic 
-filename
-\family typewriter 
-\shape default 
-.dx
-\family default 
-, 
-\family sans 
-\shape italic 
-filename
-\family typewriter 
-\shape default 
-.iteration_numbers.bin
-\family default 
- and 
-\family sans 
-\shape italic 
-filename
-\family typewriter 
-\shape default 
-.time_values.bin
-\family default 
- will add the checkpoint sequence number to their names since all the data
- for each iteration is stored separately in the corresponding 
+ format, new 
 \family typewriter 
 iteration_
 \family sans 
@@ -11119,7 +11094,34 @@ iteration_
 #
 \family default 
 \shape default 
- subdirectory.
+ subdirectories holding the additional simulation output will be created
+ and the files 
+\family sans 
+\shape italic 
+filename
+\family typewriter 
+\shape default 
+.iteration_numbers.bin
+\family sans 
+\shape italic 
+, filename
+\family typewriter 
+\shape default 
+.time_values.bin
+\family sans 
+\shape italic 
+, 
+\family default 
+\shape default 
+and
+\family sans 
+\shape italic 
+ filename
+\family typewriter 
+\shape default 
+.dx
+\family default 
+ will be updated in place to reflect these changes.
 \layout Standard
 
 Examples of 
