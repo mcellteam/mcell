@@ -368,6 +368,7 @@ int update_reaction_output(struct output_block *block)
 
   /* update all counters */
 
+  block->t /= (1. + EPS_C);
   i=block->buf_index;
   if(world->chkpt_seq_num == 1){
      if(block->timer_type==OUTPUT_BY_ITERATION_LIST) block->time_array[i] = block->t;
