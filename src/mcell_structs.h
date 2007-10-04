@@ -50,6 +50,8 @@
 #define COUNT_RXNS       0x4000
 #define COUNT_ENCLOSED   0x8000
 #define COUNT_SOME_MASK  0xF800
+#define CAN_MOLGRIDGRID  0x10000
+#define CAN_GRIDGRIDGRID 0x20000
 
 
 /* Abstract Molecule Flags */
@@ -230,11 +232,17 @@
 /* A mask to pick off all of the collision target types */
 #define COLLIDE_MASK    0x0F
 /* Bitmasks for each of the major types of collision */
+/* These types are defined for the collisions between moving
+   volume molecule MOL and target.  So when the target is also
+   MOL the collision is COLLIDE_MOL (first MOL is omitted). */
 #define COLLIDE_WALL    0x10
-#define COLLIDE_MOL     0x20
+#define COLLIDE_MOL     0x20 /* collision between 2 volume molecules */
 #define COLLIDE_SUBVOL  0x40
-#define COLLIDE_MOL_MOL 0x80
-#define COLLIDE_MOL_GRID 0x100
+#define COLLIDE_MOL_MOL 0x80  /* collision between 3 volume molecules */
+#define COLLIDE_MOL_GRID 0x100 /* collision between 2 volume molecules
+                                  and 1 grid molecule */
+#define COLLIDE_GRID_GRID 0x200 /* collision between 1 volume molecule
+                                  and 2 grid molecules */
 
 
 /* Target-type Flags */
@@ -648,7 +656,7 @@ struct species
                                    For now - a placeholder for the future use */
   double space_step;            /* Characteristic step length */
   double time_step;             /* Minimum (maximum?) sensible timestep */
-  u_short flags;                /* Species Flags:  Vol Molecule? Surface Molecule?
+  u_int flags;                /* Species Flags:  Vol Molecule? Surface Molecule?
                                    Surface Class? Counting stuff, etc... */
   
   long long n_deceased;         /* Total number that have been destroyed. */

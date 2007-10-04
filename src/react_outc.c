@@ -503,6 +503,8 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
 /*************************************************************************
 outcome_products_trimol_reaction:
    In: relevant wall in the interaction, if any
+       first free molecule in the interaction, if any
+       first surface molecule in the interaction, if any
        reaction that is occuring
        path that the reaction is taking
        local storage for creating new molecules
@@ -555,7 +557,10 @@ int outcome_products_trimol_reaction(struct wall *w,
   struct grid_molecule fake;
   int fake_idx = -1;
   int vol_rev_flag = 0;
-  
+  int trimol_reaction_flag = 0; /* checks whether the reaction is a
+                                     trimol reaction */ 
+
+
 #define FLAG_NOT_SET 0
 #define FLAG_USE_UV_LOC 1
 #define FLAG_USE_REACA_UV 2     /* use reacA position */
@@ -564,87 +569,107 @@ int outcome_products_trimol_reaction(struct wall *w,
 #define FLAG_USE_RANDOM 5
      
 
-  if (hitpt == NULL) {
-    fprintf(world->err_file, "ERROR: Location of trimolecular reaction is not specified.\n");
-    exit(1);
-  }
-
   /* make sure that reacA corresponds to rx->players[0], 
      reacB - to rx->players[1], and reacC - to rx->players[2] */
-  if(reacA->properties == rx->players[0])
+  if(reacA != NULL && reacB != NULL && reacC != NULL)
   {
-    if(reacB->properties == rx->players[2] && reacB->properties != rx->players[1]){
-       plist[0] = reacB;
-       reacB = reacC;
-       reacC = plist[0];
-    
-       j = orientB;
-       orientB = orientC;
-       orientC = (short)j;
-    }
-  }else if(reacA->properties == rx->players[1]){
-    
-    if(reacB->properties == rx->players[0] && reacB->properties != rx->players[1]){
-       /* switch reacA and reacB */
-       plist[0] = reacB;
-       reacB = reacA;
-       reacA = plist[0];
-    
-       j = orientB;
-       orientB = orientA;
-       orientA = (short)j;
-    }else if(reacC->properties == rx->players[0]){
-       /* switch reacA and reacC */
-       plist[0] = reacA;
-       reacA = reacC;
-       reacC = plist[0];
-    
-       j = orientA;
-       orientA = orientC;
-       orientC = (short)j;
-
-       /* now switch reacC and reacB  */ 
-       plist[0] = reacB;
-       reacB = reacC;
-       reacC = plist[0];
-    
-       j = orientB;
-       orientB = orientC;
-       orientC = (short)j;
-     }
-  }else if(reacA->properties == rx->players[2]){
-     if(reacB->properties == rx->players[0])
+   /* trimolecular reaction */
+     if(reacA->properties == rx->players[0])
      {
-       /* switch reacA and reacB */
-       plist[0] = reacB;
-       reacB = reacA;
-       reacA = plist[0];
+       if(reacB->properties == rx->players[2] && reacB->properties != rx->players[1]){
+          plist[0] = reacB;
+          reacB = reacC;
+          reacC = plist[0];
     
-       j = orientB;
-       orientB = orientA;
-       orientA = (short)j;
+          j = orientB;
+          orientB = orientC;
+          orientC = (short)j;
+       }
+     }else if(reacA->properties == rx->players[1]){
+    
+       if(reacB->properties == rx->players[0] && reacB->properties != rx->players[1]){
+          /* switch reacA and reacB */
+          plist[0] = reacB;
+          reacB = reacA;
+          reacA = plist[0];
+    
+          j = orientB;
+          orientB = orientA;
+          orientA = (short)j;
+       }else if(reacC->properties == rx->players[0]){
+          /* switch reacA and reacC */
+          plist[0] = reacA;
+          reacA = reacC;
+          reacC = plist[0];
+    
+          j = orientA;
+          orientA = orientC;
+          orientC = (short)j;
+
+          /* now switch reacC and reacB  */ 
+          plist[0] = reacB;
+          reacB = reacC;
+          reacC = plist[0];
+    
+          j = orientB;
+          orientB = orientC;
+          orientC = (short)j;
+       }
+     }else if(reacA->properties == rx->players[2]){
+        if(reacB->properties == rx->players[0])
+        {
+          /* switch reacA and reacB */
+          plist[0] = reacB;
+          reacB = reacA;
+          reacA = plist[0];
+    
+          j = orientB;
+          orientB = orientA;
+          orientA = (short)j;
         
-       /* switch reacB and reacC */
-       plist[0] = reacB;
-       reacB = reacC;
-       reacC = plist[0];
+          /* switch reacB and reacC */
+          plist[0] = reacB;
+          reacB = reacC;
+          reacC = plist[0];
     
-       j = orientB;
-       orientB = orientC;
-       orientC = (short)j;
+          j = orientB;
+          orientB = orientC;
+          orientC = (short)j;
     
-     }else if ((reacC->properties == rx->players[0]) &&
-         (reacC->properties != rx->players[2])){
-       /* switch reacA and reacC */
-       plist[0] = reacA;
-       reacA = reacC;
-       reacC = plist[0];
+        }else if ((reacC->properties == rx->players[0]) &&
+           (reacC->properties != rx->players[2])){
+          /* switch reacA and reacC */
+          plist[0] = reacA;
+          reacA = reacC;
+          reacC = plist[0];
     
-       j = orientA;
-       orientA = orientC;
-       orientC = (short)j;
+          j = orientA;
+          orientA = orientC;
+          orientC = (short)j;
+       }
      }
+  }else{
+    /* bimolecular reaction */
+    /* make sure that reacA corresponds to rx->players[0], and
+     reacB - to rx->players[1] */
+     if (reacA->properties == rx->players[1] && reacA->properties != rx->players[0])
+     {
+       plist[0] = reacA;
+       reacA = reacB;
+       reacB = plist[0];
+
+       j = orientA;
+       orientA = orientB;
+       orientB = (short)j;
+    }
   }
+
+         
+  if((reacA != NULL) && (reacB != NULL) && (reacC != NULL)){
+     trimol_reaction_flag = 1;
+  }
+
+  
 
   plist[0] = reacA;
   
@@ -659,6 +684,7 @@ int outcome_products_trimol_reaction(struct wall *w,
         ptype[1] = 'w';
         plist[1] = NULL;
      }else{
+       plist[1] = reacB;
        if ( (reacB->properties->flags&ON_GRID)!=0 ) ptype[1] = 'g';
        else if ( (reacB->properties->flags&NOT_FREE)==0 ) ptype[1] = 'm';
        else ptype[1] = '!';
@@ -671,8 +697,9 @@ int outcome_products_trimol_reaction(struct wall *w,
            ptype[2] = 'w';
            plist[2] = NULL;
         }else{
+           plist[2] = reacC;
            if ( (reacC->properties->flags&ON_GRID)!=0 ) ptype[2] = 'g';
-           else if ( (reacB->properties->flags&NOT_FREE)==0 ) ptype[2] = 'm';
+           else if ( (reacC->properties->flags&NOT_FREE)==0 ) ptype[2] = 'm';
            else ptype[2] = '!';
         }
      }
@@ -683,22 +710,35 @@ int outcome_products_trimol_reaction(struct wall *w,
   k = -1;
   
   if (ptype[0]=='g' && rx->players[i0]==NULL) replace_p1=1;
-  if (ptype[1]=='g' && rx->players[i0+1]==NULL) replace_p2=1;
-  if (ptype[2]=='g' && rx->players[i0+2]==NULL) replace_p3=1;
+  if (rx->n_reactants > 1 && ptype[1]=='g' && rx->players[i0+1]==NULL) replace_p2=1;
+  if (rx->n_reactants > 2 && ptype[2]=='g' && rx->players[i0+2]==NULL) replace_p3=1;
    
 
-  if (reac_g!=NULL)  /* Surface involved */
+  if (reac_g!=NULL  || (reac_m != NULL && w!=NULL))  /* Surface involved */
   {
-    memcpy(&uv_loc , &(reac_g->s_pos) , sizeof(struct vector2));
+    if(reac_g != NULL) memcpy(&uv_loc , &(reac_g->s_pos) , sizeof(struct vector2));
+    else xyz2uv(hitpt,w,&uv_loc);
  
     for (j=i0+rx->n_reactants;j<iN;j++)
     {
       if (rx->players[j]->flags&ON_GRID)
       {
-        /* at present trimolecular reactions may include only one
-           grid molecule */
-           
-        if (replace_p1){
+  
+        if(replace_p1 && replace_p2 && replace_p3){
+          glist[j - (i0+rx->n_reactants)] = reac_g->grid;
+	  xlist[j - (i0+rx->n_reactants)] = reac_g->grid_index;
+          if((struct abstract_molecule *)reac_g == reacA){
+              flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
+              replace_p1 = 0;
+          }else if((struct abstract_molecule *)reac_g == reacB){
+              flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACB_UV;
+              replace_p2 = 0;
+          }else if((struct abstract_molecule *)reac_g == reacC){
+              flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACC_UV;
+              replace_p3 = 0;
+          }
+          continue;
+        }else if (replace_p1){
           glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid;
 	  xlist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid_index;
 	  flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
@@ -792,7 +832,7 @@ int outcome_products_trimol_reaction(struct wall *w,
     
     if ( (p->flags & ON_GRID) != 0 )
     {
-      if (reac_g!=NULL)
+      if (reac_g != NULL || (reac_m != NULL && w != NULL))
       {
         k = i-(i0+rx->n_reactants); 
 	
@@ -877,15 +917,30 @@ int outcome_products_trimol_reaction(struct wall *w,
         m->previous_wall = NULL;
         m->index = -1;
       }
-      
-      m->pos.x = hitpt->x;
-      m->pos.y = hitpt->y;
-      m->pos.z = hitpt->z;
-      m->subvol = find_coarse_subvol(hitpt);
-       
+     
+      if(hitpt != NULL)
+      { 
+         m->pos.x = hitpt->x;
+         m->pos.y = hitpt->y;
+         m->pos.z = hitpt->z;
+         if(trimol_reaction_flag){
+            m->subvol = find_coarse_subvol(hitpt);
+         }
+      }      
+ 
       if (reac_m != NULL)
       {
-        
+       
+        if (hitpt==NULL || ((struct abstract_molecule*)reac_m != moving && !trimol_reaction_flag))
+        {
+          m->pos.x = reac_m->pos.x;
+          m->pos.y = reac_m->pos.y;
+          m->pos.z = reac_m->pos.z;
+        }
+        if(!trimol_reaction_flag){
+           m->subvol = reac_m->subvol;
+        }
+ 
         if (w==NULL) /* place product of non-orientable reaction in volume */
         {
           m->next_v = m->subvol->mol_head;
@@ -897,7 +952,10 @@ int outcome_products_trimol_reaction(struct wall *w,
       else if (reac_g != NULL)
       {
         if (hitpt==NULL) uv2xyz(&(reac_g->s_pos) , reac_g->grid->surface , &(m->pos));
-        m->subvol = find_subvolume(&(m->pos),reac_g->grid->subvol);
+        if(!trimol_reaction_flag){
+           m->subvol = find_subvolume(&(m->pos),reac_g->grid->subvol);
+        }
+        
       }
       plist[i-i0] = (struct abstract_molecule*)m;
       ptype[i-i0] = 'm';
@@ -1318,7 +1376,8 @@ outcome_trimolecular:
   In: reaction that's occurring
       path the reaction's taking
       three molecules that are reacting (first is moving one
-          and the last one is the furthest from the moving molecule)
+          and the last one is the furthest from the moving molecule or
+          the one that is hit the latest)
       orientations of the molecules
       time that the reaction is occurring
       location of collision between moving molecule and the furthest target
@@ -1344,12 +1403,16 @@ int outcome_trimolecular(struct rxn *rx,int path,
   int i;
   /* flags */
   int killA = 0,killB = 0, killC = 0;
-  int reacC_was_free = 0;
+  int reacB_is_free = 0;
+  int reacC_is_free = 0;
+
 
    if ((reacA->properties->flags & NOT_FREE) == 0)
    {
        m = (struct volume_molecule*) reacA;
    } 
+   if ((reacB->properties->flags & NOT_FREE) == 0) reacB_is_free = 1;
+   if ((reacC->properties->flags & NOT_FREE) == 0) reacC_is_free = 1;
 
     /* we will use storage of the SV where the furthest target is located
        and products be placed  */
@@ -1437,7 +1500,6 @@ int outcome_trimolecular(struct rxn *rx,int path,
        {
           m->subvol->local_storage->timer->defunct_count++;
        }
-       reacC_was_free = 1;
     }
 
     if ((reacC->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
@@ -1487,29 +1549,43 @@ int outcome_trimolecular(struct rxn *rx,int path,
     if ((reacB->flags&IN_MASK)==0) mem_put(reacB->birthplace,reacB);
   }
 
-
   if (killA)
   {
-                              
-    m = (struct volume_molecule*)reacA;
-    m->subvol->mol_count--;
-    if (m->flags & IN_SCHEDULE)
-    {
-       m->subvol->local_storage->timer->defunct_count++;
-    }
-  
+    if((reacA->properties->flags & ON_GRID) != 0){
+       g = (struct grid_molecule *)reacA;
+       if (g->grid->mol[g->grid_index]==g) g->grid->mol[g->grid_index] = NULL;
+       g->grid->n_occupied--;
+       if (g->flags&IN_SURFACE) g->flags -= IN_SURFACE;
 
-    if ((reacA->flags&COUNT_ME) && world->place_waypoints_flag)
+       if (g->flags & IN_SCHEDULE)
+       {
+          g->grid->subvol->local_storage->timer->defunct_count++;
+       }
+    }else{
+       m = (struct volume_molecule*)reacA;
+       m->subvol->mol_count--;
+       if (m->flags & IN_SCHEDULE)
+       {
+          m->subvol->local_storage->timer->defunct_count++;
+       }
+    }
+    if ((reacA->properties->flags&ON_GRID)!=0)  /* Grid molecule is OK where it is, doesn't obey COUNT_ME */
+    {
+      if (reacA->properties->flags&COUNT_SOME_MASK)  /* If we're ever counted, try to count us now */
+      {
+        i=count_region_from_scratch(reacA,NULL,-1,NULL,NULL,t);	  
+      }
+    }
+    else if ((reacA->flags&COUNT_ME) && world->place_waypoints_flag)
     {
       /* Subtlety: we made it up to hitpt, but our position is wherever we were before that! */
-      if (hitpt==NULL || reacC_was_free || (reacC->properties!=NULL && (reacC->properties->flags&NOT_FREE)==0))
+      if (hitpt==NULL || (reacB_is_free && reacC_is_free))
 	   /* Vol-vol-vol rx should be counted at hitpt */
       {
-                
           i=count_region_from_scratch(reacA,NULL,-1,hitpt,NULL,t);
-       }
-       else /* Vol-vol-surf but don't want to count exactly on a wall or we might count on the wrong side */
-       {
+      }
+      else /* reaction involving surface or grid_molecule but we don't want to count exactly on a wall or we might count on the wrong side */
+      {
 	  struct vector3 fake_hitpt, *loc_okay;
 	
 	  m = (struct volume_molecule*)reacA;
@@ -1521,19 +1597,18 @@ int outcome_trimolecular(struct rxn *rx,int path,
 	 fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 	
 	 i=count_region_from_scratch(reacA,NULL,-1,&fake_hitpt,NULL,t);
-       }
-       if (i) return RX_NO_MEM;
+      }
+      if (i) return RX_NO_MEM;
+
     }
-                     
      reacA->properties->n_deceased++;
      reacA->properties->cum_lifetime += t - reacA->birthday;
      reacA->properties->population--;
      reacA->properties = NULL; 
-               
 
     return RX_DESTROY;
+                
   }
-
   return result;
 }
 

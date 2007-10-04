@@ -20,15 +20,10 @@
   #include "util.h"
   #include "react_output.h"
   
-/*
-  #include "chkpt.h"
-  #include "init.h"
-  #include "geom_util.h"
-*/
 
   #define volp mdlpvp->vol
 
-  #define min(x,y) ((x)<(y)) ? (x): (y)
+  #define min(x,y) ((x)<(y)) ? (x): (y) 
   
   long long llmin3(long long f1,long long f2,long long f3)
   {
@@ -6196,18 +6191,6 @@ rxn:
       }      
     }
   }
-  if ((mdlpvp->rxnp->n_reactants==3) && (num_surfaces == 0))
-  {
-    /* In case of three reactants we will allow now:
-       a) 3 volume molecules,
-       b) 2 volume molecules and 1 surface molecule.
-    */
-    if((mdlpvp->num_grid_mols == 3)  || ((mdlpvp->num_vol_mols == 1) && (mdlpvp->num_grid_mols == 2))) {
-       mdlerror(mdlpvp, "Reactions with three reactants without surface_class must include either all volume molecules or two volume molecules + one grid molecule\n");
-       return 1;
-    }
-  }
-
 
   /* For unidirectional catalytic reactions - copy catalyst to products only if catalyst is not a surface_clas.
      For bidirectional catalytic reactions always copy catalyst to products and take care that surface_class will not appear in the products later after inverting the reaction */ 
@@ -6367,7 +6350,6 @@ rxn:
         }
 
     }  
-  
 
     if (invert_current_reaction_pathway(mdlpvp))
     {
@@ -6375,7 +6357,6 @@ rxn:
       return 1;
     }
   }
-            
              
 };
 

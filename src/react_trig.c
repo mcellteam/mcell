@@ -14,6 +14,8 @@
 
 extern struct volume *world;
 
+
+
 /*************************************************************************
 trigger_unimolecular:
    In: hash value of molecule's species
@@ -231,16 +233,19 @@ trigger_trimolecular:
        orientations of the three molecules
        array of pointers to the possible reactions
    Out: number of possible reactions for species reacA, reacB, and reacC
-        Also the first 'number' slots in the 'matching_rxns'
+        Also the first "number" slots in the "matching_rxns"
         array are filled with pointers to the possible reactions objects.
    Note: The target molecules are already scheduled and can be destroyed
          but not rescheduled.  Assume we have or will check separately that
          the moving molecule is not inert!
-   PostNote1: If one of the targets is a grid_molecule - it is reacC
+   PostNote1: If one of the targets is a grid_molecule - it is reacC,
+              if two of the targets are grid molecules - they are
+                    reacB and reacC.
 *************************************************************************/
+
 int trigger_trimolecular(int hashA,int hashB, int hashC,
   struct species *reacA,struct species *reacB,
-  struct species *reacC, int orientA, int orientC, 
+  struct species *reacC, int orientA, int orientB, int orientC, 
   struct rxn ** matching_rxns )
 {
   int hash = 0;  /* index in the reaction hash table */
@@ -318,6 +323,8 @@ int trigger_trimolecular(int hashA,int hashB, int hashC,
        correct_orientation_flag = 0;
 
       /* Check that we have the right players */
+
+
       if (reacA == inter->players[0]) 
       {
         if((reacB == inter->players[1] &&
@@ -328,7 +335,7 @@ int trigger_trimolecular(int hashA,int hashB, int hashC,
             geomC = inter->geometries[2];
             correct_players_flag = 1;
          }
-         if((reacB == inter->players[2] &&
+         else if((reacB == inter->players[2] &&
               reacC == inter->players[1]))
           {
             geomA = inter->geometries[0];
@@ -337,7 +344,7 @@ int trigger_trimolecular(int hashA,int hashB, int hashC,
             correct_players_flag = 1;
           }
       } 
-      if (reacA == inter->players[1]) 
+      else if (reacA == inter->players[1]) 
       {
         if((reacB == inter->players[0]) &&
            (reacC == inter->players[2]))
@@ -347,7 +354,7 @@ int trigger_trimolecular(int hashA,int hashB, int hashC,
             geomC = inter->geometries[2];
             correct_players_flag = 1;
         }
-        if ((reacB == inter->players[2]) &&
+        else if ((reacB == inter->players[2]) &&
               (reacC == inter->players[0]))
         {
             geomA = inter->geometries[1];
@@ -356,7 +363,7 @@ int trigger_trimolecular(int hashA,int hashB, int hashC,
             correct_players_flag = 1;
         } 
       }
-      if (reacA == inter->players[2]) {
+      else if (reacA == inter->players[2]) {
         if((reacB == inter->players[0]) &&
            (reacC == inter->players[1]))
         {
@@ -380,17 +387,126 @@ int trigger_trimolecular(int hashA,int hashB, int hashC,
          volume and surface reactants. 
       */
       if((geomA==0) && (geomB==0) && (geomC==0)){
+          /* all volume molecules */
           correct_orientation_flag = 1;
       }
+      /* two volume and one surface molecule */
       /* since geomA = geomB we will test only for geomA */
-      else if((geomA + geomC)*(geomA - geomC) != 0){
-          correct_orientation_flag = 1;
-      }
-      /* Same class, is the orientation correct? */
-      else if ( orientA != 0 && orientA*orientC*geomA*geomC > 0 )
-      {
-          correct_orientation_flag = 1;
-      }
+      else if (((reacA->flags & NOT_FREE) == 0) && ((reacB->flags & NOT_FREE) == 0) && ((reacC->flags & ON_GRID) != 0)){
+          /* different orientation classes */
+          if((geomA + geomC)*(geomA - geomC) != 0){
+              correct_orientation_flag = 1;
+          }
+      
+          /* Same class, is the orientation correct? */
+          else if ( orientA != 0 && orientA*orientC*geomA*geomC > 0 )
+          {
+             correct_orientation_flag = 1;
+          }
+     }
+      /* (one volume molecule and two surface molecules) or
+         (three surface molecules) */
+      else{
+          /* different orientation classes for all 3 reactants */
+          if(((geomA + geomC)*(geomA - geomC) != 0) && ((geomA + geomB)*(geomA - geomB) != 0) && ((geomB + geomC)*(geomB - geomC))){
+              correct_orientation_flag = 1;
+          }
+            /*  two reactants in the zero orientation class */
+           else if((geomB == 0) && (geomC == 0) && (orientA != 0) && 
+                (geomA != 0)){
+                    correct_orientation_flag = 1;
+           }
+           else if((geomA == 0) && (geomC == 0) && (orientB != 0) && 
+                (geomB != 0)){
+                    correct_orientation_flag = 1;
+           }
+           else if((geomA == 0) && (geomB == 0) && (orientC != 0) && 
+                (geomC != 0)){
+                    correct_orientation_flag = 1;
+           }
+            /* one reactant in the zero orientation class */
+           else if(geomA == 0){
+             /* different orientation classes */
+             if((geomB + geomC)*(geomB - geomC) != 0){
+                correct_orientation_flag = 1;
+             }
+      
+             /* Same class, is the orientation correct? */
+             else if(orientB != 0 && orientB*orientC*geomB*geomC > 0 )
+             {
+                correct_orientation_flag = 1;
+             }
+           }
+           else if(geomB == 0){
+             /* different orientation classes */
+             if((geomA + geomC)*(geomA - geomC) != 0){
+                correct_orientation_flag = 1;
+             }
+      
+             /* Same class, is the orientation correct? */
+             else if (orientA != 0 && orientA*orientC*geomA*geomC > 0 )
+             {
+                correct_orientation_flag = 1;
+             }
+           }
+           else if(geomC == 0){
+             /* different orientation classes */
+             if((geomA + geomB)*(geomA - geomB) != 0){
+                correct_orientation_flag = 1;
+             }
+      
+             /* Same class, is the orientation correct? */
+             else if (orientA != 0 && orientA*orientB*geomA*geomB > 0 )
+             {
+                correct_orientation_flag = 1;
+             }
+              /* two geometries are the same  */
+           }else if(geomB == geomC){
+
+             /* different orientation classes */
+             if(((geomA + geomB)*(geomA - geomB) != 0) && (orientB == orientC)){
+                correct_orientation_flag = 1;
+             }
+      
+             /* Same class, is the orientation correct? */
+             else if ((orientA != 0 && orientA*orientB*geomA*geomB > 0 ) && (orientB == orientC))
+             {
+                correct_orientation_flag = 1;
+             }
+           }else if(geomA == geomC){
+             /* different orientation classes */
+             if(((geomA + geomB)*(geomA - geomB) != 0) && (orientA == orientC)){
+                correct_orientation_flag = 1;
+             }
+      
+             /* Same class, is the orientation correct? */
+             else if ((orientA != 0 && orientA*orientB*geomA*geomB > 0 ) && (orientA == orientC))
+             {
+                correct_orientation_flag = 1;
+             }
+           }else if(geomA == geomB){
+             /* different orientation classes */
+             if(((geomA + geomC)*(geomA - geomC) != 0) && (orientA == orientB)){
+                correct_orientation_flag = 1;
+             }
+      
+             /* Same class, is the orientation correct? */
+             else if ((orientA != 0 && orientA*orientC*geomA*geomC > 0) && (orientA == orientB))
+             {
+                correct_orientation_flag = 1;
+             }
+            /* all three geometries are non-zero but the same */
+          }else if((geomA == geomB) && (geomA == geomC)){
+             if((orientA == orientB) && (orientA == orientC))
+             {
+                /* Same class, is the orientation correct? */
+                if (orientA != 0 && orientA*orientC*geomA*geomC > 0 && orientA*orientB*geomA*geomB > 0)
+                {
+                   correct_orientation_flag = 1;
+                }
+             }
+          }
+      } 
 
       if (correct_players_flag &&  correct_orientation_flag)
       {
@@ -409,7 +525,6 @@ int trigger_trimolecular(int hashA,int hashB, int hashC,
 
    return num_matching_rxns;
  }
-
 
 /*************************************************************************
 trigger_intersect:
