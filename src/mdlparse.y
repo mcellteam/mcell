@@ -23,13 +23,6 @@
 
   #define volp mdlpvp->vol
 
-  #define min(x,y) ((x)<(y)) ? (x): (y) 
-  
-  long long llmin3(long long f1,long long f2,long long f3)
-  {
-    return min(f1,min(f2,f3));
-  }
-
 %}
 
 
@@ -9055,11 +9048,11 @@ output_timer_def:  step_time_def
   /* Pick a good buffer size */
   if (volp->chkpt_iterations) {
     mdlpvp->n_output=(long long)(volp->chkpt_iterations/mdlpvp->output_freq+1);
-    mdlpvp->obp->buffersize=llmin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize); 
+    mdlpvp->obp->buffersize=min3ll(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize); 
   }
   else {
     mdlpvp->n_output=(long long)(volp->iterations/mdlpvp->output_freq+1);
-    mdlpvp->obp->buffersize=llmin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
+    mdlpvp->obp->buffersize=min3ll(volp->iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
 
   no_printf("Default output step time definition:\n");
@@ -9113,10 +9106,10 @@ iteration_time_def: ITERATION_LIST '='
 
   /* Pick a good buffer size */
   if (volp->chkpt_iterations) {
-    mdlpvp->obp->buffersize=llmin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
+    mdlpvp->obp->buffersize=min3ll(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
   else {
-    mdlpvp->obp->buffersize=llmin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize); 
+    mdlpvp->obp->buffersize=min3ll(volp->iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize); 
   }
 
   sort_num_expr_list(mdlpvp->el_head);
@@ -9138,10 +9131,10 @@ real_time_def: TIME_LIST '='
 
   /* Pick a good buffer size */
   if (volp->chkpt_iterations) {
-    mdlpvp->obp->buffersize=llmin3(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
+    mdlpvp->obp->buffersize=min3ll(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
   else {
-    mdlpvp->obp->buffersize=llmin3(volp->iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
+    mdlpvp->obp->buffersize=min3ll(volp->iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
   }
 
   sort_num_expr_list(mdlpvp->el_head);

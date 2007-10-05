@@ -32,60 +32,15 @@
 
 extern struct volume *world;
 
-
-
-/**************************************************************************\
- ** Internal utility function section--max/min stuff                     **
-\**************************************************************************/
-
-/**** These functions are used only in this file.  They should all ****/
-/**** be obvious, save maybe abs_max_2vec, which picks out the     ****/
+/**** These function is used only in this file.  It  picks out the****/
 /**** largest (absolute) value found among two vectors (useful for ****/
 /**** properly handling floating-point rounding error).            ****/
 
-static inline double my_min(double x, double y)
-{
-  return (x < y) ? x : y;
-}
-
-static inline double my_max(double x, double y)
-{
-  return (x > y) ? x : y;
-}
-
-static inline double min3(double f1, double f2, double f3)
-{
-  return (my_min(f1, my_min(f2, f3)));
-}
-
-static inline double max3(double f1, double f2, double f3)
-{
-  return (my_max(f1, my_max(f2, f3)));
-}
-
 static inline double abs_max_2vec(struct vector3 *v1,struct vector3 *v2)
 {
-  return my_max(max3(fabs(v1->x), fabs(v1->y), fabs(v1->z)),
-                max3(fabs(v2->x), fabs(v2->y), fabs(v2->z)));
+  return max2d(max3d(fabs(v1->x), fabs(v1->y), fabs(v1->z)),
+                max3d(fabs(v2->x), fabs(v2->y), fabs(v2->z)));
 }
-
-static inline double min_n(double *array, int n)
-{
-  if (n == 1) return array[0];
-  else if (n == 2) return my_min(array[0], array[1]);
-  else
-  {
-    double smallest;
-    n-=2;
-    for (smallest = array[n+1]; n >= 0; n--)
-    {
-      if (array[n] < smallest) smallest=array[n];
-    }
-    return smallest;
-  }
-}
-
-
 
 /**************************************************************************\
  ** Edge hash table section--finds common edges in polygons              **
@@ -1216,7 +1171,7 @@ void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
   f.y = n->z*e.x - n->x*e.z;
   f.z = n->x*e.y - n->y*e.x;
   
-  tiny = EPS_C * (abs_max_2vec(p,v) + 1.0) / (k * max3(fabs(f.x),fabs(f.y),fabs(f.z)));
+  tiny = EPS_C * (abs_max_2vec(p,v) + 1.0) / (k * max3d(fabs(f.x),fabs(f.y),fabs(f.z)));
   if ( (rng_uint(world->rng) & 1) == 0 ) {
      tiny = -tiny;
      if(world->notify->final_summary == NOTIFY_FULL)
@@ -1471,7 +1426,8 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
   double d;        /* Dot product of movement vector and vector to target */
   double sigma2;   /* Square of interaction radius */
   
-  if ((a->properties->flags & ON_GRID)!=0) return COLLIDE_MISS; /* Should never call on grid molecule! */
+
+  if ((a->properties->flags & ON_GRID)!=0) return COLLIDE_MISS; /* Should never call on grid molecule */
   
   pos = &( ((struct volume_molecule*)a)->pos );
   
@@ -1518,7 +1474,7 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
   int result; 
 
  
-  if ((a->properties->flags & ON_GRID)!=0) return COLLIDE_MISS; /* Should never call on grid molecule! */
+  if ((a->properties->flags & ON_GRID)!=0) return COLLIDE_MISS; /* Should never call on grid molecule */
   
   if ((a->properties->flags & ON_SURFACE)==0) pos = &( ((struct volume_molecule*)a)->pos );
   else pos = &( ((struct surface_molecule*)a)->pos );

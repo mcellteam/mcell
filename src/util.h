@@ -197,4 +197,78 @@ int initialize_string_buffer(struct string_buffer *sb, int maxstr);
 int destroy_string_buffer(struct string_buffer *sb);
 int add_string_to_buffer(struct string_buffer *sb, char *str);
 
+/*******************************************************************
+ Inline min/max functions
+*******************************************************************/
+
+static inline double min2d(double x, double y)
+{
+  return (x < y) ? x : y;
+}
+
+static inline int min2i(int x, int y)
+{
+  return (x < y) ? x : y;
+}
+
+static inline double max2d(double x, double y)
+{
+  return (x > y) ? x : y;
+}
+
+static inline int max2i(int x, int y)
+{
+  return (x > y) ? x : y;
+}
+
+static inline double min3d(double x, double y, double z)
+{
+    return (z<y) ? ((z < x)?z:x) : ((y<x)?y:x);
+}
+
+static inline int min3i(int x, int y, int z)
+{
+    return (z<y) ? ((z < x)?z:x) : ((y<x)?y:x);
+}
+
+static inline double max3d(double x, double y, double z)
+{
+    return (z>y) ? ((z > x)?z:x) : ((y>x)?y:x);
+}
+
+static inline int max3i(int x, int y, int z)
+{
+    return (z>y) ? ((z > x)?z:x) : ((y>x)?y:x);
+}
+
+static inline long long min3ll(long long x,long long y,long long z)
+{
+    return (z<y) ? ((z < x)?z:x) : ((y<x)?y:x);
+    
+}
+
+static inline long long max3ll(long long x,long long y,long long z)
+{
+    return (z>y) ? ((z > x)?z:x) : ((y>x)?y:x);
+}    
+
+
+
+static inline double min_n(double *array, int n)
+{
+  if (n == 1) return array[0];
+  else if (n == 2) return min2d(array[0], array[1]);
+  else
+  {
+    double smallest;
+    n-=2;
+    for (smallest = array[n+1]; n >= 0; n--)
+    {
+      if (array[n] < smallest) smallest=array[n];
+    }
+    return smallest;
+  }
+}
+
+
 #endif
