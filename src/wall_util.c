@@ -552,7 +552,7 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
   *  in the "aligns" array.  Here we step in paralelel through the linked_list
   *  and the "aligns" array.
   */
-  min_value_0 = min_n(aligns, count);
+  min_value_0 = minNd(aligns, count);
   pe_curr = p;
   ii = 0;
   while(pe_curr != NULL)
@@ -570,7 +570,7 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
 
 
   /* find the node with the second smallest value of the 'angle' parameter */
-  min_value_1 = min_n(aligns, count);
+  min_value_1 = minNd(aligns, count);
   ii = 0;
   pe_curr = p;
   while(pe_curr != NULL)

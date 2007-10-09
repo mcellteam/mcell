@@ -1638,7 +1638,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   struct rxn *rx;
   struct rxn **rx_tbl;
   struct t_func *tp;
-  double pb_factor,D_tot,rate,t_step;
+  double pb_factor = 0,D_tot,rate,t_step;
   short geom, geom2;
   int i,j,k,kk,k2,ii;
   /* flags that tell whether reactant_1 is also on the product list,

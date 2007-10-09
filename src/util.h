@@ -253,22 +253,28 @@ static inline long long max3ll(long long x,long long y,long long z)
 }    
 
 
-
-static inline double min_n(double *array, int n)
+/* Return minimum value from the array of N doubles */ 
+static inline double minNd(double *array, int N)
 {
-  if (n == 1) return array[0];
-  else if (n == 2) return min2d(array[0], array[1]);
-  else
-  {
     double smallest;
-    n-=2;
-    for (smallest = array[n+1]; n >= 0; n--)
+    N-=2;
+    for (smallest = array[N+1]; N >= 0; N--)
     {
-      if (array[n] < smallest) smallest=array[n];
+      if (array[N] < smallest) smallest=array[N];
     }
     return smallest;
-  }
 }
 
+/* Return minimum value from the array of N integers */ 
+static inline int minNi(int *array, int N)
+{
+    int smallest;
+    N-=2;
+    for (smallest = array[N+1]; N >= 0; N--)
+    {
+      if (array[N] < smallest) smallest=array[N];
+    }
+    return smallest;
+}
 
 #endif
