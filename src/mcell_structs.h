@@ -243,7 +243,8 @@
                                   and 1 grid molecule */
 #define COLLIDE_GRID_GRID 0x200 /* collision between 1 volume molecule
                                   and 2 grid molecules */
-
+#define COLLIDE_GRID     0x400 /* bimolecular collision between moving
+                                volume_molecule and grid_molecule */
 
 /* Target-type Flags */
 /* Types for things we can hit */
@@ -1334,6 +1335,8 @@ struct tri_collision
   struct vector3 loc2;           /* Location of impact with second target */
   double factor;                /* Result of "exact_disk()" with both targets
                                    or scaling coef. for MOL_WALL interaction */
+  struct wall *wall;          /* pointer to the wall in the collision if
+                                 such exists  */
 };
 
 /* Data structures to store information about exact interaction disk geometry */

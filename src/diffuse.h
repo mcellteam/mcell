@@ -11,9 +11,14 @@ struct wall* ray_trace_2d(struct grid_molecule *g, struct vector2 *disp, struct 
 struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
                             struct subvolume *sv, struct vector3 *v,
 			    struct wall *reflectee);
+struct tri_collision* tri_ray_trace(struct volume_molecule *m, 
+                            struct tri_collision *c, struct subvolume *sv, 
+                            struct vector3 *v, struct wall *reflectee);
 struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int inert);
+struct volume_molecule* diffuse_3D_big_list(struct volume_molecule *m,double max_time,int inert);
 struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time);
 struct grid_molecule* react_2D(struct grid_molecule *g,double t);
+struct grid_molecule* react_2D_trimol(struct grid_molecule *g,double t);
 void run_timestep(struct storage *local,double release_time,double checkpt_time);
 void run_concentration_clamp(double t_now);
 

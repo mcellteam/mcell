@@ -6200,7 +6200,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       else if ( (smash->what & COLLIDE_WALL) != 0 )
       {
 	w = (struct wall*) smash->target;
-        
+                  
         if (smash->next==NULL) t_confident = smash->t;
         else if (smash->next->t*(1.0-EPS_C) > smash->t) t_confident=smash->t;
         else t_confident=smash->t*(1.0-EPS_C);
@@ -6541,7 +6541,7 @@ struct volume_molecule* diffuse_3D_big_list(struct volume_molecule *m,double max
   struct species *sm;
   double steps=1.0;
   double t_steps=1.0;
-  double scaling = 1.0;  /* scales reaction cumulative_probabilitities array */
+  /* double scaling = 1.0; */  /* scales reaction cumulative_probabilitities array */
   double rate_factor=1.0, factor, factor1, factor2;
   double t_start = 0; /* allows to account for the collision time after 
                       reflection from a wall or moving to another subvolume */
@@ -6551,7 +6551,7 @@ struct volume_molecule* diffuse_3D_big_list(struct volume_molecule *m,double max
   /* this flag is set to 1 only after reflection from a wall and only with expanded lists. */
   int redo_expand_collision_list_flag = 0; 
 
-  int i,j = INT_MIN,k,l,ii, kk; 
+  int i,j = INT_MIN,k,l,kk; 
     
   int calculate_displacement = 1;
   
@@ -6881,7 +6881,6 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
       }
       else if ( (smash->what & COLLIDE_WALL) != 0 )
       {
-
            new_coll = mem_get(sv->local_storage->sp_coll);
            if (new_coll == NULL)
            {
@@ -6906,6 +6905,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	   if ( (sm->flags&CAN_MOLWALL) != 0 )
 	   {
 	     /* m->index = -1; */
+
 	     rx = trigger_intersect(
 		  sm->hashval,(struct abstract_molecule*)m,k,w
 		);
@@ -6934,6 +6934,30 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                   break;
                 }
              }
+           }
+           else{
+              /* the case when (sm->flags&CAN_MOLWALL) == 0) */
+             /* the default property of the wall is to be REFLECTIVE.
+                It works if we do not specifically describe 
+                the properties of the wall */
+                  m->pos.x = smash->loc.x;
+	          m->pos.y = smash->loc.y;
+	          m->pos.z = smash->loc.z;
+                  m->t += t_steps*smash->t;
+	          reflectee = w;
+
+                  t_start += t_steps*smash->t;
+
+                  t_steps *= (1.0-smash->t);
+        
+                  factor = -2.0 * (displacement.x*w->normal.x + displacement.y*w->normal.y + displacement.z*w->normal.z);
+                  displacement.x = (displacement.x + factor*w->normal.x) * (1.0-smash->t);
+                  displacement.y = (displacement.y + factor*w->normal.y) * (1.0-smash->t);
+                  displacement.z = (displacement.z + factor*w->normal.z) * (1.0-smash->t);
+
+                  redo_expand_collision_list_flag = 1;  /* Only useful if we're using expanded lists, but easier to always set it */
+         
+                  break;
            }
       }
       else if ((smash->what & COLLIDE_SUBVOL) != 0)
@@ -7073,6 +7097,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
                     exit( EXIT_FAILURE );
                }
+               tri_smash->wall = NULL;
+               tri_smash->factor /= rate_factor; /* scaling the reaction rate */
                tri_smash->next = main_tri_shead;
                main_tri_shead = tri_smash;
            }
@@ -7133,8 +7159,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     exit( EXIT_FAILURE );
                }
                tri_smash->factor = factor1*factor2;
+               tri_smash->factor /= rate_factor; /* scaling the reaction rate */
                tri_smash->what = COLLIDE_MOL_MOL;
                tri_smash->intermediate = matching_rxns[i];
+               tri_smash->wall = NULL;
                tri_smash->next = main_tri_shead;
                main_tri_shead = tri_smash;
             }
@@ -7196,6 +7224,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                         tri_smash->loc2 = new_smash->loc;
                         tri_smash->intermediate = matching_rxns[i];
                         tri_smash->factor = scaling_coef[i];
+                        tri_smash->wall = w;
                
                         tri_smash->next = main_tri_shead;
                         main_tri_shead = tri_smash;
@@ -7216,6 +7245,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
     
     else  if((smash->what && COLLIDE_WALL) != 0){
 	w = (struct wall *) smash->target;
+        int wall_was_accounted_for = 0; /* flag */
 
 	if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
 	else k = -1;
@@ -7254,18 +7284,20 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                        exit( EXIT_FAILURE );
                     }
                     tri_smash->t = smash->t;
-                    tri_smash->target1 = (void*) w;
-                    tri_smash->target2 = (void*)g;
-                    tri_smash->orient = 0; /* default value */
-                    tri_smash->what = smash->what;
+                    tri_smash->target1 = (void*) g;
+                    tri_smash->target2 = NULL;
+                    tri_smash->orient = k; 
+                    tri_smash->what = COLLIDE_GRID;
                     tri_smash->loc = smash->loc;
                     tri_smash->loc1 = smash->loc;
                     tri_smash->loc2 = smash->loc;
                     tri_smash->intermediate = matching_rxns[i];
                     tri_smash->factor = scaling_coef[i];
+                    tri_smash->wall = w;
                
                     tri_smash->next = main_tri_shead;
                     main_tri_shead = tri_smash;
+                    wall_was_accounted_for = 1;
                 }
 	      } /* end if (num_matching_rxns > 0) */
 	    }else /* Matched previous wall and index--don't rebind */
@@ -7342,8 +7374,11 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                               tri_smash->loc2 = tri_smash->loc;
                               tri_smash->intermediate = matching_rxns[i];
                               tri_smash->factor = scaling_coef[i];
+                              tri_smash->wall = w;
                               tri_smash->next = main_tri_shead;
                               main_tri_shead = tri_smash;
+                    
+                              wall_was_accounted_for = 1;
                            }
 	                 } /* end if (num_matching_rxns > 0) */
 
@@ -7376,18 +7411,55 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     tri_smash->t = smash->t;
                     tri_smash->target1 = (void*) w;
                     tri_smash->target2 = NULL;
-                    tri_smash->orient = 0; /* default value */
-                    tri_smash->what = smash->what;
+                    tri_smash->orient = k; 
+                    tri_smash->what = COLLIDE_WALL;
                     tri_smash->loc = smash->loc;
                     tri_smash->loc1 = smash->loc;
                     tri_smash->loc2 = smash->loc;
                     tri_smash->intermediate = rx;
                     tri_smash->factor = 1.0/rate_factor;
+                    tri_smash->wall = w;
                     
                     tri_smash->next = main_tri_shead;
                     main_tri_shead = tri_smash;
+                    
+                    wall_was_accounted_for = 1;
 	  } /* end if(rx != NULL)  */
          } /* end if(sm->flags & CAN_WALLMOL ...) */
+
+         if(!wall_was_accounted_for)
+         {
+             /* This is a simple reflective wall 
+                (default wall behavior). 
+                We want to keep it in the "tri_smash" 
+                list just in order to account for the hits with it */
+                    tri_smash = mem_get(sv->local_storage->tri_coll);
+                    if (tri_smash == NULL)
+                    {
+                       fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
+                       i = emergency_output();
+                       fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+                       exit( EXIT_FAILURE );
+                    }
+
+                    tri_smash->t = smash->t;
+                    tri_smash->target1 = (void*) w;
+                    tri_smash->target2 = NULL;
+                    tri_smash->orient = 0; /* default value */
+                    tri_smash->what = COLLIDE_WALL;
+                    tri_smash->loc = smash->loc;
+                    tri_smash->loc1 = smash->loc;
+                    tri_smash->loc2 = smash->loc;
+                    tri_smash->intermediate = NULL;
+                    tri_smash->factor = 0;
+                    tri_smash->wall = w;
+                    
+                    tri_smash->next = main_tri_shead;
+                    main_tri_shead = tri_smash;
+
+         }
+
+
     } /* end if(smash->what & COLLIDE_WALL)... */
   }  /* end for(smash ... ) */
 
@@ -7404,8 +7476,11 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   /* now check for the reactions going through the 'main_tri_shead' list */
   for(tri_smash = main_tri_shead; tri_smash != NULL; tri_smash = tri_smash->next){
 
-   if((((tri_smash->what & COLLIDE_MOL) != 0) || ((tri_smash->what & COLLIDE_MOL_MOL) != 0) || ((tri_smash->what & COLLIDE_MOL_GRID) != 0)
-               || ((tri_smash->what & COLLIDE_GRID_GRID) != 0)) && !inert){ 
+   if((((tri_smash->what & COLLIDE_MOL) != 0) 
+         || ((tri_smash->what & COLLIDE_GRID) != 0) 
+         || ((tri_smash->what & COLLIDE_MOL_MOL) != 0) 
+         || ((tri_smash->what & COLLIDE_MOL_GRID) != 0)
+         || ((tri_smash->what & COLLIDE_GRID_GRID) != 0)) && !inert){ 
 
         rx = tri_smash->intermediate;
 	if (tri_smash->t < EPS_C) continue;
@@ -7424,12 +7499,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           
         if((am1->properties == NULL) ||
            (am2->properties == NULL)) continue; 
-
-        scaling = tri_smash->factor / rate_factor; 
  
         if (rx->prob_t != NULL) check_probs(rx,m->t);
 
-        i = test_bimolecular(rx,scaling);
+        i = test_bimolecular(rx,tri_smash->factor);
         
         if (i < RX_LEAST_VALID_PATHWAY) continue;
 
@@ -7442,6 +7515,14 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
            if(world->notify->final_summary == NOTIFY_FULL){	
 	      world->mol_mol_colls++;
            }
+        }
+        else if((tri_smash->what & COLLIDE_GRID) != 0)
+        {
+           j = outcome_bimolecular(
+                   rx,i,(struct abstract_molecule*)m,
+                   am1,k,((struct grid_molecule *)tri_smash->target1)->orient,
+                   m->t + tri_smash->t,&(tri_smash->loc),NULL);
+        
         }
         else if((tri_smash->what & COLLIDE_MOL_MOL) != 0) 
         {
@@ -7483,10 +7564,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
           /* Count the hits up until we were destroyed */
           for ( ; tentative!=NULL && tentative->t<=tri_smash->t ; tentative=tentative->next )
           {
-            if (!(tentative->what&COLLIDE_WALL)) continue;
-            if (!(sm->flags&((struct wall*)tentative->target1)->flags&COUNT_SOME_MASK)) continue;
-            count_region_update( sm , ((struct wall*)tentative->target1)->counting_regions ,
-                                 ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
+            if (tentative->wall == NULL) continue;
+            if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
+            count_region_update( sm , tentative->wall->counting_regions ,
+                                 tentative->orient,
                                  0 , rate_factor , &(tentative->loc) , tentative->t );
             if (tentative==tri_smash) break;
           }
@@ -7498,77 +7579,18 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
       if((tri_smash->what & COLLIDE_WALL) != 0)
       {
+
 	w = (struct wall*) tri_smash->target1;
         
         if (tri_smash->next==NULL) t_confident = tri_smash->t;
         else if (tri_smash->next->t*(1.0-EPS_C) > tri_smash->t) t_confident=tri_smash->t;
         else t_confident=tri_smash->t*(1.0-EPS_C);
-	
-        if ( (tri_smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
-	else k = -1;
-
-	if ( w->grid != NULL && (sm->flags&CAN_MOLGRID) != 0 && inertness<inert_to_all )
-	{
-	   g = (struct grid_molecule *) tri_smash->target2;
-
-           ii = test_bimolecular(tri_smash->intermediate, tri_smash->factor);
-                
-           if(ii >= RX_LEAST_VALID_PATHWAY)
-           {
-               l=outcome_bimolecular(
-                   tri_smash->intermediate,ii,(struct abstract_molecule*)m,
-                   (struct abstract_molecule *)g,k,g->orient,
-                   m->t + tri_smash->t,&(tri_smash->loc),NULL);
-                
-               if (l==RX_NO_MEM) { ERROR_AND_QUIT; }
-               if (l==RX_FLIP)
-               {
-                    if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME_MASK)!=0)
-                    {
-                      /* Count as far up as we can unambiguously */
-                      for ( ; tentative!=NULL && tentative->t<=t_confident ; tentative=tentative->next )
-                      {
-                        if (!(tentative->what&COLLIDE_WALL)) continue;
-                        if (!(sm->flags&((struct wall*)tentative->target1)->flags&COUNT_SOME_MASK)) continue;
-                        count_region_update( sm , 
-                          ((struct wall*)tentative->target1)->counting_regions,
-                          ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                          1 , rate_factor , &(tentative->loc), tentative->t);
-                                             
-                      }
-                    }
-                
-                    continue; /* pass through */
-               }
-               else if (l==RX_DESTROY)
-               {
-                    if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
-                    {
-                      /* Count the hits up until we were destroyed */
-                      for ( ; tentative!=NULL && tentative->t<=tri_smash->t ; tentative=tentative->next )
-                      {
-                        if (!(tentative->what&COLLIDE_WALL)) continue;
-                        if (!(sm->flags&((struct wall*)tentative->target1)->flags&COUNT_SOME_MASK)) continue;
-                        count_region_update( sm , 
-                          ((struct wall*)tentative->target1)->counting_regions,
-                          ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                          0 , rate_factor , &(tentative->loc) , tentative->t );
-                        if (tentative==tri_smash) break;
-                      }
-                    }
-                
-                    TRI_CLEAN_AND_RETURN(NULL);
-               } /* end if (l == ...) */
-           } /* end if (ii >= RX_LEAST_VALID_PATHWAY) */
-
-        } /* end if(w->grid ...) */
 
 	if ( (sm->flags&CAN_MOLWALL) != 0 )
 	{
 	  m->index = -1;
 	  rx = trigger_intersect(
-		  sm->hashval,(struct abstract_molecule*)m,k,w
-		);
+	      sm->hashval,(struct abstract_molecule*)m,tri_smash->orient,w);
 	  
 	  if (rx != NULL)
 	  {
@@ -7580,12 +7602,12 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                 /* Count as far up as we can unambiguously */
                 for ( ; tentative!=NULL && tentative->t<=t_confident ; tentative=tentative->next )
                 {
-                  if (!(tentative->what&COLLIDE_WALL)) continue;
-                  if (!(sm->flags&((struct wall*)tentative->target1)->flags&COUNT_SOME_MASK)) continue;
-                  count_region_update( sm , 
-                      ((struct wall*)tentative->target1)->counting_regions ,
-                      ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                      1 , rate_factor , &(tentative->loc) , tentative->t );
+                  if (tentative->wall == NULL) continue;
+                  if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
+                  count_region_update( sm , tentative->wall->counting_regions ,
+                                 tentative->orient,
+                                 1 , rate_factor , &(tentative->loc) , tentative->t );
+                /*  if (tentative==tri_smash) break; */
                 }
 	      }
 
@@ -7600,6 +7622,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 		j = outcome_intersect(
 			rx,i,w,(struct abstract_molecule*)m,
 			k,m->t + t_steps*tri_smash->t,&(tri_smash->loc),NULL);
+
 		      
 		if (j==RX_NO_MEM) { ERROR_AND_QUIT; } 
 		if (j==RX_FLIP)
@@ -7609,13 +7632,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     /* Count as far up as we can unambiguously */
                     for ( ; tentative!=NULL && tentative->t<=t_confident ; tentative=tentative->next )
                     {
-                      if (!(tentative->what&COLLIDE_WALL)) continue;
-                      if (!(sm->flags&((struct wall*)tentative->target1)->flags&COUNT_SOME_MASK)) continue;
-                      count_region_update( sm , 
-                         ((struct wall*)tentative->target1)->counting_regions ,
-                         ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                         1 , rate_factor , &(tentative->loc), tentative->t );
-                    }
+                       if (tentative->wall == NULL) continue;
+                       if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
+                       count_region_update( sm , tentative->wall->counting_regions ,
+                                 tentative->orient,
+                                 1 , rate_factor , &(tentative->loc) , tentative->t );
+                    /*  if (tentative==tri_smash) break; */
+                     }
 		  }
   
 		  continue; /* pass through */
@@ -7627,13 +7650,13 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                     /* Count the hits up until we were destroyed */
                     for ( ; tentative!=NULL && tentative->t<=tri_smash->t ; tentative=tentative->next )
                     {
-                      if (!(tentative->what&COLLIDE_WALL)) continue;
-                      if (!(sm->flags&((struct wall*)tentative->target1)->flags&COUNT_SOME_MASK)) continue;
-                      count_region_update( sm , 
-                         ((struct wall*)tentative->target1)->counting_regions ,
-                         ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                         0 , rate_factor , &(tentative->loc) , tentative->t );
-                      if (tentative==tri_smash) break;
+                       if (tentative->wall == NULL) continue;
+                       if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
+                       count_region_update( sm , tentative->wall->counting_regions ,
+                                 tentative->orient,
+                                 0 , rate_factor , &(tentative->loc) , tentative->t );
+                      if (tentative==tri_smash) break; 
+                  
                     }
                   }
   
@@ -7643,21 +7666,41 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	    }
 	    else if (rx->n_pathways == RX_REFLEC){
               /* We reflected, so we hit but did not cross things we tentatively                 hit earlier */
+                  if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
+                  {
                     for ( ; tentative!=NULL && tentative->t<=tri_smash->t ; tentative=tentative->next )
                     {
-                      if (!(tentative->what&COLLIDE_WALL)) continue;
-                      if (!(sm->flags&((struct wall*)tentative->target1)->flags&COUNT_SOME_MASK)) continue;
-                      count_region_update( sm , 
-                         ((struct wall*)tentative->target1)->counting_regions ,
-                         ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                         0 , rate_factor , &(tentative->loc) , tentative->t );
-                      if (tentative==tri_smash) break;
+                       if (tentative->wall == NULL) continue;
+                       if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
+                       count_region_update( sm , tentative->wall->counting_regions ,
+                                 tentative->orient,0 , rate_factor , 
+                                 &(tentative->loc) , tentative->t );
+                      if (tentative==tri_smash) break; 
                     }
+                  }
+		  continue; 
 
             }
 	  }
          } /* end if(sm->flags & CAN_WALLMOL ...) */
 
+        
+         /* the default case is just to reflect from the wall */
+	 if ( (sm->flags&CAN_MOLWALL) == 0){
+           if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
+              {
+                 for ( ; tentative!=NULL && tentative->t<=tri_smash->t ; tentative=tentative->next )
+                 {
+                       if (tentative->wall == NULL) continue;
+                       if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
+                       count_region_update( sm , tentative->wall->counting_regions ,
+                                 tentative->orient,0 , rate_factor , 
+                                 &(tentative->loc) , tentative->t );
+                       if (tentative==tri_smash) break;
+                }
+           }
+        
+         }
 
       }  /* end if ((tri_smash->what & COLLIDE_WALL) ... */
 
