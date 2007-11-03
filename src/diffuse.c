@@ -6518,7 +6518,6 @@ struct volume_molecule* diffuse_3D_big_list(struct volume_molecule *m,double max
 {
   /*const double TOL = 10.0*EPS_C;*/  /* Two walls are coincident if this close */
   struct vector3 displacement;             /* Molecule moves along this vector */
-  struct vector3 displacement2;               /* Used for 3D mol-mol unbinding */
   struct sp_collision *smash,  *new_smash;      /* Thing we've hit that's under consideration */
  struct sp_collision *shead;          /* Things we might hit (can interact with) */
  struct sp_collision *stail;      /* tail of the collision list shead */
@@ -6560,9 +6559,6 @@ struct volume_molecule* diffuse_3D_big_list(struct volume_molecule *m,double max
   int num_matching_rxns = 0;
   double scaling_coef[MAX_MATCHING_RXNS]; 
   
-  int inertness = 0;
-  static const int inert_to_mol = 1;
-  static const int inert_to_all = 2;
   /* flags that tell whether moving and target molecules
      can participate in the MOL_MOL_MOL, MOL_MOL, MOL_MOL_GRID,
      or MOL_GRID_GRID interactions */
@@ -6581,11 +6577,12 @@ struct volume_molecule* diffuse_3D_big_list(struct volume_molecule *m,double max
     m->t += max_time;
     return m;
   }
-  
-  if (m->index <= DISSOCIATION_MAX) /* Only set if volume_reversibility is */
+
+  /* volume_reversibility and surface_reversibility routines are not valid
+     in case of tri-molecular reactions */
+  if (m->index <= DISSOCIATION_MAX) 
   {
-    if ((m->flags&ACT_CLAMPED)!=0) inertness=2;
-    else m->index=-1;
+    m->index = -1;
     if (!world->volume_reversibility) fprintf(world->err_file,"Error in volume reversibility code!\n");
   }
   else
@@ -6645,6 +6642,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   shead2 = NULL;
   old_mp = NULL;
 
+#if 0
  if (calculate_displacement)
  {
     if (m->flags&ACT_CLAMPED) /* Surface clamping and microscopic reversibility */
@@ -6694,6 +6692,49 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       }
     }
   }
+#endif
+ if (calculate_displacement)
+ {
+    if (m->flags&ACT_CLAMPED) /* Surface clamping */
+    {
+      pick_clamped_displacement(&displacement,m);
+      t_steps = sm->time_step;
+      m->previous_wall=NULL;
+      m->index=-1;
+      m->flags-=ACT_CLAMPED;
+      rate_factor=1.0;
+      steps = 1.0;
+    }
+    else
+    {
+      if (max_time > MULTISTEP_WORTHWHILE) steps = safe_diffusion_step(m,NULL);
+      else steps = 1.0;
+   
+      t_steps = steps * sm->time_step;
+      if (t_steps > max_time)
+      {
+        t_steps = max_time;
+        steps = max_time / sm->time_step;
+      }
+      if (steps < EPS_C)
+      {
+        steps = EPS_C;
+        t_steps = EPS_C*sm->time_step;
+      }
+      
+      if (steps == 1.0)
+      {
+        pick_displacement(&displacement,sm->space_step);
+        rate_factor = 1.0;
+      }
+      else
+      {
+        rate_factor = sqrt(steps);
+        pick_displacement(&displacement,rate_factor*sm->space_step);
+      }
+    }
+  }
+
 
    moving_tri_molecular_flag =  ((sm->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
    moving_bi_molecular_flag =  ((sm->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
@@ -6701,7 +6742,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
    moving_mol_grid_grid_flag =  ((sm->flags & (CAN_MOLGRIDGRID | CANT_INITIATE)) == CAN_MOLGRIDGRID);
 
 
-  if ((moving_tri_molecular_flag || moving_bi_molecular_flag || moving_mol_mol_grid_flag || moving_mol_grid_grid_flag)  && inertness<inert_to_all ) 
+  if (moving_tri_molecular_flag || moving_bi_molecular_flag || moving_mol_mol_grid_flag || moving_mol_grid_grid_flag) 
   {
     for (mp = sv->mol_head ; mp != NULL ; old_mp = mp , mp = mp->next_v)
     {
@@ -6722,8 +6763,6 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         if (mp==NULL) break;
         else goto continue_special_diffuse_3D;  /*continue without incrementing pointer*/
       }
-      
-      if (inertness==inert_to_mol && m->index==mp->index) continue;
 
       target_bi_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL); 
       target_tri_molecular_flag =  ((mp->properties->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
@@ -6784,7 +6823,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   
   reflectee = NULL;
 
-  if(world->use_expanded_list && (moving_tri_molecular_flag || moving_bi_molecular_flag || moving_mol_mol_grid_flag) && !inertness)
+  if(world->use_expanded_list && (moving_tri_molecular_flag || moving_bi_molecular_flag || moving_mol_mol_grid_flag))
   {
      shead_exp = expand_collision_partner_list(m, &displacement, sv); 
     
@@ -6822,7 +6861,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
          shead_exp = NULL;
       }
 
-      if((moving_tri_molecular_flag || moving_bi_molecular_flag || moving_mol_mol_grid_flag) && !inertness)
+      if(moving_tri_molecular_flag || moving_bi_molecular_flag || moving_mol_mol_grid_flag)
       {
           shead_exp = expand_collision_partner_list(m, &displacement, sv); 
       }
@@ -7182,7 +7221,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	   if ( (new_smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
 	   else k = -1;
 
-	   if ( w->grid != NULL  && inertness<inert_to_all )
+	   if ( w->grid != NULL)
 	   {
 	      j = xyz2grid( &(new_smash->loc) , w->grid );
 	      if (w->grid->mol[j] != NULL)
@@ -7252,7 +7291,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         
         /* first look for the bimolecular reactions between moving and
            grid molecules */
-	if ( w->grid != NULL && (sm->flags&CAN_MOLGRID) != 0 && inertness<inert_to_all )
+	if ( w->grid != NULL && (sm->flags&CAN_MOLGRID) != 0)
 	{
 	  j = xyz2grid( &(smash->loc) , w->grid );
 	  if (w->grid->mol[j] != NULL)
@@ -7314,7 +7353,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
            w = (struct wall *) smash->target;
 
-	   if ( w->grid != NULL  && inertness<inert_to_all )
+	   if ( w->grid != NULL)
 	   {
 	     j = xyz2grid( &(smash->loc) , w->grid );
 	     if (w->grid->mol[j] != NULL)
@@ -7613,7 +7652,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
 	      continue; /* Ignore this wall and keep going */
 	    }
-	    else if (rx->n_pathways != RX_REFLEC && inertness<inert_to_all)
+	    else if (rx->n_pathways != RX_REFLEC)
 	    {
 	      if (rx->prob_t != NULL) check_probs(rx,m->t);
 	      i = test_intersect(rx,1.0/rate_factor);
@@ -7716,15 +7755,6 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
   m->pos.y += displacement.y;
   m->pos.z += displacement.z;
   m->t += t_steps;
-  
-  if (inertness==inert_to_all) /* Done with traversing disk, now do real motion */
-  {
-    inertness=inert_to_mol;
-    t_steps = sm->time_step;
-    displacement=displacement2;
-    calculate_displacement=0;
-    goto pretend_to_call_diffuse_3D;
-  }
   
   m->index = -1;
   m->previous_wall=NULL;
