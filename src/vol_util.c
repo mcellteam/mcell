@@ -1116,7 +1116,7 @@ int release_molecules(struct release_event_queue *req)
   struct vector3 *diam_xyz;
   struct vector3 pos;
   double diam,vol;
-  double t,k;
+  double k;
   struct release_single_molecule *rsm;
   double location[1][4];
   
@@ -1156,12 +1156,8 @@ int release_molecules(struct release_event_queue *req)
 	 This part of the code is relevant to checkpointing. */
       if (rso->release_prob < 1.0)
       {
-	k = -log( 1.0 - rso->release_prob );
-	t = -log( rng_dbl(world->rng) ) / k;  /* Poisson dist. */
-        if(world->notify->final_summary == NOTIFY_FULL){
-           world->random_number_use++;
-        }
-	req->event_time += rpat->release_interval * (ceil(t)-1.0); /* Rounded to integers */
+        if (rso->release_prob == 0) return 0;
+	req->event_time += rpat->release_interval;
       }
       else
       {
@@ -1190,6 +1186,17 @@ int release_molecules(struct release_event_queue *req)
     return 0;
   }
 
+
+  /* check whether the release will happen */
+  if (rso->release_prob < 1.0)
+  {
+     k  = rng_dbl(world->rng);
+     if(world->notify->final_summary == NOTIFY_FULL){
+         world->random_number_use++;
+     }
+     if(rso->release_prob < k) return 0;
+
+  }
   
   /* Set molecule characteristics. */
   ap->t = req->event_time;
@@ -1199,7 +1206,7 @@ int release_molecules(struct release_event_queue *req)
   
   if (rso->mol_list==NULL)  /* All molecules are the same, so we can set flags */
   {
-    if (trigger_unimolecular(rso->mol_type->hashval , ap) != NULL || (rso->mol_type->flags&CAN_GRIDWALL)!=0) ap->flags |= ACT_REACT;
+    if (trigger_unimolecular(rso->mol_type->hashval , ap) != NULL || (rso->mol_type->flags&CAN_GRIDWALL)!=0) ap->flags |= ACT_REACT; 
     if (rso->mol_type->space_step > 0.0) ap->flags |= ACT_DIFFUSE;
   }
   
@@ -1263,7 +1270,7 @@ int release_molecules(struct release_event_queue *req)
     {
       i = release_inside_regions(rso,(struct volume_molecule*)ap,number);
       if (i) return 1;
-      
+     
       if (world->notify->release_events==NOTIFY_FULL)
       {
         if (number>0 || (rso->release_number_method==CCNNUM && rso->concentration>0))
@@ -1405,7 +1412,7 @@ int release_molecules(struct release_event_queue *req)
       }
       if (world->notify->release_events==NOTIFY_FULL)
       {
-          fprintf(world->log_file, "Releasing %d %s from \"%s\" at iteration %lld\n", number,rso->mol_type->sym->name, rso->name, world->it_time);
+           fprintf(world->log_file, "Releasing %d %s from \"%s\" at iteration %lld\n", number,rso->mol_type->sym->name, rso->name, world->it_time); 
       }
     }
     else
@@ -1438,12 +1445,7 @@ int release_molecules(struct release_event_queue *req)
   if (rso->release_prob==MAGIC_PATTERN_PROBABILITY) return 0;  /* Triggered by reaction, don't schedule */
   if (rso->release_prob < 1.0)
   {
-    k = -log( 1.0 - rso->release_prob );
-    t = -log( rng_dbl(world->rng) ) / k;  /* Poisson dist. */
-    if(world->notify->final_summary == NOTIFY_FULL){
-        world->random_number_use++;
-    }
-    req->event_time += rpat->release_interval * (ceil(t)-1.0); /* Rounded to integers */
+    req->event_time += rpat->release_interval;
   }
   else if (rso->release_prob==MAGIC_PATTERN_PROBABILITY)
   {
