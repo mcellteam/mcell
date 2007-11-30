@@ -962,7 +962,7 @@ int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *
   struct vector3 delta;
   struct vector3 *origin;
   struct waypoint *wp;
-  double t;
+  double t, num_to_release;
   struct vector3 hit;
   int bad_location;
   int i;
@@ -971,15 +971,27 @@ int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *
   new_m = NULL;
   m->previous_wall = NULL;
   m->index = -1;
-  
+ 
   if (rso->release_number_method==CCNNUM)
   {
     double vol = (rrd->urb.x-rrd->llf.x)*(rrd->urb.y-rrd->llf.y)*(rrd->urb.z-rrd->llf.z);
-    n = (int)(0.5 + N_AV*1e-15*rso->concentration*vol*world->length_unit*world->length_unit*world->length_unit);
+    num_to_release = (N_AV*1e-15*rso->concentration*vol*world->length_unit*world->length_unit*world->length_unit) + 0.5;
+    if(num_to_release > INT_MAX){
+	fprintf(world->err_file, "Fatal error: release site \"%s\" tries to release more than INT_MAX (2147483647) molecules.\n", rso->name);
+	exit(EXIT_FAILURE);
+    }
+    n = (int)(num_to_release);
   }
   
   if (n<0) return vacuum_inside_regions(rso,m,n);
-  
+  if(world->notify->release_events == NOTIFY_FULL)
+  {
+     if(n > 0){
+	fprintf(world->log_file, "Releasing %d molecules %s ...", n, m->properties->sym->name);
+        fflush(stdout);
+     }
+  } 
+ 
   while (n>0)
   {
     m->pos.x = rrd->llf.x + (rrd->urb.x-rrd->llf.x)*rng_dbl(world->rng);
@@ -1112,6 +1124,7 @@ int release_molecules(struct release_event_queue *req)
   struct grid_molecule *gp;
   struct volume_molecule *guess;
   int i,i_failed,number;
+  double num_to_release;
   short orient;
   struct vector3 *diam_xyz;
   struct vector3 pos;
@@ -1213,17 +1226,32 @@ int release_molecules(struct release_event_queue *req)
   switch(rso->release_number_method)
   {
     case CONSTNUM:
-      number = (int)(rso->release_number);
+      num_to_release = rso->release_number;
+      if(num_to_release > INT_MAX){
+	 fprintf(world->err_file, "Fatal error: release site \"%s\" tries to release more than INT_MAX (2147483647) molecules.\n", rso->name);
+	 exit(EXIT_FAILURE);
+      }
+      number = (int)(num_to_release);
       break;
     case GAUSSNUM:
       if (rso->standard_deviation > 0)
       {
-	number = (int) (rng_gauss(world->rng)*rso->standard_deviation + rso->release_number);
+	num_to_release = (rng_gauss(world->rng)*rso->standard_deviation + rso->release_number);
+        if(num_to_release > INT_MAX){
+	   fprintf(world->err_file, "Fatal error: release site \"%s\" tries to release more than INT_MAX (2147483647) molecules.\n", rso->name);
+	   exit(EXIT_FAILURE);
+        }
+        number = (int)(num_to_release);
       }
       else
       {
         rso->release_number_method = CONSTNUM;
-        number = (int)(rso->release_number);
+        num_to_release = rso->release_number;
+        if(num_to_release > INT_MAX){
+	   fprintf(world->err_file, "Fatal error: release site \"%s\" tries to release more than INT_MAX (2147483647) molecules.\n", rso->name);
+	   exit(EXIT_FAILURE);
+        }
+        number = (int)(num_to_release);
       }
       break;
     case VOLNUM:
@@ -1233,7 +1261,12 @@ int release_molecules(struct release_event_queue *req)
 	diam += rng_gauss(world->rng)*rso->standard_deviation;
       }
       vol = (MY_PI/6.0) * diam*diam*diam;
-      number = (int)(N_AV * 1e-15 * rso->concentration * vol + 0.5);
+      num_to_release = N_AV * 1e-15 * rso->concentration * vol + 0.5;
+      if(num_to_release > INT_MAX){
+	   fprintf(world->err_file, "Fatal error: release site \"%s\" tries to release more than INT_MAX (2147483647) molecules.\n", rso->name);
+	   exit(EXIT_FAILURE);
+      }
+      number = (int)(num_to_release);
       break;
     case CCNNUM:
       if (rso->diameter==NULL) number = 0;
@@ -1254,7 +1287,12 @@ int release_molecules(struct release_event_queue *req)
             vol = 0;
             break;
         }
-        number = (int)(N_AV * 1e-15 * rso->concentration * vol * world->length_unit*world->length_unit*world->length_unit + 0.5);
+        num_to_release = N_AV * 1e-15 * rso->concentration * vol * world->length_unit*world->length_unit*world->length_unit + 0.5;
+        if(num_to_release > INT_MAX){
+	   fprintf(world->err_file, "Fatal error: release site \"%s\" tries to release more than INT_MAX (2147483647) molecules.\n", rso->name);
+	   exit(EXIT_FAILURE);
+         }
+         number = (int)(num_to_release);
       }
       break;
     
@@ -1265,7 +1303,7 @@ int release_molecules(struct release_event_queue *req)
   
   if (rso->release_shape == SHAPE_REGION)
   {
-    int pop_before = ap->properties->population;
+    u_int pop_before = ap->properties->population;
     if (ap->flags & TYPE_3D)
     {
       i = release_inside_regions(rso,(struct volume_molecule*)ap,number);
@@ -1275,7 +1313,7 @@ int release_molecules(struct release_event_queue *req)
       {
         if (number>0 || (rso->release_number_method==CCNNUM && rso->concentration>0))
         {
-          fprintf(world->log_file, "Releasing %d %s from \"%s\" at iteration %lld\n", ap->properties->population-pop_before,rso->mol_type->sym->name, rso->name, world->it_time);
+          fprintf(world->log_file, "  Released %d %s from \"%s\" at iteration %lld\n", ap->properties->population-pop_before,rso->mol_type->sym->name, rso->name, world->it_time);
         }
       }
     }
@@ -1288,7 +1326,7 @@ int release_molecules(struct release_event_queue *req)
       {
         if (number>0)
         {
-          fprintf(world->log_file, "Releasing %d %s from \"%s\" at iteration %lld\n", ap->properties->population-pop_before,rso->mol_type->sym->name, rso->name, world->it_time);
+          fprintf(world->log_file, "  Released %d %s from \"%s\" at iteration %lld\n", ap->properties->population-pop_before,rso->mol_type->sym->name, rso->name, world->it_time);
         }
       }
     }
@@ -1369,6 +1407,13 @@ int release_molecules(struct release_event_queue *req)
     else if (diam_xyz != NULL)
     {
       
+      if(world->notify->release_events == NOTIFY_FULL)
+      {
+        if(number > 0){
+	   fprintf(world->log_file, "Releasing %d molecules %s ...", number, rso->mol_type->sym->name);
+           fflush(stdout);
+        }
+      } 
       for (i=0;i<number;i++)
       {
 	do /* Pick values in unit square, toss if not in unit circle */
@@ -1412,7 +1457,7 @@ int release_molecules(struct release_event_queue *req)
       }
       if (world->notify->release_events==NOTIFY_FULL)
       {
-           fprintf(world->log_file, "Releasing %d %s from \"%s\" at iteration %lld\n", number,rso->mol_type->sym->name, rso->name, world->it_time); 
+           fprintf(world->log_file, "  Released %d %s from \"%s\" at iteration %lld\n", number,rso->mol_type->sym->name, rso->name, world->it_time); 
       }
     }
     else
@@ -1428,6 +1473,14 @@ int release_molecules(struct release_event_queue *req)
       m.pos.y = location[0][1];
       m.pos.z = location[0][2];
       
+      if(world->notify->release_events == NOTIFY_FULL)
+      {
+        if(number > 0){
+	   fprintf(world->log_file, "Releasing %d molecules %s ...", number, rso->mol_type->sym->name);
+           fflush(stdout);
+        }
+      }
+ 
       for (i=0;i<number;i++)
       {
          guess = insert_volume_molecule(&m,guess);
@@ -1435,7 +1488,7 @@ int release_molecules(struct release_event_queue *req)
       }
       if (world->notify->release_events==NOTIFY_FULL)
       {
-          fprintf(world->log_file, "Releasing %d %s from \"%s\" at iteration %lld\n", number,rso->mol_type->sym->name, rso->name, world->it_time);
+          fprintf(world->log_file, "  Released %d %s from \"%s\" at iteration %lld\n", number,rso->mol_type->sym->name, rso->name, world->it_time);
       }
     }
   }

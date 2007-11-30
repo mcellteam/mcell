@@ -2567,7 +2567,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
   struct reg_rel_helper_data *rrhd_head,*p;
   int n_rrhd;
   int h,i,j,k;
-  double A,max_A;
+  double A,max_A, num_to_release;
   struct wall *w;
   struct grid_molecule *new_g;
   
@@ -2582,11 +2582,24 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
   
   if (rso->release_number_method == CCNNUM)
   {
-    n = (int)( rso->concentration * est_sites_avail / world->grid_density);
+    num_to_release = rso->concentration * est_sites_avail / world->grid_density;
+    if(num_to_release > INT_MAX){
+        fprintf(world->err_file, "Fatal error: release site \"%s\" tries to release more than INT_MAX (2147483647) molecules.\n", rso->name);
+        exit(EXIT_FAILURE);
+    }
+    n = (int)(num_to_release);
+
   }
   
   if (n<0) return vacuum_from_regions(rso,g,n);
-  
+  if(world->notify->release_events==NOTIFY_FULL) 
+  {
+    if(n > 0){
+       fprintf(world->log_file, "Releasing %d molecules %s ...", n, g->properties->sym->name);
+       fflush(stdout);
+    } 
+  }
+ 
   while (n>0)
   {
     if (failure >= success+too_many_failures)
