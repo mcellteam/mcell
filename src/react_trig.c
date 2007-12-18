@@ -335,8 +335,9 @@ int trigger_trimolecular(int hashA,int hashB, int hashC,
             geomC = inter->geometries[2];
             correct_players_flag = 1;
          }
-         else if((reacB == inter->players[2] &&
-              reacC == inter->players[1]))
+         else 
+          /*((reacB == inter->players[2] &&
+              reacC == inter->players[1])) */
           {
             geomA = inter->geometries[0];
             geomB = inter->geometries[2];
@@ -354,8 +355,9 @@ int trigger_trimolecular(int hashA,int hashB, int hashC,
             geomC = inter->geometries[2];
             correct_players_flag = 1;
         }
-        else if ((reacB == inter->players[2]) &&
-              (reacC == inter->players[0]))
+        else 
+         /* if ((reacB == inter->players[2]) &&
+              (reacC == inter->players[0]))  */
         {
             geomA = inter->geometries[1];
             geomB = inter->geometries[2];
@@ -363,7 +365,8 @@ int trigger_trimolecular(int hashA,int hashB, int hashC,
             correct_players_flag = 1;
         } 
       }
-      else if (reacA == inter->players[2]) {
+      /* else if (reacA == inter->players[2]) { */
+      else {
         if((reacB == inter->players[0]) &&
            (reacC == inter->players[1]))
         {
@@ -372,8 +375,9 @@ int trigger_trimolecular(int hashA,int hashB, int hashC,
             geomC = inter->geometries[1];
             correct_players_flag = 1;
         }
-        if((reacB == inter->players[1]) &&
-              (reacC == inter->players[0]))
+        else 
+          /* ((reacB == inter->players[1]) &&
+              (reacC == inter->players[0])*/
         {
             geomA = inter->geometries[2];
             geomB = inter->geometries[1];

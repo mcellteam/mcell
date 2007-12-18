@@ -1980,7 +1980,7 @@ define_one_molecule: DEFINE_MOLECULE
 
 define_multiple_molecules: DEFINE_MOLECULES
 {
-  if (volp->notify->diffusion_constants==NOTIFY_BRIEF) fprintf(volp->log_file,"Defining molecules with the following diffusion constants:\n");
+  if (volp->notify->diffusion_constants==NOTIFY_BRIEF) fprintf(volp->log_file,"Defining molecules with the following theoretical average diffusion distances:\n");
 }
         '{'
 	list_molecule_stmts
@@ -5076,9 +5076,9 @@ remove_side: REMOVE_ELEMENTS '{'
                    mdlpvp->rp->sym->name);
       return(1);
     }
+
     mdlpvp->rp->region_last_name="REMOVED";
     mdlpvp->rp->parent=mdlpvp->curr_obj;
-    mdlpvp->rp->surf_class=(struct species*)&mdlpvp->rp->surf_class;
     mdlpvp->rlp->reg=mdlpvp->rp;
     mdlpvp->rlp->next = mdlpvp->region_list_head;
     mdlpvp->region_list_head = mdlpvp->rlp;

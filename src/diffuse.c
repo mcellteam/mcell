@@ -7352,6 +7352,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
         {
 
            w = (struct wall *) smash->target;
+	
+           if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
+	   else k = -1;
 
 	   if ( w->grid != NULL)
 	   {
@@ -7432,6 +7435,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
          /* now look for the mol-wall interactions */
           if ( (sm->flags&CAN_MOLWALL) != 0 )
 	  {
+             if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
+	     else k = -1;
+
 	     m->index = -1;  
 	     rx = trigger_intersect(
 		  sm->hashval,(struct abstract_molecule*)m,k,w
@@ -7468,6 +7474,9 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
          if(!wall_was_accounted_for)
          {
+             if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
+	     else k = -1;
+
              /* This is a simple reflective wall 
                 (default wall behavior). 
                 We want to keep it in the "tri_smash" 
@@ -7618,6 +7627,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
       if((tri_smash->what & COLLIDE_WALL) != 0)
       {
+        k = tri_smash->orient;
 
 	w = (struct wall*) tri_smash->target1;
         

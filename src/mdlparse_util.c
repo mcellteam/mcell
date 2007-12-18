@@ -518,7 +518,7 @@ int copy_object(struct volume *volp,struct object *curr_objp,
       objp->contents=duplicate_release_site(objp2->contents,objp,volp->root_instance,volp->main_sym_table);
       if (objp->contents==NULL) return 1;
       struct release_site_obj *rso = (struct release_site_obj *)(objp->contents);
-      rso->name = my_strcat(objp->sym->name, NULL);
+      rso->name = my_strcat(objp->sym->name, NULL); 
       break;
     case BOX_OBJ:
       objp->contents=objp2->contents;
@@ -4465,16 +4465,16 @@ void remove_gaps_from_regions(struct object *ob)
   struct polygon_object *po;
   struct region_list *rl;
   int i,missing;
-  
+          
   if (ob->object_type!=BOX_OBJ && ob->object_type!=POLY_OBJ) return;
   po = (struct polygon_object*)ob->contents;
   
   for (rl=ob->regions;rl!=NULL;rl=rl->next)
   {
     no_printf("Checking region %s\n",rl->reg->sym->name);
-    if (rl->reg->surf_class == (struct species*)&(rl->reg->surf_class))
+    if(strcmp(rl->reg->region_last_name, "REMOVED") == 0) 
     {
-      no_printf("Found a REMOVED region\n");
+      no_printf("Found a REMOVED region\n"); 
       rl->reg->surf_class=NULL;
       bit_operation(po->side_removed,rl->reg->membership,'+');
       set_all_bits(rl->reg->membership,0);

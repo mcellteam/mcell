@@ -3770,7 +3770,7 @@ static int dreamm_v3_dump_time_info(void)
   int old_last_vol_mol = -1;
   int old_last_surf_mol = -1;
 
-  u_int old_time_values_count = 0;
+  int old_time_values_count = 0;
 
   /* Build viz data dir name */
   char *viz_data_dir = my_strcat(world->file_prefix_name, "_viz_data");
@@ -5238,6 +5238,7 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
   int id;
   struct vector3 where;
   
+  printf("Output in ASCII mode (molecules only)...\n");
   no_printf("Output in ASCII mode (molecules only)...\n");
   
   if ((fdlp->type==ALL_FRAME_DATA) || (fdlp->type==MOL_POS) || (fdlp->type==MOL_STATES))
