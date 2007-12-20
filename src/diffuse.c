@@ -6951,7 +6951,8 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	  
 	     if (rx != NULL)
 	     {
-	        if (rx->n_pathways == RX_REFLEC)
+	        if (rx->n_pathways == RX_REFLEC)  
+                 /* the wall is reflective */
 	        {
 	          m->pos.x = smash->loc.x;
 	          m->pos.y = smash->loc.y;
@@ -6972,6 +6973,28 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
          
                   break;
                 }
+             }else{
+                   /* since there is no defined reaction between molecule
+                      and this particular wall - it means that this 
+                      wall is reflective for this molecule */
+	          m->pos.x = smash->loc.x;
+	          m->pos.y = smash->loc.y;
+	          m->pos.z = smash->loc.z;
+                  m->t += t_steps*smash->t;
+	          reflectee = w;
+
+                  t_start += t_steps*smash->t;
+
+                  t_steps *= (1.0-smash->t);
+        
+                  factor = -2.0 * (displacement.x*w->normal.x + displacement.y*w->normal.y + displacement.z*w->normal.z);
+                  displacement.x = (displacement.x + factor*w->normal.x) * (1.0-smash->t);
+                  displacement.y = (displacement.y + factor*w->normal.y) * (1.0-smash->t);
+                  displacement.z = (displacement.z + factor*w->normal.z) * (1.0-smash->t);
+
+                  redo_expand_collision_list_flag = 1;  /* Only useful if we're using expanded lists, but easier to always set it */
+         
+                  break;
              }
            }
            else{
@@ -6979,6 +7002,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
              /* the default property of the wall is to be REFLECTIVE.
                 It works if we do not specifically describe 
                 the properties of the wall */
+
                   m->pos.x = smash->loc.x;
 	          m->pos.y = smash->loc.y;
 	          m->pos.z = smash->loc.z;
@@ -7150,6 +7174,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
          if((new_smash->what & COLLIDE_MOL_MOL) == 0) continue;
 
          new_mp = (struct volume_molecule *)new_smash->target;
+
 
          num_matching_rxns = trigger_trimolecular(
                smash->moving->hashval, mp->properties->hashval,                
@@ -7775,6 +7800,27 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 
   return m;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*************************************************************************
 diffuse_2D:
