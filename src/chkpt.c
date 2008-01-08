@@ -92,15 +92,15 @@ int read_chkpt(FILE *fs)
 	if (read_current_real_time(fs)) {
 	  return(1);
 	}
-        if(create_molecule_scheduler()){
-	  return 1;
-        }
 	break;
       
       case CURRENT_ITERATION_CMD:
 	if (read_current_iteration(fs)) {
 	  return(1);
 	}
+        if(create_molecule_scheduler()){
+	  return 1;
+        }
 	break;
       case CHKPT_SEQ_NUM_CMD:
 	if (read_chkpt_seq_num(fs)) {
@@ -285,14 +285,11 @@ Out: Creates global molecule scheduler using checkpoint file values.
 ***************************************************************************/
 int create_molecule_scheduler()
 {
-  double start_time;
-  
-  start_time = world->current_start_real_time/world->time_unit;
-  if((world->storage_head->store->timer = create_scheduler(1.0,100.0,100,start_time)) == NULL){
+  if((world->storage_head->store->timer = create_scheduler(1.0,100.0,100,world->start_time)) == NULL){
      fprintf(world->err_file, "File '%s', Line %ld: Out of memory while creating molecule scheduler.\n", __FILE__, (long)__LINE__);
      return 1;
   }
-  world->storage_head->store->current_time = start_time;
+  world->storage_head->store->current_time = world->start_time;
 
   return 0;
 }
