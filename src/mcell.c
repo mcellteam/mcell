@@ -109,6 +109,7 @@ void run_sim(void)
     /* TIME_STEP may have been changed between checkpoints */
     world->current_real_time = world->current_start_real_time + (world->it_time - world->start_time)*world->time_unit;
     world->elapsed_time = world->it_time;
+
     goto resume_after_checkpoint;
   }
  
@@ -116,7 +117,6 @@ void run_sim(void)
   {
     not_yet = world->it_time + 1.0;
     world->current_real_time = world->current_start_real_time + (world->it_time - world->start_time)*world->time_unit;
-
     
     if (world->it_time!=0) world->elapsed_time=world->it_time;
     else world->elapsed_time=1.0;
@@ -346,7 +346,7 @@ int main(int argc, char **argv) {
   procnum=world->procnum;
   gethostname(hostname,64);
 
-  world->iterations=0;
+  world->iterations=INT_MIN; /* a flag */
   world->chkpt_infile = NULL;
   world->chkpt_init = 1;
   world->log_freq = -1; /* Indicates that this value has not been set by user */
@@ -419,6 +419,11 @@ int main(int argc, char **argv) {
   if(world->chkpt_flag)
   {
   	fprintf(log_file,"MCell: checkpoint sequence number %d begins at elapsed time %1.15g seconds\n", world->chkpt_seq_num, world->chkpt_elapsed_real_time_start);
+        if(world->iterations < world->start_time){
+  	   fprintf(world->err_file,"Error: start time after checkpoint %lld is greater than total number of iterations specified %lld.\n", world->start_time, world->iterations);
+           exit(EXIT_FAILURE);
+          
+        }
   	if (((world->iterations - world->start_time) < world->chkpt_iterations) && world->chkpt_outfile) {
     		world->chkpt_iterations = world->iterations - world->start_time;
   	} else if (world->chkpt_outfile) {
@@ -435,12 +440,17 @@ int main(int argc, char **argv) {
   	else {
 		exec_iterations = world->iterations;
   	}
+        if(exec_iterations < 0) {
+  	   fprintf(world->err_file,"Error: number of iterations to execute is zero or negative. Please verify ITERATIONS and/or CHECKPOINT_ITERATIONS commands.\n");
+           exit(EXIT_FAILURE);
+        }
   	fprintf(log_file,"MCell: executing %lld iterations starting at iteration number %lld.\n",
           exec_iterations,world->start_time);
 
   }
 
-  if((world->chkpt_flag) && (exec_iterations == 0)) exit(0);
+  /* if((world->chkpt_flag) && (exec_iterations == 0)) exit(0); */
+  if((world->chkpt_flag) && (exec_iterations <= 0)) exit(0);
 
   printf("Running...\n");
   run_sim();

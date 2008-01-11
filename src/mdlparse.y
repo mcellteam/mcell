@@ -1795,8 +1795,12 @@ fflush(mdlpvp->vol->err_file);
 
 iteration_def: ITERATIONS '=' num_expr
 {
-if (volp->iterations==0) {
+if (volp->iterations==INT_MIN) {
   volp->iterations=(long long) $<dbl>3;
+  if(volp->iterations < 0){
+     mdlerror(mdlpvp, "Error: ITERATIONS value is negative\n");
+     return 1;
+  }
 }
 no_printf("Iterations = %lld\n",volp->iterations);
 fflush(mdlpvp->vol->err_file);
@@ -2866,6 +2870,10 @@ chkpt_stmt: CHECKPOINT_INFILE '=' file_name
 	| CHECKPOINT_ITERATIONS '=' num_expr
 {
   volp->chkpt_iterations=(long long) $<dbl>3;
+  if(volp->chkpt_iterations <= 0){
+     mdlerror(mdlpvp, "Error: CHECKPOINTS_ITERATIONS is either zero or negative\n");
+     return 1;
+  }
   volp->chkpt_flag = 1;
 };
 
