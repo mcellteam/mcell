@@ -1496,18 +1496,8 @@ int release_molecules(struct release_event_queue *req)
   
   /* Schedule next release event. */
   if (rso->release_prob==MAGIC_PATTERN_PROBABILITY) return 0;  /* Triggered by reaction, don't schedule */
-  if (rso->release_prob < 1.0)
-  {
     req->event_time += rpat->release_interval;
-  }
-  else if (rso->release_prob==MAGIC_PATTERN_PROBABILITY)
-  {
-    req->event_time += FOREVER;
-  }
-  else
-  {
-    req->event_time += rpat->release_interval;
-  }
+
     /* we may need to move to the next train. */
   if (!distinguishable(req->event_time,req->train_high_time + rpat->train_duration,EPS_C) ||
        req->event_time > req->train_high_time + rpat->train_duration)
