@@ -5526,7 +5526,6 @@ existing_surface_region_ref: existing_region '{'
   mdlpvp->rp=(struct region *)mdlpvp->gp->value;
   mdlpvp->eff_dat_head=mdlpvp->rp->eff_dat_head;
 }
-	opt_surface_region_stmt
 	list_opt_surface_region_stmts
         list_opt_surface_region_viz_values_stmts  
 	'}'

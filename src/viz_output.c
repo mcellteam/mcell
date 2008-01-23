@@ -5236,7 +5236,7 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
   long long lli;
 
   int id;
-  struct vector3 where;
+  struct vector3 where,norm;
   
   printf("Output in ASCII mode (molecules only)...\n");
   no_printf("Output in ASCII mode (molecules only)...\n");
@@ -5278,19 +5278,28 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
               where.x = mp->pos.x;
               where.y = mp->pos.y;
               where.z = mp->pos.z;
+              norm.x=0;
+              norm.y=0;
+              norm.z=0;
             }
             else if ((amp->properties->flags & ON_GRID)!=0)
             {
               gmp = (struct grid_molecule*)amp;
               uv2xyz(&(gmp->s_pos),gmp->grid->surface,&where);
               orient = gmp->orient;
+              norm.x=orient*gmp->grid->surface->normal.x;
+              norm.y=orient*gmp->grid->surface->normal.y;
+              norm.z=orient*gmp->grid->surface->normal.z;
             }
             else continue;
             
             where.x *= world->length_unit;
             where.y *= world->length_unit;
             where.z *= world->length_unit;
+/*
             fprintf(custom_file,"%d %15.8e %15.8e %15.8e %2d\n",id,where.x,where.y,where.z,orient);
+*/
+            fprintf(custom_file,"%d %.9g %.9g %.9g %.9g %.9g %.9g\n",id,where.x,where.y,where.z,norm.x,norm.y,norm.z);
           }
         }
       }
@@ -5345,6 +5354,16 @@ int init_frame_data_list(struct frame_data_list **fdlpp)
     case DX_MODE:
       if(world->file_prefix_name!=NULL && check_output_directory_structure())
         return 1;
+      count_time_values(fdlp);
+      if (reset_time_values(fdlp, world->start_time))
+        return 1;
+      break;
+
+    case ASCII_MODE:
+/*
+      if(world->file_prefix_name!=NULL && check_output_directory_structure())
+        return 1;
+*/
       count_time_values(fdlp);
       if (reset_time_values(fdlp, world->start_time))
         return 1;

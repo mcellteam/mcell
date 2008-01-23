@@ -1,13 +1,17 @@
 CC = gcc
 # CFLAGS = -Wall -O3 -march=pentium4
 # CFLAGS = -Wall -O3 -march=pentiumpro
+# CFLAGS = -Wall -O3 -march=opteron
+# CFLAGS = -Wall -O3 -m64 -march=opteron
 CFLAGS = -Wall -O3 -march=athlon-xp
 # CFLAGS = -Wall -march=athlon-xp
 # CFLAGS = -Wall -O3 -march=athlon-mp
+# CFLAGS = -Wall -O3 -m64 -march=opteron
 # CFLAGS = -Wall -O3
 # CFLAGS = -Wall -fast
 # CFLAGS = -Wall -ggdb3 -O0 -fno-strict-aliasing -pg
 # CFLAGS = -Wall -ggdb3 -O0 -fno-strict-aliasing -pg -DDEBUG
+# CFLAGS = -O3 -qstrict -qarch=pwr4 -qtune=pwr4 -qcache=auto
 LIBS =  -lm
 # LIBS =  -lefence -lm
 LD = $(CC)
