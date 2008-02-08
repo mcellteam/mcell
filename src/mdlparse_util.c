@@ -2479,10 +2479,12 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
              /* volume reactants should be aligned - it means that
                 they should be in the same orientation class and have
                 the same sign */
+
              if(vol_react1_geom != vol_react2_geom){
 	         fprintf(mpvp->vol->err_file,"Error: In 3-way reaction %s + %s + %s ---> [...] volume reactants %s and %s are either in different orientation classes or have opposite orientation sign.\n", rx->players[0]->sym->name, rx->players[1]->sym->name, rx->players[2]->sym->name, vol_reactant1->sym->name,vol_reactant2->sym->name);
                  return 1;
              }
+
 
 	     double eff_dif_1, eff_dif_2, eff_dif; /* effective diffusion constants*/
              eff_dif_1 = vol_reactant1->D;
@@ -2514,7 +2516,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             */
   
             /* flags that show whether volume reactants are in the same
-               orientation classes as surface reactant */
+2195G               orientation classes as surface reactant */
             int vol_react1_and_surf_react = 0, vol_react2_and_surf_react = 0;
             if((vol_react1_geom + surf_react_geom)*(vol_react1_geom - surf_react_geom) == 0 && vol_react1_geom*surf_react_geom != 0){
                  vol_react1_and_surf_react = 1;
@@ -2605,7 +2607,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 surf_react2_geom = rx->geometries[1];
              }
 
-	     double eff_vel = vol_reactant->space_step/vol_reactant->time_step;
           
              pb_factor=0;
 	  
@@ -2616,6 +2617,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                return 1;
 	     }
 
+	     double eff_vel = vol_reactant->space_step/vol_reactant->time_step;
+
 	     if (eff_vel > 0)
 	     {
 	       eff_vel = eff_vel * mpvp->vol->length_unit / mpvp->vol->time_unit;   /* Units=um/sec */
@@ -2624,16 +2627,18 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                /* NOTE: the reaction rate should be in units of
                   volume * area * #^(-2) * s^(-1) that means
                   (um)^5 * #^(-2) * s^(-1),
-                  otherwise the units conversion is necessary
+                  otherwise if the reaction rate is in 
+                  (um^2/(M*#*s) units conversion is necessary
                   */
+	     /*  pb_factor *= 1.0e11 / N_AV;   */                                              /* Convert L/mol to um^3/number (concentration of volume molecule */
 	     }
 	     else pb_factor = 0.0;  /* No rxn possible */
 
             /* The value of pb_factor above is calculated for the case
                when surface_molecule can be hit from either side 
                Otherwise the reaction_rate should be doubled.
-               So we check whether both of the volume_molecules
-               are in the same orientation class as surface_molecule.
+               So we check whether the volume_molecule
+               is in the same orientation class as surface_molecules.
             */
   
             /* flags that show whether volume reactant is in the same
