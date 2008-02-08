@@ -240,11 +240,13 @@
 #define COLLIDE_SUBVOL  0x40
 #define COLLIDE_MOL_MOL 0x80  /* collision between 3 volume molecules */
 #define COLLIDE_MOL_GRID 0x100 /* collision between 2 volume molecules
-                                  and 1 grid molecule */
+                                  and 1 grid molecule taken in the order
+                                   mol-mol-grid */
 #define COLLIDE_GRID_GRID 0x200 /* collision between 1 volume molecule
                                   and 2 grid molecules */
 #define COLLIDE_GRID     0x400 /* bimolecular collision between moving
                                 volume_molecule and grid_molecule */
+
 
 /* Target-type Flags */
 /* Types for things we can hit */
@@ -483,6 +485,11 @@
 #define VIZ_ALL_MOLECULES 0x01
 #define VIZ_MOLECULES_STATES 0x02
 #define VIZ_SURFACE_STATES 0x04
+/* the formats below are valid only for the DREAMM_V3_MODE */
+#define VIZ_MOLECULE_FORMAT_ASCII 0x08
+#define VIZ_MOLECULE_FORMAT_BINARY 0x10
+#define VIZ_MESH_FORMAT_ASCII 0x20
+#define VIZ_MESH_FORMAT_BINARY 0x40
 
 /************************************************************/
 /**  Old constants copied from MCell2, some may be broken  **/
@@ -1105,6 +1112,7 @@ struct visualization_state
   /* For DREAMM V3 Ungrouped output, path of 'frame data dir' and iter dir */
   char *frame_data_dir;
   char *iteration_number_dir;
+  
 };
 
 /* All data about the world */
@@ -1251,7 +1259,7 @@ struct volume
   byte voxel_volume_mode;
   char *molecule_prefix_name;
   char *file_prefix_name;
-  u_short viz_output_flag; /* Takes  VIZ_ALL_MOLECULES  */
+  u_short viz_output_flag; /* Takes  VIZ_ALL_MOLECULES, VIZ_MOLECULES_STATES, etc.  */
 
   /* VIZ state transplanted from global vars */
 

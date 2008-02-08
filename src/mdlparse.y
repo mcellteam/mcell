@@ -80,6 +80,7 @@ struct output_times *otimes;
 %token <tok> BACK
 %token <tok> BACK_CROSSINGS
 %token <tok> BACK_HITS
+%token <tok> BINARY
 %token <tok> BINDING_POLE
 %token <tok> BOTH_POLES
 %token <tok> BOTTOM
@@ -336,6 +337,8 @@ struct output_times *otimes;
 %token <tok> VARYING_PROBABILITY_REPORT
 %token <tok> VERTEX_LIST
 %token <tok> VIZ_DATA_OUTPUT
+%token <tok> VIZ_MESH_FORMAT
+%token <tok> VIZ_MOLECULE_FORMAT
 %token <tok> VIZ_OUTPUT
 %token <tok> VIZ_VALUE
 %token       VOLUME_DATA_OUTPUT
@@ -507,6 +510,10 @@ struct output_times *otimes;
 %type <tok> viz_object_prefixes_def
 %type <tok> list_viz_object_prefixes
 %type <tok> viz_object_prefix
+%type <tok> viz_mesh_format_def
+%type <tok> viz_mesh_format_maybe_cmd
+%type <tok> viz_molecule_format_def
+%type <tok> viz_molecule_format_maybe_cmd
 %type <tok> viz_molecule_prefix_def
 %type <tok> viz_state_values_def
 %type <tok> list_viz_state_values
@@ -6788,6 +6795,8 @@ atomic_rate: num_expr_only
 
 viz_output_def: VIZ_OUTPUT '{'
         viz_output_maybe_mode_cmd
+        viz_mesh_format_maybe_cmd
+        viz_molecule_format_maybe_cmd
 	list_viz_output_cmds
 	'}'
 { /* Error checking transplanted from the viz_output module */
@@ -6812,6 +6821,84 @@ viz_output_maybe_mode_cmd: /* empty */
 }
                          | viz_mode_def
 ;
+
+viz_mesh_format_maybe_cmd: /* empty */
+{
+  if (volp->viz_mode == DREAMM_V3_MODE){
+    volp->viz_output_flag |= VIZ_MESH_FORMAT_BINARY;
+  }
+}
+                         | viz_mesh_format_def
+;
+
+viz_mesh_format_def: VIZ_MESH_FORMAT '=' BINARY
+{
+  if (volp->viz_mode != DREAMM_V3_MODE)
+  {
+    mdlerror_fmt(mdlpvp, "VIZ_MESH_FORMAT command is allowed only in DREAMM_V3 mode.\n");
+    return 1;
+  }
+  volp->viz_output_flag |= VIZ_MESH_FORMAT_BINARY;
+  if((volp->viz_output_flag & VIZ_MESH_FORMAT_ASCII) &&
+     (volp->viz_output_flag & VIZ_MESH_FORMAT_BINARY)){
+        mdlerror_fmt(mdlpvp, "BINARY and ASCII options for the VIZ_MESH_FORMAT command are mutually exclusive.\n");
+        return 1;
+  }
+}
+                | VIZ_MESH_FORMAT '=' ASCII
+{
+  if (volp->viz_mode != DREAMM_V3_MODE)
+  {
+    mdlerror_fmt(mdlpvp, "VIZ_MESH_FORMAT command is allowed only in DREAMM_V3 mode.\n");
+    return 1;
+  }
+  volp->viz_output_flag |= VIZ_MESH_FORMAT_ASCII;
+  if((volp->viz_output_flag & VIZ_MESH_FORMAT_ASCII) &&
+     (volp->viz_output_flag & VIZ_MESH_FORMAT_BINARY)){
+        mdlerror_fmt(mdlpvp, "BINARY and ASCII options for the VIZ_MESH_FORMAT command are mutually exclusive.\n");
+        return 1;
+  }
+
+};
+
+viz_molecule_format_maybe_cmd: /* empty */
+{
+  if (volp->viz_mode == DREAMM_V3_MODE){
+    volp->viz_output_flag |= VIZ_MOLECULE_FORMAT_BINARY;
+  }
+}
+                         | viz_molecule_format_def
+;
+
+viz_molecule_format_def: VIZ_MOLECULE_FORMAT '=' BINARY
+{
+  if (volp->viz_mode != DREAMM_V3_MODE)
+  {
+    mdlerror_fmt(mdlpvp, "VIZ_MOLECULE_FORMAT command is allowed only in DREAMM_V3 mode.\n");
+    return 1;
+  }
+  volp->viz_output_flag |= VIZ_MOLECULE_FORMAT_BINARY;
+  if((volp->viz_output_flag & VIZ_MOLECULE_FORMAT_ASCII) &&
+     (volp->viz_output_flag & VIZ_MOLECULE_FORMAT_BINARY)){
+        mdlerror_fmt(mdlpvp, "BINARY and ASCII options for the VIZ_MOLECULE_FORMAT command are mutually exclusive.\n");
+        return 1;
+  }
+}
+                | VIZ_MOLECULE_FORMAT '=' ASCII
+{
+  if (volp->viz_mode != DREAMM_V3_MODE)
+  {
+    mdlerror_fmt(mdlpvp, "VIZ_MOLECULE_FORMAT command is allowed only in DREAMM_V3 mode.\n");
+    return 1;
+  }
+  volp->viz_output_flag |= VIZ_MOLECULE_FORMAT_ASCII;
+  if((volp->viz_output_flag & VIZ_MOLECULE_FORMAT_ASCII) &&
+     (volp->viz_output_flag & VIZ_MOLECULE_FORMAT_BINARY)){
+        mdlerror_fmt(mdlpvp, "BINARY and ASCII options for the VIZ_MOLECULE_FORMAT command are mutually exclusive.\n");
+        return 1;
+  }
+
+};
 
 viz_output_cmd:
           viz_filename_prefix_def 

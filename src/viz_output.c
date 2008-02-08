@@ -501,7 +501,8 @@ static int convert_frame_data_to_iterations(struct frame_data_list *fdlp)
 
 /*************************************************************************
 dx_output_worldfloat
-    Writes a floating point world coordinate to the specified file.
+    Writes a floating point world coordinate to the specified file
+    in binary format.
 
         In:  FILE *f - file handle to receive output
              float fval - floating point value to write
@@ -511,6 +512,22 @@ static int dx_output_worldfloat(FILE *f, double fval)
 {
   float v = (float) (fval * world->length_unit);
   fwrite(&v, sizeof(v), 1, f);
+  return sizeof(float);
+}
+
+/*************************************************************************
+dx_output_worldfloat_ascii
+    Writes a floating point world coordinate to the specified file in 
+        ascii format.
+
+        In:  FILE *f - file handle to receive output
+             float fval - floating point value to write
+        Out: num bytes written
+**************************************************************************/
+static int dx_output_worldfloat_ascii(FILE *f, double fval)
+{
+  float v = (float) (fval * world->length_unit);
+  fprintf(f,"%g ", v);
   return sizeof(float);
 }
 
@@ -528,9 +545,28 @@ static int dx_output_vector3(FILE *f, struct vector3 const *v3)
   size += dx_output_worldfloat(f, v3->x);
   size += dx_output_worldfloat(f, v3->y);
   size += dx_output_worldfloat(f, v3->z);
+
   return size;
 }
 
+/*************************************************************************
+dx_output_vector3_ascii
+    Writes a 3d vector to a DX output file in an ascii format.
+
+        In:  FILE *f - file handle to receive output
+             struct vector3 *v3 - vector to write
+        Out: num bytes written
+**************************************************************************/
+static int dx_output_vector3_ascii(FILE *f, struct vector3 const *v3)
+{
+  int size = 0;
+  size += dx_output_worldfloat_ascii(f, v3->x);
+  size += dx_output_worldfloat_ascii(f, v3->y);
+  size += dx_output_worldfloat_ascii(f, v3->z);
+
+  fprintf(f, "\n");
+  return size;
+}
 /*************************************************************************
 dx_output_oriented_normal
     Writes a 3d oriented normal vector to a DX output file in binary format.
@@ -552,6 +588,27 @@ static int dx_output_oriented_normal(FILE *f, struct vector3 const *v3, short or
 }
 
 /*************************************************************************
+dx_output_oriented_normal_ascii
+    Writes a 3d oriented normal vector to a DX output file in an ascii format.
+
+        In:  FILE *f - file handle to receive output
+             struct vector3 *v3 - vector to write
+             short orient - the orientation of the normal (+1/-1)
+        Out: num bytes written
+**************************************************************************/
+static int dx_output_oriented_normal_ascii(FILE *f, struct vector3 const *v3, short orient)
+{
+  float f1 = (float) (v3->x * (float) orient);
+  float f2 = (float) (v3->y * (float) orient);
+  float f3 = (float) (v3->z * (float) orient);
+  fprintf(f, "%g ", f1);
+  fprintf(f, "%g ", f2);
+  fprintf(f, "%g ", f3);
+  fprintf(f, "%s", "\n");
+ 
+  return 3*sizeof(float);
+}
+/*************************************************************************
 dx_output_vertices
     Writes the vertices for an object out to a DX output file in binary format.
 
@@ -568,6 +625,22 @@ static int dx_output_vertices(FILE *f, struct object const *objp)
   return size;
 }
 
+/*************************************************************************
+dx_output_vertices_ascii
+    Writes the vertices for an object out to a DX output file in ascii format.
+
+        In:  FILE *f - file handle to receive output
+             struct object *objp - the object whose vertices to write
+        Out: num bytes written
+**************************************************************************/
+static int dx_output_vertices_ascii(FILE *f, struct object const *objp)
+{
+  int size = 0;
+  int i;
+  for (i=0; i<objp->n_verts; ++i)
+    size += dx_output_vector3_ascii(f, &objp->verts[i]);
+  return size;
+}
 /*************************************************************************
 dx_output_wall_vertices
     Writes the vertex indices for a wall to a DX output file in binary format.
@@ -586,6 +659,28 @@ static int dx_output_wall_vertices(FILE *f, struct element_data const *edp)
     int vi = edp->vertex_index[i];
     fwrite(&vi, sizeof(int), 1, f);
   }
+  return 3*sizeof(int);
+}
+
+/*************************************************************************
+dx_output_wall_vertices_ascii
+    Writes the vertex indices for a wall to a DX output file in ascii format.
+
+    XXX: Is this right?  sizeof(int) can vary between platforms...
+
+        In:  FILE *f - file handle to receive output
+             struct element_data *edp - the wall vertices to write
+        Out: num bytes written
+**************************************************************************/
+static int dx_output_wall_vertices_ascii(FILE *f, struct element_data const *edp)
+{
+  int i;
+  for (i=0; i<3; ++i)
+  {
+    int vi = edp->vertex_index[i];
+    fprintf(f, "%d ", vi);
+  }
+  fprintf(f, "\n");
   return 3*sizeof(int);
 }
 
@@ -641,6 +736,11 @@ static FILE *dx_open_file(char const *cls,
 
   FILE *f = open_file(filename_buffer, "wb");
   free(filename_buffer);
+  
+  if(f == NULL){
+     fprintf(world->err_file, "Error opening file %s\n", filename_buffer);
+  }
+     
   return f;
 }
 
@@ -651,10 +751,10 @@ dx_output_walls
         In:  FILE *wall_verts_header
              FILE *wall_states_header
              struct object *objp
-        Out: 0 on success, 1 on error; on success, the objects are written to
+        Out: none, the objects are written to
              the files
 **************************************************************************/
-static int dx_output_walls(FILE *wall_verts_header,
+static void dx_output_walls(FILE *wall_verts_header,
                            FILE *wall_states_header,
                            struct object const *objp)
 {
@@ -716,7 +816,6 @@ static int dx_output_walls(FILE *wall_verts_header,
   if (wall_states_header)
     fprintf(wall_states_header,"\nattribute \"dep\" string \"states\"\n#\n");
 
-  return 0;
 }
 
 /*************************************************************************
@@ -761,10 +860,10 @@ dx_output_effectors_on_wall
         In:  FILE *eff_pos_header
              FILE *eff_states_header
              struct wall *w
-        Out: 0 on success, 1 on error; on success, the objects are written to
+        Out: none, the objects are written to
              the files
 **************************************************************************/
-static int dx_output_effectors_on_wall(FILE *eff_pos_header,
+static void dx_output_effectors_on_wall(FILE *eff_pos_header,
                                        FILE *eff_states_header,
                                        struct wall *w)
 {
@@ -793,7 +892,6 @@ static int dx_output_effectors_on_wall(FILE *eff_pos_header,
                                          gmol->orient);
   }
 
-  return 0;
 }
 
 /*************************************************************************
@@ -803,10 +901,10 @@ dx_output_effectors
         In:  FILE *eff_pos_header
              FILE *eff_states_header
              struct object *objp
-        out: 0 on success, 1 on error; on success, the objects are written to
+        out: none, the objects are written to
              the files
 **************************************************************************/
-static int dx_output_effectors(FILE *eff_pos_header,
+static void dx_output_effectors(FILE *eff_pos_header,
                                FILE *eff_states_header,
                                struct object *objp)
 {
@@ -860,8 +958,7 @@ static int dx_output_effectors(FILE *eff_pos_header,
     if (w->grid == NULL)
       continue;
 
-    if (dx_output_effectors_on_wall(eff_pos_header, eff_states_header, w))
-      return 1;
+    dx_output_effectors_on_wall(eff_pos_header, eff_states_header, w);
   }
 
   if (eff_pos_header)
@@ -870,7 +967,6 @@ static int dx_output_effectors(FILE *eff_pos_header,
   if (eff_states_header)
     fprintf(eff_states_header,
             "attribute \"dep\" string \"positions\"\n#\n");
-  return 0;
 }
 
 /*************************************************************************
@@ -880,10 +976,10 @@ dx_output_walls_groups
         In:  FILE *wall_verts_header
              FILE *wall_states_header
              struct viz_obj *vizp
-        Out: 0 on success, 1 on error; on success, the objects are written to
+        Out: none, the objects are written to
              the files
 **************************************************************************/
-static int dx_output_walls_groups(FILE *wall_verts_header,
+static void dx_output_walls_groups(FILE *wall_verts_header,
                                   FILE *wall_states_header,
                                   struct viz_obj *vizp)
 {
@@ -926,7 +1022,6 @@ static int dx_output_walls_groups(FILE *wall_verts_header,
     }
   }
 
-  return 0;
 }
 
 /*************************************************************************
@@ -936,10 +1031,10 @@ dx_output_effectors_groups
         In:  FILE *eff_pos_header
              FILE *eff_states_header
              struct viz_obj *vizp
-        Out: 0 on success, 1 on error; on success, the objects are written to
+        Out: none, the objects are written to
              the files
 **************************************************************************/
-static int dx_output_effectors_groups(FILE *eff_pos_header,
+static void dx_output_effectors_groups(FILE *eff_pos_header,
                                       FILE *eff_states_header,
                                       struct viz_obj *vizp)
 {
@@ -981,7 +1076,6 @@ static int dx_output_effectors_groups(FILE *eff_pos_header,
     }
   }
 
-  return 0;
 }
 
 /*************************************************************************
@@ -990,7 +1084,7 @@ dx_output_walls_null
 
         In:  FILE *wall_verts_header
              FILE *wall_states_header
-        Out: 0 on success, 1 on error; on success, the objects are written to
+        Out: none, the objects are written to
              the files
 **************************************************************************/
 static void dx_output_walls_null(FILE *wall_verts_header, FILE *wall_states_header)
@@ -1017,7 +1111,7 @@ dx_output_effectors_null
 
         In:  FILE *eff_pos_header
              FILE *eff_states_header
-        Out: 0 on success, 1 on error; on success, objects are written to the
+        Out: none, objects are written to the
              files
 **************************************************************************/
 static void dx_output_effectors_null(FILE *eff_pos_header, FILE *eff_states_header)
@@ -1043,7 +1137,7 @@ dx_output_walls_and_effectors_fields
         In:  FILE *wall_verts_header
              FILE *eff_pos_header
              struct viz_child *vcp
-        Out: 0 on success, 1 on error; on success, the objects are written to
+        Out: none, the objects are written to
              the file
 **************************************************************************/
 static void dx_output_walls_and_effectors_fields(FILE *wall_verts_header,
@@ -1121,17 +1215,15 @@ static int dx_output_walls_and_effectors_single(struct frame_data_list *fdlp,
     if ((viz_surf_pos || viz_surf_states)  &&
         (objp->object_type==POLY_OBJ || objp->object_type==BOX_OBJ))
     {
-      if (dx_output_walls(wall_verts_header,
+      dx_output_walls(wall_verts_header,
                           wall_states_header,
-                          objp))
-        goto failure;
+                          objp);
     }
 
     if (viz_eff_pos  ||  viz_eff_states) {
-      if (dx_output_effectors(eff_pos_header,
+      dx_output_effectors(eff_pos_header,
                               eff_states_header,
-                              objp))
-        goto failure;
+                              objp);
     }
   }
 
@@ -1150,12 +1242,10 @@ static int dx_output_walls_and_effectors_single(struct frame_data_list *fdlp,
   }
 
   if (viz_eff_pos  ||  viz_eff_states)
-    if (dx_output_effectors_groups(eff_pos_header, eff_states_header, vizp))
-      goto failure;
+    dx_output_effectors_groups(eff_pos_header, eff_states_header, vizp);
 
   if (viz_surf_pos  ||  viz_surf_states)
-    if (dx_output_walls_groups(wall_verts_header, wall_states_header, vizp))
-      goto failure;
+    dx_output_walls_groups(wall_verts_header, wall_states_header, vizp);
 
   if (wall_verts_header != NULL)  fclose(wall_verts_header);
   if (wall_states_header != NULL) fclose(wall_states_header);
@@ -1199,10 +1289,10 @@ dx_output_molecules_position_fields_and_groups
 
         In:  FILE *mol_pos_header
              int   mol_pos_index
-        Out: 0 on success, 1 on error; data is appended to the provided file
+        Out: none, data is appended to the provided file
              handle.
 **************************************************************************/
-static int dx_output_molecules_position_fields_and_groups(FILE *mol_pos_header, int mol_pos_index)
+static void dx_output_molecules_position_fields_and_groups(FILE *mol_pos_header, int mol_pos_index)
 {
   int mol_pos_field_index = 0;
   int mol_pos_group_index = 0;
@@ -1236,7 +1326,6 @@ static int dx_output_molecules_position_fields_and_groups(FILE *mol_pos_header, 
     ++ mol_pos_group_index;
   }
 
-  return 0;
 }
 
 /*************************************************************************
@@ -1246,10 +1335,10 @@ dx_output_molecules_states_groups:
 
         In:  FILE *mol_states_header
              int   mol_states_index
-        Out: 0 on success, 1 on error; data is appended to the provided file
+        Out: none, data is appended to the provided file
              handle.
 **************************************************************************/
-static int dx_output_molecules_states_groups(FILE *mol_states_header, int mol_states_index)
+static void dx_output_molecules_states_groups(FILE *mol_states_header, int mol_states_index)
 {
   int mol_states_group_index = 0;
   int species_index;
@@ -1270,7 +1359,6 @@ static int dx_output_molecules_states_groups(FILE *mol_states_header, int mol_st
     ++ mol_states_group_index;
   }
 
-  return 0;
 }
 
 /*************************************************************************
@@ -1281,10 +1369,10 @@ dx_output_molecules_position:
              struct volume_molecule **viz_molp
              u_int mol_count
              int   *mol_pos_index
-        Out: 0 on success, 1 on error; data is appended to the provided file
+        Out: none, data is appended to the provided file
              handle, and mol_states_index is incremented.
 **************************************************************************/
-static int dx_output_molecules_position(FILE *mol_pos_header, struct volume_molecule **viz_molp, u_int mol_count, int *mol_pos_index)
+static void dx_output_molecules_position(FILE *mol_pos_header, struct volume_molecule **viz_molp, u_int mol_count, int *mol_pos_index)
 {
   char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
 
@@ -1306,7 +1394,6 @@ static int dx_output_molecules_position(FILE *mol_pos_header, struct volume_mole
   else /* mol_count == 0 */
     fprintf(mol_pos_header, "object \"%d\" array\n\n", *mol_pos_index);
   ++ *mol_pos_index;
-  return 0;
 }
 
 /*************************************************************************
@@ -1317,10 +1404,10 @@ dx_output_molecules_state:
              u_int mol_count
              int   state
              int   *mol_states_index
-        Out: 0 on success, 1 on error; data is appended to the provided file
+        Out: none; data is appended to the provided file
              handle, and mol_states_index is incremented.
 **************************************************************************/
-static int dx_output_molecules_state(FILE *mol_states_header, u_int mol_count, int state, int *mol_states_index)
+static void dx_output_molecules_state(FILE *mol_states_header, u_int mol_count, int state, int *mol_states_index)
 {
   if (mol_count > 0)
   {
@@ -1335,7 +1422,6 @@ static int dx_output_molecules_state(FILE *mol_states_header, u_int mol_count, i
                                *mol_states_index);
   fprintf(mol_states_header, "  attribute \"dep\" string \"positions\"\n\n");
   ++ *mol_states_index;
-  return 0;
 }
 
 /*************************************************************************
@@ -1348,7 +1434,6 @@ dx_output_molecules:
 **************************************************************************/
 static int dx_output_molecules(struct frame_data_list *fdlp)
 {
-  int retcode = 0;
   FILE *mol_pos_header = NULL;
   FILE *mol_states_header = NULL;
   byte viz_mol_pos=((fdlp->type==ALL_FRAME_DATA) || (fdlp->type==MOL_POS));
@@ -1364,18 +1449,18 @@ static int dx_output_molecules(struct frame_data_list *fdlp)
       (mol_pos_header = dx_open_file("molecule_positions",
                                      world->molecule_prefix_name,
                                      fdlp->viz_iteration)) == NULL)
-    goto failure;
+    return 1;
 
   if (viz_mol_states  &&
       (mol_states_header = dx_open_file("molecule_states",
                                         world->molecule_prefix_name,
                                         fdlp->viz_iteration)) == NULL)
-      goto failure;
+      return 1;
 
   if (sort_molecules_by_species((struct abstract_molecule ****) (void *) &viz_molp,
                                 &viz_mol_count,
                                 1, 0))
-    goto failure;
+     return 1;
 
   /* Iterate over species */
   for (species_index = 0; species_index<world->n_species; ++ species_index)
@@ -1386,32 +1471,22 @@ static int dx_output_molecules(struct frame_data_list *fdlp)
     if ((world->species_list[species_index]->flags & NOT_FREE) != 0)
       continue;
 
-    if (viz_mol_pos  &&  dx_output_molecules_position(mol_pos_header,
+    if (viz_mol_pos)  dx_output_molecules_position(mol_pos_header,
                                                       viz_molp[spec_id],
                                                       mol_count,
-                                                      &mol_pos_index))
-      goto failure;
+                                                      &mol_pos_index);
 
-    if (viz_mol_states  &&  dx_output_molecules_state(mol_states_header,
+    if (viz_mol_states) dx_output_molecules_state(mol_states_header,
                                                       mol_count,
                                                       state,
-                                                      &mol_states_index))
-      goto failure;
+                                                      &mol_states_index);
   }
 
   /* build fields and groups here */
-  if (viz_mol_pos  &&  dx_output_molecules_position_fields_and_groups(mol_pos_header, mol_pos_index))
-    goto failure;
+  if (viz_mol_pos) dx_output_molecules_position_fields_and_groups(mol_pos_header, mol_pos_index);
 
-  if (viz_mol_states  &&  dx_output_molecules_states_groups(mol_states_header, mol_states_index))
-    goto failure;
+  if (viz_mol_states) dx_output_molecules_states_groups(mol_states_header, mol_states_index);
 
-  goto success;
-
-failure:
-  retcode = 1;
-
-success:
   /* clean up */
   if (mol_states_header)
     fclose(mol_states_header);
@@ -1429,7 +1504,8 @@ success:
     free (viz_mol_count);
   viz_mol_count = NULL;
 
-  return retcode;
+  return 0;
+
 }
 
 /*************************************************************************
@@ -1513,7 +1589,10 @@ static FILE *dreamm_v3_generic_open_file(char const *dir, char const *fname, cha
   return f;
 
 failure:
-  if (path) free(path);
+  if (path) {
+     fprintf(world->err_file, "Error opening file %s\n", path);
+     free(path);
+  }
   return NULL;
 }
 
@@ -1611,9 +1690,9 @@ dreamm_v3_generic_merge_frame_data:
 
         In:  struct frame_data_list *dest - destination frame
              struct frame_data_list *src - source frame
-        Out: 0 if successful, 1 if failed
+        Out: none
 **************************************************************************/
-static int dreamm_v3_generic_merge_frame_data(struct frame_data_list *dest,
+static void dreamm_v3_generic_merge_frame_data(struct frame_data_list *dest,
                                               struct frame_data_list *src)
 {
   struct num_expr_list *nelSrc = src->iteration_list,
@@ -1661,7 +1740,6 @@ static int dreamm_v3_generic_merge_frame_data(struct frame_data_list *dest,
       dest->iteration_list = nelSrc;
   }
 
-  return 0;
 }
 
 /*************************************************************************
@@ -1674,9 +1752,9 @@ dreamm_v3_generic_merge_coincident_frames:
              struct frame_data_list **first - first list to merge
              struct frame_data_list **second - second list to merge
              struct frame_data_list **discard - any empty frames are put here
-        Out: 0 if successful, 1 if failed
+        Out: none
 **************************************************************************/
-static int dreamm_v3_generic_merge_coincident_frames(struct frame_data_list **both,
+static void dreamm_v3_generic_merge_coincident_frames(struct frame_data_list **both,
                                                      struct frame_data_list **first,
                                                      struct frame_data_list **second,
                                                      struct frame_data_list **discard)
@@ -1737,7 +1815,6 @@ static int dreamm_v3_generic_merge_coincident_frames(struct frame_data_list **bo
     *both = NULL;
   }
 
-  return 0;
 }
 
 /*************************************************************************
@@ -1745,9 +1822,9 @@ dreamm_v3_generic_discard_frames:
     Discards all frames in the list, freeing any memory associated with them.
 
         In:  struct frame_data_list *discard - frame discard pile
-        Out: 0 if successful, 1 if failed
+        Out: none
 **************************************************************************/
-static int dreamm_v3_generic_discard_frames(struct frame_data_list *discard)
+static void dreamm_v3_generic_discard_frames(struct frame_data_list *discard)
 {
   struct frame_data_list *dnext;
   while (discard != NULL)
@@ -1757,7 +1834,6 @@ static int dreamm_v3_generic_discard_frames(struct frame_data_list *discard)
     free(discard);
     discard = dnext;
   }
-  return 0;
 }
 
 /*************************************************************************
@@ -1807,7 +1883,7 @@ dreamm_v3_generic_preprocess_frame_data:
         5. Discard any frames which have no iterations.
 
         In:  struct frame_data_list *fdlpp - pointer to head of frame_data_list
-        Out: 0 on success, 1 on failure.  *fdlpp will be updated if successful
+        Out: 0 on success, 1 on failure,  *fdlpp will be updated if successful
 **************************************************************************/
 static int dreamm_v3_generic_preprocess_frame_data(struct frame_data_list **fdlpp)
 {
@@ -2156,9 +2232,9 @@ dreamm_v3_generic_write_time_info:
              int dreamm3mode_number - the dreamm3mode as an integer
              u_int iteration_numbers_count - number of iteration data
              u_int time_values_count - number of time data
-        Out: 0 on success, 1 on error
+        Out: none
 **************************************************************************/
-static int dreamm_v3_generic_write_time_info(FILE *master_header,
+static void dreamm_v3_generic_write_time_info(FILE *master_header,
                                              char const *iteration_numbers_name,
                                              char const *time_values_name,
                                              char const *dreamm3mode,
@@ -2203,7 +2279,6 @@ static int dreamm_v3_generic_write_time_info(FILE *master_header,
     fprintf(master_header, "\n\n");
   }
 
-  return 0;
 }
 
 /*************************************************************************
@@ -2213,9 +2288,9 @@ dreamm_v3_generic_write_mesh_fields:
         In:  FILE *meshes_header - the header to receive index info
              int field_index_base - base index for field objects
              int surf_index - base index for mesh data object numbers
-        Out: 0 on success, 1 on error
+        Out: none
 **************************************************************************/
-static int dreamm_v3_generic_write_mesh_fields(struct frame_data_list const * const fdlp,
+static void dreamm_v3_generic_write_mesh_fields(struct frame_data_list const * const fdlp,
                                                FILE *meshes_header,
                                                int field_index_base,
                                                int surf_index)
@@ -2264,12 +2339,12 @@ static int dreamm_v3_generic_write_mesh_fields(struct frame_data_list const * co
     fprintf(meshes_header, "\n");
   }
 
-  return 0;
 }
 
 /*************************************************************************
 dreamm_v3_generic_write_rank0_int_array_index:
-    Writes index info for a rank 0 integer array to a header file.
+    Writes index info for a rank 0 integer array to a header file
+    in binary format.
 
         In:  FILE *header - the header to receive index info
              int obj_index - the index number for the object
@@ -2278,9 +2353,9 @@ dreamm_v3_generic_write_rank0_int_array_index:
              long file_offset - offset within file for data
              char const *symname - name for symbol
              char const *objtype - type of object (for comment)
-        Out: 0 on success, 1 on error
+        Out: none
 **************************************************************************/
-static int dreamm_v3_generic_write_rank0_int_array_index(FILE *header,
+static void dreamm_v3_generic_write_rank0_int_array_index(FILE *header,
                                                          int obj_index,
                                                          int array_length,
                                                          char const *filename,
@@ -2302,12 +2377,12 @@ static int dreamm_v3_generic_write_rank0_int_array_index(FILE *header,
           file_offset,
           symname,
           objtype);
-  return 0;
 }
 
 /*************************************************************************
-dreamm_v3_generic_write_rank1_int_array_index:
-    Writes index info for a rank 1 integer array to a header file.
+dreamm_v3_ascii_write_rank0_int_array_index:
+    Writes index info for a rank 0 integer array to a header file in ascii
+    format.
 
         In:  FILE *header - the header to receive index info
              int obj_index - the index number for the object
@@ -2316,9 +2391,44 @@ dreamm_v3_generic_write_rank1_int_array_index:
              long file_offset - offset within file for data
              char const *symname - name for symbol
              char const *objtype - type of object (for comment)
-        Out: 0 on success, 1 on error
+        Out: none
 **************************************************************************/
-static int dreamm_v3_generic_write_rank1_int_array_index(FILE *header,
+static void dreamm_v3_ascii_write_rank0_int_array_index(FILE *header,
+                                                         int obj_index,
+                                                         int array_length,
+                                                         char const *filename,
+                                                         char const *symname,
+                                                         char const *objtype)
+{
+
+  fprintf(header,
+          "object %d class array type int "
+          "rank 0 items %d "
+          "ascii data "
+          "file %s # %s.%s #\n",
+          obj_index,
+          array_length,
+          filename,
+          symname,
+          objtype);
+  
+}
+
+/*************************************************************************
+dreamm_v3_generic_write_rank1_int_array_index:
+    Writes index info for a rank 1 integer array to a header file
+    in binary format.
+
+        In:  FILE *header - the header to receive index info
+             int obj_index - the index number for the object
+             int array_length - number of items in array
+             char const *filename - filename with data
+             long file_offset - offset within file for data
+             char const *symname - name for symbol (for comment)
+             char const *objtype - type of object (for comment)
+        Out: none
+**************************************************************************/
+static void dreamm_v3_generic_write_rank1_int_array_index(FILE *header,
                                                          int obj_index,
                                                          int array_length,
                                                          char const *filename,
@@ -2340,9 +2450,39 @@ static int dreamm_v3_generic_write_rank1_int_array_index(FILE *header,
           file_offset,
           symname,
           objtype);
-  return 0;
 }
 
+/*************************************************************************
+dreamm_v3_ascii_write_rank1_int_array_index:
+    Writes index info for a rank 1 integer array to a header file
+    in ascii format.
+
+        In:  FILE *header - the header to receive index info
+             int obj_index - the index number for the object
+             int array_length - number of items in array
+             char const *filename - filename with data
+             char const *symname - name for symbol (for comment)
+             char const *objtype - type of object (for comment)
+        Out: none
+**************************************************************************/
+static void dreamm_v3_ascii_write_rank1_int_array_index(FILE *header,
+                                                         int obj_index,
+                                                         int array_length,
+                                                         char const *filename,
+                                                         char const *symname,
+                                                         char const *objtype)
+{
+
+  fprintf(header,
+          "object %d class array type int "
+          "rank 1 shape 3 items %d ascii data "
+          "file %s # %s.%s #\n",
+          obj_index,
+          array_length,
+          filename,
+          symname,
+          objtype);
+}
 /*************************************************************************
 dreamm_v3_generic_write_float_array_index:
     Writes index info for a float array to a header file.
@@ -2352,11 +2492,11 @@ dreamm_v3_generic_write_float_array_index:
              int array_length - number of items in array
              char const *filename - filename with data
              long file_offset - offset within file for data
-             char const *symname - name for symbol
+             char const *symname - name for symbol (for comment)
              char const *objtype - type of object (for comment)
-        Out: 0 on success, 1 on error
+        Out: none
 **************************************************************************/
-static int dreamm_v3_generic_write_float_array_index(FILE *header,
+static void dreamm_v3_generic_write_float_array_index(FILE *header,
                                                      int obj_index,
                                                      int array_length,
                                                      char const *filename,
@@ -2364,14 +2504,15 @@ static int dreamm_v3_generic_write_float_array_index(FILE *header,
                                                      char const *symname,
                                                      char const *objtype)
 {
+
   char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
 
-  if (array_length <= 0)
+  if (array_length <= 0){
     fprintf(header, "object %d array # %s.%s #\n",
             obj_index,
             symname,
             objtype);
-  else
+  }else{
     fprintf(header,
             "object %d class array type float "
             "rank 1 shape 3 items %d "
@@ -2384,7 +2525,46 @@ static int dreamm_v3_generic_write_float_array_index(FILE *header,
             file_offset,
             symname,
             objtype);
-  return 0;
+  }
+
+}
+
+/*************************************************************************
+dreamm_v3_ascii_write_float_array_index:
+    Writes index info for a float array to a header file in ascii format.
+
+        In:  FILE *header - the header to receive index info
+             int obj_index - the index number for the object
+             int array_length - number of items in array
+             char const *filename - filename with data
+             char const *symname - name for symbol (for comment)
+             char const *objtype - type of object (for comment)
+        Out: none
+**************************************************************************/
+static void dreamm_v3_ascii_write_float_array_index(FILE *header,
+                                                     int obj_index,
+                                                     int array_length,
+                                                     char const *filename,
+                                                     char const *symname,
+                                                     char const *objtype)
+{
+  if (array_length <= 0){
+    fprintf(header, "object %d array # %s.%s #\n",
+            obj_index,
+            symname,
+            objtype);
+  }else{
+    fprintf(header,
+            "object %d class array type float "
+            "rank 1 shape 3 items %d "
+            " ascii data file %s # %s.%s #\n",
+            obj_index,
+            array_length,
+            filename,
+            symname,
+            objtype);
+  }
+
 }
 
 /*************************************************************************
@@ -2401,7 +2581,6 @@ dreamm_v3_generic_dump_mesh_data:
              char const *mesh_states_filename - filename for mesh state data
              char const *region_data_filename - filename for region data
              int *main_index_base - ptr to index for allocating obj numbers
-             int *surf_index_base - ptr to rcv index for mesh data objects
         Out: 0 on success, 1 on error
 **************************************************************************/
 static int dreamm_v3_generic_dump_mesh_data(struct frame_data_list const * const fdlp,
@@ -2587,6 +2766,235 @@ failure:
 }
 
 /*************************************************************************
+dreamm_v3_ascii_dump_mesh_data:
+    Writes the mesh data to mesh data files in ascii format, 
+    and appropriate index info to the header file.  
+    Mesh object indices are assigned, in order, to position,
+    connections, states, and region info, omitting whichever indices are not
+    needed.
+
+        In:  struct frame_data_list const * const fdlp - the frame to write
+             FILE *meshes_header - the header to receive index info
+             char const *dirname - the directory to receive data
+             int *main_index_base - ptr to index for allocating obj numbers
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_ascii_dump_mesh_data(struct frame_data_list const * const fdlp,
+                                            FILE *meshes_header,
+                                            char const *dirname,
+                                            int *meshes_main_index)
+{
+  /* File handles */
+  FILE *mesh_pos_data = NULL;
+  FILE *mesh_connect_data = NULL;
+  FILE *mesh_states_data = NULL;
+  FILE *region_data = NULL;
+  
+  /* names of the output data files */
+  char *mesh_pos_name = NULL, *mesh_connect_name = NULL, *mesh_region_indices_name = NULL, *mesh_states_name = NULL;
+  /* last parts of the files names above */
+  char *mesh_pos_name_last_part = ".positions.dat";
+  char *mesh_connect_name_last_part = ".connections.dat";
+  char *mesh_region_indices_name_last_part = ".region_indices.dat";
+  char *mesh_states_name_last_part = ".states.dat";
+
+  /* Index for iteration over all mesh objects */
+  int obj_index;
+
+  /* Control flags */
+  byte viz_surf_pos_flag    = (fdlp->type == ALL_MESH_DATA || fdlp->type == MESH_GEOMETRY);
+  byte viz_surf_states_flag = (viz_surf_pos_flag  &&  (world->viz_output_flag & VIZ_SURFACE_STATES) != 0);
+  byte viz_region_data_flag = (fdlp->type == ALL_MESH_DATA || fdlp->type == REG_DATA);
+
+  /* Traverse all visualized objects and output mesh/region data */
+  for (obj_index = 0; obj_index < world->viz_state_info.n_viz_objects; ++ obj_index)
+  {
+    struct object *objp = world->viz_state_info.viz_objects[obj_index];
+    if (objp->viz_state == NULL) continue;
+
+    if (objp->object_type != POLY_OBJ  &&  objp->object_type != BOX_OBJ)
+      continue;
+
+    struct polygon_object *pop = (struct polygon_object *) objp->contents;
+    struct ordered_poly *opp = (struct ordered_poly *) pop->polygon_data;
+    struct element_data *edp = opp->element;
+    int element_data_count = objp->n_walls_actual;
+
+    if (viz_surf_pos_flag)
+    {
+       mesh_pos_name = my_strcat(objp->sym->name, mesh_pos_name_last_part);
+       if(mesh_pos_name == NULL){
+          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+          return 1;
+       }       
+       mesh_connect_name = my_strcat(objp->sym->name, mesh_connect_name_last_part);
+       if(mesh_connect_name == NULL){
+          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+          return 1;
+       }
+  
+       if ((mesh_pos_data = dreamm_v3_generic_open_file(dirname, mesh_pos_name, "w")) == NULL)
+           goto failure;
+
+       if ((mesh_connect_data = dreamm_v3_generic_open_file(dirname, mesh_connect_name, "w")) == NULL)
+           goto failure;
+
+       
+      int wall_index;
+      dreamm_v3_ascii_write_float_array_index(meshes_header,
+                                                (*meshes_main_index) ++,
+                                                objp->n_verts,
+                                                mesh_pos_name,
+                                                objp->sym->name,
+                                                "positions");
+      fprintf(meshes_header,
+              "\tattribute \"dep\" string \"positions\"\n\n");
+
+      /* output polyhedron vertices */
+      dx_output_vertices_ascii(mesh_pos_data, objp);
+
+      /* output polygon element connections */
+      dreamm_v3_ascii_write_rank1_int_array_index(meshes_header,
+                                                    (*meshes_main_index) ++,
+                                                    element_data_count,
+                                                    mesh_connect_name,
+                                                    objp->sym->name,
+                                                    "connections");
+      fprintf(meshes_header,
+              "\tattribute \"ref\" string \"positions\"\n");
+      fprintf(meshes_header,
+              "\tattribute \"element type\" string \"triangles\"\n\n");
+
+      for (wall_index = 0; wall_index < objp->n_walls; ++ wall_index){
+        if (! get_bit(pop->side_removed, wall_index)){
+          dx_output_wall_vertices_ascii(mesh_connect_data, &edp[ wall_index]);
+        }
+      }
+
+    }
+
+    if (viz_surf_states_flag)
+    {
+       mesh_states_name = my_strcat(objp->sym->name, mesh_states_name_last_part);
+       if(mesh_states_name == NULL){
+          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+          return 1;
+       }
+
+       if ((mesh_states_data = dreamm_v3_generic_open_file(dirname, mesh_states_name, "w")) == NULL)
+           goto failure;
+
+       
+      int wall_index;
+      dreamm_v3_ascii_write_rank0_int_array_index(meshes_header,
+                                                    (*meshes_main_index) ++,
+                                                    element_data_count,
+                                                    mesh_states_name,
+                                                    objp->sym->name,
+                                                    "states");
+      fprintf(meshes_header,
+              "\tattribute \"dep\" string \"connections\"\n\n");
+
+      /* XXX: Why write this as binary? */
+      for (wall_index = 0; wall_index < objp->n_walls; ++ wall_index)
+      {
+        if (! get_bit(pop->side_removed, wall_index))
+        {
+          int state=objp->viz_state[wall_index];
+          fprintf(mesh_states_data, "%d ", state);
+        }
+      }
+    }
+
+    if (viz_region_data_flag && (objp->num_regions > 1))
+    {
+      struct region_list *rlp;
+       
+      mesh_region_indices_name = my_strcat(objp->sym->name, mesh_region_indices_name_last_part);
+      if(mesh_region_indices_name == NULL){
+          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+          return 1;
+      }       
+
+      if ((region_data = dreamm_v3_generic_open_file(dirname, mesh_region_indices_name, "w")) == NULL)
+           goto failure;
+
+      for(rlp = objp->regions; rlp != NULL; rlp = rlp->next)
+      {
+        int wall_index;
+        struct region *rp = rlp->reg;
+         
+
+        if (strcmp(rp->region_last_name, "ALL") == 0) continue; 
+        if (strcmp(rp->region_last_name, "REMOVED") == 0) continue; 
+ 
+        /* number of walls in the region */
+        int region_walls_number = 0;
+        /* number of null_walls in the object */
+        int null_wall_number = 0; 
+        /* valid index to write in the region_data file */
+        int valid_index;
+
+        /* the valid number for the region_index should always be 
+           in the range of [0, n-1], where n - the valid number
+           of polygons.  After REMOVE_ELEMENTS command n may not be
+           equal to the number of polygons of the object initially
+           created. */
+        for(wall_index = 0; wall_index < objp->n_walls; ++ wall_index) 
+        {
+          if(objp->wall_p[wall_index] == NULL) {
+              null_wall_number++;
+              continue; 
+          }
+          int n = objp->wall_p[wall_index]->side;
+          if (get_bit(rp->membership,n))
+          {
+            valid_index = n - null_wall_number;
+            /*fwrite(&(valid_index), sizeof (valid_index), 1, region_data); */
+            fprintf(region_data, "%d ", valid_index);
+            region_walls_number++; 
+          }
+        }
+        fprintf(region_data, "\n");
+
+        dreamm_v3_ascii_write_rank0_int_array_index(meshes_header,
+                                                      (*meshes_main_index) ++,
+                                                      region_walls_number,
+                                                      mesh_region_indices_name,
+                                                      objp->sym->name,
+                                                      "region_data");
+        fprintf(meshes_header,
+                "\tattribute \"ref\" string \"connections\"\n");
+        fprintf(meshes_header,
+                "\tattribute \"identity\" string \"region_indices\"\n");
+        fprintf(meshes_header,
+                "\tattribute \"name\" string \"%s\"\n",
+                rp->region_last_name);
+        if (rp->region_viz_value > 0)
+          fprintf(meshes_header,
+                  "\tattribute \"viz_value\" number %d\n",
+                  rp->region_viz_value);
+
+        fprintf(meshes_header, "\n\n");
+      } /* end for */
+    } /* end if (region_data_flag) */
+  }
+
+  if (mesh_pos_data) fclose(mesh_pos_data);
+  if (mesh_states_data) fclose(mesh_states_data);
+  if (mesh_connect_data) fclose(mesh_connect_data);
+  if (region_data) fclose(region_data);
+  return 0;
+
+failure:
+  if (mesh_pos_data) fclose(mesh_pos_data);
+  if (mesh_states_data) fclose(mesh_states_data);
+  if (mesh_connect_data) fclose(mesh_connect_data);
+  if (region_data) fclose(region_data);
+  return 1;
+  
+}
+/*************************************************************************
 dreamm_v3_generic_write_molecule_fields:
     Writes the molecule fields to the header file.
 
@@ -2595,9 +3003,9 @@ dreamm_v3_generic_write_molecule_fields:
              int num_molecules - num relevant species
              int field_index - base index for field objects
              int mol_data_index - base index for mol data objects
-        Out: 0 on success, 1 on error
+        Out: none
 **************************************************************************/
-static int dreamm_v3_generic_write_molecule_fields(struct frame_data_list const * const fdlp,
+static void dreamm_v3_generic_write_molecule_fields(struct frame_data_list const * const fdlp,
                                                    FILE *mol_header,
                                                    struct species **specs,
                                                    int num_molecules,
@@ -2631,7 +3039,6 @@ static int dreamm_v3_generic_write_molecule_fields(struct frame_data_list const 
               mol_data_index ++);
     fprintf(mol_header, "\n");
   }
-  return 0;
 }
 
 /*************************************************************************
@@ -2644,9 +3051,9 @@ dreamm_v3_generic_write_vol_orientations_index:
              char const *filename - filename for data
              long file_offset - offset within file for data
              char const *symname - symbol name for molecule
-        Out: 0 on success, 1 on error
+        Out: none
 **************************************************************************/
-static int dreamm_v3_generic_write_vol_orientations_index(FILE *mol_header,
+static void dreamm_v3_generic_write_vol_orientations_index(FILE *mol_header,
                                                           int obj_index,
                                                           int count,
                                                           char const *filename,
@@ -2676,7 +3083,45 @@ static int dreamm_v3_generic_write_vol_orientations_index(FILE *mol_header,
             "object %d array # %s.orientations #\n",
             obj_index,
             symname);
-  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_ascii_write_vol_orientations_index:
+    Write the orientations constant array for volume molecules to the index
+    in ascii format.
+
+        In:  FILE *mol_header - the header to receive index info
+             int obj_index - object index number
+             int count - number of molecules
+             char const *filename - filename for data
+             char const *symname - symbol name for molecule
+        Out: none
+**************************************************************************/
+static void dreamm_v3_ascii_write_vol_orientations_index(FILE *mol_header,
+                                                          int obj_index,
+                                                          int count,
+                                                          char const *filename,
+                                                          char const *symname)
+{
+
+  if (count > 0)
+  {
+    fprintf(mol_header,
+            "object %d class constantarray type float "
+            "rank 1 shape 3 items %d "
+            "ascii data file %s # %s.orientations #\n",
+            obj_index,
+            count,
+            filename,
+            symname);
+    fprintf(mol_header,
+            "\tattribute \"dep\" string \"positions\"\n\n");
+  }
+  else
+    fprintf(mol_header,
+            "object %d array # %s.orientations #\n",
+            obj_index,
+            symname);
 }
 
 /*************************************************************************
@@ -2689,9 +3134,9 @@ dreamm_v3_generic_write_state_array_index:
              char const *filename - filename for data
              long file_offset - offset within file for data
              char const *symname - symbol name for molecule
-        Out: 0 on success, 1 on error
+        Out: none
 **************************************************************************/
-static int dreamm_v3_generic_write_state_array_index(FILE *mol_header,
+static void dreamm_v3_generic_write_state_array_index(FILE *mol_header,
                                                      int obj_index,
                                                      int count,
                                                      char const *filename,
@@ -2721,9 +3166,44 @@ static int dreamm_v3_generic_write_state_array_index(FILE *mol_header,
             "object %d array # %s.states #\n",
             obj_index,
             symname);
-  return 0;
 }
 
+/*************************************************************************
+dreamm_v3_ascii_write_state_array_index:
+    Write the state index constant array to the header in ascii format
+
+        In:  FILE *mol_header - the header to receive index info
+             int obj_index - object index number
+             int count - number of molecules
+             char const *filename - filename for data
+             char const *symname - symbol name for molecule
+        Out: none
+**************************************************************************/
+static void dreamm_v3_ascii_write_state_array_index(FILE *mol_header,
+                                                     int obj_index,
+                                                     int count,
+                                                     char const *filename,
+                                                     char const *symname)
+{
+  if (count > 0)
+  {
+    fprintf(mol_header,
+            "object %d class constantarray type int "
+            "items %d "
+            "ascii data file %s # %s.states #\n",
+            obj_index,
+            count,
+            filename,
+            symname);
+    fprintf(mol_header,
+            "\tattribute \"dep\" string \"positions\"\n\n");
+  }
+  else
+    fprintf(mol_header,
+            "object %d array # %s.states #\n",
+            obj_index,
+            symname);
+}
 /*************************************************************************
 dreamm_v3_generic_dump_grid_molecule_data:
     Writes the grid molecule data to appropriate data files and index info to
@@ -2773,7 +3253,7 @@ static int dreamm_v3_generic_dump_grid_molecule_data(struct frame_data_list cons
     goto failure;
 
   /* Open surface molecules states data file */
-  if (viz_mol_states_flag  &&  (surf_mol_orient_data =  dreamm_v3_generic_open_file(dirname, mol_states_name, "ab")) == NULL)
+  if (viz_mol_states_flag  &&  (surf_mol_states_data =  dreamm_v3_generic_open_file(dirname, mol_states_name, "ab")) == NULL)
     goto failure;
 
   /* Get a list of molecules sorted by species. */
@@ -2890,6 +3370,203 @@ static int dreamm_v3_generic_dump_grid_molecule_data(struct frame_data_list cons
   return 0;
 
 failure:
+  if (grid_mols_by_species) free_ptr_array((void **) grid_mols_by_species, world->n_species);
+  if (grid_mol_counts_by_species) free(grid_mol_counts_by_species);
+  if (surf_mol_pos_data) fclose(surf_mol_pos_data);
+  if (surf_mol_orient_data) fclose(surf_mol_orient_data);
+  if (surf_mol_states_data) fclose(surf_mol_states_data);
+  return 1;
+}
+
+/*************************************************************************
+dreamm_v3_ascii_dump_grid_molecule_data:
+    Writes the grid molecule data to appropriate data files and index info to
+    the header file.  Object numbers are assigned first to position, then to
+    orientation, and finally to state data objects.
+
+        In:  struct frame_data_list const * const fdlp - frame to write
+             FILE *surf_mol_header - the header to receive index info
+             char const *dirname - directory for data files
+             int *main_index - ptr to index for allocating obj numbers
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_ascii_dump_grid_molecule_data(struct frame_data_list const * const fdlp,
+                                                     FILE *surf_mol_header,
+                                                     char const *dirname,
+                                                     int *main_index)
+{
+  /* File handles */
+  FILE *surf_mol_pos_data = NULL;
+  FILE *surf_mol_states_data = NULL;
+  FILE *surf_mol_orient_data = NULL;
+
+  /* names of the output data files */
+  char *mol_pos_name = NULL, *mol_orient_name = NULL, *mol_states_name = NULL;
+  /* last parts of the files names above */
+  char *mol_pos_name_last_part = ".positions.dat";
+  char *mol_orient_name_last_part = ".orientations.dat";
+  char *mol_states_name_last_part = ".states.dat";
+  
+  /* Grid molecules, sorted into species */
+  struct grid_molecule ***grid_mols_by_species = NULL;
+  u_int *grid_mol_counts_by_species = NULL;
+
+  
+
+  /* Iteration variables */
+  int species_index;
+
+  /* Control flags */
+  byte viz_mol_pos_flag = (fdlp->type == ALL_MOL_DATA  ||  fdlp->type == MOL_POS);
+  byte viz_mol_orient_flag = (fdlp->type == ALL_MOL_DATA  ||  fdlp->type == MOL_ORIENT);
+  byte viz_mol_states_flag = (viz_mol_pos_flag  &&  (world->viz_output_flag & VIZ_MOLECULES_STATES));
+
+
+
+
+  /* Get a list of molecules sorted by species. */
+  if (sort_molecules_by_species((struct abstract_molecule ****) (void *) &grid_mols_by_species,
+                                &grid_mol_counts_by_species,
+                                0, 1))
+    goto failure;
+
+  /* Emit all molecules for each species */
+  for (species_index = 0; species_index < world->n_species; ++ species_index)
+  {
+    struct species *specp = world->species_list[species_index];
+
+    /* Skip objects marked for exclusion and non-grid molecules */
+    if (specp->viz_state == EXCLUDE_OBJ  ||  ! (specp->flags & ON_GRID))
+      continue;
+
+    /* Iterate over specific molecules in this species */
+    int count = 0;
+    unsigned int mol_index;
+    for (mol_index = 0; mol_index < grid_mol_counts_by_species[species_index]; ++ mol_index)
+    {
+      struct grid_molecule *gmol = (grid_mols_by_species[species_index])[mol_index];
+      struct wall *w = gmol->grid->surface;
+      int objidx = void_array_search((void **) world->viz_state_info.viz_objects,
+                                     world->viz_state_info.n_viz_objects,
+                                     w->parent_object);
+
+      /* If the molecule is on an object we don't care about, skip it */
+      if (objidx == -1)
+        continue;
+
+      /* Keep count of the items we write */
+      ++ count;
+
+      /* Write positions information */
+      if (viz_mol_pos_flag)
+      {
+         mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
+         if(mol_pos_name == NULL){
+             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+             goto failure;
+         }       
+
+       
+        /* Open surface molecules position data file */
+        if ((surf_mol_pos_data = dreamm_v3_generic_open_file(dirname, mol_pos_name, "a")) == NULL)
+             goto failure;
+  
+
+        struct vector3 p0;
+        grid2xyz(gmol->grid, gmol->grid_index, &p0);
+        dx_output_vector3_ascii(surf_mol_pos_data, &p0);
+
+        /* Write orientations information */
+        if (viz_mol_orient_flag){
+         
+           mol_orient_name = my_strcat(specp->sym->name, mol_orient_name_last_part);
+           if(mol_orient_name == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+               goto failure;
+           }
+        
+           /* Open surface molecules orientation data file */
+           if ((surf_mol_orient_data =  dreamm_v3_generic_open_file(dirname, mol_orient_name, "a")) == NULL)
+               goto failure;
+            
+           dx_output_oriented_normal_ascii(surf_mol_orient_data, &w->normal, gmol->orient);
+
+        }
+      }
+    }
+
+    /* Write data for surface molecule states */
+    if (viz_mol_states_flag  &&  count > 0)
+    {
+         mol_states_name = my_strcat(specp->sym->name, mol_states_name_last_part);
+         if(mol_states_name == NULL){
+             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+             goto failure;
+         }       
+
+         /* Open surface molecules states data file */
+         if ((surf_mol_states_data =  dreamm_v3_generic_open_file(dirname, mol_states_name, "a")) == NULL)
+             goto failure;
+
+          int state = specp->viz_state;
+          fprintf(surf_mol_states_data, "%d", state);
+    }
+
+    /* Emit array of mol positions */
+    if (viz_mol_pos_flag)
+    {
+      dreamm_v3_ascii_write_float_array_index(surf_mol_header,
+                                                (*main_index) ++,
+                                                count,
+                                                mol_pos_name,
+                                                specp->sym->name,
+                                                "positions");
+      if (count > 0) fprintf(surf_mol_header, "\tattribute \"dep\" string \"positions\"\n\n");
+    }
+
+    /* Emit array of mol orientations */
+    if (viz_mol_orient_flag)
+    {
+      dreamm_v3_ascii_write_float_array_index(surf_mol_header,
+                                                (*main_index) ++,
+                                                count,
+                                                mol_orient_name,
+                                                specp->sym->name,
+                                                "orientations");
+      if (count > 0) fprintf(surf_mol_header, "\tattribute \"dep\" string \"positions\"\n\n");
+    }
+
+    /* Emit array of mol states */
+    if (viz_mol_states_flag)
+    {
+      dreamm_v3_ascii_write_state_array_index(surf_mol_header,
+                                                (*main_index) ++,
+                                                count,
+                                                mol_states_name,
+                                                specp->sym->name);
+    }
+
+    /* For readability, add an extra newline */
+    if (count <= 0)
+      fprintf(surf_mol_header, "\n");
+ 
+
+    if(mol_pos_name) free(mol_pos_name); 
+    if(mol_orient_name) free(mol_orient_name); 
+    if(mol_states_name) free(mol_states_name); 
+    if (surf_mol_pos_data) fclose(surf_mol_pos_data);
+    if (surf_mol_orient_data) fclose(surf_mol_orient_data);
+    if (surf_mol_states_data) fclose(surf_mol_states_data);
+  }
+
+  free_ptr_array((void **) grid_mols_by_species, world->n_species);
+  free(grid_mol_counts_by_species);
+  return 0;
+
+failure:
+  if(mol_pos_name) free(mol_pos_name); 
+  if(mol_orient_name) free(mol_orient_name); 
+  if(mol_states_name) free(mol_states_name); 
   if (grid_mols_by_species) free_ptr_array((void **) grid_mols_by_species, world->n_species);
   if (grid_mol_counts_by_species) free(grid_mol_counts_by_species);
   if (surf_mol_pos_data) fclose(surf_mol_pos_data);
@@ -3047,6 +3724,182 @@ failure:
   return 1;
 }
 
+/*************************************************************************
+dreamm_v3_ascii_dump_volume_molecule_data:
+    Writes the volume molecule data to appropriate data files in ascii format 
+    and index info to the header file.  
+    Object id numbers are allocated, for each molecule, first
+    to position, then to orientation, then to state, omitting any which are not
+    desired in this output frame.
+
+        In:  struct frame_data_list const * const fdlp - frame to write
+             FILE *vol_mol_header - the header to receive index info
+             char const *dirname - directory for data files
+             int *main_index - ptr to index for allocating obj numbers
+        Out: 0 on success, 1 on error
+**************************************************************************/
+static int dreamm_v3_ascii_dump_volume_molecule_data(struct frame_data_list const * const fdlp,
+                                                       FILE *vol_mol_header,
+                                                       char const *dirname,
+                                                       int *main_index)
+{
+
+  /* File handles */
+  FILE *vol_mol_pos_data = NULL;
+  FILE *vol_mol_states_data = NULL;
+  FILE *vol_mol_orient_data = NULL;
+
+  /* names of the output data files */
+  char *mol_pos_name = NULL, *mol_orient_name = NULL, *mol_states_name = NULL;
+  /* last parts of the files names above */
+  char *mol_pos_name_last_part = ".positions.dat";
+  char *mol_orient_name_last_part = ".orientations.dat";
+  char *mol_states_name_last_part = ".states.dat";
+  
+
+  /* All volume molecules, sorted into species */
+  struct volume_molecule ***viz_molp = NULL;
+  u_int *viz_mol_count = NULL;
+
+  /* Iteration variables */
+  int species_index;
+
+  /* Control flags */
+  byte viz_mol_pos_flag = (fdlp->type == ALL_MOL_DATA  ||  fdlp->type == MOL_POS);
+  byte viz_mol_orient_flag = (fdlp->type == ALL_MOL_DATA  ||  fdlp->type == MOL_ORIENT);
+  byte viz_mol_states_flag = (viz_mol_pos_flag  &&  (world->viz_output_flag & VIZ_MOLECULES_STATES));
+
+  /* Get a list of molecules sorted by species. */
+  if (sort_molecules_by_species((struct abstract_molecule ****) (void *) &viz_molp,
+                                &viz_mol_count,
+                                1, 0))
+    goto failure;
+
+  /* Process all volume mols */
+  for (species_index=0; species_index<world->n_species; ++ species_index)
+  {
+    struct species *specp = world->species_list[species_index];
+
+    /* Skip this species if it is marked as excluded, or not a vol mol */
+    if (specp->viz_state == EXCLUDE_OBJ  ||  (specp->flags & NOT_FREE))
+      continue;
+
+    /* Check that our molecule count agrees with the species population count */
+    if (viz_mol_count[species_index] != specp->population)
+    {
+      fprintf(world->log_file, "MCell: molecule count disagreement!!\n");
+      fprintf(world->log_file, "  Species %s  population = %d  count = %d\n",
+              specp->sym->name,
+              specp->population,
+              viz_mol_count[species_index]);
+    }
+
+    /* Emit an array of molecule positions */
+    if (viz_mol_pos_flag)
+    {
+     
+      mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
+      if(mol_pos_name == NULL){
+          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+          goto failure;
+      }       
+  
+      /* Prepare for position output */
+      if ((vol_mol_pos_data = dreamm_v3_generic_open_file(dirname, mol_pos_name, "a")) == NULL)
+           goto failure;
+
+      unsigned int mol_index;
+      dreamm_v3_ascii_write_float_array_index(vol_mol_header,
+                                                (*main_index) ++,
+                                                viz_mol_count[species_index],
+                                                mol_pos_name,
+                                                specp->sym->name,
+                                                "positions");
+      if (viz_mol_count[species_index] > 0)
+      {
+        fprintf(vol_mol_header,
+                "\tattribute \"dep\" string \"positions\"\n\n");
+        for (mol_index = 0; mol_index < viz_mol_count[species_index]; ++ mol_index)
+          dx_output_vector3_ascii(vol_mol_pos_data, &(viz_molp[species_index][mol_index])->pos);
+      }
+    }
+
+    /* Emit a constantarray of molecule orientations (constant [0, 0, 1]) */
+    if (viz_mol_orient_flag)
+    {
+      mol_orient_name = my_strcat(specp->sym->name, mol_orient_name_last_part);
+      if(mol_orient_name == NULL){
+          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+          goto failure;
+      }       
+
+      /* Prepare for orientation output */
+      if  ((vol_mol_orient_data = dreamm_v3_generic_open_file(dirname, mol_orient_name, "a")) == NULL)
+           goto failure;
+
+      dreamm_v3_ascii_write_vol_orientations_index(vol_mol_header,
+                                                     (*main_index) ++,
+                                                     viz_mol_count[species_index],
+                                                     mol_orient_name,
+                                                     specp->sym->name);
+      if (viz_mol_count[species_index] > 0)
+        dx_output_oriented_normal_ascii(vol_mol_orient_data, &v3_unit_z, 1);
+    }
+
+    /* Emit molecule state */
+    if (viz_mol_states_flag)
+    {
+      mol_states_name = my_strcat(specp->sym->name, mol_states_name_last_part);
+      if(mol_states_name == NULL){
+          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+          goto failure;
+      }
+
+      /* Prepare for orientation output */
+      if ((vol_mol_states_data = dreamm_v3_generic_open_file(dirname, mol_states_name, "a")) == NULL)
+           goto failure;
+
+       
+        /* write molecule states information. */ 
+        dreamm_v3_ascii_write_state_array_index(vol_mol_header,
+                                                  (*main_index) ++,
+                                                  viz_mol_count[species_index],
+                                                  mol_states_name,
+                                                  specp->sym->name);
+      if (viz_mol_count[species_index] > 0)
+      {
+        int state = specp->viz_state;
+        fprintf(vol_mol_states_data, "%d", state);
+      }
+    }
+
+    /* For readability, add an extra newline */
+    if (viz_mol_count[species_index] <= 0)
+      fprintf(vol_mol_header, "\n");
+  
+    if (vol_mol_pos_data) fclose(vol_mol_pos_data);
+    if (vol_mol_orient_data) fclose(vol_mol_orient_data);
+    if (vol_mol_states_data) fclose(vol_mol_states_data);
+    if(mol_pos_name) free(mol_pos_name);
+    if(mol_orient_name) free(mol_orient_name);
+    if(mol_states_name) free(mol_states_name);
+  }
+
+  free_ptr_array((void **) viz_molp, world->n_species);
+  free(viz_mol_count);
+  return 0;
+
+failure:
+  if (viz_molp != NULL) free_ptr_array((void **) viz_molp, world->n_species);
+  if (viz_mol_count != NULL) free(viz_mol_count);
+  if (vol_mol_pos_data) fclose(vol_mol_pos_data);
+  if (vol_mol_orient_data) fclose(vol_mol_orient_data);
+  if (vol_mol_states_data) fclose(vol_mol_states_data);
+  if(mol_pos_name) free(mol_pos_name);
+  if(mol_orient_name) free(mol_orient_name);
+  if(mol_states_name) free(mol_states_name);
+  return 1;
+}
 /* == DREAMM V3 Output (non-grouped) == */
 
 /* Filenames for DREAMM V3 (non-grouped) output */
@@ -3126,7 +3979,7 @@ static int dreamm_v3_remove_file(char const *fname)
 {
   struct stat f_stat;
 
-  /* concatenate dir and fname to get the mesh states file path */
+  /* concatenate dir and fname to get file path */
   char *path = alloc_sprintf("%s/%s", world->viz_state_info.iteration_number_dir, fname);
   if (path == NULL)
   {
@@ -3166,6 +4019,22 @@ static int dreamm_v3_clean_files(struct frame_data_list *fdlp)
   if (! active_this_iteration(fdlp))
     return 0;
 
+  /* names of the output data files */
+  char *mol_pos_name = NULL, *mol_orient_name = NULL, *mol_states_name = NULL;
+  /* last parts of the files names above */
+  char *mol_pos_name_last_part = ".positions.dat";
+  char *mol_orient_name_last_part = ".orientations.dat";
+  char *mol_states_name_last_part = ".states.dat";
+  char *mesh_pos_name = NULL, *mesh_connect_name = NULL, *mesh_region_indices_name = NULL, *mesh_states_name = NULL;
+  /* last parts of the files names above */
+  char *mesh_pos_name_last_part = ".positions.dat";
+  char *mesh_connect_name_last_part = ".connections.dat";
+  char *mesh_region_indices_name_last_part = ".region_indices.dat";
+  char *mesh_states_name_last_part = ".states.dat";
+
+  int species_index, obj_index;
+  struct object *objp;
+
   /* Free old directory */
   if (world->viz_state_info.iteration_number_dir)
     free(world->viz_state_info.iteration_number_dir);
@@ -3194,39 +4063,251 @@ static int dreamm_v3_clean_files(struct frame_data_list *fdlp)
     switch (fdlp->type)
     {
       case ALL_MOL_DATA:
-        dreamm_v3_remove_file(DREAMM_VOL_MOL_POS_NAME);
-        dreamm_v3_remove_file(DREAMM_VOL_MOL_ORIENT_NAME);
-        dreamm_v3_remove_file(DREAMM_VOL_MOL_STATES_NAME);
-        dreamm_v3_remove_file(DREAMM_SURF_MOL_POS_NAME);
-        dreamm_v3_remove_file(DREAMM_SURF_MOL_ORIENT_NAME);
-        dreamm_v3_remove_file(DREAMM_SURF_MOL_STATES_NAME);
+        if(world->viz_output_flag & VIZ_MOLECULE_FORMAT_BINARY)
+        {
+           if(dreamm_v3_remove_file(DREAMM_VOL_MOL_POS_NAME)) return 1;
+           if(dreamm_v3_remove_file(DREAMM_VOL_MOL_ORIENT_NAME)) return 1;
+           if(dreamm_v3_remove_file(DREAMM_VOL_MOL_STATES_NAME)) return 1;
+           if(dreamm_v3_remove_file(DREAMM_SURF_MOL_POS_NAME)) return 1;
+           if(dreamm_v3_remove_file(DREAMM_SURF_MOL_ORIENT_NAME)) return 1;
+           if(dreamm_v3_remove_file(DREAMM_SURF_MOL_STATES_NAME)) return 1;
+        }else{
+           for (species_index=0; species_index<world->n_species; ++ species_index)
+           {
+              struct species *specp = world->species_list[species_index];
+              if(strcmp(specp->sym->name,"GENERIC_MOLECULE") == 0) continue;
+              if(strcmp(specp->sym->name,"GENERIC_SURFACE") == 0) continue;
+
+              mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
+              if(mol_pos_name == NULL){
+                fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+                return 1;
+              }       
+
+              mol_orient_name = my_strcat(specp->sym->name, mol_orient_name_last_part);
+             if(mol_orient_name == NULL){
+                fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+                return 1;
+             }       
+
+             mol_states_name = my_strcat(specp->sym->name, mol_states_name_last_part);
+             if(mol_states_name == NULL){
+                fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+                return 1;
+             }
+        
+             if (dreamm_v3_remove_file(mol_pos_name)) {
+                free(mol_pos_name); 
+                return 1;
+             }
+             if(dreamm_v3_remove_file(mol_orient_name)) {
+                free(mol_orient_name);
+                return 1;
+             }
+             if (dreamm_v3_remove_file(mol_states_name)) {
+                free(mol_states_name);
+                return 1;
+             }
+           }
+
+        }
         break;
 
       case MOL_POS:
-        dreamm_v3_remove_file(DREAMM_VOL_MOL_POS_NAME);
-        dreamm_v3_remove_file(DREAMM_VOL_MOL_STATES_NAME);
-        dreamm_v3_remove_file(DREAMM_SURF_MOL_POS_NAME);
-        dreamm_v3_remove_file(DREAMM_SURF_MOL_STATES_NAME);
+        if(world->viz_output_flag & VIZ_MOLECULE_FORMAT_BINARY)
+        {
+           if(dreamm_v3_remove_file(DREAMM_VOL_MOL_POS_NAME)) return 1;
+           if(dreamm_v3_remove_file(DREAMM_VOL_MOL_STATES_NAME)) return 1;
+           if(dreamm_v3_remove_file(DREAMM_SURF_MOL_POS_NAME)) return 1;
+           if(dreamm_v3_remove_file(DREAMM_SURF_MOL_STATES_NAME)) return 1;
+        }else{
+           for (species_index=0; species_index<world->n_species; ++ species_index)
+           {
+              struct species *specp = world->species_list[species_index];
+              if(strcmp(specp->sym->name,"GENERIC_MOLECULE") == 0) continue;
+              if(strcmp(specp->sym->name,"GENERIC_SURFACE") == 0) continue;
+
+              mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
+              if(mol_pos_name == NULL){
+                fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+                return 1;
+              }       
+             mol_states_name = my_strcat(specp->sym->name, mol_states_name_last_part);
+             if(mol_states_name == NULL){
+                fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+                return 1;
+             }
+             if (dreamm_v3_remove_file(mol_pos_name)) {
+                free(mol_pos_name); 
+                return 1;
+             }
+             if (dreamm_v3_remove_file(mol_states_name)) {
+                free(mol_states_name);
+                return 1;
+             }
+           }
+        }
         break;
 
       case MOL_ORIENT:
-        dreamm_v3_remove_file(DREAMM_VOL_MOL_ORIENT_NAME);
-        dreamm_v3_remove_file(DREAMM_SURF_MOL_ORIENT_NAME);
+        if(world->viz_output_flag & VIZ_MOLECULE_FORMAT_BINARY)
+        {
+           if(dreamm_v3_remove_file(DREAMM_VOL_MOL_ORIENT_NAME)) return 1;
+           if(dreamm_v3_remove_file(DREAMM_SURF_MOL_ORIENT_NAME)) return 1;
+        }else{
+           for (species_index=0; species_index<world->n_species; ++ species_index)
+           {
+              struct species *specp = world->species_list[species_index];
+              if(strcmp(specp->sym->name,"GENERIC_MOLECULE") == 0) continue;
+              if(strcmp(specp->sym->name,"GENERIC_SURFACE") == 0) continue;
+
+              mol_orient_name = my_strcat(specp->sym->name, mol_orient_name_last_part);
+             if(mol_orient_name == NULL){
+                fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+                return 1;
+             }       
+
+             if(dreamm_v3_remove_file(mol_orient_name)) {
+                free(mol_orient_name);
+                return 1;
+             }
+           }
+        }
         break;
 
       case ALL_MESH_DATA:
-        dreamm_v3_remove_file(DREAMM_MESH_POS_NAME);
-        dreamm_v3_remove_file(DREAMM_MESH_STATES_NAME);
-        dreamm_v3_remove_file(DREAMM_REGION_VIZ_DATA_NAME);
+        if(world->viz_output_flag & VIZ_MESH_FORMAT_BINARY)
+        {
+           if(dreamm_v3_remove_file(DREAMM_MESH_POS_NAME)) return 1;
+           if(dreamm_v3_remove_file(DREAMM_MESH_STATES_NAME)) return 1;
+           if(dreamm_v3_remove_file(DREAMM_REGION_VIZ_DATA_NAME)) return 1;
+        }else{
+           for (obj_index = 0; obj_index < world->viz_state_info.n_viz_objects; obj_index++)
+           {
+                objp = world->viz_state_info.viz_objects[obj_index];
+
+                if (objp->viz_state == NULL) continue;
+
+                if (objp->object_type != POLY_OBJ  &&  objp->object_type != BOX_OBJ)
+                     continue;
+
+                mesh_pos_name = my_strcat(objp->sym->name, mesh_pos_name_last_part);
+                if(mesh_pos_name == NULL){
+                    fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+                    return 1;
+                }       
+                mesh_connect_name = my_strcat(objp->sym->name, mesh_connect_name_last_part);
+                if(mesh_connect_name == NULL){
+                    fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+                    return 1;
+                }
+                mesh_states_name = my_strcat(objp->sym->name, mesh_states_name_last_part);
+                if(mesh_states_name == NULL){
+                   fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+                   return 1;
+                }       
+                mesh_region_indices_name = my_strcat(objp->sym->name, mesh_region_indices_name_last_part);
+                if(mesh_region_indices_name == NULL){
+                    fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+                    return 1;
+                }       
+                if(dreamm_v3_remove_file(mesh_pos_name)) {
+                   free(mesh_pos_name);
+                   return 1;
+                }
+                if(dreamm_v3_remove_file(mesh_connect_name)) {
+                   free(mesh_connect_name);
+                   return 1;
+                }
+                if(dreamm_v3_remove_file(mesh_states_name)) {
+                   free(mesh_states_name);
+                   return 1;
+                }
+                if(dreamm_v3_remove_file(mesh_region_indices_name)) {
+                   free(mesh_region_indices_name);
+                   return 1;
+                }
+
+           }
+
+        }
         break;
 
       case MESH_GEOMETRY:
-        dreamm_v3_remove_file(DREAMM_MESH_POS_NAME);
-        dreamm_v3_remove_file(DREAMM_MESH_STATES_NAME);
+        if(world->viz_output_flag & VIZ_MESH_FORMAT_BINARY)
+        {
+           if(dreamm_v3_remove_file(DREAMM_MESH_POS_NAME)) return 1;
+           if(dreamm_v3_remove_file(DREAMM_MESH_STATES_NAME)) return 1;
+        }else{
+           for (obj_index = 0; obj_index < world->viz_state_info.n_viz_objects; obj_index++)
+           {
+                objp = world->viz_state_info.viz_objects[obj_index];
+
+                if (objp->viz_state == NULL) continue;
+
+                if (objp->object_type != POLY_OBJ  &&  objp->object_type != BOX_OBJ)
+                     continue;
+
+                mesh_pos_name = my_strcat(objp->sym->name, mesh_pos_name_last_part);
+                if(mesh_pos_name == NULL){
+                    fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+                    return 1;
+                }       
+                mesh_connect_name = my_strcat(objp->sym->name, mesh_connect_name_last_part);
+                if(mesh_connect_name == NULL){
+                    fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+                    return 1;
+                }
+                mesh_states_name = my_strcat(objp->sym->name, mesh_states_name_last_part);
+                if(mesh_states_name == NULL){
+                   fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+                   return 1;
+                }       
+
+                if(dreamm_v3_remove_file(mesh_pos_name)) {
+                   free(mesh_pos_name);
+                   return 1;
+                }
+                if(dreamm_v3_remove_file(mesh_connect_name)) {
+                   free(mesh_connect_name);
+                   return 1;
+                }
+                if(dreamm_v3_remove_file(mesh_states_name)) {
+                   free(mesh_states_name);
+                   return 1;
+                }
+
+           }
+
+        }
         break;
 
       case REG_DATA:
-        dreamm_v3_remove_file(DREAMM_REGION_VIZ_DATA_NAME);
+        if(world->viz_output_flag & VIZ_MESH_FORMAT_BINARY)
+        {
+           if(dreamm_v3_remove_file(DREAMM_REGION_VIZ_DATA_NAME)) return 1;
+        }else{
+
+           for (obj_index = 0; obj_index < world->viz_state_info.n_viz_objects; obj_index++)
+           {
+                objp = world->viz_state_info.viz_objects[obj_index];
+
+                if (objp->viz_state == NULL) continue;
+
+                if (objp->object_type != POLY_OBJ  &&  objp->object_type != BOX_OBJ)
+                     continue;
+
+                mesh_region_indices_name = my_strcat(objp->sym->name, mesh_region_indices_name_last_part);
+                if(mesh_region_indices_name == NULL){
+                    fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+                    return 1;
+                }       
+                if(dreamm_v3_remove_file(mesh_region_indices_name)) {
+                   free(mesh_region_indices_name);
+                   return 1;
+                }
+           }
+        }
         break;
 
       default:
@@ -3245,9 +4326,9 @@ dreamm_v3_update_last_iteration_info:
     format.
 
         In: struct frame_data_list *fdlp - the frame data list
-        Out: 0 on success, 1 on failure
+        Out: none
 **************************************************************************/
-static int dreamm_v3_update_last_iteration_info(struct frame_data_list *fdlp)
+static void dreamm_v3_update_last_iteration_info(struct frame_data_list *fdlp)
 {
   for (;
        fdlp != NULL;
@@ -3272,7 +4353,6 @@ static int dreamm_v3_update_last_iteration_info(struct frame_data_list *fdlp)
     }
   }
 
-  return 0;
 }
 
 /*************************************************************************
@@ -3303,6 +4383,187 @@ static int dreamm_v3_create_empty_file(char const *fname)
   fclose(f);
   free(path);
   return 0;
+}
+
+
+/*************************************************************************
+dreamm_v3_create_empty_mesh_file:
+    Create an empty mesh file in the DREAMM V3 output directory in ascii 
+    format.  
+
+        In: struct object *parent - mesh object
+        Out: 0 upon success, 1 upon failure
+**************************************************************************/
+static int dreamm_v3_create_empty_mesh_file(struct object *parent)
+{
+  struct object *o;
+  /* names of the output data files */
+  char *mesh_pos_name = NULL, *mesh_connect_name = NULL, *mesh_region_indices_name = NULL, *mesh_states_name = NULL;
+  /* last parts of the files names above */
+  char *mesh_pos_name_last_part = ".positions.dat";
+  char *mesh_connect_name_last_part = ".connections.dat";
+  char *mesh_region_indices_name_last_part = ".region_indices.dat";
+  char *mesh_states_name_last_part = ".states.dat";
+
+  if(parent->object_type == BOX_OBJ || parent->object_type == POLY_OBJ)
+  {
+     mesh_pos_name = my_strcat(parent->sym->name, mesh_pos_name_last_part);
+     if(mesh_pos_name == NULL){
+          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+          return 1;
+     }       
+     mesh_connect_name = my_strcat(parent->sym->name, mesh_connect_name_last_part);
+     if(mesh_connect_name == NULL){
+          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+          return 1;
+     }       
+     mesh_region_indices_name = my_strcat(parent->sym->name, mesh_region_indices_name_last_part);
+     if(mesh_region_indices_name == NULL){
+          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+          return 1;
+     }       
+     mesh_states_name = my_strcat(parent->sym->name, mesh_states_name_last_part);
+     if(mesh_states_name == NULL){
+          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+          return 1;
+     }       
+     
+      if (dreamm_v3_create_empty_file(mesh_pos_name)) {
+          free(mesh_pos_name); 
+          return 1;
+      }
+      if(dreamm_v3_create_empty_file(mesh_connect_name)) {
+         free(mesh_connect_name);
+         return 1;
+      }
+      if (dreamm_v3_create_empty_file(mesh_region_indices_name)) {
+        free(mesh_region_indices_name);
+        return 1;
+      }
+      if (dreamm_v3_create_empty_file(mesh_states_name)) {
+          free(mesh_states_name); 
+          return 1;
+      }
+  }else if(parent->object_type == META_OBJ){
+     for(o = parent->first_child; o != NULL; o = o->next)
+     {
+        if(dreamm_v3_create_empty_mesh_file(o)) return 1;
+     }
+
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+dreamm_v3_write_empty_files:
+    Create a set of empty files in the DREAMM V3 output directory.  This may be
+    redundant now, since I'm explicitly removing files which, if left over from
+    a previous run, would cause trouble.
+
+        In: none
+        Out: 0 upon success, 1 upon failure
+**************************************************************************/
+static int dreamm_v3_write_empty_files()
+{
+
+  int species_index; /* iterator for the species */
+  struct object *o; /* iterator for object in the world */
+  
+  /* names of the output data files */
+  char *mol_pos_name = NULL, *mol_orient_name = NULL, *mol_states_name = NULL;
+  /* last parts of the files names above */
+  char *mol_pos_name_last_part = ".positions.dat";
+  char *mol_orient_name_last_part = ".orientations.dat";
+  char *mol_states_name_last_part = ".states.dat";
+
+  if (world->viz_state_info.n_viz_objects == 0)
+  {
+     if(world->viz_output_flag & VIZ_MESH_FORMAT_BINARY)
+     {
+       if(dreamm_v3_create_empty_file(DREAMM_MESH_POS_NAME)) return 1;
+       if(dreamm_v3_create_empty_file(DREAMM_MESH_STATES_NAME)) return 1;
+       if(dreamm_v3_create_empty_file(DREAMM_REGION_VIZ_DATA_NAME)) return 1;
+       if(dreamm_v3_create_empty_file(DREAMM_MESHES_HEADER_NAME)) return 1;
+     }
+     else if(world->viz_output_flag & VIZ_MESH_FORMAT_ASCII){
+
+        for (o = world->root_instance; o != NULL; o = o->next)
+        {
+           if(dreamm_v3_create_empty_mesh_file(o)) return 1;
+        }
+        if(dreamm_v3_create_empty_file(DREAMM_MESHES_HEADER_NAME)) return 1;
+
+     }else{
+        fprintf(world->err_file, "Unrecognized VIZ_MESH_FORMAT option\n");
+        return 1;
+     }
+  }
+
+  if (world->viz_state_info.n_vol_species == 0  &&  world->viz_state_info.n_grid_species == 0)
+  {
+     if(world->viz_output_flag & VIZ_MOLECULE_FORMAT_BINARY)
+     {
+        if (dreamm_v3_create_empty_file(DREAMM_VOL_MOL_POS_NAME)) return 1;
+        if(dreamm_v3_create_empty_file(DREAMM_VOL_MOL_ORIENT_NAME)) return 1;
+        if (dreamm_v3_create_empty_file(DREAMM_VOL_MOL_STATES_NAME)) return 1;
+        if(dreamm_v3_create_empty_file(DREAMM_VOL_MOL_HEADER_NAME)) return 1;
+
+        if(dreamm_v3_create_empty_file(DREAMM_SURF_MOL_POS_NAME)) return 1;
+        if(dreamm_v3_create_empty_file(DREAMM_SURF_MOL_ORIENT_NAME)) return 1;
+        if(dreamm_v3_create_empty_file(DREAMM_SURF_MOL_STATES_NAME)) return 1;
+        if(dreamm_v3_create_empty_file(DREAMM_SURF_MOL_HEADER_NAME)) return 1;
+     
+     }else if(world->viz_output_flag & VIZ_MOLECULE_FORMAT_ASCII){
+  
+        for (species_index=0; species_index<world->n_species; ++ species_index)
+        {
+          struct species *specp = world->species_list[species_index];
+          if(strcmp(specp->sym->name,"GENERIC_MOLECULE") == 0) continue;
+          if(strcmp(specp->sym->name,"GENERIC_SURFACE") == 0) continue;
+
+          mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
+          if(mol_pos_name == NULL){
+             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+             return 1;
+          }       
+
+          mol_orient_name = my_strcat(specp->sym->name, mol_orient_name_last_part);
+          if(mol_orient_name == NULL){
+             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+             return 1;
+          }       
+
+          mol_states_name = my_strcat(specp->sym->name, mol_states_name_last_part);
+          if(mol_states_name == NULL){
+             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+             return 1;
+          }
+        
+          if (dreamm_v3_create_empty_file(mol_pos_name)) {
+             free(mol_pos_name); 
+             return 1;
+          }
+          if(dreamm_v3_create_empty_file(mol_orient_name)) {
+            free(mol_orient_name);
+            return 1;
+          }
+          if (dreamm_v3_create_empty_file(mol_states_name)) {
+            free(mol_states_name);
+            return 1;
+          }
+        }
+      
+        if(dreamm_v3_create_empty_file(DREAMM_VOL_MOL_HEADER_NAME)) return 1;
+        if(dreamm_v3_create_empty_file(DREAMM_SURF_MOL_HEADER_NAME)) return 1;
+
+     }else{
+        fprintf(world->err_file, "Unrecognized VIZ_MOLECULE_FORMAT option\n");
+        return 1;
+     }
+
+   }
+   return 0;
 }
 
 /*************************************************************************
@@ -3428,6 +4689,9 @@ dreamm_v3_create_molecule_symlinks:
 **************************************************************************/
 static int dreamm_v3_create_molecule_symlinks(struct frame_data_list const *fdlp)
 {
+   /* names of the output data files */
+  char *mol_pos_name = NULL, *mol_orient_name = NULL, *mol_states_name = NULL;
+
   long long lastiter = world->viz_state_info.last_mols_iteration;
   int mol_frame_found  = dreamm_v3_scan_for_mol_frames(fdlp->next, fdlp->viz_iteration);
 
@@ -3436,18 +4700,74 @@ static int dreamm_v3_create_molecule_symlinks(struct frame_data_list const *fdlp
       fdlp->viz_iteration > lastiter)               /* The old mol frame was not created during this iteration */
   {
     /* Create a whole mess of symlinks */
-    if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_SURF_MOL_HEADER_NAME)
-        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_SURF_MOL_ORIENT_NAME)
-        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_SURF_MOL_POS_NAME)
-        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_SURF_MOL_STATES_NAME)
-        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_VOL_MOL_HEADER_NAME)
-        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_VOL_MOL_ORIENT_NAME)
-        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_VOL_MOL_POS_NAME)
-        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_VOL_MOL_STATES_NAME))
-      return 1;
-  }
+
+    if(world->viz_output_flag & VIZ_MOLECULE_FORMAT_BINARY)
+    {
+        if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_SURF_MOL_HEADER_NAME)
+           || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_SURF_MOL_ORIENT_NAME)
+           || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_SURF_MOL_POS_NAME)
+           || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_SURF_MOL_STATES_NAME)
+           || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_VOL_MOL_HEADER_NAME)
+           || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_VOL_MOL_ORIENT_NAME)
+           || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_VOL_MOL_POS_NAME)
+           || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_VOL_MOL_STATES_NAME))
+                goto failure;
+    }else{
+
+        if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_SURF_MOL_HEADER_NAME)
+           || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_VOL_MOL_HEADER_NAME))
+                goto failure;
+
+        /* last parts of the files names above */
+        char *mol_pos_name_last_part = ".positions.dat";
+        char *mol_orient_name_last_part = ".orientations.dat";
+        char *mol_states_name_last_part = ".states.dat";
+
+        int species_index;
+        for (species_index=0; species_index<world->n_species; ++ species_index)
+        {
+          struct species *specp = world->species_list[species_index];
+
+          /* Skip this species if it is marked as excluded */
+          if (specp->viz_state == EXCLUDE_OBJ)
+              continue;
+
+          mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
+          if(mol_pos_name == NULL){
+             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+             goto failure;
+          }       
+          mol_orient_name = my_strcat(specp->sym->name, mol_orient_name_last_part);
+         if(mol_orient_name == NULL){
+             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+             goto failure;
+         }       
+         mol_states_name = my_strcat(specp->sym->name, mol_states_name_last_part);
+         if(mol_states_name == NULL){
+             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+             goto failure;
+         }
+
+         if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, mol_pos_name)
+           || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, mol_orient_name)
+           || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, mol_states_name)){
+                  goto failure;
+         }
+
+
+        } /* end if-else */
+
+    }
+  } 
 
   return 0;
+
+  failure: if(mol_pos_name) free(mol_pos_name);
+           if(mol_orient_name) free(mol_orient_name);
+           if(mol_states_name) free(mol_states_name);
+           return 1;
+ 
+
 }
 
 /*************************************************************************
@@ -3495,13 +4815,63 @@ static int dreamm_v3_create_mesh_symlinks(struct frame_data_list const *fdlp)
       fdlp->viz_iteration > lastiter)               /* The old meshes frame was not created during this iteration */
   {
     /* Create a whole mess of symlinks */
-    if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_MESHES_HEADER_NAME)
-        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_MESH_POS_NAME)
-        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_MESH_STATES_NAME)
-        || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_REGION_VIZ_DATA_NAME))
-      return 1;
-  }
+    if(world->viz_output_flag & VIZ_MESH_FORMAT_BINARY)
+    {
+       if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_MESHES_HEADER_NAME)
+           || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_MESH_POS_NAME)
+           || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_MESH_STATES_NAME)
+           || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_REGION_VIZ_DATA_NAME))
+         return 1;
+     }else{
+       if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, DREAMM_MESHES_HEADER_NAME)) return 1;
+       
+       int obj_index;
+       /* names of the output data files */
+       char *mesh_pos_name = NULL, *mesh_connect_name = NULL, *mesh_region_indices_name = NULL, *mesh_states_name = NULL;
+       /* last parts of the files names above */
+       char *mesh_pos_name_last_part = ".positions.dat";
+       char *mesh_connect_name_last_part = ".connections.dat";
+       char *mesh_region_indices_name_last_part = ".region_indices.dat";
+       char *mesh_states_name_last_part = ".states.dat";
 
+       for (obj_index = 0; obj_index < world->viz_state_info.n_viz_objects; ++ obj_index)
+       {
+         struct object *objp = world->viz_state_info.viz_objects[obj_index];
+         if (objp->viz_state == NULL) continue;
+
+         if (objp->object_type != POLY_OBJ  &&  objp->object_type != BOX_OBJ)
+            continue;
+       
+         mesh_pos_name = my_strcat(objp->sym->name, mesh_pos_name_last_part);
+         if(mesh_pos_name == NULL){
+             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+             return 1;
+         }       
+         mesh_connect_name = my_strcat(objp->sym->name, mesh_connect_name_last_part);
+         if(mesh_connect_name == NULL){
+             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+             return 1;
+         }       
+         mesh_region_indices_name = my_strcat(objp->sym->name, mesh_region_indices_name_last_part);
+         if(mesh_region_indices_name == NULL){
+              fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+              return 1;
+         }       
+         mesh_states_name = my_strcat(objp->sym->name, mesh_states_name_last_part);
+         if(mesh_states_name == NULL){
+             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+             return 1;
+         }       
+
+         if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, mesh_pos_name)) return 1;
+         if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, mesh_connect_name)) return 1;
+         if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, mesh_region_indices_name)) return 1;
+         if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, mesh_states_name)) return 1;
+       } 
+
+     }
+   
+  }
   return 0;
 }
 
@@ -3531,14 +4901,13 @@ static int dreamm_v3_write_time_info(char const *viz_data_dir,
   if ((master_header = dreamm_v3_generic_open_file(viz_data_dir, master_header_name, "w")) == NULL)
     goto failure;
 
-  if (dreamm_v3_generic_write_time_info(master_header,
+  dreamm_v3_generic_write_time_info(master_header,
                                         iteration_numbers_name,
                                         time_values_name,
                                         "DREAMM_V3_MODE",
                                         1,
                                         iteration_numbers_count,
-                                        time_values_count))
-    goto failure;
+                                        time_values_count);
 
   if (master_header) fclose(master_header);
   return 0;
@@ -3875,9 +5244,9 @@ dreamm_v3_write_mesh_group:
         In:  FILE *master_header - file to which to write group
              int groupidx - the group index
              int field_idx_base - object number for first field
-        Out: 0 on success, 1 on error
+        Out: none
 **************************************************************************/
-static int dreamm_v3_write_mesh_group(FILE *header,
+static void dreamm_v3_write_mesh_group(FILE *header,
                                       int groupidx,
                                       int fieldsidx)
 {
@@ -3898,7 +5267,6 @@ static int dreamm_v3_write_mesh_group(FILE *header,
   }
   fprintf(header, "\n");
 
-  return 0;
 }
 
 /*************************************************************************
@@ -3917,13 +5285,23 @@ static int dreamm_v3_dump_mesh_data(struct frame_data_list const * const fdlp,
                                     char const *iteration_dir,
                                     int *meshes_main_index)
 {
-  return dreamm_v3_generic_dump_mesh_data(fdlp,
+  if(world->viz_output_flag & VIZ_MESH_FORMAT_BINARY)
+  {
+       return dreamm_v3_generic_dump_mesh_data(fdlp,
                                           meshes_header,
                                           iteration_dir,
                                           DREAMM_MESH_POS_NAME,
                                           DREAMM_MESH_STATES_NAME,
                                           DREAMM_REGION_VIZ_DATA_NAME,
                                           meshes_main_index);
+  }else if(world->viz_output_flag & VIZ_MESH_FORMAT_ASCII){
+       return dreamm_v3_ascii_dump_mesh_data(fdlp,
+                                          meshes_header,
+                                          iteration_dir,
+                                          meshes_main_index);
+  }
+            
+  return 0;
 }
 
 /*************************************************************************
@@ -3958,15 +5336,13 @@ static int dreamm_v3_dump_meshes(struct frame_data_list const * const fdlp)
 
     int group_idx = meshes_main_index ++;
 
-    if (dreamm_v3_generic_write_mesh_fields(fdlp,
+    dreamm_v3_generic_write_mesh_fields(fdlp,
                                             meshes_header,
                                             field_idx_base,
-                                            1))
-      goto failure;
+                                            1);
 
     /* Create a group object for all meshes */
-    if (dreamm_v3_write_mesh_group(meshes_header, group_idx, field_idx_base))
-      goto failure;
+    dreamm_v3_write_mesh_group(meshes_header, group_idx, field_idx_base);
 
     /* Store iteration_number for meshes */
     if (add_to_iteration_counter(&world->viz_state_info.mesh_output_iterations, fdlp->viz_iteration))
@@ -3982,7 +5358,7 @@ static int dreamm_v3_dump_meshes(struct frame_data_list const * const fdlp)
 
 failure:
   if (meshes_header) fclose(meshes_header);
-  return 0;
+  return 1;
 }
 
 /*************************************************************************
@@ -3996,9 +5372,9 @@ dreamm_v3_write_molecule_group:
              struct species **all_species - species in group
              int n_species - number of species in group
              int field_idx_base - object number for first field
-        Out: 0 on success, 1 on error
+        Out: none
 **************************************************************************/
-static int dreamm_v3_write_molecule_group(FILE *header,
+static void dreamm_v3_write_molecule_group(FILE *header,
                                           char const *desc,
                                           struct species **specs,
                                           int num_specs,
@@ -4021,7 +5397,6 @@ static int dreamm_v3_write_molecule_group(FILE *header,
             fieldsidx ++);
   fprintf(header, "\n");
 
-  return 0;
 }
 
 /*************************************************************************
@@ -4068,11 +5443,24 @@ static int dreamm_v3_dump_grid_molecules(struct frame_data_list const * const fd
                                                      DREAMM_SURF_MOL_HEADER_NAME, "w")) == NULL)
     return 1;
 
-  if (dreamm_v3_dump_grid_molecule_data(fdlp,
+
+  if(world->viz_output_flag & VIZ_MOLECULE_FORMAT_BINARY)
+  {
+       if (dreamm_v3_dump_grid_molecule_data(fdlp,
                                         surf_mol_header,
                                         world->viz_state_info.iteration_number_dir,
                                         &surf_mol_main_index))
-    goto failure;
+       goto failure;
+  }else if(world->viz_output_flag & VIZ_MOLECULE_FORMAT_ASCII){
+       if (dreamm_v3_ascii_dump_grid_molecule_data(fdlp,
+                                        surf_mol_header,
+                                        world->viz_state_info.iteration_number_dir,
+                                        &surf_mol_main_index))
+       goto failure;
+  }else{
+      fprintf(world->err_file, "Unrecognized VIZ_MOLECULE_FORMAT option.\n");
+      goto failure;
+  }
 
   if (world->viz_state_info.n_grid_species > 0)
   {
@@ -4082,20 +5470,18 @@ static int dreamm_v3_dump_grid_molecules(struct frame_data_list const * const fd
     int group_idx = surf_mol_main_index ++;
 
     /* Build fields for grid molecules here */
-    if (dreamm_v3_generic_write_molecule_fields(fdlp,
+    dreamm_v3_generic_write_molecule_fields(fdlp,
                                                 surf_mol_header,
                                                 world->viz_state_info.grid_species,
                                                 world->viz_state_info.n_grid_species,
                                                 field_idx_base,
-                                                1))
-      goto failure;
-    if (dreamm_v3_write_molecule_group(surf_mol_header,
+                                                1);
+    dreamm_v3_write_molecule_group(surf_mol_header,
                                        "surface molecules",
                                        world->viz_state_info.grid_species,
                                        world->viz_state_info.n_grid_species,
                                        group_idx,
-                                       field_idx_base))
-      goto failure;
+                                       field_idx_base);
 
     /* Store iteration_number for surface molecules */
     if (add_to_iteration_counter(&world->viz_state_info.grid_mol_output_iterations, fdlp->viz_iteration))
@@ -4155,38 +5541,53 @@ static int dreamm_v3_dump_volume_molecules(struct frame_data_list const * const 
   /* Open volume molecules header */
   if ((vol_mol_header = dreamm_v3_generic_open_file(world->viz_state_info.iteration_number_dir,
                                                     DREAMM_VOL_MOL_HEADER_NAME, "w")) == NULL)
-    return 1;
+          return 1;
 
-  if (dreamm_v3_dump_volume_molecule_data(fdlp,
+  if(world->viz_output_flag & VIZ_MOLECULE_FORMAT_BINARY)
+  {
+      if (dreamm_v3_dump_volume_molecule_data(fdlp,
                                           vol_mol_header,
                                           world->viz_state_info.iteration_number_dir,
                                           &vol_mol_main_index))
-    goto failure;
+          goto failure;
+  }else if(world->viz_output_flag & VIZ_MOLECULE_FORMAT_ASCII){
+      if (dreamm_v3_ascii_dump_volume_molecule_data(fdlp,
+                                          vol_mol_header,
+                                          world->viz_state_info.iteration_number_dir,
+                                          &vol_mol_main_index))
+          goto failure;
 
-  if (world->viz_state_info.n_vol_species > 0)
-  {
-    int field_idx_base = vol_mol_main_index;
-    vol_mol_main_index += world->viz_state_info.n_vol_species;
 
-    int group_idx = vol_mol_main_index ++;
 
-    /* Build fields for grid molecules here */
-    if (dreamm_v3_generic_write_molecule_fields(fdlp,
+  }else{
+     fprintf(world->err_file, "Unrecognized VIZ_MOLECULE_FORMAT option.\n");
+     goto failure;
+  
+  }
+
+    if (world->viz_state_info.n_vol_species > 0)
+    {
+         int field_idx_base = vol_mol_main_index;
+         vol_mol_main_index += world->viz_state_info.n_vol_species;
+
+         int group_idx = vol_mol_main_index ++;
+
+         /* Build fields for volume molecules here */
+         dreamm_v3_generic_write_molecule_fields(fdlp,
                                                 vol_mol_header,
                                                 world->viz_state_info.vol_species,
                                                 world->viz_state_info.n_vol_species,
                                                 field_idx_base,
-                                                1))
-      goto failure;
+                                                1);
 
-    /* Create group objects for molecules */
-    if (dreamm_v3_write_molecule_group(vol_mol_header,
+          /* Create group objects for molecules */
+          dreamm_v3_write_molecule_group(vol_mol_header,
                                        "volume molecules",
                                        world->viz_state_info.vol_species,
                                        world->viz_state_info.n_vol_species,
                                        group_idx,
-                                       field_idx_base))
-      goto failure;
+                                       field_idx_base);
+    }
 
     /* Store iteration_number for volume_molecules */
     if (add_to_iteration_counter(&world->viz_state_info.vol_mol_output_iterations, fdlp->viz_iteration))
@@ -4195,7 +5596,6 @@ static int dreamm_v3_dump_volume_molecules(struct frame_data_list const * const 
     /* Put value of viz_iteration into the time values */
     if (add_to_iteration_counter_monotonic(&world->viz_state_info.output_times, fdlp->viz_iteration))
       goto failure;
-  }
 
   if (vol_mol_header) fclose(vol_mol_header);
   return 0;
@@ -4227,25 +5627,8 @@ int output_dreamm_objects(struct frame_data_list const * const fdlp)
 
   /* Create empty files, if appropriate */
   /* XXX: Do we still need to do this?  We're not creating links to these files, so... */
-  if (world->viz_state_info.n_viz_objects == 0)
-  {
-    dreamm_v3_create_empty_file(DREAMM_MESH_POS_NAME);
-    dreamm_v3_create_empty_file(DREAMM_MESH_STATES_NAME);
-    dreamm_v3_create_empty_file(DREAMM_REGION_VIZ_DATA_NAME);
-    dreamm_v3_create_empty_file(DREAMM_MESHES_HEADER_NAME);
-  }
-  if (world->viz_state_info.n_vol_species == 0  &&  world->viz_state_info.n_grid_species == 0)
-  {
-    dreamm_v3_create_empty_file(DREAMM_VOL_MOL_POS_NAME);
-    dreamm_v3_create_empty_file(DREAMM_VOL_MOL_ORIENT_NAME);
-    dreamm_v3_create_empty_file(DREAMM_VOL_MOL_STATES_NAME);
-    dreamm_v3_create_empty_file(DREAMM_VOL_MOL_HEADER_NAME);
 
-    dreamm_v3_create_empty_file(DREAMM_SURF_MOL_POS_NAME);
-    dreamm_v3_create_empty_file(DREAMM_SURF_MOL_ORIENT_NAME);
-    dreamm_v3_create_empty_file(DREAMM_SURF_MOL_STATES_NAME);
-    dreamm_v3_create_empty_file(DREAMM_SURF_MOL_HEADER_NAME);
-  }
+    if(dreamm_v3_write_empty_files()) return 1;   
 
   /* Dump meshes */
   if (viz_meshes  &&  dreamm_v3_dump_meshes(fdlp))
@@ -4511,15 +5894,15 @@ dreamm_v3_grouped_write_time_info:
              char const *time_values_name - name of time data
              u_int iteration_numbers_count - number of iteration data
              u_int time_values_count - number of time data
-        Out: 0 on success, 1 on error
+        Out: none
 **************************************************************************/
-static int dreamm_v3_grouped_write_time_info(FILE *master_header,
+static void dreamm_v3_grouped_write_time_info(FILE *master_header,
                                              char const *iteration_numbers_name,
                                              char const *time_values_name,
                                              u_int iteration_numbers_count,
                                              u_int time_values_count)
 {
-  return dreamm_v3_generic_write_time_info(master_header,
+  dreamm_v3_generic_write_time_info(master_header,
                                            iteration_numbers_name,
                                            time_values_name,
                                            "DREAMM_V3_GROUPED_MODE",
@@ -4571,12 +5954,11 @@ static int dreamm_v3_grouped_dump_time_info(FILE *master_header)
     goto failure;
 
   /* Write header details */
-  if (dreamm_v3_grouped_write_time_info(master_header,
+  dreamm_v3_grouped_write_time_info(master_header,
                                         iteration_numbers_name,
                                         time_values_name,
                                         iteration_numbers_count,
-                                        world->viz_state_info.output_times.n_iterations))
-    goto failure;
+                                        world->viz_state_info.output_times.n_iterations);
 
   if (iteration_numbers_name) free(iteration_numbers_name);
   if (time_values_name) free(time_values_name);
@@ -4595,9 +5977,9 @@ dreamm_v3_grouped_write_mesh_group:
         In:  FILE *master_header - file to which to write group
              struct frame_data_list *fdlp - frame for which to write group
              int field_idx_base - object number for first field
-        Out: 0 on success, 1 on error
+        Out: none
 **************************************************************************/
-static int dreamm_v3_grouped_write_mesh_group(FILE *master_header,
+static void dreamm_v3_grouped_write_mesh_group(FILE *master_header,
                                               struct frame_data_list const * const fdlp,
                                               int field_idx_base)
 {
@@ -4609,7 +5991,6 @@ static int dreamm_v3_grouped_write_mesh_group(FILE *master_header,
             world->viz_state_info.viz_objects[obj_index]->sym->name,
             field_idx_base ++);
   fprintf(master_header, "\n");
-  return 0;
 }
 
 /*************************************************************************
@@ -4691,16 +6072,14 @@ static int dreamm_v3_grouped_dump_meshes(struct frame_data_list const * const fd
     world->viz_state_info.dx_main_object_index += world->viz_state_info.n_viz_objects;
 
     /* Create field objects */
-    if (dreamm_v3_generic_write_mesh_fields(fdlp,
+    dreamm_v3_generic_write_mesh_fields(fdlp,
                                             master_header,
                                             field_idx_base,
-                                            surf_index))
-      return 1;
+                                            surf_index);
 
     /* Create a group object for all meshes */
     world->viz_state_info.dreamm_last_iteration_meshes = fdlp->viz_iteration;
-    if (dreamm_v3_grouped_write_mesh_group(master_header, fdlp, field_idx_base))
-      return 1;
+    dreamm_v3_grouped_write_mesh_group(master_header, fdlp, field_idx_base);
 
     /* Store iteration_number for meshes */
     if (add_to_iteration_counter(&world->viz_state_info.mesh_output_iterations,
@@ -4722,9 +6101,9 @@ dreamm_v3_grouped_write_molecule_group:
              struct species **all_species - species in group
              int n_species - number of species in group
              int field_idx_base - object number for first field
-        Out: 0 on success, 1 on error
+        Out: none
 **************************************************************************/
-static int dreamm_v3_grouped_write_molecule_group(FILE *master_header,
+static void dreamm_v3_grouped_write_molecule_group(FILE *master_header,
                                                   struct frame_data_list const * const fdlp,
                                                   char const *moltype,
                                                   struct species **all_species,
@@ -4742,7 +6121,6 @@ static int dreamm_v3_grouped_write_molecule_group(FILE *master_header,
             "\tmember \"%s\" value %d\n",
             all_species[mol_index]->sym->name,
             field_idx_base++);
-  return 0;
 }
 
 /*************************************************************************
@@ -4825,23 +6203,21 @@ static int dreamm_v3_grouped_dump_grid_molecules(struct frame_data_list const * 
     world->viz_state_info.dx_main_object_index += world->viz_state_info.n_grid_species;
 
     /* Build fields for grid molecules here */
-    if (dreamm_v3_generic_write_molecule_fields(fdlp,
+    dreamm_v3_generic_write_molecule_fields(fdlp,
                                                 master_header,
                                                 world->viz_state_info.grid_species,
                                                 world->viz_state_info.n_grid_species,
                                                 field_idx_base,
-                                                eff_index_base))
-      return 1;
+                                                eff_index_base);
 
     /* Create groups for effectors */
     world->viz_state_info.dreamm_last_iteration_surf_mols = fdlp->viz_iteration;
-    if (dreamm_v3_grouped_write_molecule_group(master_header,
+    dreamm_v3_grouped_write_molecule_group(master_header,
                                                fdlp,
                                                "surface",
                                                world->viz_state_info.grid_species,
                                                world->viz_state_info.n_grid_species,
-                                               field_idx_base))
-      return 1;
+                                               field_idx_base);
 
     /* Store iteration_number for surface molecules */
     if (add_to_iteration_counter(&world->viz_state_info.grid_mol_output_iterations,
@@ -4932,23 +6308,21 @@ static int dreamm_v3_grouped_dump_volume_molecules(struct frame_data_list const 
     world->viz_state_info.dx_main_object_index += world->viz_state_info.n_vol_species;
 
     /* Build fields for volume mols here */
-    if (dreamm_v3_generic_write_molecule_fields(fdlp,
+    dreamm_v3_generic_write_molecule_fields(fdlp,
                                                 master_header,
                                                 world->viz_state_info.vol_species,
                                                 world->viz_state_info.n_vol_species,
                                                 field_idx_base,
-                                                mol_index_base))
-      return 1;
+                                                mol_index_base);
 
     /* Create group objects for volume molecules */
     world->viz_state_info.dreamm_last_iteration_vol_mols = fdlp->viz_iteration;
-    if (dreamm_v3_grouped_write_molecule_group(master_header,
+    dreamm_v3_grouped_write_molecule_group(master_header,
                                                fdlp,
                                                "volume",
                                                world->viz_state_info.vol_species,
                                                world->viz_state_info.n_vol_species,
-                                               field_idx_base))
-      return 1;
+                                               field_idx_base);
 
     /* Store iteration_number for volume_molecules */
     if (add_to_iteration_counter(&world->viz_state_info.vol_mol_output_iterations,
@@ -5022,9 +6396,9 @@ dreamm_v3_grouped_write_frame_series:
     the end of each iteration.
 
         In: FILE *master_header - file to which to write series
-        Out: 0 on success, 1 on error
+        Out: none
 **************************************************************************/
-static int dreamm_v3_grouped_write_frame_series(FILE *master_header)
+static void dreamm_v3_grouped_write_frame_series(FILE *master_header)
 {
   fprintf(master_header, "object \"frame_data\" class series\n");
   int frame_data_index;
@@ -5035,7 +6409,6 @@ static int dreamm_v3_grouped_write_frame_series(FILE *master_header)
             "\t%s",
             world->viz_state_info.combined_group_members.strings[frame_data_index]);
   fprintf(master_header, "\n\n");
-  return 0;
 }
 
 /*************************************************************************
@@ -5238,7 +6611,6 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
   int id;
   struct vector3 where,norm;
   
-  printf("Output in ASCII mode (molecules only)...\n");
   no_printf("Output in ASCII mode (molecules only)...\n");
   
   if ((fdlp->type==ALL_FRAME_DATA) || (fdlp->type==MOL_POS) || (fdlp->type==MOL_STATES))
@@ -5335,17 +6707,17 @@ int init_frame_data_list(struct frame_data_list **fdlpp)
 
   switch (world->viz_mode)
   {
-    case DREAMM_V3_MODE:
-      if (dreamm_v3_generic_preprocess_frame_data(fdlpp))
-        return 1;
+    case DREAMM_V3_MODE:  
+      if(dreamm_v3_generic_preprocess_frame_data(fdlpp))
+          return 1;
       fdlp = *fdlpp;
       if (dreamm_v3_init(fdlp))
         return 1;
       break;
 
     case DREAMM_V3_GROUPED_MODE:
-      if (dreamm_v3_generic_preprocess_frame_data(fdlpp))
-        return 1;
+      if(dreamm_v3_generic_preprocess_frame_data(fdlpp))
+          return 1;
       fdlp = *fdlpp;
       if (dreamm_v3_grouped_init(fdlp))
         return 1;
@@ -5426,20 +6798,21 @@ int init_frame_data_list(struct frame_data_list **fdlpp)
 /**************************************************************************
 update_frame_data_list:
         In: struct frame_data_list * fdlp
-        Out: Nothing. Calls output visualization functions if necessary.
+        Out: 0 on success, 1 on failure. 
+             Calls output visualization functions if necessary.
              Updates value of the current iteration step and pointer
-             to the current iteration in the linked list
+             to the current iteration in the linked list.
 **************************************************************************/
-void update_frame_data_list(struct frame_data_list *fdlp)
+int update_frame_data_list(struct frame_data_list *fdlp)
 {
-  if (fdlp == NULL) return;
+  if (fdlp == NULL) return 0;
 
   /* These statements need to precede handling of any frames to make sure
    * symlinks are created properly.
    */
   if (world->viz_mode == DREAMM_V3_MODE)
   {
-    dreamm_v3_clean_files(fdlp);
+    if(dreamm_v3_clean_files(fdlp)) return 1;
     dreamm_v3_update_last_iteration_info(fdlp);
   }
 
@@ -5451,23 +6824,23 @@ void update_frame_data_list(struct frame_data_list *fdlp)
     switch (world->viz_mode)
     {
       case DX_MODE:
-        output_dx_objects(fdlp);
+        if(output_dx_objects(fdlp)) return 1;
         break;
 
-      case DREAMM_V3_MODE:
-        output_dreamm_objects(fdlp);
+      case DREAMM_V3_MODE: 
+        if(output_dreamm_objects(fdlp)) return 1;
         break;
 
       case DREAMM_V3_GROUPED_MODE:
-        output_dreamm_objects_grouped(fdlp);
+        if(output_dreamm_objects_grouped(fdlp)) return 1;
         break;
 
       case RK_MODE:
-        output_rk_custom(fdlp);
+        if(output_rk_custom(fdlp)) return 1;
         break;
 
       case ASCII_MODE:
-        output_ascii_molecules(fdlp);
+        if(output_ascii_molecules(fdlp)) return 1;
         break;
 
       case NO_VIZ_MODE:
@@ -5480,6 +6853,7 @@ void update_frame_data_list(struct frame_data_list *fdlp)
     if (fdlp->curr_viz_iteration != NULL)
       fdlp->viz_iteration = frame_iteration(fdlp->curr_viz_iteration->value, fdlp->list_type);
   }
+     return 0;
 }
 
 
@@ -5520,10 +6894,8 @@ int finalize_viz_output(struct frame_data_list  *fdlp)
                 if (master_header != NULL) fclose(master_header);
                 return 1;
             }
-            if (dreamm_v3_grouped_write_frame_series(master_header)){
-                 if (master_header != NULL) fclose(master_header);
-                 return 1;
-             }
+            dreamm_v3_grouped_write_frame_series(master_header);
+             
              if (master_header != NULL) fclose(master_header);
                
              free(master_header_file_path);

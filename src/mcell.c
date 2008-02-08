@@ -164,7 +164,10 @@ void run_sim(void)
 
     process_volume_output(world, not_yet);
 
-    update_frame_data_list(world->frame_data_head); 
+    if(update_frame_data_list(world->frame_data_head)){
+       fprintf(world->err_file, "Error while updating frame data list.\n");
+       exit(EXIT_FAILURE);
+    } 
     
     if ( (world->it_time % frequency) == 0 && world->notify->custom_iterations!=NOTIFY_NONE)
     {

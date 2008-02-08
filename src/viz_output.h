@@ -5,7 +5,7 @@
 
 /* Header file for visualization output routines */
 
-void update_frame_data_list(struct frame_data_list *fdlp);
+int update_frame_data_list(struct frame_data_list *fdlp);
 int init_frame_data_list(struct frame_data_list **fdlp);
 int output_dx_objects(struct frame_data_list *fdlp);
 int output_rk_custom(struct frame_data_list *fdlp);
