@@ -2978,15 +2978,51 @@ static int dreamm_v3_ascii_dump_mesh_data(struct frame_data_list const * const f
         fprintf(meshes_header, "\n\n");
       } /* end for */
     } /* end if (region_data_flag) */
-  }
 
-  if (mesh_pos_data) fclose(mesh_pos_data);
-  if (mesh_states_data) fclose(mesh_states_data);
-  if (mesh_connect_data) fclose(mesh_connect_data);
-  if (region_data) fclose(region_data);
+
+    if(mesh_pos_name){
+       free(mesh_pos_name);
+       mesh_pos_name = NULL;
+    }
+    if(mesh_connect_name){
+       free(mesh_connect_name);
+       mesh_connect_name = NULL;
+    }
+    if(mesh_states_name){
+       free(mesh_states_name);
+       mesh_states_name = NULL;
+    } 
+    if(mesh_region_indices_name){
+       free(mesh_region_indices_name);
+       mesh_region_indices_name = NULL;
+    }
+    if (mesh_pos_data) {
+        fclose(mesh_pos_data);
+        mesh_pos_data = NULL;
+    }
+    if (mesh_states_data) {
+        fclose(mesh_states_data);
+        mesh_states_data = NULL;
+    }
+    if (mesh_connect_data) {
+        fclose(mesh_connect_data);
+        mesh_connect_data = NULL;
+    }
+    if (region_data){ 
+       fclose(region_data);
+       region_data = NULL;
+    }
+
+  } /* end for(objindex ... ) */
+
   return 0;
 
 failure:
+  if(mesh_pos_name) free(mesh_pos_name);
+  if(mesh_connect_name) free(mesh_connect_name);
+  if(mesh_states_name) free(mesh_states_name);
+  if(mesh_region_indices_name) free(mesh_region_indices_name);
+    
   if (mesh_pos_data) fclose(mesh_pos_data);
   if (mesh_states_data) fclose(mesh_states_data);
   if (mesh_connect_data) fclose(mesh_connect_data);
@@ -3439,6 +3475,34 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct frame_data_list const 
     if (specp->viz_state == EXCLUDE_OBJ  ||  ! (specp->flags & ON_GRID))
       continue;
 
+    if (viz_mol_pos_flag)
+    {
+
+         mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
+         if(mol_pos_name == NULL){
+             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+             goto failure;
+         }       
+        /* Open surface molecules position data file */
+        if ((surf_mol_pos_data = dreamm_v3_generic_open_file(dirname, mol_pos_name, "a")) == NULL)
+             goto failure;
+
+    }
+        
+    if (viz_mol_orient_flag){
+
+           mol_orient_name = my_strcat(specp->sym->name, mol_orient_name_last_part);
+           if(mol_orient_name == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+               goto failure;
+           }
+           /* Open surface molecules orientation data file */
+           if ((surf_mol_orient_data =  dreamm_v3_generic_open_file(dirname, mol_orient_name, "a")) == NULL)
+               goto failure;
+
+    }
+
+
     /* Iterate over specific molecules in this species */
     int count = 0;
     unsigned int mol_index;
@@ -3460,35 +3524,12 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct frame_data_list const 
       /* Write positions information */
       if (viz_mol_pos_flag)
       {
-         mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
-         if(mol_pos_name == NULL){
-             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-             goto failure;
-         }       
-
-       
-        /* Open surface molecules position data file */
-        if ((surf_mol_pos_data = dreamm_v3_generic_open_file(dirname, mol_pos_name, "a")) == NULL)
-             goto failure;
-  
-
         struct vector3 p0;
         grid2xyz(gmol->grid, gmol->grid_index, &p0);
         dx_output_vector3_ascii(surf_mol_pos_data, &p0);
 
         /* Write orientations information */
         if (viz_mol_orient_flag){
-         
-           mol_orient_name = my_strcat(specp->sym->name, mol_orient_name_last_part);
-           if(mol_orient_name == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-               goto failure;
-           }
-        
-           /* Open surface molecules orientation data file */
-           if ((surf_mol_orient_data =  dreamm_v3_generic_open_file(dirname, mol_orient_name, "a")) == NULL)
-               goto failure;
-            
            dx_output_oriented_normal_ascii(surf_mol_orient_data, &w->normal, gmol->orient);
 
         }
@@ -3551,13 +3592,31 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct frame_data_list const 
       fprintf(surf_mol_header, "\n");
  
 
-    if(mol_pos_name) free(mol_pos_name); 
-    if(mol_orient_name) free(mol_orient_name); 
-    if(mol_states_name) free(mol_states_name); 
-    if (surf_mol_pos_data) fclose(surf_mol_pos_data);
-    if (surf_mol_orient_data) fclose(surf_mol_orient_data);
-    if (surf_mol_states_data) fclose(surf_mol_states_data);
-  }
+    if(mol_pos_name) {
+        free(mol_pos_name); 
+        mol_pos_name = NULL;
+    }
+    if(mol_orient_name) {
+         free(mol_orient_name); 
+         mol_orient_name = NULL;
+    }
+    if(mol_states_name) {
+         free(mol_states_name);
+         mol_states_name = NULL; 
+    }
+    if (surf_mol_pos_data) {
+        fclose(surf_mol_pos_data);
+        surf_mol_pos_data = NULL;
+    }
+    if (surf_mol_orient_data) {
+        fclose(surf_mol_orient_data);
+        surf_mol_orient_data = NULL;
+    }
+    if (surf_mol_states_data) {
+       fclose(surf_mol_states_data);
+       surf_mol_states_data = NULL;
+    }
+  } 
 
   free_ptr_array((void **) grid_mols_by_species, world->n_species);
   free(grid_mol_counts_by_species);
@@ -3877,12 +3936,30 @@ static int dreamm_v3_ascii_dump_volume_molecule_data(struct frame_data_list cons
     if (viz_mol_count[species_index] <= 0)
       fprintf(vol_mol_header, "\n");
   
-    if (vol_mol_pos_data) fclose(vol_mol_pos_data);
-    if (vol_mol_orient_data) fclose(vol_mol_orient_data);
-    if (vol_mol_states_data) fclose(vol_mol_states_data);
-    if(mol_pos_name) free(mol_pos_name);
-    if(mol_orient_name) free(mol_orient_name);
-    if(mol_states_name) free(mol_states_name);
+    if (vol_mol_pos_data) {
+          fclose(vol_mol_pos_data);
+          vol_mol_pos_data = NULL;
+    }
+    if (vol_mol_orient_data) {
+          fclose(vol_mol_orient_data);
+          vol_mol_orient_data = NULL;
+    }
+    if (vol_mol_states_data) {
+         fclose(vol_mol_states_data);
+         vol_mol_states_data = NULL;
+    }
+    if(mol_pos_name) {
+       free(mol_pos_name);
+       mol_pos_name = NULL;
+    }
+    if(mol_orient_name) {
+       free(mol_orient_name);
+       mol_orient_name = NULL;
+    }
+    if(mol_states_name) {
+       free(mol_states_name);
+       mol_states_name = NULL;
+    }
   }
 
   free_ptr_array((void **) viz_molp, world->n_species);
