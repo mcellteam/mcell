@@ -443,8 +443,7 @@ int update_reaction_output(struct output_block *block)
     block->t=FOREVER;
   }
   else actual_t=-1;
-  block->t *= (1. + EPS_C);  
-
+  block->t *= (1. + EPS_C);
   i = schedule_add(world->count_scheduler,block);
   if (i)
   {
@@ -496,7 +495,6 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
   char *mode;
   u_int n_output;
   u_int i;
-
   
   switch(set->file_flags)
   {
@@ -553,16 +551,15 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
        }
        fprintf(fp,"\n");
     }
- 
+    
     /* Write data */
     for (i=0;i<n_output;i++)
     {
-                   
-      if (set->block->time_array[i] < 1.0){
+      if (set->block->time_array[i] < 1.0)
         fprintf(fp,"%.10g",set->block->time_array[i]);
-      }else{
-         fprintf(fp,"%.*g", 10 - (int) ceil(log10(set->block->time_array[i])), set->block->time_array[i]);  
-      }
+      else
+        fprintf(fp,"%.*g", 10 - (int) ceil(log10(set->block->time_array[i])), set->block->time_array[i]);
+      
       for (column=set->column_head ; column!=NULL ; column=column->next)
       {
         switch (column->data_type)
