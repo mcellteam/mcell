@@ -16,7 +16,6 @@ struct volume_molecule *insert_volume_molecule(struct volume_molecule *m,struct 
 void excert_volume_molecule(struct volume_molecule *m);
 int insert_volume_molecule_list(struct volume_molecule *m);
 struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,struct subvolume *new_sv);
-struct volume_molecule* migrate_volume_molecule_try(struct volume_molecule *m,struct subvolume *new_sv);
 
 int eval_rel_region_3d(struct release_evaluator *expr,struct waypoint *wp,struct region_list *in_regions,struct region_list *out_regions);
 int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *m,int n);
