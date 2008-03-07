@@ -251,8 +251,9 @@ int test_many_bimolecular(struct rxn **rx,double *scaling, int n, int *chosen_pa
   for (i=1;i<n;i++)
   {
     rxp[i] = rxp[i-1] + rx[i]->cum_probs[ rx[i]->n_pathways-1 ]/scaling[i];
+     
   }
-  
+ 
   if (rxp[n-1] > 1.0)
   {
     f = rxp[n-1]-1.0;            /* Number of failed reactions */

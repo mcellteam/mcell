@@ -449,7 +449,7 @@ int init_sim(void)
   }
   no_printf("Done parsing MDL file: %s\n",world->mdl_infile_name);
   fflush(world->err_file);
-
+  
   if(world->iterations == INT_MIN){
      fprintf( world->err_file, "Error: Total number of iterations is not specified either through the ITERATIONS keyword or through the command line option '-iterations'.\n");
      return 1;

@@ -6220,9 +6220,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
 	  j = xyz2grid( &(smash->loc) , w->grid );
 	  if (w->grid->mol[j] != NULL)
 	  {
-             
-	   if (m->index != j || m->previous_wall != w )
+      #if 0     
+	  if (m->index != j || m->previous_wall != w )
 	   {  
+      #endif 
 	     g = w->grid->mol[j];
              if(mol_grid_flag)
              {
@@ -6307,6 +6308,7 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                  struct surface_grid *sg[3];    /* Neighboring surface grids */
                  int si[3]; /* Indices on those grids of neighbor molecules */
                  struct grid_molecule *gm[3];   /* Neighboring molecules */
+                 struct vector3 loc;   /* reaction location */
                  int kk;
   
                  /* find neighbor molecules to react with */
@@ -6336,10 +6338,10 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                             jj = 0;
         
                             if (ii < RX_LEAST_VALID_PATHWAY) continue;
-                              struct vector3 loc;
 
-                              grid2xyz(sg[kk], si[kk], &loc);
-              
+                                grid2xyz(sg[kk], si[kk], &loc); 
+                               /* grid2xyz(g->grid, g->grid_index, &loc); */
+ 
                               l = outcome_trimolecular(
                                 matching_rxns[l],ii,
                                 (struct abstract_molecule*)m,                                                   (struct abstract_molecule *)g,
@@ -6394,12 +6396,15 @@ continue_special_diffuse_3D:   /* Jump here instead of looping if old_mp,mp alre
                 }
 
               } 
-
+          
+      #if 0 
 	    }
 	    else // Matched previous wall and index--don't rebind 
             {
               m->index = -1; // Avoided rebinding, but next time it's OK 
-            }  
+            }
+       #endif 
+  
 	  } /* end if(w->grid->mol[j] ... ) */
 	} /* end if (w->grid != NULL ... ) */
 	

@@ -1519,7 +1519,7 @@ int make_parent_dir(char const *path, FILE *err_file)
       return 1;
     }
   }
-
+ 
   free(pathtmp);
   return 0;
 }
@@ -1538,6 +1538,13 @@ int mkdirs(char const *path, FILE *err_file)
 {
   char *pathtmp = strdup(path);
   char *curpos = pathtmp;
+
+  /* we need to strip leading '/' in case we have absolute paths */
+  while ((curpos != NULL) && (*curpos == '/'))
+  {
+     ++curpos;
+  }
+
   while (curpos != NULL)
   {
     /* Find next '/', turn it into '\0' */
@@ -1545,6 +1552,17 @@ int mkdirs(char const *path, FILE *err_file)
     if (nextel != NULL)
       *nextel = '\0';
 
+    /* if this directory exists */
+    if(is_dir(pathtmp)) {
+       /* Turn '\0' back to '/' */
+       if (nextel)
+       {
+         *nextel = '/';
+         curpos = nextel + 1;
+       }
+       else
+         curpos = NULL;
+    }
     /* Make the directory */
     if (! is_writable_dir(pathtmp))
       if (mkdir(pathtmp, 0777) != 0)
@@ -2371,4 +2389,3 @@ int add_string_to_buffer(struct string_buffer *sb, char *str)
   sb->strings[sb->n_strings ++] = str;
   return 0;
 }
-

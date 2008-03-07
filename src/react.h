@@ -36,6 +36,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   short orientA,short orientB,double t,struct vector3 *hitpt,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,
   struct abstract_molecule *moving);
+ 
 int outcome_products_trimol_reaction(struct wall *w,
   struct volume_molecule *reac_m, struct grid_molecule *reac_g,
   struct rxn *rx,int path,struct storage *local,
@@ -43,6 +44,15 @@ int outcome_products_trimol_reaction(struct wall *w,
   double t,struct vector3 *hitpt,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,
   struct abstract_molecule *reacC, struct abstract_molecule *moving);
+/*
+int outcome_products_trimol_reaction(struct wall *w,
+  struct volume_molecule *reac_m, struct grid_molecule *reac_g,
+  struct rxn *rx,int path,struct storage *local_surf, struct storage *local_vol,
+  short orientA, short orientB, short orientC,
+  double t,struct vector3 *hitpt,
+  struct abstract_molecule *reacA,struct abstract_molecule *reacB,
+  struct abstract_molecule *reacC, struct abstract_molecule *moving);
+*/
 int outcome_unimolecular(struct rxn *rx,int path,
   struct abstract_molecule *reac,double t);
 int outcome_bimolecular(struct rxn *rx,int path,

@@ -1,9 +1,11 @@
 CC = gcc
-# CFLAGS = -Wall -O3 -march=pentium4
+# CC = gcc34 
+ CFLAGS = -Wall -O3 -march=pentium4
+# CFLAGS = -Wall -O3 -march=pentium4 -static
 # CFLAGS = -Wall -O3 -march=pentiumpro
 # CFLAGS = -Wall -O3 -march=opteron
 # CFLAGS = -Wall -O3 -m64 -march=opteron
-CFLAGS = -Wall -O3 -march=athlon-xp
+# CFLAGS = -Wall -O3 -march=athlon-xp
 # CFLAGS = -Wall -march=athlon-xp
 # CFLAGS = -Wall -O3 -march=athlon-mp
 # CFLAGS = -Wall -O3 -m64 -march=opteron

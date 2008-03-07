@@ -228,7 +228,6 @@ void init_grid_geometry(struct surface_grid *g)
                g->surface->vert[0]->y*g->surface->unit_v.y +
                g->surface->vert[0]->z*g->surface->unit_v.z;
   
-  g->n_tiles = g->n * g->n;
 }
 
 
