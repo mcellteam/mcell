@@ -33,7 +33,7 @@
 
   static int mdlparse_file(struct mdlparse_vars *mpvp, char const *name);
 
-#if 0
+#ifndef DEBUG_MDL_PARSER
   #define CHECK(a)  do { if ((a) != 0) return 1; } while (0)
   #define CHECKN(a) do { if ((a) == NULL) return 1; } while (0)
 #else
