@@ -4052,7 +4052,7 @@ int mdl_triangulate_box_object(struct mdlparse_vars *mpvp,
   pop->n_walls = opp->n_walls;
   pop->n_verts = opp->n_verts;
 
-  if ((pop->surf_class = MDL_MALLOC_ARRAY_DESC(struct species *, pop->n_walls, "box object surface class array")))
+  if ((pop->surf_class = MDL_MALLOC_ARRAY_DESC(struct species *, pop->n_walls, "box object surface class array")) == NULL)
     return 1;
   for (i=0;i<pop->n_walls;i++) pop->surf_class[i]=mpvp->vol->g_surf;
   pop->side_removed = new_bit_array(pop->n_walls);
