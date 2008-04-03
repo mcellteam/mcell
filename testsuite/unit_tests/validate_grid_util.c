@@ -12,6 +12,7 @@
 
 
 #include <stdio.h>
+#include <math.h>
 
 #include "rng.h"
 #include "mcell_structs.h"
@@ -87,9 +88,6 @@ void init_wall(struct wall *w,struct vector3 *v0,struct vector3 *v1,struct vecto
                   (w->vert[2]->y - w->vert[0]->y)*w->unit_v.y +
                   (w->vert[2]->z - w->vert[0]->z)*w->unit_v.z;
   
-  w->mol = NULL;
-  w->mol_count = 0;
-  w->effectors = NULL;
   w->viz_state = EXCLUDE_OBJ; 
 }
 
@@ -100,8 +98,9 @@ int main()
   struct wall w;
   struct vector3 v,vcent,wv0,wv1,wv2;
   int i,idx;
+  struct rng_state rng;
   
-  ran4_init(&seed);
+  rng_init(&rng, seed);
   
   g.n = 5;
   g.surface = &w;
@@ -122,9 +121,9 @@ int main()
 
   for (i=0;i<10000;i++)
   {
-    v.x = 3.5*rng_double(3*i)-0.5;
-    v.y = 1.0*rng_double(3*i+1);
-    v.z = 2.0*rng_double(3*i+2)-1.0;
+    v.x = 3.5*rng_double(&rng, 3*i)-0.5;
+    v.y = 1.0*rng_double(&rng, 3*i+1);
+    v.z = 2.0*rng_double(&rng, 3*i+2)-1.0;
     
     if (v.y > 0 && 3.5*v.y + v.x < 3.0 && v.y+2.0*v.x > 0.0)
     {
