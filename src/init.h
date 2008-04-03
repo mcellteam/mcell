@@ -2,9 +2,6 @@
 #define INIT_H
 
 #include "mcell_structs.h"
-#include "mdlparse.h"
-
-void init_credits(void);
 
 int init_notifications();
 int init_sim(void);

@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,10 +15,7 @@
 #include <kelp.h>
 #endif
 
-#ifndef RAN4_H
-#include "ran4.h"
-#endif
-
+#include "version_info.h"
 #include "rng.h"
 #include "mcell_structs.h"
 #include "strfunc.h"
@@ -36,6 +32,7 @@
 #include "chkpt.h"
 #include "mdlparse_util.h"
 #include "init.h"
+#include "mdlparse_aux.h"
 
 #ifdef DEBUG
 #define no_printf printf
@@ -43,52 +40,10 @@
 
 extern struct volume *world;
 
+/* Initialize the surface macromolecules on a given object */
+static int init_complex_effectors(struct object *objp, struct region_list *head);
+
 #define MICROSEC_PER_YEAR 365.25*86400.0*1e6
-
-
-/*
- Prints out author's institutions.
-
- <pre>
-   MCell 3.001  11/30/2006  Running on machine_name
-
-   Copyright (C) 2006 by
-     The Salk Institute for Biological Studies and
-     Pittsburgh Supercomputing Center, Carnegie Mellon University
- 
- </pre>
-
-*/
-void init_credits(void)
-{
-        
-  FILE *log_file;
-  char *institute[2];
-  unsigned int seed;
-  long ltime;
-
-  log_file = world->log_file;
-
-  ltime = time(NULL);
-  seed = (unsigned int)ltime/2;
-  srand(seed);
-      
-  if (rand()%2 != 0)
-  {
-    institute[0]="The Salk Institute for Biological Studies";
-    institute[1]="Pittsburgh Supercomputing Center, Carnegie Mellon University";
-  }
-  else
-  {
-    institute[0]="Pittsburgh Supercomputing Center, Carnegie Mellon University";
-    institute[1]="The Salk Institute for Biological Studies";
-  }
-
-    fprintf(log_file,"  Copyright (C) 2006 by\n    %s and\n    %s\n\n",institute[0],institute[1]);
-
-    return;
-}
-
 
 /* Sets default notification values */
 int init_notifications()
@@ -112,6 +67,7 @@ int init_notifications()
   world->notify->release_events = NOTIFY_FULL;
   world->notify->file_writes = NOTIFY_NONE;
   world->notify->final_summary = NOTIFY_FULL;
+  world->notify->throughput_report = NOTIFY_FULL;
   /* Warnings */
   world->notify->neg_diffusion = WARN_WARN;
   world->notify->neg_reaction = WARN_WARN;
@@ -215,17 +171,13 @@ int init_sim(void)
 {
   FILE *log_file, *file;
   struct sym_table *gp;
-  struct output_set *set;
   struct output_block *obp,*obpn;
+  struct output_set *set;
   int i;
   double f;
   int reactants_3D_present = 0; /* flag to check whether there are 3D reactants
                              (participants in the reactions
                               between 3D molecules) in the simulation */
-
-#ifdef USE_RAN4
-#include "seed_array.h"
-#endif 
 
   log_file=world->log_file;
 #ifdef KELP
@@ -307,7 +259,7 @@ int init_sim(void)
 
   memset(&world->viz_state_info, 0, sizeof(world->viz_state_info));
   
-  world->mcell_version = MCELL_VERSION;
+  world->mcell_version = mcell_version;
   
   world->clamp_list = NULL;
 
@@ -317,16 +269,6 @@ int init_sim(void)
     fprintf(world->err_file,"File '%s', Line %ld: Out of memory, failed to allocate random number generator\n", __FILE__, (long)__LINE__);
     exit(EXIT_FAILURE);
   }
-#ifdef USE_RAN4
-  if (world->seed_seq < 1 || world->seed_seq > 3000) {
-    fprintf(world->err_file,"File '%s', Line %ld: Error, random sequence number not in range 1 to 3000\n  Recompile without USE_RAN4 flag in rng.h to increase the range\n", __FILE__, (long)__LINE__);
-    return(1);
-  }
-  world->init_seed = seed_array[world->seed_seq-1];
-  rng_init(world->rng,world->init_seed);
-  fprintf(log_file,"MCell[%d]: random sequence: %d  seed: %d\n", world->procnum,world->seed_seq,world->init_seed);
-  fflush(log_file);
-#else
   if (world->seed_seq < 1 || world->seed_seq > INT_MAX) {
     fprintf(world->err_file,"File '%s', Line %ld: error, random sequence number not in range 1 to 2^31-1\n", __FILE__, (long)__LINE__);
     return(1);
@@ -334,7 +276,6 @@ int init_sim(void)
   rng_init(world->rng,world->seed_seq);
   fprintf(log_file,"MCell[%d]: random sequence %d\n",world->procnum,world->seed_seq);
   fflush(log_file);
-#endif
 
   world->count_hashmask = COUNT_HASHMASK;
   world->count_hash = (struct counter**)malloc(sizeof(struct counter*)*(world->count_hashmask+1));
@@ -345,31 +286,31 @@ int init_sim(void)
   }
   for (i=0;i<=world->count_hashmask;i++) world->count_hash[i] = NULL;
   
-  world->oexpr_mem = create_mem(sizeof(struct output_expression),8192);
+  world->oexpr_mem = create_mem_named(sizeof(struct output_expression),128,"output expression");
   if (world->oexpr_mem==NULL)
   {
     fprintf(world->err_file,"Out of memory while getting ready to store output expressions\n");
     return 1;
   }
-  world->outp_request_mem = create_mem(sizeof(struct output_request),4096);
+  world->outp_request_mem = create_mem_named(sizeof(struct output_request),64,"output request");
   if (world->outp_request_mem==NULL)
   {
     fprintf(world->err_file,"Out of memory while getting ready to store lists of output commands\n");
     return 1;
   }
-  world->counter_mem = create_mem(sizeof(struct counter),2048);
+  world->counter_mem = create_mem_named(sizeof(struct counter),32,"counter");
   if (world->counter_mem==NULL)
   {
     fprintf(world->err_file,"Out of memory while getting ready to store reaction and molecule counts\n");
     return 1;
   }
-  world->trig_request_mem = create_mem(sizeof(struct trigger_request),1024);
+  world->trig_request_mem = create_mem_named(sizeof(struct trigger_request),32,"trigger request");
   if (world->trig_request_mem==NULL)
   {
     fprintf(world->err_file,"Out of memory while getting ready to store output triggers\n");
     return 1;
   }
-  world->magic_mem = create_mem(sizeof(struct magic_list),1024);
+  world->magic_mem = create_mem_named(sizeof(struct magic_list),1024,"reaction-triggered release");
   if (world->magic_mem==NULL)
   {
     fprintf(world->err_file,"Out of memory while getting ready to store reaction-release list.\n");
@@ -382,7 +323,7 @@ int init_sim(void)
   }
 	
 
-  if ((gp=store_sym("WORLD_OBJ",OBJ,world->main_sym_table))==NULL) {
+  if ((gp=store_sym("WORLD_OBJ",OBJ,world->main_sym_table, NULL))==NULL) {
     fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating world root object\n", __FILE__, (long)__LINE__);
     return(1);
   }
@@ -390,7 +331,7 @@ int init_sim(void)
   world->root_object->object_type=META_OBJ;
   world->root_object->last_name="";
 
-  if ((gp=store_sym("WORLD_INSTANCE",OBJ,world->main_sym_table))==NULL) {
+  if ((gp=store_sym("WORLD_INSTANCE",OBJ,world->main_sym_table, NULL))==NULL) {
     fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating world root instance.\n", __FILE__, (long)__LINE__);
     return(1);
   }
@@ -398,7 +339,7 @@ int init_sim(void)
   world->root_instance->object_type=META_OBJ;
   world->root_instance->last_name="";
 
-  if ((gp=store_sym("DEFAULT_RELEASE_PATTERN",RPAT,world->main_sym_table))
+  if ((gp=store_sym("DEFAULT_RELEASE_PATTERN",RPAT,world->main_sym_table, NULL))
       ==NULL) {
     fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating default release pattern.\n", __FILE__, (long)__LINE__);
     return(1);
@@ -410,14 +351,14 @@ int init_sim(void)
   world->default_release_pattern->train_duration=FOREVER;
   world->default_release_pattern->number_of_trains=1;
    
-  if ((gp=store_sym("GENERIC_MOLECULE",MOL,world->main_sym_table))
+  if ((gp=store_sym("GENERIC_MOLECULE",MOL,world->main_sym_table, NULL))
       ==NULL) {
     fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating generic molecule.\n", __FILE__, (long)__LINE__);
     return(1);
   }
   world->g_mol=(struct species *)gp->value;
 
-  if ((gp=store_sym("GENERIC_SURFACE",MOL,world->main_sym_table))
+  if ((gp=store_sym("GENERIC_SURFACE",MOL,world->main_sym_table, NULL))
       ==NULL) {
     fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating generic surface", __FILE__, (long)__LINE__);
     return(1);
@@ -494,11 +435,7 @@ int init_sim(void)
         if(strcmp(sp->sym->name, "GENERIC_MOLECULE") == 0) continue;  
         if(strcmp(sp->sym->name, "GENERIC_SURFACE") == 0) continue;  
         
-        if((sp->flags & CAN_MOLMOLMOL) != 0){
-		reactants_3D_present = 1;
-                break;
-        }
-        if((sp->flags & CAN_MOLMOL) != 0){
+        if((sp->flags & (CAN_MOLMOL|CAN_MOLMOLMOL)) != 0){
 		reactants_3D_present = 1;
                 break;
         }
@@ -552,7 +489,6 @@ int init_sim(void)
     return 1;
   }
   
-
   if (world->place_waypoints_flag) {
     if (place_waypoints()) {
       fprintf(world->err_file,"File '%s', Line %ld: error storing waypoints.\n", __FILE__, (long)__LINE__);
@@ -623,12 +559,11 @@ int init_sim(void)
       else
       {
         f = obp->step_time/world->time_unit; /* Step time (internal units) */
-        obp->t = f*ceil(world->count_scheduler->now / f) + f;  /* Round up */
+        obp->t = f*ceil(world->count_scheduler->now / f) + f; /* Round up */
       }      
     }
     else if (obp->time_now==NULL) /* When would this be non-NULL?? */
     {
-
       /* Set time scaling factor depending on output type */
       if (obp->timer_type==OUTPUT_BY_ITERATION_LIST) f=1.0;
       else f=1.0/world->time_unit;
@@ -644,8 +579,8 @@ int init_sim(void)
         for (obp->time_now=obp->time_list_head ; obp->time_now!=NULL ; obp->time_now=obp->time_now->next)
         {
           if(obp->timer_type == OUTPUT_BY_ITERATION_LIST){
-            obp->t=f*obp->time_now->value;
-            if (!(obp->t < world->iterations+1 && obp->t <= world->count_scheduler->now)) break;  
+          obp->t=f*obp->time_now->value;
+          if (!(obp->t < world->iterations+1 && obp->t <= world->count_scheduler->now)) break;
           }else if(obp->timer_type == OUTPUT_BY_TIME_LIST){
             if (obp->time_now->value > world->current_start_real_time){
                obp->t = world->count_scheduler->now + (obp->time_now->value - world->current_start_real_time)/world->time_unit;
@@ -658,41 +593,50 @@ int init_sim(void)
 
       for (set=obp->data_set_head ; set!=NULL ; set=set->next)
       {
-	if (set->file_flags==FILE_SUBSTITUTE)
-	{
-	  if (world->chkpt_seq_num==1)
-	  {
-	    file = fopen(set->outfile_name,"w");
-	    if (file==NULL)
-	    {
-	      fprintf(world->err_file,"Can't open output file %s\n",set->outfile_name);
-	      return 1;
-	    }
-	    fclose(file);
-	  }
-	  else if (obp->timer_type==OUTPUT_BY_ITERATION_LIST)
-	  {
+        if (set->file_flags==FILE_SUBSTITUTE)
+        {
+          if (world->chkpt_seq_num==1)
+          {
+            file = fopen(set->outfile_name,"w");
+            if (file==NULL)
+            {
+              fprintf(world->err_file,"Can't open output file %s\n",set->outfile_name);
+              return 1;
+            }
+            fclose(file);
+          }
+          else if (obp->timer_type==OUTPUT_BY_ITERATION_LIST)
+          {
             if(obp->time_now == NULL) continue;
-	    i = truncate_output_file(set->outfile_name,obp->t);
-	    if (i)
-	    {
-	      fprintf(world->err_file,"Failed to prepare output file %s to receive output\n",set->outfile_name);
-	      return 1;
-	    }
-	  }
-	  else
-	  {
+            i = truncate_output_file(set->outfile_name,obp->t);
+            if (i)
+            {
+              fprintf(world->err_file,"Failed to prepare output file %s to receive output\n",set->outfile_name);
+              return 1;
+            }
+          }
+          else if (obp->timer_type==OUTPUT_BY_TIME_LIST)
+          {
             if(obp->time_now == NULL) continue;
-	    i = truncate_output_file(set->outfile_name,obp->t*world->time_unit);
-	    if (i)
-	    {
-	      fprintf(world->err_file,"Failed to prepare output file %s to receive output\n",set->outfile_name);
-	      return 1;
-	    }
-	  }
-	}
+            i = truncate_output_file(set->outfile_name,obp->t*world->time_unit);
+            if (i)
+            {
+              fprintf(world->err_file,"Failed to prepare output file %s to receive output\n",set->outfile_name);
+              return 1;
+            }
+          }
+          else
+          {
+            i = truncate_output_file(set->outfile_name,obp->t*world->time_unit);
+            if (i)
+            {
+              fprintf(world->err_file,"Failed to prepare output file %s to receive output\n",set->outfile_name);
+              return 1;
+            }
+          }
+        }
       }
- 
+    
     if (schedule_add(world->count_scheduler , obp))
     {
       fprintf(world->err_file,"File %s, Line %ld: Out of memory while setting up output.\n", __FILE__, (long)__LINE__);
@@ -768,189 +712,270 @@ int init_species(void)
   return 0;
 }
 
+/********************************************************************
+ create_storage:
 
-/* This is just a placeholder for now. */
-int init_partitions(void)
+    This is a helper function to create the storage associated with a
+    particular subdivision (i.e. an IxJxK box of subvolumes with a common
+    scheduler and common memory allocation).
+
+    When we create a storage, we need to decide how big the memory pools should
+    be.
+
+    If the memory pools are too small, you lose some of the benefits of memory
+    pooling, since your memory blocks are more scattered.  You also take on
+    extra overhead because of the extra arenas you end up allocating when you
+    need more objects than the original pool could provide.
+
+    If the memory pools are too large, you waste a lot of memory, as the memory
+    pool will allocate far more objects than you end up using.  This can be a
+    serious issue.
+
+    In the best of all possible worlds, we'd tune the memory pools to coincide
+    exactly with the peak usage of each type of object in that subdivision.
+    Unfortunately, this would require uncanny prescience.
+
+    In the absence of such foresight, this code uses a fairly dumb heuristic
+    for deciding how large the memory pools should be in a subdivision.  It
+    uses the number of subvolumes in the subdivision to set the size.  This
+    seems, in practice, to be adequate.  It's almost certain that we can
+    improve upon it.
+
+    A fairly simple improvement here might multiply the arena sizes by
+    different factors depending upon the type of object.  There will likely be
+    an approximate relation between, say, the number of edges and the number of
+    walls (roughly a factor of 1.5 for triangular walls on a manifold surface).
+
+    Another possible improvement here might be to adaptively size the memory
+    arenas in the pooled allocators as we create objects.  The first arena may
+    be small, but each subsequent arena would be larger.
+
+    Obviously, there are many more complicated things we could do, but it's not
+    clear that they would gain us much.
+
+    In:  int nsubvols - how many subvolumes will share this storage
+    Out: A freshly allocated storage with initialized memory pools, or NULL if
+         memory allocation fails.  Program state remains valid upon failure of
+         this function.
+ *******************************************************************/
+static struct storage *create_storage(int nsubvols)
 {
-  int i,j,k,h;
-  struct vector3 part_lo,part_hi;
-  struct subvolume *sv;
-  struct storage *shared_mem;
-  
-  if (world->bb_llf.x >= world->bb_urb.x)
-  {
-    part_lo.x = -10.0;
-    part_hi.x = 10.0;
-  }
-  else
-  {
-    part_lo.x = world->bb_llf.x;
-    part_hi.x = world->bb_urb.x;
-  }
-  if (world->bb_llf.y >= world->bb_urb.y)
-  {
-    part_lo.y = -10.0;
-    part_hi.y = 10.0;
-  }
-  else
-  {
-    part_lo.y = world->bb_llf.y;
-    part_hi.y = world->bb_urb.y;
-  }
-  if (world->bb_llf.z >= world->bb_urb.z)
-  {
-    part_lo.z = -10.0;
-    part_hi.z = 10.0;
-  }
-  else
-  {
-    part_lo.z = world->bb_llf.z;
-    part_hi.z = world->bb_urb.z;
-  }
-
-/* Cheating for now. */  
-  part_lo.x = -1.1;
-  part_hi.x = 1.01;
-  part_lo.y = -1.1;
-  part_hi.y = 1.01;
-  part_lo.z = -1.1;
-  part_hi.z = 1.01;
-
-  part_lo.x *= (1.0+EPS_C) * world->r_length_unit;
-  part_lo.y *= (1.0+EPS_C) * world->r_length_unit;
-  part_lo.z *= (1.0+EPS_C) * world->r_length_unit;
-  part_hi.x *= (1.0+EPS_C) * world->r_length_unit;
-  part_hi.y *= (1.0+EPS_C) * world->r_length_unit;
-  part_hi.z *= (1.0+EPS_C) * world->r_length_unit;
-  
-  
-#if 0
-  world->nx_parts = 11;
-
-  if (world->nx_parts < 4) world->nx_parts = 4;
-  
-  world->ny_parts = world->nz_parts = world->nx_parts;
-  
-  world->x_partitions = (double*)malloc(sizeof(double)*world->nx_parts);
-  world->y_partitions = (double*)malloc(sizeof(double)*world->ny_parts);
-  world->z_partitions = (double*)malloc(sizeof(double)*world->nz_parts);
-
-  world->x_partitions[0] = - GIGANTIC;
-  world->x_partitions[1] = part_lo.x;
-  world->x_partitions[world->nx_parts-2] = part_hi.x;
-  world->x_partitions[world->nx_parts-1] = GIGANTIC;
-
-  world->y_partitions[0] = - GIGANTIC;
-  world->y_partitions[1] = part_lo.y;
-  world->y_partitions[world->ny_parts-2] = part_hi.y;
-  world->y_partitions[world->ny_parts-1] = GIGANTIC;
-
-  world->z_partitions[0] = - GIGANTIC;
-  world->z_partitions[1] = part_lo.z;
-  world->z_partitions[world->nz_parts-2] = part_hi.z;
-  world->z_partitions[world->nz_parts-1] = GIGANTIC;
-
-  for (i=2;i<world->n_parts-2;i++)
-  {
-    frac = ((double)(i-1)) / ((double)(world->n_parts-3));
-    world->x_partitions[i] = part_lo.x + frac*(part_hi.x - part_lo.x);
-    world->y_partitions[i] = part_lo.y + frac*(part_hi.y - part_lo.y);
-    world->z_partitions[i] = part_lo.z + frac*(part_hi.z - part_lo.z);
-  }
-    
-  world->n_fineparts = world->n_parts;
-  world->x_fineparts = world->x_partitions;
-  world->y_fineparts = world->y_partitions;
-  world->z_fineparts = world->z_partitions;
-#endif
-
-  if (set_partitions()) return 1;
-  
-  world->n_waypoints = 1;
-  if((world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint*)*world->n_waypoints)) == NULL)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: out of memory while initializing partitions.\n", __FILE__, (long)__LINE__);
-    exit(EXIT_FAILURE);
-  }
-  
+  struct storage *shared_mem = NULL;
   if((shared_mem = (struct storage*)malloc(sizeof(struct storage))) == NULL)
   {
     fprintf(world->err_file,"File '%s', Line %ld: out of memory while initializing partitions.\n", __FILE__, (long)__LINE__);
-    exit(EXIT_FAILURE);
+    return NULL;
   }
-  
-  shared_mem->list = create_mem(sizeof(struct wall_list),128);
-  shared_mem->mol  = create_mem(sizeof(struct volume_molecule),128);
-  shared_mem->gmol  = create_mem(sizeof(struct grid_molecule),128);
-  shared_mem->face = create_mem(sizeof(struct wall),128);
-  shared_mem->join = create_mem(sizeof(struct edge),128);
-  shared_mem->tree = create_mem(sizeof(struct vertex_tree),128);
-  shared_mem->grids = create_mem(sizeof(struct surface_grid),128);
-  shared_mem->coll = create_mem(sizeof(struct collision),128);
-  shared_mem->sp_coll = create_mem(sizeof(struct sp_collision),128);
-  shared_mem->tri_coll = create_mem(sizeof(struct tri_collision),128);
-  shared_mem->regl = create_mem(sizeof(struct region_list),128);
-  shared_mem->exdv = create_mem(sizeof(struct exd_vertex),64);
-  
-  if (shared_mem->list==NULL ||
-      shared_mem->mol==NULL  || shared_mem->gmol==NULL ||
-      shared_mem->face==NULL || shared_mem->join==NULL ||
-      shared_mem->tree==NULL || shared_mem->grids==NULL ||
-      shared_mem->coll==NULL || shared_mem->sp_coll==NULL ||
-      shared_mem->tri_coll==NULL ||shared_mem->regl==NULL || 
-      shared_mem->exdv==NULL)
+  memset(shared_mem, 0, sizeof(struct storage));
+
+  if (nsubvols < 8) nsubvols = 8;
+  if (nsubvols > 4096) nsubvols = 4096;
+  /* We should tune the algorithm for selecting allocation block sizes.  */
+  /* XXX: Round up to power of 2?  Shouldn't matter, I think. */
+  if ((shared_mem->list  = create_mem_named(sizeof(struct wall_list),nsubvols,"wall list")) == NULL) goto failure;
+  if ((shared_mem->mol   = create_mem_named(sizeof(struct volume_molecule),nsubvols,"vol mol")) == NULL) goto failure;
+  if ((shared_mem->gmol  = create_mem_named(sizeof(struct grid_molecule),nsubvols,"grid mol")) == NULL) goto failure;
+  if ((shared_mem->face  = create_mem_named(sizeof(struct wall),nsubvols,"wall")) == NULL) goto failure;
+  if ((shared_mem->join  = create_mem_named(sizeof(struct edge),nsubvols,"edge")) == NULL) goto failure;
+  if ((shared_mem->tree  = create_mem_named(sizeof(struct vertex_tree),nsubvols,"vertex tree")) == NULL) goto failure;
+  if ((shared_mem->grids = create_mem_named(sizeof(struct surface_grid),nsubvols,"surface grid")) == NULL) goto failure;
+  if ((shared_mem->regl  = create_mem_named(sizeof(struct region_list),nsubvols,"region list")) == NULL) goto failure;
+  if ((shared_mem->pslv  = create_mem_named(sizeof(struct per_species_list),32,"per species list")) == NULL) goto failure;
+  shared_mem->coll = world->coll_mem;
+  shared_mem->sp_coll = world->sp_coll_mem;
+  shared_mem->tri_coll = world->tri_coll_mem;
+  shared_mem->exdv = world->exdv_mem;
+
+  if (world->chkpt_init)
   {
-    fprintf(world->err_file,"File '%s', Line %ld: out of memory while initializing partitions.\n", __FILE__, (long)__LINE__);
-    exit(EXIT_FAILURE);
+    if ((shared_mem->timer = create_scheduler(1.0,100.0,100,0.0)) == NULL)
+      goto failure;
+    shared_mem->current_time = 0.0;
   }
-  
-  shared_mem->wall_head = NULL;
-  shared_mem->wall_count = 0;
-  shared_mem->vert_head = NULL;
-  shared_mem->vert_count = 0;
- 
- if(world->chkpt_init)
- {
-     if((shared_mem->timer = create_scheduler(1.0,100.0,100,0.0)) == NULL){
-	fprintf(world->err_file,"File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        int i = emergency_output();
-	fprintf(world->err_file,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-     }
-     shared_mem->current_time = 0.0;
-  }
-  
+
   if (world->time_step_max==0.0) shared_mem->max_timestep = MICROSEC_PER_YEAR;
   else
   {
     if (world->time_step_max < world->time_unit) shared_mem->max_timestep = 1.0;
     else shared_mem->max_timestep = world->time_step_max/world->time_unit;
   }
+
+  return shared_mem;
+
+failure:
+  if (shared_mem)
+  {
+    if (shared_mem->timer) delete_scheduler(shared_mem->timer);
+    if (shared_mem->list)  delete_mem(shared_mem->list);
+    if (shared_mem->mol)   delete_mem(shared_mem->mol);
+    if (shared_mem->gmol)  delete_mem(shared_mem->gmol);
+    if (shared_mem->face)  delete_mem(shared_mem->face);
+    if (shared_mem->join)  delete_mem(shared_mem->join);
+    if (shared_mem->tree)  delete_mem(shared_mem->tree);
+    if (shared_mem->grids) delete_mem(shared_mem->grids);
+    if (shared_mem->regl)  delete_mem(shared_mem->regl);
+    free(shared_mem);
+  }
+
+  fprintf(world->err_file,"File '%s', Line %ld: out of memory while initializing partitions.\n", __FILE__, (long)__LINE__);
+  return NULL;
+}
+
+/********************************************************************
+ init_partitions:
+
+    Initialize the partitions for the simulation.
+
+    When we create a storage, we need to decide how big the memory pools should
+    be.
+
+    If the memory pools are too small, you lose some of the benefits of memory
+    pooling, since your memory blocks are more scattered.  You also take on
+    extra overhead because of the extra arenas you end up allocating when you
+    need more objects than the original pool could provide.
+
+    If the memory pools are too large, you waste a lot of memory, as the memory
+    pool will allocate far more objects than you end up using.  This can be a
+    serious issue.
+
+    In the best of all possible worlds, we'd tune the memory pools to coincide
+    exactly with the peak usage of each type of object in that subdivision.
+    Unfortunately, this would require uncanny prescience.
+
+    In the absence of such foresight, this code uses a fairly dumb heuristic
+    for deciding how large the memory pools should be in a subdivision.  It
+    uses the number of subvolumes in the subdivision to set the size.  This
+    seems, in practice, to be adequate.  It's almost certain that we can
+    improve upon it.
+
+    A fairly simple improvement here might multiply the arena sizes by
+    different factors depending upon the type of object.  There will likely be
+    an approximate relation between, say, the number of edges and the number of
+    walls (roughly a factor of 1.5 for triangular walls on a manifold surface).
+
+    Another possible improvement here might be to adaptively size the memory
+    arenas in the pooled allocators as we create objects.  The first arena may
+    be small, but each subsequent arena would be larger.
+
+    Obviously, there are many more complicated things we could do, but it's not
+    clear that they would gain us much.
+
+    In:  int nsubvols - how many subvolumes will share this storage
+    Out: A freshly allocated storage with initialized memory pools, or NULL if
+         memory allocation fails.  Program state remains valid upon failure of
+         this function.
+ *******************************************************************/
+int init_partitions(void)
+{
+  int i,j,k,h;
+  struct subvolume *sv;
+
+  /* Initialize the partitions, themselves */
+  if (set_partitions()) return 1;
   
-  if((world->storage_allocator = create_mem(sizeof(struct storage_list),10)) == NULL)
+  /* Initialize dummy waypoints (why do we do this?) */
+  world->n_waypoints = 1;
+  if((world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint*)*world->n_waypoints)) == NULL)
+  {
+    fprintf(world->err_file,"File '%s', Line %ld: out of memory while initializing partitions.\n", __FILE__, (long)__LINE__);
+    exit(EXIT_FAILURE);
+  }
+
+  /* Allocate the subvolumes */
+  world->n_subvols = (world->nz_parts-1) * (world->ny_parts-1) * (world->nx_parts-1);
+  printf("Creating %d subvolumes (%d,%d,%d per axis)\n",world->n_subvols,world->nx_parts-1,world->ny_parts-1,world->nz_parts-1);
+  if ((world->subvol = (struct subvolume*)malloc(sizeof(struct subvolume)*world->n_subvols)) == NULL)
+  {
+        fprintf(world->err_file,"File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
+        int i = emergency_output();
+        fprintf(world->err_file,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
+  }
+
+  /* Decide how fine-grained to make the memory subdivisions */
+  int subdivisions_per_storage = 0;
+  char *env = getenv("SUBDIVISIONS_PER_STORAGE");
+  if (env != NULL)
+    subdivisions_per_storage = atoi(env);
+  if (subdivisions_per_storage == 0)
+    subdivisions_per_storage = 14;
+
+  /* Allocate the data structures which are shared between storages */
+  if ((world->coll_mem  = create_mem_named(sizeof(struct collision),128,"collision")) == NULL)
+  {
+    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
+    exit(EXIT_FAILURE);
+  }
+  if ((world->sp_coll_mem  = create_mem_named(sizeof(struct sp_collision),128,"sp collision")) == NULL)
+  {
+    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
+    exit(EXIT_FAILURE);
+  }
+  if ((world->tri_coll_mem  = create_mem_named(sizeof(struct tri_collision),128,"tri collision")) == NULL)
+  {
+    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
+    exit(EXIT_FAILURE);
+  }
+  if ((world->exdv_mem  = create_mem_named(sizeof(struct exd_vertex),64,"exact disk vertex")) == NULL)
+  {
+    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
+    exit(EXIT_FAILURE);
+  }
+
+  /* How many storage subdivisions along each axis? */
+  int nx = (world->nx_parts + (subdivisions_per_storage) - 2) / (subdivisions_per_storage);
+  int ny = (world->ny_parts + (subdivisions_per_storage) - 2) / (subdivisions_per_storage);
+  int nz = (world->nz_parts + (subdivisions_per_storage) - 2) / (subdivisions_per_storage);
+
+  /* Create memory pool for storages */
+  if((world->storage_allocator = create_mem_named(sizeof(struct storage_list),nx*ny*nz,"storage allocator")) == NULL)
   {
 	fprintf(world->err_file,"File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         int i = emergency_output();
 	fprintf(world->err_file,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
         exit(EXIT_FAILURE);
   }
-  if((world->storage_head = (struct storage_list*)mem_get(world->storage_allocator)) == NULL) {
-	fprintf(world->err_file,"File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        int i = emergency_output();
-	fprintf(world->err_file,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
+
+  /* Allocate the storages */
+  struct storage *shared_mem[nx*ny*nz];
+  int cx = 0, cy = 0, cz = 0;
+  for (i=0; i<nx*ny*nz; ++i)
+  {
+    /* Determine the number of subvolumes included in this subdivision */
+    int xd = subdivisions_per_storage, yd = subdivisions_per_storage, zd = subdivisions_per_storage;
+    if (cx == nx-1)
+      xd = (world->nx_parts - 1) % subdivisions_per_storage;
+    if (cy == ny-1)
+      yd = (world->ny_parts - 1) % subdivisions_per_storage;
+    if (cz == nz-1)
+      zd = (world->nz_parts - 1) % subdivisions_per_storage;
+    if (++ cx == nx)
+    {
+      cx = 0;
+      if (++ cy == ny)
+      {
+        cy = 0;
+        ++ cz;
+      }
+    }
+
+    /* Allocate this storage */
+    if ((shared_mem[i] = create_storage(xd*yd*zd)) == NULL)
+      exit(EXIT_FAILURE);
+
+    /* Add to the storage list */
+    struct storage_list *l = (struct storage_list*)mem_get(world->storage_allocator);
+    if (l == NULL)
+    {
+      fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
+      exit(EXIT_FAILURE);
+    }
+    l->next = world->storage_head;
+    l->store = shared_mem[i];
+    world->storage_head = l;
   }
-  world->storage_head->next = NULL;
-  world->storage_head->store = shared_mem;
-  
-  world->n_subvols = (world->nz_parts-1) * (world->ny_parts-1) * (world->nx_parts-1);
-  printf("Creating %d subvolumes (%d,%d,%d per axis)\n",world->n_subvols,world->nx_parts-1,world->ny_parts-1,world->nz_parts-1);
-  if((world->subvol = (struct subvolume*)malloc(sizeof(struct subvolume)*world->n_subvols)) == NULL){
-	fprintf(world->err_file,"File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        int i = emergency_output();
-	fprintf(world->err_file,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-  }
+
+  /* Initialize each subvolume */
   for (i=0;i<world->nx_parts-1;i++)
   for (j=0;j<world->ny_parts-1;j++)
   for (k=0;k<world->nz_parts-1;k++)
@@ -958,11 +983,9 @@ int init_partitions(void)
     h = k + (world->nz_parts-1)*(j + (world->ny_parts-1)*i);
     sv = & (world->subvol[ h ]);
     sv->wall_head = NULL;
-    sv->wall_count = 0;
-    sv->mol_head = NULL;
+    memset(&sv->mol_by_species, 0, sizeof(struct pointer_hash));
+    sv->species_head = NULL;
     sv->mol_count = 0;
-    
-    sv->index = h;
     
     sv->llf.x = bisect_near( world->x_fineparts , world->n_fineparts , world->x_partitions[i] );
     sv->llf.y = bisect_near( world->y_fineparts , world->n_fineparts , world->y_partitions[j] );
@@ -1004,13 +1027,13 @@ int init_partitions(void)
     else sv->neighbor[Z_POS] = &(world->subvol[ h + 1 ]);
        */
 
-    sv->local_storage = shared_mem;
+    /* Bind this subvolume to the appropriate storage */
+    int shidx = (i / (subdivisions_per_storage)) + nx * (j / (subdivisions_per_storage) + ny * (k / (subdivisions_per_storage)));
+    sv->local_storage = shared_mem[shidx];
   }
   
   return 0;
 }
-
-
 
 /**
  * Initializes the geometry of the world.
@@ -1479,7 +1502,6 @@ int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_n
 }
 
 
-
 /**
  * Instantiates a polygon_object.
  * Creates walls from a template polygon_object or box object
@@ -1631,7 +1653,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
       wp[i]=NULL;
     }
   }
-  if (degenerate_count) remove_gaps_from_regions(objp);
+  if (degenerate_count) mdl_remove_gaps_from_regions(objp);
   
   objp->total_area=total_area;
   
@@ -1644,7 +1666,14 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
 }
 
 
+/********************************************************************
+ init_regions:
 
+    Traverse the world initializing regions on each object.
+
+    In:  none
+    Out: 0 on success, 1 on failure
+ *******************************************************************/
 int init_regions()
 {
   if (world->clamp_list!=NULL) init_clamp_lists();
@@ -1883,10 +1912,10 @@ int init_wall_regions(struct object *objp, char *full_name)
                 }
                 memcpy(temp,ccd,sizeof(struct ccn_clamp_data));
                 temp->objp = objp;
-                ccd->sides = NULL;
-                ccd->n_sides = 0;
-                ccd->side_idx = NULL;
-                ccd->cum_area = NULL;
+                temp->sides = NULL;
+                temp->n_sides = 0;
+                temp->side_idx = NULL;
+                temp->cum_area = NULL;
                 ccd->next_obj = temp;
                 ccd = temp;
               }
@@ -1966,6 +1995,14 @@ int init_wall_regions(struct object *objp, char *full_name)
 
 
 
+/********************************************************************
+ init_effectors:
+
+    Traverse the world placing grid molecules.
+
+    In:  none
+    Out: 0 on success, 1 on failure
+ *******************************************************************/
 int init_effectors()
 {
   if (instance_obj_effectors(world->root_instance)) return 1;
@@ -1973,6 +2010,14 @@ int init_effectors()
 }
 
 
+/********************************************************************
+ instance_obj_effectors:
+
+    Place any appropriate grid molecules on this object and/or its children.
+
+    In:  struct object *objp - the object upon which to instantiate molecules
+    Out: 0 on success, 1 on failure
+ *******************************************************************/
 int instance_obj_effectors(struct object *objp)
 {
   struct object *child_objp;
@@ -1999,6 +2044,15 @@ int instance_obj_effectors(struct object *objp)
 }
 
 
+/********************************************************************
+ init_wall_effectors:
+
+    Place any appropriate grid molecules on this wall.  The object passed in
+    must be a box or a polygon.
+
+    In:  struct object *objp - the object upon which to instantiate molecules
+    Out: 0 on success, 1 on failure
+ *******************************************************************/
 int init_wall_effectors(struct object *objp)
 {
   FILE *log_file;
@@ -2006,9 +2060,10 @@ int init_wall_effectors(struct object *objp)
   struct wall *w;
   struct eff_dat *effdp,*dup_effdp,**eff_prop;
   struct region *rp;
-  struct region_list *rlp,*rlp2,*reg_eff_num_head;
+  struct region_list *rlp,*rlp2,*reg_eff_num_head,*complex_head;
   int i,n_walls;
   byte reg_eff_num;
+  byte complex_eff;
 
   log_file=world->log_file;
 
@@ -2028,12 +2083,16 @@ int init_wall_effectors(struct object *objp)
   /* prepend a copy of eff_dat for each element referenced in each region
      of this object to the eff_prop list for the referenced element */
   reg_eff_num_head=NULL;
-  rlp=objp->regions;
+
+  /* List of regions which need macromol processing */
+  complex_head=NULL;
   
+  rlp=objp->regions;
   for (rlp=objp->regions ; rlp!=NULL ; rlp=rlp->next)
   {
     rp=rlp->reg;
     reg_eff_num=0;
+    complex_eff=0;
 
     for (i=0;i<rp->membership->nbits;i++)
     {
@@ -2044,7 +2103,9 @@ int init_wall_effectors(struct object *objp)
 	/* prepend region eff data for this region to eff_prop for i_th wall */
         for ( effdp=rp->eff_dat_head ; effdp!=NULL ; effdp=effdp->next )
 	{
-	  if (effdp->quantity_type==EFFDENS)
+          if (effdp->eff->flags & IS_COMPLEX)
+            complex_eff = 1;
+          else if (effdp->quantity_type==EFFDENS)
 	  {
 	    if ((dup_effdp=(struct eff_dat *)malloc(sizeof(struct eff_dat)))==NULL)
 	    {
@@ -2066,7 +2127,9 @@ int init_wall_effectors(struct object *objp)
 	{
 	  for ( effdp=w->surf_class->eff_dat_head ; effdp!=NULL ; effdp=effdp->next )
 	  {
-	    if (effdp->quantity_type==EFFDENS)
+            if (effdp->eff->flags & IS_COMPLEX)
+              complex_eff = 1;
+            else if (effdp->quantity_type==EFFDENS)
 	    {
 	      if ((dup_effdp=(struct eff_dat *)malloc(sizeof(struct eff_dat)))==NULL)
 	      {
@@ -2087,7 +2150,18 @@ int init_wall_effectors(struct object *objp)
       }
     } /* done checking each wall */
     
-    if (reg_eff_num)
+    if (complex_eff)
+    {
+      if ((rlp2=(struct region_list *)malloc(sizeof(struct region_list)))==NULL)
+      {
+	fprintf(world->err_file,"File '%s', Line %ld: Out of memory, can't place regions on geometry.\n", __FILE__, (long)__LINE__);
+	return 1;
+      }
+      rlp2->reg=rp;
+      rlp2->next=complex_head;
+      complex_head=rlp2;
+    }
+    else if (reg_eff_num)
     {
       if ((rlp2=(struct region_list *)malloc(sizeof(struct region_list)))==NULL)
       {
@@ -2100,6 +2174,25 @@ int init_wall_effectors(struct object *objp)
     }
   } /*end for (... ; rlp != NULL ; ...) */
 
+  /* Place macromolecular complexes, if any */
+  if (complex_head!=NULL)
+  {
+    if (init_complex_effectors(objp, complex_head))
+    {
+      return 1;
+    }
+    
+    /* free list of regions with complex effectors */
+    rlp=complex_head;
+    while(rlp!=NULL)
+    {
+      rlp2=rlp;
+      rlp=rlp->next;
+      free(rlp2);
+    }
+  }
+
+  /* Place regular (non-macro) molecules by density */
   for (i=0;i<n_walls;i++)
   {
     if (!get_bit(pop->side_removed,i))
@@ -2111,6 +2204,7 @@ int init_wall_effectors(struct object *objp)
     }
   }
 
+  /* Place regular (non-macro) molecules by number */
   if (reg_eff_num_head!=NULL)
   {
     if (init_effectors_by_number(objp,reg_eff_num_head)) {
@@ -2147,7 +2241,230 @@ int init_wall_effectors(struct object *objp)
   return(0);
 }
 
+/********************************************************************
+ init_effectors_place_complex:
 
+    Place a surface macromolecule on this wall.  Note that if a region is
+    specified, the release will constrain all subunits to be within the region.
+    Technically, it constrains the release to only occur if the path from the
+    macromolecule's origin to the location of each subunit does not leave the
+    region.  In practice, the distinction is unlikely to be important.
+
+    In:  struct wall *w - the wall upon which to instantiate molecule
+         struct region *rp - the region in which to instantiate molecule, or
+                    NULL if the molecule is not restricted to a single region
+         struct eff_dat const *effdp - description of what to release
+    Out: 0 on success, 1 on failure
+
+    Program state is not corrupted if this fails; either the entire
+    macromolecule is released, or none of it is.
+ *******************************************************************/
+static int init_effectors_place_complex(struct wall *w,
+                                        struct region *rp,
+                                        struct eff_dat const *effdp)
+{
+  struct grid_molecule *gp;
+  int grid_idx;
+  double p;
+  short orient = effdp->orientation;
+
+  /* Pick orientation */
+  if (orient == 0)
+  {
+    orient = (rng_uint(world->rng) & 1) ? 1 : -1;
+    if (world->notify->final_summary == NOTIFY_FULL)
+    {
+      world->random_number_use++;
+    }
+  }
+
+  /* Pick location on wall */
+  p = rng_dbl(world->rng);
+  grid_idx = p * (double) (w->grid->n * w->grid->n);
+  if (grid_idx >= w->grid->n_tiles)
+    grid_idx = w->grid->n_tiles - 1;
+
+  gp = macro_insert_molecule_grid_2(effdp->eff, orient, w, grid_idx, 0.0, rp, NULL);
+  return (gp != NULL) ? 0 : 1;
+}
+
+/********************************************************************
+ init_effectors_place_complexes:
+
+    Place any appropriate surface macromolecules on these walls.  Note that if
+    a region is specified, the release will constrain all subunits to be within
+    the region.  Technically, it constrains each molecule release to only occur
+    if the path from the macromolecule's origin to the location of each subunit
+    within its complex lies entirely within the region.  In practice, the
+    distinction is unlikely to be important most of the time.
+
+    In:  int n_to_place - how many to release
+         int nwalls - upon how many walls do we release?
+         double *weights - array of cumulative areas for the first n walls in
+                  the walls array; used for weighted samping of the area
+         struct wall * const *walls - the walls upon which to release
+         struct region *rp - the region in which to instantiate molecules, or
+                    NULL if the molecule is not restricted to a single region
+         struct eff_dat const *effdp - description of what to release
+    Out: 0 on success, 1 on failure
+
+    Program state is not corrupted if this fails.  This may release fewer
+    macromolecules than the user intended, if, for instance, we run out of
+    space, but it will never leave partial complexes lying around.
+
+    N.B. We may need to revisit the failure criteria and the retry behavior
+         here.
+ *******************************************************************/
+static int init_effectors_place_complexes(int n_to_place,
+                                          int nwalls,
+                                          double *weights,
+                                          struct wall * const *walls,
+                                          struct region *rp,
+                                          struct eff_dat const *effdp)
+{
+  /* How many times do we try each placement before we give up? */
+  static const int MAX_TRIES = 25;
+
+  if (nwalls <= 0)
+    return 1;
+
+  double max_weight = weights[nwalls - 1];
+  int n_failures = 0;
+  int n_total = n_to_place;
+  while (n_to_place > 0)
+  {
+    int num_tries = MAX_TRIES;
+    int chosen_wall = 0;
+    double p = rng_dbl(world->rng) * max_weight;
+
+    /* Pick a wall */
+    if (world->notify->final_summary == NOTIFY_FULL)
+      world->random_number_use++;
+    chosen_wall = bisect_high(weights, nwalls, p);
+
+    /* Try to find a spot for the release */
+    while (-- num_tries >= 0)
+    {
+      if (! init_effectors_place_complex(walls[chosen_wall], rp, effdp))
+        break;
+    }
+
+    if (num_tries >= 0)
+      -- n_to_place;
+    else
+    {
+      /* XXX: What criteria? */
+      if (++ n_failures > 100)
+      {
+        fprintf(world->log_file,"\nMCell: Warning -- Unable to place some surface complexes of species '%s' (placed %d of %d).\n\n", effdp->eff->sym->name, n_total - n_to_place, n_total);
+        fflush(world->log_file);
+        break;
+      }
+    }
+  }
+
+  return 0;
+}
+
+/********************************************************************
+ init_complex_effectors:
+
+    Place surface macromolecules on all walls on the specified object.
+
+    In:  int n_to_place - how many to release
+         int nwalls - upon how many walls do we release?
+         double *weights - array of cumulative areas for the first n walls in
+                  the walls array; used for weighted samping of the area
+         struct wall * const *walls - the walls upon which to release
+         struct region *rp - the region in which to instantiate molecules, or
+                    NULL if the molecule is not restricted to a single region
+         struct eff_dat const *effdp - description of what to release
+    Out: 0 on success, 1 on failure
+
+    Program state is not corrupted if this fails.  This may release fewer
+    macromolecules than the user intended, if, for instance, we run out of
+    space, but it will never leave partial complexes lying around.
+
+    N.B. We may need to revisit the failure criteria and the retry behavior
+         here.
+ *******************************************************************/
+static int init_complex_effectors(struct object *objp, struct region_list *head)
+{
+  /* Do not place molecules if we're restoring from a checkpoint */
+  if (world->chkpt_init == 0)
+    return 0;
+
+  /* Now, handle each region release */
+  for (; head != NULL; head = head->next)
+  {
+    struct wall *w = NULL;                      /* current wall */
+    struct region *rp = head->reg;              /* current region */
+    double total_area = 0.0;                    /* cumulative wall area so far */
+    struct wall *walls[rp->membership->nbits];  /* walls in region */
+    double weights[rp->membership->nbits];      /* cumulative area for walls array */
+    int num_fill = 0;                           /* num walls in array so far */
+    int avail_slots = 0;                        /* num free slots for molecules */
+
+    /* Collect all walls in this region */
+    int i;
+    for (i=0; i<rp->membership->nbits; ++i)
+    {
+      if (get_bit(rp->membership, i))
+      {
+        w = objp->wall_p[i];
+        if (w->grid == NULL  &&  create_grid(w, NULL))
+          return 1;
+
+        walls[num_fill] = w;
+        weights[num_fill] = total_area += w->area;
+        avail_slots += w->grid->n_tiles - w->grid->n_occupied;
+        ++ num_fill;
+      }
+    }
+
+    /* Process each mol. type to release on this region */
+    struct eff_dat *effdp;
+    for (effdp = rp->eff_dat_head; effdp != NULL; effdp = effdp->next)
+    {
+      int n_to_place;
+
+      /* Skip it if it isn't a macromol */
+      if ((effdp->eff->flags & IS_COMPLEX) == 0)
+        continue;
+
+      /* Compute the total number to distribute in this region */
+      if (effdp->quantity_type == EFFNUM)
+        n_to_place = (int) (effdp->quantity + 0.5);
+      else if (effdp->quantity_type == EFFDENS)
+        n_to_place = (int) (effdp->quantity * total_area + 0.5);
+      else
+      {
+        fprintf(world->err_file, "File '%s', Line %ld: Unknown effector quantity type, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
+        int i = emergency_output();
+        fprintf(world->err_file, "Fatal error: Unknown effector quantity type.\nAttempt to write intermediate results had %d errors.\n", i);
+        exit(EXIT_FAILURE);
+      }
+
+      /* Place them */
+      if (init_effectors_place_complexes(n_to_place, num_fill, weights, walls, rp, effdp))
+        return 1;
+    }
+  }
+  return 0;
+}
+
+/********************************************************************
+ init_effectors_by_density:
+
+    Place surface molecules on the specified wall.  This occurs after placing
+    surface macromolecules, but before placing surface molecules by number.
+    This is done by computing a per-tile probability, and releasing a molecule
+    onto each tile with the appropriate probability.
+
+    In:  struct wall *w - wall upon which to place
+         struct eff_dat *effdp - description of what to release
+    Out: 0 on success, 1 on failure
+ *******************************************************************/
 int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
 {
   FILE *log_file;
@@ -2160,6 +2477,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
   unsigned int i,j,n,nr,n_occupied;
   int p_index;
   double rand,*prob,area,tot_prob,tot_density;
+  struct subvolume *gsv = NULL;
 
   log_file=world->log_file;
 
@@ -2242,8 +2560,11 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
   }
 
   n_occupied=0;
-  for (i=0;i<n;i++) {
-    if (world->chkpt_init) {
+  if (world->chkpt_init) {
+    for (i=0;i<n;i++) {
+      if (sg->mol[i] != NULL)
+        continue;
+
       j=0;
       p_index=-1;
       rand = rng_dbl(world->rng);
@@ -2256,9 +2577,16 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
         }
       }
       if (p_index!=-1) {
+        struct vector2 s_pos;
+        struct vector3 pos3d;
         n_occupied++;
         eff[p_index]->population++;
-        mol=(struct grid_molecule *)mem_get(w->birthplace->gmol);
+
+	if (world->randomize_gmol_pos) grid2uv_random(sg,i,&s_pos);
+	else grid2uv(sg,i,&s_pos);
+        uv2xyz(&s_pos, w, &pos3d);
+        gsv = find_subvolume(&pos3d, gsv);
+        mol=(struct grid_molecule *)mem_get(gsv->local_storage->gmol);
         if(mol == NULL){
 			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         		int i = emergency_output();
@@ -2269,12 +2597,12 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
         mol->t=0;
         mol->t2=0;
 	mol->birthday = 0;
-
+        mol->cmplx = NULL;
+        mol->s_pos.u = s_pos.u;
+        mol->s_pos.v = s_pos.v;
         mol->properties=eff[p_index];
         mol->birthplace=w->birthplace->gmol;
         mol->grid_index=i;
-	if (world->randomize_gmol_pos) grid2uv_random(sg,i,&(mol->s_pos));
-	else grid2uv(sg,i,&(mol->s_pos));
         mol->orient=orientation[p_index];
         mol->grid=sg;
 
@@ -2284,11 +2612,12 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
 	     || (eff[p_index]->flags&CAN_GRIDWALL)!=0 ) {
           mol->flags|=ACT_REACT;
         }
+        if ((mol->properties->flags&COUNT_ENCLOSED) != 0) mol->flags |= COUNT_ME;
 
         if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
           count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
       
-        if (schedule_add(w->birthplace->timer,mol)){ 
+        if (schedule_add(gsv->local_storage->timer,mol)){ 
 		fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         	int i = emergency_output();
 		fprintf(world->err_file, "Fatal error: out of memory while effectors by density intialization.\nAttempt to write intermediate results had %d errors.\n", i);
@@ -2317,7 +2646,16 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
 }
 
 
+/********************************************************************
+ init_effectors_by_number:
 
+    Place surface molecules on the specified object.  This occurs after placing
+    surface macromolecules, and after placing surface molecules by density.
+
+    In:  struct object *objp - object upon which to place
+         struct region_list *reg_eff_num_head - list of what to place
+    Out: 0 on success, 1 on failure
+ *******************************************************************/
 int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_num_head)
 {
   FILE *log_file;
@@ -2336,6 +2674,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
   unsigned int n_free_eff,n_set,n_clear;
   unsigned int i,j,k;
   byte done;
+  struct subvolume *gsv=NULL;
+  struct vector3 pos3d;
 
     no_printf("Initializing effectors by number...\n");
 
@@ -2483,8 +2823,14 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
               fflush(stdout);
               for (j=0;j<n_free_eff;j++) {
                 if (*tiles[j]==bread_crumb) {
+                  struct vector2 s_pos;
+		  if (world->randomize_gmol_pos) grid2uv_random(walls[j]->grid,index[j],&s_pos);
+		  else grid2uv(walls[j]->grid,index[j],&s_pos);
+                  uv2xyz(&s_pos, walls[j], &pos3d);
+                  gsv = find_subvolume(&pos3d, gsv);
+
                   mol=(struct grid_molecule *)
-                    mem_get(walls[j]->birthplace->gmol);
+                    mem_get(gsv->local_storage->gmol);
                   if (mol == NULL){
 			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         		int i = emergency_output();
@@ -2498,8 +2844,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   mol->properties=eff;
                   mol->birthplace=walls[j]->birthplace->gmol;
                   mol->grid_index=index[j];
-		  if (world->randomize_gmol_pos) grid2uv_random(walls[j]->grid,index[j],&(mol->s_pos));
-		  else grid2uv(walls[j]->grid,index[j],&(mol->s_pos));
+                  mol->s_pos.u = s_pos.u;
+                  mol->s_pos.v = s_pos.v;
                   /*mol->orient = (orientation==0) ? ((rng_uint(world->rng)&1)?1:-1) : orientation; */
                   if(orientation == 0){
                      if((rng_uint(world->rng)&1)){
@@ -2513,6 +2859,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   }else{
                      mol->orient = orientation;
                   }
+                  mol->cmplx = NULL;
                   mol->grid=walls[j]->grid;
                   mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
 		  if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
@@ -2520,11 +2867,12 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 		      || (eff->flags&CAN_GRIDWALL)!=0 ) {
                     mol->flags|=ACT_REACT;
                   }
+                  if ((mol->properties->flags&COUNT_ENCLOSED) != 0) mol->flags |= COUNT_ME;
                   
                   if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
                     count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
       
-                  if ( schedule_add(walls[j]->birthplace->timer,mol) ){ 
+                  if ( schedule_add(gsv->local_storage->timer, mol) ){ 
 			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         		int i = emergency_output();
 			fprintf(world->err_file, "Fatal error: out of memory while effectors by number initialization.\nAttempt to write intermediate results had %d errors.\n", i);
@@ -2544,8 +2892,14 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                       world->random_number_use++;
                   }
                   if (*tiles[k]==NULL) {
+                    struct vector2 s_pos;
+                    if (world->randomize_gmol_pos) grid2uv_random(walls[k]->grid,index[k],&s_pos);
+                    else grid2uv(walls[k]->grid,index[k],&s_pos);
+                    uv2xyz(&s_pos, walls[k], &pos3d);
+                    gsv = find_subvolume(&pos3d, gsv);
+
                     mol=(struct grid_molecule *)mem_get
-                      (walls[k]->birthplace->gmol);
+                      (gsv->local_storage->gmol);
                     if (mol == NULL){
 			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         		int i = emergency_output();
@@ -2559,8 +2913,9 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     mol->properties=eff;
                     mol->birthplace=walls[k]->birthplace->gmol;
                     mol->grid_index=index[k];
-		    if (world->randomize_gmol_pos) grid2uv_random(walls[k]->grid, index[k], &(mol->s_pos));
-		    else grid2uv(walls[k]->grid,index[k],&(mol->s_pos));
+                    mol->s_pos.u = s_pos.u;
+                    mol->s_pos.v = s_pos.v;
+                    mol->cmplx = NULL;
                     /* mol->orient = (orientation==0) ? ((rng_uint(world->rng)&1)?1:-1) : orientation; */
                     if(orientation == 0){
                        if((rng_uint(world->rng)&1)){
@@ -2586,7 +2941,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
                       count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
       
-                    if ( schedule_add(walls[k]->birthplace->timer,mol) ){ 
+                    if ( schedule_add(gsv->local_storage->timer,mol) ){ 
 			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         		int i = emergency_output();
 			fprintf(world->err_file, "Fatal error: out of memory while effectors by number initialization.\nAttempt to write intermediate results had %d errors.\n", i);
@@ -3305,10 +3660,6 @@ int init_releases()
                fprintf(world->err_file, "ERROR: molecule name is not specified for the release site.\n");
                return 1;
             }
-            if(req->release_site->release_number == 0){
-               fprintf(world->err_file, "ERROR: molecule release number for the release site is either zero or not specified.\n");
-               return 1;
-            }
             if(req->release_site->diameter == NULL){
                fprintf(world->err_file, "ERROR: diameter for the geometrical shape release site is not specified.\n");
                return 1;
@@ -3328,3 +3679,4 @@ int init_releases()
   
   return 0;
 }
+

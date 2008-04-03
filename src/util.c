@@ -1519,7 +1519,7 @@ int make_parent_dir(char const *path, FILE *err_file)
       return 1;
     }
   }
- 
+
   free(pathtmp);
   return 0;
 }
@@ -1539,10 +1539,10 @@ int mkdirs(char const *path, FILE *err_file)
   char *pathtmp = strdup(path);
   char *curpos = pathtmp;
 
-  /* we need to strip leading '/' in case we have absolute paths */
+  /* we need to skip leading '/' in case we have absolute paths */
   while ((curpos != NULL) && (*curpos == '/'))
   {
-     ++curpos;
+    ++curpos;
   }
 
   while (curpos != NULL)
@@ -1553,24 +1553,27 @@ int mkdirs(char const *path, FILE *err_file)
       *nextel = '\0';
 
     /* if this directory exists */
-    if(is_dir(pathtmp)) {
-       /* Turn '\0' back to '/' */
-       if (nextel)
-       {
-         *nextel = '/';
-         curpos = nextel + 1;
-       }
-       else
-         curpos = NULL;
-    }
-    /* Make the directory */
-    if (! is_writable_dir(pathtmp))
-      if (mkdir(pathtmp, 0777) != 0)
+    if(is_dir(pathtmp))
+    {
+      /* Turn '\0' back to '/' */
+      if (nextel)
       {
-        fprintf(err_file, "Failed to create directory '%s': %s\n", path, strerror(errno));
-        free(pathtmp);
-        return 1;
+        *nextel = '/';
+        curpos = nextel + 1;
       }
+      else
+        curpos = NULL;
+      continue;
+    }
+
+    /* Make the directory */
+    if (! is_writable_dir(pathtmp)  &&
+        mkdir(pathtmp, 0777) != 0)
+    {
+      fprintf(err_file, "Failed to create directory '%s': %s\n", path, strerror(errno));
+      free(pathtmp);
+      return 1;
+    }
 
     /* Turn '\0' back to '/' */
     if (nextel)
@@ -1583,7 +1586,10 @@ int mkdirs(char const *path, FILE *err_file)
   }
 
   free(pathtmp);
-  return 0;
+  if (access(path, R_OK|W_OK|X_OK) == 0)
+    return 0;
+  else
+    return 1;
 }
 
 /*************************************************************************
@@ -2314,6 +2320,10 @@ add_to_iteration_counter:
 **************************************************************************/
 int add_to_iteration_counter(struct iteration_counter *cntr, long long iter)
 {
+  /* Don't store a time if it's the same as the last time we received */
+  if (cntr->n_iterations != 0  &&  cntr->iterations[cntr->n_iterations - 1] == iter)
+    return 0;
+
   /* Don't store times beyond the end of the buffer! */
   if (cntr->n_iterations >= cntr->max_iterations)
   {
@@ -2388,4 +2398,373 @@ int add_string_to_buffer(struct string_buffer *sb, char *str)
 
   sb->strings[sb->n_strings ++] = str;
   return 0;
+}
+
+/*******************************************************************
+ Pointer hashes implementation
+*******************************************************************/
+
+/*************************************************************************
+  Initialize a pointer hash to a given initial size.  Returns 0 on success.
+  Note that the desired table size may be exceeded.  Presently, the
+  implementation always rounds the table size up to the nearest integer power
+  of two.
+ 
+  In:  struct pointer_hash *ht - the hash table to initialize
+       int size - the desired table size
+  Out: 0 on success; 1 if memory allocation fails.
+**************************************************************************/
+int pointer_hash_init(struct pointer_hash *ht,
+                      int size)
+{
+  memset(ht, 0, sizeof(struct pointer_hash));
+
+  /* Don't allow size 0 tables.  Otherwise, the key & (tablesize-1) trick fails
+   * spectacularly.
+   */
+  if (size <= 0)
+    ++ size;
+
+  /* Fold size to next larger power of 2 if it isn't a power of 2 already */
+  if ((size) & (size-1))
+  {
+    size |= (size >> 1);
+    size |= (size >> 2);
+    size |= (size >> 4);
+    size |= (size >> 8);
+    size |= (size >> 16);
+    ++ size;
+  }
+
+  /* Initialize fields */
+  ht->num_items = 0;
+  ht->table_size = size;
+  if ((ht->hashes = (unsigned int *) malloc(sizeof(unsigned int) * size)) == NULL  ||
+      (ht->keys = (void const **) malloc(sizeof(void const *) * size)) == NULL     ||
+      (ht->values = (void **) malloc(sizeof(void *) * size)) == NULL)
+    goto failure;
+
+  /* Make sure our table starts out empty */
+  memset(ht->hashes, 0,  sizeof(unsigned int) * size);
+  memset(ht->keys, 0, sizeof(void *) * size);
+  memset(ht->values, 0, sizeof(void *) * size);
+
+  return 0;
+
+failure:
+  pointer_hash_destroy(ht);
+  return 1;
+}
+
+/*************************************************************************
+  Quickly clear all values from a pointer hash.  Does not free any memory.
+
+  In:  struct pointer_hash *ht - the hash table to clear
+  Out: hash table is empty
+**************************************************************************/
+void pointer_hash_clear(struct pointer_hash *ht)
+{
+  /* Make sure our table starts out empty */
+  if (ht->hashes) memset(ht->hashes, 0,  sizeof(unsigned int) * ht->table_size);
+  if (ht->keys) memset(ht->keys, 0, sizeof(void *) * ht->table_size);
+  if (ht->values) memset(ht->values, 0, sizeof(void *) * ht->table_size);
+  ht->num_items = 0;
+}
+
+/*************************************************************************
+  Destroy a pointer hash, freeing all memory associated with it.
+
+  In:  struct pointer_hash *ht - the hash table to destroy
+  Out: hash table is destroyed and associated memory is freed
+**************************************************************************/
+void pointer_hash_destroy(struct pointer_hash *ht)
+{
+  if (ht->hashes) free(ht->hashes);
+  if (ht->keys) free(ht->keys);
+  if (ht->values) free(ht->values);
+  ht->num_items = 0;
+  ht->table_size = 0;
+  ht->hashes = NULL;
+  ht->keys = NULL;
+  ht->values = NULL;
+}
+
+/*************************************************************************
+  Manually resize a pointer hash to have at least 'new_size' bins.  New size
+  may exceed requested size.  Works exactly like pointer_hash_init, except
+  values are copied from the old table to the new one.
+
+  In:  struct pointer_hash *ht - the hash table to resize
+       int new_size - the desired table size
+  Out: 0 on success; 1 if memory allocation fails.
+
+  On failure, the hash table is left unchanged from its prior state.
+**************************************************************************/
+int pointer_hash_resize(struct pointer_hash *ht, int new_size)
+{
+  if (new_size == ht->table_size)
+    return 0;
+  if (new_size < ht->num_items)
+    return 1;
+
+  /* Save old hash, allocate new hash */
+  struct pointer_hash old = *ht;
+  if (pointer_hash_init(ht, new_size))
+    return 1;
+
+  /* Copy items over to new hash */
+  int old_item_idx;
+  for (old_item_idx = 0; old_item_idx < old.table_size; ++ old_item_idx)
+  {
+    if (old.keys[old_item_idx] == NULL)
+      continue;
+
+    if (pointer_hash_add(ht, old.keys[old_item_idx], old.hashes[old_item_idx], old.values[old_item_idx]))
+      goto failure;
+  }
+
+  /* Destroy the old hash */
+  pointer_hash_destroy(&old);
+  return 0;
+
+failure:
+  pointer_hash_destroy(ht);
+  *ht = old;
+  return 1;
+}
+
+/*************************************************************************
+  Add a value to a pointer hash.  If a previous item was added for that key,
+  the new value will replace the old value.
+
+  In:  struct pointer_hash *ht - the hash table to receive a new item
+       void const *key - the key
+       unsigned int keyhash - the hash value associated with the key
+       void *value - the value to store
+  Out: 0 on success; 1 if memory allocation fails.
+**************************************************************************/
+int pointer_hash_add(struct pointer_hash *ht,
+                     void const *key,
+                     unsigned int keyhash,
+                     void *value)
+{
+  /* In case pointer hash was initialized using memset, we'll allocate space
+   * on-demand.  */
+  if (ht->table_size == 0)
+    pointer_hash_resize(ht, 2);
+
+  /* Make sure our table always has free space */
+  if (ht->num_items >= (ht->table_size >> 1))
+  {
+    if (pointer_hash_resize(ht, ht->table_size << 1))
+      return 1;
+  }
+
+  /* Scan over entries until the end of the table */
+  unsigned int start_index = keyhash & (ht->table_size - 1);
+  unsigned int cur_index;
+  for (cur_index = start_index; cur_index < ht->table_size; ++ cur_index)
+  {
+    /* Found an old value for this key.  Replace it.  Do not increment the item
+     * count. */
+    if (ht->keys[cur_index] == key)
+    {
+      ht->values[cur_index] = value;
+      return 0;
+    }
+
+    /* Found an empty slot.  Fill it. */
+    if (ht->keys[cur_index] == NULL)
+    {
+      ht->hashes[cur_index] = keyhash;
+      ht->keys[cur_index] = key;
+      ht->values[cur_index] = value;
+      goto done;
+    }
+  }
+
+  /* Scan over entries until we reach our starting point */
+  for (cur_index = 0; cur_index < start_index; ++ cur_index)
+  {
+    /* Found an old value for this key.  Replace it.  Do not increment the item
+     * count. */
+    if (ht->keys[cur_index] == key)
+    {
+      ht->values[cur_index] = value;
+      return 0;
+    }
+
+    /* Found an empty slot.  Fill it. */
+    if (ht->keys[cur_index] == NULL)
+    {
+      ht->hashes[cur_index] = keyhash;
+      ht->keys[cur_index] = key;
+      ht->values[cur_index] = value;
+      goto done;
+    }
+  }
+
+  /* This shouldn't happen unless the pointer hash is corrupted, since we've
+   * already ensured that we have enough space */
+  return 1;
+
+done:
+  ++ ht->num_items;
+  return 0;
+}
+
+/*************************************************************************
+  Look up a value in a pointer hash.  Returns NULL if no item was found, or if
+  the value associated with the key was NULL.
+
+  In:  struct pointer_hash *ht - the hash table to search
+       void const *key - the key to find
+       unsigned int keyhash - the hash value associated with the key
+  Out: the value, or NULL if not found
+**************************************************************************/
+void *pointer_hash_lookup(struct pointer_hash const *ht,
+                          void const *key,
+                          unsigned int keyhash)
+{
+  /* Empty table.  Not found. */
+  if (ht->table_size == 0)
+    return NULL;
+
+  /* Search from start position to end of table */
+  unsigned int start_index = keyhash & (ht->table_size - 1);
+  unsigned int cur_index;
+  for (cur_index = start_index; cur_index < ht->table_size; ++ cur_index)
+  {
+    /* Empty slot - key not found. */
+    if (ht->keys[cur_index] == NULL)
+      return NULL;
+
+    /* Found our value. */
+    if (ht->keys[cur_index] == key)
+      return ht->values[cur_index];
+  }
+
+  /* Search from beginning of table to start position  */
+  for (cur_index = 0; cur_index < start_index; ++ cur_index)
+  {
+    /* Empty slot - key not found. */
+    if (ht->keys[cur_index] == NULL)
+      return NULL;
+
+    /* Found our value. */
+    if (ht->keys[cur_index] == key)
+      return ht->values[cur_index];
+  }
+
+  /* Worst case scenario.  We searched the entire table.  Shouldn't happen with
+   * the current tuning parameters, which do not permit the table to be full.
+   */
+  return NULL;
+}
+
+/*************************************************************************
+  Remove a value from a pointer hash.  Returns 0 if the item was
+  successfully removed, or 0 if the item was not found.  Note that a
+  NULL key is not allowed in a pointer hash.
+
+  In:  struct pointer_hash *ht - the hash table to remove from
+       void const *key - the key to remove
+       unsigned int keyhash - the hash value associated with the key
+  Out: 0 on success; 1 on failure
+
+  Regardless of success or failure, the table will remain in a valid
+  state.
+**************************************************************************/
+int pointer_hash_remove(struct pointer_hash *ht,
+                        void const *key,
+                        unsigned int keyhash)
+{
+  /* If the key is NULL, we're done */
+  if (key == NULL)
+    return 1;
+
+  int start = keyhash & (ht->table_size - 1); /* Where do we start? */
+  int next_slot = -1;                         /* Next vacant slot to fill */
+
+  /* Scan through the table to remove the item, and resituate any
+   * entries which would, due to the streaming collision-avoidance
+   * approach, be orphaned.
+   */
+  int cur = start;
+  do {
+    /* If we found the item to remove, remove it */
+    if (key != NULL  &&  ht->keys[cur] == key)
+    {
+      /* Clear this value */
+      ht->keys[cur] = NULL;
+      ht->values[cur] = NULL;
+      ht->hashes[cur] = 0;
+      -- ht->num_items;
+
+      if (ht->table_size > (ht->num_items << 2))
+      {
+        /* If resizing the pointer hash succeeded, we don't need to do
+         * any more work, since it will have prevented orphans. */
+        if (! pointer_hash_resize(ht, ht->num_items))
+          return 0;
+      }
+
+      /* We may need to move something into this empty slot, so
+       * remember where we were. */
+      next_slot = cur;
+
+      /* This indicates that we've already removed the value and are
+       * now just fixing the table contents */
+      key = NULL;
+    }
+
+    /* We found a NULL entry, so stop scanning -- the table is in a
+     * valid state */
+    else if (ht->keys[cur] == NULL)
+    {
+      if (key == NULL)
+        return 0;
+      else
+        return 1;
+    }
+
+    /* This entry may need to be reseated */
+    else
+    {
+      /* This is the slot where we'd start looking for this entry */
+      int desiredSlot = ht->hashes[cur] & (ht->table_size-1);
+
+      /* If we would have hit our newly introduced NULL entry after we
+       * started searching for this entry, but before we found what we
+       * were looking for, resituate this entry.
+       */
+      if ((next_slot < cur && (desiredSlot <= next_slot || desiredSlot > cur))  ||
+          (next_slot > cur && (desiredSlot <= next_slot && desiredSlot > cur)))
+      {
+        /* Move this entry to its new location */
+        ht->hashes[next_slot] = ht->hashes[cur];
+        ht->keys[next_slot] = ht->keys[cur];
+        ht->values[next_slot] = ht->values[cur];
+
+        /* Free this slot */
+        ht->hashes[cur] = 0;
+        ht->keys[cur] = NULL;
+        ht->values[cur] = NULL;
+
+        /* We may need to move something into this empty slot, so
+         * remember where we were. */
+        next_slot = cur;
+      }
+    }
+
+    /* Advance to the next entry */
+    if (++ cur == ht->table_size)
+      cur = 0;
+  } while (cur != start);
+
+  /* If we found our entry, success, else failure. */
+  if (key == NULL)
+    return 0;
+  else
+    return 1;
 }

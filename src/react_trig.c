@@ -14,8 +14,6 @@
 
 extern struct volume *world;
 
-
-
 /*************************************************************************
 trigger_unimolecular:
    In: hash value of molecule's species
@@ -27,18 +25,38 @@ trigger_unimolecular:
          molecule.
 *************************************************************************/
 
-struct rxn* trigger_unimolecular(int hash,struct abstract_molecule *reac)
+struct rxn* trigger_unimolecular(u_int hash,struct abstract_molecule *reac)
 {
-  struct rxn *inter = world->reaction_hash[hash & (world->rx_hashsize-1)];
-  
-  while (inter != NULL)
+  struct rxn *inter;
+  if (! (reac->flags & COMPLEX_MEMBER))
   {
-    if (inter->n_reactants==1 && 
-        inter->players[0]==reac->properties)
+    inter = world->reaction_hash[hash & (world->rx_hashsize-1)];
+
+    while (inter != NULL)
     {
-      return inter;
+      if (inter->is_complex == NULL &&
+          inter->n_reactants==1 && 
+          inter->players[0]==reac->properties)
+      {
+        return inter;
+      }
+      inter = inter->next;
     }
-    inter = inter->next;
+  }
+  else
+  {
+    inter = world->reaction_hash[hash & (world->rx_hashsize-1)];
+
+    while (inter != NULL)
+    {
+      if (inter->is_complex != NULL &&
+          inter->n_reactants==1 && 
+          inter->players[0]==reac->properties)
+      {
+        return inter;
+      }
+      inter = inter->next;
+    }
   }
 
   return inter;
@@ -54,7 +72,6 @@ trigger_surface_unimol:
         pointer to the reaction if there are
    Note: this is just a wrapper around trigger_intersect
 *************************************************************************/
-
 struct rxn* trigger_surface_unimol(struct abstract_molecule *reac,struct wall *w)
 {
   struct grid_molecule *g = (struct grid_molecule*)reac;
@@ -63,6 +80,133 @@ struct rxn* trigger_surface_unimol(struct abstract_molecule *reac,struct wall *w
   return trigger_intersect(g->properties->hashval,reac,g->orient,w);
 }
 
+/*************************************************************************
+trigger_bimolecular_preliminary:
+   In: hashA - hash value for first molecule
+       hashB - hash value for second molecule
+       reacA - species of first molecule
+       reacB - species of second molecule
+   Out: 1 if any reaction exists naming the two specified reactants, 0
+       otherwise.
+   Note: This is a quick test used to determine which per-species lists to
+   traverse when checking for mol-mol collisions.
+*************************************************************************/
+int trigger_bimolecular_preliminary(u_int hashA,
+                                    u_int hashB,
+                                    struct species *reacA,
+                                    struct species *reacB)
+{
+  u_int hash;  /* index in the reaction hash table */
+  struct rxn *inter;
+
+  hash = (hashA + hashB) & (world->rx_hashsize-1);
+
+  for (inter = world->reaction_hash[hash];
+       inter != NULL;
+       inter = inter->next)
+  {
+    /* Enough reactants? (3=>wall also) */
+    if (inter->n_reactants < 2)
+      continue;
+
+    /* Do we have the right players? */
+    if ( (reacA == inter->players[0]  &&
+          reacB == inter->players[1]))
+    {
+      return 1;
+    }
+    else if ( (reacB == inter->players[0]  &&
+               reacA == inter->players[1]))
+    {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+trigger_trimolecular_preliminary:
+   In: hashA - hash value for first molecule
+       hashB - hash value for second molecule
+       hashC - hash value for third molecule
+       reacA - species of first molecule
+       reacB - species of second molecule
+       reacC - species of third molecule
+   Out: 1 if any reaction exists naming the two specified reactants, 0
+       otherwise.
+   Note: This is a quick test used to determine which per-species lists to
+   traverse when checking for mol-mol-mol collisions.
+*************************************************************************/
+int trigger_trimolecular_preliminary(u_int hashA,
+                                     u_int hashB,
+                                     u_int hashC,
+                                     struct species *reacA,
+                                     struct species *reacB,
+                                     struct species *reacC)
+{
+  int rawhash;
+  u_int hash;  /* index in the reaction hash table */
+  struct rxn *inter;
+
+  if (strcmp(reacA->sym->name, reacB->sym->name) < 0)
+  {
+    if (strcmp(reacB->sym->name, reacC->sym->name) < 0)
+      rawhash = (hashA + hashB);
+    else
+      rawhash = (hashA + hashC);
+  }
+  else if (strcmp(reacA->sym->name, reacC->sym->name) < 0)
+    rawhash = (hashB + hashA);
+  else
+    rawhash = (hashB + hashC);
+  hash = rawhash & (world->rx_hashsize-1);
+
+  for (inter = world->reaction_hash[hash];
+       inter != NULL;
+       inter = inter->next)
+  {
+    /* Enough reactants? */
+    if (inter->n_reactants < 3)
+      continue;
+
+    if (reacA == inter->players[0])
+    {
+      if (reacB == inter->players[1])
+      {
+        if (reacC == inter->players[2]) return 1;
+      }
+      else if (reacB == inter->players[2])
+      {
+        if (reacC == inter->players[1]) return 1;
+      }
+    }
+    else if (reacA == inter->players[1])
+    {
+      if (reacB == inter->players[2])
+      {
+        if (reacC == inter->players[0]) return 1;
+      }
+      else if (reacB == inter->players[0])
+      {
+        if (reacC == inter->players[2]) return 1;
+      }
+    }
+    else if (reacA == inter->players[2])
+    {
+      if (reacB == inter->players[0])
+      {
+        if (reacC == inter->players[1]) return 1;
+      }
+      else if (reacB == inter->players[1])
+      {
+        if (reacC == inter->players[0]) return 1;
+      }
+    }
+  }
+
+  return 0;
+}
 
 /*************************************************************************
 trigger_bimolecular:
@@ -80,139 +224,185 @@ trigger_bimolecular:
          but not rescheduled.  Assume we have or will check separately that
          the moving molecule is not inert!
 *************************************************************************/
-int trigger_bimolecular(int hashA,int hashB,
+int trigger_bimolecular(u_int hashA,u_int hashB,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,
   short orientA,short orientB, struct rxn ** matching_rxns )
 {
-  int hash;  /* index in the reaction hash table */
+  u_int hash;  /* index in the reaction hash table */
   int test_wall;  /* flag */
   int num_matching_rxns = 0; /* number of matching reactions */
   short geomA,geomB;
   struct rxn *inter;
-               
+  int need_complex = 0;
   
-  hash = (hashA ^ hashB) & (world->rx_hashsize-1);
-  if (hash==0) hash = hashA & (world->rx_hashsize-1);
-  inter = world->reaction_hash[hash];
- 
-  while (inter != NULL)
+  hash = (hashA + hashB) & (world->rx_hashsize-1);
+
+  /* Check if either reactant belongs to a complex */
+  if ((reacA->flags | reacB->flags) & COMPLEX_MEMBER)
   {
-    if (inter->n_reactants >= 2)  /* Enough reactants? (3=>wall also) */
+    need_complex = 1;
+
+    /* If both reactants are subunits, this reaction cannot occur */
+    if ( ((reacA->flags ^ reacB->flags) & COMPLEX_MEMBER) == 0)
+      return 0;
+  }
+ 
+  for (inter = world->reaction_hash[hash];
+       inter != NULL;
+       inter = inter->next)
+  {
+    /* Right number of reactants? */
+    if (inter->n_reactants < 2)
+      continue;
+    else if (inter->n_reactants > 2 && ! (inter->players[2]->flags & IS_SURFACE))
+      continue;
+
+    /* If it's a complex rxn, make sure one of the molecules is part of a
+     * complex
+     */
+    if (inter->is_complex != NULL)
     {
-      /* Check that we have the right players */
-      if ( (reacA->properties == inter->players[0] &&
-            reacB->properties == inter->players[1]) ||
-           (reacB->properties == inter->players[0] &&
-            reacA->properties == inter->players[1]) )
+      if (! need_complex)
+        continue;
+    }
+    else
+    {
+      if (need_complex)
+        continue;
+    }
+
+    /* Do we have the right players? */
+    if (reacA->properties == reacB->properties)
+    {
+      if ( (reacA->properties != inter->players[0]  ||
+            reacA->properties != inter->players[1]) )
+        continue;
+    }
+    else if ( (reacA->properties == inter->players[0]  &&
+               reacB->properties == inter->players[1]))
+    {
+      if (inter->is_complex != NULL)
       {
-        test_wall = 0;
-        geomA = inter->geometries[0];
-        geomB = inter->geometries[1];
+        if (inter->is_complex[0] != ((reacA->flags & COMPLEX_MEMBER) ? 1 : 0))
+          continue;
+        /* Don't need to check other reactant -- we know we have the right
+         * number of subunits
+         */
+      }
+    }
+    else if ( (reacB->properties == inter->players[0]  &&
+               reacA->properties == inter->players[1]))
+    {
+      if (inter->is_complex != NULL)
+      {
+        if (inter->is_complex[0] != ((reacB->flags & COMPLEX_MEMBER) ? 1 : 0))
+          continue;
+        /* Don't need to check other reactant -- we know we have the right
+         * number of subunits
+         */
+      }
+    }
+    else
+      continue;
+
+    test_wall = 0;
+    geomA = inter->geometries[0];
+    geomB = inter->geometries[1];
                     
-        /* Check to see if orientation classes are zero/different */
-        if ( geomA==0 || geomB==0 || (geomA+geomB)*(geomA-geomB)!=0 )
+    /* Check to see if orientation classes are zero/different */
+    if ( geomA==0 || geomB==0 || (geomA+geomB)*(geomA-geomB)!=0 )
+    {
+      if (inter->n_reactants==2) 
+      {
+        if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
+        matching_rxns[num_matching_rxns] = inter;
+        num_matching_rxns++;
+        continue;
+      }
+      else {
+        test_wall=1;
+      }
+    }
+
+    /* Same class, is the orientation correct? */
+    else if ( orientA != 0 &&
+              orientA*orientB*geomA*geomB > 0 )
+    {
+      if (inter->n_reactants==2) {
+         if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
+         matching_rxns[num_matching_rxns] = inter;
+         num_matching_rxns++;
+         continue;
+      }else {
+          test_wall = 1;
+      }
+    }
+
+    /* See if we need to check a wall (fails if we're in free space) */        
+    if (test_wall && orientA != 0)
+    {
+      struct wall *w = NULL;
+      short geomW;
+      /* short orientW = 1;  Walls always have orientation 1 */
+
+      /* If we are oriented, one of us is a surface or grid mol. */
+      /* Wall that matters is the target's wall */
+      if ((reacB->properties->flags & ON_GRID) != 0)
+        w = (((struct grid_molecule*) reacB)->grid)->surface;
+        
+      /* If a wall was found, we keep going to check.... */
+      if (w != NULL)
+      {
+        /* Right wall type--either this type or generic type? */
+        if (inter->players[2] == w->surf_class ||
+            inter->players[2] == world->g_surf)
         {
-          if (inter->n_reactants==2) 
-          {
+          geomW = inter->geometries[2];
+          
+          if (geomW==0) {
              if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
              matching_rxns[num_matching_rxns] = inter;
              num_matching_rxns++;
-             inter = inter->next;
              continue;
           }
-          else {
-              test_wall=1;
-          }
-        }
-
-        /* Same class, is the orientation correct? */
-        else if ( orientA != 0 &&
-                  orientA*orientB*geomA*geomB > 0 )
-        {
-          if (inter->n_reactants==2) {
-             if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
-             matching_rxns[num_matching_rxns] = inter;
-             num_matching_rxns++;
-             inter = inter->next;
-             continue;
-          }else {
-              test_wall = 1;
-          }
-        }
-
-        /* See if we need to check a wall (fails if we're in free space) */        
-        if (test_wall && orientA != 0)
-        {
-          struct wall *w = NULL;
-          short geomW;
-          /* short orientW = 1;  Walls always have orientation 1 */
-
-          /* If we are oriented, one of us is a surface or grid mol. */
-          /* Wall that matters is the target's wall */
-          if ((reacB->properties->flags & ON_GRID) != 0)
-            w = (((struct grid_molecule*) reacB)->grid)->surface;
-            
-          /* If a wall was found, we keep going to check.... */
-          if (w != NULL)
+ 
+          /* We now care whether A and B corespond to player [0] and [1] or */
+          /* vice versa, so make sure A==[0] and B==[1] so W can */
+          /* match with the right one! */
+          if (reacA->properties != inter->players[0])
           {
-            /* Right wall type--either this type or generic type? */
-            if (inter->players[2] == w->surf_class ||
-                inter->players[2] == world->g_surf)
-            {
-              geomW = inter->geometries[2];
-              
-              if (geomW==0) {
+            short temp = geomB;
+            geomB = geomA;
+            geomA = temp;
+          }
+          
+          if (geomA==0 || (geomA+geomW)*(geomA-geomW)!=0)  /* W not in A's class */
+          {
+            if (geomB==0 || (geomB+geomW)*(geomB-geomW)!=0) {
                  if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
                  matching_rxns[num_matching_rxns] = inter;
                  num_matching_rxns++;
-                 inter = inter->next;
                  continue;
-              }
- 
-              /* We now care whether A and B corespond to player [0] and [1] or */
-              /* vice versa, so make sure A==[0] and B==[1] so W can */
-              /* match with the right one! */
-              if (reacA->properties != inter->players[0])
-              {
-                short temp = geomB;
-                geomB = geomA;
-                geomA = temp;
-              }
-              
-              if (geomA==0 || (geomA+geomW)*(geomA-geomW)!=0)  /* W not in A's class */
-              {
-                if (geomB==0 || (geomB+geomW)*(geomB-geomW)!=0) {
-                     if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
-                     matching_rxns[num_matching_rxns] = inter;
-                     num_matching_rxns++;
-                     inter = inter->next;
-                     continue;
-                }
-                if (orientB*geomB*geomW > 0) {
-                     if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
-                     matching_rxns[num_matching_rxns] = inter;
-                     num_matching_rxns++;
-                     inter = inter->next;
-                     continue;
-                }
-              }
-              else  /* W & A in same class */
-              {
-                if (orientA*geomA*geomW > 0) {
-                     if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
-                     matching_rxns[num_matching_rxns] = inter;
-                     num_matching_rxns++;
-                     inter = inter->next;
-                     continue;
-                }
-              }
-            } 
-          } /* end if(w != NULL) */
-        }   /* end if(test_wall && orientA != NULL) */
-      }
-    } /* end if(inter->n_reactants >= 2) */
-    
-    inter=inter->next;
+            }
+            if (orientB*geomB*geomW > 0) {
+                 if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
+                 matching_rxns[num_matching_rxns] = inter;
+                 num_matching_rxns++;
+                 continue;
+            }
+          }
+          else  /* W & A in same class */
+          {
+            if (orientA*geomA*geomW > 0) {
+                 if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
+                 matching_rxns[num_matching_rxns] = inter;
+                 num_matching_rxns++;
+                 continue;
+            }
+          }
+        } 
+      } /* end if(w != NULL) */
+    }   /* end if(test_wall && orientA != NULL) */
   } /* end while (inter != NULL) */
 
   if (inter != NULL)
@@ -220,10 +410,8 @@ int trigger_bimolecular(int hashA,int hashB,
     fprintf(world->err_file, "Number of matching reactions exceeds the maximum allowed number MAX_MATCHING_RXNS.\n");
   }
 
- 
   return num_matching_rxns;
 }
-
 
 /*************************************************************************
 trigger_trimolecular:
@@ -243,74 +431,31 @@ trigger_trimolecular:
                     reacB and reacC.
 *************************************************************************/
 
-int trigger_trimolecular(int hashA,int hashB, int hashC,
+int trigger_trimolecular(u_int hashA,u_int hashB, u_int hashC,
   struct species *reacA,struct species *reacB,
   struct species *reacC, int orientA, int orientB, int orientC, 
   struct rxn ** matching_rxns )
 {
-  int hash = 0;  /* index in the reaction hash table */
+  int rawhash = 0;
+  u_int hash = 0;  /* index in the reaction hash table */
   int num_matching_rxns = 0; /* number of matching reactions */
   short geomA = SHRT_MIN, geomB = SHRT_MIN, geomC = SHRT_MIN;
   struct rxn *inter;
   int correct_players_flag;
   int correct_orientation_flag;
-  /* flags */
-  int use_hashA = 0;
-  int use_hashB = 0;
-  int use_hashC = 0;
-  /* hash value of the 1st of the three reactants arranged
-     in alphabetical order */
-  int first_reactant_hash_val = 0; 
 
-  /* in the function "prepare_reactions()" the reaction
-     hash table is built using only hashvalues of reactant1
-     and reactant2 arranged in the alphabetical order.
-     So we have to find out now what hashvalues to use.  */
-
-     /* find the first hashvalue to use */
-  if((strcmp(reacA->sym->name, reacB->sym->name) <= 0)     && (strcmp(reacA->sym->name, reacC->sym->name) <= 0)){
-               use_hashA = 1;
-               first_reactant_hash_val = hashA;
-      
-   }else if((strcmp(reacB->sym->name, reacA->sym->name) <= 0)     && (strcmp(reacB->sym->name, reacC->sym->name) <= 0)){
-               use_hashB = 1;
-               first_reactant_hash_val = hashB;
-     }else if((strcmp(reacC->sym->name, reacA->sym->name) <= 0)  && (strcmp(reacC->sym->name, reacB->sym->name) <= 0)){
-               use_hashC = 1;
-               first_reactant_hash_val = hashC;
-    }
-    
-    /* find the 2nd hashvalue */
-    if(use_hashA){
-      if(strcmp(reacB->sym->name, reacC->sym->name) <= 0)      {
-           use_hashB = 1;
-      }else{
-           use_hashC = 1;
-      }
-    }else if(use_hashB){
-      if(strcmp(reacA->sym->name, reacC->sym->name) <= 0)      {
-           use_hashA = 1;
-      }else{
-           use_hashC = 1;
-      }
-    }else if (use_hashC){
-      if(strcmp(reacA->sym->name, reacB->sym->name) <= 0)      {
-           use_hashA = 1;
-      }else{
-           use_hashB = 1;
-      }
-    }
-
-    if(use_hashA && use_hashB){
-      hash = (hashA ^ hashB) & (world->rx_hashsize-1);
-      if (hash==0) hash = first_reactant_hash_val & (world->rx_hashsize-1);
-    }else if(use_hashA && use_hashC){
-      hash = (hashA ^ hashC) & (world->rx_hashsize-1);
-      if (hash==0) hash = first_reactant_hash_val & (world->rx_hashsize-1);
-    }else if(use_hashB && use_hashC){
-      hash = (hashB ^ hashC) & (world->rx_hashsize-1);
-      if (hash==0) hash = first_reactant_hash_val & (world->rx_hashsize-1);
-    }
+  if (strcmp(reacA->sym->name, reacB->sym->name) < 0)
+  {
+    if (strcmp(reacB->sym->name, reacC->sym->name) < 0)
+      rawhash = (hashA + hashB);
+    else
+      rawhash = (hashA + hashC);
+  }
+  else if (strcmp(reacA->sym->name, reacC->sym->name) < 0)
+    rawhash = (hashB + hashA);
+  else
+    rawhash = (hashB + hashC);
+  hash = rawhash & (world->rx_hashsize-1);
 
   inter = world->reaction_hash[hash];
 
@@ -522,7 +667,8 @@ int trigger_trimolecular(int hashA,int hashB, int hashC,
    }
 
    return num_matching_rxns;
- }
+}
+
 
 /*************************************************************************
 trigger_intersect:
@@ -537,17 +683,15 @@ trigger_intersect:
    Note: Moving molecule may be inert.
 *************************************************************************/
 
-struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
+struct rxn* trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
   short orientA,struct wall *w)
 {
-  int hash,hashW,hashGW,hashGM;
+  u_int hash,hashW,hashGW,hashGM;
   short geom1,geom2;
   struct rxn *inter;
 
-  hashW = w->surf_class->hashval & (world->rx_hashsize-1);
-  hashA &= (world->rx_hashsize-1);
-  if (hashA == hashW) hash = hashA;
-  else hash = hashA ^ hashW;
+  hashW = w->surf_class->hashval;
+  hash = (hashA + hashW) & (world->rx_hashsize-1);
   
   inter = world->reaction_hash[hash];
   
@@ -570,11 +714,8 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
     inter = inter->next;
   }
 
-  hashGW = world->g_surf->hashval & (world->rx_hashsize-1);
-  
-  
-  if (hashA == hashGW) hash=hashA;
-  else hash = hashA ^ hashGW;
+  hashGW = world->g_surf->hashval;
+  hash = (hashA + hashGW) & (world->rx_hashsize-1);
   
   inter = world->reaction_hash[hash];
   
@@ -595,10 +736,8 @@ struct rxn* trigger_intersect(int hashA,struct abstract_molecule *reacA,
     inter = inter->next;
   }
   
-  
-  hashGM = world->g_mol->hashval & (world->rx_hashsize-1);
-  if (hashW == hashGM) hash = hashW;
-  else hash = hashW ^ hashGM;
+  hashGM = world->g_mol->hashval;
+  hash = (hashA + hashGM) & (world->rx_hashsize-1);
   
   inter = world->reaction_hash[hash];
   

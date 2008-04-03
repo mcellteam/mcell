@@ -1,0 +1,21 @@
+INCLUDE_FILE = "parser1.mdl"
+
+VIZ_DATA_OUTPUT
+{
+    MODE = ASCII
+    MOLECULE_FILE_PREFIX = "p1v7molecules"
+    OBJECT_FILE_PREFIXES
+    {
+        world = "p1v7aobjects"
+        world2 = "p1v7bobjects"
+    }
+    TIME_LIST = [[1e-6 TO 1e-4 STEP 1e-6], [1.1e-4 TO 1e-3 STEP 1e-5], [1.1e-3 TO 1e-2 STEP 1e-4]]
+    STATE_VALUES
+    {
+        s_g_5         = 4
+        s_v_3         = 3
+        world.big_object.box1[r2] = 9
+        world.big_object.box1[r3] = 1
+        world.big_object.box1[r4] = 2
+    }
+}

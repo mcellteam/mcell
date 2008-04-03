@@ -1,6 +1,38 @@
 #ifndef MEM_UTIL
 #define MEM_UTIL
 
+#ifdef MEM_UTIL_KEEP_STATS
+#include <stdio.h>
+#include <stdlib.h>
+char *mem_util_tracking_strdup(char const *in);
+void *mem_util_tracking_malloc(unsigned int size);
+void *mem_util_tracking_realloc(void *data, unsigned int size);
+void mem_util_tracking_free(void *data);
+#undef malloc
+#undef free
+#undef strdup
+#define malloc mem_util_tracking_malloc
+#define free   mem_util_tracking_free
+#define strdup mem_util_tracking_strdup
+#define realloc mem_util_tracking_realloc
+#endif
+
+char *checked_strdup(char const *s, char const *file, long line, char const *desc, int onfailure);
+void *checked_malloc(unsigned int size, char const *file, long line, char const *desc, int onfailure);
+
+#define CM_EXIT (1)
+#define CM_EMERGENCY_OUTPUT (2)
+#define CM_EMERGENCY (CM_EXIT|CM_EMERGENCY_OUTPUT)
+#define CHECKED_STRDUP(s,desc) checked_strdup((s), __FILE__, __LINE__, desc, 0)
+#define CHECKED_STRDUP_DIE(s,desc) checked_strdup((s), __FILE__, __LINE__, desc, CM_EXIT)
+#define CHECKED_STRDUP_EMERGENCY(s,desc) checked_strdup((s), __FILE__, __LINE__, desc, CM_EMERGENCY)
+#define CHECKED_MALLOC(sz,desc) checked_malloc((sz), __FILE__, __LINE__, desc, 0)
+#define CHECKED_MALLOC_DIE(sz,desc) checked_malloc((sz), __FILE__, __LINE__, desc, CM_EXIT)
+#define CHECKED_MALLOC_EMERGENCY(sz,desc) checked_malloc((sz), __FILE__, __LINE__, desc, CM_EMERGENCY)
+#define CHECKED_MEM_GET(mh,desc) checked_mem_get((mh), __FILE__, __LINE__, desc, 0)
+#define CHECKED_MEM_GET_DIE(mh,desc) checked_mem_get((mh), __FILE__, __LINE__, desc, CM_EXIT)
+#define CHECKED_MEM_GET_EMERGENCY(mh,desc) checked_mem_get((mh), __FILE__, __LINE__, desc, CM_EMERGENCY)
+
 /* counter_header and counter_helper not used by MCell3 */
 struct counter_header
 {
@@ -55,12 +87,21 @@ struct mem_helper
   unsigned char *heap_array;      /* Block of memory for elements */
   struct abstract_list *defunct;  /* Linked list of elements that may be reused for next memory request */
   struct mem_helper *next_helper; /* Next (fully-used) mem_helper */
+#ifdef MEM_UTIL_KEEP_STATS
+  struct mem_stats *stats;
+#endif
 };
 
+#ifdef MEM_UTIL_KEEP_STATS
+void mem_dump_stats(FILE *out);
+#else
+#define mem_dump_stats(out) do { /* do nothing */ } while (0)
+#endif
 
-
+struct mem_helper* create_mem_named(int size,int length,char const *name);
 struct mem_helper* create_mem(int size,int length);
 void* mem_get(struct mem_helper *mh);
+void* checked_mem_get(struct mem_helper *mh, char const *file, long line, char const *desc, int onfailure);
 void mem_put(struct mem_helper *mh,void *defunct);
 void mem_put_list(struct mem_helper *mh,void *defunct);
 void delete_mem(struct mem_helper *mh);

@@ -1,0 +1,13 @@
+DEFINE_REACTIONS
+{
+    REACTION_GROUP g2
+    {
+        s_v_3 + s_v_4 <-> s_v_5     [>1e5, <1e3]
+        s_v_5 <-> s_v_0             [>1e3, <1.1e3]
+    }
+
+    s_v_3; + s_g_0; <-> s_g_1;      [> "rate1.txt", < "rate2.txt"]
+    s_g_0' + s_g_1' <-> s_g_2,      [> "rate1.txt", < "rate2.txt"]
+    s_v_4    -s_v_0-> s_v_5         [>1e5] : rxn2
+    s_v_5   <-s_v_0-> s_v_6         [>1.1e5, <3e2]
+}

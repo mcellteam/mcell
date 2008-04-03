@@ -1,0 +1,9 @@
+DEFINE_REACTIONS
+{
+    REACTION_GROUP g1
+    {
+        (s_g_0') + s_v_0,,  -> (s_g_1,) + s_v_1'' + s_v_2'       [COMPLEX_RATE c_s_0 rr4] : rxn1
+        (s_g_1') + s_v_1,,  -> (s_g_0,) + s_v_2'' + s_v_0'       [COMPLEX_RATE c_s_0 rr0]
+        (s_g_2') + s_v_1'  <-> (s_g_2,) + s_v_1'                 [>COMPLEX_RATE c_s_0 rr1, <COMPLEX_RATE c_s_0 rr2]
+    }
+}

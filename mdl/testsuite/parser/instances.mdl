@@ -1,0 +1,31 @@
+INSTANTIATE world OBJECT
+{
+    big_object OBJECT big_object { }
+}
+
+INSTANTIATE world2 OBJECT
+{
+    big_object OBJECT big_object { }
+    rs7 RELEASE_SITE
+    {
+        SHAPE = world2.big_object.box3
+        LOCATION = [6.1, 0.1, 0.1]
+        MOLECULE = s_v_6
+        SITE_DIAMETER = 0.5
+        RELEASE_PROBABILITY = 0.94
+        RELEASE_PATTERN = rp9
+    }
+
+    rs8 RELEASE_SITE
+    {
+        SHAPE = ((world2.big_object.box3[ALL] + world.big_object.box3[ALL]) * (world2.big_object.box3[ALL] - world.big_object.box3[ALL]))
+        LOCATION = [7.1, 0.1, 0.1]
+        MOLECULE = s_v_7
+        SITE_DIAMETER = 0.5
+        RELEASE_PROBABILITY = 0.93
+        RELEASE_PATTERN = rp9
+    }
+
+    TRANSLATE = [50, 0, 0]
+}
+

@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 #if defined(__linux__)
 #include <fenv.h>
 #endif
@@ -17,7 +18,6 @@
 #include "rng.h"
 #include "strfunc.h"
 #include "argparse.h"
-#include "mdlparse.h"
 #include "vol_util.h"
 #include "react_output.h"
 #include "viz_output.h"
@@ -25,9 +25,20 @@
 #include "diffuse.h"
 #include "init.h"
 #include "chkpt.h"
+#include "version_info.h"
+#include "argparse.h"
 
 struct volume *world;
 
+/***********************************************************************
+ process_volume_output:
+
+    Produce this round's volume output, if any.
+
+    In:  struct volume *wrld - the world
+         double not_yet - earliest time which should not yet be output
+    Out: none.  volume output files are updated as appropriate.
+ ***********************************************************************/
 static void process_volume_output(struct volume *wrld, double not_yet)
 {
   int i;            /* for emergency output */
@@ -47,35 +58,166 @@ static void process_volume_output(struct volume *wrld, double not_yet)
   }
 }
 
+static void process_reaction_output(struct volume *wrld, double not_yet)
+{
+  int i;            /* for emergency output */
+  struct output_block *obp;
+  for ( obp=schedule_next(wrld->count_scheduler) ;
+        obp!=NULL || not_yet>=wrld->count_scheduler->now ;
+        obp=schedule_next(wrld->count_scheduler) )
+  {
+    if (obp==NULL) continue;
+    if (update_reaction_output(obp))
+    {
+      fprintf(wrld->err_file,"File '%s', Line %ld: Error while updating reaction output. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
+      i = emergency_output();
+      fprintf(wrld->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
+      exit(EXIT_FAILURE);
+    }
+  }
+  if (wrld->count_scheduler->error)
+  {
+    fprintf(wrld->err_file,"File '%s', Line %ld: Out of memory while scheduling molecule release. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
+    i = emergency_output();
+    fprintf(wrld->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
+    exit(EXIT_FAILURE);
+  }
+}
+
+static void process_molecule_releases(struct volume *wrld, double not_yet)
+{
+  int i;            /* for emergency output */
+  struct release_event_queue *req;
+  for ( req= schedule_next(world->releaser) ;
+        req!=NULL || not_yet>=world->releaser->now ;
+        req=schedule_next(world->releaser)) 
+  {
+    if (req==NULL || req->release_site->release_prob==MAGIC_PATTERN_PROBABILITY) continue;
+    if ( release_molecules(req) )
+    {
+      fprintf(world->err_file,"File '%s', Line %ld: Out of memory while releasing molecules of type %s\n", __FILE__, (long)__LINE__, req->release_site->mol_type->sym->name);
+      i = emergency_output();
+      fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
+      exit(EXIT_FAILURE);
+    }
+  }
+  if (world->releaser->error)
+  {
+    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while scheduling molecule release. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
+    i = emergency_output();
+    fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
+    exit(EXIT_FAILURE);
+  }
+}
+
+/***********************************************************************
+ make_checkpoint:
+
+    Produce a checkpoint file.
+
+    In:  struct volume *wrld - the world
+    Out: 0 on success, 1 on failure.
+         On success, checkpoint file is created.
+         On failure, old checkpoint file, if any, is left intact.
+ ***********************************************************************/
+static int make_checkpoint(struct volume *wrld)
+{
+  /* Make sure we have a filename */
+  if (wrld->chkpt_outfile == NULL)
+    wrld->chkpt_outfile = alloc_sprintf("checkpt.%d", getpid());
+
+  /* Print a useful status message */
+  switch (wrld->checkpoint_requested)
+  {
+    case CHKPT_ITERATIONS_CONT:
+    case CHKPT_ALARM_CONT:
+      if (wrld->notify->progress_report != NOTIFY_NONE)
+        fprintf(wrld->log_file,
+                "MCell: time = %lld, writing to checkpoint file %s (periodic)\n",
+                wrld->it_time,
+                wrld->chkpt_outfile);
+      break;
+
+    case CHKPT_ALARM_EXIT:
+      fprintf(wrld->log_file,
+              "MCell: time = %lld, writing to checkpoint file %s (time limit elapsed)\n",
+              wrld->it_time,
+              wrld->chkpt_outfile);
+      break;
+
+    case CHKPT_SIGNAL_CONT:
+    case CHKPT_SIGNAL_EXIT:
+      fprintf(wrld->log_file,
+              "MCell: time = %lld, writing to checkpoint file %s (user signal detected)\n",
+              wrld->it_time,
+              wrld->chkpt_outfile);
+      break;
+
+      if (wrld->notify->progress_report != NOTIFY_NONE)
+        fprintf(wrld->log_file,
+                "MCell: time = %lld, writing to checkpoint file %s (periodic)\n",
+                wrld->it_time,
+                wrld->chkpt_outfile);
+      break;
+
+    case CHKPT_ITERATIONS_EXIT:
+      fprintf(wrld->log_file,
+              "MCell: time = %lld, writing to checkpoint file %s\n",
+              wrld->it_time,
+              wrld->chkpt_outfile);
+      break;
+
+    default:
+      wrld->checkpoint_requested = CHKPT_NOT_REQUESTED;
+      return 0;
+  }
+
+  /* Make the checkpoint */
+  if (create_chkpt(wrld->chkpt_outfile))
+    exit(1);
+  wrld->last_checkpoint_iteration = wrld->it_time;
+
+  /* Break out of the loop, if appropriate */
+  if (wrld->checkpoint_requested == CHKPT_ALARM_EXIT   ||
+      wrld->checkpoint_requested == CHKPT_SIGNAL_EXIT  ||
+      wrld->checkpoint_requested == CHKPT_ITERATIONS_EXIT)
+    return 1;
+
+  /* Schedule the next checkpoint, if appropriate */
+  if (wrld->checkpoint_requested == CHKPT_ALARM_CONT)
+  {
+    if (wrld->continue_after_checkpoint)
+      alarm(wrld->checkpoint_alarm_time);
+    else
+      return 1;
+  }
+
+  wrld->checkpoint_requested = CHKPT_NOT_REQUESTED;
+  return 0;
+}
+
+/***********************************************************************
+ run_sim:
+
+    Simulation main loop.
+
+    In:  None
+    Out: None
+ ***********************************************************************/
 void run_sim(void)
 {
   struct rusage run_time;
   long t_initial,t_final;
 
   struct storage_list *local;
-  struct release_event_queue *req;
-  struct output_block *obp;
   double next_release_time;
   int i;
   int first_report;
   /* used to suppress printing some warning messages when the reactant is a surface */
   int do_not_print;
-  /*int count;
-  long long total_coll_1,total_coll_2;
-  double total_len;*/
   long long not_yet;
   long long frequency;
   
-/*
-  for (i=0;i<10000;i++)
-  {
-    struct vector3 v;
-    pick_displacement(&v,1.0);
-    printf("vector = %7.3f %7.3f %7.3f\n",v.x,v.y,v.z);
-  }
-  return;
-*/  
-
   if (world->notify->progress_report!=NOTIFY_NONE) fprintf(world->log_file,"Running simulation.\n");
 
   t_initial = time(NULL);
@@ -97,6 +239,11 @@ void run_sim(void)
   world->diffusion_number = 0;
   world->diffusion_cumtime = 0.0;
   world->it_time = world->start_time;
+  world->last_checkpoint_iteration = 0;
+
+  struct timeval last_timing_time = { 0, 0 };
+  long long last_timing_iteration = 0;
+  long long iter_report_phase = world->it_time % frequency;
 
   /* If we're reloading a checkpoint, we want to skip all of the processing
    * which happened on the last iteration before checkpointing.  To do this, we
@@ -116,66 +263,62 @@ void run_sim(void)
   while (world->it_time <= world->iterations) 
   {
     not_yet = world->it_time + 1.0;
-    world->current_real_time = world->current_start_real_time + (world->it_time - world->start_time)*world->time_unit;
+
     
     if (world->it_time!=0) world->elapsed_time=world->it_time;
     else world->elapsed_time=1.0;
-    
-    for ( req= schedule_next(world->releaser) ;
-          req!=NULL || not_yet>=world->releaser->now ;
-	  req=schedule_next(world->releaser)) 
-    {
-      if (req==NULL || req->release_site->release_prob==MAGIC_PATTERN_PROBABILITY) continue;
-      if ( release_molecules(req) )
-      {
-	fprintf(world->err_file,"File '%s', Line %ld: Out of memory while releasing molecules of type %s\n", __FILE__, (long)__LINE__, req->release_site->mol_type->sym->name);
-	return;
-      }
-    }
-    if (world->releaser->error)
-    {
-      fprintf(world->err_file,"File '%s', Line %ld: Out of memory while scheduling molecule release. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-      i = emergency_output();
-      fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
-      exit( EXIT_FAILURE );
-    }
+  
+    /* Release molecules */
+    process_molecule_releases(world, not_yet);
 
-    for ( obp=schedule_next(world->count_scheduler) ;
-          obp!=NULL || not_yet>=world->count_scheduler->now ;
-	  obp=schedule_next(world->count_scheduler) )
-    {
-      if (obp==NULL) continue;
-                      
-      if (update_reaction_output(obp))
-      {
-	fprintf(world->err_file,"File '%s', Line %ld: Error while updating reaction output. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-	i = emergency_output();
-	fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
-	exit( EXIT_FAILURE );
-      }
-    }
-    if (world->count_scheduler->error)
-    {
-      fprintf(world->err_file,"File '%s', Line %ld: Out of memory while scheduling molecule release. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-      i = emergency_output();
-      fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
-      exit( EXIT_FAILURE );
-    }
-
+    /* Produce output */
+    process_reaction_output(world, not_yet);
     process_volume_output(world, not_yet);
-
-    if(update_frame_data_list(world->frame_data_head)){
+    if (world->frame_data_head  &&  update_frame_data_list(world->frame_data_head))
+    {
        fprintf(world->err_file, "Error while updating frame data list.\n");
        exit(EXIT_FAILURE);
     } 
-    
-    if ( (world->it_time % frequency) == 0 && world->notify->custom_iterations!=NOTIFY_NONE)
+
+    /* Produce iteration report */
+    if ( iter_report_phase == 0 && world->notify->custom_iterations!=NOTIFY_NONE)
     {
       printf("Iterations: %lld of %lld ",world->it_time,world->iterations);
+
+      if (world->notify->throughput_report != NOTIFY_NONE)
+      {
+        struct timeval cur_time;
+        gettimeofday(&cur_time, NULL);
+        if (last_timing_time.tv_sec > 0)
+        {
+          double time_diff = (double) (cur_time.tv_sec - last_timing_time.tv_sec) * 1000000.0 +
+                (double) (cur_time.tv_usec - last_timing_time.tv_usec);
+          time_diff /= (double)(world->it_time - last_timing_iteration);
+          printf(" (%.6lg iter/sec)", 1000000.0 / time_diff);
+          last_timing_iteration = world->it_time;
+          last_timing_time = cur_time;
+        }
+        else
+        {
+          last_timing_iteration = world->it_time;
+          last_timing_time = cur_time;
+        }
+      }
+
       printf("\n");
     }
 
-    if (world->it_time>=world->iterations) break; /* Output only on last loop */
+    /* Check for a checkpoint on this iteration */
+    if (world->chkpt_iterations  &&  (world->it_time - world->start_time) == world->chkpt_iterations)
+      world->checkpoint_requested = CHKPT_ITERATIONS_EXIT;
+ 
+    /* No checkpoint signalled.  Keep going. */
+    if (world->checkpoint_requested != CHKPT_NOT_REQUESTED)
+    {
+      /* Make a checkpoint, exiting the loop if necessary */
+      if (make_checkpoint(world))
+        break;
+    }
 
 resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     
@@ -186,19 +329,41 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     if (next_release_time < world->it_time+1) next_release_time = world->it_time+1;
     
     
-    for (local = world->storage_head ; local != NULL ; local = local->next)
+    while (world->storage_head->store->current_time <= not_yet)
     {
-      while (local->store->current_time <= not_yet)
+      int done = 0;
+      while (! done)
       {
-        run_timestep( local->store , next_release_time , (double)world->iterations+1.0 );
+        done = 1;
+        for (local = world->storage_head ; local != NULL ; local = local->next)
+        {
+          if (local->store->timer->current != NULL)
+          {
+            run_timestep( local->store , next_release_time , (double)world->iterations+1.0 );
+            done = 0;
+          }
+        }
+      }
+
+      for (local = world->storage_head ; local != NULL ; local = local->next)
+      {
+        /* Not using the return value -- just trying to advance the scheduler */
+        void *o = schedule_next(local->store->timer);
+        if (o != NULL)
+          fprintf(stderr, "Internal error!  Scheduler dropped a molecule on the floor!\n");
+        local->store->current_time += 1.0;
       }
     }
 
+    if (++ iter_report_phase == frequency) iter_report_phase = 0;
     world->it_time++;
-    
   }
   
-  i = flush_trigger_output();
+  /* If we didn't make a final iteration checkpoint, make one */
+  if (world->chkpt_iterations  &&  world->it_time > world->last_checkpoint_iteration)
+    make_checkpoint(world);
+  
+  i = flush_reaction_output();
   if (i)
   {
     fprintf(world->err_file,"Error at file %s line %d\n",__FILE__,__LINE__);
@@ -206,24 +371,12 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     fprintf(world->err_file,"  Simulation complete anyway--continuing as normal.\n");
   }
 
-  /* write output checkpoint file */
-  if ((world->it_time - world->start_time)==world->chkpt_iterations && world->chkpt_outfile) {
-    if ((world->chkpt_outfs=fopen(world->chkpt_outfile,"wb"))==NULL) {
-      fprintf(world->err_file,"File '%s', Line %ld: fatal error cannot write checkpoint file %s\n", __FILE__, (long)__LINE__, world->chkpt_outfile);
-      exit(1);
-    }
-    else {
-      fprintf(world->log_file,"MCell: time = %lld, writing to checkpoint file %s\n",world->it_time, world->chkpt_outfile);
-      world->chkpt_elapsed_real_time = world->chkpt_elapsed_real_time + world->chkpt_iterations*world->time_unit;
-      if (write_chkpt(world->chkpt_outfs)) {
-	fprintf(world->err_file,"File '%s', Line %ld: error writing checkpoint file %s\n", __FILE__, (long)__LINE__, world->chkpt_outfile);
-	exit(1);
-      }
-      fclose(world->chkpt_outfs);
-    }
-  }
-  
   if (world->notify->progress_report!=NOTIFY_NONE) fprintf(world->log_file,"Exiting run loop.\n");
+  if (finalize_viz_output(world->frame_data_head))
+  {
+    fprintf(world->err_file, "Warning: viz output was not successfully finalized.\n");
+    fprintf(world->err_file, "  Visualization of results may not work correctly.\n");
+  }
  
   first_report=1;
   
@@ -307,7 +460,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
        fprintf(world->log_file,"Total number of ray-polygon intersection tests: %lld\n",world->ray_polygon_tests);
        fprintf(world->log_file,"Total number of ray-polygon intersections: %lld\n",world->ray_polygon_colls);
        fprintf(world->log_file,"Total number of molecule-molecule collisions: %lld\n",world->mol_mol_colls);
-       fprintf(world->log_file,"Total number of molecule-molecule_molecule collisions: %lld\n",world->mol_mol_mol_colls);
+       fprintf(world->log_file,"Total number of molecule-molecule-molecule collisions: %lld\n",world->mol_mol_mol_colls);
     }
  
     t_final = time(NULL);
@@ -321,6 +474,36 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
 
 }
 
+/***********************************************************************
+ install_usr_signal_handlers:
+
+    Set signal handlers for checkpointing on SIGUSR signals.
+
+    In:  None
+    Out: 0 on success, 1 on failure.
+ ***********************************************************************/
+int install_usr_signal_handlers(void)
+{
+  struct sigaction sa, saPrev;
+  sa.sa_sigaction = NULL;
+  sa.sa_handler = &chkpt_signal_handler;
+  sa.sa_flags = SA_RESTART;
+  sigfillset(&sa.sa_mask);
+
+  if (sigaction(SIGUSR1, &sa, &saPrev) != 0)
+  {
+    fprintf(stderr, "Failed to install USR1 signal handler\n");
+    return 1;
+  }
+  if (sigaction(SIGUSR2, &sa, &saPrev) != 0)
+  {
+    fprintf(stderr, "Failed to install USR2 signal handler\n");
+    return 1;
+  }
+
+  return 0;
+}
+
 int main(int argc, char **argv) {
 
   FILE *err_file;
@@ -329,6 +512,11 @@ int main(int argc, char **argv) {
   u_int procnum;
   long long exec_iterations = 0; /* number of simulation iterations for this run */
   time_t begin_time_of_day;  /* start time of the simulation */
+
+  /* get the process start time */
+  time(&begin_time_of_day);
+  if (install_usr_signal_handlers())
+    exit(EXIT_FAILURE);
 
 #if defined(__linux__)
   feenableexcept(FE_DIVBYZERO);
@@ -349,14 +537,12 @@ int main(int argc, char **argv) {
   procnum=world->procnum;
   gethostname(hostname,64);
 
-  world->iterations=INT_MIN; /* a flag */
+  world->iterations=INT_MIN; /* indicates iterations not set */
   world->chkpt_infile = NULL;
   world->chkpt_init = 1;
   world->log_freq = -1; /* Indicates that this value has not been set by user */
-    
-  /* get the present time */
-  time(&begin_time_of_day);
-
+  world->begin_timestamp = begin_time_of_day;
+  world->initialization_state = "initializing";
 
   /*
    * Parse the command line arguments and print out errors if necessary.
@@ -365,23 +551,11 @@ int main(int argc, char **argv) {
     if (world->log_file!=NULL) {
       log_file=world->log_file;
     }
-    fprintf(log_file,"\n");
 
-
-    fprintf(log_file,"MCell %s (build %s)\n",MCELL_VERSION,"(build date/CVS version date goes here)");
-    fprintf(log_file,"  Running on %s at %s\n",hostname, ctime(&begin_time_of_day));
-    if (procnum == 0) {
-      init_credits();
-
-      fprintf(log_file,"Usage: %s [options] mdl_file_name\n\n",argv[0]);
-      fprintf(log_file,"    options:\n");
-      fprintf(log_file,"       [-help]                   print this help message\n");
-      fprintf(log_file,"       [-seed n]                 choose random sequence number (default: 1)\n");
-      fprintf(log_file,"       [-iterations n]           override iterations in mdl_file_name\n");
-      fprintf(log_file,"       [-logfile log_file_name]  send output log to file (default: stderr)\n");
-      fprintf(log_file,"       [-logfreq n]              output log frequency (default: 100)\n");
-      fprintf(log_file,"       [-errfile err_file_name]  send errors log to file (default: stderr)\n");
-      fprintf(log_file,"       [-checkpoint_infile checkpoint_file_name]  read checkpoint file \n\n");
+    if (procnum == 0)
+    {
+      print_version(log_file);
+      print_usage(log_file, argv[0]);
     }
 
     exit(1);
@@ -397,27 +571,13 @@ int main(int argc, char **argv) {
   
   if (world->notify->progress_report!=NOTIFY_NONE)
   {
-    fprintf(log_file,"\n");
-    fprintf(log_file,"MCell %s (build %s)\n",MCELL_VERSION,"(build date/CVS version date goes here)");
-    fprintf(log_file,"  Running on %s at %s\n",hostname, ctime(&begin_time_of_day));
-      
-    init_credits();
+    print_version(log_file);
   }
-
-/*
-  no_printf("Parsing MDL file: %s\n",world->mdl_infile_name);
-  fflush(stderr);
-  if (mdlparse_init(world)) {
-    fprintf(log_file,"MCell: error parsing file: %s\n",world->curr_file);
-    return(1);
-  }
-  no_printf("Done parsing MDL file: %s\n",world->mdl_infile_name);
-  fflush(stderr);
-*/
 
   if (init_sim()) {
     exit(EXIT_FAILURE);
   }
+  world->initialization_state = NULL;
 
   if(world->chkpt_flag)
   {
@@ -427,63 +587,39 @@ int main(int argc, char **argv) {
            exit(EXIT_FAILURE);
           
         }
-  	if (((world->iterations - world->start_time) < world->chkpt_iterations) && world->chkpt_outfile) {
+    if (world->chkpt_iterations)
+    {
+      if ((world->iterations - world->start_time) < world->chkpt_iterations)
     		world->chkpt_iterations = world->iterations - world->start_time;
-  	} else if (world->chkpt_outfile) {
+      else
     		world->iterations = world->chkpt_iterations + world->start_time;
   	}
 
-
-  	if (world->chkpt_outfile) {
+    if (world->chkpt_iterations)
     		exec_iterations = world->chkpt_iterations;
-  	}
-  	else if ((world->chkpt_infile)&&(!world->chkpt_iterations)) {
+    else if (world->chkpt_infile)
     		exec_iterations = world->iterations - world->start_time;
-  	}
-  	else {
+    else
 		exec_iterations = world->iterations;
-  	}
         if(exec_iterations < 0) {
   	   fprintf(world->err_file,"Error: number of iterations to execute is zero or negative. Please verify ITERATIONS and/or CHECKPOINT_ITERATIONS commands.\n");
            exit(EXIT_FAILURE);
         }
   	fprintf(log_file,"MCell: executing %lld iterations starting at iteration number %lld.\n",
           exec_iterations,world->start_time);
-
   }
 
-  /* if((world->chkpt_flag) && (exec_iterations == 0)) exit(0); */
-  if((world->chkpt_flag) && (exec_iterations <= 0)) exit(0);
+  if((world->chkpt_flag) && (exec_iterations <= 0))
+  {
+    mem_dump_stats(stdout);
+    exit(0);
+  }
 
   printf("Running...\n");
   run_sim();
 
-
-  /* If we are on the final iteration - write final information
-     into viz_output files */
-   if((world->viz_mode == DREAMM_V3_MODE) || 
-           (world->viz_mode == DREAMM_V3_GROUPED_MODE))
-   { 
-      if(world->chkpt_flag){
-         if(world->it_time == world->start_time + world->chkpt_iterations){
-            if(finalize_viz_output(world->frame_data_head)){
-                fprintf(world->err_file,"File '%s', Line %ld: Error in finalizing viz_output.\n", __FILE__, (long)__LINE__);
-                exit(1);
-            }
-         }
-
-      }else{
-         if(world->it_time >= world->viz_state_info.final_iteration){ 
-            if(finalize_viz_output(world->frame_data_head)){
-                fprintf(world->err_file,"File '%s', Line %ld: Error in finalizing viz_output.\n", __FILE__, (long)__LINE__);
-                exit(1);
-            }
-         }   
-
-     } 
-  }
- 
   printf("Done running.\n");
+  mem_dump_stats(stdout);
 
   exit(0);
 }

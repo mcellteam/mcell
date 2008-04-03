@@ -26,6 +26,9 @@ struct abstract_element* ae_list_sort(struct abstract_element *ae)
   int stack_n[64];
   struct abstract_element *left = NULL,*right = NULL,*merge = NULL,*tail = NULL;
   int si = 0;
+
+  if (ae == NULL)
+    return NULL;
   
   while (ae != NULL)
   {
@@ -289,29 +292,129 @@ int schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_current
   return 0;
 }
 
-
-#if 0
 /*************************************************************************
-schedule_excert:
-  In: scheduler that we are using
-      data to deschedule (assumed to start with abstract_element struct)
-      blank area to copy data into so it can be used
-      number of bytes to transfer over
-  Out: No return value.  Descheduled item will come off with a time of
-      -1.0.  Data that used to be in that item will be in blank, but
-      the next pointer will be set to NULL.
-  Note: This doesn't work cleanly, so it shouldn't be here at all.
-*************************************************************************/
+unlink_list_item:
+  Removes a specific item from the linked list.
 
-void schedule_excert(struct schedule_helper *sh,void *data,void *blank,int size)
+  In: struct abstract_element **hd - pointer to head of list
+      struct abstract_element **tl - pointer to tail of list
+      struct abstract_element *it - pointer to item to unlink
+  Out: 0 on success, 1 if the item was not found
+*************************************************************************/
+static int unlink_list_item(struct abstract_element **hd, struct abstract_element **tl, struct abstract_element *it)
 {
-  struct abstract_element *current = (struct abstract_element*)data;
-  struct abstract_element *excerted = (struct abstract_element*)blank;
-  memcpy(blank,data,size);
-  current->t = -1.0;
-  excerted->next = NULL;
+  struct abstract_element *prev = NULL;
+
+  while (*hd != NULL)
+  {
+    if (*hd == it)
+    {
+      (*hd) = (*hd)->next;
+      if (*tl == it)
+        *tl = prev;
+      return 0;
+    }
+
+    prev = *hd;
+    hd = &prev->next;
+  }
+
+  return 1;
 }
-#endif
+
+/*************************************************************************
+schedule_deschedule:
+  Removes an item from the schedule.  Currently, this is used when the
+  unimolecular rates for a subunit cause a molecule's unimolecular reaction
+  rate to change.
+
+  In: struct schedule_helper *sh - the scheduler from which to remove
+      void  *data - the item to remove
+  Out: 0 on success, 1 if the item was not found
+*************************************************************************/
+int schedule_deschedule(struct schedule_helper *sh, void *data)
+{
+  struct abstract_element *ae = (struct abstract_element *) data;
+
+  /* If the item is in "current" */
+  if (sh->current  &&  ae->t < sh->now)
+  {
+    if (unlink_list_item(&sh->current, &sh->current_tail, ae))
+      return 1;
+
+    -- sh->current_count;
+    return 0;
+  }
+
+  double nsteps = (ae->t - sh->now) * sh->dt_1 ;
+  if ( nsteps < ((double)sh->buf_len) )
+  {
+    int list_idx;
+    if (nsteps < 0.0) list_idx = sh->index;
+    else list_idx = (int) nsteps + sh->index;
+    if (list_idx >= sh->buf_len) list_idx -= sh->buf_len;
+
+    if (unlink_list_item(&sh->circ_buf_head[list_idx], &sh->circ_buf_tail[list_idx], ae))
+    {
+      /* If we fail to find it in this level, it may be in the next level.
+       * Note that when we are descheduling, we may need to look in more than
+       * one place, depending upon how long ago the item to be descheduled was
+       * originally scheduled. */
+      if (sh->next_scale)
+      {
+        if (! schedule_deschedule(sh->next_scale, data))
+        {
+          -- sh->count;
+          return 0;
+        }
+        else
+          return 1;
+      }
+      else
+        return 1;
+    }
+
+    -- sh->count;
+    -- sh->circ_buf_count[list_idx];
+    return 0;
+  }
+  else
+  {
+    if (! sh->next_scale)
+      return 1;
+
+    if (! schedule_deschedule(sh->next_scale, data))
+    {
+      -- sh->count;
+      return 0;
+    }
+    else
+      return 1;
+  }
+}
+
+/*************************************************************************
+schedule_reschedule:
+  Moves an item from one time to another in the schedule.  Currently, this is
+  used when the unimolecular rates for a subunit cause a molecule's
+  unimolecular reaction rate to change.
+
+  In: struct schedule_helper *sh - the scheduler from which to remove
+      void  *data - the item to remove
+      double new_t - the new time for the item
+  Out: 0 on success, 1 if the item was not found
+*************************************************************************/
+int schedule_reschedule(struct schedule_helper *sh, void *data, double new_t)
+{
+  if (! schedule_deschedule(sh, data))
+  {
+    struct abstract_element *ae = (struct abstract_element *) data;
+    ae->t = new_t;
+    return schedule_insert(sh, data, 1);
+  }
+  else
+    return 1;
+}
 
 
 /*************************************************************************
@@ -443,6 +546,11 @@ int schedule_anticipate(struct schedule_helper *sh,double *t)
     *t=sh->now;
     return 1;
   }
+  else if (sh->count == 0)
+    return 0;
+
+  while (sh->next_scale != NULL  &&  sh->count == sh->next_scale->count)
+    sh = sh->next_scale;
 
   for ( ; sh!=NULL ; sh = sh->next_scale )
   {
@@ -495,46 +603,6 @@ struct abstract_element* schedule_cleanup(struct schedule_helper *sh,int (*is_de
   {
     sh->defunct_count=0;
 
-#if 0
-    /* Do current list only for inner levels of scheduler */
-    if (top!=sh)
-    {
-      while (sh->current != NULL && (*is_defunct)(sh->current) )
-      {
-	temp = sh->current->next;
-	sh->current->next = defunct_list;
-	defunct_list = sh->current;
-	sh->current = temp;
-	sh->current_count--;
-	for (shp=top;shp!=sh;shp=shp->next_scale) shp->count--;
-      }
-      if (sh->current==NULL)
-      {
-	sh->current_tail=NULL;
-      }
-      else
-      {
-	for ( ae = sh->current ; ae!=NULL ; ae=ae->next )
-	{
-	  while( ae->next!=NULL && (*is_defunct)(ae->next) )
-	  {
-	    temp = ae->next->next;
-	    ae->next->next = defunct_list;
-	    defunct_list = ae->next;
-	    ae->next = temp;
-	    sh->current_count--;
-	    for (shp=top;shp!=sh;shp=shp->next_scale) shp->count--;
-	  }
-	  if (ae->next==NULL)
-	  {
-	    sh->current_tail=ae;
-	    break;
-	  }
-	}
-      }
-    }
-#endif
-    
     for (i=0;i<sh->buf_len;i++)
     {
       /* Remove defunct elements from beginning of list */

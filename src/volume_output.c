@@ -148,35 +148,82 @@ keep_counting:
       while (cur_partition != NULL  &&  wrld->x_fineparts[cur_partition->llf.x] < x_lim)
       {
         /* Count molecules */
-        for (curmol = cur_partition->mol_head;
-             curmol != NULL;
-             curmol = curmol->next_v)
+        struct per_species_list *psl;
+        int check_nonreacting = 0;
+        int i = 0;
+        for (i = 0; i < vo->num_molecules; ++i)
         {
-          /* Skip defunct molecules */
-          if (curmol->properties == NULL)
-            continue;
-
-          /* Skip molecules not in our slab */
-          if (curmol->pos.z < z  ||  curmol->pos.z >= z_lim_slab)
-            continue;
-
-          /* Skip molecules outside our domain */
-          if (curmol->pos.x < x  ||  curmol->pos.x >= x_lim  ||
-              curmol->pos.y < y  ||  curmol->pos.y >= y_lim)
-            continue;
-
-          /* See if we're interested in this molecule */
-          if (vo->num_molecules == 1) {
-            if (*vo->molecules != curmol->properties) continue;
+          if (! (vo->molecules[i]->flags & CAN_MOLMOL))
+          {
+            check_nonreacting = 1;
+            break;
           }
-          else {
-            if ((find_species_in_array(vo->molecules, vo->num_molecules, curmol->properties)) == -1)
+        }
+        for (psl = cur_partition->species_head; psl != NULL; psl = psl->next)
+        {
+          if (psl->properties == NULL)
+          {
+            if (! check_nonreacting)
               continue;
-          }
+            else
+            {
+              for (curmol = psl->head; curmol != NULL; curmol = curmol->next_v)
+              {
+                /* See if we're interested in this molecule */
+                if (vo->num_molecules == 1)
+                {
+                  if (*vo->molecules != curmol->properties) continue;
+                }
+                else
+                {
+                  if ((find_species_in_array(vo->molecules, vo->num_molecules, curmol->properties)) == -1)
+                    continue;
+                }
 
-          /* We've got a winner!  Add one to the appropriate voxel. */
-          ++ counters[((int) floor((curmol->pos.y - y) * r_voxsz_y)) * vo->nvoxels_x +
-                       (int) floor((curmol->pos.x - x) * r_voxsz_x)];
+                /* Skip molecules not in our slab */
+                if (curmol->pos.z < z  ||  curmol->pos.z >= z_lim_slab)
+                  continue;
+
+                /* Skip molecules outside our domain */
+                if (curmol->pos.x < x  ||  curmol->pos.x >= x_lim  ||
+                    curmol->pos.y < y  ||  curmol->pos.y >= y_lim)
+                  continue;
+
+                /* We've got a winner!  Add one to the appropriate voxel. */
+                ++ counters[((int) floor((curmol->pos.y - y) * r_voxsz_y)) * vo->nvoxels_x +
+                      (int) floor((curmol->pos.x - x) * r_voxsz_x)];
+              }
+            }
+          }
+          else
+          {
+            /* See if we're interested in this molecule */
+            if (vo->num_molecules == 1)
+            {
+              if (*vo->molecules != psl->properties) continue;
+            }
+            else
+            {
+              if ((find_species_in_array(vo->molecules, vo->num_molecules, psl->properties)) == -1)
+                continue;
+            }
+
+            for (curmol = psl->head; curmol != NULL; curmol = curmol->next_v)
+            {
+              /* Skip molecules not in our slab */
+              if (curmol->pos.z < z  ||  curmol->pos.z >= z_lim_slab)
+                continue;
+
+              /* Skip molecules outside our domain */
+              if (curmol->pos.x < x  ||  curmol->pos.x >= x_lim  ||
+                  curmol->pos.y < y  ||  curmol->pos.y >= y_lim)
+                continue;
+
+              /* We've got a winner!  Add one to the appropriate voxel. */
+              ++ counters[((int) floor((curmol->pos.y - y) * r_voxsz_y)) * vo->nvoxels_x +
+                    (int) floor((curmol->pos.x - x) * r_voxsz_x)];
+            }
+          }
         }
 
         /* Advance to next x-partition */

@@ -23,6 +23,13 @@ void nullprintf(char *whatever,...) {}
 
 #define noprintf nullprintf
 
+#ifdef MEM_UTIL_KEEP_STATS
+#undef malloc
+#undef free
+#undef strdup
+#undef realloc
+#endif
+
 #ifdef DEBUG
 #define Malloc count_malloc
 #else
@@ -62,7 +69,56 @@ void* count_malloc(int n)
 }
 #endif
 
+/*************************************************************************
+ * Checked malloc helpers
+ *************************************************************************/
 
+extern int emergency_output();
+static void memalloc_failure(char const *file, long line, int size, char const *desc, int onfailure)
+{
+    if (desc)
+      fprintf(world->err_file, "File '%s', Line %ld: Failed to allocate %d bytes for %s.\n", file, line, size, desc);
+    else
+      fprintf(world->err_file, "File '%s', Line %ld: Failed to allocate %d bytes.\n", file, line, size);
+    if (onfailure & CM_EMERGENCY_OUTPUT)
+    {
+      fprintf(world->err_file, "Out of memory; trying to save intermediate results.\n");
+      int i = emergency_output();
+      fprintf(world->err_file, "Fatal error: Out of memory.\n  Attempt to write intermediate results had %d errors\n", i);
+    }
+    else
+      fprintf(world->err_file, "Out of memory.\n");
+
+    if (onfailure & CM_EXIT)
+      exit(EXIT_FAILURE);
+}
+
+char *checked_strdup(char const *s, char const *file, long line, char const *desc, int onfailure)
+{
+  if (s == NULL)
+    return NULL;
+
+  char *data = strdup(s);
+  if (data == NULL)
+    memalloc_failure(file, line, strlen(s), desc, onfailure);
+  return data;
+}
+
+void *checked_malloc(unsigned int size, char const *file, long line, char const *desc, int onfailure)
+{
+  void *data = malloc(size);
+  if (data == NULL)
+    memalloc_failure(file, line, size, desc, onfailure);
+  return data;
+}
+
+void *checked_mem_get(struct mem_helper *mh, char const *file, long line, char const *desc, int onfailure)
+{
+  void *data = mem_get(mh);
+  if (data == NULL)
+    memalloc_failure(file, line, mh->record_size, desc, onfailure);
+  return data;
+}
 
 /**************************************************************************\
  ** counter section: make lists of unique items (different data in each) **
@@ -748,14 +804,174 @@ void delete_stack(struct stack_helper *sh)
  **   lists. Each element is assumed to start with a "next" pointer.     **
 \**************************************************************************/
 
+#ifdef MEM_UTIL_KEEP_STATS
+struct mem_stats
+{
+  struct mem_stats *next;
+  char const       *name;
+  long long int     size;
+  long long int     max_arenas;
+  long long int     total_arenas;
+  long long int     num_arenas_unfreed;
+  long long int     non_head_arenas;
+  long long int     max_non_head_arenas;
+  long long int     total_non_head_arenas;
+  long long int     unfreed_length;
+  long long int     max_length;
+  long long int     cur_free;
+  long long int     max_free;
+  long long int     cur_alloc;
+  long long int     max_alloc;
+};
+
+static struct mem_stats *mem_stats_root = NULL;
+static long long int mem_stats_cur_mallocs = 0;
+static long long int mem_stats_cur_malloc_space = 0;
+static long long int mem_stats_max_mallocs = 0;
+static long long int mem_stats_max_malloc_space = 0;
+static long long mem_stats_total_mallocs = 0;
+
+static long long int mem_cur_overall_allocation = 0;
+static long long int mem_max_overall_allocation = 0;
+static long long int mem_cur_overall_wastage = 0;
+static long long int mem_max_overall_wastage = 0;
+
+void *mem_util_tracking_malloc(unsigned int size)
+{
+  unsigned char *bl = (unsigned char *) malloc(size+16);
+  *(unsigned int *) bl = size;
+  if (bl != NULL)
+  {
+    if (++ mem_stats_cur_mallocs > mem_stats_max_mallocs)
+      mem_stats_max_mallocs = mem_stats_cur_mallocs;
+    if ((mem_stats_cur_malloc_space += size) > mem_stats_max_malloc_space)
+      mem_stats_max_malloc_space = mem_stats_cur_malloc_space;
+    if ((mem_cur_overall_allocation += size) > mem_max_overall_allocation)
+      mem_max_overall_allocation = mem_cur_overall_allocation;
+    ++ mem_stats_total_mallocs;
+  }
+  return (void *)(bl + 16);
+}
+
+void mem_util_tracking_free(void *data)
+{
+  unsigned char *bl = (unsigned char *) data;
+  bl -= 16;
+  -- mem_stats_cur_mallocs;
+  mem_stats_cur_malloc_space -= *(unsigned int *) bl;
+  free(bl);
+}
+
+void *mem_util_tracking_realloc(void *data, unsigned int size)
+{
+  unsigned char *bl = (unsigned char *) data;
+  bl -= 16;
+  unsigned int oldsize = *(unsigned int *) bl;
+  if (oldsize >= size)
+    return data;
+  void *block = mem_util_tracking_malloc(size);
+  memcpy(block, data, oldsize);
+  mem_util_tracking_free(data);
+  return block;
+}
+
+char *mem_util_tracking_strdup(char const *in)
+{
+  int len = strlen(in);
+  void *block = mem_util_tracking_malloc(len + 1);
+  memcpy(block, in, len+1);
+  return block;
+}
+
+static struct mem_stats *create_stats(char const *name, int size)
+{
+  struct mem_stats *s = (struct mem_stats *) malloc(sizeof(struct mem_stats));
+  s->next = mem_stats_root;
+  s->name = name;
+  s->size = size;
+  s->total_arenas = 0;
+  s->max_arenas = 0;
+  s->num_arenas_unfreed = 0;
+  s->non_head_arenas = 0;
+  s->max_non_head_arenas = 0;
+  s->total_non_head_arenas = 0;
+  s->unfreed_length = 0;
+  s->max_length = 0;
+  s->cur_free = 0;
+  s->max_free = 0;
+  s->cur_alloc = 0;
+  s->max_alloc = 0;
+  mem_stats_root = s;
+  return s;
+}
+
+static struct mem_stats *get_stats(char const *name, int size)
+{
+  struct mem_stats *s;
+  for (s = mem_stats_root; s != NULL; s = s->next)
+  {
+    if (s->size != size)
+      continue;
+
+    if (name == NULL)
+    {
+      if (s->name == NULL)
+        return s;
+    }
+    else
+    {
+      if (s->name != NULL  &&  ! strcmp(name, s->name))
+        return s;
+    }
+  }
+
+  return create_stats(name, size);
+}
+
+void mem_dump_stats(FILE *out)
+{
+  struct mem_stats *s;
+  for (s = mem_stats_root; s != NULL; s = s->next)
+  {
+    char const *name = s->name;
+    if (name == NULL) name = "(unnamed)";
+    fprintf(out, "%s [%lld]\n", s->name, s->size);
+    fprintf(out, "---------------------\n");
+    fprintf(out, "Num Arenas:          %lld/%lld (%lld)\n", s->num_arenas_unfreed, s->max_arenas, s->total_arenas);
+    fprintf(out, "Non-head arenas:     %lld/%lld (%lld)\n", s->non_head_arenas, s->max_non_head_arenas, s->total_non_head_arenas);
+    fprintf(out, "Total Items:         %lld/%lld\n", s->unfreed_length, s->max_length);
+    fprintf(out, "Free Items:          %lld/%lld\n", s->cur_free, s->max_free);
+    fprintf(out, "Alloced Items:       %lld/%lld\n", s->cur_alloc, s->max_alloc);
+    fprintf(out, "Space usage:         %lld/%lld\n", s->size*s->cur_alloc, s->size*s->max_alloc);
+    fprintf(out, "Space wastage:       %lld/%lld\n", s->size*s->cur_free, s->size*s->max_free);
+    fprintf(out, "Arena overhead:      %lld/%lld\n", (int) sizeof(struct mem_helper)*s->num_arenas_unfreed, (int) sizeof(struct mem_helper)*s->max_arenas);
+    fprintf(out, "\n");
+  }
+
+  fprintf(out, "Malloc stats:\n");
+  fprintf(out, "---------------------\n");
+  fprintf(out, "Mallocs:               %lld/%lld (%lld)\n", mem_stats_cur_mallocs, mem_stats_max_mallocs, mem_stats_total_mallocs);
+  fprintf(out, "Space used:            %lld/%lld\n", mem_stats_cur_malloc_space, mem_stats_max_malloc_space);
+  fprintf(out, "\n");
+
+  fprintf(out, "Summary stats:\n");
+  fprintf(out, "---------------------\n");
+  fprintf(out, "Allocation:            %lld/%lld\n", mem_cur_overall_allocation, mem_max_overall_allocation);
+  fprintf(out, "Waste:                 %lld/%lld\n", mem_cur_overall_wastage, mem_max_overall_wastage);
+  fprintf(out, "\n");
+}
+
+#endif
+
 /*************************************************************************
-create_mem:
+create_mem_named:
    In: Size of a single element (including the leading "next" pointer)
        Number of elements to allocate at once
+       Name of "arena" (used for statistics)
    Out: Pointer to a new mem_helper struct.
 *************************************************************************/
 
-struct mem_helper* create_mem(int size,int length)
+struct mem_helper* create_mem_named(int size,int length, char const *name)
 {
   struct mem_helper *mh;
   mh = (struct mem_helper*)Malloc( sizeof(struct mem_helper) );
@@ -768,15 +984,51 @@ struct mem_helper* create_mem(int size,int length)
   mh->defunct = NULL;
   mh->next_helper = NULL;
   
+#ifndef MEM_UTIL_NO_POOLING
+#ifdef MEM_UTIL_TRACK_FREED
+  mh->heap_array = (unsigned char*) Malloc( mh->buf_len * (mh->record_size + sizeof(int)) );
+  memset(mh->heap_array, 0, mh->buf_len * (mh->record_size + sizeof(int)));
+#else
   mh->heap_array = (unsigned char*) Malloc( mh->buf_len * mh->record_size );
+#endif
   
   if (mh->heap_array==NULL)
   {
     free (mh);
     return NULL;
   }
-  
+#else
+  mh->heap_array = NULL;
+#endif
+
+#ifdef MEM_UTIL_KEEP_STATS
+  struct mem_stats *s = mh->stats = get_stats(name, size);
+  ++ s->num_arenas_unfreed;
+  ++ s->total_arenas;
+  if (s->num_arenas_unfreed > s->max_arenas)
+    s->max_arenas = s->num_arenas_unfreed;
+  s->unfreed_length += length;
+  if (s->unfreed_length > s->max_length)
+    s->max_length = s->unfreed_length;
+  s->cur_free += length;
+  if (s->cur_free > s->max_free)
+    s->max_free = s->cur_free;
+  if ((mem_cur_overall_wastage += size * length) > mem_max_overall_wastage)
+    mem_max_overall_wastage = mem_cur_overall_wastage;
+#endif
+
   return mh;
+}
+
+/*************************************************************************
+create_mem:
+   In: Size of a single element (including the leading "next" pointer)
+       Number of elements to allocate at once
+   Out: Pointer to a new mem_helper struct.
+*************************************************************************/
+struct mem_helper* create_mem(int size,int length)
+{
+  return create_mem_named(size, length, NULL);
 }
 
 
@@ -789,24 +1041,97 @@ mem_get:
 
 void* mem_get(struct mem_helper *mh)
 {
+#ifdef MEM_UTIL_NO_POOLING
+  return malloc(mh->record_size);
+#else
   if (mh->defunct != NULL)
   {
     struct abstract_list *retval;
     retval = mh->defunct;
     mh->defunct = retval->next;
+#ifdef MEM_UTIL_KEEP_STATS
+    struct mem_stats *s = mh->stats;
+    -- s->cur_free;
+    ++ s->cur_alloc;
+    if (s->cur_alloc > s->max_alloc)
+      s->max_alloc = s->cur_alloc;
+    if ((mem_cur_overall_allocation += mh->record_size) > mem_max_overall_allocation)
+      mem_max_overall_allocation = mem_cur_overall_allocation;
+    mem_cur_overall_wastage -= mh->record_size;
+#endif
+#ifdef MEM_UTIL_ZERO_FREED
+    {
+      unsigned char *thisData = (unsigned char *) retval;
+      int i;
+      thisData += sizeof(struct abstract_element *);
+      for (i=0; i<mh->record_size - sizeof(struct abstract_element *); )
+      {
+        if (thisData[i] != '\0')
+        {
+          fprintf(stderr, "Memory block at %08lx: non-zero at byte %d: %02x %02x %02x %02x...\n", retval, i, thisData[i], thisData[i+1], thisData[i+2], thisData[i+3]);
+          i += 4;
+        }
+        else
+          ++ i;
+      }
+      memset(thisData, 0, mh->record_size - sizeof(struct abstract_element *));
+    }
+#endif
+#ifdef MEM_UTIL_TRACK_FREED
+    if (((int *) retval)[-1])
+    {
+      fprintf(stderr, "Duplicate allocation of ptr '%p'\n", retval);
+      return NULL;
+    }
+    ((int *) retval)[-1] = 1;
+#endif
     return (void*) retval;
   }
   else if (mh->buf_index < mh->buf_len)
   {
+#ifdef MEM_UTIL_TRACK_FREED
+    int offset = mh->buf_index * (mh->record_size + sizeof(int));
+#else
     int offset = mh->buf_index * mh->record_size;
+#endif
     mh->buf_index++;
+#ifdef MEM_UTIL_KEEP_STATS
+    struct mem_stats *s = mh->stats;
+    -- s->cur_free;
+    ++ s->cur_alloc;
+    if (s->cur_alloc > s->max_alloc)
+      s->max_alloc = s->cur_alloc;
+    if ((mem_cur_overall_allocation += mh->record_size) > mem_max_overall_allocation)
+      mem_max_overall_allocation = mem_cur_overall_allocation;
+    mem_cur_overall_wastage -= mh->record_size;
+#endif
+#ifdef MEM_UTIL_TRACK_FREED
+    int *ptr = (int *) (mh->heap_array + offset);
+    if (*ptr)
+    {
+      fprintf(stderr, "Duplicate allocation of ptr '%p'\n", ptr+1);
+      return NULL;
+    }
+    *ptr++ = 1;
+    return (void*)ptr;
+#else
     return (void*)(mh->heap_array + offset);
+#endif
   }
   else
   {
     struct mem_helper *mhnext;
     unsigned char *temp;
-    mhnext = create_mem(mh->record_size , mh->buf_len);
+#ifdef MEM_UTIL_KEEP_STATS
+    struct mem_stats *s = mh->stats;
+    mhnext = create_mem_named(mh->record_size, mh->buf_len, s->name);
+    ++ s->non_head_arenas;
+    if (s->non_head_arenas > s->max_non_head_arenas)
+      s->max_non_head_arenas = s->non_head_arenas;
+    ++ s->total_non_head_arenas;
+#else
+    mhnext = create_mem(mh->record_size, mh->buf_len);
+#endif
     if (mhnext==NULL) return NULL;
     
     /* Swap contents of this mem_helper with new one */
@@ -821,6 +1146,7 @@ void* mem_get(struct mem_helper *mh)
     mh->buf_index = 0;
     return mem_get(mh);
   }
+#endif
 }
 
 
@@ -835,9 +1161,36 @@ mem_put:
 
 void mem_put(struct mem_helper *mh,void *defunct)
 {
+#ifdef MEM_UTIL_NO_POOLING
+  free(defunct);
+  return;
+#else
   struct abstract_list *data = (struct abstract_list*)defunct;
+#ifdef MEM_UTIL_TRACK_FREED
+  int *ptr = (int *)data;
+  if (ptr[-1] == 0)
+  {
+    fprintf(stderr, "Duplicate free of ptr '%p'\n", defunct);
+    return;
+  }
+  ptr[-1] = 0;
+#endif
+#ifdef MEM_UTIL_ZERO_FREED
+  memset(data, 0, mh->record_size);
+#endif
   data->next = mh->defunct;
   mh->defunct = data;
+#ifdef MEM_UTIL_KEEP_STATS
+  struct mem_stats *s = mh->stats;
+  ++ s->cur_free;
+  -- s->cur_alloc;
+  if (s->cur_free > s->max_free)
+    s->max_free = s->cur_free;
+  mem_cur_overall_allocation -= mh->record_size;
+  if ((mem_cur_overall_wastage += mh->record_size) > mem_max_overall_wastage)
+    mem_max_overall_wastage = mem_cur_overall_wastage;
+#endif
+#endif
 }
 
 
@@ -855,10 +1208,52 @@ void mem_put_list(struct mem_helper *mh,void *defunct)
   struct abstract_list *data = (struct abstract_list*)defunct;
   struct abstract_list *alp;
   
+#ifdef MEM_UTIL_NO_POOLING
+  struct abstract_list *alpNext;
+  for (alp=data; alp != NULL; alp=alpNext)
+  {
+    alpNext = alp->next;
+    free(alp);
+  }
+#else
+#ifdef MEM_UTIL_ZERO_FREED
+  for (alp=data; alp != NULL; alp=alp->next)
+  {
+    unsigned char *thisData = (unsigned char *) alp;
+    thisData += sizeof(struct abstract_element *);
+    memset(thisData, 0, mh->record_size - sizeof(struct abstract_element *));
+  }
+#endif
+#ifdef MEM_UTIL_TRACK_FREED
+  for (alp=data; alp != NULL; alp=alp->next)
+  {
+    int *ptr = (int *)alp;
+    if (ptr[-1] == 0)
+    {
+      fprintf(stderr, "Duplicate free of ptr '%p'\n", defunct);
+      return;
+    }
+    ptr[-1] = 0;
+  }
+#endif
+#ifdef MEM_UTIL_KEEP_STATS
+  int count=1;
+  for (alp=data; alp->next != NULL; alp=alp->next) ++ count;
+  struct mem_stats *s = mh->stats;
+  s->cur_free += count;
+  s->cur_alloc -= count;
+  if (s->cur_free > s->max_free)
+    s->max_free = s->cur_free;
+  mem_cur_overall_allocation -= mh->record_size * count;
+  if ((mem_cur_overall_wastage += mh->record_size * count) > mem_max_overall_wastage)
+    mem_max_overall_wastage = mem_cur_overall_wastage;
+#else
   for (alp=data; alp->next != NULL; alp=alp->next) {}
+#endif
   
   alp->next = mh->defunct;
   mh->defunct = data;
+#endif
 }
 
 
@@ -873,13 +1268,27 @@ delete_mem:
 void delete_mem(struct mem_helper *mh)
 {
   if(mh == NULL) return;
+#ifndef MEM_UTIL_NO_POOLING
+#ifdef MEM_UTIL_KEEP_STATS
+  struct mem_stats *s = mh->stats;
+  -- s->num_arenas_unfreed;
+  s->cur_alloc -= mh->buf_index;
+  s->cur_free -= (mh->buf_len - mh->buf_index);
+  s->unfreed_length -= mh->buf_len;
+  mem_cur_overall_allocation -= mh->record_size * mh->buf_len;
+  mem_cur_overall_wastage -= mh->record_size * (mh->buf_len - mh->buf_index);
+  if (mh->next_helper)
+  {
+    delete_mem(mh->next_helper);
+    -- s->max_non_head_arenas;
+  }
+#else
   if (mh->next_helper) delete_mem(mh->next_helper);
+#endif
   free(mh->heap_array);
+#endif
   free(mh);
 }
-
-
-
 
 /**************************************************************************\
  ** temp section: Malloc a bunch of things, then free them all at once   **

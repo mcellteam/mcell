@@ -24,6 +24,7 @@
 #include "grid_util.h"
 #include "count_util.h"
 #include "wall_util.h"
+#include "macromolecule.h"
 
 #ifdef DEBUG
 #define no_printf printf
@@ -32,14 +33,20 @@
 
 extern struct volume *world;
 
-/**** These function is used only in this file.  It  picks out the****/
+
+
+/**************************************************************************\
+ ** Internal utility function section--max/min stuff                     **
+\**************************************************************************/
+
+/**** This function is used only in this file.  It picks out the   ****/
 /**** largest (absolute) value found among two vectors (useful for ****/
 /**** properly handling floating-point rounding error).            ****/
 
 static inline double abs_max_2vec(struct vector3 *v1,struct vector3 *v2)
 {
   return max2d(max3d(fabs(v1->x), fabs(v1->y), fabs(v1->z)),
-                max3d(fabs(v2->x), fabs(v2->y), fabs(v2->z)));
+               max3d(fabs(v2->x), fabs(v2->y), fabs(v2->z)));
 }
 
 /**************************************************************************\
@@ -87,34 +94,8 @@ int edge_hash (struct poly_edge *pe,int nkeys)
   unsigned int hashL = jenkins_hash( (ub1*) &(pe->v1x) , 3*sizeof(double) );
   unsigned int hashR = jenkins_hash( (ub1*) &(pe->v2x) , 3*sizeof(double) );
   
-  if (hashL==hashR) return hashL%nkeys;  /* Don't xor with self or we'll always get 0 */
-  else return (hashL^hashR)%nkeys;  /* ^ is symmetric so doesn't matter which is L and which is R */
+  return (hashL+hashR)%nkeys;       /* ^ is symmetric so doesn't matter which is L and which is R */
 }
-
-#if 0
-int edge_hash(struct poly_edge *pe,int nkeys)
-{
-  unsigned short *a;
-  unsigned int hashL=1 , hashR=1;
-  int i,j;
-  
-  a = (unsigned short*) &(pe->v1x);
-  for (i=j=0;i<12;i++)
-  {
-    j += 3;
-    if (j>=14) j-=14;
-    hashL += ((int)a[i])<<j;
-  }
-  for (j=0;i<24;i++)
-  {
-    j += 3;
-    if (j>=14) j-=14;
-    hashR += ((int)a[i])<<j;
-  }
-  
-  return ( (hashL ^ hashR) % nkeys );
-}
-#endif
 
 /***************************************************************************
 ehtable_init:
@@ -1426,8 +1407,7 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
   double d;        /* Dot product of movement vector and vector to target */
   double sigma2;   /* Square of interaction radius */
   
-
-  if ((a->properties->flags & ON_GRID)!=0) return COLLIDE_MISS; /* Should never call on grid molecule */
+  if ((a->properties->flags & ON_GRID)!=0) return COLLIDE_MISS; /* Should never call on grid molecule! */
   
   pos = &( ((struct volume_molecule*)a)->pos );
   
@@ -1474,7 +1454,7 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
   int result; 
 
  
-  if ((a->properties->flags & ON_GRID)!=0) return COLLIDE_MISS; /* Should never call on grid molecule */
+  if ((a->properties->flags & ON_GRID)!=0) return COLLIDE_MISS; /* Should never call on grid molecule! */
   
   if ((a->properties->flags & ON_SURFACE)==0) pos = &( ((struct volume_molecule*)a)->pos );
   else pos = &( ((struct surface_molecule*)a)->pos );
@@ -1864,8 +1844,6 @@ struct wall_list* wall_to_vol(struct wall *w, struct subvolume *sv)
   wl->next = sv->wall_head;
   sv->wall_head = wl;
 
-  sv->wall_count++;
-  
   return wl;
 }
 
@@ -2387,7 +2365,7 @@ surface_point_in_region:
 int surface_point_in_region(struct object *ob,int wall_n,struct vector3 *v,struct release_evaluator *expr)
 {
   struct subvolume *sv = find_subvolume(v,NULL);
-  struct waypoint *wp = &(world->waypoints[sv->index]);
+  struct waypoint *wp = &(world->waypoints[sv - world->subvol]);
   struct wall_list *wl;
   struct wall_list pre_wall,my_wall;
   struct vector3 delta,hit;
@@ -2570,6 +2548,12 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
   double A,max_A, num_to_release;
   struct wall *w;
   struct grid_molecule *new_g;
+  struct subvolume *gsv = NULL;
+  struct vector3 pos3d;
+
+  int is_complex = 0;
+  if (g->properties->flags & IS_COMPLEX)
+    is_complex = 1;
   
   rrd = rso->region_data;
   
@@ -2599,7 +2583,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
        fflush(stdout);
     } 
   }
- 
+  
   while (n>0)
   {
     if (failure >= success+too_many_failures)
@@ -2625,43 +2609,79 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
       j = w->grid->n;
       j = (int)((j*j)*(A/w->area));
       if (j>=w->grid->n_tiles) j=w->grid->n_tiles-1;
-      
-      if (w->grid->mol[j] != NULL || (rrd->refinement && !grid_release_check(rrd,rrd->obj_index[i],rrd->wall_index[i],j,NULL))) failure++;
+
+      if (is_complex)
+      {
+        short orient = 0;
+        if (rso->orientation > 0) orient = 1;
+        else if (rso->orientation < 0) orient = -1;
+        else
+        {
+          orient = (rng_uint(world->rng)&1)?1:-1;
+          if (world->notify->final_summary == NOTIFY_FULL)
+          {
+            world->random_number_use++;
+          }
+        }
+        struct grid_molecule *gp = macro_insert_molecule_grid_2(g->properties, orient, w, j, g->t, NULL, rrd);
+        if (gp == NULL) ++ failure;
+        else
+        {
+          ++ success;
+          -- n;
+        }
+      }
       else
       {
-        new_g = (struct grid_molecule*)mem_get( w->grid->subvol->local_storage->gmol );
-        if (new_g==NULL) return 1;
-        memcpy(new_g,g,sizeof(struct grid_molecule));
-        new_g->birthplace = w->grid->subvol->local_storage->gmol;
-        new_g->grid_index = j;
-	if (world->randomize_gmol_pos) grid2uv_random(w->grid,j,&(new_g->s_pos));
-	else grid2uv(w->grid,j,&(new_g->s_pos));
-	
-	if (rso->orientation > 0) new_g->orient = 1;
-	else if (rso->orientation < 0) new_g->orient = -1;
-	else {
+        if (w->grid->mol[j] != NULL || (rrd->refinement && !grid_release_check(rrd,rrd->obj_index[i],rrd->wall_index[i],j,NULL))) failure++;
+        else
+        {
+          struct vector2 s_pos;
+          if (world->randomize_gmol_pos) grid2uv_random(w->grid,j,&s_pos);
+          else grid2uv(w->grid,j,&s_pos);
+          uv2xyz(&s_pos, w, &pos3d);
+          gsv = find_subvolume(&pos3d, gsv);
+
+          new_g = (struct grid_molecule*)mem_get( gsv->local_storage->gmol );
+          if (new_g==NULL) return 1;
+          memcpy(new_g,g,sizeof(struct grid_molecule));
+          new_g->birthplace = w->grid->subvol->local_storage->gmol;
+          new_g->grid_index = j;
+          new_g->s_pos.u = s_pos.u;
+          new_g->s_pos.v = s_pos.v;
+
+          if (rso->orientation > 0) new_g->orient = 1;
+          else if (rso->orientation < 0) new_g->orient = -1;
+          else {
             new_g->orient = (rng_uint(world->rng)&1)?1:-1;
             if(world->notify->final_summary == NOTIFY_FULL)
             {
-               world->random_number_use++;
+              world->random_number_use++;
             }
+          }
+
+          new_g->grid = w->grid;
+
+          w->grid->mol[j] = new_g;
+
+          w->grid->n_occupied++;
+          new_g->properties->population++;
+          if ((new_g->properties->flags&COUNT_ENCLOSED) != 0) new_g->flags |= COUNT_ME;
+          if (new_g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
+            count_region_from_scratch((struct abstract_molecule*)new_g,NULL,1,NULL,new_g->grid->surface,new_g->t);
+
+          k = schedule_add( gsv->local_storage->timer , new_g );
+          if (k) return 1;
+
+          success++;
+          n--;
         }
-        
-	new_g->grid = w->grid;
-        
-        w->grid->mol[j] = new_g;
-
-        w->grid->n_occupied++;
-        new_g->properties->population++;
-        if (new_g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-          count_region_from_scratch((struct abstract_molecule*)new_g,NULL,1,NULL,new_g->grid->surface,new_g->t);
-
-        k = schedule_add( w->grid->subvol->local_storage->timer , new_g );
-        if (k) return 1;
-        
-        success++;
-        n--;
       }
+    }
+    else if (is_complex)
+    {
+      fprintf(world->log_file,"Warning: could not release %d of %s (surface full)\n",n,g->properties->sym->name);
+      break;
     }
     else
     {
@@ -2716,13 +2736,19 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           if((n < n_rrhd) && (world->notify->final_summary == NOTIFY_FULL)){
                world->random_number_use++;
           }
-          new_g = (struct grid_molecule*)mem_get( p->grid->subvol->local_storage->gmol );
+          struct vector2 s_pos;
+          if (world->randomize_gmol_pos) grid2uv_random(p->grid,p->index,&s_pos);
+          else grid2uv(p->grid,p->index,&s_pos);
+          uv2xyz(&s_pos, p->grid->surface, &pos3d);
+          gsv = find_subvolume(&pos3d, gsv);
+
+          new_g = (struct grid_molecule*)mem_get( gsv->local_storage->gmol );
           if (new_g==NULL) return 1;
           memcpy(new_g,g,sizeof(struct grid_molecule));
           new_g->birthplace = p->grid->subvol->local_storage->gmol;
           new_g->grid_index = p->index;
-	  if (world->randomize_gmol_pos) grid2uv_random(p->grid,p->index,&(new_g->s_pos));
-	  else grid2uv(p->grid,p->index,&(new_g->s_pos));
+          new_g->s_pos.u = s_pos.u;
+          new_g->s_pos.v = s_pos.v;
 	  
 	  if (rso->orientation>0) new_g->orient=1;
 	  else if (rso->orientation<0) new_g->orient=-1;
@@ -2739,10 +2765,11 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
 
           p->grid->n_occupied++;
           new_g->properties->population++;
+          if ((new_g->properties->flags&COUNT_ENCLOSED) != 0) new_g->flags |= COUNT_ME;
           if (new_g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
             count_region_from_scratch((struct abstract_molecule*)new_g,NULL,1,NULL,NULL,new_g->t);
 
-          h = schedule_add( p->grid->subvol->local_storage->timer , new_g );
+          h = schedule_add( gsv->local_storage->timer , new_g );
           if (h) return 1;
           
           n--;

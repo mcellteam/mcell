@@ -43,6 +43,8 @@ struct abstract_element* ae_list_sort(struct abstract_element *ae);
 struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,double start_time);
 
 int schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_current);
+int schedule_deschedule(struct schedule_helper *sh, void *data);
+int schedule_reschedule(struct schedule_helper *sh, void *data, double new_t);
 /*void schedule_excert(struct schedule_helper *sh,void *data,void *blank,int size);*/
 int schedule_advance(struct schedule_helper *sh,struct abstract_element **head,
                      struct abstract_element **tail);

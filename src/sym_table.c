@@ -5,6 +5,7 @@
 #include "mcell_structs.h"
 #include "sym_table.h"
 #include "react_output.h"
+#include "mem_util.h"
 
 #define hashsize(n) ((ub4)1<<(n))
 #define hashmask(n) (hashsize(n)-1)
@@ -149,220 +150,267 @@ struct sym_table *retrieve_sym(char *sym, unsigned short sym_type,
   return(NULL);
 }
 
+/**
+ * new_species:
+ *      Allocates a new species, initializing all values.
+ *
+ *      In:  none
+ *      Out: the newly allocated species
+ */
+struct species *new_species(void)
+{
+  struct species *specp = (struct species *) CHECKED_MALLOC_EMERGENCY(sizeof(struct species), "species");
+  specp->species_id=0;
+  specp->chkpt_species_id=0;
+  specp->eff_dat_head=NULL;
+  specp->population=0;
+  specp->D=0.0;
+  specp->D_ref=0.0;
+  specp->space_step=0.0;
+  specp->time_step=0.0;
+  specp->flags=0;
+  
+  specp->n_deceased=0;
+  specp->cum_lifetime=0.0;
+  
+  specp->viz_state=EXCLUDE_OBJ;
+  specp->region_viz_value = EXCLUDE_OBJ;
+  return specp;
+}
+
+/**
+ * new_object:
+ *      Allocates a new object, initializing all values.
+ *
+ *      In:  none
+ *      Out: the newly allocated object
+ */
+struct object *new_object(void)
+{
+  struct object *objp = (struct object *) CHECKED_MALLOC_EMERGENCY(sizeof(struct object), "object");
+  objp->last_name=NULL;
+  objp->object_type=META_OBJ;
+  objp->contents=NULL;
+  objp->parent=NULL;
+  objp->next=NULL;
+  objp->first_child=NULL;
+  objp->last_child=NULL;
+  objp->num_regions=0;
+  objp->regions=NULL;
+  objp->n_walls=0;
+  objp->n_walls_actual=0;
+  objp->walls=NULL;
+  objp->wall_p=NULL;
+  objp->n_verts=0;
+  objp->verts=NULL;
+  objp->vert_p=NULL;
+  objp->total_area=0;
+  objp->n_tiles=0;
+  objp->n_occupied_tiles=0;
+  objp->edgemem=NULL;
+  objp->viz_obj=NULL;
+  objp->viz_state=NULL;
+  init_matrix(objp->t_matrix);
+  return objp;
+}
+
+/**
+ * new_release_pattern:
+ *      Allocates a new release pattern, initializing all values.
+ *
+ *      In:  none
+ *      Out: the newly allocated release pattern
+ */
+struct release_pattern *new_release_pattern(void)
+{
+  struct release_pattern *rpatp = (struct release_pattern *) CHECKED_MALLOC_EMERGENCY(sizeof(struct release_pattern), "release pattern");
+  rpatp->delay=0;
+  rpatp->release_interval=FOREVER;
+  rpatp->train_interval=FOREVER;
+  rpatp->train_duration=FOREVER;
+  rpatp->number_of_trains=1;
+  return rpatp;
+}
+
+/**
+ * new_reaction:
+ *      Allocates a new reaction, initializing all values.
+ *
+ *      In:  none
+ *      Out: the newly allocated reaction
+ */
+struct rxn *new_reaction(void)
+{
+  struct rxn *rxnp = (struct rxn *) CHECKED_MALLOC_EMERGENCY(sizeof(struct rxn), "reaction");
+  rxnp->next=NULL;
+  rxnp->n_reactants=0;
+  rxnp->n_pathways=0;
+  rxnp->cum_probs=NULL;
+  rxnp->cat_probs=NULL;
+  rxnp->rates=NULL;
+  rxnp->max_fixed_p=0.0;
+  rxnp->min_noreaction_p=0.0;
+  rxnp->pb_factor=0.0;
+  rxnp->product_idx=NULL;
+  rxnp->players=NULL;
+  rxnp->geometries=NULL;
+  rxnp->is_complex=NULL;
+  rxnp->n_occurred=0;
+  rxnp->n_skipped=0;
+  rxnp->prob_t=NULL;
+  rxnp->pathway_head=NULL;
+  rxnp->info=NULL;
+  return rxnp;
+}
+
+/**
+ * new_reaction_pathname:
+ *      Allocates a new reaction pathname, initializing all values.
+ *
+ *      In:  none
+ *      Out: the newly allocated reaction pathname
+ */
+struct rxn_pathname *new_reaction_pathname(void)
+{
+  struct rxn_pathname *rxpnp = (struct rxn_pathname *) CHECKED_MALLOC_EMERGENCY(sizeof(struct rxn_pathname), "reaction pathname");
+  rxpnp->path_num=-1;
+  rxpnp->rx=NULL;
+  rxpnp->magic=NULL;
+  return rxpnp;
+}
+
+/**
+ * new_region:
+ *      Allocates a new region, initializing all values.
+ *
+ *      In:  none
+ *      Out: the newly allocated region
+ */
+struct region *new_region(void)
+{
+  struct region *rp = (struct region *) CHECKED_MALLOC_EMERGENCY(sizeof(struct region), "region");
+  rp->region_last_name=NULL;
+  rp->parent=NULL;
+  rp->element_list_head=NULL;
+  rp->membership=NULL;
+  rp->eff_dat_head=NULL;
+  rp->surf_class=NULL;
+  rp->region_viz_value=EXCLUDE_OBJ;
+  rp->bbox=NULL;
+  rp->area=0.0;
+  rp->flags=0;
+  rp->manifold_flag=MANIFOLD_UNCHECKED;
+  return rp;
+}
+
+/**
+ * new_region:
+ *      Allocates a new file stream, initializing all values.
+ *
+ *      In:  none
+ *      Out: the newly allocated file stream
+ */
+struct file_stream *new_filestream(void)
+{
+  struct file_stream *filep = (struct file_stream *) CHECKED_MALLOC_EMERGENCY(sizeof(struct file_stream), "file stream");
+  filep->name=NULL;
+  filep->stream=NULL;
+  return filep;
+}
+
 /** Stores symbol in the symbol table. 
     Initializes value field of the symbol structure to the default value.
     Returns: entry in the symbol table if successfully stored, 
              NULL - otherwise.
 */
-struct sym_table *store_sym(char *sym, unsigned short sym_type,
-  struct sym_table **hashtab)
+struct sym_table *store_sym(char *sym,
+                            unsigned short sym_type,
+                            struct sym_table **hashtab,
+                            void *data)
 {
   struct sym_table *sp;
   unsigned hashval;
-  void *vp;
+  void *vp = NULL;
   double *fp;
-  struct species *specp;
-  struct release_pattern *rpatp;
-  struct object *objp;
-  struct rxn *rxnp;
-  struct rxn_pathname *rxpnp;
-  struct region *rp;
-  struct file_stream *filep;
-/*
-  struct vector3 *tp;
-  struct cmprt *cp;
-  char *strp;
-*/
-  int i;
+  unsigned rawhash;
 
-  vp=NULL;
   /* try to find sym in table */
-  if ((sp=retrieve_sym(sym,sym_type,hashtab))==NULL) {  /* sym not found */
-   if ((sp=(struct sym_table *)malloc(sizeof(struct sym_table)))==NULL) {
-  	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-	i = emergency_output();
-  	fprintf(world->err_file, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
-	exit(EXIT_FAILURE);
-    }
+  if ((sp = retrieve_sym(sym, sym_type, hashtab))==NULL)
+  {
+    /* sym not found */
+    sp = (struct sym_table *) CHECKED_MALLOC_EMERGENCY(sizeof(struct sym_table), "sym table entry");
 #ifdef KELP
-	sp->ref_count=1;
-	sp->keep_alive=0;
+    sp->ref_count=1;
+    sp->keep_alive=0;
 #endif
-    sp->name=sym;
+    sp->name = CHECKED_STRDUP_EMERGENCY(sym, "symbol name");
     sp->sym_type=sym_type;
-    hashval=hash(sym)&SYM_HASHMASK;
+    rawhash = hash(sym);
+    hashval = rawhash & SYM_HASHMASK;
 
     sp->next=hashtab[hashval];
     hashtab[hashval]=sp;
     switch (sym_type) {
     case DBL:
-      if ((vp=(void *)malloc(sizeof(double)))==NULL) {
-  	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-	i = emergency_output();
-  	fprintf(world->err_file, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
-	exit(EXIT_FAILURE);
+      if (data == NULL)
+      {
+        vp = CHECKED_MALLOC_EMERGENCY(sizeof(double), "sym table value");
+        fp = (double *)vp;
+        *fp = 0.0;
       }
-      fp=(double *)vp;
-      *fp=0.0;
+      else
+        vp = data;
       break;
+
     case STR:
-      sp->value=NULL;
+      sp->value=data;
       return(sp);
-      break;
+
     case ARRAY:
-      sp->value=NULL;
+      sp->value=data;
       return(sp);
-      break;
+
     case MOL:
-      if ((vp=(void *)malloc(sizeof(struct species)))==NULL) {
-  	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-	i = emergency_output();
-  	fprintf(world->err_file, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
-	exit(EXIT_FAILURE);
-      }
-      specp=(struct species *)vp;
-      specp->sym=sp;
-      specp->eff_dat_head=NULL;
-      specp->species_id=0;
-      specp->hashval=hash(sym);
-      specp->population=0;
-      specp->D=0.0;
-      specp->D_ref=0.0;
-      specp->space_step=0.0;
-      specp->time_step=0.0;
-      specp->flags=0;
-      
-      specp->n_deceased=0;
-      specp->cum_lifetime=0.0;
-      
-      specp->viz_state=EXCLUDE_OBJ;
-      specp->region_viz_value = EXCLUDE_OBJ;
-/*
-      specp->transition_count_each=NULL;
-      specp->transition_count_all=NULL;
-      specp->region_transition_count_each=NULL;
-*/
+      if (data == NULL) vp = new_species();
+      else vp = data;
+      ((struct species *) vp)->sym = sp;
+      ((struct species *) vp)->hashval = rawhash;
       break;
+
     case OBJ:
-      if ((vp=(void *)malloc(sizeof(struct object)))==NULL) {
-  	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-	i = emergency_output();
-  	fprintf(world->err_file, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
-	exit(EXIT_FAILURE);
-      }
-      objp=(struct object *)vp;
-      objp->sym=sp; 
-      objp->last_name=NULL;
-      objp->object_type=META_OBJ;
-      objp->contents=NULL;
-      objp->parent=NULL;
-      objp->next=NULL;
-      objp->first_child=NULL;
-      objp->last_child=NULL;
-      objp->num_regions=0;
-      objp->regions=NULL;
-      objp->n_walls=0;
-      objp->n_walls_actual=0;
-      objp->walls=NULL;
-      objp->wall_p=NULL;
-      objp->n_verts=0;
-      objp->verts=NULL;
-      objp->vert_p=NULL;
-      objp->total_area=0;
-      objp->n_tiles=0;
-      objp->n_occupied_tiles=0;
-      objp->edgemem=NULL;
-      objp->viz_obj=NULL;
-      objp->viz_state=NULL;
-      init_matrix(objp->t_matrix);
+      if (data == NULL) vp = new_object();
+      else vp = data;
+      ((struct object *) vp)->sym = sp;
       break;
+
     case RPAT:
-      if ((vp=(void *)malloc(sizeof(struct release_pattern)))==NULL) {
-  	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-	i = emergency_output();
-  	fprintf(world->err_file, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
-	exit(EXIT_FAILURE);
-      }
-      rpatp=(struct release_pattern *)vp;
-      rpatp->sym=sp;
-      rpatp->delay=0;
-      rpatp->release_interval=FOREVER;
-      rpatp->train_interval=FOREVER;
-      rpatp->train_duration=FOREVER;
-      rpatp->number_of_trains=1;
+      if (data == NULL) vp = new_release_pattern();
+      else vp = data;
+      ((struct release_pattern *) vp)->sym = sp;
       break;
     case RX:
-      if ((vp=(void *)malloc(sizeof(struct rxn)))==NULL) {
-  	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-	i = emergency_output();
-  	fprintf(world->err_file, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
-	exit(EXIT_FAILURE);
-      }
-      rxnp=(struct rxn *)vp;
-      rxnp->sym=sp;
-      rxnp->next=NULL;
-      rxnp->n_reactants=0;
-      rxnp->n_pathways=0;
-      rxnp->product_idx=NULL;
-      rxnp->cum_probs=NULL;
-      rxnp->cat_probs=NULL;
-      rxnp->players=NULL;
-      rxnp->geometries=NULL;
-      rxnp->n_occurred=0;
-      rxnp->n_skipped=0;
-      rxnp->prob_t=NULL;
-      rxnp->pathway_head=NULL;
-      rxnp->info=NULL;
+      if (data == NULL) vp = new_reaction();
+      else vp = data;
+      ((struct rxn *) vp)->sym = sp;
       break;
     case RXPN:
-      if ((vp=(void *)malloc(sizeof(struct rxn_pathname)))==NULL) {
-  	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-	i = emergency_output();
-  	fprintf(world->err_file, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
-	exit(EXIT_FAILURE);
-      }
-      rxpnp=(struct rxn_pathname *)vp;
-      rxpnp->sym=sp;
-      rxpnp->hashval=hash(sym);
-      rxpnp->path_num=-1;
-      rxpnp->rx=NULL;
-      rxpnp->magic=NULL;
+      if (data == NULL) vp = new_reaction_pathname();
+      else vp = data;
+      ((struct rxn_pathname *) vp)->sym = sp;
+      ((struct rxn_pathname *) vp)->hashval = rawhash;
       break;
     case REG:
-      if ((vp=(void *)malloc(sizeof(struct region)))==NULL) {
-  	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-	i = emergency_output();
-  	fprintf(world->err_file, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
-	exit(EXIT_FAILURE);
-      }
-      rp=(struct region *)vp;
-      rp->sym=sp;
-      rp->hashval=hash(sym);
-      rp->region_last_name=NULL;
-      rp->parent=NULL;
-      rp->element_list_head=NULL;
-      rp->membership=NULL;
-      rp->eff_dat_head=NULL;
-      rp->surf_class=NULL;
-      rp->region_viz_value=EXCLUDE_OBJ;
-      rp->bbox=NULL;
-      rp->area=0.0;
-      rp->flags=0;
-      rp->manifold_flag=MANIFOLD_UNCHECKED;
+      if (data == NULL) vp = new_region();
+      else vp = data;
+      ((struct region *) vp)->sym = sp;
+      ((struct region *) vp)->hashval = rawhash;
       break;
     case FSTRM:
-      if ((vp=(void *)malloc(sizeof(struct file_stream)))==NULL) {
-  	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-	i = emergency_output();
-  	fprintf(world->err_file, "Fatal error:out of memory during storing symbol.\nAttempt to write intermediate results had %d errors\n", i);
-	exit(EXIT_FAILURE);
-      }
-      filep=(struct file_stream *)vp;
-      filep->name=NULL;
-      filep->stream=NULL;
+      if (data == NULL) vp = new_filestream();
+      else vp = data;
       break;
     case TMP:
-      sp->value=NULL;
+      sp->value = data;
       return(sp);
       break;
     default:
@@ -371,9 +419,6 @@ struct sym_table *store_sym(char *sym, unsigned short sym_type,
     }
     sp->value=vp;
   } 
-  else {			/*sym found*/
-    free((void *)sym);
-  }
   return(sp);
 }
 
@@ -382,16 +427,7 @@ struct sym_table **init_symtab(int size)
 { 
   struct sym_table **symtab; 
   int i;
-  if ((symtab=(struct sym_table **)malloc(size*sizeof(struct sym_table *))) == NULL)
-  {
-  	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-	i = emergency_output();
-  	fprintf(world->err_file, "Fatal error:out of memory during symbol table initialization.\nAttempt to write intermediate results had %d errors\n", i);
-	exit(EXIT_FAILURE);
-  }
+  symtab = (struct sym_table **) CHECKED_MALLOC_EMERGENCY(size*sizeof(struct sym_table *), "symbol table");
   for (i=0;i<size;symtab[i++]=NULL);
   return(symtab);
-}   
-
-
-
+}

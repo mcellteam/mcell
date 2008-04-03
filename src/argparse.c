@@ -1,6 +1,7 @@
 #include "argparse.h"
 
 #include "mcell_structs.h"  /* for struct volume */
+#include "version_info.h"   /* for print_version, print_full_version */
 #include <stdarg.h>         /* for va_start, va_end, va_list */
 #include <string.h>         /* for strdup */
 #include <getopt.h>         /* for getopt_long_only, struct option, ... */
@@ -21,6 +22,8 @@
  */
 static struct option long_options[] = {
   {"help",              0, 0, 'h'},
+  {"version",           0, 0, 'v'},
+  {"fullversion",       0, 0, 'V'},
   {"seed",              1, 0, 's'},
   {"iterations",        1, 0, 'i'},
   {"checkpoint_infile", 1, 0, 'c'},
@@ -29,6 +32,26 @@ static struct option long_options[] = {
   {"errfile",           1, 0, 'e'},
   {NULL,                0, 0, 0}
 };
+
+/* print_usage: Write the usage message for mcell to a file handle.
+ *
+ *    f:     file handle to which to write message
+ *    argv0: command name to use for executable in message
+ */
+void print_usage(FILE *f, char const *argv0)
+{
+  fprintf(f, "Usage: %s [options] mdl_file_name\n\n", argv0);
+  fprintf(f, "    options:\n");
+  fprintf(f, "       [-help]                   print this help message\n");
+  fprintf(f, "       [-version]                print the program version and exit\n");
+  fprintf(f, "       [-fullversion]            print the detailed program version report and exit\n");
+  fprintf(f, "       [-seed n]                 choose random sequence number (default: 1)\n");
+  fprintf(f, "       [-iterations n]           override iterations in mdl_file_name\n");
+  fprintf(f, "       [-logfile log_file_name]  send output log to file (default: stderr)\n");
+  fprintf(f, "       [-logfreq n]              output log frequency (default: 100)\n");
+  fprintf(f, "       [-errfile err_file_name]  send errors log to file (default: stderr)\n");
+  fprintf(f, "       [-checkpoint_infile checkpoint_file_name]  read checkpoint file \n\n");
+}
 
 /* argerror: Display a message about an error which occurred during the
  *           argument parsing.  The message goes into the current "err_file",
@@ -90,19 +113,22 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
       case 'h':  /* -help */
         return 1;
 
+      case 'v':  /* -version */
+        print_version(vol->log_file);
+        exit(1);
+        break;
+
+      case 'V':  /* -fullversion */
+        print_full_version(vol->log_file);
+        exit(1);
+        break;
+
       case 's':  /* -seed */
         vol->seed_seq = (int) strtol(optarg, &endptr, 0);
         if (endptr == optarg || *endptr != '\0') {
           argerror(vol, "Random seed must be an integer: %s", optarg);
           return 1;
         }
-
-#ifdef USE_RAN4
-        if (vol->seed_seq < 1 || vol->seed_seq > 3000) {
-          argerror(vol, "Random sequence number %d not in range 1 to 3000", vol->seed_seq);
-          return 1;
-        }
-#endif
         break;
 
       case 'i':  /* -iterations */
@@ -161,7 +187,7 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
         break;
 
       case 'f':  /* -logfreq */
-        if (vol->log_freq != (unsigned long) -1) {
+        if (vol->log_freq != (u_int) -1) {
           argerror(vol, "-f or --logfreq specified more than once: %s", optarg);
           return 1;
         }

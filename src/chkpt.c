@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include "mcell_structs.h"
 #include "vol_util.h" 
 #include "chkpt.h"
@@ -15,11 +16,172 @@
 #include "rng.h"
 #include <string.h>
 #include "grid_util.h"
+#include "count_util.h"
 #include "react.h"
+#include "macromolecule.h"
+#include "strfunc.h"
 
 extern struct volume *world;
-int io_bytes;
 
+/***************************************************************************
+chkpt_signal_handler:
+In:  signo - the signal number that triggered the checkpoint
+Out: Records the checkpoint request
+
+Note: This function is not to be called during normal program execution.  It is
+registered as a signal handler for SIGUSR1, SIGUSR2, and possibly SIGALRM
+signals.
+***************************************************************************/
+void chkpt_signal_handler(int signo)
+{
+  if (world->initialization_state)
+  {
+    if (signo != SIGALRM  ||  ! world->continue_after_checkpoint)
+    {
+      fprintf(world->err_file, "Checkpoint requested while %s.  Exiting\n", world->initialization_state);
+      exit(1);
+    }
+  }
+
+  if (signo == SIGUSR1) world->checkpoint_requested = CHKPT_SIGNAL_CONT;
+  else if (signo == SIGUSR2) world->checkpoint_requested = CHKPT_SIGNAL_EXIT;
+  else if (signo == SIGALRM)
+  {
+    if (world->continue_after_checkpoint)
+      world->checkpoint_requested = CHKPT_ALARM_CONT;
+    else
+      world->checkpoint_requested = CHKPT_ALARM_EXIT;
+  }
+}
+
+/***************************************************************************
+create_chkpt:
+In:  filename - the name of the checkpoint file to create
+Out: returns 1 on failure, 0 on success.  On success, checkpoint file is
+     written to the appropriate filename.  On failure, the old checkpoint file
+     is left unmolested.
+***************************************************************************/
+int create_chkpt(char const *filename)
+{
+  FILE *outfs = NULL;
+  char *tmpname = alloc_sprintf("%s.tmp", filename);
+
+  /* Create temporary filename */
+  if (tmpname == NULL)
+  {
+    fprintf(world->err_file,"File '%s', Line %ld: out of memory preparing to write checkpoint file %s\n", __FILE__, (long)__LINE__, filename);
+    return 1;
+  }
+
+  /* Open the file */
+  if ((outfs = fopen(tmpname, "wb")) == NULL)
+  {
+    free(tmpname);
+    fprintf(world->err_file,"File '%s', Line %ld: fatal error: cannot write checkpoint file %s\n", __FILE__, (long)__LINE__, tmpname);
+    return 1;
+  }
+
+  /* Write checkpoint */
+  world->chkpt_elapsed_real_time = world->chkpt_elapsed_real_time + (world->it_time - world->start_time)*world->time_unit;
+  world->current_real_time = world->it_time*world->time_unit;
+  if (write_chkpt(outfs))
+  {
+    free(tmpname);
+    fclose(outfs);
+    fprintf(world->err_file,"File '%s', Line %ld: error writing checkpoint file %s\n", __FILE__, (long)__LINE__, filename);
+    return 1;
+  }
+  fclose(outfs);
+
+  /* Move it into place */
+  if (rename(tmpname, filename) != 0)
+  {
+    fprintf(world->err_file,"File '%s', Line %ld: error atomically replacing checkpoint file %s\n", __FILE__, (long)__LINE__, filename);
+    free(tmpname);
+    return 1;
+  }
+
+  return 0;
+}
+
+/***************************************************************************
+write_varint: Size- and endian-agnostic saving of unsigned integer values.
+In:  fs - file handle to which to write
+     val - value to write to file
+Out: returns 1 on failure, 0 on success.  On success, value is written to file.
+***************************************************************************/
+static int write_varint(FILE *fs, unsigned int val)
+{
+  unsigned char buffer[40];
+  int len = 0;
+  do
+  {
+    buffer[sizeof(buffer) - 1 - len] = val & 0x7f;
+    if (len != 0) buffer[sizeof(buffer) - 1 - len] |= 0x80;
+    val >>= 7;
+    ++ len;
+  } while (val != 0);
+
+  if (fwrite(buffer + sizeof(buffer) - len, 1, len, fs) != len)
+    return 1;
+  return 0;
+}
+
+/***************************************************************************
+write_svarint: Size- and endian-agnostic saving of signed integer values.
+In:  fs - file handle to which to write
+     val - value to write to file
+Out: returns 1 on failure, 0 on success.  On success, value is written to file.
+***************************************************************************/
+static int write_svarint(FILE *fs, int val)
+{
+  if (val < 0)
+    return write_varint(fs, (unsigned int)(((-val) << 1) | 1));
+  else
+    return write_varint(fs, (unsigned int)(((val) << 1)));
+}
+
+/***************************************************************************
+read_varint: Size- and endian-agnostic loading of unsigned integer values.
+In:  fs - file handle from which to read
+     dest - pointer to value to receive data from file
+Out: returns 1 on failure, 0 on success.  On success, value is read from file.
+***************************************************************************/
+static int read_varint(FILE *fs, unsigned int *dest)
+{
+  unsigned int accum = 0;
+  unsigned char ch;
+  do
+  {
+    if (fread(&ch, 1, 1, fs) != 1)
+      return 1;
+    accum <<= 7;
+    accum |= ch & 0x7f;
+  }
+  while (ch & 0x80);
+
+  *dest = accum;
+  return 0;
+}
+
+/***************************************************************************
+read_svarint: Size- and endian-agnostic loading of signed integer values.
+In:  fs - file handle from which to read
+     dest - pointer to value to receive data from file
+Out: returns 1 on failure, 0 on success.  On success, value is read from file.
+***************************************************************************/
+static int read_svarint(FILE *fs, int *dest)
+{
+  unsigned int tmp = 0;
+  if (read_varint(fs, &tmp))
+    return 1;
+
+  if (tmp & 1)
+    *dest = (int) -(tmp >> 1);
+  else
+    *dest = (int) (tmp >> 1);
+  return 0;
+}
 
 /***************************************************************************
 write_chkpt:
@@ -32,7 +194,6 @@ Out: Writes the checkpoint file with all information needed for the
 int write_chkpt(FILE *fs)
 {
 
-  io_bytes=0;
   if (setvbuf(fs,NULL,_IOFBF,CHKPT_BUFSIZE)) {
     return(1);
   }
@@ -77,7 +238,6 @@ int read_chkpt(FILE *fs)
   byte cmd;
   int done;
   
-  io_bytes=0;
   if (setvbuf(fs,NULL,_IOFBF,CHKPT_BUFSIZE)) {
     return(1);
   }
@@ -86,7 +246,6 @@ int read_chkpt(FILE *fs)
     fread(&cmd,sizeof cmd,1,fs);
     done = feof(fs);
     if (!done) {
-      io_bytes+=sizeof cmd;
       switch (cmd) {
       case CURRENT_TIME_CMD:
 	if (read_current_real_time(fs)) {
@@ -168,12 +327,10 @@ int write_byte_order(FILE *fs)
       fprintf(world->err_file,"File '%s', Line %ld: write_byte_order error.\n", __FILE__, (long)__LINE__);
       return(1);
    }
-   io_bytes+=sizeof cmd;
    if (!fwrite(&byte_order,sizeof (byte_order),1,fs)) {
      fprintf(world->err_file,"File '%s', Line %ld: write_byte_order error.\n", __FILE__, (long)__LINE__);
      return(1);
    }
-   io_bytes+=sizeof (byte_order);
 
    return 0;
 }
@@ -207,7 +364,6 @@ int read_byte_order(FILE *fs)
       fprintf(world->err_file,"File '%s', Line %ld: read_byte_order error.\n", __FILE__, (long)__LINE__);
       return(1);
    }
-   io_bytes+=sizeof (byte_order_read);
 
    /* find whether there is mismatch between two machines */
    if (byte_order_read != byte_order_present)
@@ -234,12 +390,10 @@ int write_current_real_time(FILE *fs)
     fprintf(world->err_file,"File %s, Line %ld: write_current_real_time error in 'chkpt.c'.\n", __FILE__, (long)__LINE__);
     return(1);
   }
-  io_bytes+=sizeof cmd;
   if (!fwrite(&(world->current_real_time),sizeof (world->current_real_time),1,fs)) {
     fprintf(world->err_file,"File '%s', Line %ld: write_current_real_time error.\n", __FILE__, (long)__LINE__);
     return(1);
   }
-  io_bytes+=sizeof (world->current_real_time);
 
   return(0);
 }
@@ -267,11 +421,6 @@ int read_current_real_time(FILE *fs)
      byte_swap(&tmp1, sizeof(tmp1));
   }
   world->current_start_real_time = tmp1;
-  io_bytes+=sizeof (world->current_start_real_time);
-/*
-  fprintf(world->err_file,"read_current_real_time io_bytes = %d\n",io_bytes);
-  fflush(world->err_file);
-*/
   return(0);
 }
 
@@ -285,11 +434,14 @@ Out: Creates global molecule scheduler using checkpoint file values.
 ***************************************************************************/
 int create_molecule_scheduler()
 {
-  if((world->storage_head->store->timer = create_scheduler(1.0,100.0,100,world->start_time)) == NULL){
-     fprintf(world->err_file, "File '%s', Line %ld: Out of memory while creating molecule scheduler.\n", __FILE__, (long)__LINE__);
-     return 1;
+  struct storage_list *stg;
+  for (stg = world->storage_head; stg != NULL; stg = stg->next) {
+    if((stg->store->timer = create_scheduler(1.0,100.0,100,world->start_time)) == NULL){
+       fprintf(world->err_file, "File '%s', Line %ld: Out of memory while creating molecule scheduler.\n", __FILE__, (long)__LINE__);
+       return 1;
+    }
+    stg->store->current_time = world->start_time;
   }
-  world->storage_head->store->current_time = world->start_time;
 
   return 0;
 }
@@ -309,21 +461,14 @@ int write_current_iteration(FILE *fs)
   if (!fwrite(&cmd,sizeof cmd,1,fs)) {
     return(1);
   }
-  io_bytes+=sizeof cmd;
   if (!fwrite(&(world->it_time),sizeof (world->it_time),1,fs)) {
     fprintf(world->err_file,"File '%s', Line %ld: write_current_iteration error.\n", __FILE__, (long)__LINE__);
     return(1);
   }
-  io_bytes+=sizeof (world->it_time);
   if (!fwrite(&(world->chkpt_elapsed_real_time),sizeof (world->chkpt_elapsed_real_time),1,fs)) {
     fprintf(world->err_file, "File '%s', Line %ld: write_current_iteration error.\n", __FILE__, (long)__LINE__);
     return(1);
   }
-  io_bytes+=sizeof (world->chkpt_elapsed_real_time);
-/*
-  fprintf(world->err_file,"write_current_iteration io_bytes = %d\n",io_bytes);
-  fflush(world->err_file);
-*/
   return(0);
 }
 
@@ -352,7 +497,6 @@ int read_current_iteration(FILE *fs)
      byte_swap(&tmp1, sizeof(tmp1));
   }
   world->start_time = tmp1;
-  io_bytes+=sizeof (world->start_time);
 
   if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
     fprintf(world->err_file, "File '%s', Line %ld: read_current_iteration error.\n", __FILE__, (long)__LINE__);
@@ -364,12 +508,7 @@ int read_current_iteration(FILE *fs)
      byte_swap(&tmp3, sizeof(tmp3));
   }
   world->chkpt_elapsed_real_time_start = tmp3;
-  io_bytes+=sizeof (world->chkpt_elapsed_real_time_start);
   world->chkpt_elapsed_real_time=world->chkpt_elapsed_real_time_start;
-/*
-  fprintf(world->err_file, "read_current_iteration io_bytes = %d\n",io_bytes);
-  fflush(world->err_file);
-*/
   return(0);
 }
 
@@ -389,16 +528,10 @@ int write_chkpt_seq_num(FILE *fs)
     fprintf(world->err_file,"File '%s', Line %ld: write_chkpt_seq_number error.\n", __FILE__, (long)__LINE__);
     return(1);
   }
-  io_bytes+=sizeof cmd;
   if (!fwrite(&(world->chkpt_seq_num),sizeof (world->chkpt_seq_num),1,fs)) {
     fprintf(world->err_file,"File '%s', Line %ld: write_chkpt_seq_number error.\n", __FILE__, (long)__LINE__);
     return(1);
   }
-  io_bytes+=sizeof (world->chkpt_seq_num);
-/*
-  fprintf(world->err_file,"write_chkpt_seq_num io_bytes = %d\n",io_bytes);
-  fflush(world->err_file);
-*/
   return(0);
 }
 
@@ -426,12 +559,7 @@ int read_chkpt_seq_num(FILE *fs)
   world->chkpt_seq_num = tmp1;
   
 
-  io_bytes+=sizeof (world->chkpt_seq_num);
   world->chkpt_seq_num++;
-/*
-  fprintf(world->err_file,"read_chkpt_seq_num io_bytes = %d\n",io_bytes);
-  fflush(world->err_file);
-*/
   return(0);
 }
 
@@ -452,33 +580,27 @@ int write_rng_state(FILE *fs)
     fprintf(world->err_file,"File '%s', Line %ld: write_rng_state error.\n", __FILE__, (long)__LINE__);
     return(1);
   }
-  io_bytes+=sizeof cmd;
   if (!fwrite(&(world->seed_seq),sizeof (world->seed_seq),1,fs)) {
     fprintf(world->err_file,"File '%s', Line %ld: write_rng_state error.\n", __FILE__, (long)__LINE__);
     return(1);
   }
-  io_bytes+=sizeof (world->seed_seq);
   if (!fwrite(&(world->rng->randcnt),sizeof (world->rng->randcnt),1,fs)) {
     fprintf(world->err_file,"File '%s', Line %ld: write_rng_state error.\n", __FILE__, (long)__LINE__);
     return(1);
   }
-  io_bytes+=sizeof (world->rng->randcnt);
   if (!fwrite(&(world->rng->aa),sizeof (world->rng->aa),1,fs)) {
     fprintf(world->err_file,"File '%s', Line %ld: write_rng_state error.\n",  __FILE__, (long)__LINE__);
     return(1);
   }
-  io_bytes+=sizeof (world->rng->aa);
 
   if (!fwrite(&(world->rng->bb),sizeof (world->rng->bb),1,fs)) {
     fprintf(world->err_file,"File '%s', Line %ld: write_rng_state error.\n", __FILE__, (long)__LINE__);
     return(1);
   }
-  io_bytes+=sizeof (world->rng->bb);
   if (!fwrite(&(world->rng->cc),sizeof (world->rng->cc),1,fs)) {
     fprintf(world->err_file,"File '%s', Line %ld: write_rng_state error.\n", __FILE__, (long)__LINE__);
     return(1);
   }
-  io_bytes+=sizeof (world->rng->cc);
 
 
   for(i = 0; i < RANDSIZ; i++)
@@ -487,7 +609,6 @@ int write_rng_state(FILE *fs)
     		fprintf(world->err_file,"File '%s', Line %ld: write_rng_state error.\n", __FILE__, (long)__LINE__);
     		return(1);
   	}
-  	io_bytes+=sizeof (world->rng->randrsl[i]);
 	
   }  
   for(i = 0; i < RANDSIZ; i++)
@@ -496,15 +617,9 @@ int write_rng_state(FILE *fs)
     		fprintf(world->err_file,"File '%s', Line %ld: write_rng_state error.\n", __FILE__, (long)__LINE__);
     		return(1);
   	}
-  	io_bytes+=sizeof (world->rng->mm[i]);
 	
   }  
 
-
-/*
-  fprintf(world->err_file,"write_rng_state io_bytes = %d\n",io_bytes);
-  fflush(world->err_file);
-*/
   return(0);
 }
 
@@ -549,8 +664,6 @@ int read_rng_state(FILE *fs)
     rng_reinit=1;
   }
   
-  io_bytes+=sizeof (world->seed_seq);
-  
   if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
     fprintf(world->err_file,"File '%s', Line %ld: read_rng_state error.\n", __FILE__, (long)__LINE__);
     return(1);
@@ -561,8 +674,6 @@ int read_rng_state(FILE *fs)
      byte_swap(&tmp1, sizeof(tmp1));
   }
   world->rng->randcnt = tmp1;
-  
-  io_bytes+=sizeof (world->rng->randcnt);
   
   if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
     fprintf(world->err_file,"File '%s', Line %ld: read_rng_state error.\n", __FILE__, (long)__LINE__);
@@ -575,8 +686,6 @@ int read_rng_state(FILE *fs)
   }
   world->rng->aa = tmp3;
   
-  io_bytes+=sizeof (world->rng->aa);
-
   if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
     fprintf(world->err_file,"File '%s', Line %ld: read_rng_state error.\n", __FILE__, (long)__LINE__);
     return(1);
@@ -587,7 +696,6 @@ int read_rng_state(FILE *fs)
      byte_swap(&tmp3, sizeof(tmp3));
   }
   world->rng->bb = tmp3;
-  io_bytes+=sizeof (world->rng->bb);
 
   if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
     fprintf(world->err_file,"File '%s', Line %ld: read_rng_state error.\n", __FILE__, (long)__LINE__);
@@ -599,8 +707,6 @@ int read_rng_state(FILE *fs)
      byte_swap(&tmp3, sizeof(tmp3));
   }
   world->rng->cc = tmp3;
-  
-  io_bytes+=sizeof (world->rng->cc);
   
   for(i = 0; i < RANDSIZ; i++)
   {
@@ -614,7 +720,6 @@ int read_rng_state(FILE *fs)
             byte_swap(&tmp3, sizeof(tmp3));
   	}
         world->rng->randrsl[i] = tmp3;
-  	io_bytes+=sizeof (world->rng->randrsl[i]);
 	
   }  
   
@@ -630,7 +735,6 @@ int read_rng_state(FILE *fs)
             byte_swap(&tmp3, sizeof(tmp3));
   	}
         world->rng->mm[i] = tmp3;
-  	io_bytes+=sizeof (world->rng->mm[i]);
 	
   }  
 
@@ -640,10 +744,6 @@ int read_rng_state(FILE *fs)
     rng_init(world->rng,world->seed_seq);
   }
 
-/*
-  fprintf(world->err_file,"read_rng_state io_bytes = %d\n",io_bytes);
-  fflush(world->err_file);
-*/
   return(0);
 }
 
@@ -658,7 +758,7 @@ Out: Writes species data to the checkpoint file.
 int write_species_table(FILE *fs)
 {
   byte cmd = SPECIES_TABLE_CMD;
-  int i, j;
+  int i;
   char *species_name = NULL;
   u_int species_name_length;
   u_int sp_id;       /* species id */
@@ -669,7 +769,6 @@ int write_species_table(FILE *fs)
      fprintf(world->err_file,"FILE '%s', Line %ld: write_species_table error.\n", __FILE__, (long)__LINE__);
      return(1);
   }
-  io_bytes+=sizeof cmd;
 
   count = 0;
   /* write total number of existing species */
@@ -677,57 +776,47 @@ int write_species_table(FILE *fs)
   {
         if(world->species_list[i]->population > 0) count++;
   }
-  if (!fwrite(&(count),sizeof (count),1,fs)) {
-     	fprintf(world->err_file,"File '%s', Line %ld: write_species_table error.\n", __FILE__, (long)__LINE__);
-     	return(1);
+  if (write_varint(fs, count))
+  {
+    fprintf(world->err_file,"File '%s', Line %ld: write_species_table error.\n", __FILE__, (long)__LINE__);
+    return(1);
   }
-  io_bytes+=sizeof(count);
 
   sp_id = 0;   /* set the initial value */
   /* write data for each species */
   for(i = 0; i < world->n_species; i++)
   {
-        if(world->species_list[i]->population == 0) continue;
+    if(world->species_list[i]->population == 0) continue;
 
-	species_name = world->species_list[i]->sym->name;
-        species_name_length = strlen(species_name);
-        
-        /* write species name length. */
-        if (!fwrite(&(species_name_length),sizeof (species_name_length),1,fs)) {
-     		fprintf(world->err_file,"File '%s', Line %ld: write_species_table error.\n", __FILE__, (long)__LINE__);
-     		return(1);
-  	}
-        io_bytes+=sizeof(species_name_length);
+    species_name = world->species_list[i]->sym->name;
+    species_name_length = strlen(species_name);
 
-        /* write species name. */
-        for(j = 0; j < species_name_length; j++)
-        {
-   		if (!fwrite(&(species_name[j]),sizeof (char),1,fs)) 	{
-      			fprintf(world->err_file,"File '%s', Line %ld: write_species_table error.\n", __FILE__, (long)__LINE__);
-      			return(1);
-   		}
-   	}
-   	io_bytes += species_name_length; 
-        
-        /* write species ID. */
-        if (!fwrite(&(sp_id),sizeof (sp_id),1,fs)) {
-     		fprintf(world->err_file,"File '%s', Line %ld: write_species_table error.\n", __FILE__, (long)__LINE__);
-     		return(1);
-  	}
-        io_bytes+=sizeof(sp_id);
+    /* write species name length. */
+    if (write_varint(fs, species_name_length))
+    {
+      fprintf(world->err_file,"File '%s', Line %ld: write_species_table error.\n", __FILE__, (long)__LINE__);
+      return(1);
+    }
 
-        /* assign "chkpt_species_id" to this species. 
-           It will be used in "write_mol_scheduler_state()".*/
-         world->species_list[i]->chkpt_species_id = sp_id;
+    /* write species name. */
+    if (fwrite(species_name, 1, species_name_length, fs) != species_name_length)
+    {
+      fprintf(world->err_file,"File '%s', Line %ld: write_species_table error.\n", __FILE__, (long)__LINE__);
+      return(1);
+    }
 
-        sp_id++;
+    /* write species ID. */
+    if (write_varint(fs, sp_id))
+    {
+      fprintf(world->err_file,"File '%s', Line %ld: write_species_table error.\n", __FILE__, (long)__LINE__);
+      return(1);
+    }
 
+    /* assign "chkpt_species_id" to this species. 
+       It will be used in "write_mol_scheduler_state()".*/
+    world->species_list[i]->chkpt_species_id = sp_id ++;
   }
 
-/*
-  fprintf(world->err_file,"write_species_table io_bytes = %d\n",io_bytes);
-  fflush(world->err_file);
-*/
   return(0);
 }
 
@@ -742,81 +831,69 @@ Out: Reads species data from the checkpoint file.
 int read_species_table(FILE *fs)
 {
   int i, j;
-  u_int sp_id, sp_name_length, total_species, tmp1;
+  u_int sp_id, sp_name_length, total_species;
 
   /* read total number of species written. */
-  if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
-     fprintf(world->err_file,"File '%s', Line %ld: read_species_table error.\n", __FILE__, (long)__LINE__);
-     return(1);
-  }
-  if(world->chkpt_byte_order_mismatch == 1)
+  if (read_varint(fs, &total_species))
   {
-     /* we need to swap bytes here. */
-     byte_swap(&tmp1, sizeof(tmp1));
+    fprintf(world->err_file,"File '%s', Line %ld: read_species_table error.\n", __FILE__, (long)__LINE__);
+    return(1);
   }
-  total_species = tmp1;
-  io_bytes+=sizeof(total_species);
 
   for(i = 0; i < total_species; i++)
   {
-     /* read name length for this species */
-     if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
-        fprintf(world->err_file,"File '%s', Line %ld: read_species_table error.\n", __FILE__, (long)__LINE__);
-        return(1);
-     }
-     if(world->chkpt_byte_order_mismatch == 1)
-     {
-        /* we need to swap bytes here. */
-        byte_swap(&tmp1, sizeof(tmp1));
-     }
-     sp_name_length = tmp1;
-     io_bytes+=sizeof(sp_name_length);
+    if (read_varint(fs, &sp_name_length))
+    {
+      fprintf(world->err_file,"File '%s', Line %ld: read_species_table error.\n", __FILE__, (long)__LINE__);
+      return(1);
+    }
 
-     char sp_name[sp_name_length +1];
-  
-     /* read species name. */
-     for(j = 0; j < sp_name_length; j++)
-     {
-   	if (!fread(&(sp_name[j]),sizeof (char),1,fs)) 	{
-      		fprintf(world->err_file,"File '%s', Line %ld: read_species_table error.\n", __FILE__, (long)__LINE__);
-      		return(1);
-   	}
-     }
-     sp_name[sp_name_length] = '\0';
-     io_bytes += sp_name_length; 
+    /* Jed, 2007-07-05: This check guards against the security flaw caused by
+     * allocating a variable-length array on the stack.  We should have
+     * similar checks whenever we allocate a stack buffer based upon a
+     * user-supplied value rather than upon an actual count.
+     */
+    if (sp_name_length >= 100000)
+    {
+      fprintf(world->err_file,"File '%s', Line %ld: read_species_table error.\n", __FILE__, (long)__LINE__);
+      return(1);
+    }
+
+    /* read species name. */
+    char sp_name[sp_name_length + 1];
+    if (fread(sp_name, 1, sp_name_length, fs) != sp_name_length)
+    {
+      fprintf(world->err_file,"File '%s', Line %ld: read_species_table error.\n", __FILE__, (long)__LINE__);
+      return(1);
+    }
+    sp_name[sp_name_length] = '\0';
 
      /* read the species id */
-     if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
-        fprintf(world->err_file,"File '%s', Line %ld: read_species_table error.\n", __FILE__, (long)__LINE__);
-        return(1);
-     }
-     if(world->chkpt_byte_order_mismatch == 1)
-     {
-           /* we need to swap bytes here. */
-           byte_swap(&tmp1, sizeof(tmp1));
-      }
-      sp_id = tmp1;
-      
-      io_bytes+=sizeof(sp_id);
+    if (read_varint(fs, &sp_id))
+    {
+      fprintf(world->err_file,"File '%s', Line %ld: read_species_table error.\n", __FILE__, (long)__LINE__);
+      return(1);
+    }
 
-      /* find this species among world->species */
-      for(j = 0; j < world->n_species; j++)
+    /* find this species among world->species */
+    for(j = 0; j < world->n_species; j++)
+    {
+      if ((strcmp(world->species_list[j]->sym->name, sp_name) == 0))
       {
-           if((strcmp(world->species_list[j]->sym->name, sp_name) == 0)){
-		world->species_list[j]->chkpt_species_id = sp_id;
-                break;
-           }
-
+        world->species_list[j]->chkpt_species_id = sp_id;
+        break;
       }
+    }
   }
 
-/*
-  fprintf(world->err_file,"read_species_table io_bytes = %d\n",io_bytes);
-  fflush(world->err_file);
-*/
   return(0);
 }
 
+static int molecule_pointer_hash(void *v)
+{
+  intptr_t as_int = (intptr_t) v;
+  return (int) (as_int ^ (as_int >> 7) ^ (as_int >> 3));
+}
 
 /***************************************************************************
 write_mol_scheduler_state:
@@ -837,14 +914,22 @@ int write_mol_scheduler_state(FILE *fs)
   struct grid_molecule *gmp = NULL;
   struct vector3 where;
   short orient = 0;
-  u_int total_items = 0;
+  int total_items = 0;
   int i;
+  unsigned int next_complex=1;
+  struct pointer_hash complexes;
+
+  if (pointer_hash_init(&complexes, 8192))
+  {
+     fprintf(world->err_file,"File '%s', Line %ld: failed to initialize data structures required for scheduler state output.\n", __FILE__, (long)__LINE__);
+     return(1);
+  }
 
   if (!fwrite(&cmd,sizeof cmd,1,fs)) {
      fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+     pointer_hash_destroy(&complexes);
      return(1);
   }
-  io_bytes+=sizeof cmd;
 
   /* find out total items in the scheduler */
   for(slp = world->storage_head; slp != NULL; slp = slp->next)
@@ -853,22 +938,24 @@ int write_mol_scheduler_state(FILE *fs)
     {
       for (i = -1; i < shp->buf_len; i++)
       {
-         for(aep=(i<0)?shp->current:shp->circ_buf_head[i]; aep != NULL; aep = aep->next)
-         {
-            amp = (struct abstract_molecule *)aep;
-	    if (amp->properties==NULL) continue;
-	    
-	    if (!(amp->properties->flags&IS_SURFACE)) total_items++;  /* Must be molecule */
-         }
-       }
-     }
-   }
-    /* write total number of items in the scheduler */
-    if (!fwrite(&(total_items),sizeof (total_items),1,fs)) {
-     	fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
-     	return(1);
+        for(aep=(i<0)?shp->current:shp->circ_buf_head[i]; aep != NULL; aep = aep->next)
+        {
+          amp = (struct abstract_molecule *)aep;
+          if (amp->properties==NULL) continue;
+
+          if (!(amp->properties->flags&IS_SURFACE)) total_items++;  /* Must be molecule */
+        }
+      }
     }
-    io_bytes+=sizeof(total_items);
+  }
+
+  /* write total number of items in the scheduler */
+  if (write_varint(fs, total_items))
+  {
+    fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+    pointer_hash_destroy(&complexes);
+    return(1);
+  }
 
   for(slp = world->storage_head; slp != NULL; slp = slp->next)
   {
@@ -902,13 +989,15 @@ int write_mol_scheduler_state(FILE *fs)
             /* write chkpt_species ID. */
             if(amp->properties->chkpt_species_id == UINT_MAX){
      		fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+                pointer_hash_destroy(&complexes);
      		return(1);
   	    }
-            if (!fwrite(&(amp->properties->chkpt_species_id),sizeof (amp->properties->chkpt_species_id),1,fs)) {
+            if (write_varint(fs, amp->properties->chkpt_species_id))
+            {
      		fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+                pointer_hash_destroy(&complexes);
      		return(1);
   	    }
-            io_bytes+=sizeof(amp->properties->chkpt_species_id);
 
             /*write molecule ACT_NEWBIE flag */        
             if ((amp->flags & ACT_NEWBIE) != 0)
@@ -919,59 +1008,124 @@ int write_mol_scheduler_state(FILE *fs)
             }
             if (!fwrite(&act_newbie_flag,sizeof (act_newbie_flag),1,fs)) {
                 fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+                pointer_hash_destroy(&complexes);
                 return(1);
             }
-            io_bytes+=sizeof (act_newbie_flag);
    
             /* write molecule schedule time */
             if (!fwrite(&(amp->t),sizeof (amp->t),1,fs)) {
      		fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__,(long) __LINE__);
+                pointer_hash_destroy(&complexes);
      		return(1);
   	    }
-            io_bytes+=sizeof(amp->t);
             
             /* write molecule lifetime */
             if (!fwrite(&(amp->t2),sizeof (amp->t2),1,fs)) {
      		fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+                pointer_hash_destroy(&complexes);
      		return(1);
   	    }
-            io_bytes+=sizeof(amp->t2);
 
             /* write molecule birthday */
             if (!fwrite(&(amp->birthday),sizeof (amp->birthday),1,fs)) {
      		fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+                pointer_hash_destroy(&complexes);
      		return(1);
   	    }
-            io_bytes+=sizeof(amp->birthday);
 
             /* write molecule position */
             if (!fwrite(&(where.x),sizeof (where.x),1,fs)) {
      		fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+                pointer_hash_destroy(&complexes);
      		return(1);
   	    }
-            io_bytes+=sizeof(where.x);
             if (!fwrite(&(where.y),sizeof (where.y),1,fs)) {
      		fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+                pointer_hash_destroy(&complexes);
      		return(1);
   	    }
-            io_bytes+=sizeof(where.y);
             if (!fwrite(&(where.z),sizeof (where.z),1,fs)) {
      		fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+                pointer_hash_destroy(&complexes);
      		return(1);
   	    }
-            io_bytes+=sizeof(where.z);
              
             /* write molecule orientation */
-            if (!fwrite(&(orient),sizeof (orient),1,fs)) {
+            if (write_svarint(fs, orient))
+            {
      		fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+                pointer_hash_destroy(&complexes);
      		return(1);
   	    }
-            io_bytes+=sizeof(orient);
+
+            /* Write complex membership info */
+            if ((amp->flags & (COMPLEX_MASTER|COMPLEX_MEMBER)) == 0)
+            {
+              if (fwrite("\0", 1, 1, fs) != 1)
+              {
+                fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+                pointer_hash_destroy(&complexes);
+                return 1;
+              }
+            }
+            else
+            {
+              int hash = molecule_pointer_hash(amp->cmplx[0]);
+              // HACK: using the pointer hash to store allocated ids for each
+              // complex.  Watch out for overflow when sizeof(void *) !=
+              // sizeof(int), but it shouldn't be a big deal until the number
+              // of complexes instantiated in a sim gets above, say, 2^31 (i.e.
+              // ~2 billion).
+              unsigned int val = (unsigned int) (intptr_t) pointer_hash_lookup(&complexes, amp->cmplx[0], hash);
+              if (val == 0)
+              {
+                val = next_complex++;
+                pointer_hash_add(&complexes, amp->cmplx[0], hash, (void *) (intptr_t) val);
+              }
+              if (write_varint(fs, val))
+              {
+     		fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+                pointer_hash_destroy(&complexes);
+     		return 1;
+              }
+              if (amp == amp->cmplx[0])
+              {
+                if (fwrite("\0", 1, 1, fs) != 1)
+                {
+                  fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+                  pointer_hash_destroy(&complexes);
+                  return 1;
+                }
+              }
+              else
+              {
+                int idx = macro_subunit_index(amp);
+                if (idx < 0)
+                {
+                  fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+                  pointer_hash_destroy(&complexes);
+                  return 1;
+                }
+                if (write_varint(fs, (unsigned int) (idx + 1)))
+                {
+                  fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+                  pointer_hash_destroy(&complexes);
+                  return 1;
+                }
+                if (write_varint(fs, ((struct complex_species *) amp->cmplx[0]->properties)->num_subunits))
+                {
+                  fprintf(world->err_file,"File '%s', Line %ld: write_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+                  pointer_hash_destroy(&complexes);
+                  return(1);
+                }
+              }
+            }
           }
         }
       }         
   }
 
+  pointer_hash_destroy(&complexes);
   return 0;
 }
 
@@ -985,9 +1139,10 @@ Out: Reads molecule scheduler data from the checkpoint file.
 ***************************************************************************/
 int read_mol_scheduler_state(FILE *fs)
 {
-  u_int tmp1, total_items, chkpt_sp_id, i;
+  u_int total_items, chkpt_sp_id, i;
+  int tmp2;
   double tmp3, sched_time, lifetime, birthday, x_coord, y_coord, z_coord;
-  short tmp5, orient;
+  short orient;
   struct volume_molecule m;
   struct volume_molecule *mp = NULL;
   struct grid_molecule *gmp = NULL;
@@ -998,48 +1153,47 @@ int read_mol_scheduler_state(FILE *fs)
   byte act_newbie_flag;
   int j;
 
+  struct pointer_hash complexes;
 
+  if (pointer_hash_init(&complexes, 8192))
+  {
+     fprintf(world->err_file,"File '%s', Line %ld: failed to initialize data structures required for scheduler state output.\n", __FILE__, (long)__LINE__);
+     return(1);
+  }
+
+  memset(&m, 0, sizeof(struct volume_molecule));
   mp = &m; 
   ap = (struct abstract_molecule *)mp;  
 
   /* read total number of items in the scheduler. */
-  if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
+  if (read_varint(fs, &total_items))
+  {
      fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+     pointer_hash_destroy(&complexes);
      return(1);
   }
-  if(world->chkpt_byte_order_mismatch == 1)
-  {
-     /* we need to swap bytes here. */
-      byte_swap(&tmp1, sizeof(tmp1));
-  }
-  total_items = tmp1;
-  io_bytes+=sizeof(total_items);
   
   for(i = 0; i < total_items; i++)
   {
   	/* read chkpt_species_id */
-  	if (!fread(&(tmp1),sizeof (tmp1),1,fs)) {
+  	if (read_varint(fs, &chkpt_sp_id))
+        {
      	   fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+           pointer_hash_destroy(&complexes);
      	   return(1);
   	}
-  	if(world->chkpt_byte_order_mismatch == 1)
-  	{
-     	   /* we need to swap bytes here. */
-           byte_swap(&tmp1, sizeof(tmp1));
-        }
-        chkpt_sp_id = tmp1;
-        io_bytes+=sizeof(chkpt_sp_id);
 
         /*read molecule ACT_NEWBIE flag */        
         if (!fread(&act_newbie_flag,sizeof (act_newbie_flag),1,fs)) {
              fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+             pointer_hash_destroy(&complexes);
              return(1);
         }
-        io_bytes+=sizeof (act_newbie_flag);
 
   	/* read molecule schedule time */
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
      	   fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+           pointer_hash_destroy(&complexes);
      	   return(1);
   	}
   	if(world->chkpt_byte_order_mismatch == 1)
@@ -1048,11 +1202,11 @@ int read_mol_scheduler_state(FILE *fs)
            byte_swap(&tmp3, sizeof(tmp3));
         }
         sched_time = tmp3;
-        io_bytes+=sizeof(sched_time);
 
   	/* read molecule lifetime */
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
      	   fprintf(world->err_file,"FILE '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+           pointer_hash_destroy(&complexes);
      	   return(1);
   	}
   	if(world->chkpt_byte_order_mismatch == 1)
@@ -1061,11 +1215,11 @@ int read_mol_scheduler_state(FILE *fs)
            byte_swap(&tmp3, sizeof(tmp3));
         }
         lifetime = tmp3;
-        io_bytes+=sizeof(lifetime);
   	
         /* read molecule birthday */
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
      	   fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+           pointer_hash_destroy(&complexes);
      	   return(1);
   	}
   	if(world->chkpt_byte_order_mismatch == 1)
@@ -1074,11 +1228,11 @@ int read_mol_scheduler_state(FILE *fs)
            byte_swap(&tmp3, sizeof(tmp3));
         }
         birthday = tmp3;
-        io_bytes+=sizeof(birthday);
 
   	/* read molecule x-coordinate */
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
      	   fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+           pointer_hash_destroy(&complexes);
      	   return(1);
   	}
   	if(world->chkpt_byte_order_mismatch == 1)
@@ -1087,11 +1241,11 @@ int read_mol_scheduler_state(FILE *fs)
            byte_swap(&tmp3, sizeof(tmp3));
         }
         x_coord = tmp3;
-        io_bytes+=sizeof(x_coord);
 
   	/* read molecule y-coordinate */
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
      	   fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+           pointer_hash_destroy(&complexes);
      	   return(1);
   	}
   	if(world->chkpt_byte_order_mismatch == 1)
@@ -1100,11 +1254,11 @@ int read_mol_scheduler_state(FILE *fs)
            byte_swap(&tmp3, sizeof(tmp3));
         }
         y_coord = tmp3;
-        io_bytes+=sizeof(y_coord);
 
   	/* read molecule z-coordinate */
   	if (!fread(&(tmp3),sizeof (tmp3),1,fs)) {
      	   fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+           pointer_hash_destroy(&complexes);
      	   return(1);
   	}
   	if(world->chkpt_byte_order_mismatch == 1)
@@ -1113,20 +1267,45 @@ int read_mol_scheduler_state(FILE *fs)
            byte_swap(&tmp3, sizeof(tmp3));
         }
         z_coord = tmp3;
-        io_bytes+=sizeof(z_coord);
 
   	/* read molecule orientation */
-  	if (!fread(&(tmp5),sizeof (tmp5),1,fs)) {
+        if (read_svarint(fs, &tmp2))
+        {
      	   fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+           pointer_hash_destroy(&complexes);
      	   return(1);
   	}
-  	if(world->chkpt_byte_order_mismatch == 1)
-  	{
-     	   /* we need to swap bytes here. */
-           byte_swap(&tmp5, sizeof(tmp5));
+        orient = (short) tmp2;
+
+        unsigned int complex_no = 0;
+        unsigned int subunit_no = 0;
+        unsigned int subunit_count = 0;
+        if (read_varint(fs, &complex_no))
+        {
+          fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+          pointer_hash_destroy(&complexes);
+          return(1);
         }
-        orient = tmp5;
-        io_bytes+=sizeof(orient);
+
+        if (complex_no != 0)
+        {
+          if (read_varint(fs, &subunit_no))
+          {
+            fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+            pointer_hash_destroy(&complexes);
+            return(1);
+          }
+        }
+
+        if (subunit_no != 0)
+        {
+          if (read_varint(fs, &subunit_count))
+          {
+            fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\n", __FILE__, (long)__LINE__);
+            pointer_hash_destroy(&complexes);
+            return(1);
+          }
+        }
 
         properties = NULL;
         for(j = 0; j < world->n_species; j++){
@@ -1138,7 +1317,34 @@ int read_mol_scheduler_state(FILE *fs)
         }
         if(properties == NULL){
            fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\nCannot set up species type for the molecule.\n", __FILE__, (long)__LINE__);
+           pointer_hash_destroy(&complexes);
     	   return(1);
+        }
+
+        /* If necessary, add this molecule to a complex, creating the complex if necessary */
+        struct species **cmplx = NULL;
+        if (complex_no != 0)
+        {
+          // HACK: using the pointer hash to store allocated ids for each
+          // complex.  Watch out for overflow when sizeof(void *) !=
+          // sizeof(int), but it shouldn't be a big deal until the number
+          // of complexes instantiated in a sim gets above, say, 2^31 (i.e.
+          // ~2 billion).
+          void *key = (void *) (intptr_t) complex_no;
+          cmplx = (struct species **) pointer_hash_lookup(&complexes, key, complex_no);
+          if (cmplx == NULL)
+          {
+            if (subunit_no == 0)
+            {
+              struct complex_species *cs = (struct complex_species *) properties;
+              subunit_count = cs->num_subunits;
+            }
+            cmplx = (struct species **) malloc((subunit_count + 1) * sizeof(struct species **));
+            int i;
+            for (i=0; i <= subunit_count; ++i)
+              cmplx[i] = NULL;
+            pointer_hash_add(&complexes, key, complex_no, cmplx);
+          }
         }
 
         /* populate molecule scheduler */
@@ -1154,6 +1360,14 @@ int read_mol_scheduler_state(FILE *fs)
            ap->t2 = lifetime;
            ap->birthday = birthday;           
            ap->properties = properties; 
+           mp->cmplx = (struct volume_molecule **) cmplx;
+           if (mp->cmplx)
+           {
+             if (subunit_no == 0)
+               mp->flags |= COMPLEX_MASTER;
+             else
+               mp->flags |= COMPLEX_MEMBER;
+           }
            if(trigger_unimolecular(ap->properties->hashval, ap)!=NULL || (ap->properties->flags&CAN_GRIDWALL)!=0)
            {
 	      ap->flags |= ACT_REACT;
@@ -1168,37 +1382,165 @@ int read_mol_scheduler_state(FILE *fs)
            mp->pos.x = x_coord;
            mp->pos.y = y_coord;
            mp->pos.z = z_coord;
-          
+
            /* Insert copy of m into world */ 
           guess = insert_volume_molecule(mp, guess);  
           if(guess == NULL)
-           {
-              fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\nCannot insert copy of molecule into world.\n", __FILE__, (long)__LINE__);
-    	      return(1);
-           }
+          {
+            fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\nCannot insert copy of molecule into world.\n", __FILE__, (long)__LINE__);
+            pointer_hash_destroy(&complexes);
+            return(1);
+          }
+
+          /* If we are part of a complex, further processing is needed */
+          if (cmplx)
+          {
+            /* Put this mol in its place */
+            guess->cmplx[subunit_no] = guess;
+
+            /* Now, do some counting bookkeeping. */
+            if (subunit_no != 0)
+            {
+              if (guess->cmplx[0] != NULL)
+              {
+                if (count_complex(guess->cmplx[0], NULL, subunit_no - 1))
+                {
+                  fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\nFailed to update subunit counts.\n", __FILE__, (long)__LINE__);
+                  pointer_hash_destroy(&complexes);
+                  return 1;
+                }
+              }
+            }
+            else
+            {
+              int i;
+              for (i = 1; i <= subunit_count; ++i)
+                if (guess->cmplx[i] != NULL)
+                {
+                  if (count_complex(guess, NULL, i - 1))
+                  {
+                    fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\nFailed to update subunit counts.\n", __FILE__, (long)__LINE__);
+                    pointer_hash_destroy(&complexes);
+                    return 1;
+                  }
+                }
+            }
+          }
+
         }else{    /* grid_molecule */
            where.x = x_coord;
            where.y = y_coord;
            where.z = z_coord;
+
+           /* HACK: complex pointer of -1 indicates some part of the complex
+            * couldn't be placed, and so this molecule should be discarded. */
+           if (cmplx == (void *) (intptr_t) -1)
+           {
+             continue;
+           }
          
-	   gmp = insert_grid_molecule(properties, &where,orient,CHKPT_GRID_TOLERANCE,sched_time);
+	   gmp = insert_grid_molecule(properties, &where, orient, CHKPT_GRID_TOLERANCE, sched_time, (struct grid_molecule **) cmplx);
 
 	   if (gmp==NULL)
 	   {
-	     fprintf(world->log_file,"File '%s', Line %ld: Could not place molecule %s at (%f,%f,%f)\n", __FILE__, (long)__LINE__, properties->sym->name,where.x*world->length_unit,where.y*world->length_unit,where.z*world->length_unit);
-		     
-	     continue;
+             if (cmplx != NULL)
+             {
+               struct grid_molecule *gmpPrev = NULL;
+               int i;
+	       fprintf(world->log_file,"File '%s', Line %ld: Could not place part of a macromolecule %s at (%f,%f,%f).  Removing any parts already placed.\n", __FILE__, (long)__LINE__, properties->sym->name,where.x*world->length_unit,where.y*world->length_unit,where.z*world->length_unit);
+               for (i=subunit_count; i>=0; --i)
+               {
+                 if (cmplx[i] == NULL)
+                   continue;
+
+                 gmpPrev = (struct grid_molecule *) cmplx[i];
+                 cmplx[i] = NULL;
+
+                 /* Update the counts */
+                 if (gmpPrev->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
+                 {
+                   count_region_from_scratch((struct abstract_molecule*) gmpPrev, NULL,  -1, NULL, NULL,  gmpPrev->t);
+                 }
+                 if (i > 0  &&  cmplx[0] != NULL)
+                 {
+                   if (count_complex_surface((struct grid_molecule *) cmplx[0], gmpPrev, subunit_no - 1))
+                   {
+                     fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\nFailed to update subunit counts.\n", __FILE__, (long)__LINE__);
+                     pointer_hash_destroy(&complexes);
+                     return 1;
+                   }
+                 }
+
+                 /* Remove the molecule from the grid */
+                 if (gmpPrev->grid->mol[gmpPrev->grid_index] == gmpPrev)
+                 {
+                   gmpPrev->grid->mol[gmpPrev->grid_index] = NULL;
+                   -- gmpPrev->grid->n_occupied;
+                 }
+                 gmpPrev->grid = NULL;
+                 gmpPrev->grid_index = -1;
+
+                 /* Free the molecule */
+                 mem_put(gmpPrev->birthplace, gmpPrev);
+                 gmpPrev = NULL;
+               }
+               free(cmplx);
+
+               /* HACK: complex pointer of -1 indicates not to place any more
+                * parts of this macromolecule */
+               pointer_hash_add(&complexes, (void *) (intptr_t) complex_no, complex_no, (void *) (intptr_t) -1);
+               continue;
+             }
+             else
+             {
+	       fprintf(world->log_file,"File '%s', Line %ld: Could not place molecule %s at (%f,%f,%f)\n", __FILE__, (long)__LINE__, properties->sym->name,where.x*world->length_unit,where.y*world->length_unit,where.z*world->length_unit);
+	       continue;
+             }
 	   }
+
            gmp->t2 = lifetime;
            gmp->birthday = birthday;
            if(act_newbie_flag == HAS_NOT_ACT_NEWBIE){
-              /*clear a bit flag */
+              /* Clear the "newbie" flag */
               gmp->flags &= ~ACT_NEWBIE;
            }
+           gmp->cmplx = (struct grid_molecule **) cmplx;
 
+           if (gmp->cmplx)
+           {
+             gmp->cmplx[subunit_no] = gmp;
+             if (subunit_no == 0)
+               gmp->flags |= COMPLEX_MASTER;
+             else
+               gmp->flags |= COMPLEX_MEMBER;
+
+             /* Now, do some counting bookkeeping. */
+             if (subunit_no != 0)
+             {
+               if (cmplx[0] != NULL)
+               {
+                 if (count_complex_surface(gmp->cmplx[0], NULL, subunit_no - 1))
+                 {
+                   fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\nFailed to update subunit counts.\n", __FILE__, (long)__LINE__);
+                   pointer_hash_destroy(&complexes);
+                   return 1;
+                 }
+               }
+             }
+             else
+             {
+               if (count_complex_surface_new(gmp))
+               {
+                 fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\nFailed to update subunit counts.\n", __FILE__, (long)__LINE__);
+                 pointer_hash_destroy(&complexes);
+                 return 1;
+               }
+             }
+           }
        }
   }
 
+  pointer_hash_destroy(&complexes);
   return 0;
 }
 
@@ -1221,7 +1563,6 @@ int write_mcell_version(FILE *fs)
       fprintf(world->err_file,"File '%s', Line %ld: write_mcell_version error.\n", __FILE__, (long)__LINE__);
       return(1);
    }
-   io_bytes+=sizeof cmd;
    
    /* write number of characters in the MCell version string. */    
    version_length = (u_int)(strlen(world->mcell_version));
@@ -1229,7 +1570,6 @@ int write_mcell_version(FILE *fs)
       fprintf(world->err_file,"File '%s', Line %ld: write_mcell_version error.\n", __FILE__, (long)__LINE__);
       return(1);
    }
-   io_bytes+=sizeof (version_length);
 
    for(i = 0; i < version_length; i++)
    {        
@@ -1238,7 +1578,6 @@ int write_mcell_version(FILE *fs)
       		return(1);
    	}
    }
-   io_bytes += version_length; 
  
    return 0;
 }
@@ -1266,7 +1605,6 @@ int read_mcell_version(FILE *fs)
       return(1);
    }
     
-   io_bytes+=sizeof (version_length);
 
    char mcell_version_read[version_length + 1];   /* version of MCell3 read from
                                   checkpoint file. */
@@ -1281,7 +1619,6 @@ int read_mcell_version(FILE *fs)
            
    }
    mcell_version_read[version_length] = '\0';
-   io_bytes += version_length;  
 
    fprintf(log_file,"Checkpoint file was created with MCell Version %s\n", mcell_version_read);
    

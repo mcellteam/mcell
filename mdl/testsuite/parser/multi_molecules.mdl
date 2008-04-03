@@ -1,0 +1,27 @@
+DEFINE_MOLECULES
+{
+    m_g_0  {                                      DIFFUSION_CONSTANT_2D = 2e-6 }
+    m_v_0  {                                      DIFFUSION_CONSTANT_3D = 2e-6 }
+    m_g_1  { REFERENCE_DIFFUSION_CONSTANT = 1e-6  DIFFUSION_CONSTANT_2D = 2e-6 }
+    m_v_1  { REFERENCE_DIFFUSION_CONSTANT = 1e-6  DIFFUSION_CONSTANT_3D = 2e-6 }
+    m_g_2  {                                      DIFFUSION_CONSTANT_2D = 2e-6  CUSTOM_TIME_STEP = 1e-5 }
+    m_v_2  {                                      DIFFUSION_CONSTANT_3D = 2e-6  CUSTOM_TIME_STEP = 1e-5 }
+    m_g_3  { REFERENCE_DIFFUSION_CONSTANT = 1e-6  DIFFUSION_CONSTANT_2D = 2e-6  CUSTOM_TIME_STEP = 1e-5 }
+    m_v_3  { REFERENCE_DIFFUSION_CONSTANT = 1e-6  DIFFUSION_CONSTANT_3D = 2e-6  CUSTOM_TIME_STEP = 1e-5 }
+    m_g_4  {                                      DIFFUSION_CONSTANT_2D = 2e-6                           CUSTOM_SPACE_STEP = .1 }
+    m_v_4  {                                      DIFFUSION_CONSTANT_3D = 2e-6                           CUSTOM_SPACE_STEP = .1 }
+    m_g_5  { REFERENCE_DIFFUSION_CONSTANT = 1e-6  DIFFUSION_CONSTANT_2D = 2e-6                           CUSTOM_SPACE_STEP = .1 }
+    m_v_5  { REFERENCE_DIFFUSION_CONSTANT = 1e-6  DIFFUSION_CONSTANT_3D = 2e-6                           CUSTOM_SPACE_STEP = .1 }
+    m_g_6  {                                      DIFFUSION_CONSTANT_2D = 2e-6                                                   TARGET_ONLY }
+    m_v_6  {                                      DIFFUSION_CONSTANT_3D = 2e-6                                                   TARGET_ONLY }
+    m_g_7  { REFERENCE_DIFFUSION_CONSTANT = 1e-6  DIFFUSION_CONSTANT_2D = 2e-6                                                   TARGET_ONLY }
+    m_v_7  { REFERENCE_DIFFUSION_CONSTANT = 1e-6  DIFFUSION_CONSTANT_3D = 2e-6                                                   TARGET_ONLY }
+    m_g_8  {                                      DIFFUSION_CONSTANT_2D = 2e-6  CUSTOM_TIME_STEP = 1e-5                          TARGET_ONLY }
+    m_v_8  {                                      DIFFUSION_CONSTANT_3D = 2e-6  CUSTOM_TIME_STEP = 1e-5                          TARGET_ONLY }
+    m_g_9  { REFERENCE_DIFFUSION_CONSTANT = 1e-6  DIFFUSION_CONSTANT_2D = 2e-6  CUSTOM_TIME_STEP = 1e-5                          TARGET_ONLY }
+    m_v_9  { REFERENCE_DIFFUSION_CONSTANT = 1e-6  DIFFUSION_CONSTANT_3D = 2e-6  CUSTOM_TIME_STEP = 1e-5                          TARGET_ONLY }
+    m_g_10 {                                      DIFFUSION_CONSTANT_2D = 2e-6                           CUSTOM_SPACE_STEP = .1  TARGET_ONLY }
+    m_v_10 {                                      DIFFUSION_CONSTANT_3D = 2e-6                           CUSTOM_SPACE_STEP = .1  TARGET_ONLY }
+    m_g_11 { REFERENCE_DIFFUSION_CONSTANT = 1e-6  DIFFUSION_CONSTANT_2D = 2e-6                           CUSTOM_SPACE_STEP = .1  TARGET_ONLY }
+    m_v_11 { REFERENCE_DIFFUSION_CONSTANT = 1e-6  DIFFUSION_CONSTANT_3D = 2e-6                           CUSTOM_SPACE_STEP = .1  TARGET_ONLY }
+}

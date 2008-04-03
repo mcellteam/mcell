@@ -198,6 +198,8 @@ int emergency_output()
   int i;
   
   /* PANIC--delete everything we can get our pointers on! */
+  delete_mem( world->coll_mem );
+  delete_mem( world->exdv_mem );
   for (mem = world->storage_head ; mem != NULL ; mem = mem->next)
   {
     delete_mem( mem->store->list );
@@ -207,7 +209,6 @@ int emergency_output()
     delete_mem( mem->store->join );
     delete_mem( mem->store->tree );
     delete_mem( mem->store->grids );
-    delete_mem( mem->store->coll );
     delete_mem( mem->store->regl );
   }
   delete_mem( world->storage_allocator );
@@ -300,14 +301,14 @@ int add_trigger_output(struct counter *c,struct output_request *ear,int n,short 
 
 
 /*************************************************************************
-flush_trigger_output:
+flush_reaction_output:
    In: nothing
    Out: 0 on success, 1 on error (memory allocation or file I/O).
         Writes all remaining trigger events in buffers to disk.
         (Do this before ending the simuation.)
 *************************************************************************/
 
-int flush_trigger_output()
+int flush_reaction_output()
 {
   struct schedule_helper *sh;
   struct output_block *ob;
@@ -326,14 +327,11 @@ int flush_trigger_output()
       {
         for (os=ob->data_set_head ; os!=NULL ; os=os->next)
         {
-          if (os->column_head->data_type==TRIG_STRUCT)
-          {
             if (write_reaction_output(os,1)) n_errors++;
           }
 	}
       }
     } 
-  }
   
   return n_errors;
 }
@@ -365,14 +363,13 @@ int update_reaction_output(struct output_block *block)
   no_printf("Updating reaction output at time %lld of %lld\n",world->it_time,world->iterations);
   fflush(log_file);
 
-
   /* update all counters */
 
   block->t /= (1. + EPS_C);
   i=block->buf_index;
   if(world->chkpt_seq_num == 1){
-     if(block->timer_type==OUTPUT_BY_ITERATION_LIST) block->time_array[i] = block->t;
-     else block->time_array[i] = block->t*world->time_unit;
+  if(block->timer_type==OUTPUT_BY_ITERATION_LIST) block->time_array[i] = block->t;
+  else block->time_array[i] = block->t*world->time_unit;
   }else{
      if(block->timer_type==OUTPUT_BY_ITERATION_LIST) {
         block->time_array[i] = block->t;
@@ -388,7 +385,7 @@ int update_reaction_output(struct output_block *block)
            block->time_array[i] = world->current_start_real_time + (block->t - world->start_time)*world->time_unit;       
      }
   }
-
+  
   for (set=block->data_set_head ; set!=NULL ; set=set->next) /* Each file */
   {
     for (column=set->column_head ; column!=NULL ; column=column->next) /* Each column */
@@ -623,14 +620,6 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
 
 
 /*************************************************************************
-accept_tentative_triggers:
-   In: mem_helper used to allocate output_expressions  
-   Out: New, initialized output_expression, or NULL if out of memory.
-*************************************************************************/
-
-
-
-/*************************************************************************
 new_output_expr:
    In: mem_helper used to allocate output_expressions  
    Out: New, initialized output_expression, or NULL if out of memory.
@@ -833,6 +822,7 @@ void eval_oexpr_tree(struct output_expression *root,int skip_const)
       break;
     case '(':
     case '#':
+    case '@':
       if (root->right!=NULL) root->value = lval+rval;
       else root->value = lval;
       break;
@@ -950,6 +940,9 @@ char* oexpr_title(struct output_expression *root)
   {
     case '=':
       return lstr;
+      break;
+    case '@':
+      return strdup("(complex)");
       break;
     case '#':
       if ((root->expr_flags&OEXPR_LEFT_MASK)!=OEXPR_LEFT_REQUEST) return NULL;

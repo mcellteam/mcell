@@ -25,6 +25,7 @@ typedef unsigned char      ub1;
 #define DBL64 (5.42101086242752217003726400434970855712890625e-20)
 #define MSK53 0x001FFFFFFFFFFFFFLL
 
+
 struct isaac64_state
 {
   int randcnt;
@@ -73,7 +74,7 @@ Macros to get individual random numbers
      ( DBL53 * ((*((ub8 *)(((ub4 *)(rng->randrsl)) + (rng->randcnt-=2))))>>11) ) : \
      ( isaac64_generate(rng), \
        rng->randcnt=RANDMAX-2, \
-       DBL64 * ((*((ub8 *)(((ub4 *)(rng->randrsl)) + rng->randcnt)))>>11) ))
+       DBL53 * ((*((ub8 *)(((ub4 *)(rng->randrsl)) + rng->randcnt)))>>11) ))
 
 #define isaac64_dbl64(rng) \
    (rng->randcnt>1 ? \
@@ -81,6 +82,5 @@ Macros to get individual random numbers
      ( isaac64_generate(rng), \
        rng->randcnt=RANDMAX-2, \
        DBL64 * (*((ub8 *)(((ub4 *)(rng->randrsl)) + rng->randcnt))) ))
-
 
 #endif  /* ISAAC64_H */

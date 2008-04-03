@@ -6,7 +6,6 @@ By Bob Jenkins, 1996.  Public Domain.
 */
 #include "isaac64.h"
 
-
 #define ind(mm,x)  (*(ub8 *)((ub1 *)(mm) + ((x) & ((RANDSIZ-1)<<3))))
 
 #define rngstep(mix,a,b,mm,m,m2,r,x) \
@@ -103,4 +102,3 @@ void isaac64_init(struct isaac64_state *rng, ub4 seed)
    isaac64_generate(rng);   /* fill in the first set of results */
    rng->randcnt=RANDMAX;    /* prepare to use the first set of results */
 }
-

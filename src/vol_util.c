@@ -20,6 +20,7 @@
 #include "util.h"
 #include "wall_util.h"
 #include "grid_util.h"
+#include "macromolecule.h"
 
 extern struct volume *world;
 
@@ -73,43 +74,31 @@ traverse_subvol:
 *************************************************************************/
 struct subvolume* traverse_subvol(struct subvolume *here,struct vector3 *point,int which)
 {
-    int new_index;
-
     switch(which)
     {
       case X_NEG:
           if (here->world_edge&X_NEG_BIT) return NULL;
-          new_index = here->index - (world->nz_parts - 1)*(world->ny_parts - 1);
-          break;
+          return here - (world->nz_parts - 1)*(world->ny_parts - 1);
       case X_POS:
           if (here->world_edge&X_POS_BIT) return NULL;
-          new_index = here->index + (world->nz_parts - 1)*(world->ny_parts - 1);
-          break;
+          return here + (world->nz_parts - 1)*(world->ny_parts - 1);
       case Y_NEG:
           if (here->world_edge&Y_NEG_BIT) return NULL;
-          new_index = here->index - (world->nz_parts - 1);
-          break;
+          return here - (world->nz_parts - 1);
       case Y_POS:
           if (here->world_edge&Y_POS_BIT) return NULL;
-          new_index = here->index + (world->nz_parts - 1);
-          break;
+          return here + (world->nz_parts - 1);
       case Z_NEG:
           if (here->world_edge&Z_NEG_BIT) return NULL;
-          new_index = here->index - 1;
-          break;
+          return here - 1;
       case Z_POS:
           if (here->world_edge&Z_POS_BIT) return NULL;
-          new_index = here->index + 1;
-          break;
+          return here + 1;
       default: 
           fprintf(world->err_file, "Wrong direction caculated in %s, %ld\n", __FILE__, (long)__LINE__);
-	  return NULL;
-          break;
-
+          return NULL;
     } /* end switch */
 
-    return &(world->subvol[new_index]);
-    
     /*
   int flag = 1<<which;
   int left_path;
@@ -358,19 +347,22 @@ int is_defunct_molecule(struct abstract_element *e)
   return ((struct abstract_molecule*)e)->properties == NULL;
 }
 
-
 /*************************************************************************
-insert_grid_molecule
+place_grid_molecule
   In: species for the new molecule
       3D location of the new molecule
       orientation of the new molecule
-      diameter to search for a free surface spot (vector3 now, should be double!)
+      diameter to search for a free surface spot
       schedule time for the new molecule
   Out: pointer to the new molecule, or NULL if no free spot was found.
   Note: This function halts the program if it runs out of memory.
-*************************************************************************/
-
-struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc,short orient,double search_diam,double t)
+        This function is similar to insert_grid_molecule, but it does
+        not schedule the molecule or add it to the count.  This is done
+        to simplify the logic when placing a surface macromolecule.
+        (i.e. place all molecules, and once we're sure we've succeeded,
+        schedule them all and count them all.)
+ *************************************************************************/
+struct grid_molecule* place_grid_molecule(struct species *s,struct vector3 *loc,short orient,double search_diam,double t,struct subvolume **psv,struct grid_molecule **cmplx,struct release_region_data *rrd)
 {
   double search_d2,d2;
   struct vector2 s_loc;
@@ -409,10 +401,13 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
 
   if (search_d2 > EPS_C*EPS_C)  /* Might need to look in adjacent subvolumes */
   {
-    i = sv->index / ((world->ny_parts-1)*(world->nz_parts-1));
-    j = sv->index/(world->nz_parts-1) - i*(world->ny_parts-1);
-    k = sv->index - (world->nz_parts-1)*(j + i*(world->ny_parts-1));
-    
+    int sv_index = sv - world->subvol;
+    k = sv_index;
+    i = k / ((world->ny_parts-1)*(world->nz_parts-1));
+    k -= i * ((world->ny_parts-1)*(world->nz_parts-1));
+    j = k / (world->nz_parts-1);
+    k -= j * (world->nz_parts-1);
+
     for (i0=i ; i0>0 ; i0--)
     {
       d2 = loc->x - world->x_partitions[ i0 ]; d2 *= d2;
@@ -453,7 +448,7 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
 	  for (k=k0;k<=k1;k++)
 	  {
 	    h = k + (world->nz_parts-1)*(j + (world->ny_parts-1)*i);
-	    if (h == sv->index) continue;
+	    if (h == sv_index) continue;
 	    
 	    for (wl=world->subvol[h].wall_head ; wl!=NULL ; wl=wl->next)
 	    {
@@ -477,7 +472,10 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
     }
   }
   
-  if (best_w==NULL) return NULL;
+  if (best_w==NULL)
+  {
+    return NULL;
+  }
   
   d2 = search_d2 - best_d2;  /* We can look this far around the surface we hit for an empty spot */
   
@@ -492,22 +490,35 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
     }
     i = uv2grid(&best_uv,best_w->grid);
   }
+  else if ((s->flags & IS_COMPLEX) != 0)
+  {
+    i = uv2grid(&best_uv,best_w->grid);
+  }
   else
   {
     i = uv2grid(&best_uv,best_w->grid);
     if (best_w->grid->mol[i]!=NULL)
     {
-      if (d2 <= EPS_C*EPS_C) return NULL;
+      if (d2 <= EPS_C*EPS_C)
+      {
+        return NULL;
+      }
       else
       {
 	best_w = search_nbhd_for_free(best_w,&best_uv,d2,&i,NULL,NULL);
-	if (best_w==NULL) return NULL;
+	if (best_w==NULL)
+        {
+          return NULL;
+        }
 	
 	if (world->randomize_gmol_pos) grid2uv_random(best_w->grid,i,&best_uv);
 	else grid2uv(best_w->grid,i,&best_uv);
       }
     }
   }
+
+  uv2xyz(&best_uv, best_w, &best_xyz);
+  sv = find_subvolume(&best_xyz, sv);
   
   g = mem_get(sv->local_storage->gmol);
   if (g==NULL)
@@ -522,7 +533,12 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
   g->birthday = t;
   g->properties = s;
   s->population++;
+  g->cmplx = cmplx;
   g->flags = TYPE_GRID | ACT_NEWBIE | IN_SCHEDULE;
+  if ((s->flags & IS_COMPLEX) != 0)
+    g->flags |= COMPLEX_MASTER;
+  else if (g->cmplx)
+    g->flags |= COMPLEX_MEMBER;
   if (s->space_step > 0) g->flags |= ACT_DIFFUSE;
   if (trigger_unimolecular(s->hashval,(struct abstract_molecule*)g)!= NULL || (s->flags&CAN_GRIDWALL)!=0 ) g->flags |= ACT_REACT;
   
@@ -534,15 +550,43 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
   g->s_pos.v = best_uv.v;
   g->orient = orient;
   
-  g->grid->n_occupied++;
+  /* Put it on the grid if it doesn't represent a macromolecular complex */
+  if ((s->flags & IS_COMPLEX) == 0)
+  {
+    g->grid->mol[ g->grid_index ] = g;
+    g->grid->n_occupied++;
+    g->flags |= IN_SURFACE;
+  }
   
-  g->grid->mol[ g->grid_index ] = g;
-  
+  if ((s->flags&COUNT_ENCLOSED) != 0) g->flags |= COUNT_ME;
+
+  *psv = sv;
+  return g;
+}
+
+/*************************************************************************
+insert_grid_molecule
+  In: species for the new molecule
+      3D location of the new molecule
+      orientation of the new molecule
+      diameter to search for a free surface spot (vector3 now, should be double!)
+      schedule time for the new molecule
+  Out: pointer to the new molecule, or NULL if no free spot was found.
+  Note: This function halts the program if it runs out of memory.
+*************************************************************************/
+struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc,short orient,double search_diam,double t,struct grid_molecule **cmplx)
+{
+  struct subvolume *sv = NULL;
+  struct grid_molecule *g = place_grid_molecule(s, loc, orient, search_diam, t, &sv, cmplx, NULL);
+  if (g == NULL)
+    return NULL;
+
   if (g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-    count_region_from_scratch( (struct abstract_molecule*)g , NULL , 1 , NULL , g->grid->surface , g->t );
+    count_region_from_scratch((struct abstract_molecule*)g, NULL, 1, NULL, g->grid->surface, g->t);
   
   if ( schedule_add(sv->local_storage->timer,g) )
   {
+    int i;
     fprintf(world->err_file,"File '%s', Line %ld: Out of memory while trying to insert molecules\n", __FILE__, (long)__LINE__);
     i = emergency_output();
     fprintf(world->err_file,"%d errors while attempting emergency output\n",i);
@@ -552,12 +596,13 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
   return g;
 }
 
-
 /*************************************************************************
 insert_volume_molecule
   In: pointer to a volume_molecule that we're going to place in local storage
       pointer to a volume_molecule that may be nearby
-  Out: pointer to the new volume_molecule (copies data from volume molecule            passed in), or NULL if out of memory.                                           Molecule is placed in scheduler also.
+  Out: pointer to the new volume_molecule (copies data from volume molecule
+       passed in), or NULL if out of memory.  Molecule is placed in scheduler
+       also.
 *************************************************************************/
 
 struct volume_molecule* insert_volume_molecule(struct volume_molecule *m,struct volume_molecule *guess)
@@ -579,16 +624,18 @@ struct volume_molecule* insert_volume_molecule(struct volume_molecule *m,struct 
   memcpy(new_m,m,sizeof(struct volume_molecule));
 
   new_m->birthplace = sv->local_storage->mol;
+  new_m->prev_v = NULL;
+  new_m->next_v = NULL;
   new_m->next = NULL;
   new_m->subvol = sv;
-  new_m->next_v = sv->mol_head;
-  sv->mol_head = new_m;
+  ht_add_molecule_to_list(&sv->mol_by_species, new_m);
   sv->mol_count++;
   new_m->properties->population++;
 
+  if ((new_m->properties->flags&COUNT_SOME_MASK) != 0) new_m->flags |= COUNT_ME;
   if (new_m->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
   {
-    count_region_from_scratch( (struct abstract_molecule*)new_m , NULL , 1 , &(new_m->pos) , NULL , new_m->t );
+    count_region_from_scratch((struct abstract_molecule*)new_m, NULL, 1, &(new_m->pos), NULL, new_m->t);
   }
   
   if ( schedule_add(sv->local_storage->timer,new_m) ) {
@@ -612,13 +659,13 @@ void excert_volume_molecule(struct volume_molecule *m)
 {
   if (m->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
   {
-    count_region_from_scratch( (struct abstract_molecule*)m , NULL,  -1 , NULL , NULL , m->t );
+    count_region_from_scratch((struct abstract_molecule*)m, NULL,  -1, NULL, NULL, m->t);
   }
   m->subvol->mol_count--;
   m->properties->n_deceased++;
   m->properties->cum_lifetime += m->t - m->birthday;
   m->properties->population--;
-  m->properties = NULL;
+  collect_molecule(m);
 }
 
 
@@ -650,6 +697,38 @@ int insert_volume_molecule_list(struct volume_molecule *m)
   return 0;
 }
 
+static int remove_from_list(struct volume_molecule *it)
+{
+  if (it->prev_v)
+  {
+#ifdef DEBUG_LIST_CHECKS
+    if (*it->prev_v != it)
+    {
+      fprintf(stderr, "Stale previous pointer!\n");
+    }
+#endif
+  *(it->prev_v) = it->next_v;
+  }
+  else
+  {
+#ifdef DEBUG_LIST_CHECKS
+    fprintf(stderr, "No previous pointer.\n");
+#endif
+  }
+  if (it->next_v)
+  {
+#ifdef DEBUG_LIST_CHECKS
+    if (it->next_v->prev_v != &it->next_v)
+    {
+      fprintf(stderr, "Stale next pointer!\n");
+    }
+#endif
+    it->next_v->prev_v = it->prev_v;
+  }
+  it->prev_v = NULL;
+  it->next_v = NULL;
+  return 1;
+}
 
 /*************************************************************************
 migrate_volume_molecule:
@@ -663,6 +742,19 @@ struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,struct
 {
   struct volume_molecule *new_m;
 
+  new_sv->mol_count++;
+  m->subvol->mol_count--;
+
+  if (m->subvol->local_storage == new_sv->local_storage)
+  {
+    if (remove_from_list(m))
+    {
+      m->subvol = new_sv;
+      ht_add_molecule_to_list(&new_sv->mol_by_species, m);
+      return m;
+    }
+  }
+
   new_m = mem_get(new_sv->local_storage->mol);
   if (new_m==NULL){ 
 	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);        int i = emergency_output();
@@ -674,17 +766,18 @@ struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,struct
   memcpy(new_m,m,sizeof(struct volume_molecule));
   new_m->birthplace = new_sv->local_storage->mol;
   
+  new_m->prev_v = NULL;
+  new_m->next_v = NULL;
   new_m->next = NULL;
   new_m->subvol = new_sv;
-  new_m->next_v = new_sv->mol_head;
-  new_sv->mol_head = new_m;
-  new_sv->mol_count++;
- 
-  m->subvol->mol_count--;
-  m->properties = NULL;
+
+  ht_add_molecule_to_list(&new_sv->mol_by_species, new_m);
+
+  collect_molecule(m);
 
   return new_m;    
 }
+
 
 /*************************************************************************
 eval_rel_region_3d:
@@ -836,32 +929,33 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct volume_molecule *m
         h = k + (world->nz_parts - 1)*(j + (world->ny_parts-1)*i);
         sv = &(world->subvol[h]);
         
-        for (mp=sv->mol_head ; mp!=NULL ; mp=mp->next_v)
+        struct per_species_list *psl = (struct per_species_list *) pointer_hash_lookup(&sv->mol_by_species, m->properties, m->properties->hashval);
+        if (psl != NULL)
         {
-          if (mp->properties==m->properties)
+          for (mp = psl->head; mp != NULL; mp = mp->next_v)
           {
             extra_in=extra_out=NULL;
-            wp = &(world->waypoints[sv->index]);
+            wp = &(world->waypoints[h]);
             origin = &(wp->loc);
             delta.x = mp->pos.x - origin->x;
             delta.y = mp->pos.y - origin->y;
             delta.z = mp->pos.z - origin->z;
-            
+
             for (wl=sv->wall_head ; wl!=NULL ; wl=wl->next)
             {
               l = collide_wall(origin,&delta,wl->this_wall,&t,&hit,0);
-              
+
               if (l!=COLLIDE_MISS)
               {
                 world->ray_polygon_colls++;
-                
+
                 for (rl=wl->this_wall->counting_regions ; rl!=NULL ; rl=rl->next)
                 {
                   if (l==COLLIDE_FRONT || l==COLLIDE_BACK)
                   {
                     rl2 = (struct region_list*)mem_get(sv->local_storage->regl);
                     rl2->reg = rl->reg;
-                    
+
                     if (l==COLLIDE_FRONT)
                     {
                       rl2->next = extra_in;
@@ -876,7 +970,7 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct volume_molecule *m
                 }
               }
             }
-            
+
             for (rl=extra_in ; rl!=NULL ; rl=rl->next)
             {
               if (rl->reg==NULL) continue;
@@ -893,20 +987,20 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct volume_molecule *m
             }
 
             l = eval_rel_region_3d(rrd->expression,wp,extra_in,extra_out);
-            
+
             if (l)
             {
               vl = (struct void_list*)mem_get(mh);
               if (vl==NULL) return 1;
-              
+
               vl->data = mp;
               vl->next = vl_head;
               vl_head = vl;
               vl_num++;
             }
-	    
-	    if (extra_in!=NULL) mem_put_list(sv->local_storage->regl,extra_in);
-	    if (extra_out!=NULL) mem_put_list(sv->local_storage->regl,extra_out);
+
+            if (extra_in!=NULL) mem_put_list(sv->local_storage->regl,extra_in);
+            if (extra_out!=NULL) mem_put_list(sv->local_storage->regl,extra_out);
           }
         }
       }
@@ -924,12 +1018,12 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct volume_molecule *m
       mp->properties->population--;
       mp->subvol->mol_count--;
       if ((mp->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-        count_region_from_scratch((struct abstract_molecule*)mp,NULL,-1,&(mp->pos),NULL,mp->t);
-      mp->properties = NULL;
+        count_region_from_scratch((struct abstract_molecule*)mp, NULL, -1, &(mp->pos), NULL, mp->t);
       if (mp->flags & IN_SCHEDULE)
       {
         mp->subvol->local_storage->timer->defunct_count++; /* Tally for garbage collection */
       }
+      collect_molecule(mp);
       
       n++;
     }
@@ -939,6 +1033,112 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct volume_molecule *m
   return 0;
 }
 
+
+/*************************************************************************
+ is_point_inside_release_region:
+    Check if a given point is inside the specified region.
+
+*************************************************************************/
+int is_point_inside_region(struct vector3 const *pos,
+                           struct release_evaluator *expression,
+                           struct subvolume *sv)
+{
+  struct region_list *extra_in=NULL, *extra_out=NULL, *cur_region;
+  struct waypoint *wp;
+  struct vector3 delta;
+  struct vector3 *origin;
+  struct wall_list *wl;
+  int bad_location = 0;
+  int result;
+
+  /* If no subvolume hint was given, or the hint is incorrect, find the right
+   * subvolume
+   */
+  if (sv == NULL  ||  ! inside_subvolume((struct vector3 *) pos, sv))
+    sv = find_subvolume((struct vector3 *) pos, sv);
+
+  /* Find waypoint, compute trajectory from waypoint */
+  wp = &(world->waypoints[sv - world->subvol]);
+  origin = &(wp->loc);
+  delta.x = pos->x - origin->x;
+  delta.y = pos->y - origin->y;
+  delta.z = pos->z - origin->z;
+
+  for (wl=sv->wall_head ; wl!=NULL ; wl=wl->next)
+  {
+    struct vector3 hit_pos;
+    double hit_time;
+    int hit_check = collide_wall(origin, &delta, wl->this_wall, &hit_time, &hit_pos, 0);
+
+    if (hit_check!=COLLIDE_MISS)
+    {
+      world->ray_polygon_colls++;
+
+      if ( (hit_time>-EPS_C && hit_time<EPS_C) || (hit_time>1.0-EPS_C && hit_time<1.0+EPS_C) )
+      {
+        bad_location = 1;
+        break;
+      }
+
+      for (cur_region = wl->this_wall->counting_regions;
+           cur_region != NULL;
+           cur_region = cur_region->next)
+      {
+        struct region_list *crossed_region = (struct region_list*)mem_get(sv->local_storage->regl);
+        crossed_region->reg = cur_region->reg;
+
+        if (hit_check==COLLIDE_FRONT)
+        {
+          crossed_region->next = extra_in;
+          extra_in = crossed_region;
+        }
+        else if (hit_check==COLLIDE_BACK)
+        {
+          crossed_region->next = extra_out;
+          extra_out = crossed_region;
+        }
+        else
+        {
+          bad_location = 1;
+          break;
+        }
+      }
+    }
+  }
+
+  if (bad_location)
+  {
+    if (extra_in!=NULL) mem_put_list(sv->local_storage->regl,extra_in);
+    if (extra_out!=NULL) mem_put_list(sv->local_storage->regl,extra_out);
+    return 0;
+  }
+
+  for (cur_region = extra_in;
+       cur_region != NULL;
+       cur_region = cur_region->next)
+  {
+    struct region_list *out_region = NULL;
+    if (cur_region->reg == NULL) continue;
+    for (out_region = extra_out;
+         out_region != NULL;
+         out_region = out_region->next)
+    {
+      if (out_region->reg==NULL) continue;
+      if (cur_region->reg == out_region->reg)
+      {
+        cur_region->reg = NULL;
+        out_region->reg = NULL;
+        break;
+      }
+    }
+  }
+
+  result = eval_rel_region_3d(expression, wp, extra_in, extra_out);
+
+  if (extra_in!=NULL) mem_put_list(sv->local_storage->regl,extra_in);
+  if (extra_out!=NULL) mem_put_list(sv->local_storage->regl,extra_out);
+  return result;
+}
 
 /*************************************************************************
 release_inside_regions:
@@ -955,23 +1155,15 @@ int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *
 {
   struct volume_molecule *new_m;
   struct release_region_data *rrd;
-  struct region_list *extra_in,*extra_out;
-  struct region_list *rl,*rl2;
   struct subvolume *sv = NULL;
-  struct wall_list *wl;
-  struct vector3 delta;
-  struct vector3 *origin;
-  struct waypoint *wp;
-  double t, num_to_release;
-  struct vector3 hit;
-  int bad_location;
   int i;
+  double num_to_release;
   
   rrd = rso->region_data;
   new_m = NULL;
   m->previous_wall = NULL;
   m->index = -1;
- 
+  
   if (rso->release_number_method==CCNNUM)
   {
     double vol = (rrd->urb.x-rrd->llf.x)*(rrd->urb.y-rrd->llf.y)*(rrd->urb.z-rrd->llf.z);
@@ -991,7 +1183,7 @@ int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *
         fflush(stdout);
      }
   } 
- 
+  
   while (n>0)
   {
     m->pos.x = rrd->llf.x + (rrd->urb.x-rrd->llf.x)*rng_dbl(world->rng);
@@ -1006,84 +1198,28 @@ int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *
     if(world->notify->final_summary == NOTIFY_FULL){
        world->random_number_use++;
     }
-    
-    if (sv == NULL) sv = find_subvolume(&(m->pos),NULL);
-    else if ( !inside_subvolume(&(m->pos),sv) )
-    {
-      sv = find_subvolume(&(m->pos),sv);
-    }
-    
-    extra_in=extra_out=NULL;
-    wp = &(world->waypoints[sv->index]);
-    origin = &(wp->loc);
-    delta.x = m->pos.x - origin->x;
-    delta.y = m->pos.y - origin->y;
-    delta.z = m->pos.z - origin->z;
-    
-    bad_location = 0;
-    
-    for (wl=sv->wall_head ; wl!=NULL ; wl=wl->next)
-    {
-      i = collide_wall(origin,&delta,wl->this_wall,&t,&hit,0);
-      
-      if (i!=COLLIDE_MISS)
-      {
-        world->ray_polygon_colls++;
 
-        if ( (t>-EPS_C && t<EPS_C) || (t>1.0-EPS_C && t<1.0+EPS_C) )
-        {
-          bad_location = 1;
-          break;
-        }
-        for (rl=wl->this_wall->counting_regions ; rl!=NULL ; rl=rl->next)
-        {
-          rl2 = (struct region_list*)mem_get(sv->local_storage->regl);
-          rl2->reg = rl->reg;
-          
-          if (i==COLLIDE_FRONT)
-          {
-            rl2->next = extra_in;
-            extra_in = rl2;
-          }
-          else if (i==COLLIDE_BACK)
-          {
-            rl2->next = extra_out;
-            extra_out = rl2;
-          }
-          else
-          {
-            bad_location = 1;
-            break;
-          }
-        }
-      }
-    }
-    if (bad_location)
+    if (m->properties->flags & IS_COMPLEX)
     {
-      if (extra_in!=NULL) mem_put_list(sv->local_storage->regl,extra_in);
-      if (extra_out!=NULL) mem_put_list(sv->local_storage->regl,extra_out);
-      continue;
-    }
-    
-    for (rl=extra_in ; rl!=NULL ; rl=rl->next)
-    {
-      if (rl->reg==NULL) continue;
-      for (rl2=extra_out ; rl2!=NULL ; rl2=rl2->next)
+      int subunit_idx;
+      struct complex_species *cspec = (struct complex_species *) m->properties;
+      sv = find_subvolume(& m->pos, NULL);
+      i = 1;
+      for (subunit_idx = 0; subunit_idx < cspec->num_subunits; ++ subunit_idx)
       {
-        if (rl2->reg==NULL) continue;
-        if (rl->reg==rl2->reg)
+        struct vector3 subunit_pos;
+        subunit_pos.x = m->pos.x + cspec->rel_locations[ subunit_idx ].x;
+        subunit_pos.y = m->pos.y + cspec->rel_locations[ subunit_idx ].y;
+        subunit_pos.z = m->pos.z + cspec->rel_locations[ subunit_idx ].z;
+        if (! is_point_inside_region(&subunit_pos, rrd->expression, sv))
         {
-          rl->reg = NULL;
-          rl2->reg = NULL;
+          i = 0;
           break;
         }
       }
     }
-
-    i = eval_rel_region_3d(rrd->expression,wp,extra_in,extra_out);
-
-    if (extra_in!=NULL) mem_put_list(sv->local_storage->regl,extra_in);
-    if (extra_out!=NULL) mem_put_list(sv->local_storage->regl,extra_out);
+    else
+      i = is_point_inside_region(&m->pos, rrd->expression, NULL);
     
     if (!i)
     {
@@ -1092,8 +1228,10 @@ int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *
     }
     
     m->subvol = sv;
-    new_m =  insert_volume_molecule(m,new_m);
-    
+    if (m->properties->flags & IS_COMPLEX)
+      new_m = macro_insert_molecule_volume(m, new_m);
+    else
+      new_m = insert_volume_molecule(m,new_m);
     if (new_m==NULL) return 1;
     
     n--;
@@ -1137,6 +1275,8 @@ int release_molecules(struct release_event_queue *req)
   rso = req->release_site;
   rpat = rso->pattern;
 
+  memset(&m, 0, sizeof(struct volume_molecule));
+
   /* Set up canonical molecule to be released */
   /* If we have a list, assume a 3D molecule and fix later */
   if (rso->mol_list!=NULL || (rso->mol_type->flags & NOT_FREE)==0)
@@ -1151,7 +1291,7 @@ int release_molecules(struct release_event_queue *req)
     ap = (struct abstract_molecule*)gp;
     ap->flags = TYPE_GRID | IN_SURFACE;
   }
-  ap->flags |= IN_SCHEDULE + ACT_NEWBIE;
+  ap->flags |= IN_SCHEDULE | ACT_NEWBIE;
 
   if(req->train_counter == 0)
   {
@@ -1199,7 +1339,6 @@ int release_molecules(struct release_event_queue *req)
     return 0;
   }
 
-
   /* check whether the release will happen */
   if (rso->release_prob < 1.0)
   {
@@ -1216,10 +1355,11 @@ int release_molecules(struct release_event_queue *req)
   ap->properties = rso->mol_type;
   ap->t2 = 0.0;
   ap->birthday = ap->t;
+  ap->cmplx = NULL;
   
   if (rso->mol_list==NULL)  /* All molecules are the same, so we can set flags */
   {
-    if (trigger_unimolecular(rso->mol_type->hashval , ap) != NULL || (rso->mol_type->flags&CAN_GRIDWALL)!=0) ap->flags |= ACT_REACT; 
+    if (trigger_unimolecular(rso->mol_type->hashval , ap) != NULL || (rso->mol_type->flags&CAN_GRIDWALL)!=0) ap->flags |= ACT_REACT;
     if (rso->mol_type->space_step > 0.0) ap->flags |= ACT_DIFFUSE;
   }
   
@@ -1308,12 +1448,18 @@ int release_molecules(struct release_event_queue *req)
     {
       i = release_inside_regions(rso,(struct volume_molecule*)ap,number);
       if (i) return 1;
-     
+      
       if (world->notify->release_events==NOTIFY_FULL)
       {
-        if (number>0 || (rso->release_number_method==CCNNUM && rso->concentration>0))
+        if (number >= 0)
         {
-          fprintf(world->log_file, "  Released %d %s from \"%s\" at iteration %lld\n", ap->properties->population-pop_before,rso->mol_type->sym->name, rso->name, world->it_time);
+          fprintf(world->log_file, "  Released %d %s from \"%s\" at iteration %lld\n",
+            ap->properties->population-pop_before, rso->mol_type->sym->name, rso->name, world->it_time);
+        }
+        else
+        {
+          fprintf(world->log_file, "  Removed %d %s from \"%s\" at iteration %lld\n",
+            pop_before-ap->properties->population, rso->mol_type->sym->name, rso->name, world->it_time);
         }
       }
     }
@@ -1324,9 +1470,15 @@ int release_molecules(struct release_event_queue *req)
 
       if (world->notify->release_events==NOTIFY_FULL)
       {
-        if (number>0)
+        if (number >= 0)
         {
-          fprintf(world->log_file, "  Released %d %s from \"%s\" at iteration %lld\n", ap->properties->population-pop_before,rso->mol_type->sym->name, rso->name, world->it_time);
+          fprintf(world->log_file, "  Released %d %s from \"%s\" at iteration %lld\n",
+            ap->properties->population-pop_before, rso->mol_type->sym->name, rso->name, world->it_time);
+        }
+        else
+        {
+          fprintf(world->log_file, "  Removed %d %s from \"%s\" at iteration %lld\n",
+            pop_before-ap->properties->population, rso->mol_type->sym->name, rso->name, world->it_time);
         }
       }
     }
@@ -1355,19 +1507,27 @@ int release_molecules(struct release_event_queue *req)
 	m.pos.y = location[0][1];
 	m.pos.z = location[0][2];
 	  
-	if ((rsm->mol_type->flags & NOT_FREE)==0)
+        if ((rsm->mol_type->flags & NOT_FREE)==0)
 	{
-	  m.properties = rsm->mol_type;
-           
-          /* Have to set flags, since insert_volume_molecule doesn't */
-          if (trigger_unimolecular(ap->properties->hashval , ap) != NULL ||
-              (ap->properties->flags&CAN_GRIDWALL)!=0)
+          if ((rsm->mol_type->flags & IS_COMPLEX))
           {
-             ap->flags |= ACT_REACT; 
+            guess = macro_insert_molecule_volume(&m, guess);
+            i++;
           }
-          if (m.properties->space_step > 0.0) ap->flags |= ACT_DIFFUSE;
-	  guess = insert_volume_molecule(&m,guess);
-          i++;
+          else
+          {
+            m.properties = rsm->mol_type;
+
+            /* Have to set flags, since insert_volume_molecule doesn't */
+            if (trigger_unimolecular(ap->properties->hashval , ap) != NULL ||
+                (ap->properties->flags&CAN_GRIDWALL)!=0)
+            {
+              ap->flags |= ACT_REACT; 
+            }
+            if (m.properties->space_step > 0.0) ap->flags |= ACT_DIFFUSE;
+            guess = insert_volume_molecule(&m,guess);
+            i++;
+          }
 	  if (guess==NULL) return 1;
 	}
 	else
@@ -1385,15 +1545,23 @@ int release_molecules(struct release_event_queue *req)
           }
 
           /* Don't have to set flags, insert_grid_molecule takes care of it */
-	  gp = insert_grid_molecule(rsm->mol_type,&(m.pos),orient,diam,req->event_time);
+          if ((rsm->mol_type->flags & IS_COMPLEX))
+          {
+            /* XXX: Retry? */
+            gp = macro_insert_molecule_grid(rsm->mol_type, &m.pos, orient, diam, req->event_time);
+          }
+          else
+          {
+            gp = insert_grid_molecule(rsm->mol_type, &m.pos, orient, diam, req->event_time, NULL);
+          }
 	  if (gp==NULL)
 	  {
 	    fprintf(world->log_file,"Molecule Release Warning: unable to find surface upon which to place molecule %s\n",rsm->mol_type->sym->name);
 	    fprintf(world->log_file,"  Perhaps you want to SITE_DIAMETER larger to increase search distance?\n");
-             i_failed++;
+            i_failed++;
 	  }else{
              i++;
-          }
+	  }
 	}
       }
       if (world->notify->release_events==NOTIFY_FULL)
@@ -1451,8 +1619,10 @@ int release_molecules(struct release_event_queue *req)
         m.pos.x = location[0][0];
         m.pos.y = location[0][1];
         m.pos.z = location[0][2];
-        
-        guess = insert_volume_molecule(&m,guess);  /* Insert copy of m into world */
+        if ((m.properties->flags & IS_COMPLEX))
+          guess = macro_insert_molecule_volume(&m, guess);
+        else
+          guess = insert_volume_molecule(&m,guess);  /* Insert copy of m into world */
         if (guess == NULL) return 1;
       }
       if (world->notify->release_events==NOTIFY_FULL)
@@ -1483,8 +1653,11 @@ int release_molecules(struct release_event_queue *req)
  
       for (i=0;i<number;i++)
       {
-         guess = insert_volume_molecule(&m,guess);
-         if (guess == NULL) return 1;
+        if ((rsm->mol_type->flags & IS_COMPLEX))
+          guess = macro_insert_molecule_volume(&m, guess);
+        else
+          guess = insert_volume_molecule(&m, guess);
+        if (guess == NULL) return 1;
       }
       if (world->notify->release_events==NOTIFY_FULL)
       {
@@ -1496,7 +1669,7 @@ int release_molecules(struct release_event_queue *req)
   
   /* Schedule next release event. */
   if (rso->release_prob==MAGIC_PATTERN_PROBABILITY) return 0;  /* Triggered by reaction, don't schedule */
-    req->event_time += rpat->release_interval;
+  req->event_time += rpat->release_interval;
 
     /* we may need to move to the next train. */
   if (!distinguishable(req->event_time,req->train_high_time + rpat->train_duration,EPS_C) ||
@@ -1588,15 +1761,9 @@ int set_partitions()
   if (world->n_fineparts != 4096 + 16384 + 4096)
   {
     world->n_fineparts = 4096 + 16384 + 4096;
-    world->x_fineparts = (double*)malloc(sizeof(double)*world->n_fineparts);
-    world->y_fineparts = (double*)malloc(sizeof(double)*world->n_fineparts);
-    world->z_fineparts = (double*)malloc(sizeof(double)*world->n_fineparts);
-  }
-  if((world->x_fineparts == NULL) || (world->y_fineparts == NULL) ||
-        (world->z_fineparts == NULL))
-  {
-    fprintf(world->err_file, "File '%s', Line %ld: Out of memory while trying to create partitions.\n", __FILE__, (long)__LINE__);
-    return 1;
+    if ((world->x_fineparts = (double*) CHECKED_MALLOC(sizeof(double)*world->n_fineparts, "partitions")) == NULL) return 1;
+    if ((world->y_fineparts = (double*) CHECKED_MALLOC(sizeof(double)*world->n_fineparts, "partitions")) == NULL) return 1;
+    if ((world->z_fineparts = (double*) CHECKED_MALLOC(sizeof(double)*world->n_fineparts, "partitions")) == NULL) return 1;
   }
 
   /* Something like the maximum expected error--not sure exactly what this is */
@@ -1785,17 +1952,10 @@ int set_partitions()
     }
     
     /* Allocate memory for our automatically created partitions */
-    world->x_partitions = (double*) malloc( sizeof(double) * world->nx_parts );
-    world->y_partitions = (double*) malloc( sizeof(double) * world->ny_parts );
-    world->z_partitions = (double*) malloc( sizeof(double) * world->nz_parts );
+    if ((world->x_partitions = (double*) CHECKED_MALLOC(sizeof(double) * world->nx_parts, "partitions")) == NULL) return 1;
+    if ((world->y_partitions = (double*) CHECKED_MALLOC(sizeof(double) * world->ny_parts, "partitions")) == NULL) return 1;
+    if ((world->z_partitions = (double*) CHECKED_MALLOC(sizeof(double) * world->nz_parts, "partitions")) == NULL) return 1;
   
-    if((world->x_partitions == NULL) || (world->y_partitions == NULL) ||
-        (world->z_partitions == NULL))
-    {
-      fprintf(world->err_file, "File '%s', Line %ld: Out of memory while trying to create partitions.\n", __FILE__, (long)__LINE__);
-      return 1;
-    }
-
     /* Calculate aspect ratios so that subvolumes are approximately cubic */
     x_aspect = (part_max.x - part_min.x) / f_max;
     y_aspect = (part_max.y - part_min.y) / f_max;
@@ -1911,13 +2071,7 @@ int set_partitions()
       if (world->x_partitions[1] - dfx < world->bb_llf.x) world->x_partitions[1] = world->bb_llf.x-dfx;
       else
       {
-	dbl_array = (double*) malloc( sizeof(double)*(world->nx_parts+1) );
-	if (dbl_array == NULL)
-	{ 
-	  fprintf(world->err_file, "File '%s', Line %ld: Out of memory while trying to create partitions.\n", __FILE__, (long)__LINE__);
-	  return 1;
-	}
-  
+	if ((dbl_array = (double*) CHECKED_MALLOC(sizeof(double)*(world->nx_parts+1), "partitions")) == NULL) return 1;
 	dbl_array[0] = world->x_partitions[0];
 	dbl_array[1] = world->bb_llf.x - dfx;
 	memcpy(&(dbl_array[2]),&(world->x_partitions[1]),sizeof(double)*(world->nx_parts-1));
@@ -1932,13 +2086,7 @@ int set_partitions()
 	world->x_partitions[world->nx_parts-2] = world->bb_urb.x + dfx;
       else
       {
-	dbl_array = (double*) malloc( sizeof(double)*(world->nx_parts+1) );
-	if (dbl_array == NULL)
-	{ 
-	  fprintf(world->err_file, "File '%s', Line %ld: Out of memory while trying to create partitions.\n", __FILE__, (long)__LINE__);
-	  return 1;
-	}
-  
+	if ((dbl_array = (double*) CHECKED_MALLOC(sizeof(double)*(world->nx_parts+1), "partitions")) == NULL) return 1;
 	dbl_array[world->nx_parts] = world->x_partitions[world->nx_parts-1];
 	dbl_array[world->nx_parts-1] = world->bb_urb.x + dfx;
 	memcpy(dbl_array,world->x_partitions,sizeof(double)*(world->nx_parts-1));
@@ -1953,13 +2101,7 @@ int set_partitions()
 	world->y_partitions[1] = world->bb_llf.y-dfy;
       else
       {
-	dbl_array = (double*) malloc( sizeof(double)*(world->ny_parts+1) );
-	if (dbl_array==NULL)
-	{ 
-	  fprintf(world->err_file, "File '%s', Line %ld: Out of memory while trying to create partitions.\n", __FILE__, (long)__LINE__);
-	  return 1;
-	}
-  
+	if ((dbl_array = (double*) CHECKED_MALLOC(sizeof(double)*(world->ny_parts+1), "partitions")) == NULL) return 1;
 	dbl_array[0] = world->y_partitions[0];
 	dbl_array[1] = world->bb_llf.y - dfy;
 	memcpy(&(dbl_array[2]),&(world->y_partitions[1]),sizeof(double)*(world->ny_parts-1));
@@ -1974,13 +2116,7 @@ int set_partitions()
 	world->y_partitions[world->ny_parts-2] = world->bb_urb.y + dfy;
       else
       {
-	dbl_array = (double*) malloc( sizeof(double)*(world->ny_parts+1) );
-	if (dbl_array==NULL)
-	{
-	  fprintf(world->err_file, "File '%s', Line %ld: Out of memory while trying to create partitions.\n", __FILE__, (long)__LINE__);
-	  return 1;
-	}
-  
+	if ((dbl_array = (double*) CHECKED_MALLOC(sizeof(double)*(world->ny_parts+1), "partitions")) == NULL) return 1;
 	dbl_array[world->ny_parts] = world->y_partitions[world->ny_parts-1];
 	dbl_array[world->ny_parts-1] = world->bb_urb.y + dfy;
 	memcpy(dbl_array,world->y_partitions,sizeof(double)*(world->ny_parts-1));
@@ -1995,13 +2131,7 @@ int set_partitions()
 	world->z_partitions[1] = world->bb_llf.z-dfz;
       else
       {
-	dbl_array = (double*) malloc( sizeof(double)*(world->nz_parts+1) );
-	if (dbl_array==NULL)
-	{
-	  fprintf(world->err_file, "File '%s', Line %ld: Out of memory while trying to create partitions.\n", __FILE__, (long)__LINE__);
-	  return 1;
-	} 
-  
+	if ((dbl_array = (double*) CHECKED_MALLOC(sizeof(double)*(world->nz_parts+1), "partitions")) == NULL) return 1;
 	dbl_array[0] = world->z_partitions[0];
 	dbl_array[1] = world->bb_llf.z - dfz;
 	memcpy(&(dbl_array[2]),&(world->z_partitions[1]),sizeof(double)*(world->nz_parts-1));
@@ -2016,12 +2146,7 @@ int set_partitions()
 	world->z_partitions[world->nz_parts-2] = world->bb_urb.z + dfz;
       else
       {
-	dbl_array = (double*) malloc( sizeof(double)*(world->nz_parts+1) );
-	if (dbl_array==NULL){
-	  fprintf(world->err_file, "File '%s', Line %ld: Out of memory while trying to create partitions.\n", __FILE__, (long)__LINE__);
-	  return 1;
-	} 
-  
+	if ((dbl_array = (double*) CHECKED_MALLOC(sizeof(double)*(world->nz_parts+1), "partitions")) == NULL) return 1;
 	dbl_array[world->nz_parts] = world->z_partitions[world->nz_parts-1];
 	dbl_array[world->nz_parts-1] = world->bb_urb.z + dfz;
 	memcpy(dbl_array,world->z_partitions,sizeof(double)*(world->nz_parts-1));
@@ -2336,4 +2461,98 @@ void randomize_vol_mol_position(struct volume_molecule *mp, struct vector3 *low_
 
     }
 
+}
+
+void collect_molecule(struct volume_molecule *m)
+{
+  struct subvolume *sv = m->subvol;
+  sv = sv;
+
+  /* Unlink from the previous item */
+  if (m->prev_v != NULL)
+  {
+#ifdef DEBUG_LIST_CHECKS
+    if (*m->prev_v != m)
+    {
+      fprintf(stderr, "Stale previous pointer!  ACK!  THRBBPPPPT!\n");
+    }
+#endif
+  *(m->prev_v) = m->next_v;
+  }
+
+  /* Unlink from the following item */
+  if (m->next_v != NULL)
+  {
+#ifdef DEBUG_LIST_CHECKS
+    if (m->next_v->prev_v != &m->next_v)
+    {
+      fprintf(stderr, "Stale next pointer!  ACK!  THRBBPPPPT!\n");
+    }
+#endif
+    m->next_v->prev_v = m->prev_v;
+  }
+
+  /* Clear our next/prev pointers */
+  m->prev_v = NULL;
+  m->next_v = NULL;
+
+  /* Dispose of the molecule */
+  m->properties = NULL;
+  m->flags &= ~IN_VOLUME;
+  if ((m->flags & IN_MASK) == 0)
+    mem_put(m->birthplace, m);
+}
+
+void ht_add_molecule_to_list(struct pointer_hash *h, struct volume_molecule *m)
+{
+  struct per_species_list *list = NULL;
+  if (! (m->properties->flags & (CAN_MOLMOL|CAN_MOLMOLMOL|CAN_MOLMOLGRID)))
+  {
+    if (m->subvol->species_head != NULL  &&  m->subvol->species_head->properties == NULL)
+      list = m->subvol->species_head;
+    else
+    {
+      list = (struct per_species_list *) mem_get(m->subvol->local_storage->pslv);
+      list->properties = NULL;
+      list->head = NULL;
+      list->next = m->subvol->species_head;
+      m->subvol->species_head = list;
+    }
+  }
+  else
+  {
+    list = (struct per_species_list *) pointer_hash_lookup(h, m->properties, m->properties->hashval);
+    if (list == NULL)
+    {
+      list = (struct per_species_list *) mem_get(m->subvol->local_storage->pslv);
+      list->properties = m->properties;
+      list->head = NULL;
+      pointer_hash_add(h, m->properties, m->properties->hashval, list);
+      if (m->subvol->species_head != NULL  &&
+          m->subvol->species_head->properties == NULL)
+      {
+        list->next = m->subvol->species_head->next;
+        m->subvol->species_head->next = list;
+      }
+      else
+      {
+        list->next = m->subvol->species_head;
+        m->subvol->species_head = list;
+      }
+    }
+  }
+  m->next_v = list->head;
+  if (list->head)
+    list->head->prev_v = &m->next_v;
+  m->prev_v = &list->head;
+  list->head = m;
+}
+
+void ht_remove(struct pointer_hash *h, struct per_species_list *psl)
+{
+  struct species *s = psl->properties;
+  if (s == NULL)
+    return;
+
+  (void) pointer_hash_remove(h, s, s->hashval);
 }

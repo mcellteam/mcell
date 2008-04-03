@@ -1,0 +1,56 @@
+DEFINE_SURFACE_CLASSES
+{
+    m_sc_0
+    {
+    }
+
+    m_sc_1
+    {
+        REFLECTIVE  = s_v_0
+        ABSORPTIVE  = s_v_1
+        TRANSPARENT = s_v_2
+        CLAMP_CONCENTRATION s_v_3, = 0.00001
+    }
+
+    m_sc_2
+    {
+        MOLECULE_DENSITY
+        {
+            s_g_0' = 0.1
+            s_g_1, = 0.2
+            s_g_2; = 0.1
+        }
+        MOLECULE_NUMBER
+        {
+            s_g_3' = 100
+            s_g_4, = 200
+            s_g_5; = 100
+        }
+    }
+
+    m_sc_3
+    {
+        VIZ_VALUE = 2
+    }
+
+    m_sc_4
+    {
+        REFLECTIVE  = s_v_0
+        ABSORPTIVE  = s_v_1
+        TRANSPARENT = s_v_2
+        CLAMP_CONCENTRATION s_v_3, = 0.00001
+        MOLECULE_DENSITY
+        {
+            s_g_0' = 0.1
+            s_g_1, = 0.2
+            s_g_2; = 0.1
+        }
+        MOLECULE_NUMBER
+        {
+            s_g_3' = 100
+            s_g_4, = 200
+            s_g_5; = 100
+        }
+        VIZ_VALUE = 1
+    }
+}

@@ -1,0 +1,7 @@
+In time, we'll want to add our license terms here.  automake likes to have this
+file present, and will add it to the source distributions created using:
+
+  make dist
+
+In the absence of this file, it will either die ignominiously, or try to GPL
+our software, so...  Until we pick a license, we need this placeholder here.

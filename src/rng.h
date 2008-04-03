@@ -1,22 +1,17 @@
 #ifndef RNG_H
 #define RNG_H
 
-/*#define USE_RAN4*/
+#define ONE_OVER_2_TO_THE_33RD 1.16415321826934814453125e-10
 
-#ifdef USE_RAN4
+#if defined(USE_MINIMAL_RNG)
+#include "minrng.h"
+#define rng_state mrng_state
 
-/*********************RAN4**********************/
-#include "ran4.h"
-
-#define rng_state ran4_state
-
-#define rng_init(x,y) ran4_init((x),(y))
-#define rng_dbl(x) ran4_dbl32((x))
-#define rng_uint(x) ran4_uint32((x))
-/***********************************************/
+#define rng_init(x,y) mrng_init((x),(y))
+#define rng_dbl(x) mrng_dbl32((x))
+#define rng_uint(x) mrng_uint32((x))
 
 #else
-
 /*******************ISAAC64*********************/
 #include "isaac64.h"
 
@@ -28,6 +23,8 @@
 /***********************************************/
 
 #endif
+
+#define rng_open_dbl(x) (rng_dbl(x) + ONE_OVER_2_TO_THE_33RD)
 
 double rng_gauss(struct rng_state *rng);
 

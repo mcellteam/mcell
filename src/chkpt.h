@@ -4,7 +4,6 @@
 /* header file for chkpt.c, MCell checkpointing functions */
 
 #define CHKPT_BUFSIZE 10000
-#define IO_COUNT 10000
 #define MCELL_BIG_ENDIAN 16
 #define MCELL_LITTLE_ENDIAN 17
 
@@ -20,6 +19,7 @@
 #define HAS_ACT_NEWBIE 1
 #define HAS_NOT_ACT_NEWBIE 0
 
+int create_chkpt(char const *filename);
 int write_chkpt(FILE *fs);
 int read_chkpt(FILE *fs);
 int write_mcell_version(FILE *fs);
@@ -39,5 +39,6 @@ int read_mol_scheduler_state(FILE *fs);
 int write_byte_order(FILE *fs);
 int read_byte_order(FILE *fs);
 int create_molecule_scheduler();
+void chkpt_signal_handler(int signo);
 
 #endif

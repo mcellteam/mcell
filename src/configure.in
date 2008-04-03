@@ -1,120 +1,54 @@
-dnl Process this file with autoconf to produce a configure script.
+#                                               -*- Autoconf -*-
+# Process this file with autoconf to produce a configure script.
 
-# Configuration script for the MCell software.
-#             [--with-security=labname]
-#             [--with-debug=[yes|no]]
-#             [--with-crosscompile=arch]
-#             [--with-mp=[yes|no]]
-#
+AC_PREREQ(2.61)
+AC_INIT(mcell, 3.1, mcell@salk.edu)
+AC_CONFIG_SRCDIR([mcell.c])
+AC_CONFIG_HEADER([config.h])
+AM_INIT_AUTOMAKE(mcell, 3.1)
 
-AC_INIT(makedefs.in)
-
-dnl Checks for programs.
+# Checks for programs.
 AC_PROG_YACC
-AC_PROG_LEX
-AC_PROG_MAKE_SET
-
-dnl Checks for typedefs, structures, and compiler characteristics.
-dnl *** Compiler and linker switches.
 AC_PROG_CC
-AC_C_CONST
-AC_TYPE_SIZE_T
-AC_STRUCT_TM
-LD=$CC
-if test "${CC}" = "gcc"; then
-  CFLAGS="-O2"
-else
-  CFLAGS=""
-fi
+AM_PROG_LEX
 
-INSTALL_DIR="$HOME/bin"
-MCELL_EXEC="mcell"
-L_CALC_EXEC="l_calc"
-LIBS="${LIBS} -lm"
+# Checks for libraries.
 
-dnl Checks for header files.
+# Checks for header files.
+AC_FUNC_ALLOCA
+AC_HEADER_DIRENT
 AC_HEADER_STDC
-AC_CHECK_HEADERS(fcntl.h limits.h malloc.h sys/time.h unistd.h)
+AC_CHECK_HEADERS([fcntl.h fenv.h float.h inttypes.h libintl.h limits.h malloc.h memory.h netdb.h stddef.h stdint.h stdlib.h string.h sys/socket.h sys/time.h unistd.h])
 
-dnl Checks for library functions.
-AC_CHECK_FUNCS(gethostname strcspn)
+# Checks for typedefs, structures, and compiler characteristics.
+AC_HEADER_STDBOOL
+AC_C_CONST
+AC_C_INLINE
+AC_TYPE_INT16_T
+AC_TYPE_INT32_T
+AC_TYPE_INT64_T
+AC_TYPE_INT8_T
+AC_TYPE_SIZE_T
+AC_HEADER_TIME
+AC_STRUCT_TM
+AC_TYPE_UINT16_T
+AC_TYPE_UINT32_T
+AC_TYPE_UINT8_T
+AC_C_BIGENDIAN
 
-AC_MSG_CHECKING(system executable paths)
+# Checks for library functions.
+AC_FUNC_MALLOC
+AC_FUNC_MEMCMP
+AC_FUNC_REALLOC
+AC_FUNC_SETVBUF_REVERSED
+AC_FUNC_STAT
+AC_FUNC_STRERROR_R
+AC_FUNC_STRFTIME
+AC_FUNC_STRTOD
+AC_FUNC_VPRINTF
+AC_CHECK_FUNCS([alarm floor ftruncate gethostname gettimeofday memmove memset mkdir pow sqrt strchr strdup strerror strrchr strtol strtoul])
 
-dnl find out the target platform
-ARCH_TYPE="`./arch_type`"
+AC_SYS_LARGEFILE
 
-dnl *** crosscompile
-AC_ARG_WITH(crosscompile,
-            [ --with-crosscompile      Cross-compile for arch (linux...)],
-	    [CROSS_COMPILE="${withval}"],
-	    [CROSS_COMPILE=""])
-if test -n "$CROSS_COMPILE"; then
-  CC="/compat/linux/usr/bin/gcc"
-  ARCH_TYPE=$CROSS_COMPILE
-fi
-
-# Ugly arch specific things
-case "$ARCH_TYPE" in
-  linux | freebsd )
-    CFLAGS="${CFLAGS} -m486 -fomit-frame-pointer";;
-  alpha )
-    CFLAGS="-non_shared -migrate -O5 -g0 -tune host -std1 -inline speed -ifo -D_FASTMATH -D_INLINE_INTRINSICS";;
-  sgi )
-    CC="cc"
-    CFLAGS="-n32 -mips4 -r10000";;
-  sparc | rs6000 )
-    ;;
-esac
-
-dnl *** security
-AC_ARG_WITH(security,
-            [ --with-security          Compile MCell w or w/o security (labname) ],
-	    [SECURITY="${withval}"],
-	    [SECURITY=""])
-
-if test -z "$SECURITY"; then
-  CFLAGS="${CFLAGS} -DSECURITY_OFF "; 
-else
-  CFLAGS="${CFLAGS} -DLICENSE_CODES_FROM_FILE "
-  ./create_license_codes.pl ${SECURITY} ${ARCH_TYPE};
-fi
-
-dnl *** debug
-AC_ARG_WITH(debug,
-            [ --with-debug             Debugging mode],
-	    [DEBUG="${withval}"],
-	    [DEBUG=""])
-if test -n "$DEBUG"; then
-  CFLAGS="${CFLAGS} -DDEBUG -g";
-fi
-
-dnl *** mp
-# run with 'mpirun -machinefile ~/.machfile -np 2 ~/src/mcell/pmcell nmj_norm'
-AC_ARG_WITH(mp,
-            [ --with-mp                Parallel version with KeLP and MPI],
-	    [MP="${withval}"],
-	    [MP="none"])
-case "$MP" in
-  yes)
-    AC_PROG_CXX
-    CC="g++"
-    CFLAGS="${CFLAGS} -DKELP -I $KELP_HOME/include -I /usr/local/mpich/include"
-    LD="mpiCC"
-    LIBS="${LIBS} -L$KELP_HOME/lib -ldgrid -ldock -lkelp -ltools -larray -lmp++  -lGrid"
-	MCELL_EXEC="pmcell";;
-  no)
-    ;;
-esac
-
-AC_SUBST(CC)
-AC_SUBST(CFLAGS)
-AC_SUBST(LIBS)
-AC_SUBST(LD)
-AC_SUBST(INSTALL_DIR)
-AC_SUBST(MCELL_EXEC)
-AC_SUBST(L_CALC_EXEC)
-AC_SUBST(EXTRAS)
-
-
-AC_OUTPUT(makedefs)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

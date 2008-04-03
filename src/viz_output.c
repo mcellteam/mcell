@@ -58,6 +58,7 @@ static long long frame_iteration(double iterval, int type)
       return -1;
   }
 }
+
 /*************************************************************************
 sort_molecules_by_species:
     Scans over all molecules, sorting them into arrays by species.
@@ -267,10 +268,6 @@ static int count_time_values(struct frame_data_list * const fdlp)
     if (world->chkpt_iterations != 0  &&  curiter > world->start_time + world->chkpt_iterations)
       break;
 
-    /* Optimistically, store this as the "final" iteration */
-    if (curiter > world->viz_state_info.final_iteration)
-      world->viz_state_info.final_iteration = curiter;
-
     /* We found at least one more.  Note that the only time we will output at
      * iteration == start_time is when start_time is zero.  This is because we
      * do not output on the first iteration after we resume.
@@ -297,7 +294,7 @@ static int count_time_values(struct frame_data_list * const fdlp)
         fdlpcur->curr_viz_iteration = fdlpcur->curr_viz_iteration->next;
     }
   }
-                
+
   return time_values;
 }
 
@@ -815,7 +812,6 @@ static void dx_output_walls(FILE *wall_verts_header,
 
   if (wall_states_header)
     fprintf(wall_states_header,"\nattribute \"dep\" string \"states\"\n#\n");
-
 }
 
 /*************************************************************************
@@ -891,7 +887,6 @@ static void dx_output_effectors_on_wall(FILE *eff_pos_header,
                                          tile_index,
                                          gmol->orient);
   }
-
 }
 
 /*************************************************************************
@@ -1021,7 +1016,6 @@ static void dx_output_walls_groups(FILE *wall_verts_header,
               objp->sym->name);
     }
   }
-
 }
 
 /*************************************************************************
@@ -1075,7 +1069,6 @@ static void dx_output_effectors_groups(FILE *eff_pos_header,
               objp->sym->name);
     }
   }
-
 }
 
 /*************************************************************************
@@ -1325,7 +1318,6 @@ static void dx_output_molecules_position_fields_and_groups(FILE *mol_pos_header,
                             mol_pos_index+mol_pos_group_index);
     ++ mol_pos_group_index;
   }
-
 }
 
 /*************************************************************************
@@ -1358,7 +1350,6 @@ static void dx_output_molecules_states_groups(FILE *mol_states_header, int mol_s
                                mol_states_group_index + 1);
     ++ mol_states_group_index;
   }
-
 }
 
 /*************************************************************************
@@ -1434,6 +1425,7 @@ dx_output_molecules:
 **************************************************************************/
 static int dx_output_molecules(struct frame_data_list *fdlp)
 {
+  int retcode = 0;
   FILE *mol_pos_header = NULL;
   FILE *mol_states_header = NULL;
   byte viz_mol_pos=((fdlp->type==ALL_FRAME_DATA) || (fdlp->type==MOL_POS));
@@ -1449,18 +1441,18 @@ static int dx_output_molecules(struct frame_data_list *fdlp)
       (mol_pos_header = dx_open_file("molecule_positions",
                                      world->molecule_prefix_name,
                                      fdlp->viz_iteration)) == NULL)
-    return 1;
+    goto failure;
 
   if (viz_mol_states  &&
       (mol_states_header = dx_open_file("molecule_states",
                                         world->molecule_prefix_name,
                                         fdlp->viz_iteration)) == NULL)
-      return 1;
+      goto failure;
 
   if (sort_molecules_by_species((struct abstract_molecule ****) (void *) &viz_molp,
                                 &viz_mol_count,
                                 1, 0))
-     return 1;
+    goto failure;
 
   /* Iterate over species */
   for (species_index = 0; species_index<world->n_species; ++ species_index)
@@ -1487,6 +1479,12 @@ static int dx_output_molecules(struct frame_data_list *fdlp)
 
   if (viz_mol_states) dx_output_molecules_states_groups(mol_states_header, mol_states_index);
 
+  goto success;
+
+failure:
+  retcode = 1;
+
+success:
   /* clean up */
   if (mol_states_header)
     fclose(mol_states_header);
@@ -1504,8 +1502,7 @@ static int dx_output_molecules(struct frame_data_list *fdlp)
     free (viz_mol_count);
   viz_mol_count = NULL;
 
-  return 0;
-
+  return retcode;
 }
 
 /*************************************************************************
@@ -1739,7 +1736,6 @@ static void dreamm_v3_generic_merge_frame_data(struct frame_data_list *dest,
     else
       dest->iteration_list = nelSrc;
   }
-
 }
 
 /*************************************************************************
@@ -1814,7 +1810,6 @@ static void dreamm_v3_generic_merge_coincident_frames(struct frame_data_list **b
     *discard = *both;
     *both = NULL;
   }
-
 }
 
 /*************************************************************************
@@ -1883,7 +1878,7 @@ dreamm_v3_generic_preprocess_frame_data:
         5. Discard any frames which have no iterations.
 
         In:  struct frame_data_list *fdlpp - pointer to head of frame_data_list
-        Out: 0 on success, 1 on failure,  *fdlpp will be updated if successful
+        Out: 0 on success, 1 on failure.  *fdlpp will be updated if successful
 **************************************************************************/
 static int dreamm_v3_generic_preprocess_frame_data(struct frame_data_list **fdlpp)
 {
@@ -2278,7 +2273,6 @@ static void dreamm_v3_generic_write_time_info(FILE *master_header,
             dreamm3mode);
     fprintf(master_header, "\n\n");
   }
-
 }
 
 /*************************************************************************
@@ -2338,7 +2332,6 @@ static void dreamm_v3_generic_write_mesh_fields(struct frame_data_list const * c
     }
     fprintf(meshes_header, "\n");
   }
-
 }
 
 /*************************************************************************
@@ -2504,7 +2497,6 @@ static void dreamm_v3_generic_write_float_array_index(FILE *header,
                                                      char const *symname,
                                                      char const *objtype)
 {
-
   char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
 
   if (array_length <= 0){
@@ -2526,7 +2518,6 @@ static void dreamm_v3_generic_write_float_array_index(FILE *header,
             symname,
             objtype);
   }
-
 }
 
 /*************************************************************************
@@ -2696,8 +2687,6 @@ static int dreamm_v3_generic_dump_mesh_data(struct frame_data_list const * const
       {
         int wall_index;
         struct region *rp = rlp->reg;
-         
-
         if (strcmp(rp->region_last_name, "ALL") == 0) continue; 
         if (strcmp(rp->region_last_name, "REMOVED") == 0) continue; 
  
@@ -2714,7 +2703,7 @@ static int dreamm_v3_generic_dump_mesh_data(struct frame_data_list const * const
            of polygons.  After REMOVE_ELEMENTS command n may not be
            equal to the number of polygons of the object initially
            created. */
-        for(wall_index = 0; wall_index < objp->n_walls; ++ wall_index) 
+        for(wall_index = 0; wall_index < objp->n_walls; ++ wall_index)
         {
           if(objp->wall_p[wall_index] == NULL) {
               null_wall_number++;
@@ -2979,7 +2968,6 @@ static int dreamm_v3_ascii_dump_mesh_data(struct frame_data_list const * const f
       } /* end for */
     } /* end if (region_data_flag) */
 
-
     if(mesh_pos_name){
        free(mesh_pos_name);
        mesh_pos_name = NULL;
@@ -3012,8 +3000,7 @@ static int dreamm_v3_ascii_dump_mesh_data(struct frame_data_list const * const f
        fclose(region_data);
        region_data = NULL;
     }
-
-  } /* end for(objindex ... ) */
+  }
 
   return 0;
 
@@ -3022,7 +3009,7 @@ failure:
   if(mesh_connect_name) free(mesh_connect_name);
   if(mesh_states_name) free(mesh_states_name);
   if(mesh_region_indices_name) free(mesh_region_indices_name);
-    
+
   if (mesh_pos_data) fclose(mesh_pos_data);
   if (mesh_states_data) fclose(mesh_states_data);
   if (mesh_connect_data) fclose(mesh_connect_data);
@@ -3502,7 +3489,6 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct frame_data_list const 
 
     }
 
-
     /* Iterate over specific molecules in this species */
     int count = 0;
     unsigned int mol_index;
@@ -3530,6 +3516,17 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct frame_data_list const 
 
         /* Write orientations information */
         if (viz_mol_orient_flag){
+         
+           mol_orient_name = my_strcat(specp->sym->name, mol_orient_name_last_part);
+           if(mol_orient_name == NULL){
+               fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
+               goto failure;
+           }
+        
+           /* Open surface molecules orientation data file */
+           if ((surf_mol_orient_data =  dreamm_v3_generic_open_file(dirname, mol_orient_name, "a")) == NULL)
+               goto failure;
+            
            dx_output_oriented_normal_ascii(surf_mol_orient_data, &w->normal, gmol->orient);
 
         }
@@ -3616,7 +3613,7 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct frame_data_list const 
        fclose(surf_mol_states_data);
        surf_mol_states_data = NULL;
     }
-  } 
+  }
 
   free_ptr_array((void **) grid_mols_by_species, world->n_species);
   free(grid_mol_counts_by_species);
@@ -4185,6 +4182,9 @@ static int dreamm_v3_clean_files(struct frame_data_list *fdlp)
                 free(mol_states_name);
                 return 1;
              }
+             free(mol_pos_name);
+             free(mol_orient_name);
+             free(mol_states_name);
            }
 
         }
@@ -4222,6 +4222,8 @@ static int dreamm_v3_clean_files(struct frame_data_list *fdlp)
                 free(mol_states_name);
                 return 1;
              }
+             free(mol_pos_name);
+             free(mol_states_name);
            }
         }
         break;
@@ -4248,6 +4250,7 @@ static int dreamm_v3_clean_files(struct frame_data_list *fdlp)
                 free(mol_orient_name);
                 return 1;
              }
+             free(mol_orient_name);
            }
         }
         break;
@@ -4304,7 +4307,10 @@ static int dreamm_v3_clean_files(struct frame_data_list *fdlp)
                    free(mesh_region_indices_name);
                    return 1;
                 }
-
+                free(mesh_pos_name);
+                free(mesh_connect_name);
+                free(mesh_states_name);
+                free(mesh_region_indices_name);
            }
 
         }
@@ -4354,6 +4360,9 @@ static int dreamm_v3_clean_files(struct frame_data_list *fdlp)
                    return 1;
                 }
 
+                free(mesh_pos_name);
+                free(mesh_connect_name);
+                free(mesh_states_name);
            }
 
         }
@@ -4383,6 +4392,7 @@ static int dreamm_v3_clean_files(struct frame_data_list *fdlp)
                    free(mesh_region_indices_name);
                    return 1;
                 }
+                free(mesh_region_indices_name);
            }
         }
         break;
@@ -4429,7 +4439,6 @@ static void dreamm_v3_update_last_iteration_info(struct frame_data_list *fdlp)
         world->viz_state_info.last_mols_iteration = fdlp->viz_iteration;
     }
   }
-
 }
 
 /*************************************************************************
@@ -4521,6 +4530,10 @@ static int dreamm_v3_create_empty_mesh_file(struct object *parent)
           free(mesh_states_name); 
           return 1;
       }
+      free(mesh_pos_name);
+      free(mesh_connect_name);
+      free(mesh_region_indices_name);
+      free(mesh_states_name);
   }else if(parent->object_type == META_OBJ){
      for(o = parent->first_child; o != NULL; o = o->next)
      {
@@ -4629,6 +4642,9 @@ static int dreamm_v3_write_empty_files()
             free(mol_states_name);
             return 1;
           }
+          free(mol_pos_name);
+          free(mol_orient_name);
+          free(mol_states_name);
         }
       
         if(dreamm_v3_create_empty_file(DREAMM_VOL_MOL_HEADER_NAME)) return 1;
@@ -4944,11 +4960,16 @@ static int dreamm_v3_create_mesh_symlinks(struct frame_data_list const *fdlp)
          if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, mesh_connect_name)) return 1;
          if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, mesh_region_indices_name)) return 1;
          if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, mesh_states_name)) return 1;
+         free(mesh_pos_name);
+         free(mesh_connect_name);
+         free(mesh_region_indices_name);
+         free(mesh_states_name);
        } 
 
      }
    
   }
+
   return 0;
 }
 
@@ -5135,7 +5156,7 @@ int dreamm_v3_find_old_time_values_count(char const *viz_data_dir, char const *t
 {
 
   struct stat f_stat;
-  FILE *f;
+  FILE *f = NULL;
   double read_size;
   double tmp;
   int count = 0;
@@ -5177,20 +5198,20 @@ int dreamm_v3_find_old_time_values_count(char const *viz_data_dir, char const *t
 
     *old_time_values_count = count;
     fclose(f);
+    f = NULL;
 
   }else{
     *old_time_values_count = 0;
 
   }
   
- 
   if (path) free(path);
   return 0;
 
 failure:
+  if (f) fclose(f);
   if (path) free(path);
   return 1;
-
 }
 
 
@@ -5343,7 +5364,6 @@ static void dreamm_v3_write_mesh_group(FILE *header,
             fieldsidx ++);
   }
   fprintf(header, "\n");
-
 }
 
 /*************************************************************************
@@ -5473,7 +5493,6 @@ static void dreamm_v3_write_molecule_group(FILE *header,
             specs[species_index]->sym->name,
             fieldsidx ++);
   fprintf(header, "\n");
-
 }
 
 /*************************************************************************
@@ -5618,7 +5637,7 @@ static int dreamm_v3_dump_volume_molecules(struct frame_data_list const * const 
   /* Open volume molecules header */
   if ((vol_mol_header = dreamm_v3_generic_open_file(world->viz_state_info.iteration_number_dir,
                                                     DREAMM_VOL_MOL_HEADER_NAME, "w")) == NULL)
-          return 1;
+    return 1;
 
   if(world->viz_output_flag & VIZ_MOLECULE_FORMAT_BINARY)
   {
@@ -5642,14 +5661,14 @@ static int dreamm_v3_dump_volume_molecules(struct frame_data_list const * const 
   
   }
 
-    if (world->viz_state_info.n_vol_species > 0)
-    {
-         int field_idx_base = vol_mol_main_index;
-         vol_mol_main_index += world->viz_state_info.n_vol_species;
+  if (world->viz_state_info.n_vol_species > 0)
+  {
+    int field_idx_base = vol_mol_main_index;
+    vol_mol_main_index += world->viz_state_info.n_vol_species;
 
-         int group_idx = vol_mol_main_index ++;
+    int group_idx = vol_mol_main_index ++;
 
-         /* Build fields for volume molecules here */
+    /* Build fields for volume molecules here */
          dreamm_v3_generic_write_molecule_fields(fdlp,
                                                 vol_mol_header,
                                                 world->viz_state_info.vol_species,
@@ -5657,14 +5676,14 @@ static int dreamm_v3_dump_volume_molecules(struct frame_data_list const * const 
                                                 field_idx_base,
                                                 1);
 
-          /* Create group objects for molecules */
+    /* Create group objects for molecules */
           dreamm_v3_write_molecule_group(vol_mol_header,
                                        "volume molecules",
                                        world->viz_state_info.vol_species,
                                        world->viz_state_info.n_vol_species,
                                        group_idx,
                                        field_idx_base);
-    }
+  }
 
     /* Store iteration_number for volume_molecules */
     if (add_to_iteration_counter(&world->viz_state_info.vol_mol_output_iterations, fdlp->viz_iteration))
@@ -6044,7 +6063,7 @@ static int dreamm_v3_grouped_dump_time_info(FILE *master_header)
 failure:
   if (iteration_numbers_name) free(iteration_numbers_name);
   if (time_values_name) free(time_values_name);
-  return 0;
+  return 1;
 }
 
 /*************************************************************************
@@ -6489,6 +6508,43 @@ static void dreamm_v3_grouped_write_frame_series(FILE *master_header)
 }
 
 /*************************************************************************
+dreamm_v3_grouped_write_frame_series:
+    Write out the final index info for the DREAMM grouped output.  This should
+    be called before exiting if any DREAMM grouped output has been written.
+
+        In:  none
+        Out: 0 on success, 1 on failure
+**************************************************************************/
+static int dreamm_v3_grouped_write_final_info(void)
+{
+  FILE *master_header = NULL;
+
+  /* Open master header file. */
+  {
+    char *master_header_file_path = dreamm_v3_grouped_get_master_header_name();
+    if (master_header_file_path == NULL)
+      return 1;
+
+    if ((master_header = open_file(master_header_file_path, "a")) == NULL)
+    {
+      free(master_header_file_path);
+      return 1;
+    }
+    free(master_header_file_path);
+  }
+
+  if (dreamm_v3_grouped_dump_time_info(master_header))
+  {
+    fclose(master_header);
+    return 1;
+  }
+
+  dreamm_v3_grouped_write_frame_series(master_header);
+  fclose(master_header);
+  return 0;
+}
+
+/*************************************************************************
 output_dreamm_objects_grouped:
         In: struct frame_data_list *fdlp
         Out: 0 on success, 1 on error; output visualization files (*.dx)
@@ -6784,17 +6840,17 @@ int init_frame_data_list(struct frame_data_list **fdlpp)
 
   switch (world->viz_mode)
   {
-    case DREAMM_V3_MODE:  
-      if(dreamm_v3_generic_preprocess_frame_data(fdlpp))
-          return 1;
+    case DREAMM_V3_MODE:
+      if (dreamm_v3_generic_preprocess_frame_data(fdlpp))
+        return 1;
       fdlp = *fdlpp;
       if (dreamm_v3_init(fdlp))
         return 1;
       break;
 
     case DREAMM_V3_GROUPED_MODE:
-      if(dreamm_v3_generic_preprocess_frame_data(fdlpp))
-          return 1;
+      if (dreamm_v3_generic_preprocess_frame_data(fdlpp))
+        return 1;
       fdlp = *fdlpp;
       if (dreamm_v3_grouped_init(fdlp))
         return 1;
@@ -6896,15 +6952,16 @@ int update_frame_data_list(struct frame_data_list *fdlp)
   /* Scan over all frames, producing appropriate output. */
   for (; fdlp != NULL; fdlp = fdlp->next)
   {
-    if (world->it_time!=fdlp->viz_iteration) continue;
-    
+    if (world->it_time!=fdlp->viz_iteration)
+      continue;
+
     switch (world->viz_mode)
     {
       case DX_MODE:
         if(output_dx_objects(fdlp)) return 1;
         break;
 
-      case DREAMM_V3_MODE: 
+      case DREAMM_V3_MODE:
         if(output_dreamm_objects(fdlp)) return 1;
         break;
 
@@ -6926,9 +6983,12 @@ int update_frame_data_list(struct frame_data_list *fdlp)
         break;
     }
 
-    fdlp->curr_viz_iteration = fdlp->curr_viz_iteration->next;
-    if (fdlp->curr_viz_iteration != NULL)
-      fdlp->viz_iteration = frame_iteration(fdlp->curr_viz_iteration->value, fdlp->list_type);
+    while (fdlp->curr_viz_iteration != NULL  && fdlp->viz_iteration == world->it_time)
+    {
+      fdlp->curr_viz_iteration = fdlp->curr_viz_iteration->next;
+      if (fdlp->curr_viz_iteration)
+        fdlp->viz_iteration = frame_iteration(fdlp->curr_viz_iteration->value, fdlp->list_type);
+    }
   }
      return 0;
 }
@@ -6943,50 +7003,29 @@ finalize_viz_output:
 **************************************************************************/
 int finalize_viz_output(struct frame_data_list  *fdlp)
 {
-   FILE *master_header = NULL;
-   char *master_header_file_path;
-
-  if (fdlp == NULL) return 1;
+  if (fdlp == NULL) return 0;
 
   switch (world->viz_mode)
   {
-     case DREAMM_V3_MODE:
-        
-        if (dreamm_v3_dump_time_info()) return 1;
-        break;
+    case DREAMM_V3_MODE:
+      if (world->viz_state_info.output_times.n_iterations > 0)
+        return dreamm_v3_dump_time_info();
+      break;
 
-      case DREAMM_V3_GROUPED_MODE:
+    case DREAMM_V3_GROUPED_MODE:
+      if (world->viz_state_info.output_times.n_iterations > 0)
+        return dreamm_v3_grouped_write_final_info();
+      break;
 
-          /* Open master header file. */
-          master_header_file_path = dreamm_v3_grouped_get_master_header_name();
-          if (master_header_file_path == NULL) return 1;
+    case NO_VIZ_MODE:
+    case ASCII_MODE:
+    case RK_MODE:
+    case DX_MODE:
+    default:
+      /* Do nothing for vizualization */
+      break;
 
-          if ((master_header = open_file(master_header_file_path, "a")) == NULL)
-          {
-                free(master_header_file_path);
-                return 1;
-           }
-           if (dreamm_v3_grouped_dump_time_info(master_header))
-           {
-                if (master_header != NULL) fclose(master_header);
-                return 1;
-            }
-            dreamm_v3_grouped_write_frame_series(master_header);
-             
-             if (master_header != NULL) fclose(master_header);
-               
-             free(master_header_file_path);
-             break;
-      
-      case NO_VIZ_MODE:
-      case ASCII_MODE:
-      case RK_MODE:
-      case DX_MODE:
-      default:
-           /* Do nothing for vizualization */
-           break;
-
-   }
+  }
 
   return 0;
 }

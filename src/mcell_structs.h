@@ -5,6 +5,8 @@
 #include <sys/types.h>
 #include <stdio.h>
 
+#include "config.h"
+
 #include "rng.h"
 #include "vector.h"
 #include "mem_util.h"
@@ -15,15 +17,13 @@
 /**  Brand new constants created for use in MCell3  **/
 /*****************************************************/
 
-
-/* MCell version */
-#define MCELL_VERSION "3.001" 
-
+#define ORIENT_NOT_SET SHRT_MIN
 
 /* Species flags */
    /* Walls have IS_SURFACE set, molecules do not. */
    /* Grid molecules have ON_GRID set */
    /* Volume molecules have NOT_FREE clear (i.e. flags&NOT_FREE==0) */
+   /* Macromolecular complexes have IS_COMPLEX set */
    /* CAN_ flags specify what types of reactions this molecule can undergo */
    /* CANT_INITIATE means that this molecule may not trigger a reaction with another molecule */
    /* COUNT_TRIGGER means that someone wants to output a TRIGGER statement when something happens to this molecule */
@@ -52,6 +52,7 @@
 #define COUNT_SOME_MASK  0xF800
 #define CAN_MOLGRIDGRID  0x10000
 #define CAN_GRIDGRIDGRID 0x20000
+#define IS_COMPLEX       0x40000
 
 
 /* Abstract Molecule Flags */
@@ -64,6 +65,10 @@
 #define TYPE_GRID   0x001
 #define TYPE_3D   0x002
 #define TYPE_MASK 0x003
+
+/* If this flag is set, this mol is a subunit in a complex */
+#define COMPLEX_MEMBER 0x0004
+#define COMPLEX_MASTER 0x2000
 
 /* NEWBIE molecules get scheduled before anything else happens to them. */
 /* INERT molecules don't react. */
@@ -89,6 +94,9 @@
 
 /* Flags telling us what our counting status is */
 #define COUNT_ME    0x800
+
+/* Flag indicating that a molecule is old enough to take the maximum timestep */
+#define MATURE_MOLECULE 0x1000
 
 /* End of Abstract Molecule Flags. */
 
@@ -232,9 +240,6 @@
 /* A mask to pick off all of the collision target types */
 #define COLLIDE_MASK    0x0F
 /* Bitmasks for each of the major types of collision */
-/* These types are defined for the collisions between moving
-   volume molecule MOL and target.  So when the target is also
-   MOL the collision is COLLIDE_MOL (first MOL is omitted). */
 #define COLLIDE_WALL    0x10
 #define COLLIDE_MOL     0x20 /* collision between 2 volume molecules */
 #define COLLIDE_SUBVOL  0x40
@@ -414,6 +419,7 @@
 #define OEXPR_LEFT_TRIG 0x30
 #define OEXPR_LEFT_REQUEST 0x40
 #define OEXPR_LEFT_OEXPR 0x50
+#define OEXPR_LEFT_MACROREQUEST 0x60
 #define OEXPR_LEFT_MASK 0x70
 #define OEXPR_LEFT_CONST 0x80
 
@@ -423,6 +429,7 @@
 #define OEXPR_RIGHT_TRIG 0x300
 #define OEXPR_RIGHT_REQUEST 0x400
 #define OEXPR_RIGHT_OEXPR 0x500
+#define OEXPR_RIGHT_MACROREQUEST 0x600
 #define OEXPR_RIGHT_MASK 0x700
 #define OEXPR_RIGHT_CONST 0x800
 
@@ -441,6 +448,15 @@
 /* Range of molecule indices used to avoid self-reactions for 3D unbinding */
 #define DISSOCIATION_MAX -1000
 #define DISSOCIATION_MIN -1000000000
+
+/* Checkpoint related flags */
+#define CHKPT_NOT_REQUESTED     0
+#define CHKPT_SIGNAL_CONT       1
+#define CHKPT_SIGNAL_EXIT       2
+#define CHKPT_ALARM_CONT        3
+#define CHKPT_ALARM_EXIT        4
+#define CHKPT_ITERATIONS_CONT   5
+#define CHKPT_ITERATIONS_EXIT   6
 
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
@@ -501,9 +517,6 @@
 
 /* mask for symbol table hash */
 #define SYM_HASHMASK 0x0FFFFF
-
-/* maximum number of args allowed in MDL "C"-style print statements */
-#define ARGSIZE 255
 
 /* maximum allowed nesting level of INCLUDE_FILE statements in MDL */
 #define MAX_INCLUDE_DEPTH 16
@@ -644,6 +657,13 @@ typedef unsigned int u_int;
 typedef unsigned long u_long;
 #endif
 
+/* Linked list used to separate molecules by species */
+struct per_species_list
+{
+  struct per_species_list    *next;       /* pointer to next p-s-l */
+  struct species             *properties; /* species for items in this bin */
+  struct volume_molecule     *head;       /* linked list of mols */
+};
 
 /* Properties of one type of molecule or surface */
 struct species
@@ -686,12 +706,17 @@ struct rxn
   u_int n_reactants;         /* How many reactants? (At least 1.) */
   int n_pathways;            /* How many pathways lead away?
                                 (Negative = special reaction, i.e. transparent etc...)*/
-  u_int *product_idx;        /* Index of 1st player for products of each pathway */
   double *cum_probs;         /* Cumulative probabilities for (entering) all pathways */
   double *cat_probs;         /* Probabilities of leaving all pathways (<=0.0 is instant) */
+  struct complex_rate **rates; /* Rates for cooperative macromol subunit rxns */
+  double max_fixed_p;        /* Maximum 'p' for region of p-space for all non-cooperative pathways */
+  double min_noreaction_p;   /* Minimum 'p' for region of p-space which is always in the non-reacting "pathway". (note that cooperativity may mean that some values of p less than this still do not produce a reaction) */
+  double pb_factor;          /* Conversion factor from rxn rate to rxn probability (used for cooperativity) */
   
+  u_int *product_idx;        /* Index of 1st player for products of each pathway */
   struct species **players;  /* Identities of reactants/products */
   short *geometries;         /* Geometries of reactants/products */
+  unsigned char *is_complex; /* Flags indicating which reactants/products are subunits of a complex.  array is NULL if not a macro-rxn. */
   
   long long n_occurred;      /* How many times has this reaction occurred? */
   double n_skipped;          /* How many reactions were skipped due to probability overflow? */
@@ -722,8 +747,10 @@ struct pathway {
   struct species *reactant1;     /* First reactant in reaction pathway */
   struct species *reactant2;     /* Second reactant (NULL if none) */
   struct species *reactant3;     /* Third reactant (NULL if none) */
+  unsigned char is_complex[3];   /* flag indicating whether each reactant must be a subunit in a complex */
   double km;                     /* Rate constant */
   char* km_filename;             /* Filename for time-varying rates */
+  struct complex_rate *km_complex; /* Rate "constant" for cooperative subunit rxns */
   short orientation1;            /* Orientation of first reactant */
   short orientation2;            /* Orientation of second reactant */
   short orientation3;            /* Orientation of third reactant */
@@ -740,6 +767,7 @@ struct product {
   struct product *next;
   struct species *prod;          /* Molecule type to be created */
   short orientation;             /* Orientation to place molecule */
+  unsigned char is_complex;      /* flag indicating whether product is to be a subunit in a complex */
 };
 
 /* Run-time info for each pathway */
@@ -773,6 +801,7 @@ struct abstract_molecule
   struct species *properties;      /* What type of molecule are we? */
   struct mem_helper *birthplace;   /* What was I allocated from? */
   double birthday;                 /* Time at which this particle was born */
+  struct abstract_molecule **cmplx;  /* Other molecules forming this complex, if we're part of a complex (0: master, 1...n subunits) */
 };
 
 
@@ -786,6 +815,7 @@ struct volume_molecule
   struct species *properties;
   struct mem_helper *birthplace;
   double birthday;
+  struct volume_molecule **cmplx; /* Other molecules forming this complex, if we're part of a complex (0: master, 1...n subunits) */
   
   struct vector3 pos;             /* Position in space */
   struct subvolume *subvol;       /* Partition we are in */
@@ -793,6 +823,7 @@ struct volume_molecule
   struct wall *previous_wall;     /* Wall we were released from */
   int index;                      /* Index on that wall (don't rebind) */
   
+  struct volume_molecule **prev_v;       /* Previous molecule in this subvolume */
   struct volume_molecule *next_v;        /* Next molecule in this subvolume */
 };
 
@@ -807,6 +838,7 @@ struct grid_molecule
   struct species *properties;
   struct mem_helper *birthplace;
   double birthday;
+  struct grid_molecule **cmplx; /* Other molecules forming this complex, if we're part of a complex (0: master, 1...n subunits) */
   
   int grid_index;              /* Which gridpoint do we occupy? */
   short orient;                /* Which way do we point? */
@@ -942,6 +974,7 @@ struct storage
   struct mem_helper *tri_coll;  /* Collision list for trimolecular collisions */
   struct mem_helper *regl;  /* Region lists */
   struct mem_helper *exdv;  /* Vertex lists for exact interaction disk area */
+  struct mem_helper *pslv;  /* Per-species-lists for vol mols */
   
   struct wall *wall_head;              /* Locally stored walls */
   int wall_count;                      /* How many local walls? */
@@ -960,17 +993,14 @@ struct storage_list
   struct storage *store;
 };
 
-
 /* Walls and molecules in a spatial subvolume */
 struct subvolume
 {
   struct wall_list *wall_head; /* Head of linked list of intersecting walls */
-  int wall_count;              /* How many walls intersect? */
   
-  struct volume_molecule *mol_head;   /* Head of linked list of molecules */
+  struct pointer_hash mol_by_species;   /* table of species->molecule list */
+  struct per_species_list *species_head;
   int mol_count;               /* How many molecules are here? */
-
-  int index;                   /* Index of subvolume in world list */
   
   struct short3D llf;          /* Indices of left lower front corner */
   struct short3D urb;          /* Indices of upper right back corner */
@@ -1072,7 +1102,6 @@ struct magic_list
 struct visualization_state
 {
   /* Iteration numbers */
-  long long final_iteration;
   long long last_meshes_iteration;
   long long last_mols_iteration;
 
@@ -1112,7 +1141,6 @@ struct visualization_state
   /* For DREAMM V3 Ungrouped output, path of 'frame data dir' and iter dir */
   char *frame_data_dir;
   char *iteration_number_dir;
-  
 };
 
 /* All data about the world */
@@ -1138,7 +1166,7 @@ struct volume
   int n_waypoints;              /* How many waypoints (one per subvol) */
   struct waypoint *waypoints;   /* Waypoints contain fully-closed region information */
   byte place_waypoints_flag;    /* Used to save memory if waypoints not needed */
-  
+
   int n_subvols;                /* How many coarse subvolumes? */
   struct subvolume *subvol;     /* Array containing all subvolumes */
    
@@ -1175,6 +1203,7 @@ struct volume
 
   struct volume_output_item *volume_output_head; /* List of all volume data output items */
   
+  struct macro_count_request *macro_count_request_head;
   struct output_block *output_block_head;     /* Global list of reaction data output blocks */
   struct output_request *output_request_head; /* Global list linking COUNT statements to internal variables */
   struct mem_helper *oexpr_mem;               /* Memory to store output_expressions */
@@ -1222,7 +1251,6 @@ struct volume
   char *chkpt_infile;         /* Name of checkpoint file to read from */
   char *chkpt_outfile;        /* Name of checkpoint file to write to */
   FILE *chkpt_infs;           /* Checkpoint input file */
-  FILE *chkpt_outfs;          /* Checkpoint output file */
   u_int chkpt_byte_order_mismatch;   /* Flag that defines whether mismatch
                                       in byte order exists between the saved
                                       checkpoint file and the machine reading it */
@@ -1239,7 +1267,7 @@ struct volume
   long long ray_polygon_tests;     /* How many ray-polygon intersection tests have we performed */
   long long ray_polygon_colls;     /* How many ray-polygon intersections have occured */
   long long mol_mol_colls;         /* How many mol-mol collisions have occured */
-  long long mol_mol_mol_colls;     /* How many mol-mol_mol collisions have occured */
+  long long mol_mol_mol_colls;     /* How many mol-mol collisions have occured */
 
   struct vector3 bb_llf;	/* llf corner of world bounding box */
   struct vector3 bb_urb;	/* urb corner of world bounding box */
@@ -1252,6 +1280,11 @@ struct volume
 
   int procnum;            /* Processor number for a parallel run */
 
+  struct mem_helper *coll_mem;  /* Collision list */
+  struct mem_helper *sp_coll_mem;  /* Collision list (trimol) */
+  struct mem_helper *tri_coll_mem;  /* Collision list (trimol) */
+  struct mem_helper *exdv_mem;  /* Vertex lists for exact interaction disk area */
+
   /* Old viz output stuff */
   int viz_mode;
   struct rk_mode_data *rk_mode_var;
@@ -1263,7 +1296,7 @@ struct volume
 
   /* VIZ state transplanted from global vars */
 
-  char *mcell_version;     /* Current version number.
+  char const *mcell_version;     /* Current version number.
                               Format is "3.XX.YY" where XX is major release number (for new features)
                               and YY is minor release number (for patches) */
  
@@ -1272,7 +1305,6 @@ struct volume
   double vacancy_search_dist2; /* Square of distance to search for free grid location to place surface product */
   byte surface_reversibility;  /* If set, match unbinding diffusion distribution to binding distribution at surface */
   byte volume_reversibility;   /* If set, match unbinding diffusion distribution to binding distribution in volume */
-
 
   /* MCell startup command line arguments */
   u_int seed_seq;            /* Seed for random number generator */
@@ -1283,11 +1315,19 @@ struct volume
   FILE *err_file;            /* Error log file to use, default is stderr */
   u_int log_freq;            /* Interval between simulation progress reports, default scales as sqrt(iterations) */
   char *mdl_infile_name;     /* Name of MDL file specified on command line */
-  char *curr_file;           /* Name of MDL file currently being parsed */
+  char const *curr_file;     /* Name of MDL file currently being parsed */
   
   struct notifications *notify; /* Notification/warning/output flags */
   
   struct ccn_clamp_data *clamp_list;  /* List of objects at which volume molecule concentrations should be clamped */
+  
+  /* Flags for asynchronously-triggered checkpoints */
+  int checkpoint_requested;             /* CHKPT_AND_CONTINUE, CHKPT_AND_STOP, or CHKPT_NOT_REQUESTED */
+  long checkpoint_alarm_time;           /* number of seconds between checkpoints */
+  int continue_after_checkpoint;        /* 0: exit after chkpt, 1: continue after chkpt */
+  long long last_checkpoint_iteration;  /* Last iteration when chkpt was created */
+  time_t begin_timestamp;               /* Time since epoch at beginning of 'main' */
+  char *initialization_state;           /* NULL after initialization completes */
   
   /* Nifty pointers for debugging go here */
   struct output_request *watch_orq;
@@ -1341,6 +1381,7 @@ struct tri_collision
   struct vector3 loc;           /* Assumed location of impact */
   struct vector3 loc1;           /* Location of impact with first target */
   struct vector3 loc2;           /* Location of impact with second target */
+  struct vector3 last_walk_from; /* Location of mol. before last step before final collision */
   double factor;                /* Result of "exact_disk()" with both targets
                                    or scaling coef. for MOL_WALL interaction */
   struct wall *wall;          /* pointer to the wall in the collision if
@@ -1473,6 +1514,7 @@ struct notifications
   byte box_triangulation;            /* BOX_TRIANGULATION_REPORT */
   byte custom_iterations;            /* ITERATION_REPORT */
   long long custom_iteration_value;  /* ITERATION_REPORT */
+  byte throughput_report;            /* THROUGHPUT_REPORT */
   byte release_events;               /* RELEASE_EVENT_REPORT */
   byte file_writes;                  /* FILE_OUTPUT_REPORT */
   byte final_summary;                /* FINAL_SUMMARY */
@@ -1669,14 +1711,12 @@ struct element_data {
 
 
 /* A voxel list object, part of a volume */
-struct voxel_object {
-        struct ordered_voxel *voxel_data; /**< pointer to data structure
-                                                holding voxel vertices etc... */
-	int n_voxels;			  /**< Number of voxels in
-                                             voxel object */
-        int n_verts;                      /**< Number of vertices in
-                                             voxel object */
-	byte fully_closed;		  /**< flag indicating closure of object */
+struct voxel_object
+{
+  struct ordered_voxel *voxel_data;  /* pointer to data structure holding voxel vertices etc... */
+  int n_voxels;			     /* Number of voxels in voxel object */
+  int n_verts;                       /* Number of vertices in voxel object */
+  byte fully_closed;		     /* flag indicating closure of object */
 };
 
 
@@ -1685,14 +1725,13 @@ struct voxel_object {
  * That is, the vertices of each polygonal face are ordered according to
  * the right hand rule.
  */
-struct ordered_voxel {
-	struct vector3 *vertex;         /**< Array of tetrahedron vertices */
-	struct tet_element_data *element; /**< Array tet_element_data
-                                              data structures */
-	struct tet_neighbors_data *neighbor; /**< Array tet_neighbors_data
-                                              data structures */
-	int n_verts;                  /**< Number of vertices in polyhedron */
-	int n_voxels;                 /**< Number of voxels in polyhedron */
+struct ordered_voxel
+{
+  struct vector3 *vertex;               /* Array of tetrahedron vertices */
+  struct tet_element_data *element;     /* Array tet_element_data data structures */
+  struct tet_neighbors_data *neighbor;  /* Array tet_neighbors_data data structures */
+  int n_verts;                          /* Number of vertices in polyhedron */
+  int n_voxels;                         /* Number of voxels in polyhedron */
 };
 
 

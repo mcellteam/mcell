@@ -1,0 +1,53 @@
+INCLUDE_FILE = "parser1.mdl"
+
+VIZ_OUTPUT
+{
+    MODE = DREAMM_V3_GROUPED
+    FILENAME = "p1v12a"
+    MOLECULES
+    {
+        NAME_LIST { "s_*" }
+        TIME_POINTS
+        {
+            ALL_DATA     @ ALL_TIMES
+            POSITIONS    @ [2e-6, 3e-6]
+            ORIENTATIONS @ [3e-6, 4e-6]
+        }
+    }
+    MESHES
+    {
+        NAME_LIST { "world2.*" }
+        TIME_POINTS
+        {
+            ALL_DATA @ [1e-6]
+            GEOMETRY @ [2e-6, 3e-6]
+            REGION_DATA  @ [3e-6, 4e-6]
+        }
+    }
+}
+
+VIZ_OUTPUT
+{
+    MODE = DREAMM_V3_GROUPED
+    FILENAME = "p1v12b"
+    MOLECULES
+    {
+        NAME_LIST { "m_*" }
+        TIME_POINTS
+        {
+            POSITIONS    @ ALL_TIMES
+            ALL_DATA     @ [3e-6, 4e-6]
+            ORIENTATIONS @ [4e-6, 5e-6]
+        }
+    }
+    MESHES
+    {
+        NAME_LIST { "world.*" }
+        TIME_POINTS
+        {
+            ALL_DATA @ [2e-6]
+            GEOMETRY @ [3e-6, 4e-6]
+            REGION_DATA  @ [4e-6, 5e-6]
+        }
+    }
+}

@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "strfunc.h"
+#include "mem_util.h"
 
 
 /*************************************************************************
@@ -97,14 +98,12 @@ void no_printf(const char *format, ...)
 /*
  * Format a string into an allocated buffer.
  */
-char *alloc_sprintf(char const *fmt, ...)
+char *alloc_vsprintf(char const *fmt, va_list args)
 {
-  va_list args;
   char stack_buffer[256];
   int len;
   char *retval = NULL;
 
-  va_start(args, fmt);
   len = vsnprintf(stack_buffer, sizeof(stack_buffer), fmt, args);
   if (len >= sizeof(stack_buffer))
   {
@@ -114,8 +113,20 @@ char *alloc_sprintf(char const *fmt, ...)
   }
   else
     retval = strdup(stack_buffer);
-  va_end(args);
 
+  return retval;
+}
+
+/*
+ * Format a string into an allocated buffer.
+ */
+char *alloc_sprintf(char const *fmt, ...)
+{
+  char *retval;
+  va_list args;
+  va_start(args, fmt);
+  retval = alloc_vsprintf(fmt, args);
+  va_end(args);
   return retval;
 }
 

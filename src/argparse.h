@@ -1,6 +1,8 @@
 #ifndef ARGPARSE_H
 #define ARGPARSE_H
 
+#include <stdio.h>
+
 #ifndef __GNUC__
 #ifndef __attribute__
 #define __attribute__(x) /* empty */
@@ -14,6 +16,8 @@
 #endif
 
 struct volume;
+
+void print_usage(FILE *f, char const *argv0);
 
 void argerror(struct volume *vol, char const *s, ...)
   __attribute__((format (printf, 2, 3)));

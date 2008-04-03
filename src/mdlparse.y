@@ -1,9 +1,9 @@
 %{
-  #include <stdio.h> 
+  #include <stdio.h>
   #include <stdlib.h>
   #include <stdarg.h>
-  #include <string.h> 
-  #include <time.h> 
+  #include <string.h>
+  #include <time.h>
   #include <math.h>
   #include <float.h>
   #include <limits.h>
@@ -16,538 +16,601 @@
   #include "sym_table.h"
   #include "diffuse_util.h"
   #include "mdlparse_util.h"
+  #include "mdlparse_aux.h"
   #include "mdlparse.h"
   #include "util.h"
   #include "react_output.h"
-  
+  #include "macromolecule.h"
+
 
   #define volp mdlpvp->vol
 
+  typedef void *yyscan_t;
+  int mdllex_init(yyscan_t *ptr_yy_globals) ;
+  int mdllex_destroy(yyscan_t yyscanner);
+  void mdlrestart(FILE *infile, yyscan_t scanner);
+  int mdllex(YYSTYPE *yylval, struct mdlparse_vars *mdlpvp, yyscan_t scanner);
+
+  static int mdlparse_file(struct mdlparse_vars *mpvp, char const *name);
+
+#if 0
+  #define CHECK(a)  do { if ((a) != 0) return 1; } while (0)
+  #define CHECKN(a) do { if ((a) == NULL) return 1; } while (0)
+#else
+  #define CHECK(a)  do { if ((a) != 0)    { fprintf(stderr, "Fail: %s:%d\n", __FILE__, __LINE__); return 1; } } while (0)
+  #define CHECKN(a) do { if ((a) == NULL) { fprintf(stderr, "Fail: %s:%d\n", __FILE__, __LINE__); return 1; } } while (0)
+#endif
+
+  #undef yyerror
+  #define yyerror(a, b, c) mdlerror(a, c)
 %}
 
 
 %union {
+int ival;
 int tok;
 double dbl;
 char *str;
 struct sym_table *sym;
-struct evnt *evnt;
 struct vector3 *vec3;
-struct num_expr_list *nel;
-struct object *obj;
-struct object_list *objl;
-struct output_expression *cnt;
+struct num_expr_list_head nlist;
 struct release_evaluator *rev;
-struct list_head *lst;
+struct sym_table_list *symlist;
 struct output_times *otimes;
-} 
 
+/* Reaction output */
+struct output_times_inlist ro_otimes;
+struct output_column_list ro_cols;
+struct output_set *ro_set;
+struct output_set_list ro_sets;
+struct output_expression *cnt;
 
-%{
-  #include "mdllex.flex.c"
-%}
+/* Viz output */
+struct frame_data_list_head frame_list;
 
+/* Region definitions */
+struct element_list *elem_list_item;
+struct element_list_head elem_list;
+struct region *reg;
+
+/* Diffusion constants */
+struct diffusion_constant diff_const;
+
+/* Geometry */
+struct vertex_list_head vertlist;
+struct vertex_list *vertlistitem;
+struct element_connection_list_head ecl;
+struct element_connection_list *elem_conn;
+struct object *obj;
+struct object_list obj_list;
+struct voxel_object *voxel;
+
+/* Molecule species */
+struct species_opt_orient mol_type;
+struct species_opt_orient_list mol_type_list;
+struct species *mol_spec;
+struct species_list species_lst;
+struct species_list_item *species_lst_item;
+struct eff_dat *effector;
+struct eff_dat_list effector_list;
+
+/* Reactions */
+struct reaction_arrow react_arrow;
+struct reaction_rate  react_rate;
+struct reaction_rates react_rates;
+
+/* Release sites/patterns */
+struct release_pattern rpat;
+struct release_single_molecule *rsm;
+struct release_single_molecule_list rsm_list;
+
+/* printf arguments */
+struct arg *printfarg;
+struct arg_list printfargs;
+
+/* Macromolecules */
+struct macro_topology *mmol_topo;
+struct macro_subunit_spec *mmol_su_comp;
+struct macro_subunit_assignment *mmol_su_assign;
+struct macro_geometry *mmol_geom;
+struct macro_relationship *mmol_su_rel;
+struct macro_rate_ruleset *mmol_rate_ruleset;
+struct macro_rate_rule *mmol_rate_rule;
+struct macro_rate_clause *mmol_rate_clause;
+
+/* Macromolecules (after the species is built) */
+struct macro_relation_state *relation_state;
+}
 
 %pure_parser
 
 %lex-param {struct mdlparse_vars *mdlpvp}
+%lex-param {yyscan_t scanner}
 %parse-param {struct mdlparse_vars *mdlpvp}
+%parse-param {yyscan_t scanner}
 %name-prefix="mdl"
-%output="mdlparse.bison.c"
 
-
-%token <tok> ABS
-%token <tok> ABSORPTIVE
-%token <tok> ACCURATE_3D_REACTIONS
-%token <tok> ACOS
-%token <tok> ALL_DATA
-%token <tok> ALL_CROSSINGS
-%token <tok> ALL_ELEMENTS
-%token <tok> ALL_ENCLOSED
-%token <tok> ALL_EVENTS
-%token <tok> ALL_HITS
-%token <tok> ALL_ITERATIONS
-%token <tok> ALL_MESHES
-%token <tok> ALL_MOLECULES
-%token <tok> ALL_NOTIFICATIONS
-%token <tok> ALL_TIMES
-%token <tok> ALL_WARNINGS
-%token <tok> AREA_OCCUPIED
-%token <tok> ASCII
-%token <tok> ASIN
-%token <tok> ASPECT_RATIO
-%token <tok> ATAN
-%token <tok> BACK
-%token <tok> BACK_CROSSINGS
-%token <tok> BACK_HITS
-%token <tok> BINARY
-%token <tok> BINDING_POLE
-%token <tok> BOTH_POLES
-%token <tok> BOTTOM
-%token <tok> BOX
-%token <tok> BOX_TRIANGULATION_REPORT
-%token <tok> BRIEF
-%token <tok> CEIL
-%token <tok> CENTER_MOLECULES_ON_GRID
-%token <tok> CHARGE
-%token <tok> CHECKPOINT_INFILE
-%token <tok> CHECKPOINT_OUTFILE
-%token <tok> CHECKPOINT_ITERATIONS
-%token <tok> CLAMP_CONCENTRATION
-%token <tok> CLOSE_PARTITION_SPACING
-%token <tok> COLOR
-%token <tok> COLOR_SIDE
-%token <tok> COLOR_EFFECTOR
-%token <tok> COMPARTMENT
-%token <tok> CONCENTRATION
-%token <tok> CORNERS
-%token <tok> COS
-%token <tok> COUNT
-%token <tok> CUSTOM_SPACE_STEP
-%token <tok> CUSTOM_RK
-%token <tok> CUSTOM_TIME_STEP
-%token <tok> CUBIC
-%token <tok> CUBIC_RELEASE_SITE
-%token <tok> CUMULATE_FOR_EACH_TIME_STEP
-%token <tok> DIFFUSION_CONSTANT_2D
-%token <tok> DIFFUSION_CONSTANT_3D
-%token <tok> DEFINE
-%token <tok> DEFINE_EFFECTOR_SITE_POSITIONS
-%token <tok> DEFINE_MOLECULE
-%token <tok> DEFINE_MOLECULES
-%token <tok> DEFINE_REACTIONS
-%token <tok> DEFINE_RELEASE_PATTERN
-%token <tok> DEFINE_SURFACE_REGIONS
-%token <tok> DEFINE_SURFACE_CLASS
-%token <tok> DEFINE_SURFACE_CLASSES
-%token <tok> DEGENERATE_POLYGONS
-%token <tok> DELAY
-%token <tok> DENSITY
-%token <tok> DIFFUSION_CONSTANT_REPORT
-%token <tok> DX
-%token <tok> DREAMM_V3
-%token <tok> DREAMM_V3_GROUPED
-%token <tok> EFFECTOR
-%token <tok> EFFECTOR_GRID_DENSITY
-%token <tok> EFFECTOR_POSITIONS
-%token <tok> EFFECTOR_STATE 
-%token <tok> EFFECTOR_STATES
-%token <tok> EITHER_POLE
-%token <tok> ELEMENT
-%token <tok> ELEMENT_CONNECTIONS
-%token <tok> ELLIPTIC
-%token <tok> ELLIPTIC_RELEASE_SITE
-%token <tok> EOF_TOK
-%token <tok> ERROR
-%token <tok> ESTIMATE_CONCENTRATION
-%token <tok> EXCLUDE_ELEMENTS
-%token <tok> EXCLUDE_PATCH
-%token <tok> EXCLUDE_REGION
-%token <tok> EXP
-%token <tok> EXPRESSION
-%token <tok> FALSE
-%token <tok> FCLOSE
-%token <tok> FILENAME
+%token       ABS
+%token       ABSORPTIVE
+%token       ACCURATE_3D_REACTIONS
+%token       ACOS
+%token       ALL_CROSSINGS
+%token       ALL_DATA
+%token       ALL_ELEMENTS
+%token       ALL_ENCLOSED
+%token       ALL_HITS
+%token       ALL_ITERATIONS
+%token       ALL_MESHES
+%token       ALL_MOLECULES
+%token       ALL_NOTIFICATIONS
+%token       ALL_TIMES
+%token       ALL_WARNINGS
+%token       ASCII
+%token       ASIN
+%token       ASPECT_RATIO
+%token       ATAN
+%token       BACK
+%token       BACK_CROSSINGS
+%token       BACK_HITS
+%token       BINARY
+%token       BOTTOM
+%token       BOX
+%token       BOX_TRIANGULATION_REPORT
+%token       BRIEF
+%token       CEIL
+%token       CENTER_MOLECULES_ON_GRID
+%token       CHECKPOINT_INFILE
+%token       CHECKPOINT_ITERATIONS
+%token       CHECKPOINT_OUTFILE
+%token       CHECKPOINT_REALTIME
+%token       CLAMP_CONCENTRATION
+%token       CLOSE_PARTITION_SPACING
+%token       COMPLEX_RATE
+%token       CONCENTRATION
+%token       CORNERS
+%token       COS
+%token       COUNT
+%token       CUBIC
+%token       CUBIC_RELEASE_SITE
+%token       CUSTOM_RK
+%token       CUSTOM_SPACE_STEP
+%token       CUSTOM_TIME_STEP
+%token       DEFAULT
+%token       DEFINE_COMPLEX_MOLECULE
+%token       DEFINE_MOLECULE
+%token       DEFINE_MOLECULES
+%token       DEFINE_REACTIONS
+%token       DEFINE_RELEASE_PATTERN
+%token       DEFINE_SURFACE_CLASS
+%token       DEFINE_SURFACE_CLASSES
+%token       DEFINE_SURFACE_REGIONS
+%token       DEGENERATE_POLYGONS
+%token       DELAY
+%token       DENSITY
+%token       DIFFUSION_CONSTANT_2D
+%token       DIFFUSION_CONSTANT_3D
+%token       DIFFUSION_CONSTANT_REPORT
+%token       DREAMM_V3
+%token       DREAMM_V3_GROUPED
+%token       DX
+%token       EFFECTOR_GRID_DENSITY
+%token       EFFECTOR_POSITIONS
+%token       EFFECTOR_STATES
+%token       ELEMENT_CONNECTIONS
+%token       ELLIPTIC
+%token       ELLIPTIC_RELEASE_SITE
+%token       EQUAL
+%token       ERROR
+%token       ESTIMATE_CONCENTRATION
+%token       EXCLUDE_ELEMENTS
+%token       EXCLUDE_PATCH
+%token       EXCLUDE_REGION
+%token       EXIT
+%token       EXP
+%token       EXPRESSION
+%token       FALSE
+%token       FCLOSE
+%token       FILENAME
 %token       FILENAME_PREFIX
-%token <tok> FILE_OUTPUT_REPORT
-%token <tok> FINAL_SUMMARY
-%token <tok> FLOOR
-%token <tok> FOPEN
-%token <tok> FOR_EACH_EFFECTOR
-%token <tok> FOR_EACH_MOLECULE
-%token <tok> FOR_EACH_TIME_STEP
-%token <tok> FPRINT_TIME
-%token <tok> FPRINTF
-%token <tok> FRAME_DATA
-%token <tok> FRONT
-%token <tok> FRONT_CROSSINGS
-%token <tok> FRONT_HITS
-%token <tok> GAUSSIAN_RELEASE_NUMBER
-%token <tok> GEOMETRY
-%token <tok> HEADER
-%token <tok> HIGH_PROBABILITY_THRESHOLD
-%token <tok> HIGH_REACTION_PROBABILITY
-%token <tok> IGNORED
-%token <tok> INCLUDE_ELEMENTS
-%token <tok> INCLUDE_FILE
-%token <tok> INCLUDE_MOLECULES
-%token <tok> INCLUDE_OBJECT
-%token <tok> INCLUDE_PATCH
-%token <tok> INCLUDE_REGION
-%token <tok> INITIAL_EVENTS
-%token <tok> INPUT_FILE
-%token <tok> INSTANTIATE
-%token <tok> INTEGER
-%token <tok> INTERACTION_RADIUS
-%token <tok> INTERIM_EVENTS
-%token <tok> IRIT
-%token <tok> ITERATION_FRAME_DATA
-%token <tok> ITERATION_LIST
-%token <tok> ITERATION_NUMBERS
-%token <tok> ITERATION_REPORT
-%token <tok> ITERATIONS
-%token <tok> FULLY_RANDOM
-%token <tok> LEFT
-%token <tok> LIFETIME_TOO_SHORT
-%token <tok> LIFETIME_THRESHOLD
-%token <tok> LIST
-%token <tok> LOCATION
-%token <tok> LOG
-%token <tok> LOG10
-%token <tok> MAX_TOK
-%token <tok> MCELL_GENERIC
-%token <tok> MEAN_DIAMETER
-%token <tok> MEAN_NUMBER
-%token <tok> MESHES
-%token <tok> MICROSCOPIC_REVERSIBILITY
-%token <tok> MIN_TOK
-%token <tok> MISSED_REACTIONS
-%token <tok> MISSED_REACTION_THRESHOLD
-%token <tok> MISSING_SURFACE_ORIENTATION
-%token <tok> MOD
-%token <tok> MODE
-%token <tok> MODIFY_SURFACE_REGIONS
-%token <tok> MOLECULE
-%token <tok> MOLECULES
-%token <tok> MOLECULE_DENSITY
-%token <tok> MOLECULE_NUMBER
-%token <tok> MOLECULE_POSITIONS
-%token <tok> MOLECULE_STATES
-%token <tok> MOLECULE_POSITIONS_STATES
-%token <tok> MOLECULE_FILE_PREFIX
-%token <tok> NAME
-%token <tok> NAME_LIST
-%token <tok> NEGATIVE_POLE
-%token <tok> NEGATIVE_DIFFUSION_CONSTANT
-%token <tok> NEGATIVE_REACTION_RATE
-%token <tok> NO
-%token <tok> NONE
-%token <tok> NORMAL
-%token <tok> NOTIFICATIONS
-%token <tok> NO_SPECIES
-%token <tok> NUMBER
-%token <tok> NUMBER_BOUND
-%token <tok> NUMBER_OF_TRAINS
-%token <tok> NUMBER_TO_RELEASE
-%token <tok> OBJECT
-%token <tok> OBJECT_FILE_PREFIXES
-%token <tok> OFF
-%token <tok> ON
-%token <tok> ORIENTATION
-%token <tok> ORIENTATIONS
-%token <tok> OUTPUT_BUFFER_SIZE
-%token <tok> OVERWRITTEN_OUTPUT_FILE
-%token <tok> POSITIONS
-%token <tok> PARALLEL_PARTITION
-%token <tok> PART
-%token <tok> PARTITION_LOCATION_REPORT
-%token <tok> PARTITION_X
-%token <tok> PARTITION_Y
-%token <tok> PARTITION_Z
-%token <tok> PARTS
-%token <tok> PI_TOK
-%token <tok> POLE_ORIENTATION
-%token <tok> POLYGON_LIST
-%token <tok> POSITIVE_BACK
-%token <tok> POSITIVE_FRONT
-%token <tok> POSITIVE_POLE
-%token <tok> POVRAY
-%token <tok> PRINT_TIME
-%token <tok> PRINTF
-%token <tok> PROBABILITY_REPORT
-%token <tok> PROBABILITY_REPORT_THRESHOLD
-%token <tok> PROGRESS_REPORT
-%token <tok> RADIAL_DIRECTIONS
-%token <tok> RADIAL_SUBDIVISIONS
-%token <tok> RADIANCE
-%token <tok> RAYSHADE
-%token <tok> RAND_UNIFORM
-%token <tok> RAND_GAUSSIAN
-%token <tok> REACTION_DATA_OUTPUT
-%token <tok> REACTION_GROUP
-%token <tok> REAL
-%token <tok> RECTANGULAR_RELEASE_SITE
-%token <tok> RECTANGULAR_TOKEN
-%token <tok> REFERENCE_STATE
-%token <tok> REFLECTIVE
-%token <tok> REFERENCE_DIFFUSION_CONSTANT
-%token <tok> REGION_DATA
-%token <tok> RELEASE_EVENT_REPORT
-%token <tok> RELEASE_INTERVAL
-%token <tok> RELEASE_PATTERN
-%token <tok> RELEASE_PROBABILITY
-%token <tok> RELEASE_SITE
-%token <tok> REMOVE_ELEMENTS
-%token <tok> RENDERMAN
-%token <tok> RIGHT
-%token <tok> ROTATE
-%token <tok> ROUND_OFF
-%token <tok> SCALE
-%token <tok> SEED
-%token <tok> SHAPE
-%token <tok> SHOW_EXACT_TIME
-%token <tok> SIN
-%token <tok> SITE_DIAMETER
-%token <tok> SITE_RADIUS
-%token <tok> SPACE_STEP
-%token <tok> SPECIFIED_EFFECTORS
-%token <tok> SPECIFIED_MOLECULES
-%token <tok> SPHERICAL
-%token <tok> SPHERICAL_RELEASE_SITE
-%token <tok> SPHERICAL_SHELL
-%token <tok> SPHERICAL_SHELL_SITE
-%token <tok> SPRINTF
-%token <tok> SQRT
-%token <tok> STANDARD_DEVIATION
-%token <tok> STATE
-%token <tok> STATE_VALUES
-%token <tok> STEP
-%token <tok> STR_VALUE
-%token <tok> STRING_TO_NUM
-%token <tok> SUMMATION_OPERATOR
-%token <tok> SUM_OVER_ALL_EFFECTORS
-%token <tok> SUM_OVER_ALL_MOLECULES
-%token <tok> SUM_OVER_ALL_TIME_STEPS
-%token <tok> SURFACE_CLASS
-%token <tok> SURFACE_MOLECULE_AREA
-%token <tok> SURFACE_ONLY
-%token <tok> SURFACE_POSITIONS
-%token <tok> SURFACE_STATES
-%token <tok> TAN
-%token <tok> TARGET_ONLY
-%token <tok> TET_ELEMENT_CONNECTIONS
-%token <tok> TIME_LIST
-%token <tok> TIME_POINTS
-%token <tok> TIME_STEP
-%token <tok> TIME_STEP_MAX
-%token <tok> TO
-%token <tok> TOP
-%token <tok> TRAIN_DURATION
-%token <tok> TRAIN_INTERVAL
-%token <tok> TRANSFORM
-%token <tok> TRANSLATE
-%token <tok> TRANSPARENT
-%token <tok> TRIGGER
-%token <tok> TRUE
-%token <tok> UNLIMITED
-%token <tok> USELESS_VOLUME_ORIENTATION
-%token <tok> VAR
-%token <tok> VAR_ORIENT_IN_QUOTES
-%token <tok> VACANCY_SEARCH_DISTANCE
-%token <tok> VARYING_PROBABILITY_REPORT
-%token <tok> VERTEX_LIST
-%token <tok> VIZ_DATA_OUTPUT
-%token <tok> VIZ_MESH_FORMAT
-%token <tok> VIZ_MOLECULE_FORMAT
-%token <tok> VIZ_OUTPUT
-%token <tok> VIZ_VALUE
+%token       FILE_OUTPUT_REPORT
+%token       FINAL_SUMMARY
+%token       FLOOR
+%token       FOPEN
+%token       FPRINTF
+%token       FPRINT_TIME
+%token       FRONT
+%token       FRONT_CROSSINGS
+%token       FRONT_HITS
+%token       GAUSSIAN_RELEASE_NUMBER
+%token       GEOMETRY
+%token       HEADER
+%token       HIGH_PROBABILITY_THRESHOLD
+%token       HIGH_REACTION_PROBABILITY
+%token       IGNORED
+%token       INCLUDE_ELEMENTS
+%token       INCLUDE_FILE
+%token       INCLUDE_PATCH
+%token       INCLUDE_REGION
+%token       INPUT_FILE
+%token       INSTANTIATE
+%token <ival> INTEGER
+%token       FULLY_RANDOM
+%token       INTERACTION_RADIUS
+%token       ITERATION_FRAME_DATA
+%token       ITERATION_LIST
+%token       ITERATION_NUMBERS
+%token       ITERATION_REPORT
+%token       ITERATIONS
+%token       LEFT
+%token       LIFETIME_THRESHOLD
+%token       LIFETIME_TOO_SHORT
+%token       LIST
+%token       LOCATION
+%token       LOG
+%token       LOG10
+%token       MAX_TOK
+%token       MEAN_DIAMETER
+%token       MEAN_NUMBER
+%token       MESHES
+%token       MICROSCOPIC_REVERSIBILITY
+%token       MIN_TOK
+%token       MISSED_REACTIONS
+%token       MISSED_REACTION_THRESHOLD
+%token       MISSING_SURFACE_ORIENTATION
+%token       MOD
+%token       MODE
+%token       MODIFY_SURFACE_REGIONS
+%token       MOLECULE
+%token       MOLECULE_DENSITY
+%token       MOLECULE_FILE_PREFIX
+%token       MOLECULE_NUMBER
+%token       MOLECULE_POSITIONS
+%token       MOLECULES
+%token       MOLECULE_STATES
+%token       NAME_LIST
+%token       NEGATIVE_DIFFUSION_CONSTANT
+%token       NEGATIVE_REACTION_RATE
+%token       NO
+%token       NOEXIT
+%token       NONE
+%token       NORMAL
+%token       NO_SPECIES
+%token       NOT_EQUAL
+%token       NOTIFICATIONS
+%token       NUMBER_OF_SUBUNITS
+%token       NUMBER_OF_TRAINS
+%token       NUMBER_TO_RELEASE
+%token       OBJECT
+%token       OBJECT_FILE_PREFIXES
+%token       OFF
+%token       ON
+%token       ORIENTATIONS
+%token       OUTPUT_BUFFER_SIZE
+%token       OVERWRITTEN_OUTPUT_FILE
+%token       PARTITION_LOCATION_REPORT
+%token       PARTITION_X
+%token       PARTITION_Y
+%token       PARTITION_Z
+%token       PI_TOK
+%token       POLYGON_LIST
+%token       POSITIONS
+%token       PRINTF
+%token       PRINT_TIME
+%token       PROBABILITY_REPORT
+%token       PROBABILITY_REPORT_THRESHOLD
+%token       PROGRESS_REPORT
+%token       RADIAL_DIRECTIONS
+%token       RADIAL_SUBDIVISIONS
+%token       RAND_GAUSSIAN
+%token       RAND_UNIFORM
+%token       RATE_RULES
+%token       REACTION_DATA_OUTPUT
+%token       REACTION_GROUP
+%token <dbl> REAL
+%token       RECTANGULAR_RELEASE_SITE
+%token       RECTANGULAR_TOKEN
+%token       REFERENCE_DIFFUSION_CONSTANT
+%token       REFLECTIVE
+%token       REGION_DATA
+%token       RELEASE_EVENT_REPORT
+%token       RELEASE_INTERVAL
+%token       RELEASE_PATTERN
+%token       RELEASE_PROBABILITY
+%token       RELEASE_SITE
+%token       REMOVE_ELEMENTS
+%token       RIGHT
+%token       ROTATE
+%token       ROUND_OFF
+%token       SCALE
+%token       SEED
+%token       SHAPE
+%token       SHOW_EXACT_TIME
+%token       SIN
+%token       SITE_DIAMETER
+%token       SITE_RADIUS
+%token       SPACE_STEP
+%token       SPHERICAL
+%token       SPHERICAL_RELEASE_SITE
+%token       SPHERICAL_SHELL
+%token       SPHERICAL_SHELL_SITE
+%token       SPRINTF
+%token       SQRT
+%token       STANDARD_DEVIATION
+%token       STATE_VALUES
+%token       STEP
+%token       STRING_TO_NUM
+%token <str> STR_VALUE
+%token       SUBUNIT
+%token       SUBUNIT_RELATIONSHIPS
+%token       SUMMATION_OPERATOR
+%token       SURFACE_CLASS
+%token       SURFACE_ONLY
+%token       SURFACE_POSITIONS
+%token       SURFACE_STATES
+%token       TAN
+%token       TARGET_ONLY
+%token       TET_ELEMENT_CONNECTIONS
+%token       THROUGHPUT_REPORT
+%token       TIME_LIST
+%token       TIME_POINTS
+%token       TIME_STEP
+%token       TIME_STEP_MAX
+%token       TO
+%token       TOP
+%token       TRAIN_DURATION
+%token       TRAIN_INTERVAL
+%token       TRANSLATE
+%token       TRANSPARENT
+%token       TRIGGER
+%token       TRUE
+%token       UNLIMITED
+%token       USELESS_VOLUME_ORIENTATION
+%token       VACANCY_SEARCH_DISTANCE
+%token <str> VAR
+%token       VARYING_PROBABILITY_REPORT
+%token       VERTEX_LIST
+%token       VIZ_DATA_OUTPUT
+%token       VIZ_MESH_FORMAT
+%token       VIZ_MOLECULE_FORMAT
+%token       VIZ_OUTPUT
+%token       VIZ_VALUE
 %token       VOLUME_DATA_OUTPUT
-%token <tok> VOLUME_DEPENDENT_RELEASE_NUMBER
-%token <tok> VOLUME_ONLY
+%token       VOLUME_DEPENDENT_RELEASE_NUMBER
+%token       VOLUME_ONLY
 %token       VOXEL_COUNT
-%token <tok> VOXEL_IMAGE_MODE
-%token <tok> VOXEL_LIST
+%token       VOXEL_IMAGE_MODE
+%token       VOXEL_LIST
 %token       VOXEL_SIZE
-%token <tok> VOXEL_VOLUME_MODE
-%token <tok> WARNING
-%token <tok> WARNINGS
-%token <tok> WILDCARD_VAR
-%token <tok> WORLD
-%token <tok> X_TOK
-%token <tok> XY_TOK
-%token <tok> XZ_TOK
-%token <tok> XYZ_TOK
-%token <tok> Y_TOK
-%token <tok> YES
-%token <tok> YZ_TOK
-%token <tok> Z_TOK
+%token       VOXEL_VOLUME_MODE
+%token       WARNING
+%token       WARNINGS
+%token       WORLD
+%token       YES
 
-%type <tok> surface_rxn_type
-%type <tok> site_size_cmd
-%type <tok> partition_dimension
-%type <tok> notification_list
-%type <tok> notification_item_def
-%type <tok> warning_list
-%type <tok> warning_item_def
-
-%type <tok> rx_net_def
-%type <tok> rx_stmt
-%type <tok> list_rx_stmts
-%type <tok> rxn
-%type <tok> list_rxns
-%type <tok> rx_group_def
-%type <tok> product
-%type <tok> list_products
-
-%type <tok> notify_level
-%type <tok> warning_level
-%type <tok> boolean
-%type <tok> release_site_geom_old
-%type <tok> side_name
-%type <tok> patch_type
-%type <tok> prev_region_type
-%type <tok> remove_side
-
-%type <tok> iteration_frame_data_item
-%type <tok> viz_molecules_one_item
-%type <tok> viz_meshes_one_item
-%type <tok> custom_header
-%type <tok> exact_time_toggle
-%type <tok> file_arrow
-
-%type <tok> hit_spec
-%type <tok> opt_hit_spec
-%type <tok> existing_many_rxpns_or_molecules
-
-%type <sym> assign_var
-%type <sym> existing_var_only
-%type <sym> existing_str_var
-%type <sym> existing_num_var
-%type <sym> existing_array
-%type <sym> existing_num_or_array
-
-%type <dbl> num_value
-%type <dbl> num_expr
-%type <dbl> num_expr_only
-%type <dbl> intOrReal 
-%type <dbl> diffusion_def
-%type <dbl> reference_diffusion_def
-%type <dbl> mol_timestep_def
-%type <dbl> target_def
-%type <dbl> atomic_rate
-%type <dbl> output_buffer_size_def
-
-%type <str> str_value
-%type <str> str_expr
-%type <str> str_expr_only
+/* Utility non-terminals */
 %type <str> file_name
-%type <str> opt_custom_header
-
-%type <sym> new_molecule
-%type <sym> existing_molecule
-%type <sym> existing_surface_molecule
-%type <sym> existing_molecule_opt_orient
-%type <sym> new_surface_class
-%type <sym> existing_surface_class
-%type <sym> new_release_pattern
-/* %type <sym> existing_release_pattern */
-%type <sym> existing_release_pattern_xor_rxpn
-%type <sym> object_def
-%type <sym> new_object
 %type <sym> existing_object
-%type <sym> existing_one_or_multiple_objects
-%type <sym> existing_one_or_multiple_molecules
-%type <sym> object_ref
-%type <sym> existing_object_ref
-%type <sym> meta_object_def
-%type <sym> release_site_def
-%type <sym> release_site_def_new
-%type <sym> release_site_def_old
-%type <sym> box_def
-%type <sym> polygon_list_def
-%type <sym> voxel_list_def
-%type <sym> new_region
+%type <symlist> mesh_object_or_wildcard
 %type <sym> existing_region
-%type <sym> existing_logicalOrPhysical
-%type <sym> new_rxn_pathname
-%type <sym> existing_rxpn_or_molecule 
-%type <sym> existing_molecule_required_orient_quotes 
-%type <sym> existing_molecule_required_orient_braces 
-%type <sym> count_location_specifier
-
-%type <sym> new_file_stream
-%type <sym> existing_file_stream
-
-%type <str> file_mode
-%type <str> format_string
-
-%type <nel> array_value
-%type <nel> array_expr_only
-
 %type <vec3> point
 %type <vec3> point_or_num
+%type <tok> boolean
+%type <mol_type> orientation_class
+%type <mol_type> list_orient_marks
+%type <mol_type> orient_class_number
+%type <nlist> list_range_specs
+%type <nlist> range_spec
 
-%type <cnt> count_expr
-%type <cnt> count_value
-%type <cnt> count_syntax
-%type <cnt> count_syntax_1
-%type <cnt> count_syntax_2
-%type <cnt> count_syntax_3
+/* Assignment/expression non-terminals */
+%type <sym> assign_var
+%type <sym> existing_var_only
+%type <nlist> array_value
+%type <nlist> array_expr_only
+%type <nlist> array_expr
+%type <sym> existing_array
+%type <dbl> num_expr
+%type <dbl> num_value
+%type <dbl> intOrReal
+%type <dbl> num_expr_only
+%type <sym> existing_num_var
+%type <dbl> arith_expr
+%type <str> str_expr
+%type <sym> existing_str_var
+%type <str> str_expr_only
 
+/* I/O non-terminals */
+%type <sym> new_file_stream
+%type <sym> existing_file_stream
+%type <str> file_mode
+%type <str> format_string
+%type <printfargs> list_args
+%type <printfarg> list_arg
+
+/* Notification non-terminals */
+%type <tok> notify_bilevel
+%type <tok> notify_level
+
+/* Warning non-terminals */
+%type <tok> warning_level
+
+/* Checkpoint non-terminals */
+%type <tok> exit_or_no
+%type <dbl> time_expr
+
+/* Partition non-terminals */
+%type <tok> partition_dimension
+
+/* Molecule definition non-terminals */
+%type <species_lst> list_molecule_stmts
+%type <mol_spec> molecule_stmt
+%type <sym> new_molecule
+%type <dbl> reference_diffusion_def
+%type <diff_const> diffusion_def
+%type <dbl> mol_timestep_def
+%type <ival> target_def
+
+/* Complex molecule definition non-terminals */
+%type <str> complex_mol_name
+%type <mmol_topo> complex_mol_topology
+%type <mmol_su_comp> complex_mol_subunit_component
+%type <mmol_su_comp> complex_mol_subunit_spec
+%type <mmol_su_assign> complex_mol_subunit_assignment
+%type <mmol_su_assign> complex_mol_subunits
+%type <mmol_geom> complex_mol_geometry
+%type <mmol_geom> complex_mol_subunit_locations
+%type <mmol_geom> complex_mol_subunit_location
+%type <mmol_su_rel> complex_mol_relationships
+%type <mmol_su_rel> complex_mol_relationship_list
+%type <mmol_su_rel> complex_mol_relationship
+%type <mmol_rate_ruleset> complex_mol_rates
+%type <mmol_rate_ruleset> complex_mol_rate_list
+%type <mmol_rate_ruleset> complex_mol_rate
+%type <mmol_rate_rule> complex_mol_rate_rules
+%type <mmol_rate_rule> complex_mol_rate_rule
+%type <mmol_rate_clause> complex_mol_rate_clause_list
+%type <mmol_rate_clause> complex_mol_rate_clauses
+%type <mmol_rate_clause> complex_mol_rate_clause
+%type <ival> equal_or_not
+
+/* Molecule utility non-terminals */
+%type <sym> existing_molecule
+%type <mol_type> existing_surface_molecule
+%type <mol_type> existing_molecule_opt_orient
+%type <sym> existing_macromolecule
+
+/* Surface class non-terminals */
+%type <sym> existing_surface_class
+%type <tok> surface_rxn_type
+%type <effector_list> surface_mol_stmt
+%type <effector_list> list_surface_mol_density
+%type <effector_list> list_surface_mol_num
+%type <effector> surface_mol_quant
+
+/* Reaction network non-terminals */
+%type <react_arrow> right_cat_arrow
+%type <react_arrow> double_cat_arrow
+%type <react_arrow> reaction_arrow
+%type <sym> new_rxn_pathname
+%type <mol_type_list> reactant_list
+%type <mol_type> reactant
+%type <mol_type> existing_molecule_or_subunit
+%type <mol_type> opt_reactant_surface_class
+%type <mol_type> reactant_surface_class
+%type <mol_type_list> product_list
+%type <mol_type> product
+%type <react_rates> rx_rate_syntax rx_dir_rate rx_rate1 rx_rate2
+%type <react_rate> atomic_rate
+
+/* Release pattern non-terminals */
+%type <sym> new_release_pattern
+%type <sym> existing_release_pattern_xor_rxpn
+%type <rpat> list_req_release_pattern_cmds
+%type <ival> train_count
+
+/* Object type non-terminals */
+%type <obj> object_def
+%type <obj> meta_object_def
+%type <obj> release_site_def release_site_def_new release_site_def_old
+%type <obj> box_def
+%type <obj> polygon_list_def
+%type <obj> voxel_list_def
+%type <sym> new_object
+%type <obj_list> list_objects
+%type <obj> object_ref
+%type <obj> existing_object_ref
+
+/* Release-site non-terminals */
 %type <rev> release_region_expr
+%type <tok> release_site_geom_old
+%type <sym> existing_num_or_array
+%type <tok> site_size_cmd
+%type <rsm_list> molecule_release_pos_list
+%type <rsm> molecule_release_pos
 
-%type <str>  volume_output_filename_prefix
-%type <lst>  volume_output_molecule_list
-%type <lst>  volume_output_molecule_decl
-%type <lst>  volume_output_molecules
-%type <vec3> volume_output_location
-%type <vec3> volume_output_voxel_size
+/* Polygon/voxel non-terminals */
+%type <vertlist> vertex_list_cmd list_points
+%type <vertlistitem> single_vertex
+%type <ecl> element_connection_cmd tet_element_connection_cmd
+%type <elem_conn> element_connection element_connection_tet
+%type <ecl> list_element_connections list_tet_arrays
+
+/* Region specification non-terminals */
+%type <elem_list> remove_element_specifier_list
+%type <tok> side_name
+%type <elem_list> element_specifier_list element_specifier
+%type <elem_list> incl_element_list_stmt excl_element_list_stmt
+%type <elem_list> just_an_element_list
+%type <elem_list> list_element_specs
+%type <elem_list_item> element_spec
+%type <elem_list_item> prev_region_stmt patch_statement
+%type <tok> prev_region_type patch_type
+%type <reg> new_region
+
+/* Box non-terminals */
+%type <dbl> opt_aspect_ratio_def
+
+/* Reaction output non-terminals */
+%type <dbl> output_buffer_size_def
+%type <ro_otimes> output_timer_def
+%type <ro_otimes> real_time_def iteration_time_def step_time_def
+%type <ro_sets> list_count_cmds
+%type <ro_set> count_cmd count_stmt
+%type <str> custom_header_value
+%type <ro_cols> single_count_expr list_count_exprs
+%type <cnt> count_expr count_value
+%type <tok> file_arrow
+%type <str> outfile_syntax
+%type <sym> existing_rxpn_or_molecule
+%type <mol_type> existing_molecule_required_orient_braces
+%type <cnt> count_syntax count_syntax_1 count_syntax_2 count_syntax_3
+%type <cnt> count_syntax_macromol count_syntax_macromol_subunit
+%type <relation_state> opt_macromol_relation_states
+%type <relation_state> macromol_relation_state_list macromol_relation_state
+%type <ival> macromol_relation_name
+%type <sym> count_location_specifier
+%type <tok> opt_hit_spec hit_spec
+%type <str> opt_custom_header
+
+/* Viz output non-terminals */
+%type <ival> viz_mode_def
+%type <ival> viz_mesh_format_def
+%type <ival> viz_molecule_format_def
+%type <frame_list> viz_frames_def
+%type <tok> viz_meshes_one_item viz_molecules_one_item
+%type <tok> iteration_frame_data_item
+%type <frame_list> viz_molecules_block_def
+%type <frame_list> list_viz_molecules_block_cmds viz_molecules_block_cmd
+%type <symlist> existing_one_or_multiple_molecules
+%type <nlist> viz_time_spec
+%type <frame_list> viz_molecules_time_points_def viz_molecules_time_points_cmds
+%type <frame_list> viz_molecules_time_points_one_cmd
+%type <nlist> viz_iteration_spec
+%type <frame_list> viz_molecules_iteration_numbers_def
+%type <frame_list> viz_molecules_iteration_numbers_cmds
+%type <frame_list> viz_molecules_iteration_numbers_one_cmd
+%type <frame_list> viz_meshes_block_def
+%type <frame_list> list_viz_meshes_block_cmds viz_meshes_block_cmd
+%type <frame_list> viz_meshes_time_points_def viz_meshes_time_points_cmds
+%type <frame_list> viz_meshes_time_points_one_cmd
+%type <frame_list> viz_meshes_iteration_numbers_def
+%type <frame_list> viz_meshes_iteration_numbers_cmds
+%type <frame_list> viz_meshes_iteration_numbers_one_cmd
+%type <frame_list> viz_frames_def_old viz_output_block_def viz_iteration_def
+%type <frame_list> viz_time_def
+%type <frame_list> viz_iteration_frame_data_def list_iteration_frame_data_specs
+%type <frame_list> iteration_frame_data_spec
+%type <sym> existing_logicalOrPhysical
+
+/* Volume output non-terminals */
+%type <str> volume_output_filename_prefix
+%type <species_lst> volume_output_molecule_list volume_output_molecule_decl
+%type <species_lst_item> volume_output_molecule
+%type <species_lst>  volume_output_molecules
+%type <vec3> volume_output_location volume_output_voxel_size
 %type <vec3> volume_output_voxel_count
 %type <otimes> volume_output_times_def
 
-%type <lst> list_range_specs_new
-%type <lst> range_spec_new
-
-/**********************
-
-%type <tok> two_way_unimolecular_rxn
-%type <tok> two_way_bimolecular_rxn
-
-%type <tok> r_spec
-%type <tok> event_spec
-%type <tok> orientation_cmd
-%type <tok> wall_prop
-%type <tok> orientation
-%type <tok> lig_spec
-%type <tok> t_spec
-%type <tok> viz_mode_def
-%type <tok> viz_output_def
-%type <tok> list_viz_output_cmds
-%type <tok> viz_output_cmd
-%type <tok> viz_iteration_def 
-%type <tok> viz_output_block_def
-%type <tok> viz_time_def 
-%type <tok> viz_object_prefixes_def
-%type <tok> list_viz_object_prefixes
-%type <tok> viz_object_prefix
-%type <tok> viz_mesh_format_def
-%type <tok> viz_mesh_format_maybe_cmd
-%type <tok> viz_molecule_format_def
-%type <tok> viz_molecule_format_maybe_cmd
-%type <tok> viz_molecule_prefix_def
-%type <tok> viz_state_values_def
-%type <tok> list_viz_state_values
-%type <tok> viz_state_value
-%type <tok> voxel_image_mode_def
-%type <tok> voxel_volume_mode_def
-%type <tok> effector_site_def
-%type <tok> add_effector
-%type <tok> wall_prop_cmd
-%type <tok> polarity
-%type <tok> polarity_spec
-%type <tok> viz_frame_data_def
-%type <tok> list_frame_data_specs
-%type <tok> frame_data_spec
-%type <tok> parallel_partition_def
-%type <tok> partition_plane
-
-%type <dbl> rate
-%type <dbl> effector_quantity_cmd
-
-%type <sym> transition
-%type <sym> existing_molecule_or_reaction_state
-%type <sym> reaction_state
-%type <sym> existing_reaction_state
-
-
-
-%type <evnt> event 
-
-
-***************************************/
-
-
-
+/* Operator associativities and precendences */
 %right '='
 %left '&' ':'
 %left '+' '-'
@@ -557,9702 +620,3013 @@ struct output_times *otimes;
 
 %%
 
-
+/* Start */
 mdl_format:
-	mdl_stmt_list
+        mdl_stmt_list
+;
+
+mdl_stmt_list:
+        mdl_stmt
+      | mdl_stmt_list mdl_stmt
 ;
 
 
-mdl_stmt_list: mdl_stmt
-	| mdl_stmt_list mdl_stmt
-;
- 
-
-mdl_stmt: time_def
-        | time_max_def
-	| space_def
-	| iteration_def
-	| optional_flag_def
-	| grid_density_def
-        | interact_radius_def
-	| radial_directions_def
-	| radial_subdivisions_def
-	| partition_def
-	| assignment_stmt
-	| molecules_def
-	| surface_classes_def
-	| rx_net_def
-	| chkpt_stmt
-	| release_pattern_def
-	| physical_object_def
-	| instance_def
-	| existing_obj_define_surface_regions
-	| mod_surface_regions
-	| io_stmt
-	| viz_data_output_def
-	| viz_output_def
-	| output_def
-        | volume_output_def
-        | notification_def
-        | warnings_def
-        | reversibility_def
-
-/*	
-	| parallel_partition_def
-*/
-	| include_stmt
-	| end_of_mdl_file
+mdl_stmt:
+        include_stmt
+      | assignment_stmt
+      | io_stmt
+      | notification_def
+      | warnings_def
+      | chkpt_stmt
+      | parameter_def
+      | partition_def
+      | molecules_def
+      | surface_classes_def
+      | rx_net_def
+      | release_pattern_def
+      | physical_object_def
+      | instance_def
+      | existing_obj_define_surface_regions
+      | mod_surface_regions
+      | output_def
+      | viz_output_def
+      | viz_data_output_def
+      | volume_output_def
 ;
 
+/* =================================================================== */
+/* Utility definitions */
+file_name: str_expr
+;
 
-end_of_mdl_file: EOF_TOK
-{
-	if (mdlpvp->include_stack_ptr==0) {
-          no_printf("terminal end of file.  curr_file = %s\n",volp->curr_file); 
-          no_printf("include_flag = %d\n",mdlpvp->include_flag); 
-          fflush(mdlpvp->vol->err_file);
-          if (!mdlpvp->include_flag) {
-             if (prepare_reactions(mdlpvp))
-	     {
-	       mdlerror(mdlpvp, "Failed to initialize reactions");
-	       return(1);
-	     }
-/*
-            partition_volume(volume);
-            build_ligand_table();
-            if (volp->procnum == 0) print_rx();
-*/
-            no_printf("\n***** End of input file %s reached.\n\n",volp->curr_file);
-          }
-	  return(0);
-	}
-	else {
-          no_printf("intermediate end of file.  curr_file = %s\n",
-            volp->curr_file); 
-          no_printf("include_flag = %d\n",mdlpvp->include_flag); 
-          fflush(mdlpvp->vol->err_file);
-          mdl_delete_buffer(YY_CURRENT_BUFFER);
-	  mdl_switch_to_buffer(mdlpvp->include_stack[--mdlpvp->include_stack_ptr]);
-          free(volp->curr_file);
-	  volp->curr_file=mdlpvp->include_filename[mdlpvp->include_stack_ptr];
-          mdlpvp->cval=mdlpvp->cval_stack[mdlpvp->include_stack_ptr]=mdlpvp->cval;
-          mdlpvp->cval_2=mdlpvp->cval_2_stack[mdlpvp->include_stack_ptr]=mdlpvp->cval_2;
-          no_printf("Switching back to MDL file: %s\n",volp->curr_file);
-	}
-};
+existing_object: VAR                                  { CHECKN($$ = mdl_existing_object(mdlpvp, $1)); }
+;
 
+mesh_object_or_wildcard: existing_object              { CHECKN($$ = mdl_singleton_symbol_list(mdlpvp, $1)); }
+                       | STR_VALUE                    {
+                                                        char *stripped;
+                                                        CHECKN(stripped = mdl_strip_quotes(mdlpvp, $1));
+                                                        CHECKN($$ = mdl_meshes_by_wildcard(mdlpvp, stripped));
+                                                      }
+;
 
-include_stmt: INCLUDE_FILE 
-{
-	mdlpvp->include_flag = 1;
-}
-	'=' file_name 
-{
-  if (mdlpvp->include_stack_ptr>=MAX_INCLUDE_DEPTH) {
-    mdlerror_fmt(mdlpvp, "Includes nested too deeply: %s", $4);
-    return(1);
-  }
-  mdlpvp->a_str = find_include_file(mdlpvp, $4, volp->curr_file);
-  free($4);
-  if ((mdlin=fopen(mdlpvp->a_str,"r"))==NULL) {
-    mdlerror_fmt(mdlpvp, "Cannot open include file: %s", mdlpvp->a_str);
-    return(1);
-  }
-  mdlpvp->include_stack[mdlpvp->include_stack_ptr]=YY_CURRENT_BUFFER;
-  mdlpvp->cval_stack[mdlpvp->include_stack_ptr]=mdlpvp->cval;
-  mdlpvp->cval_2_stack[mdlpvp->include_stack_ptr]=mdlpvp->cval_2;
-  mdlpvp->cval=NULL;
-  mdlpvp->cval_2=NULL;
-  mdlpvp->include_filename[mdlpvp->include_stack_ptr++]=volp->curr_file;
-  mdlpvp->line_num[mdlpvp->include_stack_ptr] = 1;
-  volp->curr_file=strdup(mdlpvp->a_str);
-  if(volp->curr_file == NULL){
-    mdlerror_fmt(mdlpvp, "Out of memory while switching to include file: %s", mdlpvp->a_str);
-    return(1);
-  }
-  yyless(0);
-  yyclearin;
-  mdl_switch_to_buffer(mdl_create_buffer(mdlin,YY_BUF_SIZE));
-  no_printf("Now parsing MDL file: %s\n",volp->curr_file);
-  fflush(mdlpvp->vol->err_file);
-  mdlpvp->include_flag = 0;
-};
+existing_region: existing_object '[' VAR ']'          { CHECKN($$ = mdl_existing_region(mdlpvp, $1, $3)); }
+;
 
-reversibility_def: MICROSCOPIC_REVERSIBILITY '=' boolean
-{
-  mdlpvp->vol->surface_reversibility=$<tok>3;
-  mdlpvp->vol->volume_reversibility=$<tok>3;
-}
-        | MICROSCOPIC_REVERSIBILITY '=' SURFACE_ONLY
-{
-  mdlpvp->vol->surface_reversibility=1;
-  mdlpvp->vol->volume_reversibility=0;
-}
-        | MICROSCOPIC_REVERSIBILITY '=' VOLUME_ONLY
-{
-  mdlpvp->vol->surface_reversibility=0;
-  mdlpvp->vol->volume_reversibility=1;
-}
+point: array_value                                    {
+                                                        if ($1.value_count != 3)
+                                                        {
+                                                          mdlerror(mdlpvp, "Three dimensional value required");
+                                                          return 1;
+                                                        }
 
-notification_def: NOTIFICATIONS '{' notification_list '}';
+                                                        if (($$ = (struct vector3 *)malloc(sizeof(struct vector3)))==NULL)
+                                                        {
+                                                          mdlerror(mdlpvp, "Out of memory while creating points");
+                                                          return 1;
+                                                        }
 
-notification_list: notification_item_def
-        | notification_list notification_item_def;
+                                                        $$->x = $1.value_head->value;
+                                                        $$->y = $1.value_head->next->value;
+                                                        $$->z = $1.value_tail->value;
+                                                      }
+;
 
-notification_item_def:
-        ALL_NOTIFICATIONS '=' boolean
-{
-  byte notify_value;
-  if ($<tok>3==1) notify_value = NOTIFY_FULL;
-  else notify_value = NOTIFY_NONE;
-  
-  mdlpvp->vol->notify->progress_report = notify_value;
-  mdlpvp->vol->notify->diffusion_constants = notify_value;
-  mdlpvp->vol->notify->reaction_probabilities = notify_value;
-  mdlpvp->vol->notify->time_varying_reactions = notify_value;
-  mdlpvp->vol->notify->partition_location = notify_value;
-  mdlpvp->vol->notify->box_triangulation = notify_value;
-  mdlpvp->vol->notify->custom_iterations = notify_value;
-  mdlpvp->vol->notify->release_events = notify_value;
-  mdlpvp->vol->notify->file_writes = notify_value;
-  mdlpvp->vol->notify->final_summary = notify_value;
-}
-        | PROGRESS_REPORT '=' boolean
-{
-  if ($<tok>3==1) mdlpvp->vol->notify->progress_report = NOTIFY_FULL;
-  else mdlpvp->vol->notify->progress_report = NOTIFY_NONE;
-}
-        | DIFFUSION_CONSTANT_REPORT '=' notify_level
-{
-  mdlpvp->vol->notify->diffusion_constants = $<tok>3;
-}
-        | PROBABILITY_REPORT '=' boolean
-{
-  if ($<tok>3==1) mdlpvp->vol->notify->reaction_probabilities = NOTIFY_FULL;
-  else mdlpvp->vol->notify->reaction_probabilities = NOTIFY_NONE;
-}
-        | VARYING_PROBABILITY_REPORT '=' boolean
-{
-  if ($<tok>3==1) mdlpvp->vol->notify->time_varying_reactions = NOTIFY_FULL;
-  else mdlpvp->vol->notify->time_varying_reactions = NOTIFY_NONE;
-}
-        | PROBABILITY_REPORT_THRESHOLD '=' num_expr
-{
-  mdlpvp->vol->notify->reaction_prob_notify = $<dbl>3;
-}
-        | PARTITION_LOCATION_REPORT '=' boolean
-{
-  if ($<tok>3==1) mdlpvp->vol->notify->partition_location = NOTIFY_FULL;
-  else mdlpvp->vol->notify->partition_location = NOTIFY_NONE;
-}
-        | BOX_TRIANGULATION_REPORT '=' boolean
-{
-  if ($<tok>3==1) mdlpvp->vol->notify->box_triangulation = NOTIFY_FULL;
-  else mdlpvp->vol->notify->box_triangulation = NOTIFY_NONE;
-}
-        | RELEASE_EVENT_REPORT '=' boolean
-{
-  if ($<tok>3==1) mdlpvp->vol->notify->release_events = NOTIFY_FULL;
-  else mdlpvp->vol->notify->release_events = NOTIFY_NONE;
-}
-        | FILE_OUTPUT_REPORT '=' boolean
-{
-  if ($<tok>3==1) mdlpvp->vol->notify->file_writes = NOTIFY_FULL;
-  else mdlpvp->vol->notify->file_writes = NOTIFY_NONE;
-}
-        | FINAL_SUMMARY '=' boolean
-{
-  if ($<tok>3==1) mdlpvp->vol->notify->final_summary = NOTIFY_FULL;
-  else mdlpvp->vol->notify->final_summary = NOTIFY_NONE;
-}
-        | ITERATION_REPORT '=' boolean
-{
-  if (mdlpvp->vol->log_freq == -1) /* Not set on command line */
-  {
-    if ($<tok>3==1) mdlpvp->vol->notify->custom_iterations = NOTIFY_FULL;
-    else mdlpvp->vol->notify->custom_iterations = NOTIFY_NONE;
-  }
-}
-        | ITERATION_REPORT '=' num_expr
-{
-  if (mdlpvp->vol->log_freq == -1) /* Not set on command line */
-  {
-    mdlpvp->vol->notify->custom_iterations = NOTIFY_CUSTOM;
-    if ($<dbl>3 < 1.0)
-    {
-      mdlerror(mdlpvp, "Invalid iteration number reporting interval: use value >= 1");
-      return 1;
-    }
-    else mdlpvp->vol->notify->custom_iteration_value = (long long)$<dbl>3;
-  }
-};
+point_or_num: point
+            | num_expr_only                           {
+                                                        struct vector3 *vec;
+                                                        if ((vec = (struct vector3 *)malloc(sizeof(struct vector3))) == NULL)
+                                                        {
+                                                          mdlerror(mdlpvp, "Out of memory while creating point");
+                                                          return 1;
+                                                        }
+                                                        vec->x = $1;
+                                                        vec->y = $1;
+                                                        vec->z = $1;
+                                                        $$ = vec;
+                                                      }
+;
 
-notify_level: boolean
-{
-  if ($<tok>1==1) $$=NOTIFY_FULL;
-  else $$=NOTIFY_NONE;
-}
-        | BRIEF
-{
-  $$=NOTIFY_BRIEF;
-};
+boolean: TRUE                                         { $$ = 1; }
+       | FALSE                                        { $$ = 0; }
+       | YES                                          { $$ = 1; }
+       | NO                                           { $$ = 0; }
+       | ON                                           { $$ = 1; }
+       | OFF                                          { $$ = 0; }
+;
+
+orientation_class: /* empty */                        { $$.orient_set = 0; }
+                 | list_orient_marks
+                 | orient_class_number
+                 | ';'                                { $$.orient_set = 1; $$.orient = 0; }
+;
+
+list_orient_marks:
+          head_mark                                   { $$.orient = 1; $$.orient_set = 1; }
+        | tail_mark                                   { $$.orient = -1; $$.orient_set = 1; }
+        | list_orient_marks head_mark                 { $$ = $1; ++ $$.orient; }
+        | list_orient_marks tail_mark                 { $$ = $1; -- $$.orient; }
+;
+
+head_mark: '\''
+;
+
+tail_mark: ','
+;
+
+orient_class_number: '{' num_expr '}'                 {
+                                                        $$.orient = (int) $2;
+                                                        $$.orient_set = 1;
+                                                        if ($$.orient != $2)
+                                                        {
+                                                          mdlerror(mdlpvp, "Error: Molecule orientation specified inside braces must be an integer between -32768 and 32767\n");
+                                                          return 1;
+                                                        }
+                                                      }
+;
+
+list_range_specs:
+          range_spec
+        | list_range_specs ',' range_spec             {
+                                                        if ($1.value_tail)
+                                                        {
+                                                          $$ = $1;
+                                                          $$.value_count += $3.value_count;
+                                                          $$.value_tail->next = $3.value_head;
+                                                          $$.value_tail = $3.value_tail;
+                                                        }
+                                                        else
+                                                          $$ = $3;
+                                                      }
+;
+
+range_spec: num_expr                                  {
+                                                        struct num_expr_list *nel = (struct num_expr_list *) malloc(sizeof(struct num_expr_list));
+                                                        if (nel == NULL)
+                                                        {
+                                                          mdlerror(mdlpvp, "Out of memory while creating iteration list");
+                                                          return 1;
+                                                        }
+                                                        $$.value_head = $$.value_tail = nel;
+                                                        $$.value_count = 1;
+                                                        $$.shared = 0;
+                                                        $$.value_head->value = $1;
+                                                        $$.value_head->next = NULL;
+                                                      }
+        | '[' num_expr TO num_expr STEP num_expr ']'  { CHECK(mdl_generate_range(mdlpvp, &$$, $2, $4, $6)); }
+;
 
 
-warnings_def: WARNINGS '{' warning_list '}';
+/* =================================================================== */
+/* Include files */
+include_stmt: INCLUDE_FILE '=' str_expr               {
+                                                        char *include_path = mdl_find_include_file(mdlpvp, $3, volp->curr_file);
+                                                        if (mdlparse_file(mdlpvp, include_path))
+                                                        {
+                                                          free(include_path);
+                                                          return 1;
+                                                        }
+                                                        free(include_path);
+                                                      }
+;
 
-warning_list: warning_item_def
-        | warning_list warning_item_def;
+/* =================================================================== */
+/* Expressions */
 
-warning_item_def:
-        ALL_WARNINGS '=' warning_level
-{
-  byte warn_value = (byte)$<tok>3;
-  mdlpvp->vol->notify->neg_diffusion = warn_value;
-  mdlpvp->vol->notify->neg_reaction = warn_value;
-  mdlpvp->vol->notify->high_reaction_prob = warn_value;
-  mdlpvp->vol->notify->close_partitions = warn_value;
-  mdlpvp->vol->notify->degenerate_polys = warn_value;
-  mdlpvp->vol->notify->overwritten_file = warn_value;
-  
-  if (warn_value==WARN_ERROR) warn_value=WARN_WARN;
-  mdlpvp->vol->notify->short_lifetime = warn_value;
-  mdlpvp->vol->notify->missed_reactions = warn_value;
-  mdlpvp->vol->notify->missed_surf_orient = warn_value;
-  mdlpvp->vol->notify->useless_vol_orient = warn_value;
-}
-        | NEGATIVE_DIFFUSION_CONSTANT '=' warning_level
-{
-  mdlpvp->vol->notify->neg_diffusion = (byte)$<tok>3;
-}
-        | NEGATIVE_REACTION_RATE '=' warning_level
-{
-  mdlpvp->vol->notify->neg_reaction = (byte)$<tok>3;
-}
-        | HIGH_REACTION_PROBABILITY '=' warning_level
-{
-  mdlpvp->vol->notify->high_reaction_prob = (byte)$<tok>3;
-}
-        |  HIGH_PROBABILITY_THRESHOLD '=' num_expr
-{
-  mdlpvp->vol->notify->reaction_prob_warn = $<dbl>3;
-}
-        | CLOSE_PARTITION_SPACING '=' warning_level
-{
-  mdlpvp->vol->notify->close_partitions = (byte)$<tok>3;
-}
-        | DEGENERATE_POLYGONS '=' warning_level
-{
-  mdlpvp->vol->notify->degenerate_polys = (byte)$<tok>3;
-}
-        | OVERWRITTEN_OUTPUT_FILE '=' warning_level
-{
-  mdlpvp->vol->notify->overwritten_file = (byte)$<tok>3;
-}
-        | LIFETIME_TOO_SHORT '=' warning_level
-{
-  mdlpvp->vol->notify->short_lifetime = (byte)$<tok>3;
-}
-        | LIFETIME_THRESHOLD '=' num_expr
-{
-  double lifetime = $<dbl>3;
-  if (lifetime < 0.0)
-  {
-    mdlerror(mdlpvp, "Molecule lifetimes are measured in iterations and cannot be negative");
-    return 1;
-  }
-  mdlpvp->vol->notify->short_lifetime_value = (long long)lifetime;
-}
-        | MISSED_REACTIONS '=' warning_level
-{
-  mdlpvp->vol->notify->missed_reactions = (byte)$<tok>3;
-}
-        | MISSED_REACTION_THRESHOLD '=' num_expr
-{
-  double rxfrac = $<dbl>3;
-  if (rxfrac < 0.0 || rxfrac > 1.0)
-  {
-    mdlerror(mdlpvp, "Values for fraction of reactions missed should be between 0 and 1");
-    return 1;
-  }
-  mdlpvp->vol->notify->missed_reaction_value = rxfrac;
-}
-	| MISSING_SURFACE_ORIENTATION '=' warning_level
-{
-  mdlpvp->vol->notify->missed_surf_orient = (byte)$<tok>3;
-}
-	| USELESS_VOLUME_ORIENTATION '=' warning_level
-{
-  mdlpvp->vol->notify->useless_vol_orient = (byte)$<tok>3;
-};
+assignment_stmt:
+        assign_var '=' num_expr_only                  { CHECK(mdl_assign_variable_double(mdlpvp, $1, $3)); }
+      | assign_var '=' str_expr_only                  { CHECK(mdl_assign_variable_string(mdlpvp, $1, $3)); }
+      | assign_var '=' existing_var_only              { CHECK(mdl_assign_variable(mdlpvp, $1, $3)); }
+      | assign_var '=' '[' array_expr ']'             { CHECK(mdl_assign_variable_array(mdlpvp, $1, $4.value_head)); }
+;
 
-warning_level:
-        IGNORED
-{
-  $$=WARN_COPE;
-}
-        | WARNING
-{
-  $$=WARN_WARN;
-}
-        | ERROR
-{
-  $$=WARN_ERROR;
-}
+assign_var: VAR                                       { CHECKN($$ = mdl_get_or_create_variable(mdlpvp, $1)); }
+;
 
+existing_var_only: VAR                                { CHECKN($$ = mdl_existing_variable(mdlpvp, $1)); }
+;
 
-assignment_stmt: assign_var '=' num_expr_only
-{
-  mdlpvp->gp=$<sym>1;
-  if ((mdlpvp->gp->value=(void *)malloc(sizeof(double)))==NULL) {
-    mdlerror_fmt(mdlpvp, "Out of memory while assigning variable: %s", mdlpvp->gp->name);
-    return(1);
-  }
-  mdlpvp->gp->sym_type=DBL;
-  mdlpvp->dblp=(double *)mdlpvp->gp->value;
-  *mdlpvp->dblp=$<dbl>3;
-  no_printf("\n%s is equal to: %f\n",mdlpvp->gp->name,*(double *)mdlpvp->gp->value);
-  fflush(mdlpvp->vol->err_file);
-}
-	| assign_var '=' str_expr_only
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->gp->sym_type=STR;
-  mdlpvp->gp->value=(void *)strdup($<str>3);
-  if(mdlpvp->gp->value == NULL){
-    mdlerror_fmt(mdlpvp, "Out of memory while assigning string: %s", ($<str>3));
-    return(1);
-  }
-  no_printf("\n%s is equal to: %s\n",mdlpvp->gp->name,(char *)mdlpvp->gp->value);
-  fflush(mdlpvp->vol->err_file);
-}
-	| assign_var '=' existing_var_only
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->tp=$<sym>3;
-  switch (mdlpvp->tp->sym_type) {
-  case DBL:
-    if ((mdlpvp->gp->value=(void *)malloc(sizeof(double)))==NULL) {
-      mdlerror_fmt(mdlpvp, "Out of memory while assigning variable: %s", mdlpvp->gp->name);
-      return(1);
-    }
-    mdlpvp->gp->sym_type=DBL;
-    mdlpvp->dblp=(double *)mdlpvp->gp->value;
-    *mdlpvp->dblp=*(double *)mdlpvp->tp->value;
-    no_printf("\n%s is equal to: %f\n",mdlpvp->gp->name,*(double *)mdlpvp->gp->value);
-    fflush(mdlpvp->vol->err_file);
-    break;
-  case STR:
-    mdlpvp->gp->sym_type=STR;
-    mdlpvp->gp->value=(void *)strdup((char *)mdlpvp->tp->value);
-    if(mdlpvp->gp->value == NULL){
-    	mdlerror_fmt(mdlpvp, "Out of memory while assigning string: %s", (char const *) mdlpvp->tp->value);
-    	return(1);
-    }
-    no_printf("\n%s is equal to: %s\n",mdlpvp->gp->name,(char *)mdlpvp->gp->value);
-    fflush(mdlpvp->vol->err_file);
-    break;
-  case ARRAY:
-    mdlpvp->gp->sym_type=ARRAY;
-    mdlpvp->gp->value=mdlpvp->tp->value;
-#ifdef DEBUG
-    mdlpvp->elp=(struct num_expr_list *)mdlpvp->gp->value;
-    no_printf("\n%s is equal to: [",mdlpvp->gp->name);
-    fflush(mdlpvp->vol->err_file);
-    while (mdlpvp->elp!=NULL) {
-      no_printf("%f",mdlpvp->elp->value);
-      fflush(mdlpvp->vol->err_file);
-      mdlpvp->elp=mdlpvp->elp->next;
-      if (mdlpvp->elp!=NULL) {
-        no_printf(",");
-        fflush(mdlpvp->vol->err_file);
-      }
-    }
-    no_printf("]\n");
-    fflush(mdlpvp->vol->err_file);
-#endif
-    break;
-  }
-}
-	| assign_var '=' '[' 
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-}
-array_expr ']'
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->gp->sym_type=ARRAY;
-  mdlpvp->gp->value=(void *)mdlpvp->el_head;
-#ifdef DEBUG
-  mdlpvp->elp=(struct num_expr_list *)mdlpvp->gp->value;
-  no_printf("\n%s is equal to: [",mdlpvp->gp->name);
-  fflush(mdlpvp->vol->err_file);
-  while (mdlpvp->elp!=NULL) {
-    no_printf("%f",mdlpvp->elp->value);
-    fflush(mdlpvp->vol->err_file);
-    mdlpvp->elp=mdlpvp->elp->next;
-    if (mdlpvp->elp!=NULL) {
-      no_printf(",");
-      fflush(mdlpvp->vol->err_file);
-    }
-  }
-  no_printf("]\n");
-  fflush(mdlpvp->vol->err_file);
-#endif
-};
+array_value: array_expr_only
+           | existing_array                           {
+                                                        struct num_expr_list *elp;
+                                                        $$.value_head = (struct num_expr_list *) $1->value;
+                                                        $$.value_count = 1;
+                                                        for (elp = $$.value_head; elp->next != NULL; elp = elp->next)
+                                                          ++ $$.value_count;
+                                                        $$.value_tail = elp;
+                                                        $$.shared = 1;
+                                                      }
+;
 
+array_expr_only: '[' array_expr ']'                   { mdl_debug_dump_array($2.head); $$ = $2; }
+;
 
-array_value: '['
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-}
-	array_expr ']'
-{
-#ifdef DEBUG
-  mdlpvp->elp=mdlpvp->el_head;
-  no_printf("\nArray expression: [");
-  while (mdlpvp->elp!=NULL) {
-    no_printf("%f",mdlpvp->elp->value);
-    mdlpvp->elp=mdlpvp->elp->next;
-    if (mdlpvp->elp!=NULL) {
-      no_printf(",");
-    }
-  }
-  no_printf("]\n");
-#endif
-  $$=mdlpvp->el_head;
-}
-	| existing_array
-{
-  mdlpvp->gp=$<sym>1;
-  $$=(struct num_expr_list *)mdlpvp->gp->value;
-};
+array_expr:
+        num_expr                                      {
+                                                        if (($$.value_tail = $$.value_head = (struct num_expr_list *)malloc
+                                                            (sizeof(struct num_expr_list)))==NULL) {
+                                                          mdlerror(mdlpvp, "Out of memory while creating numerical array");
+                                                          return 1;
+                                                        }
+                                                        $$.value_tail->value = $1;
+                                                        $$.value_tail->next = NULL;
+                                                        $$.value_count = 1;
+                                                        $$.shared = 0;
+                                                      }
+      | array_expr ',' num_expr                       {
+                                                        $$ = $1;
+                                                        if (($$.value_tail = $$.value_tail->next = (struct num_expr_list *)malloc
+                                                            (sizeof(struct num_expr_list)))==NULL) {
+                                                          mdlerror(mdlpvp, "Out of memory while creating numerical array");
+                                                          return 1;
+                                                        }
+                                                        $$.value_tail->value = $3;
+                                                        $$.value_tail->next = NULL;
+                                                        ++ $$.value_count;
+                                                        $$.shared = 0;
+                                                      }
+;
 
-
-existing_array: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,ARRAY,volp->main_sym_table))==NULL) {
-    mdlerror_fmt(mdlpvp, "Undefined array variable: %s", mdlpvp->sym_name);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free((void *)mdlpvp->sym_name);
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-  $$=mdlpvp->gp;
-};
-
-
-array_expr_only: '['
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-}
-	array_expr ']'
-{
-#ifdef DEBUG
-  mdlpvp->elp=mdlpvp->el_head;
-  no_printf("\nArray expression: [");
-  while (mdlpvp->elp!=NULL) {
-    no_printf("%f",mdlpvp->elp->value);
-    mdlpvp->elp=mdlpvp->elp->next;
-    if (mdlpvp->elp!=NULL) {
-      no_printf(",");
-    }
-  }
-  no_printf("]\n");
-#endif
-  $$=mdlpvp->el_head;
-};
-
-
-existing_num_or_array: VAR 
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,ARRAY,volp->main_sym_table))==NULL) {
-    if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,DBL,volp->main_sym_table))==NULL) {
-      mdlerror_fmt(mdlpvp, "Undefined numeric or array variable: %s", mdlpvp->sym_name);
-      if (mdlpvp->sym_name==mdlpvp->cval) {
-        mdlpvp->cval=NULL;
-      }
-      else {
-        mdlpvp->cval_2=NULL;
-      }
-      free((void *)mdlpvp->sym_name);
-      return(1);
-    }
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free((void *)mdlpvp->sym_name);
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-  $$=mdlpvp->gp;
-};
-
-
-assign_var: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,DBL,volp->main_sym_table))==NULL) {
-    if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,STR,volp->main_sym_table))==NULL) {
-      if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,ARRAY,volp->main_sym_table))==NULL) {
-        if ((mdlpvp->gp=store_sym(mdlpvp->sym_name,TMP,volp->main_sym_table))==NULL) {
-          mdlerror_fmt(mdlpvp, "Out of memory while assigning variable: %s", mdlpvp->sym_name);
-	  if (mdlpvp->sym_name==mdlpvp->cval) {
-	    mdlpvp->cval=NULL;
-          }
-	  else {
-	    mdlpvp->cval_2=NULL;
-	  }
-          free((void *)mdlpvp->sym_name);
-          return(1);
-        }
-      }
-      else {
-        if (mdlpvp->sym_name==mdlpvp->cval) {
-          mdlpvp->cval=NULL;
-        }
-        else {
-          mdlpvp->cval_2=NULL;
-        }
-        free((void *)mdlpvp->sym_name);
-      }
-    }
-    else {
-      if (mdlpvp->sym_name==mdlpvp->cval) {
-        mdlpvp->cval=NULL;
-      }
-      else {
-        mdlpvp->cval_2=NULL;
-      }
-      free((void *)mdlpvp->sym_name);
-    }
-  }
-  else {
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  $$=mdlpvp->gp;
-};
-
-
-existing_var_only: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,DBL,volp->main_sym_table))==NULL) {
-    if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,STR,volp->main_sym_table))==NULL) {
-      if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,ARRAY,volp->main_sym_table))==NULL) {
-        mdlerror_fmt(mdlpvp, "Undefined variable: %s", mdlpvp->sym_name);
-        if (mdlpvp->sym_name==mdlpvp->cval) {
-          mdlpvp->cval=NULL;
-        }
-        else {
-          mdlpvp->cval_2=NULL;
-        }
-        free((void *)mdlpvp->sym_name);
-        return(1);
-      }
-    }
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free((void *)mdlpvp->sym_name);
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-  $$=mdlpvp->gp;
-};
-
+existing_array: VAR                                   { CHECKN($$ = mdl_existing_array(mdlpvp, $1)); }
+;
 
 num_expr: num_value
-{
-  $$=$<dbl>1;
-}
-	| '(' num_expr ')'
-{
-  $$=$<dbl>2;
-}
-	| EXP '(' num_expr ')'
-{
-  $$=exp($<dbl>3);
-}
-	| LOG '(' num_expr ')'
-{
-  $$=log($<dbl>3);
-}
-	| LOG10 '(' num_expr ')'
-{
-  $$=log10($<dbl>3);
-}
-	| MAX_TOK '(' num_expr ',' num_expr ')'
-{
-  mdlpvp->val_1=$<dbl>3;
-  mdlpvp->val_2=$<dbl>5;
-  if (mdlpvp->val_1 > mdlpvp->val_2) {
-    $$=mdlpvp->val_1;
-  }
-  else {
-    $$=mdlpvp->val_2;
-  }
-}
-	| MIN_TOK '(' num_expr ',' num_expr ')'
-{
-  mdlpvp->val_1=$<dbl>3;
-  mdlpvp->val_2=$<dbl>5;
-  if (mdlpvp->val_1 < mdlpvp->val_2) {
-    $$=mdlpvp->val_1;
-  }
-  else {
-    $$=mdlpvp->val_2;
-  }
-}
-	| ROUND_OFF '(' num_expr ',' num_expr ')'
-{
-  mdlpvp->val_1=$<dbl>3;
-  mdlpvp->val_2=$<dbl>5;
-  sprintf(mdlpvp->format_str,"%%.%dg",(int)mdlpvp->val_1);
-  sprintf(mdlpvp->str_buf,mdlpvp->format_str,mdlpvp->val_2);
-  $$=strtod(mdlpvp->str_buf,(char **)NULL);
-}
-	|  FLOOR '(' num_expr ')'
-{
-  $$=floor($<dbl>3);
-}
-	|  CEIL '(' num_expr ')'
-{
-  $$=ceil($<dbl>3);
-}
-	| SIN '(' num_expr ')'
-{
-  $$=sin($<dbl>3);
-}
-	| COS '(' num_expr ')'
-{
-  $$=cos($<dbl>3);
-}
-	| TAN '(' num_expr ')'
-{
-  $$=tan($<dbl>3);
-}
-	| ASIN '(' num_expr ')'
-{
-  $$=asin($<dbl>3);
-}
-	| ACOS '(' num_expr ')'
-{
-  $$=acos($<dbl>3);
-}
-	| ATAN '(' num_expr ')'
-{
-  $$=atan($<dbl>3);
-}
-	| SQRT '(' num_expr ')'
-{
-  $$=sqrt($<dbl>3);
-}
-	| ABS '(' num_expr ')'
-{
-  $$=fabs($<dbl>3);
-}
-	| MOD '(' num_expr ',' num_expr ')'
-{
-  $$=fmod($<dbl>3,$<dbl>5);
-}
-	| PI_TOK
-{
-  $$=MY_PI;
-}
-	| RAND_UNIFORM
-{
-  if(mdlpvp->vol->notify->final_summary == NOTIFY_FULL){
-    mdlpvp->vol->random_number_use++;
-  }
-  $$=rng_dbl(mdlpvp->vol->rng);
-  
-}
-	| RAND_GAUSSIAN
-{
-  $$=rng_gauss(mdlpvp->vol->rng);
-}
-	| SEED
-{
-  $$=volp->seed_seq; 
-}
-	| STRING_TO_NUM '(' str_expr ')'
-{
-  $$=strtod($<str>3,(char **)NULL);
-  if (errno==ERANGE) {
-    mdlerror_fmt(mdlpvp, "Error converting string to number: %s", $<str>3);
-  }
-}
-	| num_expr '+' num_expr
-{
-  $$=$<dbl>1+$<dbl>3;
-}
-	| num_expr '-' num_expr
-{
-  $$=$<dbl>1-$<dbl>3;
-}
-	| num_expr '*' num_expr
-{
-  $$=$<dbl>1*$<dbl>3;
-}
-	| num_expr '/' num_expr
-{
-  $$=$<dbl>1/$<dbl>3;
-}
-	| num_expr '^' num_expr
-{
-  $$=pow($<dbl>1,$<dbl>3);
-}
-	| '-' num_expr %prec UNARYMINUS
-{
-  $$=-$<dbl>2;
-};
+        | arith_expr
+;
 
+num_value: intOrReal
+         | existing_num_var                           { $$ = *(double *) $1->value; }
+;
+
+intOrReal: INTEGER                                    { $$ = $1; }
+         | REAL
+;
 
 num_expr_only: intOrReal
-{
-  $$=$<dbl>1;
-}
-	| '(' num_expr ')'
-{
-  $$=$<dbl>2;
-}
-	| EXP '(' num_expr ')'
-{
-  $$=exp($<dbl>3);
-}
-	| LOG '(' num_expr ')'
-{
-  $$=log($<dbl>3);
-}
-	| LOG10 '(' num_expr ')'
-{
-  $$=log10($<dbl>3);
-}
-	| MAX_TOK '(' num_expr ',' num_expr ')'
-{
-  mdlpvp->val_1=$<dbl>3;
-  mdlpvp->val_2=$<dbl>5;
-  if (mdlpvp->val_1 > mdlpvp->val_2) {
-    $$=mdlpvp->val_1;
-  }
-  else {
-    $$=mdlpvp->val_2;
-  }
-}
-	| MIN_TOK '(' num_expr ',' num_expr ')'
-{
-  mdlpvp->val_1=$<dbl>3;
-  mdlpvp->val_2=$<dbl>5;
-  if (mdlpvp->val_1 < mdlpvp->val_2) {
-    $$=mdlpvp->val_1;
-  }
-  else {
-    $$=mdlpvp->val_2;
-  }
-}
-	| ROUND_OFF '(' num_expr ',' num_expr ')'
-{
-  mdlpvp->val_1=$<dbl>3;
-  mdlpvp->val_2=$<dbl>5;
-  sprintf(mdlpvp->format_str,"%%.%dg",(int)mdlpvp->val_1);
-  sprintf(mdlpvp->str_buf,mdlpvp->format_str,mdlpvp->val_2);
-  $$=strtod(mdlpvp->str_buf,(char **)NULL);
-}
-	|  FLOOR '(' num_expr ')'
-{
-  $$=floor($<dbl>3);
-}
-	|  CEIL '(' num_expr ')'
-{
-  $$=ceil($<dbl>3);
-}
-	| SIN '(' num_expr ')'
-{
-  $$=sin($<dbl>3);
-}
-	| COS '(' num_expr ')'
-{
-  $$=cos($<dbl>3);
-}
-	| TAN '(' num_expr ')'
-{
-  $$=tan($<dbl>3);
-}
-	| ASIN '(' num_expr ')'
-{
-  $$=asin($<dbl>3);
-}
-	| ACOS '(' num_expr ')'
-{
-  $$=acos($<dbl>3);
-}
-	| ATAN '(' num_expr ')'
-{
-  $$=atan($<dbl>3);
-}
-	| SQRT '(' num_expr ')'
-{
-  $$=sqrt($<dbl>3);
-}
-	| ABS '(' num_expr ')'
-{
-  $$=fabs($<dbl>3);
-}
-	| MOD '(' num_expr ',' num_expr ')'
-{
-  $$=fmod($<dbl>3,$<dbl>5);
-}
-	| PI_TOK
-{
-  $$=MY_PI;
-}
-	| RAND_UNIFORM
-{
-  if(mdlpvp->vol->notify->final_summary == NOTIFY_FULL){
-    mdlpvp->vol->random_number_use++;
-  }
-  $$=rng_dbl(mdlpvp->vol->rng);
-}
-	| RAND_GAUSSIAN
-{
-  $$=rng_gauss(mdlpvp->vol->rng);
-}
-	| SEED
-{
-  $$=volp->seed_seq;
-}
-	| STRING_TO_NUM '(' str_expr ')'
-{
-  $$=strtod($<str>3,(char **)NULL);
-  if (errno==ERANGE) {
-    mdlerror_fmt(mdlpvp, "Error converting string to number: %s", $<str>3);
-  }
-}
-	| num_expr '+' num_expr
-{
-  $$=$<dbl>1+$<dbl>3;
-}
-	| num_expr '-' num_expr
-{
-  $$=$<dbl>1-$<dbl>3;
-}
-	| num_expr '*' num_expr
-{
-  $$=$<dbl>1*$<dbl>3;
-}
-	| num_expr '/' num_expr
-{
-  $$=$<dbl>1/$<dbl>3;
-}
-	| num_expr '^' num_expr
-{
-  $$=pow($<dbl>1,$<dbl>3);
-}
-	| '-' num_expr %prec UNARYMINUS
-{
-  $$=-$<dbl>2;
-};
-
-
- num_value:  intOrReal {$$=$<dbl>1;}  
-	| existing_num_var
-{
-  mdlpvp->gp=$<sym>1;
-  $$=*(double *)mdlpvp->gp->value;
-};
-
-
-existing_num_var: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,DBL,volp->main_sym_table))==NULL) {
-    mdlerror_fmt(mdlpvp, "Undefined numeric variable: %s", mdlpvp->sym_name);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free((void *)mdlpvp->sym_name);
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-  $$=mdlpvp->gp;
-};
-
-
-intOrReal: INTEGER {$$=(double)mdlpvp->ival;}
-	| REAL {$$=mdlpvp->rval;};
-
-
-file_name: str_expr
-{
-  strcpy(mdlpvp->str_buf,$<str>1);
-  $$=$<str>1;
-};
-
-
-str_expr: str_value
-{
-  $$=$<str>1;
-}
-	| str_expr '&' str_expr
-{
-  $$=my_strcat($1,$3);
-  if ($$ == NULL)
-  {
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing string");
-    return (1);
-  }
-};
-
-
-str_value: STR_VALUE
-{
-  char *q = strip_quotes(mdlpvp->strval);
-  free(mdlpvp->strval);
-  if (q != NULL)
-    $$ = q;
-  else
-  {
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing string");
-    return (1);
-  }
-}
-        | WILDCARD_VAR
-{
-  char *q = NULL;
-  if (mdlpvp->cval_2!=NULL) {  
-    mdlpvp->strval=mdlpvp->cval_2;
-  }   
-  else {
-    mdlpvp->strval=mdlpvp->cval;
-  } 
-
-  q = strip_quotes(mdlpvp->strval);
-  if (q != NULL) {
-      $$ = q;
-  }else{
-      mdlerror_fmt(mdlpvp, "Out of memory while parsing string");
-      free((void *)mdlpvp->strval);
-      return (1);
-  }
-   if (mdlpvp->strval==mdlpvp->cval) {
-       mdlpvp->cval=NULL;
-   }
-   else {
-       mdlpvp->cval_2=NULL;
-   }
-   free(mdlpvp->strval);
-
-}
- 
-	| INPUT_FILE
-{
-  $$=volp->mdl_infile_name;
-}
-	| existing_str_var
-{
-  mdlpvp->gp=$<sym>1;
-  $$=(char *)mdlpvp->gp->value;
-};
-
-
-existing_str_var: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,STR,volp->main_sym_table))==NULL) {
-    mdlerror_fmt(mdlpvp, "Undefined text variable: %s", mdlpvp->sym_name);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free((void *)mdlpvp->sym_name);
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-  $$=mdlpvp->gp;
-};
-
-
-str_expr_only: STR_VALUE
-{
-  char *q = strip_quotes(mdlpvp->strval);
-  free(mdlpvp->strval);
-  if (q != NULL)
-      $$ = q;
-  else
-  {
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing string");
-    return (1);
-  }
-}
-	| WILDCARD_VAR
-{
-  if (mdlpvp->cval_2!=NULL) {  
-    mdlpvp->strval=mdlpvp->cval_2;
-  }   
-  else {
-    mdlpvp->strval=mdlpvp->cval;
-  } 
-
-  char *q = strip_quotes(mdlpvp->strval);
-  if (q != NULL)
-    $$ = q;
-  else
-  {
-      mdlerror_fmt(mdlpvp, "Out of memory while parsing string");
-      free((void *)mdlpvp->strval);
-      return (1);
-  }
-   if (mdlpvp->strval==mdlpvp->cval) {
-       mdlpvp->cval=NULL;
-   }
-   else {
-       mdlpvp->cval_2=NULL;
-   }
-   free(mdlpvp->strval);
-}
-	| INPUT_FILE
-{
-  $$=volp->mdl_infile_name;
-}
-	| str_expr '&' str_expr
-{
-      $$=my_strcat($<str>1,$<str>3);
-  if(my_strcat($<str>1,$<str>3) != NULL){
-      $$=my_strcat($<str>1,$<str>3);
-  }else{
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing string");
-    return (1);
-  }
-};
-
-
-array_expr:  num_expr
-{
-  if ((mdlpvp->elp=(struct num_expr_list *)malloc
-      (sizeof(struct num_expr_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating numerical array");
-    return(1);
-  }
-  mdlpvp->elp->value=$<dbl>1;
-  if (mdlpvp->el_tail==NULL) {
-    mdlpvp->el_tail=mdlpvp->elp;
-  }
-  mdlpvp->el_tail->next=mdlpvp->elp;
-  mdlpvp->elp->next=NULL;
-  mdlpvp->el_tail=mdlpvp->elp;
-  if (mdlpvp->el_head==NULL) {
-    mdlpvp->el_head=mdlpvp->elp;
-  }
-  mdlpvp->num_pos++;
-}
-	| array_expr ',' num_expr
-{
-  if ((mdlpvp->elp=(struct num_expr_list *)malloc
-      (sizeof(struct num_expr_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating numerical array");
-    return(1);
-  }
-  mdlpvp->elp->value=$<dbl>3;
-  if (mdlpvp->el_tail==NULL) {
-    mdlpvp->el_tail=mdlpvp->elp;
-  }
-  mdlpvp->el_tail->next=mdlpvp->elp;
-  mdlpvp->elp->next=NULL;
-  mdlpvp->el_tail=mdlpvp->elp;
-  if (mdlpvp->el_head==NULL) {
-    mdlpvp->el_head=mdlpvp->elp;
-  }
-  mdlpvp->num_pos++;
-};
-
-
-time_def: TIME_STEP '=' num_expr
-{
-volp->time_unit=$<dbl>3;
-if (volp->time_unit<0) {
-  mdl_warning(mdlpvp, "Time unit = %g\n\tSetting to %g\n",volp->time_unit,-volp->time_unit);
-  volp->time_unit=-volp->time_unit;
-}
-no_printf("Time unit = %g\n",volp->time_unit);
-fflush(mdlpvp->vol->err_file);
-};
-
-space_def: SPACE_STEP '=' num_expr
-{
-volp->space_step=$<dbl>3;
-if (volp->space_step<0) {
-  mdl_warning(mdlpvp, "Space step = %g\n\tSetting to %g\n",volp->space_step,-volp->space_step);
-  volp->space_step = -volp->space_step;
-}
-no_printf("Space step = %g\n",volp->space_step);
-volp->space_step *= 0.5*sqrt(MY_PI) * volp->r_length_unit; /* Use internal units, convert from mean to characterstic length */
-fflush(mdlpvp->vol->err_file);
-};
-
-time_max_def: TIME_STEP_MAX '=' num_expr
-{
-volp->time_step_max = $<dbl>3;
-if (volp->time_step_max<0) {
-  mdl_warning(mdlpvp, "Maximum time step = %g\n\tSetting to %g\n",volp->time_step_max,-volp->time_step_max);
-  volp->time_step_max=-volp->time_step_max;
-}
-no_printf("Maximum time step = %g\n",volp->time_step_max);
-fflush(mdlpvp->vol->err_file);
-};
-
-iteration_def: ITERATIONS '=' num_expr
-{
-if (volp->iterations==INT_MIN) {
-  volp->iterations=(long long) $<dbl>3;
-  if(volp->iterations < 0){
-     mdlerror(mdlpvp, "Error: ITERATIONS value is negative\n");
-     return 1;
-  }
-}
-no_printf("Iterations = %lld\n",volp->iterations);
-fflush(mdlpvp->vol->err_file);
-};
-
-optional_flag_def: optional_flag_randomgrid_def 
-	| optional_flag_expandlist_def 
-	| optional_vacancy_search_def;
-
-optional_flag_randomgrid_def: CENTER_MOLECULES_ON_GRID '=' boolean
-{
-  mdlpvp->vol->randomize_gmol_pos = !($<tok>3);
-};
-
-optional_flag_expandlist_def: ACCURATE_3D_REACTIONS '=' boolean
-{
-  mdlpvp->vol->use_expanded_list = $<tok>3;
-};
-
-optional_vacancy_search_def: VACANCY_SEARCH_DISTANCE '=' num_expr
-{
-  mdlpvp->vol->vacancy_search_dist2 = $<dbl>3;
-  if (mdlpvp->vol->vacancy_search_dist2 < 0) mdlpvp->vol->vacancy_search_dist2=0;
-};
-
-
-radial_directions_def: RADIAL_DIRECTIONS '=' num_expr
-{
-  volp->radial_directions = (int) $<dbl>3;
-  volp->num_directions=0;
-  if (volp->d_step!=NULL) {
-    free(volp->d_step);
-  }
-  if ((volp->d_step=init_d_step(volp->radial_directions,&volp->num_directions))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating d_step data for molecule");
-    return(1);
-  }
-
-  /* Mask must contain at least every direction */
-  for (volp->directions_mask = 1 ; volp->directions_mask < volp->num_directions ; volp->directions_mask <<= 1) {}
-  if (volp->directions_mask > (1<<18))
-  {
-    mdlerror(mdlpvp, "Too many RADIAL_DIRECTIONS requested (max 131072).\n");
-    return(1);
-  }
-  volp->directions_mask -= 1;
-
-  no_printf("desired radial directions = %d\n",volp->radial_directions);
-  no_printf("actual radial directions = %d\n",volp->num_directions);
-}
-	| RADIAL_DIRECTIONS '=' FULLY_RANDOM
-{
-	volp->fully_random=1;
-};
-
-
-radial_subdivisions_def: RADIAL_SUBDIVISIONS '=' num_expr
-{
-  volp->radial_subdivisions = (int) $<dbl>3;
-  if (volp->radial_subdivisions <= 0)
-  {
-    mdlerror(mdlpvp, "Must choose a positive number of radial subdivisions.");
-    return 1;
-  }
-
-  /* 'x & (x-1)' clears the lowest-order bit of x.  thus, only for 0 or a  */
-  /* power of 2 will the expression be zero.  we've eliminated the case of */
-  /* zero in the previous test.  (this condition is required so that we    */
-  /* use 'x & (RSD - 1)' as an optimized form of 'x % RSD'.)               */
-  if ((volp->radial_subdivisions & (volp->radial_subdivisions - 1)) != 0)
-  {
-    mdlerror(mdlpvp, "Radial subdivisions must be a power of two");
-    return 1;
-  }
-
-  if (volp->r_step!=NULL) free(volp->r_step);
-  if (volp->r_step_surface!=NULL) free(volp->r_step_surface);
-  if (volp->r_step_release!=NULL) free(volp->r_step_release);
-
-  volp->r_step = init_r_step(volp->radial_subdivisions);
-  volp->r_step_surface = init_r_step_surface(volp->radial_subdivisions);
-  volp->r_step_release = init_r_step_3d_release(volp->radial_subdivisions);
-  
-  if (volp->r_step==NULL || volp->r_step_surface==NULL || volp->r_step_release==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory while creating r_step data for molecule");
-    return(1);
-  }
-  
-  no_printf("radial subdivisions = %d\n",volp->radial_subdivisions);
-};
-
-
-grid_density_def: EFFECTOR_GRID_DENSITY '=' num_expr
-{
-  volp->grid_density=$<dbl>3;
-  no_printf("Max density = %f\n",volp->grid_density);
-  
-  volp->space_step *= volp->length_unit;
-  volp->r_length_unit = sqrt(volp->grid_density);
-  volp->length_unit = 1.0/volp->r_length_unit;
-  volp->space_step *= volp->r_length_unit;
-  
-  no_printf("Length unit = %f\n",volp->length_unit);
-  fflush(mdlpvp->vol->err_file);
-};
-
-interact_radius_def: INTERACTION_RADIUS '=' num_expr
-{
-  volp->rx_radius_3d = $<dbl>3;
-  no_printf("Molecule-molecule interaction radius = %f\n",volp->rx_radius_3d);
-};
-
-
-partition_def: partition_dimension '='
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-}
-        '[' list_range_specs ']' 
-{
-  int i;
-  if ((mdlpvp->dblp=(double *)malloc((mdlpvp->num_pos+2)*sizeof(double)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating volume partition data");
-    return(1);
-  }
-  sort_num_expr_list(mdlpvp->el_head);
-  i=1;
-  mdlpvp->elp=mdlpvp->el_head;
-  while(mdlpvp->elp!=NULL) {
-    mdlpvp->dblp[i++]=mdlpvp->elp->value*volp->r_length_unit;
-    mdlpvp->elp=mdlpvp->elp->next;
-  }
-  mdlpvp->dblp[0]=-GIGANTIC;
-  mdlpvp->dblp[mdlpvp->num_pos+1]=GIGANTIC;
-  switch ($<tok>1) {
-  case X_PARTS:
-    if (volp->x_partitions!=NULL) {
-      free(volp->x_partitions);
-    }
-    volp->nx_parts=mdlpvp->num_pos+2;
-    volp->x_partitions=mdlpvp->dblp;
-    break;
-  case Y_PARTS:
-    if (volp->y_partitions!=NULL) {
-      free(volp->y_partitions);
-    }
-    volp->ny_parts=mdlpvp->num_pos+2;
-    volp->y_partitions=mdlpvp->dblp;
-    break;
-  case Z_PARTS:
-    if (volp->z_partitions!=NULL) {
-      free(volp->z_partitions);
-    }
-    volp->nz_parts=mdlpvp->num_pos+2;
-    volp->z_partitions=mdlpvp->dblp;
-    break;
-  }
-};
-
-partition_dimension: PARTITION_X {$$=X_PARTS;} 
-	| PARTITION_Y {$$=Y_PARTS;}
-	| PARTITION_Z {$$=Z_PARTS;}
+             | arith_expr
 ;
 
-molecules_def: define_one_molecule
-	| define_multiple_molecules
+existing_num_var: VAR                                 { CHECKN($$ = mdl_existing_double(mdlpvp, $1)); }
 ;
 
+arith_expr:
+        '(' num_expr ')'                              { $$ = $2; }
+      | EXP '(' num_expr ')'                          { $$ = exp($3); }
+      | LOG '(' num_expr ')'                          { $$ = log($3); }
+      | LOG10 '(' num_expr ')'                        { $$ = log10($3); }
+      | MAX_TOK '(' num_expr ',' num_expr ')'         { $$ = max2d($3, $5); }
+      | MIN_TOK '(' num_expr ',' num_expr ')'         { $$ = min2d($3, $5); }
+      | ROUND_OFF '(' num_expr ',' num_expr ')'       {
+                                                        char fmt_string[1024];
+                                                        fmt_string[0] = '\0';
+                                                        snprintf(fmt_string, 1024, "%.*g", (int) $3, $5);
+                                                        $$=strtod(fmt_string, (char **)NULL);
+                                                      }
+      |  FLOOR '(' num_expr ')'                       { $$ = floor($3); }
+      |  CEIL '(' num_expr ')'                        { $$ = ceil($3); }
+      | SIN '(' num_expr ')'                          { $$ = sin($3); }
+      | COS '(' num_expr ')'                          { $$ = cos($3); }
+      | TAN '(' num_expr ')'                          { $$ = tan($3); }
+      | ASIN '(' num_expr ')'                         { $$ = asin($3); }
+      | ACOS '(' num_expr ')'                         { $$ = acos($3); }
+      | ATAN '(' num_expr ')'                         { $$ = atan($3); }
+      | SQRT '(' num_expr ')'                         { $$ = sqrt($3); }
+      | ABS '(' num_expr ')'                          { $$ = fabs($3); }
+      | MOD '(' num_expr ',' num_expr ')'             { $$ = fmod($3, $5); }
+      | PI_TOK                                        { $$ = MY_PI; }
+      | RAND_UNIFORM                                  {
+                                                        if (mdlpvp->vol->notify->final_summary == NOTIFY_FULL) {
+                                                          mdlpvp->vol->random_number_use++;
+                                                        }
+                                                        $$ = rng_dbl(mdlpvp->vol->rng);
+                                                      }
+      | RAND_GAUSSIAN                                 { $$ = rng_gauss(mdlpvp->vol->rng); }
+      | SEED                                          { $$ = volp->seed_seq; }
+      | STRING_TO_NUM '(' str_expr ')'                {
+                                                        $$ = strtod($3, (char **)NULL);
+                                                        if (errno==ERANGE)
+                                                        {
+                                                          mdlerror_fmt(mdlpvp, "Error converting string to number: %s", $3);
+                                                          free($3);
+                                                          return 1;
+                                                        }
+                                                        free($3);
+                                                      }
+      | num_expr '+' num_expr                         { $$ = $1 + $3; }
+      | num_expr '-' num_expr                         { $$ = $1 - $3; }
+      | num_expr '*' num_expr                         { $$ = $1 * $3; }
+      | num_expr '/' num_expr                         { $$ = $1 / $3; }
+      | num_expr '^' num_expr                         { $$ = pow($1, $3); }
+      | '-' num_expr %prec UNARYMINUS                 { $$ = -$2; }
+      | '+' num_expr %prec UNARYMINUS                 { $$ = $2; }
+;
 
-define_one_molecule: DEFINE_MOLECULE
-{
-  if (volp->notify->diffusion_constants==NOTIFY_BRIEF) fprintf(volp->log_file,"Defining molecule with the following diffusion constant:\n");
-}
-        molecule_stmt
-{
-  if (volp->notify->diffusion_constants==NOTIFY_BRIEF) fprintf(volp->log_file,"\n");
-};
+str_expr:
+        str_expr_only
+      | existing_str_var                              { CHECKN($$ = mdl_strdup(mdlpvp, (char const *) $1->value)); }
+;
 
+str_expr_only:
+        STR_VALUE                                     { CHECKN($$ = mdl_strip_quotes(mdlpvp, $1)); }
+      | INPUT_FILE                                    { CHECKN($$ = mdl_strdup(mdlpvp, volp->mdl_infile_name)); }
+      | str_expr '&' str_expr                         { CHECKN($$ = mdl_strcat(mdlpvp, $1, $3)); }
+;
+
+existing_str_var: VAR                                 { CHECKN($$ = mdl_existing_string(mdlpvp, $1)); }
+;
+
+/* =================================================================== */
+/* I/O */
+
+io_stmt: fopen_stmt
+       | fclose_stmt
+       | printf_stmt
+       | fprintf_stmt
+       | sprintf_stmt
+       | print_time_stmt
+       | fprint_time_stmt
+;
+
+fopen_stmt: new_file_stream FOPEN
+            '(' file_name ',' file_mode ')'           {
+                                                        struct file_stream *filep = (struct file_stream *) $1->value;
+                                                        filep->name=$4;
+                                                        if ((filep->stream=fopen(filep->name, $6)) == NULL)
+                                                        {
+                                                          mdlerror_fmt(mdlpvp, "Cannot open file: %s", filep->name);
+                                                          /* XXX: Free filep? */
+                                                          return 1;
+                                                        }
+                                                      }
+;
+
+new_file_stream: VAR                                  {
+                                                        if (($$ = store_sym($1, FSTRM, volp->main_sym_table, NULL)) == NULL)
+                                                        {
+                                                          mdlerror_fmt(mdlpvp, "Out of memory while creating file stream: %s", $1);
+                                                          free($1);
+                                                          return 1;
+                                                        }
+                                                        free($1);
+                                                      }
+;
+
+file_mode: str_expr                                   { $$ = $1; CHECK(mdl_valid_file_mode(mdlpvp, $1)); }
+;
+
+fclose_stmt: FCLOSE '(' existing_file_stream ')'      {
+                                                        struct file_stream *filep=(struct file_stream *) $3->value;
+                                                        if (fclose(filep->stream)!=0) {
+                                                          mdlerror_fmt(mdlpvp, "Error closing file: %s", filep->name);
+                                                          return 1;
+                                                        }
+                                                      }
+;
+
+existing_file_stream: VAR                             { CHECKN($$ = mdl_existing_file_stream(mdlpvp, $1)); }
+;
+
+format_string: str_expr                               { CHECKN($$ = mdl_expand_string_escapes(mdlpvp, $1)); }
+;
+
+list_args: /* empty */                                { $$.arg_head = $$.arg_tail = NULL; }
+         | list_args ',' list_arg                     {
+                                                        $$ = $1;
+                                                        if ($$.arg_tail)
+                                                          $$.arg_tail = $$.arg_tail->next = $3;
+                                                        else
+                                                          $$.arg_tail = $$.arg_head = $3;
+                                                        $3->next = NULL;
+                                                      }
+;
+
+list_arg: num_expr_only                               { CHECKN($$ = mdl_new_printf_arg_double(mdlpvp, $1)); }
+        | str_expr_only                               { CHECKN($$ = mdl_new_printf_arg_string(mdlpvp, $1)); }
+        | existing_var_only                           {
+                                                        switch ($1->sym_type)
+                                                        {
+                                                          case DBL: CHECKN($$ = mdl_new_printf_arg_double(mdlpvp, *(double *) $1->value)); break;
+                                                          case STR: CHECKN($$ = mdl_new_printf_arg_string(mdlpvp, (char *) $1->value)); break;
+                                                          default:
+                                                            mdlerror(mdlpvp, "Invalid variable type referenced");
+                                                            return 1;
+                                                        }
+                                                      }
+;
+
+printf_stmt: PRINTF '(' format_string list_args ')'   { CHECK(mdl_printf(mdlpvp, $3, $4.arg_head)); }
+;
+
+fprintf_stmt:
+          FPRINTF '('
+            existing_file_stream ','
+            format_string list_args ')'               { CHECK(mdl_fprintf(mdlpvp, (struct file_stream *) $3->value, $5, $6.arg_head)); }
+;
+
+sprintf_stmt:
+          SPRINTF '('
+            assign_var ','
+            format_string list_args ')'               { CHECK(mdl_sprintf(mdlpvp, $3, $5, $6.arg_head)); }
+;
+
+print_time_stmt: PRINT_TIME '(' format_string ')'     { mdl_print_time(mdlpvp, $3); }
+;
+
+fprint_time_stmt:
+          FPRINT_TIME '('
+            existing_file_stream ','
+            format_string ')'                         { CHECK(mdl_fprint_time(mdlpvp, $3, $5)); }
+;
+
+/* =================================================================== */
+/* Notifications */
+
+notification_def:
+        NOTIFICATIONS '{' notification_list '}'
+;
+
+notification_list:
+        notification_item_def
+      | notification_list notification_item_def
+;
+
+notification_item_def:
+        ALL_NOTIFICATIONS '=' notify_bilevel          { mdl_set_all_notifications(mdlpvp->vol, $3); }
+      | PROGRESS_REPORT '=' notify_bilevel            { mdlpvp->vol->notify->progress_report        = $3; }
+      | DIFFUSION_CONSTANT_REPORT '=' notify_level    { mdlpvp->vol->notify->diffusion_constants    = $3; }
+      | PROBABILITY_REPORT '=' notify_bilevel         { mdlpvp->vol->notify->reaction_probabilities = $3; }
+      | VARYING_PROBABILITY_REPORT '=' notify_bilevel { mdlpvp->vol->notify->time_varying_reactions = $3; }
+      | PROBABILITY_REPORT_THRESHOLD '=' num_expr     { mdlpvp->vol->notify->reaction_prob_notify   = $3; }
+      | PARTITION_LOCATION_REPORT '=' notify_bilevel  { mdlpvp->vol->notify->partition_location     = $3; }
+      | BOX_TRIANGULATION_REPORT '=' notify_bilevel   { mdlpvp->vol->notify->box_triangulation      = $3; }
+      | RELEASE_EVENT_REPORT '=' notify_bilevel       { mdlpvp->vol->notify->release_events         = $3; }
+      | FILE_OUTPUT_REPORT '=' notify_bilevel         { mdlpvp->vol->notify->file_writes            = $3; }
+      | FINAL_SUMMARY '=' notify_bilevel              { mdlpvp->vol->notify->final_summary          = $3; }
+      | THROUGHPUT_REPORT '=' notify_bilevel          { mdlpvp->vol->notify->throughput_report      = $3; }
+      | ITERATION_REPORT '=' notify_bilevel           {
+                                                        /* Only if not set on command line */
+                                                        if (mdlpvp->vol->log_freq == -1)
+                                                        {
+                                                          mdlpvp->vol->notify->custom_iterations = $3;
+                                                        }
+                                                      }
+      | ITERATION_REPORT '=' num_expr                 { CHECK(mdl_set_iteration_report_freq(mdlpvp, (long long) $3)); }
+;
+
+notify_bilevel:
+        boolean                                       { $$ = ($1 ? NOTIFY_FULL : NOTIFY_NONE); }
+;
+
+notify_level:
+        boolean                                       { $$ = ($1 ? NOTIFY_FULL : NOTIFY_NONE); }
+      | BRIEF                                         { $$ = NOTIFY_BRIEF; }
+;
+
+/* =================================================================== */
+/* Warnings */
+
+warnings_def:
+        WARNINGS '{' warning_list '}'
+;
+
+warning_list:
+        warning_item_def
+      | warning_list warning_item_def
+;
+
+warning_item_def:
+        ALL_WARNINGS '=' warning_level                { mdl_set_all_warnings(mdlpvp->vol, (byte) $3); }
+      | NEGATIVE_DIFFUSION_CONSTANT '=' warning_level { mdlpvp->vol->notify->neg_diffusion = (byte)$3; }
+      | NEGATIVE_REACTION_RATE '=' warning_level      { mdlpvp->vol->notify->neg_reaction = (byte)$3; }
+      | HIGH_REACTION_PROBABILITY '=' warning_level   { mdlpvp->vol->notify->high_reaction_prob = (byte)$3; }
+      | HIGH_PROBABILITY_THRESHOLD '=' num_expr       { mdlpvp->vol->notify->reaction_prob_warn = $3; }
+      | CLOSE_PARTITION_SPACING '=' warning_level     { mdlpvp->vol->notify->close_partitions = (byte)$3; }
+      | DEGENERATE_POLYGONS '=' warning_level         { mdlpvp->vol->notify->degenerate_polys = (byte)$3; }
+      | OVERWRITTEN_OUTPUT_FILE '=' warning_level     { mdlpvp->vol->notify->overwritten_file = (byte)$3; }
+      | LIFETIME_TOO_SHORT '=' warning_level          { mdlpvp->vol->notify->short_lifetime = (byte)$3; }
+      | LIFETIME_THRESHOLD '=' num_expr               { CHECK(mdl_set_lifetime_warning_threshold(mdlpvp, (long long) $3)); }
+      | MISSED_REACTIONS '=' warning_level            { mdlpvp->vol->notify->missed_reactions = (byte)$3; }
+      | MISSED_REACTION_THRESHOLD '=' num_expr        { CHECK(mdl_set_missed_reaction_warning_threshold(mdlpvp, $3)); }
+      | MISSING_SURFACE_ORIENTATION '=' warning_level { mdlpvp->vol->notify->missed_surf_orient = (byte)$3; }
+      | USELESS_VOLUME_ORIENTATION '=' warning_level  { mdlpvp->vol->notify->useless_vol_orient = (byte)$3; }
+;
+
+warning_level:
+        IGNORED                                       { $$ = WARN_COPE;  }
+      | WARNING                                       { $$ = WARN_WARN;  }
+      | ERROR                                         { $$ = WARN_ERROR; }
+;
+
+/* =================================================================== */
+/* Checkpoint configuration */
+
+chkpt_stmt: CHECKPOINT_INFILE '=' file_name           {
+                                                        FILE *file;
+                                                        if (volp->chkpt_infile == NULL)
+                                                        {
+                                                          volp->chkpt_infile=$3;
+                                                          if ((file = fopen(volp->chkpt_infile,"r")) == NULL)
+                                                          {
+                                                            volp->chkpt_init=1;
+                                                          }
+                                                          else
+                                                          {
+                                                            volp->chkpt_init=0;
+                                                            fclose(file);
+                                                          }
+                                                          volp->chkpt_flag = 1;
+                                                        }
+                                                      }
+        | CHECKPOINT_OUTFILE '=' file_name            { volp->chkpt_outfile=$3; volp->chkpt_flag = 1; }
+        | CHECKPOINT_ITERATIONS '=' num_expr          {
+                                                        volp->chkpt_iterations = (long long) $3;
+                                                        if(volp->chkpt_iterations <= 0)
+                                                        {
+                                                           mdlerror(mdlpvp, "Error: CHECKPOINT_ITERATIONS must be a positive integer\n");
+                                                           return 1;
+                                                        }
+                                                        volp->chkpt_flag = 1;
+                                                      }
+        | CHECKPOINT_REALTIME '='
+          time_expr exit_or_no                        { mdl_set_realtime_checkpoint(mdlpvp, (long) $3, $4); }
+;
+
+exit_or_no:                                           { $$ = 0; }
+          | NOEXIT                                    { $$ = 1; }
+          | EXIT                                      { $$ = 0; }
+;
+
+time_expr:
+          num_expr                                    { /* seconds */     $$ = $1; }
+        | num_expr ':' num_expr                       { /* mm:ss */       $$ = $1 * 60 + $3; }
+        | num_expr ':' num_expr ':' num_expr          { /* hh:mm:ss */    $$ = $1 * 3600 + $3 * 60 + $5; }
+        | num_expr ':' num_expr ':' num_expr
+          ':' num_expr                                { /* dd:hh:mm:ss */ $$ = $1 * 86400 + $3 * 3600 + $5 * 60 + $7; }
+;
+
+/* =================================================================== */
+/* Simulation parameters */
+
+parameter_def:
+          TIME_STEP '=' num_expr                      { mdl_set_time_step(mdlpvp, $3); }
+        | SPACE_STEP '=' num_expr                     { mdl_set_space_step(mdlpvp, $3); }
+        | TIME_STEP_MAX '=' num_expr                  { mdl_set_max_time_step(mdlpvp, $3); }
+        | ITERATIONS '=' num_expr                     { CHECK(mdl_set_num_iterations(mdlpvp, (long long) $3)); }
+        | CENTER_MOLECULES_ON_GRID '=' boolean        { mdlpvp->vol->randomize_gmol_pos = !($3); }
+        | ACCURATE_3D_REACTIONS '=' boolean           { mdlpvp->vol->use_expanded_list = $3; }
+        | VACANCY_SEARCH_DISTANCE '=' num_expr        { mdlpvp->vol->vacancy_search_dist2 = max2d($3, 0.0); }
+        | RADIAL_DIRECTIONS '=' num_expr              { CHECK(mdl_set_num_radial_directions(mdlpvp, (int) $3)); }
+        | RADIAL_DIRECTIONS '=' FULLY_RANDOM          { volp->fully_random = 1; }
+        | RADIAL_SUBDIVISIONS '=' num_expr            { CHECK(mdl_set_num_radial_directions(mdlpvp, (int) $3)); }
+        | EFFECTOR_GRID_DENSITY '=' num_expr          { CHECK(mdl_set_grid_density(mdlpvp, $3)); }
+        | INTERACTION_RADIUS '=' num_expr             { volp->rx_radius_3d = $3; }
+        | MICROSCOPIC_REVERSIBILITY '=' boolean       { mdlpvp->vol->surface_reversibility=$3; mdlpvp->vol->volume_reversibility=$3; }
+        | MICROSCOPIC_REVERSIBILITY '=' SURFACE_ONLY  { mdlpvp->vol->surface_reversibility=1;  mdlpvp->vol->volume_reversibility=0;  }
+        | MICROSCOPIC_REVERSIBILITY '=' VOLUME_ONLY   { mdlpvp->vol->surface_reversibility=0;  mdlpvp->vol->volume_reversibility=1;  }
+;
+
+/* =================================================================== */
+/* Partitions */
+
+partition_def:
+          partition_dimension '='
+          '[' list_range_specs ']'                    { CHECK(mdl_set_partition(mdlpvp, $1, $4.value_head, $4.value_count)); }
+;
+
+partition_dimension:
+          PARTITION_X                                 { $$ = X_PARTS; }
+        | PARTITION_Y                                 { $$ = Y_PARTS; }
+        | PARTITION_Z                                 { $$ = Z_PARTS; }
+;
+
+/* =================================================================== */
+/* Molecule definitions */
+
+molecules_def:
+          define_one_molecule
+        | define_multiple_molecules
+        | define_complex_molecule
+;
+
+define_one_molecule: DEFINE_MOLECULE molecule_stmt    {
+                                                        if (volp->procnum == 0)
+                                                        {
+                                                          if (volp->notify->diffusion_constants == NOTIFY_BRIEF)
+                                                            fprintf(volp->log_file,"Defining molecule with the following diffusion constant:\n");
+                                                          mdl_report_diffusion_distances(volp->log_file, $2, volp->time_unit, volp->length_unit, volp->notify->diffusion_constants);
+                                                          no_printf("Molecule %s defined with D = %g\n", $2->sym->name, $2->D);
+                                                          if (volp->notify->diffusion_constants == NOTIFY_BRIEF)
+                                                            fprintf(volp->log_file, "\n");
+                                                        }
+                                                      }
+;
 
 define_multiple_molecules: DEFINE_MOLECULES
-{
-  if (volp->notify->diffusion_constants==NOTIFY_BRIEF) fprintf(volp->log_file,"Defining molecules with the following theoretical average diffusion distances:\n");
-}
-        '{'
-	list_molecule_stmts
-	'}'
-{
-  if (volp->notify->diffusion_constants==NOTIFY_BRIEF) fprintf(volp->log_file,"\n");
-};
+                          '{'
+                              list_molecule_stmts
+                          '}'                         {
+                                                        if (volp->procnum == 0)
+                                                        {
+                                                          struct species_list_item *ptrl;
+                                                          if (volp->notify->diffusion_constants == NOTIFY_BRIEF)
+                                                            fprintf(volp->log_file,"Defining molecules with the following theoretical average diffusion distances:\n");
+                                                          for (ptrl = $3.species_head; ptrl != NULL; ptrl = ptrl->next)
+                                                          {
+                                                            struct species *spec = (struct species *) ptrl->spec;
+                                                            mdl_report_diffusion_distances(volp->log_file, spec, volp->time_unit, volp->length_unit, volp->notify->diffusion_constants);
+                                                            no_printf("Molecule %s defined with D = %g\n", spec->sym->name, spec->D);
+                                                          }
+                                                          if (volp->notify->diffusion_constants == NOTIFY_BRIEF)
+                                                            fprintf(volp->log_file,"\n");
+                                                        }
+                                                        mem_put_list(mdlpvp->species_list_mem, $3.species_head);
+                                                      }
+;
 
+list_molecule_stmts:
+          molecule_stmt                               {
+                                                        struct species_list_item *ptrl;
+                                                        ptrl = (struct species_list_item *) mem_get(mdlpvp->species_list_mem);
+                                                        if (ptrl == NULL) {
+                                                          mdlerror_fmt(mdlpvp, "Out of memory while parsing molecules");
+                                                          return 1;
+                                                        }
+                                                        ptrl->spec = $1;
+                                                        ptrl->next = NULL;
+                                                        $$.species_tail = $$.species_head = ptrl;
+                                                        $$.species_count = 1;
+                                                      }
+        | list_molecule_stmts molecule_stmt           {
+                                                        struct species_list_item *ptrl;
+                                                        ptrl = (struct species_list_item *) mem_get(mdlpvp->species_list_mem);
+                                                        if (ptrl == NULL) {
+                                                          mdlerror_fmt(mdlpvp, "Out of memory while parsing molecules");
+                                                          return 1;
+                                                        }
+                                                        ptrl->spec = $2;
+                                                        ptrl->next = NULL;
+                                                        $$ = $1;
+                                                        $$.species_tail = $$.species_tail->next = ptrl;
+                                                        ++ $$.species_count;
+                                                      }
+;
 
-list_molecule_stmts: molecule_stmt
-	| list_molecule_stmts molecule_stmt
+molecule_stmt:
+          new_molecule '{'
+              reference_diffusion_def
+              diffusion_def
+              mol_timestep_def
+              target_def
+          '}'                                         { CHECKN($$ = mdl_assemble_mol_species(mdlpvp, $1, $3, $4.D, $4.is_2d, $5, $6)); }
+;
+
+new_molecule: VAR                                     { CHECKN($$ = mdl_new_molecule(mdlpvp, $1)); }
+;
+
+reference_diffusion_def:
+          /* empty */                                 { $$ = 0; }
+        | REFERENCE_DIFFUSION_CONSTANT '=' num_expr   { $$ = $3; }
+;
+
+diffusion_def:
+          DIFFUSION_CONSTANT_3D '=' num_expr          { $$.is_2d = 0; $$.D = $3; CHECK(mdl_check_diffusion_constant(mdlpvp, & $$.D)); }
+        | DIFFUSION_CONSTANT_2D '=' num_expr          { $$.is_2d = 1; $$.D = $3; CHECK(mdl_check_diffusion_constant(mdlpvp, & $$.D)); }
+;
+
+mol_timestep_def:
+          /* empty */                                 { $$ = 0.0; }
+        | CUSTOM_TIME_STEP '=' num_expr               {
+                                                        if ($3 > 0)
+                                                          $$ = $3;
+                                                        else
+                                                        {
+                                                          mdlerror(mdlpvp, "Zero or negative custom time step is disallowed (ignoring).");
+                                                          $$ = 0.0;
+                                                        }
+                                                      }
+        | CUSTOM_SPACE_STEP '=' num_expr              {
+                                                        if ($3 > 0)
+                                                          $$ = - $3;
+                                                        else
+                                                        {
+                                                          mdlerror(mdlpvp, "Zero or negative custom space step is disallowed (ignoring).");
+                                                          $$ = 0.0;
+                                                        }
+                                                      }
+;
+
+target_def: /* empty */                               { $$ = 0; }
+          | TARGET_ONLY                               { $$ = 1; }
+;
+
+define_complex_molecule:
+          DEFINE_COMPLEX_MOLECULE complex_mol_name    { mdlpvp->complex_name = $2; mdlpvp->complex_type = 0; }
+          '{'
+              complex_mol_topology                    { mdlpvp->complex_topo = $5; }
+              complex_mol_subunits
+              complex_mol_geometry
+              complex_mol_relationships               { mdlpvp->complex_relations = $9; }
+              complex_mol_rates
+          '}'                                         { CHECK(mdl_assemble_complex_species(mdlpvp, $2, $5, $7, $8, $9, $11)); }
+;
+
+complex_mol_name: VAR                                 /* XXX: need check for unique name here? */
+;
+
+complex_mol_topology:
+          NUMBER_OF_SUBUNITS '=' array_value          { CHECKN($$ = mdl_assemble_topology(mdlpvp, &$3)); }
+;
+
+complex_mol_subunits:
+          complex_mol_subunit_assignment
+        | complex_mol_subunits
+          complex_mol_subunit_assignment              { $2->next = $1; $$ = $2; }
+;
+
+complex_mol_subunit_assignment:
+          SUBUNIT '[' complex_mol_subunit_spec ']'
+          '=' existing_molecule_opt_orient            { CHECKN($$ = mdl_assemble_complex_subunit_assignment(mdlpvp, $3, & $6)); }
+;
+
+complex_mol_subunit_spec:
+          complex_mol_subunit_component
+        | complex_mol_subunit_spec ','
+          complex_mol_subunit_component               { $3->next = $1; $$ = $3; }
+;
+
+complex_mol_subunit_component: num_expr               { CHECKN($$ = mdl_assemble_subunit_spec_component(mdlpvp, $1, $1)); }
+                             | num_expr ':' num_expr  { CHECKN($$ = mdl_assemble_subunit_spec_component(mdlpvp, $1, $3)); }
+;
+
+complex_mol_geometry:
+          SHAPE '{' complex_mol_subunit_locations '}' { $$ = $3; CHECK(mdl_validate_complex_geometry(mdlpvp, mdlpvp->complex_topo, $3)); }
+;
+
+complex_mol_subunit_locations:
+          complex_mol_subunit_location
+        | complex_mol_subunit_locations
+          complex_mol_subunit_location                { $2->next = $1; $$ = $2; }
+;
+
+complex_mol_subunit_location:
+          SUBUNIT '[' array_expr ']' '=' point        { CHECKN($$ = mdl_assemble_complex_geometry(mdlpvp, mdlpvp->complex_topo, &$3, $6)); }
+;
+
+complex_mol_relationships:
+          SUBUNIT_RELATIONSHIPS
+          '{' complex_mol_relationship_list '}'       { $$ = $3; CHECK(mdl_validate_complex_relationships(mdlpvp, mdlpvp->complex_topo, $3)); }
+;
+
+complex_mol_relationship_list:
+          /* empty */                                 { $$ = NULL; }
+        | complex_mol_relationship_list
+          complex_mol_relationship                    { $2->next = $1; $$ = $2; }
+;
+
+complex_mol_relationship: VAR '=' array_value         { CHECKN($$ = mdl_assemble_complex_relationship(mdlpvp, mdlpvp->complex_topo, $1, &$3)); }
+;
+
+complex_mol_rates:
+          RATE_RULES '{' complex_mol_rate_list '}'    { $$ = $3; CHECK(mdl_validate_complex_rates(mdlpvp, $3)); }
+;
+
+complex_mol_rate_list:
+          /* empty */                                 { $$ = NULL; }
+        | complex_mol_rate_list complex_mol_rate      { $2->next = $1; $$ = $2; }
+;
+
+complex_mol_rate: VAR '{' complex_mol_rate_rules '}'  { CHECKN($$ = mdl_assemble_complex_ruleset(mdlpvp, $1, $3)); }
+;
+
+complex_mol_rate_rules:
+          complex_mol_rate_rule
+        | complex_mol_rate_rules
+          complex_mol_rate_rule                       { $2->next = $1; $$ = $2; }
+;
+
+complex_mol_rate_rule:
+          complex_mol_rate_clauses ':' num_expr       { CHECKN($$ = mdl_assemble_complex_rate_rule(mdlpvp, $1, $3)); }
+;
+
+complex_mol_rate_clauses:
+          complex_mol_rate_clause_list
+        | DEFAULT                                     { $$ = NULL; }
+;
+
+complex_mol_rate_clause_list:
+          complex_mol_rate_clause
+        | complex_mol_rate_clause_list '&'
+          complex_mol_rate_clause                     { $3->next = $1; $$ = $3; }
+;
+
+complex_mol_rate_clause:
+     VAR equal_or_not existing_molecule_opt_orient    { CHECKN($$ = mdl_assemble_complex_rate_rule_clause(mdlpvp, mdlpvp->complex_relations, $1, $2, &$3)); }
+;
+
+equal_or_not: EQUAL                                   { $$ = 0; }
+            | NOT_EQUAL                               { $$ = 1; }
+;
+
+existing_molecule: VAR                                { CHECKN($$ = mdl_existing_molecule(mdlpvp, $1)); }
+;
+
+existing_surface_molecule:
+          existing_molecule_opt_orient                {
+                                                        $$ = $1;
+                                                        struct species *specp=(struct species *) $$.mol_type->value;
+                                                        if ((specp->flags & ON_GRID) == 0)
+                                                        {
+                                                          mdlerror_fmt(mdlpvp, "Invalid surface molecule specified: %s", specp->sym->name);
+                                                          return 1;
+                                                        }
+                                                      }
+;
+
+existing_molecule_opt_orient:
+          existing_molecule orientation_class         {
+                                                        $$ = $2;
+                                                        if (! $$.orient_set)
+                                                          $$.orient = 0;
+                                                        $$.mol_type = $1;
+                                                      }
+;
+
+existing_macromolecule: VAR                           { CHECKN($$ = mdl_existing_macromolecule(mdlpvp, $1)); }
+;
+
+/* =================================================================== */
+/* Surface class definitions */
+
+surface_classes_def:
+          define_one_surface_class
+        | define_multiple_surface_classes
 ;
 
 
-molecule_stmt: new_molecule '{'
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->specp=(struct species *)mdlpvp->gp->value;
-  mdlpvp->specp->sym=mdlpvp->gp;
-}
-	reference_diffusion_def
-	diffusion_def
-        mol_timestep_def
-	target_def
-	'}'
-{
-  mdlpvp->specp->D_ref=$<dbl>4;
-  mdlpvp->specp->D=$<dbl>5;
-  mdlpvp->specp->time_step=$<dbl>6;
-  if (volp->time_unit==0) {
-    mdlerror_fmt(mdlpvp, "TIME_STEP not yet specified.  Cannot define molecule: %s", mdlpvp->specp->sym->name);
-    return(1);
-  }
-  if (mdlpvp->specp->D_ref==0) {
-    mdlpvp->specp->D_ref=mdlpvp->specp->D;
-  }
+define_one_surface_class:
+          DEFINE_SURFACE_CLASS surface_class_stmt
+;
 
-  if (mdlpvp->specp->D==0) /* Immobile (boring) */
-  {
-    mdlpvp->specp->space_step=0.0;
-    mdlpvp->specp->time_step=1.0;
-  }
-  else if (mdlpvp->specp->time_step != 0.0) /* Custom timestep */
-  {
-    if (mdlpvp->specp->time_step < 0) /* Hack--negative value means space step */
-    {
-      mdlpvp->specp->space_step = -mdlpvp->specp->time_step;
-      mdlpvp->specp->time_step = (mdlpvp->specp->space_step*mdlpvp->specp->space_step)*MY_PI/(16.0 * 1.0e8 * mdlpvp->specp->D)/volp->time_unit;
-      mdlpvp->specp->space_step *= volp->r_length_unit;
-    }
-    else
-    {
-      mdlpvp->specp->space_step = sqrt( 4.0 * 1.0e8 * mdlpvp->specp->D * mdlpvp->specp->time_step ) * volp->r_length_unit;
-      mdlpvp->specp->time_step /= volp->time_unit;
-    }
-  }
-  else if (volp->space_step==0) /* Global timestep */
-  {
-    mdlpvp->specp->space_step=sqrt(4.0*1.0e8*mdlpvp->specp->D*volp->time_unit) * volp->r_length_unit;
-    mdlpvp->specp->time_step=1.0;
-  }
-  else /* Global spacestep */
-  {
-    mdlpvp->specp->space_step = volp->space_step;
-    mdlpvp->specp->time_step = (volp->space_step*volp->space_step*volp->length_unit*volp->length_unit)*MY_PI/(16.0 * 1.0e8 * mdlpvp->specp->D)/volp->time_unit;
-  }
-  
-  if ($<dbl>7 != 0.0)
-  {
-    mdlpvp->specp->flags |= CANT_INITIATE;
-  }
-  
-  if (volp->r_step==NULL) {
-    if ((volp->r_step=init_r_step(volp->radial_subdivisions))==NULL) {
-      mdlerror(mdlpvp, "Out of memory while creating r_step data for molecule");
-      return(1);
-    }
-  }
-  if (volp->r_step_surface==NULL)
-  {
-    volp->r_step_surface = init_r_step_surface(volp->radial_subdivisions);
-    if (volp->r_step_surface==NULL)
-    {
-      mdlerror(mdlpvp, "Cannot store r_step_surface data.");
-      return 1;
-    }
-  }
-  if (volp->d_step==NULL) {
-    if ((volp->d_step=init_d_step(volp->radial_directions,&volp->num_directions))==NULL) {
-      mdlerror(mdlpvp, "Out of memory while creating d_step data for molecule");
-      return(1);
-    }
-    for (volp->directions_mask = 1 ; volp->directions_mask < volp->num_directions ; volp->directions_mask <<= 1) {}
-    if (volp->directions_mask > (1<<18))
-    {
-      mdlerror(mdlpvp, "Internal error: bad number of default RADIAL_DIRECTIONS (max 131072).\n");
-      return(1);
-    }
-    volp->directions_mask -= 1;    
-  }
-  
-  if (mdlpvp->specp->time_step==1.0)
-  {
-    mdlpvp->l_perp_bar=sqrt(4*1.0e8*mdlpvp->specp->D*volp->time_unit/MY_PI);
-    mdlpvp->l_perp_rms=sqrt(2*1.0e8*mdlpvp->specp->D*volp->time_unit);
-    mdlpvp->l_r_bar=2*mdlpvp->l_perp_bar;
-    mdlpvp->l_r_rms=sqrt(6*1.0e8*mdlpvp->specp->D*volp->time_unit);
-    if (volp->notify->diffusion_constants==NOTIFY_FULL)
-    {
-      if (volp->procnum == 0) {
-        fprintf(volp->log_file,"\nMCell: Theoretical average diffusion distances for molecule %s:\n",mdlpvp->specp->sym->name);
-        fprintf(volp->log_file,"\tl_r_bar = %.9g microns\n",mdlpvp->l_r_bar);
-        fprintf(volp->log_file,"\tl_r_rms = %.9g microns\n",mdlpvp->l_r_rms);
-        fprintf(volp->log_file,"\tl_perp_bar = %.9g microns\n",mdlpvp->l_perp_bar);
-        fprintf(volp->log_file,"\tl_perp_rms = %.9g microns\n\n",mdlpvp->l_perp_rms);
-      }
-    }
-    else if (volp->notify->diffusion_constants==NOTIFY_BRIEF)
-    {
-      if (volp->procnum==0) fprintf(volp->log_file,"  l_r_bar=%.9g um for %s\n",mdlpvp->l_r_bar,mdlpvp->specp->sym->name);
-    }
-  }
-  else
-  {
-    if (volp->notify->diffusion_constants==NOTIFY_FULL)
-    {
-      if (volp->procnum == 0)
-      {
-        fprintf(volp->log_file,"\nMCell: Theoretical average diffusion time for molecule %s:\n",mdlpvp->specp->sym->name);
-        fprintf(volp->log_file,"\tl_r_bar fixed at %.9g microns\n",volp->length_unit*mdlpvp->specp->space_step*2.0/sqrt(MY_PI));
-        fprintf(volp->log_file,"\tPosition update every %.3e seconds (%.3g timesteps)\n\n",
-                mdlpvp->specp->time_step*volp->time_unit,mdlpvp->specp->time_step);
-      }
-    }
-    else if (volp->notify->diffusion_constants==NOTIFY_BRIEF)
-    {
-      if (volp->procnum==0) fprintf(volp->log_file,"  delta t=%.3g timesteps for %s\n",mdlpvp->specp->time_step,mdlpvp->specp->sym->name);
-    }
-  }
-  no_printf("Molecule %s defined with D = %g\n",mdlpvp->specp->sym->name,mdlpvp->specp->D);
-};
+define_multiple_surface_classes:
+          DEFINE_SURFACE_CLASSES '{'
+            list_surface_class_stmts
+          '}'
+;
 
+list_surface_class_stmts:
+          surface_class_stmt
+        | list_surface_class_stmts
+          surface_class_stmt
+;
 
-new_molecule: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
-    if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,RXPN,volp->main_sym_table))==NULL) {
-      if ((mdlpvp->gp=store_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
-        mdlerror_fmt(mdlpvp, "Out of memory while creating molecule: %s", mdlpvp->sym_name);
-        if (mdlpvp->sym_name==mdlpvp->cval) {
-          mdlpvp->cval=NULL;
-        }
-        else {
-          mdlpvp->cval_2=NULL;
-        }
-        free((void *)mdlpvp->sym_name);
-        return(1);
-      }
-      else {
-        mdlpvp->specp=(struct species *)mdlpvp->gp->value;
-      }
-    }
-    else {
-      mdlerror_fmt(mdlpvp, "Molecule already defined as a named reaction pathway: %s", mdlpvp->sym_name);
-      if (mdlpvp->sym_name==mdlpvp->cval) {
-        mdlpvp->cval=NULL;
-      }
-      else {
-        mdlpvp->cval_2=NULL;
-      }
-      free((void *)mdlpvp->sym_name);
-      return(1);
-    }
-  }
-  else {
-    mdlerror_fmt(mdlpvp, "Molecule already defined: %s", mdlpvp->sym_name);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
+surface_class_stmt:
+          new_molecule '{'                            {
+                                                        struct species *specp = (struct species *) $1->value;
+                                                        specp->flags = IS_SURFACE;
+                                                        mdlpvp->current_surface_class = specp;
+                                                      }
+            list_surface_prop_stmts
+          '}'                                         { mdlpvp->current_surface_class = NULL; }
+;
 
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  $$=mdlpvp->gp;
-};
+existing_surface_class: VAR                           { CHECKN($$ = mdl_existing_surface_class(mdlpvp, $1)); }
+;
 
+list_surface_prop_stmts:
+          /* empty */
+        | list_surface_prop_stmts
+          surface_prop_stmt
+;
 
-existing_one_or_multiple_molecules: VAR
-{
+surface_prop_stmt:
+          surface_rxn_stmt
+        | surface_class_mol_stmt
+        | surface_class_viz_value_stmt
+;
 
-  if (mdlpvp->cval_2!=NULL) {  
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }   
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  } 
+surface_rxn_stmt:
+          surface_rxn_type
+            equals_or_to
+            existing_molecule_opt_orient              { CHECKN(mdl_assemble_surface_reaction(mdlpvp, $1, mdlpvp->current_surface_class, $3.mol_type, $3.orient)); }
+        | CLAMP_CONCENTRATION
+            existing_molecule_opt_orient '='
+            num_expr                                  { CHECKN(mdl_assemble_concentration_clamp_reaction(mdlpvp, mdlpvp->current_surface_class, $2.mol_type, $2.orient, $4)); }
+;
 
-    /* here is just one molecule */
-  
-    if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
-       mdlerror_fmt(mdlpvp, "Undefined molecule: %s", mdlpvp->sym_name);
-       if (mdlpvp->sym_name==mdlpvp->cval) {
-         mdlpvp->cval=NULL;
-       }
-       else {
-         mdlpvp->cval_2=NULL;
-       }
-       free((void *)mdlpvp->sym_name);
-       return(1);
-   }
-   if (mdlpvp->sym_name==mdlpvp->cval) {
-       mdlpvp->cval=NULL;
-   }
-   else {
-       mdlpvp->cval_2=NULL;
-   }
-   free((void *)mdlpvp->sym_name);
-#ifdef KELP
-   mdlpvp->gp->ref_count++;
-   no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-   $$=mdlpvp->gp;
+surface_rxn_type: REFLECTIVE                          { $$ = RFLCT; }
+                | TRANSPARENT                         { $$ = TRANSP; }
+                | ABSORPTIVE                          { $$ = SINK; }
+;
 
-}
-    	| WILDCARD_VAR
-{
-  int i;
-  struct sym_table_list *stl;
-  struct sym_table *sym_t;
-  char *wildcard_string;
+equals_or_to: '='
+            | TO
+;
 
-  if (mdlpvp->cval_2!=NULL) {  
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }   
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  } 
+surface_class_mol_stmt: surface_mol_stmt              { mdlpvp->current_surface_class->eff_dat_head = $1.eff_head; }
+;
 
-  wildcard_string = strip_quotes(mdlpvp->sym_name);
-  if (wildcard_string == NULL)
-  {
-      mdlerror_fmt(mdlpvp, "Out of memory while parsing wildcard variable");
-      free((void *)mdlpvp->sym_name);
-      return (1);
-  }
+surface_mol_stmt:
+          MOLECULE_DENSITY
+          '{'
+              list_surface_mol_density
+          '}'                                         { $$ = $3; }
+        | MOLECULE_NUMBER
+          '{'
+              list_surface_mol_num
+          '}'                                         { $$ = $3; }
+;
 
-    /* here is a wildcard molecule name */
-    /* do a full sym_table scan comparing each key */
+list_surface_mol_density:
+          surface_mol_quant                           {
+                                                        $1->quantity_type = EFFDENS;
+                                                        $$.eff_tail = $$.eff_head = $1;
+                                                      }
+        | list_surface_mol_density
+          surface_mol_quant                           {
+                                                        $$ = $1;
+                                                        $2->quantity_type = EFFDENS;
+                                                        $$.eff_tail = $$.eff_tail->next = $2;
+                                                      }
+;
 
-    mdlpvp->sym_table_list_head = NULL;
+list_surface_mol_num:
+          surface_mol_quant                           {
+                                                        $1->quantity_type = EFFNUM;
+                                                        $$.eff_tail = $$.eff_head = $1;
+                                                      }
+        | list_surface_mol_num
+          surface_mol_quant                           {
+                                                        $$ = $1;
+                                                        $2->quantity_type = EFFNUM;
+                                                        $$.eff_tail = $$.eff_tail->next = $2;
+                                                      }
+;
 
-    for(i = 0; i < SYM_HASHSIZE; i++)
-    {
-       for(sym_t = volp->main_sym_table[i]; sym_t != NULL; sym_t = sym_t->next)
-       {
-         if(is_wildcard_match(wildcard_string, sym_t->name)){ 
+surface_mol_quant:
+          existing_surface_molecule '=' num_expr      { CHECKN($$ = mdl_new_effector_data(mdlpvp, &$1, $3)); }
+;
 
-           if(sym_t->sym_type == MOL)
-           {
-               stl = (struct sym_table_list *)mem_get(mdlpvp->sym_list_mem);
-                if(stl == NULL){
-                  mdlerror(mdlpvp, "Out of memory while parsing wildcard variable");
-                  return 1;
-                }
-                stl->node = sym_t;
-                stl->next = NULL;
-                if(mdlpvp->sym_table_list_head == NULL){
-                   mdlpvp->sym_table_list_head = stl;
-                }else{
-                   stl->next = mdlpvp->sym_table_list_head;
-                   mdlpvp->sym_table_list_head = stl;
-                }
-            }
-          }
+surface_class_viz_value_stmt:
+          VIZ_VALUE '=' num_expr                      { mdlpvp->current_surface_class->region_viz_value = (int) $3; }
+;
 
-         } /* end for */
-    
-    } /* end for */
-   
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-       mdlpvp->cval=NULL;
-   }
-   else {
-       mdlpvp->cval_2=NULL;
-   }
-   free((void *)mdlpvp->sym_name);
-   free(wildcard_string);
-   
-   mdlpvp->sym_table_list_head = sort_sym_list_by_name(mdlpvp->sym_table_list_head);
-   $$=NULL;
-};
+/* =================================================================== */
+/* Reaction network definitions */
 
+rx_net_def:
+          DEFINE_REACTIONS '{'
+            list_rx_stmts
+          '}'
+;
 
-existing_molecule: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {  
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }   
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  } 
+list_rx_stmts: rx_stmt
+             | list_rx_stmts rx_stmt
+;
 
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
-    mdlerror_fmt(mdlpvp, "Undefined molecule: %s", mdlpvp->sym_name);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free((void *)mdlpvp->sym_name);
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-  $$=mdlpvp->gp;
-};
+rx_stmt: rx_group_def
+       | rxn
+;
 
+rx_group_def:
+          REACTION_GROUP reaction_group_name
+          '{' list_rxns '}'
+;
 
-diffusion_def: DIFFUSION_CONSTANT_3D '=' num_expr
-{
-  mdlpvp->specp->flags -= (mdlpvp->specp->flags & ON_GRID);
-  if (volp->notify->neg_diffusion==WARN_COPE)
-  {
-    if ($<dbl>3 < 0) $$ = 0;
-    else $$=$<dbl>3;
-  }
-  else if (volp->notify->neg_diffusion==WARN_WARN)
-  {
-    if ($<dbl>3 < 0)
-    {
-      mdlerror_fmt(mdlpvp, "Negative diffusion constant found, setting to zero and continuing.");
-      $$ = 0;
-    }
-    else $$=$<dbl>3;
-  }
-  else
-  {
-    if ($<dbl>3 < 0)
-    {
-      mdlerror(mdlpvp, "Error: diffusion constants should be zero or positive.");
-      return 1;
-    }
-    else $$=$<dbl>3;
-  }
-}
-	| DIFFUSION_CONSTANT_2D '=' num_expr
-{
-  mdlpvp->specp->flags |= ON_GRID;
-  if (volp->notify->neg_diffusion==WARN_COPE)
-  {
-    if ($<dbl>3 < 0) $$ = 0;
-    else $$=$<dbl>3;
-  }
-  else if (volp->notify->neg_diffusion==WARN_WARN)
-  {
-    if ($<dbl>3 < 0)
-    {
-      mdlerror_fmt(mdlpvp, "Negative diffusion constant found, setting to zero and continuing.");
-      $$ = 0;
-    }
-    else $$=$<dbl>3;
-  }
-  else
-  {
-    if ($<dbl>3 < 0)
-    {
-      mdlerror(mdlpvp, "Error: diffusion constants should be zero or positive.");
-      return 1;
-    }
-    else $$=$<dbl>3;
-  }
-};
+reaction_group_name: VAR                              { free($1); }
+;
 
+list_rxns: rxn
+         | list_rxns rxn
+;
 
-reference_diffusion_def: /* empty */
-{
-  $$=0;
-}
-	| REFERENCE_DIFFUSION_CONSTANT '=' num_expr
-{
-  $$=$<dbl>3;
-};
+list_dashes: '-'
+           | list_dashes '-'
+;
 
+right_arrow:  list_dashes '>';
+left_arrow:   '<' list_dashes;
+double_arrow: left_arrow '>';
 
-mol_timestep_def: /* empty */
-{
-  $$=0.0;
-}
-	| CUSTOM_TIME_STEP '=' num_expr
-{
-  if ($<dbl>3 > 0)
-  {
-    $$=$<dbl>3;
-  }
-  else
-  {
-    mdlerror(mdlpvp, "Zero or negative custom time step is disallowed (ignoring).");
-    $$ = 0.0;
-  }
-}
-	| CUSTOM_SPACE_STEP '=' num_expr
-{
-  if ($<dbl>3 > 0)
-  {
-    $$ = - $<dbl>3;
-  }
-  else
-  {
-    mdlerror(mdlpvp, "Zero or negative custom space step is disallowed (ignoring).");
-    $$ = 0.0;
-  }
-};
+right_cat_arrow:
+          list_dashes existing_molecule_opt_orient
+          right_arrow                                 { $$.catalyst = $2; $$.flags = ARROW_CATALYTIC; }
+;
 
-target_def: /* empty */
-{
-  $$ = 0.0;
-}
-	| TARGET_ONLY
-{
-  $$=1.0;
-};
-
-
-
-surface_classes_def: define_one_surface_class
-	| define_multiple_surface_classes
+double_cat_arrow:
+          left_arrow existing_molecule_opt_orient
+          right_arrow                                 { $$.catalyst = $2; $$.flags = ARROW_CATALYTIC | ARROW_BIDIRECTIONAL; }
 ;
 
 
-define_one_surface_class: DEFINE_SURFACE_CLASS surface_class_stmt
+reaction_arrow:
+          right_arrow                                 { $$.catalyst.mol_type = NULL; $$.flags = 0; }
+        | right_cat_arrow
+        | double_arrow                                { $$.catalyst.mol_type = NULL; $$.flags = ARROW_BIDIRECTIONAL; }
+        | double_cat_arrow
 ;
 
-
-define_multiple_surface_classes: DEFINE_SURFACE_CLASSES '{'
-	list_surface_class_stmts
-	'}'
+new_rxn_pathname: /* empty */                         { $$ = NULL; }
+                | ':' VAR                             { CHECKN($$ = mdl_new_rxn_pathname(mdlpvp, $2)); }
 ;
 
-
-list_surface_class_stmts: surface_class_stmt
-	| list_surface_class_stmts surface_class_stmt
+rxn:
+          reactant_list opt_reactant_surface_class
+          reaction_arrow product_list rx_rate_syntax
+          new_rxn_pathname                            { CHECKN(mdl_assemble_reaction(mdlpvp, $1.mol_type_head, &$2, &$3, $4.mol_type_head, &$5, $6)); }
 ;
 
-/*
-surface_class_stmt: new_surface_class '{'
-{
-  mdlpvp->stp1=$<sym>1;
-  mdlpvp->specp=(struct species *)mdlpvp->gp->value;
-  mdlpvp->eff_dat_head=NULL;
-}
-	list_surface_prop_stmts
-	'}'
-;
-*/
-
-surface_class_stmt: real_surface_class_stmt 
-                    | empty_surface_class_stmt
+reactant_list: reactant                               { CHECKN($$.mol_type_head = $$.mol_type_tail = mdl_new_reaction_player(mdlpvp, &$1)); }
+             | reactant_list '+' reactant             { $$ = $1; CHECKN($$.mol_type_tail = $$.mol_type_tail->next = mdl_new_reaction_player(mdlpvp, &$3)); }
 ;
 
-
-real_surface_class_stmt: new_surface_class '{'
-{
-  mdlpvp->stp1=$<sym>1;
-  mdlpvp->specp=(struct species *)mdlpvp->gp->value;
-  mdlpvp->eff_dat_head=NULL;
-}
-
-	list_surface_prop_stmts
-	'}'
+reactant: existing_molecule_or_subunit
 ;
 
-empty_surface_class_stmt: new_surface_class '{'
-{
-  mdlpvp->stp1=$<sym>1;
-  mdlpvp->specp=(struct species *)mdlpvp->gp->value;
-  mdlpvp->eff_dat_head=NULL;
-}
-'}'
+existing_molecule_or_subunit:
+          existing_molecule_opt_orient                { $$ = $1; $$.is_subunit = 0; }
+        | '(' existing_molecule_opt_orient ')'        { $$ = $2; $$.is_subunit = 1; }
 ;
 
-new_surface_class: new_molecule
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->specp=(struct species *)mdlpvp->gp->value;
-  mdlpvp->specp->sym=mdlpvp->gp;
-  mdlpvp->specp->flags=IS_SURFACE;
-  $$=mdlpvp->gp;
-};
-
-
-existing_surface_class: existing_molecule
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->specp=(struct species *)mdlpvp->gp->value;
-  mdlpvp->sym_name=mdlpvp->gp->name;
-  if (mdlpvp->specp->flags!=IS_SURFACE) {
-    mdlerror_fmt(mdlpvp, "Undefined surface type: %s", mdlpvp->sym_name);
-    return(1);
-  }
-  $$=mdlpvp->gp;
-};
-
-
-list_surface_prop_stmts: surface_prop_stmt
-	| list_surface_prop_stmts surface_prop_stmt
+opt_reactant_surface_class:
+          /* empty */                                 { $$.mol_type = NULL; }
+        | '@' reactant_surface_class                  { $$ = $2; }
 ;
 
-surface_prop_stmt: surface_rxn_stmt
-	| surface_class_mol_stmt
-	| surface_class_viz_value_stmt 
+reactant_surface_class:
+          existing_surface_class orientation_class    { $$ = $2; $$.mol_type = $1; }
 ;
 
-
-surface_rxn_stmt: surface_rxn_type equals_or_to existing_molecule_opt_orient
-{
-  mdlpvp->stp2=$<sym>3;
-  mdlpvp->specp=(struct species *)mdlpvp->stp2->value;
-  if (mdlpvp->specp->flags==IS_SURFACE) {
-    mdlerror_fmt(mdlpvp,
-      "Illegal reaction between two surfaces in surface reaction: %s -%s-> ...",
-      mdlpvp->stp2->name,mdlpvp->stp1->name);
-    return(1);
-  }
-  mdlpvp->sym_name=concat_rx_name(mdlpvp->stp1->name,mdlpvp->stp2->name);
-  if(mdlpvp->sym_name == NULL) {
-    mdlerror_fmt(mdlpvp,
-      "Out of memory while parsing surface reaction: %s -%s-> ...",
-      mdlpvp->stp1->name,mdlpvp->stp2->name);
-    return(1);
-  }
-  if ((mdlpvp->stp3=retrieve_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
-      !=NULL) {
-  }
-  else if ((mdlpvp->stp3=store_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
-      ==NULL) {
-    mdlerror_fmt(mdlpvp,
-      "Out of memory while creating surface reaction: %s -%s-> ...",
-      mdlpvp->stp2->name,mdlpvp->stp1->name);
-    return(1);
-  }
-
-  if ((mdlpvp->pathp=(struct pathway *)mem_get(mdlpvp->path_mem))==NULL) {
-    mdlerror_fmt(mdlpvp,
-      "Out of memory while creating surface reaction: %s -%s-> ...",
-      mdlpvp->stp2->name,mdlpvp->stp1->name);
-    return(1);
-  }
-  mdlpvp->rxnp=(struct rxn *)mdlpvp->stp3->value;
-  mdlpvp->rxnp->n_reactants=2;
-  mdlpvp->rxnp->n_pathways++;
-  mdlpvp->pathp->pathname=NULL;
-  mdlpvp->pathp->reactant1=(struct species *)mdlpvp->stp1->value;
-  mdlpvp->pathp->reactant2=(struct species *)mdlpvp->stp2->value;
-  mdlpvp->pathp->reactant3=NULL;
-  mdlpvp->pathp->km=GIGANTIC;
-  mdlpvp->pathp->km_filename=NULL;
-  mdlpvp->pathp->prod_signature = NULL;
-  mdlpvp->pathp->flags=0;
-
-  if (mdlpvp->orient_class==0)
-  {
-    mdlpvp->pathp->orientation1=0;
-    mdlpvp->pathp->orientation2=1;
-    mdlpvp->pathp->orientation3=0;
-  }
-  else
-  {
-    mdlpvp->pathp->orientation1=1;
-    mdlpvp->pathp->orientation2=(mdlpvp->orient_class<0) ? -1 : 1;
-    mdlpvp->pathp->orientation3=0;
-  }
-
-  switch ($<tok>1) {
-    case RFLCT:
-      if ((mdlpvp->prodp=(struct product *)mem_get(mdlpvp->prod_mem))==NULL) {
-        mdlerror_fmt(mdlpvp,
-          "Out of memory while creating surface reaction: %s -%s-> ...",
-          mdlpvp->stp2->name,mdlpvp->stp1->name);
-        return(1);
-      }
-      mdlpvp->pathp->flags |= PATHW_REFLEC;
-      mdlpvp->prodp->prod=mdlpvp->pathp->reactant2;
-      mdlpvp->prodp->orientation=1;
-      mdlpvp->prodp->next=NULL;
-      mdlpvp->pathp->product_head=mdlpvp->prodp;
-      if(mdlpvp->pathp->product_head != NULL)
-      {
-         mdlpvp->pathp->prod_signature = create_prod_signature(&mdlpvp->pathp->product_head);
-         if(mdlpvp->pathp->prod_signature == NULL){
-            mdlerror(mdlpvp, "Error creating 'prod_signature' field for the reaction pathway.\n");
-            return(1);
-         }
-      }
-      break;
-    case TRANSP:
-      if ((mdlpvp->prodp=(struct product *)mem_get(mdlpvp->prod_mem))==NULL) {
-        mdlerror_fmt(mdlpvp,
-          "Out of memory while creating surface reaction: %s -%s-> ...",
-          mdlpvp->stp2->name,mdlpvp->stp1->name);
-        return(1);
-      }
-      mdlpvp->pathp->flags |= PATHW_TRANSP;
-      mdlpvp->prodp->prod=mdlpvp->pathp->reactant2;
-      mdlpvp->prodp->orientation=-1;
-      mdlpvp->prodp->next=NULL;
-      mdlpvp->pathp->product_head=mdlpvp->prodp;
-      if(mdlpvp->pathp->product_head != NULL){
-         mdlpvp->pathp->prod_signature = create_prod_signature(&mdlpvp->pathp->product_head);
-         if(mdlpvp->pathp->prod_signature == NULL){
-            mdlerror(mdlpvp, "Error creating 'prod_signature' field for the reaction pathway.\n");
-            return(1);
-         }
-      }
-      break;
-    case SINK:
-      mdlpvp->pathp->flags |= PATHW_ABSORP; 
-      mdlpvp->pathp->product_head=NULL;
-      break;
-    default:
-      mdlerror(mdlpvp, "Unknown special surface type.");
-      return 1;
-      break;
-  }
-
-  mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
-  mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
-
-  /* restore default values */
-  mdlpvp->orient_specified = 0;
-  mdlpvp->orient_class = ORIENT_NOT_SET;
-
-#ifdef DEBUG
-  no_printf("Surface reaction defined:\n");
-  no_printf("  %s[%d] -%s[%d]->",
-  mdlpvp->rxnp->pathway_head->reactant2->sym->name,
-  mdlpvp->rxnp->pathway_head->orientation2,
-  mdlpvp->rxnp->pathway_head->reactant1->sym->name,
-  mdlpvp->rxnp->pathway_head->orientation1);
-  for (mdlpvp->prodp=mdlpvp->rxnp->pathway_head->product_head;
-       mdlpvp->prodp!=NULL;mdlpvp->prodp=mdlpvp->prodp->next) {
-    if (mdlpvp->prodp!=mdlpvp->rxnp->pathway_head->product_head) {
-      no_printf(" +");
-    }
-    no_printf(" %s[%d]",mdlpvp->prodp->prod->sym->name,mdlpvp->prodp->orientation);
-  }
-  no_printf(" [%.9g]\n",mdlpvp->rxnp->pathway_head->km);
-#endif
-}
-        | CLAMP_CONCENTRATION existing_molecule_opt_orient '=' num_expr
-{
-  mdlpvp->stp2=$<sym>2;
-  mdlpvp->specp=(struct species *)mdlpvp->stp2->value;
-  if (mdlpvp->specp->flags==IS_SURFACE) {
-    mdlerror_fmt(mdlpvp,
-      "Illegal reaction between two surfaces in surface reaction: %s -%s-> ...",
-      mdlpvp->stp2->name,mdlpvp->stp1->name);
-    return(1);
-  }
-  if (mdlpvp->specp->flags&ON_GRID)
-  {
-    mdlerror(mdlpvp, "Concentration clamp does not work on surface molecules.");
-    return 1;
-  }
-  if (mdlpvp->specp->flags&NOT_FREE || mdlpvp->specp->D <= 0.0)
-  {
-    mdlerror(mdlpvp, "Concentration clamp must be applied to molecule diffusing in 3D");
-    return 1;
-   }
-   if (($<dbl>4)<0)
-   {
-     mdlerror(mdlpvp, "Concentration can only be clamped to positive values.");
-     return 1;
-   }
-    
-  mdlpvp->sym_name=concat_rx_name(mdlpvp->stp1->name,mdlpvp->stp2->name);
-  if(mdlpvp->sym_name == NULL) {
-    mdlerror_fmt(mdlpvp,
-      "Memory allocation error: %s -%s-> ...",
-      mdlpvp->stp1->name,mdlpvp->stp2->name);
-    return(1);
-  }
-  if ((mdlpvp->stp3=retrieve_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
-      !=NULL) {
-  }
-  else if ((mdlpvp->stp3=store_sym(mdlpvp->sym_name,RX,volp->main_sym_table))
-      ==NULL) {
-    mdlerror_fmt(mdlpvp,
-      "Cannot store surface reaction: %s -%s-> ...",
-      mdlpvp->stp2->name,mdlpvp->stp1->name);
-    return(1);
-  }
-  if ((mdlpvp->pathp=(struct pathway *)mem_get(mdlpvp->path_mem))==NULL) {
-    mdlerror_fmt(mdlpvp,
-      "Cannot store surface reaction: %s -%s-> ...",
-      mdlpvp->stp2->name,mdlpvp->stp1->name);
-    return(1);
-  }
-  mdlpvp->rxnp=(struct rxn *)mdlpvp->stp3->value;
-  mdlpvp->rxnp->n_reactants=2;
-  mdlpvp->rxnp->n_pathways++;
-  mdlpvp->pathp->pathname=NULL;
-  mdlpvp->pathp->reactant1=(struct species *)mdlpvp->stp1->value;
-  mdlpvp->pathp->reactant2=(struct species *)mdlpvp->stp2->value;
-  mdlpvp->pathp->reactant3=NULL;
-  mdlpvp->pathp->flags = 0;
-
-  mdlpvp->pathp->flags |= PATHW_CLAMP_CONC;
-
-  mdlpvp->pathp->km=$<dbl>4;
-  mdlpvp->pathp->km_filename=NULL;
-  
-  if (mdlpvp->orient_class==0)
-  {
-    mdlpvp->pathp->orientation1=0;
-    mdlpvp->pathp->orientation2=1;
-    mdlpvp->pathp->orientation3=0;
-  }
-  else
-  {
-    mdlpvp->pathp->orientation1=1;
-    mdlpvp->pathp->orientation2=(mdlpvp->orient_class<0) ? -1 : 1;
-    mdlpvp->pathp->orientation3=0;
-  }
-  mdlpvp->pathp->product_head=NULL;
-  mdlpvp->pathp->prod_signature = NULL;
-
-  mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
-  mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
-  
-  /* restore default values */
-  mdlpvp->orient_specified = 0;
-  mdlpvp->orient_class = ORIENT_NOT_SET;
-};
-
-
-surface_rxn_type: REFLECTIVE {$$=RFLCT;}
-	| TRANSPARENT {$$=TRANSP;}
-	| ABSORPTIVE {$$=SINK;}
+product_list: product                                 { CHECKN($$.mol_type_head = $$.mol_type_tail = mdl_new_reaction_player(mdlpvp, &$1)); }
+             | product_list '+' product               { $$ = $1; CHECKN($$.mol_type_tail = $$.mol_type_tail->next = mdl_new_reaction_player(mdlpvp, &$3)); }
 ;
 
-equals_or_to: '=' | TO;
-
-
-surface_class_mol_stmt: surface_mol_stmt
-{
-  mdlpvp->specp=(struct species *)mdlpvp->stp1->value;
-  mdlpvp->specp->eff_dat_head=mdlpvp->eff_dat_head;
-};
-
-
-surface_mol_stmt: mol_quant_type '{'
-	list_surface_mol_quant
-	'}'
+product: NO_SPECIES                                   { $$.mol_type = NULL; $$.orient_set = 0; }
+       | existing_molecule_or_subunit
 ;
 
-
-mol_quant_type: MOLECULE_DENSITY
-{
-  mdlpvp->mol_quant_type=EFFDENS;
-}
-	| MOLECULE_NUMBER
-{
-  mdlpvp->mol_quant_type=EFFNUM;
-};
-
-
-list_surface_mol_quant: surface_mol_quant
-	| list_surface_mol_quant surface_mol_quant
+rx_rate_syntax:
+          rx_rate1
+        | rx_rate2
 ;
 
+rx_rate1: '[' rx_dir_rate ']'                         {
+                                                        if ($2.forward_rate.rate_type == RATE_UNSET)
+                                                        {
+                                                          mdlerror(mdlpvp, "Invalid reaction rate specification: must specify a forward rate.");
+                                                          return 1;
+                                                        }
 
-surface_mol_quant: existing_surface_molecule '=' num_expr
-{
-  mdlpvp->stp2=$<sym>1;
-  mdlpvp->specp=(struct species *)mdlpvp->stp2->value;
-  if ((mdlpvp->effdp=(struct eff_dat *)malloc(sizeof(struct eff_dat)))==NULL) {
-    mdlerror_fmt(mdlpvp, "Out of memory while storing data for surface molecule: %s", mdlpvp->stp2->name);
-    return(1);
-  }
-  mdlpvp->effdp->next=mdlpvp->eff_dat_head;
-  mdlpvp->eff_dat_head=mdlpvp->effdp;
-  mdlpvp->effdp->eff=mdlpvp->specp;
-  mdlpvp->effdp->quantity_type=mdlpvp->mol_quant_type;
-  mdlpvp->effdp->quantity=$<dbl>3;
-  mdlpvp->effdp->orientation=mdlpvp->orient_class;
-  if (mdlpvp->orient_specified==0)
-  {
-    if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
-    {
-      mdlerror_fmt(mdlpvp, "Error: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
-      return 1;
-    }
-    else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
-    {
-      mdlerror_fmt(mdlpvp, "Warning: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
-    }
-  }
-
-  /* restore default values */
-  mdlpvp->orient_specified = 0;
-  mdlpvp->orient_class = ORIENT_NOT_SET;
-};
-
-
-surface_class_viz_value_stmt: VIZ_VALUE '=' num_expr
-{
-  mdlpvp->specp->region_viz_value = (int)$<dbl>3;
-};
-
-
-existing_surface_molecule: existing_molecule
-{
-  mdlpvp->orient_specified=0;
-  mdlpvp->orient_class=0;
-}
-	orientation_class
-{
-  mdlpvp->stp2=$<sym>1;
-  mdlpvp->specp=(struct species *)mdlpvp->stp2->value;
-  if ((mdlpvp->specp->flags & ON_GRID) == 0)
-  {
-    mdlerror_fmt(mdlpvp, "Invalid surface molecule specified: %s", mdlpvp->stp2->name);
-    return(1);
-  }
-  $$=mdlpvp->stp2;
-};
-
-existing_molecule_opt_orient: existing_molecule
-{
-  mdlpvp->orient_specified=0;
-  mdlpvp->orient_class=0;
-}
-	orientation_class
-{
-  $$=$<sym>1;
-};
-
-
-chkpt_stmt: CHECKPOINT_INFILE '=' file_name
-{
-  if ( volp->chkpt_infile == NULL ) {
-    volp->chkpt_infile=$<str>3;
-    if ((mdlpvp->file=fopen(volp->chkpt_infile,"r"))==NULL) {
-      volp->chkpt_init=1;
-    }
-    else {
-      volp->chkpt_init=0;
-      fclose(mdlpvp->file);
-    }
-    volp->chkpt_flag = 1;
-  }
-}
-	| CHECKPOINT_OUTFILE '=' file_name
-{
-  volp->chkpt_outfile=$<str>3;
-  volp->chkpt_flag = 1;
-}
-	| CHECKPOINT_ITERATIONS '=' num_expr
-{
-  volp->chkpt_iterations=(long long) $<dbl>3;
-  if(volp->chkpt_iterations <= 0){
-     mdlerror(mdlpvp, "Error: CHECKPOINTS_ITERATIONS is either zero or negative\n");
-     return 1;
-  }
-  volp->chkpt_flag = 1;
-};
-
-
-release_pattern_def: DEFINE_RELEASE_PATTERN new_release_pattern '{'
-{
-	mdlpvp->gp=$<sym>2;
-	mdlpvp->rpatp=(struct release_pattern *)mdlpvp->gp->value;
-}
-	list_req_release_pattern_cmds
-	'}'
-{
-  if (mdlpvp->rpatp->release_interval<=0)
-  {
-    mdlerror(mdlpvp, "Release interval must be set to a positive number.");
-    return 1;
-  }
-  if (mdlpvp->rpatp->train_interval<=0)
-  {
-    mdlerror(mdlpvp, "Train interval must be set to a positive number.");
-    return 1;
-  }
-  if (mdlpvp->rpatp->train_duration > mdlpvp->rpatp->train_interval)
-  {
-    mdlerror(mdlpvp, "Train duration must not be longer than the train interval.");
-    return 1;
-  }
-  if (mdlpvp->rpatp->train_duration <= 0)
-  {
-    mdlerror(mdlpvp, "Train duration must be set to a positive number.");
-  }
-  no_printf("Release pattern %s defined:\n",mdlpvp->gp->name);
-  no_printf("\tdelay = %f\n",mdlpvp->rpatp->delay);
-  no_printf("\trelease_interval = %f\n",mdlpvp->rpatp->release_interval);
-  no_printf("\ttrain_interval = %f\n",mdlpvp->rpatp->train_interval);
-  no_printf("\ttrain_duration = %f\n",mdlpvp->rpatp->train_duration);
-  no_printf("\tnumber_of_trains = %d\n",mdlpvp->rpatp->number_of_trains);
-};
-
-new_release_pattern: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,RPAT,volp->main_sym_table))==NULL) {
-    if ((mdlpvp->gp=store_sym(mdlpvp->sym_name,RPAT,volp->main_sym_table))==NULL) {
-      mdlerror_fmt(mdlpvp, "Out of memory while creating release pattern: %s", mdlpvp->sym_name);
-      if (mdlpvp->sym_name==mdlpvp->cval) {
-        mdlpvp->cval=NULL;
-      }
-      else {
-        mdlpvp->cval_2=NULL;
-      }
-      free((void *)mdlpvp->sym_name);
-      return(1);
-    }
-  }
-  else {
-    mdlerror_fmt(mdlpvp, "Release pattern already defined: %s", mdlpvp->sym_name);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  $$=mdlpvp->gp;
-};
-
-/*
-existing_release_pattern: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,RPAT,volp->main_sym_table))==NULL) {
-    mdlerror_fmt(mdlpvp, "Undefined release pattern: %s", mdlpvp->sym_name);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free((void *)mdlpvp->sym_name);
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-  $$=mdlpvp->gp;
-};
-*/
-
-existing_release_pattern_xor_rxpn: VAR
-{
-  struct sym_table *rpat;
-  struct sym_table *rxpn;
-  
-  if (mdlpvp->cval_2!=NULL) mdlpvp->sym_name=mdlpvp->cval_2;
-  else mdlpvp->sym_name=mdlpvp->cval;
-  
-  rpat=retrieve_sym(mdlpvp->sym_name,RPAT,volp->main_sym_table);
-  rxpn=retrieve_sym(mdlpvp->sym_name,RXPN,volp->main_sym_table);
-  
-  if (mdlpvp->sym_name==mdlpvp->cval) mdlpvp->cval=NULL;
-  else mdlpvp->cval_2=NULL;
-  free(mdlpvp->sym_name);
-  mdlpvp->sym_name=NULL;
-
-  if (rpat==NULL && rxpn==NULL)
-  {
-    mdlerror(mdlpvp, "Cannot find named release pattern.");
-    return 1;
-  }
-  else if (rpat!=NULL && rxpn!=NULL)
-  {
-    mdlerror(mdlpvp, "Named release pattern might be a pattern or a reaction pathway.  Please change one name.");
-    return 1;
-  }
-  else
-  {
-    if (rpat!=NULL) mdlpvp->gp=rpat;
-    else mdlpvp->gp=rxpn;
-  }
-  
-  $$=mdlpvp->gp;
-};
-
-
-list_req_release_pattern_cmds: req_release_pattern_cmd
-	| list_req_release_pattern_cmds req_release_pattern_cmd
+                                                        $$ = $2;
+                                                      }
 ;
 
+rx_rate2: '[' rx_dir_rate ',' rx_dir_rate ']'         {
+                                                        if (($2.forward_rate.rate_type  != RATE_UNSET && $4.forward_rate.rate_type  != RATE_UNSET)  ||
+                                                            ($2.backward_rate.rate_type != RATE_UNSET && $4.backward_rate.rate_type != RATE_UNSET))
+                                                        {
+                                                          mdlerror_fmt(mdlpvp, "Error: When two reaction rates are specified, one must be a forward rate, and one must be a reverse rate");
+                                                          return 1;
+                                                        }
 
-req_release_pattern_cmd:
-	DELAY '=' num_expr
-{
-  mdlpvp->rpatp->delay=$<dbl>3/volp->time_unit;
-}
-	| RELEASE_INTERVAL '=' num_expr
-{
-  mdlpvp->rpatp->release_interval=$<dbl>3/volp->time_unit;
-}
-	| TRAIN_INTERVAL '=' num_expr
-{
-  mdlpvp->rpatp->train_interval=$<dbl>3/volp->time_unit;
-}
-	| TRAIN_DURATION '=' num_expr
-{
-  mdlpvp->rpatp->train_duration=$<dbl>3/volp->time_unit;
-}
-	| NUMBER_OF_TRAINS '=' num_expr
-{
-  mdlpvp->rpatp->number_of_trains=(int) $<dbl>3;
-}
-	| NUMBER_OF_TRAINS '=' UNLIMITED
-{
-  mdlpvp->rpatp->number_of_trains=INT_MAX;
-};
+                                                        $$ = $2;
+                                                        if ($4.forward_rate.rate_type != RATE_UNSET)
+                                                          $$.forward_rate = $4.forward_rate;
+                                                        else
+                                                          $$.backward_rate = $4.backward_rate;
+                                                      }
+;
 
+rx_dir_rate:
+          atomic_rate                                 { $$.forward_rate = $1; $$.backward_rate.rate_type = RATE_UNSET; CHECK(mdl_valid_rate(mdlpvp, &$1)); }
+        | '>' atomic_rate                             { $$.forward_rate = $2; $$.backward_rate.rate_type = RATE_UNSET; CHECK(mdl_valid_rate(mdlpvp, &$2)); }
+        | '<' atomic_rate                             { $$.backward_rate = $2; $$.forward_rate.rate_type = RATE_UNSET; CHECK(mdl_valid_rate(mdlpvp, &$2)); }
+;
 
-physical_object_def: object_def
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  mdlpvp->curr_obj=volp->root_object;
-  if (mdlpvp->curr_obj->first_child==NULL) {
-    mdlpvp->curr_obj->first_child=mdlpvp->objp;
-  }
-  if (mdlpvp->curr_obj->last_child!=NULL) {
-    mdlpvp->curr_obj->last_child->next=mdlpvp->objp;
-  }
-  mdlpvp->curr_obj->last_child=mdlpvp->objp;
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-  mdlpvp->objp->next=NULL;
-};
+atomic_rate:
+          num_expr_only                               { $$.rate_type = RATE_CONSTANT; $$.v.rate_constant = $1; }
+        | str_expr_only                               { $$.rate_type = RATE_FILE; $$.v.rate_file = $1; }
+        | existing_var_only                           {
+                                                        struct sym_table *rate_sym = $1;
+                                                        switch (rate_sym->sym_type)
+                                                        {
+                                                          case DBL:
+                                                            $$.rate_type = RATE_CONSTANT;
+                                                            $$.v.rate_constant = *(double *) rate_sym->value;
+                                                            break;
 
+                                                          case STR:
+                                                            $$.rate_type = RATE_FILE;
+                                                            if (($$.v.rate_file = mdl_strdup(mdlpvp, (char *) rate_sym->value)) == NULL)
+                                                              return 1;
+                                                            break;
 
-object_def:
-        meta_object_def
-{
-        $$=$<sym>1;
-}
-        | release_site_def
-{
-        $$=$<sym>1;
-}
-        | box_def
-{
-        $$=$<sym>1;
-}
-        | polygon_list_def
-{
-        $$=$<sym>1;
-}
-        | voxel_list_def
-{
-        $$=$<sym>1;
-};
+                                                          default:
+                                                            mdlerror(mdlpvp, "Invalid variable used for rates: must be number or filename");
+                                                            return 1;
+                                                        }
+                                                      }
+        | COMPLEX_RATE existing_macromolecule VAR     {
+                                                        struct species *complex_species = (struct species *) $2->value;
+                                                        if (! (complex_species->flags & IS_COMPLEX))
+                                                        {
+                                                          mdlerror_fmt(mdlpvp,
+                                                                       "The molecule '%s' specified in the complex reaction rate is not a complex.",
+                                                                       $2->name);
+                                                          free($3);
+                                                          return 1;
+                                                        }
 
+                                                        $$.rate_type = RATE_COMPLEX;
+                                                        if (($$.v.rate_complex = macro_lookup_ruleset((struct complex_species *) complex_species, $3)) == NULL)
+                                                        {
+                                                          mdlerror_fmt(mdlpvp,
+                                                                       "The complex '%s' has no rate rule named '%s'.",
+                                                                       $2->name, $3);
+                                                          free($3);
+                                                          return 1;
+                                                        }
+                                                        free($3);
+                                                      }
+;
 
-meta_object_def:
-        new_object OBJECT '{'
-{
-	mdlpvp->gp=$<sym>1;
-        mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-        mdlpvp->objp->object_type=META_OBJ;
-        mdlpvp->objp->parent=mdlpvp->curr_obj;
-        mdlpvp->curr_obj=mdlpvp->objp;
-}
-        list_objects
-        list_opt_object_cmds
-        '}'
-{
-        mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
-        mdlpvp->curr_obj->parent->n_walls_actual+=mdlpvp->curr_obj->n_walls_actual;
-        mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
-        mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
-        if (mdlpvp->object_name_list_end->prev!=NULL) {
-          mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
-        }
-        else {
-          mdlpvp->object_name_list_end->name=NULL;
-        }
-        $$=$<sym>1;
-};
+/* =================================================================== */
+/* Release pattern definitions */
 
+release_pattern_def:
+          DEFINE_RELEASE_PATTERN
+          new_release_pattern
+          '{'
+              list_req_release_pattern_cmds
+          '}'                                         { CHECK(mdl_set_release_pattern(mdlpvp, $2, &$4)); }
+;
 
-new_object: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-  if (mdlpvp->object_name_list==NULL) {
-    if ((mdlpvp->object_name_list=(struct name_list *)malloc
-        (sizeof(struct name_list)))==NULL) {
-      mdlerror_fmt(mdlpvp, "Out of memory while creating object: %s", mdlpvp->sym_name);
-      return(1);
-    }
-    mdlpvp->object_name_list->name=NULL;
-    mdlpvp->object_name_list->prev=NULL;
-    mdlpvp->object_name_list->next=NULL;
-    mdlpvp->object_name_list_end=mdlpvp->object_name_list;
-  }
-  if ((mdlpvp->object_name_list_end=concat_obj_name(mdlpvp->object_name_list_end,mdlpvp->sym_name))==NULL) {
-    mdlerror_fmt(mdlpvp, "Out of memory while creating object: %s", mdlpvp->sym_name);
-    return(1);
-  }
-  mdlpvp->obj_name=mdlpvp->object_name_list_end->name;
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->obj_name,OBJ,volp->main_sym_table))==NULL) {
-    if ((mdlpvp->gp=store_sym(mdlpvp->obj_name,OBJ,volp->main_sym_table))==NULL) {
-      mdlerror_fmt(mdlpvp, "Out of memory while creating object: %s", mdlpvp->obj_name);
-      if (mdlpvp->sym_name==mdlpvp->cval) {
-        mdlpvp->cval=NULL;
-      }
-      else {
-        mdlpvp->cval_2=NULL;
-      }
-      free((void *)mdlpvp->sym_name);
-      return(1);
-    }
-  }
-  else {
-    mdlerror_fmt(mdlpvp, "Object already defined: %s", mdlpvp->obj_name);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  mdlpvp->objp->last_name=mdlpvp->sym_name;
-  no_printf("Creating new object: %s\n",mdlpvp->obj_name);
-  fflush(mdlpvp->vol->err_file);
-  $$=mdlpvp->gp;
-};
+new_release_pattern: VAR                              { CHECKN($$ = mdl_new_release_pattern(mdlpvp, $1)); }
+;
 
+existing_release_pattern_xor_rxpn: VAR                { CHECKN($$ = mdl_existing_release_pattern_or_rxn_pathname(mdlpvp, $1)); }
+;
 
-existing_object: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-  if ((mdlpvp->gp=retrieve_sym(get_first_name(mdlpvp->sym_name),OBJ,volp->main_sym_table))==NULL) {
-    mdlerror_fmt(mdlpvp, "Undefined object: %s", mdlpvp->sym_name);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-  mdlpvp->top_objp=(struct object *)mdlpvp->gp->value;
-  if ((mdlpvp->objp=find_full_name(mdlpvp->top_objp,mdlpvp->sym_name,NULL))==NULL) {
-    mdlerror_fmt(mdlpvp, "Undefined object: %s", mdlpvp->sym_name);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  strcpy(mdlpvp->full_name, mdlpvp->sym_name);
-  no_printf("found existing object %s\n",mdlpvp->objp->sym->name);
-  no_printf("first name of existing object %s is %s\n",mdlpvp->sym_name,get_first_name(mdlpvp->sym_name));
-  fflush(mdlpvp->vol->err_file);
-#ifdef KELP
-  mdlpvp->objp->sym->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->objp->sym->ref_count);
-#endif
-  $$=mdlpvp->objp->sym;
-};
+list_req_release_pattern_cmds:
+          /* empty */                                 { memset(&$$, 0, sizeof($$)); }
+        | list_req_release_pattern_cmds
+          DELAY '=' num_expr                          { $$ = $1; $$.delay = $4 / mdlpvp->vol->time_unit; }
+        | list_req_release_pattern_cmds
+          RELEASE_INTERVAL '=' num_expr               { $$ = $1; $$.release_interval = $4 / mdlpvp->vol->time_unit; }
+        | list_req_release_pattern_cmds
+          TRAIN_INTERVAL '=' num_expr                 { $$ = $1; $$.train_interval = $4 / volp->time_unit; }
+        | list_req_release_pattern_cmds
+          TRAIN_DURATION '=' num_expr                 { $$ = $1; $$.train_duration = $4 / volp->time_unit; }
+        | list_req_release_pattern_cmds
+          NUMBER_OF_TRAINS '=' train_count            { $$ = $1; $$.number_of_trains = $4; }
+;
 
-existing_one_or_multiple_objects: VAR
-{
+train_count: num_expr                                 { $$ = (int) $1; }
+           | UNLIMITED                                { $$ = INT_MAX; }
+;
 
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
+/* =================================================================== */
+/* Instance definitions */
 
-     if ((mdlpvp->gp=retrieve_sym(get_first_name(mdlpvp->sym_name),OBJ,volp->main_sym_table))==NULL) {
-       mdlerror_fmt(mdlpvp, "Undefined object: %s", mdlpvp->sym_name);
-       if (mdlpvp->sym_name==mdlpvp->cval) {
-         mdlpvp->cval=NULL;
-       }
-       else {
-         mdlpvp->cval_2=NULL;
-       }
-       free((void *)mdlpvp->sym_name);
-       return(1);
-     }
-     mdlpvp->top_objp=(struct object *)mdlpvp->gp->value;
-     if ((mdlpvp->objp=find_full_name(mdlpvp->top_objp,mdlpvp->sym_name,NULL))==NULL) {
-       mdlerror_fmt(mdlpvp, "Undefined object: %s", mdlpvp->sym_name);
-       if (mdlpvp->sym_name==mdlpvp->cval) {
-          mdlpvp->cval=NULL;
-       }
-       else {
-          mdlpvp->cval_2=NULL;
-       }
-       free((void *)mdlpvp->sym_name);
-       return(1);
-     }
-     if (mdlpvp->sym_name==mdlpvp->cval) {
-        mdlpvp->cval=NULL;
-     }
-     else {
-       mdlpvp->cval_2=NULL;
-     }
-     strcpy(mdlpvp->full_name, mdlpvp->sym_name);
-     no_printf("found existing object %s\n",mdlpvp->objp->sym->name);
-     no_printf("first name of existing object %s is %s\n",mdlpvp->sym_name,get_first_name(mdlpvp->sym_name));
-     fflush(mdlpvp->vol->err_file);
-#ifdef KELP
-     mdlpvp->objp->sym->ref_count++;
-     no_printf("ref_count: %d\n",mdlpvp->objp->sym->ref_count);
-#endif
-     $$=mdlpvp->objp->sym;
+instance_def:
+          INSTANTIATE                                 { mdlpvp->current_object = mdlpvp->vol->root_instance; }
+          new_object OBJECT
+          start_object
+            list_objects                              {
+                                                        struct object *objp = (struct object *) $3->value;
+                                                        mdl_add_child_objects(volp->root_instance, objp, objp);
+                                                      }
+            list_opt_object_cmds
+          end_object                                  {
+                                                        struct object *new_object = (struct object *) $3->value;
+                                                        mdl_add_child_objects(new_object, $6.obj_head, $6.obj_tail);
+                                                        new_object->object_type = META_OBJ;
+                                                        mdlpvp->current_object = mdlpvp->vol->root_object;
+                                                      }
+;
 
-     if (mdlpvp->sym_name==mdlpvp->cval) {
-        mdlpvp->cval=NULL;
-     }
-     else {
-       mdlpvp->cval_2=NULL;
-     }
-     fflush(mdlpvp->vol->err_file);
-}
-     | WILDCARD_VAR
-{
+/* =================================================================== */
+/* Object type definitions */
 
+physical_object_def: object_def                       { mdl_add_child_objects(mdlpvp->vol->root_object, $1, $1); }
+;
 
-  int i;
-  struct sym_table *sym_t;
-  struct sym_table_list *stl;
-  char *wildcard_string;
+object_def: meta_object_def
+          | release_site_def
+          | box_def
+          | polygon_list_def
+          | voxel_list_def
+;
 
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
+/* This non-terminal has dangerous side effects, modifying the global parser
+ * state.  Notably, it updates current_object and adds a name to the object
+ * name-list.  Each occurrence of this non-terminal in the grammar MUST have a
+ * corresponding end_object (or must explicitly call mdl_finish_object(mdlpvp))
+ * when the object scope is closed.
+ */
+new_object: VAR                                       { CHECKN($$ = mdl_start_object(mdlpvp, $1)); }
+;
 
-  wildcard_string = strip_quotes(mdlpvp->sym_name);
-  if (wildcard_string == NULL)
-  {
-      mdlerror_fmt(mdlpvp, "Out of memory while parsing wildcard variable");
-      free((void *)mdlpvp->sym_name);
-      return (1);
-  }
+start_object: '{'
+;
 
-    /* here is a wildcard object */
-    /* do a full sym_table scan comparing each key */
+end_object: '}'                                       { mdl_finish_object(mdlpvp); }
+;
 
-    mdlpvp->sym_table_list_head = NULL;
-
-    for(i = 0; i < SYM_HASHSIZE; i++)
-    {
-       for(sym_t = volp->main_sym_table[i]; sym_t != NULL; sym_t = sym_t->next)
-       {
-          if(is_wildcard_match(wildcard_string, sym_t->name)){ 
-
-           if(sym_t->sym_type == OBJ)
-           {
-               stl = (struct sym_table_list *)mem_get(mdlpvp->sym_list_mem);
-                if(stl == NULL){
-                  mdlerror(mdlpvp, "Out of memory while parsing wildcard variable");
-                  return 1;
-                }
-                stl->node = sym_t;
-                stl->next = NULL;
-                if(mdlpvp->sym_table_list_head == NULL){
-                   mdlpvp->sym_table_list_head = stl;
-                }else{
-                   stl->next = mdlpvp->sym_table_list_head;
-                   mdlpvp->sym_table_list_head = stl;
-                }
-            }
-          }
-
-         } /* end for */
-    
-    } /* end for */
-
-     if (mdlpvp->sym_name==mdlpvp->cval) {
-        mdlpvp->cval=NULL;
-     }
-     else {
-       mdlpvp->cval_2=NULL;
-     }
-     free((void *)mdlpvp->sym_name);
-     free(wildcard_string);
-     fflush(mdlpvp->vol->err_file);
-     
-     mdlpvp->sym_table_list_head = sort_sym_list_by_name(mdlpvp->sym_table_list_head);
-     
-     $$=NULL; /* Means we need to look in list */
-};
-
-list_opt_object_cmds: /* empty */
-	| list_opt_object_cmds opt_object_cmd
+list_opt_object_cmds:
+          /* empty */
+        | list_opt_object_cmds opt_object_cmd
 ;
 
 
 opt_object_cmd: transformation
-{
-};
-
+;
 
 transformation:
-        TRANSLATE '=' point
-{
-        mdlpvp->pntp1=$<vec3>3;
-        mdlpvp->pntp1->x *= mdlpvp->vol->r_length_unit;
-        mdlpvp->pntp1->y *= mdlpvp->vol->r_length_unit;
-        mdlpvp->pntp1->z *= mdlpvp->vol->r_length_unit;
-        init_matrix(mdlpvp->tm);
-        translate_matrix(mdlpvp->tm,mdlpvp->tm,mdlpvp->pntp1);
-        mult_matrix(mdlpvp->curr_obj->t_matrix,mdlpvp->tm,mdlpvp->curr_obj->t_matrix,4,4,4);
-}
-        | SCALE '=' point
-{
-        mdlpvp->pntp1=$<vec3>3;
-        init_matrix(mdlpvp->tm);
-        scale_matrix(mdlpvp->tm,mdlpvp->tm,mdlpvp->pntp1);
-        mult_matrix(mdlpvp->curr_obj->t_matrix,mdlpvp->tm,mdlpvp->curr_obj->t_matrix,4,4,4);
-}
-        | ROTATE '=' point ',' num_expr
-{
-        mdlpvp->pntp1=$<vec3>3;
-        if (!distinguishable(vect_length(mdlpvp->pntp1),0.0,EPSILON))
-        {
-          mdlerror(mdlpvp, "Rotation vector has zero length.");
-          return(1);
-        }
-        init_matrix(mdlpvp->tm);
-        rotate_matrix(mdlpvp->tm,mdlpvp->tm,mdlpvp->pntp1,$<dbl>5);
-        mult_matrix(mdlpvp->curr_obj->t_matrix,mdlpvp->tm,mdlpvp->curr_obj->t_matrix,4,4,4);
-};
+          TRANSLATE '=' point                         { mdl_transform_translate(mdlpvp, mdlpvp->current_object->t_matrix, $3); }
+        | SCALE '=' point_or_num                      { mdl_transform_scale(mdlpvp, mdlpvp->current_object->t_matrix, $3); }
+        | ROTATE '=' point ',' num_expr               { CHECK(mdl_transform_rotate(mdlpvp, mdlpvp->current_object->t_matrix, $3, $5)); }
+;
 
+/* Object type: Meta-objects */
+meta_object_def:
+        new_object OBJECT
+        start_object
+          list_objects                                { mdlpvp->current_object = (struct object *) $1->value; }
+          list_opt_object_cmds
+        end_object                                    {
+                                                        struct object *new_object = (struct object *) $1->value;
+                                                        new_object->object_type=META_OBJ;
+                                                        mdl_add_child_objects(new_object, $4.obj_head, $4.obj_tail);
+                                                        $$ = new_object;
+                                                      }
+;
 
 list_objects:
-        object_ref
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  if (mdlpvp->curr_obj->first_child==NULL) {
-    mdlpvp->curr_obj->first_child=mdlpvp->objp;
-  }
-  if (mdlpvp->curr_obj->last_child!=NULL) {
-    mdlpvp->curr_obj->last_child->next=mdlpvp->objp;
-  }
-  mdlpvp->curr_obj->last_child=mdlpvp->objp;
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-  mdlpvp->objp->next=NULL;
-}
-        | list_objects object_ref
-{
-  mdlpvp->gp=$<sym>2;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  if (mdlpvp->curr_obj->first_child==NULL) {
-    mdlpvp->curr_obj->first_child=mdlpvp->objp;
-  }
-  if (mdlpvp->curr_obj->last_child!=NULL) {
-    mdlpvp->curr_obj->last_child->next=mdlpvp->objp;
-  }
-  mdlpvp->curr_obj->last_child=mdlpvp->objp;
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-  mdlpvp->objp->next=NULL;
-};
+        object_ref                                    { $1->next = NULL; $$.obj_tail = $$.obj_head = $1; }
+      | list_objects object_ref                       { $2->next = NULL; $$ = $1; $$.obj_tail = $$.obj_tail->next = $2; }
+;
 
-
-object_ref:
-        existing_object_ref
-{
-  $$=$<sym>1;
-}
-        | object_def
-{
-  $$=$<sym>1;
-};
-
+object_ref: existing_object_ref
+          | object_def
+;
 
 existing_object_ref:
-        new_object OBJECT existing_object '{'
-{
-  char mdl_err_msg[1024];
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->tp=$<sym>3;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  mdlpvp->objp2=(struct object *)mdlpvp->tp->value;
-  mdlpvp->objp->object_type=mdlpvp->objp2->object_type;
-  /* replicate all of object tree rooted at mdlpvp->objp2 */
-  if (copy_object(volp,mdlpvp->curr_obj,mdlpvp->objp,mdlpvp->objp2,mdl_err_msg)) {
-    mdlerror(mdlpvp, mdl_err_msg);
-    return(1);
-  }
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-  mdlpvp->curr_obj=mdlpvp->objp;
-}
+        new_object OBJECT existing_object
+        start_object                                  { CHECK(mdl_deep_copy_object(mdlpvp, (struct object *) $1->value, (struct object *) $3->value)); }
           list_opt_object_cmds
-        '}'
-{
-  mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
-  mdlpvp->curr_obj->parent->n_walls_actual+=mdlpvp->curr_obj->n_walls_actual;
-  mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
-  mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
-  if (mdlpvp->object_name_list_end->prev!=NULL) {
-    mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
-  }
-  else {
-    mdlpvp->object_name_list_end->name=NULL;
-  }
+        end_object                                    { $$ = (struct object *) $1->value; }
+;
 
-  $$=$<sym>1;
-};
-
-
+/* Object type: Release sites */
 release_site_def: release_site_def_old
-{
-  $$ = $<sym>1;
-}
-	| release_site_def_new
-{
-  $$ = $<sym>1;
-};
+                | release_site_def_new
+;
 
+release_site_def_new:
+          new_object RELEASE_SITE
+          start_object                                {
+                                                        struct object *objp;
+                                                        objp = (struct object *) $1->value;
+                                                        objp->object_type = REL_SITE_OBJ;
+                                                        CHECKN(objp->contents = mdlpvp->current_release_site = mdl_new_release_site(mdlpvp, $1->name));
+                                                      }
+            release_site_geom
+            list_release_site_cmds
+            list_opt_object_cmds
+          end_object                                  {
+                                                        struct object *objp_new = (struct object *) $1->value;
+                                                        no_printf("Release site %s defined:\n",$1->name);
+                                                        CHECK(mdl_is_release_site_valid(mdlpvp, mdlpvp->current_release_site));
+                                                        mdlpvp->current_release_site = NULL;
+                                                        $$ = objp_new;
+                                                      }
+;
 
-release_site_def_new: new_object RELEASE_SITE '{'
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  if ((mdlpvp->rsop=(struct release_site_obj *)malloc
-              (sizeof(struct release_site_obj)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating release site");
-    return(1);
-  }
-  mdlpvp->rsop->location=NULL;
-  mdlpvp->rsop->mol_type=NULL;
-  mdlpvp->rsop->release_number_method=CONSTNUM;
-  mdlpvp->rsop->release_shape = SHAPE_UNDEFINED;
-  mdlpvp->rsop->orientation=0;
-  mdlpvp->rsop->release_number=0;
-  mdlpvp->rsop->mean_diameter=0;
-  mdlpvp->rsop->concentration=0;
-  mdlpvp->rsop->standard_deviation=0;
-  mdlpvp->rsop->diameter=NULL;
-  mdlpvp->rsop->region_data=NULL;
-  mdlpvp->rsop->mol_list=NULL;
-  mdlpvp->rsop->release_prob=1.0;
-  mdlpvp->rsop->pattern=volp->default_release_pattern;
-  mdlpvp->rsop->name = my_strcat(mdlpvp->gp->name, NULL); 
-
-  mdlpvp->objp->object_type=REL_SITE_OBJ;
-  mdlpvp->objp->contents=mdlpvp->rsop;
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-
-  mdlpvp->curr_obj=mdlpvp->objp;
-}
-	release_site_geom
-	list_release_site_cmds
-	list_opt_object_cmds
-	'}'
-{
-  no_printf("Release site %s defined:\n",mdlpvp->curr_obj->sym->name);
-  if (mdlpvp->rsop->release_shape!=SHAPE_LIST && mdlpvp->rsop->mol_type==NULL)
-  {
-    mdlerror(mdlpvp, "Must specify molecule to release using MOLECULE=molecule_name.");
-    return 1;
-  }
-  if (mdlpvp->rsop->release_number_method==CCNNUM)
-  {
-    if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==0 && mdlpvp->rsop->release_number != -3)
-    {
-      mdlerror(mdlpvp, "CONCENTRATION must be used with molecules that can diffuse in 3D");
-      if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==ON_GRID)
-      {
-	mdlerror(mdlpvp, "  (Use DENSITY for molecules diffusing in 2D.)");
-      }
-      return 1;
-    }
-    else if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==ON_GRID && mdlpvp->rsop->release_number != -2)
-    {
-      mdlerror(mdlpvp, "DENSITY must be used with molecules that can diffuse in 2D");
-      if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==0)
-      {
-	mdlerror(mdlpvp, "  (Use CONCENTRATION for molecules diffusing in 3D.)");
-      }
-      return 1;
-    }
-  }
-  if (mdlpvp->rsop->release_shape!=SHAPE_REGION)
-  {
-    if (mdlpvp->rsop->location==NULL)
-    {
-      if (mdlpvp->rsop->release_shape!=SHAPE_LIST || mdlpvp->rsop->mol_list==NULL)
-      {
-        mdlerror(mdlpvp, "Release site is missing location.\n");
-        return 1;
-      }
-      else
-      {
-	mdlpvp->rsop->location = (struct vector3*)malloc(sizeof(struct vector3));
-	if (mdlpvp->rsop->location==NULL)
-	{
-	  mdlerror(mdlpvp, "Out of memory storing region location");
-	  return 1;
-	}
-	mdlpvp->rsop->location->x = 0;
-	mdlpvp->rsop->location->y = 0;
-	mdlpvp->rsop->location->z = 0;	
-      }
-    }
-    no_printf("\tLocation = [%f,%f,%f]\n",mdlpvp->rsop->location->x,mdlpvp->rsop->location->y,mdlpvp->rsop->location->z);
-  }
-  mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
-  if (mdlpvp->object_name_list_end->prev!=NULL) {
-    mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
-  }
-  else {
-    mdlpvp->object_name_list_end->name=NULL;
-  }
- 
-  $$=$<sym>1;
-};
-
-release_site_geom: SHAPE '=' release_region_expr
-{
-  struct release_evaluator *re = $<rev>3;
-  struct release_region_data *rrd;
-  
-  mdlpvp->objp = mdlpvp->curr_obj;
-  
-  mdlpvp->rsop->release_shape = SHAPE_REGION;
-  mdlpvp->vol->place_waypoints_flag = 1;
-  
-  rrd = (struct release_region_data*)malloc(sizeof(struct release_region_data));
-  if (rrd==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory while trying to create release site on region");
-    return 1;
-  }
-  
-  rrd->n_walls_included = -1; /* Indicates uninitialized state */
-  rrd->cum_area_list = NULL;
-  rrd->wall_index = NULL;
-  rrd->obj_index = NULL;
-  rrd->n_objects = -1;
-  rrd->owners = NULL;
-  rrd->in_release = NULL;
-  rrd->self = mdlpvp->curr_obj;
-  
-  rrd->expression = re;
-  mdlpvp->rsop->region_data = rrd;
-  
-  if (check_release_regions(re,mdlpvp->curr_obj,mdlpvp->vol->root_instance))
-  {
-    mdlerror(mdlpvp, "Trying to release on a region that the release site cannot see!\n  Try grouping the release site and the corresponding geometry with an OBJECT.");
-    return 1;
-  }
-}
-        | SHAPE '=' existing_object
-{
-  struct release_region_data *rrd;
-  struct release_evaluator *re;
-
-  if((mdlpvp->objp->object_type == META_OBJ) ||
-     (mdlpvp->objp->object_type == REL_SITE_OBJ))
-  {
-    mdlerror(mdlpvp, "Error: only BOX or POLYGON_LIST objects may be assigned to the SHAPE keyword in the RELEASE_SITE definition.  Metaobjects or release objects are not allowed here.\n");
-    return(1);
-  }
-
-  mdlpvp->obj_name=mdlpvp->objp->sym->name;
-  strncpy(mdlpvp->temp_str,"",1024);
-  strncpy(mdlpvp->temp_str,mdlpvp->obj_name,1022);
-  strcat(mdlpvp->temp_str,",ALL");   
-  mdlpvp->region_name=strdup(mdlpvp->temp_str);
-  if(mdlpvp->region_name == NULL){
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing region");
-    return(1);
-  }
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->region_name,REG,volp->main_sym_table))==NULL) {
-    mdlerror_fmt(mdlpvp, "Undefined region: %s", mdlpvp->region_name);
-    return(1);
-  }
-  
-  re = (struct release_evaluator*)malloc(sizeof(struct release_evaluator));
-  if (re==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory while trying to create release site on region");
-    return 1;
-  }
-  
-  re->op = REXP_NO_OP | REXP_LEFT_REGION;
-  re->left = mdlpvp->gp->value;
-  re->right = NULL;
-  
-  ((struct region*)re->left)->flags |= COUNT_CONTENTS;
-  
-  mdlpvp->rsop->release_shape = SHAPE_REGION;
-  mdlpvp->vol->place_waypoints_flag = 1;
-  
-  rrd = (struct release_region_data*)malloc(sizeof(struct release_region_data));
-  if (rrd==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory while trying to create release site on region");
-    return 1;
-  }
-  
-  rrd->n_walls_included = -1; /* Indicates uninitialized state */
-  rrd->cum_area_list = NULL;
-  rrd->wall_index = NULL;
-  rrd->obj_index = NULL;
-  rrd->n_objects = -1;
-  rrd->owners = NULL;
-  rrd->in_release = NULL;
-  rrd->self = mdlpvp->curr_obj;
-  rrd->expression = re;
-  mdlpvp->rsop->region_data = rrd;
-
-  free((void *)mdlpvp->region_name);
-
-}
-	| SHAPE '=' SPHERICAL
-{
-  mdlpvp->rsop->release_shape = SHAPE_SPHERICAL;
-}
-	| SHAPE '=' CUBIC
-{
-  mdlpvp->rsop->release_shape = SHAPE_CUBIC;
-}
-	| SHAPE '=' ELLIPTIC
-{
-  mdlpvp->rsop->release_shape = SHAPE_ELLIPTIC;
-}
-	| SHAPE '=' RECTANGULAR_TOKEN
-{
-  mdlpvp->rsop->release_shape = SHAPE_RECTANGULAR
-}
-	| SHAPE '=' SPHERICAL_SHELL
-{
-  mdlpvp->rsop->release_shape = SHAPE_SPHERICAL_SHELL;
-}
-	| SHAPE '=' LIST
-{
-  mdlpvp->rsop->release_shape = SHAPE_LIST;
-  mdlpvp->rsop->release_number_method = CONSTNUM;
-};
+release_site_geom: SHAPE '=' release_region_expr      { CHECK(mdl_set_release_site_geometry_region(mdlpvp, mdlpvp->current_release_site, mdlpvp->current_object, $3)); }
+                 | SHAPE '=' existing_object          { CHECK(mdl_set_release_site_geometry_object(mdlpvp, mdlpvp->current_release_site, (struct object *) $3->value)); }
+                 | SHAPE '=' SPHERICAL                { mdlpvp->current_release_site->release_shape = SHAPE_SPHERICAL; }
+                 | SHAPE '=' CUBIC                    { mdlpvp->current_release_site->release_shape = SHAPE_CUBIC; }
+                 | SHAPE '=' ELLIPTIC                 { mdlpvp->current_release_site->release_shape = SHAPE_ELLIPTIC; }
+                 | SHAPE '=' RECTANGULAR_TOKEN        { mdlpvp->current_release_site->release_shape = SHAPE_RECTANGULAR; }
+                 | SHAPE '=' SPHERICAL_SHELL          { mdlpvp->current_release_site->release_shape = SHAPE_SPHERICAL_SHELL; }
+                 | SHAPE '=' LIST                     {
+                                                        mdlpvp->current_release_site->release_shape = SHAPE_LIST;
+                                                        mdlpvp->current_release_site->release_number_method = CONSTNUM;
+                                                      }
+;
 
 release_region_expr:
-	existing_region
-{
-  struct sym_table *my_sym = $<sym>1;
-  struct release_evaluator *re;
-  
-  mdlpvp->objp = mdlpvp->curr_obj;  /* Fix up vars from "existing_region" */
-  
-  re = (struct release_evaluator*)malloc(sizeof(struct release_evaluator));
-  if (re==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory while trying to create release site on region");
-    return 1;
-  }
-  
-  re->op = REXP_NO_OP | REXP_LEFT_REGION;
-  re->left = my_sym->value;
-  re->right = NULL;
-  
-  ((struct region*)re->left)->flags |= COUNT_CONTENTS;
-  
-  $$=re;
-}
-	| '(' release_region_expr ')'
-{
-  $$ = $<rev>2;
-}
-	| release_region_expr '+' release_region_expr
-{
-  struct release_evaluator *re;
-  re = pack_release_expr($<rev>1,$<rev>3,REXP_UNION);
-  if (re==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory while trying to create release site on region");
-    return 1;
-  }
-  $$ = re;
-}
-	| release_region_expr '-' release_region_expr
-{
-  struct release_evaluator *re;
-  re = pack_release_expr($<rev>1,$<rev>3,REXP_SUBTRACTION);
-  if (re==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory while trying to create release site on region");
-    return 1;
-  }
-  $$ = re;
-}
-	| release_region_expr '*' release_region_expr
-{
-  struct release_evaluator *re;
-  re = pack_release_expr($<rev>1,$<rev>3,REXP_INTERSECTION);
-  if (re==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory while trying to create release site on region");
-    return 1;
-  }
-  $$ = re;
-}
-	| release_region_expr '&' release_region_expr
-{
-  struct release_evaluator *re;
-  re = pack_release_expr($<rev>1,$<rev>3,REXP_INCLUSION);
-  if (re==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory while trying to create release site on region");
-    return 1;
-  }
-  $$ = re;
-};
-
-
-release_site_def_old: new_object release_site_geom_old '{'
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  if ((mdlpvp->rsop=(struct release_site_obj *)malloc
-              (sizeof(struct release_site_obj)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating release site");
-    return(1);
-  }
-  mdlpvp->rsop->location=NULL;
-  mdlpvp->rsop->mol_type=NULL;
-  mdlpvp->rsop->release_number_method=CONSTNUM;
-  mdlpvp->rsop->release_shape = $<tok>2;
-  mdlpvp->rsop->release_number=0;
-  mdlpvp->rsop->mean_diameter=0;
-  mdlpvp->rsop->concentration=0;
-  mdlpvp->rsop->standard_deviation=0;
-  mdlpvp->rsop->diameter=NULL;
-  mdlpvp->rsop->region_data=NULL;
-  mdlpvp->rsop->mol_list=NULL;
-  mdlpvp->rsop->release_prob=1.0;
-  mdlpvp->rsop->pattern=volp->default_release_pattern;
-  mdlpvp->rsop->name = my_strcat(mdlpvp->gp->name, NULL); 
-  mdlpvp->objp->object_type=REL_SITE_OBJ;
-  mdlpvp->objp->contents=mdlpvp->rsop;
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-  mdlpvp->curr_obj=mdlpvp->objp;
-}
-	list_release_site_cmds
-	list_opt_object_cmds
-	'}'
-{
-  no_printf("Release site %s defined:\n",mdlpvp->curr_obj->sym->name);
-  no_printf("\tLocation = [%f,%f,%f]\n",mdlpvp->rsop->location->x,mdlpvp->rsop->location->y,mdlpvp->rsop->location->z);
-
-  mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
-  if (mdlpvp->object_name_list_end->prev!=NULL) {
-    mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
-  }
-  else {
-    mdlpvp->object_name_list_end->name=NULL;
-  }
-  $$=$<sym>1;
-};
-
-
-release_site_geom_old: SPHERICAL_RELEASE_SITE
-{
-  $$=SHAPE_SPHERICAL;
-}
-	| CUBIC_RELEASE_SITE
-{
-  $$=SHAPE_CUBIC;
-}
-	| ELLIPTIC_RELEASE_SITE
-{
-  $$=SHAPE_ELLIPTIC;
-}
-	| RECTANGULAR_RELEASE_SITE
-{
-  $$=SHAPE_RECTANGULAR;
-}
-	| SPHERICAL_SHELL_SITE
-{
-  $$=SHAPE_SPHERICAL_SHELL;
-};
-
-
-list_release_site_cmds: release_site_cmd
-	| list_release_site_cmds release_site_cmd
+       existing_region                                { CHECKN($$ = mdl_new_release_region_expr_term(mdlpvp, $1)); }
+     | '(' release_region_expr ')'                    { $$ = $2; }
+     | release_region_expr '+' release_region_expr    { CHECKN($$ = mdl_new_release_region_expr_binary(mdlpvp, $1, $3, REXP_UNION)); }
+     | release_region_expr '-' release_region_expr    { CHECKN($$ = mdl_new_release_region_expr_binary(mdlpvp, $1, $3, REXP_SUBTRACTION)); }
+     | release_region_expr '*' release_region_expr    { CHECKN($$ = mdl_new_release_region_expr_binary(mdlpvp, $1, $3, REXP_INTERSECTION)); }
+     | release_region_expr '&' release_region_expr    { CHECKN($$ = mdl_new_release_region_expr_binary(mdlpvp, $1, $3, REXP_INCLUSION)); }
 ;
 
+release_site_def_old:
+          new_object release_site_geom_old
+          start_object                                {
+                                                        struct object *objp=(struct object *) $1->value;
+                                                        objp->object_type = REL_SITE_OBJ;
+                                                        CHECKN(objp->contents = mdlpvp->current_release_site = mdl_new_release_site(mdlpvp, $1->name));
+                                                        mdlpvp->current_release_site->release_shape = $2;
+                                                      }
+            list_release_site_cmds
+            list_opt_object_cmds
+          end_object                                  {
+                                                        struct object *objp_new = (struct object *) $1->value;
+                                                        no_printf("Release site %s defined:\n", $1->name);
+                                                        no_printf("\tLocation = [%f,%f,%f]\n",
+                                                                  mdlpvp->current_release_site->location->x,
+                                                                  mdlpvp->current_release_site->location->y,
+                                                                  mdlpvp->current_release_site->location->z);
+                                                        mdlpvp->current_release_site = NULL;
+                                                        $$ = objp_new;
+                                                      }
+;
+
+release_site_geom_old: SPHERICAL_RELEASE_SITE         { $$ = SHAPE_SPHERICAL; }
+                     | CUBIC_RELEASE_SITE             { $$ = SHAPE_CUBIC; }
+                     | ELLIPTIC_RELEASE_SITE          { $$ = SHAPE_ELLIPTIC; }
+                     | RECTANGULAR_RELEASE_SITE       { $$ = SHAPE_RECTANGULAR; }
+                     | SPHERICAL_SHELL_SITE           { $$ = SHAPE_SPHERICAL_SHELL; }
+;
+
+list_release_site_cmds:
+          release_site_cmd
+        | list_release_site_cmds release_site_cmd
+;
+
+existing_num_or_array: VAR                            { CHECKN($$ = mdl_existing_num_or_array(mdlpvp, $1)); }
+;
 
 release_site_cmd:
-	LOCATION '=' point
-{
-  mdlpvp->rsop->location=$<vec3>3;
-  mdlpvp->rsop->location->x *= mdlpvp->vol->r_length_unit;
-  mdlpvp->rsop->location->y *= mdlpvp->vol->r_length_unit;
-  mdlpvp->rsop->location->z *= mdlpvp->vol->r_length_unit;
-}
-	| MOLECULE '=' existing_molecule_opt_orient
-{
-  mdlpvp->gp=$<sym>3;
-  mdlpvp->rsop->mol_type=(struct species *)mdlpvp->gp->value;
-  if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==0 &&
-      mdlpvp->rsop->release_shape==SHAPE_REGION)
-  {
-    mdlpvp->vol->place_waypoints_flag=1;
-  }
-  mdlpvp->rsop->orientation = mdlpvp->orient_class;
-  if (mdlpvp->rsop->mol_type->flags&ON_GRID)
-  {
-    if (!mdlpvp->orient_specified)
-    {
-      if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
-      {
-	mdlerror_fmt(mdlpvp, "Error: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
-	return 1;
-      }
-      else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
-      {
-	mdlerror_fmt(mdlpvp, "Warning: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
-      }
-    }
-  }
-  else if ((mdlpvp->rsop->mol_type->flags&NOT_FREE)==0)
-  {
-    if (mdlpvp->orient_specified)
-    {
-      if (mdlpvp->vol->notify->useless_vol_orient==WARN_ERROR)
-      {
-	mdlerror(mdlpvp, "Error: orientation not used for released volume molecule");
-	return 1;
-      }
-      else if (mdlpvp->vol->notify->useless_vol_orient==WARN_WARN)
-      {
-	mdlerror(mdlpvp, "Warning: orientation not used for released volume molecule");
-      }
-    }
-  }
-  else
-  {
-    mdlerror(mdlpvp, "Error: cannot release a surface class instead of a molecule.");
-    return 1;
-  }
-  /* restore default values */
-  mdlpvp->orient_specified = 0;
-  mdlpvp->orient_class = ORIENT_NOT_SET;
+          LOCATION '=' point                          {
+                                                        mdlpvp->current_release_site->location = $3;
+                                                        mdlpvp->current_release_site->location->x *= mdlpvp->vol->r_length_unit;
+                                                        mdlpvp->current_release_site->location->y *= mdlpvp->vol->r_length_unit;
+                                                        mdlpvp->current_release_site->location->z *= mdlpvp->vol->r_length_unit;
+                                                      }
+        | MOLECULE '=' existing_molecule_opt_orient   { CHECK(mdl_set_release_site_molecule(mdlpvp, mdlpvp->current_release_site, & $3)); }
+        | release_number_cmd                          {
+                                                        if (mdlpvp->current_release_site->release_shape == SHAPE_LIST)
+                                                        {
+                                                          mdlerror(mdlpvp, "Molecules are already specified in a list--cannot set number or density.");
+                                                          return 1;
+                                                        }
+                                                      }
+        | site_size_cmd '=' num_expr_only             { CHECK(mdl_set_release_site_diameter(mdlpvp, mdlpvp->current_release_site, $3 * (($1 == SITE_RADIUS) ? 2.0 : 1.0))); }
+        | site_size_cmd '=' array_expr_only           { CHECK(mdl_set_release_site_diameter_array(mdlpvp, mdlpvp->current_release_site, $3.value_count, $3.value_head, ($1 == SITE_RADIUS) ? 2.0 : 1.0)); }
+        | site_size_cmd '=' existing_num_or_array     {
+                                                        double scaling_factor = ($1 == SITE_RADIUS) ? 2.0 : 1.0;
+                                                        struct num_expr_list *elp;
+                                                        int count = 0;
+                                                        if ((mdlpvp->current_release_site->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL)
+                                                        {
+                                                          mdlerror(mdlpvp, "Out of memory while storing release site diameter");
+                                                          return 1;
+                                                        }
+                                                        switch ($3->sym_type) {
+                                                          case DBL:
+                                                            CHECK(mdl_set_release_site_diameter(mdlpvp, mdlpvp->current_release_site, *(double *) $3->value * scaling_factor));
+                                                            break;
+                                                          case ARRAY:
+                                                            for (elp = (struct num_expr_list *) $3->value; elp != NULL && count < 4; ++ count, elp = elp->next)
+                                                              ;
+                                                            CHECK(mdl_set_release_site_diameter_array(mdlpvp, mdlpvp->current_release_site, count, elp, scaling_factor));
+                                                            break;
+                                                          default:
+                                                            mdlerror(mdlpvp, "Diameter must either be a number or a 3-valued vector.");
+                                                            return 1;
+                                                        }
+                                                      }
+        | RELEASE_PROBABILITY '=' num_expr            { CHECK(mdl_set_release_site_probability(mdlpvp, mdlpvp->current_release_site, $3)); }
+        | RELEASE_PATTERN '='
+          existing_release_pattern_xor_rxpn           { CHECK(mdl_set_release_site_pattern(mdlpvp, mdlpvp->current_release_site, $3)); }
+        | MOLECULE_POSITIONS
+          '{' molecule_release_pos_list '}'           {
+                                                        if (mdlpvp->current_release_site->release_shape != SHAPE_LIST)
+                                                        {
+                                                          mdlerror(mdlpvp, "You must use the LIST shape to specify molecule positions in a release.");
+                                                          return 1;
+                                                        }
 
-}
-	| release_number_cmd
-{
-  if (mdlpvp->rsop->release_shape==SHAPE_LIST)
-  {
-    mdlerror(mdlpvp, "Molecules are already specified in a list--cannot set number or density.");
-    return 1;
-  }
-}
-	| site_size_cmd '=' num_expr_only
-{
-  double scaling_factor = mdlpvp->vol->r_length_unit;
-  if ($1==SITE_RADIUS) scaling_factor*=2;
-  
-  if ((mdlpvp->rsop->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while storing release site diameter");
-    return(1);
-  }
-  mdlpvp->rsop->diameter->x = $<dbl>3 * scaling_factor;
-  mdlpvp->rsop->diameter->y = $<dbl>3 * scaling_factor;
-  mdlpvp->rsop->diameter->z = $<dbl>3 * scaling_factor;
-}
-	| site_size_cmd '=' array_expr_only
-{
-  double scaling_factor = mdlpvp->vol->r_length_unit;
-  if ($1==SITE_RADIUS) scaling_factor*=2;
-  
-  if (mdlpvp->rsop->release_shape==SHAPE_LIST)
-  {
-    mdlerror(mdlpvp, "Release list diameters must be single valued.");
-    return 1;
-  }
-  mdlpvp->el_head=$<nel>3;
-  if ((mdlpvp->rsop->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while storing release site diameter");
-    return(1);
-  }
-  mdlpvp->elp=mdlpvp->el_head;
-  if (mdlpvp->elp!=NULL) {
-    mdlpvp->rsop->diameter->x=mdlpvp->elp->value * scaling_factor;
-    mdlpvp->elp=mdlpvp->elp->next;
-  }
-  else {
-    mdlerror(mdlpvp, "Three dimensional value required");
-    return(1);
-  }
-  if (mdlpvp->elp!=NULL) {
-    mdlpvp->rsop->diameter->y=mdlpvp->elp->value * scaling_factor;
-    mdlpvp->elp=mdlpvp->elp->next;
-  }
-  else {
-    mdlerror(mdlpvp, "Three dimensional value required");
-    return(1);
-  }
-  if (mdlpvp->elp!=NULL) {
-    mdlpvp->rsop->diameter->z=mdlpvp->elp->value * scaling_factor;
-    mdlpvp->elp=mdlpvp->elp->next;
-  }
-  else {
-    mdlerror(mdlpvp, "Three dimensional value required");
-    return(1);
-  }
-  if (mdlpvp->elp!=NULL) {
-    mdlerror(mdlpvp, "Three dimensional value required");
-    return(1);
-  }
-}
-	| site_size_cmd '=' existing_num_or_array
-{
-  double scaling_factor = mdlpvp->vol->r_length_unit;
-  if ($1==SITE_RADIUS) scaling_factor *= 2;
-  
-  mdlpvp->gp=$<sym>3;
-  if ((mdlpvp->rsop->diameter=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while storing release site diameter");
-    return(1);
-  }
-  switch (mdlpvp->gp->sym_type) {
-  case DBL:
-    mdlpvp->tmp_dbl = *(double *)mdlpvp->gp->value;
-    mdlpvp->rsop->diameter->x = mdlpvp->tmp_dbl * scaling_factor;
-    mdlpvp->rsop->diameter->y = mdlpvp->tmp_dbl * scaling_factor;
-    mdlpvp->rsop->diameter->z = mdlpvp->tmp_dbl * scaling_factor;
-    break;
-  case ARRAY:
-    if (mdlpvp->rsop->release_shape==SHAPE_LIST)
-    {
-      mdlerror(mdlpvp, "Release list diameters must be single valued.");
-      return 1;
-    }
-    mdlpvp->el_head=(struct num_expr_list *)mdlpvp->gp->value;
-    mdlpvp->elp=mdlpvp->el_head;
-    if (mdlpvp->elp!=NULL) {
-      mdlpvp->rsop->diameter->x=mdlpvp->elp->value * scaling_factor;
-      mdlpvp->elp=mdlpvp->elp->next;
-    }
-    else {
-      mdlerror(mdlpvp, "Three dimensional value required");
-      return(1);
-    }
-    if (mdlpvp->elp!=NULL) {
-      mdlpvp->rsop->diameter->y=mdlpvp->elp->value * scaling_factor;
-      mdlpvp->elp=mdlpvp->elp->next;
-    }
-    else {
-      mdlerror(mdlpvp, "Three dimensional value required");
-      return(1);
-    }
-    if (mdlpvp->elp!=NULL) {
-      mdlpvp->rsop->diameter->z=mdlpvp->elp->value * scaling_factor;
-      mdlpvp->elp=mdlpvp->elp->next;
-    }
-    else {
-      mdlerror(mdlpvp, "Three dimensional value required");
-      return(1);
-    }
-    if (mdlpvp->elp!=NULL) {
-      mdlerror(mdlpvp, "Three dimensional value required");
-      return(1);
-    }
-    break;
-  default:
-    mdlerror(mdlpvp, "Diameter must either be a number or a 3-valued vector.");
-    return 1;
-  }
-}
-	| RELEASE_PROBABILITY '=' num_expr
-{
-  if (mdlpvp->rsop->release_prob==MAGIC_PATTERN_PROBABILITY)
-  {
-    mdlerror(mdlpvp, "Ignoring release probability for reaction-triggered releases.");
-  }
-  else
-  {
-    mdlpvp->rsop->release_prob=$<dbl>3;
-    if (mdlpvp->rsop->release_prob<0)
-    {
-      mdlerror(mdlpvp, "Release probability cannot be less than 0.");
-      return 1;
-    }
-    if (mdlpvp->rsop->release_prob>1)
-    {
-      mdlerror(mdlpvp, "Release probability cannot be greater than 1.");
-      return 1;
-    }
-  }
-}
-	| RELEASE_PATTERN '=' existing_release_pattern_xor_rxpn
-{
-  mdlpvp->gp=$<sym>3;
-  mdlpvp->rsop->pattern=(struct release_pattern *)mdlpvp->gp->value;
-  
-  if (mdlpvp->gp->sym_type==RXPN) /* Careful!  We've put a rxn_pathname into the "pattern" pointer! */
-  {
-    if (mdlpvp->rsop->release_prob!=1.0)
-    {
-      mdlerror(mdlpvp, "Ignoring release probability for reaction-triggered releases.");
-    }
-    mdlpvp->rsop->release_prob = MAGIC_PATTERN_PROBABILITY;   /* Magic number indicating a reaction-triggered release */
-  }
-}
-	| MOLECULE_POSITIONS
-{
-  if (mdlpvp->rsop->release_shape != SHAPE_LIST)
-  {
-    mdlerror(mdlpvp, "You must use the LIST shape to specify molecule positions in a release.");
-    return 1;
-  }
-}
-	'{' molecule_release_pos_list '}'
-{
-  struct release_single_molecule *rsm,*old_head;
-  
-  old_head = mdlpvp->rsop->mol_list;
-  mdlpvp->rsop->mol_list = NULL;
-  mdlpvp->rsop->release_number = 0;
-  while (old_head!=NULL)  /* Flip list from stack order to queue order */
-  {
-    rsm = old_head;
-    old_head = old_head->next;
-    
-    rsm->next = mdlpvp->rsop->mol_list;
-    mdlpvp->rsop->mol_list = rsm;
-    mdlpvp->rsop->release_number++;
-  }
-};
+                                                        struct release_single_molecule *rsm;
+                                                        if (mdlpvp->current_release_site->mol_list == NULL)
+                                                          mdlpvp->current_release_site->mol_list = $3.rsm_head;
+                                                        else
+                                                        {
+                                                          for (rsm = mdlpvp->current_release_site->mol_list; rsm->next != NULL; rsm = rsm->next)
+                                                            ;
+                                                          rsm->next = $3.rsm_head;
+                                                        }
+                                                        mdlpvp->current_release_site->release_number += $3.rsm_count;
+                                                      }
+;
 
 site_size_cmd:
-	SITE_DIAMETER {$$=SITE_DIAMETER;}
-	| SITE_RADIUS {$$=SITE_RADIUS;};
+          SITE_DIAMETER                               { $$ = SITE_DIAMETER; }
+        | SITE_RADIUS                                 { $$ = SITE_RADIUS; }
+;
 
-
-release_number_cmd: constant_release_number_cmd
-	| gaussian_release_number_cmd
-	| volume_dependent_number_cmd
-	| concentration_dependent_release_cmd
+release_number_cmd:
+          constant_release_number_cmd
+        | gaussian_release_number_cmd
+        | volume_dependent_number_cmd
+        | concentration_dependent_release_cmd
 ;
 
 
-constant_release_number_cmd: NUMBER_TO_RELEASE '=' num_expr
-{
-  mdlpvp->rsop->release_number_method=CONSTNUM;
-  mdlpvp->rsop->release_number= $<dbl>3;
-}
-	| GAUSSIAN_RELEASE_NUMBER '{'
-	MEAN_NUMBER '=' num_expr
-	'}'
-{
-  mdlpvp->rsop->release_number_method=CONSTNUM;
-  mdlpvp->rsop->release_number= $<dbl>5;
-};
+constant_release_number_cmd:
+          NUMBER_TO_RELEASE '=' num_expr              { mdlpvp->current_release_site->release_number_method=CONSTNUM; mdlpvp->current_release_site->release_number= $3; }
+        | GAUSSIAN_RELEASE_NUMBER '{'
+          MEAN_NUMBER '=' num_expr
+          '}'                                         { mdlpvp->current_release_site->release_number_method=CONSTNUM; mdlpvp->current_release_site->release_number= $5; }
+;
 
+gaussian_release_number_cmd:
+          GAUSSIAN_RELEASE_NUMBER '{'
+            MEAN_NUMBER '=' num_expr
+            STANDARD_DEVIATION '=' num_expr
+          '}'                                         {
+                                                        mdlpvp->current_release_site->release_number_method=GAUSSNUM;
+                                                        mdlpvp->current_release_site->release_number= $5;
+                                                        mdlpvp->current_release_site->standard_deviation=$8;
+                                                      }
+;
 
-gaussian_release_number_cmd: GAUSSIAN_RELEASE_NUMBER '{'
-	MEAN_NUMBER '=' num_expr
-        STANDARD_DEVIATION '=' num_expr
-	'}'
-{
-  mdlpvp->rsop->release_number_method=GAUSSNUM;
-  mdlpvp->rsop->release_number= $<dbl>5;
-  mdlpvp->rsop->standard_deviation=$<dbl>8;
-};
+volume_dependent_number_cmd:
+          VOLUME_DEPENDENT_RELEASE_NUMBER '{'
+            MEAN_DIAMETER '=' num_expr
+            STANDARD_DEVIATION '=' num_expr
+            CONCENTRATION '=' num_expr
+            '}'                                       {
+                                                        mdlpvp->current_release_site->release_number_method = VOLNUM;
+                                                        mdlpvp->current_release_site->mean_diameter = $5;
+                                                        mdlpvp->current_release_site->standard_deviation = $8;
+                                                        mdlpvp->current_release_site->concentration = $11;
+                                                      }
+;
 
+concentration_dependent_release_cmd:
+          CONCENTRATION '=' num_expr                  {
+                                                        struct release_site_obj *rsop = mdlpvp->current_release_site;
+                                                        if (rsop->release_shape == SHAPE_SPHERICAL_SHELL)
+                                                        {
+                                                          mdlerror_fmt(mdlpvp,
+                                                                       "Release site '%s' is a spherical shell; concentration-based release is not supported on a spherical shell\n",
+                                                                       rsop->name);
+                                                          return 1;
+                                                        }
+                                                        rsop->release_number_method = CCNNUM;
+                                                        rsop->release_number = -3; /* Expect 3D molecule */
+                                                        rsop->concentration = $3;
+                                                      }
+        | DENSITY '=' num_expr                        {
+                                                        mdlpvp->current_release_site->release_number_method=CCNNUM;
+                                                        mdlpvp->current_release_site->release_number=-2; /* Expect 2D molecule */
+                                                        mdlpvp->current_release_site->concentration = $3;
+                                                      }
+;
 
-volume_dependent_number_cmd: VOLUME_DEPENDENT_RELEASE_NUMBER '{'
-	MEAN_DIAMETER '=' num_expr
-	STANDARD_DEVIATION '=' num_expr
-	CONCENTRATION '=' num_expr
-	'}'
-{
-  mdlpvp->rsop->release_number_method=VOLNUM;
-  mdlpvp->rsop->mean_diameter=$<dbl>5;
-  mdlpvp->rsop->standard_deviation=$<dbl>8;
-  mdlpvp->rsop->concentration=$<dbl>11;
-};
+molecule_release_pos_list:
+          molecule_release_pos                        { $$.rsm_tail = $$.rsm_head = $1; $$.rsm_count = 1; }
+        | molecule_release_pos_list
+          molecule_release_pos                        { $$ = $1; $$.rsm_tail = $$.rsm_tail->next = $2; ++ $$.rsm_count; }
+;
 
-concentration_dependent_release_cmd: CONCENTRATION '=' num_expr
-{
-  mdlpvp->rsop->release_number_method=CCNNUM;
-  mdlpvp->rsop->release_number=-3; /* Expect 3D molecule */
-  mdlpvp->rsop->concentration = $<dbl>3;
-}
-	| DENSITY '=' num_expr
-{
-  mdlpvp->rsop->release_number_method=CCNNUM;
-  mdlpvp->rsop->release_number=-2; /* Expect 2D molecule */
-  mdlpvp->rsop->concentration = $<dbl>3;
-};
-
-molecule_release_pos_list: molecule_release_pos
-	| molecule_release_pos_list molecule_release_pos;
-	
 molecule_release_pos:
-	existing_molecule_opt_orient point
-{
-  struct release_single_molecule *rsm;
-  struct vector3 temp_v3;
-  
-  memcpy(&temp_v3,$<vec3>2,sizeof(struct vector3));
-  free($<vec3>2);
-  
-  rsm = (struct release_single_molecule*)malloc(sizeof(struct release_single_molecule));
-  
-  if (rsm==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory reading molecule positions");
-    return 1;
-  }
-  
-  rsm->orient = mdlpvp->orient_class;
-  rsm->loc.x = temp_v3.x * mdlpvp->vol->r_length_unit;
-  rsm->loc.y = temp_v3.y * mdlpvp->vol->r_length_unit;
-  rsm->loc.z = temp_v3.z * mdlpvp->vol->r_length_unit;
-  rsm->mol_type = (struct species*)( ($<sym>1)->value );
-  
-  if (rsm->mol_type->flags&ON_GRID)
-  {
-    if (!mdlpvp->orient_specified)
-    {
-      if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
-      {
-	mdlerror_fmt(mdlpvp, "Error: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
-	return 1;
-      }
-      else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
-      {
-	mdlerror_fmt(mdlpvp, "Warning: surface orientation not specified for released surface molecule\n  (use ; or ', or ,' for random orientation)");
-      }
-    }
-  }
-  else if ((rsm->mol_type->flags&NOT_FREE)==0)
-  {
-    if (mdlpvp->orient_specified)
-    {
-      if (mdlpvp->vol->notify->useless_vol_orient==WARN_ERROR)
-      {
-	mdlerror(mdlpvp, "Error: orientation not used for released volume molecule");
-	return 1;
-      }
-      else if (mdlpvp->vol->notify->useless_vol_orient==WARN_WARN)
-      {
-	mdlerror(mdlpvp, "Warning: orientation not used for released volume molecule");
-      }
-    }
-  }
-  else
-  {
-    mdlerror(mdlpvp, "Error: cannot release a surface class instead of a molecule.");
-    return 1;
-  }
-
-  rsm->next = mdlpvp->rsop->mol_list;
-  mdlpvp->rsop->mol_list = rsm;        /* Acquire list in reverse order */
-
-  /* restore default values */
-  mdlpvp->orient_specified = 0;
-  mdlpvp->orient_class = ORIENT_NOT_SET;
-
-};
-
-point: array_value
-{
-  mdlpvp->el_head=$<nel>1;
-  if ((mdlpvp->pntp1=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating points");
-    return(1);
-  }
-  mdlpvp->pntp1->x=0;
-  mdlpvp->pntp1->y=0;
-  mdlpvp->pntp1->z=0;
-  mdlpvp->elp=mdlpvp->el_head;
-  if (mdlpvp->elp!=NULL) {
-    mdlpvp->pntp1->x=mdlpvp->elp->value;
-    mdlpvp->elp=mdlpvp->elp->next;
-  }
-  else {
-    mdlerror(mdlpvp, "Three dimensional value required");
-    return(1);
-  }
-  if (mdlpvp->elp!=NULL) {
-    mdlpvp->pntp1->y=mdlpvp->elp->value;
-    mdlpvp->elp=mdlpvp->elp->next;
-  }
-  else {
-    mdlerror(mdlpvp, "Three dimensional value required");
-    return(1);
-  }
-  if (mdlpvp->elp!=NULL) {
-    mdlpvp->pntp1->z=mdlpvp->elp->value;
-    mdlpvp->elp=mdlpvp->elp->next;
-  }
-  else {
-    mdlerror(mdlpvp, "Three dimensional value required");
-    return(1);
-  }
-  if (mdlpvp->elp!=NULL) {
-    mdlerror(mdlpvp, "Three dimensional value required");
-    return(1);
-  }
-  $$=mdlpvp->pntp1;
-};
-
-point_or_num: point
-            | num_expr_only
-{
-  struct vector3 *vec;
-  if ((vec=(struct vector3 *)malloc(sizeof(struct vector3)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating point");
-    return(1);
-  }
-  vec->x = $1;
-  vec->y = $1;
-  vec->z = $1;
-  $$ = vec;
-}
+          existing_molecule_opt_orient point          { CHECKN($$ = mdl_new_release_single_molecule(mdlpvp, &$1, $2)); }
 ;
 
-polygon_list_def: new_object POLYGON_LIST '{'
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  if ((mdlpvp->pop=(struct polygon_object *)malloc
-              (sizeof(struct polygon_object)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating polygon list object");
-    return(1);
-  }
-  mdlpvp->pop->polygon_data=NULL;
-  mdlpvp->pop->n_walls=0;
-  mdlpvp->pop->n_verts=0;
-  mdlpvp->pop->fully_closed=0;
-  mdlpvp->pop->surf_class=NULL;
-  mdlpvp->pop->side_removed=NULL;
-
-  if ((mdlpvp->opp=(struct ordered_poly *)malloc
-              (sizeof(struct ordered_poly)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating polygon list object");
-    return(1);
-  }
-  mdlpvp->opp->vertex=NULL;
-  mdlpvp->opp->normal=NULL;
-  mdlpvp->opp->element=NULL;
-  mdlpvp->opp->n_verts=0;
-  mdlpvp->opp->n_walls=0;
-  mdlpvp->pop->polygon_data=(void *)mdlpvp->opp;
-
-  mdlpvp->objp->object_type=POLY_OBJ;
-  mdlpvp->objp->contents=mdlpvp->pop;
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-  mdlpvp->obj_name=mdlpvp->objp->sym->name;
-  mdlpvp->curr_obj=mdlpvp->objp;
-  mdlpvp->region_list_head=mdlpvp->objp->regions;
-}
-	vertex_list_cmd
-        element_connection_cmd
-{
-  u_int i,j;
-  char mdl_err_msg[1024];
-
-  mdlpvp->pop->n_walls=mdlpvp->n_walls;
-  mdlpvp->pop->n_verts=mdlpvp->n_verts;
-  mdlpvp->opp->n_walls=mdlpvp->n_walls;
-  mdlpvp->opp->n_verts=mdlpvp->n_verts;
-  if ((mdlpvp->pop->surf_class=(struct species **)malloc
-              (mdlpvp->pop->n_walls*sizeof(struct species *)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating polygon list object");
-    return(1);
-  }
-  for (i=0;i<mdlpvp->pop->n_walls;i++) mdlpvp->pop->surf_class[i]=volp->g_surf;
-  mdlpvp->pop->side_removed = new_bit_array(mdlpvp->pop->n_walls);
-  if (mdlpvp->pop->side_removed==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating polygon list object");
-    return(1);
-  }
-  set_all_bits(mdlpvp->pop->side_removed,0);
-
-  if ((mdlpvp->opp->vertex=(struct vector3 *)malloc
-              (mdlpvp->opp->n_verts*sizeof(struct vector3)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating polygon list object");
-    return(1);
-  }
-
-  mdlpvp->vlp=mdlpvp->vertex_head;
-  if (mdlpvp->vlp->normal!=NULL) {
-    if ((mdlpvp->opp->normal=(struct vector3 *)malloc
-                (mdlpvp->opp->n_verts*sizeof(struct vector3)))==NULL) {
-      mdlerror(mdlpvp, "Out of memory while creating polygon list object");
-      return(1);
-    }
-  }
-  for (i=0;i<mdlpvp->opp->n_verts;i++) {
-    mdlpvp->opp->vertex[i].x=mdlpvp->vlp->vertex->x * mdlpvp->vol->r_length_unit;
-    mdlpvp->opp->vertex[i].y=mdlpvp->vlp->vertex->y * mdlpvp->vol->r_length_unit;
-    mdlpvp->opp->vertex[i].z=mdlpvp->vlp->vertex->z * mdlpvp->vol->r_length_unit;
-    mdlpvp->vlp_temp=mdlpvp->vlp;
-    free(mdlpvp->vlp_temp->vertex);
-    if (mdlpvp->opp->normal!=NULL) {
-      mdlpvp->opp->normal[i].x=mdlpvp->vlp->normal->x;
-      mdlpvp->opp->normal[i].y=mdlpvp->vlp->normal->y;
-      mdlpvp->opp->normal[i].z=mdlpvp->vlp->normal->z;
-      free(mdlpvp->vlp_temp->normal);
-    }
-    mdlpvp->vlp=mdlpvp->vlp->next;
-    free(mdlpvp->vlp_temp);
-  }
-  if ((mdlpvp->edp=(struct element_data *)malloc
-              (mdlpvp->opp->n_walls*sizeof(struct element_data)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating polygon list object");
-    return(1);
-  }
-  mdlpvp->opp->element=mdlpvp->edp;
-  mdlpvp->eclp=mdlpvp->connection_head;
-  for (i=0;i<mdlpvp->opp->n_walls;i++) {
-    if (mdlpvp->eclp->n_verts != 3)
-    {
-      mdlerror(mdlpvp, "All polygons must have three vertices.");
-      return(1);
-    }
-    mdlpvp->elp=mdlpvp->eclp->connection_list;
-    for (j=0;j<mdlpvp->eclp->n_verts;j++) {
-      mdlpvp->edp[i].vertex_index[j]=(int)mdlpvp->elp->value;
-      mdlpvp->elp_temp=mdlpvp->elp;
-      mdlpvp->elp=mdlpvp->elp->next;
-      free(mdlpvp->elp_temp);
-    }
-    mdlpvp->eclp_temp=mdlpvp->eclp;
-    mdlpvp->eclp=mdlpvp->eclp->next;
-    free(mdlpvp->eclp_temp);
-  }
-
-  /* Create object default region on polygon list object: */
-  if ((mdlpvp->rp=make_new_region(volp,mdlpvp->obj_name,"ALL",mdl_err_msg))==NULL) {
-    mdlerror(mdlpvp, mdl_err_msg);
-    return(1);
-  }
-  if ((mdlpvp->rlp=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
-    mdlerror_fmt(mdlpvp, 
-                 "Out of memory while creating object default region name: %s",
-                 mdlpvp->rp->sym->name);
-    return(1);
-  }
-  mdlpvp->rp->region_last_name="ALL";
-  mdlpvp->rp->parent=mdlpvp->curr_obj;
-  mdlpvp->curr_obj->num_regions++;
-
-  if ((mdlpvp->elmlp=(struct element_list *)malloc
-             (sizeof(struct element_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating element list for object default region");
-    return(1);
-  }
-  mdlpvp->elmlp->begin=0;
-  mdlpvp->elmlp->end=mdlpvp->pop->n_walls-1;
-  mdlpvp->elmlp->special=NULL;
-  mdlpvp->elmlp->next=mdlpvp->rp->element_list_head;
-  mdlpvp->rp->element_list_head=mdlpvp->elmlp;
-  mdlpvp->curr_obj->n_walls=mdlpvp->pop->n_walls;
-  mdlpvp->curr_obj->n_verts=mdlpvp->pop->n_verts;
-  mdlpvp->n_walls_actual = mdlpvp->pop->n_walls;
-  if(normalize_elements(mdlpvp->rp,0)){
-      mdlerror_fmt(mdlpvp, "Error setting up elements in default 'ALL' region in the polygon object '%s'. \n", mdlpvp->obj_name);
-      return 1;
-
-  }
-
-  mdlpvp->rp->surf_class=NULL;
-  mdlpvp->rlp->reg=mdlpvp->rp;
-  mdlpvp->rlp->next=mdlpvp->region_list_head;
-  mdlpvp->region_list_head=mdlpvp->rlp;
-  no_printf("Creating object default region: %s\n",mdlpvp->rp->sym->name);
-}
-	list_opt_polygon_object_cmds
-	list_opt_object_cmds
-	'}'
-{
-  mdlpvp->curr_obj->regions=mdlpvp->region_list_head;
-  remove_gaps_from_regions(mdlpvp->curr_obj);
-  mdlpvp->n_walls_actual = mdlpvp->curr_obj->n_walls_actual;
-  no_printf("Polygon list %s defined:\n",mdlpvp->curr_obj->sym->name);
-  no_printf(" n_verts = %d\n",mdlpvp->pop->n_verts);
-  no_printf(" n_walls = %d\n",mdlpvp->pop->n_walls);
-  mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
-  mdlpvp->curr_obj->parent->n_walls_actual+=mdlpvp->curr_obj->n_walls_actual;
-  mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
-
-  /* check for a degenerate (empty) object and regions */
-  struct region_list *rl;
-  struct region *rp;
-  int i;
-  int is_degenerate;  /* flag */
-  for(rl = mdlpvp->curr_obj->regions; rl != NULL; rl = rl->next)
-  {
-    rp = rl->reg;
-    is_degenerate = 1;
-    for(i = 0; i < rp->membership->nbits;i++)
-    {
-      if(get_bit(rp->membership,i)){
-         is_degenerate = 0;
-         break;
-      }
-    }
-    if(is_degenerate && (strcmp(rp->region_last_name, "ALL") == 0)){
-        mdlerror_fmt(mdlpvp,
-                     "ERROR: polygon object '%s' is degenerate - no walls.\n",
-                     mdlpvp->obj_name);
-        return 1;
-    }else if(is_degenerate && (strcmp(rp->region_last_name, "REMOVED") != 0)){
-        mdlerror_fmt(mdlpvp, 
-                     "ERROR: region '%s' of object '%s' is degenerate - no walls.\n",
-                     rp->region_last_name,
-                     mdlpvp->obj_name);
-        return 1;
-    }
-  }
-  
-  mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
-  if (mdlpvp->object_name_list_end->prev!=NULL) {
-    mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
-  }
-  else {
-    mdlpvp->object_name_list_end->name=NULL;
-  }
-  $$=$<sym>1;
-};
-
-
-voxel_list_def: new_object VOXEL_LIST '{'
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  if ((mdlpvp->vop=(struct voxel_object *)malloc
-              (sizeof(struct voxel_object)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating voxel list object");
-    return(1);
-  }
-  mdlpvp->vop->voxel_data=NULL;
-  mdlpvp->vop->n_voxels=0;
-  mdlpvp->vop->n_verts=0;
-  mdlpvp->vop->fully_closed=0;
-
-  
-  if ((mdlpvp->ovp=(struct ordered_voxel *)malloc
-              (sizeof(struct ordered_voxel)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating voxel list object");
-    return(1);
-  }
-  mdlpvp->ovp->vertex=NULL;
-  mdlpvp->ovp->element=NULL;
-  mdlpvp->ovp->neighbor=NULL;
-  mdlpvp->ovp->n_verts=0;
-  mdlpvp->ovp->n_voxels=0;
-  mdlpvp->vop->voxel_data=(void *)mdlpvp->ovp;
-
-  mdlpvp->objp->object_type=VOXEL_OBJ;
-  mdlpvp->objp->contents=mdlpvp->vop;
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-  mdlpvp->obj_name=mdlpvp->objp->sym->name;
-  mdlpvp->curr_obj=mdlpvp->objp;
-}
-	vertex_list_cmd
-        tet_element_connection_cmd 
-	'}'
-{
-  u_int i,j;
-
-  mdlpvp->vop->n_voxels=mdlpvp->n_voxels;
-  mdlpvp->vop->n_verts=mdlpvp->n_verts;
-  mdlpvp->ovp->n_voxels=mdlpvp->n_voxels;
-  mdlpvp->ovp->n_verts=mdlpvp->n_verts;
-
-  if ((mdlpvp->ovp->vertex=(struct vector3 *)malloc
-              (mdlpvp->ovp->n_verts*sizeof(struct vector3)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating voxel list object");
-    return(1);
-  }
-
-  mdlpvp->vlp=mdlpvp->vertex_head;
-  for (i=0;i<mdlpvp->ovp->n_verts;i++) {
-    mdlpvp->ovp->vertex[i].x=mdlpvp->vlp->vertex->x;
-    mdlpvp->ovp->vertex[i].y=mdlpvp->vlp->vertex->y;
-    mdlpvp->ovp->vertex[i].z=mdlpvp->vlp->vertex->z;
-    mdlpvp->vlp_temp=mdlpvp->vlp;
-    free(mdlpvp->vlp_temp->vertex);
-    mdlpvp->vlp=mdlpvp->vlp->next;
-    free(mdlpvp->vlp_temp);
-  }
-  if ((mdlpvp->tedp=(struct tet_element_data *)malloc
-              (mdlpvp->ovp->n_voxels*sizeof(struct tet_element_data)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating voxel list object");
-    return(1);
-  }
-  mdlpvp->ovp->element=mdlpvp->tedp;
-  mdlpvp->eclp=mdlpvp->connection_head;
-  for (i=0;i<mdlpvp->ovp->n_voxels;i++) {
-    if (mdlpvp->eclp->n_verts != 4)
-    {
-      mdlerror(mdlpvp, "All voxels must have four vertices.");
-      return(1);
-    }
-    mdlpvp->tedp[i].n_verts=mdlpvp->eclp->n_verts;
-    mdlpvp->elp=mdlpvp->eclp->connection_list;
-    for (j=0;j<mdlpvp->eclp->n_verts;j++) {
-      mdlpvp->tedp[i].vertex_index[j]=(int)mdlpvp->elp->value;
-      mdlpvp->elp_temp=mdlpvp->elp;
-      mdlpvp->elp=mdlpvp->elp->next;
-      free(mdlpvp->elp_temp);
-    }
-    mdlpvp->eclp_temp=mdlpvp->eclp;
-    mdlpvp->eclp=mdlpvp->eclp->next;
-    free(mdlpvp->eclp_temp);
-  }
-  no_printf("Voxel list %s defined:\n",mdlpvp->curr_obj->sym->name);
-  no_printf(" n_verts = %d\n",mdlpvp->vop->n_verts);
-  /*mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts; 
-  mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
-  if (mdlpvp->object_name_list_end->prev!=NULL) {
-    mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
-  }
-  else {
-    mdlpvp->object_name_list_end->name=NULL;
-  }
-  */
-
-  $$=$<sym>1;
-
-};
-
-vertex_list_cmd: VERTEX_LIST '{' 
-{
-  mdlpvp->n_verts=0;
-  mdlpvp->vertex_head=NULL;
-  mdlpvp->vertex_tail=NULL;
-}
-	list_points 
-        '}'
+/* Object type: Polygons */
+polygon_list_def:
+          new_object POLYGON_LIST
+          start_object
+            vertex_list_cmd
+            element_connection_cmd                    {
+                                                        CHECKN(mdlpvp->current_polygon = mdl_new_polygon_list(mdlpvp, $1,
+                                                                                                 $4.vertex_count, $4.vertex_head,
+                                                                                                 $5.connection_count, $5.connection_head));
+                                                      }
+            list_opt_polygon_object_cmds
+            list_opt_object_cmds
+          end_object                                  {
+                                                        struct object *objp = (struct object *) $1->value;
+                                                        mdl_remove_gaps_from_regions(objp);
+                                                        no_printf("Polygon list %s defined:\n",$1->name);
+                                                        no_printf(" n_verts = %d\n",mdlpvp->current_polygon->n_verts);
+                                                        no_printf(" n_walls = %d\n",mdlpvp->current_polygon->n_walls);
+                                                        CHECK(mdl_check_degenerate_polygon_list(mdlpvp, objp));
+                                                        mdlpvp->current_polygon = NULL;
+                                                        $$ = objp;
+                                                      }
 ;
 
-
-list_points: point
-{
-  mdlpvp->pntp1=$<vec3>1;
-  if ((mdlpvp->vlp=(struct vertex_list *)malloc(sizeof(struct vertex_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating vertices");
-    return(1);
-  }
-  mdlpvp->n_verts++;
-  mdlpvp->vlp->vertex=mdlpvp->pntp1;
-  mdlpvp->vlp->normal=NULL;
-  if (mdlpvp->vertex_tail==NULL) {
-    mdlpvp->vertex_tail=mdlpvp->vlp;
-  }
-  mdlpvp->vertex_tail->next=mdlpvp->vlp;
-  mdlpvp->vlp->next=NULL;
-  mdlpvp->vertex_tail=mdlpvp->vlp;
-  if (mdlpvp->vertex_head==NULL) {
-    mdlpvp->vertex_head=mdlpvp->vlp;
-  }
-}
-        | point NORMAL point
-{
-  mdlpvp->pntp1=$<vec3>1;
-  mdlpvp->pntp2=$<vec3>3;
-  if ((mdlpvp->vlp=(struct vertex_list *)malloc(sizeof(struct vertex_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating normals");
-    return(1);
-  }
-  mdlpvp->n_verts++;
-  mdlpvp->vlp->vertex=mdlpvp->pntp1;
-  mdlpvp->vlp->normal=mdlpvp->pntp2;
-  if (mdlpvp->vertex_tail==NULL) {
-    mdlpvp->vertex_tail=mdlpvp->vlp;
-  }
-  mdlpvp->vertex_tail->next=mdlpvp->vlp;
-  mdlpvp->vlp->next=NULL;
-  mdlpvp->vertex_tail=mdlpvp->vlp;
-  if (mdlpvp->vertex_head==NULL) {
-    mdlpvp->vertex_head=mdlpvp->vlp;
-  }
-}
-	| list_points point
-{
-  mdlpvp->pntp1=$<vec3>2;
-  if ((mdlpvp->vlp=(struct vertex_list *)malloc(sizeof(struct vertex_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating vertices");
-    return(1);
-  }
-  mdlpvp->n_verts++;
-  mdlpvp->vlp->vertex=mdlpvp->pntp1;
-  mdlpvp->vlp->normal=NULL;
-  if (mdlpvp->vertex_tail==NULL) {
-    mdlpvp->vertex_tail=mdlpvp->vlp;
-  }
-  mdlpvp->vertex_tail->next=mdlpvp->vlp;
-  mdlpvp->vlp->next=NULL;
-  mdlpvp->vertex_tail=mdlpvp->vlp;
-  if (mdlpvp->vertex_head==NULL) {
-    mdlpvp->vertex_head=mdlpvp->vlp;
-  }
-}
-	| list_points point NORMAL point
-{
-  mdlpvp->pntp1=$<vec3>2;
-  mdlpvp->pntp2=$<vec3>4;
-  if ((mdlpvp->vlp=(struct vertex_list *)malloc(sizeof(struct vertex_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating normals");
-    return(1);
-  }
-  mdlpvp->n_verts++;
-  mdlpvp->vlp->vertex=mdlpvp->pntp1;
-  mdlpvp->vlp->normal=mdlpvp->pntp2;
-  if (mdlpvp->vertex_tail==NULL) {
-    mdlpvp->vertex_tail=mdlpvp->vlp;
-  }
-  mdlpvp->vertex_tail->next=mdlpvp->vlp;
-  mdlpvp->vlp->next=NULL;
-  mdlpvp->vertex_tail=mdlpvp->vlp;
-  if (mdlpvp->vertex_head==NULL) {
-    mdlpvp->vertex_head=mdlpvp->vlp;
-  }
-};
-
-
-element_connection_cmd: ELEMENT_CONNECTIONS '{'
-{
-  mdlpvp->n_walls=0;
-  mdlpvp->n_walls_actual=0;
-  mdlpvp->connection_head=NULL;
-  mdlpvp->connection_tail=NULL;
-}
-        list_arrays
-        '}'
-{
-  mdlpvp->n_walls_actual=mdlpvp->n_walls;
-};
-
-tet_element_connection_cmd: TET_ELEMENT_CONNECTIONS '{'
-{
-  mdlpvp->n_voxels=0;
-  mdlpvp->connection_head=NULL;
-  mdlpvp->connection_tail=NULL;
-}
-        list_tet_arrays
-        '}'
+vertex_list_cmd: VERTEX_LIST '{' list_points '}'      { $$ = $3; }
 ;
 
-list_arrays: array_value
-{
-  mdlpvp->elp=$<nel>1;
-  if ((mdlpvp->eclp=(struct element_connection_list *)malloc
-              (sizeof(struct element_connection_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating element connections");
-    return(1);
-  }
-  mdlpvp->n_walls++;
-  mdlpvp->eclp->connection_list=mdlpvp->elp;
-  mdlpvp->eclp->n_verts=0;
-  while (mdlpvp->elp!=NULL) {
-    mdlpvp->eclp->n_verts++;
-    mdlpvp->elp=mdlpvp->elp->next;
-  }
-  if (mdlpvp->eclp->n_verts!=3) {
-    mdlerror(mdlpvp, "Non-triangular element found in polygon list object");
-    return(1);
-  }
-  if (mdlpvp->connection_tail==NULL) {
-    mdlpvp->connection_tail=mdlpvp->eclp;
-  }
-  mdlpvp->connection_tail->next=mdlpvp->eclp;
-  mdlpvp->eclp->next=NULL;
-  mdlpvp->connection_tail=mdlpvp->eclp;
-  if (mdlpvp->connection_head==NULL) {
-    mdlpvp->connection_head=mdlpvp->eclp;
-  }
-}
-        | list_arrays array_value
-{
-  mdlpvp->elp=$<nel>2;
-  if ((mdlpvp->eclp=(struct element_connection_list *)malloc
-              (sizeof(struct element_connection_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating element connections");
-    return(1);
-  }
-  mdlpvp->n_walls++;
-  mdlpvp->eclp->connection_list=mdlpvp->elp;
-  mdlpvp->eclp->n_verts=0;
-  while (mdlpvp->elp!=NULL) {
-    mdlpvp->eclp->n_verts++;
-    mdlpvp->elp=mdlpvp->elp->next;
-  }
-  if (mdlpvp->connection_tail==NULL) {
-    mdlpvp->connection_tail=mdlpvp->eclp;
-  }
-  mdlpvp->connection_tail->next=mdlpvp->eclp;
-  mdlpvp->eclp->next=NULL;
-  mdlpvp->connection_tail=mdlpvp->eclp;
-  if (mdlpvp->connection_head==NULL) {
-    mdlpvp->connection_head=mdlpvp->eclp;
-  }
-};
-
-list_tet_arrays: array_value
-{
-  mdlpvp->elp=$<nel>1;
-  if ((mdlpvp->eclp=(struct element_connection_list *)malloc
-              (sizeof(struct element_connection_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating element connections");
-    return(1);
-  }
-  mdlpvp->n_voxels++;
-  mdlpvp->eclp->connection_list=mdlpvp->elp;
-  mdlpvp->eclp->n_verts=0;
-  while (mdlpvp->elp!=NULL) {
-    mdlpvp->eclp->n_verts++;
-    mdlpvp->elp=mdlpvp->elp->next;
-  }
-  if (mdlpvp->eclp->n_verts!=4) {
-    mdlerror(mdlpvp, "Non-tetrahedron element found in voxel list object");
-    return(1);
-  }
-  if (mdlpvp->connection_tail==NULL) {
-    mdlpvp->connection_tail=mdlpvp->eclp;
-  }
-  mdlpvp->connection_tail->next=mdlpvp->eclp;
-  mdlpvp->eclp->next=NULL;
-  mdlpvp->connection_tail=mdlpvp->eclp;
-  if (mdlpvp->connection_head==NULL) {
-    mdlpvp->connection_head=mdlpvp->eclp;
-  }
-}
-        | list_tet_arrays array_value
-{
-  mdlpvp->elp=$<nel>2;
-  if ((mdlpvp->eclp=(struct element_connection_list *)malloc
-              (sizeof(struct element_connection_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating element connections");
-    return(1);
-  }
-  mdlpvp->n_voxels++;
-  mdlpvp->eclp->connection_list=mdlpvp->elp;
-  mdlpvp->eclp->n_verts=0;
-  while (mdlpvp->elp!=NULL) {
-    mdlpvp->eclp->n_verts++;
-    mdlpvp->elp=mdlpvp->elp->next;
-  }
-  if (mdlpvp->connection_tail==NULL) {
-    mdlpvp->connection_tail=mdlpvp->eclp;
-  }
-  mdlpvp->connection_tail->next=mdlpvp->eclp;
-  mdlpvp->eclp->next=NULL;
-  mdlpvp->connection_tail=mdlpvp->eclp;
-  if (mdlpvp->connection_head==NULL) {
-    mdlpvp->connection_head=mdlpvp->eclp;
-  }
-};
-
-boolean: TRUE { $$=1; }
-	| FALSE { $$=0; }
-	| YES { $$=1; }
-	| NO { $$=0; }
-        | ON { $$=1; }
-        | OFF { $$=0; }
+single_vertex: point                                  {
+                                                        struct vertex_list *vlp;
+                                                        if ((vlp=(struct vertex_list *)malloc(sizeof(struct vertex_list)))==NULL)
+                                                        {
+                                                          mdlerror(mdlpvp, "Out of memory while creating vertices");
+                                                          return 1;
+                                                        }
+                                                        vlp->vertex = $1;
+                                                        vlp->normal = NULL;
+                                                        vlp->next = NULL;
+                                                        $$ = vlp;
+                                                      }
+             | point NORMAL point                     {
+                                                        struct vertex_list *vlp;
+                                                        if ((vlp=(struct vertex_list *)malloc(sizeof(struct vertex_list)))==NULL)
+                                                        {
+                                                          mdlerror(mdlpvp, "Out of memory while creating normals");
+                                                          return 1;
+                                                        }
+                                                        vlp->vertex = $1;
+                                                        vlp->normal = $3;
+                                                        vlp->next = NULL;
+                                                        $$ = vlp;
+                                                      }
 ;
 
-
-box_def: new_object BOX '{'
-{
-  char mdl_err_msg[1024];
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  if ((mdlpvp->pop=(struct polygon_object *)malloc
-              (sizeof(struct polygon_object)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating box object");
-    return(1);
-  }
-  mdlpvp->pop->polygon_data=NULL;
-  mdlpvp->pop->sb=NULL;
-  mdlpvp->pop->n_walls=0;
-  mdlpvp->pop->fully_closed=1;
-  mdlpvp->pop->surf_class=NULL;
-  mdlpvp->pop->side_removed=NULL;
-
-  if ((mdlpvp->opp=(struct ordered_poly *)malloc
-              (sizeof(struct ordered_poly)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating box object");
-    return(1);
-  }
-  mdlpvp->opp->vertex=NULL;
-  mdlpvp->opp->normal=NULL;
-  mdlpvp->opp->element=NULL;
-  mdlpvp->opp->n_verts=0;
-  mdlpvp->opp->n_walls=0;
-  mdlpvp->pop->polygon_data=(void *)mdlpvp->opp;
-
-  mdlpvp->llf=NULL;
-  mdlpvp->urb=NULL;
-
-  mdlpvp->objp->object_type=BOX_OBJ;
-  mdlpvp->objp->contents=mdlpvp->pop;
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-  mdlpvp->obj_name=mdlpvp->objp->sym->name;
-  mdlpvp->curr_obj=mdlpvp->objp;
-  mdlpvp->region_list_head=mdlpvp->objp->regions;
-
-  /* Create object default region on box object: */
-  if ((mdlpvp->rp=make_new_region(volp,mdlpvp->obj_name,"ALL",mdl_err_msg))==NULL) {
-    mdlerror(mdlpvp, mdl_err_msg);
-    return(1);
-  }
-  if ((mdlpvp->rlp=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
-    mdlerror_fmt(mdlpvp, 
-                 "Out of memory while creating object default region name: %s",
-                 mdlpvp->rp->sym->name);
-    return(1);
-  }
-  mdlpvp->rp->region_last_name="ALL";
-  mdlpvp->rp->parent=mdlpvp->curr_obj;
-  mdlpvp->curr_obj->num_regions++;
-
-  if ((mdlpvp->elmlp=(struct element_list *)malloc
-             (sizeof(struct element_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating element list for object default region");
-    return(1);
-  }
-  mdlpvp->elmlp->begin=ALL_SIDES;
-  mdlpvp->elmlp->end=ALL_SIDES;
-  mdlpvp->elmlp->special=NULL;
-  mdlpvp->elmlp->next=mdlpvp->rp->element_list_head;
-  mdlpvp->rp->element_list_head=mdlpvp->elmlp;
-
-  mdlpvp->rp->surf_class=NULL;
-  mdlpvp->rlp->reg=mdlpvp->rp;
-  mdlpvp->rlp->next=mdlpvp->region_list_head;
-  mdlpvp->region_list_head=mdlpvp->rlp;
-  no_printf("Creating object default region: %s\n",mdlpvp->rp->sym->name);
-}
-	CORNERS '=' point ',' point
-{
-  mdlpvp->llf=$<vec3>7;
-  mdlpvp->urb=$<vec3>9;
-  mdlpvp->llf->x *= mdlpvp->vol->r_length_unit;
-  mdlpvp->llf->y *= mdlpvp->vol->r_length_unit;
-  mdlpvp->llf->z *= mdlpvp->vol->r_length_unit;
-  mdlpvp->urb->x *= mdlpvp->vol->r_length_unit;
-  mdlpvp->urb->y *= mdlpvp->vol->r_length_unit;
-  mdlpvp->urb->z *= mdlpvp->vol->r_length_unit;
-  mdlpvp->pop->sb = init_cuboid(mdlpvp->llf,mdlpvp->urb);
-  free(mdlpvp->llf);
-  free(mdlpvp->urb);
-  mdlpvp->llf = mdlpvp->urb = NULL;
-  if (mdlpvp->pop->sb == NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory while storing box corners");
-    return 1;
-  }
-  mdlpvp->box_aspect_ratio = 0.0;
-}
-	opt_aspect_ratio_def
-	list_opt_polygon_object_cmds
-{
-  int i;
-
-  if (mdlpvp->box_aspect_ratio >= 2.0)
-  {
-    i = reaspect_cuboid(mdlpvp->pop->sb,mdlpvp->box_aspect_ratio);
-    if (i)
-    {
-      mdlerror(mdlpvp, "Error setting up box geometry");
-      return 1;
-    }
-  }
-  for (mdlpvp->rlp=mdlpvp->region_list_head ; mdlpvp->rlp!=NULL; mdlpvp->rlp=mdlpvp->rlp->next)
-  {
-    i = normalize_elements(mdlpvp->rlp->reg,0);
-    if (i)
-    {
-      mdlerror(mdlpvp, "Error setting up elements in box regions");
-      return 1;
-    }
-  }
-  i = polygonalize_cuboid(mdlpvp->opp,mdlpvp->pop->sb);
-  if (i)
-  {
-    mdlerror(mdlpvp, "Could not turn box object into polygons");
-    return 1;
-  }
-  else if (volp->notify->box_triangulation==NOTIFY_FULL)
-  {
-    fprintf(volp->log_file,"Box object %s converted into %d polygons\n",mdlpvp->curr_obj->sym->name,mdlpvp->opp->n_walls);
-  }
-  
-  mdlpvp->pop->n_walls = mdlpvp->opp->n_walls;
-  mdlpvp->pop->n_verts = mdlpvp->opp->n_verts;
-  mdlpvp->n_walls_actual = mdlpvp->opp->n_walls;
-  /*mdlpvp->pop->n_walls = 12;*/
-  /*mdlpvp->pop->n_verts = 8;*/
-  
-  if ((mdlpvp->pop->surf_class=(struct species **)malloc
-              (mdlpvp->pop->n_walls*sizeof(struct species *)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating box object");
-    return(1);
-  }
-  for (i=0;i<mdlpvp->pop->n_walls;i++) mdlpvp->pop->surf_class[i]=volp->g_surf;
-  mdlpvp->pop->side_removed = new_bit_array(mdlpvp->pop->n_walls);
-  if (mdlpvp->pop->side_removed==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating box object");
-    return(1);
-  }
-  set_all_bits(mdlpvp->pop->side_removed,0);
-}	  
-	list_opt_object_cmds
-	'}'
-{
-  mdlpvp->curr_obj->regions=mdlpvp->region_list_head;
-  remove_gaps_from_regions(mdlpvp->curr_obj);
-  mdlpvp->n_walls_actual = mdlpvp->curr_obj->n_walls_actual;
-
-
-  /* check for a degenerate (empty) object and regions */
-  struct region_list *rl;
-  struct region *rp;
-  int i;
-  int is_degenerate;  /* flag */
-  for(rl = mdlpvp->curr_obj->regions; rl != NULL; rl = rl->next)
-  {
-    rp = rl->reg;
-    is_degenerate = 1;
-    for(i = 0; i < rp->membership->nbits;i++)
-    {
-      if(get_bit(rp->membership,i)){
-         is_degenerate = 0;
-         break;
-      }
-    }
-    if(is_degenerate && (strcmp(rp->region_last_name, "ALL") == 0)){
-        mdlerror_fmt(mdlpvp, 
-                     "ERROR: box object '%s' is degenerate - no walls.\n",
-                     mdlpvp->obj_name);
-        return 1;
-    }else if(is_degenerate && (strcmp(rp->region_last_name, "REMOVED") != 0)){
-        mdlerror_fmt(mdlpvp, 
-                     "ERROR: region '%s' of object '%s' is degenerate - no walls.\n",
-                     rp->region_last_name,
-                     mdlpvp->obj_name);
-        return 1;
-    }
- 
-  }
-
-#ifdef DEBUG
-  no_printf("Box %s defined:\n",mdlpvp->curr_obj->sym->name);
-  no_printf("    LLF Corner = [ %f, %f, %f ]\n",mdlpvp->llf->x,mdlpvp->llf->y,mdlpvp->llf->z);
-  no_printf("    URB Corner = [ %f, %f, %f ]\n",mdlpvp->urb->x,mdlpvp->urb->y,mdlpvp->urb->z);
-#endif
-  mdlpvp->curr_obj->n_walls=mdlpvp->pop->n_walls;
-  mdlpvp->curr_obj->n_verts=mdlpvp->pop->n_verts;
-  mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
-  mdlpvp->curr_obj->parent->n_walls_actual+=mdlpvp->curr_obj->n_walls_actual;
-  mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
-  mdlpvp->curr_obj=mdlpvp->curr_obj->parent;
-  if (mdlpvp->object_name_list_end->prev!=NULL) {
-    mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
-  }
-  else {
-    mdlpvp->object_name_list_end->name=NULL;
-  }
-  $$=$<sym>1;
-};
-
-opt_aspect_ratio_def:
-	| aspect_ratio_def
+list_points: single_vertex                            {
+                                                        $$.vertex_tail = $$.vertex_head = $1;
+                                                        $$.vertex_count = 1;
+                                                      }
+           | list_points single_vertex                {
+                                                        $$ = $1;
+                                                        $$.vertex_tail = $$.vertex_tail->next = $2;
+                                                        ++ $$.vertex_count;
+                                                      }
 ;
 
-aspect_ratio_def: ASPECT_RATIO '=' num_expr
-{
-  mdlpvp->box_aspect_ratio = $<dbl>3;
-  if (!(mdlpvp->box_aspect_ratio >= 2.0))
-  {
-    mdlerror(mdlpvp, "Invalid aspect ratio selected (must be greater than or equal to 2.0)");
-    return 1;
-  }
-}
+element_connection_cmd:
+          ELEMENT_CONNECTIONS
+          '{' list_element_connections '}'            { $$ = $3; }
+;
 
-list_opt_polygon_object_cmds: /* empty */
-	| list_opt_polygon_object_cmds opt_polygon_object_cmd
+list_element_connections:
+          element_connection                          {
+                                                        $$.connection_head = $$.connection_tail = $1;
+                                                        $$.connection_count = 1;
+                                                      }
+        | list_element_connections
+          element_connection                          {
+                                                        $$ = $1;
+                                                        $$.connection_tail = $$.connection_tail->next = $2;
+                                                        ++ $$.connection_count;
+                                                      }
+;
+
+element_connection: array_value                       {
+                                                        struct element_connection_list *eclp = (struct element_connection_list *) malloc(sizeof(struct element_connection_list));
+                                                        if (eclp == NULL)
+                                                        {
+                                                          mdlerror(mdlpvp, "Out of memory while creating element connections");
+                                                          return 1;
+                                                        }
+
+                                                        eclp->connection_list = $1.value_head;
+                                                        eclp->n_verts = $1.value_count;
+                                                        eclp->next = NULL;
+
+                                                        if (eclp->n_verts != 3)
+                                                        {
+                                                          mdlerror(mdlpvp, "Non-triangular element found in polygon list object");
+                                                          return 1;
+                                                        }
+                                                        $$ = eclp;
+                                                      }
+;
+
+list_opt_polygon_object_cmds:
+          /* empty */
+        | list_opt_polygon_object_cmds
+          opt_polygon_object_cmd
 ;
 
 
 opt_polygon_object_cmd:
-	remove_side
-	| in_obj_define_surface_regions
+          remove_side
+        | in_obj_define_surface_regions
 ;
 
-
-remove_side: REMOVE_ELEMENTS '{'
-{
-  char mdl_err_msg[1024];
-  mdlpvp->rp = retrieve_old_region(volp,mdlpvp->obj_name,"REMOVED",mdl_err_msg);
-  if (mdlpvp->rp==NULL)
-  {
-    if ((mdlpvp->rp=make_new_region(volp,mdlpvp->obj_name,"REMOVED",mdl_err_msg))==NULL) {
-      mdlerror(mdlpvp, mdl_err_msg);
-      return(1);
-    }
-    if ((mdlpvp->rlp=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
-      mdlerror_fmt(mdlpvp,
-                   "Out of memory while creating object default region name: %s",
-                   mdlpvp->rp->sym->name);
-      return(1);
-    }
-
-    mdlpvp->rp->region_last_name="REMOVED";
-    mdlpvp->rp->parent=mdlpvp->curr_obj;
-    mdlpvp->rlp->reg=mdlpvp->rp;
-    mdlpvp->rlp->next = mdlpvp->region_list_head;
-    mdlpvp->region_list_head = mdlpvp->rlp;
-    mdlpvp->objp->num_regions++;
-    mdlpvp->element_list_head = NULL;
-  }
-  else
-  {
-    mdlpvp->element_list_head = mdlpvp->rp->element_list_head;
-  }
-  mdlpvp->exclude_me = 0;  /* Default is named regions are in removal list */
-}
-	remove_element_specifier_list '}'
-{
-  mdlpvp->rp->element_list_head = mdlpvp->element_list_head;
-  if (mdlpvp->objp->object_type==POLY_OBJ)
-  {
-    if (normalize_elements(mdlpvp->rp,0))
-    {
-      mdlerror(mdlpvp, "Improper element specification: out of range or out of memory");
-      return 1;
-    }
-  }
-};
+remove_side:
+          REMOVE_ELEMENTS '{'                         { CHECKN(mdlpvp->current_region = mdl_get_region(mdlpvp, mdlpvp->current_object, "REMOVED")); }
+            remove_element_specifier_list
+          '}'                                         {
+                                                        mdlpvp->current_region->element_list_head = $4.elml_head;
+                                                        if (mdlpvp->current_object->object_type == POLY_OBJ)
+                                                        {
+                                                          if (mdl_normalize_elements(mdlpvp, mdlpvp->current_region,0))
+                                                          {
+                                                            mdlerror(mdlpvp, "Improper element specification: out of range or out of memory");
+                                                            return 1;
+                                                          }
+                                                        }
+                                                      }
+;
 
 remove_element_specifier_list:
-	element_specifier_list
-	| just_an_element_list
+          element_specifier_list
+        | just_an_element_list
 ;
 
-
-side_name: TOP {$$=Z_POS;}
-	| BOTTOM {$$=Z_NEG;}
-	| FRONT {$$=Y_NEG;}
-	| BACK {$$=Y_POS;}
-	| LEFT {$$=X_NEG;}
-	| RIGHT {$$=X_POS;}
-	| ALL_ELEMENTS {$$=ALL_SIDES;}
+side_name: TOP                                        { $$ = Z_POS; }
+         | BOTTOM                                     { $$ = Z_NEG; }
+         | FRONT                                      { $$ = Y_NEG; }
+         | BACK                                       { $$ = Y_POS; }
+         | LEFT                                       { $$ = X_NEG; }
+         | RIGHT                                      { $$ = X_POS; }
+         | ALL_ELEMENTS                               { $$ = ALL_SIDES; }
 ;
 
-element_specifier_list: element_specifier
-	| element_specifier_list ',' element_specifier
+element_specifier_list:
+          element_specifier
+        | element_specifier_list ','
+          element_specifier                           { $$ = $1; $$.elml_tail->next = $3.elml_head; $$.elml_tail = $3.elml_tail; }
 ;
 
 element_specifier:
-	incl_element_list_stmt
-	| excl_element_list_stmt
-	| prev_region_stmt
-	| patch_statement
+          incl_element_list_stmt
+        | excl_element_list_stmt
+        | prev_region_stmt                            { $$.elml_tail = $$.elml_head = $1; }
+        | patch_statement                             { $$.elml_tail = $$.elml_head = $1; }
 ;
 
-incl_element_list_stmt: INCLUDE_ELEMENTS 
-{
-  mdlpvp->exclude_me = 0;
-}
-	'=' '[' list_element_specs ']'
+incl_element_list_stmt:
+          INCLUDE_ELEMENTS '='
+          '[' list_element_specs ']'                  { $$ = $4; }
 ;
 
-excl_element_list_stmt: EXCLUDE_ELEMENTS
-{
-  mdlpvp->exclude_me = 1;
-}
-	'=' '[' list_element_specs ']'
+excl_element_list_stmt:
+          EXCLUDE_ELEMENTS '='
+          '[' list_element_specs ']'                  {
+                                                        struct element_list *elmlp;
+                                                        $$ = $4;
+                                                        for (elmlp = $$.elml_head; elmlp != NULL; elmlp = elmlp->next)
+                                                          elmlp->special = (struct element_special *) elmlp;
+                                                      }
 ;
 
-just_an_element_list:
-	list_element_specs
+just_an_element_list: list_element_specs
 ;
 
-list_element_specs: element_spec
-	| list_element_specs ',' element_spec
+list_element_specs:
+          element_spec                                { $$.elml_tail = $$.elml_head = $1; }
+        | list_element_specs ',' element_spec         { $$ = $1; $$.elml_tail = $$.elml_tail->next = $3; }
 ;
 
-
-element_spec: num_expr
-{
-  if ((mdlpvp->elmlp=(struct element_list *)malloc
-             (sizeof(struct element_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating element list item");
-    return(1);
-  }
-  mdlpvp->elmlp->begin=(unsigned int) ($<dbl>1);
-  mdlpvp->elmlp->end=mdlpvp->elmlp->begin;
-  mdlpvp->elmlp->next=mdlpvp->element_list_head;
-  mdlpvp->element_list_head=mdlpvp->elmlp;
-  if (mdlpvp->exclude_me) mdlpvp->elmlp->special = (struct element_special*)mdlpvp->elmlp;
-  else mdlpvp->elmlp->special=NULL;
-}
-	| num_expr TO num_expr
-{
-  if ((mdlpvp->elmlp=(struct element_list *)malloc
-             (sizeof(struct element_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating element list item");
-    return(1);
-  }
-  mdlpvp->elmlp->begin=(unsigned int) ($<dbl>1);
-  mdlpvp->elmlp->end=(unsigned int) ($<dbl>3);
-  mdlpvp->elmlp->next=mdlpvp->element_list_head;
-  mdlpvp->element_list_head=mdlpvp->elmlp;
-  if (mdlpvp->exclude_me) mdlpvp->elmlp->special = (struct element_special*)mdlpvp->elmlp;
-  else mdlpvp->elmlp->special=NULL;
-}
-	| side_name
-{
-  if ((mdlpvp->elmlp=(struct element_list *)malloc
-             (sizeof(struct element_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating element list item");
-    return(1);
-  }
-  mdlpvp->elmlp->next=mdlpvp->element_list_head;
-  mdlpvp->element_list_head=mdlpvp->elmlp;
-  if (mdlpvp->exclude_me) mdlpvp->elmlp->special = (struct element_special*)mdlpvp->elmlp;
-  else mdlpvp->elmlp->special=NULL;
-
-  if ($<tok>1==ALL_SIDES && mdlpvp->objp->object_type==POLY_OBJ) {
-    mdlpvp->elmlp->begin=0;
-    mdlpvp->elmlp->end=mdlpvp->pop->n_walls-1;
-  }
-  else if (mdlpvp->objp->object_type==POLY_OBJ) {
-    mdlerror(mdlpvp, "Illegal reference to polygon list element by side-name");
-    return(1);
-  }
-  else {
-    mdlpvp->elmlp->begin=$<tok>1;
-    mdlpvp->elmlp->end=$<tok>1;
-  }
-
-};
-
-prev_region_stmt: prev_region_type '=' VAR
-{
-  struct sym_table *stp;
-  char *reg_name;
-  char *full_reg_name;
-  
-  mdlpvp->elmlp = (struct element_list*)malloc(sizeof(struct element_list));
-  if (mdlpvp->elmlp==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory while creating element list item");
-    return 1;
-  }
-  mdlpvp->elmlp->special = (struct element_special*)malloc(sizeof(struct element_special));
-  if (mdlpvp->elmlp->special==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory while creating element list item");
-    return 1;
-  }
-  mdlpvp->elmlp->begin = 0;
-  mdlpvp->elmlp->end = 0;
-  mdlpvp->elmlp->special->exclude = (byte)$<tok>1;
-  
-  if (mdlpvp->cval_2!=NULL)
-  {
-    reg_name = mdlpvp->cval_2;
-    mdlpvp->cval_2 = NULL;
-  }
-  else
-  {
-    reg_name = mdlpvp->cval;
-    mdlpvp->cval=NULL;
-  }
-  
-  full_reg_name = (char*)malloc( strlen(reg_name) + strlen(mdlpvp->curr_obj->sym->name) + 2 );
-  if (full_reg_name==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory while creating element list item");
-    return 1;
-  }
-  
-  strcpy(full_reg_name,mdlpvp->curr_obj->sym->name);
-  strcat(full_reg_name,",");
-  strcat(full_reg_name,reg_name);
-
-  stp=retrieve_sym(full_reg_name,REG,volp->main_sym_table);
-
-  if (reg_name==mdlpvp->cval) mdlpvp->cval=NULL;
-  else mdlpvp->cval_2 = NULL;
-  
-  if (stp==NULL)
-  {
-    mdlerror_fmt(mdlpvp, "Undefined region: %s", full_reg_name);
-    return 1;
-  }
-   
-  mdlpvp->elmlp->special->referent = (struct region*)stp->value;
-  
-  if (mdlpvp->elmlp->special->referent==mdlpvp->rp)
-  {
-    mdlerror_fmt(mdlpvp, "Self-referential region include.  No paradoxes, please.");
-    return 1;
-  }
-  free(full_reg_name);
-  free(reg_name);
-  mdlpvp->elmlp->next=mdlpvp->element_list_head;
-  mdlpvp->element_list_head=mdlpvp->elmlp;
-};
-
-prev_region_type: INCLUDE_REGION { $$=0; }
-	| EXCLUDE_REGION { $$=1; }
+element_spec: num_expr                                { CHECKN($$ = mdl_new_element_list(mdlpvp, (unsigned int) $1, (unsigned int) $1)); }
+            | num_expr TO num_expr                    { CHECKN($$ = mdl_new_element_list(mdlpvp, (unsigned int) $1, (unsigned int) $3)); }
+            | side_name                               {
+                                                        unsigned int begin, end;
+                                                        if ($1 == ALL_SIDES  &&  mdlpvp->current_object->object_type == POLY_OBJ)
+                                                        {
+                                                          begin = 0;
+                                                          end = mdlpvp->current_polygon->n_walls-1;
+                                                        }
+                                                        else if (mdlpvp->current_object->object_type==POLY_OBJ)
+                                                        {
+                                                          mdlerror(mdlpvp, "Illegal reference to polygon list element by side-name");
+                                                          return 1;
+                                                        }
+                                                        else {
+                                                          begin = $1;
+                                                          end = $1;
+                                                        }
+                                                        CHECKN($$ = mdl_new_element_list(mdlpvp, begin, end));
+                                                      }
 ;
 
-patch_statement: patch_type '=' point ',' point
-{
-  struct vector3 *temp_llf;
-  struct vector3 *temp_urb;
-  
-  if (mdlpvp->objp->object_type!=BOX_OBJ)
-  {
-    mdlerror(mdlpvp, "Must use PATCH specifier on a BOX object only.");
-    return 1;
-  }
-  
-  mdlpvp->elmlp = (struct element_list*)malloc(sizeof(struct element_list));
-  if (mdlpvp->elmlp==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory while creating element list item");
-    return 1;
-  }
-  mdlpvp->elmlp->special = (struct element_special*)malloc(sizeof(struct element_special));
-  if (mdlpvp->elmlp->special==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory while creating element list item");
-    return 1;
-  }
-  mdlpvp->elmlp->begin = 0;
-  mdlpvp->elmlp->end = 0;
-  mdlpvp->elmlp->special->referent = NULL;
-  mdlpvp->elmlp->special->exclude = (byte)$<tok>1;
-  temp_llf = $<vec3>3;
-  temp_urb = $<vec3>5;
-  temp_llf->x *= volp->r_length_unit;
-  temp_llf->y *= volp->r_length_unit;
-  temp_llf->z *= volp->r_length_unit;
-  temp_urb->x *= volp->r_length_unit;
-  temp_urb->y *= volp->r_length_unit;
-  temp_urb->z *= volp->r_length_unit;
-  
-  memcpy(&(mdlpvp->elmlp->special->corner1),temp_llf,sizeof(struct vector3));
-  memcpy(&(mdlpvp->elmlp->special->corner2),temp_urb,sizeof(struct vector3));
-  if (refine_cuboid(temp_llf,temp_urb,mdlpvp->pop->sb,mdlpvp->vol->grid_density))
-  {
-    mdlerror(mdlpvp, "Could not refine box to include new patch");
-    return 1;
-  }
-  free(temp_llf);
-  free(temp_urb);
-  mdlpvp->elmlp->next=mdlpvp->element_list_head;
-  mdlpvp->element_list_head=mdlpvp->elmlp;
-};
-
-patch_type: INCLUDE_PATCH { $$=0; }
-	| EXCLUDE_PATCH { $$=1; }
+prev_region_stmt: prev_region_type '=' VAR            { CHECKN($$ = mdl_new_element_previous_region(mdlpvp, mdlpvp->current_object, mdlpvp->current_region, $3, $1)); }
 ;
 
-
-in_obj_define_surface_regions: DEFINE_SURFACE_REGIONS '{'
-	list_in_obj_surface_region_defs
-	'}'
+prev_region_type: INCLUDE_REGION                      { $$ = 0; }
+                | EXCLUDE_REGION                      { $$ = 1; }
 ;
 
+patch_statement: patch_type '=' point ',' point       {
+                                                        if (mdlpvp->current_object->object_type!=BOX_OBJ)
+                                                        {
+                                                          mdlerror(mdlpvp, "Must use PATCH specifier on a BOX object only.");
+                                                          return 1;
+                                                        }
 
-existing_obj_define_surface_regions: DEFINE_SURFACE_REGIONS '{'
-	list_existing_obj_surface_region_defs
-	'}'
+                                                        CHECKN($$ = mdl_new_element_patch(mdlpvp, mdlpvp->current_polygon->sb, $3, $5, $1));
+                                                      }
 ;
 
-
-list_existing_obj_surface_region_defs: existing_obj_surface_region_def
-	| list_existing_obj_surface_region_defs existing_obj_surface_region_def
+patch_type: INCLUDE_PATCH                             { $$ = 0; }
+          | EXCLUDE_PATCH                             { $$ = 1; }
 ;
 
-
-existing_obj_surface_region_def: existing_object
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  mdlpvp->obj_name=mdlpvp->objp->sym->name;
-  if (mdlpvp->objp->object_type!=BOX_OBJ && mdlpvp->objp->object_type!=POLY_OBJ) {
-    mdlerror_fmt(mdlpvp, "Cannot define region on non-surface object: %s", mdlpvp->objp->sym->name);
-    return(1);
-  }
-  mdlpvp->pop=mdlpvp->objp->contents;
-  mdlpvp->region_list_head=mdlpvp->objp->regions;
-}
-	'[' new_region ']' '{'
-{
-  mdlpvp->gp=$<sym>4;
-  mdlpvp->rp=(struct region *)mdlpvp->gp->value;
-  mdlpvp->rp->parent = mdlpvp->objp;  /* Was set to root of world, fixing */
-  mdlpvp->eff_dat_head=mdlpvp->rp->eff_dat_head;
-  mdlpvp->element_list_head = NULL;
-}
-	element_specifier_list
-{
-  mdlpvp->rp->element_list_head = mdlpvp->element_list_head;
-  if (normalize_elements(mdlpvp->rp,1))
-  {
-    mdlerror_fmt(mdlpvp, "Improper element specification: out of range, out of memory,\n  or using patch specifier in already-created box");
-    return 1;
-  }
-}
-	list_opt_surface_region_stmts
-        list_opt_surface_region_viz_values_stmts  
-	'}'
-{
-  mdlpvp->rp->eff_dat_head=mdlpvp->eff_dat_head;
-  mdlpvp->objp->regions=mdlpvp->region_list_head;
-  mdlpvp->objp->num_regions++;
-};
-
-
-list_opt_surface_region_stmts: /* empty */
-	| list_opt_surface_region_stmts opt_surface_region_stmt
+in_obj_define_surface_regions:
+          DEFINE_SURFACE_REGIONS '{'
+            list_in_obj_surface_region_defs
+          '}'
 ;
 
-
-list_opt_surface_region_viz_values_stmts: /* empty */ 
-                                          |  surface_region_viz_value_stmt
+list_in_obj_surface_region_defs:
+          in_obj_surface_region_def
+        | list_in_obj_surface_region_defs
+          in_obj_surface_region_def
 ;
 
-
-opt_surface_region_stmt: set_surface_class_stmt
-	| surface_mol_stmt
+in_obj_surface_region_def:
+          new_region '{'                              { mdlpvp->current_region = $1; }
+            element_specifier_list                    {
+                                                        $1->element_list_head = $4.elml_head;
+                                                        if (mdlpvp->current_object->object_type == POLY_OBJ)
+                                                        {
+                                                          if (mdl_normalize_elements(mdlpvp, mdlpvp->current_region,0))
+                                                          {
+                                                            mdlerror(mdlpvp, "Improper element specification: out of range or out of memory");
+                                                            return 1;
+                                                          }
+                                                        }
+                                                      }
+            list_opt_surface_region_stmts
+          '}'                                         {
+                                                        if (mdlpvp->current_region->surf_class != NULL  &&
+                                                            mdlpvp->current_region->surf_class->region_viz_value > 0)
+                                                          mdlpvp->current_region->region_viz_value = mdlpvp->current_region->surf_class->region_viz_value;
+                                                          mdlpvp->current_region = NULL;
+                                                      }
 ;
 
-
-set_surface_class_stmt:	SURFACE_CLASS '=' existing_surface_class 
-{
-  mdlpvp->gp=$<sym>3;
-  mdlpvp->rp->surf_class=(struct species *)mdlpvp->gp->value;
-
-  if(mdlpvp->rp->surf_class->region_viz_value > 0){
-     mdlpvp->rp->region_viz_value = mdlpvp->rp->surf_class->region_viz_value;
-  }
-};
-
-surface_region_viz_value_stmt: VIZ_VALUE '=' num_expr
-{
-  /* if surface_class->region_viz_value is already defined print warning */
-  if(mdlpvp->rp->surf_class != NULL){
-     if(mdlpvp->rp->surf_class->region_viz_value > 0){
-         mdlerror(mdlpvp, "ATTENTION: region_viz_value defined both through SURFACE_CLASS and VIZ_VALUE statements.\n");
-     }
-   }
-   /*this statement overwrites the results of the 'set_surface_class_stmt' */
-   mdlpvp->rp->region_viz_value = (int)$<dbl>3;
-};
-
-list_in_obj_surface_region_defs: in_obj_surface_region_def
-	| list_in_obj_surface_region_defs in_obj_surface_region_def
+/* Object type: Voxel list */
+voxel_list_def:
+          new_object VOXEL_LIST
+          start_object
+            vertex_list_cmd
+            tet_element_connection_cmd                {
+                                                        struct voxel_object *vop;
+                                                        CHECKN(vop = mdl_new_voxel_list(mdlpvp, $1,
+                                                                                        $4.vertex_count, $4.vertex_head,
+                                                                                        $5.connection_count, $5.connection_head));
+                                                        no_printf("Voxel list %s defined:\n",$1->name);
+                                                        no_printf(" n_verts = %d\n",vop->n_verts);
+                                                      }
+            list_opt_object_cmds
+          end_object                                  { $$ = (struct object *) $1->value; }
 ;
 
+tet_element_connection_cmd:
+          TET_ELEMENT_CONNECTIONS
+          '{' list_tet_arrays '}'                     { $$ = $3; }
+;
 
-in_obj_surface_region_def: new_region '{'
-{
+element_connection_tet: array_value                   {
+                                                        struct element_connection_list *eclp = (struct element_connection_list *) malloc(sizeof(struct element_connection_list));
+                                                        if (eclp == NULL)
+                                                        {
+                                                          mdlerror(mdlpvp, "Out of memory while creating element connections");
+                                                          return 1;
+                                                        }
+                                                        eclp->connection_list = $1.value_head;
+                                                        eclp->n_verts = $1.value_count;
+                                                        eclp->next = NULL;
+                                                        if (eclp->n_verts != 4)
+                                                        {
+                                                          mdlerror(mdlpvp, "Non-tetrahedron element found in voxel list object");
+                                                          return 1;
+                                                        }
+                                                        $$ = eclp;
+                                                      }
+;
 
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->rp=(struct region *)mdlpvp->gp->value;
-  mdlpvp->eff_dat_head=mdlpvp->rp->eff_dat_head;
-  mdlpvp->element_list_head = NULL;
-}
-	element_specifier_list
-{
-  mdlpvp->rp->element_list_head = mdlpvp->element_list_head;
-  if (mdlpvp->objp->object_type==POLY_OBJ)
-  {
-    if (normalize_elements(mdlpvp->rp,0))
-    {
-      mdlerror(mdlpvp, "Improper element specification: out of range or out of memory");
-      return 1;
-    }
-  }
-}
-	list_opt_surface_region_stmts
-        list_opt_surface_region_viz_values_stmts   
-	'}'
-{
-  mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
-  mdlpvp->elmlp=mdlpvp->element_list_head;
-  mdlpvp->objp->num_regions++;
-  mdlpvp->rp->eff_dat_head=mdlpvp->eff_dat_head;
-  if((mdlpvp->rp->surf_class != NULL) && (mdlpvp->rp->surf_class->region_viz_value > 0)){
-      mdlpvp->rp->region_viz_value = mdlpvp->rp->surf_class->region_viz_value;
-  }
-};
+list_tet_arrays:
+          element_connection_tet                      {
+                                                        $$.connection_head = $$.connection_tail = $1;
+                                                        $$.connection_count = 1;
+                                                      }
+        | list_tet_arrays element_connection_tet      {
+                                                        $$ = $1;
+                                                        $$.connection_tail = $$.connection_tail->next = $2;
+                                                        ++ $$.connection_count;
+                                                      }
+;
 
+/* Object type: Boxes */
+box_def: new_object BOX
+          start_object
+            CORNERS '=' point ',' point
+            opt_aspect_ratio_def                      { CHECKN(mdlpvp->current_polygon = mdl_new_box_object(mdlpvp, $1, $6, $8)); }
+            list_opt_polygon_object_cmds              { CHECK(mdl_triangulate_box_object(mdlpvp, $1, mdlpvp->current_polygon, $9)); }
+            list_opt_object_cmds
+          end_object                                  {
+                                                        struct object *objp = (struct object *) $1->value;
+                                                        mdl_remove_gaps_from_regions(objp);
+                                                        objp->n_walls = mdlpvp->current_polygon->n_walls;
+                                                        objp->n_verts = mdlpvp->current_polygon->n_verts;
+                                                        CHECK(mdl_check_degenerate_polygon_list(mdlpvp, objp));
+                                                        mdlpvp->current_polygon = NULL;
+                                                        $$ = objp;
+                                                      }
+;
 
-new_region: VAR
-{
-  char mdl_err_msg[1024];
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-  if ((mdlpvp->rp=make_new_region(volp,mdlpvp->obj_name,mdlpvp->sym_name,mdl_err_msg))==NULL) {
-    mdlerror(mdlpvp, mdl_err_msg);
-    return(1);
-  }
-  if ((mdlpvp->rlp=(struct region_list *)malloc(sizeof(struct region_list)))==NULL) {
-    mdlerror_fmt(mdlpvp, "Out of memory while creating region name: %s", mdlpvp->rp->sym->name);
-    return(1);
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  mdlpvp->rp->region_last_name=mdlpvp->sym_name;
-  mdlpvp->rp->parent=mdlpvp->curr_obj;
-  mdlpvp->rp->surf_class=NULL;
-  mdlpvp->rlp->reg=mdlpvp->rp;
-  mdlpvp->rlp->next=mdlpvp->region_list_head;
-  mdlpvp->region_list_head=mdlpvp->rlp;
-  no_printf("Creating new region: %s\n",mdlpvp->rp->sym->name);
-  fflush(mdlpvp->vol->err_file);
-  $$=mdlpvp->rp->sym;
-};
+opt_aspect_ratio_def: /* empty */                     { $$ = 0.0; }
+                    | ASPECT_RATIO '=' num_expr       {
+                                                        $$ = $3;
+                                                        if (!($$ >= 2.0))
+                                                        {
+                                                          mdlerror(mdlpvp, "Invalid aspect ratio selected (must be greater than or equal to 2.0)");
+                                                          return 1;
+                                                        }
+                                                      }
+;
 
+/* =================================================================== */
+/* Surface region definitions */
 
-mod_surface_regions: MODIFY_SURFACE_REGIONS '{'
-	list_existing_surface_region_refs
-	'}'
+existing_obj_define_surface_regions:
+    DEFINE_SURFACE_REGIONS '{'
+      list_existing_obj_surface_region_defs
+    '}'
+;
+
+list_existing_obj_surface_region_defs:
+      existing_obj_surface_region_def
+    | list_existing_obj_surface_region_defs
+      existing_obj_surface_region_def
+;
+
+existing_obj_surface_region_def:
+          existing_object                             {
+                                                        struct object *objp = (struct object *) $1->value;
+                                                        if (objp->object_type != BOX_OBJ && objp->object_type != POLY_OBJ)
+                                                        {
+                                                          mdlerror_fmt(mdlpvp, "Cannot define region on non-surface object: %s", $1->name);
+                                                          return 1;
+                                                        }
+                                                        mdlpvp->current_polygon = objp->contents;
+                                                        mdlpvp->current_object = objp;
+                                                      }
+            '[' new_region ']'                        { mdlpvp->current_region = $4; }
+            '{' element_specifier_list                {
+                                                        mdlpvp->current_region->element_list_head = $8.elml_head;
+                                                        if (mdl_normalize_elements(mdlpvp, mdlpvp->current_region, 1))
+                                                        {
+                                                          mdlerror_fmt(mdlpvp, "Improper element specification: out of range, out of memory,\n  or using patch specifier in already-created box");
+                                                          return 1;
+                                                        }
+                                                      }
+            list_opt_surface_region_stmts
+          '}'                                         {
+                                                        mdlpvp->current_region = NULL;
+                                                        mdlpvp->current_polygon = NULL;
+                                                        mdlpvp->current_object = NULL;
+                                                      }
+;
+
+new_region: VAR                                       { CHECKN($$ = mdl_create_region(mdlpvp, mdlpvp->current_object, $1)); }
+;
+
+list_opt_surface_region_stmts:
+          /* empty */
+        | list_opt_surface_region_stmts
+          opt_surface_region_stmt
+;
+
+opt_surface_region_stmt:
+          set_surface_class_stmt
+        | surface_mol_stmt                            { $1.eff_tail->next = mdlpvp->current_region->eff_dat_head; mdlpvp->current_region->eff_dat_head = $1.eff_head; }
+        | surface_region_viz_value_stmt
+;
+
+set_surface_class_stmt:
+          SURFACE_CLASS '='
+          existing_surface_class                      {
+                                                        mdlpvp->current_region->surf_class = (struct species *) $3->value;
+                                                        if (mdlpvp->current_region->surf_class->region_viz_value > 0)
+                                                           mdlpvp->current_region->region_viz_value = mdlpvp->current_region->surf_class->region_viz_value;
+                                                      }
+;
+
+surface_region_viz_value_stmt:
+          VIZ_VALUE '=' num_expr                      {
+                                                        /* if surface_class->region_viz_value is already defined print warning */
+                                                        if (mdlpvp->current_region->surf_class != NULL  &&
+                                                            mdlpvp->current_region->surf_class->region_viz_value > 0)
+                                                          mdlerror(mdlpvp, "ATTENTION: region_viz_value defined both through SURFACE_CLASS and VIZ_VALUE statements.\n");
+
+                                                        mdlpvp->current_region->region_viz_value = (int) $3;
+                                                      }
+;
+
+/* =================================================================== */
+/* Surface region modifications */
+
+mod_surface_regions:
+          MODIFY_SURFACE_REGIONS '{'
+            list_existing_surface_region_refs
+          '}'
+;
+
+list_existing_surface_region_refs:
+          existing_surface_region_ref
+        | list_existing_surface_region_refs
+          existing_surface_region_ref
+;
+
+existing_surface_region_ref:
+          existing_region '{'                         { mdlpvp->current_region = (struct region *) $1->value; }
+            list_opt_surface_region_stmts
+          '}'                                         { mdlpvp->current_region = NULL; }
+;
+
+/* =================================================================== */
+/* Reaction output definitions */
+
+output_def:
+          REACTION_DATA_OUTPUT '{'
+            output_buffer_size_def                    {
+                                                        mdlpvp->header_comment = NULL;  /* No header by default */
+                                                        mdlpvp->exact_time_flag = 1;    /* Print exact_time column in TRIGGER output by default */
+                                                      }
+            output_timer_def
+            list_count_cmds
+          '}'                                         {
+                                                        struct output_block *obp;
+                                                        struct output_set *os;
+                                                        CHECKN(obp = mdl_new_output_block(mdlpvp, (int) $3));
+                                                        if ($5.type == OUTPUT_BY_STEP)
+                                                          mdl_set_reaction_output_timer_step(mdlpvp, obp, $5.step);
+                                                        else if ($5.type == OUTPUT_BY_ITERATION_LIST)
+                                                          mdl_set_reaction_output_timer_iterations(mdlpvp, obp, $5.values.value_count, $5.values.value_head);
+                                                        else if ($5.type == OUTPUT_BY_TIME_LIST)
+                                                          mdl_set_reaction_output_timer_times(mdlpvp, obp, $5.values.value_count, $5.values.value_head);
+                                                        else
+                                                        {
+                                                          mdlerror_fmt(mdlpvp, "Internal error: Invalid output timer def (%d)\n", $5.type);
+                                                          return 1;
+                                                        }
+                                                        obp->data_set_head = $6.set_head;
+                                                        for (os = obp->data_set_head; os != NULL; os = os->next)
+                                                          os->block = obp;
+                                                        CHECK(mdl_output_block_finalize(mdlpvp, obp));
+                                                        obp->next = mdlpvp->vol->output_block_head;
+                                                        mdlpvp->vol->output_block_head = obp;
+                                                      }
+;
+
+output_buffer_size_def:
+          /* empty */                                 { $$ = COUNTBUFFERSIZE; }
+        | OUTPUT_BUFFER_SIZE '=' num_expr             {
+                                                        double temp_value = $3;
+                                                        if (!(temp_value >= 1.0 && temp_value < UINT_MAX))
+                                                        {
+                                                          mdlerror(mdlpvp, "Buffer size invalid.  Suggested range is 100-1000000.\n");
+                                                          return 1;
+                                                        }
+                                                        $$ = $3;
+                                                      }
+;
+
+output_timer_def: step_time_def
+                | iteration_time_def
+                | real_time_def
+;
+
+step_time_def: STEP '=' num_expr                      { $$.type = OUTPUT_BY_STEP; $$.step = $3; }
+             | /* empty */                            { $$.type = OUTPUT_BY_STEP; $$.step = 1.0; }
+;
+
+iteration_time_def:
+          ITERATION_LIST '=' '[' list_range_specs ']' {
+                                                        $$.type = OUTPUT_BY_ITERATION_LIST;
+                                                        $$.values = $4;
+                                                      }
 ;
 
 
-list_existing_surface_region_refs: existing_surface_region_ref
-	| list_existing_surface_region_refs existing_surface_region_ref
+real_time_def:
+          TIME_LIST '=' '[' list_range_specs ']'      {
+                                                        $$.type = OUTPUT_BY_TIME_LIST;
+                                                        $$.values = $4;
+                                                      }
+;
+
+list_count_cmds:
+          count_cmd                                   { $$.set_head = $$.set_tail = $1; }
+        | list_count_cmds
+          count_cmd                                   {
+                                                        $$ = $1;
+                                                        if ($2 != NULL)
+                                                        {
+                                                          if ($$.set_tail != NULL)
+                                                            $$.set_tail = $$.set_tail->next = $2;
+                                                        }
+                                                      }
+;
+
+count_cmd:
+          count_stmt
+        | custom_header                               { $$ = NULL; }
+        | exact_time_toggle                           { $$ = NULL; }
+;
+
+count_stmt:
+          '{'                                         {
+                                                        struct output_set *os;
+                                                        CHECKN(os = mdl_new_output_set(mdlpvp, mdlpvp->header_comment));
+                                                        os->exact_time_flag = mdlpvp->exact_time_flag;
+                                                        mdlpvp->count_flags = 0;
+                                                        $<ro_set>$ = os;
+                                                      }
+            list_count_exprs
+          '}' file_arrow outfile_syntax               {
+                                                        struct output_set *os = $<ro_set>2;
+                                                        struct output_column *oc;
+                                                        os->column_head = $3.column_head;
+                                                        os->file_flags = $5;
+                                                        os->outfile_name = $6;
+                                                        no_printf("Counter output file set to %s\n", os->outfile_name);
+
+                                                        if ((mdlpvp->count_flags & (TRIGGER_PRESENT|COUNT_PRESENT)) == (TRIGGER_PRESENT|COUNT_PRESENT))
+                                                        {
+                                                          mdlerror(mdlpvp, "Cannot mix TRIGGER and COUNT statements.  Use separate files.");
+                                                          return 1;
+                                                        }
+
+                                                        for (oc = os->column_head; oc != NULL; oc = oc->next)
+                                                          oc->set = os;
+
+                                                        CHECK(mdl_check_reaction_output_file(mdlpvp, os));
+                                                        $$ = os;
+                                                      }
+;
+
+custom_header_value:
+          NONE                                        { $$ = NULL; }
+        | boolean                                     { $$ = ($1 ? "" : NULL); }
+        | str_expr                                    { $$ = $1; }
+;
+
+custom_header:
+          HEADER '=' custom_header_value              { mdlpvp->header_comment = $3; }
+;
+
+exact_time_toggle:
+          SHOW_EXACT_TIME '=' boolean                 { mdlpvp->exact_time_flag = $3; }
+;
+
+list_count_exprs:
+          single_count_expr
+        | list_count_exprs ','
+          single_count_expr                           {
+                                                        $$ = $1;
+                                                        $$.column_tail->next = $3.column_head;
+                                                        $$.column_tail = $3.column_tail;
+                                                      }
+;
+
+single_count_expr:
+        count_expr opt_custom_header                  {
+                                                        struct output_expression *oer,*oe;
+                                                        struct output_column *oc;
+
+                                                        $$.column_head = NULL;
+                                                        $$.column_tail = NULL;
+
+                                                        oer = $1; /* Root of count expression */
+
+                                                        if (oer->oper == ',' && $2 != NULL)
+                                                        {
+                                                          mdlerror(mdlpvp, "Cannot use custom column headers with wildcard expansion");
+                                                          return 1;
+                                                        }
+
+                                                        if ($2 != NULL) oer->title=$2;
+
+                                                        /* If we have a list of results, go through to build column stack */
+                                                        for (oe=first_oexpr_tree(oer);oe!=NULL;oe=next_oexpr_tree(oe))
+                                                        {
+                                                          CHECKN(oc = mdl_new_output_column(mdlpvp));
+                                                          if (! $$.column_head)
+                                                            $$.column_head = $$.column_tail = oc;
+                                                          else
+                                                            $$.column_tail = $$.column_tail->next = oc;
+
+                                                          oc->expr=oe;
+                                                          set_oexpr_column(oe, oc);
+                                                        }
+                                                      }
+;
+
+count_expr:
+          num_value                                   { CHECKN($$ = mdl_new_oexpr_constant(mdlpvp, $1)); }
+        | count_value
+        | '(' count_expr ')'                          { CHECKN($$ = mdl_join_oexpr_tree(mdlpvp, $2, NULL, '(')); }
+        | count_expr '+' count_expr                   { CHECKN($$ = mdl_join_oexpr_tree(mdlpvp, $1,   $3, '+')); }
+        | count_expr '-' count_expr                   { CHECKN($$ = mdl_join_oexpr_tree(mdlpvp, $1,   $3, '-')); }
+        | count_expr '*' count_expr                   { CHECKN($$ = mdl_join_oexpr_tree(mdlpvp, $1,   $3, '*')); }
+        | count_expr '/' count_expr                   { CHECKN($$ = mdl_join_oexpr_tree(mdlpvp, $1,   $3, '/')); }
+        | '-' count_expr %prec UNARYMINUS             { CHECKN($$ = mdl_join_oexpr_tree(mdlpvp, $2, NULL, '_')); }
+        | SUMMATION_OPERATOR '(' count_expr ')'       { CHECKN($$ = mdl_sum_oexpr($3)); }
 ;
 
 
-existing_surface_region_ref: existing_region '{'
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->rp=(struct region *)mdlpvp->gp->value;
-  mdlpvp->eff_dat_head=mdlpvp->rp->eff_dat_head;
-}
-	list_opt_surface_region_stmts
-        list_opt_surface_region_viz_values_stmts  
-	'}'
-{
-  mdlpvp->rp->eff_dat_head=mdlpvp->eff_dat_head;
-};
-
-
-existing_region: existing_object '[' VAR ']'
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-  mdlpvp->tp=$<sym>1;
-  mdlpvp->objp=(struct object *)mdlpvp->tp->value;
-  mdlpvp->obj_name=mdlpvp->objp->sym->name;
-  strncpy(mdlpvp->temp_str,"",1024);
-  strncpy(mdlpvp->temp_str,mdlpvp->obj_name,1022);
-  strcat(mdlpvp->temp_str,",");   
-  mdlpvp->region_name=my_strcat(mdlpvp->temp_str,mdlpvp->sym_name);
-  if(mdlpvp->region_name == NULL){
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing region");
-    return(1);
-  }
-
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->region_name,REG,volp->main_sym_table))==NULL) {
-    mdlerror_fmt(mdlpvp, "Undefined region: %s", mdlpvp->region_name);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-  free((void *)mdlpvp->region_name);
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free((void *)mdlpvp->sym_name);
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-  $$=mdlpvp->gp;
-};
-
-instance_def: INSTANTIATE new_object OBJECT '{'
-{
-  mdlpvp->gp=$<sym>2;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-
-  mdlpvp->curr_obj=volp->root_instance;
-  if (mdlpvp->curr_obj->first_child==NULL) { 
-    mdlpvp->curr_obj->first_child=mdlpvp->objp;
-  }
-  if (mdlpvp->curr_obj->last_child!=NULL) {
-    mdlpvp->curr_obj->last_child->next=mdlpvp->objp;
-  } 
-  mdlpvp->curr_obj->last_child=mdlpvp->objp;
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-  mdlpvp->objp->next=NULL;
-
-  mdlpvp->objp->object_type=META_OBJ;
-  mdlpvp->objp->parent=mdlpvp->curr_obj;
-  mdlpvp->curr_obj=mdlpvp->objp;
-}
-        list_objects
-        list_opt_object_cmds
-        '}'
-{
-  mdlpvp->curr_obj->parent->n_walls+=mdlpvp->curr_obj->n_walls;
-  mdlpvp->curr_obj->parent->n_walls_actual+=mdlpvp->curr_obj->n_walls_actual;
-  mdlpvp->curr_obj->parent->n_verts+=mdlpvp->curr_obj->n_verts;
-  mdlpvp->curr_obj=volp->root_object;
-  if (mdlpvp->object_name_list_end->prev!=NULL) {
-    mdlpvp->object_name_list_end=mdlpvp->object_name_list_end->prev;
-  }
-  else {
-    mdlpvp->object_name_list_end->name=NULL;
-  }
-};
-
-
-rx_net_def: DEFINE_REACTIONS '{'
-	list_rx_stmts
-	'}'
+count_value:
+          COUNT                                       { mdlpvp->count_flags |= COUNT_PRESENT; }
+          '[' count_syntax ']'                        { $$ = $4; }
+        | EXPRESSION '[' num_expr ']'                 { CHECKN($$ = mdl_new_oexpr_constant(mdlpvp, $3)); }
+        | TRIGGER                                     { mdlpvp->count_flags |= TRIGGER_PRESENT; }
+          '[' count_syntax ']'                        { $$ = $4; }
 ;
 
-
-list_rx_stmts: rx_stmt
-	| list_rx_stmts rx_stmt
+file_arrow: '>'                                       { $$ = FILE_OVERWRITE; }
+          | '=' '>'                                   { $$ = FILE_SUBSTITUTE; }
+          | '>' '>'                                   { $$ = FILE_APPEND; }
+          | '>' '>' '>'                               { $$ = FILE_APPEND_HEADER; }
+          | '+' '>'                                   { $$ = FILE_CREATE; }
 ;
 
-
-rx_stmt: rx_group_def
-	| rxn
+outfile_syntax: file_name
 ;
 
-
-rx_group_def: REACTION_GROUP reaction_group_name '{'
-	list_rxns
-        '}'
+existing_rxpn_or_molecule: VAR                        { CHECKN($$ = mdl_existing_rxn_pathname_or_molecule(mdlpvp, $1)); }
 ;
 
-
-reaction_group_name: VAR
-{
-};
-
-
-list_rxns: rxn
-	| list_rxns rxn
+existing_molecule_required_orient_braces:
+          VAR orient_class_number                     {
+                                                        $$ = $2;
+                                                        if ($$.orient > 0)
+                                                          $$.orient = 1;
+                                                        else if ($$.orient < 0)
+                                                          $$.orient = -1;
+                                                        CHECKN($$.mol_type = mdl_existing_molecule(mdlpvp, $1));
+                                                      }
 ;
 
-
-list_dashes: '-'
-	| list_dashes '-'
+count_syntax: count_syntax_1
+            | count_syntax_2
+            | count_syntax_3
+            | count_syntax_macromol
 ;
 
-
-right_arrow: list_dashes '>';
-left_arrow: '<' list_dashes;
-double_arrow: left_arrow '>';
-
-right_cat_arrow: list_dashes existing_molecule_opt_orient right_arrow
-{
-  if (mdlpvp->pathp->reactant3 == NULL)
-  {
-    mdlpvp->pathp->reactant3 = (struct species*)( ($<sym>2)->value );
-    if (mdlpvp->orient_specified) mdlpvp->pathp->orientation3 = mdlpvp->orient_class;
-    else mdlpvp->pathp->orientation3 = ORIENT_NOT_SET;
-  }
-  else
-  {
-    mdlerror(mdlpvp, "Too many reactants--maximum number is three.");
-    return 1;
-  }
-  mdlpvp->catalytic_arrow=1;
-  
-  /* restore default_values */
-  mdlpvp->orient_specified = 0;
-  mdlpvp->orient_class = ORIENT_NOT_SET;
-
-};
-
-double_cat_arrow: left_arrow existing_molecule_opt_orient right_arrow
-{
-  if (mdlpvp->pathp->reactant3 == NULL)
-  {
-    mdlpvp->pathp->reactant3 = (struct species*)( ($<sym>2)->value );
-    if (mdlpvp->orient_specified) mdlpvp->pathp->orientation3 = mdlpvp->orient_class;
-    else mdlpvp->pathp->orientation3 = ORIENT_NOT_SET;
-  }
-  else
-  {
-    mdlerror(mdlpvp, "Too many reactants--maximum number is three.");
-    return 1;
-  }
-  mdlpvp->catalytic_arrow=1;
-  
-  /* restore default_values */
-  mdlpvp->orient_specified = 0;
-  mdlpvp->orient_class = ORIENT_NOT_SET;
-
-};
-
-unidir_arrow: right_arrow
-	| right_cat_arrow;
-
-bidir_arrow: double_arrow
-	| double_cat_arrow;
-
-reaction_arrow: unidir_arrow
-{
-  mdlpvp->bidirectional_arrow=0;
-}
-	| bidir_arrow
-{
-  mdlpvp->bidirectional_arrow=1;
-};
-
-
-new_rxn_pathname: /* empty */
-{
-  $$ = NULL;
-}
-	| ':' VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,RXPN,volp->main_sym_table))==NULL) {
-    if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
-      if ((mdlpvp->gp=store_sym(mdlpvp->sym_name,RXPN,volp->main_sym_table))==NULL) {
-        mdlerror_fmt(mdlpvp, "Out of memory while creating reaction name: %s", mdlpvp->sym_name);
-        if (mdlpvp->sym_name==mdlpvp->cval) {
-          mdlpvp->cval=NULL;
-        }
-        else {
-          mdlpvp->cval_2=NULL;
-        }
-        free((void *)mdlpvp->sym_name);
-        return(1);
-      }
-      else {
-        mdlpvp->specp=(struct species *)mdlpvp->gp->value;
-      }
-    }
-    else {
-      mdlerror_fmt(mdlpvp, "Named reaction pathway already defined as a molecule: %s", mdlpvp->sym_name);
-      if (mdlpvp->sym_name==mdlpvp->cval) {
-        mdlpvp->cval=NULL;
-      }
-      else {
-        mdlpvp->cval_2=NULL;
-      }
-      free((void *)mdlpvp->sym_name);
-      return(1);
-    }
-  }
-  else {
-    mdlerror_fmt(mdlpvp, "Named reaction pathway already defined: %s", mdlpvp->sym_name);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  $$=mdlpvp->gp;
-};
-
-
-existing_rxpn_or_molecule: VAR 
-{
-            /* this is a copy */
-  if (mdlpvp->cval_2!=NULL) {  
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }   
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  } 
-
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,RXPN,volp->main_sym_table))==NULL) {
-    if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
-      mdlerror_fmt(mdlpvp, "Undefined reaction or molecule name: %s", mdlpvp->sym_name);
-      if (mdlpvp->sym_name==mdlpvp->cval) {
-        mdlpvp->cval=NULL;
-      }
-      else {
-        mdlpvp->cval_2=NULL;
-      }
-      free((void *)mdlpvp->sym_name);
-      return(1);
-    }
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free((void *)mdlpvp->sym_name);
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-  
-  mdlpvp->sym_table_list_head = (struct sym_table_list*)mem_get(mdlpvp->sym_list_mem);
-  if (mdlpvp->sym_table_list_head==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory trying to retrieve a molecule or reaction pathway name");
-    return 1;
-  }
-  mdlpvp->sym_table_list_head->next=NULL;
-  mdlpvp->sym_table_list_head->node= mdlpvp->gp;
-  
-  $$=mdlpvp->gp;
-};
-
-
-existing_molecule_required_orient: existing_molecule_required_orient_quotes
-                           | existing_molecule_required_orient_braces
+count_syntax_1:
+    existing_rxpn_or_molecule ','
+    count_location_specifier opt_hit_spec             { CHECKN($$ = mdl_count_syntax_1(mdlpvp, $1, $3, $4, mdlpvp->count_flags)); }
 ;
 
-existing_molecule_required_orient_quotes: VAR_ORIENT_IN_QUOTES 
-{
-  char *temp_1, *temp_2;
-  char end_letter;
-  int len_1; /* length of the string temp_1 */
-  int len_2; /* length of the string temp_2 */
-   
-  if (mdlpvp->cval_2!=NULL) {  
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }   
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  } 
-
-  temp_1 = strip_quotes(mdlpvp->sym_name);
-  if (temp_1 == NULL)
-  {
-      mdlerror_fmt(mdlpvp, "Memory allocation error\n");
-      free((void *)mdlpvp->sym_name);
-      return (1);
-  }
-  
-  len_1 = strlen(temp_1);
-
-  end_letter = temp_1[len_1 - 1];
-
-  len_2 = strcspn(temp_1, &end_letter);
-
-  if(len_2 != 0){
-     if((temp_2 = (char *)malloc(len_2 + 1)) != NULL){
-        strncpy(temp_2, temp_1, len_2);
-        temp_2[len_2] = '\0';
-     }else{
-        mdlerror_fmt(mdlpvp, "Memory allocation error\n");
-        free((void *)mdlpvp->sym_name);
-    
-        return (1);
-     } 
-  
-  }else{
-        mdlerror_fmt(mdlpvp, "Internal error: orientaion information is not found.\n");
-        free((void *)mdlpvp->sym_name);
-    
-        return (1);
-
-  }
-
-    switch(end_letter)
-    {
-       case ';':  mdlpvp->orient_specified = 1;
-                  mdlpvp->orient_class = 0;
-                  break;
-       case '\'': mdlpvp->orient_specified = 1;
-                  mdlpvp->orient_class = 1;
-                  break;
-       case ',': mdlpvp->orient_specified = 1;
-                  mdlpvp->orient_class = -1;
-                  break;
-                 mdlerror_fmt(mdlpvp, "Internal error: wrong orientation specification found.\n");
-                 free((void *)mdlpvp->sym_name);
-                 return (1);
-    }
-
-  
-    if ((mdlpvp->gp=retrieve_sym(temp_2,MOL,volp->main_sym_table))==NULL) 
-  {
-      mdlerror_fmt(mdlpvp, "Undefined molecule name: %s", mdlpvp->sym_name);
-      if (mdlpvp->sym_name==mdlpvp->cval) {
-        mdlpvp->cval=NULL;
-      }
-      else {
-        mdlpvp->cval_2=NULL;
-      }
-      free((void *)mdlpvp->sym_name);
-      return(1);
-  }
-
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free((void *)mdlpvp->sym_name);
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-  
-  mdlpvp->sym_table_list_head = (struct sym_table_list*)mem_get(mdlpvp->sym_list_mem);
-  if (mdlpvp->sym_table_list_head==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory trying to retrieve a molecule or reaction pathway name");
-    return 1;
-  }
-  mdlpvp->sym_table_list_head->next=NULL;
-  mdlpvp->sym_table_list_head->node= mdlpvp->gp;
-  
-  $$=mdlpvp->gp;
-};
-
-existing_molecule_required_orient_braces: VAR orient_class_number
-{
-
-  if (mdlpvp->cval_2!=NULL) {  
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  } 
-
-  if (mdlpvp->orient_class > 0) {
-    mdlpvp->orient_class = 1;
-  } else if (mdlpvp->orient_class < 0) {
-    mdlpvp->orient_class = -1;
-  }
-
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name, MOL, volp->main_sym_table))==NULL)
-  {
-    mdlerror_fmt(mdlpvp, "Undefined molecule name: %s", mdlpvp->sym_name);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    } else {
-      mdlpvp->cval_2=NULL;
-    }
-    free(mdlpvp->sym_name);
-    return(1);
-  }
-
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free(mdlpvp->sym_name);
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-
-  mdlpvp->sym_table_list_head = (struct sym_table_list*)mem_get(mdlpvp->sym_list_mem);
-  if (mdlpvp->sym_table_list_head==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory trying to retrieve a molecule or reaction pathway name");
-    return 1;
-  }
-  mdlpvp->sym_table_list_head->next=NULL;
-  mdlpvp->sym_table_list_head->node= mdlpvp->gp;
-
-  $$=mdlpvp->gp;
-};
-
-
-existing_many_rxpns_or_molecules: WILDCARD_VAR
-{
-  int i;
-  struct sym_table_list *stl;
-  struct sym_table *sym_t;
-  char *wildcard_string;
-
-  if (mdlpvp->cval_2!=NULL) {  
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }   
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  } 
-
-  wildcard_string = strip_quotes(mdlpvp->sym_name);
-  if (wildcard_string == NULL)
-  {
-      mdlerror_fmt(mdlpvp, "Memory allocation error\n");
-      free((void *)mdlpvp->sym_name);
-      return (1);
-  }
-
-    /* here is a wildcard molecule/reaction name */
-    /* do a full sym_table scan comparing each key */
-
-    mdlpvp->sym_table_list_head = NULL;
-
-    for(i = 0; i < SYM_HASHSIZE; i++)
-    {
-       for(sym_t = volp->main_sym_table[i]; sym_t != NULL; sym_t = sym_t->next)
-       {
-         if(is_wildcard_match(wildcard_string, sym_t->name)){ 
-
-           if((sym_t->sym_type == MOL) || (sym_t->sym_type == RXPN))
-           {
-               stl = (struct sym_table_list *)mem_get(mdlpvp->sym_list_mem);
-                if(stl == NULL){
-                  mdlerror(mdlpvp, "Memory allocation error.\n");
-                  return 1;
-                }
-                stl->node = sym_t;
-                stl->next = NULL;
-                if(mdlpvp->sym_table_list_head == NULL){
-                   mdlpvp->sym_table_list_head = stl;
-                }else{
-                   stl->next = mdlpvp->sym_table_list_head;
-                   mdlpvp->sym_table_list_head = stl;
-                }
-            }
-          }
-
-         } /* end for */ 
-    
-    } /* end for */ 
-   
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-       mdlpvp->cval=NULL;
-   }
-   else {
-       mdlpvp->cval_2=NULL;
-   }
-   free((void *)mdlpvp->sym_name);
-   free(wildcard_string);
-   
-   mdlpvp->sym_table_list_head = sort_sym_list_by_name(mdlpvp->sym_table_list_head);
-
-   /* set a flag about wildcard presence */
-   mdlpvp->count_flags |= WILDCARD_PRESENT;
-
-};
-
-
-rxn:
-{
-  mdlpvp->pathp = (struct pathway*) mem_get(mdlpvp->path_mem);
-  if (mdlpvp->pathp==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory while creating reaction.");
-    return 1;
-  }
-  memset(mdlpvp->pathp, 0, sizeof(struct pathway));
-
-  mdlpvp->catalytic_arrow=0; /* set default value */ 
-}
-  reactant_list  opt_reactant_surface_class reaction_arrow
-{
-  char *rx_name;
-  int num_surfaces;
-  int oriented_count;
-  
-  rx_name = create_rx_name(mdlpvp->pathp);
-  if (rx_name==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory while creating reaction.");
-    return 1;
-  }
-  
-  mdlpvp->gp = retrieve_sym(rx_name,RX,volp->main_sym_table);
-  if (mdlpvp->gp==NULL)
-  {
-    mdlpvp->gp = store_sym(rx_name,RX,volp->main_sym_table);
-    if (mdlpvp->gp==NULL)
-    {
-      mdlerror(mdlpvp, "Out of memory while creating reaction.");
-      return 1;
-    }
-  }
-  else
-    free(rx_name);
-  
-  mdlpvp->rxnp = (struct rxn*)mdlpvp->gp->value;
-  mdlpvp->rxnp->n_pathways++;
-  mdlpvp->rxnp->n_reactants=1;
-  if (mdlpvp->pathp->reactant2!=NULL) mdlpvp->rxnp->n_reactants++;
-  if (mdlpvp->pathp->reactant3!=NULL) mdlpvp->rxnp->n_reactants++;
-
-  mdlpvp->prod_all_3d=1;
-  num_surfaces = 0;
-  mdlpvp->num_vol_mols = 0;  
-  mdlpvp->num_grid_mols = 0;
-  mdlpvp->num_surf_products = 0;
-  oriented_count = 0;
-
-  if ((mdlpvp->pathp->reactant1->flags&NOT_FREE)!=0)
-  {
-    if (mdlpvp->pathp->reactant1->flags&IS_SURFACE) num_surfaces++;
-    if (mdlpvp->pathp->reactant1->flags&ON_GRID) mdlpvp->num_grid_mols++;
-    
-    mdlpvp->prod_all_3d=0;
-    
-  }else{
-    mdlpvp->num_vol_mols++;
-  }
-  if (mdlpvp->pathp->orientation1 == ORIENT_NOT_SET) mdlpvp->pathp->orientation1 = 0;
-  else oriented_count++;
-  if (mdlpvp->pathp->reactant2!=NULL)
-  {
-    if ((mdlpvp->pathp->reactant2->flags&NOT_FREE)!=0)
-    {
-      if (mdlpvp->pathp->reactant2->flags&IS_SURFACE) num_surfaces++;
-      if (mdlpvp->pathp->reactant2->flags&ON_GRID) mdlpvp->num_grid_mols++;
-      mdlpvp->prod_all_3d=0;
-    }else{
-       mdlpvp->num_vol_mols++;
-    }
-    if (mdlpvp->pathp->orientation2 == ORIENT_NOT_SET) mdlpvp->pathp->orientation2 = 0;
-    else oriented_count++;      
-  }
-  if (mdlpvp->pathp->reactant3!=NULL)
-  {
-    if ((mdlpvp->pathp->reactant3->flags&NOT_FREE)!=0)
-    {
-      if (mdlpvp->pathp->reactant3->flags&IS_SURFACE) num_surfaces++;
-      if (mdlpvp->pathp->reactant3->flags&ON_GRID) mdlpvp->num_grid_mols++;
-      mdlpvp->prod_all_3d=0;
-    }else{
-      mdlpvp->num_vol_mols++;
-    }
-    if (mdlpvp->pathp->orientation3 == ORIENT_NOT_SET) mdlpvp->pathp->orientation3 = 0;
-    else oriented_count++;      
-  }
-  
-  /* Check for invalid reaction specifications */
-  if (num_surfaces>1)
-  {
-    mdlerror(mdlpvp, "Too many surfaces--reactions can take place on at most one surface.");
-    return 1;
-  }
-  if (num_surfaces==mdlpvp->rxnp->n_reactants)
-  {
-    mdlerror(mdlpvp, "Reactants cannot consist entirely of surfaces.\n  Use a surface release site instead!");
-    return 1;
-  }
-  if((mdlpvp->num_vol_mols == 2) && (num_surfaces == 1)){
-    mdlerror(mdlpvp, "Reaction between two volume molecules and a surface is not defined.\n");
-    return 1;
-  }
-  if (mdlpvp->prod_all_3d)
-  {
-    if (oriented_count!=0)
-    {
-      if (mdlpvp->vol->notify->useless_vol_orient==WARN_ERROR)
-      {
-	mdlerror(mdlpvp, "Error: orientation specified for molecule in reaction in volume");
-	return 1;
-      }
-      else if (mdlpvp->vol->notify->useless_vol_orient==WARN_WARN)
-      {
-	mdlerror(mdlpvp, "Warning: orientation specified for molecule in reaction in volume");
-      }
-    }
-  }
-  else
-  {
-    if (mdlpvp->rxnp->n_reactants != oriented_count)
-    {
-      if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
-      {
-	mdlerror_fmt(mdlpvp, "Error: orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
-	return 1;
-      }
-      else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
-      {
-	mdlerror_fmt(mdlpvp, "Warning: orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
-      }      
-    }
-  }
-
-  /* For unidirectional catalytic reactions - copy catalyst to products only if catalyst is not a surface_clas.
-     For bidirectional catalytic reactions always copy catalyst to products and take care that surface_class will not appear in the products later after inverting the reaction */ 
-  if (mdlpvp->catalytic_arrow){
-    if((mdlpvp->bidirectional_arrow) || (!(mdlpvp->pathp->reactant3->flags & IS_SURFACE)))
-    {
-       mdlpvp->prodp = (struct product*)mem_get(mdlpvp->prod_mem);
-       if (mdlpvp->prodp==NULL)
-       {
-         mdlerror(mdlpvp, "Out of memory while creating reaction.");
-         return 1;
-       }
-    
-       mdlpvp->prodp->prod = mdlpvp->pathp->reactant3;
-       if (mdlpvp->prod_all_3d) mdlpvp->prodp->orientation=0;
-       else mdlpvp->prodp->orientation = mdlpvp->pathp->orientation3;
-       mdlpvp->prodp->next = mdlpvp->pathp->product_head;
-       mdlpvp->pathp->product_head = mdlpvp->prodp;
-    }
-       if (mdlpvp->pathp->reactant2==NULL)
-       {
-         mdlpvp->pathp->reactant2 = mdlpvp->pathp->reactant3;
-         mdlpvp->pathp->orientation2 = mdlpvp->pathp->orientation3;
-         mdlpvp->pathp->reactant3 = NULL;
-         mdlpvp->pathp->orientation3 = 0;
-       }
-     
-  } 
-}
-	list_products rx_rate_syntax new_rxn_pathname
-{
-  mdlpvp->gp=$<sym>8;
-  if (mdlpvp->gp!=NULL)
-  {
-    mdlpvp->rxpnp=(struct rxn_pathname *)mdlpvp->gp->value;
-    mdlpvp->rxpnp->rx=mdlpvp->rxnp;
-    mdlpvp->pathp->pathname=mdlpvp->rxpnp;
-  }
-  mdlpvp->pathp->km=mdlpvp->fwd_km;
-  if(mdlpvp->pathp->product_head != NULL){
-     mdlpvp->pathp->prod_signature = create_prod_signature(&mdlpvp->pathp->product_head);
-     if(mdlpvp->pathp->prod_signature == NULL){
-         mdlerror(mdlpvp, "Error creating 'prod_signature' field for the reaction pathway.\n");
-         return(1);
-     }
-  }
-  
-  /* If we're doing 3D releases, set up array so we can release reversibly */
-  if (volp->r_step_release==NULL && mdlpvp->prod_all_3d && mdlpvp->pathp->product_head!=NULL)
-  {
-    volp->r_step_release=init_r_step_3d_release(volp->radial_subdivisions);
-    if (volp->r_step_release==NULL)
-    {
-      mdlerror(mdlpvp,"Out of memory building r_step array.");
-      return(1);
-    }
-  }
-
-  if (mdlpvp->fwd_rate_filename != NULL)
-  {
-    struct pathway *tpp;
-    
-    mdlpvp->pathp->km_filename = find_include_file(mdlpvp, mdlpvp->fwd_rate_filename, mdlpvp->vol->curr_file);
-    free(mdlpvp->fwd_rate_filename);
-    mdlpvp->fwd_rate_filename = NULL;
-    
-    if (mdlpvp->rxnp->pathway_head == NULL)
-    {
-      mdlpvp->rxnp->pathway_head = mdlpvp->pathp;
-      mdlpvp->pathp->next = NULL;
-    }
-    else  /* Move varying reactions to the end of the list */
-    {
-      for ( tpp = mdlpvp->rxnp->pathway_head ; 
-            tpp->next != NULL && tpp->next->km_filename==NULL ; 
-            tpp = tpp->next ) {}
-      mdlpvp->pathp->next = tpp->next;
-      tpp->next = mdlpvp->pathp;
-    }
-  }
-  else
-  {
-    mdlpvp->pathp->next=mdlpvp->rxnp->pathway_head;
-    mdlpvp->rxnp->pathway_head=mdlpvp->pathp;
-  }
- 
-  if((mdlpvp->vol->vacancy_search_dist2 == 0)  && 
-             (mdlpvp->num_surf_products > mdlpvp->num_grid_mols)){
-      /* the case with one volume molecule reacting with the surface
-         and producing one grid molecule is excluded */
-
-      if(!((mdlpvp->num_grid_mols == 0) && (mdlpvp->num_vol_mols == 1))) { 
-         mdlerror_fmt(mdlpvp, "Error: number of surface products exceeds number of surface reactants, but VACANCY_SEARCH_DISTANCE is not specified or set to zero.\n");
-         return 1;
-      }  
-  }
-  mdlpvp->num_surf_products = 0;
-  mdlpvp->num_grid_mols = 0;
-  mdlpvp->num_vol_mols = 0;
-  
-  /* Create reverse reaction if we need to */
-  if (mdlpvp->bidirectional_arrow)
-  {
-        
-    if (mdlpvp->bidirectional_arrow==1) /* Hack to notice if we got both rates */
-    {
-      mdlerror(mdlpvp, "Reversible reaction indicated but no reverse rate supplied.");
-      return 1;
-    }
-
-    /* if "surface_class" is present on the reactant side of the reaction
-       copy it to the product side of the reaction. 
-       Reversible reaction of the type A' @ surf' <---> C''[>r1,<r2]
-       is equivalent now to the two reactions
-           A'@ surf' ---> C'' [r1]
-           C'' @ surf' ---->A'[r2]
-       Reversible reaction of the type A' + B' @ surf' <---> C'' + D''[>r1,<r2]
-       is equivalent now to the two reactions
-           A'+ B @ surf' ---> C'' + D''[r1]
-           C'' + D'' @ surf' ---->A' + B'[r2]
-    */
-    if(!(mdlpvp->catalytic_arrow))
-    {
-        /* since at most two molecule names may appear on the reactant side
-           of the reaction and "surface_class" always appears after molecules */
-        if(mdlpvp->pathp->reactant3 == NULL)
-        {     
-          if((mdlpvp->pathp->reactant2 != NULL) &&   (mdlpvp->pathp->reactant2->flags & IS_SURFACE))
-          {
-              mdlpvp->prodp = (struct product *)mem_get(mdlpvp->prod_mem);
-              if(mdlpvp->prodp == NULL){
-                mdlerror(mdlpvp, "Out of memory while creating reaction.\n");
-                return 1;
-              }
-
-              mdlpvp->prodp->prod = mdlpvp->pathp->reactant2;
-              mdlpvp->prodp->orientation = mdlpvp->pathp->orientation2;
-              mdlpvp->prodp->next = mdlpvp->pathp->product_head;
-              mdlpvp->pathp->product_head = mdlpvp->prodp;
-
-          }
-        }else{
-          if(mdlpvp->pathp->reactant3->flags & IS_SURFACE)
-          {
-              mdlpvp->prodp = (struct product *)mem_get(mdlpvp->prod_mem);
-              if(mdlpvp->prodp == NULL){
-                mdlerror(mdlpvp, "Out of memory while creating reaction.\n");
-                return 1;
-              }
-
-              mdlpvp->prodp->prod = mdlpvp->pathp->reactant3;
-              mdlpvp->prodp->orientation = mdlpvp->pathp->orientation3;
-              mdlpvp->prodp->next = mdlpvp->pathp->product_head;
-              mdlpvp->pathp->product_head = mdlpvp->prodp;
-          }
-
-        }
-
-    }  
-
-    if (invert_current_reaction_pathway(mdlpvp))
-    {
-      mdlerror(mdlpvp, "Error creating reverse reaction.");
-      return 1;
-    }
-  }
-             
-};
-
-reactant_list: reactant |
-	reactant_list '+' reactant;
-
-reactant: existing_molecule
-{
-  mdlpvp->orient_specified=0;
-  mdlpvp->orient_class=0;
-}
-	orientation_class
-{
-  if (mdlpvp->pathp->reactant1==NULL)
-  {
-    mdlpvp->pathp->reactant1 = (struct species*)( ($<sym>1)->value );
-    if(mdlpvp->pathp->reactant1->flags == IS_SURFACE){
-       mdlerror(mdlpvp, "Surface_class can be listed only as the last one on the left-hand side of the reaction with the preceding '&' sign.\n.");
-       return 1;
-    }
-    if (mdlpvp->orient_specified) mdlpvp->pathp->orientation1 = mdlpvp->orient_class;
-    else mdlpvp->pathp->orientation1 = ORIENT_NOT_SET;
-  }
-  else if (mdlpvp->pathp->reactant2==NULL)
-  {
-    mdlpvp->pathp->reactant2 = (struct species*)( ($<sym>1)->value );
-    if(mdlpvp->pathp->reactant2->flags == IS_SURFACE){
-       mdlerror(mdlpvp, "Surface_class can be listed only as the last one on the left-hand side of the reaction with the preceding '&' sign.\n.");
-       return 1;
-    }
-    if (mdlpvp->orient_specified) mdlpvp->pathp->orientation2 = mdlpvp->orient_class;
-    else mdlpvp->pathp->orientation2 = ORIENT_NOT_SET;    
-  }
-  else if (mdlpvp->pathp->reactant3==NULL)
-  {
-    mdlpvp->pathp->reactant3 = (struct species*)( ($<sym>1)->value );
-    if(mdlpvp->pathp->reactant3->flags == IS_SURFACE){
-       mdlerror(mdlpvp, "Surface_class can be listed only as the last one on the left-hand side of the reaction with the preceding '&' sign.\n.");
-       return 1;
-    }
-   if (mdlpvp->orient_specified) mdlpvp->pathp->orientation3 = mdlpvp->orient_class;
-    else mdlpvp->pathp->orientation3 = ORIENT_NOT_SET;    
-  }
-  else
-  {
-    mdlerror(mdlpvp, "Too many reactants--maximum number is three.");
-    return 1;
-  }
-
-  /* restore default values */
-  mdlpvp->orient_specified = 0;
-  mdlpvp->orient_class = ORIENT_NOT_SET;
-};
-
-
-opt_reactant_surface_class: /* empty */
-             | '@' reactant_surface_class
+count_syntax_2:
+    existing_molecule_required_orient_braces ','
+    count_location_specifier opt_hit_spec             { CHECKN($$ = mdl_count_syntax_2(mdlpvp, $1.mol_type, $1.orient, $3, $4, mdlpvp->count_flags)); }
 ;
 
-reactant_surface_class: existing_surface_class
-{
-  mdlpvp->orient_specified=0;
-  mdlpvp->orient_class=0;
-}
-	orientation_class
-{
-  if (mdlpvp->pathp->reactant1==NULL)
-  {
-    mdlerror(mdlpvp, "Before defining reaction surface class at least one reactant should be defined.\n");
-    return 1;
-
-  }
-  else if (mdlpvp->pathp->reactant2==NULL)
-  {
-    mdlpvp->pathp->reactant2 = (struct species*)( ($<sym>1)->value );
-    if (mdlpvp->orient_specified) mdlpvp->pathp->orientation2 = mdlpvp->orient_class;
-    else mdlpvp->pathp->orientation2 = ORIENT_NOT_SET;    
-  }
-  else if (mdlpvp->pathp->reactant3==NULL)
-  {
-    mdlpvp->pathp->reactant3 = (struct species*)( ($<sym>1)->value );
-    if (mdlpvp->orient_specified) mdlpvp->pathp->orientation3 = mdlpvp->orient_class;
-    else mdlpvp->pathp->orientation3 = ORIENT_NOT_SET;    
-  }
-  else
-  {
-    mdlerror(mdlpvp, "Too many reactants--maximum number is two plus reaction surface class.\n");
-    return 1;
-  }
-
-  /* restore default values */
-  mdlpvp->orient_specified = 0;
-  mdlpvp->orient_class = ORIENT_NOT_SET;
-
-};
-
-
-list_products: product
-	| list_products '+' product
+count_syntax_3:
+    STR_VALUE  ','
+    count_location_specifier opt_hit_spec             { CHECKN($$ = mdl_count_syntax_3(mdlpvp, $1, $3, $4, mdlpvp->count_flags)); }
 ;
 
-
-product: existing_molecule
-{
-  mdlpvp->orient_specified=0;
-  mdlpvp->orient_class=0;
-}
-	orientation_class
-{
-  mdlpvp->gp=$<sym>1;
-  if ((mdlpvp->prodp=(struct product *)mem_get(mdlpvp->prod_mem))==NULL) {
-    mdlerror_fmt(mdlpvp, "Out of memory while creating reaction: %s -> ... ",
-      mdlpvp->rxnp->sym->name);
-    return(1);
-  }
-  mdlpvp->prodp->prod=(struct species *)mdlpvp->gp->value;
-  /* only for non bidirectional and catalytic reactions */
-  if(!(mdlpvp->bidirectional_arrow))
-  {
-     if(mdlpvp->prodp->prod->flags & IS_SURFACE){
-         mdlerror_fmt(mdlpvp, "Surface_class '%s' is not allowed to be on the product side of the reaction.\n ",
-            mdlpvp->prodp->prod->sym->name);
-         return(1);
-      }
-  }
-  if (mdlpvp->prod_all_3d) mdlpvp->prodp->orientation=0;
-  else mdlpvp->prodp->orientation=mdlpvp->orient_class;
-
-  mdlpvp->prodp->next=mdlpvp->pathp->product_head;
-  mdlpvp->pathp->product_head=mdlpvp->prodp;
-
-  if((mdlpvp->prodp->prod->flags & ON_GRID) != 0){
-      mdlpvp->num_surf_products++;
-  }
-
-  if ((mdlpvp->prodp->prod->flags&IS_SURFACE)==0) /* Surfaces can be omitted, so ignore them */
-  {
-    if (mdlpvp->prod_all_3d==0)
-    {
-      if (!mdlpvp->orient_specified)
-      {
-	if (mdlpvp->vol->notify->missed_surf_orient==WARN_ERROR)
-	{
-	  mdlerror_fmt(mdlpvp, "Error: product orientation not specified in reaction with orientation\n  (use ; or ', or ,' for random orientation)");
-	  return 1;
-	}
-	else if (mdlpvp->vol->notify->missed_surf_orient==WARN_WARN)
-	{
-	  mdlerror_fmt(mdlpvp, "Warning: product orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
-	}
-      }
-    }
-    else
-    {
-      if ((mdlpvp->prodp->prod->flags&NOT_FREE)!=0)
-      {
-	mdlerror(mdlpvp, "Reaction has only volume reactants but is trying to create a surface product");
-	return 1;
-      }
-      if (mdlpvp->orient_specified)
-      {
-	if (mdlpvp->vol->notify->useless_vol_orient==WARN_ERROR)
-	{
-	  mdlerror(mdlpvp, "Error: orientation specified for molecule in reaction in volume");
-	  return 1;
-	}
-	else if (mdlpvp->vol->notify->useless_vol_orient==WARN_WARN)
-	{
-	  mdlerror(mdlpvp, "Warning: orientation specified for molecule in reaction at surface");
-	}
-      }
-    }
-  }
-
-   /* restore default values */
-   mdlpvp->orient_specified = 0;
-   mdlpvp->orient_class = ORIENT_NOT_SET;
-}
-	| NO_SPECIES
-{
-};
-
-
-orientation_class: /* empty */
-	| list_orient_marks
-	| orient_class_number
-	| ';'
-{
-  mdlpvp->orient_class=0;
-  mdlpvp->orient_specified=1;
-}
+count_syntax_macromol:
+    count_syntax_macromol_subunit
 ;
 
-
-list_orient_marks:
-        head_mark
-	| tail_mark
-        | list_orient_marks head_mark
-	| list_orient_marks tail_mark;
-
-
-head_mark: '\''
-{
-  mdlpvp->orient_class++;
-  mdlpvp->orient_specified=1;
-};
-
-
-tail_mark: ','
-{
-  mdlpvp->orient_class--;
-  mdlpvp->orient_specified=1;
-};
-
-orient_class_number: '{' num_expr '}'
-{
-  double orient_value = $<dbl>2;  
-
-  mdlpvp->orient_class = (short)orient_value;
-
-  if(mdlpvp->orient_class != orient_value){
-     mdlerror(mdlpvp, "Error: Molecule orientation specified inside braces should be a short integer\n");
-     return 1;
-  }
-
-  mdlpvp->orient_specified=1;
-};
-
-
-rx_rate_syntax:
-{
-  mdlpvp->fwd_km = mdlpvp->bkw_km = 0;
-  mdlpvp->fwd_rate_filename = mdlpvp->bkw_rate_filename = NULL;
-}
-	rx_rate1or2;
-	
-rx_rate1or2: rx_rate1
-	| rx_rate2;
-
-rx_rate1: '[' atomic_rate ']'
-{
-  if ( (mdlpvp->bkw_km!=0.0 || mdlpvp->bkw_rate_filename!=NULL) &&
-       (mdlpvp->fwd_km==0.0 && mdlpvp->fwd_rate_filename==NULL) )
-  {
-    mdlerror(mdlpvp, "Invalid reaction rate specification: must specify a forward rate.");
-    return 1;
-  }
-  if (mdlpvp->fwd_km<0)
-  {
-    mdlpvp->fwd_km=0.0;
-    if (volp->notify->neg_reaction==WARN_ERROR)
-    {
-      mdlerror(mdlpvp, "Error: reaction rates should be zero or positive.");
-      return 1;
-    }
-    else if (volp->notify->neg_reaction==WARN_WARN) mdlerror(mdlpvp, "Warning: negative reaction rate; setting to zero and continuing.");
-  }
-}
-
-rx_rate2: '[' atomic_rate ',' atomic_rate ']'
-{
-  if (mdlpvp->fwd_km<0 || mdlpvp->bkw_km<0)
-  {
-    if (mdlpvp->fwd_km<0) mdlpvp->fwd_km=0.0;
-    if (mdlpvp->bkw_km<0) mdlpvp->bkw_km=0.0;
-    
-    if (volp->notify->neg_reaction==WARN_ERROR)
-    {
-      mdlerror(mdlpvp, "Error: reaction rates should be zero or positive.");
-      return 1;
-    }
-    else if (volp->notify->neg_reaction==WARN_WARN) mdlerror(mdlpvp, "Warning: negative reaction rate; setting to zero and continuing.");
-  }
-}
-
-atomic_rate: num_expr_only
-{
-  if (mdlpvp->fwd_km!=0 || mdlpvp->fwd_rate_filename!=NULL)
-  {
-    mdlerror(mdlpvp, "Forward reaction rate already specified--can't specify again.");
-    return 1;
-  }
-  mdlpvp->fwd_km = $<dbl>1;
-}
-	| '>' num_expr_only
-{
-  if (mdlpvp->fwd_km!=0 || mdlpvp->fwd_rate_filename!=NULL)
-  {
-    mdlerror(mdlpvp, "Forward reaction rate already specified--can't specify again.");
-    return 1;
-  }
-  mdlpvp->fwd_km = $<dbl>2;
-}
-	| '<' num_expr_only
-{
-  if (mdlpvp->bkw_km!=0 || mdlpvp->bkw_rate_filename!=NULL)
-  {
-    mdlerror(mdlpvp, "Reverse reaction rate already specified--can't specify again.");
-    return 1;
-  }
-  if (!mdlpvp->bidirectional_arrow)
-  {
-    mdlerror(mdlpvp, "Reverse rate specified but the reaction isn't reversible.");
-    return 1;
-  }
-  mdlpvp->bidirectional_arrow++; /* Hack to indicate we've read a rate */
-  mdlpvp->bkw_km = $<dbl>2;
-}
-	| str_expr_only
-{
-  if (mdlpvp->fwd_km!=0 || mdlpvp->fwd_rate_filename!=NULL)
-  {
-    mdlerror(mdlpvp, "Forward reaction rate already specified--can't specify again.");
-    return 1;
-  }
-  mdlpvp->fwd_rate_filename = $<str>1;
-}
-	| '>' str_expr_only
-{
-  if (mdlpvp->fwd_km!=0 || mdlpvp->fwd_rate_filename!=NULL)
-  {
-    mdlerror(mdlpvp, "Forward reaction rate already specified--can't specify again.");
-    return 1;
-  }
-  mdlpvp->fwd_rate_filename = $<str>2;
-}
-	| '<' str_expr_only
-{
-  if (mdlpvp->bkw_km!=0 || mdlpvp->bkw_rate_filename!=NULL)
-  {
-    mdlerror(mdlpvp, "Reverse reaction rate already specified--can't specify again.");
-    return 1;
-  }
-  if (!mdlpvp->bidirectional_arrow)
-  {
-    mdlerror(mdlpvp, "Reverse rate specified but the reaction isn't reversible.");
-    return 1;
-  }
-  mdlpvp->bidirectional_arrow++; /* Hack to indicate we've read a rate */
-  mdlpvp->bkw_rate_filename = $<str>2;
-}
-	| existing_var_only
-{
-  struct sym_table *gp = $<sym>1;
-  if (mdlpvp->fwd_km!=0 || mdlpvp->fwd_rate_filename!=NULL)
-  {
-    mdlerror(mdlpvp, "Forward reaction rate already specified--can't specify again.");
-    return 1;
-  }
-  switch (gp->sym_type)
-  {
-    case DBL:
-      mdlpvp->fwd_km = *(double *)gp->value;
-      break;
-    case STR:
-      mdlpvp->fwd_rate_filename = strdup((char*)gp->value);
-      if(mdlpvp->fwd_rate_filename == NULL)
-      {
-	mdlerror(mdlpvp, "Out of memory while storing reaction rate filename");
-	return 1;
-      }
-      break;
-    default:
-      mdlerror(mdlpvp, "Invalid variable used for rates: must be number or filename");
-      return(1);
-      break;
-  }
-}
-	| '>' existing_var_only
-{
-  struct sym_table *gp = $<sym>2;
-  if (mdlpvp->fwd_km!=0 || mdlpvp->fwd_rate_filename!=NULL)
-  {
-    mdlerror(mdlpvp, "Forward reaction rate already specified--can't specify again.");
-    return 1;
-  }
-  switch (gp->sym_type)
-  {
-    case DBL:
-      mdlpvp->fwd_km = *(double *)gp->value;
-      break;
-    case STR:
-      mdlpvp->fwd_rate_filename = strdup((char*)gp->value);
-      if(mdlpvp->fwd_rate_filename == NULL)
-      {
-	mdlerror(mdlpvp, "Out of memory while storing reaction rate filename");
-	return 1;
-      }
-      break;
-    default:
-      mdlerror(mdlpvp, "Invalid variable used for rates: must be number or filename");
-      return(1);
-      break;
-  }
-}	| '<' existing_var_only
-{
-  struct sym_table *gp = $<sym>2;
-  if (mdlpvp->bkw_km!=0 || mdlpvp->bkw_rate_filename!=NULL)
-  {
-    mdlerror(mdlpvp, "Reverse reaction rate already specified--can't specify again.");
-    return 1;
-  }
-  if (!mdlpvp->bidirectional_arrow)
-  {
-    mdlerror(mdlpvp, "Reverse rate specified but the reaction isn't reversible.");
-    return 1;
-  }
-  mdlpvp->bidirectional_arrow++; /* Hack to indicate we've read a rate */
-  switch (gp->sym_type)
-  {
-    case DBL:
-      mdlpvp->bkw_km = *(double *)gp->value;
-      break;
-    case STR:
-      mdlpvp->bkw_rate_filename = strdup((char*)gp->value);
-      if(mdlpvp->bkw_rate_filename == NULL)
-      {
-	mdlerror(mdlpvp, "Out of memory while storing reaction rate filename");
-	return 1;
-      }
-      break;
-    default:
-      mdlerror(mdlpvp, "Invalid variable used for rates: must be number or filename");
-      return(1);
-      break;
-  }
-};
-  
-
-viz_output_def: VIZ_OUTPUT '{'
-        viz_output_maybe_mode_cmd
-        viz_mesh_format_maybe_cmd
-        viz_molecule_format_maybe_cmd
-	list_viz_output_cmds
-	'}'
-{ /* Error checking transplanted from the viz_output module */
-  if (volp->viz_mode == DREAMM_V3_MODE  ||  volp->viz_mode == DREAMM_V3_GROUPED_MODE)
-  {
-    if (volp->file_prefix_name == NULL) {
-      mdlerror(mdlpvp, "Inside VIZ_OUTPUT block the required keyword FILENAME is missing.\n");
-      return 1;
-    }
-  }
-}
+count_syntax_macromol_subunit:
+          SUBUNIT '{'
+            existing_macromolecule                    { mdlpvp->current_complex = (struct complex_species *) $3->value; }
+            orientation_class
+            ':' existing_molecule_opt_orient
+            opt_macromol_relation_states
+          '}' ',' count_location_specifier            {
+                                                        mdlpvp->current_complex = NULL;
+                                                        struct complex_species *macromol = (struct complex_species *) $3->value;
+                                                        struct species_opt_orient master_orientation = $5;
+                                                        struct species_opt_orient subunit = $7;
+                                                        struct macro_relation_state *relation_states = $8;
+                                                        struct sym_table *location = $11;
+                                                        CHECKN($$ = mdl_count_syntax_macromol_subunit(mdlpvp, macromol, &master_orientation, & subunit, relation_states, location));
+                                                      }
 ;
 
-list_viz_output_cmds: viz_output_cmd
-	| list_viz_output_cmds viz_output_cmd
+opt_macromol_relation_states:
+          /* empty */                                 { $$ = NULL; }
+        | '[' macromol_relation_state_list ']'        { $$ = $2; }
 ;
 
-viz_output_maybe_mode_cmd: /* empty */
-{
-  if (volp->viz_mode == -1)
-    volp->viz_mode = DREAMM_V3_MODE;
-}
-                         | viz_mode_def
+macromol_relation_state_list:
+          macromol_relation_state
+        | macromol_relation_state_list '&'
+          macromol_relation_state                     { $3->next = $1; $$ = $3; }
 ;
 
-viz_mesh_format_maybe_cmd: /* empty */
-{
-  if (volp->viz_mode == DREAMM_V3_MODE){
-    volp->viz_output_flag |= VIZ_MESH_FORMAT_BINARY;
-  }
-}
-                         | viz_mesh_format_def
+macromol_relation_state:
+          macromol_relation_name
+            equal_or_not
+            existing_molecule_opt_orient              { CHECKN($$ = mdl_assemble_complex_relation_state(mdlpvp, $1, $2, & $3)); }
 ;
 
-viz_mesh_format_def: VIZ_MESH_FORMAT '=' BINARY
-{
-  if (volp->viz_mode != DREAMM_V3_MODE)
-  {
-    mdlerror_fmt(mdlpvp, "VIZ_MESH_FORMAT command is allowed only in DREAMM_V3 mode.\n");
-    return 1;
-  }
-  volp->viz_output_flag |= VIZ_MESH_FORMAT_BINARY;
-  if((volp->viz_output_flag & VIZ_MESH_FORMAT_ASCII) &&
-     (volp->viz_output_flag & VIZ_MESH_FORMAT_BINARY)){
-        mdlerror_fmt(mdlpvp, "BINARY and ASCII options for the VIZ_MESH_FORMAT command are mutually exclusive.\n");
-        return 1;
-  }
-}
-                | VIZ_MESH_FORMAT '=' ASCII
-{
-  if (volp->viz_mode != DREAMM_V3_MODE)
-  {
-    mdlerror_fmt(mdlpvp, "VIZ_MESH_FORMAT command is allowed only in DREAMM_V3 mode.\n");
-    return 1;
-  }
-  volp->viz_output_flag |= VIZ_MESH_FORMAT_ASCII;
-  if((volp->viz_output_flag & VIZ_MESH_FORMAT_ASCII) &&
-     (volp->viz_output_flag & VIZ_MESH_FORMAT_BINARY)){
-        mdlerror_fmt(mdlpvp, "BINARY and ASCII options for the VIZ_MESH_FORMAT command are mutually exclusive.\n");
-        return 1;
-  }
+macromol_relation_name: VAR                           {
+                                                        int rel_idx = macro_lookup_relation(mdlpvp->current_complex, $1);
+                                                        if (rel_idx == -1)
+                                                        {
+                                                          mdlerror_fmt(mdlpvp,
+                                                                       "In subunit specification for COUNT statement, relation '%s' does not exist within the complex '%s'",
+                                                                       $1,
+                                                                       mdlpvp->current_complex->base.sym->name);
+                                                          return 1;
+                                                        }
 
-};
-
-viz_molecule_format_maybe_cmd: /* empty */
-{
-  if (volp->viz_mode == DREAMM_V3_MODE){
-    volp->viz_output_flag |= VIZ_MOLECULE_FORMAT_BINARY;
-  }
-}
-                         | viz_molecule_format_def
+                                                        $$ = rel_idx;
+                                                      }
 ;
 
-viz_molecule_format_def: VIZ_MOLECULE_FORMAT '=' BINARY
-{
-  if (volp->viz_mode != DREAMM_V3_MODE)
-  {
-    mdlerror_fmt(mdlpvp, "VIZ_MOLECULE_FORMAT command is allowed only in DREAMM_V3 mode.\n");
-    return 1;
-  }
-  volp->viz_output_flag |= VIZ_MOLECULE_FORMAT_BINARY;
-  if((volp->viz_output_flag & VIZ_MOLECULE_FORMAT_ASCII) &&
-     (volp->viz_output_flag & VIZ_MOLECULE_FORMAT_BINARY)){
-        mdlerror_fmt(mdlpvp, "BINARY and ASCII options for the VIZ_MOLECULE_FORMAT command are mutually exclusive.\n");
-        return 1;
-  }
-}
-                | VIZ_MOLECULE_FORMAT '=' ASCII
-{
-  if (volp->viz_mode != DREAMM_V3_MODE)
-  {
-    mdlerror_fmt(mdlpvp, "VIZ_MOLECULE_FORMAT command is allowed only in DREAMM_V3 mode.\n");
-    return 1;
-  }
-  volp->viz_output_flag |= VIZ_MOLECULE_FORMAT_ASCII;
-  if((volp->viz_output_flag & VIZ_MOLECULE_FORMAT_ASCII) &&
-     (volp->viz_output_flag & VIZ_MOLECULE_FORMAT_BINARY)){
-        mdlerror_fmt(mdlpvp, "BINARY and ASCII options for the VIZ_MOLECULE_FORMAT command are mutually exclusive.\n");
-        return 1;
-  }
+count_location_specifier: WORLD                       { $$ = NULL; }
+                        | existing_region             { $$ = $1; }
+                        | existing_object             { $$ = $1; }
+;
 
-};
+opt_hit_spec: /* empty */                             { $$ = REPORT_NOTHING; }
+            | ',' hit_spec                            { $$ = $2; }
+;
+
+hit_spec: FRONT_HITS                                  { $$ = REPORT_FRONT_HITS; }
+        | BACK_HITS                                   { $$ = REPORT_BACK_HITS; }
+        | ALL_HITS                                    { $$ = REPORT_ALL_HITS; }
+        | FRONT_CROSSINGS                             { $$ = REPORT_FRONT_CROSSINGS; }
+        | BACK_CROSSINGS                              { $$ = REPORT_BACK_CROSSINGS; }
+        | ALL_CROSSINGS                               { $$ = REPORT_ALL_CROSSINGS; }
+        | ESTIMATE_CONCENTRATION                      { $$ = REPORT_CONCENTRATION; }
+        | ALL_ENCLOSED                                { $$ = REPORT_ENCLOSED; }
+;
+
+opt_custom_header: /* empty */                        { $$ = NULL; }
+                 | ':' str_expr                       { $$ = $2; }
+;
+
+/* =================================================================== */
+/* New-style viz output definitions */
+
+viz_output_def:
+          VIZ_OUTPUT '{'
+            viz_output_maybe_mode_cmd
+            viz_mesh_format_maybe_cmd
+            viz_molecule_format_maybe_cmd
+            list_viz_output_cmds
+          '}'                                         {
+                                                        if (volp->viz_mode == DREAMM_V3_MODE  ||
+                                                            volp->viz_mode == DREAMM_V3_GROUPED_MODE)
+                                                        {
+                                                          if (volp->file_prefix_name == NULL)
+                                                          {
+                                                            mdlerror(mdlpvp, "Inside VIZ_OUTPUT block the required keyword FILENAME is missing.\n");
+                                                            return 1;
+                                                          }
+                                                        }
+                                                      }
+;
+
+list_viz_output_cmds:
+          viz_output_cmd
+        | list_viz_output_cmds
+          viz_output_cmd
+;
+
+viz_output_maybe_mode_cmd:
+          /* empty */                                 {
+                                                        if (volp->viz_mode == -1)
+                                                          volp->viz_mode = DREAMM_V3_MODE;
+                                                      }
+                         | viz_mode_def               {
+                                                        if (volp->viz_mode != -1  &&  volp->viz_mode != $1)
+                                                        {
+                                                          mdlerror_fmt(mdlpvp, "Only one visualization mode is allowed in a given MDL file");
+                                                          return 1;
+                                                        }
+                                                        volp->viz_mode = $1;
+                                                      }
+;
+
+viz_mode_def: MODE '=' NONE                           { $$ = NO_VIZ_MODE; }
+            | MODE '=' DX                             { $$ = DX_MODE; }
+            | MODE '=' DREAMM_V3                      { $$ = DREAMM_V3_MODE; }
+            | MODE '=' DREAMM_V3_GROUPED              { $$ = DREAMM_V3_GROUPED_MODE; }
+            | MODE '=' CUSTOM_RK                      {
+                                                        /* If we already had a CUSTOM_RK block, we're going to overwrite the volp->rk_mode_var data... */
+                                                        if (volp->viz_mode == RK_MODE)
+                                                        {
+                                                          mdlerror_fmt(mdlpvp, "Only one CUSTOM_RK visualization block is allowed in an MDL file");
+                                                          return 1;
+                                                        }
+                                                        volp->rk_mode_var = NULL;
+                                                        $$ = RK_MODE;
+                                                      }
+            | MODE '=' CUSTOM_RK
+              '[' list_range_specs ']' point          {
+                                                        /* If we already had a CUSTOM_RK block, we're going to overwrite the volp->rk_mode_var data... */
+                                                        if (volp->viz_mode == RK_MODE)
+                                                        {
+                                                          mdlerror_fmt(mdlpvp, "Only one CUSTOM_RK visualization block is allowed in an MDL file");
+                                                          return 1;
+                                                        }
+
+                                                        CHECKN(volp->rk_mode_var = mdl_new_rk_mode_var(mdlpvp, $5.value_count, $5.value_head, $7));
+                                                        $$ = RK_MODE;
+                                                      }
+            | MODE '=' ASCII                          { $$ = ASCII_MODE; }
+;
+
+viz_mesh_format_maybe_cmd: /* empty */                {
+                                                        if (volp->viz_mode == DREAMM_V3_MODE)
+                                                          volp->viz_output_flag |= VIZ_MESH_FORMAT_BINARY;
+                                                      }
+                         | viz_mesh_format_def        {
+                                                        if (volp->viz_mode != DREAMM_V3_MODE)
+                                                        {
+                                                          mdlerror_fmt(mdlpvp, "VIZ_MESH_FORMAT command is allowed only in DREAMM_V3 mode.\n");
+                                                          return 1;
+                                                        }
+                                                        volp->viz_output_flag |= $1;
+                                                        if ((volp->viz_output_flag & VIZ_MESH_FORMAT_ASCII) &&
+                                                            (volp->viz_output_flag & VIZ_MESH_FORMAT_BINARY))
+                                                        {
+                                                          mdlerror_fmt(mdlpvp, "BINARY and ASCII options for the VIZ_MESH_FORMAT command are mutually exclusive.\n");
+                                                          return 1;
+                                                        }
+                                                      }
+;
+
+viz_mesh_format_def: VIZ_MESH_FORMAT '=' BINARY       { $$ = VIZ_MESH_FORMAT_BINARY; }
+                   | VIZ_MESH_FORMAT '=' ASCII        { $$ = VIZ_MESH_FORMAT_ASCII; }
+;
+
+viz_molecule_format_maybe_cmd:
+          /* empty */                                 {
+                                                        if (volp->viz_mode == DREAMM_V3_MODE)
+                                                          volp->viz_output_flag |= VIZ_MOLECULE_FORMAT_BINARY;
+                                                      }
+        | viz_molecule_format_def                     {
+                                                        if (volp->viz_mode != DREAMM_V3_MODE)
+                                                        {
+                                                          mdlerror_fmt(mdlpvp, "VIZ_MOLECULE_FORMAT command is allowed only in DREAMM_V3 mode.\n");
+                                                          return 1;
+                                                        }
+                                                        volp->viz_output_flag |= $1;
+                                                        if ((volp->viz_output_flag & VIZ_MOLECULE_FORMAT_ASCII) &&
+                                                            (volp->viz_output_flag & VIZ_MOLECULE_FORMAT_BINARY))
+                                                        {
+                                                          mdlerror_fmt(mdlpvp, "BINARY and ASCII options for the VIZ_MOLECULE_FORMAT command are mutually exclusive.\n");
+                                                          return 1;
+                                                        }
+                                                      }
+;
+
+viz_molecule_format_def:
+          VIZ_MOLECULE_FORMAT '=' BINARY              { $$ = VIZ_MOLECULE_FORMAT_BINARY; }
+        | VIZ_MOLECULE_FORMAT '=' ASCII               { $$ = VIZ_MOLECULE_FORMAT_ASCII; }
+;
 
 viz_output_cmd:
-          viz_filename_prefix_def 
-	| viz_molecules_block_def
-	| viz_meshes_block_def 
-	| viz_output_block_def
-	| viz_iteration_frame_data_def
-	| viz_molecule_prefix_def
-	| viz_object_prefixes_def
-	| viz_state_values_def
+          viz_filename_prefix_def
+        | viz_frames_def                              {
+                                                        if ($1.frame_head)
+                                                        {
+                                                          $1.frame_tail->next = mdlpvp->vol->frame_data_head;
+                                                          mdlpvp->vol->frame_data_head = $1.frame_head;
+                                                        }
+                                                      }
+        | viz_molecule_prefix_def
+        | viz_object_prefixes_def
+        | viz_state_values_def
 ;
 
-viz_filename_prefix_def: FILENAME '=' str_expr
-{
-  volp->file_prefix_name = $<str>3;
-
-  if(volp->viz_mode == DX_MODE) {
-      volp->molecule_prefix_name = $<str>3;
-  }
-};
-
-viz_molecules_block_def: MOLECULES '{'
-	list_viz_molecules_block_cmds
-	'}'
+viz_frames_def:
+          viz_molecules_block_def
+        | viz_meshes_block_def
+        | viz_output_block_def
+        | viz_iteration_frame_data_def
 ;
 
-list_viz_molecules_block_cmds: viz_molecules_block_cmd
-	| list_viz_molecules_block_cmds viz_molecules_block_cmd
+viz_filename_prefix_def: FILENAME '=' str_expr        {
+                                                        volp->file_prefix_name = $3;
+                                                        if (volp->viz_mode == DX_MODE)
+                                                        {
+                                                          volp->molecule_prefix_name = $3;
+                                                        }
+                                                      }
 ;
 
-viz_molecules_block_cmd: 
-		viz_molecules_name_list_cmd
-        	| viz_molecules_time_points_def
-        	| viz_molecules_iteration_numbers_def 
+viz_molecules_block_def:
+          MOLECULES '{'
+            list_viz_molecules_block_cmds
+          '}'                                         { $$ = $3; }
 ;
 
-viz_molecules_name_list_cmd: NAME_LIST '{' 
-		                viz_include_mols_cmd
-                             '}'
+list_viz_molecules_block_cmds:
+          viz_molecules_block_cmd
+        | list_viz_molecules_block_cmds
+          viz_molecules_block_cmd                     {
+                                                        $$ = $1;
+                                                        if ($$.frame_tail)
+                                                        {
+                                                          $$.frame_tail->next = $2.frame_head;
+                                                          if ($2.frame_tail)
+                                                            $$.frame_tail = $2.frame_tail;
+                                                        }
+                                                        else
+                                                          $$ = $2;
+                                                      }
 ;
 
-viz_include_mols_cmd: list_mol_name_specs 
-                      | list_mol_name_specs_state_values
-                      | list_all_mols_specs
+viz_molecules_block_cmd:
+          viz_molecules_name_list_cmd                 { $$.frame_head = $$.frame_tail = NULL; }
+        | viz_molecules_time_points_def
+        | viz_molecules_iteration_numbers_def
 ;
 
-list_mol_name_specs: mol_name_spec 
-	| list_mol_name_specs  mol_name_spec 
+viz_molecules_name_list_cmd:
+          NAME_LIST '{'
+            viz_include_mols_cmd
+          '}'
 ;
 
-mol_name_spec: existing_one_or_multiple_molecules
-{
-  if(volp->viz_mode == DX_MODE){
-    mdlerror(mdlpvp, "In DX MODE the state value for the molecule should be specified.\n");
-    return(1);
-  }
-
-  struct sym_table_list *stl; 
- 
-  if( ($<sym>1) != NULL )
-  {
-     /* here is just one molecule name */
-  
-     mdlpvp->gp=$<sym>1;
-     mdlpvp->specp=(struct species *)mdlpvp->gp->value;
-     mdlpvp->specp->viz_state = INCLUDE_OBJ;
-
-  }else{
-      /* here are several molecules names because of using wildcards */ 
-      
-      stl = mdlpvp->sym_table_list_head;
-      if (stl==NULL)
-      {
-	mdlerror(mdlpvp, "No molecules matching wildcard found.");
-	return 1;
-      }
-      while(stl != NULL)
-      {    
-         mdlpvp->gp = stl->node;
-         mdlpvp->specp=(struct species *)mdlpvp->gp->value;
-         mdlpvp->specp->viz_state = INCLUDE_OBJ;
-
-         stl = stl->next;
-      }
-  
-      /* free allocated memory  */
-      while (mdlpvp->sym_table_list_head != NULL)
-      {
-	stl=mdlpvp->sym_table_list_head->next;
-	mem_put(mdlpvp->sym_list_mem,mdlpvp->sym_table_list_head);
-	mdlpvp->sym_table_list_head=stl;
-      }
-
-  }
-
-};
-
-list_mol_name_specs_state_values: mol_name_specs_state_value
-	| list_mol_name_specs_state_values  mol_name_specs_state_value
+viz_include_mols_cmd:
+          list_mol_name_specs
+        | list_mol_name_specs_state_values
+        | list_all_mols_specs
 ;
 
-mol_name_specs_state_value: existing_molecule '=' num_expr
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->specp=(struct species *)mdlpvp->gp->value;
-
-  /* set the 'viz_state' value */ 
-  mdlpvp->viz_state=(int) $<dbl>3;
-  if (mdlpvp->gp->sym_type == MOL) {
-      mdlpvp->specp->viz_state=mdlpvp->viz_state;
-  }
-  if((volp->viz_output_flag & VIZ_MOLECULES_STATES) == 0){
-      volp->viz_output_flag |= VIZ_MOLECULES_STATES;
-  }
-};
-
-list_all_mols_specs: ALL_MOLECULES
-{
-  if(volp->viz_mode == DX_MODE){
-    mdlerror(mdlpvp, "In DX MODE the state value for the molecule should be specified.\n");
-    return(1);
-  }
-  volp->viz_output_flag |= VIZ_ALL_MOLECULES;
-};
-
-viz_molecules_time_points_def: TIME_POINTS '{'
-                               viz_molecules_time_points_cmds
-                          '}'
+list_mol_name_specs:
+          mol_name_spec
+        | list_mol_name_specs mol_name_spec
 ;
 
-viz_molecules_time_points_cmds: viz_molecules_time_points_one_cmd
-    | viz_molecules_time_points_cmds viz_molecules_time_points_one_cmd
+existing_one_or_multiple_molecules:
+          VAR                                         { CHECKN($$ = mdl_existing_molecule_list(mdlpvp, $1)); }
+        | STR_VALUE                                   { CHECKN($$ = mdl_existing_molecules_wildcard(mdlpvp, $1)); }
 ;
 
-viz_molecules_time_points_one_cmd: molecules_time_points_range_cmd 
-                                   | molecules_time_points_all_times_cmd    
+mol_name_spec: existing_one_or_multiple_molecules     {
+                                                        if (volp->viz_mode == DX_MODE)
+                                                        {
+                                                          mem_put_list(mdlpvp->sym_list_mem, $1);
+                                                          mdlerror(mdlpvp, "In DX MODE the state value for the molecule should be specified.\n");
+                                                          return 1;
+                                                        }
+
+                                                        /* Mark all specified molecules */
+                                                        struct sym_table_list *stl;
+                                                        for (stl = $1; stl != NULL; stl = stl->next)
+                                                        {
+                                                          struct species *specp = (struct species *) stl->node->value;
+                                                          specp->viz_state = INCLUDE_OBJ;
+                                                        }
+
+                                                        /* free allocated memory  */
+                                                        mem_put_list(mdlpvp->sym_list_mem, $1);
+                                                      }
 ;
 
-molecules_time_points_range_cmd: viz_molecules_one_item '@' '[' 
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-}
-     list_range_specs ']'
-{
-  sort_num_expr_list(mdlpvp->el_head);
-  int temp = $<tok>1;
-
-  if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE)){
-     if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror(mdlpvp, "Out of memory while creating time points");
-                return(1);
-      }
-      mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-      mdlpvp->fdlp->type=$<tok>1;
-      mdlpvp->fdlp->viz_iteration=-1;
-      mdlpvp->fdlp->n_viz_iterations=0;
-      mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-      mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-      mdlpvp->fdlp->next=volp->frame_data_head;
-      volp->frame_data_head = mdlpvp->fdlp;  
-  }else if(volp->viz_mode == DX_MODE){ 
-     if((temp == MOL_POS) || (temp == ALL_MOL_DATA)){
-        /* create four frames */
-        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror(mdlpvp, "Out of memory while creating time points");
-                return(1);
-         }
-         mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-         mdlpvp->fdlp->type=EFF_POS;
-         mdlpvp->fdlp->viz_iteration=-1;
-         mdlpvp->fdlp->n_viz_iterations=0;
-         mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-         mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-         mdlpvp->fdlp->next=volp->frame_data_head;
-         volp->frame_data_head = mdlpvp->fdlp;  
-
-         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror(mdlpvp, "Out of memory while creating time points");
-                return(1);
-          }
-          mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-          mdlpvp->fdlp->type=EFF_STATES;
-          mdlpvp->fdlp->viz_iteration=-1;
-          mdlpvp->fdlp->n_viz_iterations=0;
-          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-          mdlpvp->fdlp->next=volp->frame_data_head;
-          volp->frame_data_head = mdlpvp->fdlp;  
-
-          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-                (sizeof(struct frame_data_list)))==NULL) {
-                   mdlerror(mdlpvp, "Out of memory while creating time points");
-                   return(1);
-          }
-          mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-          mdlpvp->fdlp->type=MOL_POS;
-          mdlpvp->fdlp->viz_iteration=-1;
-          mdlpvp->fdlp->n_viz_iterations=0;
-          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-          mdlpvp->fdlp->next=volp->frame_data_head;
-          volp->frame_data_head = mdlpvp->fdlp;  
-     
-          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-               (sizeof(struct frame_data_list)))==NULL) {
-                    mdlerror(mdlpvp, "Out of memory while creating time points");
-                    return(1);
-          }
-          mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-          mdlpvp->fdlp->type=MOL_STATES;
-          mdlpvp->fdlp->viz_iteration=-1;
-          mdlpvp->fdlp->n_viz_iterations=0;
-          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-          mdlpvp->fdlp->next=volp->frame_data_head;
-          volp->frame_data_head = mdlpvp->fdlp;  
-     }else if(temp == MOL_ORIENT){
-         /* do nothing */
-     }
-  }
-};
-
-molecules_time_points_all_times_cmd: viz_molecules_one_item '@' ALL_TIMES 
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-  long long step;
-  int temp;
-
-  for(step = 0; step <= volp->iterations; step++)
-  {
-  	if ((mdlpvp->elp=(struct num_expr_list *)malloc
-           (sizeof(struct num_expr_list)))==NULL) {
-    		mdlerror(mdlpvp, "Out of memory while creating time points");
-                return(1);
-        }
- 
-        mdlpvp->elp->value=(double)(step*(volp->time_unit));
-        if (mdlpvp->el_tail==NULL) {
-           mdlpvp->el_tail=mdlpvp->elp;
-        }
-        mdlpvp->el_tail->next=mdlpvp->elp;
-        mdlpvp->elp->next=NULL;
-        mdlpvp->el_tail=mdlpvp->elp;
-        if (mdlpvp->el_head==NULL) {
-            mdlpvp->el_head=mdlpvp->elp;
-        }
-        mdlpvp->num_pos++;  
-  }
-  sort_num_expr_list(mdlpvp->el_head); 
-  temp = $<tok>1;
-
-  if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE))
-  {
-     if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-              mdlerror(mdlpvp, "Out of memory while creating time points");
-              return(1);
-     }
-     mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-     mdlpvp->fdlp->type=$<tok>1;
-     mdlpvp->fdlp->viz_iteration=-1;
-     mdlpvp->fdlp->n_viz_iterations=0;
-     mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-     mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-     mdlpvp->fdlp->next=volp->frame_data_head;
-     volp->frame_data_head = mdlpvp->fdlp;  
-  }else if(volp->viz_mode == DX_MODE){ 
-     if((temp == MOL_POS) || (temp == ALL_MOL_DATA)){
-        /* create four frames */
-        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror(mdlpvp, "Out of memory while creating time points");
-                return(1);
-         }
-         mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-         mdlpvp->fdlp->type=EFF_POS;
-         mdlpvp->fdlp->viz_iteration=-1;
-         mdlpvp->fdlp->n_viz_iterations=0;
-         mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-         mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-         mdlpvp->fdlp->next=volp->frame_data_head;
-         volp->frame_data_head = mdlpvp->fdlp;  
-
-         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror(mdlpvp, "Out of memory while creating time points");
-                return(1);
-          }
-          mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-          mdlpvp->fdlp->type=EFF_STATES;
-          mdlpvp->fdlp->viz_iteration=-1;
-          mdlpvp->fdlp->n_viz_iterations=0;
-          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-          mdlpvp->fdlp->next=volp->frame_data_head;
-          volp->frame_data_head = mdlpvp->fdlp;  
-
-          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-                (sizeof(struct frame_data_list)))==NULL) {
-                   mdlerror(mdlpvp, "Out of memory while creating time points");
-                   return(1);
-          }
-          mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-          mdlpvp->fdlp->type=MOL_POS;
-          mdlpvp->fdlp->viz_iteration=-1;
-          mdlpvp->fdlp->n_viz_iterations=0;
-          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-          mdlpvp->fdlp->next=volp->frame_data_head;
-          volp->frame_data_head = mdlpvp->fdlp;  
-     
-          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-               (sizeof(struct frame_data_list)))==NULL) {
-                    mdlerror(mdlpvp, "Out of memory while creating time points");
-                    return(1);
-          }
-          mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-          mdlpvp->fdlp->type=MOL_STATES;
-          mdlpvp->fdlp->viz_iteration=-1;
-          mdlpvp->fdlp->n_viz_iterations=0;
-          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-          mdlpvp->fdlp->next=volp->frame_data_head;
-          volp->frame_data_head = mdlpvp->fdlp;  
-     }else if(temp == MOL_ORIENT){
-         /* do nothing */
-     }
-  }
-};
-
-viz_molecules_iteration_numbers_def: ITERATION_NUMBERS '{'
-                                  viz_molecules_iteration_numbers_cmds
-                                 '}'
+list_mol_name_specs_state_values:
+          mol_name_specs_state_value
+        | list_mol_name_specs_state_values
+          mol_name_specs_state_value
 ;
 
-viz_molecules_iteration_numbers_cmds: viz_molecules_iteration_numbers_one_cmd
-  | viz_molecules_iteration_numbers_cmds viz_molecules_iteration_numbers_one_cmd
+mol_name_specs_state_value:
+          existing_molecule '=' num_expr              {
+                                                        struct species *specp = (struct species *) $1->value;
+
+                                                        /* set the 'viz_state' value */
+                                                        if ($1->sym_type == MOL)
+                                                            specp->viz_state = (int) $3;
+                                                        volp->viz_output_flag |= VIZ_MOLECULES_STATES;
+                                                      }
 ;
 
-viz_molecules_iteration_numbers_one_cmd: molecules_iteration_numbers_range_cmd 
-                            | molecules_iteration_numbers_all_iterations_cmd    
-;
-
-molecules_iteration_numbers_range_cmd: viz_molecules_one_item '@' '[' 
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-}
-     list_range_specs ']'
-{
-  sort_num_expr_list(mdlpvp->el_head);
-
-  int temp = $<tok>1;
-
-  if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE))
-  {
-     if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-              mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
-              return(1);
-      }
-      mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-      mdlpvp->fdlp->type=$<tok>1;
-      mdlpvp->fdlp->viz_iteration=-1;
-      mdlpvp->fdlp->n_viz_iterations=0;
-      mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-      mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-      mdlpvp->fdlp->next=volp->frame_data_head;
-      volp->frame_data_head = mdlpvp->fdlp;  
-  }else if(volp->viz_mode == DX_MODE){ 
-     if((temp == MOL_POS) || (temp == ALL_MOL_DATA)){
-        /* create four frames */
-        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror(mdlpvp, "Out of memory while creating time points");
-                return(1);
-         }
-         mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-         mdlpvp->fdlp->type=EFF_POS;
-         mdlpvp->fdlp->viz_iteration=-1;
-         mdlpvp->fdlp->n_viz_iterations=0;
-         mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-         mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-         mdlpvp->fdlp->next=volp->frame_data_head;
-         volp->frame_data_head = mdlpvp->fdlp;  
-
-         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror(mdlpvp, "Out of memory while creating time points");
-                return(1);
-          }
-          mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-          mdlpvp->fdlp->type=EFF_STATES;
-          mdlpvp->fdlp->viz_iteration=-1;
-          mdlpvp->fdlp->n_viz_iterations=0;
-          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-          mdlpvp->fdlp->next=volp->frame_data_head;
-          volp->frame_data_head = mdlpvp->fdlp;  
-
-          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-                (sizeof(struct frame_data_list)))==NULL) {
-                   mdlerror(mdlpvp, "Out of memory while creating time points");
-                   return(1);
-          }
-          mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-          mdlpvp->fdlp->type=MOL_POS;
-          mdlpvp->fdlp->viz_iteration=-1;
-          mdlpvp->fdlp->n_viz_iterations=0;
-          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-          mdlpvp->fdlp->next=volp->frame_data_head;
-          volp->frame_data_head = mdlpvp->fdlp;  
-     
-          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-               (sizeof(struct frame_data_list)))==NULL) {
-                    mdlerror(mdlpvp, "Out of memory while creating time points");
-                    return(1);
-          }
-          mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-          mdlpvp->fdlp->type=MOL_STATES;
-          mdlpvp->fdlp->viz_iteration=-1;
-          mdlpvp->fdlp->n_viz_iterations=0;
-          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-          mdlpvp->fdlp->next=volp->frame_data_head;
-          volp->frame_data_head = mdlpvp->fdlp;  
-     }else if(temp == MOL_ORIENT){
-         /* do nothing */
-     }
-  }
-
-};
-
-molecules_iteration_numbers_all_iterations_cmd: viz_molecules_one_item '@' 
-                                                 ALL_ITERATIONS 
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-  long long step;
-  int temp;
-
-  for(step = 0; step <= volp->iterations; step++)
-  {
-  	if ((mdlpvp->elp=(struct num_expr_list *)malloc
-           (sizeof(struct num_expr_list)))==NULL) {
-    		mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
-                return(1);
-        }
- 
-        mdlpvp->elp->value=(double)(step);
-        if (mdlpvp->el_tail==NULL) {
-           mdlpvp->el_tail=mdlpvp->elp;
-        }
-        mdlpvp->el_tail->next=mdlpvp->elp;
-        mdlpvp->elp->next=NULL;
-        mdlpvp->el_tail=mdlpvp->elp;
-        if (mdlpvp->el_head==NULL) {
-            mdlpvp->el_head=mdlpvp->elp;
-        }
-        mdlpvp->num_pos++;  
-  }
-  sort_num_expr_list(mdlpvp->el_head); 
-  temp = $<tok>1;
-
-  if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE))
-  {
-     if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-              mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
-              return(1);
-     }
-     mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-     mdlpvp->fdlp->type=$<tok>1;
-     mdlpvp->fdlp->viz_iteration=-1;
-     mdlpvp->fdlp->n_viz_iterations=0;
-     mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-     mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-     mdlpvp->fdlp->next=volp->frame_data_head;
-     volp->frame_data_head = mdlpvp->fdlp;  
-  }else if(volp->viz_mode == DX_MODE){ 
-     if((temp == MOL_POS) || (temp == ALL_MOL_DATA)){
-        /* create four frames */
-        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror(mdlpvp, "Out of memory while creating time points");
-                return(1);
-         }
-         mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-         mdlpvp->fdlp->type=EFF_POS;
-         mdlpvp->fdlp->viz_iteration=-1;
-         mdlpvp->fdlp->n_viz_iterations=0;
-         mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-         mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-         mdlpvp->fdlp->next=volp->frame_data_head;
-         volp->frame_data_head = mdlpvp->fdlp;  
-
-         if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror(mdlpvp, "Out of memory while creating time points");
-                return(1);
-          }
-          mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-          mdlpvp->fdlp->type=EFF_STATES;
-          mdlpvp->fdlp->viz_iteration=-1;
-          mdlpvp->fdlp->n_viz_iterations=0;
-          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-          mdlpvp->fdlp->next=volp->frame_data_head;
-          volp->frame_data_head = mdlpvp->fdlp;  
-
-          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-                (sizeof(struct frame_data_list)))==NULL) {
-                   mdlerror(mdlpvp, "Out of memory while creating time points");
-                   return(1);
-          }
-          mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-          mdlpvp->fdlp->type=MOL_POS;
-          mdlpvp->fdlp->viz_iteration=-1;
-          mdlpvp->fdlp->n_viz_iterations=0;
-          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-          mdlpvp->fdlp->next=volp->frame_data_head;
-          volp->frame_data_head = mdlpvp->fdlp;  
-     
-          if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-               (sizeof(struct frame_data_list)))==NULL) {
-                    mdlerror(mdlpvp, "Out of memory while creating time points");
-                    return(1);
-          }
-          mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-          mdlpvp->fdlp->type=MOL_STATES;
-          mdlpvp->fdlp->viz_iteration=-1;
-          mdlpvp->fdlp->n_viz_iterations=0;
-          mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-          mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-          mdlpvp->fdlp->next=volp->frame_data_head;
-          volp->frame_data_head = mdlpvp->fdlp;  
-     }else if(temp == MOL_ORIENT){
-         /* do nothing */
-     }
-  }
-
-};
-
-viz_molecules_one_item: ALL_DATA
-{
-  $$=ALL_MOL_DATA;
-}
-	| POSITIONS
-{
-  $$=MOL_POS;
-}
-	| ORIENTATIONS
-{
-  $$=MOL_ORIENT;
-};
-
-
-viz_meshes_block_def: MESHES '{'
-	list_viz_meshes_block_cmds
-	'}'
-;
-
-list_viz_meshes_block_cmds: viz_meshes_block_cmd
-	| list_viz_meshes_block_cmds viz_meshes_block_cmd
-;
-
-viz_meshes_block_cmd: 
-		viz_meshes_name_list_cmd
-        	| viz_meshes_time_points_def 
-         	| viz_meshes_iteration_numbers_def  
-;
-
-viz_meshes_name_list_cmd: NAME_LIST '{' 
-		                viz_include_meshes_cmd
-                             '}'
-;
-
-viz_include_meshes_cmd: list_meshes_name_specs 
-                      | list_meshes_name_specs_state_values 
-                      | list_all_meshes_specs   
-;
-
-list_meshes_name_specs: mesh_one_name_spec
-           | list_meshes_name_specs mesh_one_name_spec
-
-
-mesh_one_name_spec: existing_one_or_multiple_objects
-{
-  if(volp->viz_mode == DX_MODE){
-    mdlerror(mdlpvp, "In DX MODE the state value for the object should be specified.\n");
-    return(1);
-  }
-  if(volp->file_prefix_name == NULL){
-    mdlerror(mdlpvp, "The keyword FILENAME should be specified.\n");
-    return(1);
-  }
-  
-  u_int i;
-  struct sym_table_list *stl; 
- 
-  if(($<sym>1) != NULL)
-  {
-     /* here is just one mesh object name */
-
-     mdlpvp->gp=$<sym>1;
-     // create viz_obj object 
-     mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-     mdlpvp->sym_name=mdlpvp->gp->name;
-     if ((mdlpvp->vizp = (struct viz_obj *)malloc
-        (sizeof(struct viz_obj)))==NULL) {
-           mdlerror(mdlpvp, "Out of memory while creating viz object");
-           return(1);
-     }
-  
-     mdlpvp->objp->viz_obj = mdlpvp->vizp;
-     mdlpvp->vizp->name = strdup(volp->file_prefix_name);
-     if(mdlpvp->vizp->name == NULL){
-         mdlerror_fmt(mdlpvp, 
-                      "Out of memory while parsing object: %s",
-                      mdlpvp->sym_name);
-         return(1);
-     }
-  
-     mdlpvp->vizp->full_name = strdup(mdlpvp->full_name);
-     if(mdlpvp->vizp->full_name == NULL){
-        mdlerror_fmt(mdlpvp, 
-                     "Out of memory while parsing object: %s", 
-                     mdlpvp->sym_name);
-        return(1);
-     }
-  
-     mdlpvp->vizp->viz_child_head = NULL;
-     mdlpvp->vizp->obj=mdlpvp->objp;
-     mdlpvp->vizp->next=volp->viz_obj_head;
-     volp->viz_obj_head = mdlpvp->vizp;
- 
-     // set viz_state value of INCLUDE_OBJ for the object 
-     if (mdlpvp->gp->sym_type == OBJ) {
-         switch (mdlpvp->objp->object_type) {
-            case META_OBJ:
-              if (set_viz_state_value(mdlpvp->objp,INCLUDE_OBJ)) {
-                 mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for meta object %s",mdlpvp->gp->name);
-                 return(1);
-              }
-              break;
-            case BOX_OBJ:
-                mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
-                if (mdlpvp->objp->viz_state==NULL) {
-                    if ((mdlpvp->objp->viz_state=(int *)malloc
-                         (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-                         mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for box object %s",mdlpvp->gp->name);
-                         return(1);
-                    }
-                 }
-                 for (i=0;i<mdlpvp->pop->n_walls;i++) {
-                     mdlpvp->objp->viz_state[i]=INCLUDE_OBJ;
-                 }
-                 break;
-             case POLY_OBJ:
-                 mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
-                 if (mdlpvp->objp->viz_state==NULL) {
-                     if ((mdlpvp->objp->viz_state=(int *)malloc
-                        (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-                           mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for polygon list object %s",mdlpvp->gp->name);
-                           return(1);
-                     }
-                  }
-                  for (i=0;i<mdlpvp->pop->n_walls;i++) {
-                      mdlpvp->objp->viz_state[i]=INCLUDE_OBJ;
-                  }
-                  break;
-             default:
-                  mdlerror(mdlpvp, "Cannot set viz state value of this type of object");
-                  return(1);
-                  break;
-
-         } /* end switch */
-      }
-
-   }else{
-
-      /* here are several mesh objects names because of using wildcards */ 
-      
-      stl = mdlpvp->sym_table_list_head;
-      if (stl==NULL)
-      {
-	mdlerror(mdlpvp, "No objects matching wildcard found.");
-	return 1;
-      }
-      while(stl != NULL)
-      {    
-
-         mdlpvp->gp = stl->node;
-         /* create viz_obj object */
-         mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-         if((mdlpvp->objp->object_type == REL_SITE_OBJ) || 
-             (mdlpvp->objp->object_type == META_OBJ)){ 
-                  stl = stl->next;
-                  continue;
-         }  
-         mdlpvp->sym_name=mdlpvp->gp->name;
-
-         if ((mdlpvp->vizp = (struct viz_obj *)malloc
-            (sizeof(struct viz_obj)))==NULL) {
-                mdlerror(mdlpvp, "Out of memory while creating viz object");
-                return(1);
-         } 
-
-         mdlpvp->objp->viz_obj = mdlpvp->vizp;
-         mdlpvp->vizp->name = strdup(volp->file_prefix_name);
-         if (mdlpvp->vizp->name == NULL){
-           mdlerror_fmt(mdlpvp, 
-                        "Out of memory while parsing object: %s", 
-                         mdlpvp->sym_name);
-           return(1);
-         }
-  
-         mdlpvp->vizp->full_name = strdup(mdlpvp->sym_name); 
-         if (mdlpvp->vizp->full_name == NULL){
-           mdlerror_fmt(mdlpvp,
-                        "Out of memory while parsing object: %s", 
-                        mdlpvp->sym_name);
-           return(1);
-         }
-  
-         mdlpvp->vizp->viz_child_head = NULL;
-         mdlpvp->vizp->obj=mdlpvp->objp;
-         mdlpvp->vizp->next=volp->viz_obj_head;
-         volp->viz_obj_head = mdlpvp->vizp;
- 
-         /* set viz_state value of INCLUDE_OBJ for the object */
-         switch (mdlpvp->objp->object_type) {
-               case BOX_OBJ:
-                  mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
-                  if (mdlpvp->objp->viz_state==NULL) {
-                    if ((mdlpvp->objp->viz_state=(int *)malloc
-                         (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-                         mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for box object %s",mdlpvp->gp->name);
-                         return(1);
-                    }
-                   }
-                   for (i=0;i<mdlpvp->pop->n_walls;i++) {
-                      mdlpvp->objp->viz_state[i]=INCLUDE_OBJ;
-                   }
-                   break;
-                case POLY_OBJ:
-                   mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
-                   if (mdlpvp->objp->viz_state==NULL) {
-                     if ((mdlpvp->objp->viz_state=(int *)malloc
-                        (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-                           mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for polygon list object %s",mdlpvp->gp->name);
-                           return(1);
-                     }
-                   }
-                   for (i=0;i<mdlpvp->pop->n_walls;i++) {
-                      mdlpvp->objp->viz_state[i]=INCLUDE_OBJ;
-                   }
-                   break;
-                default:
-                    mdlerror(mdlpvp, "Cannot set viz state value of this type of object");
-                    return(1);
-                    break;
-
-         } /* end switch */
-
-         stl = stl->next;
-      } /* end while(stl != NULL) */
-
-      /* free allocated memory  */
-      while (mdlpvp->sym_table_list_head != NULL)
-      {
-	stl=mdlpvp->sym_table_list_head->next;
-	mem_put(mdlpvp->sym_list_mem,mdlpvp->sym_table_list_head);
-	mdlpvp->sym_table_list_head=stl;
-      }
-
-   } /* end else */
-
-};
-
-
-list_meshes_name_specs_state_values: mesh_one_name_spec_state_value
-    | list_meshes_name_specs_state_values mesh_one_name_spec_state_value
-
-
-mesh_one_name_spec_state_value: existing_object '=' num_expr
-{
-
-  u_int i;
-
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->viz_state=(int) $<dbl>3;
-  /* create viz_obj object */
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  mdlpvp->sym_name=mdlpvp->gp->name;
-  if ((mdlpvp->vizp = (struct viz_obj *)malloc
-        (sizeof(struct viz_obj)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating viz object");
-    return(1);
-  }
-  
-  mdlpvp->objp->viz_obj = mdlpvp->vizp;
-  mdlpvp->vizp->name = strdup(volp->file_prefix_name);
-  if(mdlpvp->vizp->name == NULL){
-    mdlerror_fmt(mdlpvp, 
-                 "Out of memory while parsing object: %s", 
-                 mdlpvp->sym_name);
-    return(1);
-  }
-  
-  mdlpvp->vizp->full_name = strdup(mdlpvp->full_name);
-  if(mdlpvp->vizp->full_name == NULL){
-    mdlerror_fmt(mdlpvp, 
-                 "Out of memory while parsing object: %s", 
-                 mdlpvp->sym_name);
-    return(1);
-  }
-  
-  mdlpvp->vizp->viz_child_head = NULL;
-  mdlpvp->vizp->obj=mdlpvp->objp;
-  mdlpvp->vizp->next=volp->viz_obj_head;
-  volp->viz_obj_head = mdlpvp->vizp;
-
-  if((volp->viz_output_flag & VIZ_SURFACE_STATES) == 0){
-      volp->viz_output_flag |= VIZ_SURFACE_STATES;
-  }
- 
-  /* set viz_state value for the object */
-  if (mdlpvp->gp->sym_type == OBJ) {
-      switch (mdlpvp->objp->object_type) {
-        case META_OBJ:
-          if (set_viz_state_value(mdlpvp->objp,mdlpvp->viz_state)) {
-            mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for meta object %s",mdlpvp->gp->name);
-            return(1);
-          }
-          break;
-        case BOX_OBJ:
-          mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
-          if (mdlpvp->objp->viz_state==NULL) {
-            if ((mdlpvp->objp->viz_state=(int *)malloc
-                 (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-              mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for box object %s",mdlpvp->gp->name);
-              return(1);
-            }
-          }
-          for (i=0;i<mdlpvp->pop->n_walls;i++) {
-            mdlpvp->objp->viz_state[i]=mdlpvp->viz_state;
-          }
-          break;
-        case POLY_OBJ:
-          mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
-          if (mdlpvp->objp->viz_state==NULL) {
-            if ((mdlpvp->objp->viz_state=(int *)malloc
-                 (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-              mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for polygon list object %s",mdlpvp->gp->name);
-              return(1);
-            }
-          }
-          for (i=0;i<mdlpvp->pop->n_walls;i++) {
-            mdlpvp->objp->viz_state[i]=mdlpvp->viz_state;
-          }
-          break;
-        default:
-          mdlerror(mdlpvp, "Cannot set viz state value of this type of object");
-          return(1);
-          break;
-      }
-    }
-
-};
-
-list_all_meshes_specs: ALL_MESHES
-{
-  if(volp->viz_mode == DX_MODE){
-    mdlerror(mdlpvp, "The keyword ALL_MESHES cannot be used in DX MODE.\n");
-    return(1);
-  }
-  if(volp->file_prefix_name == NULL){
-    mdlerror(mdlpvp, "The keyword FILENAME should be specified.\n");
-    return(1);
-  }
-
-  u_int i;
-  struct object *o;
-  for(o = volp->root_instance->first_child; o != NULL; o = o->next)
-  {
-     mdlpvp->objp = o;
-     mdlpvp->sym_name=o->sym->name;
-
-     if ((mdlpvp->vizp = (struct viz_obj *)malloc
-        (sizeof(struct viz_obj)))==NULL) {
-        mdlerror(mdlpvp, "Out of memory while creating viz object");
-      return(1);
-     }
-  
-     mdlpvp->objp->viz_obj = mdlpvp->vizp;
-     mdlpvp->vizp->name = strdup(volp->file_prefix_name);
-     if(mdlpvp->vizp->name == NULL){
-        mdlerror_fmt(mdlpvp, 
-                     "Out of memory while parsing object: %s", 
-                     mdlpvp->sym_name);
-       return(1);
-     }
-  
-     mdlpvp->vizp->full_name = strdup(o->sym->name);
-     if(mdlpvp->vizp->full_name == NULL){
-        mdlerror_fmt(mdlpvp, 
-                     "Out of memory while parsing object: %s", 
-                     mdlpvp->sym_name);
-        return(1);
-     }
-  
-     mdlpvp->vizp->viz_child_head = NULL;
-     mdlpvp->vizp->obj=mdlpvp->objp;
-     mdlpvp->vizp->next=volp->viz_obj_head;
-     volp->viz_obj_head = mdlpvp->vizp;
-  
-     /* set viz_state value of INCLUDE_OBJ for the object */
-         switch (mdlpvp->objp->object_type) {
-           case META_OBJ:
-
-             if (set_viz_state_value(mdlpvp->objp,INCLUDE_OBJ)) {
-               mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for meta object %s",mdlpvp->gp->name);
-               return(1);
-             }
-             break;
-           case BOX_OBJ:
-
-             mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
-             if (mdlpvp->objp->viz_state==NULL) {
-                if ((mdlpvp->objp->viz_state=(int *)malloc
-                    (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-                  mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for box object %s",mdlpvp->gp->name);
-                  return(1);
-                }
-             }
-             for (i=0;i<mdlpvp->pop->n_walls;i++) {
-                mdlpvp->objp->viz_state[i]=INCLUDE_OBJ;
-             }
-             break;
-           case POLY_OBJ:
-
-             mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
-             if (mdlpvp->objp->viz_state==NULL) {
-                if ((mdlpvp->objp->viz_state=(int *)malloc
-                      (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-                mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for polygon list object %s",mdlpvp->gp->name);
-                return(1);
-              }
-            }
-            for (i=0;i<mdlpvp->pop->n_walls;i++) {
-               mdlpvp->objp->viz_state[i]=INCLUDE_OBJ;
-            }
-            break;
-          default:
-             mdlerror(mdlpvp, "Cannot set viz state value of this type of object");
-             return(1);
-             break;
-         }
-
-  }
-
-
-};
-
-viz_meshes_time_points_def: TIME_POINTS '{'
-                               viz_meshes_time_points_cmds
-                          '}'
-;
-
-viz_meshes_time_points_cmds: viz_meshes_time_points_one_cmd
-    | viz_meshes_time_points_cmds viz_meshes_time_points_one_cmd
-;
-
-viz_meshes_time_points_one_cmd: meshes_time_points_range_cmd 
-                                   | meshes_time_points_all_times_cmd    
-;
-
-meshes_time_points_range_cmd: viz_meshes_one_item '@' '[' 
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-}
-     list_range_specs ']'
-{
-  sort_num_expr_list(mdlpvp->el_head);
-
-  int temp = $<tok>1;
-  if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE)){
-     if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-              mdlerror(mdlpvp, "Out of memory while creating time points");
-              return(1);
-     }
-     mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-     mdlpvp->fdlp->type=$<tok>1;
-     mdlpvp->fdlp->viz_iteration=-1;
-     mdlpvp->fdlp->n_viz_iterations=0;
-     mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-     mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-     mdlpvp->fdlp->next=volp->frame_data_head;
-     volp->frame_data_head = mdlpvp->fdlp; 
-  }else if((volp->viz_mode == DX_MODE) && (temp == REG_DATA)){
-      /* do nothing */
-      fprintf(mdlpvp->vol->err_file, "REGION_DATA cannot be displayed in DX_MODE, please use DREAMM_V3_GROUPED (or DREAMM_V3) mode.\n");
-  }else if(volp->viz_mode == DX_MODE){ 
-     if((temp == MESH_GEOMETRY) || (temp == ALL_MESH_DATA)){
-        /* create two frames - SURF_POS and SURF_STATES */
-        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-              (sizeof(struct frame_data_list)))==NULL) {
-                 mdlerror(mdlpvp, "Out of memory while creating time points");
-                 return(1);
-        }
-        mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-        mdlpvp->fdlp->type=SURF_POS;
-        mdlpvp->fdlp->viz_iteration=-1;
-        mdlpvp->fdlp->n_viz_iterations=0;
-        mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-        mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-        mdlpvp->fdlp->next=volp->frame_data_head;
-        volp->frame_data_head = mdlpvp->fdlp; 
-
-        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-              mdlerror(mdlpvp, "Out of memory while creating time points");
-              return(1);
-        }
-        mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-        mdlpvp->fdlp->type=SURF_STATES;
-        mdlpvp->fdlp->viz_iteration=-1;
-        mdlpvp->fdlp->n_viz_iterations=0;
-        mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-        mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-        mdlpvp->fdlp->next=volp->frame_data_head;
-        volp->frame_data_head = mdlpvp->fdlp; 
-     }
-  }
-};
-
-meshes_time_points_all_times_cmd: viz_meshes_one_item '@' ALL_TIMES 
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-  long long step;
-  for(step = 0; step <= volp->iterations; step++)
-  {
-  	if ((mdlpvp->elp=(struct num_expr_list *)malloc
-           (sizeof(struct num_expr_list)))==NULL) {
-    		mdlerror(mdlpvp, "Out of memory while creating time points");
-                return(1);
-        }
- 
-        mdlpvp->elp->value=(double)(step*(volp->time_unit));
-        if (mdlpvp->el_tail==NULL) {
-           mdlpvp->el_tail=mdlpvp->elp;
-        }
-        mdlpvp->el_tail->next=mdlpvp->elp;
-        mdlpvp->elp->next=NULL;
-        mdlpvp->el_tail=mdlpvp->elp;
-        if (mdlpvp->el_head==NULL) {
-            mdlpvp->el_head=mdlpvp->elp;
-        }
-        mdlpvp->num_pos++;  
-  }
-  sort_num_expr_list(mdlpvp->el_head); 
-  
-  int temp = $<tok>1;
-  if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE)){
-     
-     if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-        (sizeof(struct frame_data_list)))==NULL) {
-           mdlerror(mdlpvp, "Out of memory while creating time points");
-           return(1);
-     }
-     mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-     mdlpvp->fdlp->type=$<tok>1;
-     mdlpvp->fdlp->viz_iteration=-1;
-     mdlpvp->fdlp->n_viz_iterations=0;
-     mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-     mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-     mdlpvp->fdlp->next=volp->frame_data_head;
-     volp->frame_data_head = mdlpvp->fdlp;  
-  }else if((volp->viz_mode == DX_MODE) && (temp == REG_DATA)){
-      /* do nothing */
-      fprintf(mdlpvp->vol->err_file, "REGION_DATA cannot be dispalyed in DX_MODE, please use DREAMM_V3_GROUPED (or DREAMM_V3) mode.\n");
-  }else if(volp->viz_mode == DX_MODE){
-     if((temp == MESH_GEOMETRY) || (temp == ALL_MESH_DATA))
-     {
-        /* create two frames - SURF_POS and SURF_STATES */
-        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-              mdlerror(mdlpvp, "Out of memory while creating time points");
-              return(1);
-        }
-        mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-        mdlpvp->fdlp->type=SURF_POS;
-        mdlpvp->fdlp->viz_iteration=-1;
-        mdlpvp->fdlp->n_viz_iterations=0;
-        mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-        mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-        mdlpvp->fdlp->next=volp->frame_data_head;
-        volp->frame_data_head = mdlpvp->fdlp;  
-
-        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-              mdlerror(mdlpvp, "Out of memory while creating time points");
-              return(1);
-        }
-        mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-        mdlpvp->fdlp->type=SURF_STATES;
-        mdlpvp->fdlp->viz_iteration=-1;
-        mdlpvp->fdlp->n_viz_iterations=0;
-        mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-        mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-        mdlpvp->fdlp->next=volp->frame_data_head;
-        volp->frame_data_head = mdlpvp->fdlp;  
-    }
-  }
-};
-
-viz_meshes_iteration_numbers_def: ITERATION_NUMBERS '{'
-                                  viz_meshes_iteration_numbers_cmds
-                                 '}'
-;
-
-viz_meshes_iteration_numbers_cmds: viz_meshes_iteration_numbers_one_cmd
-  | viz_meshes_iteration_numbers_cmds viz_meshes_iteration_numbers_one_cmd
-;
-
-viz_meshes_iteration_numbers_one_cmd: meshes_iteration_numbers_range_cmd 
-                            | meshes_iteration_numbers_all_iterations_cmd    
-;
-
-meshes_iteration_numbers_range_cmd: viz_meshes_one_item '@' '[' 
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-}
-     list_range_specs ']'
-{
-  sort_num_expr_list(mdlpvp->el_head);
-
-  int temp = $<tok>1;
-  if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE)){
-     if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
-                return(1);
-     }
-     mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-     mdlpvp->fdlp->type=$<tok>1;
-     mdlpvp->fdlp->viz_iteration=-1;
-     mdlpvp->fdlp->n_viz_iterations=0;
-     mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-     mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-     mdlpvp->fdlp->next=volp->frame_data_head;
-     volp->frame_data_head = mdlpvp->fdlp;  
-  }else if((volp->viz_mode == DX_MODE) && (temp == REG_DATA)){
-      /* do nothing */
-      fprintf(mdlpvp->vol->err_file, "REGION_DATA cannot be displayed in DX_MODE, please use DREAMM_V3_GROUPED (or DREAMM_V3) mode.\n");   
-  }else if(volp->viz_mode == DX_MODE){
-     if((temp == MESH_GEOMETRY) || (temp == ALL_MESH_DATA)){
-        /* create two frames - SURF_POS and SURF_STATES */
-        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
-                return(1);
-        }
-        mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-        mdlpvp->fdlp->type=SURF_POS;
-        mdlpvp->fdlp->viz_iteration=-1;
-        mdlpvp->fdlp->n_viz_iterations=0;
-        mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-        mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-        mdlpvp->fdlp->next=volp->frame_data_head;
-        volp->frame_data_head = mdlpvp->fdlp;  
-
-        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-                mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
-                return(1);
-        }
-        mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-        mdlpvp->fdlp->type=SURF_STATES;
-        mdlpvp->fdlp->viz_iteration=-1;
-        mdlpvp->fdlp->n_viz_iterations=0;
-        mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-        mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-        mdlpvp->fdlp->next=volp->frame_data_head;
-        volp->frame_data_head = mdlpvp->fdlp;  
-
-
-     }
-
-  }
-};
-
-meshes_iteration_numbers_all_iterations_cmd: viz_meshes_one_item '@' 
-                                                 ALL_ITERATIONS 
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-  long long step;
-  for(step = 0; step <= volp->iterations; step++)
-  {
-  	if ((mdlpvp->elp=(struct num_expr_list *)malloc
-           (sizeof(struct num_expr_list)))==NULL) {
-    		mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
-                return(1);
-        }
- 
-        mdlpvp->elp->value=(double)(step);
-        if (mdlpvp->el_tail==NULL) {
-           mdlpvp->el_tail=mdlpvp->elp;
-        }
-        mdlpvp->el_tail->next=mdlpvp->elp;
-        mdlpvp->elp->next=NULL;
-        mdlpvp->el_tail=mdlpvp->elp;
-        if (mdlpvp->el_head==NULL) {
-            mdlpvp->el_head=mdlpvp->elp;
-        }
-        mdlpvp->num_pos++;  
-  }
-  sort_num_expr_list(mdlpvp->el_head);
-
-  int temp = $<tok>1;
-  if((volp->viz_mode == DREAMM_V3_GROUPED_MODE) || (volp->viz_mode == DREAMM_V3_MODE)){
- 
-     if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-        (sizeof(struct frame_data_list)))==NULL) {
-            mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
-            return(1);
-     }
-     mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-     mdlpvp->fdlp->type=$<tok>1;
-     mdlpvp->fdlp->viz_iteration=-1;
-     mdlpvp->fdlp->n_viz_iterations=0;
-     mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-     mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-     mdlpvp->fdlp->next=volp->frame_data_head;
-     volp->frame_data_head = mdlpvp->fdlp;  
-  }else if((volp->viz_mode == DX_MODE) && (temp == REG_DATA)){
-      /* do nothing */
-      fprintf(mdlpvp->vol->err_file, "REGION_DATA cannot be displayed in DX_MODE, please use DREAMM_V3_GROUPED (or DREAMM_V3) mode.\n");
-  }else if(volp->viz_mode == DX_MODE) {
-     if((temp == MESH_GEOMETRY) || (temp == ALL_MESH_DATA))
-     {
-        /* create two frames - SURF_POS and SURF_STATES */
-
-        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-               mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
-               return(1);
-        }
-        mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-        mdlpvp->fdlp->type=SURF_POS;
-        mdlpvp->fdlp->viz_iteration=-1;
-        mdlpvp->fdlp->n_viz_iterations=0;
-        mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-        mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-        mdlpvp->fdlp->next=volp->frame_data_head;
-        volp->frame_data_head = mdlpvp->fdlp;  
-
-        if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-           (sizeof(struct frame_data_list)))==NULL) {
-               mdlerror(mdlpvp, "Out of memory while creating iteration numbers");
-               return(1);
-        }
-        mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-        mdlpvp->fdlp->type=SURF_STATES;
-        mdlpvp->fdlp->viz_iteration=-1;
-        mdlpvp->fdlp->n_viz_iterations=0;
-        mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-        mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-        mdlpvp->fdlp->next=volp->frame_data_head;
-        volp->frame_data_head = mdlpvp->fdlp;  
-
-     }
-  }
-};
-
-
-viz_meshes_one_item: ALL_DATA
-{
-  $$=ALL_MESH_DATA;
-}
-	| GEOMETRY
-{
-  $$=MESH_GEOMETRY;
-}
-	| REGION_DATA
-{
-  $$=REG_DATA;
-};
-
-
-/* old viz_output style */
-viz_data_output_def: VIZ_DATA_OUTPUT '{'
-        viz_output_maybe_mode_cmd
-	list_viz_data_output_cmds
-	'}'
+list_all_mols_specs: ALL_MOLECULES                    {
+                                                        if (volp->viz_mode == DX_MODE)
+                                                        {
+                                                          mdlerror(mdlpvp, "In DX MODE the state value for the molecule should be specified.\n");
+                                                          return 1;
+                                                        }
+                                                        volp->viz_output_flag |= VIZ_ALL_MOLECULES;
+                                                      }
 ;
 
 
-list_viz_data_output_cmds: viz_data_output_cmd
-	| list_viz_data_output_cmds viz_data_output_cmd
+viz_time_spec:
+          ALL_TIMES                                   { CHECK(mdl_new_viz_all_times(mdlpvp, & $$)); }
+        | '[' list_range_specs ']'                    { $$ = $2; }
+;
+viz_molecules_time_points_def:
+          TIME_POINTS '{'
+            viz_molecules_time_points_cmds
+          '}'                                         { $$ = $3; }
+;
+
+viz_molecules_time_points_cmds:
+          viz_molecules_time_points_one_cmd
+        | viz_molecules_time_points_cmds
+          viz_molecules_time_points_one_cmd           { $$ = $1; $$.frame_tail->next = $2.frame_head; $$.frame_tail = $2.frame_tail; }
+;
+
+viz_molecules_time_points_one_cmd:
+          viz_molecules_one_item '@'
+          viz_time_spec                               {
+                                                        struct frame_data_list *fdlp;
+                                                        CHECKN(fdlp = mdl_create_viz_mol_frames(mdlpvp,
+                                                                                                OUTPUT_BY_TIME_LIST,
+                                                                                                $1,
+                                                                                                volp->viz_mode,
+                                                                                                $3.value_head));
+                                                        $$.frame_head = fdlp;
+                                                        while (fdlp->next != NULL)
+                                                          fdlp = fdlp->next;
+                                                        $$.frame_tail = fdlp;
+                                                      }
+;
+
+viz_iteration_spec:
+          ALL_ITERATIONS                              { CHECK(mdl_new_viz_all_iterations(mdlpvp, & $$)); }
+        | '[' list_range_specs ']'                    { $$ = $2; }
+;
+
+viz_molecules_iteration_numbers_def:
+          ITERATION_NUMBERS '{'
+            viz_molecules_iteration_numbers_cmds
+          '}'                                         { $$ = $3; }
+;
+
+viz_molecules_iteration_numbers_cmds:
+          viz_molecules_iteration_numbers_one_cmd
+        | viz_molecules_iteration_numbers_cmds
+          viz_molecules_iteration_numbers_one_cmd     { $$ = $1; $$.frame_tail->next = $2.frame_head; $$.frame_tail = $2.frame_tail; }
+;
+
+viz_molecules_iteration_numbers_one_cmd:
+          viz_molecules_one_item '@'
+          viz_iteration_spec                          {
+                                                        struct frame_data_list *fdlp;
+                                                        CHECKN(fdlp = mdl_create_viz_mol_frames(mdlpvp,
+                                                                                                OUTPUT_BY_ITERATION_LIST,
+                                                                                                $1,
+                                                                                                volp->viz_mode,
+                                                                                                $3.value_head));
+                                                        $$.frame_head = fdlp;
+                                                        while (fdlp->next != NULL)
+                                                          fdlp = fdlp->next;
+                                                        $$.frame_tail = fdlp;
+                                                      }
+;
+
+viz_molecules_one_item: ALL_DATA                      { $$ = ALL_MOL_DATA; }
+                      | POSITIONS                     { $$ = MOL_POS; }
+                      | ORIENTATIONS                  { $$ = MOL_ORIENT; }
+;
+
+viz_meshes_block_def:
+          MESHES '{'
+            list_viz_meshes_block_cmds
+          '}'                                         { $$ = $3; }
+;
+
+list_viz_meshes_block_cmds:
+          viz_meshes_block_cmd
+        | list_viz_meshes_block_cmds
+          viz_meshes_block_cmd                        {
+                                                        $$ = $1;
+                                                        if ($$.frame_tail)
+                                                          $$.frame_tail->next = $2.frame_head;
+                                                        if ($2.frame_tail)
+                                                          $$.frame_tail = $2.frame_tail;
+                                                      }
+;
+
+viz_meshes_block_cmd:
+          viz_meshes_name_list_cmd                    { $$.frame_head = $$.frame_tail = NULL; }
+        | viz_meshes_time_points_def
+        | viz_meshes_iteration_numbers_def
+;
+
+viz_meshes_name_list_cmd:
+          NAME_LIST '{'
+            viz_include_meshes_cmd
+          '}'
+;
+
+viz_include_meshes_cmd:
+          list_meshes_name_specs
+        | list_meshes_name_specs_state_values
+        | list_all_meshes_specs
+;
+
+list_meshes_name_specs:
+          mesh_one_name_spec
+        | list_meshes_name_specs
+          mesh_one_name_spec
+;
+
+mesh_one_name_spec:
+          mesh_object_or_wildcard                     {
+                                                        struct sym_table_list *stl;
+                                                        if (volp->viz_mode == DX_MODE)
+                                                        {
+                                                          mdlerror(mdlpvp, "In DX MODE the state value for the object should be specified.\n");
+                                                          return 1;
+                                                        }
+
+                                                        for (stl = $1; stl != NULL; stl = stl->next)
+                                                        {
+                                                          /* create viz_obj object */
+                                                          struct object *objp = (struct object *) stl->node->value;
+                                                          if((objp->object_type == REL_SITE_OBJ))
+                                                            continue;
+                                                          CHECK(mdl_add_viz_object(mdlpvp, stl->node, INCLUDE_OBJ));
+                                                        }
+                                                        mem_put_list(mdlpvp->sym_list_mem, $1);
+                                                      }
+;
+
+list_meshes_name_specs_state_values:
+          mesh_one_name_spec_state_value
+        | list_meshes_name_specs_state_values
+          mesh_one_name_spec_state_value
+;
+
+mesh_one_name_spec_state_value:
+          existing_object '=' num_expr                {
+                                                        volp->viz_output_flag |= VIZ_SURFACE_STATES;
+                                                        CHECK(mdl_add_viz_object(mdlpvp, $1, (int) $3));
+                                                      }
+;
+
+list_all_meshes_specs: ALL_MESHES                     {
+                                                        struct object *o;
+                                                        if (volp->viz_mode == DX_MODE)
+                                                        {
+                                                          mdlerror(mdlpvp, "The keyword ALL_MESHES cannot be used in DX MODE.\n");
+                                                          return 1;
+                                                        }
+
+                                                        for (o = volp->root_instance->first_child; o != NULL; o = o->next)
+                                                          CHECK(mdl_add_viz_object(mdlpvp, o->sym, INCLUDE_OBJ));
+                                                      }
+;
+
+viz_meshes_time_points_def:
+          TIME_POINTS '{'
+            viz_meshes_time_points_cmds
+          '}'                                         { $$ = $3; }
+;
+
+viz_meshes_time_points_cmds:
+          viz_meshes_time_points_one_cmd
+        | viz_meshes_time_points_cmds
+          viz_meshes_time_points_one_cmd              { $$ = $1; $$.frame_tail->next = $2.frame_head; $$.frame_tail = $2.frame_tail; }
+;
+
+viz_meshes_time_points_one_cmd:
+          viz_meshes_one_item '@'
+          viz_time_spec                               {
+                                                        struct frame_data_list *fdlp;
+                                                        CHECKN(fdlp = mdl_create_viz_mesh_frames(mdlpvp,
+                                                                                                 OUTPUT_BY_TIME_LIST,
+                                                                                                 $1,
+                                                                                                 volp->viz_mode,
+                                                                                                 $3.value_head));
+                                                        $$.frame_head = fdlp;
+                                                        while (fdlp->next != NULL)
+                                                          fdlp = fdlp->next;
+                                                        $$.frame_tail = fdlp;
+                                                      }
+;
+
+viz_meshes_iteration_numbers_def:
+          ITERATION_NUMBERS '{'
+            viz_meshes_iteration_numbers_cmds
+          '}'                                         { $$ = $3; }
+;
+
+viz_meshes_iteration_numbers_cmds:
+          viz_meshes_iteration_numbers_one_cmd
+        | viz_meshes_iteration_numbers_cmds
+          viz_meshes_iteration_numbers_one_cmd        { $$ = $1; $$.frame_tail->next = $2.frame_head; $$.frame_tail = $2.frame_tail; }
+;
+
+viz_meshes_iteration_numbers_one_cmd:
+          viz_meshes_one_item '@'
+          viz_iteration_spec                          {
+                                                        struct frame_data_list *fdlp;
+                                                        CHECKN(fdlp = mdl_create_viz_mesh_frames(mdlpvp,
+                                                                                                 OUTPUT_BY_ITERATION_LIST,
+                                                                                                 $1,
+                                                                                                 volp->viz_mode,
+                                                                                                 $3.value_head));
+                                                        $$.frame_head = fdlp;
+                                                        while (fdlp->next != NULL)
+                                                          fdlp = fdlp->next;
+                                                        $$.frame_tail = fdlp;
+                                                      }
+;
+
+viz_meshes_one_item: ALL_DATA                         { $$ = ALL_MESH_DATA; }
+                   | GEOMETRY                         { $$ = MESH_GEOMETRY; }
+                   | REGION_DATA                      { $$ = REG_DATA; }
+;
+
+/* =================================================================== */
+/* Old-style viz output definitions */
+
+viz_data_output_def:
+          VIZ_DATA_OUTPUT '{'
+            viz_output_maybe_mode_cmd
+            list_viz_data_output_cmds
+          '}'
+;
+
+
+list_viz_data_output_cmds:
+          /* empty */
+        | list_viz_data_output_cmds
+          viz_data_output_cmd
 ;
 
 
 viz_data_output_cmd:
-	  voxel_image_mode_def
-	| voxel_volume_mode_def
-	| viz_output_block_def
-	| viz_iteration_frame_data_def
-	| viz_molecule_prefix_def
-	| viz_object_prefixes_def
-	| viz_state_values_def
+          viz_frames_def_old                          {
+                                                        if ($1.frame_head)
+                                                        {
+                                                          $1.frame_tail->next = mdlpvp->vol->frame_data_head;
+                                                          mdlpvp->vol->frame_data_head = $1.frame_head;
+                                                        }
+                                                      }
+        | viz_molecule_prefix_def
+        | viz_object_prefixes_def
+        | viz_state_values_def
+        | voxel_image_mode_def
+        | voxel_volume_mode_def
 ;
 
-
-viz_mode_def: MODE '=' NONE
-{
-  if (volp->viz_mode != -1  &&  volp->viz_mode != NO_VIZ_MODE)
-  {
-    mdlerror_fmt(mdlpvp, "Only one visualization mode is allowed in a given MDL file");
-    return 1;
-  }
-  volp->viz_mode = NO_VIZ_MODE; 
-}
-	| MODE '=' DX
-{
-  if (volp->viz_mode != -1  &&  volp->viz_mode != DX_MODE)
-  {
-    mdlerror_fmt(mdlpvp, "Only one visualization mode is allowed in a given MDL file");
-    return 1;
-  }
-  volp->viz_mode = DX_MODE; 
-}
-	| MODE '=' DREAMM_V3
-{
-  if (volp->viz_mode != -1  &&  volp->viz_mode != DREAMM_V3_MODE)
-  {
-    mdlerror_fmt(mdlpvp, "Only one visualization mode is allowed in a given MDL file");
-    return 1;
-  }
-  volp->viz_mode = DREAMM_V3_MODE; 
-}
-	| MODE '=' DREAMM_V3_GROUPED
-{
-  if (volp->viz_mode != -1  &&  volp->viz_mode != DREAMM_V3_GROUPED_MODE)
-  {
-    mdlerror_fmt(mdlpvp, "Only one visualization mode is allowed in a given MDL file");
-    return 1;
-  }
-  volp->viz_mode = DREAMM_V3_GROUPED_MODE; 
-}
-	| MODE '=' CUSTOM_RK
-{
-  if (volp->viz_mode != -1  &&  volp->viz_mode != RK_MODE)
-  {
-    mdlerror_fmt(mdlpvp, "Only one visualization mode is allowed in a given MDL file");
-    return 1;
-  }
-  volp->viz_mode = RK_MODE;
-  volp->rk_mode_var = NULL;
-}
-	| MODE '=' CUSTOM_RK '['
-{
-  if (volp->viz_mode != -1  &&  volp->viz_mode != RK_MODE)
-  {
-    mdlerror_fmt(mdlpvp, "Only one visualization mode is allowed in a given MDL file");
-    return 1;
-  }
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-  mdlpvp->num_pos=0;
-}
-	list_range_specs ']'
-{
-  struct num_expr_list *nel;
-  int i;
-  double *parts_array;
-  int *bins_array;
-  
-  sort_num_expr_list(mdlpvp->el_head);
-  
-  volp->rk_mode_var = (struct rk_mode_data*)malloc(sizeof(struct rk_mode_data));
-  parts_array = (double*)malloc(mdlpvp->num_pos * sizeof(double));
-  bins_array = (int*)malloc( (mdlpvp->num_pos+1) * sizeof(int) );
-  if (volp->rk_mode_var==NULL || parts_array==NULL || bins_array==NULL)
-  {
-    mdlerror(mdlpvp, "out of memory while setting up for visualization\n");
-    return 1;
-  }
-  
-  for (i=0,nel=mdlpvp->el_head ; nel!=NULL ; nel=nel->next,i++)
-  {
-    parts_array[i] = nel->value * volp->r_length_unit;
-  }
-  for ( ; mdlpvp->el_head != NULL ; mdlpvp->el_head = nel )
-  {
-    nel = mdlpvp->el_head->next;
-    free(mdlpvp->el_head);
-  }
-  for (i=0;i<mdlpvp->num_pos+1;i++) bins_array[i] = 0;
-  volp->viz_mode = RK_MODE;
-  volp->rk_mode_var->n_bins = mdlpvp->num_pos+1;
-  volp->rk_mode_var->bins = bins_array;
-  volp->rk_mode_var->parts = parts_array;
-  volp->rk_mode_var->n_written = 0;
-}
-	point
-{
-  volp->rk_mode_var->direction = $<vec3>9;
-  if (vect_length(volp->rk_mode_var->direction)==0)
-  {
-    mdlerror(mdlpvp, "Cannot bin along a zero-length vector.\n");
-    return 1;
-  }
-  normalize(volp->rk_mode_var->direction);
-}
-	| MODE '=' ASCII
-{
-  if (volp->viz_mode != -1  &&  volp->viz_mode != ASCII_MODE)
-  {
-    mdlerror_fmt(mdlpvp, "Only one visualization mode is allowed in a given MDL file");
-    return 1;
-  }
-  volp->viz_mode = ASCII_MODE;
-};
-
-
-voxel_image_mode_def: VOXEL_IMAGE_MODE '=' boolean
-{
-  volp->voxel_image_mode = $<tok>3;
-};
-
-
-voxel_volume_mode_def: VOXEL_VOLUME_MODE '=' boolean
-{
-  volp->voxel_volume_mode = $<tok>3;
-};
-
-
-viz_output_block_def: viz_iteration_def
-	| viz_time_def 
+viz_frames_def_old:
+          viz_output_block_def
+        | viz_iteration_frame_data_def
 ;
 
-
-viz_iteration_def: ITERATION_LIST '='
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-}
-	'[' list_range_specs ']'
-{
-  sort_num_expr_list(mdlpvp->el_head);
-  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-        (sizeof(struct frame_data_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating iteration list");
-    return(1);
-  }
-  mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-  mdlpvp->fdlp->type=ALL_FRAME_DATA;
-  mdlpvp->fdlp->viz_iteration=-1;
-  mdlpvp->fdlp->n_viz_iterations=0;
-  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-  mdlpvp->fdlp->next=volp->frame_data_head;
-  volp->frame_data_head = mdlpvp->fdlp;  
-};
-
-
-list_range_specs: range_spec
-	| list_range_specs ',' range_spec
+voxel_image_mode_def:
+          VOXEL_IMAGE_MODE '=' boolean                { volp->voxel_image_mode = $3; }
 ;
 
-range_spec: num_expr
-{
-  if ((mdlpvp->elp=(struct num_expr_list *)malloc
-      (sizeof(struct num_expr_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating iteration list");
-    return(1);
-  }
- 
-  mdlpvp->elp->value=$<dbl>1;
-  if (mdlpvp->el_tail==NULL) {
-    mdlpvp->el_tail=mdlpvp->elp;
-  }
-  mdlpvp->el_tail->next=mdlpvp->elp;
-  mdlpvp->elp->next=NULL;
-  mdlpvp->el_tail=mdlpvp->elp;
-  if (mdlpvp->el_head==NULL) {
-    mdlpvp->el_head=mdlpvp->elp;
-  }
-  mdlpvp->num_pos++;
-}
-	| '[' num_expr TO num_expr STEP num_expr ']'
-{
-  for (mdlpvp->tmp_dbl=$<dbl>2;
-       mdlpvp->tmp_dbl<$<dbl>4 || !distinguishable(mdlpvp->tmp_dbl,$<dbl>4,EPSILON);
-       mdlpvp->tmp_dbl+=$<dbl>6)
-  {
-    if ((mdlpvp->elp=(struct num_expr_list *)malloc
-        (sizeof(struct num_expr_list)))==NULL) {
-      mdlerror(mdlpvp, "Out of memory while creating iteration list");
-      return(1);
-    }
-  
-    mdlpvp->elp->value=mdlpvp->tmp_dbl;
-    if (mdlpvp->el_tail==NULL) {
-      mdlpvp->el_tail=mdlpvp->elp;
-    }
-    mdlpvp->el_tail->next=mdlpvp->elp;
-    mdlpvp->elp->next=NULL;
-    mdlpvp->el_tail=mdlpvp->elp;
-    if (mdlpvp->el_head==NULL) {
-      mdlpvp->el_head=mdlpvp->elp;
-    }
-    mdlpvp->num_pos++;
-  }
-  /*
-   ** Introduce EPSILON=1e-14 to reduce the computer fluctuation to 
-   ** the double numbers, which will miss the last data of the range 
-   ** expression.
-   */
-  if (fabs($<dbl>4-mdlpvp->tmp_dbl)<=EPSILON) {
-    if ((mdlpvp->elp=(struct num_expr_list *)malloc
-        (sizeof(struct num_expr_list)))==NULL) {
-      mdlerror(mdlpvp, "Out of memory while creating iteration list");
-      return(1);
-    }
-  
-    mdlpvp->elp->value=mdlpvp->tmp_dbl;
-    if (mdlpvp->el_tail==NULL) {
-      mdlpvp->el_tail=mdlpvp->elp;
-    }
-    mdlpvp->el_tail->next=mdlpvp->elp;
-    mdlpvp->elp->next=NULL;
-    mdlpvp->el_tail=mdlpvp->elp;
-    if (mdlpvp->el_head==NULL) {
-      mdlpvp->el_head=mdlpvp->elp;
-    }
-    mdlpvp->num_pos++;
-  }
-};
-
-/* List of range specifications using more idiomatic parsing */
-list_range_specs_new: range_spec_new
-	| list_range_specs_new ',' range_spec_new
-{
-  $$ = list_concat(mdlpvp, $1, $3);
-}
+voxel_volume_mode_def:
+          VOXEL_VOLUME_MODE '=' boolean               { volp->voxel_volume_mode = $3; }
 ;
 
-/* Single range specification using more idiomatic parsing */
-range_spec_new: num_expr
-{
-  struct list_head *lh = NULL;
-  struct num_expr_list *elp = NULL;
-  if ((elp=(struct num_expr_list *)malloc(sizeof(struct num_expr_list))) == NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating iteration list");
-    return 1;
-  }
-  elp->value = $1;
-
-  if ((lh = list_create(mdlpvp, (struct list_item *) elp)) == NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating iteration list");
-    free(elp);
-    return 1;
-  }
-
-  $$ = lh;
-}
-	| '[' num_expr TO num_expr STEP num_expr ']'
-{
-  double d;
-  struct list_head *lh = NULL;
-  struct num_expr_list *elp = NULL;
-  if ((lh = list_create_empty(mdlpvp)) == NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating iteration list");
-    return 1;
-  }
-
-  for (d = $2; d < $4 || ! distinguishable(d, $4, EPSILON); d += $6)
-  {
-    if ((elp=(struct num_expr_list *)malloc
-        (sizeof(struct num_expr_list)))==NULL) {
-      list_free(mdlpvp, lh, (listitem_freefunc) &std_list_free);
-      mdlerror(mdlpvp, "Out of memory while creating iteration list");
-      return(1);
-    }
-    elp->value = d;
-    list_append(mdlpvp, lh, (struct list_item *) elp);
-  }
-
-  /*
-   * If we're within EPSILON of the endpoint, we've probably encountered
-   * roundoff error.  Throw it in.
-   */
-  if (fabs($4 - d) <= EPSILON) {
-    if ((elp = (struct num_expr_list *)malloc
-        (sizeof(struct num_expr_list)))==NULL) {
-      list_free(mdlpvp, lh, (listitem_freefunc) &std_list_free);
-      mdlerror(mdlpvp, "Out of memory while creating iteration list");
-      return(1);
-    }
-  
-    elp->value = d;
-    list_append(mdlpvp, lh, (struct list_item *) elp);
-  }
-
-  $$ = lh;
-};
-
-viz_time_def: TIME_LIST '='
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-}
-	'[' list_range_specs ']'
-{
-  sort_num_expr_list(mdlpvp->el_head);
-  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-        (sizeof(struct frame_data_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating iteration list");
-    return(1);
-  }
-  mdlpvp->fdlp->list_type=OUTPUT_BY_TIME_LIST;
-  mdlpvp->fdlp->type=ALL_FRAME_DATA;
-  mdlpvp->fdlp->viz_iteration=-1;
-  mdlpvp->fdlp->n_viz_iterations=0;
-  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-  mdlpvp->fdlp->next=volp->frame_data_head;
-  volp->frame_data_head = mdlpvp->fdlp;  
-};
-
-
-viz_iteration_frame_data_def: ITERATION_FRAME_DATA '{'
-	list_iteration_frame_data_specs
-	'}'
+viz_output_block_def:
+          viz_iteration_def
+        | viz_time_def
 ;
 
-
-list_iteration_frame_data_specs: iteration_frame_data_spec
-	| list_iteration_frame_data_specs iteration_frame_data_spec
+viz_iteration_def:
+          ITERATION_LIST '='
+          '[' list_range_specs ']'                    {
+                                                        struct frame_data_list *fdlp;
+                                                        mdl_sort_numeric_list($4.value_head);
+                                                        CHECKN(fdlp = mdl_create_viz_frame(mdlpvp,
+                                                                                           OUTPUT_BY_ITERATION_LIST,
+                                                                                           ALL_FRAME_DATA,
+                                                                                           $4.value_head));
+                                                        $$.frame_tail = $$.frame_head = fdlp;
+                                                      }
 ;
 
-
-iteration_frame_data_spec: iteration_frame_data_item '='
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-}
-	'[' list_range_specs ']'
-{
-  sort_num_expr_list(mdlpvp->el_head);
-  if ((mdlpvp->fdlp=(struct frame_data_list *)malloc
-        (sizeof(struct frame_data_list)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating iteration frame data");
-    return(1);
-  }
-  mdlpvp->fdlp->list_type=OUTPUT_BY_ITERATION_LIST;
-  mdlpvp->fdlp->type=$<tok>1;
-  mdlpvp->fdlp->viz_iteration=-1;
-  mdlpvp->fdlp->n_viz_iterations=0;
-  mdlpvp->fdlp->iteration_list=mdlpvp->el_head;
-  mdlpvp->fdlp->curr_viz_iteration=mdlpvp->el_head;
-  mdlpvp->fdlp->next=volp->frame_data_head;
-  volp->frame_data_head = mdlpvp->fdlp;
-};
-
-
-iteration_frame_data_item:  ALL_DATA
-{
-  $$=ALL_FRAME_DATA;
-}
-	| EFFECTOR_POSITIONS
-{
-  $$=EFF_POS;
-}
-	| EFFECTOR_STATES
-{
-  $$=EFF_STATES;
-}
-	| MOLECULE_POSITIONS
-{
-  $$=MOL_POS;
-}
-	| MOLECULE_STATES
-{
-  $$=MOL_STATES;
-}
-	| SURFACE_POSITIONS
-{
-  $$=SURF_POS;
-}
-	| SURFACE_STATES
-{
-  $$=SURF_STATES;
-};
-
-
-viz_molecule_prefix_def: MOLECULE_FILE_PREFIX '=' str_expr
-{
-  volp->molecule_prefix_name = $<str>3;
-};
-
-
-viz_object_prefixes_def: OBJECT_FILE_PREFIXES '{'
-	list_viz_object_prefixes
-	'}'
+viz_time_def:
+          TIME_LIST '='
+          '[' list_range_specs ']'                    {
+                                                        struct frame_data_list *fdlp;
+                                                        mdl_sort_numeric_list($4.value_head);
+                                                        CHECKN(fdlp = mdl_create_viz_frame(mdlpvp,
+                                                                                           OUTPUT_BY_TIME_LIST,
+                                                                                           ALL_FRAME_DATA,
+                                                                                           $4.value_head));
+                                                        $$.frame_tail = $$.frame_head = fdlp;
+                                                      }
 ;
 
-
-list_viz_object_prefixes: viz_object_prefix
-	| list_viz_object_prefixes viz_object_prefix
+viz_iteration_frame_data_def:
+          ITERATION_FRAME_DATA '{'
+            list_iteration_frame_data_specs
+          '}'                                         { $$ = $3; }
 ;
 
-
-viz_object_prefix: existing_object '=' str_expr
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-  if ((mdlpvp->vizp=(struct viz_obj *)malloc(sizeof(struct viz_obj)))==NULL) {
-    mdlerror(mdlpvp, "Out of memory while creating viz object");
-    return(1);
-  }
-  mdlpvp->objp->viz_obj = mdlpvp->vizp;
-  mdlpvp->vizp->name = $<str>3;
-  mdlpvp->vizp->full_name = strdup(mdlpvp->full_name);
-  if(mdlpvp->vizp->full_name == NULL){
-    mdlerror_fmt(mdlpvp, 
-                 "Out of memory while parsing object: %s", 
-                 mdlpvp->full_name);
-    return(1);
-  }
-  mdlpvp->vizp->obj = mdlpvp->objp;
-  mdlpvp->vizp->viz_child_head = NULL;
-  mdlpvp->vizp->next = volp->viz_obj_head;
-  volp->viz_obj_head = mdlpvp->vizp;
-};
-
-
-viz_state_values_def: STATE_VALUES '{'
-	list_viz_state_values
-	'}'
+list_iteration_frame_data_specs:
+          iteration_frame_data_spec
+        | list_iteration_frame_data_specs
+          iteration_frame_data_spec                   { $$ = $1; $$.frame_tail->next = $2.frame_head; $$.frame_tail = $2.frame_tail; }
 ;
 
-
-list_viz_state_values: viz_state_value
-	| list_viz_state_values viz_state_value
+iteration_frame_data_spec:
+          iteration_frame_data_item '='
+          '[' list_range_specs ']'                    {
+                                                        struct frame_data_list *fdlp;
+                                                        mdl_sort_numeric_list($4.value_head);
+                                                        CHECKN(fdlp = mdl_create_viz_frame(mdlpvp,
+                                                                                           OUTPUT_BY_ITERATION_LIST,
+                                                                                           $1,
+                                                                                           $4.value_head));
+                                                        $$.frame_tail = $$.frame_head = fdlp;
+                                                      }
 ;
 
-
-viz_state_value: existing_logicalOrPhysical '=' num_expr
-{
-  u_int i;
-
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->viz_state=(int) $<dbl>3;
-  switch (mdlpvp->gp->sym_type) {
-    case OBJ:
-      mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-      switch (mdlpvp->objp->object_type) {
-        case META_OBJ:
-          if (set_viz_state_value(mdlpvp->objp,mdlpvp->viz_state)) {
-            mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for meta object %s",mdlpvp->gp->name);
-            return(1);
-          }
-          break;
-        case BOX_OBJ:
-          mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
-          if (mdlpvp->objp->viz_state==NULL) {
-            if ((mdlpvp->objp->viz_state=(int *)malloc
-                 (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-              mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for box object %s",mdlpvp->gp->name);
-              return(1);
-            }
-          }
-          for (i=0;i<mdlpvp->pop->n_walls;i++) {
-            mdlpvp->objp->viz_state[i]=mdlpvp->viz_state;
-          }
-          break;
-        case POLY_OBJ:
-          mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
-          if (mdlpvp->objp->viz_state==NULL) {
-            if ((mdlpvp->objp->viz_state=(int *)malloc
-                 (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-              mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for polygon list object %s",mdlpvp->gp->name);
-              return(1);
-            }
-          }
-          for (i=0;i<mdlpvp->pop->n_walls;i++) {
-            mdlpvp->objp->viz_state[i]=mdlpvp->viz_state;
-          }
-          break;
-        default:
-          mdlerror(mdlpvp, "Cannot set viz state value of this type of object");
-          return(1);
-          break;
-      }
-      break;
-    case MOL:
-      mdlpvp->specp=(struct species *)mdlpvp->gp->value;
-      mdlpvp->specp->viz_state=mdlpvp->viz_state;
-      break;
-  }
-}
-	| existing_region '=' num_expr
-{
-  u_int i;
-
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->viz_state=(int) $<dbl>3;
-
-  mdlpvp->objp=(struct object *)mdlpvp->gp->value;
-
-  mdlpvp->pop=(struct polygon_object *)mdlpvp->objp->contents;
-  if (mdlpvp->objp->viz_state==NULL) {
-    if ((mdlpvp->objp->viz_state=(int *)malloc
-        (mdlpvp->pop->n_walls*sizeof(int)))==NULL) {
-      mdlerror_fmt(mdlpvp, "Out of memory while creating viz state value for elements of object %s",mdlpvp->gp->name);
-      return(1);
-    }
-    for (i=0;i<mdlpvp->pop->n_walls;i++) {
-      mdlpvp->objp->viz_state[i]=EXCLUDE_OBJ;
-    }
-  }
-  mdlpvp->elmlp=mdlpvp->element_list_head;
-  while (mdlpvp->elmlp!=NULL) {
-    if (mdlpvp->elmlp->begin < 0
-        || mdlpvp->elmlp->end > mdlpvp->pop->n_walls-1) {
-      mdlerror(mdlpvp, "Cannot set viz state value -- element out of range");
-      return(1);
-    }
-    for (i=mdlpvp->elmlp->begin;i<=mdlpvp->elmlp->end;i++) {
-      mdlpvp->objp->viz_state[i]=mdlpvp->viz_state;
-    }
-    mdlpvp->elmlp=mdlpvp->elmlp->next;
-  }
-};
-
-
-existing_logicalOrPhysical: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,MOL,volp->main_sym_table))==NULL) {
-    if ((mdlpvp->gp=retrieve_sym(get_first_name(mdlpvp->sym_name),OBJ,volp->main_sym_table))==NULL) {
-      mdlerror_fmt(mdlpvp, "Undefined object: %s", mdlpvp->sym_name);
-      if (mdlpvp->sym_name==mdlpvp->cval) {
-        mdlpvp->cval=NULL;
-      }
-      else {
-        mdlpvp->cval_2=NULL;
-      }
-      free((void *)mdlpvp->sym_name);
-      return(1);
-    }
-    mdlpvp->top_objp=(struct object *)mdlpvp->gp->value;
-    if ((mdlpvp->objp=find_full_name(mdlpvp->top_objp,mdlpvp->sym_name,NULL))==NULL) {
-      mdlerror_fmt(mdlpvp, "Undefined object: %s", mdlpvp->sym_name);
-      if (mdlpvp->sym_name==mdlpvp->cval) {
-        mdlpvp->cval=NULL;
-      }
-      else {
-        mdlpvp->cval_2=NULL;
-      }
-      free((void *)mdlpvp->sym_name);
-      return(1);
-    }
-    mdlpvp->gp=mdlpvp->objp->sym;
-  }
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free((void *)mdlpvp->sym_name);
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-  $$=mdlpvp->gp;
-};
-
-volume_output_def: VOLUME_DATA_OUTPUT '{'
-                     volume_output_filename_prefix
-                     volume_output_molecule_list
-                     volume_output_location
-                     volume_output_voxel_size
-                     volume_output_voxel_count
-                     volume_output_times_def
-                 '}'
-{
-  char *filename_prefix       = $3;
-  struct list_head *molecules = $4;
-  struct vector3 *location    = $5;
-  struct vector3 *voxel_size  = $6;
-  struct vector3 *voxel_count = $7;
-  struct output_times *ot     = $8;
-  struct volume_output_item *vo = (struct volume_output_item *) malloc(sizeof(struct volume_output_item));
-  if (vo == NULL) {
-    free(filename_prefix);
-    list_free(mdlpvp, molecules, (listitem_freefunc) ptr_list_free);
-    free(location);
-    free(voxel_size);
-    free(voxel_count);
-    if (ot->times != NULL) free(ot->times);
-    mem_put(mdlpvp->output_times_mem, ot);
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing volume output statement");
-    return 1;
-  }
-  memset(vo, 0, sizeof(struct volume_output_item));
-
-  vo->filename_prefix = filename_prefix;
-  vo->molecules = (struct species **) ptr_list_to_array(molecules, &vo->num_molecules);
-  qsort(vo->molecules, vo->num_molecules, sizeof(void *), & void_ptr_compare);
-
-  memcpy(& vo->location, location, sizeof(struct vector3));
-  free(location);
-  vo->location.x *= mdlpvp->vol->r_length_unit;
-  vo->location.y *= mdlpvp->vol->r_length_unit;
-  vo->location.z *= mdlpvp->vol->r_length_unit;
-
-  memcpy(& vo->voxel_size, voxel_size, sizeof(struct vector3));
-  free(voxel_size);
-  vo->voxel_size.x *= mdlpvp->vol->r_length_unit;
-  vo->voxel_size.y *= mdlpvp->vol->r_length_unit;
-  vo->voxel_size.z *= mdlpvp->vol->r_length_unit;
-
-  vo->nvoxels_x = (int) (voxel_count->x + 0.5);
-  vo->nvoxels_y = (int) (voxel_count->y + 0.5);
-  vo->nvoxels_z = (int) (voxel_count->z + 0.5);
-  free(voxel_count);
-
-  vo->timer_type = ot->timer_type;
-  vo->step_time = ot->step_time;
-  vo->num_times = ot->num_times;
-  vo->times = ot->times;
-  mem_put(mdlpvp->output_times_mem, ot);
-
-  if (vo->timer_type == OUTPUT_BY_ITERATION_LIST  ||
-      vo->timer_type == OUTPUT_BY_TIME_LIST)
-    vo->next_time = vo->times;
-  else
-    vo->next_time = NULL;
-
-  vo->next = mdlpvp->vol->volume_output_head;
-  mdlpvp->vol->volume_output_head = vo;
-}
+iteration_frame_data_item:
+          ALL_DATA                                    { $$ = ALL_FRAME_DATA; }
+        | EFFECTOR_POSITIONS                          { $$ = EFF_POS;        }
+        | EFFECTOR_STATES                             { $$ = EFF_STATES;     }
+        | MOLECULE_POSITIONS                          { $$ = MOL_POS;        }
+        | MOLECULE_STATES                             { $$ = MOL_STATES;     }
+        | SURFACE_POSITIONS                           { $$ = SURF_POS;       }
+        | SURFACE_STATES                              { $$ = SURF_STATES;    }
 ;
 
-/* Filename prefix for volume output */
-volume_output_filename_prefix: FILENAME_PREFIX '=' str_expr
-{
-  $$ = $3;
-}
+viz_molecule_prefix_def:
+          MOLECULE_FILE_PREFIX '=' str_expr           {
+                                                        if (volp->viz_mode == DREAMM_V3_MODE  ||
+                                                            volp->viz_mode == DREAMM_V3_GROUPED_MODE)
+                                                        {
+                                                          mdlerror(mdlpvp, "MOLECULE_FILE_PREFIX canot be used with the DREAMM viz output modes");
+                                                          return 1;
+                                                        }
+                                                        volp->molecule_prefix_name = $3;
+                                                      }
 ;
 
-/* List of 'MOLECULES = a + b + c' statements for volume output */
-volume_output_molecule_list: volume_output_molecule_list volume_output_molecule_decl
-{
-  $$ = list_concat(mdlpvp, $1, $2);
-}
-                           | volume_output_molecule_decl
+viz_object_prefixes_def:
+          OBJECT_FILE_PREFIXES '{'
+            list_viz_object_prefixes
+          '}'                                         {
+                                                        if (volp->viz_mode == DREAMM_V3_MODE  ||
+                                                            volp->viz_mode == DREAMM_V3_GROUPED_MODE)
+                                                        {
+                                                          mdlerror(mdlpvp, "OBJECT_FILE_PREFIXES canot be used with the DREAMM viz output modes");
+                                                          return 1;
+                                                        }
+                                                      }
 ;
 
-/* Single 'MOLECULES = a + b + c' statements for volume output */
-volume_output_molecule_decl: MOLECULES '=' volume_output_molecules { $$ = $3; }
+list_viz_object_prefixes:
+          viz_object_prefix
+        | list_viz_object_prefixes
+          viz_object_prefix
 ;
 
-/* 'a + b + c' clause for MOLECULES statement in volume output */
-volume_output_molecules: VAR
-{
-  char *str = mdlpvp->cval_2 ? mdlpvp->cval_2 : mdlpvp->cval;
-  struct sym_table *sp;
-  struct species *specp;
-  struct ptr_list *ptrl;
-
-  sp = retrieve_sym(str, MOL, mdlpvp->vol->main_sym_table);
-  if (sp == NULL) {
-    mdlerror_fmt(mdlpvp, "The molecule '%s' does not exist", str);
-    if (str == mdlpvp->cval_2) mdlpvp->cval_2 = NULL;
-    else mdlpvp->cval = NULL;
-    free(str);
-    return 1;
-  }
-  specp = (struct species *) sp->value;
-
-  ptrl = ptr_list_singleton(mdlpvp, specp);
-  if (ptrl == NULL) {
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing molecule list");
-    if (str == mdlpvp->cval_2) mdlpvp->cval_2 = NULL;
-    else mdlpvp->cval = NULL;
-    free(str);
-    return 1;
-  }
-
-  $$ = list_create(mdlpvp, (struct list_item *) ptrl);
-  if ($$ == NULL) {
-    mem_put(mdlpvp->ptr_list_mem, ptrl);
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing molecule list");
-    if (str == mdlpvp->cval_2) mdlpvp->cval_2 = NULL;
-    else mdlpvp->cval = NULL;
-    free(str);
-    return 1;
-  }
-
-  if (str == mdlpvp->cval_2) mdlpvp->cval_2 = NULL;
-  else mdlpvp->cval = NULL;
-  free(str);
-}
-                       | volume_output_molecules '+' VAR
-{
-  char *str = mdlpvp->cval_2 ? mdlpvp->cval_2 : mdlpvp->cval;
-  struct sym_table *sp;
-  struct species *specp;
-  struct ptr_list *ptrl;
-
-  sp = retrieve_sym(str, MOL, mdlpvp->vol->main_sym_table);
-  if (sp == NULL) {
-    mdlerror_fmt(mdlpvp, "The molecule '%s' does not exist", str);
-    if (str == mdlpvp->cval_2) mdlpvp->cval_2 = NULL;
-    else mdlpvp->cval = NULL;
-    free(str);
-    return 1;
-  }
-  specp = (struct species *) sp->value;
-
-  ptrl = ptr_list_singleton(mdlpvp, specp);
-  if (ptrl == NULL) {
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing molecule list");
-    if (str == mdlpvp->cval_2) mdlpvp->cval_2 = NULL;
-    else mdlpvp->cval = NULL;
-    free(str);
-    return 1;
-  }
-
-  $$ = list_append(mdlpvp, $1, (struct list_item *) ptrl);
-  if ($$ == NULL) {
-    mem_put(mdlpvp->ptr_list_mem, ptrl);
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing molecule list");
-    if (str == mdlpvp->cval_2) mdlpvp->cval_2 = NULL;
-    else mdlpvp->cval = NULL;
-    free(str);
-    return 1;
-  }
-
-  if (str == mdlpvp->cval_2) mdlpvp->cval_2 = NULL;
-  else mdlpvp->cval = NULL;
-  free(str);
-}
+viz_object_prefix: existing_object '=' str_expr       {
+                                                        struct object *objp;
+                                                        struct viz_obj *vizp;
+                                                        objp = (struct object *) $1->value;
+                                                        if ((vizp = (struct viz_obj *) malloc(sizeof(struct viz_obj))) == NULL)
+                                                        {
+                                                          mdlerror(mdlpvp, "Out of memory while creating viz object");
+                                                          return 1;
+                                                        }
+                                                        objp->viz_obj = vizp;
+                                                        vizp->name = $3;
+                                                        vizp->full_name = mdl_strdup(mdlpvp, $1->name);
+                                                        if (vizp->full_name == NULL)
+                                                          return 1;
+                                                        vizp->obj = objp;
+                                                        vizp->viz_child_head = NULL;
+                                                        vizp->next = volp->viz_obj_head;
+                                                        volp->viz_obj_head = vizp;
+                                                      }
 ;
 
-/* LLF-corner definition for volume output statement */
-volume_output_location: LOCATION '=' point              { $$ = $3; }
+viz_state_values_def:
+          STATE_VALUES '{'
+            list_viz_state_values
+          '}'
 ;
 
-/* Voxel size definition for volume output statement */
-volume_output_voxel_size: VOXEL_SIZE '=' point_or_num   { $$ = $3; }
+list_viz_state_values:
+          viz_state_value
+        | list_viz_state_values
+          viz_state_value
 ;
 
-/* Voxel count definition for volume output statement */
-volume_output_voxel_count: VOXEL_COUNT '=' point_or_num
-{
-  if ($3->x < 1.0) {
-    mdl_warning(mdlpvp, "Voxel count (x dimension) too small.  Setting x count to 1.");
-    $3->x = 1.0;
-  }
-  if ($3->y < 1.0) {
-    mdl_warning(mdlpvp, "Voxel count (y dimension) too small.  Setting y count to 1.");
-    $3->y = 1.0;
-  }
-  if ($3->z < 1.0) {
-    mdl_warning(mdlpvp, "Voxel count (z dimension) too small.  Setting z count to 1.");
-    $3->z = 1.0;
-  }
-  $$ = $3;
-}
+existing_logicalOrPhysical: VAR                       { CHECKN($$ = mdl_existing_molecule_or_object(mdlpvp, $1)); }
 ;
 
-/* Output times definition for volume output statement */
-volume_output_times_def: /* empty */
-{
-  struct output_times *ot = mem_get(mdlpvp->output_times_mem);
-  if (ot == NULL) {
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing volume output statement");
-    return 1;
-  }
-  memset(ot, 0, sizeof(struct output_times));
+viz_state_value:
+          existing_logicalOrPhysical '='
+          num_expr                                    {
+                                                        struct species *specp;
+                                                        int viz_state = (int) $3;
+                                                        switch ($1->sym_type)
+                                                        {
+                                                          case OBJ:
+                                                            CHECK(mdl_set_object_viz_state(mdlpvp, $1, viz_state));
+                                                            break;
 
-  ot->timer_type = OUTPUT_BY_STEP;
-  ot->step_time = mdlpvp->vol->time_unit;
-  $$ = ot;
-}
-                       | STEP '=' num_expr
-{
-  long long output_freq;
-  struct output_times *ot = mem_get(mdlpvp->output_times_mem);
-  if (ot == NULL) {
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing volume output statement");
-    return 1;
-  }
-  memset(ot, 0, sizeof(struct output_times));
-
-  ot->timer_type = OUTPUT_BY_STEP;
-  ot->step_time = $3;
-
-  /* Clip step_time to a reasonable range */
-  output_freq = ot->step_time / mdlpvp->vol->time_unit;
-  if (output_freq > mdlpvp->vol->iterations  &&  output_freq > 1)
-  {
-    output_freq = (mdlpvp->vol->iterations > 1) ? mdlpvp->vol->iterations : 1;
-    ot->step_time = output_freq * mdlpvp->vol->time_unit;
-    mdl_warning(mdlpvp, "Output step time too long\n\tSetting output step time to %g microseconds\n", ot->step_time * 1.0e6);
-  }
-  else if (output_freq < 1)
-  {
-    ot->step_time = volp->time_unit;
-    mdl_warning(mdlpvp, "Output step time too short\n\tSetting output step time to %g microseconds\n", ot->step_time * 1.0e6);
-  }
-  $$ = ot;
-}
-                       | ITERATION_LIST '=' '[' list_range_specs_new ']'
-{
-  struct output_times *ot = mem_get(mdlpvp->output_times_mem);
-  if (ot == NULL) {
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing volume output statement");
-    list_free(mdlpvp, $4, std_list_free);
-    return 1;
-  }
-  memset(ot, 0, sizeof(struct output_times));
-
-  sort_num_expr_list((struct num_expr_list *) $4->head);
-  ot->timer_type = OUTPUT_BY_ITERATION_LIST;
-  ot->times = num_expr_list_to_array($4, &ot->num_times);
-  list_free(mdlpvp, $4, std_list_free);
-  if (ot->num_times != 0  &&  ot->times == NULL) {
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing volume output statement");
-    mem_put(mdlpvp->output_times_mem, ot);
-    return 1;
-  }
-
-  $$ = ot;
-}
-                       | TIME_LIST '=' '[' list_range_specs_new ']'
-{
-  struct output_times *ot = mem_get(mdlpvp->output_times_mem);
-  if (ot == NULL) {
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing volume output statement");
-    list_free(mdlpvp, $4, std_list_free);
-    return 1;
-  }
-  memset(ot, 0, sizeof(struct output_times));
-
-  sort_num_expr_list((struct num_expr_list *) $4->head);
-  ot->timer_type = OUTPUT_BY_TIME_LIST;
-  ot->times = num_expr_list_to_array($4, &ot->num_times);
-  list_free(mdlpvp, $4, std_list_free);
-  if (ot->num_times != 0  &&  ot->times == NULL) {
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing volume output statement");
-    mem_put(mdlpvp->output_times_mem, ot);
-    return 1;
-  }
-
-  $$ = ot;
-};
-
-output_def: REACTION_DATA_OUTPUT '{'
-{
-  mdlpvp->obp = insert_new_output_block(mdlpvp);
-  if (mdlpvp->obp==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory creating reaction data output");
-    return 1;
-  }
-
-  mdlpvp->header_comment=NULL;  /* No header by default */
-  mdlpvp->exact_time_flag=1;    /* Print exact_time column in TRIGGER output by default */
-}
-       output_buffer_size_def
-{
-  /* COUNT buffer size might get modified later if there isn't that much to output */
-  /* TRIGGER buffer size won't get modified since we can't know what to expect */
-  mdlpvp->obp->buffersize=(int)$<dbl>4;
-  mdlpvp->obp->trig_bufsize=mdlpvp->obp->buffersize;
-  
-  mdlpvp->obp->time_array=(double*)malloc(mdlpvp->obp->buffersize*sizeof(double));
-  if (mdlpvp->obp->time_array==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory creating output buffer.");
-    return 1;
-  }
-}
-       output_timer_def list_count_cmds '}';
-
-output_buffer_size_def: OUTPUT_BUFFER_SIZE '=' num_expr
-{
-  double temp_value = $<dbl>3;
-  if (!(temp_value >= 1.0 && temp_value < UINT_MAX))
-  {
-    mdlerror(mdlpvp, "Buffer size invalid.  Suggested range is 100-1000000.\n");
-    return 1;
-  }
-  $$=$<dbl>3;
-}
-        | /* empty */
-{
-  $$=COUNTBUFFERSIZE;
-}
-
-output_timer_def:  step_time_def
-{
-  /* Pick a good buffer size */
-  if (volp->chkpt_iterations) {
-    mdlpvp->n_output=(long long)(volp->chkpt_iterations/mdlpvp->output_freq+1);
-    mdlpvp->obp->buffersize=min3ll(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize); 
-  }
-  else {
-    mdlpvp->n_output=(long long)(volp->iterations/mdlpvp->output_freq+1);
-    mdlpvp->obp->buffersize=min3ll(volp->iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
-  }
-
-  no_printf("Default output step time definition:\n");
-  no_printf("  output step time = %g\n",mdlpvp->obp->step_time);
-  no_printf("  output buffersize = %u\n",mdlpvp->obp->buffersize);
-}
-                | iteration_time_def 
-                | real_time_def 
+                                                          case MOL:
+                                                            specp = (struct species *) $1->value;
+                                                            specp->viz_state = viz_state;
+                                                            break;
+                                                        }
+                                                      }
+        | existing_region '=' num_expr                { CHECK(mdl_set_region_viz_state(mdlpvp, (struct region *) $1->value, (int) $3)); }
 ;
 
+/* =================================================================== */
+/* Volume data output mode */
 
-step_time_def: STEP '=' num_expr
-{
-  mdlpvp->obp->step_time=$<dbl>3;
-  mdlpvp->obp->timer_type=OUTPUT_BY_STEP;
-
-  mdlpvp->output_freq=mdlpvp->obp->step_time/volp->time_unit;
-  
-  if (mdlpvp->output_freq>volp->iterations && mdlpvp->output_freq>1)
-  {
-    mdlpvp->output_freq=(volp->iterations>1)?volp->iterations:1;
-    mdlpvp->obp->step_time=mdlpvp->output_freq*volp->time_unit;
-    mdl_warning(mdlpvp, "Output step time too long\n\tSetting output step time to %g microseconds\n",mdlpvp->obp->step_time*1.0e6);
-  }
-  else if (mdlpvp->output_freq<1)
-  {
-    mdlpvp->output_freq=1;
-    mdlpvp->obp->step_time=mdlpvp->output_freq*volp->time_unit;
-    mdl_warning(mdlpvp, "Output step time too short\n\tSetting output step time to %g microseconds\n",mdlpvp->obp->step_time*1.0e-6);
-  }
-}
-        | /* empty */
-{
-  mdlpvp->output_freq=1;
-  mdlpvp->obp->step_time=volp->time_unit;
-
-  mdlpvp->obp->timer_type=OUTPUT_BY_STEP;
-};
-
-
-iteration_time_def: ITERATION_LIST '='
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-}
-	'[' list_range_specs ']'
-{
-  mdlpvp->n_output=mdlpvp->num_pos;
-  mdlpvp->obp->timer_type=OUTPUT_BY_ITERATION_LIST;
-
-  /* Pick a good buffer size */
-  if (volp->chkpt_iterations) {
-    mdlpvp->obp->buffersize=min3ll(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
-  }
-  else {
-    mdlpvp->obp->buffersize=min3ll(volp->iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize); 
-  }
-
-  sort_num_expr_list(mdlpvp->el_head);
-  mdlpvp->obp->time_list_head=mdlpvp->el_head;
-  mdlpvp->obp->time_now=NULL;
-};
-
-
-real_time_def: TIME_LIST '='
-{
-  mdlpvp->num_pos=0;
-  mdlpvp->el_head=NULL;
-  mdlpvp->el_tail=NULL;
-}
-	'[' list_range_specs ']'
-{
-  mdlpvp->n_output=mdlpvp->num_pos;
-  mdlpvp->obp->timer_type=OUTPUT_BY_TIME_LIST;
-
-  /* Pick a good buffer size */
-  if (volp->chkpt_iterations) {
-    mdlpvp->obp->buffersize=min3ll(volp->chkpt_iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
-  }
-  else {
-    mdlpvp->obp->buffersize=min3ll(volp->iterations-volp->start_time+1,mdlpvp->n_output,mdlpvp->obp->buffersize);
-  }
-
-  sort_num_expr_list(mdlpvp->el_head);
-  mdlpvp->obp->time_list_head=mdlpvp->el_head;
-  mdlpvp->obp->time_now=NULL;
-};
-
-
-list_count_cmds:
-	count_cmd 
-	| custom_header
-        | exact_time_toggle
-	| list_count_cmds count_cmd
-	| list_count_cmds custom_header
-        | list_count_cmds exact_time_toggle;
-
-count_cmd: '{'
-{
-  struct output_set *os;
-  
-  os = insert_new_output_set(mdlpvp->obp,mdlpvp->header_comment);
-  if (os==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory while creating output list");
-    return 1;
-  }
-  os->exact_time_flag = mdlpvp->exact_time_flag;
-  mdlpvp->count_flags = 0; 
-}
-	list_count_exprs '}' file_arrow outfile_syntax
-{
-  struct output_set *os;
-  struct output_column *oc,*new_head;
-  int i;
-  
-  os = mdlpvp->obp->data_set_head;
-  os->file_flags = $<tok>5;
-  
-  if ((mdlpvp->count_flags & (TRIGGER_PRESENT|COUNT_PRESENT)) == (TRIGGER_PRESENT|COUNT_PRESENT))
-  {
-    mdlerror(mdlpvp, "Cannot mix TRIGGER and COUNT statements.  Use separate files.");
-    return 1;
-  }
-  
-  i=check_reaction_output_file(os,mdlpvp->vol->err_file);
-  if (i)
-  {
-    mdlerror(mdlpvp, "Unable to write data to output file.");
-    return 1;
-  }
-  
-  /* Reverse order so users see things in the order they asked for them */
-  for (new_head=NULL ; os->column_head!=NULL ; os->column_head=oc)
-  {
-    oc = os->column_head->next;
-    os->column_head->next = new_head;
-    new_head = os->column_head;
-  }
-  os->column_head = new_head;
-};
-
-	
-custom_header:
-	HEADER '=' NONE
-{
-  mdlpvp->header_comment=NULL;
-}
-	| HEADER '=' boolean
-{
-  if ($<tok>3==0) mdlpvp->header_comment=NULL;
-  else mdlpvp->header_comment="";
-}
-	| HEADER '=' str_expr
-{
-  mdlpvp->header_comment = $<str>3;
-}
-
-
-exact_time_toggle: SHOW_EXACT_TIME '=' boolean
-{
-  mdlpvp->exact_time_flag = ($<tok>3!=0);
-}
-
-
-list_count_exprs:
-	single_count_expr
-	| list_count_exprs ',' single_count_expr
-	
-single_count_expr:
-        count_expr opt_custom_header
-{
-  struct output_expression *oer,*oe;
-  struct output_column *oc;
-  struct output_set *os;
-  int n;
-  
-  os = mdlpvp->obp->data_set_head;
-  oer = $<cnt>1; /* Root of count expression */
-  
-  if (oer->oper==',' && ($<str>2)!=NULL)
-  {
-    mdlerror(mdlpvp, "Cannot use custom column headers with wildcard expansion");
-    return 1;
-  }
-  
-  if ($<str>2 != NULL) oer->title=$<str>2;
-  
-  /* If we have a list of results, go through to build column stack */
-  for (oe=first_oexpr_tree(oer),n=0;oe!=NULL;oe=next_oexpr_tree(oe),n++)
-  {
-    oc = insert_new_output_column(os);
-    if (oc==NULL)
-    {
-      mdlerror(mdlpvp, "Out of memory setting out output column");
-      return 1;
-    }
-    
-    oc->expr=oe;
-    set_oexpr_column(oe,oc);
-    
-    switch (oe->expr_flags&OEXPR_TYPE_MASK)
-    {
-      case OEXPR_TYPE_INT:
-        oc->data_type=INT;
-        oc->buffer = (int*)malloc(os->block->buffersize*sizeof(int));
-        break;
-      case OEXPR_TYPE_DBL:
-        oc->data_type=DBL;
-        oc->buffer = (double*)malloc(os->block->buffersize*sizeof(double));
-        break;
-      case OEXPR_TYPE_TRIG:
-        oc->data_type=TRIG_STRUCT;
-        oc->buffer = (struct output_trigger_data*)malloc(os->block->trig_bufsize*sizeof(struct output_trigger_data));
-        break;
-      default:
-        mdlerror(mdlpvp, "Could not figure out what type of count data to store");
-        return 1;
-        break;
-    }
-    if (oc->buffer==NULL)
-    {
-      mdlerror(mdlpvp, "Out of memory creating buffer to store output data");
-      return 1;
-    }
-  }
-};
-
-count_expr: num_value
-{
-  struct output_expression *oe = new_output_expr(mdlpvp->vol->oexpr_mem);
-  if (oe==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory creating output expression");
-    return 1;
-  }
-  oe->expr_flags=OEXPR_TYPE_DBL | OEXPR_TYPE_CONST;
-  oe->value = $<dbl>1;
-  oe->oper = '=';
-  $$=oe;
-}
-        | count_value
-{
-  $$=$<cnt>1;
-}
-	| '(' count_expr ')' 
-{
-  $$=join_oexpr_tree(($<cnt>2),NULL,'(',mdlpvp->vol->oexpr_mem);
-}
-	| count_expr '+' count_expr
-{
-  $$=join_oexpr_tree(($<cnt>1),($<cnt>3) , '+',mdlpvp->vol->oexpr_mem);
-}
-        | count_expr '-' count_expr
-{
-  $$=join_oexpr_tree(($<cnt>1),($<cnt>3),'-',mdlpvp->vol->oexpr_mem);
-}
-        | count_expr '*' count_expr
-{
-  $$=join_oexpr_tree(($<cnt>1),($<cnt>3),'*',mdlpvp->vol->oexpr_mem);
-}
-        | count_expr '/' count_expr
-{
-  $$=join_oexpr_tree(($<cnt>1),($<cnt>3),'/',mdlpvp->vol->oexpr_mem);
-}
-        | '-' count_expr %prec UNARYMINUS
-{
-  $$=join_oexpr_tree(($<cnt>2),NULL,'_',mdlpvp->vol->oexpr_mem);
-}
-        | SUMMATION_OPERATOR '(' count_expr ')'
-{
-  oexpr_flood_convert($<cnt>3,',','+');
-  eval_oexpr_tree($<cnt>3,0);
-  $$=$<cnt>3;
-};
-
-
-count_value: COUNT 
-{
-  if (mdlpvp->count_flags&TRIGGER_PRESENT)
-  {
-    mdlerror(mdlpvp, "Can't put TRIGGER and COUNT statements in the same output file");
-    return 1;
-  }
-  mdlpvp->count_flags |= COUNT_PRESENT;
-}
-        '[' count_syntax ']'
-{
-  $$=$<cnt>4;
-}
-        | EXPRESSION '[' num_expr ']'
-{
-  struct output_expression *oe = new_output_expr(mdlpvp->vol->oexpr_mem);
-  if (oe==NULL)
-  {
-    mdlerror(mdlpvp, "Out of memory creating output expression");
-    return 1;
-  }
-  oe->expr_flags=OEXPR_TYPE_DBL | OEXPR_TYPE_CONST;
-  oe->value = $<dbl>3;
-  oe->oper = '=';
-  $$=oe;
-}
-	| TRIGGER
-{
-  if (mdlpvp->count_flags&COUNT_PRESENT) 
-  {
-    mdlerror(mdlpvp, "Can't put TRIGGER and COUNT statements in the same output file");
-    return 1;
-  }
-  mdlpvp->count_flags |= TRIGGER_PRESENT;
-}
-	'[' count_syntax ']'
-{
-  $$=$<cnt>4;
-};
-
-
-
-file_arrow: '>'
-{
-  $$=FILE_OVERWRITE;
-}
-	| '=' '>'
-{
-  $$=FILE_SUBSTITUTE;
-}
-	| '>' '>'
-{
-  $$=FILE_APPEND;
-}
-	| '>' '>' '>'
-{
-  $$=FILE_APPEND_HEADER;
-}
-	| '+' '>'
-{
-  $$=FILE_CREATE;
-};
-
-outfile_syntax: file_name
-{
-  char *name = $<str>1;
-  struct output_set *os;
-  
-  for(os = mdlpvp->obp->data_set_head->next; os != NULL; os = os->next){
-    if(strcmp(os->outfile_name, name) == 0){
-       mdlerror(mdlpvp, "COUNT statements in the same reaction data output block should have unique output file names\n");
-       return 1;
-    }
-  } 
-  
-  mdlpvp->obp->data_set_head->outfile_name=$<str>1;
-  no_printf("Counter output file set to %s\n",mdlpvp->obp->data_set_head->outfile_name);
-
-};
-
-
-count_syntax: count_syntax_1
-              | count_syntax_2
-              | count_syntax_3
+volume_output_def:
+          VOLUME_DATA_OUTPUT '{'
+            volume_output_filename_prefix
+            volume_output_molecule_list
+            volume_output_location
+            volume_output_voxel_size
+            volume_output_voxel_count
+            volume_output_times_def
+          '}'                                         {
+                                                        struct volume_output_item *vo;
+                                                        CHECKN(vo = mdl_new_volume_output_item(mdlpvp, $3, & $4, $5, $6, $7, $8));
+                                                        vo->next = mdlpvp->vol->volume_output_head;
+                                                        mdlpvp->vol->volume_output_head = vo;
+                                                      }
 ;
 
-count_syntax_1:  existing_rxpn_or_molecule  ',' count_location_specifier opt_hit_spec 
-{
-  byte report_type,report_flags;
-  struct sym_table_list *stl;
-  struct output_expression *oe,*oet;
-  struct output_expression *oe_head=NULL,*oe_tail=NULL;
-  struct output_request *orq;
-  struct output_request *or_head=NULL,*or_tail=NULL;
-
-  if (mdlpvp->sym_table_list_head==NULL)
-  {
-    mdlerror(mdlpvp, "No molecules or reactions specified for count output.");
-    return 1;
-  }
-  
-  if ($<sym>3==NULL)
-  {
-    report_flags=REPORT_WORLD;
-    if ($<tok>4 != REPORT_NOTHING)
-    {
-      mdlerror(mdlpvp, "Invalid combination of WORLD with other counting options");
-      return 1;
-    }else{
-      if(mdlpvp->count_flags&TRIGGER_PRESENT){
-         mdlerror(mdlpvp, "Invalid combination of WORLD with TRIGGER option");
-         return 1;
-      }
-    }
-  }
-  else report_flags=0;
-  
-  if (mdlpvp->count_flags&TRIGGER_PRESENT) report_flags|=REPORT_TRIGGER;
-  if ($<tok>4&REPORT_ENCLOSED) report_flags|=REPORT_ENCLOSED;
-  
-  for (stl=mdlpvp->sym_table_list_head ; stl!=NULL ; stl=stl->next)
-  {
-    if (stl->node->sym_type==MOL)
-    {
-      if (($<tok>4&REPORT_TYPE_MASK)==REPORT_NOTHING) report_type = REPORT_CONTENTS;
-      else report_type=($<tok>4&REPORT_TYPE_MASK);
-    }
-    else
-    {
-      report_type = REPORT_RXNS;
-      if (($<tok>4&REPORT_TYPE_MASK)!=REPORT_NOTHING)
-      {
-        mdlerror_fmt(mdlpvp, "Invalid counting options used with reaction pathway %s",stl->node->name);
-        return 1;
-      }
-    }
-    
-    orq = (struct output_request*)mem_get(mdlpvp->vol->outp_request_mem);
-    oe = new_output_expr(mdlpvp->vol->oexpr_mem);
-    if (orq==NULL || oe==NULL)
-    {
-      mdlerror(mdlpvp, "Out of memory storing requested counts");
-      return 1;
-    }
-    orq->next=NULL;
-    orq->requester=oe;
-    orq->count_target=stl->node;
-    if(mdlpvp->orient_specified){
-      mdlerror(mdlpvp, "Internal error: Orientation set for the COUNT statement without orientation  specified.\n");
-    }
-    orq->count_orientation = ORIENT_NOT_SET;
-    orq->count_location=$<sym>3;
-    orq->report_type=report_type|report_flags;
-    
-    oe->left=orq;
-    oe->oper='#';
-    oe->expr_flags=OEXPR_LEFT_REQUEST;
-    if (orq->report_type&REPORT_TRIGGER) oe->expr_flags|=OEXPR_TYPE_TRIG;
-    else if ((orq->report_type&REPORT_TYPE_MASK)!=REPORT_CONTENTS) oe->expr_flags|=OEXPR_TYPE_DBL;
-    else oe->expr_flags|=OEXPR_TYPE_INT;
-    
-    if (oe_tail==NULL)
-    {
-      oe_head=oe_tail=oe;
-      or_head=or_tail=orq;
-    }
-    else
-    {
-      or_tail->next=orq;
-      or_tail=orq;
-      
-      oet = new_output_expr(mdlpvp->vol->oexpr_mem);
-      if (oet==NULL)
-      {
-        mdlerror(mdlpvp, "Out of memory storing requested counts");
-        return 1;
-      }
-      if (oe_tail->up==NULL)
-      {
-        oe_head=oet;
-      }
-      else
-      {
-        oet->up = oe_tail->up;
-        if (oet->up->left==oe_tail) oet->up->left=oet;
-        else oet->up->right=oet;
-      }
-      oet->left=oe_tail;
-      oe_tail->up=oet;
-      oet->right=oe;
-      oe->up=oet;
-      oet->oper=',';
-      oet->expr_flags = OEXPR_LEFT_OEXPR|OEXPR_RIGHT_OEXPR|(oe->expr_flags&OEXPR_TYPE_MASK);
-      oe_tail=oe;
-    }
-  }
-  
-  or_tail->next=mdlpvp->vol->output_request_head;
-  mdlpvp->vol->output_request_head=or_head;
-  
-  /* free allocated memory */ 
-  while (mdlpvp->sym_table_list_head != NULL)
-  {
-    stl=mdlpvp->sym_table_list_head->next;
-    mem_put(mdlpvp->sym_list_mem,mdlpvp->sym_table_list_head);
-    mdlpvp->sym_table_list_head=stl;
-  }
-  
-  $$=oe_head;
-};                      
-
-count_syntax_2:  existing_molecule_required_orient ',' count_location_specifier opt_hit_spec 
-{
-
-  byte report_type,report_flags;
-  struct sym_table_list *stl;
-  struct output_expression *oe,*oet;
-  struct output_expression *oe_head=NULL,*oe_tail=NULL;
-  struct output_request *orq;
-  struct output_request *or_head=NULL,*or_tail=NULL;
- 
-  if ($<sym>3==NULL)
-  {
-       mdlerror(mdlpvp, "Counting of an oriented molecule in the WORLD is not implemented.\nOnly counting of an oriented molecule on the regions is allowed.\n");
-       return 1;
-  }
-  else report_flags=0;
-  
-  if (mdlpvp->count_flags & TRIGGER_PRESENT) report_flags|=REPORT_TRIGGER;
-  if ($<tok>4 & REPORT_ENCLOSED) report_flags|=REPORT_ENCLOSED;
-  
-  for (stl=mdlpvp->sym_table_list_head ; stl!=NULL ; stl=stl->next)
-  {
-    if (stl->node->sym_type==MOL)
-    {
-       if (($<tok>4&REPORT_TYPE_MASK)==REPORT_NOTHING) report_type = REPORT_CONTENTS;
-       else report_type=($<tok>4 & REPORT_TYPE_MASK);
-    }else{
-       mdlerror(mdlpvp, "Orientations in count output can be specified only for molecules\n");
-       return 1;
-    }
-    
-    orq = (struct output_request*)mem_get(mdlpvp->vol->outp_request_mem);
-    oe = new_output_expr(mdlpvp->vol->oexpr_mem);
-    if (orq==NULL || oe==NULL)
-    {
-      mdlerror(mdlpvp, "Out of memory storing requested counts");
-      return 1;
-    }
-    orq->next=NULL;
-    orq->requester=oe;
-    orq->count_target=stl->node;
-    if(mdlpvp->orient_class < 0){
-         orq->count_orientation = -1;
-    }else if(mdlpvp->orient_class > 0){
-         orq->count_orientation = 1;
-    }else{
-         orq->count_orientation = 0;
-    }
-    orq->count_location=$<sym>3;
-    orq->report_type=report_type|report_flags;
-    
-    oe->left=orq;
-    oe->oper='#';
-    oe->expr_flags=OEXPR_LEFT_REQUEST;
-    if (orq->report_type & REPORT_TRIGGER) oe->expr_flags|=OEXPR_TYPE_TRIG;
-    else if ((orq->report_type & REPORT_TYPE_MASK)!=REPORT_CONTENTS) oe->expr_flags|=OEXPR_TYPE_DBL;
-    else oe->expr_flags|=OEXPR_TYPE_INT;
-    
-    if (oe_tail==NULL)
-    {
-      oe_head=oe_tail=oe;
-      or_head=or_tail=orq;
-    }
-    else
-    {
-      or_tail->next=orq;
-      or_tail=orq;
-      
-      oet = new_output_expr(mdlpvp->vol->oexpr_mem);
-      if (oet==NULL)
-      {
-        mdlerror(mdlpvp, "Out of memory storing requested counts");
-        return 1;
-      }
-      if (oe_tail->up==NULL)
-      {
-        oe_head=oet;
-      }
-      else
-      {
-        oet->up = oe_tail->up;
-        if (oet->up->left==oe_tail) oet->up->left=oet;
-        else oet->up->right=oet;
-      }
-      oet->left=oe_tail;
-      oe_tail->up=oet;
-      oet->right=oe;
-      oe->up=oet;
-      oet->oper=',';
-      oet->expr_flags = OEXPR_LEFT_OEXPR|OEXPR_RIGHT_OEXPR|(oe->expr_flags&OEXPR_TYPE_MASK);
-      oe_tail=oe;
-    }
-  }
-  
-  or_tail->next=mdlpvp->vol->output_request_head;
-  mdlpvp->vol->output_request_head=or_head;
-  
-  /* free allocated memory */
-  while (mdlpvp->sym_table_list_head != NULL)
-  {
-    stl=mdlpvp->sym_table_list_head->next;
-    mem_put(mdlpvp->sym_list_mem,mdlpvp->sym_table_list_head);
-    mdlpvp->sym_table_list_head=stl;
-  }
-   
-  /* restore default values */
-  mdlpvp->orient_specified = 0;
-  mdlpvp->orient_class = ORIENT_NOT_SET;
-  
-  $$=oe_head;
-
-};  
-
-
-count_syntax_3:  existing_many_rxpns_or_molecules  ',' count_location_specifier opt_hit_spec 
-{
-  byte report_type,report_flags;
-  struct sym_table_list *stl;
-  struct output_expression *oe,*oet;
-  struct output_expression *oe_head=NULL,*oe_tail=NULL;
-  struct output_request *orq;
-  struct output_request *or_head=NULL,*or_tail=NULL;
-                    
-
-  if (mdlpvp->sym_table_list_head==NULL)
-  {
-    mdlerror(mdlpvp, "Wildcard matching found no matches for count output.");
-    return 1;
-  }
-  
-  if ($<sym>3==NULL)
-  {
-    report_flags=REPORT_WORLD;
-    if ($<tok>4 != REPORT_NOTHING)
-    {
-      mdlerror(mdlpvp, "Invalid combination of WORLD with other counting options");
-      return 1;
-    }else{
-      if(mdlpvp->count_flags&TRIGGER_PRESENT){
-         mdlerror(mdlpvp, "Invalid combination of WORLD with TRIGGER option");
-         return 1;
-      }
-    }
-  }
-  else report_flags=0;
-  
-  if (mdlpvp->count_flags&TRIGGER_PRESENT) report_flags|=REPORT_TRIGGER;
-  if ($<tok>4&REPORT_ENCLOSED) report_flags|=REPORT_ENCLOSED;
-  
-  for (stl=mdlpvp->sym_table_list_head ; stl!=NULL ; stl=stl->next)
-  {
-    if (stl->node->sym_type==MOL)
-    {
-      if (($<tok>4&REPORT_TYPE_MASK)==REPORT_NOTHING) report_type = REPORT_CONTENTS;
-      else report_type=($<tok>4&REPORT_TYPE_MASK);
-    }
-    else
-    {
-      report_type = REPORT_RXNS;
-      if (($<tok>4&REPORT_TYPE_MASK)!=REPORT_NOTHING)
-      {
-        mdlerror_fmt(mdlpvp, "Invalid counting options used with reaction pathway %s",stl->node->name);
-        return 1;
-      }
-    }
-    
-    orq = (struct output_request*)mem_get(mdlpvp->vol->outp_request_mem);
-    oe = new_output_expr(mdlpvp->vol->oexpr_mem);
-    if (orq==NULL || oe==NULL)
-    {
-      mdlerror(mdlpvp, "Out of memory storing requested counts");
-      return 1;
-    }
-    orq->next=NULL;
-    orq->requester=oe;
-    orq->count_target=stl->node;
-    if(mdlpvp->orient_specified){
-      mdlerror(mdlpvp, "Internal error: Orientation set for the COUNT statement without orientation  specified.\n");
-    }
-    orq->count_orientation = ORIENT_NOT_SET;
-    orq->count_location=$<sym>3;
-    orq->report_type=report_type|report_flags;
-    
-    oe->left=orq;
-    oe->oper='#';
-    oe->expr_flags=OEXPR_LEFT_REQUEST;
-    if (orq->report_type&REPORT_TRIGGER) oe->expr_flags|=OEXPR_TYPE_TRIG;
-    else if ((orq->report_type&REPORT_TYPE_MASK)!=REPORT_CONTENTS) oe->expr_flags|=OEXPR_TYPE_DBL;
-    else oe->expr_flags|=OEXPR_TYPE_INT;
-    
-    if (oe_tail==NULL)
-    {
-      oe_head=oe_tail=oe;
-      or_head=or_tail=orq;
-    }
-    else
-    {
-      or_tail->next=orq;
-      or_tail=orq;
-      
-      oet = new_output_expr(mdlpvp->vol->oexpr_mem);
-      if (oet==NULL)
-      {
-        mdlerror(mdlpvp, "Out of memory storing requested counts");
-        return 1;
-      }
-      if (oe_tail->up==NULL)
-      {
-        oe_head=oet;
-      }
-      else
-      {
-        oet->up = oe_tail->up;
-        if (oet->up->left==oe_tail) oet->up->left=oet;
-        else oet->up->right=oet;
-      }
-      oet->left=oe_tail;
-      oe_tail->up=oet;
-      oet->right=oe;
-      oe->up=oet;
-      oet->oper=',';
-      oet->expr_flags = OEXPR_LEFT_OEXPR|OEXPR_RIGHT_OEXPR|(oe->expr_flags&OEXPR_TYPE_MASK);
-      oe_tail=oe;
-    }
-  }
-  
-  or_tail->next=mdlpvp->vol->output_request_head;
-  mdlpvp->vol->output_request_head=or_head;
-  
-  /* free allocated memory */
-  while (mdlpvp->sym_table_list_head != NULL)
-  {
-    stl=mdlpvp->sym_table_list_head->next;
-    mem_put(mdlpvp->sym_list_mem,mdlpvp->sym_table_list_head);
-    mdlpvp->sym_table_list_head=stl;
-  }
-  
-  $$=oe_head;
-};                      
-
-
-
-count_location_specifier: WORLD
-{
-  $$=NULL;
-}
-        | existing_region
-{
-  $$=$<sym>1;
-}
-        | existing_object
-{
-  $$=$<sym>1;
-};
-
-opt_hit_spec:
-{
-  $$=REPORT_NOTHING;
-}
-        | ',' hit_spec
-{
-  $$=$<tok>2;
-};
-
-hit_spec: FRONT_HITS { $$ = REPORT_FRONT_HITS; }
-	| BACK_HITS { $$ = REPORT_BACK_HITS; }
-	| ALL_HITS { $$ = REPORT_ALL_HITS; }
-	| FRONT_CROSSINGS { $$ = REPORT_FRONT_CROSSINGS; }
-	| BACK_CROSSINGS { $$ = REPORT_BACK_CROSSINGS; }
-	| ALL_CROSSINGS { $$ = REPORT_ALL_CROSSINGS; }
-	| ESTIMATE_CONCENTRATION { $$ = REPORT_CONCENTRATION; }
-	| ALL_ENCLOSED { $$ = REPORT_ENCLOSED; }
+volume_output_filename_prefix:
+          FILENAME_PREFIX '=' str_expr                { $$ = $3; }
 ;
 
-opt_custom_header:
-{
-  $$ = NULL;
-}
-	| ':' str_expr
-{
-  $$ = $<str>2;
-};
-
-
-
-io_stmt: fopen_stmt
-	| fclose_stmt
-	| printf_stmt
-	| fprintf_stmt
-	| sprintf_stmt
-	| print_time_stmt
-	| fprint_time_stmt
+volume_output_molecule_list:
+          volume_output_molecule_decl
+        | volume_output_molecule_list
+          volume_output_molecule_decl                 {
+                                                        $$ = $1;
+                                                        $$.species_count += $2.species_count;
+                                                        $$.species_tail->next = $2.species_head;
+                                                        $$.species_tail = $2.species_tail;
+                                                      }
 ;
 
+volume_output_molecule_decl:
+          MOLECULES '=' volume_output_molecules       { $$ = $3; }
+;
 
-fopen_stmt: new_file_stream FOPEN '(' file_name ',' file_mode ')'
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->filep=(struct file_stream *)mdlpvp->gp->value;
-  mdlpvp->filep->name=$<str>4;
-  mdlpvp->a_str=$<str>6;
-  if ((mdlpvp->filep->stream=fopen(mdlpvp->filep->name,mdlpvp->a_str))==NULL) {
-    mdlerror_fmt(mdlpvp, "Cannot open file: %s", mdlpvp->filep->name);
-    return(1);
-  }
-};
+volume_output_molecule: VAR                           {
+                                                        struct sym_table *sp;
+                                                        struct species_list_item *ptrl;
+                                                        CHECKN(sp = mdl_existing_molecule(mdlpvp, $1));
 
+                                                        ptrl = (struct species_list_item *) mem_get(mdlpvp->species_list_mem);
+                                                        if (ptrl == NULL)
+                                                        {
+                                                          mdlerror_fmt(mdlpvp, "Out of memory while parsing molecule list");
+                                                          return 1;
+                                                        }
+                                                        ptrl->spec = (struct species *) sp->value;
+                                                        ptrl->next = NULL;
+                                                        $$ = ptrl;
+                                                      }
+;
 
-new_file_stream: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
+volume_output_molecules:
+          volume_output_molecule                      { $$.species_tail = $$.species_head = $1; $$.species_count = 1; }
+        | volume_output_molecules '+'
+          volume_output_molecule                      { $$ = $1; $$.species_tail = $$.species_tail->next = $3; ++ $$.species_count; }
+;
 
-  if ((mdlpvp->gp=store_sym(mdlpvp->sym_name,FSTRM,volp->main_sym_table))==NULL) {
-    mdlerror_fmt(mdlpvp, "Out of memory while creating file stream: %s", mdlpvp->sym_name);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
+volume_output_location:
+          LOCATION '=' point                          { $$ = $3; }
+;
 
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
+volume_output_voxel_size:
+          VOXEL_SIZE '=' point_or_num                 { $$ = $3; }
+;
 
-  $$=mdlpvp->gp;
-};
+volume_output_voxel_count:
+          VOXEL_COUNT '=' point_or_num                {
+                                                        if ($3->x < 1.0)
+                                                        {
+                                                          mdl_warning(mdlpvp, "Voxel count (x dimension) too small.  Setting x count to 1.");
+                                                          $3->x = 1.0;
+                                                        }
+                                                        if ($3->y < 1.0)
+                                                        {
+                                                          mdl_warning(mdlpvp, "Voxel count (y dimension) too small.  Setting y count to 1.");
+                                                          $3->y = 1.0;
+                                                        }
+                                                        if ($3->z < 1.0)
+                                                        {
+                                                          mdl_warning(mdlpvp, "Voxel count (z dimension) too small.  Setting z count to 1.");
+                                                          $3->z = 1.0;
+                                                        }
+                                                        $$ = $3;
+                                                      }
+;
 
-
-file_mode: str_expr
-{
-  char c;
-
-  mdlpvp->a_str=$<str>1;
-  c=mdlpvp->a_str[0];
-  if (c!='r' 
-      && c!='w'
-      && c!='a') {
-    mdlerror_fmt(mdlpvp, "Invalid file mode: %s", mdlpvp->a_str);
-    free((void *)mdlpvp->cval);
-    mdlpvp->cval=NULL;
-    return(1);
-  }
-  $$=mdlpvp->a_str;
-};
-
-
-fclose_stmt: FCLOSE '(' existing_file_stream ')'
-{
-  mdlpvp->gp=$<sym>3;
-  mdlpvp->filep=(struct file_stream *)mdlpvp->gp->value;
-  if (fclose(mdlpvp->filep->stream)!=0) {
-    mdlerror_fmt(mdlpvp, "Error closing file: %s", mdlpvp->filep->name);
-    return(1);
-  }
-};
-
-
-existing_file_stream: VAR
-{
-  if (mdlpvp->cval_2!=NULL) {
-    mdlpvp->sym_name=mdlpvp->cval_2;
-  }
-  else {
-    mdlpvp->sym_name=mdlpvp->cval;
-  }
-
-  if ((mdlpvp->gp=retrieve_sym(mdlpvp->sym_name,FSTRM,volp->main_sym_table))==NULL) {
-    mdlerror_fmt(mdlpvp, "Undefined file stream: %s", mdlpvp->sym_name);
-    if (mdlpvp->sym_name==mdlpvp->cval) {
-      mdlpvp->cval=NULL;
-    }
-    else {
-      mdlpvp->cval_2=NULL;
-    }
-    free((void *)mdlpvp->sym_name);
-    return(1);
-  }
-
-  if (mdlpvp->sym_name==mdlpvp->cval) {
-    mdlpvp->cval=NULL;
-  }
-  else {
-    mdlpvp->cval_2=NULL;
-  }
-  free((void *)mdlpvp->sym_name);
-
-#ifdef KELP
-  mdlpvp->gp->ref_count++;
-  no_printf("ref_count: %d\n",mdlpvp->gp->ref_count);
-#endif
-
-  $$=mdlpvp->gp;
-};
-
-
-printf_stmt: PRINTF arg_list_init '(' format_string ',' list_args ')'
-{
-  mdlpvp->a_str=$<str>4;
-  if (my_fprintf(mdlpvp->vol->err_file, mdlpvp->a_str,mdlpvp->arg_list,mdlpvp->num_args)) {
-    mdlerror_fmt(mdlpvp, "Could not print to err_file: %s", mdlpvp->a_str);
-    return(1);
-  }
-}
-	| PRINTF arg_list_init '(' format_string ')'
-{
-  mdlpvp->a_str=$<str>4;
-  if (my_fprintf(mdlpvp->vol->err_file, mdlpvp->a_str,NULL,mdlpvp->num_args)) {
-    mdlerror_fmt(mdlpvp, "Could not print to err_file: %s", mdlpvp->a_str);
-    return(1);
-  }
-};
-
-
-arg_list_init: /* empty */
-{
-	mdlpvp->num_args=0;
-};
-
-
-format_string: str_expr
-{
-  char *rem_str;
-  char c;
-  int pos1;
-
-  mdlpvp->a_str=$<str>1;
-  rem_str=mdlpvp->a_str;
-  strcpy(mdlpvp->format_str,"");
-  while(rem_str!=NULL) {
-    pos1=strcspn(rem_str,"\\");
-    if(pos1==strlen(rem_str)) {  /* no \ found */
-      strcat(mdlpvp->format_str,rem_str);
-      rem_str=NULL;
-    }
-    else {  /* found a \ */
-      strncat(mdlpvp->format_str,rem_str,pos1);
-      c=rem_str[pos1+1];
-      switch(c) {
-      case 'n':
-        strcat(mdlpvp->format_str,"\n");
-        break;
-      case 't':
-        strcat(mdlpvp->format_str,"\t");
-        break;
-      case '\\':
-        strcat(mdlpvp->format_str,"\\");
-        break;
-      case '\"':
-        strcat(mdlpvp->format_str,"\"");
-        break;
-      }
-      rem_str=rem_str+pos1+2;
-    }
-  }
-  $$=mdlpvp->format_str;
-};
-
-
-list_args: num_expr_only
-{
-        if ((mdlpvp->arg_list[mdlpvp->num_args].arg_value=(void *)double_dup($<dbl>1))==NULL) {
-          mdlerror_fmt(mdlpvp, "Out of memory while creating format argument");
-          return(1);
-        }
-        mdlpvp->arg_list[mdlpvp->num_args++].arg_type=DBL;
-}
-	| list_args ',' num_expr_only
-{
-        if ((mdlpvp->arg_list[mdlpvp->num_args].arg_value=(void *)double_dup($<dbl>3))==NULL) {
-          mdlerror_fmt(mdlpvp, "Out of memory while creating format argument");
-          return(1);
-        }
-        mdlpvp->arg_list[mdlpvp->num_args++].arg_type=DBL;
-}
-	| str_expr_only
-{
-        mdlpvp->arg_list[mdlpvp->num_args].arg_value=(void *)$<str>1;
-        mdlpvp->arg_list[mdlpvp->num_args++].arg_type=STR;
-}
-	| list_args ',' str_expr_only
-{
-        mdlpvp->arg_list[mdlpvp->num_args].arg_value=(void *)$<str>3;
-        mdlpvp->arg_list[mdlpvp->num_args++].arg_type=STR;
-}
-	| existing_var_only
-{
-  mdlpvp->gp=$<sym>1;
-  mdlpvp->arg_list[mdlpvp->num_args].arg_value=mdlpvp->gp->value;
-  switch (mdlpvp->gp->sym_type) {
-  case DBL:
-    mdlpvp->arg_list[mdlpvp->num_args++].arg_type=DBL;
-    break;
-  case STR:
-    mdlpvp->arg_list[mdlpvp->num_args++].arg_type=STR;
-    break;
-  default:
-    mdlerror(mdlpvp, "Invalid variable type referenced");
-    return(1);
-    break;
-  }
-}
-	| list_args ',' existing_var_only
-{
-  mdlpvp->gp=$<sym>3;
-  mdlpvp->arg_list[mdlpvp->num_args].arg_value=mdlpvp->gp->value;
-  switch (mdlpvp->gp->sym_type) {
-  case DBL:
-    mdlpvp->arg_list[mdlpvp->num_args++].arg_type=DBL;
-    break;
-  case STR:
-    mdlpvp->arg_list[mdlpvp->num_args++].arg_type=STR;
-    break;
-  default:
-    mdlerror(mdlpvp, "Invalid variable type referenced");
-    return(1);
-    break;
-  }
-};
-
-
-fprintf_stmt: FPRINTF arg_list_init '(' existing_file_stream ',' format_string ',' list_args ')' 
-{
-  mdlpvp->gp=$<sym>4;
-  mdlpvp->filep=(struct file_stream *)mdlpvp->gp->value;
-  mdlpvp->a_str=$<str>6;
-  if (my_fprintf(mdlpvp->filep->stream,mdlpvp->a_str,mdlpvp->arg_list,mdlpvp->num_args)) {
-    mdlerror_fmt(mdlpvp, "Could not print to file: %s", mdlpvp->filep->name);
-    return(1);
-  }
-}
-	| FPRINTF arg_list_init '(' existing_file_stream ',' format_string ')'
-{
-  mdlpvp->gp=$<sym>4;
-  mdlpvp->filep=(struct file_stream *)mdlpvp->gp->value;
-  mdlpvp->a_str=$<str>6;
-  if (my_fprintf(mdlpvp->filep->stream,mdlpvp->a_str,NULL,mdlpvp->num_args)) {
-    mdlerror_fmt(mdlpvp, "Could not print to file: %s", mdlpvp->filep->name);
-    return(1);
-  }
-};
-
-
-sprintf_stmt: SPRINTF arg_list_init '(' assign_var ',' format_string ',' list_args ')'
-{ 
-  mdlpvp->gp=$<sym>4;
-  mdlpvp->a_str=$<str>6;
-  if (my_sprintf(mdlpvp->str_buf2,mdlpvp->a_str,mdlpvp->arg_list,mdlpvp->num_args)) {
-    mdlerror_fmt(mdlpvp, "Could not sprintf to variable: %s", mdlpvp->gp->name);
-    return(1);
-  }
-  mdlpvp->gp->sym_type=STR;
-  mdlpvp->gp->value=(void *)strdup(mdlpvp->str_buf2);
-  if(mdlpvp->gp->value == NULL){
-    mdlerror_fmt(mdlpvp, 
-                 "Out of memory while parsing string: %s", 
-                 mdlpvp->str_buf2);
-    return(1);
-  }
-}
-        | SPRINTF arg_list_init '(' assign_var ',' format_string ')'
-{
-  mdlpvp->gp=$<sym>4;
-  mdlpvp->a_str=$<str>6;
-  if (my_sprintf(mdlpvp->str_buf,mdlpvp->a_str,NULL,mdlpvp->num_args)) {
-    mdlerror_fmt(mdlpvp, "Could not sprintf to variable: %s", mdlpvp->gp->name);
-    return(1);
-  }
-  mdlpvp->gp->sym_type=STR;
-  mdlpvp->gp->value=(void *)strdup(mdlpvp->str_buf);
-  if(mdlpvp->gp->value == NULL){
-    mdlerror_fmt(mdlpvp, "Out of memory while parsing string: %s", 
-          mdlpvp->str_buf);
-    return(1);
-  }
-};
-
-print_time_stmt: PRINT_TIME '(' format_string ')'
-{
-  time_t the_time;
-
-  mdlpvp->a_str=$<str>3;
-  the_time=time(NULL);
-  strftime(mdlpvp->time_str,128,mdlpvp->a_str,localtime(&the_time));
-  if (volp->procnum == 0) fprintf(mdlpvp->vol->err_file, "%s", mdlpvp->time_str);
-};
-
-
-fprint_time_stmt: FPRINT_TIME '(' existing_file_stream ',' format_string ')'
-{
-  time_t the_time;
-
-  mdlpvp->gp=$<sym>3;
-  mdlpvp->filep=(struct file_stream *)mdlpvp->gp->value;
-  mdlpvp->a_str=$<str>5;
-  the_time=time(NULL);
-  strftime(mdlpvp->time_str,128,mdlpvp->a_str,localtime(&the_time));
-  if (fprintf(mdlpvp->filep->stream, "%s", mdlpvp->time_str)==EOF) {
-    mdlerror_fmt(mdlpvp, "Could not print to file: %s", mdlpvp->filep->name);
-    return(1);
-  }
-};
-
-
-
-
+volume_output_times_def:
+          /* empty */                                 { CHECKN($$ = mdl_new_output_times_default(mdlpvp)); }
+        | STEP '=' num_expr                           { CHECKN($$ = mdl_new_output_times_step(mdlpvp, $3)); }
+        | ITERATION_LIST '=' '[' list_range_specs ']' { CHECKN($$ = mdl_new_output_times_iterations(mdlpvp, & $4)); }
+        | TIME_LIST '=' '[' list_range_specs ']'      { CHECKN($$ = mdl_new_output_times_time(mdlpvp, & $4)); }
+;
 
 %%
 
@@ -10262,9 +3636,11 @@ fprint_time_stmt: FPRINT_TIME '(' existing_file_stream ',' format_string ')'
 
 /* Begin Bison Epilogue: */
 
-
-struct mdlparse_vars *clunky_mpvp_for_errors;
-
+/* mdlerror: Standard error callback from parser.
+ *
+ *   mpvp: the parser state variables
+ *   str:  the error message to display
+ */
 void mdlerror(struct mdlparse_vars *mpvp, char const *str)
 {
   mdlerror_fmt(mpvp, "%s", str);
@@ -10280,16 +3656,22 @@ void mdlerror_fmt(struct mdlparse_vars *mpvp, char const *fmt, ...)
 {
   va_list arglist;
   FILE *log_file = stderr;
-  if (mpvp->vol->err_file != NULL)
-    log_file = mpvp->vol->err_file;
 
   if (mpvp->vol->procnum != 0)
     return;
 
+  if (mpvp->vol->err_file != NULL)
+    log_file = mpvp->vol->err_file;
+
   /* print error location */
-  fprintf(log_file,
-          "MCell: error on line: %d of file: %s\n  ",
-          mpvp->line_num[mpvp->include_stack_ptr], mpvp->vol->curr_file);
+  if (mpvp->include_stack_ptr == 0)
+    fprintf(log_file,
+            "MCell: error occurred after parsing file: %s\n  ",
+            mpvp->vol->curr_file);
+  else
+    fprintf(log_file,
+            "MCell: error on line: %d of file: %s\n  ",
+            mpvp->line_num[mpvp->include_stack_ptr - 1], mpvp->vol->curr_file);
 
   /* format error message */
   va_start(arglist, fmt);
@@ -10301,125 +3683,149 @@ void mdlerror_fmt(struct mdlparse_vars *mpvp, char const *fmt, ...)
   fflush(log_file);
 }
 
-void mdlerror_nested(char const *s)
+/* mdlerror_file: Open and parse an MDL file.
+ *
+ *   mpvp: the parser state variables
+ *   name: the path to the MDL file
+ */
+static int mdlparse_file(struct mdlparse_vars *mpvp, char const *name)
 {
-  FILE *log_file;
-  struct mdlparse_vars *mpvp = clunky_mpvp_for_errors;
+  int failure;
+  int cur_stack = mpvp->include_stack_ptr ++;
+  FILE *infile;
+  yyscan_t scanner;
+  char const *prev_file;
 
-  log_file=stderr;
-  if (mpvp->vol->err_file!=NULL) {
-    log_file=mpvp->vol->err_file;
+  /* Put filename and line number on stack */
+  if (cur_stack >= MAX_INCLUDE_DEPTH)
+  {
+    mdlerror_fmt(mpvp, "Includes nested too deeply at file %s, included from %s:%d\n", name, mpvp->include_filename[cur_stack-1], mpvp->line_num[cur_stack-1]);
+    return 1;
+  }
+  mpvp->line_num[cur_stack] = 1;
+  mpvp->include_filename[cur_stack] = name;
+
+  /* Open file, or know the reason why */
+  no_printf("Opening file %s\n", name);
+  fflush(mpvp->vol->err_file);
+  if ((infile = fopen(name,"r")) == NULL)
+  {
+    int err = errno;
+    mdlerror_fmt(mpvp, "Couldn't open file %s, included from %s:%d: %s\n", name, mpvp->include_filename[cur_stack-1], mpvp->line_num[cur_stack-1], strerror(err));
+    -- mpvp->include_stack_ptr;
+    return 1;
   }
 
-  if (mpvp->vol->procnum == 0) {
-    fprintf(log_file,"MCell error: %s\n",s);
-    fflush(log_file);
+  /* Create and initialize a lexer */
+  if (mdllex_init(&scanner))
+  {
+    int err = errno;
+    if (err == ENOMEM)
+      mdlerror_fmt(mpvp, "Couldn't initialize lexer for file %s, included from %s:%d: out of memory\n", name, mpvp->include_filename[cur_stack-1], mpvp->line_num[cur_stack-1]);
+    else if (err == EINVAL)
+      mdlerror_fmt(mpvp, "Couldn't initialize lexer for file %s, included from %s:%d: internal error (invalid argument)\n", name, mpvp->include_filename[cur_stack-1], mpvp->line_num[cur_stack-1]);
+    else
+      mdlerror_fmt(mpvp, "Couldn't initialize lexer for file %s, included from %s:%d: internal error\n", name, mpvp->include_filename[cur_stack-1], mpvp->line_num[cur_stack-1]);
+    fclose(infile);
+    -- mpvp->include_stack_ptr;
+    return 1;
   }
-  return;
+  mdlrestart(infile, scanner);
+
+  /* Parse this file */
+  prev_file = mpvp->vol->curr_file;
+  mpvp->vol->curr_file = name;
+  failure = mdlparse(mpvp, scanner);
+  mpvp->vol->curr_file = prev_file;
+  -- mpvp->include_stack_ptr;
+
+  /* Clean up! */
+  fclose(infile);
+  mdllex_destroy(scanner);
+
+  return failure;
 }
 
+/* mdlerror_init: Set up and parse the top-level MDL file.
+ *
+ *   vol: the world to populate
+ */
 int mdlparse_init(struct volume *vol)
 {
-  struct mdlparse_vars *mpvp;
-  FILE *mdl_infile;
-  u_int i;
+  int failure;
+  struct mdlparse_vars mpv;
 
-  if ((mpvp=(struct mdlparse_vars *)malloc
-      (sizeof(struct mdlparse_vars)))==NULL) {
-    fprintf(vol->log_file,"MCell: out of memory storing mdlparse vars\n");
-    return(1);
-  }
-  memset(mpvp, 0, sizeof(struct mdlparse_vars));
-  clunky_mpvp_for_errors = mpvp;
+  vol->initialization_state = "parsing";
+  memset(&mpv, 0, sizeof(struct mdlparse_vars));
 
-  mpvp->vol=vol;
-  
-  mpvp->cval=NULL;
-  mpvp->cval_2=NULL;
-  mpvp->strval=NULL;
-  mpvp->ival=0;
-  mpvp->rval=0;
-  mpvp->sym_name=NULL;
-  mpvp->val_1=0;
-  mpvp->val_2=0;
-  mpvp->tmp_dbl=0;
-  mpvp->dblp=NULL;
-  mpvp->num_pos=0;
-  mpvp->elp=NULL;
-  mpvp->el_head=NULL;
-  mpvp->el_tail=NULL;
-  mpvp->include_stack_ptr=0;
-  mpvp->include_flag=0;
-  mpvp->curr_obj=vol->root_object;
+  mpv.vol=vol;
+  mpv.include_stack_ptr=0;
+  mpv.current_object = vol->root_object;
+  mpv.vol->macro_count_request_head = NULL;
 
-  /* create default reflective surface reaction */
-  if ((mpvp->path_mem=create_mem(sizeof(struct pathway),4096))==NULL)
+  /* Create memory pools for parsing */
+  if ((mpv.path_mem=create_mem(sizeof(struct pathway),4096))==NULL)
   {
     fprintf(vol->log_file, "Out of memory while creating reaction pathways\n");
-    return(1);
-  } 
-  if ((mpvp->prod_mem=create_mem(sizeof(struct product),4096))==NULL) {
+    return 1;
+  }
+  if ((mpv.prod_mem=create_mem(sizeof(struct product),4096))==NULL) {
     fprintf(vol->log_file, "Out of memory while creating reaction products\n");
-    return(1);
-  } 
-  mpvp->sym_list_mem = create_mem(sizeof(struct sym_table_list),4096);
-  if (mpvp->sym_list_mem==NULL)
+    return 1;
+  }
+  mpv.sym_list_mem = create_mem(sizeof(struct sym_table_list),4096);
+  if (mpv.sym_list_mem==NULL)
   {
     fprintf(vol->err_file,"Out of memory while getting ready to store lists of molecules and reactions");
     return 1;
   }
-  mpvp->list_head_mem = create_mem(sizeof(struct list_head), 1024);
-  if (mpvp->list_head_mem == NULL)
+  mpv.species_list_mem = create_mem(sizeof(struct species_list_item), 1024);
+  if (mpv.species_list_mem == NULL)
   {
-    fprintf(vol->err_file,"Out of memory while allocating temporary space for list parsing");
+    fprintf(vol->err_file,"Out of memory while allocating temporary space for species list parsing");
     return 1;
   }
-  mpvp->ptr_list_mem = create_mem(sizeof(struct ptr_list), 1024);
-  if (mpvp->ptr_list_mem == NULL)
+  mpv.mol_data_list_mem = create_mem(sizeof(struct species_opt_orient), 1024);
+  if (mpv.mol_data_list_mem == NULL)
   {
-    fprintf(vol->err_file,"Out of memory while allocating temporary space for list parsing");
+    fprintf(vol->err_file,"Out of memory while allocating temporary space for species list parsing");
     return 1;
   }
-  mpvp->output_times_mem = create_mem(sizeof(struct output_times), 1024);
-  if (mpvp->output_times_mem == NULL)
+  mpv.output_times_mem = create_mem(sizeof(struct output_times), 1024);
+  if (mpv.output_times_mem == NULL)
   {
     fprintf(vol->err_file,"Out of memory while allocating temporary space for volume output parsing");
     return 1;
   }
 
-  mpvp->gp=NULL;
-  mpvp->tp=NULL;
-  mpvp->sym_name=NULL;
+  /* Start parsing at the top-level file */
+  vol->curr_file = vol->mdl_infile_name;
+  failure = mdlparse_file(&mpv, vol->mdl_infile_name);
 
-  for(i=0;i<MAX_INCLUDE_DEPTH;i++) {
-    mpvp->line_num[i]=1;
-  }
-
-  no_printf("Opening file %s\n",vol->mdl_infile_name);
-  fflush(mpvp->vol->err_file);
-  if ((mdl_infile=fopen(vol->mdl_infile_name,"r"))==NULL) {
-    fprintf(vol->log_file,"MCell: error opening file: %s\n",
-      vol->mdl_infile_name);
-    return(1);
-  }
-
-  mdlrestart(mdl_infile);
-  if (mdlparse((void *)mpvp)) {
-     return(1);
-  }
-  fclose(mdl_infile);
-
-  while (mpvp->object_name_list)
+  /* If we succeeded, prepare the reactions */
+  if (! failure  &&  prepare_reactions(&mpv))
   {
-    struct name_list *l = mpvp->object_name_list->next;
-    free(mpvp->object_name_list);
-    mpvp->object_name_list = l;
+    mdlerror(&mpv, "Failed to initialize reactions");
+    failure = 1;
   }
 
-  delete_mem(mpvp->list_head_mem);
-  delete_mem(mpvp->ptr_list_mem);
-  delete_mem(mpvp->output_times_mem);
-  free(mpvp);
+  /* Free leftover object names */
+  while (mpv.object_name_list)
+  {
+    struct name_list *l = mpv.object_name_list->next;
+    free(mpv.object_name_list);
+    mpv.object_name_list = l;
+  }
 
-  return(0);
+  /* Destroy memory pools */
+  delete_mem(mpv.species_list_mem);
+  delete_mem(mpv.mol_data_list_mem);
+  delete_mem(mpv.output_times_mem);
+  delete_mem(mpv.sym_list_mem);
+  delete_mem(mpv.prod_mem);
+  delete_mem(mpv.path_mem);
+
+  vol->initialization_state = "initializing";
+
+  return failure;
 }
