@@ -9399,21 +9399,23 @@ static void macro_convert_clause(struct macro_rate_clause *clauses,
 }
 
 /*************************************************************************
-macro_build_rate_table:
+ macro_build_rate_table:
     Convert the parse-time data structures to a run-time rate table.
 
-In:  struct complex_rate *cr - the complex rate structure to fill in
-     struct subunit_relation const *relations - array of subunit relations
-     int num_relations - length of relations array
-     struct macro_rate_rule *rules - reverse-ordered list of rules to put into table
-     int is_surface - flag indicating whether to include orientations in the table
-Out: 0 on success, 1 if allocation fails.  'cr' structure is filled in.
+ In:  mpvp: parser state
+      cr: the complex rate structure to fill in
+      relations: array of subunit relations
+      num_relations: length of relations array
+      rules: reverse-ordered list of rules to put into table
+      is_surface: flag indicating whether to include orientations in the table
+ Out: 0 on success, 1 if allocation fails.  'cr' structure is filled in.
 *************************************************************************/
-static int macro_build_rate_table(struct complex_rate *cr,
-                                   struct subunit_relation const *relations,
-                                   int num_relations,
-                                   struct macro_rate_rule *rules,
-                                   int is_surface)
+static int macro_build_rate_table(struct mdlparse_vars *mpvp,
+                                  struct complex_rate *cr,
+                                  struct subunit_relation const *relations,
+                                  int num_relations,
+                                  struct macro_rate_rule *rules,
+                                  int is_surface)
 {
   /* Count the rules */
   struct macro_rate_rule *rules_temp;
@@ -9499,11 +9501,13 @@ static void macro_free_runtime_rate_tables(struct complex_species *cs)
  macro_build_rate_tables:
     Convert the parse-time data structures to run-time rate tables.
 
- In:  cs: the species to receive the tables
+ In:  mpvp: parser state
+      cs: the species to receive the tables
       rates: a linked list of rate rulesets to be converted to run-time format
  Out: 0 on success, 1 if allocation fails.  'cs' structure is filled in.
 *************************************************************************/
-static int macro_build_rate_tables(struct complex_species *cs,
+static int macro_build_rate_tables(struct mdlparse_vars *mpvp,
+                                   struct complex_species *cs,
                                    struct macro_rate_ruleset *rates)
 {
   /* Check whether we need to include orientation information */
@@ -9521,7 +9525,8 @@ static int macro_build_rate_tables(struct complex_species *cs,
     cr->next = cs->rates;
     cr->name = rates->name;
     cs->rates = cr;
-    if (macro_build_rate_table(cr,
+    if (macro_build_rate_table(mpvp,
+                               cr,
                                cs->relations,
                                cs->num_relations,
                                rates->rules,
@@ -10845,19 +10850,19 @@ static void macro_assign_geometry(struct complex_species *cs,
  In:  cs: the species
  Out: table is freed and its pointer cleared
 *************************************************************************/
-static void macro_free_runtime_relationships(struct complex_species cs)
+static void macro_free_runtime_relationships(struct complex_species *cs)
 {
   if (cs->relations)
   {
     int i;
     for (i=0; i<cs->num_relations; ++ i)
     {
-      if (cs->relations[i].targets)
-        free(cs->relations[i].targets);
+      if (cs->relations[i].target)
+        free((void *) cs->relations[i].target);
       if (cs->relations[i].inverse)
-        free(cs->relations[i].inverse);
+        free((void *) cs->relations[i].inverse);
     }
-    free(cs->relations);
+    free((void *) cs->relations);
   }
   cs->relations = NULL;
   cs->num_relations = 0;
@@ -10868,14 +10873,16 @@ static void macro_free_runtime_relationships(struct complex_species cs)
     Convert parse-time relationship structures to run-time relationship
     structures.
 
- In: cs: species to receive relationship table
+ In: mpvp: parser state
+     cs:   species to receive relationship table
      topo: the topology of this species
      rels: list of relationships to put in the
                                        table
  Out: 0 on success, 1 if allocation fails.  Relationship table is filled in cs
       data structure.
 *************************************************************************/
-static int macro_assign_relationships(struct complex_species *cs,
+static int macro_assign_relationships(struct mdlparse_vars *mpvp,
+                                      struct complex_species *cs,
                                       struct macro_topology *topo,
                                       struct macro_relationship *rels)
 {
@@ -10896,7 +10903,7 @@ static int macro_assign_relationships(struct complex_species *cs,
                                           "macromolecule relation table");
   if (final_relations == NULL)
     return 1;
-  memset(final_relations, 0, count*sizeof(subunit_relation));
+  memset(final_relations, 0, count*sizeof(struct subunit_relation));
   cs->num_relations = count;
   cs->relations = final_relations;
 
@@ -10978,12 +10985,14 @@ static int macro_assign_relationships(struct complex_species *cs,
     Assign the inverse relationship tables for a species.  This is mainly used
     for special macromolecule counting at present.
 
- In: cs: species to receive inverse relation table
+ In: mpvp: parser state
+     cs:   species to receive inverse relation table
      topo: topology for complex
  Out: 0 on success, 1 if allocation fails.  cs data structure has inverse
       relation table filled in
 *************************************************************************/
-static int macro_assign_inverse_relationships(struct complex_species *cs,
+static int macro_assign_inverse_relationships(struct mdlparse_vars *mpvp,
+                                              struct complex_species *cs,
                                               struct macro_topology *topo)
 {
   int rel_index;
@@ -11109,11 +11118,11 @@ int mdl_assemble_complex_species(struct mdlparse_vars *mpvp,
   /* Copy parser data into our species */
   macro_assign_initial_subunits(cs, topo, assignments);
   macro_assign_geometry(cs, topo, geom);
-  if (macro_assign_relationships(cs, topo, rels))
+  if (macro_assign_relationships(mpvp, cs, topo, rels))
     goto failure;
-  if (macro_assign_inverse_relationships(cs, topo))
+  if (macro_assign_inverse_relationships(mpvp, cs, topo))
     goto failure;
-  if (macro_build_rate_tables(cs, rates))
+  if (macro_build_rate_tables(mpvp, cs, rates))
     goto failure;
 
   /* Check that no subunits were left empty */
@@ -12070,6 +12079,7 @@ static void set_reaction_player_flags(struct rxn *rx)
 *************************************************************************/
 static int build_reaction_hash_table(struct mdlparse_vars *mpvp, int num_rx)
 {
+  int i, j;
   struct rxn **rx_tbl = NULL;
   int rx_hash;
   for (rx_hash=2; rx_hash<=num_rx && rx_hash != 0; rx_hash <<= 1)
@@ -12097,6 +12107,7 @@ static int build_reaction_hash_table(struct mdlparse_vars *mpvp, int num_rx)
 #endif
   for (i=0;i<SYM_HASHSIZE;i++)
   {
+    struct sym_table *sym;
     for (sym = mpvp->vol->main_sym_table[i]; sym != NULL; sym = sym->next)
     {
       if (sym == NULL) continue;
@@ -12161,7 +12172,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   struct pathway *path;
   struct product *prod,*prod2;
   struct rxn *rx;
-  struct rxn **rx_tbl;
   struct t_func *tp;
   double pb_factor = 0,D_tot,rate,t_step;
   short geom, geom2;
@@ -12173,7 +12183,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   int num_vol_reactants; /* number of volume molecules - reactants */
   int num_surf_reactants; /* number of surface molecules - reactants */
   int num_surfaces; /* number of surfaces among reactants */
-  int rx_hash;
   struct species *temp_sp, *temp_sp2;
   unsigned char temp_is_complex;
   int n_prob_t_rxns; /* # of pathways with time-varying rates */
@@ -13124,7 +13133,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
  
   for (i=0;i<=mpvp->vol->rx_hashsize;i++)
   {
-    for (rx = mpvp->vol->rx_hash[i]; rx != NULL; rx = rx->next)
+    for (rx = mpvp->vol->reaction_hash[i]; rx != NULL; rx = rx->next)
     {
       set_reaction_player_flags(rx);
       rx->pathway_head = NULL;
