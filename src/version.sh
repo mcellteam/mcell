@@ -1,4 +1,4 @@
-#! /bin/sh -x
+#! /bin/sh
 
 ESCAPESCRIPT='s/\([\\"]\)/\\\\\1/g'
 
@@ -76,6 +76,7 @@ LDFLAGS=`echo $LDFLAGS | sed "${ESCAPESCRIPT}"`
 ### Gather buildhost info
 BUILD_USER=`id -un`
 BUILD_HOST=`hostname -f`
+SRC_DIR=`dirname $0`
 BUILD_DIR=`pwd`
 BUILD_DATE=`date`
 BUILD_UNAME=`uname -a`
@@ -85,8 +86,9 @@ BUILD_UNAME=`uname -a`
 version_path=`dirname $0`/version.txt
 MCELL_VERSION=`cat "${version_path}"`
 MCELL_HAVE_REVISION_INFO=0
-if [ -d ".bzr" ]; then
-  if which bzr >/dev/null 2>&1; then
+BZR=`which bzr 2>/dev/null`
+if [ -x "${BZR}" ]; then
+  if "${BZR}" version-info "${SRC_DIR}" >/dev/null 2>&1; then
     MCELL_HAVE_REVISION_INFO=1
   fi
 fi
