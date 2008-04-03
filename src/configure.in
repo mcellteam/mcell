@@ -5,7 +5,7 @@ AC_PREREQ(2.61)
 AC_INIT(mcell, 3.1, mcell@salk.edu)
 AC_CONFIG_SRCDIR([mcell.c])
 AC_CONFIG_HEADER([config.h])
-AM_INIT_AUTOMAKE(mcell, 3.1)
+AM_INIT_AUTOMAKE([-Wall -Werror])
 
 # Checks for programs.
 AC_PROG_YACC

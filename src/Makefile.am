@@ -3,13 +3,6 @@ AM_YFLAGS=-d
 YLWRAP="$(srcdir)/ylwrapfix"
 
 # AM_CFLAGS=-Wall -std=c99 -D_GNU_SOURCE=1
-# ifdef WORDS_BIGENDIAN
-# MCELL_ENDIAN:="big"
-# else
-# MCELL_ENDIAN:="little"
-# endif
-# 
-# CFLAGS := ${CFLAGS} -DMCELL_ENDIAN=${MCELL_ENDIAN}
 
 MOSTLYCLEANFILES = version.h
 BUILT_SOURCES = version.h mdlparse.h
