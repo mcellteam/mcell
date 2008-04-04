@@ -12,3 +12,4 @@ mdllex.c
 mdllex.h
 missing
 opt
+debug
