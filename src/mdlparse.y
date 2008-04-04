@@ -781,12 +781,20 @@ range_spec: num_expr                                  {
 /* Include files */
 include_stmt: INCLUDE_FILE '=' str_expr               {
                                                         char *include_path = mdl_find_include_file(mdlpvp, $3, volp->curr_file);
+                                                        if (include_path == NULL)
+                                                        {
+                                                          mdlerror_fmt(mdlpvp, "Out of memory while trying to open include file '%s'", $3);
+                                                          free($3);
+                                                          return 1;
+                                                        }
                                                         if (mdlparse_file(mdlpvp, include_path))
                                                         {
                                                           free(include_path);
+                                                          free($3);
                                                           return 1;
                                                         }
                                                         free(include_path);
+                                                        free($3);
                                                       }
 ;
 
@@ -3711,7 +3719,10 @@ static int mdlparse_file(struct mdlparse_vars *mpvp, char const *name)
   if ((infile = fopen(name,"r")) == NULL)
   {
     int err = errno;
-    mdlerror_fmt(mpvp, "Couldn't open file %s, included from %s:%d: %s\n", name, mpvp->include_filename[cur_stack-1], mpvp->line_num[cur_stack-1], strerror(err));
+    if (cur_stack > 0)
+      mdlerror_fmt(mpvp, "Couldn't open file %s, included from %s:%d: %s\n", name, mpvp->include_filename[cur_stack-1], mpvp->line_num[cur_stack-1], strerror(err));
+    else
+      mdlerror_fmt(mpvp, "Couldn't open file %s: %s\n", name, mpvp->include_filename[cur_stack-1], mpvp->line_num[cur_stack-1], strerror(err));
     -- mpvp->include_stack_ptr;
     return 1;
   }
@@ -3776,25 +3787,25 @@ int mdlparse_init(struct volume *vol)
   mpv.sym_list_mem = create_mem(sizeof(struct sym_table_list),4096);
   if (mpv.sym_list_mem==NULL)
   {
-    fprintf(vol->err_file,"Out of memory while getting ready to store lists of molecules and reactions");
+    fprintf(vol->err_file,"Out of memory while getting ready to store lists of molecules and reactions\n");
     return 1;
   }
   mpv.species_list_mem = create_mem(sizeof(struct species_list_item), 1024);
   if (mpv.species_list_mem == NULL)
   {
-    fprintf(vol->err_file,"Out of memory while allocating temporary space for species list parsing");
+    fprintf(vol->err_file,"Out of memory while allocating temporary space for species list parsing\n");
     return 1;
   }
   mpv.mol_data_list_mem = create_mem(sizeof(struct species_opt_orient), 1024);
   if (mpv.mol_data_list_mem == NULL)
   {
-    fprintf(vol->err_file,"Out of memory while allocating temporary space for species list parsing");
+    fprintf(vol->err_file,"Out of memory while allocating temporary space for species list parsing\n");
     return 1;
   }
   mpv.output_times_mem = create_mem(sizeof(struct output_times), 1024);
   if (mpv.output_times_mem == NULL)
   {
-    fprintf(vol->err_file,"Out of memory while allocating temporary space for volume output parsing");
+    fprintf(vol->err_file,"Out of memory while allocating temporary space for volume output parsing\n");
     return 1;
   }
 
