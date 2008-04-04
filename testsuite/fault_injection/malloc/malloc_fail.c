@@ -5,9 +5,12 @@
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
+#include <unistd.h>
 
+/* Pointer to next malloc function */
 typedef void *(*mallocfunc)(size_t);
 
+/* Grab our "randomness" setting from the environment */
 static int get_fail_random()
 {
   char *str_itvl = getenv("INJECT_MALLOC_FAIL_RANDOM");
@@ -22,6 +25,7 @@ static int get_fail_random()
   }
 }
 
+/* Grab our "interval" setting from the environment */
 static int get_fail_interval()
 {
   int value = 0;
@@ -30,8 +34,10 @@ static int get_fail_interval()
     value = atoi(str_itvl);
   if (value == 0)
     return -1;
+  return value;
 }
 
+/* Intercept malloc, injecting failures as appropriate */
 void *malloc(size_t size)
 {
   static mallocfunc next_malloc = NULL;
@@ -50,13 +56,31 @@ void *malloc(size_t size)
   if (fail_random)
   {
     if ((rand() % fail_interval) == 0)
+    {
+      printf("Injected random malloc failure on request for %u bytes\n", size);
+#ifdef MALLOC_INJECTOR_BREAK_TO_GDB
+      char buffer[2048];
+      int pid = getpid();
+      snprintf(buffer, 2048, "gdb /proc/%d/exe %d", pid, pid);
+      unsetenv("LD_PRELOAD");
+      system(buffer);
+#endif
       return NULL;
+    }
   }
   else if (fail_interval > 0)
   {
     if (++ ntimes == fail_interval)
     {
       ntimes = 0;
+      printf("Injected malloc failure on request for %u bytes\n", size);
+#ifdef MALLOC_INJECTOR_BREAK_TO_GDB
+      char buffer[2048];
+      int pid = getpid();
+      snprintf(buffer, 2048, "gdb /proc/%d/exe %d", pid, pid);
+      unsetenv("LD_PRELOAD");
+      system(buffer);
+#endif
       return NULL;
     }
   }

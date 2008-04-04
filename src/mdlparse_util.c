@@ -1670,10 +1670,7 @@ static char *mdl_push_object_name(struct mdlparse_vars *mpvp, char *name)
   {
     mpvp->object_name_list = MDL_MALLOC_STRUCT_DESC(struct name_list, "object name stack");
     if (mpvp->object_name_list == NULL)
-    {
-      free(name);
       return NULL;
-    }
 
     mpvp->object_name_list->name = NULL;
     mpvp->object_name_list->prev = NULL;
@@ -1687,7 +1684,7 @@ static char *mdl_push_object_name(struct mdlparse_vars *mpvp, char *name)
   {
     mpvp->object_name_list_end->name = name;
     return mpvp->object_name_list_end->name;
-  } 
+  }
 
   /* If we've run out of name list components, create a new one */
   if (mpvp->object_name_list_end->next == NULL)
@@ -1792,11 +1789,13 @@ struct sym_table *mdl_start_object(struct mdlparse_vars *mpvp,
   if (retrieve_sym(new_name,OBJ,mpvp->vol->main_sym_table) != NULL)
   {
     mdlerror_fmt(mpvp, "Object already defined: %s", new_name);
+    free(name);
     return NULL;
   }
   if ((symp = store_sym(new_name,OBJ,mpvp->vol->main_sym_table, NULL)) == NULL)
   {
     MDL_ALLOC_FAILED("object symbol");
+    free(name);
     return NULL;
   }
   objp = (struct object *) symp->value;

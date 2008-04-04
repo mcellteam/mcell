@@ -34,7 +34,11 @@ if test "$interval" == "r"; then
   interval=$1; shift
 fi
 shimdir="`dirname $progname`"
-shim="$shimdir"/malloc_fail.so
+if test -n "$MALLOC_FAIL_TRAP"; then
+  shim="$shimdir"/malloc_fail_gdb.so
+else
+  shim="$shimdir"/malloc_fail.so
+fi
 
 # If we can't find the shim library, first try to build it, and if that fails,
 # die with an error
