@@ -1,0 +1,25 @@
+cam_diffusion = 2e-6
+num_complexes = 150
+num_cam       = 28125
+fw_rate       = 3.2e+6
+bw_rate       = 1e+3
+TMP_spec_F    = 5.0
+TMP_spec_B    = 0.5
+
+/* At a spacing of 5, the partitions are at, roughly:
+
+    -inf...-0.40
+    -0.40...-0.30
+    -0.30...-0.20
+    -0.20...-0.10
+    etc.
+
+   At a spacing of 14, the partitions are at, roughly:
+    -inf...-0.22
+    -0.22...0.6
+    etc.
+ */
+
+pt_of_release = [-.21950, -.21950, -.21950]
+/* pt_of_release = [-.25000, -0.5000, -.05000] */
+/* pt_of_release = [-.05000, -.05000, -.05000] */

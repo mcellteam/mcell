@@ -1,0 +1,290 @@
+dt = 1e-6
+iterations=3000
+sprintf(seed_str,"%04g",SEED)
+
+INCLUDE_FILE="parameters.mdl"
+
+TIME_STEP = dt
+ITERATIONS = iterations
+GRID_DENSITY = 15000
+ACCURATE_3D_REACTIONS = FALSE
+
+CHECKPOINT_OUTFILE="MOO"
+CHECKPOINT_INFILE="MOO"
+CHECKPOINT_ITERATIONS=1500
+
+PARTITION_X = [[-1.0001 TO 1.00001 STEP 0.04]]
+PARTITION_Y = [[-1.0001 TO 1.00001 STEP 0.04]]
+PARTITION_Z = [[-1.0001 TO 1.00001 STEP 0.04]]
+
+DEFINE_MOLECULES {
+  camkii_subunit  { DIFFUSION_CONSTANT_2D = 0 }
+  camkii_subunitB { DIFFUSION_CONSTANT_2D = 0 }
+  cam             { DIFFUSION_CONSTANT_3D = cam_diffusion }
+}
+
+DEFINE_COMPLEX_MOLECULE camkii {
+  NUMBER_OF_SUBUNITS = [2, 6]
+  SUBUNIT[  1, 2:4] = camkii_subunit;
+  SUBUNIT[1:2, 1:3] = camkii_subunit;
+  SUBUNIT[1:2,   5] = camkii_subunit;
+  SUBUNIT[  1,   6] = camkii_subunitB;
+  SUBUNIT[  2,   6] = camkii_subunitB;
+  SUBUNIT[  2,   4] = camkii_subunitB;
+  SUBUNIT[  1, 1:6] = camkii_subunit'
+  SUBUNIT[  2, 1:6] = camkii_subunit,
+  SHAPE {
+    SUBUNIT[1, 1] = [-.10,  .0000,  .001]
+    SUBUNIT[1, 2] = [-.05,  .0866,  .001]
+    SUBUNIT[1, 3] = [ .05,  .0866,  .001]
+    SUBUNIT[1, 4] = [ .10,  .0000,  .001]
+    SUBUNIT[1, 5] = [ .05, -.0866,  .001]
+    SUBUNIT[1, 6] = [-.05, -.0866,  .001]
+
+    SUBUNIT[2, 1] = [-.10,  .0000, -.001]
+    SUBUNIT[2, 2] = [-.05,  .0866, -.001]
+    SUBUNIT[2, 3] = [ .05,  .0866, -.001]
+    SUBUNIT[2, 4] = [ .10,  .0000, -.001]
+    SUBUNIT[2, 5] = [ .05, -.0866, -.001]
+    SUBUNIT[2, 6] = [-.05, -.0866, -.001]
+  }
+  SUBUNIT_RELATIONSHIPS {
+    ring_negative = [ 0, -1]
+    ring_positive = [ 0, +1]
+    dimer_partner = [+1,  0]
+  }
+  RATE_RULES {
+    coop_binding_rate {
+      dimer_partner != camkii_subunit : fw_rate * TMP_spec_F
+      DEFAULT : fw_rate
+    }
+    coop_unbinding_rate {
+      dimer_partner != camkii_subunit : bw_rate * TMP_spec_B
+      DEFAULT : bw_rate
+    }
+  }
+}
+
+DEFINE_REACTIONS {
+  (camkii_subunit') + cam; <-> (camkii_subunitB')   [> COMPLEX_RATE camkii coop_binding_rate,
+                                                     < COMPLEX_RATE camkii coop_unbinding_rate]
+}
+
+DEFINE_SURFACE_CLASSES {
+  class1 { MOLECULE_NUMBER { camkii' = 20 } }
+  class2 { MOLECULE_DENSITY { camkii' = 200.0 / 3200.0 } }
+  class3 { MOLECULE_NUMBER { camkii; = 25 } }
+}
+
+mainbox OBJECT {
+  b BOX {
+    CORNERS = [ -1.0, -1.0, -1.0 ], [ 1.0, 1.0, 1.0 ]
+    DEFINE_SURFACE_REGIONS {
+      top    { ELEMENT_LIST = [TOP]    SURFACE_CLASS = class1 }
+      left   { ELEMENT_LIST = [LEFT]   SURFACE_CLASS = class2 }
+      front  { ELEMENT_LIST = [FRONT]  SURFACE_CLASS = class3 }
+      bottom { ELEMENT_LIST = [BOTTOM] MOLECULE_NUMBER { camkii, = 20 } }
+      right  { ELEMENT_LIST = [RIGHT]  MOLECULE_NUMBER  { camkii, = 200.0 } }
+      back   { ELEMENT_LIST = [BACK]   MOLECULE_DENSITY { camkii; = 200.0 / 3200.0 } }
+    }
+  }
+}
+
+INSTANTIATE world OBJECT
+{
+  mainbox OBJECT mainbox {
+  }
+
+/*
+  rs1 RELEASE_SITE {
+    SHAPE = LIST
+    MOLECULE_POSITIONS {
+        camkii'   [-1.0, -1.0, -1.0]
+        camkii'   [-1.0, -1.0,  1.0]
+        camkii'   [-1.0,  1.0, -1.0]
+        camkii'   [-1.0,  1.0,  1.0]
+        camkii'   [ 1.0, -1.0, -1.0]
+        camkii'   [ 1.0, -1.0,  1.0]
+        camkii'   [ 1.0,  1.0, -1.0]
+        camkii'   [ 1.0,  1.0,  1.0]
+        camkii'   [-1.0, -1.0,  0.0]
+        camkii'   [-1.0, -1.0,  0.0]
+        camkii'   [-1.0,  1.0,  0.0]
+        camkii'   [-1.0,  1.0,  0.0]
+        camkii'   [ 1.0, -1.0,  0.0]
+        camkii'   [ 1.0, -1.0,  0.0]
+        camkii'   [ 1.0,  1.0,  0.0]
+        camkii'   [ 1.0,  1.0,  0.0]
+        camkii'   [-1.0,  0.0, -1.0]
+        camkii'   [-1.0,  0.0,  1.0]
+        camkii'   [-1.0,  0.0, -1.0]
+        camkii'   [-1.0,  0.0,  1.0]
+        camkii'   [ 1.0,  0.0, -1.0]
+        camkii'   [ 1.0,  0.0,  1.0]
+        camkii'   [ 1.0,  0.0, -1.0]
+        camkii'   [ 1.0,  0.0,  1.0]
+        camkii'   [ 0.0, -1.0, -1.0]
+        camkii'   [ 0.0, -1.0,  1.0]
+        camkii'   [ 0.0,  1.0, -1.0]
+        camkii'   [ 0.0,  1.0,  1.0]
+        camkii'   [ 0.0, -1.0, -1.0]
+        camkii'   [ 0.0, -1.0,  1.0]
+        camkii'   [ 0.0,  1.0, -1.0]
+        camkii'   [ 0.0,  1.0,  1.0]
+        camkii'   [ 0.0, -1.0,  0.0]
+        camkii'   [ 0.0, -1.0,  0.0]
+        camkii'   [ 0.0,  1.0,  0.0]
+        camkii'   [ 0.0,  1.0,  0.0]
+        camkii'   [ 0.0, -1.0,  0.0]
+        camkii'   [ 0.0, -1.0,  0.0]
+        camkii'   [ 0.0,  1.0,  0.0]
+        camkii'   [ 0.0,  1.0,  0.0]
+        camkii'   [ 0.0,  0.0, -1.0]
+        camkii'   [ 0.0,  0.0,  1.0]
+        camkii'   [ 0.0,  0.0, -1.0]
+        camkii'   [ 0.0,  0.0,  1.0]
+        camkii'   [ 0.0,  0.0, -1.0]
+        camkii'   [ 0.0,  0.0,  1.0]
+        camkii'   [ 0.0,  0.0, -1.0]
+        camkii'   [ 0.0,  0.0,  1.0]
+        camkii'   [-1.0,  0.0,  0.0]
+        camkii'   [-1.0,  0.0,  0.0]
+        camkii'   [-1.0,  0.0,  0.0]
+        camkii'   [-1.0,  0.0,  0.0]
+        camkii'   [ 1.0,  0.0,  0.0]
+        camkii'   [ 1.0,  0.0,  0.0]
+        camkii'   [ 1.0,  0.0,  0.0]
+        camkii'   [ 1.0,  0.0,  0.0]
+    }
+  }
+*/
+
+  rs2 RELEASE_SITE {
+    SHAPE = world.mainbox.b[ALL]
+    MOLECULE = cam
+    NUMBER_TO_RELEASE = num_cam
+  }
+}
+
+VIZ_OUTPUT {
+  MODE = DREAMM_V3_GROUPED
+  FILENAME = "./viz_data/test_box"
+
+  MOLECULES
+  {
+    NAME_LIST { ALL_MOLECULES }
+
+    ITERATION_NUMBERS {
+      ALL_DATA @ [[0 TO 500 STEP 5], [200 TO 1000 STEP 100], [2000 TO 100000 STEP 1000], [200000 TO iterations STEP 100000]]
+    }
+  }
+
+  MESHES
+  {
+    NAME_LIST { ALL_MESHES }
+    ITERATION_NUMBERS {
+      ALL_DATA @ [0]
+    }
+  }
+}
+
+REACTION_DATA_OUTPUT {
+    ITERATION_LIST = [[0 TO 9999 STEP 20], [10000 TO 250000 STEP 10000], [250001 TO 1250000 STEP 1]]
+
+    /* 00 counts (non-inverted) */
+    {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner==camkii_subunit  ]}, WORLD]} => "./reaction_data/coop_m00xx." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner==camkii_subunit  ]}, WORLD]} => "./reaction_data/coop_m00ux." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner==camkii_subunit  ]}, WORLD]} => "./reaction_data/coop_m00dx." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner==camkii_subunit ']}, WORLD]} => "./reaction_data/coop_m00xu." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner==camkii_subunit ,]}, WORLD]} => "./reaction_data/coop_m00xd." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner==camkii_subunit ,]}, WORLD]} => "./reaction_data/coop_m00ud." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner==camkii_subunit ']}, WORLD]} => "./reaction_data/coop_m00du." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner==camkii_subunit ']}, WORLD]} => "./reaction_data/coop_m00uu." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner==camkii_subunit ,]}, WORLD]} => "./reaction_data/coop_m00dd." & seed_str
+
+    /* 00 counts (inverted) */
+    {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner!=camkii_subunitB ]}, WORLD]} => "./reaction_data/coop_im00xx." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner!=camkii_subunitB ]}, WORLD]} => "./reaction_data/coop_im00ux." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner!=camkii_subunitB ]}, WORLD]} => "./reaction_data/coop_im00dx." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner!=camkii_subunitB']}, WORLD]} => "./reaction_data/coop_im00xu." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner!=camkii_subunitB,]}, WORLD]} => "./reaction_data/coop_im00xd." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner!=camkii_subunitB,]}, WORLD]} => "./reaction_data/coop_im00ud." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner!=camkii_subunitB']}, WORLD]} => "./reaction_data/coop_im00du." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner!=camkii_subunitB']}, WORLD]} => "./reaction_data/coop_im00uu." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner!=camkii_subunitB,]}, WORLD]} => "./reaction_data/coop_im00dd." & seed_str
+
+    /* 01 counts (non-inverted) */
+    {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner==camkii_subunitB ]}, WORLD]} => "./reaction_data/coop_m01xx." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner==camkii_subunitB ]}, WORLD]} => "./reaction_data/coop_m01ux." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner==camkii_subunitB ]}, WORLD]} => "./reaction_data/coop_m01dx." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner==camkii_subunitB']}, WORLD]} => "./reaction_data/coop_m01xu." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner==camkii_subunitB,]}, WORLD]} => "./reaction_data/coop_m01xd." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner==camkii_subunitB,]}, WORLD]} => "./reaction_data/coop_m01ud." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner==camkii_subunitB']}, WORLD]} => "./reaction_data/coop_m01du." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner==camkii_subunitB']}, WORLD]} => "./reaction_data/coop_m01uu." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner==camkii_subunitB,]}, WORLD]} => "./reaction_data/coop_m01dd." & seed_str
+
+    /* 01 counts (inverted) */
+    {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner!=camkii_subunit  ]}, WORLD]} => "./reaction_data/coop_im01xx." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner!=camkii_subunit  ]}, WORLD]} => "./reaction_data/coop_im01ux." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner!=camkii_subunit  ]}, WORLD]} => "./reaction_data/coop_im01dx." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner!=camkii_subunit ']}, WORLD]} => "./reaction_data/coop_im01xu." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner!=camkii_subunit ,]}, WORLD]} => "./reaction_data/coop_im01xd." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner!=camkii_subunit ,]}, WORLD]} => "./reaction_data/coop_im01ud." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner!=camkii_subunit ']}, WORLD]} => "./reaction_data/coop_im01du." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner!=camkii_subunit ']}, WORLD]} => "./reaction_data/coop_im01uu." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner!=camkii_subunit ,]}, WORLD]} => "./reaction_data/coop_im01dd." & seed_str
+
+    /* 10 counts (non-inverted) */
+    {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner==camkii_subunit  ]}, WORLD]} => "./reaction_data/coop_m10xx." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner==camkii_subunit  ]}, WORLD]} => "./reaction_data/coop_m10ux." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner==camkii_subunit  ]}, WORLD]} => "./reaction_data/coop_m10dx." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner==camkii_subunit ']}, WORLD]} => "./reaction_data/coop_m10xu." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner==camkii_subunit ,]}, WORLD]} => "./reaction_data/coop_m10xd." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner==camkii_subunit ,]}, WORLD]} => "./reaction_data/coop_m10ud." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner==camkii_subunit ']}, WORLD]} => "./reaction_data/coop_m10du." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner==camkii_subunit ']}, WORLD]} => "./reaction_data/coop_m10uu." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner==camkii_subunit ,]}, WORLD]} => "./reaction_data/coop_m10dd." & seed_str
+
+    /* 10 counts (inverted) */
+    {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner!=camkii_subunitB ]}, WORLD]} => "./reaction_data/coop_im10xx." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner!=camkii_subunitB ]}, WORLD]} => "./reaction_data/coop_im10ux." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner!=camkii_subunitB ]}, WORLD]} => "./reaction_data/coop_im10dx." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner!=camkii_subunitB']}, WORLD]} => "./reaction_data/coop_im10xu." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner!=camkii_subunitB,]}, WORLD]} => "./reaction_data/coop_im10xd." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner!=camkii_subunitB,]}, WORLD]} => "./reaction_data/coop_im10ud." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner!=camkii_subunitB']}, WORLD]} => "./reaction_data/coop_im10du." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner!=camkii_subunitB']}, WORLD]} => "./reaction_data/coop_im10uu." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner!=camkii_subunitB,]}, WORLD]} => "./reaction_data/coop_im10dd." & seed_str
+
+    /* 11 counts (non-inverted) */
+    {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner==camkii_subunitB ]}, WORLD]} => "./reaction_data/coop_m11xx." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner==camkii_subunitB ]}, WORLD]} => "./reaction_data/coop_m11ux." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner==camkii_subunitB ]}, WORLD]} => "./reaction_data/coop_m11dx." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner==camkii_subunitB']}, WORLD]} => "./reaction_data/coop_m11xu." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner==camkii_subunitB,]}, WORLD]} => "./reaction_data/coop_m11xd." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner==camkii_subunitB,]}, WORLD]} => "./reaction_data/coop_m11ud." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner==camkii_subunitB']}, WORLD]} => "./reaction_data/coop_m11du." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner==camkii_subunitB']}, WORLD]} => "./reaction_data/coop_m11uu." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner==camkii_subunitB,]}, WORLD]} => "./reaction_data/coop_m11dd." & seed_str
+
+    /* 11 counts (inverted) */
+    {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner!=camkii_subunit  ]}, WORLD]} => "./reaction_data/coop_im11xx." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner!=camkii_subunit  ]}, WORLD]} => "./reaction_data/coop_im11ux." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner!=camkii_subunit  ]}, WORLD]} => "./reaction_data/coop_im11dx." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner!=camkii_subunit ']}, WORLD]} => "./reaction_data/coop_im11xu." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner!=camkii_subunit ,]}, WORLD]} => "./reaction_data/coop_im11xd." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner!=camkii_subunit ,]}, WORLD]} => "./reaction_data/coop_im11ud." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner!=camkii_subunit ']}, WORLD]} => "./reaction_data/coop_im11du." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner!=camkii_subunit ']}, WORLD]} => "./reaction_data/coop_im11uu." & seed_str
+    {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner!=camkii_subunit ,]}, WORLD]} => "./reaction_data/coop_im11dd." & seed_str
+
+    /* Traditional counts */
+    {COUNT[camkii_subunit, WORLD]} => "./reaction_data/coop_camkii." & seed_str
+    {COUNT["camkii_subunit,", world.mainbox.b]} => "./reaction_data/coop_camkii_d." & seed_str
+    {COUNT["camkii_subunit'", world.mainbox.b]} => "./reaction_data/coop_camkii_u." & seed_str
+    {COUNT[camkii_subunitB, WORLD]} => "./reaction_data/coop_camkiiB." & seed_str
+    {COUNT["camkii_subunitB,", world.mainbox.b]} => "./reaction_data/coop_camkiiB_d." & seed_str
+    {COUNT["camkii_subunitB'", world.mainbox.b]} => "./reaction_data/coop_camkiiB_u." & seed_str
+    {COUNT[cam, WORLD]} => "./reaction_data/coop_cam." & seed_str
+}
