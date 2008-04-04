@@ -75,7 +75,8 @@ void print_full_version(FILE *f)
              MCELL_BUILDDATE,
              MCELL_BUILDHOST,
              MCELL_BUILDUSER);
-  fprintf(f, "    Source directory: %s\n", MCELL_BUILDDIR);
+  fprintf(f, "    Src directory: %s\n", MCELL_SRCDIR);
+  fprintf(f, "    Build directory: %s\n", MCELL_BUILDDIR);
   fprintf(f, "    Machine info: %s\n", MCELL_BUILDUNAME);
   fprintf(f, "\n");
 
