@@ -18,7 +18,11 @@
 #include "strfunc.h"
 #include "util.h"
 
-static const int endian_test_word = 0x04030201;
+#ifdef WORDS_BIGENDIAN
+static const char *ENDIANNESS = "msb";
+#else
+static const char *ENDIANNESS = "lsb";
+#endif
 
 extern struct volume *world;
 
@@ -755,8 +759,6 @@ static void dx_output_walls(FILE *wall_verts_header,
                            FILE *wall_states_header,
                            struct object const *objp)
 {
-  char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
-
   struct polygon_object *pop = (struct polygon_object *) objp->contents;
   struct ordered_poly *opp = (struct ordered_poly *) pop->polygon_data;
   struct element_data *edp = opp->element;
@@ -769,7 +771,7 @@ static void dx_output_walls(FILE *wall_verts_header,
             "object \"%s.positions\" class array type float rank 1 shape 3 items %d %s binary data follows\n",
             objp->sym->name,
             objp->n_verts,
-            my_byte_order);
+            ENDIANNESS);
 
     /* output polyhedron vertices */
     (void) dx_output_vertices(wall_verts_header, objp);
@@ -778,7 +780,7 @@ static void dx_output_walls(FILE *wall_verts_header,
 
     fprintf(wall_verts_header,
             "object \"%s.connections\" class array type int rank 1 shape 3 items %d %s binary data follows\n",
-            objp->sym->name, element_data_count, my_byte_order);
+            objp->sym->name, element_data_count, ENDIANNESS);
   }
 
   if (wall_states_header)
@@ -903,7 +905,6 @@ static void dx_output_effectors(FILE *eff_pos_header,
                                FILE *eff_states_header,
                                struct object *objp)
 {
-  char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
   int n_eff=0;
   int wall_index;
 
@@ -920,7 +921,7 @@ static void dx_output_effectors(FILE *eff_pos_header,
               "object \"%s.pos_and_norm\" class array type float rank 2 shape 2 3 items %d %s binary data follows\n",
               objp->sym->name,
               n_eff,
-              my_byte_order);
+              ENDIANNESS);
     }
     else {
       fprintf(eff_pos_header,
@@ -1365,15 +1366,13 @@ dx_output_molecules_position:
 **************************************************************************/
 static void dx_output_molecules_position(FILE *mol_pos_header, struct volume_molecule **viz_molp, u_int mol_count, int *mol_pos_index)
 {
-  char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
-
   if (mol_count > 0)
   {
     unsigned int mol_index;
     fprintf(mol_pos_header, "object \"%d\" class array type float rank 1 shape 3 items %d %s binary data follows\n",
             *mol_pos_index,
             mol_count,
-            my_byte_order);
+            ENDIANNESS);
 
     for (mol_index = 0; mol_index<mol_count; ++ mol_index)
     {
@@ -2237,8 +2236,6 @@ static void dreamm_v3_generic_write_time_info(FILE *master_header,
                                              u_int iteration_numbers_count,
                                              u_int time_values_count)
 {
-  char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
-
   /* Write iteration object to header */
   fprintf(master_header,
           "object \"iteration_numbers\" class array "
@@ -2247,7 +2244,7 @@ static void dreamm_v3_generic_write_time_info(FILE *master_header,
           "%s binary data "
           "file %s,0\n",
           iteration_numbers_count,
-          my_byte_order,
+          ENDIANNESS,
           iteration_numbers_name);
   fprintf(master_header,
           "\tattribute \"dreamm3mode\" number %d\t#%s#\n",
@@ -2265,7 +2262,7 @@ static void dreamm_v3_generic_write_time_info(FILE *master_header,
             "%s binary data "
             "file %s,0\n",
             time_values_count,
-            my_byte_order,
+            ENDIANNESS,
             time_values_name);
     fprintf(master_header,
             "\tattribute \"dreamm3mode\" number %d\t#%s#\n",
@@ -2356,8 +2353,6 @@ static void dreamm_v3_generic_write_rank0_int_array_index(FILE *header,
                                                          char const *symname,
                                                          char const *objtype)
 {
-  char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
-
   fprintf(header,
           "object %d class array type int "
           "rank 0 items %d "
@@ -2365,7 +2360,7 @@ static void dreamm_v3_generic_write_rank0_int_array_index(FILE *header,
           "file %s,%ld # %s.%s #\n",
           obj_index,
           array_length,
-          my_byte_order,
+          ENDIANNESS,
           filename,
           file_offset,
           symname,
@@ -2429,8 +2424,6 @@ static void dreamm_v3_generic_write_rank1_int_array_index(FILE *header,
                                                          char const *symname,
                                                          char const *objtype)
 {
-  char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
-
   fprintf(header,
           "object %d class array type int "
           "rank 1 shape 3 items %d "
@@ -2438,7 +2431,7 @@ static void dreamm_v3_generic_write_rank1_int_array_index(FILE *header,
           "file %s,%ld # %s.%s #\n",
           obj_index,
           array_length,
-          my_byte_order,
+          ENDIANNESS,
           filename,
           file_offset,
           symname,
@@ -2497,8 +2490,6 @@ static void dreamm_v3_generic_write_float_array_index(FILE *header,
                                                      char const *symname,
                                                      char const *objtype)
 {
-  char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
-
   if (array_length <= 0){
     fprintf(header, "object %d array # %s.%s #\n",
             obj_index,
@@ -2512,7 +2503,7 @@ static void dreamm_v3_generic_write_float_array_index(FILE *header,
             "file %s,%ld # %s.%s #\n",
             obj_index,
             array_length,
-            my_byte_order,
+            ENDIANNESS,
             filename,
             file_offset,
             symname,
@@ -3083,8 +3074,6 @@ static void dreamm_v3_generic_write_vol_orientations_index(FILE *mol_header,
                                                           long file_offset,
                                                           char const *symname)
 {
-  char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
-
   if (count > 0)
   {
     fprintf(mol_header,
@@ -3094,7 +3083,7 @@ static void dreamm_v3_generic_write_vol_orientations_index(FILE *mol_header,
             "file %s,%ld # %s.orientations #\n",
             obj_index,
             count,
-            my_byte_order,
+            ENDIANNESS,
             filename,
             file_offset,
             symname);
@@ -3166,8 +3155,6 @@ static void dreamm_v3_generic_write_state_array_index(FILE *mol_header,
                                                      long file_offset,
                                                      char const *symname)
 {
-  char const *my_byte_order = (*(unsigned char *)&endian_test_word == 1) ? "lsb" : "msb";
-
   if (count > 0)
   {
     fprintf(mol_header,
@@ -3177,7 +3164,7 @@ static void dreamm_v3_generic_write_state_array_index(FILE *mol_header,
             "file %s,%ld # %s.states #\n",
             obj_index,
             count,
-            my_byte_order,
+            ENDIANNESS,
             filename,
             file_offset,
             symname);

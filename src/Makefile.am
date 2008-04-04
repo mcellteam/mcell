@@ -2,6 +2,7 @@ AM_LFLAGS=-Crema
 AM_YFLAGS=-d
 YLWRAP="$(srcdir)/ylwrapfix"
 
+AM_CFLAGS=@CFLAGS_WARN@
 # AM_CFLAGS=-Wall -std=c99 -D_GNU_SOURCE=1
 
 MOSTLYCLEANFILES = version.h mdlparse.h mdlparse.c mdllex.c
@@ -22,7 +23,7 @@ mcell_SOURCES = chkpt.c count_util.c diffuse.c diffuse_util.c grid_util.c   \
 		chkpt.h count_util.h diffuse.h diffuse_util.h grid_util.h   \
 		init.h isaac64.h macromolecule.h mcell_structs.h            \
 		mdlparse_aux.h mdlparse_util.h mem_util.h react.h           \
-		react_output.h rng.h sched_util.h seed_array.h strfunc.h    \
+		react_output.h rng.h sched_util.h strfunc.h                 \
 		sym_table.h util.h vector.h version_info.h viz_output.h     \
 		volume_output.h vol_util.h wall_util.h mdllex.l mdlparse.y
 mcell_LDADD = -lm

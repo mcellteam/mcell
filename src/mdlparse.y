@@ -3722,7 +3722,7 @@ static int mdlparse_file(struct mdlparse_vars *mpvp, char const *name)
     if (cur_stack > 0)
       mdlerror_fmt(mpvp, "Couldn't open file %s, included from %s:%d: %s\n", name, mpvp->include_filename[cur_stack-1], mpvp->line_num[cur_stack-1], strerror(err));
     else
-      mdlerror_fmt(mpvp, "Couldn't open file %s: %s\n", name, mpvp->include_filename[cur_stack-1], mpvp->line_num[cur_stack-1], strerror(err));
+      mdlerror_fmt(mpvp, "Couldn't open file %s: %s\n", name, strerror(err));
     -- mpvp->include_stack_ptr;
     return 1;
   }

@@ -10,6 +10,12 @@ AM_INIT_AUTOMAKE([-Wall -Werror])
 # Checks for programs.
 AC_PROG_YACC
 AC_PROG_CC
+if test "$GCC" == "yes"; then
+  CFLAGS_WARN="-Wall"
+else
+  CFLAGS_WARN=""
+fi
+AC_SUBST(CFLAGS_WARN)
 AM_PROG_LEX
 
 # Checks for libraries.

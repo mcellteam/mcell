@@ -309,17 +309,13 @@ Out: Writes byte order of the machine that creates checkpoint file
 ***************************************************************************/
 int write_byte_order(FILE *fs)
 {
-   int word, byte_order;
-   byte *word_p = NULL;
+   int byte_order;
 
-   word = 0x04030201;
-   word_p = (byte *)&word;
-
-   if(word_p[0] == 1){
-	byte_order = MCELL_LITTLE_ENDIAN;
-   }else{
-	byte_order = MCELL_BIG_ENDIAN;
-   }
+#ifdef WORDS_BIGENDIAN
+   byte_order = MCELL_BIG_ENDIAN;
+#else
+   byte_order = MCELL_LITTLE_ENDIAN;
+#endif
 	
    byte cmd = BYTE_ORDER_CMD;
 
@@ -348,17 +344,13 @@ Out: Reads byte order  from the checkpoint file.
 int read_byte_order(FILE *fs)
 {
 
-   int byte_order_read, byte_order_present, word;
-   byte *word_p = NULL;
+   int byte_order_read, byte_order_present;
    
-   word = 0x04030201;
-   word_p = (byte *)&word;
-   
-   if(word_p[0] == 1){
-	byte_order_present = MCELL_LITTLE_ENDIAN;
-   }else{
-	byte_order_present = MCELL_BIG_ENDIAN;
-   }
+#ifdef WORDS_BIGENDIAN
+   byte_order_present = MCELL_BIG_ENDIAN;
+#else
+   byte_order_present = MCELL_LITTLE_ENDIAN;
+#endif
 
    if (!fread(&(byte_order_read),sizeof (byte_order_read),1,fs)) {
       fprintf(world->err_file,"File '%s', Line %ld: read_byte_order error.\n", __FILE__, (long)__LINE__);
