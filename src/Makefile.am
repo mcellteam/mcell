@@ -4,20 +4,12 @@ YLWRAP="$(srcdir)/ylwrapfix"
 
 # AM_CFLAGS=-Wall -std=c99 -D_GNU_SOURCE=1
 
-MOSTLYCLEANFILES = version.h
+MOSTLYCLEANFILES = version.h mdlparse.h mdlparse.c mdllex.c
 BUILT_SOURCES = version.h mdlparse.h
 version.h: FORCE
 	CC="${CC}" LD="${LD}" LEX="${LEX}" YACC="${YACC}" CFLAGS="${CFLAGS}" LDFLAGS="${LDFLAGS}" YFLAGS="${YFLAGS}" LFLAGS="${LFLAGS}" /bin/sh "$(srcdir)/version.sh" > version.h
 
 FORCE:
-
-# mdlparse.o: mdlparse.y rng.h isaac64.h vector.h strfunc.h mcell_structs.h    \
-#             mem_util.h sched_util.h util.h sym_table.h diffuse_util.h        \
-# 	    mdlparse_util.h mdlparse_aux.h macromolecule.h react_output.h    \
-# 	    mdllex.l
-# 	${LEX} -Crema ${LFLAGS} mdllex.l
-# 	${YACC} ${YFLAGS} mdlparse.y
-# 	${CC} ${CFLAGS} -c -o mdlparse.o mdlparse.bison.c
 
 bin_PROGRAMS = mcell
 dist_mcell_SOURCES = version.sh version.txt ylwrapfix

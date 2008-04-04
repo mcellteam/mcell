@@ -8,13 +8,14 @@ if test -f "${OUTFILE}"; then
 else
   touch "${OUTFILE}.tmp"
 fi
+
 "${YLWRAP_REAL}" "$@" || exit 1
 if test -f "${OUTFILE}" && cmp -s "${OUTFILE}" "${OUTFILE}.tmp"; then
   echo "Not prepending source dir ${SRCDIR} (from $0)"
-#  rm -f "${OUTFILE}.tmp"
 else
   mv -f "${OUTFILE}" "${OUTFILE}.tmp"
   echo "Prepending source dir ${SRCDIR} (from $0)"
-  cat "${OUTFILE}.tmp" | sed "s/#line *\([0-9]\+\) *\"\([^ ]*\)\"/#line \1 \"${SRCDIR}\/\2\"/" > "${OUTFILE}"
-  rm -f "${OUTFILE}.tmp"
+  SRCDIR2=`echo "${SRCDIR}" | sed 's/@/\\@/'`
+  cat "${OUTFILE}.tmp" | sed "s@#line *\([0-9]\+\) *\"\([^ ]*\.[ly]\)\"@#line \1 \"${SRCDIR2}\/\2\"@" > "${OUTFILE}"
 fi
+rm -f "${OUTFILE}.tmp"
