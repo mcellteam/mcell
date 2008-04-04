@@ -452,12 +452,10 @@ int nearest_free(struct surface_grid *g,struct vector2 *v,double max_d2,double *
 	    idx = h;
 	    d2 = fff;
 	  }
-#if 0
 	  else if (idx==-1)
 	  {
 	    if (fff < d2) d2=fff;
 	  }
-#endif
 	}
       }
     }
