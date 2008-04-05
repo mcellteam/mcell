@@ -2250,7 +2250,13 @@ static void count_complex_for_single_region(struct complex_counter *c,
       {
         int *before_indices = (int *) pointer_hash_lookup(&c->subunit_to_rules_range, before[subunit_index], before[subunit_index]->hashval);
         if (before_indices != NULL)
-          scan_complex_update_table(relatives_before, relatives_orient_before, spec->num_relations + offset, c, before_indices[0], before_indices[1], -amount);
+          scan_complex_update_table(relatives_before,
+                                    orient_before ? relatives_orient_before : NULL,
+                                    spec->num_relations + offset,
+                                    c,
+                                    before_indices[0],
+                                    before_indices[1],
+                                    -amount);
       }
 
       /* Add "after" counts */
@@ -2258,7 +2264,13 @@ static void count_complex_for_single_region(struct complex_counter *c,
       {
         int *after_indices = (int *) pointer_hash_lookup(&c->subunit_to_rules_range, after[subunit_index], after[subunit_index]->hashval);
         if (after_indices != NULL)
-          scan_complex_update_table(relatives_after,  relatives_orient_after, spec->num_relations + offset, c, after_indices[0],  after_indices[1],   amount);
+          scan_complex_update_table(relatives_after,
+                                    orient_before ? relatives_orient_after : NULL,
+                                    spec->num_relations + offset,
+                                    c,
+                                    after_indices[0],
+                                    after_indices[1],
+                                    amount);
       }
     }
   }
