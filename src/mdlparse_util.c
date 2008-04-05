@@ -13130,7 +13130,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
   mpvp->vol->rx_radius_3d *= mpvp->vol->r_length_unit; /* Convert into length units */
  
-  for (i=0;i<=mpvp->vol->rx_hashsize;i++)
+  for (i=0;i<mpvp->vol->rx_hashsize;i++)
   {
     for (rx = mpvp->vol->reaction_hash[i]; rx != NULL; rx = rx->next)
     {
