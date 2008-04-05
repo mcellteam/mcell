@@ -1,3 +1,15 @@
+/****************************************************************************
+ * Macromolecule parser error handling 15: Subunit shape extra item
+ *
+ *    Expect an error regarding the line:
+ *      SUBUNIT[1, 1] = [ -5.0, -8.66, -5.0]
+ *
+ *    Complex specifies location of [1, 1] subunit twice.
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
 dt = 1e-6
 iterations=1250000
 sprintf(seed_str,"%04g",SEED)
@@ -24,7 +36,7 @@ DEFINE_MOLECULES {
 
 DEFINE_COMPLEX_MOLECULE camkii {
   NUMBER_OF_SUBUNITS = [2, 6]
-  SUBUNIT[1:3, 1:6] = count_proxy_0
+  SUBUNIT[1:2, 1:6] = count_proxy_0
   SUBUNIT[  1, 2:4] = camkii_subunit
   SUBUNIT[1:2, 1:3] = camkii_subunit
   SUBUNIT[1:2,   5] = camkii_subunit
@@ -44,7 +56,7 @@ DEFINE_COMPLEX_MOLECULE camkii {
     SUBUNIT[2, 3] = [  5.0,  8.66, -5.0]
     SUBUNIT[2, 4] = [ 10.0,   0.0, -5.0]
     SUBUNIT[2, 5] = [  5.0, -8.66, -5.0]
-    SUBUNIT[2, 6] = [ -5.0, -8.66, -5.0]
+    SUBUNIT[1, 1] = [ -5.0, -8.66, -5.0]
   }
   SUBUNIT_RELATIONSHIPS {
     ring_negative = [ 0, -1]

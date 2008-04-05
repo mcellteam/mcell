@@ -1,3 +1,13 @@
+/****************************************************************************
+ * Macromolecule parser error handling 20: Duplicate relationship
+ *
+ *    Expect an error regarding the line:
+ *      ring_positive = [ 1, +1]
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
 dt = 1e-6
 iterations=1250000
 sprintf(seed_str,"%04g",SEED)
@@ -47,9 +57,10 @@ DEFINE_COMPLEX_MOLECULE camkii {
     SUBUNIT[2, 6] = [ -5.0, -8.66, -5.0]
   }
   SUBUNIT_RELATIONSHIPS {
-    ring_negative = [-2, -1]
+    ring_negative = [ 0, -1]
     ring_positive = [ 0, +1]
     dimer_partner = [+1,  0]
+    ring_positive = [ 1, +1]
   }
   RATE_RULES {
     coop_binding_rate {

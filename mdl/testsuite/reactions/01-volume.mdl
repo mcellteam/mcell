@@ -26,181 +26,16 @@ voldiffconst = 2.0e-6
 
 ITERATIONS = iterations
 TIME_STEP = timestep
+TIME_STEP_MAX = 1.0
 
-DEFINE_MOLECULES
+INCLUDE_FILE = "volmols.mdl"
+INCLUDE_FILE = "volcomplex.mdl"
+
+DEFINE_REACTIONS
 {
-    V_i {DIFFUSION_CONSTANT_3D = voldiffconst}
-    V_u {DIFFUSION_CONSTANT_3D = voldiffconst}
-    V_b1 {DIFFUSION_CONSTANT_3D = voldiffconst}
-    V_b2 {DIFFUSION_CONSTANT_3D = voldiffconst}
-    V_t1 {DIFFUSION_CONSTANT_3D = voldiffconst}
-    V_t2 {DIFFUSION_CONSTANT_3D = voldiffconst}
-    V_t3 {DIFFUSION_CONSTANT_3D = voldiffconst}
-    V_c_su0 {DIFFUSION_CONSTANT_3D = 0}
-    V_c_su1 {DIFFUSION_CONSTANT_3D = 0}
-
-    I_u {DIFFUSION_CONSTANT_3D = 0}
-    I_b {DIFFUSION_CONSTANT_3D = 0}
-    I_t {DIFFUSION_CONSTANT_3D = 0}
-}
-
-DEFINE_COMPLEX_MOLECULE Complex {
-  NUMBER_OF_SUBUNITS = [5, 5, 5]
-  SUBUNIT[1:5, 1:5, 1:5] = V_c_su0
-  SHAPE {
-    SUBUNIT[1, 1, 1] = [-.04, -.04, -.04]
-    SUBUNIT[1, 1, 2] = [-.04, -.04, -.02]
-    SUBUNIT[1, 1, 3] = [-.04, -.04,  .00]
-    SUBUNIT[1, 1, 4] = [-.04, -.04,  .02]
-    SUBUNIT[1, 1, 5] = [-.04, -.04,  .04]
-    SUBUNIT[1, 2, 1] = [-.04, -.02, -.04]
-    SUBUNIT[1, 2, 2] = [-.04, -.02, -.02]
-    SUBUNIT[1, 2, 3] = [-.04, -.02,  .00]
-    SUBUNIT[1, 2, 4] = [-.04, -.02,  .02]
-    SUBUNIT[1, 2, 5] = [-.04, -.02,  .04]
-    SUBUNIT[1, 3, 1] = [-.04,  .00, -.04]
-    SUBUNIT[1, 3, 2] = [-.04,  .00, -.02]
-    SUBUNIT[1, 3, 3] = [-.04,  .00,  .00]
-    SUBUNIT[1, 3, 4] = [-.04,  .00,  .02]
-    SUBUNIT[1, 3, 5] = [-.04,  .00,  .04]
-    SUBUNIT[1, 4, 1] = [-.04,  .02, -.04]
-    SUBUNIT[1, 4, 2] = [-.04,  .02, -.02]
-    SUBUNIT[1, 4, 3] = [-.04,  .02,  .00]
-    SUBUNIT[1, 4, 4] = [-.04,  .02,  .02]
-    SUBUNIT[1, 4, 5] = [-.04,  .02,  .04]
-    SUBUNIT[1, 5, 1] = [-.04,  .04, -.04]
-    SUBUNIT[1, 5, 2] = [-.04,  .04, -.02]
-    SUBUNIT[1, 5, 3] = [-.04,  .04,  .00]
-    SUBUNIT[1, 5, 4] = [-.04,  .04,  .02]
-    SUBUNIT[1, 5, 5] = [-.04,  .04,  .04]
-    SUBUNIT[2, 1, 1] = [-.02, -.04, -.04]
-    SUBUNIT[2, 1, 2] = [-.02, -.04, -.02]
-    SUBUNIT[2, 1, 3] = [-.02, -.04,  .00]
-    SUBUNIT[2, 1, 4] = [-.02, -.04,  .02]
-    SUBUNIT[2, 1, 5] = [-.02, -.04,  .04]
-    SUBUNIT[2, 2, 1] = [-.02, -.02, -.04]
-    SUBUNIT[2, 2, 2] = [-.02, -.02, -.02]
-    SUBUNIT[2, 2, 3] = [-.02, -.02,  .00]
-    SUBUNIT[2, 2, 4] = [-.02, -.02,  .02]
-    SUBUNIT[2, 2, 5] = [-.02, -.02,  .04]
-    SUBUNIT[2, 3, 1] = [-.02,  .00, -.04]
-    SUBUNIT[2, 3, 2] = [-.02,  .00, -.02]
-    SUBUNIT[2, 3, 3] = [-.02,  .00,  .00]
-    SUBUNIT[2, 3, 4] = [-.02,  .00,  .02]
-    SUBUNIT[2, 3, 5] = [-.02,  .00,  .04]
-    SUBUNIT[2, 4, 1] = [-.02,  .02, -.04]
-    SUBUNIT[2, 4, 2] = [-.02,  .02, -.02]
-    SUBUNIT[2, 4, 3] = [-.02,  .02,  .00]
-    SUBUNIT[2, 4, 4] = [-.02,  .02,  .02]
-    SUBUNIT[2, 4, 5] = [-.02,  .02,  .04]
-    SUBUNIT[2, 5, 1] = [-.02,  .04, -.04]
-    SUBUNIT[2, 5, 2] = [-.02,  .04, -.02]
-    SUBUNIT[2, 5, 3] = [-.02,  .04,  .00]
-    SUBUNIT[2, 5, 4] = [-.02,  .04,  .02]
-    SUBUNIT[2, 5, 5] = [-.02,  .04,  .04]
-    SUBUNIT[3, 1, 1] = [ .00, -.04, -.04]
-    SUBUNIT[3, 1, 2] = [ .00, -.04, -.02]
-    SUBUNIT[3, 1, 3] = [ .00, -.04,  .00]
-    SUBUNIT[3, 1, 4] = [ .00, -.04,  .02]
-    SUBUNIT[3, 1, 5] = [ .00, -.04,  .04]
-    SUBUNIT[3, 2, 1] = [ .00, -.02, -.04]
-    SUBUNIT[3, 2, 2] = [ .00, -.02, -.02]
-    SUBUNIT[3, 2, 3] = [ .00, -.02,  .00]
-    SUBUNIT[3, 2, 4] = [ .00, -.02,  .02]
-    SUBUNIT[3, 2, 5] = [ .00, -.02,  .04]
-    SUBUNIT[3, 3, 1] = [ .00,  .00, -.04]
-    SUBUNIT[3, 3, 2] = [ .00,  .00, -.02]
-    SUBUNIT[3, 3, 3] = [ .00,  .00,  .00]
-    SUBUNIT[3, 3, 4] = [ .00,  .00,  .02]
-    SUBUNIT[3, 3, 5] = [ .00,  .00,  .04]
-    SUBUNIT[3, 4, 1] = [ .00,  .02, -.04]
-    SUBUNIT[3, 4, 2] = [ .00,  .02, -.02]
-    SUBUNIT[3, 4, 3] = [ .00,  .02,  .00]
-    SUBUNIT[3, 4, 4] = [ .00,  .02,  .02]
-    SUBUNIT[3, 4, 5] = [ .00,  .02,  .04]
-    SUBUNIT[3, 5, 1] = [ .00,  .04, -.04]
-    SUBUNIT[3, 5, 2] = [ .00,  .04, -.02]
-    SUBUNIT[3, 5, 3] = [ .00,  .04,  .00]
-    SUBUNIT[3, 5, 4] = [ .00,  .04,  .02]
-    SUBUNIT[3, 5, 5] = [ .00,  .04,  .04]
-    SUBUNIT[4, 1, 1] = [ .02, -.04, -.04]
-    SUBUNIT[4, 1, 2] = [ .02, -.04, -.02]
-    SUBUNIT[4, 1, 3] = [ .02, -.04,  .00]
-    SUBUNIT[4, 1, 4] = [ .02, -.04,  .02]
-    SUBUNIT[4, 1, 5] = [ .02, -.04,  .04]
-    SUBUNIT[4, 2, 1] = [ .02, -.02, -.04]
-    SUBUNIT[4, 2, 2] = [ .02, -.02, -.02]
-    SUBUNIT[4, 2, 3] = [ .02, -.02,  .00]
-    SUBUNIT[4, 2, 4] = [ .02, -.02,  .02]
-    SUBUNIT[4, 2, 5] = [ .02, -.02,  .04]
-    SUBUNIT[4, 3, 1] = [ .02,  .00, -.04]
-    SUBUNIT[4, 3, 2] = [ .02,  .00, -.02]
-    SUBUNIT[4, 3, 3] = [ .02,  .00,  .00]
-    SUBUNIT[4, 3, 4] = [ .02,  .00,  .02]
-    SUBUNIT[4, 3, 5] = [ .02,  .00,  .04]
-    SUBUNIT[4, 4, 1] = [ .02,  .02, -.04]
-    SUBUNIT[4, 4, 2] = [ .02,  .02, -.02]
-    SUBUNIT[4, 4, 3] = [ .02,  .02,  .00]
-    SUBUNIT[4, 4, 4] = [ .02,  .02,  .02]
-    SUBUNIT[4, 4, 5] = [ .02,  .02,  .04]
-    SUBUNIT[4, 5, 1] = [ .02,  .04, -.04]
-    SUBUNIT[4, 5, 2] = [ .02,  .04, -.02]
-    SUBUNIT[4, 5, 3] = [ .02,  .04,  .00]
-    SUBUNIT[4, 5, 4] = [ .02,  .04,  .02]
-    SUBUNIT[4, 5, 5] = [ .02,  .04,  .04]
-    SUBUNIT[5, 1, 1] = [ .04, -.04, -.04]
-    SUBUNIT[5, 1, 2] = [ .04, -.04, -.02]
-    SUBUNIT[5, 1, 3] = [ .04, -.04,  .00]
-    SUBUNIT[5, 1, 4] = [ .04, -.04,  .02]
-    SUBUNIT[5, 1, 5] = [ .04, -.04,  .04]
-    SUBUNIT[5, 2, 1] = [ .04, -.02, -.04]
-    SUBUNIT[5, 2, 2] = [ .04, -.02, -.02]
-    SUBUNIT[5, 2, 3] = [ .04, -.02,  .00]
-    SUBUNIT[5, 2, 4] = [ .04, -.02,  .02]
-    SUBUNIT[5, 2, 5] = [ .04, -.02,  .04]
-    SUBUNIT[5, 3, 1] = [ .04,  .00, -.04]
-    SUBUNIT[5, 3, 2] = [ .04,  .00, -.02]
-    SUBUNIT[5, 3, 3] = [ .04,  .00,  .00]
-    SUBUNIT[5, 3, 4] = [ .04,  .00,  .02]
-    SUBUNIT[5, 3, 5] = [ .04,  .00,  .04]
-    SUBUNIT[5, 4, 1] = [ .04,  .02, -.04]
-    SUBUNIT[5, 4, 2] = [ .04,  .02, -.02]
-    SUBUNIT[5, 4, 3] = [ .04,  .02,  .00]
-    SUBUNIT[5, 4, 4] = [ .04,  .02,  .02]
-    SUBUNIT[5, 4, 5] = [ .04,  .02,  .04]
-    SUBUNIT[5, 5, 1] = [ .04,  .04, -.04]
-    SUBUNIT[5, 5, 2] = [ .04,  .04, -.02]
-    SUBUNIT[5, 5, 3] = [ .04,  .04,  .00]
-    SUBUNIT[5, 5, 4] = [ .04,  .04,  .02]
-    SUBUNIT[5, 5, 5] = [ .04,  .04,  .04]
-  }
-  SUBUNIT_RELATIONSHIPS {
-    xp = [+1,  0,  0]
-    xn = [-1,  0,  0]
-    yp = [ 0, +1,  0]
-    yn = [ 0, -1,  0]
-    zp = [ 0,  0, +1]
-    zn = [ 0,  0, -1]
-  }
-  RATE_RULES {
-    binding {
-      xp == V_c_su1 & xn != V_c_su1 & yp == V_c_su1 & yn == V_c_su0 & zp == V_c_su1 & zn != V_c_su1 : cx_max_rate
-                                      yp == V_c_su1 & yn == V_c_su0 & zp == V_c_su1 & zn != V_c_su1 : cx_rate_1
-      xp == V_c_su1 & xn != V_c_su1 &                                 zp == V_c_su1 & zn != V_c_su1 : cx_rate_1
-      xp == V_c_su1 & xn != V_c_su1 & yp == V_c_su1 & yn == V_c_su0                                 : cx_rate_1
-                                                                      zp == V_c_su1 & zn != V_c_su1 : cx_rate_2
-                                      yp == V_c_su1 & yn == V_c_su0                                 : cx_rate_2
-      xp == V_c_su1 & xn != V_c_su1                                                                 : cx_rate_2
-      DEFAULT                                                                                       : cx_normal_rate
-    }
-  }
-}
-
-DEFINE_REACTIONS {
   V_u -> I_u [3.0e2]
   V_b1 + V_b2 -> I_b [6.0e8]
   V_t1 + V_t2 + V_t3 -> I_t [3.0e12]
-  (V_c_su0) + V_i -> (V_c_su1) [COMPLEX_RATE Complex binding]
 }
 
 all_release_sites OBJECT {
@@ -280,19 +115,13 @@ REACTION_DATA_OUTPUT {
   {COUNT[V_t1,world.main_box]}    => countdir & "V_t1." & seed & ".dat"
   {COUNT[V_t2,world.main_box]}    => countdir & "V_t2." & seed & ".dat"
   {COUNT[V_t3,world.main_box]}    => countdir & "V_t3." & seed & ".dat"
+}
+
+REACTION_DATA_OUTPUT
+{
+  STEP = timestep
   {COUNT[V_c_su0,world.main_box]} => countdir & "V_c_su0." & seed & ".dat"
   {COUNT[V_c_su1,world.main_box]} => countdir & "V_c_su1." & seed & ".dat"
 }
 
-VIZ_OUTPUT {
-  MODE = DREAMM_V3_GROUPED
-  FILENAME = vizdir & "world." & seed
-  MOLECULES {
-    NAME_LIST { ALL_MOLECULES }
-    ITERATION_NUMBERS { ALL_DATA @ [[0 TO 100000000 STEP 100]] }
-  }
-  MESHES {
-    NAME_LIST { ALL_MESHES }
-    ITERATION_NUMBERS { ALL_DATA @ [0] }
-  }
-}
+INCLUDE_FILE = "vizoutput.mdl"

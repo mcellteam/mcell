@@ -1,0 +1,342 @@
+/****************************************************************************
+ * Test 06: All surface rxn types (vol surf, surf surf, vol vol surf, etc.)
+ *
+ *    An untargetted test aiming to flush out any gross errors introduced into
+ *    the reaction machinery.  No numeric results were generated to compare the
+ *    results against, so we're mainly looking for crashes or other obvious
+ *    defects, such as complete absence of reaction.
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+basename = "06-surface"
+countdir = "dat/" & basename & "/"
+vizdir   = "./viz_dat/" & basename & "/"
+sprintf(seed, "%04g", SEED)
+
+iterations = 100
+timestep = 1e-6
+boxdims = 0.25
+voldiffconst = 2.0e-6
+surfdiffconst = 1.0e-7
+
+/* ACCURATE_3D_REACTIONS = FALSE */
+
+VACANCY_SEARCH_DISTANCE = 2.0
+PARTITION_X = [ [ -3.51 TO -2.99 STEP 0.09 ],
+                [ -2.51 TO -1.99 STEP 0.09 ] ]
+PARTITION_Y = [ [ -3.51 TO -2.99 STEP 0.09 ],
+                [ -2.51 TO -1.99 STEP 0.09 ] ]
+PARTITION_Z = [ [ -3.51 TO -2.99 STEP 0.09 ],
+                [ -2.51 TO -1.99 STEP 0.09 ] ]
+
+ITERATIONS = iterations
+TIME_STEP = timestep
+TIME_STEP_MAX = 1.0
+
+DEFINE_MOLECULES
+{
+    /* Vol-Grid, old pathway */
+    V_t1 {DIFFUSION_CONSTANT_3D = voldiffconst}  
+    S_t1a {DIFFUSION_CONSTANT_2D = surfdiffconst}
+    S_t1b {DIFFUSION_CONSTANT_2D = 0}
+    S_t1ia {DIFFUSION_CONSTANT_2D = 0}
+    S_t1ib {DIFFUSION_CONSTANT_2D = 0}
+
+    /* Vol-Grid, new pathway */
+    V_t2 {DIFFUSION_CONSTANT_3D = voldiffconst}  
+    S_t2a {DIFFUSION_CONSTANT_2D = surfdiffconst}
+    S_t2b {DIFFUSION_CONSTANT_2D = 0}
+    S_t2ia {DIFFUSION_CONSTANT_2D = 0}
+    S_t2ib {DIFFUSION_CONSTANT_2D = 0}
+
+    /* Grid-Grid, old pathway */
+    S_t3a {DIFFUSION_CONSTANT_2D = surfdiffconst}
+    S_t3b {DIFFUSION_CONSTANT_2D = surfdiffconst}
+    S_t3c {DIFFUSION_CONSTANT_2D = 0}
+    S_t3ia {DIFFUSION_CONSTANT_2D = 0}
+    S_t3ib {DIFFUSION_CONSTANT_2D = 0}
+
+    /* Grid-Grid, new pathway */
+    S_t4a {DIFFUSION_CONSTANT_2D = surfdiffconst}
+    S_t4b {DIFFUSION_CONSTANT_2D = surfdiffconst}
+    S_t4c {DIFFUSION_CONSTANT_2D = 0}
+    S_t4ia {DIFFUSION_CONSTANT_2D = 0}
+    S_t4ib {DIFFUSION_CONSTANT_2D = 0}
+
+    /* Vol-Vol-Grid */
+    V_t5a {DIFFUSION_CONSTANT_3D = voldiffconst CUSTOM_TIME_STEP=timestep/10}  
+    V_t5b {DIFFUSION_CONSTANT_3D = voldiffconst CUSTOM_TIME_STEP=timestep/10}  
+    S_t5a {DIFFUSION_CONSTANT_2D = surfdiffconst CUSTOM_TIME_STEP=timestep/10}
+    S_t5b {DIFFUSION_CONSTANT_2D = 0 CUSTOM_TIME_STEP=timestep/10}
+    S_t5ia {DIFFUSION_CONSTANT_2D = 0}
+    S_t5ib {DIFFUSION_CONSTANT_2D = 0}
+
+    /* Vol-Grid-Grid */
+    V_t6 {DIFFUSION_CONSTANT_3D = voldiffconst}  
+    S_t6a {DIFFUSION_CONSTANT_2D = surfdiffconst}
+    S_t6b {DIFFUSION_CONSTANT_2D = surfdiffconst}
+    S_t6c {DIFFUSION_CONSTANT_2D = surfdiffconst}
+    S_t6d {DIFFUSION_CONSTANT_2D = 0}
+    S_t6e {DIFFUSION_CONSTANT_2D = 0}
+    S_t6f {DIFFUSION_CONSTANT_2D = 0}
+    S_t6ia {DIFFUSION_CONSTANT_2D = 0}
+    S_t6ib {DIFFUSION_CONSTANT_2D = 0}
+    S_t6ic {DIFFUSION_CONSTANT_2D = 0}
+
+    /* Grid-Grid-Grid */
+    S_t7a {DIFFUSION_CONSTANT_2D = surfdiffconst}
+    S_t7b {DIFFUSION_CONSTANT_2D = surfdiffconst}
+    S_t7c {DIFFUSION_CONSTANT_2D = surfdiffconst}
+    S_t7i {DIFFUSION_CONSTANT_2D = surfdiffconst}
+
+    /* Dummy molecules to trick diffusion into using new pathway */
+    V_a {DIFFUSION_CONSTANT_3D = voldiffconst}  
+    V_b {DIFFUSION_CONSTANT_3D = voldiffconst}  
+    S_a {DIFFUSION_CONSTANT_2D = voldiffconst}  
+    S_b {DIFFUSION_CONSTANT_2D = voldiffconst}  
+}
+
+DEFINE_REACTIONS {
+  V_t1' + S_t1a'       <-> S_t1ia' [>3.0e7, <400]
+  V_t1' + S_t1b'       <-> S_t1ib' [>3.0e7, <400]
+
+  V_t2' + S_t2a'       <-> S_t2ia' [>3.0e7, <400]
+  V_t2' + S_t2b'       <-> S_t2ib' [>3.0e7, <400]
+  V_t2 + V_a + V_b      -> V_b    [3.0]          /* DUMMY */
+
+  S_t3a' + S_t3b'      <-> S_t3ia' [>1.0e1, <800]
+  S_t3a' + S_t3c'      <-> S_t3ib' [>1.0e1, <800]
+
+  S_t4a' + S_t4b'      <-> S_t4ia' [>1.0e1, <800]
+  S_t4a' + S_t4c'      <-> S_t4ib' [>1.0e1, <800]
+  S_t4a' + S_a; + S_b;  -> S_b'    [3.0]          /* DUMMY */
+  S_t4b' + S_a; + S_b;  -> S_b'    [3.0]          /* DUMMY */
+
+  V_t5a' + V_t5b' + S_t5a' <-> S_t5ia' [>3.0e11, <400]
+  V_t5a' + V_t5b' + S_t5b' <-> S_t5ib' [>3.0e11, <400]
+
+  V_t6' + S_t6a' + S_t6b' <-> S_t6ia' [>3.0e-4, <400]
+  V_t6' + S_t6c' + S_t6d' <-> S_t6ib' [>3.0e-4, <400]
+  V_t6' + S_t6e' + S_t6f' <-> S_t6ic' [>3.0e-4, <400]
+
+  S_t7a' + S_t7b' + S_t7c' <-> S_t7i' [>1.0e-2, <400]
+}
+
+outer_box BOX
+{
+    CORNERS = [-4,-4,-4], [4,4,4] 
+}
+
+INSTANTIATE world OBJECT 
+{
+    box1 BOX {
+      CORNERS = [-3.5, -3.5, -3.5], [-3, -3, -3]
+      DEFINE_SURFACE_REGIONS {
+        all {
+          ELEMENT_LIST = [ ALL_ELEMENTS ]
+          MOLECULE_NUMBER {
+            S_t1a, = 1000
+            S_t1b, = 1000
+          }
+        }
+      }
+    }
+    release_site_1 RELEASE_SITE {
+        SHAPE = world.box1
+        MOLECULE = V_t1
+        NUMBER_TO_RELEASE = 1000
+    }
+    box2 BOX {
+      CORNERS = [-2.5, -3.5, -3.5], [-2, -3, -3]
+      DEFINE_SURFACE_REGIONS {
+        all {
+          ELEMENT_LIST = [ ALL_ELEMENTS ]
+          MOLECULE_NUMBER {
+            S_t2a, = 1000
+            S_t2b, = 1000
+          }
+        }
+      }
+    }
+    release_site_2 RELEASE_SITE {
+        SHAPE = world.box2
+        MOLECULE = V_t2
+        NUMBER_TO_RELEASE = 1000
+    }
+    box3 BOX {
+      CORNERS = [-3.5, -2.5, -3.5], [-3, -2, -3]
+      DEFINE_SURFACE_REGIONS {
+        all {
+          ELEMENT_LIST = [ ALL_ELEMENTS ]
+          MOLECULE_NUMBER {
+            S_t3a, = 1000
+            S_t3b, = 1000
+            S_t3c, = 1000
+          }
+        }
+      }
+    }
+    box4 BOX {
+      CORNERS = [-2.5, -2.5, -3.5], [-2, -2, -3]
+      DEFINE_SURFACE_REGIONS {
+        all {
+          ELEMENT_LIST = [ ALL_ELEMENTS ]
+          MOLECULE_NUMBER {
+            S_t4a, = 1000
+            S_t4b, = 1000
+            S_t4c, = 1000
+          }
+        }
+      }
+    }
+    box5 BOX {
+      CORNERS = [-3.5, -3.5, -2.5], [-3, -3, -2]
+      DEFINE_SURFACE_REGIONS {
+        all {
+          ELEMENT_LIST = [ ALL_ELEMENTS ]
+          MOLECULE_NUMBER {
+            S_t5a, = 4000
+            S_t5b, = 4000
+          }
+        }
+      }
+    }
+    release_site_5a RELEASE_SITE {
+        SHAPE = world.box5
+        MOLECULE = V_t5a
+        NUMBER_TO_RELEASE = 1000
+    }
+    release_site_5b RELEASE_SITE {
+        SHAPE = world.box5
+        MOLECULE = V_t5b
+        NUMBER_TO_RELEASE = 1000
+    }
+    box6 BOX {
+      CORNERS = [-2.5, -3.5, -2.5], [-2, -3, -2]
+      DEFINE_SURFACE_REGIONS {
+        all {
+          ELEMENT_LIST = [ ALL_ELEMENTS ]
+          MOLECULE_NUMBER {
+            S_t6a, = 1000
+            S_t6b, = 1000
+            S_t6c, = 1000
+            S_t6d, = 1000
+            S_t6e, = 1000
+            S_t6f, = 1000
+          }
+        }
+      }
+    }
+    release_site_6 RELEASE_SITE {
+        SHAPE = world.box6
+        MOLECULE = V_t6
+        NUMBER_TO_RELEASE = 1000
+    }
+    box7 BOX {
+      CORNERS = [-3.5, -2.5, -2.5], [-3, -2, -2]
+      DEFINE_SURFACE_REGIONS {
+        all {
+          ELEMENT_LIST = [ ALL_ELEMENTS ]
+          MOLECULE_NUMBER {
+            S_t7a, = 1000
+            S_t7b, = 1000
+            S_t7c, = 1000
+          }
+        }
+      }
+    }
+}
+
+REACTION_DATA_OUTPUT {
+  STEP = timestep
+  {COUNT[V_t1,WORLD]}         => countdir & "V_t1." & seed & ".dat"
+  {COUNT[S_t1a,WORLD]}        => countdir & "S_t1a." & seed & ".dat"
+  {COUNT[S_t1b,WORLD]}        => countdir & "S_t1b." & seed & ".dat"
+  {COUNT[S_t1ia,WORLD]}       => countdir & "S_t1ia." & seed & ".dat"
+  {COUNT[S_t1ib,WORLD]}       => countdir & "S_t1ib." & seed & ".dat"
+  {COUNT[V_t1,world.box1]}    => countdir & "w_V_t1." & seed & ".dat"
+  {COUNT[S_t1a,world.box1]}   => countdir & "w_S_t1a." & seed & ".dat"
+  {COUNT[S_t1b,world.box1]}   => countdir & "w_S_t1b." & seed & ".dat"
+  {COUNT[S_t1ia,world.box1]}  => countdir & "w_S_t1ia." & seed & ".dat"
+  {COUNT[S_t1ib,world.box1]}  => countdir & "w_S_t1ib." & seed & ".dat"
+
+  {COUNT[V_t2,WORLD]}         => countdir & "V_t2." & seed & ".dat"
+  {COUNT[S_t2a,WORLD]}        => countdir & "S_t2a." & seed & ".dat"
+  {COUNT[S_t2b,WORLD]}        => countdir & "S_t2b." & seed & ".dat"
+  {COUNT[S_t2ia,WORLD]}       => countdir & "S_t2ia." & seed & ".dat"
+  {COUNT[S_t2ib,WORLD]}       => countdir & "S_t2ib." & seed & ".dat"
+  {COUNT[V_t2,world.box2]}    => countdir & "w_V_t2." & seed & ".dat"
+  {COUNT[S_t2a,world.box2]}   => countdir & "w_S_t2a." & seed & ".dat"
+  {COUNT[S_t2b,world.box2]}   => countdir & "w_S_t2b." & seed & ".dat"
+  {COUNT[S_t2ia,world.box2]}  => countdir & "w_S_t2ia." & seed & ".dat"
+  {COUNT[S_t2ib,world.box2]}  => countdir & "w_S_t2ib." & seed & ".dat"
+
+  {COUNT[S_t3a,WORLD]}        => countdir & "S_t3a." & seed & ".dat"
+  {COUNT[S_t3b,WORLD]}        => countdir & "S_t3b." & seed & ".dat"
+  {COUNT[S_t3c,WORLD]}        => countdir & "S_t3c." & seed & ".dat"
+  {COUNT[S_t3ia,WORLD]}       => countdir & "S_t3ia." & seed & ".dat"
+  {COUNT[S_t3ib,WORLD]}       => countdir & "S_t3ib." & seed & ".dat"
+  {COUNT[S_t3a,world.box3]}   => countdir & "w_S_t3a." & seed & ".dat"
+  {COUNT[S_t3b,world.box3]}   => countdir & "w_S_t3b." & seed & ".dat"
+  {COUNT[S_t3c,world.box3]}   => countdir & "w_S_t3c." & seed & ".dat"
+  {COUNT[S_t3ia,world.box3]}  => countdir & "w_S_t3ia." & seed & ".dat"
+  {COUNT[S_t3ib,world.box3]}  => countdir & "w_S_t3ib." & seed & ".dat"
+
+  {COUNT[S_t4a,WORLD]}        => countdir & "S_t4a." & seed & ".dat"
+  {COUNT[S_t4b,WORLD]}        => countdir & "S_t4b." & seed & ".dat"
+  {COUNT[S_t4c,WORLD]}        => countdir & "S_t4c." & seed & ".dat"
+  {COUNT[S_t4ia,WORLD]}       => countdir & "S_t4ia." & seed & ".dat"
+  {COUNT[S_t4ib,WORLD]}       => countdir & "S_t4ib." & seed & ".dat"
+  {COUNT[S_t4a,world.box4]}   => countdir & "w_S_t4a." & seed & ".dat"
+  {COUNT[S_t4b,world.box4]}   => countdir & "w_S_t4b." & seed & ".dat"
+  {COUNT[S_t4c,world.box4]}   => countdir & "w_S_t4c." & seed & ".dat"
+  {COUNT[S_t4ia,world.box4]}  => countdir & "w_S_t4ia." & seed & ".dat"
+  {COUNT[S_t4ib,world.box4]}  => countdir & "w_S_t4ib." & seed & ".dat"
+
+  {COUNT[V_t5a,WORLD]}        => countdir & "V_t5a." & seed & ".dat"
+  {COUNT[V_t5b,WORLD]}        => countdir & "V_t5b." & seed & ".dat"
+  {COUNT[S_t5a,WORLD]}        => countdir & "S_t5a." & seed & ".dat"
+  {COUNT[S_t5b,WORLD]}        => countdir & "S_t5b." & seed & ".dat"
+  {COUNT[S_t5ia,WORLD]}       => countdir & "S_t5ia." & seed & ".dat"
+  {COUNT[S_t5ib,WORLD]}       => countdir & "S_t5ib." & seed & ".dat"
+  {COUNT[V_t5a,world.box5]}   => countdir & "w_V_t5a." & seed & ".dat"
+  {COUNT[V_t5b,world.box5]}   => countdir & "w_V_t5b." & seed & ".dat"
+  {COUNT[S_t5a,world.box5]}   => countdir & "w_S_t5a." & seed & ".dat"
+  {COUNT[S_t5b,world.box5]}   => countdir & "w_S_t5b." & seed & ".dat"
+  {COUNT[S_t5ia,world.box5]}  => countdir & "w_S_t5ia." & seed & ".dat"
+  {COUNT[S_t5ib,world.box5]}  => countdir & "w_S_t5ib." & seed & ".dat"
+
+  {COUNT[V_t6,WORLD]}         => countdir & "V_t6." & seed & ".dat"
+  {COUNT[S_t6a,WORLD]}        => countdir & "S_t6a." & seed & ".dat"
+  {COUNT[S_t6b,WORLD]}        => countdir & "S_t6b." & seed & ".dat"
+  {COUNT[S_t6c,WORLD]}        => countdir & "S_t6c." & seed & ".dat"
+  {COUNT[S_t6d,WORLD]}        => countdir & "S_t6d." & seed & ".dat"
+  {COUNT[S_t6e,WORLD]}        => countdir & "S_t6e." & seed & ".dat"
+  {COUNT[S_t6f,WORLD]}        => countdir & "S_t6f." & seed & ".dat"
+  {COUNT[S_t6ia,WORLD]}       => countdir & "S_t6ia." & seed & ".dat"
+  {COUNT[S_t6ib,WORLD]}       => countdir & "S_t6ib." & seed & ".dat"
+  {COUNT[S_t6ic,WORLD]}       => countdir & "S_t6ic." & seed & ".dat"
+  {COUNT[V_t6,world.box6]}    => countdir & "w_V_t6." & seed & ".dat"
+  {COUNT[S_t6a,world.box6]}   => countdir & "w_S_t6a." & seed & ".dat"
+  {COUNT[S_t6b,world.box6]}   => countdir & "w_S_t6b." & seed & ".dat"
+  {COUNT[S_t6c,world.box6]}   => countdir & "w_S_t6c." & seed & ".dat"
+  {COUNT[S_t6d,world.box6]}   => countdir & "w_S_t6d." & seed & ".dat"
+  {COUNT[S_t6e,world.box6]}   => countdir & "w_S_t6e." & seed & ".dat"
+  {COUNT[S_t6f,world.box6]}   => countdir & "w_S_t6f." & seed & ".dat"
+  {COUNT[S_t6ia,world.box6]}  => countdir & "w_S_t6ia." & seed & ".dat"
+  {COUNT[S_t6ib,world.box6]}  => countdir & "w_S_t6ib." & seed & ".dat"
+  {COUNT[S_t6ic,world.box6]}  => countdir & "w_S_t6ic." & seed & ".dat"
+
+  {COUNT[S_t7a,WORLD]}        => countdir & "S_t7a." & seed & ".dat"
+  {COUNT[S_t7b,WORLD]}        => countdir & "S_t7b." & seed & ".dat"
+  {COUNT[S_t7c,WORLD]}        => countdir & "S_t7c." & seed & ".dat"
+  {COUNT[S_t7i,WORLD]}        => countdir & "S_t7i." & seed & ".dat"
+  {COUNT[S_t7a,world.box7]}   => countdir & "w_S_t7a." & seed & ".dat"
+  {COUNT[S_t7b,world.box7]}   => countdir & "w_S_t7b." & seed & ".dat"
+  {COUNT[S_t7c,world.box7]}   => countdir & "w_S_t7c." & seed & ".dat"
+  {COUNT[S_t7i,world.box7]}   => countdir & "w_S_t7i." & seed & ".dat"
+}
+
+INCLUDE_FILE = "vizoutput.mdl"

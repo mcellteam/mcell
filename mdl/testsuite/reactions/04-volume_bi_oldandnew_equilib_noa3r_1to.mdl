@@ -23,10 +23,6 @@ cpfile   = basename & seed & ".cp"
 iterations = 100
 timestep = 1e-6
 boxdims = 0.25
-cx_max_rate = 6.0e8
-cx_rate_1 = 3.0e8
-cx_rate_2 = 1.5e8
-cx_normal_rate = 7.5e7
 voldiffconst = 2.0e-6
 
 ACCURATE_3D_REACTIONS = FALSE
@@ -41,27 +37,14 @@ PARTITION_Z = [ [ -0.3 TO 0.3 STEP 0.015 ] ]
 ITERATIONS = iterations
 TIME_STEP = timestep
 
-DEFINE_MOLECULES
-{
-    V_t1 {DIFFUSION_CONSTANT_3D = voldiffconst TARGET_ONLY}
-    V_t2 {DIFFUSION_CONSTANT_3D = voldiffconst}
-    V_t3 {DIFFUSION_CONSTANT_3D = voldiffconst TARGET_ONLY}
-    V_t4 {DIFFUSION_CONSTANT_3D = voldiffconst}
-
-    /* Never released -- used to trick code into using trimolecular pathway */
-    V_a {DIFFUSION_CONSTANT_3D = voldiffconst}
-    V_b {DIFFUSION_CONSTANT_3D = voldiffconst}
-
-    I_t1 {DIFFUSION_CONSTANT_3D = 0}  
-    I_t2 {DIFFUSION_CONSTANT_3D = 0}  
-}
+INCLUDE_FILE = "volmols.mdl"
 
 DEFINE_REACTIONS {
-  V_t1 + V_t2        -> V_t1 + I_t1 [3.0e7]
+  V_t1to + V_t2      -> V_t1to + I_t1 [3.0e7]
   I_t1               -> V_t2 [398.5387]
   V_b  + V_t2 + V_a  -> I_t1 [3.0e10]
 
-  V_t3 + V_t4        -> V_t3 + I_t2  [3.0e7]
+  V_t3to + V_t4      -> V_t3to + I_t2  [3.0e7]
   I_t2               -> V_t4 [398.5387]
 }
 
@@ -81,7 +64,7 @@ INSTANTIATE world OBJECT
     outer_box OBJECT outer_box{}  
     release_site_4 RELEASE_SITE {
         SHAPE = world.main_box
-        MOLECULE = V_t1
+        MOLECULE = V_t1to
         NUMBER_TO_RELEASE = 1000
     }
     release_site_5 RELEASE_SITE {
@@ -91,7 +74,7 @@ INSTANTIATE world OBJECT
     }
     release_site_6 RELEASE_SITE {
         SHAPE = world.main_box
-        MOLECULE = V_t3
+        MOLECULE = V_t3to
         NUMBER_TO_RELEASE = 1000
     }
     release_site_7 RELEASE_SITE {
@@ -103,21 +86,10 @@ INSTANTIATE world OBJECT
 
 REACTION_DATA_OUTPUT {
   STEP = timestep
-  {COUNT[V_t1,world.main_box]}    => countdir & "V_t1." & seed & ".dat"
+  {COUNT[V_t1to,world.main_box]}  => countdir & "V_t1." & seed & ".dat"
   {COUNT[V_t2,world.main_box]}    => countdir & "V_t2." & seed & ".dat"
-  {COUNT[V_t3,world.main_box]}    => countdir & "V_t3." & seed & ".dat"
+  {COUNT[V_t3to,world.main_box]}  => countdir & "V_t3." & seed & ".dat"
   {COUNT[V_t4,world.main_box]}    => countdir & "V_t4." & seed & ".dat"
 }
 
-VIZ_OUTPUT {
-  MODE = DREAMM_V3_GROUPED
-  FILENAME = vizdir & "world." & seed
-  MOLECULES {
-    NAME_LIST { ALL_MOLECULES }
-    ITERATION_NUMBERS { ALL_DATA @ [[0 TO 100000000 STEP 100]] }
-  }
-  MESHES {
-    NAME_LIST { ALL_MESHES }
-    ITERATION_NUMBERS { ALL_DATA @ [0] }
-  }
-}
+INCLUDE_FILE = "vizoutput.mdl"

@@ -1,0 +1,16 @@
+/****************************************************************************
+ * Default viz output
+ ****************************************************************************/
+VIZ_OUTPUT
+{
+  MODE = DREAMM_V3_GROUPED
+  FILENAME = vizdir & "world." & seed
+  MOLECULES {
+    NAME_LIST { ALL_MOLECULES }
+    ITERATION_NUMBERS { ALL_DATA @ [[0 TO 100000000 STEP 100]] }
+  }
+  MESHES {
+    NAME_LIST { ALL_MESHES }
+    ITERATION_NUMBERS { ALL_DATA @ [0] }
+  }
+}

@@ -1,3 +1,13 @@
+/****************************************************************************
+ * Macromolecule parser error handling 24: Two subunit reactants.
+ *
+ *    Expect an error regarding the line:
+ *      (camkii_subunit) + (cam) -> (camkii_subunitB)  ...
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
 dt = 1e-6
 iterations=1250000
 sprintf(seed_str,"%04g",SEED)
@@ -67,7 +77,7 @@ DEFINE_COMPLEX_MOLECULE camkii {
 DEFINE_REACTIONS {
   (camkii_subunit) + cam <-> (camkii_subunitB)   [> COMPLEX_RATE camkii coop_binding_rate,
                                                   < COMPLEX_RATE camkii coop_unbinding_rate]
-  (camkii_subunit) + cam   ->  camkii_subunitB   [COMPLEX_RATE camkii coop_binding_rate]
+  (camkii_subunit) + (cam) -> (camkii_subunitB)  [COMPLEX_RATE camkii coop_binding_rate]
 }
 
 mainbox OBJECT {
