@@ -9438,7 +9438,7 @@ static int macro_build_rate_table(struct mdlparse_vars *mpvp,
                                         "macromolecule rate rule invert table");
   if (cr->invert == NULL) return 1;
   cr->rates     = MDL_MALLOC_ARRAY_DESC(double,
-                                        rule_count,
+                                        rule_count * num_relations,
                                         "macromolecule rate rule rates");
   if (cr->rates == NULL) return 1;
   if (is_surface)

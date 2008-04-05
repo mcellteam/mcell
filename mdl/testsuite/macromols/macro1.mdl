@@ -1,3 +1,15 @@
+/****************************************************************************
+ * Test 01: Simple volume macromolecules.
+ *
+ *    This case is simple enough that it may be solved analytically.  When I
+ *    was originally working on the macromolecules, I compared against the
+ *    analytically derived solution.  I'll rederive it soon so we can compare.
+ *    Watch this space.
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
 dt = 1e-6
 iterations=1250000
 sprintf(seed_str,"%04g",SEED)
