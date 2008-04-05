@@ -1,0 +1,126 @@
+/****************************************************************************
+ * Test 06: Bimolecular volume rxns, trad. versus trimol. code paths.
+ *
+ *    This file compares the time course of a bimolecular reaction when it
+ *    occurs through the traditional code path (diffuse_3D) versus the
+ *    trimolecular code path (diffuse_3D_big_list).  This is achieved by
+ *    creating dummy trimolecular reactions which can never occur because the
+ *    other players are never created:
+ *
+ *      V_t1, V_t2: reactants in actual reaction (trimol path)
+ *      V_a, V_b:   dummy reactants
+ *      V_t3, V_t4: reactants in actual reaction (traditional path)
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+basename = "06-volume_bi_oldandnew"
+countdir = "dat/" & basename & "/"
+vizdir   = "./viz_dat/" & basename & "/"
+sprintf(seed, "%04g", SEED)
+
+iterations = 100
+timestep = 1e-6
+boxdims = 0.25
+cx_max_rate = 6.0e8
+cx_rate_1 = 3.0e8
+cx_rate_2 = 1.5e8
+cx_normal_rate = 7.5e7
+voldiffconst = 2.0e-6
+
+/* ACCURATE_3D_REACTIONS = FALSE */
+TIME_STEP_MAX = 1.0
+
+PARTITION_X = [ [ -0.3 TO 0.3 STEP 0.05 ] ]
+PARTITION_Y = [ [ -0.3 TO 0.3 STEP 0.05 ] ]
+PARTITION_Z = [ [ -0.3 TO 0.3 STEP 0.05 ] ]
+
+ITERATIONS = iterations
+TIME_STEP = timestep
+
+DEFINE_MOLECULES
+{
+    V_t1 {DIFFUSION_CONSTANT_3D = voldiffconst}
+    V_t2 {DIFFUSION_CONSTANT_3D = voldiffconst}
+    V_t3 {DIFFUSION_CONSTANT_3D = voldiffconst}
+    V_t4 {DIFFUSION_CONSTANT_3D = voldiffconst}
+
+    /* Never released -- used to trick code into using trimolecular pathway */
+    V_a {DIFFUSION_CONSTANT_3D = voldiffconst}
+    V_b {DIFFUSION_CONSTANT_3D = voldiffconst}
+
+    I_t {DIFFUSION_CONSTANT_3D = 0}
+}
+
+DEFINE_REACTIONS {
+  V_t1 + V_t2        -> V_t1 + I_t [3.0e7]
+  V_b  + V_t1 + V_a  -> I_t [3.0e12]
+  V_b  + V_t2 + V_a  -> I_t [3.0e12]
+  V_t3 + V_t4        -> V_t3 + I_t [3.0e7]
+}
+
+all_release_sites OBJECT {
+    release_site_4 SPHERICAL_RELEASE_SITE {
+        LOCATION = [-boxdims/2,  boxdims/2,  boxdims/2]
+        MOLECULE = V_t1
+        NUMBER_TO_RELEASE = 1000
+        SITE_DIAMETER = 0
+    }
+    release_site_5 SPHERICAL_RELEASE_SITE {
+        LOCATION = [ boxdims/2,  boxdims/2,  boxdims/2]
+        MOLECULE = V_t2
+        NUMBER_TO_RELEASE = 1000
+        SITE_DIAMETER = 0
+    }
+    release_site_6 SPHERICAL_RELEASE_SITE {
+        LOCATION = [-boxdims/2, -boxdims/2,  boxdims/2]
+        MOLECULE = V_t3
+        NUMBER_TO_RELEASE = 1000
+        SITE_DIAMETER = 0
+    }
+    release_site_7 SPHERICAL_RELEASE_SITE {
+        LOCATION = [ boxdims/2, -boxdims/2,  boxdims/2]
+        MOLECULE = V_t4
+        NUMBER_TO_RELEASE = 1000
+        SITE_DIAMETER = 0
+    }
+}
+
+main_box BOX
+{
+    CORNERS = [-boxdims, -boxdims, -boxdims], [boxdims, boxdims, boxdims]
+}
+
+outer_box BOX
+{
+    CORNERS = [-4,-4,-4], [4,4,4]
+}
+
+INSTANTIATE world OBJECT
+{
+    main_box OBJECT main_box {}
+    outer_box OBJECT outer_box{}
+    release_sites OBJECT all_release_sites { }
+}
+
+REACTION_DATA_OUTPUT {
+  STEP = timestep
+  {COUNT[V_t1,world.main_box]}    => countdir & "V_t1." & seed & ".dat"
+  {COUNT[V_t2,world.main_box]}    => countdir & "V_t2." & seed & ".dat"
+  {COUNT[V_t3,world.main_box]}    => countdir & "V_t3." & seed & ".dat"
+  {COUNT[V_t4,world.main_box]}    => countdir & "V_t4." & seed & ".dat"
+}
+
+VIZ_OUTPUT {
+  MODE = DREAMM_V3_GROUPED
+  FILENAME = vizdir & "world." & seed
+  MOLECULES {
+    NAME_LIST { ALL_MOLECULES }
+    ITERATION_NUMBERS { ALL_DATA @ [[0 TO 100000000 STEP 100]] }
+  }
+  MESHES {
+    NAME_LIST { ALL_MESHES }
+    ITERATION_NUMBERS { ALL_DATA @ [0] }
+  }
+}
