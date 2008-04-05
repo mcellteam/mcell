@@ -1,19 +1,18 @@
 /****************************************************************************
- * Test 07: Bimolecular volume rxn equilibrium.
+ * Test 05: Bimolecular volume rxn time rate of collision
  *
- *    The reaction rates in this file have been computed to give an equilibrium
- *    very close to 50% -- that is, the number of V_t2, I_t1, V_t3, and I_t2
- *    should hover around 500, and when averaged over a long runtime should
- *    give 500 to high accuracy.  V_t1/V_t2 go through the trimolecular code
- *    path, and V_t3/V_t4 go through the traditional code path.
+ *    This file was assembled to compare the rate of collisions detected
+ *    between the traditional and trimolecular code pathways.  It uses the same
+ *    setup as the last several tests, but very large reaction rates.
  *
- *    Accurate 3D reactions are turned on
+ *    Accurate 3D reactions are turned off
+ *    TARGET_ONLY on V_t2, V_t4
  *
  * Author: Jed Wing <jed@salk.edu>
  * Date:   2008-04-04
  ****************************************************************************/
 
-basename = "07-volume_bi_oldandnew_equilib"
+basename = "05-volume_bi_oldandnew_noa3r_2to"
 countdir = "dat/" & basename & "/"
 vizdir   = "./viz_dat/" & basename & "/"
 sprintf(seed, "%04g", SEED)
@@ -28,7 +27,7 @@ cx_rate_2 = 1.5e8
 cx_normal_rate = 7.5e7
 voldiffconst = 2.0e-6
 
-/* ACCURATE_3D_REACTIONS = FALSE */
+ACCURATE_3D_REACTIONS = FALSE
 TIME_STEP_MAX = 1.0
 CHECKPOINT_ITERATIONS = 9999999999
 CHECKPOINT_OUTFILE = cpfile
@@ -43,9 +42,9 @@ TIME_STEP = timestep
 DEFINE_MOLECULES
 {
     V_t1 {DIFFUSION_CONSTANT_3D = voldiffconst}
-    V_t2 {DIFFUSION_CONSTANT_3D = voldiffconst}
+    V_t2 {DIFFUSION_CONSTANT_3D = voldiffconst TARGET_ONLY}
     V_t3 {DIFFUSION_CONSTANT_3D = voldiffconst}
-    V_t4 {DIFFUSION_CONSTANT_3D = voldiffconst}
+    V_t4 {DIFFUSION_CONSTANT_3D = voldiffconst TARGET_ONLY}
 
     /* Never released -- used to trick code into using trimolecular pathway */
     V_a {DIFFUSION_CONSTANT_3D = voldiffconst}
@@ -56,12 +55,10 @@ DEFINE_MOLECULES
 }
 
 DEFINE_REACTIONS {
-  V_t1 + V_t2        -> V_t1 + I_t1 [3.0e7]
-  I_t1               -> V_t2 [398.5387]
+  V_t1 + V_t2        -> V_t1 + I_t1 [3.0e20]
   V_b  + V_t2 + V_a  -> I_t1 [3.0e10]
 
-  V_t3 + V_t4        -> V_t3 + I_t2  [3.0e7]
-  I_t2               -> V_t4 [398.5387]
+  V_t3 + V_t4        -> V_t3 + I_t2  [3.0e20]
 }
 
 main_box BOX 

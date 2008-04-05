@@ -1,5 +1,5 @@
 /****************************************************************************
- * Test 07: Bimolecular volume rxn equilibrium.
+ * Test 04: Bimolecular volume rxn equilibrium
  *
  *    The reaction rates in this file have been computed to give an equilibrium
  *    very close to 50% -- that is, the number of V_t2, I_t1, V_t3, and I_t2
@@ -8,13 +8,12 @@
  *    path, and V_t3/V_t4 go through the traditional code path.
  *
  *    Accurate 3D reactions are turned off
- *    TARGET_ONLY on V_t1, V_t3
  *
  * Author: Jed Wing <jed@salk.edu>
  * Date:   2008-04-04
  ****************************************************************************/
 
-basename = "07-volume_bi_oldandnew_equilib_noa3r_1to"
+basename = "04-volume_bi_oldandnew_equilib_noa3r"
 countdir = "dat/" & basename & "/"
 vizdir   = "./viz_dat/" & basename & "/"
 sprintf(seed, "%04g", SEED)
@@ -43,9 +42,9 @@ TIME_STEP = timestep
 
 DEFINE_MOLECULES
 {
-    V_t1 {DIFFUSION_CONSTANT_3D = voldiffconst TARGET_ONLY}
+    V_t1 {DIFFUSION_CONSTANT_3D = voldiffconst}
     V_t2 {DIFFUSION_CONSTANT_3D = voldiffconst}
-    V_t3 {DIFFUSION_CONSTANT_3D = voldiffconst TARGET_ONLY}
+    V_t3 {DIFFUSION_CONSTANT_3D = voldiffconst}
     V_t4 {DIFFUSION_CONSTANT_3D = voldiffconst}
 
     /* Never released -- used to trick code into using trimolecular pathway */

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Test 07: Bimolecular volume rxn equilibrium.
+ * Test 04: Bimolecular volume rxn equilibrium
  *
  *    The reaction rates in this file have been computed to give an equilibrium
  *    very close to 50% -- that is, the number of V_t2, I_t1, V_t3, and I_t2
@@ -14,7 +14,7 @@
  * Date:   2008-04-04
  ****************************************************************************/
 
-basename = "07-volume_bi_oldandnew_equilib_noa3r_2to"
+basename = "04-volume_bi_oldandnew_equilib_noa3r_2to"
 countdir = "dat/" & basename & "/"
 vizdir   = "./viz_dat/" & basename & "/"
 sprintf(seed, "%04g", SEED)

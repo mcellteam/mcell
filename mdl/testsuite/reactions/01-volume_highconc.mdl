@@ -1,19 +1,19 @@
 /****************************************************************************
- * Test 03: All volume rxn types at high concentration.
+ * Test 01: All volume rxn types
  *
- *    The concentrations in test #1 were relatively low, especially for testing
- *    trimolecular reactions.  This decreases the size of the box containing
- *    the molecules from 2x2x2 to 0.5x0.5x0.5, increasing the concentration by
- *    a factor of 64.
+ *    An untargetted test aiming to flush out any gross errors introduced into
+ *    the reaction machinery.  No numeric results were generated to compare the
+ *    results against, so we're mainly looking for crashes or other obvious
+ *    defects.
  *
- *    No numeric results were generated to compare the results against, so
- *    we're mainly looking for crashes or other obvious defects.
+ *    This version increases the concentration by a factor of 64 by decreasing
+ *    the volume of the containing box by a factor of 4 along each dimension.
  *
  * Author: Jed Wing <jed@salk.edu>
  * Date:   2008-04-04
  ****************************************************************************/
 
-basename = "03-volume_highconc"
+basename = "01-volume_highconc"
 countdir = "dat/" & basename & "/"
 vizdir   = "./viz_dat/" & basename & "/"
 sprintf(seed, "%04g", SEED)

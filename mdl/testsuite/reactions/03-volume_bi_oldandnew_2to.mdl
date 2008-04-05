@@ -1,5 +1,5 @@
 /****************************************************************************
- * Test 06: Bimolecular volume rxns, trad. versus trimol. code paths.
+ * Test 03: Bimolecular volume rxns, trad. versus trimol. code paths
  *
  *    This file compares the time course of a bimolecular reaction when it
  *    occurs through the traditional code path (diffuse_3D) versus the
@@ -17,7 +17,7 @@
  * Date:   2008-04-04
  ****************************************************************************/
 
-basename = "06-volume_bi_oldandnew_2to"
+basename = "03-volume_bi_oldandnew_2to"
 countdir = "dat/" & basename & "/"
 vizdir   = "./viz_dat/" & basename & "/"
 sprintf(seed, "%04g", SEED)

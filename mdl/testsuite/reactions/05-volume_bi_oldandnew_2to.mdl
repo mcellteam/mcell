@@ -1,5 +1,5 @@
 /****************************************************************************
- * Test 08: Bimolecular volume rxn time rate of collision.
+ * Test 05: Bimolecular volume rxn time rate of collision
  *
  *    This file was assembled to compare the rate of collisions detected
  *    between the traditional and trimolecular code pathways.  It uses the same
@@ -12,7 +12,7 @@
  * Date:   2008-04-04
  ****************************************************************************/
 
-basename = "08-volume_bi_oldandnew_equilib_2to"
+basename = "05-volume_bi_oldandnew_2to"
 countdir = "dat/" & basename & "/"
 vizdir   = "./viz_dat/" & basename & "/"
 sprintf(seed, "%04g", SEED)

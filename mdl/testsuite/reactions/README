@@ -1,0 +1,11 @@
+The files in this directory test various aspects of reactions.  These are
+derived from the tests I used for validation against old mcell behavior, as
+well as against Boris' trimolecular code when I merged with macromolecules.
+I'll give a summary below of what each file is, with more detailed information
+in the header of each MDL file.
+
+ * Test 01: All volume rxn types
+ * Test 02: Only trimolecular volume reactions
+ * Test 03: Bimolecular volume rxns, trad. versus trimol. code paths
+ * Test 04: Bimolecular volume rxn equilibrium
+ * Test 05: Bimolecular volume rxn rate of collision

@@ -1,17 +1,18 @@
 /****************************************************************************
- * Test 08: Bimolecular volume rxn time rate of collision.
+ * Test 05: Bimolecular volume rxn time rate of collision
  *
  *    This file was assembled to compare the rate of collisions detected
  *    between the traditional and trimolecular code pathways.  It uses the same
  *    setup as the last several tests, but very large reaction rates.
  *
  *    Accurate 3D reactions are turned off
+ *    TARGET_ONLY on V_t1, V_t3
  *
  * Author: Jed Wing <jed@salk.edu>
  * Date:   2008-04-04
  ****************************************************************************/
 
-basename = "08-volume_bi_oldandnew_equilib_noa3r"
+basename = "05-volume_bi_oldandnew_noa3r_1to"
 countdir = "dat/" & basename & "/"
 vizdir   = "./viz_dat/" & basename & "/"
 sprintf(seed, "%04g", SEED)
@@ -40,9 +41,9 @@ TIME_STEP = timestep
 
 DEFINE_MOLECULES
 {
-    V_t1 {DIFFUSION_CONSTANT_3D = voldiffconst}
+    V_t1 {DIFFUSION_CONSTANT_3D = voldiffconst TARGET_ONLY}
     V_t2 {DIFFUSION_CONSTANT_3D = voldiffconst}
-    V_t3 {DIFFUSION_CONSTANT_3D = voldiffconst}
+    V_t3 {DIFFUSION_CONSTANT_3D = voldiffconst TARGET_ONLY}
     V_t4 {DIFFUSION_CONSTANT_3D = voldiffconst}
 
     /* Never released -- used to trick code into using trimolecular pathway */

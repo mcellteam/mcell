@@ -1,19 +1,22 @@
 /****************************************************************************
- * Test 06: Bimolecular volume rxns, trad. versus trimol. code paths.
+ * Test 05: Bimolecular volume rxn time rate of collision
  *
- *    This is the control case for a comparison of bimolecular reactions
- *    handled through the old bimolecular code path and the new trimolecular
- *    code path.  As the control case, this does not activate the trimolecular
- *    code path at all.
+ *    This file was assembled to compare the rate of collisions detected
+ *    between the traditional and trimolecular code pathways.  It uses the same
+ *    setup as the last several tests, but very large reaction rates.
+ *
+ *    Accurate 3D reactions are turned on
+ *    TARGET_ONLY on V_t1, V_t3
  *
  * Author: Jed Wing <jed@salk.edu>
  * Date:   2008-04-04
  ****************************************************************************/
 
-basename = "06-volume_bi_control"
+basename = "05-volume_bi_oldandnew_2to"
 countdir = "dat/" & basename & "/"
 vizdir   = "./viz_dat/" & basename & "/"
 sprintf(seed, "%04g", SEED)
+cpfile   = basename & seed & ".cp"
 
 iterations = 100
 timestep = 1e-6
@@ -26,78 +29,72 @@ voldiffconst = 2.0e-6
 
 /* ACCURATE_3D_REACTIONS = FALSE */
 TIME_STEP_MAX = 1.0
+CHECKPOINT_ITERATIONS = 9999999999
+CHECKPOINT_OUTFILE = cpfile
 
-PARTITION_X = [ [ -0.3 TO 0.3 STEP 0.025 ] ]
-PARTITION_Y = [ [ -0.3 TO 0.3 STEP 0.025 ] ]
-PARTITION_Z = [ [ -0.3 TO 0.3 STEP 0.025 ] ]
+PARTITION_X = [ [ -0.3 TO 0.3 STEP 0.015 ] ]
+PARTITION_Y = [ [ -0.3 TO 0.3 STEP 0.015 ] ]
+PARTITION_Z = [ [ -0.3 TO 0.3 STEP 0.015 ] ]
 
 ITERATIONS = iterations
 TIME_STEP = timestep
 
 DEFINE_MOLECULES
 {
-    V_t1 {DIFFUSION_CONSTANT_3D = voldiffconst}
+    V_t1 {DIFFUSION_CONSTANT_3D = voldiffconst TARGET_ONLY}
     V_t2 {DIFFUSION_CONSTANT_3D = voldiffconst}
-    V_t3 {DIFFUSION_CONSTANT_3D = voldiffconst}
+    V_t3 {DIFFUSION_CONSTANT_3D = voldiffconst TARGET_ONLY}
     V_t4 {DIFFUSION_CONSTANT_3D = voldiffconst}
 
-    /* Only used in non-control case: */
     /* Never released -- used to trick code into using trimolecular pathway */
     V_a {DIFFUSION_CONSTANT_3D = voldiffconst}
     V_b {DIFFUSION_CONSTANT_3D = voldiffconst}
 
-    I_t {DIFFUSION_CONSTANT_3D = 0}
+    I_t1 {DIFFUSION_CONSTANT_3D = 0}  
+    I_t2 {DIFFUSION_CONSTANT_3D = 0}  
 }
 
 DEFINE_REACTIONS {
-  V_t1 + V_t2        -> V_t1 + I_t [3.0e7]
-  V_b  + V_t1        -> I_t [3.0e12]
-  V_b  + V_t2        -> I_t [3.0e12]
-  V_t3 + V_t4        -> V_t3 + I_t [3.0e7]
+  V_t1 + V_t2        -> V_t1 + I_t1 [3.0e20]
+  V_b  + V_t2 + V_a  -> I_t1 [3.0e10]
+
+  V_t3 + V_t4        -> V_t3 + I_t2  [3.0e20]
 }
 
-all_release_sites OBJECT {
-    release_site_4 SPHERICAL_RELEASE_SITE {
-        LOCATION = [-boxdims/2,  boxdims/2,  boxdims/2]
-        MOLECULE = V_t1
-        NUMBER_TO_RELEASE = 1000
-        SITE_DIAMETER = 0
-    }
-    release_site_5 SPHERICAL_RELEASE_SITE {
-        LOCATION = [ boxdims/2,  boxdims/2,  boxdims/2]
-        MOLECULE = V_t2
-        NUMBER_TO_RELEASE = 1000
-        SITE_DIAMETER = 0
-    }
-    release_site_6 SPHERICAL_RELEASE_SITE {
-        LOCATION = [-boxdims/2, -boxdims/2,  boxdims/2]
-        MOLECULE = V_t3
-        NUMBER_TO_RELEASE = 1000
-        SITE_DIAMETER = 0
-    }
-    release_site_7 SPHERICAL_RELEASE_SITE {
-        LOCATION = [ boxdims/2, -boxdims/2,  boxdims/2]
-        MOLECULE = V_t4
-        NUMBER_TO_RELEASE = 1000
-        SITE_DIAMETER = 0
-    }
-}
-
-main_box BOX
+main_box BOX 
 {
     CORNERS = [-boxdims, -boxdims, -boxdims], [boxdims, boxdims, boxdims]
 }
 
 outer_box BOX
 {
-    CORNERS = [-4,-4,-4], [4,4,4]
+    CORNERS = [-4,-4,-4], [4,4,4] 
 }
 
-INSTANTIATE world OBJECT
+INSTANTIATE world OBJECT 
 {
-    main_box OBJECT main_box {}
-    outer_box OBJECT outer_box{}
-    release_sites OBJECT all_release_sites { }
+    main_box OBJECT main_box {} 
+    outer_box OBJECT outer_box{}  
+    release_site_4 RELEASE_SITE {
+        SHAPE = world.main_box
+        MOLECULE = V_t1
+        NUMBER_TO_RELEASE = 1000
+    }
+    release_site_5 RELEASE_SITE {
+        SHAPE = world.main_box
+        MOLECULE = V_t2
+        NUMBER_TO_RELEASE = 1000
+    }
+    release_site_6 RELEASE_SITE {
+        SHAPE = world.main_box
+        MOLECULE = V_t3
+        NUMBER_TO_RELEASE = 1000
+    }
+    release_site_7 RELEASE_SITE {
+        SHAPE = world.main_box
+        MOLECULE = V_t4
+        NUMBER_TO_RELEASE = 1000
+    }
 }
 
 REACTION_DATA_OUTPUT {
