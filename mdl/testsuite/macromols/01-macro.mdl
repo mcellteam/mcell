@@ -47,9 +47,6 @@ PARTITION_Z = [[-0.5001 TO 0.50001 STEP 0.02]]
 DEFINE_MOLECULES {
   camkii_subunit  { DIFFUSION_CONSTANT_3D = 0 }
   camkii_subunitB { DIFFUSION_CONSTANT_3D = 0 }
-  count_proxy_01  { DIFFUSION_CONSTANT_3D = 0 }
-  count_proxy_10  { DIFFUSION_CONSTANT_3D = 0 }
-  count_proxy_11  { DIFFUSION_CONSTANT_3D = 0 }
   cam             { DIFFUSION_CONSTANT_3D = cam_diffusion }
 }
 
@@ -136,7 +133,8 @@ VIZ_OUTPUT
   }
 }
 
-REACTION_DATA_OUTPUT {
+REACTION_DATA_OUTPUT
+{
     OUTPUT_BUFFER_SIZE = 10
     ITERATION_LIST = [[0 TO 9999 STEP 100], [10000 TO 250000 STEP 10000], [250001 TO 1250000 STEP 1]]
     {COUNT[SUBUNIT{camkii:camkii_subunit[dimer_partner==camkii_subunit]}, WORLD]}  => countdir & "coop_m00." & seed & ".dat"
