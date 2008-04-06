@@ -85,7 +85,7 @@ DEFINE_COMPLEX_MOLECULE camkii {
 }
 
 DEFINE_REACTIONS {
-  (camkii_subunit') + cam; <-> (camkii_subunitB')   [> COMPLEX_RATE camkii coop_binding_rate,
+  (camkii_subunit') + cam; <-> (camkii_subunitB;)   [> COMPLEX_RATE camkii coop_binding_rate,
                                                      < COMPLEX_RATE camkii coop_unbinding_rate]
 }
 

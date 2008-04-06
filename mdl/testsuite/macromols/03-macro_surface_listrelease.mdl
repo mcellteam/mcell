@@ -1,0 +1,143 @@
+/****************************************************************************
+ * Test 03: Surface macromolecule list release.
+ *
+ *    This test is to ensure that surface macromolecule list releases work properly.
+ *    Most of the information is conveyed by the time 0 viz output, but the
+ *    forward reaction rate has been cranked up enough to see from the reaction
+ *    data also whether the molecules were placed.
+ *
+ *    Note, in particular, that if the complexes (or resultant subunits) were
+ *    placed with incorrect orientation, we expect that close to 83% of the
+ *    dimer pairs will be in the doubly-bound state, and 16% should perpetually
+ *    be in the unbound state (1 of the dimer pairs from each ring is
+ *    intentionally placed with the wrong orientation to react).
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+basename = "03-macro_surface_listrelease"
+countdir = "dat/" & basename & "/"
+vizdir   = "./viz_dat/" & basename & "/"
+sprintf(seed, "%04g", SEED)
+dt = 1e-6
+iterations=300000
+
+INCLUDE_FILE="parameters.mdl"
+fw_rate       = 3.2e+10
+
+TIME_STEP = dt
+ITERATIONS = iterations
+GRID_DENSITY = 15000
+ACCURATE_3D_REACTIONS = FALSE
+
+CHECKPOINT_OUTFILE=basename & ".cp"
+CHECKPOINT_INFILE=basename & ".cp"
+CHECKPOINT_ITERATIONS=30000
+
+PARTITION_X = [[-0.5001 TO 0.50001 STEP 0.02]]
+PARTITION_Y = [[-0.5001 TO 0.50001 STEP 0.02]]
+PARTITION_Z = [[-0.5001 TO 0.50001 STEP 0.02]]
+
+DEFINE_MOLECULES {
+  camkii_subunit  { DIFFUSION_CONSTANT_2D = 0 }
+  camkii_subunitB { DIFFUSION_CONSTANT_2D = 0 }
+  cam             { DIFFUSION_CONSTANT_3D = cam_diffusion }
+}
+
+DEFINE_COMPLEX_MOLECULE camkii {
+  NUMBER_OF_SUBUNITS = [2, 6]
+  SUBUNIT[1:2, 1]   = camkii_subunit,
+  SUBUNIT[1:2, 2:6] = camkii_subunit'
+  SHAPE {
+    SUBUNIT[1, 1] = [-.11,  .0000, 0]
+    SUBUNIT[1, 2] = [-.06,  .0866, 0]
+    SUBUNIT[1, 3] = [ .06,  .0866, 0]
+    SUBUNIT[1, 4] = [ .11,  .0000, 0]
+    SUBUNIT[1, 5] = [ .06, -.0866, 0]
+    SUBUNIT[1, 6] = [-.06, -.0866, 0]
+
+    SUBUNIT[2, 1] = [-.09,  .0000, 0]
+    SUBUNIT[2, 2] = [-.04,  .0866, 0]
+    SUBUNIT[2, 3] = [ .04,  .0866, 0]
+    SUBUNIT[2, 4] = [ .09,  .0000, 0]
+    SUBUNIT[2, 5] = [ .04, -.0866, 0]
+    SUBUNIT[2, 6] = [-.04, -.0866, 0]
+  }
+  SUBUNIT_RELATIONSHIPS {
+    ring_negative = [ 0, -1]
+    ring_positive = [ 0, +1]
+    dimer_partner = [+1,  0]
+  }
+  RATE_RULES {
+    coop_binding_rate {
+      dimer_partner != camkii_subunit : fw_rate * TMP_spec_F
+      DEFAULT : fw_rate
+    }
+    coop_unbinding_rate {
+      dimer_partner != camkii_subunit : bw_rate * TMP_spec_B
+      DEFAULT : bw_rate
+    }
+  }
+}
+
+DEFINE_REACTIONS {
+  (camkii_subunit') + cam, <-> (camkii_subunitB')   [> COMPLEX_RATE camkii coop_binding_rate,
+                                                     < COMPLEX_RATE camkii coop_unbinding_rate]
+}
+
+mainbox OBJECT {
+  b BOX {
+    CORNERS = [ -0.5, -0.5, -0.5 ], [ 0.5, 0.5, 0.5 ]
+  }
+}
+
+INSTANTIATE world OBJECT
+{
+  mainbox OBJECT mainbox {
+  }
+
+  rs1 RELEASE_SITE {
+    SHAPE = LIST
+    MOLECULE_POSITIONS {
+        camkii'   [0.0, 0.0, 0.5]
+        camkii'   [0.0, 0.0, -0.5]
+        camkii'   [0.0, 0.5, 0.0]
+        camkii'   [0.0, -0.5, 0.0]
+        camkii'   [0.5, 0.0, 0.0]
+        camkii'   [-0.5, 0.0, 0.0]
+    }
+  }
+
+  rs2 RELEASE_SITE {
+    SHAPE = world.mainbox.b[ALL]
+    MOLECULE = cam
+    NUMBER_TO_RELEASE = num_cam
+  }
+}
+
+VIZ_OUTPUT
+{
+  MODE = DREAMM_V3_GROUPED
+  FILENAME = vizdir & "world." & seed
+  MOLECULES {
+    NAME_LIST { ALL_MOLECULES }
+    ITERATION_NUMBERS { ALL_DATA @ [[0 TO 100000000 STEP 100]] }
+  }
+  MESHES {
+    NAME_LIST { ALL_MESHES }
+    ITERATION_NUMBERS { ALL_DATA @ [0] }
+  }
+}
+
+REACTION_DATA_OUTPUT
+{
+  OUTPUT_BUFFER_SIZE = 10
+  ITERATION_LIST = [[0 TO 9999 STEP 100], [10000 TO 250000 STEP 10000], [250001 TO 1250000 STEP 1]]
+
+  {COUNT[SUBUNIT{camkii:camkii_subunit[dimer_partner==camkii_subunit]}, WORLD]}  => countdir & "coop_m00." & seed & ".dat"
+  {COUNT[SUBUNIT{camkii:camkii_subunit[dimer_partner!=camkii_subunit]}, WORLD]}  => countdir & "coop_m01." & seed & ".dat"
+  {COUNT[SUBUNIT{camkii:camkii_subunitB[dimer_partner==camkii_subunit]}, WORLD]} => countdir & "coop_m10." & seed & ".dat"
+  {COUNT[SUBUNIT{camkii:camkii_subunitB[dimer_partner!=camkii_subunit]}, WORLD]} => countdir & "coop_m11." & seed & ".dat"
+  {COUNT[cam, WORLD]} => countdir & "coop_cam." & seed & ".dat"
+}
