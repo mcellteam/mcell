@@ -2147,7 +2147,7 @@ static void scan_complex_update_table(struct species **relatives,
         if (nptr[neighbor_index] != relatives[neighbor_index])
           continue;
 
-        if (orients != NULL  &&  optr[neighbor_index] * orients[neighbor_index] >= 0)
+        if (orients == NULL  ||  optr[neighbor_index] * orients[neighbor_index] >= 0)
           break;
       }
       else

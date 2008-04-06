@@ -126,6 +126,7 @@ VIZ_OUTPUT {
 }
 
 REACTION_DATA_OUTPUT {
+    OUTPUT_BUFFER_SIZE = 10
     ITERATION_LIST = [[0 TO 9999 STEP 100], [10000 TO 250000 STEP 10000], [250001 TO 1250000 STEP 1]]
     {COUNT[SUBUNIT{camkii:camkii_subunit[dimer_partner==camkii_subunit]}, WORLD]} => "./reaction_data/coop_m00." & seed_str
     {COUNT[SUBUNIT{camkii:camkii_subunit[dimer_partner!=camkii_subunit]}, WORLD]} => "./reaction_data/coop_m01." & seed_str
