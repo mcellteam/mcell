@@ -25,9 +25,13 @@
  * Date:   2008-04-04
  ****************************************************************************/
 
+basename = "01-macro"
+countdir = "dat/" & basename & "/"
+vizdir   = "./viz_dat/" & basename & "/"
+sprintf(seed, "%04g", SEED)
+
 dt = 1e-6
 iterations=1250000
-sprintf(seed_str,"%04g",SEED)
 
 INCLUDE_FILE="parameters.mdl"
 
@@ -118,34 +122,26 @@ INSTANTIATE world OBJECT
   }
 }
 
-VIZ_OUTPUT {
+VIZ_OUTPUT
+{
   MODE = DREAMM_V3_GROUPED
-  FILENAME = "./viz_data/test_box"
-
-  MOLECULES
-  {
+  FILENAME = vizdir & "world." & seed
+  MOLECULES {
     NAME_LIST { ALL_MOLECULES }
-
-    ITERATION_NUMBERS {
-      POSITIONS @ [[0 TO 500 STEP 5], [200 TO 1000 STEP 100], [2000 TO 100000 STEP 1000], [200000 TO iterations STEP 100000]]
-    }
+    ITERATION_NUMBERS { ALL_DATA @ [[0 TO 100000000 STEP 100]] }
   }
-
-  MESHES
-  {
+  MESHES {
     NAME_LIST { ALL_MESHES }
-    ITERATION_NUMBERS {
-      ALL_DATA @ [0]
-    }
+    ITERATION_NUMBERS { ALL_DATA @ [0] }
   }
 }
 
 REACTION_DATA_OUTPUT {
     OUTPUT_BUFFER_SIZE = 10
     ITERATION_LIST = [[0 TO 9999 STEP 100], [10000 TO 250000 STEP 10000], [250001 TO 1250000 STEP 1]]
-    {COUNT[SUBUNIT{camkii:camkii_subunit[dimer_partner==camkii_subunit]}, WORLD]} => "./reaction_data/coop_m00." & seed_str
-    {COUNT[SUBUNIT{camkii:camkii_subunit[dimer_partner!=camkii_subunit]}, WORLD]} => "./reaction_data/coop_m01." & seed_str
-    {COUNT[SUBUNIT{camkii:camkii_subunitB[dimer_partner==camkii_subunit]}, WORLD]} => "./reaction_data/coop_m10." & seed_str
-    {COUNT[SUBUNIT{camkii:camkii_subunitB[dimer_partner!=camkii_subunit]}, WORLD]} => "./reaction_data/coop_m11." & seed_str
-    {COUNT[cam, WORLD]} => "./reaction_data/coop_cam." & seed_str
+    {COUNT[SUBUNIT{camkii:camkii_subunit[dimer_partner==camkii_subunit]}, WORLD]}  => countdir & "coop_m00." & seed & ".dat"
+    {COUNT[SUBUNIT{camkii:camkii_subunit[dimer_partner!=camkii_subunit]}, WORLD]}  => countdir & "coop_m01." & seed & ".dat"
+    {COUNT[SUBUNIT{camkii:camkii_subunitB[dimer_partner==camkii_subunit]}, WORLD]} => countdir & "coop_m10." & seed & ".dat"
+    {COUNT[SUBUNIT{camkii:camkii_subunitB[dimer_partner!=camkii_subunit]}, WORLD]} => countdir & "coop_m11." & seed & ".dat"
+    {COUNT[cam, WORLD]} => countdir & "coop_cam." & seed & ".dat"
 }
