@@ -1,0 +1,93 @@
+The files in this directory test various aspects of macromolecules.  The first
+test can be validated by checking the equilibrium against an analyically
+derived solution.  The second test can also be validated against an
+analytically derived solution, as well as against a set of internal-consistency
+relations between the various counts.  The 3rd and 4th tests are mainly for
+validating different types of surface release, and are probably best validated
+by hand-checking the viz output, though some validation can be done through the
+reaction data.
+
+ * Test 01: Simple volume macromolecules.
+ * Test 02: Simple surface macromolecules.
+ * Test 03: Surface macromolecule list release.
+ * Test 04: Surface macromolecule init by density/number.
+
+The invalid-?? files have intentional errors to test macromolecule parser error
+handling in several categories.  The best test for these is to hand-inspect the
+error message output, and ensure that it conveys enough information to allow
+the user to quickly fix the problem.
+
+  SUBUNIT[a, b] = species
+
+    Since the topology of the species is 2-dimensional, each assignment must
+    have a 2-D index (actually a range in each dimension), and each index must
+    be inside the appropriate bounds for the particular dimension of the
+    topology.  Where ranges are used, they must be non-empty (i.e. first bound
+    is less than second bound):
+
+        * invalid-01: Subunit assignment out of bounds
+        * invalid-02: Subunit assignment range invalid
+        * invalid-03: Subunit assignment out of bounds
+        * invalid-04: Subunit assignment missing dim.
+        * invalid-05: Subunit assignment extra dim.
+        * invalid-06: Subunit assignment negative (1st)
+        * invalid-07: Subunit assignment negative (2nd)
+
+  SHAPE {
+    SUBUNIT[a, b] = species
+  }
+
+    Again, the dimensionality of the index for the subunit must match the
+    dimensionality of the topology of the complex, and none of the index
+    coordinates may be out-of-bounds for their particular dimension.  Each
+    subunit must have its location specified precisely once.
+
+        * invalid-08: Subunit shape out of bounds
+        * invalid-09: Subunit shape out of bounds
+        * invalid-10: Subunit shape out of bounds
+        * invalid-11: Subunit shape out of bounds
+        * invalid-12: Subunit shape extra dim.
+        * invalid-13: Subunit shape missing dim.
+        * invalid-14: Subunit shape missing item
+        * invalid-15: Subunit shape extra item
+
+  SUBUNIT_RELATIONSHIPS {
+    ring_negative = [ 0, -1]
+  }
+
+    The dimensionality of the subunit offset must match the topology of the
+    complex.  The absolute value of the offset in any index coordinate must be
+    less than the maximum value for that coordinate.  No relationship may
+    appear more than once.  Any relationship which is used in a rate rule or
+    counting table must be defined.
+
+        * invalid-16: Subunit realtionship extra dim.
+        * invalid-17: Subunit relationship missing dim.
+        * invalid-18: Subunit relationship range error
+        * invalid-19: Subunit relationship range error
+        * invalid-20: Duplicate relationship
+        * invalid-21: Unknown relationship
+
+  RATE_RULES {
+    coop_binding_rate {
+      dimer_partner != camkii_subunit : rate_1
+      DEFAULT                         : rate_2
+    }
+  }
+
+    No rate rule may appear more than once.  Subunit species may not be
+    complexes.
+    
+
+        * invalid-22: Rate rule uses complex as subunit
+        * invalid-23: Duplicate rate rule
+
+  (camkii_subunit) + cam <-> (camkii_subunitB)   [> COMPLEX_RATE camkii coop_binding_rate,
+                                                  < COMPLEX_RATE camkii coop_unbinding_rate]
+
+    A reaction is valid only if neither side includes a subunit (parenthesized
+    participant) or if both include exactly 1.
+
+        * invalid-24: Two subunit reactants
+        * invalid-25: Product missing subunit
+        * invalid-26: Product has extra subunit
