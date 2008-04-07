@@ -1,0 +1,3 @@
+stampfile = fopen(basename & ".stamp")
+fprint_time(stampfile, "%s\n")
+fclose(stampfile)

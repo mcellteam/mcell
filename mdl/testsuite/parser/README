@@ -1,6 +1,10 @@
 This directory contains a suite of tests targetting the parser.  Right now, the
-only test is the "kitchen sink" test, which attempts to exercise every
+main test is the "kitchen sink" test, which attempts to exercise every
 non-terminal in the parser, to the degree that this is possible.  According to
-gcov, it achieves a reasonable degree of success.
+gcov, it achieves a reasonable degree of success.  Gradually, I'll add tests
+that cover the rest of the parser -- mostly error conditions, but generally
+constructs which are incompatible in some way with constructs in the kitchen
+sink test.
 
  * Test 01: Nearly every parser option.
+ * Test 02: Realtime checkpoint variants.
