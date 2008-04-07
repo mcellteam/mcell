@@ -2002,6 +2002,7 @@ release_site_cmd:
                                                           case ARRAY:
                                                             for (elp = (struct num_expr_list *) $3->value; elp != NULL && count < 4; ++ count, elp = elp->next)
                                                               ;
+                                                            elp = (struct num_expr_list *) $3->value;
                                                             CHECK(mdl_set_release_site_diameter_array(mdlpvp, mdlpvp->current_release_site, count, elp, scaling_factor));
                                                             break;
                                                           default:

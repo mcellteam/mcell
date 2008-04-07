@@ -26,6 +26,24 @@ INSTANTIATE world2 OBJECT
         RELEASE_PATTERN = rp9
     }
 
+    rs9 RELEASE_SITE
+    {
+        SHAPE = world2.big_object.box3[ALL]
+        MOLECULE = s_g_1'
+        // N.B. Setting SITE_DIAMETER causes this to break (vol_util.c, line 1426)
+        // SITE_DIAMETER = 0.5
+        DENSITY = 1.0
+    }
+
+    rs10 RELEASE_SITE
+    {
+        SHAPE = ((world2.big_object.box3[ALL] & world2.big_object.box3[ALL]))
+        MOLECULE = s_g_1'
+        // N.B. Setting SITE_DIAMETER causes this to break (vol_util.c, line 1426)
+        // SITE_DIAMETER = 0.5
+        DENSITY = 1.0
+    }
+
     TRANSLATE = [50, 0, 0]
 }
 

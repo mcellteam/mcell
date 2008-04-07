@@ -1,0 +1,6 @@
+This directory contains a suite of tests targetting the parser.  Right now, the
+only test is the "kitchen sink" test, which attempts to exercise every
+non-terminal in the parser, to the degree that this is possible.  According to
+gcov, it achieves a reasonable degree of success.
+
+ * Test 01: Nearly every parser option.

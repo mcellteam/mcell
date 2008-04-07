@@ -105,10 +105,10 @@ poly1 POLYGON_LIST
 {
     VERTEX_LIST
     {
-        [5, 5, 5]
-        [5, 7, 5]
-        [5, 5, 7]
-        [7, 5, 5]
+        [5, 5, 5] NORMAL [  1,   1,   1]
+        [5, 7, 5] NORMAL [0.7,   2, 0.7]
+        [5, 5, 7] NORMAL [0.7, 0.7,   1]
+        [7, 5, 5] NORMAL [  1, 0.7, 0.7]
     }
     ELEMENT_CONNECTIONS
     {
@@ -116,6 +116,32 @@ poly1 POLYGON_LIST
         [1, 0, 3]
         [2, 1, 3]
         [0, 2, 3]
+    }
+}
+
+poly2 POLYGON_LIST
+{
+    VERTEX_LIST
+    {
+        [15, 15, 15]
+        [15, 17, 15]
+        [15, 15, 17]
+        [17, 15, 15]
+    }
+    ELEMENT_CONNECTIONS
+    {
+        [0, 1, 2]
+        [1, 0, 3]
+        [2, 1, 3]
+        [0, 2, 3]
+    }
+    REMOVE_ELEMENTS { 1 }
+    DEFINE_SURFACE_REGIONS
+    {
+      r1
+      {
+        INCLUDE_ELEMENTS = [ ALL_ELEMENTS ]
+      }
     }
 }
 
@@ -142,6 +168,9 @@ vox1 VOXEL_LIST
     SCALE = [0.5, 0.5, 0.5]
 }
 
+radius = 0.25
+diameter = [0.4, 0.5, 0.6]
+
 // release_site_def
 rs1 RELEASE_SITE
 {
@@ -149,7 +178,7 @@ rs1 RELEASE_SITE
     LOCATION = [0.1, 0.1, 0.1]
     MOLECULE = s_v_0
     NUMBER_TO_RELEASE = 1000
-    SITE_RADIUS = 0.25
+    SITE_RADIUS = radius
     RELEASE_PROBABILITY = 1.0
 }
 
@@ -179,7 +208,7 @@ rs4 RELEASE_SITE
     LOCATION = [3.1, 0.1, 0.1]
     MOLECULE = s_v_3
     VOLUME_DEPENDENT_RELEASE_NUMBER { MEAN_DIAMETER = 0.01 STANDARD_DEVIATION = 0.0005 CONCENTRATION = 1. / .26 }
-    SITE_DIAMETER = [0.4, 0.5, 0.6]
+    SITE_DIAMETER = diameter
     RELEASE_PROBABILITY = 0.97
 }
 
@@ -206,9 +235,15 @@ rs6 RELEASE_SITE
         s_v_5 [5.2, 0.1, 0.1]
         s_v_5 [5.1, 0.2, 0.1]
         s_v_5 [5.1, 0.1, 0.2]
+    }
+    MOLECULE_POSITIONS
+    {
         s_v_5 [5.1, 0.2, 0.2]
         s_v_5 [5.2, 0.1, 0.2]
         s_v_5 [5.2, 0.2, 0.1]
+    }
+    MOLECULE_POSITIONS
+    {
         s_v_5 [5.2, 0.2, 0.2]
     }
     TRANSLATE = [0, 0, -2]
@@ -289,6 +324,7 @@ big_object OBJECT
     box2  OBJECT box2  { }
     box3  OBJECT box3  { }
     poly1 OBJECT poly1 { }
+    poly2 OBJECT poly2 { }
 
     newbox BOX
     {

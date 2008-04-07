@@ -1,9 +1,0 @@
-VOLUME_DATA_OUTPUT
-{
-    FILENAME_PREFIX = "vo"
-    MOLECULES = s_v_1 + s_v_2 + s_v_3 + s_v_4 + s_v_5
-    LOCATION = [0, 0, 0]
-    VOXEL_SIZE = 0.01
-    VOXEL_COUNT = 25
-    STEP = 1e-4
-}

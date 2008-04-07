@@ -46,8 +46,6 @@ void print_version(FILE *f)
 
   /* Print the version line */
   fprintf(f, "MCell %s", MCELL_VERSION);
-  if (MCELL_REVISION != -1  &&  MCELL_REVISION_BRANCH[0] != '\0')
-    fprintf(f, "-%s", MCELL_REVISION_BRANCH);
   if (MCELL_REVISION != -1)
     fprintf(f, " (revision %d/%s)", MCELL_REVISION, MCELL_REVISION_DATE);
   if (! MCELL_REVISION_COMMITTED)

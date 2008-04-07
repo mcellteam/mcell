@@ -735,12 +735,19 @@ static FILE *dx_open_file(char const *cls,
     return NULL;
   }
 
+  if (make_parent_dir(filename_buffer, world->err_file))
+  {
+    free(filename_buffer);
+    return NULL;
+  }
+
   FILE *f = open_file(filename_buffer, "wb");
-  free(filename_buffer);
   
-  if(f == NULL){
+  if (f == NULL){
      fprintf(world->err_file, "Error opening file %s\n", filename_buffer);
   }
+
+  free(filename_buffer);
      
   return f;
 }
@@ -3504,16 +3511,6 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct frame_data_list const 
         /* Write orientations information */
         if (viz_mol_orient_flag){
          
-           mol_orient_name = my_strcat(specp->sym->name, mol_orient_name_last_part);
-           if(mol_orient_name == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-               goto failure;
-           }
-        
-           /* Open surface molecules orientation data file */
-           if ((surf_mol_orient_data =  dreamm_v3_generic_open_file(dirname, mol_orient_name, "a")) == NULL)
-               goto failure;
-            
            dx_output_oriented_normal_ascii(surf_mol_orient_data, &w->normal, gmol->orient);
 
         }
@@ -6716,7 +6713,6 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
 {
   FILE *custom_file;
   char cf_name[1024];
-  char cf_format[256];
   struct storage_list *slp;
   struct schedule_helper *shp;
   struct abstract_element *aep;
@@ -6737,8 +6733,9 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
   {
     lli = 10;
     for (ndigits = 1 ; lli <= world->iterations && ndigits<20 ; lli*=10 , ndigits++) {}
-    sprintf(cf_format,"%%s.ascii.%%0%dlld.dat",ndigits);
-    sprintf(cf_name,cf_format,world->molecule_prefix_name,fdlp->viz_iteration);
+    sprintf(cf_name, "%s.ascii.%.*lld.dat", world->molecule_prefix_name, ndigits, fdlp->viz_iteration);
+    if (make_parent_dir(cf_name, world->log_file))
+      return 1;
     custom_file = fopen(cf_name,"w");
     if (!custom_file)
     {
