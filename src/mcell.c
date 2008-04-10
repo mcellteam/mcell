@@ -320,6 +320,10 @@ void run_sim(void)
         break;
     }
 
+    /* Even if no checkpoint, the last iteration is a half-iteration. */
+    if (world->it_time >= world->iterations)
+      break;
+
 resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     
     run_concentration_clamp(world->it_time);
