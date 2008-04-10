@@ -1,2 +1,2 @@
-
-Build requires a version of flex which supports the re-entrant option.
+Build requires a version of flex newer than 2.5.6, due to the 'reentrant'
+option.  Extensive testing has been done using Flex 2.5.33.
