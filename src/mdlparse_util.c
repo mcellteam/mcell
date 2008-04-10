@@ -13053,10 +13053,17 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
             else
             {
-              for (k = rx->product_idx[j] ; k < rx->product_idx[j+1] ; k++)
+              path = rx->pathway_head;
+              if (path->product_head == NULL)
               {
-                if (rx->players[k]==NULL) fprintf(warn_file,"NIL ");
-                else fprintf(warn_file,"%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+                fprintf(warn_file,"NULL ");
+              }
+              else
+              {
+                for (prod = path->product_head ; prod != NULL ; prod = prod->next)
+                {
+                  fprintf(warn_file,"%s{%d} ",prod->prod->sym->name, prod->orientation);
+                }
               }
             }
             fprintf(warn_file,"\n");
