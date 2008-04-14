@@ -3203,9 +3203,13 @@ list_viz_meshes_block_cmds:
           viz_meshes_block_cmd                        {
                                                         $$ = $1;
                                                         if ($$.frame_tail)
+                                                        {
                                                           $$.frame_tail->next = $2.frame_head;
-                                                        if ($2.frame_tail)
-                                                          $$.frame_tail = $2.frame_tail;
+                                                          if ($2.frame_tail)
+                                                            $$.frame_tail = $2.frame_tail;
+                                                        }
+                                                        else
+                                                          $$ = $2;
                                                       }
 ;
 
