@@ -1,2 +1,23 @@
-Build requires a version of flex newer than 2.5.6, due to the 'reentrant'
-option.  Extensive testing has been done using Flex 2.5.33.
+
+MCell3 Build Requirements:
+
+  1) flex newer than 2.5.6, due to the 'reentrant' option.  Extensive testing
+     has been done using Flex 2.5.33.
+
+
+How To Bootstrap:
+
+  1) When starting from a fresh branch or checkout do:
+
+     ./bootstrap
+
+
+How To Build:
+
+  1) To build for a given platform do something like this:
+
+     mkdir my_build_dir
+     cd my_build_dir
+     /path/to/configure CC=gcc CFLAGS='-O3 -march=core2 -Wall -g'
+     make
+
