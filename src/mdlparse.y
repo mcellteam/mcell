@@ -2630,6 +2630,8 @@ list_count_cmds:
                                                         {
                                                           if ($$.set_tail != NULL)
                                                             $$.set_tail = $$.set_tail->next = $2;
+                                                          else
+                                                            $$.set_tail = $$.set_head = $2;
                                                         }
                                                       }
 ;
