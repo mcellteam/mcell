@@ -4547,8 +4547,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	      j = xyz2grid( &(new_smash->loc) , w->grid );
 	      if (w->grid->mol[j] != NULL)
 	      {
-	/*        if (m->index != j || m->previous_wall != w )
-	        {  */
+	        if (m->index != j || m->previous_wall != w )
+	        {  
 	           g = w->grid->mol[j];
                    num_matching_rxns = trigger_trimolecular(
                        smash->moving->hashval, mp->properties->hashval,
@@ -4592,11 +4592,11 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                         main_tri_shead = tri_smash;
                      }
 	           } /* end if (num_matching_rxns > 0) */
-	       /* }
-	        else */ /* Matched previous wall and index--don't rebind */
-              /*  {
+	        }
+	        else  /* Matched previous wall and index--don't rebind */
+                {
                   m->index = -1;  // Avoided rebinding, but next time it's OK 
-                }  */
+                }  
 	      } /* end if(w->grid->mol[j] ... ) */
 	   } /* end if (w->grid != NULL ... ) */
 
@@ -4663,6 +4663,9 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                     wall_was_accounted_for = 1;
                 }
 	      } /* end if (num_matching_rxns > 0) */
+            }else
+            {
+               m->index = -1;   /* Avoided rebinding, but next time it's OK */
             }
 	  } /* end if(w->grid->mol[j] ... ) */
 	} /* end if (w->grid != NULL ... ) */
@@ -4671,13 +4674,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         /* now look for the trimolecular reactions */
         if(moving_mol_grid_grid_flag)
         {
-              /*  
-           w = (struct wall *) smash->target;
-	
-           if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
-	   else k = -1;
-               */
-
 
 	   if ( w->grid != NULL)
 	   {
@@ -4685,8 +4681,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	     if (w->grid->mol[j] != NULL)
 	     {
                   
-	    /*   if (m->index != j || m->previous_wall != w ) 
-	       {  */
+	       if (m->index != j || m->previous_wall != w ) 
+	       {  
  
 	         g = w->grid->mol[j];
                  /* search for neighbors that can participate
@@ -4759,20 +4755,16 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                     }
                 }
               }
-          /*  }else  
+            }else  
             {
               m->index = -1;    // Avoided rebinding, but next time it's OK 
-            }  */
+            }  
            }/* end if (w->grid ...) */
         }
 
          /* now look for the mol-wall interactions */
           if ( (sm->flags&CAN_MOLWALL) != 0 )
 	  {
-                          /*
-             if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
-	     else k = -1;
-                             */
 
 	    /*  m->index = -1;  */
 	     rx = trigger_intersect(
@@ -4811,10 +4803,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
          if(!wall_was_accounted_for)
          {
-                        /*
-             if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
-	     else k = -1;
-                          */
 
              /* This is a simple reflective wall 
                 (default wall behavior). 
