@@ -51,7 +51,9 @@ void print_usage(FILE *f, char const *argv0)
   fprintf(f, "       [-logfile log_file_name]  send output log to file (default: stderr)\n");
   fprintf(f, "       [-logfreq n]              output log frequency (default: 100)\n");
   fprintf(f, "       [-errfile err_file_name]  send errors log to file (default: stderr)\n");
-  fprintf(f, "       [-checkpoint_infile checkpoint_file_name]  read checkpoint file \n\n");
+  fprintf(f, "       [-checkpoint_infile checkpoint_file_name]  read checkpoint file\n");
+  fprintf(f, "       [-quiet]                  suppress all unrequested output except for errors\n");
+  fprintf(f, "\n");
 }
 
 /* argerror: Display a message about an error which occurred during the
@@ -124,7 +126,7 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
         exit(1);
         break;
 
-      case 'q':  /* -fullversion */
+      case 'q':  /* -quiet */
         vol->quiet_flag = 1;
         break;
 
