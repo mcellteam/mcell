@@ -8,7 +8,7 @@ box1 BOX
         r1
         {
             INCLUDE_ELEMENTS = [ LEFT, RIGHT ]
-            /*, INCLUDE_PATCH = [ 0.2, 0.2, 1 ], [ 0.4, 0.4, 1] */
+            , INCLUDE_PATCH = [ 0.2, 0.2, 1 ], [ 0.4, 0.4, 1]
             SURFACE_CLASS = s_sc_0
             MOLECULE_DENSITY
             {

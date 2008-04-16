@@ -283,7 +283,7 @@ void run_sim(void)
     /* Produce iteration report */
     if ( iter_report_phase == 0 && world->notify->custom_iterations!=NOTIFY_NONE)
     {
-      printf("Iterations: %lld of %lld ",world->it_time,world->iterations);
+      fprintf(world->log_file, "Iterations: %lld of %lld ",world->it_time,world->iterations);
 
       if (world->notify->throughput_report != NOTIFY_NONE)
       {
@@ -294,7 +294,7 @@ void run_sim(void)
           double time_diff = (double) (cur_time.tv_sec - last_timing_time.tv_sec) * 1000000.0 +
                 (double) (cur_time.tv_usec - last_timing_time.tv_usec);
           time_diff /= (double)(world->it_time - last_timing_iteration);
-          printf(" (%.6lg iter/sec)", 1000000.0 / time_diff);
+          fprintf(world->log_file, " (%.6lg iter/sec)", 1000000.0 / time_diff);
           last_timing_iteration = world->it_time;
           last_timing_time = cur_time;
         }
@@ -305,7 +305,7 @@ void run_sim(void)
         }
       }
 
-      printf("\n");
+      fprintf(world->log_file, "\n");
     }
 
     /* Check for a checkpoint on this iteration */
@@ -619,10 +619,16 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
-  printf("Running...\n");
+  if (world->notify->progress_report!=NOTIFY_NONE)
+  {
+    fprintf(world->log_file, "Running...\n");
+  }
   run_sim();
 
-  printf("Done running.\n");
+  if (world->notify->progress_report!=NOTIFY_NONE)
+  {
+    fprintf(world->log_file, "Done running.\n");
+  }
   mem_dump_stats(stdout);
 
   exit(0);

@@ -30,6 +30,7 @@ static struct option long_options[] = {
   {"logfile",           1, 0, 'l'},
   {"logfreq",           1, 0, 'f'},
   {"errfile",           1, 0, 'e'},
+  {"quiet",             0, 0, 'q'},
   {NULL,                0, 0, 0}
 };
 
@@ -121,6 +122,10 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
       case 'V':  /* -fullversion */
         print_full_version(vol->log_file);
         exit(1);
+        break;
+
+      case 'q':  /* -fullversion */
+        vol->quiet_flag = 1;
         break;
 
       case 's':  /* -seed */

@@ -1,0 +1,18 @@
+/****************************************************************************
+ * Parser error 067: Count buffer specified > UINT_MAX
+ *
+ *    Expect an error on the line:
+ *      OUTPUT_BUFFER_SIZE = 5e20
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+countdir = "dat/invalid-067/"
+REACTION_DATA_OUTPUT
+{
+    OUTPUT_BUFFER_SIZE = 5e20
+    STEP = 1e-6
+    {42} => countdir & "counting-1.txt"
+}

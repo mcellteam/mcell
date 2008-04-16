@@ -1,0 +1,17 @@
+/****************************************************************************
+ * Parser error 052: Set molecule positions for non-list release site.
+ *
+ *    Expect an error on the line:
+ *      MOLECULE_POSITIONS { a [1, 1, 1] }
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+DEFINE_MOLECULE a { DIFFUSION_CONSTANT_3D = 1e-6 }
+rs RELEASE_SITE
+{
+  SHAPE = SPHERICAL
+  MOLECULE_POSITIONS { a [1, 1, 1] }
+}

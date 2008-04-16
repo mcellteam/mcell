@@ -1,0 +1,43 @@
+/****************************************************************************
+ * Parser error 075: both binary and ascii molecule format specified.
+ *                   Debatably, this shouldn't be a bug.
+ *
+ *    Expect an error regarding the line:
+ *      VIZ_MOLECULE_FORMAT = ASCII
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+VIZ_OUTPUT
+{
+    MODE = DREAMM_V3
+    VIZ_MOLECULE_FORMAT = BINARY
+    FILENAME = "dat/invalid-075/dreamm"
+    MOLECULES
+    {
+        NAME_LIST { ALL_MOLECULES }
+        TIME_POINTS { ALL_DATA @ ALL_TIMES }
+    }
+    MESHES
+    {
+        NAME_LIST { ALL_MESHES }
+        TIME_POINTS { ALL_DATA @ [0] }
+    }
+}
+VIZ_OUTPUT
+{
+    MODE = DREAMM_V3
+    VIZ_MOLECULE_FORMAT = ASCII
+    FILENAME = "dat/invalid-075/dreamm2"
+    MOLECULES
+    {
+        NAME_LIST { ALL_MOLECULES }
+        TIME_POINTS { ALL_DATA @ ALL_TIMES }
+    }
+    MESHES
+    {
+        NAME_LIST { ALL_MESHES }
+        TIME_POINTS { ALL_DATA @ [0] }
+    }
+}

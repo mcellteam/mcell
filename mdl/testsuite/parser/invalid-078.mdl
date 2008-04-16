@@ -1,0 +1,23 @@
+/****************************************************************************
+ * Parser error 078: DX-mode name list contains molecules without state values
+ *
+ *    Expect an error regarding the line:
+ *      NAME_LIST { m }
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+vizdir = "dat/invalid-078/"
+DEFINE_MOLECULE m { DIFFUSION_CONSTANT_3D = 0.0 }
+VIZ_OUTPUT
+{
+    MODE = DX
+    FILENAME = vizdir & "world"
+    MOLECULES
+    {
+        NAME_LIST { m }
+        TIME_POINTS { ALL_DATA @ ALL_TIMES }
+    }
+}

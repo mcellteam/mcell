@@ -761,7 +761,7 @@ struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,struct
         fprintf(world->err_file, "Fatal error: out of memory during migrating  %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
         exit(EXIT_FAILURE);
   }
-  if (new_m==m) printf("File '%s', Line %ld: Unexpected behavior!\n", __FILE__, (long)__LINE__);
+  if (new_m==m) fprintf(world->err_file, "File '%s', Line %ld: Unexpected behavior!\n", __FILE__, (long)__LINE__);
   
   memcpy(new_m,m,sizeof(struct volume_molecule));
   new_m->birthplace = new_sv->local_storage->mol;
@@ -1777,11 +1777,11 @@ int set_partitions()
   f_max = world->bb_urb.x + dfx;
   if (f_max - f_min < smallest_spacing)
   {
-    printf("Rescaling: was %.3f to %.3f, now ",f_min*world->length_unit,f_max*world->length_unit);
+    fprintf(world->log_file, "Rescaling: was %.3f to %.3f, now ",f_min*world->length_unit,f_max*world->length_unit);
     f = smallest_spacing - (f_max-f_min);
     f_max += 0.5*f;
     f_min -= 0.5*f;
-    printf("%.3f to %.3f\n",f_min*world->length_unit,f_max*world->length_unit);
+    fprintf(world->log_file, "%.3f to %.3f\n",f_min*world->length_unit,f_max*world->length_unit);
   }
   /* Set bounds over which to do linear subdivision (world bounding box) */
   part_min.x = f_min;
@@ -1805,11 +1805,11 @@ int set_partitions()
   f_max = world->bb_urb.y + dfy;
   if (f_max - f_min < smallest_spacing)
   {
-    printf("Rescaling: was %.3f to %.3f, now ",f_min*world->length_unit,f_max*world->length_unit);
+    fprintf(world->log_file, "Rescaling: was %.3f to %.3f, now ",f_min*world->length_unit,f_max*world->length_unit);
     f = smallest_spacing - (f_max-f_min);
     f_max += 0.5*f;
     f_min -= 0.5*f;
-    printf("%.3f to %.3f\n",f_min*world->length_unit,f_max*world->length_unit);
+    fprintf(world->log_file, "%.3f to %.3f\n",f_min*world->length_unit,f_max*world->length_unit);
   }
   part_min.y = f_min;
   part_max.y = f_max; 
@@ -1829,11 +1829,11 @@ int set_partitions()
   f_max = world->bb_urb.z + dfz;
   if (f_max - f_min < smallest_spacing)
   {
-    printf("Rescaling: was %.3f to %.3f, now ",f_min*world->length_unit,f_max*world->length_unit);
+    fprintf(world->log_file, "Rescaling: was %.3f to %.3f, now ",f_min*world->length_unit,f_max*world->length_unit);
     f = smallest_spacing - (f_max-f_min);
     f_max += 0.5*f;
     f_min -= 0.5*f;
-    printf("%.3f to %.3f\n",f_min*world->length_unit,f_max*world->length_unit);
+    fprintf(world->log_file, "%.3f to %.3f\n",f_min*world->length_unit,f_max*world->length_unit);
   }
   part_min.z = f_min;
   part_max.z = f_max;
@@ -2200,21 +2200,21 @@ int set_partitions()
   /* And finally we tell the user what happened */
   if (world->notify->partition_location==NOTIFY_FULL)
   {
-    printf("X partitions: ");
-    printf("-inf ");
-    for (i=1;i<world->nx_parts - 1;i++) printf("%.5f ",world->length_unit * world->x_partitions[i]);
-    printf("inf");
-    printf("\n");
-    printf("Y partitions: ");
-    printf("-inf ");
-    for (i=1;i<world->ny_parts - 1;i++) printf("%.5f ",world->length_unit * world->y_partitions[i]);
-    printf("inf");
-    printf("\n");
-    printf("Z partitions: ");
-    printf("-inf ");
-    for (i=1;i<world->nz_parts - 1;i++) printf("%.5f ",world->length_unit * world->z_partitions[i]);
-    printf("inf");
-    printf("\n");
+    fprintf(world->log_file, "X partitions: ");
+    fprintf(world->log_file, "-inf ");
+    for (i=1;i<world->nx_parts - 1;i++) fprintf(world->log_file, "%.5f ",world->length_unit * world->x_partitions[i]);
+    fprintf(world->log_file, "inf");
+    fprintf(world->log_file, "\n");
+    fprintf(world->log_file, "Y partitions: ");
+    fprintf(world->log_file, "-inf ");
+    for (i=1;i<world->ny_parts - 1;i++) fprintf(world->log_file, "%.5f ",world->length_unit * world->y_partitions[i]);
+    fprintf(world->log_file, "inf");
+    fprintf(world->log_file, "\n");
+    fprintf(world->log_file, "Z partitions: ");
+    fprintf(world->log_file, "-inf ");
+    for (i=1;i<world->nz_parts - 1;i++) fprintf(world->log_file, "%.5f ",world->length_unit * world->z_partitions[i]);
+    fprintf(world->log_file, "inf");
+    fprintf(world->log_file, "\n");
   }
 
   return 0;

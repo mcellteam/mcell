@@ -1,0 +1,14 @@
+/****************************************************************************
+ * Parser error 029: CHECKPOINT_REALTIME multiply specified
+ *
+ *    Expect an error on the line:
+ *      CHECKPOINT_REALTIME = 5:00 EXIT
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+ITERATIONS = 1
+CHECKPOINT_REALTIME = 30 NOEXIT
+CHECKPOINT_REALTIME = 5:00 EXIT

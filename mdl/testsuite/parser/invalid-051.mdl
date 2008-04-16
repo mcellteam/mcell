@@ -1,0 +1,16 @@
+/****************************************************************************
+ * Parser error 051: Set density or number for list release site.
+ *
+ *    Expect an error on the line:
+ *      NUMBER_TO_RELEASE = 1e9   // One... BILLION... molecules.
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+rs RELEASE_SITE
+{
+  SHAPE = LIST
+  NUMBER_TO_RELEASE = 1e9   // One... BILLION... molecules.
+}

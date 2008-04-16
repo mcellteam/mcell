@@ -1,0 +1,15 @@
+/****************************************************************************
+ * Parser error 023: fopen fails (file is a directory)
+ *
+ *    Expect an error on the line:
+ *      file = fopen(".", "w")
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+ITERATIONS = 1
+
+file = fopen(".", "w")
+fclose(file)

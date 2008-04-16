@@ -55,19 +55,38 @@ int init_notifications()
   }
  
   /* Notifications */
-  world->notify->progress_report = NOTIFY_FULL;
-  world->notify->diffusion_constants = NOTIFY_BRIEF;
-  world->notify->reaction_probabilities = NOTIFY_FULL;
-  world->notify->time_varying_reactions = NOTIFY_FULL;
-  world->notify->reaction_prob_notify = 0.0;
-  world->notify->partition_location = NOTIFY_NONE;
-  world->notify->box_triangulation = NOTIFY_NONE;
-  world->notify->custom_iterations = NOTIFY_FULL;
-  world->notify->custom_iteration_value = 0;  /* Ignored unless NOTIFY_CUSTOM set */
-  world->notify->release_events = NOTIFY_FULL;
-  world->notify->file_writes = NOTIFY_NONE;
-  world->notify->final_summary = NOTIFY_FULL;
-  world->notify->throughput_report = NOTIFY_FULL;
+  if (world->quiet_flag)
+  {
+    world->notify->progress_report = NOTIFY_NONE;
+    world->notify->diffusion_constants = NOTIFY_NONE;
+    world->notify->reaction_probabilities = NOTIFY_NONE;
+    world->notify->time_varying_reactions = NOTIFY_NONE;
+    world->notify->reaction_prob_notify = 0.0;
+    world->notify->partition_location = NOTIFY_NONE;
+    world->notify->box_triangulation = NOTIFY_NONE;
+    world->notify->custom_iterations = NOTIFY_NONE;
+    world->notify->custom_iteration_value = 0;  /* Ignored unless NOTIFY_CUSTOM set */
+    world->notify->release_events = NOTIFY_NONE;
+    world->notify->file_writes = NOTIFY_NONE;
+    world->notify->final_summary = NOTIFY_NONE;
+    world->notify->throughput_report = NOTIFY_NONE;
+  }
+  else
+  {
+    world->notify->progress_report = NOTIFY_FULL;
+    world->notify->diffusion_constants = NOTIFY_BRIEF;
+    world->notify->reaction_probabilities = NOTIFY_FULL;
+    world->notify->time_varying_reactions = NOTIFY_FULL;
+    world->notify->reaction_prob_notify = 0.0;
+    world->notify->partition_location = NOTIFY_NONE;
+    world->notify->box_triangulation = NOTIFY_NONE;
+    world->notify->custom_iterations = NOTIFY_FULL;
+    world->notify->custom_iteration_value = 0;  /* Ignored unless NOTIFY_CUSTOM set */
+    world->notify->release_events = NOTIFY_FULL;
+    world->notify->file_writes = NOTIFY_NONE;
+    world->notify->final_summary = NOTIFY_FULL;
+    world->notify->throughput_report = NOTIFY_FULL;
+  }
   /* Warnings */
   world->notify->neg_diffusion = WARN_WARN;
   world->notify->neg_reaction = WARN_WARN;
@@ -183,8 +202,11 @@ int init_sim(void)
 #ifdef KELP
   if (world->procnum == 0) {
 #endif
-  fprintf(log_file,"MCell initializing simulation...\n");
-  fflush(log_file);
+    if (world->notify->progress_report != NOTIFY_NONE)
+    {
+      fprintf(log_file,"MCell initializing simulation...\n");
+      fflush(log_file);
+    }
 #ifdef KELP
   }
 #endif
@@ -274,8 +296,11 @@ int init_sim(void)
     return(1);
   }
   rng_init(world->rng,world->seed_seq);
-  fprintf(log_file,"MCell[%d]: random sequence %d\n",world->procnum,world->seed_seq);
-  fflush(log_file);
+  if (world->notify->progress_report != NOTIFY_NONE)
+  {
+    fprintf(log_file,"MCell[%d]: random sequence %d\n",world->procnum,world->seed_seq);
+    fflush(log_file);
+  }
 
   world->count_hashmask = COUNT_HASHMASK;
   world->count_hash = (struct counter**)malloc(sizeof(struct counter*)*(world->count_hashmask+1));
@@ -691,7 +716,6 @@ int init_species(void)
         world->species_list[count] = s;
         world->species_list[count]->species_id = count;
         world->species_list[count]->chkpt_species_id = UINT_MAX;
-/*        world->species_list[count]->hashval &= world->rx_hashsize-1; */
         world->species_list[count]->population = 0;
 	world->species_list[count]->n_deceased = 0;
 	world->species_list[count]->cum_lifetime = 0;
@@ -707,8 +731,7 @@ int init_species(void)
       }
     }
   }
- 
-   
+
   return 0;
 }
 
@@ -883,7 +906,8 @@ int init_partitions(void)
 
   /* Allocate the subvolumes */
   world->n_subvols = (world->nz_parts-1) * (world->ny_parts-1) * (world->nx_parts-1);
-  printf("Creating %d subvolumes (%d,%d,%d per axis)\n",world->n_subvols,world->nx_parts-1,world->ny_parts-1,world->nz_parts-1);
+  if (world->notify->progress_report!=NOTIFY_NONE)
+    fprintf(world->log_file,"Creating %d subvolumes (%d,%d,%d per axis)\n",world->n_subvols,world->nx_parts-1,world->ny_parts-1,world->nz_parts-1);
   if ((world->subvol = (struct subvolume*)malloc(sizeof(struct subvolume)*world->n_subvols)) == NULL)
   {
         fprintf(world->err_file,"File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
@@ -1075,11 +1099,14 @@ int init_geom(void)
     world->bb_urb.z=0;
   }
   if (world->procnum == 0) {
-    fprintf(log_file,"MCell: world bounding box in microns =\n");
-    fprintf(log_file,"         [ %.9g %.9g %.9g ] [ %.9g %.9g %.9g ]\n",
-      world->bb_llf.x*world->length_unit,world->bb_llf.y*world->length_unit,
-      world->bb_llf.z*world->length_unit,world->bb_urb.x*world->length_unit,
-      world->bb_urb.y*world->length_unit,world->bb_urb.z*world->length_unit);
+    if (world->notify->progress_report)
+    {
+      fprintf(log_file,"MCell: world bounding box in microns =\n");
+      fprintf(log_file,"         [ %.9g %.9g %.9g ] [ %.9g %.9g %.9g ]\n",
+        world->bb_llf.x*world->length_unit,world->bb_llf.y*world->length_unit,
+        world->bb_llf.z*world->length_unit,world->bb_urb.x*world->length_unit,
+        world->bb_urb.y*world->length_unit,world->bb_urb.z*world->length_unit);
+    }
   }
 
   world->n_walls=world->root_instance->n_walls;

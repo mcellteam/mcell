@@ -1,0 +1,131 @@
+/****************************************************************************
+ * Macromolecule parser error handling 33: Complex count references the same
+ *                     relation twice.
+ *
+ *    Expect an error regarding the line:
+ *      {COUNT[SUBUNIT{camkii:camkii_subunit[dimer_partner==camkii_subunit & ...
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+dt = 1e-6
+iterations=1250000
+sprintf(seed_str,"%04g",SEED)
+
+INCLUDE_FILE="parameters.mdl"
+
+TIME_STEP = dt
+ITERATIONS = iterations
+GRID_DENSITY = 15000
+ACCURATE_3D_REACTIONS = FALSE
+
+PARTITION_X = [[-0.5001 TO 0.50001 STEP 0.02]]
+PARTITION_Y = [[-0.5001 TO 0.50001 STEP 0.02]]
+PARTITION_Z = [[-0.5001 TO 0.50001 STEP 0.02]]
+
+DEFINE_MOLECULES {
+  camkii_subunit  { DIFFUSION_CONSTANT_3D = 0 }
+  camkii_subunitB { DIFFUSION_CONSTANT_3D = 0 }
+  cam             { DIFFUSION_CONSTANT_3D = cam_diffusion }
+}
+
+DEFINE_COMPLEX_MOLECULE camkii {
+  NUMBER_OF_SUBUNITS = [2, 6]
+  SUBUNIT[  1, 2:4] = camkii_subunit
+  SUBUNIT[1:2, 1:3] = camkii_subunit
+  SUBUNIT[1:2,   5] = camkii_subunit
+  SUBUNIT[  1,   6] = camkii_subunitB
+  SUBUNIT[  2,   6] = camkii_subunitB
+  SUBUNIT[  2,   4] = camkii_subunitB
+  SUBUNIT[1:2, 1:6] = camkii_subunit
+  SHAPE {
+    SUBUNIT[1, 1] = [-.0100,  .00000,  .0050]
+    SUBUNIT[1, 2] = [ .0050,  .00866,  .0050]
+    SUBUNIT[1, 3] = [ .0050,  .00866,  .0050]
+    SUBUNIT[1, 4] = [ .0100,  .00000,  .0050]
+    SUBUNIT[1, 5] = [ .0050, -.00866,  .0050]
+    SUBUNIT[1, 6] = [-.0050, -.00866,  .0050]
+    SUBUNIT[2, 1] = [-.0100,  .00000, -.0050]
+    SUBUNIT[2, 2] = [-.0050,  .00866, -.0050]
+    SUBUNIT[2, 3] = [ .0050,  .00866, -.0050]
+    SUBUNIT[2, 4] = [ .0100,  .00000, -.0050]
+    SUBUNIT[2, 5] = [ .0050, -.00866, -.0050]
+    SUBUNIT[2, 6] = [-.0050, -.00866, -.0050]
+  }
+  SUBUNIT_RELATIONSHIPS {
+    ring_negative = [ 0, -1]
+    ring_positive = [ 0, +1]
+    dimer_partner = [+1,  0]
+  }
+  RATE_RULES {
+    coop_binding_rate {
+      dimer_partner != camkii_subunit : fw_rate * TMP_spec_F
+      DEFAULT : fw_rate
+    }
+    coop_unbinding_rate {
+      dimer_partner != camkii_subunit : bw_rate * TMP_spec_B
+      DEFAULT : bw_rate
+    }
+  }
+}
+
+DEFINE_REACTIONS {
+  (camkii_subunit) + cam <-> (camkii_subunitB)   [> COMPLEX_RATE camkii coop_binding_rate,
+                                                  < COMPLEX_RATE camkii coop_unbinding_rate]
+}
+
+mainbox OBJECT {
+  b BOX {
+    CORNERS = [ -0.5, -0.5, -0.5 ], [ 0.5, 0.5, 0.5 ]
+  }
+}
+
+INSTANTIATE world OBJECT
+{
+  mainbox OBJECT mainbox {
+  }
+
+  rs1 RELEASE_SITE {
+    SHAPE = world.mainbox.b[ALL]
+    MOLECULE = camkii
+    NUMBER_TO_RELEASE = num_complexes
+  }
+
+  rs2 RELEASE_SITE {
+    SHAPE = world.mainbox.b[ALL]
+    MOLECULE = cam
+    NUMBER_TO_RELEASE = num_cam
+  }
+}
+
+VIZ_OUTPUT {
+  MODE = DREAMM_V3
+  FILENAME = "./viz_dat/test_box"
+
+  MOLECULES
+  {
+    NAME_LIST { ALL_MOLECULES }
+
+    ITERATION_NUMBERS {
+      POSITIONS @ [[0 TO 100 STEP 10], [200 TO 1000 STEP 100], [2000 TO 100000 STEP 1000], [200000 TO iterations STEP 100000]]
+    }
+  }
+
+  MESHES
+  {
+    NAME_LIST { ALL_MESHES }
+    ITERATION_NUMBERS {
+      ALL_DATA @ [0]
+    }
+  }
+}
+
+REACTION_DATA_OUTPUT {
+    ITERATION_LIST = [[0 TO 9999 STEP 100], [10000 TO 250000 STEP 10000], [250001 TO 1250000 STEP 1]]
+    {COUNT[SUBUNIT{camkii:camkii_subunit[dimer_partner==camkii_subunit & dimer_partner==camkii_subunit]}, WORLD]} => "./reaction_data/coop_m00." & seed_str
+    {COUNT[SUBUNIT{camkii:camkii_subunit[dimer_partner!=camkii_subunit]}, WORLD]} => "./reaction_data/coop_m01." & seed_str
+    {COUNT[SUBUNIT{camkii:camkii_subunitB[dimer_partner==camkii_subunit]}, WORLD]} => "./reaction_data/coop_m10." & seed_str
+    {COUNT[SUBUNIT{camkii:camkii_subunitB[dimer_partner!=camkii_subunit]}, WORLD]} => "./reaction_data/coop_m11." & seed_str
+    {COUNT[cam, WORLD]} => "./reaction_data/coop_cam." & seed_str
+}

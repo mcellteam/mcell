@@ -1,0 +1,25 @@
+/****************************************************************************
+ * Parser error 080: DX-mode name list contains ALL_MESHES
+ *
+ *    Expect an error regarding the line:
+ *      NAME_LIST { ALL_MESHES }
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+vizdir = "dat/invalid-080/"
+INSTANTIATE world OBJECT {
+  box1 BOX { CORNERS = [0, 0, 0], [1, 1, 1] }
+}
+VIZ_OUTPUT
+{
+    MODE = DX
+    FILENAME = vizdir & "world"
+    MESHES
+    {
+        NAME_LIST { ALL_MESHES }
+        TIME_POINTS { ALL_DATA @ ALL_TIMES }
+    }
+}

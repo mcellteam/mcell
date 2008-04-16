@@ -1,0 +1,15 @@
+/****************************************************************************
+ * Parser error 022: fopen fails (can't open in read mode)
+ *
+ *    Expect an error on the line:
+ *      file = fopen("invalid-22.mdl", "r")
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+ITERATIONS = 1
+
+file = fopen("invalid-22.mdl", "r")
+fclose(file)

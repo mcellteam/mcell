@@ -1,0 +1,17 @@
+/****************************************************************************
+ * Parser error 062: Attempt to set aspect ratio < 2.0
+ *
+ *    Expect an error on the line:
+ *      ASPECT_RATIO = 0.01
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+
+penalty BOX
+{
+  CORNERS = [0, 0, 0], [1, 1, 1]
+  ASPECT_RATIO = 0.01
+}

@@ -1,0 +1,18 @@
+/****************************************************************************
+ * Parser error 006: Orient doesn't fit in short integer
+ *
+ *    Expect an error regarding the line:
+ *      ABSORPTIVE = foo{32768}
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+ITERATIONS = 1
+
+DEFINE_MOLECULE foo { DIFFUSION_CONSTANT_2D = 3e-6 }
+DEFINE_SURFACE_CLASS foo_eater
+{
+  ABSORPTIVE = foo{32768}
+}

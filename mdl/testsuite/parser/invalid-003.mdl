@@ -1,0 +1,18 @@
+/****************************************************************************
+ * Parser error 003: Point is not 3D
+ *
+ *    Expect an error regarding the line:
+ *      TRANSLATE = [-1]
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+ITERATIONS = 1
+
+box1 BOX
+{
+  CORNERS = [0, 0, 0], [1, 1, 1]
+  TRANSLATE = [-1]
+}

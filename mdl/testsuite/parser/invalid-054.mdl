@@ -1,0 +1,17 @@
+/****************************************************************************
+ * Parser error 054: Site radius/diameter an incorrectly sized vector
+ *
+ *    Expect an error on the line:
+ *      SITE_RADIUS = rad
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+rad = [0, PI/4, PI/2, 3*PI/4]
+rs RELEASE_SITE
+{
+  SHAPE = SPHERICAL
+  SITE_RADIUS = rad
+}

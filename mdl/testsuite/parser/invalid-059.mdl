@@ -1,0 +1,24 @@
+/****************************************************************************
+ * Parser error 058: Voxel created with fewer than 4 vertices.
+ *
+ *    Expect an error on the line:
+ *      ELEMENT_CONNECTIONS { [0, 1, 2] }
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+
+degeneracy VOXEL_LIST
+{
+  VERTEX_LIST
+  {
+    [0, 0, 0]
+    [0, 0, 1]
+    [0, 0, 2]
+    [0, 0, 3]
+    [0, 0, 4]
+  }
+  TET_ELEMENT_CONNECTIONS { [0, 1, 2] }
+}

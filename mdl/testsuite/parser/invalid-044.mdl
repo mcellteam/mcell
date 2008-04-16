@@ -1,0 +1,19 @@
+/****************************************************************************
+ * Parser error 044: Reaction omits forward rate.
+ *
+ *    Expect an error on the line:
+ *      vm + vm <-> vm           [<1e3]
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+ITERATIONS = 1
+
+DEFINE_MOLECULE vm { DIFFUSION_CONSTANT_3D = 1.0 }
+DEFINE_REACTIONS
+{
+  vm + vm  -> vm + vm      [> 1e5]
+  vm + vm <-> vm           [<1e3]
+}

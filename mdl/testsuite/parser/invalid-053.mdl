@@ -1,0 +1,18 @@
+/****************************************************************************
+ * Parser error 053: Site radius/diameter not a number or a 3-vector.
+ *
+ *    Expect an error on the line:
+ *      SITE_RADIUS = rad
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+rad = 1e-5
+rad = "super rad!"    // awesome
+rs RELEASE_SITE
+{
+  SHAPE = SPHERICAL
+  SITE_RADIUS = rad
+}

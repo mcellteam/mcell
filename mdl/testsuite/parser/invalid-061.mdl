@@ -1,0 +1,27 @@
+/****************************************************************************
+ * Parser error 061: Use of PATCH on a polygon
+ *
+ *    Expect an error on the line:
+ *      INCLUDE_PATCH = [ 1, 2, 3 ], [3, 4, 5]
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+
+degeneracy POLYGON_LIST
+{
+  VERTEX_LIST
+  {
+    [0, 0, 0]
+  }
+  ELEMENT_CONNECTIONS { [0, 0, 0] }
+  DEFINE_SURFACE_REGIONS
+  {
+    r1
+    {
+      INCLUDE_PATCH = [ 1, 2, 3 ], [3, 4, 5]
+    }
+  }
+}

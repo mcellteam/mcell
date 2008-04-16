@@ -32,6 +32,7 @@ the user to quickly fix the problem.
         * invalid-05: Subunit assignment extra dim.
         * invalid-06: Subunit assignment negative (1st)
         * invalid-07: Subunit assignment negative (2nd)
+        * invalid-34: Subunit assignment missing
 
   SHAPE {
     SUBUNIT[a, b] = species
@@ -86,8 +87,39 @@ the user to quickly fix the problem.
                                                   < COMPLEX_RATE camkii coop_unbinding_rate]
 
     A reaction is valid only if neither side includes a subunit (parenthesized
-    participant) or if both include exactly 1.
+    participant) or if both include exactly 1.  Complex rate rules must
+    reference a valid complex and a valid rate rule within the complex.
 
         * invalid-24: Two subunit reactants
         * invalid-25: Product missing subunit
         * invalid-26: Product has extra subunit
+        * invalid-27: Complex rate referent is not a complex
+        * invalid-28: Complex rate rule references non-existent table
+
+  {
+    COUNT[SUBUNIT{
+            camkii : camkii_subunit
+              [ dimer_partner == camkii_subunit ]
+              }, WORLD]
+  } => "./reaction_data/coop_m00." & seed_str
+
+    A complex subunit count is valid only if:
+      - the complex referenced is a valid complex
+      - the subunit referenced is a valid molecule (non-complex)
+      - each relation referenced is a valid relation for the complex
+      - each subunit referenced in a relation is a valid molecule (non-complex)
+      - no relation is referenced more than once
+
+        * invalid-29: Complex count references non-complex
+        * invalid-30: Complex count references invalid subunit name
+        * invalid-31: Complex count references invalid relation
+        * invalid-32: Complex count references invalid related subunit
+        * invalid-33: Complex count references the same relation twice
+        * invalid-36: Extra orientation on volume complex
+        * invalid-37: Extra orientation on volume subunit
+        * invalid-38: Extra orientation on volume subunit relation
+
+  General errors:
+
+    * invalid-35: Complex redefined
+    * invalid-39: Failure to place molecules (complex too big for region)

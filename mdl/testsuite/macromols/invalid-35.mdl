@@ -1,0 +1,148 @@
+/****************************************************************************
+ * Macromolecule parser error handling 35: Complex redefined.
+ *
+ *    Expect an error regarding the second definition of the complex.
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+dt = 1e-6
+iterations=1250000
+sprintf(seed_str,"%04g",SEED)
+
+INCLUDE_FILE="parameters.mdl"
+
+TIME_STEP = dt
+ITERATIONS = iterations
+GRID_DENSITY = 15000
+ACCURATE_3D_REACTIONS = FALSE
+
+PARTITION_X = [[-0.5001 TO 0.50001 STEP 0.02]]
+PARTITION_Y = [[-0.5001 TO 0.50001 STEP 0.02]]
+PARTITION_Z = [[-0.5001 TO 0.50001 STEP 0.02]]
+
+DEFINE_MOLECULES {
+  camkii_subunit  { DIFFUSION_CONSTANT_3D = 0 }
+  camkii_subunitB { DIFFUSION_CONSTANT_3D = 0 }
+  cam             { DIFFUSION_CONSTANT_3D = cam_diffusion }
+}
+
+DEFINE_COMPLEX_MOLECULE camkii {
+  NUMBER_OF_SUBUNITS = [2, 6]
+  SUBUNIT[1:2, 1:6] = camkii_subunit
+  SHAPE {
+    SUBUNIT[1, 1] = [-10.0,   0.0,  5.0]
+    SUBUNIT[1, 2] = [ -5.0,  8.66,  5.0]
+    SUBUNIT[1, 3] = [  5.0,  8.66,  5.0]
+    SUBUNIT[1, 4] = [ 10.0,   0.0,  5.0]
+    SUBUNIT[1, 5] = [  5.0, -8.66,  5.0]
+    SUBUNIT[1, 6] = [ -5.0, -8.66,  5.0]
+    SUBUNIT[2, 1] = [-10.0,   0.0, -5.0]
+    SUBUNIT[2, 2] = [ -5.0,  8.66, -5.0]
+    SUBUNIT[2, 3] = [  5.0,  8.66, -5.0]
+    SUBUNIT[2, 4] = [ 10.0,   0.0, -5.0]
+    SUBUNIT[2, 5] = [  5.0, -8.66, -5.0]
+    SUBUNIT[2, 6] = [ -5.0, -8.66, -5.0]
+  }
+  SUBUNIT_RELATIONSHIPS {
+    ring_negative = [ 0, -1]
+    ring_positive = [ 0, +1]
+    dimer_partner = [+1,  0]
+  }
+  RATE_RULES {
+    coop_binding_rate {
+      dimer_partner != camkii_subunit : fw_rate * TMP_spec_F
+      DEFAULT : fw_rate
+    }
+    coop_unbinding_rate {
+      dimer_partner != camkii_subunit : bw_rate * TMP_spec_B
+      DEFAULT : bw_rate
+    }
+  }
+}
+
+DEFINE_COMPLEX_MOLECULE camkii {
+  NUMBER_OF_SUBUNITS = [2, 6]
+  SUBUNIT[1:2, 1:6] = camkii_subunit
+  SHAPE {
+    SUBUNIT[1, 1] = [-10.0,   0.0,  5.0]
+    SUBUNIT[1, 2] = [ -5.0,  8.66,  5.0]
+    SUBUNIT[1, 3] = [  5.0,  8.66,  5.0]
+    SUBUNIT[1, 4] = [ 10.0,   0.0,  5.0]
+    SUBUNIT[1, 5] = [  5.0, -8.66,  5.0]
+    SUBUNIT[1, 6] = [ -5.0, -8.66,  5.0]
+    SUBUNIT[2, 1] = [-10.0,   0.0, -5.0]
+    SUBUNIT[2, 2] = [ -5.0,  8.66, -5.0]
+    SUBUNIT[2, 3] = [  5.0,  8.66, -5.0]
+    SUBUNIT[2, 4] = [ 10.0,   0.0, -5.0]
+    SUBUNIT[2, 5] = [  5.0, -8.66, -5.0]
+    SUBUNIT[2, 6] = [ -5.0, -8.66, -5.0]
+  }
+  SUBUNIT_RELATIONSHIPS {
+    ring_negative = [ 0, -1]
+    ring_positive = [ 0, +1]
+    dimer_partner = [+1,  0]
+  }
+  RATE_RULES {
+    coop_binding_rate {
+      dimer_partner != camkii_subunit : fw_rate * TMP_spec_F
+      DEFAULT : fw_rate
+    }
+    coop_unbinding_rate {
+      dimer_partner != camkii_subunit : bw_rate * TMP_spec_B
+      DEFAULT : bw_rate
+    }
+  }
+}
+
+DEFINE_REACTIONS {
+  (camkii_subunit) + cam <-> (camkii_subunitB)   [> COMPLEX_RATE camkii coop_binding_rate,
+                                                  < COMPLEX_RATE camkii coop_unbinding_rate]
+}
+
+mainbox OBJECT {
+  b BOX {
+    CORNERS = [ -0.5, -0.5, -0.5 ], [ 0.5, 0.5, 0.5 ]
+  }
+}
+
+INSTANTIATE world OBJECT
+{
+  mainbox OBJECT mainbox {
+  }
+
+  rs1 RELEASE_SITE {
+    SHAPE = world.mainbox.b[ALL]
+    MOLECULE = camkii
+    NUMBER_TO_RELEASE = num_complexes
+  }
+
+  rs2 RELEASE_SITE {
+    SHAPE = world.mainbox.b[ALL]
+    MOLECULE = cam
+    NUMBER_TO_RELEASE = num_cam
+  }
+}
+
+VIZ_OUTPUT {
+  MODE = DREAMM_V3
+  FILENAME = "./viz_dat/test_box"
+
+  MOLECULES
+  {
+    NAME_LIST { ALL_MOLECULES }
+
+    ITERATION_NUMBERS {
+      POSITIONS @ [[0 TO 100 STEP 10], [200 TO 1000 STEP 100], [2000 TO 100000 STEP 1000], [200000 TO iterations STEP 100000]]
+    }
+  }
+
+  MESHES
+  {
+    NAME_LIST { ALL_MESHES }
+    ITERATION_NUMBERS {
+      ALL_DATA @ [0]
+    }
+  }
+}

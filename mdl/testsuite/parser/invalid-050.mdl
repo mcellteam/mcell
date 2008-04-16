@@ -1,0 +1,11 @@
+/****************************************************************************
+ * Parser error 050: Include file not found.
+ *
+ *    Expect an error on the line:
+ *      INCLUDE_FILE = "/this/file/does/not/exist"
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+INCLUDE_FILE = "/this/file/does/not/exist"

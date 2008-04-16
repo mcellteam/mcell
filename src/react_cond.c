@@ -821,8 +821,9 @@ check_probs:
         with rapidly changing rates)--if you want that, the code should
         probably be rewritten to accumulate probability changes from the
         list as it goes (and the list should be sorted by pathway, too).
+  Note: We're still displaying geometries here, rather than orientations.
+        Perhaps that should be fixed.
 *************************************************************************/
-
 void check_probs(struct rxn *rx,double t)
 {
   int j,k;
@@ -867,10 +868,10 @@ void check_probs(struct rxn *rx,double t)
        
       for (k = rx->product_idx[j] ; k < rx->product_idx[j+1] ; k++)
       {
-         if (rx->players[k]==NULL) printf("NIL ");
-         else printf("%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+         if (rx->players[k]!=NULL)
+           fprintf(world->log_file, "%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
       }
-      printf("\n");
+      fprintf(world->log_file, "\n");
     }
   }
   

@@ -1,0 +1,22 @@
+/****************************************************************************
+ * Parser error 082: In DREAMM mode, MOLECULE_FILE_PREFIX specified
+ *
+ *    Expect an error regarding the line:
+ *      MOLECULE_FILE_PREFIX = "molecules"
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+vizdir = "dat/invalid-082"
+VIZ_OUTPUT
+{
+    FILENAME = vizdir & "world"
+    MOLECULE_FILE_PREFIX = "molecules"
+    MOLECULES
+    {
+        NAME_LIST { ALL_MOLECULES }
+        TIME_POINTS { ALL_DATA @ ALL_TIMES }
+    }
+}

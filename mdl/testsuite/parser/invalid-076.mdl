@@ -1,0 +1,16 @@
+/****************************************************************************
+ * Parser error 076: VIZ_MOLECULE_FORMAT specified outside of DREAMM mode
+ *
+ *    Expect an error regarding the line:
+ *      VIZ_MOLECULE_FORMAT = BINARY
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+VIZ_OUTPUT
+{
+    MODE = ASCII
+    VIZ_MOLECULE_FORMAT = BINARY
+    FILENAME = "dat/invalid-076/dreamm"
+}

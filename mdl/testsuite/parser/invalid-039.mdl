@@ -1,0 +1,13 @@
+/****************************************************************************
+ * Parser error 039: TIME_STEP multiply specified
+ *
+ *    Expect an error on the line:
+ *      TIME_STEP = 1e-7
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP  = 1e-6
+TIME_STEP  = 1e-7
+ITERATIONS = 1

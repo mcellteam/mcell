@@ -1279,6 +1279,7 @@ struct volume
   long long start_time;   /* Starting iteration number for the current run */
 
   int procnum;            /* Processor number for a parallel run */
+  int quiet_flag;               /* Quiet mode */
 
   struct mem_helper *coll_mem;  /* Collision list */
   struct mem_helper *sp_coll_mem;  /* Collision list (trimol) */

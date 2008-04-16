@@ -8,3 +8,119 @@ sink test.
 
  * Test 01: Nearly every parser option.
  * Test 02: Realtime checkpoint variants.
+
+Below, I will attempt to document the error conditions we test for.
+
+General errors:
+
+ * invalid-001: Point is not 3D (4D point specified)
+ * invalid-002: Point is not 3D (2D point specified)
+ * invalid-003: Point is not 3D (1D point specified)
+ * invalid-004: Orient doesn't fit in short integer (40000)
+ * invalid-005: Orient doesn't fit in short integer (-40000)
+ * invalid-006: Orient doesn't fit in short integer (32768)
+ * invalid-007: Orient doesn't fit in short integer (32970 commas)
+ * invalid-008: Orient doesn't fit in short integer (32970 apostrophes)
+ * invalid-009: Range error - log [zero]
+ * invalid-010: Range error - log [negative]
+ * invalid-011: Range error - exp [overflow]
+ * invalid-012: Range error - log10 [zero]
+ * invalid-013: Range error - log10 [negative]
+ * invalid-014: Range error - sqrt [negative]
+ * invalid-015: Range error - asin(2)
+ * invalid-016: Range error - acos(-2)
+ * invalid-017: Range error - MOD(20.0, 0.0)
+ * invalid-018: Range error - 20 / 0
+ * invalid-019: Range error - 20 ^ 1e100
+ * invalid-020: Range error - 1e300*1e300*1e300*1e300
+ * invalid-049: Includes nested too deeply.
+ * invalid-050: Include file not found.
+
+I/O subsystem errors:
+ * invalid-021: fopen fails (file doesn't exist)
+ * invalid-022: fopen fails (can't open in read mode)
+ * invalid-023: fopen fails (file is a directory)
+ * // Should add: fopen fails (permission denied)
+   // But be careful -- using a known unwritable file could be disastrous if
+   // anyone ever ran the test suite as root...
+ * invalid-025: fclose fails (closed twice)
+ * invalid-026: fclose fails (no such file)
+
+Checkpoint-related errors:
+ * invalid-027: CHECKPOINT_ITERATIONS out of range
+ * // Should discuss 0 as a value for CHECKPOINT_ITERATIONS.
+   // Might be legitimate reasons for specifying 0 (for instance, to disable
+   // iteration-based checkpointing via a variable setting.  Should either test
+   // for failure when CHECKPOINT_ITERATIONS == 0, or should test for correct
+   // behavior.
+ * invalid-029: CHECKPOINT_REALTIME multiply specified
+ * invalid-030: CHECKPOINT_REALTIME interval is negative
+
+Errors in time/space step:
+ * invalid-031: TIME_STEP == 0
+ * invalid-032: TIME_STEP < 0
+ * invalid-033: SPACE_STEP == 0
+ * invalid-034: SPACE_STEP < 0
+ * invalid-035: CUSTOM_TIME_STEP < 0              *** not presently treated as an error
+ * invalid-036: CUSTOM_TIME_STEP == 0             *** not presently treated as an error
+ * invalid-037: CUSTOM_SPACE_STEP < 0             *** not presently treated as an error
+ * invalid-038: CUSTOM_SPACE_STEP == 0            *** not presently treated as an error
+ * invalid-039: TIME_STEP multiply specified
+ * invalid-040: SPACE_STEP multiply specified
+ * invalid-041: TIME_STEP not specified
+
+Errors in surface initialization:
+ * invalid-042: Initialize effector with surface
+ * invalid-043: Initialize effector with volume molecule
+
+Errors in reactions:
+ * invalid-044: Reaction omits forward rate.
+ * invalid-045: Reaction omits reverse rate.
+ * invalid-046: Reaction has two reverse rates
+ * invalid-047: Reaction has two forward rates
+ * invalid-048: Reaction rate is an array variable
+
+Errors in release sites:
+ * invalid-051: Set density or number for list release site.
+ * invalid-052: Set molecule positions for non-list release site.
+ * invalid-053: Site radius/diameter not a number or a 3-vector.
+ * invalid-054: Site radius/diameter an incorrectly sized vector
+ * invalid-055: Concentration specified on spherical shell.
+
+Errors in geometry:
+ * invalid-056: Polygon created with more than 3 vertices.
+ * invalid-057: Polygon created with fewer than 3 vertices.
+ * invalid-058: Voxel created with more than 4 vertices.
+ * invalid-059: Voxel created with fewer than 4 vertices.
+ * invalid-062: Attempt to set aspect ratio < 2.0
+ * invalid-084: Attempt to create a patch on a non-BOX object.
+ * invalid-085: Attempt to create a patch on an already triangulated BOX object.
+
+Errors in regions:
+ * invalid-060: Reference to side by name in polygon
+ * invalid-061: Use of PATCH on a polygon
+ * invalid-063: Attempt to define a region on a non-polygonal object.
+ * invalid-064: Out-of-range element specifiers
+ * invalid-065: Element specifier bounds reversed.
+
+Errors in reaction data output:
+ * invalid-066: Count buffer specified < 1
+ * invalid-067: Count buffer specified > UINT_MAX
+ * invalid-068: TRIGGER and COUNT in the same statement
+ * invalid-069: Column header with wildcard expansion
+
+Errors in VIZ output:
+ * invalid-070: VIZ_OUPUT block omits FILENAME option in DREAMM mode
+ * invalid-071: multiple VIZ output modes in one file
+ * invalid-072: new style molecules-spec with non-DX and non-DREAMM output
+ * invalid-073: multiple CUSTOM_RK output blocks in one file
+ * invalid-074: both binary and ascii mesh format specifiedpppp
+ * invalid-075: both binary and ascii molecule format specifiedpppp
+ * invalid-076: VIZ_MOLECULE_FORMAT specified outside of DREAMM mode
+ * invalid-077: VIZ_MESH_FORMAT specified outside of DREAMM mode
+ * invalid-078: DX-mode name list contains molecules without state values
+ * invalid-079: DX-mode name list contains meshes without state values
+ * invalid-080: DX-mode name list contains ALL_MESHES
+ * invalid-081: DX-mode name list contains ALL_MOLECULES
+ * invalid-082: In DREAMM mode, MOLECULE_FILE_PREFIX specified
+ * invalid-083: In DREAMM mode, OBJECT_FILE_PREFIXES specified

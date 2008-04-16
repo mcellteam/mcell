@@ -1,0 +1,15 @@
+/****************************************************************************
+ * Parser error 021: fopen fails (file doesn't exist)
+ *
+ *    Expect an error on the line:
+ *      file = fopen("/scritch/scratch/this/file/doesn't/exist/please", "w")
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+ITERATIONS = 1
+
+file = fopen("/scritch/scratch/this/file/doesn't/exist/please", "w")
+fclose(file)

@@ -1,0 +1,13 @@
+/****************************************************************************
+ * Parser error 034: SPACE_STEP < 0
+ *
+ *    Expect an error on the line:
+ *      SPACE_STEP = 0
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP  = 1e-6
+ITERATIONS = 1
+SPACE_STEP = -1e-2

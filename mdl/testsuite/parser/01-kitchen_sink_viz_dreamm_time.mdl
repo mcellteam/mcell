@@ -14,6 +14,7 @@
  ****************************************************************************/
 
 basename = "01-kitchen_sink_viz_dreamm_time"
+INCLUDE_FILE = "names.mdl"
 INCLUDE_FILE = "common.mdl"
 
 VIZ_OUTPUT

@@ -15,6 +15,7 @@
  ****************************************************************************/
 
 basename = "01-kitchen_sink_viz_dreammgrouped_wildcard"
+INCLUDE_FILE = "names.mdl"
 INCLUDE_FILE = "common.mdl"
 
 VIZ_OUTPUT

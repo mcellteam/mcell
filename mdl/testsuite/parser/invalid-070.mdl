@@ -1,0 +1,23 @@
+/****************************************************************************
+ * Parser error 070: VIZ_OUPUT block omits FILENAME option in DREAMM mode
+ *
+ *    Expect an error regarding the VIZ output block
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+VIZ_OUTPUT
+{
+    MODE = DREAMM_V3
+    MOLECULES
+    {
+        NAME_LIST { ALL_MOLECULES }
+        TIME_POINTS { ALL_DATA @ ALL_TIMES }
+    }
+    MESHES
+    {
+        NAME_LIST { ALL_MESHES }
+        TIME_POINTS { ALL_DATA @ [0] }
+    }
+}

@@ -1,0 +1,14 @@
+/****************************************************************************
+ * Parser error 012: Range error - log10 [zero]
+ *
+ *    Expect error on line:
+ *      printf("%.15g", LOG10(0))
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+ITERATIONS = 1
+
+printf("%.15g", LOG10(0))

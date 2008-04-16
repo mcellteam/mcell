@@ -1,0 +1,11 @@
+/****************************************************************************
+ * Parser error 049: Includes nested too deeply.
+ *
+ *    Expect an error on the line:
+ *      INCLUDE_FILE = "invalid-049.mdl"
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+INCLUDE_FILE = "invalid-049.mdl"

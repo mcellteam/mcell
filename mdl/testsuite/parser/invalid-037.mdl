@@ -1,0 +1,17 @@
+/****************************************************************************
+ * Parser error 037: CUSTOM_SPACE_STEP < 0
+ *
+ *    Expect an error on the line:
+ *      CUSTOM_SPACE_STEP = -1e-3
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP  = 1e-6
+ITERATIONS = 1
+DEFINE_MOLECULE tachyon
+{
+  DIFFUSION_CONSTANT_3D = 1e-3
+  CUSTOM_SPACE_STEP = -1e-3
+}

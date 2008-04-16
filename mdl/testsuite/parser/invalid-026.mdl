@@ -1,0 +1,15 @@
+/****************************************************************************
+ * Parser error 026: fclose fails (no such file)
+ *
+ *    Expect an error on the line:
+ *      fclose(file)
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+ITERATIONS = 1
+
+file = "/tmp/foobar"
+fclose(file)

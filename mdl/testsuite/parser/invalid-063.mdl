@@ -1,0 +1,27 @@
+/****************************************************************************
+ * Parser error 063: Attempt to define a region on a non-polygonal object.
+ *
+ *    Expect an error on the line:
+ *      rs1[potato] = { INCLUDE_ELEMENTS = ALL_ELEMENTS }
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+
+DEFINE_MOLECULE m { DIFFUSION_CONSTANT_3D = 0.0 }
+rs1 RELEASE_SITE
+{
+    SHAPE = SPHERICAL
+    LOCATION = [0.1, 0.1, 0.1]
+    MOLECULE = m
+    NUMBER_TO_RELEASE = 1000
+    SITE_RADIUS = 1e9
+    RELEASE_PROBABILITY = 1.0
+}
+
+DEFINE_SURFACE_REGIONS
+{
+  rs1[potato] = { INCLUDE_ELEMENTS = ALL_ELEMENTS }
+}

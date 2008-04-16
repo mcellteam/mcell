@@ -3361,7 +3361,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       
       if (smash->t >= 1.0 || smash->t < 0.0)
       {
-	if ((smash->what&COLLIDE_MOL)!=0) printf("File '%s', Line %ld: Unexpected behavior. Iteration %lld, time of collision %.8e\n", __FILE__, (long)__LINE__,  world->it_time,smash->t);
+	if ((smash->what&COLLIDE_MOL)!=0) fprintf(world->err_file, "File '%s', Line %ld: Unexpected behavior. Iteration %lld, time of collision %.8e\n", __FILE__, (long)__LINE__,  world->it_time,smash->t);
         smash = NULL;
         break;
       }
@@ -4217,7 +4217,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       if (smash->t >= 1.0 || smash->t < 0.0)
       {
         if(((smash->what & COLLIDE_MOL) != 0) || ((smash->what & COLLIDE_MOL_MOL) != 0) || ((smash->what & COLLIDE_MOL_GRID) != 0)){
-          printf("File '%s', Line %ld: Unexpected behavior. Iteration %lld, time of collision %.8e\n", __FILE__, (long)__LINE__,  world->it_time,smash->t);
+          fprintf(world->err_file, "File '%s', Line %ld: Unexpected behavior. Iteration %lld, time of collision %.8e\n", __FILE__, (long)__LINE__,  world->it_time,smash->t);
         }
         smash = NULL;
         break;

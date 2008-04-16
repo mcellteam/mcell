@@ -1,0 +1,14 @@
+/****************************************************************************
+ * Parser error 027: CHECKPOINT_ITERATIONS out of range
+ *
+ *    Expect an error on the line:
+ *      CHECKPOINT_ITERATIONS = -100
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-04-04
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+ITERATIONS = 1
+CHECKPOINT_ITERATIONS = -100
+
