@@ -2463,6 +2463,15 @@ void randomize_vol_mol_position(struct volume_molecule *mp, struct vector3 *low_
 
 }
 
+/***************************************************************************
+ collect_molecule:
+    Perform garbage collection on a discarded molecule.  If the molecule is no
+    longer in any lists, it will be freed.
+
+ In: m: the molecule
+ Out: Nothing.  Molecule is unlinked from its list in the subvolume, and
+      possibly returned to its birthplace.
+***************************************************************************/
 void collect_molecule(struct volume_molecule *m)
 {
   struct subvolume *sv = m->subvol;
@@ -2503,13 +2512,37 @@ void collect_molecule(struct volume_molecule *m)
     mem_put(m->birthplace, m);
 }
 
+/***************************************************************************
+ ht_add_molecule_to_list:
+    Add a molecule to the appropriate molecule list in a subvolume's pointer
+    hash.  It is assumed that the molecule's subvolume pointer is valid and
+    points to the right subvolume.
+
+    If the molecule takes part in any mol-mol interactions (including
+    trimolecular reactions involving two or more volume molecules), it is added
+    to a list containing only molecules of the same species.  If it does NOT
+    take part in any such interactions, it is added to a single molecule list
+    which keeps track of all molecules which do not interact with other volume
+    molecules.
+
+ In: h: the pointer hash to which to add the molecule
+     m: the molecule
+ Out: Nothing.  Molecule is added to the subvolume's molecule lists.
+***************************************************************************/
 void ht_add_molecule_to_list(struct pointer_hash *h, struct volume_molecule *m)
 {
   struct per_species_list *list = NULL;
+
+  /* If the molecule does not interact with other volume molecules... */
   if (! (m->properties->flags & (CAN_MOLMOL|CAN_MOLMOLMOL|CAN_MOLMOLGRID)))
   {
-    if (m->subvol->species_head != NULL  &&  m->subvol->species_head->properties == NULL)
+    /* If we have a list for these molecules, it's always at the head of the
+     * species lists, and the list always has the species set to NULL. */
+    if (m->subvol->species_head != NULL  &&
+        m->subvol->species_head->properties == NULL)
+    {
       list = m->subvol->species_head;
+    }
     else
     {
       list = (struct per_species_list *) mem_get(m->subvol->local_storage->pslv);
@@ -2519,21 +2552,31 @@ void ht_add_molecule_to_list(struct pointer_hash *h, struct volume_molecule *m)
       m->subvol->species_head = list;
     }
   }
+
+  /* The molecule DOES interact with other volume molecules */
   else
   {
+    /* See if we have a list */
     list = (struct per_species_list *) pointer_hash_lookup(h, m->properties, m->properties->hashval);
+
+    /* If not, create one and add it in */
     if (list == NULL)
     {
       list = (struct per_species_list *) mem_get(m->subvol->local_storage->pslv);
       list->properties = m->properties;
       list->head = NULL;
       pointer_hash_add(h, m->properties, m->properties->hashval, list);
+
+      /* If the first per-species list is for non-volume-interacting molecules,
+       * add our new list after that. */
       if (m->subvol->species_head != NULL  &&
           m->subvol->species_head->properties == NULL)
       {
         list->next = m->subvol->species_head->next;
         m->subvol->species_head->next = list;
       }
+
+      /* Otherwise, add it to the beginning of the list */
       else
       {
         list->next = m->subvol->species_head;
@@ -2541,6 +2584,8 @@ void ht_add_molecule_to_list(struct pointer_hash *h, struct volume_molecule *m)
       }
     }
   }
+
+  /* Link the molecule into the list */
   m->next_v = list->head;
   if (list->head)
     list->head->prev_v = &m->next_v;
@@ -2548,6 +2593,20 @@ void ht_add_molecule_to_list(struct pointer_hash *h, struct volume_molecule *m)
   list->head = m;
 }
 
+/***************************************************************************
+ ht_remove:
+    Remove a species list from a pointer hash.  This is a fairly simple wrapper
+    around pointer_hash_remove, which simply looks up the key (the species),
+    and avoids trying to remove the non-interacting molecules list from the
+    pointer hash, since it should never be added in the first place.
+
+    Note that the per-species list must still be valid at this point -- it must
+    not have been freed, nor its 'properties' pointer nilled.
+
+ In: h: the pointer hash to which to add the molecule
+     psl: the species list to remove
+ Out: Nothing.  Molecule is added to the subvolume's molecule lists.
+***************************************************************************/
 void ht_remove(struct pointer_hash *h, struct per_species_list *psl)
 {
   struct species *s = psl->properties;
