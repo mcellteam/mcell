@@ -1775,7 +1775,13 @@ existing_release_pattern_xor_rxpn: VAR                { CHECKN($$ = mdl_existing
 ;
 
 list_req_release_pattern_cmds:
-          /* empty */                                 { memset(&$$, 0, sizeof($$)); }
+          /* empty */                                 {
+                                                        $$.delay = 0;
+                                                        $$.release_interval = FOREVER;
+                                                        $$.train_interval = FOREVER;
+                                                        $$.train_duration = FOREVER;
+                                                        $$.number_of_trains = 1;
+                                                      }
         | list_req_release_pattern_cmds
           DELAY '=' num_expr                          { $$ = $1; $$.delay = $4 / mdlpvp->vol->time_unit; }
         | list_req_release_pattern_cmds
