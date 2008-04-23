@@ -21,3 +21,9 @@ How To Build:
      /path/to/configure CC=gcc CFLAGS='-O3 -march=core2 -Wall -g'
      make
 
+
+How To Test:
+
+  1) cd to testsuite
+  2) do something (Jed will fill this in...)
+  
