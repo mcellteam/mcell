@@ -1210,7 +1210,7 @@ static char *my_sprintf_segment(struct mdlparse_vars *mpvp,
 
   /* Now, convert! */
   int arg_value;
-  char *formatted;
+  char *formatted = NULL;
   switch (spec_type)
   {
     case PRINTF_INVALID:
