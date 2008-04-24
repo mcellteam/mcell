@@ -16,3 +16,4 @@ debug
 build
 test.cfg
 test_results
+config.h.in
