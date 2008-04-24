@@ -6,11 +6,19 @@
  *    that counting-5.txt does not exist in its reaction output directory.
  *    (This is to test the "no overwrite" output mode for counting.)
  *
- *    This variant produces no viz output.
+ *    This variant should produce no viz output, and no notifications.
  *
  * Author: Jed Wing <jed@salk.edu>
- * Date:   2008-04-04
+ * Date:   2008-04-17
  ****************************************************************************/
 
-basename = "01-kitchen_sink_no_viz"
+basename = "01-kitchen_sink_silent"
+
+INCLUDE_FILE = "defaults.mdl"
+i_parameters = "valid/parameters-fully_random.mdl"
+i_notify     = "valid/notifications_off.mdl"
+i_warn       = "valid/warnings_off.mdl"
+i_singlemols = "valid/single_molecules_silent.mdl"
+i_io         = "valid/io_silent.mdl"
+vo_ivox      = 1
 INCLUDE_FILE = "common.mdl"

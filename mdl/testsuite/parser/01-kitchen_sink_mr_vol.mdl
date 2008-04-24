@@ -15,6 +15,6 @@
 
 basename = "01-kitchen_sink_mr_vol"
 
-INCLUDE_FILE = "names.mdl"
+INCLUDE_FILE = "defaults.mdl"
 i_parameters = "valid/parameters-mr_vol.mdl"
 INCLUDE_FILE = "common.mdl"

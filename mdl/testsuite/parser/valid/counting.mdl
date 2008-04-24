@@ -13,14 +13,14 @@ REACTION_DATA_OUTPUT
     HEADER = NO
     {9 : "constant #5"} +> countdir & "counting-5.txt"
     HEADER = YES
-    {10 : "constant #5"} => countdir & "counting-6.txt"
+    {10 : "constant #6"} => countdir & "counting-6.txt"
     HEADER = "Duck, Duck, Goose"
     {
         11 : "constant #6",
         12 : "constant #7",
         13 : "constant #8"
     } => countdir & "counting-7.txt"
-    HEADER = FALSE
+    HEADER = YES
     {COUNT["*", WORLD]} => countdir & "counting-8.txt"
 }
 REACTION_DATA_OUTPUT
@@ -56,5 +56,9 @@ REACTION_DATA_OUTPUT
 REACTION_DATA_OUTPUT
 {
     OUTPUT_BUFFER_SIZE = 13
-    {TRIGGER["c_s_0", world.big_object.box1[ALL]]} => countdir & "counting-19.txt"
+    {TRIGGER["s_v_5", world.big_object.newbox[ALL]]} => countdir & "counting-19.txt"
+    SHOW_EXACT_TIME = OFF
+    {TRIGGER["s_v_4", world.big_object.newbox[ALL]]} => countdir & "counting-20.txt"
+    SHOW_EXACT_TIME = ON
+    {TRIGGER["s_v_0", world.big_object.newbox[ALL]]} => countdir & "counting-21.txt"
 }

@@ -1243,6 +1243,8 @@ struct volume
   int fully_random;        /* If set, generate directions with trig functions instead of lookup table */
   int dissociation_index;  /* Used to keep 3D products from reacting with each other too soon */
 
+  int complex_placement_attempts;   /* How many times will we try to place each complex before giving up? */
+
   long long chkpt_iterations; /* Number of iterations to advance before checkpointing */
   u_int chkpt_init; /* Set if this is the initial run of a simulation with no previous checkpoints */
   u_int chkpt_flag; /* Set if there are any CHECKPOINT statements in "mdl" file */
@@ -1516,27 +1518,31 @@ struct notifications
   byte custom_iterations;            /* ITERATION_REPORT */
   long long custom_iteration_value;  /* ITERATION_REPORT */
   byte throughput_report;            /* THROUGHPUT_REPORT */
+  byte checkpoint_report;            /* CHECKPOINT_REPORT */
   byte release_events;               /* RELEASE_EVENT_REPORT */
   byte file_writes;                  /* FILE_OUTPUT_REPORT */
   byte final_summary;                /* FINAL_SUMMARY */
   
   /* Warning stuff, possible values IGNORED, WARNING, ERROR */
   /* see corresponding keywords */
-  byte neg_diffusion;          /* NEGATIVE_DIFFUSION_CONSTANT */
-  byte neg_reaction;           /* NEGATIVE_REACTION_RATE */
-  byte high_reaction_prob;     /* HIGH_REACTION_PROBABILITY */
-  double reaction_prob_warn;   /* HIGH_PROBABILITY_THRESHOLD */
-  byte close_partitions;       /* CLOSE_PARTITION_SPACING */
-  byte degenerate_polys;       /* DEGENERATE_POLYGONS */
-  byte overwritten_file;       /* OVERWRITTEN_OUTPUT_FILE */
-  byte short_lifetime;         /* LIFETIME_TOO_SHORT */
-  long long short_lifetime_value;  /* LIFETIME_THRESHOLD */
-  byte missed_reactions;         /* MISSED_REACTIONS */
-  double missed_reaction_value;  /* MISSED_REACTION_THRESHOLD */
-  byte missed_surf_orient;      /* MISSING_SURFACE_ORIENTATION */
-  byte useless_vol_orient;      /* USELESS_VOLUME_ORIENTATION */
+  byte neg_diffusion;                     /* NEGATIVE_DIFFUSION_CONSTANT */
+  byte neg_reaction;                      /* NEGATIVE_REACTION_RATE */
+  byte high_reaction_prob;                /* HIGH_REACTION_PROBABILITY */
+  double reaction_prob_warn;              /* HIGH_PROBABILITY_THRESHOLD */
+  byte close_partitions;                  /* CLOSE_PARTITION_SPACING */
+  byte degenerate_polys;                  /* DEGENERATE_POLYGONS */
+  byte overwritten_file;                  /* OVERWRITTEN_OUTPUT_FILE */
+  byte short_lifetime;                    /* LIFETIME_TOO_SHORT */
+  long long short_lifetime_value;         /* LIFETIME_THRESHOLD */
+  byte missed_reactions;                  /* MISSED_REACTIONS */
+  double missed_reaction_value;           /* MISSED_REACTION_THRESHOLD */
+  byte missed_surf_orient;                /* MISSING_SURFACE_ORIENTATION */
+  byte useless_vol_orient;                /* USELESS_VOLUME_ORIENTATION */
+  byte complex_placement_failure;         /* COMPLEX_PLACEMENT_FAILURE */
+  long long complex_placement_failure_threshold; /* COMPLEX_PLACEMENT_FAILURE_THRESHOLD */
+  byte mol_placement_failure;             /* MOLECULE_PLACEMENT_FAILURE */
+  byte invalid_output_step_time;          /* INVALID_OUTPUT_STEP_TIME */
 };
-
 
 /* Information related to concentration clamp surfaces, by object */
 struct ccn_clamp_data

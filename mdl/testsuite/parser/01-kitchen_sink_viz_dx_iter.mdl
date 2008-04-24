@@ -14,7 +14,7 @@
  ****************************************************************************/
 
 basename = "01-kitchen_sink_viz_dx_iter"
-INCLUDE_FILE = "names.mdl"
+INCLUDE_FILE = "defaults.mdl"
 INCLUDE_FILE = "common.mdl"
 
 VIZ_DATA_OUTPUT
@@ -26,7 +26,7 @@ VIZ_DATA_OUTPUT
         world  = vizdir & "objects_a"
         world2 = vizdir & "objects_b"
     }
-    ITERATION_LIST = [[1 TO 100 STEP 1], [110 TO 1000 STEP 10], [1100 TO 10000 STEP 100]]
+    ITERATION_LIST = [[1 TO 100 STEP 10], [101 TO 1000 STEP 100], [1001 TO 10000 STEP 1000]]
     STATE_VALUES
     {
         s_g_5                    = 4

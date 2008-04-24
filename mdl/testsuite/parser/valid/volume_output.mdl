@@ -1,3 +1,8 @@
+// TODO:
+//    - Take more care in laying out the model so we can perform some sort of
+//      testing, say by aggregating the total counts in these files and
+//      comparing against an expected aggregate total
+
 VOLUME_DATA_OUTPUT
 {
     FILENAME_PREFIX = voloutdir & "vo"
@@ -16,7 +21,7 @@ VOLUME_DATA_OUTPUT
     MOLECULES = m_v_6
     LOCATION = [2, 2, 2]
     VOXEL_SIZE = 0.01
-    VOXEL_COUNT = [0, 0, 0]
+    VOXEL_COUNT = [vo_ivox, vo_ivox, vo_ivox]
     ITERATION_LIST = [100, 200, 300]
 }
 
@@ -27,6 +32,6 @@ VOLUME_DATA_OUTPUT
     MOLECULES = m_v_6
     LOCATION = [2, 2, 2]
     VOXEL_SIZE = 0.01
-    VOXEL_COUNT = [2, 2, 2]
+    VOXEL_COUNT = [1, 2, 4]
     TIME_LIST = [1e-6, 1e-5, 1e-4]
 }

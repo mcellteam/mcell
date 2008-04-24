@@ -15,6 +15,6 @@
 
 basename = "01-kitchen_sink_space_step"
 
-INCLUDE_FILE = "names.mdl"
+INCLUDE_FILE = "defaults.mdl"
 i_parameters = "valid/parameters-space_step.mdl"
 INCLUDE_FILE = "common.mdl"

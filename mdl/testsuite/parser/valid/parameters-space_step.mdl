@@ -1,5 +1,5 @@
 TIME_STEP                                   = 1e-6
-SPACE_STEP                                  = 1e-3
+SPACE_STEP                                  = 1e-2
 TIME_STEP_MAX                               = 1000.
 ITERATIONS                                  = 100*100*100
 CENTER_MOLECULES_ON_GRID                    = TRUE

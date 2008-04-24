@@ -14,3 +14,4 @@ CHECKPOINT_OUTFILE                          = basename & ".cp"
 CHECKPOINT_ITERATIONS                       = 125000
 CHECKPOINT_REALTIME                         = 5:00 NOEXIT
 MICROSCOPIC_REVERSIBILITY                   = FALSE         // or TRUE or SURFACE_ONLY or VOLUME_ONLY
+COMPLEX_PLACEMENT_ATTEMPTS                  = 20

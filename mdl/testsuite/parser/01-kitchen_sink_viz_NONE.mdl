@@ -13,7 +13,7 @@
  ****************************************************************************/
 
 basename = "01-kitchen_sink_viz_NONE"
-INCLUDE_FILE = "names.mdl"
+INCLUDE_FILE = "defaults.mdl"
 INCLUDE_FILE = "common.mdl"
 
 VIZ_DATA_OUTPUT

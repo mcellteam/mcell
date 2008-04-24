@@ -6,6 +6,7 @@ e = d + 123
 d = b
 f = d & "bar" & "chicken"
 d = c
+g = INPUT_FILE
 
 e1  = PI
 e2  = (e1)
@@ -30,7 +31,7 @@ e20 = ABS(-1.0)
 e21 = ABS(1.0)
 e22 = ABS(0.0)
 e23 = MOD(2.1, 1.7)
-e24 = RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM
+e24 =(RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM
     + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM
     + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM
     + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM
@@ -45,9 +46,8 @@ e24 = RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM
     + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM
     + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM
     + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM
-    + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM
-e25 = e24 / 64
-e26 = RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN
+    + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM + RAND_UNIFORM) / 64
+e25 =(RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN
     + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN
     + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN
     + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN
@@ -62,17 +62,16 @@ e26 = RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN
     + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN
     + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN
     + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN
-    + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN
-e27 = e26 / 64
-e28 = SEED
-e29 = STRING_TO_NUM("1")
-e30 = STRING_TO_NUM("1.2")
-e31 = STRING_TO_NUM("-1.2")
-e32 = STRING_TO_NUM("-1.4e-4")
-e33 = (e29 + e30) * (e30 - e29)
-e34 = +4
-e35 = -5
-e36 = 2.1 ^ 3
+    + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN + RAND_GAUSSIAN) / 64
+e26 = SEED
+e27 = STRING_TO_NUM("1")
+e28 = STRING_TO_NUM("1.2")
+e29 = STRING_TO_NUM("-1.2")
+e30 = STRING_TO_NUM("-1.4e-4")
+e31 = (e29 + e30) * (e30 - e29)
+e32 = +4
+e33 = -5
+e34 = 2.1 ^ 3
 
 s1  = "3.14159265358979"
 s2  = "3.14159265358979"
@@ -97,19 +96,17 @@ s20 = "1"
 s21 = "1"
 s22 = "0"
 s23 = "0.4"
-s24 = "32 (mean value)"
-s25 = "0.5 (mean value)"
-s26 = "0.0 (mean value)"
-s27 = "0.0 (mean value)"
-sprintf(s28, "%g", SEED)
-s29 = "1"
-s30 = "1.2"
-s31 = "-1.2"
-s32 = "-0.00014"
-s33 = "0.44"
-s34 = "4"
-s35 = "-5"
-s36 = "9.261"
+s24 = "0.5/0.0625"
+s25 = "0.0/0.125"
+sprintf(s26, "%g", SEED)
+s27 = "1"
+s28 = "1.2"
+s29 = "-1.2"
+s30 = "-0.00014"
+s31 = "0.44"
+s32 = "4"
+s33 = "-5"
+s34 = "9.261"
 
 testfile = fopen(basename & "-expressions.dat", "w")
 nexpr = 1
@@ -138,8 +135,8 @@ fprintf(testfile, "%03g: %.15g == %s\n", nexpr, e22, s22) nexpr = nexpr + 1
 fprintf(testfile, "%03g: %.15g == %s\n", nexpr, e23, s23) nexpr = nexpr + 1
 fprintf(testfile, "%03g: %.15g ~= %s\n", nexpr, e24, s24) nexpr = nexpr + 1
 fprintf(testfile, "%03g: %.15g ~= %s\n", nexpr, e25, s25) nexpr = nexpr + 1
-fprintf(testfile, "%03g: %.15g ~= %s\n", nexpr, e26, s26) nexpr = nexpr + 1
-fprintf(testfile, "%03g: %.15g ~= %s\n", nexpr, e27, s27) nexpr = nexpr + 1
+fprintf(testfile, "%03g: %.15g == %s\n", nexpr, e26, s26) nexpr = nexpr + 1
+fprintf(testfile, "%03g: %.15g == %s\n", nexpr, e27, s27) nexpr = nexpr + 1
 fprintf(testfile, "%03g: %.15g == %s\n", nexpr, e28, s28) nexpr = nexpr + 1
 fprintf(testfile, "%03g: %.15g == %s\n", nexpr, e29, s29) nexpr = nexpr + 1
 fprintf(testfile, "%03g: %.15g == %s\n", nexpr, e30, s30) nexpr = nexpr + 1
@@ -147,6 +144,4 @@ fprintf(testfile, "%03g: %.15g == %s\n", nexpr, e31, s31) nexpr = nexpr + 1
 fprintf(testfile, "%03g: %.15g == %s\n", nexpr, e32, s32) nexpr = nexpr + 1
 fprintf(testfile, "%03g: %.15g == %s\n", nexpr, e33, s33) nexpr = nexpr + 1
 fprintf(testfile, "%03g: %.15g == %s\n", nexpr, e34, s34) nexpr = nexpr + 1
-fprintf(testfile, "%03g: %.15g == %s\n", nexpr, e35, s35) nexpr = nexpr + 1
-fprintf(testfile, "%03g: %.15g == %s\n", nexpr, e36, s36) nexpr = nexpr + 1
 fclose(testfile)

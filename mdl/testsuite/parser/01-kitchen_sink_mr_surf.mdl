@@ -15,6 +15,6 @@
 
 basename = "01-kitchen_sink_mr_surf"
 
-INCLUDE_FILE = "names.mdl"
+INCLUDE_FILE = "defaults.mdl"
 i_parameters = "valid/parameters-mr_surf.mdl"
 INCLUDE_FILE = "common.mdl"

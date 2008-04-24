@@ -1156,7 +1156,6 @@ int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *
   struct volume_molecule *new_m;
   struct release_region_data *rrd;
   struct subvolume *sv = NULL;
-  int i;
   double num_to_release;
   
   rrd = rso->region_data;
@@ -1184,6 +1183,9 @@ int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *
      }
   } 
   
+  long long skipped_placements = 0;
+  int can_place = 1;
+  int nfailures = 0;
   while (n>0)
   {
     m->pos.x = rrd->llf.x + (rrd->urb.x-rrd->llf.x)*rng_dbl(world->rng);
@@ -1199,12 +1201,18 @@ int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *
        world->random_number_use++;
     }
 
+    if (! is_point_inside_region(&m->pos, rrd->expression, NULL))
+    {
+      if (rso->release_number_method==CCNNUM) n--;
+      continue;
+    }
+
+    can_place = 1;
     if (m->properties->flags & IS_COMPLEX)
     {
       int subunit_idx;
       struct complex_species *cspec = (struct complex_species *) m->properties;
       sv = find_subvolume(& m->pos, NULL);
-      i = 1;
       for (subunit_idx = 0; subunit_idx < cspec->num_subunits; ++ subunit_idx)
       {
         struct vector3 subunit_pos;
@@ -1213,20 +1221,49 @@ int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *
         subunit_pos.z = m->pos.z + cspec->rel_locations[ subunit_idx ].z;
         if (! is_point_inside_region(&subunit_pos, rrd->expression, sv))
         {
-          i = 0;
+          can_place = 0;
           break;
         }
       }
     }
-    else
-      i = is_point_inside_region(&m->pos, rrd->expression, NULL);
-    
-    if (!i)
+
+    if (! can_place)
     {
-      if (rso->release_number_method==CCNNUM) n--;
-      continue;
+      if (++ nfailures >= world->complex_placement_attempts)
+      {
+        nfailures = 0;
+        -- n;
+        if (++ skipped_placements >= world->notify->complex_placement_failure_threshold)
+        {
+          switch (world->notify->complex_placement_failure)
+          {
+            case WARN_COPE:
+              break;
+
+            case WARN_WARN:
+              fprintf(world->err_file,
+                      "Warning: Failed to place volume macromolecule '%s' in region %d times in a row.\n"
+                      "         Leaving %d molecules unplaced\n",
+                      m->properties->sym->name,
+                      nfailures,
+                      n);
+              break;
+
+            case WARN_ERROR:
+              fprintf(world->err_file,
+                      "Error: Failed to place volume macromolecule '%s' in region %d times in a row.\n",
+                      m->properties->sym->name,
+                      nfailures);
+              return 1;
+          }
+          break;
+        }
+        continue;
+      }
     }
     
+    /* Actually place the molecule */
+    nfailures = 0;
     m->subvol = sv;
     if (m->properties->flags & IS_COMPLEX)
       new_m = macro_insert_molecule_volume(m, new_m);
@@ -1777,11 +1814,13 @@ int set_partitions()
   f_max = world->bb_urb.x + dfx;
   if (f_max - f_min < smallest_spacing)
   {
-    fprintf(world->log_file, "Rescaling: was %.3f to %.3f, now ",f_min*world->length_unit,f_max*world->length_unit);
+    if (world->notify->progress_report != NOTIFY_NONE)
+      fprintf(world->log_file, "Rescaling: was %.3f to %.3f, now ",f_min*world->length_unit,f_max*world->length_unit);
     f = smallest_spacing - (f_max-f_min);
     f_max += 0.5*f;
     f_min -= 0.5*f;
-    fprintf(world->log_file, "%.3f to %.3f\n",f_min*world->length_unit,f_max*world->length_unit);
+    if (world->notify->progress_report != NOTIFY_NONE)
+      fprintf(world->log_file, "%.3f to %.3f\n",f_min*world->length_unit,f_max*world->length_unit);
   }
   /* Set bounds over which to do linear subdivision (world bounding box) */
   part_min.x = f_min;
@@ -1805,11 +1844,13 @@ int set_partitions()
   f_max = world->bb_urb.y + dfy;
   if (f_max - f_min < smallest_spacing)
   {
-    fprintf(world->log_file, "Rescaling: was %.3f to %.3f, now ",f_min*world->length_unit,f_max*world->length_unit);
+    if (world->notify->progress_report != NOTIFY_NONE)
+      fprintf(world->log_file, "Rescaling: was %.3f to %.3f, now ",f_min*world->length_unit,f_max*world->length_unit);
     f = smallest_spacing - (f_max-f_min);
     f_max += 0.5*f;
     f_min -= 0.5*f;
-    fprintf(world->log_file, "%.3f to %.3f\n",f_min*world->length_unit,f_max*world->length_unit);
+    if (world->notify->progress_report != NOTIFY_NONE)
+      fprintf(world->log_file, "%.3f to %.3f\n",f_min*world->length_unit,f_max*world->length_unit);
   }
   part_min.y = f_min;
   part_max.y = f_max; 
@@ -1829,11 +1870,13 @@ int set_partitions()
   f_max = world->bb_urb.z + dfz;
   if (f_max - f_min < smallest_spacing)
   {
-    fprintf(world->log_file, "Rescaling: was %.3f to %.3f, now ",f_min*world->length_unit,f_max*world->length_unit);
+    if (world->notify->progress_report != NOTIFY_NONE)
+      fprintf(world->log_file, "Rescaling: was %.3f to %.3f, now ",f_min*world->length_unit,f_max*world->length_unit);
     f = smallest_spacing - (f_max-f_min);
     f_max += 0.5*f;
     f_min -= 0.5*f;
-    fprintf(world->log_file, "%.3f to %.3f\n",f_min*world->length_unit,f_max*world->length_unit);
+    if (world->notify->progress_report != NOTIFY_NONE)
+      fprintf(world->log_file, "%.3f to %.3f\n",f_min*world->length_unit,f_max*world->length_unit);
   }
   part_min.z = f_min;
   part_max.z = f_max;

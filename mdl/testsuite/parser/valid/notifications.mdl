@@ -13,4 +13,5 @@ NOTIFICATIONS
     FINAL_SUMMARY                   = TRUE
     THROUGHPUT_REPORT               = TRUE
     ITERATION_REPORT                = 100       // or TRUE/FALSE
+    CHECKPOINT_REPORT               = TRUE
 }

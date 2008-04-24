@@ -95,7 +95,7 @@ static void process_molecule_releases(struct volume *wrld, double not_yet)
     if (req==NULL || req->release_site->release_prob==MAGIC_PATTERN_PROBABILITY) continue;
     if ( release_molecules(req) )
     {
-      fprintf(world->err_file,"File '%s', Line %ld: Out of memory while releasing molecules of type %s\n", __FILE__, (long)__LINE__, req->release_site->mol_type->sym->name);
+      fprintf(world->err_file,"File '%s', Line %ld: Error while releasing molecules of type %s\n", __FILE__, (long)__LINE__, req->release_site->mol_type->sym->name);
       i = emergency_output();
       fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
       exit(EXIT_FAILURE);
@@ -131,7 +131,7 @@ static int make_checkpoint(struct volume *wrld)
   {
     case CHKPT_ITERATIONS_CONT:
     case CHKPT_ALARM_CONT:
-      if (wrld->notify->progress_report != NOTIFY_NONE)
+      if (wrld->notify->checkpoint_report != NOTIFY_NONE)
         fprintf(wrld->log_file,
                 "MCell: time = %lld, writing to checkpoint file %s (periodic)\n",
                 wrld->it_time,
@@ -139,32 +139,28 @@ static int make_checkpoint(struct volume *wrld)
       break;
 
     case CHKPT_ALARM_EXIT:
-      fprintf(wrld->log_file,
-              "MCell: time = %lld, writing to checkpoint file %s (time limit elapsed)\n",
-              wrld->it_time,
-              wrld->chkpt_outfile);
+      if (wrld->notify->checkpoint_report != NOTIFY_NONE)
+        fprintf(wrld->log_file,
+                "MCell: time = %lld, writing to checkpoint file %s (time limit elapsed)\n",
+                wrld->it_time,
+                wrld->chkpt_outfile);
       break;
 
     case CHKPT_SIGNAL_CONT:
     case CHKPT_SIGNAL_EXIT:
-      fprintf(wrld->log_file,
-              "MCell: time = %lld, writing to checkpoint file %s (user signal detected)\n",
-              wrld->it_time,
-              wrld->chkpt_outfile);
-      break;
-
-      if (wrld->notify->progress_report != NOTIFY_NONE)
+      if (wrld->notify->checkpoint_report != NOTIFY_NONE)
         fprintf(wrld->log_file,
-                "MCell: time = %lld, writing to checkpoint file %s (periodic)\n",
+                "MCell: time = %lld, writing to checkpoint file %s (user signal detected)\n",
                 wrld->it_time,
                 wrld->chkpt_outfile);
       break;
 
     case CHKPT_ITERATIONS_EXIT:
-      fprintf(wrld->log_file,
-              "MCell: time = %lld, writing to checkpoint file %s\n",
-              wrld->it_time,
-              wrld->chkpt_outfile);
+      if (wrld->notify->checkpoint_report != NOTIFY_NONE)
+        fprintf(wrld->log_file,
+                "MCell: time = %lld, writing to checkpoint file %s\n",
+                wrld->it_time,
+                wrld->chkpt_outfile);
       break;
 
     default:
@@ -585,32 +581,35 @@ int main(int argc, char **argv) {
 
   if(world->chkpt_flag)
   {
-  	fprintf(log_file,"MCell: checkpoint sequence number %d begins at elapsed time %1.15g seconds\n", world->chkpt_seq_num, world->chkpt_elapsed_real_time_start);
-        if(world->iterations < world->start_time){
-  	   fprintf(world->err_file,"Error: start time after checkpoint %lld is greater than total number of iterations specified %lld.\n", world->start_time, world->iterations);
-           exit(EXIT_FAILURE);
-          
-        }
+    if (world->notify->checkpoint_report != NOTIFY_NONE)
+      fprintf(log_file,"MCell: checkpoint sequence number %d begins at elapsed time %1.15g seconds\n", world->chkpt_seq_num, world->chkpt_elapsed_real_time_start);
+    if(world->iterations < world->start_time)
+    {
+      fprintf(world->err_file,"Error: start time after checkpoint %lld is greater than total number of iterations specified %lld.\n", world->start_time, world->iterations);
+      exit(EXIT_FAILURE);
+    }
     if (world->chkpt_iterations)
     {
       if ((world->iterations - world->start_time) < world->chkpt_iterations)
-    		world->chkpt_iterations = world->iterations - world->start_time;
+        world->chkpt_iterations = world->iterations - world->start_time;
       else
-    		world->iterations = world->chkpt_iterations + world->start_time;
-  	}
+        world->iterations = world->chkpt_iterations + world->start_time;
+    }
 
     if (world->chkpt_iterations)
-    		exec_iterations = world->chkpt_iterations;
+      exec_iterations = world->chkpt_iterations;
     else if (world->chkpt_infile)
-    		exec_iterations = world->iterations - world->start_time;
+      exec_iterations = world->iterations - world->start_time;
     else
-		exec_iterations = world->iterations;
-        if(exec_iterations < 0) {
-  	   fprintf(world->err_file,"Error: number of iterations to execute is zero or negative. Please verify ITERATIONS and/or CHECKPOINT_ITERATIONS commands.\n");
-           exit(EXIT_FAILURE);
-        }
-  	fprintf(log_file,"MCell: executing %lld iterations starting at iteration number %lld.\n",
-          exec_iterations,world->start_time);
+      exec_iterations = world->iterations;
+    if (exec_iterations < 0)
+    {
+      fprintf(world->err_file,"Error: number of iterations to execute is zero or negative. Please verify ITERATIONS and/or CHECKPOINT_ITERATIONS commands.\n");
+      exit(EXIT_FAILURE);
+    }
+    if (world->notify->progress_report != NOTIFY_NONE)
+      fprintf(log_file,"MCell: executing %lld iterations starting at iteration number %lld.\n",
+              exec_iterations,world->start_time);
   }
 
   if((world->chkpt_flag) && (exec_iterations <= 0))

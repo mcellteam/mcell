@@ -6633,6 +6633,8 @@ int output_rk_custom(struct frame_data_list *fdlp)
   if ((fdlp->type==ALL_FRAME_DATA) || (fdlp->type==MOL_POS) || (fdlp->type==MOL_STATES))
   {
     sprintf(cf_name,"%s.rk.dat",world->molecule_prefix_name);
+    if (make_parent_dir(cf_name, world->log_file))
+      return 1;
     custom_file = fopen(cf_name,(world->rk_mode_var->n_written)?"a+":"w");
     if (!custom_file)
     {

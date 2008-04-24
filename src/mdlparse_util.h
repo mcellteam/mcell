@@ -51,6 +51,57 @@ char *mdl_find_include_file(struct mdlparse_vars  *mpvp,
 int mdl_valid_file_mode(struct mdlparse_vars *mpvp,
                         char *mode);
 
+/* Error-reporting version of log */
+int mdl_expr_log(struct mdlparse_vars *mpvp, double in, double *out);
+
+/* Error-reporting version of log10 */
+int mdl_expr_log10(struct mdlparse_vars *mpvp, double in, double *out);
+
+/* Error-reporting version of MOD */
+int mdl_expr_mod(struct mdlparse_vars *mpvp,
+                 double in,
+                 double divisor,
+                 double *out);
+
+/* Error-reporting version of division operator */
+int mdl_expr_div(struct mdlparse_vars *mpvp,
+                 double in,
+                 double divisor,
+                 double *out);
+
+/* Error-reporting version of exponentiation operator */
+int mdl_expr_pow(struct mdlparse_vars *mpvp,
+                 double in,
+                 double exponent,
+                 double *out);
+
+/* Get a uniform random number */
+double mdl_expr_rng_uniform(struct mdlparse_vars *mpvp);
+
+/* Round a value off to n digits */
+double mdl_expr_roundoff(struct mdlparse_vars *mpvp,
+                         double in,
+                         int ndigits);
+
+/* Turn a string into a double */
+int mdl_expr_string_to_double(struct mdlparse_vars *mpvp,
+                              char *str,
+                              double *out);
+
+/* Add a new file handle to the symbol table. */
+struct sym_table *mdl_new_filehandle(struct mdlparse_vars *mpvp,
+                                     char *name);
+
+/* Process an fopen statement, opening a new file handle. */
+int mdl_fopen(struct mdlparse_vars *mpvp,
+              struct sym_table *filesym,
+              char *name,
+              char *mode);
+
+/* Process an fclose statement, closing an existing file handle. */
+int mdl_fclose(struct mdlparse_vars *mpvp,
+               struct sym_table *filesym);
+
 /* Create a new double argument for a printf argument list. */
 struct arg *mdl_new_printf_arg_double(struct mdlparse_vars *mpvp, double d);
 
@@ -92,6 +143,16 @@ int mdl_generate_range(struct mdlparse_vars *mpvp,
                        double end,
                        double step);
 
+/* Generate a numeric list containing a single value. */
+int mdl_generate_range_singleton(struct mdlparse_vars *mpvp,
+                                 struct num_expr_list_head *lh,
+                                 double value);
+
+/* Add a value to a numeric list. */
+int mdl_add_range_value(struct mdlparse_vars *mpvp,
+                        struct num_expr_list_head *lh,
+                        double value);
+
 /* Sort a num_expr_list in ascending numeric order.  This currently uses bubble
  * sort, which is O(n^2).  Don't use it if you expect your list to be very
  * long.  The list is sorted in-place.
@@ -108,9 +169,13 @@ void mdl_debug_dump_array(struct num_expr_list *nel);
 #define mdl_debug_dump_array(x) /* do nothing */
 #endif
 
-/* Free the value in a given variable entry. */
-int mdl_free_variable_value(struct mdlparse_vars *mpvp,
-                            struct sym_table *sym);
+/* Create a 3-D vector from a numeric array. */
+struct vector3 *mdl_point(struct mdlparse_vars *mpvp,
+                          struct num_expr_list_head *vals);
+
+/* Create a 3-D vector equal to s*[1, 1, 1] for some scalar s. */
+struct vector3 *mdl_point_scalar(struct mdlparse_vars *mpvp,
+                                 double val);
 
 /* Get a named variable if it exists, or create it if it doesn't. */
 struct sym_table *mdl_get_or_create_variable(struct mdlparse_vars *mpvp,
@@ -153,13 +218,13 @@ int mdl_set_lifetime_warning_threshold(struct mdlparse_vars *mpvp, long long lif
 int mdl_set_missed_reaction_warning_threshold(struct mdlparse_vars *mpvp, double rxfrac);
 
 /* Set the global timestep for the simulation. */
-void mdl_set_time_step(struct mdlparse_vars *mpvp, double step);
+int mdl_set_time_step(struct mdlparse_vars *mpvp, double step);
 
 /* Set the maximum timestep for the simulation. */
-void mdl_set_max_time_step(struct mdlparse_vars *mpvp, double step);
+int mdl_set_max_time_step(struct mdlparse_vars *mpvp, double step);
 
 /* Set the global space step for the simulation. */
-void mdl_set_space_step(struct mdlparse_vars *mpvp, double step);
+int mdl_set_space_step(struct mdlparse_vars *mpvp, double step);
 
 /* Set the number of iterations for the simulation. */
 int mdl_set_num_iterations(struct mdlparse_vars *mpvp, long long numiters);
@@ -173,10 +238,22 @@ int mdl_set_num_radial_subdivisions(struct mdlparse_vars *mpvp, int numdivs);
 /* Set the effector grid density. */
 int mdl_set_grid_density(struct mdlparse_vars *mpvp, double density);
 
+/* Set the number of times to place any particular macromolecule. */
+int mdl_set_complex_placement_attempts(struct mdlparse_vars *mpvp,
+                                       double attempts);
+
 /* Schedule an asynchronous checkpoint. */
 int mdl_set_realtime_checkpoint(struct mdlparse_vars *mpvp,
                                 long duration,
                                 int cont_after_cp);
+
+/* Set the input checkpoint file to use. */
+int mdl_set_checkpoint_infile(struct mdlparse_vars *mpvp,
+                              char *name);
+
+/* Set the number of iterations between checkpoints. */
+int mdl_set_checkpoint_interval(struct mdlparse_vars *mpvp,
+                                long long iters);
 
 /* Set the partitioning in a particular dimension. */
 int mdl_set_partition(struct mdlparse_vars *mpvp,
@@ -194,10 +271,24 @@ struct sym_table *mdl_start_object(struct mdlparse_vars *mpvp,
  */
 void mdl_finish_object(struct mdlparse_vars *mpvp);
 
+/* Adds the first element to an empty object list. */
+void mdl_object_list_singleton(struct mdlparse_vars *mpvp,
+                               struct object_list *head,
+                               struct object *objp);
+
+/* Adds an element to an object list. */
+void mdl_add_object_to_list(struct mdlparse_vars *mpvp,
+                            struct object_list *head,
+                            struct object *objp);
+
 /* Find an existing object or print an error message if the object isn't found.
  */
 struct sym_table *mdl_existing_object(struct mdlparse_vars *mpvp,
                                       char *name);
+
+/* Find a list of existing objects matching a particular wildcard. */
+struct sym_table_list *mdl_existing_objects_wildcard(struct mdlparse_vars *mpvp,
+                                                     char *wildcard);
 
 /* Find an existing region or print an error message if it isn't found. */
 struct sym_table *mdl_existing_region(struct mdlparse_vars *mpvp,
@@ -227,6 +318,11 @@ struct sym_table_list *mdl_existing_molecules_wildcard(struct mdlparse_vars *mpv
  * isn't found, or isn't a macromolecule. */
 struct sym_table *mdl_existing_macromolecule(struct mdlparse_vars *mpvp,
                                              char *name);
+
+/* Find an existing surface molecule species, or print an error message if it
+ * isn't found, or isn't a surface molecule. */
+struct sym_table *mdl_existing_surface_molecule(struct mdlparse_vars *mpvp,
+                                                char *name);
 
 /* Find an existing surface class species, or print an error message if it
  * isn't found, or isn't a surface class. */
@@ -316,16 +412,39 @@ void mdl_remove_gaps_from_regions(struct object *ob);
  * appropriate. */
 int mdl_check_diffusion_constant(struct mdlparse_vars *mpvp, double *d);
 
-/* Print a small report on the diffusion distances for a particular molecule
- * type. */
-void mdl_report_diffusion_distances(FILE *fhandle,
-                                    struct species *spec,
-                                    double time_unit,
-                                    double length_unit,
-                                    int lvl);
+/* Finish the creation of a molecule, undoing any state changes we made during
+ * the creation of the molecule. */
+void mdl_finish_molecule(struct mdlparse_vars *mpvp,
+                         struct species *mol);
 
-/* Create a new release site. */
-struct release_site_obj *mdl_new_release_site(struct mdlparse_vars *mpvp, char *name);
+/* Finish the creation of a series of molecules, undoing any state changes we
+ * made during the creation of the molecules. */
+void mdl_finish_molecules(struct mdlparse_vars *mpvp,
+                          struct species_list_item *mols);
+
+/* Populate a species list with a single species. */
+int mdl_species_list_singleton(struct mdlparse_vars *mpvp,
+                               struct species_list *list,
+                               struct species *spec);
+
+/* Add a single species to a species list. */
+int mdl_add_to_species_list(struct mdlparse_vars *mpvp,
+                            struct species_list *list,
+                            struct species *spec);
+
+/* Start parsing the innards of a release site. */
+int mdl_start_release_site(struct mdlparse_vars *mpvp,
+                           struct sym_table *symp,
+                           int shape);
+
+/* Finish parsing the innards of a release site. */
+struct object *mdl_finish_release_site(struct mdlparse_vars *mpvp,
+                                       struct sym_table *symp);
+
+/* Set the location of a release site. */
+void mdl_set_release_site_location(struct mdlparse_vars *mpvp,
+                                   struct release_site_obj *rsop,
+                                   struct vector3 *location);
 
 /* Validate a release site. */
 int mdl_is_release_site_valid(struct mdlparse_vars *mpvp, struct release_site_obj *rsop);
@@ -368,6 +487,13 @@ int mdl_set_release_site_diameter_array(struct mdlparse_vars *mpvp,
                                         struct num_expr_list *diams,
                                         double factor);
 
+/* Set the diameters of the release site along the X, Y, and Z axes from a
+ * variable, either scalar or vector. */
+int mdl_set_release_site_diameter_var(struct mdlparse_vars *mpvp,
+                                      struct release_site_obj *rsop,
+                                      double factor,
+                                      struct sym_table *symp);
+
 /* Set the release probability for a release site. */
 int mdl_set_release_site_probability(struct mdlparse_vars *mpvp,
                                      struct release_site_obj *rsop,
@@ -378,10 +504,93 @@ int mdl_set_release_site_pattern(struct mdlparse_vars *mpvp,
                                  struct release_site_obj *rsop,
                                  struct sym_table *pattern);
 
+/* Set the molecule positions for a LIST release. */
+int mdl_set_release_site_molecule_positions(struct mdlparse_vars *mpvp,
+                                            struct release_site_obj *rsop,
+                                            struct release_single_molecule_list *list);
+
 /* Create a mew single molecule release position for a LIST release site. */
 struct release_single_molecule *mdl_new_release_single_molecule(struct mdlparse_vars *mpvp,
                                                                 struct species_opt_orient *mol_type,
                                                                 struct vector3 *pos);
+
+/* Populates a list with a single LIST release molecule descriptor. */
+void mdl_release_single_molecule_singleton(struct mdlparse_vars *mpvp,
+                                           struct release_single_molecule_list *list,
+                                           struct release_single_molecule *mol);
+
+/* Adds a release molecule descriptor to a list. */
+void mdl_add_release_single_molecule_to_list(struct mdlparse_vars *mpvp,
+                                             struct release_single_molecule_list *list,
+                                             struct release_single_molecule *mol);
+
+/* Set a constant release quantity from this release site, in units of
+ * molecules. */
+void mdl_set_release_site_constant_number(struct mdlparse_vars *mpvp,
+                                          struct release_site_obj *rsop,
+                                          double num);
+
+/* Set a gaussian-distributed release quantity from this release site, in units
+ * of molecules. */
+void mdl_set_release_site_gaussian_number(struct mdlparse_vars *mpvp,
+                                          struct release_site_obj *rsop,
+                                          double mean,
+                                          double stdev);
+
+/* Set a release quantity from this release site based on a fixed concentration
+ * in a sphere of a gaussian-distributed diameter with a particular mean and
+ * std. deviation. */
+void mdl_set_release_site_volume_dependent_number(struct mdlparse_vars *mpvp,
+                                                  struct release_site_obj *rsop,
+                                                  double mean,
+                                                  double stdev,
+                                                  double conc);
+
+/* Set a release quantity from this release site based on a fixed concentration
+ * within the release-site's area. */
+int mdl_set_release_site_concentration(struct mdlparse_vars *mpvp,
+                                       struct release_site_obj *rsop,
+                                       double conc);
+
+/* Set a release quantity from this release site based on a fixed density
+ * within the release-site's area. */
+int mdl_set_release_site_density(struct mdlparse_vars *mpvp,
+                                 struct release_site_obj *rsop,
+                                 double dens);
+
+/* Set an item to be the sole element of a vertex list. */
+void mdl_vertex_list_singleton(struct mdlparse_vars *mpvp,
+                               struct vertex_list_head *head,
+                               struct vertex_list *item);
+
+/* Append a vertex to a list. */
+void mdl_add_vertex_to_list(struct mdlparse_vars *mpvp,
+                            struct vertex_list_head *head,
+                            struct vertex_list *item);
+
+/* Allocate an item for a vertex list. */
+struct vertex_list *mdl_new_vertex_list_item(struct mdlparse_vars *mpvp,
+                                             struct vector3 *vertex,
+                                             struct vector3 *normal);
+
+/* Set an item to be the sole element of an element connection list. */
+void mdl_element_connection_list_singleton(struct mdlparse_vars *mpvp,
+                                           struct element_connection_list_head *head,
+                                           struct element_connection_list *item);
+
+/* Append an element connection to a list. */
+void mdl_add_element_connection_to_list(struct mdlparse_vars *mpvp,
+                                        struct element_connection_list_head *head,
+                                        struct element_connection_list *item);
+
+/* Create an element connection (essentially a triplet of vertex indices). */
+struct element_connection_list *mdl_new_element_connection(struct mdlparse_vars *mpvp,
+                                                           struct num_expr_list_head *indices);
+
+/* Create a tetrahedral element connection (essentially a quadruplet of vertex
+ * indices). */
+struct element_connection_list *mdl_new_tet_element_connection(struct mdlparse_vars *mpvp,
+                                                               struct num_expr_list_head *indices);
 
 /* Create a new polygon list object. */
 struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *mpvp,
@@ -390,6 +599,11 @@ struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *mpvp,
                                             struct vertex_list *vertices,
                                             int n_connections,
                                             struct element_connection_list *connections);
+
+/* Finalize the polygon list, cleaning up any state updates that were made when
+ * we started creating the polygon. */
+int mdl_finish_polygon_list(struct mdlparse_vars *mpvp,
+                            struct sym_table *symp);
 
 /* Check a box or polygon list object for degeneracy. */
 int mdl_check_degenerate_polygon_list(struct mdlparse_vars *mpvp,
@@ -409,6 +623,11 @@ struct polygon_object *mdl_new_box_object(struct mdlparse_vars *mpvp,
                                           struct vector3 *llf,
                                           struct vector3 *urb);
 
+/* Finalize the box object, cleaning up any state updates that were made when
+ * we started creating the box. */
+int mdl_finish_box_object(struct mdlparse_vars *mpvp,
+                          struct sym_table *symp);
+
 /* Create a named region on an object. */
 struct region *mdl_create_region(struct mdlparse_vars *mpvp,
                                  struct object *objp,
@@ -419,10 +638,28 @@ struct region *mdl_get_region(struct mdlparse_vars *mpvp,
                               struct object *objp,
                               char *name);
 
+/* Begin construction of a region on an existing object. */
+int mdl_start_existing_obj_region_def(struct mdlparse_vars *mpvp,
+                                      struct sym_table *obj_symp);
+
+/* Append elements to an element list. */
+void mdl_add_elements_to_list(struct mdlparse_vars *mpvp,
+                              struct element_list_head *list,
+                              struct element_list *head,
+                              struct element_list *tail);
+
+/* Marks elements as being excluded, rather than included (the default). */
+void mdl_set_elements_to_exclude(struct mdlparse_vars *mpvp,
+                                 struct element_list *els);
+
 /* Create a new element list for a region description. */
 struct element_list *mdl_new_element_list(struct mdlparse_vars *mpvp,
                                           unsigned int begin,
                                           unsigned int end);
+
+/* Create a new element list for a region description based on a side name. */
+struct element_list *mdl_new_element_side(struct mdlparse_vars *mpvp,
+                                          unsigned int side);
 
 /* Create a new element list for a "previous region" include/exclude statement.
  */
@@ -435,11 +672,17 @@ struct element_list *mdl_new_element_previous_region(struct mdlparse_vars *mpvp,
 /* Allocate a new region element list item for an include/exclude PATCH
  * statement. */
 struct element_list *mdl_new_element_patch(struct mdlparse_vars *mpvp,
-                                           struct subdivided_box *sb,
+                                           struct polygon_object *poly,
                                            struct vector3 *llf,
                                            struct vector3 *urb,
                                            int exclude);
 
+/* Set the elements for a region, normalizing the region if it's on a polygon
+ * list object. */
+int mdl_set_region_elements(struct mdlparse_vars *mpvp,
+                            struct region *rgn,
+                            struct element_list *elements,
+                            int normalize);
 
 /* Create a new named reaction pathway name structure. */
 struct sym_table *mdl_new_rxn_pathname(struct mdlparse_vars *mpvp,
@@ -448,22 +691,30 @@ struct sym_table *mdl_new_rxn_pathname(struct mdlparse_vars *mpvp,
 /* Adds children to a meta-object, aggregating counts of walls and vertices
  * from the children into the specified parent.  The children should already
  * have their parent pointers set. */
-void mdl_add_child_objects(struct object *parent,
+void mdl_add_child_objects(struct mdlparse_vars *mpvp,
+                           struct object *parent,
                            struct object *child_head,
                            struct object *child_tail);
+
+/* Adds an effector (or list of effectors) to a region.  These effectors will
+ * be placed on the surface at initialization time. */
+void mdl_add_effector_to_region(struct mdlparse_vars *mpvp,
+                                struct region *rgn,
+                                struct eff_dat_list *lst);
+
+/* Set the surface class of this region, possibly inheriting the viz_value.  */
+void mdl_set_region_surface_class(struct mdlparse_vars *mpvp,
+                                  struct region *rgn,
+                                  struct sym_table *scsymp);
+
+/* Set the VIZ_VALUE for this region. */
+void mdl_set_region_region_viz_value(struct mdlparse_vars *mpvp,
+                                     struct region *rgn,
+                                     int viz_value);
 
 /****************************************************************
  * Reaction output
  ***************************************************************/
-
-/* Check that the reaction output file is writable within the policy set by the
- * user. */
-int mdl_check_reaction_output_file(struct mdlparse_vars *mpvp, struct
-                                   output_set *os);
-
-/* Allocate a new reaction data output block, with a specified buffer size. */
-struct output_block *mdl_new_output_block(struct mdlparse_vars *mpvp, int
-                                          buffersize);
 
 /* Finalizes a reaction data output block, checking for errors, and allocating
  * the output buffer. */
@@ -472,10 +723,21 @@ int mdl_output_block_finalize(struct mdlparse_vars *mpvp,
 
 /* Create a new output set for reaction output. */
 struct output_set* mdl_new_output_set(struct mdlparse_vars *mpvp,
-                                      char *comment);
+                                      char *comment,
+                                      int exact_time);
 
-/* Create a new output column for an output set. */
-struct output_column* mdl_new_output_column(struct mdlparse_vars *mpvp);
+/* Populate an output set. */
+struct output_set *mdl_populate_output_set(struct mdlparse_vars *mpvp,
+                                           struct output_set *os,
+                                           struct output_column *col_head,
+                                           int file_flags,
+                                           char *outfile_name);
+
+/* Construct and add an output block to the world. */
+int mdl_add_reaction_output_block_to_world(struct mdlparse_vars *mpvp,
+                                           int buffer_size,
+                                           struct output_times_inlist *otimes,
+                                           struct output_set_list *osets);
 
 /* Joins two subtrees into a reaction data output expression tree, with a
  * specified operation. */
@@ -486,7 +748,8 @@ struct output_expression* mdl_join_oexpr_tree(struct mdlparse_vars *mpvp,
 
 /* Converts an output expression tree generated from a wildcard into a
  * summation expression tree. */
-struct output_expression *mdl_sum_oexpr(struct output_expression *expr);
+struct output_expression *mdl_sum_oexpr(struct mdlparse_vars *mpvp,
+                                        struct output_expression *expr);
 
 /* Creates a constant output expression for reaction data output. */
 struct output_expression *mdl_new_oexpr_constant(struct mdlparse_vars *mpvp,
@@ -526,23 +789,11 @@ struct output_expression *mdl_count_syntax_macromol_subunit(struct mdlparse_vars
                                                             struct macro_relation_state *relation_states,
                                                             struct sym_table *location);
 
-/* Set the output timer for reaction data output to a time step. */
-void mdl_set_reaction_output_timer_step(struct mdlparse_vars *mpvp,
-                                        struct output_block *obp,
-                                        double step);
-
-/* Set the output timer for reaction data output to a list of iterations. */
-void mdl_set_reaction_output_timer_iterations(struct mdlparse_vars *mpvp,
-                                              struct output_block *obp,
-                                              int nsteps,
-                                              struct num_expr_list *step_values);
-
-/* Set the output timer for reaction data output to a list of times. */
-void mdl_set_reaction_output_timer_times(struct mdlparse_vars *mpvp,
-                                         struct output_block *obp,
-                                         int nsteps,
-                                         struct num_expr_list *step_values);
-
+/* Prepare a single count expression for inclusion in an output set. */
+int mdl_single_count_expr(struct mdlparse_vars *mpvp,
+                          struct output_column_list *list,
+                          struct output_expression *expr,
+                          char *custom_header);
 
 /****************************************************************
  * Viz output
@@ -646,6 +897,9 @@ int mdl_set_release_pattern(struct mdlparse_vars *mpvp,
  * Molecules
  ***************************************************************/
 
+/* Is the given name a valid macromolecule name? */
+int mdl_valid_complex_name(struct mdlparse_vars *mpvp, char *name);
+
 /* Create a new species.  There must not yet be a molecule or named reaction
  * pathway with the supplied name. */
 struct sym_table *mdl_new_molecule(struct mdlparse_vars *mpvp, char *name);
@@ -667,9 +921,26 @@ struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,
 int mdl_valid_rate(struct mdlparse_vars *mpvp,
                    struct reaction_rate *rate);
 
-/* Create a new reaction player from a species with optional orientation. */
-struct species_opt_orient *mdl_new_reaction_player(struct mdlparse_vars *mpvp,
-                                                   struct species_opt_orient *spec);
+/* Set the reactant/product list to contain a single item. */
+int mdl_reaction_player_singleton(struct mdlparse_vars *mpvp,
+                                  struct species_opt_orient_list *list,
+                                  struct species_opt_orient *spec);
+
+/* Add a single item to a reactant/product player list. */
+int mdl_add_reaction_player(struct mdlparse_vars *mpvp,
+                            struct species_opt_orient_list *list,
+                            struct species_opt_orient *spec);
+
+/* Set a reaction rate from a variable. */
+int mdl_reaction_rate_from_var(struct mdlparse_vars *mpvp,
+                               struct reaction_rate *rate,
+                               struct sym_table *symp);
+
+/* Set a complex reaction rate. */
+int mdl_reaction_rate_complex(struct mdlparse_vars *mpvp,
+                              struct reaction_rate *rate,
+                              struct sym_table *symp,
+                              char *tbl);
 
 /* Assemble a standard reaction from its component parts. */
 struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
@@ -693,6 +964,15 @@ struct rxn *mdl_assemble_concentration_clamp_reaction(struct mdlparse_vars *mpvp
                                                       struct sym_table *mol_sym,
                                                       short orient,
                                                       double conc);
+
+/* Start a surface class declaration. */
+void mdl_start_surface_class(struct mdlparse_vars *mpvp,
+                             struct sym_table *symp);
+
+/* Finish a surface class declaration.  Undoes side effects from
+ * mdl_start_surface_class. */
+void mdl_finish_surface_class(struct mdlparse_vars *mpvp,
+                              struct sym_table *symp);
 
 /* Create a new effector data for surface molecule initialization. */
 struct eff_dat *mdl_new_effector_data(struct mdlparse_vars *mpvp,
