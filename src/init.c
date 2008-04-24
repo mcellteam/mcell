@@ -70,6 +70,7 @@ int init_notifications()
     world->notify->file_writes = NOTIFY_NONE;
     world->notify->final_summary = NOTIFY_NONE;
     world->notify->throughput_report = NOTIFY_NONE;
+    world->notify->checkpoint_report = NOTIFY_NONE;
   }
   else
   {
@@ -86,6 +87,7 @@ int init_notifications()
     world->notify->file_writes = NOTIFY_NONE;
     world->notify->final_summary = NOTIFY_FULL;
     world->notify->throughput_report = NOTIFY_FULL;
+    world->notify->checkpoint_report = NOTIFY_FULL;
   }
   /* Warnings */
   world->notify->neg_diffusion = WARN_WARN;
@@ -101,6 +103,10 @@ int init_notifications()
   world->notify->missed_reaction_value = 0.001;
   world->notify->missed_surf_orient = WARN_ERROR;
   world->notify->useless_vol_orient = WARN_WARN;
+  world->notify->complex_placement_failure_threshold = 25;
+  world->notify->complex_placement_failure = WARN_WARN;
+  world->notify->mol_placement_failure = WARN_WARN;
+  world->notify->invalid_output_step_time = WARN_WARN;
   
   if (world->log_freq!=-1) /* User set this */
   {
@@ -270,6 +276,7 @@ int init_sim(void)
   world->y_fineparts = NULL;
   world->z_fineparts = NULL;
   world->n_fineparts = 0;
+  world->complex_placement_attempts = 100;
   
   world->viz_output_flag = 0; 
   world->use_expanded_list=1;
@@ -2349,24 +2356,21 @@ static int init_effectors_place_complexes(int n_to_place,
                                           struct region *rp,
                                           struct eff_dat const *effdp)
 {
-  /* How many times do we try each placement before we give up? */
-  static const int MAX_TRIES = 25;
-
   if (nwalls <= 0)
     return 1;
 
   double max_weight = weights[nwalls - 1];
-  int n_failures = 0;
+  long long n_failures = 0;
   int n_total = n_to_place;
   while (n_to_place > 0)
   {
-    int num_tries = MAX_TRIES;
+    int num_tries = world->complex_placement_attempts;
     int chosen_wall = 0;
     double p = rng_dbl(world->rng) * max_weight;
-
-    /* Pick a wall */
     if (world->notify->final_summary == NOTIFY_FULL)
       world->random_number_use++;
+
+    /* Pick a wall */
     chosen_wall = bisect_high(weights, nwalls, p);
 
     /* Try to find a spot for the release */
@@ -2377,14 +2381,35 @@ static int init_effectors_place_complexes(int n_to_place,
     }
 
     if (num_tries >= 0)
+    {
       -- n_to_place;
+      n_failures = 0;
+    }
     else
     {
-      /* XXX: What criteria? */
-      if (++ n_failures > 100)
+      if (++ n_failures >= world->notify->complex_placement_failure_threshold)
       {
-        fprintf(world->log_file,"\nMCell: Warning -- Unable to place some surface complexes of species '%s' (placed %d of %d).\n\n", effdp->eff->sym->name, n_total - n_to_place, n_total);
-        fflush(world->log_file);
+        switch (world->notify->complex_placement_failure)
+        {
+          case WARN_COPE:
+            break;
+
+          case WARN_WARN:
+            fprintf(world->err_file,
+                    "\nWarning: Unable to place some surface complexes of species '%s' (placed %d of %d).\n\n",
+                    effdp->eff->sym->name,
+                    n_total - n_to_place,
+                    n_total);
+            break;
+
+          case WARN_ERROR:
+            fprintf(world->err_file,
+                    "\nError: Unable to place some surface complexes of species '%s' (placed %d of %d).\n\n",
+                    effdp->eff->sym->name,
+                    n_total - n_to_place,
+                    n_total);
+            return 1;
+        }
         break;
       }
     }

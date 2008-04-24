@@ -14,7 +14,7 @@
  ****************************************************************************/
 
 basename = "01-kitchen_sink_viz_dreamm_time"
-INCLUDE_FILE = "names.mdl"
+INCLUDE_FILE = "defaults.mdl"
 INCLUDE_FILE = "common.mdl"
 
 VIZ_OUTPUT
@@ -39,8 +39,8 @@ VIZ_OUTPUT
         TIME_POINTS
         {
             ALL_DATA @ [1e-6]
-            GEOMETRY @ [2e-6, 3e-6]
-            REGION_DATA  @ [3e-6, 4e-6]
+            GEOMETRY @ [3e-6, 4e-6]
+            REGION_DATA  @ [2e-6, 4e-6]
         }
     }
 }

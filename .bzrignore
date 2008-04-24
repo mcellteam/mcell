@@ -14,3 +14,5 @@ missing
 opt
 debug
 build
+test.cfg
+test_results

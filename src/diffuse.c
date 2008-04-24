@@ -49,7 +49,6 @@
 /* CLEAN_AND_RETURN(x) is a local #define in diffuse_3D */
 /* ERROR_AND_QUIT is a local #define in diffuse_3D */
 
-
 extern struct volume *world;
 
 /*************************************************************************
@@ -575,7 +574,7 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
   {
     a = (struct abstract_molecule*)c->target;
     if (a->properties==NULL) continue;
-    
+
     i = collide_mol(&(m->pos),v,a,&(c->t),&(c->loc));
     if (i != COLLIDE_MISS)
     {
@@ -2482,6 +2481,7 @@ struct collision *expand_collision_list_for_neighbor(struct subvolume *sv,
           fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
           exit( EXIT_FAILURE );
         }
+ 
         smash->target = (void*) mp;
         smash->intermediate = matching_rxns[i];
         smash->next = shead1;
@@ -3157,11 +3157,13 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
 
 /* Done housekeeping, now let's do something fun! */
 
+
 pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
   sv = m->subvol;
   
   shead = NULL;
+  shead_exp = NULL;
   stail = NULL;
   old_mp = NULL;
   if ( (sm->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL && inertness<inert_to_all )
@@ -3309,6 +3311,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
   do
   {
+
     if(world->use_expanded_list && redo_expand_collision_list_flag)
     {
       /* split the combined collision list into two original lists 
@@ -3345,7 +3348,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         }
       }
     }
- 
+
     shead2 = ray_trace(m,shead,sv,&displacement,reflectee);
     if (shead2==NULL) { ERROR_AND_QUIT; }
 
@@ -3480,6 +3483,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                 }
                 if((jj > RX_NO_RX) && (ii >= RX_LEAST_VALID_PATHWAY))
                 {
+                  /* Save m flags in case it gets collected in outcome_bimolecular */
+                  int mflags = m->flags;
                   l=outcome_bimolecular(
                       matching_rxns[jj],ii,(struct abstract_molecule*)m,
                       (struct abstract_molecule*)g,
@@ -3508,7 +3513,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                   }
                   else if (l==RX_DESTROY)
                   {
-                    if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
+                    if ( (mflags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
                     {
                       /* Count the hits up until we were destroyed */
                       for ( ; tentative!=NULL && tentative->t<=smash->t ; tentative=tentative->next )
@@ -3567,6 +3572,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         
                             if (ii < RX_LEAST_VALID_PATHWAY) continue;
               
+                            /* Save m flags in case it gets collected in outcome_bimolecular */
+                            int mflags = m->flags;
                               l = outcome_trimolecular(
                                 matching_rxns[l],ii,
                                 (struct abstract_molecule*)m,
@@ -3597,7 +3604,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                            }
                            else if (l==RX_DESTROY)
                            {
-                             if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
+                             if ( (mflags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
                              {
                                /* Count the hits up until we were destroyed */
                                for ( ; tentative!=NULL && tentative->t<=smash->t ; tentative=tentative->next )
@@ -3665,6 +3672,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	      i = test_intersect(rx,r_rate_factor);
 	      if (i > RX_NO_RX)
 	      {
+                /* Save m flags in case it gets collected in outcome_intersect */
+                int mflags = m->flags;
 		j = outcome_intersect(
 			rx,i,w,(struct abstract_molecule*)m,
 			k,m->t + t_steps*smash->t,&(smash->loc),loc_certain
@@ -3691,7 +3700,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 		}
 		else if (j==RX_DESTROY)
 		{
-                  if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
+                  if ( (mflags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
                   {
                     /* Count the hits up until we were destroyed */
                     for ( ; tentative!=NULL && tentative->t<=smash->t ; tentative=tentative->next )
@@ -5016,6 +5025,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	      i = test_intersect(rx,1.0/rate_factor);
 	      if (i > RX_NO_RX)
 	      {
+                /* Save m flags in case it gets collected in outcome_intersect */
+                int mflags = m->flags;
 		j = outcome_intersect(
 			rx,i,w,(struct abstract_molecule*)m,
 			k,m->t + t_steps*tri_smash->t,&(tri_smash->loc),NULL);
@@ -5042,7 +5053,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 		}
 		else if (j==RX_DESTROY)
 		{
-                  if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
+                  if ( (mflags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
                   {
                     /* Count the hits up until we were destroyed */
                     for ( ; tentative!=NULL && tentative->t<=tri_smash->t ; tentative=tentative->next )

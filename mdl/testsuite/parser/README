@@ -6,10 +6,113 @@ that cover the rest of the parser -- mostly error conditions, but generally
 constructs which are incompatible in some way with constructs in the kitchen
 sink test.
 
+The primary interface to these tests is through the test_parser.py script:
+
+  1) the test scripts (and the instructions below) assume you are in the
+     mdl/testsuite/parser.  This will not be necessary in the nearby future,
+     but for now...
+
+  2) create a test.cfg file with the path to the MCell executable you want to
+     test:
+
+        [DEFAULT]
+        mcellpath = /home/jed/src/mcell/3.1-pristine/build/debug/mcell
+
+     otherwise, it should assume you mean the mcell in your path.
+
+  3) Presently, you'll need to set your PYTHONPATH.  I've included a script to
+     help with this.  This will, shortly, become unnecessary, but in the
+     meantime, it should allow others to get in on the testing excitement.  For
+     sh/bash/zsh/ksh users, run:
+
+        . set_python_path.sh
+
+     and for csh/tcsh users, run:
+
+        . set_python_path.csh
+
+     (Note, I've only tested the former, and you must be in the parser
+     directory for this to "do the right thing".)  Essentially, you want your
+     PYTHONPATH environment variable to point to testsuite/system_tests in the
+     source tree, so if you'd rather set the environment variable yourself, you
+     can.
+
+  4) Run test_parser.py.  If python is in your path, the simplest invocation
+     is:
+
+        ./test_parser.py
+
+     which will run the complete parser test suite (currently something like
+     110 tests, taking on the order of 5-10 minutes to run).  There are
+     specific subsets of the parser test you can invoke:
+
+        ./test_parser.py fullsuite      # all tests (same as default invocation)
+        ./test_parser.py quicksuite     # a quickly running subset of all tests
+        ./test_parser.py errorsuite     # all parser error handling tests
+        ./test_parser.py kitchensinksuite # tests of all major features except VIZ output
+        ./test_parser.py allvizsuite    # all tests of VIZ modes
+        ./test_parser.py vizsuite       # all tests of DREAMM v3 VIZ modes
+        ./test_parser.py oldvizsuite    # all tests of non-DREAMM VIZ modes (DX, ASCII, RK)
+        ./test_parser.py rtcheckpointsuite # all tests of realtime checkpoint parsing
+
+     rtcheckpointsuite will take around 4 minutes to run, as each run schedules
+     a checkpoint for approx. 30 seconds into the run, and then the timing of
+     the checkpointing and exiting is tested.  Note that this also means that
+     when run on a very heavily loaded machine, these tests could falsely
+     report failure.  The setup of the simulation, however, I think makes it
+     unlikely to occur in practice.
+
+     It's possible to run individual tests in the test suite as well, though
+     this is a more advanced usage, probably outside the scope of this
+     document.
+
+     I recommend redirecting the output to a file either using the shell
+     redirection operator '>', or using 'tee', as:
+
+        ./test_parser.py | tee testlog
+
+     since it's useful to save the output when an error occurs.
+
+     You'll see one dot (.) for every test that passes, an F for every test
+     that fails, and an E for every error that occurs while trying to set up
+     the test.  'E' means that something went wrong in the test script, whereas
+     F means that a failure condition was detected while running the
+     executable.
+
+     Note that the test will also occasionally print out messages that look like:
+
+        Warning: Gaussian value outside of 95% confidence interval.
+                 Expected to occur occasionally.
+                 Value: 0.290164271582879  (mean=0, stdev=0.125)
+
+     I'll update this document (or a document in the mdl/testsuite/parser
+     directory) with statistics about roughly how often we should expect these
+     warning messages.  They are part of the expression evaluation tests,
+     which, aside from analyzing all of the deterministic output, also examine
+     the means of 64 uniform random numbers and of 64 Gaussian random numbers,
+     checking the means against approximate 95% confidence intervals.  Once in
+     a while, we should see these warning messages.
+
+  5) Files created by the various tests will be created under individual
+     subdirectories under test_results.  stdout/stderr are saved in the files
+     stdout/stderr, but all output should have been redirected to
+     realout/realerr in the same directory, which are the log_file and
+     err_file, resp. from MCell.  The complete command-line is available in
+     cmdline.txt.  All count/vol/viz output files should be under the directory
+     for the execution that produced them.
+
+     *****************
+     NOTE: These directories are mercilessly destroyed when the test suite is
+     run, so don't put anything you care about under test_results, and if you
+     want to examine/keep files produced from a run of the test suite, be sure
+     to do so before you run the test suite again.
+     *****************
+
  * Test 01: Nearly every parser option.
  * Test 02: Realtime checkpoint variants.
+ * invalid-*: Test error conditions.
 
-Below, I will attempt to document the error conditions we test for.
+Currently, the parser error conditions we test are:
 
 General errors:
 

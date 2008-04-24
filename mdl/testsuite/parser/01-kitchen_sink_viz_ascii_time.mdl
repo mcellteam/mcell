@@ -14,7 +14,7 @@
  ****************************************************************************/
 
 basename = "01-kitchen_sink_viz_ascii_time"
-INCLUDE_FILE = "names.mdl"
+INCLUDE_FILE = "defaults.mdl"
 INCLUDE_FILE = "common.mdl"
 
 VIZ_DATA_OUTPUT
@@ -26,13 +26,15 @@ VIZ_DATA_OUTPUT
         world  = vizdir & "objects_a"
         world2 = vizdir & "objects_b"
     }
-    TIME_LIST = [[1e-6 TO 1e-4 STEP 1e-6], [1.1e-4 TO 1e-3 STEP 1e-5], [1.1e-3 TO 1e-2 STEP 1e-4]]
+    TIME_LIST = [[1e-6 TO 1e-4 STEP 1e-5], [1.01e-4 TO 1e-3 STEP 1e-4], [1.001e-3 TO 1e-2 STEP 1e-3]]
     STATE_VALUES
     {
         s_g_5         = 4
         s_v_3         = 3
+/* Shouldn't the following be an error?
         world.big_object.box1[r2] = 9
         world.big_object.box1[r3] = 1
         world.big_object.box1[r4] = 2
+ */
     }
 }

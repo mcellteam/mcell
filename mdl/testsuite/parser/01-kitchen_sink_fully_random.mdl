@@ -16,6 +16,6 @@
 
 basename = "01-kitchen_sink_fully_random"
 
-INCLUDE_FILE = "names.mdl"
+INCLUDE_FILE = "defaults.mdl"
 i_parameters = "valid/parameters-fully_random.mdl"
 INCLUDE_FILE = "common.mdl"

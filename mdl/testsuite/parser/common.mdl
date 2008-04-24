@@ -3,12 +3,12 @@ vizdir   = "./viz_dat/" & basename & "/"
 voloutdir = "./vol_dat/" & basename & "/"
 sprintf(seed, "%04g", SEED)
 
-INCLUDE_FILE = "valid/notifications.mdl"
-INCLUDE_FILE = "valid/warnings.mdl"
+INCLUDE_FILE = i_notify
+INCLUDE_FILE = i_warn
 INCLUDE_FILE = i_parameters
 INCLUDE_FILE = "valid/partitions.mdl"
 INCLUDE_FILE = "valid/variables.mdl"
-INCLUDE_FILE = "valid/single_molecules.mdl"
+INCLUDE_FILE = i_singlemols
 INCLUDE_FILE = "valid/multi_molecules.mdl"
 INCLUDE_FILE = "valid/single_surface_classes.mdl"
 INCLUDE_FILE = "valid/multi_surface_classes.mdl"
@@ -19,6 +19,6 @@ INCLUDE_FILE = "valid/release_patterns.mdl"
 INCLUDE_FILE = "valid/physical_objects.mdl"
 INCLUDE_FILE = "valid/instances.mdl"
 INCLUDE_FILE = "valid/surface_regions.mdl"
-INCLUDE_FILE = "valid/io.mdl"
+INCLUDE_FILE = i_io
 INCLUDE_FILE = "valid/counting.mdl"
 INCLUDE_FILE = "valid/volume_output.mdl"

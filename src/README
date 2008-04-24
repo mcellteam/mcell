@@ -21,3 +21,21 @@ How To Build:
      /path/to/configure CC=gcc CFLAGS='-O3 -march=core2 -Wall -g'
      make
 
+
+How To Test:
+
+  The test suite is a work in progress.  Right now, there are automated test
+  scripts for the "parser" tests, which aim for gross-level feature validation,
+  but not strict numeric validation.  Numeric validation tests are soon to
+  come.  Once the numeric validation tests have been added, there will be a
+  top-level script for running all of the tests (or quick subsets of the tests
+  that achieve a reasonable level of coverage without taking too long to run,
+  or tests of specific subsystems) will be added to the testsuite directory.
+
+  For the moment, the parser tests can be run in an automated way.  See
+  mdl/testsuite/parser/README for details.
+
+  As I bring more of the testsuite online, I'll add a top-level script and
+  documentation under the testsuite directory that explains any setup required,
+  how to run the testsuite, and subsets of the testsuite which are likely to be
+  of interest to various people.

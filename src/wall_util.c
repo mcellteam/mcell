@@ -1416,7 +1416,7 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
   dir.x = pos->x - point->x;
   dir.y = pos->y - point->y;
   dir.z = pos->z - point->z;
-  
+
   d = dir.x*move->x + dir.y*move->y + dir.z*move->z;
   
   /* Miss the molecule if it's behind us */
@@ -2529,8 +2529,6 @@ release_onto_regions:
   Out: 0 on success, 1 on failure.  Molecules are released uniformly at
        random onto the free area in the regions specified by the release
       site object.
-  Note: if there is insufficient space to place all the molecules, the
-        function will print a warning message but return success.
   Note: if the CCNNUM method is used, the number passed in is ignored.
 ***************************************************************************/
 int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,int n)
@@ -2551,6 +2549,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
   struct subvolume *gsv = NULL;
   struct vector3 pos3d;
 
+  long long skipped_placements = 0;
   int is_complex = 0;
   if (g->properties->flags & IS_COMPLEX)
     is_complex = 1;
@@ -2586,7 +2585,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
   
   while (n>0)
   {
-    if (failure >= success+too_many_failures)
+    if (! is_complex  &&  failure >= success+too_many_failures)
     {
       seek_cost = n*( ((double)(success+failure+2))/((double)(success+1)) );
     }
@@ -2624,9 +2623,40 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           }
         }
         struct grid_molecule *gp = macro_insert_molecule_grid_2(g->properties, orient, w, j, g->t, NULL, rrd);
-        if (gp == NULL) ++ failure;
+        if (gp == NULL)
+        {
+          ++ failure;
+          if (failure == world->complex_placement_attempts)
+          {
+            -- n;
+            if (++ skipped_placements >= world->notify->complex_placement_failure_threshold)
+            {
+              switch (world->notify->complex_placement_failure)
+              {
+                case WARN_COPE:
+                  break;
+
+                case WARN_WARN:
+                  fprintf(world->err_file,
+                          "Warning: could not release %lld of %s (surface full)\n",
+                          skipped_placements + n,
+                          g->properties->sym->name);
+                  break;
+
+                case WARN_ERROR:
+                  fprintf(world->err_file,
+                          "Error: could not release %lld of %s (surface full)\n",
+                          skipped_placements + n,
+                          g->properties->sym->name);
+                  return 1;
+              }
+              break;
+            }
+          }
+        }
         else
         {
+          failure = 0;
           ++ success;
           -- n;
         }
@@ -2677,11 +2707,6 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           n--;
         }
       }
-    }
-    else if (is_complex)
-    {
-      fprintf(world->log_file,"Warning: could not release %d of %s (surface full)\n",n,g->properties->sym->name);
-      break;
     }
     else
     {
@@ -2782,7 +2807,19 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
       
       if (n>0)
       {
-        fprintf(world->log_file,"Warning: could not release %d of %s (surface full)\n",n,g->properties->sym->name);
+        switch (world->notify->mol_placement_failure)
+        {
+          case WARN_COPE:
+            break;
+
+          case WARN_WARN:
+            fprintf(world->err_file,"Warning: could not release %d of %s (surface full)\n",n,g->properties->sym->name);
+            break;
+
+          case WARN_ERROR:
+            fprintf(world->err_file,"Error: could not release %d of %s (surface full)\n",n,g->properties->sym->name);
+            return 1;
+        }
         break;
       }
     }

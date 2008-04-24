@@ -1,0 +1,6 @@
+i_parameters = "valid/parameters.mdl"
+i_notify     = "valid/notifications.mdl"
+i_warn       = "valid/warnings.mdl"
+i_singlemols = "valid/single_molecules.mdl"
+i_io         = "valid/io.mdl"
+vo_ivox = 0

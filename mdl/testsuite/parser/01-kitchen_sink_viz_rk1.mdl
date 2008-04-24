@@ -14,14 +14,14 @@
  ****************************************************************************/
 
 basename = "01-kitchen_sink_viz_rk1"
-INCLUDE_FILE = "names.mdl"
+INCLUDE_FILE = "defaults.mdl"
 INCLUDE_FILE = "common.mdl"
 
 VIZ_DATA_OUTPUT
 {
     MODE = CUSTOM_RK
     MOLECULE_FILE_PREFIX = vizdir & "molecules"
-    ITERATION_LIST = [[1 TO 100 STEP 1], [110 TO 1000 STEP 10], [1100 TO 10000 STEP 100]]
+    ITERATION_LIST = [[1 TO 100 STEP 10], [101 TO 1000 STEP 100], [1001 TO 10000 STEP 1000]]
     STATE_VALUES
     {
         s_g_5         = 4

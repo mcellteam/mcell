@@ -120,6 +120,12 @@ struct reaction_arrow
   struct species_opt_orient     catalyst;
 };
 
+struct macro_subunit_assignment_list
+{
+  struct macro_subunit_assignment *assign_head;
+  struct macro_subunit_assignment *assign_tail;
+};
+
 enum {
   RATE_UNSET    = -1,
   RATE_CONSTANT = 0,
@@ -269,6 +275,10 @@ struct mdlparse_vars
 
   /* Relationships for this macromolecule */
   struct macro_relationship *complex_relations;
+
+  /* --------------------------------------------- */
+  /* Intermediate state for regions */
+  int allow_patches;
 
   /* --------------------------------------------- */
   /* Temporary allocators */

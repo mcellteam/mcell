@@ -1,8 +1,4 @@
 sprintf(seed, "%04g", SEED)
-NOTIFICATIONS
-{
-    ITERATION_REPORT                = 2000000
-}
 
 INCLUDE_FILE = "timestamp.mdl"
 
