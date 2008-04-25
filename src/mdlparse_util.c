@@ -5601,19 +5601,22 @@ int mdl_is_release_site_valid(struct mdlparse_vars *mpvp,
                               struct release_site_obj *rsop)
 {
   /* Unless it's a list release, user must specify MOL type */
-  if (rsop->release_shape != SHAPE_LIST  &&  rsop->mol_type == NULL)
+  if (rsop->release_shape != SHAPE_LIST)
   {
-    mdlerror(mpvp, "Must specify molecule to release using MOLECULE=molecule_name.");
-    return 1;
-  }
+    if(rsop->mol_type == NULL)
+    {
+      mdlerror(mpvp, "Must specify molecule to release using MOLECULE=molecule_name.");
+      return 1;
+    }
 
-  /* Make sure it's not a surface class */
-  if ((rsop->mol_type->flags & IS_SURFACE) != 0)
-  {
-    mdlerror_fmt(mpvp,
-                 "Cannot release surface class '%s' from release site",
-                 rsop->mol_type->sym->name);
-    return 1;
+    /* Make sure it's not a surface class */
+    if ((rsop->mol_type->flags & IS_SURFACE) != 0)
+    {
+      mdlerror_fmt(mpvp,
+                   "Cannot release surface class '%s' from release site",
+                   rsop->mol_type->sym->name);
+      return 1;
+    }
   }
 
   /* Check that concentration/density status of release site agrees with

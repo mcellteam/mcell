@@ -249,6 +249,18 @@ rs6 RELEASE_SITE
     TRANSLATE = [0, 0, -2]
 }
 
+rs6_2 RELEASE_SITE
+{
+    SHAPE = LIST
+    SITE_DIAMETER = 0.5
+    RELEASE_PROBABILITY = 0.95
+    MOLECULE_POSITIONS
+    {
+        s_v_5 [5.3, 0.2, 0.2]
+    }
+    TRANSLATE = [0, 0, -2]
+}
+
 /*
 rs7 RELEASE_SITE
 {

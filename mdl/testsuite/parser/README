@@ -85,13 +85,25 @@ The primary interface to these tests is through the test_parser.py script:
                  Expected to occur occasionally.
                  Value: 0.290164271582879  (mean=0, stdev=0.125)
 
-     I'll update this document (or a document in the mdl/testsuite/parser
-     directory) with statistics about roughly how often we should expect these
-     warning messages.  They are part of the expression evaluation tests,
-     which, aside from analyzing all of the deterministic output, also examine
-     the means of 64 uniform random numbers and of 64 Gaussian random numbers,
-     checking the means against approximate 95% confidence intervals.  Once in
-     a while, we should see these warning messages.
+     They are part of the expression evaluation tests, which, aside from
+     analyzing all of the deterministic output, also examine the means of 64
+     uniform random numbers and of 64 Gaussian random numbers, checking the
+     means against approximate 95% confidence intervals.  Once in a while, we
+     should see these warning messages.
+
+     The tests have been updated to include valid 95% confidence intervals.
+     I'm using the 2 standard deviations rule of thumb, which is slightly
+     generous.  We have two tests per kitchen-sink-style test, one for uniform
+     numbers and one for gaussian.  The kitchen sink suite includes 8
+     kitchen-sink-style tests, and the viz output suite includes another 13.
+     So, on a run of the kitchen sink suite, you'd expect to see each message
+     about confidence intervals about 40% of the time, and for a run of the
+     full parser suite, you'd expect to see a message about each confidence
+     interval about once.
+
+     If you see these message far more or less often than this rule-of-thumb
+     predicts, then something may have gotten jarred loose in the random number
+     generators.
 
   5) Files created by the various tests will be created under individual
      subdirectories under test_results.  stdout/stderr are saved in the files
