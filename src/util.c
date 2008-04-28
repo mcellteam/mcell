@@ -2729,7 +2729,7 @@ int pointer_hash_remove(struct pointer_hash *ht,
     }
 
     /* This entry may need to be reseated */
-    else
+    else if (next_slot != -1)
     {
       /* This is the slot where we'd start looking for this entry */
       int desiredSlot = ht->hashes[cur] & (ht->table_size-1);
