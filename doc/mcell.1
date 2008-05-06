@@ -1,0 +1,63 @@
+.TH MCell 1 2008-04-28 "MCell 3.1" "MCell"
+.SH NAME
+.B  mcell
+\- A Monte Carlo Simulator of Cellular Microphysiology
+.SH SYNOPSIS
+.PD 0
+\fBmcell\fP [ \fIoptions\fP ] \fIfile.mdl\fP
+.IP
+Run the simulation described in the file \fIfile.mdl\fP
+.PP
+\fBmcell\fP [ \fB-version\fP ] 
+.IP
+Print the program's version info and exit
+.PP
+\fBmcell\fP [ \fB-fullversion\fP ]
+.IP
+Print the program's full version/build info and exit (for bug reporting)
+.PP
+\fBmcell\fP [ \fB-help\fP ]
+.IP
+Print a brief summary of program usage and exit
+.PD
+
+.SH DESCRIPTION
+MCell is a modeling tool for realistic simulation of cellular signaling in the
+complex 3-D subcellular microenvironment in and around living cells.
+
+.SH OPTIONS
+.PD 0
+
+.TP
+\fB-quiet\fP
+.IP
+Suppress any default notifications (i.e. log messages which are not explicitly requested in the MDL file).
+
+.TP
+\fB-seed\fP \fIN\fP
+Set the random sequence number for this simulation to \fIN\fP.  By default, the random seed used is 1.
+
+.TP
+\fB-iterations\fP \fIN\fP
+Set the maximum number of iterations for this simulation to \fIN\fP, overriding any specified \fBITERATIONS\fP setting in the MDL file.  Note that the simulation may still exit before this number of iterations if it reaches its specified checkpoint time.
+
+.TP
+\fB-logfile\fP \fIfilename.txt\fP
+Send all log output to \fIfilename.txt\fP, instead of stdout.
+
+.TP
+\fB-errfile\fP \fIfilename.txt\fP
+Send all error and warning output to \fIfilename.txt\fP, instead of stderr.
+
+.TP
+\fB-logfreq\fP \fIN\fP
+Display a report of the current iteration number in the simulation every \fIN\fP iterations, instead of the value specified in the mdl file, or the default value.
+
+.TP
+\fB-checkpoint_infile\fP \fIfilename.cp\fP
+Load the checkpoint \fIfilename.cp\fP, overriding any \fBCHECKPOINT_INFILE\fP setting in the mdl file.
+
+.PD
+
+.SH BUG REPORTS
+Send bug reports to \fImcell-devel@salk.edu\fP.
