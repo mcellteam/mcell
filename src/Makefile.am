@@ -28,3 +28,6 @@ mcell_SOURCES = chkpt.c count_util.c diffuse.c diffuse_util.c grid_util.c   \
 		volume_output.h vol_util.h wall_util.h mdllex.l mdlparse.y
 mcell_LDADD = -lm
 
+man_MANS = mcell.1
+EXTRA_DIST = $(man_MANS)
+
