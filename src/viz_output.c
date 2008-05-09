@@ -686,26 +686,24 @@ static int dx_output_wall_vertices_ascii(FILE *f, struct element_data const *edp
 }
 
 /*************************************************************************
-dx_output_gridpt_and_normal
-    Writes the point and oriented normal for a location on a grid.
+dx_output_effector_and_normal
+    Writes the effector location and oriented normal for a wall.
 
         In:  FILE *f - file handle to receive output
              struct wall *w - the wall of the surface grid
-             int grid_index - the grid triangle index
-             short orient - the orientation (+1/-1)
+             struct grid_molecule *gmol - surface molecule
         Out: num bytes written
 **************************************************************************/
-static int dx_output_gridpt_and_normal(FILE *f,
+static int dx_output_effector_and_normal(FILE *f,
                                        struct wall *w,
-                                       int grid_index,
-                                       short orient)
+                                       struct grid_molecule *gmol)
 {
   int size = 0;
   struct vector3 p0;
 
-  grid2xyz(w->grid, grid_index, &p0);
+  uv2xyz(&(gmol->s_pos),w,&p0);
   size += dx_output_vector3(f, &p0);
-  size += dx_output_oriented_normal(f, &w->normal, orient);
+  size += dx_output_oriented_normal(f, &w->normal, gmol->orient);
 
   return size;
 }
@@ -891,10 +889,9 @@ static void dx_output_effectors_on_wall(FILE *eff_pos_header,
       fprintf(eff_states_header, "%d\n", gmol->properties->viz_state);
 
     if (eff_pos_header)
-      (void) dx_output_gridpt_and_normal(eff_pos_header,
+      (void) dx_output_effector_and_normal(eff_pos_header,
                                          w,
-                                         tile_index,
-                                         gmol->orient);
+                                         gmol);
   }
 }
 
@@ -3321,7 +3318,7 @@ static int dreamm_v3_generic_dump_grid_molecule_data(struct frame_data_list cons
       if (viz_mol_pos_flag)
       {
         struct vector3 p0;
-        grid2xyz(gmol->grid, gmol->grid_index, &p0);
+        uv2xyz(&(gmol->s_pos), gmol->grid->surface, &p0);
         dx_output_vector3(surf_mol_pos_data, &p0);
       }
 
@@ -3505,7 +3502,7 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct frame_data_list const 
       if (viz_mol_pos_flag)
       {
         struct vector3 p0;
-        grid2xyz(gmol->grid, gmol->grid_index, &p0);
+        uv2xyz(&(gmol->s_pos), gmol->grid->surface, &p0);
         dx_output_vector3_ascii(surf_mol_pos_data, &p0);
 
         /* Write orientations information */
