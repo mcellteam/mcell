@@ -10700,11 +10700,11 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
     /* Extract orientation and species */
     short orient = current_reactant->orient_set ? current_reactant->orient : 0;
     struct species *reactant_species = (struct species *) current_reactant->mol_type->value;
-
+    
     /* Count the type of this reactant */
     if (current_reactant->orient_set)
       ++ oriented_count;
-    if (reactant_species->flags & NOT_FREE)
+    if (reactant_species->flags & NOT_FREE) 
     {
       all_3d = 0;
       if (reactant_species->flags & ON_GRID)
@@ -10857,6 +10857,7 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
     surface = reactant_idx;
     ++ reactant_idx;
     ++ num_surfaces;
+    all_3d = 0;
   }
 
   /* Create a reaction name for the pathway we're creating */
