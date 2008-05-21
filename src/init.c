@@ -2592,12 +2592,8 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
     prob[i]=tot_prob;
     if (effdp->orientation > 0) orientation[i] = 1;
     else if (effdp->orientation < 0) orientation[i] = -1;
-    else{ 
-       orientation[i] = (rng_uint(world->rng)&1)?1:-1;
-       if(world->notify->final_summary == NOTIFY_FULL){
-           world->random_number_use++;
-       }
-    }
+    else
+       orientation[i] = 0;
     eff[i++]=effdp->eff;
     tot_density+=effdp->quantity;
     effdp=effdp->next;
@@ -2655,8 +2651,15 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
         mol->properties=eff[p_index];
         mol->birthplace=w->birthplace->gmol;
         mol->grid_index=i;
-        mol->orient=orientation[p_index];
         mol->grid=sg;
+        mol->orient=orientation[p_index];
+        if (mol->orient == 0)
+        { 
+          mol->orient = (rng_uint(world->rng)&1)?1:-1;
+          if(world->notify->final_summary == NOTIFY_FULL){
+            world->random_number_use++;
+          }
+        }
 
         mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
 	if (mol->properties->space_step>0) mol->flags |= ACT_DIFFUSE;
