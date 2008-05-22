@@ -1441,42 +1441,6 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
   return COLLIDE_MOL_M;
 }
 
-#if 0
-/* ray-sphere collision */
-int collide_mol(struct vector3 *point,struct vector3 *move,
-                struct abstract_molecule *a,double *t,struct vector3 *hitpt)
-{
-  /* vector to the position of the molecule we test for collision. */
-  struct vector3 *pos;
-  struct vector3 d; /* unit vector in the direction of move */
-  double k; /* parameter in the ray equation */
-  double move_length; /* length of the move vector */
-  int result; 
-
- 
-  if ((a->properties->flags & ON_GRID)!=0) return COLLIDE_MISS; /* Should never call on grid molecule! */
-  
-  if ((a->properties->flags & ON_SURFACE)==0) pos = &( ((struct volume_molecule*)a)->pos );
-  else pos = &( ((struct surface_molecule*)a)->pos );
-
-  move_length = vect_length(move);
-
-  d.x = move->x/move_length;
-  d.y = move->y/move_length;
-  d.z = move->z/move_length;
-
-  result = test_sphere_ray(point, &d, pos, world->rx_radius_3d, &k, hitpt);
-  if (result == 0) return COLLIDE_MISS;
-  /* verify that the detected intersection does not lie beyond 
-     the end of the move */ 
-  if (k > move_length) return COLLIDE_MISS;
-  *t = k/move_length;
- 
-  return COLLIDE_MOL_M;
-
-}
-#endif
-
 /***************************************************************************
 wall_in_box:
   In: array of pointers to vertices for wall (should be 3)
