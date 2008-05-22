@@ -865,226 +865,6 @@ struct sp_collision* ray_trace_trimol(struct volume_molecule *m,
   return shead;
 }
 
-/*************************************************************************
-estimate_disk:
-  In: location of moving molecule at time of collision
-      movement vector for moving molecule
-      interaction radius
-      subvolume the moving molecule is in
-      the moving molecule
-      the target molecule at time of collision
-  Out: The fraction of a full interaction disk that is actually
-       accessible to the moving molecule, estimated using Monte Carlo
-       integration, or TARGET_OCCLUDED if the target is not accessible.
-*************************************************************************/
-
-double estimate_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv,struct volume_molecule *moving,struct volume_molecule *target)
-{
-  int rpt,idx,bits;
-  double area;
-  struct vector3 u,v,loc_to_targ;
-  double d2_mv_i,a,b,t;
-  double upperU;
-  double upperV;
-  double lowerU;
-  double lowerV;
-  struct wall_list *wl;
-  struct rxn *rx;
-  
-  area = 0;
-  d2_mv_i = 1.0/(mv->x*mv->x + mv->y*mv->y + mv->z*mv->z);
-  
-  loc_to_targ.x = target->pos.x - loc->x;
-  loc_to_targ.y = target->pos.y - loc->y;
-  loc_to_targ.z = target->pos.z - loc->z;
-  
-  for (rpt = 0; rpt < 1 ; rpt++)
-  {
-  
-  upperU = lowerU = upperV = lowerV = 1.0;
-  
-  do
-  {
-    bits = rng_uint(world->rng);
-    if(world->notify->final_summary == NOTIFY_FULL){
-       world->random_number_use++;
-    }
-    idx = bits & world->directions_mask;
-  } while (idx >= world->num_directions);
-  
-  idx *= 3;
-  if (bits&0x80000000) u.x = world->d_step[idx]; else u.x = -world->d_step[idx];
-  if (bits&0x40000000) u.y = world->d_step[idx+1]; else u.y = -world->d_step[idx+1];
-  if (bits&0x20000000) u.z = world->d_step[idx+2]; else u.z = -world->d_step[idx+2];
-  
-  a = (u.x*mv->x + u.y*mv->y + u.z*mv->z);
-  
-  if (a*a*d2_mv_i < 0.9)  /* Vectors too closely aligned */
-  {
-    rpt--;
-    continue;
-  }
-  
-  a *= d2_mv_i;
-  u.x = u.x - a*mv->x;
-  u.y = u.y - a*mv->y;
-  u.z = u.z - a*mv->z;
-  b = R/sqrt(u.x*u.x + u.y*u.y + u.z*u.z);
-  u.x *= b;
-  u.y *= b;
-  u.z *= b;
-  a = sqrt(d2_mv_i);
-  v.x = a*(mv->y*u.z - mv->z*u.y);
-  v.y = a*(-mv->x*u.z + mv->z*u.x);
-  v.z = a*(mv->x*u.y - mv->y*u.x);
-  
-  for (wl = sv->wall_head ; wl!=NULL ; wl = wl->next)
-  {
-    if ( (moving->properties->flags && CAN_MOLWALL) != 0 )
-    {
-      rx = trigger_intersect(moving->properties->hashval,(struct abstract_molecule*)moving,0,wl->this_wall);
-      if (rx != NULL && (rx->n_pathways==RX_TRANSP))
-      {
-	continue; /* We can move through this wall! */
-      }
-    }
-    
-    t = touch_wall(loc,&u,wl->this_wall);
-    if (t>0.0 && t<upperU) upperU = t;
-    if (t<0.0 && -t<lowerU) lowerU = -t;
-    
-    t = touch_wall(loc,&v,wl->this_wall);
-    if (t>0.0 && t<upperV) upperV = t;
-    if (t<0.0 && -t<lowerV) lowerV = -t;
-    
-    if (rpt==0)
-    {
-      t = touch_wall(loc,&loc_to_targ,wl->this_wall);
-      if (t>0 && t<1) return TARGET_OCCLUDED;  /* This wall blocked us! */
-    }
-  }
-
-  if (u.x > EPS_C)
-  {
-    u.x = 1/u.x;
-    t = (world->x_fineparts[sv->urb.x] - loc->x)*u.x;
-    if (t < upperU) upperU = t;
-    t = (loc->x - world->x_fineparts[sv->llf.x])*u.x;
-    if (t < lowerU) lowerU = t;
-  }
-  else if (u.x < -EPS_C)
-  {
-    u.x = 1/u.x;
-    t = (world->x_fineparts[sv->llf.x] - loc->x)*u.x;
-    if (t < upperU) upperU = t;
-    t = (loc->x - world->x_fineparts[sv->urb.x])*u.x;
-    if (t < lowerU) lowerU = t;
-  }
-  if (u.y > EPS_C)
-  {
-    u.y = 1/u.y;
-    t = (world->y_fineparts[sv->urb.y] - loc->y)*u.y;
-    if (t < upperU) upperU = t;
-    t = (loc->y - world->y_fineparts[sv->llf.y])*u.y;
-    if (t < lowerU) lowerU = t;
-  }
-  else if (u.y < -EPS_C)
-  {
-    u.y = 1/u.y;
-    t = (world->y_fineparts[sv->llf.y] - loc->y)*u.y;
-    if (t < upperU) upperU = t;
-    t = (loc->y - world->y_fineparts[sv->urb.y])*u.y;
-    if (t < lowerU) lowerU = t;
-  }
-  if (u.z > EPS_C)
-  {
-    u.z = 1/u.z;
-    t = (world->z_fineparts[sv->urb.z] - loc->z)*u.z;
-    if (t < upperU) upperU = t;
-    t = (loc->z - world->z_fineparts[sv->llf.z])*u.z;
-    if (t < lowerU) lowerU = t;
-  }
-  else if (u.z < -EPS_C)
-  {
-    u.z = 1/u.z;
-    t = (world->z_fineparts[sv->llf.z] - loc->z)*u.z;
-    if (t < upperU) upperU = t;
-    t = (loc->z - world->z_fineparts[sv->urb.z])*u.z;
-    if (t < lowerU) lowerU = t;
-  }
-
-  if (v.x > EPS_C)
-  {
-    v.x = 1/v.x;
-    t = (world->x_fineparts[sv->urb.x] - loc->x)*v.x;
-    if (t < upperV) upperV = t;
-    t = (loc->x - world->x_fineparts[sv->llf.x])*v.x;
-    if (t < lowerV) lowerV = t;
-  }
-  else if (v.x < -EPS_C)
-  {
-    v.x = 1/v.x;
-    t = (world->x_fineparts[sv->llf.x] - loc->x)*v.x;
-    if (t < upperV) upperV = t;
-    t = (loc->x - world->x_fineparts[sv->urb.x])*v.x;
-    if (t < lowerV) lowerV = t;
-  }
-  if (v.y > EPS_C)
-  {
-    v.y = 1/v.y;
-    t = (world->y_fineparts[sv->urb.y] - loc->y)*v.y;
-    if (t < upperV) upperV = t;
-    t = (loc->y - world->y_fineparts[sv->llf.y])*v.y;
-    if (t < lowerV) lowerV = t;
-  }
-  else if (v.y < -EPS_C)
-  {
-    v.y = 1/v.y;
-    t = (world->y_fineparts[sv->llf.y] - loc->y)*v.y;
-    if (t < upperV) upperV = t;
-    t = (loc->y - world->y_fineparts[sv->urb.y])*v.y;
-    if (t < lowerV) lowerV = t;
-  }
-  if (v.z > EPS_C)
-  {
-    v.z = 1/v.z;
-    t = (world->z_fineparts[sv->urb.z] - loc->z)*v.z;
-    if (t < upperV) upperV = t;
-    t = (loc->z - world->z_fineparts[sv->llf.z])*v.z;
-    if (t < lowerV) lowerV = t;
-  }
-  else if (v.z < -EPS_C)
-  {
-    v.z = 1/v.z;
-    t = (world->z_fineparts[sv->llf.z] - loc->z)*v.z;
-    if (t < upperV) upperV = t;
-    t = (loc->z - world->z_fineparts[sv->urb.z])*v.z;
-    if (t < lowerV) lowerV = t;
-  }
-
-  if (upperU < 0 || upperU > 1.0 ||
-      lowerU < 0 || lowerU > 1.0 ||
-      upperV < 0 || upperV > 1.0 ||
-      lowerV < 0 || lowerV > 1.0)
-  {
-    fprintf(world->log_file, "File '%s', Line %ld: MCell should not get to this point.  Please report this message.\n", __FILE__, (long)__LINE__);
-  }
-
-  area += upperU*upperU + lowerU*lowerU + upperV*upperV + lowerV*lowerV;
-/*
-  if (a > 1.1) printf("Correction factor %.2f\n",a);
-  if (a < 1.0-EPS_C) printf("MUDDY BLURDER! a=%.2f R=%.2f u=[%.2f %.2f %.2f] %.2f %.2f %.2f %.2f\n",
-                            a,R,u.x,u.y,u.z,upperU,lowerU,upperV,lowerV);
-*/
-  }
-  
-  if (rpt==0) return 1.0;
-  return area/(4.0*rpt);
-}
-
-
-
-
 /******************************/
 /** exact_disk stuff follows **/
 /******************************/
@@ -1113,7 +893,7 @@ Note: This is a utility finction in 'exact_disk()'.
 ****************************************************************/
 /* Speed: 9ns (compare with 84ns for atan2) */
 /* Added extra computations--speed not retested yet */
-double exd_zetize(double y,double x)
+static double exd_zetize(double y,double x)
 {
   if (y>=0.0)
   {  
@@ -1157,7 +937,7 @@ Out: No return value.  Unit vectors m,u,v are set such that vector m
 Note: This is a utility function for 'exact_disk()'.
 *********************************************************************/ 
 /* Speed: 86ns on azzuri (as marked + 6ns function call overhead) */
-void exd_coordize(struct vector3 *mv,struct vector3 *m,struct vector3 *u,struct vector3 *v)
+static void exd_coordize(struct vector3 *mv,struct vector3 *m,struct vector3 *u,struct vector3 *v)
 {
   double a;
   
@@ -1219,6 +999,21 @@ void exd_coordize(struct vector3 *mv,struct vector3 *m,struct vector3 *u,struct 
   v->z *= a;
 }
 
+/* Exact Disk Flags */
+/* Flags for the exact disk computation */
+enum
+{
+  EXD_HEAD,
+  EXD_TAIL,
+  EXD_CROSS,
+  EXD_SPAN,
+  EXD_OTHER
+};
+
+/* Negative numbers used as flags for reaction disks */
+/* Note: TARGET_OCCLUDED is assumed for any negative number not defined here */
+#define TARGET_OCCLUDED    -1
+#define EXD_OUT_OF_MEMORY  -2
 
 /*************************************************************************
 exact_disk:
@@ -1233,8 +1028,7 @@ exact_disk:
        geometry, or TARGET_OCCLUDED if the path to the target molecule is
        blocked.  If there is a memory error, it returns EXD_OUT_OF_MEMORY.
 *************************************************************************/
-
-double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv,struct volume_molecule *moving,struct volume_molecule *target)
+static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv,struct volume_molecule *moving,struct volume_molecule *target)
 {
 #define EXD_SPAN_CALC(v1,v2,p) ((v1)->u - (p)->u)*((v2)->v - (p)->v)  -  ((v2)->u - (p)->u)*((v1)->v - (p)->v)
 #define EXD_TIME_CALC(v1,v2,p) ((p)->u*(v1)->v - (p)->v*(v1)->u) / ((p)->v*((v2)->u-(v1)->u) - (p)->u*((v2)->v-(v1)->v))

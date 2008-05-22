@@ -298,22 +298,6 @@
 #define Y_PARTS 1
 #define Z_PARTS 2
 
-
-/* Exact Disk Flags */
-/* Flags for the exact disk computation */
-#define EXD_HEAD  0
-#define EXD_TAIL  1
-#define EXD_CROSS 2
-#define EXD_SPAN  3
-#define EXD_OTHER 4
-
-
-/* Negative numbers used as flags for reaction disks */
-/* Note: TARGET_OCCLUDED is assumed for any negative number not defined here */
-#define TARGET_OCCLUDED    -1
-#define EXD_OUT_OF_MEMORY  -2
-
-
 /* Region Expression Flags */
 /* Boolean set operations for releases on regions */
 /* Set only one of NO_OP, UNION, INTERSECTION, SUBTRACTION, INCLUSION */
