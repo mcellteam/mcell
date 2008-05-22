@@ -1,8 +1,8 @@
 /*  Character string handling functions */
 
 #include <string.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include "strfunc.h"
 #include "mem_util.h"

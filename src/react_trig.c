@@ -10,6 +10,7 @@
 #include "mcell_structs.h"
 #include "react.h"
 #include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 extern struct volume *world;
