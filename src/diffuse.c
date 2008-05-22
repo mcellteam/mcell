@@ -2147,69 +2147,6 @@ int test_subvol_for_circular(struct subvolume *sv)
 #endif
 
 
-
-/*************************************************************************
-gather_walls_first:
-  In: A list of collisions
-      Tolerance below which two collisions are considered simultaneous
-  Out: The same list of collisions with simultaneous ones sorted to put
-       walls first among equals.
-  Note: This isn't very efficient for lots of coincident objects since
-        it uses a bubble-sort-like algorithm.  The list that is passed
-	in should have already been mergesorted, though, so it shouldn't
-	be too bad.
-*************************************************************************/
-
-struct collision* gather_walls_first(struct collision *shead,double tol)
-{
-  struct collision *cp,*co,*ci,*cf,*ct;
-  
-  co = NULL;
-  cp = shead;
-  while (cp->next != NULL)
-  {
-    if (cp->next->t - cp->t > tol || (cp->what&COLLIDE_WALL) != 0 )
-    {
-      co = cp;
-      cp = cp->next;
-    }
-    else
-    {
-      for (ct=cp; ; ct=ct->next)  /* Find any wall */
-      {
-        if (ct->next==NULL) return shead;
-        
-        if (ct->next->t - cp->t > tol)
-        {
-          co = ct;
-          cp = ct->next;
-          break;
-        }
-        if ((ct->next->what&COLLIDE_WALL) != 0)
-        {
-          ci = ct->next;
-          for (cf=ci ; cf->next!=NULL ; cf=cf->next)  /* Find last wall */
-          {
-            if (cf->next->t - cp->t > tol || (cf->next->what&COLLIDE_WALL)==0) break;
-          }
-          
-          if (co==NULL) shead = ci;
-	  else co->next=ci;
-	  
-          ct->next = cf->next;
-          cf->next = cp;
-          co = cf;
-          
-          break;
-        }
-      }
-    }
-  }
-  return shead;
-}
-
-
-
 /****************************************************************************
 safe_diffusion_step:
   In: molecule that is moving
