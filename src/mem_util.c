@@ -73,7 +73,7 @@ void* count_malloc(int n)
  * Checked malloc helpers
  *************************************************************************/
 
-extern int emergency_output();
+extern int emergency_output(void);
 static void memalloc_failure(char const *file, long line, int size, char const *desc, int onfailure)
 {
     if (desc)

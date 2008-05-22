@@ -188,7 +188,7 @@ emergency_output:
 	this function.
 **************************************************************************/
 
-int emergency_output()
+int emergency_output(void)
 {
   struct storage_list *mem;
   struct schedule_helper *sh;
@@ -308,7 +308,7 @@ flush_reaction_output:
         (Do this before ending the simuation.)
 *************************************************************************/
 
-int flush_reaction_output()
+int flush_reaction_output(void)
 {
   struct schedule_helper *sh;
   struct output_block *ob;

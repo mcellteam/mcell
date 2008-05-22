@@ -38,7 +38,7 @@ int write_mol_scheduler_state(FILE *fs);
 int read_mol_scheduler_state(FILE *fs);
 int write_byte_order(FILE *fs);
 int read_byte_order(FILE *fs);
-int create_molecule_scheduler();
+int create_molecule_scheduler(void);
 void chkpt_signal_handler(int signo);
 
 #endif

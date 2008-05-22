@@ -424,7 +424,7 @@ Out: Creates global molecule scheduler using checkpoint file values.
      Returns 1 on error, and 0 - on success.
 
 ***************************************************************************/
-int create_molecule_scheduler()
+int create_molecule_scheduler(void)
 {
   struct storage_list *stg;
   for (stg = world->storage_head; stg != NULL; stg = stg->next) {

@@ -1603,7 +1603,7 @@ check_output_directory_structure:
         In:  Nothing
         Out: 0 if successful, 1 if failed
 **************************************************************************/
-static int check_output_directory_structure()
+static int check_output_directory_structure(void)
 {
   /* Break file prefix name into basename and dirname */
   if (get_basename(world->file_prefix_name,
@@ -1649,7 +1649,7 @@ dreamm_v3_generic_init:
         In:  Nothing
         Out: 0 if successful, 1 if failed
 **************************************************************************/
-static int dreamm_v3_generic_init()
+static int dreamm_v3_generic_init(void)
 {
   /* Collect all mesh objects to be visualized */
   if (collect_objects(world->viz_obj_head,
@@ -4535,7 +4535,7 @@ dreamm_v3_write_empty_files:
         In: none
         Out: 0 upon success, 1 upon failure
 **************************************************************************/
-static int dreamm_v3_write_empty_files()
+static int dreamm_v3_write_empty_files(void)
 {
 
   int species_index; /* iterator for the species */
@@ -5754,7 +5754,7 @@ dreamm_v3_grouped_get_master_header_name:
         In:  None
         Out: The path, or NULL if an error occurs
 **************************************************************************/
-static char *dreamm_v3_grouped_get_master_header_name()
+static char *dreamm_v3_grouped_get_master_header_name(void)
 {
   char *master_header_file_path = NULL;
   if (world->chkpt_flag)

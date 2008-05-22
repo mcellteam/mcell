@@ -46,7 +46,7 @@ static int init_complex_effectors(struct object *objp, struct region_list *head)
 #define MICROSEC_PER_YEAR 365.25*86400.0*1e6
 
 /* Sets default notification values */
-int init_notifications()
+int init_notifications(void)
 {
   world->notify = (struct notifications*)malloc(sizeof(struct notifications));
   if (world->notify==NULL) {
@@ -1708,7 +1708,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
     In:  none
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int init_regions()
+int init_regions(void)
 {
   if (world->clamp_list!=NULL) init_clamp_lists();
 
@@ -2037,7 +2037,7 @@ int init_wall_regions(struct object *objp, char *full_name)
     In:  none
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int init_effectors()
+int init_effectors(void)
 {
   if (instance_obj_effectors(world->root_instance)) return 1;
   return 0;
@@ -3663,7 +3663,7 @@ init_releases:
        releases on regions.
 ***************************************************************************/
 
-int init_releases()
+int init_releases(void)
 {
   struct release_event_queue *req;
   struct abstract_element *ae;

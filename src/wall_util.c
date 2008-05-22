@@ -865,7 +865,7 @@ sharpen_world:
   Out: 0 on success, 1 on failure.  Adds edges to every object.
 ***************************************************************************/
 
-int sharpen_world()
+int sharpen_world(void)
 {
   struct object *o;
   
@@ -2080,7 +2080,7 @@ distribute_world:
        is distributed to local memory and into appropriate subvolumes.
 ***************************************************************************/
 
-int distribute_world()
+int distribute_world(void)
 {
   struct object *o;     /* Iterator for objects in the world */
   

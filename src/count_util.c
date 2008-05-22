@@ -25,7 +25,7 @@
 extern struct volume *world;
 
 /* Utility to resolve count requests for macromolecule states */
-static int macro_convert_output_requests();
+static int macro_convert_output_requests(void);
 
 /* Pare down the region lists, annihilating any regions which appear in both
  * lists.  This code was moved out of count_region_from_scratch so that it can
@@ -1099,7 +1099,7 @@ place_waypoints:
    Note: you must have initialized SSVs before calling this routine!
 *************************************************************************/
 
-int place_waypoints()
+int place_waypoints(void)
 {
   int g,h,i,j,k;
   int waypoint_in_wall = 0;
@@ -1210,7 +1210,7 @@ prepare_counters:
         tries to count a freely diffusing molecule.  Fixes up all
         count requests to point at the data we care about.
 ********************************************************************/
-int prepare_counters()
+int prepare_counters(void)
 {
   struct output_request *request;
   struct output_block *block;
@@ -1352,7 +1352,7 @@ check_counter_geometry:
         the offending region name and returns 1.
 *************************************************************************/
 
-int check_counter_geometry()
+int check_counter_geometry(void)
 {
   int i;
   struct counter *cp;
@@ -3070,7 +3070,7 @@ macro_normalize_output_request_locations:
         Locations for macromolecule count requests are checked for validity,
         and normalized so that all locations are regions.
 *************************************************************************/
-static int macro_normalize_output_request_locations()
+static int macro_normalize_output_request_locations(void)
 {
   /* Scan all requests, fixing up request locations */
   struct macro_count_request *mcr;
@@ -3156,7 +3156,7 @@ macro_convert_output_requests:
         expressions are fixed to point to the appropriate counters.  Locations
         are normalized to refer to regions.
 *************************************************************************/
-static int macro_convert_output_requests()
+static int macro_convert_output_requests(void)
 {
   /* If we have no requests to process, skip all this */
   if (world->macro_count_request_head == NULL)

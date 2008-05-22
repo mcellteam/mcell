@@ -51,7 +51,7 @@ void ehtable_kill(struct edge_hashtable *eht);
 int surface_net( struct wall **facelist, int nfaces );
 void init_edge_transform(struct edge *e,int edgenum);
 int sharpen_object(struct object *parent);
-int sharpen_world();
+int sharpen_world(void);
 
 double closest_interior_point(struct vector3 *pt,struct wall *w,struct vector2 *ip,double r2);
 
@@ -77,7 +77,7 @@ struct vector3* localize_vertex(struct vector3 *p, struct storage *stor);
 struct wall* localize_wall(struct wall *w, struct storage *stor);
 struct wall* distrubute_wall(struct wall *w);
 int distribute_object(struct object *parent);
-int distribute_world();
+int distribute_world(void);
 
 void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b, struct vector3 *c, struct vector3 *final_result);
 int test_sphere_triangle(struct vector3 *s, double radius, struct vector3 *a, struct vector3 *b, struct vector3 *c, struct vector3 *p);

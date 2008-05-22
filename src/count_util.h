@@ -9,9 +9,9 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int index,struct vector2 *loc);
 int fire_count_event(struct counter *event,int n,struct vector3 *where,byte what);
 
-int place_waypoints();
-int prepare_counters();
-int check_counter_geometry();
+int place_waypoints(void);
+int prepare_counters(void);
+int check_counter_geometry(void);
 int expand_object_output(struct output_request *request,struct object *obj);
 int object_has_geometry(struct object *obj);
 int instantiate_request(struct output_request *request);
