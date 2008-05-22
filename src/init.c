@@ -1723,7 +1723,7 @@ int init_regions(void)
 /* First part of concentration clamp initialization. */
 /* After this, list is grouped by surface class. */
 /* Second part (list of objects) happens with regions. */
-void init_clamp_lists()
+void init_clamp_lists(void)
 {
   struct ccn_clamp_data *ccd,*temp;
   

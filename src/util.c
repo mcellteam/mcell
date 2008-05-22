@@ -1007,17 +1007,14 @@ Parameters
 Returns
 	1 if the numbers are different, 0 otherwise
 **********************************************************************/
-
 int distinguishable(double a,double b,double eps)
 {
   double c;
 
-  c=a-b;
-
-  if (c<0) c=-c;
-  if (a<0) a=-a;
+  c = fabs(a-b);
+  a = fabs(a);
   if (a<1) a=1;
-  if (b<0) b=-b;
+  b = fabs(b);
 
   if (b<a) eps*=a;
   else eps*=b;

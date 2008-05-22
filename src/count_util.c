@@ -40,20 +40,16 @@ eps_equals:
    In: two doubles
    Out: 1 if they are equal to within some small tolerance, 0 otherwise
 *************************************************************************/
-
-int eps_equals(double x,double y)
+static int eps_equals(double x,double y)
 {
   double mag;
   double diff;
   
-  if (x<0) mag = -x;
-  else mag = x;
-  if (y<0) { if (-y > mag) mag = -y; }
-  else { if (y > mag) mag = y; }
+  mag = fabs(x);
+  if (mag < fabs(y))
+    mag = fabs(y);
   
-  if (x < y) diff = y-x;
-  else diff = x-y;
-  
+  diff = fabs(x - y);
   return diff < EPS_C * (mag + 1.0);
 }
 

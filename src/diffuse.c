@@ -474,10 +474,8 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
     {
       if (i<0)
       {
-        ty=dy*v->z;
-        tz=v->y*dz;
-        if (ty < 0.0) ty = -ty;
-        if (tz < 0.0) tz = -tz;
+        ty = fabs(dy*v->z);
+        tz = fabs(v->y*dz);
         if (ty<tz)
         {
           smash->t = dy / v->y;
@@ -491,10 +489,8 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
       }
       else if (j<0)
       {
-        tx=dx*v->z;
-        tz=v->x*dz;
-        if (tx < 0.0) tx = -tx;
-        if (tz < 0.0) tz = -tz;
+        tx = fabs(dx*v->z);
+        tz = fabs(v->x*dz);
         if (tx<tz)
         {
           smash->t = dx / v->x;
@@ -508,10 +504,8 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
       }
       else /* k<0 */
       {
-        tx=dx*v->y;
-        ty=v->x*dy;
-        if (tx < 0.0) tx = -tx;
-        if (ty < 0.0) ty = -ty;
+        tx = fabs(dx*v->y);
+        ty = fabs(v->x*dy);
         if (tx<ty)
         {
           smash->t = dx / v->x;
@@ -527,12 +521,9 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
   }
   else /* No vectors are zero--use alternate method */
   {
-    tx = dx * v->y * v->z;
-    ty = v->x * dy * v->z;
-    tz = v->x * v->y * dz;
-    if (tx<0.0) tx = -tx;
-    if (ty<0.0) ty = -ty;
-    if (tz<0.0) tz = -tz;
+    tx = fabs(dx * v->y * v->z);
+    ty = fabs(v->x * dy * v->z);
+    tz = fabs(v->x * v->y * dz);
   
     if (tx < ty)
     {
@@ -744,10 +735,8 @@ struct sp_collision* ray_trace_trimol(struct volume_molecule *m,
     {
       if (i<0)
       {
-        ty=dy*v->z;
-        tz=v->y*dz;
-        if (ty < 0.0) ty = -ty;
-        if (tz < 0.0) tz = -tz;
+        ty = fabs(dy*v->z);
+        tz = fabs(v->y*dz);
         if (ty<tz)
         {
           smash->t = dy / v->y;
@@ -761,10 +750,8 @@ struct sp_collision* ray_trace_trimol(struct volume_molecule *m,
       }
       else if (j<0)
       {
-        tx=dx*v->z;
-        tz=v->x*dz;
-        if (tx < 0.0) tx = -tx;
-        if (tz < 0.0) tz = -tz;
+        tx = fabs(dx*v->z);
+        tz = fabs(v->x*dz);
         if (tx<tz)
         {
           smash->t = dx / v->x;
@@ -778,10 +765,8 @@ struct sp_collision* ray_trace_trimol(struct volume_molecule *m,
       }
       else /* k<0 */
       {
-        tx=dx*v->y;
-        ty=v->x*dy;
-        if (tx < 0.0) tx = -tx;
-        if (ty < 0.0) ty = -ty;
+        tx = fabs(dx*v->y);
+        ty = fabs(v->x*dy);
         if (tx<ty)
         {
           smash->t = dx / v->x;
@@ -797,12 +782,9 @@ struct sp_collision* ray_trace_trimol(struct volume_molecule *m,
   }
   else /* No vectors are zero--use alternate method */
   {
-    tx = dx * v->y * v->z;
-    ty = v->x * dy * v->z;
-    tz = v->x * v->y * dz;
-    if (tx<0.0) tx = -tx;
-    if (ty<0.0) ty = -ty;
-    if (tz<0.0) tz = -tz;
+    tx = fabs(dx * v->y * v->z);
+    ty = fabs(v->x * dy * v->z);
+    tz = fabs(v->x * v->y * dz);
   
     if (tx < ty)
     {
@@ -6032,10 +6014,10 @@ void run_concentration_clamp(double t_now)
           
           eps = EPS_C*m.index;
           
-          if (v.x>0) s1=v.x; else s1=-v.x;
-          if (v.y>0) s2=v.y; else s2=-v.y;
+          s1 = fabs(v.x);
+          s2 = fabs(v.y);
           if (s1<s2) s1=s2;
-          if (v.z>0) s2=v.z; else s2=-v.z;
+          s2 = fabs(v.z);
           if (s1<s2) s1=s2;
           if (s1>1.0) eps *= s1;
           

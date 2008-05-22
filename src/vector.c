@@ -476,39 +476,30 @@ int distinguishable_vec3(struct vector3 *a,struct vector3 *b,double eps)
   double c,cc,d;
   
   /* Find largest coordinate */
-  c=a->x;
-  if (c<0) c=-c;
+  c=fabs(a->x);
   
-  d=a->y;
-  if (d<0) d=-d;
+  d=fabs(a->y);
   if (d>c) c=d;
   
-  d=a->z;
-  if (d<0) d=-d;
+  d=fabs(a->z);
   if (d>c) c=d;
 
-  d=b->x;
-  if (d<0) d=-d;
+  d=fabs(b->x);
   if (d>c) c=d;
   
-  d=b->y;
-  if (d<0) d=-d;
+  d=fabs(b->y);
   if (d>c) c=d;
   
-  d=b->z;
-  if (d<0) d=-d;
+  d=fabs(b->z);
   if (d>c) c=d;
   
   /* Find largest difference */
-  cc=a->x-b->x;
-  if (cc<0) cc=-cc;
+  cc=fabs(a->x-b->x);
   
-  d=a->y-b->y;
-  if (d<0) d=-d;
+  d=fabs(a->y-b->y);
   if (d>cc) cc=d;
   
-  d=a->z-b->z;
-  if (d<0) d=-d;
+  d=fabs(a->z-b->z);
   if (d>cc) cc=d;
   
   /* Make sure fractional difference is at least eps and absolute difference is at least (eps*eps) */
