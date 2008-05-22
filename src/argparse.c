@@ -8,6 +8,7 @@
 #include <stdio.h>          /* for *printf functions */
 #include <stdlib.h>         /* for strtol, strtoll, strtoul, free */
 
+/* Display a formatted error message. */
 static void argerror(struct volume *vol, char const *s, ...)
   __attribute__((format (printf, 2, 3)));
 
