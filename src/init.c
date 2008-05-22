@@ -2521,7 +2521,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
   short *orientation;
   unsigned int i,j,n,nr,n_occupied;
   int p_index;
-  double rand,*prob,area,tot_prob,tot_density;
+  double rnd,*prob,area,tot_prob,tot_density;
   struct subvolume *gsv = NULL;
 
   log_file=world->log_file;
@@ -2608,9 +2608,9 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
 
       j=0;
       p_index=-1;
-      rand = rng_dbl(world->rng);
+      rnd = rng_dbl(world->rng);
       while (j<nr && p_index==-1) {
-        if (rand<=prob[j++]) {
+        if (rnd<=prob[j++]) {
           p_index=j-1;
         }
       }
@@ -2712,7 +2712,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
   struct eff_dat *effdp;
   struct wall **walls,**walls_tmp,*w;
   short orientation;
-  unsigned int *index,*index_tmp;
+  unsigned int *idx,*idx_tmp;
   unsigned int n_free_eff,n_set,n_clear;
   unsigned int i,j,k;
   byte done;
@@ -2726,8 +2726,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 
     tiles=NULL;
     tiles_tmp=NULL;
-    index=NULL;
-    index_tmp=NULL;
+    idx=NULL;
+    idx_tmp=NULL;
     walls=NULL;
     walls_tmp=NULL;
     bread_crumb=&gmol;
@@ -2770,7 +2770,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 			fprintf(world->err_file, "Fatal error: out of memory while effectors by number intialization.\nAttempt to write intermediate results had %d errors.\n", i);
         		exit(EXIT_FAILURE);
         }
-        if ((index=(unsigned int *)malloc
+        if ((idx=(unsigned int *)malloc
            (n_free_eff*sizeof(unsigned int)))==NULL) {
 			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         		int i = emergency_output();
@@ -2796,7 +2796,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 	      for (j=0;j<sg->n_tiles;j++) {
 		if (sg->mol[j]==NULL) {
 		  tiles[k]=&(sg->mol[j]);
-		  index[k]=j;
+		  idx[k]=j;
 		  walls[k++]=w;
 		}
 	      }
@@ -2863,8 +2863,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
               for (j=0;j<n_free_eff;j++) {
                 if (*tiles[j]==bread_crumb) {
                   struct vector2 s_pos;
-		  if (world->randomize_gmol_pos) grid2uv_random(walls[j]->grid,index[j],&s_pos);
-		  else grid2uv(walls[j]->grid,index[j],&s_pos);
+		  if (world->randomize_gmol_pos) grid2uv_random(walls[j]->grid,idx[j],&s_pos);
+		  else grid2uv(walls[j]->grid,idx[j],&s_pos);
                   uv2xyz(&s_pos, walls[j], &pos3d);
                   gsv = find_subvolume(&pos3d, gsv);
 
@@ -2882,7 +2882,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 		  mol->birthday=0;
                   mol->properties=eff;
                   mol->birthplace=walls[j]->birthplace->gmol;
-                  mol->grid_index=index[j];
+                  mol->grid_index=idx[j];
                   mol->s_pos.u = s_pos.u;
                   mol->s_pos.v = s_pos.v;
                   /*mol->orient = (orientation==0) ? ((rng_uint(world->rng)&1)?1:-1) : orientation; */
@@ -2926,8 +2926,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 		  k = (int) (rng_dbl(world->rng)*n_free_eff);
                   if (*tiles[k]==NULL) {
                     struct vector2 s_pos;
-                    if (world->randomize_gmol_pos) grid2uv_random(walls[k]->grid,index[k],&s_pos);
-                    else grid2uv(walls[k]->grid,index[k],&s_pos);
+                    if (world->randomize_gmol_pos) grid2uv_random(walls[k]->grid,idx[k],&s_pos);
+                    else grid2uv(walls[k]->grid,idx[k],&s_pos);
                     uv2xyz(&s_pos, walls[k], &pos3d);
                     gsv = find_subvolume(&pos3d, gsv);
 
@@ -2945,7 +2945,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 		    mol->birthday=0;                                                                                    
                     mol->properties=eff;
                     mol->birthplace=walls[k]->birthplace->gmol;
-                    mol->grid_index=index[k];
+                    mol->grid_index=idx[k];
                     mol->s_pos.u = s_pos.u;
                     mol->s_pos.v = s_pos.v;
                     mol->cmplx = NULL;
@@ -2993,7 +2993,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 			fprintf(world->err_file, "Fatal error: out of memory while effectors by number initialization.\nAttempt to write intermediate results had %d errors.\n", i);
         		exit(EXIT_FAILURE);
             }
-            if ((index_tmp=(unsigned int *)malloc
+            if ((idx_tmp=(unsigned int *)malloc
                (n_clear*sizeof(unsigned int)))==NULL) {
 			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
         		int i = emergency_output();
@@ -3011,16 +3011,16 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
             for (i=0;i<n_free_eff;i++) {
               if (*tiles[i]==NULL) {
                 tiles_tmp[k]=tiles[i];
-                index_tmp[k]=index[i];
+                idx_tmp[k]=idx[i];
                 walls_tmp[k++]=walls[i];
               }
             }
             /* free original array of pointers to all free tiles */
             free(tiles);
-            free(index);
+            free(idx);
             free(walls);
             tiles=tiles_tmp;
-            index=index_tmp;
+            idx=idx_tmp;
             walls=walls_tmp;
             n_free_eff=n_free_eff-n_set;
          }
@@ -3050,8 +3050,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
       if (tiles!=NULL) {
         free(tiles);
       }
-      if (index!=NULL) {
-        free(index);
+      if (idx!=NULL) {
+        free(idx);
       }
       if (walls!=NULL) {
         free(walls);

@@ -682,7 +682,7 @@ struct element_list *mdl_new_element_patch(struct mdlparse_vars *mpvp,
 int mdl_set_region_elements(struct mdlparse_vars *mpvp,
                             struct region *rgn,
                             struct element_list *elements,
-                            int normalize);
+                            int normalize_now);
 
 /* Create a new named reaction pathway name structure. */
 struct sym_table *mdl_new_rxn_pathname(struct mdlparse_vars *mpvp,

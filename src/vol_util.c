@@ -373,13 +373,11 @@ struct grid_molecule* place_grid_molecule(struct species *s,struct vector3 *loc,
   struct vector2 best_uv;
   struct vector3 best_xyz;
   
-  int i0,i1,j0,j1,k0,k1,i,j,k,h;
+  int i;
 
   struct subvolume *sv;
   struct wall_list *wl;
-//  struct wall *w;
   struct grid_molecule *g;
-  
   
   if (search_diam<=EPS_C) search_d2 = EPS_C*EPS_C;
   else search_d2 = search_diam * search_diam;
@@ -402,56 +400,76 @@ struct grid_molecule* place_grid_molecule(struct species *s,struct vector3 *loc,
 
   if (search_d2 > EPS_C*EPS_C)  /* Might need to look in adjacent subvolumes */
   {
-    int sv_index = sv - world->subvol;
-    k = sv_index;
-    i = k / ((world->ny_parts-1)*(world->nz_parts-1));
-    k -= i * ((world->ny_parts-1)*(world->nz_parts-1));
-    j = k / (world->nz_parts-1);
-    k -= j * (world->nz_parts-1);
+    const int sv_index = sv - world->subvol;
+    int sv_remain = sv_index;
 
-    for (i0=i ; i0>0 ; i0--)
+    /* Turn linear sv_index into part_x, part_y, part_z triple. */
+    const int part_x = sv_remain / ((world->ny_parts-1)*(world->nz_parts-1));
+    sv_remain -= part_x * ((world->ny_parts-1)*(world->nz_parts-1));
+    const int part_y = sv_remain / (world->nz_parts-1);
+    sv_remain -= part_y * (world->nz_parts-1);
+    const int part_z = sv_remain;
+
+    /* Find min x partition. */
+    int x_min;
+    for (x_min=part_x; x_min>0; x_min--)
     {
-      d2 = loc->x - world->x_partitions[ i0 ]; d2 *= d2;
+      d2 = loc->x - world->x_partitions[x_min]; d2 *= d2;
       if (d2 >= best_d2 || d2 >= search_d2) break;
     }
-    for (i1=i ; i1<world->nx_parts-1 ; i1++)
+
+    /* Find max x partition. */
+    int x_max;
+    for (x_max=part_x; x_max<world->nx_parts-1 ; x_max++)
     {
-      d2 = loc->x - world->x_partitions[ i1+1 ]; d2 *= d2;
+      d2 = loc->x - world->x_partitions[x_max + 1]; d2 *= d2;
       if (d2 >= best_d2 || d2 >= search_d2) break;
     }
-    for (j0=j ; j0>0 ; j0--)
+
+    /* Find min y partition. */
+    int y_min;
+    for (y_min=part_y; y_min>0; y_min--)
     {
-      d2 = loc->y - world->y_partitions[ j0 ]; d2 *= d2;
+      d2 = loc->y - world->y_partitions[y_min]; d2 *= d2;
       if (d2 >= best_d2 || d2 >= search_d2) break;
     }
-    for (j1=j ; j1<world->ny_parts-1 ; j1++)
+
+    /* Find max y partition. */
+    int y_max;
+    for (y_max=part_y; y_max<world->ny_parts-1; y_max++)
     {
-      d2 = loc->y - world->y_partitions[ j1+1 ]; d2 *= d2;
+      d2 = loc->y - world->y_partitions[y_max+1]; d2 *= d2;
       if (d2 >= best_d2 || d2 >= search_d2) break;
     }
-    for (k0=k ; k0>0 ; k0--)
+
+    /* Find min z partition. */
+    int z_min;
+    for (z_min=part_z; z_min>0; z_min--)
     {
-      d2 = loc->z - world->z_partitions[ k0 ]; d2 *= d2;
+      d2 = loc->z - world->z_partitions[z_min]; d2 *= d2;
       if (d2 >= best_d2 || d2 >= search_d2) break;
     }
-    for (k1=k ; k1<world->nz_parts-1 ; k1++)
+
+    /* Find max z partition. */
+    int z_max;
+    for (z_max=part_z; z_max<world->nz_parts-1; z_max++)
     {
-      d2 = loc->z - world->z_partitions[ k1+1 ]; d2 *= d2;
+      d2 = loc->z - world->z_partitions[z_max+1]; d2 *= d2;
       if (d2 >= best_d2 || d2 >= search_d2) break;
     }
-    
-    if (i0<i || i1>i || j0<j || j1>j || k0<k || k1>k)
+
+    if (x_min<part_x || x_max>part_x || y_min<part_y || y_max>part_y || z_min<part_z || z_max>part_z)
     {
-      for (i=i0;i<=i1;i++)
+      for (int px=x_min; px<=x_max; px++)
       {
-	for (j=j0;j<=j1;j++)
-	{
-	  for (k=k0;k<=k1;k++)
-	  {
-	    h = k + (world->nz_parts-1)*(j + (world->ny_parts-1)*i);
-	    if (h == sv_index) continue;
-	    
-	    for (wl=world->subvol[h].wall_head ; wl!=NULL ; wl=wl->next)
+        for (int py=y_min; py<=y_max; py++)
+        {
+          for (int pz=z_min; pz<=z_max; pz++)
+          {
+            const int this_sv = pz + (world->nz_parts-1)*(py + (world->ny_parts-1)*px);
+            if (this_sv == sv_index) continue;
+
+            for (wl=world->subvol[this_sv].wall_head; wl!=NULL; wl=wl->next)
 	    {
 	      d2 = closest_interior_point(loc,wl->this_wall,&s_loc,search_d2);
 	      if (d2 <= search_d2 && d2 < best_d2)
@@ -460,7 +478,7 @@ struct grid_molecule* place_grid_molecule(struct species *s,struct vector3 *loc,
 		best_w = wl->this_wall;
 		best_uv.u = s_loc.u;
 		best_uv.v = s_loc.v;
-	      }	    
+	      }
 	    }
 	  }
 	}
@@ -479,7 +497,8 @@ struct grid_molecule* place_grid_molecule(struct species *s,struct vector3 *loc,
   }
   
   d2 = search_d2 - best_d2;  /* We can look this far around the surface we hit for an empty spot */
-  
+
+  int grid_index;
   if (best_w->grid==NULL)
   {
     if (create_grid(best_w,sv))
@@ -489,16 +508,16 @@ struct grid_molecule* place_grid_molecule(struct species *s,struct vector3 *loc,
       fprintf(world->err_file,"%d errors while attempting emergency output\n",i);
       exit(EXIT_FAILURE);
     }
-    i = uv2grid(&best_uv,best_w->grid);
+    grid_index = uv2grid(&best_uv,best_w->grid);
   }
   else if ((s->flags & IS_COMPLEX) != 0)
   {
-    i = uv2grid(&best_uv,best_w->grid);
+    grid_index = uv2grid(&best_uv,best_w->grid);
   }
   else
   {
-    i = uv2grid(&best_uv,best_w->grid);
-    if (best_w->grid->mol[i]!=NULL)
+    grid_index = uv2grid(&best_uv,best_w->grid);
+    if (best_w->grid->mol[grid_index]!=NULL)
     {
       if (d2 <= EPS_C*EPS_C)
       {
@@ -506,14 +525,14 @@ struct grid_molecule* place_grid_molecule(struct species *s,struct vector3 *loc,
       }
       else
       {
-	best_w = search_nbhd_for_free(best_w,&best_uv,d2,&i,NULL,NULL);
+	best_w = search_nbhd_for_free(best_w,&best_uv,d2,&grid_index,NULL,NULL);
 	if (best_w==NULL)
         {
           return NULL;
         }
 	
-	if (world->randomize_gmol_pos) grid2uv_random(best_w->grid,i,&best_uv);
-	else grid2uv(best_w->grid,i,&best_uv);
+	if (world->randomize_gmol_pos) grid2uv_random(best_w->grid,grid_index,&best_uv);
+	else grid2uv(best_w->grid,grid_index,&best_uv);
       }
     }
   }
@@ -546,7 +565,7 @@ struct grid_molecule* place_grid_molecule(struct species *s,struct vector3 *loc,
   g->t = t;
   g->t2 = 0.0;
   g->grid = best_w->grid;
-  g->grid_index = i;
+  g->grid_index = grid_index;
   g->s_pos.u = best_uv.u;
   g->s_pos.v = best_uv.v;
   g->orient = orient;
@@ -584,7 +603,7 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
 
   if (g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
     count_region_from_scratch((struct abstract_molecule*)g, NULL, 1, NULL, g->grid->surface, g->t);
-  
+
   if ( schedule_add(sv->local_storage->timer,g) )
   {
     int i;
@@ -898,8 +917,6 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct volume_molecule *m
   struct region_list *rl,*rl2;
   struct waypoint *wp;
   struct subvolume *sv = NULL;
-  int i1,i2,j1,j2,k1,k2;
-  int h,i,j,k,l;
   struct mem_helper *mh;
   struct void_list *vl;
   struct void_list *vl_head = NULL;
@@ -914,21 +931,21 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct volume_molecule *m
   mh = create_mem(sizeof(struct void_list),1024);
   if (mh==NULL) return 1;
   
-  i1 = bisect(world->x_partitions,world->nx_parts,rrd->llf.x);
-  i2 = bisect_high(world->x_partitions,world->nx_parts,rrd->urb.x);
-  j1 = bisect(world->y_partitions,world->ny_parts,rrd->llf.y);
-  j2 = bisect_high(world->y_partitions,world->ny_parts,rrd->urb.y);
-  k1 = bisect(world->z_partitions,world->nz_parts,rrd->llf.z);
-  k2 = bisect_high(world->z_partitions,world->nz_parts,rrd->urb.z);
+  const int x_min = bisect(world->x_partitions,world->nx_parts,rrd->llf.x);
+  const int x_max = bisect_high(world->x_partitions,world->nx_parts,rrd->urb.x);
+  const int y_min = bisect(world->y_partitions,world->ny_parts,rrd->llf.y);
+  const int y_max = bisect_high(world->y_partitions,world->ny_parts,rrd->urb.y);
+  const int z_min = bisect(world->z_partitions,world->nz_parts,rrd->llf.z);
+  const int z_max = bisect_high(world->z_partitions,world->nz_parts,rrd->urb.z);
   
-  for (i=i1;i<i2;i++)
+  for (int px=x_min; px<x_max; px++)
   {
-    for (j=j1;j<j2;j++)
+    for (int py=y_min; py<y_max; py++)
     {
-      for (k=k1;k<k2;k++)
+      for (int pz=z_min; pz<z_max; pz++)
       {
-        h = k + (world->nz_parts - 1)*(j + (world->ny_parts-1)*i);
-        sv = &(world->subvol[h]);
+        const int this_sv = pz + (world->nz_parts - 1)*(py + (world->ny_parts-1)*px);
+        sv = &(world->subvol[this_sv]);
         
         struct per_species_list *psl = (struct per_species_list *) pointer_hash_lookup(&sv->mol_by_species, m->properties, m->properties->hashval);
         if (psl != NULL)
@@ -936,7 +953,7 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct volume_molecule *m
           for (mp = psl->head; mp != NULL; mp = mp->next_v)
           {
             extra_in=extra_out=NULL;
-            wp = &(world->waypoints[h]);
+            wp = &(world->waypoints[this_sv]);
             origin = &(wp->loc);
             delta.x = mp->pos.x - origin->x;
             delta.y = mp->pos.y - origin->y;
@@ -944,25 +961,24 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct volume_molecule *m
 
             for (wl=sv->wall_head ; wl!=NULL ; wl=wl->next)
             {
-              l = collide_wall(origin,&delta,wl->this_wall,&t,&hit,0);
-
-              if (l!=COLLIDE_MISS)
+              int hitcode = collide_wall(origin,&delta,wl->this_wall,&t,&hit,0);
+              if (hitcode != COLLIDE_MISS)
               {
                 world->ray_polygon_colls++;
 
                 for (rl=wl->this_wall->counting_regions ; rl!=NULL ; rl=rl->next)
                 {
-                  if (l==COLLIDE_FRONT || l==COLLIDE_BACK)
+                  if (hitcode == COLLIDE_FRONT || hitcode == COLLIDE_BACK)
                   {
                     rl2 = (struct region_list*)mem_get(sv->local_storage->regl);
                     rl2->reg = rl->reg;
 
-                    if (l==COLLIDE_FRONT)
+                    if (hitcode == COLLIDE_FRONT)
                     {
                       rl2->next = extra_in;
                       extra_in = rl2;
                     }
-                    else  /*l==COLLIDE_BACK*/
+                    else  /*hitcode == COLLIDE_BACK*/
                     {
                       rl2->next = extra_out;
                       extra_out = rl2;
@@ -987,9 +1003,7 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct volume_molecule *m
               }
             }
 
-            l = eval_rel_region_3d(rrd->expression,wp,extra_in,extra_out);
-
-            if (l)
+            if (eval_rel_region_3d(rrd->expression,wp,extra_in,extra_out))
             {
               vl = (struct void_list*)mem_get(mh);
               if (vl==NULL) return 1;

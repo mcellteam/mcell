@@ -132,7 +132,7 @@ grid2xyz and grid2uv and grid2uv_random
   Note: grid2xyz just multiplies by uv unit vectors at the end.
 *************************************************************************/
 
-void grid2xyz(struct surface_grid *g,int index,struct vector3 *v)
+void grid2xyz(struct surface_grid *g,int idx,struct vector3 *v)
 {
   struct vector3 *unit_u = &(g->surface->unit_u);
   struct vector3 *unit_v = &(g->surface->unit_v);
@@ -141,8 +141,8 @@ void grid2xyz(struct surface_grid *g,int index,struct vector3 *v)
   int k,j,i;
   double ucoef,vcoef,over3n;
   
-  root = (int)( sqrt((double)index) );
-  rootrem = index - root*root;
+  root = (int)( sqrt((double) idx) );
+  rootrem = idx - root*root;
   k = g->n - root - 1;
   j = rootrem/2;
   i = rootrem - 2*j;
@@ -158,15 +158,15 @@ void grid2xyz(struct surface_grid *g,int index,struct vector3 *v)
   v->z = ucoef*unit_u->z + vcoef*unit_v->z + g->surface->vert[0]->z;
 }
 
-void grid2uv(struct surface_grid *g,int index,struct vector2 *v)
+void grid2uv(struct surface_grid *g,int idx,struct vector2 *v)
 {
   int root;
   int rootrem;
   int k,j,i;
   double over3n;
   
-  root = (int)( sqrt((double)index) );
-  rootrem = index - root*root;
+  root = (int)( sqrt((double) idx) );
+  rootrem = idx - root*root;
   k = g->n - root - 1;
   j = rootrem/2;
   i = rootrem - 2*j;
@@ -178,7 +178,7 @@ void grid2uv(struct surface_grid *g,int index,struct vector2 *v)
   v->v = ((double)(3*k+i+1))*over3n*g->surface->uv_vert2.v;
 }
 
-void grid2uv_random(struct surface_grid *g,int index,struct vector2 *v)
+void grid2uv_random(struct surface_grid *g,int idx,struct vector2 *v)
 {
   int root;
   int rootrem;
@@ -186,8 +186,8 @@ void grid2uv_random(struct surface_grid *g,int index,struct vector2 *v)
   double over_n;
   double u_ran,v_ran;
   
-  root = (int)( sqrt((double)index) );
-  rootrem = index - root*root;
+  root = (int)( sqrt((double) idx) );
+  rootrem = idx - root*root;
   k = g->n - root - 1;
   j = rootrem/2;
   i = rootrem - 2*j;
@@ -304,7 +304,7 @@ void grid_neighbors(struct surface_grid *grid,int idx,struct surface_grid **nb_g
   double d;
   
   /* Calculate strip (k), stripe (j), and flip (i) indices from idx */
-  root = (int)( sqrt((double)idx) );
+  root = (int)( sqrt((double) idx) );
   rootrem = idx - root*root;
   k = root;
   j = rootrem/2;

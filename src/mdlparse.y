@@ -1662,10 +1662,10 @@ meta_object_def:
           list_objects
           list_opt_object_cmds
         end_object                                    {
-                                                          struct object *new_object = (struct object *) $1->value;
-                                                          new_object->object_type = META_OBJ;
-                                                          mdl_add_child_objects(mdlpvp, new_object, $4.obj_head, $4.obj_tail);
-                                                          $$ = new_object;
+                                                          struct object *the_object = (struct object *) $1->value;
+                                                          the_object->object_type = META_OBJ;
+                                                          mdl_add_child_objects(mdlpvp, the_object, $4.obj_head, $4.obj_tail);
+                                                          $$ = the_object;
                                                       }
 ;
 

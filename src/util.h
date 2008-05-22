@@ -99,18 +99,18 @@ struct string_buffer
     int n_strings;    /* number of the filled positions in an above array */
 };
 
-double ia_double_get(struct infinite_double_array *array_ptr, int index);
-void ia_double_store(struct infinite_double_array *array_ptr, int index, double data_to_store);
-int ia_int_get(struct infinite_int_array *array_ptr, int index);
-void ia_int_store(struct infinite_int_array *array_ptr, int index, int data_to_store);
-unsigned int ia_uint_get(struct infinite_uint_array *array_ptr, int index);
-void ia_uint_store(struct infinite_uint_array *array_ptr, int index, unsigned int data_to_store);
-long long ia_longlong_get(struct infinite_longlong_array *array_ptr, long long index);
-void ia_longlong_store(struct infinite_longlong_array *array_ptr, long long index, long long data_to_store);
-char* ia_string_get(struct infinite_string_array *array_ptr, int index);
-void ia_string_store(struct infinite_string_array *array_ptr, int index, char *data_to_store);
-void *ia_pointer_get(struct infinite_pointer_array *array_ptr, int index);
-void ia_pointer_store(struct infinite_pointer_array *array_ptr, int index, void *data_to_store);
+double ia_double_get(struct infinite_double_array *array_ptr, int idx);
+void ia_double_store(struct infinite_double_array *array_ptr, int idx, double data_to_store);
+int ia_int_get(struct infinite_int_array *array_ptr, int idx);
+void ia_int_store(struct infinite_int_array *array_ptr, int idx, int data_to_store);
+unsigned int ia_uint_get(struct infinite_uint_array *array_ptr, int idx);
+void ia_uint_store(struct infinite_uint_array *array_ptr, int idx, unsigned int data_to_store);
+long long ia_longlong_get(struct infinite_longlong_array *array_ptr, long long idx);
+void ia_longlong_store(struct infinite_longlong_array *array_ptr, long long idx, long long data_to_store);
+char* ia_string_get(struct infinite_string_array *array_ptr, int idx);
+void ia_string_store(struct infinite_string_array *array_ptr, int idx, char *data_to_store);
+void *ia_pointer_get(struct infinite_pointer_array *array_ptr, int idx);
+void ia_pointer_store(struct infinite_pointer_array *array_ptr, int idx, void *data_to_store);
 
 
 struct bit_array

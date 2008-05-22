@@ -7463,16 +7463,16 @@ failure:
  In: mpvp: parser state
      rgn:  region to receive elements
      elements: elements comprising region
-     normalize: flag indicating whether to normalize right now
+     normalize_now: flag indicating whether to normalize right now
  Out: symbol for new pathway, or NULL if an error occurred
 **************************************************************************/
 int mdl_set_region_elements(struct mdlparse_vars *mpvp,
                             struct region *rgn,
                             struct element_list *elements,
-                            int normalize)
+                            int normalize_now)
 {
   rgn->element_list_head = elements;
-  if (normalize)
+  if (normalize_now)
     return mdl_normalize_elements(mpvp, rgn, 0);
   else
     return 0;
@@ -13708,30 +13708,30 @@ static int equivalent_geometry(struct pathway *p1, struct pathway *p2, int n)
 static struct rxn *create_sibling_reaction(struct mdlparse_vars *mpvp,
                                            struct rxn *rx)
 {
-  struct rxn *new_reaction = MDL_MALLOC_STRUCT_DESC(struct rxn, "reaction");
-  if (new_reaction == NULL)
+  struct rxn *reaction = MDL_MALLOC_STRUCT_DESC(struct rxn, "reaction");
+  if (reaction == NULL)
     return NULL;
-  new_reaction->next = NULL;
-  new_reaction->sym = rx->sym;
-  new_reaction->n_reactants = rx->n_reactants;
-  new_reaction->n_pathways = 0;
-  new_reaction->cum_probs = NULL;
-  new_reaction->cat_probs = NULL;
-  new_reaction->product_idx = NULL;
-  new_reaction->rates = NULL;
-  new_reaction->max_fixed_p = 0.0;
-  new_reaction->min_noreaction_p = 0.0;
-  new_reaction->pb_factor = 0.0;
-  new_reaction->product_idx = NULL;
-  new_reaction->players = NULL;
-  new_reaction->geometries = NULL;
-  new_reaction->is_complex = NULL;
-  new_reaction->n_occurred = 0;
-  new_reaction->n_skipped = 0.0;
-  new_reaction->prob_t = NULL;
-  new_reaction->pathway_head = NULL;
-  new_reaction->info = NULL;
-  return new_reaction;
+  reaction->next = NULL;
+  reaction->sym = rx->sym;
+  reaction->n_reactants = rx->n_reactants;
+  reaction->n_pathways = 0;
+  reaction->cum_probs = NULL;
+  reaction->cat_probs = NULL;
+  reaction->product_idx = NULL;
+  reaction->rates = NULL;
+  reaction->max_fixed_p = 0.0;
+  reaction->min_noreaction_p = 0.0;
+  reaction->pb_factor = 0.0;
+  reaction->product_idx = NULL;
+  reaction->players = NULL;
+  reaction->geometries = NULL;
+  reaction->is_complex = NULL;
+  reaction->n_occurred = 0;
+  reaction->n_skipped = 0.0;
+  reaction->prob_t = NULL;
+  reaction->pathway_head = NULL;
+  reaction->info = NULL;
+  return reaction;
 }
 
 /*************************************************************************
@@ -13744,7 +13744,7 @@ static struct rxn *create_sibling_reaction(struct mdlparse_vars *mpvp,
 static struct rxn *split_reaction(struct mdlparse_vars *mpvp, struct rxn *rx)
 {
   struct rxn  *curr_rxn_ptr = NULL,  *head = NULL, *end = NULL;
-  struct rxn *new_reaction;
+  struct rxn *reaction;
   struct pathway *to_place, *temp;
 
   /* keep reference to the head of the future linked_list */
@@ -13756,17 +13756,17 @@ static struct rxn *split_reaction(struct mdlparse_vars *mpvp, struct rxn *rx)
   {
     if (to_place->flags & (PATHW_TRANSP | PATHW_REFLEC | PATHW_ABSORP))
     {
-      new_reaction = create_sibling_reaction(mpvp, rx);
-      if (new_reaction == NULL)
+      reaction = create_sibling_reaction(mpvp, rx);
+      if (reaction == NULL)
         return NULL;
 
-      new_reaction->pathway_head = to_place;
+      reaction->pathway_head = to_place;
       to_place = to_place->next;
-      new_reaction->pathway_head->next = NULL;
-      ++ new_reaction->n_pathways;
+      reaction->pathway_head->next = NULL;
+      ++ reaction->n_pathways;
 
-      end->next = new_reaction;
-      end = new_reaction;
+      end->next = reaction;
+      end = reaction;
     }
     else
     {
@@ -13780,12 +13780,12 @@ static struct rxn *split_reaction(struct mdlparse_vars *mpvp, struct rxn *rx)
 
       if (! curr_rxn_ptr)
       {
-        new_reaction = create_sibling_reaction(mpvp, rx);
-        if (new_reaction == NULL)
+        reaction = create_sibling_reaction(mpvp, rx);
+        if (reaction == NULL)
           return NULL;
 
-        end->next = new_reaction;
-        end = new_reaction;
+        end->next = reaction;
+        end = reaction;
 
         curr_rxn_ptr = end;
       }

@@ -1818,7 +1818,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   struct abstract_molecule *reac,short orient,double t,struct vector3 *hitpt,
   struct vector3 *loc_okay)
 {
-  int result,index,i;
+  int result,idx,i;
   
   if (rx->n_pathways <= RX_SPECIAL)
   {
@@ -1827,7 +1827,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     else return RX_FLIP; /* Flip = transparent is default special case */
   }
 
-  index = rx->product_idx[path];
+  idx = rx->product_idx[path];
 
   if ((reac->properties->flags & NOT_FREE) == 0)
   {
@@ -1841,7 +1841,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     rx->info[path].count++;
     rx->n_occurred++;
     
-    if (rx->players[ index ] == NULL)
+    if (rx->players[idx] == NULL)
     {
       m->subvol->mol_count--;
       if (reac->flags&COUNT_ME)

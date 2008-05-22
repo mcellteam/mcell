@@ -547,7 +547,7 @@ count_moved_grid_mol:
          surface molecules since it raytraces without using waypoints.
 *************************************************************************/
 
-int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int index,struct vector2 *loc)
+int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int idx,struct vector2 *loc)
 {
   struct region_list *rl,*prl,*nrl,*pos_regs,*neg_regs;
   struct storage *stor;
