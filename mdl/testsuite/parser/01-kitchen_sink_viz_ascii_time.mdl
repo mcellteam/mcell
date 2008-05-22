@@ -21,11 +21,6 @@ VIZ_DATA_OUTPUT
 {
     MODE = ASCII
     MOLECULE_FILE_PREFIX = vizdir & "molecules"
-    OBJECT_FILE_PREFIXES
-    {
-        world  = vizdir & "objects_a"
-        world2 = vizdir & "objects_b"
-    }
     TIME_LIST = [[1e-6 TO 1e-4 STEP 1e-5], [1.01e-4 TO 1e-3 STEP 1e-4], [1.001e-3 TO 1e-2 STEP 1e-3]]
     STATE_VALUES
     {

@@ -21,11 +21,6 @@ VIZ_DATA_OUTPUT
 {
     MODE = ASCII
     MOLECULE_FILE_PREFIX = vizdir & "molecules"
-    OBJECT_FILE_PREFIXES
-    {
-        world  = vizdir & "objects_a"
-        world2 = vizdir & "objects_b"
-    }
     ITERATION_FRAME_DATA
     {
         ALL_DATA           = [1]
