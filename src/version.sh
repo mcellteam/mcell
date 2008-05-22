@@ -7,8 +7,11 @@ ESCAPESCRIPT='s/\([\\"]\)/\\\\\1/g'
 if test -z "${LEX}"; then
     LEX="flex"
 fi
-LEX_PATH=`which ${LEX} 2>/dev/null`
-if test -x "${LEX_PATH}"; then
+LEX_PATH=`which "${LEX}" 2>/dev/null`
+if test -z "${LEX_PATH}"; then
+  LEX="(missing)"
+  LEX_PATH="(flex not found)"
+elif test -x "${LEX_PATH}"; then
     LEX_VERSION=`${LEX} --version`
 else
     LEX_LEXER_PREBUILT=`dirname $0`/mdllex.flex.c
@@ -28,8 +31,11 @@ if test -z "${YACC}"; then
 elif test "${YACC}" == "bison -y"; then
   YACC="bison"
 fi
-YACC_PATH=`which ${YACC} 2>/dev/null`
-if test -x "${YACC_PATH}"; then
+YACC_PATH=`which "${YACC}" 2>/dev/null`
+if test -z "${YACC_PATH}"; then
+  YACC="(missing)"
+  YACC_PATH="(bison not found)"
+elif test -x "${YACC_PATH}"; then
     YACC_VERSION=`${YACC} --version | head -1`
 else
     YACC_PARSER_PREBUILT=`dirname $0`/mdlparse.bison.c
