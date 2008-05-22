@@ -1325,35 +1325,21 @@ is_object_instantiated:
 ********************************************************************/
 int is_object_instantiated(struct object *parent, struct sym_table *entry)
 {
+  struct object *obj = NULL;
+  if (entry->sym_type == REG)
+    obj = ((struct region *) (entry->value))->parent;
+  else if (entry->sym_type == OBJ)
+    obj = ((struct object *) (entry->value));
+  else
+    return 0;
 
-   struct object *o;
-   struct region_list *rl;
+  for (; obj != NULL; obj = obj->parent)
+  {
+    if (obj == world->root_instance)
+      return 1;
+  }
 
-   if(parent->object_type == POLY_OBJ || parent->object_type == BOX_OBJ){
-
-      if(strcmp(parent->sym->name, entry->name) == 0){
-          return 1;
-      }
-      if(parent->num_regions > 0)
-      {
-         for(rl = parent->regions; rl != NULL; rl = rl->next)
-         {
-            if(strcmp(rl->reg->sym->name, entry->name) == 0){
-               return 1;
-            }
-         }
-      }
-
-   }else if(parent->object_type == META_OBJ){
-       for(o = parent->first_child; o != NULL; o = o->next)
-       {
-          if(is_object_instantiated(o, entry)) return 1;
-
-       }
-
-  }            
-
-   return 0;
+  return 0;
 }
   
 
