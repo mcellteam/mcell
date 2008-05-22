@@ -322,10 +322,8 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "VOLUME_DEPENDENT_RELEASE_NUMBER" {return(VOLUME_DEPENDENT_RELEASE_NUMBER);}
 "VOLUME_ONLY"           {return(VOLUME_ONLY);}
 "VOXEL_COUNT"           {return VOXEL_COUNT; }
-"VOXEL_IMAGE_MODE"	{return(VOXEL_IMAGE_MODE);}
 "VOXEL_LIST"            {return(VOXEL_LIST);}
 "VOXEL_SIZE"            {return VOXEL_SIZE; }
-"VOXEL_VOLUME_MODE"	{return(VOXEL_VOLUME_MODE);}
 "WARNING"               {return(WARNING);}
 "WARNINGS"              {return(WARNINGS);}
 "WORLD"			{return(WORLD);}

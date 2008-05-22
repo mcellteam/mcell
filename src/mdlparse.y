@@ -394,10 +394,8 @@ struct macro_relation_state *relation_state;
 %token       VOLUME_DEPENDENT_RELEASE_NUMBER
 %token       VOLUME_ONLY
 %token       VOXEL_COUNT
-%token       VOXEL_IMAGE_MODE
 %token       VOXEL_LIST
 %token       VOXEL_SIZE
-%token       VOXEL_VOLUME_MODE
 %token       WARNING
 %token       WARNINGS
 %token       WORLD
@@ -2882,21 +2880,11 @@ viz_data_output_cmd:
         | viz_molecule_prefix_def
         | viz_object_prefixes_def
         | viz_state_values_def
-        | voxel_image_mode_def
-        | voxel_volume_mode_def
 ;
 
 viz_frames_def_old:
           viz_output_block_def
         | viz_iteration_frame_data_def
-;
-
-voxel_image_mode_def:
-          VOXEL_IMAGE_MODE '=' boolean                { mdlpvp->vol->voxel_image_mode = $3; }
-;
-
-voxel_volume_mode_def:
-          VOXEL_VOLUME_MODE '=' boolean               { mdlpvp->vol->voxel_volume_mode = $3; }
 ;
 
 viz_output_block_def:

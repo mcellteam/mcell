@@ -1254,8 +1254,6 @@ struct volume
   /* Old viz output stuff */
   int viz_mode;
   struct rk_mode_data *rk_mode_var;
-  byte voxel_image_mode;
-  byte voxel_volume_mode;
   char *molecule_prefix_name;
   char *file_prefix_name;
   u_short viz_output_flag; /* Takes  VIZ_ALL_MOLECULES, VIZ_MOLECULES_STATES, etc.  */
