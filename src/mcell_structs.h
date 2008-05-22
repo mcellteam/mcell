@@ -253,24 +253,6 @@
                                 volume_molecule and grid_molecule */
 
 
-/* Target-type Flags */
-/* Types for things we can hit */
-#define VOL_COLLISION    1
-#define WALL_COLLISION   2   
-#define MOL_COLLISION    3
-
-
-/* Flags for edges. */
-/* BARE edges do not connect to anything. */
-/* SHARED edges have walls with the same coordinate frame */
-/* ROTONLY edges have walls whose coordinate frames are related by rotation */
-/* TRANSROT edges require translation and rotation to move between walls */
-#define EDGE_BARE     0
-#define EDGE_SHARED   1
-#define EDGE_ROTONLY  2
-#define EDGE_TRANSROT 3
-
-
 /* Size constants */
 /* EPS_C is the fractional difference between two values that is considered meaningful */
 /* GIGANTIC is a distance that is larger than any possible simulation */
@@ -473,25 +455,6 @@
 #define N_AV 6.0221415e23
 #define ROUND_UP 0.5
                                                                                 
-/* Wall element shapes */
-#define RECT_POLY 0
-#define TRI_POLY 1
-#define GEN_POLY 2
-   /* RECT_POLY is rectangular */
-   /* TRI_POLY is triangular */
-   /* GEN_POLY is non-rectangular with >3 vertices */
-
-
-/* Surface grid shapes */
-#define RECTANGULAR 0
-#define TRIANGULAR 1
-
-
-/* Orientations */
-/* Relative to a surface */
-#define OUTWRD 1
-#define INWRD -1
-
 /* Placement Type Flags */
 /* Place either a certain density or an exact number of surface molecules */
 #define EFFDENS 0
