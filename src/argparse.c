@@ -8,6 +8,10 @@
 #include <stdio.h>          /* for *printf functions */
 #include <stdlib.h>         /* for strtol, strtoll, strtoul, free */
 
+static void argerror(struct volume *vol, char const *s, ...)
+  __attribute__((format (printf, 2, 3)));
+
+
 /* Command-line arguments structure:
  *     long arg name
  *     has argument
@@ -63,7 +67,7 @@ void print_usage(FILE *f, char const *argv0)
  *   vol: the volume into which to imbue the parsed options
  *   fmt: a C "printf"-style format string
  */
-void argerror(struct volume *vol, char const *fmt, ...)
+static void argerror(struct volume *vol, char const *fmt, ...)
 {
   va_list args;
   fprintf(vol->err_file,"\nMCell: command-line argument syntax error: ");
