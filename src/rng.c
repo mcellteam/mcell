@@ -193,6 +193,5 @@ double rng_gauss(struct rng_state *rng)
     }
   } while (y >= exp(-0.5*x*x));
 
-  world->random_number_use += npasses;
   return sign * x;
 }

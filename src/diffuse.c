@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "diffuse.h"
 #include "rng.h"
 #include "mem_util.h"
 #include "sched_util.h"
@@ -70,7 +71,6 @@ void pick_2d_displacement(struct vector2 *v,double scale)
   do
   {
     unsigned int n = rng_uint(world->rng);
-    world->random_number_use++;
     
     a.u = 2.0*one_over_2_to_16th*(n&0xFFFF)-1.0;
     a.v = 2.0*one_over_2_to_16th*(n>>16)-1.0;
@@ -78,7 +78,6 @@ void pick_2d_displacement(struct vector2 *v,double scale)
   } while (f<0.01 || f>1.0);
   
   f = (1.0/f) * sqrt(- log( 1-rng_dbl(world->rng) )) * scale;
-  world->random_number_use++;
   
   v->u = (a.u*a.u-a.v*a.v)*f;
   v->v = (2.0*a.u*a.v)*f;
@@ -107,7 +106,6 @@ void pick_clamped_displacement(struct vector3 *v,struct volume_molecule *m)
   struct wall *w = m->previous_wall;
   
   n = rng_uint(world->rng);
-  world->random_number_use++;
   
   /* Correct distribution along normal from surface (from lookup table) */
   r_n = world->r_step_surface[ n & (world->radial_subdivisions-1) ];
@@ -145,7 +143,6 @@ void pick_release_displacement(struct vector3 *in_disk,struct vector3 *away,doub
   double r,f;
   
   bits = rng_uint(world->rng);
-  world->random_number_use++;
   
   x_bit =       (bits & 0x80000000);
   y_bit =       (bits & 0x40000000);
@@ -159,7 +156,6 @@ void pick_release_displacement(struct vector3 *in_disk,struct vector3 *away,doub
   while (idx >= world->num_directions)
   {
     idx = rng_uint(world->rng) & world->directions_mask;
-    world->random_number_use++;
   }
   
   if (x_bit) away->x = world->d_step[idx];
@@ -195,7 +191,6 @@ void pick_release_displacement(struct vector3 *in_disk,struct vector3 *away,doub
   do
   {
     bits = rng_uint(world->rng);
-    world->random_number_use++;
     
     disk.u = 2.0*one_over_2_to_16th*(bits&0xFFFF)-1.0;
     disk.v = 2.0*one_over_2_to_16th*(bits>>16)-1.0;
@@ -5693,9 +5688,6 @@ void run_concentration_clamp(double t_now)
         n_collisions = ccdo->scaling_factor * ccdm->mol->space_step * 
                        ccdm->concentration / ccdm->mol->time_step;
         n_emitted = poisson_dist( n_collisions , rng_dbl(world->rng) );
-        if(world->notify->final_summary == NOTIFY_FULL){
-           world->random_number_use++;
-        }
         
         if (n_emitted==0) continue;
         
@@ -5715,19 +5707,10 @@ void run_concentration_clamp(double t_now)
         while (n_emitted>0)
         {
           idx = bisect_high(ccdo->cum_area,ccdo->n_sides,rng_dbl(world->rng)*ccdo->cum_area[ccd->n_sides-1]);
-          if(world->notify->final_summary == NOTIFY_FULL){
-              world->random_number_use++;
-          }
           w = ccdo->objp->wall_p[ ccdo->side_idx[idx] ];
           
           s1 = sqrt(rng_dbl(world->rng));
-          if(world->notify->final_summary == NOTIFY_FULL){
-             world->random_number_use++;
-          }
           s2 = rng_dbl(world->rng)*s1;
-          if(world->notify->final_summary == NOTIFY_FULL){
-             world->random_number_use++;
-          }
           
           v.x = w->vert[0]->x + s1*(w->vert[1]->x - w->vert[0]->x) + s2*(w->vert[2]->x - w->vert[1]->x);
           v.y = w->vert[0]->y + s1*(w->vert[1]->y - w->vert[0]->y) + s2*(w->vert[2]->y - w->vert[1]->y);
@@ -5738,9 +5721,6 @@ void run_concentration_clamp(double t_now)
           else
           {
             m.index = (rng_uint(world->rng) & 2) - 1;
-            if (world->notify->final_summary == NOTIFY_FULL) {
-              world->random_number_use++;
-            }
           }
           
           eps = EPS_C*m.index;

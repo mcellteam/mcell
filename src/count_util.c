@@ -1146,9 +1146,6 @@ int place_waypoints(void)
             { 
               waypoint_in_wall++;
               d = EPS_C * (double)((rng_uint(world->rng)&0xF) - 8);
-              if(world->notify->final_summary == NOTIFY_FULL){
-                  world->random_number_use++;
-              }
               if (d==0) d = 8*EPS_C;
               wp->loc.x += d * wl->this_wall->normal.x;
               wp->loc.y += d * wl->this_wall->normal.y;

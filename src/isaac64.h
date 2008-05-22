@@ -34,6 +34,7 @@ struct isaac64_state
   ub8 cc;
   ub8 randrsl[RANDSIZ];
   ub8 mm[RANDSIZ];
+  ub8 rngblocks;
 };
 
 

@@ -1211,7 +1211,6 @@ struct volume
 
   long long diffusion_number;      /* Total number of times molecules have had their positions updated */
   double diffusion_cumtime;     /* Total time spent diffusing by all molecules */
-  long long random_number_use;     /* How many random numbers have we used */
   long long ray_voxel_tests;       /* How many ray-subvolume intersection tests have we performed */
   long long ray_polygon_tests;     /* How many ray-polygon intersection tests have we performed */
   long long ray_polygon_colls;     /* How many ray-polygon intersections have occured */

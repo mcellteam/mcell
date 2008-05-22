@@ -729,6 +729,7 @@ int read_rng_state(FILE *fs)
         world->rng->mm[i] = tmp3;
 	
   }  
+  world->rng->rngblocks = 1;
 
   /* Reinitialize rng to beginning of new seed sequence, if necessary */
   if (rng_reinit)

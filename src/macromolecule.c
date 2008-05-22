@@ -525,8 +525,6 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
   {
     struct vector3 z_axis = { 0.0, 0.0, 1.0 };
     double angle = 360.0 * rng_dbl(world->rng);
-    if (world->notify->final_summary == NOTIFY_FULL)
-      world->random_number_use++;
     rotate_matrix(xform, xform, &z_axis, angle);
   }
 

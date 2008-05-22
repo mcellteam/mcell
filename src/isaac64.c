@@ -51,6 +51,7 @@ void isaac64_generate(struct isaac64_state *rng)
     rngstep(  a^(a>>33) , a, b, rng->mm, m, m2, r, x);
   }
   rng->bb = b; rng->aa = a;
+  ++ rng->rngblocks;
 }
 
 
@@ -60,6 +61,8 @@ void isaac64_init(struct isaac64_state *rng, ub4 seed)
    ub8 *r, *m;
    ub8 a,b,c,d,e,f,g,h;
    ub4 i;
+
+  rng->rngblocks = 0;
 
    rng->aa=(ub8)0;
    rng->bb=(ub8)0;

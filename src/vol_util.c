@@ -1011,9 +1011,6 @@ int vacuum_inside_regions(struct release_site_obj *rso,struct volume_molecule *m
   {
     if ( rng_dbl(world->rng) < ((double)(-n))/((double)vl_num) )
     {
-      if(world->notify->final_summary == NOTIFY_FULL){
-         world->random_number_use++;
-      }
       mp = (struct volume_molecule*)vl->data;
       mp->properties->population--;
       mp->subvol->mol_count--;
@@ -1189,17 +1186,8 @@ int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *
   while (n>0)
   {
     m->pos.x = rrd->llf.x + (rrd->urb.x-rrd->llf.x)*rng_dbl(world->rng);
-    if(world->notify->final_summary == NOTIFY_FULL){
-       world->random_number_use++;
-    }
     m->pos.y = rrd->llf.y + (rrd->urb.y-rrd->llf.y)*rng_dbl(world->rng);
-    if(world->notify->final_summary == NOTIFY_FULL){
-       world->random_number_use++;
-    }
     m->pos.z = rrd->llf.z + (rrd->urb.z-rrd->llf.z)*rng_dbl(world->rng);
-    if(world->notify->final_summary == NOTIFY_FULL){
-       world->random_number_use++;
-    }
 
     if (! is_point_inside_region(&m->pos, rrd->expression, NULL))
     {
@@ -1380,9 +1368,6 @@ int release_molecules(struct release_event_queue *req)
   if (rso->release_prob < 1.0)
   {
      k  = rng_dbl(world->rng);
-     if(world->notify->final_summary == NOTIFY_FULL){
-         world->random_number_use++;
-     }
      if(rso->release_prob < k) return 0;
 
   }
@@ -1576,9 +1561,6 @@ int release_molecules(struct release_event_queue *req)
 	  else if (rsm->orient<0) orient=-1;
 	  else {
              orient = (rng_uint(world->rng)&1)?1:-1;
-             if(world->notify->final_summary == NOTIFY_FULL){
-                world->random_number_use++;
-             }
           }
 
           /* Don't have to set flags, insert_grid_molecule takes care of it */
@@ -1624,17 +1606,8 @@ int release_molecules(struct release_event_queue *req)
 	do /* Pick values in unit square, toss if not in unit circle */
 	{
 	  pos.x = (rng_dbl(world->rng)-0.5);
-          if(world->notify->final_summary == NOTIFY_FULL){
-             world->random_number_use++;
-          }
 	  pos.y = (rng_dbl(world->rng)-0.5);
-          if(world->notify->final_summary == NOTIFY_FULL){
-             world->random_number_use++;
-          }
 	  pos.z = (rng_dbl(world->rng)-0.5);
-          if(world->notify->final_summary == NOTIFY_FULL){
-             world->random_number_use++;
-          }
 	} while ( (rso->release_shape == SHAPE_SPHERICAL || rso->release_shape == SHAPE_ELLIPTIC || rso->release_shape == SHAPE_SPHERICAL_SHELL)
 		  && pos.x*pos.x + pos.y*pos.y + pos.z*pos.z >= 0.25 );
 	
@@ -2469,19 +2442,10 @@ void randomize_vol_mol_position(struct volume_molecule *mp, struct vector3 *low_
 
     /* find future molecule position */
     num = rng_dbl(world->rng);
-    if(world->notify->final_summary == NOTIFY_FULL){
-        world->random_number_use++;
-    }
     loc.x = low_end->x + num*size_x;
     num = rng_dbl(world->rng);
-    if(world->notify->final_summary == NOTIFY_FULL){
-       world->random_number_use++;
-    }
     loc.y = low_end->y + num*size_y;
     num = rng_dbl(world->rng);
-    if(world->notify->final_summary == NOTIFY_FULL){
-        world->random_number_use++;
-    }
     loc.z = low_end->z + num*size_z;
     /* find old subvolume */
     old_sv = find_subvolume(&(mp->pos), NULL);

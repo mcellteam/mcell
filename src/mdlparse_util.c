@@ -560,8 +560,6 @@ int mdl_expr_pow(struct mdlparse_vars *mpvp,
 **************************************************************************/
 double mdl_expr_rng_uniform(struct mdlparse_vars *mpvp)
 {
-  if (mpvp->vol->notify->final_summary == NOTIFY_FULL)
-    mpvp->vol->random_number_use++;
   return rng_dbl(mpvp->vol->rng);
 }
 

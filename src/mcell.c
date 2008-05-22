@@ -6,8 +6,8 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-#include <stdio.h>
 #include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
@@ -455,7 +455,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
       fprintf(world->log_file,"Average diffusion jump was %.2f timesteps\n",world->diffusion_cumtime/(double)world->diffusion_number);
     }
     if(world->notify->final_summary == NOTIFY_FULL){
-       fprintf(world->log_file,"Total number of random number use: %lld\n",world->random_number_use);
+       fprintf(world->log_file,"Total number of random number use: %lld\n", rng_uses(world->rng));
        fprintf(world->log_file,"Total number of ray-subvolume intersection tests: %lld\n",world->ray_voxel_tests);
        fprintf(world->log_file,"Total number of ray-polygon intersection tests: %lld\n",world->ray_polygon_tests);
        fprintf(world->log_file,"Total number of ray-polygon intersections: %lld\n",world->ray_polygon_colls);

@@ -526,12 +526,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
     {
       if (rx->geometries[i] == 0)
       {
-        bits = rng_uint( world->rng );
-        if(world->notify->final_summary == NOTIFY_FULL){
-           world->random_number_use++;
-        }
-        if ((bits&1)==0) porient[i-i0] = 1;
-        else porient[i-i0] = -1;
+        porient[i-i0] = (rng_uint(world->rng) & 1) ? 1 : -1;
       }
       else
       {
@@ -1145,12 +1140,7 @@ int outcome_products_trimol_reaction(struct wall *w,
     {
       if (rx->geometries[i] == 0)
       {
-        bits = rng_uint( world->rng );
-        if(world->notify->final_summary == NOTIFY_FULL){
-           world->random_number_use++;
-        }
-        if ((bits&1)==0) porient[i-i0] = 1;
-        else porient[i-i0] = -1;
+        porient[i-i0] = (rng_uint(world->rng) & 1) ? 1 : -1;
       }
       else
       {

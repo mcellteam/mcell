@@ -235,7 +235,6 @@ int init_sim(void)
   world->chkpt_flag=0;
   world->molecule_prefix_name=NULL;
   world->file_prefix_name=NULL;
-  world->random_number_use=0;
   world->ray_voxel_tests=0;
   world->ray_polygon_tests=0;
   world->ray_polygon_colls=0;
@@ -2306,10 +2305,6 @@ static int init_effectors_place_complex(struct wall *w,
   if (orient == 0)
   {
     orient = (rng_uint(world->rng) & 1) ? 1 : -1;
-    if (world->notify->final_summary == NOTIFY_FULL)
-    {
-      world->random_number_use++;
-    }
   }
 
   /* Pick location on wall */
@@ -2367,8 +2362,6 @@ static int init_effectors_place_complexes(int n_to_place,
     int num_tries = world->complex_placement_attempts;
     int chosen_wall = 0;
     double p = rng_dbl(world->rng) * max_weight;
-    if (world->notify->final_summary == NOTIFY_FULL)
-      world->random_number_use++;
 
     /* Pick a wall */
     chosen_wall = bisect_high(weights, nwalls, p);
@@ -2616,9 +2609,6 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
       j=0;
       p_index=-1;
       rand = rng_dbl(world->rng);
-      if(world->notify->final_summary == NOTIFY_FULL){
-         world->random_number_use++;
-      }
       while (j<nr && p_index==-1) {
         if (rand<=prob[j++]) {
           p_index=j-1;
@@ -2656,9 +2646,6 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
         if (mol->orient == 0)
         { 
           mol->orient = (rng_uint(world->rng)&1)?1:-1;
-          if(world->notify->final_summary == NOTIFY_FULL){
-            world->random_number_use++;
-          }
         }
 
         mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
@@ -2864,9 +2851,6 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                 done=0;
                 while (!done) {
 		  k = (int) (rng_dbl(world->rng)*n_free_eff);
-                  if(world->notify->final_summary == NOTIFY_FULL){
-                      world->random_number_use++;
-                  }
                   if (*tiles[k]==bread_crumb) {
                     *tiles[k]=NULL;
                     done=1;
@@ -2908,9 +2892,6 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                      }else{
                         mol->orient = -1;
                      }
-                     if(world->notify->final_summary == NOTIFY_FULL){
-                        world->random_number_use++;
-                     }
                   }else{
                      mol->orient = orientation;
                   }
@@ -2943,9 +2924,6 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                 done=0;
                 while (!done) {
 		  k = (int) (rng_dbl(world->rng)*n_free_eff);
-                  if(world->notify->final_summary == NOTIFY_FULL){
-                      world->random_number_use++;
-                  }
                   if (*tiles[k]==NULL) {
                     struct vector2 s_pos;
                     if (world->randomize_gmol_pos) grid2uv_random(walls[k]->grid,index[k],&s_pos);
@@ -2977,9 +2955,6 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                           mol->orient = 1;
                        }else{
                           mol->orient = -1;
-                       }
-                       if(world->notify->final_summary == NOTIFY_FULL){
-                          world->random_number_use++;
                        }
                     }else{
                        mol->orient = orientation;
