@@ -35,6 +35,9 @@ static void clean_region_lists(struct subvolume *my_sv,
                                struct region_list **p_all_regs,
                                struct region_list **p_all_antiregs);
 
+/* Test if a given object is instantiated (i.e. added to the world.) */
+static int is_object_instantiated(struct sym_table *entry);
+
 /*************************************************************************
 eps_equals:
    In: two doubles
@@ -539,15 +542,13 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 count_moved_grid_mol:
    In: molecule to count
        new grid for molecule
-       new index on that grid
        new location on that grid
    Out: Returns zero on success and 1 on failure.  
         Appropriate counters are updated and triggers are fired.
    Note: This routine is not super-fast for enclosed counts for
          surface molecules since it raytraces without using waypoints.
 *************************************************************************/
-
-int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int idx,struct vector2 *loc)
+int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,struct vector2 *loc)
 {
   struct region_list *rl,*prl,*nrl,*pos_regs,*neg_regs;
   struct storage *stor;
@@ -1208,8 +1209,6 @@ int prepare_counters(void)
   struct output_set *set;
   struct output_column *column;
   struct species *sp;
-  struct object *o;
-  int found = 0; /* flag to detect instantiated object or region */
   int i;
  
  
@@ -1237,14 +1236,8 @@ int prepare_counters(void)
      /* check whether the "count_location" refers to the instantiated
         object or region */ 
     if(request->count_location != NULL ){
-       for (o = world->root_instance; o != NULL; o = o->next)
+       if (! is_object_instantiated(request->count_location))
        {
-            if(is_object_instantiated(o, request->count_location)){
-              found = 1;
-              break;
-            }
-       }
-       if(!found){
           fprintf(world->err_file,"Name of the object/region '%s' in the COUNT/TRIGGER statement is not fully referenced.\n", request->count_location->name);
           return 1;
        }
@@ -1314,7 +1307,7 @@ is_object_instantiated:
        of the symbol passed, 0 otherwise.
   Note: Checking is performed for all instantiated objects
 ********************************************************************/
-int is_object_instantiated(struct object *parent, struct sym_table *entry)
+static int is_object_instantiated(struct sym_table *entry)
 {
   struct object *obj = NULL;
   if (entry->sym_type == REG)
@@ -2161,7 +2154,6 @@ count_complex_for_single_region:
         short *orient_before - orientations of all subunits before the update
         struct species **after - states of all subunits after the update
         short *orient_after - orientations of all subunits after the update
-        int replaced_subunit_idx - index of updated subunit
         int *update_subunit - an array of flags indicating whether each subunit
                               might have been affected by the update, in such a
                               way as to change the counts.  Presently, this
@@ -2178,7 +2170,6 @@ static void count_complex_for_single_region(struct complex_counter *c,
                                             short *orient_before,
                                             struct species **after,
                                             short *orient_after,
-                                            int replaced_subunit_idx,
                                             int *update_subunit,
                                             int amount)
 {
@@ -2379,7 +2370,7 @@ int count_complex(struct volume_molecule *cmplex,
   before[replaced_subunit_idx] = replaced_subunit ? replaced_subunit->properties : NULL;
 
   /* Do any relevant counting for WORLD */
-  count_complex_for_single_region(&spec->counters->in_world, spec, 0, before, NULL, after, NULL, replaced_subunit_idx, update_subunit, 1);
+  count_complex_for_single_region(&spec->counters->in_world, spec, 0, before, NULL, after, NULL, update_subunit, 1);
 
   /* Now, for each region, do all relevant counting */
   struct region_list *rl;
@@ -2390,7 +2381,7 @@ int count_complex(struct volume_molecule *cmplex,
     if (c == NULL)
       continue;
 
-    count_complex_for_single_region(c, spec, 0, before, NULL, after, NULL, replaced_subunit_idx, update_subunit, 1);
+    count_complex_for_single_region(c, spec, 0, before, NULL, after, NULL, update_subunit, 1);
   }
   for (rl = all_antiregs; rl != NULL; rl = rl->next)
   {
@@ -2399,7 +2390,7 @@ int count_complex(struct volume_molecule *cmplex,
     if (c == NULL)
       continue;
 
-    count_complex_for_single_region(c, spec, 0, before, NULL, after, NULL, replaced_subunit_idx, update_subunit, -1);
+    count_complex_for_single_region(c, spec, 0, before, NULL, after, NULL, update_subunit, -1);
   }
 
   /* Free region memory */ 
@@ -2454,7 +2445,7 @@ int count_complex_surface(struct grid_molecule *cmplex,
   orient_before[replaced_subunit_idx] = replaced_subunit ? replaced_subunit->orient : 0;
 
   /* Do any relevant counting for WORLD */
-  count_complex_for_single_region(&spec->counters->in_world, spec, cmplex->orient, before, orient_before, after, orient_after, replaced_subunit_idx, update_subunit, 1);
+  count_complex_for_single_region(&spec->counters->in_world, spec, cmplex->orient, before, orient_before, after, orient_after, update_subunit, 1);
 
   struct wall *my_wall = cmplex->grid->surface;
   if (my_wall!=NULL && (my_wall->flags&COUNT_CONTENTS)!=0)
@@ -2467,7 +2458,7 @@ int count_complex_surface(struct grid_molecule *cmplex,
       if (c == NULL)
         continue;
 
-      count_complex_for_single_region(c, spec, cmplex->orient, before, orient_before, after, orient_after, replaced_subunit_idx, update_subunit, 1);
+      count_complex_for_single_region(c, spec, cmplex->orient, before, orient_before, after, orient_after, update_subunit, 1);
     }
   }
   return 0;
@@ -3074,19 +3065,7 @@ static int macro_normalize_output_request_locations(void)
     /* Now, make sure the object referenced is actually instantiated in the
      * world
      */
-    struct object *o;
-    int found = 0;
-    for (o = world->root_instance; o != NULL; o = o->next)
-    {
-      if(is_object_instantiated(o, mcr->location))
-      {
-        found = 1;
-        break;
-      }
-    }
-
-    /* Failure!  Object is not in the world. */
-    if (! found)
+    if (! is_object_instantiated(mcr->location))
     {
       fprintf(world->err_file,"Name of the object/region '%s' in the COUNT/TRIGGER statement is not fully referenced.\n", mcr->location->name);
       return 1;

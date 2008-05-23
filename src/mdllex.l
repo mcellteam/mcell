@@ -6,6 +6,7 @@
   #include "strfunc.h"
   #include "mdlparse_aux.h"
   #include "mdlparse.h"
+  #include "mem_util.h"
 
   #define YY_DECL int mdllex( YYSTYPE *yylval, struct mdlparse_vars *mpvp, yyscan_t yyscanner )
   #define YY_NO_UNPUT
@@ -15,6 +16,33 @@
   #else
   #define INPUT_FUNC input
   #endif
+
+void *mdlalloc(yy_size_t size, yyscan_t yyscanner)
+{
+  UNUSED(yyscanner);
+  return CHECKED_MALLOC_DIE(size, "memory buffer for parser");
+}
+
+void *mdlrealloc(void *ptr, yy_size_t size, yyscan_t yyscanner)
+{
+  UNUSED(yyscanner);
+
+  ptr = (void *) realloc((char *) ptr, size);
+  if (ptr == NULL)
+  {
+    fprintf(stderr, "Failed to resize memory buffer for parser.");
+    exit(EXIT_FAILURE);
+  }
+  return ptr;
+}
+
+void mdlfree (void * ptr, yyscan_t yyscanner)
+{
+  UNUSED(yyscanner);
+
+  free((char *) ptr);
+}
+
 %}
 
 /* Define state for parsing comments */
@@ -37,6 +65,9 @@
 %option noinput
 %option nounput
 %option noyy_top_state
+%option noyyalloc
+%option noyyrealloc
+%option noyyfree
 
 R ([0-9]+\.)|([0-9]*\.[0-9]+)|([0-9]+[eE][+-]?[0-9]+)|([0-9]+\.[0-9]*[eE][+-]?[0-9]+)|([0-9]*\.[0-9]+[eE][+-]?[0-9]+)
 I ([0-9]+)

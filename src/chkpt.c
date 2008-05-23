@@ -1333,9 +1333,7 @@ int read_mol_scheduler_state(FILE *fs)
               subunit_count = cs->num_subunits;
             }
             cmplx = (struct species **) malloc((subunit_count + 1) * sizeof(struct species **));
-            int i;
-            for (i=0; i <= subunit_count; ++i)
-              cmplx[i] = NULL;
+            memset(cmplx, 0, (subunit_count + 1) * sizeof(struct species **));
             pointer_hash_add(&complexes, key, complex_no, cmplx);
           }
         }
@@ -1406,11 +1404,10 @@ int read_mol_scheduler_state(FILE *fs)
             }
             else
             {
-              int i;
-              for (i = 1; i <= subunit_count; ++i)
-                if (guess->cmplx[i] != NULL)
+              for (unsigned int n_subunit = 0; n_subunit < subunit_count; ++n_subunit)
+                if (guess->cmplx[n_subunit + 1] != NULL)
                 {
-                  if (count_complex(guess, NULL, i - 1))
+                  if (count_complex(guess, NULL, n_subunit))
                   {
                     fprintf(world->err_file,"File '%s', Line %ld: read_mol_scheduler_state error.\nFailed to update subunit counts.\n", __FILE__, (long)__LINE__);
                     pointer_hash_destroy(&complexes);
@@ -1439,22 +1436,21 @@ int read_mol_scheduler_state(FILE *fs)
              if (cmplx != NULL)
              {
                struct grid_molecule *gmpPrev = NULL;
-               int i;
 	       fprintf(world->log_file,"File '%s', Line %ld: Could not place part of a macromolecule %s at (%f,%f,%f).  Removing any parts already placed.\n", __FILE__, (long)__LINE__, properties->sym->name,where.x*world->length_unit,where.y*world->length_unit,where.z*world->length_unit);
-               for (i=subunit_count; i>=0; --i)
+               for (int n_subunit=subunit_count; n_subunit>=0; --n_subunit)
                {
-                 if (cmplx[i] == NULL)
+                 if (cmplx[n_subunit] == NULL)
                    continue;
 
-                 gmpPrev = (struct grid_molecule *) cmplx[i];
-                 cmplx[i] = NULL;
+                 gmpPrev = (struct grid_molecule *) cmplx[n_subunit];
+                 cmplx[n_subunit] = NULL;
 
                  /* Update the counts */
                  if (gmpPrev->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
                  {
                    count_region_from_scratch((struct abstract_molecule*) gmpPrev, NULL,  -1, NULL, NULL,  gmpPrev->t);
                  }
-                 if (i > 0  &&  cmplx[0] != NULL)
+                 if (n_subunit > 0  &&  cmplx[0] != NULL)
                  {
                    if (count_complex_surface((struct grid_molecule *) cmplx[0], gmpPrev, subunit_no - 1))
                    {

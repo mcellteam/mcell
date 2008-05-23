@@ -75,6 +75,7 @@ traverse_subvol:
 *************************************************************************/
 struct subvolume* traverse_subvol(struct subvolume *here,struct vector3 *point,int which)
 {
+  UNUSED(point);
     switch(which)
     {
       case X_NEG:
@@ -363,7 +364,13 @@ place_grid_molecule
         (i.e. place all molecules, and once we're sure we've succeeded,
         schedule them all and count them all.)
  *************************************************************************/
-struct grid_molecule* place_grid_molecule(struct species *s,struct vector3 *loc,short orient,double search_diam,double t,struct subvolume **psv,struct grid_molecule **cmplx,struct release_region_data *rrd)
+struct grid_molecule* place_grid_molecule(struct species *s,
+                                          struct vector3 *loc,
+                                          short orient,
+                                          double search_diam,
+                                          double t,
+                                          struct subvolume **psv,
+                                          struct grid_molecule **cmplx)
 {
   double search_d2,d2;
   struct vector2 s_loc;
@@ -591,7 +598,7 @@ insert_grid_molecule
 struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc,short orient,double search_diam,double t,struct grid_molecule **cmplx)
 {
   struct subvolume *sv = NULL;
-  struct grid_molecule *g = place_grid_molecule(s, loc, orient, search_diam, t, &sv, cmplx, NULL);
+  struct grid_molecule *g = place_grid_molecule(s, loc, orient, search_diam, t, &sv, cmplx);
   if (g == NULL)
     return NULL;
 

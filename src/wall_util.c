@@ -759,6 +759,7 @@ closest_interior_point:
 
 double closest_interior_point(struct vector3 *pt,struct wall *w,struct vector2 *ip,double r2)
 {
+  UNUSED(r2);
   struct vector3 v;
   double a1,a2;
   

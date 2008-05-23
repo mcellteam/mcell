@@ -87,14 +87,6 @@ char *strip_quotes(char *s)
   return(temp);
 } 
 
-#ifndef DEBUG
-/* no_printf looks like printf but does nothing when DEBUG is off */
-/* With DEBUG on, no_printf is #defined to printf (in mcell_structs.h) */
-void no_printf(const char *format, ...)
-{
-}
-#endif
-
 /*
  * Format a string into an allocated buffer.
  */

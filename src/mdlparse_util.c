@@ -576,6 +576,7 @@ double mdl_expr_roundoff(struct mdlparse_vars *mpvp,
                          double in,
                          int ndigits)
 {
+  UNUSED(mpvp);
   char fmt_string[1024];
   fmt_string[0] = '\0';
   snprintf(fmt_string, 1024, "%.*g", ndigits, in);
@@ -2893,6 +2894,7 @@ void mdl_object_list_singleton(struct mdlparse_vars *mpvp,
                                struct object_list *head,
                                struct object *objp)
 {
+  UNUSED(mpvp);
   objp->next = NULL;
   head->obj_tail = head->obj_head = objp;
 }
@@ -2910,6 +2912,7 @@ void mdl_add_object_to_list(struct mdlparse_vars *mpvp,
                             struct object_list *head,
                             struct object *objp)
 {
+  UNUSED(mpvp);
   objp->next = NULL;
   head->obj_tail = head->obj_tail->next = objp;
 }
@@ -3649,6 +3652,7 @@ void mdl_transform_scale(struct mdlparse_vars *mpvp,
                          double (*mat)[4],
                          struct vector3 *scale)
 {
+  UNUSED(mpvp);
   double tm[4][4];
   init_matrix(tm);
   scale_matrix(tm, tm, scale);
@@ -6289,6 +6293,7 @@ void mdl_release_single_molecule_singleton(struct mdlparse_vars *mpvp,
                                            struct release_single_molecule_list *list,
                                            struct release_single_molecule *mol)
 {
+  UNUSED(mpvp);
   list->rsm_tail = list->rsm_head = mol;
   list->rsm_count = 1;
 }
@@ -6306,6 +6311,7 @@ void mdl_add_release_single_molecule_to_list(struct mdlparse_vars *mpvp,
                                              struct release_single_molecule_list *list,
                                              struct release_single_molecule *mol)
 {
+  UNUSED(mpvp);
   list->rsm_tail = list->rsm_tail->next = mol;
   ++ list->rsm_count;
 }
@@ -6324,6 +6330,7 @@ void mdl_set_release_site_constant_number(struct mdlparse_vars *mpvp,
                                           struct release_site_obj *rsop,
                                           double num)
 {
+  UNUSED(mpvp);
   rsop->release_number_method = CONSTNUM;
   rsop->release_number = num;
 }
@@ -6344,6 +6351,7 @@ void mdl_set_release_site_gaussian_number(struct mdlparse_vars *mpvp,
                                           double mean,
                                           double stdev)
 {
+  UNUSED(mpvp);
   rsop->release_number_method = GAUSSNUM;
   rsop->release_number = mean;
   rsop->standard_deviation = stdev;
@@ -6368,6 +6376,7 @@ void mdl_set_release_site_volume_dependent_number(struct mdlparse_vars *mpvp,
                                                   double stdev,
                                                   double conc)
 {
+  UNUSED(mpvp);
   rsop->release_number_method = VOLNUM;
   rsop->mean_diameter = mean;
   rsop->standard_deviation = stdev;
@@ -6416,6 +6425,7 @@ int mdl_set_release_site_density(struct mdlparse_vars *mpvp,
                                  struct release_site_obj *rsop,
                                  double dens)
 {
+  UNUSED(mpvp);
   rsop->release_number_method = CCNNUM;
   rsop->release_number = -2; /* Expect 2D molecule */
   rsop->concentration = dens;
@@ -6510,6 +6520,7 @@ void mdl_vertex_list_singleton(struct mdlparse_vars *mpvp,
                                struct vertex_list_head *head,
                                struct vertex_list *item)
 {
+  UNUSED(mpvp);
   item->next = NULL;
   head->vertex_tail = head->vertex_head = item;
   head->vertex_count = 1;
@@ -6528,6 +6539,7 @@ void mdl_add_vertex_to_list(struct mdlparse_vars *mpvp,
                             struct vertex_list_head *head,
                             struct vertex_list *item)
 {
+  UNUSED(mpvp);
   item->next = NULL;
   head->vertex_tail = head->vertex_tail->next = item;
   ++ head->vertex_count;
@@ -6569,6 +6581,7 @@ void mdl_element_connection_list_singleton(struct mdlparse_vars *mpvp,
                                            struct element_connection_list_head *head,
                                            struct element_connection_list *item)
 {
+  UNUSED(mpvp);
   item->next = NULL;
   head->connection_tail = head->connection_head = item;
   head->connection_count = 1;
@@ -6587,6 +6600,7 @@ void mdl_add_element_connection_to_list(struct mdlparse_vars *mpvp,
                                         struct element_connection_list_head *head,
                                         struct element_connection_list *item)
 {
+  UNUSED(mpvp);
   item->next = NULL;
   head->connection_tail = head->connection_tail->next = item;
   ++ head->connection_count;
@@ -7234,6 +7248,7 @@ void mdl_add_elements_to_list(struct mdlparse_vars *mpvp,
                               struct element_list *head,
                               struct element_list *tail)
 {
+  UNUSED(mpvp);
   tail->next = NULL;
   list->elml_tail->next = head;
   list->elml_tail = tail;
@@ -7253,6 +7268,7 @@ void mdl_add_elements_to_list(struct mdlparse_vars *mpvp,
 void mdl_set_elements_to_exclude(struct mdlparse_vars *mpvp,
                                  struct element_list *els)
 {
+  UNUSED(mpvp);
   /* HACK: els->special actually points to an element_list.  Don't dereference
    * it now. */
   for (; els != NULL; els = els->next)
@@ -7530,6 +7546,7 @@ void mdl_add_child_objects(struct mdlparse_vars *mpvp,
                            struct object *child_head,
                            struct object *child_tail)
 {
+  UNUSED(mpvp);
   if (parent->first_child == NULL)
     parent->first_child = child_head;
   if (parent->last_child != NULL)
@@ -7561,6 +7578,7 @@ void mdl_add_effector_to_region(struct mdlparse_vars *mpvp,
                                 struct region *rgn,
                                 struct eff_dat_list *lst)
 {
+  UNUSED(mpvp);
   lst->eff_tail->next = rgn->eff_dat_head;
   rgn->eff_dat_head = lst->eff_head;
 }
@@ -8237,6 +8255,7 @@ struct output_expression* mdl_join_oexpr_tree(struct mdlparse_vars *mpvp,
 struct output_expression *mdl_sum_oexpr(struct mdlparse_vars *mpvp,
                                         struct output_expression *expr)
 {
+  UNUSED(mpvp);
   oexpr_flood_convert(expr, ',', '+');
   eval_oexpr_tree(expr, 0);
   return expr;
@@ -11582,6 +11601,7 @@ void mdl_start_surface_class(struct mdlparse_vars *mpvp,
 void mdl_finish_surface_class(struct mdlparse_vars *mpvp,
                               struct sym_table *symp)
 {
+  UNUSED(symp);
   mpvp->current_surface_class = NULL; 
 }
 
@@ -12840,6 +12860,7 @@ static int macro_check_rate_clause(struct mdlparse_vars *mpvp,
                                    int invert,
                                    struct species *mol_type)
 {
+  UNUSED(invert);
   /* Disallow other complex molecules */
   if (mol_type->flags & IS_COMPLEX)
   {

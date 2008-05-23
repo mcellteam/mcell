@@ -19,9 +19,7 @@
 #define INSERTION_MAX 16
 #define INSERTION_MIN 4
 
-void nullprintf(char *whatever,...) {}
-
-#define noprintf nullprintf
+#define noprintf(...) do { /* empty */ } while(0)
 
 #ifdef MEM_UTIL_KEEP_STATS
 #undef malloc
@@ -1007,6 +1005,8 @@ struct mem_helper* create_mem_named(int size,int length, char const *name)
     s->max_free = s->cur_free;
   if ((mem_cur_overall_wastage += size * length) > mem_max_overall_wastage)
     mem_max_overall_wastage = mem_cur_overall_wastage;
+#else
+  UNUSED(name);
 #endif
 
   return mh;

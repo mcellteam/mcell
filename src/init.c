@@ -43,6 +43,10 @@ extern struct volume *world;
 /* Initialize the surface macromolecules on a given object */
 static int init_complex_effectors(struct object *objp, struct region_list *head);
 
+static int compute_bb(struct object *objp, double (*im)[4]);
+static int compute_bb_release_site(struct object *objp, double (*im)[4]);
+static int compute_bb_polygon_object(struct object *objp, double (*im)[4]);
+
 #define MICROSEC_PER_YEAR 365.25*86400.0*1e6
 
 /* Sets default notification values */
@@ -1085,7 +1089,7 @@ int init_geom(void)
   world->bb_urb.z=-vol_infinity;
   init_matrix(tm);
   
-  if(compute_bb(world->root_instance,tm,NULL)){
+  if(compute_bb(world->root_instance,tm)){
      return 1;
   }
   if (world->bb_llf.x==vol_infinity 
@@ -1117,7 +1121,7 @@ int init_geom(void)
   no_printf("World object contains %d walls and %d vertices\n",
     world->n_walls,world->n_verts);
   
-  if (instance_obj(world->root_instance,tm,NULL,NULL)) {
+  if (instance_obj(world->root_instance,tm,NULL)) {
     return(1);
   }
 
@@ -1135,91 +1139,40 @@ int init_geom(void)
  * instance_polygon_object() to handle the actual instantiation of
  * those objects.
  */
-int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp, char *sub_name)
+int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp)
 {
-  FILE *log_file;
-  struct object *child_objp;
   double tm[4][4];
-  unsigned short l,m,n;
-  char *tmp_name;
+  mult_matrix(objp->t_matrix,im,tm,4,4,4);
 
-  log_file=world->log_file;
-  l=4;
-  m=4;
-  n=4;
-  mult_matrix(objp->t_matrix,im,tm,l,m,n);
   if (vizp==NULL) {
     vizp=objp->viz_obj;
   }
 
-  if (sub_name!=NULL) { 
-    if (strcmp(sub_name,"")==0) {
-      tmp_name=strdup("");
-      if(tmp_name == NULL){
-	fprintf(world->err_file, "File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-        exit(EXIT_FAILURE);
-      }else{}
-    }
-    else {
-      tmp_name=my_strcat(sub_name,"."); 
-      if(tmp_name == NULL){
-	fprintf(world->err_file, "File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-        exit(EXIT_FAILURE);
-      }else{}
-                  
-    }
-    sub_name=my_strcat(tmp_name,objp->last_name);    
-    if(sub_name == NULL){
-	fprintf(world->err_file, "File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-        exit(EXIT_FAILURE);
-    }else{}
-    free((void *)tmp_name);
-  }
-  else {
-    sub_name=strdup(objp->last_name);    
-    if(sub_name == NULL){
-	fprintf(world->err_file, "File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-        exit(EXIT_FAILURE);
-    }else{}
-  }
-  
-  switch (objp->object_type) {
-  case META_OBJ:
-    no_printf("Meta object %s instanced\n",sub_name);
-    fflush(log_file);
-    child_objp=objp->first_child;
-    while (child_objp!=NULL) {
-      if (instance_obj(child_objp,tm,vizp,sub_name)) {
-        return(1);
+  switch (objp->object_type)
+  {
+    case META_OBJ:
+      for (struct object *child_objp = objp->first_child;
+           child_objp != NULL;
+           child_objp = child_objp->next)
+      {
+        if (instance_obj(child_objp, tm, vizp))
+          return 1;
       }
-      child_objp=child_objp->next;
-    }
-    break;
-  case REL_SITE_OBJ:
-    no_printf("Release site object %s instanced\n",sub_name);
-    fflush(log_file);
-    if (instance_release_site(objp,tm)) {
-      return(1);
-    }
-    break;
-  case BOX_OBJ:
-    no_printf("Box object %s instanced\n",sub_name);
-    fflush(log_file);
-    if (instance_polygon_object(objp,tm,vizp,sub_name)) {
-      return(1);
-    }
-    break;
-  case POLY_OBJ:
-    no_printf("Polygon list object %s instanced\n",sub_name);
-    fflush(log_file);
-    if (instance_polygon_object(objp,tm,vizp,sub_name)) {
-      return(1);
-    }
-    break;
+      break;
+
+    case REL_SITE_OBJ:
+      if (instance_release_site(objp,tm))
+        return 1;
+      break;
+
+    case BOX_OBJ:
+    case POLY_OBJ:
+      if (instance_polygon_object(objp, tm, vizp))
+        return 1;
+      break;
   }
 
-  free((void *)sub_name);
-  return(0);
+  return 0;
 }
 
 
@@ -1325,110 +1278,52 @@ int instance_release_site(struct object *objp, double (*im)[4])
  * Computes the bounding box for the entire simulation world.
  * Does things recursively in a manner similar to instance_obj().
  */
-int compute_bb(struct object *objp, double (*im)[4], char *sub_name)
+static int compute_bb(struct object *objp, double (*im)[4])
 {
-  FILE *log_file;
-  struct object *child_objp;
   double tm[4][4];
-  unsigned short l,m,n;
-  char *tmp_name;
+  mult_matrix(objp->t_matrix,im,tm,4,4,4);
 
-  log_file=world->log_file;
-  l=4;
-  m=4;
-  n=4;
-  mult_matrix(objp->t_matrix,im,tm,l,m,n);
-
-  if (sub_name!=NULL) { 
-    if (strcmp(sub_name,"")==0) {
-      tmp_name=strdup("");
-      if(tmp_name == NULL){
-		fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-        	exit(EXIT_FAILURE);
-      }else{}
-    }
-    else {
-      tmp_name=my_strcat(sub_name,".");              
-      if(tmp_name == NULL){
-		fprintf(world->err_file, "File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-        	exit(EXIT_FAILURE);
-      }else{}
-    }
-    sub_name=my_strcat(tmp_name,objp->last_name);    
-    if(sub_name == NULL){
-		fprintf(world->err_file, "File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-        	exit(EXIT_FAILURE);
-    }else{}
-    free((void *)tmp_name);
-  }
-  else {
-    sub_name=strdup(objp->last_name);    
-    if(sub_name == NULL){
-		fprintf(world->err_file, "File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-        	exit(EXIT_FAILURE);
-    }else{}
-  }
-
-  switch (objp->object_type) {
-  case META_OBJ:
-    no_printf("Bounding box of Meta object %s is computed\n",sub_name);
-    fflush(log_file);
-    child_objp=objp->first_child;
-    while (child_objp!=NULL) {
-      if (compute_bb(child_objp,tm,sub_name)) {
-        return(1);
+  switch (objp->object_type)
+  {
+    case META_OBJ:
+      for (struct object *child_objp=objp->first_child;
+           child_objp !=NULL;
+           child_objp=child_objp->next)
+      {
+        if (compute_bb(child_objp, tm))
+          return 1;
       }
-      child_objp=child_objp->next;
-    }
-    break;
-  case REL_SITE_OBJ:
-    no_printf("Bounding box of Release site object %s is computed\n",sub_name);
-    fflush(log_file);
-    if (compute_bb_release_site(objp,tm)) {
-      return(1);
-    }
-    break;
-  case BOX_OBJ:
-    no_printf("Bounding box of Box object %s is computed\n",sub_name);
-    fflush(log_file);
-    if (compute_bb_polygon_object(objp,tm,sub_name)) {
-      return(1);
-    }
-    break;
-  case POLY_OBJ:
-    no_printf("Bounding box of Polygon list object %s is computed\n",sub_name);
-    fflush(log_file);
-    if (compute_bb_polygon_object(objp,tm,sub_name)) {
-      return(1);
-    }
-    break;
+      break;
+
+    case REL_SITE_OBJ:
+      if (compute_bb_release_site(objp, tm))
+        return 1;
+      break;
+
+    case BOX_OBJ:
+    case POLY_OBJ:
+      if (compute_bb_polygon_object(objp, tm))
+        return 1;
+      break;
   }
 
-  free((void *)sub_name);
-  return(0);
+  return 0;
 }
-
-
 
 /**
  * Updates the bounding box of the world based on the size
  * and location of a release site.
  * Used by compute_bb().
  */
-int compute_bb_release_site(struct object *objp, double (*im)[4])
+static int compute_bb_release_site(struct object *objp, double (*im)[4])
 {
   struct release_site_obj *rsop;
   double location[1][4];
-  unsigned short l,m,n;
   double diam_x, diam_y, diam_z; /* diameters of the release_site */ 
  
   rsop=(struct release_site_obj *)objp->contents;
   
   if (rsop->release_shape == SHAPE_REGION) return 0;
-
-  l=1;
-  m=4;
-  n=4;
 
   if(rsop->location == NULL){
      fprintf(world->err_file, "ERROR: location is not specified for the geometrical shape release site.\n");
@@ -1439,7 +1334,7 @@ int compute_bb_release_site(struct object *objp, double (*im)[4])
   location[0][1]=rsop->location->y;
   location[0][2]=rsop->location->z;
   location[0][3]=1.0;
-  mult_matrix(location,im,location,l,m,n);
+  mult_matrix(location,im,location,1,4,4);
   
   if(rsop->diameter == NULL){
 	diam_x = diam_y = diam_z = 0;
@@ -1469,9 +1364,8 @@ int compute_bb_release_site(struct object *objp, double (*im)[4])
     world->bb_urb.z=location[0][2] + diam_z;
   }
 
-  return(0);
+  return 0;
 }
-
 
 
 /**
@@ -1479,29 +1373,23 @@ int compute_bb_release_site(struct object *objp, double (*im)[4])
  * and location of a polygon_object.
  * Used by compute_bb().
  */
-int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_name)
+static int compute_bb_polygon_object(struct object *objp, double (*im)[4])
 {
   struct polygon_object *pop;
   struct ordered_poly *opp;
-  double p[1][4];
-  int i,n_verts,n_walls;
-  unsigned short l,m,n;
 
   pop=(struct polygon_object *)objp->contents;
-  n_walls=pop->n_walls;
-  l=1;
-  m=4;
-  n=4;
-
   opp=(struct ordered_poly *)pop->polygon_data;
-  n_verts=opp->n_verts;
+  const unsigned int n_verts=opp->n_verts;
 
-  for (i=0;i<n_verts;i++) {
-    p[0][0]=opp->vertex[i].x;
-    p[0][1]=opp->vertex[i].y;
-    p[0][2]=opp->vertex[i].z;
+  for (unsigned int n_vert = 0; n_vert<n_verts; n_vert++)
+  {
+    double p[1][4];
+    p[0][0]=opp->vertex[n_vert].x;
+    p[0][1]=opp->vertex[n_vert].y;
+    p[0][2]=opp->vertex[n_vert].z;
     p[0][3]=1.0;
-    mult_matrix(p,im,p,l,m,n);
+    mult_matrix(p,im,p,1,4,4);
     if (p[0][0]<world->bb_llf.x) world->bb_llf.x = p[0][0];
     if (p[0][1]<world->bb_llf.y) world->bb_llf.y = p[0][1];
     if (p[0][2]<world->bb_llf.z) world->bb_llf.z = p[0][2];
@@ -1510,7 +1398,7 @@ int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_n
     if (p[0][2]>world->bb_urb.z) world->bb_urb.z = p[0][2];
   }
 
-  return(0);
+  return 0;
 }
 
 
@@ -1521,7 +1409,7 @@ int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_n
  * transformations (scaling, rotation and translation).
  * <br>
  */
-int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj *vizp, char *full_name)
+int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj *vizp)
 {
 // #define INIT_VERTEX_NORMALS
 // Uncomment to compute vertex normals
@@ -1537,18 +1425,14 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
   double origin[1][4];
 #endif
   double total_area;
-  int i,n_verts,n_walls,index_0,index_1,index_2;
+  int i,index_0,index_1,index_2;
   unsigned int degenerate_count;
-  unsigned short l,m,n;
   byte compute_vertex_normals;
 
   log_file=world->log_file;
   pop=(struct polygon_object *)objp->contents;
-  n_walls=pop->n_walls;
-  n_verts=pop->n_verts;
-  l=1;
-  m=4;
-  n=4;
+  const unsigned int n_walls=pop->n_walls;
+  const unsigned int n_verts=pop->n_verts;
   total_area=0;
 
 /* Allocate and initialize walls and vertices */
@@ -1600,7 +1484,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
     p[0][1]=opp->vertex[i].y;
     p[0][2]=opp->vertex[i].z;
     p[0][3]=1.0;
-    mult_matrix(p,im,p,l,m,n);
+    mult_matrix(p,im,p,1,4,4);
     v[i].x=p[0][0];
     v[i].y=p[0][1];
     v[i].z=p[0][2];
@@ -1615,8 +1499,8 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
       origin[0][1]=0;
       origin[0][2]=0;
       origin[0][3]=1.0;
-      mult_matrix(p,im,p,l,m,n);
-      mult_matrix(origin,im,origin,l,m,n);
+      mult_matrix(p,im,p,1,4,4);
+      mult_matrix(origin,im,origin,1,4,4);
       vertex_normal[i].x=p[0][0]-origin[0][0];
       vertex_normal[i].y=p[0][1]-origin[0][1];
       vertex_normal[i].z=p[0][2]-origin[0][2];
@@ -1688,11 +1572,7 @@ int init_regions(void)
 {
   if (world->clamp_list!=NULL) init_clamp_lists();
 
-  if (instance_obj_regions(world->root_instance,NULL)) {
-    return(1);
-  }
-
-  return(0);
+  return instance_obj_regions(world->root_instance);
 }
 
 
@@ -1725,82 +1605,34 @@ void init_clamp_lists(void)
 
 /**
  * Traverse through metaobjects, placing regions on real objects as we find
- * them.  "sub_name" contains the name of the parent object of the one we're
- * instancing as we traverse down into the object hierarchy 
+ * them.
  */
-int instance_obj_regions(struct object *objp,char *sub_name)
+int instance_obj_regions(struct object *objp)
 {
-  FILE *log_file;
-  struct object *child_objp;
-  char *tmp_name;
-
-  log_file=world->log_file;
-
-  if (sub_name!=NULL) { 
-    if (strcmp(sub_name,"")==0) {
-      tmp_name=strdup("");
-      if (tmp_name == NULL) {
-		fprintf(world->err_file, "File %s, Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-        	exit(EXIT_FAILURE);
-      }else{}
-    }
-    else {
-      tmp_name=my_strcat(sub_name,".");              
-      if (tmp_name == NULL) {
-		fprintf(world->err_file, "File %s, Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-        	exit(EXIT_FAILURE);
-      }else{}
-    }
-    sub_name=my_strcat(tmp_name,objp->last_name);    
-    if (sub_name == NULL) {
-		fprintf(world->err_file, "File %s, Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-        	exit(EXIT_FAILURE);
-    }else{}
-    free((void *)tmp_name);
-  }
-  else {
-    sub_name=strdup(objp->last_name);    
-    if (sub_name == NULL) {
-		fprintf(world->err_file, "File %s, Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-        	exit(EXIT_FAILURE);
-    }else{}
-  }
-
-  switch (objp->object_type) {
-  case META_OBJ:
-    no_printf("Initializing regions in meta object: %s\n",sub_name);
-    fflush(log_file);
-    child_objp=objp->first_child;
-    while (child_objp!=NULL) {
-      if (instance_obj_regions(child_objp,sub_name)) {
-        return(1);
+  switch (objp->object_type)
+  {
+    case META_OBJ:
+      for (struct object *child_objp = objp->first_child;
+           child_objp != NULL;
+           child_objp = child_objp->next)
+      {
+        if (instance_obj_regions(child_objp))
+          return 1;
       }
-      child_objp=child_objp->next;
-    }
-    break;
-  case REL_SITE_OBJ:
-    break;
-  case BOX_OBJ:
-    no_printf("Initializing regions in box object: %s\n",sub_name);
-    fflush(log_file);
-    if (init_wall_regions(objp,sub_name)) {
-      return(1);
-    }
-    break;
-  case POLY_OBJ:
-    no_printf("Initializing regions in polygon list object: %s\n",sub_name);
-    fflush(log_file);
-    if (init_wall_regions(objp,sub_name)) {
-      return(1);
-    }
-    break;
+      break;
+
+    case REL_SITE_OBJ:
+      break;
+
+    case BOX_OBJ:
+    case POLY_OBJ:
+      if (init_wall_regions(objp))
+        return 1;
+      break;
   }
 
-  free((void *)sub_name);
-  return(0);
+  return 0;
 }
-
-
 
 /**
  * Initialize data associated with wall regions.
@@ -1811,7 +1643,7 @@ int instance_obj_regions(struct object *objp,char *sub_name)
  * Populates effector tiles by region.
  * Creates virtual regions on which to clamp concentration
  */
-int init_wall_regions(struct object *objp, char *full_name)
+int init_wall_regions(struct object *objp)
 {
   FILE *log_file;
   struct polygon_object *pop;
@@ -1825,7 +1657,7 @@ int init_wall_regions(struct object *objp, char *full_name)
   pop=(struct polygon_object *)objp->contents;
   n_walls=pop->n_walls;
 
-  no_printf("Processing %d regions in polygon list object: %s\n",objp->num_regions,full_name);  
+  no_printf("Processing %d regions in polygon list object: %s\n",objp->num_regions, objp->sym->name);  
 
   /* prepend a copy of eff_dat for each element referenced in each region
      of this object to the eff_prop list for the referenced element */

@@ -578,7 +578,7 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
     if (new_wall != NULL)
     {
       uv2xyz(&pos2, new_wall, &pos);
-      subunit = place_grid_molecule(subunit_species, &pos, orient, diam, event_time, &sv, master->cmplx, rrd);
+      subunit = place_grid_molecule(subunit_species, &pos, orient, diam, event_time, &sv, master->cmplx);
     }
     cmplx_subunits[ subunit_idx ] = subunit;
 
@@ -814,7 +814,7 @@ struct grid_molecule *macro_insert_molecule_grid(struct species *spec,
 
   /* Insert the master */
   struct subvolume *sv = NULL;
-  struct grid_molecule *master = place_grid_molecule(spec, pos, orient, diam, event_time, &sv, cmplx, NULL);
+  struct grid_molecule *master = place_grid_molecule(spec, pos, orient, diam, event_time, &sv, cmplx);
   master->cmplx[0] = master;
 
   /* If this fails, 'master' and 'cmplx' will be freed by macro_place_subunits_grid */

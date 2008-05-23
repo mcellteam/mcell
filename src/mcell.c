@@ -42,14 +42,14 @@ struct volume *world;
 static void process_volume_output(struct volume *wrld, double not_yet)
 {
   struct volume_output_item *vo;
-  for (vo = (struct volume_output_item *) schedule_next(world->volume_output_scheduler);
-       vo != NULL  ||  not_yet >= world->volume_output_scheduler->now;
-       vo = (struct volume_output_item *) schedule_next(world->volume_output_scheduler))
+  for (vo = (struct volume_output_item *) schedule_next(wrld->volume_output_scheduler);
+       vo != NULL  ||  not_yet >= wrld->volume_output_scheduler->now;
+       vo = (struct volume_output_item *) schedule_next(wrld->volume_output_scheduler))
   {
     if (vo == NULL) continue;
-    if (update_volume_output(world, vo))
+    if (update_volume_output(wrld, vo))
     {
-      fprintf(world->err_file,"File '%s', Line %ld: Error while updating volume output.\n", __FILE__, (long)__LINE__);
+      fprintf(wrld->err_file,"File '%s', Line %ld: Error while updating volume output.\n", __FILE__, (long)__LINE__);
       exit(EXIT_FAILURE);
     }
   }
@@ -79,20 +79,20 @@ static void process_reaction_output(struct volume *wrld, double not_yet)
 static void process_molecule_releases(struct volume *wrld, double not_yet)
 {
   struct release_event_queue *req;
-  for ( req= schedule_next(world->releaser) ;
-        req!=NULL || not_yet>=world->releaser->now ;
-        req=schedule_next(world->releaser)) 
+  for ( req= schedule_next(wrld->releaser) ;
+        req!=NULL || not_yet>=wrld->releaser->now ;
+        req=schedule_next(wrld->releaser)) 
   {
     if (req==NULL || req->release_site->release_prob==MAGIC_PATTERN_PROBABILITY) continue;
     if ( release_molecules(req) )
     {
-      fprintf(world->err_file,"File '%s', Line %ld: Error while releasing molecules of type %s.\n", __FILE__, (long)__LINE__, req->release_site->mol_type->sym->name);
+      fprintf(wrld->err_file,"File '%s', Line %ld: Error while releasing molecules of type %s.\n", __FILE__, (long)__LINE__, req->release_site->mol_type->sym->name);
       exit(EXIT_FAILURE);
     }
   }
-  if (world->releaser->error)
+  if (wrld->releaser->error)
   {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while scheduling molecule release.\n", __FILE__, (long)__LINE__);
+    fprintf(wrld->err_file,"File '%s', Line %ld: Out of memory while scheduling molecule release.\n", __FILE__, (long)__LINE__);
     exit(EXIT_FAILURE);
   }
 }
@@ -350,6 +350,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
   if (world->chkpt_iterations  &&  world->it_time > world->last_checkpoint_iteration)
     make_checkpoint(world);
   
+  emergency_output_hook_enabled = 0;
   i = flush_reaction_output();
   if (i)
   {

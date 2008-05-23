@@ -13,6 +13,22 @@
 #include "sched_util.h"
 #include "util.h"
 
+/* Macro for eliminating "unused variable" or "unused parameter" warnings. */
+#define UNUSED(p) ((void) (p))
+
+#ifndef __GNUC__
+#ifndef __attribute__
+#define __attribute__(x) /* empty */
+#endif
+#endif
+
+#if __GNUC__ < 3
+#ifndef __attribute__
+#define __attribute__(x) /* empty */
+#endif
+#endif
+
+
 /*****************************************************/
 /**  Brand new constants created for use in MCell3  **/
 /*****************************************************/
@@ -1891,8 +1907,7 @@ struct rk_mode_data
 #ifdef DEBUG
 #define no_printf printf
 #else
-#define no_printf(...) /* empty */
-/* void no_printf(const char *,...); */
+#define no_printf(...) do { /* empty */ } while(0)
 #endif
 
 

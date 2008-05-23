@@ -235,11 +235,11 @@ static void emergency_output_hook(void)
 
     int n_errors = emergency_output();
     if (n_errors == 0)
-      fprintf(world->err_file, "Reaction output was successfully flushed to disk.\n");
+      fprintf(world->log_file, "Reaction output was successfully flushed to disk.\n");
     else if (n_errors == 1)
-      fprintf(world->err_file, "An error occurred while flushing reaction output to disk.\n");
+      fprintf(world->log_file, "An error occurred while flushing reaction output to disk.\n");
     else
-      fprintf(world->err_file, "%d errors occurred while flushing reaction output to disk.\n", n_errors);
+      fprintf(world->log_file, "%d errors occurred while flushing reaction output to disk.\n", n_errors);
   }
 }
 
@@ -267,11 +267,11 @@ static void emergency_output_signal_handler(int signo)
 
     int n_errors = flush_reaction_output();
     if (n_errors == 0)
-      fprintf(world->err_file, "Reaction output was successfully flushed to disk.\n");
+      fprintf(world->log_file, "Reaction output was successfully flushed to disk.\n");
     else if (n_errors == 1)
-      fprintf(world->err_file, "An error occurred while flushing reaction output to disk.\n");
+      fprintf(world->log_file, "An error occurred while flushing reaction output to disk.\n");
     else
-      fprintf(world->err_file, "%d errors occurred while flushing reaction output to disk.\n", n_errors);
+      fprintf(world->log_file, "%d errors occurred while flushing reaction output to disk.\n", n_errors);
   }
   _exit(128+signo);
 }
@@ -568,6 +568,7 @@ write_reaction_output:
   
 int write_reaction_output(struct output_set *set,int final_chunk_flag)
 {
+  UNUSED(final_chunk_flag);
   FILE *fp;
   struct output_column *column;
   char *mode;
