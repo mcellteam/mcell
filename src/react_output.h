@@ -5,8 +5,10 @@
 
 /* Header file for reaction output routines */
 
+extern int emergency_output_hook_enabled;
+void install_emergency_output_hooks(void);
+
 int truncate_output_file(char *name,double start_value);
-int emergency_output(void);
 int add_trigger_output(struct counter *c,struct output_request *ear,int n,short flags);
 int flush_reaction_output(void);
 int update_reaction_output(struct output_block *block);

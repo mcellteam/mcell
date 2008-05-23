@@ -624,10 +624,7 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
     gsv = find_subvolume(&pos3d, gsv);
     if (schedule_add(gsv->local_storage->timer, g))
     {
-      int i;
-      fprintf(world->err_file,"File '%s', Line %ld: Out of memory while trying to insert molecules\n", __FILE__, (long)__LINE__);
-      i = emergency_output();
-      fprintf(world->err_file,"%d errors while attempting emergency output\n",i);
+      fprintf(world->err_file,"File '%s', Line %ld: Out of memory while trying to insert molecules.\n", __FILE__, (long)__LINE__);
       exit(EXIT_FAILURE);    
     }
   }
@@ -672,7 +669,7 @@ int macro_place_subunits_volume(struct volume_molecule *master)
 
   /* Allocate array to hold subunits */
   struct volume_molecule *guess = master;
-  master->cmplx = (struct volume_molecule **) CHECKED_MALLOC_EMERGENCY(sizeof(struct volume_molecule *) * (s->num_subunits + 1), "volume macromolecule");
+  master->cmplx = (struct volume_molecule **) CHECKED_MALLOC_DIE(sizeof(struct volume_molecule *) * (s->num_subunits + 1), "volume macromolecule");
   memset(master->cmplx, 0, sizeof(struct volume_molecule *) * (s->num_subunits + 1));
 
   /* Place each subunit */
@@ -748,7 +745,7 @@ struct grid_molecule *macro_insert_molecule_grid_2(struct species *spec,
   assert(s->base.flags & IS_COMPLEX);
 
   /* Allocate structure for subunits */
-  struct grid_molecule **cmplx = (struct grid_molecule **) CHECKED_MALLOC_EMERGENCY(sizeof(struct grid_molecule *) * (s->num_subunits + 1), "surface macromolecule");
+  struct grid_molecule **cmplx = (struct grid_molecule **) CHECKED_MALLOC_DIE(sizeof(struct grid_molecule *) * (s->num_subunits + 1), "surface macromolecule");
   memset(cmplx, 0, sizeof(struct grid_molecule *) * (s->num_subunits + 1));
 
   /* Allocate grid */
@@ -763,7 +760,7 @@ struct grid_molecule *macro_insert_molecule_grid_2(struct species *spec,
   else grid2uv(surf->grid, grid_index, &mol_uv);
 
   /* Create the complex master */
-  struct grid_molecule *master = (struct grid_molecule *) CHECKED_MEM_GET_EMERGENCY(surf->birthplace->gmol, "surface macromolecule");
+  struct grid_molecule *master = (struct grid_molecule *) CHECKED_MEM_GET_DIE(surf->birthplace->gmol, "surface macromolecule");
   master->birthplace = surf->birthplace->gmol;
   master->birthday = event_time;
   master->properties = spec;
@@ -812,7 +809,7 @@ struct grid_molecule *macro_insert_molecule_grid(struct species *spec,
   assert(s->base.flags & IS_COMPLEX);
 
   /* Allocate array for subunits */
-  struct grid_molecule **cmplx = (struct grid_molecule **) CHECKED_MALLOC_EMERGENCY(sizeof(struct grid_molecule *) * (s->num_subunits + 1), "surface macromolecule");
+  struct grid_molecule **cmplx = (struct grid_molecule **) CHECKED_MALLOC_DIE(sizeof(struct grid_molecule *) * (s->num_subunits + 1), "surface macromolecule");
   memset(cmplx, 0, sizeof(struct grid_molecule *) * (s->num_subunits + 1));
 
   /* Insert the master */

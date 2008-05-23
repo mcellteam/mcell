@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -7,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <signal.h>
 #include <errno.h>
 
 #include "sched_util.h"
@@ -187,15 +187,9 @@ emergency_output:
 	memory!  You should only print messages and exit after running
 	this function.
 **************************************************************************/
-
-int emergency_output(void)
+static int emergency_output(void)
 {
   struct storage_list *mem;
-  struct schedule_helper *sh;
-  struct output_block *ob;
-  struct output_set *os;
-  int n_errors = 0;
-  int i;
   
   /* PANIC--delete everything we can get our pointers on! */
   delete_mem( world->coll_mem );
@@ -213,28 +207,117 @@ int emergency_output(void)
   }
   delete_mem( world->storage_allocator );
   
-  /* We now might have some free memory, dump to disk! */
-  for (sh = world->count_scheduler ; sh != NULL ; sh = sh->next_scale)
-  {
-    for (i=0;i<=sh->buf_len;i++)
-    {
-      if (i==sh->buf_len) ob = (struct output_block*) sh->current;
-      else ob = (struct output_block*) sh->circ_buf_head[i];
-      
-      for ( ; ob != NULL ; ob = ob->next )
-      {
-        for (os=ob->data_set_head ; os!=NULL ; os=os->next)
-        {
-          if (write_reaction_output(os,1)) n_errors++;
-	}
-      }
-    } 
-  }
-  
-  return n_errors;
+  return flush_reaction_output();
 }
 
+/**************************************************************************
+ emergency_output_hook_enabled:
+    Flag to disable emergency output hook when the program exits successfully.
+**************************************************************************/
+int emergency_output_hook_enabled = 1;
 
+/**************************************************************************
+ emergency_output_hook:
+    This is an atexit hook to flush reaction output to disk in case an error is
+    occurred.  Set emergency_output_hook_enabled to 0 to prevent it from being
+    called (say, on successful exit).
+
+  In: No arguments.
+  Out: None.
+**************************************************************************/
+static void emergency_output_hook(void)
+{
+  if (emergency_output_hook_enabled)
+  {
+    /* Disable the emergency output hook in case a signal is received while
+     * producing emergency output. */
+    emergency_output_hook_enabled = 0;
+
+    int n_errors = emergency_output();
+    if (n_errors == 0)
+      fprintf(world->err_file, "Reaction output was successfully flushed to disk.\n");
+    else if (n_errors == 1)
+      fprintf(world->err_file, "An error occurred while flushing reaction output to disk.\n");
+    else
+      fprintf(world->err_file, "%d errors occurred while flushing reaction output to disk.\n", n_errors);
+  }
+}
+
+/**************************************************************************
+ emergency_output_signal_handler:
+    This is a signal handler to catch any abnormal termination signals, and
+    flush the reaction output data (and anything else which should be flushed).
+
+  In: No arguments.
+  Out: None.
+**************************************************************************/
+static void emergency_output_signal_handler(int signo)
+{
+  fprintf(world->err_file,
+          "*****************************\n"
+          "MCell dying due to signal %d.\n"
+          "Please report this to the mcell developers by emailing <%s>.\n"
+          "*****************************\n",
+          signo,
+          PACKAGE_BUGREPORT);
+
+  if (emergency_output_hook_enabled)
+  {
+    emergency_output_hook_enabled = 0;
+
+    int n_errors = flush_reaction_output();
+    if (n_errors == 0)
+      fprintf(world->err_file, "Reaction output was successfully flushed to disk.\n");
+    else if (n_errors == 1)
+      fprintf(world->err_file, "An error occurred while flushing reaction output to disk.\n");
+    else
+      fprintf(world->err_file, "%d errors occurred while flushing reaction output to disk.\n", n_errors);
+  }
+  _exit(128+signo);
+}
+
+/**************************************************************************
+ install_emergency_output_signal_handler:
+    This installs a handler for a single signal which will print out a sensible
+    message, then try to flush as much output data to disk as possible before
+    dying.
+
+  In: No arguments.
+  Out: None.
+**************************************************************************/
+static void install_emergency_output_signal_handler(int signo)
+{
+  struct sigaction sa, saPrev;
+  sa.sa_sigaction = NULL;
+  sa.sa_handler = &emergency_output_signal_handler;
+  sa.sa_flags = SA_RESTART;
+  sigfillset(&sa.sa_mask);
+
+  if (sigaction(signo, &sa, &saPrev) != 0)
+    fprintf(world->err_file, "Failed to install emergency output signal handler.\n");
+}
+
+/**************************************************************************
+ install_emergency_output_hooks:
+    Installs all relevant hooks for catchnig invalid program termination and
+    flushing output to disk, where possible.
+
+  In: No arguments.
+  Out: None.
+**************************************************************************/
+void install_emergency_output_hooks(void)
+{
+  if (atexit(& emergency_output_hook) != 0)
+    fprintf(world->err_file, "Failed to install emergency output hook.\n");
+
+  install_emergency_output_signal_handler(SIGILL);
+  install_emergency_output_signal_handler(SIGABRT);
+  install_emergency_output_signal_handler(SIGFPE);
+  install_emergency_output_signal_handler(SIGSEGV);
+#ifdef SIGBUS
+  install_emergency_output_signal_handler(SIGBUS);
+#endif
+}
 
 /*************************************************************************
 add_trigger_output:
@@ -444,8 +527,6 @@ int update_reaction_output(struct output_block *block)
   i = schedule_add(world->count_scheduler,block);
   if (i)
   {
-    i = emergency_output();
-    fprintf(world->err_file,"Fatal error: out of memory while updating reaction outputs\nAttempt to write intermediate results had %d errors.\n",i);
     exit(EXIT_FAILURE); 
   }
   if (actual_t!=-1) block->t=actual_t;  /* Fix time for output */

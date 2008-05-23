@@ -2184,9 +2184,7 @@ struct collision *expand_collision_list_for_neighbor(struct subvolume *sv,
         struct collision *smash = mem_get(sv->local_storage->coll);
         if (smash == NULL)
         {
-          fprintf(world->err_file,"File '%s', Line %ld: Out of memory,  trying to save intermediate states.\n", __FILE__, (long)__LINE__);
-          i = emergency_output();
-          fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",m->properties->sym->name);
+          fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
           exit( EXIT_FAILURE );
         }
  
@@ -2538,10 +2536,7 @@ struct sp_collision *expand_collision_partner_list_for_neighbor(struct subvolume
         smash = mem_get(sv->local_storage->sp_coll);
         if (smash == NULL)
         {
-          int i;
-          fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
-          i = emergency_output();
-          fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+          fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
           exit( EXIT_FAILURE );
         }
         smash->t = 0.0;
@@ -2922,9 +2917,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
             smash = mem_get(sv->local_storage->coll);
             if (smash == NULL)
             {
-              fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
-              i = emergency_output();
-              fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+              fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
               exit( EXIT_FAILURE );
             }
             smash->target = (void*) mp;
@@ -3005,9 +2998,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
     {
       if (shead != NULL)
       {
-        fprintf(world->err_file,"File '%s', Line %ld: Internal error: collision lists corrupted; trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        i=emergency_output();
-        fprintf(world->err_file,"Fatal error: list corruption detected during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i);
+        fprintf(world->err_file,"File '%s', Line %ld: Internal error: collision lists corrupted.\n", __FILE__, (long)__LINE__);
         exit(EXIT_FAILURE);
       }
       shead = shead_exp;
@@ -3015,7 +3006,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   }   
 
 #define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
-#define ERROR_AND_QUIT fprintf(world->err_file,"File '%s', Line %ld: out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
+#define ERROR_AND_QUIT fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__); exit(EXIT_FAILURE)
 
   do
   {
@@ -3047,9 +3038,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         {
           if (shead != NULL)
           {
-            fprintf(world->err_file,"File '%s', Line %ld: Internal error: collision lists corrupted; trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-            i=emergency_output();
-            fprintf(world->err_file,"Fatal error: list corruption detected during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i);
+            fprintf(world->err_file,"File '%s', Line %ld: Internal error: collision lists corrupted.\n", __FILE__, (long)__LINE__);
             exit(EXIT_FAILURE);
           }
           shead = shead_exp;
@@ -3826,9 +3815,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
           smash = mem_get(sv->local_storage->sp_coll);
           if (smash == NULL)
           {
-            fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
-            i = emergency_output();
-            fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+            fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
             exit( EXIT_FAILURE );
           }
           smash->t = 0.0;
@@ -3877,7 +3864,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
 #define CLEAN_AND_RETURN(x) if(main_shead2 != NULL) mem_put_list(sv->local_storage->sp_coll, main_shead2); if (shead2!=NULL) mem_put_list(sv->local_storage->sp_coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->sp_coll,shead); return (x)
 #define TRI_CLEAN_AND_RETURN(x) if (main_tri_shead!=NULL) mem_put_list(sv->local_storage->tri_coll,main_tri_shead); if (main_shead2 != NULL) mem_put_list(sv->local_storage->sp_coll,main_shead2); return(x) 
-#define ERROR_AND_QUIT fprintf(world->err_file,"File '%s', Line %ld: out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__); i=emergency_output(); fprintf(world->err_file,"Fatal error: out of memory during diffusion of a %s molecule\nAttempt to write intermediate results had %d errors\n",sm->sym->name,i); exit(EXIT_FAILURE)
+#define ERROR_AND_QUIT fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__); exit(EXIT_FAILURE)
 
   do
   {
@@ -3948,9 +3935,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
            new_coll = mem_get(sv->local_storage->sp_coll);
            if (new_coll == NULL)
            {
-               fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
-               i = emergency_output();
-               fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+               fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
                exit( EXIT_FAILURE );
             }
             memcpy(new_coll, smash, sizeof(struct sp_collision));
@@ -3965,9 +3950,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
            new_coll = mem_get(sv->local_storage->sp_coll);
            if (new_coll == NULL)
            {
-               fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
-               i = emergency_output();
-               fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+               fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
                exit( EXIT_FAILURE );
             }
             memcpy(new_coll, smash, sizeof(struct sp_collision));
@@ -4147,9 +4130,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                tri_smash = mem_get(sv->local_storage->tri_coll);
                if (tri_smash == NULL)
                {
-                    fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
-                    i = emergency_output();
-                    fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+                    fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
                     exit( EXIT_FAILURE );
                }
                tri_smash->t = smash->t;
@@ -4167,9 +4148,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                  &(smash->loc), &(smash->disp), world->rx_radius_3d,
                  smash->sv_start, m, (struct volume_molecule *)smash->target);
                if (tri_smash->factor == EXD_OUT_OF_MEMORY) { 
-                    fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
-                    i = emergency_output();
-                    fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+                    fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
                     exit( EXIT_FAILURE );
                }
                tri_smash->wall = NULL;
@@ -4201,9 +4180,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                tri_smash = mem_get(sv->local_storage->tri_coll);
                if (tri_smash == NULL)
                {
-                    fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
-                    i = emergency_output();
-                    fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+                    fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
                     exit( EXIT_FAILURE );
                }
                tri_smash->loc = new_smash->loc;
@@ -4219,9 +4196,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                  &(smash->loc), &(smash->disp), world->rx_radius_3d,
                  smash->sv_start, m, (struct volume_molecule *)smash->target);
                if (factor1 == EXD_OUT_OF_MEMORY) { 
-                    fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
-                    i = emergency_output();
-                    fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+                    fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
                     exit( EXIT_FAILURE );
                }
                factor2 = exact_disk(
@@ -4230,9 +4205,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                    new_smash->sv_start, m, 
                    (struct volume_molecule *)new_smash->target);
                if (factor2 == EXD_OUT_OF_MEMORY) { 
-                    fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
-                    i = emergency_output();
-                    fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+                    fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
                     exit( EXIT_FAILURE );
                }
                tri_smash->factor = factor1*factor2;
@@ -4287,9 +4260,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                         tri_smash = mem_get(sv->local_storage->tri_coll);
                         if (tri_smash == NULL)
                         {
-                          fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
-                          i = emergency_output();
-                          fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+                          fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
                           exit( EXIT_FAILURE );
                         }
                         tri_smash->t = new_smash->t;
@@ -4357,9 +4328,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                     tri_smash = mem_get(sv->local_storage->tri_coll);
                     if (tri_smash == NULL)
                     {
-                       fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
-                       i = emergency_output();
-                       fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+                       fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
                        exit( EXIT_FAILURE );
                     }
                     tri_smash->t = smash->t;
@@ -4442,9 +4411,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                               tri_smash = mem_get(sv->local_storage->tri_coll);
                               if (tri_smash == NULL)
                               {
-                                fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
-                                i = emergency_output();
-                                fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+                                fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
                                 exit( EXIT_FAILURE );
                               }
                               tri_smash->t = smash->t;
@@ -4493,9 +4460,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                     tri_smash = mem_get(sv->local_storage->tri_coll);
                     if (tri_smash == NULL)
                     {
-                       fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
-                       i = emergency_output();
-                       fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+                       fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
                        exit( EXIT_FAILURE );
                     }
                     tri_smash->t = smash->t;
@@ -4528,9 +4493,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                     tri_smash = mem_get(sv->local_storage->tri_coll);
                     if (tri_smash == NULL)
                     {
-                       fprintf(world->err_file,"File '%s', Line %ld: out of memory.  Trying to save intermediate states.\n", __FILE__, (long)__LINE__);
-                       i = emergency_output();
-                       fprintf(world->err_file,"Out of memory while finding collisions for a molecule of type %s\n",sm->sym->name);
+                       fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
                        exit( EXIT_FAILURE );
                     }
 
@@ -4993,7 +4956,6 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
   struct surface_grid *sg[3];    /* Neighboring surface grids */
   int si[3];                     /* Indices on those grids of neighbor molecules */
   struct grid_molecule *gm[3] = {NULL, NULL, NULL};   /* Neighboring molecules */
-  struct rxn *rx[3];             /* Reactions we can perform with those molecules */
   int i; /* points to the pathway of the reaction */
   int j; /* points to the the reaction */
   int n = 0; /* total number of possible reactions for a given molecules
@@ -5118,10 +5080,7 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
 
   if (k==RX_NO_MEM)
   {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.  Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-    k = emergency_output();
-    fprintf(world->err_file,"Out of memory during bimolecular surface reaction %s...\n",rx[j]->sym->name);
-    fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",k);
+    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
     exit( EXIT_FAILURE );
   }
   
@@ -5259,10 +5218,7 @@ struct grid_molecule* react_2D_trimol(struct grid_molecule *g,double t)
 
   if (k==RX_NO_MEM)
   {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.  Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-    k = emergency_output();
-    fprintf(world->err_file,"Out of memory during bimolecular surface reaction %s...\n",rxn_array[j]->sym->name);
-    fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",k);
+    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
     exit( EXIT_FAILURE );
   }
   
@@ -5434,10 +5390,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	  j = outcome_unimolecular(r,i,a,a->t);
 	  if (j==RX_NO_MEM)
 	  {
-	    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.  Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-	    i = emergency_output();
-	    fprintf(world->err_file,"Out of memory during unimolecular reaction %s...\n",r->sym->name);
-	    fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",i);
+	    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
 	    exit( EXIT_FAILURE );
 	  }
 	}
@@ -5637,19 +5590,13 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     
     if (err)
     {
-      fprintf(world->err_file,"File '%s', Line %ld: Out of memory.  Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-      i = emergency_output();
-      fprintf(world->err_file,"Out of memory while scheduling molecule of type %s\n",a->properties->sym->name);
-      fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",i);
+      fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
       exit( EXIT_FAILURE );
     }
   }
   if (local->timer->error)
   {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.  Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-    i = emergency_output();
-    fprintf(world->err_file,"Out of memory while retrieving molecules to move.\n");
-    fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",i);
+    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
     exit( EXIT_FAILURE );
   }
 }
@@ -5668,7 +5615,7 @@ void run_concentration_clamp(double t_now)
   struct ccn_clamp_data *ccdo;
   struct ccn_clamp_data *ccdm;
   double n_collisions;
-  int n_emitted,idx,i;
+  int n_emitted,idx;
   struct wall *w;
   struct vector3 v;
   double s1,s2,eps;
@@ -5742,9 +5689,6 @@ void run_concentration_clamp(double t_now)
             mp = insert_volume_molecule(&m,mp);
             if (mp==NULL)
             {
-              i = emergency_output();
-              fprintf(world->err_file,"File '%s', Line %ld: Out of memory while concentration clamping molecule of type %s\n", __FILE__, (long)__LINE__, m.properties->sym->name);
-              fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",i);
               exit( EXIT_FAILURE );
             }
             if (trigger_unimolecular(ccdm->mol->hashval , (struct abstract_molecule*)mp) != NULL)
@@ -5758,9 +5702,6 @@ void run_concentration_clamp(double t_now)
             mp=insert_volume_molecule(&m,mp);
             if (mp==NULL)
             {
-              i = emergency_output();
-              fprintf(world->err_file,"File '%s', Line %ld: Out of memory while concentration clamping molecule of type %s\n",__FILE__, (long)__LINE__, m.properties->sym->name);
-              fprintf(world->err_file,"%d errors while trying to save intermediate results.\n",i);
               exit( EXIT_FAILURE );
             }
           }

@@ -21,17 +21,12 @@ char *checked_strdup(char const *s, char const *file, long line, char const *des
 void *checked_malloc(unsigned int size, char const *file, long line, char const *desc, int onfailure);
 
 #define CM_EXIT (1)
-#define CM_EMERGENCY_OUTPUT (2)
-#define CM_EMERGENCY (CM_EXIT|CM_EMERGENCY_OUTPUT)
 #define CHECKED_STRDUP(s,desc) checked_strdup((s), __FILE__, __LINE__, desc, 0)
 #define CHECKED_STRDUP_DIE(s,desc) checked_strdup((s), __FILE__, __LINE__, desc, CM_EXIT)
-#define CHECKED_STRDUP_EMERGENCY(s,desc) checked_strdup((s), __FILE__, __LINE__, desc, CM_EMERGENCY)
 #define CHECKED_MALLOC(sz,desc) checked_malloc((sz), __FILE__, __LINE__, desc, 0)
 #define CHECKED_MALLOC_DIE(sz,desc) checked_malloc((sz), __FILE__, __LINE__, desc, CM_EXIT)
-#define CHECKED_MALLOC_EMERGENCY(sz,desc) checked_malloc((sz), __FILE__, __LINE__, desc, CM_EMERGENCY)
 #define CHECKED_MEM_GET(mh,desc) checked_mem_get((mh), __FILE__, __LINE__, desc, 0)
 #define CHECKED_MEM_GET_DIE(mh,desc) checked_mem_get((mh), __FILE__, __LINE__, desc, CM_EXIT)
-#define CHECKED_MEM_GET_EMERGENCY(mh,desc) checked_mem_get((mh), __FILE__, __LINE__, desc, CM_EMERGENCY)
 
 /* counter_header and counter_helper not used by MCell3 */
 struct counter_header

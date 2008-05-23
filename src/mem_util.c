@@ -73,21 +73,13 @@ void* count_malloc(int n)
  * Checked malloc helpers
  *************************************************************************/
 
-extern int emergency_output(void);
 static void memalloc_failure(char const *file, long line, int size, char const *desc, int onfailure)
 {
     if (desc)
       fprintf(world->err_file, "File '%s', Line %ld: Failed to allocate %d bytes for %s.\n", file, line, size, desc);
     else
       fprintf(world->err_file, "File '%s', Line %ld: Failed to allocate %d bytes.\n", file, line, size);
-    if (onfailure & CM_EMERGENCY_OUTPUT)
-    {
-      fprintf(world->err_file, "Out of memory; trying to save intermediate results.\n");
-      int i = emergency_output();
-      fprintf(world->err_file, "Fatal error: Out of memory.\n  Attempt to write intermediate results had %d errors\n", i);
-    }
-    else
-      fprintf(world->err_file, "Out of memory.\n");
+    fprintf(world->err_file, "Out of memory.\n");
 
     if (onfailure & CM_EXIT)
       exit(EXIT_FAILURE);

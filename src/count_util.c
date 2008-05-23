@@ -956,9 +956,7 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
             nrl = (struct region_list*) mem_get(rmem);
 	    if (nrl==NULL)
 	    {
-	      fprintf(world->err_file, "File '%s', Line %ld:  Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-	      i = emergency_output();
-	      fprintf(world->err_file, "Fatal error: out of memory while finding enclosing regions.\nAttempt to write intermediate results had %d errors\n", i);
+	      fprintf(world->err_file, "File '%s', Line %ld:  Out of memory.\n", __FILE__, (long)__LINE__);
 	      exit(EXIT_FAILURE);
             }
 

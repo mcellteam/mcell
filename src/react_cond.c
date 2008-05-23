@@ -875,9 +875,6 @@ void check_probs(struct rxn *rx,double t)
     
     if (world->notify->high_reaction_prob==WARN_ERROR)
     {
-      j = emergency_output();
-      if (!j) fprintf(world->err_file,"Successfully wrote reaction data output.\n");
-      else fprintf(world->err_file,"Failed to write all pending reaction data output (%d errors).\n",j);
       exit(EXIT_FAILURE);
     }
   }

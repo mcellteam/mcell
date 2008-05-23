@@ -41,7 +41,6 @@ struct volume *world;
  ***********************************************************************/
 static void process_volume_output(struct volume *wrld, double not_yet)
 {
-  int i;            /* for emergency output */
   struct volume_output_item *vo;
   for (vo = (struct volume_output_item *) schedule_next(world->volume_output_scheduler);
        vo != NULL  ||  not_yet >= world->volume_output_scheduler->now;
@@ -50,9 +49,7 @@ static void process_volume_output(struct volume *wrld, double not_yet)
     if (vo == NULL) continue;
     if (update_volume_output(world, vo))
     {
-      fprintf(world->err_file,"File '%s', Line %ld: Error while updating volume output. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-      i = emergency_output();
-      fprintf(world->err_file, "%d error%s while saving intermediate results.\n", i, (i==1) ? "": "s");
+      fprintf(world->err_file,"File '%s', Line %ld: Error while updating volume output.\n", __FILE__, (long)__LINE__);
       exit(EXIT_FAILURE);
     }
   }
@@ -60,7 +57,6 @@ static void process_volume_output(struct volume *wrld, double not_yet)
 
 static void process_reaction_output(struct volume *wrld, double not_yet)
 {
-  int i;            /* for emergency output */
   struct output_block *obp;
   for ( obp=schedule_next(wrld->count_scheduler) ;
         obp!=NULL || not_yet>=wrld->count_scheduler->now ;
@@ -69,24 +65,19 @@ static void process_reaction_output(struct volume *wrld, double not_yet)
     if (obp==NULL) continue;
     if (update_reaction_output(obp))
     {
-      fprintf(wrld->err_file,"File '%s', Line %ld: Error while updating reaction output. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-      i = emergency_output();
-      fprintf(wrld->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
+      fprintf(wrld->err_file,"File '%s', Line %ld: Error while updating reaction output.\n", __FILE__, (long)__LINE__);
       exit(EXIT_FAILURE);
     }
   }
   if (wrld->count_scheduler->error)
   {
-    fprintf(wrld->err_file,"File '%s', Line %ld: Out of memory while scheduling molecule release. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-    i = emergency_output();
-    fprintf(wrld->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
+    fprintf(wrld->err_file,"File '%s', Line %ld: Out of memory while scheduling molecule release.\n", __FILE__, (long)__LINE__);
     exit(EXIT_FAILURE);
   }
 }
 
 static void process_molecule_releases(struct volume *wrld, double not_yet)
 {
-  int i;            /* for emergency output */
   struct release_event_queue *req;
   for ( req= schedule_next(world->releaser) ;
         req!=NULL || not_yet>=world->releaser->now ;
@@ -95,17 +86,13 @@ static void process_molecule_releases(struct volume *wrld, double not_yet)
     if (req==NULL || req->release_site->release_prob==MAGIC_PATTERN_PROBABILITY) continue;
     if ( release_molecules(req) )
     {
-      fprintf(world->err_file,"File '%s', Line %ld: Error while releasing molecules of type %s\n", __FILE__, (long)__LINE__, req->release_site->mol_type->sym->name);
-      i = emergency_output();
-      fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
+      fprintf(world->err_file,"File '%s', Line %ld: Error while releasing molecules of type %s.\n", __FILE__, (long)__LINE__, req->release_site->mol_type->sym->name);
       exit(EXIT_FAILURE);
     }
   }
   if (world->releaser->error)
   {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while scheduling molecule release. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-    i = emergency_output();
-    fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
+    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while scheduling molecule release.\n", __FILE__, (long)__LINE__);
     exit(EXIT_FAILURE);
   }
 }

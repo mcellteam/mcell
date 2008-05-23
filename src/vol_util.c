@@ -373,8 +373,6 @@ struct grid_molecule* place_grid_molecule(struct species *s,struct vector3 *loc,
   struct vector2 best_uv;
   struct vector3 best_xyz;
   
-  int i;
-
   struct subvolume *sv;
   struct wall_list *wl;
   struct grid_molecule *g;
@@ -503,9 +501,7 @@ struct grid_molecule* place_grid_molecule(struct species *s,struct vector3 *loc,
   {
     if (create_grid(best_w,sv))
     {
-      fprintf(world->err_file,"File '%s', Line %ld: Out of memory while trying to insert molecules\n", __FILE__, (long)__LINE__);
-      i = emergency_output();
-      fprintf(world->err_file,"%d errors while attempting emergency output\n",i);
+      fprintf(world->err_file,"File '%s', Line %ld: Out of memory while trying to insert molecules.\n", __FILE__, (long)__LINE__);
       exit(EXIT_FAILURE);
     }
     grid_index = uv2grid(&best_uv,best_w->grid);
@@ -543,9 +539,7 @@ struct grid_molecule* place_grid_molecule(struct species *s,struct vector3 *loc,
   g = mem_get(sv->local_storage->gmol);
   if (g==NULL)
   {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while trying to insert molecules\n", __FILE__, (long)__LINE__);
-    i = emergency_output();
-    fprintf(world->err_file,"%d errors while attempting emergency output\n",i);
+    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while trying to insert molecules.\n", __FILE__, (long)__LINE__);
     exit(EXIT_FAILURE);
   }
 
@@ -606,10 +600,7 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
 
   if ( schedule_add(sv->local_storage->timer,g) )
   {
-    int i;
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while trying to insert molecules\n", __FILE__, (long)__LINE__);
-    i = emergency_output();
-    fprintf(world->err_file,"%d errors while attempting emergency output\n",i);
+    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while trying to insert molecules.\n", __FILE__, (long)__LINE__);
     exit(EXIT_FAILURE);    
   }
   
@@ -636,8 +627,7 @@ struct volume_molecule* insert_volume_molecule(struct volume_molecule *m,struct 
   
   new_m = mem_get(sv->local_storage->mol);
   if(new_m == NULL) {
-	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);        int i = emergency_output();
-        fprintf(world->err_file, "Fatal error: out of memory during inserting %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
+	fprintf(world->err_file, "File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
         exit(EXIT_FAILURE);
   }
 
@@ -659,9 +649,7 @@ struct volume_molecule* insert_volume_molecule(struct volume_molecule *m,struct 
   }
   
   if ( schedule_add(sv->local_storage->timer,new_m) ) {
-	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        int i = emergency_output();
-        fprintf(world->err_file, "Fatal error: out of memory during inserting %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
+	fprintf(world->err_file, "File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
         exit(EXIT_FAILURE);
 
   } 
@@ -705,9 +693,7 @@ int insert_volume_molecule_list(struct volume_molecule *m)
   {
     new_m = insert_volume_molecule(m,guess);
     if(new_m == NULL) { 
-	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        int i = emergency_output();
-        fprintf(world->err_file, "Fatal error: out of memory during inserting %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
+	fprintf(world->err_file, "File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
         exit(EXIT_FAILURE);
     }
     guess = new_m;
@@ -777,8 +763,7 @@ struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,struct
 
   new_m = mem_get(new_sv->local_storage->mol);
   if (new_m==NULL){ 
-	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);        int i = emergency_output();
-        fprintf(world->err_file, "Fatal error: out of memory during migrating  %s molecule.\nAttempt to write intermediate results had %d errors.\n", m->properties->sym->name, i);
+	fprintf(world->err_file, "File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
         exit(EXIT_FAILURE);
   }
   if (new_m==m) fprintf(world->err_file, "File '%s', Line %ld: Unexpected behavior!\n", __FILE__, (long)__LINE__);
@@ -1370,9 +1355,7 @@ int release_molecules(struct release_event_queue *req)
     {
       if ( schedule_add(world->releaser,req) )
       {
-	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-	int i = emergency_output();
-	fprintf(world->err_file, "Fatal error: out of memory during release molecule event.\nAttempt to write intermediate results had %d errors.\n", i);
+	fprintf(world->err_file, "File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
 	exit(EXIT_FAILURE);
       } 
     }
@@ -1708,9 +1691,7 @@ int release_molecules(struct release_event_queue *req)
   if (req->train_counter <= rpat->number_of_trains && req->event_time < FOREVER)
   {
     if ( schedule_add(world->releaser,req) ){
-      fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-      int i = emergency_output();
-      fprintf(world->err_file, "Fatal error: out of memory during release molecule event.\nAttempt to write intermediate results had %d errors.\n", i);
+      fprintf(world->err_file, "File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
       exit(EXIT_FAILURE);
     } 
   }
