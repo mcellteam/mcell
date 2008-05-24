@@ -58,6 +58,30 @@ extern void chkpt_signal_handler(int sn);
 static int mdl_free_variable_value(struct mdlparse_vars *mpvp,
                                    struct sym_table *sym);
 
+/* Free a numeric expression list, deallocating all items. */
+static void mdl_free_numeric_list(struct num_expr_list *nel);
+
+/*************************************************************************
+ double_cmp:
+    Comparison function for doubles, to be passed to qsort.
+
+ In:  i1: first item for comparison
+      i2: second item for comparison
+ Out: -1, 0, or 1 if the first item is less than, equal to, or greater than the
+      second, resp.
+*************************************************************************/
+static int double_cmp(void const *i1, void const *i2)
+{
+  double const *d1 = (double const *) i1;
+  double const *d2 = (double const *) i2;
+  if (*d1 < *d2)
+    return -1;
+  else if (*d1 > *d2)
+    return 1;
+  else
+    return 0;
+}
+
 /*************************************************************************
  mdl_checked_malloc:
     Allocate a block of memory, or display an error message.
@@ -1716,39 +1740,84 @@ int mdl_generate_range(struct mdlparse_vars *mpvp,
                        double end,
                        double step)
 {
-  double tmp_dbl;
-
   list->value_head  = NULL;
   list->value_tail  = NULL;
   list->value_count = 0;
   list->shared = 0;
 
-  /* JW 2008-03-31: In the guard on the loop below, it seems to me that
-   * the third condition is redundant with the second.
-   */
-  for (tmp_dbl = start;
-       tmp_dbl < end                             ||
-       ! distinguishable(tmp_dbl, end, EPSILON)  ||
-       fabs(end - tmp_dbl) <= EPSILON;
-       tmp_dbl += step)
+  if (step == 0.0)
   {
-    struct num_expr_list *nel;
-    nel = MDL_MALLOC_STRUCT_DESC(struct num_expr_list, "numeric list");
-    if (nel == NULL)
-    {
-      mdl_free_numeric_list(list->value_head);
-      list->value_head = list->value_tail = NULL;
-      return 1;
-    }
-    nel->value = tmp_dbl;
-    nel->next = NULL;
+    mdlerror(mpvp, "A step size of 0 was requested, which would generate an infinite list.");
+    return 1;
+  }
 
-    ++ list->value_count;
-    if (list->value_tail != NULL)
-      list->value_tail->next = nel;
-    else
-      list->value_head = nel;
-    list->value_tail = nel;
+  /* Above a certain point, we probably don't want this.  If we need arrays
+   * this large, we need to reengineer this. */
+  if (fabs((end - start) / step) > 100000000.)
+  {
+    mdlerror(mpvp, "A range was requested that encompasses too many values (maximum 100,000,000)");
+    return 1;
+  }
+
+  if (step > 0)
+  {
+    /* JW 2008-03-31: In the guard on the loop below, it seems to me that
+     * the third condition is redundant with the second.
+     */
+    for (double tmp_dbl = start;
+         tmp_dbl < end                           ||
+         ! distinguishable(tmp_dbl, end, EPS_C)  ||
+         fabs(end - tmp_dbl) <= EPS_C;
+         tmp_dbl += step)
+    {
+      struct num_expr_list *nel;
+      nel = MDL_MALLOC_STRUCT_DESC(struct num_expr_list, "numeric list");
+      if (nel == NULL)
+      {
+        mdl_free_numeric_list(list->value_head);
+        list->value_head = list->value_tail = NULL;
+        return 1;
+      }
+      nel->value = tmp_dbl;
+      nel->next = NULL;
+
+      ++ list->value_count;
+      if (list->value_tail != NULL)
+        list->value_tail->next = nel;
+      else
+        list->value_head = nel;
+      list->value_tail = nel;
+    }
+  }
+  else /* if (step < 0) */
+  {
+    /* JW 2008-03-31: In the guard on the loop below, it seems to me that
+     * the third condition is redundant with the second.
+     */
+    for (double tmp_dbl = start;
+         tmp_dbl > end                           ||
+         ! distinguishable(tmp_dbl, end, EPS_C)  ||
+         fabs(end - tmp_dbl) <= EPS_C;
+         tmp_dbl += step)
+    {
+      struct num_expr_list *nel;
+      nel = MDL_MALLOC_STRUCT_DESC(struct num_expr_list, "numeric list");
+      if (nel == NULL)
+      {
+        mdl_free_numeric_list(list->value_head);
+        list->value_head = list->value_tail = NULL;
+        return 1;
+      }
+      nel->value = tmp_dbl;
+      nel->next = NULL;
+
+      ++ list->value_count;
+      if (list->value_tail != NULL)
+        list->value_tail->next = nel;
+      else
+        list->value_head = nel;
+      list->value_tail = nel;
+    }
   }
 
   return 0;
@@ -1805,6 +1874,51 @@ int mdl_generate_range_singleton(struct mdlparse_vars *mpvp,
 }
 
 /*************************************************************************
+ mdl_copysort_numeric_list:
+    Copy and sort a num_expr_list in ascending numeric order.
+
+ In:  mpvp:  parser state
+      head:  the list to sort
+ Out: list is sorted
+*************************************************************************/
+static struct num_expr_list *mdl_copysort_numeric_list(struct mdlparse_vars *mpvp,
+                                                       struct num_expr_list *head)
+{
+  struct num_expr_list_head new_head;
+  if (mdl_generate_range_singleton(mpvp, &new_head, head->value))
+    return NULL;
+
+  head = head->next;
+  while (head != NULL)
+  {
+    struct num_expr_list *insert_pt, **prev;
+    for (insert_pt = new_head.value_head, prev = &new_head.value_head;
+         insert_pt != NULL;
+         prev = &insert_pt->next, insert_pt = insert_pt->next)
+    {
+      if (insert_pt->value >= head->value)
+        break;
+    }
+
+    struct num_expr_list *new_item = MDL_MALLOC_STRUCT_DESC(struct num_expr_list, "numeric array");
+    if (new_item == NULL)
+    {
+      mdl_free_numeric_list(new_head.value_head);
+      return NULL;
+    }
+
+    new_item->next = insert_pt;
+    new_item->value = head->value;
+    *prev = new_item;
+    if (insert_pt == NULL)
+      new_head.value_tail = new_item;
+    head = head->next;
+  }
+
+  return new_head.value_head;
+}
+
+/*************************************************************************
  mdl_sort_numeric_list:
     Sort a num_expr_list in ascending numeric order.  N.B. This uses bubble
     sort, which is O(n^2).  Don't use it if you expect your list to be very
@@ -1813,7 +1927,7 @@ int mdl_generate_range_singleton(struct mdlparse_vars *mpvp,
  In:  head:  the list to sort
  Out: list is sorted
 *************************************************************************/
-void mdl_sort_numeric_list(struct num_expr_list *head)
+static void mdl_sort_numeric_list(struct num_expr_list *head)
 {
   struct num_expr_list *curr,*next;
   int done = 0;
@@ -1844,7 +1958,7 @@ void mdl_sort_numeric_list(struct num_expr_list *head)
  In:  nel:  the list to free
  Out: all elements are freed
 *************************************************************************/
-void mdl_free_numeric_list(struct num_expr_list *nel)
+static void mdl_free_numeric_list(struct num_expr_list *nel)
 {
   while (nel != NULL)
   {
@@ -1864,7 +1978,7 @@ void mdl_free_numeric_list(struct num_expr_list *nel)
 *************************************************************************/
 void mdl_debug_dump_array(struct num_expr_list *nel)
 {
-  struct num_expr_list *elp
+  struct num_expr_list *elp;
   no_printf("\nArray expression: [");
   for (elp = nel; elp != NULL; elp = elp->next)
   {
@@ -2106,20 +2220,16 @@ int mdl_assign_variable_array(struct mdlparse_vars *mpvp,
   sym->sym_type = ARRAY;
   sym->value = value;
 #ifdef DEBUG
-  mpvp->elp=(struct num_expr_list *) sym->value;
+  struct num_expr_list *elp=(struct num_expr_list *) sym->value;
   no_printf("\n%s is equal to: [", sym->name);
-  fflush(mpvp->vol->err_file);
-  while (mpvp->elp!=NULL) {
-    no_printf("%lf",mpvp->elp->value);
-    fflush(mpvp->vol->err_file);
-    mpvp->elp=mpvp->elp->next;
-    if (mpvp->elp!=NULL) {
+  while (elp!=NULL) {
+    no_printf("%lf",elp->value);
+    elp=elp->next;
+    if (elp!=NULL) {
       no_printf(",");
-      fflush(mpvp->vol->err_file);
     }
   }
   no_printf("]\n");
-  fflush(mpvp->vol->err_file);
 #endif
   return 0;
 }
@@ -2673,47 +2783,52 @@ int mdl_set_checkpoint_interval(struct mdlparse_vars *mpvp, long long iters)
 *************************************************************************/
 int mdl_set_partition(struct mdlparse_vars *mpvp,
                       int dim,
-                      struct num_expr_list *head,
-                      int nparts)
+                      struct num_expr_list_head *head)
 {
   int i;
   double *dblp;
   struct num_expr_list *nel;
 
   /* Allocate array for partitions */
-  dblp = MDL_MALLOC_ARRAY_DESC(double, (nparts + 2), "volume partitions");
+  dblp = MDL_MALLOC_ARRAY_DESC(double, (head->value_count + 2), "volume partitions");
   if (dblp == NULL)
     return 1;
 
   /* Copy partitions in sorted order to the array */
-  mdl_sort_numeric_list(head);
   i=1;
   dblp[0] = -GIGANTIC;
-  for (nel = head; nel != NULL; nel = nel->next)
+  for (nel = head->value_head; nel != NULL; nel = nel->next)
     dblp[i++] = nel->value * mpvp->vol->r_length_unit;
-  dblp[i] =  GIGANTIC;
+  dblp[i++] =  GIGANTIC;
+  qsort(dblp, i, sizeof(double), & double_cmp);
 
   /* Copy the partitions into the model */
-  switch (dim) {
+  switch (dim)
+  {
     case X_PARTS:
       if (mpvp->vol->x_partitions != NULL)
         free(mpvp->vol->x_partitions);
-      mpvp->vol->nx_parts = nparts;
+      mpvp->vol->nx_parts = head->value_count;
       mpvp->vol->x_partitions = dblp;
       break;
+
     case Y_PARTS:
       if (mpvp->vol->y_partitions != NULL)
         free(mpvp->vol->y_partitions);
-      mpvp->vol->ny_parts = nparts;
+      mpvp->vol->ny_parts = head->value_count;
       mpvp->vol->y_partitions = dblp;
       break;
+
     case Z_PARTS:
       if (mpvp->vol->z_partitions != NULL)
         free(mpvp->vol->z_partitions);
-      mpvp->vol->nz_parts = nparts;
+      mpvp->vol->nz_parts = head->value_count;
       mpvp->vol->z_partitions = dblp;
       break;
   }
+
+  if (! head->shared)
+    mdl_free_numeric_list(head->value_head);
 
   return 0;
 }
@@ -6481,7 +6596,7 @@ static void free_connection_list(struct element_connection_list *eclp)
   while (eclp)
   {
     struct element_connection_list *next = eclp->next;
-    mdl_free_numeric_list(eclp->connection_list);
+    free(eclp->indices);
     free(eclp);
     eclp = next;
   }
@@ -6628,9 +6743,20 @@ struct element_connection_list *mdl_new_element_connection(struct mdlparse_vars 
   if (eclp == NULL)
     return NULL;
 
-  eclp->connection_list = indices->value_head;
+  eclp->indices = MDL_MALLOC_ARRAY_DESC(int, 3, "polygon element connections");
+  if (eclp->indices == NULL)
+  {
+    free(eclp);
+    return NULL;
+  }
+  eclp->indices[0] = (int) indices->value_head->value;
+  eclp->indices[1] = (int) indices->value_head->next->value;
+  eclp->indices[2] = (int) indices->value_tail->value;
   eclp->n_verts = indices->value_count;
   eclp->next = NULL;
+
+  if (! indices->shared)
+    mdl_free_numeric_list(indices->value_head);
   return eclp;
 }
 
@@ -6657,9 +6783,21 @@ struct element_connection_list *mdl_new_tet_element_connection(struct mdlparse_v
   if (eclp == NULL)
     return NULL;
 
-  eclp->connection_list = indices->value_head;
+  eclp->indices = MDL_MALLOC_ARRAY_DESC(int, 4, "polygon element connections");
+  if (eclp->indices == NULL)
+  {
+    free(eclp);
+    return NULL;
+  }
+  eclp->indices[0] = (int) indices->value_head->value;
+  eclp->indices[1] = (int) indices->value_head->next->value;
+  eclp->indices[2] = (int) indices->value_head->next->next->value;
+  eclp->indices[3] = (int) indices->value_tail->value;
   eclp->n_verts = indices->value_count;
   eclp->next = NULL;
+
+  if (! indices->shared)
+    mdl_free_numeric_list(indices->value_head);
   return eclp;
 }
 
@@ -6685,7 +6823,7 @@ struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *mpvp,
   struct region *rp = NULL;
   struct ordered_poly *opp = NULL;
   struct object *objp = (struct object *) sym->value;
-  u_int i,j;
+  u_int i;
   struct element_data *edp = NULL;
   struct polygon_object *pop = NULL;
 
@@ -6769,16 +6907,8 @@ struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *mpvp,
       goto failure;
     }
 
-    for (j = 0; j<connections->n_verts; j++)
-    {
-      struct num_expr_list *elp_temp;
-      edp[i].vertex_index[j] = (int) connections->connection_list->value;
-      elp_temp = connections->connection_list;
-      connections->connection_list = connections->connection_list->next;
-      free(elp_temp);
-    }
-
     struct element_connection_list *eclp_temp = connections;
+    memcpy(edp[i].vertex_index, connections->indices, 3*sizeof(int));
     connections = connections->next;
     free(eclp_temp);
   }
@@ -6963,7 +7093,7 @@ struct voxel_object *mdl_new_voxel_list(struct mdlparse_vars *mpvp,
                                         struct element_connection_list *connections)
 {
   struct ordered_voxel *ovp = NULL;
-  u_int i,j;
+  u_int i;
   struct tet_element_data *tedp;
 
   struct object *objp = (struct object *) sym->value;
@@ -7008,21 +7138,14 @@ struct voxel_object *mdl_new_voxel_list(struct mdlparse_vars *mpvp,
   /* Copy in tetrahedra */
   for (i=0; i<ovp->n_voxels; i++)
   {
-    struct element_connection_list *eclp_temp = connections;
     if (connections->n_verts != 4)
     {
       mdlerror(mpvp, "All voxels must have four vertices.");
       goto failure;
     }
-    tedp[i].n_verts = connections->n_verts;
-    for (j=0; j<connections->n_verts; j++)
-    {
-      struct num_expr_list * elp_temp = connections->connection_list;
-      tedp[i].vertex_index[j] = (int)connections->connection_list->value;
-      connections->connection_list = connections->connection_list->next;
-      free(elp_temp);
-    }
 
+    struct element_connection_list *eclp_temp = connections;
+    memcpy(tedp[i].vertex_index, connections->indices, 4*sizeof(int));
     connections = connections->next;
     free(eclp_temp);
   }
@@ -8038,20 +8161,28 @@ static void mdl_set_reaction_output_timer_step(struct mdlparse_vars *mpvp,
 
  In: mpvp: parser state
      obp:  output block whose timer is to be set
-     nstep: number of iterations
      step_values: list of iterations
- Out: output timer is updated
+ Out: 0 on success, 1 on failure; output timer is updated
 **************************************************************************/
-static void mdl_set_reaction_output_timer_iterations(struct mdlparse_vars *mpvp,
-                                                     struct output_block *obp,
-                                                     int nsteps,
-                                                     struct num_expr_list *step_values)
+static int mdl_set_reaction_output_timer_iterations(struct mdlparse_vars *mpvp,
+                                                    struct output_block *obp,
+                                                    struct num_expr_list_head *step_values)
 {
-  obp->timer_type=OUTPUT_BY_ITERATION_LIST;
-  obp->buffersize = mdl_pick_buffer_size(mpvp, obp, nsteps);
-  mdl_sort_numeric_list(step_values);
-  obp->time_list_head = step_values;
+  obp->timer_type = OUTPUT_BY_ITERATION_LIST;
+  obp->buffersize = mdl_pick_buffer_size(mpvp, obp, step_values->value_count);
+  if (step_values->shared)
+  {
+    obp->time_list_head = mdl_copysort_numeric_list(mpvp, step_values->value_head);
+    if (obp->time_list_head == NULL)
+      return 1;
+  }
+  else
+  {
+    mdl_sort_numeric_list(step_values->value_head);
+    obp->time_list_head = step_values->value_head;
+  }
   obp->time_now = NULL;
+  return 0;
 }
 
 /**************************************************************************
@@ -8064,18 +8195,26 @@ static void mdl_set_reaction_output_timer_iterations(struct mdlparse_vars *mpvp,
      step_values: list of times
  Out: output timer is updated
 **************************************************************************/
-static void mdl_set_reaction_output_timer_times(struct mdlparse_vars *mpvp,
-                                                struct output_block *obp,
-                                                int nsteps,
-                                                struct num_expr_list *step_values)
+static int mdl_set_reaction_output_timer_times(struct mdlparse_vars *mpvp,
+                                               struct output_block *obp,
+                                               struct num_expr_list_head *step_values)
 {
-  obp->timer_type=OUTPUT_BY_TIME_LIST;
-  obp->buffersize = mdl_pick_buffer_size(mpvp, obp, nsteps);
-  mdl_sort_numeric_list(step_values);
-  obp->time_list_head = step_values;
+  obp->timer_type = OUTPUT_BY_TIME_LIST;
+  obp->buffersize = mdl_pick_buffer_size(mpvp, obp, step_values->value_count);
+  if (step_values->shared)
+  {
+    obp->time_list_head = mdl_copysort_numeric_list(mpvp, step_values->value_head);
+    if (obp->time_list_head == NULL)
+      return 1;
+  }
+  else
+  {
+    mdl_sort_numeric_list(step_values->value_head);
+    obp->time_list_head = step_values->value_head;
+  }
   obp->time_now = NULL;
+  return 0;
 }
-
 
 /**************************************************************************
  mdl_add_reaction_output_block_to_world:
@@ -8100,9 +8239,15 @@ int mdl_add_reaction_output_block_to_world(struct mdlparse_vars *mpvp,
   if (otimes->type == OUTPUT_BY_STEP)
     mdl_set_reaction_output_timer_step(mpvp, obp, otimes->step);
   else if (otimes->type == OUTPUT_BY_ITERATION_LIST)
-    mdl_set_reaction_output_timer_iterations(mpvp, obp, otimes->values.value_count, otimes->values.value_head);
+  {
+    if (mdl_set_reaction_output_timer_iterations(mpvp, obp, & otimes->values))
+      return 1;
+  }
   else if (otimes->type == OUTPUT_BY_TIME_LIST)
-    mdl_set_reaction_output_timer_times(mpvp, obp, otimes->values.value_count, otimes->values.value_head);
+  {
+    if (mdl_set_reaction_output_timer_times(mpvp, obp, & otimes->values))
+      return 1;
+  }
   else
   {
     mdlerror_fmt(mpvp, "Internal error: Invalid output timer def (%d)", otimes->type);
@@ -8923,6 +9068,312 @@ int mdl_single_count_expr(struct mdlparse_vars *mpvp,
  *************************************************************************/
 
 /**************************************************************************
+ mdl_create_viz_frame:
+    Create a frame for output in the visualization.
+
+ In: mpvp: parser state
+     time_type: either OUTPUT_BY_TIME_LIST or OUTPUT_BY_ITERATION_LIST
+     type: the type (MESH_GEOMETRY, MOL_POS, etc.)
+     iteration_list: list of iterations/times at which to output
+ Out: the frame_data_list object, if successful, or NULL if we ran out of memory
+**************************************************************************/
+static struct frame_data_list *mdl_create_viz_frame(struct mdlparse_vars *mpvp,
+                                                    int time_type,
+                                                    int type,
+                                                    struct num_expr_list *iteration_list)
+{
+  UNUSED(mpvp);
+
+  struct frame_data_list *fdlp;
+  fdlp = MDL_MALLOC_STRUCT_DESC(struct frame_data_list,
+                                "VIZ_OUTPUT frame data");
+  if (fdlp == NULL)
+    return NULL;
+
+  fdlp->list_type = time_type;
+  fdlp->type = type;
+  fdlp->viz_iteration = -1;
+  fdlp->n_viz_iterations = 0;
+  fdlp->iteration_list = iteration_list;
+  fdlp->curr_viz_iteration = iteration_list;
+  return fdlp;
+}
+
+/**************************************************************************
+ mdl_create_viz_mesh_frames:
+    Create one or more mesh frames for output in the visualization.
+
+ In: mpvp: parser state
+     time_type: either OUTPUT_BY_TIME_LIST or OUTPUT_BY_ITERATION_LIST
+     type: the type (MESH_GEOMETRY, REGION_DATA, etc.)
+     viz_mode: visualization mode
+     times: list of iterations/times at which to output
+ Out: the frame_data_list object, if successful, or NULL if we ran out of memory
+**************************************************************************/
+static struct frame_data_list *mdl_create_viz_mesh_frames(struct mdlparse_vars *mpvp,
+                                                          int time_type,
+                                                          int type,
+                                                          int viz_mode,
+                                                          struct num_expr_list_head *times)
+{
+  struct frame_data_list *frames = NULL;
+  struct frame_data_list *new_frame;
+  struct num_expr_list *times_sorted;
+  if (times->shared)
+  {
+    times_sorted = mdl_copysort_numeric_list(mpvp, times->value_head);
+    if (times_sorted == NULL)
+      return NULL;
+  }
+  else
+  {
+    mdl_sort_numeric_list(times->value_head);
+    times_sorted = times->value_head;
+  }
+
+  if((viz_mode == DREAMM_V3_GROUPED_MODE) || (viz_mode == DREAMM_V3_MODE))
+  {
+    if ((new_frame = mdl_create_viz_frame(mpvp, time_type, type, times_sorted)) == NULL)
+      return NULL;
+    new_frame->next = frames;
+    frames = new_frame;
+  }
+  else if((viz_mode == DX_MODE) && (type == REG_DATA))
+  {
+    /* do nothing */
+    mdlerror(mpvp, "REGION_DATA cannot be displayed in DX_MODE; please use DREAMM_V3_GROUPED (or DREAMM_V3) mode.");
+  }
+  else if(viz_mode == DX_MODE)
+  {
+    if((type == MESH_GEOMETRY) || (type == ALL_MESH_DATA))
+    {
+      /* create two frames - SURF_POS and SURF_STATES */
+      if ((new_frame = mdl_create_viz_frame(mpvp, time_type, SURF_POS, times_sorted)) == NULL)
+        return NULL;
+      new_frame->next = frames;
+      frames = new_frame;
+
+      if ((new_frame = mdl_create_viz_frame(mpvp, time_type, SURF_STATES, times_sorted)) == NULL)
+      {
+        free(frames);
+        return NULL;
+      }
+      new_frame->next = frames;
+      frames = new_frame;
+    }
+  }
+
+  return frames;
+}
+
+/**************************************************************************
+ mdl_new_viz_mesh_frames:
+    Adds some new mesh output frames to a list.
+
+ In: mpvp: parser state
+     frames: list to receive frames
+     time_type: timing type (OUTPUT_BY_TIME_LIST or ...ITERATION_LIST)
+     mesh_item_type: REGION_DATA, etc.
+     timelist: list of times in appropriate units (as per time_type)
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_new_viz_mesh_frames(struct mdlparse_vars *mpvp,
+                            struct frame_data_list_head *frames,
+                            int time_type,
+                            int mesh_item_type,
+                            struct num_expr_list_head *timelist)
+{
+  frames->frame_head = frames->frame_tail = NULL;
+  if (mpvp->vol->viz_mode == NO_VIZ_MODE)
+    return 0;
+
+  struct frame_data_list *fdlp;
+  fdlp = mdl_create_viz_mesh_frames(mpvp,
+                                    time_type,
+                                    mesh_item_type,
+                                    mpvp->vol->viz_mode,
+                                    timelist);
+  if (! fdlp)
+    return 1;
+
+  frames->frame_head = fdlp;
+  while (fdlp->next != NULL)
+    fdlp = fdlp->next;
+  frames->frame_tail = fdlp;
+  return 0;
+}
+
+
+/**************************************************************************
+ mdl_create_viz_mol_frames:
+    Create one or more molecule frames for output in the visualization.
+
+ In: mpvp: parser state
+     time_type: either OUTPUT_BY_TIME_LIST or OUTPUT_BY_ITERATION_LIST
+     type: the type (MOL_POS, MOL_ORIENT, etc.)
+     viz_mode: visualization mode
+     times: list of iterations/times at which to output
+ Out: the frame_data_list object, if successful, or NULL if we ran out of memory
+ N.B. If this function fails in DX_MODE, it may leak memory.
+**************************************************************************/
+static struct frame_data_list *mdl_create_viz_mol_frames(struct mdlparse_vars *mpvp,
+                                                         int time_type,
+                                                         int type,
+                                                         int viz_mode,
+                                                         struct num_expr_list_head *times)
+{
+  struct frame_data_list *frames = NULL;
+  struct frame_data_list *new_frame;
+  struct num_expr_list *times_sorted;
+  if (times->shared)
+  {
+    times_sorted = mdl_copysort_numeric_list(mpvp, times->value_head);
+    if (times_sorted == NULL)
+      return NULL;
+  }
+  else
+  {
+    mdl_sort_numeric_list(times->value_head);
+    times_sorted = times->value_head;
+  }
+
+  if ((viz_mode == DREAMM_V3_GROUPED_MODE) || (viz_mode == DREAMM_V3_MODE))
+  {
+    if ((new_frame = mdl_create_viz_frame(mpvp, time_type, type, times_sorted)) == NULL)
+      return NULL;
+    new_frame->next = frames;
+    frames = new_frame;
+  }
+  else if (viz_mode == DX_MODE)
+  {
+    if((type == MOL_POS) || (type == ALL_MOL_DATA))
+    {
+      /* create four frames */
+      if ((new_frame = mdl_create_viz_frame(mpvp, time_type, EFF_POS, times_sorted)) == NULL)
+        return NULL;
+      new_frame->next = frames;
+      frames = new_frame;
+
+      if ((new_frame = mdl_create_viz_frame(mpvp, time_type, EFF_STATES, times_sorted)) == NULL)
+        return NULL;
+      new_frame->next = frames;
+      frames = new_frame;
+
+      if ((new_frame = mdl_create_viz_frame(mpvp, time_type, MOL_POS, times_sorted)) == NULL)
+        return NULL;
+      new_frame->next = frames;
+      frames = new_frame;
+
+      if ((new_frame = mdl_create_viz_frame(mpvp, time_type, MOL_STATES, times_sorted)) == NULL)
+        return NULL;
+      new_frame->next = frames;
+      frames = new_frame;
+    }
+    else if (type == MOL_ORIENT)
+    {
+      /* do nothing */
+      mdlerror(mpvp, "MOL_ORIENT cannot be displayed in DX_MODE; please use DREAMM_V3_GROUPED (or DREAMM_V3) mode.");
+    }
+  }
+  else if (type == MOL_POS  ||  type == ALL_MOL_DATA  ||  type == MOL_STATES)
+  {
+    if ((new_frame = mdl_create_viz_frame(mpvp, time_type, type, times_sorted)) == NULL)
+      return NULL;
+    new_frame->next = frames;
+    frames = new_frame;
+  }
+  else
+  {
+    mdlerror_fmt(mpvp, "This type of molecule output data is not valid for the selected VIZ output mode.");
+    return NULL;
+  }
+
+  return frames;
+}
+
+/**************************************************************************
+ mdl_new_viz_mol_frames:
+    Adds some new molecule output frames to a list.
+
+ In: mpvp: parser state
+     frames: list to receive frames
+     time_type: timing type (OUTPUT_BY_TIME_LIST or ...ITERATION_LIST)
+     mol_item_type: MOLECULE_POSITIONS, etc.
+     timelist: list of times in appropriate units (as per time_type)
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_new_viz_mol_frames(struct mdlparse_vars *mpvp,
+                           struct frame_data_list_head *frames,
+                           int time_type,
+                           int mol_item_type,
+                           struct num_expr_list_head *timelist)
+{
+  frames->frame_head = frames->frame_tail = NULL;
+  if (mpvp->vol->viz_mode == NO_VIZ_MODE)
+    return 0;
+
+  struct frame_data_list *fdlp;
+  fdlp = mdl_create_viz_mol_frames(mpvp,
+                                   time_type,
+                                   mol_item_type,
+                                   mpvp->vol->viz_mode,
+                                   timelist);
+  if (! fdlp)
+    return 1;
+
+  frames->frame_head = fdlp;
+  while (fdlp->next != NULL)
+    fdlp = fdlp->next;
+  frames->frame_tail = fdlp;
+  return 0;
+}
+
+/**************************************************************************
+ mdl_new_viz_frames:
+    Adds some new output frames to a list.
+
+ In: mpvp: parser state
+     frames: list to receive frames
+     time_type: timing type (OUTPUT_BY_TIME_LIST or ...ITERATION_LIST)
+     type: the type (ALL_FRAME_DATA, etc.)
+     times: list of iterations/times at which to output
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_new_viz_frames(struct mdlparse_vars *mpvp,
+                       struct frame_data_list_head *frames,
+                       int time_type,
+                       int type,
+                       struct num_expr_list_head *times)
+{
+  frames->frame_head = frames->frame_tail = NULL;
+  if (mpvp->vol->viz_mode == NO_VIZ_MODE)
+    return 0;
+
+  struct num_expr_list *times_sorted;
+  if (times->shared)
+  {
+    times_sorted = mdl_copysort_numeric_list(mpvp, times->value_head);
+    if (times_sorted == NULL)
+      return 1;
+  }
+  else
+  {
+    mdl_sort_numeric_list(times->value_head);
+    times_sorted = times->value_head;
+  }
+
+  struct frame_data_list *fdlp;
+  fdlp = mdl_create_viz_frame(mpvp,
+                              time_type,
+                              type,
+                              times_sorted);
+  if (! fdlp)
+    return 1;
+  frames->frame_tail = frames->frame_head = fdlp;
+  return 0;
+}
+
+/**************************************************************************
  mdl_new_viz_all_times:
     Build a list of times for VIZ output, one timepoint per iteration in the
     simulation.
@@ -8938,6 +9389,7 @@ int mdl_new_viz_all_times(struct mdlparse_vars *mpvp,
   list->value_head = NULL;
   list->value_tail = NULL;
   list->value_count = 0;
+  list->shared = 0;
 
   for (step = 0; step <= mpvp->vol->iterations; step ++)
   {
@@ -8973,6 +9425,7 @@ int mdl_new_viz_all_iterations(struct mdlparse_vars *mpvp, struct num_expr_list_
   list->value_head = NULL;
   list->value_tail = NULL;
   list->value_count = 0;
+  list->shared = 0;
 
   for (step = 0; step <= mpvp->vol->iterations; step ++)
   {
@@ -8991,161 +9444,6 @@ int mdl_new_viz_all_iterations(struct mdlparse_vars *mpvp, struct num_expr_list_
     list->value_tail->next = NULL;
   }
   return 0;
-}
-
-/**************************************************************************
- mdl_create_viz_frame:
-    Create a frame for output in the visualization.
-
- In: mpvp: parser state
-     time_type: either OUTPUT_BY_TIME_LIST or OUTPUT_BY_ITERATION_LIST
-     type: the type (MESH_GEOMETRY, MOL_POS, etc.)
-     iteration_list: list of iterations/times at which to output
- Out: the frame_data_list object, if successful, or NULL if we ran out of memory
-**************************************************************************/
-struct frame_data_list *mdl_create_viz_frame(struct mdlparse_vars *mpvp,
-                                             int time_type,
-                                             int type,
-                                             struct num_expr_list *iteration_list)
-{
-  struct frame_data_list *fdlp;
-  fdlp = MDL_MALLOC_STRUCT_DESC(struct frame_data_list,
-                                "VIZ_OUTPUT frame data");
-  if (fdlp == NULL)
-    return NULL;
-
-  fdlp->list_type = time_type;
-  fdlp->type = type;
-  fdlp->viz_iteration = -1;
-  fdlp->n_viz_iterations = 0;
-  fdlp->iteration_list = iteration_list;
-  fdlp->curr_viz_iteration = iteration_list;
-  return fdlp;
-}
-
-/**************************************************************************
- mdl_create_viz_mesh_frames:
-    Create one or more mesh frames for output in the visualization.
-
- In: mpvp: parser state
-     time_type: either OUTPUT_BY_TIME_LIST or OUTPUT_BY_ITERATION_LIST
-     type: the type (MESH_GEOMETRY, REGION_DATA, etc.)
-     viz_mode: visualization mode
-     times: list of iterations/times at which to output
- Out: the frame_data_list object, if successful, or NULL if we ran out of memory
-**************************************************************************/
-struct frame_data_list *mdl_create_viz_mesh_frames(struct mdlparse_vars *mpvp,
-                                                   int time_type,
-                                                   int type,
-                                                   int viz_mode,
-                                                   struct num_expr_list *times)
-{
-  struct frame_data_list *frames = NULL;
-  struct frame_data_list *new_frame;
-  mdl_sort_numeric_list(times);
-
-  if((viz_mode == DREAMM_V3_GROUPED_MODE) || (viz_mode == DREAMM_V3_MODE))
-  {
-    if ((new_frame = mdl_create_viz_frame(mpvp, time_type, type, times)) == NULL)
-      return NULL;
-    new_frame->next = frames;
-    frames = new_frame;
-  }
-  else if((viz_mode == DX_MODE) && (type == REG_DATA))
-  {
-    /* do nothing */
-    mdlerror(mpvp, "REGION_DATA cannot be displayed in DX_MODE, please use DREAMM_V3_GROUPED (or DREAMM_V3) mode.");
-  }
-  else if(viz_mode == DX_MODE)
-  {
-    if((type == MESH_GEOMETRY) || (type == ALL_MESH_DATA))
-    {
-      /* create two frames - SURF_POS and SURF_STATES */
-      if ((new_frame = mdl_create_viz_frame(mpvp, time_type, SURF_POS, times)) == NULL)
-        return NULL;
-      new_frame->next = frames;
-      frames = new_frame;
-
-      if ((new_frame = mdl_create_viz_frame(mpvp, time_type, SURF_STATES, times)) == NULL)
-      {
-        free(frames);
-        return NULL;
-      }
-      new_frame->next = frames;
-      frames = new_frame;
-    }
-  }
-
-  return frames;
-}
-
-/**************************************************************************
- mdl_create_viz_mol_frames:
-    Create one or more molecule frames for output in the visualization.
-
- In: mpvp: parser state
-     time_type: either OUTPUT_BY_TIME_LIST or OUTPUT_BY_ITERATION_LIST
-     type: the type (MOL_POS, MOL_ORIENT, etc.)
-     viz_mode: visualization mode
-     times: list of iterations/times at which to output
- Out: the frame_data_list object, if successful, or NULL if we ran out of memory
- N.B. If this function fails in DX_MODE, it may leak memory.
-**************************************************************************/
-struct frame_data_list *mdl_create_viz_mol_frames(struct mdlparse_vars *mpvp,
-                                                  int time_type,
-                                                  int type,
-                                                  int viz_mode,
-                                                  struct num_expr_list *times)
-{
-  struct frame_data_list *frames = NULL;
-  struct frame_data_list *new_frame;
-  mdl_sort_numeric_list(times);
-
-  if ((viz_mode == DREAMM_V3_GROUPED_MODE) || (viz_mode == DREAMM_V3_MODE))
-  {
-    if ((new_frame = mdl_create_viz_frame(mpvp, time_type, type, times)) == NULL)
-      return NULL;
-    new_frame->next = frames;
-    frames = new_frame;
-  }
-  else if (viz_mode == DX_MODE)
-  {
-    if((type == MOL_POS) || (type == ALL_MOL_DATA))
-    {
-      /* create four frames */
-      if ((new_frame = mdl_create_viz_frame(mpvp, time_type, EFF_POS, times)) == NULL)
-        return NULL;
-      new_frame->next = frames;
-      frames = new_frame;
-
-      if ((new_frame = mdl_create_viz_frame(mpvp, time_type, EFF_STATES, times)) == NULL)
-        return NULL;
-      new_frame->next = frames;
-      frames = new_frame;
-
-      if ((new_frame = mdl_create_viz_frame(mpvp, time_type, MOL_POS, times)) == NULL)
-        return NULL;
-      new_frame->next = frames;
-      frames = new_frame;
-
-      if ((new_frame = mdl_create_viz_frame(mpvp, time_type, MOL_STATES, times)) == NULL)
-        return NULL;
-      new_frame->next = frames;
-      frames = new_frame;
-    }
-    else if (type == MOL_ORIENT)
-    {
-      /* do nothing */
-      mdlerror(mpvp, "MOL_ORIENT cannot be displayed in DX_MODE, please use DREAMM_V3_GROUPED (or DREAMM_V3) mode.");
-    }
-  }
-  else
-  {
-    mdlerror_fmt(mpvp, "This type of molecule output specification is only valid for DREAMM or DX modes");
-    return NULL;
-  }
-
-  return frames;
 }
 
 /**************************************************************************
@@ -9328,14 +9626,12 @@ int mdl_add_viz_object(struct mdlparse_vars *mpvp, struct sym_table *obj_sym, in
     Allocate a block of data for Rex's custom visualization mode.
 
  In: mpvp: parser state
-     n_values: number of partitions
      values: partitions between bins
      direction: direction along which to bin
  Out: the rk_mode_data, or NULL if an error occurred.
 **************************************************************************/
 struct rk_mode_data *mdl_new_rk_mode_var(struct mdlparse_vars *mpvp,
-                                         int n_values,
-                                         struct num_expr_list *values,
+                                         struct num_expr_list_head *values,
                                          struct vector3 *direction)
 {
   struct rk_mode_data *rk_mode_var;
@@ -9344,12 +9640,11 @@ struct rk_mode_data *mdl_new_rk_mode_var(struct mdlparse_vars *mpvp,
   double *parts_array;
   int *bins_array;
 
-  mdl_sort_numeric_list(values);
   rk_mode_var = MDL_MALLOC_STRUCT_DESC(struct rk_mode_data, "RK custom visualization");
   if (rk_mode_var == NULL) return NULL;
 
   parts_array = MDL_MALLOC_ARRAY_DESC(double,
-                                      n_values,
+                                      values->value_count,
                                       "RK custom visualization partitions");
   if (parts_array == NULL)
   {
@@ -9358,7 +9653,7 @@ struct rk_mode_data *mdl_new_rk_mode_var(struct mdlparse_vars *mpvp,
   }
 
   bins_array = MDL_MALLOC_ARRAY_DESC(int,
-                                     n_values+1,
+                                     values->value_count+1,
                                      "RK custom visualization bins");
   if (bins_array == NULL)
   {
@@ -9366,13 +9661,15 @@ struct rk_mode_data *mdl_new_rk_mode_var(struct mdlparse_vars *mpvp,
     free(rk_mode_var);
     return NULL;
   }
+  memset(bins_array, 0, sizeof(int) * (values->value_count + 1));
 
   for (i=0,nel=values ; nel!=NULL ; nel=nel->next,i++)
     parts_array[i] = nel->value * mpvp->vol->r_length_unit;
-  mdl_free_numeric_list(values);
+  qsort(parts_array, i, sizeof(double), & double_cmp);
+  if (! values->shared)
+    mdl_free_numeric_list(values->value_head);
 
-  for (i=0;i<n_values+1;i++) bins_array[i] = 0;
-  rk_mode_var->n_bins = n_values+1;
+  rk_mode_var->n_bins = values->value_count+1;
   rk_mode_var->bins = bins_array;
   rk_mode_var->parts = parts_array;
   rk_mode_var->n_written = 0;
@@ -9583,15 +9880,19 @@ struct output_times *mdl_new_output_times_iterations(struct mdlparse_vars *mpvp,
                                              "output times for volume output");
   if (ot == NULL)
   {
-    mdl_free_numeric_list(iters->value_head);
+    if (! iters->shared)
+      mdl_free_numeric_list(iters->value_head);
     return NULL;
   }
   memset(ot, 0, sizeof(struct output_times));
 
-  mdl_sort_numeric_list(iters->value_head);
   ot->timer_type = OUTPUT_BY_ITERATION_LIST;
   ot->times = num_expr_list_to_array(mpvp, iters, &ot->num_times);
-  mdl_free_numeric_list(iters->value_head);
+  if (ot->times != NULL)
+    qsort(ot->times, ot->num_times, sizeof(double), & double_cmp);
+  if (! iters->shared)
+    mdl_free_numeric_list(iters->value_head);
+
   if (ot->num_times != 0  &&  ot->times == NULL)
   {
     mem_put(mpvp->output_times_mem, ot);
@@ -9609,21 +9910,26 @@ struct output_times *mdl_new_output_times_iterations(struct mdlparse_vars *mpvp,
      times: simulation times at which to give volume output
  Out: output times structure, or NULL if allocation fails
 **************************************************************************/
-struct output_times *mdl_new_output_times_time(struct mdlparse_vars *mpvp, struct num_expr_list_head *times)
+struct output_times *mdl_new_output_times_time(struct mdlparse_vars *mpvp,
+                                               struct num_expr_list_head *times)
 {
   struct output_times *ot = MDL_MEM_GET_DESC(mpvp->output_times_mem,
                                              "output times for volume output");
   if (ot == NULL)
   {
-    mdl_free_numeric_list(times->value_head);
+    if (! times->shared)
+      mdl_free_numeric_list(times->value_head);
     return NULL;
   }
   memset(ot, 0, sizeof(struct output_times));
 
-  mdl_sort_numeric_list(times->value_head);
   ot->timer_type = OUTPUT_BY_TIME_LIST;
   ot->times = num_expr_list_to_array(mpvp, times, &ot->num_times);
-  mdl_free_numeric_list(times->value_head);
+  if (ot->times != NULL)
+    qsort(ot->times, ot->num_times, sizeof(double), & double_cmp);
+  if (! times->shared)
+    mdl_free_numeric_list(times->value_head);
+
   if (ot->num_times != 0  &&  ot->times == NULL)
   {
     mem_put(mpvp->output_times_mem, ot);

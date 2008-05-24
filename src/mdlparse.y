@@ -420,7 +420,6 @@ struct macro_relation_state *relation_state;
 %type <sym> existing_var_only
 %type <nlist> array_value
 %type <nlist> array_expr_only
-%type <nlist> array_expr
 %type <sym> existing_array
 %type <dbl> num_expr
 %type <dbl> num_value
@@ -464,6 +463,7 @@ struct macro_relation_state *relation_state;
 %type <ival> target_def
 
 /* Complex molecule definition non-terminals */
+%type <nlist> subunit_coord
 %type <str> complex_mol_name
 %type <mmol_topo> complex_mol_topology
 %type <mmol_su_comp> complex_mol_subunit_component
@@ -795,7 +795,7 @@ assignment_stmt:
         assign_var '=' num_expr_only                  { CHECK(mdl_assign_variable_double(mdlpvp, $1, $3)); }
       | assign_var '=' str_expr_only                  { CHECK(mdl_assign_variable_string(mdlpvp, $1, $3)); }
       | assign_var '=' existing_var_only              { CHECK(mdl_assign_variable(mdlpvp, $1, $3)); }
-      | assign_var '=' '[' array_expr ']'             { CHECK(mdl_assign_variable_array(mdlpvp, $1, $4.value_head)); }
+      | assign_var '=' array_expr_only                { CHECK(mdl_assign_variable_array(mdlpvp, $1, $3.value_head)); }
 ;
 
 assign_var: VAR                                       { CHECKN($$ = mdl_get_or_create_variable(mdlpvp, $1)); }
@@ -816,12 +816,7 @@ array_value: array_expr_only
                                                       }
 ;
 
-array_expr_only: '[' list_range_specs ']'             { mdl_debug_dump_array($2.head); $$ = $2; }
-;
-
-array_expr:
-        num_expr                                      { CHECK(mdl_generate_range_singleton(mdlpvp, &$$, $1)); }
-      | array_expr ',' num_expr                       { $$ = $1; CHECK(mdl_add_range_value(mdlpvp, &$$, $3)); }
+array_expr_only: '[' list_range_specs ']'             { mdl_debug_dump_array($2.value_head); $$ = $2; }
 ;
 
 existing_array: VAR                                   { CHECKN($$ = mdl_existing_array(mdlpvp, $1)); }
@@ -1103,8 +1098,7 @@ parameter_def:
 /* Partitions */
 
 partition_def:
-          partition_dimension '='
-          '[' list_range_specs ']'                    { CHECK(mdl_set_partition(mdlpvp, $1, $4.value_head, $4.value_count)); }
+          partition_dimension '=' array_value         { CHECK(mdl_set_partition(mdlpvp, $1, & $3)); }
 ;
 
 partition_dimension:
@@ -1231,8 +1225,13 @@ complex_mol_subunit_locations:
           complex_mol_subunit_location                { if ($2) $2->next = $1; $$ = $2; }
 ;
 
+subunit_coord:
+        num_expr                                      { CHECK(mdl_generate_range_singleton(mdlpvp, &$$, $1)); }
+      | subunit_coord ',' num_expr                    { $$ = $1; CHECK(mdl_add_range_value(mdlpvp, &$$, $3)); }
+;
+
 complex_mol_subunit_location:
-          SUBUNIT '[' array_expr ']' '=' point        { CHECKN($$ = mdl_assemble_complex_geometry(mdlpvp, mdlpvp->complex_topo, &$3, $6)); }
+          SUBUNIT '[' subunit_coord ']' '=' point     { CHECKN($$ = mdl_assemble_complex_geometry(mdlpvp, mdlpvp->complex_topo, &$3, $6)); }
 ;
 
 complex_mol_relationships:
@@ -1939,6 +1938,7 @@ prev_region_type: INCLUDE_REGION                      { $$ = 0; }
 ;
 
 patch_statement: patch_type '=' point ',' point       { CHECKN($$ = mdl_new_element_patch(mdlpvp, mdlpvp->current_polygon, $3, $5, $1)); }
+;
 
 patch_type: INCLUDE_PATCH                             { $$ = 0; }
           | EXCLUDE_PATCH                             { $$ = 1; }
@@ -2130,17 +2130,17 @@ step_time_def: STEP '=' num_expr                      { $$.type = OUTPUT_BY_STEP
 ;
 
 iteration_time_def:
-          ITERATION_LIST '=' '[' list_range_specs ']' {
+          ITERATION_LIST '=' array_value              {
                                                         $$.type = OUTPUT_BY_ITERATION_LIST;
-                                                        $$.values = $4;
+                                                        $$.values = $3;
                                                       }
 ;
 
 
 real_time_def:
-          TIME_LIST '=' '[' list_range_specs ']'      {
+          TIME_LIST '=' array_value                   {
                                                         $$.type = OUTPUT_BY_TIME_LIST;
-                                                        $$.values = $4;
+                                                        $$.values = $3;
                                                       }
 ;
 
@@ -2407,8 +2407,7 @@ viz_mode_def: MODE '=' NONE                           { $$ = NO_VIZ_MODE; }
                                                           mdlpvp->vol->rk_mode_var = NULL;
                                                           $$ = RK_MODE;
                                                       }
-            | MODE '=' CUSTOM_RK
-              '[' list_range_specs ']' point          {
+            | MODE '=' CUSTOM_RK array_value point    {
                                                           /* If we already had a CUSTOM_RK block, we're going to overwrite the volp->rk_mode_var data... */
                                                           if (mdlpvp->vol->viz_mode == RK_MODE)
                                                           {
@@ -2416,7 +2415,7 @@ viz_mode_def: MODE '=' NONE                           { $$ = NO_VIZ_MODE; }
                                                             return 1;
                                                           }
 
-                                                          CHECKN(mdlpvp->vol->rk_mode_var = mdl_new_rk_mode_var(mdlpvp, $5.value_count, $5.value_head, $7));
+                                                          CHECKN(mdlpvp->vol->rk_mode_var = mdl_new_rk_mode_var(mdlpvp, & $4, $5));
                                                           $$ = RK_MODE;
                                                       }
             | MODE '=' ASCII                          { $$ = ASCII_MODE; }
@@ -2603,7 +2602,7 @@ list_all_mols_specs: ALL_MOLECULES                    {
 
 viz_time_spec:
           ALL_TIMES                                   { CHECK(mdl_new_viz_all_times(mdlpvp, & $$)); }
-        | '[' list_range_specs ']'                    { $$ = $2; }
+        | array_value
 ;
 viz_molecules_time_points_def:
           TIME_POINTS '{'
@@ -2615,31 +2614,28 @@ viz_molecules_time_points_cmds:
           viz_molecules_time_points_one_cmd
         | viz_molecules_time_points_cmds
           viz_molecules_time_points_one_cmd           {
-                                                        $$ = $1;
-                                                        $$.frame_tail->next = $2.frame_head;
-                                                        $$.frame_tail = $2.frame_tail;
+                                                        if ($1.frame_head != NULL)
+                                                        {
+                                                          $$ = $1;
+                                                          if ($2.frame_head != NULL)
+                                                          {
+                                                            $$.frame_tail->next = $2.frame_head;
+                                                            $$.frame_tail = $2.frame_tail;
+                                                          }
+                                                        }
+                                                        else if ($2.frame_head != NULL)
+                                                          $$ = $2;
                                                       }
 ;
 
 viz_molecules_time_points_one_cmd:
           viz_molecules_one_item '@'
-          viz_time_spec                               {
-                                                        struct frame_data_list *fdlp;
-                                                        CHECKN(fdlp = mdl_create_viz_mol_frames(mdlpvp,
-                                                                                                OUTPUT_BY_TIME_LIST,
-                                                                                                $1,
-                                                                                                mdlpvp->vol->viz_mode,
-                                                                                                $3.value_head));
-                                                        $$.frame_head = fdlp;
-                                                        while (fdlp->next != NULL)
-                                                          fdlp = fdlp->next;
-                                                        $$.frame_tail = fdlp;
-                                                      }
+          viz_time_spec                               { CHECK(mdl_new_viz_mol_frames(mdlpvp, & $$, OUTPUT_BY_TIME_LIST, $1, & $3)); }
 ;
 
 viz_iteration_spec:
           ALL_ITERATIONS                              { CHECK(mdl_new_viz_all_iterations(mdlpvp, & $$)); }
-        | '[' list_range_specs ']'                    { $$ = $2; }
+        | array_value
 ;
 
 viz_molecules_iteration_numbers_def:
@@ -2652,26 +2648,23 @@ viz_molecules_iteration_numbers_cmds:
           viz_molecules_iteration_numbers_one_cmd
         | viz_molecules_iteration_numbers_cmds
           viz_molecules_iteration_numbers_one_cmd     {
-                                                        $$ = $1;
-                                                        $$.frame_tail->next = $2.frame_head;
-                                                        $$.frame_tail = $2.frame_tail;
+                                                        if ($1.frame_head != NULL)
+                                                        {
+                                                          $$ = $1;
+                                                          if ($2.frame_head != NULL)
+                                                          {
+                                                            $$.frame_tail->next = $2.frame_head;
+                                                            $$.frame_tail = $2.frame_tail;
+                                                          }
+                                                        }
+                                                        else if ($2.frame_head != NULL)
+                                                          $$ = $2;
                                                       }
 ;
 
 viz_molecules_iteration_numbers_one_cmd:
           viz_molecules_one_item '@'
-          viz_iteration_spec                          {
-                                                        struct frame_data_list *fdlp;
-                                                        CHECKN(fdlp = mdl_create_viz_mol_frames(mdlpvp,
-                                                                                                OUTPUT_BY_ITERATION_LIST,
-                                                                                                $1,
-                                                                                                mdlpvp->vol->viz_mode,
-                                                                                                $3.value_head));
-                                                        $$.frame_head = fdlp;
-                                                        while (fdlp->next != NULL)
-                                                          fdlp = fdlp->next;
-                                                        $$.frame_tail = fdlp;
-                                                      }
+          viz_iteration_spec                          { CHECK(mdl_new_viz_mol_frames(mdlpvp, & $$, OUTPUT_BY_ITERATION_LIST, $1, & $3)); }
 ;
 
 viz_molecules_one_item: ALL_DATA                      { $$ = ALL_MOL_DATA; }
@@ -2782,31 +2775,23 @@ viz_meshes_time_points_cmds:
           viz_meshes_time_points_one_cmd
         | viz_meshes_time_points_cmds
           viz_meshes_time_points_one_cmd              {
-                                                        $$ = $1;
-                                                        $$.frame_tail->next = $2.frame_head;
-                                                        $$.frame_tail = $2.frame_tail;
+                                                        if ($1.frame_head != NULL)
+                                                        {
+                                                          $$ = $1;
+                                                          if ($2.frame_head != NULL)
+                                                          {
+                                                            $$.frame_tail->next = $2.frame_head;
+                                                            $$.frame_tail = $2.frame_tail;
+                                                          }
+                                                        }
+                                                        else if ($2.frame_head != NULL)
+                                                          $$ = $2;
                                                       }
 ;
 
 viz_meshes_time_points_one_cmd:
           viz_meshes_one_item '@'
-          viz_time_spec                               {
-                                                        if (mdlpvp->vol->viz_mode == DX_MODE  ||
-                                                            mdlpvp->vol->viz_mode == DREAMM_V3_MODE ||
-                                                            mdlpvp->vol->viz_mode == DREAMM_V3_GROUPED_MODE)
-                                                        {
-                                                          struct frame_data_list *fdlp;
-                                                          CHECKN(fdlp = mdl_create_viz_mesh_frames(mdlpvp,
-                                                                                                   OUTPUT_BY_TIME_LIST,
-                                                                                                   $1,
-                                                                                                   mdlpvp->vol->viz_mode,
-                                                                                                   $3.value_head));
-                                                          $$.frame_head = fdlp;
-                                                          while (fdlp->next != NULL)
-                                                            fdlp = fdlp->next;
-                                                          $$.frame_tail = fdlp;
-                                                        }
-                                                      }
+          viz_time_spec                               { CHECK(mdl_new_viz_mesh_frames(mdlpvp, & $$, OUTPUT_BY_TIME_LIST, $1, & $3)); }
 ;
 
 viz_meshes_iteration_numbers_def:
@@ -2819,31 +2804,23 @@ viz_meshes_iteration_numbers_cmds:
           viz_meshes_iteration_numbers_one_cmd
         | viz_meshes_iteration_numbers_cmds
           viz_meshes_iteration_numbers_one_cmd        {
-                                                        $$ = $1;
-                                                        $$.frame_tail->next = $2.frame_head;
-                                                        $$.frame_tail = $2.frame_tail;
+                                                        if ($1.frame_head != NULL)
+                                                        {
+                                                          $$ = $1;
+                                                          if ($2.frame_head != NULL)
+                                                          {
+                                                            $$.frame_tail->next = $2.frame_head;
+                                                            $$.frame_tail = $2.frame_tail;
+                                                          }
+                                                        }
+                                                        else if ($2.frame_head != NULL)
+                                                          $$ = $2;
                                                       }
 ;
 
 viz_meshes_iteration_numbers_one_cmd:
           viz_meshes_one_item '@'
-          viz_iteration_spec                          {
-                                                        if (mdlpvp->vol->viz_mode == DX_MODE  ||
-                                                            mdlpvp->vol->viz_mode == DREAMM_V3_MODE ||
-                                                            mdlpvp->vol->viz_mode == DREAMM_V3_GROUPED_MODE)
-                                                        {
-                                                          struct frame_data_list *fdlp;
-                                                          CHECKN(fdlp = mdl_create_viz_mesh_frames(mdlpvp,
-                                                                                                   OUTPUT_BY_ITERATION_LIST,
-                                                                                                   $1,
-                                                                                                   mdlpvp->vol->viz_mode,
-                                                                                                   $3.value_head));
-                                                          $$.frame_head = fdlp;
-                                                          while (fdlp->next != NULL)
-                                                            fdlp = fdlp->next;
-                                                          $$.frame_tail = fdlp;
-                                                        }
-                                                      }
+          viz_iteration_spec                          { CHECK(mdl_new_viz_mesh_frames(mdlpvp, & $$, OUTPUT_BY_ITERATION_LIST, $1, & $3)); }
 ;
 
 viz_meshes_one_item: ALL_DATA                         { $$ = ALL_MESH_DATA; }
@@ -2893,29 +2870,11 @@ viz_output_block_def:
 ;
 
 viz_iteration_def:
-          ITERATION_LIST '='
-          '[' list_range_specs ']'                    {
-                                                        struct frame_data_list *fdlp;
-                                                        mdl_sort_numeric_list($4.value_head);
-                                                        CHECKN(fdlp = mdl_create_viz_frame(mdlpvp,
-                                                                                           OUTPUT_BY_ITERATION_LIST,
-                                                                                           ALL_FRAME_DATA,
-                                                                                           $4.value_head));
-                                                        $$.frame_tail = $$.frame_head = fdlp;
-                                                      }
+          ITERATION_LIST '=' array_value              { CHECK(mdl_new_viz_frames(mdlpvp, & $$, OUTPUT_BY_ITERATION_LIST, ALL_FRAME_DATA, & $3)); }
 ;
 
 viz_time_def:
-          TIME_LIST '='
-          '[' list_range_specs ']'                    {
-                                                        struct frame_data_list *fdlp;
-                                                        mdl_sort_numeric_list($4.value_head);
-                                                        CHECKN(fdlp = mdl_create_viz_frame(mdlpvp,
-                                                                                           OUTPUT_BY_TIME_LIST,
-                                                                                           ALL_FRAME_DATA,
-                                                                                           $4.value_head));
-                                                        $$.frame_tail = $$.frame_head = fdlp;
-                                                      }
+          TIME_LIST '=' array_value                   { CHECK(mdl_new_viz_frames(mdlpvp, & $$, OUTPUT_BY_TIME_LIST, ALL_FRAME_DATA, & $3)); }
 ;
 
 viz_iteration_frame_data_def:
@@ -2928,23 +2887,22 @@ list_iteration_frame_data_specs:
           iteration_frame_data_spec
         | list_iteration_frame_data_specs
           iteration_frame_data_spec                   {
-                                                        $$ = $1;
-                                                        $$.frame_tail->next = $2.frame_head;
-                                                        $$.frame_tail = $2.frame_tail;
+                                                        if ($1.frame_head != NULL)
+                                                        {
+                                                          $$ = $1;
+                                                          if ($2.frame_head != NULL)
+                                                          {
+                                                            $$.frame_tail->next = $2.frame_head;
+                                                            $$.frame_tail = $2.frame_tail;
+                                                          }
+                                                        }
+                                                        else if ($2.frame_head != NULL)
+                                                          $$ = $2;
                                                       }
 ;
 
 iteration_frame_data_spec:
-          iteration_frame_data_item '='
-          '[' list_range_specs ']'                    {
-                                                        struct frame_data_list *fdlp;
-                                                        mdl_sort_numeric_list($4.value_head);
-                                                        CHECKN(fdlp = mdl_create_viz_frame(mdlpvp,
-                                                                                           OUTPUT_BY_ITERATION_LIST,
-                                                                                           $1,
-                                                                                           $4.value_head));
-                                                        $$.frame_tail = $$.frame_head = fdlp;
-                                                      }
+          iteration_frame_data_item '=' array_value   { CHECK(mdl_new_viz_frames(mdlpvp, & $$, OUTPUT_BY_ITERATION_LIST, $1, & $3)); }
 ;
 
 iteration_frame_data_item:
@@ -3025,8 +2983,7 @@ existing_logicalOrPhysical: VAR                       { CHECKN($$ = mdl_existing
 ;
 
 viz_state_value:
-          existing_logicalOrPhysical '='
-          num_expr                                    {
+          existing_logicalOrPhysical '=' num_expr     {
                                                           struct species *specp;
                                                           int viz_state = (int) $3;
                                                           switch ($1->sym_type)
@@ -3141,8 +3098,8 @@ volume_output_voxel_count:
 volume_output_times_def:
           /* empty */                                 { CHECKN($$ = mdl_new_output_times_default(mdlpvp)); }
         | STEP '=' num_expr                           { CHECKN($$ = mdl_new_output_times_step(mdlpvp, $3)); }
-        | ITERATION_LIST '=' '[' list_range_specs ']' { CHECKN($$ = mdl_new_output_times_iterations(mdlpvp, & $4)); }
-        | TIME_LIST '=' '[' list_range_specs ']'      { CHECKN($$ = mdl_new_output_times_time(mdlpvp, & $4)); }
+        | ITERATION_LIST '=' array_value              { CHECKN($$ = mdl_new_output_times_iterations(mdlpvp, & $3)); }
+        | TIME_LIST '=' array_value                   { CHECKN($$ = mdl_new_output_times_time(mdlpvp, & $3)); }
 ;
 
 %%

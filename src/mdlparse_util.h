@@ -153,15 +153,6 @@ int mdl_add_range_value(struct mdlparse_vars *mpvp,
                         struct num_expr_list_head *lh,
                         double value);
 
-/* Sort a num_expr_list in ascending numeric order.  This currently uses bubble
- * sort, which is O(n^2).  Don't use it if you expect your list to be very
- * long.  The list is sorted in-place.
- */
-void mdl_sort_numeric_list(struct num_expr_list *head);
-
-/* Free a num_expr_list. */
-void mdl_free_numeric_list(struct num_expr_list *nel);
-
 #ifdef DEBUG
 /* Display a human-readable representation of the specified array. */
 void mdl_debug_dump_array(struct num_expr_list *nel);
@@ -258,8 +249,7 @@ int mdl_set_checkpoint_interval(struct mdlparse_vars *mpvp,
 /* Set the partitioning in a particular dimension. */
 int mdl_set_partition(struct mdlparse_vars *mpvp,
                       int dim,
-                      struct num_expr_list *head,
-                      int nparts);
+                      struct num_expr_list_head *head);
 
 /* Starts creating a new object.  This function has side effects, and must be
  * paired with a call to mdl_finish_object(mdlpvp) */
@@ -799,6 +789,27 @@ int mdl_single_count_expr(struct mdlparse_vars *mpvp,
  * Viz output
  ***************************************************************/
 
+/* Adds some new mesh output frames to a list. */
+int mdl_new_viz_mesh_frames(struct mdlparse_vars *mpvp,
+                            struct frame_data_list_head *frames,
+                            int time_type,
+                            int mesh_item_type,
+                            struct num_expr_list_head *timelist);
+
+/* Adds some new molecule output frames to a list. */
+int mdl_new_viz_mol_frames(struct mdlparse_vars *mpvp,
+                           struct frame_data_list_head *frames,
+                           int time_type,
+                           int mol_item_type,
+                           struct num_expr_list_head *timelist);
+
+/* Adds some new output frames to a list. */
+int mdl_new_viz_frames(struct mdlparse_vars *mpvp,
+                       struct frame_data_list_head *frames,
+                       int time_type,
+                       int type,
+                       struct num_expr_list_head *times);
+
 /* Build a list of times for VIZ output, one timepoint per iteration in the
  * simulation. */
 int mdl_new_viz_all_times(struct mdlparse_vars *mpvp,
@@ -808,26 +819,6 @@ int mdl_new_viz_all_times(struct mdlparse_vars *mpvp,
  * simulation. */
 int mdl_new_viz_all_iterations(struct mdlparse_vars *mpvp,
                                struct num_expr_list_head *list);
-
-/* Create a frame for output in the visualization. */
-struct frame_data_list *mdl_create_viz_frame(struct mdlparse_vars *mpvp,
-                                             int time_type,
-                                             int type,
-                                             struct num_expr_list *iteration_list);
-
-/* Create one or more mesh frames for output in the visualization. */
-struct frame_data_list *mdl_create_viz_mesh_frames(struct mdlparse_vars *mpvp,
-                                                   int time_type,
-                                                   int type,
-                                                   int viz_mode,
-                                                   struct num_expr_list *times);
-
-/* Create one or more molecule frames for output in the visualization. */
-struct frame_data_list *mdl_create_viz_mol_frames(struct mdlparse_vars *mpvp,
-                                                  int time_type,
-                                                  int type,
-                                                  int viz_mode,
-                                                  struct num_expr_list *times);
 
 /* Set the viz_state value for an object and all of its children. */
 int mdl_set_object_viz_state(struct mdlparse_vars *mpvp,
@@ -847,8 +838,7 @@ int mdl_add_viz_object(struct mdlparse_vars *mpvp,
 
 /* Allocate a block of data for Rex's custom visualization mode. */
 struct rk_mode_data *mdl_new_rk_mode_var(struct mdlparse_vars *mpvp,
-                                         int n_values,
-                                         struct num_expr_list *values,
+                                         struct num_expr_list_head *values,
                                          struct vector3 *direction);
 
 /****************************************************************

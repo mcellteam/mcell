@@ -184,9 +184,9 @@ struct vertex_list_head
 
 struct element_connection_list
 {
-  struct num_expr_list *connection_list;
-  int n_verts;
   struct element_connection_list *next;
+  int n_verts;
+  int *indices;
 };
 
 
