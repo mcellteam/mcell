@@ -200,7 +200,6 @@ struct object *new_object(void)
   objp->wall_p=NULL;
   objp->n_verts=0;
   objp->verts=NULL;
-  objp->vert_p=NULL;
   objp->total_area=0;
   objp->n_tiles=0;
   objp->n_occupied_tiles=0;

@@ -1610,24 +1610,14 @@ struct output_trigger_data
 
 /* A polygon list object, part of a surface. */
 struct polygon_object {
-  struct ordered_poly *polygon_data; /* Holds polygon vertices etc... */
+  int n_verts;                       /* Number of vertices in polyhedron */
+  struct vector3 *vertex;            /* Array of vertices */
+  int n_walls;                       /* Number of triangles in polyhedron */
+  struct element_data *element;      /* Array specifying the vertex connectivity of each triangle */
+  struct vector3 *normal;            /* Array of triangle normals */
   struct subdivided_box *sb;         /* Holds corners of box if necessary */
-  int n_walls;                       /* Number of polygons in polygon object */
-  int n_verts;                       /* Number of vertices in polygon object */
-  byte fully_closed;		     /* If set, indicates a closed object */
   struct species **surf_class;       /* Array of pointers to surface class, one for each polygon */
   struct bit_array *side_removed;    /* Bit array; if bit is set, side is removed */
-};
-
-
-/* An ordered polyhedron made of triangular polygons. 
-   The vertices of each polygonal face are ordered according to the right hand rule. */
-struct ordered_poly {
-  int n_verts;                    /* Number of vertices in polyhedron */
-  struct vector3 *vertex;         /* Array of vertices */
-  int n_walls;                    /* Number of triangles in polyhedron */
-  struct element_data *element;   /* Array specifying the vertex connectivity of each triangle */
-  struct vector3 *normal;         /* Array of triangle normals */
 };
 
 
@@ -1641,20 +1631,6 @@ struct element_data {
 /* A voxel list object, part of a volume */
 struct voxel_object
 {
-  struct ordered_voxel *voxel_data;  /* pointer to data structure holding voxel vertices etc... */
-  int n_voxels;			     /* Number of voxels in voxel object */
-  int n_verts;                       /* Number of vertices in voxel object */
-  byte fully_closed;		     /* flag indicating closure of object */
-};
-
-
-/**
- * A general ordered polyhedron consisting from tetrahedrons (voxels). 
- * That is, the vertices of each polygonal face are ordered according to
- * the right hand rule.
- */
-struct ordered_voxel
-{
   struct vector3 *vertex;               /* Array of tetrahedron vertices */
   struct tet_element_data *element;     /* Array tet_element_data data structures */
   struct tet_neighbors_data *neighbor;  /* Array tet_neighbors_data data structures */
@@ -1662,16 +1638,14 @@ struct ordered_voxel
   int n_voxels;                         /* Number of voxels in polyhedron */
 };
 
-
 /**
  * Data structure used to build one tetrahedron.
  * This data structure is used to store the data from the MDL file
  * and to contruct each tetrahedron of a voxel object.
  */
-struct tet_element_data {
-        int vertex_index[4];              /**< Array of vertex indices forming a
-                                           tetrahedron. */
-	int n_verts;                    /**< Number of vertices in tetrahedron (always 4). */
+struct tet_element_data
+{
+  int vertex_index[4];                  /* Array of vertex indices forming a tetrahedron. */
 };
 
 
@@ -1679,10 +1653,9 @@ struct tet_element_data {
  * This data structure is used to store the data about neighbors
  * of each tetrahedron of a voxel object.
  */
-struct tet_neighbors_data {
-        int neighbors_index[4];        /**< Array of indices pointing 
-                                           to the neighbors of tetrahedron. */
-	int n_neighbors;               /**< Number of neighbors of tetrahedron (always 4). */
+struct tet_neighbors_data
+{
+  int neighbors_index[4];               /* Array of indices pointing to the neighbors of tetrahedron. */
 };
 
 
@@ -1761,7 +1734,6 @@ struct object {
   struct wall **wall_p;         /* Array of ptrs to walls in object (used at run-time) */
   int n_verts;                  /* Total number of vertices in object */
   struct vector3 *verts;        /* Array of vertices in object */
-  struct vector3 **vert_p;      /* Array of ptrs to verts in object */
   double total_area;            /* Area of object in length units */
   u_int n_tiles;                /* Number of surface grid tiles on object */
   u_int n_occupied_tiles;       /* Number of occupied tiles on object */

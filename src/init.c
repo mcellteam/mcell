@@ -1180,19 +1180,17 @@ static int compute_bb_release_site(struct object *objp, double (*im)[4])
 static int compute_bb_polygon_object(struct object *objp, double (*im)[4])
 {
   struct polygon_object *pop;
-  struct ordered_poly *opp;
 
   pop=(struct polygon_object *)objp->contents;
-  opp=(struct ordered_poly *)pop->polygon_data;
-  const unsigned int n_verts=opp->n_verts;
+  const unsigned int n_verts = pop->n_verts;
 
-  for (unsigned int n_vert = 0; n_vert<n_verts; n_vert++)
+  for (unsigned int n_vert=0; n_vert<n_verts; ++ n_vert)
   {
     double p[1][4];
-    p[0][0]=opp->vertex[n_vert].x;
-    p[0][1]=opp->vertex[n_vert].y;
-    p[0][2]=opp->vertex[n_vert].z;
-    p[0][3]=1.0;
+    p[0][0] = pop->vertex[n_vert].x;
+    p[0][1] = pop->vertex[n_vert].y;
+    p[0][2] = pop->vertex[n_vert].z;
+    p[0][3] = 1.0;
     mult_matrix(p,im,p,1,4,4);
     if (p[0][0]<world->bb_llf.x) world->bb_llf.x = p[0][0];
     if (p[0][1]<world->bb_llf.y) world->bb_llf.y = p[0][1];
@@ -1218,7 +1216,6 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
 // #define INIT_VERTEX_NORMALS
 // Uncomment to compute vertex normals
   struct polygon_object *pop;
-  struct ordered_poly *opp;
   struct vector3 *v,**vp;
   struct wall *w,**wp;
   struct viz_child *vcp;
@@ -1228,13 +1225,13 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
   double origin[1][4];
 #endif
   double total_area;
-  int i,index_0,index_1,index_2;
+  int index_0,index_1,index_2;
   unsigned int degenerate_count;
   byte compute_vertex_normals;
 
   pop=(struct polygon_object *)objp->contents;
-  const unsigned int n_walls=pop->n_walls;
-  const unsigned int n_verts=pop->n_verts;
+  const unsigned int n_walls = pop->n_walls;
+  const unsigned int n_verts = pop->n_verts;
   total_area=0;
 
 /* Allocate and initialize walls and vertices */
@@ -1245,9 +1242,6 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
     objp->walls=w;
     objp->wall_p=wp;
     objp->verts=v;
-    objp->vert_p=vp;
-
-    opp=(struct ordered_poly *)pop->polygon_data;
 
     compute_vertex_normals=0;
 
@@ -1255,9 +1249,8 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
    in struct object.
 */
 #ifdef INIT_VERTEX_NORMALS
-    if (opp->normal!=NULL) {
-      compute_vertex_normals=1;
-    }
+    if (pop->normal!=NULL)
+      compute_vertex_normals = 1;
 #endif
    if(vizp!=NULL)
    {
@@ -1271,49 +1264,53 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
     }
   }  
 
-  for (i=0;i<n_verts;i++) {
-    vp[i]=&v[i];
-    p[0][0]=opp->vertex[i].x;
-    p[0][1]=opp->vertex[i].y;
-    p[0][2]=opp->vertex[i].z;
-    p[0][3]=1.0;
+  for (unsigned int n_vert=0; n_vert<n_verts; ++ n_vert)
+  {
+    vp[n_vert] = &v[n_vert];
+    p[0][0] = pop->vertex[n_vert].x;
+    p[0][1] = pop->vertex[n_vert].y;
+    p[0][2] = pop->vertex[n_vert].z;
+    p[0][3] = 1.0;
     mult_matrix(p,im,p,1,4,4);
-    v[i].x=p[0][0];
-    v[i].y=p[0][1];
-    v[i].z=p[0][2];
+    v[n_vert].x = p[0][0];
+    v[n_vert].y = p[0][1];
+    v[n_vert].z = p[0][2];
 
 #ifdef INIT_VERTEX_NORMALS
     if (compute_vertex_normals) {
-      p[0][0]=opp->normal[i].x;
-      p[0][1]=opp->normal[i].y;
-      p[0][2]=opp->normal[i].z;
-      p[0][3]=1.0;
+    {
+      p[0][0] = pop->normal[n_vert].x;
+      p[0][1] = pop->normal[n_vert].y;
+      p[0][2] = pop->normal[n_vert].z;
+      p[0][3] = 1.0;
       origin[0][0]=0;
       origin[0][1]=0;
       origin[0][2]=0;
       origin[0][3]=1.0;
       mult_matrix(p,im,p,1,4,4);
       mult_matrix(origin,im,origin,1,4,4);
-      vertex_normal[i].x=p[0][0]-origin[0][0];
-      vertex_normal[i].y=p[0][1]-origin[0][1];
-      vertex_normal[i].z=p[0][2]-origin[0][2];
-      normalize(&vertex_normal[i]);
+      vertex_normal[n_vert].x = p[0][0]-origin[0][0];
+      vertex_normal[n_vert].y = p[0][1]-origin[0][1];
+      vertex_normal[n_vert].z = p[0][2]-origin[0][2];
+      normalize(&vertex_normal[n_vert]);
     }
 #endif
   }
   
   degenerate_count=0;
-  for (i=0;i<n_walls;i++) {
-    if (!get_bit(pop->side_removed,i)) {
-      wp[i]=&w[i];
-      index_0=opp->element[i].vertex_index[0];
-      index_1=opp->element[i].vertex_index[1];
-      index_2=opp->element[i].vertex_index[2];
+  for (unsigned int n_wall=0; n_wall<n_walls; ++ n_wall)
+  {
+    if (!get_bit(pop->side_removed, n_wall)) {
+      wp[n_wall] = &w[n_wall];
+      index_0 = pop->element[n_wall].vertex_index[0];
+      index_1 = pop->element[n_wall].vertex_index[1];
+      index_2 = pop->element[n_wall].vertex_index[2];
 
-      init_tri_wall(objp,i,vp[index_0],vp[index_1],vp[index_2]);
-      total_area+=wp[i]->area;
+      init_tri_wall(objp,n_wall,vp[index_0],vp[index_1],vp[index_2]);
+      total_area+=wp[n_wall]->area;
 
-      if (wp[i]->area==0) {
+      if (wp[n_wall]->area==0)
+      {
         if (world->notify->degenerate_polys != WARN_COPE)
         {
           if (world->notify->degenerate_polys==WARN_ERROR)
@@ -1322,7 +1319,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
                         "  Vertex 0: %.5e %.5e %.5e\n"
                         "  Vertex 1: %.5e %.5e %.5e\n"
                         "  Vertex 2: %.5e %.5e %.5e",
-                        objp->sym->name, i,
+                        objp->sym->name, n_wall,
                         vp[index_0]->x, vp[index_0]->y, vp[index_0]->z,
                         vp[index_1]->x, vp[index_1]->y, vp[index_1]->z,
                         vp[index_2]->x, vp[index_2]->y, vp[index_2]->z);
@@ -1332,19 +1329,19 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
                        "  Vertex 0: %.5e %.5e %.5e\n"
                        "  Vertex 1: %.5e %.5e %.5e\n"
                        "  Vertex 2: %.5e %.5e %.5e",
-                       objp->sym->name, i,
+                       objp->sym->name, n_wall,
                        vp[index_0]->x, vp[index_0]->y, vp[index_0]->z,
                        vp[index_1]->x, vp[index_1]->y, vp[index_1]->z,
                        vp[index_2]->x, vp[index_2]->y, vp[index_2]->z);
         }
-        set_bit(pop->side_removed,i,1);
+        set_bit(pop->side_removed,n_wall,1);
         objp->n_walls_actual--;
         degenerate_count++;
-        wp[i]=NULL;
+        wp[n_wall]=NULL;
       }
     }
     else {
-      wp[i]=NULL;
+      wp[n_wall]=NULL;
     }
   }
   if (degenerate_count) mdl_remove_gaps_from_regions(objp);

@@ -765,8 +765,7 @@ static void dx_output_walls(FILE *wall_verts_header,
                            struct object const *objp)
 {
   struct polygon_object *pop = (struct polygon_object *) objp->contents;
-  struct ordered_poly *opp = (struct ordered_poly *) pop->polygon_data;
-  struct element_data *edp = opp->element;
+  struct element_data *edp = pop->element;
   int element_data_count = objp->n_walls_actual;
   int wall_index;
 
@@ -2601,8 +2600,7 @@ static int dreamm_v3_generic_dump_mesh_data(struct frame_data_list const * const
       continue;
 
     struct polygon_object *pop = (struct polygon_object *) objp->contents;
-    struct ordered_poly *opp = (struct ordered_poly *) pop->polygon_data;
-    struct element_data *edp = opp->element;
+    struct element_data *edp = pop->element;
     int element_data_count = objp->n_walls_actual;
 
     if (viz_surf_pos_flag)
@@ -2789,8 +2787,7 @@ static int dreamm_v3_ascii_dump_mesh_data(struct frame_data_list const * const f
       continue;
 
     struct polygon_object *pop = (struct polygon_object *) objp->contents;
-    struct ordered_poly *opp = (struct ordered_poly *) pop->polygon_data;
-    struct element_data *edp = opp->element;
+    struct element_data *edp = pop->element;
     int element_data_count = objp->n_walls_actual;
 
     if (viz_surf_pos_flag)
