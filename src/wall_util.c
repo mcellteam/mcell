@@ -2361,7 +2361,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
   est_sites_avail = (int)max_A;
   pick_cost = rel_list_gen_cost * est_sites_avail;
   
-  if (rso->release_number_method == CCNNUM)
+  if (rso->release_number_method == DENSITYNUM)
   {
     num_to_release = rso->concentration * est_sites_avail / world->grid_density;
     if (num_to_release > (double) INT_MAX)

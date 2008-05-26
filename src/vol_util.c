@@ -1395,6 +1395,7 @@ int release_molecules(struct release_event_queue *req)
       break;
 
     case CCNNUM:
+    case DENSITYNUM:
       if (rso->diameter==NULL) number = 0;
       else
       {

@@ -5686,16 +5686,19 @@ int mdl_is_release_site_valid(struct mdlparse_vars *mpvp,
 
   /* Check that concentration/density status of release site agrees with
    * volume/grid status of molecule */
-  if (rsop->release_number_method==CCNNUM)
+  if (rsop->release_number_method == CCNNUM)
   {
-    if ((rsop->mol_type->flags & NOT_FREE) == 0  &&  rsop->release_number != -3)
+    if ((rsop->mol_type->flags & NOT_FREE) != 0)
     {
       mdlerror(mpvp,
                "CONCENTRATION may only be used with molecules that can diffuse in 3D.\n"
                "  Use DENSITY for molecules diffusing in 2D.");
       return 1;
     }
-    else if ((rsop->mol_type->flags&NOT_FREE)==ON_GRID && rsop->release_number != -2)
+  }
+  else if (rsop->release_number_method == DENSITYNUM)
+  {
+    if ((rsop->mol_type->flags & NOT_FREE) == 0)
     {
       mdlerror(mpvp,
                "DENSITY may only be used with molecules that can diffuse in 2D.\n"
@@ -6485,7 +6488,6 @@ int mdl_set_release_site_concentration(struct mdlparse_vars *mpvp,
     return 1;
   }
   rsop->release_number_method = CCNNUM;
-  rsop->release_number = -3; /* Expect 3D molecule */
   rsop->concentration = conc;
   return 0;
 }
@@ -6506,8 +6508,8 @@ int mdl_set_release_site_density(struct mdlparse_vars *mpvp,
                                  double dens)
 {
   UNUSED(mpvp);
-  rsop->release_number_method = CCNNUM;
-  rsop->release_number = -2; /* Expect 2D molecule */
+
+  rsop->release_number_method = DENSITYNUM;
   rsop->concentration = dens;
   return 0;
 }

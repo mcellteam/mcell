@@ -559,12 +559,14 @@ enum count_type_t
 
 
 /* Release Number Flags */
-#define CONSTNUM 0
-#define GAUSSNUM 1
-#define VOLNUM 2
-#define CCNNUM 3
-
-
+enum release_number_type_t
+{
+  CONSTNUM,
+  GAUSSNUM,
+  VOLNUM,
+  CCNNUM,
+  DENSITYNUM
+};
 
 /**********************************************/
 /**  New/reworked structures used in MCell3  **/
@@ -1340,7 +1342,7 @@ struct release_event_queue {
 struct release_site_obj {
   struct vector3 *location;	  /* location of release site */
   struct species *mol_type;	  /* species to be released */
-  byte release_number_method;     /* Release Number Flags: controls how release_number is used */
+  byte release_number_method;     /* Release Number Flags: controls how release_number is used (enum release_number_type_t) */
   byte release_shape;             /* Release Shape Flags: controls shape over which to release */
   short orientation;              /* Orientation of released surface molecules */
   double release_number;             /* Number to release */
