@@ -19,11 +19,12 @@ struct region *new_region(void);
 struct file_stream *new_filestream(void);
 
 ub4 jenkins_hash(ub1 *sym,ub4 length);
-unsigned long hash(char *sym);
-struct sym_table *retrieve_sym(char *sym, unsigned short sym_type,
-  struct sym_table **hashtab);
-struct sym_table *store_sym(char *sym, unsigned short sym_type,
-  struct sym_table **hashtab, void *data);
-struct sym_table **init_symtab(int size);
+unsigned long hash(char const *sym);
+struct sym_table *retrieve_sym(char const *sym, struct sym_table_head *hashtab);
+struct sym_table *store_sym(char const *sym,
+                            enum symbol_type_t sym_type,
+                            struct sym_table_head *hashtab,
+                            void *data);
+struct sym_table_head *init_symtab(int size);
 
 #endif

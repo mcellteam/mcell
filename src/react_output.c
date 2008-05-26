@@ -467,19 +467,21 @@ int update_reaction_output(struct output_block *block)
   {
     for (column=set->column_head ; column!=NULL ; column=column->next) /* Each column */
     {
-      if (column->data_type != TRIG_STRUCT)
+      if (column->data_type != COUNT_TRIG_STRUCT)
       {
         eval_oexpr_tree(column->expr,1);
         switch (column->data_type)
         {
-          case INT:
+          case COUNT_INT:
             ((int*)column->buffer)[i] = (int)column->expr->value;
             break;
 
-          case DBL:
+          case COUNT_DBL:
             ((double*)column->buffer)[i] = column->expr->value;
             break;
 
+          case COUNT_TRIG_STRUCT:
+          case COUNT_UNSET:
           default:
             UNHANDLED_CASE(column->data_type);
             break;
@@ -536,7 +538,7 @@ int update_reaction_output(struct output_block *block)
   {
     for (set=block->data_set_head ; set!=NULL ; set=set->next)
     {
-      if (set->column_head->data_type==TRIG_STRUCT) continue;
+      if (set->column_head->data_type == COUNT_TRIG_STRUCT) continue;
       if (write_reaction_output(set,final_chunk_flag))
       {
         mcell_error_nodie("Failed to write reaction output to file '%s'.", set->outfile_name);
@@ -598,7 +600,7 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
   if (fp == NULL)
     return 1;
 
-  if (set->column_head->data_type!=TRIG_STRUCT)
+  if (set->column_head->data_type != COUNT_TRIG_STRUCT)
   {
     n_output=set->block->buffersize;
     if (set->block->buf_index<set->block->buffersize) n_output=set->block->buf_index;
@@ -634,12 +636,16 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
       {
         switch (column->data_type)
         {
-          case INT:
+          case COUNT_INT:
             fprintf(fp," %d",((int*)column->buffer)[i]);
             break;
-          case DBL:
+
+          case COUNT_DBL:
             fprintf(fp," %.9g",((double*)column->buffer)[i]);
             break;
+
+          case COUNT_TRIG_STRUCT:
+          case COUNT_UNSET:
           default:
             if (column->expr->title != NULL)
               mcell_warn("Unexpected data type in column titled '%s' -- skipping.", column->expr->title);

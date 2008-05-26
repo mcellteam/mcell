@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "logging.h"
 #include "mcell_structs.h"
 #include "sym_table.h"
@@ -78,10 +79,7 @@ Use for hash table lookup, or anything where one collision in 2^^32 is
 acceptable.  Do NOT use for cryptographic purposes.
 --------------------------------------------------------------------*/
 
-ub4 jenkins_hash(k,length)
-register ub1 *k;        /* the key */
-ub4 length;
-
+ub4 jenkins_hash(ub1 *k, ub4 length)
 {
    register ub4 a,b,c,len,initval;
    /* Set up the internal state */
@@ -126,7 +124,7 @@ ub4 length;
 /* ================================================================ */
 
 
-unsigned long hash(char *sym)
+unsigned long hash(char const *sym)
 {
   ub4 hashval;
 
@@ -135,20 +133,18 @@ unsigned long hash(char *sym)
   return(hashval);
 } 
 
-
-struct sym_table *retrieve_sym(char *sym, unsigned short sym_type,
-  struct sym_table **hashtab)
+struct sym_table *retrieve_sym(char const *sym, struct sym_table_head *hashtab)
 {
-  struct sym_table *sp;
-  
-  if(sym == NULL) return (NULL);
+  if (sym == NULL) return NULL;
 
-  for (sp=hashtab[hash(sym)&SYM_HASHMASK]; sp!=NULL; sp=sp->next) {
-    if (strcmp(sym,sp->name)==0 && sp->sym_type==sym_type) {
-      return(sp);
-    }
+  for (struct sym_table *sp = hashtab->entries[hash(sym) & (hashtab->n_bins-1)];
+       sp != NULL;
+       sp = sp->next)
+  {
+    if (strcmp(sym, sp->name) == 0)
+      return sp;
   }
-  return(NULL);
+  return NULL;
 }
 
 /**
@@ -322,14 +318,76 @@ struct file_stream *new_filestream(void)
   return filep;
 }
 
+/**
+ * resize_symtab:
+ *      Resize the symbol table, rehashing all values.
+ *
+ *      In:  hashtab: the symbol table
+ *           size: new size for hash table
+ *      Out: symbol table might be resized
+ */
+static int resize_symtab(struct sym_table_head *hashtab, int size)
+{
+  struct sym_table **entries = hashtab->entries;
+  int n_bins = hashtab->n_bins;
+
+  /* Round up to a power of two */
+  size |= (size >> 1);
+  size |= (size >> 2);
+  size |= (size >> 4);
+  size |= (size >> 8);
+  size |= (size >> 16);
+  ++ size;
+  if (size > (1 << 28))
+    size = (1 << 28);
+
+  hashtab->entries = CHECKED_MALLOC_ARRAY(struct sym_table *, size, "symbol table");
+  if (hashtab->entries == NULL)
+  {
+    /* XXX: Warning message? */
+    hashtab->entries = entries;
+    return 1;
+  }
+  memset(hashtab->entries, 0, size*sizeof(struct sym_table *));
+  hashtab->n_bins = size;
+
+  for (int i=0; i<n_bins; ++ i)
+  {
+    while (entries[i] != NULL)
+    {
+      struct sym_table *entry = entries[i];
+      entries[i] = entries[i]->next;
+
+      unsigned int hashval = hash(entry->name) & (size - 1);
+      entry->next = hashtab->entries[hashval];
+      hashtab->entries[hashval] = entry;
+    }
+  }
+  free(entries);
+  return 0;
+}
+
+/**
+ * maybe_grow_symtab:
+ *      Possibly grow the symbol table.
+ *
+ *      In:  hashtab: the symbol table
+ *      Out: symbol table might be resized
+ */
+static void maybe_grow_symtab(struct sym_table_head *hashtab)
+{
+  if (hashtab->n_entries * 3 >= hashtab->n_bins)
+    resize_symtab(hashtab, hashtab->n_bins * 2);
+}
+
 /** Stores symbol in the symbol table. 
     Initializes value field of the symbol structure to the default value.
     Returns: entry in the symbol table if successfully stored, 
              NULL - otherwise.
 */
-struct sym_table *store_sym(char *sym,
-                            unsigned short sym_type,
-                            struct sym_table **hashtab,
+struct sym_table *store_sym(char const *sym,
+                            enum symbol_type_t sym_type,
+                            struct sym_table_head *hashtab,
                             void *data)
 {
   struct sym_table *sp;
@@ -339,8 +397,11 @@ struct sym_table *store_sym(char *sym,
   unsigned rawhash;
 
   /* try to find sym in table */
-  if ((sp = retrieve_sym(sym, sym_type, hashtab))==NULL)
+  if ((sp = retrieve_sym(sym, hashtab)) == NULL)
   {
+    maybe_grow_symtab(hashtab);
+    ++ hashtab->n_entries;
+
     /* sym not found */
     sp = CHECKED_MALLOC_STRUCT(struct sym_table, "sym table entry");
 #ifdef KELP
@@ -350,10 +411,10 @@ struct sym_table *store_sym(char *sym,
     sp->name = CHECKED_STRDUP(sym, "symbol name");
     sp->sym_type=sym_type;
     rawhash = hash(sym);
-    hashval = rawhash & SYM_HASHMASK;
+    hashval = rawhash & (hashtab->n_bins - 1);
 
-    sp->next=hashtab[hashval];
-    hashtab[hashval]=sp;
+    sp->next=hashtab->entries[hashval];
+    hashtab->entries[hashval]=sp;
     switch (sym_type) {
     case DBL:
       if (data == NULL)
@@ -426,13 +487,13 @@ struct sym_table *store_sym(char *sym,
   return sp;
 }
 
-
-struct sym_table **init_symtab(int size)
+struct sym_table_head *init_symtab(int size)
 { 
-  struct sym_table **symtab; 
-  int i;
-  symtab = CHECKED_MALLOC_ARRAY(struct sym_table *, size, "symbol table");
-  for (i=0; i<size; ++ i)
-    symtab[i]=NULL;
-  return symtab;
+  struct sym_table_head *symtab_head; 
+  symtab_head = CHECKED_MALLOC_STRUCT(struct sym_table_head, "symbol table");
+  symtab_head->entries = CHECKED_MALLOC_ARRAY(struct sym_table *, size, "symbol table");
+  memset(symtab_head->entries, 0, sizeof(struct sym_table *) * size);
+  symtab_head->n_entries = 0;
+  symtab_head->n_bins = size;
+  return symtab_head;
 }

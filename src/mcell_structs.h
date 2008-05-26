@@ -28,7 +28,6 @@
 #endif
 #endif
 
-
 /*****************************************************/
 /**  Brand new constants created for use in MCell3  **/
 /*****************************************************/
@@ -168,7 +167,6 @@
   /* RX_FLIP signals that a molecule flips its orientation (crosses a wall if it's free) */
   /* RX_DESTROY signals that the molecule no longer exists (so don't try to keep using it) */
   /* RX_A_OK signals that all is OK with a reaction, proceed as normal (reflect if you're free) */
-  /* RX_NO_MEM signals a memory allocation error. */
 #define RX_REFLEC  -4
 #define RX_TRANSP  -3
 #define RX_SPECIAL -3
@@ -178,7 +176,6 @@
 #define RX_LEAST_VALID_PATHWAY 0
 #define RX_DESTROY  0
 #define RX_A_OK     1
-#define RX_NO_MEM   3
 #define MAX_MATCHING_RXNS 64
 
 
@@ -469,71 +466,40 @@
 /**  Old constants copied from MCell2, some may be broken  **/
 /************************************************************/
 
-/* Parser parameters.  Probably need to be revisited. */
-/* size of symbol hash table 0x100000 = 1M */
-#define SYM_HASHSIZE 0x100000
-
-/* mask for symbol table hash */
-#define SYM_HASHMASK 0x0FFFFF
-
 /* maximum allowed nesting level of INCLUDE_FILE statements in MDL */
 #define MAX_INCLUDE_DEPTH 16
 
 /* default size of output count buffers */
 #define COUNTBUFFERSIZE 10000
                                                                                 
+/* Symbol types */
+/* Data types for items in MDL parser symbol tables. */
+enum symbol_type_t
+{
+  RX,               /* chemical reaction */
+  RXPN,             /* name of chemical reaction */
+  MOL,              /* molecule or surface class type (i.e. species) */
+  OBJ,              /* meta-object */
+  RPAT,             /* release pattern */
+  REG,              /* object region */
+  DBL,              /* double (numeric variable in MDL file) */
+  STR,              /* string (text variable in MDL file) */
+  ARRAY,            /* numeric array (array variable in MDL file) */
+  FSTRM,            /* file stream type for "C"-style file-io in MDL file */
+  TMP,              /* temporary place-holder type for assignment statements */
+  VIZ_OBJECT,       /* viz_obj structures (in viz_output_block sym tables) */
+  VIZ_CHILD,        /* viz_child structures (in viz_output_block sym tables) */
+};
 
-/* Symbol Table Types */
-/* Data types to be stored in MDL parser symbol table: */
-/* chemical reaction: */
-#define RX 1
+/* Count column data types */
+enum count_type_t
+{
+  COUNT_UNSET=-1,         /* no value specified */
+  COUNT_DBL,              /* double */
+  COUNT_INT,              /* integer type */
+  COUNT_TRIG_STRUCT,      /* trigger_struct data type (for TRIGGER statements) */
+};
 
-/* name of chemical reaction: */
-#define RXPN 2
-
-/* molecule type (i.e. species): */
-#define MOL 3
-
-/* polygon or box object: */
-#define POLY 4
-
-/* release site object: */
-#define RSITE 5
-
-/* meta-object: */
-#define OBJ 6
-
-/* release pattern: */
-#define RPAT 7
-
-/* object region: */
-#define REG 8
-
-/* integer type (used only for COUNT statements): */
-#define INT 9
-
-/* double: */
-#define DBL 10
-
-/* string: */
-#define STR 11
-
-/* array of doubles: */ 
-#define ARRAY 12
-
-/* file stream type for "C"-style file-io: */
-#define FSTRM 13
-
-/* expression type (used only in COUNT statements): */
-#define EXPR 14
-
-/* temporary place-holder type for assignment statements: */
-#define TMP 15
-
-/* Used only for TRIGGER statements */
-#define TRIG_STRUCT 16
-
-                                                                                
 /* Object Type Flags */
 #define META_OBJ 0
 #define BOX_OBJ 1
@@ -605,7 +571,6 @@
 /**********************************************/
 
 typedef unsigned char byte;
-
 
 /* If you don't include sys/types.h, #define SYS_TYPES_NOT_LOADED so */
 /* you get the u_short/int/long set of types */
@@ -1155,7 +1120,14 @@ struct volume
   
   double speed_limit;           /* How far can the fastest particle get in one timestep? */
 
-  struct sym_table **main_sym_table;  /* Global MDL symbol hash table */
+  struct sym_table_head *fstream_sym_table;   /* Global MDL file stream symbol hash table */
+  struct sym_table_head *var_sym_table;   /* Global MDL variables symbol hash table */
+  struct sym_table_head *rxn_sym_table;   /* RXN symbol hash table */
+  struct sym_table_head *obj_sym_table;   /* Objects symbol hash table */
+  struct sym_table_head *reg_sym_table;   /* Regions symbol hash table */
+  struct sym_table_head *mol_sym_table;   /* Molecule type symbol hash table */
+  struct sym_table_head *rpat_sym_table;  /* Release pattern hash table */
+  struct sym_table_head *rxpn_sym_table;  /* Named reaction pathway hash table */
 
   struct object *root_object;         /* Root of the object template tree */
   struct object *root_instance;       /* Root of the instantiated object tree */
@@ -1213,7 +1185,6 @@ struct volume
 
   char *chkpt_infile;         /* Name of checkpoint file to read from */
   char *chkpt_outfile;        /* Name of checkpoint file to write to */
-  FILE *chkpt_infs;           /* Checkpoint input file */
   u_int chkpt_byte_order_mismatch;   /* Flag that defines whether mismatch
                                       in byte order exists between the saved
                                       checkpoint file and the machine reading it */
@@ -1285,9 +1256,6 @@ struct volume
   long long last_checkpoint_iteration;  /* Last iteration when chkpt was created */
   time_t begin_timestamp;               /* Time since epoch at beginning of 'main' */
   char *initialization_state;           /* NULL after initialization completes */
-  
-  /* Nifty pointers for debugging go here */
-  struct output_request *watch_orq;
 };
 
 
@@ -1585,7 +1553,7 @@ struct output_column
 {
   struct output_column *next;       /* Next column in this set */
   struct output_set *set;           /* Which set do we belong to? */
-  byte data_type;                   /* INT, DBL, or TRIG_STRUCT (from Symbol Table Types) */
+  enum count_type_t data_type;      /* Type of data in this column. */
   double initial_value;             /* To continue existing cumulative counts--not implemented yet--and keep track of triggered data */
   void *buffer;                     /* Output buffer array (cast based on data_type) */
   struct output_expression *expr;   /* Evaluate this to calculate our value (NULL if trigger) */
@@ -1638,7 +1606,6 @@ struct output_trigger_data
 /******************************************************************/
 /**  Everything below this line has been copied from MCell 2.69  **/
 /******************************************************************/
-
 
 
 /* A polygon list object, part of a surface. */
@@ -1861,14 +1828,22 @@ struct file_stream {
   FILE *stream; /* File handle structure */
 };
 
+/* Symbol hash table */
+/* Used to parse and store user defined symbols from the MDL input file */
+struct sym_table_head {
+  struct sym_table **entries; 
+  int n_entries;
+  int n_bins;
+};
 
 /* Symbol hash table entry */
 /* Used to parse and store user defined symbols from the MDL input file */
+/* XXX: This is a poorly named structure.  Maybe "sym_entry" or even just "symbol"? */
 struct sym_table {
-  struct sym_table *next; 
-  unsigned short sym_type; /* Symbol Table Type: OBJ, RX, MOL, DBL, PNT, etc. */
-  char *name;              /* Name of symbol*/
-  void *value;             /* Stored value, cast by sym_type */
+  struct sym_table *next;       /* Chain to next symbol in this bin of the hash */
+  int sym_type;                 /* Symbol Type */
+  char *name;                   /* Name of symbol*/
+  void *value;                  /* Stored value, cast by sym_type */
 };
 
 

@@ -521,7 +521,7 @@ struct sym_table *mdl_new_filehandle(struct mdlparse_vars *mpvp,
                                      char *name)
 {
   struct sym_table *sym;
-  sym = retrieve_sym(name, FSTRM, mpvp->vol->main_sym_table);
+  sym = retrieve_sym(name, mpvp->vol->fstream_sym_table);
 
   /* If this file is already open, close it. */
   if (sym != NULL)
@@ -537,7 +537,7 @@ struct sym_table *mdl_new_filehandle(struct mdlparse_vars *mpvp,
   }
 
   /* Otherwise, create it */
-  else if ((sym = store_sym(name, FSTRM, mpvp->vol->main_sym_table, NULL)) == NULL)
+  else if ((sym = store_sym(name, FSTRM, mpvp->vol->fstream_sym_table, NULL)) == NULL)
   {
     mdlerror_fmt(mpvp, "Out of memory while creating file stream: %s", name);
     free(name);
@@ -2026,19 +2026,16 @@ static int mdl_free_variable_value(struct mdlparse_vars *mpvp,
 struct sym_table *mdl_get_or_create_variable(struct mdlparse_vars *mpvp,
                                              char *name)
 {
-  struct sym_table *st = NULL;
-
   /* Attempt to fetch existing variable */
-  if ((st=retrieve_sym(name, DBL, mpvp->vol->main_sym_table))!=NULL  ||
-      (st=retrieve_sym(name, STR, mpvp->vol->main_sym_table))!=NULL  ||
-      (st=retrieve_sym(name, ARRAY, mpvp->vol->main_sym_table))!=NULL)
+  struct sym_table *st = NULL;
+  if ((st=retrieve_sym(name, mpvp->vol->var_sym_table)) != NULL)
   {
     free(name);
     return st;
   }
 
   /* Create the variable */
-  if ((st = store_sym(name, TMP, mpvp->vol->main_sym_table, NULL)) == NULL)
+  if ((st = store_sym(name, TMP, mpvp->vol->var_sym_table, NULL)) == NULL)
     mcell_allocfailed("Failed to store a variable symbol in the symbol table.");
 
   free(name);
@@ -2677,7 +2674,6 @@ int mdl_set_checkpoint_interval(struct mdlparse_vars *mpvp, long long iters)
  In:  mpvp: parser state
       dim: the dimension whose partitions we'll set
       head: the partitioning
-      nparts: the number of partitions
  Out: 0 on success, 1 on failure
 *************************************************************************/
 int mdl_set_partition(struct mdlparse_vars *mpvp,
@@ -2823,13 +2819,13 @@ static struct object *make_new_object(struct mdlparse_vars *mpvp,
                                       char *obj_name)
 {
   struct sym_table *gp;
-  if ((retrieve_sym(obj_name, OBJ, mpvp->vol->main_sym_table)) != NULL)
+  if ((retrieve_sym(obj_name, mpvp->vol->obj_sym_table)) != NULL)
   {
     mdlerror_fmt(mpvp,"Object '%s' is already defined", obj_name);
     return NULL;
   }
 
-  if ((gp = store_sym(obj_name, OBJ, mpvp->vol->main_sym_table, NULL)) == NULL)
+  if ((gp = store_sym(obj_name, OBJ, mpvp->vol->obj_sym_table, NULL)) == NULL)
   {
     mcell_allocfailed("Failed to store an object in the object symbol table.");
     return NULL;
@@ -2999,7 +2995,7 @@ static const char *SYMBOL_TYPE_ARTICLES[] =
  Out: the symbol type name
 *************************************************************************/
 static char const *mdl_symbol_type_name(struct mdlparse_vars *mpvp,
-                                        int type)
+                                        enum symbol_type_t type)
 {
   UNUSED(mpvp);
 
@@ -3022,7 +3018,7 @@ static char const *mdl_symbol_type_name(struct mdlparse_vars *mpvp,
  Out: the article
 *************************************************************************/
 static char const *mdl_symbol_type_name_article(struct mdlparse_vars *mpvp,
-                                                int type)
+                                                enum symbol_type_t type)
 {
   UNUSED(mpvp);
 
@@ -3042,17 +3038,26 @@ static char const *mdl_symbol_type_name_article(struct mdlparse_vars *mpvp,
 
  In:  mpvp: parser state
       name: name of symbol to find
+      tab:  table to search
       type: type of symbol to find
  Out: returns the symbol, or NULL if none found
 *************************************************************************/
 static struct sym_table *mdl_existing_symbol(struct mdlparse_vars *mpvp,
                                              char *name,
+                                             struct sym_table_head *tab,
                                              int type)
 {
-  struct sym_table *symp = retrieve_sym(name, type,
-                                        mpvp->vol->main_sym_table);
+  struct sym_table *symp = retrieve_sym(name, tab);
   if (symp == NULL)
     mdlerror_fmt(mpvp, "Undefined %s: %s", mdl_symbol_type_name(mpvp, type), name);
+  else if (symp->sym_type != type)
+  {
+    mdlerror_fmt(mpvp, "Invalid type for symbol %s: expected %s, but found %s",
+                 name,
+                 mdl_symbol_type_name(mpvp, type),
+                 mdl_symbol_type_name(mpvp, symp->sym_type));
+    symp = NULL;
+  }
   else
   {
 #ifdef KELP
@@ -3079,14 +3084,16 @@ static struct sym_table *mdl_existing_symbol(struct mdlparse_vars *mpvp,
 *************************************************************************/
 static struct sym_table *mdl_existing_symbol_2types(struct mdlparse_vars *mpvp,
                                                     char *name,
+                                                    struct sym_table_head *tab1,
                                                     int type1,
+                                                    struct sym_table_head *tab2,
                                                     int type2)
 {
   struct sym_table *symp;
-  symp = retrieve_sym(name, type1, mpvp->vol->main_sym_table);
+  symp = retrieve_sym(name, tab1);
   if (symp == NULL)
   {
-    symp = retrieve_sym(name, type2, mpvp->vol->main_sym_table);
+    symp = retrieve_sym(name, tab2);
     if (symp == NULL)
       mdlerror_fmt(mpvp, "Undefined %s or %s: %s",
                    mdl_symbol_type_name(mpvp, type1),
@@ -3095,7 +3102,7 @@ static struct sym_table *mdl_existing_symbol_2types(struct mdlparse_vars *mpvp,
   }
   else
   {
-    if (retrieve_sym(name, type2, mpvp->vol->main_sym_table) != NULL)
+    if (retrieve_sym(name, tab2) != NULL)
     {
       mdlerror_fmt(mpvp, "Named object '%s' could refer to %s %s or %s %s.  Please rename one of them.",
                    name,
@@ -3125,19 +3132,19 @@ static struct sym_table *mdl_existing_symbol_2types(struct mdlparse_vars *mpvp,
 
  In:  mpvp: parser state
       wildcard: wildcard to match
+      tab: table to search for symbols
       type: type of symbol to match
  Out: linked list of matching symbols
 *************************************************************************/
 static struct sym_table_list *mdl_find_symbols_by_wildcard(struct mdlparse_vars *mpvp,
                                                            char const *wildcard,
+                                                           struct sym_table_head *tab,
                                                            int type)
 {
-  int i;
   struct sym_table_list *symbols = NULL, *stl;
-  for(i = 0; i < SYM_HASHSIZE; i++)
+  for(int i = 0; i < tab->n_bins; i++)
   {
-    struct sym_table *sym_t;
-    for (sym_t = mpvp->vol->main_sym_table[i];
+    for (struct sym_table *sym_t = tab->entries[i];
          sym_t != NULL;
          sym_t = sym_t->next)
     {
@@ -3207,7 +3214,7 @@ static struct sym_table_list* sort_sym_list_by_name(struct sym_table_list *unsor
 *************************************************************************/
 struct sym_table *mdl_existing_object(struct mdlparse_vars *mpvp, char *name)
 {
-  return mdl_existing_symbol(mpvp, name, OBJ);
+  return mdl_existing_symbol(mpvp, name, mpvp->vol->obj_sym_table, OBJ);
 }
 
 /*************************************************************************
@@ -3248,7 +3255,7 @@ struct sym_table *mdl_existing_region(struct mdlparse_vars *mpvp,
     return NULL;
   }
 
-  symp = mdl_existing_symbol(mpvp, region_name, REG);
+  symp = mdl_existing_symbol(mpvp, region_name, mpvp->vol->reg_sym_table, REG);
   free(name);
   return symp;
 }
@@ -3264,7 +3271,7 @@ struct sym_table *mdl_existing_region(struct mdlparse_vars *mpvp,
 *************************************************************************/
 struct sym_table *mdl_existing_molecule(struct mdlparse_vars *mpvp, char *name)
 {
-  return mdl_existing_symbol(mpvp, name, MOL);
+  return mdl_existing_symbol(mpvp, name, mpvp->vol->mol_sym_table, MOL);
 }
 
 /**************************************************************************
@@ -3324,7 +3331,7 @@ struct sym_table_list *mdl_existing_molecules_wildcard(struct mdlparse_vars *mpv
   if (! (wildcard_string = mdl_strip_quotes(mpvp, wildcard)))
     return NULL;
 
-  stl = mdl_find_symbols_by_wildcard(mpvp, wildcard_string, MOL);
+  stl = mdl_find_symbols_by_wildcard(mpvp, wildcard_string, mpvp->vol->mol_sym_table, MOL);
   if (stl == NULL)
   {
     free(wildcard_string);
@@ -3426,9 +3433,7 @@ struct sym_table *mdl_existing_variable(struct mdlparse_vars *mpvp, char *name)
   struct sym_table *st = NULL;
 
   /* Attempt to fetch existing variable */
-  if ((st=retrieve_sym(name, DBL, mpvp->vol->main_sym_table)) != NULL  ||
-      (st=retrieve_sym(name, STR, mpvp->vol->main_sym_table)) != NULL  ||
-      (st=retrieve_sym(name, ARRAY, mpvp->vol->main_sym_table)) != NULL)
+  if ((st=retrieve_sym(name, mpvp->vol->var_sym_table)) != NULL)
   {
     free(name);
 #ifdef KELP
@@ -3453,7 +3458,7 @@ struct sym_table *mdl_existing_variable(struct mdlparse_vars *mpvp, char *name)
 *************************************************************************/
 struct sym_table *mdl_existing_array(struct mdlparse_vars *mpvp, char *name)
 {
-  return mdl_existing_symbol(mpvp, name, ARRAY);
+  return mdl_existing_symbol(mpvp, name, mpvp->vol->var_sym_table, ARRAY);
 }
 
 /**************************************************************************
@@ -3467,7 +3472,7 @@ struct sym_table *mdl_existing_array(struct mdlparse_vars *mpvp, char *name)
 **************************************************************************/
 struct sym_table *mdl_existing_double(struct mdlparse_vars *mpvp, char *name)
 {
-  return mdl_existing_symbol(mpvp, name, DBL);
+  return mdl_existing_symbol(mpvp, name, mpvp->vol->var_sym_table, DBL);
 }
 
 /**************************************************************************
@@ -3481,7 +3486,7 @@ struct sym_table *mdl_existing_double(struct mdlparse_vars *mpvp, char *name)
 **************************************************************************/
 struct sym_table *mdl_existing_string(struct mdlparse_vars *mpvp, char *name)
 {
-  return mdl_existing_symbol(mpvp, name, STR);
+  return mdl_existing_symbol(mpvp, name, mpvp->vol->var_sym_table, STR);
 }
 
 /**************************************************************************
@@ -3499,9 +3504,14 @@ struct sym_table *mdl_existing_num_or_array(struct mdlparse_vars *mpvp,
   struct sym_table *st = NULL;
 
   /* Attempt to fetch existing variable */
-  if ((st = retrieve_sym(name, DBL, mpvp->vol->main_sym_table)) != NULL  ||
-      (st = retrieve_sym(name, ARRAY, mpvp->vol->main_sym_table)) != NULL)
+  if ((st = retrieve_sym(name, mpvp->vol->var_sym_table)) != NULL)
   {
+    if (st->sym_type == STR)
+    {
+      mdlerror_fmt(mpvp, "Incorrect type (got string, expected number or array): %s", name);
+      return NULL;
+    }
+
 #ifdef KELP
     st->ref_count++;
     no_printf("ref_count: %d\n",st->ref_count);
@@ -3525,7 +3535,12 @@ struct sym_table *mdl_existing_num_or_array(struct mdlparse_vars *mpvp,
 struct sym_table *mdl_existing_rxn_pathname_or_molecule(struct mdlparse_vars *mpvp,
                                                         char *name)
 {
-  return mdl_existing_symbol_2types(mpvp, name, RXPN, MOL);
+  return mdl_existing_symbol_2types(mpvp,
+                                    name,
+                                    mpvp->vol->rxpn_sym_table,
+                                    RXPN,
+                                    mpvp->vol->mol_sym_table,
+                                    MOL);
 }
 
 /*************************************************************************
@@ -3541,7 +3556,12 @@ struct sym_table *mdl_existing_rxn_pathname_or_molecule(struct mdlparse_vars *mp
 struct sym_table *mdl_existing_release_pattern_or_rxn_pathname(struct mdlparse_vars *mpvp,
                                                                char *name)
 {
-  return mdl_existing_symbol_2types(mpvp, name, RPAT, RXPN);
+  return mdl_existing_symbol_2types(mpvp,
+                                    name,
+                                    mpvp->vol->rpat_sym_table,
+                                    RPAT,
+                                    mpvp->vol->rxpn_sym_table,
+                                    RXPN);
 }
 
 /*************************************************************************
@@ -3556,7 +3576,12 @@ struct sym_table *mdl_existing_release_pattern_or_rxn_pathname(struct mdlparse_v
 *************************************************************************/
 struct sym_table *mdl_existing_molecule_or_object(struct mdlparse_vars *mpvp, char *name)
 {
-  return mdl_existing_symbol_2types(mpvp, name, MOL, OBJ);
+  return mdl_existing_symbol_2types(mpvp,
+                                    name,
+                                    mpvp->vol->mol_sym_table,
+                                    MOL,
+                                    mpvp->vol->obj_sym_table,
+                                    OBJ);
 }
 
 /*************************************************************************
@@ -3571,7 +3596,7 @@ struct sym_table *mdl_existing_molecule_or_object(struct mdlparse_vars *mpvp, ch
 struct sym_table *mdl_existing_file_stream(struct mdlparse_vars *mpvp,
                                            char *name)
 {
-  struct sym_table *sym = mdl_existing_symbol(mpvp, name, FSTRM);
+  struct sym_table *sym = mdl_existing_symbol(mpvp, name, mpvp->vol->fstream_sym_table, FSTRM);
   if (sym == NULL)
     return sym;
 
@@ -3598,7 +3623,10 @@ struct sym_table *mdl_existing_file_stream(struct mdlparse_vars *mpvp,
 struct sym_table_list *mdl_meshes_by_wildcard(struct mdlparse_vars *mpvp, char *wildcard)
 {
   /* Scan for objects matching the wildcard */
-  struct sym_table_list *matches = mdl_find_symbols_by_wildcard(mpvp, wildcard, OBJ);
+  struct sym_table_list *matches = mdl_find_symbols_by_wildcard(mpvp,
+                                                                wildcard,
+                                                                mpvp->vol->obj_sym_table,
+                                                                OBJ);
   if (matches == NULL)
   {
     free(wildcard);
@@ -3731,14 +3759,14 @@ static struct region *make_new_region(struct mdlparse_vars *mpvp,
   if (region_name == NULL)
     return NULL;
 
-  if ((retrieve_sym(region_name,REG,mpvp->vol->main_sym_table)) != NULL)
+  if ((retrieve_sym(region_name, mpvp->vol->reg_sym_table)) != NULL)
   {
     mdlerror_fmt(mpvp, "Region already defined: %s", region_name);
     free(region_name);
     return NULL;
   }
 
-  if ((gp = store_sym(region_name, REG, mpvp->vol->main_sym_table, NULL)) == NULL)
+  if ((gp = store_sym(region_name, REG, mpvp->vol->reg_sym_table, NULL)) == NULL)
   {
     mcell_allocfailed("Failed to store a region in the region symbol table.");
     free(region_name);
@@ -3870,7 +3898,7 @@ static struct region* find_corresponding_region(struct region *old_r,
                                                 struct object *old_ob,
                                                 struct object *new_ob,
                                                 struct object *instance,
-                                                struct sym_table **symhash)
+                                                struct sym_table_head *symhash)
 {
   struct object *ancestor;
   struct object *ob;
@@ -3922,7 +3950,7 @@ static struct region* find_corresponding_region(struct region *old_r,
             max_name_len - new_prefix_idx);
 
     /* Finally, retrieve symbol from newly-constructed name. */
-    gp = retrieve_sym(new_name, REG, symhash);
+    gp = retrieve_sym(new_name, symhash);
     if (gp == NULL) return NULL;
     else return (struct region*) gp->value;
   }
@@ -3937,7 +3965,6 @@ static struct region* find_corresponding_region(struct region *old_r,
      old_self: the object containing that tree
      new_self: a new object for which we want to build a corresponding tree
      instance: the root object that begins the instance tree
-     symhash: the main symbol hash table for the world
  Out: the newly constructed expression tree for the new object, or
       NULL if no such tree can be built
 *************************************************************************/
@@ -3945,8 +3972,7 @@ static struct release_evaluator* duplicate_rel_region_expr(struct mdlparse_vars 
                                                            struct release_evaluator *expr,
                                                            struct object *old_self,
                                                            struct object *new_self,
-                                                           struct object *instance,
-                                                           struct sym_table **symhash)
+                                                           struct object *instance)
 {
   struct region *r;
   struct release_evaluator *nexp;
@@ -3961,7 +3987,7 @@ static struct release_evaluator* duplicate_rel_region_expr(struct mdlparse_vars 
   {
     if (expr->op&REXP_LEFT_REGION)
     {
-      r = find_corresponding_region(expr->left,old_self,new_self,instance,symhash);
+      r = find_corresponding_region(expr->left,old_self,new_self,instance,mpvp->vol->reg_sym_table);
       
       if (r==NULL)
       {
@@ -3971,7 +3997,7 @@ static struct release_evaluator* duplicate_rel_region_expr(struct mdlparse_vars 
       
       nexp->left = r;
     }
-    else nexp->left = duplicate_rel_region_expr(mpvp, expr->left,old_self,new_self,instance,symhash);
+    else nexp->left = duplicate_rel_region_expr(mpvp, expr->left, old_self, new_self, instance);
   }
   else nexp->left = NULL;
 
@@ -3979,7 +4005,7 @@ static struct release_evaluator* duplicate_rel_region_expr(struct mdlparse_vars 
   {
     if (expr->op&REXP_RIGHT_REGION)
     {
-      r = find_corresponding_region(expr->right,old_self,new_self,instance,symhash);
+      r = find_corresponding_region(expr->right, old_self, new_self, instance, mpvp->vol->reg_sym_table);
       
       if (r==NULL)
       {
@@ -3989,7 +4015,7 @@ static struct release_evaluator* duplicate_rel_region_expr(struct mdlparse_vars 
       
       nexp->right = r;
     }
-    else nexp->right = duplicate_rel_region_expr(mpvp, expr->right,old_self,new_self,instance,symhash);
+    else nexp->right = duplicate_rel_region_expr(mpvp, expr->right, old_self, new_self, instance);
   }
   else nexp->right = NULL;
   
@@ -4004,7 +4030,6 @@ static struct release_evaluator* duplicate_rel_region_expr(struct mdlparse_vars 
      old: an existing release site object
      new_self: the object that is to contain a duplicate release site object
      instance: the root object that begins the instance tree
-     symhash: the main symbol hash table for the world
  Out: a duplicated release site object, or NULL if the release site cannot be
       duplicated.
 
@@ -4016,8 +4041,7 @@ static struct release_evaluator* duplicate_rel_region_expr(struct mdlparse_vars 
 static struct release_site_obj* duplicate_release_site(struct mdlparse_vars *mpvp,
                                                        struct release_site_obj *old,
                                                        struct object *new_self,
-                                                       struct object *instance,
-                                                       struct sym_table **symhash)
+                                                       struct object *instance)
 {
   struct release_site_obj *rso;
   rso = CHECKED_MALLOC_STRUCT(struct release_site_obj, "release site");
@@ -4067,8 +4091,7 @@ static struct release_site_obj* duplicate_release_site(struct mdlparse_vars *mpv
                                                 old->region_data->expression,
                                                 old->region_data->self,
                                                 new_self,
-                                                instance,
-                                                symhash);
+                                                instance);
     if (rrd->expression==NULL) return NULL;
 
     rso->region_data = rrd;
@@ -4154,8 +4177,7 @@ int mdl_deep_copy_object(struct mdlparse_vars *mpvp,
       dst_obj->contents = duplicate_release_site(mpvp,
                                                  src_obj->contents,
                                                  dst_obj,
-                                                 mpvp->vol->root_instance,
-                                                 mpvp->vol->main_sym_table);
+                                                 mpvp->vol->root_instance);
       if (dst_obj->contents == NULL) return 1;
       struct release_site_obj *rso = (struct release_site_obj *) dst_obj->contents;
       rso->name = mdl_strdup(mpvp, dst_obj->sym->name);
@@ -5673,14 +5695,16 @@ int mdl_is_release_site_valid(struct mdlparse_vars *mpvp,
   {
     if ((rsop->mol_type->flags & NOT_FREE) == 0  &&  rsop->release_number != -3)
     {
-      mdlerror(mpvp, "CONCENTRATION must be used with molecules that can diffuse in 3D");
-      mdlerror(mpvp, "  (Use DENSITY for molecules diffusing in 2D.)");
+      mdlerror(mpvp,
+               "CONCENTRATION may only be used with molecules that can diffuse in 3D.\n"
+               "  Use DENSITY for molecules diffusing in 2D.");
       return 1;
     }
     else if ((rsop->mol_type->flags&NOT_FREE)==ON_GRID && rsop->release_number != -2)
     {
-      mdlerror(mpvp, "DENSITY must be used with molecules that can diffuse in 2D");
-      mdlerror(mpvp, "  (Use CONCENTRATION for molecules diffusing in 3D.)");
+      mdlerror(mpvp,
+               "DENSITY may only be used with molecules that can diffuse in 2D.\n"
+               "  Use CONCENTRATION for molecules diffusing in 3D.");
       return 1;
     }
   }
@@ -5846,7 +5870,7 @@ int mdl_set_release_site_geometry_object(struct mdlparse_vars *mpvp,
   region_name = CHECKED_SPRINTF("%s,ALL", obj_name);
   if (region_name == NULL)
     return 1;
-  if ((symp = retrieve_sym(region_name, REG, mpvp->vol->main_sym_table)) == NULL)
+  if ((symp = retrieve_sym(region_name, mpvp->vol->reg_sym_table)) == NULL)
   {
     mdlerror_fmt(mpvp, "Undefined region: %s", region_name);
     free(region_name);
@@ -7271,7 +7295,7 @@ struct region *mdl_get_region(struct mdlparse_vars *mpvp,
   if (region_name == NULL)
     return NULL;
 
-  reg_sym = retrieve_sym(region_name, REG, mpvp->vol->main_sym_table);
+  reg_sym = retrieve_sym(region_name, mpvp->vol->reg_sym_table);
   free(region_name);
 
   if (reg_sym == NULL)
@@ -7442,7 +7466,7 @@ struct element_list *mdl_new_element_previous_region(struct mdlparse_vars *mpvp,
     goto failure;
 
   /* Look up region or die */
-  stp = retrieve_sym(full_reg_name, REG, mpvp->vol->main_sym_table);
+  stp = retrieve_sym(full_reg_name, mpvp->vol->reg_sym_table);
   if (stp == NULL)
   {
     mdlerror_fmt(mpvp, "Undefined region: %s", full_reg_name);
@@ -7577,20 +7601,20 @@ int mdl_set_region_elements(struct mdlparse_vars *mpvp,
 **************************************************************************/
 struct sym_table *mdl_new_rxn_pathname(struct mdlparse_vars *mpvp, char *name)
 {
-  if ((retrieve_sym(name, RXPN, mpvp->vol->main_sym_table)) != NULL)
+  if ((retrieve_sym(name, mpvp->vol->rxpn_sym_table)) != NULL)
   {
     mdlerror_fmt(mpvp, "Named reaction pathway already defined: %s", name);
     free(name);
     return NULL;
   }
-  else if ((retrieve_sym(name, MOL, mpvp->vol->main_sym_table)) != NULL)
+  else if ((retrieve_sym(name, mpvp->vol->mol_sym_table)) != NULL)
   {
     mdlerror_fmt(mpvp, "Named reaction pathway already defined as a molecule: %s", name);
     free(name);
     return NULL;
   }
 
-  struct sym_table *symp = store_sym(name,RXPN,mpvp->vol->main_sym_table, NULL);
+  struct sym_table *symp = store_sym(name,RXPN,mpvp->vol->rxpn_sym_table, NULL);
   if (symp == NULL)
   {
     mdlerror_fmt(mpvp, "Out of memory while creating reaction name: %s", name);
@@ -8005,21 +8029,21 @@ int mdl_output_block_finalize(struct mdlparse_vars *mpvp, struct output_block *o
       switch (oc->expr->expr_flags&OEXPR_TYPE_MASK)
       {
         case OEXPR_TYPE_INT:
-          oc->data_type=INT;
+          oc->data_type = COUNT_INT;
           oc->buffer = CHECKED_MALLOC_ARRAY(int,
                                              obp->buffersize,
                                              "reaction data output buffer");
           break;
 
         case OEXPR_TYPE_DBL:
-          oc->data_type=DBL;
+          oc->data_type = COUNT_DBL;
           oc->buffer = CHECKED_MALLOC_ARRAY(double,
                                              obp->buffersize,
                                              "reaction data output buffer");
           break;
 
         case OEXPR_TYPE_TRIG:
-          oc->data_type=TRIG_STRUCT;
+          oc->data_type = COUNT_TRIG_STRUCT;
           oc->buffer = CHECKED_MALLOC_ARRAY(struct output_trigger_data,
                                              obp->trig_bufsize,
                                              "reaction data output buffer");
@@ -8231,7 +8255,7 @@ static struct output_column* mdl_new_output_column(struct mdlparse_vars *mpvp)
   if (oc == NULL)
     return NULL;
 
-  oc->data_type = 0;
+  oc->data_type = COUNT_UNSET;
   oc->initial_value = 0.0;
   oc->buffer = NULL;
   oc->expr = NULL;
@@ -8708,15 +8732,35 @@ static struct output_expression *mdl_new_output_requests_from_list(struct mdlpar
 static struct sym_table_list *mdl_find_rxpns_and_mols_by_wildcard(struct mdlparse_vars *mpvp,
                                                                   char const *wildcard)
 {
-  int i;
   struct sym_table_list *symbols = NULL, *stl;
-  struct sym_table *sym_t;
-  for(i = 0; i < SYM_HASHSIZE; i++)
+  for(int i = 0; i < mpvp->vol->mol_sym_table->n_bins; i++)
   {
-    for(sym_t = mpvp->vol->main_sym_table[i]; sym_t != NULL; sym_t = sym_t->next)
+    for(struct sym_table *sym_t = mpvp->vol->mol_sym_table->entries[i];
+        sym_t != NULL;
+        sym_t = sym_t->next)
     {
-      if (sym_t->sym_type != MOL  &&  sym_t->sym_type != RXPN) continue;
+      if (is_wildcard_match((char *)wildcard, sym_t->name))
+      {
+        stl = (struct sym_table_list *) CHECKED_MEM_GET(mpvp->sym_list_mem,
+                                                         "list of named reactions and molecules for counting");
+        if(stl == NULL)
+        {
+          if (symbols) mem_put_list(mpvp->sym_list_mem, symbols);
+          return NULL;
+        }
 
+        stl->node = sym_t;
+        stl->next = symbols;
+        symbols = stl;
+      }
+    }
+  }
+  for(int i = 0; i < mpvp->vol->rxpn_sym_table->n_bins; i++)
+  {
+    for(struct sym_table *sym_t = mpvp->vol->rxpn_sym_table->entries[i];
+        sym_t != NULL;
+        sym_t = sym_t->next)
+    {
       if (is_wildcard_match((char *)wildcard, sym_t->name))
       {
         stl = (struct sym_table_list *) CHECKED_MEM_GET(mpvp->sym_list_mem,
@@ -9900,13 +9944,13 @@ struct sym_table *mdl_new_release_pattern(struct mdlparse_vars *mpvp,
                                           char *name)
 {
   struct sym_table *st;
-  if (retrieve_sym(name, RPAT, mpvp->vol->main_sym_table) != NULL)
+  if (retrieve_sym(name, mpvp->vol->rpat_sym_table) != NULL)
   {
     mdlerror_fmt(mpvp, "Release pattern already defined: %s", name);
     free(name);
     return NULL;
   }
-  else if ((st = store_sym(name,RPAT,mpvp->vol->main_sym_table, NULL)) == NULL)
+  else if ((st = store_sym(name, RPAT, mpvp->vol->rpat_sym_table, NULL)) == NULL)
   {
     mdlerror_fmt(mpvp, "Out of memory while creating release pattern: %s", name);
     free(name);
@@ -9982,13 +10026,13 @@ int mdl_set_release_pattern(struct mdlparse_vars *mpvp,
 **************************************************************************/
 int mdl_valid_complex_name(struct mdlparse_vars *mpvp, char *name)
 {
-  if (retrieve_sym(name, RXPN, mpvp->vol->main_sym_table) != NULL)
+  if (retrieve_sym(name, mpvp->vol->rxpn_sym_table) != NULL)
   {
     mdlerror_fmt(mpvp, "There is already a named reaction pathway called '%s'.  Please change one of the names.", name);
     free(name);
     return 1;
   }
-  else if (retrieve_sym(name, MOL, mpvp->vol->main_sym_table) != NULL)
+  else if (retrieve_sym(name, mpvp->vol->mol_sym_table) != NULL)
   {
     mdlerror_fmt(mpvp, "There is already a molecule or complex called '%s'.  Please change one of the names.", name);
     free(name);
@@ -10010,19 +10054,19 @@ int mdl_valid_complex_name(struct mdlparse_vars *mpvp, char *name)
 struct sym_table *mdl_new_molecule(struct mdlparse_vars *mpvp, char *name)
 {
   struct sym_table *sym = NULL;
-  if (retrieve_sym(name, MOL, mpvp->vol->main_sym_table) != NULL)
+  if (retrieve_sym(name, mpvp->vol->mol_sym_table) != NULL)
   {
     mdlerror_fmt(mpvp, "Molecule already defined: %s", name);
     free(name);
     return NULL;
   }
-  else if (retrieve_sym(name, RXPN, mpvp->vol->main_sym_table) != NULL)
+  else if (retrieve_sym(name, mpvp->vol->rxpn_sym_table) != NULL)
   {
     mdlerror_fmt(mpvp, "Molecule already defined as a named reaction pathway: %s", name);
     free(name);
     return NULL;
   }
-  else if ((sym = store_sym(name, MOL, mpvp->vol->main_sym_table, NULL)) == NULL)
+  else if ((sym = store_sym(name, MOL, mpvp->vol->mol_sym_table, NULL)) == NULL)
   {
     mdlerror_fmt(mpvp, "Out of memory while creating molecule: %s", name);
     free(name);
@@ -10740,10 +10784,10 @@ static int invert_current_reaction_pathway(struct mdlparse_vars *mpvp,
     return 1;
   }
  
-  sym = retrieve_sym(inverse_name,RX,mpvp->vol->main_sym_table);
+  sym = retrieve_sym(inverse_name, mpvp->vol->rxn_sym_table);
   if (sym==NULL)
   {
-    sym = store_sym(inverse_name,RX,mpvp->vol->main_sym_table, NULL);
+    sym = store_sym(inverse_name,RX,mpvp->vol->rxn_sym_table, NULL);
     if (sym==NULL)
     {
       mdlerror_fmt(mpvp, "File '%s', Line %ld: Out of memory while storing reaction pathway.", __FILE__, (long)__LINE__);
@@ -11136,11 +11180,11 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
   }
 
   /* If this reaction doesn't exist, create it */
-  if ((symp = retrieve_sym(rx_name,RX,mpvp->vol->main_sym_table)) != NULL)
+  if ((symp = retrieve_sym(rx_name, mpvp->vol->rxn_sym_table)) != NULL)
   {
     /* do nothing */
   }
-  else if ((symp = store_sym(rx_name,RX,mpvp->vol->main_sym_table, NULL)) == NULL)
+  else if ((symp = store_sym(rx_name,RX,mpvp->vol->rxn_sym_table, NULL)) == NULL)
   {
     mdlerror(mpvp, "Out of memory while creating reaction.");
     free(rx_name);
@@ -11589,11 +11633,11 @@ struct rxn *mdl_assemble_surface_reaction(struct mdlparse_vars *mpvp,
 
   /* Find or create reaction */
   struct sym_table *reaction_sym;
-  if ((reaction_sym = retrieve_sym(rx_name, RX, mpvp->vol->main_sym_table)) != NULL)
+  if ((reaction_sym = retrieve_sym(rx_name, mpvp->vol->rxn_sym_table)) != NULL)
   {
     /* do nothing */
   }
-  else if ((reaction_sym = store_sym(rx_name, RX, mpvp->vol->main_sym_table, NULL)) == NULL)
+  else if ((reaction_sym = store_sym(rx_name, RX, mpvp->vol->rxn_sym_table, NULL)) == NULL)
   {
     free(rx_name);
     mdlerror_fmt(mpvp,
@@ -11770,10 +11814,10 @@ struct rxn *mdl_assemble_concentration_clamp_reaction(struct mdlparse_vars *mpvp
                  surface_class->sym->name, mol_sym->name);
     return NULL;
   }
-  if ((stp3=retrieve_sym(rx_name,RX,mpvp->vol->main_sym_table)) !=NULL) {
+  if ((stp3=retrieve_sym(rx_name, mpvp->vol->rxn_sym_table)) !=NULL) {
     /* do nothing */
   }
-  else if ((stp3=store_sym(rx_name,RX,mpvp->vol->main_sym_table, NULL)) ==NULL) {
+  else if ((stp3=store_sym(rx_name,RX,mpvp->vol->rxn_sym_table, NULL)) ==NULL) {
     free(rx_name);
     mdlerror_fmt(mpvp,
                  "Cannot store surface reaction: %s -%s-> ...",
@@ -13756,7 +13800,7 @@ int mdl_assemble_complex_species(struct mdlparse_vars *mpvp,
   mpvp->complex_topo = NULL;
   mpvp->complex_relations = NULL;
 
-  cs->base.sym = store_sym(name, MOL, mpvp->vol->main_sym_table, cs);
+  cs->base.sym = store_sym(name, MOL, mpvp->vol->mol_sym_table, cs);
   if (cs->base.sym == NULL)
   {
     mdlerror_fmt(mpvp, "Failed to store the complex species '%s' in the symbol table", name);
@@ -14712,7 +14756,6 @@ static void set_reaction_player_flags(struct rxn *rx)
 *************************************************************************/
 static int build_reaction_hash_table(struct mdlparse_vars *mpvp, int num_rx)
 {
-  int i, j;
   struct rxn **rx_tbl = NULL;
   int rx_hash;
   for (rx_hash=2; rx_hash<=num_rx && rx_hash != 0; rx_hash <<= 1)
@@ -14733,40 +14776,39 @@ static int build_reaction_hash_table(struct mdlparse_vars *mpvp, int num_rx)
   if (rx_tbl==NULL)
      return 1;
   mpvp->vol->reaction_hash = rx_tbl;
-  for (i=0;i<=rx_hash;i++) rx_tbl[i] = NULL;
+  for (int i=0;i<=rx_hash;i++) rx_tbl[i] = NULL;
 
 #ifdef REPORT_RXN_HASH_STATS
   int numcoll = 0;
 #endif
-  for (i=0;i<SYM_HASHSIZE;i++)
+  for (int i=0;i<mpvp->vol->rxn_sym_table->n_bins;i++)
   {
-    struct sym_table *sym;
-    for (sym = mpvp->vol->main_sym_table[i]; sym != NULL; sym = sym->next)
+    for (struct sym_table *sym = mpvp->vol->rxn_sym_table->entries[i]; sym != NULL; sym = sym->next)
     {
       if (sym == NULL) continue;
-      if (sym->sym_type != RX) continue;
       
       struct rxn *rx = (struct rxn*) sym->value;
+      int table_slot;
       if (rx->n_reactants == 1)
       {
-        j = rx->players[0]->hashval & rx_hash;
+        table_slot = rx->players[0]->hashval & rx_hash;
       }
       else
       {
-        j = (rx->players[0]->hashval + rx->players[1]->hashval) & rx_hash;
+        table_slot = (rx->players[0]->hashval + rx->players[1]->hashval) & rx_hash;
       }
 
 #ifdef REPORT_RXN_HASH_STATS
-      if (rx_tbl[j] != NULL)
+      if (rx_tbl[table_slot] != NULL)
       {
-        mcell_log("Collision: %s and %s", rx_tbl[j]->sym->name, sym->name);
+        mcell_log("Collision: %s and %s", rx_tbl[table_slot]->sym->name, sym->name);
         ++ numcoll;
       }
 #endif
       mpvp->vol->n_reactions++;
       while (rx->next != NULL) rx = rx->next;
-      rx->next = rx_tbl[j];
-      rx_tbl[j] = (struct rxn*)sym->value;
+      rx->next = rx_tbl[table_slot];
+      rx_tbl[table_slot] = (struct rxn*)sym->value;
     }
   }
 #ifdef REPORT_RXN_HASH_STATS
@@ -14801,14 +14843,13 @@ static int build_reaction_hash_table(struct mdlparse_vars *mpvp, int num_rx)
 *************************************************************************/
 int prepare_reactions(struct mdlparse_vars *mpvp)
 {
-  struct sym_table *sym;
   struct pathway *path;
   struct product *prod,*prod2;
   struct rxn *rx;
   struct t_func *tp;
   double pb_factor = 0,D_tot,rate,t_step;
   short geom, geom2;
-  int i,j,k,kk,k2;
+  int k,kk,k2;
   /* flags that tell whether reactant_1 is also on the product list,
      same for reactant_2 and reactant_3 */
   int recycled1,recycled2,recycled3;
@@ -14841,11 +14882,12 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   mpvp->vol->tv_rxn_mem = create_mem( sizeof(struct t_func) , 100 );
   if (mpvp->vol->tv_rxn_mem == NULL) return 1;
   
-  for (i=0;i<SYM_HASHSIZE;i++)
+  for (int n_rxn_bin=0; n_rxn_bin<mpvp->vol->rxn_sym_table->n_bins; n_rxn_bin++)
   {
-    for ( sym = mpvp->vol->main_sym_table[i] ; sym!=NULL ; sym = sym->next )
+    for (struct sym_table *sym = mpvp->vol->rxn_sym_table->entries[n_rxn_bin];
+         sym != NULL;
+         sym = sym->next )
     {
-      if (sym->sym_type != RX) continue;
       reaction = (struct rxn*)sym->value;
       reaction->next = NULL;
 
@@ -15763,29 +15805,29 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
   mpvp->vol->rx_radius_3d *= mpvp->vol->r_length_unit; /* Convert into length units */
  
-  for (i=0;i<mpvp->vol->rx_hashsize;i++)
+  for (int n_rxn_bin=0;n_rxn_bin<mpvp->vol->rx_hashsize;n_rxn_bin++)
   {
-    for (rx = mpvp->vol->reaction_hash[i]; rx != NULL; rx = rx->next)
+    for (struct rxn *this_rx = mpvp->vol->reaction_hash[n_rxn_bin];
+         this_rx != NULL;
+         this_rx = this_rx->next)
     {
-      set_reaction_player_flags(rx);
-      rx->pathway_head = NULL;
+      set_reaction_player_flags(this_rx);
+      this_rx->pathway_head = NULL;
     }
   }
 
   /* Add flags for any generic 3D molecule reactions */
   if (mpvp->vol->g_mol->flags & (CAN_MOLWALL|CAN_MOLMOL))
   {
-    struct sym_table *gp;
     k = mpvp->vol->g_mol->flags & (CAN_MOLWALL|CAN_MOLMOL);
-    for (i=0;i<SYM_HASHSIZE;i++)
+    for (int n_mol_bin=0; n_mol_bin<mpvp->vol->mol_sym_table->n_bins; n_mol_bin++)
     {
-      for (gp = mpvp->vol->main_sym_table[i] ; gp != NULL ; gp = gp->next)
+      for (struct sym_table *symp = mpvp->vol->mol_sym_table->entries[n_mol_bin];
+           symp != NULL;
+           symp = symp->next)
       {    
-	if (gp->sym_type==MOL)
-	{
-	  temp_sp = (struct species*)gp->value;
-	  if ((temp_sp->flags & NOT_FREE) == 0) temp_sp->flags |= k;
-	}
+        temp_sp = (struct species*) symp->value;
+        if ((temp_sp->flags & NOT_FREE) == 0) temp_sp->flags |= k;
       }
     }
   }

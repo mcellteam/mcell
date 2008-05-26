@@ -3265,18 +3265,14 @@ int mdlparse_init(struct volume *vol)
   failure = mdlparse_file(&mpv, vol->mdl_infile_name);
 
   /* Close any open file streams */
-  int i;
-  for (i=0; i<SYM_HASHSIZE; ++ i)
+  for (int i=0; i<vol->fstream_sym_table->n_bins; ++ i)
   {
-    if (vol->main_sym_table[i] != NULL)
+    if (vol->fstream_sym_table->entries[i] != NULL)
     {
-      struct sym_table *symp;
-      for (symp = vol->main_sym_table[i];
+      for (struct sym_table *symp = vol->fstream_sym_table->entries[i];
            symp != NULL;
            symp = symp->next)
       {
-        if (symp->sym_type != FSTRM)
-          continue;
         if (((struct file_stream *) symp->value)->stream == NULL)
           continue;
         mdl_fclose(&mpv, symp);

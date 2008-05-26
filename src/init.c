@@ -311,35 +311,48 @@ int init_sim(void)
   if (world->magic_mem==NULL)
     mcell_allocfailed("Failed to create memory pool for reaction-triggered release lists.");
 
-  if ((world->main_sym_table = init_symtab(SYM_HASHSIZE)) == NULL)
-    mcell_allocfailed("Failed to initialize symbol table.");
-  if ((gp = store_sym("WORLD_OBJ", OBJ, world->main_sym_table, NULL)) == NULL)
-    mcell_allocfailed("Failed to store the world root object in the symbol table.");
+  if ((world->fstream_sym_table = init_symtab(1024)) == NULL)
+    mcell_allocfailed("Failed to initialize symbol table for file streams.");
+  if ((world->mol_sym_table = init_symtab(1024)) == NULL)
+    mcell_allocfailed("Failed to initialize symbol table for molecules.");
+  if ((world->rxn_sym_table = init_symtab(1024)) == NULL)
+    mcell_allocfailed("Failed to initialize symbol table for reactions.");
+  if ((world->obj_sym_table = init_symtab(1024)) == NULL)
+    mcell_allocfailed("Failed to initialize symbol table for objects.");
+  if ((world->reg_sym_table = init_symtab(1024)) == NULL)
+    mcell_allocfailed("Failed to initialize symbol table for regions.");
+  if ((world->rpat_sym_table = init_symtab(1024)) == NULL)
+    mcell_allocfailed("Failed to initialize symbol table for release patterns.");
+  if ((world->rxpn_sym_table = init_symtab(1024)) == NULL)
+    mcell_allocfailed("Failed to initialize symbol table for reaction pathways.");
+
+  if ((gp = store_sym("WORLD_OBJ", OBJ, world->obj_sym_table, NULL)) == NULL)
+    mcell_allocfailed("Failed to store the world root object in the object symbol table.");
   world->root_object = (struct object *) gp->value;
   world->root_object->object_type = META_OBJ;
   world->root_object->last_name = CHECKED_STRDUP("", NULL);
 
-  if ((gp = store_sym("WORLD_INSTANCE", OBJ, world->main_sym_table, NULL)) == NULL)
-    mcell_allocfailed("Failed to store the world root instance in the symbol table.");
+  if ((gp = store_sym("WORLD_INSTANCE", OBJ, world->obj_sym_table, NULL)) == NULL)
+    mcell_allocfailed("Failed to store the world root instance in the object symbol table.");
   world->root_instance = (struct object *)gp->value;
   world->root_instance->object_type = META_OBJ;
   world->root_instance->last_name = CHECKED_STRDUP("", NULL);
 
-  if ((gp = store_sym("DEFAULT_RELEASE_PATTERN", RPAT, world->main_sym_table, NULL)) == NULL)
-    mcell_allocfailed("Failed to store the default release pattern in the symbol table.");
+  if ((gp = store_sym("DEFAULT_RELEASE_PATTERN", RPAT, world->rpat_sym_table, NULL)) == NULL)
+    mcell_allocfailed("Failed to store the default release pattern in the release patterns symbol table.");
   world->default_release_pattern = (struct release_pattern *) gp->value;
   world->default_release_pattern->delay = 0;
   world->default_release_pattern->release_interval = FOREVER;
   world->default_release_pattern->train_interval = FOREVER;
   world->default_release_pattern->train_duration = FOREVER;
   world->default_release_pattern->number_of_trains = 1;
-
-  if ((gp = store_sym("GENERIC_MOLECULE", MOL, world->main_sym_table, NULL)) == NULL)
-    mcell_allocfailed("Failed to store the generic molecule in the symbol table.");
+   
+  if ((gp = store_sym("GENERIC_MOLECULE", MOL, world->mol_sym_table, NULL)) == NULL)
+    mcell_allocfailed("Failed to store the generic molecule in the molecule symbol table.");
   world->g_mol = (struct species *) gp->value;
 
-  if ((gp = store_sym("GENERIC_SURFACE", MOL, world->main_sym_table, NULL)) == NULL)
-    mcell_allocfailed("Failed to store the generic surface class in the symbol table.");
+  if ((gp = store_sym("GENERIC_SURFACE", MOL, world->mol_sym_table, NULL)) == NULL)
+    mcell_allocfailed("Failed to store the generic surface class in the molecule symbol table.");
   world->g_surf = (struct species *) gp->value;
   world->g_surf->flags = IS_SURFACE;
 
@@ -573,22 +586,15 @@ int init_species(void)
   
   world->speed_limit = 0;
   
-  for (i=0;i<SYM_HASHSIZE;i++)
-  {
-    for (gp = world->main_sym_table[i] ; gp != NULL ; gp = gp->next)
-    {    
-      if (gp->sym_type==MOL) count++;
-    }
-  }
-  
+  count = world->mol_sym_table->n_entries;
   world->n_species = count;
   world->species_list = CHECKED_MALLOC_ARRAY(struct species*,
                                              world->n_species,
                                              "species table");
   count = 0;
-  for (i=0;i<SYM_HASHSIZE;i++)
+  for (i=0;i<world->mol_sym_table->n_bins;i++)
   {
-    for (gp = world->main_sym_table[i] ; gp != NULL ; gp = gp->next)
+    for (gp = world->mol_sym_table->entries[i] ; gp != NULL ; gp = gp->next)
     {    
       if (gp->sym_type==MOL)
       {
@@ -602,7 +608,7 @@ int init_species(void)
         if(world->species_list[count]->viz_state < 0){
         	world->species_list[count]->viz_state = EXCLUDE_OBJ;
         }
-        if ( (s->flags & NOT_FREE) == 0 )
+        if ((s->flags & NOT_FREE) == 0)
         {
           speed = 6.0*s->space_step/sqrt(MY_PI);
           if (speed > world->speed_limit) world->speed_limit = speed;
@@ -1710,8 +1716,8 @@ int init_wall_effectors(struct object *objp)
 	    dup_effdp->quantity_type=effdp->quantity_type;
 	    dup_effdp->quantity=effdp->quantity;
 	    dup_effdp->orientation=effdp->orientation;
-            dup_effdp->next=eff_prop[n_wall];
-            eff_prop[n_wall]=dup_effdp;
+            dup_effdp->next = eff_prop[n_wall];
+            eff_prop[n_wall] = dup_effdp;
 	  }
 	  else reg_eff_num=1;
 	}
@@ -1730,8 +1736,8 @@ int init_wall_effectors(struct object *objp)
 	      dup_effdp->quantity_type=effdp->quantity_type;
 	      dup_effdp->quantity=effdp->quantity;
 	      dup_effdp->orientation=effdp->orientation;
-              dup_effdp->next=eff_prop[n_wall];
-              eff_prop[n_wall]=dup_effdp;
+              dup_effdp->next = eff_prop[n_wall];
+              eff_prop[n_wall] = dup_effdp;
 	    }
 	    else reg_eff_num=1;
 	  }

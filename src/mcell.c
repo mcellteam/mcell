@@ -501,6 +501,9 @@ int main(int argc, char **argv)
   world->begin_timestamp = begin_time_of_day;
   world->initialization_state = "initializing";
 
+  if ((world->var_sym_table = init_symtab(1024)) == NULL)
+    mcell_allocfailed("Failed to initialize MDL variable symbol table.");
+
   /*
    * Parse the command line arguments and print out errors if necessary.
    */
