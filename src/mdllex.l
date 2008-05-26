@@ -7,6 +7,7 @@
   #include "mdlparse_aux.h"
   #include "mdlparse.h"
   #include "mem_util.h"
+  #include "logging.h"
 
   #define YY_DECL int mdllex( YYSTYPE *yylval, struct mdlparse_vars *mpvp, yyscan_t yyscanner )
   #define YY_NO_UNPUT
@@ -20,7 +21,7 @@
 void *mdlalloc(yy_size_t size, yyscan_t yyscanner)
 {
   UNUSED(yyscanner);
-  return CHECKED_MALLOC_DIE(size, "memory buffer for parser");
+  return CHECKED_MALLOC(size, "memory buffer for parser");
 }
 
 void *mdlrealloc(void *ptr, yy_size_t size, yyscan_t yyscanner)
@@ -29,10 +30,7 @@ void *mdlrealloc(void *ptr, yy_size_t size, yyscan_t yyscanner)
 
   ptr = (void *) realloc((char *) ptr, size);
   if (ptr == NULL)
-  {
-    fprintf(stderr, "Failed to resize memory buffer for parser.");
-    exit(EXIT_FAILURE);
-  }
+    mcell_allocfailed("Failed to resize memory buffer for parser.");
   return ptr;
 }
 
@@ -42,6 +40,8 @@ void mdlfree (void * ptr, yyscan_t yyscanner)
 
   free((char *) ptr);
 }
+
+#define YY_FATAL_ERROR(msg) mcell_error("%s", msg)
 
 %}
 
@@ -370,20 +370,12 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 {R}		        {sscanf((const char *)yytext,"%lf",&yylval->dbl); return REAL;}
 {I}			{sscanf((const char *)yytext,"%d",&yylval->ival); return INTEGER;}
 {IDENT}                 {
-                             yylval->str = strdup(yytext); 
-                             if (yylval->str == NULL) {
-                                fprintf(stderr,"File '%s', Line %ld: Out of memory while parsing string: %s\n", __FILE__, (long)__LINE__, yytext);
-                                exit(1);
-                             }
-                             return(VAR);
+                             yylval->str = CHECKED_STRDUP(yytext, "string token");
+                             return VAR;
                         }
 \"(([^\"]*)|((\\\")*))*\"  {
-                             yylval->str = strdup(yytext); 
-                             if(yylval->str == NULL){
-                                fprintf(stderr,"File '%s', Line %ld: Out of memory while parsing string: %s\n", __FILE__, (long)__LINE__, yytext);
-                                exit(1);
-                             }
-                             return(STR_VALUE);
+                             yylval->str = CHECKED_STRDUP(yytext, "string token"); 
+                             return STR_VALUE;
                            }
 
 [\'\,\(\)\/\-\+\=\^\[\]\{\}\|\<\>\*\#\~\@\:\&\;] {return(yytext[0]);}

@@ -9,7 +9,7 @@ Modified for modularity by Tom Bartol and Rex Kerr
 #ifndef ISAAC64_H
 #define ISAAC64_H
 
-#include <stdint.h>
+#include <inttypes.h>
 
 #define RANDSIZL   (8)
 #define RANDSIZ    (1<<RANDSIZL)
@@ -28,7 +28,7 @@ typedef unsigned char      ub1;
 
 struct isaac64_state
 {
-  int randcnt;
+  unsigned int randcnt;
   ub8 aa;
   ub8 bb;
   ub8 cc;

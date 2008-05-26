@@ -420,7 +420,6 @@
 /* Should be some number not between 0 and 1 that is also not -1 */
 #define MAGIC_PATTERN_PROBABILITY 1.101001000100001
 
-
 /* Output Trigger Flags */
 /* Don't set both RXN and HIT flags */
 #define TRIG_IS_RXN       0x1
@@ -443,10 +442,6 @@
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
 /*********************************************************/
-
-
-/* Generic numerical constants */
-#define EPSILON 1e-14
 
 /* 1/2^32 */
 #define R_UINT_MAX 2.3283064365386962890625e-10
@@ -670,7 +665,10 @@ struct rxn
   int n_pathways;            /* How many pathways lead away?
                                 (Negative = special reaction, i.e. transparent etc...)*/
   double *cum_probs;         /* Cumulative probabilities for (entering) all pathways */
+#if 0
+  /* This is for Michaelis-Menten reaction kinetics, which are currently unimplemented. */
   double *cat_probs;         /* Probabilities of leaving all pathways (<=0.0 is instant) */
+#endif
   struct complex_rate **rates; /* Rates for cooperative macromol subunit rxns */
   double max_fixed_p;        /* Maximum 'p' for region of p-space for all non-cooperative pathways */
   double min_noreaction_p;   /* Minimum 'p' for region of p-space which is always in the non-reacting "pathway". (note that cooperativity may mean that some values of p less than this still do not produce a reaction) */
@@ -1272,10 +1270,6 @@ struct volume
   /* MCell startup command line arguments */
   u_int seed_seq;            /* Seed for random number generator */
   long long iterations;      /* How many iterations to run */
-  char *log_file_name;       /* Name of log file */
-  char *err_file_name;       /* Name of err_file */
-  FILE *log_file;            /* Log file to use, default is stdout */
-  FILE *err_file;            /* Error log file to use, default is stderr */
   u_int log_freq;            /* Interval between simulation progress reports, default scales as sqrt(iterations) */
   char *mdl_infile_name;     /* Name of MDL file specified on command line */
   char const *curr_file;     /* Name of MDL file currently being parsed */
@@ -1286,7 +1280,7 @@ struct volume
   
   /* Flags for asynchronously-triggered checkpoints */
   int checkpoint_requested;             /* CHKPT_AND_CONTINUE, CHKPT_AND_STOP, or CHKPT_NOT_REQUESTED */
-  long checkpoint_alarm_time;           /* number of seconds between checkpoints */
+  unsigned int checkpoint_alarm_time;   /* number of seconds between checkpoints */
   int continue_after_checkpoint;        /* 0: exit after chkpt, 1: continue after chkpt */
   long long last_checkpoint_iteration;  /* Last iteration when chkpt was created */
   time_t begin_timestamp;               /* Time since epoch at beginning of 'main' */
@@ -1903,12 +1897,5 @@ struct rk_mode_data
   struct vector3 *direction;
   int n_written;
 };
-
-#ifdef DEBUG
-#define no_printf printf
-#else
-#define no_printf(...) do { /* empty */ } while(0)
-#endif
-
 
 #endif

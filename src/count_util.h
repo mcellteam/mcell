@@ -14,8 +14,6 @@ int prepare_counters(void);
 int check_counter_geometry(void);
 int expand_object_output(struct output_request *request,struct object *obj);
 int object_has_geometry(struct object *obj);
-int instantiate_request(struct output_request *request);
-struct counter* create_new_counter(struct region *where,void *who,byte what);
 
 /************************************************************
  * Complex counting

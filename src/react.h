@@ -35,18 +35,6 @@ void check_probs(struct rxn *rx,double t);
 
 
 /* In react_outc.c */
-int outcome_products(struct wall *w,struct volume_molecule *reac_m,
-  struct grid_molecule *reac_g,struct rxn *rx,int path,struct storage *local,
-  short orientA,short orientB,double t,struct vector3 *hitpt,
-  struct abstract_molecule *reacA,struct abstract_molecule *reacB,
-  struct abstract_molecule *moving);
-int outcome_products_trimol_reaction(struct wall *w,
-  struct volume_molecule *reac_m, struct grid_molecule *reac_g,
-  struct rxn *rx,int path,struct storage *local,
-  short orientA, short orientB, short orientC,
-  double t,struct vector3 *hitpt,
-  struct abstract_molecule *reacA,struct abstract_molecule *reacB,
-  struct abstract_molecule *reacC, struct abstract_molecule *moving);
 int outcome_unimolecular(struct rxn *rx,int path,
   struct abstract_molecule *reac,double t);
 int outcome_bimolecular(struct rxn *rx,int path,
@@ -60,7 +48,6 @@ int outcome_trimolecular(struct rxn *rx,int path,
 int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   struct abstract_molecule *reac,short orient,double t,struct vector3 *hitpt,
   struct vector3 *loc_okay);
-int reaction_wizardry(struct magic_list *incantation,struct wall *surface,struct vector3 *hitpt,double t);
 int is_compatible_surface(void *req_species, struct wall *w);
 
 #endif

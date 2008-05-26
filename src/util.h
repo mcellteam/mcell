@@ -128,7 +128,7 @@ void set_bit_range(struct bit_array *ba,int idx1,int idx2,int value);
 void set_all_bits(struct bit_array *ba,int value);
 void bit_operation(struct bit_array *ba,struct bit_array *bb,char op);
 int count_bits(struct bit_array *ba);
-void print_bit_array(struct bit_array *ba);
+void print_bit_array(FILE *F, struct bit_array *ba);
 void free_bit_array(struct bit_array *ba);
 
 
@@ -165,8 +165,8 @@ void uniq_num_expr_list(struct num_expr_list *nel);
 
 int is_dir(char const *path);
 int is_writable_dir(char const *path);
-int mkdirs(char const *path, FILE *err_file);
-int make_parent_dir(char const *path, FILE *err_file);
+int mkdirs(char const *path);
+int make_parent_dir(char const *path);
 
 FILE *open_file(char const *fname, char const *mode);
 int get_basename(char const *filepath, char **basename);

@@ -1,6 +1,6 @@
 #include <float.h>
 #include <math.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <memory.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,6 +8,8 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+#include "logging.h"
 #include "strfunc.h"
 #include "util.h"
 #include "mcell_structs.h"
@@ -44,10 +46,8 @@ static struct infinite_double_array *ia_double_locate(struct infinite_double_arr
 	while(*current_index_ptr >= BLOCK_SIZE){
 		if(current_ptr->next == NULL){
 		   current_ptr->next = malloc(sizeof(struct infinite_double_array));
-		   if(current_ptr->next == NULL){
-                       fprintf(stderr, "File '%s', Line %ld: Out of memory while creating infinite array\n", __FILE__, (long)__LINE__);
-			exit(1);
-                   }
+                   if (current_ptr->next == NULL)
+                     mcell_allocfailed("Failed to allocate \"infinite\" array.");
                  /*  memset(current_ptr->next, '\0', sizeof(struct infinite_double_array)); */
                    for(i = 0; i < BLOCK_SIZE; i++)
                    {
@@ -131,10 +131,8 @@ static struct infinite_int_array *ia_int_locate(struct infinite_int_array *array
 	while(*current_index_ptr >= BLOCK_SIZE){
 		if(current_ptr->next == NULL){
 		   current_ptr->next = malloc(sizeof(struct infinite_int_array));
-		   if(current_ptr->next == NULL){
-                       fprintf(stderr, "File '%s', Line %ld: Out of memory while creating infinite array\n", __FILE__, (long)__LINE__);
-			exit(1);
-                   }
+                   if (current_ptr->next == NULL)
+                     mcell_allocfailed("Failed to allocate \"infinite\" array.");
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_int_array)); */
                    for(i = 0; i < BLOCK_SIZE; i++)
                    {
@@ -218,10 +216,8 @@ static struct infinite_uint_array *ia_uint_locate(struct infinite_uint_array *ar
 	while(*current_index_ptr >= BLOCK_SIZE){
 		if(current_ptr->next == NULL){
 		   current_ptr->next = malloc(sizeof(struct infinite_uint_array));
-		   if(current_ptr->next == NULL){
-                       fprintf(stderr, "File '%s', Line %ld: Out of memory while creating infinite array\n", __FILE__, (long)__LINE__);
-			exit(1);
-                   }
+                   if (current_ptr->next == NULL)
+                     mcell_allocfailed("Failed to allocate \"infinite\" array.");
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_int_array)); */
                    for(i = 0; i < BLOCK_SIZE; i++)
                    {
@@ -305,10 +301,8 @@ static struct infinite_longlong_array *ia_longlong_locate(struct infinite_longlo
 	while(*current_index_ptr >= BLOCK_SIZE){
 		if(current_ptr->next == NULL){
 		   current_ptr->next = malloc(sizeof(struct infinite_longlong_array));
-		   if(current_ptr->next == NULL){
-                       fprintf(stderr, "File '%s', Line %ld: Out of memory while creating infinite array\n", __FILE__, (long)__LINE__);
-			exit(1);
-                   }
+                   if (current_ptr->next == NULL)
+                     mcell_allocfailed("Failed to allocate \"infinite\" array.");
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_longlong_array)); */
                    for(i = 0; i < BLOCK_SIZE; i++)
                    {
@@ -393,10 +387,8 @@ static struct infinite_string_array *ia_string_locate(struct infinite_string_arr
 	while(*current_index_ptr >= BLOCK_SIZE){
 		if(current_ptr->next == NULL){
 		   current_ptr->next = malloc(sizeof(struct infinite_string_array));
-		   if(current_ptr->next == NULL){
-                       fprintf(stderr, "File '%s', Line %ld: Out of memory while creating infinite array\n", __FILE__, (long)__LINE__);
-			exit(1);
-                   }
+                   if (current_ptr->next == NULL)
+                     mcell_allocfailed("Failed to allocate \"infinite\" array.");
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_string_array)); */    
                    
                    for(i = 0; i < BLOCK_SIZE; i++)
@@ -430,12 +422,8 @@ void ia_string_store(struct infinite_string_array *array_ptr, int idx, char *dat
 	int current_index;	/* Index into the current bucket */
 
 	current_ptr = ia_string_locate(array_ptr, idx, &current_index);
-        new_entry = strdup(data_to_store);
-        if(new_entry == NULL){
-		fprintf(stderr, "File '%s', Line %ld: Out of memory while creating infinite array\n", __FILE__, (long)__LINE__);
-        }else{
-		current_ptr->data[current_index] = new_entry;	
-        }
+        new_entry = CHECKED_STRDUP(data_to_store, "\"infinite\" string array entry");
+        current_ptr->data[current_index] = new_entry;	
 }
 
 
@@ -488,10 +476,8 @@ static struct infinite_pointer_array *ia_pointer_locate(struct infinite_pointer_
 	while(*current_index_ptr >= BLOCK_SIZE){
 		if(current_ptr->next == NULL){
 		   current_ptr->next = malloc(sizeof(struct infinite_pointer_array));
-		   if(current_ptr->next == NULL){
-                       fprintf(stderr, "File '%s', Line %ld: Out of memory while creating infinite array\n", __FILE__, (long)__LINE__);
-			exit(1);
-                   }
+                   if (current_ptr->next == NULL)
+                     mcell_allocfailed("Failed to allocate \"infinite\" array.");
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_pointer_array)); */
                    for(i = 0; i < BLOCK_SIZE; i++)
                    {
@@ -863,15 +849,15 @@ Parameters
 Returns
 	Nothing
 **********************************************************************/
-void print_bit_array(struct bit_array *ba)
+void print_bit_array(FILE *f, struct bit_array *ba)
 {
   int i;
   for (i=0;i<ba->nbits;i++)
   {
-    printf("%s",(get_bit(ba,i))?"1":"0");
-    if ((i&0x1F)==0x1F) printf("\n");
+    fprintf(f, "%s",(get_bit(ba,i))?"1":"0");
+    if ((i&0x1F)==0x1F) fprintf(f, "\n");
   }
-  printf("\n");
+  fprintf(f, "\n");
 }
 
 
@@ -1355,11 +1341,8 @@ u_int *allocate_uint_array(int size, u_int value)
   u_int *arr;
   int i;
 
-  if ((arr = (u_int *) malloc(size * sizeof(u_int))) == NULL)
-  {
-    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+  if ((arr = CHECKED_MALLOC_ARRAY_NODIE(u_int, size, NULL)) == NULL)
     return NULL;
-  }
 
   for (i=0; i<size; ++i)
     arr[i] = value;
@@ -1382,11 +1365,8 @@ void **allocate_ptr_array(int size)
   if (size == 0)
     size = 1;
 
-  if ((arr = (void **) malloc(size * sizeof(void *))) == NULL)
-  {
-    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+  if ((arr = CHECKED_MALLOC_ARRAY_NODIE(void *, size, NULL)) == NULL)
     return NULL;
-  }
 
   memset(arr, 0, size * sizeof(void *));
   return arr;
@@ -1500,17 +1480,16 @@ make_parent_dir:
     last path element first.
 
         In:  char const *path - absolute or relative path of file
-             FILE *err_file - output file for error messages
         Out: 0 on success, 1 on failure
 **************************************************************************/
-int make_parent_dir(char const *path, FILE *err_file)
+int make_parent_dir(char const *path)
 {
-  char *pathtmp = strdup(path);
+  char *pathtmp = CHECKED_STRDUP(path, "directory path");
   char *last_slash = strrchr(pathtmp, '/');
   if (last_slash)
   {
     *last_slash = '\0';
-    if (mkdirs(pathtmp, err_file))
+    if (mkdirs(pathtmp))
     {
       free(pathtmp);
       return 1;
@@ -1528,19 +1507,16 @@ mkdirs:
     has rwx permission for the user, this function will return success.
 
         In:  char const *path - absolute or relative path for dir
-             FILE *err_file - output file for error messages
         Out: 0 on success, 1 on failure
 **************************************************************************/
-int mkdirs(char const *path, FILE *err_file)
+int mkdirs(char const *path)
 {
-  char *pathtmp = strdup(path);
+  char *pathtmp = CHECKED_STRDUP(path, "directory path");
   char *curpos = pathtmp;
 
   /* we need to skip leading '/' in case we have absolute paths */
-  while ((curpos != NULL) && (*curpos == '/'))
-  {
+  while (*curpos == '/')
     ++curpos;
-  }
 
   while (curpos != NULL)
   {
@@ -1567,7 +1543,7 @@ int mkdirs(char const *path, FILE *err_file)
     if (! is_writable_dir(pathtmp)  &&
         mkdir(pathtmp, 0777) != 0)
     {
-      fprintf(err_file, "Failed to create directory '%s': %s\n", path, strerror(errno));
+      mcell_perror_nodie(errno, "Failed to create directory '%s'", path);
       free(pathtmp);
       return 1;
     }
@@ -1602,8 +1578,7 @@ FILE *open_file(char const *fname, char const *mode)
   FILE *f;
   if ((f = fopen(fname, mode)) == NULL)
   {
-    int err = errno;
-    fprintf(world->err_file, "File %s, Line %ld: cannot open file %s: %s\n", __FILE__, (long) __LINE__, fname, strerror(err));
+    mcell_perror_nodie(errno, "Failed to open file %s.", fname);
     return NULL;
   }
 
@@ -1626,16 +1601,13 @@ int get_basename(char const *filepath, char **basename)
 
   /* Duplicate the appropriate section of the string */
   if (pos == NULL)
-    bn = strdup(filepath);
+    bn = CHECKED_STRDUP(filepath, "file basename");
   else
-    bn = strdup(pos+1);
+    bn = CHECKED_STRDUP(pos+1, "file basename");
 
   /* If the allocation failed... */
   if (bn == NULL)
-  {
-    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
     return 1;
-  }
 
   *basename = bn;
   return 0;
@@ -1660,13 +1632,7 @@ int get_dirname(char const *filepath, char **dirname)
   }
   else
   {
-    char *s = alloc_sprintf("%.*s", (pos - filepath), filepath);
-    if (s == NULL)
-    {
-      fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-      return 1;
-    }
-
+    char *s = CHECKED_SPRINTF("%.*s", (int) (pos - filepath), filepath);
     *dirname = s;
     return 0;
   }
@@ -2217,7 +2183,7 @@ int dir_exists(char const *filename)
       return 1;
     else
     {
-      fprintf(world->err_file, "File %s, Line %ld: file '%s' is not a directory\n", __FILE__, (long)__LINE__, filename);
+      mcell_error_nodie("File '%s' is not a directory.", filename);
       return -1;
     }
   }
@@ -2228,7 +2194,7 @@ int dir_exists(char const *filename)
       return 0;
     else
     {
-      fprintf(world->err_file, "File %s, Line %ld: cannot stat directory '%s': %s\n", __FILE__, (long)__LINE__, filename, strerror(err));
+      mcell_perror_nodie(err, "Failed to stat directory '%s'.", filename);
       return -1;
     }
   }
@@ -2247,7 +2213,9 @@ int initialize_iteration_counter(struct iteration_counter *cntr, int max_iters)
 {
   if (max_iters > 0)
   {
-    if ((cntr->iterations = (long long *) malloc(sizeof(long long) * max_iters)) == NULL)
+    if ((cntr->iterations = CHECKED_MALLOC_ARRAY_NODIE(long long,
+                                                       max_iters,
+                                                       NULL)) == NULL)
       return 1;
   }
   else
@@ -2297,7 +2265,7 @@ int add_to_iteration_counter_monotonic(struct iteration_counter *cntr, long long
   /* Don't store times beyond the end of the buffer! */
   if (cntr->n_iterations >= cntr->max_iterations)
   {
-    fprintf(world->err_file, "File %s, Line %ld: Attempt to overrun iterations buffer (max fill is %d).\n", __FILE__, (long)__LINE__, cntr->max_iterations);
+    mcell_internal_error("Attempt to overrun iterations buffer (max fill is %d).", cntr->max_iterations);
     return 1;
   }
 
@@ -2324,7 +2292,7 @@ int add_to_iteration_counter(struct iteration_counter *cntr, long long iter)
   /* Don't store times beyond the end of the buffer! */
   if (cntr->n_iterations >= cntr->max_iterations)
   {
-    fprintf(world->err_file, "File %s, Line %ld: Attempt to overrun iterations buffer (max fill is %d).\n", __FILE__, (long)__LINE__, cntr->max_iterations);
+    mcell_internal_error("Attempt to overrun iterations buffer (max fill is %d).", cntr->max_iterations);
     return 1;
   }
 
@@ -2347,7 +2315,7 @@ int initialize_string_buffer(struct string_buffer *sb, int maxstr)
   if (maxstr > 0)
   {
     if ((sb->strings = (char **) allocate_ptr_array(maxstr)) == NULL)
-      return 1;
+      mcell_allocfailed("Failed to allocate buffer of %d strings.", maxstr);
   }
 
   sb->max_strings = maxstr;
@@ -2389,7 +2357,7 @@ int add_string_to_buffer(struct string_buffer *sb, char *str)
 {
   if (sb->n_strings >= sb->max_strings)
   {
-    fprintf(world->err_file, "File %s, Line %ld: Attempt to overrun string buffer (max fill is %d).\n", __FILE__, (long)__LINE__, sb->max_strings);
+    mcell_internal_error("Attempt to overrun string buffer (max fill is %d).", sb->max_strings);
     return 1;
   }
 
@@ -2559,8 +2527,9 @@ int pointer_hash_add(struct pointer_hash *ht,
 
   /* Scan over entries until the end of the table */
   unsigned int start_index = keyhash & (ht->table_size - 1);
-  unsigned int cur_index;
-  for (cur_index = start_index; cur_index < ht->table_size; ++ cur_index)
+  for (unsigned int cur_index = start_index;
+       cur_index < (unsigned int) ht->table_size;
+       ++ cur_index)
   {
     /* Found an old value for this key.  Replace it.  Do not increment the item
      * count. */
@@ -2581,7 +2550,9 @@ int pointer_hash_add(struct pointer_hash *ht,
   }
 
   /* Scan over entries until we reach our starting point */
-  for (cur_index = 0; cur_index < start_index; ++ cur_index)
+  for (unsigned int cur_index = 0;
+       cur_index < start_index;
+       ++ cur_index)
   {
     /* Found an old value for this key.  Replace it.  Do not increment the item
      * count. */
@@ -2629,8 +2600,9 @@ void *pointer_hash_lookup(struct pointer_hash const *ht,
 
   /* Search from start position to end of table */
   unsigned int start_index = keyhash & (ht->table_size - 1);
-  unsigned int cur_index;
-  for (cur_index = start_index; cur_index < ht->table_size; ++ cur_index)
+  for (unsigned int cur_index = start_index;
+       cur_index < (unsigned int) ht->table_size;
+       ++ cur_index)
   {
     /* Empty slot - key not found. */
     if (ht->keys[cur_index] == NULL)
@@ -2642,7 +2614,7 @@ void *pointer_hash_lookup(struct pointer_hash const *ht,
   }
 
   /* Search from beginning of table to start position  */
-  for (cur_index = 0; cur_index < start_index; ++ cur_index)
+  for (unsigned int cur_index = 0; cur_index < start_index; ++ cur_index)
   {
     /* Empty slot - key not found. */
     if (ht->keys[cur_index] == NULL)

@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 
+#include "logging.h"
 #include "mcell_structs.h"
 #include "grid_util.h"
 #include "sched_util.h"
@@ -58,7 +59,7 @@ static long long frame_iteration(double iterval, int type)
       }
 
     default:
-      fprintf(world->err_file, "File '%s', Line %ld: error - wrong frame_data_list list_type %d\n", __FILE__, (long)__LINE__, type);
+      mcell_internal_error("Invalid frame_data_list list_type (%d).", type);
       return -1;
   }
 }
@@ -150,12 +151,13 @@ static int sort_molecules_by_species(struct abstract_molecule ****viz_molpp,
           spec_id = amp->properties->species_id;
           if (counts[spec_id] < amp->properties->population)
             (*viz_molpp)[spec_id][counts[spec_id]++] = amp;
-          else {
-            fprintf(world->log_file,"MCell: molecule count disagreement!!\n");
-            fprintf(world->log_file,"  Species %s  population = %d  count = %d\n",
-                    amp->properties->sym->name,
-                    amp->properties->population,
-                    counts[spec_id]);
+          else
+          {
+            mcell_warn("Molecule count disagreement!\n"
+                       "  Species %s  population = %d  count = %d",
+                       amp->properties->sym->name,
+                       amp->properties->population,
+                       counts[spec_id]);
           }
         }
       }
@@ -428,9 +430,15 @@ static int collect_species(struct species ***vol_species,
 
   /* Allocate arrays */
   if ((*vol_species = (struct species **) allocate_ptr_array(vcount)) == NULL)
+  {
+    mcell_allocfailed("Failed to allocate array of volume molecule species for VIZ output.");
     goto failure;
+  }
   if ((*grid_species = (struct species **) allocate_ptr_array(gcount)) == NULL)
+  {
+    mcell_allocfailed("Failed to allocate array of grid molecule species for VIZ output.");
     goto failure;
+  }
   *n_vol_species = vcount;
   *n_grid_species = gcount;
 
@@ -723,28 +731,20 @@ static FILE *dx_open_file(char const *cls,
                           char const *prefix,
                           long long iteration)
 {
-  char *filename_buffer = alloc_sprintf("%s.%s.%lld.dx",
-                                        prefix,
-                                        cls,
-                                        iteration);
-  if (filename_buffer == NULL)
-  {
-    fprintf(world->err_file,"File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-    return NULL;
-  }
+  char *filename_buffer = CHECKED_SPRINTF("%s.%s.%lld.dx",
+                                          prefix,
+                                          cls,
+                                          iteration);
 
-  if (make_parent_dir(filename_buffer, world->err_file))
+  if (make_parent_dir(filename_buffer))
   {
     free(filename_buffer);
     return NULL;
   }
 
   FILE *f = open_file(filename_buffer, "wb");
-  
-  if (f == NULL){
-     fprintf(world->err_file, "Error opening file %s\n", filename_buffer);
-  }
-
+  if (f == NULL)
+    mcell_error("Failed to open file '%s' for DX mode VIZ output.", filename_buffer);
   free(filename_buffer);
      
   return f;
@@ -917,7 +917,6 @@ static void dx_output_effectors(FILE *eff_pos_header,
   n_eff = dx_output_count_effectors(objp);
 
   no_printf("Dumping %d effectors...\n", n_eff);
-  fflush(world->log_file);
 
   if (eff_pos_header) {
     if (n_eff) {
@@ -1536,7 +1535,10 @@ int output_dx_objects(struct frame_data_list *fdlp)
   /* dump diffusible molecules: */
   if (viz_mol)
     if (dx_output_molecules(fdlp))
+    {
+      mcell_error("Failed to output molecules for DX mode VIZ output.");
       return 1;
+    }
 
   return 0;
 }
@@ -1563,14 +1565,11 @@ static FILE *dreamm_v3_generic_open_file(char const *dir, char const *fname, cha
   /* concatenate dir and fname to get the mesh states file path */
   char *path = NULL;
   if (dir != NULL)
-    path = alloc_sprintf("%s/%s", dir, fname);
+    path = CHECKED_SPRINTF("%s/%s", dir, fname);
   else
-    path = strdup(fname);
+    path = CHECKED_STRDUP(fname, "DREAMM V3 output filename");
   if (path == NULL)
-  {
-    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
     goto failure;
-  }
 
   /* If the file exists and is a symlink, remove it */
   if (stat(path, &f_stat) == 0  &&
@@ -1579,7 +1578,7 @@ static FILE *dreamm_v3_generic_open_file(char const *dir, char const *fname, cha
     /* remove the symbolic link */
     if (unlink(path) != 0)
     {
-      fprintf(world->err_file, "File %s, Line %ld: error %d removing file %s.\n", __FILE__, (long)__LINE__, errno, fname);
+      mcell_perror(errno, "Failed to remove symlink '%s' for DREAMM V3 viz output", fname);
       goto failure;
     }
   }
@@ -1589,10 +1588,8 @@ static FILE *dreamm_v3_generic_open_file(char const *dir, char const *fname, cha
   return f;
 
 failure:
-  if (path) {
-     fprintf(world->err_file, "Error opening file %s\n", path);
+  if (path)
      free(path);
-  }
   return NULL;
 }
 
@@ -1616,14 +1613,12 @@ static int check_output_directory_structure(void)
   /* test whether a directory structure created by the user exists */
   if (world->viz_state_info.filename_prefix_dirname)
   {
-    switch (dir_exists(world->viz_state_info.filename_prefix_dirname))
+    int ret;
+    switch ((ret = dir_exists(world->viz_state_info.filename_prefix_dirname)))
     {
       case 0:
-        if (mkdirs(world->viz_state_info.filename_prefix_dirname, world->err_file))
-        {
-          fprintf(world->err_file, "File %s, Line %ld: viz_output data directory '%s' could not be created.\n", __FILE__, (long)__LINE__, world->viz_state_info.filename_prefix_dirname);
-          return 1;
-        }
+        if (mkdirs(world->viz_state_info.filename_prefix_dirname))
+          mcell_error("VIZ output directory is not writable and could not be created.");
         break;
 
       case -1:
@@ -1634,7 +1629,7 @@ static int check_output_directory_structure(void)
         break;
 
       default:
-        fprintf(world->err_file, "File %s, Line %ld: unexpected return value from dir_exists (internal error).\n", __FILE__, (long)__LINE__);
+        mcell_internal_error("Got unexpected return value from dir_exists (%d).", ret);
         return 1;
     }
   }
@@ -1670,12 +1665,11 @@ static int dreamm_v3_generic_init(void)
    * mixing of pre-existing and new files.
    */
   if (world->viz_state_info.n_viz_objects == 0)
-    fprintf(world->log_file, "\nMESHES keyword is absent or commented.\nEmpty 'meshes' output files are created.\n\n");
+    mcell_warn("MESHES keyword is absent or commented.\n  Empty 'meshes' output files will be created.");
   if ((world->viz_state_info.n_vol_species == 0) && (world->viz_state_info.n_grid_species == 0))
-    fprintf(world->log_file, "\nMOLECULES keyword is absent or commented.\nEmpty 'molecules' output files are created.\n\n");
+    mcell_warn("MOLECULES keyword is absent or commented.\n  Empty 'molecules' output files will be created.");
 
   return 0;
-
 }
 
 
@@ -1844,13 +1838,8 @@ dreamm_v3_generic_new_frame:
 **************************************************************************/
 static struct frame_data_list *dreamm_v3_generic_new_frame(int type)
 {
-  struct frame_data_list *fdlp = (struct frame_data_list *) malloc(sizeof(struct frame_data_list));
-  if (fdlp == NULL)
-  {
-    fprintf(world->err_file,"File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-    return NULL;
-  }
-
+  struct frame_data_list *fdlp = CHECKED_MALLOC_STRUCT(struct frame_data_list,
+                                                       "viz output data frame");
   fdlp->next = NULL;
   fdlp->list_type = OUTPUT_BY_ITERATION_LIST;
   fdlp->type = type;
@@ -2807,15 +2796,11 @@ static int dreamm_v3_ascii_dump_mesh_data(struct frame_data_list const * const f
     if (viz_surf_pos_flag)
     {
        mesh_pos_name = my_strcat(objp->sym->name, mesh_pos_name_last_part);
-       if(mesh_pos_name == NULL){
-          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-          return 1;
-       }       
+        if (mesh_pos_name == NULL)
+          mcell_allocfailed("Failed to create filename for mesh positions file for DREAMM V3 output.");
        mesh_connect_name = my_strcat(objp->sym->name, mesh_connect_name_last_part);
-       if(mesh_connect_name == NULL){
-          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-          return 1;
-       }
+        if (mesh_connect_name == NULL)
+          mcell_allocfailed("Failed to create filename for mesh connections file for DREAMM V3 output.");
   
        if ((mesh_pos_data = dreamm_v3_generic_open_file(dirname, mesh_pos_name, "w")) == NULL)
            goto failure;
@@ -2860,10 +2845,8 @@ static int dreamm_v3_ascii_dump_mesh_data(struct frame_data_list const * const f
     if (viz_surf_states_flag)
     {
        mesh_states_name = my_strcat(objp->sym->name, mesh_states_name_last_part);
-       if(mesh_states_name == NULL){
-          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-          return 1;
-       }
+        if (mesh_states_name == NULL)
+          mcell_allocfailed("Failed to create filename for mesh states file for DREAMM V3 output.");
 
        if ((mesh_states_data = dreamm_v3_generic_open_file(dirname, mesh_states_name, "w")) == NULL)
            goto failure;
@@ -2895,10 +2878,8 @@ static int dreamm_v3_ascii_dump_mesh_data(struct frame_data_list const * const f
       struct region_list *rlp;
        
       mesh_region_indices_name = my_strcat(objp->sym->name, mesh_region_indices_name_last_part);
-      if(mesh_region_indices_name == NULL){
-          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-          return 1;
-      }       
+        if (mesh_region_indices_name == NULL)
+          mcell_allocfailed("Failed to create filename for region indices file for DREAMM V3 output.");
 
       if ((region_data = dreamm_v3_generic_open_file(dirname, mesh_region_indices_name, "w")) == NULL)
            goto failure;
@@ -3457,10 +3438,8 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct frame_data_list const 
     {
 
          mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
-         if(mol_pos_name == NULL){
-             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-             goto failure;
-         }       
+         if (mol_pos_name == NULL)
+           mcell_allocfailed("Failed to create filename for molecule positions file for DREAMM V3 output.");
         /* Open surface molecules position data file */
         if ((surf_mol_pos_data = dreamm_v3_generic_open_file(dirname, mol_pos_name, "a")) == NULL)
              goto failure;
@@ -3470,10 +3449,8 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct frame_data_list const 
     if (viz_mol_orient_flag){
 
            mol_orient_name = my_strcat(specp->sym->name, mol_orient_name_last_part);
-           if(mol_orient_name == NULL){
-               fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-               goto failure;
-           }
+           if (mol_orient_name == NULL)
+             mcell_allocfailed("Failed to create filename for molecule orientations file for DREAMM V3 output.");
            /* Open surface molecules orientation data file */
            if ((surf_mol_orient_data =  dreamm_v3_generic_open_file(dirname, mol_orient_name, "a")) == NULL)
                goto failure;
@@ -3518,10 +3495,8 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct frame_data_list const 
     if (viz_mol_states_flag  &&  count > 0)
     {
          mol_states_name = my_strcat(specp->sym->name, mol_states_name_last_part);
-         if(mol_states_name == NULL){
-             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-             goto failure;
-         }       
+         if (mol_states_name == NULL)
+           mcell_allocfailed("Failed to create filename for molecule states file for DREAMM V3 output.");
 
          /* Open surface molecules states data file */
          if ((surf_mol_states_data =  dreamm_v3_generic_open_file(dirname, mol_states_name, "a")) == NULL)
@@ -3683,11 +3658,11 @@ static int dreamm_v3_generic_dump_volume_molecule_data(struct frame_data_list co
     /* Check that our molecule count agrees with the species population count */
     if (viz_mol_count[species_index] != specp->population)
     {
-      fprintf(world->log_file, "MCell: molecule count disagreement!!\n");
-      fprintf(world->log_file, "  Species %s  population = %d  count = %d\n",
-              specp->sym->name,
-              specp->population,
-              viz_mol_count[species_index]);
+      mcell_warn("Molecule count disagreement!\n"
+                 "  Species %s  population = %d  count = %d",
+                 specp->sym->name,
+                 specp->population,
+                 viz_mol_count[species_index]);
     }
 
     /* Emit an array of molecule positions */
@@ -3824,11 +3799,11 @@ static int dreamm_v3_ascii_dump_volume_molecule_data(struct frame_data_list cons
     /* Check that our molecule count agrees with the species population count */
     if (viz_mol_count[species_index] != specp->population)
     {
-      fprintf(world->log_file, "MCell: molecule count disagreement!!\n");
-      fprintf(world->log_file, "  Species %s  population = %d  count = %d\n",
-              specp->sym->name,
-              specp->population,
-              viz_mol_count[species_index]);
+      mcell_warn("Molecule count disagreement!\n"
+                 "  Species %s  population = %d  count = %d",
+                 specp->sym->name,
+                 specp->population,
+                 viz_mol_count[species_index]);
     }
 
     /* Emit an array of molecule positions */
@@ -3836,10 +3811,8 @@ static int dreamm_v3_ascii_dump_volume_molecule_data(struct frame_data_list cons
     {
      
       mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
-      if(mol_pos_name == NULL){
-          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-          goto failure;
-      }       
+      if (mol_pos_name == NULL)
+        mcell_allocfailed("Failed to create filename for molecule positions file for DREAMM V3 output.");
   
       /* Prepare for position output */
       if ((vol_mol_pos_data = dreamm_v3_generic_open_file(dirname, mol_pos_name, "a")) == NULL)
@@ -3865,10 +3838,8 @@ static int dreamm_v3_ascii_dump_volume_molecule_data(struct frame_data_list cons
     if (viz_mol_orient_flag)
     {
       mol_orient_name = my_strcat(specp->sym->name, mol_orient_name_last_part);
-      if(mol_orient_name == NULL){
-          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-          goto failure;
-      }       
+      if (mol_orient_name == NULL)
+        mcell_allocfailed("Failed to create filename for molecule orientations file for DREAMM V3 output.");
 
       /* Prepare for orientation output */
       if  ((vol_mol_orient_data = dreamm_v3_generic_open_file(dirname, mol_orient_name, "a")) == NULL)
@@ -3887,10 +3858,8 @@ static int dreamm_v3_ascii_dump_volume_molecule_data(struct frame_data_list cons
     if (viz_mol_states_flag)
     {
       mol_states_name = my_strcat(specp->sym->name, mol_states_name_last_part);
-      if(mol_states_name == NULL){
-          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-          goto failure;
-      }
+      if (mol_states_name == NULL)
+        mcell_allocfailed("Failed to create filename for molecule states file for DREAMM V3 output.");
 
       /* Prepare for orientation output */
       if ((vol_mol_states_data = dreamm_v3_generic_open_file(dirname, mol_states_name, "a")) == NULL)
@@ -3989,30 +3958,21 @@ static int dreamm_v3_init(struct frame_data_list *fdlp)
   /* create viz_data dir filename */  
   char *viz_data_dir = my_strcat(world->file_prefix_name, "_viz_data");
   if (viz_data_dir == NULL)
-  {
-    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-    return 1;
-  }
+    mcell_allocfailed("Failed to build VIZ output directory name.");
 
   /* make viz_data dir */  
-  if (mkdirs(viz_data_dir, world->err_file))
-  {
-    free(viz_data_dir);
-    return 1;
-  }
+  if (mkdirs(viz_data_dir))
+    mcell_error("VIZ output directory is not writable and could not be created.");
 
   /* create frame data dir filename */  
   world->viz_state_info.frame_data_dir = my_strcat(viz_data_dir, "/frame_data");
-  free(viz_data_dir);
   if (world->viz_state_info.frame_data_dir == NULL)
-  {
-    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-    return 1;
-  }
+    mcell_allocfailed("Failed to build VIZ output frame data directory name.");
+  free(viz_data_dir);
 
   /* make directory for "frame data" */
-  if (mkdirs(world->viz_state_info.frame_data_dir, world->err_file))
-    return 1;
+  if (mkdirs(world->viz_state_info.frame_data_dir))
+    mcell_error("VIZ output frame data directory is not writable and could not be created.");
 
   /* Prepare iteration counters and timing info for frame_data_list */
   int time_values_total = count_time_values(fdlp);
@@ -4035,29 +3995,17 @@ static int dreamm_v3_remove_file(char const *fname)
   struct stat f_stat;
 
   /* concatenate dir and fname to get file path */
-  char *path = alloc_sprintf("%s/%s", world->viz_state_info.iteration_number_dir, fname);
-  if (path == NULL)
-  {
-    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-    goto failure;
-  }
+  char *path = CHECKED_SPRINTF("%s/%s", world->viz_state_info.iteration_number_dir, fname);
 
   /* If the file exists, remove it */
   if (stat(path, &f_stat) == 0)
   {
     if (unlink(path) != 0)
-    {
-      fprintf(world->err_file, "File %s, Line %ld: error %d removing file %s.\n", __FILE__, (long)__LINE__, errno, fname);
-      goto failure;
-    }
+      mcell_perror(errno, "Failed to remove file '%s'.", fname);
   }
 
   free(path);
   return 0;
-
-failure:
-  if (path) free(path);
-  return 1;
 }
 
 /*************************************************************************
@@ -4096,18 +4044,13 @@ static int dreamm_v3_clean_files(struct frame_data_list *fdlp)
   world->viz_state_info.iteration_number_dir = NULL;
 
   /* Make new directory name */
-  world->viz_state_info.iteration_number_dir = alloc_sprintf("%s/iteration_%lld",
-                                                             world->viz_state_info.frame_data_dir,
-                                                             world->it_time);
-  if (world->viz_state_info.iteration_number_dir == NULL)
-  {
-    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-    return 1;
-  }
+  world->viz_state_info.iteration_number_dir = CHECKED_SPRINTF("%s/iteration_%lld",
+                                                               world->viz_state_info.frame_data_dir,
+                                                               world->it_time);
 
   /* If new directory doesn't exist, create it and return */
   if (! is_dir(world->viz_state_info.iteration_number_dir))
-    return mkdirs(world->viz_state_info.iteration_number_dir, world->err_file);
+    return mkdirs(world->viz_state_info.iteration_number_dir);
 
   /* Directory already existed.  Clear out any files we're going to write */
   for (; fdlp != NULL; fdlp = fdlp->next)
@@ -4134,22 +4077,16 @@ static int dreamm_v3_clean_files(struct frame_data_list *fdlp)
               if(strcmp(specp->sym->name,"GENERIC_SURFACE") == 0) continue;
 
               mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
-              if(mol_pos_name == NULL){
-                fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-                return 1;
-              }       
+              if(mol_pos_name == NULL)
+                mcell_allocfailed("Failed to create filename for molecule positions file for DREAMM V3 output.");
 
               mol_orient_name = my_strcat(specp->sym->name, mol_orient_name_last_part);
-             if(mol_orient_name == NULL){
-                fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-                return 1;
-             }       
+             if (mol_orient_name == NULL)
+                mcell_allocfailed("Failed to create filename for molecule orientations file for DREAMM V3 output.");
 
              mol_states_name = my_strcat(specp->sym->name, mol_states_name_last_part);
-             if(mol_states_name == NULL){
-                fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-                return 1;
-             }
+             if (mol_states_name == NULL)
+                mcell_allocfailed("Failed to create filename for molecule states file for DREAMM V3 output.");
         
              if (dreamm_v3_remove_file(mol_pos_name)) {
                 free(mol_pos_name); 
@@ -4186,15 +4123,11 @@ static int dreamm_v3_clean_files(struct frame_data_list *fdlp)
               if(strcmp(specp->sym->name,"GENERIC_SURFACE") == 0) continue;
 
               mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
-              if(mol_pos_name == NULL){
-                fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-                return 1;
-              }       
+              if (mol_pos_name == NULL)
+                mcell_allocfailed("Failed to create filename for molecule positions file for DREAMM V3 output.");
              mol_states_name = my_strcat(specp->sym->name, mol_states_name_last_part);
-             if(mol_states_name == NULL){
-                fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-                return 1;
-             }
+             if (mol_states_name == NULL)
+                mcell_allocfailed("Failed to create filename for molecule states file for DREAMM V3 output.");
              if (dreamm_v3_remove_file(mol_pos_name)) {
                 free(mol_pos_name); 
                 return 1;
@@ -4222,10 +4155,8 @@ static int dreamm_v3_clean_files(struct frame_data_list *fdlp)
               if(strcmp(specp->sym->name,"GENERIC_SURFACE") == 0) continue;
 
               mol_orient_name = my_strcat(specp->sym->name, mol_orient_name_last_part);
-             if(mol_orient_name == NULL){
-                fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-                return 1;
-             }       
+             if (mol_orient_name == NULL)
+               mcell_allocfailed("Failed to create filename for molecule orientations file for DREAMM V3 output.");
 
              if(dreamm_v3_remove_file(mol_orient_name)) {
                 free(mol_orient_name);
@@ -4253,25 +4184,17 @@ static int dreamm_v3_clean_files(struct frame_data_list *fdlp)
                      continue;
 
                 mesh_pos_name = my_strcat(objp->sym->name, mesh_pos_name_last_part);
-                if(mesh_pos_name == NULL){
-                    fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-                    return 1;
-                }       
+                if (mesh_pos_name == NULL)
+                  mcell_allocfailed("Failed to create filename for mesh positions file for DREAMM V3 output.");
                 mesh_connect_name = my_strcat(objp->sym->name, mesh_connect_name_last_part);
-                if(mesh_connect_name == NULL){
-                    fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-                    return 1;
-                }
+                if (mesh_connect_name == NULL)
+                  mcell_allocfailed("Failed to create filename for mesh connections file for DREAMM V3 output.");
                 mesh_states_name = my_strcat(objp->sym->name, mesh_states_name_last_part);
-                if(mesh_states_name == NULL){
-                   fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-                   return 1;
-                }       
+                if (mesh_states_name == NULL)
+                  mcell_allocfailed("Failed to create filename for mesh states file for DREAMM V3 output.");
                 mesh_region_indices_name = my_strcat(objp->sym->name, mesh_region_indices_name_last_part);
-                if(mesh_region_indices_name == NULL){
-                    fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-                    return 1;
-                }       
+                if (mesh_region_indices_name == NULL)
+                  mcell_allocfailed("Failed to create filename for region indices file for DREAMM V3 output.");
                 if(dreamm_v3_remove_file(mesh_pos_name)) {
                    free(mesh_pos_name);
                    return 1;
@@ -4313,20 +4236,14 @@ static int dreamm_v3_clean_files(struct frame_data_list *fdlp)
                      continue;
 
                 mesh_pos_name = my_strcat(objp->sym->name, mesh_pos_name_last_part);
-                if(mesh_pos_name == NULL){
-                    fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-                    return 1;
-                }       
+                if (mesh_pos_name == NULL)
+                  mcell_allocfailed("Failed to create filename for mesh positions file for DREAMM V3 output.");
                 mesh_connect_name = my_strcat(objp->sym->name, mesh_connect_name_last_part);
-                if(mesh_connect_name == NULL){
-                    fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-                    return 1;
-                }
+                if(mesh_connect_name == NULL)
+                  mcell_allocfailed("Failed to create filename for mesh connections file for DREAMM V3 output.");
                 mesh_states_name = my_strcat(objp->sym->name, mesh_states_name_last_part);
-                if(mesh_states_name == NULL){
-                   fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-                   return 1;
-                }       
+                if(mesh_states_name == NULL)
+                  mcell_allocfailed("Failed to create filename for mesh states file for DREAMM V3 output.");
 
                 if(dreamm_v3_remove_file(mesh_pos_name)) {
                    free(mesh_pos_name);
@@ -4365,10 +4282,8 @@ static int dreamm_v3_clean_files(struct frame_data_list *fdlp)
                      continue;
 
                 mesh_region_indices_name = my_strcat(objp->sym->name, mesh_region_indices_name_last_part);
-                if(mesh_region_indices_name == NULL){
-                    fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-                    return 1;
-                }       
+                if (mesh_region_indices_name == NULL)
+                  mcell_allocfailed("Failed to create filename for region indices file for DREAMM V3 output.");
                 if(dreamm_v3_remove_file(mesh_region_indices_name)) {
                    free(mesh_region_indices_name);
                    return 1;
@@ -4379,7 +4294,7 @@ static int dreamm_v3_clean_files(struct frame_data_list *fdlp)
         break;
 
       default:
-        fprintf(world->err_file, "File %s, Line %ld: Unexpected frame type in DREAMM V3 output mode (type=%d).\n", __FILE__, (long)__LINE__, fdlp->type);
+        mcell_internal_error("Unexpected frame type in DREAMM V3 output mode (type=%d).", fdlp->type);
         return 1;
     }
   }
@@ -4438,10 +4353,10 @@ static int dreamm_v3_create_empty_file(char const *fname)
   if (dreamm_v3_remove_file(fname))
     return 1;
 
-  if ((path = alloc_sprintf("%s/%s", world->viz_state_info.iteration_number_dir, fname)) == NULL)
+  if ((path = CHECKED_SPRINTF("%s/%s", world->viz_state_info.iteration_number_dir, fname)) == NULL)
     return 1;
 
-  if ((f = fopen(path, "w")) == NULL)
+  if ((f = open_file(path, "w")) == NULL)
   {
     free(path);
     return 1;
@@ -4475,25 +4390,17 @@ static int dreamm_v3_create_empty_mesh_file(struct object *parent)
   if(parent->object_type == BOX_OBJ || parent->object_type == POLY_OBJ)
   {
      mesh_pos_name = my_strcat(parent->sym->name, mesh_pos_name_last_part);
-     if(mesh_pos_name == NULL){
-          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-          return 1;
-     }       
+     if (mesh_pos_name == NULL)
+       mcell_allocfailed("Failed to create filename for mesh positions file for DREAMM V3 output.");
      mesh_connect_name = my_strcat(parent->sym->name, mesh_connect_name_last_part);
-     if(mesh_connect_name == NULL){
-          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-          return 1;
-     }       
+     if (mesh_connect_name == NULL)
+       mcell_allocfailed("Failed to create filename for mesh connections file for DREAMM V3 output.");
      mesh_region_indices_name = my_strcat(parent->sym->name, mesh_region_indices_name_last_part);
-     if(mesh_region_indices_name == NULL){
-          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-          return 1;
-     }       
+     if (mesh_region_indices_name == NULL)
+       mcell_allocfailed("Failed to create filename for region indices file for DREAMM V3 output.");
      mesh_states_name = my_strcat(parent->sym->name, mesh_states_name_last_part);
-     if(mesh_states_name == NULL){
-          fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-          return 1;
-     }       
+     if (mesh_states_name == NULL)
+       mcell_allocfailed("Failed to create filename for mesh states file for DREAMM V3 output.");
      
       if (dreamm_v3_create_empty_file(mesh_pos_name)) {
           free(mesh_pos_name); 
@@ -4565,8 +4472,10 @@ static int dreamm_v3_write_empty_files(void)
         }
         if(dreamm_v3_create_empty_file(DREAMM_MESHES_HEADER_NAME)) return 1;
 
-     }else{
-        fprintf(world->err_file, "Unrecognized VIZ_MESH_FORMAT option\n");
+     }
+     else
+     {
+        mcell_internal_error("Unrecognized VIZ_MESH_FORMAT option.");
         return 1;
      }
   }
@@ -4594,22 +4503,16 @@ static int dreamm_v3_write_empty_files(void)
           if(strcmp(specp->sym->name,"GENERIC_SURFACE") == 0) continue;
 
           mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
-          if(mol_pos_name == NULL){
-             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-             return 1;
-          }       
+          if (mol_pos_name == NULL)
+            mcell_allocfailed("Failed to create filename for molecule positions file for DREAMM V3 output.");
 
           mol_orient_name = my_strcat(specp->sym->name, mol_orient_name_last_part);
-          if(mol_orient_name == NULL){
-             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-             return 1;
-          }       
+          if (mol_orient_name == NULL)
+            mcell_allocfailed("Failed to create filename for molecule orientations file for DREAMM V3 output.");
 
           mol_states_name = my_strcat(specp->sym->name, mol_states_name_last_part);
-          if(mol_states_name == NULL){
-             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-             return 1;
-          }
+          if (mol_states_name == NULL)
+            mcell_allocfailed("Failed to create filename for molecule states file for DREAMM V3 output.");
         
           if (dreamm_v3_create_empty_file(mol_pos_name)) {
              free(mol_pos_name); 
@@ -4631,11 +4534,12 @@ static int dreamm_v3_write_empty_files(void)
         if(dreamm_v3_create_empty_file(DREAMM_VOL_MOL_HEADER_NAME)) return 1;
         if(dreamm_v3_create_empty_file(DREAMM_SURF_MOL_HEADER_NAME)) return 1;
 
-     }else{
-        fprintf(world->err_file, "Unrecognized VIZ_MOLECULE_FORMAT option\n");
-        return 1;
      }
-
+     else
+     {
+       mcell_internal_error("Unrecognized VIZ_MOLECULE_FORMAT option.");
+       return 1;
+     }
    }
    return 0;
 }
@@ -4660,7 +4564,7 @@ static int dreamm_v3_create_symlink(long long newiter,
   struct stat f_stat;
 
   /* Create old path for 'stat' */
-  effoldpath = alloc_sprintf("%s/iteration_%lld/%s", world->viz_state_info.frame_data_dir, lastiter, filename);
+  effoldpath = CHECKED_SPRINTF("%s/iteration_%lld/%s", world->viz_state_info.frame_data_dir, lastiter, filename);
   if (effoldpath == NULL)
     goto failure;
 
@@ -4677,7 +4581,7 @@ static int dreamm_v3_create_symlink(long long newiter,
     goto failure;
 
   /* New path name is in new iteration directory */
-  newpath = alloc_sprintf("%s/iteration_%lld/%s", world->viz_state_info.frame_data_dir, newiter, filename);
+  newpath = CHECKED_SPRINTF("%s/iteration_%lld/%s", world->viz_state_info.frame_data_dir, newiter, filename);
   if (newpath == NULL)
     goto failure;
 
@@ -4690,14 +4594,14 @@ static int dreamm_v3_create_symlink(long long newiter,
       /* Remove the symlink and try again */
       if (unlink(newpath) == -1)
       {
-        fprintf(world->err_file, "File %s, Line %ld: error %d removing symlink %s.\n", __FILE__, (long)__LINE__, errno, newpath);
+        mcell_perror(errno, "Failed to remove old symlink '%s' for DREAMM V3 VIZ output.", newpath);
         goto failure;
       }
 
       /* Try again to create symlink */
       if (symlink(oldpath, newpath) == -1)
       {
-        fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink %s.\n", __FILE__, (long)__LINE__, errno, newpath);
+        mcell_perror(errno, "Failed to create symlink '%s' for DREAMM V3 VIZ output.", newpath);
         goto failure;
       }
     }
@@ -4705,7 +4609,7 @@ static int dreamm_v3_create_symlink(long long newiter,
     /* If we failed to make the symlink for some other reason */
     else
     {
-      fprintf(world->err_file, "File %s, Line %ld: error %d creating symlink %s.\n", __FILE__, (long)__LINE__, errno, newpath);
+      mcell_perror(errno, "Failed to create symlink '%s' for DREAMM V3 VIZ output.", newpath);
       goto failure;
     }
   }
@@ -4807,20 +4711,14 @@ static int dreamm_v3_create_molecule_symlinks(struct frame_data_list const *fdlp
               continue;
 
           mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
-          if(mol_pos_name == NULL){
-             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-             goto failure;
-          }       
+          if (mol_pos_name == NULL)
+            mcell_allocfailed("Failed to create filename for molecule positions file for DREAMM V3 output.");
           mol_orient_name = my_strcat(specp->sym->name, mol_orient_name_last_part);
-         if(mol_orient_name == NULL){
-             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-             goto failure;
-         }       
+          if (mol_orient_name == NULL)
+            mcell_allocfailed("Failed to create filename for molecule orientations file for DREAMM V3 output.");
          mol_states_name = my_strcat(specp->sym->name, mol_states_name_last_part);
-         if(mol_states_name == NULL){
-             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-             goto failure;
-         }
+         if (mol_states_name == NULL)
+            mcell_allocfailed("Failed to create filename for molecule states file for DREAMM V3 output.");
 
          if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, mol_pos_name)
            || dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, mol_orient_name)
@@ -4917,25 +4815,17 @@ static int dreamm_v3_create_mesh_symlinks(struct frame_data_list const *fdlp)
             continue;
        
          mesh_pos_name = my_strcat(objp->sym->name, mesh_pos_name_last_part);
-         if(mesh_pos_name == NULL){
-             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-             return 1;
-         }       
+         if (mesh_pos_name == NULL)
+            mcell_allocfailed("Failed to create filename for mesh positions file for DREAMM V3 output.");
          mesh_connect_name = my_strcat(objp->sym->name, mesh_connect_name_last_part);
-         if(mesh_connect_name == NULL){
-             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-             return 1;
-         }       
+         if (mesh_connect_name == NULL)
+            mcell_allocfailed("Failed to create filename for mesh connections file for DREAMM V3 output.");
          mesh_region_indices_name = my_strcat(objp->sym->name, mesh_region_indices_name_last_part);
-         if(mesh_region_indices_name == NULL){
-              fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-              return 1;
-         }       
+         if (mesh_region_indices_name == NULL)
+            mcell_allocfailed("Failed to create filename for region indices file for DREAMM V3 output.");
          mesh_states_name = my_strcat(objp->sym->name, mesh_states_name_last_part);
-         if(mesh_states_name == NULL){
-             fprintf(world->err_file, "File %s, Line %ld: out of memory error\n", __FILE__, (long)__LINE__);
-             return 1;
-         }       
+         if (mesh_states_name == NULL)
+            mcell_allocfailed("Failed to create filename for mesh states file for DREAMM V3 output.");
 
          if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, mesh_pos_name)) return 1;
          if (dreamm_v3_create_symlink(fdlp->viz_iteration, lastiter, mesh_connect_name)) return 1;
@@ -5006,11 +4896,9 @@ dreamm_v3_make_time_info_filename:
 static char *dreamm_v3_make_time_info_filename(char const *typename)
 {
   char *filename = NULL;
-  filename = alloc_sprintf("%s.%s.bin",
+  filename = CHECKED_SPRINTF("%s.%s.bin",
                              world->viz_state_info.filename_prefix_basename,
                              typename);
-  if (filename == NULL)
-    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
 
   return filename;
 }
@@ -5059,35 +4947,27 @@ int dreamm_v3_find_old_iteration_numbers_count(char const *viz_data_dir, char co
   /* concatenate dir and fname to get the iteration_numbers file path */
   char *path = NULL;
   if (viz_data_dir != NULL)
-    path = alloc_sprintf("%s/%s", viz_data_dir, iteration_numbers_name);
+    path = CHECKED_SPRINTF("%s/%s", viz_data_dir, iteration_numbers_name);
   else
-    path = strdup(iteration_numbers_name);
-  if (path == NULL)
-  {
-    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-    goto failure;
-  }
-
+    path = CHECKED_STRDUP(iteration_numbers_name, NULL);
 
   /* If file exists, parse it */
-  if (!stat(path, &f_stat))
+  if (! stat(path, &f_stat))
   {
 
     fp = open_file(path, "rb");
     if (fp == NULL)
-    {
-      fprintf(world->err_file, "File %s, Line %ld: error opening file %s.\n", __FILE__, (long)__LINE__,  path);
-      goto failure;
-    }
+      mcell_error("Failed to open old iteration numbers file '%s' for DREAMM V3 mode VIZ output.", path);
 
     while(1){
       read_size = fread(&data, 1, sizeof(data), fp);
 
       if(feof(fp)) break;
 
-      if(read_size != sizeof(data)){
-         fprintf(world->err_file, "File %s, Line %ld: error reading file %s.\n", __FILE__, (long)__LINE__, path);
-         goto failure;
+      if (read_size != sizeof(data))
+      {
+        mcell_perror(errno, "Failed to read old iteration numbers from file '%s' for DREAMM V3 mode VIZ output.", path);
+        goto failure;
       }
 
       if(data.mesh > tmp_mesh) tmp_mesh = data.mesh;
@@ -5138,21 +5018,16 @@ int dreamm_v3_find_old_time_values_count(char const *viz_data_dir, char const *t
 
   struct stat f_stat;
   FILE *f = NULL;
-  double read_size;
+  int read_size;
   double tmp;
   int count = 0;
 
   /* concatenate dir and fname to get the iteration_numbers file path */
   char *path = NULL;
   if (viz_data_dir != NULL)
-    path = alloc_sprintf("%s/%s", viz_data_dir, time_values_name);
+    path = CHECKED_SPRINTF("%s/%s", viz_data_dir, time_values_name);
   else
-    path = strdup(time_values_name);
-  if (path == NULL)
-  {
-    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-    goto failure;
-  }
+    path = CHECKED_STRDUP(time_values_name, "DREAMM V3 time values filename");
 
   /* If the file exists, parse it */
   if(!stat(path, &f_stat))
@@ -5160,18 +5035,17 @@ int dreamm_v3_find_old_time_values_count(char const *viz_data_dir, char const *t
 
     f = open_file(path, "rb");
     if (f == NULL)
-    {
-      fprintf(world->err_file, "File %s, Line %ld: error opening file %s.\n", __FILE__, (long)__LINE__,  path);
-      goto failure;
-    }
+      mcell_error("Failed to open old time values file '%s' for DREAMM V3 mode VIZ output.", path);
 
-    while(1){
+    while (1)
+    {
       read_size = fread(&tmp, 1, sizeof(tmp), f);
       if(feof(f)) break;
 
-      if(read_size != sizeof(tmp)){
-         fprintf(world->err_file, "File %s, Line %ld: error reading file %s.\n", __FILE__, (long)__LINE__, path);
-         goto failure;
+      if (read_size != sizeof(tmp))
+      {
+        mcell_perror(errno, "Failed to read old time values from file '%s' for DREAMM V3 mode VIZ output.", path);
+        goto failure;
       }
   
       count++;
@@ -5223,10 +5097,7 @@ static int dreamm_v3_dump_time_info(void)
   /* Build viz data dir name */
   char *viz_data_dir = my_strcat(world->file_prefix_name, "_viz_data");
   if (viz_data_dir == NULL)
-  {
-    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-    goto failure;
-  }
+    mcell_allocfailed("Failed to create VIZ output directory name for DREAMM V3 mode VIZ output.");
 
   /* Build iteration numbers filename */
   if ((iteration_numbers_name = dreamm_v3_make_time_info_filename("iteration_numbers")) == NULL)
@@ -5254,14 +5125,8 @@ static int dreamm_v3_dump_time_info(void)
   
 
       /* Build master header filename */
-  master_header_name = alloc_sprintf("%s.dx",
+  master_header_name = CHECKED_SPRINTF("%s.dx",
                           world->viz_state_info.filename_prefix_basename);
-
-  if (master_header_name == NULL)
-  {
-    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-    goto failure;
-  }
 
   /* Find maximum iteration numbers count */
   if (world->viz_state_info.mesh_output_iterations.n_iterations >
@@ -5534,9 +5399,11 @@ static int dreamm_v3_dump_grid_molecules(struct frame_data_list const * const fd
                                         world->viz_state_info.iteration_number_dir,
                                         &surf_mol_main_index))
        goto failure;
-  }else{
-      fprintf(world->err_file, "Unrecognized VIZ_MOLECULE_FORMAT option.\n");
-      goto failure;
+  }
+  else
+  {
+    mcell_internal_error("Unrecognized VIZ_MOLECULE_FORMAT option.");
+    goto failure;
   }
 
   if (world->viz_state_info.n_grid_species > 0)
@@ -5636,8 +5503,10 @@ static int dreamm_v3_dump_volume_molecules(struct frame_data_list const * const 
 
 
 
-  }else{
-     fprintf(world->err_file, "Unrecognized VIZ_MOLECULE_FORMAT option.\n");
+  }
+  else
+  {
+     mcell_internal_error("Unrecognized VIZ_MOLECULE_FORMAT option.");
      goto failure;
   
   }
@@ -5758,12 +5627,9 @@ static char *dreamm_v3_grouped_get_master_header_name(void)
 {
   char *master_header_file_path = NULL;
   if (world->chkpt_flag)
-    master_header_file_path = alloc_sprintf("%s.%d.dx", world->file_prefix_name, world->chkpt_seq_num);
+    master_header_file_path = CHECKED_SPRINTF("%s.%d.dx", world->file_prefix_name, world->chkpt_seq_num);
   else
-    master_header_file_path = alloc_sprintf("%s.dx", world->file_prefix_name);
-
-  if (master_header_file_path == NULL)
-    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
+    master_header_file_path = CHECKED_SPRINTF("%s.dx", world->file_prefix_name);
 
   return master_header_file_path;
 }
@@ -5780,20 +5646,14 @@ static int dreamm_v3_grouped_create_filepath(char const *kind,
                                              char **path)
 {
   if (world->chkpt_flag)
-    *path = alloc_sprintf("%s.%s.%d.bin",
-                          world->file_prefix_name,
-                          kind,
-                          world->chkpt_seq_num);
+    *path = CHECKED_SPRINTF("%s.%s.%d.bin",
+                            world->file_prefix_name,
+                            kind,
+                            world->chkpt_seq_num);
   else
-    *path = alloc_sprintf("%s.%s.bin",
-                          world->file_prefix_name,
-                          kind);
-
-  if (*path == NULL)
-  {
-    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-    return 1;
-  }
+    *path = CHECKED_SPRINTF("%s.%s.bin",
+                            world->file_prefix_name,
+                            kind);
 
   return 0;
 }
@@ -5810,20 +5670,14 @@ static int dreamm_v3_grouped_create_filename(char const *kind,
                                              char **name)
 {
   if (world->chkpt_flag)
-    *name = alloc_sprintf("%s.%s.%d.bin",
-                          world->viz_state_info.filename_prefix_basename,
-                          kind,
-                          world->chkpt_seq_num);
+    *name = CHECKED_SPRINTF("%s.%s.%d.bin",
+                            world->viz_state_info.filename_prefix_basename,
+                            kind,
+                            world->chkpt_seq_num);
   else
-    *name = alloc_sprintf("%s.%s.bin",
-                          world->viz_state_info.filename_prefix_basename,
-                          kind);
-
-  if (*name == NULL)
-  {
-    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-    return 1;
-  }
+    *name = CHECKED_SPRINTF("%s.%s.bin",
+                            world->viz_state_info.filename_prefix_basename,
+                            kind);
 
   return 0;
 }
@@ -5843,11 +5697,10 @@ static int dreamm_v3_grouped_remove_file(char const *kind)
     return 1;
 
   if (unlink(filename)  &&  errno != ENOENT)
-  {
-    fprintf(world->err_file, "File %s, Line %ld: failed to unlink %s file: %s\n", __FILE__, (long)__LINE__, kind, filename);
-    free(filename);
-    return 1;
-  }
+    mcell_perror(errno,
+                 "Failed to unlink %s file '%s' in preparation for DREAMM V3 Grouped mode output.",
+                 kind,
+                 filename);
 
   free(filename);
   return 0;
@@ -5869,11 +5722,9 @@ static int dreamm_v3_grouped_clean_files(struct frame_data_list *fdlp)
   if (filename == NULL)
     return 1;
   if (unlink(filename)  &&  errno != ENOENT)
-  {
-    fprintf(world->err_file, "File %s, Line %ld: failed to unlink master header file: %s\n", __FILE__, (long)__LINE__, filename);
-    free(filename);
-    return 1;
-  }
+    mcell_perror(errno,
+                 "Failed to unlink master header file '%s' in preparation for DREAMM V3 Grouped mode output.",
+                 filename);
   free(filename);
 
   /* Delete any subfiles which we'll be creating */
@@ -5918,7 +5769,7 @@ static int dreamm_v3_grouped_clean_files(struct frame_data_list *fdlp)
         break;
 
       default:
-        fprintf(world->err_file, "File %s, Line %ld: Unexpected frame type in DREAMM V3 grouped output mode (type=%d).\n", __FILE__, (long)__LINE__, fdlp->type);
+        mcell_internal_error("Unexpected frame type in DREAMM V3 Grouped mode output (type=%d).", fdlp->type);
         return 1;
     }
   }
@@ -6446,15 +6297,10 @@ static int dreamm_v3_grouped_write_combined_group(FILE *master_header,
   fprintf(master_header,"\n");
 
   /* create an entry into a 'frame_data' object. */
-  char *str = alloc_sprintf("\tmember %d value %d position %lld\n",
-                            world->viz_state_info.combined_group_members.n_strings,
-                            combined_group_index,
-                            viz_iteration);
-  if (str == NULL)
-  {
-    fprintf(world->err_file, "File %s, Line %ld: memory allocation error.\n", __FILE__, (long)__LINE__);
-    return 1;
-  }
+  char *str = CHECKED_SPRINTF("\tmember %d value %d position %lld\n",
+                              world->viz_state_info.combined_group_members.n_strings,
+                              combined_group_index,
+                              viz_iteration);
 
   if (add_string_to_buffer(&world->viz_state_info.combined_group_members, str))
   {
@@ -6630,12 +6476,12 @@ int output_rk_custom(struct frame_data_list *fdlp)
   if ((fdlp->type==ALL_FRAME_DATA) || (fdlp->type==MOL_POS) || (fdlp->type==MOL_STATES))
   {
     sprintf(cf_name,"%s.rk.dat",world->molecule_prefix_name);
-    if (make_parent_dir(cf_name, world->log_file))
+    if (make_parent_dir(cf_name))
       return 1;
-    custom_file = fopen(cf_name,(world->rk_mode_var->n_written)?"a+":"w");
+    custom_file = open_file(cf_name,(world->rk_mode_var->n_written)?"a+":"w");
     if (!custom_file)
     {
-      fprintf(world->log_file,"Couldn't open file %s for viz output.\n",cf_name);
+      mcell_error("Failed to open file '%s' for RK-mode VIZ output.", cf_name);
       return 1;
     }
     else { no_printf("Writing to file %s\n",cf_name); }
@@ -6690,7 +6536,7 @@ int output_rk_custom(struct frame_data_list *fdlp)
 	}
       }
       for (i=k=0 ; k<world->rk_mode_var->n_bins ; k++) i+=world->rk_mode_var->bins[k];
-      if (i!=target->population) printf("Wanted to bin %d but found %d instead\n",target->population,i);
+      if (i!=target->population) mcell_warn("Wanted to bin %d but found %d instead.",target->population,i);
       for (k=0 ; k<world->rk_mode_var->n_bins ; k++) fprintf(custom_file," %d",world->rk_mode_var->bins[k]);
     }
     fprintf(custom_file,"\n");
@@ -6733,12 +6579,12 @@ int output_ascii_molecules(struct frame_data_list *fdlp)
     lli = 10;
     for (ndigits = 1 ; lli <= world->iterations && ndigits<20 ; lli*=10 , ndigits++) {}
     sprintf(cf_name, "%s.ascii.%.*lld.dat", world->molecule_prefix_name, ndigits, fdlp->viz_iteration);
-    if (make_parent_dir(cf_name, world->log_file))
+    if (make_parent_dir(cf_name))
       return 1;
-    custom_file = fopen(cf_name,"w");
+    custom_file = open_file(cf_name, "w");
     if (!custom_file)
     {
-      fprintf(world->log_file,"Couldn't open file %s for viz output.\n",cf_name);
+      mcell_error("Failed to open file '%s' for ASCII-mode VIZ output.", cf_name);
       return 1;
     }
     else { no_printf("Writing to file %s\n",cf_name); }
@@ -6904,9 +6750,9 @@ int init_frame_data_list(struct frame_data_list **fdlpp)
 
   /* Check that the user hasn't selected a useless set of output info */
   if ((mol_orient_frame_present) & (!mol_pos_frame_present))
-    fprintf(world->log_file, "The input file contains ORIENTATIONS but not POSITIONS statement in the MOLECULES block. The molecules cannot be visualized.\n");
+    mcell_warn("The input file contains ORIENTATIONS but not POSITIONS statement in the MOLECULES block. The molecules cannot be visualized.");
   if ((reg_data_frame_present) & (!mesh_geometry_frame_present))
-    fprintf(world->log_file, "The input file contains REGION_DATA but not GEOMETRY statement in the MESHES block. The meshes cannot be visualized.\n");
+    mcell_warn("The input file contains REGION_DATA but not GEOMETRY statement in the MESHES block. The meshes cannot be visualized.");
 
   return 0;
 }

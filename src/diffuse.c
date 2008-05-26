@@ -19,6 +19,7 @@
 #include "mem_util.h"
 #include "sched_util.h"
 #include "util.h"
+#include "logging.h"
 
 #include "mcell_structs.h"
 #include "count_util.h"
@@ -48,7 +49,6 @@
 /* EXD_SPAN_CALC is a local #define in exact_disk */
 
 /* CLEAN_AND_RETURN(x) is a local #define in diffuse_3D */
-/* ERROR_AND_QUIT is a local #define in diffuse_3D */
 
 extern struct volume *world;
 
@@ -322,6 +322,8 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
 	new_disp.u -= f*reflector.u;
 	new_disp.v -= f*reflector.v;
 	break;
+
+      default: UNHANDLED_CASE(new_wall_index);
     }
     
     this_pos.u = boundary_pos.u;
@@ -366,11 +368,7 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
   world->ray_voxel_tests++;
 
   shead = NULL;
-  smash = (struct collision*) mem_get(sv->local_storage->coll);
-  if(smash == NULL) {
-     fprintf(world->err_file, "File %s, Line %ld: out of memory error.\n", __FILE__, (long)__LINE__);
-     return NULL;
-  }
+  smash = (struct collision*) CHECKED_MEM_GET(sv->local_storage->coll, "collision structure");
 
   fake_wlp.next = sv->wall_head;
     
@@ -394,12 +392,7 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
       smash->target = (void*) wlp->this_wall;
       smash->next = shead;
       shead = smash;
-      smash = (struct collision*) mem_get(sv->local_storage->coll);
-      if (smash==NULL)
-      {
-	if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead);
-	return NULL;
-      }
+      smash = (struct collision*) CHECKED_MEM_GET(sv->local_storage->coll, "collision structure");
     }
   }
 
@@ -564,12 +557,7 @@ struct collision* ray_trace(struct volume_molecule *m, struct collision *c,
     i = collide_mol(&(m->pos),v,a,&(c->t),&(c->loc));
     if (i != COLLIDE_MISS)
     {
-      smash = (struct collision*) mem_get(sv->local_storage->coll);
-      if (smash==NULL)
-      {
-	mem_put_list(sv->local_storage->coll,shead);
-	return NULL;
-      }
+      smash = (struct collision*) CHECKED_MEM_GET(sv->local_storage->coll, "collision structure");
       memcpy(smash,c,sizeof(struct collision));
       
       smash->what = COLLIDE_MOL + i;
@@ -617,11 +605,7 @@ struct sp_collision* ray_trace_trimol(struct volume_molecule *m,
   world->ray_voxel_tests++;
 
   shead = NULL;
-  smash = (struct sp_collision*) mem_get(sv->local_storage->sp_coll);
-  if(smash == NULL) {
-     fprintf(world->err_file, "File %s, Line %ld: out of memory error.\n", __FILE__, (long)__LINE__);
-     return NULL;
-  }
+  smash = (struct sp_collision*) CHECKED_MEM_GET(sv->local_storage->sp_coll, "collision structure");
 
   fake_wlp.next = sv->wall_head;
     
@@ -655,12 +639,7 @@ struct sp_collision* ray_trace_trimol(struct volume_molecule *m,
            
       smash->next = shead;
       shead = smash;
-      smash = (struct sp_collision*) mem_get(sv->local_storage->sp_coll);
-      if (smash==NULL)
-      {
-	if (shead!=NULL) mem_put_list(sv->local_storage->sp_coll,shead);
-	return NULL;
-      }
+      smash = (struct sp_collision*) CHECKED_MEM_GET(sv->local_storage->sp_coll, "collision structure");
     }
   }
 
@@ -835,12 +814,7 @@ struct sp_collision* ray_trace_trimol(struct volume_molecule *m,
     i = collide_mol(&(m->pos),v,a,&(c->t),&(c->loc));
     if (i != COLLIDE_MISS)
     {
-      smash = (struct sp_collision*) mem_get(sv->local_storage->sp_coll);
-      if (smash==NULL)
-      {
-	mem_put_list(sv->local_storage->sp_coll,shead);
-	return NULL;
-      }
+      smash = (struct sp_collision*) CHECKED_MEM_GET(sv->local_storage->sp_coll, "collision structure");
       memcpy(smash,c,sizeof(struct sp_collision));
       
       smash->t_start = walk_start_time;
@@ -1008,7 +982,6 @@ enum
 /* Negative numbers used as flags for reaction disks */
 /* Note: TARGET_OCCLUDED is assumed for any negative number not defined here */
 #define TARGET_OCCLUDED    -1
-#define EXD_OUT_OF_MEMORY  -2
 
 /*************************************************************************
 exact_disk:
@@ -1021,7 +994,7 @@ exact_disk:
   Out: The fraction of a full interaction disk that is actually
        accessible to the moving molecule, computed exactly from the
        geometry, or TARGET_OCCLUDED if the path to the target molecule is
-       blocked.  If there is a memory error, it returns EXD_OUT_OF_MEMORY.
+       blocked.
 *************************************************************************/
 static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct subvolume *sv,struct volume_molecule *moving,struct volume_molecule *target)
 {
@@ -1247,9 +1220,8 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
     /* Add this edge to the growing list, or return -1 if edge blocks target */
     
     /* Construct final endpoints and prepare to store them */
-    ppa = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
-    ppb = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
-    if (ppa==NULL || ppb==NULL) return EXD_OUT_OF_MEMORY;
+    ppa = (struct exd_vertex*) CHECKED_MEM_GET(sv->local_storage->exdv, "exact disk vertex");
+    ppb = (struct exd_vertex*) CHECKED_MEM_GET(sv->local_storage->exdv, "exact disk vertex");
     if (t>0)
     {
       ppa->u = pa.u + t*(pb.u-pa.u);
@@ -1406,7 +1378,7 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
 	    s = d/b;
 	    if (s*s>R2)
 	    {
-	      fprintf(world->log_file, "File '%s', Line %ld: MCell should not come to this point.  Please report this message.\n", __FILE__, (long)__LINE__); 
+              mcell_internal_error("Unexpected results in exact disk: s=%.2f s^2=%.2f R2=%.2f\n", s, s*s, R2);
 	      continue;
 	    }
 	    t = sqrt(R2-s*s);
@@ -1418,7 +1390,7 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
 	    t = d/a;
 	    if (t*t>R2)
 	    {
-	      fprintf(world->log_file, "File '%s', Line %ld: MCell should not come to this point.  Please report this message.\n", __FILE__, (long)__LINE__); 
+              mcell_internal_error("Unexpected results in exact disk: t=%.2f t^2=%.2f R2=%.2f\n", t, t*t, R2);
 	      continue;
 	    }
 	    s = sqrt(R2-t*t);
@@ -1431,7 +1403,7 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
 	    s = d*b;
 	    if (d*d>R2*c)
 	    {
-	      fprintf(world->log_file, "File '%s', Line %ld: MCell should not come to this point.  Please report this message.\n", __FILE__, (long)__LINE__); 
+              mcell_internal_error("Unexpected results in exact disk: d=%.2f d^2=%.2f R2=%.2f c=%.2f R2*c=%.2f\n", d, d*d, R2, c, R2*c);
 	      continue;
 	    }
 	    t = sqrt(R2*c-d*d);
@@ -1444,10 +1416,9 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
 	  }
 	  
 	  /* Create memory for the pair of vertices */
-	  ppa = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
-	  ppb = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
-	  if (ppa==NULL || ppb==NULL) return EXD_OUT_OF_MEMORY;
-	  
+          ppa = (struct exd_vertex*) CHECKED_MEM_GET(sv->local_storage->exdv, "exact disk vertex");
+          ppb = (struct exd_vertex*) CHECKED_MEM_GET(sv->local_storage->exdv, "exact disk vertex");
+
 	  a = exd_zetize(pa.v,pa.u);
 	  b = exd_zetize(pb.v,pb.u);
 	  c = b-a;
@@ -1607,8 +1578,7 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
       }
       
       /* Create intersection point */
-      vq = (struct exd_vertex*)mem_get( sv->local_storage->exdv );
-      if (vq==NULL) return EXD_OUT_OF_MEMORY;
+      vq = (struct exd_vertex*) CHECKED_MEM_GET(sv->local_storage->exdv, "exact disk vertex");
       vq->u = pqa->u + t*pb.u;
       vq->v = pqa->v + t*pb.v;
       vq->r2 = vq->u*vq->u + vq->v*vq->v;
@@ -1665,8 +1635,7 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
       if (vq->zeta==vp->e->zeta) break;
       if (vq->role==EXD_OTHER) continue;
       
-      vr = (struct exd_vertex*) mem_get( sv->local_storage->exdv );
-      if (vr==NULL) return EXD_OUT_OF_MEMORY;
+      vr = (struct exd_vertex*) CHECKED_MEM_GET(sv->local_storage->exdv, "exact disk vertex");
       vr->next = vq->span;
       vq->span = vr;
       vr->e = vp;
@@ -1912,25 +1881,40 @@ int search_memory_for_me(struct mem_helper *mh,struct abstract_list *al)
 /* Debugging function: see if we got a circular molecule list inside a SV */
 int test_subvol_for_circular(struct subvolume *sv)
 {
-  struct volume_molecule *mp,*smp,*psmp;
-  int warned = 0;
-  
-  psmp = NULL;
-  mp = smp = sv->mol_head;
-  do
+  for (struct per_species_list *psl = sv->species_head;
+       psl != NULL;
+       psl = psl->next)
   {
-    if (!warned && smp->subvol != sv)
+    int warned_leak = 0;
+    int warned_spec = 0;
+    struct species *sp = psl->properties;
+
+    struct volume_molecule *mp,*smp,*psmp;
+    psmp = NULL;
+    mp = smp = psl->head;
+    do
     {
-      printf("Occupancy leak from %x to %x through %x to %x\n",(int)sv,(int)smp->subvol,(int)psmp,(int)smp);
-      warned = 1;
-    }
-    psmp = smp;
-    smp = smp->next_v;
-    mp = mp->next_v;
-    if (mp!=NULL) mp = mp->next_v;
-  } while (mp != NULL && smp != NULL && mp != smp);
+      if (! warned_leak && smp->subvol != sv)
+      {
+        printf("Occupancy leak of %s from %p to %p through %p to %p.\n",
+               smp->properties->sym->name, sv, smp->subvol, psmp, smp);
+        warned_leak = 1;
+      }
+      if (! warned_spec  &&  sp != NULL  &&
+          smp->properties != NULL  &&  smp->properties != sp)
+      {
+        printf("Occupancy leak of %s to %s list.\n",
+               smp->properties->sym->name, sp->sym->name);
+        warned_spec = 1;
+      }
+      psmp = smp;
+      smp = smp->next_v;
+      mp = mp->next_v;
+      if (mp!=NULL) mp = mp->next_v;
+    } while (mp != NULL && smp != NULL && mp != smp);
+    if (mp != NULL) return 1;
+  }
   
-  if (mp != NULL) return 1;
   return 0;
 }
 #endif
@@ -1956,7 +1940,7 @@ safe_diffusion_step:
 	*FIXME*: Add a flag to make this be very conservative or to turn
 	this off entirely, aside from the TIME_STEP_MAX= directive.
 ****************************************************************************/
-double safe_diffusion_step(struct volume_molecule *m,struct collision *shead)
+static double safe_diffusion_step(struct volume_molecule *m, struct collision *shead)
 {
   double d2;
   double d2_nearmax;
@@ -2050,15 +2034,15 @@ expand_collision_list_for_neighbor:
        The molecules are added only when the molecule displacement 
        bounding box intersects with the subvolume bounding box.
 ****************************************************************************/
-struct collision *expand_collision_list_for_neighbor(struct subvolume *sv,
-                                                     struct volume_molecule *m,
-                                                     struct subvolume *new_sv,
-                                                     struct vector3 *path_llf,
-                                                     struct vector3 *path_urb,
-                                                     struct collision *shead1,
-                                                     double trim_x,
-                                                     double trim_y,
-                                                     double trim_z)
+static struct collision *expand_collision_list_for_neighbor(struct subvolume *sv,
+                                                            struct volume_molecule *m,
+                                                            struct subvolume *new_sv,
+                                                            struct vector3 *path_llf,
+                                                            struct vector3 *path_urb,
+                                                            struct collision *shead1,
+                                                            double trim_x,
+                                                            double trim_y,
+                                                            double trim_z)
 {
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS]; 
@@ -2181,13 +2165,7 @@ struct collision *expand_collision_list_for_neighbor(struct subvolume *sv,
       int i;
       for(i = 0; i < num_matching_rxns; i++)
       {
-        struct collision *smash = mem_get(sv->local_storage->coll);
-        if (smash == NULL)
-        {
-          fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-          exit( EXIT_FAILURE );
-        }
- 
+        struct collision *smash = (struct collision *) CHECKED_MEM_GET(sv->local_storage->coll, "collision data");
         smash->target = (void*) mp;
         smash->intermediate = matching_rxns[i];
         smash->next = shead1;
@@ -2210,7 +2188,9 @@ expand_collision_list:
        border.  The molecules are added only when the molecule displacement 
        bounding box intersects with the subvolume bounding box.
 ****************************************************************************/
-struct collision* expand_collision_list(struct volume_molecule *m, struct vector3 *mv, struct subvolume *sv)
+static struct collision* expand_collision_list(struct volume_molecule *m,
+                                               struct vector3 *mv,
+                                               struct subvolume *sv)
 {
   struct collision *shead1 = NULL;
   /* neighbors of the current subvolume */
@@ -2402,16 +2382,16 @@ expand_collision_partner_list_for_neighbor:
        The molecules are added only when the molecule displacement 
        bounding box intersects with the subvolume bounding box.
 ****************************************************************************/
-struct sp_collision *expand_collision_partner_list_for_neighbor(struct subvolume *sv,
-                                                                struct volume_molecule *m,
-                                                                struct vector3 *mv,
-                                                                struct subvolume *new_sv,
-                                                                struct vector3 *path_llf,
-                                                                struct vector3 *path_urb,
-                                                                struct sp_collision *shead1,
-                                                                double trim_x,
-                                                                double trim_y,
-                                                                double trim_z)
+static struct sp_collision *expand_collision_partner_list_for_neighbor(struct subvolume *sv,
+                                                                       struct volume_molecule *m,
+                                                                       struct vector3 *mv,
+                                                                       struct subvolume *new_sv,
+                                                                       struct vector3 *path_llf,
+                                                                       struct vector3 *path_urb,
+                                                                       struct sp_collision *shead1,
+                                                                       double trim_x,
+                                                                       double trim_y,
+                                                                       double trim_z)
 {
   struct species *sm = m->properties;
   struct sp_collision *smash;
@@ -2533,12 +2513,7 @@ struct sp_collision *expand_collision_partner_list_for_neighbor(struct subvolume
         if (mp->pos.y < y_min || mp->pos.y > y_max) continue;
         if (mp->pos.z < z_min || mp->pos.z > z_max) continue;
 
-        smash = mem_get(sv->local_storage->sp_coll);
-        if (smash == NULL)
-        {
-          fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
-          exit( EXIT_FAILURE );
-        }
+        smash = (struct sp_collision *) CHECKED_MEM_GET(sv->local_storage->sp_coll, "collision data");
         smash->t = 0.0;
         smash->t_start = 0.0;
         smash->pos_start.x = m->pos.x;
@@ -2585,7 +2560,9 @@ expand_collision_partner_list:
         adapted for the case when molecule can engage in trimolecular
         collisions.	
 ****************************************************************************/
-struct sp_collision * expand_collision_partner_list(struct volume_molecule *m, struct vector3 *mv, struct subvolume *sv)
+static struct sp_collision * expand_collision_partner_list(struct volume_molecule *m,
+                                                           struct vector3 *mv,
+                                                           struct subvolume *sv)
 {
    struct sp_collision *shead1 = NULL;
    /* lower left and upper_right corners of the molecule path
@@ -2808,10 +2785,8 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
   int mol_grid_flag = 0, mol_grid_grid_flag = 0;
 
   sm = m->properties;
-  if (sm==NULL) {
-	fprintf(world->err_file,"File '%s', Line %ld: This molecule should not diffuse!\n", __FILE__, (long)__LINE__);
-	return NULL;
-  }
+  if (sm==NULL)
+    mcell_internal_error("Attempted to take a diffusion step for a defunct molecule.");
   mol_grid_flag =  ((sm->flags & CAN_MOLGRID) == CAN_MOLGRID);
   mol_grid_grid_flag =  ((sm->flags & CAN_MOLGRIDGRID) == CAN_MOLGRIDGRID);
 
@@ -2827,7 +2802,6 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
     {
       if ((m->flags&ACT_CLAMPED)!=0) inertness=2;
       else m->index=-1;
-      if (!world->volume_reversibility) fprintf(world->err_file,"Error in volume reversibility code!\n");
     }
     else if (!world->surface_reversibility)
     {
@@ -2850,7 +2824,11 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
       if (sm->time_step > 1.0)
       {
         f = 1.0 + 0.2*(m->t - m->birthday);
-        if (f<1) printf("I don't think so.\n");
+        if (f<1)
+          mcell_internal_error("A %s molecule is scheduled to move before it was born [birthday=%.15g, t=%.15g]",
+                               sm->sym->name,
+                               m->birthday*world->time_unit,
+                               m->t*world->time_unit);
         if (max_time > f) max_time=f;
         if (f > m->subvol->local_storage->max_timestep)
           m->flags |= MATURE_MOLECULE;
@@ -2914,12 +2892,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         {
           for(i = 0; i < num_matching_rxns; i++)
           {
-            smash = mem_get(sv->local_storage->coll);
-            if (smash == NULL)
-            {
-              fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
-              exit( EXIT_FAILURE );
-            }
+            smash = (struct collision *) CHECKED_MEM_GET(sv->local_storage->coll, "collision data");
             smash->target = (void*) mp;
             smash->what = COLLIDE_MOL;
             smash->intermediate = matching_rxns[i];
@@ -2997,16 +2970,16 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
     else
     {
       if (shead != NULL)
-      {
-        fprintf(world->err_file,"File '%s', Line %ld: Internal error: collision lists corrupted.\n", __FILE__, (long)__LINE__);
-        exit(EXIT_FAILURE);
-      }
+        mcell_internal_error("Collision lists corrupted.  While expanding the collision lists, expected shead to be NULL, but it wasn't.");
       shead = shead_exp;
     }
   }   
 
-#define CLEAN_AND_RETURN(x) if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead); return (x)
-#define ERROR_AND_QUIT fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__); exit(EXIT_FAILURE)
+#define CLEAN_AND_RETURN(x) do {                                          \
+      if (shead2!=NULL) mem_put_list(sv->local_storage->coll,shead2);     \
+      if (shead!=NULL) mem_put_list(sv->local_storage->coll,shead);       \
+      return (x);                                                         \
+    } while(0)
 
   do
   {
@@ -3037,17 +3010,14 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         else
         {
           if (shead != NULL)
-          {
-            fprintf(world->err_file,"File '%s', Line %ld: Internal error: collision lists corrupted.\n", __FILE__, (long)__LINE__);
-            exit(EXIT_FAILURE);
-          }
+            mcell_internal_error("Collision lists corrupted.  While expanding the collision lists, expected shead to be NULL, but it wasn't.");
           shead = shead_exp;
         }
       }
     }
 
     shead2 = ray_trace(m,shead,sv,&displacement,reflectee);
-    if (shead2==NULL) { ERROR_AND_QUIT; }
+    if (shead2==NULL) mcell_internal_error("ray_trace returned NULL.");
 
     if (shead2->next!=NULL)
     {
@@ -3061,11 +3031,16 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       
       if (smash->t >= 1.0 || smash->t < 0.0)
       {
-	if ((smash->what&COLLIDE_MOL)!=0) fprintf(world->err_file, "File '%s', Line %ld: Unexpected behavior. Iteration %lld, time of collision %.8e\n", __FILE__, (long)__LINE__,  world->it_time,smash->t);
+	if ((smash->what&COLLIDE_MOL)!=0)
+          mcell_internal_error("Detected a mol-mol collision outside of the 0.0...1.0 time window.  Iteration %lld, time of collision %.8e, mol1=%s, mol2=%s",
+                               world->it_time,
+                               smash->t,
+                               m->properties->sym->name,
+                               ((struct volume_molecule *) smash->target)->properties->sym->name);
         smash = NULL;
         break;
       }
-      
+
       rx = smash->intermediate;
 
       if ( (smash->what & COLLIDE_MOL) != 0 && !inert )
@@ -3094,7 +3069,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       
 	if (factor<0) /* Probably hit a wall, might have run out of memory */
 	{
-	  if (factor==EXD_OUT_OF_MEMORY) { ERROR_AND_QUIT; }
 	  continue; /* Reaction blocked by a wall */
 	}
         
@@ -3109,8 +3083,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                 rx,i,(struct abstract_molecule*)m,
                 am,0,0,m->t+t_steps*smash->t,&(smash->loc),loc_certain
               );
-	      
-	if (j==RX_NO_MEM) { ERROR_AND_QUIT; }
+
 	if (j!=RX_DESTROY) continue;
         else
         {
@@ -3188,7 +3161,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                       k,g->orient,m->t+t_steps*smash->t,&(smash->loc),loc_certain
                     );
                 
-                  if (l==RX_NO_MEM) { ERROR_AND_QUIT; }
                   if (l==RX_FLIP)
                   {
                     if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME_MASK)!=0)
@@ -3279,7 +3251,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                                 k,g->orient,gm[kk]->orient, 
                                 m->t + t_steps*smash->t, &smash->loc, &m->pos);
 
-                              if (l==RX_NO_MEM) { ERROR_AND_QUIT; }
                               if (l==RX_FLIP)
                               {
                                 if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME_MASK)!=0)
@@ -3376,7 +3347,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 			k,m->t + t_steps*smash->t,&(smash->loc),loc_certain
 		      );
 		      
-		if (j==RX_NO_MEM) { ERROR_AND_QUIT; } 
 		if (j==RX_FLIP)
 		{
 		  if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME_MASK)!=0 )
@@ -3485,9 +3455,11 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         nsv = traverse_subvol(sv,&(m->pos),smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL); 
         if (nsv==NULL)
         {
-          fprintf(world->log_file,"Error: a %s molecule escaped the world at (%.2e,%.2e,%.2e)\n",
-                  sm->sym->name,m->pos.x*world->length_unit,
-                  m->pos.y*world->length_unit,m->pos.z*world->length_unit);
+          mcell_internal_error("A %s molecule escaped the world at [%.2f, %.2f, %.2f]",
+                               sm->sym->name,
+                               m->pos.x*world->length_unit,
+                               m->pos.y*world->length_unit,
+                               m->pos.z*world->length_unit);
           if (m->flags&COUNT_ME)
 	    count_region_from_scratch((struct abstract_molecule*)m,NULL,-1,&(m->pos),NULL,m->t);
           sm->population--;
@@ -3504,7 +3476,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
         calculate_displacement = 0;
         
-        if (m->properties==NULL) fprintf(world->err_file,"File '%s', Line %ld: This molecule should not be jumping.\n", __FILE__, (long)__LINE__);
+        if (m->properties==NULL)
+          mcell_internal_error("A defunct molecule is diffusing.");
         goto pretend_to_call_diffuse_3D;  /* Jump to beginning of function */        
       }
     }
@@ -3514,7 +3487,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   }
   while (smash != NULL);
 
-#undef ERROR_AND_QUIT
 #undef CLEAN_AND_RETURN
   
   m->pos.x += displacement.x;
@@ -3601,10 +3573,8 @@ struct volume_molecule* diffuse_3D_big_list(struct volume_molecule *m,double max
   int target_tri_molecular_flag = 0, target_bi_molecular_flag = 0, target_mol_mol_grid_flag;
  
   sm = m->properties;
-  if (sm==NULL) {
-	fprintf(world->err_file,"File '%s', Line %ld: This molecule should not diffuse!\n", __FILE__, (long)__LINE__);
-	return NULL;
-  }
+  if (sm==NULL)
+    mcell_internal_error("Attempted to take a diffusion step for a defunct molecule.");
   if (sm->space_step <= 0.0)
   {
     m->t += max_time;
@@ -3618,7 +3588,6 @@ struct volume_molecule* diffuse_3D_big_list(struct volume_molecule *m,double max
     if (world->volume_reversibility  &&  m->index <= DISSOCIATION_MAX) /* Only set if volume_reversibility is */
     {
       m->index=-1;
-      if (!world->volume_reversibility) fprintf(world->err_file,"Error in volume reversibility code!\n");
     }
     else if (!world->surface_reversibility)
     {
@@ -3641,7 +3610,11 @@ struct volume_molecule* diffuse_3D_big_list(struct volume_molecule *m,double max
       if (sm->time_step > 1.0)
       {
         f = 1.0 + 0.2*(m->t - m->birthday);
-        if (f<1) printf("I don't think so.\n");
+        if (f<1)
+          mcell_internal_error("A %s molecule is scheduled to move before it was born [birthday=%.15g, t=%.15g]",
+                               sm->sym->name,
+                               m->birthday*world->time_unit,
+                               m->t*world->time_unit);
         if (max_time > f) max_time=f;
         if (f > m->subvol->local_storage->max_timestep)
           m->flags |= MATURE_MOLECULE;
@@ -3812,12 +3785,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         {
           if (mp==m) continue;
 
-          smash = mem_get(sv->local_storage->sp_coll);
-          if (smash == NULL)
-          {
-            fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
-            exit( EXIT_FAILURE );
-          }
+          smash = (struct sp_collision *) CHECKED_MEM_GET(sv->local_storage->sp_coll, "collision data");
           smash->t = 0.0;
           smash->t_start = 0.0;
           smash->pos_start.x = m->pos.x;
@@ -3862,9 +3830,22 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   reflectee = NULL;
 
 
-#define CLEAN_AND_RETURN(x) if(main_shead2 != NULL) mem_put_list(sv->local_storage->sp_coll, main_shead2); if (shead2!=NULL) mem_put_list(sv->local_storage->sp_coll,shead2); if (shead!=NULL) mem_put_list(sv->local_storage->sp_coll,shead); return (x)
-#define TRI_CLEAN_AND_RETURN(x) if (main_tri_shead!=NULL) mem_put_list(sv->local_storage->tri_coll,main_tri_shead); if (main_shead2 != NULL) mem_put_list(sv->local_storage->sp_coll,main_shead2); return(x) 
-#define ERROR_AND_QUIT fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__); exit(EXIT_FAILURE)
+#define CLEAN_AND_RETURN(x) do {                                          \
+          if (main_shead2 != NULL)                                        \
+            mem_put_list(sv->local_storage->sp_coll, main_shead2);        \
+          if (shead2!=NULL)                                               \
+            mem_put_list(sv->local_storage->sp_coll,shead2);              \
+          if (shead!=NULL)                                                \
+            mem_put_list(sv->local_storage->sp_coll,shead);               \
+          return (x);                                                     \
+        } while (0)
+#define TRI_CLEAN_AND_RETURN(x) do {                                      \
+          if (main_tri_shead!=NULL)                                       \
+            mem_put_list(sv->local_storage->tri_coll,main_tri_shead);     \
+          if (main_shead2 != NULL)                                        \
+            mem_put_list(sv->local_storage->sp_coll,main_shead2);         \
+          return(x);                                                      \
+        } while (0)
 
   do
   {
@@ -3908,7 +3889,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   }
  
     shead2 = ray_trace_trimol(m,shead,sv,&displacement,reflectee, t_start);  
-    if (shead2==NULL) { ERROR_AND_QUIT; }
+    if (shead2==NULL) mcell_internal_error("ray_trace_trimol returned NULL.");
 
     if (shead2->next!=NULL)
     {
@@ -3920,9 +3901,10 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       
       if (smash->t >= 1.0 || smash->t < 0.0)
       {
-        if(((smash->what & COLLIDE_MOL) != 0) || ((smash->what & COLLIDE_MOL_MOL) != 0) || ((smash->what & COLLIDE_MOL_GRID) != 0)){
-          fprintf(world->err_file, "File '%s', Line %ld: Unexpected behavior. Iteration %lld, time of collision %.8e\n", __FILE__, (long)__LINE__,  world->it_time,smash->t);
-        }
+        if ((smash->what & (COLLIDE_MOL | COLLIDE_MOL_MOL | COLLIDE_MOL_GRID)) != 0)
+          mcell_internal_error("Detected a mol-mol[-*] collision outside of the 0.0...1.0 time window.  Iteration %lld, time of collision %.8e",
+                               world->it_time,
+                               smash->t);
         smash = NULL;
         break;
       }
@@ -3932,12 +3914,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
       if (((smash->what & (COLLIDE_MOL|COLLIDE_MOL_MOL|COLLIDE_MOL_GRID)) != 0)  && !inert){
 
-           new_coll = mem_get(sv->local_storage->sp_coll);
-           if (new_coll == NULL)
-           {
-               fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
-               exit( EXIT_FAILURE );
-            }
+           new_coll = (struct sp_collision *) CHECKED_MEM_GET(sv->local_storage->sp_coll, "collision data");
             memcpy(new_coll, smash, sizeof(struct sp_collision));
 
             new_coll->t += new_coll->t_start;   
@@ -3947,12 +3924,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       }
       else if ( (smash->what & COLLIDE_WALL) != 0 )
       {
-           new_coll = mem_get(sv->local_storage->sp_coll);
-           if (new_coll == NULL)
-           {
-               fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
-               exit( EXIT_FAILURE );
-            }
+           new_coll = (struct sp_collision *) CHECKED_MEM_GET(sv->local_storage->sp_coll, "collision data");
             memcpy(new_coll, smash, sizeof(struct sp_collision));
 
             new_coll->t += new_coll->t_start;   
@@ -4046,9 +4018,11 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         nsv = traverse_subvol(sv,&(m->pos),smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL); 
         if (nsv==NULL)
         {
-          fprintf(world->log_file,"Error: a %s molecule escaped the world at (%.2e,%.2e,%.2e)\n",
-                  sm->sym->name,m->pos.x*world->length_unit,
-                  m->pos.y*world->length_unit,m->pos.z*world->length_unit);
+          mcell_internal_error("A %s molecule escaped the world at [%.2f, %.2f, %.2f]",
+                               sm->sym->name,
+                               m->pos.x*world->length_unit,
+                               m->pos.y*world->length_unit,
+                               m->pos.z*world->length_unit);
           if (m->flags&COUNT_ME)
 	    count_region_from_scratch((struct abstract_molecule*)m,NULL,-1,&(m->pos),NULL,m->t);
           sm->population--;
@@ -4072,8 +4046,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         calculate_displacement = 0;
                
                
-
-        if (m->properties==NULL) fprintf(world->err_file,"File '%s', Line %ld: This molecule should not be jumping.\n", __FILE__, (long)__LINE__);
+        if (m->properties == NULL)
+          mcell_internal_error("A defunct molecule is diffusing.");
         goto pretend_to_call_diffuse_3D;  /* Jump to beginning of function */        
       }
     } /* end for(smash ...) */
@@ -4127,12 +4101,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
          {
            for(i= 0; i< num_matching_rxns; i++)
            {
-               tri_smash = mem_get(sv->local_storage->tri_coll);
-               if (tri_smash == NULL)
-               {
-                    fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
-                    exit( EXIT_FAILURE );
-               }
+               tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "collision data");
                tri_smash->t = smash->t;
                tri_smash->target1 = (void*) mp;
                tri_smash->target2 = NULL;
@@ -4147,10 +4116,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                tri_smash->factor = exact_disk(
                  &(smash->loc), &(smash->disp), world->rx_radius_3d,
                  smash->sv_start, m, (struct volume_molecule *)smash->target);
-               if (tri_smash->factor == EXD_OUT_OF_MEMORY) { 
-                    fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
-                    exit( EXIT_FAILURE );
-               }
                tri_smash->wall = NULL;
                tri_smash->factor /= rate_factor; /* scaling the reaction rate */
                tri_smash->next = main_tri_shead;
@@ -4177,12 +4142,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
          {
            for(i = 0; i< num_matching_rxns; i++)
            {
-               tri_smash = mem_get(sv->local_storage->tri_coll);
-               if (tri_smash == NULL)
-               {
-                    fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
-                    exit( EXIT_FAILURE );
-               }
+               tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "collision data");
                tri_smash->loc = new_smash->loc;
                tri_smash->t = new_smash->t;
                tri_smash->target2 = (void*) new_mp;
@@ -4195,19 +4155,11 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                factor1 = exact_disk(
                  &(smash->loc), &(smash->disp), world->rx_radius_3d,
                  smash->sv_start, m, (struct volume_molecule *)smash->target);
-               if (factor1 == EXD_OUT_OF_MEMORY) { 
-                    fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
-                    exit( EXIT_FAILURE );
-               }
                factor2 = exact_disk(
                    &(new_smash->loc), &(new_smash->disp), 
                    world->rx_radius_3d,
                    new_smash->sv_start, m, 
                    (struct volume_molecule *)new_smash->target);
-               if (factor2 == EXD_OUT_OF_MEMORY) { 
-                    fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
-                    exit( EXIT_FAILURE );
-               }
                tri_smash->factor = factor1*factor2;
                tri_smash->factor /= rate_factor; /* scaling the reaction rate */
                tri_smash->what = COLLIDE_MOL_MOL;
@@ -4257,12 +4209,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
                      for(i = 0; i< num_matching_rxns; i++)
                      {
-                        tri_smash = mem_get(sv->local_storage->tri_coll);
-                        if (tri_smash == NULL)
-                        {
-                          fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
-                          exit( EXIT_FAILURE );
-                        }
+                        tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "collision data");
                         tri_smash->t = new_smash->t;
                         tri_smash->target1 = (void*) mp;
                         tri_smash->target2 = (void*)g;
@@ -4325,12 +4272,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
                  for(i = 0; i< num_matching_rxns; i++)
                  {
-                    tri_smash = mem_get(sv->local_storage->tri_coll);
-                    if (tri_smash == NULL)
-                    {
-                       fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
-                       exit( EXIT_FAILURE );
-                    }
+                    tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "collision data");
                     tri_smash->t = smash->t;
                     tri_smash->target1 = (void*) g;
                     tri_smash->target2 = NULL;
@@ -4408,14 +4350,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
                            for(i = 0; i< num_matching_rxns; i++)
                            {
-                              tri_smash = mem_get(sv->local_storage->tri_coll);
-                              if (tri_smash == NULL)
-                              {
-                                fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
-                                exit( EXIT_FAILURE );
-                              }
+                              tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "collision data");
                               tri_smash->t = smash->t;
-
                               tri_smash->target1 = (void*) g;
                               tri_smash->target2 = (void*)gm[kk];
                               tri_smash->orient = k;
@@ -4457,12 +4393,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	  
 	     if (rx != NULL)
 	     {
-                    tri_smash = mem_get(sv->local_storage->tri_coll);
-                    if (tri_smash == NULL)
-                    {
-                       fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
-                       exit( EXIT_FAILURE );
-                    }
+                    tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "collision data");
                     tri_smash->t = smash->t;
                     tri_smash->target1 = (void*) w;
                     tri_smash->target2 = NULL;
@@ -4490,13 +4421,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                 (default wall behavior). 
                 We want to keep it in the "tri_smash" 
                 list just in order to account for the hits with it */
-                    tri_smash = mem_get(sv->local_storage->tri_coll);
-                    if (tri_smash == NULL)
-                    {
-                       fprintf(world->err_file,"File '%s', Line %ld: out of memory.\n", __FILE__, (long)__LINE__);
-                       exit( EXIT_FAILURE );
-                    }
-
+                    tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "collision data");
                     tri_smash->t = smash->t;
                     tri_smash->target1 = (void*) w;
                     tri_smash->target2 = NULL;
@@ -4632,7 +4557,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
            }
         }
 
-	if (j==RX_NO_MEM) { ERROR_AND_QUIT; }
 	if (j!=RX_DESTROY) continue;
         else
         {
@@ -4703,7 +4627,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 			k,m->t + t_steps*tri_smash->t,&(tri_smash->loc),NULL);
 
 		      
-		if (j==RX_NO_MEM) { ERROR_AND_QUIT; } 
 		if (j==RX_FLIP)
 		{
 		  if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME_MASK)!=0 )
@@ -4787,7 +4710,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   } /* end for(tri_smash ...) */
 
 
-#undef ERROR_AND_QUIT
 #undef CLEAN_AND_RETURN
 #undef TRI_CLEAN_AND_RETURN
   
@@ -4830,11 +4752,8 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
   int find_new_position,new_idx;
   sg = g->properties;
   
-  if (sg==NULL)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Error!  Surface molecule has no properties?  Ignoring!\n", __FILE__, (long)__LINE__);
-    return NULL;
-  }
+  if (sg == NULL)
+    mcell_internal_error("Attempted to take a 2-D diffusion step for a defunct molecule.");
   
   if (sg->space_step <= 0.0)
   {
@@ -4845,7 +4764,11 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
   if (sg->time_step > 1.0)
   {
     f = 1.0 + 0.2*(g->t - g->birthday);
-    if (f<1) fprintf(world->log_file, "File '%s', Line %ld: Unexpected behavior.\n", __FILE__, (long)__LINE__);
+    if (f<1)
+      mcell_internal_error("A %s molecule is scheduled to move before it was born [birthday=%.15g, t=%.15g]",
+                           sg->sym->name,
+                           g->birthday*world->time_unit,
+                           g->t*world->time_unit);
     if (max_time>f) max_time=f;
   }
   
@@ -4883,10 +4806,12 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
     if (new_wall == g->grid->surface)
     {
       new_idx = uv2grid(&new_loc,new_wall->grid);
-      if (new_idx < 0 || new_idx >= g->grid->n_tiles)
-      {
-	fprintf(world->log_file, "File '%s', Line %ld: Unexpected behaviour, iteration %d.\n", __FILE__, (long)__LINE__, (int)world->it_time);
-      }
+      if (new_idx >= g->grid->n_tiles)
+        mcell_internal_error("After ray_trace_2d, selected u, v coordinates map to an out-of-bounds grid cell.  uv=(%.2f, %.2f) g=%d/%d",
+                             new_loc.u,
+                             new_loc.v,
+                             new_idx,
+                             g->grid->n_tiles);
       if (new_idx != g->grid_index)
       {
 	if (g->grid->mol[new_idx]!=NULL) continue; /* Pick again--full here */
@@ -4908,15 +4833,17 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
       if (new_wall->grid==NULL)
       { 
 	if (create_grid(new_wall,NULL))
-	{
-	  fprintf(world->err_file,"File '%s', Line %ld: Failed to create surface grid for diffusing molecule.\n", __FILE__, (long)__LINE__);
-	  return NULL;
-	}
+          mcell_allocfailed("Failed to create a grid for a wall.");
       }
 
       /* Move to new tile */
       new_idx = uv2grid(&new_loc,new_wall->grid);
-      if (new_idx < 0 || new_idx >= new_wall->grid->n_tiles) fprintf(world->log_file, "File '%s', Line %ld: Unexpected behaviour, iteration %d.\n", __FILE__, (long)__LINE__, (int)world->it_time);
+      if (new_idx >= new_wall->grid->n_tiles)
+        mcell_internal_error("After ray_trace_2d to a new wall, selected u, v coordinates map to an out-of-bounds grid cell.  uv=(%.2f, %.2f) g=%d/%d",
+                             new_loc.u,
+                             new_loc.v,
+                             new_idx,
+                             new_wall->grid->n_tiles);
       if (new_wall->grid->mol[new_idx] != NULL) continue; /* Pick again */
       
       count_moved_grid_mol(g,new_wall->grid,&new_loc);
@@ -5077,13 +5004,6 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
       );
    }
 
-
-  if (k==RX_NO_MEM)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-    exit( EXIT_FAILURE );
-  }
-  
   if (k==RX_DESTROY)
   {
     mem_put(g->birthplace,g);
@@ -5215,13 +5135,6 @@ struct grid_molecule* react_2D_trimol(struct grid_molecule *g,double t)
          g->orient,first_partner[j]->orient,second_partner[j]->orient, 
          g->t,NULL,NULL);
 
-
-  if (k==RX_NO_MEM)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-    exit( EXIT_FAILURE );
-  }
-  
   if (k==RX_DESTROY)
   {
     mem_put(g->birthplace,g);
@@ -5249,7 +5162,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
   struct rxn *r,*r2;
   double t,tt;
   double max_time;
-  int i,j,err,special;
+  int i,j,special;
 
   
 #ifdef RANDOMIZE_VOL_MOLS_IN_WORLD
@@ -5293,7 +5206,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     {
       temp = a;
       a = a->next;
-/*      if (temp->properties!=NULL) fprintf(world->err_file,"Removed a non-defunct molecule from scheduler!\n"); */
+/*      if (temp->properties!=NULL) mcell_warn("Removed a non-defunct molecule from scheduler!"); */
       if ((temp->flags&IN_MASK)==IN_SCHEDULE)
       {
 	temp->next = NULL;
@@ -5302,7 +5215,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       }
       else temp->flags &= ~IN_SCHEDULE;
     }
-    /* fprintf(world->log_file,"Cleaning up memory: removed %d (actually only %d) unused molecules.\n",i,j); */
+    /* mcell_log("Cleaning up memory: removed %d (actually only %d) unused molecules.",i,j); */
   }
   /* Now run the timestep */
 
@@ -5388,11 +5301,6 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	{
 	  i = which_unimolecular(r,a);
 	  j = outcome_unimolecular(r,i,a,a->t);
-	  if (j==RX_NO_MEM)
-	  {
-	    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-	    exit( EXIT_FAILURE );
-	  }
 	}
 	else j=RX_NO_RX; 
 	
@@ -5557,7 +5465,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       sv = find_subvolume(&pos3d, g->grid->subvol);
       if (sv->local_storage != local)
       {
-        struct grid_molecule *gnew = (struct grid_molecule *) mem_get(sv->local_storage->gmol);
+        struct grid_molecule *gnew = (struct grid_molecule *) CHECKED_MEM_GET(sv->local_storage->gmol, "grid molecule");
         memcpy(gnew, g, sizeof(struct grid_molecule));
         gnew->next = NULL;
         gnew->birthplace = sv->local_storage->gmol;
@@ -5579,26 +5487,26 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         }
 
         mem_put(g->birthplace, g);
-        err = schedule_add(sv->local_storage->timer, gnew);
+        if (schedule_add(sv->local_storage->timer, gnew))
+          mcell_allocfailed("Failed to add a '%s' grid molecule to scheduler after migrating to a new memory store.",
+                            a->properties->sym->name);
       }
       else
       {
-        err = schedule_add(local->timer,a);
+        if (schedule_add(local->timer,a))
+          mcell_allocfailed("Failed to add a '%s' grid molecule to scheduler after taking a diffusion step.",
+                            a->properties->sym->name);
       }
     }
-    else err = schedule_add(((struct volume_molecule*)a)->subvol->local_storage->timer,a);
-    
-    if (err)
+    else
     {
-      fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-      exit( EXIT_FAILURE );
+      if (schedule_add(((struct volume_molecule*)a)->subvol->local_storage->timer,a))
+        mcell_allocfailed("Failed to add a '%s' volume molecule to scheduler after taking a diffusion step.",
+                          a->properties->sym->name);
     }
   }
   if (local->timer->error)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-    exit( EXIT_FAILURE );
-  }
+    mcell_internal_error("Scheduler reported an out-of-memory error while retrieving molecules, but this should never happen.");
 }
 
 
@@ -5688,9 +5596,8 @@ void run_concentration_clamp(double t_now)
           {
             mp = insert_volume_molecule(&m,mp);
             if (mp==NULL)
-            {
-              exit( EXIT_FAILURE );
-            }
+              mcell_allocfailed("Failed to insert a '%s' volume molecule while concentration clamping.",
+                                m.properties->sym->name);
             if (trigger_unimolecular(ccdm->mol->hashval , (struct abstract_molecule*)mp) != NULL)
             {
               m.flags |= ACT_REACT;
@@ -5701,9 +5608,8 @@ void run_concentration_clamp(double t_now)
           {
             mp=insert_volume_molecule(&m,mp);
             if (mp==NULL)
-            {
-              exit( EXIT_FAILURE );
-            }
+              mcell_allocfailed("Failed to insert a '%s' volume molecule while concentration clamping.",
+                                m.properties->sym->name);
           }
           
           n_emitted--;

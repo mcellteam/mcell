@@ -1,7 +1,7 @@
 #ifndef MINRNG_H
 #define MINRNG_H
 
-#include <stdint.h>
+#include <inttypes.h>
 
 typedef uint32_t  ub4;
 

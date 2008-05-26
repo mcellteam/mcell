@@ -366,19 +366,6 @@ struct macro_rate_ruleset
  * Declarations for functions defined in mdlparse.y
  ***************************************************************************/
 
-#ifndef __GNUC__
-#ifndef __attribute__
-#define __attribute__(x) /* empty */
-#endif
-#endif
-
-#if __GNUC__ < 3
-#ifndef __attribute__
-#define __attribute__(x) /* empty */
-#endif
-#endif
-
-
 void mdlerror(struct mdlparse_vars *mpvp, char const *str);
 void mdlerror_fmt(struct mdlparse_vars *mpvp, char const *fmt, ...)
   __attribute__((format (printf, 2, 3)));

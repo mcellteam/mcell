@@ -12,6 +12,9 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <assert.h>
+#include <ctype.h>
+
+#include "logging.h"
 #include "vector.h"
 #include "strfunc.h"
 #include "sym_table.h"
@@ -24,34 +27,7 @@
 #include "macromolecule.h"
 #include "diffuse_util.h"
 
-#ifdef DEBUG
-#define no_printf printf
-#endif
-
 extern void chkpt_signal_handler(int sn);
-
-#define MDL_ALLOC_FAILED(what)                                              \
-   mdlerror_fmt(mpvp,                                                       \
-      "File '%s', Line %u: Out of memory (failed allocation for %s)",       \
-      __FILE__,                                                             \
-      __LINE__,                                                             \
-      what)
-#define MDL_MALLOC(size)                                                    \
-      mdl_checked_malloc(mpvp, (size), __FILE__, __LINE__, NULL)
-#define MDL_MALLOC_DESC(size,what)                                          \
-      mdl_checked_malloc(mpvp, (size), __FILE__, __LINE__, what)
-#define MDL_MALLOC_STRUCT(type)                                             \
-      (type*) MDL_MALLOC(sizeof(type))
-#define MDL_MALLOC_STRUCT_DESC(type,what)                                   \
-      (type*) MDL_MALLOC_DESC(sizeof(type), what)
-#define MDL_MALLOC_ARRAY(type, count)                                       \
-      (type*) MDL_MALLOC((count)*sizeof(type))
-#define MDL_MALLOC_ARRAY_DESC(type, count, what)                            \
-      (type*) MDL_MALLOC_DESC((count)*sizeof(type), what)
-#define MDL_MEM_GET(alloc)                                                  \
-      mdl_checked_mem_get(mpvp, alloc, __FILE__, __LINE__, NULL)
-#define MDL_MEM_GET_DESC(alloc,what)                                        \
-      mdl_checked_mem_get(mpvp, alloc, __FILE__, __LINE__, what)
 
 /* Free a variable value, leaving the symbol free for reassignment to another
  * type. */
@@ -83,82 +59,6 @@ static int double_cmp(void const *i1, void const *i2)
 }
 
 /*************************************************************************
- mdl_checked_malloc:
-    Allocate a block of memory, or display an error message.
-
- In:  mpvp: parser state
-      size: size of block to allocate
-      file: filename where allocation is occurring
-      line: line number where allocation is occurring
-      what: description of what is being allocated
- Out: memory block, or NULL if allocation failed
-*************************************************************************/
-static void *mdl_checked_malloc(struct mdlparse_vars *mpvp,
-                                unsigned int size,
-                                char const *file,
-                                unsigned int line,
-                                char const *what)
-{
-  void *mem = malloc(size);
-  if (mem == NULL)
-  {
-    if (what)
-      mdlerror_fmt(mpvp,
-                   "File '%s', Line %u: Out of memory (failed allocation of %u bytes for %s)",
-                   file,
-                   line,
-                   size,
-                   what);
-    else
-      mdlerror_fmt(mpvp,
-                   "File '%s', Line %u: Out of memory (failed allocation of %u bytes)",
-                   file,
-                   line,
-                   size);
-  }
-
-  return mem;
-}
-
-/*************************************************************************
- mdl_checked_mem_get:
-    Allocate a block of memory, or display an error message.
-
- In:  mpvp: parser state
-      alloc: allocator
-      file: filename where allocation is occurring
-      line: line number where allocation is occurring
-      what: description of what is being allocated
- Out: memory block, or NULL if allocation failed
-*************************************************************************/
-static void *mdl_checked_mem_get(struct mdlparse_vars *mpvp,
-                                 struct mem_helper *alloc,
-                                 char const *file,
-                                 unsigned int line,
-                                 char const *what)
-{
-  void *mem = mem_get(alloc);
-  if (mem == NULL)
-  {
-    if (what)
-      mdlerror_fmt(mpvp,
-                   "File '%s', Line %u: Out of memory (failed allocation of %u bytes for %s)",
-                   file,
-                   line,
-                   alloc->record_size,
-                   what);
-    else
-      mdlerror_fmt(mpvp,
-                   "File '%s', Line %u: Out of memory (failed allocation of %u bytes)",
-                   file,
-                   line,
-                   alloc->record_size);
-  }
-
-  return mem;
-}
-
-/*************************************************************************
  mdl_strip_quotes:
     Strips the quotes from a quoted string.
 
@@ -168,13 +68,15 @@ static void *mdl_checked_mem_get(struct mdlparse_vars *mpvp,
 *************************************************************************/
 char *mdl_strip_quotes(struct mdlparse_vars *mpvp, char *in)
 {
+  UNUSED(mpvp);
+
   char *q = strip_quotes(in);
   free(in);
   if (q != NULL)
     return q;
   else
   {
-    MDL_ALLOC_FAILED("quoted string");
+    mcell_allocfailed("Failed to strip quotes from a quoted string.");
     return NULL;
   }
 }
@@ -190,6 +92,8 @@ char *mdl_strip_quotes(struct mdlparse_vars *mpvp, char *in)
 *************************************************************************/
 char *mdl_strcat(struct mdlparse_vars *mpvp, char *s1, char *s2)
 {
+  UNUSED(mpvp);
+
   char *cat = my_strcat(s1, s2);
   free(s1);
   free(s2);
@@ -197,7 +101,7 @@ char *mdl_strcat(struct mdlparse_vars *mpvp, char *s1, char *s2)
     return cat;
   else
   {
-    MDL_ALLOC_FAILED("string");
+    mcell_allocfailed("Failed to concatenate two strings.");
     return NULL;
   }
 }
@@ -212,33 +116,12 @@ char *mdl_strcat(struct mdlparse_vars *mpvp, char *s1, char *s2)
 *************************************************************************/
 char *mdl_strdup(struct mdlparse_vars *mpvp, char const *s1)
 {
+  UNUSED(mpvp);
+
   char *s = strdup(s1);
   if (s1 == NULL)
-    MDL_ALLOC_FAILED("string");
+    mcell_allocfailed("Failed to duplicate a string.");
   return s;
-}
-
-/*************************************************************************
- mdl_alloc_sprintf:
-    Formats a string.
-
- In:  mpvp: parser state
-      fmt: format string
-      ...: arguments to format
- Out: allocated string, or NULL if an error occurred
-*************************************************************************/
-static char *mdl_alloc_sprintf(struct mdlparse_vars *mpvp,
-                               char const *fmt, ...)
-{
-  char *str;
-  va_list args;
-  va_start(args, fmt);
-  str = alloc_vsprintf(fmt, args);
-  va_end(args);
-
-  if (str == NULL)
-    MDL_ALLOC_FAILED("formatted string");
-  return str;
 }
 
 /*************************************************************************
@@ -257,17 +140,15 @@ void mdl_warning(struct mdlparse_vars *mpvp, char const *fmt, ...)
   if (mpvp->vol->procnum != 0)
     return;
 
-  fprintf(mpvp->vol->log_file,
-          "MCell: Warning on line: %d of file: %s  ",
-          mpvp->line_num[mpvp->include_stack_ptr - 1],
-          mpvp->vol->curr_file);
+  mcell_log_raw("MCell: Warning on line: %d of file: %s  ",
+                mpvp->line_num[mpvp->include_stack_ptr - 1],
+                mpvp->vol->curr_file);
 
   va_start(arglist, fmt);
-  vfprintf(mpvp->vol->log_file, fmt, arglist);
+  mcell_logv_raw(fmt, arglist);
   va_end(arglist);
 
-  fprintf(mpvp->vol->log_file, "\n");
-  fflush(mpvp->vol->log_file);
+  mcell_log_raw("\n");
 }
 
 /************************************************************************
@@ -296,11 +177,10 @@ char *mdl_find_include_file(struct mdlparse_vars *mpvp,
     if (last_slash == NULL)
       candidate = mdl_strdup(mpvp, path);
     else
-      candidate = mdl_alloc_sprintf(mpvp,
-                                    "%.*s/%s",
-                                    last_slash - cur_path,
-                                    cur_path,
-                                    path);
+      candidate = CHECKED_SPRINTF("%.*s/%s",
+                                  last_slash - cur_path,
+                                  cur_path,
+                                  path);
   }
 
   return candidate;
@@ -361,7 +241,7 @@ static int load_rate_file(struct mdlparse_vars *mpvp,
         rate = strtod( (buf+i) , &cp );
         if (cp == (buf+i)) continue;  /* Conversion error */
 
-        tp = MDL_MEM_GET_DESC(mpvp->vol->tv_rxn_mem, "time-varying reaction rate");
+        tp = CHECKED_MEM_GET(mpvp->vol->tv_rxn_mem, "time-varying reaction rate");
         if (tp == NULL)
           return 1;
         tp->next = NULL;
@@ -388,9 +268,7 @@ static int load_rate_file(struct mdlparse_vars *mpvp,
           else
           {
             if (tp->time < tp2->time)
-            {
-              fprintf(mpvp->vol->log_file,"Warning: line %d of rate file %s out of sequence.  Resorting.\n",linecount,fname);
-            }
+              mcell_warn("In rate file '%s', line %d is out of sequence.  Resorting.", fname, linecount);
             tp->next = tp2->next;
             tp2->next = tp;
             tp2 = tp;
@@ -400,7 +278,7 @@ static int load_rate_file(struct mdlparse_vars *mpvp,
     }
 
 #ifdef DEBUG
-    fprintf(mpvp->vol->log_file,"Read %d rates from file %s\n",valid_linecount,fname);
+    mcell_log("Read %d rates from file %s.", valid_linecount, fname);
 #endif
 
     fclose(f);
@@ -711,10 +589,7 @@ int mdl_fclose(struct mdlparse_vars *mpvp, struct sym_table *filesym)
 {
   struct file_stream *filep = (struct file_stream *) filesym->value;
   if (filep->stream == NULL)
-  {
-    mdlerror_fmt(mpvp, "Already closed filehandle '%s'", filesym->name);
-    return 1;
-  }
+    return 0;
 
   if (fclose(filep->stream) != 0 )
   {
@@ -738,8 +613,10 @@ int mdl_fclose(struct mdlparse_vars *mpvp, struct sym_table *filesym)
 **************************************************************************/
 static double *double_dup(struct mdlparse_vars *mpvp, double value)
 {
+  UNUSED(mpvp);
+
   double *dup_value;
-  dup_value = MDL_MALLOC_STRUCT(double);
+  dup_value = CHECKED_MALLOC_STRUCT(double, "numeric variable");
   if (dup_value != NULL)
     *dup_value=value;
   return dup_value;
@@ -755,7 +632,7 @@ static double *double_dup(struct mdlparse_vars *mpvp, double value)
 *************************************************************************/
 struct arg *mdl_new_printf_arg_double(struct mdlparse_vars *mpvp, double d)
 {
-  struct arg *a = MDL_MALLOC_STRUCT_DESC(struct arg, "format argument");
+  struct arg *a = CHECKED_MALLOC_STRUCT(struct arg, "format argument");
   if (a == NULL)
     return NULL;
 
@@ -781,7 +658,9 @@ struct arg *mdl_new_printf_arg_double(struct mdlparse_vars *mpvp, double d)
 struct arg *mdl_new_printf_arg_string(struct mdlparse_vars *mpvp,
                                       char const *str)
 {
-  struct arg *a = MDL_MALLOC_STRUCT_DESC(struct arg, "format argument");
+  UNUSED(mpvp);
+
+  struct arg *a = CHECKED_MALLOC_STRUCT(struct arg, "format argument");
   if (a == NULL)
     return NULL;
 
@@ -820,10 +699,12 @@ static void mdl_free_printf_arg_list(struct arg *args)
 *************************************************************************/
 char *mdl_expand_string_escapes(struct mdlparse_vars *mpvp, char const *in)
 {
+  UNUSED(mpvp);
+
   char *out;
 
   /* Allocate buffer for new string */
-  char *expanded = MDL_MALLOC_DESC(strlen(in)+1, "printf format string");
+  char *expanded = CHECKED_MALLOC(strlen(in)+1, "printf format string");
   if (expanded == NULL)
     return NULL;
 
@@ -935,9 +816,9 @@ enum
  Out: code indicating the type required for this conversion specifier, or
       PRINTF_INVALID if it's invalid or disallowed.
 *************************************************************************/
-static unsigned int get_printf_conversion_specifier(struct mdlparse_vars *mpvp,
-                                                    char const *fmt,
-                                                    int *num_asterisks)
+static int get_printf_conversion_specifier(struct mdlparse_vars *mpvp,
+                                           char const *fmt,
+                                           int *num_asterisks)
 {
   static char CONVERSION_SPECIFIERS[] = "diouxXeEfFgGaAcCsSpnm";
 
@@ -1009,6 +890,10 @@ static unsigned int get_printf_conversion_specifier(struct mdlparse_vars *mpvp,
                      "Format string segment '%s' has a '$' inside a conversion specification, which is unsupported by MCell.",
                      fmt_orig);
         return PRINTF_INVALID;
+
+      default:
+        /* Skip this char. */
+        break;
     }
   }
 
@@ -1151,7 +1036,7 @@ static char *my_sprintf_segment(struct mdlparse_vars *mpvp,
   int num_asterisks = 0;
   struct arg *argp = *argpp;
 
-  unsigned int spec_type = get_printf_conversion_specifier(mpvp, fmt_seg, &num_asterisks);
+  int spec_type = get_printf_conversion_specifier(mpvp, fmt_seg, &num_asterisks);
   if (spec_type == PRINTF_INVALID)
     return NULL;
 
@@ -1245,6 +1130,7 @@ static char *my_sprintf_segment(struct mdlparse_vars *mpvp,
         case 0: formatted = alloc_sprintf(fmt_seg, (char *) argp->arg_value); break;
         case 1: formatted = alloc_sprintf(fmt_seg, ast1, (char *) argp->arg_value); break;
         case 2: formatted = alloc_sprintf(fmt_seg, ast2, ast1, (char *) argp->arg_value); break;
+        default: UNHANDLED_CASE(num_asterisks);
       }
       break;
 
@@ -1278,6 +1164,7 @@ static char *my_sprintf_segment(struct mdlparse_vars *mpvp,
         case 0: formatted = alloc_sprintf(fmt_seg, arg_value); break;
         case 1: formatted = alloc_sprintf(fmt_seg, ast1, arg_value); break;
         case 2: formatted = alloc_sprintf(fmt_seg, ast2, ast1, arg_value); break;
+        default: UNHANDLED_CASE(num_asterisks);
       }
       break;
 
@@ -1287,6 +1174,7 @@ static char *my_sprintf_segment(struct mdlparse_vars *mpvp,
         case 0: formatted = alloc_sprintf(fmt_seg, *(double *) argp->arg_value); break;
         case 1: formatted = alloc_sprintf(fmt_seg, ast1, *(double *) argp->arg_value); break;
         case 2: formatted = alloc_sprintf(fmt_seg, ast2, ast1, *(double *) argp->arg_value); break;
+        default: UNHANDLED_CASE(num_asterisks);
       }
       break;
 
@@ -1296,6 +1184,7 @@ static char *my_sprintf_segment(struct mdlparse_vars *mpvp,
         case 0: formatted = alloc_sprintf(fmt_seg, (int) *(double *) argp->arg_value); break;
         case 1: formatted = alloc_sprintf(fmt_seg, ast1, (int) *(double *) argp->arg_value); break;
         case 2: formatted = alloc_sprintf(fmt_seg, ast2, ast1, (int) *(double *) argp->arg_value); break;
+        default: UNHANDLED_CASE(num_asterisks);
       }
       break;
 
@@ -1305,6 +1194,7 @@ static char *my_sprintf_segment(struct mdlparse_vars *mpvp,
         case 0: formatted = alloc_sprintf(fmt_seg, (long int) *(double *) argp->arg_value); break;
         case 1: formatted = alloc_sprintf(fmt_seg, ast1, (long int) *(double *) argp->arg_value); break;
         case 2: formatted = alloc_sprintf(fmt_seg, ast2, ast1, (long int) *(double *) argp->arg_value); break;
+        default: UNHANDLED_CASE(num_asterisks);
       }
       break;
 
@@ -1314,6 +1204,7 @@ static char *my_sprintf_segment(struct mdlparse_vars *mpvp,
         case 0: formatted = alloc_sprintf(fmt_seg, (long long int) *(double *) argp->arg_value); break;
         case 1: formatted = alloc_sprintf(fmt_seg, ast1, (long long int) *(double *) argp->arg_value); break;
         case 2: formatted = alloc_sprintf(fmt_seg, ast2, ast1, (long long int) *(double *) argp->arg_value); break;
+        default: UNHANDLED_CASE(num_asterisks);
       }
       break;
 
@@ -1323,6 +1214,7 @@ static char *my_sprintf_segment(struct mdlparse_vars *mpvp,
         case 0: formatted = alloc_sprintf(fmt_seg, (short int) *(double *) argp->arg_value); break;
         case 1: formatted = alloc_sprintf(fmt_seg, ast1, (short int) *(double *) argp->arg_value); break;
         case 2: formatted = alloc_sprintf(fmt_seg, ast2, ast1, (short int) *(double *) argp->arg_value); break;
+        default: UNHANDLED_CASE(num_asterisks);
       }
       break;
 
@@ -1332,6 +1224,7 @@ static char *my_sprintf_segment(struct mdlparse_vars *mpvp,
         case 0: formatted = alloc_sprintf(fmt_seg, (unsigned int) *(double *) argp->arg_value); break;
         case 1: formatted = alloc_sprintf(fmt_seg, ast1, (unsigned int) *(double *) argp->arg_value); break;
         case 2: formatted = alloc_sprintf(fmt_seg, ast2, ast1, (unsigned int) *(double *) argp->arg_value); break;
+        default: UNHANDLED_CASE(num_asterisks);
       }
       break;
 
@@ -1341,6 +1234,7 @@ static char *my_sprintf_segment(struct mdlparse_vars *mpvp,
         case 0: formatted = alloc_sprintf(fmt_seg, (unsigned long int) *(double *) argp->arg_value); break;
         case 1: formatted = alloc_sprintf(fmt_seg, ast1, (unsigned long int) *(double *) argp->arg_value); break;
         case 2: formatted = alloc_sprintf(fmt_seg, ast2, ast1, (unsigned long int) *(double *) argp->arg_value); break;
+        default: UNHANDLED_CASE(num_asterisks);
       }
       break;
 
@@ -1350,6 +1244,7 @@ static char *my_sprintf_segment(struct mdlparse_vars *mpvp,
         case 0: formatted = alloc_sprintf(fmt_seg, (unsigned long long int) *(double *) argp->arg_value); break;
         case 1: formatted = alloc_sprintf(fmt_seg, ast1, (unsigned long long int) *(double *) argp->arg_value); break;
         case 2: formatted = alloc_sprintf(fmt_seg, ast2, ast1, (unsigned long long int) *(double *) argp->arg_value); break;
+        default: UNHANDLED_CASE(num_asterisks);
       }
       break;
 
@@ -1359,12 +1254,15 @@ static char *my_sprintf_segment(struct mdlparse_vars *mpvp,
         case 0: formatted = alloc_sprintf(fmt_seg, (unsigned short int) *(double *) argp->arg_value); break;
         case 1: formatted = alloc_sprintf(fmt_seg, ast1, (unsigned short int) *(double *) argp->arg_value); break;
         case 2: formatted = alloc_sprintf(fmt_seg, ast2, ast1, (unsigned short int) *(double *) argp->arg_value); break;
+        default: UNHANDLED_CASE(num_asterisks);
       }
       break;
+
+    default: UNHANDLED_CASE(spec_type);
   }
 
   if (formatted == NULL)
-    MDL_ALLOC_FAILED("formatted string");
+    mcell_allocfailed("Failed to format a string for an MDL printf/fprintf/spritnf statement.");
   else
     *argpp = argp->next;
   return formatted;
@@ -1376,7 +1274,7 @@ static char *my_sprintf_segment(struct mdlparse_vars *mpvp,
 struct sprintf_output_list
 {
   struct sprintf_output_list *next;     /* Next item in list */
-  int len;                              /* Length of this item */
+  size_t len;                           /* Length of this item */
   char *segment;                        /* Data for this item */
 };
 
@@ -1399,7 +1297,7 @@ static char *my_sprintf(struct mdlparse_vars *mpvp,
   struct sprintf_output_list head, *tail;
   head.segment = NULL;
   head.next = NULL;
-  head.len = 0;
+  head.len = 0u;
   tail = &head;
 
   /* Find the start of the first format code */
@@ -1410,7 +1308,7 @@ static char *my_sprintf(struct mdlparse_vars *mpvp,
   /* If we have text before the first conversion specification, copy it. */
   if (this_start != NULL)
   {
-    tail = tail->next = MDL_MALLOC_STRUCT_DESC(struct sprintf_output_list,
+    tail = tail->next = CHECKED_MALLOC_STRUCT(struct sprintf_output_list,
                                                "SPRINTF output list segment");
     if (tail == NULL)
       goto failure;
@@ -1445,7 +1343,7 @@ static char *my_sprintf(struct mdlparse_vars *mpvp,
     /* If we have only a single format code, do the rest of the string */
     if (this_end == NULL)
     {
-      tail = tail->next = MDL_MALLOC_STRUCT_DESC(struct sprintf_output_list,
+      tail = tail->next = CHECKED_MALLOC_STRUCT(struct sprintf_output_list,
                                                  "SPRINTF output list segment");
       if (tail == NULL)
         goto failure;
@@ -1465,7 +1363,7 @@ static char *my_sprintf(struct mdlparse_vars *mpvp,
     {
       /* Print this segment */
       *this_end = '\0';
-      tail = tail->next = MDL_MALLOC_STRUCT_DESC(struct sprintf_output_list,
+      tail = tail->next = CHECKED_MALLOC_STRUCT(struct sprintf_output_list,
                                                  "SPRINTF output list segment");
       if (tail == NULL)
         goto failure;
@@ -1490,7 +1388,7 @@ static char *my_sprintf(struct mdlparse_vars *mpvp,
   int total_len = head.len + 1;
   if (format != NULL)
     total_len += strlen(format);
-  char *buffer = MDL_MALLOC_ARRAY_DESC(char, total_len, "SPRINTF data");
+  char *buffer = CHECKED_MALLOC_ARRAY(char, total_len, "SPRINTF data");
   char *pos = buffer;
   if (buffer == NULL)
     goto failure;
@@ -1584,7 +1482,7 @@ int mdl_printf(struct mdlparse_vars *mpvp,
                char *fmt,
                struct arg *arg_head)
 {
-  if (my_fprintf(mpvp, mpvp->vol->log_file, fmt, arg_head))
+  if (my_fprintf(mpvp, mcell_get_log_file(), fmt, arg_head))
   {
     mdl_free_printf_arg_list(arg_head);
     defang_format_string(fmt);
@@ -1705,7 +1603,7 @@ void mdl_print_time(struct mdlparse_vars *mpvp, char *fmt)
   time_t the_time = time(NULL);
   strftime(time_str, 128, fmt, localtime(&the_time));
   free(fmt);
-  if (mpvp->vol->procnum == 0) fprintf(mpvp->vol->log_file, "%s", time_str);
+  if (mpvp->vol->procnum == 0) fprintf(mcell_get_log_file(), "%s", time_str);
 }
 
 /************************************************************************
@@ -1771,7 +1669,7 @@ int mdl_generate_range(struct mdlparse_vars *mpvp,
          tmp_dbl += step)
     {
       struct num_expr_list *nel;
-      nel = MDL_MALLOC_STRUCT_DESC(struct num_expr_list, "numeric list");
+      nel = CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric list");
       if (nel == NULL)
       {
         mdl_free_numeric_list(list->value_head);
@@ -1801,7 +1699,7 @@ int mdl_generate_range(struct mdlparse_vars *mpvp,
          tmp_dbl += step)
     {
       struct num_expr_list *nel;
-      nel = MDL_MALLOC_STRUCT_DESC(struct num_expr_list, "numeric list");
+      nel = CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric list");
       if (nel == NULL)
       {
         mdl_free_numeric_list(list->value_head);
@@ -1839,7 +1737,7 @@ int mdl_add_range_value(struct mdlparse_vars *mpvp,
   if (lh->value_head == NULL)
     return mdl_generate_range_singleton(mpvp, lh, value);
 
-  struct num_expr_list *nel = MDL_MALLOC_STRUCT_DESC(struct num_expr_list, "numeric array");
+  struct num_expr_list *nel = CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric array");
   if (nel == NULL)
     return 1;
   nel->next = NULL;
@@ -1862,7 +1760,9 @@ int mdl_generate_range_singleton(struct mdlparse_vars *mpvp,
                                  struct num_expr_list_head *lh,
                                  double value)
 {
-  struct num_expr_list *nel = MDL_MALLOC_STRUCT_DESC(struct num_expr_list, "numeric array");
+  UNUSED(mpvp);
+
+  struct num_expr_list *nel = CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric array");
   if (nel == NULL)
     return 1;
   lh->value_head = lh->value_tail = nel;
@@ -1900,7 +1800,7 @@ static struct num_expr_list *mdl_copysort_numeric_list(struct mdlparse_vars *mpv
         break;
     }
 
-    struct num_expr_list *new_item = MDL_MALLOC_STRUCT_DESC(struct num_expr_list, "numeric array");
+    struct num_expr_list *new_item = CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric array");
     if (new_item == NULL)
     {
       mdl_free_numeric_list(new_head.value_head);
@@ -2006,6 +1906,8 @@ static double *num_expr_list_to_array(struct mdlparse_vars *mpvp,
                                       struct num_expr_list_head *lh,
                                       int *count)
 {
+  UNUSED(mpvp);
+
   double *arr = NULL, *ptr = NULL;
   struct num_expr_list *i;
 
@@ -2015,7 +1917,7 @@ static double *num_expr_list_to_array(struct mdlparse_vars *mpvp,
   if (lh->value_count == 0)
     return NULL;
 
-  arr = MDL_MALLOC_ARRAY(double, lh->value_count);
+  arr = CHECKED_MALLOC_ARRAY(double, lh->value_count, "numeric array");
   if (arr != NULL)
   {
     for (i = (struct num_expr_list *) lh->value_head, ptr = arr; i != NULL; i = i->next)
@@ -2042,7 +1944,7 @@ struct vector3 *mdl_point(struct mdlparse_vars *mpvp,
     return NULL;
   }
 
-  vec = MDL_MALLOC_STRUCT_DESC(struct vector3, "3-D vector");
+  vec = CHECKED_MALLOC_STRUCT(struct vector3, "3-D vector");
   if (! vec)
     return NULL;
 
@@ -2065,8 +1967,10 @@ struct vector3 *mdl_point(struct mdlparse_vars *mpvp,
 struct vector3 *mdl_point_scalar(struct mdlparse_vars *mpvp,
                                  double val)
 {
+  UNUSED(mpvp);
+
   struct vector3 *vec;
-  vec = MDL_MALLOC_STRUCT_DESC(struct vector3, "3-D vector");
+  vec = CHECKED_MALLOC_STRUCT(struct vector3, "3-D vector");
   if (! vec)
     return NULL;
 
@@ -2135,7 +2039,7 @@ struct sym_table *mdl_get_or_create_variable(struct mdlparse_vars *mpvp,
 
   /* Create the variable */
   if ((st = store_sym(name, TMP, mpvp->vol->main_sym_table, NULL)) == NULL)
-    MDL_ALLOC_FAILED("variable symbol");
+    mcell_allocfailed("Failed to store a variable symbol in the symbol table.");
 
   free(name);
   return st;
@@ -2160,14 +2064,13 @@ int mdl_assign_variable_double(struct mdlparse_vars *mpvp,
     return 1;
 
   /* Allocate space for the new value */
-  if ((sym->value = MDL_MALLOC_STRUCT(double)) == NULL)
+  if ((sym->value = CHECKED_MALLOC_STRUCT(double, "numeric variable")) == NULL)
     return 1;
 
   /* Update the value */
   *(double *) sym->value = value;
   sym->sym_type = DBL;
   no_printf("\n%s is equal to: %f\n",sym->name,value);
-  fflush(mpvp->vol->err_file);
   return 0;
 }
 
@@ -2196,7 +2099,6 @@ int mdl_assign_variable_string(struct mdlparse_vars *mpvp,
   /* Update the value */
   sym->sym_type = STR;
   no_printf("\n%s is equal to: %s\n",sym->name,value);
-  fflush(mpvp->vol->err_file);
   return 0;
 }
 
@@ -2263,6 +2165,8 @@ int mdl_assign_variable(struct mdlparse_vars *mpvp,
       if (mdl_assign_variable_array(mpvp, sym, (struct num_expr_list *) value->value))
         return 1;
       break;
+
+    default: UNHANDLED_CASE(value->sym_type);
   }
 
   return 0;
@@ -2306,7 +2210,7 @@ int mdl_set_iteration_report_freq(struct mdlparse_vars *mpvp,
                                   long long interval)
 {
   /* Only if not set on command line */
-  if (mpvp->vol->log_freq == -1)
+  if (mpvp->vol->log_freq == UINT_MAX)
   {
     mpvp->vol->notify->custom_iterations = NOTIFY_CUSTOM;
     if (interval < 1)
@@ -2411,7 +2315,6 @@ int mdl_set_time_step(struct mdlparse_vars *mpvp, double step)
 
   mpvp->vol->time_unit = step;
   no_printf("Time unit = %g\n", mpvp->vol->time_unit);
-  fflush(mpvp->vol->err_file);
   return 0;
 }
 
@@ -2439,7 +2342,6 @@ int mdl_set_max_time_step(struct mdlparse_vars *mpvp, double step)
 
   mpvp->vol->time_step_max = step;
   no_printf("Maximum time step = %g\n", mpvp->vol->time_step_max);
-  fflush(mpvp->vol->err_file);
   return 0;
 }
 
@@ -2473,7 +2375,6 @@ int mdl_set_space_step(struct mdlparse_vars *mpvp, double step)
 
   /* Use internal units, convert from mean to characterstic length */
   mpvp->vol->space_step *= 0.5*sqrt(MY_PI) * mpvp->vol->r_length_unit;
-  fflush(mpvp->vol->err_file);
   return 0;
 }
 
@@ -2499,7 +2400,6 @@ int mdl_set_num_iterations(struct mdlparse_vars *mpvp,
     }
   }
   no_printf("Iterations = %lld\n", mpvp->vol->iterations);
-  fflush(mpvp->vol->err_file);
   return 0;
 }
 
@@ -2520,7 +2420,7 @@ int mdl_set_num_radial_directions(struct mdlparse_vars *mpvp,
     free(mpvp->vol->d_step);
   if ((mpvp->vol->d_step = init_d_step(mpvp->vol->radial_directions, &mpvp->vol->num_directions)) == NULL)
   {
-    MDL_ALLOC_FAILED("d_step failed");
+    mcell_allocfailed("Failed to allocate the diffusion directions table.");
     return 1;
   }
 
@@ -2580,7 +2480,7 @@ int mdl_set_num_radial_subdivisions(struct mdlparse_vars *mpvp,
   
   if (mpvp->vol->r_step==NULL || mpvp->vol->r_step_surface==NULL || mpvp->vol->r_step_release==NULL)
   {
-    MDL_ALLOC_FAILED("r_step data");
+    mcell_allocfailed("Failed to allocate the diffusion radial subdivisions table.");
     return 1;
   }
   
@@ -2612,7 +2512,6 @@ int mdl_set_grid_density(struct mdlparse_vars *mpvp, double density)
   mpvp->vol->space_step *= mpvp->vol->r_length_unit;
   
   no_printf("Length unit = %f\n", mpvp->vol->length_unit);
-  fflush(mpvp->vol->err_file);
   return 0;
 }
 
@@ -2648,7 +2547,7 @@ int mdl_set_complex_placement_attempts(struct mdlparse_vars *mpvp, double attemp
  Out: 0 on success, 1 on failure; signal handler is installed and an alarm is
       scheduled.
 *************************************************************************/
-static int schedule_async_checkpoint(struct mdlparse_vars *mpvp, long dur)
+static int schedule_async_checkpoint(struct mdlparse_vars *mpvp, unsigned int dur)
 {
   struct sigaction sa, saPrev;
   sa.sa_sigaction = NULL;
@@ -2694,13 +2593,13 @@ int mdl_set_realtime_checkpoint(struct mdlparse_vars *mpvp,
   else if (mpvp->vol->checkpoint_alarm_time != 0)
   {
     mdlerror_fmt(mpvp,
-                 "Realtime checkpoint requested at %ld seconds, but a checkpoint is already scheduled for %ld seconds.",
+                 "Realtime checkpoint requested at %ld seconds, but a checkpoint is already scheduled for %u seconds.",
                  duration,
                  mpvp->vol->checkpoint_alarm_time);
     return 1;
   }
 
-  mpvp->vol->checkpoint_alarm_time = duration;
+  mpvp->vol->checkpoint_alarm_time = (unsigned int) duration;
   mpvp->vol->continue_after_checkpoint = cont_after_cp;
   mpvp->vol->chkpt_flag = 1;
   if (t - mpvp->vol->begin_timestamp > 0)
@@ -2714,7 +2613,7 @@ int mdl_set_realtime_checkpoint(struct mdlparse_vars *mpvp,
     duration -= (t - mpvp->vol->begin_timestamp);
   }
 
-  if (schedule_async_checkpoint(mpvp, duration))
+  if (schedule_async_checkpoint(mpvp, (unsigned int) duration))
   {
     mdlerror_fmt(mpvp, "Failed to schedule checkpoint for %ld seconds", duration);
     return 1;
@@ -2785,12 +2684,12 @@ int mdl_set_partition(struct mdlparse_vars *mpvp,
                       int dim,
                       struct num_expr_list_head *head)
 {
-  int i;
+  unsigned int i;
   double *dblp;
   struct num_expr_list *nel;
 
   /* Allocate array for partitions */
-  dblp = MDL_MALLOC_ARRAY_DESC(double, (head->value_count + 2), "volume partitions");
+  dblp = CHECKED_MALLOC_ARRAY(double, (head->value_count + 2), "volume partitions");
   if (dblp == NULL)
     return 1;
 
@@ -2825,6 +2724,8 @@ int mdl_set_partition(struct mdlparse_vars *mpvp,
       mpvp->vol->nz_parts = head->value_count;
       mpvp->vol->z_partitions = dblp;
       break;
+
+    default: UNHANDLED_CASE(dim);
   }
 
   if (! head->shared)
@@ -2848,7 +2749,7 @@ static char *mdl_push_object_name(struct mdlparse_vars *mpvp, char *name)
   /* Initialize object name list */
   if (mpvp->object_name_list == NULL)
   {
-    mpvp->object_name_list = MDL_MALLOC_STRUCT_DESC(struct name_list, "object name stack");
+    mpvp->object_name_list = CHECKED_MALLOC_STRUCT(struct name_list, "object name stack");
     if (mpvp->object_name_list == NULL)
       return NULL;
 
@@ -2869,7 +2770,7 @@ static char *mdl_push_object_name(struct mdlparse_vars *mpvp, char *name)
   /* If we've run out of name list components, create a new one */
   if (mpvp->object_name_list_end->next == NULL)
   {
-    np = MDL_MALLOC_STRUCT_DESC(struct name_list, "object name stack");
+    np = CHECKED_MALLOC_STRUCT(struct name_list, "object name stack");
     if (np == NULL)
       return NULL;
 
@@ -2881,10 +2782,9 @@ static char *mdl_push_object_name(struct mdlparse_vars *mpvp, char *name)
     np = mpvp->object_name_list_end->next;
 
   /* Create new name */
-  np->name = mdl_alloc_sprintf(mpvp,
-                               "%s.%s",
-                               mpvp->object_name_list_end->name,
-                               name);
+  np->name = CHECKED_SPRINTF("%s.%s",
+                             mpvp->object_name_list_end->name,
+                             name);
   if (np->name == NULL)
     return NULL;
 
@@ -2931,7 +2831,7 @@ static struct object *make_new_object(struct mdlparse_vars *mpvp,
 
   if ((gp = store_sym(obj_name, OBJ, mpvp->vol->main_sym_table, NULL)) == NULL)
   {
-    MDL_ALLOC_FAILED("object symbol");
+    mcell_allocfailed("Failed to store an object in the object symbol table.");
     return NULL;
   }
 
@@ -2967,10 +2867,15 @@ struct sym_table *mdl_start_object(struct mdlparse_vars *mpvp,
 
   /* Create the symbol, if it doesn't exist yet */
   objp = make_new_object(mpvp, new_name);
+  if (objp == NULL)
+  {
+    free(name);
+    free(new_name);
+    return NULL;
+  }
   symp = objp->sym;
   objp->last_name = name;
   no_printf("Creating new object: %s\n",new_name);
-  fflush(mpvp->vol->err_file);
 
   /* Set parent object, make this object "current" */
   objp->parent = mpvp->current_object;
@@ -3096,13 +3001,11 @@ static const char *SYMBOL_TYPE_ARTICLES[] =
 static char const *mdl_symbol_type_name(struct mdlparse_vars *mpvp,
                                         int type)
 {
-  if (type <= 0 || type >= COUNT_OF(SYMBOL_TYPE_DESCRIPTIONS))
+  UNUSED(mpvp);
+
+  if (type <= 0 || type >= (int) COUNT_OF(SYMBOL_TYPE_DESCRIPTIONS))
   {
-    fprintf(mpvp->vol->err_file,
-            "File '%s', Line '%d': Internal error - invalid symbol type %d\n",
-            __FILE__,
-            __LINE__,
-            type);
+    mcell_internal_error("Invalid symbol type '%d'", type);
     return "(unknown symbol type)";
   }
 
@@ -3121,13 +3024,11 @@ static char const *mdl_symbol_type_name(struct mdlparse_vars *mpvp,
 static char const *mdl_symbol_type_name_article(struct mdlparse_vars *mpvp,
                                                 int type)
 {
-  if (type <= 0 || type >= COUNT_OF(SYMBOL_TYPE_ARTICLES))
+  UNUSED(mpvp);
+
+  if (type <= 0 || type >= (int) COUNT_OF(SYMBOL_TYPE_ARTICLES))
   {
-    fprintf(mpvp->vol->err_file,
-            "File '%s', Line '%d': Internal error - invalid symbol type %d\n",
-            __FILE__,
-            __LINE__,
-            type);
+    mcell_internal_error("Invalid symbol type '%d'", type);
     return "an";
   }
 
@@ -3136,7 +3037,8 @@ static char const *mdl_symbol_type_name_article(struct mdlparse_vars *mpvp,
 
 /*************************************************************************
  mdl_existing_symbol:
-    Find an existing symbol or print an error message.
+    Find an existing symbol or print an error message.  Also print an error
+    message if the symbol is not of the right type.
 
  In:  mpvp: parser state
       name: name of symbol to find
@@ -3243,7 +3145,7 @@ static struct sym_table_list *mdl_find_symbols_by_wildcard(struct mdlparse_vars 
 
       if (is_wildcard_match((char *) wildcard, sym_t->name))
       {
-        stl = MDL_MEM_GET_DESC(mpvp->sym_list_mem, "wildcard symbol list");
+        stl = CHECKED_MEM_GET(mpvp->sym_list_mem, "wildcard symbol list");
         if (stl == NULL)
         {
           if (symbols) mem_put_list(mpvp->sym_list_mem, symbols);
@@ -3337,10 +3239,9 @@ struct sym_table *mdl_existing_region(struct mdlparse_vars *mpvp,
                                       char *name)
 {
   struct sym_table *symp;
-  char *region_name = mdl_alloc_sprintf(mpvp,
-                                        "%s,%s",
-                                        obj_symp->name,
-                                        name);
+  char *region_name = CHECKED_SPRINTF("%s,%s",
+                                      obj_symp->name,
+                                      name);
   if (region_name == NULL)
   {
     free(name);
@@ -3377,7 +3278,7 @@ struct sym_table *mdl_existing_molecule(struct mdlparse_vars *mpvp, char *name)
 struct sym_table_list *mdl_singleton_symbol_list(struct mdlparse_vars *mpvp,
                                                  struct sym_table *sym)
 {
-  struct sym_table_list *stl = MDL_MEM_GET_DESC(mpvp->sym_list_mem, "symbol list item");
+  struct sym_table_list *stl = CHECKED_MEM_GET(mpvp->sym_list_mem, "symbol list item");
   if (stl != NULL)
   {
     stl->next = NULL;
@@ -3791,7 +3692,7 @@ int mdl_transform_rotate(struct mdlparse_vars *mpvp,
                          double angle)
 {
   double tm[4][4];
-  if (! distinguishable(vect_length(axis), 0.0, EPSILON))
+  if (! distinguishable(vect_length(axis), 0.0, EPS_C))
   {
     mdlerror(mpvp, "Rotation vector has zero length.");
     return 1;
@@ -3824,10 +3725,9 @@ static struct region *make_new_region(struct mdlparse_vars *mpvp,
   struct sym_table *gp;
   char *region_name;
 
-  region_name = mdl_alloc_sprintf(mpvp,
-                                  "%s,%s",
-                                  obj_name,
-                                  region_last_name);
+  region_name = CHECKED_SPRINTF("%s,%s",
+                                obj_name,
+                                region_last_name);
   if (region_name == NULL)
     return NULL;
 
@@ -3840,9 +3740,9 @@ static struct region *make_new_region(struct mdlparse_vars *mpvp,
 
   if ((gp = store_sym(region_name, REG, mpvp->vol->main_sym_table, NULL)) == NULL)
   {
-    MDL_ALLOC_FAILED("region symbol");
+    mcell_allocfailed("Failed to store a region in the region symbol table.");
     free(region_name);
-    return(NULL);
+    return NULL;
   }
 
   free(region_name);
@@ -3905,7 +3805,7 @@ static int mdl_copy_object_regions(struct mdlparse_vars *mpvp,
          src_eff != NULL;
          src_eff = src_eff->next)
     {
-      dst_eff = MDL_MALLOC_STRUCT_DESC(struct eff_dat, "surface molecule info");
+      dst_eff = CHECKED_MALLOC_STRUCT(struct eff_dat, "surface molecule info");
       if (dst_eff == NULL)
         return 1;
 
@@ -3990,18 +3890,41 @@ static struct region* find_corresponding_region(struct region *old_r,
   }
   else
   {
-    int old_prefix_idx = strlen(ancestor->sym->name);
-    int new_prefix_idx = old_prefix_idx + strlen(new_ob->sym->name) - strlen(old_ob->sym->name);
-    int max_len = strlen(old_r->sym->name) + strlen(new_ob->sym->name);
-    char new_name[ max_len ];
-    
-    strncpy(new_name,new_ob->sym->name,new_prefix_idx);
-    strncpy(new_name+new_prefix_idx,old_r->sym->name+old_prefix_idx,max_len-new_prefix_idx);
-    
-    gp = retrieve_sym(new_name,REG,symhash);
-    
-    if (gp==NULL) return NULL;
-    else return (struct region*)(gp->value);
+    /* Length of old prefix and name */
+    const size_t old_prefix_idx = strlen(ancestor->sym->name);
+    const size_t old_name_len   = strlen(old_ob->sym->name);
+
+    /* Suffix is everything in the old name after the old prefix. */
+    const size_t suffix_len     = old_name_len - old_prefix_idx;
+
+    /* New prefix length is new name, less suffix length. */
+    const size_t new_name_len   = strlen(new_ob->sym->name);
+    /* If we get here, we must have a common ancestor, so this had better work.
+     */
+    assert(new_name_len > suffix_len);
+    const size_t new_prefix_idx = new_name_len - suffix_len;
+
+    /* Length of the "region" spec from the old region name is the length of
+     * the region symbol, less the length of the old object symbol. */
+    const size_t region_name_len = strlen(old_r->sym->name);
+    assert(region_name_len > old_name_len);
+    const size_t just_region_name_len = region_name_len - old_name_len;
+
+    /* Buffer size needed for new name is new object name length + region name
+     * length + 1 (for NUL-termination). */
+    const size_t max_name_len = new_name_len + just_region_name_len + 1;
+
+    /* Build new name. */
+    char new_name[ max_name_len ];
+    strncpy(new_name, new_ob->sym->name, new_prefix_idx);
+    strncpy(new_name + new_prefix_idx,            /* new prefix */
+            old_r->sym->name + old_prefix_idx,    /* old suffix + region name */
+            max_name_len - new_prefix_idx);
+
+    /* Finally, retrieve symbol from newly-constructed name. */
+    gp = retrieve_sym(new_name, REG, symhash);
+    if (gp == NULL) return NULL;
+    else return (struct region*) gp->value;
   }
 }
 
@@ -4028,8 +3951,7 @@ static struct release_evaluator* duplicate_rel_region_expr(struct mdlparse_vars 
   struct region *r;
   struct release_evaluator *nexp;
 
-  
-  nexp = MDL_MALLOC_STRUCT_DESC(struct release_evaluator, "region release expression");
+  nexp = CHECKED_MALLOC_STRUCT(struct release_evaluator, "region release expression");
   if (nexp == NULL)
     return NULL;
   
@@ -4098,13 +4020,13 @@ static struct release_site_obj* duplicate_release_site(struct mdlparse_vars *mpv
                                                        struct sym_table **symhash)
 {
   struct release_site_obj *rso;
-  rso = MDL_MALLOC_STRUCT_DESC(struct release_site_obj, "release site");
+  rso = CHECKED_MALLOC_STRUCT(struct release_site_obj, "release site");
   if (rso==NULL)
      return NULL;
 
   if (old->location != NULL)
   {
-    if ((rso->location = MDL_MALLOC_STRUCT_DESC(struct vector3, "release site location")) == NULL)
+    if ((rso->location = CHECKED_MALLOC_STRUCT(struct vector3, "release site location")) == NULL)
       return NULL;
     *(rso->location) = *(old->location);
   }
@@ -4126,7 +4048,7 @@ static struct release_site_obj* duplicate_release_site(struct mdlparse_vars *mpv
 
   if (old->region_data != NULL)
   {
-    struct release_region_data *rrd = MDL_MALLOC_STRUCT_DESC(struct release_region_data, "release region data");
+    struct release_region_data *rrd = CHECKED_MALLOC_STRUCT(struct release_region_data, "release region data");
     if (rrd==NULL)
       return NULL;
 
@@ -4200,10 +4122,9 @@ int mdl_deep_copy_object(struct mdlparse_vars *mpvp,
            src_child = src_child->next)
       {
         struct object *dst_child;
-        char *child_obj_name = mdl_alloc_sprintf(mpvp,
-                                                 "%s.%s",
-                                                 dst_obj->sym->name,
-                                                 src_child->last_name);
+        char *child_obj_name = CHECKED_SPRINTF("%s.%s",
+                                               dst_obj->sym->name,
+                                               src_child->last_name);
         if (child_obj_name == NULL)
           return 1;
 
@@ -4281,14 +4202,14 @@ static struct subdivided_box* init_cuboid(struct mdlparse_vars *mpvp,
     return NULL;
   }
 
-  b = MDL_MALLOC_STRUCT_DESC(struct subdivided_box, "subdivided box");
+  b = CHECKED_MALLOC_STRUCT(struct subdivided_box, "subdivided box");
   if (b == NULL)
     return NULL;
 
   b->nx = b->ny = b->nz = 2;
-  if ((b->x = MDL_MALLOC_ARRAY(double, b->nx)) == NULL) return NULL;
-  if ((b->y = MDL_MALLOC_ARRAY(double, b->ny)) == NULL) return NULL;
-  if ((b->z = MDL_MALLOC_ARRAY(double, b->nz)) == NULL) return NULL;
+  if ((b->x = CHECKED_MALLOC_ARRAY(double, b->nx, "subdivided box X partitions")) == NULL) return NULL;
+  if ((b->y = CHECKED_MALLOC_ARRAY(double, b->ny, "subdivided box Y partitions")) == NULL) return NULL;
+  if ((b->z = CHECKED_MALLOC_ARRAY(double, b->nz, "subdivided box Z partitions")) == NULL) return NULL;
 
   b->x[0] = p1->x;
   b->x[1] = p2->x;
@@ -4421,7 +4342,7 @@ static int refine_cuboid(struct mdlparse_vars *mpvp,
     }
     if (new_n > b->nx)
     {
-      new_list = MDL_MALLOC_ARRAY(double, new_n);
+      new_list = CHECKED_MALLOC_ARRAY(double, new_n, "refined subdivided box X partitions");
       if (new_list == NULL)
           return 1;
 
@@ -4446,7 +4367,7 @@ static int refine_cuboid(struct mdlparse_vars *mpvp,
     }
     if (new_n > b->ny)
     {
-      new_list = MDL_MALLOC_ARRAY(double, new_n);
+      new_list = CHECKED_MALLOC_ARRAY(double, new_n, "refined subdivided box Y partitions");
       if (new_list==NULL)
         return 1;
 
@@ -4471,7 +4392,7 @@ static int refine_cuboid(struct mdlparse_vars *mpvp,
     }
     if (new_n > b->nz)
     {
-      new_list = MDL_MALLOC_ARRAY(double, new_n);
+      new_list = CHECKED_MALLOC_ARRAY(double, new_n, "refined subdivided box Z partitions");
       if (new_list == NULL)
         return 1;
 
@@ -4552,7 +4473,7 @@ static int divide_cuboid(struct mdlparse_vars *mpvp,
   }
   
   new_n = old_n + ndiv - 1;
-  new_list = MDL_MALLOC_ARRAY(double, new_n);
+  new_list = CHECKED_MALLOC_ARRAY(double, new_n, "refined subdivided box partitions");
   if (new_list==NULL)
      return 1;
 
@@ -4741,6 +4662,7 @@ static int cuboid_patch_to_bits(struct mdlparse_vars *mpvp,
                                 struct vector3 *v2,
                                 struct bit_array *ba)
 {
+  UNUSED(mpvp);
   int i,ii;
   int a_lo,a_hi,b_lo,b_hi;
   int line,base;
@@ -4763,10 +4685,11 @@ static int cuboid_patch_to_bits(struct mdlparse_vars *mpvp,
     if (sb->z[0]==v1->z) ii = Z_NEG;
     else ii = Z_POS;
   }
-  if (ii==NODIR) return 1;
   
   switch (ii)
   {
+    case NODIR:
+      return 1;
     case X_NEG:
       a_lo = bisect_near(sb->y,sb->ny,v1->y);
       a_hi = bisect_near(sb->y,sb->ny,v2->y);
@@ -4840,7 +4763,7 @@ static int cuboid_patch_to_bits(struct mdlparse_vars *mpvp,
       base = 2*(sb->ny-1)*(sb->nz-1) + 2*(sb->nx-1)*(sb->nz-1) + (sb->nx-1)*(sb->ny-1);
       break;
     default:
-      mdlerror(mpvp, "Peculiar error while interpreting a box as triangles (should never happen)!");
+      UNHANDLED_CASE(ii);
       return 1;
   }
 
@@ -4883,7 +4806,7 @@ int mdl_normalize_elements(struct mdlparse_vars *mpvp,
   struct bit_array *temp = NULL;
   struct polygon_object *po=NULL;
   char op;
-  int n_elts;
+  unsigned int n_elts;
   int i = 0;
   
   if (reg->element_list_head==NULL) return 0;
@@ -4898,8 +4821,9 @@ int mdl_normalize_elements(struct mdlparse_vars *mpvp,
   if (reg->membership == NULL)
   {
     elt_array = new_bit_array(n_elts);
-    if (elt_array==NULL) { 
-      MDL_ALLOC_FAILED("region membership bitmask");
+    if (elt_array==NULL)
+    { 
+      mcell_allocfailed("Failed to allocate a region membership bitmask.");
       return 1; 
     }
     reg->membership = elt_array;
@@ -4923,7 +4847,7 @@ int mdl_normalize_elements(struct mdlparse_vars *mpvp,
   
   for (el = reg->element_list_head ; el != NULL ; el = el->next)
   {
-    if (reg->parent->object_type==BOX_OBJ && el->begin>=0)
+    if (reg->parent->object_type == BOX_OBJ)
     {
       i = el->begin;
       switch(i)
@@ -4957,7 +4881,7 @@ int mdl_normalize_elements(struct mdlparse_vars *mpvp,
 	  el->end=n_elts-1;
 	  break;
 	default:
-          mdlerror_fmt(mpvp, "File '%s', Line %ld: Unknown coordinate axis is used.", __FILE__, (long)__LINE__);
+          UNHANDLED_CASE(i);
 	  return 1;
       }
     }
@@ -5010,13 +4934,13 @@ int mdl_normalize_elements(struct mdlparse_vars *mpvp,
           temp = new_bit_array(n_elts);
           if (temp == NULL)
           {
-            MDL_ALLOC_FAILED("region membership bitmask");
+            mcell_allocfailed("Failed to allocate a region membership bitmask.");
             return 1;
           }
         }
 
-	if (po==NULL) { fprintf(mpvp->vol->err_file, "Internal error: Attempt to create a PATCH on a POLYGON_LIST"); return 1; } 
-        if (existing) { fprintf(mpvp->vol->err_file, "Internal error: Attempt to create a PATCH on an already triangulated BOX"); return 1; } 
+	if (po==NULL) { mcell_internal_error("Attempt to create a PATCH on a POLYGON_LIST."); return 1; } 
+        if (existing) { mcell_internal_error("Attempt to create a PATCH on an already triangulated BOX."); return 1; } 
 	
 	if (el->special->exclude) op = '-';
 	else op = '+';
@@ -5075,29 +4999,29 @@ static int vertex_at_index(struct mdlparse_vars *mpvp,
                            struct subdivided_box *sb,
                            int ix, int iy, int iz)
 {
-  int i;
-  
+  UNUSED(mpvp);
+
   if (ix==0 || ix==sb->nx-1)
   {
-    i = sb->ny * iz + iy;
+    int i = sb->ny * iz + iy;
     if (ix==0) return i;
     else return i + sb->ny*sb->nz;
   }
   else if (iy==0 || iy==sb->ny-1)
   {
-    i = 2*sb->ny*sb->nz + (sb->nx-2)*iz + (ix-1);
+    int i = 2*sb->ny*sb->nz + (sb->nx-2)*iz + (ix-1);
     if (iy==0) return i;
     else return i + (sb->nx-2)*sb->nz;
   }
   else if (iz==0 || iz==sb->nz-1)
   {
-    i = 2*sb->ny*sb->nz + 2*(sb->nx-2)*sb->nz + (sb->nx-2)*(iy-1) + (ix-1);
+    int i = 2*sb->ny*sb->nz + 2*(sb->nx-2)*sb->nz + (sb->nx-2)*(iy-1) + (ix-1);
     if (iz==0) return i;
     else return i + (sb->nx-2)*(sb->ny-2);
   }
   else
   {
-    fprintf(mpvp->vol->err_file, "Internal error: Asking for point %d %d %d but limits are [0 0 0] to [%d %d %d]\n",ix,iy,iz,sb->nx-1,sb->ny-1,sb->nz-1);
+    mcell_internal_error("Asking for point %d %d %d but limits are [0 0 0] to [%d %d %d].",ix,iy,iz,sb->nx-1,sb->ny-1,sb->nz-1);
     return -1;
   }
 }
@@ -5122,7 +5046,7 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
   int ii,bb,cc;
  
   opp->n_verts = count_cuboid_vertices(sb);
-  opp->vertex = MDL_MALLOC_ARRAY_DESC(struct vector3,
+  opp->vertex = CHECKED_MALLOC_ARRAY(struct vector3,
                                       opp->n_verts,
                                       "cuboid vertices");
   if (opp->vertex == NULL)
@@ -5130,7 +5054,7 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
 
   opp->normal = NULL;
   opp->n_walls = count_cuboid_elements(sb);
-  opp->element = MDL_MALLOC_ARRAY_DESC(struct element_data,
+  opp->element = CHECKED_MALLOC_ARRAY(struct element_data,
                                        opp->n_walls,
                                        "cuboid walls");
   if (opp->element == NULL)
@@ -5308,15 +5232,13 @@ int mdl_triangulate_box_object(struct mdlparse_vars *mpvp,
                                struct polygon_object *pop,
                                double box_aspect_ratio)
 {
-  int i;
   struct region_list *rlp;
   struct ordered_poly *opp = (struct ordered_poly *) pop->polygon_data;
   struct object *objp = (struct object *) box_sym->value;
 
   if (box_aspect_ratio >= 2.0)
   {
-    i = reaspect_cuboid(mpvp, pop->sb, box_aspect_ratio);
-    if (i)
+    if (reaspect_cuboid(mpvp, pop->sb, box_aspect_ratio))
     {
       mdlerror(mpvp, "Error setting up box geometry");
       return 1;
@@ -5324,31 +5246,31 @@ int mdl_triangulate_box_object(struct mdlparse_vars *mpvp,
   }
   for (rlp = objp->regions; rlp != NULL; rlp = rlp->next)
   {
-    i = mdl_normalize_elements(mpvp, rlp->reg, 0);
-    if (i)
+    if (mdl_normalize_elements(mpvp, rlp->reg, 0))
       return 1;
   }
-  i = polygonalize_cuboid(mpvp,opp,pop->sb);
-  if (i)
+  if (polygonalize_cuboid(mpvp,opp,pop->sb))
   {
     mdlerror(mpvp, "Could not turn box object into polygons");
     return 1;
   }
   else if (mpvp->vol->notify->box_triangulation==NOTIFY_FULL)
   {
-    fprintf(mpvp->vol->log_file,"Box object %s converted into %d polygons\n",box_sym->name,opp->n_walls);
+    mcell_log("Box object %s converted into %d polygons.", box_sym->name, opp->n_walls);
   }
 
   pop->n_walls = opp->n_walls;
   pop->n_verts = opp->n_verts;
 
-  if ((pop->surf_class = MDL_MALLOC_ARRAY_DESC(struct species *, pop->n_walls, "box object surface class array")) == NULL)
+  const unsigned int n_walls = pop->n_walls;
+  if ((pop->surf_class = CHECKED_MALLOC_ARRAY(struct species *, n_walls, "box object surface class array")) == NULL)
     return 1;
-  for (i=0;i<pop->n_walls;i++) pop->surf_class[i]=mpvp->vol->g_surf;
-  pop->side_removed = new_bit_array(pop->n_walls);
+  for (unsigned int n_wall=0; n_wall<n_walls; ++ n_wall)
+    pop->surf_class[n_wall] = mpvp->vol->g_surf;
+  pop->side_removed = new_bit_array(n_walls);
   if (pop->side_removed==NULL)
   {
-    MDL_ALLOC_FAILED("box object removed side bitmask");
+    mcell_allocfailed("Failed to allocate a box object removed side bitmask.");
     return 1;
   }
   set_all_bits(pop->side_removed,0);
@@ -5372,7 +5294,7 @@ void mdl_remove_gaps_from_regions(struct object *ob)
 {
   struct polygon_object *po;
   struct region_list *rl;
-  int i,missing;
+  int missing;
   
   if (ob->object_type!=BOX_OBJ && ob->object_type!=POLY_OBJ) return;
   po = (struct polygon_object*)ob->contents;
@@ -5390,11 +5312,12 @@ void mdl_remove_gaps_from_regions(struct object *ob)
   }
   
   missing=0;
-  for (i=0;i<po->side_removed->nbits;i++)
+  for (unsigned int n_side=0; n_side<po->side_removed->nbits; ++ n_side)
   {
-    if (get_bit(po->side_removed,i)) missing++;
+    if (get_bit(po->side_removed, n_side)) missing++;
   }
-  ob->n_walls_actual = po->n_walls - missing;
+  const int n_walls = po->n_walls;
+  ob->n_walls_actual = n_walls - missing;
   
   for (rl=ob->regions;rl!=NULL;rl=rl->next)
   {
@@ -5403,18 +5326,18 @@ void mdl_remove_gaps_from_regions(struct object *ob)
   
 #ifdef DEBUG
   printf("Sides for %s: ",ob->sym->name);  
-  for (i=0;i<po->side_removed->nbits;i++)
+  for (unsigned int n_side=0; n_side<po->side_removed->nbits; ++ n_side)
   {
-    if (get_bit(po->side_removed,i)) printf("-");
+    if (get_bit(po->side_removed, n_side)) printf("-");
     else printf("#");
   }
   printf("\n");
   for (rl=ob->regions;rl!=NULL;rl=rl->next)
   {
     printf("Sides for %s: ",rl->reg->sym->name);  
-    for (i=0;i<rl->reg->membership->nbits;i++)
+    for (unsigned int n_side=0; n_side<rl->reg->membership->nbits; ++ n_side)
     {
-      if (get_bit(rl->reg->membership,i)) printf("+");
+      if (get_bit(rl->reg->membership, n_side)) printf("+");
       else printf(".");
     }
     printf("\n");
@@ -5474,6 +5397,8 @@ static void mdl_report_diffusion_distances(struct mdlparse_vars *mpvp,
                                            double length_unit,
                                            int lvl)
 {
+  UNUSED(mpvp);
+
   if (spec->time_step == 1.0)
   {
     /* Theoretical average diffusion distances for the molecule */
@@ -5483,27 +5408,34 @@ static void mdl_report_diffusion_distances(struct mdlparse_vars *mpvp,
     double l_r_rms=sqrt(6*1.0e8*spec->D*time_unit);
     if (lvl == NOTIFY_FULL)
     {
-      fprintf(mpvp->vol->log_file, "MCell: Theoretical average diffusion distances for molecule %s:\n", spec->sym->name);
-      fprintf(mpvp->vol->log_file, "\tl_r_bar = %.9g microns\n", l_r_bar);
-      fprintf(mpvp->vol->log_file, "\tl_r_rms = %.9g microns\n", l_r_rms);
-      fprintf(mpvp->vol->log_file, "\tl_perp_bar = %.9g microns\n", l_perp_bar);
-      fprintf(mpvp->vol->log_file, "\tl_perp_rms = %.9g microns\n\n", l_perp_rms);
+      mcell_log("MCell: Theoretical average diffusion distances for molecule %s:\n"
+                "\tl_r_bar = %.9g microns\n"
+                "\tl_r_rms = %.9g microns\n"
+                "\tl_perp_bar = %.9g microns\n"
+                "\tl_perp_rms = %.9g microns",
+                spec->sym->name,
+                l_r_bar,
+                l_r_rms,
+                l_perp_bar,
+                l_perp_rms);
     }
     else if (lvl == NOTIFY_BRIEF)
-      fprintf(mpvp->vol->log_file, "  l_r_bar=%.9g um for %s\n", l_r_bar, spec->sym->name);
+      mcell_log("  l_r_bar=%.9g um for %s", l_r_bar, spec->sym->name);
   }
   else
   {
     if (lvl == NOTIFY_FULL)
     {
-      fprintf(mpvp->vol->log_file, "MCell: Theoretical average diffusion time for molecule %s:\n", spec->sym->name);
-      fprintf(mpvp->vol->log_file, "\tl_r_bar fixed at %.9g microns\n", length_unit*spec->space_step*2.0/sqrt(MY_PI));
-      fprintf(mpvp->vol->log_file, "\tPosition update every %.3e seconds (%.3g timesteps)\n\n",
-              spec->time_step*time_unit, spec->time_step);
+      mcell_log("MCell: Theoretical average diffusion time for molecule %s:\n"
+                "\tl_r_bar fixed at %.9g microns\n"
+                "\tPosition update every %.3e seconds (%.3g timesteps)",
+                spec->sym->name,
+                length_unit*spec->space_step*2.0/sqrt(MY_PI),
+                spec->time_step*time_unit, spec->time_step);
     }
     else if (lvl == NOTIFY_BRIEF)
     {
-      fprintf(mpvp->vol->log_file, "  delta t=%.3g timesteps for %s\n", spec->time_step, spec->sym->name);
+      mcell_log("  delta t=%.3g timesteps for %s", spec->time_step, spec->sym->name);
     }
   }
 }
@@ -5523,11 +5455,9 @@ void mdl_finish_molecule(struct mdlparse_vars *mpvp, struct species *mol)
   if (mpvp->vol->procnum == 0)
   {
     if (mpvp->vol->notify->diffusion_constants == NOTIFY_BRIEF)
-      fprintf(mpvp->vol->log_file, "Defining molecule with the following diffusion constant:\n");
+      mcell_log("Defining molecule with the following diffusion constant:");
     mdl_report_diffusion_distances(mpvp, mol, mpvp->vol->time_unit, mpvp->vol->length_unit, mpvp->vol->notify->diffusion_constants);
     no_printf("Molecule %s defined with D = %g\n", mol->sym->name, mol->D);
-    if (mpvp->vol->notify->diffusion_constants == NOTIFY_BRIEF)
-      fprintf(mpvp->vol->log_file, "\n");
   }
 }
 
@@ -5548,7 +5478,7 @@ void mdl_finish_molecules(struct mdlparse_vars *mpvp,
   {
     struct species_list_item *ptrl;
     if (mpvp->vol->notify->diffusion_constants == NOTIFY_BRIEF)
-      fprintf(mpvp->vol->log_file,"Defining molecules with the following theoretical average diffusion distances:\n");
+      mcell_log("Defining molecules with the following theoretical average diffusion distances:");
     for (ptrl = mols; ptrl != NULL; ptrl = ptrl->next)
     {
       struct species *spec = (struct species *) ptrl->spec;
@@ -5556,7 +5486,7 @@ void mdl_finish_molecules(struct mdlparse_vars *mpvp,
       no_printf("Molecule %s defined with D = %g\n", spec->sym->name, spec->D);
     }
     if (mpvp->vol->notify->diffusion_constants == NOTIFY_BRIEF)
-      fprintf(mpvp->vol->log_file,"\n");
+      mcell_log_raw("\n");
   }
   mem_put_list(mpvp->species_list_mem, mols);
 }
@@ -5575,7 +5505,7 @@ int mdl_species_list_singleton(struct mdlparse_vars *mpvp,
                                struct species *spec)
 {
   struct species_list_item *ptrl;
-  ptrl = (struct species_list_item *) MDL_MEM_GET_DESC(mpvp->species_list_mem, "species list");
+  ptrl = (struct species_list_item *) CHECKED_MEM_GET(mpvp->species_list_mem, "species list");
   if (ptrl == NULL)
     return 1;
   ptrl->spec = spec;
@@ -5599,7 +5529,7 @@ int mdl_add_to_species_list(struct mdlparse_vars *mpvp,
                             struct species *spec)
 {
   struct species_list_item *ptrl;
-  ptrl = (struct species_list_item *) MDL_MEM_GET_DESC(mpvp->species_list_mem, "species list");
+  ptrl = (struct species_list_item *) CHECKED_MEM_GET(mpvp->species_list_mem, "species list");
   if (ptrl == NULL)
     return 1;
 
@@ -5609,6 +5539,7 @@ int mdl_add_to_species_list(struct mdlparse_vars *mpvp,
   ++ list->species_count;
   return 0;
 }
+
 /**************************************************************************
  mdl_new_release_site:
     Create a new release site.
@@ -5621,7 +5552,7 @@ static struct release_site_obj *mdl_new_release_site(struct mdlparse_vars *mpvp,
                                                      char *name)
 {
   struct release_site_obj *rsop;
-  if ((rsop = MDL_MALLOC_STRUCT_DESC(struct release_site_obj, "release site")) == NULL)
+  if ((rsop = CHECKED_MALLOC_STRUCT(struct release_site_obj, "release site")) == NULL)
     return NULL;
   rsop->location = NULL;
   rsop->mol_type = NULL;
@@ -5767,7 +5698,7 @@ int mdl_is_release_site_valid(struct mdlparse_vars *mpvp,
       else
       {
         /* Give it a default location of (0, 0, 0) */
-        rsop->location = MDL_MALLOC_STRUCT_DESC(struct vector3, "release site location");
+        rsop->location = CHECKED_MALLOC_STRUCT(struct vector3, "release site location");
         if (rsop->location==NULL)
           return 1;
         rsop->location->x = 0;
@@ -5860,7 +5791,7 @@ int mdl_set_release_site_geometry_region(struct mdlparse_vars *mpvp,
   rsop->release_shape = SHAPE_REGION;
   mpvp->vol->place_waypoints_flag = 1;
 
-  rrd = MDL_MALLOC_STRUCT_DESC(struct release_region_data, "release site on region");
+  rrd = CHECKED_MALLOC_STRUCT(struct release_region_data, "release site on region");
   if (rrd==NULL)
     return 1;
 
@@ -5912,12 +5843,9 @@ int mdl_set_release_site_geometry_object(struct mdlparse_vars *mpvp,
   }
 
   char *obj_name = objp->sym->name;
-  region_name = my_strcat(obj_name, ",ALL");
+  region_name = CHECKED_SPRINTF("%s,ALL", obj_name);
   if (region_name == NULL)
-  {
-    MDL_ALLOC_FAILED("region name");
     return 1;
-  }
   if ((symp = retrieve_sym(region_name, REG, mpvp->vol->main_sym_table)) == NULL)
   {
     mdlerror_fmt(mpvp, "Undefined region: %s", region_name);
@@ -5926,7 +5854,7 @@ int mdl_set_release_site_geometry_object(struct mdlparse_vars *mpvp,
   }
   free(region_name);
   
-  re = MDL_MALLOC_STRUCT_DESC(struct release_evaluator, "release site on region");
+  re = CHECKED_MALLOC_STRUCT(struct release_evaluator, "release site on region");
   if (re==NULL)
     return 1;
   
@@ -5939,7 +5867,7 @@ int mdl_set_release_site_geometry_object(struct mdlparse_vars *mpvp,
   rsop->release_shape = SHAPE_REGION;
   mpvp->vol->place_waypoints_flag = 1;
   
-  rrd = MDL_MALLOC_STRUCT_DESC(struct release_region_data, "release site on region");
+  rrd = CHECKED_MALLOC_STRUCT(struct release_region_data, "release site on region");
   if (rrd==NULL)
   {
     mdlerror(mpvp, "Out of memory while trying to create release site on region");
@@ -5972,7 +5900,9 @@ int mdl_set_release_site_geometry_object(struct mdlparse_vars *mpvp,
 struct release_evaluator *mdl_new_release_region_expr_term(struct mdlparse_vars *mpvp,
                                                            struct sym_table *my_sym)
 {
-  struct release_evaluator *re = MDL_MALLOC_STRUCT_DESC(struct release_evaluator,
+  UNUSED(mpvp);
+
+  struct release_evaluator *re = CHECKED_MALLOC_STRUCT(struct release_evaluator,
                                                         "release site on region");
   if (re == NULL)
     return NULL;
@@ -6004,6 +5934,8 @@ static struct release_evaluator* pack_release_expr(struct mdlparse_vars *mpvp,
                                                    struct release_evaluator *rer,
                                                    byte op)
 {
+  UNUSED(mpvp);
+
   struct release_evaluator *re = NULL;
   
   if (!(op&REXP_INCLUSION) && (rer->op&REXP_MASK)==REXP_NO_OP && (rer->op&REXP_LEFT_REGION)!=0)
@@ -6031,7 +5963,7 @@ static struct release_evaluator* pack_release_expr(struct mdlparse_vars *mpvp,
   }
   else
   {
-    re = MDL_MALLOC_STRUCT_DESC(struct release_evaluator, "release region expression");
+    re = CHECKED_MALLOC_STRUCT(struct release_evaluator, "release region expression");
     if (re == NULL)
       return NULL;
 
@@ -6133,10 +6065,24 @@ int mdl_set_release_site_molecule(struct mdlparse_vars *mpvp,
 {
   /* Store molecule information */
   rsop->mol_type = (struct species *) mol_type->mol_type->value;
-  if ((rsop->mol_type->flags & NOT_FREE) == 0  &&
-      rsop->release_shape == SHAPE_REGION)
+  if ((rsop->mol_type->flags & NOT_FREE) == 0)
   {
-    mpvp->vol->place_waypoints_flag = 1;
+    if (rsop->release_shape == SHAPE_REGION)
+      mpvp->vol->place_waypoints_flag = 1;
+  }
+  else
+  {
+    if (rsop->release_shape != SHAPE_REGION  &&
+        rsop->release_shape != SHAPE_LIST)
+    {
+      mdlerror_fmt(mpvp,
+                   "The release site '%s' is a geometric release site, and may not be used to \n"
+                   "  release the surface molecule '%s'.  Surface molecule release sites must \n"
+                   "  be either LIST or region release sites.",
+                   rsop->name,
+                   mol_type->mol_type->name);
+      return 1;
+    }
   }
   rsop->orientation = mol_type->orient;
 
@@ -6159,7 +6105,7 @@ int mdl_set_release_site_diameter(struct mdlparse_vars *mpvp,
 {
   diam *= mpvp->vol->r_length_unit;
 
-  rsop->diameter = MDL_MALLOC_STRUCT_DESC(struct vector3,
+  rsop->diameter = CHECKED_MALLOC_STRUCT(struct vector3,
                                           "release site diameter");
   if (rsop->diameter == NULL)
     return 1;
@@ -6201,7 +6147,7 @@ int mdl_set_release_site_diameter_array(struct mdlparse_vars *mpvp,
     return 1;
   }
 
-  rsop->diameter = MDL_MALLOC_STRUCT_DESC(struct vector3,
+  rsop->diameter = CHECKED_MALLOC_STRUCT(struct vector3,
                                           "release site diameter");
   if (rsop->diameter == NULL)
     return 1;
@@ -6231,7 +6177,7 @@ int mdl_set_release_site_diameter_var(struct mdlparse_vars *mpvp,
 {
   struct num_expr_list *elp;
   int count = 0;
-  rsop->diameter = MDL_MALLOC_STRUCT_DESC(struct vector3, "release site diameter");
+  rsop->diameter = CHECKED_MALLOC_STRUCT(struct vector3, "release site diameter");
   if (rsop->diameter == NULL)
     return 1;
 
@@ -6372,7 +6318,7 @@ struct release_single_molecule *mdl_new_release_single_molecule(struct mdlparse_
   memcpy(&temp_v3,pos,sizeof(struct vector3));
   free(pos);
 
-  rsm = MDL_MALLOC_STRUCT_DESC(struct release_single_molecule, "release site molecule position");
+  rsm = CHECKED_MALLOC_STRUCT(struct release_single_molecule, "release site molecule position");
   if (rsm==NULL)
   {
     mdlerror(mpvp, "Out of memory reading molecule positions");
@@ -6559,11 +6505,13 @@ int mdl_set_release_site_density(struct mdlparse_vars *mpvp,
 static struct polygon_object *allocate_polygon_object(struct mdlparse_vars *mpvp,
                                                       char const *desc)
 {
+  UNUSED(mpvp);
+
   struct polygon_object *pop;
   struct ordered_poly *opp;
-  if ((pop = MDL_MALLOC_STRUCT_DESC(struct polygon_object, desc)) == NULL)
+  if ((pop = CHECKED_MALLOC_STRUCT(struct polygon_object, desc)) == NULL)
     return NULL;
-  if ((opp = MDL_MALLOC_STRUCT_DESC(struct ordered_poly, desc)) == NULL)
+  if ((opp = CHECKED_MALLOC_STRUCT(struct ordered_poly, desc)) == NULL)
   {
     free(pop);
     return NULL;
@@ -6673,7 +6621,9 @@ struct vertex_list *mdl_new_vertex_list_item(struct mdlparse_vars *mpvp,
                                              struct vector3 *vertex,
                                              struct vector3 *normal)
 {
-  struct vertex_list *vlp = MDL_MALLOC_STRUCT_DESC(struct vertex_list,
+  UNUSED(mpvp);
+
+  struct vertex_list *vlp = CHECKED_MALLOC_STRUCT(struct vertex_list,
                                                    "vertices");
   if (vlp == NULL)
     return NULL;
@@ -6738,12 +6688,12 @@ struct element_connection_list *mdl_new_element_connection(struct mdlparse_vars 
     return NULL;
   }
 
-  struct element_connection_list *eclp = MDL_MALLOC_STRUCT_DESC(struct element_connection_list,
+  struct element_connection_list *eclp = CHECKED_MALLOC_STRUCT(struct element_connection_list,
                                                                 "polygon element commections");
   if (eclp == NULL)
     return NULL;
 
-  eclp->indices = MDL_MALLOC_ARRAY_DESC(int, 3, "polygon element connections");
+  eclp->indices = CHECKED_MALLOC_ARRAY(int, 3, "polygon element connections");
   if (eclp->indices == NULL)
   {
     free(eclp);
@@ -6778,12 +6728,12 @@ struct element_connection_list *mdl_new_tet_element_connection(struct mdlparse_v
     return NULL;
   }
 
-  struct element_connection_list *eclp = MDL_MALLOC_STRUCT_DESC(struct element_connection_list,
+  struct element_connection_list *eclp = CHECKED_MALLOC_STRUCT(struct element_connection_list,
                                                                 "polygon element commections");
   if (eclp == NULL)
     return NULL;
 
-  eclp->indices = MDL_MALLOC_ARRAY_DESC(int, 4, "polygon element connections");
+  eclp->indices = CHECKED_MALLOC_ARRAY(int, 4, "polygon element connections");
   if (eclp->indices == NULL)
   {
     free(eclp);
@@ -6823,7 +6773,6 @@ struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *mpvp,
   struct region *rp = NULL;
   struct ordered_poly *opp = NULL;
   struct object *objp = (struct object *) sym->value;
-  u_int i;
   struct element_data *edp = NULL;
   struct polygon_object *pop = NULL;
 
@@ -6841,24 +6790,24 @@ struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *mpvp,
   opp->n_verts = n_vertices;
 
   /* Allocate and initialize surface classes for walls */
-  if ((pop->surf_class = MDL_MALLOC_ARRAY_DESC(struct species *,
-                                               pop->n_walls,
+  if ((pop->surf_class = CHECKED_MALLOC_ARRAY(struct species *,
+                                               n_connections,
                                                "polygon list object")) == NULL)
     goto failure;
-  for (i=0; i<pop->n_walls; i++)
+  for (int i=0; i<n_connections; i++)
     pop->surf_class[i]=mpvp->vol->g_surf;
 
   /* Allocate and initialize removed sides bitmask */
   pop->side_removed = new_bit_array(pop->n_walls);
   if (pop->side_removed==NULL)
   {
-    MDL_ALLOC_FAILED("polygon list removed side bitmask");
+    mcell_allocfailed("Failed to allocate a polygon list object removed side bitmask.");
     goto failure;
   }
   set_all_bits(pop->side_removed,0);
 
   /* Allocate vertices */
-  if ((opp->vertex = MDL_MALLOC_ARRAY_DESC(struct vector3,
+  if ((opp->vertex = CHECKED_MALLOC_ARRAY(struct vector3,
                                            opp->n_verts,
                                            "polygon list object vertices")) == NULL)
     goto failure;
@@ -6866,14 +6815,14 @@ struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *mpvp,
   /* Allocate normals */
   if (vertices->normal!=NULL)
   {
-    if ((opp->normal = MDL_MALLOC_ARRAY_DESC(struct vector3,
+    if ((opp->normal = CHECKED_MALLOC_ARRAY(struct vector3,
                                              opp->n_verts,
                                              "polygon list object normals")) == NULL)
       goto failure;
   }
 
   /* Copy in vertices and normals */
-  for (i = 0; i < opp->n_verts; i++)
+  for (int i = 0; i < opp->n_verts; i++)
   {
     opp->vertex[i].x = vertices->vertex->x * mpvp->vol->r_length_unit;
     opp->vertex[i].y = vertices->vertex->y * mpvp->vol->r_length_unit;
@@ -6892,14 +6841,14 @@ struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *mpvp,
   }
 
   /* Allocate wall elements */
-  if ((edp = MDL_MALLOC_ARRAY_DESC(struct element_data,
+  if ((edp = CHECKED_MALLOC_ARRAY(struct element_data,
                                    opp->n_walls,
                                    "polygon list object walls")) == NULL)
     goto failure;
   opp->element = edp;
 
   /* Copy in wall elements */
-  for (i = 0; i<opp->n_walls; i++)
+  for (int i = 0; i<opp->n_walls; i++)
   {
     if (connections->n_verts != 3)
     {
@@ -6988,8 +6937,7 @@ int mdl_finish_polygon_list(struct mdlparse_vars *mpvp, struct sym_table *symp)
 **************************************************************************/
 static int is_region_degenerate(struct region *rp)
 {
-  int i;
-  for (i = 0; i < rp->membership->nbits; i++)
+  for (unsigned int i = 0; i < rp->membership->nbits; i++)
   {
     if (get_bit(rp->membership,i))
       return 0;
@@ -7048,12 +6996,14 @@ int mdl_check_degenerate_polygon_list(struct mdlparse_vars *mpvp,
 **************************************************************************/
 static struct voxel_object *allocate_voxel_object(struct mdlparse_vars *mpvp)
 {
+  UNUSED(mpvp);
+
   struct ordered_voxel *ovp;
   struct voxel_object *vop;
-  if ((vop = MDL_MALLOC_STRUCT_DESC(struct voxel_object,
+  if ((vop = CHECKED_MALLOC_STRUCT(struct voxel_object,
                                     "voxel list object")) == NULL)
     return NULL;
-  if ((ovp = MDL_MALLOC_STRUCT_DESC(struct ordered_voxel,
+  if ((ovp = CHECKED_MALLOC_STRUCT(struct ordered_voxel,
                                     "voxel list object")) == NULL)
   {
     free(vop);
@@ -7093,7 +7043,6 @@ struct voxel_object *mdl_new_voxel_list(struct mdlparse_vars *mpvp,
                                         struct element_connection_list *connections)
 {
   struct ordered_voxel *ovp = NULL;
-  u_int i;
   struct tet_element_data *tedp;
 
   struct object *objp = (struct object *) sym->value;
@@ -7111,13 +7060,13 @@ struct voxel_object *mdl_new_voxel_list(struct mdlparse_vars *mpvp,
   ovp->n_verts  = n_vertices;
 
   /* Allocate vertices */
-  if ((ovp->vertex = MDL_MALLOC_ARRAY_DESC(struct vector3,
+  if ((ovp->vertex = CHECKED_MALLOC_ARRAY(struct vector3,
                                            ovp->n_verts,
                                            "voxel list object vertices")) == NULL)
     goto failure;
 
   /* Populate vertices */
-  for (i=0;i<ovp->n_verts;i++)
+  for (int i=0;i<ovp->n_verts;i++)
   {
     struct vertex_list *vlp_temp = vertices;
     ovp->vertex[i].x = vertices->vertex->x;
@@ -7129,14 +7078,14 @@ struct voxel_object *mdl_new_voxel_list(struct mdlparse_vars *mpvp,
   }
 
   /* Allocate tetrahedra */
-  if ((tedp = MDL_MALLOC_ARRAY_DESC(struct tet_element_data,
+  if ((tedp = CHECKED_MALLOC_ARRAY(struct tet_element_data,
                                     ovp->n_voxels,
                                     "voxel list object tetrahedra")) == NULL)
     goto failure;
   ovp->element = tedp;
 
   /* Copy in tetrahedra */
-  for (i=0; i<ovp->n_voxels; i++)
+  for (int i=0; i<ovp->n_voxels; i++)
   {
     if (connections->n_verts != 4)
     {
@@ -7285,7 +7234,7 @@ struct region *mdl_create_region(struct mdlparse_vars *mpvp, struct object *objp
   no_printf("Creating new region: %s\n", name);
   if ((rp = make_new_region(mpvp, objp->sym->name, name)) == NULL)
     return NULL;
-  if ((rlp = MDL_MALLOC_STRUCT_DESC(struct region_list, "region list")) == NULL)
+  if ((rlp = CHECKED_MALLOC_STRUCT(struct region_list, "region list")) == NULL)
   {
     mdlerror_fmt(mpvp,
                  "Out of memory while creating object region '%s'",
@@ -7318,7 +7267,7 @@ struct region *mdl_get_region(struct mdlparse_vars *mpvp,
   char *region_name;
   struct region *rp;
 
-  region_name = mdl_alloc_sprintf(mpvp, "%s,%s", objp->sym->name, name);
+  region_name = CHECKED_SPRINTF("%s,%s", objp->sym->name, name);
   if (region_name == NULL)
     return NULL;
 
@@ -7411,7 +7360,9 @@ struct element_list *mdl_new_element_list(struct mdlparse_vars *mpvp,
                                           unsigned int begin,
                                           unsigned int end)
 {
-  struct element_list *elmlp = MDL_MALLOC_STRUCT_DESC(struct element_list, "region element");
+  UNUSED(mpvp);
+
+  struct element_list *elmlp = CHECKED_MALLOC_STRUCT(struct element_list, "region element");
   if (elmlp == NULL)
     return NULL;
   elmlp->special=NULL;
@@ -7478,16 +7429,15 @@ struct element_list *mdl_new_element_previous_region(struct mdlparse_vars *mpvp,
     goto failure;
 
   /* Create "special" element description */
-  elmlp->special = MDL_MALLOC_STRUCT_DESC(struct element_special, "region element");
+  elmlp->special = CHECKED_MALLOC_STRUCT(struct element_special, "region element");
   if (elmlp->special==NULL)
     goto failure;
   elmlp->special->exclude = (byte) exclude;
 
   /* Create referent region full name */
-  full_reg_name = mdl_alloc_sprintf(mpvp,
-                                    "%s,%s",
-                                    objp->sym->name,
-                                    name_region_referent);
+  full_reg_name = CHECKED_SPRINTF("%s,%s",
+                                  objp->sym->name,
+                                  name_region_referent);
   if (full_reg_name==NULL)
     goto failure;
 
@@ -7559,7 +7509,7 @@ struct element_list *mdl_new_element_patch(struct mdlparse_vars *mpvp,
     goto failure;
 
   /* Allocate special element description */
-  elmlp->special = MDL_MALLOC_STRUCT_DESC(struct element_special, "region element");
+  elmlp->special = CHECKED_MALLOC_STRUCT(struct element_special, "region element");
   if (elmlp->special == NULL)
     goto failure;
   elmlp->special->referent = NULL;
@@ -7772,20 +7722,18 @@ static int mdl_check_reaction_output_file(struct mdlparse_vars *mpvp,
 {
   FILE *f;
   char *name;
-  int flags;
   struct stat fs;
   int i;
 
   name = os->outfile_name;
-  flags = os->file_flags;
 
-  if (make_parent_dir(name, mpvp->vol->err_file))
+  if (make_parent_dir(name))
   {
     mdlerror_fmt(mpvp, "Directory for %s does not exist and could not be created.",name);
     return 1;
   }
 
-  switch (flags)
+  switch (os->file_flags)
   {
     case FILE_OVERWRITE:
       f = fopen(name,"w");
@@ -7893,8 +7841,9 @@ static int mdl_check_reaction_output_file(struct mdlparse_vars *mpvp,
       }
       fclose(f);
       break;
+
     default:
-      mdlerror_fmt(mpvp,"Not sure what to do with file %s (unknown internal operation #%d).",name,flags);
+      UNHANDLED_CASE(os->file_flags);
       return 1;
   }
   return 0;
@@ -7914,7 +7863,7 @@ struct output_set* mdl_new_output_set(struct mdlparse_vars *mpvp,
                                       int exact_time)
 {
   struct output_set *os;
-  os = MDL_MALLOC_STRUCT_DESC(struct output_set, "reaction data output set");
+  os = CHECKED_MALLOC_STRUCT(struct output_set, "reaction data output set");
   if (os == NULL)
     return NULL;
 
@@ -7990,8 +7939,10 @@ struct output_set *mdl_populate_output_set(struct mdlparse_vars *mpvp,
 static struct output_block *mdl_new_output_block(struct mdlparse_vars *mpvp,
                                                  int buffersize)
 {
+  UNUSED(mpvp);
+
   struct output_block *obp;
-  obp = MDL_MALLOC_STRUCT_DESC(struct output_block,
+  obp = CHECKED_MALLOC_STRUCT(struct output_block,
                                "reaction data output block");
   if (obp==NULL) return NULL;
 
@@ -8010,7 +7961,7 @@ static struct output_block *mdl_new_output_block(struct mdlparse_vars *mpvp,
   obp->buffersize = buffersize;
   obp->trig_bufsize = obp->buffersize;
 
-  obp->time_array = MDL_MALLOC_ARRAY_DESC(double,
+  obp->time_array = CHECKED_MALLOC_ARRAY(double,
                                           obp->buffersize,
                                           "reaction data output times array");
   if (obp->time_array == NULL)
@@ -8055,21 +8006,21 @@ int mdl_output_block_finalize(struct mdlparse_vars *mpvp, struct output_block *o
       {
         case OEXPR_TYPE_INT:
           oc->data_type=INT;
-          oc->buffer = MDL_MALLOC_ARRAY_DESC(int,
+          oc->buffer = CHECKED_MALLOC_ARRAY(int,
                                              obp->buffersize,
                                              "reaction data output buffer");
           break;
 
         case OEXPR_TYPE_DBL:
           oc->data_type=DBL;
-          oc->buffer = MDL_MALLOC_ARRAY_DESC(double,
+          oc->buffer = CHECKED_MALLOC_ARRAY(double,
                                              obp->buffersize,
                                              "reaction data output buffer");
           break;
 
         case OEXPR_TYPE_TRIG:
           oc->data_type=TRIG_STRUCT;
-          oc->buffer = MDL_MALLOC_ARRAY_DESC(struct output_trigger_data,
+          oc->buffer = CHECKED_MALLOC_ARRAY(struct output_trigger_data,
                                              obp->trig_bufsize,
                                              "reaction data output buffer");
           break;
@@ -8272,8 +8223,10 @@ int mdl_add_reaction_output_block_to_world(struct mdlparse_vars *mpvp,
 **************************************************************************/
 static struct output_column* mdl_new_output_column(struct mdlparse_vars *mpvp)
 {
+  UNUSED(mpvp);
+
   struct output_column *oc;
-  oc = MDL_MALLOC_STRUCT_DESC(struct output_column,
+  oc = CHECKED_MALLOC_STRUCT(struct output_column,
                               "reaction data output column");
   if (oc == NULL)
     return NULL;
@@ -8449,7 +8402,7 @@ static struct output_request *mdl_new_output_request(struct mdlparse_vars *mpvp,
   struct output_request *orq;
   struct output_expression *oe;
 
-  orq = MDL_MEM_GET_DESC(mpvp->vol->outp_request_mem, "count request");
+  orq = CHECKED_MEM_GET(mpvp->vol->outp_request_mem, "count request");
   if (orq == NULL)
     return NULL;
 
@@ -8457,7 +8410,7 @@ static struct output_request *mdl_new_output_request(struct mdlparse_vars *mpvp,
   if (oe == NULL)
   {
     mem_put(mpvp->vol->outp_request_mem, orq);
-    MDL_ALLOC_FAILED("count expression");
+    mcell_allocfailed("Failed to allocate a count expression.");
     return NULL;
   }
   orq->next=NULL;
@@ -8766,7 +8719,7 @@ static struct sym_table_list *mdl_find_rxpns_and_mols_by_wildcard(struct mdlpars
 
       if (is_wildcard_match((char *)wildcard, sym_t->name))
       {
-        stl = (struct sym_table_list *) MDL_MEM_GET_DESC(mpvp->sym_list_mem,
+        stl = (struct sym_table_list *) CHECKED_MEM_GET(mpvp->sym_list_mem,
                                                          "list of named reactions and molecules for counting");
         if(stl == NULL)
         {
@@ -8884,7 +8837,7 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *mpvp,
 }
 
 /*************************************************************************
-macro_new_complex_count:
+ macro_new_complex_count:
     Allocate a new complex count structure for subunit counting and an output
     expression to reference it.
 
@@ -8908,7 +8861,7 @@ static struct output_expression *macro_new_complex_count(struct mdlparse_vars *m
                                                          struct sym_table *location)
 {
   struct macro_count_request *mcr;
-  mcr = MDL_MALLOC_STRUCT_DESC(struct macro_count_request,
+  mcr = CHECKED_MALLOC_STRUCT(struct macro_count_request,
                                "macromolecule count request");
   if (mcr == NULL)
     return NULL;
@@ -9085,7 +9038,7 @@ static struct frame_data_list *mdl_create_viz_frame(struct mdlparse_vars *mpvp,
   UNUSED(mpvp);
 
   struct frame_data_list *fdlp;
-  fdlp = MDL_MALLOC_STRUCT_DESC(struct frame_data_list,
+  fdlp = CHECKED_MALLOC_STRUCT(struct frame_data_list,
                                 "VIZ_OUTPUT frame data");
   if (fdlp == NULL)
     return NULL;
@@ -9394,7 +9347,7 @@ int mdl_new_viz_all_times(struct mdlparse_vars *mpvp,
   for (step = 0; step <= mpvp->vol->iterations; step ++)
   {
     struct num_expr_list *nel;
-    nel = MDL_MALLOC_STRUCT_DESC(struct num_expr_list,
+    nel = CHECKED_MALLOC_STRUCT(struct num_expr_list,
                                  "VIZ_OUTPUT time point");
     if (nel == NULL)
       return 1;
@@ -9430,7 +9383,7 @@ int mdl_new_viz_all_iterations(struct mdlparse_vars *mpvp, struct num_expr_list_
   for (step = 0; step <= mpvp->vol->iterations; step ++)
   {
     struct num_expr_list *nel;
-    nel = MDL_MALLOC_STRUCT_DESC(struct num_expr_list,
+    nel = CHECKED_MALLOC_STRUCT(struct num_expr_list,
                                  "VIZ_OUTPUT iteration");
     if (nel == NULL)
       return 1;
@@ -9459,13 +9412,10 @@ static int set_viz_state_value(struct mdlparse_vars *mpvp,
                                struct object *objp,
                                int viz_state)
 {
-  struct object *child_objp;
-  int i;
-
   switch (objp->object_type)
   {
     case META_OBJ:
-      for (child_objp = objp->first_child;
+      for (struct object *child_objp = objp->first_child;
            child_objp != NULL;
            child_objp=child_objp->next)
       {
@@ -9475,22 +9425,13 @@ static int set_viz_state_value(struct mdlparse_vars *mpvp,
       break;
 
     case BOX_OBJ:
-      if (objp->viz_state==NULL)
-      {
-        if ((objp->viz_state = MDL_MALLOC_ARRAY(int, objp->n_walls))==NULL)
-          return 1;
-      }
-      for (i=0;i<objp->n_walls;i++)
-        objp->viz_state[i] = viz_state;
-      break;
-
     case POLY_OBJ:
       if (objp->viz_state==NULL)
       {
-        if ((objp->viz_state = MDL_MALLOC_ARRAY(int, objp->n_walls))==NULL)
+        if ((objp->viz_state = CHECKED_MALLOC_ARRAY(int, objp->n_walls, "object walls array"))==NULL)
           return 1;
       }
-      for (i=0;i<objp->n_walls;i++)
+      for (int i=0;i<objp->n_walls;i++)
         objp->viz_state[i] = viz_state;
       break;
 
@@ -9546,20 +9487,20 @@ int mdl_set_region_viz_state(struct mdlparse_vars *mpvp,
                              struct region *rp,
                              int viz_state)
 {
-  u_int i;
+  UNUSED(mpvp);
   struct polygon_object *pop;
   struct object *objp = rp->parent;
 
   pop = (struct polygon_object *) objp->contents;
   if (objp->viz_state == NULL)
   {
-    if ((objp->viz_state = MDL_MALLOC_ARRAY_DESC(int, pop->n_walls, "viz state array")) == NULL)
+    if ((objp->viz_state = CHECKED_MALLOC_ARRAY(int, pop->n_walls, "viz state array")) == NULL)
       return 1;
-    for (i=0;i<pop->n_walls;i++)
+    for (unsigned int i=0;i<pop->n_walls;i++)
       objp->viz_state[i]=EXCLUDE_OBJ;
   }
 
-  for (i = 0; i < rp->membership->nbits; ++ i)
+  for (unsigned int i = 0; i < rp->membership->nbits; ++ i)
   {
     if (get_bit(rp->membership, i))
       objp->viz_state[i] = viz_state;
@@ -9590,7 +9531,7 @@ int mdl_add_viz_object(struct mdlparse_vars *mpvp, struct sym_table *obj_sym, in
     return 1;
   }
 
-  if ((vizp = MDL_MALLOC_STRUCT_DESC(struct viz_obj,
+  if ((vizp = CHECKED_MALLOC_STRUCT(struct viz_obj,
                                      "visualization object")) == NULL)
     return 1;
 
@@ -9636,14 +9577,14 @@ struct rk_mode_data *mdl_new_rk_mode_var(struct mdlparse_vars *mpvp,
 {
   struct rk_mode_data *rk_mode_var;
   struct num_expr_list *nel;
-  int i;
+  unsigned int n_bin;
   double *parts_array;
   int *bins_array;
 
-  rk_mode_var = MDL_MALLOC_STRUCT_DESC(struct rk_mode_data, "RK custom visualization");
+  rk_mode_var = CHECKED_MALLOC_STRUCT(struct rk_mode_data, "RK custom visualization");
   if (rk_mode_var == NULL) return NULL;
 
-  parts_array = MDL_MALLOC_ARRAY_DESC(double,
+  parts_array = CHECKED_MALLOC_ARRAY(double,
                                       values->value_count,
                                       "RK custom visualization partitions");
   if (parts_array == NULL)
@@ -9652,7 +9593,7 @@ struct rk_mode_data *mdl_new_rk_mode_var(struct mdlparse_vars *mpvp,
     return NULL;
   }
 
-  bins_array = MDL_MALLOC_ARRAY_DESC(int,
+  bins_array = CHECKED_MALLOC_ARRAY(int,
                                      values->value_count+1,
                                      "RK custom visualization bins");
   if (bins_array == NULL)
@@ -9663,9 +9604,9 @@ struct rk_mode_data *mdl_new_rk_mode_var(struct mdlparse_vars *mpvp,
   }
   memset(bins_array, 0, sizeof(int) * (values->value_count + 1));
 
-  for (i=0,nel=values ; nel!=NULL ; nel=nel->next,i++)
-    parts_array[i] = nel->value * mpvp->vol->r_length_unit;
-  qsort(parts_array, i, sizeof(double), & double_cmp);
+  for (n_bin=0, nel=values->value_head; nel!=NULL; nel=nel->next, n_bin++)
+    parts_array[n_bin] = nel->value * mpvp->vol->r_length_unit;
+  qsort(parts_array, n_bin, sizeof(double), & double_cmp);
   if (! values->shared)
     mdl_free_numeric_list(values->value_head);
 
@@ -9705,6 +9646,8 @@ static struct species **species_list_to_array(struct mdlparse_vars *mpvp,
                                               struct species_list *lh,
                                               int *count)
 {
+  UNUSED(mpvp);
+
   struct species **arr = NULL, **ptr = NULL;
   struct species_list_item *i;
 
@@ -9714,7 +9657,7 @@ static struct species **species_list_to_array(struct mdlparse_vars *mpvp,
   if (lh->species_count == 0)
     return NULL;
 
-  arr = MDL_MALLOC_ARRAY(struct species *, lh->species_count);
+  arr = CHECKED_MALLOC_ARRAY(struct species *, lh->species_count, "species array");
   if (arr)
   {
     for (i = (struct species_list_item *) lh->species_head, ptr = arr; i != NULL; i = i->next)
@@ -9744,7 +9687,8 @@ struct volume_output_item *mdl_new_volume_output_item(struct mdlparse_vars *mpvp
                                                       struct vector3 *voxel_count,
                                                       struct output_times *ot)
 {
-  struct volume_output_item *vo = MDL_MALLOC_STRUCT(struct volume_output_item);
+  struct volume_output_item *vo = CHECKED_MALLOC_STRUCT(struct volume_output_item,
+                                                        "volume output request");
   if (vo == NULL)
   {
     free(filename_prefix);
@@ -9817,7 +9761,7 @@ struct volume_output_item *mdl_new_volume_output_item(struct mdlparse_vars *mpvp
 **************************************************************************/
 struct output_times *mdl_new_output_times_default(struct mdlparse_vars *mpvp)
 {
-  struct output_times *ot = MDL_MEM_GET_DESC(mpvp->output_times_mem,
+  struct output_times *ot = CHECKED_MEM_GET(mpvp->output_times_mem,
                                              "output times for volume output");
   if (ot == NULL)
     return NULL;
@@ -9839,7 +9783,7 @@ struct output_times *mdl_new_output_times_step(struct mdlparse_vars *mpvp,
                                                double step)
 {
   long long output_freq;
-  struct output_times *ot = MDL_MEM_GET_DESC(mpvp->output_times_mem,
+  struct output_times *ot = CHECKED_MEM_GET(mpvp->output_times_mem,
                                              "output times for volume output");
   if (ot == NULL)
     return NULL;
@@ -9876,7 +9820,7 @@ struct output_times *mdl_new_output_times_step(struct mdlparse_vars *mpvp,
 struct output_times *mdl_new_output_times_iterations(struct mdlparse_vars *mpvp,
                                                      struct num_expr_list_head *iters)
 {
-  struct output_times *ot = MDL_MEM_GET_DESC(mpvp->output_times_mem,
+  struct output_times *ot = CHECKED_MEM_GET(mpvp->output_times_mem,
                                              "output times for volume output");
   if (ot == NULL)
   {
@@ -9913,7 +9857,7 @@ struct output_times *mdl_new_output_times_iterations(struct mdlparse_vars *mpvp,
 struct output_times *mdl_new_output_times_time(struct mdlparse_vars *mpvp,
                                                struct num_expr_list_head *times)
 {
-  struct output_times *ot = MDL_MEM_GET_DESC(mpvp->output_times_mem,
+  struct output_times *ot = CHECKED_MEM_GET(mpvp->output_times_mem,
                                              "output times for volume output");
   if (ot == NULL)
   {
@@ -10300,7 +10244,7 @@ static struct species_opt_orient *mdl_new_reaction_player(struct mdlparse_vars *
                                                           struct species_opt_orient *spec)
 {
   struct species_opt_orient *new_spec;
-  if ((new_spec = (struct species_opt_orient *) MDL_MEM_GET_DESC(mpvp->mol_data_list_mem, "molecule type")) == NULL)
+  if ((new_spec = (struct species_opt_orient *) CHECKED_MEM_GET(mpvp->mol_data_list_mem, "molecule type")) == NULL)
     return NULL;
 
   *new_spec = *spec;
@@ -10430,69 +10374,78 @@ int mdl_reaction_rate_complex(struct mdlparse_vars *mpvp,
 *************************************************************************/
 static char *create_rx_name(struct mdlparse_vars *mpvp, struct pathway *p)
 {
-#define CRN_LIST_LEN 6
-  char *str_list[CRN_LIST_LEN];
-  char *swap;
-  int i, j;
-  char *retval;
+  UNUSED(mpvp);
 
-  /* HACK: if we have a subunit, it will be the first in the list, and will
-   * need to be deallocated at the end of the function. */
-  int free_su_name = 0;
+  struct species *reagents[3];
+  int n_reagents = 0;
+  int is_complex = 0;
 
-  for (i=0;i<CRN_LIST_LEN;i++) str_list[i] = NULL; 
-  
-  if (p->is_complex[0])
+  /* Store reagents in an array. */
+  reagents[0] = p->reactant1;
+  reagents[1] = p->reactant2;
+  reagents[2] = p->reactant3;
+
+  /* Count non-null reagents. */
+  for (n_reagents = 0; n_reagents < 3; ++ n_reagents)
+    if (reagents[n_reagents] == NULL)
+      break;
+
+  /* Sort reagents. */
+  for (int i = 0; i<n_reagents; ++i)
   {
-    free_su_name = 1;
-    str_list[0] = mdl_alloc_sprintf(mpvp, "(%s)", p->reactant1->sym->name);
-    if (str_list[0] == NULL)
-      return NULL;
-  }
-  else
-    str_list[0] = p->reactant1->sym->name;
-  i=0;
-  if (p->reactant2!=NULL)
-  {
-    str_list[1] = "+";
-    if (p->is_complex[1])
+    for (int j = i+1; j<n_reagents; ++ j)
     {
-      /* XXX: Sanity check - Error if free_su_name is already set */
-      free_su_name = 1;
-      str_list[2] = mdl_alloc_sprintf(mpvp,
-                                      "(%s)",
-                                      p->reactant2->sym->name);
-      if (str_list[2] == NULL)
-        return NULL;
-    }
-    else
-      str_list[2] = p->reactant2->sym->name;
-    i=2;
-  }
-  if (p->reactant3!=NULL)
-  {
-    str_list[i+1] = "+";
-    str_list[i+2] = p->reactant3->sym->name;
-    i+=2;
-  }
-  while (i>0) /* Stupid sort */
-  {
-    for (j=i-2;j>=0;j-=2)
-    {
-      if (p->is_complex[i >> 1]  ||  strcmp(str_list[i],str_list[j])<0)
+      /* If 'i' is a subunit, 'i' wins. */
+      if (p->is_complex[i])
       {
-	swap = str_list[j];
-	str_list[j] = str_list[i];
-	str_list[i] = swap;
+        is_complex = 1;
+        break;
+      }
+
+      /* If 'j' is a subunit, 'j' wins. */
+      else if (p->is_complex[j])
+      {
+        struct species *tmp = reagents[j];
+        reagents[j] = reagents[i];
+        reagents[i] = tmp;
+        is_complex = 1;
+      }
+
+      /* If 'j' precedes 'i', 'j' wins. */
+      else if (strcmp(reagents[j]->sym->name, reagents[i]->sym->name) < 0)
+      {
+        struct species *tmp = reagents[j];
+        reagents[j] = reagents[i];
+        reagents[i] = tmp;
       }
     }
-    i-=2;
   }
 
-  retval = my_strclump(str_list);
-  if (free_su_name) free(str_list[0]);
-  return retval;
-#undef CRN_LIST_LEN
+  /* Now, produce a name! */
+  if (is_complex)
+  {
+    switch (n_reagents)
+    {
+      case 1: return alloc_sprintf("(%s)", reagents[0]->sym->name);
+      case 2: return alloc_sprintf("(%s)+%s", reagents[0]->sym->name, reagents[1]->sym->name);
+      case 3: return alloc_sprintf("(%s)+%s+%s", reagents[0]->sym->name, reagents[1]->sym->name, reagents[2]->sym->name);
+      default:
+        mcell_internal_error("Invalid number of reagents in reaction pathway (%d).", n_reagents);
+        return NULL;
+    }
+  }
+  else
+  {
+    switch (n_reagents)
+    {
+      case 1: return alloc_sprintf("%s", reagents[0]->sym->name);
+      case 2: return alloc_sprintf("%s+%s", reagents[0]->sym->name, reagents[1]->sym->name);
+      case 3: return alloc_sprintf("%s+%s+%s", reagents[0]->sym->name, reagents[1]->sym->name, reagents[2]->sym->name);
+      default:
+        mcell_internal_error("Invalid number of reagents in reaction pathway (%d).", n_reagents);
+        return NULL;
+    }
+  }
 }
 
 /*************************************************************************
@@ -10593,6 +10546,8 @@ static struct product *sort_product_list(struct product *product_head)
 *************************************************************************/
 static char *create_prod_signature(struct mdlparse_vars *mpvp, struct product **product_head)
 {
+  UNUSED(mpvp);
+
   /* points to the head of the sorted alphabetically list of products */
   char *prod_signature = NULL;
 
@@ -10606,10 +10561,9 @@ static char *create_prod_signature(struct mdlparse_vars *mpvp, struct product **
   char *temp_str = NULL;
   while (current->next != NULL)
   {
-    prod_signature = mdl_alloc_sprintf(mpvp,
-                                       "%s+%s",
-                                       prod_signature,
-                                       current->next->prod->sym->name);
+    prod_signature = CHECKED_SPRINTF("%s+%s",
+                                     prod_signature,
+                                     current->next->prod->sym->name);
     if (prod_signature == NULL)
     {
       if (temp_str != NULL) free(temp_str);
@@ -10663,9 +10617,9 @@ static char *concat_rx_name(struct mdlparse_vars *mpvp,
 
   /* Build the name */
   if (is_complex1)
-    rx_name = mdl_alloc_sprintf(mpvp, "(%s)+%s", name1, name2);
+    rx_name = CHECKED_SPRINTF("(%s)+%s", name1, name2);
   else
-    rx_name = mdl_alloc_sprintf(mpvp, "%s+%s", name1, name2);
+    rx_name = CHECKED_SPRINTF("%s+%s", name1, name2);
 
   /* Die if we failed to allocate memory */
   if (rx_name == NULL)
@@ -10757,9 +10711,8 @@ static int invert_current_reaction_pathway(struct mdlparse_vars *mpvp,
     if (prodp->is_complex)
     {
       is_complex = 1;
-      inverse_name = mdl_alloc_sprintf(mpvp,
-                                       "(%s)",
-                                       prodp->prod->sym->name);
+      inverse_name = CHECKED_SPRINTF("(%s)",
+                                     prodp->prod->sym->name);
     }
     else
       inverse_name = mdl_strdup(mpvp, prodp->prod->sym->name);
@@ -10802,12 +10755,8 @@ static int invert_current_reaction_pathway(struct mdlparse_vars *mpvp,
   rx->n_reactants = nprods;
   rx->n_pathways++;
   
-  path = (struct pathway*)mem_get(mpvp->path_mem);
-  if (path==NULL)
-  {
-      mdlerror_fmt(mpvp, "File '%s', Line %ld: Out of memory while storing reaction pathway.", __FILE__, (long)__LINE__);
+  if ((path = (struct pathway*) CHECKED_MEM_GET(mpvp->path_mem, "reaction pathway")) == NULL)
       return 1;
-  }
   path->pathname=NULL;
   path->flags = 0;
   path->reactant1=prodp->prod;
@@ -10874,14 +10823,13 @@ static int invert_current_reaction_pathway(struct mdlparse_vars *mpvp,
       path->km_filename = NULL;
       path->km_complex = reverse_rate->v.rate_complex;
       break;
+
+    default: UNHANDLED_CASE(reverse_rate->rate_type);
   }
   
-  path->product_head = (struct product*)mem_get(mpvp->prod_mem);
-  if (path->product_head==NULL)
-  {
-      mdlerror(mpvp, "Out of memory storing reaction pathway");
-      return 1;
-  }
+  path->product_head = (struct product*) CHECKED_MEM_GET(mpvp->prod_mem, "reaction product");
+  if (path->product_head == NULL)
+    return 1;
 
   path->product_head->orientation = pathp->orientation1;
   path->product_head->prod = pathp->reactant1;
@@ -10892,12 +10840,9 @@ static int invert_current_reaction_pathway(struct mdlparse_vars *mpvp,
 
   if ((pathp->reactant2!=NULL) && ((pathp->reactant2->flags & IS_SURFACE) == 0))
   {
-    path->product_head->next = (struct product*)mem_get(mpvp->prod_mem);
-    if (path->product_head->next==NULL)
-    {
-      mdlerror(mpvp, "Out of memory storing reaction pathway");
+    path->product_head->next = (struct product*) CHECKED_MEM_GET(mpvp->prod_mem, "reaction product");
+    if (path->product_head->next == NULL)
       return 1;
-    }
     path->product_head->next->orientation = pathp->orientation2;
     path->product_head->next->prod = pathp->reactant2;
     path->product_head->next->is_complex = pathp->is_complex[1];
@@ -10908,12 +10853,9 @@ static int invert_current_reaction_pathway(struct mdlparse_vars *mpvp,
 
   if ((pathp->reactant3!=NULL) && ((pathp->reactant3->flags & IS_SURFACE) == 0))
   {
-    path->product_head->next->next = (struct product*)mem_get(mpvp->prod_mem);
+    path->product_head->next->next = (struct product*) CHECKED_MEM_GET(mpvp->prod_mem, "reaction product");
     if (path->product_head->next->next == NULL)
-    {
-      mdlerror(mpvp, "Out of memory storing reaction pathway");
       return 1;
-    }
     path->product_head->next->next->orientation = pathp->orientation3;
     path->product_head->next->next->prod = pathp->reactant3;
     path->product_head->next->next->is_complex = pathp->is_complex[2];
@@ -11007,7 +10949,7 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
   struct pathway *pathp;
 
   /* Create pathway */
-  pathp = (struct pathway*) MDL_MEM_GET_DESC(mpvp->path_mem, "reaction pathway");
+  pathp = (struct pathway*) CHECKED_MEM_GET(mpvp->path_mem, "reaction pathway");
   if (pathp == NULL)
     return NULL;
   memset(pathp, 0, sizeof(struct pathway));
@@ -11023,11 +10965,11 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
     /* Extract orientation and species */
     short orient = current_reactant->orient_set ? current_reactant->orient : 0;
     struct species *reactant_species = (struct species *) current_reactant->mol_type->value;
-    
+
     /* Count the type of this reactant */
     if (current_reactant->orient_set)
       ++ oriented_count;
-    if (reactant_species->flags & NOT_FREE) 
+    if (reactant_species->flags & NOT_FREE)
     {
       all_3d = 0;
       if (reactant_species->flags & ON_GRID)
@@ -11075,6 +11017,8 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
         pathp->reactant3 = reactant_species;
         pathp->orientation3 = orient;
         break;
+
+      default: UNHANDLED_CASE(reactant_idx);
     }
   }
   mem_put_list(mpvp->mol_data_list_mem, reactants);
@@ -11141,7 +11085,7 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
 
       case 0:
       default:
-        mdlerror_fmt(mpvp, "File %s, Line %d: Internal error: catalytic reagent ended up in an invalid slot (%d)", __FILE__, __LINE__, reactant_idx);
+        mcell_internal_error("Catalytic reagent ended up in an invalid slot (%d).", reactant_idx);
         return NULL;
     }
     catalytic = reactant_idx;
@@ -11212,7 +11156,7 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
   if (num_surfaces > 1)
   {
     /* Shouldn't happen */
-    mdlerror_fmt(mpvp, "File %s, Line %d: Internal error: Too many surfaces--reactions can take place on at most one surface.", __FILE__, __LINE__);
+    mcell_internal_error("Too many surfaces--reactions can take place on at most one surface.");
     return NULL;
   }
   if (num_surfaces == rxnp->n_reactants)
@@ -11273,14 +11217,14 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
       case 1: catalyst = pathp->reactant2; catalyst_orient = pathp->orientation2; break;
       case 2: catalyst = pathp->reactant3; catalyst_orient = pathp->orientation3; break;
       default:
-              mdlerror_fmt(mpvp, "File %s, Line %d: Internal error: catalytic reagent index is invalid", __FILE__, __LINE__);
-              return NULL;
+        mcell_internal_error("Catalytic reagent index is invalid.");
+        return NULL;
     }
 
     if (bidirectional || (! (catalyst->flags & IS_SURFACE)))
     {
       struct product *prodp;
-      prodp = (struct product*) MDL_MEM_GET_DESC(mpvp->prod_mem,
+      prodp = (struct product*) CHECKED_MEM_GET(mpvp->prod_mem,
                                                  "reaction product");
       if (prodp == NULL)
         return NULL;
@@ -11465,6 +11409,8 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
       pathp->km_filename = NULL;
       pathp->km_complex = rate->forward_rate.v.rate_complex;
       break;
+
+    default: UNHANDLED_CASE(rate->forward_rate.rate_type);
   }
 
   /* Add the pathway to the list for this reaction */
@@ -11561,7 +11507,7 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
     if (surface != -1  &&  surface != catalytic)
     {
       struct product *prodp;
-      prodp = (struct product *) MDL_MEM_GET_DESC(mpvp->prod_mem,
+      prodp = (struct product *) CHECKED_MEM_GET(mpvp->prod_mem,
                                                   "reaction product");
       if (prodp == NULL)
       {
@@ -11583,7 +11529,7 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
 
         case 0:
         default:
-          mdlerror_fmt(mpvp, "File %s, Line %d: Internal error: Surface appears in invalid reactant slot in reaction (%d)", __FILE__, __LINE__, surface);
+          mcell_internal_error("Surface appears in invalid reactant slot in reaction (%d).", surface);
           break;
       }
       prodp->next = pathp->product_head;
@@ -11937,7 +11883,7 @@ struct eff_dat *mdl_new_effector_data(struct mdlparse_vars *mpvp,
     return NULL;
   }
 
-  if ((effdp = MDL_MALLOC_STRUCT_DESC(struct eff_dat, "surface molecule data")) == NULL)
+  if ((effdp = CHECKED_MALLOC_STRUCT(struct eff_dat, "surface molecule data")) == NULL)
     return NULL;
 
   effdp->next = NULL;
@@ -11953,7 +11899,7 @@ struct eff_dat *mdl_new_effector_data(struct mdlparse_vars *mpvp,
  *************************************************************************/
 
 /*************************************************************************
-macro_relation_index:
+ macro_relation_index:
     Find a relation by name in the relations table.
 
     In:  struct subunit_relation const *relations - array of subunit relations
@@ -11973,7 +11919,7 @@ static int macro_relation_index(struct subunit_relation const *relations,
 }
 
 /*************************************************************************
-macro_convert_clause:
+ macro_convert_clause:
     Fill in a single row in the rate rule table.
 
     In: struct macro_rate_clause *clauses - linked list of conditions to match
@@ -12043,6 +11989,8 @@ static int macro_build_rate_table(struct mdlparse_vars *mpvp,
                                   struct macro_rate_rule *rules,
                                   int is_surface)
 {
+  UNUSED(mpvp);
+
   /* Count the rules */
   struct macro_rate_rule *rules_temp;
   int rule_count = 0, rule_index;
@@ -12056,21 +12004,21 @@ static int macro_build_rate_table(struct mdlparse_vars *mpvp,
   cr->invert = NULL;
   cr->rates = NULL;
   cr->orientations = NULL;
-  cr->neighbors = MDL_MALLOC_ARRAY_DESC(struct species *,
+  cr->neighbors = CHECKED_MALLOC_ARRAY(struct species *,
                                         rule_count * num_relations,
                                         "macromolecule rate rule neighbors table");
   if (cr->neighbors == NULL) return 1;
-  cr->invert    = MDL_MALLOC_ARRAY_DESC(int,
+  cr->invert    = CHECKED_MALLOC_ARRAY(int,
                                         rule_count * num_relations,
                                         "macromolecule rate rule invert table");
   if (cr->invert == NULL) return 1;
-  cr->rates     = MDL_MALLOC_ARRAY_DESC(double,
+  cr->rates     = CHECKED_MALLOC_ARRAY(double,
                                         rule_count * num_relations,
                                         "macromolecule rate rule rates");
   if (cr->rates == NULL) return 1;
   if (is_surface)
   {
-    cr->orientations = MDL_MALLOC_ARRAY_DESC(signed char,
+    cr->orientations = CHECKED_MALLOC_ARRAY(signed char,
                                              rule_count * num_relations,
                                              "macromolecule rate rule orientations");
     if (cr->orientations == NULL) return 1;
@@ -12143,7 +12091,7 @@ static int macro_build_rate_tables(struct mdlparse_vars *mpvp,
   /* Now, convert each rate table to run-time usable format. */
   for (; rates != NULL; rates = rates->next)
   {
-    struct complex_rate *cr = MDL_MALLOC_STRUCT_DESC(struct complex_rate,
+    struct complex_rate *cr = CHECKED_MALLOC_STRUCT(struct complex_rate,
                                                      "macromolecular rate table");
     if (cr == NULL)
       return 1;
@@ -12186,8 +12134,10 @@ static struct macro_subunit_assignment *macro_new_subunit_assignment(struct mdlp
                                                                      struct species *mol,
                                                                      short orient)
 {
+  UNUSED(mpvp);
+
   struct macro_subunit_assignment *a;
-  a = MDL_MALLOC_STRUCT_DESC(struct macro_subunit_assignment, "macromolecule subunit assignments");
+  a = CHECKED_MALLOC_STRUCT(struct macro_subunit_assignment, "macromolecule subunit assignments");
   if (a == NULL)
     return NULL;
   a->next = NULL;
@@ -12212,6 +12162,8 @@ static char *macro_linear_array_index_to_string(struct mdlparse_vars *mpvp,
                                                 int linear_index,
                                                 struct macro_topology *topo)
 {
+  UNUSED(mpvp);
+
   int subunit_index_rem = linear_index;
   int dim_index;
   int coords[topo->head->dimensionality];
@@ -12229,12 +12181,12 @@ static char *macro_linear_array_index_to_string(struct mdlparse_vars *mpvp,
     {
       subunit_index_rem /= topo->head->dimensions[dim_index];
       if (dim_index == 0)
-        newmessage = mdl_alloc_sprintf(mpvp, "[%d, ", coords[dim_index]);
+        newmessage = CHECKED_SPRINTF("[%d, ", coords[dim_index]);
       else
-        newmessage = mdl_alloc_sprintf(mpvp, "%s%d, ", message, coords[dim_index]);
+        newmessage = CHECKED_SPRINTF("%s%d, ", message, coords[dim_index]);
     }
     else
-      newmessage = mdl_alloc_sprintf(mpvp, "%s%d]", message, coords[dim_index]);
+      newmessage = CHECKED_SPRINTF("%s%d]", message, coords[dim_index]);
     if (message != NULL) free(message);
     message = newmessage;
   }
@@ -12276,7 +12228,7 @@ struct macro_relation_state *mdl_assemble_complex_relation_state(struct mdlparse
     }
   }
 
-  relstate = MDL_MALLOC_STRUCT_DESC(struct macro_relation_state, "macromolecule subunit relation state");
+  relstate = CHECKED_MALLOC_STRUCT(struct macro_relation_state, "macromolecule subunit relation state");
   if (relstate == NULL)
     return NULL;
 
@@ -12537,7 +12489,7 @@ static struct macro_geometry *macro_new_geometry(struct mdlparse_vars *mpvp,
                                                  struct num_expr_list *coord_indices,
                                                  struct vector3 *where)
 {
-  struct macro_geometry *mg = MDL_MALLOC_STRUCT_DESC(struct macro_geometry,
+  struct macro_geometry *mg = CHECKED_MALLOC_STRUCT(struct macro_geometry,
                                                      "macromolecule geometry");
   if (mg == NULL)
     return NULL;
@@ -12889,8 +12841,10 @@ static struct macro_relationship *macro_new_relationship(struct mdlparse_vars *m
                                                          char *name,
                                                          struct num_expr_list *indices)
 {
+  UNUSED(mpvp);
+
   struct macro_relationship *mr;
-  mr = MDL_MALLOC_STRUCT_DESC(struct macro_relationship, "macromolecule subunit relationship");
+  mr = CHECKED_MALLOC_STRUCT(struct macro_relationship, "macromolecule subunit relationship");
   if (mr == NULL)
     return NULL;
   mr->next = NULL;
@@ -13064,8 +13018,10 @@ static struct macro_rate_ruleset *macro_new_ruleset(struct mdlparse_vars *mpvp,
                                                     char *name,
                                                     struct macro_rate_rule *rules)
 {
+  UNUSED(mpvp);
+
   struct macro_rate_ruleset *mrr;
-  mrr = MDL_MALLOC_STRUCT_DESC(struct macro_rate_ruleset, "macromolecular rate ruleset");
+  mrr = CHECKED_MALLOC_STRUCT(struct macro_rate_ruleset, "macromolecular rate ruleset");
   if (mrr == NULL)
     return NULL;
   mrr->next = NULL;
@@ -13114,8 +13070,10 @@ static struct macro_rate_rule *macro_new_rule(struct mdlparse_vars *mpvp,
                                               struct macro_rate_clause *clauses,
                                               double rate)
 {
+  UNUSED(mpvp);
+
   struct macro_rate_rule *mrr;
-  mrr = MDL_MALLOC_STRUCT_DESC(struct macro_rate_rule, "macromolecular rate rule");
+  mrr = CHECKED_MALLOC_STRUCT(struct macro_rate_rule, "macromolecular rate rule");
   if (mrr == NULL)
     return NULL;
   mrr->next = NULL;
@@ -13167,6 +13125,7 @@ static int macro_check_rate_clause(struct mdlparse_vars *mpvp,
                                    struct species *mol_type)
 {
   UNUSED(invert);
+
   /* Disallow other complex molecules */
   if (mol_type->flags & IS_COMPLEX)
   {
@@ -13223,8 +13182,10 @@ static struct macro_rate_clause *macro_new_rate_clause(struct mdlparse_vars *mpv
                                                        struct species *mol,
                                                        short orient)
 {
+  UNUSED(mpvp);
+
   struct macro_rate_clause *mrc;
-  mrc = MDL_MALLOC_STRUCT_DESC(struct macro_rate_clause, "macromolecular rate rule clause");;
+  mrc = CHECKED_MALLOC_STRUCT(struct macro_rate_clause, "macromolecular rate rule clause");;
   if (mrc == NULL)
     return NULL;
   mrc->next = NULL;
@@ -13291,7 +13252,7 @@ struct macro_topology *mdl_assemble_topology(struct mdlparse_vars *mpvp,
   struct macro_topology *mtopo;
 
   /* Allocate and initialize the topology structure */
-  if ((mtopo = MDL_MALLOC_STRUCT_DESC(struct macro_topology, "macromolecule topology")) == NULL)
+  if ((mtopo = CHECKED_MALLOC_STRUCT(struct macro_topology, "macromolecule topology")) == NULL)
   {
     if (! dims->shared)
       mdl_free_numeric_list(dims->value_head);
@@ -13302,7 +13263,7 @@ struct macro_topology *mdl_assemble_topology(struct mdlparse_vars *mpvp,
   /* Allocate a single topology element (i.e. a single MxNx...xP array.  We may
    * later support other topologies, but this is the only one for now.
    */
-  if ((mtopo->head = MDL_MALLOC_STRUCT_DESC(struct macro_topology_element, "macromolecule topology element")) == NULL)
+  if ((mtopo->head = CHECKED_MALLOC_STRUCT(struct macro_topology_element, "macromolecule topology element")) == NULL)
   {
     free(mtopo);
     if (! dims->shared)
@@ -13314,7 +13275,8 @@ struct macro_topology *mdl_assemble_topology(struct mdlparse_vars *mpvp,
 
   /* Count dimensionality, allocate space, and copy dimensions into array */
   mtopo->head->dimensionality = dims->value_count;
-  if ((mtopo->head->dimensions =  MDL_MALLOC_ARRAY(int, mtopo->head->dimensionality)) == NULL)
+  if ((mtopo->head->dimensions =  CHECKED_MALLOC_ARRAY(int, mtopo->head->dimensionality,
+                                                       "macromolecule topology")) == NULL)
   {
     free(mtopo->head);
     free(mtopo);
@@ -13365,8 +13327,10 @@ struct macro_topology *mdl_assemble_topology(struct mdlparse_vars *mpvp,
 *************************************************************************/
 struct macro_subunit_spec *mdl_assemble_subunit_spec_component(struct mdlparse_vars *mpvp, int from, int to)
 {
+  UNUSED(mpvp);
+
   struct macro_subunit_spec *cmp;
-  cmp = MDL_MALLOC_STRUCT_DESC(struct macro_subunit_spec, "macromolecular subunit specification");
+  cmp = CHECKED_MALLOC_STRUCT(struct macro_subunit_spec, "macromolecular subunit specification");
   if (cmp == NULL)
     return NULL;
 
@@ -13377,7 +13341,7 @@ struct macro_subunit_spec *mdl_assemble_subunit_spec_component(struct mdlparse_v
 }
 
 /*************************************************************************
-macro_assign_initial_subunits_helper:
+ macro_assign_initial_subunits_helper:
     Helper function to assign the initial subunits.  This recursive helper
     function is used to iterate over the (arbitrarily many) dimensions of the
     molecule topology.
@@ -13465,7 +13429,7 @@ static void macro_assign_initial_subunits(struct complex_species *cs,
 }
 
 /*************************************************************************
-macro_assign_geometry:
+ macro_assign_geometry:
     Convert parse-time geometry structures to run-time geometry structures.
 
  In: cs: species to receive geometry
@@ -13536,7 +13500,7 @@ static int macro_assign_relationships(struct mdlparse_vars *mpvp,
                                       struct macro_topology *topo,
                                       struct macro_relationship *rels)
 {
-  int i;
+  UNUSED(mpvp);
 
   cs->relations = NULL;
 
@@ -13548,7 +13512,7 @@ static int macro_assign_relationships(struct mdlparse_vars *mpvp,
 
   /* Allocate space for relations */
   struct subunit_relation *final_relations;
-  final_relations = MDL_MALLOC_ARRAY_DESC(struct subunit_relation,
+  final_relations = CHECKED_MALLOC_ARRAY(struct subunit_relation,
                                           count,
                                           "macromolecule relation table");
   if (final_relations == NULL)
@@ -13560,17 +13524,17 @@ static int macro_assign_relationships(struct mdlparse_vars *mpvp,
   /* Compute scaling factors for each array index */
   int scales[ topo->head->dimensionality + 1 ];
   scales[ topo->head->dimensionality ] = 1;
-  for (i = topo->head->dimensionality; i > 0; -- i)
+  for (int i = topo->head->dimensionality; i > 0; -- i)
     scales[i-1] = scales[i] * topo->head->dimensions[i - 1];
 
   /* Copy out all relationships */
   for (count = 0; rels != NULL; ++ count, rels = rels->next)
   {
     int coords[ topo->head->dimensionality ];
-    int *targets = MDL_MALLOC_ARRAY(int, topo->total_subunits);
+    int *targets = CHECKED_MALLOC_ARRAY(int, topo->total_subunits, "macromolecule subunit relations");
     if (targets == NULL)
       return 1;
-    for (i = 0; i < topo->head->dimensionality; ++i)
+    for (int i = 0; i < topo->head->dimensionality; ++i)
       coords[i] = 0;
 
     /* Fill in the current entry in the relation table. */
@@ -13617,7 +13581,7 @@ static int macro_assign_relationships(struct mdlparse_vars *mpvp,
 
       /* Advance the coordinates */
       ++ linear_idx;
-      for (i = topo->head->dimensionality - 1; i >= 0; --i)
+      for (int i = topo->head->dimensionality - 1; i >= 0; --i)
       {
         if (++ coords[i] == topo->head->dimensions[i]  &&  i > 0)
           coords[i] = 0;
@@ -13645,14 +13609,15 @@ static int macro_assign_inverse_relationships(struct mdlparse_vars *mpvp,
                                               struct complex_species *cs,
                                               struct macro_topology *topo)
 {
-  int rel_index;
+  UNUSED(mpvp);
+
   struct subunit_relation *final_relations = (struct subunit_relation *) cs->relations;
-  for (rel_index = 0; rel_index < cs->num_relations; ++ rel_index)
+  for (int rel_index = 0; rel_index < cs->num_relations; ++ rel_index)
   {
     int su_index;
 
     /* Allocate inverse table and initialize entries to -1 */
-    int *inverse = MDL_MALLOC_ARRAY(int, topo->total_subunits);
+    int *inverse = CHECKED_MALLOC_ARRAY(int, topo->total_subunits, "macromolecule subunit inverse relations");
     if (inverse == NULL)
       return 1;
 
@@ -14035,7 +14000,9 @@ static int equivalent_geometry(struct pathway *p1, struct pathway *p2, int n)
 static struct rxn *create_sibling_reaction(struct mdlparse_vars *mpvp,
                                            struct rxn *rx)
 {
-  struct rxn *reaction = MDL_MALLOC_STRUCT_DESC(struct rxn, "reaction");
+  UNUSED(mpvp);
+
+  struct rxn *reaction = CHECKED_MALLOC_STRUCT(struct rxn, "reaction");
   if (reaction == NULL)
     return NULL;
   reaction->next = NULL;
@@ -14043,7 +14010,6 @@ static struct rxn *create_sibling_reaction(struct mdlparse_vars *mpvp,
   reaction->n_reactants = rx->n_reactants;
   reaction->n_pathways = 0;
   reaction->cum_probs = NULL;
-  reaction->cat_probs = NULL;
   reaction->product_idx = NULL;
   reaction->rates = NULL;
   reaction->max_fixed_p = 0.0;
@@ -14167,6 +14133,8 @@ static struct rxn *split_reaction(struct mdlparse_vars *mpvp, struct rxn *rx)
 static void check_reaction_for_duplicate_pathways(struct mdlparse_vars *mpvp,
                                                   struct pathway **head)
 {
+  UNUSED(mpvp);
+
    struct pathway *result = NULL; /* build the sorted list here */
    struct pathway *null_result = NULL; /* put pathways with NULL 
                                           prod_signature field here */
@@ -14212,15 +14180,19 @@ static void check_reaction_for_duplicate_pathways(struct mdlparse_vars *mpvp,
                 products in the reaction->pathway_head
                 after calling the function "split_reaction()"
        */
-            if(current->reactant2 == NULL){
-               fprintf(mpvp->vol->err_file, "Exact duplicates of reaction %s  ----> NULL are not allowed.  Please verify that orientations of reactants are not equivalent.\n", current->reactant1->sym->name);
-            }else if(current->reactant3 == NULL){
-               fprintf(mpvp->vol->err_file, "Exact duplicates of reaction %s + %s  ----> NULL are not allowed.  Please verify that orientations of reactants are not equivalent.\n", current->reactant1->sym->name, current->reactant2->sym->name);
-            }else{
-               fprintf(mpvp->vol->err_file, "Exact duplicates of reaction %s + %s + %s  ----> NULL are not allowed.  Please verify that orientations of reactants are not equivalent.\n", current->reactant1->sym->name, current->reactant2->sym->name, current->reactant3->sym->name);
-            }
-            exit(EXIT_FAILURE);
-      }
+       if (current->reactant2 == NULL)
+         mcell_error("Exact duplicates of reaction %s  ----> NULL are not allowed.  Please verify that orientations of reactants are not equivalent.",
+                     current->reactant1->sym->name);
+       else if(current->reactant3 == NULL)
+         mcell_error("Exact duplicates of reaction %s + %s  ----> NULL are not allowed.  Please verify that orientations of reactants are not equivalent.",
+                     current->reactant1->sym->name,
+                     current->reactant2->sym->name);
+       else
+         mcell_error("Exact duplicates of reaction %s + %s + %s  ----> NULL are not allowed.  Please verify that orientations of reactants are not equivalent.",
+                     current->reactant1->sym->name,
+                     current->reactant2->sym->name,
+                     current->reactant3->sym->name);
+     }
 
     /* now sort the remaining pathway list by "prod_signature" field
        and check for the duplicates */       
@@ -14276,12 +14248,12 @@ static void check_reaction_for_duplicate_pathways(struct mdlparse_vars *mpvp,
          num_players = num_reactants + num_products;
 
          /* create arrays of players orientations */
-         orient_players_1 = MDL_MALLOC_ARRAY(int, num_players);
+         orient_players_1 = CHECKED_MALLOC_ARRAY(int, num_players, "reaction player orientations");
          if (orient_players_1 == NULL)
-           exit(EXIT_FAILURE);
-         orient_players_2 = MDL_MALLOC_ARRAY(int, num_players);
+           mcell_die();
+         orient_players_2 = CHECKED_MALLOC_ARRAY(int, num_players, "reaction player orientations");
          if (orient_players_2 == NULL)
-           exit(EXIT_FAILURE);
+           mcell_die();
 
          if(current->reactant1!=NULL) orient_players_1[0]=current->orientation1;
          if(current->reactant2!=NULL) orient_players_1[1]=current->orientation2;
@@ -14338,17 +14310,23 @@ static void check_reaction_for_duplicate_pathways(struct mdlparse_vars *mpvp,
          }
 
          if(pathways_equivalent)
-         {    
-           if(current->reactant2 == NULL){
-             fprintf(mpvp->vol->err_file, "Exact duplicates of reaction %s  ----> %s are not allowed.  Please verify that orientations of reactants and products are not equivalent.\n", current->reactant1->sym->name, current->prod_signature);
-           }else if(current->reactant3 == NULL){
-             fprintf(mpvp->vol->err_file, "Exact duplicates of reaction %s + %s  ----> %s are not allowed.  Please verify that orientations of reactants and products are not equivalent.\n", current->reactant1->sym->name, current->reactant2->sym->name, current->prod_signature);
-           }else{
-             fprintf(mpvp->vol->err_file, "Exact duplicates of reaction %s + %s + %s  ----> %s are not allowed.  Please verify that orientations of reactants and products are not equivalent.\n", current->reactant1->sym->name, current->reactant2->sym->name, current->reactant3->sym->name, current->prod_signature);
-           }
-           exit(EXIT_FAILURE);
+         {
+           if (current->reactant2 == NULL)
+             mcell_error("Exact duplicates of reaction %s  ----> %s are not allowed.  Please verify that orientations of reactants are not equivalent.",
+                         current->reactant1->sym->name,
+                         current->prod_signature);
+           else if(current->reactant3 == NULL)
+             mcell_error("Exact duplicates of reaction %s + %s  ----> %s are not allowed.  Please verify that orientations of reactants are not equivalent.",
+                         current->reactant1->sym->name,
+                         current->reactant2->sym->name,
+                         current->prod_signature);
+           else
+             mcell_error("Exact duplicates of reaction %s + %s + %s  ----> %s are not allowed.  Please verify that orientations of reactants are not equivalent.",
+                         current->reactant1->sym->name,
+                         current->reactant2->sym->name,
+                         current->reactant3->sym->name,
+                         current->prod_signature);
          }
-
        }
 
        current = current->next;
@@ -14366,7 +14344,7 @@ static void check_reaction_for_duplicate_pathways(struct mdlparse_vars *mpvp,
 }
 
 /*************************************************************************
-reaction_has_complex_rates:
+ reaction_has_complex_rates:
     Check if a reaction has any complex rates.
 
 
@@ -14388,7 +14366,7 @@ static int reaction_has_complex_rates(struct rxn *rx)
 }
 
 /*************************************************************************
-reorder_varying_pathways:
+ reorder_varying_pathways:
     Sort pathways so that all complex rates come at the end.  This allows us to
     quickly determine whether a reaction definitely occurs, definitely does not
     occur, or may occur depending on the states of the subunits in the complex.
@@ -14400,6 +14378,8 @@ reorder_varying_pathways:
 *************************************************************************/
 static int reorder_varying_pathways(struct mdlparse_vars *mpvp, struct rxn *rx)
 {
+  UNUSED(mpvp);
+
   int num_fixed = 0, num_varying = 0;
   int num_fixed_players = 0, num_varying_players = 0;
   int pathway_idx;
@@ -14442,26 +14422,23 @@ static int reorder_varying_pathways(struct mdlparse_vars *mpvp, struct rxn *rx)
   unsigned char *new_is_complex = NULL;
   u_int *new_product_index = NULL;
   double *new_cum_probs = NULL;
-  double *new_cat_probs = NULL;
   struct complex_rate **new_complex_rates = NULL;
   struct pathway_info *new_pathway_info = NULL;
 
-  if ((newplayers = MDL_MALLOC_ARRAY(struct species*, rx->product_idx[rx->n_pathways])) == NULL)
+  if ((newplayers = CHECKED_MALLOC_ARRAY(struct species*, rx->product_idx[rx->n_pathways], "reaction players array")) == NULL)
     goto failure;
-  if ((newgeometries = MDL_MALLOC_ARRAY(short, rx->product_idx[rx->n_pathways])) == NULL)
+  if ((newgeometries = CHECKED_MALLOC_ARRAY(short, rx->product_idx[rx->n_pathways], "reaction geometries array")) == NULL)
     goto failure;
   if (rx->is_complex)
-    if ((new_is_complex = MDL_MALLOC_ARRAY(unsigned char, rx->product_idx[rx->n_pathways])) == NULL)
+    if ((new_is_complex = CHECKED_MALLOC_ARRAY(unsigned char, rx->product_idx[rx->n_pathways], "reaction 'is complex' flag array")) == NULL)
       goto failure;
-  if ((new_product_index = MDL_MALLOC_ARRAY(u_int, rx->product_idx[rx->n_pathways] + 1)) == NULL)
+  if ((new_product_index = CHECKED_MALLOC_ARRAY(u_int, rx->product_idx[rx->n_pathways] + 1, "reaction product index array")) == NULL)
     goto failure;
-  if ((new_cum_probs = MDL_MALLOC_ARRAY(double, rx->n_pathways)) == NULL)
+  if ((new_cum_probs = CHECKED_MALLOC_ARRAY(double, rx->n_pathways, "reaction cumulative probabilities array")) == NULL)
     goto failure;
-  if ((new_cat_probs = MDL_MALLOC_ARRAY(double, rx->n_pathways)) == NULL)
+  if ((new_complex_rates = CHECKED_MALLOC_ARRAY(struct complex_rate *, rx->n_pathways, "reaction complex rates array")) == NULL)
     goto failure;
-  if ((new_complex_rates = MDL_MALLOC_ARRAY(struct complex_rate *, rx->n_pathways)) == NULL)
-    goto failure;
-  if ((new_pathway_info = MDL_MALLOC_ARRAY(struct pathway_info, rx->n_pathways)) == NULL)
+  if ((new_pathway_info = CHECKED_MALLOC_ARRAY(struct pathway_info, rx->n_pathways, "reaction pathway info")) == NULL)
     goto failure;
 
   memcpy(newplayers, rx->players, rx->n_reactants * sizeof(struct species *));
@@ -14507,10 +14484,9 @@ static int reorder_varying_pathways(struct mdlparse_vars *mpvp, struct rxn *rx)
     if (new_is_complex)
       memcpy(new_is_complex + dest_player_idx,
              rx->is_complex + rx->product_idx[idx],
-             num_players_to_copy);
+             sizeof(unsigned char) * num_players_to_copy);
     new_product_index[dest_pathway] = dest_player_idx;
     new_cum_probs[dest_pathway] = rx->cum_probs[idx];
-    new_cat_probs[dest_pathway] = rx->cat_probs[idx];
     new_complex_rates[dest_pathway] = rx->rates[idx];
     new_pathway_info[dest_pathway].count = 0.0;
     new_pathway_info[dest_pathway].pathname = rx->info[idx].pathname;
@@ -14529,7 +14505,6 @@ static int reorder_varying_pathways(struct mdlparse_vars *mpvp, struct rxn *rx)
     free(rx->is_complex);
   free(rx->product_idx);
   free(rx->cum_probs);
-  free(rx->cat_probs);
   free(rx->rates);
   free(rx->info);
 
@@ -14538,7 +14513,6 @@ static int reorder_varying_pathways(struct mdlparse_vars *mpvp, struct rxn *rx)
   rx->is_complex = new_is_complex;
   rx->product_idx = new_product_index;
   rx->cum_probs = new_cum_probs;
-  rx->cat_probs = new_cat_probs;
   rx->rates = new_complex_rates;
   rx->info = new_pathway_info;
 
@@ -14550,7 +14524,6 @@ failure:
   if (new_is_complex) free(new_is_complex);
   if (new_product_index) free(new_product_index);
   if (new_cum_probs) free(new_cum_probs);
-  if (new_cat_probs) free(new_cat_probs);
   if (new_complex_rates) free(new_complex_rates);
   if (new_pathway_info) free(new_pathway_info);
   return 1;
@@ -14749,14 +14722,14 @@ static int build_reaction_hash_table(struct mdlparse_vars *mpvp, int num_rx)
   if (rx_hash == 0) rx_hash = MAX_RX_HASH;
   if (rx_hash > MAX_RX_HASH) rx_hash = MAX_RX_HASH;
 #ifdef REPORT_RXN_HASH_STATS
-  fprintf(mpvp->vol->log_file, "Num rxns: %d\n", num_rx);
-  fprintf(mpvp->vol->log_file, "Size of hash: %d\n", rx_hash);
+  mcell_log("Num rxns: %d", num_rx);
+  mcell_log("Size of hash: %d", rx_hash);
 #endif
   
   /* Create the reaction hash table */
   mpvp->vol->rx_hashsize = rx_hash;
   rx_hash -= 1;
-  rx_tbl = MDL_MALLOC_ARRAY_DESC(struct rxn*, mpvp->vol->rx_hashsize, "reaction hash table");
+  rx_tbl = CHECKED_MALLOC_ARRAY(struct rxn*, mpvp->vol->rx_hashsize, "reaction hash table");
   if (rx_tbl==NULL)
      return 1;
   mpvp->vol->reaction_hash = rx_tbl;
@@ -14786,7 +14759,7 @@ static int build_reaction_hash_table(struct mdlparse_vars *mpvp, int num_rx)
 #ifdef REPORT_RXN_HASH_STATS
       if (rx_tbl[j] != NULL)
       {
-        fprintf(mpvp->vol->log_file, "Collision: %s and %s\n", rx_tbl[j]->sym->name, sym->name);
+        mcell_log("Collision: %s and %s", rx_tbl[j]->sym->name, sym->name);
         ++ numcoll;
       }
 #endif
@@ -14797,7 +14770,7 @@ static int build_reaction_hash_table(struct mdlparse_vars *mpvp, int num_rx)
     }
   }
 #ifdef REPORT_RXN_HASH_STATS
-  fprintf(mpvp->vol->log_file, "Num collisions: %d\n", numcoll);
+  mcell_log("Num collisions: %d", numcoll);
 #endif
 
   return 0;
@@ -14835,7 +14808,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   struct t_func *tp;
   double pb_factor = 0,D_tot,rate,t_step;
   short geom, geom2;
-  int i,j,k,kk,k2,ii;
+  int i,j,k,kk,k2;
   /* flags that tell whether reactant_1 is also on the product list,
      same for reactant_2 and reactant_3 */
   int recycled1,recycled2,recycled3;
@@ -14857,7 +14830,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   
   if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
   {
-    fprintf(mpvp->vol->log_file,"\nReaction probabilities generated for the following reactions:\n");
+    mcell_log_raw("\n");
+    mcell_log("Reaction probabilities generated for the following reactions:");
   } 
  
   if (mpvp->vol->rx_radius_3d <= 0.0)
@@ -14878,20 +14852,19 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       for (path=reaction->pathway_head ; path != NULL ; path = path->next)
       {
         /* if it is a special reaction - check for the duplicates pathways */
-           if(path->next != NULL){
-              if((path->flags & PATHW_TRANSP) && (path->next->flags & PATHW_TRANSP)){
-                  fprintf(mpvp->vol->err_file, "Exact duplicates of special reaction %s = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.\n", "TRANSPARENT", path->reactant2->sym->name);
-                  exit(EXIT_FAILURE);
-              }
+           if (path->next != NULL)
+           {
+              if ((path->flags & PATHW_TRANSP) && (path->next->flags & PATHW_TRANSP))
+                mcell_error("Exact duplicates of special reaction TRANSPARENT = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.",
+                            path->reactant2->sym->name);
   
-              if((path->flags & PATHW_REFLEC) && (path->next->flags & PATHW_REFLEC)){
-                  fprintf(mpvp->vol->err_file, "Exact duplicates of special reaction %s = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.\n", "REFLECTIVE", path->reactant2->sym->name);
-                  exit(EXIT_FAILURE);
-              }
-              if((path->flags & PATHW_ABSORP) && (path->next->flags & PATHW_ABSORP)){
-                  fprintf(mpvp->vol->err_file, "Exact duplicates of special reaction %s = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.\n", "ABSORPTIVE", path->reactant2->sym->name);
-                  exit(EXIT_FAILURE);
-              }
+              if ((path->flags & PATHW_REFLEC) && (path->next->flags & PATHW_REFLEC))
+                mcell_error("Exact duplicates of special reaction REFLECTIVE = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.",
+                            path->reactant2->sym->name);
+
+              if ((path->flags & PATHW_ABSORP) && (path->next->flags & PATHW_ABSORP))
+                mcell_error("Exact duplicates of special reaction ABSORPTIVE = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.",
+                            path->reactant2->sym->name);
            }
 
       /* if one of the reactants is a surface, move it to the last reactant.
@@ -15016,20 +14989,19 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
 	/* Search for reactants that appear as products */
 	/* Any reactants that don't appear are set to be destroyed. */
-        rx->product_idx = MDL_MALLOC_ARRAY(u_int, (rx->n_pathways+1));
-        rx->cum_probs = MDL_MALLOC_ARRAY(double, rx->n_pathways);
-        rx->cat_probs = MDL_MALLOC_ARRAY(double, rx->n_pathways);
+        rx->product_idx = CHECKED_MALLOC_ARRAY(u_int, rx->n_pathways+1, "reaction product index array");
+        rx->cum_probs = CHECKED_MALLOC_ARRAY(double, rx->n_pathways, "reaction cumulative probabilities array");
        
         /* Note, that the last member of the array "rx->product_idx"
            contains size of the array "rx->players" */
       
-        if (rx->product_idx == NULL  || rx->cum_probs == NULL || rx->cat_probs == NULL)
+        if (rx->product_idx == NULL  || rx->cum_probs == NULL)
           return 1;
 
         if (reaction_has_complex_rates(rx))
         {
           int pathway_idx;
-          rx->rates = MDL_MALLOC_ARRAY(struct complex_rate *, rx->n_pathways);
+          rx->rates = CHECKED_MALLOC_ARRAY(struct complex_rate *, rx->n_pathways, "reaction complex rates array");
           if (rx->rates == NULL)
             return 1;
           for (pathway_idx = 0; pathway_idx < rx->n_pathways; ++ pathway_idx)
@@ -15037,11 +15009,12 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         }
  
         n_prob_t_rxns = 0;
-        for (j=0 , path=rx->pathway_head ; path!=NULL ; j++ , path = path->next)
+        path = rx->pathway_head;
+        for (int n_pathway=0; path!=NULL ; n_pathway++ , path = path->next)
         {
-          rx->product_idx[j] = 0;
+          rx->product_idx[n_pathway] = 0;
           if (rx->rates)
-            rx->rates[j] = path->km_complex;
+            rx->rates[n_pathway] = path->km_complex;
 
           /* Look for concentration clamp */
           if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE)!=0 &&
@@ -15049,14 +15022,12 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           {
             struct ccn_clamp_data *ccd;
 
-            if (j!=0 || path->next!=NULL)
-            {
-              fprintf(mpvp->vol->err_file,"Warning: mixing surface modes with other surface reactions.  Please don't.\n");
-            }
+            if (n_pathway!=0 || path->next!=NULL)
+              mcell_warn("Mixing surface modes with other surface reactions.  Please don't.");
 
             if (path->km>0)
             { 
-              ccd = MDL_MALLOC_STRUCT_DESC(struct ccn_clamp_data, "concentration clamp data");
+              ccd = CHECKED_MALLOC_STRUCT(struct ccn_clamp_data, "concentration clamp data");
               if (ccd==NULL)
                 return 1;
 
@@ -15083,22 +15054,17 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               mpvp->vol->clamp_list = ccd;
             }
             path->km = GIGANTIC;
-            rx->cat_probs[0] = 0;
           }
           else if ((path->flags & PATHW_TRANSP) != 0) {
             rx->n_pathways = RX_TRANSP;
           }else if ((path->flags & PATHW_REFLEC) != 0) {
             rx->n_pathways = RX_REFLEC;
           }
-          else
-          {
-            rx->cat_probs[j] = 0;
-          }
 
-          if (path->km_filename == NULL) rx->cum_probs[j] = path->km;
+          if (path->km_filename == NULL) rx->cum_probs[n_pathway] = path->km;
           else
 	  {
-	    rx->cum_probs[j]=0;
+	    rx->cum_probs[n_pathway]=0;
 	    n_prob_t_rxns++;
 	  }
    
@@ -15111,11 +15077,11 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             if (recycled1 == 0 && prod->prod == path->reactant1) recycled1 = 1;
             else if (recycled2 == 0 && prod->prod == path->reactant2) recycled2 = 1;
             else if (recycled3 == 0 && prod->prod == path->reactant3) recycled3 = 1;
-            else rx->product_idx[j]++;
+            else rx->product_idx[n_pathway]++;
           } 
 
 
-        } /* end for(j=0,path=rx->pathway_head; ...) */
+        } /* end for(n_pathway=0,path=rx->pathway_head; ...) */
 
 
 	/* Now that we know how many products there really are, set the index array */
@@ -15123,24 +15089,24 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         num_players = rx->n_reactants;
 	kk = rx->n_pathways;
 	if (kk<=RX_SPECIAL) kk = 1;
-        for (j=0;j<kk;j++)
+        for (int n_pathway=0;n_pathway<kk;n_pathway++)
         {
-          k = rx->product_idx[j] + rx->n_reactants;
-          rx->product_idx[j] = num_players;
+          k = rx->product_idx[n_pathway] + rx->n_reactants;
+          rx->product_idx[n_pathway] = num_players;
           num_players += k;
         }
-        rx->product_idx[j] = num_players;
+        rx->product_idx[kk] = num_players;
 
-        rx->players = MDL_MALLOC_ARRAY(struct species*, num_players);
-        rx->geometries = MDL_MALLOC_ARRAY(short, num_players);
+        rx->players = CHECKED_MALLOC_ARRAY(struct species*, num_players, "reaction players array");
+        rx->geometries = CHECKED_MALLOC_ARRAY(short, num_players, "reaction geometries array");
         if (rx->pathway_head->is_complex[0] ||
             rx->pathway_head->is_complex[1] ||
             rx->pathway_head->is_complex[2])
         {
-          rx->is_complex = MDL_MALLOC_ARRAY(unsigned char, num_players);
+          rx->is_complex = CHECKED_MALLOC_ARRAY(unsigned char, num_players, "reaction 'is complex' flag");
           if (rx->is_complex == NULL)
             return 1;
-          memset(rx->is_complex, 0, num_players);
+          memset(rx->is_complex, 0, sizeof(unsigned char) * num_players);
         }
         else
           rx->is_complex = NULL;
@@ -15153,16 +15119,13 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         if (n_prob_t_rxns > 0)
         {
           k = 0;
-          for (j=0, path=rx->pathway_head ; path!=NULL ; j++, path=path->next)
+          path = rx->pathway_head;
+          for (int n_pathway = 0; path!=NULL ; n_pathway++, path=path->next)
           {
             if (path->km_filename != NULL)
             {
-              kk = load_rate_file(mpvp, rx, path->km_filename, j);
-              if (kk)
-              {
-                fprintf(mpvp->vol->err_file,"Couldn't load rates from file %s\n",path->km_filename);
-                return 1;
-              }
+              if (load_rate_file(mpvp, rx, path->km_filename, n_pathway))
+                mcell_error("Failed to load rates from file '%s'.", path->km_filename);
             }
           }
           rx->prob_t = (struct t_func*) ae_list_sort( (struct abstract_element*)rx->prob_t );
@@ -15197,28 +15160,29 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	/* Now we walk through the list setting the geometries of each of the products */
 	/* We do this by looking for an earlier geometric match and pointing there */
 	/* or we just point to 0 if there is no match. */
-        for (j=0 , path=rx->pathway_head ; path!=NULL ; j++ , path = path->next)
+        path = rx->pathway_head;
+        for (int n_pathway=0; path!=NULL ; n_pathway++ , path = path->next)
         {
           recycled1 = 0;
           recycled2 = 0;
           recycled3 = 0;
-          k = rx->product_idx[j] + rx->n_reactants;
+          k = rx->product_idx[n_pathway] + rx->n_reactants;
           for ( prod=path->product_head ; prod != NULL ; prod = prod->next)
           {
             if (recycled1==0 && prod->prod == path->reactant1)
             {
               recycled1 = 1;
-              kk = rx->product_idx[j] + 0;
+              kk = rx->product_idx[n_pathway] + 0;
             }
             else if (recycled2==0 && prod->prod == path->reactant2)
             {
               recycled2 = 1;
-              kk = rx->product_idx[j] + 1;
+              kk = rx->product_idx[n_pathway] + 1;
             }
             else if (recycled3==0 && prod->prod == path->reactant3)
             {
               recycled3 = 1;
-              kk = rx->product_idx[j] + 2;
+              kk = rx->product_idx[n_pathway] + 2;
             }
             else
             {
@@ -15295,11 +15259,11 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
           }
 
-          k = rx->product_idx[j];
+          k = rx->product_idx[n_pathway];
           if (recycled1==0) rx->players[k] = NULL;
           if (recycled2==0 && rx->n_reactants>1) rx->players[k+1] = NULL;
           if (recycled3==0 && rx->n_reactants>2) rx->players[k+2] = NULL;
-        } /* end for(j = 0, ...) */
+        } /* end for(n_pathway = 0, ...) */
 
 
 
@@ -15309,13 +15273,13 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
            num_surf_reactants = 0;
            num_surfaces = 0;
            
-           for(ii = 0; ii < rx->n_reactants; ii++)
+           for(unsigned int n_reactant = 0; n_reactant < rx->n_reactants; n_reactant++)
            {
-              if((rx->players[ii]->flags & ON_GRID) != 0){  
+              if ((rx->players[n_reactant]->flags & ON_GRID) != 0){  
                   num_surf_reactants++;
-              }else if((rx->players[ii]->flags & NOT_FREE) == 0){
+              }else if ((rx->players[n_reactant]->flags & NOT_FREE) == 0){
                   num_vol_reactants++;
-              }else if(rx->players[ii]->flags & IS_SURFACE){
+              }else if (rx->players[n_reactant]->flags & IS_SURFACE){
                   num_surfaces++;
               }
            }
@@ -15338,11 +15302,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                with an optional SURFACE  */
 
 	    if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
-	    {
-	      fprintf(mpvp->vol->err_file,"Error: Reaction between %s and %s listed, but both marked TARGET_ONLY\n",
-		     rx->players[0]->sym->name,rx->players[1]->sym->name);
-	      return 1;
-	    }
+	      mcell_error("Reaction between %s and %s listed, but both are marked TARGET_ONLY.",
+                          rx->players[0]->sym->name,
+                          rx->players[1]->sym->name);
 	    else if ( (rx->players[0]->flags | rx->players[1]->flags) & CANT_INITIATE )
 	    {
 	      pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/3; /* 3 neighbors */
@@ -15406,11 +15368,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           pb_factor=0;
 	  
 	  if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
-	  {
-	    fprintf(mpvp->vol->err_file,"Error: Reaction between %s and %s listed, but both marked TARGET_ONLY\n",
-	           rx->players[0]->sym->name,rx->players[1]->sym->name);
-            return 1;
-	  }
+            mcell_error("Reaction between %s and %s listed, but both are marked TARGET_ONLY.",
+                        rx->players[0]->sym->name,
+                        rx->players[1]->sym->name);
 	  else if (rx->players[0]->flags & CANT_INITIATE) eff_vel_a = 0;
 	  else if (rx->players[1]->flags & CANT_INITIATE) eff_vel_b = 0;
 	  
@@ -15432,10 +15392,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           pb_factor=0;
 	  
 	  if (rx->players[0]->flags & rx->players[1]->flags & rx->players[2]->flags & CANT_INITIATE)
-	  {
-	    fprintf(mpvp->vol->err_file,"Error: Reaction between %s and %s and %s listed, but all marked TARGET_ONLY\n", rx->players[0]->sym->name,rx->players[1]->sym->name, rx->players[2]->sym->name);
-            return 1;
-	  }
+            mcell_error("Reaction between %s and %s and %s listed, but all marked TARGET_ONLY.",
+                        rx->players[0]->sym->name,
+                        rx->players[1]->sym->name,
+                        rx->players[2]->sym->name);
 	  else if (rx->players[0]->flags & CANT_INITIATE) eff_dif_a = 0;
 	  else if (rx->players[1]->flags & CANT_INITIATE) eff_dif_b = 0;
 	  else if (rx->players[2]->flags & CANT_INITIATE) eff_dif_c = 0;
@@ -15496,10 +15456,13 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 they should be in the same orientation class and have
                 the same sign */
 
-             if(vol_react1_geom != vol_react2_geom){
-	         fprintf(mpvp->vol->err_file,"Error: In 3-way reaction %s + %s + %s ---> [...] volume reactants %s and %s are either in different orientation classes or have opposite orientation sign.\n", rx->players[0]->sym->name, rx->players[1]->sym->name, rx->players[2]->sym->name, vol_reactant1->sym->name,vol_reactant2->sym->name);
-                 return 1;
-             }
+             if (vol_react1_geom != vol_react2_geom)
+               mcell_error("In 3-way reaction %s + %s + %s ---> [...] volume reactants %s and %s are either in different orientation classes or have opposite orientation sign.",
+                           rx->players[0]->sym->name,
+                           rx->players[1]->sym->name,
+                           rx->players[2]->sym->name,
+                           vol_reactant1->sym->name,
+                           vol_reactant2->sym->name);
 
 
 	     double eff_dif_1, eff_dif_2, eff_dif; /* effective diffusion constants*/
@@ -15507,10 +15470,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
              eff_dif_2 = vol_reactant2->D;
 	  
 	     if (vol_reactant1->flags & vol_reactant2->flags & surf_reactant->flags & CANT_INITIATE)
-	     {
-	       fprintf(mpvp->vol->err_file,"Error: Reaction between %s and %s and %s listed, but all marked TARGET_ONLY\n", vol_reactant1->sym->name, vol_reactant2->sym->name, surf_reactant->sym->name);
-               return 1;
-	     }
+               mcell_error("Reaction between %s and %s and %s listed, but all marked TARGET_ONLY.",
+                           vol_reactant1->sym->name,
+                           vol_reactant2->sym->name,
+                           surf_reactant->sym->name);
 	     else if (vol_reactant1->flags & CANT_INITIATE) eff_dif_1 = 0;
 	     else if (vol_reactant2->flags & CANT_INITIATE) eff_dif_2 = 0;
 
@@ -15583,11 +15546,11 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
              pb_factor=0;
 	  
 	     if (vol_reactant->flags & CANT_INITIATE)
-	     {
-	       fprintf(mpvp->vol->err_file,"Error: 3-way reaction between %s and %s and %s listed, but the only volume reactant %s is marked TARGET_ONLY\n",
-	       vol_reactant->sym->name, surf_reactant1->sym->name, surf_reactant2->sym->name, vol_reactant->sym->name);
-               return 1;
-	     }
+               mcell_error("3-way reaction between %s and %s and %s listed, but the only volume reactant %s is marked TARGET_ONLY",
+                           vol_reactant->sym->name,
+                           surf_reactant1->sym->name,
+                           surf_reactant2->sym->name,
+                           vol_reactant->sym->name);
 
 	     double eff_vel = vol_reactant->space_step/vol_reactant->time_step;
 
@@ -15628,10 +15591,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
         }else if((rx->n_reactants == 3) && (num_surf_reactants == 3)){ 
            if (rx->players[0]->flags & rx->players[1]->flags & rx->players[2]->flags & CANT_INITIATE)
-           {
-               fprintf(mpvp->vol->err_file,"Error: Reaction between %s and %s and %s listed, but all marked TARGET_ONLY\n", rx->players[0]->sym->name, rx->players[1]->sym->name, rx->players[2]->sym->name);
-               return 1;
-           }
+               mcell_error("Reaction between %s and %s and %s listed, but all marked TARGET_ONLY.",
+                           rx->players[0]->sym->name,
+                           rx->players[1]->sym->name,
+                           rx->players[2]->sym->name);
 
            pb_factor = (mpvp->vol->grid_density * mpvp->vol->grid_density * mpvp->vol->time_unit) / 6.0;
 
@@ -15644,18 +15607,18 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
         /* Now, scale probabilities, notifying and warning as appropriate. */
         rx->pb_factor = pb_factor;
-        for (j=0;j<rx->n_pathways;j++)
+        for (int n_pathway=0;n_pathway<rx->n_pathways;n_pathway++)
         {
           int rate_notify=0, rate_warn=0;
           /* Watch out for automatic surface reactions; input rate will be GIGANTIC */
-          if (rx->cum_probs[j]==GIGANTIC) is_gigantic=1;
+          if (rx->cum_probs[n_pathway]==GIGANTIC) is_gigantic=1;
           else is_gigantic=0;
 
-          if (! rx->rates  ||  ! rx->rates[j])
-            rate = pb_factor*rx->cum_probs[j];
+          if (! rx->rates  ||  ! rx->rates[n_pathway])
+            rate = pb_factor*rx->cum_probs[n_pathway];
           else
             rate = 0.0;
-          rx->cum_probs[j] = rate;
+          rx->cum_probs[n_pathway] = rate;
 
           if ((mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL && rate>=mpvp->vol->notify->reaction_prob_notify
                && (!is_gigantic || mpvp->vol->notify->reaction_prob_notify==0.0)))
@@ -15665,12 +15628,12 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             rate_warn = 1;
           if (rate_warn || rate_notify)
           {
-            warn_file = mpvp->vol->log_file;
+            warn_file = mcell_get_log_file();
             if (rate_warn)
             {
               if (mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
               {
-                warn_file = mpvp->vol->err_file;
+                warn_file = mcell_get_error_file();
                 fprintf(warn_file,"\tError: High ");
               }
               else if (mpvp->vol->notify->high_reaction_prob==WARN_WARN) fprintf(warn_file,"\tWarning: High ");
@@ -15678,8 +15641,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
             else fprintf(warn_file,"\t");
 
-            if (rx->rates  &&  rx->rates[j])
-              fprintf(warn_file,"Varying probability \"%s\" set for ", rx->rates[j]->name);
+            if (rx->rates  &&  rx->rates[n_pathway])
+              fprintf(warn_file,"Varying probability \"%s\" set for ", rx->rates[n_pathway]->name);
             else
               fprintf(warn_file,"Probability %.4e set for ",rate);
             if (rx->n_reactants==1) fprintf(warn_file,"%s{%d} -> ",rx->players[0]->sym->name,rx->geometries[0]);
@@ -15743,24 +15706,26 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	/* Move counts from list into array */
 	if (rx->n_pathways > 0)
 	{
-	  rx->info = MDL_MALLOC_ARRAY(struct pathway_info, rx->n_pathways);
+	  rx->info = CHECKED_MALLOC_ARRAY(struct pathway_info, rx->n_pathways, "reaction pathway info");
 	  if (rx->info == NULL)
              return 1;
-	    
-	  for ( j=0,path=rx->pathway_head ; path!=NULL ; j++,path=path->next )
+
+          path = rx->pathway_head;
+          for (int n_pathway=0; path!=NULL ; n_pathway++,path=path->next )
 	  {
-	    rx->info[j].count = 0;
-	    rx->info[j].pathname = path->pathname;    /* Keep track of named rxns */
+            rx->info[n_pathway].count = 0;
+            rx->info[n_pathway].pathname = path->pathname;    /* Keep track of named rxns */
             if (path->pathname!=NULL)
             {
-              rx->info[j].pathname->path_num = j;
-              rx->info[j].pathname->rx = rx;
+              rx->info[n_pathway].pathname->path_num = n_pathway;
+              rx->info[n_pathway].pathname->rx = rx;
             }
 	  }
 	}
 	else /* Special reaction, only one exit pathway */
 	{
-	  rx->info = MDL_MALLOC_STRUCT(struct pathway_info);
+	  rx->info = CHECKED_MALLOC_STRUCT(struct pathway_info,
+                                           "reaction pathway info");
           if(rx->info == NULL)
              return 1;
 	  rx->info[0].count = 0;
@@ -15777,16 +15742,16 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           reorder_varying_pathways(mpvp, rx);
 
         /* Compute cumulative properties */
-        for (j=1; j<rx->n_pathways; ++j)
-          rx->cum_probs[j] += rx->cum_probs[j-1];
+        for (int n_pathway=1; n_pathway<rx->n_pathways; ++n_pathway)
+          rx->cum_probs[n_pathway] += rx->cum_probs[n_pathway-1];
         if (rx->n_pathways > 0)
           rx->min_noreaction_p = rx->max_fixed_p = rx->cum_probs[rx->n_pathways - 1];
         else
           rx->min_noreaction_p = rx->max_fixed_p = 1.0;
         if (rx->rates)
-          for (j=0; j<rx->n_pathways; ++j)
-            if (rx->rates[j])
-              rx->min_noreaction_p += macro_max_rate(rx->rates[j], pb_factor);
+          for (int n_pathway=0; n_pathway<rx->n_pathways; ++n_pathway)
+            if (rx->rates[n_pathway])
+              rx->min_noreaction_p += macro_max_rate(rx->rates[n_pathway], pb_factor);
 
         rx = rx->next;
       }
@@ -15826,9 +15791,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   }
 
   if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
-  {
-    fprintf(mpvp->vol->log_file,"\n");
-  }
+    mcell_log_raw("\n");
 
   return 0;
 }

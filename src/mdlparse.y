@@ -9,6 +9,7 @@
   #include <limits.h>
   #include <sys/errno.h>
   #include "rng.h"
+  #include "logging.h"
   #include "vector.h"
   #include "strfunc.h"
   #include "mcell_structs.h"
@@ -31,7 +32,7 @@
   static int mdlparse_file(struct mdlparse_vars *mpvp, char const *name);
 
 #ifdef DEBUG_MDL_PARSER
-  #define FAILCHECK(t) do { fprintf(stderr, "Fail: %s:%d (%s)\n", __FILE__, __LINE__, t); return 1; } while(0)
+  #define FAILCHECK(t) do { mcell_error_nodie("Parser fail: %s:%d (%s)\n", __FILE__, __LINE__, t); return 1; } while(0)
 #else
   #define FAILCHECK(t) return 1
 #endif
@@ -2950,11 +2951,8 @@ viz_object_prefix: existing_object '=' str_expr       {
                                                           struct object *objp;
                                                           struct viz_obj *vizp;
                                                           objp = (struct object *) $1->value;
-                                                          if ((vizp = (struct viz_obj *) malloc(sizeof(struct viz_obj))) == NULL)
-                                                          {
-                                                            mdlerror(mdlpvp, "Out of memory while creating viz object");
+                                                          if ((vizp = CHECKED_MALLOC_STRUCT(struct viz_obj, "visualization object")) == NULL)
                                                             return 1;
-                                                          }
                                                           objp->viz_obj = vizp;
                                                           vizp->name = $3;
                                                           vizp->full_name = mdl_strdup(mdlpvp, $1->name);
@@ -3129,32 +3127,26 @@ void mdlerror(struct mdlparse_vars *mpvp, char const *str)
 void mdlerror_fmt(struct mdlparse_vars *mpvp, char const *fmt, ...)
 {
   va_list arglist;
-  FILE *log_file = stderr;
-
   if (mpvp->vol->procnum != 0)
     return;
 
-  if (mpvp->vol->err_file != NULL)
-    log_file = mpvp->vol->err_file;
-
   /* print error location */
   if (mpvp->include_stack_ptr == 0)
-    fprintf(log_file,
-            "MCell: error occurred after parsing file: %s\n  ",
-            mpvp->vol->curr_file);
+    mcell_error_raw("Fatal error: After parsing file %s\n",
+                    mpvp->vol->curr_file);
   else
-    fprintf(log_file,
-            "MCell: error on line: %d of file: %s\n  ",
-            mpvp->line_num[mpvp->include_stack_ptr - 1], mpvp->vol->curr_file);
+    mcell_error_raw("Fatal error: On line: %d of file %s\n",
+                    mpvp->line_num[mpvp->include_stack_ptr - 1],
+                    mpvp->vol->curr_file);
 
   /* format error message */
   va_start(arglist, fmt);
-  vfprintf(log_file, fmt, arglist);
+  mcell_errorv_raw(fmt, arglist);
   va_end(arglist);
 
   /* terminate error message and flush */
-  fprintf(log_file, "\n");
-  fflush(log_file);
+  mcell_error_raw("\n");
+  mcell_die();
 }
 
 /* mdlerror_file: Open and parse an MDL file.
@@ -3174,7 +3166,10 @@ static int mdlparse_file(struct mdlparse_vars *mpvp, char const *name)
   if (cur_stack >= MAX_INCLUDE_DEPTH)
   {
     -- mpvp->include_stack_ptr;
-    mdlerror_fmt(mpvp, "Includes nested too deeply at file %s, included from %s:%d", name, mpvp->include_filename[cur_stack-1], mpvp->line_num[cur_stack-1]);
+    mdlerror_fmt(mpvp, "Includes nested too deeply at file %s\n  included from %s:%d",
+                 name,
+                 mpvp->include_filename[cur_stack-1],
+                 mpvp->line_num[cur_stack-1]);
     return 1;
   }
   mpvp->line_num[cur_stack] = 1;
@@ -3182,15 +3177,18 @@ static int mdlparse_file(struct mdlparse_vars *mpvp, char const *name)
 
   /* Open file, or know the reason why */
   no_printf("Opening file %s\n", name);
-  fflush(mpvp->vol->err_file);
   if ((infile = fopen(name,"r")) == NULL)
   {
-    int err = errno;
+    char *err = mcell_strerror(errno);
     -- mpvp->include_stack_ptr;
     if (cur_stack > 0)
-      mdlerror_fmt(mpvp, "Couldn't open file %s, included from %s:%d: %s", name, mpvp->include_filename[cur_stack-1], mpvp->line_num[cur_stack-1], strerror(err));
+      mdlerror_fmt(mpvp, "Couldn't open file %s\n  included from %s:%d: %s",
+                   name,
+                   mpvp->include_filename[cur_stack-1],
+                   mpvp->line_num[cur_stack-1],
+                   err);
     else
-      mdlerror_fmt(mpvp, "Couldn't open file %s: %s", name, strerror(err));
+      mdlerror_fmt(mpvp, "Couldn't open file %s: %s", name, err);
     return 1;
   }
 
@@ -3199,11 +3197,18 @@ static int mdlparse_file(struct mdlparse_vars *mpvp, char const *name)
   {
     int err = errno;
     if (err == ENOMEM)
-      mdlerror_fmt(mpvp, "Couldn't initialize lexer for file %s, included from %s:%d: out of memory", name, mpvp->include_filename[cur_stack-1], mpvp->line_num[cur_stack-1]);
+      mdlerror_fmt(mpvp, "Couldn't initialize lexer for file %s\n  included from %s:%d: out of memory",
+                   name, mpvp->include_filename[cur_stack-1], mpvp->line_num[cur_stack-1]);
     else if (err == EINVAL)
-      mdlerror_fmt(mpvp, "Couldn't initialize lexer for file %s, included from %s:%d: internal error (invalid argument)", name, mpvp->include_filename[cur_stack-1], mpvp->line_num[cur_stack-1]);
+      mdlerror_fmt(mpvp, "Couldn't initialize lexer for file %s\n  included from %s:%d: internal error (invalid argument)",
+                   name,
+                   mpvp->include_filename[cur_stack-1],
+                   mpvp->line_num[cur_stack-1]);
     else
-      mdlerror_fmt(mpvp, "Couldn't initialize lexer for file %s, included from %s:%d: internal error", name, mpvp->include_filename[cur_stack-1], mpvp->line_num[cur_stack-1]);
+      mdlerror_fmt(mpvp, "Couldn't initialize lexer for file %s\n  included from %s:%d: internal error",
+                   name,
+                   mpvp->include_filename[cur_stack-1],
+                   mpvp->line_num[cur_stack-1]);
     fclose(infile);
     -- mpvp->include_stack_ptr;
     return 1;
@@ -3242,39 +3247,18 @@ int mdlparse_init(struct volume *vol)
   mpv.vol->macro_count_request_head = NULL;
 
   /* Create memory pools for parsing */
-  if ((mpv.path_mem=create_mem(sizeof(struct pathway),4096))==NULL)
-  {
-    fprintf(vol->log_file, "Out of memory while creating reaction pathways\n");
-    return 1;
-  }
-  if ((mpv.prod_mem=create_mem(sizeof(struct product),4096))==NULL) {
-    fprintf(vol->log_file, "Out of memory while creating reaction products\n");
-    return 1;
-  }
-  mpv.sym_list_mem = create_mem(sizeof(struct sym_table_list),4096);
-  if (mpv.sym_list_mem==NULL)
-  {
-    fprintf(vol->err_file,"Out of memory while getting ready to store lists of molecules and reactions\n");
-    return 1;
-  }
-  mpv.species_list_mem = create_mem(sizeof(struct species_list_item), 1024);
-  if (mpv.species_list_mem == NULL)
-  {
-    fprintf(vol->err_file,"Out of memory while allocating temporary space for species list parsing\n");
-    return 1;
-  }
-  mpv.mol_data_list_mem = create_mem(sizeof(struct species_opt_orient), 1024);
-  if (mpv.mol_data_list_mem == NULL)
-  {
-    fprintf(vol->err_file,"Out of memory while allocating temporary space for species list parsing\n");
-    return 1;
-  }
-  mpv.output_times_mem = create_mem(sizeof(struct output_times), 1024);
-  if (mpv.output_times_mem == NULL)
-  {
-    fprintf(vol->err_file,"Out of memory while allocating temporary space for volume output parsing\n");
-    return 1;
-  }
+  if ((mpv.path_mem = create_mem(sizeof(struct pathway), 4096)) == NULL)
+    mcell_allocfailed("Failed to allocate temporary memory pool for reaction pathways.");
+  if ((mpv.prod_mem = create_mem(sizeof(struct product), 4096)) == NULL)
+    mcell_allocfailed("Failed to allocate temporary memory pool for reaction products.");
+  if ((mpv.sym_list_mem = create_mem(sizeof(struct sym_table_list),4096)) == NULL)
+    mcell_allocfailed("Failed to allocate temporary memory pool for symbol lists.");
+  if ((mpv.species_list_mem = create_mem(sizeof(struct species_list_item), 1024)) == NULL)
+    mcell_allocfailed("Failed to allocate temporary memory pool for species lists.");
+  if ((mpv.mol_data_list_mem = create_mem(sizeof(struct species_opt_orient), 1024)) == NULL)
+    mcell_allocfailed("Failed to allocate temporary memory pool for oriented species lists.");
+  if ((mpv.output_times_mem = create_mem(sizeof(struct output_times), 1024)) == NULL)
+    mcell_allocfailed("Failed to allocate temporary memory pool for output times.");
 
   /* Start parsing at the top-level file */
   vol->curr_file = vol->mdl_infile_name;

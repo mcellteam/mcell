@@ -95,13 +95,15 @@ char *alloc_vsprintf(char const *fmt, va_list args)
   char stack_buffer[256];
   int len;
   char *retval = NULL;
+  va_list saved_args;
+  va_copy(saved_args, args);
 
   len = vsnprintf(stack_buffer, sizeof(stack_buffer), fmt, args);
   if (len >= sizeof(stack_buffer))
   {
     retval = malloc(len + 1);
     if (retval != NULL)
-      vsnprintf(retval, len + 1, fmt, args);
+      vsnprintf(retval, len + 1, fmt, saved_args);
   }
   else
     retval = strdup(stack_buffer);

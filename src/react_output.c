@@ -9,6 +9,7 @@
 #include <signal.h>
 #include <errno.h>
 
+#include "logging.h"
 #include "sched_util.h"
 #include "mcell_structs.h"
 #include "react_output.h"
@@ -38,10 +39,10 @@ int truncate_output_file(char *name, double start_value)
   int bsize,remaining;
 
   /* Check if the file exists */
-  i = stat(name,&fs);
+  i = stat(name, &fs);
   if (i==-1)
   {
-    fprintf(world->err_file,"Error opening output file %s\n",name);
+    mcell_perror(errno, "Failed to stat reaction data output file '%s' in preparation for truncation.", name);
     return 1;
   }
   if (fs.st_size==0) return 0; /* File already is empty */
@@ -54,18 +55,15 @@ int truncate_output_file(char *name, double start_value)
   else bsize = (1<<20);
 
   /* Allocate a buffer for the file */
-  buffer = (char*)malloc(bsize);
+  buffer = CHECKED_MALLOC_ARRAY_NODIE(char, bsize, "reaction data file scan buffer");
   if (buffer==NULL)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while checking output file %s\n", __FILE__, (long)__LINE__, name);
     goto failure;
-  }
 
   /* Open the file */
   f = fopen(name,"r+");
   if (!f)
   {
-    fprintf(world->err_file,"Error opening output file %s\n",name);
+    mcell_perror(errno, "Failed to open reaction data output file '%s' for truncation.", name);
     goto failure;
   }
 
@@ -107,13 +105,13 @@ int truncate_output_file(char *name, double start_value)
         {
           if (fseek(f, 0, SEEK_SET))
           {
-            fprintf(world->err_file,"File '%s', Line %ld:  Failed to prepare output file %s for writing\n", __FILE__, (long)__LINE__, name);
+            mcell_perror(errno, "Failed to seek to beginning of reaction data output file '%s'", name);
             goto failure;
           }
 
           if (ftruncate(fileno(f), where+lf))
           {
-            fprintf(world->err_file,"File '%s', Line %ld: Failed to prepare output file %s for writing (%d)\n", __FILE__, (long)__LINE__, name,errno);
+            mcell_perror(errno, "Failed to truncate reaction data output file '%s'", name);
             goto failure;
           }
           fclose(f);
@@ -235,11 +233,11 @@ static void emergency_output_hook(void)
 
     int n_errors = emergency_output();
     if (n_errors == 0)
-      fprintf(world->log_file, "Reaction output was successfully flushed to disk.\n");
+      mcell_log("Reaction output was successfully flushed to disk.");
     else if (n_errors == 1)
-      fprintf(world->log_file, "An error occurred while flushing reaction output to disk.\n");
+      mcell_warn("An error occurred while flushing reaction output to disk.");
     else
-      fprintf(world->log_file, "%d errors occurred while flushing reaction output to disk.\n", n_errors);
+      mcell_warn("%d errors occurred while flushing reaction output to disk.", n_errors);
   }
 }
 
@@ -251,9 +249,10 @@ static void emergency_output_hook(void)
   In: No arguments.
   Out: None.
 **************************************************************************/
+static void emergency_output_signal_handler(int signo) __attribute__((noreturn));
 static void emergency_output_signal_handler(int signo)
 {
-  fprintf(world->err_file,
+  fprintf(mcell_get_error_file(),
           "*****************************\n"
           "MCell dying due to signal %d.\n"
           "Please report this to the mcell developers by emailing <%s>.\n"
@@ -267,11 +266,11 @@ static void emergency_output_signal_handler(int signo)
 
     int n_errors = flush_reaction_output();
     if (n_errors == 0)
-      fprintf(world->log_file, "Reaction output was successfully flushed to disk.\n");
+      mcell_log("Reaction output was successfully flushed to disk.");
     else if (n_errors == 1)
-      fprintf(world->log_file, "An error occurred while flushing reaction output to disk.\n");
+      mcell_warn("An error occurred while flushing reaction output to disk.");
     else
-      fprintf(world->log_file, "%d errors occurred while flushing reaction output to disk.\n", n_errors);
+      mcell_warn("%d errors occurred while flushing reaction output to disk.", n_errors);
   }
   _exit(128+signo);
 }
@@ -294,7 +293,7 @@ static void install_emergency_output_signal_handler(int signo)
   sigfillset(&sa.sa_mask);
 
   if (sigaction(signo, &sa, &saPrev) != 0)
-    fprintf(world->err_file, "Failed to install emergency output signal handler.\n");
+    mcell_warn("Failed to install emergency output signal handler.");
 }
 
 /**************************************************************************
@@ -308,7 +307,7 @@ static void install_emergency_output_signal_handler(int signo)
 void install_emergency_output_hooks(void)
 {
   if (atexit(& emergency_output_hook) != 0)
-    fprintf(world->err_file, "Failed to install emergency output hook.\n");
+    mcell_warn("Failed to install emergency output hook.");
 
   install_emergency_output_signal_handler(SIGILL);
   install_emergency_output_signal_handler(SIGABRT);
@@ -371,8 +370,7 @@ int add_trigger_output(struct counter *c,struct output_request *ear,int n,short 
   {
     if (write_reaction_output(first_column->set,0))
     {
-      fprintf(world->err_file,"Error at file %s line %d\n",__FILE__,__LINE__);
-      fprintf(world->err_file,"  Failed to write triggered count output.\n");
+      mcell_warn("Failed to write triggered count output to file '%s'.", first_column->set->outfile_name);
       return 1;
     }
     first_column->initial_value = 0;
@@ -410,11 +408,11 @@ int flush_reaction_output(void)
       {
         for (os=ob->data_set_head ; os!=NULL ; os=os->next)
         {
-            if (write_reaction_output(os,1)) n_errors++;
-          }
-	}
+          if (write_reaction_output(os,1)) n_errors++;
+        }
       }
-    } 
+    }
+  } 
   
   return n_errors;
 }
@@ -431,7 +429,6 @@ update_reaction_output:
 
 int update_reaction_output(struct output_block *block)
 {
-  FILE *log_file;
   struct output_set *set;
   struct output_column *column;
   double actual_t;
@@ -441,18 +438,15 @@ int update_reaction_output(struct output_block *block)
                                 // 0 - end not reached yet,
                                 // 1 - end reached. 
 
-  log_file=world->log_file;
-
   no_printf("Updating reaction output at time %lld of %lld\n",world->it_time,world->iterations);
-  fflush(log_file);
 
   /* update all counters */
 
   block->t /= (1. + EPS_C);
   i=block->buf_index;
   if(world->chkpt_seq_num == 1){
-  if(block->timer_type==OUTPUT_BY_ITERATION_LIST) block->time_array[i] = block->t;
-  else block->time_array[i] = block->t*world->time_unit;
+    if(block->timer_type==OUTPUT_BY_ITERATION_LIST) block->time_array[i] = block->t;
+    else block->time_array[i] = block->t*world->time_unit;
   }else{
      if(block->timer_type==OUTPUT_BY_ITERATION_LIST) {
         block->time_array[i] = block->t;
@@ -476,16 +470,18 @@ int update_reaction_output(struct output_block *block)
       if (column->data_type != TRIG_STRUCT)
       {
         eval_oexpr_tree(column->expr,1);
-        switch(column->data_type)
+        switch (column->data_type)
         {
           case INT:
             ((int*)column->buffer)[i] = (int)column->expr->value;
             break;
+
           case DBL:
             ((double*)column->buffer)[i] = column->expr->value;
             break;
+
           default:
-            fprintf(world->err_file,"Error in file %s line %d.\n  Bad output data type.\n",__FILE__,__LINE__);
+            UNHANDLED_CASE(column->data_type);
             break;
         }
       }
@@ -524,11 +520,12 @@ int update_reaction_output(struct output_block *block)
   }
   else actual_t=-1;
   block->t *= (1. + EPS_C);
-  i = schedule_add(world->count_scheduler,block);
-  if (i)
+  if (schedule_add(world->count_scheduler, block))
   {
-    exit(EXIT_FAILURE); 
+    mcell_allocfailed_nodie("Failed to add count to scheduler.");
+    return 1;
   }
+
   if (actual_t!=-1) block->t=actual_t;  /* Fix time for output */
   
 
@@ -540,10 +537,9 @@ int update_reaction_output(struct output_block *block)
     for (set=block->data_set_head ; set!=NULL ; set=set->next)
     {
       if (set->column_head->data_type==TRIG_STRUCT) continue;
-      i = write_reaction_output(set,final_chunk_flag);
-      if (i)
+      if (write_reaction_output(set,final_chunk_flag))
       {
-        fprintf(world->err_file,"Unable to write reaction output to filename %s\n",set->outfile_name);
+        mcell_error_nodie("Failed to write reaction output to file '%s'.", set->outfile_name);
         return 1;
       }
     }
@@ -569,6 +565,7 @@ write_reaction_output:
 int write_reaction_output(struct output_set *set,int final_chunk_flag)
 {
   UNUSED(final_chunk_flag);
+
   FILE *fp;
   struct output_column *column;
   char *mode;
@@ -591,30 +588,24 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
       mode = "a";
       break;
     default:
-      fprintf(world->err_file,"Error at file %s line %d\n",__FILE__,__LINE__);
-      fprintf(world->err_file,"  Bad file output code %d for output file %s\n",set->file_flags,set->outfile_name);
+      mcell_internal_error("Bad file output code %d for reaction data output file '%s'.",
+                           set->file_flags,
+                           set->outfile_name);
       return 1;
-      break;
   }
-    
-  fp = fopen(set->outfile_name,mode);
-  if (fp==NULL)
-  {
-    fprintf(world->err_file,"Error: could not open output file %s\n",set->outfile_name);
+
+  fp = open_file(set->outfile_name, mode);
+  if (fp == NULL)
     return 1;
-  }
 
   if (set->column_head->data_type!=TRIG_STRUCT)
   {
     n_output=set->block->buffersize;
     if (set->block->buf_index<set->block->buffersize) n_output=set->block->buf_index;
-  
+
     if (world->notify->file_writes==NOTIFY_FULL)
-    {
-      fprintf(world->log_file,"Writing %d lines to output file %s\n",n_output,set->outfile_name);
-    }
-    fflush(world->log_file);
-      
+      mcell_log("Writing %d lines to output file %s.", n_output, set->outfile_name);
+
     /* Write headers */
     if ( set->chunk_count==0 && set->header_comment!=NULL && set->file_flags!=FILE_APPEND &&
          ( world->chkpt_seq_num==1 || set->file_flags==FILE_APPEND_HEADER ||
@@ -650,7 +641,10 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
             fprintf(fp," %.9g",((double*)column->buffer)[i]);
             break;
           default:
-            fprintf(world->err_file,"Unexpected data type in column titled %s--skipping.\n",(column->expr->title==NULL)?"":column->expr->title);
+            if (column->expr->title != NULL)
+              mcell_warn("Unexpected data type in column titled '%s' -- skipping.", column->expr->title);
+            else
+              mcell_warn("Unexpected data type in untitled column -- skipping.");
             break;
         }
       }
@@ -960,115 +954,76 @@ oexpr_title:
 char* oexpr_title(struct output_expression *root)
 {
   struct output_request *orq;
-  char *strings[4];
   char *lstr,*rstr,*str;
-  char lbuf[256],rbuf[256];
-  char ostr[2];
   
   lstr=rstr=NULL;
-  lbuf[0]=rbuf[0]='\0';
   
   if (root->expr_flags&OEXPR_TYPE_CONST)
   {
     if ((root->expr_flags&OEXPR_TYPE_MASK)==OEXPR_LEFT_INT)
-    {
-      sprintf(lbuf,"%d",(int)root->value);
-      return strdup(lbuf);
-    }
+      return alloc_sprintf("%d", (int)root->value);
     else if ((root->expr_flags&OEXPR_TYPE_MASK)==OEXPR_TYPE_DBL)
-    {
-      sprintf(lbuf,"%.8g",root->value);
-      return strdup(lbuf);
-    }
+      return alloc_sprintf("%.8g",root->value);
     else return NULL;
   }
   
   if (root->left!=NULL)
   {
     if ((root->expr_flags&OEXPR_LEFT_MASK)==OEXPR_LEFT_INT)
-    {
-      sprintf(lbuf,"%d",*((int*)root->left));
-      lstr=strdup(lbuf);
-    }
+      lstr = alloc_sprintf("%d", *((int*) root->left));
     else if ((root->expr_flags&OEXPR_LEFT_MASK)==OEXPR_LEFT_DBL)
-    {
-      sprintf(lbuf,"%.8g",*((double*)root->left));
-      lstr=strdup(lbuf);
-    }
+      lstr = alloc_sprintf("%.8g", *((double*) root->left));
     else if ((root->expr_flags&OEXPR_LEFT_MASK)==OEXPR_LEFT_OEXPR)
-    {
-      lstr=oexpr_title((struct output_expression*)root->left);
-    }
+      lstr = oexpr_title((struct output_expression*) root->left);
   }
   if (root->right!=NULL)
   {
     if ((root->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_INT)
-    {
-      sprintf(rbuf,"%d",*((int*)root->right));
-      rstr=strdup(rbuf);
-    }
+      rstr = alloc_sprintf("%d", *((int*) root->right));
     else if ((root->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_DBL)
-    {
-      sprintf(rbuf,"%.8g",*((double*)root->right));
-      rstr=strdup(rbuf);
-    }
+      rstr = alloc_sprintf("%.8g", *((double*) root->right));
     else if ((root->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_OEXPR)
-    {
-      rstr=oexpr_title((struct output_expression*)root->right);
-    }
+      rstr = oexpr_title((struct output_expression*) root->right);
   }
   
   switch (root->oper)
   {
     case '=':
       return lstr;
-      break;
+
     case '@':
-      return strdup("(complex)");
-      break;
+      return CHECKED_STRDUP("(complex)", NULL);
+
     case '#':
       if ((root->expr_flags&OEXPR_LEFT_MASK)!=OEXPR_LEFT_REQUEST) return NULL;
       orq = (struct output_request*)root->left;
       return strdup(orq->count_target->name);
-      break;
+
     case '_':
       if (lstr==NULL) return NULL;
-      strings[0] = "-";
-      strings[1] = lstr;
-      strings[2] = NULL;
-      str = my_strclump(strings);
+      str = alloc_sprintf("-%s", lstr);
       free(lstr);
       return str;     
-      break;
+
     case '(':
       if (lstr==NULL) return NULL;
-      strings[0] = "(";
-      strings[1] = lstr;
-      strings[2] = ")";
-      strings[3] = NULL;
-      str = my_strclump(strings);
+      str = alloc_sprintf("(%s)", lstr);
       free(lstr);
       return str;     
-      break;
+
     case '+':
     case '-':
     case '*':
     case '/':
       if (lstr==NULL || rstr==NULL) return NULL;
-      ostr[0] = root->oper; ostr[1] = '\0';
-      strings[0] = lstr;
-      strings[1] = ostr;
-      strings[2] = rstr;
-      strings[3] = NULL;
-      str = my_strclump(strings);
+      str = alloc_sprintf("%s%c%s", lstr, root->oper, rstr);
       free(lstr);
       free(rstr);
       return str;
-      break;
+
     default:
       return NULL;
-      break;
   }
   return NULL;
-}  
+}
 

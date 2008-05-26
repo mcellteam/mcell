@@ -19,14 +19,9 @@ int insert_volume_molecule_list(struct volume_molecule *m);
 struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,struct subvolume *new_sv);
 
 int eval_rel_region_3d(struct release_evaluator *expr,struct waypoint *wp,struct region_list *in_regions,struct region_list *out_regions);
-int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *m,int n);
 int release_molecules(struct release_event_queue *req);
 void randomize_vol_mol_position(struct volume_molecule *mp, struct vector3 *low_end, double size_x, double size_y, double size_z);
 int set_partitions(void);
-double distance_point_line(struct vector3 *q, struct vector3 *v0, struct vector3 *v1);
-int navigate_world(int curr_index, int direction);
-int navigate_world_by_edge(int curr_index, int direction1, int direction2);
-int navigate_world_by_corner(int curr_index, int direction1, int direction2, int direction3);
 
 void path_bounding_box(struct vector3 *loc, struct vector3 *displacement, struct vector3 *llf, struct vector3 *urb);
 

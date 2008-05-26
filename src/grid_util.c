@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "logging.h"
 #include "rng.h"
 #include "grid_util.h"
 #include "vol_util.h"
@@ -239,11 +240,10 @@ int create_grid(struct wall *w,struct subvolume *guess)
 {
   struct surface_grid *sg = NULL;
   struct vector3 center;
-  int i;
 
   if (w->grid != NULL) return 0;
   
-  sg = (struct surface_grid *) mem_get(w->birthplace->grids);
+  sg = (struct surface_grid *) CHECKED_MEM_GET(w->birthplace->grids, "surface grid");
   if (sg == NULL) return 1;
   
   center.x = 0.33333333333*(w->vert[0]->x + w->vert[1]->x + w->vert[2]->x);
@@ -262,13 +262,11 @@ int create_grid(struct wall *w,struct subvolume *guess)
   sg->binding_factor = ((double)sg->n_tiles) / w->area;
   init_grid_geometry(sg);
   
-  sg->mol = (struct grid_molecule**)malloc(sg->n_tiles*sizeof(struct grid_molecule*));
-  if (sg->mol == NULL) {
-    fprintf(world->err_file, "File '%s', Line %ld: out of memory while creating grid.\n", __FILE__, (long)__LINE__);
-    return 1;
-  }
+  sg->mol = CHECKED_MALLOC_ARRAY(struct grid_molecule *,
+                                 sg->n_tiles,
+                                 "surface grid");
 
-  for (i=0;i<sg->n_tiles;i++) sg->mol[i] = NULL;
+  for (unsigned int i=0;i<sg->n_tiles;i++) sg->mol[i] = NULL;
   
   w->grid = sg;
 
@@ -296,7 +294,10 @@ grid_neighbors:
 	there is space there (just no molecules)!
 *************************************************************************/
 
-void grid_neighbors(struct surface_grid *grid,int idx,struct surface_grid **nb_grid,int *nb_idx)
+void grid_neighbors(struct surface_grid *grid,
+                    int idx,
+                    struct surface_grid **nb_grid,
+                    int *nb_idx)
 {
   int i,j,k,root,rootrem;
   struct vector3 loc_3d;
@@ -493,13 +494,8 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
   best_i = -1;
   best_d2 = 2.0*max_d2+1.0;
   
-  if (origin->grid==NULL)
-  {
-    if (create_grid(origin,NULL)){ 
-      /* this is an out_of_memory error */
-      exit(EXIT_FAILURE);
-    }
-  }
+  if (origin->grid == NULL  &&  create_grid(origin, NULL))
+    mcell_allocfailed("Failed to create grid for wall.");
   
   i = -1; /* default return value */
 
@@ -542,17 +538,19 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
        {
          case 0:
            vurt0.u = vurt0.v = 0.0;
-	   vurt1.u = origin->uv_vert1_u; vurt1.v = 0;
-	   break;
+           vurt1.u = origin->uv_vert1_u; vurt1.v = 0;
+           break;
          case 1:
-      	   vurt0.u = origin->uv_vert1_u; vurt0.v = 0;
+           vurt0.u = origin->uv_vert1_u; vurt0.v = 0;
            memcpy(&vurt1,&(origin->uv_vert2),sizeof(struct vector2));
-	   break;
+           break;
          case 2:
            memcpy(&vurt0,&(origin->uv_vert2),sizeof(struct vector2));
-	   vurt1.u = vurt1.v = 0.0;
+           vurt1.u = vurt1.v = 0.0;
            break;
-         /* No default case since 0<=j<=2 */
+         default:
+           /* default case should not occur since 0<=j<=2 */
+           UNHANDLED_CASE(j);
        }
        ed.u = vurt1.u - vurt0.u;
        ed.v = vurt1.v - vurt0.v;
@@ -566,14 +564,8 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
        if (d2<best_d2)
        {
                
-         if (there->grid==NULL)
-         {
-	   if (create_grid(there,NULL)) {
-              // this is an out_of_memory error 
-              exit(EXIT_FAILURE);
-           }
-         }
-             
+         if (there->grid == NULL  &&  create_grid(there, NULL))
+           mcell_allocfailed("Failed to create grid for wall.");
 
          traverse_surface(origin,point,j,&pt);
          i = nearest_free(there->grid,&pt,max_d2,&d2);
@@ -610,7 +602,11 @@ grid_release_check:
   Note: This function is recursive.
 *************************************************************************/
 
-int grid_release_check(struct release_region_data *rrd,int obj_n,int wall_n,int grid_n,struct release_evaluator *expr)
+int grid_release_check(struct release_region_data *rrd,
+                       int obj_n,
+                       int wall_n,
+                       int grid_n,
+                       struct release_evaluator *expr)
 {
   struct region *r;
   int okL,okR;
