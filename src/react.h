@@ -23,7 +23,6 @@ struct rxn* trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
 
 
 /* In react_cond.c */
-int test_unimolecular(struct rxn *rx);
 double timeof_unimolecular(struct rxn *rx, struct abstract_molecule *a);
 double timeof_special_unimol(struct rxn *rxuni,struct rxn *rxsurf, struct abstract_molecule *a);
 int which_unimolecular(struct rxn *rx, struct abstract_molecule *a);

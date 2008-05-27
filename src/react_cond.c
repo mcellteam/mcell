@@ -20,41 +20,6 @@
 
 extern struct volume *world;
 
-
-
-/* test_unimolecular is unused in MCell3 */
-#if 0
-/*************************************************************************
-test_unimolecular:
-  In: the reaction we're testing
-  Out: -1 if no reaction occurs in one timestep
-       int containing the number of the outward pathway if it does
-  Note: Not used in MCell3, timeof_unimolecular() is used instead.
-*************************************************************************/
-
-int test_unimolecular(struct rxn *rx)
-{
-  int m,M,avg;
-  double p = rng_dbl( world->rng );
- 
-  /* Perform binary search for reaction pathway */
-  m = 0;
-  M = rx->n_pathways-1;
-  if (p > rx->min_noreaction_p) return RX_NO_RX;
-
-  while (M-m > 1)
-  {
-    avg = (M+m)/2;
-    if (p > rx->cum_probs[avg]) m = avg;
-    else M = avg;
-  }
-  
-  if (m==M) return m;
-  if (p > rx->cum_probs[m]) return M;
-  else return m;
-}
-#endif
-
 /*************************************************************************
 get_varying_cum_probs:
   The probability space for reaction for a given molecule is divided into three
