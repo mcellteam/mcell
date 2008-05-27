@@ -231,6 +231,7 @@ struct macro_relation_state *relation_state;
 %token       FINAL_SUMMARY
 %token       FLOOR
 %token       FOPEN
+%token       FORMAT
 %token       FPRINTF
 %token       FPRINT_TIME
 %token       FRONT
@@ -884,6 +885,7 @@ str_expr_only:
         STR_VALUE                                     { CHECKN($$ = mdl_strip_quotes(mdlpvp, $1)); }
       | INPUT_FILE                                    { CHECKN($$ = mdl_strdup(mdlpvp, mdlpvp->vol->mdl_infile_name)); }
       | str_expr '&' str_expr                         { CHECKN($$ = mdl_strcat(mdlpvp, $1, $3)); }
+      | FORMAT '(' format_string list_args ')'        { CHECKN($$ = mdl_string_format(mdlpvp, $3, $4.arg_head)); }
 ;
 
 existing_str_var: VAR                                 { CHECKN($$ = mdl_existing_string(mdlpvp, $1)); }

@@ -96,6 +96,7 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
                 }
 }
 
+"FORMAT"                { return FORMAT; }
 [ \t]+			;
 "=="                    { return EQUAL; }
 "!="                    { return NOT_EQUAL; }

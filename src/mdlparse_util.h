@@ -121,6 +121,11 @@ int mdl_fprintf(struct mdlparse_vars *mpvp,
                 char *fmt,
                 struct arg *arg_head);
 
+/* (expression-form) sprintf-like formatting of MDL arguments. */
+char *mdl_string_format(struct mdlparse_vars *mpvp,
+                        char *fmt,
+                        struct arg *arg_head);
+
 /* sprintf-like formatting of MDL arguments. */
 int mdl_sprintf(struct mdlparse_vars *mpvp,
                 struct sym_table *assign_var,

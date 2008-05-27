@@ -1520,6 +1520,31 @@ int mdl_fprintf(struct mdlparse_vars *mpvp, struct file_stream *filep, char *fmt
 }
 
 /*************************************************************************
+ mdl_string_format:
+    Expression-friendly sprintf-like formatting of MDL arguments.
+
+ In:  mpvp: parser state
+      fmt: string to expand
+      arg_head: argument list
+ Out: string on success, NULL on failure
+*************************************************************************/
+char *mdl_string_format(struct mdlparse_vars *mpvp, char *fmt, struct arg *arg_head)
+{
+  char *str = my_sprintf(mpvp, fmt, arg_head);
+  if (str == NULL)
+  {
+    mdl_free_printf_arg_list(arg_head);
+    free(fmt);
+    mdlerror_fmt(mpvp, "Could not format string\n");
+    return NULL;
+  }
+  free(fmt);
+  mdl_free_printf_arg_list(arg_head);
+
+  return str;
+}
+
+/*************************************************************************
  mdl_sprintf:
     sprintf-like formatting of MDL arguments.
 
