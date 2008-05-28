@@ -7,10 +7,21 @@
 #define ARROW_BIDIRECTIONAL 0x01
 #define ARROW_CATALYTIC     0x02
 
-#define RFLCT 0
-#define TRANSP 1
-#define SINK 2
-#define WINDW 3
+/* Flags for parser to indicate which axis we are partitioning */
+enum partition_axis_t
+{
+  X_PARTS,    /* X-axis partitions */
+  Y_PARTS,    /* Y-axis partitions */
+  Z_PARTS     /* Z-axis partitions */
+};
+
+/* Special pathway types. */
+enum special_pathway_t
+{
+  RFLCT,      /* Special pathway: reflective surface */
+  TRANSP,     /* Special pathway: transparent surface */
+  SINK        /* Special pathway: absorptive surface */
+};
 
 #define WILDCARD_PRESENT   0x1
 #define TRIGGER_PRESENT    0x2
@@ -109,7 +120,7 @@ struct num_expr_list_head
 
 struct output_times_inlist
 {
-  int                         type;
+  enum output_timer_type_t    type;
   double                      step;
   struct  num_expr_list_head  values;
 };
@@ -161,8 +172,9 @@ struct object_list
   struct object *obj_tail;
 };
 
-struct output_times {
-  int     timer_type;
+struct output_times
+{
+  enum output_timer_type_t  timer_type;
   double  step_time;
   int     num_times;
   double *times;

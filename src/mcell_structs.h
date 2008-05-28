@@ -153,10 +153,12 @@
 
 
 /* Manifold Flags */
-#define MANIFOLD_UNCHECKED 0
-#define NOT_MANIFOLD       1
-#define IS_MANIFOLD        2
-
+enum manifold_flag_t
+{
+  MANIFOLD_UNCHECKED,
+  NOT_MANIFOLD,
+  IS_MANIFOLD
+};
 
 /* Reaction flags */
   /* RX_REFLEC signifies that a reaction is between a molecule and a REFLECTIVE  wall */
@@ -207,12 +209,6 @@
 #define BRANCH_Y  0x08
 #define BRANCH_Z  0x10
 
-
-/* Constants equating integers with coordinates */
-/* Axis Values */
-#define X_AXIS 0
-#define Y_AXIS 1
-#define Z_AXIS 2
 
 /* Direction Values */
 #define X_NEG 0
@@ -296,20 +292,17 @@
 
 
 /* Release Shape Flags */
-#define SHAPE_UNDEFINED -1
-#define SHAPE_SPHERICAL 0
-#define SHAPE_CUBIC 1
-#define SHAPE_ELLIPTIC 2
-#define SHAPE_RECTANGULAR 3
-#define SHAPE_SPHERICAL_SHELL 4
-#define SHAPE_REGION 5
-#define SHAPE_LIST 6
-
-
-/* Flags for parser to indicate which axis we are partitioning */
-#define X_PARTS 0
-#define Y_PARTS 1
-#define Z_PARTS 2
+enum release_shape_t
+{
+  SHAPE_UNDEFINED = -1,
+  SHAPE_SPHERICAL,
+  SHAPE_CUBIC,
+  SHAPE_ELLIPTIC,
+  SHAPE_RECTANGULAR,
+  SHAPE_SPHERICAL_SHELL,
+  SHAPE_REGION,
+  SHAPE_LIST
+};
 
 /* Region Expression Flags */
 /* Boolean set operations for releases on regions */
@@ -337,45 +330,36 @@
 
 
 /* Constants for notification levels */
-/* NONE means that there is no output */
-/* BRIEF is only defined for some types of notification, and tries to give a compact description of what is going on */
-/* FULL prints out appropriate messages */
-/* CUSTOM is defined only when "logfreq" command line option is used
-   for running simulation.  In such case ITERATION_REPORT is printed after
-   number of iterations specified in the command line option have finished */
-#define NOTIFY_NONE 0
-#define NOTIFY_BRIEF 1
-#define NOTIFY_FULL 2
-#define NOTIFY_CUSTOM 3
-
+enum notify_level_t
+{
+  NOTIFY_NONE,        /* no output */
+  NOTIFY_BRIEF,       /* give a brief description (only used for a few types) */
+  NOTIFY_FULL,        /* give a (possibly verbose) description */
+  NOTIFY_CUSTOM       /* flag signifying that the "logfreq" command line arg was given */
+};
 
 /* Constants for warning levels */
-/* COPE means to do something sensible and continue silently */
-/* WARN means to do something sensible but emit a warning message */
-/* ERROR means to treat the warning and an error and stop */
-#define WARN_COPE 0
-#define WARN_WARN 1
-#define WARN_ERROR 2
-
+enum warn_level_t
+{
+  WARN_COPE,          /* do something sensible and continue silently */
+  WARN_WARN,          /* do something sensible but emit a warning message */
+  WARN_ERROR          /* treat the warning and an error and stop */
+};
 
 /* Number of times to try diffusing on a surface before we give up (we might fail if the target grid is full) */
 #define SURFACE_DIFFUSION_RETRIES 10
 
-
 /* Overwrite Policy Flags */
 /* Flags for different types of file output */
-/* OVERWRITE means that the file is always overwritten, even after checkpointing */
-/* SUBSTITUTE is the default--append to entries earlier in time than "now", but overwrite later entries */
-/* APPEND means that the file is always appended to, even when starting a new run */
-/* APPEND_HEADER means that the file is always appended to, and the header is inserted each time */
-/* CREATE means that the output file is created; it is an error if it already exists (prevents overwriting) */
-#define FILE_UNDEFINED 0
-#define FILE_OVERWRITE 1
-#define FILE_SUBSTITUTE 2
-#define FILE_APPEND 3
-#define FILE_APPEND_HEADER 4
-#define FILE_CREATE 5
-
+enum overwrite_policy_t
+{
+  FILE_UNDEFINED,     /* not specified */
+  FILE_OVERWRITE,     /* always overwrite, even after a checkpoint */
+  FILE_SUBSTITUTE,    /* DEFAULT: append to entries earlier in time than "now", but overwrite later entries */
+  FILE_APPEND,        /* always append to file, even on a new run */
+  FILE_APPEND_HEADER, /* always append to file, including the header, even on a new run */
+  FILE_CREATE,        /* always create the file, or give an error if the file already exists (to prevent overwriting) */
+};
 
 /* Output Expression Flags */
 /* INT means that this expression is an integer */
@@ -428,13 +412,16 @@
 #define DISSOCIATION_MIN -1000000000
 
 /* Checkpoint related flags */
-#define CHKPT_NOT_REQUESTED     0
-#define CHKPT_SIGNAL_CONT       1
-#define CHKPT_SIGNAL_EXIT       2
-#define CHKPT_ALARM_CONT        3
-#define CHKPT_ALARM_EXIT        4
-#define CHKPT_ITERATIONS_CONT   5
-#define CHKPT_ITERATIONS_EXIT   6
+enum checkpoint_request_type_t
+{
+  CHKPT_NOT_REQUESTED,    /* No CP requested */
+  CHKPT_SIGNAL_CONT,      /* CP requested via SIGUSR* signal, continue after CP */
+  CHKPT_SIGNAL_EXIT,      /* CP requested via SIGUSR* signal, exit after CP  */
+  CHKPT_ALARM_CONT,       /* CP requested via "alarm" signal, continue after CP */
+  CHKPT_ALARM_EXIT,       /* CP requested via "alarm" signal, exit after CP */
+  CHKPT_ITERATIONS_CONT,  /* CP requested due to iteration count, continue after CP */
+  CHKPT_ITERATIONS_EXIT,  /* CP requested due to iteration count, exit after CP */
+};
 
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
@@ -501,12 +488,14 @@ enum count_type_t
 };
 
 /* Object Type Flags */
-#define META_OBJ 0
-#define BOX_OBJ 1
-#define POLY_OBJ 2
-#define REL_SITE_OBJ 3
-#define VOXEL_OBJ 4
-                                                                                
+enum object_type_t
+{
+  META_OBJ,     /* Meta-object: aggregation of other objects */
+  BOX_OBJ,      /* Box object: Polygonalized cuboid */
+  POLY_OBJ,     /* Polygon list object: list of arbitrary triangles */
+  REL_SITE_OBJ, /* Release site object */
+  VOXEL_OBJ,    /* Voxel object (so-far unused) */
+};
 
 /* Box sides */
 /* Note that there are two triangles per side, so we count up by two */
@@ -1200,7 +1189,7 @@ struct volume
   struct ccn_clamp_data *clamp_list;  /* List of objects at which volume molecule concentrations should be clamped */
   
   /* Flags for asynchronously-triggered checkpoints */
-  int checkpoint_requested;             /* CHKPT_AND_CONTINUE, CHKPT_AND_STOP, or CHKPT_NOT_REQUESTED */
+  enum checkpoint_request_type_t checkpoint_requested; /* Flag indicating whether a checkpoint has been requested. */
   unsigned int checkpoint_alarm_time;   /* number of seconds between checkpoints */
   int continue_after_checkpoint;        /* 0: exit after chkpt, 1: continue after chkpt */
   long long last_checkpoint_iteration;  /* Last iteration when chkpt was created */
@@ -1291,7 +1280,7 @@ struct release_site_obj {
   struct vector3 *location;	  /* location of release site */
   struct species *mol_type;	  /* species to be released */
   byte release_number_method;     /* Release Number Flags: controls how release_number is used (enum release_number_type_t) */
-  byte release_shape;             /* Release Shape Flags: controls shape over which to release */
+  int8_t release_shape;           /* Release Shape Flags: controls shape over which to release (enum release_shape_t) */
   short orientation;              /* Orientation of released surface molecules */
   double release_number;             /* Number to release */
   double mean_diameter;           /* Diameter for symmetric releases */
@@ -1380,40 +1369,43 @@ struct notifications
 {
   /* Informational stuff, most possible values NOTIFY_FULL or NOTIFY_NONE */
   /* see corresponding keywords */
-  byte progress_report;              /* PROGRESS_REPORT */
-  byte diffusion_constants;          /* DIFFUSION_CONSTANT_REPORT */    
-  byte reaction_probabilities;       /* PROBABILITY_REPORT */
-  byte time_varying_reactions;       /* VARYING_PROBABILITY_REPORT */
+  enum notify_level_t progress_report;              /* PROGRESS_REPORT */
+  enum notify_level_t diffusion_constants;          /* DIFFUSION_CONSTANT_REPORT */    
+  enum notify_level_t reaction_probabilities;       /* PROBABILITY_REPORT */
+  enum notify_level_t time_varying_reactions;       /* VARYING_PROBABILITY_REPORT */
   double reaction_prob_notify;       /* PROBABILITY_REPORT_THRESHOLD */
-  byte partition_location;           /* PARTITION_LOCATION_REPORT */
-  byte box_triangulation;            /* BOX_TRIANGULATION_REPORT */
-  byte custom_iterations;            /* ITERATION_REPORT */
+  enum notify_level_t partition_location;           /* PARTITION_LOCATION_REPORT */
+  enum notify_level_t box_triangulation;            /* BOX_TRIANGULATION_REPORT */
+  enum notify_level_t custom_iterations;            /* ITERATION_REPORT */
   long long custom_iteration_value;  /* ITERATION_REPORT */
-  byte throughput_report;            /* THROUGHPUT_REPORT */
-  byte checkpoint_report;            /* CHECKPOINT_REPORT */
-  byte release_events;               /* RELEASE_EVENT_REPORT */
-  byte file_writes;                  /* FILE_OUTPUT_REPORT */
-  byte final_summary;                /* FINAL_SUMMARY */
+  enum notify_level_t throughput_report;            /* THROUGHPUT_REPORT */
+  enum notify_level_t checkpoint_report;            /* CHECKPOINT_REPORT */
+  enum notify_level_t release_events;               /* RELEASE_EVENT_REPORT */
+  enum notify_level_t file_writes;                  /* FILE_OUTPUT_REPORT */
+  enum notify_level_t final_summary;                /* FINAL_SUMMARY */
+  enum notify_level_t reaction_output_report;       /* REACTION_OUTPUT_REPORT */
+  enum notify_level_t volume_output_report;         /* VOLUME_OUTPUT_REPORT */
+  enum notify_level_t viz_output_report;            /* VIZ_OUTPUT_REPORT */
   
   /* Warning stuff, possible values IGNORED, WARNING, ERROR */
   /* see corresponding keywords */
-  byte neg_diffusion;                     /* NEGATIVE_DIFFUSION_CONSTANT */
-  byte neg_reaction;                      /* NEGATIVE_REACTION_RATE */
-  byte high_reaction_prob;                /* HIGH_REACTION_PROBABILITY */
+  enum warn_level_t neg_diffusion;                  /* NEGATIVE_DIFFUSION_CONSTANT */
+  enum warn_level_t neg_reaction;                   /* NEGATIVE_REACTION_RATE */
+  enum warn_level_t high_reaction_prob;             /* HIGH_REACTION_PROBABILITY */
   double reaction_prob_warn;              /* HIGH_PROBABILITY_THRESHOLD */
-  byte close_partitions;                  /* CLOSE_PARTITION_SPACING */
-  byte degenerate_polys;                  /* DEGENERATE_POLYGONS */
-  byte overwritten_file;                  /* OVERWRITTEN_OUTPUT_FILE */
-  byte short_lifetime;                    /* LIFETIME_TOO_SHORT */
+  enum warn_level_t close_partitions;               /* CLOSE_PARTITION_SPACING */
+  enum warn_level_t degenerate_polys;               /* DEGENERATE_POLYGONS */
+  enum warn_level_t overwritten_file;               /* OVERWRITTEN_OUTPUT_FILE */
+  enum warn_level_t short_lifetime;                 /* LIFETIME_TOO_SHORT */
   long long short_lifetime_value;         /* LIFETIME_THRESHOLD */
-  byte missed_reactions;                  /* MISSED_REACTIONS */
+  enum warn_level_t missed_reactions;               /* MISSED_REACTIONS */
   double missed_reaction_value;           /* MISSED_REACTION_THRESHOLD */
-  byte missed_surf_orient;                /* MISSING_SURFACE_ORIENTATION */
-  byte useless_vol_orient;                /* USELESS_VOLUME_ORIENTATION */
-  byte complex_placement_failure;         /* COMPLEX_PLACEMENT_FAILURE */
+  enum warn_level_t missed_surf_orient;             /* MISSING_SURFACE_ORIENTATION */
+  enum warn_level_t useless_vol_orient;             /* USELESS_VOLUME_ORIENTATION */
+  enum warn_level_t complex_placement_failure;      /* COMPLEX_PLACEMENT_FAILURE */
   long long complex_placement_failure_threshold; /* COMPLEX_PLACEMENT_FAILURE_THRESHOLD */
-  byte mol_placement_failure;             /* MOLECULE_PLACEMENT_FAILURE */
-  byte invalid_output_step_time;          /* INVALID_OUTPUT_STEP_TIME */
+  enum warn_level_t mol_placement_failure;          /* MOLECULE_PLACEMENT_FAILURE */
+  enum warn_level_t invalid_output_step_time;       /* INVALID_OUTPUT_STEP_TIME */
 };
 
 /* Information related to concentration clamp surfaces, by object */
@@ -1490,7 +1482,7 @@ struct output_set
   struct output_set *next;             /* Next data set in this block */
   struct output_block *block;          /* Which block do we belong to? */
   char *outfile_name;                  /* Filename */
-  int file_flags;                      /* Overwrite Policy Flags: tells us how to handle existing files */
+  enum overwrite_policy_t file_flags;  /* Overwrite Policy Flags: tells us how to handle existing files */
   u_int chunk_count;                   /* Number of buffered output chunks processed */  
   char *header_comment;                /* Comment character(s) for header */
   int exact_time_flag;                 /* Boolean value; nonzero means print exact time in TRIGGER statements */
@@ -1674,7 +1666,7 @@ struct object {
   struct object *last_child;	/* Last child object */
   struct sym_table *sym;        /* Symbol hash table entry for this object */
   char *last_name;              /* Name of object without pre-pended parent object name */
-  byte object_type;             /* Object Type Flags */
+  enum object_type_t  object_type; /* Object Type Flags */
   void *contents;		/* Actual physical object, cast according to object_type */
   u_int num_regions;	        /* Number of regions defined on object */
   struct region_list *regions;  /* List of regions for this object */
