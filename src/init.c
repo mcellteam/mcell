@@ -1706,7 +1706,7 @@ int init_wall_regions(struct object *objp)
     if (rp->membership==NULL)
       mcell_internal_error("Missing region information for '%s'.", rp->sym->name);
 
-    for (unsigned int n_wall=0; n_wall<rp->membership->nbits; ++ n_wall)
+    for (int n_wall=0; n_wall<rp->membership->nbits; ++ n_wall)
     {
       if (get_bit(rp->membership, n_wall))
       {
@@ -1937,7 +1937,7 @@ int init_wall_effectors(struct object *objp)
     reg_eff_num=0;
     complex_eff=0;
 
-    for (unsigned int n_wall=0; n_wall<rp->membership->nbits; n_wall++)
+    for (int n_wall=0; n_wall<rp->membership->nbits; n_wall++)
     {
       if (get_bit(rp->membership, n_wall))
       {
@@ -2089,7 +2089,7 @@ static int init_effectors_place_complex(struct wall *w,
                                         struct eff_dat const *effdp)
 {
   struct grid_molecule *gp;
-  int grid_idx;
+  unsigned int grid_idx;
   double p;
   short orient = effdp->orientation;
 
@@ -2243,7 +2243,7 @@ static int init_complex_effectors(struct object *objp, struct region_list *head)
     int avail_slots = 0;                        /* num free slots for molecules */
 
     /* Collect all walls in this region */
-    for (unsigned int n_wall=0; n_wall<rp->membership->nbits; ++n_wall)
+    for (int n_wall=0; n_wall<rp->membership->nbits; ++n_wall)
     {
       if (get_bit(rp->membership, n_wall))
       {
@@ -2485,7 +2485,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
         /* initialize effector grids in region as needed and */
         /* count total number of free effector sites in region */
         n_free_eff=0;
-        for (unsigned int n_wall=0; n_wall<rp->membership->nbits; n_wall++)
+        for (int n_wall=0; n_wall<rp->membership->nbits; n_wall++)
         {
           if (get_bit(rp->membership, n_wall))
           {
@@ -2512,7 +2512,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 
         /* initialize array of pointers to all free tiles */
         k=0;
-        for (unsigned int n_wall=0; n_wall<rp->membership->nbits; n_wall++)
+        for (int n_wall=0; n_wall<rp->membership->nbits; n_wall++)
         {
           if (get_bit(rp->membership, n_wall))
           {
@@ -2707,7 +2707,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
             }
 
             /* update n_occupied for each effector grid */
-            for (unsigned int n_wall=0; n_wall<rp->membership->nbits; n_wall++)
+            for (int n_wall=0; n_wall<rp->membership->nbits; n_wall++)
             {
               if (get_bit(rp->membership, n_wall))
               {
@@ -2924,12 +2924,12 @@ static int eval_rel_region_expr(struct release_evaluator *expr,
       else
       {
 	struct bit_array *res2[n];
-        for (unsigned int i=0;i<n;i++) res2[i]=NULL;
+        for (int i=0;i<n;i++) res2[i]=NULL;
 
         if (eval_rel_region_expr(expr->right,n,objs,res2,n_refinements))
           return 1;
 
-        for (unsigned int i=0;i<n;i++)
+        for (int i=0;i<n;i++)
 	{
 	  if (res2[i]==NULL) continue;
 	  if (result[i]==NULL) result[i] = res2[i];
@@ -2972,14 +2972,14 @@ static int init_rel_region_data_2d(struct release_site_obj *rsop,
   rrd->in_release = CHECKED_MALLOC_ARRAY(struct bit_array *,
                                          rrd->n_objects,
                                          "region membership array for 2D region release");
-  for (unsigned int n_object=0; n_object<rrd->n_objects; ++ n_object)
+  for (int n_object=0; n_object<rrd->n_objects; ++ n_object)
     rrd->in_release[n_object] = NULL;
   
   rrd->refinement = 0;
   if (eval_rel_region_expr(rrd->expression,rrd->n_objects,rrd->owners,rrd->in_release,&rrd->refinement))
     mcell_error("Could not evaluate region expression for release site '%s'.", rsop->name);
 
-  for (unsigned int n_object=0; n_object<rrd->n_objects; n_object++)
+  for (int n_object=0; n_object<rrd->n_objects; n_object++)
   {
     if (rrd->owners[n_object] == NULL)
       mcell_internal_error("Object %d of %d in region expression for release site '%s' was not found!",
@@ -2993,7 +2993,7 @@ static int init_rel_region_data_2d(struct release_site_obj *rsop,
                                             "wall counts for 2D region release");
   
   rrd->n_walls_included=0;
-  for (unsigned int n_object=0; n_object<rrd->n_objects; ++ n_object)
+  for (int n_object=0; n_object<rrd->n_objects; ++ n_object)
   {
     if (rrd->in_release[n_object] == NULL) rrd->walls_per_obj[n_object]=0;
     else rrd->walls_per_obj[n_object] = count_bits(rrd->in_release[n_object]);
@@ -3011,7 +3011,7 @@ static int init_rel_region_data_2d(struct release_site_obj *rsop,
                                         "object indices for 2D region release");
 
   unsigned int n_wall_overall = 0;
-  for (unsigned int n_object=0; n_object<rrd->n_objects; ++ n_object)
+  for (int n_object=0; n_object<rrd->n_objects; ++ n_object)
   {
     if (rrd->walls_per_obj[n_object]==0) continue;
     int owner_type = rrd->owners[n_object]->object_type;
@@ -3033,7 +3033,7 @@ static int init_rel_region_data_2d(struct release_site_obj *rsop,
     }
   }
 
-  for (unsigned int n_wall=1; n_wall<rrd->n_walls_included; n_wall++)
+  for (int n_wall=1; n_wall<rrd->n_walls_included; n_wall++)
   {
     rrd->cum_area_list[n_wall] += rrd->cum_area_list[n_wall-1];
   }
@@ -3054,7 +3054,7 @@ static struct vector3* create_region_bbox(struct region *r)
         CHECKED_MALLOC_ARRAY(struct vector3, 2, "region bounding box");
 
   int found_first_wall = 0;
-  for (unsigned int n_wall=0; n_wall<r->membership->nbits; ++ n_wall)
+  for (int n_wall=0; n_wall<r->membership->nbits; ++ n_wall)
   {
     if (get_bit(r->membership, n_wall))
     {

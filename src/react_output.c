@@ -372,7 +372,7 @@ int add_trigger_output(struct counter *c,struct output_request *ear,int n,short 
   
   first_column->initial_value += 1.0;
   idx=(int)first_column->initial_value;
-  if (idx >= first_column->set->block->trig_bufsize)
+  if (idx >= (int) first_column->set->block->trig_bufsize)
   {
     if (write_reaction_output(first_column->set,0))
     {

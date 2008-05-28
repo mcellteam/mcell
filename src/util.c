@@ -662,7 +662,6 @@ void set_bit_range(struct bit_array *ba,int idx1,int idx2,int value)
   int *data;
   int ofs1,ofs2;
   int mask,cmask;
-  int i;
   
   data = &(ba->nints);
   data++;  /* At start of bit array memory */
@@ -675,7 +674,7 @@ void set_bit_range(struct bit_array *ba,int idx1,int idx2,int value)
   if (idx1==idx2)
   {
     mask = 0;
-    for (i=ofs1;i<=ofs2;i++) mask |= (1<<i);
+    for (int i=ofs1;i<=ofs2;i++) mask |= (1<<i);
     cmask = ~mask;
     
     if (value) data[idx1] = (data[idx1]&cmask) | mask;
@@ -685,16 +684,16 @@ void set_bit_range(struct bit_array *ba,int idx1,int idx2,int value)
   {
     if (value) value = ~0;
     else value = 0;
-    for (i=idx1+1;i<idx2;i++) data[i] = value;
+    for (int i=idx1+1;i<idx2;i++) data[i] = value;
     
     mask = 0;
-    for (i=ofs1;i<8*sizeof(int);i++) mask |= (1<<i);
+    for (unsigned int i=ofs1;i<8*sizeof(int);i++) mask |= (1<<i);
     cmask = ~mask;
     if (value) data[idx1] = (data[idx1]&cmask) | mask;
     else data[idx1] = data[idx1]&cmask;
     
     mask = 0;
-    for (i=0;i<=ofs2;i++) mask |= (1<<i);
+    for (int i=0;i<=ofs2;i++) mask |= (1<<i);
     cmask = ~mask;
     if (value) data[idx2] = (data[idx2]&cmask) | mask;
     else data[idx2] = data[idx2]&cmask;    
@@ -2075,7 +2074,7 @@ int is_wildcard_match(char *wild,char *tame)
     else if (wild[n]=='*') nstars++;
   }
   
-  if (nstars==0) return (is_feral_nabbrev(wild,n,tame)==strlen(tame));
+  if (nstars==0) return (is_feral_nabbrev(wild,n,tame) == (int) strlen(tame));
   else
   {
     int staridx[nstars];
@@ -2153,7 +2152,7 @@ int is_wildcard_match(char *wild,char *tame)
     
     m = m + old_length;
     
-    if (strlen(m) < tail_len) return 0; /* Ran over tail string--no good */
+    if (strlen(m) < (size_t) tail_len) return 0; /* Ran over tail string--no good */
     
     return 1;
   }

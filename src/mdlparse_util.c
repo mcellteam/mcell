@@ -5357,7 +5357,7 @@ void mdl_remove_gaps_from_regions(struct object *ob)
   }
   
   missing=0;
-  for (unsigned int n_side=0; n_side<po->side_removed->nbits; ++ n_side)
+  for (int n_side=0; n_side<po->side_removed->nbits; ++ n_side)
   {
     if (get_bit(po->side_removed, n_side)) missing++;
   }
@@ -6969,7 +6969,7 @@ int mdl_finish_polygon_list(struct mdlparse_vars *mpvp, struct sym_table *symp)
 **************************************************************************/
 static int is_region_degenerate(struct region *rp)
 {
-  for (unsigned int i = 0; i < rp->membership->nbits; i++)
+  for (int i = 0; i < rp->membership->nbits; i++)
   {
     if (get_bit(rp->membership,i))
       return 0;
@@ -10189,7 +10189,7 @@ int mdl_set_region_viz_state(struct mdlparse_vars *mpvp,
       vcp->viz_state[i] = EXCLUDE_OBJ;
   }
 
-  for (unsigned int i=0; i<rp->membership->nbits; ++ i)
+  for (int i=0; i<rp->membership->nbits; ++ i)
   {
     if (get_bit(rp->membership, i))
       vcp->viz_state[i] = viz_state;
@@ -11606,8 +11606,8 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
   int bidirectional = 0;
   int catalytic = -1;
   int surface = -1;
-  int oriented_count = 0;
-  int num_surfaces = 0;
+  unsigned int oriented_count = 0;
+  unsigned int num_surfaces = 0;
   int num_surf_products = 0;
   int num_grid_mols = 0;
   int num_vol_mols = 0;

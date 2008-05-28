@@ -2248,10 +2248,10 @@ static int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule
   rrhd_head = NULL;
   n_rrhd=0;
   
-  for (unsigned int n_object=0; n_object<rrd->n_objects; n_object++)
+  for (int n_object=0; n_object<rrd->n_objects; n_object++)
   {
     if (rrd->walls_per_obj[n_object]==0) continue;
-    for (unsigned int n_wall=0; n_wall<rrd->in_release[n_object]->nbits; n_wall++)
+    for (int n_wall=0; n_wall<rrd->in_release[n_object]->nbits; n_wall++)
     {
       if (!get_bit(rrd->in_release[n_object], n_wall)) continue;
       
@@ -2326,7 +2326,8 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
   const int too_many_failures = 10;       /* Also a guess */
   struct release_region_data *rrd;
   struct mem_helper *mh;
-  int i,j;
+  int i;
+  unsigned int grid_index;
   double A,max_A, num_to_release;
   struct wall *w;
   struct grid_molecule *new_g;
@@ -2381,9 +2382,8 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           return 1;
       }
       if (i) A -= rrd->cum_area_list[i-1];
-      j = w->grid->n;
-      j = (int)((j*j)*(A/w->area));
-      if (j>=w->grid->n_tiles) j=w->grid->n_tiles-1;
+      grid_index = (int)((w->grid->n*w->grid->n)*(A/w->area));
+      if (grid_index>=w->grid->n_tiles) grid_index=w->grid->n_tiles-1;
 
       if (is_complex)
       {
@@ -2394,7 +2394,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
         {
           orient = (rng_uint(world->rng)&1)?1:-1;
         }
-        struct grid_molecule *gp = macro_insert_molecule_grid_2(g->properties, orient, w, j, g->t, NULL, rrd);
+        struct grid_molecule *gp = macro_insert_molecule_grid_2(g->properties, orient, w, grid_index, g->t, NULL, rrd);
         if (gp == NULL)
         {
           ++ failure;
@@ -2435,12 +2435,12 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
       }
       else
       {
-        if (w->grid->mol[j] != NULL || (rrd->refinement && !grid_release_check(rrd,rrd->obj_index[i],rrd->wall_index[i],j,NULL))) failure++;
+        if (w->grid->mol[grid_index] != NULL || (rrd->refinement && !grid_release_check(rrd,rrd->obj_index[i],rrd->wall_index[i],grid_index,NULL))) failure++;
         else
         {
           struct vector2 s_pos;
-          if (world->randomize_gmol_pos) grid2uv_random(w->grid,j,&s_pos);
-          else grid2uv(w->grid,j,&s_pos);
+          if (world->randomize_gmol_pos) grid2uv_random(w->grid,grid_index,&s_pos);
+          else grid2uv(w->grid,grid_index,&s_pos);
           uv2xyz(&s_pos, w, &pos3d);
           gsv = find_subvolume(&pos3d, gsv);
 
@@ -2448,7 +2448,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           if (new_g==NULL) return 1;
           memcpy(new_g,g,sizeof(struct grid_molecule));
           new_g->birthplace = w->grid->subvol->local_storage->gmol;
-          new_g->grid_index = j;
+          new_g->grid_index = grid_index;
           new_g->s_pos.u = s_pos.u;
           new_g->s_pos.v = s_pos.v;
 
@@ -2460,7 +2460,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
 
           new_g->grid = w->grid;
 
-          w->grid->mol[j] = new_g;
+          w->grid->mol[grid_index] = new_g;
 
           w->grid->n_occupied++;
           new_g->properties->population++;
@@ -2484,10 +2484,10 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
       struct reg_rel_helper_data *rrhd_head = NULL;
       int n_rrhd=0;
       max_A=0;
-      for (unsigned int n_object=0; n_object<rrd->n_objects; n_object++)
+      for (int n_object=0; n_object<rrd->n_objects; n_object++)
       {
         if (rrd->walls_per_obj[n_object]==0) continue;
-        for (unsigned int n_wall=0; n_wall<rrd->in_release[n_object]->nbits; n_wall++)
+        for (int n_wall=0; n_wall<rrd->in_release[n_object]->nbits; n_wall++)
         {
           if (!get_bit(rrd->in_release[n_object], n_wall)) continue;
           

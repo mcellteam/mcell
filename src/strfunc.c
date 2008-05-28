@@ -99,7 +99,7 @@ char *alloc_vsprintf(char const *fmt, va_list args)
   va_copy(saved_args, args);
 
   len = vsnprintf(stack_buffer, sizeof(stack_buffer), fmt, args);
-  if (len >= sizeof(stack_buffer))
+  if (len >= (int) sizeof(stack_buffer))
   {
     retval = malloc(len + 1);
     if (retval != NULL)

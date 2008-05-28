@@ -5472,7 +5472,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         {
           g->grid->mol[g->grid_index] = gnew;
           g->grid = NULL;
-          g->grid_index = -1;
+          g->grid_index = 0;
         }
 
         if (g->cmplx)

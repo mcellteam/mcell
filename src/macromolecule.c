@@ -375,7 +375,7 @@ static struct wall* ray_trace_to_subunit(struct wall *w,
 
       if (rrd != NULL)
       {
-        for (unsigned int n_object = 0; n_object < rrd->n_objects; ++ n_object)
+        for (int n_object = 0; n_object < rrd->n_objects; ++ n_object)
         {
           if (this_wall->parent_object == rrd->owners[n_object])
           {
@@ -601,7 +601,6 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
           -- unit->properties->population;
           unit->cmplx = NULL;
           if (unit->grid != NULL     &&
-              unit->grid_index >= 0  &&
               unit->grid->mol[unit->grid_index] == unit)
           {
             unit->grid->mol[unit->grid_index] = NULL;
