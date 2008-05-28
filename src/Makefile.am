@@ -2,7 +2,7 @@ AM_LFLAGS=-Crema
 AM_YFLAGS=-d
 YLWRAP="$(srcdir)/ylwrapfix"
 
-AM_CFLAGS=@CFLAGS_WARN@
+AM_CFLAGS=@CFLAGS_WARN@ @MCELL_UNSAFE_SIGHANDLERS@
 # AM_CFLAGS=-Wall -std=c99 -D_GNU_SOURCE=1
 
 MOSTLYCLEANFILES = version.h mdlparse.h mdlparse.c mdllex.c

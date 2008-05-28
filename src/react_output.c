@@ -260,18 +260,24 @@ static void emergency_output_signal_handler(int signo)
           signo,
           PACKAGE_BUGREPORT);
 
+#ifdef MCELL_UNSAFE_SIGNAL_HANDLERS
   if (emergency_output_hook_enabled)
   {
     emergency_output_hook_enabled = 0;
 
     int n_errors = flush_reaction_output();
     if (n_errors == 0)
-      mcell_log("Reaction output was successfully flushed to disk.");
+      mcell_error_raw("Reaction output was successfully flushed to disk.\n");
     else if (n_errors == 1)
-      mcell_warn("An error occurred while flushing reaction output to disk.");
+      mcell_error_raw("An error occurred while flushing reaction output to disk.\n");
     else
-      mcell_warn("%d errors occurred while flushing reaction output to disk.", n_errors);
+      mcell_error_raw("%d errors occurred while flushing reaction output to disk.\n", n_errors);
   }
+#endif
+  raise(signo);
+
+  /* We shouldn't get here, but we might if, for instance, SA_NODEFER is
+   * unsupported. */
   _exit(128+signo);
 }
 
@@ -289,7 +295,7 @@ static void install_emergency_output_signal_handler(int signo)
   struct sigaction sa, saPrev;
   sa.sa_sigaction = NULL;
   sa.sa_handler = &emergency_output_signal_handler;
-  sa.sa_flags = SA_RESTART;
+  sa.sa_flags = SA_RESTART | SA_RESETHAND | SA_NODEFER;
   sigfillset(&sa.sa_mask);
 
   if (sigaction(signo, &sa, &saPrev) != 0)
