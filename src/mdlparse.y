@@ -407,6 +407,8 @@ struct macro_relation_state *relation_state;
 %token       YES
 
 /* Utility non-terminals */
+%type <str> str_value
+%type <str> var
 %type <str> file_name
 %type <sym> existing_object
 %type <symlist> mesh_object_or_wildcard
@@ -676,18 +678,23 @@ mdl_stmt:
 
 /* =================================================================== */
 /* Utility definitions */
+str_value: STR_VALUE
+;
+
+var: VAR
+;
+
 file_name: str_expr
 ;
 
-
-existing_object: VAR                                  { CHECKN($$ = mdl_existing_object(mdlpvp, $1)); }
+existing_object: var                                  { CHECKN($$ = mdl_existing_object(mdlpvp, $1)); }
 ;
 
 mesh_object_or_wildcard: existing_object              { CHECKN($$ = mdl_singleton_symbol_list(mdlpvp, $1)); }
-                       | STR_VALUE                    { CHECKN($$ = mdl_existing_objects_wildcard(mdlpvp, $1)); }
+                       | str_value                    { CHECKN($$ = mdl_existing_objects_wildcard(mdlpvp, $1)); }
 ;
 
-existing_region: existing_object '[' VAR ']'          { CHECKN($$ = mdl_existing_region(mdlpvp, $1, $3)); }
+existing_region: existing_object '[' var ']'          { CHECKN($$ = mdl_existing_region(mdlpvp, $1, $3)); }
 ;
 
 point: array_value                                    { CHECKN($$ = mdl_point(mdlpvp, &$1)); }
@@ -747,7 +754,7 @@ orient_class_number: '{' num_expr '}'                 {
                                                           $$.orient_set = 1;
                                                           if ($$.orient != $2)
                                                           {
-                                                            mdlerror(mdlpvp, "Error: Molecule orientation specified inside braces must be an integer between -32768 and 32767\n");
+                                                            mdlerror(mdlpvp, "Molecule orientation specified inside braces must be an integer between -32768 and 32767.");
                                                             return 1;
                                                           }
                                                       }
@@ -803,10 +810,10 @@ assignment_stmt:
       | assign_var '=' array_expr_only                { CHECK(mdl_assign_variable_array(mdlpvp, $1, $3.value_head)); }
 ;
 
-assign_var: VAR                                       { CHECKN($$ = mdl_get_or_create_variable(mdlpvp, $1)); }
+assign_var: var                                       { CHECKN($$ = mdl_get_or_create_variable(mdlpvp, $1)); }
 ;
 
-existing_var_only: VAR                                { CHECKN($$ = mdl_existing_variable(mdlpvp, $1)); }
+existing_var_only: var                                { CHECKN($$ = mdl_existing_variable(mdlpvp, $1)); }
 ;
 
 array_value: array_expr_only
@@ -824,7 +831,7 @@ array_value: array_expr_only
 array_expr_only: '[' list_range_specs ']'             { mdl_debug_dump_array($2.value_head); $$ = $2; }
 ;
 
-existing_array: VAR                                   { CHECKN($$ = mdl_existing_array(mdlpvp, $1)); }
+existing_array: var                                   { CHECKN($$ = mdl_existing_array(mdlpvp, $1)); }
 ;
 
 num_expr: num_value
@@ -843,7 +850,7 @@ num_expr_only: intOrReal
              | arith_expr
 ;
 
-existing_num_var: VAR                                 { CHECKN($$ = mdl_existing_double(mdlpvp, $1)); }
+existing_num_var: var                                 { CHECKN($$ = mdl_existing_double(mdlpvp, $1)); }
 ;
 
 arith_expr:
@@ -885,13 +892,13 @@ str_expr:
 ;
 
 str_expr_only:
-        STR_VALUE                                     { CHECKN($$ = mdl_strip_quotes(mdlpvp, $1)); }
+        str_value                                     { CHECKN($$ = mdl_strip_quotes(mdlpvp, $1)); }
       | INPUT_FILE                                    { CHECKN($$ = mdl_strdup(mdlpvp, mdlpvp->vol->mdl_infile_name)); }
       | str_expr '&' str_expr                         { CHECKN($$ = mdl_strcat(mdlpvp, $1, $3)); }
       | FORMAT '(' format_string list_args ')'        { CHECKN($$ = mdl_string_format(mdlpvp, $3, $4.arg_head)); }
 ;
 
-existing_str_var: VAR                                 { CHECKN($$ = mdl_existing_string(mdlpvp, $1)); }
+existing_str_var: var                                 { CHECKN($$ = mdl_existing_string(mdlpvp, $1)); }
 ;
 
 /* =================================================================== */
@@ -910,7 +917,7 @@ fopen_stmt: new_file_stream FOPEN
             '(' file_name ',' file_mode ')'           { CHECK(mdl_fopen(mdlpvp, $1, $4, $6)); }
 ;
 
-new_file_stream: VAR                                  { CHECKN($$ = mdl_new_filehandle(mdlpvp, $1)); }
+new_file_stream: var                                  { CHECKN($$ = mdl_new_filehandle(mdlpvp, $1)); }
 ;
 
 file_mode: str_expr                                   { $$ = $1; CHECK(mdl_valid_file_mode(mdlpvp, $1)); }
@@ -919,7 +926,7 @@ file_mode: str_expr                                   { $$ = $1; CHECK(mdl_valid
 fclose_stmt: FCLOSE '(' existing_file_stream ')'      { CHECK(mdl_fclose(mdlpvp, $3)); }
 ;
 
-existing_file_stream: VAR                             { CHECKN($$ = mdl_existing_file_stream(mdlpvp, $1)); }
+existing_file_stream: var                             { CHECKN($$ = mdl_existing_file_stream(mdlpvp, $1)); }
 ;
 
 format_string: str_expr                               { CHECKN($$ = mdl_expand_string_escapes(mdlpvp, $1)); }
@@ -1146,7 +1153,7 @@ molecule_stmt:
           '}'                                         { CHECKN($$ = mdl_assemble_mol_species(mdlpvp, $1, $3, $4.D, $4.is_2d, $5, $6)); }
 ;
 
-new_molecule: VAR                                     { CHECKN($$ = mdl_new_molecule(mdlpvp, $1)); }
+new_molecule: var                                     { CHECKN($$ = mdl_new_molecule(mdlpvp, $1)); }
 ;
 
 reference_diffusion_def:
@@ -1196,7 +1203,7 @@ define_complex_molecule:
           '}'                                         { CHECK(mdl_assemble_complex_species(mdlpvp, $2, $5, $7.assign_head, $8, $9, $11)); }
 ;
 
-complex_mol_name: VAR                                 { $$ = $1; CHECK(mdl_valid_complex_name(mdlpvp, $1)); }
+complex_mol_name: var                                 { $$ = $1; CHECK(mdl_valid_complex_name(mdlpvp, $1)); }
 ;
 
 complex_mol_topology:
@@ -1254,7 +1261,7 @@ complex_mol_relationship_list:
           complex_mol_relationship                    {  if ($2) $2->next = $1; $$ = $2; }
 ;
 
-complex_mol_relationship: VAR '=' array_value         { CHECKN($$ = mdl_assemble_complex_relationship(mdlpvp, mdlpvp->complex_topo, $1, &$3)); }
+complex_mol_relationship: var '=' array_value         { CHECKN($$ = mdl_assemble_complex_relationship(mdlpvp, mdlpvp->complex_topo, $1, &$3)); }
 ;
 
 complex_mol_rates:
@@ -1266,7 +1273,7 @@ complex_mol_rate_list:
         | complex_mol_rate_list complex_mol_rate      { if ($2) $2->next = $1; $$ = $2; }
 ;
 
-complex_mol_rate: VAR '{' complex_mol_rate_rules '}'  { CHECKN($$ = mdl_assemble_complex_ruleset(mdlpvp, $1, $3)); }
+complex_mol_rate: var '{' complex_mol_rate_rules '}'  { CHECKN($$ = mdl_assemble_complex_ruleset(mdlpvp, $1, $3)); }
 ;
 
 complex_mol_rate_rules:
@@ -1291,18 +1298,18 @@ complex_mol_rate_clause_list:
 ;
 
 complex_mol_rate_clause:
-     VAR equal_or_not existing_molecule_opt_orient    { CHECKN($$ = mdl_assemble_complex_rate_rule_clause(mdlpvp, mdlpvp->complex_relations, $1, $2, &$3)); }
+     var equal_or_not existing_molecule_opt_orient    { CHECKN($$ = mdl_assemble_complex_rate_rule_clause(mdlpvp, mdlpvp->complex_relations, $1, $2, &$3)); }
 ;
 
 equal_or_not: EQUAL                                   { $$ = 0; }
             | NOT_EQUAL                               { $$ = 1; }
 ;
 
-existing_molecule: VAR                                { CHECKN($$ = mdl_existing_molecule(mdlpvp, $1)); }
+existing_molecule: var                                { CHECKN($$ = mdl_existing_molecule(mdlpvp, $1)); }
 ;
 
 existing_surface_molecule:
-          VAR orientation_class                       { $$ = $2; CHECKN($$.mol_type = mdl_existing_surface_molecule(mdlpvp, $1)); }
+          var orientation_class                       { $$ = $2; CHECKN($$.mol_type = mdl_existing_surface_molecule(mdlpvp, $1)); }
 ;
 
 existing_molecule_opt_orient:
@@ -1314,7 +1321,7 @@ existing_molecule_opt_orient:
                                                       }
 ;
 
-existing_macromolecule: VAR                           { CHECKN($$ = mdl_existing_macromolecule(mdlpvp, $1)); }
+existing_macromolecule: var                           { CHECKN($$ = mdl_existing_macromolecule(mdlpvp, $1)); }
 ;
 
 /* =================================================================== */
@@ -1348,7 +1355,7 @@ surface_class_stmt:
           '}'                                         { mdl_finish_surface_class(mdlpvp, $1); }
 ;
 
-existing_surface_class: VAR                           { CHECKN($$ = mdl_existing_surface_class(mdlpvp, $1)); }
+existing_surface_class: var                           { CHECKN($$ = mdl_existing_surface_class(mdlpvp, $1)); }
 ;
 
 list_surface_prop_stmts:
@@ -1451,7 +1458,7 @@ rx_group_def:
           '{' list_rxns '}'
 ;
 
-reaction_group_name: VAR                              { free($1); }
+reaction_group_name: var                              { free($1); }
 ;
 
 list_rxns: rxn
@@ -1485,7 +1492,7 @@ reaction_arrow:
 ;
 
 new_rxn_pathname: /* empty */                         { $$ = NULL; }
-                | ':' VAR                             { CHECKN($$ = mdl_new_rxn_pathname(mdlpvp, $2)); }
+                | ':' var                             { CHECKN($$ = mdl_new_rxn_pathname(mdlpvp, $2)); }
 ;
 
 rxn:
@@ -1565,7 +1572,7 @@ atomic_rate:
           num_expr_only                               { $$.rate_type = RATE_CONSTANT; $$.v.rate_constant = $1; }
         | str_expr_only                               { $$.rate_type = RATE_FILE; $$.v.rate_file = $1; }
         | existing_var_only                           { CHECK(mdl_reaction_rate_from_var(mdlpvp, & $$, $1)); }
-        | COMPLEX_RATE existing_macromolecule VAR     { CHECK(mdl_reaction_rate_complex(mdlpvp, & $$, $2, $3)); }
+        | COMPLEX_RATE existing_macromolecule var     { CHECK(mdl_reaction_rate_complex(mdlpvp, & $$, $2, $3)); }
 ;
 
 /* =================================================================== */
@@ -1579,10 +1586,10 @@ release_pattern_def:
           '}'                                         { CHECK(mdl_set_release_pattern(mdlpvp, $2, &$4)); }
 ;
 
-new_release_pattern: VAR                              { CHECKN($$ = mdl_new_release_pattern(mdlpvp, $1)); }
+new_release_pattern: var                              { CHECKN($$ = mdl_new_release_pattern(mdlpvp, $1)); }
 ;
 
-existing_release_pattern_xor_rxpn: VAR                { CHECKN($$ = mdl_existing_release_pattern_or_rxn_pathname(mdlpvp, $1)); }
+existing_release_pattern_xor_rxpn: var                { CHECKN($$ = mdl_existing_release_pattern_or_rxn_pathname(mdlpvp, $1)); }
 ;
 
 list_req_release_pattern_cmds:
@@ -1639,7 +1646,7 @@ object_def: meta_object_def
  * corresponding end_object (or must explicitly call mdl_finish_object(mdlpvp))
  * when the object scope is closed.
  */
-new_object: VAR                                       { CHECKN($$ = mdl_start_object(mdlpvp, $1)); }
+new_object: var                                       { CHECKN($$ = mdl_start_object(mdlpvp, $1)); }
 ;
 
 start_object: '{'
@@ -1749,7 +1756,7 @@ list_release_site_cmds:
         | list_release_site_cmds release_site_cmd
 ;
 
-existing_num_or_array: VAR                            { CHECKN($$ = mdl_existing_num_or_array(mdlpvp, $1)); }
+existing_num_or_array: var                            { CHECKN($$ = mdl_existing_num_or_array(mdlpvp, $1)); }
 ;
 
 release_site_cmd:
@@ -1939,7 +1946,7 @@ element_spec: num_expr                                { CHECKN($$ = mdl_new_elem
             | side_name                               { CHECKN($$ = mdl_new_element_side(mdlpvp, $1)); }
 ;
 
-prev_region_stmt: prev_region_type '=' VAR            { CHECKN($$ = mdl_new_element_previous_region(mdlpvp, mdlpvp->current_object, mdlpvp->current_region, $3, $1)); }
+prev_region_stmt: prev_region_type '=' var            { CHECKN($$ = mdl_new_element_previous_region(mdlpvp, mdlpvp->current_object, mdlpvp->current_region, $3, $1)); }
 ;
 
 prev_region_type: INCLUDE_REGION                      { $$ = 0; }
@@ -2058,7 +2065,7 @@ existing_obj_surface_region_def:
                                                       }
 ;
 
-new_region: VAR                                       { CHECKN($$ = mdl_create_region(mdlpvp, mdlpvp->current_object, $1)); }
+new_region: var                                       { CHECKN($$ = mdl_create_region(mdlpvp, mdlpvp->current_object, $1)); }
 ;
 
 list_opt_surface_region_stmts:
@@ -2239,11 +2246,11 @@ file_arrow: '>'                                       { $$ = FILE_OVERWRITE; }
 outfile_syntax: file_name
 ;
 
-existing_rxpn_or_molecule: VAR                        { CHECKN($$ = mdl_existing_rxn_pathname_or_molecule(mdlpvp, $1)); }
+existing_rxpn_or_molecule: var                        { CHECKN($$ = mdl_existing_rxn_pathname_or_molecule(mdlpvp, $1)); }
 ;
 
 existing_molecule_required_orient_braces:
-          VAR orient_class_number                     {
+          var orient_class_number                     {
                                                         $$ = $2;
                                                         if ($$.orient > 0)
                                                           $$.orient = 1;
@@ -2270,7 +2277,7 @@ count_syntax_2:
 ;
 
 count_syntax_3:
-    STR_VALUE  ','
+    str_value  ','
     count_location_specifier opt_hit_spec             { CHECKN($$ = mdl_count_syntax_3(mdlpvp, $1, $3, $4, mdlpvp->count_flags)); }
 ;
 
@@ -2321,7 +2328,7 @@ macromol_relation_state:
             subunit_molecule                          { CHECKN($$ = mdl_assemble_complex_relation_state(mdlpvp, $1, $2, & $3)); }
 ;
 
-macromol_relation_name: VAR                           {
+macromol_relation_name: var                           {
                                                           int rel_idx = macro_lookup_relation(mdlpvp->current_complex, $1);
                                                           if (rel_idx == -1)
                                                           {
@@ -2491,8 +2498,8 @@ list_mol_name_specs:
 ;
 
 existing_one_or_multiple_molecules:
-          VAR                                         { CHECKN($$ = mdl_existing_molecule_list(mdlpvp, $1)); }
-        | STR_VALUE                                   { CHECKN($$ = mdl_existing_molecules_wildcard(mdlpvp, $1)); }
+          var                                         { CHECKN($$ = mdl_existing_molecule_list(mdlpvp, $1)); }
+        | str_value                                   { CHECKN($$ = mdl_existing_molecules_wildcard(mdlpvp, $1)); }
 ;
 
 mol_name_spec: existing_one_or_multiple_molecules     { CHECK(mdl_set_viz_include_molecules(mdlpvp, mdlpvp->vol->viz_blocks, $1)); }
@@ -2827,7 +2834,7 @@ list_viz_state_values:
           viz_state_value
 ;
 
-existing_logicalOrPhysical: VAR                       { CHECKN($$ = mdl_existing_molecule_or_object(mdlpvp, $1)); }
+existing_logicalOrPhysical: var                       { CHECKN($$ = mdl_existing_molecule_or_object(mdlpvp, $1)); }
 ;
 
 viz_state_value:
@@ -2887,7 +2894,7 @@ volume_output_molecule_decl:
           MOLECULES '=' volume_output_molecules       { $$ = $3; }
 ;
 
-volume_output_molecule: VAR                           {
+volume_output_molecule: var                           {
                                                           struct sym_table *sp;
                                                           struct species_list_item *ptrl;
                                                           CHECKN(sp = mdl_existing_molecule(mdlpvp, $1));
