@@ -5637,7 +5637,7 @@ int mdl_start_release_site(struct mdlparse_vars *mpvp,
   if (objp->contents == NULL)
     return 1;
 
-  mpvp->current_release_site->release_shape = shape;
+  mpvp->current_release_site->release_shape = (int8_t) shape;
   return 0;
 }
 
@@ -10381,6 +10381,38 @@ struct volume_output_item *mdl_new_volume_output_item(struct mdlparse_vars *mpvp
     vo->next_time = vo->times;
   else
     vo->next_time = NULL;
+
+  switch (mpvp->vol->notify->volume_output_report)
+  {
+    case NOTIFY_NONE:
+      break;
+
+    case NOTIFY_BRIEF:
+      mcell_log("Added volume output item '%s', counting in the region [%.15g,%.15g,%.15g]-[%.15g,%.15g,%.15g]",
+                vo->filename_prefix,
+                vo->location.x * mpvp->vol->length_unit,
+                vo->location.y * mpvp->vol->length_unit,
+                vo->location.z * mpvp->vol->length_unit,
+                (vo->location.x + vo->voxel_size.x * vo->nvoxels_x) * mpvp->vol->length_unit,
+                (vo->location.y + vo->voxel_size.x * vo->nvoxels_x) * mpvp->vol->length_unit,
+                (vo->location.z + vo->voxel_size.x * vo->nvoxels_x) * mpvp->vol->length_unit);
+      break;
+
+    case NOTIFY_FULL:
+      mcell_log("Added volume output item '%s', counting the following molecules in the region [%.15g,%.15g,%.15g]-[%.15g,%.15g,%.15g]:\n",
+                vo->filename_prefix,
+                vo->location.x * mpvp->vol->length_unit,
+                vo->location.y * mpvp->vol->length_unit,
+                vo->location.z * mpvp->vol->length_unit,
+                (vo->location.x + vo->voxel_size.x * vo->nvoxels_x) * mpvp->vol->length_unit,
+                (vo->location.y + vo->voxel_size.x * vo->nvoxels_x) * mpvp->vol->length_unit,
+                (vo->location.z + vo->voxel_size.x * vo->nvoxels_x) * mpvp->vol->length_unit);
+      for (int i=0; i<vo->num_molecules; ++i)
+        mcell_log("  %s", vo->molecules[i]->sym->name);
+      break;
+
+    default: UNHANDLED_CASE(mpvp->vol->notify->volume_output_report);
+  }
 
   return vo;
 }

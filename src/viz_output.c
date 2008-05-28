@@ -6865,8 +6865,38 @@ update_frame_data_list:
 **************************************************************************/
 int update_frame_data_list(struct viz_output_block *vizblk)
 {
+  static char const * const FRAME_TYPES[NUM_FRAME_TYPES] =
+  {
+    "ALL_FRAME_DATA",
+    "EFF_POS",
+    "EFF_STATES",
+    "MOL_POS",
+    "MOL_ORIENT",
+    "MOL_STATES",
+    "SURF_POS",
+    "SURF_STATES",
+    "MESH_GEOMETRY",
+    "REG_DATA",
+    "ALL_MOL_DATA",
+    "ALL_MESH_DATA",
+  };
+
   if (vizblk == NULL) return 0;
   if (vizblk->frame_data_head == NULL) return 0;
+
+  switch (world->notify->viz_output_report)
+  {
+    case NOTIFY_NONE:
+      break;
+
+    case NOTIFY_BRIEF:
+    case NOTIFY_FULL:
+      mcell_log("Updating viz output on iteration %lld.",
+                world->it_time);
+      break;
+
+    default: UNHANDLED_CASE(world->notify->viz_output_report);
+  }
 
   /* These statements need to precede handling of any frames to make sure
    * symlinks are created properly.
@@ -6884,6 +6914,14 @@ int update_frame_data_list(struct viz_output_block *vizblk)
   {
     if (world->it_time!=fdlp->viz_iteration)
       continue;
+
+    if (world->notify->viz_output_report == NOTIFY_FULL)
+    {
+      if (fdlp->type >= NUM_FRAME_TYPES)
+        mcell_warn("  Updating data frame of unknown type %d.", fdlp->type);
+      else
+        mcell_log("  Updating data frame of type %s.", FRAME_TYPES[fdlp->type]);
+    }
 
     switch (vizblk->viz_mode)
     {
@@ -6919,6 +6957,8 @@ int update_frame_data_list(struct viz_output_block *vizblk)
       if (fdlp->curr_viz_iteration)
         fdlp->viz_iteration = frame_iteration(fdlp->curr_viz_iteration->value, fdlp->list_type);
     }
+    if (world->notify->viz_output_report == NOTIFY_FULL)
+      mcell_log("  Next update on iteration %lld.", fdlp->viz_iteration);
   }
      return 0;
 }

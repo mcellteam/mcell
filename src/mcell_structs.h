@@ -155,9 +155,9 @@
 /* Manifold Flags */
 enum manifold_flag_t
 {
-  MANIFOLD_UNCHECKED,
-  NOT_MANIFOLD,
-  IS_MANIFOLD
+  MANIFOLD_UNCHECKED,   /* Manifold status is unknown */
+  NOT_MANIFOLD,         /* Known to be non-manifold */
+  IS_MANIFOLD           /* Known to be manifold */
 };
 
 /* Reaction flags */
@@ -294,14 +294,14 @@ enum manifold_flag_t
 /* Release Shape Flags */
 enum release_shape_t
 {
-  SHAPE_UNDEFINED = -1,
-  SHAPE_SPHERICAL,
-  SHAPE_CUBIC,
-  SHAPE_ELLIPTIC,
-  SHAPE_RECTANGULAR,
-  SHAPE_SPHERICAL_SHELL,
-  SHAPE_REGION,
-  SHAPE_LIST
+  SHAPE_UNDEFINED = -1,   /* Not specified */
+  SHAPE_SPHERICAL,        /* Volume enclosed by a sphere */
+  SHAPE_CUBIC,            /* Volume enclosed by a cube */
+  SHAPE_ELLIPTIC,         /* Volume enclosed by an ellipsoid */
+  SHAPE_RECTANGULAR,      /* Volume enclosed by a rect. solid */
+  SHAPE_SPHERICAL_SHELL,  /* Surface of a sphere */
+  SHAPE_REGION,           /* Inside/on the surface of an arbitrary region */
+  SHAPE_LIST              /* Individiaul mol. placement by list */
 };
 
 /* Region Expression Flags */
@@ -1184,6 +1184,7 @@ struct volume
   char *mdl_infile_name;     /* Name of MDL file specified on command line */
   char const *curr_file;     /* Name of MDL file currently being parsed */
   
+  /* XXX: Why do we allocate this on the heap rather than including it inline? */
   struct notifications *notify; /* Notification/warning/output flags */
   
   struct ccn_clamp_data *clamp_list;  /* List of objects at which volume molecule concentrations should be clamped */

@@ -74,6 +74,9 @@ int init_notifications(void)
     world->notify->final_summary = NOTIFY_NONE;
     world->notify->throughput_report = NOTIFY_NONE;
     world->notify->checkpoint_report = NOTIFY_NONE;
+    world->notify->reaction_output_report = NOTIFY_NONE;
+    world->notify->volume_output_report = NOTIFY_NONE;
+    world->notify->viz_output_report = NOTIFY_NONE;
   }
   else
   {
@@ -91,6 +94,9 @@ int init_notifications(void)
     world->notify->final_summary = NOTIFY_FULL;
     world->notify->throughput_report = NOTIFY_FULL;
     world->notify->checkpoint_report = NOTIFY_FULL;
+    world->notify->reaction_output_report = NOTIFY_NONE;
+    world->notify->volume_output_report = NOTIFY_NONE;
+    world->notify->viz_output_report = NOTIFY_NONE;
   }
   /* Warnings */
   world->notify->neg_diffusion = WARN_WARN;

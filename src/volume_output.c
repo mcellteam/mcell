@@ -34,7 +34,22 @@ int update_volume_output(struct volume *wrld, struct volume_output_item *vo)
 {
   int failure = 0;
   char *filename;
-  no_printf("Updating volume output at time %lld of %lld\n", wrld->it_time, wrld->iterations);
+
+  switch (wrld->notify->volume_output_report)
+  {
+    case NOTIFY_NONE:
+      break;
+
+    case NOTIFY_BRIEF:
+    case NOTIFY_FULL:
+      mcell_log("Updating volume output '%s' scheduled at time %.15g on iteration %lld.",
+                vo->filename_prefix,
+                vo->t,
+                wrld->it_time);
+      break;
+
+    default: UNHANDLED_CASE(wrld->notify->volume_output_report);
+  }
 
   /* build the filename */
   filename = CHECKED_SPRINTF("%s.%lld.dat", vo->filename_prefix, wrld->it_time);
@@ -326,6 +341,19 @@ static int reschedule_volume_output_item(struct volume *wrld,
     else
       time_scale = 1.0 / wrld->time_unit;
     vo->t = (*vo->next_time++) * time_scale;
+  }
+
+  switch (wrld->notify->volume_output_report)
+  {
+    case NOTIFY_NONE:
+    case NOTIFY_BRIEF:
+      break;
+
+    case NOTIFY_FULL:
+      mcell_log("  Next output scheduled for time %.15g.", vo->t * wrld->time_unit);
+      break;
+
+    default: UNHANDLED_CASE(wrld->notify->volume_output_report);
   }
 
   /* Add to the schedule */

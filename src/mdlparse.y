@@ -323,6 +323,7 @@ struct macro_relation_state *relation_state;
 %token       RAND_UNIFORM
 %token       RATE_RULES
 %token       REACTION_DATA_OUTPUT
+%token       REACTION_OUTPUT_REPORT
 %token       REACTION_GROUP
 %token <dbl> REAL
 %token       RECTANGULAR_RELEASE_SITE
@@ -391,8 +392,10 @@ struct macro_relation_state *relation_state;
 %token       VIZ_MESH_FORMAT
 %token       VIZ_MOLECULE_FORMAT
 %token       VIZ_OUTPUT
+%token       VIZ_OUTPUT_REPORT
 %token       VIZ_VALUE
 %token       VOLUME_DATA_OUTPUT
+%token       VOLUME_OUTPUT_REPORT
 %token       VOLUME_DEPENDENT_RELEASE_NUMBER
 %token       VOLUME_ONLY
 %token       VOXEL_COUNT
@@ -996,6 +999,9 @@ notification_item_def:
       | FILE_OUTPUT_REPORT '=' notify_bilevel         { mdlpvp->vol->notify->file_writes            = $3; }
       | FINAL_SUMMARY '=' notify_bilevel              { mdlpvp->vol->notify->final_summary          = $3; }
       | THROUGHPUT_REPORT '=' notify_bilevel          { mdlpvp->vol->notify->throughput_report      = $3; }
+      | REACTION_OUTPUT_REPORT '=' notify_level       { mdlpvp->vol->notify->reaction_output_report = $3; }
+      | VOLUME_OUTPUT_REPORT '=' notify_level         { mdlpvp->vol->notify->volume_output_report   = $3; }
+      | VIZ_OUTPUT_REPORT '=' notify_level            { mdlpvp->vol->notify->viz_output_report      = $3; }
       | CHECKPOINT_REPORT '=' notify_bilevel          { mdlpvp->vol->notify->checkpoint_report      = $3; }
       | ITERATION_REPORT '=' notify_bilevel           {
                                                           if (mdlpvp->vol->log_freq == -1)

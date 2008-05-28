@@ -437,8 +437,37 @@ int update_reaction_output(struct output_block *block)
                                 // reaction outputs. Takes values {0,1}.
                                 // 0 - end not reached yet,
                                 // 1 - end reached. 
+  int report_as_non_trigger = 1;
+  if (block->data_set_head != NULL  &&
+      block->data_set_head->column_head == NULL  &&
+      block->data_set_head->column_head->data_type == COUNT_TRIG_STRUCT)
+    report_as_non_trigger = 0;
 
-  no_printf("Updating reaction output at time %lld of %lld\n",world->it_time,world->iterations);
+  if (report_as_non_trigger)
+  {
+    switch (world->notify->reaction_output_report)
+    {
+      case NOTIFY_NONE:
+        break;
+
+      case NOTIFY_BRIEF:
+        mcell_log("Updating reaction output scheduled at time %.15g on iteration %lld.",
+                  block->t,
+                  world->it_time);
+        break;
+
+      case NOTIFY_FULL:
+        mcell_log("Updating reaction output scheduled at time %.15g on iteration %lld.\n"
+                  "  Buffer fill level is at %u/%u.",
+                  block->t,
+                  world->it_time,
+                  block->buf_index,
+                  block->buffersize);
+        break;
+
+      default: UNHANDLED_CASE(world->notify->reaction_output_report);
+    }
+  }
 
   /* update all counters */
 
@@ -465,6 +494,13 @@ int update_reaction_output(struct output_block *block)
   
   for (set=block->data_set_head ; set!=NULL ; set=set->next) /* Each file */
   {
+    if (report_as_non_trigger)
+    {
+      if (world->notify->reaction_output_report == NOTIFY_FULL)
+        mcell_log("  Processing reaction output file '%s'.",
+                  set->outfile_name);
+    }
+
     for (column=set->column_head ; column!=NULL ; column=column->next) /* Each column */
     {
       if (column->data_type != COUNT_TRIG_STRUCT)
@@ -530,6 +566,11 @@ int update_reaction_output(struct output_block *block)
 
   if (actual_t!=-1) block->t=actual_t;  /* Fix time for output */
   
+  if (report_as_non_trigger  &&  world->notify->reaction_output_report == NOTIFY_FULL)
+  {
+    mcell_log("  Next output for this block scheduled at time %.15g.",
+              block->t);
+  }
 
   if (block->t >= world->iterations+1) final_chunk_flag=1;
     
