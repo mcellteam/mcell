@@ -177,7 +177,8 @@ class TestParseVizDreamm(unittest.TestCase):
   def test_viz_dreammgrouped2(self):
     t = KitchenSinkParserTest("01-kitchen_sink_viz_dreammgrouped_wildcard")
     outdir = "viz_dat/%s" % t.basename
-    t.add_extra_check(RequireVizDreammV3Grouped(outdir, "world", n_iters=101, molstate=True))
+    t.add_extra_check(RequireVizDreammV3Grouped(outdir, "world", n_iters=101, molstate=True, molsnonempty=False))
+    t.add_extra_check(RequireVizDreammV3Grouped(outdir, "world2", n_iters=101))
     t.invoke("./test_results")
 
 ###################################################################

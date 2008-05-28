@@ -170,7 +170,6 @@ struct species *new_species(void)
   specp->n_deceased=0;
   specp->cum_lifetime=0.0;
   
-  specp->viz_state=EXCLUDE_OBJ;
   specp->region_viz_value = EXCLUDE_OBJ;
   return specp;
 }
@@ -203,9 +202,6 @@ struct object *new_object(void)
   objp->total_area=0;
   objp->n_tiles=0;
   objp->n_occupied_tiles=0;
-  objp->edgemem=NULL;
-  objp->viz_obj=NULL;
-  objp->viz_state=NULL;
   init_matrix(objp->t_matrix);
   return objp;
 }
@@ -474,6 +470,7 @@ struct sym_table *store_sym(char const *sym,
       else vp = data;
       break;
     case TMP:
+    case VIZ_CHILD:
       sp->value = data;
       return sp;
 
@@ -487,7 +484,7 @@ struct sym_table *store_sym(char const *sym,
 }
 
 struct sym_table_head *init_symtab(int size)
-{ 
+{
   struct sym_table_head *symtab_head; 
   symtab_head = CHECKED_MALLOC_STRUCT(struct sym_table_head, "symbol table");
   symtab_head->entries = CHECKED_MALLOC_ARRAY(struct sym_table *, size, "symbol table");
@@ -495,4 +492,22 @@ struct sym_table_head *init_symtab(int size)
   symtab_head->n_entries = 0;
   symtab_head->n_bins = size;
   return symtab_head;
+}
+
+void destroy_symtab(struct sym_table_head *tab)
+{
+  for (int i=0; i<tab->n_bins; ++i)
+  {
+    struct sym_table *next;
+    for (struct sym_table *sym = tab->entries[i];
+         sym != NULL;
+         sym = next)
+    {
+      next = sym->next;
+      free(sym);
+    }
+  }
+
+  free(tab->entries);
+  free(tab);
 }

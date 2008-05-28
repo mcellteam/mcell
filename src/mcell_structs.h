@@ -461,6 +461,7 @@
 #define VIZ_MOLECULE_FORMAT_BINARY 0x10
 #define VIZ_MESH_FORMAT_ASCII 0x20
 #define VIZ_MESH_FORMAT_BINARY 0x40
+#define VIZ_ALL_MESHES 0x80
 
 /************************************************************/
 /**  Old constants copied from MCell2, some may be broken  **/
@@ -487,7 +488,6 @@ enum symbol_type_t
   ARRAY,            /* numeric array (array variable in MDL file) */
   FSTRM,            /* file stream type for "C"-style file-io in MDL file */
   TMP,              /* temporary place-holder type for assignment statements */
-  VIZ_OBJECT,       /* viz_obj structures (in viz_output_block sym tables) */
   VIZ_CHILD,        /* viz_child structures (in viz_output_block sym tables) */
 };
 
@@ -523,40 +523,45 @@ enum count_type_t
 #define EXCLUDE_OBJ INT_MIN /*object is not visualized */
 #define INCLUDE_OBJ INT_MAX /*object is visualized but state value is not set*/
 
-
 /* Data Output Timing Type */
 /* Reaction and Viz data output timing */
-#define OUTPUT_BY_STEP 0 
-#define OUTPUT_BY_TIME_LIST 1
-#define OUTPUT_BY_ITERATION_LIST 2
+enum output_timer_type_t
+{
+  OUTPUT_BY_STEP,
+  OUTPUT_BY_TIME_LIST,
+  OUTPUT_BY_ITERATION_LIST,
+};
 
-
-/* Visualization stuff. */
-/* Visualization modes (old style). */
-#define NO_VIZ_MODE 0
-#define DX_MODE 1
-#define DREAMM_V3_MODE 2
-#define DREAMM_V3_GROUPED_MODE 3
-#define RK_MODE 4
-#define ASCII_MODE 5
-
+/* Visualization modes. */
+enum viz_mode_t
+{
+  NO_VIZ_MODE,
+  DX_MODE,
+  DREAMM_V3_MODE,
+  DREAMM_V3_GROUPED_MODE,
+  RK_MODE,
+  ASCII_MODE,
+};
 
 /* Visualization Frame Data Type */
 /* Used to select type of data to include in viz output files */
 /* Will probably change significantly when we redesign DReAMM output format */
-#define ALL_FRAME_DATA 0
-#define EFF_POS 1
-#define EFF_STATES 2
-#define MOL_POS 3
-#define MOL_ORIENT 4
-#define MOL_STATES 5
-#define SURF_POS 6 
-#define SURF_STATES 7
-#define MESH_GEOMETRY 8
-#define REG_DATA 9
-#define ALL_MOL_DATA  10
-#define ALL_MESH_DATA 11
-
+enum viz_frame_type_t
+{
+  ALL_FRAME_DATA,
+  EFF_POS,
+  EFF_STATES,
+  MOL_POS,
+  MOL_ORIENT,
+  MOL_STATES,
+  SURF_POS,
+  SURF_STATES,
+  MESH_GEOMETRY,
+  REG_DATA,
+  ALL_MOL_DATA,
+  ALL_MESH_DATA,
+  NUM_FRAME_TYPES,
+};
 
 /* Release Number Flags */
 enum release_number_type_t
@@ -615,7 +620,6 @@ struct species
   long long n_deceased;         /* Total number that have been destroyed. */
   double cum_lifetime;          /* Timesteps lived by now-destroyed molecules */
  
-  int viz_state;                /* Visualization state for output */
   int region_viz_value;         /* Visualization state for surface class 
                                    for output */
 };
@@ -815,7 +819,6 @@ struct wall
   
   struct surface_grid *grid; /* Grid of effectors for this wall */
   
-  int viz_state;                  /* For display purposes--is short enough? */
   u_short flags;                  /* Count Flags: flags for whether and what we need to count */
 
   struct object *parent_object;   /* The object we are a part of */
@@ -1027,50 +1030,6 @@ struct magic_list
   enum magic_types type;
 };
 
-struct visualization_state
-{
-  /* Iteration numbers */
-  long long last_meshes_iteration;
-  long long last_mols_iteration;
-
-  /* Tokenized filename prefix */
-  char *filename_prefix_basename;
-  char *filename_prefix_dirname;
-
-  /* All visualized objects */
-  int n_viz_objects;
-  struct object **viz_objects;
-
-  /* All visualized volume molecule species */
-  int n_vol_species;
-  struct species **vol_species;
-
-  /* All visualized grid molecule species */
-  int n_grid_species;
-  struct species **grid_species;
-
-  /* Iteration numbers and times of outputs */
-  struct iteration_counter output_times;
-  struct iteration_counter mesh_output_iterations;
-  struct iteration_counter vol_mol_output_iterations;
-  struct iteration_counter grid_mol_output_iterations;
-
-  /* For DREAMM V3 Grouped output, combined group member strings */
-  struct string_buffer combined_group_members;
-
-  /* For DREAMM V3 Grouped output, the current object number */
-  int dx_main_object_index;
-
-  /* For DREAMM V3 Grouped output, the last iteration for certain outputs */
-  long long dreamm_last_iteration_meshes;
-  long long dreamm_last_iteration_vol_mols;
-  long long dreamm_last_iteration_surf_mols;
-
-  /* For DREAMM V3 Ungrouped output, path of 'frame data dir' and iter dir */
-  char *frame_data_dir;
-  char *iteration_number_dir;
-};
-
 /* All data about the world */
 struct volume
 {
@@ -1149,9 +1108,7 @@ struct volume
   double elapsed_time;                        /* Used for concentration measurement */
 
   /* Visualization state */
-  struct viz_obj *viz_obj_head;               /* head of the linked list of mesh objects assigned for visualization */
-  struct frame_data_list *frame_data_head;    /* head of the linked list of viz frames to output */
-  struct visualization_state viz_state_info;  /* miscellaneous state for viz_output code */
+  struct viz_output_block *viz_blocks;        /* VIZ_OUTPUT blocks from file */
 
   struct species *g_mol;   /* A generic molecule */
   struct species *g_surf;  /* A generic surface class */
@@ -1220,15 +1177,6 @@ struct volume
   struct mem_helper *sp_coll_mem;  /* Collision list (trimol) */
   struct mem_helper *tri_coll_mem;  /* Collision list (trimol) */
   struct mem_helper *exdv_mem;  /* Vertex lists for exact interaction disk area */
-
-  /* Old viz output stuff */
-  int viz_mode;
-  struct rk_mode_data *rk_mode_var;
-  char *molecule_prefix_name;
-  char *file_prefix_name;
-  u_short viz_output_flag; /* Takes  VIZ_ALL_MOLECULES, VIZ_MOLECULES_STATES, etc.  */
-
-  /* VIZ state transplanted from global vars */
 
   char const *mcell_version;     /* Current version number.
                               Format is "3.XX.YY" where XX is major release number (for new features)
@@ -1507,7 +1455,7 @@ struct volume_output_item
   int                           nvoxels_z;
 
   /* when? */
-  int                           timer_type;
+  enum output_timer_type_t      timer_type;
   double                        step_time;
   int                           num_times;
   double                       *times;              /* in numeric order  */
@@ -1520,7 +1468,7 @@ struct output_block
   struct output_block *next;            /* Next in world or scheduler */
   double t;                             /* Scheduled time to update counters */
   
-  byte timer_type;                      /* Data Output Timing Type (OUTPUT_BY_STEP, etc) */
+  enum output_timer_type_t timer_type;  /* Data Output Timing Type (OUTPUT_BY_STEP, etc) */
   
   double step_time;                     /* Output interval (seconds) */
   struct num_expr_list *time_list_head; /* List of output times/iteration numbers */
@@ -1739,9 +1687,6 @@ struct object {
   double total_area;            /* Area of object in length units */
   u_int n_tiles;                /* Number of surface grid tiles on object */
   u_int n_occupied_tiles;       /* Number of occupied tiles on object */
-  struct mem_helper *edgemem;   /* Storage for edges of object */
-  struct viz_obj *viz_obj;      /* Associates this object with a VIZ_OUTPUT block */
-  int *viz_state;		/* Array of viz state values, one for each element of object. */
   double t_matrix[4][4];	/* Transformation matrix for object */
 };
 
@@ -1755,24 +1700,97 @@ struct name_list {
 
 
 /* Visualization objects */
-struct viz_obj 
+struct viz_dx_obj 
 {
-  struct viz_obj *next;
+  struct viz_dx_obj *next;
   char *name;                        /* Name taken from OBJECT_FILE_PREFIXES
 	                                or FILENAME_PREFIXES or FILENAME assignment */
   char *full_name;                   /* Full name of the object, like A.B.C */
   struct object *obj;                /* The object being visualized */
   struct viz_child *viz_child_head;  /* List of child objects to visualize */
+  struct viz_output_block *parent;   /* Parent block to whom we belong */
+  struct viz_child **actual_objects; /* Pointers to actual objects to visualize */
+  int n_actual_objects;              /* Number of actual objects to visualize */
 };
 
 
-/* Linked list of pointers to objects */
-/* Used to point to child polygon or box objects to be visualized */
-struct viz_child {
+/* Tree of pointers to objects (mirrors standard geometry hierarchy). */
+/* Contains child polygon or box objects to be visualized. */
+struct viz_child
+{
   struct viz_child *next;
+  struct viz_child *parent;
+  struct viz_child *children;
   struct object *obj;      /* An object to visualize*/
+  int *viz_state;          /* Array of viz state values, one for each element of object. */
 };
 
+struct visualization_state
+{
+  /* Iteration numbers */
+  long long last_meshes_iteration;
+  long long last_mols_iteration;
+
+  /* Tokenized filename prefix */
+  char *filename_prefix_basename;
+  char *filename_prefix_dirname;
+
+  /* All visualized volume molecule species */
+  int n_vol_species;
+  struct species **vol_species;
+
+  /* All visualized grid molecule species */
+  int n_grid_species;
+  struct species **grid_species;
+
+  /* Iteration numbers and times of outputs */
+  struct iteration_counter output_times;
+  struct iteration_counter mesh_output_iterations;
+  struct iteration_counter vol_mol_output_iterations;
+  struct iteration_counter grid_mol_output_iterations;
+
+  /* For DREAMM V3 Grouped output, combined group member strings */
+  struct string_buffer combined_group_members;
+
+  /* For DREAMM V3 Grouped output, the current object number */
+  int dx_main_object_index;
+
+  /* For DREAMM V3 Grouped output, the last iteration for certain outputs */
+  long long dreamm_last_iteration_meshes;
+  long long dreamm_last_iteration_vol_mols;
+  long long dreamm_last_iteration_surf_mols;
+
+  /* For DREAMM V3 Ungrouped output, path of 'frame data dir' and iter dir */
+  char *frame_data_dir;
+  char *iteration_number_dir;
+};
+
+struct viz_output_block
+{
+  struct viz_output_block *next;                /* Link to next block */
+  struct frame_data_list *frame_data_head;      /* head of the linked list of viz frames to output */
+  struct visualization_state viz_state_info;    /* miscellaneous state for viz_output code */
+  enum viz_mode_t viz_mode;
+  char *molecule_prefix_name;
+  char *file_prefix_name;
+  u_short viz_output_flag; /* Takes  VIZ_ALL_MOLECULES, VIZ_MOLECULES_STATES, etc.  */
+  int *species_viz_states;
+
+  /* DREAMM-mode only. */
+  struct viz_child **dreamm_object_info; /* Pointers to actual objects to visualize */
+  struct object **dreamm_objects;
+  int n_dreamm_objects;              /* Number of actual objects to visualize */
+
+  /* DX-mode only: head of linked list of OBJECT_FILE_PREFIXES. */
+  struct viz_dx_obj *dx_obj_head;
+
+  /* RK-mode only. */
+  struct rk_mode_data *rk_mode_var;
+
+  /* Parse-time only: Tables to hold temporary information. */
+  struct sym_table_head *viz_children;
+  struct pointer_hash parser_species_viz_states;
+};
 
 /* Geometric transformation data for a physical object */
 struct transformation {
@@ -1784,10 +1802,11 @@ struct transformation {
 
 
 /* Linked list of viz data to be output */
-struct frame_data_list {
+struct frame_data_list
+{
   struct frame_data_list *next;
-  byte list_type;		            /* Data Output Timing Type (OUTPUT_BY_TIME_LIST, etc) */
-  int type;                                 /* Visualization Frame Data Type (ALL_FRAME_DATA, etc) */ 
+  enum output_timer_type_t list_type;       /* Data Output Timing Type (OUTPUT_BY_TIME_LIST, etc) */
+  enum viz_frame_type_t type;               /* Visualization Frame Data Type (ALL_FRAME_DATA, etc) */ 
   long long viz_iteration;	            /* Value of the current iteration step. */
   long long n_viz_iterations;	            /* Number of iterations in the iteration_list. */
   struct num_expr_list *iteration_list;     /* Linked list of iteration steps values */

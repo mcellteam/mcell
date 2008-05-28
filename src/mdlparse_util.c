@@ -9047,6 +9047,692 @@ int mdl_single_count_expr(struct mdlparse_vars *mpvp,
  * VIZ output
  *************************************************************************/
 
+static struct viz_child *mdl_get_viz_child(struct mdlparse_vars *mpvp,
+                                           struct viz_output_block *vizblk,
+                                           struct object *objp);
+
+/**************************************************************************
+ mdl_new_viz_output_block:
+    Build a new VIZ output block, containing parameters for an output set for
+    visualization.
+
+ In: mpvp: parser state
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_new_viz_output_block(struct mdlparse_vars *mpvp)
+{
+  struct viz_output_block *vizblk = CHECKED_MALLOC_STRUCT(struct viz_output_block,
+                                                          "visualization data output parameters");
+  if (vizblk == NULL)
+    return 1;
+
+  vizblk->frame_data_head = NULL;
+  memset(&vizblk->viz_state_info, 0, sizeof(vizblk->viz_state_info));
+  vizblk->viz_mode = -1;
+  vizblk->molecule_prefix_name = NULL;
+  vizblk->file_prefix_name = NULL;
+  vizblk->viz_output_flag = 0; 
+  vizblk->species_viz_states = NULL;
+
+  vizblk->dreamm_object_info = NULL;
+  vizblk->dreamm_objects = NULL;
+  vizblk->n_dreamm_objects = 0;
+
+  vizblk->dx_obj_head = NULL;
+  vizblk->rk_mode_var=NULL;
+  vizblk->viz_children = init_symtab(1024);
+  pointer_hash_init(&vizblk->parser_species_viz_states, 32);
+
+  vizblk->next = mpvp->vol->viz_blocks;
+  mpvp->vol->viz_blocks = vizblk;
+  return 0;
+}
+
+/**************************************************************************
+ mdl_finish_viz_output_block:
+    Finalize a new VIZ output block, ensuring all required parameters were set,
+    and doing any postprocessing necessary for runtime.
+
+ In: mpvp: parser state
+     vizblk: the viz block to check
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_finish_viz_output_block(struct mdlparse_vars *mpvp,
+                                struct viz_output_block *vizblk)
+{
+  if (vizblk->viz_mode == DREAMM_V3_MODE  ||
+      vizblk->viz_mode == DREAMM_V3_GROUPED_MODE)
+  {
+    if (vizblk->file_prefix_name == NULL)
+    {
+      mdlerror(mpvp, "DREAMM output mode requested, but the required keyword FILENAME has not been supplied.");
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+/**************************************************************************
+ mdl_require_old_style_viz:
+    Require the mode of the specified VIZ output block to be pre-MCell 3 (i.e.
+    neither of the DREAMM_V3 modes.)  It's impossible to create a valid DREAMM
+    output using the old-style notation, so this makes the impossibility more
+    explicit for user-friendliness.
+
+ In: mpvp: parser state
+     mode: the requested mode
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_require_old_style_viz(struct mdlparse_vars *mpvp, int mode)
+{
+  if (mode == DREAMM_V3_MODE  ||
+      mode == DREAMM_V3_GROUPED_MODE)
+  {
+    mdlerror(mpvp, "DREAMM output modes must use the new VIZ_OUTPUT notation.\n  Please change this VIZ_DATA_OUTPUT block to a VIZ_OUTPUT block.");
+    return 1;
+  }
+
+  return 0;
+}
+
+/**************************************************************************
+ mdl_set_viz_mode:
+    Set the mode for a new VIZ output block.
+
+ In: mpvp: parser state
+     vizblk: the viz block to check
+     mode: the mode to set
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_set_viz_mode(struct mdlparse_vars *mpvp,
+                     struct viz_output_block *vizblk,
+                     int mode)
+{
+  UNUSED(mpvp);
+
+  vizblk->viz_mode = mode;
+  return 0;
+}
+
+/**************************************************************************
+ mdl_set_viz_mesh_format:
+    Set the mesh format for a new VIZ output block.
+
+ In: mpvp: parser state
+     vizblk: the viz block to check
+     format: the format to set
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_set_viz_mesh_format(struct mdlparse_vars *mpvp,
+                            struct viz_output_block *vizblk,
+                            int format)
+{
+  if (vizblk->viz_mode == NO_VIZ_MODE)
+    return 0;
+
+  if (vizblk->viz_mode != DREAMM_V3_MODE)
+  {
+    mdlerror_fmt(mpvp, "VIZ_MESH_FORMAT command is allowed only in DREAMM_V3 mode.");
+    return 1;
+  }
+  vizblk->viz_output_flag |= format;
+  return 0;
+}
+
+/**************************************************************************
+ mdl_set_viz_molecule_format:
+    Set the molecule format for a new VIZ output block.
+
+ In: mpvp: parser state
+     vizblk: the viz block to check
+     format: the format to set
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_set_viz_molecule_format(struct mdlparse_vars *mpvp,
+                                struct viz_output_block *vizblk,
+                                int format)
+{
+  if (vizblk->viz_mode == NO_VIZ_MODE)
+    return 0;
+
+  if (vizblk->viz_mode != DREAMM_V3_MODE)
+  {
+    mdlerror_fmt(mpvp, "VIZ_MOLECULE_FORMAT command is allowed only in DREAMM_V3 mode.");
+    return 1;
+  }
+  vizblk->viz_output_flag |= format;
+  return 0;
+}
+
+/**************************************************************************
+ mdl_set_viz_filename_prefix:
+    Set the filename prefix for a new VIZ output block.
+
+ In: mpvp: parser state
+     vizblk: the viz block to check
+     filename: the filename
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_set_viz_filename_prefix(struct mdlparse_vars *mpvp,
+                                struct viz_output_block *vizblk,
+                                char *filename)
+{
+  if (vizblk->viz_mode == NO_VIZ_MODE)
+    return 0;
+
+  if (vizblk->file_prefix_name != NULL)
+  {
+    mdlerror_fmt(mpvp, "FILENAME may only appear once per output block.");
+    free(filename);
+    return 1;
+  }
+
+  if (vizblk->viz_mode == ASCII_MODE  ||
+      vizblk->viz_mode == RK_MODE)
+  {
+    if (vizblk->molecule_prefix_name != NULL)
+    {
+      mdlerror_fmt(mpvp, "In non-DREAMM/DX modes, MOLECULE_FILE_PREFIX and FILENAME are aliases, and may not both be specified.");
+      free(filename);
+      return 1;
+    }
+  }
+
+  vizblk->file_prefix_name = filename;
+  if (vizblk->molecule_prefix_name == NULL)
+    vizblk->molecule_prefix_name = filename;
+
+  return 0;
+}
+
+/**************************************************************************
+ mdl_set_viz_molecule_filename_prefix:
+    Set the molecule filename prefix for an old-style VIZ output block.
+
+ In: mpvp: parser state
+     vizblk: the viz block to check
+     filename: the filename
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_set_viz_molecule_filename_prefix(struct mdlparse_vars *mpvp,
+                                         struct viz_output_block *vizblk,
+                                         char *filename)
+{
+  if (vizblk->viz_mode == NO_VIZ_MODE)
+    return 0;
+
+  if (vizblk->molecule_prefix_name != NULL  &&
+      vizblk->molecule_prefix_name != vizblk->file_prefix_name)
+  {
+    mdlerror_fmt(mpvp, "MOLECULE_FILE_PREFIX may only appear once per output block.");
+    free(filename);
+    return 1;
+  }
+
+  if (vizblk->viz_mode == DREAMM_V3_MODE  ||
+      vizblk->viz_mode == DREAMM_V3_GROUPED_MODE)
+  {
+    mdlerror(mpvp, "MOLECULE_FILE_PREFIX canot be used with the DREAMM viz output modes.");
+    return 1;
+  }
+
+  if (vizblk->viz_mode != DX_MODE)
+  {
+    if (vizblk->file_prefix_name != NULL)
+    {
+      mdlerror_fmt(mpvp, "In non-DREAMM/DX output modes, MOLECULE_FILE_PREFIX and FILENAME are aliases, and may not both be specified.");
+      free(filename);
+      return 1;
+    }
+    vizblk->file_prefix_name = filename;
+  }
+
+  vizblk->molecule_prefix_name = filename;
+
+  return 0;
+}
+
+static struct viz_child *get_viz_children(struct mdlparse_vars *mpvp,
+                                          struct viz_output_block *vizblk,
+                                          struct viz_child *vcp_parent,
+                                          struct object *obj)
+{
+  struct viz_child *vcp = mdl_get_viz_child(mpvp, vizblk, obj);
+  if (vcp == NULL)
+    return NULL;
+
+  if (vcp_parent != NULL  &&  vcp->parent == NULL)
+  {
+    vcp->next = vcp_parent->children;
+    vcp_parent->children = vcp;
+    vcp->parent = vcp_parent;
+  }
+
+  if (obj->object_type == META_OBJ)
+  {
+    for (struct object *child_objp = obj->first_child;
+         child_objp != NULL;
+         child_objp = child_objp->next)
+      get_viz_children(mpvp, vizblk, vcp, child_objp);
+  }
+
+  return vcp;
+}
+
+static struct viz_dx_obj *mdl_get_viz_obj(struct mdlparse_vars *mpvp,
+                                          struct viz_output_block *vizblk,
+                                          struct sym_table *sym)
+{
+  for (struct viz_dx_obj *viz = vizblk->dx_obj_head;
+       viz != NULL;
+       viz = viz->next)
+  {
+    if (viz->obj == sym->value)
+      return viz;
+  }
+
+  struct viz_dx_obj *viz = CHECKED_MALLOC_STRUCT(struct viz_dx_obj, "viz object");
+  if (viz == NULL)
+    return NULL;
+
+  viz->name = NULL;
+  viz->full_name = mdl_strdup(mpvp, sym->name);
+  if (viz->full_name == NULL)
+  {
+    free(viz);
+    return NULL;
+  }
+  viz->obj = (struct object *) sym->value;
+  viz->viz_child_head = get_viz_children(mpvp, vizblk, NULL, viz->obj);
+  viz->parent = vizblk;
+  viz->actual_objects = NULL;
+  viz->n_actual_objects = 0;
+  viz->next = vizblk->dx_obj_head;
+  vizblk->dx_obj_head = viz;
+  return viz;
+}
+
+/**************************************************************************
+ mdl_set_viz_object_filename_prefix:
+    Set the object filename prefix for an old-style VIZ output block.
+
+ In: mpvp: parser state
+     vizblk: the viz block to check
+     sym: the object
+     filename: the filename
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_set_viz_object_filename_prefix(struct mdlparse_vars *mpvp,
+                                       struct viz_output_block *vizblk,
+                                       struct sym_table *sym,
+                                       char *filename)
+{
+  if (vizblk->viz_mode == NO_VIZ_MODE)
+    return 0;
+
+  if (vizblk->viz_mode != DX_MODE)
+  {
+    mdlerror(mpvp, "OBJECT_FILE_PREFIXES is only meaningful with the DX VIZ output mode.");
+    return 1;
+  }
+
+  struct viz_dx_obj *vizp = mdl_get_viz_obj(mpvp, vizblk, sym);
+  if (vizp == NULL)
+    return 1;
+  free(vizp->name);
+  vizp->name = filename;
+  return 0;
+}
+
+static struct viz_child *mdl_get_viz_child(struct mdlparse_vars *mpvp,
+                                           struct viz_output_block *vizblk,
+                                           struct object *objp)
+{
+  UNUSED(mpvp);
+
+  struct sym_table *st = retrieve_sym(objp->sym->name, vizblk->viz_children);
+  if (st == NULL)
+  {
+    struct viz_child *vcp = CHECKED_MALLOC_STRUCT(struct viz_child,
+                                                  "visualization child object");
+    if (vcp == NULL)
+      return NULL;
+
+    vcp->obj = objp;
+    vcp->viz_state = NULL;
+    vcp->next = NULL;
+    vcp->parent = NULL;
+    vcp->children = NULL;
+    if (store_sym(objp->sym->name, VIZ_CHILD, vizblk->viz_children, vcp) == NULL)
+    {
+      mcell_allocfailed("Failed to store VIZ child object in symbol table.");
+      free(vcp);
+      return NULL;
+    }
+
+    return vcp;
+  }
+  else
+    return (struct viz_child *) st->value;
+}
+
+/**************************************************************************
+ set_viz_state_value:
+    Set the viz_state value for an object and all of its children.
+
+ In: mpvp: parser state
+     objp: the object for which to set the state
+     viz_state: state to set
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+static int set_viz_state_value(struct mdlparse_vars *mpvp,
+                               struct viz_output_block *vizblk,
+                               struct object *objp,
+                               struct viz_child *vcp_parent,
+                               int viz_state)
+{
+  struct viz_child *vcp = mdl_get_viz_child(mpvp, vizblk, objp);
+  if (vcp == NULL)
+    return 1;
+
+  if (vcp_parent != NULL && vcp->parent == NULL)
+  {
+    vcp->next = vcp_parent->children;
+    vcp_parent->children = vcp;
+    vcp->parent = vcp_parent;
+  }
+
+  switch (objp->object_type)
+  {
+    case META_OBJ:
+      for (struct object *child_objp = objp->first_child;
+           child_objp != NULL;
+           child_objp=child_objp->next)
+      {
+        if (set_viz_state_value(mpvp, vizblk, child_objp, vcp, viz_state))
+          return 1;
+      }
+      break;
+
+    case BOX_OBJ:
+    case POLY_OBJ:
+      if (vcp->viz_state==NULL)
+      {
+        if ((vcp->viz_state = CHECKED_MALLOC_ARRAY(int, objp->n_walls, "viz_state array for geometry"))==NULL)
+          return 1;
+      }
+      for (int i = 0; i < objp->n_walls; i++)
+        vcp->viz_state[i] = viz_state;
+      break;
+
+    case REL_SITE_OBJ:
+      /* just do nothing */
+      break;
+
+    default:
+      mcell_internal_error("Attempt to set viz_state_value for object '%s', which is of invalid type '%d'.",
+                           objp->sym->name,
+                           objp->object_type);
+      break;
+  }
+
+  return 0;
+}
+
+/**************************************************************************
+ mdl_set_object_viz_state:
+    Set the viz_state value for an object and all of its children.
+
+ In: mpvp: parser state
+     obj_sym: symbol for the object
+     viz_state: state to set
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+static int mdl_set_object_viz_state(struct mdlparse_vars *mpvp,
+                                    struct viz_output_block *vizblk,
+                                    struct sym_table *obj_sym,
+                                    int viz_state)
+{
+  struct object *objp = (struct object *) obj_sym->value;
+
+  /* set viz_state value for the object */
+  switch (objp->object_type)
+  {
+    case META_OBJ:
+    case BOX_OBJ:
+    case POLY_OBJ:
+      return set_viz_state_value(mpvp, vizblk, objp, NULL, viz_state);
+
+    case REL_SITE_OBJ:
+      mdlerror(mpvp, "Cannot set viz state value of this type of object");
+      return 1;
+
+    default:
+      mcell_internal_error("Attempt to set viz_state_value for object '%s', which is of invalid type '%d'.",
+                           objp->sym->name,
+                           objp->object_type);
+      break;
+  }
+
+  return 0;
+}
+
+/**************************************************************************
+ mdl_add_viz_object:
+    Adds a viz_child for a particular object to the current viz block.
+
+ In: mpvp: parser state
+     vizblk: VIZ_OUTPUT block for this frame list
+     obj_sym: the symbol for the object to add
+     viz_state: the state for this object
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+static int mdl_add_viz_object(struct mdlparse_vars *mpvp,
+                              struct viz_output_block *vizblk,
+                              struct sym_table *obj_sym,
+                              int viz_state)
+{
+  if (vizblk->viz_mode == NO_VIZ_MODE)
+    return 0;
+
+  if (mpvp->vol->viz_blocks->file_prefix_name == NULL)
+  {
+    mdlerror(mpvp, "The keyword FILENAME should be specified before any MESHES are included.");
+    return 1;
+  }
+
+  if (vizblk->viz_mode == DX_MODE)
+  {
+    struct viz_dx_obj *vizp = mdl_get_viz_obj(mpvp, vizblk, obj_sym);
+    if (vizp == NULL)
+      return 1;
+
+    if (vizp->name == NULL)
+      vizp->name = mdl_strdup(mpvp, mpvp->vol->viz_blocks->file_prefix_name);
+    if (vizp->name == NULL)
+    {
+      free(vizp->full_name);
+      free(vizp);
+      return 1;
+    }
+  }
+
+  if (mdl_set_object_viz_state(mpvp, vizblk, obj_sym, viz_state))
+    return 1;
+
+  return 0;
+}
+
+/**************************************************************************
+ mdl_set_viz_include_meshes:
+    Sets a flag on all of the listed objects, requesting that they be
+    visualized.
+
+ In: mpvp: parser state
+     vizblk: the viz block to check
+     list: the list of symbols
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_set_viz_include_meshes(struct mdlparse_vars *mpvp,
+                               struct viz_output_block *vizblk,
+                               struct sym_table_list *list)
+{
+  if (vizblk->viz_mode == NO_VIZ_MODE)
+    return 0;
+
+  struct sym_table_list *stl;
+  if (vizblk->viz_mode == DX_MODE)
+  {
+    mdlerror(mpvp, "In DX MODE the state value for the object must be specified.");
+    return 1;
+  }
+
+  for (stl = list; stl != NULL; stl = stl->next)
+  {
+    /* Add this object to the visualization. */
+    struct object *objp = (struct object *) stl->node->value;
+    if ((objp->object_type == REL_SITE_OBJ))
+      continue;
+    if (mdl_add_viz_object(mpvp, vizblk, stl->node, INCLUDE_OBJ))
+      return 1;
+  }
+  mem_put_list(mpvp->sym_list_mem, list);
+  return 0;
+}
+
+/**************************************************************************
+ mdl_set_viz_include_mesh_state:
+    Sets the viz state of a particular mesh object, indicating whether it
+    should be visualized.
+
+ In: mpvp: parser state
+     vizblk: the viz block to check
+     obj: the list of symbols
+     state: the viz state to set
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_set_viz_include_mesh_state(struct mdlparse_vars *mpvp,
+                                   struct viz_output_block *vizblk,
+                                   struct sym_table *obj,
+                                   int state)
+{
+  if (vizblk->viz_mode == NO_VIZ_MODE)
+    return 0;
+
+  vizblk->viz_output_flag |= VIZ_SURFACE_STATES;
+  return mdl_add_viz_object(mpvp, vizblk, obj, state);
+}
+
+/**************************************************************************
+ mdl_set_viz_include_all_meshes:
+    Sets a flag on a viz block, requesting that all meshes be visualized.
+
+ In: mpvp: parser state
+     vizblk: the viz block to check
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_set_viz_include_all_meshes(struct mdlparse_vars *mpvp,
+                                   struct viz_output_block *vizblk)
+{
+  if (vizblk->viz_mode == NO_VIZ_MODE)
+    return 0;
+
+  if (vizblk->viz_mode == DX_MODE)
+  {
+    mdlerror(mpvp, "In DX MODE, the ALL_MESHES keyword cannot be used.");
+    return 1;
+  }
+  vizblk->viz_output_flag |= VIZ_ALL_MESHES;
+  return 0;
+}
+
+/**************************************************************************
+ mdl_set_viz_include_molecules:
+    Sets a flag on all of the listed species, requesting that they be
+    visualized.
+
+ In: mpvp: parser state
+     vizblk: the viz block to check
+     list: the list of symbols
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_set_viz_include_molecules(struct mdlparse_vars *mpvp,
+                                  struct viz_output_block *vizblk,
+                                  struct sym_table_list *list)
+{
+  if (vizblk->viz_mode == NO_VIZ_MODE)
+    return 0;
+
+  if (vizblk->viz_mode == DX_MODE)
+  {
+    mem_put_list(mpvp->sym_list_mem, list);
+    mdlerror(mpvp, "In DX MODE, the state value for the molecule must be specified.");
+    return 1;
+  }
+
+  /* Mark all specified molecules */
+  struct sym_table_list *stl;
+  for (stl = list; stl != NULL; stl = stl->next)
+  {
+    struct species *specp = (struct species *) stl->node->value;
+    if (mdl_set_molecule_viz_state(mpvp, vizblk, specp, INCLUDE_OBJ))
+      return 1;
+  }
+
+  /* free allocated memory  */
+  mem_put_list(mpvp->sym_list_mem, list);
+  return 0;
+}
+
+/**************************************************************************
+ mdl_set_viz_include_all_molecules:
+    Sets a flag on a viz block, requesting that all species be visualized.
+
+ In: mpvp: parser state
+     vizblk: the viz block to check
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_set_viz_include_all_molecules(struct mdlparse_vars *mpvp,
+                                      struct viz_output_block *vizblk)
+{
+  if (vizblk->viz_mode == NO_VIZ_MODE)
+    return 0;
+
+  if (vizblk->viz_mode == DX_MODE)
+  {
+    mdlerror(mpvp, "In DX MODE, the ALL_MOLECULES keyword cannot be used.");
+    return 1;
+  }
+  vizblk->viz_output_flag |= VIZ_ALL_MOLECULES;
+  return 0;
+}
+
+/**************************************************************************
+ mdl_set_viz_include_molecule_state:
+    Sets the viz state on a molecular species, determining whether it should be
+    visualized.
+
+ In: mpvp: parser state
+     vizblk: the viz block to check
+     list: the list of symbols
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_set_viz_include_molecule_state(struct mdlparse_vars *mpvp,
+                                       struct viz_output_block *vizblk,
+                                       struct sym_table *sym,
+                                       int state)
+{
+  if (vizblk->viz_mode == NO_VIZ_MODE)
+    return 0;
+
+  struct species *specp = (struct species *) sym->value;
+  if (mdl_set_molecule_viz_state(mpvp, vizblk, specp, state))
+    return 1;
+  vizblk->viz_output_flag |= VIZ_MOLECULES_STATES;
+  return 0;
+}
+
 /**************************************************************************
  mdl_create_viz_frame:
     Create a frame for output in the visualization.
@@ -9151,6 +9837,7 @@ static struct frame_data_list *mdl_create_viz_mesh_frames(struct mdlparse_vars *
     Adds some new mesh output frames to a list.
 
  In: mpvp: parser state
+     vizblk: the viz block to check
      frames: list to receive frames
      time_type: timing type (OUTPUT_BY_TIME_LIST or ...ITERATION_LIST)
      mesh_item_type: REGION_DATA, etc.
@@ -9158,20 +9845,21 @@ static struct frame_data_list *mdl_create_viz_mesh_frames(struct mdlparse_vars *
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int mdl_new_viz_mesh_frames(struct mdlparse_vars *mpvp,
+                            struct viz_output_block *vizblk,
                             struct frame_data_list_head *frames,
                             int time_type,
                             int mesh_item_type,
                             struct num_expr_list_head *timelist)
 {
   frames->frame_head = frames->frame_tail = NULL;
-  if (mpvp->vol->viz_mode == NO_VIZ_MODE)
+  if (vizblk->viz_mode == NO_VIZ_MODE)
     return 0;
 
   struct frame_data_list *fdlp;
   fdlp = mdl_create_viz_mesh_frames(mpvp,
                                     time_type,
                                     mesh_item_type,
-                                    mpvp->vol->viz_mode,
+                                    vizblk->viz_mode,
                                     timelist);
   if (! fdlp)
     return 1;
@@ -9182,7 +9870,6 @@ int mdl_new_viz_mesh_frames(struct mdlparse_vars *mpvp,
   frames->frame_tail = fdlp;
   return 0;
 }
-
 
 /**************************************************************************
  mdl_create_viz_mol_frames:
@@ -9276,6 +9963,7 @@ static struct frame_data_list *mdl_create_viz_mol_frames(struct mdlparse_vars *m
     Adds some new molecule output frames to a list.
 
  In: mpvp: parser state
+     vizblk: the viz block to check
      frames: list to receive frames
      time_type: timing type (OUTPUT_BY_TIME_LIST or ...ITERATION_LIST)
      mol_item_type: MOLECULE_POSITIONS, etc.
@@ -9283,20 +9971,21 @@ static struct frame_data_list *mdl_create_viz_mol_frames(struct mdlparse_vars *m
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int mdl_new_viz_mol_frames(struct mdlparse_vars *mpvp,
+                           struct viz_output_block *vizblk,
                            struct frame_data_list_head *frames,
                            int time_type,
                            int mol_item_type,
                            struct num_expr_list_head *timelist)
 {
   frames->frame_head = frames->frame_tail = NULL;
-  if (mpvp->vol->viz_mode == NO_VIZ_MODE)
+  if (vizblk->viz_mode == NO_VIZ_MODE)
     return 0;
 
   struct frame_data_list *fdlp;
   fdlp = mdl_create_viz_mol_frames(mpvp,
                                    time_type,
                                    mol_item_type,
-                                   mpvp->vol->viz_mode,
+                                   vizblk->viz_mode,
                                    timelist);
   if (! fdlp)
     return 1;
@@ -9313,6 +10002,7 @@ int mdl_new_viz_mol_frames(struct mdlparse_vars *mpvp,
     Adds some new output frames to a list.
 
  In: mpvp: parser state
+     vizblk: the viz block to check
      frames: list to receive frames
      time_type: timing type (OUTPUT_BY_TIME_LIST or ...ITERATION_LIST)
      type: the type (ALL_FRAME_DATA, etc.)
@@ -9320,13 +10010,14 @@ int mdl_new_viz_mol_frames(struct mdlparse_vars *mpvp,
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int mdl_new_viz_frames(struct mdlparse_vars *mpvp,
+                       struct viz_output_block *vizblk,
                        struct frame_data_list_head *frames,
                        int time_type,
                        int type,
                        struct num_expr_list_head *times)
 {
   frames->frame_head = frames->frame_tail = NULL;
-  if (mpvp->vol->viz_mode == NO_VIZ_MODE)
+  if (vizblk->viz_mode == NO_VIZ_MODE)
     return 0;
 
   struct num_expr_list *times_sorted;
@@ -9427,77 +10118,40 @@ int mdl_new_viz_all_iterations(struct mdlparse_vars *mpvp, struct num_expr_list_
 }
 
 /**************************************************************************
- set_viz_state_value:
+ mdl_set_object_viz_state_by_name:
     Set the viz_state value for an object and all of its children.
 
  In: mpvp: parser state
-     objp: the object for which to set the state
-     viz_state: state to set
- Out: 0 on success, 1 on failure
-**************************************************************************/
-static int set_viz_state_value(struct mdlparse_vars *mpvp,
-                               struct object *objp,
-                               int viz_state)
-{
-  switch (objp->object_type)
-  {
-    case META_OBJ:
-      for (struct object *child_objp = objp->first_child;
-           child_objp != NULL;
-           child_objp=child_objp->next)
-      {
-        if (set_viz_state_value(mpvp, child_objp,viz_state))
-          return 1;
-      }
-      break;
-
-    case BOX_OBJ:
-    case POLY_OBJ:
-      if (objp->viz_state==NULL)
-      {
-        if ((objp->viz_state = CHECKED_MALLOC_ARRAY(int, objp->n_walls, "object walls array"))==NULL)
-          return 1;
-      }
-      for (int i=0;i<objp->n_walls;i++)
-        objp->viz_state[i] = viz_state;
-      break;
-
-    default:
-      /* just do nothing */
-      break;
-  }
-
-  return 0;
-}
-
-/**************************************************************************
- mdl_set_object_viz_state:
-    Set the viz_state value for an object and all of its children.
-
- In: mpvp: parser state
+     vizblk: visualization block currently being built
      obj_sym: symbol for the object
      viz_state: state to set
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int mdl_set_object_viz_state(struct mdlparse_vars *mpvp,
-                             struct sym_table *obj_sym,
-                             int viz_state)
+int mdl_set_object_viz_state_by_name(struct mdlparse_vars *mpvp,
+                                     struct viz_output_block *vizblk,
+                                     struct sym_table *obj_symp,
+                                     int viz_state)
 {
-  struct object *objp = (struct object *) obj_sym->value;
+  return mdl_set_object_viz_state(mpvp, vizblk, obj_symp, viz_state);
+}
 
-  /* set viz_state value for the object */
-  switch (objp->object_type)
+int mdl_set_molecule_viz_state(struct mdlparse_vars *mpvp,
+                               struct viz_output_block *vizblk,
+                               struct species *specp,
+                               int viz_state)
+{
+  UNUSED(mpvp);
+
+  void *val = (void *) (intptr_t) viz_state;
+  assert(viz_state == (int) (intptr_t) val);
+  if (pointer_hash_add(&vizblk->parser_species_viz_states,
+                       specp,
+                       specp->hashval,
+                       val))
   {
-    case META_OBJ:
-    case BOX_OBJ:
-    case POLY_OBJ:
-      return set_viz_state_value(mpvp, objp, viz_state);
-
-    default:
-      mdlerror(mpvp, "Cannot set viz state value of this type of object");
-      return 1;
+    mcell_allocfailed("Failed to store viz state for molecules of species '%s'.", specp->sym->name);
+    return 1;
   }
-
   return 0;
 }
 
@@ -9506,85 +10160,37 @@ int mdl_set_object_viz_state(struct mdlparse_vars *mpvp,
     Set the viz_state for a particular region.
 
  In: mpvp: parser state
+     vizblk: the viz block currently being defined
      rp:   region for which to set the vizstate
      viz_state: state to set
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int mdl_set_region_viz_state(struct mdlparse_vars *mpvp,
+                             struct viz_output_block *vizblk,
                              struct region *rp,
                              int viz_state)
 {
-  UNUSED(mpvp);
-  struct polygon_object *pop;
   struct object *objp = rp->parent;
+  struct polygon_object *pop = (struct polygon_object *) objp->contents;
 
-  pop = (struct polygon_object *) objp->contents;
-  if (objp->viz_state == NULL)
+  struct viz_child *vcp = mdl_get_viz_child(mpvp, vizblk, objp);
+  if (vcp == NULL)
+    return 1;
+
+  const int n_walls = pop->n_walls;
+  if (vcp->viz_state==NULL)
   {
-    if ((objp->viz_state = CHECKED_MALLOC_ARRAY(int, pop->n_walls, "viz state array")) == NULL)
+    if ((vcp->viz_state = CHECKED_MALLOC_ARRAY(int, n_walls, "viz state array")) == NULL)
       return 1;
-    for (unsigned int i=0;i<pop->n_walls;i++)
-      objp->viz_state[i]=EXCLUDE_OBJ;
+    for (int i=0; i<n_walls; i++)
+      vcp->viz_state[i] = EXCLUDE_OBJ;
   }
 
-  for (unsigned int i = 0; i < rp->membership->nbits; ++ i)
+  for (unsigned int i=0; i<rp->membership->nbits; ++ i)
   {
     if (get_bit(rp->membership, i))
-      objp->viz_state[i] = viz_state;
+      vcp->viz_state[i] = viz_state;
   }
-
-  return 0;
-}
-
-/**************************************************************************
- mdl_add_viz_object:
-    Adds a viz_obj for a particular object to the list of top-level
-    visualization objects.
-
- In: mpvp: parser state
-     rsop: the release site object to validate
-     objp: the object representing this release site
-     re:   the release evaluator representing the region of release
- Out: 0 on success, 1 on failure
-**************************************************************************/
-int mdl_add_viz_object(struct mdlparse_vars *mpvp, struct sym_table *obj_sym, int viz_state)
-{
-  struct viz_obj *vizp;
-  struct object *objp = (struct object *) obj_sym->value;
-
-  if (mpvp->vol->file_prefix_name == NULL)
-  {
-    mdlerror(mpvp, "The keyword FILENAME should be specified.");
-    return 1;
-  }
-
-  if ((vizp = CHECKED_MALLOC_STRUCT(struct viz_obj,
-                                     "visualization object")) == NULL)
-    return 1;
-
-  objp->viz_obj = vizp;
-  vizp->name = mdl_strdup(mpvp, mpvp->vol->file_prefix_name);
-  if (vizp->name == NULL)
-  {
-    free(vizp);
-    return 1;
-  }
-
-  vizp->full_name = mdl_strdup(mpvp, obj_sym->name);
-  if (vizp->full_name == NULL)
-  {
-    free(vizp->name);
-    free(vizp);
-    return 1;
-  }
-
-  vizp->viz_child_head = NULL;
-  vizp->obj = objp;
-  vizp->next = mpvp->vol->viz_obj_head;
-  mpvp->vol->viz_obj_head = vizp;
-
-  if (mdl_set_object_viz_state(mpvp, obj_sym, viz_state))
-    return 1;
 
   return 0;
 }

@@ -1539,13 +1539,6 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   	w->uv_vert2.v = 0;
 
   	w->grid = NULL;
-  	w->viz_state = EXCLUDE_OBJ; 
-  	if (objp->viz_state!=NULL) {
-    		w->viz_state=objp->viz_state[side];
-  	}
-  	else {
-    		w->viz_state=EXCLUDE_OBJ;
-  	}
 
   	w->parent_object = objp;
   	w->flags=0;
@@ -1590,13 +1583,6 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
                   (w->vert[2]->z - w->vert[0]->z)*w->unit_v.z;
   
   w->grid = NULL;
-  w->viz_state = EXCLUDE_OBJ; 
-  if (objp->viz_state!=NULL) {
-    w->viz_state=objp->viz_state[side];
-  }
-  else {
-    w->viz_state=EXCLUDE_OBJ;
-  }
 
   w->parent_object = objp;
   w->flags=0;

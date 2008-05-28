@@ -41,7 +41,6 @@ struct complex_species *new_complex_species(int num_subunits, int type)
     specp->base.flags=IS_COMPLEX | CANT_INITIATE | ON_GRID;
   else
     specp->base.flags=IS_COMPLEX | CANT_INITIATE;
-  specp->base.viz_state=EXCLUDE_OBJ;
   specp->base.region_viz_value = EXCLUDE_OBJ;
   specp->num_subunits = num_subunits;
 

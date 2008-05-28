@@ -15,7 +15,7 @@ my_strcat:
        or NULL if there isn't enough memory.
   Note: the calling function is responsible for freeing the memory.
 *************************************************************************/
-char *my_strcat(char *s1, char *s2)
+char *my_strcat(char const *s1, char const *s2)
 { 
   char *temp = NULL;
   size_t len1,len2;
@@ -74,7 +74,7 @@ strip_quotes:
        malloc fails.
   Note: this function does NOT do any error checking!
 *************************************************************************/
-char *strip_quotes(char *s)
+char *strip_quotes(char const *s)
 { 
   char *temp = NULL;
   int len = strlen(s);

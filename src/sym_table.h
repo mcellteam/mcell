@@ -26,5 +26,6 @@ struct sym_table *store_sym(char const *sym,
                             struct sym_table_head *hashtab,
                             void *data);
 struct sym_table_head *init_symtab(int size);
+void destroy_symtab(struct sym_table_head *tab);
 
 #endif

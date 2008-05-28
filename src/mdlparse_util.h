@@ -794,8 +794,88 @@ int mdl_single_count_expr(struct mdlparse_vars *mpvp,
  * Viz output
  ***************************************************************/
 
+/* Build a new VIZ output block, containing parameters for an output set for
+ * visualization. */
+int mdl_new_viz_output_block(struct mdlparse_vars *mpvp);
+
+/* Finalize a new VIZ output block, ensuring all required parameters were set,
+ * and doing any postprocessing necessary for runtime. */
+int mdl_finish_viz_output_block(struct mdlparse_vars *mpvp,
+                                struct viz_output_block *vizblk);
+
+/* Require the mode of the specified VIZ output block to be pre-MCell 3 (i.e.
+ * neither of the DREAMM_V3 modes.)  It's impossible to create a valid DREAMM
+ * output using the old-style notation, so this makes the impossibility more
+ * explicit for user-friendliness. */
+int mdl_require_old_style_viz(struct mdlparse_vars *mpvp, int mode);
+
+/* Set the mode for a new VIZ output block. */
+int mdl_set_viz_mode(struct mdlparse_vars *mpvp,
+                     struct viz_output_block *vizblk,
+                     int mode);
+
+/* Set the mesh format for a new VIZ output block. */
+int mdl_set_viz_mesh_format(struct mdlparse_vars *mpvp,
+                            struct viz_output_block *vizblk,
+                            int format);
+
+/* Set the molecule format for a new VIZ output block. */
+int mdl_set_viz_molecule_format(struct mdlparse_vars *mpvp,
+                                struct viz_output_block *vizblk,
+                                int format);
+
+/* Set the filename prefix for a new VIZ output block. */
+int mdl_set_viz_filename_prefix(struct mdlparse_vars *mpvp,
+                                struct viz_output_block *vizblk,
+                                char *filename);
+
+/* Set the molecule filename prefix for an old-style VIZ output block. */
+int mdl_set_viz_molecule_filename_prefix(struct mdlparse_vars *mpvp,
+                                         struct viz_output_block *vizblk,
+                                         char *filename);
+
+/* Set the object filename prefix for an old-style VIZ output block. */
+int mdl_set_viz_object_filename_prefix(struct mdlparse_vars *mpvp,
+                                       struct viz_output_block *vizblk,
+                                       struct sym_table *sym,
+                                       char *filename);
+
+/* Sets a flag on all of the listed objects, requesting that they be
+ * visualized. */
+int mdl_set_viz_include_meshes(struct mdlparse_vars *mpvp,
+                               struct viz_output_block *vizblk,
+                               struct sym_table_list *list);
+
+/* Sets the viz state of a particular mesh object, indicating whether it should
+ * be visualized. */
+int mdl_set_viz_include_mesh_state(struct mdlparse_vars *mpvp,
+                                   struct viz_output_block *vizblk,
+                                   struct sym_table *obj,
+                                   int state);
+
+/* Sets a flag on a viz block, requesting that all meshes be visualized. */
+int mdl_set_viz_include_all_meshes(struct mdlparse_vars *mpvp,
+                                   struct viz_output_block *vizblk);
+
+/* Sets a flag on all of the listed species, requesting that they be visualized. */
+int mdl_set_viz_include_molecules(struct mdlparse_vars *mpvp,
+                                  struct viz_output_block *vizblk,
+                                  struct sym_table_list *list);
+
+/* Sets a flag on a viz block, requesting that all species be visualized. */
+int mdl_set_viz_include_all_molecules(struct mdlparse_vars *mpvp,
+                                      struct viz_output_block *vizblk);
+
+/* Sets the viz state on a molecular species, determining whether it should be
+ * visualized. */
+int mdl_set_viz_include_molecule_state(struct mdlparse_vars *mpvp,
+                                       struct viz_output_block *vizblk,
+                                       struct sym_table *sym,
+                                       int state);
+
 /* Adds some new mesh output frames to a list. */
 int mdl_new_viz_mesh_frames(struct mdlparse_vars *mpvp,
+                            struct viz_output_block *vizblk,
                             struct frame_data_list_head *frames,
                             int time_type,
                             int mesh_item_type,
@@ -803,6 +883,7 @@ int mdl_new_viz_mesh_frames(struct mdlparse_vars *mpvp,
 
 /* Adds some new molecule output frames to a list. */
 int mdl_new_viz_mol_frames(struct mdlparse_vars *mpvp,
+                           struct viz_output_block *vizblk,
                            struct frame_data_list_head *frames,
                            int time_type,
                            int mol_item_type,
@@ -810,6 +891,7 @@ int mdl_new_viz_mol_frames(struct mdlparse_vars *mpvp,
 
 /* Adds some new output frames to a list. */
 int mdl_new_viz_frames(struct mdlparse_vars *mpvp,
+                       struct viz_output_block *vizblk,
                        struct frame_data_list_head *frames,
                        int time_type,
                        int type,
@@ -826,20 +908,22 @@ int mdl_new_viz_all_iterations(struct mdlparse_vars *mpvp,
                                struct num_expr_list_head *list);
 
 /* Set the viz_state value for an object and all of its children. */
-int mdl_set_object_viz_state(struct mdlparse_vars *mpvp,
-                             struct sym_table *obj_sym,
-                             int viz_state);
+int mdl_set_object_viz_state_by_name(struct mdlparse_vars *mpvp,
+                                     struct viz_output_block *vizblk,
+                                     struct sym_table *obj_symp,
+                                     int viz_state);
+
+/* Set the viz_state value for a molecular species. */
+int mdl_set_molecule_viz_state(struct mdlparse_vars *mpvp,
+                               struct viz_output_block *vizblk,
+                               struct species *specp,
+                               int viz_state);
 
 /* Set the viz_state for a particular region. */
 int mdl_set_region_viz_state(struct mdlparse_vars *mpvp,
+                             struct viz_output_block *vizblk,
                              struct region *rp,
                              int viz_state);
-
-/* Adds a viz_obj for a particular object to the list of top-level
- * visualization objects. */
-int mdl_add_viz_object(struct mdlparse_vars *mpvp,
-                       struct sym_table *obj_sym,
-                       int viz_state);
 
 /* Allocate a block of data for Rex's custom visualization mode. */
 struct rk_mode_data *mdl_new_rk_mode_var(struct mdlparse_vars *mpvp,

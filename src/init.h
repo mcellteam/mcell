@@ -11,15 +11,13 @@ int init_geom(void);
 int init_partitions(void);
 
 int instance_obj(struct object *objp,
-		 double (*im)[4],
-		 struct viz_obj *vizp);
+		 double (*im)[4]);
 
 int instance_release_site(struct object *objp,
 			  double (*im)[4]);
 
 int instance_polygon_object(struct object *objp,
-		double (*im)[4],
-		struct viz_obj *vizp);
+		double (*im)[4]);
 
 int init_regions(void);
 void init_clamp_lists(void);

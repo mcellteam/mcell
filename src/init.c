@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,6 +41,9 @@ extern struct volume *world;
 
 /* Initialize the surface macromolecules on a given object */
 static int init_complex_effectors(struct object *objp, struct region_list *head);
+
+/* Initialize the visualization output (frame_data_lists). */
+static int init_viz_output(void);
 
 static int compute_bb(struct object *objp, double (*im)[4]);
 static int compute_bb_release_site(struct object *objp, double (*im)[4]);
@@ -107,7 +111,7 @@ int init_notifications(void)
   world->notify->mol_placement_failure = WARN_WARN;
   world->notify->invalid_output_step_time = WARN_WARN;
   
-  if (world->log_freq!=-1) /* User set this */
+  if (world->log_freq != -1) /* User set this */
   {
     world->notify->custom_iterations = NOTIFY_CUSTOM;
     world->notify->custom_iteration_value = world->log_freq;
@@ -223,8 +227,7 @@ int init_sim(void)
 
   /*world->chkpt_init=1; */  /* set in the main() */
   world->chkpt_flag=0;
-  world->molecule_prefix_name=NULL;
-  world->file_prefix_name=NULL;
+  world->viz_blocks=NULL;
   world->ray_voxel_tests=0;
   world->ray_polygon_tests=0;
   world->ray_polygon_colls=0;
@@ -267,7 +270,6 @@ int init_sim(void)
   world->n_fineparts = 0;
   world->complex_placement_attempts = 100;
   
-  world->viz_output_flag = 0; 
   world->use_expanded_list=1;
   world->randomize_gmol_pos=1;
   world->vacancy_search_dist2=0;
@@ -275,8 +277,6 @@ int init_sim(void)
   world->volume_reversibility=0;
   world->n_reactions = 0;
 
-  memset(&world->viz_state_info, 0, sizeof(world->viz_state_info));
-  
   world->mcell_version = mcell_version;
   
   world->clamp_list = NULL;
@@ -357,13 +357,8 @@ int init_sim(void)
   world->g_surf->flags = IS_SURFACE;
 
   world->volume_output_head = NULL;
-
   world->output_block_head=NULL;
   world->output_request_head=NULL;
-  world->viz_obj_head=NULL;
-  world->viz_mode=-1;
-  world->rk_mode_var=NULL;
-  world->frame_data_head=NULL;
 
   world->releaser = create_scheduler(1.0, 100.0, 100, 0.0);
   if (world->releaser == NULL)
@@ -384,28 +379,6 @@ int init_sim(void)
   if (init_species())
     mcell_error("Unknown error while initializing species table.");
   no_printf("Done setting up species.\n");
-
-
-  /* Visualize all molecules if asked in "mdl" file */
-  if((world->viz_mode == DREAMM_V3_MODE) || (world->viz_mode == DREAMM_V3_GROUPED_MODE))
-  {
-    if((world->viz_output_flag & VIZ_ALL_MOLECULES) != 0) {
-       struct species *sp;
-  
-      for(i = 0; i < world->n_species; i++)
-      {
-         sp = world->species_list[i];
-         if((sp->flags & IS_SURFACE) != 0) continue;
-         if(strcmp(sp->sym->name, "GENERIC_MOLECULE") == 0) continue;  
-
-         /* set viz_state to INCLUDE_OBJ for the molecule we want to visualize
-             but will not assign state value */
-         sp->viz_state = INCLUDE_OBJ;
-
-      } 
-
-    }
-  }
 
  /* If there are no 3D molecules-reactants in the simulation
     set up the"use_expanded_list" flag to zero. */
@@ -476,7 +449,7 @@ int init_sim(void)
   }
 
   /* Initialize the frame data for the visualization and reaction output. */
-  if (init_frame_data_list(&world->frame_data_head))
+  if (init_viz_output())
     mcell_internal_error("Unknown error while initializing VIZ output.");
 
   /* Initialize the volume output */
@@ -570,6 +543,290 @@ int init_sim(void)
   return 0;
 }
 
+static void set_viz_state_include(struct viz_output_block *vizblk,
+                                  struct object *objp)
+{
+  struct sym_table *symp;
+  struct viz_child *vcp;
+  switch (objp->object_type)
+  {
+    case META_OBJ:
+      for (struct object *child_objp = objp->first_child;
+           child_objp != NULL;
+           child_objp=child_objp->next)
+        set_viz_state_include(vizblk, child_objp);
+      break;
+
+    case BOX_OBJ:
+    case POLY_OBJ:
+      symp = retrieve_sym(objp->sym->name, vizblk->viz_children);
+      if (symp == NULL)
+      {
+        vcp = CHECKED_MALLOC_STRUCT(struct viz_child, "visualization child object");
+        vcp->obj = objp;
+        vcp->viz_state = NULL;
+        vcp->next = NULL;
+        vcp->parent = NULL;
+        vcp->children = NULL;
+        if (store_sym(objp->sym->name, VIZ_CHILD, vizblk->viz_children, vcp) == NULL)
+          mcell_allocfailed("Failed to store visualization child object in the visualization objects table.");
+      }
+      else
+        vcp = (struct viz_child *) symp->value;
+
+      if (vcp->viz_state == NULL)
+      {
+        vcp->viz_state = CHECKED_MALLOC_ARRAY(int, objp->n_walls,
+                                              "visualization state array");
+      }
+      for (int i=0;i<objp->n_walls;i++)
+        vcp->viz_state[i] = INCLUDE_OBJ;
+      break;
+
+    case REL_SITE_OBJ:
+      /* just do nothing */
+      break;
+
+    default:
+      mcell_internal_error("Invalid object type (%d) while setting viz state.", objp->object_type);
+  }
+}
+
+static void set_viz_all_meshes(struct viz_output_block *vizblk)
+{
+  set_viz_state_include(vizblk, world->root_instance);
+}
+
+static void set_viz_all_molecules(struct viz_output_block *vizblk)
+{
+  for (int i = 0; i < world->n_species; i++)
+  {
+    struct species *sp = world->species_list[i];
+    if (sp == world->g_mol) continue;
+    if (sp->flags & IS_SURFACE) continue;
+    if (vizblk->species_viz_states[i] != EXCLUDE_OBJ) continue;
+
+    /* set viz_state to INCLUDE_OBJ for the molecule we want to visualize
+       but will not assign state value */
+    vizblk->species_viz_states[i] = INCLUDE_OBJ;
+  }
+}
+
+static int count_viz_children(struct viz_child *vcp)
+{
+  int count = 0;
+
+  for (; vcp != NULL; vcp = vcp->next)
+  {
+    if (vcp->children)
+      count += count_viz_children(vcp->children);
+    if (vcp->viz_state != NULL)
+      ++ count;
+  }
+
+  return count;
+}
+
+static void populate_viz_children_array(struct viz_output_block *vizblk,
+                                        struct viz_dx_obj *viz,
+                                        struct viz_child *vcp,
+                                        int *pos)
+{
+  for (; vcp != NULL; vcp = vcp->next)
+  {
+    if (vcp->children)
+      populate_viz_children_array(vizblk, viz, vcp->children, pos);
+    if (vcp->viz_state != NULL)
+      viz->actual_objects[(*pos) ++] = vcp;
+  }
+}
+
+static void convert_viz_children_to_array(struct viz_output_block *vizblk,
+                                          struct viz_dx_obj *viz)
+{
+  int count = count_viz_children(viz->viz_child_head);
+  if (count == 0)
+    viz->actual_objects = NULL;
+  else
+    viz->actual_objects = CHECKED_MALLOC_ARRAY(struct viz_child *,
+                                               count,
+                                               "visualization children array");
+  viz->n_actual_objects = count;
+
+  /* Copy items into the array. */
+  int pos = 0;
+  populate_viz_children_array(vizblk, viz, viz->viz_child_head, &pos);
+  assert(pos == count);
+
+  /* Clear the tree. */
+  viz->viz_child_head = NULL;
+}
+
+static void free_extra_viz_children(struct viz_output_block *vizblk)
+{
+  for (int i=0; i<vizblk->viz_children->n_bins; ++ i)
+  {
+    for (struct sym_table *sym = vizblk->viz_children->entries[i];
+         sym != NULL;
+         sym = sym->next)
+    {
+      struct viz_child *vcp = (struct viz_child *) sym->value;
+      vcp->next = NULL;
+      vcp->parent = NULL;
+      vcp->children = NULL;
+      if (vcp->viz_state == NULL)
+        free(vcp);
+    }
+  }
+
+  destroy_symtab(vizblk->viz_children);
+  vizblk->viz_children = NULL;
+}
+
+static int viz_child_compare(void const *vc1, void const *vc2)
+{
+  struct viz_child const *c1 = (struct viz_child const *) vc1;
+  struct viz_child const *c2 = (struct viz_child const *) vc2;
+  if (c1->obj < c2->obj)
+    return -1;
+  else if (c1->obj > c2->obj)
+    return 1;
+  else
+    return 0;
+}
+
+static void convert_viz_objects_to_array(struct viz_output_block *vizblk)
+{
+  int count = 0;
+  for (int i=0; i<vizblk->viz_children->n_bins; ++ i)
+  {
+    for (struct sym_table *sym = vizblk->viz_children->entries[i];
+         sym != NULL;
+         sym = sym->next)
+    {
+      struct viz_child *vcp = (struct viz_child *) sym->value;
+      if (vcp->viz_state)
+        ++ count;
+    }
+  }
+
+  /* Stash info in the visualization block. */
+  vizblk->n_dreamm_objects = count;
+  vizblk->dreamm_object_info = CHECKED_MALLOC_ARRAY(struct viz_child *,
+                                                    count,
+                                                    "DREAMM mesh objects");
+  vizblk->dreamm_objects = CHECKED_MALLOC_ARRAY(struct object *,
+                                                count,
+                                                "DREAMM mesh objects");
+
+  /* Now copy data in, unsorted. */
+  count = 0;
+  for (int i=0; i<vizblk->viz_children->n_bins; ++ i)
+  {
+    for (struct sym_table *sym = vizblk->viz_children->entries[i];
+         sym != NULL;
+         sym = sym->next)
+    {
+      struct viz_child *vcp = (struct viz_child *) sym->value;
+      if (vcp->viz_state)
+        vizblk->dreamm_object_info[count ++] = vcp;
+    }
+  }
+  assert(count == vizblk->n_dreamm_objects);
+
+  /* Sort the data. */
+  qsort(vizblk->dreamm_object_info,
+        vizblk->n_dreamm_objects,
+        sizeof(struct viz_child *),
+        viz_child_compare);
+
+  /* Copy out just the objects. */
+  for (int i=0; i<count; ++i)
+    vizblk->dreamm_objects[i] = vizblk->dreamm_object_info[i]->obj;
+}
+
+static void expand_viz_children(struct viz_output_block *vizblk)
+{
+  switch (vizblk->viz_mode)
+  {
+    case DX_MODE:
+      /* Convert viz_child tables to viz_child pointer array on each viz_dx_obj. */
+      for (struct viz_dx_obj *viz = vizblk->dx_obj_head; viz != NULL; viz = viz->next)
+        convert_viz_children_to_array(vizblk, viz);
+      free_extra_viz_children(vizblk);
+      break;
+
+    case DREAMM_V3_GROUPED_MODE:
+    case DREAMM_V3_MODE:
+      convert_viz_objects_to_array(vizblk);
+      free_extra_viz_children(vizblk);
+      break;
+
+    default:
+      /* Do nothing. */
+      break;
+  }
+}
+
+static int init_viz_species_states(struct viz_output_block *vizblk)
+{
+  vizblk->species_viz_states = CHECKED_MALLOC_ARRAY(int,
+                                                    world->n_species,
+                                                    "species viz states array");
+  if (vizblk->species_viz_states == NULL)
+    return 1;
+  for (int i=0; i<world->n_species; ++i)
+    vizblk->species_viz_states[i] = EXCLUDE_OBJ;
+
+  int n_entries = vizblk->parser_species_viz_states.num_items;
+  int n_bins = vizblk->parser_species_viz_states.table_size;
+  for (int i=0; n_entries > 0  &&  i < n_bins; ++i)
+  {
+    struct species *specp =
+          (struct species *) (vizblk->parser_species_viz_states.keys[i]);
+    if (specp != NULL)
+    {
+      vizblk->species_viz_states[specp->species_id] =
+            (int) (intptr_t) vizblk->parser_species_viz_states.values[i];
+      -- n_entries;
+    }
+  }
+
+  pointer_hash_destroy(&vizblk->parser_species_viz_states);
+  return 0;
+}
+
+static int init_viz_output(void)
+{
+  struct viz_output_block *vizblk;
+  for (vizblk = world->viz_blocks;
+       vizblk != NULL;
+       vizblk = vizblk->next)
+  {
+    /* Copy species states into an array. */
+    if (init_viz_species_states(vizblk))
+      return 1;
+
+    /* If ALL_MESHES or ALL_MOLECULES were requested, mark them all for inclusion. */
+    if (vizblk->viz_mode != DX_MODE  &&  (vizblk->viz_output_flag & VIZ_ALL_MESHES))
+      set_viz_all_meshes(vizblk);
+    if (vizblk->viz_mode != DX_MODE  &&  (vizblk->viz_output_flag & VIZ_ALL_MOLECULES))
+      set_viz_all_molecules(vizblk);
+
+    /* Copy viz children to the appropriate array. */
+    expand_viz_children(vizblk);
+
+    if (init_frame_data_list(vizblk))
+    {
+      mcell_internal_error("Unknown error while initializing VIZ output.");
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+
 
 /********************************************************************
 init_species: 
@@ -605,9 +862,6 @@ int init_species(void)
         world->species_list[count]->population = 0;
 	world->species_list[count]->n_deceased = 0;
 	world->species_list[count]->cum_lifetime = 0;
-        if(world->species_list[count]->viz_state < 0){
-        	world->species_list[count]->viz_state = EXCLUDE_OBJ;
-        }
         if ((s->flags & NOT_FREE) == 0)
         {
           speed = 6.0*s->space_step/sqrt(MY_PI);
@@ -905,7 +1159,6 @@ int init_partitions(void)
  * Initializes the geometry of the world.
  * Calls instance_obj() to instantiate all physical objects.
  * (Meta objects, box objects, polygon objects and release sites)
- * Populates viz_obj list vizp
  */
 int init_geom(void)
 {
@@ -954,7 +1207,7 @@ int init_geom(void)
   no_printf("World object contains %d walls and %d vertices\n",
     world->n_walls,world->n_verts);
   
-  if (instance_obj(world->root_instance, tm, NULL))
+  if (instance_obj(world->root_instance, tm))
     return 1;
 
   return 0;
@@ -971,14 +1224,10 @@ int init_geom(void)
  * instance_polygon_object() to handle the actual instantiation of
  * those objects.
  */
-int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp)
+int instance_obj(struct object *objp, double (*im)[4])
 {
   double tm[4][4];
   mult_matrix(objp->t_matrix, im, tm, 4, 4, 4);
-
-  if (vizp==NULL) {
-    vizp=objp->viz_obj;
-  }
 
   switch (objp->object_type)
   {
@@ -987,7 +1236,7 @@ int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp)
            child_objp != NULL;
            child_objp = child_objp->next)
       {
-        if (instance_obj(child_objp, tm, vizp))
+        if (instance_obj(child_objp, tm))
           return 1;
       }
       break;
@@ -999,7 +1248,7 @@ int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp)
 
     case BOX_OBJ:
     case POLY_OBJ:
-      if (instance_polygon_object(objp, tm, vizp))
+      if (instance_polygon_object(objp, tm))
         return 1;
       break;
 
@@ -1211,14 +1460,13 @@ static int compute_bb_polygon_object(struct object *objp, double (*im)[4])
  * transformations (scaling, rotation and translation).
  * <br>
  */
-int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj *vizp)
+int instance_polygon_object(struct object *objp, double (*im)[4])
 {
 // #define INIT_VERTEX_NORMALS
 // Uncomment to compute vertex normals
   struct polygon_object *pop;
   struct vector3 *v,**vp;
   struct wall *w,**wp;
-  struct viz_child *vcp;
   double p[1][4];
 #ifdef INIT_VERTEX_NORMALS
   struct vector3 *vertex_normal;
@@ -1252,17 +1500,6 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
     if (pop->normal!=NULL)
       compute_vertex_normals = 1;
 #endif
-   if(vizp!=NULL)
-   {
-     if((world->viz_mode == DREAMM_V3_MODE) || (world->viz_mode == DREAMM_V3_GROUPED_MODE) || (objp->viz_state!=NULL))
-     {
-
-      vcp=CHECKED_MALLOC_STRUCT(struct viz_child, "visualization child object");
-      vcp->obj = objp;
-      vcp->next = vizp->viz_child_head;
-      vizp->viz_child_head = vcp;
-    }
-  }  
 
   for (unsigned int n_vert=0; n_vert<n_verts; ++ n_vert)
   {
@@ -1277,7 +1514,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
     v[n_vert].z = p[0][2];
 
 #ifdef INIT_VERTEX_NORMALS
-    if (compute_vertex_normals) {
+    if (compute_vertex_normals)
     {
       p[0][0] = pop->normal[n_vert].x;
       p[0][1] = pop->normal[n_vert].y;

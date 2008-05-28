@@ -239,8 +239,13 @@ static void run_sim(void)
     /* Produce output */
     process_reaction_output(world, not_yet);
     process_volume_output(world, not_yet);
-    if (world->frame_data_head  &&  update_frame_data_list(world->frame_data_head))
+    for (struct viz_output_block *vizblk = world->viz_blocks;
+         vizblk != NULL;
+         vizblk = vizblk->next)
+    {
+      if (vizblk->frame_data_head  &&  update_frame_data_list(vizblk))
       mcell_error("Unknown error while updating frame data list.");
+    }
 
     /* Produce iteration report */
     if ( iter_report_phase == 0 && world->notify->custom_iterations!=NOTIFY_NONE)
@@ -340,9 +345,18 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
 
   if (world->notify->progress_report!=NOTIFY_NONE)
     mcell_log("Exiting run loop.");
-  if (finalize_viz_output(world->frame_data_head))
+  int warned = 0;
+  for (struct viz_output_block *vizblk = world->viz_blocks;
+       vizblk != NULL;
+       vizblk = vizblk->next)
+  {
+    if (finalize_viz_output(vizblk)  &&  ! warned)
+    {
     mcell_warn("VIZ output was not successfully finalized.\n"
                "  Visualization of results may not work correctly.");
+      warned = 1;
+    }
+  }
  
   first_report=1;
   

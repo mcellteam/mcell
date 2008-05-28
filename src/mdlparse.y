@@ -2357,22 +2357,12 @@ opt_custom_header: /* empty */                        { $$ = NULL; }
 /* New-style viz output definitions */
 
 viz_output_def:
-          VIZ_OUTPUT '{'
+          VIZ_OUTPUT '{'                              { CHECK(mdl_new_viz_output_block(mdlpvp)); }
             viz_output_maybe_mode_cmd
             viz_mesh_format_maybe_cmd
             viz_molecule_format_maybe_cmd
             list_viz_output_cmds
-          '}'                                         {
-                                                          if (mdlpvp->vol->viz_mode == DREAMM_V3_MODE  ||
-                                                              mdlpvp->vol->viz_mode == DREAMM_V3_GROUPED_MODE)
-                                                          {
-                                                            if (mdlpvp->vol->file_prefix_name == NULL)
-                                                            {
-                                                              mdlerror(mdlpvp, "Inside VIZ_OUTPUT block the required keyword FILENAME is missing.\n");
-                                                              return 1;
-                                                            }
-                                                          }
-                                                      }
+          '}'                                         { CHECK(mdl_finish_viz_output_block(mdlpvp, mdlpvp->vol->viz_blocks)); }
 ;
 
 list_viz_output_cmds:
@@ -2381,67 +2371,31 @@ list_viz_output_cmds:
           viz_output_cmd
 ;
 
-viz_output_maybe_mode_cmd:
-          /* empty */                                 {
-                                                          if (mdlpvp->vol->viz_mode == -1)
-                                                            mdlpvp->vol->viz_mode = DREAMM_V3_MODE;
-                                                      }
-                         | viz_mode_def               {
-                                                          if (mdlpvp->vol->viz_mode != -1  &&  mdlpvp->vol->viz_mode != $1)
-                                                          {
-                                                            mdlerror_fmt(mdlpvp, "Only one visualization mode is allowed in a given MDL file");
-                                                            return 1;
-                                                          }
-                                                          mdlpvp->vol->viz_mode = $1;
-                                                      }
+viz_output_mode_cmd:
+                         | viz_mode_def               { CHECK(mdl_set_viz_mode(mdlpvp, mdlpvp->vol->viz_blocks, $1)); }
+;
+
+viz_output_maybe_mode_cmd: /* empty */                { CHECK(mdl_set_viz_mode(mdlpvp, mdlpvp->vol->viz_blocks, DREAMM_V3_MODE)); }
+                         | viz_mode_def               { CHECK(mdl_set_viz_mode(mdlpvp, mdlpvp->vol->viz_blocks, $1)); }
 ;
 
 viz_mode_def: MODE '=' NONE                           { $$ = NO_VIZ_MODE; }
             | MODE '=' DX                             { $$ = DX_MODE; }
             | MODE '=' DREAMM_V3                      { $$ = DREAMM_V3_MODE; }
             | MODE '=' DREAMM_V3_GROUPED              { $$ = DREAMM_V3_GROUPED_MODE; }
-            | MODE '=' CUSTOM_RK                      {
-                                                          /* If we already had a CUSTOM_RK block, we're going to overwrite the volp->rk_mode_var data... */
-                                                          if (mdlpvp->vol->viz_mode == RK_MODE)
-                                                          {
-                                                            mdlerror_fmt(mdlpvp, "Only one CUSTOM_RK visualization block is allowed in an MDL file");
-                                                            return 1;
-                                                          }
-                                                          mdlpvp->vol->rk_mode_var = NULL;
-                                                          $$ = RK_MODE;
-                                                      }
+            | MODE '=' CUSTOM_RK                      { $$ = ASCII_MODE; /* RK mode with no params is just ASCII mode. */ }
             | MODE '=' CUSTOM_RK array_value point    {
-                                                          /* If we already had a CUSTOM_RK block, we're going to overwrite the volp->rk_mode_var data... */
-                                                          if (mdlpvp->vol->viz_mode == RK_MODE)
-                                                          {
-                                                            mdlerror_fmt(mdlpvp, "Only one CUSTOM_RK visualization block is allowed in an MDL file");
-                                                            return 1;
-                                                          }
-
-                                                          CHECKN(mdlpvp->vol->rk_mode_var = mdl_new_rk_mode_var(mdlpvp, & $4, $5));
+                                                          CHECKN(mdlpvp->vol->viz_blocks->rk_mode_var = mdl_new_rk_mode_var(mdlpvp, & $4, $5));
                                                           $$ = RK_MODE;
                                                       }
             | MODE '=' ASCII                          { $$ = ASCII_MODE; }
 ;
 
 viz_mesh_format_maybe_cmd: /* empty */                {
-                                                          if (mdlpvp->vol->viz_mode == DREAMM_V3_MODE)
-                                                            mdlpvp->vol->viz_output_flag |= VIZ_MESH_FORMAT_BINARY;
+                                                        if (mdlpvp->vol->viz_blocks->viz_mode == DREAMM_V3_MODE)
+                                                          CHECK(mdl_set_viz_mesh_format(mdlpvp, mdlpvp->vol->viz_blocks, VIZ_MESH_FORMAT_BINARY));
                                                       }
-                         | viz_mesh_format_def        {
-                                                          if (mdlpvp->vol->viz_mode != DREAMM_V3_MODE)
-                                                          {
-                                                            mdlerror_fmt(mdlpvp, "VIZ_MESH_FORMAT command is allowed only in DREAMM_V3 mode.");
-                                                            return 1;
-                                                          }
-                                                          mdlpvp->vol->viz_output_flag |= $1;
-                                                          if ((mdlpvp->vol->viz_output_flag & VIZ_MESH_FORMAT_ASCII) &&
-                                                              (mdlpvp->vol->viz_output_flag & VIZ_MESH_FORMAT_BINARY))
-                                                          {
-                                                            mdlerror_fmt(mdlpvp, "BINARY and ASCII options for the VIZ_MESH_FORMAT command are mutually exclusive.");
-                                                            return 1;
-                                                          }
-                                                      }
+                         | viz_mesh_format_def        { CHECK(mdl_set_viz_mesh_format(mdlpvp, mdlpvp->vol->viz_blocks, $1)); }
 ;
 
 viz_mesh_format_def: VIZ_MESH_FORMAT '=' BINARY       { $$ = VIZ_MESH_FORMAT_BINARY; }
@@ -2450,23 +2404,10 @@ viz_mesh_format_def: VIZ_MESH_FORMAT '=' BINARY       { $$ = VIZ_MESH_FORMAT_BIN
 
 viz_molecule_format_maybe_cmd:
           /* empty */                                 {
-                                                          if (mdlpvp->vol->viz_mode == DREAMM_V3_MODE)
-                                                            mdlpvp->vol->viz_output_flag |= VIZ_MOLECULE_FORMAT_BINARY;
+                                                        if (mdlpvp->vol->viz_blocks->viz_mode == DREAMM_V3_MODE)
+                                                          CHECK(mdl_set_viz_molecule_format(mdlpvp, mdlpvp->vol->viz_blocks, VIZ_MOLECULE_FORMAT_BINARY));
                                                       }
-        | viz_molecule_format_def                     {
-                                                          if (mdlpvp->vol->viz_mode != DREAMM_V3_MODE)
-                                                          {
-                                                            mdlerror_fmt(mdlpvp, "VIZ_MOLECULE_FORMAT command is allowed only in DREAMM_V3 mode.");
-                                                            return 1;
-                                                          }
-                                                          mdlpvp->vol->viz_output_flag |= $1;
-                                                          if ((mdlpvp->vol->viz_output_flag & VIZ_MOLECULE_FORMAT_ASCII) &&
-                                                              (mdlpvp->vol->viz_output_flag & VIZ_MOLECULE_FORMAT_BINARY))
-                                                          {
-                                                            mdlerror_fmt(mdlpvp, "BINARY and ASCII options for the VIZ_MOLECULE_FORMAT command are mutually exclusive.");
-                                                            return 1;
-                                                          }
-                                                      }
+        | viz_molecule_format_def                     { CHECK(mdl_set_viz_molecule_format(mdlpvp, mdlpvp->vol->viz_blocks, $1)); }
 ;
 
 viz_molecule_format_def:
@@ -2479,8 +2420,8 @@ viz_output_cmd:
         | viz_frames_def                              {
                                                         if ($1.frame_head)
                                                         {
-                                                          $1.frame_tail->next = mdlpvp->vol->frame_data_head;
-                                                          mdlpvp->vol->frame_data_head = $1.frame_head;
+                                                          $1.frame_tail->next = mdlpvp->vol->viz_blocks->frame_data_head;
+                                                          mdlpvp->vol->viz_blocks->frame_data_head = $1.frame_head;
                                                         }
                                                       }
         | viz_molecule_prefix_def
@@ -2495,13 +2436,7 @@ viz_frames_def:
         | viz_iteration_frame_data_def
 ;
 
-viz_filename_prefix_def: FILENAME '=' str_expr        {
-                                                          mdlpvp->vol->file_prefix_name = $3;
-                                                          if (mdlpvp->vol->viz_mode == DX_MODE)
-                                                          {
-                                                            mdlpvp->vol->molecule_prefix_name = $3;
-                                                          }
-                                                      }
+viz_filename_prefix_def: FILENAME '=' str_expr        { CHECK(mdl_set_viz_filename_prefix(mdlpvp, mdlpvp->vol->viz_blocks, $3)); }
 ;
 
 viz_molecules_block_def:
@@ -2554,25 +2489,7 @@ existing_one_or_multiple_molecules:
         | STR_VALUE                                   { CHECKN($$ = mdl_existing_molecules_wildcard(mdlpvp, $1)); }
 ;
 
-mol_name_spec: existing_one_or_multiple_molecules     {
-                                                          if (mdlpvp->vol->viz_mode == DX_MODE)
-                                                          {
-                                                            mem_put_list(mdlpvp->sym_list_mem, $1);
-                                                            mdlerror(mdlpvp, "In DX MODE, the state value for the molecule must be specified.");
-                                                            return 1;
-                                                          }
-
-                                                          /* Mark all specified molecules */
-                                                          struct sym_table_list *stl;
-                                                          for (stl = $1; stl != NULL; stl = stl->next)
-                                                          {
-                                                            struct species *specp = (struct species *) stl->node->value;
-                                                            specp->viz_state = INCLUDE_OBJ;
-                                                          }
-
-                                                          /* free allocated memory  */
-                                                          mem_put_list(mdlpvp->sym_list_mem, $1);
-                                                      }
+mol_name_spec: existing_one_or_multiple_molecules     { CHECK(mdl_set_viz_include_molecules(mdlpvp, mdlpvp->vol->viz_blocks, $1)); }
 ;
 
 list_mol_name_specs_state_values:
@@ -2582,26 +2499,11 @@ list_mol_name_specs_state_values:
 ;
 
 mol_name_specs_state_value:
-          existing_molecule '=' num_expr              {
-                                                          struct species *specp = (struct species *) $1->value;
-
-                                                          /* set the 'viz_state' value */
-                                                          if ($1->sym_type == MOL)
-                                                              specp->viz_state = (int) $3;
-                                                          mdlpvp->vol->viz_output_flag |= VIZ_MOLECULES_STATES;
-                                                      }
+          existing_molecule '=' num_expr              { CHECK(mdl_set_viz_include_molecule_state(mdlpvp, mdlpvp->vol->viz_blocks, $1, (int) $3)); }
 ;
 
-list_all_mols_specs: ALL_MOLECULES                    {
-                                                          if (mdlpvp->vol->viz_mode == DX_MODE)
-                                                          {
-                                                            mdlerror(mdlpvp, "In DX MODE, the ALL_MOLECULES keyword cannot be used.");
-                                                            return 1;
-                                                          }
-                                                          mdlpvp->vol->viz_output_flag |= VIZ_ALL_MOLECULES;
-                                                      }
+list_all_mols_specs: ALL_MOLECULES                    { CHECK(mdl_set_viz_include_all_molecules(mdlpvp, mdlpvp->vol->viz_blocks)); }
 ;
-
 
 viz_time_spec:
           ALL_TIMES                                   { CHECK(mdl_new_viz_all_times(mdlpvp, & $$)); }
@@ -2633,7 +2535,7 @@ viz_molecules_time_points_cmds:
 
 viz_molecules_time_points_one_cmd:
           viz_molecules_one_item '@'
-          viz_time_spec                               { CHECK(mdl_new_viz_mol_frames(mdlpvp, & $$, OUTPUT_BY_TIME_LIST, $1, & $3)); }
+          viz_time_spec                               { CHECK(mdl_new_viz_mol_frames(mdlpvp, mdlpvp->vol->viz_blocks, & $$, OUTPUT_BY_TIME_LIST, $1, & $3)); }
 ;
 
 viz_iteration_spec:
@@ -2667,7 +2569,7 @@ viz_molecules_iteration_numbers_cmds:
 
 viz_molecules_iteration_numbers_one_cmd:
           viz_molecules_one_item '@'
-          viz_iteration_spec                          { CHECK(mdl_new_viz_mol_frames(mdlpvp, & $$, OUTPUT_BY_ITERATION_LIST, $1, & $3)); }
+          viz_iteration_spec                          { CHECK(mdl_new_viz_mol_frames(mdlpvp, mdlpvp->vol->viz_blocks, & $$, OUTPUT_BY_ITERATION_LIST, $1, & $3)); }
 ;
 
 viz_molecules_one_item: ALL_DATA                      { $$ = ALL_MOL_DATA; }
@@ -2722,24 +2624,7 @@ list_meshes_name_specs:
 ;
 
 mesh_one_name_spec:
-          mesh_object_or_wildcard                     {
-                                                          struct sym_table_list *stl;
-                                                          if (mdlpvp->vol->viz_mode == DX_MODE)
-                                                          {
-                                                            mdlerror(mdlpvp, "In DX MODE, the state value for the object should be specified.");
-                                                            return 1;
-                                                          }
-
-                                                          for (stl = $1; stl != NULL; stl = stl->next)
-                                                          {
-                                                            /* create viz_obj object */
-                                                            struct object *objp = (struct object *) stl->node->value;
-                                                            if((objp->object_type == REL_SITE_OBJ))
-                                                              continue;
-                                                            CHECK(mdl_add_viz_object(mdlpvp, stl->node, INCLUDE_OBJ));
-                                                          }
-                                                          mem_put_list(mdlpvp->sym_list_mem, $1);
-                                                      }
+          mesh_object_or_wildcard                     { CHECK(mdl_set_viz_include_meshes(mdlpvp, mdlpvp->vol->viz_blocks, $1)); }
 ;
 
 list_meshes_name_specs_state_values:
@@ -2749,23 +2634,10 @@ list_meshes_name_specs_state_values:
 ;
 
 mesh_one_name_spec_state_value:
-          existing_object '=' num_expr                {
-                                                          mdlpvp->vol->viz_output_flag |= VIZ_SURFACE_STATES;
-                                                          CHECK(mdl_add_viz_object(mdlpvp, $1, (int) $3));
-                                                      }
+          existing_object '=' num_expr                { CHECK(mdl_set_viz_include_mesh_state(mdlpvp, mdlpvp->vol->viz_blocks, $1, (int) $3)); }
 ;
 
-list_all_meshes_specs: ALL_MESHES                     {
-                                                          struct object *o;
-                                                          if (mdlpvp->vol->viz_mode == DX_MODE)
-                                                          {
-                                                            mdlerror(mdlpvp, "In DX mode, the keyword ALL_MESHES cannot be used.");
-                                                            return 1;
-                                                          }
-
-                                                          for (o = mdlpvp->vol->root_instance->first_child; o != NULL; o = o->next)
-                                                            CHECK(mdl_add_viz_object(mdlpvp, o->sym, INCLUDE_OBJ));
-                                                      }
+list_all_meshes_specs: ALL_MESHES                     { CHECK(mdl_set_viz_include_all_meshes(mdlpvp, mdlpvp->vol->viz_blocks)); }
 ;
 
 viz_meshes_time_points_def:
@@ -2794,7 +2666,7 @@ viz_meshes_time_points_cmds:
 
 viz_meshes_time_points_one_cmd:
           viz_meshes_one_item '@'
-          viz_time_spec                               { CHECK(mdl_new_viz_mesh_frames(mdlpvp, & $$, OUTPUT_BY_TIME_LIST, $1, & $3)); }
+          viz_time_spec                               { CHECK(mdl_new_viz_mesh_frames(mdlpvp, mdlpvp->vol->viz_blocks, & $$, OUTPUT_BY_TIME_LIST, $1, & $3)); }
 ;
 
 viz_meshes_iteration_numbers_def:
@@ -2823,7 +2695,7 @@ viz_meshes_iteration_numbers_cmds:
 
 viz_meshes_iteration_numbers_one_cmd:
           viz_meshes_one_item '@'
-          viz_iteration_spec                          { CHECK(mdl_new_viz_mesh_frames(mdlpvp, & $$, OUTPUT_BY_ITERATION_LIST, $1, & $3)); }
+          viz_iteration_spec                          { CHECK(mdl_new_viz_mesh_frames(mdlpvp, mdlpvp->vol->viz_blocks, & $$, OUTPUT_BY_ITERATION_LIST, $1, & $3)); }
 ;
 
 viz_meshes_one_item: ALL_DATA                         { $$ = ALL_MESH_DATA; }
@@ -2835,10 +2707,10 @@ viz_meshes_one_item: ALL_DATA                         { $$ = ALL_MESH_DATA; }
 /* Old-style viz output definitions */
 
 viz_data_output_def:
-          VIZ_DATA_OUTPUT '{'
-            viz_output_maybe_mode_cmd
+          VIZ_DATA_OUTPUT '{'                         { CHECK(mdl_new_viz_output_block(mdlpvp)); }
+            viz_output_mode_cmd                       { CHECK(mdl_require_old_style_viz(mdlpvp, mdlpvp->vol->viz_blocks->viz_mode)); }
             list_viz_data_output_cmds
-          '}'
+          '}'                                         { CHECK(mdl_finish_viz_output_block(mdlpvp, mdlpvp->vol->viz_blocks)); }
 ;
 
 
@@ -2853,8 +2725,8 @@ viz_data_output_cmd:
           viz_frames_def_old                          {
                                                         if ($1.frame_head)
                                                         {
-                                                          $1.frame_tail->next = mdlpvp->vol->frame_data_head;
-                                                          mdlpvp->vol->frame_data_head = $1.frame_head;
+                                                          $1.frame_tail->next = mdlpvp->vol->viz_blocks->frame_data_head;
+                                                          mdlpvp->vol->viz_blocks->frame_data_head = $1.frame_head;
                                                         }
                                                       }
         | viz_molecule_prefix_def
@@ -2873,11 +2745,11 @@ viz_output_block_def:
 ;
 
 viz_iteration_def:
-          ITERATION_LIST '=' array_value              { CHECK(mdl_new_viz_frames(mdlpvp, & $$, OUTPUT_BY_ITERATION_LIST, ALL_FRAME_DATA, & $3)); }
+          ITERATION_LIST '=' array_value              { CHECK(mdl_new_viz_frames(mdlpvp, mdlpvp->vol->viz_blocks, & $$, OUTPUT_BY_ITERATION_LIST, ALL_FRAME_DATA, & $3)); }
 ;
 
 viz_time_def:
-          TIME_LIST '=' array_value                   { CHECK(mdl_new_viz_frames(mdlpvp, & $$, OUTPUT_BY_TIME_LIST, ALL_FRAME_DATA, & $3)); }
+          TIME_LIST '=' array_value                   { CHECK(mdl_new_viz_frames(mdlpvp, mdlpvp->vol->viz_blocks, & $$, OUTPUT_BY_TIME_LIST, ALL_FRAME_DATA, & $3)); }
 ;
 
 viz_iteration_frame_data_def:
@@ -2905,7 +2777,7 @@ list_iteration_frame_data_specs:
 ;
 
 iteration_frame_data_spec:
-          iteration_frame_data_item '=' array_value   { CHECK(mdl_new_viz_frames(mdlpvp, & $$, OUTPUT_BY_ITERATION_LIST, $1, & $3)); }
+          iteration_frame_data_item '=' array_value   { CHECK(mdl_new_viz_frames(mdlpvp, mdlpvp->vol->viz_blocks, & $$, OUTPUT_BY_ITERATION_LIST, $1, & $3)); }
 ;
 
 iteration_frame_data_item:
@@ -2919,28 +2791,13 @@ iteration_frame_data_item:
 ;
 
 viz_molecule_prefix_def:
-          MOLECULE_FILE_PREFIX '=' str_expr           {
-                                                          if (mdlpvp->vol->viz_mode == DREAMM_V3_MODE  ||
-                                                              mdlpvp->vol->viz_mode == DREAMM_V3_GROUPED_MODE)
-                                                          {
-                                                            mdlerror(mdlpvp, "MOLECULE_FILE_PREFIX canot be used with the DREAMM viz output modes");
-                                                            return 1;
-                                                          }
-                                                          mdlpvp->vol->molecule_prefix_name = $3;
-                                                      }
+          MOLECULE_FILE_PREFIX '=' str_expr           { CHECK(mdl_set_viz_molecule_filename_prefix(mdlpvp, mdlpvp->vol->viz_blocks, $3)); }
 ;
 
 viz_object_prefixes_def:
           OBJECT_FILE_PREFIXES '{'
             list_viz_object_prefixes
-          '}'                                         {
-                                                          if (mdlpvp->vol->viz_mode == DREAMM_V3_MODE  ||
-                                                              mdlpvp->vol->viz_mode == DREAMM_V3_GROUPED_MODE)
-                                                          {
-                                                            mdlerror(mdlpvp, "OBJECT_FILE_PREFIXES canot be used with the DREAMM viz output modes");
-                                                            return 1;
-                                                          }
-                                                      }
+          '}'
 ;
 
 list_viz_object_prefixes:
@@ -2949,22 +2806,7 @@ list_viz_object_prefixes:
           viz_object_prefix
 ;
 
-viz_object_prefix: existing_object '=' str_expr       {
-                                                          struct object *objp;
-                                                          struct viz_obj *vizp;
-                                                          objp = (struct object *) $1->value;
-                                                          if ((vizp = CHECKED_MALLOC_STRUCT(struct viz_obj, "visualization object")) == NULL)
-                                                            return 1;
-                                                          objp->viz_obj = vizp;
-                                                          vizp->name = $3;
-                                                          vizp->full_name = mdl_strdup(mdlpvp, $1->name);
-                                                          if (vizp->full_name == NULL)
-                                                            return 1;
-                                                          vizp->obj = objp;
-                                                          vizp->viz_child_head = NULL;
-                                                          vizp->next = mdlpvp->vol->viz_obj_head;
-                                                          mdlpvp->vol->viz_obj_head = vizp;
-                                                      }
+viz_object_prefix: existing_object '=' str_expr       { CHECK(mdl_set_viz_object_filename_prefix(mdlpvp, mdlpvp->vol->viz_blocks, $1, $3)); }
 ;
 
 viz_state_values_def:
@@ -2984,21 +2826,21 @@ existing_logicalOrPhysical: VAR                       { CHECKN($$ = mdl_existing
 
 viz_state_value:
           existing_logicalOrPhysical '=' num_expr     {
-                                                          struct species *specp;
                                                           int viz_state = (int) $3;
                                                           switch ($1->sym_type)
                                                           {
                                                             case OBJ:
-                                                              CHECK(mdl_set_object_viz_state(mdlpvp, $1, viz_state));
+                                                              CHECK(mdl_set_object_viz_state_by_name(mdlpvp, mdlpvp->vol->viz_blocks, $1, viz_state));
                                                               break;
 
                                                             case MOL:
-                                                              specp = (struct species *) $1->value;
-                                                              specp->viz_state = viz_state;
+                                                              CHECK(mdl_set_molecule_viz_state(mdlpvp, mdlpvp->vol->viz_blocks, (struct species *) $1->value, viz_state));
                                                               break;
+
+                                                            default: UNHANDLED_CASE($1->sym_type);
                                                           }
                                                       }
-        | existing_region '=' num_expr                { CHECK(mdl_set_region_viz_state(mdlpvp, (struct region *) $1->value, (int) $3)); }
+        | existing_region '=' num_expr                { CHECK(mdl_set_region_viz_state(mdlpvp, mdlpvp->vol->viz_blocks, (struct region *) $1->value, (int) $3)); }
 ;
 
 /* =================================================================== */
