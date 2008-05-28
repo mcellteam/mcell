@@ -335,7 +335,6 @@ enum notify_level_t
   NOTIFY_NONE,        /* no output */
   NOTIFY_BRIEF,       /* give a brief description (only used for a few types) */
   NOTIFY_FULL,        /* give a (possibly verbose) description */
-  NOTIFY_CUSTOM       /* flag signifying that the "logfreq" command line arg was given */
 };
 
 /* Constants for warning levels */
@@ -761,7 +760,7 @@ struct grid_molecule
   double birthday;
   struct grid_molecule **cmplx; /* Other molecules forming this complex, if we're part of a complex (0: master, 1...n subunits) */
   
-  int grid_index;              /* Which gridpoint do we occupy? */
+  unsigned int grid_index;     /* Which gridpoint do we occupy? */
   short orient;                /* Which way do we point? */
   struct surface_grid *grid;   /* Our grid (which tells us our surface) */
   struct vector2 s_pos;        /* Where are we in surface coordinates? */
@@ -1180,7 +1179,7 @@ struct volume
   /* MCell startup command line arguments */
   u_int seed_seq;            /* Seed for random number generator */
   long long iterations;      /* How many iterations to run */
-  u_int log_freq;            /* Interval between simulation progress reports, default scales as sqrt(iterations) */
+  unsigned long log_freq;    /* Interval between simulation progress reports, default scales as sqrt(iterations) */
   char *mdl_infile_name;     /* Name of MDL file specified on command line */
   char const *curr_file;     /* Name of MDL file currently being parsed */
   
@@ -1371,14 +1370,14 @@ struct notifications
   /* Informational stuff, most possible values NOTIFY_FULL or NOTIFY_NONE */
   /* see corresponding keywords */
   enum notify_level_t progress_report;              /* PROGRESS_REPORT */
-  enum notify_level_t diffusion_constants;          /* DIFFUSION_CONSTANT_REPORT */    
+  enum notify_level_t diffusion_constants;          /* DIFFUSION_CONSTANT_REPORT */
   enum notify_level_t reaction_probabilities;       /* PROBABILITY_REPORT */
   enum notify_level_t time_varying_reactions;       /* VARYING_PROBABILITY_REPORT */
-  double reaction_prob_notify;       /* PROBABILITY_REPORT_THRESHOLD */
+  double reaction_prob_notify;                      /* PROBABILITY_REPORT_THRESHOLD */
   enum notify_level_t partition_location;           /* PARTITION_LOCATION_REPORT */
   enum notify_level_t box_triangulation;            /* BOX_TRIANGULATION_REPORT */
-  enum notify_level_t custom_iterations;            /* ITERATION_REPORT */
-  long long custom_iteration_value;  /* ITERATION_REPORT */
+  enum notify_level_t iteration_report;             /* ITERATION_REPORT */
+  long long custom_iteration_value;                 /* ITERATION_REPORT */
   enum notify_level_t throughput_report;            /* THROUGHPUT_REPORT */
   enum notify_level_t checkpoint_report;            /* CHECKPOINT_REPORT */
   enum notify_level_t release_events;               /* RELEASE_EVENT_REPORT */
@@ -1393,18 +1392,18 @@ struct notifications
   enum warn_level_t neg_diffusion;                  /* NEGATIVE_DIFFUSION_CONSTANT */
   enum warn_level_t neg_reaction;                   /* NEGATIVE_REACTION_RATE */
   enum warn_level_t high_reaction_prob;             /* HIGH_REACTION_PROBABILITY */
-  double reaction_prob_warn;              /* HIGH_PROBABILITY_THRESHOLD */
+  double reaction_prob_warn;                        /* HIGH_PROBABILITY_THRESHOLD */
   enum warn_level_t close_partitions;               /* CLOSE_PARTITION_SPACING */
   enum warn_level_t degenerate_polys;               /* DEGENERATE_POLYGONS */
   enum warn_level_t overwritten_file;               /* OVERWRITTEN_OUTPUT_FILE */
   enum warn_level_t short_lifetime;                 /* LIFETIME_TOO_SHORT */
-  long long short_lifetime_value;         /* LIFETIME_THRESHOLD */
+  long long short_lifetime_value;                   /* LIFETIME_THRESHOLD */
   enum warn_level_t missed_reactions;               /* MISSED_REACTIONS */
-  double missed_reaction_value;           /* MISSED_REACTION_THRESHOLD */
+  double missed_reaction_value;                     /* MISSED_REACTION_THRESHOLD */
   enum warn_level_t missed_surf_orient;             /* MISSING_SURFACE_ORIENTATION */
   enum warn_level_t useless_vol_orient;             /* USELESS_VOLUME_ORIENTATION */
   enum warn_level_t complex_placement_failure;      /* COMPLEX_PLACEMENT_FAILURE */
-  long long complex_placement_failure_threshold; /* COMPLEX_PLACEMENT_FAILURE_THRESHOLD */
+  long long complex_placement_failure_threshold;    /* COMPLEX_PLACEMENT_FAILURE_THRESHOLD */
   enum warn_level_t mol_placement_failure;          /* MOLECULE_PLACEMENT_FAILURE */
   enum warn_level_t invalid_output_step_time;       /* INVALID_OUTPUT_STEP_TIME */
 };

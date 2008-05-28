@@ -102,7 +102,7 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
   FILE *fhandle = NULL;
 
   /* Set up default values */
-  vol->log_freq = UINT_MAX;
+  vol->log_freq = ULONG_MAX;
   vol->seed_seq = 1;
   vol->mdl_infile_name = NULL;
 
@@ -201,22 +201,26 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
         break;
 
       case 'f':  /* -logfreq */
-        if (vol->log_freq != UINT_MAX)
+        if (vol->log_freq != ULONG_MAX)
         {
           argerror(vol, "-f or --logfreq specified more than once: %s", optarg);
           return 1;
         }
 
-        vol->log_freq = (int) strtoul(optarg, &endptr, 0);
+        vol->log_freq = strtoul(optarg, &endptr, 0);
         if (endptr == optarg || *endptr != '\0')
         {
-          argerror(vol, "Logging frequency must be an integer: %s", optarg);
+          argerror(vol, "Iteration report interval must be an integer: %s", optarg);
           return 1;
         }
-
+        if (vol->log_freq == ULONG_MAX)
+        {
+          argerror(vol, "Iteration report interval must be an integer n such that 1 <= n < %lu: %s", ULONG_MAX, optarg);
+          return 1;
+        }
         if (vol->log_freq < 1)
         {
-          argerror(vol, "Iteration report update interval must be at least 1 iteration");
+          argerror(vol, "Iteration report interval must be at least 1 iteration: %s", optarg);
           return 1;
         }
         break;

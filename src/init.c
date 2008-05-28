@@ -67,8 +67,8 @@ int init_notifications(void)
     world->notify->reaction_prob_notify = 0.0;
     world->notify->partition_location = NOTIFY_NONE;
     world->notify->box_triangulation = NOTIFY_NONE;
-    world->notify->custom_iterations = NOTIFY_NONE;
-    world->notify->custom_iteration_value = 0;  /* Ignored unless NOTIFY_CUSTOM set */
+    world->notify->iteration_report = NOTIFY_NONE;
+    world->notify->custom_iteration_value = 0;
     world->notify->release_events = NOTIFY_NONE;
     world->notify->file_writes = NOTIFY_NONE;
     world->notify->final_summary = NOTIFY_NONE;
@@ -87,8 +87,8 @@ int init_notifications(void)
     world->notify->reaction_prob_notify = 0.0;
     world->notify->partition_location = NOTIFY_NONE;
     world->notify->box_triangulation = NOTIFY_NONE;
-    world->notify->custom_iterations = NOTIFY_FULL;
-    world->notify->custom_iteration_value = 0;  /* Ignored unless NOTIFY_CUSTOM set */
+    world->notify->iteration_report = NOTIFY_FULL;
+    world->notify->custom_iteration_value = 0;
     world->notify->release_events = NOTIFY_FULL;
     world->notify->file_writes = NOTIFY_NONE;
     world->notify->final_summary = NOTIFY_FULL;
@@ -117,9 +117,8 @@ int init_notifications(void)
   world->notify->mol_placement_failure = WARN_WARN;
   world->notify->invalid_output_step_time = WARN_WARN;
   
-  if (world->log_freq != -1) /* User set this */
+  if (world->log_freq != 0  &&  world->log_freq != ULONG_MAX) /* User set this */
   {
-    world->notify->custom_iterations = NOTIFY_CUSTOM;
     world->notify->custom_iteration_value = world->log_freq;
   }
 

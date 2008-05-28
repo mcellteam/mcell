@@ -1011,8 +1011,8 @@ notification_item_def:
       | VIZ_OUTPUT_REPORT '=' notify_level            { mdlpvp->vol->notify->viz_output_report      = $3; }
       | CHECKPOINT_REPORT '=' notify_bilevel          { mdlpvp->vol->notify->checkpoint_report      = $3; }
       | ITERATION_REPORT '=' notify_bilevel           {
-                                                          if (mdlpvp->vol->log_freq == -1)
-                                                            mdlpvp->vol->notify->custom_iterations = $3;
+                                                          if (mdlpvp->vol->log_freq == ULONG_MAX)
+                                                            mdlpvp->vol->notify->iteration_report = $3;
                                                       }
       | ITERATION_REPORT '=' num_expr                 { CHECK(mdl_set_iteration_report_freq(mdlpvp, (long long) $3)); }
 ;

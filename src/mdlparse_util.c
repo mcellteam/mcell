@@ -2212,7 +2212,7 @@ void mdl_set_all_notifications(struct volume *vol,
   vol->notify->time_varying_reactions = notify_value;
   vol->notify->partition_location = notify_value;
   vol->notify->box_triangulation = notify_value;
-  vol->notify->custom_iterations = notify_value;
+  vol->notify->iteration_report = notify_value;
   vol->notify->throughput_report = notify_value;
   vol->notify->checkpoint_report = notify_value;
   vol->notify->release_events = notify_value;
@@ -2232,15 +2232,18 @@ int mdl_set_iteration_report_freq(struct mdlparse_vars *mpvp,
                                   long long interval)
 {
   /* Only if not set on command line */
-  if (mpvp->vol->log_freq == UINT_MAX)
+  if (mpvp->vol->log_freq == ULONG_MAX)
   {
-    mpvp->vol->notify->custom_iterations = NOTIFY_CUSTOM;
     if (interval < 1)
     {
       mdlerror(mpvp, "Invalid iteration number reporting interval: use value >= 1");
       return 1;
     }
-    else mpvp->vol->notify->custom_iteration_value = interval;
+    else
+    {
+      mpvp->vol->notify->custom_iteration_value = interval;
+      mpvp->vol->notify->iteration_report = NOTIFY_FULL;
+    }
   }
   return 0;
 }

@@ -4748,7 +4748,8 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
   double f;
   double steps,t_steps;
   double space_factor;
-  int find_new_position,new_idx;
+  int find_new_position;
+  unsigned int new_idx;
   sg = g->properties;
   
   if (sg == NULL)
@@ -4862,7 +4863,6 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
   }
   
   g->t += t_steps;
-                          /*       printf("Leaving\n");   */
   return g;
 }
     

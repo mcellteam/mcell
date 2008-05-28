@@ -187,7 +187,7 @@ static void run_sim(void)
 
   t_initial = time(NULL);
   
-  if (world->notify->custom_iterations==NOTIFY_CUSTOM)
+  if (world->notify->custom_iteration_value != 0)
   {
     frequency = world->notify->custom_iteration_value;
   }
@@ -198,7 +198,7 @@ static void run_sim(void)
     else if (world->iterations < 100000)     frequency = 100;
     else if (world->iterations < 10000000)   frequency = 1000;
     else if (world->iterations < 1000000000) frequency = 10000;
-    else                                       frequency = 100000;
+    else                                     frequency = 100000;
   }
   
   world->diffusion_number = 0;
@@ -248,7 +248,7 @@ static void run_sim(void)
     }
 
     /* Produce iteration report */
-    if ( iter_report_phase == 0 && world->notify->custom_iterations!=NOTIFY_NONE)
+    if ( iter_report_phase == 0 && world->notify->iteration_report != NOTIFY_NONE)
     {
       mcell_log_raw("Iterations: %lld of %lld ", world->it_time,world->iterations);
 
@@ -511,7 +511,7 @@ int main(int argc, char **argv)
   world->iterations=INT_MIN; /* indicates iterations not set */
   world->chkpt_infile = NULL;
   world->chkpt_init = 1;
-  world->log_freq = UINT_MAX; /* Indicates that this value has not been set by user */
+  world->log_freq = ULONG_MAX; /* Indicates that this value has not been set by user */
   world->begin_timestamp = begin_time_of_day;
   world->initialization_state = "initializing";
 
