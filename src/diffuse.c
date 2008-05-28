@@ -4044,8 +4044,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
              shead = NULL;
         }
         calculate_displacement = 0;
-               
-               
+
         if (m->properties == NULL)
           mcell_internal_error("A defunct molecule is diffusing.");
         goto pretend_to_call_diffuse_3D;  /* Jump to beginning of function */        

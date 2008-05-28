@@ -6642,7 +6642,6 @@ In: vizblk: VIZ_OUTPUT block for this frame list
 Out: 0 on success, 1 on failure.  The positions of molecules are output
      in exponential floating point notation (with 8 decimal places)
 *************************************************************************/
-
 static int output_ascii_molecules(struct viz_output_block *vizblk,
                                   struct frame_data_list *fdlp)
 {

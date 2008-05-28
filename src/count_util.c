@@ -546,7 +546,7 @@ count_moved_grid_mol:
    Note: This routine is not super-fast for enclosed counts for
          surface molecules since it raytraces without using waypoints.
 *************************************************************************/
-int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,struct vector2 *loc)
+int count_moved_grid_mol(struct grid_molecule *g, struct surface_grid *sg, struct vector2 *loc)
 {
   struct region_list *rl,*prl,*nrl,*pos_regs,*neg_regs;
   struct storage *stor;
@@ -1153,14 +1153,14 @@ int place_waypoints(void)
 	  if (world->waypoints[h-1].regions != NULL)
 	  {
             wp->regions = dup_region_list(world->waypoints[h-1].regions,sv->local_storage->regl);
-	    if (wp->regions == NULL) return 1;
+            if (wp->regions == NULL) return 1;
 	  }
 	  else wp->regions = NULL;
 	  
 	  if (world->waypoints[h-1].antiregions != NULL)
 	  {
             wp->antiregions = dup_region_list(world->waypoints[h-1].antiregions,sv->local_storage->regl);
-	    if (wp->antiregions == NULL) return 1;
+            if (wp->antiregions == NULL) return 1;
 	  }
 	  else wp->antiregions = NULL;
           

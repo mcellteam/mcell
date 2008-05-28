@@ -798,8 +798,7 @@ static int init_viz_species_states(struct viz_output_block *vizblk)
 
 static int init_viz_output(void)
 {
-  struct viz_output_block *vizblk;
-  for (vizblk = world->viz_blocks;
+  for (struct viz_output_block *vizblk = world->viz_blocks;
        vizblk != NULL;
        vizblk = vizblk->next)
   {
@@ -816,6 +815,7 @@ static int init_viz_output(void)
     /* Copy viz children to the appropriate array. */
     expand_viz_children(vizblk);
 
+    /* Initialize each data frame in this block. */
     if (init_frame_data_list(vizblk))
     {
       mcell_internal_error("Unknown error while initializing VIZ output.");
