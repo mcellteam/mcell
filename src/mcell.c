@@ -182,6 +182,7 @@ static void run_sim(void)
   long long not_yet;
   long long frequency;
   
+  emergency_output_hook_enabled = 1;
   if (world->notify->progress_report!=NOTIFY_NONE)
     mcell_log("Running simulation.");
 

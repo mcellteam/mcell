@@ -845,6 +845,10 @@ static int read_an_rng_state(FILE *fs,
   READFIELD(rngtype);
   DATACHECK(rngtype == RNG_ISAAC,
             "Invalid RNG type stored in checkpoint file (in this version of MCell, only Bob Jenkins' \"small PRNG\" is supported).");
+  READFIELD(rng->a);
+  READFIELD(rng->b);
+  READFIELD(rng->c);
+  READFIELD(rng->d);
 
 #else
   static const char RNG_ISAAC  = 'I';
@@ -1020,17 +1024,17 @@ static unsigned long long count_items_in_scheduler()
 {
   unsigned long long total_items = 0;
 
-  struct storage_list *slp = NULL;
-  for (slp = world->storage_head; slp != NULL; slp = slp->next)
+  for (struct storage_list *slp = world->storage_head;
+       slp != NULL;
+       slp = slp->next)
   {
-    struct schedule_helper *shp = NULL;
-    for(shp = slp->store->timer; shp != NULL; shp = shp->next_scale)
+    for (struct schedule_helper *shp = slp->store->timer;
+         shp != NULL;
+         shp = shp->next_scale)
     {
-      int i;
-      for (i = -1; i < shp->buf_len; i++)
+      for (int i = -1; i < shp->buf_len; i++)
       {
-        struct abstract_element *aep = NULL;
-        for (aep = (i<0) ? shp->current : shp->circ_buf_head[i];
+        for (struct abstract_element *aep = (i<0) ? shp->current : shp->circ_buf_head[i];
              aep != NULL;
              aep = aep->next)
         {
@@ -1068,17 +1072,17 @@ static int write_mol_scheduler_state_real(FILE *fs, struct pointer_hash *complex
 
   /* Iterate over all molecules in the scheduler to produce checkpoint */
   unsigned int next_complex=1;
-  struct storage_list *slp = NULL;
-  for (slp = world->storage_head; slp != NULL; slp = slp->next)
+  for (struct storage_list *slp = world->storage_head;
+       slp != NULL;
+       slp = slp->next)
   {
-    struct schedule_helper *shp = NULL;
-    for(shp = slp->store->timer; shp != NULL; shp = shp->next_scale)
+    for (struct schedule_helper *shp = slp->store->timer;
+         shp != NULL;
+         shp = shp->next_scale)
     {
-      int i;
-      for (i = -1; i < shp->buf_len; i++)
+      for (int i = -1; i < shp->buf_len; i++)
       {
-        struct abstract_element *aep = NULL;
-        for (aep = (i<0) ? shp->current : shp->circ_buf_head[i];
+        for (struct abstract_element *aep = (i<0) ? shp->current : shp->circ_buf_head[i];
              aep != NULL;
              aep = aep->next)
         {
@@ -1263,12 +1267,11 @@ static int read_mol_scheduler_state_real(FILE *fs,
 
     /* Find this species by its external species id */
     struct species *properties = NULL;
-    int j;
-    for (j = 0; j < world->n_species; j++)
+    for (int species_idx = 0; species_idx < world->n_species; species_idx++)
     {
-      if (world->species_list[j]->chkpt_species_id == external_species_id)
+      if (world->species_list[species_idx]->chkpt_species_id == external_species_id)
       {
-        properties = world->species_list[j];
+        properties = world->species_list[species_idx];
         break;
       }
     }

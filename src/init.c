@@ -376,6 +376,7 @@ int init_sim(void)
   }
   no_printf("Done parsing MDL file: %s\n",world->mdl_infile_name);
   install_emergency_output_hooks();
+  emergency_output_hook_enabled = 0;
 
   if (world->iterations == INT_MIN)
     mcell_error("Total number of iterations is not specified either through the ITERATIONS keyword or through the command line option '-iterations'.");

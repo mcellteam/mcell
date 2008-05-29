@@ -2708,7 +2708,7 @@ int mdl_set_partition(struct mdlparse_vars *mpvp,
                       int dim,
                       struct num_expr_list_head *head)
 {
-  unsigned int i;
+  unsigned int num_values = 0;
   double *dblp;
   struct num_expr_list *nel;
 
@@ -2718,12 +2718,11 @@ int mdl_set_partition(struct mdlparse_vars *mpvp,
     return 1;
 
   /* Copy partitions in sorted order to the array */
-  i=1;
-  dblp[0] = -GIGANTIC;
+  dblp[num_values ++] = -GIGANTIC;
   for (nel = head->value_head; nel != NULL; nel = nel->next)
-    dblp[i++] = nel->value * mpvp->vol->r_length_unit;
-  dblp[i++] =  GIGANTIC;
-  qsort(dblp, i, sizeof(double), & double_cmp);
+    dblp[num_values ++] = nel->value * mpvp->vol->r_length_unit;
+  dblp[num_values ++] =  GIGANTIC;
+  qsort(dblp, num_values, sizeof(double), & double_cmp);
 
   /* Copy the partitions into the model */
   switch (dim)
@@ -2731,21 +2730,21 @@ int mdl_set_partition(struct mdlparse_vars *mpvp,
     case X_PARTS:
       if (mpvp->vol->x_partitions != NULL)
         free(mpvp->vol->x_partitions);
-      mpvp->vol->nx_parts = head->value_count;
+      mpvp->vol->nx_parts = num_values;
       mpvp->vol->x_partitions = dblp;
       break;
 
     case Y_PARTS:
       if (mpvp->vol->y_partitions != NULL)
         free(mpvp->vol->y_partitions);
-      mpvp->vol->ny_parts = head->value_count;
+      mpvp->vol->ny_parts = num_values;
       mpvp->vol->y_partitions = dblp;
       break;
 
     case Z_PARTS:
       if (mpvp->vol->z_partitions != NULL)
         free(mpvp->vol->z_partitions);
-      mpvp->vol->nz_parts = head->value_count;
+      mpvp->vol->nz_parts = num_values;
       mpvp->vol->z_partitions = dblp;
       break;
 
