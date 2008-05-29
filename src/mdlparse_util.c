@@ -2699,19 +2699,19 @@ int mdl_set_partition(struct mdlparse_vars *mpvp,
     case X_PARTS:
       if (mpvp->vol->x_partitions != NULL)
         free(mpvp->vol->x_partitions);
-      mpvp->vol->nx_parts = nparts;
+      mpvp->vol->nx_parts = nparts + 2;
       mpvp->vol->x_partitions = dblp;
       break;
     case Y_PARTS:
       if (mpvp->vol->y_partitions != NULL)
         free(mpvp->vol->y_partitions);
-      mpvp->vol->ny_parts = nparts;
+      mpvp->vol->ny_parts = nparts + 2;
       mpvp->vol->y_partitions = dblp;
       break;
     case Z_PARTS:
       if (mpvp->vol->z_partitions != NULL)
         free(mpvp->vol->z_partitions);
-      mpvp->vol->nz_parts = nparts;
+      mpvp->vol->nz_parts = nparts + 2;
       mpvp->vol->z_partitions = dblp;
       break;
   }
