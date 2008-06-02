@@ -483,8 +483,26 @@ struct sym_table *store_sym(char const *sym,
   return sp;
 }
 
+/**
+ * init_symtab:
+ *      Create a new symbol table.
+ *
+ *      In:  size: initial number of entries in the table
+ *      Out: symbol table
+ */
 struct sym_table_head *init_symtab(int size)
 {
+  /* Round up to a power of two */
+  size |= (size >> 1);
+  size |= (size >> 2);
+  size |= (size >> 4);
+  size |= (size >> 8);
+  size |= (size >> 16);
+  ++ size;
+  if (size > (1 << 28))
+    size = (1 << 28);
+
+  /* Allocate the table and zero-initialize it. */
   struct sym_table_head *symtab_head; 
   symtab_head = CHECKED_MALLOC_STRUCT(struct sym_table_head, "symbol table");
   symtab_head->entries = CHECKED_MALLOC_ARRAY(struct sym_table *, size, "symbol table");
@@ -494,6 +512,13 @@ struct sym_table_head *init_symtab(int size)
   return symtab_head;
 }
 
+/**
+ * destroy_symtab:
+ *      Destroy and deallocate a symbol table.
+ *
+ *      In:  tab: table to destroy
+ *      Out: table is deallocated
+ */
 void destroy_symtab(struct sym_table_head *tab)
 {
   for (int i=0; i<tab->n_bins; ++i)

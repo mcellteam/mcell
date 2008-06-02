@@ -12,7 +12,7 @@ AC_PROG_YACC
 AC_PROG_CC
 AC_PROG_CC_C99
 if test "$GCC" == "yes"; then
-  CFLAGS_WARN="-Wall"
+  CFLAGS_WARN="-Wall -Wextra -Wshadow -Wno-unused-parameter"
 else
   CFLAGS_WARN=""
 fi

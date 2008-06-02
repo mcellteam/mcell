@@ -16,7 +16,7 @@ const char mcell_version[] = MCELL_VERSION;
  */
 void print_credits(FILE *f)
 {
-  char *institute[2];
+  char const *institute[2];
 
   srand(time(NULL) / 2);
   if (rand() & 1)

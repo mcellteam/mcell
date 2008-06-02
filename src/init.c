@@ -553,6 +553,14 @@ int init_sim(void)
   return 0;
 }
 
+/*************************************************************************
+ Mark an object and all of its children for inclusion in a particular viz
+ output block.
+
+ In: vizblk: the viz output block in which to include the object
+     objp: the object to include
+ Out: No return value.  vizblk is updated.
+*************************************************************************/
 static void set_viz_state_include(struct viz_output_block *vizblk,
                                   struct object *objp)
 {
@@ -602,11 +610,23 @@ static void set_viz_state_include(struct viz_output_block *vizblk,
   }
 }
 
+/*************************************************************************
+ Mark all mesh objects for inclusion in the specified viz output block.
+
+ In: vizblk: the viz output block in which to include the object
+ Out: No return value.  vizblk is updated.
+*************************************************************************/
 static void set_viz_all_meshes(struct viz_output_block *vizblk)
 {
   set_viz_state_include(vizblk, world->root_instance);
 }
 
+/*************************************************************************
+ Mark all molecule objects for inclusion in the specified viz output block.
+
+ In: vizblk: the viz output block in which to include the object
+ Out: No return value.  vizblk is updated.
+*************************************************************************/
 static void set_viz_all_molecules(struct viz_output_block *vizblk)
 {
   for (int i = 0; i < world->n_species; i++)
@@ -622,6 +642,13 @@ static void set_viz_all_molecules(struct viz_output_block *vizblk)
   }
 }
 
+/*************************************************************************
+ Count the number of selected children of a given viz_child.  (For DX mode
+ only.)
+
+ In: vcp: the viz child root to count
+ Out: The total number of viz_child objects marked for inclusion
+*************************************************************************/
 static int count_viz_children(struct viz_child *vcp)
 {
   int count = 0;
@@ -637,22 +664,35 @@ static int count_viz_children(struct viz_child *vcp)
   return count;
 }
 
-static void populate_viz_children_array(struct viz_output_block *vizblk,
-                                        struct viz_dx_obj *viz,
+/*************************************************************************
+ Copy viz_child objects into an array (for DX mode only).
+
+ In: viz: the viz object whose array should be populated
+     vcp: the viz child root to copy into the array
+     pos: pointer to an index into the "actual_objects" array.
+ Out: No return value; viz->actual_objects is filled and *pos is updated.
+*************************************************************************/
+static void populate_viz_children_array(struct viz_dx_obj *viz,
                                         struct viz_child *vcp,
                                         int *pos)
 {
   for (; vcp != NULL; vcp = vcp->next)
   {
     if (vcp->children)
-      populate_viz_children_array(vizblk, viz, vcp->children, pos);
+      populate_viz_children_array(viz, vcp->children, pos);
     if (vcp->viz_state != NULL)
       viz->actual_objects[(*pos) ++] = vcp;
   }
 }
 
-static void convert_viz_children_to_array(struct viz_output_block *vizblk,
-                                          struct viz_dx_obj *viz)
+/*************************************************************************
+ Convert a viz_dx_obj's tree of viz_child objects into an array (for DX mode
+ only).
+
+ In: viz: the viz object whose children should be moved to an array
+ Out: No return value; viz->actual_objects/viz->n_actual_objects are updated.
+*************************************************************************/
+static void convert_viz_children_to_array(struct viz_dx_obj *viz)
 {
   int count = count_viz_children(viz->viz_child_head);
   if (count == 0)
@@ -665,13 +705,21 @@ static void convert_viz_children_to_array(struct viz_output_block *vizblk,
 
   /* Copy items into the array. */
   int pos = 0;
-  populate_viz_children_array(vizblk, viz, viz->viz_child_head, &pos);
+  populate_viz_children_array(viz, viz->viz_child_head, &pos);
   assert(pos == count);
 
   /* Clear the tree. */
   viz->viz_child_head = NULL;
 }
 
+/*************************************************************************
+ Free all viz_child objects which represent either meta objects, or unrendered
+ mesh objects.
+
+ In: vizblk: the viz output block whose children should be trimmed
+ Out: No return value; parse-time viz output data structures are freed, as are
+      any excess viz_child objects.
+*************************************************************************/
 static void free_extra_viz_children(struct viz_output_block *vizblk)
 {
   for (int i=0; i<vizblk->viz_children->n_bins; ++ i)
@@ -693,6 +741,16 @@ static void free_extra_viz_children(struct viz_output_block *vizblk)
   vizblk->viz_children = NULL;
 }
 
+/*************************************************************************
+ Comparison function for viz_children, suitable for use with qsort.  Used to
+ order viz_child objects in ascending order of their 'obj' pointers, which
+ allows us to use binary search to find if an object is included.  (DREAMM
+ modes only).
+
+ In: vc1: first child for comparison
+     vc2: second child for comparison
+ Out: -1, 0, or 1 if first child is lt, eq, or gt the second child, resp.
+*************************************************************************/
 static int viz_child_compare(void const *vc1, void const *vc2)
 {
   struct viz_child const *c1 = (struct viz_child const *) vc1;
@@ -705,6 +763,14 @@ static int viz_child_compare(void const *vc1, void const *vc2)
     return 0;
 }
 
+/*************************************************************************
+ Convert the viz_child objects in the given viz_output block into an array,
+ sorted in ascending order of their 'obj' pointers, excluding any viz_child
+ objects which are not marked for inclusion.
+
+ In: vizblk: the viz output block whose children to copy to an array.
+ Out: vizblk is updated (dreamm_objects and n_dreamm_objects are set).
+*************************************************************************/
 static void convert_viz_objects_to_array(struct viz_output_block *vizblk)
 {
   int count = 0;
@@ -755,6 +821,13 @@ static void convert_viz_objects_to_array(struct viz_output_block *vizblk)
     vizblk->dreamm_objects[i] = vizblk->dreamm_object_info[i]->obj;
 }
 
+/*************************************************************************
+ Expand the mesh info for all viz children on the given viz output block.
+ (DREAMM/DX modes only).
+
+ In: vizblk: the viz output block whose children to expand
+ Out: vizblk is updated
+*************************************************************************/
 static void expand_viz_children(struct viz_output_block *vizblk)
 {
   switch (vizblk->viz_mode)
@@ -762,7 +835,7 @@ static void expand_viz_children(struct viz_output_block *vizblk)
     case DX_MODE:
       /* Convert viz_child tables to viz_child pointer array on each viz_dx_obj. */
       for (struct viz_dx_obj *viz = vizblk->dx_obj_head; viz != NULL; viz = viz->next)
-        convert_viz_children_to_array(vizblk, viz);
+        convert_viz_children_to_array(viz);
       free_extra_viz_children(vizblk);
       break;
 
@@ -778,6 +851,12 @@ static void expand_viz_children(struct viz_output_block *vizblk)
   }
 }
 
+/*************************************************************************
+ Initialize the species state array for a given viz output block.
+
+ In: vizblk: the viz output block whose species table to update
+ Out: vizblk is updated
+*************************************************************************/
 static int init_viz_species_states(struct viz_output_block *vizblk)
 {
   vizblk->species_viz_states = CHECKED_MALLOC_ARRAY(int,
@@ -806,6 +885,12 @@ static int init_viz_species_states(struct viz_output_block *vizblk)
   return 0;
 }
 
+/*************************************************************************
+ Initialize all viz output blocks for this simulation.
+
+ In: None.
+ Out: 0 on success, 1 if an error occurs
+*************************************************************************/
 static int init_viz_output(void)
 {
   for (struct viz_output_block *vizblk = world->viz_blocks;
@@ -835,7 +920,6 @@ static int init_viz_output(void)
 
   return 0;
 }
-
 
 
 /********************************************************************

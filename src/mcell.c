@@ -54,6 +54,15 @@ static void process_volume_output(struct volume *wrld, double not_yet)
   }
 }
 
+/***********************************************************************
+ process_reaction_output:
+
+    Produce this round's reaction output, if any.
+
+ In: wrld: the world
+     not_yet: earliest time which should not yet be output
+ Out: none.  reaction output data structs/files are updated as appropriate.
+ ***********************************************************************/
 static void process_reaction_output(struct volume *wrld, double not_yet)
 {
   struct output_block *obp;
@@ -69,6 +78,15 @@ static void process_reaction_output(struct volume *wrld, double not_yet)
     mcell_internal_error("Scheduler reported an out-of-memory error while retrieving next scheduled reaction output, but this should never happen.");
 }
 
+/***********************************************************************
+ process_molecule_releases:
+
+    Produce this round's release events, if any.
+
+ In: wrld: the world
+     not_yet: earliest time which should not yet be processed
+ Out: none.  molecules are released into the world.
+ ***********************************************************************/
 static void process_molecule_releases(struct volume *wrld, double not_yet)
 {
   for (struct release_event_queue *req = schedule_next(wrld->releaser);
