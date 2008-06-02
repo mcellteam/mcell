@@ -2139,8 +2139,7 @@ static struct collision *expand_collision_list_for_neighbor(struct subvolume *sv
                                           psl->properties))
       continue;
 
-    struct volume_molecule *mp;
-    for (mp = psl->head; mp != NULL; mp = mp->next_v)
+    for (struct volume_molecule *mp = psl->head; mp != NULL; mp = mp->next_v)
     {
       /* Skip defunct molecules */
       if (mp->properties == NULL) continue; 
@@ -2162,8 +2161,7 @@ static struct collision *expand_collision_list_for_neighbor(struct subvolume *sv
         continue;
 
       /* Add a collision for each matching reaction */
-      int i;
-      for(i = 0; i < num_matching_rxns; i++)
+      for (int i = 0; i < num_matching_rxns; i++)
       {
         struct collision *smash = (struct collision *) CHECKED_MEM_GET(sv->local_storage->coll, "collision data");
         smash->target = (void*) mp;

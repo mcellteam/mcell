@@ -273,6 +273,10 @@ int init_sim(void)
   world->y_fineparts = NULL;
   world->z_fineparts = NULL;
   world->n_fineparts = 0;
+  world->mem_part_x = 14;
+  world->mem_part_y = 14;
+  world->mem_part_z = 14;
+  world->mem_part_pool = 0;
   world->complex_placement_attempts = 100;
   
   world->use_expanded_list=1;
@@ -932,6 +936,8 @@ static struct storage *create_storage(int nsubvols)
                                      "memory storage partition");
   memset(shared_mem, 0, sizeof(struct storage));
 
+  if (world->mem_part_pool != 0)
+    nsubvols = world->mem_part_pool;
   if (nsubvols < 8) nsubvols = 8;
   if (nsubvols > 4096) nsubvols = 4096;
   /* We should tune the algorithm for selecting allocation block sizes.  */
@@ -974,6 +980,40 @@ static struct storage *create_storage(int nsubvols)
   }
 
   return shared_mem;
+}
+
+static void sanity_check_memory_subdivision(void)
+{
+  if (world->mem_part_x <= 0)
+  {
+    if (world->mem_part_x < 0)
+    {
+      mcell_warn("X-axis memory partition bin size set to a negative value.  Setting to default value of 14.");
+      world->mem_part_x = 14;
+    }
+    else
+      world->mem_part_x = 10000000;
+  }
+  if (world->mem_part_y <= 0)
+  {
+    if (world->mem_part_y < 0)
+    {
+      mcell_warn("Y-axis memory partition bin size set to a negative value.  Setting to default value of 14.");
+      world->mem_part_y = 14;
+    }
+    else
+      world->mem_part_y = 10000000;
+  }
+  if (world->mem_part_z <= 0)
+  {
+    if (world->mem_part_z < 0)
+    {
+      mcell_warn("Z-axis memory partition bin size set to a negative value.  Setting to default value of 14.");
+      world->mem_part_z = 14;
+    }
+    else
+      world->mem_part_z = 10000000;
+  }
 }
 
 /********************************************************************
@@ -1037,16 +1077,11 @@ int init_partitions(void)
   /* Allocate the subvolumes */
   world->n_subvols = (world->nz_parts-1) * (world->ny_parts-1) * (world->nx_parts-1);
   if (world->notify->progress_report!=NOTIFY_NONE)
-    mcell_log("Creating %d subvolumes (%d,%d,%d per axis)", world->n_subvols, world->nx_parts-1, world->ny_parts-1, world->nz_parts-1);
+    mcell_log("Creating %d subvolumes (%d,%d,%d per axis).", world->n_subvols, world->nx_parts-1, world->ny_parts-1, world->nz_parts-1);
   world->subvol = CHECKED_MALLOC_ARRAY(struct subvolume, world->n_subvols, "spatial subvolumes");
 
   /* Decide how fine-grained to make the memory subdivisions */
-  int subdivisions_per_storage = 0;
-  char *env = getenv("SUBDIVISIONS_PER_STORAGE");
-  if (env != NULL)
-    subdivisions_per_storage = atoi(env);
-  if (subdivisions_per_storage == 0)
-    subdivisions_per_storage = 14;
+  sanity_check_memory_subdivision();
 
   /* Allocate the data structures which are shared between storages */
   if ((world->coll_mem  = create_mem_named(sizeof(struct collision),128,"collision")) == NULL)
@@ -1059,9 +1094,11 @@ int init_partitions(void)
     mcell_allocfailed("Failed to create memory pool for exact disk calculation vertices.");
 
   /* How many storage subdivisions along each axis? */
-  int nx = (world->nx_parts + (subdivisions_per_storage) - 2) / (subdivisions_per_storage);
-  int ny = (world->ny_parts + (subdivisions_per_storage) - 2) / (subdivisions_per_storage);
-  int nz = (world->nz_parts + (subdivisions_per_storage) - 2) / (subdivisions_per_storage);
+  int nx = (world->nx_parts + (world->mem_part_x) - 2) / (world->mem_part_x);
+  int ny = (world->ny_parts + (world->mem_part_y) - 2) / (world->mem_part_y);
+  int nz = (world->nz_parts + (world->mem_part_z) - 2) / (world->mem_part_z);
+  if (world->notify->progress_report!=NOTIFY_NONE)
+    mcell_log("Creating %d memory partitions (%d,%d,%d per axis).", nx*ny*nz, nx, ny, nz);
 
   /* Create memory pool for storages */
   if ((world->storage_allocator = create_mem_named(sizeof(struct storage_list),nx*ny*nz,"storage allocator")) == NULL)
@@ -1073,13 +1110,13 @@ int init_partitions(void)
   for (i=0; i<nx*ny*nz; ++i)
   {
     /* Determine the number of subvolumes included in this subdivision */
-    int xd = subdivisions_per_storage, yd = subdivisions_per_storage, zd = subdivisions_per_storage;
+    int xd = world->mem_part_x, yd = world->mem_part_y, zd = world->mem_part_z;
     if (cx == nx-1)
-      xd = (world->nx_parts - 1) % subdivisions_per_storage;
+      xd = (world->nx_parts - 1) % world->mem_part_x;
     if (cy == ny-1)
-      yd = (world->ny_parts - 1) % subdivisions_per_storage;
+      yd = (world->ny_parts - 1) % world->mem_part_y;
     if (cz == nz-1)
-      zd = (world->nz_parts - 1) % subdivisions_per_storage;
+      zd = (world->nz_parts - 1) % world->mem_part_z;
     if (++ cx == nx)
     {
       cx = 0;
@@ -1154,7 +1191,7 @@ int init_partitions(void)
        */
 
     /* Bind this subvolume to the appropriate storage */
-    int shidx = (i / (subdivisions_per_storage)) + nx * (j / (subdivisions_per_storage) + ny * (k / (subdivisions_per_storage)));
+    int shidx = (i / (world->mem_part_x)) + nx * (j / (world->mem_part_y) + ny * (k / (world->mem_part_z)));
     sv->local_storage = shared_mem[shidx];
   }
   

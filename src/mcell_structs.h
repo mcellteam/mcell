@@ -1030,6 +1030,10 @@ struct volume
   double *x_partitions;         /* Coarse X partition boundaries */
   double *y_partitions;         /* Coarse Y partition boundaries */
   double *z_partitions;         /* Coarse Z partition boundaries */
+  int mem_part_x;               /* Granularity of memory-partition binning for the X-axis */
+  int mem_part_y;               /* Granularity of memory-partition binning for the Y-axis */
+  int mem_part_z;               /* Granularity of memory-partition binning for the Z-axis */
+  int mem_part_pool;            /* Scaling factor for sizes of memory pools in each storage. */
   
   /* Fine partitions are intended to allow subdivision of coarse partitions */
   /* Subdivision is not yet implemented */

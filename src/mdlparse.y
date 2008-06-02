@@ -267,6 +267,10 @@ struct macro_relation_state *relation_state;
 %token       MAX_TOK
 %token       MEAN_DIAMETER
 %token       MEAN_NUMBER
+%token       MEMORY_PARTITION_X
+%token       MEMORY_PARTITION_Y
+%token       MEMORY_PARTITION_Z
+%token       MEMORY_PARTITION_POOL
 %token       MESHES
 %token       MICROSCOPIC_REVERSIBILITY
 %token       MIN_TOK
@@ -662,6 +666,7 @@ mdl_stmt:
       | chkpt_stmt
       | parameter_def
       | partition_def
+      | memory_partition_def
       | molecules_def
       | surface_classes_def
       | rx_net_def
@@ -1112,6 +1117,13 @@ parameter_def:
 
 /* =================================================================== */
 /* Partitions */
+
+memory_partition_def:
+          MEMORY_PARTITION_X '=' num_expr             { mdlpvp->vol->mem_part_x = (int) $3; }
+        | MEMORY_PARTITION_Y '=' num_expr             { mdlpvp->vol->mem_part_y = (int) $3; }
+        | MEMORY_PARTITION_Z '=' num_expr             { mdlpvp->vol->mem_part_z = (int) $3; }
+        | MEMORY_PARTITION_POOL '=' num_expr          { mdlpvp->vol->mem_part_pool = (int) $3; }
+;
 
 partition_def:
           partition_dimension '=' array_value         { CHECK(mdl_set_partition(mdlpvp, $1, & $3)); }
