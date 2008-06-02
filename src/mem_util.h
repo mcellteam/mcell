@@ -17,21 +17,27 @@ void mem_util_tracking_free(void *data);
 #define realloc mem_util_tracking_realloc
 #endif
 
-char *checked_strdup(char const *s, char const *file, long line, char const *desc, int onfailure);
-void *checked_malloc(unsigned int size, char const *file, long line, char const *desc, int onfailure);
+char *checked_strdup(char const *s, char const *file, unsigned int line, char const *desc, int onfailure);
+void *checked_malloc(unsigned int size, char const *file, unsigned int line, char const *desc, int onfailure);
+char *checked_alloc_sprintf(char const *file, unsigned int line, int onfailure, char const *fmt, ...)
+  __attribute__((format (printf, 4, 5)));
+
+struct mem_helper;
+void* checked_mem_get(struct mem_helper *mh, char const *file, unsigned int line, char const *desc, int onfailure);
 
 #define CM_EXIT (1)
-#define CM_EMERGENCY_OUTPUT (2)
-#define CM_EMERGENCY (CM_EXIT|CM_EMERGENCY_OUTPUT)
-#define CHECKED_STRDUP(s,desc) checked_strdup((s), __FILE__, __LINE__, desc, 0)
-#define CHECKED_STRDUP_DIE(s,desc) checked_strdup((s), __FILE__, __LINE__, desc, CM_EXIT)
-#define CHECKED_STRDUP_EMERGENCY(s,desc) checked_strdup((s), __FILE__, __LINE__, desc, CM_EMERGENCY)
-#define CHECKED_MALLOC(sz,desc) checked_malloc((sz), __FILE__, __LINE__, desc, 0)
-#define CHECKED_MALLOC_DIE(sz,desc) checked_malloc((sz), __FILE__, __LINE__, desc, CM_EXIT)
-#define CHECKED_MALLOC_EMERGENCY(sz,desc) checked_malloc((sz), __FILE__, __LINE__, desc, CM_EMERGENCY)
-#define CHECKED_MEM_GET(mh,desc) checked_mem_get((mh), __FILE__, __LINE__, desc, 0)
-#define CHECKED_MEM_GET_DIE(mh,desc) checked_mem_get((mh), __FILE__, __LINE__, desc, CM_EXIT)
-#define CHECKED_MEM_GET_EMERGENCY(mh,desc) checked_mem_get((mh), __FILE__, __LINE__, desc, CM_EMERGENCY)
+#define CHECKED_STRDUP_NODIE(s,desc) checked_strdup((s), __FILE__, __LINE__, desc, 0)
+#define CHECKED_STRDUP(s,desc) checked_strdup((s), __FILE__, __LINE__, desc, CM_EXIT)
+#define CHECKED_MALLOC_NODIE(sz,desc) checked_malloc((sz), __FILE__, __LINE__, desc, 0)
+#define CHECKED_MALLOC(sz,desc) checked_malloc((sz), __FILE__, __LINE__, desc, CM_EXIT)
+#define CHECKED_MALLOC_STRUCT_NODIE(tp,desc) (tp *) checked_malloc(sizeof(tp), __FILE__, __LINE__, desc, 0)
+#define CHECKED_MALLOC_STRUCT(tp,desc) (tp *) checked_malloc(sizeof(tp), __FILE__, __LINE__, desc, CM_EXIT)
+#define CHECKED_MALLOC_ARRAY_NODIE(tp,num,desc) (tp *) checked_malloc((num)*sizeof(tp), __FILE__, __LINE__, desc, 0)
+#define CHECKED_MALLOC_ARRAY(tp,num,desc) (tp *) checked_malloc((num)*sizeof(tp), __FILE__, __LINE__, desc, CM_EXIT)
+#define CHECKED_MEM_GET_NODIE(mh,desc) checked_mem_get((mh), __FILE__, __LINE__, desc, 0)
+#define CHECKED_MEM_GET(mh,desc) checked_mem_get((mh), __FILE__, __LINE__, desc, CM_EXIT)
+#define CHECKED_SPRINTF_NODIE(fmt,...) checked_alloc_sprintf(__FILE__, __LINE__, 0, fmt, ## __VA_ARGS__)
+#define CHECKED_SPRINTF(fmt,...) checked_alloc_sprintf(__FILE__, __LINE__, CM_EXIT, fmt, ## __VA_ARGS__)
 
 /* counter_header and counter_helper not used by MCell3 */
 struct counter_header
@@ -101,14 +107,13 @@ void mem_dump_stats(FILE *out);
 struct mem_helper* create_mem_named(int size,int length,char const *name);
 struct mem_helper* create_mem(int size,int length);
 void* mem_get(struct mem_helper *mh);
-void* checked_mem_get(struct mem_helper *mh, char const *file, long line, char const *desc, int onfailure);
 void mem_put(struct mem_helper *mh,void *defunct);
 void mem_put_list(struct mem_helper *mh,void *defunct);
 void delete_mem(struct mem_helper *mh);
 
 
 struct counter_helper* create_counter(int size,int length);
-void counter_add(struct counter_helper *ch,void *data);
+int counter_add(struct counter_helper *ch,void *data);
 void counter_reset(struct counter_helper *ch);
 struct counter_header* counter_iterator(struct counter_helper *ch);
 struct counter_header* counter_next_entry(struct counter_header *c);

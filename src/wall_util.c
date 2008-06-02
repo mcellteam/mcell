@@ -13,6 +13,7 @@
 #include <stdlib.h>
 
 #include "rng.h"
+#include "logging.h"
 #include "vector.h"
 #include "util.h"
 #include "sym_table.h"
@@ -26,14 +27,7 @@
 #include "wall_util.h"
 #include "macromolecule.h"
 
-#ifdef DEBUG
-#define no_printf printf
-#endif
-
-
 extern struct volume *world;
-
-
 
 /**************************************************************************\
  ** Internal utility function section--max/min stuff                     **
@@ -113,7 +107,9 @@ int ehtable_init(struct edge_hashtable *eht,int nkeys)
   eht->nkeys = nkeys;
   eht->stored = 0;
   eht->distinct = 0;
-  eht->data = (struct poly_edge*) malloc( nkeys * sizeof(struct poly_edge) );
+  eht->data = CHECKED_MALLOC_ARRAY_NODIE(struct poly_edge,
+                                         nkeys,
+                                         "edge hash table");
   if (eht->data == NULL) return 1;
   
   for (i=0;i<nkeys;i++)
@@ -179,7 +175,8 @@ int ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
           }
         }
         
-        pei = (struct poly_edge*) malloc( sizeof(struct poly_edge) );
+        pei = CHECKED_MALLOC_STRUCT_NODIE(struct poly_edge,
+                                          "polygon edge");
         if (pei==NULL) return 1;
 
         pep->n++;
@@ -199,7 +196,8 @@ int ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
 
     else  /* Hit end of list, so make space for use next loop. */
     {
-      pei = (struct poly_edge*) malloc( sizeof(struct poly_edge) );
+      pei = CHECKED_MALLOC_STRUCT_NODIE(struct poly_edge,
+                                        "polygon edge");
       if (pei==NULL) return 1;
       pei->next = pep->next;
       pep->next = pei;
@@ -262,8 +260,7 @@ compatible_edges:
        traversed in the same direction in each or the two walls are
        actually the same wall)
 ***************************************************************************/
-
-int compatible_edges(struct wall **faces,int wA,int eA,int wB,int eB)
+static int compatible_edges(struct wall **faces,int wA,int eA,int wB,int eB)
 {
   struct vector3 *vA0,*vA1,*vA2,*vB0,*vB1,*vB2;
 
@@ -299,8 +296,7 @@ refine_edge_pairs:
        is traversed in different directions by each face, and that the
        normals of the two faces are as divergent as possible.
 ***************************************************************************/
-
-void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
+static void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
 {
 #define TSWAP(x,y) temp=(x); (x)=(y); (y)=temp
   struct poly_edge *p1,*p2,*best_p1,*best_p2;
@@ -484,146 +480,6 @@ void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
 #undef TSWAP
 }
 
-
-#if 0
-void refine_edge_pairs(struct poly_edge *p,struct wall **faces)
-{
-  FILE *log_file;
-  log_file = world->log_file;
-  int count = 0; /* length of the linked_list of edges */
-  int ii = 0;
-  struct poly_edge *pe_curr = NULL, *pe_ptr_index_0 = NULL, *pe_ptr_index_1=NULL;
-  double min_value_0, min_value_1;
-  double *aligns;
-
-  /* find out the number of nodes in the linked_list. */
-  pe_curr = p;
-  while(pe_curr != NULL) {
-	count++;
-	pe_curr = pe_curr->next;
-  }
-  /* for one node there is no need for rearrangement. */
-  if(count == 1) return;
-
-  /* create an array that will store the angle 
-     between the faces of the edge in the linked_list. */
-  if((aligns = (double *)malloc(count*sizeof(double))) == NULL){
-    fprintf(world->err_file, "File '%s', Line %ld: Out of memory while preparing adjacent polygons for surface diffusion\n", __FILE__, (long)__LINE__);
-    exit(EXIT_FAILURE);
-  }
-
-
-  /* put values into an angles array */
-  pe_curr = p;
-  while(pe_curr != NULL) {
-        if((pe_curr->face1 >= 0) && (pe_curr->edge1 >= 0) && (pe_curr->face2 >=0) && (pe_curr->edge2 >=0)){
-           if(compatible_edges(faces,pe_curr->face1, pe_curr->edge1, pe_curr->face2, pe_curr->edge2)){
-                     aligns[ii] = faces[pe_curr->face1]->normal.x * faces[pe_curr->face2]->normal.x + faces[pe_curr->face1]->normal.y * faces[pe_curr->face2]->normal.y + faces[pe_curr->face1]->normal.z * faces[pe_curr->face2]->normal.z;
-           }
-           else{
-		     aligns[ii] = INT_MAX;
-           }       
-        }
-	pe_curr = pe_curr->next;
-        ii++;
-  }
-
-  /* find pointers to the nodes in the linked_list corresponding to 
-  *  the nodes with smallest "angle" parameter similar to the smallest value
-  *  in the "aligns" array.  Here we step in paralelel through the linked_list
-  *  and the "aligns" array.
-  */
-  min_value_0 = minNd(aligns, count);
-  pe_curr = p;
-  ii = 0;
-  while(pe_curr != NULL)
-  {
-        if(aligns[ii] == min_value_0){
-                pe_ptr_index_0 = pe_curr;
-               /* in order to find the next smallest value 
-                  let's put here INT_MAX */
-                aligns[ii] = INT_MAX;
-		break;
-	}
-        ii++;
-        pe_curr = pe_curr->next;
-  }
-
-
-  /* find the node with the second smallest value of the 'angle' parameter */
-  min_value_1 = minNd(aligns, count);
-  ii = 0;
-  pe_curr = p;
-  while(pe_curr != NULL)
-  {
-        if(aligns[ii] == min_value_1){
-                pe_ptr_index_1 = pe_curr;
-		break;
-	}
-        ii++;
-        pe_curr = pe_curr->next;
-  }
-
-	
-   /* exchange data of the node pointed to by pe_ptr_index_0
-       with the head of the list data */
-   pe_curr = p;
-   if(pe_curr != pe_ptr_index_0)
-   {
-   	while(pe_curr != NULL)
-   	{
-		if(pe_curr == pe_ptr_index_0){
-			swap_double(&(p->v1x),&(pe_curr->v1x));
-			swap_double(&(p->v1y),&(pe_curr->v1y));
-			swap_double(&(p->v1y),&(pe_curr->v1y));
-			swap_double(&(p->v2x),&(pe_curr->v2x));
-			swap_double(&(p->v2y),&(pe_curr->v2y));
-			swap_double(&(p->v2z),&(pe_curr->v2z));
-
-			swap_int(&(p->face1), &(pe_curr->face1));
-			swap_int(&(p->face2), &(pe_curr->face2));
-			swap_int(&(p->edge1), &(pe_curr->edge1));
-			swap_int(&(p->edge2), &(pe_curr->edge2));
-			swap_int(&(p->n), &(pe_curr->n));
-                        break;
-        	}
-                pe_curr = pe_curr->next;
-   	}
-   }
-
-
-   /* exchange data of the node pointed to by 'pe_ptr_index_1' 
-       with the next after head of the list node data. */
-   pe_curr = p;
-   if(pe_curr->next != pe_ptr_index_1)
-   {
-   	while(pe_curr->next != NULL)
-   	{
-		if(pe_curr == pe_ptr_index_1){
-			swap_double(&(p->next->v1x),&(pe_curr->v1x));
-			swap_double(&(p->next->v1y),&(pe_curr->v1y));
-			swap_double(&(p->next->v1y),&(pe_curr->v1y));
-			swap_double(&(p->next->v2x),&(pe_curr->v2x));
-			swap_double(&(p->next->v2y),&(pe_curr->v2y));
-			swap_double(&(p->next->v2z),&(pe_curr->v2z));
-
-			swap_int(&(p->next->face1), &(pe_curr->face1));
-			swap_int(&(p->next->face2), &(pe_curr->face2));
-			swap_int(&(p->next->edge1), &(pe_curr->edge1));
-			swap_int(&(p->next->edge2), &(pe_curr->edge2));
-			swap_int(&(p->next->n), &(pe_curr->n));
-			break;
-        	}
-                pe_curr = pe_curr->next;
-   	}
-   }
-
-  free (aligns);
-
-}
-#endif /* if 0 */
-
-
 /***************************************************************************
 surface_net:
   In: array of pointers to walls
@@ -696,7 +552,7 @@ int surface_net( struct wall **facelist, int nfaces )
               {
           	facelist[pep->face1]->nb_walls[pep->edge1] = facelist[pep->face2];
           	facelist[pep->face2]->nb_walls[pep->edge2] = facelist[pep->face1];
-          	e = (struct edge*) mem_get( facelist[pep->face1]->birthplace->join );
+          	e = (struct edge*) CHECKED_MEM_GET_NODIE( facelist[pep->face1]->birthplace->join, "edge" );
           	if (e==NULL) return 1;
 
           	e->forward = facelist[pep->face1];
@@ -713,7 +569,7 @@ int surface_net( struct wall **facelist, int nfaces )
       else if (pep->n==1)
       {
         is_closed = 0;
-        e = (struct edge*) mem_get( facelist[pep->face1]->birthplace->join );
+        e = (struct edge*) CHECKED_MEM_GET_NODIE( facelist[pep->face1]->birthplace->join, "edge" );
         if (e==NULL) return 1;
 
         e->forward = facelist[pep->face1];
@@ -839,12 +695,9 @@ int sharpen_object(struct object *parent)
   if (parent->object_type == POLY_OBJ || parent->object_type == BOX_OBJ)
   {
     i = surface_net(parent->wall_p , parent->n_walls);
-    if (i==1)
-    {
-      fprintf(world->err_file, "File '%s', Line %ld: Out of memory while connecting walls along shared edges in object %s.\n",
-              __FILE__, (long)__LINE__, parent->sym->name);
-      return 1;
-    }
+    if (i == 1)
+      mcell_allocfailed("Failed to connect walls of object %s along shared edges.",
+                        parent->sym->name);
   }
   else if (parent->object_type == META_OBJ)
   {
@@ -865,7 +718,7 @@ sharpen_world:
   Out: 0 on success, 1 on failure.  Adds edges to every object.
 ***************************************************************************/
 
-int sharpen_world()
+int sharpen_world(void)
 {
   struct object *o;
   
@@ -899,6 +752,8 @@ closest_interior_point:
 
 double closest_interior_point(struct vector3 *pt,struct wall *w,struct vector2 *ip,double r2)
 {
+  UNUSED(r2);
+
   struct vector3 v;
   double a1,a2;
   
@@ -1078,35 +933,35 @@ is_manifold:
 int is_manifold(struct region *r)
 {
   struct wall **wall_array = NULL, *w = NULL;
-  int i,j;
   struct region_list *rl = NULL;
 
   wall_array = r->parent->wall_p;
   
-  if(wall_array == NULL){
-	fprintf(world->log_file, "Error in the region declaration.\n");
-	return 0; 
+  if (wall_array == NULL)
+  {
+    mcell_internal_error("Region '%s' has NULL wall array!", r->sym->name);
+    return 0;
   }
    
-  for (i=0;i<r->parent->n_walls;i++)
+  for (int n_wall=0; n_wall<r->parent->n_walls; n_wall++)
   {
-    if (!get_bit(r->membership,i)) continue;  /* Skip wall not in region */
-    w = wall_array[i];
-    for (j=0;j<2;j++)
+    if (!get_bit(r->membership, n_wall)) continue;  /* Skip wall not in region */
+    w = wall_array[n_wall];
+    for (int nb=0; nb<2; nb++)
     {
-      if (w->nb_walls[j] == NULL)
+      if (w->nb_walls[nb] == NULL)
       {
-	fprintf(world->log_file, "BARE EDGE on wall %d edge %d\n",i,j);
+        mcell_error_nodie("BARE EDGE on wall %u edge %d.", n_wall, nb);
 	return 0; /* Bare edge--not a manifold */
       }
       
-      for (rl = w->nb_walls[j]->counting_regions ; rl != NULL ; rl = rl->next)
+      for (rl = w->nb_walls[nb]->counting_regions ; rl != NULL ; rl = rl->next)
       {
 	if (rl->reg == r) break;
       }
       if (rl==NULL)
       {
-	fprintf(world->log_file, "Wall %d edge %d leaves region!\n",i,j);
+	mcell_error_nodie("Wall %u edge %d leaves region!", n_wall, nb);
 	return 0;  /* Can leave region--not a manifold */
       }
     }
@@ -1155,10 +1010,6 @@ void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
   tiny = EPS_C * (abs_max_2vec(p,v) + 1.0) / (k * max3d(fabs(f.x),fabs(f.y),fabs(f.z)));
   if ( (rng_uint(world->rng) & 1) == 0 ) {
      tiny = -tiny;
-     if(world->notify->final_summary == NOTIFY_FULL)
-     {
-        world->random_number_use++;
-     }
   }
   v->x -= tiny*f.x;
   v->y -= tiny*f.y;
@@ -1297,7 +1148,6 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
     {
       a = (abs_max_2vec( point , move ) + 1.0) * EPS_C;
       if ((rng_uint(world->rng)&1)==0) a = -a;
-      world->random_number_use++;
       if (dd==0.0)
       {
         move->x -= a*nx;
@@ -1441,42 +1291,6 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
   return COLLIDE_MOL_M;
 }
 
-#if 0
-/* ray-sphere collision */
-int collide_mol(struct vector3 *point,struct vector3 *move,
-                struct abstract_molecule *a,double *t,struct vector3 *hitpt)
-{
-  /* vector to the position of the molecule we test for collision. */
-  struct vector3 *pos;
-  struct vector3 d; /* unit vector in the direction of move */
-  double k; /* parameter in the ray equation */
-  double move_length; /* length of the move vector */
-  int result; 
-
- 
-  if ((a->properties->flags & ON_GRID)!=0) return COLLIDE_MISS; /* Should never call on grid molecule! */
-  
-  if ((a->properties->flags & ON_SURFACE)==0) pos = &( ((struct volume_molecule*)a)->pos );
-  else pos = &( ((struct surface_molecule*)a)->pos );
-
-  move_length = vect_length(move);
-
-  d.x = move->x/move_length;
-  d.y = move->y/move_length;
-  d.z = move->z/move_length;
-
-  result = test_sphere_ray(point, &d, pos, world->rx_radius_3d, &k, hitpt);
-  if (result == 0) return COLLIDE_MISS;
-  /* verify that the detected intersection does not lie beyond 
-     the end of the move */ 
-  if (k > move_length) return COLLIDE_MISS;
-  *t = k/move_length;
- 
-  return COLLIDE_MOL_M;
-
-}
-#endif
-
 /***************************************************************************
 wall_in_box:
   In: array of pointers to vertices for wall (should be 3)
@@ -1486,8 +1300,7 @@ wall_in_box:
       opposite corner of bounding box
   Out: 1 if the wall intersects the box.  0 otherwise.
 ***************************************************************************/
-
-int wall_in_box(struct vector3 **vert,struct vector3 *normal,
+static int wall_in_box(struct vector3 **vert,struct vector3 *normal,
                 double d,struct vector3 *b0,struct vector3 *b1)
 {
 #define n_vert 3
@@ -1726,13 +1539,6 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   	w->uv_vert2.v = 0;
 
   	w->grid = NULL;
-  	w->viz_state = EXCLUDE_OBJ; 
-  	if (objp->viz_state!=NULL) {
-    		w->viz_state=objp->viz_state[side];
-  	}
-  	else {
-    		w->viz_state=EXCLUDE_OBJ;
-  	}
 
   	w->parent_object = objp;
   	w->flags=0;
@@ -1777,13 +1583,6 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
                   (w->vert[2]->z - w->vert[0]->z)*w->unit_v.z;
   
   w->grid = NULL;
-  w->viz_state = EXCLUDE_OBJ; 
-  if (objp->viz_state!=NULL) {
-    w->viz_state=objp->viz_state[side];
-  }
-  else {
-    w->viz_state=EXCLUDE_OBJ;
-  }
 
   w->parent_object = objp;
   w->flags=0;
@@ -1803,8 +1602,7 @@ wall_bounding_box:
   Out: No return value.  The vectors are set to define the smallest box
        that contains the wall.
 ***************************************************************************/
-
-void wall_bounding_box(struct wall *w , struct vector3 *llf, struct vector3 *urb)
+static void wall_bounding_box(struct wall *w , struct vector3 *llf, struct vector3 *urb)
 {
   llf->x = urb->x = w->vert[0]->x;
   llf->y = urb->y = w->vert[0]->y;
@@ -1834,10 +1632,9 @@ wall_to_vol:
   Out: The updated list of walls for that subvolume that now contains the
        wall requested.  
 ***************************************************************************/
-
 struct wall_list* wall_to_vol(struct wall *w, struct subvolume *sv)
 {
-  struct wall_list *wl = mem_get(sv->local_storage->list);
+  struct wall_list *wl = CHECKED_MEM_GET_NODIE(sv->local_storage->list, "wall list");
   if(wl == NULL) return NULL;
   
   wl->this_wall = w;
@@ -1874,7 +1671,7 @@ struct vector3* localize_vertex(struct vector3 *p, struct storage *stor)
     else vl = vl->below;
   }
   
-  vl = mem_get( stor->tree );
+  vl = CHECKED_MEM_GET_NODIE( stor->tree, "vertex list" );
   if (vl==NULL) return NULL;
   memcpy(&(vl->loc) , p , sizeof(struct vector3));
   vl->above = NULL;
@@ -1900,11 +1697,10 @@ localize_wall:
   Out: A pointer to the copy of that wall in local memory, or NULL on
        memory allocation failure.
 ***************************************************************************/
-
 struct wall* localize_wall(struct wall *w, struct storage *stor)
 {
   struct wall *ww;
-  ww = mem_get(stor->face);
+  ww = CHECKED_MEM_GET_NODIE(stor->face, "wall");
   if (ww==NULL) return NULL;
   
   memcpy(ww , w , sizeof(struct wall));
@@ -1934,8 +1730,7 @@ distribute_wall:
        appropriate wall lists for all subvolumes it intersects; if this
        fails due to memory allocation errors, NULL is also returned.
 ***************************************************************************/
-
-struct wall* distribute_wall(struct wall *w)
+static struct wall* distribute_wall(struct wall *w)
 {
   struct wall *where_am_i;            /* Version of the wall in local memory */
   struct vector3 llf,urb,cent;                      /* Bounding box for wall */
@@ -2050,10 +1845,7 @@ int distribute_object(struct object *parent)
       parent->wall_p[i] = distribute_wall(parent->wall_p[i]);
 
       if (parent->wall_p[i]==NULL)
-      {
-	fprintf(world->err_file,"File '%s', Line %ld: Out of memory while initializing object %s\n", __FILE__, (long)__LINE__, parent->sym->name);
-	return 1;
-      }
+        mcell_allocfailed("Failed to distribute wall %d on object %s.", i, parent->sym->name);
     }
     if (parent->walls!=NULL)
     {
@@ -2080,7 +1872,7 @@ distribute_world:
        is distributed to local memory and into appropriate subvolumes.
 ***************************************************************************/
 
-int distribute_world()
+int distribute_world(void)
 {
   struct object *o;     /* Iterator for objects in the world */
   
@@ -2402,7 +2194,7 @@ int surface_point_in_region(struct object *ob,int wall_n,struct vector3 *v,struc
       {
 	for (trl=*prl; trl->next!=NULL && trl->next!=irl ; trl=trl->next) {}
 	if (trl->next!=NULL) { ttrl = trl->next; trl->next=ttrl->next; mem_put(sv->local_storage->regl,ttrl); }
-	else { trl = (struct region_list*)mem_get(sv->local_storage->regl); trl->reg=irl->reg; trl->next=*qrl; *qrl=trl; }
+	else { trl = (struct region_list*) CHECKED_MEM_GET(sv->local_storage->regl, "region list"); trl->reg=irl->reg; trl->next=*qrl; *qrl=trl; }
       }
     }
     if (wl->next==NULL && wl!=&my_wall) wl=&pre_wall; /* Cheat to go through loop one extra time with the wall on which the point is */
@@ -2439,14 +2231,12 @@ vacuum_from_regions:
         the function will return success and not give a warning.  The only
 	reason to return failure is an out of memory condition.
 ***************************************************************************/
-
-int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule *g,int n)
+static int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule *g,int n)
 {
   struct release_region_data *rrd;
   struct mem_helper *mh;
   struct reg_rel_helper_data *rrhd_head,*p;
   int n_rrhd;
-  int i,j,k;
   struct wall *w;
   struct grid_molecule *gp;  
   
@@ -2458,31 +2248,31 @@ int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule *g,int
   rrhd_head = NULL;
   n_rrhd=0;
   
-  for (i=0;i<rrd->n_objects;i++)
+  for (int n_object=0; n_object<rrd->n_objects; n_object++)
   {
-    if (rrd->walls_per_obj[i]==0) continue;
-    for (j=0;j<rrd->in_release[i]->nbits;j++)
+    if (rrd->walls_per_obj[n_object]==0) continue;
+    for (int n_wall=0; n_wall<rrd->in_release[n_object]->nbits; n_wall++)
     {
-      if (!get_bit(rrd->in_release[i],j)) continue;
+      if (!get_bit(rrd->in_release[n_object], n_wall)) continue;
       
-      w = rrd->owners[i]->wall_p[j];
+      w = rrd->owners[n_object]->wall_p[n_wall];
       
       if (w->grid==NULL) continue;
       
-      for (k=0;k<w->grid->n_tiles;k++)
+      for (unsigned int n_tile=0; n_tile<w->grid->n_tiles; n_tile++)
       {
-        gp = w->grid->mol[k];
+        gp = w->grid->mol[n_tile];
         if (gp!=NULL)
         {
           if (gp->properties == g->properties)
           {
-	    if (rrd->refinement && !grid_release_check(rrd,i,j,k,NULL)) continue;
-            p = mem_get(mh);
+            if (rrd->refinement && !grid_release_check(rrd, n_object, n_wall, n_tile, NULL)) continue;
+            p = CHECKED_MEM_GET_NODIE(mh, "release region helper data");
             if (p==NULL) return 1;
             
             p->next = rrhd_head;
             p->grid = w->grid;
-            p->index = k;
+            p->index = n_tile;
             rrhd_head = p;
 
             n_rrhd++;
@@ -2496,10 +2286,6 @@ int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule *g,int
   {
     if (rng_dbl(world->rng) < ((double)(-n))/((double)n_rrhd))
     {
-      if(world->notify->final_summary == NOTIFY_FULL)
-      {
-         world->random_number_use++;
-      }
       gp = p->grid->mol[ p->index ];
       gp->properties->population--;
       if ((gp->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
@@ -2540,9 +2326,8 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
   const int too_many_failures = 10;       /* Also a guess */
   struct release_region_data *rrd;
   struct mem_helper *mh;
-  struct reg_rel_helper_data *rrhd_head,*p;
-  int n_rrhd;
-  int h,i,j,k;
+  int i;
+  unsigned int grid_index;
   double A,max_A, num_to_release;
   struct wall *w;
   struct grid_molecule *new_g;
@@ -2563,13 +2348,11 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
   est_sites_avail = (int)max_A;
   pick_cost = rel_list_gen_cost * est_sites_avail;
   
-  if (rso->release_number_method == CCNNUM)
+  if (rso->release_number_method == DENSITYNUM)
   {
     num_to_release = rso->concentration * est_sites_avail / world->grid_density;
-    if(num_to_release > INT_MAX){
-        fprintf(world->err_file, "Fatal error: release site \"%s\" tries to release more than INT_MAX (2147483647) molecules.\n", rso->name);
-        exit(EXIT_FAILURE);
-    }
+    if (num_to_release > (double) INT_MAX)
+      mcell_error("Release site \"%s\" tries to release more than INT_MAX (2147483647) molecules.", rso->name);
     n = (int)(num_to_release);
 
   }
@@ -2577,10 +2360,8 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
   if (n<0) return vacuum_from_regions(rso,g,n);
   if(world->notify->release_events==NOTIFY_FULL) 
   {
-    if(n > 0){
-       fprintf(world->log_file, "Releasing %d molecules %s ...", n, g->properties->sym->name);
-       fflush(stdout);
-    } 
+    if(n > 0)
+      mcell_log_raw("Releasing %d molecules %s ...", n, g->properties->sym->name);
   }
   
   while (n>0)
@@ -2592,22 +2373,17 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
     if (seek_cost < pick_cost)
     {
       A = rng_dbl( world->rng )*max_A;
-      if(world->notify->final_summary == NOTIFY_FULL)
-      {
-         world->random_number_use++;
-      }
       i = bisect_high( rrd->cum_area_list , rrd->n_walls_included , A );
       w = rrd->owners[rrd->obj_index[i]]->wall_p[ rrd->wall_index[i] ];
       
       if (w->grid==NULL)
       {
-        j = create_grid(w,NULL);
-        if (j) return 1;
+        if (create_grid(w, NULL))
+          return 1;
       }
       if (i) A -= rrd->cum_area_list[i-1];
-      j = w->grid->n;
-      j = (int)((j*j)*(A/w->area));
-      if (j>=w->grid->n_tiles) j=w->grid->n_tiles-1;
+      grid_index = (int)((w->grid->n*w->grid->n)*(A/w->area));
+      if (grid_index>=w->grid->n_tiles) grid_index=w->grid->n_tiles-1;
 
       if (is_complex)
       {
@@ -2617,12 +2393,8 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
         else
         {
           orient = (rng_uint(world->rng)&1)?1:-1;
-          if (world->notify->final_summary == NOTIFY_FULL)
-          {
-            world->random_number_use++;
-          }
         }
-        struct grid_molecule *gp = macro_insert_molecule_grid_2(g->properties, orient, w, j, g->t, NULL, rrd);
+        struct grid_molecule *gp = macro_insert_molecule_grid_2(g->properties, orient, w, grid_index, g->t, NULL, rrd);
         if (gp == NULL)
         {
           ++ failure;
@@ -2637,18 +2409,18 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
                   break;
 
                 case WARN_WARN:
-                  fprintf(world->err_file,
-                          "Warning: could not release %lld of %s (surface full)\n",
-                          skipped_placements + n,
-                          g->properties->sym->name);
+                  mcell_warn("Could not release %lld of %s (surface full).",
+                             skipped_placements + n,
+                             g->properties->sym->name);
                   break;
 
                 case WARN_ERROR:
-                  fprintf(world->err_file,
-                          "Error: could not release %lld of %s (surface full)\n",
-                          skipped_placements + n,
-                          g->properties->sym->name);
+                  mcell_error("Could not release %lld of %s (surface full).",
+                              skipped_placements + n,
+                              g->properties->sym->name);
                   return 1;
+
+                default: UNHANDLED_CASE(world->notify->complex_placement_failure);
               }
               break;
             }
@@ -2663,20 +2435,20 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
       }
       else
       {
-        if (w->grid->mol[j] != NULL || (rrd->refinement && !grid_release_check(rrd,rrd->obj_index[i],rrd->wall_index[i],j,NULL))) failure++;
+        if (w->grid->mol[grid_index] != NULL || (rrd->refinement && !grid_release_check(rrd,rrd->obj_index[i],rrd->wall_index[i],grid_index,NULL))) failure++;
         else
         {
           struct vector2 s_pos;
-          if (world->randomize_gmol_pos) grid2uv_random(w->grid,j,&s_pos);
-          else grid2uv(w->grid,j,&s_pos);
+          if (world->randomize_gmol_pos) grid2uv_random(w->grid,grid_index,&s_pos);
+          else grid2uv(w->grid,grid_index,&s_pos);
           uv2xyz(&s_pos, w, &pos3d);
           gsv = find_subvolume(&pos3d, gsv);
 
-          new_g = (struct grid_molecule*)mem_get( gsv->local_storage->gmol );
+          new_g = (struct grid_molecule*)CHECKED_MEM_GET( gsv->local_storage->gmol, "grid molecule" );
           if (new_g==NULL) return 1;
           memcpy(new_g,g,sizeof(struct grid_molecule));
           new_g->birthplace = w->grid->subvol->local_storage->gmol;
-          new_g->grid_index = j;
+          new_g->grid_index = grid_index;
           new_g->s_pos.u = s_pos.u;
           new_g->s_pos.v = s_pos.v;
 
@@ -2684,15 +2456,11 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           else if (rso->orientation < 0) new_g->orient = -1;
           else {
             new_g->orient = (rng_uint(world->rng)&1)?1:-1;
-            if(world->notify->final_summary == NOTIFY_FULL)
-            {
-              world->random_number_use++;
-            }
           }
 
           new_g->grid = w->grid;
 
-          w->grid->mol[j] = new_g;
+          w->grid->mol[grid_index] = new_g;
 
           w->grid->n_occupied++;
           new_g->properties->population++;
@@ -2700,8 +2468,8 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           if (new_g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
             count_region_from_scratch((struct abstract_molecule*)new_g,NULL,1,NULL,new_g->grid->surface,new_g->t);
 
-          k = schedule_add( gsv->local_storage->timer , new_g );
-          if (k) return 1;
+          if (schedule_add( gsv->local_storage->timer, new_g))
+            return 1;
 
           success++;
           n--;
@@ -2712,41 +2480,42 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
     {
       mh = create_mem( sizeof(struct reg_rel_helper_data) , 1024 );
       if (mh==NULL) return 1;
-      rrhd_head = NULL;
-      n_rrhd=0;
+
+      struct reg_rel_helper_data *rrhd_head = NULL;
+      int n_rrhd=0;
       max_A=0;
-      for (i=0;i<rrd->n_objects;i++)
+      for (int n_object=0; n_object<rrd->n_objects; n_object++)
       {
-	if (rrd->walls_per_obj[i]==0) continue;
-        for (j=0;j<rrd->in_release[i]->nbits;j++)
+        if (rrd->walls_per_obj[n_object]==0) continue;
+        for (int n_wall=0; n_wall<rrd->in_release[n_object]->nbits; n_wall++)
         {
-          if (!get_bit(rrd->in_release[i],j)) continue;
+          if (!get_bit(rrd->in_release[n_object], n_wall)) continue;
           
-          w = rrd->owners[i]->wall_p[j];
+          w = rrd->owners[n_object]->wall_p[n_wall];
           
           if (w->grid==NULL)
           {
-            k = create_grid(w,NULL);
-            if (k) return 1;
+            if (create_grid(w,NULL))
+              return 1;
           }
           else if (w->grid->n_occupied == w->grid->n_tiles) continue;
           
           A = w->area / (w->grid->n_tiles);
           
-          for (k=0;k<w->grid->n_tiles;k++)
+          for (unsigned int n_tile=0; n_tile<w->grid->n_tiles; n_tile++)
           {
-            if (w->grid->mol[k]==NULL && !(rrd->refinement && !grid_release_check(rrd,i,j,k,NULL)))
+            if (w->grid->mol[n_tile]==NULL && !(rrd->refinement && !grid_release_check(rrd, n_object, n_wall, n_tile, NULL)))
             {
-              p = mem_get(mh);
-              if (p==NULL) return 1;
-              
-              p->next = rrhd_head;
-              p->grid = w->grid;
-              p->index = k;
-              p->my_area = A;
+              struct reg_rel_helper_data *new_rrd = CHECKED_MEM_GET_NODIE(mh, "release region helper data");
+              if (new_rrd == NULL) return 1;
+
+              new_rrd->next = rrhd_head;
+              new_rrd->grid = w->grid;
+              new_rrd->index = n_tile;
+              new_rrd->my_area = A;
               max_A += A;
               
-              rrhd_head = p;
+              rrhd_head = new_rrd;
               n_rrhd++;
             }
           }
@@ -2754,24 +2523,21 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
       }
       
       
-      for (p=rrhd_head ; p!=NULL && n>0 ; p=p->next)
+      for (struct reg_rel_helper_data *this_rrd = rrhd_head; this_rrd != NULL && n>0; this_rrd = this_rrd->next)
       {
-        if (n>=n_rrhd || rng_dbl(world->rng)<(p->my_area/max_A)*((double)n))
+        if (n>=n_rrhd || rng_dbl(world->rng)<(this_rrd->my_area/max_A)*((double)n))
         {
-          if((n < n_rrhd) && (world->notify->final_summary == NOTIFY_FULL)){
-               world->random_number_use++;
-          }
           struct vector2 s_pos;
-          if (world->randomize_gmol_pos) grid2uv_random(p->grid,p->index,&s_pos);
-          else grid2uv(p->grid,p->index,&s_pos);
-          uv2xyz(&s_pos, p->grid->surface, &pos3d);
+          if (world->randomize_gmol_pos) grid2uv_random(this_rrd->grid,this_rrd->index,&s_pos);
+          else grid2uv(this_rrd->grid,this_rrd->index,&s_pos);
+          uv2xyz(&s_pos, this_rrd->grid->surface, &pos3d);
           gsv = find_subvolume(&pos3d, gsv);
 
-          new_g = (struct grid_molecule*)mem_get( gsv->local_storage->gmol );
+          new_g = (struct grid_molecule*)CHECKED_MEM_GET( gsv->local_storage->gmol, "grid molecule" );
           if (new_g==NULL) return 1;
           memcpy(new_g,g,sizeof(struct grid_molecule));
-          new_g->birthplace = p->grid->subvol->local_storage->gmol;
-          new_g->grid_index = p->index;
+          new_g->birthplace = this_rrd->grid->subvol->local_storage->gmol;
+          new_g->grid_index = this_rrd->index;
           new_g->s_pos.u = s_pos.u;
           new_g->s_pos.v = s_pos.v;
 	  
@@ -2779,28 +2545,24 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
 	  else if (rso->orientation<0) new_g->orient=-1;
 	  else{ 
             new_g->orient = (rng_uint(world->rng)&1)?1:-1;
-            if(world->notify->final_summary == NOTIFY_FULL)
-            {
-               world->random_number_use++;
-            }
 	  }
-          new_g->grid = p->grid;
+          new_g->grid = this_rrd->grid;
           
-          p->grid->mol[ p->index ] = new_g;
+          this_rrd->grid->mol[ this_rrd->index ] = new_g;
 
-          p->grid->n_occupied++;
+          this_rrd->grid->n_occupied++;
           new_g->properties->population++;
           if ((new_g->properties->flags&COUNT_ENCLOSED) != 0) new_g->flags |= COUNT_ME;
           if (new_g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
             count_region_from_scratch((struct abstract_molecule*)new_g,NULL,1,NULL,NULL,new_g->t);
 
-          h = schedule_add( gsv->local_storage->timer , new_g );
-          if (h) return 1;
+          if (schedule_add(gsv->local_storage->timer, new_g))
+            return 1;
           
           n--;
           n_rrhd--;
         }
-        max_A -= p->my_area;
+        max_A -= this_rrd->my_area;
       }
       
       delete_mem(mh);
@@ -2813,12 +2575,14 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
             break;
 
           case WARN_WARN:
-            fprintf(world->err_file,"Warning: could not release %d of %s (surface full)\n",n,g->properties->sym->name);
+            mcell_warn("Could not release %d of %s (surface full).", n, g->properties->sym->name);
             break;
 
           case WARN_ERROR:
-            fprintf(world->err_file,"Error: could not release %d of %s (surface full)\n",n,g->properties->sym->name);
+            mcell_error("Could not release %d of %s (surface full).", n, g->properties->sym->name);
             return 1;
+
+          default: UNHANDLED_CASE(world->notify->mol_placement_failure);
         }
         break;
       }

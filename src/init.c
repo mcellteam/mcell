@@ -1,3 +1,5 @@
+#include <assert.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,6 +18,7 @@
 #endif
 
 #include "version_info.h"
+#include "logging.h"
 #include "rng.h"
 #include "mcell_structs.h"
 #include "strfunc.h"
@@ -34,25 +37,25 @@
 #include "init.h"
 #include "mdlparse_aux.h"
 
-#ifdef DEBUG
-#define no_printf printf
-#endif
-
 extern struct volume *world;
 
 /* Initialize the surface macromolecules on a given object */
 static int init_complex_effectors(struct object *objp, struct region_list *head);
 
+/* Initialize the visualization output (frame_data_lists). */
+static int init_viz_output(void);
+
+static int compute_bb(struct object *objp, double (*im)[4]);
+static int compute_bb_release_site(struct object *objp, double (*im)[4]);
+static int compute_bb_polygon_object(struct object *objp, double (*im)[4]);
+
 #define MICROSEC_PER_YEAR 365.25*86400.0*1e6
 
 /* Sets default notification values */
-int init_notifications()
+int init_notifications(void)
 {
-  world->notify = (struct notifications*)malloc(sizeof(struct notifications));
-  if (world->notify==NULL) {
-     fprintf(world->err_file, "File '%s', Line  %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-     return 1;
-  }
+  world->notify = CHECKED_MALLOC_STRUCT(struct notifications,
+                                        "notification states");
  
   /* Notifications */
   if (world->quiet_flag)
@@ -64,13 +67,16 @@ int init_notifications()
     world->notify->reaction_prob_notify = 0.0;
     world->notify->partition_location = NOTIFY_NONE;
     world->notify->box_triangulation = NOTIFY_NONE;
-    world->notify->custom_iterations = NOTIFY_NONE;
-    world->notify->custom_iteration_value = 0;  /* Ignored unless NOTIFY_CUSTOM set */
+    world->notify->iteration_report = NOTIFY_NONE;
+    world->notify->custom_iteration_value = 0;
     world->notify->release_events = NOTIFY_NONE;
     world->notify->file_writes = NOTIFY_NONE;
     world->notify->final_summary = NOTIFY_NONE;
     world->notify->throughput_report = NOTIFY_NONE;
     world->notify->checkpoint_report = NOTIFY_NONE;
+    world->notify->reaction_output_report = NOTIFY_NONE;
+    world->notify->volume_output_report = NOTIFY_NONE;
+    world->notify->viz_output_report = NOTIFY_NONE;
   }
   else
   {
@@ -81,13 +87,16 @@ int init_notifications()
     world->notify->reaction_prob_notify = 0.0;
     world->notify->partition_location = NOTIFY_NONE;
     world->notify->box_triangulation = NOTIFY_NONE;
-    world->notify->custom_iterations = NOTIFY_FULL;
-    world->notify->custom_iteration_value = 0;  /* Ignored unless NOTIFY_CUSTOM set */
+    world->notify->iteration_report = NOTIFY_FULL;
+    world->notify->custom_iteration_value = 0;
     world->notify->release_events = NOTIFY_FULL;
     world->notify->file_writes = NOTIFY_NONE;
     world->notify->final_summary = NOTIFY_FULL;
     world->notify->throughput_report = NOTIFY_FULL;
     world->notify->checkpoint_report = NOTIFY_FULL;
+    world->notify->reaction_output_report = NOTIFY_NONE;
+    world->notify->volume_output_report = NOTIFY_NONE;
+    world->notify->viz_output_report = NOTIFY_NONE;
   }
   /* Warnings */
   world->notify->neg_diffusion = WARN_WARN;
@@ -108,9 +117,8 @@ int init_notifications()
   world->notify->mol_placement_failure = WARN_WARN;
   world->notify->invalid_output_step_time = WARN_WARN;
   
-  if (world->log_freq!=-1) /* User set this */
+  if (world->log_freq != 0  &&  world->log_freq != ULONG_MAX) /* User set this */
   {
-    world->notify->custom_iterations = NOTIFY_CUSTOM;
     world->notify->custom_iteration_value = world->log_freq;
   }
 
@@ -126,10 +134,8 @@ static void init_volume_data_output(struct volume *wrld)
   struct volume_output_item *vo, *vonext;
 
   wrld->volume_output_scheduler = create_scheduler(1.0, 100.0, 100, wrld->current_start_real_time / wrld->time_unit);
-  if (wrld->volume_output_scheduler == NULL) {
-    fprintf(wrld->err_file,"File '%s', Line %ld: Out of memory while creating volume_output_scheduler.\n", __FILE__, (long)__LINE__);
-    exit(EXIT_FAILURE);
-  }
+  if (wrld->volume_output_scheduler == NULL)
+    mcell_allocfailed("Failed to create scheduler for volume output data.");
 
   double r_time_unit = 1.0 / world->time_unit;
   for (vo = wrld->volume_output_head; vo != NULL; vo = vonext)
@@ -174,10 +180,8 @@ static void init_volume_data_output(struct volume *wrld)
       ++ vo->next_time;
     }
 
-    if (schedule_add(world->volume_output_scheduler, vo)) {
-      fprintf(world->err_file,"File %s, Line %ld: Out of memory while setting up volume output.\n", __FILE__, (long)__LINE__);
-      exit(EXIT_FAILURE);
-    }
+    if (schedule_add(world->volume_output_scheduler, vo))
+      mcell_allocfailed("Failed to add item to schedule for volume output.");
   }
 }
 
@@ -194,7 +198,6 @@ static void init_volume_data_output(struct volume *wrld)
  */
 int init_sim(void)
 {
-  FILE *log_file, *file;
   struct sym_table *gp;
   struct output_block *obp,*obpn;
   struct output_set *set;
@@ -204,15 +207,11 @@ int init_sim(void)
                              (participants in the reactions
                               between 3D molecules) in the simulation */
 
-  log_file=world->log_file;
 #ifdef KELP
   if (world->procnum == 0) {
 #endif
     if (world->notify->progress_report != NOTIFY_NONE)
-    {
-      fprintf(log_file,"MCell initializing simulation...\n");
-      fflush(log_file);
-    }
+      mcell_log("MCell initializing simulation...");
 #ifdef KELP
   }
 #endif
@@ -233,9 +232,7 @@ int init_sim(void)
 
   /*world->chkpt_init=1; */  /* set in the main() */
   world->chkpt_flag=0;
-  world->molecule_prefix_name=NULL;
-  world->file_prefix_name=NULL;
-  world->random_number_use=0;
+  world->viz_blocks=NULL;
   world->ray_voxel_tests=0;
   world->ray_polygon_tests=0;
   world->ray_polygon_colls=0;
@@ -276,9 +273,12 @@ int init_sim(void)
   world->y_fineparts = NULL;
   world->z_fineparts = NULL;
   world->n_fineparts = 0;
+  world->mem_part_x = 14;
+  world->mem_part_y = 14;
+  world->mem_part_z = 14;
+  world->mem_part_pool = 0;
   world->complex_placement_attempts = 100;
   
-  world->viz_output_flag = 0; 
   world->use_expanded_list=1;
   world->randomize_gmol_pos=1;
   world->vacancy_search_dist2=0;
@@ -286,192 +286,122 @@ int init_sim(void)
   world->volume_reversibility=0;
   world->n_reactions = 0;
 
-  memset(&world->viz_state_info, 0, sizeof(world->viz_state_info));
-  
   world->mcell_version = mcell_version;
   
   world->clamp_list = NULL;
 
-  world->rng = malloc(sizeof(struct rng_state));
-  if (world->rng==NULL)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory, failed to allocate random number generator\n", __FILE__, (long)__LINE__);
-    exit(EXIT_FAILURE);
-  }
-  if (world->seed_seq < 1 || world->seed_seq > INT_MAX) {
-    fprintf(world->err_file,"File '%s', Line %ld: error, random sequence number not in range 1 to 2^31-1\n", __FILE__, (long)__LINE__);
-    return(1);
-  }
+  world->rng = CHECKED_MALLOC_STRUCT(struct rng_state,
+                                     "random number generator state");
+  if (world->seed_seq < 1 || world->seed_seq > INT_MAX)
+    mcell_error("Random sequence number must be in the range 1 to 2^31-1 [2147483647]");
   rng_init(world->rng,world->seed_seq);
   if (world->notify->progress_report != NOTIFY_NONE)
-  {
-    fprintf(log_file,"MCell[%d]: random sequence %d\n",world->procnum,world->seed_seq);
-    fflush(log_file);
-  }
+    mcell_log("MCell[%d]: random sequence %d",world->procnum,world->seed_seq);
 
   world->count_hashmask = COUNT_HASHMASK;
-  world->count_hash = (struct counter**)malloc(sizeof(struct counter*)*(world->count_hashmask+1));
-  if (world->count_hash == NULL)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating counter hash table\n", __FILE__, (long)__LINE__);
-    exit(EXIT_FAILURE);
-  }
+  world->count_hash = CHECKED_MALLOC_ARRAY(struct counter*,
+                                           (world->count_hashmask+1),
+                                           "counter hash table");
   for (i=0;i<=world->count_hashmask;i++) world->count_hash[i] = NULL;
   
   world->oexpr_mem = create_mem_named(sizeof(struct output_expression),128,"output expression");
   if (world->oexpr_mem==NULL)
-  {
-    fprintf(world->err_file,"Out of memory while getting ready to store output expressions\n");
-    return 1;
-  }
+    mcell_allocfailed("Failed to create memory pool for reaction data output expressions.");
   world->outp_request_mem = create_mem_named(sizeof(struct output_request),64,"output request");
   if (world->outp_request_mem==NULL)
-  {
-    fprintf(world->err_file,"Out of memory while getting ready to store lists of output commands\n");
-    return 1;
-  }
+    mcell_allocfailed("Failed to create memory pool for reaction data output commands.");
   world->counter_mem = create_mem_named(sizeof(struct counter),32,"counter");
   if (world->counter_mem==NULL)
-  {
-    fprintf(world->err_file,"Out of memory while getting ready to store reaction and molecule counts\n");
-    return 1;
-  }
+    mcell_allocfailed("Failed to create memory pool for reaction and molecule counts.");
   world->trig_request_mem = create_mem_named(sizeof(struct trigger_request),32,"trigger request");
   if (world->trig_request_mem==NULL)
-  {
-    fprintf(world->err_file,"Out of memory while getting ready to store output triggers\n");
-    return 1;
-  }
+    mcell_allocfailed("Failed to create memory pool for reaction and molecule output triggers.");
   world->magic_mem = create_mem_named(sizeof(struct magic_list),1024,"reaction-triggered release");
   if (world->magic_mem==NULL)
-  {
-    fprintf(world->err_file,"Out of memory while getting ready to store reaction-release list.\n");
-    return 1;
-  }
+    mcell_allocfailed("Failed to create memory pool for reaction-triggered release lists.");
 
-  if((world->main_sym_table=init_symtab(SYM_HASHSIZE)) == NULL){
-    fprintf(world->err_file,"File '%s', Line %ld: initialization of symbol table failed\n", __FILE__, (long)__LINE__);
-    return(1);
-  }
-	
+  if ((world->fstream_sym_table = init_symtab(1024)) == NULL)
+    mcell_allocfailed("Failed to initialize symbol table for file streams.");
+  if ((world->mol_sym_table = init_symtab(1024)) == NULL)
+    mcell_allocfailed("Failed to initialize symbol table for molecules.");
+  if ((world->rxn_sym_table = init_symtab(1024)) == NULL)
+    mcell_allocfailed("Failed to initialize symbol table for reactions.");
+  if ((world->obj_sym_table = init_symtab(1024)) == NULL)
+    mcell_allocfailed("Failed to initialize symbol table for objects.");
+  if ((world->reg_sym_table = init_symtab(1024)) == NULL)
+    mcell_allocfailed("Failed to initialize symbol table for regions.");
+  if ((world->rpat_sym_table = init_symtab(1024)) == NULL)
+    mcell_allocfailed("Failed to initialize symbol table for release patterns.");
+  if ((world->rxpn_sym_table = init_symtab(1024)) == NULL)
+    mcell_allocfailed("Failed to initialize symbol table for reaction pathways.");
 
-  if ((gp=store_sym("WORLD_OBJ",OBJ,world->main_sym_table, NULL))==NULL) {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating world root object\n", __FILE__, (long)__LINE__);
-    return(1);
-  }
-  world->root_object=(struct object *)gp->value;
-  world->root_object->object_type=META_OBJ;
-  world->root_object->last_name="";
+  if ((gp = store_sym("WORLD_OBJ", OBJ, world->obj_sym_table, NULL)) == NULL)
+    mcell_allocfailed("Failed to store the world root object in the object symbol table.");
+  world->root_object = (struct object *) gp->value;
+  world->root_object->object_type = META_OBJ;
+  world->root_object->last_name = CHECKED_STRDUP("", NULL);
 
-  if ((gp=store_sym("WORLD_INSTANCE",OBJ,world->main_sym_table, NULL))==NULL) {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating world root instance.\n", __FILE__, (long)__LINE__);
-    return(1);
-  }
-  world->root_instance=(struct object *)gp->value;
-  world->root_instance->object_type=META_OBJ;
-  world->root_instance->last_name="";
+  if ((gp = store_sym("WORLD_INSTANCE", OBJ, world->obj_sym_table, NULL)) == NULL)
+    mcell_allocfailed("Failed to store the world root instance in the object symbol table.");
+  world->root_instance = (struct object *)gp->value;
+  world->root_instance->object_type = META_OBJ;
+  world->root_instance->last_name = CHECKED_STRDUP("", NULL);
 
-  if ((gp=store_sym("DEFAULT_RELEASE_PATTERN",RPAT,world->main_sym_table, NULL))
-      ==NULL) {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating default release pattern.\n", __FILE__, (long)__LINE__);
-    return(1);
-  }
-  world->default_release_pattern=(struct release_pattern *)gp->value;
-  world->default_release_pattern->delay=0;
-  world->default_release_pattern->release_interval=FOREVER;
-  world->default_release_pattern->train_interval=FOREVER;
-  world->default_release_pattern->train_duration=FOREVER;
-  world->default_release_pattern->number_of_trains=1;
+  if ((gp = store_sym("DEFAULT_RELEASE_PATTERN", RPAT, world->rpat_sym_table, NULL)) == NULL)
+    mcell_allocfailed("Failed to store the default release pattern in the release patterns symbol table.");
+  world->default_release_pattern = (struct release_pattern *) gp->value;
+  world->default_release_pattern->delay = 0;
+  world->default_release_pattern->release_interval = FOREVER;
+  world->default_release_pattern->train_interval = FOREVER;
+  world->default_release_pattern->train_duration = FOREVER;
+  world->default_release_pattern->number_of_trains = 1;
    
-  if ((gp=store_sym("GENERIC_MOLECULE",MOL,world->main_sym_table, NULL))
-      ==NULL) {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating generic molecule.\n", __FILE__, (long)__LINE__);
-    return(1);
-  }
-  world->g_mol=(struct species *)gp->value;
+  if ((gp = store_sym("GENERIC_MOLECULE", MOL, world->mol_sym_table, NULL)) == NULL)
+    mcell_allocfailed("Failed to store the generic molecule in the molecule symbol table.");
+  world->g_mol = (struct species *) gp->value;
 
-  if ((gp=store_sym("GENERIC_SURFACE",MOL,world->main_sym_table, NULL))
-      ==NULL) {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating generic surface", __FILE__, (long)__LINE__);
-    return(1);
-  }
-  world->g_surf=(struct species *)gp->value;
-  world->g_surf->flags=IS_SURFACE;
+  if ((gp = store_sym("GENERIC_SURFACE", MOL, world->mol_sym_table, NULL)) == NULL)
+    mcell_allocfailed("Failed to store the generic surface class in the molecule symbol table.");
+  world->g_surf = (struct species *) gp->value;
+  world->g_surf->flags = IS_SURFACE;
 
   world->volume_output_head = NULL;
-
   world->output_block_head=NULL;
   world->output_request_head=NULL;
-  world->viz_obj_head=NULL;
-  world->viz_mode=-1;
-  world->rk_mode_var=NULL;
-  world->frame_data_head=NULL;
 
-  world->releaser = create_scheduler(1.0,100.0,100,0.0);
-  if(world->releaser == NULL){
-	fprintf(world->err_file, "File '%s', Line %ld: Out of memory while creating releaser.\n", __FILE__, (long)__LINE__);
-        exit(EXIT_FAILURE);
-  }
-
+  world->releaser = create_scheduler(1.0, 100.0, 100, 0.0);
+  if (world->releaser == NULL)
+    mcell_allocfailed("Failed to create release scheduler.");
 
   /* Parse the MDL file: */
   no_printf("Node %d parsing MDL file %s\n",world->procnum,world->mdl_infile_name);
-  fflush(world->err_file);
   if (mdlparse_init(world)) {
     return(1);
   }
   no_printf("Done parsing MDL file: %s\n",world->mdl_infile_name);
-  fflush(world->err_file);
+  install_emergency_output_hooks();
+  emergency_output_hook_enabled = 0;
 
-  if(world->iterations == INT_MIN){
-     fprintf( world->err_file, "Error: Total number of iterations is not specified either through the ITERATIONS keyword or through the command line option '-iterations'.\n");
-     return 1;
-  }
+  if (world->iterations == INT_MIN)
+    mcell_error("Total number of iterations is not specified either through the ITERATIONS keyword or through the command line option '-iterations'.");
 
   /* Set up the array of species */
   if (init_species())
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: error initializing species.\n", __FILE__, (long)__LINE__);
-    return(1);
-  }
+    mcell_error("Unknown error while initializing species table.");
   no_printf("Done setting up species.\n");
-
-
-  /* Visualize all molecules if asked in "mdl" file */
-  if((world->viz_mode == DREAMM_V3_MODE) || (world->viz_mode == DREAMM_V3_GROUPED_MODE))
-  {
-    if((world->viz_output_flag & VIZ_ALL_MOLECULES) != 0) {
-       struct species *sp;
-  
-      for(i = 0; i < world->n_species; i++)
-      {
-         sp = world->species_list[i];
-         if((sp->flags & IS_SURFACE) != 0) continue;
-         if(strcmp(sp->sym->name, "GENERIC_MOLECULE") == 0) continue;  
-
-         /* set viz_state to INCLUDE_OBJ for the molecule we want to visualize
-             but will not assign state value */
-         sp->viz_state = INCLUDE_OBJ;
-
-      } 
-
-    }
-  }
 
  /* If there are no 3D molecules-reactants in the simulation
     set up the"use_expanded_list" flag to zero. */
   for(i = 0; i < world->n_species; i++)
   {
-                        
-        struct	species *sp = world->species_list[i];
-        if(strcmp(sp->sym->name, "GENERIC_MOLECULE") == 0) continue;  
-        if(strcmp(sp->sym->name, "GENERIC_SURFACE") == 0) continue;  
-        
-        if((sp->flags & (CAN_MOLMOL|CAN_MOLMOLMOL)) != 0){
-		reactants_3D_present = 1;
-                break;
-        }
-                      
+    struct species *sp = world->species_list[i];
+    if (sp == world->g_mol  ||  sp == world->g_surf) continue;
+
+    if ((sp->flags & (CAN_MOLMOL|CAN_MOLMOLMOL)) != 0)
+    {
+      reactants_3D_present = 1;
+      break;
+    }
   }
 
   if(reactants_3D_present == 0){
@@ -479,84 +409,49 @@ int init_sim(void)
   }
 
 /* Instantiation Pass #1: Initialize the geometry */
-  if (init_geom()) {
-    fprintf(world->err_file,"File '%s', Line %ld: error initializing geometry.\n", __FILE__, (long)__LINE__);
-    return(1);
-  }
-  
+  if (init_geom())
+    mcell_internal_error("Unknown error while initializing world geometry.");
   no_printf("Done setting up geometry.\n");
   
 /* Instantiation Pass #2: Partition geometry */
-  if (init_partitions()) {
-    fprintf(world->err_file,"File '%s', Line %ld: error initializing partitions.\n", __FILE__, (long)__LINE__);
-    return(1);
-  }
-  
-  if (distribute_world()) {
-    fprintf(world->err_file,"File '%s', Line %ld: error moving geometry to partitions\n", __FILE__, (long)__LINE__);
-    return(1);
-  }
-  
-  if (sharpen_world()) {
-    fprintf(world->err_file,"File '%s', Line %ld: error adding edges to geometry.\n", __FILE__, (long)__LINE__);
-    return(1);
-  }
+  if (init_partitions())
+    mcell_internal_error("Unknown error while initializing partitions.");
+  if (distribute_world())
+    mcell_internal_error("Unknown error while distributing geometry among partitions.");
+  if (sharpen_world())
+    mcell_internal_error("Unknown error while adding edges to geometry.");
 
 /* Instantiation Pass #3: Initialize regions */
   if (prepare_counters())
-  {
-    fprintf(world->err_file,"File '%s' line %d: error while preparing count statements.\n",__FILE__,(int)__LINE__);
-    return 1;
-  }
-
+    mcell_internal_error("Unknown error while preparing counters for reaction data output.");
   if (init_regions())
-  {
-    fprintf(world->err_file,"File '%s' line %d: error initializing object regions.\n",__FILE__,(int)__LINE__);
-    return(1);
-  }
-  
+    mcell_internal_error("Unknown error while initializing object regions.");
   if (check_counter_geometry())
-  {
-    fprintf(world->err_file,"Count request did not have sensible geometry.\n");
-    return 1;
-  }
+    mcell_internal_error("Unknown error while validating geometry of counting regions.");
   
-  if (world->place_waypoints_flag) {
-    if (place_waypoints()) {
-      fprintf(world->err_file,"File '%s', Line %ld: error storing waypoints.\n", __FILE__, (long)__LINE__);
-      return(1);
-    }
+  if (world->place_waypoints_flag)
+  {
+    if (place_waypoints())
+      mcell_internal_error("Unknown error while placing waypoints.");
   }
   
   if (init_effectors())
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Error initializing effectors on regions.\n", __FILE__, (long)__LINE__);
-    return 1;
-  }
+    mcell_internal_error("Unknown error while placing effectors on regions.");
   
   if (init_releases())
-  {
-     if (world->place_waypoints_flag)
-     {
-         fprintf(world->err_file,"File '%s', Line %ld: Error initializing releases on regions\n", __FILE__, (long)__LINE__);
-         return 1;
-     }else{
-         fprintf(world->err_file,"File '%s', Line %ld: Error initializing releases.\n", __FILE__, (long)__LINE__);
-         return 1;
-     }
-  }
+    mcell_internal_error("Unknown error while initializing release sites.");
 
-  if (world->chkpt_infile) {
-    if ((world->chkpt_infs=fopen(world->chkpt_infile,"rb"))==NULL) {
-      world->chkpt_seq_num=1;
-    }
-    else {
-      fprintf(log_file,"MCell: reading from checkpoint file %s\n",world->chkpt_infile);
-      if(read_chkpt(world->chkpt_infs)) {
-	fprintf(world->err_file,"File '%s', Line %ld: error reading from checkpoint file %s.\n", __FILE__, (long)__LINE__, world->chkpt_infile);
-	return(1);
-      }
-      fclose(world->chkpt_infs);
+  if (world->chkpt_infile)
+  {
+    FILE *chkpt_infs = NULL;
+    if ((chkpt_infs = fopen(world->chkpt_infile,"rb")) == NULL)
+      world->chkpt_seq_num = 1;
+    else
+    {
+      mcell_log("Reading from checkpoint file '%s'.", world->chkpt_infile);
+      if (read_chkpt(chkpt_infs))
+        mcell_error("Failed to read checkpoint file '%s'.", world->chkpt_infile);
+      fclose(chkpt_infs);
     }
   }
   else {
@@ -564,20 +459,15 @@ int init_sim(void)
   }
 
   /* Initialize the frame data for the visualization and reaction output. */
-  if (init_frame_data_list(&world->frame_data_head))
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Failed to initialize viz output.\n", __FILE__, (long)__LINE__);
-    return 1;
-  }
+  if (init_viz_output())
+    mcell_internal_error("Unknown error while initializing VIZ output.");
 
   /* Initialize the volume output */
   init_volume_data_output(world);
 
   world->count_scheduler = create_scheduler(1.0,100.0,100,world->start_time);
-  if(world->count_scheduler == NULL){
-	fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating count_scheduler.\n", __FILE__, (long)__LINE__);
-        exit(EXIT_FAILURE);
-  }
+  if (world->count_scheduler == NULL)
+    mcell_allocfailed("Failed to create scheduler for reaction data output.");
 
   /* Schedule the reaction data output events */
   obp = world->output_block_head;
@@ -629,58 +519,323 @@ int init_sim(void)
         {
           if (world->chkpt_seq_num==1)
           {
-            file = fopen(set->outfile_name,"w");
+            FILE *file = fopen(set->outfile_name,"w");
             if (file==NULL)
-            {
-              fprintf(world->err_file,"Can't open output file %s\n",set->outfile_name);
-              return 1;
-            }
+              mcell_perror(errno, "Failed to open reaction data output file '%s' for writing", set->outfile_name);
             fclose(file);
           }
           else if (obp->timer_type==OUTPUT_BY_ITERATION_LIST)
           {
             if(obp->time_now == NULL) continue;
-            i = truncate_output_file(set->outfile_name,obp->t);
-            if (i)
-            {
-              fprintf(world->err_file,"Failed to prepare output file %s to receive output\n",set->outfile_name);
-              return 1;
-            }
+            if (truncate_output_file(set->outfile_name,obp->t))
+              mcell_error("Failed to prepare reaction data output file '%s' to receive output.", set->outfile_name);
           }
           else if (obp->timer_type==OUTPUT_BY_TIME_LIST)
           {
             if(obp->time_now == NULL) continue;
-            i = truncate_output_file(set->outfile_name,obp->t*world->time_unit);
-            if (i)
-            {
-              fprintf(world->err_file,"Failed to prepare output file %s to receive output\n",set->outfile_name);
-              return 1;
-            }
+            if (truncate_output_file(set->outfile_name,obp->t*world->time_unit))
+              mcell_error("Failed to prepare reaction data output file '%s' to receive output.", set->outfile_name);
           }
           else
           {
-            i = truncate_output_file(set->outfile_name,obp->t*world->time_unit);
-            if (i)
-            {
-              fprintf(world->err_file,"Failed to prepare output file %s to receive output\n",set->outfile_name);
-              return 1;
-            }
+            if (truncate_output_file(set->outfile_name,obp->t*world->time_unit))
+              mcell_error("Failed to prepare reaction data output file '%s' to receive output.", set->outfile_name);
           }
         }
       }
     
     if (schedule_add(world->count_scheduler , obp))
-    {
-      fprintf(world->err_file,"File %s, Line %ld: Out of memory while setting up output.\n", __FILE__, (long)__LINE__);
-      return 1;
-    }
+      mcell_allocfailed("Failed to add reaction data output item to scheduler.");
     obp = obpn;
   }
 
   no_printf("Done initializing simulation\n");
-  fflush(log_file);
-  return(0);
+  return 0;
 }
+
+static void set_viz_state_include(struct viz_output_block *vizblk,
+                                  struct object *objp)
+{
+  struct sym_table *symp;
+  struct viz_child *vcp;
+  switch (objp->object_type)
+  {
+    case META_OBJ:
+      for (struct object *child_objp = objp->first_child;
+           child_objp != NULL;
+           child_objp=child_objp->next)
+        set_viz_state_include(vizblk, child_objp);
+      break;
+
+    case BOX_OBJ:
+    case POLY_OBJ:
+      symp = retrieve_sym(objp->sym->name, vizblk->viz_children);
+      if (symp == NULL)
+      {
+        vcp = CHECKED_MALLOC_STRUCT(struct viz_child, "visualization child object");
+        vcp->obj = objp;
+        vcp->viz_state = NULL;
+        vcp->next = NULL;
+        vcp->parent = NULL;
+        vcp->children = NULL;
+        if (store_sym(objp->sym->name, VIZ_CHILD, vizblk->viz_children, vcp) == NULL)
+          mcell_allocfailed("Failed to store visualization child object in the visualization objects table.");
+      }
+      else
+        vcp = (struct viz_child *) symp->value;
+
+      if (vcp->viz_state == NULL)
+      {
+        vcp->viz_state = CHECKED_MALLOC_ARRAY(int, objp->n_walls,
+                                              "visualization state array");
+      }
+      for (int i=0;i<objp->n_walls;i++)
+        vcp->viz_state[i] = INCLUDE_OBJ;
+      break;
+
+    case REL_SITE_OBJ:
+      /* just do nothing */
+      break;
+
+    default:
+      mcell_internal_error("Invalid object type (%d) while setting viz state.", objp->object_type);
+  }
+}
+
+static void set_viz_all_meshes(struct viz_output_block *vizblk)
+{
+  set_viz_state_include(vizblk, world->root_instance);
+}
+
+static void set_viz_all_molecules(struct viz_output_block *vizblk)
+{
+  for (int i = 0; i < world->n_species; i++)
+  {
+    struct species *sp = world->species_list[i];
+    if (sp == world->g_mol) continue;
+    if (sp->flags & IS_SURFACE) continue;
+    if (vizblk->species_viz_states[i] != EXCLUDE_OBJ) continue;
+
+    /* set viz_state to INCLUDE_OBJ for the molecule we want to visualize
+       but will not assign state value */
+    vizblk->species_viz_states[i] = INCLUDE_OBJ;
+  }
+}
+
+static int count_viz_children(struct viz_child *vcp)
+{
+  int count = 0;
+
+  for (; vcp != NULL; vcp = vcp->next)
+  {
+    if (vcp->children)
+      count += count_viz_children(vcp->children);
+    if (vcp->viz_state != NULL)
+      ++ count;
+  }
+
+  return count;
+}
+
+static void populate_viz_children_array(struct viz_output_block *vizblk,
+                                        struct viz_dx_obj *viz,
+                                        struct viz_child *vcp,
+                                        int *pos)
+{
+  for (; vcp != NULL; vcp = vcp->next)
+  {
+    if (vcp->children)
+      populate_viz_children_array(vizblk, viz, vcp->children, pos);
+    if (vcp->viz_state != NULL)
+      viz->actual_objects[(*pos) ++] = vcp;
+  }
+}
+
+static void convert_viz_children_to_array(struct viz_output_block *vizblk,
+                                          struct viz_dx_obj *viz)
+{
+  int count = count_viz_children(viz->viz_child_head);
+  if (count == 0)
+    viz->actual_objects = NULL;
+  else
+    viz->actual_objects = CHECKED_MALLOC_ARRAY(struct viz_child *,
+                                               count,
+                                               "visualization children array");
+  viz->n_actual_objects = count;
+
+  /* Copy items into the array. */
+  int pos = 0;
+  populate_viz_children_array(vizblk, viz, viz->viz_child_head, &pos);
+  assert(pos == count);
+
+  /* Clear the tree. */
+  viz->viz_child_head = NULL;
+}
+
+static void free_extra_viz_children(struct viz_output_block *vizblk)
+{
+  for (int i=0; i<vizblk->viz_children->n_bins; ++ i)
+  {
+    for (struct sym_table *sym = vizblk->viz_children->entries[i];
+         sym != NULL;
+         sym = sym->next)
+    {
+      struct viz_child *vcp = (struct viz_child *) sym->value;
+      vcp->next = NULL;
+      vcp->parent = NULL;
+      vcp->children = NULL;
+      if (vcp->viz_state == NULL)
+        free(vcp);
+    }
+  }
+
+  destroy_symtab(vizblk->viz_children);
+  vizblk->viz_children = NULL;
+}
+
+static int viz_child_compare(void const *vc1, void const *vc2)
+{
+  struct viz_child const *c1 = (struct viz_child const *) vc1;
+  struct viz_child const *c2 = (struct viz_child const *) vc2;
+  if (c1->obj < c2->obj)
+    return -1;
+  else if (c1->obj > c2->obj)
+    return 1;
+  else
+    return 0;
+}
+
+static void convert_viz_objects_to_array(struct viz_output_block *vizblk)
+{
+  int count = 0;
+  for (int i=0; i<vizblk->viz_children->n_bins; ++ i)
+  {
+    for (struct sym_table *sym = vizblk->viz_children->entries[i];
+         sym != NULL;
+         sym = sym->next)
+    {
+      struct viz_child *vcp = (struct viz_child *) sym->value;
+      if (vcp->viz_state)
+        ++ count;
+    }
+  }
+
+  /* Stash info in the visualization block. */
+  vizblk->n_dreamm_objects = count;
+  vizblk->dreamm_object_info = CHECKED_MALLOC_ARRAY(struct viz_child *,
+                                                    count,
+                                                    "DREAMM mesh objects");
+  vizblk->dreamm_objects = CHECKED_MALLOC_ARRAY(struct object *,
+                                                count,
+                                                "DREAMM mesh objects");
+
+  /* Now copy data in, unsorted. */
+  count = 0;
+  for (int i=0; i<vizblk->viz_children->n_bins; ++ i)
+  {
+    for (struct sym_table *sym = vizblk->viz_children->entries[i];
+         sym != NULL;
+         sym = sym->next)
+    {
+      struct viz_child *vcp = (struct viz_child *) sym->value;
+      if (vcp->viz_state)
+        vizblk->dreamm_object_info[count ++] = vcp;
+    }
+  }
+  assert(count == vizblk->n_dreamm_objects);
+
+  /* Sort the data. */
+  qsort(vizblk->dreamm_object_info,
+        vizblk->n_dreamm_objects,
+        sizeof(struct viz_child *),
+        viz_child_compare);
+
+  /* Copy out just the objects. */
+  for (int i=0; i<count; ++i)
+    vizblk->dreamm_objects[i] = vizblk->dreamm_object_info[i]->obj;
+}
+
+static void expand_viz_children(struct viz_output_block *vizblk)
+{
+  switch (vizblk->viz_mode)
+  {
+    case DX_MODE:
+      /* Convert viz_child tables to viz_child pointer array on each viz_dx_obj. */
+      for (struct viz_dx_obj *viz = vizblk->dx_obj_head; viz != NULL; viz = viz->next)
+        convert_viz_children_to_array(vizblk, viz);
+      free_extra_viz_children(vizblk);
+      break;
+
+    case DREAMM_V3_GROUPED_MODE:
+    case DREAMM_V3_MODE:
+      convert_viz_objects_to_array(vizblk);
+      free_extra_viz_children(vizblk);
+      break;
+
+    default:
+      /* Do nothing. */
+      break;
+  }
+}
+
+static int init_viz_species_states(struct viz_output_block *vizblk)
+{
+  vizblk->species_viz_states = CHECKED_MALLOC_ARRAY(int,
+                                                    world->n_species,
+                                                    "species viz states array");
+  if (vizblk->species_viz_states == NULL)
+    return 1;
+  for (int i=0; i<world->n_species; ++i)
+    vizblk->species_viz_states[i] = EXCLUDE_OBJ;
+
+  int n_entries = vizblk->parser_species_viz_states.num_items;
+  int n_bins = vizblk->parser_species_viz_states.table_size;
+  for (int i=0; n_entries > 0  &&  i < n_bins; ++i)
+  {
+    struct species *specp =
+          (struct species *) (vizblk->parser_species_viz_states.keys[i]);
+    if (specp != NULL)
+    {
+      vizblk->species_viz_states[specp->species_id] =
+            (int) (intptr_t) vizblk->parser_species_viz_states.values[i];
+      -- n_entries;
+    }
+  }
+
+  pointer_hash_destroy(&vizblk->parser_species_viz_states);
+  return 0;
+}
+
+static int init_viz_output(void)
+{
+  for (struct viz_output_block *vizblk = world->viz_blocks;
+       vizblk != NULL;
+       vizblk = vizblk->next)
+  {
+    /* Copy species states into an array. */
+    if (init_viz_species_states(vizblk))
+      return 1;
+
+    /* If ALL_MESHES or ALL_MOLECULES were requested, mark them all for inclusion. */
+    if (vizblk->viz_mode != DX_MODE  &&  (vizblk->viz_output_flag & VIZ_ALL_MESHES))
+      set_viz_all_meshes(vizblk);
+    if (vizblk->viz_mode != DX_MODE  &&  (vizblk->viz_output_flag & VIZ_ALL_MOLECULES))
+      set_viz_all_molecules(vizblk);
+
+    /* Copy viz children to the appropriate array. */
+    expand_viz_children(vizblk);
+
+    /* Initialize each data frame in this block. */
+    if (init_frame_data_list(vizblk))
+    {
+      mcell_internal_error("Unknown error while initializing VIZ output.");
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
 
 
 /********************************************************************
@@ -698,24 +853,15 @@ int init_species(void)
   
   world->speed_limit = 0;
   
-  for (i=0;i<SYM_HASHSIZE;i++)
-  {
-    for (gp = world->main_sym_table[i] ; gp != NULL ; gp = gp->next)
-    {    
-      if (gp->sym_type==MOL) count++;
-    }
-  }
-  
+  count = world->mol_sym_table->n_entries;
   world->n_species = count;
-  if((world->species_list = (struct species**)malloc(sizeof(struct species*)*world->n_species)) == NULL)
-  {
-	fprintf(world->err_file, "File '%s', Line %ld: Out of memory during species initialization.\n", __FILE__, (long)__LINE__);
-        exit(EXIT_FAILURE);
-  }
+  world->species_list = CHECKED_MALLOC_ARRAY(struct species*,
+                                             world->n_species,
+                                             "species table");
   count = 0;
-  for (i=0;i<SYM_HASHSIZE;i++)
+  for (i=0;i<world->mol_sym_table->n_bins;i++)
   {
-    for (gp = world->main_sym_table[i] ; gp != NULL ; gp = gp->next)
+    for (gp = world->mol_sym_table->entries[i] ; gp != NULL ; gp = gp->next)
     {    
       if (gp->sym_type==MOL)
       {
@@ -726,10 +872,7 @@ int init_species(void)
         world->species_list[count]->population = 0;
 	world->species_list[count]->n_deceased = 0;
 	world->species_list[count]->cum_lifetime = 0;
-        if(world->species_list[count]->viz_state < 0){
-        	world->species_list[count]->viz_state = EXCLUDE_OBJ;
-        }
-        if ( (s->flags & NOT_FREE) == 0 )
+        if ((s->flags & NOT_FREE) == 0)
         {
           speed = 6.0*s->space_step/sqrt(MY_PI);
           if (speed > world->speed_limit) world->speed_limit = speed;
@@ -784,33 +927,39 @@ int init_species(void)
     clear that they would gain us much.
 
     In:  int nsubvols - how many subvolumes will share this storage
-    Out: A freshly allocated storage with initialized memory pools, or NULL if
-         memory allocation fails.  Program state remains valid upon failure of
-         this function.
+    Out: A freshly allocated storage with initialized memory pools.
  *******************************************************************/
 static struct storage *create_storage(int nsubvols)
 {
   struct storage *shared_mem = NULL;
-  if((shared_mem = (struct storage*)malloc(sizeof(struct storage))) == NULL)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: out of memory while initializing partitions.\n", __FILE__, (long)__LINE__);
-    return NULL;
-  }
+  shared_mem = CHECKED_MALLOC_STRUCT(struct storage,
+                                     "memory storage partition");
   memset(shared_mem, 0, sizeof(struct storage));
 
+  if (world->mem_part_pool != 0)
+    nsubvols = world->mem_part_pool;
   if (nsubvols < 8) nsubvols = 8;
   if (nsubvols > 4096) nsubvols = 4096;
   /* We should tune the algorithm for selecting allocation block sizes.  */
   /* XXX: Round up to power of 2?  Shouldn't matter, I think. */
-  if ((shared_mem->list  = create_mem_named(sizeof(struct wall_list),nsubvols,"wall list")) == NULL) goto failure;
-  if ((shared_mem->mol   = create_mem_named(sizeof(struct volume_molecule),nsubvols,"vol mol")) == NULL) goto failure;
-  if ((shared_mem->gmol  = create_mem_named(sizeof(struct grid_molecule),nsubvols,"grid mol")) == NULL) goto failure;
-  if ((shared_mem->face  = create_mem_named(sizeof(struct wall),nsubvols,"wall")) == NULL) goto failure;
-  if ((shared_mem->join  = create_mem_named(sizeof(struct edge),nsubvols,"edge")) == NULL) goto failure;
-  if ((shared_mem->tree  = create_mem_named(sizeof(struct vertex_tree),nsubvols,"vertex tree")) == NULL) goto failure;
-  if ((shared_mem->grids = create_mem_named(sizeof(struct surface_grid),nsubvols,"surface grid")) == NULL) goto failure;
-  if ((shared_mem->regl  = create_mem_named(sizeof(struct region_list),nsubvols,"region list")) == NULL) goto failure;
-  if ((shared_mem->pslv  = create_mem_named(sizeof(struct per_species_list),32,"per species list")) == NULL) goto failure;
+  if ((shared_mem->list  = create_mem_named(sizeof(struct wall_list),nsubvols,"wall list")) == NULL)
+    mcell_allocfailed("Failed to create memory pool for wall list.");
+  if ((shared_mem->mol   = create_mem_named(sizeof(struct volume_molecule),nsubvols,"vol mol")) == NULL)
+    mcell_allocfailed("Failed to create memory pool for volume molecules.");
+  if ((shared_mem->gmol  = create_mem_named(sizeof(struct grid_molecule),nsubvols,"grid mol")) == NULL)
+    mcell_allocfailed("Failed to create memory pool for grid molecules.");
+  if ((shared_mem->face  = create_mem_named(sizeof(struct wall),nsubvols,"wall")) == NULL)
+    mcell_allocfailed("Failed to create memory pool for walls.");
+  if ((shared_mem->join  = create_mem_named(sizeof(struct edge),nsubvols,"edge")) == NULL)
+    mcell_allocfailed("Failed to create memory pool for edges.");
+  if ((shared_mem->tree  = create_mem_named(sizeof(struct vertex_tree),nsubvols,"vertex tree")) == NULL)
+    mcell_allocfailed("Failed to create memory pool for the vertex tree.");
+  if ((shared_mem->grids = create_mem_named(sizeof(struct surface_grid),nsubvols,"surface grid")) == NULL)
+    mcell_allocfailed("Failed to create memory pool for surface grids.");
+  if ((shared_mem->regl  = create_mem_named(sizeof(struct region_list),nsubvols,"region list")) == NULL)
+    mcell_allocfailed("Failed to create memory pool for region lists.");
+  if ((shared_mem->pslv  = create_mem_named(sizeof(struct per_species_list),32,"per species list")) == NULL)
+    mcell_allocfailed("Failed to create memory pool for per-species molecule lists.");
   shared_mem->coll = world->coll_mem;
   shared_mem->sp_coll = world->sp_coll_mem;
   shared_mem->tri_coll = world->tri_coll_mem;
@@ -819,7 +968,7 @@ static struct storage *create_storage(int nsubvols)
   if (world->chkpt_init)
   {
     if ((shared_mem->timer = create_scheduler(1.0,100.0,100,0.0)) == NULL)
-      goto failure;
+      mcell_allocfailed("Failed to create molecule scheduler.");
     shared_mem->current_time = 0.0;
   }
 
@@ -831,24 +980,40 @@ static struct storage *create_storage(int nsubvols)
   }
 
   return shared_mem;
+}
 
-failure:
-  if (shared_mem)
+static void sanity_check_memory_subdivision(void)
+{
+  if (world->mem_part_x <= 0)
   {
-    if (shared_mem->timer) delete_scheduler(shared_mem->timer);
-    if (shared_mem->list)  delete_mem(shared_mem->list);
-    if (shared_mem->mol)   delete_mem(shared_mem->mol);
-    if (shared_mem->gmol)  delete_mem(shared_mem->gmol);
-    if (shared_mem->face)  delete_mem(shared_mem->face);
-    if (shared_mem->join)  delete_mem(shared_mem->join);
-    if (shared_mem->tree)  delete_mem(shared_mem->tree);
-    if (shared_mem->grids) delete_mem(shared_mem->grids);
-    if (shared_mem->regl)  delete_mem(shared_mem->regl);
-    free(shared_mem);
+    if (world->mem_part_x < 0)
+    {
+      mcell_warn("X-axis memory partition bin size set to a negative value.  Setting to default value of 14.");
+      world->mem_part_x = 14;
+    }
+    else
+      world->mem_part_x = 10000000;
   }
-
-  fprintf(world->err_file,"File '%s', Line %ld: out of memory while initializing partitions.\n", __FILE__, (long)__LINE__);
-  return NULL;
+  if (world->mem_part_y <= 0)
+  {
+    if (world->mem_part_y < 0)
+    {
+      mcell_warn("Y-axis memory partition bin size set to a negative value.  Setting to default value of 14.");
+      world->mem_part_y = 14;
+    }
+    else
+      world->mem_part_y = 10000000;
+  }
+  if (world->mem_part_z <= 0)
+  {
+    if (world->mem_part_z < 0)
+    {
+      mcell_warn("Z-axis memory partition bin size set to a negative value.  Setting to default value of 14.");
+      world->mem_part_z = 14;
+    }
+    else
+      world->mem_part_z = 10000000;
+  }
 }
 
 /********************************************************************
@@ -905,67 +1070,39 @@ int init_partitions(void)
   
   /* Initialize dummy waypoints (why do we do this?) */
   world->n_waypoints = 1;
-  if((world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint*)*world->n_waypoints)) == NULL)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: out of memory while initializing partitions.\n", __FILE__, (long)__LINE__);
-    exit(EXIT_FAILURE);
-  }
+  world->waypoints = CHECKED_MALLOC_ARRAY(struct waypoint,
+                                          world->n_waypoints,
+                                          "dummy waypoint");
 
   /* Allocate the subvolumes */
   world->n_subvols = (world->nz_parts-1) * (world->ny_parts-1) * (world->nx_parts-1);
   if (world->notify->progress_report!=NOTIFY_NONE)
-    fprintf(world->log_file,"Creating %d subvolumes (%d,%d,%d per axis)\n",world->n_subvols,world->nx_parts-1,world->ny_parts-1,world->nz_parts-1);
-  if ((world->subvol = (struct subvolume*)malloc(sizeof(struct subvolume)*world->n_subvols)) == NULL)
-  {
-        fprintf(world->err_file,"File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        int i = emergency_output();
-        fprintf(world->err_file,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-  }
+    mcell_log("Creating %d subvolumes (%d,%d,%d per axis).", world->n_subvols, world->nx_parts-1, world->ny_parts-1, world->nz_parts-1);
+  world->subvol = CHECKED_MALLOC_ARRAY(struct subvolume, world->n_subvols, "spatial subvolumes");
 
   /* Decide how fine-grained to make the memory subdivisions */
-  int subdivisions_per_storage = 0;
-  char *env = getenv("SUBDIVISIONS_PER_STORAGE");
-  if (env != NULL)
-    subdivisions_per_storage = atoi(env);
-  if (subdivisions_per_storage == 0)
-    subdivisions_per_storage = 14;
+  sanity_check_memory_subdivision();
 
   /* Allocate the data structures which are shared between storages */
   if ((world->coll_mem  = create_mem_named(sizeof(struct collision),128,"collision")) == NULL)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-    exit(EXIT_FAILURE);
-  }
+    mcell_allocfailed("Failed to create memory pool for collisions.");
   if ((world->sp_coll_mem  = create_mem_named(sizeof(struct sp_collision),128,"sp collision")) == NULL)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-    exit(EXIT_FAILURE);
-  }
+    mcell_allocfailed("Failed to create memory pool for trimolecular-pathway collisions.");
   if ((world->tri_coll_mem  = create_mem_named(sizeof(struct tri_collision),128,"tri collision")) == NULL)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-    exit(EXIT_FAILURE);
-  }
+    mcell_allocfailed("Failed to create memory pool for trimolecular collisions.");
   if ((world->exdv_mem  = create_mem_named(sizeof(struct exd_vertex),64,"exact disk vertex")) == NULL)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-    exit(EXIT_FAILURE);
-  }
+    mcell_allocfailed("Failed to create memory pool for exact disk calculation vertices.");
 
   /* How many storage subdivisions along each axis? */
-  int nx = (world->nx_parts + (subdivisions_per_storage) - 2) / (subdivisions_per_storage);
-  int ny = (world->ny_parts + (subdivisions_per_storage) - 2) / (subdivisions_per_storage);
-  int nz = (world->nz_parts + (subdivisions_per_storage) - 2) / (subdivisions_per_storage);
+  int nx = (world->nx_parts + (world->mem_part_x) - 2) / (world->mem_part_x);
+  int ny = (world->ny_parts + (world->mem_part_y) - 2) / (world->mem_part_y);
+  int nz = (world->nz_parts + (world->mem_part_z) - 2) / (world->mem_part_z);
+  if (world->notify->progress_report!=NOTIFY_NONE)
+    mcell_log("Creating %d memory partitions (%d,%d,%d per axis).", nx*ny*nz, nx, ny, nz);
 
   /* Create memory pool for storages */
-  if((world->storage_allocator = create_mem_named(sizeof(struct storage_list),nx*ny*nz,"storage allocator")) == NULL)
-  {
-	fprintf(world->err_file,"File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        int i = emergency_output();
-	fprintf(world->err_file,"Fatal error: out of memory while partition initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-  }
+  if ((world->storage_allocator = create_mem_named(sizeof(struct storage_list),nx*ny*nz,"storage allocator")) == NULL)
+    mcell_allocfailed("Failed to create memory pool for storage list.");
 
   /* Allocate the storages */
   struct storage *shared_mem[nx*ny*nz];
@@ -973,13 +1110,13 @@ int init_partitions(void)
   for (i=0; i<nx*ny*nz; ++i)
   {
     /* Determine the number of subvolumes included in this subdivision */
-    int xd = subdivisions_per_storage, yd = subdivisions_per_storage, zd = subdivisions_per_storage;
+    int xd = world->mem_part_x, yd = world->mem_part_y, zd = world->mem_part_z;
     if (cx == nx-1)
-      xd = (world->nx_parts - 1) % subdivisions_per_storage;
+      xd = (world->nx_parts - 1) % world->mem_part_x;
     if (cy == ny-1)
-      yd = (world->ny_parts - 1) % subdivisions_per_storage;
+      yd = (world->ny_parts - 1) % world->mem_part_y;
     if (cz == nz-1)
-      zd = (world->nz_parts - 1) % subdivisions_per_storage;
+      zd = (world->nz_parts - 1) % world->mem_part_z;
     if (++ cx == nx)
     {
       cx = 0;
@@ -992,15 +1129,10 @@ int init_partitions(void)
 
     /* Allocate this storage */
     if ((shared_mem[i] = create_storage(xd*yd*zd)) == NULL)
-      exit(EXIT_FAILURE);
+      mcell_internal_error("Unknown error while creating a storage.");
 
     /* Add to the storage list */
-    struct storage_list *l = (struct storage_list*)mem_get(world->storage_allocator);
-    if (l == NULL)
-    {
-      fprintf(world->err_file,"File '%s', Line %ld: Out of memory.\n", __FILE__, (long)__LINE__);
-      exit(EXIT_FAILURE);
-    }
+    struct storage_list *l = (struct storage_list*) CHECKED_MEM_GET(world->storage_allocator, "storage list item");
     l->next = world->storage_head;
     l->store = shared_mem[i];
     world->storage_head = l;
@@ -1059,7 +1191,7 @@ int init_partitions(void)
        */
 
     /* Bind this subvolume to the appropriate storage */
-    int shidx = (i / (subdivisions_per_storage)) + nx * (j / (subdivisions_per_storage) + ny * (k / (subdivisions_per_storage)));
+    int shidx = (i / (world->mem_part_x)) + nx * (j / (world->mem_part_y) + ny * (k / (world->mem_part_z)));
     sv->local_storage = shared_mem[shidx];
   }
   
@@ -1070,16 +1202,13 @@ int init_partitions(void)
  * Initializes the geometry of the world.
  * Calls instance_obj() to instantiate all physical objects.
  * (Meta objects, box objects, polygon objects and release sites)
- * Populates viz_obj list vizp
  */
 int init_geom(void)
 {
-  FILE *log_file;
   double tm[4][4];
   double vol_infinity;
   
   no_printf("Initializing physical objects\n");
-  log_file=world->log_file;
   vol_infinity=sqrt(DBL_MAX)/4;
   world->bb_llf.x=vol_infinity;
   world->bb_llf.y=vol_infinity;
@@ -1089,9 +1218,9 @@ int init_geom(void)
   world->bb_urb.z=-vol_infinity;
   init_matrix(tm);
   
-  if(compute_bb(world->root_instance,tm,NULL)){
-     return 1;
-  }
+  if (compute_bb(world->root_instance,tm))
+    return 1;
+
   if (world->bb_llf.x==vol_infinity 
       && world->bb_llf.y==vol_infinity
       && world->bb_llf.z==vol_infinity
@@ -1108,8 +1237,8 @@ int init_geom(void)
   if (world->procnum == 0) {
     if (world->notify->progress_report)
     {
-      fprintf(log_file,"MCell: world bounding box in microns =\n");
-      fprintf(log_file,"         [ %.9g %.9g %.9g ] [ %.9g %.9g %.9g ]\n",
+      mcell_log("MCell: world bounding box in microns =");
+      mcell_log("         [ %.9g %.9g %.9g ] [ %.9g %.9g %.9g ]",
         world->bb_llf.x*world->length_unit,world->bb_llf.y*world->length_unit,
         world->bb_llf.z*world->length_unit,world->bb_urb.x*world->length_unit,
         world->bb_urb.y*world->length_unit,world->bb_urb.z*world->length_unit);
@@ -1121,11 +1250,10 @@ int init_geom(void)
   no_printf("World object contains %d walls and %d vertices\n",
     world->n_walls,world->n_verts);
   
-  if (instance_obj(world->root_instance,tm,NULL,NULL)) {
-    return(1);
-  }
+  if (instance_obj(world->root_instance, tm))
+    return 1;
 
-  return(0);
+  return 0;
 }
 
 
@@ -1139,100 +1267,39 @@ int init_geom(void)
  * instance_polygon_object() to handle the actual instantiation of
  * those objects.
  */
-int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp, char *sub_name)
+int instance_obj(struct object *objp, double (*im)[4])
 {
-  FILE *log_file;
-  struct object *child_objp;
   double tm[4][4];
-  unsigned short l,m,n;
-  char *tmp_name;
-  int i;
+  mult_matrix(objp->t_matrix, im, tm, 4, 4, 4);
 
-  log_file=world->log_file;
-  l=4;
-  m=4;
-  n=4;
-  mult_matrix(objp->t_matrix,im,tm,l,m,n);
-  if (vizp==NULL) {
-    vizp=objp->viz_obj;
-  }
-
-  if (sub_name!=NULL) { 
-    if (strcmp(sub_name,"")==0) {
-      tmp_name=strdup("");
-      if(tmp_name == NULL){
-	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        i = emergency_output();
-	fprintf(world->err_file,"Fatal error: out of memory while object instantiation.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-      }else{}
-    }
-    else {
-      tmp_name=my_strcat(sub_name,"."); 
-      if(tmp_name == NULL){
-	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        i = emergency_output();
-	fprintf(world->err_file, "Fatal error: out of memory while object instantiation.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-      }else{}
-                  
-    }
-    sub_name=my_strcat(tmp_name,objp->last_name);    
-    if(sub_name == NULL){
-	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        i = emergency_output();
-	fprintf(world->err_file, "Fatal error: out of memory while object instantiation.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-    }else{}
-    free((void *)tmp_name);
-  }
-  else {
-    sub_name=strdup(objp->last_name);    
-    if(sub_name == NULL){
-	fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        i = emergency_output();
-	fprintf(world->err_file, "Fatal error: out of memory while object instantiation.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-    }else{}
-  }
-  
-  switch (objp->object_type) {
-  case META_OBJ:
-    no_printf("Meta object %s instanced\n",sub_name);
-    fflush(log_file);
-    child_objp=objp->first_child;
-    while (child_objp!=NULL) {
-      if (instance_obj(child_objp,tm,vizp,sub_name)) {
-        return(1);
+  switch (objp->object_type)
+  {
+    case META_OBJ:
+      for (struct object *child_objp = objp->first_child;
+           child_objp != NULL;
+           child_objp = child_objp->next)
+      {
+        if (instance_obj(child_objp, tm))
+          return 1;
       }
-      child_objp=child_objp->next;
-    }
-    break;
-  case REL_SITE_OBJ:
-    no_printf("Release site object %s instanced\n",sub_name);
-    fflush(log_file);
-    if (instance_release_site(objp,tm)) {
-      return(1);
-    }
-    break;
-  case BOX_OBJ:
-    no_printf("Box object %s instanced\n",sub_name);
-    fflush(log_file);
-    if (instance_polygon_object(objp,tm,vizp,sub_name)) {
-      return(1);
-    }
-    break;
-  case POLY_OBJ:
-    no_printf("Polygon list object %s instanced\n",sub_name);
-    fflush(log_file);
-    if (instance_polygon_object(objp,tm,vizp,sub_name)) {
-      return(1);
-    }
-    break;
+      break;
+
+    case REL_SITE_OBJ:
+      if (instance_release_site(objp, tm))
+        return 1;
+      break;
+
+    case BOX_OBJ:
+    case POLY_OBJ:
+      if (instance_polygon_object(objp, tm))
+        return 1;
+      break;
+
+    default:
+      UNHANDLED_CASE(objp->object_type);
   }
 
-  free((void *)sub_name);
-  return(0);
+  return 0;
 }
 
 
@@ -1246,28 +1313,19 @@ int instance_obj(struct object *objp, double (*im)[4], struct viz_obj *vizp, cha
  */
 int instance_release_site(struct object *objp, double (*im)[4])
 {
-  FILE *log_file;
   struct release_site_obj *rsop;
   struct release_event_queue *reqp;
   int i,j;
 
-  log_file=world->log_file;
   rsop=(struct release_site_obj *)objp->contents;
   
   no_printf("Instancing release site object %s\n",objp->sym->name);
-  fflush(log_file);
   if (rsop->release_prob==MAGIC_PATTERN_PROBABILITY)
   {
     struct magic_list *ml;
     struct rxn_pathname *rxpn;
     
-    ml = (struct magic_list*)mem_get(world->magic_mem);
-    if (ml==NULL)
-    {
-      fprintf(world->err_file,"Internal error in source file %s on line %d\n  Out of memory while preparing release site.\n",__FILE__,__LINE__);
-      return 1;
-    }
-    
+    ml = (struct magic_list*) CHECKED_MEM_GET(world->magic_mem, "rxn-triggered release descriptor");
     ml->data = rsop;
     ml->type = magic_release;
     
@@ -1279,33 +1337,18 @@ int instance_release_site(struct object *objp, double (*im)[4])
     /* Release code itself is smart enough to ignore MAGIC_PATTERNs */
     if (rsop->release_shape==SHAPE_REGION) 
     {
-      reqp = (struct release_event_queue*)malloc(sizeof(struct release_event_queue));
-      if (reqp==NULL)
-      {
-        fprintf(world->err_file,"File '%s', Line %ld: Out of memory while instantiating release site.\n", __FILE__, (long)__LINE__);
-        return 1;
-      }
-    
+      reqp = CHECKED_MALLOC_STRUCT(struct release_event_queue, "release site");
       reqp->release_site=rsop;
       reqp->event_time=0;
       reqp->train_counter=0;
       reqp->train_high_time=0;
       if (schedule_add(world->releaser,reqp))
-      {
-        fprintf(world->err_file,"File '%s', Line %ld: Out of memory while scheduling releases.\n", __FILE__, (long)__LINE__);
-        return(1);
-      }
+        mcell_allocfailed("Failed to schedule molecule release.");
     }
   }
   else
   {
-    reqp = (struct release_event_queue*)malloc(sizeof(struct release_event_queue));
-    if (reqp==NULL)
-    {
-      fprintf(world->err_file,"File '%s', Line %ld: Out of memory while instantiating release site.\n", __FILE__, (long)__LINE__);
-      return 1;
-    }
-  
+    reqp = CHECKED_MALLOC_STRUCT(struct release_event_queue, "release site");
     reqp->release_site=rsop;
     reqp->event_time=rsop->pattern->delay;
     reqp->train_counter=0;
@@ -1314,22 +1357,15 @@ int instance_release_site(struct object *objp, double (*im)[4])
   
     /* Schedule the release event */
     if (schedule_add(world->releaser,reqp))
-    {
-      fprintf(world->err_file,"File '%s', Line %ld: Out of memory while scheduling releases.\n", __FILE__, (long)__LINE__);
-      return(1);
-    }
+      mcell_allocfailed("Failed to schedule molecule release.");
   
-    if(rsop->pattern->train_duration > rsop->pattern->train_interval)
-    {
-      fprintf(world->err_file,"File '%s', Line %ld: Error - Release pattern train duration is greater than train interval\n", __FILE__, (long)__LINE__);
-      return 1;
-    }
+    if (rsop->pattern->train_duration > rsop->pattern->train_interval)
+      mcell_error("Release pattern train duration is greatter than train interval.");
   }
   
   no_printf("Done instancing release site object %s\n",objp->sym->name);
 
-  fflush(log_file);
-  return(0);
+  return 0;
 }
 
 
@@ -1338,130 +1374,64 @@ int instance_release_site(struct object *objp, double (*im)[4])
  * Computes the bounding box for the entire simulation world.
  * Does things recursively in a manner similar to instance_obj().
  */
-int compute_bb(struct object *objp, double (*im)[4], char *sub_name)
+static int compute_bb(struct object *objp, double (*im)[4])
 {
-  FILE *log_file;
-  struct object *child_objp;
   double tm[4][4];
-  unsigned short l,m,n;
-  char *tmp_name;
-  int i;
+  mult_matrix(objp->t_matrix,im,tm,4,4,4);
 
-  log_file=world->log_file;
-  l=4;
-  m=4;
-  n=4;
-  mult_matrix(objp->t_matrix,im,tm,l,m,n);
-
-  if (sub_name!=NULL) { 
-    if (strcmp(sub_name,"")==0) {
-      tmp_name=strdup("");
-      if(tmp_name == NULL){
-		fprintf(world->err_file,"File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        	i = emergency_output();
-		fprintf(world->err_file, "Fatal error: out of memory during bounding box computation.\nAttempt to write intermediate results had %d errors.\n", i);
-        	exit(EXIT_FAILURE);
-      }else{}
-    }
-    else {
-      tmp_name=my_strcat(sub_name,".");              
-      if(tmp_name == NULL){
-		fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        	i = emergency_output();
-		fprintf(world->err_file, "Fatal error: out of memory while bounding box computation.\nAttempt to write intermediate results had %d errors.\n", i);
-        	exit(EXIT_FAILURE);
-      }else{}
-    }
-    sub_name=my_strcat(tmp_name,objp->last_name);    
-    if(sub_name == NULL){
-		fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        	i = emergency_output();
-		fprintf(world->err_file, "Fatal error: out of memory while bounding box computation.\nAttempt to write intermediate results had %d errors.\n", i);
-        	exit(EXIT_FAILURE);
-    }else{}
-    free((void *)tmp_name);
-  }
-  else {
-    sub_name=strdup(objp->last_name);    
-    if(sub_name == NULL){
-		fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        	i = emergency_output();
-		fprintf(world->err_file, "Fatal error: out of memory while bounding box computation.\nAttempt to write intermediate results had %d errors.\n", i);
-        	exit(EXIT_FAILURE);
-    }else{}
-  }
-
-  switch (objp->object_type) {
-  case META_OBJ:
-    no_printf("Bounding box of Meta object %s is computed\n",sub_name);
-    fflush(log_file);
-    child_objp=objp->first_child;
-    while (child_objp!=NULL) {
-      if (compute_bb(child_objp,tm,sub_name)) {
-        return(1);
+  switch (objp->object_type)
+  {
+    case META_OBJ:
+      for (struct object *child_objp = objp->first_child;
+           child_objp != NULL;
+           child_objp = child_objp->next)
+      {
+        if (compute_bb(child_objp, tm))
+          return 1;
       }
-      child_objp=child_objp->next;
-    }
-    break;
-  case REL_SITE_OBJ:
-    no_printf("Bounding box of Release site object %s is computed\n",sub_name);
-    fflush(log_file);
-    if (compute_bb_release_site(objp,tm)) {
-      return(1);
-    }
-    break;
-  case BOX_OBJ:
-    no_printf("Bounding box of Box object %s is computed\n",sub_name);
-    fflush(log_file);
-    if (compute_bb_polygon_object(objp,tm,sub_name)) {
-      return(1);
-    }
-    break;
-  case POLY_OBJ:
-    no_printf("Bounding box of Polygon list object %s is computed\n",sub_name);
-    fflush(log_file);
-    if (compute_bb_polygon_object(objp,tm,sub_name)) {
-      return(1);
-    }
-    break;
+      break;
+
+    case REL_SITE_OBJ:
+      if (compute_bb_release_site(objp, tm))
+        return 1;
+      break;
+
+    case BOX_OBJ:
+    case POLY_OBJ:
+      if (compute_bb_polygon_object(objp, tm))
+        return 1;
+      break;
+
+    default:
+      UNHANDLED_CASE(objp->object_type);
   }
 
-  free((void *)sub_name);
-  return(0);
+  return 0;
 }
-
-
 
 /**
  * Updates the bounding box of the world based on the size
  * and location of a release site.
  * Used by compute_bb().
  */
-int compute_bb_release_site(struct object *objp, double (*im)[4])
+static int compute_bb_release_site(struct object *objp, double (*im)[4])
 {
   struct release_site_obj *rsop;
   double location[1][4];
-  unsigned short l,m,n;
   double diam_x, diam_y, diam_z; /* diameters of the release_site */ 
  
   rsop=(struct release_site_obj *)objp->contents;
   
   if (rsop->release_shape == SHAPE_REGION) return 0;
 
-  l=1;
-  m=4;
-  n=4;
-
-  if(rsop->location == NULL){
-     fprintf(world->err_file, "ERROR: location is not specified for the geometrical shape release site.\n");
-     return 1;
-  }
+  if (rsop->location == NULL)
+    mcell_error("Location is not specified for the geometrical shape release site '%s'.", objp->sym->name);
 
   location[0][0]=rsop->location->x;
   location[0][1]=rsop->location->y;
   location[0][2]=rsop->location->z;
   location[0][3]=1.0;
-  mult_matrix(location,im,location,l,m,n);
+  mult_matrix(location,im,location,1,4,4);
   
   if(rsop->diameter == NULL){
 	diam_x = diam_y = diam_z = 0;
@@ -1491,39 +1461,29 @@ int compute_bb_release_site(struct object *objp, double (*im)[4])
     world->bb_urb.z=location[0][2] + diam_z;
   }
 
-  return(0);
+  return 0;
 }
-
-
 
 /**
  * Updates the bounding box of the world based on the size
  * and location of a polygon_object.
  * Used by compute_bb().
  */
-int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_name)
+static int compute_bb_polygon_object(struct object *objp, double (*im)[4])
 {
   struct polygon_object *pop;
-  struct ordered_poly *opp;
-  double p[1][4];
-  int i,n_verts,n_walls;
-  unsigned short l,m,n;
 
   pop=(struct polygon_object *)objp->contents;
-  n_walls=pop->n_walls;
-  l=1;
-  m=4;
-  n=4;
+  const unsigned int n_verts = pop->n_verts;
 
-  opp=(struct ordered_poly *)pop->polygon_data;
-  n_verts=opp->n_verts;
-
-  for (i=0;i<n_verts;i++) {
-    p[0][0]=opp->vertex[i].x;
-    p[0][1]=opp->vertex[i].y;
-    p[0][2]=opp->vertex[i].z;
-    p[0][3]=1.0;
-    mult_matrix(p,im,p,l,m,n);
+  for (unsigned int n_vert=0; n_vert<n_verts; ++ n_vert)
+  {
+    double p[1][4];
+    p[0][0] = pop->vertex[n_vert].x;
+    p[0][1] = pop->vertex[n_vert].y;
+    p[0][2] = pop->vertex[n_vert].z;
+    p[0][3] = 1.0;
+    mult_matrix(p,im,p,1,4,4);
     if (p[0][0]<world->bb_llf.x) world->bb_llf.x = p[0][0];
     if (p[0][1]<world->bb_llf.y) world->bb_llf.y = p[0][1];
     if (p[0][2]<world->bb_llf.z) world->bb_llf.z = p[0][2];
@@ -1532,7 +1492,7 @@ int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_n
     if (p[0][2]>world->bb_urb.z) world->bb_urb.z = p[0][2];
   }
 
-  return(0);
+  return 0;
 }
 
 
@@ -1543,52 +1503,36 @@ int compute_bb_polygon_object(struct object *objp, double (*im)[4], char *full_n
  * transformations (scaling, rotation and translation).
  * <br>
  */
-int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj *vizp, char *full_name)
+int instance_polygon_object(struct object *objp, double (*im)[4])
 {
 // #define INIT_VERTEX_NORMALS
 // Uncomment to compute vertex normals
-  FILE *log_file;
   struct polygon_object *pop;
-  struct ordered_poly *opp;
   struct vector3 *v,**vp;
   struct wall *w,**wp;
-  struct viz_child *vcp;
   double p[1][4];
 #ifdef INIT_VERTEX_NORMALS
   struct vector3 *vertex_normal;
   double origin[1][4];
 #endif
   double total_area;
-  int i,n_verts,n_walls,index_0,index_1,index_2;
+  int index_0,index_1,index_2;
   unsigned int degenerate_count;
-  unsigned short l,m,n;
   byte compute_vertex_normals;
 
-  log_file=world->log_file;
   pop=(struct polygon_object *)objp->contents;
-  n_walls=pop->n_walls;
-  n_verts=pop->n_verts;
-  l=1;
-  m=4;
-  n=4;
+  const unsigned int n_walls = pop->n_walls;
+  const unsigned int n_verts = pop->n_verts;
   total_area=0;
 
 /* Allocate and initialize walls and vertices */
-    w=(struct wall *)malloc(n_walls*sizeof(struct wall));
-    wp=(struct wall **)malloc(n_walls*sizeof(struct wall *));
-    v=(struct vector3 *)malloc(n_verts*sizeof(struct vector3));
-    vp=(struct vector3 **)malloc(n_verts*sizeof(struct vector3 *)); 
-    if (w==NULL || wp==NULL || v==NULL || vp==NULL)
-    {
-      fprintf(world->err_file,"File '%s', Line %ld: Out of memory while instantiating polygon object.  Quitting.\n", __FILE__, (long)__LINE__);
-      exit(EXIT_FAILURE);
-    }
+    w  = CHECKED_MALLOC_ARRAY(struct wall,      n_walls, "polygon walls");
+    wp = CHECKED_MALLOC_ARRAY(struct wall *,    n_walls, "polygon wall pointers");
+    v  = CHECKED_MALLOC_ARRAY(struct vector3,   n_verts, "polygon vertices");
+    vp = CHECKED_MALLOC_ARRAY(struct vector3 *, n_verts, "polygon vertex pointers");
     objp->walls=w;
     objp->wall_p=wp;
     objp->verts=v;
-    objp->vert_p=vp;
-
-    opp=(struct ordered_poly *)pop->polygon_data;
 
     compute_vertex_normals=0;
 
@@ -1596,95 +1540,88 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
    in struct object.
 */
 #ifdef INIT_VERTEX_NORMALS
-    if (opp->normal!=NULL) {
-      compute_vertex_normals=1;
-    }
+    if (pop->normal!=NULL)
+      compute_vertex_normals = 1;
 #endif
-   if(vizp!=NULL)
-   {
-     if((world->viz_mode == DREAMM_V3_MODE) || (world->viz_mode == DREAMM_V3_GROUPED_MODE) || (objp->viz_state!=NULL))
-     {
 
-      if ((vcp=(struct viz_child *)malloc
-           (sizeof(struct viz_child)))==NULL) {
-		fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        	int i = emergency_output();
-		fprintf(world->err_file, "Fatal error: out of memory while instantiation of polygon object.\nAttempt to write intermediate results had %d errors.\n", i);
-        	exit(EXIT_FAILURE);
-      }
-      vcp->obj = objp;
-      vcp->next = vizp->viz_child_head;
-      vizp->viz_child_head = vcp;
-    }
-  }  
-
-  for (i=0;i<n_verts;i++) {
-    vp[i]=&v[i];
-    p[0][0]=opp->vertex[i].x;
-    p[0][1]=opp->vertex[i].y;
-    p[0][2]=opp->vertex[i].z;
-    p[0][3]=1.0;
-    mult_matrix(p,im,p,l,m,n);
-    v[i].x=p[0][0];
-    v[i].y=p[0][1];
-    v[i].z=p[0][2];
+  for (unsigned int n_vert=0; n_vert<n_verts; ++ n_vert)
+  {
+    vp[n_vert] = &v[n_vert];
+    p[0][0] = pop->vertex[n_vert].x;
+    p[0][1] = pop->vertex[n_vert].y;
+    p[0][2] = pop->vertex[n_vert].z;
+    p[0][3] = 1.0;
+    mult_matrix(p,im,p,1,4,4);
+    v[n_vert].x = p[0][0];
+    v[n_vert].y = p[0][1];
+    v[n_vert].z = p[0][2];
 
 #ifdef INIT_VERTEX_NORMALS
-    if (compute_vertex_normals) {
-      p[0][0]=opp->normal[i].x;
-      p[0][1]=opp->normal[i].y;
-      p[0][2]=opp->normal[i].z;
-      p[0][3]=1.0;
+    if (compute_vertex_normals)
+    {
+      p[0][0] = pop->normal[n_vert].x;
+      p[0][1] = pop->normal[n_vert].y;
+      p[0][2] = pop->normal[n_vert].z;
+      p[0][3] = 1.0;
       origin[0][0]=0;
       origin[0][1]=0;
       origin[0][2]=0;
       origin[0][3]=1.0;
-      mult_matrix(p,im,p,l,m,n);
-      mult_matrix(origin,im,origin,l,m,n);
-      vertex_normal[i].x=p[0][0]-origin[0][0];
-      vertex_normal[i].y=p[0][1]-origin[0][1];
-      vertex_normal[i].z=p[0][2]-origin[0][2];
-      normalize(&vertex_normal[i]);
+      mult_matrix(p,im,p,1,4,4);
+      mult_matrix(origin,im,origin,1,4,4);
+      vertex_normal[n_vert].x = p[0][0]-origin[0][0];
+      vertex_normal[n_vert].y = p[0][1]-origin[0][1];
+      vertex_normal[n_vert].z = p[0][2]-origin[0][2];
+      normalize(&vertex_normal[n_vert]);
     }
 #endif
   }
   
   degenerate_count=0;
-  for (i=0;i<n_walls;i++) {
-    if (!get_bit(pop->side_removed,i)) {
-      wp[i]=&w[i];
-      index_0=opp->element[i].vertex_index[0];
-      index_1=opp->element[i].vertex_index[1];
-      index_2=opp->element[i].vertex_index[2];
+  for (unsigned int n_wall=0; n_wall<n_walls; ++ n_wall)
+  {
+    if (!get_bit(pop->side_removed, n_wall)) {
+      wp[n_wall] = &w[n_wall];
+      index_0 = pop->element[n_wall].vertex_index[0];
+      index_1 = pop->element[n_wall].vertex_index[1];
+      index_2 = pop->element[n_wall].vertex_index[2];
 
-      init_tri_wall(objp,i,vp[index_0],vp[index_1],vp[index_2]);
-      total_area+=wp[i]->area;
+      init_tri_wall(objp,n_wall,vp[index_0],vp[index_1],vp[index_2]);
+      total_area+=wp[n_wall]->area;
 
-      if (wp[i]->area==0) {
+      if (wp[n_wall]->area==0)
+      {
         if (world->notify->degenerate_polys != WARN_COPE)
         {
           if (world->notify->degenerate_polys==WARN_ERROR)
           {
-            log_file = world->err_file;
-            fprintf(log_file,"\nError -- ");
+            mcell_error("Degenerate polygon found: %s %d\n"
+                        "  Vertex 0: %.5e %.5e %.5e\n"
+                        "  Vertex 1: %.5e %.5e %.5e\n"
+                        "  Vertex 2: %.5e %.5e %.5e",
+                        objp->sym->name, n_wall,
+                        vp[index_0]->x, vp[index_0]->y, vp[index_0]->z,
+                        vp[index_1]->x, vp[index_1]->y, vp[index_1]->z,
+                        vp[index_2]->x, vp[index_2]->y, vp[index_2]->z);
           }
-          else fprintf(log_file,"\nWarning -- ");
-          
-          fprintf(log_file,"Degenerate polygon found and automatically removed: %s %d\n\n",objp->sym->name,i);
-          fprintf(log_file,"  Vertex 0: %.5e %.5e %.5e\n",vp[index_0]->x,vp[index_0]->y,vp[index_0]->z);
-          fprintf(log_file,"  Vertex 1: %.5e %.5e %.5e\n",vp[index_1]->x,vp[index_1]->y,vp[index_1]->z);
-          fprintf(log_file,"  Vertex 2: %.5e %.5e %.5e\n",vp[index_2]->x,vp[index_2]->y,vp[index_2]->z);
-          
-          if (world->notify->degenerate_polys==WARN_ERROR) return 1;
+          else
+            mcell_warn("Degenerate polygon found and automatically removed: %s %d\n"
+                       "  Vertex 0: %.5e %.5e %.5e\n"
+                       "  Vertex 1: %.5e %.5e %.5e\n"
+                       "  Vertex 2: %.5e %.5e %.5e",
+                       objp->sym->name, n_wall,
+                       vp[index_0]->x, vp[index_0]->y, vp[index_0]->z,
+                       vp[index_1]->x, vp[index_1]->y, vp[index_1]->z,
+                       vp[index_2]->x, vp[index_2]->y, vp[index_2]->z);
         }
-        set_bit(pop->side_removed,i,1);
+        set_bit(pop->side_removed,n_wall,1);
         objp->n_walls_actual--;
         degenerate_count++;
-        wp[i]=NULL;
+        wp[n_wall]=NULL;
       }
     }
     else {
-      wp[i]=NULL;
+      wp[n_wall]=NULL;
     }
   }
   if (degenerate_count) mdl_remove_gaps_from_regions(objp);
@@ -1696,7 +1633,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
   printf("n_walls_actual = %d\n", objp->n_walls_actual);
 #endif
 
-  return(0);
+  return 0;
 }
 
 
@@ -1708,22 +1645,18 @@ int instance_polygon_object(struct object *objp, double (*im)[4], struct viz_obj
     In:  none
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int init_regions()
+int init_regions(void)
 {
   if (world->clamp_list!=NULL) init_clamp_lists();
 
-  if (instance_obj_regions(world->root_instance,NULL)) {
-    return(1);
-  }
-
-  return(0);
+  return instance_obj_regions(world->root_instance);
 }
 
 
 /* First part of concentration clamp initialization. */
 /* After this, list is grouped by surface class. */
 /* Second part (list of objects) happens with regions. */
-void init_clamp_lists()
+void init_clamp_lists(void)
 {
   struct ccn_clamp_data *ccd,*temp;
   
@@ -1749,90 +1682,37 @@ void init_clamp_lists()
 
 /**
  * Traverse through metaobjects, placing regions on real objects as we find
- * them.  "sub_name" contains the name of the parent object of the one we're
- * instancing as we traverse down into the object hierarchy 
+ * them.
  */
-int instance_obj_regions(struct object *objp,char *sub_name)
+int instance_obj_regions(struct object *objp)
 {
-  FILE *log_file;
-  struct object *child_objp;
-  char *tmp_name;
-
-  log_file=world->log_file;
-
-  if (sub_name!=NULL) { 
-    if (strcmp(sub_name,"")==0) {
-      tmp_name=strdup("");
-      if (tmp_name == NULL) {
-		fprintf(world->err_file, "File %s, Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        	int i = emergency_output();
-		fprintf(world->err_file, "Fatal error: out of memory while instantiation of object regions.\nAttempt to write intermediate results had %d errors.\n", i);
-        	exit(EXIT_FAILURE);
-      }else{}
-    }
-    else {
-      tmp_name=my_strcat(sub_name,".");              
-      if (tmp_name == NULL) {
-		fprintf(world->err_file, "File %s, Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        	int i = emergency_output();
-		fprintf(world->err_file, "Fatal error: out of memory while instantiation of object regions.\nAttempt to write intermediate results had %d errors.\n", i);
-        	exit(EXIT_FAILURE);
-      }else{}
-    }
-    sub_name=my_strcat(tmp_name,objp->last_name);    
-    if (sub_name == NULL) {
-		fprintf(world->err_file, "File %s, Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        	int i = emergency_output();
-		fprintf(world->err_file, "Fatal error: out of memory while instantiation of object regions.\nAttempt to write intermediate results had %d errors.\n", i);
-        	exit(EXIT_FAILURE);
-    }else{}
-    free((void *)tmp_name);
-  }
-  else {
-    sub_name=strdup(objp->last_name);    
-    if (sub_name == NULL) {
-		fprintf(world->err_file, "File %s, Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        	int i = emergency_output();
-		fprintf(world->err_file, "Fatal error: out of memory while instantiation of object regions.\nAttempt to write intermediate results had %d errors.\n", i);
-        	exit(EXIT_FAILURE);
-    }else{}
-  }
-
-  switch (objp->object_type) {
-  case META_OBJ:
-    no_printf("Initializing regions in meta object: %s\n",sub_name);
-    fflush(log_file);
-    child_objp=objp->first_child;
-    while (child_objp!=NULL) {
-      if (instance_obj_regions(child_objp,sub_name)) {
-        return(1);
+  switch (objp->object_type)
+  {
+    case META_OBJ:
+      for (struct object *child_objp = objp->first_child;
+           child_objp != NULL;
+           child_objp = child_objp->next)
+      {
+        if (instance_obj_regions(child_objp))
+          return 1;
       }
-      child_objp=child_objp->next;
-    }
-    break;
-  case REL_SITE_OBJ:
-    break;
-  case BOX_OBJ:
-    no_printf("Initializing regions in box object: %s\n",sub_name);
-    fflush(log_file);
-    if (init_wall_regions(objp,sub_name)) {
-      return(1);
-    }
-    break;
-  case POLY_OBJ:
-    no_printf("Initializing regions in polygon list object: %s\n",sub_name);
-    fflush(log_file);
-    if (init_wall_regions(objp,sub_name)) {
-      return(1);
-    }
-    break;
+      break;
+
+    case REL_SITE_OBJ:
+      break;
+
+    case BOX_OBJ:
+    case POLY_OBJ:
+      if (init_wall_regions(objp))
+        return 1;
+      break;
+
+    default:
+      UNHANDLED_CASE(objp->object_type);
   }
 
-  free((void *)sub_name);
-  return(0);
+  return 0;
 }
-
-
 
 /**
  * Initialize data associated with wall regions.
@@ -1843,21 +1723,16 @@ int instance_obj_regions(struct object *objp,char *sub_name)
  * Populates effector tiles by region.
  * Creates virtual regions on which to clamp concentration
  */
-int init_wall_regions(struct object *objp, char *full_name)
+int init_wall_regions(struct object *objp)
 {
-  FILE *log_file;
-  struct polygon_object *pop;
   struct wall *w;
   struct region *rp;
   struct region_list *rlp,*wrlp;
-  int i,n_walls;
 
-  log_file=world->log_file;
+  const struct polygon_object *pop = (struct polygon_object *) objp->contents;
+  const unsigned int n_walls = pop->n_walls;
 
-  pop=(struct polygon_object *)objp->contents;
-  n_walls=pop->n_walls;
-
-  no_printf("Processing %d regions in polygon list object: %s\n",objp->num_regions,full_name);  
+  no_printf("Processing %d regions in polygon list object: %s\n",objp->num_regions, objp->sym->name);  
 
   /* prepend a copy of eff_dat for each element referenced in each region
      of this object to the eff_prop list for the referenced element */
@@ -1865,30 +1740,22 @@ int init_wall_regions(struct object *objp, char *full_name)
   
   for (rlp=objp->regions ; rlp!=NULL ; rlp=rlp->next)
   {
-    rp=rlp->reg;
+    rp = rlp->reg;
     if (rp->membership==NULL)
-    {
-      fprintf(world->err_file,"File '%s', Line %ld: Internal error. incomplete region information for %s\n", __FILE__, (long)__LINE__, rp->sym->name);
-      return 1;
-    }
+      mcell_internal_error("Missing region information for '%s'.", rp->sym->name);
 
-    for (i=0;i<rp->membership->nbits;i++)
+    for (int n_wall=0; n_wall<rp->membership->nbits; ++ n_wall)
     {
-      if (get_bit(rp->membership,i))
+      if (get_bit(rp->membership, n_wall))
       {
 	/* prepend this region to wall region list of i_th wall only if the region is used in counting */
-	w=objp->wall_p[i];
+        w = objp->wall_p[n_wall];
 	rp->area += w->area;
 	if (rp->surf_class!=NULL) w->surf_class = rp->surf_class;
 
 	if ((rp->flags & COUNT_SOME_MASK) != 0)
 	{  
-	  wrlp = (struct region_list *)mem_get(w->birthplace->regl);
-	  if (wrlp==NULL)
-	  {
-	    fprintf(world->err_file,"File '%s', Line %ld: Out of memory, can't place regions on geometry.\n", __FILE__, (long)__LINE__);
-	    return 1;
-	  }
+          wrlp = (struct region_list *) CHECKED_MEM_GET(w->birthplace->regl, "wall region list");
 	  wrlp->reg=rp;
 	  wrlp->next=w->counting_regions;
 	  w->counting_regions=wrlp;
@@ -1898,11 +1765,11 @@ int init_wall_regions(struct object *objp, char *full_name)
     }
 
   } /*end loop over all regions in object */
-  for (i=0;i<n_walls;i++)
+  for (unsigned int n_wall=0; n_wall<n_walls; n_wall++)
   {
-    if (get_bit(pop->side_removed,i)) continue; 
+    if (get_bit(pop->side_removed, n_wall)) continue; 
      
-    w=objp->wall_p[i];
+    w = objp->wall_p[n_wall];
     if (w->counting_regions!=NULL)
     {
       w->counting_regions = (struct region_list*)void_list_sort((struct void_list*)w->counting_regions); /* Helpful for comparisons */
@@ -1923,14 +1790,14 @@ int init_wall_regions(struct object *objp, char *full_name)
     int j;
     int found_something = 0;
     
-    for (i=0;i<n_walls;i++)
+    for (unsigned int n_wall=0;n_wall<n_walls;n_wall++)
     {
-      if (get_bit(pop->side_removed,i)) continue;
-      if (objp->wall_p[i]->surf_class != world->g_surf)
+      if (get_bit(pop->side_removed, n_wall)) continue;
+      if (objp->wall_p[n_wall]->surf_class != world->g_surf)
       {
         for (ccd=world->clamp_list ; ccd!=NULL ; ccd=ccd->next)
         {
-          if (objp->wall_p[i]->surf_class == ccd->surf_class)
+          if (objp->wall_p[n_wall]->surf_class == ccd->surf_class)
           {
             if (ccd->objp!=objp)
             {
@@ -1938,12 +1805,7 @@ int init_wall_regions(struct object *objp, char *full_name)
               else if (ccd->next_obj != NULL && ccd->next_obj->objp==objp) ccd=ccd->next_obj;
               else
               {
-                temp = (struct ccn_clamp_data*)malloc(sizeof(struct ccn_clamp_data));
-                if (temp==NULL)
-                {
-                  fprintf(world->err_file,"File '%s', Line %ld: Out of memory assembling concentration clamp data.\n", __FILE__, (long)__LINE__);
-                  return 1;
-                }
+                temp = CHECKED_MALLOC_STRUCT(struct ccn_clamp_data, "concentration clamp data");
                 memcpy(temp,ccd,sizeof(struct ccn_clamp_data));
                 temp->objp = objp;
                 temp->sides = NULL;
@@ -1958,13 +1820,10 @@ int init_wall_regions(struct object *objp, char *full_name)
             {
               ccd->sides = new_bit_array(n_walls);
               if (ccd->sides==NULL)
-              {
-                fprintf(world->err_file,"File '%s', Line %ld: Out of memory assembling concentration clamp data.\n", __FILE__, (long)__LINE__);
-                return 1;
-              }
+                mcell_allocfailed("Failed to allocate membership bit array for concentration clamp data.");
               set_all_bits(ccd->sides,0);
             }
-            set_bit(ccd->sides,i,1);
+            set_bit(ccd->sides, n_wall, 1);
             ccd->n_sides++;
             found_something=1;
           }
@@ -1982,29 +1841,27 @@ int init_wall_regions(struct object *objp, char *full_name)
           else continue;
         }
         
-        ccd->side_idx = (int*)malloc(ccd->n_sides*sizeof(int));
-        ccd->cum_area = (double*)malloc(ccd->n_sides*sizeof(double));
-        if (ccd->side_idx==NULL || ccd->cum_area==NULL)
-        {
-          fprintf(world->err_file,"File '%s', Line %ld: Out of memory assembling concentration clamp data.\n", __FILE__, (long)__LINE__);
-          return 1;
-        }
+        ccd->side_idx = CHECKED_MALLOC_ARRAY(int,
+                                             ccd->n_sides,
+                                             "concentration clamp polygon side index");
+        ccd->cum_area = CHECKED_MALLOC_ARRAY(double,
+                                             ccd->n_sides,
+                                             "concentration clamp polygon side cumulative area");
         
         j=0;
-        for (i=0;i<n_walls;i++)
+        for (unsigned int n_wall=0; n_wall<n_walls; n_wall++)
         {
-          if (get_bit(ccd->sides,i))
+          if (get_bit(ccd->sides, n_wall))
           {
-            ccd->side_idx[j] = i;
-            ccd->cum_area[j] = objp->wall_p[i]->area;
+            ccd->side_idx[j] = n_wall;
+            ccd->cum_area[j] = objp->wall_p[n_wall]->area;
             j++;
           }
         }
-        if (j!=ccd->n_sides)
-        {
-          fprintf(world->err_file,"File '%s', Line %ld: Miscounted the number of walls for concentration clamp\n  on object %s\n  surface class %s\n", __FILE__, (long)__LINE__, objp->sym->name,ccd->surf_class->sym->name);
-          return 1;
-        }
+        if (j != ccd->n_sides)
+          mcell_internal_error("Miscounted the number of walls for concentration clamp.  object=%s  surface class=%s",
+                               objp->sym->name,
+                               ccd->surf_class->sym->name);
         
         for (j=1;j<ccd->n_sides;j++) ccd->cum_area[j] += ccd->cum_area[j-1];
         
@@ -2024,7 +1881,7 @@ int init_wall_regions(struct object *objp, char *full_name)
   }
 #endif
 
-  return(0);
+  return 0;
 }
 
 
@@ -2037,7 +1894,7 @@ int init_wall_regions(struct object *objp, char *full_name)
     In:  none
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int init_effectors()
+int init_effectors(void)
 {
   if (instance_obj_effectors(world->root_instance)) return 1;
   return 0;
@@ -2074,7 +1931,7 @@ int instance_obj_effectors(struct object *objp)
       break;
   }
 
-  return(0);
+  return 0;
 }
 
 
@@ -2089,30 +1946,20 @@ int instance_obj_effectors(struct object *objp)
  *******************************************************************/
 int init_wall_effectors(struct object *objp)
 {
-  FILE *log_file;
-  struct polygon_object *pop;
   struct wall *w;
   struct eff_dat *effdp,*dup_effdp,**eff_prop;
   struct region *rp;
   struct region_list *rlp,*rlp2,*reg_eff_num_head,*complex_head;
-  int i,n_walls;
   byte reg_eff_num;
   byte complex_eff;
 
-  log_file=world->log_file;
+  const struct polygon_object *pop = (struct polygon_object *) objp->contents;
+  const unsigned int n_walls = pop->n_walls;
 
-  pop=(struct polygon_object *)objp->contents;
-  n_walls=pop->n_walls;
-
-   
   /* allocate scratch storage to hold effector info for each wall */
-  if ((eff_prop=(struct eff_dat **)malloc(n_walls*sizeof(struct eff_dat *)))==NULL)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld:  Out of memory, can't create space for molecules on a region.\n", __FILE__, (long)__LINE__);
-    return 1;
-  }
+  eff_prop = CHECKED_MALLOC_ARRAY(struct eff_dat *, n_walls, "effector data scratch space");
 
-  for (i=0;i<n_walls;i++) eff_prop[i]=NULL; 
+  for (unsigned int n_wall=0; n_wall<n_walls; ++ n_wall) eff_prop[n_wall]=NULL; 
 
   /* prepend a copy of eff_dat for each element referenced in each region
      of this object to the eff_prop list for the referenced element */
@@ -2128,11 +1975,11 @@ int init_wall_effectors(struct object *objp)
     reg_eff_num=0;
     complex_eff=0;
 
-    for (i=0;i<rp->membership->nbits;i++)
+    for (int n_wall=0; n_wall<rp->membership->nbits; n_wall++)
     {
-      if (get_bit(rp->membership,i))
+      if (get_bit(rp->membership, n_wall))
       {
-	w=objp->wall_p[i];
+        w = objp->wall_p[n_wall];
 
 	/* prepend region eff data for this region to eff_prop for i_th wall */
         for ( effdp=rp->eff_dat_head ; effdp!=NULL ; effdp=effdp->next )
@@ -2141,17 +1988,13 @@ int init_wall_effectors(struct object *objp)
             complex_eff = 1;
           else if (effdp->quantity_type==EFFDENS)
 	  {
-	    if ((dup_effdp=(struct eff_dat *)malloc(sizeof(struct eff_dat)))==NULL)
-	    {
-	      fprintf(world->err_file,"File '%s', Line %ld: Out of memory, can't create space for molecules on a region.\n", __FILE__, (long)__LINE__);
-	      return 1;
-	    }
+            dup_effdp = CHECKED_MALLOC_STRUCT(struct eff_dat, "effector data");
 	    dup_effdp->eff=effdp->eff;
 	    dup_effdp->quantity_type=effdp->quantity_type;
 	    dup_effdp->quantity=effdp->quantity;
 	    dup_effdp->orientation=effdp->orientation;
-	    dup_effdp->next=eff_prop[i];
-	    eff_prop[i]=dup_effdp;
+            dup_effdp->next = eff_prop[n_wall];
+            eff_prop[n_wall] = dup_effdp;
 	  }
 	  else reg_eff_num=1;
 	}
@@ -2165,17 +2008,13 @@ int init_wall_effectors(struct object *objp)
               complex_eff = 1;
             else if (effdp->quantity_type==EFFDENS)
 	    {
-	      if ((dup_effdp=(struct eff_dat *)malloc(sizeof(struct eff_dat)))==NULL)
-	      {
-		fprintf(world->err_file,"File '%s', Line %ld: Out of memory, can't create space for molecules on a region.\n", __FILE__, (long)__LINE__);
-		return 1;
-	      }
+              dup_effdp = CHECKED_MALLOC_STRUCT(struct eff_dat, "effector data");
 	      dup_effdp->eff=effdp->eff;
 	      dup_effdp->quantity_type=effdp->quantity_type;
 	      dup_effdp->quantity=effdp->quantity;
 	      dup_effdp->orientation=effdp->orientation;
-	      dup_effdp->next=eff_prop[i];
-	      eff_prop[i]=dup_effdp;
+              dup_effdp->next = eff_prop[n_wall];
+              eff_prop[n_wall] = dup_effdp;
 	    }
 	    else reg_eff_num=1;
 	  }
@@ -2186,22 +2025,14 @@ int init_wall_effectors(struct object *objp)
     
     if (complex_eff)
     {
-      if ((rlp2=(struct region_list *)malloc(sizeof(struct region_list)))==NULL)
-      {
-	fprintf(world->err_file,"File '%s', Line %ld: Out of memory, can't place regions on geometry.\n", __FILE__, (long)__LINE__);
-	return 1;
-      }
+      rlp2 = CHECKED_MALLOC_STRUCT(struct region_list, "complex effector placement region list");
       rlp2->reg=rp;
       rlp2->next=complex_head;
       complex_head=rlp2;
     }
     else if (reg_eff_num)
     {
-      if ((rlp2=(struct region_list *)malloc(sizeof(struct region_list)))==NULL)
-      {
-	fprintf(world->err_file,"File '%s', Line %ld: Out of memory, can't place regions on geometry.\n", __FILE__, (long)__LINE__);
-	return 1;
-      }
+      rlp2 = CHECKED_MALLOC_STRUCT(struct region_list, "effector placement region list");
       rlp2->reg=rp;
       rlp2->next=reg_eff_num_head;
       reg_eff_num_head=rlp2;
@@ -2212,9 +2043,7 @@ int init_wall_effectors(struct object *objp)
   if (complex_head!=NULL)
   {
     if (init_complex_effectors(objp, complex_head))
-    {
       return 1;
-    }
     
     /* free list of regions with complex effectors */
     rlp=complex_head;
@@ -2227,13 +2056,14 @@ int init_wall_effectors(struct object *objp)
   }
 
   /* Place regular (non-macro) molecules by density */
-  for (i=0;i<n_walls;i++)
+  for (unsigned int n_wall=0; n_wall<n_walls; n_wall++)
   {
-    if (!get_bit(pop->side_removed,i))
+    if (!get_bit(pop->side_removed, n_wall))
     {
-      if (eff_prop[i]!=NULL)
+      if (eff_prop[n_wall]!=NULL)
       {
-	if (init_effectors_by_density(objp->wall_p[i],eff_prop[i])) return 1;
+        if (init_effectors_by_density(objp->wall_p[n_wall],eff_prop[n_wall]))
+          return 1;
       }
     }
   }
@@ -2241,9 +2071,8 @@ int init_wall_effectors(struct object *objp)
   /* Place regular (non-macro) molecules by number */
   if (reg_eff_num_head!=NULL)
   {
-    if (init_effectors_by_number(objp,reg_eff_num_head)) {
-      return(1);
-    }
+    if (init_effectors_by_number(objp,reg_eff_num_head))
+      return 1;
     
     /* free region list created to hold regions populated by number */
     rlp=reg_eff_num_head;
@@ -2256,11 +2085,11 @@ int init_wall_effectors(struct object *objp)
   }
 
   /* free eff_prop array and contents */
-  for (i=0;i<n_walls;i++)
+  for (unsigned int n_wall=0; n_wall<n_walls; n_wall++)
   {
-    if (eff_prop[i]!=NULL)
+    if (eff_prop[n_wall] != NULL)
     {
-      effdp=eff_prop[i];
+      effdp = eff_prop[n_wall];
       while(effdp!=NULL)
       {
 	dup_effdp=effdp;
@@ -2272,7 +2101,7 @@ int init_wall_effectors(struct object *objp)
   free(eff_prop);
 
     
-  return(0);
+  return 0;
 }
 
 /********************************************************************
@@ -2298,7 +2127,7 @@ static int init_effectors_place_complex(struct wall *w,
                                         struct eff_dat const *effdp)
 {
   struct grid_molecule *gp;
-  int grid_idx;
+  unsigned int grid_idx;
   double p;
   short orient = effdp->orientation;
 
@@ -2306,10 +2135,6 @@ static int init_effectors_place_complex(struct wall *w,
   if (orient == 0)
   {
     orient = (rng_uint(world->rng) & 1) ? 1 : -1;
-    if (world->notify->final_summary == NOTIFY_FULL)
-    {
-      world->random_number_use++;
-    }
   }
 
   /* Pick location on wall */
@@ -2367,8 +2192,6 @@ static int init_effectors_place_complexes(int n_to_place,
     int num_tries = world->complex_placement_attempts;
     int chosen_wall = 0;
     double p = rng_dbl(world->rng) * max_weight;
-    if (world->notify->final_summary == NOTIFY_FULL)
-      world->random_number_use++;
 
     /* Pick a wall */
     chosen_wall = bisect_high(weights, nwalls, p);
@@ -2395,20 +2218,20 @@ static int init_effectors_place_complexes(int n_to_place,
             break;
 
           case WARN_WARN:
-            fprintf(world->err_file,
-                    "\nWarning: Unable to place some surface complexes of species '%s' (placed %d of %d).\n\n",
-                    effdp->eff->sym->name,
-                    n_total - n_to_place,
-                    n_total);
+            mcell_warn("Unable to place some surface complexes of species '%s' (placed %d of %d).\n",
+                       effdp->eff->sym->name,
+                       n_total - n_to_place,
+                       n_total);
             break;
 
           case WARN_ERROR:
-            fprintf(world->err_file,
-                    "\nError: Unable to place some surface complexes of species '%s' (placed %d of %d).\n\n",
-                    effdp->eff->sym->name,
-                    n_total - n_to_place,
-                    n_total);
-            return 1;
+            mcell_error("Error: Unable to place some surface complexes of species '%s' (placed %d of %d).\n",
+                        effdp->eff->sym->name,
+                        n_total - n_to_place,
+                        n_total);
+
+
+          default: UNHANDLED_CASE(world->notify->complex_placement_failure);
         }
         break;
       }
@@ -2458,14 +2281,13 @@ static int init_complex_effectors(struct object *objp, struct region_list *head)
     int avail_slots = 0;                        /* num free slots for molecules */
 
     /* Collect all walls in this region */
-    int i;
-    for (i=0; i<rp->membership->nbits; ++i)
+    for (int n_wall=0; n_wall<rp->membership->nbits; ++n_wall)
     {
-      if (get_bit(rp->membership, i))
+      if (get_bit(rp->membership, n_wall))
       {
-        w = objp->wall_p[i];
+        w = objp->wall_p[n_wall];
         if (w->grid == NULL  &&  create_grid(w, NULL))
-          return 1;
+          mcell_allocfailed("Failed to create grid for wall.");
 
         walls[num_fill] = w;
         weights[num_fill] = total_area += w->area;
@@ -2490,12 +2312,7 @@ static int init_complex_effectors(struct object *objp, struct region_list *head)
       else if (effdp->quantity_type == EFFDENS)
         n_to_place = (int) (effdp->quantity * total_area + 0.5);
       else
-      {
-        fprintf(world->err_file, "File '%s', Line %ld: Unknown effector quantity type, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        int i = emergency_output();
-        fprintf(world->err_file, "Fatal error: Unknown effector quantity type.\nAttempt to write intermediate results had %d errors.\n", i);
-        exit(EXIT_FAILURE);
-      }
+        mcell_internal_error("Unknown effector quantity type (%d).", effdp->quantity_type);
 
       /* Place them */
       if (init_effectors_place_complexes(n_to_place, num_fill, weights, walls, rp, effdp))
@@ -2519,185 +2336,140 @@ static int init_complex_effectors(struct object *objp, struct region_list *head)
  *******************************************************************/
 int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
 {
-  FILE *log_file;
   struct object *objp;
   struct species **eff;
   struct surface_grid *sg;
-  struct eff_dat *effdp;
   struct grid_molecule *mol;
   short *orientation;
-  unsigned int i,j,n,nr,n_occupied;
+  unsigned int n_eff_entry;
+  unsigned int n_tiles;
+  unsigned int n_occupied;
+  int num_eff_dat;
   int p_index;
-  double rand,*prob,area,tot_prob,tot_density;
+  double rnd,*prob,area,tot_prob,tot_density;
   struct subvolume *gsv = NULL;
 
-  log_file=world->log_file;
-
   no_printf("Initializing effectors by density...\n");
-  fflush(log_file);
 
-  if (create_grid(w,NULL)) {
-    return(1);
-  }
+  if (create_grid(w,NULL))
+    mcell_allocfailed("Failed to create grid for wall.");
   sg=w->grid;
   objp=w->parent_object;
 
-  nr=0;
-  effdp=effdp_head;
-  while (effdp!=NULL) {
-    nr++;
-    effdp=effdp->next;
-  }
+  num_eff_dat = 0;
+  for (struct eff_dat *effdp = effdp_head; effdp != NULL; effdp = effdp->next)
+    ++ num_eff_dat;
 
-  if ((eff=(struct species **)malloc(nr*sizeof(struct species *)))==NULL) {
-			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        		int i = emergency_output();
-			fprintf(world->err_file, "Fatal error: out of memory while effectors by density intialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
-  }
-  if ((prob=(double *)malloc(nr*sizeof(double)))==NULL) {
-			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        		int i = emergency_output();
-			fprintf(world->err_file, "Fatal error: out of memory while effectors by density intialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
-  }
-  if ((orientation=(short*)malloc(nr*sizeof(short)))==NULL) {
-			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        		int i = emergency_output();
-			fprintf(world->err_file, "Fatal error: out of memory while effectors by density intialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
-  }
+  eff         = CHECKED_MALLOC_ARRAY(struct species *, num_eff_dat, "effector-by-density placement array");
+  prob        = CHECKED_MALLOC_ARRAY(double,           num_eff_dat, "effector-by-density placement array");
+  orientation = CHECKED_MALLOC_ARRAY(short,            num_eff_dat, "effector-by-density placement array");
+  memset(eff,         0, num_eff_dat*sizeof(struct species *));
+  memset(prob,        0, num_eff_dat*sizeof(double));
+  memset(orientation, 0, num_eff_dat*sizeof(short));
 
-  for (i=0;i<nr;i++) {
-    eff[i]=NULL;
-    prob[i]=0.0;
-    orientation[i]=0;
-  }
+  n_tiles = sg->n_tiles;
+  area = w->area;
+  objp->n_tiles += n_tiles;
+  no_printf("Initializing %d effectors...\n", n_tiles);
+  no_printf("  Area = %.9g\n", area);
+  no_printf("  Grid_size = %d\n", sg->n);
+  no_printf("  Number of effector types in wall = %d\n", num_eff_dat);
 
-  n=sg->n_tiles;
-  area=w->area;
-  objp->n_tiles+=n;
-  no_printf("Initializing %d effectors...\n",n);
-  no_printf("  Area = %.9g\n",area);
-  no_printf("  Grid_size = %d\n",sg->n);
-  no_printf("  Number of effector types in wall = %d\n",nr);
-
-  i=0;
+  n_eff_entry = 0;
   tot_prob=0;
   tot_density=0;
-  effdp=effdp_head;
-  while (effdp!=NULL) {
+  for (struct eff_dat *effdp = effdp_head; effdp != NULL; effdp = effdp->next)
+  {
     no_printf("  Adding effector %s to wall at density %.9g\n",effdp->eff->sym->name,effdp->quantity);
-    tot_prob+=(area*effdp->quantity)/(n*world->grid_density);
-    prob[i]=tot_prob;
-    if (effdp->orientation > 0) orientation[i] = 1;
-    else if (effdp->orientation < 0) orientation[i] = -1;
-    else
-       orientation[i] = 0;
-    eff[i++]=effdp->eff;
+    tot_prob+=(area*effdp->quantity)/(n_tiles*world->grid_density);
+    prob[n_eff_entry]=tot_prob;
+    if (effdp->orientation > 0) orientation[n_eff_entry] = 1;
+    else if (effdp->orientation < 0) orientation[n_eff_entry] = -1;
+    else orientation[n_eff_entry] = 0;
+    eff[n_eff_entry ++] = effdp->eff;
     tot_density+=effdp->quantity;
-    effdp=effdp->next;
   }
 
-  if (tot_density>world->grid_density) {
-    fprintf(log_file,"\nMCell: Warning -- Total effector density too high: %f.  Filling all available effector sites.\n\n",tot_density);
-    fflush(log_file);
-/*
-    return(1);
-*/
-  }
+  if (tot_density>world->grid_density)
+    mcell_warn("Total effector density too high: %f.  Filling all available effector sites.", tot_density);
 
   n_occupied=0;
   if (world->chkpt_init) {
-    for (i=0;i<n;i++) {
-      if (sg->mol[i] != NULL)
+    for (unsigned int n_tile = 0; n_tile<n_tiles; ++ n_tile)
+    {
+      if (sg->mol[n_tile] != NULL)
         continue;
 
-      j=0;
       p_index=-1;
-      rand = rng_dbl(world->rng);
-      if(world->notify->final_summary == NOTIFY_FULL){
-         world->random_number_use++;
-      }
-      while (j<nr && p_index==-1) {
-        if (rand<=prob[j++]) {
-          p_index=j-1;
+      rnd = rng_dbl(world->rng);
+      for (int n_eff = 0; n_eff < num_eff_dat; ++ n_eff)
+      {
+        if (rnd <= prob[n_eff])
+        {
+          p_index = n_eff;
+          break;
         }
       }
-      if (p_index!=-1) {
-        struct vector2 s_pos;
-        struct vector3 pos3d;
-        n_occupied++;
-        eff[p_index]->population++;
 
-	if (world->randomize_gmol_pos) grid2uv_random(sg,i,&s_pos);
-	else grid2uv(sg,i,&s_pos);
-        uv2xyz(&s_pos, w, &pos3d);
-        gsv = find_subvolume(&pos3d, gsv);
-        mol=(struct grid_molecule *)mem_get(gsv->local_storage->gmol);
-        if(mol == NULL){
-			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        		int i = emergency_output();
-			fprintf(world->err_file, "Fatal error: out of memory while effectors by density intialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
-        }
-        sg->mol[i]=mol;
-        mol->t=0;
-        mol->t2=0;
-	mol->birthday = 0;
-        mol->cmplx = NULL;
-        mol->s_pos.u = s_pos.u;
-        mol->s_pos.v = s_pos.v;
-        mol->properties=eff[p_index];
-        mol->birthplace=w->birthplace->gmol;
-        mol->grid_index=i;
-        mol->grid=sg;
-        mol->orient=orientation[p_index];
-        if (mol->orient == 0)
-        { 
-          mol->orient = (rng_uint(world->rng)&1)?1:-1;
-          if(world->notify->final_summary == NOTIFY_FULL){
-            world->random_number_use++;
-          }
-        }
+      if (p_index == -1)
+        continue;
 
-        mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
-	if (mol->properties->space_step>0) mol->flags |= ACT_DIFFUSE;
-        if ( trigger_unimolecular(eff[p_index]->hashval,(struct abstract_molecule *)mol)!=NULL
-	     || (eff[p_index]->flags&CAN_GRIDWALL)!=0 ) {
-          mol->flags|=ACT_REACT;
-        }
-        if ((mol->properties->flags&COUNT_ENCLOSED) != 0) mol->flags |= COUNT_ME;
+      struct vector2 s_pos;
+      struct vector3 pos3d;
+      n_occupied++;
+      eff[p_index]->population++;
 
-        if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-          count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
-      
-        if (schedule_add(gsv->local_storage->timer,mol)){ 
-		fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        	int i = emergency_output();
-		fprintf(world->err_file, "Fatal error: out of memory while effectors by density intialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        	exit(EXIT_FAILURE);
-         }
+      if (world->randomize_gmol_pos) grid2uv_random(sg, n_tile, &s_pos);
+      else grid2uv(sg, n_tile, &s_pos);
+      uv2xyz(&s_pos, w, &pos3d);
+      gsv = find_subvolume(&pos3d, gsv);
+      mol = (struct grid_molecule *) CHECKED_MEM_GET(gsv->local_storage->gmol, "grid molecule");
+      sg->mol[n_tile] = mol;
+      mol->t=0;
+      mol->t2=0;
+      mol->birthday = 0;
+      mol->cmplx = NULL;
+      mol->s_pos.u = s_pos.u;
+      mol->s_pos.v = s_pos.v;
+      mol->properties=eff[p_index];
+      mol->birthplace=w->birthplace->gmol;
+      mol->grid_index = n_tile;
+      mol->grid=sg;
+      mol->orient=orientation[p_index];
+      if (mol->orient == 0)
+        mol->orient = (rng_uint(world->rng) & 1) ? 1 : -1;
+
+      mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
+      if (mol->properties->space_step>0) mol->flags |= ACT_DIFFUSE;
+      if ( trigger_unimolecular(eff[p_index]->hashval,(struct abstract_molecule *)mol)!=NULL
+           || (eff[p_index]->flags&CAN_GRIDWALL)!=0 ) {
+        mol->flags|=ACT_REACT;
       }
+      if ((mol->properties->flags&COUNT_ENCLOSED) != 0) mol->flags |= COUNT_ME;
+
+      if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
+        count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
+
+      if (schedule_add(gsv->local_storage->timer,mol))
+        mcell_allocfailed("Failed to add grid molecule '%s' to scheduler.", mol->properties->sym->name);
     }
   }
 
   sg->n_occupied=n_occupied;
   objp->n_occupied_tiles+=n_occupied;
 
-  for (i=0;i<nr;i++) {
-    no_printf("Total number of effector %s = %d\n",eff[i]->sym->name,eff[i]->population);
-  }
+#ifdef DEBUG
+  for (int n_eff=0; n_eff < num_eff_dat; ++ n_eff)
+    no_printf("Total number of effector %s = %d\n", eff[n_eff]->sym->name, eff[n_eff]->population);
+#endif
 
   free(eff);
   free(prob);
   free(orientation);
 
-  no_printf("Done initializing %d effectors by density\n",n_occupied);
-  fflush(log_file);
+  no_printf("Done initializing %u effectors by density\n",n_occupied);
 
-	
-  return(0);
+  return 0;
 }
 
 
@@ -2713,7 +2485,6 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
  *******************************************************************/
 int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_num_head)
 {
-  FILE *log_file;
   struct polygon_object *pop;
   struct species *eff;
   struct grid_molecule ***tiles,***tiles_tmp;
@@ -2725,22 +2496,21 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
   struct eff_dat *effdp;
   struct wall **walls,**walls_tmp,*w;
   short orientation;
-  unsigned int *index,*index_tmp;
+  unsigned int *idx,*idx_tmp;
   unsigned int n_free_eff,n_set,n_clear;
-  unsigned int i,j,k;
+  unsigned int k;
   byte done;
   struct subvolume *gsv=NULL;
   struct vector3 pos3d;
 
     no_printf("Initializing effectors by number...\n");
 
-    log_file=world->log_file;
     pop=(struct polygon_object *)objp->contents;
 
     tiles=NULL;
     tiles_tmp=NULL;
-    index=NULL;
-    index_tmp=NULL;
+    idx=NULL;
+    idx_tmp=NULL;
     walls=NULL;
     walls_tmp=NULL;
     bread_crumb=&gmol;
@@ -2753,65 +2523,48 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
         /* initialize effector grids in region as needed and */
         /* count total number of free effector sites in region */
         n_free_eff=0;
-	for (i=0;i<rp->membership->nbits;i++)
-	{
-	  if (get_bit(rp->membership,i))
-	  {
-	    w=objp->wall_p[i];
-	    if (create_grid(w,NULL)) {
-	      return(1);
-	    }
+        for (int n_wall=0; n_wall<rp->membership->nbits; n_wall++)
+        {
+          if (get_bit(rp->membership, n_wall))
+          {
+            w=objp->wall_p[n_wall];
+            if (create_grid(w,NULL))
+              mcell_allocfailed("Failed to allocate grid for wall.");
 	    sg=w->grid;
 	    n_free_eff=n_free_eff+(sg->n_tiles-sg->n_occupied);
           }
         }
         no_printf("Number of free effector tiles in region %s = %d\n",rp->sym->name,n_free_eff);  
-        fflush(stdout);
 
-        if(n_free_eff == 0) {
-              fprintf(log_file,"\nMCell: Warning -- Number of free effector tiles in region %s = %d\n", rp->sym->name, n_free_eff);
-              rlp = rlp->next;   
-              continue;
+        if (n_free_eff == 0) {
+          mcell_warn("Number of free effector tiles in region %s = %d", rp->sym->name, n_free_eff);
+          rlp = rlp->next;   
+          continue;
         }
  
       if (world->chkpt_init) {  /* only needed for denovo initiliazation */
         /* allocate memory to hold array of pointers to all free tiles */
-        if ((tiles=(struct grid_molecule ***)malloc
-           (n_free_eff*sizeof(struct grid_molecule **)))==NULL) {
-			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        		int i = emergency_output();
-			fprintf(world->err_file, "Fatal error: out of memory while effectors by number intialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
-        }
-        if ((index=(unsigned int *)malloc
-           (n_free_eff*sizeof(unsigned int)))==NULL) {
-			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        		int i = emergency_output();
-			fprintf(world->err_file, "Fatal error: out of memory while effectors by number intialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
-        }
-        if ((walls=(struct wall **)malloc
-           (n_free_eff*sizeof(struct wall *)))==NULL) {
-			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        		int i = emergency_output();
-			fprintf(world->err_file, "Fatal error: out of memory while effectors by number intialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
-        }
+        tiles = CHECKED_MALLOC_ARRAY(struct grid_molecule **, n_free_eff, "effector placement tiles array");
+        idx   = CHECKED_MALLOC_ARRAY(unsigned int,            n_free_eff, "effector placement indices array");
+        walls = CHECKED_MALLOC_ARRAY(struct wall *,           n_free_eff, "effector placement walls array");
+
         /* initialize array of pointers to all free tiles */
         k=0;
-	for (i=0;i<rp->membership->nbits;i++)
-	{
-	  if (get_bit(rp->membership,i))
-	  {
-	    w=objp->wall_p[i];
+        for (int n_wall=0; n_wall<rp->membership->nbits; n_wall++)
+        {
+          if (get_bit(rp->membership, n_wall))
+          {
+            w = objp->wall_p[n_wall];
 	    sg=w->grid;
 	    if (sg!=NULL) {
-	      for (j=0;j<sg->n_tiles;j++) {
-		if (sg->mol[j]==NULL) {
-		  tiles[k]=&(sg->mol[j]);
-		  index[k]=j;
-		  walls[k++]=w;
-		}
+              for (unsigned int n_tile=0; n_tile<sg->n_tiles; n_tile++)
+              {
+                if (sg->mol[n_tile]==NULL)
+                {
+                  tiles[k] = &(sg->mol[n_tile]);
+                  idx[k] = n_tile;
+                  walls[k++] = w;
+                }
 	      }
 	    }
 	  }
@@ -2826,47 +2579,49 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
         if (effdp->quantity_type==EFFNUM) {
           eff=effdp->eff;
 
-          if (world->chkpt_init) {  /* only needed for denovo initiliazation */
-	    if (effdp->orientation > 0) orientation = 1;
-	    else if (effdp->orientation < 0) orientation = -1;
-	    else orientation = 0;
-  
+          if (world->chkpt_init)
+          {  /* only needed for denovo initiliazation */
+            if (effdp->orientation > 0) orientation = 1;
+            else if (effdp->orientation < 0) orientation = -1;
+            else orientation = 0;
+
             n_set=effdp->quantity;
             n_clear=n_free_eff-n_set;
 
-            if (n_set > n_free_eff) {
-              fprintf(log_file,"\nMCell: Warning -- Number of %s effectors to place (%d) exceeds number of free effector tiles (%d) in region %s[%s].",eff->sym->name,n_set,n_free_eff,rp->parent->sym->name,rp->region_last_name);
-               fprintf(log_file, "  Effectors %s placed on all available effector sites.\n\n", eff->sym->name);
-              n_set=n_free_eff;
+            if (n_set > n_free_eff)
+            {
+              mcell_warn("Number of %s effectors to place (%d) exceeds number of free effector tiles (%d) in region %s[%s].\n"
+                         "  Effectors %s placed on all available effector sites.",
+                         eff->sym->name,
+                         n_set,
+                         n_free_eff,
+                         rp->parent->sym->name,
+                         rp->region_last_name,
+                         eff->sym->name);
+              n_set = n_free_eff;
               n_clear=0;
             }
-            
+
             eff->population+=n_set;
-            
+
             no_printf("distribute %d of effector %s\n",n_set,eff->sym->name);
             no_printf("n_set = %d  n_clear = %d  n_free_eff = %d\n",n_set,n_clear,n_free_eff);
-            fflush(stdout);
 
             /* if filling more than half the free tiles
-              init all with bread_crumbs
-              choose which tiles to free again
-              and then convert remaining bread_crumbs to actual molecules */
+               init all with bread_crumbs
+               choose which tiles to free again
+               and then convert remaining bread_crumbs to actual molecules */
             if (n_set > n_free_eff/2) {
               no_printf("filling more than half the free tiles: init all with bread_crumb\n");
-              fflush(stdout);
-              for (j=0;j<n_free_eff;j++) {
+              for (unsigned int j=0;j<n_free_eff;j++) {
                 *tiles[j]=bread_crumb;
               }
 
               no_printf("choose which tiles to free again\n");
-              fflush(stdout);
-              for (j=0;j<n_clear;j++) {
+              for (unsigned int j=0;j<n_clear;j++) {
                 done=0;
                 while (!done) {
-		  k = (int) (rng_dbl(world->rng)*n_free_eff);
-                  if(world->notify->final_summary == NOTIFY_FULL){
-                      world->random_number_use++;
-                  }
+                  k = (int) (rng_dbl(world->rng)*n_free_eff);
                   if (*tiles[k]==bread_crumb) {
                     *tiles[k]=NULL;
                     done=1;
@@ -2875,195 +2630,134 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
               }
 
               no_printf("convert remaining bread_crumbs to actual molecules\n");
-              fflush(stdout);
-              for (j=0;j<n_free_eff;j++) {
+              for (unsigned int j=0;j<n_free_eff;j++) {
                 if (*tiles[j]==bread_crumb) {
                   struct vector2 s_pos;
-		  if (world->randomize_gmol_pos) grid2uv_random(walls[j]->grid,index[j],&s_pos);
-		  else grid2uv(walls[j]->grid,index[j],&s_pos);
+                  if (world->randomize_gmol_pos) grid2uv_random(walls[j]->grid,idx[j],&s_pos);
+                  else grid2uv(walls[j]->grid,idx[j],&s_pos);
                   uv2xyz(&s_pos, walls[j], &pos3d);
                   gsv = find_subvolume(&pos3d, gsv);
 
-                  mol=(struct grid_molecule *)
-                    mem_get(gsv->local_storage->gmol);
-                  if (mol == NULL){
-			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        		int i = emergency_output();
-			fprintf(world->err_file, "Fatal error: out of memory while effectors by number initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
-                  }
+                  mol=(struct grid_molecule *) CHECKED_MEM_GET(gsv->local_storage->gmol, "grid molecule");
                   *tiles[j]=mol;
                   mol->t=0;
                   mol->t2=0;
-		  mol->birthday=0;
+                  mol->birthday=0;
                   mol->properties=eff;
                   mol->birthplace=walls[j]->birthplace->gmol;
-                  mol->grid_index=index[j];
+                  mol->grid_index=idx[j];
                   mol->s_pos.u = s_pos.u;
                   mol->s_pos.v = s_pos.v;
-                  /*mol->orient = (orientation==0) ? ((rng_uint(world->rng)&1)?1:-1) : orientation; */
-                  if(orientation == 0){
-                     if((rng_uint(world->rng)&1)){
-                        mol->orient = 1;
-                     }else{
-                        mol->orient = -1;
-                     }
-                     if(world->notify->final_summary == NOTIFY_FULL){
-                        world->random_number_use++;
-                     }
-                  }else{
-                     mol->orient = orientation;
-                  }
+                  if (orientation == 0)
+                    mol->orient = (rng_uint(world->rng)&1) ? 1 : -1;
+                  else
+                    mol->orient = orientation;
                   mol->cmplx = NULL;
                   mol->grid=walls[j]->grid;
                   mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
-		  if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
+                  if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
                   if (trigger_unimolecular(eff->hashval,(struct abstract_molecule *)mol)!=NULL
-		      || (eff->flags&CAN_GRIDWALL)!=0 ) {
+                      || (eff->flags&CAN_GRIDWALL)!=0 ) {
                     mol->flags|=ACT_REACT;
                   }
                   if ((mol->properties->flags&COUNT_ENCLOSED) != 0) mol->flags |= COUNT_ME;
-                  
+
                   if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
                     count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
-      
-                  if ( schedule_add(gsv->local_storage->timer, mol) ){ 
-			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        		int i = emergency_output();
-			fprintf(world->err_file, "Fatal error: out of memory while effectors by number initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
-		   }
+
+                  if (schedule_add(gsv->local_storage->timer, mol))
+                    mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.", mol->properties->sym->name);
                 }
               }
             }
             else {  /* just fill only the tiles we need */
               no_printf("fill only the tiles we need\n");
-              fflush(stdout);
-              for (j=0;j<n_set;j++) {
+              for (unsigned int j=0;j<n_set;j++) {
                 done=0;
                 while (!done) {
-		  k = (int) (rng_dbl(world->rng)*n_free_eff);
-                  if(world->notify->final_summary == NOTIFY_FULL){
-                      world->random_number_use++;
-                  }
+                  k = (int) (rng_dbl(world->rng)*n_free_eff);
                   if (*tiles[k]==NULL) {
                     struct vector2 s_pos;
-                    if (world->randomize_gmol_pos) grid2uv_random(walls[k]->grid,index[k],&s_pos);
-                    else grid2uv(walls[k]->grid,index[k],&s_pos);
+                    if (world->randomize_gmol_pos) grid2uv_random(walls[k]->grid,idx[k],&s_pos);
+                    else grid2uv(walls[k]->grid,idx[k],&s_pos);
                     uv2xyz(&s_pos, walls[k], &pos3d);
                     gsv = find_subvolume(&pos3d, gsv);
 
-                    mol=(struct grid_molecule *)mem_get
-                      (gsv->local_storage->gmol);
-                    if (mol == NULL){
-			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        		int i = emergency_output();
-			fprintf(world->err_file, "Fatal error: out of memory while effectors by number initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
-                    }
+                    mol=(struct grid_molecule *)CHECKED_MEM_GET(gsv->local_storage->gmol, "grid molecule");
                     *tiles[k]=mol;
                     mol->t=0;
                     mol->t2=0;
-		    mol->birthday=0;                                                                                    
+                    mol->birthday=0;
                     mol->properties=eff;
                     mol->birthplace=walls[k]->birthplace->gmol;
-                    mol->grid_index=index[k];
+                    mol->grid_index=idx[k];
                     mol->s_pos.u = s_pos.u;
                     mol->s_pos.v = s_pos.v;
                     mol->cmplx = NULL;
-                    /* mol->orient = (orientation==0) ? ((rng_uint(world->rng)&1)?1:-1) : orientation; */
-                    if(orientation == 0){
-                       if((rng_uint(world->rng)&1)){
-                          mol->orient = 1;
-                       }else{
-                          mol->orient = -1;
-                       }
-                       if(world->notify->final_summary == NOTIFY_FULL){
-                          world->random_number_use++;
-                       }
-                    }else{
-                       mol->orient = orientation;
-                    }
+                    if (orientation == 0)
+                      mol->orient = (rng_uint(world->rng) & 1) ? 1 : -1;
+                    else
+                      mol->orient = orientation;
 
                     mol->grid=walls[k]->grid;
                     mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
-		    if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
-                      if (trigger_unimolecular(eff->hashval,(struct abstract_molecule *)mol)!=NULL
-		          || (eff->flags&CAN_GRIDWALL)!=0) {
+                    if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
+                    if (trigger_unimolecular(eff->hashval,(struct abstract_molecule *)mol)!=NULL
+                        || (eff->flags&CAN_GRIDWALL)!=0) {
                       mol->flags|=ACT_REACT;
                     }
-                  
+
                     if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
                       count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
-      
-                    if ( schedule_add(gsv->local_storage->timer,mol) ){ 
-			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        		int i = emergency_output();
-			fprintf(world->err_file, "Fatal error: out of memory while effectors by number initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
-                     }
+
+                    if (schedule_add(gsv->local_storage->timer, mol))
+                      mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.", mol->properties->sym->name);
                     done=1;
                   }
                 }
               }
             }
-         
-      if(n_clear > 0)
-      { 
-        /* allocate memory to hold array of pointers to remaining free tiles */
-            if ((tiles_tmp=(struct grid_molecule ***)malloc
-                 (n_clear*sizeof(struct grid_molecule **)))==NULL) {
-			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        		int i = emergency_output();
-			fprintf(world->err_file, "Fatal error: out of memory while effectors by number initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
-            }
-            if ((index_tmp=(unsigned int *)malloc
-               (n_clear*sizeof(unsigned int)))==NULL) {
-			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        		int i = emergency_output();
-			fprintf(world->err_file, "Fatal error: out of memory while effectors by number initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
-            }
-            if ((walls_tmp=(struct wall **)malloc
-               (n_clear*sizeof(struct wall *)))==NULL) {
-			fprintf(world->err_file, "File '%s', Line %ld: Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-        		int i = emergency_output();
-			fprintf(world->err_file, "Fatal error: out of memory while effectors by number initialization.\nAttempt to write intermediate results had %d errors.\n", i);
-        		exit(EXIT_FAILURE);
-            }
-            k=0;
-            for (i=0;i<n_free_eff;i++) {
-              if (*tiles[i]==NULL) {
-                tiles_tmp[k]=tiles[i];
-                index_tmp[k]=index[i];
-                walls_tmp[k++]=walls[i];
+
+            if(n_clear > 0)
+            { 
+              /* allocate memory to hold array of pointers to remaining free tiles */
+              tiles_tmp = CHECKED_MALLOC_ARRAY(struct grid_molecule **, n_clear, "effector placement tiles array");
+              idx_tmp   = CHECKED_MALLOC_ARRAY(unsigned int,            n_clear, "effector placement indices array");
+              walls_tmp = CHECKED_MALLOC_ARRAY(struct wall *,           n_clear, "effector placement walls array");
+
+              k=0;
+              for (unsigned int n_eff=0; n_eff<n_free_eff; n_eff++) {
+                if (*tiles[n_eff] == NULL)
+                {
+                  tiles_tmp[k] = tiles[n_eff];
+                  idx_tmp[k] = idx[n_eff];
+                  walls_tmp[k++] = walls[n_eff];
+                }
               }
+              /* free original array of pointers to all free tiles */
+              free(tiles);
+              free(idx);
+              free(walls);
+              tiles=tiles_tmp;
+              idx=idx_tmp;
+              walls=walls_tmp;
+              n_free_eff=n_free_eff-n_set;
             }
-            /* free original array of pointers to all free tiles */
-            free(tiles);
-            free(index);
-            free(walls);
-            tiles=tiles_tmp;
-            index=index_tmp;
-            walls=walls_tmp;
-            n_free_eff=n_free_eff-n_set;
-         }
 
             /* update n_occupied for each effector grid */
-	    for (i=0;i<rp->membership->nbits;i++)
-	    {
-	      if (get_bit(rp->membership,i))
-	      {
-		sg=objp->wall_p[i]->grid;
-		if (sg!=NULL)
-		{
-		  sg->n_occupied=0;
-		  for (j=0;j<sg->n_tiles;j++) {
-		    if (sg->mol[j]!=NULL) {
-		      sg->n_occupied++;
-		    }
-		  }
+            for (int n_wall=0; n_wall<rp->membership->nbits; n_wall++)
+            {
+              if (get_bit(rp->membership, n_wall))
+              {
+                sg=objp->wall_p[n_wall]->grid;
+                if (sg!=NULL)
+                {
+                  sg->n_occupied=0;
+                  for (unsigned int n_tile=0; n_tile<sg->n_tiles; ++ n_tile)
+                  {
+                    if (sg->mol[n_tile] != NULL)
+                      sg->n_occupied++;
+                  }
                 }
               }
             }
@@ -3075,8 +2769,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
       if (tiles!=NULL) {
         free(tiles);
       }
-      if (index!=NULL) {
-        free(index);
+      if (idx!=NULL) {
+        free(idx);
       }
       if (walls!=NULL) {
         free(walls);
@@ -3084,7 +2778,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
       rlp=rlp->next;
     }
     no_printf("Done initialize effectors by number.\n");
-    return(0);
+    return 0;
 }
 
 
@@ -3099,7 +2793,7 @@ rel_expr_grab_obj:
 ***************************************************************************/
 
 /* Not the most efficient due to slow merging, but it works. */
-struct void_list* rel_expr_grab_obj(struct release_evaluator *root,struct mem_helper *voidmem)
+static struct void_list* rel_expr_grab_obj(struct release_evaluator *root, struct mem_helper *voidmem)
 {
   struct void_list *vl = NULL;
   struct void_list *vr = NULL;
@@ -3108,7 +2802,7 @@ struct void_list* rel_expr_grab_obj(struct release_evaluator *root,struct mem_he
   {
     if (root->op&REXP_LEFT_REGION)
     {
-      vl = mem_get(voidmem);
+      vl = CHECKED_MEM_GET(voidmem, "temporary list for region release");
       if (vl==NULL) return NULL;
       vl->data = ((struct region*)(root->left))->parent;
       vl->next=NULL;
@@ -3119,7 +2813,7 @@ struct void_list* rel_expr_grab_obj(struct release_evaluator *root,struct mem_he
   {
     if (root->op&REXP_RIGHT_REGION)
     {
-      vr = mem_get(voidmem);
+      vr = CHECKED_MEM_GET(voidmem, "temporary list for region release");
       if (vr==NULL) return NULL;
       vr->data = ((struct region*)(root->right))->parent;
       vr->next=NULL;
@@ -3158,22 +2852,23 @@ find_unique_rev_objects:
        expression (no duplicates), or NULL if out of memory.  The
        second argument is set to the length of the array.
 ***************************************************************************/
-
-struct object** find_unique_rev_objects(struct release_evaluator *root,int *n)
+static struct object** find_unique_rev_objects(struct release_evaluator *root, int *n)
 {
   struct object **o_array;
   struct void_list *vp,*vq;
   struct mem_helper *voidmem;
-  int i;
+  int n_unique;
   
   voidmem = create_mem(sizeof(struct void_list), 1024);
+  if (voidmem == NULL)
+    mcell_allocfailed("Failed to create temporary list memory pool.");
   
   vp = rel_expr_grab_obj(root,voidmem);
   if (vp==NULL) return NULL;
   
   vp = void_list_sort(vp);
   
-  for (i=1,vq=vp ; vq!=NULL && vq->next!=NULL ; vq=vq->next , i++)
+  for (n_unique=1,vq=vp ; vq!=NULL && vq->next!=NULL ; vq=vq->next , n_unique++)
   {
     while (vq->data == vq->next->data)
     {
@@ -3182,17 +2877,14 @@ struct object** find_unique_rev_objects(struct release_evaluator *root,int *n)
     }
   }
   
-  if (vq==NULL) i--;
-  *n = i;
+  if (vq==NULL) n_unique--;
+  *n = n_unique;
   
-  o_array = (struct object**)malloc(i*sizeof(struct object*));
-  if (o_array==NULL) return NULL;
-  
-  for (i=0,vq=vp ; vq!=NULL ; vq=vq->next,i++)
-  {
-    o_array[i] = (struct object*)vq->data;
-  }
-  
+  o_array = CHECKED_MALLOC_ARRAY(struct object *, n_unique, "object array for region release");
+  vq = vp;
+  for (unsigned int n_obj=0; vq!=NULL; vq = vq->next, ++ n_obj)
+    o_array[n_obj] = (struct object*)vq->data;
+
   delete_mem(voidmem);
   
   return o_array;
@@ -3211,10 +2903,12 @@ eval_rel_region_expr:
        so that they indicate which walls of each object are included in
        this release site.
 ***************************************************************************/
-
-int eval_rel_region_expr(struct release_evaluator *expr,int n,struct object **objs,struct bit_array **result,int *n_refinements)
+static int eval_rel_region_expr(struct release_evaluator *expr,
+                                int n,
+                                struct object **objs,
+                                struct bit_array **result,
+                                int *n_refinements)
 {
-  int i;
   char bit_op;
   
   if (expr->left!=NULL)
@@ -3222,8 +2916,8 @@ int eval_rel_region_expr(struct release_evaluator *expr,int n,struct object **ob
     if (expr->op&REXP_INCLUSION)
     {
       if (expr->right==NULL) return 1;  /* Should always have two arguments */
-      i=eval_rel_region_expr(expr->left,n,objs,result,n_refinements);
-      if (i==1) return 1;
+      if (eval_rel_region_expr(expr->left,n,objs,result,n_refinements))
+        return 1;
       *n_refinements += 1;
       /* Just ignore right-hand argument; we'll mark that we should look at it later */
     }
@@ -3231,14 +2925,14 @@ int eval_rel_region_expr(struct release_evaluator *expr,int n,struct object **ob
     {
       if (expr->op&REXP_LEFT_REGION)
       {
-	i = void_array_search((void**)objs,n,((struct region*)(expr->left))->parent);
-	result[i] = duplicate_bit_array( ((struct region*)(expr->left))->membership );
-	if (result[i]==NULL) return 1;
+        int pos = void_array_search((void**)objs, (int)n,((struct region*)(expr->left))->parent);
+        result[pos] = duplicate_bit_array( ((struct region*)(expr->left))->membership );
+        if (result[pos]==NULL) return 1;
       }
       else
       {
-	i = eval_rel_region_expr(expr->left,n,objs,result,n_refinements);
-	if (i) return 1;
+        if (eval_rel_region_expr(expr->left,n,objs,result,n_refinements))
+          return 1;
       }
       
       if (expr->right==NULL)
@@ -3249,12 +2943,12 @@ int eval_rel_region_expr(struct release_evaluator *expr,int n,struct object **ob
       
       if (expr->op&REXP_RIGHT_REGION)
       {
-	i = void_array_search((void**)objs,n,((struct region*)(expr->right))->parent);
-	if (result[i]==NULL)
-	{
-	  result[i] = duplicate_bit_array( ((struct region*)(expr->right))->membership );
-	  if (result[i]==NULL) return 1;
-	}
+        int pos = void_array_search((void**)objs, (int)n,((struct region*)(expr->right))->parent);
+        if (result[pos] == NULL)
+        {
+          result[pos] = duplicate_bit_array( ((struct region*)(expr->right))->membership );
+          if (result[pos]==NULL) return 1;
+        }
 	else
 	{
 	  if (expr->op&REXP_UNION) bit_op = '|';
@@ -3262,18 +2956,18 @@ int eval_rel_region_expr(struct release_evaluator *expr,int n,struct object **ob
 	  else if (expr->op&REXP_INTERSECTION) bit_op = '&';
 	  else return 1;
   
-	  bit_operation(result[i],((struct region*)(expr->right))->membership,bit_op);
+          bit_operation(result[pos],((struct region*)(expr->right))->membership,bit_op);
 	}
       }
       else
       {
 	struct bit_array *res2[n];
-	for (i=0;i<n;i++) res2[i]=NULL;
-	
-	i = eval_rel_region_expr(expr->right,n,objs,res2,n_refinements);
-	if (i) return 1;
-	
-	for (i=0;i<n;i++)
+        for (int i=0;i<n;i++) res2[i]=NULL;
+
+        if (eval_rel_region_expr(expr->right,n,objs,res2,n_refinements))
+          return 1;
+
+        for (int i=0;i<n;i++)
 	{
 	  if (res2[i]==NULL) continue;
 	  if (result[i]==NULL) result[i] = res2[i];
@@ -3305,93 +2999,81 @@ init_rel_region_data_2d:
        generated and stored in arrays (typically of length equal to the
        number of walls in the region expression).
 ***************************************************************************/
-
-int init_rel_region_data_2d(struct release_region_data *rrd)
+static int init_rel_region_data_2d(struct release_site_obj *rsop,
+                                   struct release_region_data *rrd)
 {
-  int i,j,k;
-  struct polygon_object *po;
-
   rrd->owners = find_unique_rev_objects(rrd->expression , &(rrd->n_objects));
-  if (rrd->owners==NULL)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Error, cannot find any objects for region release\n", __FILE__, (long)__LINE__);
-    return 1;
-  }
+  if (rrd->owners == NULL)
+    mcell_error("No objects were found matching the 2-D region release request for release site '%s'.",
+                rsop->name);
   
-  rrd->in_release = (struct bit_array**)malloc(rrd->n_objects*sizeof(struct bit_array*));
-  if (rrd->in_release==NULL)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory creating region lists for 2D region releases\n", __FILE__, (long)__LINE__);
-    return 1;
-  }
-  for (i=0;i<rrd->n_objects;i++) rrd->in_release[i]=NULL;
+  rrd->in_release = CHECKED_MALLOC_ARRAY(struct bit_array *,
+                                         rrd->n_objects,
+                                         "region membership array for 2D region release");
+  for (int n_object=0; n_object<rrd->n_objects; ++ n_object)
+    rrd->in_release[n_object] = NULL;
   
   rrd->refinement = 0;
-  i = eval_rel_region_expr(rrd->expression,rrd->n_objects,rrd->owners,rrd->in_release,&rrd->refinement);
-  if (i)
+  if (eval_rel_region_expr(rrd->expression,rrd->n_objects,rrd->owners,rrd->in_release,&rrd->refinement))
+    mcell_error("Could not evaluate region expression for release site '%s'.", rsop->name);
+
+  for (int n_object=0; n_object<rrd->n_objects; n_object++)
   {
-    fprintf(world->err_file,"File '%s', Line %ld: Error, could not evaluate region expression.\n", __FILE__, (long)__LINE__);
-    return 1;
-  }
-  for (i=0;i<rrd->n_objects;i++)
-  {
-    if (rrd->owners[i]==NULL)
-    {
-      fprintf(world->err_file,"File '%s', Line %ld: Object %d of %d in region expression was not found!\n", __FILE__, (long)__LINE__, i+1,rrd->n_objects);
-      return 1;
-    }
+    if (rrd->owners[n_object] == NULL)
+      mcell_internal_error("Object %d of %d in region expression for release site '%s' was not found!",
+                           n_object+1,
+                           rrd->n_objects,
+                           rsop->name);
   }
   
-  rrd->walls_per_obj = (int*)malloc(rrd->n_objects*sizeof(int));
-  if (rrd->walls_per_obj==NULL)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Error, out of memory creating wall counts for 2D region releases\n", __FILE__, (long)__LINE__);
-    return 1;
-  }
+  rrd->walls_per_obj = CHECKED_MALLOC_ARRAY(int,
+                                            rrd->n_objects,
+                                            "wall counts for 2D region release");
   
   rrd->n_walls_included=0;
-  for (i=0;i<rrd->n_objects;i++)
+  for (int n_object=0; n_object<rrd->n_objects; ++ n_object)
   {
-    if (rrd->in_release[i]==NULL) rrd->walls_per_obj[i]=0;
-    else rrd->walls_per_obj[i] = count_bits(rrd->in_release[i]);
-    rrd->n_walls_included += rrd->walls_per_obj[i];
+    if (rrd->in_release[n_object] == NULL) rrd->walls_per_obj[n_object]=0;
+    else rrd->walls_per_obj[n_object] = count_bits(rrd->in_release[n_object]);
+    rrd->n_walls_included += rrd->walls_per_obj[n_object];
   }
   
-  rrd->cum_area_list = (double*)malloc(rrd->n_walls_included*sizeof(double));
-  rrd->wall_index = (int*)malloc(rrd->n_walls_included*sizeof(int));
-  rrd->obj_index = (int*)malloc(rrd->n_walls_included*sizeof(int));
-  if (rrd->cum_area_list==NULL || rrd->wall_index==NULL || rrd->obj_index==NULL)
+  rrd->cum_area_list = CHECKED_MALLOC_ARRAY(double,
+                                            rrd->n_walls_included,
+                                            "cumulative area list for 2D region release");
+  rrd->wall_index = CHECKED_MALLOC_ARRAY(int,
+                                         rrd->n_walls_included,
+                                         "wall indices for 2D region release");
+  rrd->obj_index = CHECKED_MALLOC_ARRAY(int,
+                                        rrd->n_walls_included,
+                                        "object indices for 2D region release");
+
+  unsigned int n_wall_overall = 0;
+  for (int n_object=0; n_object<rrd->n_objects; ++ n_object)
   {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory creating area lists for 2D region releases\n", __FILE__, (long)__LINE__);
-    return 1;
-  }
-  
-  j = 0;
-  for (i=0;i<rrd->n_objects;i++)
-  {
-    if (rrd->walls_per_obj[i]==0) continue;
-    k = rrd->owners[i]->object_type;
-    if (k != POLY_OBJ && k != BOX_OBJ)
+    if (rrd->walls_per_obj[n_object]==0) continue;
+    int owner_type = rrd->owners[n_object]->object_type;
+    if (owner_type != POLY_OBJ && owner_type != BOX_OBJ)
+      mcell_internal_error("Found a region on an object which is neither a box nor a polygon (type=%d).", owner_type);
+
+    struct polygon_object *po = (struct polygon_object*)
+          (rrd->owners[n_object]->contents);
+    const unsigned int n_walls = po->n_walls;
+    for (unsigned int n_wall=0; n_wall<n_walls; ++ n_wall)
     {
-      fprintf(world->err_file,"File '%s', Line %ld: found a region on something that isn't a box or polygon object?\n", __FILE__, (long)__LINE__);
-      return 1;
-    }
-    po = (struct polygon_object*)(rrd->owners[i]->contents);
-    for (k=0;k<po->n_walls;k++)
-    {
-      if (get_bit(rrd->in_release[i],k))
+      if (get_bit(rrd->in_release[n_object], n_wall))
       {
-        rrd->cum_area_list[j] = rrd->owners[i]->wall_p[k]->area;
-        rrd->obj_index[j] = i;
-        rrd->wall_index[j] = k;
-        j++;
+        rrd->cum_area_list[n_wall_overall] = rrd->owners[n_object]->wall_p[n_wall]->area;
+        rrd->obj_index[n_wall_overall] = n_object;
+        rrd->wall_index[n_wall_overall] = n_wall;
+        ++ n_wall_overall;
       }
     }
   }
-  
-  for (i=1;i<rrd->n_walls_included;i++)
+
+  for (int n_wall=1; n_wall<rrd->n_walls_included; n_wall++)
   {
-    rrd->cum_area_list[i] += rrd->cum_area_list[i-1];
+    rrd->cum_area_list[n_wall] += rrd->cum_area_list[n_wall-1];
   }
   
   return 0;
@@ -3404,33 +3086,26 @@ create_region_bbox:
   Out: pointer to a 2-element array contining the LLF and URB corners of
        a bounding box around the region, or NULL if out of memory.
 ***************************************************************************/
-
-struct vector3* create_region_bbox(struct region *r)
+static struct vector3* create_region_bbox(struct region *r)
 {
-  int i,j,k;
-  struct vector3 *bbox;
-  struct vector3 *v;
-  
-  bbox = (struct vector3*) malloc(2*sizeof(struct vector3));
-  if (bbox==NULL) {
-    fprintf(world->err_file, "File '%s', Line %ld: Out of memory while creating region bounding box.\n", __FILE__, (long)__LINE__);
-    return NULL;
-  }
-  
-  j=0;
-  for (i=0;i<r->membership->nbits;i++)
+  struct vector3 *bbox =
+        CHECKED_MALLOC_ARRAY(struct vector3, 2, "region bounding box");
+
+  int found_first_wall = 0;
+  for (int n_wall=0; n_wall<r->membership->nbits; ++ n_wall)
   {
-    if (get_bit(r->membership,i))
+    if (get_bit(r->membership, n_wall))
     {
-      if (!j)
+      if (! found_first_wall)
       {
-        bbox[0].x = bbox[1].x = r->parent->wall_p[i]->vert[0]->x;
-        bbox[0].y = bbox[1].y = r->parent->wall_p[i]->vert[0]->y;
-        bbox[0].z = bbox[1].z = r->parent->wall_p[i]->vert[0]->z;
+        bbox[0].x = bbox[1].x = r->parent->wall_p[n_wall]->vert[0]->x;
+        bbox[0].y = bbox[1].y = r->parent->wall_p[n_wall]->vert[0]->y;
+        bbox[0].z = bbox[1].z = r->parent->wall_p[n_wall]->vert[0]->z;
+        found_first_wall = 1;
       }
-      for (k=0;k<3;k++)
+      for (unsigned int n_vert=0; n_vert<3; ++ n_vert)
       {
-        v = r->parent->wall_p[i]->vert[k];
+        struct vector3 *v = r->parent->wall_p[n_wall]->vert[n_vert];
         if (bbox[0].x > v->x) bbox[0].x = v->x;
         else if (bbox[1].x < v->x) bbox[1].x = v->x;
         if (bbox[0].y > v->y) bbox[0].y = v->y;
@@ -3438,10 +3113,9 @@ struct vector3* create_region_bbox(struct region *r)
         if (bbox[0].z > v->z) bbox[0].z = v->z;
         else if (bbox[1].z < v->z) bbox[1].z = v->z;
       }
-      j++;
     }
   }
-  
+
   return bbox;
 }
 
@@ -3455,10 +3129,10 @@ eval_rel_region_bbox:
        expression (based boolean intersection of bounding boxes for each
        region).  The function reports failure if any region is unclosed.
 ***************************************************************************/
-
-int eval_rel_region_bbox(struct release_evaluator *expr,struct vector3 *llf,struct vector3 *urb)
+static int eval_rel_region_bbox(struct release_evaluator *expr,
+                                struct vector3 *llf,
+                                struct vector3 *urb)
 {
-  int i;
   struct region *r;
   
   if (expr->left!=NULL)
@@ -3470,17 +3144,11 @@ int eval_rel_region_bbox(struct release_evaluator *expr,struct vector3 *llf,stru
       {
         if (is_manifold(r)) r->manifold_flag = IS_MANIFOLD;
         else
-        {
-          fprintf(world->err_file,"File '%s', Line %ld: Error--cannot release a 3D molecule inside an unclosed region\n", __FILE__, (long)__LINE__);
-          return 1;
-        }
+          mcell_error("Cannot release a 3D molecule inside the unclosed region '%s'.", r->sym->name);
       }
       
       if (r->bbox==NULL)
-      {
         r->bbox = create_region_bbox(r);
-        if (r->bbox==NULL) return 1;
-      }
       
       llf->x = r->bbox[0].x;
       llf->y = r->bbox[0].y;
@@ -3491,14 +3159,15 @@ int eval_rel_region_bbox(struct release_evaluator *expr,struct vector3 *llf,stru
     }
     else
     {
-      i = eval_rel_region_bbox(expr->left,llf,urb);
-      if (i) return 1;
+      if (eval_rel_region_bbox(expr->left,llf,urb))
+        return 1;
     }
     
     if (expr->right==NULL)
     {
       if (expr->op&REXP_NO_OP) return 0;
-      else return 1;
+      else
+        mcell_internal_error("Right subtree of release expression is unexpectedly NULL.");
     }
     
     if (expr->op&REXP_SUBTRACTION) return 0;
@@ -3514,17 +3183,11 @@ int eval_rel_region_bbox(struct release_evaluator *expr,struct vector3 *llf,stru
         {
           if (is_manifold(r)) r->manifold_flag = IS_MANIFOLD;
           else
-          {
-            fprintf(world->err_file,"File '%s', Line %ld: Error--cannot release a 3D molecule inside an unclosed region.\n", __FILE__, (long)__LINE__);
-            return 1;
-          }
+            mcell_error("Cannot release a 3D molecule inside the unclosed region '%s'.", r->sym->name);
         }
         
         if (r->bbox==NULL)
-        {
           r->bbox = create_region_bbox(r);
-          if (r->bbox==NULL) return 1;          
-        }
 
         llf2.x = r->bbox[0].x;
         llf2.y = r->bbox[0].y;
@@ -3535,8 +3198,8 @@ int eval_rel_region_bbox(struct release_evaluator *expr,struct vector3 *llf,stru
       }
       else
       {
-        i = eval_rel_region_bbox(expr->right,&llf2,&urb2);
-        if (i) return 1;
+        if (eval_rel_region_bbox(expr->right,&llf2,&urb2))
+          return 1;
       }
       
       if (expr->op&REXP_UNION)
@@ -3557,10 +3220,13 @@ int eval_rel_region_bbox(struct release_evaluator *expr,struct vector3 *llf,stru
         if (urb->y > urb2.y) urb->y = urb2.y;
         if (urb->z > urb2.z) urb->z = urb2.z;
       }
-      else return 1;
+      else
+        mcell_internal_error("Release expression contains an unknown or unexpected operator: (%d).",
+                             expr->op);
     }
   }
-  else return 1;  /* Left should always have something! */
+  else
+    mcell_internal_error("Left subtree of release expression is unexpectedly NULL.");
   
   return 0;
 }
@@ -3574,16 +3240,12 @@ init_rel_region_data_3d:
        of molecules.  eval_rel_region_bbox is called to perform the
        initialization.
 ***************************************************************************/
-
-int init_rel_region_data_3d(struct release_region_data *rrd)
+static int init_rel_region_data_3d(struct release_region_data *rrd)
 {
-  int i;
-  
   rrd->n_walls_included = 0;
   
-  i = eval_rel_region_bbox(rrd->expression,&(rrd->llf),&(rrd->urb));
-
-  if (i) return 1;
+  if (eval_rel_region_bbox(rrd->expression,&(rrd->llf),&(rrd->urb)))
+    return 1;
 
   if (rrd->llf.x >= rrd->urb.x ||
       rrd->llf.y >= rrd->urb.y ||
@@ -3605,10 +3267,13 @@ output_regrel_eval_tree:
       release expression
   Out: no return value.  The tree is printed to the file.
 ***************************************************************************/
-
-void output_relreg_eval_tree(FILE *f,char *prefix,char cA,char cB,struct release_evaluator *expr)
+static void output_relreg_eval_tree(FILE *f,
+                                    char *prefix,
+                                    char cA,
+                                    char cB,
+                                    struct release_evaluator *expr)
 {
-  int l = strlen(prefix);
+  size_t l = strlen(prefix);
   char my_op;
   
   if (expr->op&REXP_NO_OP)
@@ -3663,12 +3328,12 @@ init_releases:
        releases on regions.
 ***************************************************************************/
 
-int init_releases()
+int init_releases(void)
 {
   struct release_event_queue *req;
   struct abstract_element *ae;
   struct schedule_helper *sh;
-  int i,j;
+  int i;
   
   for (sh=world->releaser ; sh!=NULL ; sh=sh->next_scale)
   {
@@ -3677,56 +3342,61 @@ int init_releases()
       for ( ae = (i==-1)?sh->current:sh->circ_buf_head[i] ; ae!=NULL ; ae=ae->next )
       {
         req = (struct release_event_queue*)ae;
-        if (req->release_site->release_shape == SHAPE_REGION)
+        switch ((int) req->release_site->release_shape)
         {
-          if (req->release_site->mol_type == NULL){
-              fprintf(world->err_file,"ERROR: molecule name is not specified for the region release site.\n");
-
-          }
-          if ((req->release_site->mol_type->flags & NOT_FREE) == 0)
-          {
-            j = init_rel_region_data_3d(req->release_site->region_data);
-            if (j==-1)
+          case SHAPE_REGION:
+            if (req->release_site->mol_type == NULL)
+              mcell_error("Molecule type was not specified for the region release site '%s'.",
+                          req->release_site->name);
+            if ((req->release_site->mol_type->flags & NOT_FREE) == 0)
             {
-              fprintf(world->err_file,"File '%s', Line %ld: Region release site is empty!  Ignoring!  Evaluation tree:\n", __FILE__, (long)__LINE__);
-              output_relreg_eval_tree(world->err_file," ",' ',' ',req->release_site->region_data->expression);
-              req->release_site->release_number_method=CONSTNUM;
-              req->release_site->release_number=0;
-            }
-            else if (j)
-	    {
-	      fprintf(world->err_file,"File '%s', Line %ld: Error initializing region release for molecule %s\nEvaluation tree (3D release):\n", __FILE__,(long)__LINE__, req->release_site->mol_type->sym->name);
-	      output_relreg_eval_tree(world->err_file," ",' ',' ',req->release_site->region_data->expression);
-	      return 1;
-	    }
-          }
-          else
-          {
-            j = init_rel_region_data_2d(req->release_site->region_data);
-            if (j)
-	    { 
-	      fprintf(world->err_file,"File '%s', Line %ld: Error initializing region release for molecule %s\nEvaluation tree (2D release):\n",__FILE__, (long)__LINE__, req->release_site->mol_type->sym->name);
-	      output_relreg_eval_tree(world->err_file," ",' ',' ',req->release_site->region_data->expression);
-	      return 1;
-	    }
-          }
-        }else if (req->release_site->release_shape != SHAPE_LIST){
-            if(req->release_site->mol_type == NULL){
-               fprintf(world->err_file, "ERROR: molecule name is not specified for the release site.\n");
-               return 1;
-            }
-            if(req->release_site->diameter == NULL){
-               fprintf(world->err_file, "ERROR: diameter for the geometrical shape release site is not specified.\n");
-               return 1;
-            }
-        }else{
-           /* this check should be for SHAPE_LIST release only */
-            if(req->release_site->mol_list == NULL){
-               fprintf(world->err_file, "ERROR: molecule positions for the SHAPE_LIST release site are not specified.\n");
-               return 1;
-            }
-  
+              switch (init_rel_region_data_3d(req->release_site->region_data))
+              {
+                case 0:
+                  break;
 
+                case -1:
+                  mcell_warn("Region release site '%s' is empty!  Ignoring!  Evaluation tree:\n",
+                             req->release_site->name);
+                  output_relreg_eval_tree(mcell_get_error_file()," ",' ',' ',req->release_site->region_data->expression);
+                  req->release_site->release_number_method=CONSTNUM;
+                  req->release_site->release_number=0;
+                  break;
+
+                default:
+                  mcell_error("Unexpected error while initializing 3-D region releases for release site '%s'.",
+                              req->release_site->name);
+                  break;
+              }
+            }
+            else
+            {
+              if (init_rel_region_data_2d(req->release_site, req->release_site->region_data))
+                mcell_error("Unexpected error while initializing 2-D region releases for release site '%s'.",
+                            req->release_site->name);
+            }
+            break;
+
+          case SHAPE_LIST:
+            if (req->release_site->mol_list == NULL)
+              mcell_error("Molecule positions for the LIST release site '%s' are not specified.", req->release_site->name);
+            break;
+
+          case SHAPE_SPHERICAL:
+          case SHAPE_CUBIC:
+          case SHAPE_ELLIPTIC:
+          case SHAPE_RECTANGULAR:
+          case SHAPE_SPHERICAL_SHELL:
+            /* geometrical release sites */
+            if (req->release_site->mol_type == NULL)
+              mcell_error("Molecule type for the release site '%s' is not specified.", req->release_site->name);
+            if (req->release_site->diameter == NULL)
+              mcell_error("Diameter for the geometrical shape release site '%s' is not specified.", req->release_site->name);
+            break;
+
+          case SHAPE_UNDEFINED:
+          default:
+            UNHANDLED_CASE(req->release_site->release_shape);
         }
       }
     }

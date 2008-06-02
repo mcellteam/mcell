@@ -1,11 +1,13 @@
 %{
   #include <stdio.h>
-  #include <string.h>
   #include <stdlib.h>
+  #include <string.h>
   #include <unistd.h>
   #include "strfunc.h"
   #include "mdlparse_aux.h"
   #include "mdlparse.h"
+  #include "mem_util.h"
+  #include "logging.h"
 
   #define YY_DECL int mdllex( YYSTYPE *yylval, struct mdlparse_vars *mpvp, yyscan_t yyscanner )
   #define YY_NO_UNPUT
@@ -15,6 +17,32 @@
   #else
   #define INPUT_FUNC input
   #endif
+
+void *mdlalloc(yy_size_t size, yyscan_t yyscanner)
+{
+  UNUSED(yyscanner);
+  return CHECKED_MALLOC(size, "memory buffer for parser");
+}
+
+void *mdlrealloc(void *ptr, yy_size_t size, yyscan_t yyscanner)
+{
+  UNUSED(yyscanner);
+
+  ptr = (void *) realloc((char *) ptr, size);
+  if (ptr == NULL)
+    mcell_allocfailed("Failed to resize memory buffer for parser.");
+  return ptr;
+}
+
+void mdlfree (void * ptr, yyscan_t yyscanner)
+{
+  UNUSED(yyscanner);
+
+  free((char *) ptr);
+}
+
+#define YY_FATAL_ERROR(msg) mcell_error("%s", msg)
+
 %}
 
 /* Define state for parsing comments */
@@ -37,6 +65,9 @@
 %option noinput
 %option nounput
 %option noyy_top_state
+%option noyyalloc
+%option noyyrealloc
+%option noyyfree
 
 R ([0-9]+\.)|([0-9]*\.[0-9]+)|([0-9]+[eE][+-]?[0-9]+)|([0-9]+\.[0-9]*[eE][+-]?[0-9]+)|([0-9]*\.[0-9]+[eE][+-]?[0-9]+)
 I ([0-9]+)
@@ -65,6 +96,7 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
                 }
 }
 
+"FORMAT"                { return FORMAT; }
 [ \t]+			;
 "=="                    { return EQUAL; }
 "!="                    { return NOT_EQUAL; }
@@ -198,6 +230,10 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "MAX"			{return(MAX_TOK);}
 "MEAN_DIAMETER"		{return(MEAN_DIAMETER);}
 "MEAN_NUMBER"		{return(MEAN_NUMBER);}
+"MEMORY_PARTITION_X"    { return MEMORY_PARTITION_X; }
+"MEMORY_PARTITION_Y"    { return MEMORY_PARTITION_Y; }
+"MEMORY_PARTITION_Z"    { return MEMORY_PARTITION_Z; }
+"MEMORY_PARTITION_POOL" { return MEMORY_PARTITION_POOL; }
 "MESHES"		{return(MESHES);}
 "MICROSCOPIC_REVERSIBILITY" {return(MICROSCOPIC_REVERSIBILITY);}
 "MIN"			{return(MIN_TOK);}
@@ -253,6 +289,7 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "RAND_GAUSSIAN"		{return(RAND_GAUSSIAN);}
 "RATE_RULES"		{ return RATE_RULES; }
 "REACTION_DATA_OUTPUT"	{return(REACTION_DATA_OUTPUT);}
+"REACTION_OUTPUT_REPORT" { return REACTION_OUTPUT_REPORT; }
 "REACTION_GROUP"	{return(REACTION_GROUP);}
 "RECTANGULAR"		{return(RECTANGULAR_TOKEN);}
 "RECTANGULAR_RELEASE_SITE" {return(RECTANGULAR_RELEASE_SITE); }
@@ -317,15 +354,15 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "VIZ_MESH_FORMAT"	{return(VIZ_MESH_FORMAT);}
 "VIZ_MOLECULE_FORMAT"	{return(VIZ_MOLECULE_FORMAT);}
 "VIZ_OUTPUT"	        {return(VIZ_OUTPUT);}
+"VIZ_OUTPUT_REPORT"     { return VIZ_OUTPUT_REPORT; }
 "VIZ_VALUE"	        {return(VIZ_VALUE);}
 "VOLUME_DATA_OUTPUT"    {return VOLUME_DATA_OUTPUT; }
+"VOLUME_OUTPUT_REPORT"  { return VOLUME_OUTPUT_REPORT; }
 "VOLUME_DEPENDENT_RELEASE_NUMBER" {return(VOLUME_DEPENDENT_RELEASE_NUMBER);}
 "VOLUME_ONLY"           {return(VOLUME_ONLY);}
 "VOXEL_COUNT"           {return VOXEL_COUNT; }
-"VOXEL_IMAGE_MODE"	{return(VOXEL_IMAGE_MODE);}
 "VOXEL_LIST"            {return(VOXEL_LIST);}
 "VOXEL_SIZE"            {return VOXEL_SIZE; }
-"VOXEL_VOLUME_MODE"	{return(VOXEL_VOLUME_MODE);}
 "WARNING"               {return(WARNING);}
 "WARNINGS"              {return(WARNINGS);}
 "WORLD"			{return(WORLD);}
@@ -341,20 +378,12 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 {R}		        {sscanf((const char *)yytext,"%lf",&yylval->dbl); return REAL;}
 {I}			{sscanf((const char *)yytext,"%d",&yylval->ival); return INTEGER;}
 {IDENT}                 {
-                             yylval->str = strdup(yytext); 
-                             if (yylval->str == NULL) {
-                                fprintf(stderr,"File '%s', Line %ld: Out of memory while parsing string: %s\n", __FILE__, (long)__LINE__, yytext);
-                                exit(1);
-                             }
-                             return(VAR);
+                             yylval->str = CHECKED_STRDUP(yytext, "string token");
+                             return VAR;
                         }
 \"(([^\"]*)|((\\\")*))*\"  {
-                             yylval->str = strdup(yytext); 
-                             if(yylval->str == NULL){
-                                fprintf(stderr,"File '%s', Line %ld: Out of memory while parsing string: %s\n", __FILE__, (long)__LINE__, yytext);
-                                exit(1);
-                             }
-                             return(STR_VALUE);
+                             yylval->str = CHECKED_STRDUP(yytext, "string token"); 
+                             return STR_VALUE;
                            }
 
 [\'\,\(\)\/\-\+\=\^\[\]\{\}\|\<\>\*\#\~\@\:\&\;] {return(yytext[0]);}

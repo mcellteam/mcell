@@ -6,8 +6,8 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-#include <stdio.h>
 #include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
@@ -15,6 +15,8 @@
 #include <fenv.h>
 #endif
 
+#include "sym_table.h"
+#include "logging.h"
 #include "rng.h"
 #include "strfunc.h"
 #include "argparse.h"
@@ -41,26 +43,19 @@ struct volume *world;
  ***********************************************************************/
 static void process_volume_output(struct volume *wrld, double not_yet)
 {
-  int i;            /* for emergency output */
   struct volume_output_item *vo;
-  for (vo = (struct volume_output_item *) schedule_next(world->volume_output_scheduler);
-       vo != NULL  ||  not_yet >= world->volume_output_scheduler->now;
-       vo = (struct volume_output_item *) schedule_next(world->volume_output_scheduler))
+  for (vo = (struct volume_output_item *) schedule_next(wrld->volume_output_scheduler);
+       vo != NULL  ||  not_yet >= wrld->volume_output_scheduler->now;
+       vo = (struct volume_output_item *) schedule_next(wrld->volume_output_scheduler))
   {
     if (vo == NULL) continue;
-    if (update_volume_output(world, vo))
-    {
-      fprintf(world->err_file,"File '%s', Line %ld: Error while updating volume output. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-      i = emergency_output();
-      fprintf(world->err_file, "%d error%s while saving intermediate results.\n", i, (i==1) ? "": "s");
-      exit(EXIT_FAILURE);
-    }
+    if (update_volume_output(wrld, vo))
+      mcell_error("Failed to update volume output.");
   }
 }
 
 static void process_reaction_output(struct volume *wrld, double not_yet)
 {
-  int i;            /* for emergency output */
   struct output_block *obp;
   for ( obp=schedule_next(wrld->count_scheduler) ;
         obp!=NULL || not_yet>=wrld->count_scheduler->now ;
@@ -68,46 +63,25 @@ static void process_reaction_output(struct volume *wrld, double not_yet)
   {
     if (obp==NULL) continue;
     if (update_reaction_output(obp))
-    {
-      fprintf(wrld->err_file,"File '%s', Line %ld: Error while updating reaction output. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-      i = emergency_output();
-      fprintf(wrld->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
-      exit(EXIT_FAILURE);
-    }
+      mcell_error("Failed to update reaction output.");
   }
   if (wrld->count_scheduler->error)
-  {
-    fprintf(wrld->err_file,"File '%s', Line %ld: Out of memory while scheduling molecule release. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-    i = emergency_output();
-    fprintf(wrld->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
-    exit(EXIT_FAILURE);
-  }
+    mcell_internal_error("Scheduler reported an out-of-memory error while retrieving next scheduled reaction output, but this should never happen.");
 }
 
 static void process_molecule_releases(struct volume *wrld, double not_yet)
 {
-  int i;            /* for emergency output */
-  struct release_event_queue *req;
-  for ( req= schedule_next(world->releaser) ;
-        req!=NULL || not_yet>=world->releaser->now ;
-        req=schedule_next(world->releaser)) 
+  for (struct release_event_queue *req = schedule_next(wrld->releaser);
+       req != NULL || not_yet >= wrld->releaser->now;
+       req = schedule_next(wrld->releaser)) 
   {
-    if (req==NULL || req->release_site->release_prob==MAGIC_PATTERN_PROBABILITY) continue;
-    if ( release_molecules(req) )
-    {
-      fprintf(world->err_file,"File '%s', Line %ld: Error while releasing molecules of type %s\n", __FILE__, (long)__LINE__, req->release_site->mol_type->sym->name);
-      i = emergency_output();
-      fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
-      exit(EXIT_FAILURE);
-    }
+    if (req == NULL || req->release_site->release_prob==MAGIC_PATTERN_PROBABILITY) continue;
+    if (release_molecules(req))
+      mcell_error("Failed to release molecules of type '%s'.",
+                  req->release_site->mol_type->sym->name);
   }
-  if (world->releaser->error)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while scheduling molecule release. Trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-    i = emergency_output();
-    fprintf(world->err_file,"%d error%s while saving intermediate results.\n",i,(i==1)?"":"s");
-    exit(EXIT_FAILURE);
-  }
+  if (wrld->releaser->error)
+    mcell_internal_error("Scheduler reported an out-of-memory error while retrieving next scheduled release event, but this should never happen.");
 }
 
 /***********************************************************************
@@ -124,7 +98,7 @@ static int make_checkpoint(struct volume *wrld)
 {
   /* Make sure we have a filename */
   if (wrld->chkpt_outfile == NULL)
-    wrld->chkpt_outfile = alloc_sprintf("checkpt.%d", getpid());
+    wrld->chkpt_outfile = CHECKED_SPRINTF("checkpt.%d", getpid());
 
   /* Print a useful status message */
   switch (wrld->checkpoint_requested)
@@ -132,35 +106,31 @@ static int make_checkpoint(struct volume *wrld)
     case CHKPT_ITERATIONS_CONT:
     case CHKPT_ALARM_CONT:
       if (wrld->notify->checkpoint_report != NOTIFY_NONE)
-        fprintf(wrld->log_file,
-                "MCell: time = %lld, writing to checkpoint file %s (periodic)\n",
-                wrld->it_time,
-                wrld->chkpt_outfile);
+        mcell_log("MCell: time = %lld, writing to checkpoint file %s (periodic).",
+                  wrld->it_time,
+                  wrld->chkpt_outfile);
       break;
 
     case CHKPT_ALARM_EXIT:
       if (wrld->notify->checkpoint_report != NOTIFY_NONE)
-        fprintf(wrld->log_file,
-                "MCell: time = %lld, writing to checkpoint file %s (time limit elapsed)\n",
-                wrld->it_time,
-                wrld->chkpt_outfile);
+        mcell_log("MCell: time = %lld, writing to checkpoint file %s (time limit elapsed).",
+                  wrld->it_time,
+                  wrld->chkpt_outfile);
       break;
 
     case CHKPT_SIGNAL_CONT:
     case CHKPT_SIGNAL_EXIT:
       if (wrld->notify->checkpoint_report != NOTIFY_NONE)
-        fprintf(wrld->log_file,
-                "MCell: time = %lld, writing to checkpoint file %s (user signal detected)\n",
-                wrld->it_time,
-                wrld->chkpt_outfile);
+        mcell_log("MCell: time = %lld, writing to checkpoint file %s (user signal detected).",
+                  wrld->it_time,
+                  wrld->chkpt_outfile);
       break;
 
     case CHKPT_ITERATIONS_EXIT:
       if (wrld->notify->checkpoint_report != NOTIFY_NONE)
-        fprintf(wrld->log_file,
-                "MCell: time = %lld, writing to checkpoint file %s\n",
-                wrld->it_time,
-                wrld->chkpt_outfile);
+        mcell_log("MCell: time = %lld, writing to checkpoint file %s.",
+                  wrld->it_time,
+                  wrld->chkpt_outfile);
       break;
 
     default:
@@ -169,8 +139,7 @@ static int make_checkpoint(struct volume *wrld)
   }
 
   /* Make the checkpoint */
-  if (create_chkpt(wrld->chkpt_outfile))
-    exit(1);
+  create_chkpt(wrld->chkpt_outfile);
   wrld->last_checkpoint_iteration = wrld->it_time;
 
   /* Break out of the loop, if appropriate */
@@ -200,25 +169,26 @@ static int make_checkpoint(struct volume *wrld)
     In:  None
     Out: None
  ***********************************************************************/
-void run_sim(void)
+static void run_sim(void)
 {
   struct rusage run_time;
   long t_initial,t_final;
 
   struct storage_list *local;
   double next_release_time;
-  int i;
   int first_report;
   /* used to suppress printing some warning messages when the reactant is a surface */
   int do_not_print;
   long long not_yet;
   long long frequency;
   
-  if (world->notify->progress_report!=NOTIFY_NONE) fprintf(world->log_file,"Running simulation.\n");
+  emergency_output_hook_enabled = 1;
+  if (world->notify->progress_report!=NOTIFY_NONE)
+    mcell_log("Running simulation.");
 
   t_initial = time(NULL);
   
-  if (world->notify->custom_iterations==NOTIFY_CUSTOM)
+  if (world->notify->custom_iteration_value != 0)
   {
     frequency = world->notify->custom_iteration_value;
   }
@@ -229,7 +199,7 @@ void run_sim(void)
     else if (world->iterations < 100000)     frequency = 100;
     else if (world->iterations < 10000000)   frequency = 1000;
     else if (world->iterations < 1000000000) frequency = 10000;
-    else                                       frequency = 100000;
+    else                                     frequency = 100000;
   }
   
   world->diffusion_number = 0;
@@ -270,16 +240,18 @@ void run_sim(void)
     /* Produce output */
     process_reaction_output(world, not_yet);
     process_volume_output(world, not_yet);
-    if (world->frame_data_head  &&  update_frame_data_list(world->frame_data_head))
+    for (struct viz_output_block *vizblk = world->viz_blocks;
+         vizblk != NULL;
+         vizblk = vizblk->next)
     {
-       fprintf(world->err_file, "Error while updating frame data list.\n");
-       exit(EXIT_FAILURE);
-    } 
+      if (vizblk->frame_data_head  &&  update_frame_data_list(vizblk))
+      mcell_error("Unknown error while updating frame data list.");
+    }
 
     /* Produce iteration report */
-    if ( iter_report_phase == 0 && world->notify->custom_iterations!=NOTIFY_NONE)
+    if ( iter_report_phase == 0 && world->notify->iteration_report != NOTIFY_NONE)
     {
-      fprintf(world->log_file, "Iterations: %lld of %lld ",world->it_time,world->iterations);
+      mcell_log_raw("Iterations: %lld of %lld ", world->it_time,world->iterations);
 
       if (world->notify->throughput_report != NOTIFY_NONE)
       {
@@ -290,7 +262,7 @@ void run_sim(void)
           double time_diff = (double) (cur_time.tv_sec - last_timing_time.tv_sec) * 1000000.0 +
                 (double) (cur_time.tv_usec - last_timing_time.tv_usec);
           time_diff /= (double)(world->it_time - last_timing_iteration);
-          fprintf(world->log_file, " (%.6lg iter/sec)", 1000000.0 / time_diff);
+          mcell_log_raw(" (%.6lg iter/sec)", 1000000.0 / time_diff);
           last_timing_iteration = world->it_time;
           last_timing_time = cur_time;
         }
@@ -301,7 +273,7 @@ void run_sim(void)
         }
       }
 
-      fprintf(world->log_file, "\n");
+      mcell_log_raw("\n");
     }
 
     /* Check for a checkpoint on this iteration */
@@ -324,8 +296,8 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     
     run_concentration_clamp(world->it_time);
 
-    i = schedule_anticipate( world->releaser , &next_release_time);
-    if (!i) next_release_time = world->iterations + 1;
+    if (! schedule_anticipate( world->releaser , &next_release_time))
+      next_release_time = world->iterations + 1;
     if (next_release_time < world->it_time+1) next_release_time = world->it_time+1;
     
     
@@ -350,7 +322,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
         /* Not using the return value -- just trying to advance the scheduler */
         void *o = schedule_next(local->store->timer);
         if (o != NULL)
-          fprintf(stderr, "Internal error!  Scheduler dropped a molecule on the floor!\n");
+          mcell_internal_error("Scheduler dropped a molecule on the floor!");
         local->store->current_time += 1.0;
       }
     }
@@ -363,115 +335,121 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
   if (world->chkpt_iterations  &&  world->it_time > world->last_checkpoint_iteration)
     make_checkpoint(world);
   
-  i = flush_reaction_output();
-  if (i)
+  emergency_output_hook_enabled = 0;
+  int num_errors = flush_reaction_output();
+  if (num_errors != 0)
   {
-    fprintf(world->err_file,"Error at file %s line %d\n",__FILE__,__LINE__);
-    fprintf(world->err_file,"  Could not write output for triggered reactions: %d errors\n",i);
-    fprintf(world->err_file,"  Simulation complete anyway--continuing as normal.\n");
+    mcell_warn("%d errors occurred while flushing buffered reaction output.\n"
+               "  Simulation complete anyway--continuing as normal.",
+               num_errors);
   }
 
-  if (world->notify->progress_report!=NOTIFY_NONE) fprintf(world->log_file,"Exiting run loop.\n");
-  if (finalize_viz_output(world->frame_data_head))
+  if (world->notify->progress_report!=NOTIFY_NONE)
+    mcell_log("Exiting run loop.");
+  int warned = 0;
+  for (struct viz_output_block *vizblk = world->viz_blocks;
+       vizblk != NULL;
+       vizblk = vizblk->next)
   {
-    fprintf(world->err_file, "Warning: viz output was not successfully finalized.\n");
-    fprintf(world->err_file, "  Visualization of results may not work correctly.\n");
+    if (finalize_viz_output(vizblk)  &&  ! warned)
+    {
+    mcell_warn("VIZ output was not successfully finalized.\n"
+               "  Visualization of results may not work correctly.");
+      warned = 1;
+    }
   }
  
   first_report=1;
   
   if (world->notify->missed_reactions != WARN_COPE)
   {
-    for (i=0;i<world->rx_hashsize;i++)
+    for (int i=0;i<world->rx_hashsize;i++)
     {
-      struct rxn *rxp;
-      int j;
-      
-      for (rxp = world->reaction_hash[i] ; rxp != NULL ; rxp = rxp->next)
+      for (struct rxn *rxp = world->reaction_hash[i]; rxp != NULL; rxp = rxp->next)
       {
-         do_not_print = 0;
-         /* skip printing messages if one of the reactants is a surface */
-          for (j=0;j<rxp->n_reactants;j++)
-          {
-            if((rxp->players[j]->flags & IS_SURFACE) != 0) {
-                  do_not_print = 1;
-            }
-          }
-               
-          if(do_not_print == 1) continue;
+        do_not_print = 0;
+        /* skip printing messages if one of the reactants is a surface */
+        for (unsigned int j=0;j<rxp->n_reactants;j++)
+        {
+          if ((rxp->players[j]->flags & IS_SURFACE) != 0)
+            do_not_print = 1;
+        }
+
+        if (do_not_print == 1) continue;
         if (rxp->n_occurred*world->notify->missed_reaction_value < rxp->n_skipped)
         {
           if (first_report)
           {
-            fprintf(world->log_file,"\nWARNING: some reactions were missed because reaction probability exceeded 1.\n");
+            mcell_log("Warning: Some reactions were missed because reaction probability exceeded 1.");
             first_report=0; 
           }
-          fprintf(world->log_file,"  ");
-          for (j=0;j<rxp->n_reactants;j++)
+          mcell_log_raw("  ");
+          for (unsigned int j=0; j<rxp->n_reactants; j++)
           {
-            fprintf(world->log_file,"%s%s[%d]",(j)?" + ":"",rxp->players[j]->sym->name,rxp->geometries[j]);
+            mcell_log_raw("%s%s[%d]",
+                          j ? " + " : "",
+                          rxp->players[j]->sym->name,
+                          rxp->geometries[j]);
           }
-          fprintf(world->log_file,"  --  %g%% of reactions missed.\n",0.001*round(1000*rxp->n_skipped*100/(rxp->n_skipped+rxp->n_occurred)));
+          mcell_log_raw("  --  %g%% of reactions missed.\n",
+                        0.001*round(1000*rxp->n_skipped*100/(rxp->n_skipped+rxp->n_occurred)));
         }
       }
     }
-    if (!first_report) fprintf(world->log_file,"\n");
+    if (!first_report) mcell_log_raw("\n");
   }
   
   first_report+=1;
   
   if (world->notify->short_lifetime != WARN_COPE)
   {
-    for (i=0;i<world->n_species;i++)
+    for (int i=0;i<world->n_species;i++)
     {
-      double f;
-      
-      if (world->species_list[i]->n_deceased > 0)
+      if (world->species_list[i]->n_deceased <= 0)
+        continue;
+
+      double f = world->species_list[i]->cum_lifetime / world->species_list[i]->n_deceased;
+      if (f < world->notify->short_lifetime_value)
       {
-        f = world->species_list[i]->cum_lifetime / world->species_list[i]->n_deceased;
-        
-        if (f < world->notify->short_lifetime_value)
+        if (first_report)
         {
-          if (first_report)
-          {
-            if (first_report>1) fprintf(world->log_file,"\n");
-            fprintf(world->log_file,"WARNING: some molecules had a lifetime short relative to the timestep.\n");
-            first_report=0;
-          }
-          fprintf(world->log_file,"  Mean lifetime of %s was %g timesteps.\n",world->species_list[i]->sym->name,0.01*round(100*f));
+          if (first_report>1)
+            mcell_log_raw("\n");
+          mcell_log("Warning: Some molecules had a lifetime short relative to the timestep.");
+          first_report=0;
         }
+        mcell_log("  Mean lifetime of %s was %g timesteps.",
+                  world->species_list[i]->sym->name,
+                  0.01*round(100*f));
       }
     }
-    if (!first_report) fprintf(world->log_file,"\n");
+    if (!first_report) mcell_log_raw("\n");
   }
     
   if (world->notify->final_summary==NOTIFY_FULL)
   {
-    fprintf(world->log_file,"iterations = %lld ; elapsed time = %1.15g seconds\n",world->it_time,world->chkpt_elapsed_real_time_start+((world->it_time - world->start_time)*world->time_unit));
-    fflush(world->log_file);
+    mcell_log("iterations = %lld ; elapsed time = %1.15g seconds",
+              world->it_time,
+              world->chkpt_elapsed_real_time_start+((world->it_time - world->start_time)*world->time_unit));
 
-    if(world->diffusion_number > 0)
-    { 
-      fprintf(world->log_file,"Average diffusion jump was %.2f timesteps\n",world->diffusion_cumtime/(double)world->diffusion_number);
-    }
-    if(world->notify->final_summary == NOTIFY_FULL){
-       fprintf(world->log_file,"Total number of random number use: %lld\n",world->random_number_use);
-       fprintf(world->log_file,"Total number of ray-subvolume intersection tests: %lld\n",world->ray_voxel_tests);
-       fprintf(world->log_file,"Total number of ray-polygon intersection tests: %lld\n",world->ray_polygon_tests);
-       fprintf(world->log_file,"Total number of ray-polygon intersections: %lld\n",world->ray_polygon_colls);
-       fprintf(world->log_file,"Total number of molecule-molecule collisions: %lld\n",world->mol_mol_colls);
-       fprintf(world->log_file,"Total number of molecule-molecule-molecule collisions: %lld\n",world->mol_mol_mol_colls);
-    }
+    if (world->diffusion_number > 0)
+      mcell_log("Average diffusion jump was %.2f timesteps\n",
+                world->diffusion_cumtime/(double)world->diffusion_number);
+    mcell_log("Total number of random number use: %lld", rng_uses(world->rng));
+    mcell_log("Total number of ray-subvolume intersection tests: %lld", world->ray_voxel_tests);
+    mcell_log("Total number of ray-polygon intersection tests: %lld", world->ray_polygon_tests);
+    mcell_log("Total number of ray-polygon intersections: %lld", world->ray_polygon_colls);
+    mcell_log("Total number of molecule-molecule collisions: %lld", world->mol_mol_colls);
+    mcell_log("Total number of molecule-molecule-molecule collisions: %lld", world->mol_mol_mol_colls);
  
     t_final = time(NULL);
     getrusage(RUSAGE_SELF,&run_time);
-    fprintf( world->log_file,"Total CPU time = %f (user) and %f (system)\n",
-             run_time.ru_utime.tv_sec + (run_time.ru_utime.tv_usec/MAX_TARGET_TIMESTEP),
-             run_time.ru_stime.tv_sec + (run_time.ru_stime.tv_usec/MAX_TARGET_TIMESTEP) );
-    fprintf( world->log_file,"Total wall clock time = %d seconds\n",
-             (int)(t_final - t_initial) );
+    mcell_log("Total CPU time = %f (user) and %f (system)",
+              run_time.ru_utime.tv_sec + (run_time.ru_utime.tv_usec/MAX_TARGET_TIMESTEP),
+              run_time.ru_stime.tv_sec + (run_time.ru_stime.tv_usec/MAX_TARGET_TIMESTEP) );
+    mcell_log("Total wall clock time = %d seconds",
+              (int)(t_final - t_initial) );
   }
-
 }
 
 /***********************************************************************
@@ -482,7 +460,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     In:  None
     Out: 0 on success, 1 on failure.
  ***********************************************************************/
-int install_usr_signal_handlers(void)
+static int install_usr_signal_handlers(void)
 {
   struct sigaction sa, saPrev;
   sa.sa_sigaction = NULL;
@@ -492,46 +470,40 @@ int install_usr_signal_handlers(void)
 
   if (sigaction(SIGUSR1, &sa, &saPrev) != 0)
   {
-    fprintf(stderr, "Failed to install USR1 signal handler\n");
+    mcell_error("Failed to install USR1 signal handler.");
     return 1;
   }
   if (sigaction(SIGUSR2, &sa, &saPrev) != 0)
   {
-    fprintf(stderr, "Failed to install USR2 signal handler\n");
+    mcell_error("Failed to install USR2 signal handler.");
     return 1;
   }
 
   return 0;
 }
 
-int main(int argc, char **argv) {
-
-  FILE *err_file;
-  FILE *log_file;
+int main(int argc, char **argv)
+{
   char hostname[64];
   u_int procnum;
   long long exec_iterations = 0; /* number of simulation iterations for this run */
   time_t begin_time_of_day;  /* start time of the simulation */
 
+  mcell_set_log_file(stdout);
+  mcell_set_error_file(stderr);
+
   /* get the process start time */
   time(&begin_time_of_day);
   if (install_usr_signal_handlers())
-    exit(EXIT_FAILURE);
+    mcell_die();
 
 #if defined(__linux__)
   feenableexcept(FE_DIVBYZERO);
 #endif
 
-  log_file=stdout;
-  err_file=stderr;
 
-  if ((world=(struct volume *)malloc(sizeof(struct volume)))==NULL) {
-    fprintf(err_file,"File '%s', Line %ld: Out of memory while creating world volume data structure.\n", __FILE__, (long)__LINE__);
-    exit(EXIT_FAILURE);
-  }
+  world = CHECKED_MALLOC_STRUCT(struct volume, "world");
   memset(world, 0, sizeof(struct volume));
-  world->log_file=log_file;
-  world->err_file=err_file;
 
   world->procnum=0;
   procnum=world->procnum;
@@ -540,53 +512,48 @@ int main(int argc, char **argv) {
   world->iterations=INT_MIN; /* indicates iterations not set */
   world->chkpt_infile = NULL;
   world->chkpt_init = 1;
-  world->log_freq = -1; /* Indicates that this value has not been set by user */
+  world->log_freq = ULONG_MAX; /* Indicates that this value has not been set by user */
   world->begin_timestamp = begin_time_of_day;
   world->initialization_state = "initializing";
+
+  if ((world->var_sym_table = init_symtab(1024)) == NULL)
+    mcell_allocfailed("Failed to initialize MDL variable symbol table.");
 
   /*
    * Parse the command line arguments and print out errors if necessary.
    */
-  if (argparse_init(argc,argv,world)) {
-    if (world->log_file!=NULL) {
-      log_file=world->log_file;
-    }
-
+  if (argparse_init(argc,argv,world))
+  {
     if (procnum == 0)
     {
-      print_version(log_file);
-      print_usage(log_file, argv[0]);
+      print_version(mcell_get_log_file());
+      print_usage(mcell_get_log_file(), argv[0]);
     }
 
     exit(1);
   }
 
-  log_file=world->log_file;
-  
   if (init_notifications())
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Could not initialize user-notification data structures.\n", __FILE__, (long)__LINE__);
-    exit(1);
-  }
+    mcell_error("Unknown error while initializing user-notification data structures.");
   
   if (world->notify->progress_report!=NOTIFY_NONE)
-  {
-    print_version(log_file);
-  }
+    print_version(mcell_get_log_file());
 
-  if (init_sim()) {
-    exit(EXIT_FAILURE);
-  }
+  if (init_sim())
+    mcell_internal_error("Unknown error while initializing simulation.");
   world->initialization_state = NULL;
 
   if(world->chkpt_flag)
   {
     if (world->notify->checkpoint_report != NOTIFY_NONE)
-      fprintf(log_file,"MCell: checkpoint sequence number %d begins at elapsed time %1.15g seconds\n", world->chkpt_seq_num, world->chkpt_elapsed_real_time_start);
-    if(world->iterations < world->start_time)
+      mcell_log("MCell: checkpoint sequence number %d begins at elapsed time %1.15g seconds",
+                world->chkpt_seq_num,
+                world->chkpt_elapsed_real_time_start);
+    if (world->iterations < world->start_time)
     {
-      fprintf(world->err_file,"Error: start time after checkpoint %lld is greater than total number of iterations specified %lld.\n", world->start_time, world->iterations);
-      exit(EXIT_FAILURE);
+      mcell_error("Start time after checkpoint %lld is greater than total number of iterations specified %lld.",
+                  world->start_time,
+                  world->iterations);
     }
     if (world->chkpt_iterations)
     {
@@ -603,32 +570,26 @@ int main(int argc, char **argv) {
     else
       exec_iterations = world->iterations;
     if (exec_iterations < 0)
-    {
-      fprintf(world->err_file,"Error: number of iterations to execute is zero or negative. Please verify ITERATIONS and/or CHECKPOINT_ITERATIONS commands.\n");
-      exit(EXIT_FAILURE);
-    }
+      mcell_error("Number of iterations to execute is zero or negative. Please verify ITERATIONS and/or CHECKPOINT_ITERATIONS commands.");
     if (world->notify->progress_report != NOTIFY_NONE)
-      fprintf(log_file,"MCell: executing %lld iterations starting at iteration number %lld.\n",
-              exec_iterations,world->start_time);
+      mcell_log("MCell: executing %lld iterations starting at iteration number %lld.",
+                exec_iterations,
+                world->start_time);
   }
 
   if((world->chkpt_flag) && (exec_iterations <= 0))
   {
-    mem_dump_stats(stdout);
+    mem_dump_stats(mcell_get_log_file());
     exit(0);
   }
 
   if (world->notify->progress_report!=NOTIFY_NONE)
-  {
-    fprintf(world->log_file, "Running...\n");
-  }
+    mcell_log("Running...");
   run_sim();
 
   if (world->notify->progress_report!=NOTIFY_NONE)
-  {
-    fprintf(world->log_file, "Done running.\n");
-  }
-  mem_dump_stats(stdout);
+    mcell_log("Done running.");
+  mem_dump_stats(mcell_get_log_file());
 
   exit(0);
 }

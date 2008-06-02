@@ -7,10 +7,13 @@
 \**************************************************************************/
 
 
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "logging.h"
 #include "mcell_structs.h"
 #include "react.h"
-#include <string.h>
-#include <stdlib.h>
 
 extern struct volume *world;
 
@@ -407,7 +410,7 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
 
   if (inter != NULL)
   {
-    fprintf(world->err_file, "Number of matching reactions exceeds the maximum allowed number MAX_MATCHING_RXNS.\n");
+    mcell_warn("Number of matching reactions exceeds the maximum allowed number MAX_MATCHING_RXNS.");
   }
 
   return num_matching_rxns;
@@ -663,7 +666,7 @@ int trigger_trimolecular(u_int hashA,u_int hashB, u_int hashC,
   
    if (inter != NULL)
    {
-      fprintf(world->err_file, "Number of matching reactions exceeds the maximum allowed number MAX_MATCHING_RXNS.\n");
+      mcell_warn("Number of matching reactions exceeds the maximum allowed number MAX_MATCHING_RXNS.");
    }
 
    return num_matching_rxns;

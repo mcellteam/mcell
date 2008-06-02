@@ -7,7 +7,10 @@
 
 #include <string.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
+#include "logging.h"
 #include "rng.h"
 #include "util.h"
 #include "grid_util.h"
@@ -16,10 +19,26 @@
 #include "react.h"
 #include "vol_util.h"
 #include "macromolecule.h"
-#include <stdlib.h>
+
+static int outcome_products(struct wall *w,struct volume_molecule *reac_m,
+                            struct grid_molecule *reac_g,struct rxn *rx,int path,struct storage *local,
+                            short orientA,short orientB,double t,struct vector3 *hitpt,
+                            struct abstract_molecule *reacA,struct abstract_molecule *reacB,
+                            struct abstract_molecule *moving);
+static int outcome_products_trimol_reaction(struct wall *w,
+                                            struct volume_molecule *reac_m, struct grid_molecule *reac_g,
+                                            struct rxn *rx,int path,struct storage *local,
+                                            short orientA, short orientB, short orientC,
+                                            double t,struct vector3 *hitpt,
+                                            struct abstract_molecule *reacA,struct abstract_molecule *reacB,
+                                            struct abstract_molecule *reacC, struct abstract_molecule *moving);
 
 extern struct volume *world;
 
+static int reaction_wizardry(struct magic_list *incantation,
+                             struct wall *surface,
+                             struct vector3 *hitpt,
+                             double t);
 
 int is_compatible_surface(void *req_species,struct wall *w)
 {
@@ -47,11 +66,10 @@ outcome_products:
           RX_BLOCKED reaction blocked by full grid
           RX_FLIP moving molecule passed through membrane
           RX_A_OK everything went fine, nothing extra to do
-	  RX_NO_MEM out of memory error
         Products are created as necessary and scheduled.
 *************************************************************************/
 
-int outcome_products(struct wall *w,struct volume_molecule *reac_m,
+static int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   struct grid_molecule *reac_g,struct rxn *rx,int path,struct storage *local,
   short orientA,short orientB,double t,struct vector3 *hitpt,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,
@@ -59,14 +77,12 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
 {
   int bounce = RX_A_OK;
 
-  int i;
   struct volume_molecule *m;
   struct grid_molecule *g;
   struct species *p;
   struct surface_grid *sg;
   u_int bits;
-  int j,k;
-  double f;
+  int k;
   int i0 = rx->product_idx[path]; /*index of the first product for the pathway*/
   int iN = rx->product_idx[path+1];/*index of the first product for the next pathway*/
   int replace_p1 = 0; /* flag for the product to replace position of reactant1 */
@@ -109,9 +125,9 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
     reacA = reacB;
     reacB = plist[0];
     
-    j = orientA;
+    short tmp = orientA;
     orientA = orientB;
-    orientB = (short)j;
+    orientB = tmp;
   }
   
   plist[0] = reacA;
@@ -147,10 +163,8 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
     else if (reacB != NULL  &&  reacB->flags & COMPLEX_MEMBER)
       old_subunit = reacB;
     else
-    {
-      fprintf(world->err_file, "macromolecule reaction occurred, but neither molecule is a subunit.  This is an internal error.  Aborting.\n");
-      return RX_NO_MEM;
-    }
+      mcell_internal_error("Macromolecular reaction [%s] occurred, but neither molecule is a subunit (%s and %s).",
+                           rx->sym->name, reacA->properties->sym->name, reacB->properties->sym->name);
   }
  
  
@@ -168,40 +182,41 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
     else xyz2uv(hitpt,w,&uv_loc);
 
  
-    for (j=i0+rx->n_reactants;j<iN;j++)
+    for (int n_product=i0+rx->n_reactants; n_product<iN; n_product++)
     {
-      if (rx->players[j]->flags&ON_GRID)
+      if (rx->players[n_product]->flags&ON_GRID)
       {
         if(replace_p1 && replace_p2){
-              glist[j - (i0+rx->n_reactants)] = reac_g->grid;
-	      xlist[j - (i0+rx->n_reactants)] = reac_g->grid_index;
+              glist[n_product - (i0+rx->n_reactants)] = reac_g->grid;
+	      xlist[n_product - (i0+rx->n_reactants)] = reac_g->grid_index;
               if((struct abstract_molecule *)reac_g == reacA){
-	           flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
+	           flist[n_product - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
 	           replace_p1=0;
               }else{
-	           flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACB_UV;
+	           flist[n_product - (i0+rx->n_reactants)] = FLAG_USE_REACB_UV;
 	           replace_p2=0;
               }
 	      continue;
         }else if (replace_p1){
-          glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid;
-	  xlist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid_index;
-	  flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
+          glist[n_product - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid;
+	  xlist[n_product - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid_index;
+	  flist[n_product - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
 	  replace_p1=0;
 	  continue;
 	}
 	else if (replace_p2)
 	{
-	  glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacB)->grid;
-	  xlist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacB)->grid_index;
-	  flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACB_UV;
+	  glist[n_product - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacB)->grid;
+	  xlist[n_product - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacB)->grid_index;
+	  flist[n_product - (i0+rx->n_reactants)] = FLAG_USE_REACB_UV;
 	  replace_p2=0;
 	  continue;
 	}
 	else if (w->grid==NULL)
 	{
-	  if (create_grid(w,reac_m->subvol)) return RX_NO_MEM;  /* No effectors means it must be a 3d mol/surface rx */
-	  fake_idx = j - (i0+rx->n_reactants);
+	  if (create_grid(w,reac_m->subvol))
+            mcell_allocfailed("Failed to create a grid for a wall.");
+	  fake_idx = n_product - (i0+rx->n_reactants);
 	  glist[fake_idx] = w->grid;
 	  xlist[fake_idx] = uv2grid(&uv_loc,w->grid);
 	  flist[fake_idx] = FLAG_USE_UV_LOC;
@@ -214,7 +229,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
 	  
 	  if (fake_idx > -1) glist[fake_idx]->mol[ xlist[fake_idx] ] = &fake; /* Assumed empty! */
 
-          fake_idx = j - (i0+rx->n_reactants);
+          fake_idx = n_product - (i0+rx->n_reactants);
 	  if (k==-1)
 	  {
 	    k = uv2grid(&uv_loc,w->grid);
@@ -251,9 +266,9 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
       }
       else
       {
-	glist[j - (i0+rx->n_reactants)]=NULL;
-	xlist[j - (i0+rx->n_reactants)]=-1;
-	flist[j - (i0+rx->n_reactants)]=FLAG_NOT_SET;
+	glist[n_product - (i0+rx->n_reactants)]=NULL;
+	xlist[n_product - (i0+rx->n_reactants)]=-1;
+	flist[n_product - (i0+rx->n_reactants)]=FLAG_NOT_SET;
       }
     }
   }
@@ -263,18 +278,17 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   else if (reac_g!=NULL) uv2xyz(&(reac_g->s_pos),reac_g->grid->surface,&xyz_loc);
   else memcpy(&xyz_loc,&(reac_m->pos),sizeof(struct vector3));
   
-  for (i=i0+rx->n_reactants;i<iN;i++)
+  for (int n_product = i0+rx->n_reactants; n_product<iN; n_product++)
   {
-    p = rx->players[i];
+    p = rx->players[n_product];
     
     if ( (p->flags & ON_GRID) != 0 )
     {
       if (reac_g!=NULL || (reac_m!=NULL && w!=NULL))
       {
-        k = i-(i0+rx->n_reactants); 
+        k = n_product-(i0+rx->n_reactants); 
 
-        g = mem_get(local->gmol);
-        if (g==NULL) return RX_NO_MEM;
+        g = CHECKED_MEM_GET(local->gmol, "grid molecule");
         g->birthplace = local->gmol;
         g->birthday = t;
         g->properties = p;
@@ -286,11 +300,11 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
         g->t = t;
         g->t2 = 0.0;
         sg = g->grid = glist[k];
-        j = g->grid_index = xlist[k];
+        int grid_index = g->grid_index = xlist[k];
 
         if ((p->flags&COUNT_ENCLOSED) != 0) g->flags |= COUNT_ME;
 
-        if (old_subunit  &&  rx->is_complex[i])
+        if (old_subunit  &&  rx->is_complex[n_product])
         {
           struct grid_molecule *old_g = (struct grid_molecule *) old_subunit;
           struct complex_species *cspec = (struct complex_species *)(old_subunit->cmplx[0]->properties);
@@ -352,48 +366,52 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
               case FLAG_USE_REACA_UV:
                 memcpy(&(g->s_pos),&(((struct grid_molecule*)reacA)->s_pos),sizeof(struct vector2));
                 break;
+
               case FLAG_USE_REACB_UV:
                 memcpy(&(g->s_pos),&(((struct grid_molecule*)reacB)->s_pos),sizeof(struct vector2));
                 break;
+
               case FLAG_USE_UV_LOC:
                 memcpy(&(g->s_pos),&(uv_loc),sizeof(struct vector2));
                 break;
+
               case FLAG_USE_RANDOM:
                 grid2uv_random(glist[k],xlist[k],&(g->s_pos)); 
                 break;
+
               default:
-                fprintf(world->err_file,"Screwed up surface molecule placement badly!\n  Aborting execution (guessing out of memory?).\n");
-                return RX_NO_MEM;
+                UNHANDLED_CASE(flist[k]);
                 break;
             }
           }
-          else grid2uv(sg,j,&(g->s_pos));
+          else grid2uv(sg, grid_index, &(g->s_pos));
         }
 
         /* NOTE: This must be done after the macromolecular processing occurs --
          * otherwise, we may not be matching the right reactions... */
         if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)g)!= NULL || (p->flags&CAN_GRIDWALL)!=0) g->flags |= ACT_REACT;
 
-        plist[i-i0] = (struct abstract_molecule*)g;
-        ptype[i-i0] = 'g';
+        plist[n_product-i0] = (struct abstract_molecule*)g;
+        ptype[n_product-i0] = 'g';
         sg->n_occupied++;
-        sg->mol[j] = g;
+        sg->mol[grid_index] = g;
 
         uv2xyz(&g->s_pos, g->grid->surface, &pos3d);
         gsv = find_subvolume(&pos3d, gsv);
-        if ( schedule_add(gsv->local_storage->timer,g) ) return RX_NO_MEM;
+        if (schedule_add(gsv->local_storage->timer,g))
+          mcell_allocfailed("Failed to add newly created %s molecule to scheduler.",
+                            g->properties->sym->name);
       }
       else /* Should never happen, but it doesn't hurt to be safe */
       {
-        plist[i-i0] = NULL;
-        ptype[i-i0] = 0;
+        plist[n_product-i0] = NULL;
+        ptype[n_product-i0] = 0;
         continue;
       }
     }
     else /* volume molecule */
     {
-      m = mem_get(local->mol);
-      if (m==NULL) return RX_NO_MEM;
+      m = CHECKED_MEM_GET(local->mol, "volume molecule");
       m->birthplace = local->mol;
       m->birthday = t;
       m->properties = p;
@@ -418,7 +436,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
 
       if ((p->flags&COUNT_SOME_MASK) != 0) m->flags |= COUNT_ME;
       
-      if (old_subunit  &&  rx->is_complex[i])
+      if (old_subunit  &&  rx->is_complex[n_product])
       {
         struct volume_molecule *old_m = (struct volume_molecule *) old_subunit;
         struct complex_species *cspec = (struct complex_species *)(old_subunit->cmplx[0]->properties);
@@ -443,7 +461,7 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
         if (old_subunit->properties != m->properties)
         {
           if (count_complex(old_m->cmplx[0], old_m, idx))
-            return RX_NO_MEM;
+            mcell_allocfailed("Failed to update counts for complex subunits after a reaction.");
 
           int update_subunit[ num_subunits ];
           macro_count_inverse_related_subunits(cspec, update_subunit, idx);
@@ -506,110 +524,111 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
        * otherwise, we may not be matching the right reactions... */
       if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)m) != NULL) m->flags |= ACT_REACT;
 
-      plist[i-i0] = (struct abstract_molecule*)m;
-      ptype[i-i0] = 'm';
+      plist[n_product-i0] = (struct abstract_molecule*)m;
+      ptype[n_product-i0] = 'm';
       m->t = t;
       m->t2 = 0.0;
 
-      if ( schedule_add( local->timer , m ) ) return RX_NO_MEM;
+      if (schedule_add(local->timer, m))
+        mcell_allocfailed("Failed to add newly created %s molecule to scheduler.",
+                          m->properties->sym->name);
       
     }
   }
 
   /* Finally, set orientations correctly */
   bits = 0;
-  for (i=i0;i<iN;i++)
+  for (int n_product=i0; n_product<iN; n_product++)
   {
-    if (rx->players[i]==NULL) continue; 
+    if (rx->players[n_product]==NULL) continue; 
    
-    if ( ptype[i-i0] != 0 && (ptype[i-i0]!='m' || w!=NULL) )
+    if ( ptype[n_product-i0] != 0 && (ptype[n_product-i0]!='m' || w!=NULL) )
     {
-      if (rx->geometries[i] == 0)
+      if (rx->geometries[n_product] == 0)
       {
-        bits = rng_uint( world->rng );
-        if(world->notify->final_summary == NOTIFY_FULL){
-           world->random_number_use++;
-        }
-        if ((bits&1)==0) porient[i-i0] = 1;
-        else porient[i-i0] = -1;
+        porient[n_product-i0] = (rng_uint(world->rng) & 1) ? 1 : -1;
       }
       else
       {
-        if (rx->geometries[i] < 0)
+        int geometry;
+        if (rx->geometries[n_product] < 0)
         {
-          j = -rx->geometries[i];
+          geometry = -rx->geometries[n_product];
           k = -1;
         }
         else
         {
-          j = rx->geometries[i];
+          geometry = rx->geometries[n_product];
           k = 1;
         }
         
-        if (j > rx->n_reactants) porient[i-i0] = k*porient[j-(rx->n_reactants+1)];
-        else if (j==1) porient[i-i0] = k*orientA;
-        else if (j==2 && reacB!=NULL) porient[i-i0] = k*orientB;
-        else porient[i-i0] = k;
-        
+        if (geometry > (int) rx->n_reactants) porient[n_product-i0] = k*porient[geometry-(rx->n_reactants+1)];
+        else if (geometry==1) porient[n_product-i0] = k*orientA;
+        else if (geometry==2 && reacB!=NULL) porient[n_product-i0] = k*orientB;
+        else porient[n_product-i0] = k;
       }
       
-      if (ptype[i-i0]=='g')
+      if (ptype[n_product-i0]=='g')
       {
-        ((struct grid_molecule*)plist[i-i0])->orient = porient[i-i0];
+        ((struct grid_molecule*)plist[n_product-i0])->orient = porient[n_product-i0];
       }
-      else if (moving == plist[i-i0])
+      else if (moving == plist[n_product-i0])
       {
         if (moving==reacA)
         {
-          if (orientA==porient[i-i0]) bounce = RX_A_OK;
+          if (orientA==porient[n_product-i0]) bounce = RX_A_OK;
           else bounce = RX_FLIP;
         }
         else
         {
-          if (orientB==porient[i-i0]) bounce = RX_A_OK;
+          if (orientB==porient[n_product-i0]) bounce = RX_A_OK;
           else bounce = RX_FLIP;
         }
       }
-      else if (ptype[i-i0]=='m')
+      else if (ptype[n_product-i0]=='m')
       {
-        m = (struct volume_molecule*)plist[i-i0];
-        if (porient[i-i0]>0) f = EPS_C;
-        else f = -EPS_C;
+        double bump;
+        m = (struct volume_molecule*)plist[n_product-i0];
+        if (porient[n_product-i0]>0) bump = EPS_C;
+        else bump = -EPS_C;
 	
 	if ((m->flags&ACT_CLAMPED) && world->surface_reversibility)
 	{
-	  m->index = (porient[i-i0]>0)?1:-1; /* Which direction do we move? */
+	  m->index = (porient[n_product-i0]>0)?1:-1; /* Which direction do we move? */
 	}
         	
         /* Note: no raytracing here so it is rarely possible to jump through closely spaced surfaces */
-        m->pos.x += f*w->normal.x;
-        m->pos.y += f*w->normal.y;
-        m->pos.z += f*w->normal.z;
+        m->pos.x += bump*w->normal.x;
+        m->pos.y += bump*w->normal.y;
+        m->pos.z += bump*w->normal.z;
 
         m->subvol = find_subvolume(&(m->pos),m->subvol);
         ht_add_molecule_to_list(&m->subvol->mol_by_species, m);
         m->subvol->mol_count++;
       }
     }
-    else if (world->volume_reversibility && reac_g==NULL && w==NULL && ptype[i-i0]=='m') /* Not orientable */
+    else if (world->volume_reversibility && reac_g==NULL && w==NULL && ptype[n_product-i0]=='m') /* Not orientable */
     {
-      m = (struct volume_molecule*)plist[i-i0];
+      m = (struct volume_molecule*)plist[n_product-i0];
       m->index = world->dissociation_index;
-      if (i-i0 >= rx->n_reactants) m->flags |= ACT_CLAMPED;
+      if (n_product-i0 >= (int) rx->n_reactants) m->flags |= ACT_CLAMPED;
       vol_rev_flag=1;
     }
     
-    if (i >= i0+rx->n_reactants &&
-        (plist[i-i0]->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
+    if (n_product >= i0 + (int) rx->n_reactants &&
+        (plist[n_product-i0]->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      j=count_region_from_scratch(plist[i-i0],NULL,1,NULL,w,t);
-      if (j) return RX_NO_MEM;
+      if (count_region_from_scratch(plist[n_product-i0],NULL,1,NULL,w,t))
+        mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
+                          plist[n_product-i0]->properties->sym->name);
     }
   }
 
   if (surf_count_complex) {
     if (count_complex_surface(surf_count_complex, surf_count_subunit, surf_count_idx))
-      return RX_NO_MEM;
+      mcell_allocfailed("Failed to update region counts for surface macromolecule subunit '%s/%s' after a reaction.",
+                        surf_count_complex->properties->sym->name,
+                        surf_count_subunit->properties->sym->name);
     old_subunit->cmplx = NULL;
     old_subunit = NULL;
   }
@@ -626,15 +645,17 @@ int outcome_products(struct wall *w,struct volume_molecule *reac_m,
     /* No flags for reactions so we have to check regions if we have waypoints! Fix to be more efficient for WORLD-only counts? */
     if (world->place_waypoints_flag)
     {
-      j=count_region_from_scratch(NULL,rx->info[path].pathname,1,&xyz_loc,w,t);
-      if (j) return RX_NO_MEM;
+      if (count_region_from_scratch(NULL,rx->info[path].pathname,1,&xyz_loc,w,t))
+        mcell_allocfailed("Failed to update region counts for '%s' reactions.",
+                          rx->info[path].pathname->sym->name);
     }
     
     /* Other magical stuff.  For now, can only trigger releases. */
     if (rx->info[path].pathname->magic!=NULL)
     {
-      j=reaction_wizardry(rx->info[path].pathname->magic,w,&xyz_loc,t);
-      if (j) return RX_NO_MEM;
+      if (reaction_wizardry(rx->info[path].pathname->magic,w,&xyz_loc,t))
+        mcell_allocfailed("Failed to complete reaction triggered release after a '%s' reaction.",
+                          rx->info[path].pathname->sym->name);
     }
   }
   
@@ -665,13 +686,12 @@ outcome_products_trimol_reaction:
    Out: Value depending on how orientations changed--
           RX_FLIP moving molecule passed through membrane
           RX_A_OK everything went fine, nothing extra to do
-	  RX_NO_MEM out of memory error
         Products are created as necessary and scheduled.
 
    Note: This function does not include macromolecules support yet, as
          macromolecules+trimol is not yet supported.
 *************************************************************************/
-int outcome_products_trimol_reaction(struct wall *w,
+static int outcome_products_trimol_reaction(struct wall *w,
   struct volume_molecule *reac_m, struct grid_molecule *reac_g,
   struct rxn *rx,int path, struct storage *local,
   short orientA, short orientB, short orientC,
@@ -687,8 +707,7 @@ int outcome_products_trimol_reaction(struct wall *w,
   struct subvolume *gsv = NULL;
   struct vector3 pos3d;
   u_int bits;
-  int i,j,k;
-  double f;
+  int k;
   int i0 = rx->product_idx[path]; /*index of the first product for the pathway*/
   int iN = rx->product_idx[path+1];/*index of the first product for the next pathway*/
   int replace_p1 = 0; /* flag for the product to replace position of reactant1 */
@@ -723,10 +742,7 @@ int outcome_products_trimol_reaction(struct wall *w,
 #define FLAG_USE_RANDOM 5
      
   if (rx->is_complex)
-  {
-    fprintf(world->err_file, "Internal error: Macromolecular reaction occurred inside trimolecular reaction code.\n");
-    return RX_NO_MEM;
-  }
+    mcell_internal_error("Macromolecular reaction [%s] occurred inside trimolecular reaction code.", rx->sym->name);
 
   /* make sure that reacA corresponds to rx->players[0], 
      reacB - to rx->players[1], and reacC - to rx->players[2] */
@@ -740,9 +756,9 @@ int outcome_products_trimol_reaction(struct wall *w,
           reacB = reacC;
           reacC = plist[0];
     
-          j = orientB;
+          short tmp = orientB;
           orientB = orientC;
-          orientC = (short)j;
+          orientC = tmp;
        }
      }else if(reacA->properties == rx->players[1]){
     
@@ -752,27 +768,27 @@ int outcome_products_trimol_reaction(struct wall *w,
           reacB = reacA;
           reacA = plist[0];
     
-          j = orientB;
+          short tmp = orientB;
           orientB = orientA;
-          orientA = (short)j;
+          orientA = tmp;
        }else if(reacC->properties == rx->players[0]){
           /* switch reacA and reacC */
           plist[0] = reacA;
           reacA = reacC;
           reacC = plist[0];
     
-          j = orientA;
+          short tmp = orientA;
           orientA = orientC;
-          orientC = (short)j;
+          orientC = tmp;
 
           /* now switch reacC and reacB  */ 
           plist[0] = reacB;
           reacB = reacC;
           reacC = plist[0];
     
-          j = orientB;
+          tmp = orientB;
           orientB = orientC;
-          orientC = (short)j;
+          orientC = tmp;
        }
      }else if(reacA->properties == rx->players[2]){
         if(reacB->properties == rx->players[0])
@@ -782,18 +798,18 @@ int outcome_products_trimol_reaction(struct wall *w,
           reacB = reacA;
           reacA = plist[0];
     
-          j = orientB;
+          short tmp = orientB;
           orientB = orientA;
-          orientA = (short)j;
+          orientA = tmp;
         
           /* switch reacB and reacC */
           plist[0] = reacB;
           reacB = reacC;
           reacC = plist[0];
     
-          j = orientB;
+          tmp = orientB;
           orientB = orientC;
-          orientC = (short)j;
+          orientC = tmp;
     
         }else if ((reacC->properties == rx->players[0]) &&
            (reacC->properties != rx->players[2])){
@@ -802,9 +818,9 @@ int outcome_products_trimol_reaction(struct wall *w,
           reacA = reacC;
           reacC = plist[0];
     
-          j = orientA;
+          short tmp = orientA;
           orientA = orientC;
-          orientC = (short)j;
+          orientC = tmp;
        }
      }
   }else{
@@ -817,9 +833,9 @@ int outcome_products_trimol_reaction(struct wall *w,
        reacA = reacB;
        reacB = plist[0];
 
-       j = orientA;
+       short tmp = orientA;
        orientA = orientB;
-       orientB = (short)j;
+       orientB = tmp;
     }
   }
 
@@ -878,52 +894,53 @@ int outcome_products_trimol_reaction(struct wall *w,
     if(reac_g != NULL) memcpy(&uv_loc , &(reac_g->s_pos) , sizeof(struct vector2));
     else xyz2uv(hitpt,w,&uv_loc);
  
-    for (j=i0+rx->n_reactants;j<iN;j++)
+    for (int n_player=i0+rx->n_reactants; n_player<iN; n_player++)
     {
-      if (rx->players[j]->flags&ON_GRID)
+      if (rx->players[n_player]->flags&ON_GRID)
       {
   
         if(replace_p1 && replace_p2 && replace_p3){
-          glist[j - (i0+rx->n_reactants)] = reac_g->grid;
-	  xlist[j - (i0+rx->n_reactants)] = reac_g->grid_index;
+          glist[n_player - (i0+rx->n_reactants)] = reac_g->grid;
+	  xlist[n_player - (i0+rx->n_reactants)] = reac_g->grid_index;
           if((struct abstract_molecule *)reac_g == reacA){
-              flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
+              flist[n_player - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
               replace_p1 = 0;
           }else if((struct abstract_molecule *)reac_g == reacB){
-              flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACB_UV;
+              flist[n_player - (i0+rx->n_reactants)] = FLAG_USE_REACB_UV;
               replace_p2 = 0;
           }else if((struct abstract_molecule *)reac_g == reacC){
-              flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACC_UV;
+              flist[n_player - (i0+rx->n_reactants)] = FLAG_USE_REACC_UV;
               replace_p3 = 0;
           }
           continue;
         }else if (replace_p1){
-          glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid;
-	  xlist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid_index;
-	  flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
+          glist[n_player - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid;
+	  xlist[n_player - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacA)->grid_index;
+	  flist[n_player - (i0+rx->n_reactants)] = FLAG_USE_REACA_UV;
 	  replace_p1=0;
 	  continue;
 	}
 	else if (replace_p2)
 	{
-	  glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacB)->grid;
-	  xlist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacB)->grid_index;
-	  flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACB_UV;
+	  glist[n_player - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacB)->grid;
+	  xlist[n_player - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacB)->grid_index;
+	  flist[n_player - (i0+rx->n_reactants)] = FLAG_USE_REACB_UV;
 	  replace_p2=0;
 	  continue;
 	}
 	else if (replace_p3)
 	{
-	  glist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacC)->grid;
-	  xlist[j - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacC)->grid_index;
-	  flist[j - (i0+rx->n_reactants)] = FLAG_USE_REACC_UV;
+	  glist[n_player - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacC)->grid;
+	  xlist[n_player - (i0+rx->n_reactants)] = ((struct grid_molecule*)reacC)->grid_index;
+	  flist[n_player - (i0+rx->n_reactants)] = FLAG_USE_REACC_UV;
 	  replace_p3=0;
 	  continue;
 	}
         else if (w->grid==NULL)
 	{
-	  if (create_grid(w,reac_m->subvol)) return RX_NO_MEM;  /* No effectors means it must be a 3d mol/surface rx */
-	  fake_idx = j - (i0+rx->n_reactants);
+	  if (create_grid(w,reac_m->subvol))
+            mcell_allocfailed("Failed to create a grid for a wall.");
+	  fake_idx = n_player - (i0+rx->n_reactants);
 	  glist[fake_idx] = w->grid;
 	  xlist[fake_idx] = uv2grid(&uv_loc,w->grid);
 	  flist[fake_idx] = FLAG_USE_UV_LOC;
@@ -936,7 +953,7 @@ int outcome_products_trimol_reaction(struct wall *w,
 	  
 	  if (fake_idx > -1) glist[fake_idx]->mol[ xlist[fake_idx] ] = &fake; /* Assumed empty! */
 
-          fake_idx = j - (i0+rx->n_reactants);
+          fake_idx = n_player - (i0+rx->n_reactants);
 	  if (k==-1)
 	  {
 	    k = uv2grid(&uv_loc,w->grid);
@@ -973,9 +990,9 @@ int outcome_products_trimol_reaction(struct wall *w,
       }
       else
       {
-	glist[j - (i0+rx->n_reactants)]=NULL;
-	xlist[j - (i0+rx->n_reactants)]=-1;
-	flist[j - (i0+rx->n_reactants)]=FLAG_NOT_SET;
+	glist[n_player - (i0+rx->n_reactants)]=NULL;
+	xlist[n_player - (i0+rx->n_reactants)]=-1;
+	flist[n_player - (i0+rx->n_reactants)]=FLAG_NOT_SET;
       }
     }
   }
@@ -985,18 +1002,17 @@ int outcome_products_trimol_reaction(struct wall *w,
   else if (reac_g!=NULL) uv2xyz(&(reac_g->s_pos),reac_g->grid->surface,&xyz_loc);
   else memcpy(&xyz_loc,&(reac_m->pos),sizeof(struct vector3));
   
-  for (i=i0+rx->n_reactants;i<iN;i++)
+  for (int n_player=i0+rx->n_reactants; n_player<iN; n_player++)
   {
-    p = rx->players[i];
+    p = rx->players[n_player];
     
     if ( (p->flags & ON_GRID) != 0 )
     {
       if (reac_g != NULL || (reac_m != NULL && w != NULL))
       {
-        k = i-(i0+rx->n_reactants); 
+        k = n_player-(i0+rx->n_reactants); 
 	
-	g = mem_get(local->gmol);
-	if (g==NULL) return RX_NO_MEM;
+        g = CHECKED_MEM_GET(local->gmol, "grid molecule");
 	g->birthplace = local->gmol;
 	g->birthday = t;
 	g->properties = p;
@@ -1009,59 +1025,64 @@ int outcome_products_trimol_reaction(struct wall *w,
 	g->t = t;
 	g->t2 = 0.0;
 	sg = g->grid = glist[k];
-	j = g->grid_index = xlist[k];
+	int grid_index = g->grid_index = xlist[k];
 
         if ((p->flags&COUNT_ENCLOSED) != 0) g->flags |= COUNT_ME;
 	
         if (world->randomize_gmol_pos)
 	{
 	  switch (flist[k]) 
-	  {
-	    case FLAG_USE_REACA_UV:
-	      memcpy(&(g->s_pos),&(((struct grid_molecule*)reacA)->s_pos),sizeof(struct vector2));
-	      break;
-	    case FLAG_USE_REACB_UV:
-	      memcpy(&(g->s_pos),&(((struct grid_molecule*)reacB)->s_pos),sizeof(struct vector2));
-	      break;
-	    case FLAG_USE_REACC_UV:
-	      memcpy(&(g->s_pos),&(((struct grid_molecule*)reacC)->s_pos),sizeof(struct vector2));
-	      break;
-	    case FLAG_USE_UV_LOC:
-	      memcpy(&(g->s_pos),&(uv_loc),sizeof(struct vector2));
-	      break;
-	    case FLAG_USE_RANDOM:
-	       grid2uv_random(glist[k],xlist[k],&(g->s_pos)); 
-	       break;
-	    default:
-	      fprintf(world->err_file,"Screwed up surface molecule placement badly!\n  Aborting execution (guessing out of memory?).\n");
-	      return RX_NO_MEM;
-	      break;
-	  }
+          {
+            case FLAG_USE_REACA_UV:
+              memcpy(&(g->s_pos),&(((struct grid_molecule*)reacA)->s_pos),sizeof(struct vector2));
+              break;
+
+            case FLAG_USE_REACB_UV:
+              memcpy(&(g->s_pos),&(((struct grid_molecule*)reacB)->s_pos),sizeof(struct vector2));
+              break;
+
+            case FLAG_USE_REACC_UV:
+              memcpy(&(g->s_pos),&(((struct grid_molecule*)reacC)->s_pos),sizeof(struct vector2));
+              break;
+
+            case FLAG_USE_UV_LOC:
+              memcpy(&(g->s_pos),&(uv_loc),sizeof(struct vector2));
+              break;
+
+            case FLAG_USE_RANDOM:
+              grid2uv_random(glist[k],xlist[k],&(g->s_pos)); 
+              break;
+
+            default:
+              UNHANDLED_CASE(flist[k]);
+              break;
+          }
 	}
-	else grid2uv(sg,j,&(g->s_pos));
-               
+        else grid2uv(sg, grid_index, &(g->s_pos));
+
         sg->n_occupied++;
                  
-	sg->mol[j] = g;
+        sg->mol[grid_index] = g;
 	
-	plist[i-i0] = (struct abstract_molecule*)g;
-	ptype[i-i0] = 'g';
+        plist[n_player-i0] = (struct abstract_molecule*)g;
+        ptype[n_player-i0] = 'g';
 	
         uv2xyz(&g->s_pos, g->grid->surface, &pos3d);
         gsv = find_subvolume(&pos3d, gsv);
-	if ( schedule_add(gsv->local_storage->timer,g) ) return RX_NO_MEM;
+        if (schedule_add(gsv->local_storage->timer, g))
+          mcell_allocfailed("Failed to add newly created %s molecule to scheduler.",
+                            g->properties->sym->name);
       }
       else /* Should never happen, but it doesn't hurt to be safe */
       {
-        plist[i-i0] = NULL;
-        ptype[i-i0] = 0;
+        plist[n_player-i0] = NULL;
+        ptype[n_player-i0] = 0;
         continue;
       }
     }
     else /* volume molecule */
     {
-      m = mem_get(local->mol);
-      if (m==NULL) return RX_NO_MEM;
+      m = CHECKED_MEM_GET(local->mol, "volume molecule");
       m->birthplace = local->mol;
       m->birthday = t;
       m->properties = p;
@@ -1125,110 +1146,110 @@ int outcome_products_trimol_reaction(struct wall *w,
         }
         
       }
-      plist[i-i0] = (struct abstract_molecule*)m;
-      ptype[i-i0] = 'm';
+      plist[n_player-i0] = (struct abstract_molecule*)m;
+      ptype[n_player-i0] = 'm';
       m->t = t;
       m->t2 = 0.0;
 
-      if ( schedule_add( local->timer , m ) ) return RX_NO_MEM;
+      if (schedule_add( local->timer, m))
+        mcell_allocfailed("Failed to add newly created %s molecule to scheduler.",
+                          m->properties->sym->name);
       
     }
   }
 
   /* Finally, set orientations correctly */
   bits = 0;
-  for (i=i0;i<iN;i++)
+  for (int n_player=i0; n_player<iN; n_player++)
   {
-    if (rx->players[i]==NULL) continue; 
+    if (rx->players[n_player]==NULL) continue; 
    
-    if ( ptype[i-i0] != 0 && (ptype[i-i0]!='m' || w!=NULL) )
+    if ( ptype[n_player-i0] != 0 && (ptype[n_player-i0]!='m' || w!=NULL) )
     {
-      if (rx->geometries[i] == 0)
+      if (rx->geometries[n_player] == 0)
       {
-        bits = rng_uint( world->rng );
-        if(world->notify->final_summary == NOTIFY_FULL){
-           world->random_number_use++;
-        }
-        if ((bits&1)==0) porient[i-i0] = 1;
-        else porient[i-i0] = -1;
+        porient[n_player-i0] = (rng_uint(world->rng) & 1) ? 1 : -1;
       }
       else
       {
-        if (rx->geometries[i] < 0)
+        int geometry;
+        if (rx->geometries[n_player] < 0)
         {
-          j = -rx->geometries[i];
+          geometry = -rx->geometries[n_player];
           k = -1;
         }
         else
         {
-          j = rx->geometries[i];
+          geometry = rx->geometries[n_player];
           k = 1;
         }
         
-        if (j > rx->n_reactants) porient[i-i0] = k*porient[j-(rx->n_reactants+1)];
-        else if (j==1) porient[i-i0] = k*orientA;
-        else if (j==2 && reacB!=NULL) porient[i-i0] = k*orientB;
-        else if (j==3 && reacC!=NULL) porient[i-i0] = k*orientC;
-        else porient[i-i0] = k;
+        if (geometry > (int) rx->n_reactants) porient[n_player-i0] = k*porient[geometry-(rx->n_reactants+1)];
+        else if (geometry==1) porient[n_player-i0] = k*orientA;
+        else if (geometry==2 && reacB!=NULL) porient[n_player-i0] = k*orientB;
+        else if (geometry==3 && reacC!=NULL) porient[n_player-i0] = k*orientC;
+        else porient[n_player-i0] = k;
         
       }
       
-      if (ptype[i-i0]=='g')
+      if (ptype[n_player-i0]=='g')
       {
-        ((struct grid_molecule*)plist[i-i0])->orient = porient[i-i0];
+        ((struct grid_molecule*)plist[n_player-i0])->orient = porient[n_player-i0];
       }
-      else if (moving == plist[i-i0])
+      else if (moving == plist[n_player-i0])
       {
         if (moving==reacA)
         {
-          if (orientA==porient[i-i0]) bounce = RX_A_OK;
+          if (orientA==porient[n_player-i0]) bounce = RX_A_OK;
           else bounce = RX_FLIP;
         }
         else if(moving == reacB)
         {
-          if (orientB==porient[i-i0]) bounce = RX_A_OK;
+          if (orientB==porient[n_player-i0]) bounce = RX_A_OK;
           else bounce = RX_FLIP;
         }
         else
         {
-          if (orientC==porient[i-i0]) bounce = RX_A_OK;
+          if (orientC==porient[n_player-i0]) bounce = RX_A_OK;
           else bounce = RX_FLIP;
         }
       }
-      else if (ptype[i-i0]=='m')
+      else if (ptype[n_player-i0]=='m')
       {
-        m = (struct volume_molecule*)plist[i-i0];
-        if (porient[i-i0]>0) f = EPS_C;
-        else f = -EPS_C;
+        double bump;
+        m = (struct volume_molecule*)plist[n_player-i0];
+        if (porient[n_player-i0]>0) bump = EPS_C;
+        else bump = -EPS_C;
 	
 	if ((m->flags&ACT_CLAMPED) && world->surface_reversibility)
 	{
-	  m->index = (porient[i-i0]>0)?1:-1; /* Which direction do we move? */
+          m->index = (porient[n_player-i0]>0)?1:-1; /* Which direction do we move? */
 	}
         	
         /* Note: no raytracing here so it is rarely possible to jump through closely spaced surfaces */
-        m->pos.x += f*w->normal.x;
-        m->pos.y += f*w->normal.y;
-        m->pos.z += f*w->normal.z;
+        m->pos.x += bump*w->normal.x;
+        m->pos.y += bump*w->normal.y;
+        m->pos.z += bump*w->normal.z;
 
         m->subvol = find_subvolume(&(m->pos),m->subvol);
         ht_add_molecule_to_list(&m->subvol->mol_by_species, m);
         m->subvol->mol_count++;
       }
     }
-    else if (world->volume_reversibility && reac_g==NULL && w==NULL && ptype[i-i0]=='m') /* Not orientable */
+    else if (world->volume_reversibility && reac_g==NULL && w==NULL && ptype[n_player-i0]=='m') /* Not orientable */
     {
-      m = (struct volume_molecule*)plist[i-i0];
+      m = (struct volume_molecule*)plist[n_player-i0];
       m->index = world->dissociation_index;
-      if (i-i0 >= rx->n_reactants) m->flags |= ACT_CLAMPED;
+      if (n_player-i0 >= (int) rx->n_reactants) m->flags |= ACT_CLAMPED;
       vol_rev_flag=1;
     }
     
-    if (i >= i0+rx->n_reactants &&
-        (plist[i-i0]->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
+    if (n_player >= i0 + (int) rx->n_reactants &&
+        (plist[n_player-i0]->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      j=count_region_from_scratch(plist[i-i0],NULL,1,NULL,w,t);
-      if (j) return RX_NO_MEM;
+      if (count_region_from_scratch(plist[n_player-i0],NULL,1,NULL,w,t))
+        mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
+                          plist[n_player-i0]->properties->sym->name);
     }
   }
 
@@ -1244,15 +1265,17 @@ int outcome_products_trimol_reaction(struct wall *w,
     /* No flags for reactions so we have to check regions if we have waypoints! Fix to be more efficient for WORLD-only counts? */
     if (world->place_waypoints_flag)
     {
-      j=count_region_from_scratch(NULL,rx->info[path].pathname,1,&xyz_loc,w,t);
-      if (j) return RX_NO_MEM;
+      if (count_region_from_scratch(NULL, rx->info[path].pathname, 1, &xyz_loc, w, t))
+        mcell_allocfailed("Failed to update region counts for '%s' reactions.",
+                          rx->info[path].pathname->sym->name);
     }
     
     /* Other magical stuff.  For now, can only trigger releases. */
     if (rx->info[path].pathname->magic!=NULL)
     {
-      j=reaction_wizardry(rx->info[path].pathname->magic,w, &xyz_loc,t);
-      if (j) return RX_NO_MEM;
+      if (reaction_wizardry(rx->info[path].pathname->magic, w, &xyz_loc, t))
+        mcell_allocfailed("Failed to complete reaction triggered release after a '%s' reaction.",
+                          rx->info[path].pathname->sym->name);
     }
   }
 
@@ -1277,7 +1300,6 @@ outcome_unimolecular:
 	 RX_BLOCKED if there was no room to put products on grid
 	 RX_DESTROY if molecule no longer exists.
 	 RX_A_OK if it does.
-	 RX_NO_MEM on an out-of-memory error.
        Products are created as needed.
 *************************************************************************/
 
@@ -1289,7 +1311,6 @@ int outcome_unimolecular(struct rxn *rx,int path,
   int result = RX_A_OK;
   struct volume_molecule *m=NULL;
   struct grid_molecule *g=NULL;
-  int i;
  
  
   if ((reac->properties->flags & NOT_FREE) == 0)
@@ -1306,8 +1327,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
                               g->orient,0,t,NULL,reac,NULL,NULL);
   }
   
-  if (result==RX_NO_MEM) return RX_NO_MEM;
-  else if (result==RX_BLOCKED) return RX_BLOCKED;
+  if (result==RX_BLOCKED) return RX_BLOCKED;
   
   if (result != RX_BLOCKED) {
      rx->info[path].count++;
@@ -1324,8 +1344,9 @@ int outcome_unimolecular(struct rxn *rx,int path,
       if (m->flags & IN_SCHEDULE) m->subvol->local_storage->timer->defunct_count++;
       if (m->properties->flags&COUNT_SOME_MASK)
       {
-	i = count_region_from_scratch((struct abstract_molecule*)m,NULL,-1,&(m->pos),NULL,m->t);
-	if (i) return RX_NO_MEM;
+        if (count_region_from_scratch((struct abstract_molecule*)m, NULL, -1, &(m->pos), NULL, m->t))
+          mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
+                            m->properties->sym->name);
       }
     }
     else
@@ -1338,8 +1359,9 @@ int outcome_unimolecular(struct rxn *rx,int path,
       }
       if (g->properties->flags&COUNT_SOME_MASK)
       {
-	i = count_region_from_scratch((struct abstract_molecule*)g,NULL,-1,NULL,NULL,g->t);
-	if (i) return RX_NO_MEM;
+        if (count_region_from_scratch((struct abstract_molecule*)g, NULL, -1, NULL, NULL, g->t))
+          mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
+                            g->properties->sym->name);
       }
     }
 
@@ -1378,7 +1400,6 @@ outcome_bimolecular:
 	 RX_FLIP if the molecule goes across the membrane
 	 RX_DESTROY if the molecule no longer exists
 	 RX_A_OK if everything proceeded smoothly
-	 RX_NO_MEM on an out-of-memory error
        Products are created as needed.
   Note: reacA is the triggering molecule (e.g. moving)
 *************************************************************************/
@@ -1393,7 +1414,6 @@ int outcome_bimolecular(struct rxn *rx,int path,
   struct wall *w = NULL;
   struct storage *x;
   int result;
-  int i;
   int reacB_was_free=0;
   int killA,killB;
   
@@ -1427,8 +1447,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
   result = outcome_products(w,m,g,rx,path,x,orientA,orientB,t,hitpt,reacA,reacB,reacA);
           
    
-  if (result==RX_NO_MEM) return RX_NO_MEM;
-  else if (result==RX_BLOCKED) return RX_BLOCKED;
+  if (result==RX_BLOCKED) return RX_BLOCKED;
   
   rx->n_occurred++;
   rx->info[path].count++;
@@ -1473,8 +1492,9 @@ int outcome_bimolecular(struct rxn *rx,int path,
 
     if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      i = count_region_from_scratch(reacB,NULL,-1,NULL,NULL,t);
-      if (i) return RX_NO_MEM;
+      if (count_region_from_scratch(reacB, NULL, -1, NULL, NULL, t))
+        mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
+                          reacB->properties->sym->name);
     }
     
     reacB->properties->n_deceased++;
@@ -1512,7 +1532,9 @@ int outcome_bimolecular(struct rxn *rx,int path,
     {
       if (reacA->properties->flags&COUNT_SOME_MASK)  /* If we're ever counted, try to count us now */
       {
-        i=count_region_from_scratch(reacA,NULL,-1,NULL,NULL,t);
+        if (count_region_from_scratch(reacA, NULL, -1, NULL, NULL, t))
+          mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
+                            reacA->properties->sym->name);
       }
     }
     else if (reacA->flags&COUNT_ME)
@@ -1521,7 +1543,9 @@ int outcome_bimolecular(struct rxn *rx,int path,
       if (hitpt==NULL || reacB_was_free || (reacB->properties!=NULL && (reacB->properties->flags&NOT_FREE)==0))
       {
 	/* Vol-vol rx should be counted at hitpt */
-	i=count_region_from_scratch(reacA,NULL,-1,hitpt,NULL,t);
+        if (count_region_from_scratch(reacA, NULL, -1, hitpt, NULL, t))
+          mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
+                            reacA->properties->sym->name);
       }
       else /* Vol-surf but don't want to count exactly on a wall or we might count on the wrong side */
       {
@@ -1535,9 +1559,10 @@ int outcome_bimolecular(struct rxn *rx,int path,
 	fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
 	fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 	
-	i=count_region_from_scratch(reacA,NULL,-1,&fake_hitpt,NULL,t);
+        if (count_region_from_scratch(reacA, NULL, -1, &fake_hitpt, NULL, t))
+          mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
+                            reacA->properties->sym->name);
       }
-      if (i) return RX_NO_MEM;
     }
   
     reacA->properties->n_deceased++;
@@ -1566,7 +1591,6 @@ outcome_trimolecular:
 	 RX_FLIP if the molecule goes across the membrane
 	 RX_DESTROY if the molecule no longer exists
 	 RX_A_OK if everything proceeded smoothly
-	 RX_NO_MEM on an out-of-memory error
        Products are created as needed.
   Note: reacA is the triggering molecule (e.g. moving)
         reacC is the target furthest from the reacA
@@ -1581,12 +1605,10 @@ int outcome_trimolecular(struct rxn *rx,int path,
   struct grid_molecule *g = NULL;
   struct storage *x;
   int result;
-  int i;
   /* flags */
   int killA = 0,killB = 0, killC = 0;
   int reacB_is_free = 0;
   int reacC_is_free = 0;
-
 
    if ((reacA->properties->flags & NOT_FREE) == 0)
    {
@@ -1613,8 +1635,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
      result = outcome_products_trimol_reaction(w,m,g,rx,path,x,orientA, orientB, orientC,t,hitpt,reacA,reacB,reacC, reacA);  
           
      
-  if (result==RX_NO_MEM) return RX_NO_MEM;
-  else if (result==RX_BLOCKED) return RX_BLOCKED;
+  if (result==RX_BLOCKED) return RX_BLOCKED;
              
 
   rx->n_occurred++;
@@ -1686,8 +1707,9 @@ int outcome_trimolecular(struct rxn *rx,int path,
 
     if ((reacC->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      i = count_region_from_scratch(reacC,NULL,-1,NULL,NULL,t);
-      if (i) return RX_NO_MEM;
+      if (count_region_from_scratch(reacC, NULL, -1, NULL, NULL, t))
+        mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
+                          reacC->properties->sym->name);
     }
     
     reacC->properties->n_deceased++;
@@ -1725,8 +1747,9 @@ int outcome_trimolecular(struct rxn *rx,int path,
 
     if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      i = count_region_from_scratch(reacB,NULL,-1,NULL,NULL,t);
-      if (i) return RX_NO_MEM;
+      if (count_region_from_scratch(reacB, NULL, -1, NULL, NULL, t))
+        mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
+                          reacB->properties->sym->name);
     }
     
     reacB->properties->n_deceased++;
@@ -1765,7 +1788,9 @@ int outcome_trimolecular(struct rxn *rx,int path,
     {
       if (reacA->properties->flags&COUNT_SOME_MASK)  /* If we're ever counted, try to count us now */
       {
-        i=count_region_from_scratch(reacA,NULL,-1,NULL,NULL,t);	  
+        if (count_region_from_scratch(reacA, NULL, -1, NULL, NULL, t))
+          mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
+                            reacA->properties->sym->name);
       }
     }
     else if ((reacA->flags&COUNT_ME) && world->place_waypoints_flag)
@@ -1774,25 +1799,27 @@ int outcome_trimolecular(struct rxn *rx,int path,
       if (hitpt==NULL || (reacB_is_free && reacC_is_free))
 	   /* Vol-vol-vol rx should be counted at hitpt */
       {
-          i=count_region_from_scratch(reacA,NULL,-1,hitpt,NULL,t);
+        if (count_region_from_scratch(reacA, NULL, -1, hitpt, NULL, t))
+          mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
+                            reacA->properties->sym->name);
       }
       else /* reaction involving surface or grid_molecule but we don't want to count exactly on a wall or we might count on the wrong side */
       {
-	  struct vector3 fake_hitpt;
-	
-	  m = (struct volume_molecule*)reacA;
-	
-	 /* Halfway in between where we were and where we react should be a safe away-from-wall place to remove us */
-         if (loc_okay == NULL)
-           loc_okay=&(m->pos);
-	 fake_hitpt.x = 0.5*hitpt->x + 0.5*loc_okay->x;
-	 fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
-	 fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
+        struct vector3 fake_hitpt;
 
-	 i=count_region_from_scratch(reacA,NULL,-1,&fake_hitpt,NULL,t);
+        m = (struct volume_molecule*)reacA;
+
+        /* Halfway in between where we were and where we react should be a safe away-from-wall place to remove us */
+        if (loc_okay == NULL)
+          loc_okay=&(m->pos);
+        fake_hitpt.x = 0.5*hitpt->x + 0.5*loc_okay->x;
+        fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
+        fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
+
+        if (count_region_from_scratch(reacA, NULL, -1, &fake_hitpt, NULL, t))
+          mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
+                            reacA->properties->sym->name);
       }
-      if (i) return RX_NO_MEM;
-
     }
      reacA->properties->n_deceased++;
      reacA->properties->cum_lifetime += t - reacA->birthday;
@@ -1819,7 +1846,6 @@ outcome_intersect:
 	 RX_A_OK if the molecule reflects
 	 RX_FLIP if the molecule passes through
 	 RX_DESTROY if the molecule stops, is destroyed, etc.
-	 RX_NO_MEM on an out of memory error
        Additionally, products are created as needed.
   Note: Can assume molecule is always first in the reaction.
 *************************************************************************/
@@ -1828,7 +1854,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   struct abstract_molecule *reac,short orient,double t,struct vector3 *hitpt,
   struct vector3 *loc_okay)
 {
-  int result,index,i;
+  int result, idx;
   
   if (rx->n_pathways <= RX_SPECIAL)
   {
@@ -1837,7 +1863,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     else return RX_FLIP; /* Flip = transparent is default special case */
   }
 
-  index = rx->product_idx[path];
+  idx = rx->product_idx[path];
 
   if ((reac->properties->flags & NOT_FREE) == 0)
   {
@@ -1845,18 +1871,22 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     
     result = outcome_products(surface,m,NULL,rx,path,m->subvol->local_storage,orient,0,t,hitpt,reac,NULL,reac);
 
-    if (result==RX_NO_MEM) return RX_NO_MEM;
-    else if (result == RX_BLOCKED) return RX_A_OK; /* reflect the molecule */
+    if (result == RX_BLOCKED) return RX_A_OK; /* reflect the molecule */
 
     rx->info[path].count++;
     rx->n_occurred++;
     
-    if (rx->players[ index ] == NULL)
+    if (rx->players[idx] == NULL)
     {
       m->subvol->mol_count--;
       if (reac->flags&COUNT_ME)
       {
-	if (hitpt==NULL) i=count_region_from_scratch(reac,NULL,-1,NULL,NULL,t);
+        if (hitpt==NULL)
+        {
+          if (count_region_from_scratch(reac, NULL, -1, NULL, NULL, t))
+            mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
+                              reac->properties->sym->name);
+        }
 	else
 	{
 	  struct vector3 fake_hitpt;
@@ -1867,9 +1897,10 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
 	  fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
 	  fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 	  
-	  i=count_region_from_scratch(reac,NULL,-1,&fake_hitpt,NULL,t);
+          if (count_region_from_scratch(reac, NULL, -1, &fake_hitpt, NULL, t))
+            mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
+                              reac->properties->sym->name);
 	}
-	if (i) return RX_NO_MEM;
       }
       reac->properties->n_deceased++;
       reac->properties->cum_lifetime += t - reac->birthday;
@@ -1916,11 +1947,9 @@ reaction_wizardry:
         this event instead of running it and somehow have it start a
 	time-shifted release pattern (so we could have delays and stuff).
 *************************************************************************/
-
-int reaction_wizardry(struct magic_list *incantation,struct wall *surface,struct vector3 *hitpt,double t)
+static int reaction_wizardry(struct magic_list *incantation,struct wall *surface,struct vector3 *hitpt,double t)
 {
   struct release_event_queue req; /* Create a release event on the fly */
-  int i;
   
   /* Release event happens "now" */
   req.next=NULL;
@@ -1971,8 +2000,8 @@ int reaction_wizardry(struct magic_list *incantation,struct wall *surface,struct
     
     req.release_site = (struct release_site_obj*)incantation->data;
     
-    i = release_molecules(&req);
-    if (i) return i;
+    if (release_molecules(&req))
+      return 1;
   }
   
   return 0;

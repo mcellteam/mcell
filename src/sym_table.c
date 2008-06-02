@@ -1,7 +1,9 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
+
+#include "logging.h"
 #include "mcell_structs.h"
 #include "sym_table.h"
 #include "react_output.h"
@@ -77,10 +79,7 @@ Use for hash table lookup, or anything where one collision in 2^^32 is
 acceptable.  Do NOT use for cryptographic purposes.
 --------------------------------------------------------------------*/
 
-ub4 jenkins_hash(k,length)
-register ub1 *k;        /* the key */
-ub4 length;
-
+ub4 jenkins_hash(ub1 *k, ub4 length)
 {
    register ub4 a,b,c,len,initval;
    /* Set up the internal state */
@@ -125,7 +124,7 @@ ub4 length;
 /* ================================================================ */
 
 
-unsigned long hash(char *sym)
+unsigned long hash(char const *sym)
 {
   ub4 hashval;
 
@@ -134,20 +133,18 @@ unsigned long hash(char *sym)
   return(hashval);
 } 
 
-
-struct sym_table *retrieve_sym(char *sym, unsigned short sym_type,
-  struct sym_table **hashtab)
+struct sym_table *retrieve_sym(char const *sym, struct sym_table_head *hashtab)
 {
-  struct sym_table *sp;
-  
-  if(sym == NULL) return (NULL);
+  if (sym == NULL) return NULL;
 
-  for (sp=hashtab[hash(sym)&SYM_HASHMASK]; sp!=NULL; sp=sp->next) {
-    if (strcmp(sym,sp->name)==0 && sp->sym_type==sym_type) {
-      return(sp);
-    }
+  for (struct sym_table *sp = hashtab->entries[hash(sym) & (hashtab->n_bins-1)];
+       sp != NULL;
+       sp = sp->next)
+  {
+    if (strcmp(sym, sp->name) == 0)
+      return sp;
   }
-  return(NULL);
+  return NULL;
 }
 
 /**
@@ -159,7 +156,7 @@ struct sym_table *retrieve_sym(char *sym, unsigned short sym_type,
  */
 struct species *new_species(void)
 {
-  struct species *specp = (struct species *) CHECKED_MALLOC_EMERGENCY(sizeof(struct species), "species");
+  struct species *specp = CHECKED_MALLOC_STRUCT(struct species, "species");
   specp->species_id=0;
   specp->chkpt_species_id=0;
   specp->eff_dat_head=NULL;
@@ -173,7 +170,6 @@ struct species *new_species(void)
   specp->n_deceased=0;
   specp->cum_lifetime=0.0;
   
-  specp->viz_state=EXCLUDE_OBJ;
   specp->region_viz_value = EXCLUDE_OBJ;
   return specp;
 }
@@ -187,7 +183,7 @@ struct species *new_species(void)
  */
 struct object *new_object(void)
 {
-  struct object *objp = (struct object *) CHECKED_MALLOC_EMERGENCY(sizeof(struct object), "object");
+  struct object *objp = CHECKED_MALLOC_STRUCT(struct object, "object");
   objp->last_name=NULL;
   objp->object_type=META_OBJ;
   objp->contents=NULL;
@@ -203,13 +199,9 @@ struct object *new_object(void)
   objp->wall_p=NULL;
   objp->n_verts=0;
   objp->verts=NULL;
-  objp->vert_p=NULL;
   objp->total_area=0;
   objp->n_tiles=0;
   objp->n_occupied_tiles=0;
-  objp->edgemem=NULL;
-  objp->viz_obj=NULL;
-  objp->viz_state=NULL;
   init_matrix(objp->t_matrix);
   return objp;
 }
@@ -223,7 +215,8 @@ struct object *new_object(void)
  */
 struct release_pattern *new_release_pattern(void)
 {
-  struct release_pattern *rpatp = (struct release_pattern *) CHECKED_MALLOC_EMERGENCY(sizeof(struct release_pattern), "release pattern");
+  struct release_pattern *rpatp = CHECKED_MALLOC_STRUCT(struct release_pattern,
+                                                        "release pattern");
   rpatp->delay=0;
   rpatp->release_interval=FOREVER;
   rpatp->train_interval=FOREVER;
@@ -241,12 +234,12 @@ struct release_pattern *new_release_pattern(void)
  */
 struct rxn *new_reaction(void)
 {
-  struct rxn *rxnp = (struct rxn *) CHECKED_MALLOC_EMERGENCY(sizeof(struct rxn), "reaction");
+  struct rxn *rxnp = CHECKED_MALLOC_STRUCT(struct rxn,
+                                           "reaction");
   rxnp->next=NULL;
   rxnp->n_reactants=0;
   rxnp->n_pathways=0;
   rxnp->cum_probs=NULL;
-  rxnp->cat_probs=NULL;
   rxnp->rates=NULL;
   rxnp->max_fixed_p=0.0;
   rxnp->min_noreaction_p=0.0;
@@ -272,7 +265,8 @@ struct rxn *new_reaction(void)
  */
 struct rxn_pathname *new_reaction_pathname(void)
 {
-  struct rxn_pathname *rxpnp = (struct rxn_pathname *) CHECKED_MALLOC_EMERGENCY(sizeof(struct rxn_pathname), "reaction pathname");
+  struct rxn_pathname *rxpnp = CHECKED_MALLOC_STRUCT(struct rxn_pathname,
+                                                     "reaction pathname");
   rxpnp->path_num=-1;
   rxpnp->rx=NULL;
   rxpnp->magic=NULL;
@@ -288,7 +282,7 @@ struct rxn_pathname *new_reaction_pathname(void)
  */
 struct region *new_region(void)
 {
-  struct region *rp = (struct region *) CHECKED_MALLOC_EMERGENCY(sizeof(struct region), "region");
+  struct region *rp = CHECKED_MALLOC_STRUCT(struct region, "region");
   rp->region_last_name=NULL;
   rp->parent=NULL;
   rp->element_list_head=NULL;
@@ -312,10 +306,73 @@ struct region *new_region(void)
  */
 struct file_stream *new_filestream(void)
 {
-  struct file_stream *filep = (struct file_stream *) CHECKED_MALLOC_EMERGENCY(sizeof(struct file_stream), "file stream");
+  struct file_stream *filep = CHECKED_MALLOC_STRUCT(struct file_stream,
+                                                    "file stream");
   filep->name=NULL;
   filep->stream=NULL;
   return filep;
+}
+
+/**
+ * resize_symtab:
+ *      Resize the symbol table, rehashing all values.
+ *
+ *      In:  hashtab: the symbol table
+ *           size: new size for hash table
+ *      Out: symbol table might be resized
+ */
+static int resize_symtab(struct sym_table_head *hashtab, int size)
+{
+  struct sym_table **entries = hashtab->entries;
+  int n_bins = hashtab->n_bins;
+
+  /* Round up to a power of two */
+  size |= (size >> 1);
+  size |= (size >> 2);
+  size |= (size >> 4);
+  size |= (size >> 8);
+  size |= (size >> 16);
+  ++ size;
+  if (size > (1 << 28))
+    size = (1 << 28);
+
+  hashtab->entries = CHECKED_MALLOC_ARRAY(struct sym_table *, size, "symbol table");
+  if (hashtab->entries == NULL)
+  {
+    /* XXX: Warning message? */
+    hashtab->entries = entries;
+    return 1;
+  }
+  memset(hashtab->entries, 0, size*sizeof(struct sym_table *));
+  hashtab->n_bins = size;
+
+  for (int i=0; i<n_bins; ++ i)
+  {
+    while (entries[i] != NULL)
+    {
+      struct sym_table *entry = entries[i];
+      entries[i] = entries[i]->next;
+
+      unsigned int hashval = hash(entry->name) & (size - 1);
+      entry->next = hashtab->entries[hashval];
+      hashtab->entries[hashval] = entry;
+    }
+  }
+  free(entries);
+  return 0;
+}
+
+/**
+ * maybe_grow_symtab:
+ *      Possibly grow the symbol table.
+ *
+ *      In:  hashtab: the symbol table
+ *      Out: symbol table might be resized
+ */
+static void maybe_grow_symtab(struct sym_table_head *hashtab)
+{
+  if (hashtab->n_entries * 3 >= hashtab->n_bins)
+    resize_symtab(hashtab, hashtab->n_bins * 2);
 }
 
 /** Stores symbol in the symbol table. 
@@ -323,9 +380,9 @@ struct file_stream *new_filestream(void)
     Returns: entry in the symbol table if successfully stored, 
              NULL - otherwise.
 */
-struct sym_table *store_sym(char *sym,
-                            unsigned short sym_type,
-                            struct sym_table **hashtab,
+struct sym_table *store_sym(char const *sym,
+                            enum symbol_type_t sym_type,
+                            struct sym_table_head *hashtab,
                             void *data)
 {
   struct sym_table *sp;
@@ -335,26 +392,29 @@ struct sym_table *store_sym(char *sym,
   unsigned rawhash;
 
   /* try to find sym in table */
-  if ((sp = retrieve_sym(sym, sym_type, hashtab))==NULL)
+  if ((sp = retrieve_sym(sym, hashtab)) == NULL)
   {
+    maybe_grow_symtab(hashtab);
+    ++ hashtab->n_entries;
+
     /* sym not found */
-    sp = (struct sym_table *) CHECKED_MALLOC_EMERGENCY(sizeof(struct sym_table), "sym table entry");
+    sp = CHECKED_MALLOC_STRUCT(struct sym_table, "sym table entry");
 #ifdef KELP
     sp->ref_count=1;
     sp->keep_alive=0;
 #endif
-    sp->name = CHECKED_STRDUP_EMERGENCY(sym, "symbol name");
+    sp->name = CHECKED_STRDUP(sym, "symbol name");
     sp->sym_type=sym_type;
     rawhash = hash(sym);
-    hashval = rawhash & SYM_HASHMASK;
+    hashval = rawhash & (hashtab->n_bins - 1);
 
-    sp->next=hashtab[hashval];
-    hashtab[hashval]=sp;
+    sp->next=hashtab->entries[hashval];
+    hashtab->entries[hashval]=sp;
     switch (sym_type) {
     case DBL:
       if (data == NULL)
       {
-        vp = CHECKED_MALLOC_EMERGENCY(sizeof(double), "sym table value");
+        vp = CHECKED_MALLOC_STRUCT(double, "sym table value");
         fp = (double *)vp;
         *fp = 0.0;
       }
@@ -410,24 +470,44 @@ struct sym_table *store_sym(char *sym,
       else vp = data;
       break;
     case TMP:
+    case VIZ_CHILD:
       sp->value = data;
-      return(sp);
-      break;
+      return sp;
+
     default:
-       fprintf(world->err_file,"File '%s', Line %ld: MCell symbol table error, unknown symbol type %d\n", __FILE__, (long)__LINE__, sym_type);
+       mcell_internal_error("unknown symbol type in symbol table (%d)", sym_type);
        break;
     }
     sp->value=vp;
-  } 
-  return(sp);
+  }
+  return sp;
 }
 
+struct sym_table_head *init_symtab(int size)
+{
+  struct sym_table_head *symtab_head; 
+  symtab_head = CHECKED_MALLOC_STRUCT(struct sym_table_head, "symbol table");
+  symtab_head->entries = CHECKED_MALLOC_ARRAY(struct sym_table *, size, "symbol table");
+  memset(symtab_head->entries, 0, sizeof(struct sym_table *) * size);
+  symtab_head->n_entries = 0;
+  symtab_head->n_bins = size;
+  return symtab_head;
+}
 
-struct sym_table **init_symtab(int size)
-{ 
-  struct sym_table **symtab; 
-  int i;
-  symtab = (struct sym_table **) CHECKED_MALLOC_EMERGENCY(size*sizeof(struct sym_table *), "symbol table");
-  for (i=0;i<size;symtab[i++]=NULL);
-  return(symtab);
+void destroy_symtab(struct sym_table_head *tab)
+{
+  for (int i=0; i<tab->n_bins; ++i)
+  {
+    struct sym_table *next;
+    for (struct sym_table *sym = tab->entries[i];
+         sym != NULL;
+         sym = next)
+    {
+      next = sym->next;
+      free(sym);
+    }
+  }
+
+  free(tab->entries);
+  free(tab);
 }

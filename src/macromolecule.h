@@ -163,9 +163,9 @@ struct complex_counters
 struct macro_relation_state
 {
   struct macro_relation_state *next;                    /* link to next */
-  int                          relation;                /* idx of relation */
-  int                          invert;                  /* invert flag */
   struct species              *mol;                     /* species for clause */
+  int                          relation;                /* idx of relation */
+  short                        invert;                  /* invert flag */
   short                        orient;                  /* orient for clause */
 };
 
@@ -179,11 +179,11 @@ struct macro_count_request
   struct macro_count_request *next;                     /* link to next */
   struct output_expression *paired_expression;          /* pointer to tied expression */
   struct complex_species *the_complex;                  /* pointer to complex owning this count */
-  short  master_orientation;                            /* macromol orientation for this count */
   struct species *subunit_state;                        /* species of reference subunit */
-  short  subunit_orientation;                           /* orient of reference subunit */
   struct macro_relation_state *relation_states;         /* list of relation states for this count */
   struct sym_table *location;                           /* "where" info for count */
+  short  master_orientation;                            /* macromol orientation for this count */
+  short  subunit_orientation;                           /* orient of reference subunit */
 };
 
 /* Given a macromolecule subunit, find its index within the complex. */

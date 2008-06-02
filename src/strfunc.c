@@ -1,8 +1,8 @@
 /*  Character string handling functions */
 
 #include <string.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include "strfunc.h"
 #include "mem_util.h"
@@ -15,7 +15,7 @@ my_strcat:
        or NULL if there isn't enough memory.
   Note: the calling function is responsible for freeing the memory.
 *************************************************************************/
-char *my_strcat(char *s1, char *s2)
+char *my_strcat(char const *s1, char const *s2)
 { 
   char *temp = NULL;
   size_t len1,len2;
@@ -74,7 +74,7 @@ strip_quotes:
        malloc fails.
   Note: this function does NOT do any error checking!
 *************************************************************************/
-char *strip_quotes(char *s)
+char *strip_quotes(char const *s)
 { 
   char *temp = NULL;
   int len = strlen(s);
@@ -87,14 +87,6 @@ char *strip_quotes(char *s)
   return(temp);
 } 
 
-#ifndef DEBUG
-/* no_printf looks like printf but does nothing when DEBUG is off */
-/* With DEBUG on, no_printf is #defined to printf (in mcell_structs.h) */
-void no_printf(const char *format, ...)
-{
-}
-#endif
-
 /*
  * Format a string into an allocated buffer.
  */
@@ -103,13 +95,15 @@ char *alloc_vsprintf(char const *fmt, va_list args)
   char stack_buffer[256];
   int len;
   char *retval = NULL;
+  va_list saved_args;
+  va_copy(saved_args, args);
 
   len = vsnprintf(stack_buffer, sizeof(stack_buffer), fmt, args);
-  if (len >= sizeof(stack_buffer))
+  if (len >= (int) sizeof(stack_buffer))
   {
     retval = malloc(len + 1);
     if (retval != NULL)
-      vsnprintf(retval, len + 1, fmt, args);
+      vsnprintf(retval, len + 1, fmt, saved_args);
   }
   else
     retval = strdup(stack_buffer);

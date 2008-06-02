@@ -10,8 +10,10 @@
 #include "util.h"
 #include "rng.h"
 #include "mem_util.h"
+#include "logging.h"
 
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -32,29 +34,35 @@ extern struct volume *world;
 ********************************************************************************/
 struct complex_species *new_complex_species(int num_subunits, int type)
 {
-  struct complex_species *specp = (struct complex_species *) CHECKED_MALLOC_DIE(sizeof(struct complex_species), "complex species");
+  struct complex_species *specp = CHECKED_MALLOC_STRUCT(struct complex_species,
+                                                        "complex species");
   memset(specp, 0, sizeof(struct complex_species));
   if (type == TYPE_GRID)
     specp->base.flags=IS_COMPLEX | CANT_INITIATE | ON_GRID;
   else
     specp->base.flags=IS_COMPLEX | CANT_INITIATE;
-  specp->base.viz_state=EXCLUDE_OBJ;
   specp->base.region_viz_value = EXCLUDE_OBJ;
   specp->num_subunits = num_subunits;
 
   /* Allocate array of initial subunit species */
-  specp->subunits = (struct species **) CHECKED_MALLOC_DIE(sizeof(struct species *) * num_subunits, "complex species subunits");
+  specp->subunits = CHECKED_MALLOC_ARRAY(struct species *,
+                                         num_subunits,
+                                         "complex species subunits");
   memset(specp->subunits, 0, sizeof(struct species *) * num_subunits);
 
   /* Allocate array of initial subunit orientations if this is a grid macromol */
   if (type == TYPE_GRID)
   {
-    specp->orientations = (signed char *) CHECKED_MALLOC_DIE(sizeof(signed char) * num_subunits, "complex species subunit orientations");
+    specp->orientations = CHECKED_MALLOC_ARRAY(signed char,
+                                               num_subunits,
+                                               "complex species subunit orientations");
     memset(specp->orientations, 0, sizeof(signed char) * num_subunits);
   }
 
   /* Allocate array of subunit locations (relative to macromol's placement point) */
-  specp->rel_locations = (struct vector3 *) CHECKED_MALLOC_DIE(sizeof(struct vector3) * num_subunits, "complex species subunit positions");
+  specp->rel_locations = CHECKED_MALLOC_ARRAY(struct vector3,
+                                              num_subunits,
+                                              "complex species subunit positions");
   return specp;
 }
 
@@ -77,10 +85,9 @@ int macro_subunit_index(struct abstract_molecule const *subunit)
   struct complex_species *s = (struct complex_species *) c[0]->properties;
   assert(s->base.flags & IS_COMPLEX);
 
-  int i=1;
-  for (; i <= s->num_subunits; ++i)
-    if (c[i] == subunit)
-      return i - 1;
+  for (int i=0; i < s->num_subunits; ++i)
+    if (c[i + 1] == subunit)
+      return i;
   return -1;
 }
 
@@ -114,19 +121,18 @@ static double macro_lookup_rate_grid(struct complex_rate const *r,
   /* Assemble a table of the related subunits */
   struct species const *subunit_types[ s->num_relations ];
   signed char orientations[ s->num_relations ];
-  int relation_idx;
-  for (relation_idx = 0; relation_idx < s->num_relations; ++ relation_idx)
+  for (int relation_idx = 0; relation_idx < s->num_relations; ++ relation_idx)
   {
     subunit_types[relation_idx] = c[ s->relations[ relation_idx ].target[ subunit_idx ] + 1 ]->properties;
     orientations[relation_idx] = c[ s->relations[ relation_idx ].target[ subunit_idx ] + 1 ]->orient;
   }
 
   /* Scan the rule table */
-  int rule_idx, neighbor_offset = 0;
-  for (rule_idx = 0; rule_idx < r->num_rules; ++ rule_idx)
+  int neighbor_offset = 0;
+  for (int rule_idx = 0; rule_idx < r->num_rules; ++ rule_idx)
   {
     /* Scan each clause in this rule */
-    int neighbor_idx;
+    int neighbor_idx = 0;
     for (neighbor_idx = 0; neighbor_idx < s->num_relations; ++ neighbor_idx)
     {
       if (r->neighbors[ neighbor_offset + neighbor_idx ] == NULL)
@@ -199,13 +205,12 @@ double macro_lookup_rate(struct complex_rate const *r,
 
   /* Assemble a table of the related subunits */
   struct species const *subunit_types[ s->num_relations ];
-  int relation_idx;
-  for (relation_idx = 0; relation_idx < s->num_relations; ++ relation_idx)
+  for (int relation_idx = 0; relation_idx < s->num_relations; ++ relation_idx)
     subunit_types[relation_idx] = c[ s->relations[ relation_idx ].target[ subunit_idx ] + 1 ]->properties;
 
   /* Scan the rule table */
-  int rule_idx, neighbor_offset = 0;
-  for (rule_idx = 0; rule_idx < r->num_rules; ++ rule_idx)
+  int neighbor_offset = 0;
+  for (int rule_idx = 0; rule_idx < r->num_rules; ++ rule_idx)
   {
     /* Scan each clause in this rule */
     int neighbor_idx;
@@ -255,8 +260,7 @@ double macro_max_rate(struct complex_rate const *r,
                       double pb_factor)
 {
   double max_rate = 0.0;
-  int rule_idx = 0;
-  for (rule_idx = 0; rule_idx < r->num_rules; ++ rule_idx)
+  for (int rule_idx = 0; rule_idx < r->num_rules; ++ rule_idx)
   {
     if (r->rates[rule_idx] > max_rate)
       max_rate = r->rates[rule_idx];
@@ -276,8 +280,7 @@ double macro_max_rate(struct complex_rate const *r,
 struct complex_rate *macro_lookup_ruleset(struct complex_species const *cs,
                                           char const *name)
 {
-  struct complex_rate *rate;
-  for (rate = cs->rates; rate != NULL; rate = rate->next)
+  for (struct complex_rate *rate = cs->rates; rate != NULL; rate = rate->next)
     if (! strcmp(name, rate->name))
       return rate;
   return NULL;
@@ -295,10 +298,13 @@ struct complex_rate *macro_lookup_ruleset(struct complex_species const *cs,
 ********************************************************************************/
 int macro_lookup_relation(struct complex_species *cs, char const *name)
 {
-  int relation_index;
-  for (relation_index = 0; relation_index < cs->num_relations; ++ relation_index)
+  for (int relation_index = 0;
+       relation_index < cs->num_relations;
+       ++ relation_index)
+  {
     if (! strcmp(cs->relations[ relation_index ].name, name))
       return relation_index;
+  }
   return -1;
 }
 
@@ -334,35 +340,33 @@ static struct wall* ray_trace_to_subunit(struct wall *w,
   struct wall *this_wall, *target_wall;
   int new_wall_index;
   double f;
-  
+
   this_wall = w;
-  
+
   first_pos.u = pos->u;
   first_pos.v = pos->v;
-  
+
   this_pos.u = pos->u;
   this_pos.v = pos->v;
   this_disp.u = disp->u;
   this_disp.v = disp->v;
-  
+
   while (1) /* Will break out with return or break when we're done traversing walls */
   {
     new_wall_index = find_edge_point(this_wall, &this_pos, &this_disp, &boundary_pos);
-    
+
     if (new_wall_index==-2) /* Ambiguous edge collision--just give up */
       return NULL;
-  
+
     if (new_wall_index==-1) /* We didn't hit the edge.  Stay inside this wall. */
     {
-      int objIdx;
-      int gridIdx;
-
       pos->u = this_pos.u + this_disp.u;
       pos->v = this_pos.v + this_disp.v;
-      if (this_wall->grid == NULL)
-        create_grid(this_wall, NULL);
-      gridIdx = uv2grid(pos, this_wall->grid);
-      
+      if (this_wall->grid == NULL  &&  create_grid(this_wall, NULL))
+        mcell_allocfailed("Failed to create grid for wall.");
+
+      int gridIdx = uv2grid(pos, this_wall->grid);
+
       if (rgn != NULL)
       {
         if (! get_bit(rgn->membership, this_wall->side))
@@ -371,14 +375,14 @@ static struct wall* ray_trace_to_subunit(struct wall *w,
 
       if (rrd != NULL)
       {
-        for (objIdx = 0; objIdx < rrd->n_objects; ++ objIdx)
+        for (int n_object = 0; n_object < rrd->n_objects; ++ n_object)
         {
-          if (this_wall->parent_object == rrd->owners[objIdx])
+          if (this_wall->parent_object == rrd->owners[n_object])
           {
-            if (! get_bit(rrd->in_release[objIdx], this_wall->side))
+            if (! get_bit(rrd->in_release[n_object], this_wall->side))
               return NULL;
 
-            if (rrd->refinement && ! grid_release_check(rrd, objIdx, this_wall->side, gridIdx, rrd->expression))
+            if (rrd->refinement && ! grid_release_check(rrd, n_object, this_wall->side, gridIdx, rrd->expression))
               return NULL;
 
             return this_wall;
@@ -390,11 +394,11 @@ static struct wall* ray_trace_to_subunit(struct wall *w,
 
       return this_wall;
     }
-    
+
     old_pos.u = this_pos.u;
     old_pos.v = this_pos.v;
     target_wall = traverse_surface(this_wall,&old_pos,new_wall_index,&this_pos);
-  
+
     if (target_wall!=NULL)
     {
       this_disp.u = old_pos.u + this_disp.u;
@@ -405,7 +409,7 @@ static struct wall* ray_trace_to_subunit(struct wall *w,
       this_wall = target_wall;
       continue;
     }
-    
+
     /* If we reach this point, assume we reflect off edge */
     /* Note that this_pos has been corrupted by traverse_surface; use old_pos */
     new_disp.u = this_disp.u - (boundary_pos.u - old_pos.u);
@@ -413,36 +417,41 @@ static struct wall* ray_trace_to_subunit(struct wall *w,
     switch (new_wall_index)
     {
       case 0:
-	new_disp.v *= -1.0;
-	break;
+        new_disp.v *= -1.0;
+        break;
+
       case 1:
-	reflector.u = -this_wall->uv_vert2.v;
-	reflector.v = this_wall->uv_vert2.u-this_wall->uv_vert1_u;
-	f = 1.0/sqrt(reflector.u*reflector.u + reflector.v*reflector.v);
-	reflector.u *= f;
-	reflector.v *= f;
-	f = 2.0 * (new_disp.u*reflector.u + new_disp.v*reflector.v);
-	new_disp.u -= f*reflector.u;
-	new_disp.v -= f*reflector.v;
-	break;
+        reflector.u = -this_wall->uv_vert2.v;
+        reflector.v = this_wall->uv_vert2.u-this_wall->uv_vert1_u;
+        f = 1.0/sqrt(reflector.u*reflector.u + reflector.v*reflector.v);
+        reflector.u *= f;
+        reflector.v *= f;
+        f = 2.0 * (new_disp.u*reflector.u + new_disp.v*reflector.v);
+        new_disp.u -= f*reflector.u;
+        new_disp.v -= f*reflector.v;
+        break;
+
       case 2:
-	reflector.u = this_wall->uv_vert2.v;
-	reflector.v = -this_wall->uv_vert2.u;
-	f = 1.0/sqrt(reflector.u*reflector.u + reflector.v*reflector.v);
-	reflector.u *= f;
-	reflector.v *= f;
-	f = 2.0 * (new_disp.u*reflector.u + new_disp.v*reflector.v);
-	new_disp.u -= f*reflector.u;
-	new_disp.v -= f*reflector.v;
-	break;
+        reflector.u = this_wall->uv_vert2.v;
+        reflector.v = -this_wall->uv_vert2.u;
+        f = 1.0/sqrt(reflector.u*reflector.u + reflector.v*reflector.v);
+        reflector.u *= f;
+        reflector.v *= f;
+        f = 2.0 * (new_disp.u*reflector.u + new_disp.v*reflector.v);
+        new_disp.u -= f*reflector.u;
+        new_disp.v -= f*reflector.v;
+        break;
+
+      default: UNHANDLED_CASE(new_wall_index);
     }
-    
+
     this_pos.u = boundary_pos.u;
     this_pos.v = boundary_pos.v;
     this_disp.u = new_disp.u;
     this_disp.v = new_disp.v;
   }
-  
+
+  mcell_internal_error("Execution should not get here.");
   return NULL;
 }
 
@@ -484,8 +493,7 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
   double bb_x_mn = 0.0, bb_x_mx = 0.0;
   double bb_y_mn = 0.0, bb_y_mx = 0.0;
   double dist;
-  int subunit_idx;
-  for (subunit_idx = 0; subunit_idx < s->num_subunits; ++ subunit_idx)
+  for (int subunit_idx = 0; subunit_idx < s->num_subunits; ++ subunit_idx)
   {
     if (s->rel_locations[subunit_idx].x < bb_x_mn)
       bb_x_mn = s->rel_locations[subunit_idx].x;
@@ -525,15 +533,13 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
   {
     struct vector3 z_axis = { 0.0, 0.0, 1.0 };
     double angle = 360.0 * rng_dbl(world->rng);
-    if (world->notify->final_summary == NOTIFY_FULL)
-      world->random_number_use++;
     rotate_matrix(xform, xform, &z_axis, angle);
   }
 
   /* Place all subunits, if we can */
   struct subvolume *sv = NULL;
   struct grid_molecule *cmplx_subunits[ s->num_subunits ];
-  for (subunit_idx = 0; subunit_idx < s->num_subunits; ++ subunit_idx)
+  for (int subunit_idx = 0; subunit_idx < s->num_subunits; ++ subunit_idx)
   {
     struct species *subunit_species = s->subunits[ subunit_idx ];
     struct vector3 pos;
@@ -552,8 +558,7 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
     /* Try 5 times to place this subunit */
     struct vector2 disp, pos2;
     struct wall *new_wall=NULL;
-    int tries;
-    for (tries=0; tries < 5 && new_wall == NULL; ++ tries)
+    for (int tries=0; tries < 5 && new_wall == NULL; ++ tries)
     {
       disp.u = vtmp[0][0];
       disp.v = vtmp[0][1];
@@ -579,7 +584,7 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
     if (new_wall != NULL)
     {
       uv2xyz(&pos2, new_wall, &pos);
-      subunit = place_grid_molecule(subunit_species, &pos, orient, diam, event_time, &sv, master->cmplx, rrd);
+      subunit = place_grid_molecule(subunit_species, &pos, orient, diam, event_time, &sv, master->cmplx);
     }
     cmplx_subunits[ subunit_idx ] = subunit;
 
@@ -588,8 +593,7 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
     {
       /* Unplace and free the molecules */
       struct grid_molecule **cmplx = master->cmplx;
-      int subunit_idx2;
-      for (subunit_idx2 = 0; subunit_idx2 <= subunit_idx; ++subunit_idx2)
+      for (int subunit_idx2 = 0; subunit_idx2 <= subunit_idx; ++subunit_idx2)
       {
         struct grid_molecule *unit = subunit_idx2 ? cmplx_subunits[subunit_idx2 - 1] : master;
         if (unit != NULL)
@@ -597,7 +601,6 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
           -- unit->properties->population;
           unit->cmplx = NULL;
           if (unit->grid != NULL     &&
-              unit->grid_index >= 0  &&
               unit->grid->mol[unit->grid_index] == unit)
           {
             unit->grid->mol[unit->grid_index] = NULL;
@@ -618,32 +621,23 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
   /* Schedule all molecules  */
   struct subvolume *gsv = NULL;
   struct vector3 pos3d;
-  for (subunit_idx = 0; subunit_idx <= s->num_subunits; ++ subunit_idx)
+  for (int subunit_idx = 0; subunit_idx <= s->num_subunits; ++ subunit_idx)
   {
     struct grid_molecule *g = subunit_idx ? cmplx_subunits[ subunit_idx-1 ] : master;
     uv2xyz(&g->s_pos, g->grid->surface, &pos3d);
     gsv = find_subvolume(&pos3d, gsv);
     if (schedule_add(gsv->local_storage->timer, g))
-    {
-      int i;
-      fprintf(world->err_file,"File '%s', Line %ld: Out of memory while trying to insert molecules\n", __FILE__, (long)__LINE__);
-      i = emergency_output();
-      fprintf(world->err_file,"%d errors while attempting emergency output\n",i);
-      exit(EXIT_FAILURE);    
-    }
+      mcell_allocfailed("Failed to add grid molecule to scheduler.");
   }
 
   /* Update all complex counts */
-  for (subunit_idx = 0; subunit_idx < s->num_subunits; ++ subunit_idx)
+  for (int subunit_idx = 0; subunit_idx < s->num_subunits; ++ subunit_idx)
   {
     struct grid_molecule *g = master->cmplx[ subunit_idx+1 ] = cmplx_subunits[ subunit_idx ];
     if (g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
       count_region_from_scratch((struct abstract_molecule *) g, NULL, 1, NULL, g->grid->surface, g->t);
     if (count_complex_surface(master, NULL, subunit_idx))
-    {
-      fprintf(world->err_file,"Added surface complex successfully, but failed to update reaction output data");
-      return 1;
-    }
+      mcell_internal_error("Added surface complex successfully, but failed to update reaction output data,");
   }
 
   return 0;
@@ -673,13 +667,14 @@ int macro_place_subunits_volume(struct volume_molecule *master)
 
   /* Allocate array to hold subunits */
   struct volume_molecule *guess = master;
-  master->cmplx = (struct volume_molecule **) CHECKED_MALLOC_EMERGENCY(sizeof(struct volume_molecule *) * (s->num_subunits + 1), "volume macromolecule");
+  master->cmplx = CHECKED_MALLOC_ARRAY(struct volume_molecule *,
+                                       (s->num_subunits + 1),
+                                       "volume macromolecule");
   memset(master->cmplx, 0, sizeof(struct volume_molecule *) * (s->num_subunits + 1));
 
   /* Place each subunit */
-  int subunit_idx;
   master->cmplx[0] = master;
-  for (subunit_idx = 0; subunit_idx < s->num_subunits; ++ subunit_idx)
+  for (int subunit_idx = 0; subunit_idx < s->num_subunits; ++ subunit_idx)
   {
     struct species *subunit_species = s->subunits[ subunit_idx ];
     struct volume_molecule *subunit = NULL;
@@ -749,7 +744,9 @@ struct grid_molecule *macro_insert_molecule_grid_2(struct species *spec,
   assert(s->base.flags & IS_COMPLEX);
 
   /* Allocate structure for subunits */
-  struct grid_molecule **cmplx = (struct grid_molecule **) CHECKED_MALLOC_EMERGENCY(sizeof(struct grid_molecule *) * (s->num_subunits + 1), "surface macromolecule");
+  struct grid_molecule **cmplx = CHECKED_MALLOC_ARRAY(struct grid_molecule *,
+                                                      (s->num_subunits + 1),
+                                                      "surface macromolecule");
   memset(cmplx, 0, sizeof(struct grid_molecule *) * (s->num_subunits + 1));
 
   /* Allocate grid */
@@ -764,7 +761,8 @@ struct grid_molecule *macro_insert_molecule_grid_2(struct species *spec,
   else grid2uv(surf->grid, grid_index, &mol_uv);
 
   /* Create the complex master */
-  struct grid_molecule *master = (struct grid_molecule *) CHECKED_MEM_GET_EMERGENCY(surf->birthplace->gmol, "surface macromolecule");
+  struct grid_molecule *master = (struct grid_molecule *) CHECKED_MEM_GET(surf->birthplace->gmol,
+                                                                          "surface macromolecule");
   master->birthplace = surf->birthplace->gmol;
   master->birthday = event_time;
   master->properties = spec;
@@ -813,12 +811,14 @@ struct grid_molecule *macro_insert_molecule_grid(struct species *spec,
   assert(s->base.flags & IS_COMPLEX);
 
   /* Allocate array for subunits */
-  struct grid_molecule **cmplx = (struct grid_molecule **) CHECKED_MALLOC_EMERGENCY(sizeof(struct grid_molecule *) * (s->num_subunits + 1), "surface macromolecule");
+  struct grid_molecule **cmplx = CHECKED_MALLOC_ARRAY(struct grid_molecule *,
+                                                      (s->num_subunits + 1),
+                                                      "surface macromolecule");
   memset(cmplx, 0, sizeof(struct grid_molecule *) * (s->num_subunits + 1));
 
   /* Insert the master */
   struct subvolume *sv = NULL;
-  struct grid_molecule *master = place_grid_molecule(spec, pos, orient, diam, event_time, &sv, cmplx, NULL);
+  struct grid_molecule *master = place_grid_molecule(spec, pos, orient, diam, event_time, &sv, cmplx);
   master->cmplx[0] = master;
 
   /* If this fails, 'master' and 'cmplx' will be freed by macro_place_subunits_grid */
@@ -873,18 +873,16 @@ void macro_count_inverse_related_subunits(struct complex_species *spec,
                                           int *source_subunit_counts,
                                           int target_subunit)
 {
-  int subunit_index, relation_index;
-
   /* Initialize counts to 0 */
-  for (subunit_index = 0; subunit_index < spec->num_subunits; ++ subunit_index)
+  for (int subunit_index = 0; subunit_index < spec->num_subunits; ++ subunit_index)
     source_subunit_counts[subunit_index] = 0;
 
   /* Scan all relations */
-  for (relation_index = 0; relation_index < spec->num_relations; ++ relation_index)
+  for (int relation_index = 0; relation_index < spec->num_relations; ++ relation_index)
   {
     if (spec->relations[relation_index].inverse)
     {
-      subunit_index = spec->relations[relation_index].inverse[target_subunit];
+      int subunit_index = spec->relations[relation_index].inverse[target_subunit];
       assert(0 <= subunit_index && subunit_index < spec->num_subunits);
       ++ source_subunit_counts[subunit_index];
     }

@@ -8,11 +8,12 @@
 
 
 #include <math.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "rng.h"
+#include "logging.h"
 #include "grid_util.h"
 #include "mcell_structs.h"
 #include "util.h"
@@ -24,8 +25,14 @@
 
 extern struct volume *world;
 
+/* Instantiate a request to track a particular quantity */
+static int instantiate_request(struct output_request *request);
+
+/* Create a new counter data structure */
+static struct counter* create_new_counter(struct region *where,void *who,byte what);
+
 /* Utility to resolve count requests for macromolecule states */
-static int macro_convert_output_requests();
+static int macro_convert_output_requests(void);
 
 /* Pare down the region lists, annihilating any regions which appear in both
  * lists.  This code was moved out of count_region_from_scratch so that it can
@@ -35,25 +42,32 @@ static void clean_region_lists(struct subvolume *my_sv,
                                struct region_list **p_all_regs,
                                struct region_list **p_all_antiregs);
 
+/* Check if the object corresponding to a particular symbol has been referenced
+ * directly or indirectly from one of the INSTANTIATE blocks in the model.
+ */
+static int is_object_instantiated(struct sym_table *entry);
+
+/* Find the list of regions enclosing a particular point. given a particular
+ * starting point and starting region list. */
+static int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
+                                  struct region_list** rlp,struct region_list** arlp,
+                                  struct mem_helper *rmem);
+
 /*************************************************************************
 eps_equals:
    In: two doubles
    Out: 1 if they are equal to within some small tolerance, 0 otherwise
 *************************************************************************/
-
-int eps_equals(double x,double y)
+static int eps_equals(double x,double y)
 {
   double mag;
   double diff;
   
-  if (x<0) mag = -x;
-  else mag = x;
-  if (y<0) { if (-y > mag) mag = -y; }
-  else { if (y > mag) mag = y; }
+  mag = fabs(x);
+  if (mag < fabs(y))
+    mag = fabs(y);
   
-  if (x < y) diff = y-x;
-  else diff = x-y;
-  
+  diff = fabs(x - y);
   return diff < EPS_C * (mag + 1.0);
 }
 
@@ -66,7 +80,7 @@ dup_region_list:
         error.
 *************************************************************************/
 
-struct region_list* dup_region_list(struct region_list *r,struct mem_helper *mh)
+static struct region_list* dup_region_list(struct region_list *r,struct mem_helper *mh)
 {
   struct region_list *nr,*rp,*r0;
   
@@ -75,9 +89,7 @@ struct region_list* dup_region_list(struct region_list *r,struct mem_helper *mh)
   r0 = rp = NULL;
   while (r!=NULL)
   {
-    nr = (struct region_list*) mem_get(mh);
-    if(nr == NULL) return NULL;
-
+    nr = (struct region_list*) CHECKED_MEM_GET(mh, "region list entry");
     nr->next = NULL;
     nr->reg = r->reg;
     if (rp==NULL) r0 = rp = nr;
@@ -125,10 +137,8 @@ count_region_update:
 	and crossings counters and counts within enclosed regions are
 	updated if the surface was crossed.
 *************************************************************************/
-
 int count_region_update(struct species *sp,struct region_list *rl,int direction,int crossed, double factor,struct vector3 *loc,double t)
 {
-  int i,j;
   struct counter *hit_count;
   double hits_to_ccn=0;
  
@@ -144,9 +154,9 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
   {
     if (rl->reg->flags & COUNT_SOME_MASK)
     {
-      j = (rl->reg->hashval + sp->hashval)&world->count_hashmask;
+      int hash_bin = (rl->reg->hashval + sp->hashval)&world->count_hashmask;
       
-      for (hit_count=world->count_hash[j] ; hit_count!=NULL ; hit_count=hit_count->next)
+      for (hit_count=world->count_hash[hash_bin] ; hit_count!=NULL ; hit_count=hit_count->next)
       {
         if (hit_count->reg_type == rl->reg && hit_count->target == sp)
         {
@@ -162,15 +172,15 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
                   hit_count->data.trig.orient = 0; 
 		  if (rl->reg->flags&sp->flags&COUNT_HITS)
 		  {
-                    i=fire_count_event(hit_count,1,loc,REPORT_FRONT_HITS|REPORT_TRIGGER);
-		    if (i) return 1;
-                    i=fire_count_event(hit_count,1,loc,REPORT_FRONT_CROSSINGS|REPORT_TRIGGER);
-		    if (i) return 1;
+                    if (fire_count_event(hit_count,1,loc,REPORT_FRONT_HITS|REPORT_TRIGGER))
+                      return 1;
+                    if (fire_count_event(hit_count,1,loc,REPORT_FRONT_CROSSINGS|REPORT_TRIGGER))
+                      return 1;
 		  }
 		  if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
 		  {
-		    i=fire_count_event(hit_count,1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER);
-		    if (i) return 1;
+                    if (fire_count_event(hit_count,1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER))
+                      return 1;
 		  }
                 }
                 else
@@ -194,15 +204,15 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
                   hit_count->data.trig.orient = 0; 
 		  if (rl->reg->flags&sp->flags&COUNT_HITS)
 		  {
-                    i=fire_count_event(hit_count,1,loc,REPORT_BACK_HITS|REPORT_TRIGGER);
-		    if (i) return 1;
-                    i=fire_count_event(hit_count,1,loc,REPORT_BACK_CROSSINGS|REPORT_TRIGGER);
-		    if (i) return 1;
+                    if (fire_count_event(hit_count,1,loc,REPORT_BACK_HITS|REPORT_TRIGGER))
+                      return 1;
+                    if (fire_count_event(hit_count,1,loc,REPORT_BACK_CROSSINGS|REPORT_TRIGGER))
+                      return 1;
 		  }
 		  if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
 		  {
-		    i=fire_count_event(hit_count,-1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER);
-		    if (i) return 1;
+		    if (fire_count_event(hit_count,-1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER))
+                      return 1;
 		  }
                 }
                 else
@@ -227,8 +237,8 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
                 {
                   hit_count->data.trig.t_event = (double)world->it_time + t; 
                   hit_count->data.trig.orient = 0; 
-                  i=fire_count_event(hit_count,1,loc,REPORT_FRONT_HITS|REPORT_TRIGGER);
-		  if (i) return 1;
+                  if (fire_count_event(hit_count,1,loc,REPORT_FRONT_HITS|REPORT_TRIGGER))
+                    return 1;
                 }
                 else
                 {
@@ -241,8 +251,8 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
                 {
                   hit_count->data.trig.t_event = (double)world->it_time + t; 
                   hit_count->data.trig.orient = 0; 
-                  i=fire_count_event(hit_count,1,loc,REPORT_BACK_HITS|REPORT_TRIGGER);
-		  if (i) return 1;
+                  if (fire_count_event(hit_count,1,loc,REPORT_BACK_HITS|REPORT_TRIGGER))
+                    return 1;
                 }
                 else hit_count->data.move.back_hits++;
               }
@@ -282,7 +292,6 @@ count_region_from_scratch:
 
 int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *rxpn,int n,struct vector3 *loc,struct wall *my_wall,double t)
 {  
-  int i,j,k,h;
   struct region_list *rl,*arl,*nrl,*narl; /*a=anti p=previous n=new*/
   struct region_list *all_regs,*all_antiregs;
   struct wall_list *wl;
@@ -340,8 +349,8 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
   {
     for (rl=my_wall->counting_regions ; rl!=NULL ; rl=rl->next)
     {
-      i=(hashval+rl->reg->hashval)&world->count_hashmask;
-      for (c=world->count_hash[i] ; c!=NULL ; c=c->next)
+      int hash_bin = (hashval+rl->reg->hashval) & world->count_hashmask;
+      for (c=world->count_hash[hash_bin] ; c!=NULL ; c=c->next)
       {
 	if (c->target==target && c->reg_type==rl->reg && (c->counter_type&ENCLOSING_COUNTER)==0)
 	{
@@ -349,8 +358,8 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 	  { 
 	    c->data.trig.t_event=t;
 	    c->data.trig.orient = orient;
-	    k=fire_count_event(c,n,loc,count_flags|REPORT_TRIGGER);
-	    if (k) return 1;
+	    if (fire_count_event(c,n,loc,count_flags|REPORT_TRIGGER))
+              return 1;
 	  }
 	  else if (rxpn==NULL) 
           {
@@ -376,13 +385,12 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
   /* Count volume molecules, vol reactions, and surface stuff that is enclosed--hard!!*/
   if (am==NULL || (am->properties->flags&COUNT_ENCLOSED)!=0 || (am->properties->flags&NOT_FREE)==0)
   {
-    i = bisect(world->x_partitions,world->nx_parts,loc->x);
-    j = bisect(world->y_partitions,world->ny_parts,loc->y);
-    k = bisect(world->z_partitions,world->nz_parts,loc->z);
-    
-    h = k + (world->nz_parts-1)*( j + (world->ny_parts-1)*i );
-    wp = &(world->waypoints[h]);
-    my_sv = &(world->subvol[h]);
+    const int px = bisect(world->x_partitions,world->nx_parts,loc->x);
+    const int py = bisect(world->y_partitions,world->ny_parts,loc->y);
+    const int pz = bisect(world->z_partitions,world->nz_parts,loc->z);
+    const int this_sv = pz + (world->nz_parts-1)*( py + (world->ny_parts-1)*px );
+    wp = &(world->waypoints[this_sv]);
+    my_sv = &(world->subvol[this_sv]);
     
     here.x = wp->loc.x;
     here.y = wp->loc.y;
@@ -395,15 +403,10 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
     for ( rl=wp->regions ; rl!=NULL ; rl=rl->next)
     {
       if (rl->reg == NULL) continue;
-      i=(hashval+rl->reg->hashval)&world->count_hashmask;
-      if (world->count_hash[i]==NULL) continue; /* Won't count on this region so ignore it */
+      int hash_bin = (hashval+rl->reg->hashval) & world->count_hashmask;
+      if (world->count_hash[hash_bin]==NULL) continue; /* Won't count on this region so ignore it */
       
-      nrl=(struct region_list*)mem_get(my_sv->local_storage->regl);
-      if (nrl==NULL)
-      {
-	fprintf(world->err_file,"Error at file %s line %d\n  Out of memory making list of enclosing regions for count\n",__FILE__,__LINE__);
-	return 1;
-      }
+      nrl = (struct region_list*) CHECKED_MEM_GET(my_sv->local_storage->regl, "list of enclosing regions for count");
       nrl->reg=rl->reg;
       nrl->next=all_regs;
       all_regs=nrl;
@@ -412,22 +415,17 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
     /* And all the antiregions (regions crossed from inside to outside only) */
     for ( arl=wp->antiregions ; arl!=NULL ; arl=arl->next)
     {
-      i=(hashval+arl->reg->hashval)&world->count_hashmask;
-      if (world->count_hash[i]==NULL) continue; /* Won't count on this region so ignore it */
+      int hash_bin = (hashval+arl->reg->hashval) & world->count_hashmask;
+      if (world->count_hash[hash_bin]==NULL) continue; /* Won't count on this region so ignore it */
 
-      narl=(struct region_list*)mem_get(my_sv->local_storage->regl);
-      if (narl==NULL)
-      {
-	fprintf(world->err_file,"Error at file %s line %d\n  Out of memory making list of enclosing regions for count\n",__FILE__,__LINE__);
-	return 1;
-      }
+      narl = (struct region_list*) CHECKED_MEM_GET(my_sv->local_storage->regl, "list of enclosing regions for count");
       narl->reg=arl->reg;
       narl->next=all_antiregs;
       all_antiregs=narl;    
     }
     
     /* Raytrace across any walls from waypoint to us and add to region lists */
-    for ( sv = &(world->subvol[h]) ; sv != NULL ; sv = next_subvol(&here,&delta,sv) )
+    for ( sv = &(world->subvol[this_sv]) ; sv != NULL ; sv = next_subvol(&here,&delta,sv) )
     {
       delta.x = loc->x - here.x;
       delta.y = loc->y - here.y;
@@ -446,33 +444,27 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
             
 	if (wl->this_wall->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
 	{
-	  j = collide_wall(&here,&delta,wl->this_wall,&t_hit,&hit,0);
-          
-          if (j!=COLLIDE_MISS) world->ray_polygon_colls++;
+	  int hit_code = collide_wall(&here,&delta,wl->this_wall,&t_hit,&hit,0);
+          if (hit_code != COLLIDE_MISS) world->ray_polygon_colls++;
  
-	  if (j!=COLLIDE_MISS && t_hit <= t_sv_hit &&
+	  if (hit_code != COLLIDE_MISS && t_hit <= t_sv_hit &&
 	    (hit.x-loc->x)*delta.x + (hit.y-loc->y)*delta.y + (hit.z-loc->z)*delta.z < 0)
 	  {
 	    for (rl=wl->this_wall->counting_regions ; rl!=NULL ; rl=rl->next)
 	    {
 	      if ( (rl->reg->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0 )
 	      {
-		i=(hashval+rl->reg->hashval)&world->count_hashmask;
-		if (world->count_hash[i]==NULL) continue; /* Won't count on this region so ignore it */
+		int hash_bin = (hashval+rl->reg->hashval) & world->count_hashmask;
+		if (world->count_hash[hash_bin]==NULL) continue; /* Won't count on this region so ignore it */
 		
-		nrl = (struct region_list*)mem_get(my_sv->local_storage->regl);
-		if (nrl==NULL)
-		{
-		  fprintf(world->err_file,"Error at file %s line %d\n  Out of memory making list of enclosing regions for count\n",__FILE__,__LINE__);
-		  return 1;
-		}
+                nrl = (struct region_list*) CHECKED_MEM_GET(my_sv->local_storage->regl, "list of enclosing regions for count");
 		nrl->reg = rl->reg;
-		if (j==COLLIDE_FRONT)
+		if (hit_code == COLLIDE_FRONT)
 		{
 		  nrl->next=all_regs;
 		  all_regs=nrl;
 		}
-		else if (j==COLLIDE_BACK)
+		else if (hit_code == COLLIDE_BACK)
 		{
 		  nrl->next=all_antiregs;
 		  all_antiregs=nrl;
@@ -497,9 +489,8 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
       else pos_or_neg=-1;
       for (rl=nrl ; rl!=NULL ; rl=rl->next)
       {
-	i = (hashval+rl->reg->hashval)&world->count_hashmask;
-	
-	for (c=world->count_hash[i] ; c!=NULL ; c=c->next)
+	int hash_bin = (hashval+rl->reg->hashval) & world->count_hashmask;
+	for (c=world->count_hash[hash_bin] ; c!=NULL ; c=c->next)
 	{
 	  if ( c->target==target && c->reg_type==rl->reg &&
 	       ((c->counter_type&ENCLOSING_COUNTER)!=0 || (am!=NULL && (am->properties->flags&ON_GRID)==0)) &&
@@ -511,8 +502,8 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 	    {
 	      c->data.trig.t_event=t;
 	      c->data.trig.orient = orient;
-	      k = fire_count_event(c,n*pos_or_neg,loc,count_flags|REPORT_TRIGGER);
-	      if (k) return 1;
+	      if (fire_count_event(c,n*pos_or_neg,loc,count_flags|REPORT_TRIGGER))
+                return 1;
 	    }
 	    else if (rxpn==NULL) {
                if (am->properties->flags&ON_GRID)
@@ -543,15 +534,13 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 count_moved_grid_mol:
    In: molecule to count
        new grid for molecule
-       new index on that grid
        new location on that grid
    Out: Returns zero on success and 1 on failure.  
         Appropriate counters are updated and triggers are fired.
    Note: This routine is not super-fast for enclosed counts for
          surface molecules since it raytraces without using waypoints.
 *************************************************************************/
-
-int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int index,struct vector2 *loc)
+int count_moved_grid_mol(struct grid_molecule *g, struct surface_grid *sg, struct vector2 *loc)
 {
   struct region_list *rl,*prl,*nrl,*pos_regs,*neg_regs;
   struct storage *stor;
@@ -560,7 +549,7 @@ int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int ind
   struct vector3 target;
   struct vector3 *where = NULL;
   int delete_me;
-  int i,n;
+  int n;
   int origin_loaded=0;
   int target_loaded=0;
   
@@ -586,7 +575,7 @@ int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int ind
         }
         while (prl!=NULL && prl->reg < nrl->reg) /* Entering these regions */
         {
-          rl = (struct region_list*)mem_get(stor->regl);
+          rl = (struct region_list*) CHECKED_MEM_GET(stor->regl, "region list entry");
           rl->next=pos_regs;
           rl->reg=prl->reg;
           pos_regs=rl;
@@ -594,7 +583,7 @@ int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int ind
         }
         while (nrl!=NULL && (prl==NULL || nrl->reg < prl->reg)) /* Leaving these regions */
         {
-          rl = (struct region_list*)mem_get(stor->regl);
+          rl = (struct region_list*) CHECKED_MEM_GET(stor->regl, "region list entry");
           rl->next=neg_regs;
           rl->reg=nrl->reg;
           neg_regs=rl;
@@ -607,7 +596,7 @@ int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int ind
        * regions uncounted. */
       while (prl != NULL)
       {
-        rl = (struct region_list*)mem_get(stor->regl);
+        rl = (struct region_list*) CHECKED_MEM_GET(stor->regl, "region list entry");
         rl->next=pos_regs;
         rl->reg=prl->reg;
         pos_regs=rl;
@@ -619,7 +608,7 @@ int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int ind
        * to no counting regions at all). */
       while (nrl!=NULL)
       {
-        rl = (struct region_list*)mem_get(stor->regl);
+        rl = (struct region_list*) CHECKED_MEM_GET(stor->regl, "region list entry");
         rl->next=neg_regs;
         rl->reg=nrl->reg;
         neg_regs=rl;
@@ -637,7 +626,9 @@ int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int ind
       where = &target;
       target_loaded=1;
     }
-    for (rl=(pos_regs!=NULL)?pos_regs:neg_regs ; rl!=NULL ; rl=(rl->next==NULL && n>0)?neg_regs:rl->next)
+    for (rl = (pos_regs != NULL) ? pos_regs : neg_regs;
+         rl != NULL;
+         rl = (rl->next == NULL && n>0) ? neg_regs : rl->next)
     {
       if (rl==neg_regs)
       {
@@ -646,8 +637,9 @@ int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int ind
         origin_loaded=1;
         n=-1;
       }
-      i = (g->properties->hashval+rl->reg->hashval) & world->count_hashmask;
-      for (c=world->count_hash[i] ; c!=NULL ; c=c->next)
+
+      int hash_bin = (g->properties->hashval+rl->reg->hashval) & world->count_hashmask;
+      for (c=world->count_hash[hash_bin] ; c!=NULL ; c=c->next)
       {
         if (c->target==g->properties && c->reg_type==rl->reg && (c->counter_type&ENCLOSING_COUNTER)==0)
         {
@@ -655,8 +647,8 @@ int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int ind
           {
             c->data.trig.t_event = g->t;
             c->data.trig.orient = g->orient;
-            i = fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_TRIGGER);
-            if (i) return 1;
+            if (fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_TRIGGER))
+              return 1;
           }
           else if((c->orientation == ORIENT_NOT_SET) || (c->orientation == g->orient) || (c->orientation == 0))
           {  
@@ -716,14 +708,14 @@ int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int ind
             
             if (j==COLLIDE_FRONT)
             {
-              prl = (struct region_list*)mem_get(stor->regl);
+              prl = (struct region_list*) CHECKED_MEM_GET(stor->regl, "region list entry");
               prl->reg = rl->reg;
               prl->next=pos_regs;
               pos_regs=prl;
             }
             else if (j==COLLIDE_BACK)
             {
-              nrl = (struct region_list*)mem_get(stor->regl);
+              nrl = (struct region_list*) CHECKED_MEM_GET(stor->regl, "region list entry");
               nrl->reg = rl->reg;
               nrl->next=neg_regs;
               neg_regs=nrl;
@@ -784,8 +776,8 @@ int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int ind
       
       if (rl!=NULL)
       {
-        i = (g->properties->hashval+rl->reg->hashval) & world->count_hashmask;
-        for (c=world->count_hash[i] ; c!=NULL ; c=c->next)
+        int hash_bin = (g->properties->hashval+rl->reg->hashval) & world->count_hashmask;
+        for (c=world->count_hash[hash_bin] ; c!=NULL ; c=c->next)
         {
           if (c->target==g->properties && c->reg_type==rl->reg && (c->counter_type&ENCLOSING_COUNTER)!=0 &&
               !region_listed(g->grid->surface->counting_regions,rl->reg) && !region_listed(sg->surface->counting_regions,rl->reg))
@@ -794,8 +786,8 @@ int count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,int ind
             {
               c->data.trig.t_event = g->t;
               c->data.trig.orient = g->orient;
-              i = fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER);
-              if (i) return 1;
+              if (fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER))
+                return 1;
             }
             else if((c->orientation == ORIENT_NOT_SET) || (c->orientation == g->orient) || (c->orientation == 0)){  
                      c->data.move.n_at += n;
@@ -828,7 +820,6 @@ int fire_count_event(struct counter *event,int n,struct vector3 *where,byte what
 {
   struct trigger_request *tr;
   byte whatelse=what;
-  int i;
   short flags;
   
   if ((what&REPORT_TYPE_MASK)==REPORT_RXNS) flags = TRIG_IS_RXN;
@@ -845,21 +836,22 @@ int fire_count_event(struct counter *event,int n,struct vector3 *where,byte what
     if (tr->ear->report_type==what)
     {
       memcpy(&(event->data.trig.loc),where,sizeof(struct vector3));
-      i=add_trigger_output(event,tr->ear,n,flags);
-      if (i) return 1;
+      if (add_trigger_output(event,tr->ear,n,flags))
+        return 1;
     }
     else if (tr->ear->report_type==whatelse)
     {
       memcpy(&(event->data.trig.loc),where,sizeof(struct vector3));
       if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_HITS || (what&REPORT_TYPE_MASK)==REPORT_FRONT_CROSSINGS)
       {
-        i=add_trigger_output(event,tr->ear,n,flags);
+        if (add_trigger_output(event,tr->ear,n,flags))
+          return 1;
       }
       else
       {
-        i=add_trigger_output(event,tr->ear,-n,flags);
+        if (add_trigger_output(event,tr->ear,-n,flags))
+          return 1;
       }
-      if (i) return 1;
     }
   }
   return 0;
@@ -879,10 +871,11 @@ find_enclosing_regions:
         inside-out region lists are updated to be correct at the ending
 	position.
 *************************************************************************/
-
-int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
-                            struct region_list** rlp,struct region_list** arlp,
-                            struct mem_helper *rmem)
+static int find_enclosing_regions(struct vector3 *loc,
+                                  struct vector3 *start,
+                                  struct region_list** rlp,
+                                  struct region_list** arlp,
+                                  struct mem_helper *rmem)
 {
   struct vector3 outside,delta,hit;
   struct subvolume *sv,*svt;
@@ -891,7 +884,6 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
   struct region_list *trl,*tarl,*xrl,*yrl,*nrl;
   double t,t_hit_sv;
   int traveling;
-  int i;
   struct wall_list dummy;
   
   rl = *rlp;
@@ -925,13 +917,13 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
     
     for (wl = sv->wall_head ; wl != NULL ; wl = wl->next)
     {
-      i = collide_wall(&outside , &delta , wl->this_wall , &t , &hit , 0);
+      int hit_code = collide_wall(&outside , &delta , wl->this_wall , &t , &hit , 0);
       
-      if((i != COLLIDE_MISS) && (world->notify->final_summary == NOTIFY_FULL)){
+      if((hit_code != COLLIDE_MISS) && (world->notify->final_summary == NOTIFY_FULL)){
           world->ray_polygon_colls++;
       }	 
 
-      if (i==COLLIDE_REDO)
+      if (hit_code==COLLIDE_REDO)
       {
         while (trl != NULL)
         {
@@ -949,7 +941,7 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
         wl = &dummy;
         continue;  /* Trick to restart for loop */
       }
-      else if (i==COLLIDE_MISS || !(t >= 0 && t < 1.0) || t > t_hit_sv || (wl->this_wall->flags & (COUNT_CONTENTS|COUNT_RXNS|COUNT_ENCLOSED)) == 0 ||
+      else if (hit_code==COLLIDE_MISS || !(t >= 0 && t < 1.0) || t > t_hit_sv || (wl->this_wall->flags & (COUNT_CONTENTS|COUNT_RXNS|COUNT_ENCLOSED)) == 0 ||
 	       (hit.x-outside.x)*delta.x + (hit.y-outside.y)*delta.y + (hit.z-outside.z)*delta.z < 0) continue;
       else
       {
@@ -957,18 +949,10 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
         {
           if ((xrl->reg->flags & (COUNT_CONTENTS|COUNT_RXNS|COUNT_ENCLOSED)) != 0)
           {
-            nrl = (struct region_list*) mem_get(rmem);
-	    if (nrl==NULL)
-	    {
-	      fprintf(world->err_file, "File '%s', Line %ld:  Out of memory, trying to save intermediate results.\n", __FILE__, (long)__LINE__);
-	      i = emergency_output();
-	      fprintf(world->err_file, "Fatal error: out of memory while finding enclosing regions.\nAttempt to write intermediate results had %d errors\n", i);
-	      exit(EXIT_FAILURE);
-            }
-
+            nrl = (struct region_list*) CHECKED_MEM_GET(rmem, "region list entry");
             nrl->reg = xrl->reg;
             
-            if (i==COLLIDE_BACK) { nrl->next = tarl; tarl = nrl; }
+            if (hit_code==COLLIDE_BACK) { nrl->next = tarl; tarl = nrl; }
             else { nrl->next = trl; trl = nrl; }
           }
         }
@@ -1071,12 +1055,12 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
       {
 	if ((delta.x*delta.x + delta.y*delta.y + delta.z*delta.z) < EPS_C*EPS_C)
 	{
-	  fprintf(world->log_file, "File '%s', Line %ld: Didn't quite reach waypoint target, fudging.\n", __FILE__, (long)__LINE__);
+	  mcell_log("Didn't quite reach waypoint target, fudging.");
 	  traveling = 0;
 	}
 	else
 	{
-	  fprintf(world->log_file, "File '%s', Line %ld: Couldn't reach waypoint target.\n", __FILE__, (long)__LINE__);
+	  mcell_log("Couldn't reach waypoint target.");
 	  sv = find_subvolume(&outside , NULL);
 	}
       }
@@ -1089,8 +1073,6 @@ int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
   return 0;
 }
 
-
-
 /*************************************************************************
 place_waypoints:
    In: No arguments.
@@ -1098,18 +1080,16 @@ place_waypoints:
         Allocates waypoints to SSVs, if any are needed.
    Note: you must have initialized SSVs before calling this routine!
 *************************************************************************/
-
-int place_waypoints()
+int place_waypoints(void)
 {
-  int g,h,i,j,k;
   int waypoint_in_wall = 0;
   struct waypoint *wp;
   struct wall_list *wl;
   struct subvolume *sv;
   double d;
 
-/* Being exactly in the center of a subdivision can be bad. */
-/* Define "almost center" positions for X, Y, Z */
+  /* Being exactly in the center of a subdivision can be bad. */
+  /* Define "almost center" positions for X, Y, Z */
 #define W_Xa (0.5 + 0.0005*MY_PI)
 #define W_Ya (0.5 + 0.0002*MY_PI*MY_PI)
 #define W_Za (0.5 - 0.00007*MY_PI*MY_PI*MY_PI)
@@ -1121,19 +1101,20 @@ int place_waypoints()
   
   if (world->waypoints != NULL) free(world->waypoints);
   world->n_waypoints = world->n_subvols;
-  world->waypoints = (struct waypoint*)malloc(sizeof(struct waypoint)*world->n_waypoints);
-  if (!world->waypoints) return 1;
+  world->waypoints = CHECKED_MALLOC_ARRAY(struct waypoint,
+                                          world->n_waypoints,
+                                          "waypoints");
 
-  for (i=0;i<world->nx_parts-1;i++)
+  for (int px=0;px<world->nx_parts-1;px++)
   {
-    for (j=0;j<world->ny_parts-1;j++)
+    for (int py=0;py<world->ny_parts-1;py++)
     {
-      for (k=0;k<world->nz_parts-1;k++)
+      for (int pz=0;pz<world->nz_parts-1;pz++)
       {
-        h = k + (world->nz_parts-1)*(j + (world->ny_parts-1)*i);
-        wp = &(world->waypoints[h]);
+        const int this_sv = pz + (world->nz_parts-1)*(py + (world->ny_parts-1)*px);
+        wp = &(world->waypoints[this_sv]);
         
-        sv = &(world->subvol[h]);
+        sv = &(world->subvol[this_sv]);
         
         /* Place waypoint near center of subvolume (W_#a=W_#b=0.5 gives center) */
         wp->loc.x = W_Xa*world->x_fineparts[ sv->llf.x ] + W_Xb*world->x_fineparts[ sv->urb.x ];
@@ -1150,9 +1131,6 @@ int place_waypoints()
             { 
               waypoint_in_wall++;
               d = EPS_C * (double)((rng_uint(world->rng)&0xF) - 8);
-              if(world->notify->final_summary == NOTIFY_FULL){
-                  world->random_number_use++;
-              }
               if (d==0) d = 8*EPS_C;
               wp->loc.x += d * wl->this_wall->normal.x;
               wp->loc.y += d * wl->this_wall->normal.y;
@@ -1162,33 +1140,34 @@ int place_waypoints()
           }
         } while (waypoint_in_wall);
         
-        if (k>0)
+        if (pz>0)
         {
-	  if (world->waypoints[h-1].regions != NULL)
+	  if (world->waypoints[this_sv-1].regions != NULL)
 	  {
-            wp->regions = dup_region_list(world->waypoints[h-1].regions,sv->local_storage->regl);
-	    if (wp->regions == NULL) return 1;
+            wp->regions = dup_region_list(world->waypoints[this_sv-1].regions,sv->local_storage->regl);
+            if (wp->regions == NULL) return 1;
 	  }
 	  else wp->regions = NULL;
 	  
-	  if (world->waypoints[h-1].antiregions != NULL)
+	  if (world->waypoints[this_sv-1].antiregions != NULL)
 	  {
-            wp->antiregions = dup_region_list(world->waypoints[h-1].antiregions,sv->local_storage->regl);
-	    if (wp->antiregions == NULL) return 1;
+            wp->antiregions = dup_region_list(world->waypoints[this_sv-1].antiregions,sv->local_storage->regl);
+            if (wp->antiregions == NULL) return 1;
 	  }
 	  else wp->antiregions = NULL;
           
-          g = find_enclosing_regions(&(wp->loc),&(world->waypoints[h-1].loc),
-                                     &(wp->regions),&(wp->antiregions),sv->local_storage->regl);
+          if (find_enclosing_regions(&(wp->loc),&(world->waypoints[this_sv-1].loc),
+                                     &(wp->regions),&(wp->antiregions),sv->local_storage->regl))
+            return 1;
         }
         else
         {
           wp->regions = NULL;
           wp->antiregions = NULL;
-          g = find_enclosing_regions(&(wp->loc),NULL,&(wp->regions),
-                                 &(wp->antiregions),sv->local_storage->regl);	  
+          if (find_enclosing_regions(&(wp->loc),NULL,&(wp->regions),
+                                     &(wp->antiregions),sv->local_storage->regl))
+            return 1;
         }
-	if (g) return 1;
       }
     }
   }
@@ -1199,7 +1178,7 @@ int place_waypoints()
 #undef W_Xb
 #undef W_Za
 #undef W_Ya
-#undef W_Xa  
+#undef W_Xa
 }
 
 /******************************************************************
@@ -1210,67 +1189,73 @@ prepare_counters:
         tries to count a freely diffusing molecule.  Fixes up all
         count requests to point at the data we care about.
 ********************************************************************/
-int prepare_counters()
+int prepare_counters(void)
 {
-  struct output_request *request;
-  struct output_block *block;
-  struct output_set *set;
-  struct output_column *column;
-  struct species *sp;
-  struct object *o;
-  int found = 0; /* flag to detect instantiated object or region */
-  int i;
- 
- 
   /* First give everything a sensible name, if needed */
-  for (block=world->output_block_head ; block!=NULL ; block=block->next)
+  for (struct output_block *block=world->output_block_head;
+       block != NULL;
+       block = block->next)
   {
-    for (set=block->data_set_head ; set!=NULL ; set=set->next)
+    for (struct output_set *set = block->data_set_head;
+         set != NULL;
+         set = set->next)
     {
       if (set->header_comment==NULL) continue;
-      for (column=set->column_head ; column!=NULL ; column=column->next)
+      for (struct output_column *column = set->column_head;
+           column != NULL;
+           column = column->next)
       {
         if (column->expr->title==NULL) column->expr->title = oexpr_title(column->expr);
         if (column->expr->title==NULL)
-        {
-          fprintf(world->err_file,"Out of memory: file %s, line %d\n  Unable to create title for data output.",__FILE__,__LINE__);
-          return 1;
-        }
+          mcell_allocfailed("Unable to create title for reaction data output.");
       }
     }
   }
 
   /* Then convert all requests to real counts */
-  for (request=world->output_request_head ; request!=NULL ; request=request->next)
+  for (struct output_request *request=world->output_request_head;
+       request != NULL;
+       request = request->next)
   {
      /* check whether the "count_location" refers to the instantiated
         object or region */ 
-    if(request->count_location != NULL ){
-       for (o = world->root_instance; o != NULL; o = o->next)
-       {
-            if(is_object_instantiated(o, request->count_location)){
-              found = 1;
-              break;
-            }
-       }
-       if(!found){
-          fprintf(world->err_file,"Name of the object/region '%s' in the COUNT/TRIGGER statement is not fully referenced.\n", request->count_location->name);
-          return 1;
-       }
+    if (request->count_location != NULL )
+    {
+      if (! is_object_instantiated(request->count_location))
+        mcell_error("The object/region name '%s' in the COUNT/TRIGGER statement is not fully referenced.\n"
+                    "  This occurs when a count is requested on an object which has not been referenced\n"
+                    "  (directly or indirectly) from an INSTANTIATE block in the MDL file.",
+                    request->count_location->name);
     }
 
     if (request->count_target->sym_type == MOL)
     {
-      sp = (struct species *)(request->count_target->value);
+      struct species *sp = (struct species *)(request->count_target->value);
 
       /* For volume molecules: */
-      if((sp->flags & ON_GRID) == 0)
+      if ((sp->flags & ON_GRID) == 0)
       {
         /* Make sure orientation is not set */
         if (request->count_orientation != ORIENT_NOT_SET)
         {
-          fprintf(world->err_file,"In the COUNT statement orientation is specified for the molecule '%s'  which is not a grid molecule.\n", request->count_target->name);
-          return 1;
+          switch (world->notify->useless_vol_orient)
+          {
+            case WARN_WARN:
+              mcell_warn("An orientation has been given for the molecule '%s', which is a volume molecule.\n"
+                         "  Orientation is valid only for grid molecules, and will be ignored.",
+                         request->count_target->name);
+              /* Fall through */
+            case WARN_COPE:
+              request->count_orientation = ORIENT_NOT_SET;
+              break;
+
+
+            case WARN_ERROR:
+              mcell_error("An orientation has been given for the molecule '%s', which is a volume molecule.\n"
+                          "  Orientation is valid only for grid molecules.",
+                          request->count_target->name);
+              break;
+          }
         }
       }
 
@@ -1285,35 +1270,30 @@ int prepare_counters()
             (report_type == REPORT_BACK_CROSSINGS)  ||
             (report_type == REPORT_ALL_CROSSINGS))
         {
-          fprintf(world->err_file,"In the COUNT statement hits specification is valid only for the volume molecules while '%s'  is a grid molecule.\n", request->count_target->name);
-          return 1;
+          mcell_error(
+                      "A hit specifier has been given for '%s', which is a grid molecule.\n"
+                      "  Hits specifiers (such as ALL_ENCLOSED or FRONT_HITS) are valid only for \n"
+                      "  volume molecules.",
+                      request->count_target->name);
         }
       }
     }
  
     if (request->count_location!=NULL && request->count_location->sym_type==OBJ)
     {
-      i = expand_object_output(request,(struct object*)request->count_location->value);
-      if (i)
-      {
-        fprintf(world->err_file,"Error: unable to expand request to count on object");
-        return 1;
-      }
+      if (expand_object_output(request, (struct object*) request->count_location->value))
+        mcell_error("Failed to expand request to count on object.");
     }
     
-    i = instantiate_request(request);
-    if (i)
-    {
-      fprintf(world->err_file,"Error: unable to count as requested\n");
-      return 1;
-    }
+    if (instantiate_request(request))
+      mcell_error("Failed to instantiate count request.");
   }
+
   /* Need to keep all the requests for now...could repackage them to save memory */
   macro_convert_output_requests();
   
   return 0;
 }
-
 
 /******************************************************************
 is_object_instantiated:
@@ -1323,7 +1303,7 @@ is_object_instantiated:
        of the symbol passed, 0 otherwise.
   Note: Checking is performed for all instantiated objects
 ********************************************************************/
-int is_object_instantiated(struct object *parent, struct sym_table *entry)
+static int is_object_instantiated(struct sym_table *entry)
 {
   struct object *obj = NULL;
   if (entry->sym_type == REG)
@@ -1341,7 +1321,6 @@ int is_object_instantiated(struct object *parent, struct sym_table *entry)
 
   return 0;
 }
-  
 
 /*************************************************************************
 check_counter_geometry:
@@ -1351,22 +1330,17 @@ check_counter_geometry:
         they count on closed regions.  If not, the function prints out
         the offending region name and returns 1.
 *************************************************************************/
-
-int check_counter_geometry()
+int check_counter_geometry(void)
 {
-  int i;
-  struct counter *cp;
-  struct region *rp;
-  
   /* Check to make sure what we've created is geometrically sensible */
-  for (i=0;i<world->count_hashmask+1;i++)
+  for (int i = 0; i < world->count_hashmask+1; i++)
   {
-    for (cp=world->count_hash[i];cp!=NULL;cp=cp->next)
+    for (struct counter *cp = world->count_hash[i]; cp != NULL; cp = cp->next)
     {
       if ( (cp->counter_type & ENCLOSING_COUNTER) != 0)
       {
-        rp=cp->reg_type;
-	
+        struct region *rp = cp->reg_type;
+
 	if (rp->manifold_flag==MANIFOLD_UNCHECKED)
         {
 	  if (is_manifold(rp)) rp->manifold_flag=IS_MANIFOLD;
@@ -1374,11 +1348,9 @@ int check_counter_geometry()
 	}
 	
 	if (rp->manifold_flag==NOT_MANIFOLD)
-        {
-	  fprintf(world->err_file,"Cannot count molecules or events inside non-manifold object region: %s.  Please make sure that all objects/regions used to count 3D molecules are closed/watertight.\n", rp->sym->name); 
-	  return (1);
-	}
-	
+	  mcell_error("Cannot count molecules or events inside non-manifold object region '%s'.  Please make sure that all objects/regions used to count 3D molecules are closed/watertight.",
+                      rp->sym->name); 
+
 	world->place_waypoints_flag=1;
       }
     }
@@ -1402,39 +1374,40 @@ expand_object_output:
    PostNote: Checks that COUNT/TRIGGER statements are not allowed for
              metaobjects and release objects.
 *************************************************************************/
-
 int expand_object_output(struct output_request *request,struct object *obj)
 {
-   
- /* struct output_request *new_request; */
- /* struct output_expression *oe,*oel,*oer; */ /* Original expression and two children */
- /* struct object *child; */
-  struct region_list *rl;
- /* int n_expanded; */
+#ifdef ALLOW_COUNTS_ON_METAOBJECT
+  int n_expanded;
+#endif
 
   switch (obj->object_type)
   {
-    case META_OBJ:
     case REL_SITE_OBJ:
-        fprintf(world->err_file,"Error: COUNT and TRIGGER statements on metaobject or release object '%s' are not allowed.\n",obj->sym->name);
-        return 1;
+      mcell_error("COUNT and TRIGGER statements on release object '%s' are not allowed.\n",obj->sym->name);
+      break;
 
-#if 0
+    case META_OBJ:
+      /* XXX: Should this really be disabled?  Some comments by Tom lead me to
+       * believe that, despite the potential confusion for users, this should
+       * not be disabled.
+       */
+#ifndef ALLOW_COUNTS_ON_METAOBJECT
+      mcell_error("COUNT and TRIGGER statements on metaobject '%s' are not allowed.\n",obj->sym->name);
+#else
+#error "Support for counting in/on a metaobject doesn't work right now."
       n_expanded=0;
-      for (child=obj->first_child ; child!=NULL ; child=child->next)
+      for (struct object *child=obj->first_child ; child!=NULL ; child=child->next)
       {
         if (!object_has_geometry(child)) continue;  /* NOTE -- for objects nested N deep, we check this N+(N-1)+...+2+1 times (slow) */
         if (n_expanded>0)
         {
-          new_request = (struct output_request*)mem_get(world->outp_request_mem);
-          oe = request->requester;
-          oel = new_output_expr(world->oexpr_mem);
-          oer = new_output_expr(world->oexpr_mem);
+          struct output_request *new_request = (struct output_request*)mem_get(world->outp_request_mem);
+          struct output_expression *oe = request->requester;
+          struct output_expression *oel = new_output_expr(world->oexpr_mem);
+          struct output_expression *oer = new_output_expr(world->oexpr_mem);
           if (new_request==NULL || oel==NULL || oer==NULL)
-          {
-            fprintf(world->err_file,"Out of memory while expanding count expression on object %s\n",obj->sym->name);
-            return 1;
-          }
+            mcell_allocfailed("Failed to expand count expression on object %s.",
+                              obj->sym->name);
           oel->column=oer->column=oe->column;
           oel->expr_flags=oer->expr_flags=oe->expr_flags;
           oel->up=oer->up=oe;
@@ -1455,37 +1428,35 @@ int expand_object_output(struct output_request *request,struct object *obj)
           request=new_request;
         }
         if (expand_object_output(request,child)) return 1;
+        ++ n_expanded;
       }
       if (n_expanded==0)
-      {
-        fprintf(world->err_file,"Error: trying to count on object %s but it has no geometry\n",obj->sym->name);
-        return 1;
-      }
-      break;
+        mcell_error("Trying to count on object %s but it has no geometry.",
+                    obj->sym->name);
 #endif
+      break;
 
     case BOX_OBJ:
     case POLY_OBJ:
-      for (rl=obj->regions ; rl!=NULL ; rl=rl->next)
+      request->count_location = NULL;
+      for (struct region_list *rl = obj->regions; rl != NULL; rl = rl->next)
       {
-        if (is_reverse_abbrev(",ALL",rl->reg->sym->name)) break;
+        if (is_reverse_abbrev(",ALL",rl->reg->sym->name))
+        {
+          request->count_location = rl->reg->sym;
+          break;
+        }
       }
-      if (rl==NULL)
-      {
-        fprintf(world->err_file,"All region missing on object %s?\n  File %s, line %d\n",obj->sym->name,__FILE__,__LINE__);
-        return 1;
-      }
-      request->count_location = rl->reg->sym;
+      if (request->count_location == NULL)
+        mcell_internal_error("ALL region missing on object %s", obj->sym->name);
       break;
+
     default:
-      fprintf(world->err_file,"Bad object type in count on object expansion\n  File %s, line %d\n",__FILE__,__LINE__);
+      UNHANDLED_CASE(obj->object_type);
       return 1;
-      break;
   }
   return 0;
 }
-
-
 
 /*************************************************************************
 object_has_geometry:
@@ -1503,12 +1474,15 @@ int object_has_geometry(struct object *obj)
     case POLY_OBJ:
       return 1;
       break;
+
     case META_OBJ:
       for (child=obj->first_child ; child!=NULL ; child=child->next)
       {
         if (object_has_geometry(child)) return 1;
       }
       break;
+
+    case REL_SITE_OBJ:
     default:
       return 0;
       break;
@@ -1525,8 +1499,7 @@ instantiate_request:
         Requesting output tree gets appropriate node pointed to the
         memory location where we will be collecting data.
 *************************************************************************/
-
-int instantiate_request(struct output_request *request)
+static int instantiate_request(struct output_request *request)
 {
   int request_hash = 0;
   struct rxn_pathname *rxpn_to_count;
@@ -1555,6 +1528,7 @@ int instantiate_request(struct output_request *request)
       }
       request_hash=mol_to_count->hashval;
       break;
+
     case RXPN:
       rxpn_to_count=(struct rxn_pathname*)to_count;
       rx_to_count=rxpn_to_count->rx;
@@ -1566,20 +1540,18 @@ int instantiate_request(struct output_request *request)
       }
       request_hash=rxpn_to_count->hashval;
       break;
+
     default:
-      fprintf(world->err_file,"Error at file %s line %d\n  Invalid object type in count request.\n",__FILE__,__LINE__);
+      UNHANDLED_CASE(request->count_target->sym_type);
       return 1;
-      break;
   }
   
   if (request->count_location!=NULL)
   {
-    if (request->count_location->sym_type!=REG)
-    {
-      fprintf(world->err_file,"Error at file %s line %d\n  Non-region location in count request.\n",__FILE__,__LINE__);
-      return 1;
-    }
-    reg_of_count=(struct region*)request->count_location->value;
+    if (request->count_location->sym_type != REG)
+      mcell_internal_error("Non-region location symbol (type=%d) in count request.",
+                     request->count_location->sym_type);
+    reg_of_count = (struct region*) request->count_location->value;
 
     request_hash += reg_of_count->hashval;
    
@@ -1604,9 +1576,8 @@ int instantiate_request(struct output_request *request)
         request->requester->left=(void*)&(rx_to_count->info[rxpn_to_count->path_num].count);
         break;
       default:
-        fprintf(world->err_file,"Internal error at file %s line %d\n  Invalid report type 0x%x in count request.\n",__FILE__,__LINE__,report_type_only);
+        mcell_internal_error("Invalid report type 0x%x in count request.", report_type_only);
         return 1;
-        break;
     }
   }
   else /* Triggered count or count on region */
@@ -1633,12 +1604,7 @@ int instantiate_request(struct output_request *request)
     }
     if (count==NULL)
     {
-      count=create_new_counter(reg_of_count,request->count_target->value,count_type);
-      if (count==NULL)
-      {
-        fprintf(world->err_file,"Error at file %s line %d\n  Out of memory allocating count request\n",__FILE__,__LINE__);
-        return 1;
-      }
+      count=create_new_counter(reg_of_count, request->count_target->value, count_type);
       if(request->count_orientation != ORIENT_NOT_SET)
       {
            count->orientation = request->count_orientation;
@@ -1653,13 +1619,8 @@ int instantiate_request(struct output_request *request)
     /* Point appropriately */
     if (request->report_type&REPORT_TRIGGER)
     {
-      trig_req = (struct trigger_request*)mem_get(world->trig_request_mem);
-      if (trig_req==NULL)
-      {
-        fprintf(world->err_file,"Error at file %s line %d\n  Out of memory setting notifications for a trigger\n",__FILE__,__LINE__);
-        return 1;
-      }
-      
+      trig_req = (struct trigger_request*) CHECKED_MEM_GET(world->trig_request_mem,
+                                                           "trigger notification request");
       trig_req->next=count->data.trig.listeners;
       count->data.trig.listeners=trig_req;
       trig_req->ear=request;
@@ -1688,9 +1649,8 @@ int instantiate_request(struct output_request *request)
           reg_of_count->flags|=COUNT_HITS;
           break;
         default:
-          fprintf(world->err_file,"Error at file %s line %d\n  Bad report type %d when creating counts\n",__FILE__,__LINE__,report_type_only);
+          UNHANDLED_CASE(report_type_only);
           return 1;
-          break;
       }
     }
     else /* Not trigger--set up for regular count */
@@ -1755,10 +1715,10 @@ int instantiate_request(struct output_request *request)
           request->requester->right=(void*)&(world->elapsed_time);
           request->requester->oper='/';
           break;
+
         default:
-          fprintf(world->err_file,"Error at file %s line %d\n  Bad report type %d when creating counts\n",__FILE__,__LINE__,report_type_only);
+          UNHANDLED_CASE(report_type_only);
           return 1;
-          break;
       }
     }
   }
@@ -1777,14 +1737,11 @@ create_new_counter:
    Note: memory is allocated from world->counter_mem using mem_get,
          not from the global heap using malloc.
 *************************************************************************/
-
-struct counter* create_new_counter(struct region *where,void *who,byte what)
+static struct counter* create_new_counter(struct region *where,void *who,byte what)
 {
   struct counter *c;
   
-  c = (struct counter*)mem_get(world->counter_mem);
-  if (c==NULL) return NULL;
-  
+  c = (struct counter*) CHECKED_MEM_GET(world->counter_mem, "counter");
   c->next=NULL;
   c->reg_type=where;
   c->target=who;
@@ -1898,12 +1855,8 @@ static int get_counting_regions_for_waypoint(struct subvolume *my_sv,
     if (pointer_hash_lookup(region_hash, rl->reg, rl->reg->hashval) == NULL)
       continue;
 
-    struct region_list *nrl=(struct region_list*)mem_get(my_sv->local_storage->regl);
-    if (nrl==NULL)
-    {
-      fprintf(world->err_file,"Error at file %s line %d\n  Out of memory making list of enclosing regions for count\n",__FILE__,__LINE__);
-      return 1;
-    }
+    struct region_list *nrl = (struct region_list*) CHECKED_MEM_GET(my_sv->local_storage->regl,
+                                                                    "region list entry");
     nrl->reg=rl->reg;
     nrl->next=*p_all_regs;
     *p_all_regs=nrl;
@@ -1915,12 +1868,8 @@ static int get_counting_regions_for_waypoint(struct subvolume *my_sv,
     if (pointer_hash_lookup(region_hash, rl->reg, rl->reg->hashval) == NULL)
       continue;
 
-    struct region_list *nrl=(struct region_list*)mem_get(my_sv->local_storage->regl);
-    if (nrl==NULL)
-    {
-      fprintf(world->err_file,"Error at file %s line %d\n  Out of memory making list of enclosing regions for count\n",__FILE__,__LINE__);
-      return 1;
-    }
+    struct region_list *nrl = (struct region_list*) CHECKED_MEM_GET(my_sv->local_storage->regl,
+                                                                    "region list entry");
     nrl->reg=rl->reg;
     nrl->next=*p_all_antiregs;
     *p_all_antiregs=nrl;    
@@ -1962,8 +1911,7 @@ static int get_counting_regions_for_point(struct subvolume *my_sv,
   *p_all_antiregs=NULL;
 
   /* Get regions for waypoint */
-  if (get_counting_regions_for_waypoint(my_sv, wp, &all_regs, &all_antiregs, region_hash))
-    return 1;
+  get_counting_regions_for_waypoint(my_sv, wp, &all_regs, &all_antiregs, region_hash);
 
   /* Raytrace across any walls from waypoint to us and add to region lists */
   struct vector3 delta;
@@ -2016,12 +1964,8 @@ static int get_counting_regions_for_point(struct subvolume *my_sv,
           continue;
 
         /* Add this region to the appropriate list */
-        struct region_list *nrl = (struct region_list*)mem_get(my_sv->local_storage->regl);
-        if (nrl==NULL)
-        {
-          fprintf(world->err_file,"Error at file %s line %d\n  Out of memory making list of enclosing regions for count\n",__FILE__,__LINE__);
-          return 1;
-        }
+        struct region_list *nrl = (struct region_list*) CHECKED_MEM_GET(my_sv->local_storage->regl,
+                                                                        "region list entry");
         nrl->reg = rl->reg;
         if (j==COLLIDE_FRONT)
         {
@@ -2083,8 +2027,7 @@ static void scan_complex_update_table(struct species **relatives,
     optr = counter->orientations + rules_start * num_relatives;
 
   /* For each rule, check whether we match, and update the count if we do */
-  int rule_index;
-  for (rule_index = rules_start;
+  for (int rule_index = rules_start;
        rule_index < rules_end;
        ++ rule_index, nptr += num_relatives, iptr += num_relatives, optr += num_relatives)
   {
@@ -2170,7 +2113,6 @@ count_complex_for_single_region:
         short *orient_before - orientations of all subunits before the update
         struct species **after - states of all subunits after the update
         short *orient_after - orientations of all subunits after the update
-        int replaced_subunit_idx - index of updated subunit
         int *update_subunit - an array of flags indicating whether each subunit
                               might have been affected by the update, in such a
                               way as to change the counts.  Presently, this
@@ -2187,17 +2129,14 @@ static void count_complex_for_single_region(struct complex_counter *c,
                                             short *orient_before,
                                             struct species **after,
                                             short *orient_after,
-                                            int replaced_subunit_idx,
                                             int *update_subunit,
                                             int amount)
 {
-  int subunit_index;
-
   /* Now, add all relevant subunit updates to the counters */
   struct species *relatives_before[ spec->num_relations + 1], *relatives_after[ spec->num_relations + 1];
   short relatives_orient_before[ spec->num_relations + 1], relatives_orient_after[ spec->num_relations + 1];
 
-  for (subunit_index = 0; subunit_index < spec->num_subunits; ++ subunit_index)
+  for (int subunit_index = 0; subunit_index < spec->num_subunits; ++ subunit_index)
   {
     /* Skip subunits that will not have changed */
     if (! update_subunit[subunit_index])
@@ -2225,8 +2164,7 @@ static void count_complex_for_single_region(struct complex_counter *c,
       if (orient_after)  relatives_orient_after[relation_idx + offset] = orient_after[target_index];
     }
 
-    struct complex_counter *cCur = NULL;
-    for (cCur = c; cCur != NULL; cCur = cCur->next)
+    for (struct complex_counter *cCur = c; cCur != NULL; cCur = cCur->next)
     {
       if (this_orient != 0  &&  c->this_orient != 0  &&  c->this_orient != this_orient)
         continue;
@@ -2282,13 +2220,11 @@ static void count_complex_new_for_single_region(struct complex_counter *c,
                                                 short *orients,
                                                 int amount)
 {
-  int subunit_index;
-
   /* Now, add all relevant subunit updates to the counters */
   struct species *relatives[ spec->num_relations + 1];
   short relatives_orient[ spec->num_relations + 1];
 
-  for (subunit_index = 0; subunit_index < spec->num_subunits; ++ subunit_index)
+  for (int subunit_index = 0; subunit_index < spec->num_subunits; ++ subunit_index)
   {
     /* Really, this shouldn't happen, but for consistency with the
      * other counting rules, we'll do this. */
@@ -2296,7 +2232,6 @@ static void count_complex_new_for_single_region(struct complex_counter *c,
       continue;
 
     /* Set up tables of relations */
-    int relation_idx;
     int offset = 0;
     if (orients)
     {
@@ -2304,15 +2239,15 @@ static void count_complex_new_for_single_region(struct complex_counter *c,
       relatives_orient[0] = orients[subunit_index];
       ++offset;
     }
-    for (relation_idx = 0; relation_idx < spec->num_relations; ++ relation_idx)
+
+    for (int relation_idx = 0; relation_idx < spec->num_relations; ++ relation_idx)
     {
       int target_index = spec->relations[ relation_idx ].target[ subunit_index ];
       relatives[relation_idx + offset] = specs[target_index];
       if (orients) relatives_orient[relation_idx + offset] = orients[target_index];
     }
 
-    struct complex_counter *cCur = NULL;
-    for (cCur = c; cCur != NULL; cCur = cCur->next)
+    for (struct complex_counter *cCur = c; cCur != NULL; cCur = cCur->next)
     {
       int *indices;
       if (this_orient != 0  &&  c->this_orient != 0  &&  c->this_orient != this_orient)
@@ -2350,25 +2285,24 @@ int count_complex(struct volume_molecule *cmplex,
   if (spec->counters == NULL)
     return 0;
 
-  int i = bisect(world->x_partitions,world->nx_parts,cmplex->pos.x);
-  int j = bisect(world->y_partitions,world->ny_parts,cmplex->pos.y);
-  int k = bisect(world->z_partitions,world->nz_parts,cmplex->pos.z);
+  const int px = bisect(world->x_partitions,world->nx_parts,cmplex->pos.x);
+  const int py = bisect(world->y_partitions,world->ny_parts,cmplex->pos.y);
+  const int pz = bisect(world->z_partitions,world->nz_parts,cmplex->pos.z);
 
   /* Find the waypoint and subvolume containing our point */
-  int h = k + (world->nz_parts-1)*( j + (world->ny_parts-1)*i );
-  struct waypoint *wp = &(world->waypoints[h]);
-  struct subvolume *my_sv = &(world->subvol[h]);
+  const int this_sv = pz + (world->nz_parts-1)*( py + (world->ny_parts-1)*px );
+  struct waypoint *wp = &(world->waypoints[this_sv]);
+  struct subvolume *my_sv = &(world->subvol[this_sv]);
 
   /* Find out which regions contain this complex */
   struct region_list *all_regs;
   struct region_list *all_antiregs;
-  if (get_counting_regions_for_point(my_sv,
-                                     wp,
-                                     &cmplex->pos,
-                                     &all_regs,
-                                     &all_antiregs,
-                                     &spec->counters->region_to_counter))
-    return 1;
+  get_counting_regions_for_point(my_sv,
+                                 wp,
+                                 &cmplex->pos,
+                                 &all_regs,
+                                 &all_antiregs,
+                                 &spec->counters->region_to_counter);
 
   /* Figure out which subunits of this complex will need to be recounted */
   /* XXX: Restrict this to only relationships for which counting is done? */
@@ -2379,8 +2313,7 @@ int count_complex(struct volume_molecule *cmplex,
   /* Build up array of before+after subunits */
   struct species *before[ spec->num_subunits ];
   struct species *after[ spec->num_subunits ];
-  int subunit_index;
-  for (subunit_index = 0; subunit_index < spec->num_subunits; ++ subunit_index)
+  for (int subunit_index = 0; subunit_index < spec->num_subunits; ++ subunit_index)
   {
     struct volume_molecule *mol = cmplex->cmplx[subunit_index + 1];
     before[subunit_index] = after[subunit_index] = mol ? mol->properties : NULL;
@@ -2388,27 +2321,26 @@ int count_complex(struct volume_molecule *cmplex,
   before[replaced_subunit_idx] = replaced_subunit ? replaced_subunit->properties : NULL;
 
   /* Do any relevant counting for WORLD */
-  count_complex_for_single_region(&spec->counters->in_world, spec, 0, before, NULL, after, NULL, replaced_subunit_idx, update_subunit, 1);
+  count_complex_for_single_region(&spec->counters->in_world, spec, 0, before, NULL, after, NULL, update_subunit, 1);
 
   /* Now, for each region, do all relevant counting */
-  struct region_list *rl;
-  for (rl = all_regs; rl != NULL; rl = rl->next)
+  for (struct region_list *rl = all_regs; rl != NULL; rl = rl->next)
   {
     /* Get the counters for the complex within this region */
     struct complex_counter *c = (struct complex_counter *) pointer_hash_lookup(&spec->counters->region_to_counter, rl->reg, rl->reg->hashval);
     if (c == NULL)
       continue;
 
-    count_complex_for_single_region(c, spec, 0, before, NULL, after, NULL, replaced_subunit_idx, update_subunit, 1);
+    count_complex_for_single_region(c, spec, 0, before, NULL, after, NULL, update_subunit, 1);
   }
-  for (rl = all_antiregs; rl != NULL; rl = rl->next)
+  for (struct region_list *rl = all_antiregs; rl != NULL; rl = rl->next)
   {
     /* Get the counters for the complex within this region */
     struct complex_counter *c = (struct complex_counter *) pointer_hash_lookup(&spec->counters->region_to_counter, rl->reg, rl->reg->hashval);
     if (c == NULL)
       continue;
 
-    count_complex_for_single_region(c, spec, 0, before, NULL, after, NULL, replaced_subunit_idx, update_subunit, -1);
+    count_complex_for_single_region(c, spec, 0, before, NULL, after, NULL, update_subunit, -1);
   }
 
   /* Free region memory */ 
@@ -2452,8 +2384,7 @@ int count_complex_surface(struct grid_molecule *cmplex,
   struct species *after[ spec->num_subunits ];
   short orient_before[ spec->num_subunits ];
   short orient_after[ spec->num_subunits ];
-  int subunit_index;
-  for (subunit_index = 0; subunit_index < spec->num_subunits; ++ subunit_index)
+  for (int subunit_index = 0; subunit_index < spec->num_subunits; ++ subunit_index)
   {
     struct grid_molecule *mol = cmplex->cmplx[subunit_index + 1];
     before[subunit_index] = after[subunit_index] = mol ? mol->properties : NULL;
@@ -2463,20 +2394,19 @@ int count_complex_surface(struct grid_molecule *cmplex,
   orient_before[replaced_subunit_idx] = replaced_subunit ? replaced_subunit->orient : 0;
 
   /* Do any relevant counting for WORLD */
-  count_complex_for_single_region(&spec->counters->in_world, spec, cmplex->orient, before, orient_before, after, orient_after, replaced_subunit_idx, update_subunit, 1);
+  count_complex_for_single_region(&spec->counters->in_world, spec, cmplex->orient, before, orient_before, after, orient_after, update_subunit, 1);
 
   struct wall *my_wall = cmplex->grid->surface;
   if (my_wall!=NULL && (my_wall->flags&COUNT_CONTENTS)!=0)
   {
-    struct region_list *rl;
-    for (rl=my_wall->counting_regions ; rl!=NULL ; rl=rl->next)
+    for (struct region_list *rl=my_wall->counting_regions ; rl!=NULL ; rl=rl->next)
     {
       /* Get the counters for the complex within this region */
       struct complex_counter *c = (struct complex_counter *) pointer_hash_lookup(&spec->counters->region_to_counter, rl->reg, rl->reg->hashval);
       if (c == NULL)
         continue;
 
-      count_complex_for_single_region(c, spec, cmplex->orient, before, orient_before, after, orient_after, replaced_subunit_idx, update_subunit, 1);
+      count_complex_for_single_region(c, spec, cmplex->orient, before, orient_before, after, orient_after, update_subunit, 1);
     }
   }
   return 0;
@@ -2498,8 +2428,7 @@ int count_complex_surface_new(struct grid_molecule *cmplex)
   /* Build up array of before+after subunits */
   struct species *specs[ spec->num_subunits ];
   short orients[ spec->num_subunits ];
-  int subunit_index;
-  for (subunit_index = 0; subunit_index < spec->num_subunits; ++ subunit_index)
+  for (int subunit_index = 0; subunit_index < spec->num_subunits; ++ subunit_index)
   {
     struct grid_molecule *mol = cmplex->cmplx[subunit_index + 1];
     specs[subunit_index] = mol ? mol->properties : NULL;
@@ -2512,8 +2441,7 @@ int count_complex_surface_new(struct grid_molecule *cmplex)
   struct wall *my_wall = cmplex->grid->surface;
   if (my_wall!=NULL && (my_wall->flags&COUNT_CONTENTS)!=0)
   {
-    struct region_list *rl;
-    for (rl=my_wall->counting_regions ; rl!=NULL ; rl=rl->next)
+    for (struct region_list *rl = my_wall->counting_regions; rl!=NULL; rl=rl->next)
     {
       /* Get the counters for the complex within this region */
       struct complex_counter *c = (struct complex_counter *) pointer_hash_lookup(&spec->counters->region_to_counter, rl->reg, rl->reg->hashval);
@@ -2545,10 +2473,7 @@ static int macro_collect_count_requests_by_subunit(struct pointer_hash *h,
     mcrnext = mcr->next;
     mcr->next = (struct macro_count_request *) pointer_hash_lookup(h, mcr->subunit_state, mcr->subunit_state->hashval);
     if (pointer_hash_add(h, mcr->subunit_state, mcr->subunit_state->hashval, mcr))
-    {
-      fprintf(world->err_file, "File '%s', Line %ld:  Out of memory while initializing complex counters.\n", __FILE__, (long)__LINE__);
-      return -1;
-    }
+      mcell_allocfailed("Failed to add complex counters to hash.");
     ++ total_entries;
   }
 
@@ -2578,9 +2503,8 @@ static int macro_copy_count_requests_to_tables(struct pointer_hash *requests_by_
                                                int *counts)
 {
   int table_position = 0, start_pos;
-  int bin_index;
   int su_index = 0;
-  for (bin_index = 0; bin_index < requests_by_subunit->table_size; ++ bin_index)
+  for (int bin_index = 0; bin_index < requests_by_subunit->table_size; ++ bin_index)
   {
     /* Skip empty bins */
     if (requests_by_subunit->keys[bin_index] == NULL  ||
@@ -2706,33 +2630,29 @@ static int macro_initialize_counters_for_complex(struct complex_species *spec,
   /* Prepare a hash to sort our requests by subunit */
   struct pointer_hash requests_by_subunit;
   if (pointer_hash_init(&requests_by_subunit, 16))
-  {
-    fprintf(world->err_file, "File '%s', Line %ld:  Out of memory while initializing complex counters.\n", __FILE__, (long)__LINE__);
-    return 1;
-  }
+    mcell_allocfailed("Failed to initialize subunit->request hash for complex counters.");
 
   struct complex_counter **cur = &c;
-  int i;
-  for (i=0; i<3; ++i)
+
+  /* Loop over orientation types (0, 1, -1). */
+  for (int n_orients=0; n_orients<3; ++n_orients)
   {
-    if (by_orientation[i] == NULL)
+    if (by_orientation[n_orients] == NULL)
       continue;
 
     if (*cur == NULL)
     {
-      *cur = (struct complex_counter *) malloc(sizeof(struct complex_counter));
+      *cur = CHECKED_MALLOC_STRUCT(struct complex_counter,
+                                   "macromolecular complex counter");
       memset(*cur, 0, sizeof(struct complex_counter));
       if (pointer_hash_init(&(*cur)->subunit_to_rules_range, 16))
-      {
-        fprintf(world->err_file, "File '%s', Line %ld:  Out of memory while initializing complex counters.\n", __FILE__, (long)__LINE__);
-        return 1;
-      }
+        mcell_allocfailed("Failed to initialize subunit->rules hash for complex counters.");
     }
     c = *cur;
-    c->this_orient = by_orientation[i]->master_orientation;
+    c->this_orient = by_orientation[n_orients]->master_orientation;
 
     /* Sort our requests by subunit */
-    int total_entries = macro_collect_count_requests_by_subunit(&requests_by_subunit, by_orientation[i]);
+    int total_entries = macro_collect_count_requests_by_subunit(&requests_by_subunit, by_orientation[n_orients]);
     if (total_entries < 0)
     {
       pointer_hash_destroy(&requests_by_subunit);
@@ -2742,14 +2662,18 @@ static int macro_initialize_counters_for_complex(struct complex_species *spec,
     /* Now, allocate space for tables */
     int is_surface = (spec->base.flags & ON_GRID) ? 1 : 0;
     int num_relations = is_surface ? (spec->num_relations + 1) : spec->num_relations;
-    if ((c->neighbors = (struct species **) malloc(num_relations * total_entries * sizeof(struct species *))) == NULL  ||
-        (c->invert = (int *) malloc(num_relations * total_entries * sizeof(int))) == NULL                                   ||
-        (c->counts = (int *) malloc(total_entries * sizeof(int))) == NULL                                                    ||
-        (c->su_rules_indices = (int *) malloc(total_entries * 2 * sizeof(int))) == NULL)
-    {
-      fprintf(world->err_file, "File '%s', Line %ld:  Out of memory while initializing complex counters.\n", __FILE__, (long)__LINE__);
-      goto failure;
-    }
+    c->neighbors = CHECKED_MALLOC_ARRAY(struct species *,
+                                        num_relations * total_entries,
+                                        "macromolecular complex count table");
+    c->invert = CHECKED_MALLOC_ARRAY(int,
+                                     num_relations * total_entries,
+                                     "macromolecular complex count table");
+    c->counts = CHECKED_MALLOC_ARRAY(int,
+                                     total_entries,
+                                     "macromolecular complex count table");
+    c->su_rules_indices = CHECKED_MALLOC_ARRAY(int,
+                                               total_entries * 2,
+                                               "macromolecular complex count table");
     memset(c->neighbors, 0, num_relations * total_entries * sizeof(struct species *));
     memset(c->invert, 0, num_relations * total_entries * sizeof(int));
     memset(c->counts, 0, total_entries * sizeof(int));
@@ -2758,11 +2682,9 @@ static int macro_initialize_counters_for_complex(struct complex_species *spec,
     /* If this is not a volume molecule, allocate space for orientations */
     if (is_surface)
     {
-      if ((c->orientations = (signed char *) malloc(num_relations * total_entries * sizeof(signed char))) == NULL)
-      {
-        fprintf(world->err_file, "File '%s', Line %ld:  Out of memory while initializing complex counters.\n", __FILE__, (long)__LINE__);
-        goto failure;
-      }
+      c->orientations = CHECKED_MALLOC_ARRAY(signed char,
+                                             num_relations * total_entries,
+                                             "macromolecular complex count table");
       memset(c->orientations, 0, num_relations * total_entries * sizeof(signed char));
     }
     else
@@ -2812,8 +2734,7 @@ static void macro_destroy_counters(struct complex_species *spec)
     free(spec->counters->in_world.counts);
   if (spec->counters->in_regions)
   {
-    int region_idx;
-    for (region_idx = 0; region_idx < spec->counters->num_region_counters; ++ region_idx)
+    for (int region_idx = 0; region_idx < spec->counters->num_region_counters; ++ region_idx)
     {
       if (spec->counters->in_regions[region_idx].su_rules_indices)
         free(spec->counters->in_regions[region_idx].su_rules_indices);
@@ -2843,19 +2764,15 @@ macro_create_counters:
 static int macro_create_counters(struct complex_species *spec, struct complex_counters **dest)
 {
   /* Allocate the counters */
-  *dest = (struct complex_counters *) malloc(sizeof(struct complex_counters));
-  if (*dest == NULL)
-  {
-    fprintf(world->err_file, "File '%s', Line %ld:  Out of memory while initializing complex counters.\n", __FILE__, (long)__LINE__);
-    return 1;
-  }
+  *dest = CHECKED_MALLOC_STRUCT(struct complex_counters,
+                                "macromolecular complex counters");
   memset(*dest, 0, sizeof(struct complex_counters));
 
   /* Initialize the hash tables in the counter */
   if (pointer_hash_init(&(*dest)->in_world.subunit_to_rules_range, 16)  ||
       pointer_hash_init(&(*dest)->region_to_counter, 16))
   {
-    fprintf(world->err_file, "File '%s', Line %ld:  Out of memory while initializing complex counters.\n", __FILE__, (long)__LINE__);
+    mcell_allocfailed("Failed to initialize top-level hashes for complex counters.");
     macro_destroy_counters(spec);
     return 1;
   }
@@ -2898,7 +2815,7 @@ static int macro_collect_count_requests_by_location(struct macro_count_request *
       mcr->next = (struct macro_count_request *) pointer_hash_lookup(in_region, r, r->hashval);
       if (pointer_hash_add(in_region, r, r->hashval, mcr))
       {
-        fprintf(world->err_file, "File '%s', Line %ld:  Out of memory while initializing complex counters.\n", __FILE__, (long)__LINE__);
+        mcell_allocfailed("Failed to add complex count request to region->request hash.");
         return 1;
       }
     }
@@ -2921,24 +2838,17 @@ static int macro_create_region_counters(struct complex_counters *c,
                                         int num_region_counters)
 {
   /* Allocate space for the counters */
-  c->in_regions = (struct complex_counter *) malloc(num_region_counters * sizeof(struct complex_counter));
-  if (c->in_regions == NULL)
-  {
-    fprintf(world->err_file, "File '%s', Line %ld:  Out of memory while initializing complex counters.\n", __FILE__, (long)__LINE__);
-    return 1;
-  }
+  c->in_regions = CHECKED_MALLOC_ARRAY(struct complex_counter,
+                                       num_region_counters,
+                                       "macromolecular complex per-region counters");
   memset(c->in_regions, 0, num_region_counters * sizeof(struct complex_counter));
   c->num_region_counters = num_region_counters;
 
   /* Now initialize each counter */
-  int counter_index;
-  for (counter_index = 0; counter_index < c->num_region_counters; ++ counter_index)
+  for (int counter_index = 0; counter_index < c->num_region_counters; ++ counter_index)
   {
     if (pointer_hash_init(&c->in_regions[counter_index].subunit_to_rules_range, 16))
-    {
-      fprintf(world->err_file, "File '%s', Line %ld:  Out of memory while initializing complex counters.\n", __FILE__, (long)__LINE__);
-      return 1;
-    }
+      mcell_allocfailed("Failed to initialize subunit->rules counter for region.");
   }
 
   return 0;
@@ -2965,7 +2875,7 @@ static int macro_convert_output_requests_for_complex(struct complex_species *spe
   struct pointer_hash requests_by_region;
   if (pointer_hash_init(&requests_by_region, 16))
   {
-    fprintf(world->err_file, "File '%s', Line %ld:  Out of memory while initializing complex counters.\n", __FILE__, (long)__LINE__);
+    mcell_allocfailed("Failed to initialize region->requests hash.");
     goto failure;
   }
 
@@ -2984,9 +2894,8 @@ static int macro_convert_output_requests_for_complex(struct complex_species *spe
       goto failure;
 
     /* Now, fill in each set of counters */
-    int bin_index;
     int counter_index = 0;
-    for (bin_index = 0; bin_index < requests_by_region.table_size; ++ bin_index)
+    for (int bin_index = 0; bin_index < requests_by_region.table_size; ++ bin_index)
     {
       /* Skip empty bins */
       if (requests_by_region.keys[bin_index] == NULL  ||  requests_by_region.values[bin_index] == NULL)
@@ -3029,33 +2938,37 @@ macro_expand_object_output:
 *************************************************************************/
 static int macro_expand_object_output(struct macro_count_request *request,struct object *obj)
 {
-  struct region_list *rl;
-
   switch (obj->object_type)
   {
     case META_OBJ:
+#ifdef ALLOW_COUNTS_ON_METAOBJECT
+#error "Support for counting macromolecules in/on a metaobject is unimplemented."
+#endif
+      mcell_error("COUNT and TRIGGER statements on metaobject '%s' are not allowed.", obj->sym->name);
+      return 1;
+
     case REL_SITE_OBJ:
-      fprintf(world->err_file,"Error: COUNT and TRIGGER statements on metaobject or release object '%s' are not allowed.\n",obj->sym->name);
+      mcell_error("COUNT and TRIGGER statements on release object '%s' are not allowed.", obj->sym->name);
       return 1;
 
     case BOX_OBJ:
     case POLY_OBJ:
-      for (rl=obj->regions ; rl!=NULL ; rl=rl->next)
+      request->location = NULL;
+      for (struct region_list *rl = obj->regions; rl != NULL; rl = rl->next)
       {
-        if (is_reverse_abbrev(",ALL",rl->reg->sym->name)) break;
+        if (is_reverse_abbrev(",ALL",rl->reg->sym->name))
+        {
+          request->location = rl->reg->sym;
+          break;
+        }
       }
-      if (rl==NULL)
-      {
-        fprintf(world->err_file,"All region missing on object %s?\n  File %s, line %d\n",obj->sym->name,__FILE__,__LINE__);
-        return 1;
-      }
-      request->location = rl->reg->sym;
+      if (request->location == NULL)
+        mcell_internal_error("ALL region missing on object %s", obj->sym->name);
       break;
 
     default:
-      fprintf(world->err_file,"Bad object type in count on object expansion\n  File %s, line %d\n",__FILE__,__LINE__);
+      mcell_internal_error("Invalid object type (%d) in count on object expansion", obj->object_type);
       return 1;
-      break;
   }
 
   return 0;
@@ -3070,11 +2983,10 @@ macro_normalize_output_request_locations:
         Locations for macromolecule count requests are checked for validity,
         and normalized so that all locations are regions.
 *************************************************************************/
-static int macro_normalize_output_request_locations()
+static int macro_normalize_output_request_locations(void)
 {
   /* Scan all requests, fixing up request locations */
-  struct macro_count_request *mcr;
-  for (mcr = world->macro_count_request_head; mcr != NULL; mcr = mcr->next)
+  for (struct macro_count_request *mcr = world->macro_count_request_head; mcr != NULL; mcr = mcr->next)
   {
     /* If the location is "WORLD", we're done */
     if (mcr->location == NULL )
@@ -3083,21 +2995,12 @@ static int macro_normalize_output_request_locations()
     /* Now, make sure the object referenced is actually instantiated in the
      * world
      */
-    struct object *o;
-    int found = 0;
-    for (o = world->root_instance; o != NULL; o = o->next)
+    if (! is_object_instantiated(mcr->location))
     {
-      if(is_object_instantiated(o, mcr->location))
-      {
-        found = 1;
-        break;
-      }
-    }
-
-    /* Failure!  Object is not in the world. */
-    if (! found)
-    {
-      fprintf(world->err_file,"Name of the object/region '%s' in the COUNT/TRIGGER statement is not fully referenced.\n", mcr->location->name);
+      mcell_error("The object/region name '%s' in the COUNT/TRIGGER statement is not fully referenced.\n"
+                  "  This occurs when a count is requested on an object which has not been referenced\n"
+                  "  (directly or indirectly) from an INSTANTIATE block in the MDL file.",
+                  mcr->location->name);
       return 1;
     }
 
@@ -3105,10 +3008,7 @@ static int macro_normalize_output_request_locations()
     if (mcr->location->sym_type == OBJ)
     {
       if (macro_expand_object_output(mcr, (struct object*) mcr->location->value))
-      {
-        fprintf(world->err_file,"Error: unable to expand request to count on object");
-        return 1;
-      }
+        mcell_error("Failed to expand request to count on object.");
     }
   }
   return 0;
@@ -3136,10 +3036,7 @@ static int macro_collect_count_requests_by_complex(struct pointer_hash *h,
     struct complex_species *c = mcr->the_complex;
     mcr->next = (struct macro_count_request *) pointer_hash_lookup(h, c, c->base.hashval);
     if (pointer_hash_add(h, c, c->base.hashval, mcr))
-    {
-      fprintf(world->err_file, "File '%s', Line %ld:  Out of memory while initializing complex counters.\n", __FILE__, (long)__LINE__);
-      return 1;
-    }
+      mcell_allocfailed("Failed to add count request to complex->counter hash.");
   }
 
   return 0;
@@ -3156,7 +3053,7 @@ macro_convert_output_requests:
         expressions are fixed to point to the appropriate counters.  Locations
         are normalized to refer to regions.
 *************************************************************************/
-static int macro_convert_output_requests()
+static int macro_convert_output_requests(void)
 {
   /* If we have no requests to process, skip all this */
   if (world->macro_count_request_head == NULL)
@@ -3169,24 +3066,20 @@ static int macro_convert_output_requests()
   /* Scan over the requests, sorting them out by complex */
   struct pointer_hash complex_to_requests;
   if (pointer_hash_init(&complex_to_requests, 16))
-  {
-     fprintf(world->err_file,"File '%s', Line %ld: failed to initialize data structures required to convert output requests.\n", __FILE__, (long)__LINE__);
-     return 1;
-  }
+    mcell_allocfailed("Failed to initialize complex->requests hash.");
   if (macro_collect_count_requests_by_complex(&complex_to_requests, world->macro_count_request_head))
     goto failure;
   world->macro_count_request_head = NULL;
 
   /* Now, handle the requests complex-by-complex */
-  int i;
-  for (i = 0; i < complex_to_requests.table_size; ++i)
+  for (int n_bin = 0; n_bin < complex_to_requests.table_size; ++n_bin)
   {
     /* Skip empty bins */
-    if (complex_to_requests.keys[i] == NULL  ||  complex_to_requests.values[i] == NULL)
+    if (complex_to_requests.keys[n_bin] == NULL  ||  complex_to_requests.values[n_bin] == NULL)
       continue;
 
-    if (macro_convert_output_requests_for_complex((struct complex_species *) complex_to_requests.keys[i],
-                                                  (struct macro_count_request *) complex_to_requests.values[i]))
+    if (macro_convert_output_requests_for_complex((struct complex_species *) complex_to_requests.keys[n_bin],
+                                                  (struct macro_count_request *) complex_to_requests.values[n_bin]))
       goto failure;
   }
 

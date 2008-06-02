@@ -12,12 +12,9 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "logging.h"
 #include "diffuse_util.h"
 #include "mcell_structs.h"
-
-#ifdef DEBUG
-#define no_printf printf
-#endif
 
 extern struct volume *world;
 
@@ -65,16 +62,14 @@ dgser:
 
 double dgser(double aa, double xx)
 {
-  FILE *log_file;
   double y,ap,sum,del,eps,gln;
   int itmax,n;
 
-  log_file=world->log_file;
   itmax=100;
   eps=3.0e-7;
   gln=dgammln(aa);
   if (xx<=0.0) {
-    if (xx<0.0) fprintf(log_file,"DGSER: xx < 0\n");
+    if (xx<0.0) mcell_log("DGSER: xx < 0");
     y=0.0;
     return(y);
   }
@@ -89,7 +84,7 @@ double dgser(double aa, double xx)
       return(y);
     }
   }
-  fprintf(log_file,"DGSER: aa too large, itmax too small\n");
+  mcell_log("DGSER: aa too large, itmax too small");
   y=sum*exp(-xx+aa*log(xx)-gln);
   return(y);
 }
@@ -104,14 +99,11 @@ dgcf:
   Note: adapted from Numerical Recipes in C, 2nd ed., p.219
         This is the continued fraction form.
 ***************************************************************************/
-
 double dgcf(double aa, double xx)
 {
-  FILE *log_file;
   double y,gold,a0,a1,b0,b1,fac,an,ana,anf,itmax,eps,gln;
   double g = 0.0;
 
-  log_file=world->log_file;
   itmax=100;
   eps=3.0e-7;
   gln=dgammln(aa);
@@ -138,7 +130,7 @@ double dgcf(double aa, double xx)
       gold=g;
     }
   }
-  fprintf(log_file,"DGCF: aa too large, itmax too small\n");
+  mcell_log("DGCF: aa too large, itmax too small");
   y=g*exp(-xx+aa*log(xx)-gln);
   return(y);
 }
@@ -229,16 +221,15 @@ init_r_step:
 
 double* init_r_step(int radial_subdivisions)
 {   
-  FILE *log_file = NULL;
   double inc,target,accum,r,r_max,delta_r,delta_r2;
   double *r_step = NULL;
   int j;
     
-  log_file=world->err_file;
-  if ((r_step=(double *)malloc(radial_subdivisions*sizeof(double)))==NULL) { 
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating radial step length table\n", __FILE__, (long)__LINE__);
+  r_step = CHECKED_MALLOC_ARRAY_NODIE(double,
+                                      radial_subdivisions,
+                                      "radial step length table");
+  if (r_step == NULL)
     return NULL;
-  } 
       
   inc=1.0/radial_subdivisions;
   accum=0;
@@ -278,12 +269,11 @@ double* init_r_step_surface(int radial_subdivisions)
   int i,j;
   static const double sqrt_pi = 1.7724538509055160273;
   
-  r_step_s = (double*)malloc(radial_subdivisions*sizeof(double));
-  if (r_step_s==NULL)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while storing radial step length table\n", __FILE__, (long)__LINE__);
+  r_step_s = CHECKED_MALLOC_ARRAY_NODIE(double,
+                                        radial_subdivisions,
+                                        "radial step length table (surface)");
+  if (r_step_s == NULL)
     return NULL;
-  }
   
   step = 1.0/radial_subdivisions;
   for ( i=0 , p=(1.0-1e-6)*step ; p<1.0 ; p+=step,i++ )
@@ -305,7 +295,7 @@ double* init_r_step_surface(int radial_subdivisions)
 
 
 /***************************************************************************
-init_r_step_surface:
+ init_r_step_3d_release:
   In: number of desired radial subdivisions
   Out: pointer to array of doubles containing those subdivisions
        returns NULL on malloc failure
@@ -319,12 +309,11 @@ double* init_r_step_3d_release(int radial_subdivisions)
   int i,j;
   static const double sqrt_pi_over_2 = 0.886226925452758015;
   
-  r_step_r = (double*)malloc(radial_subdivisions*sizeof(double));
-  if (r_step_r==NULL)
-  {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while storing radial step length table\n", __FILE__, (long)__LINE__);
+  r_step_r = CHECKED_MALLOC_ARRAY_NODIE(double,
+                                        radial_subdivisions,
+                                        "radial step length table (3d release)");
+  if (r_step_r == NULL)
     return NULL;
-  }
   
   step = 1.0/radial_subdivisions;
   for (i=0,p=step*0.5 ; i<radial_subdivisions ; p+=step,i++)
@@ -360,9 +349,8 @@ init_d_step:
 #define RAD_2_DEG 57.29577951308232087684
 /* Multiply by this factor (Pi/180) to convert from degrees to radians */
 
-double* init_d_step(int radial_directions,unsigned int *actual_directions)
+double* init_d_step(int radial_directions, unsigned int *actual_directions)
 {   
-  FILE *log_file = NULL;
   double z;
   double d_phi,phi_mid,phi_edge_prev,phi_edge_approx,phi_factor,theta_mid;
   double *phi_edge = NULL;
@@ -372,20 +360,21 @@ double* init_d_step(int radial_directions,unsigned int *actual_directions)
   int *n = NULL;
   double *d_step = NULL;
     
-  log_file=world->log_file;
   n_edge=(int) sqrt(radial_directions*MY_PI/2.0);
   n_patches=(int) (2*(n_edge*n_edge)/MY_PI);
   no_printf("desired n_patches in octant = %d\n",radial_directions);
   no_printf("approximate n_patches in octant = %d\n",n_patches);
-  if ((phi_edge=(double *)malloc(n_edge*sizeof(double)))==NULL) {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating directional step table\n", __FILE__, (long)__LINE__);
+  phi_edge = CHECKED_MALLOC_ARRAY_NODIE(double, n_edge, "directional step table");
+  if (phi_edge == NULL)
     return NULL;
-  } 
-  if ((n=(int *)malloc(n_edge*sizeof(int)))==NULL) {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating directional step table\n", __FILE__, (long)__LINE__);
+
+  n=CHECKED_MALLOC_ARRAY_NODIE(int, n_edge, "directional step table");
+  if (n == NULL)
+  {
     free(phi_edge);
     return NULL;
-  } 
+  }
+
   for (i=0;i<n_edge;i++) {
     phi_edge[i]=0;
     n[i]=0;
@@ -422,12 +411,13 @@ double* init_d_step(int radial_directions,unsigned int *actual_directions)
   no_printf("actual n_patches in octant = %d\n",radial_directions);
   no_printf("phi factor = %f\n",phi_factor);
 
-  if ((d_step=(double *)malloc(3*n_tot*sizeof(double)))==NULL) {
-    fprintf(world->err_file,"File '%s', Line %ld: Out of memory while creating directional step table\n", __FILE__, (long)__LINE__);
+  d_step=CHECKED_MALLOC_ARRAY(double, 3*n_tot, "directional step table");
+  if (d_step == NULL)
+  {
     free(n);
     free(phi_edge);
     return NULL;
-  } 
+  }
   k=0;
   phi_edge_prev=0;
   for (i=0;i<n_edge;i++) {
@@ -449,9 +439,9 @@ double* init_d_step(int radial_directions,unsigned int *actual_directions)
 #ifdef DEBUG
   {
   FILE *fp;
-  fprintf(log_file,"x_bias = %.17g\n",x_bias);
-  fprintf(log_file,"y_bias = %.17g\n",y_bias);
-  fprintf(log_file,"z_bias = %.17g\n",z_bias);
+  mcell_log("x_bias = %.17g\n",x_bias);
+  mcell_log("y_bias = %.17g\n",y_bias);
+  mcell_log("z_bias = %.17g\n",z_bias);
   fp=fopen("vector_table.rib","w");
   for (i=0;i<radial_directions;i++) {
     j=3*i;

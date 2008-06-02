@@ -11,7 +11,7 @@ struct subvolume* find_subvolume(struct vector3 *loc,struct subvolume *guess);
 double collide_sv_time(struct vector3 *point,struct vector3 *move,struct subvolume *sv);
 
 int is_defunct_molecule(struct abstract_element *e);
-struct grid_molecule* place_grid_molecule(struct species *s,struct vector3 *loc,short orient,double search_diam,double t,struct subvolume **psv,struct grid_molecule **cmplx,struct release_region_data *rrd);
+struct grid_molecule* place_grid_molecule(struct species *s,struct vector3 *loc,short orient,double search_diam,double t,struct subvolume **psv,struct grid_molecule **cmplx);
 struct grid_molecule *insert_grid_molecule(struct species *s,struct vector3 *loc,short orient,double search_diam,double t,struct grid_molecule **cmplx);
 struct volume_molecule *insert_volume_molecule(struct volume_molecule *m,struct volume_molecule *guess);
 void excert_volume_molecule(struct volume_molecule *m);
@@ -19,14 +19,9 @@ int insert_volume_molecule_list(struct volume_molecule *m);
 struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,struct subvolume *new_sv);
 
 int eval_rel_region_3d(struct release_evaluator *expr,struct waypoint *wp,struct region_list *in_regions,struct region_list *out_regions);
-int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *m,int n);
 int release_molecules(struct release_event_queue *req);
 void randomize_vol_mol_position(struct volume_molecule *mp, struct vector3 *low_end, double size_x, double size_y, double size_z);
-int set_partitions();
-double distance_point_line(struct vector3 *q, struct vector3 *v0, struct vector3 *v1);
-int navigate_world(int curr_index, int direction);
-int navigate_world_by_edge(int curr_index, int direction1, int direction2);
-int navigate_world_by_corner(int curr_index, int direction1, int direction2, int direction3);
+int set_partitions(void);
 
 void path_bounding_box(struct vector3 *loc, struct vector3 *displacement, struct vector3 *llf, struct vector3 *urb);
 

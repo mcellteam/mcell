@@ -1,4 +1,5 @@
 #include "volume_output.h"
+#include "logging.h"
 #include "mcell_structs.h"
 #include "sched_util.h"
 #include "vol_util.h"
@@ -12,12 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static void ioerror(FILE *err_file,
-                    char const *fmt,
-                    ...);
-
-static int produce_item_header(FILE *err_file,
-                               FILE *out_file,
+static int produce_item_header(FILE *out_file,
                                struct volume_output_item *vo);
 
 static int produce_mol_counts(struct volume *wrld,
@@ -38,17 +34,28 @@ int update_volume_output(struct volume *wrld, struct volume_output_item *vo)
 {
   int failure = 0;
   char *filename;
-  no_printf("Updating volume output at time %lld of %lld\n", wrld->it_time, wrld->iterations);
 
-  /* build the filename */
-  filename = alloc_sprintf("%s.%lld.dat", vo->filename_prefix, wrld->it_time);
-  if (filename == NULL) {
-    fprintf(wrld->err_file,"File '%s', Line %ld: Out of memory while formatting volume output filename '%s'\n", __FILE__, (long)__LINE__, vo->filename_prefix);
-    return 1;
+  switch (wrld->notify->volume_output_report)
+  {
+    case NOTIFY_NONE:
+      break;
+
+    case NOTIFY_BRIEF:
+    case NOTIFY_FULL:
+      mcell_log("Updating volume output '%s' scheduled at time %.15g on iteration %lld.",
+                vo->filename_prefix,
+                vo->t,
+                wrld->it_time);
+      break;
+
+    default: UNHANDLED_CASE(wrld->notify->volume_output_report);
   }
 
+  /* build the filename */
+  filename = CHECKED_SPRINTF("%s.%lld.dat", vo->filename_prefix, wrld->it_time);
+
   /* Try to make the directory if it doesn't exist */
-  if (make_parent_dir(filename, wrld->err_file))
+  if (make_parent_dir(filename))
   {
     free(filename);
     return 1;
@@ -78,11 +85,11 @@ int output_volume_output_item(struct volume *wrld,
 {
   FILE *f = fopen(filename, "w");
   if (f == NULL) {
-    ioerror(wrld->err_file, "Couldn't open volume output file '%s'", filename);
+    mcell_perror_nodie(errno, "Couldn't open volume output file '%s'.", filename);
     return 1;
   }
 
-  if (produce_item_header(wrld->err_file, f, vo))
+  if (produce_item_header(f, vo))
     goto failure;
 
   if (produce_mol_counts(wrld, f, vo))
@@ -116,12 +123,12 @@ static int produce_mol_counts(struct volume *wrld,
   double z_lim_part;
 
   /* Allocate memory for counters. */
-  counters = (int *) malloc(sizeof(int) * vo->nvoxels_x * vo->nvoxels_y);
+  counters = CHECKED_MALLOC_ARRAY(int, vo->nvoxels_x * vo->nvoxels_y, "voxel slab");
 
   cur_partition_z = find_subvolume(& vo->location, NULL);
   if (cur_partition_z == NULL)
   {
-    fprintf(wrld->err_file, "While counting at [%g, %g, %g]: point isn't within a partition.", x, y, z);
+    mcell_internal_error("While counting at [%g, %g, %g]: point isn't within a partition.", x, y, z);
     free(counters);
     return 1;
   }
@@ -292,14 +299,13 @@ static int find_species_in_array(struct species **mols,
 /*
  * Write the item header to the file.
  */
-static int produce_item_header(FILE *err_file,
-                               FILE *out_file,
+static int produce_item_header(FILE *out_file,
                                struct volume_output_item *vo)
 {
   if (fprintf(out_file, "# nx=%d ny=%d nz=%d time=%g\n",
               vo->nvoxels_x, vo->nvoxels_y, vo->nvoxels_z, vo->t) < 0)
   {
-    ioerror(err_file, "Couldn't write header of volume output file");
+    mcell_perror_nodie(errno, "Couldn't write header of volume output file.");
     return 1;
   }
 
@@ -337,49 +343,22 @@ static int reschedule_volume_output_item(struct volume *wrld,
     vo->t = (*vo->next_time++) * time_scale;
   }
 
-  /* Add to the schedule */
-  if (schedule_add(wrld->volume_output_scheduler, vo)) {
-    fprintf(wrld->err_file,"File %s, Line %ld: Out of memory while setting up volume output.\n", __FILE__, (long)__LINE__);
-    return 1;
+  switch (wrld->notify->volume_output_report)
+  {
+    case NOTIFY_NONE:
+    case NOTIFY_BRIEF:
+      break;
+
+    case NOTIFY_FULL:
+      mcell_log("  Next output scheduled for time %.15g.", vo->t * wrld->time_unit);
+      break;
+
+    default: UNHANDLED_CASE(wrld->notify->volume_output_report);
   }
+
+  /* Add to the schedule */
+  if (schedule_add(wrld->volume_output_scheduler, vo))
+    mcell_allocfailed("Failed to add volume output request to scheduler.");
 
   return 0;
-}
-
-/*
- * Format an appropriate error message upon I/O failure.
- */
-static void ioerror(FILE *err_file, char const *fmt, ...)
-{
-/* Grrr... GNU strerror_r is broken by design for glibc 2.3.2... */
-#if 0
-  va_list args;
-  char buffer[1024];
-
-  /* strerror_r return value should be compared to -1, not 0, as this will at
-   * least give a warning if we attempt to compile against the old (GNU-style)
-   * version of strerror_r...
-   */
-  if (strerror_r(errno, buffer, sizeof(buffer)) != -1)
-  {
-    va_start(args, fmt);
-    vfprintf(err_file, fmt, args);
-    fprintf(err_file, ": %s\n", buffer);
-    va_end(args);
-  }
-  else
-  {
-    va_start(args, fmt);
-    vfprintf(err_file, fmt, args);
-    fprintf(err_file, "\n");
-    va_end(args);
-  }
-#else
-  int err = errno;
-  va_list args;
-  va_start(args, fmt);
-  vfprintf(err_file, fmt, args);
-  fprintf(err_file, ": %s\n", strerror(err));
-  va_end(args);
-#endif
 }

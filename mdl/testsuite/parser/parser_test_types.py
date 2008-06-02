@@ -72,7 +72,7 @@ Current day of the week is %s
     else:
       self.add_empty_file("realout")
     if not silent:
-      self.add_constant_file("realerr", "Warning: could not release 6 of s_g_1 (surface full)\n")
+      self.add_constant_file("realerr", "Warning: Could not release 6 of s_g_1 (surface full).\n")
     else:
       self.add_empty_file("realerr")
 

@@ -99,18 +99,18 @@ struct string_buffer
     int n_strings;    /* number of the filled positions in an above array */
 };
 
-double ia_double_get(struct infinite_double_array *array_ptr, int index);
-void ia_double_store(struct infinite_double_array *array_ptr, int index, double data_to_store);
-int ia_int_get(struct infinite_int_array *array_ptr, int index);
-void ia_int_store(struct infinite_int_array *array_ptr, int index, int data_to_store);
-unsigned int ia_uint_get(struct infinite_uint_array *array_ptr, int index);
-void ia_uint_store(struct infinite_uint_array *array_ptr, int index, unsigned int data_to_store);
-long long ia_longlong_get(struct infinite_longlong_array *array_ptr, long long index);
-void ia_longlong_store(struct infinite_longlong_array *array_ptr, long long index, long long data_to_store);
-char* ia_string_get(struct infinite_string_array *array_ptr, int index);
-void ia_string_store(struct infinite_string_array *array_ptr, int index, char *data_to_store);
-void *ia_pointer_get(struct infinite_pointer_array *array_ptr, int index);
-void ia_pointer_store(struct infinite_pointer_array *array_ptr, int index, void *data_to_store);
+double ia_double_get(struct infinite_double_array *array_ptr, int idx);
+void ia_double_store(struct infinite_double_array *array_ptr, int idx, double data_to_store);
+int ia_int_get(struct infinite_int_array *array_ptr, int idx);
+void ia_int_store(struct infinite_int_array *array_ptr, int idx, int data_to_store);
+unsigned int ia_uint_get(struct infinite_uint_array *array_ptr, int idx);
+void ia_uint_store(struct infinite_uint_array *array_ptr, int idx, unsigned int data_to_store);
+long long ia_longlong_get(struct infinite_longlong_array *array_ptr, long long idx);
+void ia_longlong_store(struct infinite_longlong_array *array_ptr, long long idx, long long data_to_store);
+char* ia_string_get(struct infinite_string_array *array_ptr, int idx);
+void ia_string_store(struct infinite_string_array *array_ptr, int idx, char *data_to_store);
+void *ia_pointer_get(struct infinite_pointer_array *array_ptr, int idx);
+void ia_pointer_store(struct infinite_pointer_array *array_ptr, int idx, void *data_to_store);
 
 
 struct bit_array
@@ -128,7 +128,7 @@ void set_bit_range(struct bit_array *ba,int idx1,int idx2,int value);
 void set_all_bits(struct bit_array *ba,int value);
 void bit_operation(struct bit_array *ba,struct bit_array *bb,char op);
 int count_bits(struct bit_array *ba);
-void print_bit_array(struct bit_array *ba);
+void print_bit_array(FILE *F, struct bit_array *ba);
 void free_bit_array(struct bit_array *ba);
 
 
@@ -165,8 +165,8 @@ void uniq_num_expr_list(struct num_expr_list *nel);
 
 int is_dir(char const *path);
 int is_writable_dir(char const *path);
-int mkdirs(char const *path, FILE *err_file);
-int make_parent_dir(char const *path, FILE *err_file);
+int mkdirs(char const *path);
+int make_parent_dir(char const *path);
 
 FILE *open_file(char const *fname, char const *mode);
 int get_basename(char const *filepath, char **basename);

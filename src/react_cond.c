@@ -8,52 +8,17 @@
 
 
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 
+#include "logging.h"
 #include "rng.h"
+#include "react.h"
 #include "mcell_structs.h"
 #include "react_output.h"
 #include "macromolecule.h"
 
 extern struct volume *world;
-
-
-
-/* test_unimolecular is unused in MCell3 */
-#if 0
-/*************************************************************************
-test_unimolecular:
-  In: the reaction we're testing
-  Out: -1 if no reaction occurs in one timestep
-       int containing the number of the outward pathway if it does
-  Note: Not used in MCell3, timeof_unimolecular() is used instead.
-*************************************************************************/
-
-int test_unimolecular(struct rxn *rx)
-{
-  int m,M,avg;
-  double p = rng_dbl( world->rng );
-  if(world->notify->final_summary == NOTIFY_FULL){
-     world->random_number_use++;
-  } 
- 
-  /* Perform binary search for reaction pathway */
-  m = 0;
-  M = rx->n_pathways-1;
-  if (p > rx->min_noreaction_p) return RX_NO_RX;
-
-  while (M-m > 1)
-  {
-    avg = (M+m)/2;
-    if (p > rx->cum_probs[avg]) m = avg;
-    else M = avg;
-  }
-  
-  if (m==M) return m;
-  if (p > rx->cum_probs[m]) return M;
-  else return m;
-}
-#endif
 
 /*************************************************************************
 get_varying_cum_probs:
@@ -81,9 +46,9 @@ get_varying_cum_probs:
   Out: 1 if any varying rates exist for this reaction and molecule
        0 otherwise
 *************************************************************************/
-int get_varying_cum_probs(double *var_cum_probs,
-                          struct rxn *rx,
-                          struct abstract_molecule *v)
+static int get_varying_cum_probs(double *var_cum_probs,
+                                 struct rxn *rx,
+                                 struct abstract_molecule *v)
 {
   if (! rx->rates  ||  ! v->cmplx)
     return 0;
@@ -111,9 +76,6 @@ timeof_unimolecular:
 double timeof_unimolecular(struct rxn *rx, struct abstract_molecule *a)
 {
   double p = rng_dbl( world->rng );
-  if(world->notify->final_summary == NOTIFY_FULL){
-     world->random_number_use++;
-  } 
 
   double k_tot = rx->max_fixed_p;
   if (rx->rates)
@@ -149,9 +111,6 @@ timeof_special_unimol:
 double timeof_special_unimol(struct rxn *rxuni,struct rxn *rxsurf, struct abstract_molecule *a)
 {
   double p = rng_dbl( world->rng );
-  if(world->notify->final_summary == NOTIFY_FULL){
-     world->random_number_use++;
-  } 
 
   double k_tot = rxuni->max_fixed_p + rxsurf->max_fixed_p;
   if (rxuni->rates)
@@ -191,9 +150,6 @@ int which_unimolecular(struct rxn *rx, struct abstract_molecule *a)
   }
 
   double p = rng_dbl( world->rng );
-  if(world->notify->final_summary == NOTIFY_FULL){
-     world->random_number_use++;
-  } 
   
   /* Perform binary search for reaction pathway */
   if (! rx->rates)
@@ -282,9 +238,6 @@ int is_surface_unimol(struct rxn *rxuni,struct rxn *rxsurf,struct abstract_molec
 
   k_tot += k_uni;
 
-  if(world->notify->final_summary == NOTIFY_FULL){
-    world->random_number_use++;
-  } 
   return (rng_dbl(world->rng)*k_tot < k_uni) ? 0 : 1;
 }
 
@@ -327,9 +280,6 @@ int test_bimolecular(struct rxn *rx,
   {
     /* Instead of scaling rx->cum_probs array we scale random probability */
     p = rng_dbl( world->rng ) * scaling;
-    if(world->notify->final_summary == NOTIFY_FULL){
-        world->random_number_use++;
-    } 
 
     if (p >= rx->min_noreaction_p) return RX_NO_RX;
   }
@@ -356,17 +306,11 @@ int test_bimolecular(struct rxn *rx,
     
       /* Keep the proportions of outbound pathways the same. */
       p = rng_dbl( world->rng ) * max_p;
-      if(world->notify->final_summary == NOTIFY_FULL){
-        world->random_number_use++;
-      } 
     }
     else /* we can scale enough */
     {
       /* Instead of scaling rx->cum_probs array we scale random probability */
       p = rng_dbl( world->rng ) * scaling;
-      if(world->notify->final_summary == NOTIFY_FULL){
-        world->random_number_use++;
-      } 
 
       if (p >= max_p) return RX_NO_RX;
     }
@@ -475,9 +419,6 @@ int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_p
   if (has_coop_rate)
   {
     p = rng_dbl(world->rng);
-    if(world->notify->final_summary == NOTIFY_FULL){
-      world->random_number_use++;
-    } 
 
     /* Easy out - definitely no reaction */
     if (p > rxp[nmax-1]) return RX_NO_RX;
@@ -486,19 +427,18 @@ int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_p
     if (rxp[nmax-1] > 1.0)
     {
       double deficit = 0.0;
-      int path_no;
       int cxNo = 0;
       for (i = n; i<2*n; ++i)
       {
         if (i - n >= complex_limits[cxNo])
           ++ cxNo;
 
-        for (path_no = 0; path_no < rx[i]->n_pathways; ++ path_no)
+        for (int n_path = 0; n_path < rx[i]->n_pathways; ++ n_path)
         {
-          if (rx[i]->rates[path_no] == NULL)
+          if (rx[i]->rates[n_path] == NULL)
             continue;
 
-          deficit += macro_lookup_rate(rx[i]->rates[path_no], complexes[cxNo], scaling[i - n] * rx[i]->pb_factor);
+          deficit += macro_lookup_rate(rx[i]->rates[n_path], complexes[cxNo], scaling[i - n] * rx[i]->pb_factor);
         }
         rxp[n] -= deficit;
       }
@@ -537,8 +477,6 @@ int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_p
       /* If it was a varying rate... */
       if (i >= n)
       {
-        int path_no;
-
         i -= n;
         p = p*scaling[i];
 
@@ -546,17 +484,17 @@ int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_p
         while (i >= complex_limits[cxNo])
           ++ cxNo;
 
-        for (path_no = 0; path_no < rx[i]->n_pathways; ++ path_no)
+        for (int n_path = 0; n_path < rx[i]->n_pathways; ++ n_path)
         {
-          if (rx[i]->rates[path_no] == NULL)
+          if (rx[i]->rates[n_path] == NULL)
             continue;
 
-          double prob = macro_lookup_rate(rx[i]->rates[path_no], complexes[cxNo], scaling[i] * rx[i]->pb_factor);
+          double prob = macro_lookup_rate(rx[i]->rates[n_path], complexes[cxNo], scaling[i] * rx[i]->pb_factor);
           if (p > prob)
             p -= prob;
           else
           {
-            *chosen_pathway = path_no;
+            *chosen_pathway = n_path;
             return i;
           }
         }
@@ -625,7 +563,6 @@ int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_p
      * and will need to examine the varying probabilities. */
     else
     {
-      int path_no;
       p -= rxp[n-1];
       int cxNo = 0;
       for (i = n; i<2*n; ++i)
@@ -633,17 +570,17 @@ int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_p
         if (i - n >= complex_limits[cxNo])
           ++ cxNo;
 
-        for (path_no = 0; path_no < rx[i]->n_pathways; ++ path_no)
+        for (int n_path = 0; n_path < rx[i]->n_pathways; ++ n_path)
         {
-          if (rx[i]->rates[path_no] == NULL)
+          if (rx[i]->rates[n_path] == NULL)
             continue;
 
-          double prob = macro_lookup_rate(rx[i]->rates[path_no], complexes[cxNo], scaling[i - n] * rx[i]->pb_factor);
+          double prob = macro_lookup_rate(rx[i]->rates[n_path], complexes[cxNo], scaling[i - n] * rx[i]->pb_factor);
           if (p > prob)
             p -= prob;
           else
           {
-            *chosen_pathway = path_no;
+            *chosen_pathway = n_path;
             return i - n;
           }
         }
@@ -652,46 +589,8 @@ int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_p
       return RX_NO_RX;
     }
 
-    if (rxp[nmax-1] > 1.0)
-    {
-      f = rxp[n-1]-1.0;            /* Number of failed reactions */
-      for (i=0;i<n;i++)            /* Distribute failures */
-      {
-        rx[i]->n_skipped += f * (rx[i]->cum_probs[rx[i]->n_pathways-1])/rxp[n-1];
-      }
-      p *= rxp[nmax-1];
-    }
-    
-    /* Pick the reaction that happens */
-    m=0;
-    M=n-1;
-    while (M-m>1)
-    {
-      avg = (M+m)/2;
-      if (p > rxp[avg]) m = avg;
-      else M = avg;
-    }
-    if (p > rxp[m]) i=M;
-    else i = m;
-    
-    my_rx = rx[i];
-    if (i>0) p = (p - rxp[i-1]);
-    p = p*scaling[i];
-    
-    /* Now pick the pathway within that reaction */
-    m=0;
-    M=my_rx->n_pathways-1;
-    while (M-m>1)
-    {
-      avg = (M+m)/2;
-      if (p > my_rx->cum_probs[avg]) m = avg;
-      else M=avg;
-    }
-    if (p>my_rx->cum_probs[m]) m=M;
-
-    *chosen_pathway = m;
-
-    return i;
+    mcell_internal_error("Should never reach this point in the code.");
+    return RX_NO_RX;
   }
   else
   {
@@ -703,16 +602,10 @@ int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_p
         rx[i]->n_skipped += f * (rx[i]->cum_probs[rx[i]->n_pathways-1])/rxp[n-1];
       }
       p = rng_dbl( world->rng ) * rxp[n-1];
-      if(world->notify->final_summary == NOTIFY_FULL){
-          world->random_number_use++;
-      } 
     }
     else
     {
       p = rng_dbl(world->rng);
-      if(world->notify->final_summary == NOTIFY_FULL){
-          world->random_number_use++;
-      } 
       if (p > rxp[n-1]) return RX_NO_RX;
     }
     
@@ -769,24 +662,21 @@ int test_intersect(struct rxn *rx,double scaling)
   double p;
   
   if (rx->n_pathways <= RX_SPECIAL) return rx->n_pathways;
-  
-  if (rx->cum_probs[rx->n_pathways-1] < EPS_C) printf("This isn't happening between %s and %s\n",rx->players[0]->sym->name,rx->players[1]->sym->name);
-  
+
+  if (rx->cum_probs[rx->n_pathways-1] < EPS_C)
+    mcell_warn("Probability less than EPS_C for reaction between %s and %s.",
+               rx->players[0]->sym->name,
+               rx->players[1]->sym->name);
+
   if (rx->cum_probs[rx->n_pathways-1] > scaling)
   {
     if (scaling<=0.0) rx->n_skipped += GIGANTIC;
     else rx->n_skipped += rx->cum_probs[rx->n_pathways-1] / scaling - 1.0;
     p = rng_dbl( world->rng ) * rx->cum_probs[rx->n_pathways-1];
-    if(world->notify->final_summary == NOTIFY_FULL){
-        world->random_number_use++;
-    } 
   }
   else
   {
     p = rng_dbl( world->rng ) * scaling;
-    if(world->notify->final_summary == NOTIFY_FULL){
-        world->random_number_use++;
-    } 
   
     if ( p > rx->cum_probs[ rx->n_pathways-1 ] ) return RX_NO_RX;
   }
@@ -851,27 +741,31 @@ void check_probs(struct rxn *rx,double t)
       
       if (rx->n_reactants==1)
       {
-        fprintf(world->log_file, "Probability %.4e set for %s[%d] -> ",new_prob,
+        mcell_log_raw("Probability %.4e set for %s[%d] -> ",new_prob,
             rx->players[0]->sym->name,rx->geometries[0]);
       }
       else if(rx->n_reactants==2)
       {
-        fprintf(world->log_file, "Probability %.4e set for %s[%d] + %s[%d] -> ",new_prob,
+        mcell_log_raw("Probability %.4e set for %s[%d] + %s[%d] -> ",new_prob,
             rx->players[0]->sym->name,rx->geometries[0],rx->players[1]->sym->name,rx->geometries[1]);
       }
       else
       {
-        fprintf(world->log_file, "Probability %.4e set for %s[%d] + %s[%d] + %s[%d] -> ",new_prob,
+        mcell_log_raw("Probability %.4e set for %s[%d] + %s[%d] + %s[%d] -> ",new_prob,
             rx->players[0]->sym->name,rx->geometries[0],rx->players[1]->sym->name,rx->geometries[1],
             rx->players[2]->sym->name,rx->geometries[2]);
       }
        
-      for (k = rx->product_idx[j] ; k < rx->product_idx[j+1] ; k++)
+      for (unsigned int n_product = rx->product_idx[j];
+           n_product < rx->product_idx[j+1];
+           n_product++)
       {
-         if (rx->players[k]!=NULL)
-           fprintf(world->log_file, "%s[%d] ",rx->players[k]->sym->name,rx->geometries[k]);
+         if (rx->players[n_product] != NULL)
+           mcell_log_raw("%s[%d] ",
+                         rx->players[n_product]->sym->name,
+                         rx->geometries[n_product]);
       }
-      fprintf(world->log_file, "\n");
+      mcell_log_raw("\n");
     }
   }
   
@@ -882,13 +776,13 @@ void check_probs(struct rxn *rx,double t)
   /* Now we have to see if we need to warn the user. */
   if (rx->cum_probs[rx->n_pathways-1] > world->notify->reaction_prob_warn)
   {
-    FILE *warn_file = world->log_file;
+    FILE *warn_file = mcell_get_log_file();
     
     if (world->notify->high_reaction_prob != WARN_COPE)
     {
       if (world->notify->high_reaction_prob==WARN_ERROR)
       {
-        warn_file = world->err_file;
+        warn_file = mcell_get_error_file();
         fprintf(warn_file,"Error: High ");
       }
       else fprintf(warn_file,"Warning: High ");
@@ -910,14 +804,9 @@ void check_probs(struct rxn *rx,double t)
             rx->players[2]->sym->name,rx->geometries[2]);
       }
     }
-    
+
     if (world->notify->high_reaction_prob==WARN_ERROR)
-    {
-      j = emergency_output();
-      if (!j) fprintf(world->err_file,"Successfully wrote reaction data output.\n");
-      else fprintf(world->err_file,"Failed to write all pending reaction data output (%d errors).\n",j);
-      exit(EXIT_FAILURE);
-    }
+      mcell_die();
   }
 
   return;

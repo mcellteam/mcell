@@ -13,5 +13,8 @@ NOTIFICATIONS
     FINAL_SUMMARY                   = TRUE
     THROUGHPUT_REPORT               = TRUE
     ITERATION_REPORT                = 100       // or TRUE/FALSE
+    VOLUME_OUTPUT_REPORT            = FALSE
+    REACTION_OUTPUT_REPORT          = FALSE
+    VIZ_OUTPUT_REPORT               = FALSE
     CHECKPOINT_REPORT               = TRUE
 }

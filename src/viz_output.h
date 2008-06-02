@@ -5,25 +5,8 @@
 
 /* Header file for visualization output routines */
 
-int update_frame_data_list(struct frame_data_list *fdlp);
-int init_frame_data_list(struct frame_data_list **fdlp);
-int output_dx_objects(struct frame_data_list *fdlp);
-int output_rk_custom(struct frame_data_list *fdlp);
-int output_ascii_molecules(struct frame_data_list *fdlp);
-int output_dreamm_objects(struct frame_data_list const * const fdlp);
-int output_dreamm_objects_grouped(struct frame_data_list const * const fdlp);
-int finalize_viz_output(struct frame_data_list  *fdlp);
-
-/*
-int output_radiance_objects(struct frame_data_list *fdlp);
-int output_rayshade_objects(struct frame_data_list *fdlp);
-int output_povray_objects(struct frame_data_list *fdlp);
-int output_renderman_objects(struct frame_data_list *fdlp);
-int output_irit_objects(struct frame_data_list *fdlp);
-int output_mcell_objects(struct frame_data_list *fdlp);
-int output_voxel_image(struct frame_data_list *fdlp);
-int output_voxel_volume(struct frame_data_list *fdlp);
-*/
-
+int update_frame_data_list(struct viz_output_block *vizblk);
+int init_frame_data_list(struct viz_output_block *vizblk);
+int finalize_viz_output(struct viz_output_block *vizblk);
 
 #endif

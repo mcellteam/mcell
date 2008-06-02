@@ -1,12 +1,17 @@
 #include "argparse.h"
 
 #include "mcell_structs.h"  /* for struct volume */
+#include "logging.h"
 #include "version_info.h"   /* for print_version, print_full_version */
 #include <stdarg.h>         /* for va_start, va_end, va_list */
 #include <string.h>         /* for strdup */
 #include <getopt.h>         /* for getopt_long_only, struct option, ... */
 #include <stdio.h>          /* for *printf functions */
 #include <stdlib.h>         /* for strtol, strtoll, strtoul, free */
+
+/* Display a formatted error message. */
+static void argerror(struct volume *vol, char const *s, ...)
+  __attribute__((format (printf, 2, 3)));
 
 /* Command-line arguments structure:
  *     long arg name
@@ -20,7 +25,8 @@
  * takes an argument.  Finally, add a case to the switch statement to handle
  * the letter you selected for the argument.
  */
-static struct option long_options[] = {
+static struct option long_options[] =
+{
   {"help",              0, 0, 'h'},
   {"version",           0, 0, 'v'},
   {"fullversion",       0, 0, 'V'},
@@ -48,7 +54,7 @@ void print_usage(FILE *f, char const *argv0)
   fprintf(f, "       [-fullversion]            print the detailed program version report and exit\n");
   fprintf(f, "       [-seed n]                 choose random sequence number (default: 1)\n");
   fprintf(f, "       [-iterations n]           override iterations in mdl_file_name\n");
-  fprintf(f, "       [-logfile log_file_name]  send output log to file (default: stderr)\n");
+  fprintf(f, "       [-logfile log_file_name]  send output log to file (default: stdout)\n");
   fprintf(f, "       [-logfreq n]              output log frequency (default: 100)\n");
   fprintf(f, "       [-errfile err_file_name]  send errors log to file (default: stderr)\n");
   fprintf(f, "       [-checkpoint_infile checkpoint_file_name]  read checkpoint file\n");
@@ -63,17 +69,18 @@ void print_usage(FILE *f, char const *argv0)
  *   vol: the volume into which to imbue the parsed options
  *   fmt: a C "printf"-style format string
  */
-void argerror(struct volume *vol, char const *fmt, ...)
+static void argerror(struct volume *vol, char const *fmt, ...)
 {
+  UNUSED(vol);
+
   va_list args;
-  fprintf(vol->err_file,"\nMCell: command-line argument syntax error: ");
+  mcell_warn("\nMCell: command-line argument syntax error: ");
 
   va_start(args, fmt);
-  vfprintf(vol->err_file, fmt, args);
+  mcell_warnv(fmt, args);
   va_end(args);
 
-  fprintf(vol->err_file, "\n");
-  fflush(vol->err_file);
+  mcell_warn("\n");
 }
 
 /* argparse_init: Parse the command-line arguments, imbuing the options into
@@ -91,13 +98,11 @@ void argerror(struct volume *vol, char const *fmt, ...)
 int argparse_init(int argc, char * const argv[], struct volume *vol)
 {
   char *endptr = NULL;
+  int log_file_specified = 0, err_file_specified = 0;
+  FILE *fhandle = NULL;
 
   /* Set up default values */
-  vol->log_freq = -1;
-  vol->log_file_name = NULL;
-  vol->err_file_name = NULL;
-  vol->log_file = stdout;
-  vol->err_file = stderr;
+  vol->log_freq = ULONG_MAX;
   vol->seed_seq = 1;
   vol->mdl_infile_name = NULL;
 
@@ -117,12 +122,12 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
         return 1;
 
       case 'v':  /* -version */
-        print_version(vol->log_file);
+        print_version(mcell_get_log_file());
         exit(1);
         break;
 
       case 'V':  /* -fullversion */
-        print_full_version(vol->log_file);
+        print_full_version(mcell_get_log_file());
         exit(1);
         break;
 
@@ -132,7 +137,8 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
 
       case 's':  /* -seed */
         vol->seed_seq = (int) strtol(optarg, &endptr, 0);
-        if (endptr == optarg || *endptr != '\0') {
+        if (endptr == optarg || *endptr != '\0')
+        {
           argerror(vol, "Random seed must be an integer: %s", optarg);
           return 1;
         }
@@ -140,12 +146,14 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
 
       case 'i':  /* -iterations */
         vol->iterations = strtoll(optarg, &endptr, 0);
-        if (endptr == optarg || *endptr != '\0') {
+        if (endptr == optarg || *endptr != '\0')
+        {
           argerror(vol, "Iteration count must be an integer: %s", optarg);
           return 1;
         }
 
-        if (vol->iterations < 0) {
+        if (vol->iterations < 0)
+        {
           argerror(vol, "Iteration count %lld is less than 0", (long long int) vol->iterations);
           return 1;
         }
@@ -153,12 +161,14 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
 
       case 'c':  /* -checkpoint_infile */
         vol->chkpt_infile = strdup(optarg);
-        if (vol->chkpt_infile == NULL) {
+        if (vol->chkpt_infile == NULL)
+        {
           argerror(vol, "File '%s', Line %u: Out of memory while parsing command-line arguments: %s\n", __FILE__, __LINE__, optarg);
           return 1;
         }
 
-        if ((vol->chkpt_infs = fopen(vol->chkpt_infile, "rb")) == NULL) {
+        if ((fhandle = fopen(vol->chkpt_infile, "rb")) == NULL)
+        {
           argerror(vol, "Cannot open input checkpoint file: %s", vol->chkpt_infile);
           free(vol->chkpt_infile);
           vol->chkpt_infile = NULL;
@@ -168,71 +178,69 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
 
         vol->chkpt_init=0;
         vol->chkpt_flag = 1;
-        fclose(vol->chkpt_infs);
-        vol->chkpt_infs=NULL;
+        fclose(fhandle);
         break;
 
       case 'l':  /* -logfile */
-        if (vol->log_file_name != NULL) {
+        if (log_file_specified)
+        {
           argerror(vol, "-l or --logfile argument specified more than once: %s", optarg);
           return 1;
         }
 
-        vol->log_file_name = strdup(optarg);
-        if (vol->log_file_name == NULL) {
-          argerror(vol, "File '%s', Line %u: Out of memory while parsing command-line arguments: %s\n", __FILE__, __LINE__, optarg);
+        if ((fhandle = fopen(optarg, "w")) == NULL)
+        {
+          argerror(vol, "Cannot open output log file: %s", optarg);
           return 1;
         }
-
-        if ((vol->log_file=fopen(vol->log_file_name, "w")) == NULL) {
-          vol->log_file = stdout;
-          argerror(vol, "Cannot open output log file: %s", vol->log_file_name);
-          free(vol->log_file_name);
-          vol->log_file_name = NULL;
-          return 1;
+        else
+        {
+          mcell_set_log_file(fhandle);
+          log_file_specified = 1;
         }
         break;
 
       case 'f':  /* -logfreq */
-        if (vol->log_freq != (u_int) -1) {
+        if (vol->log_freq != ULONG_MAX)
+        {
           argerror(vol, "-f or --logfreq specified more than once: %s", optarg);
           return 1;
         }
 
-        vol->log_freq = (int) strtoul(optarg, &endptr, 0);
-        if (endptr == optarg || *endptr != '\0') {
-          argerror(vol, "Logging frequency must be an integer: %s", optarg);
+        vol->log_freq = strtoul(optarg, &endptr, 0);
+        if (endptr == optarg || *endptr != '\0')
+        {
+          argerror(vol, "Iteration report interval must be an integer: %s", optarg);
           return 1;
         }
-
-        if (vol->log_freq < 1) {
-          argerror(vol, "Iteration report update interval must be at least 1 iteration");
+        if (vol->log_freq == ULONG_MAX)
+        {
+          argerror(vol, "Iteration report interval must be an integer n such that 1 <= n < %lu: %s", ULONG_MAX, optarg);
+          return 1;
+        }
+        if (vol->log_freq < 1)
+        {
+          argerror(vol, "Iteration report interval must be at least 1 iteration: %s", optarg);
           return 1;
         }
         break;
 
       case 'e':  /* -errfile */
-        if (vol->err_file_name != NULL) {
+        if (err_file_specified)
+        {
           argerror(vol, "-e or --errfile argument specified more than once");
           return 1;
         }
 
-        vol->err_file_name = strdup(optarg);
-        if (vol->err_file_name == NULL) {
-          argerror(vol, "File '%s', Line %ld: Out of memory while parsing command line arguments: %s", __FILE__, (long)__LINE__, optarg);
+        if ((fhandle = fopen(optarg, "w")) == NULL)
+        {
+          argerror(vol, "Cannot open output error file: %s", optarg);
           return 1;
         }
-
-        if ((vol->err_file = fopen(vol->err_file_name, "w")) == NULL) {
-
-          /* what should happen in this case is debatable.  stderr, stdout,
-           * or log_file...
-           */
-          vol->err_file = stderr;
-          argerror(vol, "Cannot open output error file: %s", vol->err_file_name);
-          free(vol->err_file_name);
-          vol->err_file_name = NULL;
-          return 1;
+        else
+        {
+          mcell_set_error_file(fhandle);
+          err_file_specified = 1;
         }
         break;
 
@@ -242,25 +250,19 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
     }
   }
 
-  /* The old code would set err_file to log_file if err_file was NULL.  As
-   * far as I can tell, this could never occur.  Perhaps this behavior is
-   * what was intended?
-   */
-  /*
-     if (vol->err_file == stderr  &&  vol->log_file != stdout)
-         vol->err_file = vol->log_file;
-   */
-
   /* Handle any left-over arguments, which we assume to be MDL files. */
-  if (optind < argc) {
+  if (optind < argc)
+  {
     FILE *f;
-    if (argc - optind > 1) {
+    if (argc - optind > 1)
+    {
       argerror(vol, "%d MDL file names specified: %s, %s, ...", argc - optind, argv[optind], argv[optind+1]);
       return 1;
     }
 
     vol->mdl_infile_name = strdup(argv[optind]);
-    if (vol->mdl_infile_name == NULL) {
+    if (vol->mdl_infile_name == NULL)
+    {
       argerror(vol, "File '%s', Line %ld: Out of memory while parsing command line arguments: %s", __FILE__, (long)__LINE__, argv[optind]);
       return 1;
     }
@@ -272,7 +274,8 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
     }
     fclose(f);
   }
-  else {
+  else
+  {
     argerror(vol, "No MDL file name specified");
     return 1;
   }

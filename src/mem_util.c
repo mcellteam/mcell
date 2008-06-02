@@ -7,11 +7,13 @@
  **   (See validate_mem_util.c.)                                         **
 \**************************************************************************/
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "strfunc.h"
+#include "logging.h"
 #include "mem_util.h"
 
 #include "mcell_structs.h"
@@ -19,9 +21,7 @@
 #define INSERTION_MAX 16
 #define INSERTION_MIN 4
 
-void nullprintf(char *whatever,...) {}
-
-#define noprintf nullprintf
+#define noprintf(fmt, ...) do { /* nothing */ } while (0)
 
 #ifdef MEM_UTIL_KEEP_STATS
 #undef malloc
@@ -73,27 +73,33 @@ void* count_malloc(int n)
  * Checked malloc helpers
  *************************************************************************/
 
-extern int emergency_output();
-static void memalloc_failure(char const *file, long line, int size, char const *desc, int onfailure)
+static void memalloc_failure(char const *file,
+                             unsigned int line,
+                             unsigned int size,
+                             char const *desc,
+                             int onfailure)
 {
-    if (desc)
-      fprintf(world->err_file, "File '%s', Line %ld: Failed to allocate %d bytes for %s.\n", file, line, size, desc);
-    else
-      fprintf(world->err_file, "File '%s', Line %ld: Failed to allocate %d bytes.\n", file, line, size);
-    if (onfailure & CM_EMERGENCY_OUTPUT)
-    {
-      fprintf(world->err_file, "Out of memory; trying to save intermediate results.\n");
-      int i = emergency_output();
-      fprintf(world->err_file, "Fatal error: Out of memory.\n  Attempt to write intermediate results had %d errors\n", i);
-    }
-    else
-      fprintf(world->err_file, "Out of memory.\n");
+#ifdef MEM_UTIL_LINE_NUMBERS
+  if (desc)
+    mcell_error_nodie("File '%s', Line %u: Failed to allocate %u bytes for %s.\n", file, line, size, desc);
+  else
+    mcell_error_nodie("File '%s', Line %u: Failed to allocate %u bytes.\n", file, line, size);
+#else
+  UNUSED(file);
+  UNUSED(line);
+  if (desc)
+    mcell_error_nodie("Failed to allocate %u bytes for %s.\n", size, desc);
+  else
+    mcell_error_nodie("Failed to allocate %u bytes.\n", size);
+#endif
 
-    if (onfailure & CM_EXIT)
-      exit(EXIT_FAILURE);
+  if (onfailure & CM_EXIT)
+    mcell_error("Out of memory.");
+  else
+    mcell_error_nodie("Out of memory.");
 }
 
-char *checked_strdup(char const *s, char const *file, long line, char const *desc, int onfailure)
+char *checked_strdup(char const *s, char const *file, unsigned int line, char const *desc, int onfailure)
 {
   if (s == NULL)
     return NULL;
@@ -104,7 +110,7 @@ char *checked_strdup(char const *s, char const *file, long line, char const *des
   return data;
 }
 
-void *checked_malloc(unsigned int size, char const *file, long line, char const *desc, int onfailure)
+void *checked_malloc(unsigned int size, char const *file, unsigned int line, char const *desc, int onfailure)
 {
   void *data = malloc(size);
   if (data == NULL)
@@ -112,7 +118,23 @@ void *checked_malloc(unsigned int size, char const *file, long line, char const 
   return data;
 }
 
-void *checked_mem_get(struct mem_helper *mh, char const *file, long line, char const *desc, int onfailure)
+char *checked_alloc_sprintf(char const *file, unsigned int line, int onfailure, char const *fmt, ...)
+{
+  va_list args, saved_args;
+  va_start(args, fmt);
+  va_copy(saved_args, args);
+
+  char *data = alloc_vsprintf(fmt, args);
+  if (data == NULL)
+  {
+    int needlen = vsnprintf(NULL, 0, fmt, saved_args);
+    memalloc_failure(file, line, needlen+1, "formatted string", onfailure);
+  }
+  va_end(args);
+  return data;
+}
+
+void *checked_mem_get(struct mem_helper *mh, char const *file, unsigned int line, char const *desc, int onfailure)
 {
   void *data = mem_get(mh);
   if (data == NULL)
@@ -136,16 +158,16 @@ struct counter_helper* create_counter(int size,int length)
 {
   struct counter_helper *ch;
   
-  ch = (struct counter_helper*) Malloc( sizeof(struct counter_helper) );
-  if(ch == NULL) {
-    	fprintf(world->err_file, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
-	return (NULL);
-  }
+  ch = CHECKED_MALLOC_STRUCT(struct counter_helper, "counter helper");
+  if (ch == NULL)
+    return  NULL;
+
   ch->mem = create_mem(size + sizeof(struct counter_header),length);
-  if(ch->mem == NULL) {
-        free(ch);
-    	fprintf(world->err_file, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
-	return (NULL);
+  if (ch->mem == NULL)
+  {
+    free(ch);
+    memalloc_failure(__FILE__, __LINE__, (size + sizeof(struct counter_header)) * length, "counter memory pool", 0);
+    return NULL;
   }
   ch->data_size = size;
   ch->n_unique = 0;
@@ -165,19 +187,17 @@ counter_add:
           (but pointers are not followed).
 *************************************************************************/
 
-void counter_add(struct counter_helper *ch,void *data)
+int counter_add(struct counter_helper *ch,void *data)
 {
   struct counter_header *c, *new_c, *prev_c;
   int i;
   
   if (ch->head == NULL)
   {
-    new_c = (struct counter_header*) mem_get(ch->mem);
-    if(new_c == NULL)
-    {
-    	fprintf(world->err_file, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
-	return;
-    }
+    new_c = (struct counter_header*) CHECKED_MEM_GET(ch->mem, "counter element");
+    if (new_c == NULL)
+      return 1;
+
     new_c->next = NULL;
     new_c->prev = NULL;
     new_c->n = 1;
@@ -192,20 +212,18 @@ void counter_add(struct counter_helper *ch,void *data)
     c = ch->head;
     while (c != NULL)
     {
-      i = memcmp((void *)((intptr_t)c)+sizeof(struct counter_header),data,ch->data_size);
+      i = memcmp((void *)(((intptr_t)c)+sizeof(struct counter_header)),data,ch->data_size);
 
       if (i==0)
       { 
         c->n++;
-        return;
+        return 0;
       }
       else if (i<0)
       {
-        new_c = (struct counter_header*) mem_get(ch->mem);
-        if(new_c == NULL){
-    	        fprintf(world->err_file, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
-		return;
-        }
+        new_c = (struct counter_header*) CHECKED_MEM_GET(ch->mem, "counter element");
+        if (new_c == NULL)
+          return 1;
         new_c->next = c;
         new_c->prev = prev_c;
         new_c->n = 1;
@@ -216,17 +234,15 @@ void counter_add(struct counter_helper *ch,void *data)
         c->prev = new_c;
         
         ch->n_unique++;
-        return;
+        return 0;
       }
       else
       {
         if (c->next == NULL)
         {
-          new_c = (struct counter_header*) mem_get(ch->mem);
-          if(new_c == NULL){
-    	        fprintf(world->err_file, "File '%s', Line %ld: Memory allocation error!\n", __FILE__, (long)__LINE__);
-		return;
-          }
+          new_c = (struct counter_header*) CHECKED_MEM_GET(ch->mem, "counter element");
+          if (new_c == NULL)
+            return 1;
           new_c->next = NULL;
           new_c->prev = c;
           new_c->n = 1;
@@ -235,13 +251,15 @@ void counter_add(struct counter_helper *ch,void *data)
           c->next = new_c;
           
           ch->n_unique++;
-          return;
+          return 0;
         }
         
         else c = c->next;
       }
     }
   }
+
+  return 0;
 }
 
 
@@ -529,6 +547,7 @@ void* stack_access(struct stack_helper *sh,int n)
 }
 
 
+#if 0
 /*************************************************************************
 stack_semisort_pdouble:
    In: A stack_helper with elements that are pointers to doubles
@@ -685,8 +704,10 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
       j = sh->index-1;
       data2 = (double**)shq->data;
 
+#ifdef DEBUG
       for (i=0;i<iL;i++) if (*data[i] < *data[i+1]) noprintf("Boggled L [%d] %.1f %.1f!\n",i,*data[i],*data[i+1]);
       for (i=0;i<iR;i++) if (*data2[i] < *data2[i+1]) noprintf("Boggled R [%d] %.1f %.1f!\n",i,*data2[i],*data2[i+1]);
+#endif
 
       while (shq != shp)
       {
@@ -761,6 +782,7 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
   
   return nsorted;
 }
+#endif
 
 
 /*************************************************************************
@@ -979,7 +1001,7 @@ struct mem_helper* create_mem_named(int size,int length, char const *name)
   if (mh==NULL) return NULL;
   
   mh->buf_len = (length>0) ? length : 128;
-  mh->record_size = (size>sizeof(void*)) ? size : sizeof(void*);
+  mh->record_size = (size > (int) sizeof(void*)) ? (size_t) size : sizeof(void*);
   mh->buf_index = 0;
   mh->defunct = NULL;
   mh->next_helper = NULL;
@@ -1015,6 +1037,8 @@ struct mem_helper* create_mem_named(int size,int length, char const *name)
     s->max_free = s->cur_free;
   if ((mem_cur_overall_wastage += size * length) > mem_max_overall_wastage)
     mem_max_overall_wastage = mem_cur_overall_wastage;
+#else
+  UNUSED(name);
 #endif
 
   return mh;
@@ -1068,7 +1092,8 @@ void* mem_get(struct mem_helper *mh)
       {
         if (thisData[i] != '\0')
         {
-          fprintf(stderr, "Memory block at %08lx: non-zero at byte %d: %02x %02x %02x %02x...\n", retval, i, thisData[i], thisData[i+1], thisData[i+2], thisData[i+3]);
+          mcell_warn("Memory block at %08lx: non-zero at byte %d: %02x %02x %02x %02x...",
+                     retval, i, thisData[i], thisData[i+1], thisData[i+2], thisData[i+3]);
           i += 4;
         }
         else
@@ -1080,7 +1105,7 @@ void* mem_get(struct mem_helper *mh)
 #ifdef MEM_UTIL_TRACK_FREED
     if (((int *) retval)[-1])
     {
-      fprintf(stderr, "Duplicate allocation of ptr '%p'\n", retval);
+      mcell_warn("Duplicate allocation of ptr '%p'.", retval);
       return NULL;
     }
     ((int *) retval)[-1] = 1;
@@ -1109,7 +1134,7 @@ void* mem_get(struct mem_helper *mh)
     int *ptr = (int *) (mh->heap_array + offset);
     if (*ptr)
     {
-      fprintf(stderr, "Duplicate allocation of ptr '%p'\n", ptr+1);
+      mcell_warn("Duplicate allocation of ptr '%p'.", ptr+1);
       return NULL;
     }
     *ptr++ = 1;
@@ -1170,7 +1195,7 @@ void mem_put(struct mem_helper *mh,void *defunct)
   int *ptr = (int *)data;
   if (ptr[-1] == 0)
   {
-    fprintf(stderr, "Duplicate free of ptr '%p'\n", defunct);
+    mcell_warn("Duplicate free of ptr '%p'.", defunct);
     return;
   }
   ptr[-1] = 0;
@@ -1230,7 +1255,7 @@ void mem_put_list(struct mem_helper *mh,void *defunct)
     int *ptr = (int *)alp;
     if (ptr[-1] == 0)
     {
-      fprintf(stderr, "Duplicate free of ptr '%p'\n", defunct);
+      mcell_warn("Duplicate free of ptr '%p'.", defunct);
       return;
     }
     ptr[-1] = 0;

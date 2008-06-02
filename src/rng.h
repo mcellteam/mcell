@@ -17,6 +17,7 @@
 
 #define rng_state isaac64_state
 
+#define rng_uses(x) ((RANDMAX*((x)->rngblocks - 1)) + (long long) (RANDMAX - (x)->randcnt))
 #define rng_init(x,y) isaac64_init((x),(y))
 #define rng_dbl(x) isaac64_dbl32((x))
 #define rng_uint(x) isaac64_uint32((x))
@@ -29,4 +30,3 @@
 double rng_gauss(struct rng_state *rng);
 
 #endif
-

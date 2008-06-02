@@ -13,6 +13,21 @@
 #include "sched_util.h"
 #include "util.h"
 
+/* Macro for eliminating "unused variable" or "unused parameter" warnings. */
+#define UNUSED(p) ((void) (p))
+
+#ifndef __GNUC__
+#ifndef __attribute__
+#define __attribute__(x) /* empty */
+#endif
+#endif
+
+#if __GNUC__ < 3
+#ifndef __attribute__
+#define __attribute__(x) /* empty */
+#endif
+#endif
+
 /*****************************************************/
 /**  Brand new constants created for use in MCell3  **/
 /*****************************************************/
@@ -138,10 +153,12 @@
 
 
 /* Manifold Flags */
-#define MANIFOLD_UNCHECKED 0
-#define NOT_MANIFOLD       1
-#define IS_MANIFOLD        2
-
+enum manifold_flag_t
+{
+  MANIFOLD_UNCHECKED,   /* Manifold status is unknown */
+  NOT_MANIFOLD,         /* Known to be non-manifold */
+  IS_MANIFOLD           /* Known to be manifold */
+};
 
 /* Reaction flags */
   /* RX_REFLEC signifies that a reaction is between a molecule and a REFLECTIVE  wall */
@@ -152,7 +169,6 @@
   /* RX_FLIP signals that a molecule flips its orientation (crosses a wall if it's free) */
   /* RX_DESTROY signals that the molecule no longer exists (so don't try to keep using it) */
   /* RX_A_OK signals that all is OK with a reaction, proceed as normal (reflect if you're free) */
-  /* RX_NO_MEM signals a memory allocation error. */
 #define RX_REFLEC  -4
 #define RX_TRANSP  -3
 #define RX_SPECIAL -3
@@ -162,7 +178,6 @@
 #define RX_LEAST_VALID_PATHWAY 0
 #define RX_DESTROY  0
 #define RX_A_OK     1
-#define RX_NO_MEM   3
 #define MAX_MATCHING_RXNS 64
 
 
@@ -194,12 +209,6 @@
 #define BRANCH_Y  0x08
 #define BRANCH_Z  0x10
 
-
-/* Constants equating integers with coordinates */
-/* Axis Values */
-#define X_AXIS 0
-#define Y_AXIS 1
-#define Z_AXIS 2
 
 /* Direction Values */
 #define X_NEG 0
@@ -253,24 +262,6 @@
                                 volume_molecule and grid_molecule */
 
 
-/* Target-type Flags */
-/* Types for things we can hit */
-#define VOL_COLLISION    1
-#define WALL_COLLISION   2   
-#define MOL_COLLISION    3
-
-
-/* Flags for edges. */
-/* BARE edges do not connect to anything. */
-/* SHARED edges have walls with the same coordinate frame */
-/* ROTONLY edges have walls whose coordinate frames are related by rotation */
-/* TRANSROT edges require translation and rotation to move between walls */
-#define EDGE_BARE     0
-#define EDGE_SHARED   1
-#define EDGE_ROTONLY  2
-#define EDGE_TRANSROT 3
-
-
 /* Size constants */
 /* EPS_C is the fractional difference between two values that is considered meaningful */
 /* GIGANTIC is a distance that is larger than any possible simulation */
@@ -301,36 +292,17 @@
 
 
 /* Release Shape Flags */
-#define SHAPE_UNDEFINED -1
-#define SHAPE_SPHERICAL 0
-#define SHAPE_CUBIC 1
-#define SHAPE_ELLIPTIC 2
-#define SHAPE_RECTANGULAR 3
-#define SHAPE_SPHERICAL_SHELL 4
-#define SHAPE_REGION 5
-#define SHAPE_LIST 6
-
-
-/* Flags for parser to indicate which axis we are partitioning */
-#define X_PARTS 0
-#define Y_PARTS 1
-#define Z_PARTS 2
-
-
-/* Exact Disk Flags */
-/* Flags for the exact disk computation */
-#define EXD_HEAD  0
-#define EXD_TAIL  1
-#define EXD_CROSS 2
-#define EXD_SPAN  3
-#define EXD_OTHER 4
-
-
-/* Negative numbers used as flags for reaction disks */
-/* Note: TARGET_OCCLUDED is assumed for any negative number not defined here */
-#define TARGET_OCCLUDED    -1
-#define EXD_OUT_OF_MEMORY  -2
-
+enum release_shape_t
+{
+  SHAPE_UNDEFINED = -1,   /* Not specified */
+  SHAPE_SPHERICAL,        /* Volume enclosed by a sphere */
+  SHAPE_CUBIC,            /* Volume enclosed by a cube */
+  SHAPE_ELLIPTIC,         /* Volume enclosed by an ellipsoid */
+  SHAPE_RECTANGULAR,      /* Volume enclosed by a rect. solid */
+  SHAPE_SPHERICAL_SHELL,  /* Surface of a sphere */
+  SHAPE_REGION,           /* Inside/on the surface of an arbitrary region */
+  SHAPE_LIST              /* Individiaul mol. placement by list */
+};
 
 /* Region Expression Flags */
 /* Boolean set operations for releases on regions */
@@ -358,45 +330,35 @@
 
 
 /* Constants for notification levels */
-/* NONE means that there is no output */
-/* BRIEF is only defined for some types of notification, and tries to give a compact description of what is going on */
-/* FULL prints out appropriate messages */
-/* CUSTOM is defined only when "logfreq" command line option is used
-   for running simulation.  In such case ITERATION_REPORT is printed after
-   number of iterations specified in the command line option have finished */
-#define NOTIFY_NONE 0
-#define NOTIFY_BRIEF 1
-#define NOTIFY_FULL 2
-#define NOTIFY_CUSTOM 3
-
+enum notify_level_t
+{
+  NOTIFY_NONE,        /* no output */
+  NOTIFY_BRIEF,       /* give a brief description (only used for a few types) */
+  NOTIFY_FULL,        /* give a (possibly verbose) description */
+};
 
 /* Constants for warning levels */
-/* COPE means to do something sensible and continue silently */
-/* WARN means to do something sensible but emit a warning message */
-/* ERROR means to treat the warning and an error and stop */
-#define WARN_COPE 0
-#define WARN_WARN 1
-#define WARN_ERROR 2
-
+enum warn_level_t
+{
+  WARN_COPE,          /* do something sensible and continue silently */
+  WARN_WARN,          /* do something sensible but emit a warning message */
+  WARN_ERROR          /* treat the warning and an error and stop */
+};
 
 /* Number of times to try diffusing on a surface before we give up (we might fail if the target grid is full) */
 #define SURFACE_DIFFUSION_RETRIES 10
 
-
 /* Overwrite Policy Flags */
 /* Flags for different types of file output */
-/* OVERWRITE means that the file is always overwritten, even after checkpointing */
-/* SUBSTITUTE is the default--append to entries earlier in time than "now", but overwrite later entries */
-/* APPEND means that the file is always appended to, even when starting a new run */
-/* APPEND_HEADER means that the file is always appended to, and the header is inserted each time */
-/* CREATE means that the output file is created; it is an error if it already exists (prevents overwriting) */
-#define FILE_UNDEFINED 0
-#define FILE_OVERWRITE 1
-#define FILE_SUBSTITUTE 2
-#define FILE_APPEND 3
-#define FILE_APPEND_HEADER 4
-#define FILE_CREATE 5
-
+enum overwrite_policy_t
+{
+  FILE_UNDEFINED,     /* not specified */
+  FILE_OVERWRITE,     /* always overwrite, even after a checkpoint */
+  FILE_SUBSTITUTE,    /* DEFAULT: append to entries earlier in time than "now", but overwrite later entries */
+  FILE_APPEND,        /* always append to file, even on a new run */
+  FILE_APPEND_HEADER, /* always append to file, including the header, even on a new run */
+  FILE_CREATE,        /* always create the file, or give an error if the file already exists (to prevent overwriting) */
+};
 
 /* Output Expression Flags */
 /* INT means that this expression is an integer */
@@ -438,7 +400,6 @@
 /* Should be some number not between 0 and 1 that is also not -1 */
 #define MAGIC_PATTERN_PROBABILITY 1.101001000100001
 
-
 /* Output Trigger Flags */
 /* Don't set both RXN and HIT flags */
 #define TRIG_IS_RXN       0x1
@@ -450,21 +411,20 @@
 #define DISSOCIATION_MIN -1000000000
 
 /* Checkpoint related flags */
-#define CHKPT_NOT_REQUESTED     0
-#define CHKPT_SIGNAL_CONT       1
-#define CHKPT_SIGNAL_EXIT       2
-#define CHKPT_ALARM_CONT        3
-#define CHKPT_ALARM_EXIT        4
-#define CHKPT_ITERATIONS_CONT   5
-#define CHKPT_ITERATIONS_EXIT   6
+enum checkpoint_request_type_t
+{
+  CHKPT_NOT_REQUESTED,    /* No CP requested */
+  CHKPT_SIGNAL_CONT,      /* CP requested via SIGUSR* signal, continue after CP */
+  CHKPT_SIGNAL_EXIT,      /* CP requested via SIGUSR* signal, exit after CP  */
+  CHKPT_ALARM_CONT,       /* CP requested via "alarm" signal, continue after CP */
+  CHKPT_ALARM_EXIT,       /* CP requested via "alarm" signal, exit after CP */
+  CHKPT_ITERATIONS_CONT,  /* CP requested due to iteration count, continue after CP */
+  CHKPT_ITERATIONS_EXIT,  /* CP requested due to iteration count, exit after CP */
+};
 
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
 /*********************************************************/
-
-
-/* Generic numerical constants */
-#define EPSILON 1e-14
 
 /* 1/2^32 */
 #define R_UINT_MAX 2.3283064365386962890625e-10
@@ -473,25 +433,6 @@
 #define N_AV 6.0221415e23
 #define ROUND_UP 0.5
                                                                                 
-/* Wall element shapes */
-#define RECT_POLY 0
-#define TRI_POLY 1
-#define GEN_POLY 2
-   /* RECT_POLY is rectangular */
-   /* TRI_POLY is triangular */
-   /* GEN_POLY is non-rectangular with >3 vertices */
-
-
-/* Surface grid shapes */
-#define RECTANGULAR 0
-#define TRIANGULAR 1
-
-
-/* Orientations */
-/* Relative to a surface */
-#define OUTWRD 1
-#define INWRD -1
-
 /* Placement Type Flags */
 /* Place either a certain density or an exact number of surface molecules */
 #define EFFDENS 0
@@ -506,17 +447,11 @@
 #define VIZ_MOLECULE_FORMAT_BINARY 0x10
 #define VIZ_MESH_FORMAT_ASCII 0x20
 #define VIZ_MESH_FORMAT_BINARY 0x40
+#define VIZ_ALL_MESHES 0x80
 
 /************************************************************/
 /**  Old constants copied from MCell2, some may be broken  **/
 /************************************************************/
-
-/* Parser parameters.  Probably need to be revisited. */
-/* size of symbol hash table 0x100000 = 1M */
-#define SYM_HASHSIZE 0x100000
-
-/* mask for symbol table hash */
-#define SYM_HASHMASK 0x0FFFFF
 
 /* maximum allowed nesting level of INCLUDE_FILE statements in MDL */
 #define MAX_INCLUDE_DEPTH 16
@@ -524,65 +459,42 @@
 /* default size of output count buffers */
 #define COUNTBUFFERSIZE 10000
                                                                                 
+/* Symbol types */
+/* Data types for items in MDL parser symbol tables. */
+enum symbol_type_t
+{
+  RX,               /* chemical reaction */
+  RXPN,             /* name of chemical reaction */
+  MOL,              /* molecule or surface class type (i.e. species) */
+  OBJ,              /* meta-object */
+  RPAT,             /* release pattern */
+  REG,              /* object region */
+  DBL,              /* double (numeric variable in MDL file) */
+  STR,              /* string (text variable in MDL file) */
+  ARRAY,            /* numeric array (array variable in MDL file) */
+  FSTRM,            /* file stream type for "C"-style file-io in MDL file */
+  TMP,              /* temporary place-holder type for assignment statements */
+  VIZ_CHILD,        /* viz_child structures (in viz_output_block sym tables) */
+};
 
-/* Symbol Table Types */
-/* Data types to be stored in MDL parser symbol table: */
-/* chemical reaction: */
-#define RX 1
+/* Count column data types */
+enum count_type_t
+{
+  COUNT_UNSET=-1,         /* no value specified */
+  COUNT_DBL,              /* double */
+  COUNT_INT,              /* integer type */
+  COUNT_TRIG_STRUCT,      /* trigger_struct data type (for TRIGGER statements) */
+};
 
-/* name of chemical reaction: */
-#define RXPN 2
-
-/* molecule type (i.e. species): */
-#define MOL 3
-
-/* polygon or box object: */
-#define POLY 4
-
-/* release site object: */
-#define RSITE 5
-
-/* meta-object: */
-#define OBJ 6
-
-/* release pattern: */
-#define RPAT 7
-
-/* object region: */
-#define REG 8
-
-/* integer type (used only for COUNT statements): */
-#define INT 9
-
-/* double: */
-#define DBL 10
-
-/* string: */
-#define STR 11
-
-/* array of doubles: */ 
-#define ARRAY 12
-
-/* file stream type for "C"-style file-io: */
-#define FSTRM 13
-
-/* expression type (used only in COUNT statements): */
-#define EXPR 14
-
-/* temporary place-holder type for assignment statements: */
-#define TMP 15
-
-/* Used only for TRIGGER statements */
-#define TRIG_STRUCT 16
-
-                                                                                
 /* Object Type Flags */
-#define META_OBJ 0
-#define BOX_OBJ 1
-#define POLY_OBJ 2
-#define REL_SITE_OBJ 3
-#define VOXEL_OBJ 4
-                                                                                
+enum object_type_t
+{
+  META_OBJ,     /* Meta-object: aggregation of other objects */
+  BOX_OBJ,      /* Box object: Polygonalized cuboid */
+  POLY_OBJ,     /* Polygon list object: list of arbitrary triangles */
+  REL_SITE_OBJ, /* Release site object */
+  VOXEL_OBJ,    /* Voxel object (so-far unused) */
+};
 
 /* Box sides */
 /* Note that there are two triangles per side, so we count up by two */
@@ -599,55 +511,61 @@
 #define EXCLUDE_OBJ INT_MIN /*object is not visualized */
 #define INCLUDE_OBJ INT_MAX /*object is visualized but state value is not set*/
 
-
 /* Data Output Timing Type */
 /* Reaction and Viz data output timing */
-#define OUTPUT_BY_STEP 0 
-#define OUTPUT_BY_TIME_LIST 1
-#define OUTPUT_BY_ITERATION_LIST 2
+enum output_timer_type_t
+{
+  OUTPUT_BY_STEP,
+  OUTPUT_BY_TIME_LIST,
+  OUTPUT_BY_ITERATION_LIST,
+};
 
-
-/* Visualization stuff. */
-/* Visualization modes (old style). */
-#define NO_VIZ_MODE 0
-#define DX_MODE 1
-#define DREAMM_V3_MODE 2
-#define DREAMM_V3_GROUPED_MODE 3
-#define RK_MODE 4
-#define ASCII_MODE 5
-
+/* Visualization modes. */
+enum viz_mode_t
+{
+  NO_VIZ_MODE,
+  DX_MODE,
+  DREAMM_V3_MODE,
+  DREAMM_V3_GROUPED_MODE,
+  RK_MODE,
+  ASCII_MODE,
+};
 
 /* Visualization Frame Data Type */
 /* Used to select type of data to include in viz output files */
 /* Will probably change significantly when we redesign DReAMM output format */
-#define ALL_FRAME_DATA 0
-#define EFF_POS 1
-#define EFF_STATES 2
-#define MOL_POS 3
-#define MOL_ORIENT 4
-#define MOL_STATES 5
-#define SURF_POS 6 
-#define SURF_STATES 7
-#define MESH_GEOMETRY 8
-#define REG_DATA 9
-#define ALL_MOL_DATA  10
-#define ALL_MESH_DATA 11
-
+enum viz_frame_type_t
+{
+  ALL_FRAME_DATA,
+  EFF_POS,
+  EFF_STATES,
+  MOL_POS,
+  MOL_ORIENT,
+  MOL_STATES,
+  SURF_POS,
+  SURF_STATES,
+  MESH_GEOMETRY,
+  REG_DATA,
+  ALL_MOL_DATA,
+  ALL_MESH_DATA,
+  NUM_FRAME_TYPES,
+};
 
 /* Release Number Flags */
-#define CONSTNUM 0
-#define GAUSSNUM 1
-#define VOLNUM 2
-#define CCNNUM 3
-
-
+enum release_number_type_t
+{
+  CONSTNUM,
+  GAUSSNUM,
+  VOLNUM,
+  CCNNUM,
+  DENSITYNUM
+};
 
 /**********************************************/
 /**  New/reworked structures used in MCell3  **/
 /**********************************************/
 
 typedef unsigned char byte;
-
 
 /* If you don't include sys/types.h, #define SYS_TYPES_NOT_LOADED so */
 /* you get the u_short/int/long set of types */
@@ -690,7 +608,6 @@ struct species
   long long n_deceased;         /* Total number that have been destroyed. */
   double cum_lifetime;          /* Timesteps lived by now-destroyed molecules */
  
-  int viz_state;                /* Visualization state for output */
   int region_viz_value;         /* Visualization state for surface class 
                                    for output */
 };
@@ -707,7 +624,10 @@ struct rxn
   int n_pathways;            /* How many pathways lead away?
                                 (Negative = special reaction, i.e. transparent etc...)*/
   double *cum_probs;         /* Cumulative probabilities for (entering) all pathways */
+#if 0
+  /* This is for Michaelis-Menten reaction kinetics, which are currently unimplemented. */
   double *cat_probs;         /* Probabilities of leaving all pathways (<=0.0 is instant) */
+#endif
   struct complex_rate **rates; /* Rates for cooperative macromol subunit rxns */
   double max_fixed_p;        /* Maximum 'p' for region of p-space for all non-cooperative pathways */
   double min_noreaction_p;   /* Minimum 'p' for region of p-space which is always in the non-reacting "pathway". (note that cooperativity may mean that some values of p less than this still do not produce a reaction) */
@@ -840,7 +760,7 @@ struct grid_molecule
   double birthday;
   struct grid_molecule **cmplx; /* Other molecules forming this complex, if we're part of a complex (0: master, 1...n subunits) */
   
-  int grid_index;              /* Which gridpoint do we occupy? */
+  unsigned int grid_index;     /* Which gridpoint do we occupy? */
   short orient;                /* Which way do we point? */
   struct surface_grid *grid;   /* Our grid (which tells us our surface) */
   struct vector2 s_pos;        /* Where are we in surface coordinates? */
@@ -887,7 +807,6 @@ struct wall
   
   struct surface_grid *grid; /* Grid of effectors for this wall */
   
-  int viz_state;                  /* For display purposes--is short enough? */
   u_short flags;                  /* Count Flags: flags for whether and what we need to count */
 
   struct object *parent_object;   /* The object we are a part of */
@@ -1099,50 +1018,6 @@ struct magic_list
   enum magic_types type;
 };
 
-struct visualization_state
-{
-  /* Iteration numbers */
-  long long last_meshes_iteration;
-  long long last_mols_iteration;
-
-  /* Tokenized filename prefix */
-  char *filename_prefix_basename;
-  char *filename_prefix_dirname;
-
-  /* All visualized objects */
-  int n_viz_objects;
-  struct object **viz_objects;
-
-  /* All visualized volume molecule species */
-  int n_vol_species;
-  struct species **vol_species;
-
-  /* All visualized grid molecule species */
-  int n_grid_species;
-  struct species **grid_species;
-
-  /* Iteration numbers and times of outputs */
-  struct iteration_counter output_times;
-  struct iteration_counter mesh_output_iterations;
-  struct iteration_counter vol_mol_output_iterations;
-  struct iteration_counter grid_mol_output_iterations;
-
-  /* For DREAMM V3 Grouped output, combined group member strings */
-  struct string_buffer combined_group_members;
-
-  /* For DREAMM V3 Grouped output, the current object number */
-  int dx_main_object_index;
-
-  /* For DREAMM V3 Grouped output, the last iteration for certain outputs */
-  long long dreamm_last_iteration_meshes;
-  long long dreamm_last_iteration_vol_mols;
-  long long dreamm_last_iteration_surf_mols;
-
-  /* For DREAMM V3 Ungrouped output, path of 'frame data dir' and iter dir */
-  char *frame_data_dir;
-  char *iteration_number_dir;
-};
-
 /* All data about the world */
 struct volume
 {
@@ -1155,6 +1030,10 @@ struct volume
   double *x_partitions;         /* Coarse X partition boundaries */
   double *y_partitions;         /* Coarse Y partition boundaries */
   double *z_partitions;         /* Coarse Z partition boundaries */
+  int mem_part_x;               /* Granularity of memory-partition binning for the X-axis */
+  int mem_part_y;               /* Granularity of memory-partition binning for the Y-axis */
+  int mem_part_z;               /* Granularity of memory-partition binning for the Z-axis */
+  int mem_part_pool;            /* Scaling factor for sizes of memory pools in each storage. */
   
   /* Fine partitions are intended to allow subdivision of coarse partitions */
   /* Subdivision is not yet implemented */
@@ -1194,7 +1073,14 @@ struct volume
   
   double speed_limit;           /* How far can the fastest particle get in one timestep? */
 
-  struct sym_table **main_sym_table;  /* Global MDL symbol hash table */
+  struct sym_table_head *fstream_sym_table;   /* Global MDL file stream symbol hash table */
+  struct sym_table_head *var_sym_table;   /* Global MDL variables symbol hash table */
+  struct sym_table_head *rxn_sym_table;   /* RXN symbol hash table */
+  struct sym_table_head *obj_sym_table;   /* Objects symbol hash table */
+  struct sym_table_head *reg_sym_table;   /* Regions symbol hash table */
+  struct sym_table_head *mol_sym_table;   /* Molecule type symbol hash table */
+  struct sym_table_head *rpat_sym_table;  /* Release pattern hash table */
+  struct sym_table_head *rxpn_sym_table;  /* Named reaction pathway hash table */
 
   struct object *root_object;         /* Root of the object template tree */
   struct object *root_instance;       /* Root of the instantiated object tree */
@@ -1214,9 +1100,7 @@ struct volume
   double elapsed_time;                        /* Used for concentration measurement */
 
   /* Visualization state */
-  struct viz_obj *viz_obj_head;               /* head of the linked list of mesh objects assigned for visualization */
-  struct frame_data_list *frame_data_head;    /* head of the linked list of viz frames to output */
-  struct visualization_state viz_state_info;  /* miscellaneous state for viz_output code */
+  struct viz_output_block *viz_blocks;        /* VIZ_OUTPUT blocks from file */
 
   struct species *g_mol;   /* A generic molecule */
   struct species *g_surf;  /* A generic surface class */
@@ -1252,7 +1136,6 @@ struct volume
 
   char *chkpt_infile;         /* Name of checkpoint file to read from */
   char *chkpt_outfile;        /* Name of checkpoint file to write to */
-  FILE *chkpt_infs;           /* Checkpoint input file */
   u_int chkpt_byte_order_mismatch;   /* Flag that defines whether mismatch
                                       in byte order exists between the saved
                                       checkpoint file and the machine reading it */
@@ -1264,7 +1147,6 @@ struct volume
 
   long long diffusion_number;      /* Total number of times molecules have had their positions updated */
   double diffusion_cumtime;     /* Total time spent diffusing by all molecules */
-  long long random_number_use;     /* How many random numbers have we used */
   long long ray_voxel_tests;       /* How many ray-subvolume intersection tests have we performed */
   long long ray_polygon_tests;     /* How many ray-polygon intersection tests have we performed */
   long long ray_polygon_colls;     /* How many ray-polygon intersections have occured */
@@ -1288,17 +1170,6 @@ struct volume
   struct mem_helper *tri_coll_mem;  /* Collision list (trimol) */
   struct mem_helper *exdv_mem;  /* Vertex lists for exact interaction disk area */
 
-  /* Old viz output stuff */
-  int viz_mode;
-  struct rk_mode_data *rk_mode_var;
-  byte voxel_image_mode;
-  byte voxel_volume_mode;
-  char *molecule_prefix_name;
-  char *file_prefix_name;
-  u_short viz_output_flag; /* Takes  VIZ_ALL_MOLECULES, VIZ_MOLECULES_STATES, etc.  */
-
-  /* VIZ state transplanted from global vars */
-
   char const *mcell_version;     /* Current version number.
                               Format is "3.XX.YY" where XX is major release number (for new features)
                               and YY is minor release number (for patches) */
@@ -1312,28 +1183,22 @@ struct volume
   /* MCell startup command line arguments */
   u_int seed_seq;            /* Seed for random number generator */
   long long iterations;      /* How many iterations to run */
-  char *log_file_name;       /* Name of log file */
-  char *err_file_name;       /* Name of err_file */
-  FILE *log_file;            /* Log file to use, default is stdout */
-  FILE *err_file;            /* Error log file to use, default is stderr */
-  u_int log_freq;            /* Interval between simulation progress reports, default scales as sqrt(iterations) */
+  unsigned long log_freq;    /* Interval between simulation progress reports, default scales as sqrt(iterations) */
   char *mdl_infile_name;     /* Name of MDL file specified on command line */
   char const *curr_file;     /* Name of MDL file currently being parsed */
   
+  /* XXX: Why do we allocate this on the heap rather than including it inline? */
   struct notifications *notify; /* Notification/warning/output flags */
   
   struct ccn_clamp_data *clamp_list;  /* List of objects at which volume molecule concentrations should be clamped */
   
   /* Flags for asynchronously-triggered checkpoints */
-  int checkpoint_requested;             /* CHKPT_AND_CONTINUE, CHKPT_AND_STOP, or CHKPT_NOT_REQUESTED */
-  long checkpoint_alarm_time;           /* number of seconds between checkpoints */
+  enum checkpoint_request_type_t checkpoint_requested; /* Flag indicating whether a checkpoint has been requested. */
+  unsigned int checkpoint_alarm_time;   /* number of seconds between checkpoints */
   int continue_after_checkpoint;        /* 0: exit after chkpt, 1: continue after chkpt */
   long long last_checkpoint_iteration;  /* Last iteration when chkpt was created */
   time_t begin_timestamp;               /* Time since epoch at beginning of 'main' */
   char *initialization_state;           /* NULL after initialization completes */
-  
-  /* Nifty pointers for debugging go here */
-  struct output_request *watch_orq;
 };
 
 
@@ -1418,8 +1283,8 @@ struct release_event_queue {
 struct release_site_obj {
   struct vector3 *location;	  /* location of release site */
   struct species *mol_type;	  /* species to be released */
-  byte release_number_method;     /* Release Number Flags: controls how release_number is used */
-  byte release_shape;             /* Release Shape Flags: controls shape over which to release */
+  byte release_number_method;     /* Release Number Flags: controls how release_number is used (enum release_number_type_t) */
+  int8_t release_shape;           /* Release Shape Flags: controls shape over which to release (enum release_shape_t) */
   short orientation;              /* Orientation of released surface molecules */
   double release_number;             /* Number to release */
   double mean_diameter;           /* Diameter for symmetric releases */
@@ -1508,40 +1373,43 @@ struct notifications
 {
   /* Informational stuff, most possible values NOTIFY_FULL or NOTIFY_NONE */
   /* see corresponding keywords */
-  byte progress_report;              /* PROGRESS_REPORT */
-  byte diffusion_constants;          /* DIFFUSION_CONSTANT_REPORT */    
-  byte reaction_probabilities;       /* PROBABILITY_REPORT */
-  byte time_varying_reactions;       /* VARYING_PROBABILITY_REPORT */
-  double reaction_prob_notify;       /* PROBABILITY_REPORT_THRESHOLD */
-  byte partition_location;           /* PARTITION_LOCATION_REPORT */
-  byte box_triangulation;            /* BOX_TRIANGULATION_REPORT */
-  byte custom_iterations;            /* ITERATION_REPORT */
-  long long custom_iteration_value;  /* ITERATION_REPORT */
-  byte throughput_report;            /* THROUGHPUT_REPORT */
-  byte checkpoint_report;            /* CHECKPOINT_REPORT */
-  byte release_events;               /* RELEASE_EVENT_REPORT */
-  byte file_writes;                  /* FILE_OUTPUT_REPORT */
-  byte final_summary;                /* FINAL_SUMMARY */
+  enum notify_level_t progress_report;              /* PROGRESS_REPORT */
+  enum notify_level_t diffusion_constants;          /* DIFFUSION_CONSTANT_REPORT */
+  enum notify_level_t reaction_probabilities;       /* PROBABILITY_REPORT */
+  enum notify_level_t time_varying_reactions;       /* VARYING_PROBABILITY_REPORT */
+  double reaction_prob_notify;                      /* PROBABILITY_REPORT_THRESHOLD */
+  enum notify_level_t partition_location;           /* PARTITION_LOCATION_REPORT */
+  enum notify_level_t box_triangulation;            /* BOX_TRIANGULATION_REPORT */
+  enum notify_level_t iteration_report;             /* ITERATION_REPORT */
+  long long custom_iteration_value;                 /* ITERATION_REPORT */
+  enum notify_level_t throughput_report;            /* THROUGHPUT_REPORT */
+  enum notify_level_t checkpoint_report;            /* CHECKPOINT_REPORT */
+  enum notify_level_t release_events;               /* RELEASE_EVENT_REPORT */
+  enum notify_level_t file_writes;                  /* FILE_OUTPUT_REPORT */
+  enum notify_level_t final_summary;                /* FINAL_SUMMARY */
+  enum notify_level_t reaction_output_report;       /* REACTION_OUTPUT_REPORT */
+  enum notify_level_t volume_output_report;         /* VOLUME_OUTPUT_REPORT */
+  enum notify_level_t viz_output_report;            /* VIZ_OUTPUT_REPORT */
   
   /* Warning stuff, possible values IGNORED, WARNING, ERROR */
   /* see corresponding keywords */
-  byte neg_diffusion;                     /* NEGATIVE_DIFFUSION_CONSTANT */
-  byte neg_reaction;                      /* NEGATIVE_REACTION_RATE */
-  byte high_reaction_prob;                /* HIGH_REACTION_PROBABILITY */
-  double reaction_prob_warn;              /* HIGH_PROBABILITY_THRESHOLD */
-  byte close_partitions;                  /* CLOSE_PARTITION_SPACING */
-  byte degenerate_polys;                  /* DEGENERATE_POLYGONS */
-  byte overwritten_file;                  /* OVERWRITTEN_OUTPUT_FILE */
-  byte short_lifetime;                    /* LIFETIME_TOO_SHORT */
-  long long short_lifetime_value;         /* LIFETIME_THRESHOLD */
-  byte missed_reactions;                  /* MISSED_REACTIONS */
-  double missed_reaction_value;           /* MISSED_REACTION_THRESHOLD */
-  byte missed_surf_orient;                /* MISSING_SURFACE_ORIENTATION */
-  byte useless_vol_orient;                /* USELESS_VOLUME_ORIENTATION */
-  byte complex_placement_failure;         /* COMPLEX_PLACEMENT_FAILURE */
-  long long complex_placement_failure_threshold; /* COMPLEX_PLACEMENT_FAILURE_THRESHOLD */
-  byte mol_placement_failure;             /* MOLECULE_PLACEMENT_FAILURE */
-  byte invalid_output_step_time;          /* INVALID_OUTPUT_STEP_TIME */
+  enum warn_level_t neg_diffusion;                  /* NEGATIVE_DIFFUSION_CONSTANT */
+  enum warn_level_t neg_reaction;                   /* NEGATIVE_REACTION_RATE */
+  enum warn_level_t high_reaction_prob;             /* HIGH_REACTION_PROBABILITY */
+  double reaction_prob_warn;                        /* HIGH_PROBABILITY_THRESHOLD */
+  enum warn_level_t close_partitions;               /* CLOSE_PARTITION_SPACING */
+  enum warn_level_t degenerate_polys;               /* DEGENERATE_POLYGONS */
+  enum warn_level_t overwritten_file;               /* OVERWRITTEN_OUTPUT_FILE */
+  enum warn_level_t short_lifetime;                 /* LIFETIME_TOO_SHORT */
+  long long short_lifetime_value;                   /* LIFETIME_THRESHOLD */
+  enum warn_level_t missed_reactions;               /* MISSED_REACTIONS */
+  double missed_reaction_value;                     /* MISSED_REACTION_THRESHOLD */
+  enum warn_level_t missed_surf_orient;             /* MISSING_SURFACE_ORIENTATION */
+  enum warn_level_t useless_vol_orient;             /* USELESS_VOLUME_ORIENTATION */
+  enum warn_level_t complex_placement_failure;      /* COMPLEX_PLACEMENT_FAILURE */
+  long long complex_placement_failure_threshold;    /* COMPLEX_PLACEMENT_FAILURE_THRESHOLD */
+  enum warn_level_t mol_placement_failure;          /* MOLECULE_PLACEMENT_FAILURE */
+  enum warn_level_t invalid_output_step_time;       /* INVALID_OUTPUT_STEP_TIME */
 };
 
 /* Information related to concentration clamp surfaces, by object */
@@ -1583,7 +1451,7 @@ struct volume_output_item
   int                           nvoxels_z;
 
   /* when? */
-  int                           timer_type;
+  enum output_timer_type_t      timer_type;
   double                        step_time;
   int                           num_times;
   double                       *times;              /* in numeric order  */
@@ -1596,7 +1464,7 @@ struct output_block
   struct output_block *next;            /* Next in world or scheduler */
   double t;                             /* Scheduled time to update counters */
   
-  byte timer_type;                      /* Data Output Timing Type (OUTPUT_BY_STEP, etc) */
+  enum output_timer_type_t timer_type;  /* Data Output Timing Type (OUTPUT_BY_STEP, etc) */
   
   double step_time;                     /* Output interval (seconds) */
   struct num_expr_list *time_list_head; /* List of output times/iteration numbers */
@@ -1618,7 +1486,7 @@ struct output_set
   struct output_set *next;             /* Next data set in this block */
   struct output_block *block;          /* Which block do we belong to? */
   char *outfile_name;                  /* Filename */
-  int file_flags;                      /* Overwrite Policy Flags: tells us how to handle existing files */
+  enum overwrite_policy_t file_flags;  /* Overwrite Policy Flags: tells us how to handle existing files */
   u_int chunk_count;                   /* Number of buffered output chunks processed */  
   char *header_comment;                /* Comment character(s) for header */
   int exact_time_flag;                 /* Boolean value; nonzero means print exact time in TRIGGER statements */
@@ -1631,7 +1499,7 @@ struct output_column
 {
   struct output_column *next;       /* Next column in this set */
   struct output_set *set;           /* Which set do we belong to? */
-  byte data_type;                   /* INT, DBL, or TRIG_STRUCT (from Symbol Table Types) */
+  enum count_type_t data_type;      /* Type of data in this column. */
   double initial_value;             /* To continue existing cumulative counts--not implemented yet--and keep track of triggered data */
   void *buffer;                     /* Output buffer array (cast based on data_type) */
   struct output_expression *expr;   /* Evaluate this to calculate our value (NULL if trigger) */
@@ -1686,27 +1554,16 @@ struct output_trigger_data
 /******************************************************************/
 
 
-
 /* A polygon list object, part of a surface. */
 struct polygon_object {
-  struct ordered_poly *polygon_data; /* Holds polygon vertices etc... */
+  int n_verts;                       /* Number of vertices in polyhedron */
+  struct vector3 *vertex;            /* Array of vertices */
+  int n_walls;                       /* Number of triangles in polyhedron */
+  struct element_data *element;      /* Array specifying the vertex connectivity of each triangle */
+  struct vector3 *normal;            /* Array of triangle normals */
   struct subdivided_box *sb;         /* Holds corners of box if necessary */
-  int n_walls;                       /* Number of polygons in polygon object */
-  int n_verts;                       /* Number of vertices in polygon object */
-  byte fully_closed;		     /* If set, indicates a closed object */
   struct species **surf_class;       /* Array of pointers to surface class, one for each polygon */
   struct bit_array *side_removed;    /* Bit array; if bit is set, side is removed */
-};
-
-
-/* An ordered polyhedron made of triangular polygons. 
-   The vertices of each polygonal face are ordered according to the right hand rule. */
-struct ordered_poly {
-  int n_verts;                    /* Number of vertices in polyhedron */
-  struct vector3 *vertex;         /* Array of vertices */
-  int n_walls;                    /* Number of triangles in polyhedron */
-  struct element_data *element;   /* Array specifying the vertex connectivity of each triangle */
-  struct vector3 *normal;         /* Array of triangle normals */
 };
 
 
@@ -1720,20 +1577,6 @@ struct element_data {
 /* A voxel list object, part of a volume */
 struct voxel_object
 {
-  struct ordered_voxel *voxel_data;  /* pointer to data structure holding voxel vertices etc... */
-  int n_voxels;			     /* Number of voxels in voxel object */
-  int n_verts;                       /* Number of vertices in voxel object */
-  byte fully_closed;		     /* flag indicating closure of object */
-};
-
-
-/**
- * A general ordered polyhedron consisting from tetrahedrons (voxels). 
- * That is, the vertices of each polygonal face are ordered according to
- * the right hand rule.
- */
-struct ordered_voxel
-{
   struct vector3 *vertex;               /* Array of tetrahedron vertices */
   struct tet_element_data *element;     /* Array tet_element_data data structures */
   struct tet_neighbors_data *neighbor;  /* Array tet_neighbors_data data structures */
@@ -1741,16 +1584,14 @@ struct ordered_voxel
   int n_voxels;                         /* Number of voxels in polyhedron */
 };
 
-
 /**
  * Data structure used to build one tetrahedron.
  * This data structure is used to store the data from the MDL file
  * and to contruct each tetrahedron of a voxel object.
  */
-struct tet_element_data {
-        int vertex_index[4];              /**< Array of vertex indices forming a
-                                           tetrahedron. */
-	int n_verts;                    /**< Number of vertices in tetrahedron (always 4). */
+struct tet_element_data
+{
+  int vertex_index[4];                  /* Array of vertex indices forming a tetrahedron. */
 };
 
 
@@ -1758,10 +1599,9 @@ struct tet_element_data {
  * This data structure is used to store the data about neighbors
  * of each tetrahedron of a voxel object.
  */
-struct tet_neighbors_data {
-        int neighbors_index[4];        /**< Array of indices pointing 
-                                           to the neighbors of tetrahedron. */
-	int n_neighbors;               /**< Number of neighbors of tetrahedron (always 4). */
+struct tet_neighbors_data
+{
+  int neighbors_index[4];               /* Array of indices pointing to the neighbors of tetrahedron. */
 };
 
 
@@ -1830,7 +1670,7 @@ struct object {
   struct object *last_child;	/* Last child object */
   struct sym_table *sym;        /* Symbol hash table entry for this object */
   char *last_name;              /* Name of object without pre-pended parent object name */
-  byte object_type;             /* Object Type Flags */
+  enum object_type_t  object_type; /* Object Type Flags */
   void *contents;		/* Actual physical object, cast according to object_type */
   u_int num_regions;	        /* Number of regions defined on object */
   struct region_list *regions;  /* List of regions for this object */
@@ -1840,13 +1680,9 @@ struct object {
   struct wall **wall_p;         /* Array of ptrs to walls in object (used at run-time) */
   int n_verts;                  /* Total number of vertices in object */
   struct vector3 *verts;        /* Array of vertices in object */
-  struct vector3 **vert_p;      /* Array of ptrs to verts in object */
   double total_area;            /* Area of object in length units */
   u_int n_tiles;                /* Number of surface grid tiles on object */
   u_int n_occupied_tiles;       /* Number of occupied tiles on object */
-  struct mem_helper *edgemem;   /* Storage for edges of object */
-  struct viz_obj *viz_obj;      /* Associates this object with a VIZ_OUTPUT block */
-  int *viz_state;		/* Array of viz state values, one for each element of object. */
   double t_matrix[4][4];	/* Transformation matrix for object */
 };
 
@@ -1860,24 +1696,97 @@ struct name_list {
 
 
 /* Visualization objects */
-struct viz_obj 
+struct viz_dx_obj 
 {
-  struct viz_obj *next;
+  struct viz_dx_obj *next;
   char *name;                        /* Name taken from OBJECT_FILE_PREFIXES
 	                                or FILENAME_PREFIXES or FILENAME assignment */
   char *full_name;                   /* Full name of the object, like A.B.C */
   struct object *obj;                /* The object being visualized */
   struct viz_child *viz_child_head;  /* List of child objects to visualize */
+  struct viz_output_block *parent;   /* Parent block to whom we belong */
+  struct viz_child **actual_objects; /* Pointers to actual objects to visualize */
+  int n_actual_objects;              /* Number of actual objects to visualize */
 };
 
 
-/* Linked list of pointers to objects */
-/* Used to point to child polygon or box objects to be visualized */
-struct viz_child {
+/* Tree of pointers to objects (mirrors standard geometry hierarchy). */
+/* Contains child polygon or box objects to be visualized. */
+struct viz_child
+{
   struct viz_child *next;
+  struct viz_child *parent;
+  struct viz_child *children;
   struct object *obj;      /* An object to visualize*/
+  int *viz_state;          /* Array of viz state values, one for each element of object. */
 };
 
+struct visualization_state
+{
+  /* Iteration numbers */
+  long long last_meshes_iteration;
+  long long last_mols_iteration;
+
+  /* Tokenized filename prefix */
+  char *filename_prefix_basename;
+  char *filename_prefix_dirname;
+
+  /* All visualized volume molecule species */
+  int n_vol_species;
+  struct species **vol_species;
+
+  /* All visualized grid molecule species */
+  int n_grid_species;
+  struct species **grid_species;
+
+  /* Iteration numbers and times of outputs */
+  struct iteration_counter output_times;
+  struct iteration_counter mesh_output_iterations;
+  struct iteration_counter vol_mol_output_iterations;
+  struct iteration_counter grid_mol_output_iterations;
+
+  /* For DREAMM V3 Grouped output, combined group member strings */
+  struct string_buffer combined_group_members;
+
+  /* For DREAMM V3 Grouped output, the current object number */
+  int dx_main_object_index;
+
+  /* For DREAMM V3 Grouped output, the last iteration for certain outputs */
+  long long dreamm_last_iteration_meshes;
+  long long dreamm_last_iteration_vol_mols;
+  long long dreamm_last_iteration_surf_mols;
+
+  /* For DREAMM V3 Ungrouped output, path of 'frame data dir' and iter dir */
+  char *frame_data_dir;
+  char *iteration_number_dir;
+};
+
+struct viz_output_block
+{
+  struct viz_output_block *next;                /* Link to next block */
+  struct frame_data_list *frame_data_head;      /* head of the linked list of viz frames to output */
+  struct visualization_state viz_state_info;    /* miscellaneous state for viz_output code */
+  enum viz_mode_t viz_mode;
+  char *molecule_prefix_name;
+  char *file_prefix_name;
+  u_short viz_output_flag; /* Takes  VIZ_ALL_MOLECULES, VIZ_MOLECULES_STATES, etc.  */
+  int *species_viz_states;
+
+  /* DREAMM-mode only. */
+  struct viz_child **dreamm_object_info; /* Pointers to actual objects to visualize */
+  struct object **dreamm_objects;
+  int n_dreamm_objects;              /* Number of actual objects to visualize */
+
+  /* DX-mode only: head of linked list of OBJECT_FILE_PREFIXES. */
+  struct viz_dx_obj *dx_obj_head;
+
+  /* RK-mode only. */
+  struct rk_mode_data *rk_mode_var;
+
+  /* Parse-time only: Tables to hold temporary information. */
+  struct sym_table_head *viz_children;
+  struct pointer_hash parser_species_viz_states;
+};
 
 /* Geometric transformation data for a physical object */
 struct transformation {
@@ -1889,10 +1798,11 @@ struct transformation {
 
 
 /* Linked list of viz data to be output */
-struct frame_data_list {
+struct frame_data_list
+{
   struct frame_data_list *next;
-  byte list_type;		            /* Data Output Timing Type (OUTPUT_BY_TIME_LIST, etc) */
-  int type;                                 /* Visualization Frame Data Type (ALL_FRAME_DATA, etc) */ 
+  enum output_timer_type_t list_type;       /* Data Output Timing Type (OUTPUT_BY_TIME_LIST, etc) */
+  enum viz_frame_type_t type;               /* Visualization Frame Data Type (ALL_FRAME_DATA, etc) */ 
   long long viz_iteration;	            /* Value of the current iteration step. */
   long long n_viz_iterations;	            /* Number of iterations in the iteration_list. */
   struct num_expr_list *iteration_list;     /* Linked list of iteration steps values */
@@ -1907,14 +1817,22 @@ struct file_stream {
   FILE *stream; /* File handle structure */
 };
 
+/* Symbol hash table */
+/* Used to parse and store user defined symbols from the MDL input file */
+struct sym_table_head {
+  struct sym_table **entries; 
+  int n_entries;
+  int n_bins;
+};
 
 /* Symbol hash table entry */
 /* Used to parse and store user defined symbols from the MDL input file */
+/* XXX: This is a poorly named structure.  Maybe "sym_entry" or even just "symbol"? */
 struct sym_table {
-  struct sym_table *next; 
-  unsigned short sym_type; /* Symbol Table Type: OBJ, RX, MOL, DBL, PNT, etc. */
-  char *name;              /* Name of symbol*/
-  void *value;             /* Stored value, cast by sym_type */
+  struct sym_table *next;       /* Chain to next symbol in this bin of the hash */
+  int sym_type;                 /* Symbol Type */
+  char *name;                   /* Name of symbol*/
+  void *value;                  /* Stored value, cast by sym_type */
 };
 
 
@@ -1943,13 +1861,5 @@ struct rk_mode_data
   struct vector3 *direction;
   int n_written;
 };
-
-#ifdef DEBUG
-#define no_printf printf
-#else
-#define no_printf(...) /* empty */
-/* void no_printf(const char *,...); */
-#endif
-
 
 #endif

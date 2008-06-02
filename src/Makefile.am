@@ -2,7 +2,7 @@ AM_LFLAGS=-Crema
 AM_YFLAGS=-d
 YLWRAP="$(srcdir)/ylwrapfix"
 
-AM_CFLAGS=@CFLAGS_WARN@
+AM_CFLAGS=@CFLAGS_WARN@ @MCELL_UNSAFE_SIGHANDLERS@
 # AM_CFLAGS=-Wall -std=c99 -D_GNU_SOURCE=1
 
 MOSTLYCLEANFILES = version.h mdlparse.h mdlparse.c mdllex.c
@@ -25,7 +25,8 @@ mcell_SOURCES = chkpt.c count_util.c diffuse.c diffuse_util.c grid_util.c   \
 		mdlparse_aux.h mdlparse_util.h mem_util.h react.h           \
 		react_output.h rng.h sched_util.h strfunc.h                 \
 		sym_table.h util.h vector.h version_info.h viz_output.h     \
-		volume_output.h vol_util.h wall_util.h mdllex.l mdlparse.y
+		volume_output.h vol_util.h wall_util.h mdllex.l mdlparse.y  \
+		logging.c logging.h
 mcell_LDADD = -lm
 
 man_MANS = mcell.1
