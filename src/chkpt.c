@@ -143,7 +143,7 @@ extern struct volume *world;
 #define READSTRING(f, len)                                                  \
     do {                                                                    \
       READCHECK(fread(f, sizeof(f[0]), (len), fs) != (len), SECTNAME);      \
-      f[len-1] = '\0';                                                      \
+      f[len] = '\0';                                                      \
     } while(0)
 
 /* Read an array of items from the input stream, byteswapping if needed. */
@@ -642,7 +642,6 @@ static int read_mcell_version(FILE *fs, struct chkpt_read_state *state)
 
   char mcell_version[version_length + 1];
   READSTRING(mcell_version, version_length);
-  mcell_version[version_length] = '\0';
 
   mcell_log("Checkpont file was created with MCell Version %s.", mcell_version);
 
@@ -843,7 +842,7 @@ static int read_an_rng_state(FILE *fs,
   static const char RNG_MINRNG = 'M';
   char rngtype;
   READFIELD(rngtype);
-  DATACHECK(rngtype == RNG_ISAAC,
+  DATACHECK(rngtype != RNG_MINRNG,
             "Invalid RNG type stored in checkpoint file (in this version of MCell, only Bob Jenkins' \"small PRNG\" is supported).");
   READFIELD(rng->a);
   READFIELD(rng->b);
@@ -854,7 +853,7 @@ static int read_an_rng_state(FILE *fs,
   static const char RNG_ISAAC  = 'I';
   char rngtype;
   READFIELD(rngtype);
-  DATACHECK(rngtype == RNG_ISAAC,
+  DATACHECK(rngtype != RNG_ISAAC,
             "Invalid RNG type stored in checkpoint file (in this version of MCell, only ISAAC64 is supported).");
 
   READUINT(rng->randcnt);
@@ -978,7 +977,6 @@ static int read_species_table(FILE *fs, struct chkpt_read_state *state)
     unsigned int external_species_id;
 
     READSTRING(species_name, species_name_length);
-    species_name[species_name_length] = '\0';
     READUINT(external_species_id);
 
     /* find this species among world->species */
@@ -991,7 +989,7 @@ static int read_species_table(FILE *fs, struct chkpt_read_state *state)
         break;
       }
     }
-    DATACHECK(j != world->n_species,
+    DATACHECK(j == world->n_species,
               "Checkpoint file contains data for species '%s', which does not exist in this simulation.",
               species_name);
   }
