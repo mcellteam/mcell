@@ -2212,7 +2212,8 @@ void mdl_set_all_notifications(struct volume *vol,
   vol->notify->time_varying_reactions = notify_value;
   vol->notify->partition_location = notify_value;
   vol->notify->box_triangulation = notify_value;
-  vol->notify->iteration_report = notify_value;
+  if (vol->log_freq == ULONG_MAX)
+    vol->notify->iteration_report = notify_value;
   vol->notify->throughput_report = notify_value;
   vol->notify->checkpoint_report = notify_value;
   vol->notify->release_events = notify_value;
