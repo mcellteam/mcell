@@ -183,14 +183,13 @@ static int make_checkpoint(struct volume *wrld)
 static double find_next_viz_output_frame(struct frame_data_list *fdl)
 {
   double next_time = DBL_MAX;
-  while (fdl != NULL)
+  for (; fdl != NULL; fdl = fdl->next)
   {
     if (fdl->curr_viz_iteration == NULL)
       continue;
 
     if (fdl->viz_iteration < next_time)
       next_time = fdl->viz_iteration;
-    fdl = fdl->next;
   }
 
   return next_time;
