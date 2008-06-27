@@ -14,6 +14,7 @@
 #if defined(__linux__)
 #include <fenv.h>
 #endif
+#include <float.h>
 
 #include "sym_table.h"
 #include "logging.h"
@@ -179,6 +180,35 @@ static int make_checkpoint(struct volume *wrld)
   return 0;
 }
 
+static double find_next_viz_output_frame(struct frame_data_list *fdl)
+{
+  double next_time = DBL_MAX;
+  for (; fdl != NULL; fdl = fdl->next)
+  {
+    if (fdl->curr_viz_iteration == NULL)
+      continue;
+
+    if (fdl->viz_iteration < next_time)
+      next_time = fdl->viz_iteration;
+  }
+
+  return next_time;
+}
+
+static double find_next_viz_output(struct viz_output_block *vizblk)
+{
+  double next_time = DBL_MAX;
+  while (vizblk != NULL)
+  {
+    double this_time = find_next_viz_output_frame(vizblk->frame_data_head);
+    if (this_time < next_time)
+      next_time = this_time;
+    vizblk = vizblk->next;
+  }
+
+  return next_time;
+}
+
 /***********************************************************************
  run_sim:
 
@@ -193,7 +223,7 @@ static void run_sim(void)
   long t_initial,t_final;
 
   struct storage_list *local;
-  double next_release_time;
+  double next_release_time, next_viz_output, next_vol_output;
   int first_report;
   /* used to suppress printing some warning messages when the reactant is a surface */
   int do_not_print;
@@ -317,7 +347,10 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     if (! schedule_anticipate( world->releaser , &next_release_time))
       next_release_time = world->iterations + 1;
     if (next_release_time < world->it_time+1) next_release_time = world->it_time+1;
-    
+    if (! schedule_anticipate( world->volume_output_scheduler , &next_vol_output))
+      next_vol_output = world->iterations + 1;
+    next_viz_output = find_next_viz_output(world->viz_blocks);
+    double next_barrier = min3d(next_release_time, next_vol_output, next_viz_output);
     
     while (world->storage_head->store->current_time <= not_yet)
     {
@@ -329,7 +362,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
         {
           if (local->store->timer->current != NULL)
           {
-            run_timestep( local->store , next_release_time , (double)world->iterations+1.0 );
+            run_timestep( local->store , next_barrier , (double)world->iterations+1.0 );
             done = 0;
           }
         }

@@ -753,8 +753,8 @@ static void free_extra_viz_children(struct viz_output_block *vizblk)
 *************************************************************************/
 static int viz_child_compare(void const *vc1, void const *vc2)
 {
-  struct viz_child const *c1 = (struct viz_child const *) vc1;
-  struct viz_child const *c2 = (struct viz_child const *) vc2;
+  struct viz_child const *c1 = *(struct viz_child const **) vc1;
+  struct viz_child const *c2 = *(struct viz_child const **) vc2;
   if (c1->obj < c2->obj)
     return -1;
   else if (c1->obj > c2->obj)
