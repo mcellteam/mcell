@@ -37,20 +37,40 @@ for i in crange(1, 40):
 ###################################################################
 class TestMacromolNumeric(unittest.TestCase):
 
-  def test_volume_nonmixed(self):
+  def test_volume_mixed(self):
     t = McellTest("macromols", "01-macro.mdl", ["-quiet"])
     t.set_check_std_handles(1, 1, 1)
     t.add_extra_check(RequireCountConstraints("dat/01-macro/counts.dat",
-                            [(1, 1,  1, 1,  0,  0, 0),          # 1800
+                            [(1, 1,  1, 1,  0,  0, 0),          # 180
                              (0, 1, -1, 0,  0,  0, 0),          # 0
                              (1, 1,  0, 0, -1,  0, 0),          # 0
                              (0, 0,  1, 1,  0, -1, 0),          # 0
-                             (0, 1,  0, 1,  0,  0, 1)],         # 28125
-                            [1800, 0, 0, 0, 28125]))
+                             (0, 1,  0, 1,  0,  0, 1)],         # 800
+                            [180, 0, 0, 0, 800],
+                            header=True))
     t.add_extra_check(RequireCountEquilibrium("dat/01-macro/counts.dat",
-                            [1191.4, 175.3, 175.3, 258.0, 1366.7, 433.3, 27691.7],
-                            [  20.0,  10.0,  10.0,  20.0,   20.0,  20.0,   100.0],
-                            min_time=100000))
+                            [62.2, 30.0, 30.0, 57.8, 92.1, 87.9, 712.1],
+                            [ 3.0,  1.5,  1.5,  3.0,  4.5,  4.5,  10.0],
+                            min_time=0.001,
+                            header=True))
+    t.invoke(get_output_dir())
+
+  def test_volume_nonmixed(self):
+    t = McellTest("macromols", "01-macro_nonmixed.mdl", ["-quiet"])
+    t.set_check_std_handles(1, 1, 1)
+    t.add_extra_check(RequireCountConstraints("dat/01-macro_nonmixed/counts.dat",
+                            [(1, 1,  1, 1,  0,  0, 0),          # 180
+                             (0, 1, -1, 0,  0,  0, 0),          # 0
+                             (1, 1,  0, 0, -1,  0, 0),          # 0
+                             (0, 0,  1, 1,  0, -1, 0),          # 0
+                             (0, 1,  0, 1,  0,  0, 1)],         # 800
+                            [180, 0, 0, 0, 800],
+                            header=True))
+    t.add_extra_check(RequireCountEquilibrium("dat/01-macro_nonmixed/counts.dat",
+                            [62.2, 30.0, 30.0, 57.8, 92.1, 87.9, 712.1],
+                            [ 3.0,  1.5,  1.5,  3.0,  4.5,  4.5,  10.0],
+                            min_time=0.01,
+                            header=True))
     t.invoke(get_output_dir())
 
 ###################################################################
