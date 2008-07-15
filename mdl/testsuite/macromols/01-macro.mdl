@@ -14,12 +14,15 @@
  *    d_1 is the number in the singly-bound state, and d_2 is the number in the
  *    doubly-bound state.  The counts below relate in the following way:
  *
- *      coop_m00 -> 2*d_0  (number of subunits in doubly unbound dimer pairs)
- *      coop_m01 -> d_1    (number of bound subunits with unbound partners)
- *      coop_m10 -> d_1    (number of unbound subunits with bound partners)
- *      coop_m11 -> 2*d_2  (number of subunits in doubly bound dimer pairs)
+ *      00 -> 2*d_0     (number of subunits in doubly unbound dimer pairs)
+ *      01 -> d_1       (number of bound subunits with unbound partners)
+ *      10 -> d_1       (number of unbound subunits with bound partners)
+ *      11 -> 2*d_2     (number of subunits in doubly bound dimer pairs)
+ *      us -> 2*d_0+d_1 (number of unbound subunits)
+ *      bs -> 2*d_2+d_1 (number of unbound subunits)
+ *      cam -> 28125 - 2*d_2 - d_1    (number of free Cam)
  *
- *    coop_m01 and coop_m10 should be in agreement at all times.
+ *    01 and 10 should be in agreement at all times.
  *
  * Author: Jed Wing <jed@salk.edu>
  * Date:   2008-04-04
@@ -136,10 +139,15 @@ VIZ_OUTPUT
 REACTION_DATA_OUTPUT
 {
     OUTPUT_BUFFER_SIZE = 10
-    ITERATION_LIST = [[0 TO 9999 STEP 100], [10000 TO 250000 STEP 10000], [250001 TO 1250000 STEP 1]]
-    {COUNT[SUBUNIT{camkii:camkii_subunit[dimer_partner==camkii_subunit]}, WORLD]}  => countdir & "coop_m00." & seed & ".dat"
-    {COUNT[SUBUNIT{camkii:camkii_subunit[dimer_partner!=camkii_subunit]}, WORLD]}  => countdir & "coop_m01." & seed & ".dat"
-    {COUNT[SUBUNIT{camkii:camkii_subunitB[dimer_partner==camkii_subunit]}, WORLD]} => countdir & "coop_m10." & seed & ".dat"
-    {COUNT[SUBUNIT{camkii:camkii_subunitB[dimer_partner!=camkii_subunit]}, WORLD]} => countdir & "coop_m11." & seed & ".dat"
-    {COUNT[cam, WORLD]} => countdir & "coop_cam." & seed & ".dat"
+    TIME_LIST = [[0.0 TO 9.999e-3 STEP 1e-5], [1e-2 TO 1.0e-1 STEP 1e-3], [1.00001e-1 TO 1.25 STEP 1e-6]]
+    HEADER = "# "
+    {
+      COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner == camkii_subunit]}, WORLD] : "00",
+      COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner != camkii_subunit]}, WORLD] : "01",
+      COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner == camkii_subunit]}, WORLD] : "10",
+      COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner != camkii_subunit]}, WORLD] : "11",
+      COUNT[camkii_subunit, WORLD]                                                      : "us",
+      COUNT[camkii_subunitB, WORLD]                                                     : "bs",
+      COUNT[cam, WORLD]                                                                 : "cam"
+    }  => countdir & "counts.dat"
 }

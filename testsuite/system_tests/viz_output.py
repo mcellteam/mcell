@@ -213,23 +213,28 @@ class RequireVizDX:
 #      dir          - the directory containing the output files
 #      name         - name of the output file set
 #      n_iters      - number of output iterations, or None to not check
+#      n_times      - number of distinct output times, or None to not check
 ###################################################################
-def assertValidVizFilesDreammV3(dir, name, n_iters=None):
+def assertValidVizFilesDreammV3(dir, name, n_iters=None, n_times=None):
   assertFileNonempty(os.path.join(dir, name + ".dx"))
   if n_iters is not None:
     assertFileNonempty(os.path.join(dir, name + ".iteration_numbers.bin"), 12*n_iters)
-    assertFileNonempty(os.path.join(dir, name + ".time_values.bin"), 8*n_iters)
   else:
     assertFileNonempty(os.path.join(dir, name + ".iteration_numbers.bin"))
+  if n_times is not None:
+    assertFileNonempty(os.path.join(dir, name + ".time_values.bin"), 8*n_times)
+  else:
     assertFileNonempty(os.path.join(dir, name + ".time_values.bin"))
 
 class RequireVizDreammV3:
-  def __init__(self, dir, name, n_iters=None):
+  def __init__(self, dir, name, n_iters=None, n_times=None):
     self.dir = dir
     self.name = name
     self.args = {}
     if n_iters is not None:
       self.args["n_iters"] = n_iters
+    if n_times is not None:
+      self.args["n_times"] = n_times
 
   def check(self):
     assertValidVizFilesDreammV3(self.dir, self.name, **self.args)
@@ -302,44 +307,9 @@ def assertValidVizFilesDreammV3MolsBin(dir, alliters,
   if volstateiters is None:
     volstateiters = alliters
   volstateiters = set(volstateiters)
-  moliters = set()
-  moliters.union(surfpositers)
-  moliters.union(surforientiters)
-  moliters.union(surfstateiters)
-  moliters.union(volpositers)
-  moliters.union(volorientiters)
-  moliters.union(volstateiters)
-
-
-  # Check each iteration
-  for iter in alliters:
-    basedir = os.path.join(dir, "frame_data")
-    basedir = os.path.join(basedir, "iteration_%d" % iter)
-    had_sframe = 0
-    had_vframe = 0
-
-    surf_pos    = os.path.join(basedir, "surface_molecules_positions.bin")
-    surf_orient = os.path.join(basedir, "surface_molecules_orientations.bin")
-    surf_states = os.path.join(basedir, "surface_molecules_states.bin")
-    surf_header = os.path.join(basedir, "surface_molecules.dx")
-    vol_pos     = os.path.join(basedir, "volume_molecules_positions.bin")
-    vol_orient  = os.path.join(basedir, "volume_molecules_orientations.bin")
-    vol_states  = os.path.join(basedir, "volume_molecules_states.bin")
-    vol_header  = os.path.join(basedir, "volume_molecules.dx")
-
-
-    if iter in surfpositers:
-      had_sframe = 1
-      last_spos[0] = iter
-      check_unset(iter)
-
-      if surfnonempty:
-        assertFileNonempty(surf_pos)
-      else:
-        assertFileExists(surf_pos)
-    elif last_spos[0] is not None:
-      assertFileSymlink(surf_pos, "../iteration_%d/surface_molecules_positions.bin" % last_spos[0])
-
+  surfiters = surfpositers.union(surforientiters).union(surfstateiters)
+  voliters  = volpositers.union(volorientiters).union(volstateiters)
+  moliters = surfiters.union(voliters)
 
   # Check each iteration
   for iter in alliters:
@@ -539,10 +509,7 @@ def assertValidVizFilesDreammV3MolsAscii(dir, alliters,
   if stateiters is None:
     stateiters = alliters
   stateiters = set(stateiters)
-  moliters = set()
-  moliters.union(positers)
-  moliters.union(orientiters)
-  moliters.union(stateiters)
+  moliters = positers.union(orientiters).union(stateiters)
 
   # Check each iteration
   for iter in alliters:
@@ -697,8 +664,6 @@ def assertValidVizFilesDreammV3MeshBin(dir, alliters, positers=None, regioniters
 
     # Check for positions file or symlink
     if iter in positers:
-      if iter == 4:
-        print '%s: %d' % (str(positers), iter)
       had_frame = 1
       last_pos[0] = iter
       check_unset(iter)
@@ -926,6 +891,8 @@ class RequireVizDreammV3MeshAscii:
 #      cpno         - checkpoint sequence number (assumed to be 1 otherwise)
 #      n_iters      - total number of iterations with output (None to skip
 #                     check)
+#      n_times      - total number of distinct time points with output (None to
+#                     skip check)
 #      meshpos      - true to expect mesh pos file, false to not
 #      rgnindx      - true to expect region indices file, false to not
 #      meshstate    - true to expect mesh state file, false to not
@@ -938,6 +905,7 @@ class RequireVizDreammV3MeshAscii:
 def assertValidVizFilesDreammV3Grouped(dir, name,
                                        cpno=1,
                                        n_iters=None,
+                                       n_times=None,
                                        meshpos=True,
                                        rgnindx=True,
                                        meshstate=False,
@@ -1004,15 +972,18 @@ def assertValidVizFilesDreammV3Grouped(dir, name,
   tpath = os.path.join(dir, "%s.time_values.%d.bin" % fmtargs)
   if n_iters is not None:
     assertFileNonempty(ipath, 12*n_iters)
-    assertFileNonempty(tpath, 8*n_iters)
   else:
     assertFileNonempty(ipath)
+  if n_times is not None:
+    assertFileNonempty(tpath, 8*n_times)
+  else:
     assertFileNonempty(tpath)
 
 class RequireVizDreammV3Grouped:
   def __init__(self, dir, name,
                cpno=None,
                n_iters=None,
+               n_times=None,
                meshpos=None,
                rgnindx=None,
                meshstate=None,
@@ -1028,6 +999,8 @@ class RequireVizDreammV3Grouped:
       self.args["cpno"] = cpno
     if n_iters is not None:
       self.args["n_iters"] = n_iters
+    if n_times is not None:
+      self.args["n_times"] = n_times
     if meshpos is not None:
       self.args["meshpos"] = meshpos
     if rgnindx is not None:

@@ -76,6 +76,162 @@ class RequireCounts:
     assertCounts(self.name, self.times_vals, **self.args)
 
 ####################
+## Check numeric constraints on reaction data counts.
+##
+## What this checks is a linear constraint between the various columns in a
+## particular row of reaction data output.  For instance, if the simulation has a
+## molecule which undergoes a reversible unimolecular reaction, and is
+## otherwise inert, and the simulation releases 900 molecules divided between
+## the two types at the beginning, and writes their counts to the first two
+## columns of a reaction output file, the constraint 'C1 + C2 == 900' could be
+## checked.
+##
+## Example usage:
+##
+##    assertCountConstraints("output.txt", constraints=[(1, 1)], totals=[900])
+##
+## Essentially, this checks if the product of the constraints matrix with each
+## row vector in the output file (excluding the time column) is equal to the
+## totals vector.  In the simple case, constraints is a vector, and totals is a
+## scalar.  min_time and max_time may also be specified to limit the comparison
+## to a certain time interval.
+####################
+def assertCountConstraints(fname, constraints=None, totals=None, min_time=None, max_time=None, header=None, num_vals=None):
+  try:
+    file = open(fname)
+  except:
+    assert False, "Expected reaction output file '%s' was not created" % fname
+
+  try:
+    # Validate header
+    if header is not None  and  header != False:
+      got_header = file.readline()
+      if header == True:
+        assert got_header != '', "In reaction output file '%s', expected at least a header, but none was found" % fname
+      else:
+        assert got_header.strip() == header, "In reaction output file '%s', the header is incorrect (expected '%s', got '%s')" % (fname, header, got_header.strip())
+  
+    # Validate constraints
+    if constraints is not None  or  totals != None:
+      got_vals = 0
+      for line in file:
+        cols = line.strip().split()
+        time = float(cols[0])
+        if min_time != None and min_time > time:
+          continue
+        if max_time != None and max_time < time:
+          break
+
+        got_vals += 1
+        counts = [int(x) for x in cols[1:]]
+        if constraints == None:
+          constraints = [(1,) * len(counts)]
+        if totals == None:
+          totals = (0,) * len(constraints)
+        for c in range(0, len(constraints)):
+          val = sum(map(lambda x, y: x*y, constraints[c], counts))
+          assert val == totals[c], "In reaction output file '%s', at time %s, constraint %s*%s == %d is not satisfied" % (fname, cols[0], str(constraints[c]), str(counts), totals[c])
+
+    if num_vals is not None:
+      assert num_vals == got_vals, "In reaction output file '%s', expected %d rows within the selected time window, but only found %d" % (fname, num_vals, got_vals)
+
+  finally:
+    file.close()
+
+class RequireCountConstraints:
+  def __init__(self, name, constraints=None, totals=None, min_time=None, max_time=None, header=None, num_vals=None):
+    self.name = name
+    self.args = {}
+    if constraints is not None:
+      self.args["constraints"] = constraints
+    if totals is not None:
+      self.args["totals"] = totals
+    if min_time is not None:
+      self.args["min_time"] = min_time
+    if max_time is not None:
+      self.args["max_time"] = max_time
+    if header is not None:
+      self.args["header"] = header
+    if num_vals is not None:
+      self.args["num_vals"] = num_vals
+
+  def check(self):
+    assertCountConstraints(self.name, **self.args)
+
+####################
+## Check numeric equilibrium of reaction data counts.
+##
+## This check will average a particular range of rows from a reaction output
+## file and compare the computed mean to an expected mean, with a given tolerance.
+##
+## TODO: add a check for the std dev?
+##
+## Example usage:
+##
+##    assertCountEquilibrium("output.txt", values=[590.5], tolerances=[5.0], min_time=1e-3)
+##
+####################
+def assertCountEquilibrium(fname, values=None, tolerances=None, min_time=None, max_time=None, header=None, num_vals=None):
+  try:
+    file = open(fname)
+  except:
+    assert False, "Expected reaction output file '%s' was not created" % fname
+
+  try:
+    # Validate header
+    if header is not None  and  header != False:
+      got_header = file.readline()
+      if header == True:
+        assert got_header != '', "In reaction output file '%s', expected at least a header, but none was found" % fname
+      else:
+        assert got_header.strip() == header, "In reaction output file '%s', the header is incorrect (expected '%s', got '%s')" % (fname, header, got_header.strip())
+
+    # account for each line
+    if values is not None and tolerances is not None:
+      sums = list((0.0,) * len(values))
+      count = 0
+      for line in file:
+        cols = [x.strip() for x in line.split()]
+        if min_time is not None and float(cols[0]) < min_time:
+            continue
+        if max_time is not None and float(cols[0]) > max_time:
+            continue
+        data = [float(x) for x in cols[1:]]
+        assert len(sums) <= len(data), "In reaction output file '%s', expected at least %d columns, but found only %d" % (fname, len(sums) + 1, len(data) + 1)
+        for i in range(0, len(sums)):
+          sums[i] += data[i]
+        count += 1
+  
+      # Compute the mean
+      if num_vals is not None:
+        assert count == num_vals, "In reaction output file '%s', expected %d matching data rows, but found %d" % (fname, num_vals, count)
+      assert count != 0, "In reaction output file '%s', found no valid data rows" % fname
+      avgs = [x / float(count) for x in sums]
+      for i in range(0, len(avgs)):
+        assert avgs[i] >= values[i] - tolerances[i] and avgs[i] <= values[i] + tolerances[i], "In reaction output file '%s', expected column %d to have a mean between %.15g and %.15g, but got a mean of %.15g" % (fname, i+1, values[i] - tolerances[i], values[i] + tolerances[i], avgs[i])
+
+  finally:
+    file.close()
+  
+class RequireCountEquilibrium:
+  def __init__(self, name, values, tolerances, min_time=None, max_time=None, header=None, num_vals=None):
+    self.name = name
+    self.values = values
+    self.tolerances = tolerances
+    self.args = {}
+    if min_time is not None:
+      self.args["min_time"] = min_time
+    if max_time is not None:
+      self.args["max_time"] = max_time
+    if header is not None:
+      self.args["header"] = header
+    if num_vals is not None:
+      self.args["num_vals"] = num_vals
+
+  def check(self):
+    assertCountEquilibrium(self.name, self.values, self.tolerances, **self.args)
+
+####################
 ## Give an error if the specified trigger file is invalid, according to the
 ## specified parameters.
 ##

@@ -6662,7 +6662,7 @@ static int output_ascii_molecules(struct viz_output_block *vizblk,
   
   no_printf("Output in ASCII mode (molecules only)...\n");
   
-  if ((fdlp->type==ALL_FRAME_DATA) || (fdlp->type==MOL_POS) || (fdlp->type==MOL_STATES))
+  if ((fdlp->type==ALL_FRAME_DATA) || (fdlp->type == ALL_MOL_DATA)  ||  (fdlp->type==MOL_POS) || (fdlp->type==MOL_STATES))
   {
     lli = 10;
     for (ndigits = 1 ; lli <= world->iterations && ndigits<20 ; lli*=10 , ndigits++) {}

@@ -1192,7 +1192,6 @@ static int release_inside_regions(struct release_site_obj *rso,struct volume_mol
     {
       if (++ nfailures >= world->complex_placement_attempts)
       {
-        nfailures = 0;
         -- n;
         if (++ skipped_placements >= world->notify->complex_placement_failure_threshold)
         {
@@ -1202,15 +1201,18 @@ static int release_inside_regions(struct release_site_obj *rso,struct volume_mol
               break;
 
             case WARN_WARN:
-              mcell_warn(
-                         "Failed to place volume macromolecule '%s' in region %d times in a row.\n"
-                         "         Leaving %d molecules unplaced.",
+              if(world->notify->release_events == NOTIFY_FULL)
+                mcell_log_raw("\n");
+              mcell_warn("Failed to place volume macromolecule '%s' in region %d times in a row.\n"
+                         "         Leaving %lld molecules unplaced.",
                          m->properties->sym->name,
                          nfailures,
-                         n);
+                         n + skipped_placements);
               break;
 
             case WARN_ERROR:
+              if(world->notify->release_events == NOTIFY_FULL)
+                mcell_log_raw("\n");
               mcell_error("Failed to place volume macromolecule '%s' in region %d times in a row.",
                           m->properties->sym->name,
                           nfailures);
@@ -1220,8 +1222,9 @@ static int release_inside_regions(struct release_site_obj *rso,struct volume_mol
           }
           break;
         }
-        continue;
+        nfailures = 0;
       }
+      continue;
     }
 
     /* Actually place the molecule */
