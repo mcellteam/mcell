@@ -61,7 +61,7 @@ DEFINE_COMPLEX_MOLECULE camkii {
   SUBUNIT[1:2, 1:6] = camkii_subunit
   SHAPE {
     SUBUNIT[1, 1] = [-.10,  .0000,  .05]
-    SUBUNIT[1, 2] = [ .05,  .0866,  .05]
+    SUBUNIT[1, 2] = [-.05,  .0866,  .05]
     SUBUNIT[1, 3] = [ .05,  .0866,  .05]
     SUBUNIT[1, 4] = [ .10,  .0000,  .05]
     SUBUNIT[1, 5] = [ .05, -.0866,  .05]
