@@ -2968,21 +2968,16 @@ void mdl_add_object_to_list(struct mdlparse_vars *mpvp,
 *************************************************************************/
 static const char *SYMBOL_TYPE_DESCRIPTIONS[] =
 {
-  "",
   "reaction",
   "reaction pathway",
   "molecule",
-  "polygon or box",
-  "release site",
   "object",
   "release pattern",
   "region",
-  "integer variable",
   "numeric variable",
   "string variable",
   "array variable",
   "file stream",
-  "count expression",
   "placeholder value",
   "trigger",
 };
