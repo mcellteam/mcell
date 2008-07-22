@@ -2989,20 +2989,15 @@ static const char *SYMBOL_TYPE_DESCRIPTIONS[] =
 *************************************************************************/
 static const char *SYMBOL_TYPE_ARTICLES[] =
 {
+  "a",
+  "a",
+  "a",
   "an",
   "a",
   "a",
   "a",
   "a",
-  "a",
   "an",
-  "a",
-  "a",
-  "an",
-  "a",
-  "a",
-  "an",
-  "a",
   "a",
   "a",
   "a",
