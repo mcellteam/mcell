@@ -8577,8 +8577,8 @@ static int mdl_get_orientation_from_string(char *mol_string)
   {
     switch (mol_string[pos])
     {
-      case '\'': -- orientation; break;
-      case ',':  ++ orientation; break;
+      case '\'': ++ orientation; break;
+      case ',':  -- orientation; break;
       default:
         mol_string[pos+1] = '\0';
         pos = 0;
