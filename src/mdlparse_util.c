@@ -2968,21 +2968,16 @@ void mdl_add_object_to_list(struct mdlparse_vars *mpvp,
 *************************************************************************/
 static const char *SYMBOL_TYPE_DESCRIPTIONS[] =
 {
-  "",
   "reaction",
   "reaction pathway",
   "molecule",
-  "polygon or box",
-  "release site",
   "object",
   "release pattern",
   "region",
-  "integer variable",
   "numeric variable",
   "string variable",
   "array variable",
   "file stream",
-  "count expression",
   "placeholder value",
   "trigger",
 };
@@ -2994,20 +2989,15 @@ static const char *SYMBOL_TYPE_DESCRIPTIONS[] =
 *************************************************************************/
 static const char *SYMBOL_TYPE_ARTICLES[] =
 {
+  "a",
+  "a",
+  "a",
   "an",
   "a",
   "a",
   "a",
   "a",
-  "a",
   "an",
-  "a",
-  "a",
-  "an",
-  "a",
-  "a",
-  "an",
-  "a",
   "a",
   "a",
   "a",
@@ -8587,8 +8577,8 @@ static int mdl_get_orientation_from_string(char *mol_string)
   {
     switch (mol_string[pos])
     {
-      case '\'': -- orientation; break;
-      case ',':  ++ orientation; break;
+      case '\'': ++ orientation; break;
+      case ',':  -- orientation; break;
       default:
         mol_string[pos+1] = '\0';
         pos = 0;
@@ -11057,6 +11047,8 @@ static char *create_rx_name(struct mdlparse_vars *mpvp, struct pathway *p)
   for (n_reagents = 0; n_reagents < 3; ++ n_reagents)
     if (reagents[n_reagents] == NULL)
       break;
+    else if (p->is_complex[n_reagents])
+      is_complex = 1;
 
   /* Sort reagents. */
   for (int i = 0; i<n_reagents; ++i)
@@ -11065,10 +11057,7 @@ static char *create_rx_name(struct mdlparse_vars *mpvp, struct pathway *p)
     {
       /* If 'i' is a subunit, 'i' wins. */
       if (p->is_complex[i])
-      {
-        is_complex = 1;
         break;
-      }
 
       /* If 'j' is a subunit, 'j' wins. */
       else if (p->is_complex[j])
@@ -11076,7 +11065,6 @@ static char *create_rx_name(struct mdlparse_vars *mpvp, struct pathway *p)
         struct species *tmp = reagents[j];
         reagents[j] = reagents[i];
         reagents[i] = tmp;
-        is_complex = 1;
       }
 
       /* If 'j' precedes 'i', 'j' wins. */
@@ -15160,6 +15148,7 @@ static int reorder_varying_pathways(struct mdlparse_vars *mpvp, struct rxn *rx)
     new_pathway_info[dest_pathway].pathname = rx->info[idx].pathname;
     if (rx->info[idx].pathname) rx->info[idx].pathname->path_num = dest_pathway;
   }
+  new_product_index[rx->n_pathways] = rx->product_idx[rx->n_pathways];
 
   /* Now, fix up varying rates */
   struct t_func *tf;

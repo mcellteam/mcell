@@ -233,7 +233,7 @@ static void emergency_output_hook(void)
 
     int n_errors = emergency_output();
     if (n_errors == 0)
-      mcell_log("Reaction output was successfully flushed to disk.");
+      mcell_warn("Reaction output was successfully flushed to disk.");
     else if (n_errors == 1)
       mcell_warn("An error occurred while flushing reaction output to disk.");
     else

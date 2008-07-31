@@ -46,6 +46,16 @@ def require_assertions_enabled():
 require_assertions_enabled()
 
 ###################################################################
+# Get the filename of the source file containing the function which calls this
+# function.
+###################################################################
+def get_caller_filename(lvl=1):
+  frame = sys._getframe()
+  for i in range(0, lvl):
+    frame = frame.f_back
+  return frame.f_code.co_filename
+
+###################################################################
 # Utility to safely concatenate two iterables, even if one or the other may be
 # None, or the two iterables have different types.  If they have different
 # types, the return type will be a tuple.
@@ -64,6 +74,16 @@ def safe_concat(l1, l2):
     return tuple(l1) + tuple(l2)
   else:
     return l1 + l2
+
+###################################################################
+# Get the preferred output directory.
+###################################################################
+def get_output_dir():
+  g = globals()
+  if not g.has_key("test_output_dir"):
+    global test_output_dir
+    test_output_dir = "./test_results"
+  return g["test_output_dir"]
 
 ###################################################################
 # Utility to generate a closed range
@@ -358,7 +378,7 @@ class McellTest(test_run_context):
   rand = random.Random()
   config = test_config("./test.cfg")
 
-  def __init__(self, cat, file, args=[]):
+  def __init__(self, cat, f, args=[]):
     """Create a new MCell test runner.
     
     'cat' determines the section of the config file to search for the
@@ -367,13 +387,18 @@ class McellTest(test_run_context):
     'args' is a list of arguments other than the MDL file to pass.
     """
 
+    path = os.path.dirname(os.path.realpath(get_caller_filename(2)))
+    try:
+      os.stat(os.path.join(path, f))
+    except:
+      assert False, "Didn't find MDL file '%s' in the expected location (%s)." % (f, path)
     mcell = McellTest.config.get(cat, "mcellpath")
     real_args = [mcell]
     real_args.extend(["-seed", str(McellTest.rand.randint(0, 50000))])
     real_args.extend(["-logfile", "realout"])
     real_args.extend(["-errfile", "realerr"])
     real_args.extend(args)
-    real_args.append(os.path.join(os.getcwd(), file))
+    real_args.append(os.path.join(path, f))
     test_run_context.__init__(self, mcell, real_args)
     self.set_check_std_handles(1, 1, 1)
     self.set_expected_exit_code(0)

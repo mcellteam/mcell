@@ -45,7 +45,7 @@ class CheckpointTest(ParserTest):
     cptime    = os.stat(cpfile).st_mtime
 
     assert (cptime - stamptime) < 35, "Realtime checkpoint scheduled for 30 seconds, but time between timestamp and checkpoint exceeds 35 seconds (%d seconds)" % (cptime - stamptime)
-    assert (cptime - stamptime) > 25, "Realtime checkpoint scheduled for 30 seconds, but time between timestamp and checkpoint is less than seconds (%d seconds)" % (cptime - stamptime)
+    assert (cptime - stamptime) > 25, "Realtime checkpoint scheduled for 30 seconds, but time between timestamp and checkpoint is less than 25 seconds (%d seconds)" % (cptime - stamptime)
 
 ###################################################################
 # Class for parser "kitchen sink" tests.
