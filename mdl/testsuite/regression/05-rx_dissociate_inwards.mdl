@@ -1,0 +1,80 @@
+/****************************************************************************
+ * Regression test 05: When a surface molecule undergoes a reaction to become a
+ *       volume molecule, orientation must be respected.
+ *
+ *       Failure: as g decreases, mi increases faster than m
+ *
+ *       Success: at all times m == mi
+ *                at all times m + g == 1000
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-09-10
+ ****************************************************************************/
+
+ITERATIONS=5000
+TIME_STEP=1e-6
+EFFECTOR_GRID_DENSITY=15000
+
+DEFINE_MOLECULES
+{
+  g { DIFFUSION_CONSTANT_2D = 0 }
+  m { DIFFUSION_CONSTANT_3D = 2e-6 }
+}
+
+DEFINE_REACTIONS
+{
+  g' -> m'      [1e3]
+}
+
+INSTANTIATE world OBJECT
+{
+  box BOX
+  {
+    CORNERS = [-1, -1, -1], [1, 1, 1]
+    DEFINE_SURFACE_REGIONS
+    {
+      all {
+        INCLUDE_ELEMENTS = [ ALL_ELEMENTS ]
+        MOLECULE_NUMBER
+        {
+          g, = 1000
+        }
+      }
+    }
+  }
+}
+
+REACTION_DATA_OUTPUT
+{
+  OUTPUT_BUFFER_SIZE = 100
+  STEP = 1e-4
+  HEADER = "# "
+  {
+    COUNT[g, WORLD]     : "g",
+    COUNT[m, WORLD]     : "m",
+    COUNT[m, world.box] : "mi"
+  } => "molecules.txt"
+}
+
+VIZ_OUTPUT
+{
+  MODE = DREAMM_V3_GROUPED
+  FILENAME = "viz_dat/world"
+  MOLECULES
+  {
+    NAME_LIST { ALL_MOLECULES }
+    TIME_POINTS
+    {
+      ALL_DATA     @ [[0 TO 0.1 STEP 1e-4]]
+    }
+  }
+  MESHES
+  {
+    NAME_LIST { ALL_MESHES }
+    TIME_POINTS
+    {
+      ALL_DATA @ [0]
+    }
+  }
+}
+
