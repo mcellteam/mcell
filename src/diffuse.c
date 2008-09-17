@@ -7,7 +7,7 @@
 \**************************************************************************/
 
 
-
+#include <assert.h>
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
@@ -3388,10 +3388,43 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	}
 	
         /* default is to reflect */
-        
-	if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME_MASK)!=0)
-	{
-          /* We reflected, so we hit but didn't cross things we tentatively hit earlier */
+
+        /* By default, we will reflect from the point of collision on the last
+         * wall we hit; however, if there were one or more transparent walls we
+         * hit at the same time or slightly before, we did not count them as
+         * crossings, so we'd better be sure we don't cross them now.  Due to
+         * round-off error, if we are counting, we need to make sure we don't
+         * go back through these "tentative" surfaces again.  This involves
+         * finding the first "tentative" surface, and travelling back a tiny
+         * bit from that.
+         */
+        struct wall *reflect_w = w;
+        struct vector3 reflect_pt = smash->loc;
+        double reflect_t = smash->t;
+
+        /* If we're doing counting, register hits for all "tentative" surfaces,
+         * and update the point of reflection as explained in the previous
+         * block comment.
+         */
+        if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME_MASK)!=0)
+        {
+
+          /* Find the first wall among the tentative collisions. */
+          while (tentative != NULL  &&  tentative->t <= smash->t  &&  ! (tentative->what & COLLIDE_WALL))
+            tentative = tentative->next;
+
+          /* Grab out the relevant details. */
+          reflect_w  = ((struct wall *) tentative->target);
+          reflect_pt = tentative->loc;
+          reflect_t  = tentative->t * (1 - EPS_C);
+
+          /* Move back a little bit along the ray of travel. */
+          reflect_pt.x -= displacement.x * EPS_C;
+          reflect_pt.y -= displacement.y * EPS_C;
+          reflect_pt.z -= displacement.z * EPS_C;
+
+          /* Now, since we're reflecting before passing through these surfaces,
+           * register them as hits, but not as crossings. */
           for ( ; tentative!=NULL && tentative->t<=smash->t ; tentative=tentative->next )
           {
             if (!(tentative->what&COLLIDE_WALL)) continue;
@@ -3401,23 +3434,23 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                                  0 , rate_factor , &(tentative->loc) , tentative->t );
             if (tentative==smash) break;
           }
-	}
+        }
 
-	m->pos.x = smash->loc.x;
-	m->pos.y = smash->loc.y;
-	m->pos.z = smash->loc.z;
-        m->t += t_steps*smash->t;
-	reflectee = w;
+        /* Update molecule location to the point of reflection */
+        m->pos = reflect_pt;
+        m->t += t_steps*reflect_t;
+        reflectee = reflect_w;
 
-        t_steps *= (1.0-smash->t);
-        
-        factor = -2.0 * (displacement.x*w->normal.x + displacement.y*w->normal.y + displacement.z*w->normal.z);
-        displacement.x = (displacement.x + factor*w->normal.x) * (1.0-smash->t);
-        displacement.y = (displacement.y + factor*w->normal.y) * (1.0-smash->t);
-        displacement.z = (displacement.z + factor*w->normal.z) * (1.0-smash->t);
+        /* Reduce our remaining available time. */
+        t_steps *= (1.0-reflect_t);
+
+        /* Update our displacement vector for the reflection. */
+        factor = -2.0 * (displacement.x*reflect_w->normal.x + displacement.y*reflect_w->normal.y + displacement.z*reflect_w->normal.z);
+        displacement.x = (displacement.x + factor*reflect_w->normal.x) * (1.0-reflect_t);
+        displacement.y = (displacement.y + factor*reflect_w->normal.y) * (1.0-reflect_t);
+        displacement.z = (displacement.z + factor*reflect_w->normal.z) * (1.0-reflect_t);
 
         redo_expand_collision_list_flag = 1; /* Only useful if we're using expanded lists, but easier to always set it */
-        
         break;
       }
       else if ((smash->what & COLLIDE_SUBVOL) != 0)

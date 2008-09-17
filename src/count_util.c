@@ -141,10 +141,12 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
 {
   struct counter *hit_count;
   double hits_to_ccn=0;
+  int count_hits = 0;
  
  
   if (sp->flags&COUNT_HITS)
   {
+    count_hits = 1;
     hits_to_ccn = sp->time_step * 2.9432976599069717358e-3 /  /* 1e6*sqrt(MY_PI)/(1e-15*N_AV) */ 
                   (sp->space_step*factor*world->length_unit*world->length_unit*world->length_unit);
   }
@@ -257,7 +259,7 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
                 else hit_count->data.move.back_hits++;
               }
             }
-	    if (rl->reg->area != 0.0)
+	    if (count_hits  &&  rl->reg->area != 0.0)
 	    {
 	      if ((hit_count->counter_type&TRIG_COUNTER)==0)
               {

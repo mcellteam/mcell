@@ -4,11 +4,27 @@
  *    This test is analogous to test #1, but using surface molecules.  Counting
  *    encompasses considerably more options for surface complexes, due to the
  *    additional dimensions added by orientations.  As a result, this includes
- *    a much more comprehensive collection of counts than test #1.  Again, I'll
- *    update this later with expected equilibria, but also with a set of rules
- *    I wrote up once upon a time for inter-count validation.  There is a
- *    fairly strict set of rules we can use for checking that the counts are
- *    internally consistent.
+ *    a much more comprehensive collection of counts than test #1.
+ *
+ *    See test_macromols.py for a matrix giving the static constraints which
+ *    this simulation must obey.  (For instance, the number of subunits in any
+ *    state must never differ from the number initially placed, regardless how
+ *    we sum over the states.  This gives rise to quite a number of validity
+ *    constraints over the set of counts we produce here.)
+ *
+ *    An equilibrium derived via a first order iterative "state machine" model
+ *    is:
+ *
+ *        Subunits in doubly-unbound dimers: 15.5348 in each orientation combo
+ *        Subunits in singly-bound dimers:   14.9938 in each orientation combo
+ *        Subunits in doubly-bound dimers:   14.4715 in each orientation combo
+ *
+ *    All equilibria in the test suite for this test may be derived from these
+ *    numbers.  Note that the numbers for the doubly-bound or doubly-unbound
+ *    cases will appear to be roughly twice as large as those for the
+ *    singly-bound cases because the bound and unbound are counted as two
+ *    separate rules for the singly-bound case, whereas they are counted
+ *    together if the subunits in the dimer are both bound or both unbound.
  *
  * Author: Jed Wing <jed@salk.edu>
  * Date:   2008-04-04
@@ -23,6 +39,9 @@ dt = 1e-6
 iterations=300000
 
 INCLUDE_FILE="parameters.mdl"
+WARNINGS {
+  LIFETIME_TOO_SHORT = IGNORED
+}
 
 TIME_STEP = dt
 ITERATIONS = iterations

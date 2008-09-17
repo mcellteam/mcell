@@ -14671,7 +14671,6 @@ static struct rxn *create_sibling_reaction(struct mdlparse_vars *mpvp,
   reaction->max_fixed_p = 0.0;
   reaction->min_noreaction_p = 0.0;
   reaction->pb_factor = 0.0;
-  reaction->product_idx = NULL;
   reaction->players = NULL;
   reaction->geometries = NULL;
   reaction->is_complex = NULL;
@@ -16262,6 +16261,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
         /* Now, scale probabilities, notifying and warning as appropriate. */
         rx->pb_factor = pb_factor;
+        path = rx->pathway_head;
         for (int n_pathway=0;n_pathway<rx->n_pathways;n_pathway++)
         {
           int rate_notify=0, rate_warn=0;
@@ -16332,7 +16332,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
             else
             {
-              path = rx->pathway_head;
               if (path->product_head == NULL)
               {
                 fprintf(warn_file,"NULL ");
@@ -16344,6 +16343,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                   fprintf(warn_file,"%s{%d} ",prod->prod->sym->name, prod->orientation);
                 }
               }
+
+              path = path->next;
             }
             fprintf(warn_file,"\n");
 

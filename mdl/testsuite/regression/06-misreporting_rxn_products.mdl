@@ -1,0 +1,52 @@
+/****************************************************************************
+ * Regression test 06: Misreporting reaction products.
+ *
+ *    This is in response to a bug report from Boris, who noticed that recent
+ *    versions of MCell, when given reactions:
+ *
+ *      a+b -> c [rate1]
+ *      a+b -> d [rate2]
+ *      a+b -> e [rate3]
+ *
+ *     would give three probability reports with different probabilities, as
+ *     appropriate, but the reports would all reference the same set of
+ *     products.
+ *
+ *
+ *    Failure: output includes lines which look like:
+ *      Reaction probabilities generated for the following reactions:
+ *        Probability 3.6790e-04 set for a{0} + b{0} -> c{0}
+ *        Probability 7.3581e-04 set for a{0} + b{0} -> c{0}
+ *        Probability 1.1037e-03 set for a{0} + b{0} -> c{0}
+ *
+ *    Success: output includes lines which look like:
+ *      Reaction probabilities generated for the following reactions:
+ *        Probability 3.6790e-04 set for a{0} + b{0} -> c{0}
+ *        Probability 7.3581e-04 set for a{0} + b{0} -> d{0}
+ *        Probability 1.1037e-03 set for a{0} + b{0} -> e{0}
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-09-16
+ ****************************************************************************/
+
+ITERATIONS = 100
+TIME_STEP = 1e-6
+
+NOTIFICATIONS {
+  ALL_NOTIFICATIONS = OFF
+  PROBABILITY_REPORT = ON
+}
+
+DEFINE_MOLECULES {
+  a { DIFFUSION_CONSTANT_3D = 1e-6 }
+  b { DIFFUSION_CONSTANT_3D = 1e-6 }
+  c { DIFFUSION_CONSTANT_3D = 1e-6 }
+  d { DIFFUSION_CONSTANT_3D = 1e-6 }
+  e { DIFFUSION_CONSTANT_3D = 1e-6 }
+}
+
+DEFINE_REACTIONS {
+  a + b -> c [1e6]
+  a + b -> d [2e6]
+  a + b -> e [3e6]
+}

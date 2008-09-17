@@ -1,0 +1,65 @@
+/****************************************************************************
+ * Regression test 04: When two surface molecules undergo a reaction in which
+ *       both reagents are preserved, and in which both reagents change
+ *       orientation, counting does not occur properly.
+ *
+ *       Failure: as flippy increases, a000- and b000- remain 0
+ *
+ *       Success: a000- and b000- increase to non-zero values
+ *                flippy increases
+ *                at all times a000- + a000+ == 300
+ *                at all times b000- + b000+ == 300
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-09-10
+ ****************************************************************************/
+
+ITERATIONS = 5000
+TIME_STEP = 1e-6
+VACANCY_SEARCH_DISTANCE = 2
+
+DEFINE_MOLECULES
+{
+  a000 { DIFFUSION_CONSTANT_2D = 2e-6 }
+  b000 { DIFFUSION_CONSTANT_2D = 2e-6 }
+}
+
+DEFINE_REACTIONS
+{
+  a000' + b000' -> a000, + b000,   [>1e6]   : flippy
+}
+
+INSTANTIATE world OBJECT
+{
+  box000 BOX
+  {
+    CORNERS = [0, 0, 0], [0.1, 0.1, 0.1]
+  }
+
+  rs000a RELEASE_SITE
+  {
+    SHAPE = world.box000
+    MOLECULE = a000'
+    NUMBER_TO_RELEASE = 300
+  }
+  rs000b RELEASE_SITE
+  {
+    SHAPE = world.box000
+    MOLECULE = b000'
+    NUMBER_TO_RELEASE = 300
+  }
+}
+
+REACTION_DATA_OUTPUT
+{
+  OUTPUT_BUFFER_SIZE = 50
+  STEP = 1e-4
+  HEADER = "# "
+  {
+    COUNT[b000{1},  world.box000] : "b000+",
+    COUNT[b000{-1}, world.box000] : "b000-",
+    COUNT[a000{1},  world.box000] : "a000+",
+    COUNT[a000{-1}, world.box000] : "a000-",
+    COUNT[flippy,   world.box000] : "flippy"
+  } => "counts.txt"
+}

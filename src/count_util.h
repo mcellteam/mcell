@@ -18,8 +18,12 @@ int object_has_geometry(struct object *obj);
 /************************************************************
  * Complex counting
  ************************************************************/
-int count_complex(struct volume_molecule *cmplex, struct volume_molecule *replaced_subunit, int replaced_subunit_idx);
-int count_complex_surface(struct grid_molecule *cmplex, struct grid_molecule *replaced_subunit, int replaced_subunit_idx);
+int count_complex(struct volume_molecule *cmplex,
+                  struct volume_molecule *replaced_subunit,
+                  int replaced_subunit_idx);
+int count_complex_surface(struct grid_molecule *cmplex,
+                          struct grid_molecule *replaced_subunit,
+                          int replaced_subunit_idx);
 int count_complex_surface_new(struct grid_molecule *cmplex);
 
 #endif

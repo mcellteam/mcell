@@ -96,7 +96,7 @@ class RequireCounts:
 ## scalar.  min_time and max_time may also be specified to limit the comparison
 ## to a certain time interval.
 ####################
-def assertCountConstraints(fname, constraints=None, totals=None, min_time=None, max_time=None, header=None, num_vals=None):
+def assertCountConstraints(fname, constraints=None, totals=None, min_time=None, max_time=None, header=None, num_vals=None, minimums=None, maximums=None):
   try:
     file = open(fname)
   except:
@@ -128,6 +128,13 @@ def assertCountConstraints(fname, constraints=None, totals=None, min_time=None, 
           constraints = [(1,) * len(counts)]
         if totals == None:
           totals = (0,) * len(constraints)
+        if minimums == None:
+          minimums = (0,) * len(counts)
+        if maximums == None:
+          maximums = (1e300,) * len(counts)
+        for c in range(0, len(counts)):
+          assert counts[c] >= minimums[c], "In reaction output file '%s', at time %s, value (%g) is less than minimum value (%g)" % (fname, cols[0], counts[c], minimums[c])
+          assert counts[c] <= maximums[c], "In reaction output file '%s', at time %s, value (%g) is greater than maximum value (%g)" % (fname, cols[0], counts[c], maximums[c])
         for c in range(0, len(constraints)):
           val = sum(map(lambda x, y: x*y, constraints[c], counts))
           assert val == totals[c], "In reaction output file '%s', at time %s, constraint %s*%s == %d is not satisfied" % (fname, cols[0], str(constraints[c]), str(counts), totals[c])
@@ -139,7 +146,7 @@ def assertCountConstraints(fname, constraints=None, totals=None, min_time=None, 
     file.close()
 
 class RequireCountConstraints:
-  def __init__(self, name, constraints=None, totals=None, min_time=None, max_time=None, header=None, num_vals=None):
+  def __init__(self, name, constraints=None, totals=None, min_time=None, max_time=None, header=None, num_vals=None, minimums=None, maximums=None):
     self.name = name
     self.args = {}
     if constraints is not None:
@@ -154,6 +161,10 @@ class RequireCountConstraints:
       self.args["header"] = header
     if num_vals is not None:
       self.args["num_vals"] = num_vals
+    if minimums is not None:
+      self.args["minimums"] = minimums
+    if maximums is not None:
+      self.args["maximums"] = maximums
 
   def check(self):
     assertCountConstraints(self.name, **self.args)

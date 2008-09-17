@@ -19,6 +19,7 @@ import ConfigParser
 import string
 import types
 import random
+import re
 
 ###################################################################
 # Check if assertions are enabled
@@ -206,6 +207,33 @@ class RequireFileEquals:
 
   def check(self):
     assertFileEquals(self.name, self.contents)
+
+###################################################################
+# Give an error if a file doesn't exist or if its contents match (or do not
+# match) the regular expression passed in.
+###################################################################
+def assertFileMatches(fname, regex, expectMinMatches=1, expectMaxMatches=sys.maxint):
+  try:
+    got_contents = open(fname).read()
+  except:
+    assert False, "Expected file '%s' was not created" % fname
+  matches = re.findall(regex, got_contents)
+  if len(matches) == 1:
+    plural = ""
+  else:
+    plural = "es"
+  assert len(matches) >= expectMinMatches, "Expected file '%s' had incorrect contents (found %d match%s for regex '%s', expected at least %d)" % (fname, len(matches), plural, regex, expectMinMatches)
+  assert len(matches) <= expectMaxMatches, "Expected file '%s' had incorrect contents (found %d match%s for regex '%s', expected at most %d)"  % (fname, len(matches), plural, regex, expectMaxMatches)
+
+class RequireFileMatches:
+  def __init__(self, name, regex, expectMinMatches=1, expectMaxMatches=sys.maxint):
+    self.name = name
+    self.regex = regex
+    self.expectMinMatches = expectMinMatches
+    self.expectMaxMatches = expectMaxMatches
+
+  def check(self):
+    assertFileMatches(self.name, self.regex, self.expectMinMatches, self.expectMaxMatches)
 
 ###################################################################
 # Give an error if a file isn't a symlink, or (optionally) if the destination
