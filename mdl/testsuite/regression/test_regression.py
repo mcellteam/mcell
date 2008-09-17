@@ -4,6 +4,7 @@ from testutils import McellTest
 from testutils import get_output_dir
 from testutils import cleandir
 from testutils import crange
+from testutils import RequireFileMatches
 from reaction_output import RequireCountConstraints
 from reaction_output import RequireCountEquilibrium
 
@@ -67,6 +68,14 @@ class TestRegressions(unittest.TestCase):
                                                 (0, 1, -1)],        # 0
                                                [1000, 0],
                                                header=True))
+    mt.invoke(get_output_dir())
+
+  def test_006(self):
+    mt = McellTest("regression", "06-misreporting_rxn_products.mdl", ["-quiet"])
+    mt.set_check_std_handles(1, 1, 1)
+    mt.add_extra_check(RequireFileMatches("realout", '\s*Probability.*set for a\{0\} \+ b\{0\} -> c\{0\}', expectMaxMatches=1))
+    mt.add_extra_check(RequireFileMatches("realout", '\s*Probability.*set for a\{0\} \+ b\{0\} -> d\{0\}', expectMaxMatches=1))
+    mt.add_extra_check(RequireFileMatches("realout", '\s*Probability.*set for a\{0\} \+ b\{0\} -> e\{0\}', expectMaxMatches=1))
     mt.invoke(get_output_dir())
 
 def suite():
