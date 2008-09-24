@@ -2677,6 +2677,34 @@ int mdl_set_checkpoint_infile(struct mdlparse_vars *mpvp, char *name)
 }
 
 /*************************************************************************
+ mdl_set_checkpoint_outfile:
+    Set the output checkpoint file to use.
+
+ In:  mpvp: parser state
+      name: name of checkpoint file
+ Out: 0 on success, 1 on failure
+*************************************************************************/
+int mdl_set_checkpoint_outfile(struct mdlparse_vars *mpvp, char *name)
+{
+  FILE *file;
+  if (mpvp->vol->chkpt_outfile == NULL)
+  {
+    mpvp->vol->chkpt_outfile = name;
+    if ((file = fopen(mpvp->vol->chkpt_outfile, "wb")) == NULL)
+    {
+      mdlerror_fmt(mpvp, "Cannot open checkpoint output file '%s'\n", mpvp->vol->chkpt_outfile);
+      return 1;
+    }
+    else
+    {
+      fclose(file);
+    }
+    mpvp->vol->chkpt_flag = 1;
+  }
+  return 0;
+}
+
+/*************************************************************************
  mdl_set_checkpoint_iterations:
     Set the number of iterations between checkpoints.
 

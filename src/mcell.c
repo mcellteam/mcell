@@ -562,6 +562,7 @@ int main(int argc, char **argv)
 
   world->iterations=INT_MIN; /* indicates iterations not set */
   world->chkpt_infile = NULL;
+  world->chkpt_outfile = NULL;
   world->chkpt_init = 1;
   world->log_freq = ULONG_MAX; /* Indicates that this value has not been set by user */
   world->begin_timestamp = begin_time_of_day;
