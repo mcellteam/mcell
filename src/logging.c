@@ -212,10 +212,10 @@ void mcell_perrorv_nodie(int err, char const *fmt, va_list args)
   fprintf(mcell_get_error_file(), "Fatal error: ");
   mcell_errorv_raw(fmt, args);
 #ifdef STRERROR_R_CHAR_P
-  fprintf(mcell_get_error_file(), ": g %s\n", strerror_r(err, buffer, sizeof(buffer)));
+  fprintf(mcell_get_error_file(), ": %s\n", strerror_r(err, buffer, sizeof(buffer)));
 #else
   if (strerror_r(err, buffer, sizeof(buffer)) == 0)
-    fprintf(mcell_get_error_file(), ": ng %s\n", buffer);
+    fprintf(mcell_get_error_file(), ": %s\n", buffer);
   else
     fprintf(mcell_get_error_file(), "\n");
 #endif

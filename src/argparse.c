@@ -191,16 +191,7 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
           return 1;
         }
 
-        if ((fhandle = fopen(vol->chkpt_outfile, "wb")) == NULL)
-        {
-          argerror(vol, "Cannot open output checkpoint file: %s", vol->chkpt_outfile);
-          free(vol->chkpt_outfile);
-          vol->chkpt_outfile = NULL;
-          return 1;
-        }
-
         vol->chkpt_flag = 1;
-        fclose(fhandle);
         break;
 
       case 'l':  /* -logfile */

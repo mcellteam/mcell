@@ -2686,19 +2686,9 @@ int mdl_set_checkpoint_infile(struct mdlparse_vars *mpvp, char *name)
 *************************************************************************/
 int mdl_set_checkpoint_outfile(struct mdlparse_vars *mpvp, char *name)
 {
-  FILE *file;
   if (mpvp->vol->chkpt_outfile == NULL)
   {
     mpvp->vol->chkpt_outfile = name;
-    if ((file = fopen(mpvp->vol->chkpt_outfile, "wb")) == NULL)
-    {
-      mdlerror_fmt(mpvp, "Cannot open checkpoint output file '%s'\n", mpvp->vol->chkpt_outfile);
-      return 1;
-    }
-    else
-    {
-      fclose(file);
-    }
     mpvp->vol->chkpt_flag = 1;
   }
   return 0;
