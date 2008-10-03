@@ -6,15 +6,58 @@ from testutils import cleandir
 from testutils import crange
 from reaction_output import RequireCountConstraints
 from reaction_output import RequireCountEquilibrium
-#from viz_output import RequireVizAscii, RequireVizRK, RequireVizDX
-#from viz_output import RequireVizDreammV3
-#from viz_output import RequireVizDreammV3MolsBin
-#from viz_output import RequireVizDreammV3MeshBin
-#from viz_output import RequireVizDreammV3MolsAscii
-#from viz_output import RequireVizDreammV3MeshAscii
-#from viz_output import RequireVizDreammV3Grouped
+from reaction_output import RequireCounts
 from macromol_test_types import InvalidMacromolParserTest
 import unittest
+import math
+
+def distance(p1, p2):
+  v = (p1[0] - p2[0], p1[1] - p2[1], p1[2] - p2[2])
+  return math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2])
+
+worst_match = -1.0
+def match_position(positions, dist, eps, pos):
+  for i in positions:
+    d = distance(i, pos)
+    deviate = abs(d - dist)
+    if deviate < eps:
+      global worst_match
+      if deviate > worst_match:
+        worst_match = deviate
+      return True
+  return False
+
+class CheckListReleasePositions(object):
+
+  def __init__(self, file, eps=3.0e-2):
+    self.filename = file
+    self.epsilon = eps
+    self.positions = ((-0.5, -0.5, -0.5),   (-0.5, -0.5,  0.5),   (-0.5,  0.5, -0.5),   (-0.5,  0.5,  0.5),
+                      ( 0.5, -0.5, -0.5),   ( 0.5, -0.5,  0.5),   ( 0.5,  0.5, -0.5),   ( 0.5,  0.5,  0.5),
+                      (   0, -0.5, -0.5),   (   0, -0.5,  0.5),   (   0,  0.5, -0.5),   (   0,  0.5,  0.5),
+                      (-0.5,    0, -0.5),   (-0.5,    0,  0.5),   ( 0.5,    0, -0.5),   ( 0.5,    0,  0.5),
+                      (-0.5, -0.5,    0),   (-0.5,  0.5,    0),   ( 0.5, -0.5,    0),   ( 0.5,  0.5,    0),
+                      (   0,    0, -0.5),   (   0,    0,  0.5),
+                      (   0, -0.5,    0),   (   0,  0.5,    0),
+                      (-0.5,    0,    0),   ( 0.5,    0,    0))
+
+  def check(self):
+    num_complexes = 0
+    num_subunits = 0
+    for line in open(self.filename):
+      id, x, y, z, ox, oy, oz = line.split()
+      x = float(x)
+      y = float(y)
+      z = float(z)
+      pos = (x, y, z)
+      if id == '1':
+        assert match_position(self.positions, 0, self.epsilon, pos), 'Found macromolecule at unexpected location (%.15g, %.15g, %.15g)' % pos
+        num_complexes += 1
+      else:
+        assert match_position(self.positions, 0.11, self.epsilon, pos), 'Found subunit at unexpected location (%.15g, %.15g, %.15g)' % pos
+        num_subunits += 1
+    assert num_complexes == len(self.positions), 'Got an unexpected number of macromolecules in the ASCII viz output file.'
+    assert num_subunits == 12*len(self.positions), 'Got an unexpected number of subunits in the ASCII viz output file.'
 
 ###################################################################
 # Test cases for macromol parser error handling
@@ -154,6 +197,12 @@ class TestMacromolNumeric(unittest.TestCase):
                              header=True))
     t.invoke(get_output_dir())
 
+  def test_list_release(self):
+    t = McellTest("macromols", "03-macro_surface_listrelease.mdl", ["-quiet"])
+    t.add_extra_check(RequireCounts('counts.txt', [[0, 26, 312, 208, 26, 52]], header="# Iteration_# complexes subunits 00 01 11"))
+    t.add_extra_check(CheckListReleasePositions('molecules.ascii.0.dat'))
+    t.invoke(get_output_dir())
+
 ###################################################################
 # Generate a test suite for all invalid mdl files
 ###################################################################
@@ -168,7 +217,7 @@ def numericsuite():
 
 def tmpsuite():
   suite = unittest.TestSuite()
-  suite.addTest(TestMacromolNumeric("test_surface"))
+  suite.addTest(TestMacromolNumeric("test_list_release"))
   return suite
 
 ###################################################################

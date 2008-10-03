@@ -27,17 +27,18 @@ static void argerror(struct volume *vol, char const *s, ...)
  */
 static struct option long_options[] =
 {
-  {"help",              0, 0, 'h'},
-  {"version",           0, 0, 'v'},
-  {"fullversion",       0, 0, 'V'},
-  {"seed",              1, 0, 's'},
-  {"iterations",        1, 0, 'i'},
-  {"checkpoint_infile", 1, 0, 'c'},
-  {"logfile",           1, 0, 'l'},
-  {"logfreq",           1, 0, 'f'},
-  {"errfile",           1, 0, 'e'},
-  {"quiet",             0, 0, 'q'},
-  {NULL,                0, 0, 0}
+  {"help",               0, 0, 'h'},
+  {"version",            0, 0, 'v'},
+  {"fullversion",        0, 0, 'V'},
+  {"seed",               1, 0, 's'},
+  {"iterations",         1, 0, 'i'},
+  {"checkpoint_infile",  1, 0, 'c'},
+  {"checkpoint_outfile", 1, 0, 'C'},
+  {"logfile",            1, 0, 'l'},
+  {"logfreq",            1, 0, 'f'},
+  {"errfile",            1, 0, 'e'},
+  {"quiet",              0, 0, 'q'},
+  {NULL,                 0, 0, 0}
 };
 
 /* print_usage: Write the usage message for mcell to a file handle.
@@ -57,7 +58,8 @@ void print_usage(FILE *f, char const *argv0)
   fprintf(f, "       [-logfile log_file_name]  send output log to file (default: stdout)\n");
   fprintf(f, "       [-logfreq n]              output log frequency (default: 100)\n");
   fprintf(f, "       [-errfile err_file_name]  send errors log to file (default: stderr)\n");
-  fprintf(f, "       [-checkpoint_infile checkpoint_file_name]  read checkpoint file\n");
+  fprintf(f, "       [-checkpoint_infile checkpoint_file_name]   read checkpoint file\n");
+  fprintf(f, "       [-checkpoint_outfile checkpoint_file_name]  write checkpoint file\n");
   fprintf(f, "       [-quiet]                  suppress all unrequested output except for errors\n");
   fprintf(f, "\n");
 }
@@ -179,6 +181,17 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
         vol->chkpt_init=0;
         vol->chkpt_flag = 1;
         fclose(fhandle);
+        break;
+
+      case 'C':  /* -checkpoint_outfile */
+        vol->chkpt_outfile = strdup(optarg);
+        if (vol->chkpt_outfile == NULL)
+        {
+          argerror(vol, "File '%s', Line %u: Out of memory while parsing command-line arguments: %s\n", __FILE__, __LINE__, optarg);
+          return 1;
+        }
+
+        vol->chkpt_flag = 1;
         break;
 
       case 'l':  /* -logfile */

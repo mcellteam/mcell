@@ -1074,7 +1074,7 @@ warning_level:
 /* Checkpoint configuration */
 
 chkpt_stmt: CHECKPOINT_INFILE '=' file_name           { CHECK(mdl_set_checkpoint_infile(mdlpvp, $3)); }
-        | CHECKPOINT_OUTFILE '=' file_name            { mdlpvp->vol->chkpt_outfile = $3; mdlpvp->vol->chkpt_flag = 1; }
+        | CHECKPOINT_OUTFILE '=' file_name            { CHECK(mdl_set_checkpoint_outfile(mdlpvp, $3)); }
         | CHECKPOINT_ITERATIONS '=' num_expr          { CHECK(mdl_set_checkpoint_interval(mdlpvp, $3)); }
         | CHECKPOINT_REALTIME '='
           time_expr exit_or_no                        { CHECK(mdl_set_realtime_checkpoint(mdlpvp, (long) $3, $4)); }

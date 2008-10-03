@@ -247,6 +247,10 @@ int mdl_set_realtime_checkpoint(struct mdlparse_vars *mpvp,
 int mdl_set_checkpoint_infile(struct mdlparse_vars *mpvp,
                               char *name);
 
+/* Set the output checkpoint file to use. */
+int mdl_set_checkpoint_outfile(struct mdlparse_vars *mpvp,
+                               char *name);
+
 /* Set the number of iterations between checkpoints. */
 int mdl_set_checkpoint_interval(struct mdlparse_vars *mpvp,
                                 long long iters);

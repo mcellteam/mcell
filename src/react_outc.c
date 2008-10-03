@@ -850,6 +850,8 @@ static int outcome_products(struct wall *w,
           }
           hitpt = & mol_pos_tmp;
         }
+        else if (product_subvol == NULL)
+          product_subvol = find_subvolume(hitpt, last_subvol);
 
         this_product = (struct abstract_molecule *) place_volume_product(product_species,
                                                                          grid_reactant,

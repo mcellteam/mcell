@@ -226,7 +226,6 @@ int init_sim(void)
   /*  chkpt_infile=NULL; */
   /* =================================================== */
 
-  world->chkpt_outfile=NULL;
   world->chkpt_iterations=0;
   world->chkpt_seq_num=0;
 

@@ -1,0 +1,48 @@
+/****************************************************************************
+ * Regression test 07: Volume-volume reactions result in a crash using the new
+ *          outcome_products.
+ *
+ *    This is in response to a bug report from Tom.
+ *
+ *    Failure: MCell crashes
+ *
+ *    Success: MCell runs successfully
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-10-03
+ ****************************************************************************/
+
+
+ITERATIONS = 250
+TIME_STEP = 1e-6
+
+DEFINE_MOLECULES
+{
+  a { DIFFUSION_CONSTANT_3D = 1e-6 }
+  b { DIFFUSION_CONSTANT_3D = 1e-6 }
+  c { DIFFUSION_CONSTANT_3D = 1e-6 }
+}
+
+DEFINE_REACTIONS
+{
+  a + b <-> c       [>1e6, <1e3]
+}
+
+INSTANTIATE world OBJECT
+{
+  b BOX {
+    CORNERS = [-0.1, -0.1, -0.1], [0.1, 0.1, 0.1]
+  }
+
+  rs_a RELEASE_SITE {
+    SHAPE = world.b
+    MOLECULE = a
+    NUMBER_TO_RELEASE = 1000
+  }
+
+  rs_b RELEASE_SITE {
+    SHAPE = world.b
+    MOLECULE = b
+    NUMBER_TO_RELEASE = 1000
+  }
+}
