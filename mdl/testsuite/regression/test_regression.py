@@ -78,5 +78,10 @@ class TestRegressions(unittest.TestCase):
     mt.add_extra_check(RequireFileMatches("realout", '\s*Probability.*set for a\{0\} \+ b\{0\} -> e\{0\}', expectMaxMatches=1))
     mt.invoke(get_output_dir())
 
+  def test_007(self):
+    mt = McellTest("regression", "07-volvol_crash.mdl", ["-quiet"])
+    mt.set_check_std_handles(1, 1, 1)
+    mt.invoke(get_output_dir())
+
 def suite():
   return unittest.makeSuite(TestRegressions, "test")
