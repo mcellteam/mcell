@@ -2960,6 +2960,7 @@ static int macro_expand_object_output(struct macro_count_request *request,struct
       {
         if (is_reverse_abbrev(",ALL",rl->reg->sym->name))
         {
+          rl->reg->flags|=COUNT_CONTENTS;
           request->location = rl->reg->sym;
           break;
         }
@@ -3011,6 +3012,11 @@ static int macro_normalize_output_request_locations(void)
     {
       if (macro_expand_object_output(mcr, (struct object*) mcr->location->value))
         mcell_error("Failed to expand request to count on object.");
+    }
+    else
+    {
+      struct region *reg = (struct region *) mcr->location->value;
+      reg->flags |= COUNT_CONTENTS;
     }
   }
   return 0;
