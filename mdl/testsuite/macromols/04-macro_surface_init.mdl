@@ -25,18 +25,14 @@ countdir = "dat/" & basename & "/"
 vizdir   = "./viz_dat/" & basename & "/"
 sprintf(seed, "%04g", SEED)
 dt = 1e-6
-iterations=300000
+iterations=1
 
 INCLUDE_FILE="parameters.mdl"
 
 TIME_STEP = dt
 ITERATIONS = iterations
-GRID_DENSITY = 15000
+EFFECTOR_GRID_DENSITY = 15000
 ACCURATE_3D_REACTIONS = FALSE
-
-CHECKPOINT_OUTFILE=basename & ".cp"
-CHECKPOINT_INFILE=basename & ".cp"
-CHECKPOINT_ITERATIONS=30000
 
 PARTITION_X = [[-0.5001 TO 0.50001 STEP 0.02]]
 PARTITION_Y = [[-0.5001 TO 0.50001 STEP 0.02]]
@@ -70,31 +66,16 @@ DEFINE_COMPLEX_MOLECULE camkii {
     SUBUNIT[2, 6] = [-.04, -.0866, 0]
   }
   SUBUNIT_RELATIONSHIPS {
-    ring_negative = [ 0, -1]
-    ring_positive = [ 0, +1]
     dimer_partner = [+1,  0]
   }
   RATE_RULES {
-    coop_binding_rate {
-      dimer_partner != camkii_subunit : fw_rate * TMP_spec_F
-      DEFAULT : fw_rate
-    }
-    coop_unbinding_rate {
-      dimer_partner != camkii_subunit : bw_rate * TMP_spec_B
-      DEFAULT : bw_rate
-    }
   }
 }
 
-DEFINE_REACTIONS {
-  (camkii_subunit') + cam, <-> (camkii_subunitB')   [> COMPLEX_RATE camkii coop_binding_rate,
-                                                     < COMPLEX_RATE camkii coop_unbinding_rate]
-}
-
 DEFINE_SURFACE_CLASSES {
-  class1 { MOLECULE_NUMBER { camkii' = 20 } }
-  class2 { MOLECULE_DENSITY { camkii' = 200.0 / 3200.0 } }
-  class3 { MOLECULE_NUMBER { camkii; = 25 } }
+  class1 { MOLECULE_NUMBER { camkii' = 20 } }               // Presently broken
+  class2 { MOLECULE_DENSITY { camkii' = 200.0 } }           // Presently broken
+  class3 { MOLECULE_NUMBER { camkii; = 25 } }               // Presently broken
 }
 
 mainbox OBJECT {
@@ -106,7 +87,7 @@ mainbox OBJECT {
       front  { ELEMENT_LIST = [FRONT]  SURFACE_CLASS = class3 }
       bottom { ELEMENT_LIST = [BOTTOM] MOLECULE_NUMBER { camkii, = 20 } }
       right  { ELEMENT_LIST = [RIGHT]  MOLECULE_NUMBER  { camkii, = 200.0 } }
-      back   { ELEMENT_LIST = [BACK]   MOLECULE_DENSITY { camkii; = 200.0 / 3200.0 } }
+      back   { ELEMENT_LIST = [BACK]   MOLECULE_DENSITY { camkii; = 200.0 } }
     }
   }
 }
@@ -116,7 +97,6 @@ INSTANTIATE world OBJECT
   mainbox OBJECT mainbox {
   }
 
-
   rs2 RELEASE_SITE {
     SHAPE = world.mainbox.b[ALL]
     MOLECULE = cam
@@ -124,119 +104,34 @@ INSTANTIATE world OBJECT
   }
 }
 
-VIZ_OUTPUT
-{
-  MODE = DREAMM_V3_GROUPED
-  FILENAME = vizdir & "world." & seed
-  MOLECULES {
-    NAME_LIST { ALL_MOLECULES }
-    ITERATION_NUMBERS { ALL_DATA @ [[0 TO 100000000 STEP 100]] }
-  }
-  MESHES {
-    NAME_LIST { ALL_MESHES }
-    ITERATION_NUMBERS { ALL_DATA @ [0] }
-  }
-}
-
 REACTION_DATA_OUTPUT
 {
-  OUTPUT_BUFFER_SIZE = 10
-  ITERATION_LIST = [[0 TO 9999 STEP 100], [10000 TO 250000 STEP 10000], [250001 TO 1250000 STEP 1]]
-
-  /* 00 counts (non-inverted) */
-  {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner==camkii_subunit  ]}, WORLD]} => countdir & "coop_m00xx." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner==camkii_subunit  ]}, WORLD]} => countdir & "coop_m00ux." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner==camkii_subunit  ]}, WORLD]} => countdir & "coop_m00dx." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner==camkii_subunit ']}, WORLD]} => countdir & "coop_m00xu." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner==camkii_subunit ,]}, WORLD]} => countdir & "coop_m00xd." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner==camkii_subunit ,]}, WORLD]} => countdir & "coop_m00ud." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner==camkii_subunit ']}, WORLD]} => countdir & "coop_m00du." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner==camkii_subunit ']}, WORLD]} => countdir & "coop_m00uu." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner==camkii_subunit ,]}, WORLD]} => countdir & "coop_m00dd." & seed & ".dat"
-
-  /* 00 counts (inverted) */
-  {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner!=camkii_subunitB ]}, WORLD]} => countdir & "coop_im00xx." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner!=camkii_subunitB ]}, WORLD]} => countdir & "coop_im00ux." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner!=camkii_subunitB ]}, WORLD]} => countdir & "coop_im00dx." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner!=camkii_subunitB']}, WORLD]} => countdir & "coop_im00xu." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner!=camkii_subunitB,]}, WORLD]} => countdir & "coop_im00xd." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner!=camkii_subunitB,]}, WORLD]} => countdir & "coop_im00ud." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner!=camkii_subunitB']}, WORLD]} => countdir & "coop_im00du." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner!=camkii_subunitB']}, WORLD]} => countdir & "coop_im00uu." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner!=camkii_subunitB,]}, WORLD]} => countdir & "coop_im00dd." & seed & ".dat"
-
-  /* 01 counts (non-inverted) */
-  {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner==camkii_subunitB ]}, WORLD]} => countdir & "coop_m01xx." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner==camkii_subunitB ]}, WORLD]} => countdir & "coop_m01ux." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner==camkii_subunitB ]}, WORLD]} => countdir & "coop_m01dx." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner==camkii_subunitB']}, WORLD]} => countdir & "coop_m01xu." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner==camkii_subunitB,]}, WORLD]} => countdir & "coop_m01xd." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner==camkii_subunitB,]}, WORLD]} => countdir & "coop_m01ud." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner==camkii_subunitB']}, WORLD]} => countdir & "coop_m01du." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner==camkii_subunitB']}, WORLD]} => countdir & "coop_m01uu." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner==camkii_subunitB,]}, WORLD]} => countdir & "coop_m01dd." & seed & ".dat"
-
-  /* 01 counts (inverted) */
-  {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner!=camkii_subunit  ]}, WORLD]} => countdir & "coop_im01xx." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner!=camkii_subunit  ]}, WORLD]} => countdir & "coop_im01ux." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner!=camkii_subunit  ]}, WORLD]} => countdir & "coop_im01dx." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner!=camkii_subunit ']}, WORLD]} => countdir & "coop_im01xu." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit  [dimer_partner!=camkii_subunit ,]}, WORLD]} => countdir & "coop_im01xd." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner!=camkii_subunit ,]}, WORLD]} => countdir & "coop_im01ud." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner!=camkii_subunit ']}, WORLD]} => countdir & "coop_im01du." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit '[dimer_partner!=camkii_subunit ']}, WORLD]} => countdir & "coop_im01uu." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunit ,[dimer_partner!=camkii_subunit ,]}, WORLD]} => countdir & "coop_im01dd." & seed & ".dat"
-
-  /* 10 counts (non-inverted) */
-  {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner==camkii_subunit  ]}, WORLD]} => countdir & "coop_m10xx." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner==camkii_subunit  ]}, WORLD]} => countdir & "coop_m10ux." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner==camkii_subunit  ]}, WORLD]} => countdir & "coop_m10dx." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner==camkii_subunit ']}, WORLD]} => countdir & "coop_m10xu." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner==camkii_subunit ,]}, WORLD]} => countdir & "coop_m10xd." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner==camkii_subunit ,]}, WORLD]} => countdir & "coop_m10ud." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner==camkii_subunit ']}, WORLD]} => countdir & "coop_m10du." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner==camkii_subunit ']}, WORLD]} => countdir & "coop_m10uu." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner==camkii_subunit ,]}, WORLD]} => countdir & "coop_m10dd." & seed & ".dat"
-
-  /* 10 counts (inverted) */
-  {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner!=camkii_subunitB ]}, WORLD]} => countdir & "coop_im10xx." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner!=camkii_subunitB ]}, WORLD]} => countdir & "coop_im10ux." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner!=camkii_subunitB ]}, WORLD]} => countdir & "coop_im10dx." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner!=camkii_subunitB']}, WORLD]} => countdir & "coop_im10xu." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner!=camkii_subunitB,]}, WORLD]} => countdir & "coop_im10xd." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner!=camkii_subunitB,]}, WORLD]} => countdir & "coop_im10ud." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner!=camkii_subunitB']}, WORLD]} => countdir & "coop_im10du." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner!=camkii_subunitB']}, WORLD]} => countdir & "coop_im10uu." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner!=camkii_subunitB,]}, WORLD]} => countdir & "coop_im10dd." & seed & ".dat"
-
-  /* 11 counts (non-inverted) */
-  {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner==camkii_subunitB ]}, WORLD]} => countdir & "coop_m11xx." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner==camkii_subunitB ]}, WORLD]} => countdir & "coop_m11ux." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner==camkii_subunitB ]}, WORLD]} => countdir & "coop_m11dx." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner==camkii_subunitB']}, WORLD]} => countdir & "coop_m11xu." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner==camkii_subunitB,]}, WORLD]} => countdir & "coop_m11xd." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner==camkii_subunitB,]}, WORLD]} => countdir & "coop_m11ud." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner==camkii_subunitB']}, WORLD]} => countdir & "coop_m11du." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner==camkii_subunitB']}, WORLD]} => countdir & "coop_m11uu." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner==camkii_subunitB,]}, WORLD]} => countdir & "coop_m11dd." & seed & ".dat"
-
-  /* 11 counts (inverted) */
-  {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner!=camkii_subunit  ]}, WORLD]} => countdir & "coop_im11xx." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner!=camkii_subunit  ]}, WORLD]} => countdir & "coop_im11ux." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner!=camkii_subunit  ]}, WORLD]} => countdir & "coop_im11dx." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner!=camkii_subunit ']}, WORLD]} => countdir & "coop_im11xu." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB [dimer_partner!=camkii_subunit ,]}, WORLD]} => countdir & "coop_im11xd." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner!=camkii_subunit ,]}, WORLD]} => countdir & "coop_im11ud." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner!=camkii_subunit ']}, WORLD]} => countdir & "coop_im11du." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB'[dimer_partner!=camkii_subunit ']}, WORLD]} => countdir & "coop_im11uu." & seed & ".dat"
-  {COUNT[SUBUNIT{camkii : camkii_subunitB,[dimer_partner!=camkii_subunit ,]}, WORLD]} => countdir & "coop_im11dd." & seed & ".dat"
-
-  /* Traditional counts */
-  {COUNT[camkii_subunit, WORLD]}               => countdir & "coop_camkii."    & seed & ".dat"
-  {COUNT["camkii_subunit,", world.mainbox.b]}  => countdir & "coop_camkii_d."  & seed & ".dat"
-  {COUNT["camkii_subunit'", world.mainbox.b]}  => countdir & "coop_camkii_u."  & seed & ".dat"
-  {COUNT[camkii_subunitB, WORLD]}              => countdir & "coop_camkiiB."   & seed & ".dat"
-  {COUNT["camkii_subunitB,", world.mainbox.b]} => countdir & "coop_camkiiB_d." & seed & ".dat"
-  {COUNT["camkii_subunitB'", world.mainbox.b]} => countdir & "coop_camkiiB_u." & seed & ".dat"
-  {COUNT[cam, WORLD]}                          => countdir & "coop_cam."       & seed & ".dat"
+    OUTPUT_BUFFER_SIZE = 1000
+    ITERATION_LIST=[0]
+    HEADER = "# "
+    {
+      COUNT[camkii, WORLD]                                                               : "complexes",
+      COUNT[camkii_subunit, WORLD]                                                       : "subunits",
+      COUNT[SUBUNIT{camkii : camkii_subunit' [dimer_partner == camkii_subunit']}, WORLD] : "00",
+      COUNT[SUBUNIT{camkii : camkii_subunit' [dimer_partner == camkii_subunit,]}, WORLD] : "01",
+      COUNT[SUBUNIT{camkii : camkii_subunit, [dimer_partner == camkii_subunit,]}, WORLD] : "11",
+      COUNT[SUBUNIT{camkii : camkii_subunit' [dimer_partner == camkii_subunit']}, world.mainbox.b[top]]    : "00t",
+      COUNT[SUBUNIT{camkii : camkii_subunit' [dimer_partner == camkii_subunit,]}, world.mainbox.b[top]]    : "01t",
+      COUNT[SUBUNIT{camkii : camkii_subunit, [dimer_partner == camkii_subunit,]}, world.mainbox.b[top]]    : "11t",
+      COUNT[SUBUNIT{camkii : camkii_subunit' [dimer_partner == camkii_subunit']}, world.mainbox.b[bottom]] : "00b",
+      COUNT[SUBUNIT{camkii : camkii_subunit' [dimer_partner == camkii_subunit,]}, world.mainbox.b[bottom]] : "01b",
+      COUNT[SUBUNIT{camkii : camkii_subunit, [dimer_partner == camkii_subunit,]}, world.mainbox.b[bottom]] : "11b",
+      COUNT[SUBUNIT{camkii : camkii_subunit' [dimer_partner == camkii_subunit']}, world.mainbox.b[left]]   : "00l",
+      COUNT[SUBUNIT{camkii : camkii_subunit' [dimer_partner == camkii_subunit,]}, world.mainbox.b[left]]   : "01l",
+      COUNT[SUBUNIT{camkii : camkii_subunit, [dimer_partner == camkii_subunit,]}, world.mainbox.b[left]]   : "11l",
+      COUNT[SUBUNIT{camkii : camkii_subunit' [dimer_partner == camkii_subunit']}, world.mainbox.b[right]]  : "00r",
+      COUNT[SUBUNIT{camkii : camkii_subunit' [dimer_partner == camkii_subunit,]}, world.mainbox.b[right]]  : "01r",
+      COUNT[SUBUNIT{camkii : camkii_subunit, [dimer_partner == camkii_subunit,]}, world.mainbox.b[right]]  : "11r",
+      COUNT[SUBUNIT{camkii : camkii_subunit' [dimer_partner == camkii_subunit']}, world.mainbox.b[front]]  : "00F",
+      COUNT[SUBUNIT{camkii : camkii_subunit' [dimer_partner == camkii_subunit,]}, world.mainbox.b[front]]  : "01F",
+      COUNT[SUBUNIT{camkii : camkii_subunit, [dimer_partner == camkii_subunit,]}, world.mainbox.b[front]]  : "11F",
+      COUNT[SUBUNIT{camkii : camkii_subunit' [dimer_partner == camkii_subunit']}, world.mainbox.b[back]]   : "00B",
+      COUNT[SUBUNIT{camkii : camkii_subunit' [dimer_partner == camkii_subunit,]}, world.mainbox.b[back]]   : "01B",
+      COUNT[SUBUNIT{camkii : camkii_subunit, [dimer_partner == camkii_subunit,]}, world.mainbox.b[back]]   : "11B"
+    } => "counts.txt"
 }
