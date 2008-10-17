@@ -203,6 +203,55 @@ class TestMacromolNumeric(unittest.TestCase):
     t.add_extra_check(CheckListReleasePositions('molecules.ascii.0.dat'))
     t.invoke(get_output_dir())
 
+  def test_surface_init(self):
+    t = McellTest("macromols", "04-macro_surface_init.mdl", ["-quiet"])
+    t.set_check_std_handles(1, 1, 1)
+    # XXX: Will have to change a few numbers in the next two validity checks
+    # once placement of macromols on surface classes is working.
+    t.add_extra_check(RequireCountConstraints("counts.txt",
+                            [(12, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,   0,  0,  0,   0,  0),    # 0 (subunits per complex)
+                             ( 0,  1, -1, -2, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,   0,  0,  0,   0,  0),    # 0 (total subunits vs. per-orientation)
+                             ( 0,  0,  0,  0,  0, -1,  8,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,   0,  0,  0,   0,  0),    # 0 (00 vs. 01 orientation on top)
+                             ( 0,  0,  0,  0,  0,  0,  0,  0, -1,  2,  0,  0,  0,  0,  0,  0,  0,  0,   0,  0,  0,   0,  0),    # 0 (00 vs. 01 orientation on bottom)
+                             ( 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, -1,  8,  0,  0,  0,  0,  0,   0,  0,  0,   0,  0),    # 0 (00 vs. 01 orientation on left)
+                             ( 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, -1,  2,  0,  0,   0,  0,  0,   0,  0),    # 0 (00 vs. 01 orientation on right)
+                             ( 0,  0,  0,  0,  0,  0,  2, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,   0,  0,  0,   0,  0),    # 0 (11 vs. 01 orientation on top)
+                             ( 0,  0,  0,  0,  0,  0,  0,  0,  0,  8, -1,  0,  0,  0,  0,  0,  0,  0,   0,  0,  0,   0,  0),    # 0 (11 vs. 01 orientation on bottom)
+                             ( 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  2, -1,  0,  0,  0,  0,   0,  0,  0,   0,  0),    # 0 (11 vs. 01 orientation on left)
+                             ( 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  8, -1,  0,   0,  0,  0,   0,  0),    # 0 (11 vs. 01 orientation on right)
+                             ( 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1, -10,  1,  0,   0,  0),    # 0 (00+11 vs. 01 orientation on front)
+                             ( 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,   0,  0,  1, -10,  1),    # 0 (00+11 vs. 01 orientation on back)
+                             ( 0,  0,  1,  0,  0, -1,  0,  0, -1,  0,  0, -1,  0,  0, -1,  0,  0, -1,   0,  0, -1,   0,  0),    # 0 (total 00 subunits vs. per-face)
+                             ( 0,  0,  0,  1,  0,  0, -1,  0,  0, -1,  0,  0, -1,  0,  0, -1,  0,  0,  -1,  0,  0,  -1,  0),    # 0 (total 01 subunits vs. per-face)
+                             ( 0,  0,  0,  0,  1,  0,  0, -1,  0,  0, -1,  0,  0, -1,  0,  0, -1,  0,   0, -1,  0,   0, -1),    # 0 (total 11 subunits vs. per-face)
+                             # ( 0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,   0,  0,  0,   0,  0),  # BROKEN: 20 (01 subunits on top face)
+                             ( 0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,   0,  0,  0,   0,  0),    # 20 (01 subunits on bottom face)
+                             ( 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,   0,  0,  0,   0,  0),    # 200 (01 subunits on right face)
+                             # ( 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,   1,  0,  0,   0,  0),  # BROKEN: 25 (01 subunits on top face)
+                              ],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 200],
+                            header=True))
+    # BROKEN: placement on surface class does nothing
+    # expect_t = 20
+    # expect_l = 200
+    # expect_f = 25
+    expect_t  = 0
+    expect_l  = 0
+    expect_f  = 0
+    expect_bo = 20
+    expect_r  = 200
+    expect_ba = 200
+    expect_00 = 8*expect_t + 2*expect_bo + 8*expect_l + 2*expect_r + 5*expect_f + 5*expect_ba
+    expect_01 =   expect_t +   expect_bo +   expect_l +   expect_r +   expect_f +   expect_ba
+    expect_11 = 2*expect_t + 8*expect_bo + 2*expect_l + 8*expect_r + 5*expect_f + 5*expect_ba
+    expect_total = expect_t + expect_l + expect_f + expect_bo + expect_r + expect_ba
+    expect_subunits = 12*expect_total
+    t.add_extra_check(RequireCountEquilibrium("counts.txt",
+                             [expect_total,      expect_subunits,    expect_00,    expect_01,    expect_11,    8*expect_t, expect_t, 2*expect_t, 2*expect_bo, expect_bo, 8*expect_bo, 8*expect_l, expect_l,     2*expect_l,   2*expect_r, expect_r, 8*expect_r, 5*expect_f, expect_f, 5*expect_f, 5*expect_ba, expect_ba,    5*expect_ba],
+                             [expect_total / 10, expect_subunits/10, expect_00/10, expect_01/10, expect_11/10, 0.1,        0.1,      0.1,        0.1,         0.1,       0.1,         1+expect_l, 1+expect_l/8, 1+expect_l/4, 0.1,        0.1,      0.1,        1+expect_f, 0.1,      1+expect_f, expect_ba,   expect_ba/10,   expect_ba],
+                             header=True))
+    t.invoke(get_output_dir())
+
 ###################################################################
 # Generate a test suite for all invalid mdl files
 ###################################################################
@@ -217,7 +266,7 @@ def numericsuite():
 
 def tmpsuite():
   suite = unittest.TestSuite()
-  suite.addTest(TestMacromolNumeric("test_list_release"))
+  suite.addTest(TestMacromolNumeric("test_surface_init"))
   return suite
 
 ###################################################################

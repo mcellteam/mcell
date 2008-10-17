@@ -2393,7 +2393,13 @@ static int init_complex_effectors(struct object *objp, struct region_list *head)
       if (effdp->quantity_type == EFFNUM)
         n_to_place = (int) (effdp->quantity + 0.5);
       else if (effdp->quantity_type == EFFDENS)
-        n_to_place = (int) (effdp->quantity * total_area + 0.5);
+      {
+        double dn_to_place = (effdp->quantity * total_area) / world->grid_density;
+        n_to_place = (int) dn_to_place;
+        if (rng_dbl(world->rng) < (dn_to_place - n_to_place))
+          ++ n_to_place;
+        mcell_log("Placing complex with density of %.15g over region of area %.15g with grid density %.15g (n_to_place = %d)", effdp->quantity, total_area, world->grid_density, n_to_place);
+      }
       else
         mcell_internal_error("Unknown effector quantity type (%d).", effdp->quantity_type);
 
