@@ -390,7 +390,7 @@ static struct grid_molecule *place_grid_subunit(struct species *product_species,
   struct vector3 pos3d;
   for (int this_subunit_idx = 1; this_subunit_idx <= num_subunits_in_complex; ++ this_subunit_idx)
   {
-    if (! update_subunit[subunit_idx - 1])
+    if (! update_subunit[this_subunit_idx - 1])
       continue;
 
     struct grid_molecule *this_subunit = new_grid_mol->cmplx[this_subunit_idx];
