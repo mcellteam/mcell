@@ -111,7 +111,7 @@
 #define COUNT_ME    0x800
 
 /* Flag indicating that a molecule is old enough to take the maximum timestep */
-#define MATURE_MOLECULE 0x1000
+#define MATURE_MOLECULE 0x2000
 
 /* End of Abstract Molecule Flags. */
 
