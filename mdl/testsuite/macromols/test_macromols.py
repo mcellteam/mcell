@@ -264,11 +264,6 @@ def errorsuite():
 def numericsuite():
   return unittest.makeSuite(TestMacromolNumeric, "test")
 
-def tmpsuite():
-  suite = unittest.TestSuite()
-  suite.addTest(TestMacromolNumeric("test_surface_init"))
-  return suite
-
 ###################################################################
 # Default use of this file will invoke all tests
 ###################################################################

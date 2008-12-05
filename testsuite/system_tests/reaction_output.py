@@ -243,6 +243,73 @@ class RequireCountEquilibrium:
     assertCountEquilibrium(self.name, self.values, self.tolerances, **self.args)
 
 ####################
+## Check numeric rates of occurrence of reactions.
+##
+## This check will check that the average rate of occurrence of a counted
+## reaction in a count file is within some tolerance of a specified rate.
+##
+## Essentially, the computation we are doing is:
+##
+##    count_column / (time_column - base_time)
+##
+## which should be within "tolerance" of the specified value at all times.
+##
+## Example usage:
+##
+##    assertCountRxnRate("output.txt", values=[0.1], tolerances=[0.15], min_time=1e-3, base_time=0.0)
+##
+####################
+def assertCountRxnRate(fname, values, tolerances, min_time=None, max_time=None, base_time=0.0, header=None):
+  try:
+    file = open(fname)
+  except:
+    assert False, "Expected reaction output file '%s' was not created" % fname
+
+  try:
+    # Validate header
+    if header is not None  and  header != False:
+      got_header = file.readline()
+      if header == True:
+        assert got_header != '', "In reaction output file '%s', expected at least a header, but none was found" % fname
+      else:
+        assert got_header.strip() == header, "In reaction output file '%s', the header is incorrect (expected '%s', got '%s')" % (fname, header, got_header.strip())
+
+    # account for each line
+    for line in file:
+      cols = [x.strip() for x in line.split()]
+      this_time = float(cols[0])
+      if min_time is not None and this_time < min_time:
+          continue
+      if max_time is not None and this_time > max_time:
+          continue
+      data = [float(x) / (this_time - base_time) for x in cols[1:]]
+      assert len(values) <= len(data), "In reaction output file '%s', expected at least %d columns, but found only %d" % (fname, len(values) + 1, len(data) + 1)
+
+      for i in range(len(data)):
+        assert data[i] >= values[i] - tolerances[i] and data[i] <= values[i] + tolerances[i], "In reaction output file '%s', at time %g, value %g in column %d is outside of tolerance" % (fname, this_time, data[i], i+1)
+
+  finally:
+    file.close()
+  
+class RequireCountRxnRate:
+  def __init__(self, name, values, tolerances, min_time=None, max_time=None, base_time=None, header=None):
+    self.name = name
+    self.values = values
+    self.tolerances = tolerances
+    self.args = {}
+    if min_time is not None:
+      self.args["min_time"] = min_time
+    if max_time is not None:
+      self.args["max_time"] = max_time
+    if base_time is not None:
+      self.args["base_time"] = base_time
+    if header is not None:
+      self.args["header"] = header
+
+  def check(self):
+    assertCountRxnRate(self.name, self.values, self.tolerances, **self.args)
+
+####################
 ## Give an error if the specified trigger file is invalid, according to the
 ## specified parameters.
 ##

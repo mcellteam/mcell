@@ -390,7 +390,7 @@ static struct grid_molecule *place_grid_subunit(struct species *product_species,
   struct vector3 pos3d;
   for (int this_subunit_idx = 1; this_subunit_idx <= num_subunits_in_complex; ++ this_subunit_idx)
   {
-    if (! update_subunit[subunit_idx - 1])
+    if (! update_subunit[this_subunit_idx - 1])
       continue;
 
     struct grid_molecule *this_subunit = new_grid_mol->cmplx[this_subunit_idx];
@@ -624,22 +624,24 @@ static int outcome_products(struct wall *w,
           {
             int const subunit_idx = old_subunit ? macro_subunit_index((struct abstract_molecule *) gm) : -1;
             struct grid_molecule gm_old = *gm;
-            count_region_from_scratch(product[n_product],     /* molecule */
-                                      NULL,                   /* rxn pathway */
-                                      -1,                     /* remove count */
-                                      NULL,                   /* Location at which to count */
-                                      w,                      /* Wall on which this happened */
-                                      t);                     /* Time of occurrence */
+            if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
+              count_region_from_scratch(product[n_product],     /* molecule */
+                                        NULL,                   /* rxn pathway */
+                                        -1,                     /* remove count */
+                                        NULL,                   /* Location at which to count */
+                                        w,                      /* Wall on which this happened */
+                                        t);                     /* Time of occurrence */
 
             /* Set the molecule's orientation. */
             gm->orient = product_orient[n_product];
 
-            count_region_from_scratch(product[n_product],     /* molecule */
-                                      NULL,                   /* rxn pathway */
-                                      1,                      /* add count */
-                                      NULL,                   /* Location at which to count */
-                                      w,                      /* Wall on which this happened */
-                                      t);                     /* Time of occurrence */
+            if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
+              count_region_from_scratch(product[n_product],     /* molecule */
+                                        NULL,                   /* rxn pathway */
+                                        1,                      /* add count */
+                                        NULL,                   /* Location at which to count */
+                                        w,                      /* Wall on which this happened */
+                                        t);                     /* Time of occurrence */
 
             /* Update macromolecular counts. */
             if (old_subunit  &&  count_complex_surface(gm->cmplx[0], & gm_old, subunit_idx))
@@ -873,6 +875,7 @@ static int outcome_products(struct wall *w,
     /* Update molecule counts */
     ++ product_species->population;
     if (world->place_waypoints_flag  &&
+        product_species->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)    &&
         count_region_from_scratch(this_product, NULL, 1, NULL, NULL, t))
       mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
                         product_species->sym->name);
