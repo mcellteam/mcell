@@ -3971,8 +3971,8 @@ static struct region* find_corresponding_region(struct region *old_r,
     /* Length of the "region" spec from the old region name is the length of
      * the region symbol, less the length of the old object symbol. */
     const size_t region_name_len = strlen(old_r->sym->name);
-    assert(region_name_len > old_name_len);
-    const size_t just_region_name_len = region_name_len - old_name_len;
+    assert(region_name_len > old_prefix_idx);
+    const size_t just_region_name_len = region_name_len - old_prefix_idx;
 
     /* Buffer size needed for new name is new object name length + region name
      * length + 1 (for NUL-termination). */
