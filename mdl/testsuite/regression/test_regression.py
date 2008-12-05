@@ -83,5 +83,10 @@ class TestRegressions(unittest.TestCase):
     mt.set_check_std_handles(1, 1, 1)
     mt.invoke(get_output_dir())
 
+  def test_008(self):
+    mt = McellTest("regression", "08-find_corresponding_region.mdl", ["-quiet"])
+    mt.set_check_std_handles(1, 1, 1)
+    mt.invoke(get_output_dir())
+
 def suite():
   return unittest.makeSuite(TestRegressions, "test")
