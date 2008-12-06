@@ -10,8 +10,6 @@ safely use safe_diffusion_step, so in order to make fair comparisons for
 correctness, I turned off adaptive timesteps.
 
  * Test 01: All volume rxn types
- * Test 02: Only trimolecular volume reactions
- * Test 03: Bimolecular volume rxns, trad. versus trimol. code paths
- * Test 04: Bimolecular volume rxn equilibrium
+ * Test 02: Bimolecular volume rxns, trad. versus trimol. code paths
  * Test 05: Bimolecular volume rxn rate of collision
  * Test 06: All surface rxn types (vol surf, surf surf, vol vol surf, etc.)

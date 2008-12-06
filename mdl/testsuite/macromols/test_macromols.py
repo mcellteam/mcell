@@ -192,7 +192,7 @@ class TestMacromolNumeric(unittest.TestCase):
                             # x            d            u            x            d            u
                             # U                                      B                                      C
                               4*e00+4*e01, 2*e00+2*e01, 2*e00+2*e01, 4*e11+4*e01, 2*e11+2*e01, 2*e11+2*e01, 800 - (4*e11+4*e01)],
-                             [1.5]*18 + [0.75]*36 + [1.5]*18 + [1.0]*6 + [2.0],
+                             [1.5]*18 + [1.0]*36 + [1.5]*18 + [1.0]*6 + [2.0],
                              min_time=0.05,
                              header=True))
     t.invoke(get_output_dir())
