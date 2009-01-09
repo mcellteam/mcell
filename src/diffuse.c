@@ -1999,9 +1999,8 @@ static double safe_diffusion_step(struct volume_molecule *m, struct collision *s
   if (d2 < d2min) d2min = d2;
   
   if (d2min < d2_nearmax) steps = 1.0;
-  else steps = d2min / d2_nearmax;
-	
-  if (steps < MULTISTEP_WORTHWHILE) steps = 1.0;
+  else if (steps < MULTISTEP_WORTHWHILE*MULTISTEP_WORTHWHILE) steps = 1.0;
+  else steps = sqrt(d2min / d2_nearmax);
   
   return steps;
 }
