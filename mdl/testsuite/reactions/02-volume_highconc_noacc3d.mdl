@@ -1,6 +1,6 @@
 /****************************************************************************
- * Test 01: All volume rxn types, simple test of equilibrium and reaction
- *          rates.
+ * Test 02: All volume rxn types, simple test of equilibrium and reaction
+ *          rates, no accurate 3d reactions.
  *
  *    A quantitative test of the basic volume-volume reaction types (uni, bi,
  *    tri).  Note that the bi-directional pathways are in here twice.  This is
@@ -12,7 +12,7 @@
  * Date:   2008-11-07
  ****************************************************************************/
 
-basename = "01-volume_highconc"
+basename = "02-volume_highconc_noacc3d"
 countdir = "dat/" & basename & "/"
 vizdir   = "./viz_dat/" & basename & "/"
 
@@ -37,6 +37,8 @@ c_t = (num_t / 2. / boxvol) * 1e15 / 6.022e23
 rf_u = rr_u
 rf_b = rr_b / c_b
 rf_t = rr_t / c_t / c_t
+
+ACCURATE_3D_REACTIONS = FALSE
 
 PARTITION_X = [ [ -0.3 TO 0.3 STEP 0.025 ] ]
 PARTITION_Y = [ [ -0.3 TO 0.3 STEP 0.025 ] ]

@@ -22,7 +22,7 @@
 #include "vol_util.h"
 #include "macromolecule.h"
 
-#ifdef NEW_OUTCOME_PRODUCTS
+#ifndef OLD_OUTCOME_PRODUCTS
 static int outcome_products(struct wall *w,
                             struct vector3 *hitpt,
                             double t,
@@ -63,7 +63,7 @@ int is_compatible_surface(void *req_species,struct wall *w)
   return (w->surf_class == rs);
 }
 
-#ifdef NEW_OUTCOME_PRODUCTS
+#ifndef OLD_OUTCOME_PRODUCTS
 enum {
   PLAYER_GRID_MOL = 'g',
   PLAYER_VOL_MOL  = 'm',
@@ -2180,7 +2180,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
   if ((reac->properties->flags & NOT_FREE) == 0)
   {
     m = (struct volume_molecule*)reac;
-#ifdef NEW_OUTCOME_PRODUCTS
+#ifndef OLD_OUTCOME_PRODUCTS
     result = outcome_products(NULL, NULL, t, rx, path, reac, NULL, 0, 0);
 #else
     result = outcome_products(NULL,m,NULL,rx,path,m->subvol->local_storage,
@@ -2190,7 +2190,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
   else
   {
     g = (struct grid_molecule*) reac;
-#ifdef NEW_OUTCOME_PRODUCTS
+#ifndef OLD_OUTCOME_PRODUCTS
     result = outcome_products(g->grid->surface, NULL, t, rx, path, reac, NULL, g->orient, 0);
 #else
     result = outcome_products(g->grid->surface,NULL,g,rx,path,
@@ -2316,7 +2316,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
     }
   }
 
-#ifdef NEW_OUTCOME_PRODUCTS
+#ifndef OLD_OUTCOME_PRODUCTS
   result = outcome_products(w, hitpt, t, rx, path, reacA, reacB, orientA, orientB);
 #else
   result = outcome_products(w,m,g,rx,path,x,orientA,orientB,t,hitpt,reacA,reacB,reacA);
@@ -2745,7 +2745,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   {
     struct volume_molecule *m = (struct volume_molecule*) reac;
     
-#ifdef NEW_OUTCOME_PRODUCTS
+#ifndef OLD_OUTCOME_PRODUCTS
     result = outcome_products(surface, hitpt, t, rx, path, reac, NULL, orient, 0);
 #else
     result = outcome_products(surface,m,NULL,rx,path,m->subvol->local_storage,orient,0,t,hitpt,reac,NULL,reac);

@@ -1,0 +1,36 @@
+/****************************************************************************
+ * Regression test 08: Assertion fails when deep copying certain objects.
+ *
+ *    This is a bug encountered by Daniel Sherwood (2008-04-24).  When a
+ *    release site is cloned into a metaobject and the release site referred to
+ *    a region in the original template object, and the fully qualified name of
+ *    the release site was longer than the fully qualified name of the region,
+ *    an assertion failure would occur due to an incorrect length calculation.
+ *
+ *    Failure: MCell aborts (SIGABRT)
+ *    Success: MCell does not crash
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2008-12-05
+ ****************************************************************************/
+
+ITERATIONS = 1
+TIME_STEP = 1e-6
+
+DEFINE_MOLECULE a { DIFFUSION_CONSTANT_3D = 1e-6 }
+
+case1 OBJECT {
+  kosmos BOX {
+    CORNERS = [0, 0, 0], [1, 1, 1]
+  }
+
+  release_site_p1 RELEASE_SITE {
+    SHAPE = case1.kosmos
+    MOLECULE = a
+    NUMBER_TO_RELEASE = 100
+  }
+}
+
+INSTANTIATE multiverse OBJECT {
+  instance OBJECT case1 {}
+}

@@ -1,0 +1,61 @@
+/****************************************************************************
+ * Surface molecule types
+ ****************************************************************************/
+DEFINE_MOLECULES
+{
+    /* Surface molecule types used in the tests */
+    S_b1         { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_b2         { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_b3         { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_b4to       { DIFFUSION_CONSTANT_2D = surfdiffconst TARGET_ONLY }
+    S_bt1        { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_bt2        { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_bt3        { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_bt4to      { DIFFUSION_CONSTANT_2D = surfdiffconst TARGET_ONLY }
+    S_t1         { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_t2         { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_t3         { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_t4         { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_t5to       { DIFFUSION_CONSTANT_2D = surfdiffconst TARGET_ONLY }
+    S_t6         { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_t7         { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_t8to       { DIFFUSION_CONSTANT_2D = surfdiffconst TARGET_ONLY }
+    S_t9to       { DIFFUSION_CONSTANT_2D = surfdiffconst TARGET_ONLY }
+    S_u          { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_vb2        { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_vb4to      { DIFFUSION_CONSTANT_2D = surfdiffconst TARGET_ONLY }
+    S_vbt2       { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_vbt4to     { DIFFUSION_CONSTANT_2D = surfdiffconst TARGET_ONLY }
+    S_vt2        { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_vt3        { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_vt5to      { DIFFUSION_CONSTANT_2D = surfdiffconst TARGET_ONLY }
+    S_vt6        { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_vt8to      { DIFFUSION_CONSTANT_2D = surfdiffconst TARGET_ONLY }
+    S_vt9to      { DIFFUSION_CONSTANT_2D = surfdiffconst TARGET_ONLY }
+    S_vvt3       { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_vvt6       { DIFFUSION_CONSTANT_2D = surfdiffconst }
+    S_vvt9to     { DIFFUSION_CONSTANT_2D = surfdiffconst TARGET_ONLY }
+
+    /* Inert molecules */
+    B_b2         { DIFFUSION_CONSTANT_2D = 0 }    
+    B_bt2        { DIFFUSION_CONSTANT_2D = 0 } 
+    B_bt         { DIFFUSION_CONSTANT_2D = 0 } 
+    B_b          { DIFFUSION_CONSTANT_2D = 0 } 
+    B_t2         { DIFFUSION_CONSTANT_2D = 0 } 
+    B_t3         { DIFFUSION_CONSTANT_2D = 0 } 
+    B_t          { DIFFUSION_CONSTANT_2D = 0 } 
+    B_u          { DIFFUSION_CONSTANT_2D = 0 } 
+    B_vb2        { DIFFUSION_CONSTANT_2D = 0 } 
+    B_vbt2       { DIFFUSION_CONSTANT_2D = 0 } 
+    B_vbt        { DIFFUSION_CONSTANT_2D = 0 } 
+    B_vb         { DIFFUSION_CONSTANT_2D = 0 } 
+    B_vt2        { DIFFUSION_CONSTANT_2D = 0 } 
+    B_vt3        { DIFFUSION_CONSTANT_2D = 0 } 
+    B_vt         { DIFFUSION_CONSTANT_2D = 0 } 
+    B_vvt2       { DIFFUSION_CONSTANT_2D = 0 } 
+    B_vvt3       { DIFFUSION_CONSTANT_2D = 0 } 
+    B_vvt        { DIFFUSION_CONSTANT_2D = 0 } 
+
+    /* Dummy molecules */
+    S_a           { DIFFUSION_CONSTANT_2D = 0 }
+}
