@@ -7,7 +7,9 @@ from testutils import crange
 from testutils import RequireFileMatches
 from reaction_output import RequireCountConstraints
 from reaction_output import RequireCountEquilibrium
+from reaction_output import RequireCounts
 
+import os
 import unittest
 
 class TestRegressions(unittest.TestCase):
@@ -87,6 +89,38 @@ class TestRegressions(unittest.TestCase):
     mt = McellTest("regression", "08-find_corresponding_region.mdl", ["-quiet"])
     mt.set_check_std_handles(1, 1, 1)
     mt.invoke(get_output_dir())
+
+  def __rename(self, p1, p2):
+    os.rename(p1, p2)
+
+  def test_009(self):
+    mt = McellTest("regression", "09-incorrect_times_in_chkpt_A.mdl", ["-quiet"])
+    testpath = '%s/test-%04d' % (get_output_dir(), mt.testidx)
+    mt.set_check_std_handles(1, 1, 1)
+    mt.invoke(get_output_dir())
+    self.__rename(os.path.join(testpath, 'cmdline.txt'), os.path.join(testpath, 'cmdline_0.txt'))
+    self.__rename(os.path.join(testpath, 'realout'), os.path.join(testpath, 'realout.0'))
+    self.__rename(os.path.join(testpath, 'realerr'), os.path.join(testpath, 'realerr.0'))
+    self.__rename(os.path.join(testpath, 'stdout'),  os.path.join(testpath, 'stdout.0'))
+    self.__rename(os.path.join(testpath, 'stderr'),  os.path.join(testpath, 'stderr.0'))
+
+    mt.args[-1] = os.path.join(os.path.dirname(mt.args[-1]), "09-incorrect_times_in_chkpt_B.mdl")
+    mt.invoke(get_output_dir())
+    self.__rename(os.path.join(testpath, 'cmdline.txt'), os.path.join(testpath, 'cmdline_1.txt'))
+    self.__rename(os.path.join(testpath, 'realout'), os.path.join(testpath, 'realout.1'))
+    self.__rename(os.path.join(testpath, 'realerr'), os.path.join(testpath, 'realerr.1'))
+    self.__rename(os.path.join(testpath, 'stdout'),  os.path.join(testpath, 'stdout.1'))
+    self.__rename(os.path.join(testpath, 'stderr'),  os.path.join(testpath, 'stderr.1'))
+
+    times = [i*1e-7 for i in range(0, 6)] + [(2*i+1)*1e-7 for i in range(3, 13)]
+    values = zip(times, [0]*len(times))
+    mt.add_extra_check(RequireCounts('A_World.dat', values))
+    mt.invoke(get_output_dir())
+    self.__rename(os.path.join(testpath, 'cmdline.txt'), os.path.join(testpath, 'cmdline_2.txt'))
+    self.__rename(os.path.join(testpath, 'realout'), os.path.join(testpath, 'realout.2'))
+    self.__rename(os.path.join(testpath, 'realerr'), os.path.join(testpath, 'realerr.2'))
+    self.__rename(os.path.join(testpath, 'stdout'),  os.path.join(testpath, 'stdout.2'))
+    self.__rename(os.path.join(testpath, 'stderr'),  os.path.join(testpath, 'stderr.2'))
 
 def suite():
   return unittest.makeSuite(TestRegressions, "test")

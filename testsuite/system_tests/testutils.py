@@ -308,6 +308,7 @@ class test_run_context(object):
     self.check_stderr = 0
     self.check_stdin  = 0
     self.expect_exitcode = 0
+    self.cleaned = False
     test_run_context.testidx += 1
 
   def set_check_std_handles(self, i, o, e):
@@ -321,7 +322,9 @@ class test_run_context(object):
   def invoke(self, sandboxdir):
     curdir = os.getcwd()
     testpath = '%s/test-%04d' % (sandboxdir, self.testidx)
-    cleandir(testpath)
+    if not self.cleaned:
+      cleandir(testpath)
+      self.cleaned = True
     os.chdir(testpath)
     try:
       try:
