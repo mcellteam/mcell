@@ -249,7 +249,7 @@ int create_chkpt(char const *filename)
 
   /* Write checkpoint */
   world->chkpt_elapsed_real_time = world->chkpt_elapsed_real_time + (world->it_time - world->start_time)*world->time_unit;
-  world->current_real_time = world->it_time*world->time_unit;
+  world->current_real_time = world->chkpt_elapsed_real_time;
   if (write_chkpt(outfs))
     mcell_error("Failed to write checkpoint file %s\n", filename);
   fclose(outfs);
