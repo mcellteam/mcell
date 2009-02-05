@@ -1340,7 +1340,28 @@ int release_molecules(struct release_event_queue *req)
   if (rso->release_prob < 1.0)
   {
      k  = rng_dbl(world->rng);
-     if(rso->release_prob < k) return 0;
+     if(rso->release_prob < k) 
+     {
+        /* make sure we will try the release pattern again in the future */
+	req->event_time += rpat->release_interval;
+        
+        /* we may need to move to the next train. */
+        if (!distinguishable(req->event_time,req->train_high_time + rpat->train_duration,EPS_C) ||
+	   req->event_time > req->train_high_time + rpat->train_duration)
+        {
+	   req->train_high_time += rpat->train_interval;
+	   req->event_time = req->train_high_time;
+	   req->train_counter++;
+        }
+         
+        if (req->train_counter <= rpat->number_of_trains && req->event_time < FOREVER)
+        {
+            if ( schedule_add(world->releaser,req) )
+               mcell_allocfailed("Failed to add release request to scheduler.");
+        }
+        return 0;
+
+     }
 
   }
   
