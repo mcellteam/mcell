@@ -1,0 +1,55 @@
+/****************************************************************************
+ * Regression test 09: Checkpoint file contains incorrect simulation times.
+ *                     (part 1 -- create checkpoint file)
+ *
+ *    This is a bug encountered by Jacob Czech (2009-01-16).  When a checkpoint
+ *    file is created, if the time step has been changed between saving and
+ *    loading the checkpoint, an incorrect "current time" is stored into the
+ *    checkpoint file.  This will not have any immediate adverse effects; if,
+ *    however, the simulation, after loading from the checkpoint, checkpoints
+ *    again and reloads, times listed in the reaction data output files will be
+ *    incorrect!
+ *
+ *    Failure: Times jump from 1.5e-6 to 2.2e-6
+ *    Success: Times jump from 1.5e-6 to 1.7e-6
+ *
+ * Author: Jacob Czech <jczech@psc.edu> (adapted by Jed Wing <jed@salk.edu>)
+ * Date:   2009-01-16
+ ****************************************************************************/
+
+iterations = 1000000
+time_step = 1e-7
+ITERATIONS = iterations
+TIME_STEP = time_step
+
+CHECKPOINT_INFILE = "chkpt"
+CHECKPOINT_OUTFILE = "chkpt"
+CHECKPOINT_ITERATIONS = 5
+
+DEFINE_MOLECULES {
+        A {DIFFUSION_CONSTANT_3D = 1E-6}
+}
+
+Plane POLYGON_LIST {
+	VERTEX_LIST {
+		[1.0, 0.99999994039535522, 0.0]
+		[1.0, -1.0, 0.0]
+		[-1.0000001192092896, -0.99999982118606567, 0.0]
+		[-0.99999964237213135, 1.0000003576278687, 0.0]
+	}
+
+	ELEMENT_CONNECTIONS {
+		[0, 3, 2]
+		[0, 2, 1]
+	}
+}
+
+INSTANTIATE World OBJECT {
+	Plane OBJECT Plane{}
+}
+
+REACTION_DATA_OUTPUT {
+        STEP = 1*time_step
+        {COUNT[A,WORLD]}=>"A_World.dat"
+}
+
