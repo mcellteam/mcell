@@ -3465,7 +3465,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
             if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
             count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                  ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                 1 , rate_factor * ((struct wall*)tentative->target)->grid->binding_factor ,
+                                 1 , rate_factor ,
                                  &(tentative->loc) , tentative->t );
           }
         }
