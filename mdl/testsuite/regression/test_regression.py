@@ -122,5 +122,10 @@ class TestRegressions(unittest.TestCase):
     self.__rename(os.path.join(testpath, 'stdout'),  os.path.join(testpath, 'stdout.2'))
     self.__rename(os.path.join(testpath, 'stderr'),  os.path.join(testpath, 'stderr.2'))
 
+  def test_010(self):
+    mt = McellTest("regression", "10-counting_crashes_on_coincident_wall.mdl", ["-quiet"])
+    mt.set_check_std_handles(1, 1, 1)
+    mt.invoke(get_output_dir())
+
 def suite():
   return unittest.makeSuite(TestRegressions, "test")
