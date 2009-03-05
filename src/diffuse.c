@@ -5434,12 +5434,12 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       }
       else max_time = a->t - t;
 
-      if(a->properties->flags & CAN_GRIDGRID)
+      if ((a->properties->flags & (CANT_INITIATE | CAN_GRIDGRID)) == CAN_GRIDGRID)
       {
         a = (struct abstract_molecule*)react_2D((struct grid_molecule*)a , max_time );
         if (a==NULL) continue;
       }
-      if(a->properties->flags & CAN_GRIDGRIDGRID)
+      if ((a->properties->flags & (CANT_INITIATE | CAN_GRIDGRIDGRID)) == CAN_GRIDGRIDGRID)
       {
          a = (struct abstract_molecule*)react_2D_trimol((struct grid_molecule*)a , max_time );
          if (a==NULL) continue;
