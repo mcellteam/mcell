@@ -4969,7 +4969,7 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
           for( jj = 0; jj < num_matching_rxns; jj++){
              if(matching_rxns[jj] != NULL){
                rxn_array[l] = matching_rxns[jj];
-	       cf[l] = sg[kk]->binding_factor/t; 
+	       cf[l] = t/(sg[kk]->binding_factor); 
                l++;
              }
           }
@@ -5122,7 +5122,7 @@ struct grid_molecule* react_2D_trimol(struct grid_molecule *g,double t)
               for( jj = 0; jj < num_matching_rxns; jj++){
                  if(matching_rxns[jj] != NULL){
                    rxn_array[l] = matching_rxns[jj];
-	           cf[l] = (sg_f[kk]->binding_factor/t)*(sg_s[ii]->binding_factor/t); 
+	           cf[l] = (t/(sg_f[kk]->binding_factor))*(t/(sg_s[ii]->binding_factor)); 
                    first_partner[l] = gm_f[kk];
                    second_partner[l] = gm_s[ii];
                    l++;
