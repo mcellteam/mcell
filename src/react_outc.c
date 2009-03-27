@@ -625,24 +625,24 @@ static int outcome_products(struct wall *w,
             int const subunit_idx = old_subunit ? macro_subunit_index((struct abstract_molecule *) gm) : -1;
             struct grid_molecule gm_old = *gm;
             if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-              count_region_from_scratch(product[n_product],     /* molecule */
+            {  
+               count_region_from_scratch((product[n_product]),  /* molecule */
                                         NULL,                   /* rxn pathway */
                                         -1,                     /* remove count */
                                         NULL,                   /* Location at which to count */
                                         w,                      /* Wall on which this happened */
                                         t);                     /* Time of occurrence */
 
-            /* Set the molecule's orientation. */
-            gm->orient = product_orient[n_product];
+               /* Set the molecule's orientation. */
+               gm->orient = product_orient[n_product];
 
-            if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-              count_region_from_scratch(product[n_product],     /* molecule */
-                                        NULL,                   /* rxn pathway */
-                                        1,                      /* add count */
-                                        NULL,                   /* Location at which to count */
-                                        w,                      /* Wall on which this happened */
-                                        t);                     /* Time of occurrence */
-
+               count_region_from_scratch((struct abstract_molecule *)gm,                                                                      /* molecule */
+                                        NULL,                 /* rxn pathway */
+                                        1,                    /* add count */
+                                        NULL,                 /* Location at which to count */
+                                        w,                    /* Wall on which this happened */
+                                        t);                   /* Time of occurrence */
+            }
             /* Update macromolecular counts. */
             if (old_subunit  &&  count_complex_surface(gm->cmplx[0], & gm_old, subunit_idx))
               mcell_allocfailed("Failed to update region counts for surface macromolecule subunit '%s/%s' after a reaction.",
