@@ -1,0 +1,116 @@
+/****************************************************************************
+ * Regression test 12: MCell fails to count oriented surface molecule reaction
+ *    products in a simulation which has no waypoints.  This is a modified
+ *    version of the test case Boris sent when he reported the bug.
+ *
+ *    Failure: Any of the first 7 columns in the count differ at any time
+ *             Any of the next 14 columns in the count differ at any time
+ *             Any of the last 12 columns are non-zero at any time
+ *             The first and 8th column ever sum to anything other than 500
+ *             The first column does not eventually decrease from 500
+ *    Success: Run completes successfully, counts do not trigger the
+ *             above failure criteria.
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2009-03-28
+ ****************************************************************************/
+
+dt = 1e-6
+iterations = 100
+TIME_STEP = dt
+TIME_STEP_MAX = dt
+ITERATIONS = iterations
+EFFECTOR_GRID_DENSITY = 10000 
+INTERACTION_RADIUS = 0.003 
+
+ACCURATE_3D_REACTIONS =  FALSE
+
+VACANCY_SEARCH_DISTANCE = 1
+
+DEFINE_MOLECULES
+{
+   A {DIFFUSION_CONSTANT_2D = 2e-3}
+   B {DIFFUSION_CONSTANT_2D = 2e-3}
+   C {DIFFUSION_CONSTANT_2D = 2e-3}
+}
+
+DEFINE_REACTIONS
+{
+    A' -> B' + C' [0.015e5]:rxn
+} 
+
+triangle POLYGON_LIST
+{
+   VERTEX_LIST
+   {
+     [0,0,0]
+     [1.0,0,0]
+     [0.5,0.866,0]
+   }
+   ELEMENT_CONNECTIONS
+   {
+     [0,1,2]
+   }
+   DEFINE_SURFACE_REGIONS
+   {
+      r1{
+	   ELEMENT_LIST = [0] 
+                                                                         
+           MOLECULE_NUMBER{ 
+                A' = 500  
+           }
+                      
+       }
+    }
+}
+
+INSTANTIATE test OBJECT 
+{
+     my_triangle OBJECT triangle {}
+}
+
+REACTION_DATA_OUTPUT
+{
+     STEP = dt 
+     HEADER = OFF
+                
+        /* this COUNT statements works */ 
+     {
+        COUNT [A,     WORLD],
+        COUNT [A{1},  test.my_triangle[r1]],
+        COUNT [A{2},  test.my_triangle[r1]],
+        COUNT ["A'",  test.my_triangle[r1]],
+        COUNT ["A''", test.my_triangle[r1]],
+        COUNT ["A',", test.my_triangle[r1]],
+        COUNT ["A;",  test.my_triangle[r1]],
+
+        COUNT [B,     WORLD],
+        COUNT [B{1},  test.my_triangle[r1]],
+        COUNT [B{2},  test.my_triangle[r1]],
+        COUNT ["B'",  test.my_triangle[r1]],
+        COUNT ["B''", test.my_triangle[r1]],
+        COUNT ["B',", test.my_triangle[r1]],
+        COUNT ["B;",  test.my_triangle[r1]],
+
+        COUNT [C,     WORLD],
+        COUNT [C{1},  test.my_triangle[r1]],
+        COUNT [C{2},  test.my_triangle[r1]],
+        COUNT ["C'",  test.my_triangle[r1]],
+        COUNT ["C''", test.my_triangle[r1]],
+        COUNT ["C',", test.my_triangle[r1]],
+        COUNT ["C;",  test.my_triangle[r1]],
+
+        COUNT [A{-1}, test.my_triangle[r1]],
+        COUNT [B{-1}, test.my_triangle[r1]],
+        COUNT [C{-1}, test.my_triangle[r1]],
+        COUNT [A{-2}, test.my_triangle[r1]],
+        COUNT [B{-2}, test.my_triangle[r1]],
+        COUNT [C{-2}, test.my_triangle[r1]],
+        COUNT ["A,", test.my_triangle[r1]],
+        COUNT ["B,", test.my_triangle[r1]],
+        COUNT ["C,", test.my_triangle[r1]],
+        COUNT ["A,,", test.my_triangle[r1]],
+        COUNT ["B,,", test.my_triangle[r1]],
+        COUNT ["C,,", test.my_triangle[r1]]
+     } => "counts.txt" 
+}
