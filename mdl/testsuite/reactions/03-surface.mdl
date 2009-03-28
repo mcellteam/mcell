@@ -33,23 +33,15 @@ num_b = 1000
 num_t = 1000
 num_vvs = num_t
 
-_____SSS_______ = 1 / 4
-
 sa = 6*(2*boxdims)^2
 boxvol = 8*boxdims*boxdims*boxdims
 
 eq_t = num_t / 2
 eq_b = num_b / 2
-eq_vvs = num_vvs - eq_t
 
-rr_ss  = 0.1*1e6 *  sa / eq_b / eq_b
-
-rr_sss = 0.1*1e6 * (sa     / eq_t)   * (sa     / eq_t)   / eq_t
-rr_vss = 0.1*1e6 * (sa     / eq_t)   * (boxvol / eq_t)   / eq_t
-rr_vvs = 0.1*1e6 * (boxvol / eq_vvs) * (boxvol / eq_vvs) / eq_t
-
-// Some reaction rates seem to be off as compared to expected
-rr_sss = rr_sss * _____SSS_______
+rf_ss  = 0.1*1e6 * (sa     / eq_b)                       / eq_b
+rf_sss = 0.1*1e6 * (sa     / eq_t)   * (sa     / eq_t)   / eq_t
+rf_vss = 0.1*1e6 * (sa     / eq_t)   * (boxvol / eq_t)   / eq_t
 
 // Set reverse rates to expect approx 1 rxn every 10 timesteps
 rr_u = 2.0e2
@@ -76,13 +68,13 @@ DEFINE_REACTIONS {
 
   /* 0 Volume reactants */
   S_u,                       -> B_u,   [rf_u] : fwd_u    /* unimol */
-  S_b1,  + S_b2,             -> B_b,   [rr_ss] : fwd_b    /* bimol  */
-  S_bt1, + S_bt2,            -> B_bt,  [rr_ss] : fwd_bt   /* bimol (via trimol code) */
-  S_b3,  + S_b4to,           -> B_b2,  [rr_ss] : fwd_b2   /* bimol (1 target only) */
-  S_bt3, + S_bt4to,          -> B_bt2, [rr_ss] : fwd_bt2  /* bimol (1 target only, via trimol code) */
-  S_t1,  + S_t2,   + S_t3,   -> B_t,   [rr_sss] : fwd_t    /* trimol */
-  S_t4,  + S_t5to, + S_t6,   -> B_t2,  [rr_sss] : fwd_t2   /* trimol (1 target only) */
-  S_t7,  + S_t8to, + S_t9to, -> B_t3,  [rr_sss*2] : fwd_t3   /* trimol (2 target only) */
+  S_b1,  + S_b2,             -> B_b,   [rf_ss] : fwd_b    /* bimol  */
+  S_bt1, + S_bt2,            -> B_bt,  [rf_ss] : fwd_bt   /* bimol (via trimol code) */
+  S_b3,  + S_b4to,           -> B_b2,  [rf_ss] : fwd_b2   /* bimol (1 target only) */
+  S_bt3, + S_bt4to,          -> B_bt2, [rf_ss] : fwd_bt2  /* bimol (1 target only, via trimol code) */
+  S_t1,  + S_t2,   + S_t3,   -> B_t,   [rf_sss] : fwd_t    /* trimol */
+  S_t4,  + S_t5to, + S_t6,   -> B_t2,  [rf_sss] : fwd_t2   /* trimol (1 target only) */
+  S_t7,  + S_t8to, + S_t9to, -> B_t3,  [rf_sss*2] : fwd_t3   /* trimol (2 target only) */
 
   B_u,   -> S_u,                       [rr_u] : rev_u
   B_b,   -> S_b1,  + S_b2,             [rr_b] : rev_b
@@ -98,9 +90,9 @@ DEFINE_REACTIONS {
   V_bt1, + S_vbt2'              -> B_vbt'  [rf_b] : fwd_vbt   /* bimol (via trimol code) */
   V_b3,  + S_vb4to'             -> B_vb2'  [rf_b] : fwd_vb2   /* bimol (1 target only) */
   V_bt3, + S_vbt4to'            -> B_vbt2' [rf_b] : fwd_vbt2  /* bimol (1 target only, via trimol code) */
-  V_t1,  + S_vt2'    + S_vt3'   -> B_vt'   [rr_vss] : fwd_vt    /* trimol */
-  V_t4,  + S_vt5to'  + S_vt6'   -> B_vt2'  [rr_vss] : fwd_vt2   /* trimol (1 target only) */
-  V_t7,  + S_vt8to'  + S_vt9to' -> B_vt3'  [rr_vss] : fwd_vt3   /* trimol (2 target only) */
+  V_t1,  + S_vt2'    + S_vt3'   -> B_vt'   [rf_vss] : fwd_vt    /* trimol */
+  V_t4,  + S_vt5to'  + S_vt6'   -> B_vt2'  [rf_vss] : fwd_vt2   /* trimol (1 target only) */
+  V_t7,  + S_vt8to'  + S_vt9to' -> B_vt3'  [rf_vss] : fwd_vt3   /* trimol (2 target only) */
 
   B_vb'   -> V_b1,  + S_vb2'               [rr_b] : rev_vb
   B_vbt'  -> V_bt1, + S_vbt2'              [rr_b] : rev_vbt
@@ -480,26 +472,3 @@ REACTION_DATA_OUTPUT {
   }     => countdir & "rxn_out.dat"
 }
 
-VIZ_OUTPUT
-{
-    MODE = DREAMM_V3
-    VIZ_MESH_FORMAT = ASCII
-    VIZ_MOLECULE_FORMAT = BINARY
-    FILENAME = "world"
-    MOLECULES
-    {
-        NAME_LIST { ALL_MOLECULES }
-        TIME_POINTS
-        {
-            ALL_DATA     @ ALL_TIMES
-        }
-    }
-    MESHES
-    {
-        NAME_LIST { ALL_MESHES }
-        TIME_POINTS
-        {
-            ALL_DATA @ [0]
-        }
-    }
-}
