@@ -1999,8 +1999,12 @@ static double safe_diffusion_step(struct volume_molecule *m, struct collision *s
   if (d2 < d2min) d2min = d2;
   
   if (d2min < d2_nearmax) steps = 1.0;
-  else if (steps < MULTISTEP_WORTHWHILE*MULTISTEP_WORTHWHILE) steps = 1.0;
-  else steps = sqrt(d2min / d2_nearmax);
+  else
+  {
+    double steps_sq = d2min / d2_nearmax;
+    if (steps_sq < MULTISTEP_WORTHWHILE*MULTISTEP_WORTHWHILE) steps = 1.0;
+    else steps = sqrt(steps_sq);
+  }
   
   return steps;
 }
@@ -4969,7 +4973,7 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
           for( jj = 0; jj < num_matching_rxns; jj++){
              if(matching_rxns[jj] != NULL){
                rxn_array[l] = matching_rxns[jj];
-	       cf[l] = sg[kk]->binding_factor/t; 
+	       cf[l] = t/(sg[kk]->binding_factor); 
                l++;
              }
           }
@@ -5122,7 +5126,7 @@ struct grid_molecule* react_2D_trimol(struct grid_molecule *g,double t)
               for( jj = 0; jj < num_matching_rxns; jj++){
                  if(matching_rxns[jj] != NULL){
                    rxn_array[l] = matching_rxns[jj];
-	           cf[l] = (sg_f[kk]->binding_factor/t)*(sg_s[ii]->binding_factor/t); 
+	           cf[l] = (t/(sg_f[kk]->binding_factor))*(t/(sg_s[ii]->binding_factor)); 
                    first_partner[l] = gm_f[kk];
                    second_partner[l] = gm_s[ii];
                    l++;
