@@ -1,0 +1,1201 @@
+=========================================
+0. Outline
+=========================================
+
+To aid in the development of MCell tests, I've developed a number of
+utilities.  Most of these utilities are specific test types that may be
+applied to specific MCell runs to analyze various aspects of the run.  Some
+are infrastructure for the test suite itself.  A few are general utility
+functions or classes.  I'll start with the general utilities, then I'll
+discuss the infrastructure, and finally the specific test types.  All of these
+are defined in Python modules in the system_tests subdirectory, and are set up
+so that they may be imported into any test suite.
+
+Most of the specific test types exist in two forms.  One will have a name
+similar to:
+
+    assertFileExists
+
+and the other will have a name like:
+
+    RequireFileExists
+
+The former is a simple function call which performs the test.  The latter is
+an object version which encapsulates the test.  (The reason for this will
+become clear when I discuss the infrastructure, but essentially, the setup for
+a test involves adding 0 or more encapsulated tests using the
+'add_extra_check' method on an McellTest object.  It will automatically run
+all of the tests at the end after the run completes.)  The object version does
+not run the test as soon as it is constructed; instead, it stores the details
+of the call and calls the corresponding assert* version when its own 'check'
+method is called.  That is:
+
+    r = RequireFileExists(filename)
+    r.check()
+
+is equivalent to:
+
+    assertFileExists(filename)
+
+Most tests will include a quick summary of the arguments to the test.  Within
+the argument lists, I'm using the shorthand of:
+
+    function_name(argument1,
+                  argument2,
+                  argument3='Argentina',
+                  argument4=1764,
+                  argument5=None)
+
+to indicate that argument1 and argument2 are required, and that argument3,
+argument4, and argument5 are optional and may be provided via the normal Python
+mechanisms (either as keyword arguments, or as extra positional arguments), and
+that if they are not provided,their respective defaults will be 'Argentina',
+1764, and None.
+
+At the very end will be a discussion of some test-specific utilities I've
+developed which can be found in the individual test suite directories.  (For
+instance, there is a base class which handles all of the commonalities in the
+"parser" tests, and another for the macromolecule tests.)
+
+Most of the tests will be fairly formulaic, and you may be able to get by
+largely by copying existing tests and modifying them appropriately, but this
+document should serve as a reasonable reference to the utilities to help write
+more specialized tests.  (There may even be tests which do not fit will into
+this framework, which will require some sleight-of-hand.  See test_009 in
+mdl/testsuite/regression/test_regression.py for one such example.  In the
+future, we should probably add slightly better support for testing situations
+which require multiple runs punctuated by checkpoint/restore cycles.)
+
+  1. General utilities
+  2. Infrastructure
+  3. Specific test types
+  4. Test-specific utilities
+
+=========================================
+1. General utilities
+=========================================
+
+  testutils module:
+
+      All of these utilities may be imported from testutils.
+
+      ----
+      safe_concat:      concatenate two lists or tuples, treating None as
+                        an empty list
+
+            safe_concat([1], [2])   => [1, 2]
+            safe_concat((1,), (2,)) => (1, 2)
+            safe_concat([1], None)  => [1]
+            safe_concat(None, (2,)) => (2,)
+            safe_concat(None, None) => None
+
+      ----
+      get_output_dir:   get the top-level output directory for the testsuite
+
+            get_output_dir() => "/path/to/test_results"
+
+      ----
+      crange:           like 'range', but closed on both ends (range is open
+                        on the top)
+
+            crange(1, 10)    => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            crange(5, 1, -1) => [5, 4, 3, 2, 1]
+            crange(0, 5, 2)  => [0, 2, 4]
+            crange(9, 0, -2) => [9, 7, 5, 3, 1]
+
+      ----
+      cleandir:         nuke an entire directory subtree
+
+            cleandir("/etc") => PANIC!  PLEASE DO NOT DO THIS!
+
+      ----
+      assertFileExists: throw an error if the specified filename doesn't
+                        exist.
+      RequireFileExists: object form of the same test
+
+            assertFileExists("/etc/passwd")  => nothing happens (unless you
+                                                ran the cleandir command
+                                                before...)
+            assertFileExists("/xxxxxxxxxx")  => exception thrown
+            RequireFileExists("/etc/passwd").check() => nothing happens
+            RequireFileExists("/xxxxxxxxxx").check() => exception thrown
+
+      ----
+      assertFileNotExists: throw an error if the specified filename does
+                           exist.
+      RequireFileNotExists: object form of the same test
+
+            assertFileNotExists("/etc/passwd")  => exception thrown (unless
+                                                   you ran the cleandir
+                                                   command before...)
+            assertFileNotExists("/xxxxxxxxxx")  => nothing happens
+            RequireFileNotExists("/etc/passwd").check() => exception thrown
+            RequireFileNotExists("/xxxxxxxxxx").check() => nothing happens
+
+      ----
+      assertFileEmpty: throw an error if the specified filename does not refer
+                       to an existing, but empty file
+      RequireFileEmpty: object form of the same test
+
+            # These tests assume that /tmp/emptyfile exists and is 0 bytes long
+            assertFileEmpty("/etc/passwd")  => exception thrown (hopefully)
+            assertFileEmpty("/tmp/emptyfile")  => nothing happens
+            assertFileEmpty("/tmp/xxxxxxxxx")  => nothing happens
+            RequireFileEmpty("/etc/passwd").check() => exception thrown
+            RequireFileEmpty("/tmp/emptyfile").check() => nothing happens
+            RequireFileEmpty("/tmp/xxxxxxxxx").check() => nothing happens
+
+      ----
+      assertFileNonempty: throw an error if the specified filename does not
+                          refer to an existing, non-empty file [optionally
+                          checking that the file size exactly matches an
+                          expected size]
+      RequireFileNonempty: object form of the same test
+
+            # These tests assume that /tmp/emptyfile exists and is 0 bytes long
+            # These tests assume that /tmp/file_304 exists and is 304 bytes long
+            assertFileNonempty("/etc/passwd")  => nothing happens (hopefully)
+            assertFileNonempty("/tmp/emptyfile")  => exception thrown
+            assertFileNonempty("/tmp/xxxxxxxxx")  => exception thrown
+            assertFileNonempty("/tmp/file_304")  => nothing happens
+            assertFileNonempty("/tmp/file_304", 304)  => nothing happens
+            assertFileNonempty("/tmp/file_304", 305)  => exception thrown
+            RequireFileNonempty("/etc/passwd").check()  => nothing happens
+            RequireFileNonempty("/tmp/emptyfile").check()  => exception thrown
+            RequireFileNonempty("/tmp/xxxxxxxxx").check()  => exception thrown
+            RequireFileNonempty("/tmp/file_304").check()  => nothing happens
+            RequireFileNonempty("/tmp/file_304", 304).check()  => nothing happens
+            RequireFileNonempty("/tmp/file_304", 305).check()  => exception thrown
+
+      ----
+      assertFileEquals: throw an error if the specified filename does not
+                        refer to an existing file, or if the contents of the
+                        file do not exactly match a provided string
+      RequireFileEquals: object form of the same test
+
+            # These tests assume that /tmp/emptyfile exists and is 0 bytes long
+            # These tests assume that /tmp/hw exists and has contents "hello world"
+            assertFileEquals("/etc/passwd", "hello world")  => exception
+            assertFileEquals("/tmp/emptyfile", "hello world")  => exception
+            assertFileEquals("/tmp/xxxxxxxxx", "hello world")  => exception
+            assertFileEquals("/tmp/hw", "hello world")  => nothing happens
+            RequireFileEquals("/etc/passwd", "hello world").check()  => exception
+            RequireFileEquals("/tmp/emptyfile", "hello world").check()  => exception
+            RequireFileEquals("/tmp/xxxxxxxxx", "hello world").check()  => exception
+            RequireFileEquals("/tmp/hw", "hello world").check()  => nothing happens
+
+      ----
+      assertFileMatches: throw an error if the specified filename does not
+                         refer to an existing file, or if the contents of the
+                         file do not match a provided regular expression.  By
+                         default, the file is required to match the regular
+                         expression at least once, but potentially an
+                         unlimited number of times.  This may be changed by
+                         providing the 'expectMinMatches' and/or
+                         expectMaxMatches keyword arguments.
+      RequireFileMatches: object form of the same test
+
+            # These tests assume that /tmp/emptyfile exists and is 0 bytes long
+            # These tests assume that /tmp/hw exists and has contents "hello world"
+            assertFileMatches("/tmp/emptyfile", "h[elowr ]*d")  => exception
+            assertFileMatches("/tmp/xxxxxxxxx", "h[elowr ]*d")  => exception
+            assertFileMatches("/tmp/hw", "h[elowr ]*d")  => nothing happens
+            assertFileMatches("/tmp/hw", "h[elowr ]*d", 2)  => exception
+            assertFileMatches("/tmp/hw", "l", 2, 3)  => nothing happens
+            assertFileMatches("/tmp/hw", "l", 2, 2)  => exception
+            assertFileMatches("/tmp/hw", "l", 4, 6)  => exception
+            RequireFileMatches("/etc/passwd", "h[elowr ]*d").check()  => exception
+            RequireFileMatches("/tmp/emptyfile", "h[elowr ]*d").check()  => exception
+            RequireFileMatches("/tmp/xxxxxxxxx", "h[elowr ]*d").check()  => exception
+            RequireFileMatches("/tmp/hw", "h[elowr ]*d").check()  => nothing happens
+            RequireFileMatches("/tmp/hw", "h[elowr ]*d", 2).check()  => exception
+            RequireFileMatches("/tmp/hw", "l", 2, 3).check()  => nothing happens
+            RequireFileMatches("/tmp/hw", "l", 2, 2).check()  => exception
+            RequireFileMatches("/tmp/hw", "l", 4, 6).check()  => exception
+
+      ----
+      assertFileSymlink: throw an error if the specified filename does not
+                         refer to a symlink, and optionally, if the symlink
+                         does not point to a specific location.
+      RequireFileSymlink: object form of the same test
+
+            # These tests assume that /bin/sh is a symlink to "bash", as is
+            # the case on many Linux machines
+            assertFileSymlink("/bin/sh")  => nothing happens
+            assertFileSymlink("/bin/sh", "bash")  => nothing happens
+            assertFileSymlink("/bin/sh", "tcsh")  => wrath of the gods
+            assertFileSymlink("/etc/passwd")  => exception
+            RequireFileSymlink("/bin/sh").check()  => nothing happens
+            RequireFileSymlink("/bin/sh", "bash").check()  => nothing happens
+            RequireFileSymlink("/bin/sh", "tcsh").check()  => wrath of the gods
+            RequireFileSymlink("/etc/passwd").check()  => exception
+
+      ----
+      assertFileDir: throw an error if the specified filename does not refer
+                     to an existing directory.
+      RequireFileDir: object form of the same test
+
+            assertFileDir("/etc")  => nothing happens
+            assertFileDir("/etc/passwd")  => exception
+            assertFileDir("/xxxxxxxxxx")  => exception
+            RequireFileDir("/etc").check()  => nothing happens
+            RequireFileDir("/etc/passwd").check()  => exception
+            RequireFileDir("/xxxxxxxxxx").check()  => exception
+
+=========================================
+2. Infrastructure
+=========================================
+
+  testutils module:
+
+      All of these utilities may be imported from testutils.
+
+      McellTest class: This class encapsulates the details of an MCell run.
+                       It contains a number of methods to allow specification
+                       of details of how to invoke the run, as well as
+                       specification of the exact criteria for success.
+
+          McellTest.rand:   random number stream  (instance of random.Random)
+
+              rand_float = McellTest.rand.uniform(0, 20)   # rand float in [0, 20.0)
+              rand_int   = McellTest.rand.randint(0, 200)  # rand int in [0, 200)
+
+          McellTest.config: configuration object - gets settings from test.cfg
+
+              McellTest.config.get("regression", "foo"):
+                  get "foo" setting from "[regression]" section of test.cfg,
+                  or "[DEFAULT]" section if not found in [regression section
+
+          McellTest(cat, file, args): create a new McellTest instance.  It
+              will look for its settings preferentially in the section of
+              test.cfg whose name is passed as cat, but will default to the
+              '[DEFAULT]' section for any settings not found in the specified
+              section.  mcell will be launched using the mdl file passed as
+              'file', and will be given the arguments passed in the args list.
+              File is a path relative to the script (test_parser.py,
+              test_regression.py, etc.) that created the McellTest instance.
+              The test will not run until the 'invoke' method is called.
+
+                mt = McellTest('foobar', '01-test_mcell_something.mdl', ['-quiet', '-logfreq', '100])
+
+                      The above mcell run we've set up will look in the
+                      [foobar] section of test.cfg for the mcell executable to
+                      use, will find 01-test_mcell_something.mdl in the same
+                      directory as the test script which created this
+                      McellTest instance, and it will get (in addition to the
+                      -seed, -logfile, and -errfile arguments) -quiet and
+                      -logfreq 100.
+
+              A default constructed mcell test expects to send nothing to
+              stdin, to receive nothing from stdout/stderr, and expects that
+              the executable will exit with an exit code of 0.
+
+          set_check_std_handles(i, o, e): Sets whether each of stdin, stdout,
+                       stderr should be checked.  "checking" stdin simply
+                       means closing stdin immediately so that the program
+                       will get a signal if it tries to read from stdin.
+                       Checking stdout and stderr checks if they are empty
+                       (i.e. produced no output).  Most of the runs in the
+                       test suite redirect stdout and stderr to files
+                       'realout' and 'realerr', so it's usually a good idea to
+                       set these flags.  They are set by default, so it is
+                       unnecessary to set them explicitly unless you want
+                       output out stdout/stderr or want to send input to
+                       stdin.
+
+              mt = MCellTest(...)
+              mt.set_check_std_handles(True, False, False)    # check stdin, don't check stdout/stderr
+              mt.set_check_std_handles(1, 0, 0)    # check stdin, don't check stdout/stderr
+              mt.set_check_std_handles(0, 1, 0)    # check stdout, don't check stdin/stderr
+              mt.set_check_std_handles(0, 0, 1)    # check stderr, don't check stdin/stdout
+
+          set_expected_exit_code(ec): Sets the exit code we expect from mcell
+                       when it exits.  This defaults to 0, which means
+                       successful exit.  When testing error handling, it may
+                       be appropriate to set the expected exit code to 1.  It
+                       is never expected for the process to die due to a
+                       signal.
+
+              mt = MCellTest(...)
+              mt.set_expected_exit_code(1)
+
+          add_exist_file(f): Adds to the test the criterion that upon
+                        successful exit of mcell, the file (or files) f must
+                        exist.  'f' must either be a string giving a single
+                        filename, or an iterable (list, tuple, etc.) giving a
+                        collection of filenames.
+
+          add_empty_file(f): Adds to the test the criterion that upon
+                        successful exit of mcell, the file (or files) f must
+                        exist and be empty.  'f' must either be a string
+                        giving a single filename, or an iterable (list, tuple,
+                        etc.) giving a collection of filenames.
+
+          add_nonempty_file(f, expected_size): Adds to the test the criterion
+                        that upon successful exit of mcell, the file (or
+                        files) f must exist and be nonempty.  'f' must either
+                        be a string giving a single filename, or an iterable
+                        (list, tuple, etc.) giving a collection of filenames.
+                        expected_size is an optional argument, and if
+                        specified, the file (or files) must have size in bytes
+                        exactly matching expected_size, which is an integer.
+
+          add_constant_file(f, cnt): Adds to the test the criterion that upon
+                        successful exit of mcell, the file (or files) f must
+                        exist and be nonempty.  'f' must either be a string
+                        giving a single filename, or an iterable (list, tuple,
+                        etc.) giving a collection of filenames.  cnt is a
+                        string giving the verbatim contents expected in the
+                        file (or files).  If the files do not match cnt byte
+                        for byte, an exception will be thrown.
+
+          add_symlink(f, target): Adds to the test the criterion that upon
+                        successful exit of mcell, the file (or files) f must
+                        exist and be a symlink.  'f' must either be a string
+                        giving a single filename, or an iterable (list, tuple,
+                        etc.) giving a collection of filenames.  target is an
+                        optional string giving a required target for the
+                        symlinks.  (The target must match verbatim, rather
+                        than simply referring to the same file.)  If file is a
+                        collection, target must either be None (unspecified)
+                        or must be a collection, and they will be paired off:
+
+                          mt.add_symlink(["foobar1.lnk", "foobar2.lnk"],
+                                         ["./dat/foobar1.orig", "./dat/foobar2.orig"])
+
+          add_extra_check(c): Adds an extra check to this test to be run upon
+                        completion.  'c' must be an object with a 'check()'
+                        method that can be called which throws an exception if
+                        the test fails.  Most typically, the objects passed to
+                        add_extra_check will be classes whose names begin with
+                        Require, such as the various utility classes defined
+                        in this file.
+
+          invoke(testdir): Invokes this mcell test, creating a test directory
+                        under testdir.  The test directory will be
+                        sequentially named test-xxxx where xxxx is a 4-digit
+                        decimal integer.  Generally, 'get_output_dir()' should
+                        be passed to this:
+
+              mt = MCellTest("foobar", "mdl_does_not_exist.mdl", [])
+              mt.set_expected_exit_code(1)
+              mt.invoke(get_output_dir())
+
+                        Invoke will throw an exception if anything is amiss.
+
+          check_output_files(): This may be overridden in McellTest subclasses
+                        to insert custom logic as an alternative to writing a
+                        Require class and adding it using add_extra_check.  If
+                        you do override this, be sure to call the parent
+                        class' version of this method:
+
+                def check_output_files(self):
+                    McellTest.check_output_files(self)
+                    # now, add other tests here...
+
+=========================================
+3. Specific test types
+=========================================
+
+  reaction_output:
+
+      All of these utilities may be imported from reaction_output.  See
+      system_tests/reaction_output.py for more details.  Each test utility in
+      that file includes a block comment explaining the use of the test and
+      giving a simple example usage.
+
+      ------------
+      Counts (exact):
+      ------------
+
+          assertCounts
+          RequireCounts
+
+      This test type may be used when the counts must exactly match a given
+      time course.  This almost never happens, but may happen in a few cases,
+      for constant counts or non-reacting molecules.  Most cases are better
+      handled with one of the other count mechanisms.
+      
+      In addition to validating the values, this test also validates that the
+      data is well-formed -- that is, that it has the right number of rows and
+      columns, and that it has a header if one is expected and does not have a
+      header if not.
+
+      The parameters to this type of count validation are:
+
+          fname: the name of the reaction data output file 
+
+          times_vals: a list of the exact rows expected in the file.  Each
+                      item in the list should be a tuple of values.  For
+                      instance, in a file counting a constant quantity, such
+                      as produced by the count statement:
+
+                        REACTION_DATA_OUTPUT
+                        {
+                          STEP = 1e-6
+                          {5} => "output.txt"
+                        }
+
+                      in a run that ran for 100 iterations with a time step of
+                      1e-6, times_vals might be set to:
+
+                        [(f*1e-6, 5) for f in range(0, 101)]
+
+          header (optional): a header to expect on the data.  If provided, it
+                      must exactly match the first line of input.  If not
+                      provided, all lines in the file are expected to be count
+                      data.
+
+          eps (optional): an epsilon for what is considered equality.
+                      Defaults to 1e-8.
+
+      As with the generic utilities, this may be called either as:
+
+        assertCounts(fname, times_vals, header=None, eps=1e-8)
+
+      or with the delayed form:
+
+        r = RequireCounts(fname, times_vals, header=None, eps=None)
+        mt.add_extra_check(r)
+        mt.invoke(get_output_dir())
+
+      ------------
+      Counts (linear constraints):
+      ------------
+
+          assertCountConstraints
+          RequireCountConstraints
+
+      This test type is fairly flexible, and was already briefly described in
+      the README file.  Essentially, you must provide a set of coefficients
+      which, when multiplied by the columns in each row (optionally restricted
+      to a given interval of time), will yield a constant value.  You may
+      provide several such linear constraints.  The coefficients for all of
+      the constraints are specified together in a big matrix, and the constant
+      values to which they must evaluate are specified together in a list.
+      Having said that, here are the parameters that may be specified:
+
+          fname: filename to validate
+          constraints (opt) : coefficients matrix
+          totals (opt): result vector
+          min_time (opt): time at which to start validating these constraints
+          max_time (opt): time at which to stop validating these constraints
+          header (opt): If None or False, no header may appear on the data; if
+                        True, a non-empty header must appear on the file; if a
+                        string value is provided, the header must exactly
+                        match the value (except for leading and trailing
+                        whitespace).
+          num_vals (opt): The number of expected values within the window of
+                        time.  If specified, there must be exactly this many
+                        rows between min_time and max_time (or in the whole
+                        file except the header if min_time and max_time are
+                        not specified)
+          minimums (opt): the minimum values which may appear in each column.
+                        Presently, this value is only heeded if constraints
+                        were specified, but that is a bug.  By default, we
+                        assume that no value may be less than 0.
+          maximums (opt): the maximum values which may appear in each column.
+                        Presently, this value is only heeded if constraints
+                        were specified, but that is a bug.  By default, we
+                        assume that no value may be greater than 1e300.
+
+      As with the generic utilities, this may be called either as:
+
+        assertCountConstraints(fname,
+                               constraints=None,
+                               totals=None,
+                               min_time=None,
+                               max_time=None,
+                               header=None,
+                               num_vals=None,
+                               minimums=None,
+                               maximums=None)
+
+      or with the delayed form:
+
+        r = RequireCountConstraints(fname,
+                                    constraints=None,
+                                    totals=None,
+                                    min_time=None,
+                                    max_time=None,
+                                    header=None,
+                                    num_vals=None,
+                                    minimums=None,
+                                    maximums=None)
+        mt.add_extra_check(r)
+        mt.invoke(get_output_dir())
+
+      ------------
+      Counts (equilibrium):
+      ------------
+
+          assertCountEquilibrium
+          RequireCountEquilibrium
+
+      There are two ways one could imagine statstically comparing count values
+      to an expected equilibrium.  One would be to repeatedly run the same
+      simulation and average the same time value across multiple seeds.  The
+      second would be to average the same count across a range of time values
+      in a single run.  Obviously, this only works if the time values are all
+      in a period of statistical equilibrium.  This comparison implements the
+      second strategy.  A minimum and/or maximum time may be provided to limit
+      the summation to a region which is expected to be in equilibrium, and
+      expected equilibrium values may be provided (along with tolerances) for
+      each column.  The test is considered to succeed if the average value of
+      each column is within the given tolerance of each expected equilibrium
+      value.
+
+          fname: filename to validate
+          values: expected equilibria for each column (list of floats)
+          tolerances: allowable tolerances for equilibria
+          min_time (opt): minimum time value at which to start averaging
+          max_time (opt): maximum time value at which to stop averaging
+          header (opt): If None or False, no header may appear on the data; if
+                        True, a non-empty header must appear on the file; if a
+                        string value is provided, the header must exactly
+                        match the value (except for leading and trailing
+                        whitespace).
+          num_vals (opt): The number of expected values within the window of
+                        time.  If specified, there must be exactly this many
+                        rows between min_time and max_time (or in the whole
+                        file except the header if min_time and max_time are
+                        not specified)
+
+      As with the generic utilities, this may be called either as:
+
+        assertCountEquilibrium(fname,
+                               values,
+                               tolerances,
+                               min_time=None,
+                               max_time=None,
+                               header=None,
+                               num_vals=None)
+
+      or with the delayed form:
+
+        r = RequireCountEquilibrium(fname,
+                                    values,
+                                    tolerances,
+                                    min_time=None,
+                                    max_time=None,
+                                    header=None,
+                                    num_vals=None)
+        mt.add_extra_check(r)
+        mt.invoke(get_output_dir())
+
+      ------------
+      Counts (average event rate):
+      ------------
+
+          assertCountRxnRate
+          RequireCountRxnRate
+
+      When a reaction is at equilibrium, the forward and reverse reactions
+      should proceed at roughly equal rates.  We can compute a number of
+      expected events per iteration, and then validate that the average rate
+      of occurrence of the reaction is within epsilon of the expected rate.
+      The current cases for this start the reactions at equilibrium, and a few
+      modifications will be needed to this if we want to use this on reactions
+      which do not start at equilibrium.  The computation we are doing is:
+
+          raw_count / (time - base_time)
+
+      where base_time is the time at which the reactions began occurring, by
+      default 0.  To make it work with a system which doesn't start at
+      equilibrium, we should also specify an equilibrium time, and subtract
+      the reaction count at the equilibrium time:
+
+            (raw_count - counts[eq_time]) / (time - eq_time)
+
+      Anyway, even for a system which starts at equilibrium, this is not
+      immediately accurate -- we need to allow enough time to pass for several
+      events to occur so that we get enough samples to account for the noise.
+
+          fname: filename to validate
+          values: expected event rate in events per microsecond for each column
+          tolerances: tolerances for average rates for each column
+          min_time (opt): minimum time value at which to start averaging
+          max_time (opt): maximum time value at which to stop averaging
+          header (opt): If None or False, no header may appear on the data; if
+                        True, a non-empty header must appear on the file; if a
+                        string value is provided, the header must exactly
+                        match the value (except for leading and trailing
+                        whitespace).
+          
+      As with the generic utilities, this may be called either as:
+
+        assertCountRxnRate(fname,
+                           values,
+                           tolerances,
+                           min_time=None,
+                           max_time=None,
+                           header=None)
+
+      or with the delayed form:
+
+        r = RequireCountRxnRate(fname,
+                                values,
+                                tolerances,
+                                min_time=None,
+                                max_time=None,
+                                header=None)
+        mt.add_extra_check(r)
+        mt.invoke(get_output_dir())
+
+      ------------
+      Triggers:
+      ------------
+
+          assertValidTriggerOutput
+          RequireValidTriggerOutput
+
+      Trigger output may be checked for format, and to a certain degree, for
+      content.  Triggers are currently checked for mechanical constraints, such
+      as syntax (header, if header is expected, correct number of columns) and
+      spatial localization.  In particular, you may specify the bounding box
+      for a region of space within which all trigger hits in a particular file
+      are expected to occur; any triggers which occur outside of this region
+      will cause a test failure.
+
+          fname: filename for trigger output
+          data_cols: 0 for reaction output, 1 for hits, 2 for molecule counts
+          exact_time: True if there should be an exact time column
+          header: Expected header line, or None if no header is expected
+          event_titles: collection of acceptable event titles if triggers
+                        should include event titles, or None if they should not
+                        have titles.
+          itertime: the length of an iteration (only checked if exact_time is
+                    True).  exact_time column is required to be within itertime
+                    of the time column in each row
+          xrange: a tuple of (xmin, xmax), or None to skip checking in the x
+                  dimension.  An error will be signalled if any trigger in this
+                  file occurs with x coordinate outside of the closed interval
+                  [xmin, xmax].
+          yrange: a tuple of (ymin, ymax), or None to skip checking in the y
+                  dimension.  An error will be signalled if any trigger in this
+                  file occurs with y coordinate outside of the closed interval
+                  [ymin, ymax].
+          zrange: a tuple of (zmin, zmax), or None to skip checking in the z
+                  dimension.  An error will be signalled if any trigger in this
+                  file occurs with z coordinate outside of the closed interval
+                  [zmin, zmax].
+
+        assertValidTriggerOutput(fname,
+                                 data_cols,
+                                 exact_time=False,
+                                 header=None,
+                                 event_titles=False,
+                                 itertime=1e-6,
+                                 xrange=None,
+                                 yrange=None,
+                                 zrange=None)
+
+      or with the delayed form:
+
+        r = RequireValidTriggerOutput(fname,
+                                      data_cols,
+                                      exact_time=False,
+                                      header=None,
+                                      event_titles=False,
+                                      itertime=1e-6,
+                                      xrange=None,
+                                      yrange=None,
+                                      zrange=None)
+        mt.add_extra_check(r)
+        mt.invoke(get_output_dir())
+
+  -----------
+
+  viz_output:
+
+      All of these utilities may be imported from viz_output.  See
+      system_tests/viz_output.py for more details.  Each test utility in that
+      file includes a block comment explaining the use of the test and giving a
+      simple example usage.
+
+      ------------
+      ASCII mode viz output:
+      ------------
+
+          assertValidVizFileAscii
+          RequireVizAscii
+
+        ASCII viz output will have 7 columns.  The first column is always a
+        state value.  Columns 2-4 are the x, y, z coordinates of a molecule.
+        Columns 5-7 are the normal vector for the molecule, or 0, 0, 0 if the
+        molecule is a volume molecule.  This check will validate that the
+        column has the right number of lines, and if state values are provided
+        as parameters, will verify that only the expected states occur, and
+        that volume molecules correspond only to legal states for volume
+        molecules and surface molecules correspond only to legal states for
+        surface molecules.  It will check that the state is an integer and that
+        the other 6 columns are floating point values.  It does not presently,
+        though it could, check that the normal vector, if it is not 0, has
+        length 1.  Unlike most of the tests seen so far,
+        RequireValidVizFileAscii works slightly differently from
+        assertValidVizFileAscii.  assertValidVizFileAscii validates a single
+        output file, but RequireValidVizFileAscii will validate the input file
+        for each iteration number that is expected to produce output.
+
+          assertValidVizFileAscii
+              fname: filename to check
+              sstates: list of legal surface molecule states (integer values)
+              vstates: list of legal volume molecule states (integer values)
+                 if both sstates and vstates are None, states will not be
+                 checked; if only one of them is None, it is counted as an
+                 empty list -- i.e. sstates=None means no surface molecules
+                 should appear in the output
+          
+          RequireVizAscii
+              basename: specified basename from MDL file for output
+                        (.ascii.<iter>.dat will be appended to get the actual
+                        filename)
+              iters: iterations which are expected to produce ASCII mode output
+              sstates: list of legal surface molecule states (as in
+                       assertValidVizFileAscii)
+              vstates: list of legal volume molecule states (as in
+                       assertValidVizFileAscii)
+              astates: list of legal states for both surface and volume
+                       molecules.  If astates is not None, it is concatenated
+                       to sstates and to vstates.
+
+      It is recommended to use the Require* form of the ASCII viz output test:
+
+        r = RequireVizAscii(basename,
+                            iters,        # for instance:  range(0, 1000, step=100),
+                            sstates=None,
+                            vstates=None,
+                            astates=None)
+        mt.add_extra_check(r)
+        mt.invoke(get_output_dir())
+
+      ------------
+      RK mode viz output:
+      ------------
+
+          assertValidVizFileRK
+          RequireVizRK
+
+      Only minimal checking is done for Rex's custom output format.
+      Essentially, we only check that the file exists and (optionally) that it
+      has the expected number of lines.
+
+          fname: filename
+          n_iters: number of expected (non-blank) lines in the file
+
+
+      As with most tests, this may be invoked either immediately:
+
+        assertValidVizFileRK(fname, n_iters=None)
+
+      or in delayed form:
+
+        r = RequireVizRK(name
+                         n_iters=None)
+        mt.add_extra_check(r)
+        mt.invoke(get_output_dir())
+
+      ------------
+      DX mode viz output:
+      ------------
+
+        assertValidVizFilesDx
+        RequireVizDx
+
+      DX output is too complicated to thoroughly validate in an automated way,
+      at least at present.  We can, however, validate at least that the
+      expected files were all created.  It could, but does not presently
+      validate that only the expected files are created (i.e. that output
+      wasn't produced for iterations where we didn't expect it).  We also check
+      that the files are non-empty.  (XXX: This may not be the correct thing to
+      do?)
+
+        dir: directory in which to look for the DX output
+        molfile: MOLECULE_FILE_PREFIX if it was specified
+        objprefixes: list of names in the OBJECT_FILE_PREFIXES if it was
+                     specified
+        alliters: list of iterations where we expect all types of output
+        mpositers: list of iterations where we expect volume molecule position
+                     output
+        mstateiters: list of iterations where we expect volume molecule state
+                     output
+        epositers: list of iterations where we expect grid molecule position
+                     output
+        estateiters: list of iterations where we expect grid molecule state
+                     output
+        opositers: list of iterations where we expect mesh position output
+        ostateiters: list of iterations where we expect mesh state output
+
+      As with most tests, this may be invoked either immediately:
+
+        assertValidVizFileDX(dir,
+                             molfile=None,
+                             objprefixes=None,
+                             alliters=None,
+                             mpositers=None,
+                             mstateiters=None,
+                             epositers=None,
+                             estateiters=None,
+                             opositers=None,
+                             ostateiters=None)
+
+      or in delayed form:
+
+        r = RequireVizDX(dir,
+                         molfile=None,
+                         objprefixes=None,
+                         alliters=None,
+                         mpositers=None,
+                         mstateiters=None,
+                         epositers=None,
+                         estateiters=None,
+                         opositers=None,
+                         ostateiters=None)
+        mt.add_extra_check(r)
+        mt.invoke(get_output_dir())
+
+      ------------
+      DREAMM V3 non-grouped viz output:
+      ------------
+
+        assertValidVizFilesDreammV3
+        RequireVizDreammV3
+
+      This validates some basic structural constraints about a non-grouped
+      DREAMM V3 output.  Essentially, it validates the existence and
+      (optionally) the size of the .iteration_numbers.bin and .time_values.bin
+      files and the existence of the top-level .dx file.  In order to do these
+      checks, it needs to know the DREAMM output directory, the output filename
+      (from which the top-level DX file takes its name), and optionally, the
+      number of distinct output iterations and timesteps.
+
+        dir: output directory
+        name: output set name
+        n_iters: number of distinct output iterations
+        n_times: number of distinct output times
+
+      As with most tests, this may be invoked either immediately:
+
+        assertValidVizFilesDreammV3(dir,
+                                    name,
+                                    n_iters=None,
+                                    n_times=None)
+
+      or in delayed form:
+
+        r = RequireVizDreammV3(dir,
+                               name,
+                               n_iters=None,
+                               n_times=None)
+        mt.add_extra_check(r)
+        mt.invoke(get_output_dir())
+
+      ------------
+      DREAMM V3 non-grouped viz output - binary mode molecule data:
+      ------------
+
+        assertValidVizFilesDreammV3MolsBin
+        RequireVizDreammV3MolsBin
+
+      In a DREAMM V3 output set which should contain binary mode molecule data,
+      we can validate the existence of appropriate output files for each
+      iteration.  This is a considerably more complex validation that the ones
+      described thus far.
+
+        dir: the DREAMM output directory
+        alliters: sorted list of iterations where output is expected
+        surfpositers: list of iters where surface molecule position output is
+                expected
+        surforientiters: list of iters where surface molecule orientation
+                output is expected
+        surfstateiters: list of iters where surface molecule state output is
+                expected
+        surfnonempty: flag indicating that at least one surface molecule should
+                have been output
+        volpositers: list of iters where volume molecule position output is
+                expected
+        volorientiters: list of iters where volume molecule orientation output
+                is expected
+        volstateiters: list of iters where volume molecule state output is
+                expected
+        volnonempty: flag indicating that at least one volume molecule should
+                have been output
+
+        Each of the iters lists may be set to None which indicates that the
+        output is expected on every iteration in alliters.  To disable the
+        check for a particular type of output, set its iters list to [] (the
+        empty list).  On iterations where a particular type of output should
+        not be output, but which are subsequent to an iteration where that type
+        of output has been output, we will check for appropriate symbolic links.
+
+      As with most tests, this may be invoked either immediately:
+
+        assertValidVizFilesDreammV3MolsBin(dir,
+                                           alliters,
+                                           surfpositers=None,
+                                           surforientiters=None,
+                                           surfstateiters=[],
+                                           surfnonempty=True,
+                                           volpositers=None,
+                                           volorientiters=None,
+                                           volstateiters=[],
+                                           volnonempty=True)
+
+      or in delayed form:
+
+        r = RequireVizDreammV3MolsBin(dir,
+                                      alliters,
+                                      surfpositers=None,
+                                      surforientiters=None,
+                                      surfstateiters=[],
+                                      surfnonempty=True,
+                                      volpositers=None,
+                                      volorientiters=None,
+                                      volstateiters=[],
+                                      volnonempty=True)
+        mt.add_extra_check(r)
+        mt.invoke(get_output_dir())
+
+      ------------
+      DREAMM V3 non-grouped viz output - ASCII mode molecule data:
+      ------------
+
+        assertValidVizFilesDreammV3MolsAscii
+        RequireVizDreammV3MolsAscii
+
+      In a DREAMM V3 output set which should contain ASCII mode molecule data,
+      we can validate the existence of appropriate output files for each
+      iteration.
+
+        dir: the DREAMM output directory
+        alliters: all iterations where output is expected
+        molnames: names of molecules for which output is expected
+        positers: iterations where position output is expected (or None for
+                  "all")
+        orientiters: iterations where orientation output is expected (or None
+                  for "all")
+        stateiters: iterations where state output is expected (or None for
+                  "all")
+
+      As with most tests, this may be invoked either immediately:
+
+        assertValidVizFilesDreammV3MolsAscii(dir,
+                                             alliters,
+                                             molnames,
+                                             positers=None,
+                                             orientiters=None,
+                                             stateiters=[])
+
+      or in delayed form:
+
+        r = RequireVizDreammV3MolsAscii(dir,
+                                        alliters,
+                                        molnames,
+                                        positers=None,
+                                        orientiters=None,
+                                        stateiters=[])
+        mt.add_extra_check(r)
+        mt.invoke(get_output_dir())
+
+      ------------
+      DREAMM V3 non-grouped viz output - binary mode mesh data:
+      ------------
+
+        assertValidVizFilesDreammV3MeshBin
+        RequireVizDreammV3MeshBin
+
+      For DREAMM output sets which should include at binary mode mesh data, we
+      can verify the existence of the appropriate files and symlinks, and can
+      optionally validate that at least one mesh was output.
+
+        dir: the DREAMM output directory
+        alliters: sorted list of iterations where output is expected
+        positers: iteration numbers where mesh position output was produced
+                  (None for all iterations in alliters)
+        regioniters: iteration numbers where region data output was produced
+                  (None for all iterations in alliters)
+        stateiters: iteration numbers where mesh state output was produced
+                  (None for all iterations in alliters)
+        meshnonempty: if true, we will check that at least one mesh was output
+
+      As with most tests, this may be invoked either immediately:
+
+        assertValidVizFilesDreammV3MeshBin(dir,
+                                           alliters,
+                                           positers=None,
+                                           regioniters=None,
+                                           stateiters=[],
+                                           meshnonempty=True)
+
+      or in delayed form:
+
+        r = RegionVizDreammV3MeshBin(dir,
+                                     alliters,
+                                     positers=None,
+                                     regioniters=None,
+                                     stateiters=[],
+                                     meshnonempty=True)
+        mt.add_extra_check(r)
+        mt.invoke(get_output_dir())
+
+      ------------
+      DREAMM V3 non-grouped viz output - ASCII mode mesh data:
+      ------------
+
+        assertValidVizFilesDreammV3MeshAscii
+        RequireVizDreammV3MeshAscii
+
+      For DREAMM output sets which should include at ASCII mode mesh data, we
+      can verify the existence of the appropriate files and symlinks, and can
+      optionally validate that at least one mesh was output.
+
+        dir: the DREAMM output directory
+        alliters: sorted list of iterations where output is expected
+        objnames: names of objects for which output should be produced
+        objswithregions: names of objects which have defined regions (other
+                  than ALL)
+        positers: iteration numbers where mesh position output was produced
+                  (None for all iterations in alliters)
+        regioniters: iteration numbers where region data output was produced
+                  (None for all iterations in alliters)
+        stateiters: iteration numbers where mesh state output was produced
+                  (None for all iterations in alliters)
+        meshnonempty: if true, we will check that at least one mesh was output
+
+      As with most tests, this may be invoked either immediately:
+
+        assertValidVizFilesDreammV3MeshAscii(dir,
+                                             alliters,
+                                             objnames,
+                                             objswithregions=None,
+                                             positers=None,
+                                             regioniters=None,
+                                             stateiters=[],
+                                             meshnonempty=True)
+
+      or in delayed form:
+
+        r = RegionVizDreammV3MeshAscii(dir,
+                                       alliters,
+                                       objnames,
+                                       objswithregions=None,
+                                       positers=None,
+                                       regioniters=None,
+                                       stateiters=[],
+                                       meshnonempty=True)
+        mt.add_extra_check(r)
+        mt.invoke(get_output_dir())
+
+      ------------
+      DREAMM V3 grouped viz output:
+      ------------
+
+        assertValidVizFilesDreammV3Grouped
+        RequireVizDreammV3Grouped
+
+      A DREAMM V3 grouped file is best validated all-at-once.  Less validation
+      may be done than in the ungrouped case because less of the state is
+      directly accessible from the filesystem (i.e. without parsing DX files.)
+      Still, a reasonable amount of validation can be done.
+
+        dir: DREAMM output directory
+        name: output set name
+        cpno: checkpoint sequence number (defaults to 1)
+        n_iters: total number of iterations (None to skip iteration count check)
+        n_times: total number of distinct time points (None to skip time count
+                  check)
+        meshpos: True iff we should expect mesh positions output
+        rgnindx: True iff we should expect region indices output
+        meshstate: True iff we should expect mesh states output
+        meshnonempty: True if we should expect at least one mesh output
+        molpos: True iff we should expect molecule position output
+        molorient: True iff we should expect molecule orientation output
+        molstate: True iff we should expect molecule state output
+        molsnonempty: True if we should expect at least one molecule output
+
+      As with the other test types, this may be run in immediate form:
+
+        assertValidVizFilesDreammV3Grouped(dir,
+                                           name,
+                                           cpno=1,
+                                           n_iters=None,
+                                           n_times=None,
+                                           meshpos=True,
+                                           rgnindex=True,
+                                           meshstate=False,
+                                           meshnonempty=True,
+                                           molpos=True,
+                                           molorient=True,
+                                           molstate=False,
+                                           molsnonempty=True)
+
+      or in delayed form:
+
+        r = RequireVizDreammV3Grouped(dir,
+                                      name,
+                                      cpno=1,
+                                      n_iters=None,
+                                      n_times=None,
+                                      meshpos=True,
+                                      rgnindex=True,
+                                      meshstate=False,
+                                      meshnonempty=True,
+                                      molpos=True,
+                                      molorient=True,
+                                      molstate=False,
+                                      molsnonempty=True)
+        mt.add_extra_check(r)
+        mt.invoke(get_output_dir())
+
+=========================================
+4. Test-specific utilities
+=========================================
+
+    I'm not actually going to explain how to use the existing test-specific
+    utilities, but I am going to mention them as examples of how to write more
+    complicated tests.  Many of the parser tests involve similar checks and
+    setup, and as a result, special base classes have been created in the
+    parser_test_types.py module in mdl/testsuite/parser.  This file is
+    well-commented and illustrates the use of several of the test types I've
+    mentioned here.
+
+    test_parser.py includes a useful trick for batch-generating tests, which
+    may be of interest if you need to add a large number of very similar tests.
+    In this case, the tests are for ~80 tests for parsing malformed MDL files:
+
+class TestParseInvalid(unittest.TestCase):
+
+  def test025(self):
+    InvalidParserTest("invalid-025.mdl").add_empty_file("invalid-025.tmp").invoke(get_output_dir())
+
+def make_invalid_test(i):
+  methname = "test%03d" % i
+  filename = "invalid-%03d.mdl" % i
+  func = lambda self: InvalidParserTest(filename).invoke(get_output_dir())
+  setattr(TestParseInvalid, methname, func)
+
+## Bulk generate invalid test cases 1...23, 26...27, 29...85
+## 25 is specially specified, and 24 and 28 do not presently exist.
+for i in crange(1, 23) + crange(26, 27) + crange(29, 85):
+  make_invalid_test(i)
+
+    Essentially, I created a test case with whatever custom tests I needed, and
+    then wrote a loop to generate the other methods, which were formulaic and
+    merely involved creating the appropriate test type with a formulaic mdl
+    filename.  The rest of the logic is contained in the InvalidParserTest
+    class which may be seen in parser_test_types.py.
+
+    I added a similar macromol_test_types.py in the macromols subdirectory, but
+    it contains very little of practical interest aside from an analogue of the
+    InvalidParserTest class for catching macromolecule parser errors.  There
+    are, however, a few utilities in test_macromols.py that may be of interest,
+    as they show how to create custom check types to be added with
+    'add_extra_check'.  In particular, CheckListReleasePositions is used to
+    validate the placement locations of the macromolecule subunits based on
+    their list placement.  This particular example is specific to one of the
+    macromolecule tests, and I guess I must have decided it wasn't generic
+    enough to merit inclusion in macromol_test_types?  test_macromols.py also
+    includes a fairly frightening example of the use of RequireCountConstraints
+    to validate the macromolecule counting code (see the test_surface method).
+
+
