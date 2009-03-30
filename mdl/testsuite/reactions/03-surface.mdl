@@ -31,6 +31,17 @@ surfdiffconst = 2.0e-6
 num_u = 1000
 num_b = 1000
 num_t = 1000
+num_vvs = num_t
+
+sa = 6*(2*boxdims)^2
+boxvol = 8*boxdims*boxdims*boxdims
+
+eq_t = num_t / 2
+eq_b = num_b / 2
+
+rf_ss  = 0.1*1e6 * (sa     / eq_b)                       / eq_b
+rf_sss = 0.1*1e6 * (sa     / eq_t)   * (sa     / eq_t)   / eq_t
+rf_vss = 0.1*1e6 * (sa     / eq_t)   * (boxvol / eq_t)   / eq_t
 
 // Set reverse rates to expect approx 1 rxn every 10 timesteps
 rr_u = 2.0e2
@@ -38,12 +49,12 @@ rr_b = 2.0e2
 rr_t = 2.0e2
 
 // Compute forward rates to give equilibrium of 50% reacted
-boxvol = 8*boxdims*boxdims*boxdims
 c_b = (num_b / 2. / boxvol) * 1e15 / 6.022e23
 c_t = (num_t / 2. / boxvol) * 1e15 / 6.022e23
 rf_u = rr_u
 rf_b = rr_b / c_b
 rf_t = rr_t / c_t / c_t
+printf("rf_t = %g\n", rf_t)
 
 VACANCY_SEARCH_DISTANCE = 2
 ITERATIONS = iterations
@@ -57,13 +68,13 @@ DEFINE_REACTIONS {
 
   /* 0 Volume reactants */
   S_u,                       -> B_u,   [rf_u] : fwd_u    /* unimol */
-  S_b1,  + S_b2,             -> B_b,   [rf_b] : fwd_b    /* bimol  */
-  S_bt1, + S_bt2,            -> B_bt,  [rf_b] : fwd_bt   /* bimol (via trimol code) */
-  S_b3,  + S_b4to,           -> B_b2,  [rf_b] : fwd_b2   /* bimol (1 target only) */
-  S_bt3, + S_bt4to,          -> B_bt2, [rf_b] : fwd_bt2  /* bimol (1 target only, via trimol code) */
-  S_t1,  + S_t2,   + S_t3,   -> B_t,   [rf_t] : fwd_t    /* trimol */
-  S_t4,  + S_t5to, + S_t6,   -> B_t2,  [rf_t] : fwd_t2   /* trimol (1 target only) */
-  S_t7,  + S_t8to, + S_t9to, -> B_t3,  [rf_t] : fwd_t3   /* trimol (2 target only) */
+  S_b1,  + S_b2,             -> B_b,   [rf_ss] : fwd_b    /* bimol  */
+  S_bt1, + S_bt2,            -> B_bt,  [rf_ss] : fwd_bt   /* bimol (via trimol code) */
+  S_b3,  + S_b4to,           -> B_b2,  [rf_ss] : fwd_b2   /* bimol (1 target only) */
+  S_bt3, + S_bt4to,          -> B_bt2, [rf_ss] : fwd_bt2  /* bimol (1 target only, via trimol code) */
+  S_t1,  + S_t2,   + S_t3,   -> B_t,   [rf_sss] : fwd_t    /* trimol */
+  S_t4,  + S_t5to, + S_t6,   -> B_t2,  [rf_sss] : fwd_t2   /* trimol (1 target only) */
+  S_t7,  + S_t8to, + S_t9to, -> B_t3,  [rf_sss*2] : fwd_t3   /* trimol (2 target only) */
 
   B_u,   -> S_u,                       [rr_u] : rev_u
   B_b,   -> S_b1,  + S_b2,             [rr_b] : rev_b
@@ -75,30 +86,30 @@ DEFINE_REACTIONS {
   B_t3,  -> S_t7,  + S_t8to, + S_t9to, [rr_t] : rev_t3
 
   /* 1 Volume reactant */
-  V_b1,  + S_vb2,               -> B_vb,   [rf_b] : fwd_vb    /* bimol  */
-  V_bt1, + S_vbt2,              -> B_vbt,  [rf_b] : fwd_vbt   /* bimol (via trimol code) */
-  V_b3,  + S_vb4to,             -> B_vb2,  [rf_b] : fwd_vb2   /* bimol (1 target only) */
-  V_bt3, + S_vbt4to,            -> B_vbt2, [rf_b] : fwd_vbt2  /* bimol (1 target only, via trimol code) */
-  V_t1,  + S_vt2,    + S_vt3,   -> B_vt,   [rf_t] : fwd_vt    /* trimol */
-  V_t4,  + S_vt5to,  + S_vt6,   -> B_vt2,  [rf_t] : fwd_vt2   /* trimol (1 target only) */
-  V_t7,  + S_vt8to,  + S_vt9to, -> B_vt3,  [rf_t] : fwd_vt3   /* trimol (2 target only) */
+  V_b1,  + S_vb2'               -> B_vb'   [rf_b] : fwd_vb    /* bimol  */
+  V_bt1, + S_vbt2'              -> B_vbt'  [rf_b] : fwd_vbt   /* bimol (via trimol code) */
+  V_b3,  + S_vb4to'             -> B_vb2'  [rf_b] : fwd_vb2   /* bimol (1 target only) */
+  V_bt3, + S_vbt4to'            -> B_vbt2' [rf_b] : fwd_vbt2  /* bimol (1 target only, via trimol code) */
+  V_t1,  + S_vt2'    + S_vt3'   -> B_vt'   [rf_vss] : fwd_vt    /* trimol */
+  V_t4,  + S_vt5to'  + S_vt6'   -> B_vt2'  [rf_vss] : fwd_vt2   /* trimol (1 target only) */
+  V_t7,  + S_vt8to'  + S_vt9to' -> B_vt3'  [rf_vss] : fwd_vt3   /* trimol (2 target only) */
 
-  B_vb,   -> V_b1,  + S_vb2,               [rr_b] : rev_vb
-  B_vbt,  -> V_bt1, + S_vbt2,              [rr_b] : rev_vbt
-  B_vb2,  -> V_b3,  + S_vb4to,             [rr_b] : rev_vb2
-  B_vbt2, -> V_bt3, + S_vbt4to,            [rr_b] : rev_vbt2
-  B_vt,   -> V_t1,  + S_vt2,    + S_vt3,   [rr_t] : rev_vt
-  B_vt2,  -> V_t4,  + S_vt5to,  + S_vt6,   [rr_t] : rev_vt2
-  B_vt3,  -> V_t7,  + S_vt8to,  + S_vt9to, [rr_t] : rev_vt3
+  B_vb'   -> V_b1,  + S_vb2'               [rr_b] : rev_vb
+  B_vbt'  -> V_bt1, + S_vbt2'              [rr_b] : rev_vbt
+  B_vb2'  -> V_b3,  + S_vb4to'             [rr_b] : rev_vb2
+  B_vbt2' -> V_bt3, + S_vbt4to'            [rr_b] : rev_vbt2
+  B_vt'   -> V_t1,  + S_vt2'    + S_vt3'   [rr_t] : rev_vt
+  B_vt2'  -> V_t4,  + S_vt5to'  + S_vt6'   [rr_t] : rev_vt2
+  B_vt3'  -> V_t7,  + S_vt8to'  + S_vt9to' [rr_t] : rev_vt3
 
   /* 2 Volume reactants */
-  V_vt1, + V_vt2,   + S_vvt3,    -> B_vvt,  [rf_t] : fwd_vvt    /* trimol */
-  V_vt4, + V_vt5to, + S_vvt6,    -> B_vvt2, [rf_t] : fwd_vvt2   /* trimol (1 target only) */
-  V_vt7, + V_vt8to, + S_vvt9to,  -> B_vvt3, [rf_t] : fwd_vvt3   /* trimol (2 target only) */
+  V_vt1, + V_vt2,   + S_vvt3'    -> B_vvt'  [rf_t/10] : fwd_vvt    /* trimol */
+  V_vt4, + V_vt5to, + S_vvt6'    -> B_vvt2' [rf_t/10] : fwd_vvt2   /* trimol (1 target only) */
+  V_vt7, + V_vt8to, + S_vvt9to'  -> B_vvt3' [rf_t*2/10] : fwd_vvt3   /* trimol (2 target only) */
 
-  B_vvt,  -> V_vt1, + V_vt2,   + S_vvt3,   [rr_t] : rev_vvt
-  B_vvt2, -> V_vt4, + V_vt5to, + S_vvt6,   [rr_t] : rev_vvt2
-  B_vvt3, -> V_vt7, + V_vt8to, + S_vvt9to, [rr_t] : rev_vvt3
+  B_vvt'  -> V_vt1, + V_vt2,   + S_vvt3'   [rr_t/10] : rev_vvt
+  B_vvt2' -> V_vt4, + V_vt5to, + S_vvt6'   [rr_t/10] : rev_vvt2
+  B_vvt3' -> V_vt7, + V_vt8to, + S_vvt9to' [rr_t/10] : rev_vvt3
 
   /* Dummy reactions to trick mcell into using trimol. pathway for bimol rxn. */
   V_bt1 + V_a + V_a -> V_a   [1e2]
@@ -291,8 +302,8 @@ x = x + 2*boxdims + fuzz
 case16 OBJECT
 {
   kosmos OBJECT little_box {}
-  release_site_r1 RELEASE_SITE       { SHAPE = case16.kosmos    MOLECULE = V_vt1     NUMBER_TO_RELEASE = num_t / 2 }
-  release_site_r2 RELEASE_SITE       { SHAPE = case16.kosmos    MOLECULE = V_vt2     NUMBER_TO_RELEASE = num_t / 2 }
+  release_site_r1 RELEASE_SITE       { SHAPE = case16.kosmos    MOLECULE = V_vt1     NUMBER_TO_RELEASE = num_vvs / 2 }
+  release_site_r2 RELEASE_SITE       { SHAPE = case16.kosmos    MOLECULE = V_vt2     NUMBER_TO_RELEASE = num_vvs / 2 }
   release_site_r3 RELEASE_SITE       { SHAPE = case16.kosmos    MOLECULE = S_vvt3'   NUMBER_TO_RELEASE = num_t / 2 }
   release_site_p RELEASE_SITE        { SHAPE = case16.kosmos    MOLECULE = B_vvt'    NUMBER_TO_RELEASE = num_t / 2 }
   TRANSLATE = [x, 0, 0]
@@ -303,8 +314,8 @@ x = x + 2*boxdims + fuzz
 case17 OBJECT
 {
   kosmos OBJECT little_box {}
-  release_site_r1 RELEASE_SITE       { SHAPE = case17.kosmos    MOLECULE = V_vt4     NUMBER_TO_RELEASE = num_t / 2 }
-  release_site_r2 RELEASE_SITE       { SHAPE = case17.kosmos    MOLECULE = V_vt5to   NUMBER_TO_RELEASE = num_t / 2 }
+  release_site_r1 RELEASE_SITE       { SHAPE = case17.kosmos    MOLECULE = V_vt4     NUMBER_TO_RELEASE = num_vvs / 2 }
+  release_site_r2 RELEASE_SITE       { SHAPE = case17.kosmos    MOLECULE = V_vt5to   NUMBER_TO_RELEASE = num_vvs / 2 }
   release_site_r3 RELEASE_SITE       { SHAPE = case17.kosmos    MOLECULE = S_vvt6'   NUMBER_TO_RELEASE = num_t / 2 }
   release_site_p RELEASE_SITE        { SHAPE = case17.kosmos    MOLECULE = B_vvt2'   NUMBER_TO_RELEASE = num_t / 2 }
   TRANSLATE = [x, 0, 0]
@@ -315,8 +326,8 @@ x = x + 2*boxdims + fuzz
 case18 OBJECT
 {
   kosmos OBJECT little_box {}
-  release_site_r1 RELEASE_SITE       { SHAPE = case18.kosmos    MOLECULE = V_vt7     NUMBER_TO_RELEASE = num_t / 2 }
-  release_site_r2 RELEASE_SITE       { SHAPE = case18.kosmos    MOLECULE = V_vt8to   NUMBER_TO_RELEASE = num_t / 2 }
+  release_site_r1 RELEASE_SITE       { SHAPE = case18.kosmos    MOLECULE = V_vt7     NUMBER_TO_RELEASE = num_vvs / 2 }
+  release_site_r2 RELEASE_SITE       { SHAPE = case18.kosmos    MOLECULE = V_vt8to   NUMBER_TO_RELEASE = num_vvs / 2 }
   release_site_r3 RELEASE_SITE       { SHAPE = case18.kosmos    MOLECULE = S_vvt9to' NUMBER_TO_RELEASE = num_t / 2 }
   release_site_p RELEASE_SITE        { SHAPE = case18.kosmos    MOLECULE = B_vvt3'   NUMBER_TO_RELEASE = num_t / 2 }
   TRANSLATE = [x, 0, 0]
@@ -424,7 +435,7 @@ REACTION_DATA_OUTPUT {
   {
     COUNT[fwd_u,WORLD]         : "fwd_u",
     COUNT[fwd_b,WORLD]         : "fwd_b",
-    COUNT[fwd_b,WORLD]         : "fwd_bt",
+    COUNT[fwd_bt,WORLD]        : "fwd_bt",
     COUNT[fwd_b2,WORLD]        : "fwd_b2",
     COUNT[fwd_bt2,WORLD]       : "fwd_bt2",
     COUNT[fwd_t,WORLD]         : "fwd_t",
@@ -433,7 +444,7 @@ REACTION_DATA_OUTPUT {
     COUNT[fwd_vb,WORLD]        : "fwd_vb",
     COUNT[fwd_vbt,WORLD]       : "fwd_vbt",
     COUNT[fwd_vb2,WORLD]       : "fwd_vb2",
-    COUNT[fwd_vbt,WORLD]       : "fwd_vbt2",
+    COUNT[fwd_vbt2,WORLD]      : "fwd_vbt2",
     COUNT[fwd_vt,WORLD]        : "fwd_vt",
     COUNT[fwd_vt2,WORLD]       : "fwd_vt2",
     COUNT[fwd_vt3,WORLD]       : "fwd_vt3",
@@ -460,3 +471,4 @@ REACTION_DATA_OUTPUT {
     COUNT[rev_vvt3,WORLD]      : "rev_vvt3"
   }     => countdir & "rxn_out.dat"
 }
+

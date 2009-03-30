@@ -1,5 +1,13 @@
 #! /usr/bin/env python
 
+# If Psyco is installed, fire it up so that the test suite will run more
+# quickly
+try:
+  import psyco
+  psyco.full()
+except ImportError:
+  pass
+
 import sys
 import os
 import unittest

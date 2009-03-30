@@ -1,0 +1,27 @@
+/****************************************************************************
+ * Regression test 11: MCell cannot parse quoted-tickmark orientations if the
+ *    molecule name is a single character long.  This is a stripped down
+ *    version of the test case Boris sent when he reported the bug.
+ *
+ *    Failure: Parse error on the count statements.
+ *    Success: Run completes successfully.
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2009-03-27
+ ****************************************************************************/
+
+ITERATIONS = 1
+TIME_STEP = 1e-6
+
+DEFINE_MOLECULE A { DIFFUSION_CONSTANT_2D = 1e-6 }
+
+INSTANTIATE world OBJECT {
+  boxy BOX { CORNERS = [-0.2, -0.2, -0.2], [0.2, 0.2, 0.2] }
+}
+
+REACTION_DATA_OUTPUT
+{
+  STEP = 1e-6
+  {COUNT ["A'", world.boxy[ALL]]} => "Ap.dat"
+  {COUNT ["A,", world.boxy[ALL]]} => "An.dat"
+}

@@ -8591,7 +8591,7 @@ static int mdl_get_orientation_from_string(char *mol_string)
   }
 
   /* Peel off any apostrophes or commas at the end of the string */
-  while (pos > 0)
+  while (pos >= 0)
   {
     switch (mol_string[pos])
     {

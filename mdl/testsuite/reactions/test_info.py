@@ -1,6 +1,5 @@
-from test_reactions import numericsuite, tempsuite
+from test_reactions import numericsuite
 
 tests = {
-    "numericsuite"      : "Numeric validation for reactions",
-    "tempsuite"         : "Shortcut to currently developing test",
+    "numericsuite"      : "Numeric validation for reactions"
 }

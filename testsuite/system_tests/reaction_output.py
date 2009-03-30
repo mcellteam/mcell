@@ -1,6 +1,11 @@
 import string
 import types
 
+try:
+  import numpy
+except ImportError:
+  numpy = None
+
 ####################
 ## Give an error if the counts in a reaction output file do not agree with
 ## those passed in.  'eps' specifies the tolerance with which each value is
@@ -114,6 +119,11 @@ def assertCountConstraints(fname, constraints=None, totals=None, min_time=None, 
     # Validate constraints
     if constraints is not None  or  totals != None:
       got_vals = 0
+      if numpy is not None:
+        if len(constraints) != 0:
+          m_constraint = numpy.transpose(numpy.matrix(constraints))
+        else:
+          m_constraint = None
       for line in file:
         cols = line.strip().split()
         time = float(cols[0])
@@ -135,9 +145,17 @@ def assertCountConstraints(fname, constraints=None, totals=None, min_time=None, 
         for c in range(0, len(counts)):
           assert counts[c] >= minimums[c], "In reaction output file '%s', at time %s, value (%g) is less than minimum value (%g)" % (fname, cols[0], counts[c], minimums[c])
           assert counts[c] <= maximums[c], "In reaction output file '%s', at time %s, value (%g) is greater than maximum value (%g)" % (fname, cols[0], counts[c], maximums[c])
-        for c in range(0, len(constraints)):
-          val = sum(map(lambda x, y: x*y, constraints[c], counts))
-          assert val == totals[c], "In reaction output file '%s', at time %s, constraint %s*%s == %d is not satisfied" % (fname, cols[0], str(constraints[c]), str(counts), totals[c])
+        # XXX: We might be able to do this faster as a single matrix multiply
+        if numpy is not None:
+          if m_constraint is not None:
+            m_count = numpy.matrix(counts)
+            m_result = m_count * m_constraint - totals
+            a_failed = m_result.nonzero()
+            assert len(a_failed[0]) == 0, "In reaction output file '%s', at time %s, constraint #%d is not satisfied" % (fname, cols[0], a_failed[0][0])
+        else:
+          for c in range(0, len(constraints)):
+            val = sum(map(lambda x, y: x*y, constraints[c], counts))
+            assert val == totals[c], "In reaction output file '%s', at time %s, constraint %s*%s == %d is not satisfied" % (fname, cols[0], str(constraints[c]), str(counts), totals[c])
 
     if num_vals is not None:
       assert num_vals == got_vals, "In reaction output file '%s', expected %d rows within the selected time window, but only found %d" % (fname, num_vals, got_vals)

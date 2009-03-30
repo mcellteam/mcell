@@ -624,6 +624,15 @@ static int outcome_products(struct wall *w,
           {
             int const subunit_idx = old_subunit ? macro_subunit_index((struct abstract_molecule *) gm) : -1;
             struct grid_molecule gm_old = *gm;
+
+            /* We're about to update the molecule's orientation, so we will
+             * first remove it from the counts in case we have any
+             * orientation-sensitive counts.  Then, we will update the
+             * orientation.  Finally, we will add the molecule back into the
+             * counts in its new orientation.
+             */
+
+            /* Remove molecule from counts in old orientation, if mol is counted. */
             if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
               count_region_from_scratch(product[n_product],     /* molecule */
                                         NULL,                   /* rxn pathway */
@@ -635,6 +644,7 @@ static int outcome_products(struct wall *w,
             /* Set the molecule's orientation. */
             gm->orient = product_orient[n_product];
 
+            /* Add molecule back to counts in new orientation, if mol is counted. */
             if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
               count_region_from_scratch(product[n_product],     /* molecule */
                                         NULL,                   /* rxn pathway */
@@ -874,8 +884,7 @@ static int outcome_products(struct wall *w,
 
     /* Update molecule counts */
     ++ product_species->population;
-    if (world->place_waypoints_flag  &&
-        product_species->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)    &&
+    if (product_species->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)    &&
         count_region_from_scratch(this_product, NULL, 1, NULL, NULL, t))
       mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
                         product_species->sym->name);
