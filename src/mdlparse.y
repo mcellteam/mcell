@@ -2154,7 +2154,6 @@ output_timer_def: step_time_def
 ;
 
 step_time_def: STEP '=' num_expr                      { $$.type = OUTPUT_BY_STEP; $$.step = $3; }
-             | /* empty */                            { $$.type = OUTPUT_BY_STEP; $$.step = mdlpvp->vol->time_unit; }
 ;
 
 iteration_time_def:
