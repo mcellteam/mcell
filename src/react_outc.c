@@ -528,6 +528,7 @@ static int outcome_products(struct wall *w,
   short const initiatorOrient = orientA;
 
   /* Ensure that reacA and reacB are sorted in the same order as the rxn players. */
+  assert(reacA != NULL);
   if (reacA->properties != rx->players[0])
   {
     struct abstract_molecule *tmp_mol = reacA;
@@ -549,9 +550,12 @@ static int outcome_products(struct wall *w,
       old_subunit = reacA;
     else if (reacB != NULL  &&  reacB->flags & COMPLEX_MEMBER)
       old_subunit = reacB;
-    else
+    else if (reacB != NULL)
       mcell_internal_error("Macromolecular reaction [%s] occurred, but neither molecule is a subunit (%s and %s).",
                            rx->sym->name, reacA->properties->sym->name, reacB->properties->sym->name);
+    else
+      mcell_internal_error("Macromolecular reaction [%s] occurred, but the molecule is not a subunit (%s).",
+                           rx->sym->name, reacA->properties->sym->name);
   }
 
   /* If the reaction involves a surface, make sure there is room for each product. */
@@ -561,6 +565,7 @@ static int outcome_products(struct wall *w,
     /* Determine whether any of the reactants can be replaced by a product. */
     int replace_p1 = (product_type[0] == PLAYER_GRID_MOL  &&  rx_players[0] == NULL);
     int replace_p2 = rx->n_reactants > 1  &&  (product_type[1] == PLAYER_GRID_MOL  &&  rx_players[1] == NULL);
+    assert(! replace_p2  ||  reacB != NULL);
 
     /* Determine the point of reaction on the surface. */
     if (grid_reactant) rxn_uv_pos = grid_reactant->s_pos;
@@ -700,6 +705,7 @@ static int outcome_products(struct wall *w,
         else
         {
           /* If the grid is nonexistent, create it and place the molecule. */
+          assert(w != NULL);
           if (w->grid==NULL)
           {
             /* reacA must be a volume molecule, or this wall would have a grid already. */
@@ -796,10 +802,12 @@ static int outcome_products(struct wall *w,
           switch (product_flag[n_product]) 
           {
             case PRODUCT_FLAG_USE_REACA_UV:
+              assert(reacA != NULL);
               prod_uv_pos = ((struct grid_molecule*) reacA)->s_pos;
               break;
 
             case PRODUCT_FLAG_USE_REACB_UV:
+              assert(reacB != NULL);
               prod_uv_pos = ((struct grid_molecule*) reacB)->s_pos;
               break;
 
@@ -953,7 +961,6 @@ static int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   struct grid_molecule *g;
   struct species *p;
   struct surface_grid *sg;
-  u_int bits;
   int k;
   int i0 = rx->product_idx[path]; /*index of the first product for the pathway*/
   int iN = rx->product_idx[path+1];/*index of the first product for the next pathway*/
@@ -1409,7 +1416,6 @@ static int outcome_products(struct wall *w,struct volume_molecule *reac_m,
   }
 
   /* Finally, set orientations correctly */
-  bits = 0;
   for (int n_product=i0; n_product<iN; n_product++)
   {
     if (rx->players[n_product]==NULL) continue; 
@@ -1579,7 +1585,6 @@ static int outcome_products_trimol_reaction(struct wall *w,
   struct surface_grid *sg;
   struct subvolume *gsv = NULL;
   struct vector3 pos3d;
-  u_int bits;
   int k;
   int i0 = rx->product_idx[path]; /*index of the first product for the pathway*/
   int iN = rx->product_idx[path+1];/*index of the first product for the next pathway*/
@@ -2032,7 +2037,6 @@ static int outcome_products_trimol_reaction(struct wall *w,
   }
 
   /* Finally, set orientations correctly */
-  bits = 0;
   for (int n_player=i0; n_player<iN; n_player++)
   {
     if (rx->players[n_player]==NULL) continue; 

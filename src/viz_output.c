@@ -1736,7 +1736,6 @@ static void dreamm_v3_generic_merge_coincident_frames(struct frame_data_list **b
       *nelBoth = temp;
 
       /* Elide time from "second" list" */
-      temp = (*nelSecond);
       *nelSecond = (*nelSecond)->next;
     }
 
@@ -6692,9 +6691,6 @@ static int output_ascii_molecules(struct viz_output_block *vizblk,
       {
         for (i=-1;i<shp->buf_len;i++)
         {
-          if (i<0) aep = shp->current;
-          else aep = shp->circ_buf_head[i];
-          
           for (aep=(i<0)?shp->current:shp->circ_buf_head[i] ; aep!=NULL ; aep=aep->next)
           {
             amp = (struct abstract_molecule*)aep;

@@ -4027,7 +4027,11 @@ static struct release_evaluator* duplicate_rel_region_expr(struct mdlparse_vars 
       
       if (r==NULL)
       {
-        mdlerror_fmt(mpvp,"Can't find new region corresponding to %s for %s (copy of %s)",r->sym->name,new_self->sym->name,old_self->sym->name);
+        mdlerror_fmt(mpvp,
+                     "Can't find new region corresponding to %s for %s (copy of %s)",
+                     ((struct region *) expr->left)->sym->name,
+                     new_self->sym->name,
+                     old_self->sym->name);
         return NULL;
       }
       
@@ -4045,7 +4049,11 @@ static struct release_evaluator* duplicate_rel_region_expr(struct mdlparse_vars 
       
       if (r==NULL)
       {
-        mdlerror_fmt(mpvp,"Can't find new region corresponding to %s for %s (copy of %s)",r->sym->name,new_self->sym->name,old_self->sym->name);
+        mdlerror_fmt(mpvp,
+                     "Can't find new region corresponding to %s for %s (copy of %s)",
+                     ((struct region *) expr->right)->sym->name,
+                     new_self->sym->name,
+                     old_self->sym->name);
         return NULL;
       }
       
@@ -4576,7 +4584,7 @@ static int divide_cuboid(struct mdlparse_vars *mpvp,
 static int reaspect_cuboid(struct mdlparse_vars *mpvp, struct subdivided_box *b, double max_ratio)
 {
   double min_x,min_y,min_z,max_x,max_y,max_z;
-  int ix,iy,iz,jx,jy,jz;
+  int jx,jy,jz;
   int i,j;
   int changed;
   
@@ -4585,13 +4593,12 @@ static int reaspect_cuboid(struct mdlparse_vars *mpvp, struct subdivided_box *b,
     changed = 0;
     
     max_x = min_x = b->x[1] - b->x[0];
-    jx = ix = 0;
+    jx = 0;
     for (i=1;i<b->nx-1;i++)
     {
       if (min_x > b->x[i+1] - b->x[i])
       {
 	min_x = b->x[i+1] - b->x[i];
-	ix = i;
       }
       else if (max_x < b->x[i+1] - b->x[i])
       {
@@ -4601,13 +4608,12 @@ static int reaspect_cuboid(struct mdlparse_vars *mpvp, struct subdivided_box *b,
     }
     
     max_y = min_y = b->y[1] - b->y[0];
-    jy = iy = 0;
+    jy = 0;
     for (i=1;i<b->ny-1;i++)
     {
       if (min_y > b->y[i+1] - b->y[i])
       {
 	min_y = b->y[i+1] - b->y[i];
-	iy = i;
       }
       else if (max_y < b->y[i+1] - b->y[i])
       {
@@ -4617,13 +4623,12 @@ static int reaspect_cuboid(struct mdlparse_vars *mpvp, struct subdivided_box *b,
     }
 
     max_z = min_z = b->z[1] - b->z[0];
-    jz = iz = 0;
+    jz = 0;
     for (i=1;i<b->nz-1;i++)
     {
       if (min_z > b->z[i+1] - b->z[i])
       {
 	min_z = b->z[i+1] - b->z[i];
-	iz = i;
       }
       else if (max_z < b->z[i+1] - b->z[i])
       {
@@ -4634,39 +4639,39 @@ static int reaspect_cuboid(struct mdlparse_vars *mpvp, struct subdivided_box *b,
     
     if (max_y/min_x > max_ratio)
     {
-      j = divide_cuboid(mpvp, b , BRANCH_Y , jy , (int)ceil(max_y/(max_ratio*min_x)) );
+      j = divide_cuboid(mpvp, b, BRANCH_Y, jy, (int)ceil(max_y/(max_ratio*min_x)));
       if (j) return 1;
       changed |= BRANCH_Y;
     }
     else if (max_x/min_y > max_ratio)
     {
-      j = divide_cuboid(mpvp, b,BRANCH_X,jx,(int)ceil(max_x/(max_ratio*min_y)));
+      j = divide_cuboid(mpvp, b, BRANCH_X, jx, (int)ceil(max_x/(max_ratio*min_y)));
       if (j) return 1;
       changed |= BRANCH_X;
     }
     
     if ((changed&BRANCH_X)==0 && max_z/min_x > max_ratio)
     {
-      j = divide_cuboid(mpvp, b , BRANCH_Z , jz , (int)ceil(max_z/(max_ratio*min_x)) );
+      j = divide_cuboid(mpvp, b, BRANCH_Z, jz, (int)ceil(max_z/(max_ratio*min_x)));
       if (j) return 1;
       changed |= BRANCH_Z;
     }
     else if ((changed&BRANCH_X)==0 && max_x/min_z > max_ratio)
     {
-      j = divide_cuboid(mpvp, b,BRANCH_X,jx,(int)ceil(max_x/(max_ratio*min_z)));
+      j = divide_cuboid(mpvp, b, BRANCH_X, jx, (int)ceil(max_x/(max_ratio*min_z)));
       if (j) return 1;
       changed |= BRANCH_X;
     }
 
     if ((changed&(BRANCH_Y|BRANCH_Z))==0 && max_z/min_y > max_ratio)
     {
-      j = divide_cuboid(mpvp, b , BRANCH_Z , jz , (int)ceil(max_z/(max_ratio*min_y)) );
+      j = divide_cuboid(mpvp, b, BRANCH_Z, jz, (int)ceil(max_z/(max_ratio*min_y)));
       if (j) return 1;
       changed |= BRANCH_Z;
     }
     else if ((changed&(BRANCH_Y|BRANCH_Z))==0 && max_y/min_z > max_ratio)
     {
-      j = divide_cuboid(mpvp, b,BRANCH_Y,jy,(int)ceil(max_y/(max_ratio*min_z)));
+      j = divide_cuboid(mpvp, b, BRANCH_Y, jy, (int)ceil(max_y/(max_ratio*min_z)));
       if (j) return 1;
       changed |= BRANCH_Y;
     }  
@@ -4906,6 +4911,7 @@ int mdl_normalize_elements(struct mdlparse_vars *mpvp,
   {
     if (reg->parent->object_type == BOX_OBJ)
     {
+      assert(po != NULL);
       i = el->begin;
       switch(i)
       {
@@ -8647,6 +8653,8 @@ static struct output_expression *mdl_new_output_requests_from_list(struct mdlpar
   struct output_expression *oe_head=NULL, *oe_tail=NULL;
   struct output_request *or_head=NULL, *or_tail=NULL;
   int report_type;
+
+  assert(targets != NULL);
   for (; targets != NULL; targets = targets->next)
   {
     if (targets->node->sym_type==MOL)
@@ -11168,8 +11176,9 @@ static struct product *sort_product_list(struct product *product_head)
   int cmp;
 
   /* Use insertion sort to sort the list of products */
-  struct product *current = product_head;
-  for (current = product_head; current != NULL; current = next)
+  for (struct product *current = product_head;
+       current != NULL;
+       current = next)
   {
     next = current->next;
 
@@ -11325,7 +11334,6 @@ static int invert_current_reaction_pathway(struct mdlparse_vars *mpvp,
   char *inverse_name;
   int nprods;  /* number of products */
   int all_3d;  /* flag that tells whether all products are volume_molecules */
-  int is_complex=0; /* flag indicating whether this reaction involves a macromolecule */
   int num_surf_products = 0;
   int num_grid_mols = 0;
   int num_vol_mols = 0;
@@ -11384,7 +11392,6 @@ static int invert_current_reaction_pathway(struct mdlparse_vars *mpvp,
   {
     if (prodp->is_complex)
     {
-      is_complex = 1;
       inverse_name = CHECKED_SPRINTF("(%s)",
                                      prodp->prod->sym->name);
     }
@@ -11395,7 +11402,6 @@ static int invert_current_reaction_pathway(struct mdlparse_vars *mpvp,
   }
   else if (nprods == 2)
   {
-    is_complex = prodp->is_complex || prodp->next->is_complex;
     inverse_name = concat_rx_name(mpvp, prodp->prod->sym->name, prodp->is_complex, prodp->next->prod->sym->name, prodp->next->is_complex);
   }
   else
@@ -15476,7 +15482,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   struct product *prod,*prod2;
   struct rxn *rx;
   struct t_func *tp;
-  double pb_factor = 0,D_tot,rate,t_step;
+  double D_tot,rate,t_step;
   short geom, geom2;
   int k,kk,k2;
   /* flags that tell whether reactant_1 is also on the product list,
@@ -15647,6 +15653,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
       while (rx != NULL)
       {
+        double pb_factor = 0.0;
         /* Check whether reaction contains pathways with equivalent product
          * lists.  Also sort pathways in alphabetical order according to the
          * "prod_signature" field.
@@ -15789,7 +15796,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	/* a single sorted list, and pull off any updates for time zero. */
         if (n_prob_t_rxns > 0)
         {
-          k = 0;
           path = rx->pathway_head;
           for (int n_pathway = 0; path!=NULL ; n_pathway++, path=path->next)
           {
@@ -16036,8 +16042,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  double eff_vel_b = rx->players[1]->space_step/rx->players[1]->time_step;
 	  double eff_vel;
 
-          pb_factor=0;
-	  
 	  if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
             mcell_error("Reaction between %s and %s listed, but both are marked TARGET_ONLY.",
                         rx->players[0]->sym->name,
@@ -16060,8 +16064,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           eff_dif_b = rx->players[1]->D;
           eff_dif_c = rx->players[2]->D;
 
-          pb_factor=0;
-	  
 	  if (rx->players[0]->flags & rx->players[1]->flags & rx->players[2]->flags & CANT_INITIATE)
             mcell_error("Reaction between %s and %s and %s listed, but all marked TARGET_ONLY.",
                         rx->players[0]->sym->name,
@@ -16213,9 +16215,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 surf_react2_geom = rx->geometries[1];
              }
 
-          
-             pb_factor=0;
-	  
 	     if (vol_reactant->flags & CANT_INITIATE)
                mcell_error("3-way reaction between %s and %s and %s listed, but the only volume reactant %s is marked TARGET_ONLY",
                            vol_reactant->sym->name,

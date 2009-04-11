@@ -162,7 +162,7 @@ collide_sv_time:
 double collide_sv_time(struct vector3 *here,struct vector3 *move,struct subvolume *sv)
 {
   double dx,dy,dz,tx,ty,tz,t;
-  int whichx,whichy,whichz,which;
+  int whichx,whichy,whichz;
   
   whichx = whichy = whichz = 1;
   if (move->x==0 && move->y==0 && move->z==0) return GIGANTIC;
@@ -182,13 +182,13 @@ double collide_sv_time(struct vector3 *here,struct vector3 *move,struct subvolum
   
   if (tx<ty || move->y==0.0)
   {
-    if (tx<tz || move->z==0.0) { t = dx / move->x; which = X_NEG + whichx; }
-    else { t = dz / move->z; which = Z_NEG + whichz; }
+    if (tx<tz || move->z==0.0) { t = dx / move->x; } /* Collision with X */
+    else                       { t = dz / move->z; } /* Collision with Z */
   }
   else /* ty<tx */
   {
-    if (ty<tz || move->z==0.0) { t = dy / move->y; which = Y_NEG + whichy; }
-    else { t = dz / move->z; which = Z_NEG + whichz; }
+    if (ty<tz || move->z==0.0) { t = dy / move->y; } /* Collision with Y */
+    else                       { t = dz / move->z; } /* Collision with Z */
   }
   
   return t;

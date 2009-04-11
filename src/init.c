@@ -1597,11 +1597,11 @@ int instance_polygon_object(struct object *objp, double (*im)[4])
 #ifdef INIT_VERTEX_NORMALS
   struct vector3 *vertex_normal;
   double origin[1][4];
+  byte compute_vertex_normals = 0;
 #endif
   double total_area;
   int index_0,index_1,index_2;
   unsigned int degenerate_count;
-  byte compute_vertex_normals;
 
   pop=(struct polygon_object *)objp->contents;
   const unsigned int n_walls = pop->n_walls;
@@ -1616,8 +1616,6 @@ int instance_polygon_object(struct object *objp, double (*im)[4])
     objp->walls=w;
     objp->wall_p=wp;
     objp->verts=v;
-
-    compute_vertex_normals=0;
 
 /* If we want vertex normals we'll have to add a place to store them
    in struct object.
@@ -1819,9 +1817,7 @@ int init_wall_regions(struct object *objp)
 
   /* prepend a copy of eff_dat for each element referenced in each region
      of this object to the eff_prop list for the referenced element */
-  rlp=objp->regions;
-  
-  for (rlp=objp->regions ; rlp!=NULL ; rlp=rlp->next)
+  for (rlp=objp->regions; rlp!=NULL; rlp=rlp->next)
   {
     rp = rlp->reg;
     if (rp->membership==NULL)
@@ -2051,7 +2047,6 @@ int init_wall_effectors(struct object *objp)
   /* List of regions which need macromol processing */
   complex_head=NULL;
   
-  rlp=objp->regions;
   for (rlp=objp->regions ; rlp!=NULL ; rlp=rlp->next)
   {
     rp=rlp->reg;
@@ -2573,7 +2568,6 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
  *******************************************************************/
 int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_num_head)
 {
-  struct polygon_object *pop;
   struct species *eff;
   struct grid_molecule ***tiles,***tiles_tmp;
   struct grid_molecule gmol,*bread_crumb,*mol;
@@ -2592,8 +2586,6 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
   struct vector3 pos3d;
 
     no_printf("Initializing effectors by number...\n");
-
-    pop=(struct polygon_object *)objp->contents;
 
     tiles=NULL;
     tiles_tmp=NULL;

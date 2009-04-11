@@ -141,7 +141,7 @@ static int produce_mol_counts(struct volume *wrld,
   for (k = 0; k < vo->nvoxels_z; ++k)
   {
     double z_lim_slab = z + vo->voxel_size.z;
-    struct subvolume *cur_partition_y = cur_partition_z;
+    struct subvolume *cur_partition_y;
 
     /* reset counters for this slab */
     memset(counters, 0, sizeof(int) * vo->nvoxels_x * vo->nvoxels_y);

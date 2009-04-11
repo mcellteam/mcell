@@ -7,6 +7,7 @@
 \**************************************************************************/
 
 
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1566,7 +1567,7 @@ static int instantiate_request(struct output_request *request)
   request->requester->expr_flags-=OEXPR_LEFT_REQUEST;  
   if ((request->report_type&REPORT_TRIGGER)==0 && request->count_location==NULL) /* World count is easy! */
   {
-    if (request->report_type&REPORT_ENCLOSED) request->report_type -= REPORT_ENCLOSED;
+    request->report_type &= ~REPORT_ENCLOSED;
     switch (report_type_only)
     {
       case REPORT_CONTENTS:
@@ -1574,6 +1575,7 @@ static int instantiate_request(struct output_request *request)
         request->requester->left=(void*)&(mol_to_count->population);
         break;
       case REPORT_RXNS:
+        assert(rx_to_count->info != NULL);
         request->requester->expr_flags|=OEXPR_LEFT_DBL;
         request->requester->left=(void*)&(rx_to_count->info[rxpn_to_count->path_num].count);
         break;
@@ -1589,6 +1591,7 @@ static int instantiate_request(struct output_request *request)
     else count_type=MOL_COUNTER;
     if (request->report_type&REPORT_ENCLOSED)
     {
+      assert(reg_of_count != NULL);
       reg_of_count->flags|=COUNT_ENCLOSED;
       count_type|=ENCLOSING_COUNTER;
       if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_ENCLOSED;
@@ -1657,6 +1660,7 @@ static int instantiate_request(struct output_request *request)
     }
     else /* Not trigger--set up for regular count */
     {
+      assert(reg_of_count != NULL);
       request->requester->expr_flags|=OEXPR_LEFT_DBL;          /* Assume double */
       switch (report_type_only)
       {
