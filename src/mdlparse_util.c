@@ -14906,7 +14906,6 @@ static void check_reaction_for_duplicate_pathways(struct mdlparse_vars *mpvp,
          /* find total number of players in the pathways */
          num_reactants = 0;
          num_products = 0;
-         num_players = 0;
          if(current->reactant1 != NULL) num_reactants++;
          if(current->reactant2 != NULL) num_reactants++;
          if(current->reactant3 != NULL) num_reactants++;
