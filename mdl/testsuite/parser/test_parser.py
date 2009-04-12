@@ -320,7 +320,7 @@ def make_invalid_test(i):
 
 ## Bulk generate invalid test cases 1...23, 26...27, 29...85
 ## 25 is specially specified, and 24 and 28 do not presently exist.
-for i in crange(1, 23) + crange(26, 27) + crange(29, 85):
+for i in crange(1, 23) + crange(26, 85):
   make_invalid_test(i)
 
 ###################################################################
