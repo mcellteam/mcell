@@ -189,5 +189,9 @@ class TestRegressions(unittest.TestCase):
     mt.set_expected_exit_code(1)
     mt.invoke(get_output_dir())
 
+  def test_015(self):
+    mt = McellTest("regression", "15-mol_grid_grid_crash.mdl", ["-quiet"])
+    mt.invoke(get_output_dir())
+
 def suite():
   return unittest.makeSuite(TestRegressions, "test")
