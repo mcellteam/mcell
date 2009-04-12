@@ -257,7 +257,7 @@ keep_counting:
     else
     {
       z = z_lim_slab;
-      z_lim_slab += vo->voxel_size.z;
+      /* z_lim_slab will be updated on the next pass through the loop. */
     }
 
     /* Spill our counts */

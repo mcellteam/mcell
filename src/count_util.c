@@ -1575,7 +1575,7 @@ static int instantiate_request(struct output_request *request)
         request->requester->left=(void*)&(mol_to_count->population);
         break;
       case REPORT_RXNS:
-        assert(rx_to_count->info != NULL);
+        assert(rx_to_count != NULL);
         request->requester->expr_flags|=OEXPR_LEFT_DBL;
         request->requester->left=(void*)&(rx_to_count->info[rxpn_to_count->path_num].count);
         break;
@@ -1598,6 +1598,7 @@ static int instantiate_request(struct output_request *request)
     }
     if (request->report_type&REPORT_TRIGGER)
     {
+      assert(reg_of_count != NULL);
       count_type|=TRIG_COUNTER;
       reg_of_count->flags|=COUNT_TRIGGER;
     }
@@ -1633,6 +1634,7 @@ static int instantiate_request(struct output_request *request)
       request->requester->expr_flags|=OEXPR_TYPE_TRIG;
       
       if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_TRIGGER;
+      assert(reg_of_count != NULL);
       switch (report_type_only)
       {
         case REPORT_CONTENTS:

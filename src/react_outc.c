@@ -539,6 +539,7 @@ static int outcome_products(struct wall *w,
     orientA = orientB;
     orientB = tmp_orient;
   }
+  assert(reacA != NULL);
 
   /* Add the reactants (incl. any wall) to the list of players. */
   add_players_to_list(rx, reacA, reacB, product, product_type);
