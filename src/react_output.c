@@ -445,7 +445,7 @@ int update_reaction_output(struct output_block *block)
                                 // 1 - end reached. 
   int report_as_non_trigger = 1;
   if (block->data_set_head != NULL  &&
-      block->data_set_head->column_head == NULL  &&
+      block->data_set_head->column_head != NULL  &&
       block->data_set_head->column_head->data_type == COUNT_TRIG_STRUCT)
     report_as_non_trigger = 0;
 
