@@ -3241,7 +3241,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                             /* Save m flags in case it gets collected in outcome_bimolecular */
                             int mflags = m->flags;
                               l = outcome_trimolecular(
-                                matching_rxns[l],ii,
+                                matching_rxns[j],ii,
                                 (struct abstract_molecule*)m,
                                 (struct abstract_molecule *)g,
                                 (struct abstract_molecule *)gm[kk],
@@ -3411,6 +3411,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
           /* Find the first wall among the tentative collisions. */
           while (tentative != NULL  &&  tentative->t <= smash->t  &&  ! (tentative->what & COLLIDE_WALL))
             tentative = tentative->next;
+          assert(tentative != NULL);
 
           /* Grab out the relevant details. */
           reflect_w  = ((struct wall *) tentative->target);
@@ -3850,7 +3851,10 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       if (shead_exp != NULL)
       {
         if (shead != NULL)
+        {
+          assert(stail != NULL);
           stail->next = shead_exp;
+        }
         else
           shead = shead_exp;
       }
