@@ -1047,7 +1047,11 @@ struct void_list* void_list_sort(struct void_list *vl)
   int stack_n[64];
   struct void_list *left,*right,*merge,*tail;
   int si = 0;
-  
+
+  /* HACK: If vl == NULL, we return stack[0] unmodified, so initialize it to
+   *       NULL. */
+  stack[0] = NULL;
+
   while (vl != NULL)
   {
     if (vl->next == NULL)
@@ -1172,7 +1176,11 @@ struct void_list* void_list_sort_by(struct void_list *vl,int (*leq)(void*,void*)
   int stack_n[64];
   struct void_list *left,*right,*merge,*tail;
   int si = 0;
-  
+
+  /* HACK: If vl == NULL, we return stack[0] unmodified, so initialize it to
+   *       NULL. */
+  stack[0] = NULL;
+
   while (vl != NULL)
   {
     if (vl->next == NULL)
