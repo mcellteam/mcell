@@ -178,7 +178,7 @@ char *mdl_find_include_file(struct mdlparse_vars *mpvp,
       candidate = mdl_strdup(mpvp, path);
     else
       candidate = CHECKED_SPRINTF("%.*s/%s",
-                                  last_slash - cur_path,
+                                  (int) (last_slash - cur_path),
                                   cur_path,
                                   path);
   }
@@ -4731,7 +4731,6 @@ static int cuboid_patch_to_bits(struct mdlparse_vars *mpvp,
   
   i = check_patch(sb,v1,v2,GIGANTIC);
   if (!i) return 1;
-  ii = NODIR;
   if ( (i&BRANCH_X)==0 )
   {
     if (sb->x[0]==v1->x) ii = X_NEG;
@@ -11296,6 +11295,7 @@ static char *concat_rx_name(struct mdlparse_vars *mpvp,
     is_complex1 = is_complex2;
     name2 = nametmp;
     is_complex2 = is_complextmp;
+    assert(is_complex2 == 0);
   }
 
   /* Build the name */
