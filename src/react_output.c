@@ -55,7 +55,7 @@ int truncate_output_file(char *name, double start_value)
   else bsize = (1<<20);
 
   /* Allocate a buffer for the file */
-  buffer = CHECKED_MALLOC_ARRAY_NODIE(char, bsize, "reaction data file scan buffer");
+  buffer = CHECKED_MALLOC_ARRAY_NODIE(char, bsize + 1, "reaction data file scan buffer");
   if (buffer==NULL)
     goto failure;
 
@@ -329,15 +329,14 @@ add_trigger_output:
    In: counter of thing that just happened (trigger of some sort)
        request structure saying who wanted to know that it happened
        number of times that thing happened
-   Out: 0 on success, 1 on error (memory allocation or file I/O).
-        The event is added to the buffer of the requester, and the
+   Out: The event is added to the buffer of the requester, and the
         buffer is written and flushed if the buffer is full.
    Note: Hits are assumed to happen with only one molecule; positive
         means the front face was hit, negative means the back was hit.
         This is reported as orientation instead.
 *************************************************************************/
 
-int add_trigger_output(struct counter *c,struct output_request *ear,int n,short flags)
+void add_trigger_output(struct counter *c,struct output_request *ear,int n,short flags)
 {
   struct output_column *first_column;
   struct output_trigger_data *otd;
@@ -375,14 +374,9 @@ int add_trigger_output(struct counter *c,struct output_request *ear,int n,short 
   if (idx >= (int) first_column->set->block->trig_bufsize)
   {
     if (write_reaction_output(first_column->set,0))
-    {
-      mcell_warn("Failed to write triggered count output to file '%s'.", first_column->set->outfile_name);
-      return 1;
-    }
+      mcell_error("Failed to write triggered count output to file '%s'.", first_column->set->outfile_name);
     first_column->initial_value = 0;
-  }  
-  
-  return 0;
+  }
 }
 
 
